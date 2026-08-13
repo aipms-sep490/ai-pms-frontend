@@ -1,0 +1,127 @@
+.split-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.endpoint-label {
+  flex: 0 0 auto;
+  padding: 9px 12px;
+  border: 1px solid #d7e0ea;
+  border-radius: 8px;
+  color: #43556b;
+  background: #f8fafc;
+  font-size: 12px;
+}
+
+.state-panel {
+  margin-top: 28px;
+  padding: 24px;
+  border: 1px solid #dbe3ec;
+  border-radius: 12px;
+  color: #526176;
+  background: #ffffff;
+}
+
+.error-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-color: #f1cec8;
+  background: #fff9f7;
+}
+
+.error-panel strong {
+  color: #8f3328;
+}
+
+.error-panel p {
+  margin: 4px 0 0;
+}
+
+.lifecycle-grid {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.lifecycle-card {
+  min-height: 170px;
+  padding: 20px;
+  border: 1px solid #dce4ed;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(22, 44, 72, 0.04);
+}
+
+.lifecycle-card.terminal {
+  background: #f8fafc;
+  box-shadow: none;
+}
+
+.lifecycle-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.lifecycle-card-header small {
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.lifecycle-card h2 {
+  margin: 18px 0 4px;
+  color: #132338;
+  font-size: 17px;
+}
+
+.lifecycle-card > p {
+  margin: 0 0 14px;
+  color: #78879a;
+  font-size: 12px;
+}
+
+.next-states {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.next-states span {
+  padding: 5px 8px;
+  border-radius: 6px;
+  color: #176b58;
+  background: #edf9f5;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.next-states span.none {
+  color: #6d7785;
+  background: #edf1f5;
+}
+
+@media (max-width: 1000px) {
+  .lifecycle-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .split-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .lifecycle-grid {
+    grid-template-columns: 1fr;
+  }
+}
