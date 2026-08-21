@@ -1,95 +1,48 @@
-import { Link } from 'react-router-dom'
-import { StudentJourney } from '../../features/auth/components/StudentJourney'
-import './overview-page.css'
-
-const moduleGroups = [
-  {
-    title: 'Foundation',
-    description: 'Identity and academic context required by every later workflow.',
-    modules: ['auth', 'users', 'academic', 'teams'],
-  },
-  {
-    title: 'Execution',
-    description: 'The operational data that makes project progress measurable.',
-    modules: ['projects', 'supervisors', 'milestones', 'tasks', 'progress', 'deliverables'],
-  },
-  {
-    title: 'Decision support',
-    description: 'Evidence-based evaluation and AI insights built after execution data exists.',
-    modules: ['evaluations', 'ai'],
-  },
-]
+import {
+  DashboardHeader,
+  DashboardMetrics,
+  MilestoneTimeline,
+  TaskList,
+  AiPreview,
+  ContributionPreview,
+} from '../../features/dashboard/components'
+import { dashboardPreviewData } from '../../features/dashboard/fixtures/dashboard-preview'
 
 export function OverviewPage() {
+  const data = dashboardPreviewData
+
   return (
-    <>
-      <section className="overview-hero">
-        <p className="eyebrow">Technical foundation</p>
-        <h1>Clean boundaries.<br />Feature ownership.</h1>
-        <p className="hero-copy">
-          The initial AI-PMS structure keeps business rules in the backend and organizes product work by feature so five members can work in parallel.
-        </p>
-        <div className="hero-actions">
-          <Link className="primary-link" to="/projects/lifecycle">Inspect project state machine</Link>
-          <span>REST + OpenAPI · SQL Server · React + TypeScript</span>
-        </div>
-      </section>
+    <div className="flex flex-col gap-6">
+      {/* 1. Header with simulation banner & project metadata */}
+      <DashboardHeader
+        projectCode={data.projectCode}
+        groupCode={data.groupCode}
+        semester={data.semester}
+        projectName={data.projectName}
+        teamLeader={data.teamLeader}
+        supervisor={data.supervisor}
+        currentMilestone={data.currentMilestone}
+      />
 
-      <section className="content-section">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Dependency direction</p>
-            <h2>Backend boundaries</h2>
-          </div>
-          <p>Domain remains independent; infrastructure and AI plug in at the composition root.</p>
-        </div>
+      {/* 2. 4-Grid Telemetry KPIs */}
+      <DashboardMetrics metrics={data.metrics} />
 
-        <div className="architecture-flow" aria-label="Backend dependency direction">
-          <article><span>01</span><strong>API</strong><small>HTTP and authorization</small></article>
-          <span className="flow-arrow" aria-hidden="true">→</span>
-          <article><span>02</span><strong>Application</strong><small>Feature use cases</small></article>
-          <span className="flow-arrow" aria-hidden="true">→</span>
-          <article><span>03</span><strong>Domain</strong><small>Rules and state</small></article>
-        </div>
+      {/* 3. 6-Milestone Academic Roadmap */}
+      <MilestoneTimeline milestones={data.milestones} />
 
-        <div className="adapter-row">
-          <span>Infrastructure → Application / Domain</span>
-          <span>AI → Application</span>
-        </div>
-      </section>
+      {/* 4. Two-Column Workspace (60/40 Split) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Task Stream (7 cols) */}
+        <section className="lg:col-span-7 flex flex-col gap-4">
+          <TaskList tasks={data.tasks} />
+        </section>
 
-      <section className="content-section">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Team ownership</p>
-            <h2>Feature map</h2>
-          </div>
-          <p>API, components, hooks, pages, schemas and types stay close to the feature that owns them.</p>
-        </div>
-
-        <div className="module-grid">
-          {moduleGroups.map((group) => (
-            <article className="module-group" key={group.title}>
-              <span className="module-kicker">{group.title}</span>
-              <p>{group.description}</p>
-              <div className="module-tags">
-                {group.modules.map((module) => <span key={module}>{module}</span>)}
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="content-section">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Role + State + Permission</p>
-            <h2>Student journey routing</h2>
-          </div>
-          <p>The route is selected from business state; backend policy remains the final authorization gate.</p>
-        </div>
-        <StudentJourney />
-      </section>
-    </>
+        {/* Right Column: AI Assistant & Member Contribution (5 cols) */}
+        <section className="lg:col-span-5 flex flex-col gap-4">
+          <AiPreview insight={data.aiInsight} />
+          <ContributionPreview contributions={data.contributions} />
+        </section>
+      </div>
+    </div>
   )
 }
