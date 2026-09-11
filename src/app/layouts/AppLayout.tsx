@@ -1,54 +1,40 @@
-import { NavLink, Outlet } from 'react-router-dom'
-import { APP_DESCRIPTION, APP_NAME } from '../../constants/app.constants'
-import './app-layout.css'
-
-const navigation = [
-  { to: '/', label: 'Architecture', end: true },
-  { to: '/projects/lifecycle', label: 'Project lifecycle' },
-]
+import { useRef, useState } from 'react'
+import { Outlet } from 'react-router-dom'
+import { Sidebar } from './Sidebar'
+import { TopHeader } from './TopHeader'
 
 export function AppLayout() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const hamburgerTriggerRef = useRef<HTMLButtonElement | null>(null)
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen((prev) => !prev)
+  }
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false)
+  }
+
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true">AI</span>
-          <span>
-            <strong>{APP_NAME}</strong>
-            <small>Project Management</small>
-          </span>
-        </div>
+    <div className="min-h-screen bg-canvas text-slate-900 flex font-sans antialiased">
+      {/* 1. Sidebar Rail & Mobile Drawer */}
+      <Sidebar
+        isOpen={isMobileMenuOpen}
+        onClose={closeMobileMenu}
+        triggerRef={hamburgerTriggerRef}
+      />
 
-        <nav className="main-navigation" aria-label="Main navigation">
-          <p className="navigation-label">Foundation</p>
-          {navigation.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <span className="nav-dot" aria-hidden="true" />
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+      {/* 2. Main Workspace Canvas */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen lg:pl-60 bg-canvas">
+        {/* Sticky Top Header Bar */}
+        <TopHeader
+          isMobileMenuOpen={isMobileMenuOpen}
+          onToggleMobileMenu={toggleMobileMenu}
+          triggerRef={hamburgerTriggerRef}
+        />
 
-        <div className="sidebar-note">
-          <span className="status-dot" aria-hidden="true" />
-          <span>
-            <strong>Sprint 0</strong>
-            <small>Architecture baseline</small>
-          </span>
-        </div>
-      </aside>
-
-      <div className="main-area">
-        <header className="topbar">
-          <p>{APP_DESCRIPTION}</p>
-          <span className="version-badge">v0.1 foundation</span>
-        </header>
-        <main className="page-content">
+        {/* Page Content Outlet */}
+        <main className="flex-1 p-4 md:p-6 max-w-[1400px] w-full mx-auto">
           <Outlet />
         </main>
       </div>

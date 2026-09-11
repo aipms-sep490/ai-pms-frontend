@@ -1,5 +1,10 @@
+import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
 import { ProjectLifecycle } from '../components/ProjectLifecycle'
+import { ProjectDossierCard } from '../components/ProjectDossierCard'
+import { TeamCompositionCard } from '../components/TeamCompositionCard'
+import { ApprovalTimelineCard } from '../components/ApprovalTimelineCard'
+import { projectDossierPreview } from '../fixtures/project-dossier-preview'
 import { useProjectLifecycle } from '../hooks/useProjectLifecycle'
 import './project-lifecycle-page.css'
 
@@ -7,29 +12,67 @@ export function ProjectLifecyclePage() {
   const { data, error, isLoading, retry } = useProjectLifecycle()
 
   return (
-    <section>
-      <div className="page-heading split-heading">
-        <div>
-          <p className="eyebrow">Domain workflow</p>
-          <h1>Project lifecycle</h1>
-          <p>Transitions come from the backend Domain state machine, not frontend-only flags.</p>
+    <div className="flex flex-col gap-6 pb-12">
+      {/* Simulation status banner */}
+      <div
+        role="status"
+        aria-label="Thông báo chế độ xem trước dữ liệu hồ sơ"
+        className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-status-warning-bg border border-status-warning-border text-status-warning-text text-xs font-medium"
+      >
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-[16px] shrink-0" aria-hidden="true">
+            info
+          </span>
+          <span>
+            <strong>Chế độ xem trước hồ sơ đề tài & nhóm</strong> — Dữ liệu thành viên và tiến trình phê duyệt minh họa.
+          </span>
         </div>
-        <code className="endpoint-label">GET /api/projects/lifecycle</code>
+        <Badge variant="warning" size="sm" className="shrink-0">
+          Mô phỏng
+        </Badge>
       </div>
 
-      {isLoading && <div className="state-panel">Loading lifecycle from the API…</div>}
+      {/* 1. Main Project Dossier & Metadata */}
+      <ProjectDossierCard dossier={projectDossierPreview} />
 
-      {!isLoading && error && (
-        <div className="state-panel error-panel">
+      {/* 2. Team Composition & Member Roles */}
+      <TeamCompositionCard
+        members={projectDossierPreview.members}
+        breakdown={projectDossierPreview.majorBreakdown}
+      />
+
+      {/* 3. Approval Timeline Stages */}
+      <ApprovalTimelineCard timeline={projectDossierPreview.timeline} />
+
+      {/* 4. Domain Workflow State Machine Integration (API-backed) */}
+      <section className="pt-6 border-t border-hairline">
+        <div className="page-heading split-heading mb-4">
           <div>
-            <strong>Backend is not available</strong>
-            <p>{error}</p>
+            <p className="eyebrow">Domain workflow engine</p>
+            <h2 className="font-heading text-lg font-bold text-slate-900">
+              Quy trình Chuyển đổi Trạng thái Đồ án (State Machine)
+            </h2>
+            <p className="text-xs text-slate-500">
+              Các bước chuyển trạng thái nghiệp vụ được điều phối từ backend domain state machine.
+            </p>
           </div>
-          <Button type="button" onClick={retry}>Retry</Button>
+          <code className="endpoint-label">GET /api/projects/lifecycle</code>
         </div>
-      )}
 
-      {!isLoading && data && <ProjectLifecycle states={data.states} />}
-    </section>
+        {isLoading && <div className="state-panel">Đang tải trạng thái lifecycle từ API...</div>}
+
+        {!isLoading && error && (
+          <div className="state-panel error-panel">
+            <div>
+              <strong>Backend is not available</strong>
+              <p>{error}</p>
+            </div>
+            <Button type="button" onClick={retry}>Thử lại (Retry)</Button>
+          </div>
+        )}
+
+        {!isLoading && data && <ProjectLifecycle states={data.states} />}
+      </section>
+    </div>
   )
 }
