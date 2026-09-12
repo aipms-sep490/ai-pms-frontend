@@ -85,13 +85,16 @@ export function GanttPage() {
 
       {/* Integrated Filter Toolbar Directly Above Chart */}
       <div className="p-3 rounded-lg border border-slate-200 bg-white shadow-xs space-y-2.5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
           {/* Search Input */}
           <div className="relative flex-1 max-w-md">
             <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
               search
             </span>
             <input
+              id="search-gantt"
+              name="searchQuery"
+              aria-label="Tìm kiếm tác vụ trên biểu đồ Gantt"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -101,9 +104,11 @@ export function GanttPage() {
           </div>
 
           {/* Critical Path Toggle & Expand All Quick Action */}
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3 lg:gap-4">
             <label className="inline-flex items-center gap-1.5 cursor-pointer select-none text-xs font-semibold text-rose-700">
               <input
+                id="critical-path-only"
+                name="onlyCritical"
                 type="checkbox"
                 checked={onlyCritical}
                 onChange={(e) => setOnlyCritical(e.target.checked)}
