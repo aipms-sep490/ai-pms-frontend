@@ -9,7 +9,7 @@ import { useProjectLifecycle } from '../hooks/useProjectLifecycle'
 import './project-lifecycle-page.css'
 
 export function ProjectLifecyclePage() {
-  const { data, error, isLoading, retry } = useProjectLifecycle()
+  const { data, error, isLoading, isForbidden, isEmpty, retry } = useProjectLifecycle()
 
   return (
     <div className="flex flex-col gap-6 pb-12">
@@ -61,17 +61,32 @@ export function ProjectLifecyclePage() {
 
         {isLoading && <div className="state-panel">Đang tải trạng thái lifecycle từ API...</div>}
 
-        {!isLoading && error && (
+        {!isLoading && isForbidden && (
+          <div className="state-panel forbidden-panel" role="alert">
+            <div>
+              <strong>Không có quyền xem lifecycle đồ án</strong>
+              <p>Backend đã từ chối yêu cầu này. Hãy dùng tài khoản được phân quyền cho đồ án.</p>
+            </div>
+          </div>
+        )}
+
+        {!isLoading && error && !isForbidden && (
           <div className="state-panel error-panel">
             <div>
               <strong>Backend is not available</strong>
-              <p>{error}</p>
+              <p>{error.message}</p>
             </div>
             <Button type="button" onClick={retry}>Thử lại (Retry)</Button>
           </div>
         )}
 
-        {!isLoading && data && <ProjectLifecycle states={data.states} />}
+        {!isLoading && data && isEmpty && (
+          <div className="state-panel empty-panel" role="status">
+            Chưa có trạng thái lifecycle nào được trả về cho đồ án này.
+          </div>
+        )}
+
+        {!isLoading && data && !isEmpty && <ProjectLifecycle states={data.states} />}
       </section>
     </div>
   )

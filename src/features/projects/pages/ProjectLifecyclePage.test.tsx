@@ -1,10 +1,27 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import { ProjectLifecyclePage } from './ProjectLifecyclePage'
 import { projectDossierPreview } from '../fixtures/project-dossier-preview'
 
+const lifecycleHook = vi.hoisted(() => ({
+  useProjectLifecycle: vi.fn(),
+}))
+
+vi.mock('../hooks/useProjectLifecycle', () => lifecycleHook)
+
 afterEach(() => {
   cleanup()
+})
+
+beforeEach(() => {
+  lifecycleHook.useProjectLifecycle.mockReturnValue({
+    data: null,
+    error: null,
+    isLoading: false,
+    isForbidden: false,
+    isEmpty: false,
+    retry: vi.fn(),
+  })
 })
 
 describe('ProjectLifecyclePage', () => {
@@ -80,5 +97,36 @@ describe('ProjectLifecyclePage', () => {
       screen.getByText('Quy trình Chuyển đổi Trạng thái Đồ án (State Machine)')
     ).toBeDefined()
     expect(screen.getByText('GET /api/projects/lifecycle')).toBeDefined()
+  })
+
+  it('renders a distinct forbidden state when the backend returns 403', () => {
+    lifecycleHook.useProjectLifecycle.mockReturnValue({
+      data: null,
+      error: new Error('Forbidden'),
+      isLoading: false,
+      isForbidden: true,
+      isEmpty: false,
+      retry: vi.fn(),
+    })
+
+    render(<ProjectLifecyclePage />)
+
+    expect(screen.getByRole('alert').textContent).toContain('Không có quyền xem lifecycle đồ án')
+    expect(screen.queryByRole('button', { name: /Thử lại/i })).toBeNull()
+  })
+
+  it('renders an explicit empty state for an empty lifecycle response', () => {
+    lifecycleHook.useProjectLifecycle.mockReturnValue({
+      data: { states: [] },
+      error: null,
+      isLoading: false,
+      isForbidden: false,
+      isEmpty: true,
+      retry: vi.fn(),
+    })
+
+    render(<ProjectLifecyclePage />)
+
+    expect(screen.getByText('Chưa có trạng thái lifecycle nào được trả về cho đồ án này.')).toBeDefined()
   })
 })
