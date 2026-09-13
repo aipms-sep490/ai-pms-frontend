@@ -1,6 +1,11 @@
 import { env } from '../../app/config/env'
 import type { ApiProblem } from '../../types/api.types'
 
+export interface HttpRequestOptions {
+  signal?: AbortSignal
+  accessToken?: string
+}
+
 export class HttpError extends Error {
   readonly status: number
   readonly problem?: ApiProblem
@@ -17,12 +22,55 @@ export class HttpError extends Error {
   }
 }
 
-export async function httpGet<T>(path: string, signal?: AbortSignal): Promise<T> {
+export async function httpGet<T>(
+  path: string,
+  signalOrOptions?: AbortSignal | HttpRequestOptions,
+): Promise<T> {
+  const options = normalizeOptions(signalOrOptions)
+  const response = await fetch(`${env.apiBaseUrl}${path}`, createRequestInit(options))
+
+  return readResponse<T>(response)
+}
+
+export async function httpPost<TResponse>(
+  path: string,
+  body: unknown,
+  options?: HttpRequestOptions,
+): Promise<TResponse> {
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
-    headers: { Accept: 'application/json' },
-    signal,
+    ...createRequestInit(options),
+    method: 'POST',
+    headers: {
+      ...createRequestInit(options).headers,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
   })
 
+  return readResponse<TResponse>(response)
+}
+
+function normalizeOptions(
+  signalOrOptions?: AbortSignal | HttpRequestOptions,
+): HttpRequestOptions | undefined {
+  if (!signalOrOptions || signalOrOptions instanceof AbortSignal) {
+    return signalOrOptions ? { signal: signalOrOptions } : undefined
+  }
+
+  return signalOrOptions
+}
+
+function createRequestInit(options?: HttpRequestOptions): RequestInit {
+  const headers: Record<string, string> = { Accept: 'application/json' }
+
+  if (options?.accessToken) {
+    headers.Authorization = `Bearer ${options.accessToken}`
+  }
+
+  return { headers, signal: options?.signal }
+}
+
+async function readResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const problem = await readProblem(response)
     throw new HttpError(problem.detail || problem.title || 'Request failed.', response.status, problem)

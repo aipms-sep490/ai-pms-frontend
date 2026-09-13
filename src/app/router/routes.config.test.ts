@@ -6,8 +6,8 @@ import {
 } from './routes.config'
 
 describe('routes.config', () => {
-  it('defines exactly 10 MVP screens', () => {
-    expect(mvpRoutes).toHaveLength(10)
+  it('defines exactly 11 MVP screens', () => {
+    expect(mvpRoutes).toHaveLength(11)
   })
 
   it('has unique route paths and unique IDs', () => {
@@ -38,6 +38,8 @@ describe('routes.config', () => {
       '/projects/lifecycle',
       '/project/milestones/M3',
       '/project/gantt',
+      '/login',
+      '/profile',
     ].sort())
   })
 
