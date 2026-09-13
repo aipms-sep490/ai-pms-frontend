@@ -35,6 +35,7 @@ export function AcademicStructurePage() {
   const [filters, setFilters] = useState(initialFilters)
   const [editor, setEditor] = useState<EditorState | null>(null)
   const [operationError, setOperationError] = useState<string | null>(null)
+  const [operationSuccess, setOperationSuccess] = useState<string | null>(null)
   const academic = useAcademicStructure(filters)
 
   const organizations = useMemo(
@@ -44,14 +45,17 @@ export function AcademicStructurePage() {
 
   const openEditor = (kind: AcademicEntityKind, record?: AcademicRecord) => {
     setOperationError(null)
+    setOperationSuccess(null)
     setEditor({ kind, record })
   }
 
   const saveRecord = async (draft: AcademicRecordDraft) => {
     setOperationError(null)
+    setOperationSuccess(null)
     try {
       await academic.submitRecord(draft)
       setEditor(null)
+      setOperationSuccess('Đã lưu thay đổi. Danh sách đang được đồng bộ lại từ backend.')
     } catch (reason: unknown) {
       const error = reason instanceof Error ? reason : new Error('Save failed')
       setOperationError(getErrorMessage(error))
@@ -61,8 +65,10 @@ export function AcademicStructurePage() {
 
   const changeStatus = async (kind: AcademicEntityKind, id: number, isActive: boolean) => {
     setOperationError(null)
+    setOperationSuccess(null)
     try {
       await academic.changeStatus(kind, id, isActive)
+      setOperationSuccess(isActive ? 'Đã kích hoạt bản ghi.' : 'Đã ngừng hoạt động bản ghi.')
     } catch (reason: unknown) {
       setOperationError(getErrorMessage(reason instanceof Error ? reason : new Error('Update failed')))
     }
@@ -119,6 +125,7 @@ export function AcademicStructurePage() {
         <p className="academic-permission-note" role="status">Bạn đang ở chế độ xem. Các thao tác thay đổi chỉ hiển thị khi backend trả action <code>manage_academic_structure</code> là khả dụng.</p>
       )}
       {operationError && <p className="academic-operation-error" role="alert">{operationError}</p>}
+      {operationSuccess && <p className="academic-operation-success" role="status">{operationSuccess}</p>}
 
       {academic.isEmpty ? (
         <section className="academic-state-panel" role="status">Không có tổ chức, bộ môn hoặc chuyên ngành nào khớp bộ lọc hiện tại.</section>

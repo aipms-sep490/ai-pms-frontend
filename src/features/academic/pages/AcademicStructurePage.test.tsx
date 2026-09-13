@@ -94,4 +94,18 @@ describe('AcademicStructurePage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Áp dụng bộ lọc' }))
     expect(academicHook.useAcademicStructure).toHaveBeenLastCalledWith({ search: 'SE', organizationId: 1, includeInactive: false })
   })
+
+  it('confirms successful supported mutations after the form is submitted', async () => {
+    const state = defaultState()
+    academicHook.useAcademicStructure.mockReturnValue(state)
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm tổ chức' }))
+    fireEvent.change(screen.getByLabelText('Mã'), { target: { value: 'FPTU2' } })
+    fireEvent.change(screen.getByLabelText('Tên'), { target: { value: 'FPT University 2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }))
+    await vi.waitFor(() => {
+      expect(state.submitRecord).toHaveBeenCalledWith(expect.objectContaining({ kind: 'organization', code: 'FPTU2' }))
+      expect(screen.getByText('Đã lưu thay đổi. Danh sách đang được đồng bộ lại từ backend.')).toBeDefined()
+    })
+  })
 })
