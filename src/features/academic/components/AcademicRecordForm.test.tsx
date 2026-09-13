@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { HttpError } from '../../../services/http/http-client'
 import { AcademicRecordForm } from './AcademicRecordForm'
 
-const hierarchy = [{ organization: { id: 1, code: 'FPTU', name: 'FPT University', description: null, isActive: true }, departments: [{ department: { id: 10, organizationId: 1, organizationCode: 'FPTU', organizationName: 'FPT University', code: 'SE', name: 'Software Engineering', description: null, isActive: true }, majors: [] }] }]
+const hierarchy = [{ organization: { id: 1, code: 'FPTU', name: 'FPT University', description: null, isActive: true, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }, departments: [{ department: { id: 10, organizationId: 1, organizationCode: 'FPTU', organizationName: 'FPT University', code: 'SE', name: 'Software Engineering', description: null, isActive: true, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }, majors: [] }] }]
 afterEach(cleanup)
 
 describe('AcademicRecordForm', () => {

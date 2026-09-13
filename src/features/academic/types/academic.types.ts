@@ -4,6 +4,8 @@ export interface Organization {
   name: string
   description: string | null
   isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Department {
@@ -15,6 +17,8 @@ export interface Department {
   name: string
   description: string | null
   isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Major {
@@ -28,6 +32,8 @@ export interface Major {
   name: string
   description: string | null
   isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface AcademicHierarchyOrganization {

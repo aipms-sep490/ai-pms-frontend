@@ -8,10 +8,10 @@ const academicHook = vi.hoisted(() => ({ useAcademicStructure: vi.fn() }))
 vi.mock('../hooks/useAcademicStructure', () => academicHook)
 
 const hierarchy = [{
-  organization: { id: 1, code: 'FPTU', name: 'FPT University', description: null, isActive: true },
+  organization: { id: 1, code: 'FPTU', name: 'FPT University', description: null, isActive: true, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
   departments: [{
-    department: { id: 10, organizationId: 1, organizationCode: 'FPTU', organizationName: 'FPT University', code: 'SE', name: 'Kỹ thuật phần mềm', description: null, isActive: true },
-    majors: [{ id: 100, departmentId: 10, departmentCode: 'SE', departmentName: 'Kỹ thuật phần mềm', organizationId: 1, organizationCode: 'FPTU', code: 'SE', name: 'Software Engineering', description: null, isActive: true }],
+    department: { id: 10, organizationId: 1, organizationCode: 'FPTU', organizationName: 'FPT University', code: 'SE', name: 'Kỹ thuật phần mềm', description: null, isActive: true, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
+    majors: [{ id: 100, departmentId: 10, departmentCode: 'SE', departmentName: 'Kỹ thuật phần mềm', organizationId: 1, organizationCode: 'FPTU', code: 'SE', name: 'Software Engineering', description: null, isActive: true, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }],
   }],
 }]
 
