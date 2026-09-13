@@ -42,4 +42,18 @@ describe('ProfilePage', () => {
     expect(screen.getByText('#42')).toBeDefined()
     expect(screen.getByText('DEPARTMENT_STAFF')).toBeDefined()
   })
+
+  it('keeps a recoverable error distinct from the signed-out state', () => {
+    authSession.session = {
+      user: { id: 42, email: 'staff@example.edu.vn', fullName: 'Department Staff', roles: [] },
+    }
+    authSession.status = 'authenticated'
+    authSession.error = new Error('Profile refresh failed')
+
+    render(<ProfilePage />, { wrapper: MemoryRouter })
+
+    expect(screen.getByText('Department Staff')).toBeDefined()
+    expect(screen.getByRole('alert').textContent).toContain('Không thể làm mới hồ sơ')
+    expect(screen.getByRole('button', { name: 'Làm mới hồ sơ' })).toBeDefined()
+  })
 })
