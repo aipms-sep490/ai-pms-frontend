@@ -9,6 +9,7 @@ import { LoginPage } from '../../features/auth/pages/LoginPage'
 import { ProfilePage } from '../../features/auth/pages/ProfilePage'
 import { AcademicStructurePage } from '../../features/academic/pages/AcademicStructurePage'
 import { AcademicGovernancePage } from '../../features/academic/pages/AcademicGovernancePage'
+import { AdminSecurityPage } from '../../features/users/pages/AdminSecurityPage'
 
 export const appRouter = createBrowserRouter([
   { path: 'login', element: <LoginPage /> },
@@ -24,6 +25,7 @@ export const appRouter = createBrowserRouter([
       { path: 'profile', element: <ProfilePage /> },
       { path: 'academic', element: <AcademicStructurePage /> },
       { path: 'academic/governance', element: <AcademicGovernancePage /> },
+      { path: 'admin/access', element: <AdminSecurityPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

@@ -56,6 +56,12 @@ export async function httpPatch<TResponse>(
   return sendJson<TResponse>('PATCH', path, body, options)
 }
 
+export async function httpDelete<TResponse>(path: string, options?: HttpRequestOptions): Promise<TResponse> {
+  const response = await fetch(`${env.apiBaseUrl}${path}`, { ...createRequestInit(options), method: 'DELETE' })
+  if (response.status === 204) return undefined as TResponse
+  return readResponse<TResponse>(response)
+}
+
 async function sendJson<TResponse>(
   method: 'POST' | 'PUT' | 'PATCH',
   path: string,

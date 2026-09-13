@@ -11,4 +11,8 @@ export const endpoints = {
   academicMajors: '/v1/academic/majors',
   academicSemesters: '/v1/academic/semesters',
   academicProjectPeriods: '/v1/academic/project-periods',
+  users: '/v1/users',
+  securityRoles: '/v1/security/roles',
+  securityPermissions: '/v1/security/permissions',
+  securityAuditLogs: '/v1/security/audit-logs',
 } as const
