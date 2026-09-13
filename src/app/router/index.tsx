@@ -5,8 +5,17 @@ import { NotFoundPage } from '../pages/NotFoundPage'
 import { ProjectLifecyclePage } from '../../features/projects/pages/ProjectLifecyclePage'
 import { MilestoneDetailPage } from '../../features/milestones/pages/MilestoneDetailPage'
 import { GanttPage } from '../../features/progress/pages/GanttPage'
+import { LoginPage } from '../../features/auth/pages/LoginPage'
+import { ProfilePage } from '../../features/auth/pages/ProfilePage'
+import { AcademicStructurePage } from '../../features/academic/pages/AcademicStructurePage'
+import { AcademicGovernancePage } from '../../features/academic/pages/AcademicGovernancePage'
+import { AdminSecurityPage } from '../../features/users/pages/AdminSecurityPage'
+import { ProjectReviewPage } from '../../features/projects/pages/ProjectReviewPage'
+import { SupervisorMonitoringPage } from '../../features/supervisors/pages/SupervisorMonitoringPage'
+import { TopicManagementPage } from '../../features/topics/pages/TopicManagementPage'
 
 export const appRouter = createBrowserRouter([
+  { path: 'login', element: <LoginPage /> },
   {
     element: <AppLayout />,
     children: [
@@ -16,6 +25,16 @@ export const appRouter = createBrowserRouter([
       { path: 'project/milestones/:milestoneId', element: <MilestoneDetailPage /> },
       { path: 'project/milestones', element: <Navigate to="/project/milestones/M3" replace /> },
       { path: 'project/gantt', element: <GanttPage /> },
+      { path: 'profile', element: <ProfilePage /> },
+      { path: 'academic', element: <AcademicStructurePage /> },
+      { path: 'academic/governance', element: <AcademicGovernancePage /> },
+      { path: 'admin/access', element: <AdminSecurityPage /> },
+      { path: 'department/projects/review', element: <ProjectReviewPage /> },
+      { path: 'department/projects/review/:id', element: <ProjectReviewPage /> },
+      { path: 'department/supervisors', element: <SupervisorMonitoringPage /> },
+      { path: 'department/supervisors/:id', element: <SupervisorMonitoringPage /> },
+      { path: 'department/topics', element: <TopicManagementPage /> },
+      { path: 'department/topics/:id', element: <TopicManagementPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

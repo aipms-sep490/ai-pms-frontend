@@ -1,0 +1,1 @@
+.topic{display:grid;gap:12px;padding-bottom:32px}.topic article,.topic__create{display:grid;gap:8px;padding:14px;border:1px solid #dbe3ec;border-radius:10px;background:#fff}.topic__filters{display:flex;gap:8px}.topic input,.topic select{min-height:38px;padding:8px}@media(max-width:620px){.topic__filters{display:grid}.topic__create{grid-template-columns:1fr}}

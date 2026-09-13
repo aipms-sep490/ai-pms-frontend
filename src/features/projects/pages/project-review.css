@@ -1,0 +1,1 @@
+.review-page{display:grid;gap:16px;padding-bottom:40px}.review-page article,.review-page section{padding:16px;border:1px solid #dbe3ec;border-radius:12px;background:#fff}.review-page textarea{width:100%;min-height:90px;margin-bottom:8px;padding:8px}@media(max-width:620px){.review-page{gap:10px}}
