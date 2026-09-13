@@ -8,6 +8,7 @@ import { GanttPage } from '../../features/progress/pages/GanttPage'
 import { LoginPage } from '../../features/auth/pages/LoginPage'
 import { ProfilePage } from '../../features/auth/pages/ProfilePage'
 import { AcademicStructurePage } from '../../features/academic/pages/AcademicStructurePage'
+import { AcademicGovernancePage } from '../../features/academic/pages/AcademicGovernancePage'
 
 export const appRouter = createBrowserRouter([
   { path: 'login', element: <LoginPage /> },
@@ -22,6 +23,7 @@ export const appRouter = createBrowserRouter([
       { path: 'project/gantt', element: <GanttPage /> },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'academic', element: <AcademicStructurePage /> },
+      { path: 'academic/governance', element: <AcademicGovernancePage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

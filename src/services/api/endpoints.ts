@@ -9,4 +9,6 @@ export const endpoints = {
   academicOrganizations: '/v1/academic/organizations',
   academicDepartments: '/v1/academic/departments',
   academicMajors: '/v1/academic/majors',
+  academicSemesters: '/v1/academic/semesters',
+  academicProjectPeriods: '/v1/academic/project-periods',
 } as const
