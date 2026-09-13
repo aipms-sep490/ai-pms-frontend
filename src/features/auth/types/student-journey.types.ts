@@ -9,9 +9,13 @@ export type StudentJourneyState =
   | 'FINAL_SUBMISSION'
   | 'COMPLETED'
 
+export type StudentDestinationAvailability = 'available' | 'planned'
+
 export interface StudentNavigationStep {
   state: StudentJourneyState
   label: string
   route: string
+  availability: StudentDestinationAvailability
+  plannedRoute?: string
   action: string
 }
