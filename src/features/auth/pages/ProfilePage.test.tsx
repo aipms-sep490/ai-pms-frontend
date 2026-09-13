@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
+import { HttpError } from '../../../services/http/http-client'
 import { ProfilePage } from './ProfilePage'
 
 const authSession = vi.hoisted(() => ({
@@ -48,12 +49,12 @@ describe('ProfilePage', () => {
       user: { id: 42, email: 'staff@example.edu.vn', fullName: 'Department Staff', roles: [] },
     }
     authSession.status = 'authenticated'
-    authSession.error = new Error('Profile refresh failed')
+    authSession.error = new HttpError('Forbidden', 403)
 
     render(<ProfilePage />, { wrapper: MemoryRouter })
 
     expect(screen.getByText('Department Staff')).toBeDefined()
-    expect(screen.getByRole('alert').textContent).toContain('Không thể làm mới hồ sơ')
+    expect(screen.getByRole('alert').textContent).toContain('không có quyền xem hồ sơ')
     expect(screen.getByRole('button', { name: 'Làm mới hồ sơ' })).toBeDefined()
   })
 })

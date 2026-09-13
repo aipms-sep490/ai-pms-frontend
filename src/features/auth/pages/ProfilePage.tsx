@@ -1,7 +1,17 @@
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
+import { HttpError } from '../../../services/http/http-client'
 import { useAuthSession } from '../context/useAuthSession'
 import './auth-pages.css'
+
+function getProfileErrorMessage(error: Error): string {
+  if (error instanceof HttpError) {
+    if (error.status === 401) return 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.'
+    if (error.status === 403) return 'Tài khoản không có quyền xem hồ sơ hiện tại.'
+  }
+
+  return 'Không thể kết nối dịch vụ hồ sơ. Hãy thử lại.'
+}
 
 export function ProfilePage() {
   const { session, status, error, refreshProfile } = useAuthSession()
@@ -38,7 +48,7 @@ export function ProfilePage() {
         </div>
       </div>
 
-      {error && <p className="auth-error" role="alert">Không thể làm mới hồ sơ. Hãy thử lại.</p>}
+      {error && <p className="auth-error" role="alert">{getProfileErrorMessage(error)}</p>}
 
       <Button variant="secondary" onClick={() => void refreshProfile()} disabled={isRefreshing}>
         {isRefreshing ? 'Đang làm mới…' : 'Làm mới hồ sơ'}
