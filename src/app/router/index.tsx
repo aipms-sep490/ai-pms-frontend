@@ -11,6 +11,7 @@ import { AcademicStructurePage } from '../../features/academic/pages/AcademicStr
 import { AcademicGovernancePage } from '../../features/academic/pages/AcademicGovernancePage'
 import { AdminSecurityPage } from '../../features/users/pages/AdminSecurityPage'
 import { ProjectReviewPage } from '../../features/projects/pages/ProjectReviewPage'
+import { SupervisorMonitoringPage } from '../../features/supervisors/pages/SupervisorMonitoringPage'
 
 export const appRouter = createBrowserRouter([
   { path: 'login', element: <LoginPage /> },
@@ -29,6 +30,8 @@ export const appRouter = createBrowserRouter([
       { path: 'admin/access', element: <AdminSecurityPage /> },
       { path: 'department/projects/review', element: <ProjectReviewPage /> },
       { path: 'department/projects/review/:id', element: <ProjectReviewPage /> },
+      { path: 'department/supervisors', element: <SupervisorMonitoringPage /> },
+      { path: 'department/supervisors/:id', element: <SupervisorMonitoringPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

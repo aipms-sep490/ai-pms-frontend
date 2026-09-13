@@ -16,4 +16,5 @@ export const endpoints = {
   securityPermissions: '/v1/security/permissions',
   securityAuditLogs: '/v1/security/audit-logs',
   projectReviewQueue: '/v1/projects/review-queue',
+  supervisors: '/v1/supervisors',
 } as const
