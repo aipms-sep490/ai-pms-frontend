@@ -4,4 +4,9 @@ export const endpoints = {
   progressAnalysis: '/ai/insights/progress',
   authLogin: '/v1/auth/login',
   authCurrentUser: '/v1/auth/me',
+  authWorkflowContext: '/v1/auth/me/context',
+  academicHierarchy: '/v1/academic/hierarchy',
+  academicOrganizations: '/v1/academic/organizations',
+  academicDepartments: '/v1/academic/departments',
+  academicMajors: '/v1/academic/majors',
 } as const

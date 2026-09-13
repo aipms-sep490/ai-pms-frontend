@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canAccess, hasAnyRole, type AuthorizationContext } from './access-policy'
+import { canAccess, canPerformBackendAction, hasAnyRole, type AuthorizationContext } from './access-policy'
 
 const leaderContext: AuthorizationContext = {
   roles: ['STUDENT_LEADER'],
@@ -41,5 +41,14 @@ describe('access policy', () => {
   it('keeps role checks separate for navigation and presentation', () => {
     expect(hasAnyRole(leaderContext, ['STUDENT_LEADER'])).toBe(true)
     expect(hasAnyRole(leaderContext, ['SUPERVISOR'])).toBe(false)
+  })
+
+  it('uses backend-evaluated actions instead of inventing a permission code', () => {
+    expect(canPerformBackendAction([
+      { code: 'manage_academic_structure', allowed: true, reasons: [] },
+    ], 'manage_academic_structure')).toBe(true)
+    expect(canPerformBackendAction([
+      { code: 'manage_academic_structure', allowed: false, reasons: ['ACADEMIC_MANAGER_REQUIRED'] },
+    ], 'manage_academic_structure')).toBe(false)
   })
 })

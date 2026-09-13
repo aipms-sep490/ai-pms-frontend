@@ -45,6 +45,13 @@ export interface AccessRequirement {
   requireProjectMembership?: boolean
 }
 
+/** A backend-evaluated workflow action. It is not a frontend permission claim. */
+export interface BackendAction {
+  code: string
+  allowed: boolean
+  reasons: readonly string[]
+}
+
 /**
  * Evaluates frontend UX access only. Backend authorization remains final.
  * Roles are available to navigation and presentation, but cannot grant access
@@ -81,4 +88,15 @@ export function hasAnyRole(
   roles: readonly AiPmsRole[],
 ): boolean {
   return roles.some((role) => context.roles.includes(role))
+}
+
+/**
+ * Use backend action availability for UI affordances when permission codes are
+ * not present in the login payload. The API still enforces every operation.
+ */
+export function canPerformBackendAction(
+  actions: readonly BackendAction[],
+  actionCode: string,
+): boolean {
+  return actions.some((action) => action.code === actionCode && action.allowed)
 }

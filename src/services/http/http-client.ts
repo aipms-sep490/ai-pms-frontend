@@ -37,11 +37,37 @@ export async function httpPost<TResponse>(
   body: unknown,
   options?: HttpRequestOptions,
 ): Promise<TResponse> {
+  return sendJson<TResponse>('POST', path, body, options)
+}
+
+export async function httpPut<TResponse>(
+  path: string,
+  body: unknown,
+  options?: HttpRequestOptions,
+): Promise<TResponse> {
+  return sendJson<TResponse>('PUT', path, body, options)
+}
+
+export async function httpPatch<TResponse>(
+  path: string,
+  body: unknown,
+  options?: HttpRequestOptions,
+): Promise<TResponse> {
+  return sendJson<TResponse>('PATCH', path, body, options)
+}
+
+async function sendJson<TResponse>(
+  method: 'POST' | 'PUT' | 'PATCH',
+  path: string,
+  body: unknown,
+  options?: HttpRequestOptions,
+): Promise<TResponse> {
+  const requestInit = createRequestInit(options)
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
-    ...createRequestInit(options),
-    method: 'POST',
+    ...requestInit,
+    method,
     headers: {
-      ...createRequestInit(options).headers,
+      ...requestInit.headers,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
