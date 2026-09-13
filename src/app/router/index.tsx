@@ -12,6 +12,7 @@ import { AcademicGovernancePage } from '../../features/academic/pages/AcademicGo
 import { AdminSecurityPage } from '../../features/users/pages/AdminSecurityPage'
 import { ProjectReviewPage } from '../../features/projects/pages/ProjectReviewPage'
 import { SupervisorMonitoringPage } from '../../features/supervisors/pages/SupervisorMonitoringPage'
+import { TopicManagementPage } from '../../features/topics/pages/TopicManagementPage'
 
 export const appRouter = createBrowserRouter([
   { path: 'login', element: <LoginPage /> },
@@ -32,6 +33,8 @@ export const appRouter = createBrowserRouter([
       { path: 'department/projects/review/:id', element: <ProjectReviewPage /> },
       { path: 'department/supervisors', element: <SupervisorMonitoringPage /> },
       { path: 'department/supervisors/:id', element: <SupervisorMonitoringPage /> },
+      { path: 'department/topics', element: <TopicManagementPage /> },
+      { path: 'department/topics/:id', element: <TopicManagementPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
