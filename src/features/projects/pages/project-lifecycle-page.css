@@ -41,6 +41,24 @@
   margin: 4px 0 0;
 }
 
+.forbidden-panel {
+  border-color: #e8d8a9;
+  background: #fffcf2;
+}
+
+.forbidden-panel strong {
+  color: #71540a;
+}
+
+.forbidden-panel p {
+  margin: 4px 0 0;
+}
+
+.empty-panel {
+  border-style: dashed;
+  background: #f8fafc;
+}
+
 .lifecycle-grid {
   margin-top: 28px;
   display: grid;

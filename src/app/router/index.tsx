@@ -11,8 +11,17 @@ import { ProjectRegistrationFormPage } from '../../features/projects/pages/Proje
 import { ProjectReviewStatusPage } from '../../features/projects/pages/ProjectReviewStatusPage'
 import { SupervisorSelectionPage } from '../../features/supervisors/pages/SupervisorSelectionPage'
 import { LoginPage } from '../../features/auth/pages/LoginPage'
+import { LoginPage } from '../../features/auth/pages/LoginPage'
+import { ProfilePage } from '../../features/auth/pages/ProfilePage'
+import { AcademicStructurePage } from '../../features/academic/pages/AcademicStructurePage'
+import { AcademicGovernancePage } from '../../features/academic/pages/AcademicGovernancePage'
+import { AdminSecurityPage } from '../../features/users/pages/AdminSecurityPage'
+import { ProjectReviewPage } from '../../features/projects/pages/ProjectReviewPage'
+import { SupervisorMonitoringPage } from '../../features/supervisors/pages/SupervisorMonitoringPage'
+import { TopicManagementPage } from '../../features/topics/pages/TopicManagementPage'
 
 export const appRouter = createBrowserRouter([
+  { path: 'login', element: <LoginPage /> },
   {
     path: 'login',
     element: <LoginPage />,
@@ -36,6 +45,16 @@ export const appRouter = createBrowserRouter([
       { path: 'project/status', element: <ProjectReviewStatusPage /> },
       { path: 'project/supervisor', element: <SupervisorSelectionPage /> },
 
+      { path: 'profile', element: <ProfilePage /> },
+      { path: 'academic', element: <AcademicStructurePage /> },
+      { path: 'academic/governance', element: <AcademicGovernancePage /> },
+      { path: 'admin/access', element: <AdminSecurityPage /> },
+      { path: 'department/projects/review', element: <ProjectReviewPage /> },
+      { path: 'department/projects/review/:id', element: <ProjectReviewPage /> },
+      { path: 'department/supervisors', element: <SupervisorMonitoringPage /> },
+      { path: 'department/supervisors/:id', element: <SupervisorMonitoringPage /> },
+      { path: 'department/topics', element: <TopicManagementPage /> },
+      { path: 'department/topics/:id', element: <TopicManagementPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

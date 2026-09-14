@@ -123,7 +123,17 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
     breadcrumb: 'Đăng nhập',
     icon: 'lock',
     role: 'all',
-    status: 'coming_soon',
+    status: 'implemented',
+    section: 'auth',
+  },
+  {
+    id: 'profile',
+    path: '/profile',
+    title: 'Hồ sơ tài khoản',
+    breadcrumb: 'Hồ sơ',
+    icon: 'account_circle',
+    role: 'all',
+    status: 'implemented',
     section: 'auth',
   },
 ] as const

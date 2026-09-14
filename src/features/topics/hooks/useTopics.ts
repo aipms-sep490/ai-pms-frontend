@@ -1,0 +1,13 @@
+import { useCallback, useEffect, useState } from 'react'
+import { HttpError } from '../../../services/http/http-client'
+import { useAuthSession } from '../../auth/context/useAuthSession'
+import { closeTopic, createTopic, getTopic, listTopics, publishTopic, updateTopic, type CreateTopic, type Topic, type TopicFilters, type TopicPage, type TopicContent } from '../api/topic-api'
+
+const empty: TopicPage = { items: [], page: 1, pageSize: 20, totalCount: 0 }
+export function useTopics(id?: number) {
+  const { session } = useAuthSession(); const [directory, setDirectory] = useState<TopicPage>(empty); const [current, setCurrent] = useState<Topic | null>(null); const [filters, setFilters] = useState<TopicFilters>({ status: 'DRAFT', page: 1, pageSize: 20 }); const [loading, setLoading] = useState(Boolean(session)); const [error, setError] = useState<Error | null>(null); const [saving, setSaving] = useState(false)
+  const refresh = useCallback(async () => { if (!session) return; setLoading(true); setError(null); try { if (id) setCurrent(await getTopic(id, session.accessToken)); else setDirectory(await listTopics(session.accessToken, filters)) } catch (caught) { setError(caught as Error) } finally { setLoading(false) } }, [id, session, filters])
+  useEffect(() => { void refresh() }, [refresh])
+  const mutate = async (operation: () => Promise<Topic>) => { setSaving(true); setError(null); try { const topic = await operation(); setCurrent(topic); await refresh(); return topic } catch (caught) { setError(caught as Error); throw caught } finally { setSaving(false) } }
+  return { items: directory.items, page: directory.page, pageSize: directory.pageSize, totalCount: directory.totalCount, current, filters, setFilters, loading, error, saving, refresh, create: (input: CreateTopic) => session ? mutate(() => createTopic(input, session.accessToken)) : Promise.reject(new Error('Unauthenticated')), update: (content: TopicContent) => session && current ? mutate(() => updateTopic(current.id, content, current.concurrencyToken, session.accessToken)) : Promise.reject(new Error('Topic unavailable')), publish: () => session && current ? mutate(() => publishTopic(current.id, current.concurrencyToken, session.accessToken)) : Promise.reject(new Error('Topic unavailable')), close: (reason: string) => session && current ? mutate(() => closeTopic(current.id, current.concurrencyToken, reason, session.accessToken)) : Promise.reject(new Error('Topic unavailable')), isUnauthorized: !session || (error instanceof HttpError && error.status === 401), isForbidden: error instanceof HttpError && error.status === 403 }
+}
