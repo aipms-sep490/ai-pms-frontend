@@ -9,10 +9,8 @@ import type {
   TeamDto,
   ProjectDto,
   UserAccountDto,
-  SemesterDto,
   ProjectPeriodDto,
   SupervisorAssignmentDto,
-  UserWorkflowContextDto,
   TeamWorkflowActionsDto,
   ProjectWorkflowActionsDto,
 } from '../../types/backend'
@@ -23,39 +21,46 @@ import {
   getActivePrimaryAssignment,
 } from '../../features/projects/utils/project-resolution.utils'
 import { StudentJourneyContext } from './StudentJourneyContext'
+import { useAcademicWorkflow } from './useAcademicWorkflow'
+
+function toJourneyProfile(workflow: ReturnType<typeof useAcademicWorkflow>['workflowContext']): UserAccountDto | null {
+  if (!workflow) return null
+  return {
+    id: workflow.user.id,
+    departmentId: workflow.academic.department?.id ?? null,
+    majorId: workflow.academic.major?.id ?? null,
+    email: workflow.user.email,
+    fullName: workflow.user.fullName,
+    studentCode: workflow.user.studentCode ?? null,
+    employeeCode: workflow.user.employeeCode ?? null,
+    status: workflow.user.status,
+    roles: workflow.user.effectiveRoles,
+  }
+}
 
 export function StudentJourneyProvider({ children }: { children: ReactNode }) {
+  const { workflowContext } = useAcademicWorkflow()
   const [journeyState, setJourneyState] = useState<StudentJourneyState>('TEAM_FORMING')
-  const [profile, setProfile] = useState<UserAccountDto | null>(null)
-  const [semester, setSemester] = useState<SemesterDto | null>(null)
   const [period, setPeriod] = useState<ProjectPeriodDto | null>(null)
   const [team, setTeam] = useState<TeamDto | null>(null)
   const [project, setProject] = useState<ProjectDto | null>(null)
   const [assignments, setAssignments] = useState<SupervisorAssignmentDto[]>([])
-  const [workflowContext, setWorkflowContext] = useState<UserWorkflowContextDto | null>(null)
   const [teamActions, setTeamActions] = useState<TeamWorkflowActionsDto | null>(null)
   const [projectActions, setProjectActions] = useState<ProjectWorkflowActionsDto | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const profile = toJourneyProfile(workflowContext)
+  const semester = workflowContext?.selectedSemester ?? null
 
   const refreshAll = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
-      const workflow = env.isMockMode ? null : await services.workflow.getCurrentContext()
-      setWorkflowContext(workflow)
-
-      // 1. Load User Profile
-      const prof = await services.auth.getMyProfile()
-      setProfile(prof)
-
-      // 2. Load Academic Semester & Period
-      const sem = await services.academic.getActiveSemester()
-      setSemester(sem)
-
+      // Global workflow context owns identity and selected semester. This provider only
+      // loads feature-specific data that the global contract does not expose.
       let per: ProjectPeriodDto | null = null
-      if (sem) {
-        per = await services.academic.getRegistrationPeriod(sem.id)
+      if (semester) {
+        per = await services.academic.getRegistrationPeriod(semester.id)
         setPeriod(per)
       } else {
         setPeriod(null)
@@ -63,8 +68,8 @@ export function StudentJourneyProvider({ children }: { children: ReactNode }) {
 
       // 3. Load Current Team (handles 204 or null cleanly)
       let currentTeam: TeamDto | null = null
-      if (sem) {
-        currentTeam = await services.team.getCurrentTeam(sem.id)
+      if (semester) {
+        currentTeam = await services.team.getCurrentTeam(semester.id)
         setTeam(currentTeam)
       } else {
         setTeam(null)
@@ -136,10 +141,10 @@ export function StudentJourneyProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [semester])
 
   useEffect(() => {
-    refreshAll()
+    void refreshAll()
   }, [refreshAll])
 
   const setSimulatedJourneyState = (state: StudentJourneyState) => {

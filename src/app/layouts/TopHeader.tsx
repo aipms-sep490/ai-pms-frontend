@@ -1,6 +1,8 @@
-import type { RefObject } from 'react'
+import { useContext, type RefObject } from 'react'
 import { useLocation } from 'react-router-dom'
 import { getBreadcrumbForPath } from '../router/routes.config'
+import { useAcademicWorkflow } from '../context/useAcademicWorkflow'
+import { StudentJourneyContext } from '../context/StudentJourneyContext'
 
 interface TopHeaderProps {
   onToggleMobileMenu: () => void
@@ -14,6 +16,11 @@ export function TopHeader({
   triggerRef,
 }: TopHeaderProps) {
   const location = useLocation()
+  const { academic } = useAcademicWorkflow()
+  const journey = useContext(StudentJourneyContext)
+  const team = journey?.team
+  const selectedSemester = academic?.selectedSemester
+  const openPeriod = academic?.periods.find((period) => period.isOpen)
 
   return (
     <header className="sticky top-0 h-12 bg-white/95 backdrop-blur-md border-b border-hairline z-30 px-3 sm:px-4 md:px-6 flex items-center justify-between">
@@ -37,9 +44,9 @@ export function TopHeader({
           aria-label="Đường dẫn điều hướng breadcrumb"
           className="flex items-center gap-1.5 sm:gap-2 text-xs text-slate-500 font-sans truncate"
         >
-          <span className="font-semibold text-slate-800 shrink-0">SEP490</span>
+          <span className="font-semibold text-slate-800 shrink-0">{selectedSemester?.code ?? 'AI-PMS'}</span>
           <span aria-hidden="true" className="text-slate-300 shrink-0">/</span>
-          <span className="text-slate-600 font-medium hidden sm:inline shrink-0">Nhóm SE28</span>
+          <span className="text-slate-600 font-medium hidden sm:inline shrink-0">{team?.code ?? 'Nhóm chưa xác định'}</span>
           <span aria-hidden="true" className="hidden sm:inline text-slate-300 shrink-0">/</span>
           <span className="font-mono text-primary font-semibold truncate max-w-[200px] sm:max-w-xs md:max-w-none">
             {getBreadcrumbForPath(location.pathname)}
@@ -63,11 +70,12 @@ export function TopHeader({
           <span className="text-slate-500 font-medium">Tìm kiếm (Sắp có)</span>
         </button>
 
-        {/* Academic Semester Badge */}
-        <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-[11px] font-mono font-medium">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
-          Fall 2026 • M3 Active
-        </span>
+        {selectedSemester ? (
+          <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-[11px] font-mono font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
+            {selectedSemester.name}{openPeriod ? ` • ${openPeriod.name}` : ''}
+          </span>
+        ) : null}
 
         {/* Notification Bell (Honest disabled state with tooltip) */}
         <button

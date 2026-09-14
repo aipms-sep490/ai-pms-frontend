@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { getStudentNavItems } from '../router/routes.config'
 import { StudentJourneyContext } from '../context'
+import { useAcademicWorkflow } from '../context/useAcademicWorkflow'
 import { useAuthSession } from '../../features/auth/context/useAuthSession'
 
 interface SidebarProps {
@@ -15,9 +16,10 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
   const location = useLocation()
   const asideRef = useRef<HTMLElement | null>(null)
   const journey = useContext(StudentJourneyContext)
+  const { academic } = useAcademicWorkflow()
   const { logout } = useAuthSession()
   const { profile, semester, team, project } = journey ?? {}
-  const workspaceCode = project?.code?.trim() || 'SEP490'
+  const workspaceCode = project?.code?.trim() || academic?.selectedSemester?.code || 'Ngữ cảnh chưa xác định'
   const teamLabel = team?.code?.trim() || team?.name?.trim() || 'Chưa có nhóm'
   const profileName = profile?.fullName?.trim() || 'Sinh viên'
   const profileCode = profile?.studentCode || 'Tài khoản sinh viên'

@@ -3,6 +3,7 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { AppLayout } from './AppLayout'
 import { AuthSessionContext } from '../../features/auth/context/auth-session-context'
+import { AcademicWorkflowContext } from '../context/academic-workflow-context'
 
 afterEach(() => {
   cleanup()
@@ -19,9 +20,20 @@ function renderAppLayout(initialEntries = ['/project/workspace']) {
       logout: async () => {},
       restoreSession: async () => {},
     }}>
-      <MemoryRouter initialEntries={initialEntries}>
-        <AppLayout />
-      </MemoryRouter>
+      <AcademicWorkflowContext.Provider value={{
+        currentUser: null,
+        workflowContext: null,
+        academic: null,
+        authorization: { roles: [], permissions: [], departmentIds: [], majorIds: [] },
+        status: 'idle',
+        error: null,
+        errorKind: null,
+        refresh: async () => {},
+      }}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <AppLayout />
+        </MemoryRouter>
+      </AcademicWorkflowContext.Provider>
     </AuthSessionContext.Provider>,
   )
 }
@@ -33,7 +45,7 @@ describe('AppLayout & Navigation Shell', () => {
     // Brand title
     expect(screen.getByText('AI-PMS • FPTU')).toBeDefined()
     expect(screen.getByText('Học kỳ chưa xác định')).toBeDefined()
-    expect(screen.getByText(/SEP490\s*\/\s*Chưa có nhóm/)).toBeDefined()
+    expect(screen.getByText(/Ngữ cảnh chưa xác định\s*\/\s*Chưa có nhóm/)).toBeDefined()
 
     // Active navigation item and breadcrumb
     expect(screen.getAllByText('Bàn làm việc Tổng quan').length).toBeGreaterThanOrEqual(1)

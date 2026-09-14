@@ -19,16 +19,18 @@ import { ProjectReviewPage } from '../../features/projects/pages/ProjectReviewPa
 import { SupervisorMonitoringPage } from '../../features/supervisors/pages/SupervisorMonitoringPage'
 import { TopicManagementPage } from '../../features/topics/pages/TopicManagementPage'
 import { ProtectedRoute } from '../../features/auth/components/ProtectedRoute'
-import { StudentJourneyProvider } from '../context'
+import { AcademicWorkflowGate, StudentJourneyProvider } from '../context'
 
 export const appRouter = createBrowserRouter([
   { path: 'login', element: <LoginPage /> },
   {
     element: (
       <ProtectedRoute>
-        <StudentJourneyProvider>
-          <AppLayout />
-        </StudentJourneyProvider>
+        <AcademicWorkflowGate>
+          <StudentJourneyProvider>
+            <AppLayout />
+          </StudentJourneyProvider>
+        </AcademicWorkflowGate>
       </ProtectedRoute>
     ),
     children: [

@@ -8,6 +8,7 @@ export const aiPmsRoles = [
 ] as const
 
 export type AiPmsRole = (typeof aiPmsRoles)[number]
+export type WorkflowRole = AiPmsRole | string
 
 export const projectStates = [
   'DRAFT',
@@ -32,8 +33,10 @@ export type ProjectState = (typeof projectStates)[number]
 export type Permission = string
 
 export interface AuthorizationContext {
-  roles: readonly AiPmsRole[]
+  roles: readonly WorkflowRole[]
   permissions: readonly Permission[]
+  departmentIds: readonly number[]
+  majorIds: readonly number[]
   projectId?: string
   projectState?: ProjectState
   isProjectMember?: boolean
@@ -85,9 +88,25 @@ export function canAccess(
 
 export function hasAnyRole(
   context: AuthorizationContext,
-  roles: readonly AiPmsRole[],
+  roles: readonly WorkflowRole[],
 ): boolean {
   return roles.some((role) => context.roles.includes(role))
+}
+
+export function hasRole(context: AuthorizationContext, role: WorkflowRole): boolean {
+  return context.roles.includes(role)
+}
+
+export function hasPermission(context: AuthorizationContext, permission: Permission): boolean {
+  return context.permissions.includes(permission)
+}
+
+export function hasDepartmentScope(context: AuthorizationContext, departmentId: number): boolean {
+  return context.departmentIds.includes(departmentId)
+}
+
+export function hasMajorScope(context: AuthorizationContext, majorId: number): boolean {
+  return context.majorIds.includes(majorId)
 }
 
 /**
