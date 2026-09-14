@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+﻿import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from '../layouts/AppLayout'
 import { OverviewPage } from '../pages/OverviewPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
@@ -11,7 +11,6 @@ import { ProjectRegistrationFormPage } from '../../features/projects/pages/Proje
 import { ProjectReviewStatusPage } from '../../features/projects/pages/ProjectReviewStatusPage'
 import { SupervisorSelectionPage } from '../../features/supervisors/pages/SupervisorSelectionPage'
 import { LoginPage } from '../../features/auth/pages/LoginPage'
-import { LoginPage } from '../../features/auth/pages/LoginPage'
 import { ProfilePage } from '../../features/auth/pages/ProfilePage'
 import { AcademicStructurePage } from '../../features/academic/pages/AcademicStructurePage'
 import { AcademicGovernancePage } from '../../features/academic/pages/AcademicGovernancePage'
@@ -22,10 +21,6 @@ import { TopicManagementPage } from '../../features/topics/pages/TopicManagement
 
 export const appRouter = createBrowserRouter([
   { path: 'login', element: <LoginPage /> },
-  {
-    path: 'login',
-    element: <LoginPage />,
-  },
   {
     element: <AppLayout />,
     children: [
@@ -45,6 +40,7 @@ export const appRouter = createBrowserRouter([
       { path: 'project/status', element: <ProjectReviewStatusPage /> },
       { path: 'project/supervisor', element: <SupervisorSelectionPage /> },
 
+      // Department & Admin Workspaces (TinVV)
       { path: 'profile', element: <ProfilePage /> },
       { path: 'academic', element: <AcademicStructurePage /> },
       { path: 'academic/governance', element: <AcademicGovernancePage /> },
@@ -55,6 +51,7 @@ export const appRouter = createBrowserRouter([
       { path: 'department/supervisors/:id', element: <SupervisorMonitoringPage /> },
       { path: 'department/topics', element: <TopicManagementPage /> },
       { path: 'department/topics/:id', element: <TopicManagementPage /> },
+
       { path: '*', element: <NotFoundPage /> },
     ],
   },
