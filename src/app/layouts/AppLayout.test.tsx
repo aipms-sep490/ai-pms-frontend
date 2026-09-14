@@ -21,7 +21,8 @@ describe('AppLayout & Navigation Shell', () => {
 
     // Brand title
     expect(screen.getByText('AI-PMS • FPTU')).toBeDefined()
-    expect(screen.getByText('Fall 2026 Academic')).toBeDefined()
+    expect(screen.getByText('Học kỳ chưa xác định')).toBeDefined()
+    expect(screen.getByText(/SEP490\s*\/\s*Chưa có nhóm/)).toBeDefined()
 
     // Active navigation item and breadcrumb
     expect(screen.getAllByText('Bàn làm việc Tổng quan').length).toBeGreaterThanOrEqual(1)
@@ -88,8 +89,8 @@ describe('AppLayout & Navigation Shell', () => {
     renderAppLayout()
 
     // Student profile display
-    expect(screen.getByText('Nguyễn Văn A')).toBeDefined()
-    expect(screen.getByText('Tài khoản Sinh viên (Demo)')).toBeDefined()
+    expect(screen.getByText('Sinh viên')).toBeDefined()
+    expect(screen.getByText('Tài khoản sinh viên')).toBeDefined()
 
     // Confirms role switcher button is completely removed from Batch 0
     const roleButton = screen.queryByRole('button', { name: /Chuyển đổi vai trò xem trước/i })
