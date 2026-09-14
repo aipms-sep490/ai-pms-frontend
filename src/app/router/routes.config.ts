@@ -153,6 +153,24 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname.startsWith('/project/milestones')) {
     return 'Tiến trình & Cột mốc'
   }
+  if (pathname === '/team' || pathname === '/team/create') {
+    return 'Quản lý Nhóm & Tuyển quân'
+  }
+  if (pathname === '/topics') {
+    return 'Danh mục Đề tài Tham khảo'
+  }
+  if (pathname === '/project/register') {
+    return 'Đăng ký Đề tài Đồ án'
+  }
+  if (pathname === '/project/edit') {
+    return 'Chỉnh sửa Đề cương Đồ án'
+  }
+  if (pathname === '/project/status') {
+    return 'Trạng thái Thẩm định Đề tài'
+  }
+  if (pathname === '/project/supervisor') {
+    return 'Ghép cặp Giảng viên Hướng dẫn'
+  }
   const match = mvpRoutes.find((r) => r.path === pathname)
   if (match) {
     return match.title
