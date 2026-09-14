@@ -19,11 +19,17 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
 
     try {
       const authenticatedSession = await requestLogin(credentials)
+      if (typeof window !== 'undefined' && authenticatedSession.accessToken) {
+        localStorage.setItem('token', authenticatedSession.accessToken)
+      }
       const user = await getCurrentUser(authenticatedSession.accessToken)
 
       setSession({ ...authenticatedSession, user })
       setStatus('authenticated')
     } catch (reason: unknown) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token')
+      }
       const authError = reason instanceof Error ? reason : new Error('Authentication request failed.')
       setSession(null)
       setStatus('anonymous')

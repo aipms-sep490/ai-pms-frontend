@@ -38,17 +38,17 @@ export function KanbanCard({ task }: KanbanCardProps) {
       </h3>
 
       {/* Bottom row: Assignee, Deadline & Story Points */}
-      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px] text-slate-500 font-sans">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex flex-col gap-1.5 border-t border-slate-100 pt-2 text-[11px] text-slate-500 font-sans">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
           <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 font-heading font-bold text-[10px] flex items-center justify-center shrink-0">
             {task.assignee.slice(0, 1)}
           </span>
-          <span className="truncate text-slate-700 font-medium" title={task.assignee}>
+          <span className="min-w-0 flex-1 truncate text-slate-700 font-medium" title={task.assignee}>
             {task.assignee}
           </span>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 font-mono text-[10px]">
+        <div className="flex items-center justify-between gap-2 font-mono text-[10px]">
           <span className="text-slate-400">Hạn: {task.deadline}</span>
           <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-bold">
             {task.storyPoints} SP

@@ -1,4 +1,4 @@
-import { env } from '../../app/config/env'
+﻿import { env } from '../../app/config/env'
 import type { ApiProblem } from '../../types/api.types'
 
 export interface HttpRequestOptions {
@@ -22,43 +22,63 @@ export class HttpError extends Error {
   }
 }
 
+function resolveUrl(path: string): string {
+  const base = env.apiBaseUrl.replace(/\/$/, '')
+  if (base.endsWith('/v1') && path.startsWith('/v1/')) {
+    return `${base}${path.slice(3)}`
+  }
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`
+}
+
 export async function httpGet<T>(
   path: string,
   signalOrOptions?: AbortSignal | HttpRequestOptions,
 ): Promise<T> {
   const options = normalizeOptions(signalOrOptions)
-  const response = await fetch(`${env.apiBaseUrl}${path}`, createRequestInit(options))
+  const response = await fetch(resolveUrl(path), {
+    ...createRequestInit(options),
+    method: 'GET',
+  })
 
   return readResponse<T>(response)
 }
 
-export async function httpPost<TResponse>(
+export async function httpPost<TResponse, TBody = unknown>(
   path: string,
-  body: unknown,
-  options?: HttpRequestOptions,
+  body?: TBody,
+  signalOrOptions?: AbortSignal | HttpRequestOptions,
 ): Promise<TResponse> {
+  const options = normalizeOptions(signalOrOptions)
   return sendJson<TResponse>('POST', path, body, options)
 }
 
-export async function httpPut<TResponse>(
+export async function httpPut<TResponse, TBody = unknown>(
   path: string,
-  body: unknown,
-  options?: HttpRequestOptions,
+  body?: TBody,
+  signalOrOptions?: AbortSignal | HttpRequestOptions,
 ): Promise<TResponse> {
+  const options = normalizeOptions(signalOrOptions)
   return sendJson<TResponse>('PUT', path, body, options)
 }
 
-export async function httpPatch<TResponse>(
+export async function httpPatch<TResponse, TBody = unknown>(
   path: string,
-  body: unknown,
-  options?: HttpRequestOptions,
+  body?: TBody,
+  signalOrOptions?: AbortSignal | HttpRequestOptions,
 ): Promise<TResponse> {
+  const options = normalizeOptions(signalOrOptions)
   return sendJson<TResponse>('PATCH', path, body, options)
 }
 
-export async function httpDelete<TResponse>(path: string, options?: HttpRequestOptions): Promise<TResponse> {
-  const response = await fetch(`${env.apiBaseUrl}${path}`, { ...createRequestInit(options), method: 'DELETE' })
-  if (response.status === 204) return undefined as TResponse
+export async function httpDelete<TResponse = void>(
+  path: string,
+  signalOrOptions?: AbortSignal | HttpRequestOptions,
+): Promise<TResponse> {
+  const options = normalizeOptions(signalOrOptions)
+  const response = await fetch(resolveUrl(path), {
+    ...createRequestInit(options),
+    method: 'DELETE',
+  })
   return readResponse<TResponse>(response)
 }
 
@@ -69,14 +89,14 @@ async function sendJson<TResponse>(
   options?: HttpRequestOptions,
 ): Promise<TResponse> {
   const requestInit = createRequestInit(options)
-  const response = await fetch(`${env.apiBaseUrl}${path}`, {
+  const response = await fetch(resolveUrl(path), {
     ...requestInit,
     method,
     headers: {
       ...requestInit.headers,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(body),
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 
   return readResponse<TResponse>(response)
@@ -95,8 +115,9 @@ function normalizeOptions(
 function createRequestInit(options?: HttpRequestOptions): RequestInit {
   const headers: Record<string, string> = { Accept: 'application/json' }
 
-  if (options?.accessToken) {
-    headers.Authorization = `Bearer ${options.accessToken}`
+  const token = options?.accessToken ?? (typeof window !== 'undefined' ? localStorage.getItem('token') : null)
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
   }
 
   return { headers, signal: options?.signal }
@@ -105,7 +126,15 @@ function createRequestInit(options?: HttpRequestOptions): RequestInit {
 async function readResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const problem = await readProblem(response)
-    throw new HttpError(problem.detail || problem.title || 'Request failed.', response.status, problem)
+    throw new HttpError(
+      problem.detail || problem.title || `Request failed with status ${response.status}.`,
+      response.status,
+      problem,
+    )
+  }
+
+  if (response.status === 204) {
+    return (null as unknown) as T
   }
 
   return (await response.json()) as T

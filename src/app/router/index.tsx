@@ -1,10 +1,15 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+﻿import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from '../layouts/AppLayout'
 import { OverviewPage } from '../pages/OverviewPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { ProjectLifecyclePage } from '../../features/projects/pages/ProjectLifecyclePage'
 import { MilestoneDetailPage } from '../../features/milestones/pages/MilestoneDetailPage'
 import { GanttPage } from '../../features/progress/pages/GanttPage'
+import { TeamManagementPage } from '../../features/teams/pages/TeamManagementPage'
+import { TopicCataloguePage } from '../../features/projects/pages/TopicCataloguePage'
+import { ProjectRegistrationFormPage } from '../../features/projects/pages/ProjectRegistrationFormPage'
+import { ProjectReviewStatusPage } from '../../features/projects/pages/ProjectReviewStatusPage'
+import { SupervisorSelectionPage } from '../../features/supervisors/pages/SupervisorSelectionPage'
 import { LoginPage } from '../../features/auth/pages/LoginPage'
 import { ProfilePage } from '../../features/auth/pages/ProfilePage'
 import { AcademicStructurePage } from '../../features/academic/pages/AcademicStructurePage'
@@ -25,6 +30,17 @@ export const appRouter = createBrowserRouter([
       { path: 'project/milestones/:milestoneId', element: <MilestoneDetailPage /> },
       { path: 'project/milestones', element: <Navigate to="/project/milestones/M3" replace /> },
       { path: 'project/gantt', element: <GanttPage /> },
+
+      // Student Journey Routes (AnhPNH)
+      { path: 'team', element: <TeamManagementPage /> },
+      { path: 'team/create', element: <TeamManagementPage /> },
+      { path: 'topics', element: <TopicCataloguePage /> },
+      { path: 'project/register', element: <ProjectRegistrationFormPage /> },
+      { path: 'project/edit', element: <ProjectRegistrationFormPage /> },
+      { path: 'project/status', element: <ProjectReviewStatusPage /> },
+      { path: 'project/supervisor', element: <SupervisorSelectionPage /> },
+
+      // Department & Admin Workspaces (TinVV)
       { path: 'profile', element: <ProfilePage /> },
       { path: 'academic', element: <AcademicStructurePage /> },
       { path: 'academic/governance', element: <AcademicGovernancePage /> },
@@ -35,6 +51,7 @@ export const appRouter = createBrowserRouter([
       { path: 'department/supervisors/:id', element: <SupervisorMonitoringPage /> },
       { path: 'department/topics', element: <TopicManagementPage /> },
       { path: 'department/topics/:id', element: <TopicManagementPage /> },
+
       { path: '*', element: <NotFoundPage /> },
     ],
   },

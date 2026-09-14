@@ -1,7 +1,8 @@
-import { useEffect, useRef, useCallback, type RefObject } from 'react'
+import { useContext, useEffect, useRef, useCallback, type RefObject } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { getStudentNavItems } from '../router/routes.config'
+import { StudentJourneyContext } from '../context'
 
 interface SidebarProps {
   isOpen: boolean
@@ -12,6 +13,15 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
   const location = useLocation()
   const asideRef = useRef<HTMLElement | null>(null)
+  const journey = useContext(StudentJourneyContext)
+  const { profile, semester, team, project } = journey ?? {}
+  const workspaceCode = project?.code?.trim() || 'SEP490'
+  const teamLabel = team?.code?.trim() || team?.name?.trim() || 'Chưa có nhóm'
+  const profileName = profile?.fullName?.trim() || 'Sinh viên'
+  const profileCode = profile?.studentCode || 'Tài khoản sinh viên'
+  const profileInitials = profile?.fullName
+    ? profile.fullName.split(/\s+/).slice(-2).map((part) => part[0]).join('').toUpperCase()
+    : 'SV'
 
   const { workspaceItems, managementItems } = getStudentNavItems()
 
@@ -121,7 +131,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                     AI-PMS • FPTU
                   </span>
                   <span className="font-mono text-[10px] text-slate-500 leading-tight">
-                    Fall 2026 Academic
+                    {semester?.name || 'Học kỳ chưa xác định'}
                   </span>
                 </div>
               </div>
@@ -151,7 +161,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                   verified
                 </span>
                 <span className="font-mono text-[11px] font-semibold text-slate-800 truncate">
-                  CP_SEP490 / Nhóm SE28
+                  {workspaceCode} / {teamLabel}
                 </span>
               </div>
               <span className="w-2 h-2 rounded-full bg-academic-emerald shrink-0" title="Đang hoạt động" />
@@ -291,19 +301,28 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
         </div>
 
         {/* Bottom Profile Footer (Student Baseline for Batch 0-2) */}
-        <div className="p-3 border-t border-hairline bg-slate-50/70 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center font-heading font-bold text-xs text-slate-700 relative shrink-0">
-            NA
-            <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-academic-emerald ring-2 ring-white" />
+        <div className="p-3 border-t border-hairline bg-slate-50/70 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center font-heading font-bold text-xs text-slate-700 relative shrink-0">
+              {profileInitials}
+              <span className={`absolute bottom-0 right-0 w-2 h-2 rounded-full ring-2 ring-white ${profile ? 'bg-academic-emerald' : 'bg-slate-300'}`} />
+            </div>
+            <div className="flex flex-col min-w-0 flex-1">
+              <span className="text-[12px] font-semibold text-slate-900 truncate">
+                {profileName}
+              </span>
+              <span className="font-mono text-[10px] text-slate-500 truncate">
+                {profileCode}
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-[12px] font-semibold text-slate-900 truncate">
-              Nguyễn Văn A
-            </span>
-            <span className="font-mono text-[10px] text-slate-500 truncate">
-              Tài khoản Sinh viên (Demo)
-            </span>
-          </div>
+          <NavLink
+            to="/login"
+            title="Đăng xuất / Chuyển tài khoản"
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-md transition-colors shrink-0 flex items-center justify-center"
+          >
+            <span className="material-symbols-outlined text-[18px]">logout</span>
+          </NavLink>
         </div>
       </aside>
     </>

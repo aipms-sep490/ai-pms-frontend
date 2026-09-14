@@ -126,7 +126,7 @@ export function GanttHeader({
         <span className="material-symbols-outlined text-amber-600 text-base shrink-0">
           warning
         </span>
-        <div className="truncate">
+        <div className="min-w-0 text-xs leading-relaxed break-words">
           <strong>Cảnh báo đường găng:</strong> Nhiệm vụ{' '}
           <span className="font-mono font-bold text-amber-950">SEP-108</span> đang chậm 2 ngày trên chuỗi{' '}
           <span className="font-mono font-bold text-amber-950">{telemetry.bottleneckChain.join(' → ')}</span>, có nguy cơ làm lùi hạn nộp Cột mốc M3 (18/09/2026).

@@ -68,12 +68,12 @@ export function MilestoneDetailPage() {
       />
 
       {/* 2. Filter Toolbar: Major Tabs & Search */}
-      <div className="p-3.5 rounded-xl bg-white border border-hairline shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="p-3.5 rounded-xl bg-white border border-hairline shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         {/* Major Filter Buttons */}
         <div
           role="group"
           aria-label="Lọc thẻ Kanban theo chuyên ngành"
-          className="flex items-center gap-1 overflow-x-auto no-scrollbar"
+          className="flex flex-wrap items-center gap-1.5"
         >
           {majorFilters.map((tab) => {
             const isSelected = selectedMajor === tab.id
@@ -100,11 +100,13 @@ export function MilestoneDetailPage() {
         </div>
 
         {/* Quick Search */}
-        <div className="relative min-w-[240px]">
+        <div className="relative w-full lg:w-72 lg:shrink-0">
           <span className="absolute left-2.5 top-2 text-slate-400 material-symbols-outlined text-[16px] pointer-events-none">
             search
           </span>
           <input
+            id="search-kanban"
+            name="searchQuery"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
