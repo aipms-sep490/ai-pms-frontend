@@ -1,12 +1,12 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { HttpError } from '../../../services/http/http-client'
 import { LoginPage } from './LoginPage'
 
 const authSession = vi.hoisted(() => ({
   login: vi.fn(),
-  status: 'anonymous',
+  status: 'unauthenticated',
 }))
 
 vi.mock('../context/useAuthSession', () => ({
@@ -16,7 +16,7 @@ vi.mock('../context/useAuthSession', () => ({
 afterEach(() => {
   cleanup()
   authSession.login.mockReset()
-  authSession.status = 'anonymous'
+  authSession.status = 'unauthenticated'
 })
 
 describe('LoginPage', () => {
@@ -54,5 +54,43 @@ describe('LoginPage', () => {
     await vi.waitFor(() => {
       expect(screen.getByRole('alert').textContent).toContain('Email hoặc mật khẩu không chính xác')
     })
+  })
+
+  it('distinguishes validation, forbidden, and system errors', async () => {
+    authSession.login.mockRejectedValueOnce(new HttpError('Invalid input', 400))
+    const { rerender } = render(<LoginPage />, { wrapper: MemoryRouter })
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'staff@example.edu.vn' } })
+    fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'password' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Đăng nhập' }))
+    await vi.waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Thông tin đăng nhập chưa hợp lệ'))
+
+    authSession.login.mockRejectedValueOnce(new HttpError('Disabled', 403))
+    rerender(<LoginPage />)
+    fireEvent.submit(screen.getByRole('button', { name: 'Đăng nhập' }))
+    await vi.waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Tài khoản chưa hoạt động'))
+
+    authSession.login.mockRejectedValueOnce(new Error('offline'))
+    rerender(<LoginPage />)
+    fireEvent.submit(screen.getByRole('button', { name: 'Đăng nhập' }))
+    await vi.waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Không thể kết nối dịch vụ xác thực'))
+  })
+
+  it('returns to a safe intended destination after successful login', async () => {
+    authSession.login.mockResolvedValue(undefined)
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/login', state: { from: '/project/status/123' } }]}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/project/status/123" element={<p>project status</p>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'staff@example.edu.vn' } })
+    fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'secret' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Đăng nhập' }))
+
+    await vi.waitFor(() => expect(screen.getByText('project status')).toBeDefined())
   })
 })

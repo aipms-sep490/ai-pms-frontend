@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { AppLayout } from './AppLayout'
+import { AuthSessionContext } from '../../features/auth/context/auth-session-context'
 
 afterEach(() => {
   cleanup()
@@ -9,9 +10,19 @@ afterEach(() => {
 
 function renderAppLayout(initialEntries = ['/project/workspace']) {
   return render(
-    <MemoryRouter initialEntries={initialEntries}>
-      <AppLayout />
-    </MemoryRouter>
+    <AuthSessionContext.Provider value={{
+      session: null,
+      status: 'unauthenticated',
+      error: null,
+      login: async () => {},
+      refreshProfile: async () => {},
+      logout: async () => {},
+      restoreSession: async () => {},
+    }}>
+      <MemoryRouter initialEntries={initialEntries}>
+        <AppLayout />
+      </MemoryRouter>
+    </AuthSessionContext.Provider>,
   )
 }
 

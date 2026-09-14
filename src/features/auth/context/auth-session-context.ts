@@ -11,6 +11,8 @@ export interface AuthSessionContextValue {
   error: Error | null
   login: (credentials: LoginCredentials) => Promise<void>
   refreshProfile: () => Promise<void>
+  logout: () => Promise<void>
+  restoreSession: () => Promise<void>
 }
 
 export const AuthSessionContext = createContext<AuthSessionContextValue | null>(null)

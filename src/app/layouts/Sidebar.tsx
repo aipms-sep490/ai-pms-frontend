@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { getStudentNavItems } from '../router/routes.config'
 import { StudentJourneyContext } from '../context'
+import { useAuthSession } from '../../features/auth/context/useAuthSession'
 
 interface SidebarProps {
   isOpen: boolean
@@ -14,6 +15,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
   const location = useLocation()
   const asideRef = useRef<HTMLElement | null>(null)
   const journey = useContext(StudentJourneyContext)
+  const { logout } = useAuthSession()
   const { profile, semester, team, project } = journey ?? {}
   const workspaceCode = project?.code?.trim() || 'SEP490'
   const teamLabel = team?.code?.trim() || team?.name?.trim() || 'Chưa có nhóm'
@@ -316,13 +318,14 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
               </span>
             </div>
           </div>
-          <NavLink
-            to="/login"
+          <button
+            type="button"
+            onClick={() => void logout()}
             title="Đăng xuất / Chuyển tài khoản"
             className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-md transition-colors shrink-0 flex items-center justify-center"
           >
             <span className="material-symbols-outlined text-[18px]">logout</span>
-          </NavLink>
+          </button>
         </div>
       </aside>
     </>

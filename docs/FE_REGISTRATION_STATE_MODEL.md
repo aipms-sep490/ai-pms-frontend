@@ -7,6 +7,10 @@ Backend Project status, workflow actions/reasons, team eligibility, resource sco
 concurrency tokens override all frontend assumptions. `409` is a human-reconciliation state:
 reload authoritative data, show conflict, and require an explicit next attempt.
 
+F1 implements the session subset: startup begins at `restoring`; `/auth/me` validates stored
+credentials; a 401 performs one shared refresh attempt; and protected routes render no app
+shell until status is `authenticated`.
+
 ## State catalogue
 
 | State | Backend evidence required | Visible information | Primary CTA | Secondary CTA | Forbidden actions | Next states | Error/recovery |

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getCurrentUser, login } from './auth-api'
+import { getCurrentUser, login, logout, refresh } from './auth-api'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -36,6 +36,27 @@ describe('auth API', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/v1/auth/me',
       expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer access-token' }) }),
+    )
+  })
+
+  it('uses the documented refresh and logout contracts without recursive refresh handling', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ accessToken: 'fresh' }) })
+      .mockResolvedValueOnce({ ok: true, status: 204, json: vi.fn() })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await refresh('refresh-token')
+    await logout('refresh-token')
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/v1/auth/refresh',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ refreshToken: 'refresh-token' }) }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/v1/auth/logout',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ refreshToken: 'refresh-token' }) }),
     )
   })
 })

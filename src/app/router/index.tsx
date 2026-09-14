@@ -18,11 +18,19 @@ import { AdminSecurityPage } from '../../features/users/pages/AdminSecurityPage'
 import { ProjectReviewPage } from '../../features/projects/pages/ProjectReviewPage'
 import { SupervisorMonitoringPage } from '../../features/supervisors/pages/SupervisorMonitoringPage'
 import { TopicManagementPage } from '../../features/topics/pages/TopicManagementPage'
+import { ProtectedRoute } from '../../features/auth/components/ProtectedRoute'
+import { StudentJourneyProvider } from '../context'
 
 export const appRouter = createBrowserRouter([
   { path: 'login', element: <LoginPage /> },
   {
-    element: <AppLayout />,
+    element: (
+      <ProtectedRoute>
+        <StudentJourneyProvider>
+          <AppLayout />
+        </StudentJourneyProvider>
+      </ProtectedRoute>
+    ),
     children: [
       { index: true, element: <Navigate to="/project/workspace" replace /> },
       { path: 'project/workspace', element: <OverviewPage /> },

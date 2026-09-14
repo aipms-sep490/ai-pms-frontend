@@ -1,8 +1,9 @@
 ﻿import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { HttpError } from '../../../services/http/http-client'
 import { Button } from '../../../components/ui/Button'
 import { useAuthSession } from '../context/useAuthSession'
+import { resolveIntendedDestination } from '../utils/intended-destination'
 import './auth-pages.css'
 
 function getLoginErrorMessage(error: unknown): string {
@@ -17,12 +18,18 @@ function getLoginErrorMessage(error: unknown): string {
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login, status } = useAuthSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
 
-  const isSubmitting = status === 'authenticating'
+  const isSubmitting = status === 'authenticating' || status === 'refreshing'
+  const destination = resolveIntendedDestination(location.state)
+
+  if (status === 'authenticated') {
+    return <Navigate to={destination} replace />
+  }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -40,7 +47,7 @@ export function LoginPage() {
 
     try {
       await login({ email: email.trim(), password })
-      navigate('/profile', { replace: true })
+      navigate(destination, { replace: true })
     } catch (error: unknown) {
       setFormError(getLoginErrorMessage(error))
     }
