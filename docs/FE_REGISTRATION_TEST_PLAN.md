@@ -1,0 +1,69 @@
+# Registration-to-ACTIVE Frontend Test Plan (F0)
+
+## Current tooling and approach
+
+The repository currently uses Vitest, React Testing Library, TypeScript, and Vite. No
+Playwright or Cypress script/dependency is present. F0 does not install E2E tooling. Before
+F9, select an E2E runner through team agreement; Playwright is the recommended candidate for
+its browser, multi-user storage-state, network interception, and CI support, but it is not
+approved or installed by this document.
+
+All production-contract tests run with API mode. Mock tests must explicitly set
+`VITE_DATA_MODE=mock` or mock the adapter boundary; no test may prove authorization,
+eligibility, review, source governance, or supervisor acceptance solely through fixtures.
+
+## Phase test matrix
+
+| Phase | Focused unit/component/API tests | Integration/contract tests | Completion evidence |
+| --- | --- | --- | --- |
+| F1 | Login validation/error classification, session restore loading, refresh success/failure, logout, protected route/intended destination, 204 | Auth adapter sends credential; stale token 401 has no retry loop | Anonymous shell never exposes protected UI before restore finishes. |
+| F2 | Context loading/no context, allowed action resolver, navigation visibility, dashboard state | `/auth/me/context`, team/project actions shape/error mapping | Navigation reflects backend actions/reasons, not role-only gates. |
+| F3 | Topic list/detail loading/errors, explicit unavailable source state, discriminated source rendering | Accepted source read/select/proposal API; 403/409/source-lock | Selection is backend persisted; no query/localStorage authority. |
+| F4 | Team create/update, invitation list/candidate filters, invite/accept/reject/cancel/remove/leave/leader transfer | 204 handling and post-mutation context refresh | Two-user invite/accept produces backend roster. |
+| F5 | Eligibility loading, FAIL reasons, PASS, stale invalidation after roster/scope change, recovery CTA | Refresh returns backend reasons/actions | No locally computed authoritative PASS/FAIL. |
+| F6 | Draft create/edit, fields, majors, submit/resubmit, read-only states, 409 conflict UI | Current token on mutation; leader/member 403 | Draft -> Submitted and Revision -> Edit -> Resubmit. |
+| F7 | Review queue/detail/history, revision/reject/approve validation, participating decision visibility | 403 cross-department; 409 reload then manual confirmation | Hybrid lead approval is blocked until participant decisions are accepted by backend. |
+| F8 | Candidate filtering, request send/list/cancel, Supervisor inbox/accept/reject | Candidate route is project-specific; rejected request can reselect only if backend permits | Request -> accept -> assignment/ACTIVE reads persisted result. |
+| F9 | ACTIVE resolver, workspace handoff/route protection | Assignment + project state consistency | Only persisted `ACTIVE` enables workspace. |
+
+## Required eventual E2E scenarios
+
+| Scenario | Evidence required |
+| --- | --- |
+| SINGLE_MAJOR | Login -> context -> accepted source -> team -> invite/accept -> eligibility PASS -> draft -> submit -> review approve -> supervisor accept -> ACTIVE. |
+| INTERDISCIPLINARY | Accepted source scope has lead department and major requirements; roster meets quota; participating decisions precede lead approval; supervisor accept reaches ACTIVE. |
+| Eligibility fail/recovery | Missing or invalid roster/scope -> server reasons -> user changes permitted input -> refresh -> PASS. |
+| Revision | Submitted -> revision reason -> edit -> resubmit -> review again. |
+| Security | Anonymous denied; member cannot submit; resource scope/cross-department denial; no role-only mutation enablement. |
+| Concurrency | Stale project/review/source mutation gets 409 -> data reload -> human explicitly retries with new token. |
+| Supervisor reject/re-request/accept | Rejection is visible; replacement request only under backend action; accept persists assignment and ACTIVE. |
+
+## Contract test rules
+
+- Assert exact method, path, query serialization, request body, and bearer-token behavior for
+  every adapter mutation/read introduced by a phase.
+- Assert `204 No Content` resolves safely through the shared client.
+- Assert 400/422, 401, 403, 404, 409, 5xx, and network failures are classified, never silently
+  changed to mock data.
+- Assert workflow actions/reasons control CTA visibility; do not test a client-side role as an
+  authorization substitute.
+- Use actual backend DTO fixtures derived from contracts, not presentation-only demo data.
+
+## Quality gates per phase
+
+```text
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+git diff --check
+```
+
+Record test-file count, test count, passed/failed/skipped, process exit code, and any E2E
+environment dependency. A green build or unit suite alone is not Registration-to-ACTIVE proof.
+
+## F0 verification scope
+
+F0 adds documentation only. Its gate verifies the existing source still passes lint, typecheck,
+Vitest, build, and diff-check after the documentation commit. Browser E2E, Docker/Testcontainers,
+and missing Registration Source contracts remain outside F0 runtime verification.
