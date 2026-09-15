@@ -22,7 +22,7 @@ eligibility, review, source governance, or supervisor acceptance solely through 
 | F4 | Team create/update, invitation list/candidate filters, invite/accept/reject/cancel/remove/leave/leader transfer | 204 handling and post-mutation context refresh | Two-user invite/accept produces backend roster. |
 | F5 | Eligibility loading, FAIL reasons, PASS, stale invalidation after roster/scope change, recovery CTA | Refresh returns backend reasons/actions | No locally computed authoritative PASS/FAIL. |
 | F6 | Draft create/edit, fields, majors, submit/resubmit, read-only states, 409 conflict UI | Current token on mutation; leader/member 403 | Draft -> Submitted and Revision -> Edit -> Resubmit. |
-| F7 | Review queue/detail/history, revision/reject/approve validation, participating decision visibility | 403 cross-department; 409 reload then manual confirmation | Hybrid lead approval is blocked until participant decisions are accepted by backend. |
+| F7 | Queue search/paging, detail snapshot/scope/roster/history, workflow-action visibility, start/revision/reject/approve and participating decision validation | Exact review/action routes and bodies; 401/403/404/system UI; 409 refresh without automatic retry | Hybrid lead approval is enabled only by Backend `approve_project`; participant decisions use the current snapshot/token. |
 | F8 | Candidate filtering, request send/list/cancel, Supervisor inbox/accept/reject | Candidate route is project-specific; rejected request can reselect only if backend permits | Request -> accept -> assignment/ACTIVE reads persisted result. |
 | F9 | ACTIVE resolver, workspace handoff/route protection | Assignment + project state consistency | Only persisted `ACTIVE` enables workspace. |
 

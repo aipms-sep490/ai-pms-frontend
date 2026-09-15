@@ -98,6 +98,19 @@ mutation is followed by `GET /projects/{id}`, global journey refresh, and histor
 | 5xx | System-error state with safe retry. |
 | Network | Connection-failure state with safe retry and no mock fallback. |
 
+## F7 Department review behavior
+
+`DepartmentReview` is a scoped backend workflow, not a frontend status machine. Its queue only
+serializes backend-supported `search`, `page`, and `pageSize`; Department scope is never filtered
+in the browser. The page presents a participating Department decision only when its action is
+allowed, and presents the lead final decision only when `approve_project` is allowed.
+
+Revision, terminal rejection, and participating rejection require a reason. A successful
+mutation refreshes the current project, review snapshot, workflow actions, queue, and history.
+When an action returns `409`, the client refreshes but does not retry: the reviewer must inspect
+the new snapshot and deliberately decide again. The Student status page remains read-only and
+uses the same backend history for revision feedback.
+
 ## Source governance UX freeze
 
 `PROJECT_TOPIC` must show backend-returned identity, title, mode, lead department,

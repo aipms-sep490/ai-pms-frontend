@@ -100,6 +100,22 @@ an explicit human retry—never auto-retry.
 | Start review/revision/reject/approve | BE_AVAILABLE | Department review / authorized staff | review adapter | `POST /projects/{id}/start-review|revision|reject|approve` | token/reason -> Project | Backend action and state | Project; 403/409/422 | No production mock | 409 reload then human re-confirms. |
 | Participating Department decision | BE_AVAILABLE | F7 / participating Department | Backend route exists; current FE adapter absent | `POST /projects/{id}/department-decisions` | snapshot/token/decision -> academic review | Participating department scope | decision; 403/409/422 | No production mock | F7 is additive to TinVV review. |
 
+### F7 implementation record — Department Review
+
+F7 keeps the Department review adapter feature-local but now reads `GET /projects/{id}`,
+`GET /projects/{id}/academic-review`, `GET /projects/{id}/history`, and
+`GET /projects/{id}/actions` together. The detail UI displays only authoritative project,
+snapshot, scope, policy, roster, requirement, and decision fields. Department names and a
+registration-source provenance are not inferred from IDs or browser state.
+
+Review controls are rendered only from the current action response: `start_review`,
+`request_revision`, `reject_project`, `approve_project`, `approve_department`, and
+`reject_department`. The client does not calculate whether the lead Department may approve;
+the backend action plus the `POST /projects/{id}/approve` result remain authoritative. A
+participating decision sends the current `{ snapshotId, concurrencyToken, decision, reason }`.
+On `409`, the client refreshes the authoritative resources once and requires a new human action;
+it never repeats the mutation automatically.
+
 ### Supervisor and ACTIVE
 
 | Capability | Status | Consumer / actor | Current FE / BE | Expected method and route | Request / response | Authorization, scope, precondition | Success / errors / concurrency | Mock allowed / production fallback | Notes |

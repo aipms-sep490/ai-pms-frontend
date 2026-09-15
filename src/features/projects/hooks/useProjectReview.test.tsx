@@ -1,1 +1,62 @@
-import{renderHook,act,waitFor}from'@testing-library/react';import{describe,it,expect,vi,beforeEach}from'vitest';const api=vi.hoisted(()=>({queue:vi.fn(),detail:vi.fn(),history:vi.fn(),decide:vi.fn()}));const session={accessToken:'t'};vi.mock('../api/project-review-api',()=>api);vi.mock('../../auth/context/useAuthSession',()=>({useAuthSession:()=>({session})}));import{useProjectReview}from'./useProjectReview';const q={items:[]};const d=(token:string)=>({concurrencyToken:token,academicScope:null,latestSubmission:null});describe('useProjectReview concurrency',()=>{beforeEach(()=>{api.queue.mockReset().mockResolvedValue(q);api.history.mockReset().mockResolvedValue([]);api.detail.mockReset().mockResolvedValueOnce(d('TOKEN_A')).mockResolvedValueOnce(d('TOKEN_B'));api.decide.mockReset().mockRejectedValueOnce({status:409}).mockResolvedValueOnce({})});it('does not retry a 409 and uses refreshed backend token for a later human action',async()=>{const{result}=renderHook(()=>useProjectReview(1));await waitFor(()=>expect(result.current.detail?.concurrencyToken).toBe('TOKEN_A'));await expect(result.current.action('approve')).rejects.toMatchObject({status:409});expect(api.decide).toHaveBeenCalledTimes(1);await act(async()=>{await result.current.refresh()});await waitFor(()=>expect(result.current.detail?.concurrencyToken).toBe('TOKEN_B'));await act(async()=>{await result.current.action('approve')});expect(api.decide).toHaveBeenLastCalledWith(1,'approve','TOKEN_B',undefined,'t')})})
+import { act, renderHook, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const api = vi.hoisted(() => ({
+  getReviewQueue: vi.fn(), getProjectForReview: vi.fn(), getReviewDetail: vi.fn(), getReviewHistory: vi.fn(), getReviewActions: vi.fn(),
+  startReview: vi.fn(), decideProjectReview: vi.fn(), decideDepartment: vi.fn(),
+}))
+const session = { accessToken: 'token' }
+vi.mock('../api/project-review-api', () => api)
+vi.mock('../../auth/context/useAuthSession', () => ({ useAuthSession: () => ({ session }) }))
+
+import { useProjectReview } from './useProjectReview'
+
+const detail = (token = 'TOKEN_A') => ({
+  concurrencyToken: token,
+  academicScope: null,
+  latestSubmission: { id: 8, evidence: { scope: {}, policy: {}, members: [] }, decisions: [] },
+})
+
+describe('useProjectReview', () => {
+  beforeEach(() => {
+    api.getReviewQueue.mockReset().mockResolvedValue({ items: [], page: 1, pageSize: 20, totalCount: 0 })
+    api.getProjectForReview.mockReset().mockResolvedValue({ id: 1, code: 'P-1', title: 'Project' })
+    api.getReviewDetail.mockReset().mockResolvedValue(detail())
+    api.getReviewHistory.mockReset().mockResolvedValue([])
+    api.getReviewActions.mockReset().mockResolvedValue({ status: 'UnderReview', actions: [
+      { code: 'start_review', allowed: true, reasons: [] },
+      { code: 'approve_department', allowed: true, reasons: [] },
+      { code: 'approve_project', allowed: false, reasons: ['Other departments pending'] },
+    ] })
+    api.startReview.mockReset().mockResolvedValue({})
+    api.decideProjectReview.mockReset().mockResolvedValue({})
+    api.decideDepartment.mockReset().mockResolvedValue({})
+  })
+
+  it('uses backend workflow actions rather than local status to expose review controls', async () => {
+    const { result } = renderHook(() => useProjectReview(1))
+    await waitFor(() => expect(result.current.workflow?.status).toBe('UnderReview'))
+    expect(result.current.canStart).toBe(true)
+    expect(result.current.canApproveDepartment).toBe(true)
+    expect(result.current.canApprove).toBe(false)
+  })
+
+  it('uses the current snapshot and concurrency token for a participating department decision', async () => {
+    const { result } = renderHook(() => useProjectReview(1))
+    await waitFor(() => expect(result.current.detail?.concurrencyToken).toBe('TOKEN_A'))
+    await act(async () => { await result.current.decideParticipatingDepartment('APPROVED') })
+    expect(api.decideDepartment).toHaveBeenCalledWith(1, {
+      snapshotId: 8, concurrencyToken: 'TOKEN_A', decision: 'APPROVED', reason: undefined,
+    }, 'token')
+  })
+
+  it('does not retry a 409; it refreshes authoritative state once and waits for a new user action', async () => {
+    api.decideProjectReview.mockRejectedValueOnce({ status: 409 })
+    const { result } = renderHook(() => useProjectReview(1))
+    await waitFor(() => expect(result.current.detail?.concurrencyToken).toBe('TOKEN_A'))
+    await act(async () => { expect(await result.current.decide('approve')).toBe(false) })
+    expect(api.decideProjectReview).toHaveBeenCalledTimes(1)
+    expect(api.getReviewDetail).toHaveBeenCalledTimes(2)
+    expect(result.current.error?.kind).toBe('conflict')
+  })
+})
