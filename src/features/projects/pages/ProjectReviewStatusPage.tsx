@@ -122,6 +122,17 @@ export function ProjectReviewStatusPage() {
           </button>
         )}
 
+        {isRejected && (
+          <button
+            type="button"
+            onClick={() => navigate('/project/register')}
+            className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5"
+          >
+            <span className="material-symbols-outlined text-[18px]">add_circle</span>
+            Đăng ký Đề tài Mới
+          </button>
+        )}
+
         {canChooseSupervisor && (
           <button
             type="button"
@@ -142,6 +153,34 @@ export function ProjectReviewStatusPage() {
           timestamp={latestRevision.changedAt}
           onEdit={() => navigate('/project/edit')}
         />
+      )}
+
+      {/* Rejected Banner */}
+      {isRejected && (
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-5 flex items-start gap-3.5 shadow-xs">
+          <span className="material-symbols-outlined text-rose-500 text-[24px] shrink-0 mt-0.5">cancel</span>
+          <div className="flex-1">
+            <h3 className="text-sm font-bold text-rose-900">Đề cương bị Từ chối bởi Hội đồng Khoa</h3>
+            <p className="text-xs text-rose-800 mt-1 leading-relaxed">
+              Đề cương đề tài của nhóm đã bị từ chối và không thể chỉnh sửa hay nộp lại ở trạng thái này. Để tiếp tục, bạn có thể đăng ký một đề tài mới từ đầu.
+            </p>
+            {history.filter((h) => h.newStatus.replaceAll('_', '').toUpperCase() === 'REJECTED').slice(-1).map((h) => (
+              h.reason ? (
+                <p key={h.id} className="text-xs text-rose-700 mt-2 bg-rose-100 border border-rose-200 rounded-xl p-2.5">
+                  <span className="font-semibold">Lý do từ chối:</span> {h.reason}
+                </p>
+              ) : null
+            ))}
+            <button
+              type="button"
+              onClick={() => navigate('/project/register')}
+              className="mt-3 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[16px]">add_circle</span>
+              Đăng ký Đề tài Mới
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Approved Banner */}

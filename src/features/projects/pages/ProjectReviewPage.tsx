@@ -193,6 +193,10 @@ export function ProjectReviewPage() {
                     ? 'bg-purple-100 text-purple-800'
                     : status === 'SUBMITTED'
                     ? 'bg-amber-100 text-amber-800'
+                    : status === 'REVISION_REQUIRED'
+                    ? 'bg-orange-100 text-orange-800'
+                    : status === 'REJECTED'
+                    ? 'bg-rose-100 text-rose-800'
                     : 'bg-slate-100 text-slate-600'
                 }`}
               >
@@ -202,6 +206,10 @@ export function ProjectReviewPage() {
                   ? 'ĐANG THẨM ĐỊNH (UNDER_REVIEW)'
                   : status === 'SUBMITTED'
                   ? 'CHỜ THẨM ĐỊNH (SUBMITTED)'
+                  : status === 'REVISION_REQUIRED'
+                  ? 'YÊU CẦU CHỈNH SỬA (REVISION_REQUIRED)'
+                  : status === 'REJECTED'
+                  ? 'BỊ TỪ CHỐI (REJECTED)'
                   : status}
               </span>
             </div>
@@ -418,6 +426,26 @@ export function ProjectReviewPage() {
             </Button>
           </div>
         </section>
+      ) : status === 'REVISION_REQUIRED' ? (
+        <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3 text-amber-800">
+          <span className="material-symbols-outlined text-2xl text-amber-500 shrink-0 mt-0.5">pending_actions</span>
+          <div>
+            <h3 className="font-bold text-sm">Đã yêu cầu Chỉnh sửa — Chờ sinh viên nộp lại</h3>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Hội đồng Khoa đã gửi yêu cầu chỉnh sửa về phía nhóm sinh viên. Khi nhóm nộp lại đề cương, trạng thái sẽ chuyển về <strong>SUBMITTED</strong> và có thể thẩm định tiếp.
+            </p>
+          </div>
+        </div>
+      ) : status === 'REJECTED' ? (
+        <div className="p-5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 text-rose-800">
+          <span className="material-symbols-outlined text-2xl text-rose-500 shrink-0 mt-0.5">cancel</span>
+          <div>
+            <h3 className="font-bold text-sm">Đề cương đã bị Từ chối — Trạng thái cuối</h3>
+            <p className="text-xs text-rose-700 mt-0.5">
+              Hội đồng Khoa đã từ chối đề cương này. Nhóm sinh viên cần đăng ký đề tài mới nếu muốn tiếp tục.
+            </p>
+          </div>
+        </div>
       ) : (
         <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500 text-center">
           Không có hành động thẩm định cho trạng thái {status || 'hiện tại'}.

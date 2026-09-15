@@ -45,7 +45,7 @@ export function ProjectRegistrationFormPage() {
   const canEdit = env.isMockMode
     ? isLeader
     : project
-      ? isActionAllowed(projectActions?.actions ?? [], 'edit_project_draft')
+      ? isRevisionRequired || isActionAllowed(projectActions?.actions ?? [], 'edit_project_draft')
       : isActionAllowed(teamActions?.actions ?? [], 'create_project_draft')
   const canSubmit = env.isMockMode
     ? isLeader && (canRegister || isRevisionRequired)
