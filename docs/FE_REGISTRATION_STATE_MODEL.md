@@ -111,6 +111,18 @@ When an action returns `409`, the client refreshes but does not retry: the revie
 the new snapshot and deliberately decide again. The Student status page remains read-only and
 uses the same backend history for revision feedback.
 
+## F8 supervision behavior
+
+For an action-authorized student leader, the project-specific candidate API is the only selection
+source. Sending, cancelling, rejecting, capacity conflicts, or a race refreshes requests,
+assignments, project context, and candidates where selection remains allowed. The frontend never
+creates a pending request, accepts a request, or marks a Project `ACTIVE` locally.
+
+The Supervisor Inbox is scoped by the backend authenticated actor. A supervisor decision is shown
+only for a returned `PENDING` request; accept/reject is one request at a time. The accept
+transaction returns the authoritative request and produces the primary assignment plus `ACTIVE`
+project result where the Backend contract permits. `409` refreshes but never retries a decision.
+
 ## Source governance UX freeze
 
 `PROJECT_TOPIC` must show backend-returned identity, title, mode, lead department,

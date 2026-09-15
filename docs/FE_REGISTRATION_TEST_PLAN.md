@@ -23,7 +23,7 @@ eligibility, review, source governance, or supervisor acceptance solely through 
 | F5 | Eligibility loading, FAIL reasons, PASS, stale invalidation after roster/scope change, recovery CTA | Refresh returns backend reasons/actions | No locally computed authoritative PASS/FAIL. |
 | F6 | Draft create/edit, fields, majors, submit/resubmit, read-only states, 409 conflict UI | Current token on mutation; leader/member 403 | Draft -> Submitted and Revision -> Edit -> Resubmit. |
 | F7 | Queue search/paging, detail snapshot/scope/roster/history, workflow-action visibility, start/revision/reject/approve and participating decision validation | Exact review/action routes and bodies; 401/403/404/system UI; 409 refresh without automatic retry | Hybrid lead approval is enabled only by Backend `approve_project`; participant decisions use the current snapshot/token. |
-| F8 | Candidate filtering, request send/list/cancel, Supervisor inbox/accept/reject | Candidate route is project-specific; rejected request can reselect only if backend permits | Request -> accept -> assignment/ACTIVE reads persisted result. |
+| F8 | Project-specific candidates, leader-only send/cancel, request/assignment rendering, Backend-scoped inbox, accept/reject, conflict refresh | Exact candidate/request/inbox/assignment routes and response body; no generic directory selection; 409 has no retry | Request -> Backend accept -> assignment and ACTIVE are refetched, never client transitioned. |
 | F9 | ACTIVE resolver, workspace handoff/route protection | Assignment + project state consistency | Only persisted `ACTIVE` enables workspace. |
 
 ## Required eventual E2E scenarios

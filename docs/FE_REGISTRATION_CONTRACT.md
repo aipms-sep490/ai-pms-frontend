@@ -128,6 +128,19 @@ it never repeats the mutation automatically.
 | Assignments | BE_AVAILABLE | Student/Supervisor / scoped actor | typed project assignment read; BE also supervisor read | `GET /projects/{id}/supervisor-assignments`; `GET /supervisors/assignments` | filters -> page | Backend scope | page; 403/404 | Explicit mock only | Assignment is backend-persisted evidence. |
 | Project ACTIVE state | BE_AVAILABLE | F9 / all authorized actors | Provider interprets Project status/assignment | Project/actions/assignment routes | none -> authoritative state | Backend accept transaction | ACTIVE; 403/404/409 | No fabricated success | Accept creates assignment and transitions project. |
 
+### F8 implementation record — supervision
+
+Students load candidates only from `GET /projects/{projectId}/supervisor-candidates` with the
+actual `search`, `expertise`, and paging query fields. The generic `/supervisors` directory is
+not used for selection. Requests use project-scoped list/create routes, cancel uses
+`POST /supervisor-requests/{id}/cancel`, and assignments use the project assignment route.
+
+The Supervisor Inbox uses `GET /supervisors/requests` and `GET /supervisors/assignments` without
+a client-provided supervisor ID. `POST /supervisor-requests/{id}/accept` creates the primary
+assignment and activates the project atomically; rejection uses the matching reject route. No
+supervision mutation has a contract concurrency token. Backend locks are authoritative; `409`
+refreshes data and requires a new human decision. Project source provenance is still unavailable.
+
 ## Domain type freeze
 
 | Required conceptual type | Current mapping | Freeze decision |
