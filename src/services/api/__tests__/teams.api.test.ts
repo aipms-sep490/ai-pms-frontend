@@ -108,4 +108,13 @@ describe('teams.api contract', () => {
       ['/api/v1/teams/28/leader', 'POST'],
     ])
   })
+
+  it('uses the real eligibility refresh command and returns the backend TeamDto', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(success({ id: 28, eligibility: { canRegister: true } }))
+
+    const refreshed = await teamsApi.refreshEligibility(28)
+
+    expect(refreshed).toMatchObject({ id: 28, eligibility: { canRegister: true } })
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/v1/teams/28/eligibility/refresh', expect.objectContaining({ method: 'POST' }))
+  })
 })

@@ -7,7 +7,7 @@ const mocked = vi.hoisted(() => ({
   team: {
     getInvitations: vi.fn(), getInvitationCandidates: vi.fn(), createTeam: vi.fn(), updateTeam: vi.fn(),
     inviteMember: vi.fn(), acceptInvitation: vi.fn(), rejectInvitation: vi.fn(), cancelInvitation: vi.fn(),
-    removeMember: vi.fn(), leaveTeam: vi.fn(), transferLeader: vi.fn(),
+    removeMember: vi.fn(), leaveTeam: vi.fn(), transferLeader: vi.fn(), refreshEligibility: vi.fn(),
   },
 }))
 
@@ -66,6 +66,38 @@ describe('useTeamManagement', () => {
 
     expect(current.refreshAll).toHaveBeenCalledOnce()
     await waitFor(() => expect(mocked.team.getInvitations.mock.calls.length).toBeGreaterThan(2))
+  })
+
+  it('runs the explicit backend eligibility command once and then refreshes authoritative Team state', async () => {
+    const current = journeyState()
+    mocked.journey.useStudentJourney.mockReturnValue(current)
+    mocked.team.refreshEligibility.mockResolvedValue(team)
+    const { result } = renderHook(() => useTeamManagement())
+
+    await result.current.refreshEligibility()
+
+    expect(mocked.team.refreshEligibility).toHaveBeenCalledWith(28)
+    expect(current.refreshAll).toHaveBeenCalledOnce()
+  })
+
+  it.each([
+    [401, 'authentication'],
+    [403, 'forbidden'],
+    [404, 'not-found'],
+    [409, 'conflict'],
+    [422, 'validation'],
+  ] as const)('classifies eligibility refresh HTTP %s as %s without auto-resubmitting', async (status, kind) => {
+    mocked.team.refreshEligibility.mockRejectedValue(new HttpError('Sensitive eligibility backend detail', status))
+    const current = journeyState()
+    mocked.journey.useStudentJourney.mockReturnValue(current)
+    const { result } = renderHook(() => useTeamManagement())
+
+    await expect(result.current.refreshEligibility()).rejects.toBeInstanceOf(TeamManagementOperationError)
+
+    expect(mocked.team.refreshEligibility).toHaveBeenCalledOnce()
+    await waitFor(() => expect(result.current.error).toMatchObject({ kind }))
+    expect(result.current.error?.message).not.toContain('Sensitive eligibility backend detail')
+    expect(current.refreshAll).toHaveBeenCalledTimes(status === 409 ? 1 : 0)
   })
 
   it('does not retry a 409 mutation and refreshes the latest Team state once', async () => {

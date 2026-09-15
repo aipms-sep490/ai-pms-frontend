@@ -1,13 +1,16 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { TeamRosterTable } from '../components/TeamRosterTable'
 import { TeamInvitationsPanel } from '../components/TeamInvitationsPanel'
 import { CreateTeamModal } from '../components/CreateTeamModal'
 import { TransferLeaderModal } from '../components/TransferLeaderModal'
 import { AcademicScopePanel } from '../components/AcademicScopePanel'
 import { UpdateTeamModal } from '../components/UpdateTeamModal'
+import { TeamEligibilitySummary } from '../components/TeamEligibilitySummary'
 import { useTeamManagement } from '../hooks/useTeamManagement'
 
 export function TeamManagementPage() {
+  const navigate = useNavigate()
   const management = useTeamManagement()
   const {
     team, profile, semester, period, workflowContext, isLoading: contextLoading,
@@ -16,6 +19,7 @@ export function TeamManagementPage() {
     setCandidateSearch, setCandidatePage, retryCandidates, isMutationPending, error, retry,
     createTeam, updateTeam, inviteMember, cancelInvitation, acceptInvitation, rejectInvitation,
     removeMember, transferLeader, leaveTeam,
+    refreshEligibility,
   } = management
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
 
@@ -30,7 +34,6 @@ export function TeamManagementPage() {
     setTimeout(() => setToastMessage(null), 4000)
   }
 
-  const projectStatus = workflowContext?.currentTeam?.projectStatus
   const maxTeamSize = team?.academicScope?.requirements.reduce((sum, requirement) => sum + requirement.maxMembers, 0)
     || period?.maxTeamSize || 5
 
@@ -43,6 +46,11 @@ export function TeamManagementPage() {
   const handleUpdateTeam = async (data: { name: string; description?: string }) => {
     await updateTeam(data)
     showToast('Đã cập nhật thông tin nhóm.')
+  }
+
+  const handleRefreshEligibility = async () => {
+    await refreshEligibility()
+    showToast('Đã tải lại eligibility do backend xác thực.')
   }
 
   const handleSendInvitation = async (invitedUserId: number, message?: string) => {
@@ -245,17 +253,14 @@ export function TeamManagementPage() {
             </div>
           </div>
 
-          {/* Eligibility evaluation belongs to F5. F4 only reflects backend roster-lock state. */}
-          {rosterLocked && projectStatus && projectStatus.toUpperCase() !== 'DRAFT' ? (
-            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-              <h4 className="text-sm font-semibold text-blue-900">Đội hình đã được khóa theo lifecycle đề tài</h4>
-              <p className="mt-1 text-xs text-blue-700">Project đang ở trạng thái {projectStatus}; backend khóa roster để bảo toàn hồ sơ đã nộp.</p>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
-              Trạng thái điều kiện đăng ký được backend đánh giá riêng. F4 chỉ quản lý đội hình và đồng bộ roster theo dữ liệu backend.
-            </div>
-          )}
+          <TeamEligibilitySummary
+            team={team}
+            canRefresh={permissions.canRefreshEligibility}
+            refreshPending={isMutationPending('refresh-eligibility', team.id)}
+            canContinueToRegistration={team.eligibility.canRegister && permissions.canCreateProjectDraft}
+            onRefresh={handleRefreshEligibility}
+            onContinueToRegistration={() => navigate('/project/register')}
+          />
 
           <AcademicScopePanel
             teamId={team.id}

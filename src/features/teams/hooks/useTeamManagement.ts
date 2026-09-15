@@ -6,7 +6,7 @@ import { HttpError } from '../../../services/http/http-client'
 import { isActionAllowed, type PagedResult, type TeamInvitationCandidateDto, type TeamInvitationDto } from '../../../types/backend'
 import type { CreateTeamPayload, UpdateTeamPayload } from '../../../services/api/teams.api'
 
-type TeamErrorKind = 'authentication' | 'forbidden' | 'not-found' | 'conflict' | 'system'
+type TeamErrorKind = 'authentication' | 'forbidden' | 'not-found' | 'conflict' | 'validation' | 'system'
 
 export interface TeamManagementError {
   kind: TeamErrorKind
@@ -33,6 +33,7 @@ function classifyError(reason: unknown): TeamManagementError {
     if (reason.status === 403) return { kind: 'forbidden', message: 'Bạn không có quyền thực hiện thao tác này trong phạm vi nhóm hiện tại.' }
     if (reason.status === 404) return { kind: 'not-found', message: 'Dữ liệu nhóm hoặc lời mời không còn tồn tại hay không còn hiển thị.' }
     if (reason.status === 409) return { kind: 'conflict', message: 'Dữ liệu nhóm vừa thay đổi hoặc thao tác không còn hợp lệ. Đã tải lại trạng thái mới nhất.' }
+    if (reason.status === 400 || reason.status === 422) return { kind: 'validation', message: 'Backend không chấp nhận thao tác theo chính sách eligibility hiện tại.' }
   }
   return { kind: 'system', message: 'Không thể kết nối hệ thống để hoàn tất thao tác. Vui lòng thử lại.' }
 }
@@ -74,6 +75,8 @@ export function useTeamManagement() {
     canInvite: actionAllowed('invite_member', isLeader && !rosterLocked),
     canManageRoster: actionAllowed('remove_member', isLeader && !rosterLocked),
     canConfigureScope: actionAllowed('configure_academic_scope', isLeader && !rosterLocked),
+    canRefreshEligibility: actionAllowed('refresh_eligibility', isLeader && !rosterLocked),
+    canCreateProjectDraft: actionAllowed('create_project_draft', false),
     canLeave: actionAllowed('leave_team', !isLeader && !rosterLocked),
   }), [actionAllowed, isLeader, rosterLocked, team])
 
@@ -225,6 +228,11 @@ export function useTeamManagement() {
     await runMutation(mutationKey('transfer', userId), () => services.team.transferLeader(team.id, userId))
   }, [runMutation, team])
 
+  const refreshEligibility = useCallback(async () => {
+    if (!team) return
+    await runMutation(mutationKey('refresh-eligibility', team.id), () => services.team.refreshEligibility(team.id))
+  }, [runMutation, team])
+
   return {
     ...journey,
     team,
@@ -256,5 +264,6 @@ export function useTeamManagement() {
     removeMember,
     leaveTeam,
     transferLeader,
+    refreshEligibility,
   }
 }
