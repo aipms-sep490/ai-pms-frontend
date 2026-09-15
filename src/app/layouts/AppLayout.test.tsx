@@ -1,17 +1,22 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { AuthSessionContext, type AuthSessionContextValue } from '../../features/auth/context/auth-session-context'
 import { AppLayout } from './AppLayout'
 
 afterEach(() => {
   cleanup()
 })
 
-function renderAppLayout(initialEntries = ['/project/workspace']) {
+function renderAppLayout(initialEntries = ['/project/workspace'], roles: string[] = ['STUDENT']) {
+  const auth: AuthSessionContextValue = {
+    session: { accessToken: 'test', tokenType: 'Bearer', expiresAtUtc: '', refreshToken: '', refreshTokenExpiresAtUtc: '', user: { id: 1, fullName: 'Nguyễn Hoàng Minh', email: 'lecturer@fe.edu.vn', roles } },
+    status: 'authenticated', error: null, login: async () => { throw new Error('unused') }, logout: () => {}, refreshProfile: async () => {},
+  }
   return render(
-    <MemoryRouter initialEntries={initialEntries}>
-      <AppLayout />
-    </MemoryRouter>
+    <AuthSessionContext.Provider value={auth}>
+      <MemoryRouter initialEntries={initialEntries}><AppLayout /></MemoryRouter>
+    </AuthSessionContext.Provider>
   )
 }
 
@@ -89,7 +94,7 @@ describe('AppLayout & Navigation Shell', () => {
     renderAppLayout()
 
     // Student profile display
-    expect(screen.getByText('Sinh viên')).toBeDefined()
+    expect(screen.getByText('Nguyễn Hoàng Minh')).toBeDefined()
     expect(screen.getByText('Tài khoản sinh viên')).toBeDefined()
 
     // Confirms role switcher button is completely removed from Batch 0
@@ -100,9 +105,21 @@ describe('AppLayout & Navigation Shell', () => {
     expect(screen.getByText('Tiến trình & Cột mốc')).toBeDefined()
     expect(screen.getByText('Gantt & Đường găng')).toBeDefined()
 
-    // Management section displayed as preview
-    expect(screen.getByText('Phân hệ Quản lý & Giảng viên')).toBeDefined()
-    expect(screen.getByText('Bàn làm việc GVHD')).toBeDefined()
-    expect(screen.getByText('Quản lý Bộ môn')).toBeDefined()
+    expect(screen.queryByText('Bàn làm việc GVHD')).toBeNull()
+    expect(screen.queryByText('Quản lý Bộ môn')).toBeNull()
+  })
+
+  it('shows only the lecturer workspace for a lecturer account', () => {
+    renderAppLayout(['/supervisor/workspace'], ['LECTURER'])
+    expect(screen.getByRole('link', { name: /Bàn làm việc GVHD/ })).toBeDefined()
+    expect(screen.queryByRole('link', { name: /Bàn làm việc Tổng quan/ })).toBeNull()
+    expect(screen.queryByText('Chưa có nhóm')).toBeNull()
+  })
+
+  it('shows department pages without student navigation for department staff', () => {
+    renderAppLayout(['/department/projects/review'], ['DEPARTMENT_STAFF'])
+    expect(screen.getByRole('link', { name: /Thẩm định đề cương/ })).toBeDefined()
+    expect(screen.queryByRole('link', { name: /Bàn làm việc Tổng quan/ })).toBeNull()
+    expect(screen.queryByText('Chưa có nhóm')).toBeNull()
   })
 })

@@ -23,6 +23,7 @@ import { findCurrentTeamProject } from '../../features/projects/utils/project-re
 import { StudentJourneyContext } from './StudentJourneyContext'
 import { resolveStudentJourneyState } from './resolve-student-journey-state'
 import { useAuthSession } from '../../features/auth/context/useAuthSession'
+import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 
 export function StudentJourneyProvider({ children }: { children: ReactNode }) {
   const { session, status: authStatus } = useAuthSession()
@@ -42,7 +43,7 @@ export function StudentJourneyProvider({ children }: { children: ReactNode }) {
 
   const refreshAll = useCallback(async () => {
     const requestId = ++refreshSequence.current
-    if (!session) {
+    if (!session || getWorkspaceRole(session.user) !== 'student') {
       setProfile(null)
       setSemester(null)
       setPeriod(null)

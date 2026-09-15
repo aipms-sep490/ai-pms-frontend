@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { HttpError } from '../../../services/http/http-client'
 import { Button } from '../../../components/ui/Button'
 import { useAuthSession } from '../context/useAuthSession'
+import { getHomePath } from '../utils/role-access'
 import './auth-pages.css'
 
 function getLoginErrorMessage(error: unknown): string {
@@ -27,7 +28,7 @@ export function LoginPage() {
 
   useEffect(() => {
     if (session && status === 'authenticated') {
-      navigate('/project/workspace', { replace: true })
+      navigate(getHomePath(session.user), { replace: true })
     }
   }, [navigate, session, status])
 
@@ -46,8 +47,8 @@ export function LoginPage() {
     }
 
     try {
-      await login({ email: email.trim(), password })
-      navigate('/project/workspace', { replace: true })
+      const authenticatedSession = await login({ email: email.trim(), password })
+      navigate(getHomePath(authenticatedSession.user), { replace: true })
     } catch (error: unknown) {
       setFormError(getLoginErrorMessage(error))
     }

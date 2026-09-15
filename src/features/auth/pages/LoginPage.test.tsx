@@ -31,7 +31,7 @@ describe('LoginPage', () => {
   })
 
   it('submits valid credentials through the session adapter', async () => {
-    authSession.login.mockResolvedValue(undefined)
+    authSession.login.mockResolvedValue({ user: { roles: ['DEPARTMENT_STAFF'] } })
     render(<LoginPage />, { wrapper: MemoryRouter })
 
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'staff@example.edu.vn' } })

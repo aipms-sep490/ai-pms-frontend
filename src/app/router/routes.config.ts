@@ -99,7 +99,7 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
     breadcrumb: 'GVHD Workspace',
     icon: 'supervisor_account',
     role: 'supervisor',
-    status: 'coming_soon',
+    status: 'implemented',
     badge: 'GVHD',
     section: 'management',
   },
@@ -139,8 +139,7 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
 ] as const
 
 /**
- * Returns navigation items for Student Workspace (Batch 0-2 baseline).
- * Full role-switched workspaces will be implemented in Batch 3.
+ * Returns metadata for the student workspace.
  */
 export function getStudentNavItems() {
   const workspaceItems = mvpRoutes.filter(
@@ -181,6 +180,10 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname === '/project/supervisor') {
     return 'Ghép cặp Giảng viên Hướng dẫn'
   }
+  if (pathname.startsWith('/department/projects/review')) return 'Thẩm định đề cương'
+  if (pathname.startsWith('/department/supervisors')) return 'Giám sát GVHD'
+  if (pathname.startsWith('/department/topics')) return 'Quản lý đề tài'
+  if (pathname === '/admin/access') return 'Quản trị quyền'
   const match = mvpRoutes.find((r) => r.path === pathname)
   if (match) {
     return match.title

@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/Button'
 import { getStudentNavItems } from '../router/routes.config'
 import { StudentJourneyContext } from '../context'
 import { AuthSessionContext } from '../../features/auth/context/auth-session-context'
+import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 
 interface SidebarProps {
   isOpen: boolean
@@ -15,18 +16,17 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const auth = useContext(AuthSessionContext)
+  const role = getWorkspaceRole(auth?.session?.user)
   const asideRef = useRef<HTMLElement | null>(null)
   const journey = useContext(StudentJourneyContext)
   const { profile, semester, team, project } = journey ?? {}
-  const workspaceCode = project?.code?.trim() || 'SEP490'
-  const teamLabel = team?.code?.trim() || team?.name?.trim() || 'Chưa có nhóm'
-  const profileName = profile?.fullName?.trim() || 'Sinh viên'
-  const profileCode = profile?.studentCode || 'Tài khoản sinh viên'
-  const profileInitials = profile?.fullName
-    ? profile.fullName.split(/\s+/).slice(-2).map((part) => part[0]).join('').toUpperCase()
-    : 'SV'
+  const workspaceCode = role === 'student' ? project?.code?.trim() || 'SEP490' : 'AI-PMS'
+  const teamLabel = role === 'student' ? team?.code?.trim() || team?.name?.trim() || 'Chưa có nhóm' : role === 'lecturer' ? 'Giảng viên' : role === 'department' ? 'Bộ môn' : role === 'admin' ? 'Quản trị' : 'Tài khoản'
+  const profileName = profile?.fullName?.trim() || auth?.session?.user.fullName || 'Tài khoản'
+  const profileCode = role === 'student' ? profile?.studentCode || 'Tài khoản sinh viên' : auth?.session?.user.email || 'Tài khoản'
+  const profileInitials = profileName.split(/\s+/).slice(-2).map((part) => part[0]).join('').toUpperCase()
 
-  const { workspaceItems, managementItems } = getStudentNavItems()
+  const { workspaceItems } = getStudentNavItems()
 
   const handleClose = useCallback(() => {
     onClose()
@@ -134,7 +134,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                     AI-PMS • FPTU
                   </span>
                   <span className="font-mono text-[10px] text-slate-500 leading-tight">
-                    {semester?.name || 'Học kỳ chưa xác định'}
+                    {role === 'student' ? semester?.name || 'Học kỳ chưa xác định' : teamLabel}
                   </span>
                 </div>
               </div>
@@ -171,7 +171,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
             </div>
 
             {/* Quick Action CTA (Disabled preview) */}
-            <Button
+            {role === 'student' && <Button
               variant="primary"
               size="sm"
               icon="add"
@@ -180,11 +180,35 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
               className="w-full justify-between"
             >
               Tạo việc mới (Sắp có)
-            </Button>
+            </Button>}
           </div>
 
           {/* Main Navigation Links */}
           <nav className="p-3 flex flex-col gap-1 flex-1" aria-label="Menu chức năng học tập">
+            {role !== 'student' && (
+              <>
+                <div className="px-2.5 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400">
+                  {role === 'lecturer' ? 'Không gian Giảng viên' : role === 'unknown' ? 'Hồ sơ tài khoản' : 'Không gian Quản lý'}
+                </div>
+                {(role === 'lecturer' ? [
+                  { path: '/supervisor/workspace', title: 'Bàn làm việc GVHD', icon: 'supervisor_account' },
+                  { path: '/profile', title: 'Hồ sơ tài khoản', icon: 'account_circle' },
+                ] : role === 'department' || role === 'admin' ? [
+                  ...(role === 'admin' ? [{ path: '/admin/access', title: 'Quản trị quyền', icon: 'admin_panel_settings' }] : []),
+                  { path: '/department/projects/review', title: 'Thẩm định đề cương', icon: 'fact_check' },
+                  { path: '/department/supervisors', title: 'Giám sát GVHD', icon: 'school' },
+                  { path: '/department/topics', title: 'Quản lý đề tài', icon: 'lightbulb' },
+                  { path: '/academic', title: 'Cấu trúc đào tạo', icon: 'account_balance' },
+                  { path: '/profile', title: 'Hồ sơ tài khoản', icon: 'account_circle' },
+                ] : [{ path: '/profile', title: 'Hồ sơ tài khoản', icon: 'account_circle' }]).map((item) => (
+                  <NavLink key={item.path} to={item.path} onClick={() => { if (window.innerWidth < 1024) handleClose() }}
+                    className={({ isActive }) => `flex items-center gap-2.5 px-2.5 py-2 min-h-[40px] rounded-lg text-[13px] font-medium ${isActive ? 'bg-primary-subtle text-primary font-semibold' : 'text-slate-600 hover:bg-slate-100'}`}>
+                    <span className="material-symbols-outlined text-[18px]" aria-hidden="true">{item.icon}</span>{item.title}
+                  </NavLink>
+                ))}
+              </>
+            )}
+            {role === 'student' && <>
             <div className="px-2.5 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400">
               Không gian Nhóm Đồ án
             </div>
@@ -244,62 +268,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
               )
             )}
 
-            {/* Management Views Section (Preview until Batch 3) */}
-            {managementItems.length > 0 && (
-              <>
-                <div className="px-2.5 pt-3 pb-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400 border-t border-hairline mt-2">
-                  Phân hệ Quản lý & Giảng viên
-                </div>
-
-                {managementItems.map((item) =>
-                  item.status === 'implemented' ? (
-                    <NavLink
-                      key={item.id}
-                      to={item.path}
-                      onClick={() => {
-                        if (window.innerWidth < 1024) handleClose()
-                      }}
-                      className={({ isActive }) =>
-                        `flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-[13px] font-medium transition-all duration-150 ${
-                          isActive
-                            ? 'bg-primary-subtle text-primary font-semibold'
-                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                        }`
-                      }
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="material-symbols-outlined text-[18px] shrink-0" aria-hidden="true">
-                          {item.icon}
-                        </span>
-                        <span className="truncate">{item.title}</span>
-                      </div>
-                      {item.badge && (
-                        <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold shrink-0 ml-1">
-                          {item.badge}
-                        </span>
-                      )}
-                    </NavLink>
-                  ) : (
-                    <div
-                      key={item.id}
-                      aria-disabled="true"
-                      className="flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-[13px] text-slate-400 cursor-not-allowed opacity-75"
-                      title={`${item.title} — Chức năng phân hệ mở rộng`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="material-symbols-outlined text-[18px] text-slate-300 shrink-0" aria-hidden="true">
-                          {item.icon}
-                        </span>
-                        <span className="truncate">{item.title}</span>
-                      </div>
-                      <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-semibold shrink-0 ml-1">
-                        {item.badge || 'Sắp có'}
-                      </span>
-                    </div>
-                  )
-                )}
-              </>
-            )}
+            </>}
           </nav>
         </div>
 
@@ -308,7 +277,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center font-heading font-bold text-xs text-slate-700 relative shrink-0">
               {profileInitials}
-              <span className={`absolute bottom-0 right-0 w-2 h-2 rounded-full ring-2 ring-white ${profile ? 'bg-academic-emerald' : 'bg-slate-300'}`} />
+              <span className={`absolute bottom-0 right-0 w-2 h-2 rounded-full ring-2 ring-white ${auth?.session ? 'bg-academic-emerald' : 'bg-slate-300'}`} />
             </div>
             <div className="flex flex-col min-w-0 flex-1">
               <span className="text-[12px] font-semibold text-slate-900 truncate">
