@@ -8,12 +8,13 @@ export type SupervisionErrorKind = 'authentication' | 'forbidden' | 'not-found' 
 export interface SupervisionError { kind: SupervisionErrorKind; message: string }
 
 function classify(error: unknown): SupervisionError {
-  if (error instanceof HttpError) {
-    if (error.status === 401) return { kind: 'authentication', message: 'Phiên đăng nhập đã hết hạn.' }
-    if (error.status === 403) return { kind: 'forbidden', message: 'Backend từ chối quyền hoặc phạm vi Project.' }
-    if (error.status === 404) return { kind: 'not-found', message: 'Project, request hoặc candidate không còn khả dụng.' }
-    if (error.status === 409) return { kind: 'conflict', message: 'Trạng thái supervisor vừa thay đổi. Dữ liệu mới đã được tải; hãy tự chọn lại thao tác.' }
-    if (error.status === 400 || error.status === 422) return { kind: 'validation', message: error.message || 'Backend từ chối yêu cầu theo quy tắc nghiệp vụ.' }
+  if (error instanceof HttpError || (typeof error === 'object' && error !== null && 'status' in error)) {
+    const response = error as { status: number; message?: string }
+    if (response.status === 401) return { kind: 'authentication', message: 'Phiên đăng nhập đã hết hạn.' }
+    if (response.status === 403) return { kind: 'forbidden', message: 'Backend từ chối quyền hoặc phạm vi Project.' }
+    if (response.status === 404) return { kind: 'not-found', message: 'Project, request hoặc candidate không còn khả dụng.' }
+    if (response.status === 409) return { kind: 'conflict', message: 'Trạng thái supervisor vừa thay đổi. Dữ liệu mới đã được tải; hãy tự chọn lại thao tác.' }
+    if (response.status === 400 || response.status === 422) return { kind: 'validation', message: response.message || 'Backend từ chối yêu cầu theo quy tắc nghiệp vụ.' }
   }
   return { kind: 'system', message: error instanceof Error ? error.message : 'Không thể tải hoặc xử lý dữ liệu supervisor.' }
 }

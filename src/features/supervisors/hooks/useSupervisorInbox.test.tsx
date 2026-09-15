@@ -32,4 +32,11 @@ describe('useSupervisorInbox', () => {
     expect(supervisor.getSupervisorInbox).toHaveBeenCalledTimes(2)
     expect(result.current.error?.kind).toBe('conflict')
   })
+
+  it('does not let a rendered but no-longer-pending request be decided again', async () => {
+    const { result } = renderHook(() => useSupervisorInbox())
+    await waitFor(() => expect(result.current.requests).toHaveLength(1))
+    await act(async () => { expect(await result.current.respond({ ...request, status: 'CANCELLED' }, 'reject')).toBe(false) })
+    expect(supervisor.respondToSupervisorRequest).not.toHaveBeenCalled()
+  })
 })

@@ -35,4 +35,14 @@ describe('useSupervisorSelection', () => {
     await act(async () => { expect(await result.current.send(candidate as never)).toBe(false) })
     expect(supervisor.sendRequest).not.toHaveBeenCalled()
   })
+
+  it('does not retry a capacity/race conflict and refreshes project-specific candidates for a human reselection', async () => {
+    supervisor.sendRequest.mockRejectedValueOnce({ status: 409 })
+    const { result } = renderHook(() => useSupervisorSelection({ project: project as never, team: leaderTeam as never, profile: { id: 2 } as never, actions: actions as never, refreshAll: vi.fn() }))
+    await waitFor(() => expect(result.current.candidates).toHaveLength(1))
+    await act(async () => { expect(await result.current.send(candidate as never)).toBe(false) })
+    expect(supervisor.sendRequest).toHaveBeenCalledTimes(1)
+    expect(supervisor.getCandidates).toHaveBeenCalledTimes(2)
+    expect(result.current.error?.kind).toBe('conflict')
+  })
 })
