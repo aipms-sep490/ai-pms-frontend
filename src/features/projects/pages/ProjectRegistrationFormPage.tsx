@@ -1,471 +1,89 @@
-import { useState, useEffect, type FormEvent } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import type { FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useStudentJourney } from '../../../app/context'
-import { services } from '../../../services/service-gateway'
-import { ProjectModeSelector, type ProjectRegistrationMode } from '../components/ProjectModeSelector'
 import { RevisionAlert } from '../components/RevisionAlert'
-import type { ProjectStatusHistoryDto } from '../../../types/backend'
-import { isActionAllowed } from '../../../types/backend'
-import { env } from '../../../app/config/env'
+import { useProjectRegistration } from '../hooks/useProjectRegistration'
 
 export function ProjectRegistrationFormPage() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const [searchParams] = useSearchParams()
-  const topicId = searchParams.get('topicId')
+  const journey = useStudentJourney()
+  const registration = useProjectRegistration(journey)
+  const hasProject = Boolean(journey.project)
+  const revision = registration.status === 'REVISIONREQUIRED'
+  const editable = !hasProject || registration.canEdit
+  const submitting = registration.submitting || registration.resubmitting
 
-  const { team, project, profile, teamActions, projectActions, refreshAll, isLoading: contextLoading } = useStudentJourney()
-
-  const [mode, setMode] = useState<ProjectRegistrationMode>('SINGLE_MAJOR')
-  const [title, setTitle] = useState('')
-  const [problemStatement, setProblemStatement] = useState('')
-  const [objectives, setObjectives] = useState('')
-  const [expectedOutput, setExpectedOutput] = useState('')
-  const [domain, setDomain] = useState('Software Engineering')
-  const [technologies, setTechnologies] = useState('.NET 9, React, TypeScript, Tailwind CSS')
-  const [keywords, setKeywords] = useState('Capstone, AI, Clean Architecture')
-
-  const [concurrencyToken, setConcurrencyToken] = useState('token_v1')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSavingDraft, setIsSavingDraft] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [latestRevision, setLatestRevision] = useState<ProjectStatusHistoryDto | null>(null)
-  const [topicMajorIds, setTopicMajorIds] = useState<number[]>([])
-
-  const normalizedProjectStatus = project?.status.replaceAll('_', '').toUpperCase()
-  const isRevisionRequired = normalizedProjectStatus === 'REVISIONREQUIRED'
-  const isEditableLifecycle = !project || normalizedProjectStatus === 'DRAFT' || isRevisionRequired
-  const isEditMode = location.pathname.includes('/project/edit') || Boolean(project?.id)
-  const isLeader = Boolean(team?.members.some((m) => m.userId === profile?.id && m.isLeader))
-  const canRegister = teamActions?.canRegister ?? team?.eligibility?.canRegister ?? false
-  const requiredMajorIds = team?.academicScope?.requirements.map((requirement) => requirement.majorId)
-    ?? (topicMajorIds.length > 0 ? topicMajorIds : undefined)
-    ?? (project?.majors.length ? project.majors.map((major) => major.majorId) : undefined)
-    ?? (profile?.majorId ? [profile.majorId] : [])
-  const canEdit = env.isMockMode
-    ? isLeader
-    : project
-      ? isActionAllowed(projectActions?.actions ?? [], 'edit_project_draft')
-      : isActionAllowed(teamActions?.actions ?? [], 'create_project_draft')
-  const canSubmit = env.isMockMode
-    ? isLeader && (canRegister || isRevisionRequired)
-    : project
-      ? isActionAllowed(projectActions?.actions ?? [], isRevisionRequired ? 'resubmit_project' : 'submit_project')
-      : canEdit && canRegister
-
-  // Pre-fill from topic or existing project draft
-  useEffect(() => {
-    async function initForm() {
-      if (topicId) {
-        const topic = await services.topic.getTopicById(topicId)
-        if (topic) {
-          setTitle(topic.titleVi)
-          setObjectives(topic.objectives)
-          setExpectedOutput(topic.expectedOutput)
-          setDomain(topic.domain)
-          setTechnologies(topic.technologies.join(', '))
-          setMode(topic.projectMode ?? 'SINGLE_MAJOR')
-          setTopicMajorIds(topic.requiredMajorIds ?? [])
-        }
-      } else if (project) {
-        setTitle(project.title)
-        setProblemStatement(project.problemStatement ?? '')
-        setObjectives(project.objectives ?? '')
-        setExpectedOutput(project.expectedOutput ?? '')
-        setConcurrencyToken(project.concurrencyToken)
-        setMode(team?.academicScope?.projectMode === 'INTERDISCIPLINARY' ? 'INTERDISCIPLINARY' : 'SINGLE_MAJOR')
-      }
-
-      // Check for revision reason if revision required
-      if (project && normalizedProjectStatus === 'REVISIONREQUIRED') {
-        const history = await services.project.getHistory(project.id)
-        const rev = history.filter((h) => h.newStatus.replaceAll('_', '').toUpperCase() === 'REVISIONREQUIRED').pop()
-        if (rev) setLatestRevision(rev)
-      }
-    }
-    initForm()
-  }, [topicId, project, normalizedProjectStatus, team?.academicScope?.projectMode])
-
-  const handleSaveDraft = async () => {
-    if (!title.trim()) {
-      setErrorMessage('Tên đề tài không được để trống.')
-      return
-    }
-
-    setIsSavingDraft(true)
-    setErrorMessage(null)
-    try {
-      const techList = technologies.split(',').map((t) => t.trim()).filter(Boolean)
-      const kwList = keywords.split(',').map((k) => k.trim()).filter(Boolean)
-
-      if (project?.id) {
-        const updated = await services.project.updateDraft(project.id, {
-          concurrencyToken,
-          title: title.trim(),
-          description: objectives.trim(),
-          objectives: objectives.trim(),
-          problemStatement: problemStatement.trim(),
-          expectedOutput: expectedOutput.trim(),
-          requiredMajorIds,
-          domain: domain.trim(),
-          technologies: techList,
-          keywords: kwList,
-        })
-        setConcurrencyToken(updated.concurrencyToken)
-      } else {
-        const created = await services.project.createDraft({
-          title: title.trim(),
-          description: objectives.trim(),
-          objectives: objectives.trim(),
-          problemStatement: problemStatement.trim(),
-          expectedOutput: expectedOutput.trim(),
-          requiredMajorIds,
-          domain: domain.trim(),
-          technologies: techList,
-          keywords: kwList,
-        })
-        setConcurrencyToken(created.concurrencyToken)
-      }
-
-      await refreshAll()
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Lưu bản nháp thất bại.')
-    } finally {
-      setIsSavingDraft(false)
-    }
+  const save = async () => {
+    const saved = await registration.saveDraft()
+    if (saved && !hasProject) navigate('/project/edit', { replace: true })
   }
 
-  const handleSubmitProposal = async (e: FormEvent) => {
-    e.preventDefault()
-
-    if (!canSubmit) {
-      setErrorMessage('Nhóm của bạn chưa đủ điều kiện nộp đề cương. Vui lòng kiểm tra lại trang Quản lý Nhóm.')
-      return
-    }
-
-    if (!isLeader) {
-      setErrorMessage('Chỉ Trưởng nhóm mới có quyền nộp đề cương đồ án.')
-      return
-    }
-
-    setIsSubmitting(true)
-    setErrorMessage(null)
-    try {
-      // 1. Save latest edits first
-      const techList = technologies.split(',').map((t) => t.trim()).filter(Boolean)
-      const kwList = keywords.split(',').map((k) => k.trim()).filter(Boolean)
-
-      let currentProjectId: number
-      let token = concurrencyToken
-
-      if (project?.id) {
-        const updated = await services.project.updateDraft(project.id, {
-          concurrencyToken: token,
-          title: title.trim(),
-          description: objectives.trim(),
-          objectives: objectives.trim(),
-          problemStatement: problemStatement.trim(),
-          expectedOutput: expectedOutput.trim(),
-          requiredMajorIds,
-          domain: domain.trim(),
-          technologies: techList,
-          keywords: kwList,
-        })
-        currentProjectId = updated.id
-        token = updated.concurrencyToken
-      } else {
-        const created = await services.project.createDraft({
-          title: title.trim(),
-          description: objectives.trim(),
-          objectives: objectives.trim(),
-          problemStatement: problemStatement.trim(),
-          expectedOutput: expectedOutput.trim(),
-          requiredMajorIds,
-          domain: domain.trim(),
-          technologies: techList,
-          keywords: kwList,
-        })
-        currentProjectId = created.id
-        token = created.concurrencyToken
-      }
-
-      // 2. Submit or Resubmit
-      if (isRevisionRequired) {
-        await services.project.resubmit(currentProjectId, token)
-      } else {
-        await services.project.submit(currentProjectId, token)
-      }
-
-      await refreshAll()
-      navigate('/project/status')
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Nộp đề cương thất bại.')
-    } finally {
-      setIsSubmitting(false)
-    }
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    const result = revision ? await registration.resubmit() : await registration.submit()
+    if (result) navigate('/project/status')
   }
 
-  if (contextLoading) {
+  if (journey.isLoading) return <LoadingState />
+  if (journey.error) return <FailureState message={journey.error} onRetry={() => void journey.refreshAll()} />
+
+  if (hasProject && !editable) {
     return (
-      <div className="p-6 max-w-4xl mx-auto flex flex-col gap-6 animate-pulse">
-        <div className="h-8 bg-slate-200 rounded w-1/3" />
-        <div className="h-40 bg-slate-200 rounded-2xl w-full" />
-        <div className="h-96 bg-slate-200 rounded-2xl w-full" />
-      </div>
-    )
-  }
-
-  if (!isEditableLifecycle) {
-    return (
-      <div className="max-w-3xl mx-auto pb-16">
-        <section className="rounded-2xl border border-blue-200 bg-white p-8 text-center shadow-xs">
-          <span className="material-symbols-outlined text-4xl text-blue-600" aria-hidden="true">task_alt</span>
-          <h1 className="mt-3 text-xl font-bold text-slate-900">Đề cương đã rời giai đoạn chỉnh sửa</h1>
-          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-600">
-            Project hiện ở trạng thái <strong>{project?.status}</strong>. Mọi bước tiếp theo cần thực hiện theo lifecycle hiện tại để tránh ghi đè hồ sơ đã nộp.
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate('/project/status')}
-            className="mt-5 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-blue-700"
-          >
-            Xem trạng thái đề cương
-          </button>
-        </section>
-      </div>
+      <section className="mx-auto max-w-3xl rounded-2xl border border-blue-200 bg-white p-8 text-center shadow-xs">
+        <span className="material-symbols-outlined text-4xl text-blue-600" aria-hidden="true">task_alt</span>
+        <h1 className="mt-3 text-xl font-bold text-slate-900">Đề cương đang ở chế độ chỉ xem</h1>
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-600">Backend đang báo trạng thái <strong>{journey.project?.status}</strong> và không cấp action chỉnh sửa cho bạn.</p>
+        <button type="button" onClick={() => navigate('/project/status')} className="mt-5 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-blue-700">Xem trạng thái đề cương</button>
+      </section>
     )
   }
 
   return (
-    <div className="max-w-4xl mx-auto pb-16 flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+    <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-16">
+      <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-2 transition-colors"
-          >
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-            Quay lại
+          <button type="button" onClick={() => navigate(-1)} className="mb-2 inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800">
+            <span className="material-symbols-outlined text-[16px]">arrow_back</span> Quay lại
           </button>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            {isRevisionRequired
-              ? 'Chỉnh sửa & Nộp lại Đề cương'
-              : isEditMode
-                ? 'Chỉnh sửa Đề cương Đồ án Tốt nghiệp'
-                : 'Đăng ký Đề cương Đồ án Tốt nghiệp'}
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Nhóm: <span className="font-semibold text-slate-700">{team?.name || 'Chưa có nhóm'}</span> • Người thực hiện:{' '}
-            <span className="font-semibold text-slate-700">
-              {team?.members.find((m) => m.isLeader)?.fullName || 'Trưởng nhóm'}
-            </span>
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{revision ? 'Chỉnh sửa và nộp lại đề cương' : hasProject ? 'Chỉnh sửa đề cương đồ án' : 'Tạo bản nháp đề cương'}</h1>
+          <p className="mt-1 text-xs text-slate-500">Nhóm: <strong className="text-slate-700">{journey.team?.name ?? 'Chưa có nhóm'}</strong>. Project Mode, Major và Department được backend quản trị.</p>
         </div>
+        <button type="button" onClick={() => navigate('/project/status')} className="rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem trạng thái</button>
+      </header>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => navigate('/topics')}
-            className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
-          >
-            <span className="material-symbols-outlined text-[18px]">lightbulb</span>
-            Xem đề tài gợi ý
+      {!hasProject && !registration.canCreate && <FailureState message="Chưa thể tạo bản nháp: backend yêu cầu eligibility PASS và action create_project_draft cho Trưởng nhóm." onRetry={() => void journey.refreshAll()} />}
+      {revision && registration.latestRevision && <RevisionAlert reason={registration.latestRevision.reason} reviewerName={registration.latestRevision.changedByName || 'Hệ thống'} timestamp={registration.latestRevision.changedAt} onEdit={() => {}} />}
+      <GovernedScope scope={registration.academicScope} requiredMajorIds={registration.requiredMajorIds} />
+
+      <form onSubmit={submit} className="flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+        <TextField id="project-title" label="Tên đề tài" value={registration.form.title} required disabled={!editable} onChange={(value) => registration.setField('title', value)} />
+        <TextArea id="project-description" label="Mô tả ngắn" value={registration.form.description} disabled={!editable} onChange={(value) => registration.setField('description', value)} />
+        <TextArea id="project-problem" label="Bối cảnh và vấn đề cần giải quyết" value={registration.form.problemStatement} required disabled={!editable} onChange={(value) => registration.setField('problemStatement', value)} />
+        <TextArea id="project-objectives" label="Mục tiêu đề tài" value={registration.form.objectives} required disabled={!editable} onChange={(value) => registration.setField('objectives', value)} />
+        <TextArea id="project-output" label="Sản phẩm kỳ vọng" value={registration.form.expectedOutput} required disabled={!editable} onChange={(value) => registration.setField('expectedOutput', value)} />
+        <div className="grid gap-4 md:grid-cols-3">
+          <TextField id="project-domain" label="Lĩnh vực (Domain)" value={registration.form.domain} required disabled={!editable} onChange={(value) => registration.setField('domain', value)} />
+          <TextField id="project-technologies" label="Công nghệ (phân cách bằng dấu phẩy)" value={registration.form.technologies} disabled={!editable} onChange={(value) => registration.setField('technologies', value)} />
+          <TextField id="project-keywords" label="Từ khóa (phân cách bằng dấu phẩy)" value={registration.form.keywords} disabled={!editable} onChange={(value) => registration.setField('keywords', value)} />
+        </div>
+        {registration.error && <ErrorMessage kind={registration.error.kind} message={registration.error.message} onRetry={registration.error.kind === 'system' ? () => void journey.refreshAll() : undefined} />}
+        <footer className="flex flex-col justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center">
+          <button type="button" onClick={() => void save()} disabled={!registration.canEdit || registration.creating || registration.saving || submitting} className="rounded-xl border border-slate-300 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+            {registration.creating ? 'Đang tạo nháp...' : registration.saving ? 'Đang lưu...' : hasProject ? 'Lưu thay đổi' : 'Tạo bản nháp'}
           </button>
-        </div>
-      </div>
-
-      {/* Revision Alert (When RevisionRequired) */}
-      {isRevisionRequired && latestRevision && (
-        <RevisionAlert
-          reason={latestRevision.reason}
-          reviewerName={latestRevision.changedByName || 'Hội đồng Khoa'}
-          timestamp={latestRevision.changedAt}
-          onEdit={() => {}}
-        />
-      )}
-
-      {/* Form Container */}
-      <form
-        onSubmit={handleSubmitProposal}
-        className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col gap-6 shadow-xs"
-      >
-        {/* Project Mode Selector */}
-        <ProjectModeSelector
-          selectedMode={mode}
-          onSelectMode={setMode}
-          disabled
-        />
-
-        {!team?.academicScope && (
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-            <span>Nhóm đang dùng quy tắc đơn ngành mặc định. Muốn chọn liên ngành, hãy cấu hình phạm vi ngành trước.</span>
-            <button type="button" onClick={() => navigate('/team')} className="shrink-0 font-bold text-blue-700 hover:underline">
-              Cấu hình nhóm
-            </button>
-          </div>
-        )}
-
-        {/* Project Title */}
-        <div>
-          <label htmlFor="project-title" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-            Tên Đề tài Đồ án (Tiếng Việt) *
-          </label>
-          <input
-            id="project-title"
-            name="title"
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            placeholder="Ví dụ: Hệ thống Quản trị Vòng đời Đồ án Tốt nghiệp Thông minh..."
-            className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
-          />
-        </div>
-
-        {/* Problem Statement */}
-        <div>
-          <label htmlFor="project-problem" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-            Bối cảnh & Vấn đề Cần giải quyết (Problem Statement) *
-          </label>
-          <textarea
-            id="project-problem"
-            name="problemStatement"
-            value={problemStatement}
-            onChange={(e) => setProblemStatement(e.target.value)}
-            required
-            rows={3}
-            placeholder="Mô tả thực trạng, nỗi đau của người dùng/doanh nghiệp và lý do cần thực hiện đề tài..."
-            className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
-          />
-        </div>
-
-        {/* Objectives */}
-        <div>
-          <label htmlFor="project-objectives" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-            Mục tiêu Đề tài (Objectives) *
-          </label>
-          <textarea
-            id="project-objectives"
-            name="objectives"
-            value={objectives}
-            onChange={(e) => setObjectives(e.target.value)}
-            required
-            rows={3}
-            placeholder="Các mục tiêu cụ thể cần đạt được về mặt công nghệ, sản phẩm và giá trị ứng dụng..."
-            className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
-          />
-        </div>
-
-        {/* Expected Output */}
-        <div>
-          <label htmlFor="project-expected-output" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-            Sản phẩm Kỳ vọng & Phạm vi Bàn giao (Deliverables) *
-          </label>
-          <textarea
-            id="project-expected-output"
-            name="expectedOutput"
-            value={expectedOutput}
-            onChange={(e) => setExpectedOutput(e.target.value)}
-            required
-            rows={3}
-            placeholder="Các sản phẩm phần mềm, tài liệu đặc tả SAD/SRS, báo cáo nghiệm thu và bộ test..."
-            className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
-          />
-        </div>
-
-        {/* Technologies, Domain & Keywords */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label htmlFor="project-domain" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Lĩnh vực Nghiên cứu (Domain)
-            </label>
-            <input
-              id="project-domain"
-              name="domain"
-              type="text"
-              value={domain}
-              onChange={(e) => setDomain(e.target.value)}
-              placeholder="Software Engineering, EdTech..."
-              className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
-            />
-          </div>
-          <div>
-            <label htmlFor="project-technologies" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Công nghệ Dự kiến
-            </label>
-            <input
-              id="project-technologies"
-              name="technologies"
-              type="text"
-              value={technologies}
-              onChange={(e) => setTechnologies(e.target.value)}
-              placeholder=".NET 9, React, TypeScript..."
-              className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white font-mono text-xs"
-            />
-          </div>
-          <div>
-            <label htmlFor="project-keywords" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Từ khóa (Keywords)
-            </label>
-            <input
-              id="project-keywords"
-              name="keywords"
-              type="text"
-              value={keywords}
-              onChange={(e) => setKeywords(e.target.value)}
-              placeholder="Capstone, AI, Clean Architecture..."
-              className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white font-mono text-xs"
-            />
-          </div>
-        </div>
-
-        {/* Error Alert */}
-        {errorMessage && (
-          <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 flex items-center gap-2.5 text-xs text-rose-700 font-medium">
-            <span className="material-symbols-outlined text-[20px] shrink-0">error</span>
-            {errorMessage}
-          </div>
-        )}
-
-        {/* Actions Footer */}
-        <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={handleSaveDraft}
-            disabled={isSavingDraft || isSubmitting || !canEdit || requiredMajorIds.length === 0}
-            className="px-4 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined text-[18px]">save</span>
-            {isSavingDraft ? 'Đang lưu nháp...' : 'Lưu bản nháp'}
-          </button>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate('/team')}
-              className="px-4 py-2.5 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-xs font-semibold transition-colors"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || isSavingDraft || !canSubmit || requiredMajorIds.length === 0}
-              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5"
-            >
-              <span className="material-symbols-outlined text-[18px]">send</span>
-              {isSubmitting
-                ? 'Đang gửi...'
-                : isRevisionRequired
-                  ? 'Nộp lại Đề cương sau Chỉnh sửa'
-                  : isEditMode
-                    ? 'Cập nhật & Nộp Đề cương'
-                    : 'Nộp Đề cương Sơ bộ'}
-            </button>
-          </div>
-        </div>
+          {hasProject ? <button type="submit" disabled={submitting || registration.saving || (revision ? !registration.canResubmit : !registration.canSubmit)} className="rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-50">{registration.submitting ? 'Đang nộp...' : registration.resubmitting ? 'Đang nộp lại...' : revision ? 'Nộp lại sau chỉnh sửa' : 'Nộp đề cương'}</button> : <p className="text-xs text-slate-500">Sau khi tạo bản nháp thành công, bạn có thể rà soát và nộp bằng thao tác riêng.</p>}
+        </footer>
       </form>
     </div>
   )
 }
+
+function GovernedScope({ scope, requiredMajorIds }: { scope: ReturnType<typeof useProjectRegistration>['academicScope']; requiredMajorIds: number[] }) {
+  return <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5"><p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Phạm vi học thuật do backend quản trị</p>{scope ? <div className="mt-3 grid gap-3 text-xs sm:grid-cols-3"><p><strong>Project Mode:</strong> {scope.projectMode}</p><p><strong>Lead Department:</strong> #{scope.leadDepartmentId}</p><p><strong>Primary Major:</strong> {scope.primaryMajorId ? `#${scope.primaryMajorId}` : 'Không áp dụng'}</p><p className="sm:col-span-3"><strong>Major requirements:</strong> {scope.requirements.map((item) => `#${item.majorId} (min ${item.minMembers}, max ${item.maxMembers})`).join(' · ') || 'Backend chưa trả requirement'}</p></div> : <p className="mt-2 text-xs text-slate-600">Backend chưa trả Academic Scope trên Team/Project. Form không cho phép nhập Project Mode, Major hoặc Department tự do.</p>}<p className="mt-3 text-[11px] text-slate-500">Required Major IDs gửi theo dữ liệu backend: {requiredMajorIds.length ? requiredMajorIds.join(', ') : 'không có dữ liệu để suy diễn'}.</p></section>
+}
+
+function TextField({ id, label, value, required, disabled, onChange }: { id: string; label: string; value: string; required?: boolean; disabled: boolean; onChange: (value: string) => void }) { return <label htmlFor={id} className="block text-xs font-bold uppercase tracking-wider text-slate-700">{label}{required ? ' *' : ''}<input id={id} value={value} required={required} disabled={disabled} onChange={(event) => onChange(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm normal-case tracking-normal disabled:bg-slate-100" /></label> }
+function TextArea({ id, label, value, required, disabled, onChange }: { id: string; label: string; value: string; required?: boolean; disabled: boolean; onChange: (value: string) => void }) { return <label htmlFor={id} className="block text-xs font-bold uppercase tracking-wider text-slate-700">{label}{required ? ' *' : ''}<textarea id={id} value={value} required={required} disabled={disabled} rows={3} onChange={(event) => onChange(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm normal-case tracking-normal disabled:bg-slate-100" /></label> }
+function LoadingState() { return <div className="mx-auto flex max-w-4xl flex-col gap-5 animate-pulse"><div className="h-8 w-1/3 rounded bg-slate-200" /><div className="h-96 rounded-2xl bg-slate-200" /></div> }
+function FailureState({ message, onRetry }: { message: string; onRetry: () => void }) { return <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950" role="alert"><p>{message}</p><button type="button" onClick={onRetry} className="mt-3 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold">Tải lại</button></section> }
+function ErrorMessage({ kind, message, onRetry }: { kind: string; message: string; onRetry?: () => void }) { return <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800" role="alert"><strong>{kind.toUpperCase()}:</strong> {message}{onRetry && <button type="button" onClick={onRetry} className="ml-2 font-bold underline">Thử lại</button>}</div> }

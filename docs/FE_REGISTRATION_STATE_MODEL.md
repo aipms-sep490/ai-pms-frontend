@@ -69,6 +69,23 @@ interpretation. They must be recomputed from refetched backend data after mutati
 If the backend reports an action as disallowed, the FE hides/disables that action and explains
 the returned reason. Client role labels alone cannot override it.
 
+## F6 project registration behavior
+
+`useProjectRegistration` is feature-local state only. It keeps independent create, save,
+submit, and resubmit pending flags, but does not store a client Project lifecycle. A successful
+mutation is followed by `GET /projects/{id}`, global journey refresh, and history reload.
+
+* New drafts require both current Team `canRegister=true` and the backend
+  `create_project_draft` action. Saving a draft does not submit it.
+* Existing drafts use `edit_project_draft`; first submission uses `submit_project`; a revision
+  uses `resubmit_project`. Each transition uses the Project concurrency token returned by BE.
+* `409` triggers a refresh and a visible conflict message. The student must review the current
+  Project and explicitly try again; the client never retries a business transition.
+* Status uses backend state/history for DRAFT, SUBMITTED, UNDER_REVIEW, REVISION_REQUIRED,
+  REJECTED, and APPROVED. Department decisions and supervisor behavior are not F6 mutations.
+* `PROJECT_SOURCE_PROVENANCE = BLOCKED_BY_BE_CONTRACT`. Query parameters, browser storage,
+  Topic snapshots, and local form state are never used as persisted registration provenance.
+
 ## Error taxonomy and recovery
 
 | Error | Display/behavior |
