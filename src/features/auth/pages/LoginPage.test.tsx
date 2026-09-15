@@ -82,7 +82,7 @@ describe('LoginPage', () => {
       <MemoryRouter initialEntries={['/login']}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/project/workspace" element={<p>student workspace</p>} />
+          <Route path="/project/overview" element={<p>student workspace</p>} />
         </Routes>
       </MemoryRouter>,
     )

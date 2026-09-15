@@ -2,6 +2,7 @@ import { StudentJourneyHero } from '../../features/dashboard/components'
 import { useStudentJourney } from '../context'
 import { useNavigate } from 'react-router-dom'
 import { getActivePrimaryAssignment } from '../../features/projects/utils/project-resolution.utils'
+import { resolveStudentNextAction } from '../../features/auth/utils/resolve-student-next-action'
 
 const journeySteps = [
   { label: 'Tuyển quân', icon: 'group_add' },
@@ -26,25 +27,15 @@ export function OverviewPage() {
     FINAL_SUBMISSION: 4,
     COMPLETED: 4,
   }[journeyState]
-  const nextAction = {
-    NO_TEAM: { label: 'Quản lý nhóm', route: '/team', detail: 'Tạo nhóm hoặc phản hồi lời mời đang chờ.' },
-    TEAM_FORMING: { label: 'Hoàn thiện đội hình', route: '/team', detail: 'Cấu hình ngành, mời thành viên và kiểm tra điều kiện.' },
-    TEAM_ELIGIBLE: { label: 'Soạn đề cương', route: '/project/register', detail: 'Chọn đề tài tham khảo hoặc tạo bản đăng ký mới.' },
-    PROJECT_PENDING: { label: 'Theo dõi thẩm định', route: '/project/status', detail: 'Xem trạng thái và phản hồi mới nhất từ Bộ môn.' },
-    REVISION_REQUIRED: { label: 'Xử lý yêu cầu sửa', route: '/project/status', detail: 'Đọc phản hồi, cập nhật đề cương và nộp lại.' },
-    SUPERVISOR_PENDING: { label: 'Chọn giảng viên', route: '/project/supervisor', detail: 'Tìm và gửi yêu cầu tới giảng viên phù hợp.' },
-    ACTIVE: { label: 'Xem tiến độ', route: '/project/milestones/M3', detail: 'Theo dõi công việc và cột mốc hiện tại.' },
-    FINAL_SUBMISSION: { label: 'Hoàn thiện bàn giao', route: '/projects/lifecycle', detail: 'Kiểm tra hồ sơ và sản phẩm trước khi nộp bản cuối.' },
-    COMPLETED: { label: 'Xem hồ sơ đồ án', route: '/projects/lifecycle', detail: 'Đồ án đã hoàn thành; hồ sơ và kết quả vẫn được lưu tại đây.' },
-  }[journeyState]
-  const showProjectWorkspace = journeyState === 'ACTIVE' || journeyState === 'FINAL_SUBMISSION' || journeyState === 'COMPLETED'
+  const nextAction = resolveStudentNextAction({ journeyState, projectStatus: project?.status })
+  const showActiveHandoff = journeyState === 'ACTIVE'
 
   return (
     <div className="flex flex-col gap-6">
       {/* Dynamic Student Journey Banner */}
       <StudentJourneyHero />
 
-      {!showProjectWorkspace && !error ? (
+      {!showActiveHandoff && !error ? (
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs" aria-labelledby="journey-next-step">
           <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Lộ trình đăng ký đồ án</p>
@@ -74,7 +65,7 @@ export function OverviewPage() {
             </button>
           </div>
         </section>
-      ) : showProjectWorkspace ? (
+      ) : showActiveHandoff ? (
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs" aria-labelledby="active-project-title">
           <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">Dữ liệu trực tiếp từ hệ thống</p>
@@ -92,7 +83,7 @@ export function OverviewPage() {
           <div className="flex flex-wrap gap-3 bg-slate-50/70 px-5 py-5 sm:px-6">
             <button type="button" onClick={() => navigate('/projects/lifecycle')} className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50">Xem hồ sơ thật</button>
             <button type="button" onClick={() => navigate('/project/status')} className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50">Lịch sử xét duyệt</button>
-            <button type="button" onClick={() => navigate('/project/milestones/M3')} className="rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-blue-700">Vào không gian thực hiện</button>
+            <button type="button" onClick={() => navigate(nextAction.route)} className="rounded-lg bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-800">Mở không gian đồ án</button>
           </div>
         </section>
       ) : null}

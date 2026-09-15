@@ -24,7 +24,7 @@ eligibility, review, source governance, or supervisor acceptance solely through 
 | F6 | Draft create/edit, fields, majors, submit/resubmit, read-only states, 409 conflict UI | Current token on mutation; leader/member 403 | Draft -> Submitted and Revision -> Edit -> Resubmit. |
 | F7 | Queue search/paging, detail snapshot/scope/roster/history, workflow-action visibility, start/revision/reject/approve and participating decision validation | Exact review/action routes and bodies; 401/403/404/system UI; 409 refresh without automatic retry | Hybrid lead approval is enabled only by Backend `approve_project`; participant decisions use the current snapshot/token. |
 | F8 | Project-specific candidates, leader-only send/cancel, request/assignment rendering, Backend-scoped inbox, accept/reject, conflict refresh | Exact candidate/request/inbox/assignment routes and response body; no generic directory selection; 409 has no retry | Request -> Backend accept -> assignment and ACTIVE are refetched, never client transitioned. |
-| F9 | ACTIVE resolver, workspace handoff/route protection | Assignment + project state consistency | Only persisted `ACTIVE` enables workspace. |
+| F9 | Resolver state matrix, dashboard CTA, guarded workspace reload, supervisor assignment handoff | Assignment + Project state consistency; no browser Registration Source provenance | Only persisted `ACTIVE` enables workspace; a non-ACTIVE URL returns to its safe action. |
 
 ## Required eventual E2E scenarios
 
@@ -67,3 +67,11 @@ environment dependency. A green build or unit suite alone is not Registration-to
 F0 adds documentation only. Its gate verifies the existing source still passes lint, typecheck,
 Vitest, build, and diff-check after the documentation commit. Browser E2E, Docker/Testcontainers,
 and missing Registration Source contracts remain outside F0 runtime verification.
+
+## F9 verification record
+
+Focused F9 tests cover the resolver's real routes and `DRAFT` refinement, Dashboard ACTIVE CTA,
+ACTIVE workspace rendering after a provider reload, direct route guard behavior, and Supervisor
+Inbox assignment handoff. The existing inbox-hook test verifies that accept triggers a fresh
+Backend assignment read; it never transitions the student project in browser state. Full
+multi-user runtime E2E remains an environment/runtime verification item, not a unit-test claim.

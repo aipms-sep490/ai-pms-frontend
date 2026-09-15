@@ -1,12 +1,6 @@
-import { studentNavigation } from '../constants/student-navigation'
 import type { StudentJourneyState } from '../types/student-journey.types'
+import { resolveStudentNextAction } from './resolve-student-next-action'
 
-export function resolveStudentDestination(state: StudentJourneyState): string {
-  const destination = studentNavigation.find((step) => step.state === state)
-
-  if (!destination) {
-    throw new Error(`No student destination is configured for ${state}.`)
-  }
-
-  return destination.route
+export function resolveStudentDestination(state: StudentJourneyState, projectStatus?: string | null): string {
+  return resolveStudentNextAction({ journeyState: state, projectStatus }).route
 }

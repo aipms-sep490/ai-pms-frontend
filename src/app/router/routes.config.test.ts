@@ -34,7 +34,7 @@ describe('routes.config', () => {
   it('marks exactly the implemented routes', () => {
     const implemented = mvpRoutes.filter((r) => r.status === 'implemented')
     expect(implemented.map((r) => r.path).sort()).toEqual([
-      '/project/workspace',
+      '/project/overview',
       '/projects/lifecycle',
       '/project/milestones/M3',
       '/project/gantt',
@@ -55,9 +55,10 @@ describe('routes.config', () => {
   })
 
   describe('getBreadcrumbForPath', () => {
-    it('resolves root and workspace paths to main workspace title', () => {
-      expect(getBreadcrumbForPath('/')).toBe('Bàn làm việc Tổng quan')
-      expect(getBreadcrumbForPath('/project/workspace')).toBe('Bàn làm việc Tổng quan')
+    it('keeps overview separate from the guarded ACTIVE workspace', () => {
+      expect(getBreadcrumbForPath('/')).toBe('Tổng quan lộ trình')
+      expect(getBreadcrumbForPath('/project/overview')).toBe('Tổng quan lộ trình')
+      expect(getBreadcrumbForPath('/project/workspace')).toBe('Không gian đồ án ACTIVE')
     })
 
     it('resolves registered routes to their defined titles', () => {

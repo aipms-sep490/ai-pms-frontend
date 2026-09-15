@@ -12,7 +12,7 @@ LoginPage -> AuthSessionProvider -> localStorage token + /auth/me
 AppProviders -> AuthSessionProvider -> StudentJourneyProvider -> RouterProvider
 StudentJourneyProvider -> service-gateway -> typed api/*.api.ts -> http-client -> Backend
 AppLayout -> Sidebar / TopHeader -> StudentJourney context + route metadata
-TopicCataloguePage -> /topics -> ?topicId query only -> ProjectRegistrationFormPage
+TopicCataloguePage -> /topics -> Registration Source boundary (no browser-persisted Topic source) -> ProjectRegistrationFormPage
 TeamManagementPage -> teams API -> eligibility/actions from Backend
 ProjectRegistration/Status -> projects API + workflow actions -> Backend
 Department ProjectReviewPage -> feature-local adapter -> same http-client -> Backend
@@ -67,7 +67,7 @@ an explicit human retry—never auto-retry.
 | Topic list | BE_AVAILABLE | Topic catalogue / Student | `topics.api.getTopicCatalogue`; TopicsController | `GET /topics` | filters -> paged `TopicDto` | Backend catalogue visibility | list; 401/403/5xx | Explicit mock adapter only | FE currently asks `PUBLISHED`, but also performs a presentation-only major filter. |
 | Topic detail | BE_AVAILABLE | Catalogue / Student | `getTopicById`; TopicsController | `GET /topics/{id}` | id -> `TopicDto` | Backend topic visibility | detail; 401/403/404 | Explicit mock adapter only | Detail does not select or persist a Project source. F6 never reads `topicId` from the URL into a Project. |
 | Registration Source read | BE_NEW_CONTRACT_REQUIRED | F3 / Student, Department review | No FE type/adapter; no BE aggregate | **PROPOSED — NOT IMPLEMENTED** `GET /teams/{teamId}/registration-source` | none -> `RegistrationSource` | Team member, period and organization scope | source; 401/403/404/409 | Explicit development mock only | Must follow ADR-REG-001. |
-| Select Project Topic source | BE_NEW_CONTRACT_REQUIRED | F3 / Team leader | Current `?topicId=` is browser navigation only; no BE persistence | **PROPOSED — NOT IMPLEMENTED** `PUT /teams/{teamId}/registration-source` | source type/topic ID/token -> source | Leader; published/in-period/visible Topic; no locked source | source; 400/403/404/409/422 | Explicit development mock only | Never use React/query/localStorage as authority. |
+| Select Project Topic source | BE_NEW_CONTRACT_REQUIRED | F3 / Team leader | No runtime source selection is retained in URL, React state, or storage | **PROPOSED — NOT IMPLEMENTED** `PUT /teams/{teamId}/registration-source` | source type/topic ID/token -> source | Leader; published/in-period/visible Topic; no locked source | source; 400/403/404/409/422 | Explicit development mock only | Never use React/query/localStorage as authority. |
 | Create Student Proposal source | BE_NEW_CONTRACT_REQUIRED | F3 / Student | No separate proposal resource exists | **PROPOSED — NOT IMPLEMENTED** owner-approved route | validated proposal -> source | Product-defined proposer/period/scope | source; validation/403/409 | Explicit development mock only | Proposal approval lifecycle remains undecided. |
 | Change source | BE_NEW_CONTRACT_REQUIRED | F3 / Team leader | No BE source/change state | **PROPOSED — NOT IMPLEMENTED** `PUT /teams/{teamId}/registration-source` | source + concurrency token -> source | Only before backend lock; recalculates eligibility | source; 409 stale/locked | Explicit development mock only | Changes invalidate eligibility. |
 | Source status | BE_NEW_CONTRACT_REQUIRED | F3/F6 / authorized viewers | No source state/DTO | **PROPOSED — NOT IMPLEMENTED**, part of source read | none -> status/issues/lock | Backend scope | source status; 403/404 | Explicit development mock only | Do not invent approval states. |
@@ -230,6 +230,21 @@ No working route is renamed or deprecated in F0.
 | F7 Revision/hybrid review | Student status plus TinVV review adapter/page and new decision contract | OTHER_OWNER for Department review | HIGH |
 | F8 Supervisor selection/inbox | typed supervisor adapter, Student selection, new Supervisor inbox route/page | OWNED + SHARED router/types | HIGH |
 | F9 ACTIVE handoff | workflow resolver, workspace routing, role-aware shell | SHARED | HIGH |
+
+### F9 implementation record — ACTIVE handoff
+
+`resolveStudentNextAction` is the single presentation resolver for the Backend-derived
+Student Journey. It selects real protected routes, including draft refinement for an existing
+`DRAFT`, and never performs a transition. The student landing page is now
+`/project/overview`; `/project/workspace` is a guarded route that renders only when the
+reloaded journey is `ACTIVE`. Any non-ACTIVE direct URL is returned to the resolver route.
+
+The ACTIVE shell presents only Project identity, team, mode when returned by Backend,
+primary assignment, and basic Project summary. It intentionally adds no milestone, task,
+progress, deliverable, review, or grading capability. A Supervisor can open an assigned
+Project through `/supervisor/projects/:projectId/workspace`; the page rechecks the scoped
+assignment and Project status before rendering. `topicId` and `source` query values no longer
+select or fetch a Registration Source.
 
 No phase may broad-refactor Department Topic Management, Department Supervisor Monitoring, or
 unrelated lifecycle modules merely to obtain reuse.

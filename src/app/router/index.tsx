@@ -2,7 +2,9 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from '../layouts/AppLayout'
 import { HomeRedirect, RoleRoute } from '../../features/auth/components/RoleRoute'
 import { LecturerWorkspacePage } from '../../features/supervisors/pages/LecturerWorkspacePage'
+import { SupervisorProjectWorkspacePage } from '../../features/supervisors/pages/SupervisorProjectWorkspacePage'
 import { OverviewPage } from '../pages/OverviewPage'
+import { ActiveProjectWorkspacePage } from '../../features/projects/pages/ActiveProjectWorkspacePage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { ProjectLifecyclePage } from '../../features/projects/pages/ProjectLifecyclePage'
 import { MilestoneDetailPage } from '../../features/milestones/pages/MilestoneDetailPage'
@@ -42,7 +44,8 @@ export const appRouter = createBrowserRouter([
       {
         element: <RoleRoute allowed={['student']} />,
         children: [
-          { path: 'project/workspace', element: <OverviewPage /> },
+          { path: 'project/overview', element: <OverviewPage /> },
+          { path: 'project/workspace', element: <ActiveProjectWorkspacePage /> },
           { path: 'projects/lifecycle', element: <ProjectLifecyclePage /> },
           { path: 'project/milestones/:milestoneId', element: <MilestoneDetailPage /> },
           { path: 'project/milestones', element: <Navigate to="/project/milestones/M3" replace /> },
@@ -59,7 +62,10 @@ export const appRouter = createBrowserRouter([
       },
       {
         element: <RoleRoute allowed={['lecturer']} />,
-        children: [{ path: 'supervisor/workspace', element: <LecturerWorkspacePage /> }],
+        children: [
+          { path: 'supervisor/workspace', element: <LecturerWorkspacePage /> },
+          { path: 'supervisor/projects/:projectId/workspace', element: <SupervisorProjectWorkspacePage /> },
+        ],
       },
       {
         element: <RoleRoute allowed={['department', 'admin']} />,

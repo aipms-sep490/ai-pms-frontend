@@ -7,7 +7,7 @@ import { AppLayout } from './AppLayout'
 
 afterEach(cleanup)
 
-function renderAppLayout(initialEntries = ['/project/workspace'], roles: string[] = ['STUDENT']) {
+function renderAppLayout(initialEntries = ['/project/overview'], roles: string[] = ['STUDENT']) {
   const auth: AuthSessionContextValue = {
     session: { accessToken: 'test', tokenType: 'Bearer', expiresAtUtc: '', refreshToken: '', refreshTokenExpiresAtUtc: '', user: { id: 1, fullName: 'Nguyễn Hoàng Minh', email: 'lecturer@fe.edu.vn', roles } },
     status: 'authenticated', error: null, login: async () => { throw new Error('unused') }, logout: async () => {}, refreshProfile: async () => {}, restoreSession: async () => {},
@@ -30,7 +30,7 @@ describe('AppLayout & Navigation Shell', () => {
     renderAppLayout()
     expect(screen.getByText('AI-PMS • FPTU')).toBeDefined()
     expect(screen.getByText('Học kỳ chưa xác định')).toBeDefined()
-    expect(screen.getAllByText('Bàn làm việc Tổng quan').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Tổng quan lộ trình').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Đăng ký & Hồ sơ đề tài')).toBeDefined()
     expect(screen.getByRole('button', { name: /Tìm kiếm toàn hệ thống/i }).hasAttribute('disabled')).toBe(true)
     expect(screen.getByRole('button', { name: /Thông báo học vụ/i }).hasAttribute('disabled')).toBe(true)
@@ -51,12 +51,12 @@ describe('AppLayout & Navigation Shell', () => {
   it('shows role-specific navigation without a student workspace for lecturers', () => {
     renderAppLayout(['/supervisor/workspace'], ['LECTURER'])
     expect(screen.getByRole('link', { name: /Bàn làm việc GVHD/ })).toBeDefined()
-    expect(screen.queryByRole('link', { name: /Bàn làm việc Tổng quan/ })).toBeNull()
+    expect(screen.queryByRole('link', { name: /Tổng quan lộ trình/ })).toBeNull()
   })
 
   it('shows department navigation without student workspace routes', () => {
     renderAppLayout(['/department/projects/review'], ['DEPARTMENT_STAFF'])
     expect(screen.getByRole('link', { name: /Thẩm định đề cương/ })).toBeDefined()
-    expect(screen.queryByRole('link', { name: /Bàn làm việc Tổng quan/ })).toBeNull()
+    expect(screen.queryByRole('link', { name: /Tổng quan lộ trình/ })).toBeNull()
   })
 })

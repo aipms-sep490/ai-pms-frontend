@@ -28,4 +28,10 @@ describe('LecturerWorkspacePage', () => {
     expect(screen.getByRole('alert').textContent).toContain('Inbox')
     expect(screen.getByText(/Không có yêu cầu/)).toBeTruthy()
   })
+
+  it('offers an ACTIVE workspace only for a current primary assignment', () => {
+    inbox.useSupervisorInbox.mockReturnValue(state({ requests: [], assignments: [{ id: 3, projectId: 9, isPrimary: true, assignedAt: '2026-09-15' }] }))
+    render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)
+    expect(screen.getByRole('link', { name: 'Mở Project ACTIVE' }).getAttribute('href')).toBe('/supervisor/projects/9/workspace')
+  })
 })

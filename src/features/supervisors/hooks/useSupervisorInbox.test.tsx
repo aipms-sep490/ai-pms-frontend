@@ -15,12 +15,17 @@ describe('useSupervisorInbox', () => {
   })
 
   it('uses Backend-scoped inbox data directly and refreshes assignment data after accept', async () => {
+    const assignment = { id: 3, projectId: 9, supervisorProfileId: 4, supervisorUserId: 4, supervisorName: 'Dr. Mai', supervisorRequestId: 8, isPrimary: true, assignedAt: '2026-09-15' }
+    supervisor.getOwnAssignments.mockReset()
+      .mockResolvedValueOnce({ items: [] })
+      .mockResolvedValueOnce({ items: [assignment] })
     const { result } = renderHook(() => useSupervisorInbox())
     await waitFor(() => expect(result.current.requests).toHaveLength(1))
     await act(async () => { expect(await result.current.respond(request, 'accept', 'Accepted')).toBe(true) })
     expect(supervisor.respondToSupervisorRequest).toHaveBeenCalledWith(8, 'accept', 'Accepted')
     expect(supervisor.getSupervisorInbox).toHaveBeenCalledTimes(2)
     expect(supervisor.getOwnAssignments).toHaveBeenCalledTimes(2)
+    expect(result.current.assignments).toEqual([assignment])
   })
 
   it('does not replay a stale supervisor decision after a 409', async () => {

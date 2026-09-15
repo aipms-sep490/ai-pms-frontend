@@ -15,7 +15,7 @@ function renderRoutes(roles: string[], initialPath: string) {
     <MemoryRouter initialEntries={[initialPath]}>
       <Routes>
         <Route path="/" element={<HomeRedirect />} />
-        <Route element={<RoleRoute allowed={['student']} />}><Route path="/project/workspace" element={<p>Student workspace</p>} /></Route>
+        <Route element={<RoleRoute allowed={['student']} />}><Route path="/project/workspace" element={<p>Student workspace</p>} /><Route path="/project/overview" element={<p>Student overview</p>} /></Route>
         <Route element={<RoleRoute allowed={['department']} />}><Route path="/department/projects/review" element={<p>Department review</p>} /></Route>
         <Route element={<RoleRoute allowed={['lecturer']} />}><Route path="/supervisor/workspace" element={<p>Lecturer workspace</p>} /></Route>
       </Routes>
@@ -37,6 +37,6 @@ describe('role route', () => {
 
   it('resolves the root path from backend roles', () => {
     renderRoutes(['STUDENT'], '/')
-    expect(screen.getByText('Student workspace')).toBeDefined()
+    expect(screen.getByText('Student overview')).toBeDefined()
   })
 })

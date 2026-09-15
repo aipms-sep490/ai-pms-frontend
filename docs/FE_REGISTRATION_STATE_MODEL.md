@@ -130,3 +130,17 @@ PrimaryMajor when applicable, requirements, source status, validity, and backend
 `STUDENT_PROPOSAL` must show only contract-approved identity/content, academic scope,
 validation, and status. Governed fields become read-only after backend lock. Proposal approval
 ownership is `UNKNOWN_REQUIRES_DECISION`; F0 introduces no fake approval UI.
+
+## F9 ACTIVE handoff behavior
+
+`resolveStudentNextAction` is the sole frontend route resolver for the current simplified
+journey states. It is recalculated from the reloaded `StudentJourneyProvider` state and optional
+Backend Project status; it is not a persistent state machine. `ACTIVE` resolves to
+`/project/workspace`. `DRAFT` refines the otherwise eligible-team route to `/project/edit`.
+
+`/project/workspace` accepts only `journeyState === ACTIVE` and an authoritative Project. A
+direct URL before ACTIVE redirects to the resolver's safe route. The workspace is a handoff
+shell, not an execution module: title, team, ProjectMode when returned, primary supervisor,
+description/objectives/problem/output may render; milestone/task/progress/deliverable/grading
+mutation may not. The Supervisor equivalent independently reloads own assignments and the
+scoped Project before rendering, so an old browser route cannot grant visibility.
