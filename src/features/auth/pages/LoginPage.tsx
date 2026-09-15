@@ -1,5 +1,6 @@
 ﻿import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { HttpError } from '../../../services/http/http-client'
 import { Button } from '../../../components/ui/Button'
 import { useAuthSession } from '../context/useAuthSession'
@@ -17,12 +18,18 @@ function getLoginErrorMessage(error: unknown): string {
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const { login, status } = useAuthSession()
+  const { login, session, status } = useAuthSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
 
   const isSubmitting = status === 'authenticating'
+
+  useEffect(() => {
+    if (session && status === 'authenticated') {
+      navigate('/project/workspace', { replace: true })
+    }
+  }, [navigate, session, status])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -40,7 +47,7 @@ export function LoginPage() {
 
     try {
       await login({ email: email.trim(), password })
-      navigate('/profile', { replace: true })
+      navigate('/project/workspace', { replace: true })
     } catch (error: unknown) {
       setFormError(getLoginErrorMessage(error))
     }
@@ -90,7 +97,7 @@ export function LoginPage() {
         </form>
 
         <p className="auth-session-note">
-          Phiên tích hợp hiện được giữ trong bộ nhớ trình duyệt; tải lại trang sẽ yêu cầu đăng nhập lại.
+          Phiên đăng nhập được khôi phục tự động trong thời hạn của access token.
         </p>
       </section>
     </main>
