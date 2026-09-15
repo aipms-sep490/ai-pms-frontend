@@ -1,14 +1,17 @@
 import type { ProjectSummaryDto, SupervisorAssignmentDto } from '../../../types/backend'
 
 const STATUS_PRIORITY: Record<string, number> = {
-  Active: 10,
-  Approved: 9,
-  RevisionRequired: 8,
-  UnderReview: 7,
-  Submitted: 6,
-  Draft: 5,
-  Rejected: 2,
-  Archived: 1,
+  COMPLETED: 10,
+  FINALSUBMISSION: 9,
+  ACTIVE: 8,
+  APPROVED: 7,
+  SUPERVISORPENDING: 6,
+  REVISIONREQUIRED: 5,
+  UNDERREVIEW: 4,
+  SUBMITTED: 3,
+  DRAFT: 2,
+  REJECTED: 1,
+  ARCHIVED: 0,
 }
 
 /**
@@ -23,8 +26,8 @@ export function findCurrentTeamProject(projects: ProjectSummaryDto[]): ProjectSu
   if (!projects || projects.length === 0) return null
 
   const sorted = [...projects].sort((a, b) => {
-    const priorityA = STATUS_PRIORITY[a.status] ?? 0
-    const priorityB = STATUS_PRIORITY[b.status] ?? 0
+    const priorityA = STATUS_PRIORITY[a.status.replaceAll('_', '').toUpperCase()] ?? 0
+    const priorityB = STATUS_PRIORITY[b.status.replaceAll('_', '').toUpperCase()] ?? 0
     if (priorityA !== priorityB) {
       return priorityB - priorityA
     }
