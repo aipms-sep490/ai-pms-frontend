@@ -2,6 +2,8 @@ import { useContext, type RefObject } from 'react'
 import { useLocation } from 'react-router-dom'
 import { getBreadcrumbForPath } from '../router/routes.config'
 import { StudentJourneyContext } from '../context'
+import { AuthSessionContext } from '../../features/auth/context/auth-session-context'
+import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 
 interface TopHeaderProps {
   onToggleMobileMenu: () => void
@@ -16,8 +18,10 @@ export function TopHeader({
 }: TopHeaderProps) {
   const location = useLocation()
   const journey = useContext(StudentJourneyContext)
-  const semesterLabel = journey?.semester?.name || 'Học kỳ chưa xác định'
-  const teamLabel = journey?.team?.code || journey?.team?.name || 'Chưa có nhóm'
+  const auth = useContext(AuthSessionContext)
+  const role = getWorkspaceRole(auth?.session?.user)
+  const semesterLabel = role === 'student' ? journey?.semester?.name || 'Học kỳ chưa xác định' : role === 'lecturer' ? 'Giảng viên' : role === 'department' ? 'Bộ môn' : role === 'admin' ? 'Quản trị' : 'Tài khoản'
+  const teamLabel = role === 'student' ? journey?.team?.code || journey?.team?.name || 'Chưa có nhóm' : auth?.session?.user.fullName || 'Tài khoản'
   const stateLabel = {
     NO_TEAM: 'Chưa có nhóm',
     TEAM_FORMING: 'Đang kiện toàn',
@@ -81,7 +85,7 @@ export function TopHeader({
         {/* Academic Semester Badge */}
         <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-[11px] font-mono font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
-          {semesterLabel} • {stateLabel}
+          {semesterLabel}{role === 'student' ? ` • ${stateLabel}` : ''}
         </span>
 
         {/* Notification Bell (Honest disabled state with tooltip) */}
