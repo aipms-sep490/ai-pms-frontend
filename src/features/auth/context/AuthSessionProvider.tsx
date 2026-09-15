@@ -57,6 +57,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
 
       setSession({ ...authenticatedSession, user })
       setStatus('authenticated')
+      return { ...authenticatedSession, user }
     } catch (reason: unknown) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token')
