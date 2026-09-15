@@ -1,4 +1,6 @@
-export type ProjectRegistrationMode = 'SINGLE_MAJOR' | 'INTERDISCIPLINARY'
+import type { ProjectMode } from '../../registration/types/registration-source.types'
+
+export type ProjectRegistrationMode = ProjectMode
 
 interface ProjectModeSelectorProps {
   selectedMode: ProjectRegistrationMode

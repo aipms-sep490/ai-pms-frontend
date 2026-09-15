@@ -18,6 +18,7 @@ import { AdminSecurityPage } from '../../features/users/pages/AdminSecurityPage'
 import { ProjectReviewPage } from '../../features/projects/pages/ProjectReviewPage'
 import { SupervisorMonitoringPage } from '../../features/supervisors/pages/SupervisorMonitoringPage'
 import { TopicManagementPage } from '../../features/topics/pages/TopicManagementPage'
+import { RegistrationSourcePage } from '../../features/registration/pages/RegistrationSourcePage'
 import { ProtectedRoute } from '../../features/auth/components/ProtectedRoute'
 import { AcademicWorkflowGate, StudentJourneyProvider } from '../context'
 
@@ -45,6 +46,7 @@ export const appRouter = createBrowserRouter([
       { path: 'team', element: <TeamManagementPage /> },
       { path: 'team/create', element: <TeamManagementPage /> },
       { path: 'topics', element: <TopicCataloguePage /> },
+      { path: 'project/source', element: <RegistrationSourcePage /> },
       { path: 'project/register', element: <ProjectRegistrationFormPage /> },
       { path: 'project/edit', element: <ProjectRegistrationFormPage /> },
       { path: 'project/status', element: <ProjectReviewStatusPage /> },
