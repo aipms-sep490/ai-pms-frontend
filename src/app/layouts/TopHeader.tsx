@@ -3,6 +3,8 @@ import { useLocation } from 'react-router-dom'
 import { getBreadcrumbForPath } from '../router/routes.config'
 import { useAcademicWorkflow } from '../context/useAcademicWorkflow'
 import { StudentJourneyContext } from '../context/StudentJourneyContext'
+import { getWorkspaceRole } from '../../features/auth/utils/role-access'
+import { useAuthSession } from '../../features/auth/context/useAuthSession'
 
 interface TopHeaderProps {
   onToggleMobileMenu: () => void
@@ -20,7 +22,10 @@ export function TopHeader({
   const journey = useContext(StudentJourneyContext)
   const selectedSemester = academic?.selectedSemester
   const openPeriod = academic?.periods.find((period) => period.isOpen)
-  const teamLabel = journey?.team?.code || journey?.team?.name || 'Chưa có nhóm'
+  const { session } = useAuthSession()
+  const role = getWorkspaceRole(session?.user)
+  const semesterLabel = role === 'student' ? journey?.semester?.name || 'Học kỳ chưa xác định' : role === 'lecturer' ? 'Giảng viên' : role === 'department' ? 'Bộ môn' : role === 'admin' ? 'Quản trị' : 'Tài khoản'
+  const teamLabel = role === 'student' ? journey?.team?.code || journey?.team?.name || 'Chưa có nhóm' : session?.user.fullName || 'Tài khoản'
   const stateLabel = {
     NO_TEAM: 'Chưa có nhóm',
     TEAM_FORMING: 'Đang kiện toàn',
@@ -81,12 +86,13 @@ export function TopHeader({
           <span className="text-slate-500 font-medium">Tìm kiếm (Sắp có)</span>
         </button>
 
-        {selectedSemester ? (
+        {selectedSemester && role === 'student' ? (
           <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-[11px] font-mono font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
             {selectedSemester.name} • {openPeriod?.name ?? stateLabel}
           </span>
         ) : null}
+        {role !== 'student' ? <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-[11px] font-mono font-medium"><span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />{semesterLabel}</span> : null}
 
         {/* Notification Bell (Honest disabled state with tooltip) */}
         <button

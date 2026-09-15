@@ -1,5 +1,7 @@
-﻿import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from '../layouts/AppLayout'
+import { HomeRedirect, RoleRoute } from '../../features/auth/components/RoleRoute'
+import { LecturerWorkspacePage } from '../../features/supervisors/pages/LecturerWorkspacePage'
 import { OverviewPage } from '../pages/OverviewPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { ProjectLifecyclePage } from '../../features/projects/pages/ProjectLifecyclePage'
@@ -35,34 +37,47 @@ export const appRouter = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <Navigate to="/project/workspace" replace /> },
-      { path: 'project/workspace', element: <OverviewPage /> },
-      { path: 'projects/lifecycle', element: <ProjectLifecyclePage /> },
-      { path: 'project/milestones/:milestoneId', element: <MilestoneDetailPage /> },
-      { path: 'project/milestones', element: <Navigate to="/project/milestones/M3" replace /> },
-      { path: 'project/gantt', element: <GanttPage /> },
-
-      // Student Journey Routes (AnhPNH)
-      { path: 'team', element: <TeamManagementPage /> },
-      { path: 'team/create', element: <TeamManagementPage /> },
-      { path: 'topics', element: <TopicCataloguePage /> },
-      { path: 'project/source', element: <RegistrationSourcePage /> },
-      { path: 'project/register', element: <ProjectRegistrationFormPage /> },
-      { path: 'project/edit', element: <ProjectRegistrationFormPage /> },
-      { path: 'project/status', element: <ProjectReviewStatusPage /> },
-      { path: 'project/supervisor', element: <SupervisorSelectionPage /> },
-
-      // Department & Admin Workspaces (TinVV)
+      { index: true, element: <HomeRedirect /> },
       { path: 'profile', element: <ProfilePage /> },
-      { path: 'academic', element: <AcademicStructurePage /> },
-      { path: 'academic/governance', element: <AcademicGovernancePage /> },
-      { path: 'admin/access', element: <AdminSecurityPage /> },
-      { path: 'department/projects/review', element: <ProjectReviewPage /> },
-      { path: 'department/projects/review/:id', element: <ProjectReviewPage /> },
-      { path: 'department/supervisors', element: <SupervisorMonitoringPage /> },
-      { path: 'department/supervisors/:id', element: <SupervisorMonitoringPage /> },
-      { path: 'department/topics', element: <TopicManagementPage /> },
-      { path: 'department/topics/:id', element: <TopicManagementPage /> },
+      {
+        element: <RoleRoute allowed={['student']} />,
+        children: [
+          { path: 'project/workspace', element: <OverviewPage /> },
+          { path: 'projects/lifecycle', element: <ProjectLifecyclePage /> },
+          { path: 'project/milestones/:milestoneId', element: <MilestoneDetailPage /> },
+          { path: 'project/milestones', element: <Navigate to="/project/milestones/M3" replace /> },
+          { path: 'project/gantt', element: <GanttPage /> },
+          { path: 'team', element: <TeamManagementPage /> },
+          { path: 'team/create', element: <TeamManagementPage /> },
+          { path: 'topics', element: <TopicCataloguePage /> },
+          { path: 'project/source', element: <RegistrationSourcePage /> },
+          { path: 'project/register', element: <ProjectRegistrationFormPage /> },
+          { path: 'project/edit', element: <ProjectRegistrationFormPage /> },
+          { path: 'project/status', element: <ProjectReviewStatusPage /> },
+          { path: 'project/supervisor', element: <SupervisorSelectionPage /> },
+        ],
+      },
+      {
+        element: <RoleRoute allowed={['lecturer']} />,
+        children: [{ path: 'supervisor/workspace', element: <LecturerWorkspacePage /> }],
+      },
+      {
+        element: <RoleRoute allowed={['department', 'admin']} />,
+        children: [
+          { path: 'academic', element: <AcademicStructurePage /> },
+          { path: 'academic/governance', element: <AcademicGovernancePage /> },
+          { path: 'department/projects/review', element: <ProjectReviewPage /> },
+          { path: 'department/projects/review/:id', element: <ProjectReviewPage /> },
+          { path: 'department/supervisors', element: <SupervisorMonitoringPage /> },
+          { path: 'department/supervisors/:id', element: <SupervisorMonitoringPage /> },
+          { path: 'department/topics', element: <TopicManagementPage /> },
+          { path: 'department/topics/:id', element: <TopicManagementPage /> },
+        ],
+      },
+      {
+        element: <RoleRoute allowed={['admin']} />,
+        children: [{ path: 'admin/access', element: <AdminSecurityPage /> }],
+      },
 
       { path: '*', element: <NotFoundPage /> },
     ],

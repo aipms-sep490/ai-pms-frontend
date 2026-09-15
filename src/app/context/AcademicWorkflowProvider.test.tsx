@@ -55,7 +55,7 @@ function authValue(overrides: Partial<AuthSessionContextValue> = {}): AuthSessio
     session,
     status: 'authenticated',
     error: null,
-    login: async () => {},
+    login: async () => session,
     refreshProfile: async () => {},
     logout: async () => {},
     restoreSession: async () => {},

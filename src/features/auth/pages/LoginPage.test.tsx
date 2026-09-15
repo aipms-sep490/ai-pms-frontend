@@ -31,7 +31,7 @@ describe('LoginPage', () => {
   })
 
   it('submits valid credentials through the session adapter', async () => {
-    authSession.login.mockResolvedValue(undefined)
+    authSession.login.mockResolvedValue({ user: { roles: ['DEPARTMENT_STAFF'] } })
     render(<LoginPage />, { wrapper: MemoryRouter })
 
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'staff@example.edu.vn' } })
@@ -76,13 +76,13 @@ describe('LoginPage', () => {
     await vi.waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Không thể kết nối dịch vụ xác thực'))
   })
 
-  it('returns to a safe intended destination after successful login', async () => {
-    authSession.login.mockResolvedValue(undefined)
+  it('sends a successful login to the role-specific workspace', async () => {
+    authSession.login.mockResolvedValue({ user: { roles: ['STUDENT'] } })
     render(
-      <MemoryRouter initialEntries={[{ pathname: '/login', state: { from: '/project/status/123' } }]}>
+      <MemoryRouter initialEntries={['/login']}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/project/status/123" element={<p>project status</p>} />
+          <Route path="/project/workspace" element={<p>student workspace</p>} />
         </Routes>
       </MemoryRouter>,
     )
@@ -91,6 +91,6 @@ describe('LoginPage', () => {
     fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'secret' } })
     fireEvent.submit(screen.getByRole('button', { name: 'Đăng nhập' }))
 
-    await vi.waitFor(() => expect(screen.getByText('project status')).toBeDefined())
+    await vi.waitFor(() => expect(screen.getByText('student workspace')).toBeDefined())
   })
 })

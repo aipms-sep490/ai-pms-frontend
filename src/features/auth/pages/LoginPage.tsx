@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { HttpError } from '../../../services/http/http-client'
 import { Button } from '../../../components/ui/Button'
 import { useAuthSession } from '../context/useAuthSession'
-import { resolveIntendedDestination } from '../utils/intended-destination'
+import { getHomePath } from '../utils/role-access'
 import './auth-pages.css'
 
 function getLoginErrorMessage(error: unknown): string {
@@ -17,15 +17,13 @@ function getLoginErrorMessage(error: unknown): string {
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const { login, status } = useAuthSession()
+  const { login, session, status } = useAuthSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
   const isSubmitting = status === 'authenticating' || status === 'refreshing'
-  const destination = resolveIntendedDestination(location.state)
 
-  if (status === 'authenticated') return <Navigate to={destination} replace />
+  if (status === 'authenticated' && session) return <Navigate to={getHomePath(session.user)} replace />
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -39,8 +37,8 @@ export function LoginPage() {
       return
     }
     try {
-      await login({ email: email.trim(), password })
-      navigate(destination, { replace: true })
+      const authenticatedSession = await login({ email: email.trim(), password })
+      navigate(getHomePath(authenticatedSession.user), { replace: true })
     } catch (error: unknown) {
       setFormError(getLoginErrorMessage(error))
     }

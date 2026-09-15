@@ -9,9 +9,9 @@ export interface AuthSessionContextValue {
   session: LoginSession | null
   status: AuthSessionStatus
   error: Error | null
-  login: (credentials: LoginCredentials) => Promise<void>
+  login: (credentials: LoginCredentials) => Promise<LoginSession>
   refreshProfile: () => Promise<void>
-  logout: () => Promise<void>
+  logout: () => void | Promise<void>
   restoreSession: () => Promise<void>
 }
 

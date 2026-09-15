@@ -116,6 +116,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
       const user = await getCurrentUser(authenticatedSession.accessToken, undefined, true)
       persistSession({ ...authenticatedSession, user })
       setStatus('authenticated')
+      return { ...authenticatedSession, user }
     } catch (reason: unknown) {
       const authError = reason instanceof Error ? reason : new Error('Authentication request failed.')
       clearSession('unauthenticated')

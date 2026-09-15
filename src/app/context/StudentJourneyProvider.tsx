@@ -36,9 +36,12 @@ function toJourneyProfile(workflow: ReturnType<typeof useAcademicWorkflow>['work
     roles: workflow.user.effectiveRoles,
   }
 }
+import { useAuthSession } from '../../features/auth/context/useAuthSession'
+import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 
 export function StudentJourneyProvider({ children }: { children: ReactNode }) {
   const { workflowContext } = useAcademicWorkflow()
+  const { session } = useAuthSession()
   const [journeyState, setJourneyState] = useState<StudentJourneyState>('TEAM_FORMING')
   const [period, setPeriod] = useState<ProjectPeriodDto | null>(null)
   const [team, setTeam] = useState<TeamDto | null>(null)
@@ -54,7 +57,7 @@ export function StudentJourneyProvider({ children }: { children: ReactNode }) {
 
   const refreshAll = useCallback(async () => {
     const requestId = ++refreshSequence.current
-    if (!workflowContext) {
+    if (!session || getWorkspaceRole(session.user) !== 'student') {
       setPeriod(null)
       setTeam(null)
       setProject(null)
@@ -109,7 +112,7 @@ export function StudentJourneyProvider({ children }: { children: ReactNode }) {
     } finally {
       if (requestId === refreshSequence.current) setIsLoading(false)
     }
-  }, [semester, workflowContext])
+  }, [semester, session])
 
   useEffect(() => {
     void refreshAll()

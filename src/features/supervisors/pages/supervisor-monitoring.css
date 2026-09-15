@@ -1,1 +1,98 @@
-.sup{display:grid;gap:12px;padding-bottom:32px}.sup article{padding:14px;border:1px solid #dbe3ec;border-radius:10px;background:#fff}.sup__filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.sup input,.sup select{min-height:38px;padding:8px}.sup__paging{display:flex;align-items:center;gap:8px}@media(max-width:760px){.sup__filters{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.sup{gap:8px}.sup__filters{grid-template-columns:1fr}.sup__paging{justify-content:space-between}}
+.sup {
+  display: grid;
+  gap: 16px;
+  padding-bottom: 40px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.sup h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.sup h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 8px 0;
+}
+
+.sup article {
+  padding: 16px 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.sup article:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.sup article a {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.sup article a:hover {
+  text-decoration: underline;
+}
+
+.sup__filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.sup input,
+.sup select {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.sup input:focus,
+.sup select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.sup__paging {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+@media (max-width: 760px) {
+  .sup__filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .sup {
+    gap: 10px;
+  }
+  .sup__filters {
+    grid-template-columns: 1fr;
+  }
+  .sup__paging {
+    justify-content: space-between;
+  }
+}
