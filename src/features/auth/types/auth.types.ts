@@ -21,7 +21,10 @@ export interface LoginSession {
 }
 
 export type AuthSessionStatus =
-  | 'anonymous'
+  | 'restoring'
   | 'authenticating'
   | 'authenticated'
-  | 'refreshing_profile'
+  | 'refreshing'
+  | 'unauthenticated'
+  | 'session_expired'
+  | 'auth_error'

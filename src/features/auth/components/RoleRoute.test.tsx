@@ -9,13 +9,13 @@ afterEach(cleanup)
 function renderRoutes(roles: string[], initialPath: string) {
   const auth: AuthSessionContextValue = {
     session: { accessToken: 'test', tokenType: 'Bearer', expiresAtUtc: '', refreshToken: '', refreshTokenExpiresAtUtc: '', user: { id: 1, email: 'test@fe.edu.vn', fullName: 'Test', roles } },
-    status: 'authenticated', error: null, login: async () => { throw new Error('unused') }, logout: () => {}, refreshProfile: async () => {},
+    status: 'authenticated', error: null, login: async () => { throw new Error('unused') }, logout: () => {}, refreshProfile: async () => {}, restoreSession: async () => {},
   }
   render(<AuthSessionContext.Provider value={auth}>
     <MemoryRouter initialEntries={[initialPath]}>
       <Routes>
         <Route path="/" element={<HomeRedirect />} />
-        <Route element={<RoleRoute allowed={['student']} />}><Route path="/project/workspace" element={<p>Student workspace</p>} /></Route>
+        <Route element={<RoleRoute allowed={['student']} />}><Route path="/project/workspace" element={<p>Student workspace</p>} /><Route path="/project/overview" element={<p>Student overview</p>} /></Route>
         <Route element={<RoleRoute allowed={['department']} />}><Route path="/department/projects/review" element={<p>Department review</p>} /></Route>
         <Route element={<RoleRoute allowed={['lecturer']} />}><Route path="/supervisor/workspace" element={<p>Lecturer workspace</p>} /></Route>
       </Routes>
@@ -37,6 +37,6 @@ describe('role route', () => {
 
   it('resolves the root path from backend roles', () => {
     renderRoutes(['STUDENT'], '/')
-    expect(screen.getByText('Student workspace')).toBeDefined()
+    expect(screen.getByText('Student overview')).toBeDefined()
   })
 })

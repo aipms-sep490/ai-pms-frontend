@@ -1,180 +1,48 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { httpGet, httpPost } from '../../../services/http/http-client'
 import { Button } from '../../../components/ui/Button'
-import type { PagedResult, ProjectDto, SupervisorAssignmentDto, SupervisorRequestDto } from '../../../types/backend'
-import { useAuthSession } from '../../auth/context/useAuthSession'
+import { useSupervisorInbox } from '../hooks/useSupervisorInbox'
 
 export function LecturerWorkspacePage() {
-  const { session } = useAuthSession()
-  const [assignments, setAssignments] = useState<SupervisorAssignmentDto[]>([])
-  const [requests, setRequests] = useState<SupervisorRequestDto[]>([])
-  const [projectTitles, setProjectTitles] = useState<Record<number, string>>({})
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [respondingId, setRespondingId] = useState<number | null>(null)
+  const inbox = useSupervisorInbox()
+  const [responseByRequest, setResponseByRequest] = useState<Record<number, string>>({})
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const [ownAssignments, inbox] = await Promise.all([
-        httpGet<PagedResult<SupervisorAssignmentDto>>('/supervisors/assignments?page=1&pageSize=50'),
-        httpGet<PagedResult<SupervisorRequestDto>>('/supervisors/requests?page=1&pageSize=50'),
-      ])
-      setAssignments(ownAssignments.items)
-      setRequests(inbox.items)
-      const activeIds = [...new Set(ownAssignments.items.filter((item) => !item.endedAt).map((item) => item.projectId))]
-      const projectResults = await Promise.allSettled(activeIds.map((id) => httpGet<ProjectDto>(`/projects/${id}`)))
-      const titles: Record<number, string> = {}
-      projectResults.forEach((result, index) => {
-        if (result.status === 'fulfilled') titles[activeIds[index]] = result.value.title
-      })
-      setProjectTitles(titles)
-    } catch {
-      setError('Không thể tải phân công và lời mời từ backend. Hãy thử lại.')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { void load() }, [load])
-
-  const respond = async (request: SupervisorRequestDto, decision: 'accept' | 'reject') => {
-    if (!window.confirm(`Xác nhận ${decision === 'accept' ? 'nhận' : 'từ chối'} lời mời hướng dẫn project #${request.projectId}?`)) return
-    setRespondingId(request.id)
-    setError(null)
-    try {
-      await httpPost(`/supervisor-requests/${request.id}/${decision}`, { message: '' })
-      await load()
-    } catch {
-      setError('Backend từ chối thao tác. Vui lòng tải lại inbox và kiểm tra trạng thái lời mời.')
-    } finally {
-      setRespondingId(null)
-    }
+  const decide = async (requestId: number, decision: 'accept' | 'reject') => {
+    const request = inbox.requests.find((item) => item.id === requestId)
+    if (!request) return
+    if (!confirm(`Xác nhận ${decision === 'accept' ? 'nhận' : 'từ chối'} yêu cầu #${request.id}?`)) return
+    await inbox.respond(request, decision, responseByRequest[request.id])
   }
 
+  if (inbox.error?.kind === 'authentication') return <p className="p-6"><Link to="/login">Đăng nhập lại để tiếp tục.</Link></p>
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-12">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">Không gian giảng viên</p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900">Bàn làm việc GVHD</h1>
-          <p className="mt-1 text-sm text-slate-600">{session?.user.fullName} · Phân công và lời mời hướng dẫn từ backend</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" icon="refresh" onClick={() => void load()} disabled={loading}>
-            Tải lại dữ liệu
-          </Button>
-          <Link to="/profile" className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:underline px-2 py-1">
-            Hồ sơ tài khoản
-          </Link>
-        </div>
+    <main className="mx-auto max-w-5xl space-y-6 pb-12">
+      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div><p className="text-xs font-semibold uppercase tracking-wider text-blue-700">Supervisor</p><h1 className="mt-1 text-2xl font-bold">Supervisor Inbox & Assignments</h1><p className="mt-1 text-sm text-slate-600">Backend chỉ trả các yêu cầu thuộc Supervisor đang đăng nhập.</p></div>
+        <Button variant="secondary" disabled={inbox.loading} onClick={() => void inbox.refresh()}>Tải lại</Button>
       </header>
 
-      {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</p>}
+      {inbox.error ? <section role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{inbox.error.message}</section> : null}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
-        <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-[20px]">assignment</span>
-            Project được phân công
-          </h2>
-          <span className="font-mono text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-medium">
-            {assignments.length} nhóm
-          </span>
-        </div>
-        {loading ? (
-          <p className="text-sm text-slate-500">Đang tải…</p>
-        ) : assignments.length ? (
-          <ul className="space-y-3">
-            {assignments.map((assignment) => (
-              <li key={assignment.id} className="rounded-xl border border-slate-200 p-4 text-sm bg-slate-50/50 hover:bg-white hover:border-slate-300 transition-colors">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <span className="font-semibold text-slate-900">
-                    {projectTitles[assignment.projectId] || `Project #${assignment.projectId}`}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                      {assignment.isPrimary ? 'GVHD chính' : 'Đồng hướng dẫn'}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${assignment.endedAt ? 'bg-slate-100 text-slate-500' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
-                      {assignment.endedAt ? 'Đã kết thúc' : 'Đang hướng dẫn'}
-                    </span>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-slate-500">Chưa có phân công hướng dẫn.</p>
-        )}
+        <h2 className="text-lg font-bold">Yêu cầu hướng dẫn</h2>
+        {inbox.loading ? <p className="mt-3 text-sm text-slate-600">Đang tải inbox…</p> : null}
+        {!inbox.loading && inbox.requests.length === 0 ? <p className="mt-3 text-sm text-slate-600">Không có yêu cầu trong Inbox được Backend scope.</p> : null}
+        <ul className="mt-4 space-y-3">{inbox.requests.map((request) => <li key={request.id} className="rounded-xl border border-slate-200 p-4 text-sm">
+          <div className="flex flex-wrap justify-between gap-2"><strong>Project #{request.projectId}</strong><span>{request.status}</span></div>
+          <p className="mt-1 text-xs text-slate-600">Requested {request.requestedAt} · profile #{request.supervisorProfileId}</p>
+          {request.requestMessage ? <p className="mt-2 rounded bg-slate-50 p-2">Student message: {request.requestMessage}</p> : null}
+          {request.responseMessage ? <p className="mt-2 rounded bg-slate-50 p-2">Response: {request.responseMessage}</p> : null}
+          {request.status === 'PENDING' ? <div className="mt-3 space-y-2"><label className="block text-xs">Phản hồi (tùy chọn)<textarea className="mt-1 block w-full rounded border border-slate-300 p-2" value={responseByRequest[request.id] ?? ''} onChange={(event) => setResponseByRequest((current) => ({ ...current, [request.id]: event.target.value }))} /></label><div className="flex flex-wrap gap-2"><Button disabled={inbox.acceptPending !== null || inbox.rejectPending !== null} onClick={() => void decide(request.id, 'accept')}>Accept & assign</Button><Button variant="danger" disabled={inbox.acceptPending !== null || inbox.rejectPending !== null} onClick={() => void decide(request.id, 'reject')}>Reject</Button></div></div> : null}
+        </li>)}</ul>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
-        <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-[20px]">mail</span>
-            Lời mời hướng dẫn
-          </h2>
-          <span className="font-mono text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-medium">
-            {requests.length} yêu cầu
-          </span>
-        </div>
-        {loading ? (
-          <p className="text-sm text-slate-500">Đang tải…</p>
-        ) : requests.length ? (
-          <ul className="space-y-3">
-            {requests.map((request) => (
-              <li key={request.id} className="rounded-xl border border-slate-200 p-4 text-sm bg-slate-50/50 hover:bg-white hover:border-slate-300 transition-colors">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <span className="font-semibold text-slate-900">
-                    {projectTitles[request.projectId] || `Project #${request.projectId}`}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded font-mono text-xs font-semibold ${
-                    request.status === 'ACCEPTED'
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      : request.status === 'PENDING'
-                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                        : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    {request.status}
-                  </span>
-                </div>
-                {request.requestMessage && (
-                  <p className="mt-2 text-slate-600 bg-white border border-slate-200 rounded-lg p-2.5 text-xs">
-                    {request.requestMessage}
-                  </p>
-                )}
-                {request.status === 'PENDING' && (
-                  <div className="mt-3 flex gap-2">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      icon="check"
-                      disabled={respondingId !== null}
-                      onClick={() => void respond(request, 'accept')}
-                    >
-                      Nhận hướng dẫn
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      icon="close"
-                      disabled={respondingId !== null}
-                      onClick={() => void respond(request, 'reject')}
-                    >
-                      Từ chối
-                    </Button>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-slate-500">Chưa có lời mời hướng dẫn.</p>
-        )}
+        <h2 className="text-lg font-bold">Primary assignments</h2>
+        {inbox.loading ? <p className="mt-3 text-sm text-slate-600">Đang tải assignments…</p> : null}
+        {!inbox.loading && inbox.assignments.length === 0 ? <p className="mt-3 text-sm text-slate-600">Chưa có assignment.</p> : null}
+        <ul className="mt-4 space-y-2">{inbox.assignments.map((assignment) => <li key={assignment.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-sm"><span>Project #{assignment.projectId} · {assignment.isPrimary ? 'Primary Supervisor' : 'Mentor/secondary'} · assigned {assignment.assignedAt}{assignment.endedAt ? ` · ended ${assignment.endedAt}` : ''}</span>{assignment.isPrimary && !assignment.endedAt ? <Link className="rounded-lg border border-emerald-300 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-50" to={`/supervisor/projects/${assignment.projectId}/workspace`}>Mở Project ACTIVE</Link> : null}</li>)}</ul>
       </section>
-    </div>
+    </main>
   )
 }

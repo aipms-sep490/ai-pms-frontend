@@ -57,6 +57,11 @@ export interface ProjectDto {
   concurrencyToken: string
   majors: ProjectMajorDto[]
   tags: ProjectTagDto[]
+  /**
+   * Backend-governed team scope captured on the project when it is available.
+   * It is display-only in the student registration UI.
+   */
+  academicScope?: import('./team.backend.types').TeamAcademicScopeDto | null
 }
 
 export interface ProjectSummaryDto {

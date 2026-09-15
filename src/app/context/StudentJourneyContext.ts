@@ -3,19 +3,20 @@ import type {
   TeamDto,
   ProjectDto,
   UserAccountDto,
-  SemesterDto,
   ProjectPeriodDto,
   SupervisorAssignmentDto,
   UserWorkflowContextDto,
   TeamWorkflowActionsDto,
   ProjectWorkflowActionsDto,
+  WorkflowSemesterDto,
 } from '../../types/backend'
 import type { StudentJourneyState } from '../../features/auth/types/student-journey.types'
 
 export interface StudentJourneyContextValue {
   journeyState: StudentJourneyState
   profile: UserAccountDto | null
-  semester: SemesterDto | null
+  /** Selected server workflow semester; it is not URL- or localStorage-derived. */
+  semester: WorkflowSemesterDto | null
   period: ProjectPeriodDto | null
   team: TeamDto | null
   project: ProjectDto | null

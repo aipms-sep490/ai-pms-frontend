@@ -1,8 +1,10 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
-import { ProtectedLayout } from '../../features/auth/components/ProtectedLayout'
+import { AppLayout } from '../layouts/AppLayout'
 import { HomeRedirect, RoleRoute } from '../../features/auth/components/RoleRoute'
 import { LecturerWorkspacePage } from '../../features/supervisors/pages/LecturerWorkspacePage'
+import { SupervisorProjectWorkspacePage } from '../../features/supervisors/pages/SupervisorProjectWorkspacePage'
 import { OverviewPage } from '../pages/OverviewPage'
+import { ActiveProjectWorkspacePage } from '../../features/projects/pages/ActiveProjectWorkspacePage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { ProjectLifecyclePage } from '../../features/projects/pages/ProjectLifecyclePage'
 import { MilestoneDetailPage } from '../../features/milestones/pages/MilestoneDetailPage'
@@ -20,18 +22,30 @@ import { AdminSecurityPage } from '../../features/users/pages/AdminSecurityPage'
 import { ProjectReviewPage } from '../../features/projects/pages/ProjectReviewPage'
 import { SupervisorMonitoringPage } from '../../features/supervisors/pages/SupervisorMonitoringPage'
 import { TopicManagementPage } from '../../features/topics/pages/TopicManagementPage'
+import { RegistrationSourcePage } from '../../features/registration/pages/RegistrationSourcePage'
+import { ProtectedRoute } from '../../features/auth/components/ProtectedRoute'
+import { AcademicWorkflowGate, StudentJourneyProvider } from '../context'
 
 export const appRouter = createBrowserRouter([
   { path: 'login', element: <LoginPage /> },
   {
-    element: <ProtectedLayout />,
+    element: (
+      <ProtectedRoute>
+        <AcademicWorkflowGate>
+          <StudentJourneyProvider>
+            <AppLayout />
+          </StudentJourneyProvider>
+        </AcademicWorkflowGate>
+      </ProtectedRoute>
+    ),
     children: [
       { index: true, element: <HomeRedirect /> },
       { path: 'profile', element: <ProfilePage /> },
       {
         element: <RoleRoute allowed={['student']} />,
         children: [
-          { path: 'project/workspace', element: <OverviewPage /> },
+          { path: 'project/overview', element: <OverviewPage /> },
+          { path: 'project/workspace', element: <ActiveProjectWorkspacePage /> },
           { path: 'projects/lifecycle', element: <ProjectLifecyclePage /> },
           { path: 'project/milestones/:milestoneId', element: <MilestoneDetailPage /> },
           { path: 'project/milestones', element: <Navigate to="/project/milestones/M3" replace /> },
@@ -39,6 +53,7 @@ export const appRouter = createBrowserRouter([
           { path: 'team', element: <TeamManagementPage /> },
           { path: 'team/create', element: <TeamManagementPage /> },
           { path: 'topics', element: <TopicCataloguePage /> },
+          { path: 'project/source', element: <RegistrationSourcePage /> },
           { path: 'project/register', element: <ProjectRegistrationFormPage /> },
           { path: 'project/edit', element: <ProjectRegistrationFormPage /> },
           { path: 'project/status', element: <ProjectReviewStatusPage /> },
@@ -47,7 +62,10 @@ export const appRouter = createBrowserRouter([
       },
       {
         element: <RoleRoute allowed={['lecturer']} />,
-        children: [{ path: 'supervisor/workspace', element: <LecturerWorkspacePage /> }],
+        children: [
+          { path: 'supervisor/workspace', element: <LecturerWorkspacePage /> },
+          { path: 'supervisor/projects/:projectId/workspace', element: <SupervisorProjectWorkspacePage /> },
+        ],
       },
       {
         element: <RoleRoute allowed={['department', 'admin']} />,

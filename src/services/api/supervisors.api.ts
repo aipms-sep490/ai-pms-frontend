@@ -202,6 +202,39 @@ export async function cancelRequest(requestId: number): Promise<SupervisorReques
   return await httpPost<SupervisorRequestDto>(`/supervisor-requests/${requestId}/cancel`)
 }
 
+/** Backend-scoped inbox. The client never supplies or filters by supervisor identity. */
+export async function getSupervisorInbox(
+  params?: { status?: string; page?: number; pageSize?: number },
+): Promise<PagedResult<SupervisorRequestDto>> {
+  const page = params?.page ?? 1
+  const pageSize = params?.pageSize ?? 20
+  const searchParams = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+  if (params?.status) searchParams.append('status', params.status)
+
+  if (env.isMockMode) {
+    return { items: mockRequestsStore, totalCount: mockRequestsStore.length, page, pageSize, totalPages: 1 }
+  }
+  return httpGet<PagedResult<SupervisorRequestDto>>(`/supervisors/requests?${searchParams.toString()}`)
+}
+
+export async function respondToSupervisorRequest(
+  requestId: number,
+  decision: 'accept' | 'reject',
+  message?: string,
+): Promise<SupervisorRequestDto> {
+  if (env.isMockMode) {
+    simulateSupervisorResponse(requestId, decision === 'accept')
+    const request = mockRequestsStore.find((item) => item.id === requestId)
+    if (!request) throw new Error(`Request #${requestId} not found.`)
+    request.responseMessage = message ?? null
+    return request
+  }
+  return httpPost<SupervisorRequestDto, { message?: string }>(
+    `/supervisor-requests/${requestId}/${decision}`,
+    { message },
+  )
+}
+
 export async function getAssignments(
   projectId: number,
   params?: {
@@ -228,6 +261,17 @@ export async function getAssignments(
   return await httpGet<PagedResult<SupervisorAssignmentDto>>(
     `/projects/${projectId}/supervisor-assignments?${searchParams.toString()}`,
   )
+}
+
+export async function getOwnAssignments(
+  params?: { status?: string; page?: number; pageSize?: number },
+): Promise<PagedResult<SupervisorAssignmentDto>> {
+  const page = params?.page ?? 1
+  const pageSize = params?.pageSize ?? 20
+  const searchParams = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+  if (params?.status) searchParams.append('status', params.status)
+  if (env.isMockMode) return { items: mockAssignmentsStore, totalCount: mockAssignmentsStore.length, page, pageSize, totalPages: 1 }
+  return httpGet<PagedResult<SupervisorAssignmentDto>>(`/supervisors/assignments?${searchParams.toString()}`)
 }
 
 /**

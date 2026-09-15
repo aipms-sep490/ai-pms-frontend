@@ -1,9 +1,10 @@
 import { useContext, useEffect, useRef, useCallback, type RefObject } from 'react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { getStudentNavItems } from '../router/routes.config'
 import { StudentJourneyContext } from '../context'
-import { AuthSessionContext } from '../../features/auth/context/auth-session-context'
+import { useAcademicWorkflow } from '../context/useAcademicWorkflow'
+import { useAuthSession } from '../../features/auth/context/useAuthSession'
 import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 
 interface SidebarProps {
@@ -14,16 +15,20 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
   const location = useLocation()
-  const navigate = useNavigate()
-  const auth = useContext(AuthSessionContext)
-  const role = getWorkspaceRole(auth?.session?.user)
   const asideRef = useRef<HTMLElement | null>(null)
   const journey = useContext(StudentJourneyContext)
+  const { academic } = useAcademicWorkflow()
+  const { logout, session } = useAuthSession()
+  const role = getWorkspaceRole(session?.user)
   const { profile, semester, team, project } = journey ?? {}
-  const workspaceCode = role === 'student' ? project?.code?.trim() || 'SEP490' : 'AI-PMS'
-  const teamLabel = role === 'student' ? team?.code?.trim() || team?.name?.trim() || 'Chưa có nhóm' : role === 'lecturer' ? 'Giảng viên' : role === 'department' ? 'Bộ môn' : role === 'admin' ? 'Quản trị' : 'Tài khoản'
-  const profileName = profile?.fullName?.trim() || auth?.session?.user.fullName || 'Tài khoản'
-  const profileCode = role === 'student' ? profile?.studentCode || 'Tài khoản sinh viên' : auth?.session?.user.email || 'Tài khoản'
+  const workspaceCode = role === 'student'
+    ? project?.code?.trim() || academic?.selectedSemester?.code || 'Ngữ cảnh chưa xác định'
+    : 'AI-PMS'
+  const teamLabel = role === 'student'
+    ? team?.code?.trim() || team?.name?.trim() || 'Chưa có nhóm'
+    : role === 'lecturer' ? 'Giảng viên' : role === 'department' ? 'Bộ môn' : role === 'admin' ? 'Quản trị' : 'Tài khoản'
+  const profileName = profile?.fullName?.trim() || session?.user.fullName || 'Tài khoản'
+  const profileCode = role === 'student' ? profile?.studentCode || 'Tài khoản sinh viên' : session?.user.email || 'Tài khoản'
   const profileInitials = profileName.split(/\s+/).slice(-2).map((part) => part[0]).join('').toUpperCase()
 
   const { workspaceItems } = getStudentNavItems()
@@ -277,7 +282,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center font-heading font-bold text-xs text-slate-700 relative shrink-0">
               {profileInitials}
-              <span className={`absolute bottom-0 right-0 w-2 h-2 rounded-full ring-2 ring-white ${auth?.session ? 'bg-academic-emerald' : 'bg-slate-300'}`} />
+              <span className={`absolute bottom-0 right-0 w-2 h-2 rounded-full ring-2 ring-white ${session ? 'bg-academic-emerald' : 'bg-slate-300'}`} />
             </div>
             <div className="flex flex-col min-w-0 flex-1">
               <span className="text-[12px] font-semibold text-slate-900 truncate">
@@ -290,11 +295,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
           </div>
           <button
             type="button"
-            onClick={() => {
-              if (auth) auth.logout()
-              else localStorage.removeItem('token')
-              navigate('/login', { replace: true })
-            }}
+            onClick={() => void logout()}
             title="Đăng xuất / Chuyển tài khoản"
             className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-md transition-colors shrink-0 flex items-center justify-center"
           >

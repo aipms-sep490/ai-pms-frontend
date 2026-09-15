@@ -10,10 +10,8 @@ import type {
   TeamDto,
   ProjectDto,
   UserAccountDto,
-  SemesterDto,
   ProjectPeriodDto,
   SupervisorAssignmentDto,
-  UserWorkflowContextDto,
   TeamWorkflowActionsDto,
   ProjectWorkflowActionsDto,
 } from '../../types/backend'
@@ -22,35 +20,48 @@ import type { StudentJourneyState } from '../../features/auth/types/student-jour
 import { findCurrentTeamProject } from '../../features/projects/utils/project-resolution.utils'
 import { StudentJourneyContext } from './StudentJourneyContext'
 import { resolveStudentJourneyState } from './resolve-student-journey-state'
+import { useAcademicWorkflow } from './useAcademicWorkflow'
+
+function toJourneyProfile(workflow: ReturnType<typeof useAcademicWorkflow>['workflowContext']): UserAccountDto | null {
+  if (!workflow) return null
+  return {
+    id: workflow.user.id,
+    departmentId: workflow.academic.department?.id ?? null,
+    majorId: workflow.academic.major?.id ?? null,
+    email: workflow.user.email,
+    fullName: workflow.user.fullName,
+    studentCode: workflow.user.studentCode ?? null,
+    employeeCode: workflow.user.employeeCode ?? null,
+    status: workflow.user.status,
+    roles: workflow.user.effectiveRoles,
+  }
+}
 import { useAuthSession } from '../../features/auth/context/useAuthSession'
 import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 
 export function StudentJourneyProvider({ children }: { children: ReactNode }) {
-  const { session, status: authStatus } = useAuthSession()
+  const { workflowContext } = useAcademicWorkflow()
+  const { session } = useAuthSession()
   const [journeyState, setJourneyState] = useState<StudentJourneyState>('TEAM_FORMING')
-  const [profile, setProfile] = useState<UserAccountDto | null>(null)
-  const [semester, setSemester] = useState<SemesterDto | null>(null)
   const [period, setPeriod] = useState<ProjectPeriodDto | null>(null)
   const [team, setTeam] = useState<TeamDto | null>(null)
   const [project, setProject] = useState<ProjectDto | null>(null)
   const [assignments, setAssignments] = useState<SupervisorAssignmentDto[]>([])
-  const [workflowContext, setWorkflowContext] = useState<UserWorkflowContextDto | null>(null)
   const [teamActions, setTeamActions] = useState<TeamWorkflowActionsDto | null>(null)
   const [projectActions, setProjectActions] = useState<ProjectWorkflowActionsDto | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const refreshSequence = useRef(0)
+  const profile = toJourneyProfile(workflowContext)
+  const semester = workflowContext?.selectedSemester ?? null
 
   const refreshAll = useCallback(async () => {
     const requestId = ++refreshSequence.current
     if (!session || getWorkspaceRole(session.user) !== 'student') {
-      setProfile(null)
-      setSemester(null)
       setPeriod(null)
       setTeam(null)
       setProject(null)
       setAssignments([])
-      setWorkflowContext(null)
       setTeamActions(null)
       setProjectActions(null)
       setJourneyState('NO_TEAM')
@@ -58,74 +69,54 @@ export function StudentJourneyProvider({ children }: { children: ReactNode }) {
       setError(null)
       return
     }
+
     setIsLoading(true)
     setError(null)
     try {
-      const workflow = env.isMockMode ? null : await services.workflow.getCurrentContext()
+      // Global context owns identity, authorization and selected semester.
+      let nextPeriod: ProjectPeriodDto | null = null
+      if (semester) nextPeriod = await services.academic.getRegistrationPeriod(semester.id)
 
-      // 1. Load User Profile
-      const prof = await services.auth.getMyProfile()
+      let nextTeam: TeamDto | null = null
+      if (semester) nextTeam = await services.team.getCurrentTeam(semester.id)
 
-      // 2. Load Academic Semester & Period
-      const sem = await services.academic.getActiveSemester()
-
-      let per: ProjectPeriodDto | null = null
-      if (sem) {
-        per = await services.academic.getRegistrationPeriod(sem.id)
-      }
-
-      // 3. Load Current Team (handles 204 or null cleanly)
-      let currentTeam: TeamDto | null = null
-      if (sem) {
-        currentTeam = await services.team.getCurrentTeam(sem.id)
-      }
-
-      // 4. Load Project if team exists - find project deterministically, never guess ID
-      let currentProject: ProjectDto | null = null
-      let curAssignments: SupervisorAssignmentDto[] = []
-      if (currentTeam) {
-        const projectsRes = await services.project.getProjects({ teamId: currentTeam.id })
-        const currentSummary = findCurrentTeamProject(projectsRes.items)
-        if (currentSummary) {
-          currentProject = await services.project.getProject(currentSummary.id)
-
-          const assignRes = await services.supervisor.getAssignments(currentProject.id)
-          curAssignments = assignRes.items
+      let nextProject: ProjectDto | null = null
+      let nextAssignments: SupervisorAssignmentDto[] = []
+      if (nextTeam) {
+        const projects = await services.project.getProjects({ teamId: nextTeam.id })
+        const summary = findCurrentTeamProject(projects.items)
+        if (summary) {
+          nextProject = await services.project.getProject(summary.id)
+          nextAssignments = (await services.supervisor.getAssignments(nextProject.id)).items
         }
       }
 
-      let currentTeamActions: TeamWorkflowActionsDto | null = null
-      if (!env.isMockMode && currentTeam) {
-        currentTeamActions = await services.workflow.getTeamActions(currentTeam.id)
-      }
-      let currentProjectActions: ProjectWorkflowActionsDto | null = null
-      if (!env.isMockMode && currentProject) {
-        currentProjectActions = await services.workflow.getProjectActions(currentProject.id)
-      }
+      const nextTeamActions = !env.isMockMode && nextTeam
+        ? await services.workflow.getTeamActions(nextTeam.id)
+        : null
+      const nextProjectActions = !env.isMockMode && nextProject
+        ? await services.workflow.getProjectActions(nextProject.id)
+        : null
 
       if (requestId !== refreshSequence.current) return
-      setWorkflowContext(workflow)
-      setProfile(prof)
-      setSemester(sem)
-      setPeriod(per)
-      setTeam(currentTeam)
-      setProject(currentProject)
-      setAssignments(curAssignments)
-      setTeamActions(currentTeamActions)
-      setProjectActions(currentProjectActions)
-      setJourneyState(resolveStudentJourneyState(currentTeam, currentProject, curAssignments, currentTeamActions))
-    } catch (err) {
+      setPeriod(nextPeriod)
+      setTeam(nextTeam)
+      setProject(nextProject)
+      setAssignments(nextAssignments)
+      setTeamActions(nextTeamActions)
+      setProjectActions(nextProjectActions)
+      setJourneyState(resolveStudentJourneyState(nextTeam, nextProject, nextAssignments, nextTeamActions))
+    } catch (reason: unknown) {
       if (requestId !== refreshSequence.current) return
-      const msg = err instanceof Error ? err.message : 'Không thể tải thông tin sinh viên'
-      setError(msg)
+      setError(reason instanceof Error ? reason.message : 'Không thể tải thông tin sinh viên')
     } finally {
       if (requestId === refreshSequence.current) setIsLoading(false)
     }
-  }, [session])
+  }, [semester, session])
 
   useEffect(() => {
-    if (authStatus !== 'authenticating') void refreshAll()
-  }, [authStatus, refreshAll])
+    void refreshAll()
+  }, [refreshAll])
 
   const setSimulatedJourneyState = (state: StudentJourneyState) => {
     setJourneyState(state)

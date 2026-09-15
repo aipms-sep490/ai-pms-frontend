@@ -1,580 +1,84 @@
-import { useState, useEffect, useCallback, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { env } from '../../../app/config/env'
+import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
+import { Button } from '../../../components/ui/Button'
 import { useStudentJourney } from '../../../app/context'
-import { services } from '../../../services/service-gateway'
-import { getActivePrimaryAssignment } from '../../projects/utils/project-resolution.utils'
-import type {
-  SupervisorCandidateDto,
-  SupervisorRequestDto,
-  SupervisorAssignmentDto,
-} from '../../../types/backend'
+import { useSupervisorSelection } from '../hooks/useSupervisorSelection'
 
 export function SupervisorSelectionPage() {
-  const navigate = useNavigate()
-  const { project, team, refreshAll, isLoading: contextLoading } = useStudentJourney()
+  const journey = useStudentJourney()
+  const selection = useSupervisorSelection({
+    project: journey.project,
+    team: journey.team,
+    profile: journey.profile,
+    actions: journey.projectActions,
+    refreshAll: journey.refreshAll,
+  })
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [message, setMessage] = useState('')
+  const selected = selection.candidates.find((candidate) => candidate.id === selectedId) ?? null
 
-  const [candidates, setCandidates] = useState<SupervisorCandidateDto[]>([])
-  const [requests, setRequests] = useState<SupervisorRequestDto[]>([])
-  const [assignments, setAssignments] = useState<SupervisorAssignmentDto[]>([])
-
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedExpertise, setSelectedExpertise] = useState<string>('ALL')
-  const [isLoading, setIsLoading] = useState(true)
-  const [loadError, setLoadError] = useState<string | null>(null)
-
-  // Request modal
-  const [selectedCandidate, setSelectedCandidate] = useState<SupervisorCandidateDto | null>(null)
-  const [requestMessage, setRequestMessage] = useState('')
-  const [isSending, setIsSending] = useState(false)
-  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null)
-  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
-
-  const showToast = (text: string, type: 'success' | 'error' = 'success') => {
-    setToastMessage({ text, type })
-    setTimeout(() => setToastMessage(null), 4000)
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!selected) return
+    const sent = await selection.send(selected, message)
+    if (sent) { setSelectedId(null); setMessage('') }
   }
 
-  const loadData = useCallback(async () => {
-    if (!project?.id) {
-      setIsLoading(false)
-      return
-    }
-    setIsLoading(true)
-    setLoadError(null)
-    try {
-      const [reqRes, assignRes] = await Promise.all([
-        services.supervisor.getRequests(project.id),
-        services.supervisor.getAssignments(project.id),
-      ])
-      setRequests(reqRes.items)
-      setAssignments(assignRes.items)
-
-      const activeAssignment = getActivePrimaryAssignment(assignRes.items)
-      const normalizedStatus = project.status.replaceAll('_', '').toUpperCase()
-      const canSelectCandidates = ['APPROVED', 'SUPERVISORPENDING'].includes(normalizedStatus)
-
-      if (activeAssignment || !canSelectCandidates) {
-        setCandidates([])
-      } else {
-        const candRes = await services.supervisor.getCandidates(project.id, {
-          search: searchQuery.trim() || undefined,
-          expertise: selectedExpertise !== 'ALL' ? selectedExpertise : undefined,
-        })
-        setCandidates(candRes.items)
-      }
-    } catch (reason: unknown) {
-      setLoadError(reason instanceof Error ? reason.message : 'Không thể tải dữ liệu giảng viên hướng dẫn.')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [project?.id, project?.status, searchQuery, selectedExpertise])
-
-  useEffect(() => {
-    loadData()
-  }, [loadData])
-
-  const handleSendRequest = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!project?.id || !selectedCandidate) return
-
-    setIsSending(true)
-    try {
-      await services.supervisor.sendRequest(
-        project.id,
-        selectedCandidate.id,
-        requestMessage.trim() || undefined,
-      )
-      setSelectedCandidate(null)
-      setRequestMessage('')
-      await loadData()
-      await refreshAll()
-      showToast('Đã gửi lời mời hướng dẫn thành công!')
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Gửi yêu cầu thất bại.', 'error')
-    } finally {
-      setIsSending(false)
-    }
-  }
-
-  const handleCancelRequest = async (requestId: number) => {
-    setActionLoadingId(requestId)
-    try {
-      await services.supervisor.cancelRequest(requestId)
-      await loadData()
-      await refreshAll()
-      showToast('Đã hủy yêu cầu hướng dẫn.')
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Hủy yêu cầu thất bại.', 'error')
-    } finally {
-      setActionLoadingId(null)
-    }
-  }
-
-  const handleSimulateResponse = async (requestId: number, accept: boolean) => {
-    setActionLoadingId(requestId)
-    try {
-      services.supervisor.simulateSupervisorResponse(requestId, accept)
-      await loadData()
-      await refreshAll()
-      showToast(accept ? 'Mô phỏng: Giảng viên đã chấp thuận!' : 'Mô phỏng: Giảng viên đã từ chối.')
-    } finally {
-      setActionLoadingId(null)
-    }
-  }
-
-  const resolveSupervisorName = (profileId: number): string => {
-    const cand = candidates.find((c) => c.id === profileId)
-    return cand?.fullName ?? `Giảng viên #${profileId}`
-  }
-
-  if (contextLoading || (isLoading && candidates.length === 0)) {
-    return (
-      <div className="max-w-5xl mx-auto p-6 flex flex-col gap-6 animate-pulse">
-        <div className="h-8 bg-slate-200 rounded w-1/3" />
-        <div className="h-28 bg-slate-200 rounded-2xl w-full" />
-        <div className="grid grid-cols-2 gap-4">
-          <div className="h-56 bg-slate-200 rounded-2xl" />
-          <div className="h-56 bg-slate-200 rounded-2xl" />
-        </div>
-      </div>
-    )
-  }
-
-  if (!project) {
-    return (
-      <div className="max-w-2xl mx-auto p-8 text-center flex flex-col items-center gap-4 bg-white border border-slate-200 rounded-2xl shadow-xs mt-12">
-        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-          <span className="material-symbols-outlined text-[24px]">supervisor_account</span>
-        </div>
-        <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-bold text-slate-800">Chưa có Đề tài đủ Điều kiện chọn GVHD</h2>
-          <p className="text-xs text-slate-500 max-w-md">
-            Bạn cần đăng ký đề tài và được Hội đồng Bộ môn phê duyệt trước khi tiến hành gửi yêu cầu ghép cặp Giảng viên Hướng dẫn.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => navigate('/projects/lifecycle')}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
-        >
-          <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-          Xem Hồ sơ Đề tài
-        </button>
-      </div>
-    )
-  }
-
-  const normalizedStatus = project.status.replaceAll('_', '').toUpperCase()
-  const isApprovedOrBeyond = ['APPROVED', 'SUPERVISORPENDING', 'ACTIVE', 'FINALSUBMISSION', 'COMPLETED'].includes(normalizedStatus)
-
-  if (!isApprovedOrBeyond) {
-    return (
-      <div className="max-w-2xl mx-auto p-8 text-center flex flex-col items-center gap-4 bg-white border border-slate-200 rounded-2xl shadow-xs mt-12">
-        <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-200">
-          <span className="material-symbols-outlined text-[24px]">hourglass_top</span>
-        </div>
-        <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-bold text-slate-800">Đề tài chưa hoàn tất phê duyệt</h2>
-          <p className="text-xs text-slate-500 max-w-md">
-            Đề tài của bạn đang ở trạng thái <strong className="font-semibold text-slate-700">{project.status}</strong>. Bạn cần được Hội đồng Bộ môn thẩm định và phê duyệt trước khi chọn Giảng viên Hướng dẫn.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => navigate('/project/status')}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
-        >
-          <span className="material-symbols-outlined text-[16px]">visibility</span>
-          Xem Trạng thái Thẩm định
-        </button>
-      </div>
-    )
-  }
-
-  if (loadError) {
-    return (
-      <div className="max-w-2xl mx-auto mt-12 rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center">
-        <h2 className="text-base font-bold text-rose-900">Không thể tải thông tin giảng viên hướng dẫn</h2>
-        <p className="mt-2 text-xs text-rose-700">{loadError}</p>
-        <button type="button" onClick={() => void loadData()} className="mt-4 rounded-lg bg-rose-700 px-4 py-2 text-xs font-bold text-white hover:bg-rose-800">Thử lại</button>
-      </div>
-    )
-  }
-
-  const activeAssignment = getActivePrimaryAssignment(assignments)
-  const hasActiveAssignment = Boolean(activeAssignment)
-
-  const EXPERTISE_OPTIONS = ['ALL', 'AI/ML', 'Clean Architecture', 'DevOps', 'Microservices', 'Blockchain']
+  if (journey.isLoading || selection.loading) return <p className="p-6">Đang tải supervisor workflow…</p>
+  if (!journey.project) return <section className="p-6"><h1>Supervisor selection</h1><p>Chưa có Project trong phạm vi của bạn.</p></section>
+  if (selection.error?.kind === 'authentication') return <p className="p-6"><Link to="/login">Đăng nhập lại để tiếp tục.</Link></p>
 
   return (
-    <div className="max-w-5xl mx-auto pb-16 flex flex-col gap-6">
-      {/* Toast */}
-      {toastMessage && (
-        <div
-          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 animate-in fade-in slide-in-from-bottom-4 ${
-            toastMessage.type === 'success'
-              ? 'bg-emerald-600 text-white'
-              : 'bg-rose-600 text-white'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[18px]">
-            {toastMessage.type === 'success' ? 'check_circle' : 'error'}
-          </span>
-          {toastMessage.text}
+    <main className="mx-auto max-w-5xl space-y-6 pb-12">
+      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+        <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">Supervisor matching</p>
+        <h1 className="mt-1 text-2xl font-bold text-slate-900">Chọn giảng viên hướng dẫn</h1>
+        <p className="mt-2 text-sm text-slate-600">{journey.project.code} · {journey.project.title} · Backend status: {journey.project.status}</p>
+        <p className="mt-1 text-xs text-slate-500">Danh sách này chỉ đến từ candidate API theo Project; không dùng Supervisor Directory chung.</p>
+      </header>
+
+      {selection.error ? <section role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{selection.error.message}<Button className="ml-3" size="sm" variant="secondary" onClick={() => void selection.refresh(true)}>Tải lại</Button></section> : null}
+
+      {selection.activeAssignment ? <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
+        <h2 className="font-bold text-emerald-900">Đã có phân công hướng dẫn chính thức</h2>
+        <p className="mt-1 text-sm text-emerald-800">{selection.activeAssignment.supervisorName} · assigned {selection.activeAssignment.assignedAt}</p>
+        <p className="mt-1 text-xs text-emerald-700">Backend assignment #{selection.activeAssignment.id}; Project status được làm mới từ Backend.</p>
+      </section> : null}
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+        <h2 className="text-lg font-bold text-slate-900">Yêu cầu hướng dẫn</h2>
+        {selection.requests.length ? <ul className="mt-3 space-y-3">{selection.requests.map((request) => <li key={request.id} className="rounded-lg border border-slate-200 p-3 text-sm">
+          <strong>{request.status}</strong> · Supervisor profile #{request.supervisorProfileId} · sent {request.requestedAt}
+          {request.requestMessage ? <p className="mt-1">Lời nhắn: {request.requestMessage}</p> : null}
+          {request.responseMessage ? <p className="mt-1">Phản hồi: {request.responseMessage}</p> : null}
+          {request.status === 'PENDING' && selection.isLeader ? <Button className="mt-2" size="sm" variant="danger" disabled={selection.cancelPending !== null} onClick={() => void selection.cancel(request.id)}>Hủy yêu cầu</Button> : null}
+          {request.status === 'REJECTED' ? <p className="mt-2 text-xs text-slate-600">Bạn có thể chủ động chọn một candidate đủ điều kiện khác khi Backend vẫn cho phép.</p> : null}
+        </li>)}</ul> : <p className="mt-2 text-sm text-slate-600">Chưa có yêu cầu supervisor.</p>}
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+        <div className="flex flex-wrap items-end gap-3">
+          <div><label htmlFor="candidate-search" className="block text-sm font-medium">Tìm candidate</label><input id="candidate-search" className="mt-1 rounded border border-slate-300 px-3 py-2" value={selection.query.search} onChange={(event) => selection.setQuery((current) => ({ ...current, search: event.target.value }))} /></div>
+          <div><label htmlFor="candidate-expertise" className="block text-sm font-medium">Expertise</label><input id="candidate-expertise" className="mt-1 rounded border border-slate-300 px-3 py-2" value={selection.query.expertise} onChange={(event) => selection.setQuery((current) => ({ ...current, expertise: event.target.value }))} /></div>
+          <Button size="sm" variant="secondary" disabled={selection.candidateLoading} onClick={() => void selection.refresh(true)}>Lọc từ Backend</Button>
         </div>
-      )}
+        {!selection.canSend && !selection.activeAssignment ? <p className="mt-4 text-sm text-slate-600">Backend chưa cho phép bạn gửi yêu cầu supervisor ở trạng thái hiện tại.</p> : null}
+        {selection.canSend && selection.candidates.length === 0 ? <p className="mt-4 text-sm text-slate-600">Không có candidate đủ điều kiện theo Project và policy Backend.</p> : null}
+        <ul className="mt-4 grid gap-3 md:grid-cols-2">{selection.candidates.map((candidate) => <li key={candidate.id} className="rounded-xl border border-slate-200 p-4">
+          <h3 className="font-semibold">{candidate.fullName}</h3><p className="text-sm text-slate-600">{candidate.departmentName}</p>
+          {candidate.bio ? <p className="mt-2 text-sm">{candidate.bio}</p> : null}
+          <p className="mt-2 text-xs">Expertise: {candidate.expertise.map((item) => item.name).join(', ') || '—'}</p>
+          <p className="mt-1 text-xs">Workload: {candidate.activeProjects} active · {candidate.remainingSlots} remaining of {candidate.semesterLimit}</p>
+          <Button className="mt-3" size="sm" disabled={!selection.canSend || selection.sendRequestPending} onClick={() => setSelectedId(candidate.id)}>Chọn candidate</Button>
+        </li>)}</ul>
+      </section>
 
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <button
-            type="button"
-            onClick={() => navigate('/project/status')}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-2 transition-colors"
-          >
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-            Trang Trạng thái Đề cương
-          </button>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Ghép cặp Giảng viên Hướng dẫn (Supervisor Matching)
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Đề tài: <span className="font-semibold text-slate-700">{project?.title || 'Đề tài đồ án'}</span> • Nhóm:{' '}
-            <span className="font-semibold text-slate-700">{team?.name || 'Nhóm sinh viên'}</span>
-          </p>
-        </div>
-
-        {hasActiveAssignment && (
-          <button
-            type="button"
-            onClick={() => navigate('/project/milestones/M3')}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5"
-          >
-            <span className="material-symbols-outlined text-[18px]">view_kanban</span>
-            Không gian Milestones & Tasks
-          </button>
-        )}
-      </div>
-
-      {/* Active Assignment Banner (When Accepted) */}
-      {hasActiveAssignment && activeAssignment && (
-        <div className="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xl shrink-0 shadow-xs">
-              <span className="material-symbols-outlined text-[28px]">school</span>
-            </div>
-            <div>
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 mb-1">
-                <span className="material-symbols-outlined text-[14px]">verified</span>
-                Đã Phân công Hướng dẫn Chính thức
-              </div>
-              <h2 className="text-base font-bold text-slate-900">
-                {activeAssignment.supervisorName}
-              </h2>
-              <p className="text-xs text-slate-600 mt-0.5">
-                Ngày bắt đầu: {new Date(activeAssignment.assignedAt).toLocaleDateString('vi-VN')} • Vai trò: Hướng dẫn chính (Primary)
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => navigate('/project/milestones/M3')}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5"
-            >
-              <span className="material-symbols-outlined text-[18px]">rocket_launch</span>
-              Vào Không gian Làm việc (Workspace)
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Requests Tracking Panel */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px] text-blue-600">outgoing_mail</span>
-              Yêu cầu Hướng dẫn Đã gửi ({requests.length})
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Theo dõi tiến độ phản hồi từ các giảng viên hướng dẫn
-            </p>
-          </div>
-        </div>
-
-        {requests.length === 0 ? (
-          <div className="text-center py-6 text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
-            Chưa gửi yêu cầu hướng dẫn nào. Hãy duyệt danh sách giảng viên bên dưới để gửi lời mời.
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
-            {requests.map((req) => (
-              <div key={req.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-slate-50">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">
-                    <span className="material-symbols-outlined text-[20px]">person</span>
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">
-                      {resolveSupervisorName(req.supervisorProfileId)}
-                    </h4>
-                    <span className="text-[11px] text-slate-400">
-                      Gửi lúc: {new Date(req.requestedAt).toLocaleString('vi-VN')}
-                    </span>
-                    {req.requestMessage && (
-                      <p className="text-[11px] text-slate-600 mt-1 italic">&ldquo;{req.requestMessage}&rdquo;</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                      req.status === 'ACCEPTED'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : req.status === 'PENDING'
-                          ? 'bg-amber-50 text-amber-700 border-amber-200'
-                          : req.status === 'CANCELLED'
-                            ? 'bg-slate-100 text-slate-600 border-slate-200'
-                            : 'bg-rose-50 text-rose-700 border-rose-200'
-                    }`}
-                  >
-                    {req.status === 'ACCEPTED'
-                      ? 'Đã chấp thuận'
-                      : req.status === 'PENDING'
-                        ? 'Đang chờ phản hồi'
-                        : req.status === 'CANCELLED'
-                          ? 'Đã hủy'
-                          : 'Đã từ chối'}
-                  </span>
-
-                  {req.status === 'PENDING' && (
-                    <button
-                      type="button"
-                      disabled={actionLoadingId === req.id}
-                      onClick={() => handleCancelRequest(req.id)}
-                      className="px-2.5 py-1 text-xs text-rose-600 hover:bg-rose-50 rounded-lg font-semibold transition-colors disabled:opacity-50"
-                    >
-                      {actionLoadingId === req.id ? 'Đang hủy...' : 'Hủy yêu cầu'}
-                    </button>
-                  )}
-
-                  {/* Dev Simulation actions (Dev mode only) */}
-                  {!import.meta.env.PROD && env.isMockMode && req.status === 'PENDING' && (
-                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-                      <button
-                        type="button"
-                        onClick={() => handleSimulateResponse(req.id, true)}
-                        title="Mô phỏng GV Đồng ý"
-                        className="p-1 hover:bg-emerald-100 text-emerald-700 rounded text-[11px] font-bold"
-                      >
-                        ✓ Đồng ý
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleSimulateResponse(req.id, false)}
-                        title="Mô phỏng GV Từ chối"
-                        className="p-1 hover:bg-rose-100 text-rose-700 rounded text-[11px] font-bold"
-                      >
-                        ✗ Từ chối
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Supervisor Candidates Explorer */}
-      {!hasActiveAssignment && (
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">Danh mục Giảng viên Hướng dẫn Khả dụng</h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Tìm kiếm giảng viên có chuyên môn phù hợp và số slot đồ án còn trống
-              </p>
-            </div>
-
-            {/* Filters */}
-            <div className="flex items-center gap-3">
-              <div className="relative w-64">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
-                  search
-                </span>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Tìm theo tên hoặc chuyên ngành..."
-                  className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
-                />
-              </div>
-
-              <select
-                value={selectedExpertise}
-                onChange={(e) => setSelectedExpertise(e.target.value)}
-                className="px-3 py-1.5 text-xs border border-slate-300 rounded-xl bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-              >
-                {EXPERTISE_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt === 'ALL' ? 'Tất cả chuyên môn' : opt}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Candidates Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {candidates.map((cand) => {
-              const hasSentPending = requests.some(
-                (r) => r.supervisorProfileId === cand.id && r.status === 'PENDING',
-              )
-              const isFull = cand.remainingSlots <= 0
-
-              return (
-                <div
-                  key={cand.id}
-                  className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between gap-4 hover:border-slate-300 transition-all"
-                >
-                  <div className="flex flex-col gap-2.5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-sm">
-                          {cand.fullName.charAt(cand.fullName.lastIndexOf(' ') + 1) || 'T'}
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-bold text-slate-900">{cand.fullName}</h3>
-                          <span className="text-[11px] text-slate-500">
-                            Khoa {cand.departmentName}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Remaining Slots Badge */}
-                      <span
-                        className={`px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 border ${
-                          isFull
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
-                            : cand.remainingSlots <= 1
-                              ? 'bg-amber-50 text-amber-700 border-amber-200'
-                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        }`}
-                      >
-                        {isFull ? 'Hết slot' : `Còn ${cand.remainingSlots} slot`}
-                      </span>
-                    </div>
-
-                    {cand.bio && (
-                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">{cand.bio}</p>
-                    )}
-
-                    {/* Expertise Tags */}
-                    <div className="flex flex-wrap gap-1.5 mt-1">
-                      {cand.expertise.map((exp) => (
-                        <span
-                          key={exp.name}
-                          className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-700"
-                        >
-                          {exp.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400">
-                      Đang hướng dẫn: {cand.activeProjects}/{cand.semesterLimit} nhóm
-                    </span>
-
-                    <button
-                      type="button"
-                      disabled={isFull || hasSentPending}
-                      onClick={() => setSelectedCandidate(cand)}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">send</span>
-                      {hasSentPending ? 'Đã gửi yêu cầu' : isFull ? 'Hết chỗ' : 'Mời hướng dẫn'}
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Send Request Modal */}
-      {selectedCandidate && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 flex flex-col gap-4 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <span className="material-symbols-outlined text-[20px] text-blue-600">forward_to_inbox</span>
-                Gửi Lời mời Hướng dẫn Đồ án
-              </h3>
-              <button
-                type="button"
-                onClick={() => setSelectedCandidate(null)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
-              >
-                <span className="material-symbols-outlined text-[18px]">close</span>
-              </button>
-            </div>
-
-            <div className="bg-slate-50 rounded-xl p-3.5 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
-                GV
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-900">{selectedCandidate.fullName}</h4>
-                <p className="text-[11px] text-slate-500">
-                  Khoa {selectedCandidate.departmentName} • Còn {selectedCandidate.remainingSlots} slot khả dụng
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleSendRequest} className="flex flex-col gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Thư ngỏ / Lời nhắn tới Giảng viên *
-                </label>
-                <textarea
-                  value={requestMessage}
-                  onChange={(e) => setRequestMessage(e.target.value)}
-                  required
-                  rows={4}
-                  placeholder="Kính chào Thầy/Cô, nhóm chúng em có nguyện vọng được Thầy/Cô hướng dẫn đề tài nghiên cứu về..."
-                  className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setSelectedCandidate(null)}
-                  className="px-4 py-2 border border-slate-300 text-slate-600 hover:bg-slate-50 rounded-xl text-xs font-semibold"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSending}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5"
-                >
-                  {isSending ? 'Đang gửi...' : 'Xác nhận gửi'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+      {selected ? <form className="rounded-2xl border border-blue-200 bg-blue-50 p-6" onSubmit={(event) => void submit(event)}>
+        <h2 className="font-bold text-blue-950">Gửi yêu cầu tới {selected.fullName}</h2>
+        <label htmlFor="request-message" className="mt-3 block text-sm font-medium">Lời nhắn (tùy chọn)</label>
+        <textarea id="request-message" className="mt-1 w-full rounded border border-slate-300 p-3" value={message} onChange={(event) => setMessage(event.target.value)} />
+        <div className="mt-3 flex gap-2"><Button type="submit" disabled={selection.sendRequestPending}>Gửi yêu cầu</Button><Button type="button" variant="secondary" onClick={() => setSelectedId(null)}>Hủy</Button></div>
+      </form> : null}
+    </main>
   )
 }

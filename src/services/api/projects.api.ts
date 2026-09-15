@@ -293,52 +293,7 @@ export async function getProjectHistory(id: number): Promise<ProjectStatusHistor
   return await httpGet<ProjectStatusHistoryDto[]>(`/projects/${id}/history`)
 }
 
-/**
- * Dev simulation helper for Department Review.
- * Used exclusively for testing student-side UI reaction to Department feedback
- * (Does NOT build TinVV's Department review UI).
- */
-export async function simulateDepartmentReview(
-  id: number,
-  decision: 'REVISION_REQUIRED' | 'APPROVED' | 'REJECTED',
-  reason?: string,
-): Promise<ProjectDto> {
-  if (!mockProjectStore || mockProjectStore.id !== id) {
-    throw new Error(`Project #${id} not found.`)
-  }
-  const now = new Date().toISOString()
-  const oldStatus = mockProjectStore.status
-
-  if (decision === 'REVISION_REQUIRED') {
-    mockProjectStore.status = 'RevisionRequired'
-  } else if (decision === 'APPROVED') {
-    mockProjectStore.status = 'Approved'
-    mockProjectStore.approvedAt = now
-  } else {
-    mockProjectStore.status = 'Rejected'
-  }
-
-  mockProjectStore.updatedAt = now
-  mockProjectStore.concurrencyToken = `token_v${Date.now()}`
-
-  mockHistoryStore.push({
-    id: mockHistoryStore.length + 1,
-    projectId: id,
-    oldStatus,
-    newStatus: mockProjectStore.status,
-    changedBy: 999,
-    changedByName: 'Hội đồng Khoa CNTT (Mô phỏng)',
-    reason:
-      reason ??
-      (decision === 'REVISION_REQUIRED'
-        ? 'Cần làm rõ phương pháp luận AI và ma trận truy vết RTM trong phần mục tiêu đề tài.'
-        : 'Đạt yêu cầu phê duyệt đề cương.'),
-    changedAt: now,
-  })
-
-  return { ...mockProjectStore }
-}
-
 export const submit = submitProject
 export const resubmit = resubmitProject
 export const getHistory = getProjectHistory
+export const createProjectDraft = createDraft
