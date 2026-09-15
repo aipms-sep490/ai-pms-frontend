@@ -45,6 +45,27 @@ describe('ProjectReviewPage', () => {
     expect(screen.getByText((_, element) => element?.textContent?.startsWith('Submitted → UnderReview') ?? false)).toBeTruthy()
   })
 
+  it('renders a SINGLE_MAJOR scope without inventing participating Department decisions', () => {
+    const state = reviewState({
+      detail: {
+        academicScope: { projectMode: 'SINGLE_MAJOR', leadDepartmentId: 5, primaryMajorId: 7, requirements: [] },
+        latestSubmission: {
+          id: 8,
+          evidence: {
+            scope: { projectMode: 'SINGLE_MAJOR', leadDepartmentId: 5, primaryMajorId: 7, requirements: [] },
+            policy: { minMembers: 3, maxMembers: 5, minDistinctMajors: 1 },
+            members: [{ userId: 9, fullName: 'Student One', majorId: 7, isLeader: true }],
+          },
+          decisions: [],
+        },
+      },
+    })
+    hook.useProjectReview.mockReturnValue(state)
+    detailPage()
+    expect(screen.getByText('SINGLE_MAJOR')).toBeTruthy()
+    expect(screen.getByText(/Không có participating department decision/)).toBeTruthy()
+  })
+
   it('renders decisions only when Backend actions permit them and requires a revision reason', () => {
     const state = reviewState({ canRequestRevision: true, canApproveDepartment: true, canApprove: false })
     hook.useProjectReview.mockReturnValue(state)
