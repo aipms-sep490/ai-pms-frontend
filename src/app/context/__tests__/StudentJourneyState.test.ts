@@ -1,37 +1,14 @@
 import { describe, it, expect } from 'vitest'
 import type { TeamDto, ProjectDto, SupervisorAssignmentDto } from '../../../types/backend'
 import type { StudentJourneyState } from '../../../features/auth/types/student-journey.types'
+import { resolveStudentJourneyState } from '../resolve-student-journey-state'
 
 function computeStudentJourneyState(
   team: TeamDto | null,
   project: ProjectDto | null,
   assignments: SupervisorAssignmentDto[],
 ): StudentJourneyState {
-  if (!team) {
-    return 'NO_TEAM'
-  }
-  if (team.status === 'FORMING' || !team.eligibility?.canRegister) {
-    return 'TEAM_FORMING'
-  }
-  if (!project || project.status === 'Draft') {
-    return 'TEAM_ELIGIBLE'
-  }
-  if (project.status === 'Submitted' || project.status === 'UnderReview') {
-    return 'PROJECT_PENDING'
-  }
-  if (project.status === 'RevisionRequired') {
-    return 'REVISION_REQUIRED'
-  }
-  if (project.status === 'Approved') {
-    if (assignments.some((a) => a.isPrimary)) {
-      return 'ACTIVE'
-    }
-    return 'SUPERVISOR_PENDING'
-  }
-  if (project.status === 'Active') {
-    return 'ACTIVE'
-  }
-  return 'TEAM_ELIGIBLE'
+  return resolveStudentJourneyState(team, project, assignments, null)
 }
 
 describe('computeStudentJourneyState', () => {
@@ -115,5 +92,14 @@ describe('computeStudentJourneyState', () => {
       assignedAt: '2026-09-05T00:00:00Z',
     }
     expect(computeStudentJourneyState(dummyTeam, approvedProject, [assignment])).toBe('ACTIVE')
+  })
+
+  it('keeps an active project active even when its roster is locked', () => {
+    const lockedTeam: TeamDto = {
+      ...dummyTeam,
+      status: 'LOCKED',
+      eligibility: { canRegister: false, rosterLocked: true, reasons: ['ROSTER_LOCKED'] },
+    }
+    expect(computeStudentJourneyState(lockedTeam, { ...dummyProject, status: 'Active' }, [])).toBe('ACTIVE')
   })
 })

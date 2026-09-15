@@ -34,6 +34,7 @@ export function ProjectRegistrationFormPage() {
 
   const normalizedProjectStatus = project?.status.replaceAll('_', '').toUpperCase()
   const isRevisionRequired = normalizedProjectStatus === 'REVISIONREQUIRED'
+  const isEditableLifecycle = !project || normalizedProjectStatus === 'DRAFT' || isRevisionRequired
   const isEditMode = location.pathname.includes('/project/edit') || Boolean(project?.id)
   const isLeader = Boolean(team?.members.some((m) => m.userId === profile?.id && m.isLeader))
   const canRegister = teamActions?.canRegister ?? team?.eligibility?.canRegister ?? false
@@ -210,6 +211,27 @@ export function ProjectRegistrationFormPage() {
         <div className="h-8 bg-slate-200 rounded w-1/3" />
         <div className="h-40 bg-slate-200 rounded-2xl w-full" />
         <div className="h-96 bg-slate-200 rounded-2xl w-full" />
+      </div>
+    )
+  }
+
+  if (!isEditableLifecycle) {
+    return (
+      <div className="max-w-3xl mx-auto pb-16">
+        <section className="rounded-2xl border border-blue-200 bg-white p-8 text-center shadow-xs">
+          <span className="material-symbols-outlined text-4xl text-blue-600" aria-hidden="true">task_alt</span>
+          <h1 className="mt-3 text-xl font-bold text-slate-900">Đề cương đã rời giai đoạn chỉnh sửa</h1>
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-600">
+            Project hiện ở trạng thái <strong>{project?.status}</strong>. Mọi bước tiếp theo cần thực hiện theo lifecycle hiện tại để tránh ghi đè hồ sơ đã nộp.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/project/status')}
+            className="mt-5 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-blue-700"
+          >
+            Xem trạng thái đề cương
+          </button>
+        </section>
       </div>
     )
   }

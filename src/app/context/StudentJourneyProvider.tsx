@@ -2,6 +2,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
 } from 'react'
 import { services } from '../../services/service-gateway'
@@ -16,11 +17,9 @@ import type {
 } from '../../types/backend'
 import { env } from '../config/env'
 import type { StudentJourneyState } from '../../features/auth/types/student-journey.types'
-import {
-  findCurrentTeamProject,
-  getActivePrimaryAssignment,
-} from '../../features/projects/utils/project-resolution.utils'
+import { findCurrentTeamProject } from '../../features/projects/utils/project-resolution.utils'
 import { StudentJourneyContext } from './StudentJourneyContext'
+import { resolveStudentJourneyState } from './resolve-student-journey-state'
 import { useAcademicWorkflow } from './useAcademicWorkflow'
 
 function toJourneyProfile(workflow: ReturnType<typeof useAcademicWorkflow>['workflowContext']): UserAccountDto | null {
@@ -49,99 +48,68 @@ export function StudentJourneyProvider({ children }: { children: ReactNode }) {
   const [projectActions, setProjectActions] = useState<ProjectWorkflowActionsDto | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const refreshSequence = useRef(0)
   const profile = toJourneyProfile(workflowContext)
   const semester = workflowContext?.selectedSemester ?? null
 
   const refreshAll = useCallback(async () => {
+    const requestId = ++refreshSequence.current
+    if (!workflowContext) {
+      setPeriod(null)
+      setTeam(null)
+      setProject(null)
+      setAssignments([])
+      setTeamActions(null)
+      setProjectActions(null)
+      setJourneyState('NO_TEAM')
+      setIsLoading(false)
+      setError(null)
+      return
+    }
+
     setIsLoading(true)
     setError(null)
     try {
-      // Global workflow context owns identity and selected semester. This provider only
-      // loads feature-specific data that the global contract does not expose.
-      let per: ProjectPeriodDto | null = null
-      if (semester) {
-        per = await services.academic.getRegistrationPeriod(semester.id)
-        setPeriod(per)
-      } else {
-        setPeriod(null)
-      }
+      // Global context owns identity, authorization and selected semester.
+      let nextPeriod: ProjectPeriodDto | null = null
+      if (semester) nextPeriod = await services.academic.getRegistrationPeriod(semester.id)
 
-      // 3. Load Current Team (handles 204 or null cleanly)
-      let currentTeam: TeamDto | null = null
-      if (semester) {
-        currentTeam = await services.team.getCurrentTeam(semester.id)
-        setTeam(currentTeam)
-      } else {
-        setTeam(null)
-      }
+      let nextTeam: TeamDto | null = null
+      if (semester) nextTeam = await services.team.getCurrentTeam(semester.id)
 
-      // 4. Load Project if team exists - find project deterministically, never guess ID
-      let currentProject: ProjectDto | null = null
-      let curAssignments: SupervisorAssignmentDto[] = []
-      if (currentTeam) {
-        const projectsRes = await services.project.getProjects({ teamId: currentTeam.id })
-        const currentSummary = findCurrentTeamProject(projectsRes.items)
-        if (currentSummary) {
-          currentProject = await services.project.getProject(currentSummary.id)
-          setProject(currentProject)
-
-          const assignRes = await services.supervisor.getAssignments(currentProject.id)
-          curAssignments = assignRes.items
-          setAssignments(curAssignments)
-        } else {
-          setProject(null)
-          setAssignments([])
+      let nextProject: ProjectDto | null = null
+      let nextAssignments: SupervisorAssignmentDto[] = []
+      if (nextTeam) {
+        const projects = await services.project.getProjects({ teamId: nextTeam.id })
+        const summary = findCurrentTeamProject(projects.items)
+        if (summary) {
+          nextProject = await services.project.getProject(summary.id)
+          nextAssignments = (await services.supervisor.getAssignments(nextProject.id)).items
         }
-      } else {
-        setProject(null)
-        setAssignments([])
       }
 
-      let currentTeamActions: TeamWorkflowActionsDto | null = null
-      if (!env.isMockMode && currentTeam) {
-        currentTeamActions = await services.workflow.getTeamActions(currentTeam.id)
-        setTeamActions(currentTeamActions)
-      } else {
-        setTeamActions(null)
-      }
-      if (!env.isMockMode && currentProject) {
-        setProjectActions(await services.workflow.getProjectActions(currentProject.id))
-      } else {
-        setProjectActions(null)
-      }
+      const nextTeamActions = !env.isMockMode && nextTeam
+        ? await services.workflow.getTeamActions(nextTeam.id)
+        : null
+      const nextProjectActions = !env.isMockMode && nextProject
+        ? await services.workflow.getProjectActions(nextProject.id)
+        : null
 
-      // 5. Determine Student Journey State automatically
-      const teamStatus = currentTeam?.status.toUpperCase()
-      const projectStatus = currentProject?.status.replaceAll('_', '').toUpperCase()
-      if (!currentTeam) {
-        setJourneyState('NO_TEAM')
-      } else if (teamStatus === 'FORMING' || !(currentTeamActions?.canRegister ?? currentTeam.eligibility?.canRegister)) {
-        setJourneyState('TEAM_FORMING')
-      } else if (!currentProject || projectStatus === 'DRAFT') {
-        setJourneyState('TEAM_ELIGIBLE')
-      } else if (projectStatus === 'SUBMITTED' || projectStatus === 'UNDERREVIEW') {
-        setJourneyState('PROJECT_PENDING')
-      } else if (projectStatus === 'REVISIONREQUIRED') {
-        setJourneyState('REVISION_REQUIRED')
-      } else if (projectStatus === 'APPROVED' || projectStatus === 'SUPERVISORPENDING') {
-        const activeAssignment = getActivePrimaryAssignment(curAssignments)
-        if (activeAssignment) {
-          setJourneyState('ACTIVE')
-        } else {
-          setJourneyState('SUPERVISOR_PENDING')
-        }
-      } else if (projectStatus === 'ACTIVE') {
-        setJourneyState('ACTIVE')
-      } else {
-        setJourneyState('TEAM_ELIGIBLE')
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Không thể tải thông tin sinh viên'
-      setError(msg)
+      if (requestId !== refreshSequence.current) return
+      setPeriod(nextPeriod)
+      setTeam(nextTeam)
+      setProject(nextProject)
+      setAssignments(nextAssignments)
+      setTeamActions(nextTeamActions)
+      setProjectActions(nextProjectActions)
+      setJourneyState(resolveStudentJourneyState(nextTeam, nextProject, nextAssignments, nextTeamActions))
+    } catch (reason: unknown) {
+      if (requestId !== refreshSequence.current) return
+      setError(reason instanceof Error ? reason.message : 'Không thể tải thông tin sinh viên')
     } finally {
-      setIsLoading(false)
+      if (requestId === refreshSequence.current) setIsLoading(false)
     }
-  }, [semester])
+  }, [semester, workflowContext])
 
   useEffect(() => {
     void refreshAll()

@@ -31,6 +31,7 @@ export function TeamManagementPage() {
   const currentUserId = profile?.id ?? 0
   const isLeader = Boolean(team?.members.some((m) => m.userId === currentUserId && m.isLeader))
   const rosterLocked = team?.eligibility?.rosterLocked ?? false
+  const projectStatus = workflowContext?.currentTeam?.projectStatus
   const actionAllowed = (code: string, mockFallback: boolean) =>
     env.isMockMode ? mockFallback : isActionAllowed(teamActions?.actions ?? workflowContext?.actions ?? [], code)
   const canCreateTeam = actionAllowed('create_team', !team)
@@ -251,7 +252,11 @@ export function TeamManagementPage() {
                 </span>
                 <h2 className="text-lg font-bold text-slate-900">{team.name}</h2>
                 <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700">
-                  {team.status === 'ELIGIBLE' ? 'Đủ điều kiện đăng ký' : 'Đang kiện toàn nhân sự'}
+                  {team.status === 'ELIGIBLE'
+                    ? 'Đủ điều kiện đăng ký'
+                    : team.status === 'LOCKED'
+                      ? 'Đã khóa theo đề tài'
+                      : 'Đang kiện toàn nhân sự'}
                 </span>
               </div>
               {team.description && (
@@ -270,10 +275,14 @@ export function TeamManagementPage() {
           </div>
 
           {/* Eligibility Banner */}
-          <EligibilityBanner
-            eligibility={team.eligibility}
-            onRefresh={handleRefreshEligibility}
-          />
+          {rosterLocked && projectStatus && projectStatus.toUpperCase() !== 'DRAFT' ? (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+              <h4 className="text-sm font-semibold text-blue-900">Đội hình đã được khóa theo lifecycle đề tài</h4>
+              <p className="mt-1 text-xs text-blue-700">Project đang ở trạng thái {projectStatus}; backend khóa roster để bảo toàn hồ sơ đã nộp.</p>
+            </div>
+          ) : (
+            <EligibilityBanner eligibility={team.eligibility} onRefresh={handleRefreshEligibility} />
+          )}
 
           <AcademicScopePanel
             teamId={team.id}

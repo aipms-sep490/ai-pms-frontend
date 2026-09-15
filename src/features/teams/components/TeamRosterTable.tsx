@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import type { TeamMemberDto } from '../../../types/backend'
-import { MultidisciplinaryTag, type MajorType } from '../../../components/ui/MultidisciplinaryTag'
 
 interface TeamRosterTableProps {
   members: TeamMemberDto[]
@@ -34,15 +33,6 @@ export function TeamRosterTable({
     }
   }
 
-  const resolveMajor = (majorId?: number | null): MajorType => {
-    if (majorId === 101) return 'SE'
-    if (majorId === 102) return 'AI'
-    if (majorId === 103) return 'UI/UX'
-    if (majorId === 104) return 'QA'
-    if (majorId === 105) return 'IS'
-    return 'SE'
-  }
-
   return (
     <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -71,7 +61,6 @@ export function TeamRosterTable({
               <th className="py-3 px-4">Thành viên</th>
               <th className="py-3 px-4">
                 Mã định danh
-                <span className="ml-1 text-[10px] text-amber-600 font-normal lowercase">(BE_PARTIAL_GAP)</span>
               </th>
               <th className="py-3 px-4">Chuyên ngành</th>
               <th className="py-3 px-4">Vai trò</th>
@@ -99,7 +88,9 @@ export function TeamRosterTable({
                     {identifier}
                   </td>
                   <td className="py-3 px-4">
-                    <MultidisciplinaryTag major={resolveMajor(member.majorId)} />
+                    <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-xs font-semibold text-slate-700">
+                      {member.majorId ? `Major #${member.majorId}` : 'Chưa xác định'}
+                    </span>
                   </td>
                   <td className="py-3 px-4">
                     {member.isLeader ? (
@@ -169,9 +160,7 @@ export function TeamRosterTable({
         </table>
       </div>
 
-      <div className="px-5 py-2.5 bg-slate-50/50 border-t border-slate-100 text-[11px] text-slate-400">
-        Lưu ý: Backend TeamMemberDto chưa trả về trường MSSV/Tên ngành. Mã sinh viên hiện được liên kết theo tài khoản người dùng thực tế.
-      </div>
+      <div className="px-5 py-2.5 bg-slate-50/50 border-t border-slate-100 text-[11px] text-slate-400">Thông tin hiển thị đúng theo dữ liệu thành viên backend hiện cung cấp.</div>
     </div>
   )
 }

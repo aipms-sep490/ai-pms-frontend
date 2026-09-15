@@ -18,14 +18,11 @@ const SESSION_STORAGE_KEY = 'ai-pms.auth-session'
 
 function readStoredSession(): LoginSession | null {
   if (typeof window === 'undefined') return null
-
   try {
     const raw = localStorage.getItem(SESSION_STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<LoginSession>
-    if (!parsed.accessToken || !parsed.refreshToken || !parsed.expiresAtUtc || !parsed.refreshTokenExpiresAtUtc) {
-      return null
-    }
+    if (!parsed.accessToken || !parsed.refreshToken || !parsed.expiresAtUtc || !parsed.refreshTokenExpiresAtUtc) return null
     return parsed as LoginSession
   } catch {
     return null
@@ -43,8 +40,6 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
     setSession(nextSession)
     if (typeof window !== 'undefined') {
       localStorage.setItem('token', nextSession.accessToken)
-      // The current BE contract returns refresh credentials to JavaScript. Keep the complete
-      // rotated session in the existing localStorage mechanism; no password is ever persisted.
       localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(nextSession))
     }
   }, [])
@@ -61,9 +56,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
 
   const refreshSession = useCallback(async (): Promise<string> => {
     const current = sessionRef.current ?? readStoredSession()
-    if (!current?.refreshToken) {
-      throw new HttpError('No refresh session is available.', 401)
-    }
+    if (!current?.refreshToken) throw new HttpError('No refresh session is available.', 401)
 
     setStatus('refreshing')
     setError(null)
@@ -118,11 +111,9 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (credentials: LoginCredentials) => {
     setStatus('authenticating')
     setError(null)
-
     try {
       const authenticatedSession = await requestLogin(credentials)
       const user = await getCurrentUser(authenticatedSession.accessToken, undefined, true)
-
       persistSession({ ...authenticatedSession, user })
       setStatus('authenticated')
     } catch (reason: unknown) {
@@ -133,12 +124,19 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
     }
   }, [clearSession, persistSession])
 
+  const logout = useCallback(async () => {
+    const refreshToken = sessionRef.current?.refreshToken ?? readStoredSession()?.refreshToken
+    try {
+      if (refreshToken) await requestLogout(refreshToken)
+    } finally {
+      clearSession('unauthenticated')
+    }
+  }, [clearSession])
+
   const refreshProfile = useCallback(async () => {
     if (!session) return
-
     setStatus('refreshing')
     setError(null)
-
     try {
       const user: AuthUser = await getCurrentUser(session.accessToken)
       persistSession({ ...session, user })
@@ -148,16 +146,6 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
       setError(reason instanceof Error ? reason : new Error('Profile refresh failed.'))
     }
   }, [persistSession, session])
-
-  const logout = useCallback(async () => {
-    const refreshToken = sessionRef.current?.refreshToken ?? readStoredSession()?.refreshToken
-    try {
-      if (refreshToken) await requestLogout(refreshToken)
-    } finally {
-      // Local cleanup is mandatory even when the server is unavailable or rejects an old token.
-      clearSession('unauthenticated')
-    }
-  }, [clearSession])
 
   const value = useMemo(
     () => ({ session, status, error, login, refreshProfile, logout, restoreSession }),

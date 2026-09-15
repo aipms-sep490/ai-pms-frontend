@@ -21,6 +21,7 @@ export function SupervisorSelectionPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedExpertise, setSelectedExpertise] = useState<string>('ALL')
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   // Request modal
   const [selectedCandidate, setSelectedCandidate] = useState<SupervisorCandidateDto | null>(null)
@@ -40,22 +41,34 @@ export function SupervisorSelectionPage() {
       return
     }
     setIsLoading(true)
+    setLoadError(null)
     try {
-      const [candRes, reqRes, assignRes] = await Promise.all([
-        services.supervisor.getCandidates(project.id, {
-          search: searchQuery.trim() || undefined,
-          expertise: selectedExpertise !== 'ALL' ? selectedExpertise : undefined,
-        }),
+      const [reqRes, assignRes] = await Promise.all([
         services.supervisor.getRequests(project.id),
         services.supervisor.getAssignments(project.id),
       ])
-      setCandidates(candRes.items)
       setRequests(reqRes.items)
       setAssignments(assignRes.items)
+
+      const activeAssignment = getActivePrimaryAssignment(assignRes.items)
+      const normalizedStatus = project.status.replaceAll('_', '').toUpperCase()
+      const canSelectCandidates = ['APPROVED', 'SUPERVISORPENDING'].includes(normalizedStatus)
+
+      if (activeAssignment || !canSelectCandidates) {
+        setCandidates([])
+      } else {
+        const candRes = await services.supervisor.getCandidates(project.id, {
+          search: searchQuery.trim() || undefined,
+          expertise: selectedExpertise !== 'ALL' ? selectedExpertise : undefined,
+        })
+        setCandidates(candRes.items)
+      }
+    } catch (reason: unknown) {
+      setLoadError(reason instanceof Error ? reason.message : 'Không thể tải dữ liệu giảng viên hướng dẫn.')
     } finally {
       setIsLoading(false)
     }
-  }, [project?.id, searchQuery, selectedExpertise])
+  }, [project?.id, project?.status, searchQuery, selectedExpertise])
 
   useEffect(() => {
     loadData()
@@ -148,6 +161,43 @@ export function SupervisorSelectionPage() {
           <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
           Xem Hồ sơ Đề tài
         </button>
+      </div>
+    )
+  }
+
+  const normalizedStatus = project.status.replaceAll('_', '').toUpperCase()
+  const isApprovedOrBeyond = ['APPROVED', 'SUPERVISORPENDING', 'ACTIVE', 'FINALSUBMISSION', 'COMPLETED'].includes(normalizedStatus)
+
+  if (!isApprovedOrBeyond) {
+    return (
+      <div className="max-w-2xl mx-auto p-8 text-center flex flex-col items-center gap-4 bg-white border border-slate-200 rounded-2xl shadow-xs mt-12">
+        <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-200">
+          <span className="material-symbols-outlined text-[24px]">hourglass_top</span>
+        </div>
+        <div className="flex flex-col gap-1">
+          <h2 className="text-lg font-bold text-slate-800">Đề tài chưa hoàn tất phê duyệt</h2>
+          <p className="text-xs text-slate-500 max-w-md">
+            Đề tài của bạn đang ở trạng thái <strong className="font-semibold text-slate-700">{project.status}</strong>. Bạn cần được Hội đồng Bộ môn thẩm định và phê duyệt trước khi chọn Giảng viên Hướng dẫn.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/project/status')}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+        >
+          <span className="material-symbols-outlined text-[16px]">visibility</span>
+          Xem Trạng thái Thẩm định
+        </button>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="max-w-2xl mx-auto mt-12 rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center">
+        <h2 className="text-base font-bold text-rose-900">Không thể tải thông tin giảng viên hướng dẫn</h2>
+        <p className="mt-2 text-xs text-rose-700">{loadError}</p>
+        <button type="button" onClick={() => void loadData()} className="mt-4 rounded-lg bg-rose-700 px-4 py-2 text-xs font-bold text-white hover:bg-rose-800">Thử lại</button>
       </div>
     )
   }
