@@ -1,142 +1,87 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useStudentJourney } from '../../../app/context'
-import { services } from '../../../services/service-gateway'
-import { isActionAllowed, type TeamInvitationDto } from '../../../types/backend'
-import { env } from '../../../app/config/env'
-import { EligibilityBanner } from '../components/EligibilityBanner'
+import { useState } from 'react'
 import { TeamRosterTable } from '../components/TeamRosterTable'
 import { TeamInvitationsPanel } from '../components/TeamInvitationsPanel'
 import { CreateTeamModal } from '../components/CreateTeamModal'
 import { TransferLeaderModal } from '../components/TransferLeaderModal'
 import { AcademicScopePanel } from '../components/AcademicScopePanel'
+import { UpdateTeamModal } from '../components/UpdateTeamModal'
+import { useTeamManagement } from '../hooks/useTeamManagement'
 
 export function TeamManagementPage() {
-  const { team, profile, semester, period, workflowContext, teamActions, refreshAll, isLoading: contextLoading } = useStudentJourney()
-
-  const [sentInvitations, setSentInvitations] = useState<TeamInvitationDto[]>([])
-  const [receivedInvitations, setReceivedInvitations] = useState<TeamInvitationDto[]>([])
+  const management = useTeamManagement()
+  const {
+    team, profile, semester, period, workflowContext, isLoading: contextLoading,
+    currentUserId, rosterLocked, permissions, sentInvitations, receivedInvitations,
+    candidates, candidateSearch, candidateError, isRefreshing, isLoadingCandidates,
+    setCandidateSearch, setCandidatePage, retryCandidates, isMutationPending, error, retry,
+    createTeam, updateTeam, inviteMember, cancelInvitation, acceptInvitation, rejectInvitation,
+    removeMember, transferLeader, leaveTeam,
+  } = management
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
 
   // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false)
   const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false)
-  const [isLeaving, setIsLeaving] = useState(false)
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
     setToastMessage({ text, type })
     setTimeout(() => setToastMessage(null), 4000)
   }
 
-  const currentUserId = profile?.id ?? 0
-  const isLeader = Boolean(team?.members.some((m) => m.userId === currentUserId && m.isLeader))
-  const rosterLocked = team?.eligibility?.rosterLocked ?? false
   const projectStatus = workflowContext?.currentTeam?.projectStatus
-  const actionAllowed = (code: string, mockFallback: boolean) =>
-    env.isMockMode ? mockFallback : isActionAllowed(teamActions?.actions ?? workflowContext?.actions ?? [], code)
-  const canCreateTeam = actionAllowed('create_team', !team)
-  const canInvite = actionAllowed('invite_member', isLeader && !rosterLocked)
-  const canManageRoster = actionAllowed('remove_member', isLeader && !rosterLocked)
-  const canConfigureScope = actionAllowed('configure_academic_scope', isLeader && !rosterLocked)
-  const canLeave = actionAllowed('leave_team', !isLeader && !rosterLocked)
   const maxTeamSize = team?.academicScope?.requirements.reduce((sum, requirement) => sum + requirement.maxMembers, 0)
     || period?.maxTeamSize || 5
 
-  const loadInvitations = useCallback(async () => {
-    try {
-      if (team) {
-        const sent = await services.team.getInvitations(team.id)
-        setSentInvitations(sent.items)
-      } else {
-        setSentInvitations([])
-      }
-      // Load invitations received by student
-      const received = await services.team.getInvitations()
-      setReceivedInvitations(received.items.filter((i) => i.invitedUserId === currentUserId && i.status === 'PENDING'))
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Không thể tải lời mời nhóm.', 'error')
-    }
-  }, [team, currentUserId])
-
-  useEffect(() => {
-    loadInvitations()
-  }, [loadInvitations])
-
   // Actions
   const handleCreateTeam = async (data: { code: string; name: string; description?: string }) => {
-    if (!semester) return
-    await services.team.createTeam({
-      academicSemesterId: semester.id,
-      code: data.code,
-      name: data.name,
-      description: data.description,
-    })
-    await refreshAll()
-    await loadInvitations()
+    await createTeam(data)
     showToast('Tạo nhóm đồ án thành công!')
   }
 
-  const handleRefreshEligibility = async () => {
-    if (!team) return
-    await services.team.refreshEligibility(team.id)
-    await refreshAll()
-    showToast('Đã cập nhật trạng thái thẩm định điều kiện.')
+  const handleUpdateTeam = async (data: { name: string; description?: string }) => {
+    await updateTeam(data)
+    showToast('Đã cập nhật thông tin nhóm.')
   }
 
   const handleSendInvitation = async (invitedUserId: number, message?: string) => {
-    if (!team) return
-    await services.team.inviteMember(team.id, { invitedUserId, message })
-    await loadInvitations()
+    await inviteMember(invitedUserId, message)
     showToast('Đã gửi lời mời thành công!')
   }
 
   const handleCancelInvitation = async (invitationId: number) => {
-    await services.team.cancelInvitation(invitationId)
-    await loadInvitations()
+    await cancelInvitation(invitationId)
     showToast('Đã hủy lời mời.')
   }
 
   const handleAcceptInvitation = async (invitationId: number) => {
-    await services.team.acceptInvitation(invitationId)
-    await refreshAll()
-    await loadInvitations()
+    await acceptInvitation(invitationId)
     showToast('Gia nhập nhóm thành công!')
   }
 
   const handleRejectInvitation = async (invitationId: number) => {
-    await services.team.rejectInvitation(invitationId)
-    await loadInvitations()
+    await rejectInvitation(invitationId)
     showToast('Đã từ chối lời mời.')
   }
 
   const handleRemoveMember = async (userId: number) => {
-    if (!team) return
-    await services.team.removeMember(team.id, userId)
-    await refreshAll()
-    await loadInvitations()
+    await removeMember(userId)
     showToast('Đã xóa thành viên khỏi nhóm.')
   }
 
   const handleTransferLeader = async (newLeaderUserId: number) => {
-    if (!team) return
-    await services.team.transferLeader(team.id, newLeaderUserId)
-    await refreshAll()
+    await transferLeader(newLeaderUserId)
     showToast('Đã bàn giao quyền Trưởng nhóm thành công!')
   }
 
   const handleLeaveTeam = async () => {
-    if (!team) return
-    setIsLeaving(true)
     try {
-      await services.team.leaveTeam(team.id)
+      await leaveTeam()
       setIsLeaveConfirmOpen(false)
-      await refreshAll()
-      await loadInvitations()
       showToast('Bạn đã rời khỏi nhóm.')
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Rời nhóm thất bại.', 'error')
-    } finally {
-      setIsLeaving(false)
     }
   }
 
@@ -168,6 +113,19 @@ export function TeamManagementPage() {
         </div>
       )}
 
+      {error && (
+        <div className={`flex items-center justify-between gap-3 rounded-xl border p-4 text-xs ${
+          error.kind === 'conflict' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-rose-200 bg-rose-50 text-rose-800'
+        }`}>
+          <p>{error.message}</p>
+          {error.kind !== 'authentication' && (
+            <button type="button" onClick={() => void retry()} disabled={isRefreshing} className="shrink-0 rounded-lg border border-current px-3 py-1.5 font-semibold disabled:opacity-50">
+              {isRefreshing ? 'Đang tải lại...' : 'Tải lại'}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -178,7 +136,7 @@ export function TeamManagementPage() {
           </p>
         </div>
 
-        {!team && canCreateTeam && (
+        {!team && permissions.canCreateTeam && (
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
@@ -191,7 +149,7 @@ export function TeamManagementPage() {
 
         {team && (
           <div className="flex items-center gap-2">
-            {canLeave && (
+            {permissions.canLeave && (
               <button
                 type="button"
                 onClick={() => setIsLeaveConfirmOpen(true)}
@@ -234,6 +192,14 @@ export function TeamManagementPage() {
             receivedInvitations={receivedInvitations}
             isLeader={false}
             rosterLocked={false}
+            candidates={candidates}
+            candidateSearch={candidateSearch}
+            candidateLoading={isLoadingCandidates}
+            candidateError={candidateError?.message}
+            onCandidateSearchChange={setCandidateSearch}
+            onCandidatePageChange={setCandidatePage}
+            onRetryCandidates={() => void retryCandidates()}
+            isMutationPending={isMutationPending}
             onSendInvitation={async () => {}}
             onCancelInvitation={async () => {}}
             onAcceptInvitation={handleAcceptInvitation}
@@ -265,6 +231,11 @@ export function TeamManagementPage() {
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
+              {permissions.canEditTeam && (
+                <button type="button" onClick={() => setIsUpdateModalOpen(true)} className="rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                  Chỉnh sửa nhóm
+                </button>
+              )}
               <div className="text-right">
                 <span className="text-[11px] text-slate-400 block">Sĩ số nhóm</span>
                 <span className="text-sm font-bold text-slate-800">
@@ -274,14 +245,16 @@ export function TeamManagementPage() {
             </div>
           </div>
 
-          {/* Eligibility Banner */}
+          {/* Eligibility evaluation belongs to F5. F4 only reflects backend roster-lock state. */}
           {rosterLocked && projectStatus && projectStatus.toUpperCase() !== 'DRAFT' ? (
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
               <h4 className="text-sm font-semibold text-blue-900">Đội hình đã được khóa theo lifecycle đề tài</h4>
               <p className="mt-1 text-xs text-blue-700">Project đang ở trạng thái {projectStatus}; backend khóa roster để bảo toàn hồ sơ đã nộp.</p>
             </div>
           ) : (
-            <EligibilityBanner eligibility={team.eligibility} onRefresh={handleRefreshEligibility} />
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
+              Trạng thái điều kiện đăng ký được backend đánh giá riêng. F4 chỉ quản lý đội hình và đồng bộ roster theo dữ liệu backend.
+            </div>
           )}
 
           <AcademicScopePanel
@@ -289,8 +262,8 @@ export function TeamManagementPage() {
             period={period}
             workflowContext={workflowContext}
             scope={team.academicScope}
-            canConfigure={canConfigureScope}
-            onSaved={refreshAll}
+            canConfigure={permissions.canConfigureScope}
+            onSaved={retry}
             fallbackOrganizationId={team.members.find((member) => member.userId === currentUserId)?.organizationId}
             fallbackMajorId={profile?.majorId}
           />
@@ -300,7 +273,7 @@ export function TeamManagementPage() {
             members={team.members}
             currentUserId={currentUserId}
             currentUserStudentCode={profile?.studentCode ?? undefined}
-            isLeader={canManageRoster}
+            isLeader={permissions.canManageRoster}
             rosterLocked={rosterLocked}
             onRemoveMember={handleRemoveMember}
             onOpenTransferLeader={() => setIsTransferModalOpen(true)}
@@ -310,9 +283,16 @@ export function TeamManagementPage() {
           <TeamInvitationsPanel
             sentInvitations={sentInvitations}
             receivedInvitations={receivedInvitations}
-            isLeader={canInvite}
+            isLeader={permissions.canInvite}
             rosterLocked={rosterLocked}
-            teamId={team.id}
+            candidates={candidates}
+            candidateSearch={candidateSearch}
+            candidateLoading={isLoadingCandidates}
+            candidateError={candidateError?.message}
+            onCandidateSearchChange={setCandidateSearch}
+            onCandidatePageChange={setCandidatePage}
+            onRetryCandidates={() => void retryCandidates()}
+            isMutationPending={isMutationPending}
             onSendInvitation={handleSendInvitation}
             onCancelInvitation={handleCancelInvitation}
             onAcceptInvitation={handleAcceptInvitation}
@@ -328,6 +308,16 @@ export function TeamManagementPage() {
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateTeam}
       />
+
+      {team && (
+        <UpdateTeamModal
+          isOpen={isUpdateModalOpen}
+          team={team}
+          onClose={() => setIsUpdateModalOpen(false)}
+          onSubmit={handleUpdateTeam}
+          isPending={isMutationPending('update', team.id)}
+        />
+      )}
 
       {team && (
         <TransferLeaderModal
@@ -363,10 +353,10 @@ export function TeamManagementPage() {
               <button
                 type="button"
                 onClick={handleLeaveTeam}
-                disabled={isLeaving}
+                disabled={isMutationPending('leave', team?.id)}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50"
               >
-                {isLeaving ? 'Đang xử lý...' : 'Xác nhận rời nhóm'}
+                {isMutationPending('leave', team?.id) ? 'Đang xử lý...' : 'Xác nhận rời nhóm'}
               </button>
             </div>
           </div>
