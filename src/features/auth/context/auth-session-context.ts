@@ -10,6 +10,7 @@ export interface AuthSessionContextValue {
   status: AuthSessionStatus
   error: Error | null
   login: (credentials: LoginCredentials) => Promise<void>
+  logout: () => void
   refreshProfile: () => Promise<void>
 }
 

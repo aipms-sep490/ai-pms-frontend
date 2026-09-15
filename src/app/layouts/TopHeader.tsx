@@ -1,6 +1,7 @@
-import type { RefObject } from 'react'
+import { useContext, type RefObject } from 'react'
 import { useLocation } from 'react-router-dom'
 import { getBreadcrumbForPath } from '../router/routes.config'
+import { StudentJourneyContext } from '../context'
 
 interface TopHeaderProps {
   onToggleMobileMenu: () => void
@@ -14,6 +15,20 @@ export function TopHeader({
   triggerRef,
 }: TopHeaderProps) {
   const location = useLocation()
+  const journey = useContext(StudentJourneyContext)
+  const semesterLabel = journey?.semester?.name || 'Học kỳ chưa xác định'
+  const teamLabel = journey?.team?.code || journey?.team?.name || 'Chưa có nhóm'
+  const stateLabel = {
+    NO_TEAM: 'Chưa có nhóm',
+    TEAM_FORMING: 'Đang kiện toàn',
+    TEAM_ELIGIBLE: 'Sẵn sàng đăng ký',
+    PROJECT_PENDING: 'Đang thẩm định',
+    REVISION_REQUIRED: 'Cần chỉnh sửa',
+    SUPERVISOR_PENDING: 'Đang ghép GVHD',
+    ACTIVE: 'Đang thực hiện',
+    FINAL_SUBMISSION: 'Đang bàn giao',
+    COMPLETED: 'Đã hoàn thành',
+  }[journey?.journeyState ?? 'NO_TEAM']
 
   return (
     <header className="sticky top-0 h-12 bg-white/95 backdrop-blur-md border-b border-hairline z-30 px-3 sm:px-4 md:px-6 flex items-center justify-between">
@@ -39,7 +54,7 @@ export function TopHeader({
         >
           <span className="font-semibold text-slate-800 shrink-0">SEP490</span>
           <span aria-hidden="true" className="text-slate-300 shrink-0">/</span>
-          <span className="text-slate-600 font-medium hidden sm:inline shrink-0">Nhóm SE28</span>
+          <span className="text-slate-600 font-medium hidden sm:inline shrink-0">{teamLabel}</span>
           <span aria-hidden="true" className="hidden sm:inline text-slate-300 shrink-0">/</span>
           <span className="font-mono text-primary font-semibold truncate max-w-[200px] sm:max-w-xs md:max-w-none">
             {getBreadcrumbForPath(location.pathname)}
@@ -66,7 +81,7 @@ export function TopHeader({
         {/* Academic Semester Badge */}
         <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-[11px] font-mono font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
-          Fall 2026 • M3 Active
+          {semesterLabel} • {stateLabel}
         </span>
 
         {/* Notification Bell (Honest disabled state with tooltip) */}

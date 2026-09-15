@@ -1,8 +1,9 @@
 import { useContext, useEffect, useRef, useCallback, type RefObject } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { getStudentNavItems } from '../router/routes.config'
 import { StudentJourneyContext } from '../context'
+import { AuthSessionContext } from '../../features/auth/context/auth-session-context'
 
 interface SidebarProps {
   isOpen: boolean
@@ -12,6 +13,8 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
   const location = useLocation()
+  const navigate = useNavigate()
+  const auth = useContext(AuthSessionContext)
   const asideRef = useRef<HTMLElement | null>(null)
   const journey = useContext(StudentJourneyContext)
   const { profile, semester, team, project } = journey ?? {}
@@ -316,13 +319,18 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
               </span>
             </div>
           </div>
-          <NavLink
-            to="/login"
+          <button
+            type="button"
+            onClick={() => {
+              if (auth) auth.logout()
+              else localStorage.removeItem('token')
+              navigate('/login', { replace: true })
+            }}
             title="Đăng xuất / Chuyển tài khoản"
             className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-md transition-colors shrink-0 flex items-center justify-center"
           >
             <span className="material-symbols-outlined text-[18px]">logout</span>
-          </NavLink>
+          </button>
         </div>
       </aside>
     </>

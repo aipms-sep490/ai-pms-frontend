@@ -29,7 +29,7 @@ export function ProjectReviewStatusPage() {
   }, [loadHistory])
 
   const latestRevision = history
-    .filter((h) => h.newStatus === 'RevisionRequired')
+    .filter((h) => h.newStatus.replaceAll('_', '').toUpperCase() === 'REVISIONREQUIRED')
     .pop()
 
   const handleSimulate = async (decision: 'REVISION_REQUIRED' | 'APPROVED' | 'REJECTED') => {
@@ -80,10 +80,14 @@ export function ProjectReviewStatusPage() {
     )
   }
 
-  const isSubmitted = project.status === 'Submitted' || project.status === 'UnderReview'
-  const isRevision = project.status === 'RevisionRequired'
-  const isApproved = project.status === 'Approved' || project.status === 'Active'
-  const isRejected = project.status === 'Rejected'
+  const normalizedStatus = project.status.replaceAll('_', '').toUpperCase()
+  const isDraft = normalizedStatus === 'DRAFT'
+  const isSubmitted = normalizedStatus === 'SUBMITTED' || normalizedStatus === 'UNDERREVIEW'
+  const isRevision = normalizedStatus === 'REVISIONREQUIRED'
+  const reviewApproved = ['APPROVED', 'SUPERVISORPENDING', 'ACTIVE', 'FINALSUBMISSION', 'COMPLETED'].includes(normalizedStatus)
+  const canChooseSupervisor = normalizedStatus === 'APPROVED' || normalizedStatus === 'SUPERVISORPENDING'
+  const supervisorComplete = ['ACTIVE', 'FINALSUBMISSION', 'COMPLETED'].includes(normalizedStatus)
+  const isRejected = normalizedStatus === 'REJECTED'
 
   return (
     <div className="max-w-4xl mx-auto pb-16 flex flex-col gap-6">
@@ -118,7 +122,7 @@ export function ProjectReviewStatusPage() {
           </button>
         )}
 
-        {isApproved && (
+        {canChooseSupervisor && (
           <button
             type="button"
             onClick={() => navigate('/project/supervisor')}
@@ -141,7 +145,7 @@ export function ProjectReviewStatusPage() {
       )}
 
       {/* Approved Banner */}
-      {isApproved && (
+      {canChooseSupervisor && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-start gap-3.5 shadow-xs">
           <span className="material-symbols-outlined text-emerald-600 text-[24px] shrink-0 mt-0.5">verified</span>
           <div>
@@ -149,6 +153,16 @@ export function ProjectReviewStatusPage() {
             <p className="text-xs text-emerald-800 mt-1 leading-relaxed">
               Chúc mừng nhóm của bạn! Đề tài đã được Hội đồng Khoa phê duyệt. Bước tiếp theo là gửi thư mời hoặc xác nhận Giảng viên Hướng dẫn để chính thức bước vào giai đoạn thực hiện.
             </p>
+          </div>
+        </div>
+      )}
+
+      {supervisorComplete && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-start gap-3.5 shadow-xs">
+          <span className="material-symbols-outlined text-emerald-600 text-[24px] shrink-0 mt-0.5">rocket_launch</span>
+          <div>
+            <h3 className="text-sm font-bold text-emerald-900">Đề tài đã hoàn tất ghép GVHD và đang thực hiện</h3>
+            <p className="text-xs text-emerald-800 mt-1">Các bước đăng ký, thẩm định và phân công giảng viên đã hoàn thành trên backend.</p>
           </div>
         </div>
       )}
@@ -175,18 +189,18 @@ export function ProjectReviewStatusPage() {
           <div className="relative z-10 flex flex-col items-center gap-2">
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-xs ${
-                project.status !== 'Draft'
+                !isDraft
                   ? 'bg-emerald-500 text-white'
                   : 'bg-slate-100 text-slate-400 border border-slate-200'
               }`}
             >
               <span className="material-symbols-outlined text-[20px]">
-                {project.status !== 'Draft' ? 'check' : 'send'}
+                {!isDraft ? 'check' : 'send'}
               </span>
             </div>
             <span className="text-xs font-bold text-slate-800">Nộp Đề cương</span>
             <span className="text-[10px] text-slate-400 font-mono">
-              {project.status !== 'Draft' ? 'Đã nộp' : 'Chưa nộp'}
+              {!isDraft ? 'Đã nộp' : 'Chưa nộp'}
             </span>
           </div>
 
@@ -194,7 +208,7 @@ export function ProjectReviewStatusPage() {
           <div className="relative z-10 flex flex-col items-center gap-2">
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-xs ${
-                isApproved
+                reviewApproved
                   ? 'bg-emerald-500 text-white'
                   : isRevision
                     ? 'bg-amber-500 text-white'
@@ -206,12 +220,12 @@ export function ProjectReviewStatusPage() {
               }`}
             >
               <span className="material-symbols-outlined text-[20px]">
-                {isApproved ? 'check' : isRevision ? 'priority_high' : isRejected ? 'close' : 'sync'}
+                {reviewApproved ? 'check' : isRevision ? 'priority_high' : isRejected ? 'close' : 'sync'}
               </span>
             </div>
             <span className="text-xs font-bold text-slate-800">Khoa Thẩm định</span>
             <span className="text-[10px] text-slate-400 font-mono">
-              {isApproved
+              {reviewApproved
                 ? 'Đã duyệt'
                 : isRevision
                   ? 'Yêu cầu sửa'
@@ -227,9 +241,9 @@ export function ProjectReviewStatusPage() {
           <div className="relative z-10 flex flex-col items-center gap-2">
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-xs ${
-                project.status === 'Active'
+                supervisorComplete
                   ? 'bg-emerald-500 text-white'
-                  : isApproved
+                  : canChooseSupervisor
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-100 text-slate-400 border border-slate-200'
               }`}
@@ -238,7 +252,7 @@ export function ProjectReviewStatusPage() {
             </div>
             <span className="text-xs font-bold text-slate-800">Ghép cặp GVHD</span>
             <span className="text-[10px] text-slate-400 font-mono">
-              {project.status === 'Active' ? 'Hoàn tất' : isApproved ? 'Sẵn sàng' : 'Chưa mở'}
+              {supervisorComplete ? 'Hoàn tất' : canChooseSupervisor ? 'Sẵn sàng' : 'Chưa mở'}
             </span>
           </div>
         </div>
@@ -255,7 +269,7 @@ export function ProjectReviewStatusPage() {
           </div>
           <span
             className={`px-3 py-1 rounded-full text-xs font-bold border shrink-0 ${
-              isApproved
+              reviewApproved
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 : isRevision
                   ? 'bg-amber-50 text-amber-700 border-amber-200'
@@ -264,11 +278,11 @@ export function ProjectReviewStatusPage() {
                     : 'bg-blue-50 text-blue-700 border-blue-200'
             }`}
           >
-            {project.status === 'RevisionRequired'
+            {isRevision
               ? 'Yêu cầu Chỉnh sửa'
-              : project.status === 'Approved'
+              : normalizedStatus === 'APPROVED'
                 ? 'Đã Phê duyệt'
-                : project.status === 'Submitted'
+                : normalizedStatus === 'SUBMITTED'
                   ? 'Đã Nộp — Đang chờ duyệt'
                   : project.status}
           </span>

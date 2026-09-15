@@ -1,15 +1,7 @@
-import {
-  DashboardHeader,
-  DashboardMetrics,
-  MilestoneTimeline,
-  TaskList,
-  AiPreview,
-  ContributionPreview,
-  StudentJourneyHero,
-} from '../../features/dashboard/components'
-import { dashboardPreviewData } from '../../features/dashboard/fixtures/dashboard-preview'
+import { StudentJourneyHero } from '../../features/dashboard/components'
 import { useStudentJourney } from '../context'
 import { useNavigate } from 'react-router-dom'
+import { getActivePrimaryAssignment } from '../../features/projects/utils/project-resolution.utils'
 
 const journeySteps = [
   { label: 'Tuyển quân', icon: 'group_add' },
@@ -20,9 +12,9 @@ const journeySteps = [
 ] as const
 
 export function OverviewPage() {
-  const data = dashboardPreviewData
-  const { journeyState, error } = useStudentJourney()
+  const { journeyState, error, project, team, assignments, semester } = useStudentJourney()
   const navigate = useNavigate()
+  const supervisor = getActivePrimaryAssignment(assignments)
   const stageIndex = {
     NO_TEAM: 0,
     TEAM_FORMING: 0,
@@ -83,39 +75,26 @@ export function OverviewPage() {
           </div>
         </section>
       ) : showProjectWorkspace ? (
-        <>
-
-      {/* 1. Header with simulation banner & project metadata */}
-      <DashboardHeader
-        projectCode={data.projectCode}
-        groupCode={data.groupCode}
-        semester={data.semester}
-        projectName={data.projectName}
-        teamLeader={data.teamLeader}
-        supervisor={data.supervisor}
-        currentMilestone={data.currentMilestone}
-      />
-
-      {/* 2. 4-Grid Telemetry KPIs */}
-      <DashboardMetrics metrics={data.metrics} />
-
-      {/* 3. 6-Milestone Academic Roadmap */}
-      <MilestoneTimeline milestones={data.milestones} />
-
-      {/* 4. Two-Column Workspace (60/40 Split) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Task Stream (7 cols) */}
-        <section className="lg:col-span-7 flex flex-col gap-4">
-          <TaskList tasks={data.tasks} />
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs" aria-labelledby="active-project-title">
+          <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">Dữ liệu trực tiếp từ hệ thống</p>
+            <h2 id="active-project-title" className="mt-1 text-xl font-bold tracking-tight text-slate-900">
+              {project?.title || 'Đồ án đang hoạt động'}
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">{project?.code} • {team?.name} ({team?.code})</p>
+          </div>
+          <dl className="grid gap-px bg-slate-100 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="bg-white px-5 py-4"><dt className="text-[11px] text-slate-500">Trạng thái</dt><dd className="mt-1 text-sm font-bold text-emerald-700">{project?.status}</dd></div>
+            <div className="bg-white px-5 py-4"><dt className="text-[11px] text-slate-500">Học kỳ</dt><dd className="mt-1 text-sm font-bold text-slate-900">{semester?.name || '—'}</dd></div>
+            <div className="bg-white px-5 py-4"><dt className="text-[11px] text-slate-500">Thành viên</dt><dd className="mt-1 text-sm font-bold text-slate-900">{team?.members.length ?? 0}</dd></div>
+            <div className="bg-white px-5 py-4"><dt className="text-[11px] text-slate-500">GVHD chính</dt><dd className="mt-1 text-sm font-bold text-slate-900">{supervisor?.supervisorName || 'Chưa phân công'}</dd></div>
+          </dl>
+          <div className="flex flex-wrap gap-3 bg-slate-50/70 px-5 py-5 sm:px-6">
+            <button type="button" onClick={() => navigate('/projects/lifecycle')} className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50">Xem hồ sơ thật</button>
+            <button type="button" onClick={() => navigate('/project/status')} className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50">Lịch sử xét duyệt</button>
+            <button type="button" onClick={() => navigate('/project/milestones/M3')} className="rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-blue-700">Vào không gian thực hiện</button>
+          </div>
         </section>
-
-        {/* Right Column: AI Assistant & Member Contribution (5 cols) */}
-        <section className="lg:col-span-5 flex flex-col gap-4">
-          <AiPreview insight={data.aiInsight} />
-          <ContributionPreview contributions={data.contributions} />
-        </section>
-      </div>
-        </>
       ) : null}
     </div>
   )

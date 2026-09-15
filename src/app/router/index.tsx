@@ -1,5 +1,5 @@
 ﻿import { createBrowserRouter, Navigate } from 'react-router-dom'
-import { AppLayout } from '../layouts/AppLayout'
+import { ProtectedLayout } from '../../features/auth/components/ProtectedLayout'
 import { OverviewPage } from '../pages/OverviewPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { ProjectLifecyclePage } from '../../features/projects/pages/ProjectLifecyclePage'
@@ -22,7 +22,7 @@ import { TopicManagementPage } from '../../features/topics/pages/TopicManagement
 export const appRouter = createBrowserRouter([
   { path: 'login', element: <LoginPage /> },
   {
-    element: <AppLayout />,
+    element: <ProtectedLayout />,
     children: [
       { index: true, element: <Navigate to="/project/workspace" replace /> },
       { path: 'project/workspace', element: <OverviewPage /> },
