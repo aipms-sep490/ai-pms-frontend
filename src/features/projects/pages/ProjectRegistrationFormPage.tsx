@@ -34,22 +34,27 @@ export function ProjectRegistrationFormPage() {
 
   const normalizedProjectStatus = project?.status.replaceAll('_', '').toUpperCase()
   const isRevisionRequired = normalizedProjectStatus === 'REVISIONREQUIRED'
-  const isEditableLifecycle = !project || normalizedProjectStatus === 'DRAFT' || isRevisionRequired
-  const isEditMode = location.pathname.includes('/project/edit') || Boolean(project?.id)
+  const isRejected = normalizedProjectStatus === 'REJECTED'
+
+  // If previous project was rejected and user is on /project/register, they are registering a new proposal
+  const isRegisteringNewAfterRejection = isRejected && location.pathname.includes('/project/register')
+
+  const isEditableLifecycle = !project || normalizedProjectStatus === 'DRAFT' || isRevisionRequired || isRegisteringNewAfterRejection
+  const isEditMode = !isRegisteringNewAfterRejection && (location.pathname.includes('/project/edit') || (Boolean(project?.id) && !isRejected))
   const isLeader = Boolean(team?.members.some((m) => m.userId === profile?.id && m.isLeader))
   const canRegister = teamActions?.canRegister ?? team?.eligibility?.canRegister ?? false
   const requiredMajorIds = team?.academicScope?.requirements.map((requirement) => requirement.majorId)
     ?? (topicMajorIds.length > 0 ? topicMajorIds : undefined)
-    ?? (project?.majors.length ? project.majors.map((major) => major.majorId) : undefined)
+    ?? (project?.majors.length && !isRegisteringNewAfterRejection ? project.majors.map((major) => major.majorId) : undefined)
     ?? (profile?.majorId ? [profile.majorId] : [])
   const canEdit = env.isMockMode
     ? isLeader
-    : project
-      ? isRevisionRequired || isActionAllowed(projectActions?.actions ?? [], 'edit_project_draft')
+    : isEditMode && project
+      ? isActionAllowed(projectActions?.actions ?? [], 'edit_project_draft')
       : isActionAllowed(teamActions?.actions ?? [], 'create_project_draft')
   const canSubmit = env.isMockMode
     ? isLeader && (canRegister || isRevisionRequired)
-    : project
+    : isEditMode && project
       ? isActionAllowed(projectActions?.actions ?? [], isRevisionRequired ? 'resubmit_project' : 'submit_project')
       : canEdit && canRegister
 
@@ -67,7 +72,7 @@ export function ProjectRegistrationFormPage() {
           setMode(topic.projectMode ?? 'SINGLE_MAJOR')
           setTopicMajorIds(topic.requiredMajorIds ?? [])
         }
-      } else if (project) {
+      } else if (isEditMode && project) {
         setTitle(project.title)
         setProblemStatement(project.problemStatement ?? '')
         setObjectives(project.objectives ?? '')
@@ -77,14 +82,14 @@ export function ProjectRegistrationFormPage() {
       }
 
       // Check for revision reason if revision required
-      if (project && normalizedProjectStatus === 'REVISIONREQUIRED') {
+      if (isEditMode && project && normalizedProjectStatus === 'REVISIONREQUIRED') {
         const history = await services.project.getHistory(project.id)
         const rev = history.filter((h) => h.newStatus.replaceAll('_', '').toUpperCase() === 'REVISIONREQUIRED').pop()
         if (rev) setLatestRevision(rev)
       }
     }
     initForm()
-  }, [topicId, project, normalizedProjectStatus, team?.academicScope?.projectMode])
+  }, [topicId, project, isEditMode, normalizedProjectStatus, team?.academicScope?.projectMode])
 
   const handleSaveDraft = async () => {
     if (!title.trim()) {
@@ -98,7 +103,7 @@ export function ProjectRegistrationFormPage() {
       const techList = technologies.split(',').map((t) => t.trim()).filter(Boolean)
       const kwList = keywords.split(',').map((k) => k.trim()).filter(Boolean)
 
-      if (project?.id) {
+      if (isEditMode && project?.id) {
         const updated = await services.project.updateDraft(project.id, {
           concurrencyToken,
           title: title.trim(),
@@ -158,7 +163,7 @@ export function ProjectRegistrationFormPage() {
       let currentProjectId: number
       let token = concurrencyToken
 
-      if (project?.id) {
+      if (isEditMode && project?.id) {
         const updated = await services.project.updateDraft(project.id, {
           concurrencyToken: token,
           title: title.trim(),
@@ -190,7 +195,7 @@ export function ProjectRegistrationFormPage() {
       }
 
       // 2. Submit or Resubmit
-      if (isRevisionRequired) {
+      if (isRevisionRequired && isEditMode) {
         await services.project.resubmit(currentProjectId, token)
       } else {
         await services.project.submit(currentProjectId, token)
@@ -284,6 +289,17 @@ export function ProjectRegistrationFormPage() {
           timestamp={latestRevision.changedAt}
           onEdit={() => {}}
         />
+      )}
+
+      {/* Notice when registering new project after rejection */}
+      {isRegisteringNewAfterRejection && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 flex items-center gap-3 text-rose-800 text-xs">
+          <span className="material-symbols-outlined text-rose-600 text-[22px] shrink-0">info</span>
+          <div>
+            <p className="font-bold">Đăng ký Đề tài Mới (Sau khi Đề tài trước bị Từ chối)</p>
+            <p className="mt-0.5 text-rose-700">Đề cương trước của nhóm đã bị Hội đồng Khoa từ chối. Nhóm đang tạo và nộp một đề tài mới hoàn toàn để Hội đồng thẩm định lại.</p>
+          </div>
+        </div>
       )}
 
       {/* Form Container */}

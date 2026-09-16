@@ -12,11 +12,14 @@ import {
   type ReviewDetail,
 } from '../api/project-review-api';
 
+import type { TeamDto } from '../../../types/backend';
+
 export function useProjectReview(id?: number) {
   const { session } = useAuthSession();
   const [q, setQ] = useState<ProjectSummary[]>([]);
   const [d, setD] = useState<ReviewDetail | null>(null);
   const [info, setInfo] = useState<ProjectFullDetail | null>(null);
+  const [team, setTeam] = useState<TeamDto | null>(null);
   const [h, setH] = useState<History[]>([]);
   const [e, setE] = useState<Error | null>(null);
   const [loading, setLoading] = useState(!!session);
@@ -39,6 +42,16 @@ export function useProjectReview(id?: number) {
         setD(b);
         setH(c);
         setInfo(pInfo);
+
+        const targetTeamId = pInfo?.teamId ?? a.items.find((p) => p.id === id)?.teamId;
+        if (targetTeamId) {
+          const t = await httpGet<TeamDto>(`/v1/teams/${targetTeamId}`, {
+            accessToken: session.accessToken,
+          }).catch(() => null);
+          setTeam(t);
+        } else {
+          setTeam(null);
+        }
       }
     } catch (x) {
       setE(x as Error);
@@ -99,6 +112,7 @@ export function useProjectReview(id?: number) {
     queue: q,
     detail: d,
     projectInfo: info,
+    team,
     history: h,
     error: e,
     loading,

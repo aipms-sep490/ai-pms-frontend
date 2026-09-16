@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { httpGet, httpPost } from '../../../services/http/http-client'
 import { Button } from '../../../components/ui/Button'
-import type { PagedResult, ProjectDto, SupervisorAssignmentDto, SupervisorRequestDto } from '../../../types/backend'
+import type { PagedResult, ProjectDto, SupervisorAssignmentDto, SupervisorRequestDto, TeamDto } from '../../../types/backend'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 
 export function LecturerWorkspacePage() {
@@ -10,6 +10,8 @@ export function LecturerWorkspacePage() {
   const [assignments, setAssignments] = useState<SupervisorAssignmentDto[]>([])
   const [requests, setRequests] = useState<SupervisorRequestDto[]>([])
   const [projectTitles, setProjectTitles] = useState<Record<number, string>>({})
+  const [projects, setProjects] = useState<Record<number, ProjectDto>>({})
+  const [teams, setTeams] = useState<Record<number, TeamDto>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [respondingId, setRespondingId] = useState<number | null>(null)
@@ -24,13 +26,41 @@ export function LecturerWorkspacePage() {
       ])
       setAssignments(ownAssignments.items)
       setRequests(inbox.items)
-      const activeIds = [...new Set(ownAssignments.items.filter((item) => !item.endedAt).map((item) => item.projectId))]
-      const projectResults = await Promise.allSettled(activeIds.map((id) => httpGet<ProjectDto>(`/projects/${id}`)))
+
+      const allProjectIds = [
+        ...new Set([
+          ...ownAssignments.items.filter((item) => !item.endedAt).map((item) => item.projectId),
+          ...inbox.items.map((item) => item.projectId),
+        ]),
+      ]
+
+      const projectResults = await Promise.allSettled(allProjectIds.map((id) => httpGet<ProjectDto>(`/projects/${id}`)))
       const titles: Record<number, string> = {}
+      const projMap: Record<number, ProjectDto> = {}
+      const teamIdsToFetch: number[] = []
+
       projectResults.forEach((result, index) => {
-        if (result.status === 'fulfilled') titles[activeIds[index]] = result.value.title
+        if (result.status === 'fulfilled') {
+          const p = result.value
+          titles[allProjectIds[index]] = p.title
+          projMap[allProjectIds[index]] = p
+          if (p.teamId && !teamIdsToFetch.includes(p.teamId)) {
+            teamIdsToFetch.push(p.teamId)
+          }
+        }
       })
       setProjectTitles(titles)
+      setProjects(projMap)
+
+      // Fetch team details for all teams involved
+      const teamResults = await Promise.allSettled(teamIdsToFetch.map((tId) => httpGet<TeamDto>(`/teams/${tId}`)))
+      const teamMap: Record<number, TeamDto> = {}
+      teamResults.forEach((result, idx) => {
+        if (result.status === 'fulfilled') {
+          teamMap[teamIdsToFetch[idx]] = result.value
+        }
+      })
+      setTeams(teamMap)
     } catch {
       setError('Không thể tải phân công và lời mời từ backend. Hãy thử lại.')
     } finally {
@@ -125,27 +155,67 @@ export function LecturerWorkspacePage() {
           <p className="text-sm text-slate-500">Đang tải…</p>
         ) : requests.length ? (
           <ul className="space-y-3">
-            {requests.map((request) => (
-              <li key={request.id} className="rounded-xl border border-slate-200 p-4 text-sm bg-slate-50/50 hover:bg-white hover:border-slate-300 transition-colors">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <span className="font-semibold text-slate-900">
-                    {projectTitles[request.projectId] || `Project #${request.projectId}`}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded font-mono text-xs font-semibold ${
-                    request.status === 'ACCEPTED'
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      : request.status === 'PENDING'
-                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                        : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    {request.status}
-                  </span>
-                </div>
-                {request.requestMessage && (
-                  <p className="mt-2 text-slate-600 bg-white border border-slate-200 rounded-lg p-2.5 text-xs">
-                    {request.requestMessage}
-                  </p>
-                )}
+            {requests.map((request) => {
+              const proj = projects[request.projectId]
+              const team = proj?.teamId ? teams[proj.teamId] : null
+
+              return (
+                <li key={request.id} className="rounded-xl border border-slate-200 p-4 text-sm bg-slate-50/50 hover:bg-white hover:border-slate-300 transition-colors">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <span className="font-bold text-slate-900 text-base">
+                        {projectTitles[request.projectId] || `Project #${request.projectId}`}
+                      </span>
+                      {proj?.code && (
+                        <span className="ml-2 font-mono text-xs text-slate-400">
+                          ({proj.code})
+                        </span>
+                      )}
+                    </div>
+                    <span className={`px-2 py-0.5 rounded font-mono text-xs font-semibold self-start sm:self-auto ${
+                      request.status === 'ACCEPTED'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : request.status === 'PENDING'
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {request.status}
+                    </span>
+                  </div>
+
+                  {/* Team Members Roster */}
+                  {team && (
+                    <div className="mt-3 p-3 bg-white rounded-xl border border-slate-200 text-xs">
+                      <div className="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-slate-100">
+                        <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px] text-blue-600">groups</span>
+                          Nhóm sinh viên: {team.name} {team.code ? `• ${team.code}` : ''}
+                        </span>
+                        <span className="text-[11px] text-slate-500 font-mono">
+                          {team.members.length} thành viên
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {team.members.map((m) => (
+                          <div key={m.userId} className="flex items-center gap-2 text-slate-700">
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${m.isLeader ? 'bg-amber-500' : 'bg-blue-400'}`} />
+                            <span className="font-semibold text-slate-900">{m.fullName}</span>
+                            {m.isLeader && (
+                              <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.2 rounded-full font-bold">
+                                Trưởng nhóm
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {request.requestMessage && (
+                    <p className="mt-2 text-slate-600 bg-white border border-slate-200 rounded-lg p-2.5 text-xs">
+                      <span className="font-semibold text-slate-700">Lời nhắn từ nhóm:</span> {request.requestMessage}
+                    </p>
+                  )}
                 {request.status === 'PENDING' && (
                   <div className="mt-3 flex gap-2">
                     <Button
@@ -169,7 +239,8 @@ export function LecturerWorkspacePage() {
                   </div>
                 )}
               </li>
-            ))}
+            )
+          })}
           </ul>
         ) : (
           <p className="text-sm text-slate-500">Chưa có lời mời hướng dẫn.</p>

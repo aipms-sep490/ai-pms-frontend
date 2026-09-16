@@ -113,6 +113,11 @@ export function ProjectReviewPage() {
   const latestHistory = review.history.length > 0 ? review.history[review.history.length - 1] : null
   const status = latestHistory?.newStatus ?? projectInfo?.status ?? currentProject?.status ?? ''
 
+  const rawEvidence = review.detail?.latestSubmission?.evidence as
+    | { members?: Array<{ userId?: number; fullName?: string; majorId?: number; isLeader?: boolean; majorCode?: string; isEligibleStudent?: boolean }> }
+    | undefined
+  const teamMembers = review.team?.members && review.team.members.length > 0 ? review.team.members : (rawEvidence?.members ?? [])
+
   const submit = async (kind: 'start-review' | 'revision' | 'approve' | 'reject') => {
     if ((kind === 'revision' || kind === 'reject') && !reason.trim()) {
       setMessage('Lý do là bắt buộc khi yêu cầu chỉnh sửa hoặc từ chối đề tài.')
@@ -239,6 +244,106 @@ export function ProjectReviewPage() {
             </span>
           </div>
         </div>
+      </section>
+
+      {/* Proposed Team Members Roster Card */}
+      <section className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[20px] text-blue-600">groups</span>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800">
+              Thông tin Nhóm & Thành viên ({teamMembers.length} Thành viên)
+            </h2>
+          </div>
+          {review.team?.code && (
+            <span className="font-mono text-xs text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 self-start sm:self-auto">
+              Mã nhóm: {review.team.code} • Trạng thái: {review.team.status}
+            </span>
+          )}
+        </div>
+
+        {teamMembers.length === 0 ? (
+          <p className="text-xs text-slate-400 italic py-2">
+            Chưa có dữ liệu danh sách thành viên nhóm từ backend.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                  <th className="py-2.5 px-3">Họ và Tên Sinh viên</th>
+                  <th className="py-2.5 px-3">Vai trò</th>
+                  <th className="py-2.5 px-3">Chuyên ngành</th>
+                  <th className="py-2.5 px-3 text-right">Tình trạng hồ sơ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {teamMembers.map((m: any, idx: number) => {
+                  const majorObj = (projectInfo?.majors || []).find((maj) => maj.majorId === m.majorId)
+                  const majorDisplay = majorObj
+                    ? `${majorObj.majorCode} - ${majorObj.majorName}`
+                    : m.majorCode
+                    ? `${m.majorCode}`
+                    : m.majorId
+                    ? `Chuyên ngành #${m.majorId}`
+                    : 'Chưa phân ngành'
+
+                  return (
+                    <tr key={m.userId ?? idx} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                              m.isLeader ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
+                            }`}
+                          >
+                            {m.fullName?.charAt(0) || 'U'}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-900">{m.fullName || 'Chưa cập nhật tên'}</p>
+                            {m.userId && (
+                              <p className="text-[10px] text-slate-400 font-mono">User ID: #{m.userId}</p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3">
+                        {m.isLeader ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                            <span className="material-symbols-outlined text-[13px]">star</span>
+                            Trưởng nhóm
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
+                            Thành viên
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="font-medium text-slate-700 bg-blue-50/60 px-2 py-0.5 rounded border border-blue-100">
+                          {majorDisplay}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        {m.isEligibleStudent !== false ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
+                            <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                            Đủ điều kiện
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-rose-600 font-medium">
+                            <span className="material-symbols-outlined text-[14px]">cancel</span>
+                            Chưa hợp lệ
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       {/* Rich Project Proposal Information Card */}
