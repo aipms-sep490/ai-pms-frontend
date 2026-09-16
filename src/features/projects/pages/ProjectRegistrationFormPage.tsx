@@ -1,14 +1,22 @@
 import type { FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useStudentJourney } from '../../../app/context'
 import { RevisionAlert } from '../components/RevisionAlert'
-import { useProjectRegistration } from '../hooks/useProjectRegistration'
+import { normalizeProjectStatus, useProjectRegistration } from '../hooks/useProjectRegistration'
 
 export function ProjectRegistrationFormPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const journey = useStudentJourney()
-  const registration = useProjectRegistration(journey)
-  const hasProject = Boolean(journey.project)
+  const registeringNewAfterRejection = normalizeProjectStatus(journey.project?.status) === 'REJECTED'
+    && location.pathname.includes('/project/register')
+  const registrationProject = registeringNewAfterRejection ? null : journey.project
+  const registration = useProjectRegistration({
+    ...journey,
+    project: registrationProject,
+    projectActions: registeringNewAfterRejection ? null : journey.projectActions,
+  })
+  const hasProject = Boolean(registrationProject)
   const revision = registration.status === 'REVISIONREQUIRED'
   const editable = !hasProject || registration.canEdit
   const submitting = registration.submitting || registration.resubmitting
@@ -27,7 +35,7 @@ export function ProjectRegistrationFormPage() {
   if (journey.isLoading) return <LoadingState />
   if (journey.error) return <FailureState message={journey.error} onRetry={() => void journey.refreshAll()} />
 
-  if (hasProject && !editable) {
+  if (hasProject && !editable && !revision) {
     return (
       <section className="mx-auto max-w-3xl rounded-2xl border border-blue-200 bg-white p-8 text-center shadow-xs">
         <span className="material-symbols-outlined text-4xl text-blue-600" aria-hidden="true">task_alt</span>
@@ -52,6 +60,7 @@ export function ProjectRegistrationFormPage() {
       </header>
 
       {!hasProject && !registration.canCreate && <FailureState message="Chưa thể tạo bản nháp: backend yêu cầu eligibility PASS và action create_project_draft cho Trưởng nhóm." onRetry={() => void journey.refreshAll()} />}
+      {registeringNewAfterRejection && <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800"><strong>Đăng ký đề tài mới sau khi đề tài trước bị từ chối.</strong><p className="mt-1">Biểu mẫu này tạo một bản nháp hoàn toàn mới; đề cương cũ vẫn được giữ trong lịch sử.</p></section>}
       {revision && registration.latestRevision && <RevisionAlert reason={registration.latestRevision.reason} reviewerName={registration.latestRevision.changedByName || 'Hệ thống'} timestamp={registration.latestRevision.changedAt} onEdit={() => {}} />}
       <GovernedScope scope={registration.academicScope} requiredMajorIds={registration.requiredMajorIds} />
 

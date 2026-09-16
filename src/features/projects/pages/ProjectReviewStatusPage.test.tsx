@@ -35,4 +35,16 @@ describe('ProjectReviewStatusPage', () => {
     expect(screen.getByText('Xem phản hồi và chỉnh sửa')).toBeTruthy()
     expect(screen.queryByText('Approve')).toBeNull()
   })
+
+  it('offers a new registration after rejection when Backend grants create_project_draft', () => {
+    journey.useStudentJourney.mockReturnValue({ project: project('Rejected'), isLoading: false, error: null, refreshAll: vi.fn() })
+    registration.useProjectRegistration.mockReturnValue({
+      ...state('REJECTED'),
+      canCreate: true,
+      history: [{ id: 1, newStatus: 'Rejected', reason: 'Scope is not feasible', changedByName: 'Staff', changedAt: '2026-09-15' }],
+    })
+    render(<MemoryRouter><ProjectReviewStatusPage /></MemoryRouter>)
+    expect(screen.getByText('Đăng ký đề tài mới')).toBeTruthy()
+    expect(screen.getAllByText(/Scope is not feasible/).length).toBeGreaterThan(0)
+  })
 })

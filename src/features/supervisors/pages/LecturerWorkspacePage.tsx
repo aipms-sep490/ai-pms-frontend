@@ -28,20 +28,24 @@ export function LecturerWorkspacePage() {
         <h2 className="text-lg font-bold">Yêu cầu hướng dẫn</h2>
         {inbox.loading ? <p className="mt-3 text-sm text-slate-600">Đang tải inbox…</p> : null}
         {!inbox.loading && inbox.requests.length === 0 ? <p className="mt-3 text-sm text-slate-600">Không có yêu cầu trong Inbox được Backend scope.</p> : null}
-        <ul className="mt-4 space-y-3">{inbox.requests.map((request) => <li key={request.id} className="rounded-xl border border-slate-200 p-4 text-sm">
-          <div className="flex flex-wrap justify-between gap-2"><strong>Project #{request.projectId}</strong><span>{request.status}</span></div>
+        <ul className="mt-4 space-y-3">{inbox.requests.map((request) => {
+          const project = inbox.projects?.[request.projectId]
+          const team = project ? inbox.teams?.[project.teamId] : null
+          return <li key={request.id} className="rounded-xl border border-slate-200 p-4 text-sm">
+          <div className="flex flex-wrap justify-between gap-2"><strong>{project?.title ?? `Project #${request.projectId}`}{project?.code ? ` · ${project.code}` : ''}</strong><span>{request.status}</span></div>
           <p className="mt-1 text-xs text-slate-600">Requested {request.requestedAt} · profile #{request.supervisorProfileId}</p>
+          {team ? <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{team.name} · {team.code}</strong><span className="text-xs text-slate-500">{team.members.length} thành viên</span></div><ul className="mt-2 grid gap-2 sm:grid-cols-2">{team.members.map((member) => <li key={member.userId} className="text-xs text-slate-700"><span className="font-semibold text-slate-900">{member.fullName}</span>{member.isLeader ? ' · Trưởng nhóm' : ''}{member.majorId ? ` · Major #${member.majorId}` : ''}</li>)}</ul></div> : null}
           {request.requestMessage ? <p className="mt-2 rounded bg-slate-50 p-2">Student message: {request.requestMessage}</p> : null}
           {request.responseMessage ? <p className="mt-2 rounded bg-slate-50 p-2">Response: {request.responseMessage}</p> : null}
           {request.status === 'PENDING' ? <div className="mt-3 space-y-2"><label className="block text-xs">Phản hồi (tùy chọn)<textarea className="mt-1 block w-full rounded border border-slate-300 p-2" value={responseByRequest[request.id] ?? ''} onChange={(event) => setResponseByRequest((current) => ({ ...current, [request.id]: event.target.value }))} /></label><div className="flex flex-wrap gap-2"><Button disabled={inbox.acceptPending !== null || inbox.rejectPending !== null} onClick={() => void decide(request.id, 'accept')}>Accept & assign</Button><Button variant="danger" disabled={inbox.acceptPending !== null || inbox.rejectPending !== null} onClick={() => void decide(request.id, 'reject')}>Reject</Button></div></div> : null}
-        </li>)}</ul>
+        </li>})}</ul>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
         <h2 className="text-lg font-bold">Primary assignments</h2>
         {inbox.loading ? <p className="mt-3 text-sm text-slate-600">Đang tải assignments…</p> : null}
         {!inbox.loading && inbox.assignments.length === 0 ? <p className="mt-3 text-sm text-slate-600">Chưa có assignment.</p> : null}
-        <ul className="mt-4 space-y-2">{inbox.assignments.map((assignment) => <li key={assignment.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-sm"><span>Project #{assignment.projectId} · {assignment.isPrimary ? 'Primary Supervisor' : 'Mentor/secondary'} · assigned {assignment.assignedAt}{assignment.endedAt ? ` · ended ${assignment.endedAt}` : ''}</span>{assignment.isPrimary && !assignment.endedAt ? <Link className="rounded-lg border border-emerald-300 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-50" to={`/supervisor/projects/${assignment.projectId}/workspace`}>Mở Project ACTIVE</Link> : null}</li>)}</ul>
+        <ul className="mt-4 space-y-2">{inbox.assignments.map((assignment) => <li key={assignment.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-sm"><span>{inbox.projects?.[assignment.projectId]?.title ?? `Project #${assignment.projectId}`} · {assignment.isPrimary ? 'Primary Supervisor' : 'Mentor/secondary'} · assigned {assignment.assignedAt}{assignment.endedAt ? ` · ended ${assignment.endedAt}` : ''}</span>{assignment.isPrimary && !assignment.endedAt ? <Link className="rounded-lg border border-emerald-300 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-50" to={`/supervisor/projects/${assignment.projectId}/workspace`}>Mở Project ACTIVE</Link> : null}</li>)}</ul>
       </section>
     </main>
   )

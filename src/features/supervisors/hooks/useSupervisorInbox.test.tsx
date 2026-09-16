@@ -1,8 +1,13 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const supervisor = vi.hoisted(() => ({ getSupervisorInbox: vi.fn(), getOwnAssignments: vi.fn(), respondToSupervisorRequest: vi.fn() }))
-vi.mock('../../../services/service-gateway', () => ({ services: { supervisor } }))
+const gateway = vi.hoisted(() => ({
+  supervisor: { getSupervisorInbox: vi.fn(), getOwnAssignments: vi.fn(), respondToSupervisorRequest: vi.fn() },
+  project: { getProject: vi.fn() },
+  team: { getTeam: vi.fn() },
+}))
+const { supervisor } = gateway
+vi.mock('../../../services/service-gateway', () => ({ services: gateway }))
 import { useSupervisorInbox } from './useSupervisorInbox'
 
 const request = { id: 8, projectId: 9, supervisorProfileId: 4, requestedBy: 2, status: 'PENDING', requestedAt: '2026-09-15' }
@@ -12,6 +17,8 @@ describe('useSupervisorInbox', () => {
     supervisor.getSupervisorInbox.mockReset().mockResolvedValue({ items: [request] })
     supervisor.getOwnAssignments.mockReset().mockResolvedValue({ items: [] })
     supervisor.respondToSupervisorRequest.mockReset().mockResolvedValue({ ...request, status: 'ACCEPTED', assignmentId: 3 })
+    gateway.project.getProject.mockReset().mockResolvedValue({ id: 9, teamId: 2, title: 'Project' })
+    gateway.team.getTeam.mockReset().mockResolvedValue({ id: 2, name: 'Team', members: [] })
   })
 
   it('uses Backend-scoped inbox data directly and refreshes assignment data after accept', async () => {

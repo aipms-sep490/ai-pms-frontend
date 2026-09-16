@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { SupervisorAssignmentDto, SupervisorRequestDto } from '../../../types/backend'
+import type { ProjectDto, SupervisorAssignmentDto, SupervisorRequestDto, TeamDto } from '../../../types/backend'
 import { HttpError } from '../../../services/http/http-client'
 import { services } from '../../../services/service-gateway'
 
@@ -21,6 +21,8 @@ function classify(error: unknown): InboxError {
 export function useSupervisorInbox() {
   const [requests, setRequests] = useState<SupervisorRequestDto[]>([])
   const [assignments, setAssignments] = useState<SupervisorAssignmentDto[]>([])
+  const [projects, setProjects] = useState<Record<number, ProjectDto>>({})
+  const [teams, setTeams] = useState<Record<number, TeamDto>>({})
   const [loading, setLoading] = useState(true)
   const [acceptPending, setAcceptPending] = useState<number | null>(null)
   const [rejectPending, setRejectPending] = useState<number | null>(null)
@@ -35,6 +37,25 @@ export function useSupervisorInbox() {
       ])
       setRequests(inbox.items)
       setAssignments(ownAssignments.items)
+
+      const projectIds = [...new Set([
+        ...inbox.items.map((request) => request.projectId),
+        ...ownAssignments.items.map((assignment) => assignment.projectId),
+      ])]
+      const projectResults = await Promise.allSettled(projectIds.map((projectId) => services.project.getProject(projectId)))
+      const nextProjects: Record<number, ProjectDto> = {}
+      for (const result of projectResults) {
+        if (result.status === 'fulfilled') nextProjects[result.value.id] = result.value
+      }
+      setProjects(nextProjects)
+
+      const teamIds = [...new Set(Object.values(nextProjects).map((project) => project.teamId))]
+      const teamResults = await Promise.allSettled(teamIds.map((teamId) => services.team.getTeam(teamId)))
+      const nextTeams: Record<number, TeamDto> = {}
+      for (const result of teamResults) {
+        if (result.status === 'fulfilled') nextTeams[result.value.id] = result.value
+      }
+      setTeams(nextTeams)
     } catch (nextError) { setError(classify(nextError)) }
     finally { setLoading(false) }
   }, [])
@@ -58,5 +79,5 @@ export function useSupervisorInbox() {
     } finally { setAcceptPending(null); setRejectPending(null) }
   }, [acceptPending, refresh, rejectPending])
 
-  return { requests, assignments, loading, acceptPending, rejectPending, error, refresh, respond }
+  return { requests, assignments, projects, teams, loading, acceptPending, rejectPending, error, refresh, respond }
 }

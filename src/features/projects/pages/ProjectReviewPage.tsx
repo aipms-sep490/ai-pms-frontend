@@ -28,6 +28,36 @@ function ScopeSummary({ review }: { review: ReturnType<typeof useProjectReview> 
   )
 }
 
+function ProjectProposalDetails({ review }: { review: ReturnType<typeof useProjectReview> }) {
+  const project = review.project
+  if (!project) return null
+  const tags = (type: string) => (project.tags ?? [])
+    .filter((tag) => tag.tagType.toUpperCase() === type)
+    .map((tag) => tag.name)
+
+  return (
+    <section aria-labelledby="proposal-details-heading">
+      <h2 id="proposal-details-heading">Nội dung đề cương</h2>
+      <dl className="review-page__facts">
+        <div><dt>Nhóm</dt><dd>{project.teamName}</dd></div>
+        <div><dt>Ngành</dt><dd>{(project.majors ?? []).map((major) => `${major.majorCode} — ${major.majorName}`).join(', ') || '—'}</dd></div>
+        <div><dt>Lĩnh vực</dt><dd>{tags('DOMAIN').join(', ') || '—'}</dd></div>
+        <div><dt>Công nghệ</dt><dd>{tags('TECHNOLOGY').join(', ') || '—'}</dd></div>
+        <div><dt>Từ khóa</dt><dd>{tags('KEYWORD').join(', ') || '—'}</dd></div>
+        <div><dt>Ngày nộp</dt><dd>{project.submittedAt ? new Date(project.submittedAt).toLocaleString('vi-VN') : '—'}</dd></div>
+      </dl>
+      <h3>Mô tả</h3>
+      <p>{project.description || 'Backend chưa cung cấp mô tả.'}</p>
+      <h3>Bối cảnh và vấn đề</h3>
+      <p>{project.problemStatement || 'Backend chưa cung cấp problem statement.'}</p>
+      <h3>Mục tiêu</h3>
+      <p>{project.objectives || 'Backend chưa cung cấp mục tiêu.'}</p>
+      <h3>Sản phẩm kỳ vọng</h3>
+      <p>{project.expectedOutput || 'Backend chưa cung cấp sản phẩm kỳ vọng.'}</p>
+    </section>
+  )
+}
+
 export function ProjectReviewPage() {
   const { id } = useParams()
   const review = useProjectReview(id ? Number(id) : undefined)
@@ -98,8 +128,8 @@ export function ProjectReviewPage() {
       <section>
         <h2>{review.project?.code ?? `Project #${id}`} · {review.project?.title ?? 'Backend không cung cấp title'}</h2>
         <p>Team: {review.project?.teamName ?? '—'} · Status: {review.workflow?.status ?? review.project?.status ?? '—'}</p>
-        <p>{review.project?.description ?? 'Backend không cung cấp mô tả project.'}</p>
       </section>
+      <ProjectProposalDetails review={review} />
       <ScopeSummary review={review} />
       <section>
         <h2>Participating department decisions</h2>
