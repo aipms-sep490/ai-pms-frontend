@@ -181,6 +181,23 @@ describe('ProjectRegistrationFormPage', () => {
       await waitForForm()
       expect(document.querySelector('textarea')).toBeNull()
     })
+
+    it('starts a clean draft on /project/register when Backend grants create_project_draft', async () => {
+      mocks.useStudentJourney.mockReturnValue({
+        project: makeProject('REJECTED'),
+        team: { ...baseTeam, eligibility: { canRegister: true, rosterLocked: true, reasons: [] } },
+        profile: { id: 10, fullName: 'Le Van A', majorId: 3 },
+        teamActions: { canRegister: true, actions: [{ code: 'create_project_draft', allowed: true, issues: [] }] },
+        projectActions: null,
+        isLoading: false, error: null, refreshAll: vi.fn(),
+      })
+
+      render(<MemoryRouter initialEntries={['/project/register']}><ProjectRegistrationFormPage /></MemoryRouter>)
+      await waitForForm()
+      expect(document.querySelector('form')).not.toBeNull()
+      expect(screen.queryByDisplayValue('Prefilled Project Title')).toBeNull()
+      expect(screen.getByText(/Đăng ký đề tài mới sau khi đề tài trước bị từ chối/)).toBeTruthy()
+    })
   })
 
   describe('SUBMITTED — read-only guard', () => {

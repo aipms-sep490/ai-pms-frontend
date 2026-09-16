@@ -3,7 +3,7 @@ import { getHomePath, getWorkspaceRole } from './role-access'
 
 describe('role-based workspace', () => {
   it('uses backend roles to select the proper landing page', () => {
-    expect(getHomePath({ roles: ['STUDENT'] })).toBe('/project/workspace')
+    expect(getHomePath({ roles: ['STUDENT'] })).toBe('/project/overview')
     expect(getHomePath({ roles: ['LECTURER'] })).toBe('/supervisor/workspace')
     expect(getHomePath({ roles: ['DEPARTMENT_STAFF'] })).toBe('/department/projects/review')
     expect(getHomePath({ roles: ['ADMIN'] })).toBe('/admin/access')

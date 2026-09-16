@@ -27,7 +27,7 @@ export function ProfilePage() {
     )
   }
 
-  const isRefreshing = status === 'refreshing_profile'
+  const isRefreshing = status === 'refreshing'
 
   return (
     <section className="auth-profile" aria-labelledby="profile-title">

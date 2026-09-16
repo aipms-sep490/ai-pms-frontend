@@ -4,6 +4,15 @@ import type { ApiProblem } from '../../types/api.types'
 export interface HttpRequestOptions {
   signal?: AbortSignal
   accessToken?: string
+  /** Auth endpoints and the one retried request must never recurse into refresh. */
+  skipAuthRefresh?: boolean
+}
+
+export interface HttpAuthenticationBridge {
+  /** Returns a fresh access token or rejects when the session cannot be restored. */
+  refresh: () => Promise<string>
+  /** Clears provider-owned state after the shared refresh attempt fails. */
+  onSessionExpired: () => void
 }
 
 export class HttpError extends Error {
@@ -22,6 +31,20 @@ export class HttpError extends Error {
   }
 }
 
+let authenticationBridge: HttpAuthenticationBridge | null = null
+let refreshInFlight: Promise<string | null> | null = null
+
+/**
+ * Connects the shared HTTP client to the existing AuthSessionProvider without creating a
+ * second token store. The returned cleanup prevents a stale provider from handling 401s.
+ */
+export function configureHttpAuthentication(bridge: HttpAuthenticationBridge): () => void {
+  authenticationBridge = bridge
+  return () => {
+    if (authenticationBridge === bridge) authenticationBridge = null
+  }
+}
+
 function resolveUrl(path: string): string {
   const base = env.apiBaseUrl.replace(/\/$/, '')
   if (base.endsWith('/v1') && path.startsWith('/v1/')) {
@@ -35,12 +58,7 @@ export async function httpGet<T>(
   signalOrOptions?: AbortSignal | HttpRequestOptions,
 ): Promise<T> {
   const options = normalizeOptions(signalOrOptions)
-  const response = await fetch(resolveUrl(path), {
-    ...createRequestInit(options),
-    method: 'GET',
-  })
-
-  return readResponse<T>(response)
+  return send<T>('GET', path, undefined, options)
 }
 
 export async function httpPost<TResponse, TBody = unknown>(
@@ -49,7 +67,7 @@ export async function httpPost<TResponse, TBody = unknown>(
   signalOrOptions?: AbortSignal | HttpRequestOptions,
 ): Promise<TResponse> {
   const options = normalizeOptions(signalOrOptions)
-  return sendJson<TResponse>('POST', path, body, options)
+  return send<TResponse>('POST', path, body, options)
 }
 
 export async function httpPut<TResponse, TBody = unknown>(
@@ -58,7 +76,7 @@ export async function httpPut<TResponse, TBody = unknown>(
   signalOrOptions?: AbortSignal | HttpRequestOptions,
 ): Promise<TResponse> {
   const options = normalizeOptions(signalOrOptions)
-  return sendJson<TResponse>('PUT', path, body, options)
+  return send<TResponse>('PUT', path, body, options)
 }
 
 export async function httpPatch<TResponse, TBody = unknown>(
@@ -67,7 +85,7 @@ export async function httpPatch<TResponse, TBody = unknown>(
   signalOrOptions?: AbortSignal | HttpRequestOptions,
 ): Promise<TResponse> {
   const options = normalizeOptions(signalOrOptions)
-  return sendJson<TResponse>('PATCH', path, body, options)
+  return send<TResponse>('PATCH', path, body, options)
 }
 
 export async function httpDelete<TResponse = void>(
@@ -75,31 +93,58 @@ export async function httpDelete<TResponse = void>(
   signalOrOptions?: AbortSignal | HttpRequestOptions,
 ): Promise<TResponse> {
   const options = normalizeOptions(signalOrOptions)
-  const response = await fetch(resolveUrl(path), {
-    ...createRequestInit(options),
-    method: 'DELETE',
-  })
-  return readResponse<TResponse>(response)
+  return send<TResponse>('DELETE', path, undefined, options)
 }
 
-async function sendJson<TResponse>(
-  method: 'POST' | 'PUT' | 'PATCH',
+async function send<TResponse>(
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
-  body: unknown,
+  body: unknown | undefined,
   options?: HttpRequestOptions,
+  hasRetriedAfterRefresh = false,
 ): Promise<TResponse> {
   const requestInit = createRequestInit(options)
   const response = await fetch(resolveUrl(path), {
     ...requestInit,
     method,
-    headers: {
-      ...requestInit.headers,
-      'Content-Type': 'application/json',
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    headers: body === undefined
+      ? requestInit.headers
+      : { ...requestInit.headers, 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
   })
 
+  if (response.status === 401 && !options?.skipAuthRefresh && !hasRetriedAfterRefresh) {
+    const refreshedAccessToken = await refreshAccessToken()
+    if (refreshedAccessToken) {
+      return send<TResponse>(
+        method,
+        path,
+        body,
+        { ...options, accessToken: refreshedAccessToken, skipAuthRefresh: true },
+        true,
+      )
+    }
+  }
+
   return readResponse<TResponse>(response)
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  const bridge = authenticationBridge
+  if (!bridge) return null
+
+  if (!refreshInFlight) {
+    refreshInFlight = bridge.refresh()
+      .catch(() => {
+        bridge.onSessionExpired()
+        return null
+      })
+      .finally(() => {
+        refreshInFlight = null
+      })
+  }
+
+  return refreshInFlight
 }
 
 function normalizeOptions(

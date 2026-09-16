@@ -20,9 +20,9 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
   // Student Workspace
   {
     id: 'screen-1',
-    path: '/project/workspace',
-    title: 'Bàn làm việc Tổng quan',
-    breadcrumb: 'Bàn làm việc',
+    path: '/project/overview',
+    title: 'Tổng quan lộ trình',
+    breadcrumb: 'Tổng quan',
     icon: 'dashboard',
     role: 'student',
     status: 'implemented',
@@ -156,8 +156,11 @@ export function getStudentNavItems() {
  * Resolves a breadcrumb title from the current pathname.
  */
 export function getBreadcrumbForPath(pathname: string): string {
-  if (pathname === '/' || pathname === '/project/workspace') {
-    return 'Bàn làm việc Tổng quan'
+  if (pathname === '/' || pathname === '/project/overview') {
+    return 'Tổng quan lộ trình'
+  }
+  if (pathname === '/project/workspace') {
+    return 'Không gian đồ án ACTIVE'
   }
   if (pathname.startsWith('/project/milestones')) {
     return 'Tiến trình & Cột mốc'

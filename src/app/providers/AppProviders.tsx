@@ -1,14 +1,14 @@
 ﻿import { RouterProvider } from 'react-router-dom'
 import { AuthSessionProvider } from '../../features/auth/context/AuthSessionProvider'
+import { AcademicWorkflowProvider } from '../context/AcademicWorkflowProvider'
 import { appRouter } from '../router'
-import { StudentJourneyProvider } from '../context'
 
 export function AppProviders() {
   return (
     <AuthSessionProvider>
-      <StudentJourneyProvider>
+      <AcademicWorkflowProvider>
         <RouterProvider router={appRouter} />
-      </StudentJourneyProvider>
+      </AcademicWorkflowProvider>
     </AuthSessionProvider>
   )
 }

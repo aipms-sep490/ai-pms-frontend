@@ -16,7 +16,7 @@ export function getHomePath(user?: Pick<AuthUser, 'roles'> | null): string {
     case 'admin': return '/admin/access'
     case 'department': return '/department/projects/review'
     case 'lecturer': return '/supervisor/workspace'
-    case 'student': return '/project/workspace'
+    case 'student': return '/project/overview'
     default: return '/profile'
   }
 }

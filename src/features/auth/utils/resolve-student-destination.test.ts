@@ -1,25 +1,29 @@
 import { describe, expect, it } from 'vitest'
-import { mvpRoutes } from '../../../app/router/routes.config'
 import { studentNavigation } from '../constants/student-navigation'
 import { resolveStudentDestination } from './resolve-student-destination'
+import { resolveStudentNextAction } from './resolve-student-next-action'
 
 describe('resolveStudentDestination', () => {
   it('sends an active project to its workspace', () => {
     expect(resolveStudentDestination('ACTIVE')).toBe('/project/workspace')
   })
 
-  it('keeps a revision request on the registered lifecycle preview until editing exists', () => {
-    expect(resolveStudentDestination('REVISION_REQUIRED')).toBe('/projects/lifecycle')
+  it('sends revision work to the real edit route and existing drafts back to edit', () => {
+    expect(resolveStudentDestination('REVISION_REQUIRED')).toBe('/project/edit')
+    expect(resolveStudentNextAction({ journeyState: 'TEAM_ELIGIBLE', projectStatus: 'Draft' })).toMatchObject({
+      label: 'Tiếp tục bản nháp', route: '/project/edit',
+    })
   })
 
-  it('only resolves to implemented MVP routes while future destinations remain planned', () => {
-    const implementedPaths = new Set(
-      mvpRoutes.filter((route) => route.status === 'implemented').map((route) => route.path),
-    )
+  it('resolves every journey state to a real protected student route', () => {
+    const knownStudentRoutes = new Set([
+      '/team/create', '/team', '/project/register', '/project/edit', '/project/status',
+      '/project/supervisor', '/project/workspace', '/projects/lifecycle',
+    ])
 
     for (const step of studentNavigation) {
-      expect(implementedPaths.has(step.route)).toBe(true)
-      expect(step.availability === 'planned').toBe(Boolean(step.plannedRoute))
+      expect(knownStudentRoutes.has(step.route)).toBe(true)
+      expect(step.availability).toBe('available')
     }
   })
 })

@@ -3,6 +3,8 @@ export const endpoints = {
   projectLifecycle: '/projects/lifecycle',
   progressAnalysis: '/ai/insights/progress',
   authLogin: '/v1/auth/login',
+  authRefresh: '/v1/auth/refresh',
+  authLogout: '/v1/auth/logout',
   authCurrentUser: '/v1/auth/me',
   authWorkflowContext: '/v1/auth/me/context',
   academicHierarchy: '/v1/academic/hierarchy',
