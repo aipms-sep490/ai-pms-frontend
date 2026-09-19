@@ -1,128 +1,65 @@
-import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Badge } from '../../../components/ui/Badge'
-import { MultidisciplinaryTag } from '../../../components/ui/MultidisciplinaryTag'
-import { allMilestonesPreview } from '../fixtures/milestone-kanban-preview'
-import { filterKanbanTasks, groupTasksByStatus } from '../utils/filter-kanban-tasks'
-import { MilestoneHeader } from '../components/MilestoneHeader'
-import { KanbanBoard } from '../components/KanbanBoard'
-import type { KanbanMajorFilter } from '../types/milestone-kanban.types'
-
-const majorFilters: { id: KanbanMajorFilter; label: string }[] = [
-  { id: 'all', label: 'Tất cả chuyên ngành' },
-  { id: 'SE', label: 'Kỹ thuật Phần mềm [SE]' },
-  { id: 'UIUX', label: 'Thiết kế Mỹ thuật số [UI/UX]' },
-  { id: 'AI', label: 'Trí tuệ Nhân tạo [AI]' },
-  { id: 'QA', label: 'Kiểm thử & Đảm bảo CL [QA]' },
-]
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useStudentJourney } from '../../../app/context'
+import { services } from '../../../services/service-gateway'
+import { HttpError } from '../../../services/http/http-client'
+import type { MilestoneDto, MilestoneProgressDto } from '../../../types/backend'
 
 export function MilestoneDetailPage() {
   const { milestoneId } = useParams<{ milestoneId: string }>()
   const navigate = useNavigate()
+  const { project } = useStudentJourney()
+  const [milestones, setMilestones] = useState<MilestoneDto[]>([])
+  const [progress, setProgress] = useState<MilestoneProgressDto[]>([])
+  const [error, setError] = useState<HttpError | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  // Default to M3 if param is missing or invalid
-  const activeId = milestoneId && allMilestonesPreview[milestoneId] ? milestoneId : 'M3'
-  const currentMilestone = allMilestonesPreview[activeId]
-
-  const [selectedMajor, setSelectedMajor] = useState<KanbanMajorFilter>('all')
-  const [searchQuery, setSearchQuery] = useState('')
-
-  const handleSelectMilestone = (id: string) => {
-    navigate(`/project/milestones/${id}`)
+  const load = async () => {
+    if (!project) return
+    setLoading(true)
+    try {
+      const [items, summary] = await Promise.all([
+        services.milestone.getProjectMilestones(project.id),
+        services.milestone.getProjectMilestoneProgress(project.id),
+      ])
+      setMilestones(items)
+      setProgress(summary)
+      setError(null)
+    } catch (reason) {
+      setError(reason instanceof HttpError ? reason : new HttpError('Không thể tải milestone.', 500))
+    } finally { setLoading(false) }
   }
+  useEffect(() => { void load() }, [project?.id])
 
-  // Filter tasks on active milestone
-  const filteredTasks = filterKanbanTasks(
-    currentMilestone.tasks,
-    selectedMajor,
-    searchQuery
-  )
-  const groupedTasks = groupTasksByStatus(filteredTasks)
+  const mutate = async (operation: () => Promise<unknown>) => {
+    try { await operation(); await load() }
+    catch (reason) {
+      const next = reason instanceof HttpError ? reason : new HttpError('Không thể cập nhật milestone.', 500)
+      setError(next)
+      if (next.status === 409) await load()
+    }
+  }
+  if (loading) return <State message="Đang tải milestone từ Backend…" />
+  if (error && milestones.length === 0) return <State error message={error.status === 403 ? 'Backend không cấp quyền xem milestone của Project này.' : error.message} retry={load} />
+  const selected = milestones.find((item) => item.id === Number(milestoneId)) ?? milestones[0] ?? null
+  const selectedProgress = progress.find((item) => item.milestoneId === selected?.id)
 
   return (
-    <div className="flex flex-col gap-5 pb-12">
-      {/* Simulation status banner */}
-      <div
-        role="status"
-        aria-label="Thông báo chế độ xem trước bảng Kanban"
-        className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-status-warning-bg border border-status-warning-border text-status-warning-text text-xs font-medium"
-      >
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[16px] shrink-0" aria-hidden="true">
-            info
-          </span>
-          <span>
-            <strong>Chế độ xem trước Cột mốc & Bảng Kanban</strong> — Tương tác lọc và chuyển mốc hoạt động trên dữ liệu minh họa.
-          </span>
-        </div>
-        <Badge variant="warning" size="sm" className="shrink-0">
-          Mô phỏng
-        </Badge>
-      </div>
-
-      {/* 1. Milestone Summary Header & Switcher */}
-      <MilestoneHeader
-        milestone={currentMilestone}
-        activeMilestoneId={activeId}
-        onSelectMilestone={handleSelectMilestone}
-      />
-
-      {/* 2. Filter Toolbar: Major Tabs & Search */}
-      <div className="p-3.5 rounded-xl bg-white border border-hairline shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        {/* Major Filter Buttons */}
-        <div
-          role="group"
-          aria-label="Lọc thẻ Kanban theo chuyên ngành"
-          className="flex flex-wrap items-center gap-1.5"
-        >
-          {majorFilters.map((tab) => {
-            const isSelected = selectedMajor === tab.id
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                aria-pressed={isSelected}
-                onClick={() => setSelectedMajor(tab.id)}
-                aria-label={tab.label}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                  isSelected
-                    ? 'bg-slate-900 text-white shadow-2xs font-semibold'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-hairline'
-                }`}
-              >
-                {tab.id !== 'all' && (
-                  <MultidisciplinaryTag major={tab.id} className="text-[9px] px-1 py-0" />
-                )}
-                <span>{tab.id === 'all' ? tab.label : tab.id}</span>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Quick Search */}
-        <div className="relative w-full lg:w-72 lg:shrink-0">
-          <span className="absolute left-2.5 top-2 text-slate-400 material-symbols-outlined text-[16px] pointer-events-none">
-            search
-          </span>
-          <input
-            id="search-kanban"
-            name="searchQuery"
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm theo mã hoặc tên công việc..."
-            aria-label="Tìm kiếm công việc trong bảng Kanban"
-            className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-hairline bg-slate-50 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-1 focus:ring-primary focus:bg-white transition-all"
-          />
-        </div>
-      </div>
-
-      {/* 3. 4-Column Kanban Board */}
-      <KanbanBoard
-        groupedTasks={groupedTasks}
-        totalMilestoneTasks={currentMilestone.totalTasks}
-        hasDetailTasks={currentMilestone.tasks.length > 0}
-      />
-    </div>
+    <main className="mx-auto flex max-w-6xl flex-col gap-5 pb-12">
+      <header className="flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-2xl font-bold">Milestones</h1><p className="mt-1 text-sm text-slate-600">Dữ liệu và tiến độ do Backend trả về; không dùng preview fixture.</p></div><Link to="/project/tasks" className="rounded border px-3 py-2 text-xs font-bold">Task Board</Link></header>
+      {error ? <State error message={error.status === 409 ? 'Dữ liệu vừa thay đổi trên Backend; đã tải lại để bạn xem lại.' : error.message} /> : null}
+      {milestones.length === 0 ? <section className="rounded-2xl border bg-white p-8 text-sm text-slate-600">Project ACTIVE này chưa có milestone. Đây là trạng thái hợp lệ vì Backend không tạo milestone mặc định.</section> : <section className="grid gap-3 md:grid-cols-3">{milestones.map((item) => <button key={item.id} onClick={() => navigate(`/project/milestones/${item.id}`)} className={`rounded-xl border p-4 text-left ${selected?.id === item.id ? 'border-blue-500 bg-blue-50' : 'bg-white'}`}><strong>{item.title}</strong><p className="mt-1 text-xs">{item.status} · {progress.find((entry) => entry.milestoneId === item.id)?.progressPercentage ?? 0}%</p></button>)}</section>}
+      {selected ? <MilestoneEditor milestone={selected} progress={selectedProgress} mutate={mutate} /> : null}
+      <CreateMilestone projectId={project!.id} sortOrder={milestones.length} mutate={mutate} />
+      {milestones.length > 0 ? <button onClick={() => void mutate(() => services.milestone.reorderMilestones(project!.id, milestones.map((item, index) => ({ milestoneId: item.id, sortOrder: index }))))} className="self-start rounded border px-3 py-2 text-xs font-bold">Lưu thứ tự Backend hiện tại</button> : null}
+    </main>
   )
 }
+
+function MilestoneEditor({ milestone, progress, mutate }: { milestone: MilestoneDto; progress?: MilestoneProgressDto; mutate: (operation: () => Promise<unknown>) => Promise<void> }) {
+  const [title, setTitle] = useState(milestone.title); const [description, setDescription] = useState(milestone.description ?? ''); const [startDate, setStartDate] = useState(milestone.startDate ?? ''); const [dueDate, setDueDate] = useState(milestone.dueDate ?? ''); const [status, setStatus] = useState(milestone.status)
+  useEffect(() => { setTitle(milestone.title); setDescription(milestone.description ?? ''); setStartDate(milestone.startDate ?? ''); setDueDate(milestone.dueDate ?? ''); setStatus(milestone.status) }, [milestone])
+  return <section className="rounded-2xl border bg-white p-5"><h2 className="font-bold">{milestone.title} · {progress?.progressPercentage ?? 0}%</h2><form className="mt-4 grid gap-3" onSubmit={(event) => { event.preventDefault(); if (startDate && dueDate && startDate > dueDate) return; void mutate(() => services.milestone.updateMilestone(milestone.id, { title, description: description || null, startDate: startDate || null, dueDate: dueDate || null, status, sortOrder: milestone.sortOrder })) }}><input value={title} onChange={(event) => setTitle(event.target.value)} required className="rounded border px-3 py-2"/><textarea value={description} onChange={(event) => setDescription(event.target.value)} className="rounded border px-3 py-2"/><div className="flex flex-wrap gap-2"><input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="rounded border px-3 py-2"/><input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className="rounded border px-3 py-2"/><select value={status} onChange={(event) => setStatus(event.target.value)}>{['PLANNED','IN_PROGRESS','COMPLETED','CANCELLED'].map((value) => <option key={value}>{value}</option>)}</select></div><div className="flex gap-2"><button className="rounded bg-slate-900 px-3 py-2 text-xs font-bold text-white">Lưu milestone</button><button type="button" onClick={() => void mutate(() => services.milestone.deleteMilestone(milestone.id))} className="rounded border border-rose-300 px-3 py-2 text-xs font-bold text-rose-700">Xóa</button></div></form></section>
+}
+function CreateMilestone({ projectId, sortOrder, mutate }: { projectId: number; sortOrder: number; mutate: (operation: () => Promise<unknown>) => Promise<void> }) { const [title, setTitle] = useState(''); return <form className="rounded-2xl border bg-white p-5" onSubmit={(event) => { event.preventDefault(); void mutate(() => services.milestone.createMilestone({ projectId, title, sortOrder })).then(() => setTitle('')) }}><h2 className="font-bold">Tạo milestone</h2><div className="mt-3 flex gap-2"><input required value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Tên milestone" className="rounded border px-3 py-2"/><button className="rounded bg-blue-700 px-3 py-2 text-xs font-bold text-white">Tạo</button></div></form> }
+function State({ message, error, retry }: { message: string; error?: boolean; retry?: () => Promise<void> }) { return <section role={error ? 'alert' : 'status'} className={`rounded-2xl border p-5 text-sm ${error ? 'border-rose-200 bg-rose-50 text-rose-800' : 'bg-white'}`}>{message}{retry ? <button onClick={() => void retry()} className="ml-3 font-bold underline">Tải lại</button> : null}</section> }

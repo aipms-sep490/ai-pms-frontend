@@ -4,7 +4,14 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { ActiveProjectWorkspacePage } from './ActiveProjectWorkspacePage'
 
 const journey = vi.hoisted(() => ({ useStudentJourney: vi.fn() }))
+const api = vi.hoisted(() => ({
+  getProjectMilestones: vi.fn().mockResolvedValue([]),
+  getProjectProgressSummary: vi.fn().mockResolvedValue({ progressPercentage: 0 }),
+  getProjectTimeline: vi.fn().mockResolvedValue({ milestones: [] }),
+  getOverdueBlockedTasks: vi.fn().mockResolvedValue({ overdueTasks: [], blockedTasks: [] }),
+}))
 vi.mock('../../../app/context', () => journey)
+vi.mock('../../../services/service-gateway', () => ({ services: { milestone: { getProjectMilestones: api.getProjectMilestones }, task: { getProjectProgressSummary: api.getProjectProgressSummary, getProjectTimeline: api.getProjectTimeline, getOverdueBlockedTasks: api.getOverdueBlockedTasks } } }))
 
 const activeJourney = {
   journeyState: 'ACTIVE', isLoading: false, error: null, refreshAll: vi.fn(),

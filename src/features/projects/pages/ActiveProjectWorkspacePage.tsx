@@ -1,8 +1,11 @@
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { useStudentJourney } from '../../../app/context'
 import type { ProjectDto, SupervisorAssignmentDto, TeamDto } from '../../../types/backend'
 import { resolveStudentNextAction } from '../../auth/utils/resolve-student-next-action'
 import { getActivePrimaryAssignment } from '../utils/project-resolution.utils'
+import { services } from '../../../services/service-gateway'
+import { HttpError } from '../../../services/http/http-client'
 
 export function ActiveProjectWorkspacePage() {
   const journey = useStudentJourney()
@@ -20,13 +23,35 @@ export function ActiveProjectWorkspacePage() {
   }
 
   return (
+    <>
     <ProjectWorkspaceSummary
       project={journey.project}
       team={journey.team}
       supervisor={getActivePrimaryAssignment(journey.assignments)}
       audience="student"
     />
+    <ExecutionEntry projectId={journey.project.id} />
+    </>
   )
+}
+
+function ExecutionEntry({ projectId }: { projectId: number }) {
+  const [state, setState] = useState<{ count: number; progress: number | null; timelineMilestones: number; overdue: number; blocked: number; error: HttpError | null } | null>(null)
+  useEffect(() => {
+    let current = true
+    void Promise.all([
+      services.milestone.getProjectMilestones(projectId),
+      services.task.getProjectProgressSummary(projectId),
+      services.task.getProjectTimeline(projectId),
+      services.task.getOverdueBlockedTasks(projectId),
+    ])
+      .then(([milestones, progress, timeline, attention]) => current && setState({ count: milestones.length, progress: progress.progressPercentage, timelineMilestones: timeline.milestones.length, overdue: attention.overdueTasks.length, blocked: attention.blockedTasks.length, error: null }))
+      .catch((error: unknown) => current && setState({ count: 0, progress: null, timelineMilestones: 0, overdue: 0, blocked: 0, error: error instanceof HttpError ? error : new HttpError('Không thể tải dữ liệu thực thi.', 500) }))
+    return () => { current = false }
+  }, [projectId])
+  if (!state) return <WorkspaceState message="Đang tải milestone và tiến độ từ Backend…" />
+  if (state.error) return <WorkspaceState error message={state.error.status === 403 ? 'Backend không cấp quyền xem dữ liệu thực thi của Project này.' : state.error.message} />
+  return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs"><h2 className="text-base font-bold text-slate-900">Thực thi Project</h2><p className="mt-2 text-sm text-slate-600">{state.count === 0 ? 'Backend chưa tạo milestone nào. Đây là trạng thái hợp lệ; hệ thống không tự tạo dữ liệu.' : `${state.count} milestone do Backend trả về.`}</p><p className="mt-1 text-xs text-slate-500">Tiến độ do Backend tính: {state.progress === null ? 'chưa có dữ liệu' : `${state.progress}%`}. Timeline có {state.timelineMilestones} milestone; cần chú ý {state.overdue} quá hạn và {state.blocked} bị chặn.</p><div className="mt-4 flex gap-3"><Link className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white" to="/project/milestones">Milestones</Link><Link className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold" to="/project/tasks">Task Board</Link><Link className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold" to="/project/gantt">Timeline</Link></div></section>
 }
 
 export function ProjectWorkspaceSummary({
