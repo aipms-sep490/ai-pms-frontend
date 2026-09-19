@@ -98,8 +98,9 @@ export function ProjectWorkspaceSummary({
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs sm:p-6">
-        <h2 className="text-base font-bold text-slate-900">Ranh giới handoff</h2>
-        <p className="mt-2 text-sm leading-relaxed text-slate-600">Milestone, Task và tiến độ sử dụng API thực thi của Backend. Evidence và Comment vẫn BLOCKED_BY_BE_CONTRACT: không có lưu trữ cục bộ, Deliverable thay thế hoặc quyền workflow do Frontend tự tạo.</p>
+        <h2 className="text-base font-bold text-slate-900">Báo cáo tiến độ & phản hồi</h2>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">{audience === 'student' ? 'Tổng hợp kết quả theo tuần hoặc tháng. Cả nhóm cùng soạn bản nháp, trưởng nhóm nộp và theo dõi nhận xét từ giảng viên hướng dẫn.' : 'Đọc báo cáo theo từng kỳ, kiểm tra kết quả và gửi nhận xét để nhóm hoàn thiện các bước tiếp theo.'}</p>
+        <Link className="mt-4 inline-flex rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" to={audience === 'student' ? '/project/reports' : `/supervisor/projects/${project.id}/reports`}>Mở báo cáo tiến độ →</Link>
       </section>
     </main>
   )
