@@ -1,0 +1,11 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import * as tasks from '../tasks.api'
+
+const response = (body: unknown, status = 200) => ({ ok: true, status, statusText: 'OK', json: async () => body }) as unknown as Response
+describe('tasks api', () => {
+  const originalFetch = globalThis.fetch
+  afterEach(() => { globalThis.fetch = originalFetch })
+  it('serializes supported task list filters in the API layer', async () => { globalThis.fetch = vi.fn().mockResolvedValue(response({ items: [] })); await tasks.getProjectTasks(9, { milestoneId: 2, status: 'TODO', search: 'AI', isBlocked: true, page: 2, pageSize: 25 }); expect(globalThis.fetch).toHaveBeenCalledWith('/api/v1/tasks/project/9?page=2&pageSize=25&milestoneId=2&status=TODO&search=AI&isBlocked=true', expect.objectContaining({ method: 'GET' })) })
+  it('uses task mutation, assignee, dependency and status contracts', async () => { globalThis.fetch = vi.fn().mockResolvedValue(response(null, 204)); const payload = { milestoneId: 2, title: 'Task', assigneeUserIds: [] }; await tasks.createTask(payload); await tasks.updateTask(3, payload); await tasks.deleteTask(3); await tasks.setTaskAssignees(3, [7]); await tasks.addTaskDependency({ taskId: 3, dependsOnTaskId: 2, dependencyType: 'FINISH_TO_START' }); await tasks.removeTaskDependency(3, 2); await tasks.updateTaskStatus(3, { newStatus: 'DONE' }); expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.map(([url, init]) => [url, init.method])).toEqual([['/api/v1/tasks','POST'],['/api/v1/tasks/3','PUT'],['/api/v1/tasks/3','DELETE'],['/api/v1/tasks/3/assignees','POST'],['/api/v1/tasks/dependency','POST'],['/api/v1/tasks/3/dependency/2','DELETE'],['/api/v1/tasks/3/status','PUT']]) })
+  it('uses history, timeline, progress, and overdue-blocked reads', async () => { globalThis.fetch = vi.fn().mockResolvedValue(response({})); await tasks.getTaskHistory(3); await tasks.getOverdueBlockedTasks(9); await tasks.getProjectTimeline(9); await tasks.getProjectProgressSummary(9); expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.map(([url]) => url)).toEqual(['/api/v1/tasks/3/history','/api/v1/tasks/project/9/overdue-blocked','/api/v1/tasks/project/9/timeline','/api/v1/tasks/project/9/progress-summary']) })
+})

@@ -5,6 +5,8 @@ import * as topicsApi from './api/topics.api'
 import * as projectsApi from './api/projects.api'
 import * as supervisorsApi from './api/supervisors.api'
 import * as workflowApi from './api/workflow.api'
+import * as milestonesApi from './api/milestones.api'
+import * as tasksApi from './api/tasks.api'
 
 export const services = {
   auth: authApi,
@@ -14,6 +16,8 @@ export const services = {
   project: projectsApi,
   supervisor: supervisorsApi,
   workflow: workflowApi,
+  milestone: milestonesApi,
+  task: tasksApi,
 }
 
 export {
@@ -24,4 +28,6 @@ export {
   projectsApi,
   supervisorsApi,
   workflowApi,
+  milestonesApi,
+  tasksApi,
 }
