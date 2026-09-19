@@ -15,6 +15,12 @@ describe('resolveStudentDestination', () => {
     })
   })
 
+  it('sends rejected projects to the read-only review status and history UI', () => {
+    expect(resolveStudentNextAction({ journeyState: 'PROJECT_REJECTED', projectStatus: 'Rejected' })).toMatchObject({
+      label: 'Xem kết quả thẩm định', route: '/project/status',
+    })
+  })
+
   it('resolves every journey state to a real protected student route', () => {
     const knownStudentRoutes = new Set([
       '/team/create', '/team', '/project/register', '/project/edit', '/project/status',
