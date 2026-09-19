@@ -37,6 +37,13 @@ export const studentNavigation: readonly StudentNavigationStep[] = [
     action: 'Update and resubmit',
   },
   {
+    state: 'PROJECT_REJECTED',
+    label: 'Project rejected',
+    route: '/project/status',
+    availability: 'available',
+    action: 'View review result',
+  },
+  {
     state: 'SUPERVISOR_PENDING',
     label: 'Awaiting supervisor',
     route: '/project/supervisor',

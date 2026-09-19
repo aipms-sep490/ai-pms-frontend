@@ -89,6 +89,18 @@ export function StudentJourneyHero() {
           ctaRoute: '/project/status',
           ctaIcon: 'edit_note',
         }
+      case 'PROJECT_REJECTED':
+        return {
+          badge: 'Kết quả thẩm định',
+          badgeClass: 'bg-rose-100 text-rose-800 border-rose-200',
+          title: 'Đề cương chưa được Bộ môn chấp thuận',
+          desc: 'Xem kết quả và lịch sử thẩm định do Backend trả về. Màn hình này không cấp quyền tạo hoặc nộp lại đề cương.',
+          icon: 'assignment_late',
+          iconBg: 'bg-rose-600 text-white',
+          ctaText: 'Xem kết quả thẩm định',
+          ctaRoute: '/project/status',
+          ctaIcon: 'visibility',
+        }
       case 'SUPERVISOR_PENDING':
         return {
           badge: 'Giai đoạn 5: Ghép cặp GVHD',

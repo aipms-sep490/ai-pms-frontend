@@ -32,6 +32,7 @@ export function TopHeader({
     TEAM_ELIGIBLE: 'Sẵn sàng đăng ký',
     PROJECT_PENDING: 'Đang thẩm định',
     REVISION_REQUIRED: 'Cần chỉnh sửa',
+    PROJECT_REJECTED: 'Không được chấp thuận',
     SUPERVISOR_PENDING: 'Đang ghép GVHD',
     ACTIVE: 'Đang thực hiện',
     FINAL_SUBMISSION: 'Đang bàn giao',
