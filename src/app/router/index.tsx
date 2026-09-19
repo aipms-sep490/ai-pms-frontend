@@ -3,6 +3,7 @@ import { AppLayout } from '../layouts/AppLayout'
 import { HomeRedirect, RoleRoute } from '../../features/auth/components/RoleRoute'
 import { LecturerWorkspacePage } from '../../features/supervisors/pages/LecturerWorkspacePage'
 import { SupervisorProjectWorkspacePage } from '../../features/supervisors/pages/SupervisorProjectWorkspacePage'
+import { SupervisorExecutionRoute } from '../../features/supervisors/components/SupervisorExecutionRoute'
 import { OverviewPage } from '../pages/OverviewPage'
 import { ActiveProjectWorkspacePage } from '../../features/projects/pages/ActiveProjectWorkspacePage'
 import { ActiveStudentProjectRoute } from '../../features/projects/components/ActiveStudentProjectRoute'
@@ -70,7 +71,13 @@ export const appRouter = createBrowserRouter([
         element: <RoleRoute allowed={['lecturer']} />,
         children: [
           { path: 'supervisor/workspace', element: <LecturerWorkspacePage /> },
-          { path: 'supervisor/projects/:projectId/workspace', element: <SupervisorProjectWorkspacePage /> },
+          { element: <SupervisorExecutionRoute />, children: [
+            { path: 'supervisor/projects/:projectId/workspace', element: <SupervisorProjectWorkspacePage /> },
+            { path: 'supervisor/projects/:projectId/milestones/:milestoneId?', element: <MilestoneDetailPage /> },
+            { path: 'supervisor/projects/:projectId/tasks', element: <TaskBoardPage /> },
+            { path: 'supervisor/projects/:projectId/tasks/:taskId', element: <TaskDetailPage /> },
+            { path: 'supervisor/projects/:projectId/gantt', element: <GanttPage /> },
+          ] },
         ],
       },
       {

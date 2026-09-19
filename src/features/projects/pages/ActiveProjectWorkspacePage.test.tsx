@@ -34,7 +34,8 @@ describe('ActiveProjectWorkspacePage', () => {
     expect(screen.getByText('AI-PMS')).toBeTruthy()
     expect(screen.getByText('INTERDISCIPLINARY')).toBeTruthy()
     expect(screen.getByText('Dr. Mai')).toBeTruthy()
-    expect(screen.getByText(/không tạo milestone, task, tiến độ/)).toBeTruthy()
+    expect(screen.getByText(/Milestone, Task và Timeline hiển thị dữ liệu thực thi/)).toBeTruthy()
+    expect(screen.queryByText(/chưa thuộc F9/)).toBeNull()
   })
 
   it('guards the workspace URL and returns a non-ACTIVE project to its real next action', () => {
