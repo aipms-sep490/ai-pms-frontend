@@ -24,4 +24,9 @@ describe('TaskDetailPage RBAC UX', () => {
     renderPage(false, 2)
     expect(await screen.findByRole('button', { name: 'Cập nhật trạng thái' })).toBeTruthy(); expect(screen.queryByRole('button', { name: 'Lưu nội dung' })).toBeNull()
   })
+  it('renders the complete Backend status transition history', async () => {
+    api.getTask.mockResolvedValue(task); api.getTaskHistory.mockResolvedValue([{ id: 1, taskId: 8, oldStatus: 'TODO', newStatus: 'IN_PROGRESS', changedBy: 2, changedByFullName: 'Member', changedAt: '2026-09-20T00:00:00Z' }])
+    renderPage(false)
+    expect(await screen.findByText('TODO → IN_PROGRESS · Member')).toBeTruthy()
+  })
 })
