@@ -4,6 +4,7 @@ export type StudentJourneyState =
   | 'TEAM_ELIGIBLE'
   | 'PROJECT_PENDING'
   | 'REVISION_REQUIRED'
+  | 'PROJECT_REJECTED'
   | 'SUPERVISOR_PENDING'
   | 'ACTIVE'
   | 'FINAL_SUBMISSION'

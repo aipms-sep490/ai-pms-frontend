@@ -1,7 +1,7 @@
 export const projectModes = ['SINGLE_MAJOR', 'INTERDISCIPLINARY'] as const
 export type ProjectMode = (typeof projectModes)[number]
 
-export const registrationSourceKinds = ['PROJECT_TOPIC', 'STUDENT_PROPOSAL'] as const
+export const registrationSourceKinds = ['PUBLISHED_TOPIC', 'STUDENT_PROPOSAL'] as const
 export type RegistrationSourceKind = (typeof registrationSourceKinds)[number]
 
 export interface MajorRequirementDraft {
@@ -17,10 +17,4 @@ export interface AcademicScopeDraft {
   primaryMajorId?: number | null
   leadDepartmentId?: number | null
   requirements: readonly MajorRequirementDraft[]
-}
-
-export interface RegistrationSourceCapability {
-  status: 'BE_NEW_CONTRACT_REQUIRED' | 'MOCK_PREVIEW'
-  isPersisted: false
-  message: string
 }

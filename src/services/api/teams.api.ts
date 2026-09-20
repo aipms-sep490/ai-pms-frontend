@@ -191,10 +191,10 @@ export async function refreshEligibility(teamId: number): Promise<TeamDto> {
       const canRegister = reasons.length === 0
       mockTeamStore = {
         ...mockTeamStore,
-        status: canRegister ? 'LOCKED' : 'FORMING',
+        status: canRegister ? 'ELIGIBLE' : 'FORMING',
         eligibility: {
           canRegister,
-          rosterLocked: canRegister,
+          rosterLocked: false,
           reasons,
         },
       }

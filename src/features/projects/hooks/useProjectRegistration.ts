@@ -69,7 +69,7 @@ export function classifyProjectError(reason: unknown): ProjectRegistrationError 
     if (reason.status === 401) return { kind: 'authentication', message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' }
     if (reason.status === 403) return { kind: 'forbidden', message: 'Bạn không có quyền hoặc phạm vi truy cập cho thao tác này.' }
     if (reason.status === 404) return { kind: 'not-found', message: 'Không tìm thấy hồ sơ đề tài trong phạm vi truy cập của bạn.' }
-    if (reason.status === 409) return { kind: 'conflict', message: 'Hồ sơ đã thay đổi trên backend. Dữ liệu mới đã được tải lại; hãy xem lại và chủ động thực hiện lại thao tác.' }
+    if (reason.status === 409) return { kind: 'conflict', message: `Backend từ chối thao tác vì dữ liệu hoặc điều kiện đăng ký đã thay đổi: ${reason.message}. Dữ liệu mới đã được tải lại; hãy xem lại và chủ động thực hiện lại thao tác.` }
     if (reason.status === 400 || reason.status === 422) return { kind: 'validation', message: reason.message || 'Dữ liệu chưa thỏa điều kiện backend.' }
   }
   return { kind: 'system', message: reason instanceof Error ? reason.message : 'Không thể kết nối hoặc xử lý yêu cầu. Hãy thử lại.' }

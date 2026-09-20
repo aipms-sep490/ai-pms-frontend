@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as teamsApi from '../teams.api'
 
+const runtime = vi.hoisted(() => ({ env: { apiBaseUrl: '/api/v1', isMockMode: false } }))
+vi.mock('../../../app/config/env', () => runtime)
+
 const success = (body: unknown, status = 200) => ({
   ok: true,
   status,
@@ -18,8 +21,14 @@ const noContent = () => ({
 describe('teams.api contract', () => {
   const originalFetch = globalThis.fetch
 
-  beforeEach(() => vi.restoreAllMocks())
-  afterEach(() => { globalThis.fetch = originalFetch })
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    runtime.env.isMockMode = false
+  })
+  afterEach(() => {
+    globalThis.fetch = originalFetch
+    runtime.env.isMockMode = false
+  })
 
   it('uses the current and detail Team routes', async () => {
     const fetchMock = vi.fn().mockResolvedValue(success({ id: 28 }))
@@ -32,6 +41,15 @@ describe('teams.api contract', () => {
       '/api/v1/teams/current?academicSemesterId=7',
       '/api/v1/teams/28',
     ])
+  })
+
+  it('keeps a mock eligibility PASS eligible and leaves roster locking to a separate backend transition', async () => {
+    runtime.env.isMockMode = true
+
+    const refreshed = await teamsApi.refreshEligibility(28)
+
+    expect(refreshed.status).toBe('ELIGIBLE')
+    expect(refreshed.eligibility).toMatchObject({ canRegister: true, rosterLocked: false, reasons: [] })
   })
 
   it('serializes candidate search and paging at the backend endpoint', async () => {
@@ -117,4 +135,5 @@ describe('teams.api contract', () => {
     expect(refreshed).toMatchObject({ id: 28, eligibility: { canRegister: true } })
     expect(globalThis.fetch).toHaveBeenCalledWith('/api/v1/teams/28/eligibility/refresh', expect.objectContaining({ method: 'POST' }))
   })
+
 })

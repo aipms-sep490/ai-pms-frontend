@@ -17,7 +17,7 @@ describe('useSupervisorInbox', () => {
     supervisor.getSupervisorInbox.mockReset().mockResolvedValue({ items: [request] })
     supervisor.getOwnAssignments.mockReset().mockResolvedValue({ items: [] })
     supervisor.respondToSupervisorRequest.mockReset().mockResolvedValue({ ...request, status: 'ACCEPTED', assignmentId: 3 })
-    gateway.project.getProject.mockReset().mockResolvedValue({ id: 9, teamId: 2, title: 'Project' })
+    gateway.project.getProject.mockReset().mockResolvedValue({ id: 9, teamId: 2, title: 'Project', status: 'ACTIVE' })
     gateway.team.getTeam.mockReset().mockResolvedValue({ id: 2, name: 'Team', members: [] })
   })
 
@@ -33,16 +33,18 @@ describe('useSupervisorInbox', () => {
     expect(supervisor.getSupervisorInbox).toHaveBeenCalledTimes(2)
     expect(supervisor.getOwnAssignments).toHaveBeenCalledTimes(2)
     expect(result.current.assignments).toEqual([assignment])
+    expect(result.current.projects[9]?.status).toBe('ACTIVE')
   })
 
   it('does not replay a stale supervisor decision after a 409', async () => {
-    supervisor.respondToSupervisorRequest.mockRejectedValueOnce({ status: 409 })
+    supervisor.respondToSupervisorRequest.mockRejectedValueOnce({ status: 409, message: 'Supervisor capacity changed.' })
     const { result } = renderHook(() => useSupervisorInbox())
     await waitFor(() => expect(result.current.requests).toHaveLength(1))
     await act(async () => { expect(await result.current.respond(request, 'reject')).toBe(false) })
     expect(supervisor.respondToSupervisorRequest).toHaveBeenCalledTimes(1)
     expect(supervisor.getSupervisorInbox).toHaveBeenCalledTimes(2)
     expect(result.current.error?.kind).toBe('conflict')
+    expect(result.current.error?.message).toContain('Supervisor capacity changed.')
   })
 
   it('does not let a rendered but no-longer-pending request be decided again', async () => {

@@ -1,10 +1,14 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter } from 'react-router-dom'
 import { AppLayout } from '../layouts/AppLayout'
 import { HomeRedirect, RoleRoute } from '../../features/auth/components/RoleRoute'
 import { LecturerWorkspacePage } from '../../features/supervisors/pages/LecturerWorkspacePage'
 import { SupervisorProjectWorkspacePage } from '../../features/supervisors/pages/SupervisorProjectWorkspacePage'
+import { SupervisorExecutionRoute } from '../../features/supervisors/components/SupervisorExecutionRoute'
 import { OverviewPage } from '../pages/OverviewPage'
 import { ActiveProjectWorkspacePage } from '../../features/projects/pages/ActiveProjectWorkspacePage'
+import { ActiveStudentProjectRoute } from '../../features/projects/components/ActiveStudentProjectRoute'
+import { TaskBoardPage } from '../../features/tasks/pages/TaskBoardPage'
+import { TaskDetailPage } from '../../features/tasks/pages/TaskDetailPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { ProjectLifecyclePage } from '../../features/projects/pages/ProjectLifecyclePage'
 import { MilestoneDetailPage } from '../../features/milestones/pages/MilestoneDetailPage'
@@ -45,11 +49,14 @@ export const appRouter = createBrowserRouter([
         element: <RoleRoute allowed={['student']} />,
         children: [
           { path: 'project/overview', element: <OverviewPage /> },
-          { path: 'project/workspace', element: <ActiveProjectWorkspacePage /> },
+          { element: <ActiveStudentProjectRoute />, children: [
+            { path: 'project/workspace', element: <ActiveProjectWorkspacePage /> },
+            { path: 'project/milestones/:milestoneId?', element: <MilestoneDetailPage /> },
+            { path: 'project/tasks', element: <TaskBoardPage /> },
+            { path: 'project/tasks/:taskId', element: <TaskDetailPage /> },
+            { path: 'project/gantt', element: <GanttPage /> },
+          ] },
           { path: 'projects/lifecycle', element: <ProjectLifecyclePage /> },
-          { path: 'project/milestones/:milestoneId', element: <MilestoneDetailPage /> },
-          { path: 'project/milestones', element: <Navigate to="/project/milestones/M3" replace /> },
-          { path: 'project/gantt', element: <GanttPage /> },
           { path: 'team', element: <TeamManagementPage /> },
           { path: 'team/create', element: <TeamManagementPage /> },
           { path: 'topics', element: <TopicCataloguePage /> },
@@ -64,7 +71,13 @@ export const appRouter = createBrowserRouter([
         element: <RoleRoute allowed={['lecturer']} />,
         children: [
           { path: 'supervisor/workspace', element: <LecturerWorkspacePage /> },
-          { path: 'supervisor/projects/:projectId/workspace', element: <SupervisorProjectWorkspacePage /> },
+          { element: <SupervisorExecutionRoute />, children: [
+            { path: 'supervisor/projects/:projectId/workspace', element: <SupervisorProjectWorkspacePage /> },
+            { path: 'supervisor/projects/:projectId/milestones/:milestoneId?', element: <MilestoneDetailPage /> },
+            { path: 'supervisor/projects/:projectId/tasks', element: <TaskBoardPage /> },
+            { path: 'supervisor/projects/:projectId/tasks/:taskId', element: <TaskDetailPage /> },
+            { path: 'supervisor/projects/:projectId/gantt', element: <GanttPage /> },
+          ] },
         ],
       },
       {

@@ -110,6 +110,25 @@ describe('ProjectRegistrationFormPage', () => {
       expect(titleInput).toBeDefined()
     })
 
+    it('renders STUDENT_PROPOSAL provenance from the Backend Project', async () => {
+      render(<ProjectRegistrationFormPage />, { wrapper: MemoryRouter })
+      await waitForForm()
+      expect(screen.getByText('STUDENT_PROPOSAL')).toBeTruthy()
+      expect(screen.getByText(/Đề tài do sinh viên đề xuất/)).toBeTruthy()
+    })
+
+    it('renders the Backend-selected Published Topic without copying its content into the draft', async () => {
+      mocks.useStudentJourney.mockReturnValue({
+        project: { ...makeProject('REVISION_REQUIRED'), proposalSource: 'PUBLISHED_TOPIC', selectedTopic: { id: 5, code: 'TOP-5', title: 'AI topic' } }, team: baseTeam,
+        profile: { id: 10, fullName: 'Le Van A', majorId: 3 }, teamActions: null, projectActions: makeProjectActions(true, true), isLoading: false, error: null, refreshAll: vi.fn(),
+      })
+      render(<ProjectRegistrationFormPage />, { wrapper: MemoryRouter })
+      await waitForForm()
+      expect(screen.getByText('PUBLISHED_TOPIC')).toBeTruthy()
+      expect(screen.getByText(/TOP-5 · AI topic/)).toBeTruthy()
+      expect(screen.getByDisplayValue('Prefilled Project Title')).toBeTruthy()
+    })
+
     it('Save Draft button is ENABLED when edit_project_draft is explicitly granted', async () => {
       render(<ProjectRegistrationFormPage />, { wrapper: MemoryRouter })
       await waitForForm()

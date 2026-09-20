@@ -1,8 +1,11 @@
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
 import { useStudentJourney } from '../../../app/context'
 import type { ProjectDto, SupervisorAssignmentDto, TeamDto } from '../../../types/backend'
 import { resolveStudentNextAction } from '../../auth/utils/resolve-student-next-action'
 import { getActivePrimaryAssignment } from '../utils/project-resolution.utils'
+import { services } from '../../../services/service-gateway'
+import { HttpError } from '../../../services/http/http-client'
 
 export function ActiveProjectWorkspacePage() {
   const journey = useStudentJourney()
@@ -20,13 +23,36 @@ export function ActiveProjectWorkspacePage() {
   }
 
   return (
+    <>
     <ProjectWorkspaceSummary
       project={journey.project}
       team={journey.team}
       supervisor={getActivePrimaryAssignment(journey.assignments)}
       audience="student"
     />
+    <ExecutionEntry projectId={journey.project.id} />
+    </>
   )
+}
+
+export function ExecutionEntry({ projectId, routeBase = '/project' }: { projectId: number; routeBase?: string }) {
+  const [state, setState] = useState<{ count: number; progress: number | null; timelineMilestones: number; overdue: number; blocked: number; error: HttpError | null } | null>(null)
+  const load = useCallback(() => {
+    let current = true
+    void Promise.all([
+      services.milestone.getProjectMilestones(projectId),
+      services.task.getProjectProgressSummary(projectId),
+      services.task.getProjectTimeline(projectId),
+      services.task.getOverdueBlockedTasks(projectId),
+    ])
+      .then(([milestones, progress, timeline, attention]) => current && setState({ count: milestones.length, progress: progress.progressPercentage, timelineMilestones: timeline.milestones.length, overdue: attention.overdueTasks.length, blocked: attention.blockedTasks.length, error: null }))
+      .catch((error: unknown) => current && setState({ count: 0, progress: null, timelineMilestones: 0, overdue: 0, blocked: 0, error: error instanceof HttpError ? error : new HttpError('Không thể tải dữ liệu thực thi.', 500) }))
+    return () => { current = false }
+  }, [projectId])
+  useEffect(() => load(), [load])
+  if (!state) return <WorkspaceState message="Đang tải milestone và tiến độ từ Backend…" />
+  if (state.error) return <WorkspaceState error message={state.error.status === 403 ? 'Backend không cấp quyền xem dữ liệu thực thi của Project này.' : state.error.message} />
+  return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs"><h2 className="text-base font-bold text-slate-900">Thực thi Project</h2><p className="mt-2 text-sm text-slate-600">{state.count === 0 ? 'Backend chưa tạo milestone nào. Đây là trạng thái hợp lệ; hệ thống không tự tạo dữ liệu.' : `${state.count} milestone do Backend trả về.`}</p><p className="mt-1 text-xs text-slate-500">Tiến độ do Backend tính: {state.progress === null ? 'chưa có dữ liệu' : `${state.progress}%`}. Timeline có {state.timelineMilestones} milestone; cần chú ý {state.overdue} quá hạn và {state.blocked} bị chặn.</p><div className="mt-4 flex gap-3"><Link className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white" to={`${routeBase}/milestones`}>Milestones</Link><Link className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold" to={`${routeBase}/tasks`}>Task Board</Link><Link className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold" to={`${routeBase}/gantt`}>Timeline</Link></div></section>
 }
 
 export function ProjectWorkspaceSummary({
@@ -48,7 +74,7 @@ export function ProjectWorkspaceSummary({
       <header className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-xs sm:p-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-800">Backend-verified ACTIVE handoff</p>
         <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">Không gian đồ án ACTIVE</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-700">Project chỉ được mở tại đây sau khi Backend xác nhận phân công GVHD và trạng thái ACTIVE. F9 bàn giao ngữ cảnh; không tạo milestone, task, tiến độ hoặc workflow thực thi mới.</p>
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-700">Project chỉ được mở tại đây sau khi Backend xác nhận phân công GVHD và trạng thái ACTIVE. Milestone, Task và Timeline hiển thị dữ liệu thực thi do Backend trả về.</p>
       </header>
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs" aria-labelledby="active-project-summary">
@@ -73,7 +99,7 @@ export function ProjectWorkspaceSummary({
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs sm:p-6">
         <h2 className="text-base font-bold text-slate-900">Ranh giới handoff</h2>
-        <p className="mt-2 text-sm leading-relaxed text-slate-600">Các mô-đun thực thi sau ACTIVE (milestone, task, tiến độ, nhận xét, deliverable và chấm điểm) chưa thuộc F9. Không gian này không giả lập dữ liệu hoặc quyền cho các mô-đun đó.</p>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">Milestone, Task và tiến độ sử dụng API thực thi của Backend. Evidence và Comment vẫn BLOCKED_BY_BE_CONTRACT: không có lưu trữ cục bộ, Deliverable thay thế hoặc quyền workflow do Frontend tự tạo.</p>
       </section>
     </main>
   )

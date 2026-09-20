@@ -27,6 +27,11 @@ export interface UpdateProjectDraftPayload extends CreateProjectDraftPayload {
   concurrencyToken: string
 }
 
+export interface SelectProjectTopicPayload {
+  topicId: number
+  concurrencyToken: string
+}
+
 // In-memory fallback project store for offline / dev demo
 let mockProjectStore: ProjectDto | null = {
   id: 50,
@@ -222,6 +227,21 @@ export async function setMajors(
     `/projects/${id}/majors`,
     { concurrencyToken, requiredMajorIds },
   )
+}
+
+export async function selectTopic(id: number, payload: SelectProjectTopicPayload): Promise<ProjectDto> {
+  if (env.isMockMode) {
+    if (!mockProjectStore || mockProjectStore.id !== id) throw new Error(`Project #${id} not found.`)
+    mockProjectStore = {
+      ...mockProjectStore,
+      topicId: payload.topicId,
+      proposalSource: 'PUBLISHED_TOPIC',
+      selectedTopic: { id: payload.topicId, code: `TOP-${payload.topicId}`, title: `Published topic #${payload.topicId}` },
+      concurrencyToken: `token_v${Date.now()}`,
+    }
+    return mockProjectStore
+  }
+  return await httpPut<ProjectDto, SelectProjectTopicPayload>(`/projects/${id}/topic`, payload)
 }
 
 export async function submitProject(id: number, concurrencyToken: string): Promise<ProjectDto> {

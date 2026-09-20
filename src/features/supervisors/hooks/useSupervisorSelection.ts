@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isActionAllowed, type ProjectDto, type ProjectWorkflowActionsDto, type SupervisorAssignmentDto, type SupervisorCandidateDto, type SupervisorRequestDto, type TeamDto, type UserAccountDto } from '../../../types/backend'
 import { HttpError } from '../../../services/http/http-client'
 import { services } from '../../../services/service-gateway'
@@ -13,7 +13,7 @@ function classify(error: unknown): SupervisionError {
     if (response.status === 401) return { kind: 'authentication', message: 'Phiên đăng nhập đã hết hạn.' }
     if (response.status === 403) return { kind: 'forbidden', message: 'Backend từ chối quyền hoặc phạm vi Project.' }
     if (response.status === 404) return { kind: 'not-found', message: 'Project, request hoặc candidate không còn khả dụng.' }
-    if (response.status === 409) return { kind: 'conflict', message: 'Trạng thái supervisor vừa thay đổi. Dữ liệu mới đã được tải; hãy tự chọn lại thao tác.' }
+    if (response.status === 409) return { kind: 'conflict', message: `Trạng thái supervisor vừa thay đổi. ${response.message ?? 'Dữ liệu mới đã được tải; hãy tự chọn lại thao tác.'}` }
     if (response.status === 400 || response.status === 422) return { kind: 'validation', message: response.message || 'Backend từ chối yêu cầu theo quy tắc nghiệp vụ.' }
   }
   return { kind: 'system', message: error instanceof Error ? error.message : 'Không thể tải hoặc xử lý dữ liệu supervisor.' }
@@ -31,12 +31,13 @@ export function useSupervisorSelection({
   const [cancelPending, setCancelPending] = useState<number | null>(null)
   const [error, setError] = useState<SupervisionError | null>(null)
   const [query, setQuery] = useState({ search: '', expertise: '' })
+  const appliedQuery = useRef({ search: '', expertise: '' })
 
   const isLeader = Boolean(team?.members.some((member) => member.userId === profile?.id && member.isLeader))
   const canSend = isActionAllowed(actions?.actions ?? [], 'send_supervisor_request')
   const activeAssignment = useMemo(() => getActivePrimaryAssignment(assignments), [assignments])
 
-  const refresh = useCallback(async (refreshCandidates = true) => {
+  const refresh = useCallback(async (refreshCandidates = true, filters = appliedQuery.current) => {
     if (!project) { setCandidates([]); setRequests([]); setAssignments([]); setLoading(false); return }
     setLoading(true); setError(null)
     try {
@@ -49,19 +50,25 @@ export function useSupervisorSelection({
       if (refreshCandidates && canSend && isLeader && !getActivePrimaryAssignment(assignmentResult.items)) {
         setCandidateLoading(true)
         const candidateResult = await services.supervisor.getCandidates(project.id, {
-          search: query.search.trim() || undefined,
-          expertise: query.expertise.trim() || undefined,
+          search: filters.search.trim() || undefined,
+          expertise: filters.expertise.trim() || undefined,
         })
         setCandidates(candidateResult.items)
       } else setCandidates([])
     } catch (nextError) { setError(classify(nextError)) }
     finally { setLoading(false); setCandidateLoading(false) }
-  }, [canSend, isLeader, project, query.expertise, query.search])
+  }, [canSend, isLeader, project])
 
   useEffect(() => { void refresh() }, [refresh])
 
+  const applyFilters = useCallback(async () => {
+    const filters = { search: query.search, expertise: query.expertise }
+    appliedQuery.current = filters
+    await refresh(true, filters)
+  }, [query, refresh])
+
   const send = useCallback(async (candidate: SupervisorCandidateDto, message?: string) => {
-    if (!project || !canSend || !isLeader || sendRequestPending) return false
+    if (!project || !canSend || !isLeader || activeAssignment || sendRequestPending) return false
     setSendRequestPending(true); setError(null)
     try {
       await services.supervisor.sendRequest(project.id, candidate.id, message?.trim() || undefined)
@@ -74,13 +81,13 @@ export function useSupervisorSelection({
       setError(next)
       return false
     } finally { setSendRequestPending(false) }
-  }, [canSend, isLeader, project, refresh, refreshAll, sendRequestPending])
+  }, [activeAssignment, canSend, isLeader, project, refresh, refreshAll, sendRequestPending])
 
-  const cancel = useCallback(async (requestId: number) => {
-    if (cancelPending !== null) return false
-    setCancelPending(requestId); setError(null)
+  const cancel = useCallback(async (request: SupervisorRequestDto) => {
+    if (request.status !== 'PENDING' || !requests.some((item) => item.id === request.id && item.status === 'PENDING') || cancelPending !== null) return false
+    setCancelPending(request.id); setError(null)
     try {
-      await services.supervisor.cancelRequest(requestId)
+      await services.supervisor.cancelRequest(request.id)
       await Promise.all([refresh(true), refreshAll()])
       return true
     } catch (nextError) {
@@ -89,7 +96,7 @@ export function useSupervisorSelection({
       setError(next)
       return false
     } finally { setCancelPending(null) }
-  }, [cancelPending, refresh, refreshAll])
+  }, [cancelPending, refresh, refreshAll, requests])
 
-  return { candidates, requests, assignments, activeAssignment, loading, candidateLoading, sendRequestPending, cancelPending, error, query, setQuery, refresh, send, cancel, canSend: canSend && isLeader && !activeAssignment, isLeader }
+  return { candidates, requests, assignments, activeAssignment, loading, candidateLoading, sendRequestPending, cancelPending, error, query, setQuery, applyFilters, refresh, send, cancel, canSend: canSend && isLeader && !activeAssignment, isLeader }
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { TeamDto, ProjectDto, SupervisorAssignmentDto } from '../../../types/backend'
 import type { StudentJourneyState } from '../../../features/auth/types/student-journey.types'
+import { resolveStudentNextAction } from '../../../features/auth/utils/resolve-student-next-action'
 import { resolveStudentJourneyState } from '../resolve-student-journey-state'
 
 function computeStudentJourneyState(
@@ -21,7 +22,7 @@ describe('computeStudentJourneyState', () => {
     members: [],
     eligibility: {
       canRegister: true,
-      rosterLocked: true,
+      rosterLocked: false,
       reasons: [],
     },
   }
@@ -43,6 +44,17 @@ describe('computeStudentJourneyState', () => {
     tags: [],
   }
 
+  const activePrimaryAssignment: SupervisorAssignmentDto = {
+    id: 1,
+    projectId: 10,
+    supervisorProfileId: 100,
+    supervisorUserId: 200,
+    supervisorName: 'Dr. John',
+    supervisorRequestId: 5,
+    isPrimary: true,
+    assignedAt: '2026-09-05T00:00:00Z',
+  }
+
   it('returns NO_TEAM when student has no team', () => {
     expect(computeStudentJourneyState(null, null, [])).toBe('NO_TEAM')
   })
@@ -56,9 +68,10 @@ describe('computeStudentJourneyState', () => {
     expect(computeStudentJourneyState(formingTeam, null, [])).toBe('TEAM_FORMING')
   })
 
-  it('returns TEAM_ELIGIBLE when team can register but project is draft or null', () => {
+  it('keeps DRAFT project state primary over roster state and routes it to editing', () => {
     expect(computeStudentJourneyState(dummyTeam, null, [])).toBe('TEAM_ELIGIBLE')
     expect(computeStudentJourneyState(dummyTeam, dummyProject, [])).toBe('TEAM_ELIGIBLE')
+    expect(resolveStudentNextAction({ journeyState: 'TEAM_ELIGIBLE', projectStatus: dummyProject.status }).route).toBe('/project/edit')
   })
 
   it('returns PROJECT_PENDING when project is submitted or under review', () => {
@@ -74,14 +87,24 @@ describe('computeStudentJourneyState', () => {
     expect(computeStudentJourneyState(dummyTeam, revisionProject, [])).toBe('REVISION_REQUIRED')
   })
 
-  it('returns SUPERVISOR_PENDING when project is approved but no supervisor assigned yet', () => {
+  it('keeps APPROVED projects SUPERVISOR_PENDING even with an active primary assignment', () => {
     const approvedProject: ProjectDto = { ...dummyProject, status: 'Approved' }
-    expect(computeStudentJourneyState(dummyTeam, approvedProject, [])).toBe('SUPERVISOR_PENDING')
+    expect(computeStudentJourneyState(dummyTeam, approvedProject, [activePrimaryAssignment])).toBe('SUPERVISOR_PENDING')
   })
 
-  it('returns ACTIVE when project is approved and primary supervisor is assigned', () => {
+  it('keeps SUPERVISOR_PENDING projects in the supervisor flow even with an active primary assignment', () => {
+    const pendingProject: ProjectDto = { ...dummyProject, status: 'SupervisorPending' }
+    expect(computeStudentJourneyState(dummyTeam, pendingProject, [activePrimaryAssignment])).toBe('SUPERVISOR_PENDING')
+    expect(resolveStudentNextAction({ journeyState: 'SUPERVISOR_PENDING', projectStatus: pendingProject.status }).route).toBe('/project/supervisor')
+  })
+
+  it('returns ACTIVE only for Backend Project status ACTIVE', () => {
+    expect(computeStudentJourneyState(dummyTeam, { ...dummyProject, status: 'Active' }, [activePrimaryAssignment])).toBe('ACTIVE')
+  })
+
+  it('does not treat an ended primary assignment as ACTIVE', () => {
     const approvedProject: ProjectDto = { ...dummyProject, status: 'Approved' }
-    const assignment: SupervisorAssignmentDto = {
+    const endedAssignment: SupervisorAssignmentDto = {
       id: 1,
       projectId: 10,
       supervisorProfileId: 100,
@@ -90,8 +113,13 @@ describe('computeStudentJourneyState', () => {
       supervisorRequestId: 5,
       isPrimary: true,
       assignedAt: '2026-09-05T00:00:00Z',
+      endedAt: '2026-09-06T00:00:00Z',
     }
-    expect(computeStudentJourneyState(dummyTeam, approvedProject, [assignment])).toBe('ACTIVE')
+    expect(computeStudentJourneyState(dummyTeam, approvedProject, [endedAssignment])).toBe('SUPERVISOR_PENDING')
+  })
+
+  it('returns PROJECT_REJECTED for a Backend rejected project', () => {
+    expect(computeStudentJourneyState(dummyTeam, { ...dummyProject, status: 'Rejected' }, [])).toBe('PROJECT_REJECTED')
   })
 
   it('keeps an active project active even when its roster is locked', () => {
@@ -101,5 +129,26 @@ describe('computeStudentJourneyState', () => {
       eligibility: { canRegister: false, rosterLocked: true, reasons: ['ROSTER_LOCKED'] },
     }
     expect(computeStudentJourneyState(lockedTeam, { ...dummyProject, status: 'Active' }, [])).toBe('ACTIVE')
+  })
+
+  it('covers the canonical Backend-returned W4–W6 journey without synthesizing a transition', () => {
+    const formingTeam: TeamDto = { ...dummyTeam, status: 'FORMING', eligibility: { canRegister: false, rosterLocked: false, reasons: ['TOO_FEW_MEMBERS'] } }
+    const states = [
+      computeStudentJourneyState(null, null, []),
+      computeStudentJourneyState(formingTeam, null, []),
+      computeStudentJourneyState(dummyTeam, null, []),
+      computeStudentJourneyState(dummyTeam, { ...dummyProject, status: 'DRAFT' }, []),
+      computeStudentJourneyState(dummyTeam, { ...dummyProject, status: 'SUBMITTED' }, []),
+      computeStudentJourneyState(dummyTeam, { ...dummyProject, status: 'UNDER_REVIEW' }, []),
+      computeStudentJourneyState(dummyTeam, { ...dummyProject, status: 'REVISION_REQUIRED' }, []),
+      computeStudentJourneyState(dummyTeam, { ...dummyProject, status: 'SUBMITTED' }, []),
+      computeStudentJourneyState(dummyTeam, { ...dummyProject, status: 'APPROVED' }, []),
+      computeStudentJourneyState(dummyTeam, { ...dummyProject, status: 'ACTIVE' }, [activePrimaryAssignment]),
+    ]
+
+    expect(states).toEqual(['NO_TEAM', 'TEAM_FORMING', 'TEAM_ELIGIBLE', 'TEAM_ELIGIBLE', 'PROJECT_PENDING', 'PROJECT_PENDING', 'REVISION_REQUIRED', 'PROJECT_PENDING', 'SUPERVISOR_PENDING', 'ACTIVE'])
+    expect(resolveStudentNextAction({ journeyState: states[3], projectStatus: 'DRAFT' }).route).toBe('/project/edit')
+    expect(resolveStudentNextAction({ journeyState: states[8], projectStatus: 'APPROVED' }).route).toBe('/project/supervisor')
+    expect(resolveStudentNextAction({ journeyState: states[9], projectStatus: 'ACTIVE' }).route).toBe('/project/workspace')
   })
 })

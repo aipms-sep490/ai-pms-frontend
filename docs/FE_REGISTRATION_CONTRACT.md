@@ -66,19 +66,19 @@ an explicit human retry—never auto-retry.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Topic list | BE_AVAILABLE | Topic catalogue / Student | `topics.api.getTopicCatalogue`; TopicsController | `GET /topics` | filters -> paged `TopicDto` | Backend catalogue visibility | list; 401/403/5xx | Explicit mock adapter only | FE currently asks `PUBLISHED`, but also performs a presentation-only major filter. |
 | Topic detail | BE_AVAILABLE | Catalogue / Student | `getTopicById`; TopicsController | `GET /topics/{id}` | id -> `TopicDto` | Backend topic visibility | detail; 401/403/404 | Explicit mock adapter only | Detail does not select or persist a Project source. F6 never reads `topicId` from the URL into a Project. |
-| Registration Source read | BE_NEW_CONTRACT_REQUIRED | F3 / Student, Department review | No FE type/adapter; no BE aggregate | **PROPOSED — NOT IMPLEMENTED** `GET /teams/{teamId}/registration-source` | none -> `RegistrationSource` | Team member, period and organization scope | source; 401/403/404/409 | Explicit development mock only | Must follow ADR-REG-001. |
-| Select Project Topic source | BE_NEW_CONTRACT_REQUIRED | F3 / Team leader | No runtime source selection is retained in URL, React state, or storage | **PROPOSED — NOT IMPLEMENTED** `PUT /teams/{teamId}/registration-source` | source type/topic ID/token -> source | Leader; published/in-period/visible Topic; no locked source | source; 400/403/404/409/422 | Explicit development mock only | Never use React/query/localStorage as authority. |
-| Create Student Proposal source | BE_NEW_CONTRACT_REQUIRED | F3 / Student | No separate proposal resource exists | **PROPOSED — NOT IMPLEMENTED** owner-approved route | validated proposal -> source | Product-defined proposer/period/scope | source; validation/403/409 | Explicit development mock only | Proposal approval lifecycle remains undecided. |
-| Change source | BE_NEW_CONTRACT_REQUIRED | F3 / Team leader | No BE source/change state | **PROPOSED — NOT IMPLEMENTED** `PUT /teams/{teamId}/registration-source` | source + concurrency token -> source | Only before backend lock; recalculates eligibility | source; 409 stale/locked | Explicit development mock only | Changes invalidate eligibility. |
-| Source status | BE_NEW_CONTRACT_REQUIRED | F3/F6 / authorized viewers | No source state/DTO | **PROPOSED — NOT IMPLEMENTED**, part of source read | none -> status/issues/lock | Backend scope | source status; 403/404 | Explicit development mock only | Do not invent approval states. |
+| Registration Source read | BE_AVAILABLE | Student, Department review / scoped actor | `ProjectDto.proposalSource`, `topicId`, `selectedTopic` | `GET /projects/{projectId}` | Project -> canonical provenance | Backend project visibility | Project; 401/403/404 | Explicit mock adapter only | No URL, local/session storage, or catalogue state is authoritative. |
+| Select Published Topic | BE_AVAILABLE | Team leader / editable Project draft | `projects.api.selectTopic` | `PUT /projects/{projectId}/topic` | `{ topicId, concurrencyToken }` -> updated Project | Backend leader, period, topic, scope, and draft-state rules | Project; 400/403/404/409 | Explicit mock adapter only | `409` reloads canonical Project and topic data; no replay. |
+| Student Proposal source | BE_AVAILABLE | Student, Department review / scoped actor | `ProjectDto.proposalSource=STUDENT_PROPOSAL` | Project read/create contract | Project -> canonical provenance | Backend Project workflow | Project/action errors | Explicit mock adapter only | There is no separate proposal aggregate or client-side approval lifecycle. |
+| Change or clear source | BE_CONTRACT_LIMITATION | Team leader / editable Project draft | No FE mutation | No verified clear/deselect endpoint | N/A | N/A | N/A | N/A | Frontend does not invent a reversal or source-change workflow. |
+| Source status | BE_CONTRACT_LIMITATION | Authorized viewers | `proposalSource` identifies provenance only | Project read | N/A | Backend Project scope | N/A | N/A | There is no standalone source lock/status resource. |
 
 ### Team, roster, and eligibility
 
 | Capability | Status | Consumer / actor | Current FE / BE | Expected method and route | Request / response | Authorization, scope, precondition | Success / errors / concurrency | Mock allowed / production fallback | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Team current/detail | BE_AVAILABLE | StudentJourney/Team / Student | typed team API; TeamsController | `GET /teams/current`, `GET /teams/{id}` | semester/id -> `TeamDto` | Backend team membership/visibility | team or 204/null; 401/403/404 | Explicit mock only | Current Team uses semester query. |
-| Create/update Team | BE_AVAILABLE | Team page / Student leader | typed API | `POST /teams`, `PUT /teams/{id}` | team fields/scope -> Team | Verified profile, period/team rules | team; 400/403/409/422 | Explicit mock only | Source requirement is a later contract gate. |
-| Team academic scope | BE_AVAILABLE | Scope panel / Team leader | `setAcademicScope` | `PUT /teams/{id}/academic-scope` | mode/major requirements/token -> Team | Backend leader/roster policy | team; 403/409/422 | Explicit mock only | Source must later dominate this scope. |
+| Create/update Team | BE_AVAILABLE | Team page / Student leader | typed API | `POST /teams`, `PUT /teams/{id}` | team fields/scope -> Team | Verified profile, period/team rules | team; 400/403/409/422 | Explicit mock only | Published-topic provenance is selected only after Backend creates an editable Project draft. |
+| Team academic scope | BE_AVAILABLE | Scope panel / Team leader | `setAcademicScope` | `PUT /teams/{id}/academic-scope` | mode/major requirements/token -> Team | Backend leader/roster policy | team; 403/409/422 | Explicit mock only | Backend validates topic selection against the returned Project/Team scope. |
 | Invitation candidates | BE_AVAILABLE | Team page / Team leader | typed API | `GET /teams/{id}/invitation-candidates` | search/paging -> candidates | Backend candidate scope | list; 403/404 | Explicit mock only | Verified profile is authoritative. |
 | Invite/list invitations | BE_AVAILABLE | Team page / leader/member | typed API | `POST /teams/{id}/invitations`; `GET /teams/invitations` | invite body/filter -> invitation/page | Leader/member scope | invitation; 403/409/422 | Explicit mock only | No FE member eligibility authority. |
 | Accept/reject/cancel | BE_AVAILABLE | Invitation panel / invited user or leader | typed API | `POST /teams/invitations/{id}/accept|reject|cancel` | none -> Team/204 | Invitation state/actor | Team/204; 403/404/409 | Explicit mock only | 204 is handled by shared client. |
@@ -139,7 +139,8 @@ The Supervisor Inbox uses `GET /supervisors/requests` and `GET /supervisors/assi
 a client-provided supervisor ID. `POST /supervisor-requests/{id}/accept` creates the primary
 assignment and activates the project atomically; rejection uses the matching reject route. No
 supervision mutation has a contract concurrency token. Backend locks are authoritative; `409`
-refreshes data and requires a new human decision. Project source provenance is still unavailable.
+refreshes data and requires a new human decision. Project source provenance is read from the
+separately loaded canonical `ProjectDto`.
 
 ## Domain type freeze
 
@@ -152,12 +153,11 @@ refreshes data and requires a new human decision. Project source provenance is s
 | `ProjectSummary`, `ProjectDetail`, `ProjectActions`, `DepartmentDecision` | `ProjectSummaryDto`, `ProjectDto`, `ProjectWorkflowActionsDto`; review adapter types | **EXISTING TYPE -> EXTEND** DepartmentDecision only in a shared additive backend-shaped type. |
 | `SupervisorCandidate`, `SupervisorRequest`, `SupervisorAssignment` | corresponding `*Dto` types | **EXISTING TYPE -> REUSE**. |
 | Problem-details mapping | `HttpError`, `ApiProblem` | **EXISTING TYPE -> EXTEND** with a central classification helper in F1 only if required. |
-| `RegistrationSourceType`, `RegistrationSource`, `ProjectTopicSource`, `StudentProposalSource` | None | **MISSING TYPE -> PROPOSE** only after accepted BE contract. Type values: `PROJECT_TOPIC`, `STUDENT_PROPOSAL`. |
+| Project provenance | `ProjectDto.proposalSource`, `topicId`, `selectedTopic` | **EXISTING TYPE -> REUSE**; `PUBLISHED_TOPIC` and `STUDENT_PROPOSAL` are Backend-returned values. |
 
-Proposed Registration Source shape is conceptual only: stable ID, `type`, status/lock state,
-selection validity/issues, selection time/version, `academicScope`, and a discriminated Topic
-reference or validated proposal payload. It must expose governed data read-only after backend
-lock. Do not add it to runtime types before the backend contract is accepted.
+Project provenance is read-only presentation data. A selected published topic is attached only
+through the project topic endpoint; there is no standalone source aggregate, proposal lifecycle,
+or clear/deselect operation in Frontend.
 
 ## Real versus mock boundary
 
@@ -177,16 +177,14 @@ ACTIVE success.
 ## Source -> Team -> Eligibility dependency
 
 ```text
-Registration Source (future backend aggregate)
-  -> governed Academic Scope
-  -> Team and roster
+Team and governed Academic Scope
   -> Eligibility refresh/reasons
-  -> Project draft and immutable provenance
+  -> editable Project draft
+  -> Backend Project provenance (`STUDENT_PROPOSAL` or `PUBLISHED_TOPIC`)
 ```
 
-Team and Project must never weaken source requirements. Roster or governed scope changes make
-eligibility stale; FE displays that state and refetches. Backend enforcement is required before
-source selection can be called complete.
+Team and Project must never weaken Backend scope requirements. Roster or governed scope changes
+are re-evaluated by Backend; Frontend displays the returned Team/Project state and refetches.
 
 ## Role experience freeze
 
@@ -204,15 +202,15 @@ source selection can be called complete.
 | --- | --- | --- | --- | --- | --- | --- |
 | `/login` | KEEP, modify later | Login/session boundary | all | ANONYMOUS | Shared | F1 |
 | `/project/workspace` | KEEP, modify later | State-aware dashboard/workspace | scoped user | context onward | Shared | F2/F9 |
-| `/topics` | KEEP, modify later | Topic browse/source entry | Student | NO_REGISTRATION_SOURCE | AnhPNH | F3 |
-| none | NEW REQUIRED later | Proposal source entry | Student | NO_REGISTRATION_SOURCE | AnhPNH | F3 |
+| `/topics` | KEEP | Published topic browse/selection entry | Student leader | editable Project draft | AnhPNH | F3 |
+| none | NOT CREATED | No separate proposal source resource | Student | Backend `STUDENT_PROPOSAL` Project provenance | AnhPNH | F3 |
 | `/team`, `/team/create` | KEEP, modify later | Team/roster/scope | Student | NO_TEAM through eligibility | AnhPNH | F4-F5 |
 | `/project/register`, `/project/edit` | KEEP, modify later | Draft/edit from governed source | Student Leader | ELIGIBILITY_PASSED/DRAFT | AnhPNH | F6 |
 | `/project/status` | KEEP, modify later | State/history/revision feedback | Student | submitted through approved | AnhPNH | F6-F8 |
 | `/department/projects/review/:id` | KEEP, modify later | Department review/detail | Department | submitted/review | TinVV | F7 |
 | `/project/supervisor` | KEEP, modify later | Candidate/request tracking | Student Leader | PROJECT_APPROVED | AnhPNH | F8 |
 | none | NEW REQUIRED later | Supervisor inbox | Supervisor | request pending | Shared with AnhPNH | F8 |
-| `/supervisor/workspace` | MODIFY later | Assigned project workspace | Supervisor | PROJECT_ACTIVE | Shared | F9 |
+| `/supervisor/projects/:projectId/workspace` | KEEP | Assigned ACTIVE project workspace | Supervisor | Backend ACTIVE plus primary assignment | Shared | F9 |
 | `/department/topics`, `/department/supervisors` | KEEP | Department workflows outside Student source selection | Department | independent | TinVV | none |
 
 No working route is renamed or deprecated in F0.

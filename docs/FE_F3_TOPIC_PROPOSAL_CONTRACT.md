@@ -17,16 +17,18 @@ F3 also establishes a typed local academic-scope model for the two backend-defin
 
 The validation utility is a client-side draft guard only. It does not calculate student eligibility and does not authorize scope.
 
-## Explicit backend boundary
+## Current backend provenance contract
 
-The connected backend has no persistent `TeamRegistrationSource` or `StudentProposal` aggregate. In particular, it does not currently provide a contract for:
+Backend now persists Project provenance on the canonical `ProjectDto`: `proposalSource`,
+`topicId`, and `selectedTopic`. A team leader selects a published topic only through
+`PUT /projects/{projectId}/topic` with `{ topicId, concurrencyToken }`; Backend validates the
+editable Project state, publication/window/scope rules, and concurrency before returning the
+updated Project. API mode never derives this provenance from a URL, browser storage, or catalogue
+state, and a `409` reloads authoritative Project/topic data without replaying the mutation.
 
-- reading or saving `/teams/{teamId}/registration-source`;
-- source lock, registration status, concurrency token, or department/period authorization;
-- a persisted Student Proposal and its approval workflow;
-- a relation from an execution `Project` to its chosen registration source.
-
-Therefore API mode exposes `BE_NEW_CONTRACT_REQUIRED`; it does not call an invented endpoint and it does not silently fall back to mock data. Mock mode may show a clearly labelled preview only; it is never persisted or approved.
+`STUDENT_PROPOSAL` is the Backend default Project provenance, not a separate frontend proposal
+aggregate. There is still no verified clear/deselect endpoint, standalone source lock/status
+resource, or client-side proposal approval lifecycle; Frontend intentionally exposes none.
 
 ## Deliberately deferred boundaries
 

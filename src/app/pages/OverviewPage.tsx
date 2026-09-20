@@ -22,6 +22,7 @@ export function OverviewPage() {
     TEAM_ELIGIBLE: 1,
     PROJECT_PENDING: 2,
     REVISION_REQUIRED: 2,
+    PROJECT_REJECTED: 2,
     SUPERVISOR_PENDING: 3,
     ACTIVE: 4,
     FINAL_SUBMISSION: 4,
