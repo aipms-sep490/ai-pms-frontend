@@ -12,25 +12,26 @@ export function TaskBoardPage() {
   const [tasks, setTasks] = useState<TaskDto[]>([])
   const [milestones, setMilestones] = useState<MilestoneDto[]>([])
   const [search, setSearch] = useState('')
+  const [appliedSearch, setAppliedSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<HttpError | null>(null)
   const load = useCallback(async () => {
     setLoading(true); setError(null)
     try {
       const [taskPage, milestoneItems] = await Promise.all([
-        services.task.getProjectTasks(project.id, { search: search.trim() || undefined, page: 1, pageSize: 100 }),
+        services.task.getProjectTasks(project.id, { search: appliedSearch.trim() || undefined, page: 1, pageSize: 100 }),
         services.milestone.getProjectMilestones(project.id),
       ])
       setTasks(taskPage.items); setMilestones(milestoneItems)
     }
     catch (reason) { setError(reason instanceof HttpError ? reason : new HttpError('Không thể tải Task.', 500)) }
     finally { setLoading(false) }
-  }, [project.id, search])
+  }, [project.id, appliedSearch])
   useEffect(() => { void load() }, [load]) // search is applied explicitly to avoid client-side authority/filtering
   const grouped = useMemo(() => Object.fromEntries(columns.map((status) => [status, tasks.filter((task) => task.status === status)])) as Record<BackendTaskStatus, TaskDto[]>, [tasks])
   if (loading) return <State message="Đang tải Task từ Backend…" />
   if (error) return <State error message={error.status === 403 ? 'Backend không cấp quyền xem Task của Project này.' : error.message} retry={load} />
-  return <main className="mx-auto flex max-w-7xl flex-col gap-5 pb-12"><header><h1 className="text-2xl font-bold">Task Board</h1><p className="mt-1 text-sm text-slate-600">Trạng thái và dữ liệu đều do Backend trả về; Evidence/Comment chưa có contract.</p></header><form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); void load() }}><input aria-label="Tìm kiếm task" value={search} onChange={(event) => setSearch(event.target.value)} className="rounded border px-3 py-2 text-sm" placeholder="Tìm task"/><button className="rounded bg-slate-900 px-3 py-2 text-xs font-bold text-white">Lọc</button></form>{canManageStructure ? <CreateTask milestones={milestones} onCreated={load} /> : null}{tasks.length === 0 ? <section className="rounded-2xl border bg-white p-8 text-sm text-slate-600">Backend chưa trả Task nào cho Project ACTIVE này.</section> : <div className="grid gap-4 xl:grid-cols-6">{columns.map((status) => <section key={status} className="rounded-xl border bg-slate-50 p-3"><h2 className="text-xs font-bold">{status} · {grouped[status].length}</h2><div className="mt-3 space-y-2">{grouped[status].map((task) => <Link key={task.id} to={`${routeBase}/tasks/${task.id}`} className="block rounded-lg border bg-white p-3 text-xs hover:border-blue-400"><strong>{task.title}</strong><p className="mt-1 text-slate-500">{task.priority ?? 'Không ưu tiên'} · {task.dueAt ?? 'Chưa có hạn'}</p></Link>)}</div></section>)}</div>}<EvidenceBoundary /></main>
+  return <main className="mx-auto flex max-w-7xl flex-col gap-5 pb-12"><header><h1 className="text-2xl font-bold">Task Board</h1><p className="mt-1 text-sm text-slate-600">Trạng thái và dữ liệu đều do Backend trả về; Evidence/Comment chưa có contract.</p></header><form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); setAppliedSearch(search) }}><input aria-label="Tìm kiếm task" value={search} onChange={(event) => setSearch(event.target.value)} className="rounded border px-3 py-2 text-sm" placeholder="Tìm task"/><button className="rounded bg-slate-900 px-3 py-2 text-xs font-bold text-white">Lọc</button></form>{canManageStructure ? <CreateTask milestones={milestones} onCreated={load} /> : null}{tasks.length === 0 ? <section className="rounded-2xl border bg-white p-8 text-sm text-slate-600">Backend chưa trả Task nào cho Project ACTIVE này.</section> : <div className="grid gap-4 xl:grid-cols-6">{columns.map((status) => <section key={status} className="rounded-xl border bg-slate-50 p-3"><h2 className="text-xs font-bold">{status} · {grouped[status].length}</h2><div className="mt-3 space-y-2">{grouped[status].map((task) => <Link key={task.id} to={`${routeBase}/tasks/${task.id}`} className="block rounded-lg border bg-white p-3 text-xs hover:border-blue-400"><strong>{task.title}</strong><p className="mt-1 text-slate-500">{task.priority ?? 'Không ưu tiên'} · {task.dueAt ?? 'Chưa có hạn'}</p></Link>)}</div></section>)}</div>}<EvidenceBoundary /></main>
 }
 
 function CreateTask({ milestones, onCreated }: { milestones: MilestoneDto[]; onCreated: () => Promise<void> }) {

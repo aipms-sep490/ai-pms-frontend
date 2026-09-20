@@ -24,7 +24,7 @@ export function SupervisorExecutionRoute() {
     try {
       const [project, assignments] = await Promise.all([
         services.project.getProject(id),
-        services.supervisor.getOwnAssignments({ page: 1, pageSize: 100 }),
+        services.supervisor.getOwnAssignments({ status: 'ACTIVE', page: 1, pageSize: 100 }),
       ])
       const assignment = assignments.items.find((item) => item.projectId === id && item.isPrimary && !item.endedAt)
       setData(assignment && isActive(project.status) ? { project, assignment } : null)
