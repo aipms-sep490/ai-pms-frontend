@@ -77,8 +77,8 @@ an explicit human retry—never auto-retry.
 | Capability | Status | Consumer / actor | Current FE / BE | Expected method and route | Request / response | Authorization, scope, precondition | Success / errors / concurrency | Mock allowed / production fallback | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Team current/detail | BE_AVAILABLE | StudentJourney/Team / Student | typed team API; TeamsController | `GET /teams/current`, `GET /teams/{id}` | semester/id -> `TeamDto` | Backend team membership/visibility | team or 204/null; 401/403/404 | Explicit mock only | Current Team uses semester query. |
-| Create/update Team | BE_AVAILABLE | Team page / Student leader | typed API | `POST /teams`, `PUT /teams/{id}` | team fields/scope -> Team | Verified profile, period/team rules | team; 400/403/409/422 | Explicit mock only | Source requirement is a later contract gate. |
-| Team academic scope | BE_AVAILABLE | Scope panel / Team leader | `setAcademicScope` | `PUT /teams/{id}/academic-scope` | mode/major requirements/token -> Team | Backend leader/roster policy | team; 403/409/422 | Explicit mock only | Source must later dominate this scope. |
+| Create/update Team | BE_AVAILABLE | Team page / Student leader | typed API | `POST /teams`, `PUT /teams/{id}` | team fields/scope -> Team | Verified profile, period/team rules | team; 400/403/409/422 | Explicit mock only | Published-topic provenance is selected only after Backend creates an editable Project draft. |
+| Team academic scope | BE_AVAILABLE | Scope panel / Team leader | `setAcademicScope` | `PUT /teams/{id}/academic-scope` | mode/major requirements/token -> Team | Backend leader/roster policy | team; 403/409/422 | Explicit mock only | Backend validates topic selection against the returned Project/Team scope. |
 | Invitation candidates | BE_AVAILABLE | Team page / Team leader | typed API | `GET /teams/{id}/invitation-candidates` | search/paging -> candidates | Backend candidate scope | list; 403/404 | Explicit mock only | Verified profile is authoritative. |
 | Invite/list invitations | BE_AVAILABLE | Team page / leader/member | typed API | `POST /teams/{id}/invitations`; `GET /teams/invitations` | invite body/filter -> invitation/page | Leader/member scope | invitation; 403/409/422 | Explicit mock only | No FE member eligibility authority. |
 | Accept/reject/cancel | BE_AVAILABLE | Invitation panel / invited user or leader | typed API | `POST /teams/invitations/{id}/accept|reject|cancel` | none -> Team/204 | Invitation state/actor | Team/204; 403/404/409 | Explicit mock only | 204 is handled by shared client. |
@@ -153,12 +153,11 @@ separately loaded canonical `ProjectDto`.
 | `ProjectSummary`, `ProjectDetail`, `ProjectActions`, `DepartmentDecision` | `ProjectSummaryDto`, `ProjectDto`, `ProjectWorkflowActionsDto`; review adapter types | **EXISTING TYPE -> EXTEND** DepartmentDecision only in a shared additive backend-shaped type. |
 | `SupervisorCandidate`, `SupervisorRequest`, `SupervisorAssignment` | corresponding `*Dto` types | **EXISTING TYPE -> REUSE**. |
 | Problem-details mapping | `HttpError`, `ApiProblem` | **EXISTING TYPE -> EXTEND** with a central classification helper in F1 only if required. |
-| `RegistrationSourceType`, `RegistrationSource`, `ProjectTopicSource`, `StudentProposalSource` | None | **MISSING TYPE -> PROPOSE** only after accepted BE contract. Type values: `PROJECT_TOPIC`, `STUDENT_PROPOSAL`. |
+| Project provenance | `ProjectDto.proposalSource`, `topicId`, `selectedTopic` | **EXISTING TYPE -> REUSE**; `PUBLISHED_TOPIC` and `STUDENT_PROPOSAL` are Backend-returned values. |
 
-Proposed Registration Source shape is conceptual only: stable ID, `type`, status/lock state,
-selection validity/issues, selection time/version, `academicScope`, and a discriminated Topic
-reference or validated proposal payload. It must expose governed data read-only after backend
-lock. Do not add it to runtime types before the backend contract is accepted.
+Project provenance is read-only presentation data. A selected published topic is attached only
+through the project topic endpoint; there is no standalone source aggregate, proposal lifecycle,
+or clear/deselect operation in Frontend.
 
 ## Real versus mock boundary
 
@@ -178,16 +177,14 @@ ACTIVE success.
 ## Source -> Team -> Eligibility dependency
 
 ```text
-Registration Source (future backend aggregate)
-  -> governed Academic Scope
-  -> Team and roster
+Team and governed Academic Scope
   -> Eligibility refresh/reasons
-  -> Project draft and immutable provenance
+  -> editable Project draft
+  -> Backend Project provenance (`STUDENT_PROPOSAL` or `PUBLISHED_TOPIC`)
 ```
 
-Team and Project must never weaken source requirements. Roster or governed scope changes make
-eligibility stale; FE displays that state and refetches. Backend enforcement is required before
-source selection can be called complete.
+Team and Project must never weaken Backend scope requirements. Roster or governed scope changes
+are re-evaluated by Backend; Frontend displays the returned Team/Project state and refetches.
 
 ## Role experience freeze
 
@@ -205,15 +202,15 @@ source selection can be called complete.
 | --- | --- | --- | --- | --- | --- | --- |
 | `/login` | KEEP, modify later | Login/session boundary | all | ANONYMOUS | Shared | F1 |
 | `/project/workspace` | KEEP, modify later | State-aware dashboard/workspace | scoped user | context onward | Shared | F2/F9 |
-| `/topics` | KEEP, modify later | Topic browse/source entry | Student | NO_REGISTRATION_SOURCE | AnhPNH | F3 |
-| none | NEW REQUIRED later | Proposal source entry | Student | NO_REGISTRATION_SOURCE | AnhPNH | F3 |
+| `/topics` | KEEP | Published topic browse/selection entry | Student leader | editable Project draft | AnhPNH | F3 |
+| none | NOT CREATED | No separate proposal source resource | Student | Backend `STUDENT_PROPOSAL` Project provenance | AnhPNH | F3 |
 | `/team`, `/team/create` | KEEP, modify later | Team/roster/scope | Student | NO_TEAM through eligibility | AnhPNH | F4-F5 |
 | `/project/register`, `/project/edit` | KEEP, modify later | Draft/edit from governed source | Student Leader | ELIGIBILITY_PASSED/DRAFT | AnhPNH | F6 |
 | `/project/status` | KEEP, modify later | State/history/revision feedback | Student | submitted through approved | AnhPNH | F6-F8 |
 | `/department/projects/review/:id` | KEEP, modify later | Department review/detail | Department | submitted/review | TinVV | F7 |
 | `/project/supervisor` | KEEP, modify later | Candidate/request tracking | Student Leader | PROJECT_APPROVED | AnhPNH | F8 |
 | none | NEW REQUIRED later | Supervisor inbox | Supervisor | request pending | Shared with AnhPNH | F8 |
-| `/supervisor/workspace` | MODIFY later | Assigned project workspace | Supervisor | PROJECT_ACTIVE | Shared | F9 |
+| `/supervisor/projects/:projectId/workspace` | KEEP | Assigned ACTIVE project workspace | Supervisor | Backend ACTIVE plus primary assignment | Shared | F9 |
 | `/department/topics`, `/department/supervisors` | KEEP | Department workflows outside Student source selection | Department | independent | TinVV | none |
 
 No working route is renamed or deprecated in F0.

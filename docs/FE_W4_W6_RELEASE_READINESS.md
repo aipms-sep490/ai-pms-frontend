@@ -46,6 +46,8 @@ model. Evidence and comments are the only release-blocked W4-W6 surfaces listed 
 - Removed the proven-unused `allMilestonesPreview` sample records; static Kanban column metadata
   remains presentation-only.
 - Replaced stale registration provenance documentation with the canonical Project contract.
+- Removed the superseded F0 registration state model, whose future-source assertions contradicted
+  the current Project provenance contract.
 - No business rule, production state transition, or Backend contract was invented.
 
 ## Quality gates
