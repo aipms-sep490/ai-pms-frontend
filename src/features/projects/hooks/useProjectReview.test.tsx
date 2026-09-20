@@ -51,12 +51,16 @@ describe('useProjectReview', () => {
   })
 
   it('does not retry a 409; it refreshes authoritative state once and waits for a new user action', async () => {
-    api.decideProjectReview.mockRejectedValueOnce({ status: 409 })
+    api.decideProjectReview.mockRejectedValueOnce({ status: 409, message: 'A department decision was already recorded.' })
     const { result } = renderHook(() => useProjectReview(1))
     await waitFor(() => expect(result.current.detail?.concurrencyToken).toBe('TOKEN_A'))
     await act(async () => { expect(await result.current.decide('approve')).toBe(false) })
     expect(api.decideProjectReview).toHaveBeenCalledTimes(1)
     expect(api.getReviewDetail).toHaveBeenCalledTimes(2)
+    expect(api.getProjectForReview).toHaveBeenCalledTimes(2)
+    expect(api.getReviewHistory).toHaveBeenCalledTimes(2)
+    expect(api.getReviewActions).toHaveBeenCalledTimes(2)
     expect(result.current.error?.kind).toBe('conflict')
+    expect(result.current.error?.message).toContain('A department decision was already recorded.')
   })
 })

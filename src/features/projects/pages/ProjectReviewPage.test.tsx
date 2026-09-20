@@ -9,7 +9,7 @@ afterEach(cleanup)
 
 const reviewState = (overrides: Record<string, unknown> = {}) => ({
   queue: { items: [], page: 1, pageSize: 20, totalCount: 0 },
-  project: { code: 'P-1', title: 'Interdisciplinary project', teamName: 'Team Alpha', status: 'UnderReview', description: 'Real API description' },
+  project: { code: 'P-1', title: 'Interdisciplinary project', teamName: 'Team Alpha', status: 'UnderReview', description: 'Real API description', proposalSource: 'STUDENT_PROPOSAL' },
   detail: {
     academicScope: { projectMode: 'INTERDISCIPLINARY', leadDepartmentId: 5, primaryMajorId: null, requirements: [{ majorId: 7, minMembers: 1, maxMembers: 2, responsibility: 'Data' }] },
     latestSubmission: {
@@ -43,6 +43,13 @@ describe('ProjectReviewPage', () => {
     expect(screen.getByText(/Student One/)).toBeTruthy()
     expect(screen.getAllByText((_, element) => element?.textContent === 'Department #5: PENDING').length).toBeGreaterThan(0)
     expect(screen.getByText((_, element) => element?.textContent?.startsWith('Submitted → UnderReview') ?? false)).toBeTruthy()
+    expect(screen.getByText('Student Proposal')).toBeTruthy()
+  })
+
+  it('renders only canonical published-topic provenance from ProjectDto', () => {
+    hook.useProjectReview.mockReturnValue(reviewState({ project: { code: 'P-1', title: 'Interdisciplinary project', teamName: 'Team Alpha', proposalSource: 'PUBLISHED_TOPIC', topicId: 42, selectedTopic: { id: 42, code: 'TOP-42', title: 'Secure AI' } } }))
+    detailPage()
+    expect(screen.getByText(/Published Topic/).textContent).toContain('#42 · TOP-42 — Secure AI')
   })
 
   it('renders a SINGLE_MAJOR scope without inventing participating Department decisions', () => {

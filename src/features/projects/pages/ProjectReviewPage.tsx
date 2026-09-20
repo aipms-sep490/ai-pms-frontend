@@ -18,7 +18,6 @@ function ScopeSummary({ review }: { review: ReturnType<typeof useProjectReview> 
         <div><dt>Primary major</dt><dd>{scope.primaryMajorId ?? 'Không áp dụng'}</dd></div>
         <div><dt>Snapshot</dt><dd>#{review.detail?.latestSubmission?.id}</dd></div>
         <div><dt>Policy</dt><dd>{evidence.policy.minMembers}–{evidence.policy.maxMembers} members · {evidence.policy.minDistinctMajors} distinct majors</dd></div>
-        <div><dt>Project source</dt><dd>Backend contract chưa cung cấp provenance.</dd></div>
       </dl>
       <h3>Major requirements</h3>
       {scope.requirements.length ? <ul>{scope.requirements.map((requirement) => <li key={requirement.majorId}>Major #{requirement.majorId}: {requirement.minMembers}–{requirement.maxMembers} · {requirement.responsibility}</li>)}</ul> : <p>Không có major requirement trong contract.</p>}
@@ -45,6 +44,9 @@ function ProjectProposalDetails({ review }: { review: ReturnType<typeof useProje
         <div><dt>Công nghệ</dt><dd>{tags('TECHNOLOGY').join(', ') || '—'}</dd></div>
         <div><dt>Từ khóa</dt><dd>{tags('KEYWORD').join(', ') || '—'}</dd></div>
         <div><dt>Ngày nộp</dt><dd>{project.submittedAt ? new Date(project.submittedAt).toLocaleString('vi-VN') : '—'}</dd></div>
+        <div><dt>Project source</dt><dd>{project.proposalSource === 'PUBLISHED_TOPIC'
+          ? <>Published Topic{project.selectedTopic ? ` · #${project.topicId ?? project.selectedTopic.id} · ${project.selectedTopic.code} — ${project.selectedTopic.title}` : project.topicId ? ` · #${project.topicId}` : ''}</>
+          : 'Student Proposal'}</dd></div>
       </dl>
       <h3>Mô tả</h3>
       <p>{project.description || 'Backend chưa cung cấp mô tả.'}</p>

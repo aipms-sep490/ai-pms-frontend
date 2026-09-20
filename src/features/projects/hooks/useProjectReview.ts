@@ -31,11 +31,12 @@ const initialQuery: QueueQuery = { page: 1, pageSize: 20 }
 
 function classifyError(error: unknown): ReviewError {
   if (error instanceof HttpError || (typeof error === 'object' && error !== null && 'status' in error)) {
-    const status = (error as { status: number }).status
+    const response = error as { status: number; message?: string }
+    const status = response.status
     if (status === 401) return { kind: 'unauthorized', message: 'Phiên đăng nhập đã hết hạn.', cause: error }
     if (status === 403) return { kind: 'forbidden', message: 'Backend từ chối quyền hoặc Department scope.', cause: error }
     if (status === 404) return { kind: 'not-found', message: 'Không tìm thấy Project Review.', cause: error }
-    if (status === 409) return { kind: 'conflict', message: 'Dữ liệu review vừa thay đổi. Hãy kiểm tra dữ liệu mới trước khi quyết định lại.', cause: error }
+    if (status === 409) return { kind: 'conflict', message: `Dữ liệu review vừa thay đổi. ${response.message ?? 'Hãy kiểm tra dữ liệu mới trước khi quyết định lại.'}`, cause: error }
   }
   return { kind: 'system', message: 'Không thể kết nối hoặc tải dữ liệu review.', cause: error }
 }
