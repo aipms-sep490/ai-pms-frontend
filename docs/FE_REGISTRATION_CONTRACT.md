@@ -66,11 +66,11 @@ an explicit human retry—never auto-retry.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Topic list | BE_AVAILABLE | Topic catalogue / Student | `topics.api.getTopicCatalogue`; TopicsController | `GET /topics` | filters -> paged `TopicDto` | Backend catalogue visibility | list; 401/403/5xx | Explicit mock adapter only | FE currently asks `PUBLISHED`, but also performs a presentation-only major filter. |
 | Topic detail | BE_AVAILABLE | Catalogue / Student | `getTopicById`; TopicsController | `GET /topics/{id}` | id -> `TopicDto` | Backend topic visibility | detail; 401/403/404 | Explicit mock adapter only | Detail does not select or persist a Project source. F6 never reads `topicId` from the URL into a Project. |
-| Registration Source read | BE_NEW_CONTRACT_REQUIRED | F3 / Student, Department review | No FE type/adapter; no BE aggregate | **PROPOSED — NOT IMPLEMENTED** `GET /teams/{teamId}/registration-source` | none -> `RegistrationSource` | Team member, period and organization scope | source; 401/403/404/409 | Explicit development mock only | Must follow ADR-REG-001. |
-| Select Project Topic source | BE_NEW_CONTRACT_REQUIRED | F3 / Team leader | No runtime source selection is retained in URL, React state, or storage | **PROPOSED — NOT IMPLEMENTED** `PUT /teams/{teamId}/registration-source` | source type/topic ID/token -> source | Leader; published/in-period/visible Topic; no locked source | source; 400/403/404/409/422 | Explicit development mock only | Never use React/query/localStorage as authority. |
-| Create Student Proposal source | BE_NEW_CONTRACT_REQUIRED | F3 / Student | No separate proposal resource exists | **PROPOSED — NOT IMPLEMENTED** owner-approved route | validated proposal -> source | Product-defined proposer/period/scope | source; validation/403/409 | Explicit development mock only | Proposal approval lifecycle remains undecided. |
-| Change source | BE_NEW_CONTRACT_REQUIRED | F3 / Team leader | No BE source/change state | **PROPOSED — NOT IMPLEMENTED** `PUT /teams/{teamId}/registration-source` | source + concurrency token -> source | Only before backend lock; recalculates eligibility | source; 409 stale/locked | Explicit development mock only | Changes invalidate eligibility. |
-| Source status | BE_NEW_CONTRACT_REQUIRED | F3/F6 / authorized viewers | No source state/DTO | **PROPOSED — NOT IMPLEMENTED**, part of source read | none -> status/issues/lock | Backend scope | source status; 403/404 | Explicit development mock only | Do not invent approval states. |
+| Registration Source read | BE_AVAILABLE | Student, Department review / scoped actor | `ProjectDto.proposalSource`, `topicId`, `selectedTopic` | `GET /projects/{projectId}` | Project -> canonical provenance | Backend project visibility | Project; 401/403/404 | Explicit mock adapter only | No URL, local/session storage, or catalogue state is authoritative. |
+| Select Published Topic | BE_AVAILABLE | Team leader / editable Project draft | `projects.api.selectTopic` | `PUT /projects/{projectId}/topic` | `{ topicId, concurrencyToken }` -> updated Project | Backend leader, period, topic, scope, and draft-state rules | Project; 400/403/404/409 | Explicit mock adapter only | `409` reloads canonical Project and topic data; no replay. |
+| Student Proposal source | BE_AVAILABLE | Student, Department review / scoped actor | `ProjectDto.proposalSource=STUDENT_PROPOSAL` | Project read/create contract | Project -> canonical provenance | Backend Project workflow | Project/action errors | Explicit mock adapter only | There is no separate proposal aggregate or client-side approval lifecycle. |
+| Change or clear source | BE_CONTRACT_LIMITATION | Team leader / editable Project draft | No FE mutation | No verified clear/deselect endpoint | N/A | N/A | N/A | N/A | Frontend does not invent a reversal or source-change workflow. |
+| Source status | BE_CONTRACT_LIMITATION | Authorized viewers | `proposalSource` identifies provenance only | Project read | N/A | Backend Project scope | N/A | N/A | There is no standalone source lock/status resource. |
 
 ### Team, roster, and eligibility
 
@@ -139,7 +139,8 @@ The Supervisor Inbox uses `GET /supervisors/requests` and `GET /supervisors/assi
 a client-provided supervisor ID. `POST /supervisor-requests/{id}/accept` creates the primary
 assignment and activates the project atomically; rejection uses the matching reject route. No
 supervision mutation has a contract concurrency token. Backend locks are authoritative; `409`
-refreshes data and requires a new human decision. Project source provenance is still unavailable.
+refreshes data and requires a new human decision. Project source provenance is read from the
+separately loaded canonical `ProjectDto`.
 
 ## Domain type freeze
 

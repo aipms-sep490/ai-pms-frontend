@@ -130,4 +130,25 @@ describe('computeStudentJourneyState', () => {
     }
     expect(computeStudentJourneyState(lockedTeam, { ...dummyProject, status: 'Active' }, [])).toBe('ACTIVE')
   })
+
+  it('covers the canonical Backend-returned W4–W6 journey without synthesizing a transition', () => {
+    const formingTeam: TeamDto = { ...dummyTeam, status: 'FORMING', eligibility: { canRegister: false, rosterLocked: false, reasons: ['TOO_FEW_MEMBERS'] } }
+    const states = [
+      computeStudentJourneyState(null, null, []),
+      computeStudentJourneyState(formingTeam, null, []),
+      computeStudentJourneyState(dummyTeam, null, []),
+      computeStudentJourneyState(dummyTeam, { ...dummyProject, status: 'DRAFT' }, []),
+      computeStudentJourneyState(dummyTeam, { ...dummyProject, status: 'SUBMITTED' }, []),
+      computeStudentJourneyState(dummyTeam, { ...dummyProject, status: 'UNDER_REVIEW' }, []),
+      computeStudentJourneyState(dummyTeam, { ...dummyProject, status: 'REVISION_REQUIRED' }, []),
+      computeStudentJourneyState(dummyTeam, { ...dummyProject, status: 'SUBMITTED' }, []),
+      computeStudentJourneyState(dummyTeam, { ...dummyProject, status: 'APPROVED' }, []),
+      computeStudentJourneyState(dummyTeam, { ...dummyProject, status: 'ACTIVE' }, [activePrimaryAssignment]),
+    ]
+
+    expect(states).toEqual(['NO_TEAM', 'TEAM_FORMING', 'TEAM_ELIGIBLE', 'TEAM_ELIGIBLE', 'PROJECT_PENDING', 'PROJECT_PENDING', 'REVISION_REQUIRED', 'PROJECT_PENDING', 'SUPERVISOR_PENDING', 'ACTIVE'])
+    expect(resolveStudentNextAction({ journeyState: states[3], projectStatus: 'DRAFT' }).route).toBe('/project/edit')
+    expect(resolveStudentNextAction({ journeyState: states[8], projectStatus: 'APPROVED' }).route).toBe('/project/supervisor')
+    expect(resolveStudentNextAction({ journeyState: states[9], projectStatus: 'ACTIVE' }).route).toBe('/project/workspace')
+  })
 })
