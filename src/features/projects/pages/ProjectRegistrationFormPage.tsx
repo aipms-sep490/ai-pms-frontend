@@ -62,6 +62,7 @@ export function ProjectRegistrationFormPage() {
       {!hasProject && !registration.canCreate && <FailureState message="Chưa thể tạo bản nháp: backend yêu cầu eligibility PASS và action create_project_draft cho Trưởng nhóm." onRetry={() => void journey.refreshAll()} />}
       {registeringNewAfterRejection && <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800"><strong>Đăng ký đề tài mới sau khi đề tài trước bị từ chối.</strong><p className="mt-1">Biểu mẫu này tạo một bản nháp hoàn toàn mới; đề cương cũ vẫn được giữ trong lịch sử.</p></section>}
       {revision && registration.latestRevision && <RevisionAlert reason={registration.latestRevision.reason} reviewerName={registration.latestRevision.changedByName || 'Hệ thống'} timestamp={registration.latestRevision.changedAt} onEdit={() => {}} />}
+      {registrationProject ? <ProjectProvenance project={registrationProject} /> : null}
       <GovernedScope scope={registration.academicScope} requiredMajorIds={registration.requiredMajorIds} />
 
       <form onSubmit={submit} className="flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
@@ -85,6 +86,11 @@ export function ProjectRegistrationFormPage() {
       </form>
     </div>
   )
+}
+
+function ProjectProvenance({ project }: { project: NonNullable<ReturnType<typeof useStudentJourney>['project']> }) {
+  const source = project.proposalSource ?? 'STUDENT_PROPOSAL'
+  return <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm text-blue-950"><p className="text-[11px] font-bold uppercase tracking-wider">Registration Source từ Backend</p>{source === 'PUBLISHED_TOPIC' ? <p className="mt-2 text-xs"><strong>PUBLISHED_TOPIC</strong> · {project.selectedTopic ? `${project.selectedTopic.code} · ${project.selectedTopic.title}` : 'Backend chưa trả chi tiết đề tài đã chọn.'}</p> : <p className="mt-2 text-xs"><strong>STUDENT_PROPOSAL</strong> · Đề tài do sinh viên đề xuất.</p>}<p className="mt-2 text-[11px]">Chọn đề tài chỉ lưu provenance; Frontend không tự chép tiêu đề hoặc nội dung từ Topic.</p></section>
 }
 
 function GovernedScope({ scope, requiredMajorIds }: { scope: ReturnType<typeof useProjectRegistration>['academicScope']; requiredMajorIds: number[] }) {

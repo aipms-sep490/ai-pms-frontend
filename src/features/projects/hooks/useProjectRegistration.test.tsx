@@ -55,6 +55,7 @@ describe('useProjectRegistration', () => {
     expect(api.submitProject).toHaveBeenCalledTimes(1)
     expect(state.refreshAll).toHaveBeenCalledTimes(1)
     expect(result.current.error).toMatchObject({ kind: 'conflict' })
+    expect(result.current.error?.message).toContain('stale')
   })
 
   it('keeps a member from receiving mutation permissions without backend actions', async () => {
