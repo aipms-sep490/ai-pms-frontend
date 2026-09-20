@@ -4,7 +4,7 @@
 
 - Frontend `origin/develop`: `60120702ac67837336a7354871c660f1ee3a3229`.
 - Backend `origin/develop`: `98c56631a90fcaa90c471d6e6a8a4e5896c0468b`.
-- Feature head at this readiness audit: `7345c7800304d91141ef4d82498301f52f82e57c`.
+- Final feature branch head at this readiness audit: `4e77ac0f821fa8f489e8f5d98ec864bb24530285`.
 
 The Frontend feature branch was compared with its current `origin/develop` before this
 stabilization work. Backend contracts were rechecked without changing Backend or either
