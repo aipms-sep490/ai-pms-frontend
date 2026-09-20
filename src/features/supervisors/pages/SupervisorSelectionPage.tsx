@@ -51,7 +51,7 @@ export function SupervisorSelectionPage() {
           <strong>{request.status}</strong> · Supervisor profile #{request.supervisorProfileId} · sent {request.requestedAt}
           {request.requestMessage ? <p className="mt-1">Lời nhắn: {request.requestMessage}</p> : null}
           {request.responseMessage ? <p className="mt-1">Phản hồi: {request.responseMessage}</p> : null}
-          {request.status === 'PENDING' && selection.isLeader ? <Button className="mt-2" size="sm" variant="danger" disabled={selection.cancelPending !== null} onClick={() => void selection.cancel(request.id)}>Hủy yêu cầu</Button> : null}
+          {request.status === 'PENDING' && selection.isLeader ? <Button className="mt-2" size="sm" variant="danger" disabled={selection.cancelPending !== null} onClick={() => void selection.cancel(request)}>Hủy yêu cầu</Button> : null}
           {request.status === 'REJECTED' ? <p className="mt-2 text-xs text-slate-600">Bạn có thể chủ động chọn một candidate đủ điều kiện khác khi Backend vẫn cho phép.</p> : null}
         </li>)}</ul> : <p className="mt-2 text-sm text-slate-600">Chưa có yêu cầu supervisor.</p>}
       </section>
@@ -60,7 +60,7 @@ export function SupervisorSelectionPage() {
         <div className="flex flex-wrap items-end gap-3">
           <div><label htmlFor="candidate-search" className="block text-sm font-medium">Tìm candidate</label><input id="candidate-search" className="mt-1 rounded border border-slate-300 px-3 py-2" value={selection.query.search} onChange={(event) => selection.setQuery((current) => ({ ...current, search: event.target.value }))} /></div>
           <div><label htmlFor="candidate-expertise" className="block text-sm font-medium">Expertise</label><input id="candidate-expertise" className="mt-1 rounded border border-slate-300 px-3 py-2" value={selection.query.expertise} onChange={(event) => selection.setQuery((current) => ({ ...current, expertise: event.target.value }))} /></div>
-          <Button size="sm" variant="secondary" disabled={selection.candidateLoading} onClick={() => void selection.refresh(true)}>Lọc từ Backend</Button>
+          <Button size="sm" variant="secondary" disabled={selection.candidateLoading} onClick={() => void selection.applyFilters()}>Lọc từ Backend</Button>
         </div>
         {!selection.canSend && !selection.activeAssignment ? <p className="mt-4 text-sm text-slate-600">Backend chưa cho phép bạn gửi yêu cầu supervisor ở trạng thái hiện tại.</p> : null}
         {selection.canSend && selection.candidates.length === 0 ? <p className="mt-4 text-sm text-slate-600">Không có candidate đủ điều kiện theo Project và policy Backend.</p> : null}

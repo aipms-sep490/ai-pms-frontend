@@ -8,7 +8,7 @@ vi.mock('../hooks/useSupervisorInbox', () => inbox)
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
 const request = { id: 8, projectId: 9, supervisorProfileId: 4, requestedBy: 2, status: 'PENDING', requestedAt: '2026-09-15', requestMessage: 'Please supervise' }
-const state = (overrides: Record<string, unknown> = {}) => ({ requests: [request], assignments: [], loading: false, acceptPending: null, rejectPending: null, error: null, refresh: vi.fn(), respond: vi.fn().mockResolvedValue(true), ...overrides })
+const state = (overrides: Record<string, unknown> = {}) => ({ requests: [request], assignments: [], projects: { 9: { id: 9, title: 'Project', status: 'ACTIVE' } }, loading: false, acceptPending: null, rejectPending: null, error: null, refresh: vi.fn(), respond: vi.fn().mockResolvedValue(true), ...overrides })
 
 describe('LecturerWorkspacePage', () => {
   it('uses the backend-scoped inbox response and sends an explicit accept decision', () => {
@@ -33,5 +33,11 @@ describe('LecturerWorkspacePage', () => {
     inbox.useSupervisorInbox.mockReturnValue(state({ requests: [], assignments: [{ id: 3, projectId: 9, isPrimary: true, assignedAt: '2026-09-15' }] }))
     render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)
     expect(screen.getByRole('link', { name: 'Mở Project ACTIVE' }).getAttribute('href')).toBe('/supervisor/projects/9/workspace')
+  })
+
+  it('does not synthesize an ACTIVE route from an assignment when the refreshed project is not ACTIVE', () => {
+    inbox.useSupervisorInbox.mockReturnValue(state({ requests: [], projects: { 9: { id: 9, title: 'Project', status: 'SUPERVISOR_PENDING' } }, assignments: [{ id: 3, projectId: 9, isPrimary: true, assignedAt: '2026-09-15' }] }))
+    render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)
+    expect(screen.queryByRole('link', { name: 'Mở Project ACTIVE' })).toBeNull()
   })
 })

@@ -45,7 +45,11 @@ export function LecturerWorkspacePage() {
         <h2 className="text-lg font-bold">Primary assignments</h2>
         {inbox.loading ? <p className="mt-3 text-sm text-slate-600">Đang tải assignments…</p> : null}
         {!inbox.loading && inbox.assignments.length === 0 ? <p className="mt-3 text-sm text-slate-600">Chưa có assignment.</p> : null}
-        <ul className="mt-4 space-y-2">{inbox.assignments.map((assignment) => <li key={assignment.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-sm"><span>{inbox.projects?.[assignment.projectId]?.title ?? `Project #${assignment.projectId}`} · {assignment.isPrimary ? 'Primary Supervisor' : 'Mentor/secondary'} · assigned {assignment.assignedAt}{assignment.endedAt ? ` · ended ${assignment.endedAt}` : ''}</span>{assignment.isPrimary && !assignment.endedAt ? <Link className="rounded-lg border border-emerald-300 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-50" to={`/supervisor/projects/${assignment.projectId}/workspace`}>Mở Project ACTIVE</Link> : null}</li>)}</ul>
+        <ul className="mt-4 space-y-2">{inbox.assignments.map((assignment) => {
+          const project = inbox.projects?.[assignment.projectId]
+          const isActive = project?.status?.replaceAll('_', '').toUpperCase() === 'ACTIVE'
+          return <li key={assignment.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-sm"><span>{project?.title ?? `Project #${assignment.projectId}`} · {assignment.isPrimary ? 'Primary Supervisor' : 'Mentor/secondary'} · assigned {assignment.assignedAt}{assignment.endedAt ? ` · ended ${assignment.endedAt}` : ''}</span>{assignment.isPrimary && !assignment.endedAt && isActive ? <Link className="rounded-lg border border-emerald-300 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-50" to={`/supervisor/projects/${assignment.projectId}/workspace`}>Mở Project ACTIVE</Link> : null}</li>
+        })}</ul>
       </section>
     </main>
   )

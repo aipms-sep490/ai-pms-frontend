@@ -12,7 +12,7 @@ function classify(error: unknown): InboxError {
     if (response.status === 401) return { kind: 'authentication', message: 'Phiên đăng nhập đã hết hạn.' }
     if (response.status === 403) return { kind: 'forbidden', message: 'Backend từ chối quyền Inbox hoặc request scope.' }
     if (response.status === 404) return { kind: 'not-found', message: 'Request không còn khả dụng.' }
-    if (response.status === 409) return { kind: 'conflict', message: 'Request đã thay đổi ở phiên khác. Inbox đã được làm mới; hãy kiểm tra trước khi quyết định lại.' }
+    if (response.status === 409) return { kind: 'conflict', message: `Request đã thay đổi ở phiên khác. ${response.message ?? 'Inbox đã được làm mới; hãy kiểm tra trước khi quyết định lại.'}` }
     if (response.status === 400 || response.status === 422) return { kind: 'validation', message: response.message || 'Backend từ chối quyết định theo quy tắc nghiệp vụ.' }
   }
   return { kind: 'system', message: error instanceof Error ? error.message : 'Không thể tải hoặc xử lý Supervisor Inbox.' }
