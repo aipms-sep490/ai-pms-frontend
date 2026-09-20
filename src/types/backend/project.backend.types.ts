@@ -62,6 +62,9 @@ export interface ProjectDto {
    * It is display-only in the student registration UI.
    */
   academicScope?: import('./team.backend.types').TeamAcademicScopeDto | null
+  topicId?: number | null
+  proposalSource?: 'STUDENT_PROPOSAL' | 'PUBLISHED_TOPIC' | string
+  selectedTopic?: { id: number; code: string; title: string } | null
 }
 
 export interface ProjectSummaryDto {
