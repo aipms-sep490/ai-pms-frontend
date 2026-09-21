@@ -268,7 +268,7 @@ export function useTeamManagement() {
     candidates,
     leaderChangeRequests,
     requiresMentorApproval: Boolean(project),
-    activeMentor: assignments.find((assignment) => assignment.isPrimary && !assignment.endedAt) ?? null,
+    activeMentor: (assignments ?? []).find((assignment) => assignment.isPrimary && !assignment.endedAt) ?? null,
     candidateSearch,
     candidatePage,
     setCandidateSearch,
