@@ -8,6 +8,7 @@ import { AcademicScopePanel } from '../components/AcademicScopePanel'
 import { UpdateTeamModal } from '../components/UpdateTeamModal'
 import { TeamEligibilitySummary } from '../components/TeamEligibilitySummary'
 import { useTeamManagement } from '../hooks/useTeamManagement'
+import { StudentQualificationCard } from '../../qualifications/components/StudentQualificationCard'
 
 export function TeamManagementPage() {
   const navigate = useNavigate()
@@ -138,6 +139,8 @@ export function TeamManagementPage() {
           )}
         </div>
       )}
+
+      <StudentQualificationCard />
 
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
