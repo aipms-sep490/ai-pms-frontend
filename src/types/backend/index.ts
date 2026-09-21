@@ -7,3 +7,5 @@ export * from './task.backend.types'
 export * from './supervisor.backend.types'
 export * from './workflow.backend.types'
 export * from './topic.backend.types'
+
+export * from './student-qualification.backend.types'
