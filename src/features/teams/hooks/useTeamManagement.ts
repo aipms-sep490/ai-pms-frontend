@@ -3,7 +3,7 @@ import { useStudentJourney } from '../../../app/context'
 import { env } from '../../../app/config/env'
 import { services } from '../../../services/service-gateway'
 import { HttpError } from '../../../services/http/http-client'
-import { isActionAllowed, type PagedResult, type TeamInvitationCandidateDto, type TeamInvitationDto } from '../../../types/backend'
+import { isActionAllowed, type PagedResult, type TeamInvitationCandidateDto, type TeamInvitationDto, type TeamLeaderChangeRequestDto } from '../../../types/backend'
 import type { CreateTeamPayload, UpdateTeamPayload } from '../../../services/api/teams.api'
 
 type TeamErrorKind = 'authentication' | 'forbidden' | 'not-found' | 'conflict' | 'validation' | 'system'
@@ -48,10 +48,11 @@ function mutationKey(action: string, id?: number): string {
  */
 export function useTeamManagement() {
   const journey = useStudentJourney()
-  const { team, profile, semester, workflowContext, teamActions, refreshAll } = journey
+  const { team, project, assignments, profile, semester, workflowContext, teamActions, refreshAll } = journey
   const [sentInvitations, setSentInvitations] = useState<TeamInvitationDto[]>([])
   const [receivedInvitations, setReceivedInvitations] = useState<TeamInvitationDto[]>([])
   const [candidates, setCandidates] = useState<PagedResult<TeamInvitationCandidateDto>>(emptyPage())
+  const [leaderChangeRequests, setLeaderChangeRequests] = useState<TeamLeaderChangeRequestDto[]>([])
   const [candidateSearch, setCandidateSearchState] = useState('')
   const [candidatePage, setCandidatePageState] = useState(1)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -76,7 +77,7 @@ export function useTeamManagement() {
     canManageRoster: actionAllowed('remove_member', isLeader && !rosterLocked),
     canConfigureScope: actionAllowed('configure_academic_scope', isLeader && !rosterLocked),
     canRefreshEligibility: actionAllowed('refresh_eligibility', isLeader && !rosterLocked),
-    canCreateProjectDraft: actionAllowed('create_project_draft', false),
+    canCreateProjectDraft: actionAllowed('create_project_draft', isLeader && Boolean(team?.eligibility.canRegister)),
     canLeave: actionAllowed('leave_team', !isLeader && !rosterLocked),
   }), [actionAllowed, isLeader, rosterLocked, team])
 
@@ -98,6 +99,19 @@ export function useTeamManagement() {
       setError(classifyError(reason))
     } finally {
       setIsLoadingInvitations(false)
+    }
+  }, [team])
+
+  const refreshLeaderChanges = useCallback(async () => {
+    if (!team) {
+      setLeaderChangeRequests([])
+      return
+    }
+    try {
+      const result = await services.team.getLeaderChangeRequests(team.id)
+      setLeaderChangeRequests(result.items)
+    } catch (reason) {
+      setError(classifyError(reason))
     }
   }, [team])
 
@@ -125,7 +139,8 @@ export function useTeamManagement() {
 
   useEffect(() => {
     void refreshInvitations()
-  }, [refreshInvitations])
+    void refreshLeaderChanges()
+  }, [refreshInvitations, refreshLeaderChanges])
 
   useEffect(() => {
     if (!team || !permissions.canInvite) return
@@ -153,10 +168,11 @@ export function useTeamManagement() {
       await refreshAll()
       await refreshInvitations()
       await refreshCandidates()
+      await refreshLeaderChanges()
     } finally {
       setIsRefreshing(false)
     }
-  }, [refreshAll, refreshCandidates, refreshInvitations])
+  }, [refreshAll, refreshCandidates, refreshInvitations, refreshLeaderChanges])
 
   const retry = useCallback(async () => {
     setError(null)
@@ -223,10 +239,17 @@ export function useTeamManagement() {
     await runMutation(mutationKey('leave', team.id), () => services.team.leaveTeam(team.id))
   }, [runMutation, team])
 
-  const transferLeader = useCallback(async (userId: number) => {
+  const transferLeader = useCallback(async (userId: number, message?: string) => {
     if (!team) return
+    if (project) {
+      await runMutation(
+        mutationKey('leader-change-request', userId),
+        () => services.team.requestLeaderChange(team.id, userId, message),
+      )
+      return
+    }
     await runMutation(mutationKey('transfer', userId), () => services.team.transferLeader(team.id, userId))
-  }, [runMutation, team])
+  }, [project, runMutation, team])
 
   const refreshEligibility = useCallback(async () => {
     if (!team) return
@@ -243,6 +266,9 @@ export function useTeamManagement() {
     sentInvitations,
     receivedInvitations,
     candidates,
+    leaderChangeRequests,
+    requiresMentorApproval: Boolean(project),
+    activeMentor: assignments.find((assignment) => assignment.isPrimary && !assignment.endedAt) ?? null,
     candidateSearch,
     candidatePage,
     setCandidateSearch,
