@@ -136,4 +136,13 @@ describe('teams.api contract', () => {
     expect(globalThis.fetch).toHaveBeenCalledWith('/api/v1/teams/28/eligibility/refresh', expect.objectContaining({ method: 'POST' }))
   })
 
+  it('does not expose a pending-qualification student as a mock invitation candidate', async () => {
+    runtime.env.isMockMode = true
+
+    const candidates = await teamsApi.getInvitationCandidates(28)
+
+    expect(candidates.items.map((candidate) => candidate.userId)).not.toContain(5)
+    expect(candidates.items.every((candidate) => candidate.canInvite)).toBe(true)
+  })
+
 })

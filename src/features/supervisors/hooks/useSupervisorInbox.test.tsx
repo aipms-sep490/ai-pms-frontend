@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const gateway = vi.hoisted(() => ({
   supervisor: { getSupervisorInbox: vi.fn(), getOwnAssignments: vi.fn(), respondToSupervisorRequest: vi.fn() },
   project: { getProject: vi.fn() },
-  team: { getTeam: vi.fn() },
+  team: { getTeam: vi.fn(), getLeaderChangeRequests: vi.fn(), respondToLeaderChange: vi.fn() },
 }))
 const { supervisor } = gateway
 vi.mock('../../../services/service-gateway', () => ({ services: gateway }))
@@ -19,6 +19,8 @@ describe('useSupervisorInbox', () => {
     supervisor.respondToSupervisorRequest.mockReset().mockResolvedValue({ ...request, status: 'ACCEPTED', assignmentId: 3 })
     gateway.project.getProject.mockReset().mockResolvedValue({ id: 9, teamId: 2, title: 'Project', status: 'ACTIVE' })
     gateway.team.getTeam.mockReset().mockResolvedValue({ id: 2, name: 'Team', members: [] })
+    gateway.team.getLeaderChangeRequests.mockReset().mockResolvedValue({ items: [] })
+    gateway.team.respondToLeaderChange.mockReset()
   })
 
   it('uses Backend-scoped inbox data directly and refreshes assignment data after accept', async () => {

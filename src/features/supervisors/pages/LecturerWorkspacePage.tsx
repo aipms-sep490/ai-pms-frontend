@@ -5,6 +5,7 @@ import { useSupervisorInbox } from '../hooks/useSupervisorInbox'
 
 export function LecturerWorkspacePage() {
   const inbox = useSupervisorInbox()
+  const leaderChangeRequests = inbox.leaderChangeRequests ?? []
   const [responseByRequest, setResponseByRequest] = useState<Record<number, string>>({})
   const [leaderResponseByRequest, setLeaderResponseByRequest] = useState<Record<number, string>>({})
 
@@ -50,9 +51,9 @@ export function LecturerWorkspacePage() {
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
         <h2 className="text-lg font-bold">Yêu cầu thay đổi Trưởng nhóm</h2>
         <p className="mt-1 text-xs text-slate-500">Chỉ yêu cầu của Project mà bạn đang là Mentor hiện tại được backend trả về. Việc Approve sẽ xác minh lại thành viên, academic scope và qualification trước khi đổi Leader.</p>
-        {inbox.leaderChangeRequests.length === 0 ? <p className="mt-3 text-sm text-slate-600">Không có yêu cầu đang chờ xử lý.</p> : null}
+        {leaderChangeRequests.length === 0 ? <p className="mt-3 text-sm text-slate-600">Chưa có đề nghị thay đổi Trưởng nhóm cần xử lý.</p> : null}
         <ul className="mt-4 space-y-3">
-          {inbox.leaderChangeRequests.map((request) => {
+          {leaderChangeRequests.map((request) => {
             const team = inbox.teams?.[request.teamId]
             const current = team?.members.find((member) => member.userId === request.currentLeaderUserId)
             const target = team?.members.find((member) => member.userId === request.newLeaderUserId)

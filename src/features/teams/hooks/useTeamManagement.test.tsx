@@ -8,6 +8,7 @@ const mocked = vi.hoisted(() => ({
     getInvitations: vi.fn(), getInvitationCandidates: vi.fn(), createTeam: vi.fn(), updateTeam: vi.fn(),
     inviteMember: vi.fn(), acceptInvitation: vi.fn(), rejectInvitation: vi.fn(), cancelInvitation: vi.fn(),
     removeMember: vi.fn(), leaveTeam: vi.fn(), transferLeader: vi.fn(), refreshEligibility: vi.fn(),
+    getLeaderChangeRequests: vi.fn(), requestLeaderChange: vi.fn(),
   },
 }))
 
@@ -43,6 +44,7 @@ describe('useTeamManagement', () => {
     mocked.journey.useStudentJourney.mockReturnValue(journeyState())
     mocked.team.getInvitations.mockResolvedValue(page())
     mocked.team.getInvitationCandidates.mockResolvedValue(page([]))
+    mocked.team.getLeaderChangeRequests.mockResolvedValue(page([]))
     Object.values(mocked.team).forEach((method) => {
       if (method.mock.calls.length === 0 && !method.getMockImplementation()) method.mockResolvedValue(undefined)
     })

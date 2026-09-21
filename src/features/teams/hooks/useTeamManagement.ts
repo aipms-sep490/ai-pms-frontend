@@ -28,12 +28,13 @@ const emptyPage = <T,>(page = 1, pageSize = 20): PagedResult<T> => ({
 })
 
 function classifyError(reason: unknown): TeamManagementError {
-  if (reason instanceof HttpError) {
-    if (reason.status === 401) return { kind: 'authentication', message: 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại để tiếp tục.' }
-    if (reason.status === 403) return { kind: 'forbidden', message: 'Bạn không có quyền thực hiện thao tác này trong phạm vi nhóm hiện tại.' }
-    if (reason.status === 404) return { kind: 'not-found', message: 'Dữ liệu nhóm hoặc lời mời không còn tồn tại hay không còn hiển thị.' }
-    if (reason.status === 409) return { kind: 'conflict', message: 'Dữ liệu nhóm vừa thay đổi hoặc thao tác không còn hợp lệ. Đã tải lại trạng thái mới nhất.' }
-    if (reason.status === 400 || reason.status === 422) return { kind: 'validation', message: 'Backend không chấp nhận thao tác theo chính sách eligibility hiện tại.' }
+  if (reason instanceof HttpError || (typeof reason === 'object' && reason !== null && 'status' in reason)) {
+    const response = reason as { status: number }
+    if (response.status === 401) return { kind: 'authentication', message: 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại để tiếp tục.' }
+    if (response.status === 403) return { kind: 'forbidden', message: 'Bạn không có quyền thực hiện thao tác này trong phạm vi nhóm hiện tại.' }
+    if (response.status === 404) return { kind: 'not-found', message: 'Dữ liệu nhóm hoặc lời mời không còn tồn tại hay không còn hiển thị.' }
+    if (response.status === 409) return { kind: 'conflict', message: 'Dữ liệu nhóm vừa thay đổi hoặc thao tác không còn hợp lệ. Đã tải lại trạng thái mới nhất.' }
+    if (response.status === 400 || response.status === 422) return { kind: 'validation', message: 'Backend không chấp nhận thao tác theo chính sách eligibility hiện tại.' }
   }
   return { kind: 'system', message: 'Không thể kết nối hệ thống để hoàn tất thao tác. Vui lòng thử lại.' }
 }
