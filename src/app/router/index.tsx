@@ -27,6 +27,7 @@ import { ProjectReviewPage } from '../../features/projects/pages/ProjectReviewPa
 import { SupervisorMonitoringPage } from '../../features/supervisors/pages/SupervisorMonitoringPage'
 import { TopicManagementPage } from '../../features/topics/pages/TopicManagementPage'
 import { RegistrationSourcePage } from '../../features/registration/pages/RegistrationSourcePage'
+import { QualificationVerificationPage } from '../../features/qualifications/pages/QualificationVerificationPage'
 import { ProtectedRoute } from '../../features/auth/components/ProtectedRoute'
 import { AcademicWorkflowGate, StudentJourneyProvider } from '../context'
 
@@ -89,6 +90,7 @@ export const appRouter = createBrowserRouter([
           { path: 'department/projects/review/:id', element: <ProjectReviewPage /> },
           { path: 'department/supervisors', element: <SupervisorMonitoringPage /> },
           { path: 'department/supervisors/:id', element: <SupervisorMonitoringPage /> },
+          { path: 'department/student-qualifications', element: <QualificationVerificationPage /> },
           { path: 'department/topics', element: <TopicManagementPage /> },
           { path: 'department/topics/:id', element: <TopicManagementPage /> },
         ],
