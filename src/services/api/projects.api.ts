@@ -317,3 +317,11 @@ export const submit = submitProject
 export const resubmit = resubmitProject
 export const getHistory = getProjectHistory
 export const createProjectDraft = createDraft
+
+export function hasMockProjectForTeam(teamId: number): boolean {
+  return Boolean(mockProjectStore && mockProjectStore.teamId === teamId)
+}
+
+export function getMockProjectForTeam(teamId: number): ProjectDto | null {
+  return mockProjectStore?.teamId === teamId ? mockProjectStore : null
+}
