@@ -157,6 +157,9 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (/^\/project\/meetings\/new(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings\/new(?:\/|$)/.test(pathname)) {
     return 'Lên lịch họp'
   }
+  if (pathname === '/project/deliverables' || /^\/supervisor\/projects\/\d+\/deliverables(?:\/|$)/.test(pathname)) return 'Deliverables & phiên bản'
+  if (pathname === '/evaluator/evaluations') return 'Evaluations được phân công'
+  if (/^\/evaluator\/evaluations\/\d+(?:\/|$)/.test(pathname)) return 'Evaluation Workspace'
   if (/^\/project\/meetings\/\d+(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings\/\d+(?:\/|$)/.test(pathname)) {
     return 'Chi tiết cuộc họp'
   }
@@ -209,6 +212,7 @@ export function getBreadcrumbForPath(pathname: string): string {
     return 'Ghép cặp Giảng viên Hướng dẫn'
   }
   if (pathname.startsWith('/department/projects/review')) return 'Thẩm định đề cương'
+  if (/^\/department\/projects\/\d+\/result(?:\/|$)/.test(pathname)) return 'Công bố kết quả Project'
   if (pathname.startsWith('/department/supervisors')) return 'Giám sát GVHD'
   if (pathname.startsWith('/department/topics')) return 'Quản lý đề tài'
   if (pathname === '/admin/access') return 'Quản trị quyền'
