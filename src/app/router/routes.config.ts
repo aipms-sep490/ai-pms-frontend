@@ -60,13 +60,12 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
   },
   {
     id: 'screen-5',
-    path: '/project/deliverables',
-    title: 'Báo cáo & Bàn giao',
-    breadcrumb: 'Sản phẩm bàn giao',
+    path: '/project/reports',
+    title: 'Báo cáo tiến độ',
+    breadcrumb: 'Báo cáo tiến độ',
     icon: 'assignment_turned_in',
     role: 'student',
-    status: 'coming_soon',
-    badge: '1 mới',
+    status: 'implemented',
     section: 'workspace',
   },
   {
@@ -156,6 +155,9 @@ export function getStudentNavItems() {
  * Resolves a breadcrumb title from the current pathname.
  */
 export function getBreadcrumbForPath(pathname: string): string {
+  if (pathname.startsWith('/project/reports') || /^\/supervisor\/projects\/\d+\/reports(?:\/|$)/.test(pathname)) {
+    return 'Báo cáo tiến độ'
+  }
   if (pathname === '/' || pathname === '/project/overview') {
     return 'Tổng quan lộ trình'
   }

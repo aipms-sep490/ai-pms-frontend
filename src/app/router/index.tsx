@@ -9,6 +9,8 @@ import { ActiveProjectWorkspacePage } from '../../features/projects/pages/Active
 import { ActiveStudentProjectRoute } from '../../features/projects/components/ActiveStudentProjectRoute'
 import { TaskBoardPage } from '../../features/tasks/pages/TaskBoardPage'
 import { TaskDetailPage } from '../../features/tasks/pages/TaskDetailPage'
+import { ProgressReportsPage } from '../../features/reports/ProgressReportsPage'
+import { ProgressReportDetailPage } from '../../features/reports/ProgressReportDetailPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { ProjectLifecyclePage } from '../../features/projects/pages/ProjectLifecyclePage'
 import { MilestoneDetailPage } from '../../features/milestones/pages/MilestoneDetailPage'
@@ -56,6 +58,9 @@ export const appRouter = createBrowserRouter([
             { path: 'project/tasks', element: <TaskBoardPage /> },
             { path: 'project/tasks/:taskId', element: <TaskDetailPage /> },
             { path: 'project/gantt', element: <GanttPage /> },
+            { path: 'project/reports', element: <ProgressReportsPage /> },
+            { path: 'project/reports/new', element: <ProgressReportDetailPage create /> },
+            { path: 'project/reports/:reportId', element: <ProgressReportDetailPage /> },
           ] },
           { path: 'projects/lifecycle', element: <ProjectLifecyclePage /> },
           { path: 'team', element: <TeamManagementPage /> },
@@ -78,6 +83,8 @@ export const appRouter = createBrowserRouter([
             { path: 'supervisor/projects/:projectId/tasks', element: <TaskBoardPage /> },
             { path: 'supervisor/projects/:projectId/tasks/:taskId', element: <TaskDetailPage /> },
             { path: 'supervisor/projects/:projectId/gantt', element: <GanttPage /> },
+            { path: 'supervisor/projects/:projectId/reports', element: <ProgressReportsPage /> },
+            { path: 'supervisor/projects/:projectId/reports/:reportId', element: <ProgressReportDetailPage /> },
           ] },
         ],
       },
