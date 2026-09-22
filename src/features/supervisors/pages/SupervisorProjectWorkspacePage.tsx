@@ -3,5 +3,9 @@ import { useExecutionAccess } from '../../execution/context/ExecutionAccessConte
 
 export function SupervisorProjectWorkspacePage() {
   const access = useExecutionAccess()
-  return <><ProjectWorkspaceSummary project={access.project} supervisor={access.supervisor} audience="supervisor" /><ExecutionEntry projectId={access.project.id} routeBase={access.routeBase} /></>
+  return (
+    <ProjectWorkspaceSummary project={access.project} supervisor={access.supervisor} audience="supervisor">
+      <ExecutionEntry projectId={access.project.id} routeBase={access.routeBase} />
+    </ProjectWorkspaceSummary>
+  )
 }

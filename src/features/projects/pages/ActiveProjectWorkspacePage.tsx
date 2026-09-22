@@ -1,5 +1,5 @@
 import { Link, Navigate } from 'react-router-dom'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useStudentJourney } from '../../../app/context'
 import type { ProjectDto, SupervisorAssignmentDto, TeamDto } from '../../../types/backend'
 import { resolveStudentNextAction } from '../../auth/utils/resolve-student-next-action'
@@ -23,15 +23,14 @@ export function ActiveProjectWorkspacePage() {
   }
 
   return (
-    <>
     <ProjectWorkspaceSummary
       project={journey.project}
       team={journey.team}
       supervisor={getActivePrimaryAssignment(journey.assignments)}
       audience="student"
-    />
-    <ExecutionEntry projectId={journey.project.id} />
-    </>
+    >
+      <ExecutionEntry projectId={journey.project.id} />
+    </ProjectWorkspaceSummary>
   )
 }
 
@@ -52,7 +51,22 @@ export function ExecutionEntry({ projectId, routeBase = '/project' }: { projectI
   useEffect(() => load(), [load])
   if (!state) return <WorkspaceState message="Đang tải milestone và tiến độ từ Backend…" />
   if (state.error) return <WorkspaceState error message={state.error.status === 403 ? 'Backend không cấp quyền xem dữ liệu thực thi của Project này.' : state.error.message} />
-  return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs"><h2 className="text-base font-bold text-slate-900">Thực thi Project</h2><p className="mt-2 text-sm text-slate-600">{state.count === 0 ? 'Backend chưa tạo milestone nào. Đây là trạng thái hợp lệ; hệ thống không tự tạo dữ liệu.' : `${state.count} milestone do Backend trả về.`}</p><p className="mt-1 text-xs text-slate-500">Tiến độ do Backend tính: {state.progress === null ? 'chưa có dữ liệu' : `${state.progress}%`}. Timeline có {state.timelineMilestones} milestone; cần chú ý {state.overdue} quá hạn và {state.blocked} bị chặn.</p><div className="mt-4 flex gap-3"><Link className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white" to={`${routeBase}/milestones`}>Milestones</Link><Link className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold" to={`${routeBase}/tasks`}>Task Board</Link><Link className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold" to={`${routeBase}/gantt`}>Timeline</Link></div></section>
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-base font-bold text-slate-900">Thực thi Project</h2>
+          <p className="mt-1 text-sm text-slate-600">{state.count === 0 ? 'Backend chưa tạo milestone nào. Đây là trạng thái hợp lệ; hệ thống không tự tạo dữ liệu.' : `${state.count} milestone do Backend trả về.`}</p>
+          <p className="mt-1 text-xs text-slate-500">Tiến độ do Backend tính: {state.progress === null ? 'chưa có dữ liệu' : `${state.progress}%`}. Timeline có {state.timelineMilestones} milestone; cần chú ý {state.overdue} quá hạn và {state.blocked} bị chặn.</p>
+        </div>
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <Link className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white hover:bg-slate-800" to={`${routeBase}/milestones`}>Milestones</Link>
+          <Link className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50" to={`${routeBase}/tasks`}>Task Board</Link>
+          <Link className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50" to={`${routeBase}/gantt`}>Timeline</Link>
+        </div>
+      </div>
+    </section>
+  )
 }
 
 export function ProjectWorkspaceSummary({
@@ -60,11 +74,13 @@ export function ProjectWorkspaceSummary({
   team,
   supervisor,
   audience,
+  children,
 }: {
   project: ProjectDto
   team?: TeamDto | null
   supervisor?: SupervisorAssignmentDto | null
   audience: 'student' | 'supervisor'
+  children?: ReactNode
 }) {
   const projectMode = team?.academicScope?.projectMode ?? project.academicScope?.projectMode ?? 'Backend chưa cung cấp'
   const teamName = team?.name ?? project.teamName ?? 'Backend chưa cung cấp'
@@ -72,9 +88,29 @@ export function ProjectWorkspaceSummary({
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 pb-12">
       <header className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-xs sm:p-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-800">Backend-verified ACTIVE handoff</p>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">Không gian đồ án ACTIVE</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-700">Project chỉ được mở tại đây sau khi Backend xác nhận phân công GVHD và trạng thái ACTIVE. Milestone, Task và Timeline hiển thị dữ liệu thực thi do Backend trả về.</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-800">Backend-verified ACTIVE handoff</p>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">Không gian đồ án ACTIVE</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-700">Project chỉ được mở tại đây sau khi Backend xác nhận phân công GVHD và trạng thái ACTIVE. Milestone, Task và Timeline hiển thị dữ liệu thực thi do Backend trả về.</p>
+          </div>
+          <div className="flex flex-wrap gap-2 shrink-0">
+            <Link
+              to={audience === 'student' ? '/project/meetings' : `/supervisor/projects/${project.id}/meetings`}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-700"
+            >
+              <span className="material-symbols-outlined text-[16px]">calendar_month</span>
+              Lịch họp & biên bản
+            </Link>
+            <Link
+              to={audience === 'student' ? '/project/reports' : `/supervisor/projects/${project.id}/reports`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              <span className="material-symbols-outlined text-[16px]">assignment</span>
+              Báo cáo tiến độ
+            </Link>
+          </div>
+        </div>
       </header>
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs" aria-labelledby="active-project-summary">
@@ -97,11 +133,39 @@ export function ProjectWorkspaceSummary({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs sm:p-6">
-        <h2 className="text-base font-bold text-slate-900">Báo cáo tiến độ & phản hồi</h2>
-        <p className="mt-2 text-sm leading-relaxed text-slate-600">{audience === 'student' ? 'Tổng hợp kết quả theo tuần hoặc tháng. Cả nhóm cùng soạn bản nháp, trưởng nhóm nộp và theo dõi nhận xét từ giảng viên hướng dẫn.' : 'Đọc báo cáo theo từng kỳ, kiểm tra kết quả và gửi nhận xét để nhóm hoàn thiện các bước tiếp theo.'}</p>
-        <Link className="mt-4 inline-flex rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" to={audience === 'student' ? '/project/reports' : `/supervisor/projects/${project.id}/reports`}>Mở báo cáo tiến độ →</Link>
-      </section>
+      {children}
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <section className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs sm:p-6">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-blue-600">calendar_month</span>
+              <h2 className="text-base font-bold text-slate-900">Lịch họp & biên bản</h2>
+            </div>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">Thống nhất lịch trao đổi với GVHD, mời thành viên và lưu kết luận, điểm danh, nhận xét sau mỗi buổi họp.</p>
+          </div>
+          <div className="mt-5 pt-3 border-t border-slate-100">
+            <Link className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700" to={audience === 'student' ? '/project/meetings' : `/supervisor/projects/${project.id}/meetings`}>
+              Mở lịch họp →
+            </Link>
+          </div>
+        </section>
+
+        <section className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs sm:p-6">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-emerald-600">assignment</span>
+              <h2 className="text-base font-bold text-slate-900">Báo cáo tiến độ & phản hồi</h2>
+            </div>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">{audience === 'student' ? 'Tổng hợp kết quả theo tuần hoặc tháng. Cả nhóm cùng soạn bản nháp, trưởng nhóm nộp và theo dõi nhận xét từ giảng viên hướng dẫn.' : 'Đọc báo cáo theo từng kỳ, kiểm tra kết quả và gửi nhận xét để nhóm hoàn thiện các bước tiếp theo.'}</p>
+          </div>
+          <div className="mt-5 pt-3 border-t border-slate-100">
+            <Link className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50" to={audience === 'student' ? '/project/reports' : `/supervisor/projects/${project.id}/reports`}>
+              Mở báo cáo tiến độ →
+            </Link>
+          </div>
+        </section>
+      </div>
     </main>
   )
 }

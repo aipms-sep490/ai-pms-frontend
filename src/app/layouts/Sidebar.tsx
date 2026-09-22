@@ -197,6 +197,11 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                 </div>
                 {(role === 'lecturer' ? [
                   { path: '/supervisor/workspace', title: 'Bàn làm việc GVHD', icon: 'supervisor_account' },
+                  ...(location.pathname.match(/\/supervisor\/projects\/(\d+)/) ? [
+                    { path: `/supervisor/projects/${location.pathname.match(/\/supervisor\/projects\/(\d+)/)![1]}/workspace`, title: 'Không gian đồ án', icon: 'folder_open' },
+                    { path: `/supervisor/projects/${location.pathname.match(/\/supervisor\/projects\/(\d+)/)![1]}/meetings`, title: 'Lịch họp & biên bản', icon: 'calendar_month' },
+                    { path: `/supervisor/projects/${location.pathname.match(/\/supervisor\/projects\/(\d+)/)![1]}/reports`, title: 'Báo cáo tiến độ', icon: 'assignment' },
+                  ] : []),
                   { path: '/profile', title: 'Hồ sơ tài khoản', icon: 'account_circle' },
                 ] : role === 'department' || role === 'admin' ? [
                   ...(role === 'admin' ? [{ path: '/admin/access', title: 'Quản trị quyền', icon: 'admin_panel_settings' }] : []),
