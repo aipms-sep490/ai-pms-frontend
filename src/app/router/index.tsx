@@ -10,6 +10,9 @@ import { ActiveStudentProjectRoute } from '../../features/projects/components/Ac
 import { TaskBoardPage } from '../../features/tasks/pages/TaskBoardPage'
 import { TaskDetailPage } from '../../features/tasks/pages/TaskDetailPage'
 import { ProgressReportsPage } from '../../features/reports/ProgressReportsPage'
+import { MeetingsPage } from '../../features/meetings/MeetingsPage'
+import { CreateMeetingPage } from '../../features/meetings/CreateMeetingPage'
+import { MeetingDetailPage } from '../../features/meetings/MeetingDetailPage'
 import { ProgressReportDetailPage } from '../../features/reports/ProgressReportDetailPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { ProjectLifecyclePage } from '../../features/projects/pages/ProjectLifecyclePage'
@@ -61,6 +64,9 @@ export const appRouter = createBrowserRouter([
             { path: 'project/reports', element: <ProgressReportsPage /> },
             { path: 'project/reports/new', element: <ProgressReportDetailPage create /> },
             { path: 'project/reports/:reportId', element: <ProgressReportDetailPage /> },
+            { path: 'project/meetings', element: <MeetingsPage /> },
+            { path: 'project/meetings/new', element: <CreateMeetingPage /> },
+            { path: 'project/meetings/:meetingId', element: <MeetingDetailPage /> },
           ] },
           { path: 'projects/lifecycle', element: <ProjectLifecyclePage /> },
           { path: 'team', element: <TeamManagementPage /> },
@@ -85,6 +91,9 @@ export const appRouter = createBrowserRouter([
             { path: 'supervisor/projects/:projectId/gantt', element: <GanttPage /> },
             { path: 'supervisor/projects/:projectId/reports', element: <ProgressReportsPage /> },
             { path: 'supervisor/projects/:projectId/reports/:reportId', element: <ProgressReportDetailPage /> },
+            { path: 'supervisor/projects/:projectId/meetings', element: <MeetingsPage /> },
+            { path: 'supervisor/projects/:projectId/meetings/new', element: <CreateMeetingPage /> },
+            { path: 'supervisor/projects/:projectId/meetings/:meetingId', element: <MeetingDetailPage /> },
           ] },
         ],
       },

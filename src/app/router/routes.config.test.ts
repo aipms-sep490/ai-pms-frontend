@@ -39,6 +39,7 @@ describe('routes.config', () => {
       '/project/milestones/M3',
       '/project/gantt',
       '/project/reports',
+      '/project/meetings',
       '/supervisor/workspace',
       '/login',
       '/profile',

@@ -71,12 +71,11 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
   {
     id: 'screen-10',
     path: '/project/meetings',
-    title: 'Lịch họp & Đánh giá',
-    breadcrumb: 'Biên bản & Đánh giá',
+    title: 'Lịch họp & biên bản',
+    breadcrumb: 'Lịch họp & biên bản',
     icon: 'diversity_3',
     role: 'student',
-    status: 'coming_soon',
-    dot: true,
+    status: 'implemented',
     section: 'workspace',
   },
   {
@@ -155,17 +154,41 @@ export function getStudentNavItems() {
  * Resolves a breadcrumb title from the current pathname.
  */
 export function getBreadcrumbForPath(pathname: string): string {
+  if (/^\/project\/meetings\/new(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings\/new(?:\/|$)/.test(pathname)) {
+    return 'Lên lịch họp'
+  }
+  if (/^\/project\/meetings\/\d+(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings\/\d+(?:\/|$)/.test(pathname)) {
+    return 'Chi tiết cuộc họp'
+  }
+  if (/^\/project\/meetings(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings(?:\/|$)/.test(pathname)) {
+    return 'Lịch họp & biên bản'
+  }
+  if (/^\/project\/reports\/new(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/reports\/new(?:\/|$)/.test(pathname)) {
+    return 'Soạn báo cáo tiến độ'
+  }
+  if (/^\/project\/reports\/\d+(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/reports\/\d+(?:\/|$)/.test(pathname)) {
+    return 'Chi tiết báo cáo'
+  }
   if (pathname.startsWith('/project/reports') || /^\/supervisor\/projects\/\d+\/reports(?:\/|$)/.test(pathname)) {
     return 'Báo cáo tiến độ'
   }
   if (pathname === '/' || pathname === '/project/overview') {
     return 'Tổng quan lộ trình'
   }
-  if (pathname === '/project/workspace') {
+  if (pathname === '/project/workspace' || /^\/supervisor\/projects\/\d+\/workspace(?:\/|$)/.test(pathname)) {
     return 'Không gian đồ án ACTIVE'
   }
-  if (pathname.startsWith('/project/milestones')) {
+  if (pathname.startsWith('/project/milestones') || /^\/supervisor\/projects\/\d+\/milestones(?:\/|$)/.test(pathname)) {
     return 'Tiến trình & Cột mốc'
+  }
+  if (/^\/project\/tasks\/\d+(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/tasks\/\d+(?:\/|$)/.test(pathname)) {
+    return 'Chi tiết công việc'
+  }
+  if (pathname.startsWith('/project/tasks') || /^\/supervisor\/projects\/\d+\/tasks(?:\/|$)/.test(pathname)) {
+    return 'Quản lý Công việc & Bảng Kanban'
+  }
+  if (pathname === '/project/gantt' || /^\/supervisor\/projects\/\d+\/gantt(?:\/|$)/.test(pathname)) {
+    return 'Gantt & Đường găng'
   }
   if (pathname === '/team' || pathname === '/team/create') {
     return 'Quản lý Nhóm & Tuyển quân'
@@ -189,6 +212,8 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname.startsWith('/department/supervisors')) return 'Giám sát GVHD'
   if (pathname.startsWith('/department/topics')) return 'Quản lý đề tài'
   if (pathname === '/admin/access') return 'Quản trị quyền'
+  if (pathname === '/supervisor/workspace') return 'Bàn làm việc GVHD'
+  if (pathname === '/profile') return 'Hồ sơ tài khoản'
   const match = mvpRoutes.find((r) => r.path === pathname)
   if (match) {
     return match.title
