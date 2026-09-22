@@ -5,6 +5,8 @@ export interface TeamMemberDto {
   organizationId?: number | null
   isEligibleStudent: boolean
   isLeader: boolean
+  isProjectQualificationEligible?: boolean
+  qualificationStatus?: string
 }
 
 export interface TeamEligibilityDto {
@@ -70,4 +72,21 @@ export interface TeamInvitationDto {
   expiresAt?: string | null
   respondedAt?: string | null
   createdAt: string
+}
+
+export interface TeamLeaderChangeRequestDto {
+  id: number
+  teamId: number
+  projectId: number
+  requestedBy: number
+  currentLeaderUserId: number
+  newLeaderUserId: number
+  mentorProfileId: number
+  mentorUserId: number
+  mentorName: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | string
+  requestMessage?: string | null
+  responseMessage?: string | null
+  requestedAt: string
+  respondedAt?: string | null
 }

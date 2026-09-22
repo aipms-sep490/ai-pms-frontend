@@ -105,15 +105,15 @@ export function TeamRosterTable({
                     )}
                   </td>
                   <td className="py-3 px-4">
-                    {member.isEligibleStudent ? (
+                    {member.isEligibleStudent && member.isProjectQualificationEligible !== false ? (
                       <span className="inline-flex items-center gap-1 text-xs text-emerald-700 font-medium">
-                        <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                        Đủ điều kiện
+                        <span className="material-symbols-outlined text-[16px]">verified</span>
+                        Đủ điều kiện{member.qualificationStatus === 'VERIFIED' ? ' · Đã xác minh' : ''}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-xs text-rose-700 font-medium">
                         <span className="material-symbols-outlined text-[16px]">cancel</span>
-                        Chưa đủ điều kiện
+                        Chưa đủ điều kiện{member.qualificationStatus ? ' · ' + member.qualificationStatus : ''}
                       </span>
                     )}
                   </td>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { ProjectDto, SupervisorAssignmentDto, SupervisorRequestDto, TeamDto } from '../../../types/backend'
+import type { ProjectDto, SupervisorAssignmentDto, SupervisorRequestDto, TeamDto, TeamLeaderChangeRequestDto } from '../../../types/backend'
 import { HttpError } from '../../../services/http/http-client'
 import { services } from '../../../services/service-gateway'
 
@@ -21,6 +21,7 @@ function classify(error: unknown): InboxError {
 export function useSupervisorInbox() {
   const [requests, setRequests] = useState<SupervisorRequestDto[]>([])
   const [assignments, setAssignments] = useState<SupervisorAssignmentDto[]>([])
+  const [leaderChangeRequests, setLeaderChangeRequests] = useState<TeamLeaderChangeRequestDto[]>([])
   const [projects, setProjects] = useState<Record<number, ProjectDto>>({})
   const [teams, setTeams] = useState<Record<number, TeamDto>>({})
   const [loading, setLoading] = useState(true)
@@ -31,12 +32,14 @@ export function useSupervisorInbox() {
   const refresh = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const [inbox, ownAssignments] = await Promise.all([
+      const [inbox, ownAssignments, leaderChanges] = await Promise.all([
         services.supervisor.getSupervisorInbox(),
         services.supervisor.getOwnAssignments(),
+        services.team.getLeaderChangeRequests(undefined, 'PENDING'),
       ])
       setRequests(inbox.items)
       setAssignments(ownAssignments.items)
+      setLeaderChangeRequests(leaderChanges.items)
 
       const projectIds = [...new Set([
         ...inbox.items.map((request) => request.projectId),
@@ -79,5 +82,36 @@ export function useSupervisorInbox() {
     } finally { setAcceptPending(null); setRejectPending(null) }
   }, [acceptPending, refresh, rejectPending])
 
-  return { requests, assignments, projects, teams, loading, acceptPending, rejectPending, error, refresh, respond }
+  const respondToLeaderChange = useCallback(async (
+    requestId: number,
+    decision: 'approve' | 'reject',
+    message?: string,
+  ) => {
+    setError(null)
+    try {
+      await services.team.respondToLeaderChange(requestId, decision, message?.trim() || undefined)
+      await refresh()
+      return true
+    } catch (nextError) {
+      const next = classify(nextError)
+      if (next.kind === 'conflict') await refresh()
+      setError(next)
+      return false
+    }
+  }, [refresh])
+
+  return {
+    requests,
+    leaderChangeRequests,
+    assignments,
+    projects,
+    teams,
+    loading,
+    acceptPending,
+    rejectPending,
+    error,
+    refresh,
+    respond,
+    respondToLeaderChange,
+  }
 }

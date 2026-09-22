@@ -11,7 +11,10 @@ import type {
   PagedResult,
   TeamAcademicScopeRequest,
   TeamInvitationCandidateDto,
+  TeamLeaderChangeRequestDto,
 } from '../../types/backend'
+import { getMockQualification, isMockStudentQualificationEligible } from '../mock/qualification.mock'
+import { hasMockProjectForTeam } from './projects.api'
 
 export interface CreateTeamPayload {
   academicSemesterId: number
@@ -47,6 +50,8 @@ let mockTeamStore: TeamDto | null = {
       organizationId: 1,
       isLeader: true,
       isEligibleStudent: true,
+      isProjectQualificationEligible: true,
+      qualificationStatus: 'VERIFIED',
     },
     {
       userId: 2,
@@ -55,6 +60,8 @@ let mockTeamStore: TeamDto | null = {
       organizationId: 1,
       isLeader: false,
       isEligibleStudent: true,
+      isProjectQualificationEligible: true,
+      qualificationStatus: 'VERIFIED',
     },
     {
       userId: 3,
@@ -63,6 +70,8 @@ let mockTeamStore: TeamDto | null = {
       organizationId: 1,
       isLeader: false,
       isEligibleStudent: true,
+      isProjectQualificationEligible: true,
+      qualificationStatus: 'VERIFIED',
     },
     {
       userId: 4,
@@ -71,6 +80,8 @@ let mockTeamStore: TeamDto | null = {
       organizationId: 1,
       isLeader: false,
       isEligibleStudent: true,
+      isProjectQualificationEligible: true,
+      qualificationStatus: 'VERIFIED',
     },
   ],
   eligibility: {
@@ -79,6 +90,8 @@ let mockTeamStore: TeamDto | null = {
     reasons: [],
   },
 }
+
+let mockLeaderChangeRequests: TeamLeaderChangeRequestDto[] = []
 
 let mockInvitationsStore: TeamInvitationDto[] = [
   {
@@ -171,7 +184,35 @@ export async function getInvitationCandidates(
 ): Promise<PagedResult<TeamInvitationCandidateDto>> {
   const page = query.page ?? 1
   const pageSize = query.pageSize ?? 20
-  if (env.isMockMode) return { items: [], page, pageSize, totalCount: 0, totalPages: 0 }
+  if (env.isMockMode) {
+    const search = query.search?.trim().toLowerCase() ?? ''
+    const seed = [
+      { userId: 5, fullName: 'Nguyễn Minh Châu', email: 'student5@example.test', studentCode: 'SE0005' },
+      { userId: 6, fullName: 'Đặng Quốc Huy', email: 'student6@example.test', studentCode: 'SE0006' },
+    ]
+    const filtered = seed
+      .filter((candidate) => isMockStudentQualificationEligible(candidate.userId))
+      .filter((candidate) => !search
+        || candidate.fullName.toLowerCase().includes(search)
+        || candidate.email.toLowerCase().includes(search)
+        || candidate.studentCode.toLowerCase().includes(search))
+    const items: TeamInvitationCandidateDto[] = filtered.map((candidate) => {
+      const pending = mockInvitationsStore.find((invitation) =>
+        invitation.teamId === teamId && invitation.invitedUserId === candidate.userId && invitation.status === 'PENDING')
+      return {
+        ...candidate,
+        majorId: 101,
+        majorCode: 'SE',
+        majorName: 'Kỹ thuật Phần mềm',
+        invitationStatus: pending ? 'PENDING' : 'NONE',
+        pendingInvitationId: pending?.id ?? null,
+        pendingInvitationExpiresAt: pending?.expiresAt ?? null,
+        canInvite: !pending,
+      }
+    })
+    const paged = items.slice((page - 1) * pageSize, page * pageSize)
+    return { items: paged, page, pageSize, totalCount: items.length, totalPages: Math.ceil(items.length / pageSize) }
+  }
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
   if (query.search) params.set('search', query.search)
   return httpGet<PagedResult<TeamInvitationCandidateDto>>(`/teams/${teamId}/invitation-candidates?${params.toString()}`)
@@ -187,11 +228,22 @@ export async function refreshEligibility(teamId: number): Promise<TeamDto> {
       if (memberCount < 4) reasons.push('TOO_FEW_MEMBERS')
       if (memberCount > 5) reasons.push('TOO_MANY_MEMBERS')
       if (leaders.length !== 1) reasons.push('EXACTLY_ONE_LEADER_REQUIRED')
+      if (mockTeamStore.members.some((member) => !isMockStudentQualificationEligible(member.userId))) {
+        reasons.push('QUALIFICATION_REQUIRED')
+      }
 
       const canRegister = reasons.length === 0
       mockTeamStore = {
         ...mockTeamStore,
         status: canRegister ? 'ELIGIBLE' : 'FORMING',
+        members: mockTeamStore.members.map((member) => {
+          const qualification = getMockQualification(member.userId)
+          return {
+            ...member,
+            isProjectQualificationEligible: isMockStudentQualificationEligible(member.userId),
+            qualificationStatus: qualification?.verificationStatus ?? 'MISSING',
+          }
+        }),
         eligibility: {
           canRegister,
           rosterLocked: false,
@@ -207,6 +259,9 @@ export async function refreshEligibility(teamId: number): Promise<TeamDto> {
 
 export async function inviteMember(teamId: number, payload: InviteMemberPayload): Promise<TeamInvitationDto> {
   if (env.isMockMode) {
+    if (!isMockStudentQualificationEligible(payload.invitedUserId)) {
+      throw new Error('QUALIFICATION_REQUIRED')
+    }
     const inv: TeamInvitationDto = {
       id: mockInvitationsStore.length + 1,
       teamId,
@@ -250,7 +305,9 @@ export async function getInvitations(
 export async function acceptInvitation(invitationId: number): Promise<TeamDto> {
   if (env.isMockMode) {
     const inv = mockInvitationsStore.find((i) => i.id === invitationId)
-    if (inv) inv.status = 'ACCEPTED'
+    if (!inv) throw new Error('Invitation #' + invitationId + ' not found.')
+    if (!isMockStudentQualificationEligible(inv.invitedUserId)) throw new Error('QUALIFICATION_REQUIRED')
+    inv.status = 'ACCEPTED'
     if (mockTeamStore) return mockTeamStore
     throw new Error(`Invitation #${invitationId} not found.`)
   }
@@ -299,6 +356,8 @@ export async function leaveTeam(teamId: number): Promise<void> {
 
 export async function transferLeader(teamId: number, newLeaderUserId: number): Promise<TeamDto> {
   if (env.isMockMode) {
+    if (hasMockProjectForTeam(teamId)) throw new Error('MENTOR_APPROVAL_REQUIRED')
+    if (!isMockStudentQualificationEligible(newLeaderUserId)) throw new Error('QUALIFICATION_REQUIRED')
     if (mockTeamStore && mockTeamStore.id === teamId) {
       mockTeamStore = {
         ...mockTeamStore,
@@ -314,4 +373,100 @@ export async function transferLeader(teamId: number, newLeaderUserId: number): P
   return await httpPost<TeamDto, { newLeaderUserId: number }>(`/teams/${teamId}/leader`, {
     newLeaderUserId,
   })
+}
+
+
+export async function requestLeaderChange(
+  teamId: number,
+  newLeaderUserId: number,
+  message?: string,
+): Promise<TeamLeaderChangeRequestDto> {
+  if (env.isMockMode) {
+    if (!mockTeamStore || mockTeamStore.id !== teamId) throw new Error('Team #' + teamId + ' not found.')
+    if (!hasMockProjectForTeam(teamId)) throw new Error('PROJECT_MENTOR_NOT_REQUIRED')
+    if (!isMockStudentQualificationEligible(newLeaderUserId)) throw new Error('QUALIFICATION_REQUIRED')
+    const currentLeader = mockTeamStore.members.find((member) => member.isLeader)
+    const target = mockTeamStore.members.find((member) => member.userId === newLeaderUserId)
+    if (!currentLeader || !target) throw new Error('INVALID_LEADER_CHANGE_TARGET')
+    if (mockLeaderChangeRequests.some((request) => request.teamId === teamId && request.status === 'PENDING')) {
+      throw new Error('LEADER_CHANGE_ALREADY_PENDING')
+    }
+    const request: TeamLeaderChangeRequestDto = {
+      id: Math.max(0, ...mockLeaderChangeRequests.map((item) => item.id)) + 1,
+      teamId,
+      projectId: 50,
+      requestedBy: currentLeader.userId,
+      currentLeaderUserId: currentLeader.userId,
+      newLeaderUserId,
+      mentorProfileId: 10,
+      mentorUserId: 20,
+      mentorName: 'ThS. Nguyễn Văn Mentor',
+      status: 'PENDING',
+      requestMessage: message?.trim() || null,
+      responseMessage: null,
+      requestedAt: new Date().toISOString(),
+      respondedAt: null,
+    }
+    mockLeaderChangeRequests.push(request)
+    return { ...request }
+  }
+  return httpPost<TeamLeaderChangeRequestDto, { newLeaderUserId: number; message?: string }>(
+    '/teams/' + teamId + '/leader-change-requests',
+    { newLeaderUserId, message },
+  )
+}
+
+export async function getLeaderChangeRequests(
+  teamId?: number,
+  status?: string,
+  page = 1,
+  pageSize = 20,
+): Promise<PagedResult<TeamLeaderChangeRequestDto>> {
+  if (env.isMockMode) {
+    const items = mockLeaderChangeRequests.filter((request) =>
+      (!teamId || request.teamId === teamId) && (!status || request.status === status))
+    return { items, page, pageSize, totalCount: items.length, totalPages: items.length ? 1 : 0 }
+  }
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+  if (teamId) params.set('teamId', String(teamId))
+  if (status) params.set('status', status)
+  return httpGet<PagedResult<TeamLeaderChangeRequestDto>>('/team-leader-change-requests?' + params.toString())
+}
+
+export async function respondToLeaderChange(
+  requestId: number,
+  decision: 'approve' | 'reject',
+  message?: string,
+): Promise<TeamLeaderChangeRequestDto> {
+  if (env.isMockMode) {
+    const request = mockLeaderChangeRequests.find((item) => item.id === requestId)
+    if (!request) throw new Error('Leader change request #' + requestId + ' not found.')
+    if (request.status !== 'PENDING') throw new Error('LEADER_CHANGE_ALREADY_PROCESSED')
+    if (decision === 'approve') {
+      if (!mockTeamStore || mockTeamStore.id !== request.teamId) throw new Error('TEAM_NOT_FOUND')
+      const currentLeader = mockTeamStore.members.find((member) => member.isLeader)
+      if (currentLeader?.userId !== request.currentLeaderUserId) throw new Error('LEADER_CHANGED')
+      const targetMember = mockTeamStore.members.find((member) => member.userId === request.newLeaderUserId)
+      if (!targetMember) throw new Error('TARGET_NOT_ACTIVE_TEAM_MEMBER')
+      if (targetMember.userId === currentLeader.userId) throw new Error('INVALID_LEADER_CHANGE_TARGET')
+      if (!isMockStudentQualificationEligible(targetMember.userId)) throw new Error('QUALIFICATION_REQUIRED')
+      mockTeamStore = {
+        ...mockTeamStore,
+        members: mockTeamStore.members.map((member) => ({
+          ...member,
+          isLeader: member.userId === targetMember.userId,
+        })),
+      }
+      request.status = 'APPROVED'
+    } else {
+      request.status = 'REJECTED'
+    }
+    request.responseMessage = message?.trim() || null
+    request.respondedAt = new Date().toISOString()
+    return { ...request }
+  }
+  return httpPost<TeamLeaderChangeRequestDto, { message?: string }>(
+    '/team-leader-change-requests/' + requestId + '/' + decision,
+    { message },
+  )
 }

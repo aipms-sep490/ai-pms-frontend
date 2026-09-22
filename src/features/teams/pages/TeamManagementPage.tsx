@@ -8,6 +8,7 @@ import { AcademicScopePanel } from '../components/AcademicScopePanel'
 import { UpdateTeamModal } from '../components/UpdateTeamModal'
 import { TeamEligibilitySummary } from '../components/TeamEligibilitySummary'
 import { useTeamManagement } from '../hooks/useTeamManagement'
+import { StudentQualificationCard } from '../../qualifications/components/StudentQualificationCard'
 
 export function TeamManagementPage() {
   const navigate = useNavigate()
@@ -15,7 +16,8 @@ export function TeamManagementPage() {
   const {
     team, profile, semester, period, workflowContext, isLoading: contextLoading,
     currentUserId, rosterLocked, permissions, sentInvitations, receivedInvitations,
-    candidates, candidateSearch, candidateError, isRefreshing, isLoadingCandidates,
+    candidates, leaderChangeRequests, requiresMentorApproval, activeMentor,
+    candidateSearch, candidateError, isRefreshing, isLoadingCandidates,
     setCandidateSearch, setCandidatePage, retryCandidates, isMutationPending, error, retry,
     createTeam, updateTeam, inviteMember, cancelInvitation, acceptInvitation, rejectInvitation,
     removeMember, transferLeader, leaveTeam,
@@ -78,9 +80,13 @@ export function TeamManagementPage() {
     showToast('Đã xóa thành viên khỏi nhóm.')
   }
 
-  const handleTransferLeader = async (newLeaderUserId: number) => {
-    await transferLeader(newLeaderUserId)
-    showToast('Đã bàn giao quyền Trưởng nhóm thành công!')
+  const handleTransferLeader = async (newLeaderUserId: number, message?: string) => {
+    await transferLeader(newLeaderUserId, message)
+    showToast(
+      requiresMentorApproval
+        ? 'Đã gửi yêu cầu thay đổi Trưởng nhóm tới Mentor. Leader hiện tại vẫn giữ quyền cho tới khi được phê duyệt.'
+        : 'Đã bàn giao quyền Trưởng nhóm thành công!',
+    )
   }
 
   const handleLeaveTeam = async () => {
@@ -133,6 +139,8 @@ export function TeamManagementPage() {
           )}
         </div>
       )}
+
+      <StudentQualificationCard />
 
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
@@ -273,6 +281,25 @@ export function TeamManagementPage() {
             fallbackMajorId={profile?.majorId}
           />
 
+          {leaderChangeRequests.some((request) => request.status === 'PENDING') && (
+            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
+              <div className="flex items-center gap-2 font-bold">
+                <span className="material-symbols-outlined text-[18px]">hourglass_top</span>
+                Yêu cầu thay đổi Trưởng nhóm đang chờ Mentor phê duyệt
+              </div>
+              {leaderChangeRequests.filter((request) => request.status === 'PENDING').map((request) => {
+                const target = team.members.find((member) => member.userId === request.newLeaderUserId)
+                return (
+                  <p key={request.id} className="mt-2">
+                    {target?.fullName ?? 'Thành viên #' + request.newLeaderUserId}
+                    {' · Mentor: ' + request.mentorName}
+                    {' · gửi lúc ' + new Date(request.requestedAt).toLocaleString('vi-VN')}
+                  </p>
+                )
+              })}
+            </section>
+          )}
+
           {/* Roster Table */}
           <TeamRosterTable
             members={team.members}
@@ -329,6 +356,8 @@ export function TeamManagementPage() {
           isOpen={isTransferModalOpen}
           members={team.members}
           currentUserId={currentUserId}
+          requiresMentorApproval={requiresMentorApproval}
+          mentorName={activeMentor?.supervisorName ?? null}
           onClose={() => setIsTransferModalOpen(false)}
           onSubmit={handleTransferLeader}
         />
@@ -344,7 +373,7 @@ export function TeamManagementPage() {
             <div>
               <h3 className="text-base font-bold text-slate-900">Rời khỏi nhóm đồ án?</h3>
               <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                Bạn sẽ không còn là thành viên của nhóm {team?.name}. Nếu bạn là Trưởng nhóm duy nhất, quyền điều hành sẽ được tự động chuyển giao.
+                Bạn sẽ không còn là thành viên của nhóm {team?.name}. Trưởng nhóm phải bàn giao hoặc hoàn tất quy trình thay đổi Leader trước khi có thể rời nhóm.
               </p>
             </div>
             <div className="flex items-center justify-end gap-2.5 pt-2">

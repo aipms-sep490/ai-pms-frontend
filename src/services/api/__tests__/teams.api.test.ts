@@ -136,4 +136,41 @@ describe('teams.api contract', () => {
     expect(globalThis.fetch).toHaveBeenCalledWith('/api/v1/teams/28/eligibility/refresh', expect.objectContaining({ method: 'POST' }))
   })
 
+  it('does not expose a pending-qualification student as a mock invitation candidate', async () => {
+    runtime.env.isMockMode = true
+
+    const candidates = await teamsApi.getInvitationCandidates(28)
+
+    expect(candidates.items.map((candidate) => candidate.userId)).not.toContain(5)
+    expect(candidates.items.every((candidate) => candidate.canInvite)).toBe(true)
+  })
+
+  it('keeps a departed leader-change target pending without altering leadership, while approving an active target', async () => {
+    runtime.env.isMockMode = true
+    vi.resetModules()
+    const mockTeamsApi = await import('../teams.api')
+
+    const approved = await mockTeamsApi.requestLeaderChange(28, 2, 'B takes over')
+    await expect(mockTeamsApi.respondToLeaderChange(approved.id, 'approve', 'Approved')).resolves.toMatchObject({
+      status: 'APPROVED',
+    })
+
+    const afterSuccessfulApproval = await mockTeamsApi.getTeam(28)
+    expect(afterSuccessfulApproval.members.filter((member) => member.isLeader).map((member) => member.userId)).toEqual([2])
+
+    const departedTarget = await mockTeamsApi.requestLeaderChange(28, 3, 'C takes over')
+    await mockTeamsApi.removeMember(28, 3)
+    const beforeRejectedApproval = await mockTeamsApi.getTeam(28)
+
+    await expect(mockTeamsApi.respondToLeaderChange(departedTarget.id, 'approve')).rejects.toThrow('TARGET_NOT_ACTIVE_TEAM_MEMBER')
+
+    const afterRejectedApproval = await mockTeamsApi.getTeam(28)
+    const pending = (await mockTeamsApi.getLeaderChangeRequests(28)).items.find((request) => request.id === departedTarget.id)
+    expect(afterRejectedApproval).toEqual(beforeRejectedApproval)
+    expect(afterRejectedApproval.members.some((member) => member.userId === 3)).toBe(false)
+    expect(afterRejectedApproval.members.filter((member) => member.isLeader).map((member) => member.userId)).toEqual([2])
+    expect(afterRejectedApproval.members.filter((member) => member.isLeader)).toHaveLength(1)
+    expect(pending).toMatchObject({ status: 'PENDING', responseMessage: null, respondedAt: null })
+  })
+
 })

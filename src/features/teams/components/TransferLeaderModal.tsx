@@ -6,7 +6,9 @@ interface TransferLeaderModalProps {
   members: TeamMemberDto[]
   currentUserId: number
   onClose: () => void
-  onSubmit: (newLeaderUserId: number) => Promise<void>
+  requiresMentorApproval?: boolean
+  mentorName?: string | null
+  onSubmit: (newLeaderUserId: number, message?: string) => Promise<void>
 }
 
 export function TransferLeaderModal({
@@ -14,12 +16,15 @@ export function TransferLeaderModal({
   members,
   currentUserId,
   onClose,
+  requiresMentorApproval = false,
+  mentorName,
   onSubmit,
 }: TransferLeaderModalProps) {
   const eligibleMembers = members.filter((m) => m.userId !== currentUserId)
   const [selectedUserId, setSelectedUserId] = useState<number>(
     eligibleMembers[0]?.userId ?? 0,
   )
+  const [message, setMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -35,7 +40,7 @@ export function TransferLeaderModal({
     setError(null)
     setIsLoading(true)
     try {
-      await onSubmit(selectedUserId)
+      await onSubmit(selectedUserId, message.trim() || undefined)
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Chuyển quyền thất bại.')
@@ -49,8 +54,12 @@ export function TransferLeaderModal({
       <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-slate-900">Bàn giao quyền Trưởng nhóm</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Chọn thành viên kế nhiệm điều phối nhóm đồ án</p>
+            <h3 className="text-base font-bold text-slate-900">{requiresMentorApproval ? 'Đề nghị thay đổi Trưởng nhóm' : 'Bàn giao quyền Trưởng nhóm'}</h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {requiresMentorApproval
+                ? 'Yêu cầu sẽ được gửi tới Mentor hiện tại để phê duyệt trước khi thay đổi có hiệu lực.'
+                : 'Chọn thành viên kế nhiệm điều phối nhóm đồ án'}
+            </p>
           </div>
           <button
             type="button"
@@ -67,7 +76,9 @@ export function TransferLeaderModal({
               warning
             </span>
             <p className="text-xs text-amber-900 leading-relaxed">
-              Lưu ý: Sau khi chuyển quyền, bạn sẽ trở thành thành viên thông thường và không thể tự thu hồi lại quyền Trưởng nhóm.
+              {requiresMentorApproval
+                ? 'Leader hiện tại vẫn giữ quyền cho tới khi ' + (mentorName || 'Mentor') + ' phê duyệt yêu cầu. Hệ thống sẽ xác minh lại tư cách của Leader mới tại thời điểm phê duyệt.'
+                : 'Sau khi chuyển quyền, bạn sẽ trở thành thành viên thông thường và không thể tự thu hồi lại quyền Trưởng nhóm.'}
             </p>
           </div>
 
@@ -102,6 +113,18 @@ export function TransferLeaderModal({
             </div>
           </div>
 
+          {requiresMentorApproval && (
+            <label className="block text-xs font-bold text-slate-700">
+              Lý do / ghi chú
+              <textarea
+                className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                placeholder="Mô tả ngắn lý do đề nghị thay đổi Trưởng nhóm"
+              />
+            </label>
+          )}
+
           {error && (
             <div className="bg-rose-50 border border-rose-200 rounded-lg p-2.5 text-xs text-rose-700 font-medium">
               {error}
@@ -121,7 +144,9 @@ export function TransferLeaderModal({
               disabled={isLoading || eligibleMembers.length === 0}
               className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors disabled:opacity-50"
             >
-              {isLoading ? 'Đang chuyển giao...' : 'Xác nhận chuyển quyền'}
+              {isLoading
+                ? 'Đang xử lý...'
+                : requiresMentorApproval ? 'Gửi Mentor phê duyệt' : 'Xác nhận chuyển quyền'}
             </button>
           </div>
         </form>

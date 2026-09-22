@@ -5,13 +5,20 @@ import { useSupervisorInbox } from '../hooks/useSupervisorInbox'
 
 export function LecturerWorkspacePage() {
   const inbox = useSupervisorInbox()
+  const leaderChangeRequests = inbox.leaderChangeRequests ?? []
   const [responseByRequest, setResponseByRequest] = useState<Record<number, string>>({})
+  const [leaderResponseByRequest, setLeaderResponseByRequest] = useState<Record<number, string>>({})
 
   const decide = async (requestId: number, decision: 'accept' | 'reject') => {
     const request = inbox.requests.find((item) => item.id === requestId)
     if (!request) return
     if (!confirm(`Xác nhận ${decision === 'accept' ? 'nhận' : 'từ chối'} yêu cầu #${request.id}?`)) return
     await inbox.respond(request, decision, responseByRequest[request.id])
+  }
+
+  const decideLeaderChange = async (requestId: number, decision: 'approve' | 'reject') => {
+    if (!confirm('Xác nhận ' + (decision === 'approve' ? 'phê duyệt' : 'từ chối') + ' yêu cầu thay đổi Trưởng nhóm #' + requestId + '?')) return
+    await inbox.respondToLeaderChange(requestId, decision, leaderResponseByRequest[requestId])
   }
 
   if (inbox.error?.kind === 'authentication') return <p className="p-6"><Link to="/login">Đăng nhập lại để tiếp tục.</Link></p>
@@ -39,6 +46,43 @@ export function LecturerWorkspacePage() {
           {request.responseMessage ? <p className="mt-2 rounded bg-slate-50 p-2">Response: {request.responseMessage}</p> : null}
           {request.status === 'PENDING' ? <div className="mt-3 space-y-2"><label className="block text-xs">Phản hồi (tùy chọn)<textarea className="mt-1 block w-full rounded border border-slate-300 p-2" value={responseByRequest[request.id] ?? ''} onChange={(event) => setResponseByRequest((current) => ({ ...current, [request.id]: event.target.value }))} /></label><div className="flex flex-wrap gap-2"><Button disabled={inbox.acceptPending !== null || inbox.rejectPending !== null} onClick={() => void decide(request.id, 'accept')}>Accept & assign</Button><Button variant="danger" disabled={inbox.acceptPending !== null || inbox.rejectPending !== null} onClick={() => void decide(request.id, 'reject')}>Reject</Button></div></div> : null}
         </li>})}</ul>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+        <h2 className="text-lg font-bold">Yêu cầu thay đổi Trưởng nhóm</h2>
+        <p className="mt-1 text-xs text-slate-500">Chỉ yêu cầu của Project mà bạn đang là Mentor hiện tại được backend trả về. Việc Approve sẽ xác minh lại thành viên, academic scope và qualification trước khi đổi Leader.</p>
+        {leaderChangeRequests.length === 0 ? <p className="mt-3 text-sm text-slate-600">Chưa có đề nghị thay đổi Trưởng nhóm cần xử lý.</p> : null}
+        <ul className="mt-4 space-y-3">
+          {leaderChangeRequests.map((request) => {
+            const team = inbox.teams?.[request.teamId]
+            const current = team?.members.find((member) => member.userId === request.currentLeaderUserId)
+            const target = team?.members.find((member) => member.userId === request.newLeaderUserId)
+            return (
+              <li key={request.id} className="rounded-xl border border-slate-200 p-4 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <strong>{team?.name ?? 'Team #' + request.teamId}</strong>
+                  <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">{request.status}</span>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <p><span className="text-xs text-slate-500">Leader hiện tại</span><br/><b>{current?.fullName ?? '#' + request.currentLeaderUserId}</b></p>
+                  <p><span className="text-xs text-slate-500">Leader đề xuất</span><br/><b>{target?.fullName ?? '#' + request.newLeaderUserId}</b>{target?.qualificationStatus ? ' · ' + target.qualificationStatus : ''}</p>
+                </div>
+                {request.requestMessage ? <p className="mt-2 rounded bg-slate-50 p-2 text-xs">Lý do: {request.requestMessage}</p> : null}
+                <label className="mt-3 block text-xs">Phản hồi (tùy chọn)
+                  <textarea
+                    className="mt-1 block w-full rounded border border-slate-300 p-2"
+                    value={leaderResponseByRequest[request.id] ?? ''}
+                    onChange={(event) => setLeaderResponseByRequest((currentState) => ({ ...currentState, [request.id]: event.target.value }))}
+                  />
+                </label>
+                <div className="mt-3 flex gap-2">
+                  <Button onClick={() => void decideLeaderChange(request.id, 'approve')}>Approve Leader Change</Button>
+                  <Button variant="danger" onClick={() => void decideLeaderChange(request.id, 'reject')}>Reject</Button>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
