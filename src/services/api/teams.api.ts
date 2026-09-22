@@ -443,15 +443,18 @@ export async function respondToLeaderChange(
     if (!request) throw new Error('Leader change request #' + requestId + ' not found.')
     if (request.status !== 'PENDING') throw new Error('LEADER_CHANGE_ALREADY_PROCESSED')
     if (decision === 'approve') {
-      if (!isMockStudentQualificationEligible(request.newLeaderUserId)) throw new Error('QUALIFICATION_REQUIRED')
       if (!mockTeamStore || mockTeamStore.id !== request.teamId) throw new Error('TEAM_NOT_FOUND')
       const currentLeader = mockTeamStore.members.find((member) => member.isLeader)
       if (currentLeader?.userId !== request.currentLeaderUserId) throw new Error('LEADER_CHANGED')
+      const targetMember = mockTeamStore.members.find((member) => member.userId === request.newLeaderUserId)
+      if (!targetMember) throw new Error('TARGET_NOT_ACTIVE_TEAM_MEMBER')
+      if (targetMember.userId === currentLeader.userId) throw new Error('INVALID_LEADER_CHANGE_TARGET')
+      if (!isMockStudentQualificationEligible(targetMember.userId)) throw new Error('QUALIFICATION_REQUIRED')
       mockTeamStore = {
         ...mockTeamStore,
         members: mockTeamStore.members.map((member) => ({
           ...member,
-          isLeader: member.userId === request.newLeaderUserId,
+          isLeader: member.userId === targetMember.userId,
         })),
       }
       request.status = 'APPROVED'
