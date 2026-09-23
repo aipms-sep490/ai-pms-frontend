@@ -19,7 +19,7 @@ import {
 } from '../api/project-review-api'
 
 export type ReviewOperation = 'start' | 'revision' | 'approve' | 'reject' | 'department-approve' | 'department-reject'
-export type ReviewErrorKind = 'unauthorized' | 'forbidden' | 'not-found' | 'conflict' | 'system'
+export type ReviewErrorKind = 'unauthorized' | 'forbidden' | 'not-found' | 'conflict' | 'validation' | 'system'
 
 export interface ReviewError {
   kind: ReviewErrorKind
@@ -37,6 +37,8 @@ function classifyError(error: unknown): ReviewError {
     if (status === 403) return { kind: 'forbidden', message: 'Backend từ chối quyền hoặc Department scope.', cause: error }
     if (status === 404) return { kind: 'not-found', message: 'Không tìm thấy Project Review.', cause: error }
     if (status === 409) return { kind: 'conflict', message: `Dữ liệu review vừa thay đổi. ${response.message ?? 'Hãy kiểm tra dữ liệu mới trước khi quyết định lại.'}`, cause: error }
+    if (status === 422) return { kind: 'validation', message: response.message ?? 'Backend không chấp nhận dữ liệu hoặc điều kiện review hiện tại.', cause: error }
+    if (status >= 500) return { kind: 'system', message: 'Backend gặp lỗi khi xử lý review. Không có trạng thái nào được FE coi là thành công.', cause: error }
   }
   return { kind: 'system', message: 'Không thể kết nối hoặc tải dữ liệu review.', cause: error }
 }
