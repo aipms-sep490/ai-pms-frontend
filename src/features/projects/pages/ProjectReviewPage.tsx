@@ -1,29 +1,28 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
+import { ProjectAcademicScopePanel } from '../components/ProjectAcademicScopePanel'
 import { useProjectReview } from '../hooks/useProjectReview'
 import './project-review.css'
 
 function ScopeSummary({ review }: { review: ReturnType<typeof useProjectReview> }) {
   const scope = review.detail?.academicScope ?? review.detail?.latestSubmission?.evidence.scope
   const evidence = review.detail?.latestSubmission?.evidence
-  if (!scope || !evidence) return <p>Backend chưa cung cấp academic scope hoặc registration snapshot.</p>
+  if (!scope) return <p>Backend chưa cung cấp academic scope.</p>
 
   return (
-    <section aria-labelledby="review-scope-heading">
-      <h2 id="review-scope-heading">Academic scope & evidence</h2>
-      <dl className="review-page__facts">
-        <div><dt>Project mode</dt><dd>{scope.projectMode}</dd></div>
-        <div><dt>Lead department</dt><dd>Department #{scope.leadDepartmentId}</dd></div>
-        <div><dt>Primary major</dt><dd>{scope.primaryMajorId ?? 'Không áp dụng'}</dd></div>
-        <div><dt>Snapshot</dt><dd>#{review.detail?.latestSubmission?.id}</dd></div>
-        <div><dt>Policy</dt><dd>{evidence.policy.minMembers}–{evidence.policy.maxMembers} members · {evidence.policy.minDistinctMajors} distinct majors</dd></div>
-      </dl>
-      <h3>Major requirements</h3>
-      {scope.requirements.length ? <ul>{scope.requirements.map((requirement) => <li key={requirement.majorId}>Major #{requirement.majorId}: {requirement.minMembers}–{requirement.maxMembers} · {requirement.responsibility}</li>)}</ul> : <p>Không có major requirement trong contract.</p>}
-      <h3>Team roster</h3>
-      <ul>{evidence.members.map((member) => <li key={member.userId}>{member.fullName} · Major #{member.majorId}{member.isLeader ? ' · Leader' : ''}</li>)}</ul>
-    </section>
+    <>
+      <ProjectAcademicScopePanel scope={scope} participatingDepartmentIds={evidence?.departmentIds} />
+      {evidence ? <section aria-labelledby="review-evidence-heading">
+        <h2 id="review-evidence-heading">Registration evidence</h2>
+        <dl className="review-page__facts">
+          <div><dt>Snapshot</dt><dd>#{review.detail?.latestSubmission?.id}</dd></div>
+          <div><dt>Policy</dt><dd>{evidence.policy.minMembers}–{evidence.policy.maxMembers} members · {evidence.policy.minDistinctMajors} distinct majors</dd></div>
+        </dl>
+        <h3>Team roster</h3>
+        <ul>{evidence.members.map((member) => <li key={member.userId}>{member.fullName} · Major #{member.majorId}{member.isLeader ? ' · Leader' : ''}</li>)}</ul>
+      </section> : <p>Backend chưa cung cấp registration snapshot.</p>}
+    </>
   )
 }
 
@@ -123,6 +122,8 @@ export function ProjectReviewPage() {
   }
 
   const decisions = review.detail?.latestSubmission?.decisions ?? []
+  const scope = review.detail?.academicScope ?? review.detail?.latestSubmission?.evidence.scope
+  const isInterdisciplinary = scope?.projectMode === 'INTERDISCIPLINARY'
   return (
     <div className="review-page">
       <Link className="review-page__back-link" to="/department/projects/review">← Queue</Link>
@@ -134,18 +135,18 @@ export function ProjectReviewPage() {
       </section>
       <ProjectProposalDetails review={review} />
       <ScopeSummary review={review} />
-      <section>
+      {isInterdisciplinary ? <section>
         <h2>Participating department decisions</h2>
         {decisions.length ? <ul>{decisions.map((decision) => <li key={decision.departmentId}>Department #{decision.departmentId}: <strong>{decision.decision}</strong>{decision.reason ? ` · ${decision.reason}` : ''}</li>)}</ul> : <p>Không có participating department decision trong snapshot này.</p>}
-      </section>
+      </section> : null}
       <section>
         <h2>Review feedback</h2>
         <textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Lý do bắt buộc khi revision, reject hoặc Department reject" />
         <div className="review-page__actions">
           {review.canStart ? <Button disabled={review.pending !== null} onClick={() => void review.beginReview()}>Start review</Button> : null}
           {review.canRequestRevision ? <Button className="btn-revision" variant="secondary" disabled={review.pending !== null} onClick={() => void submit('revision')}>Request revision</Button> : null}
-          {review.canApproveDepartment ? <Button disabled={review.pending !== null} onClick={() => void submitDepartment('APPROVED')}>Approve as participating department</Button> : null}
-          {review.canRejectDepartment ? <Button className="btn-reject" variant="danger" disabled={review.pending !== null} onClick={() => void submitDepartment('REJECTED')}>Reject as participating department</Button> : null}
+          {isInterdisciplinary && review.canApproveDepartment ? <Button disabled={review.pending !== null} onClick={() => void submitDepartment('APPROVED')}>Approve as participating department</Button> : null}
+          {isInterdisciplinary && review.canRejectDepartment ? <Button className="btn-reject" variant="danger" disabled={review.pending !== null} onClick={() => void submitDepartment('REJECTED')}>Reject as participating department</Button> : null}
           {review.canApprove ? <Button className="btn-approve" variant="primary" disabled={review.pending !== null} onClick={() => void submit('approve')}>Approve project</Button> : null}
           {review.canReject ? <Button className="btn-reject" variant="danger" disabled={review.pending !== null} onClick={() => void submit('reject')}>Reject project</Button> : null}
         </div>

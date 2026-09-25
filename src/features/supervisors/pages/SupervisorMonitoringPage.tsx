@@ -21,11 +21,13 @@ export function SupervisorMonitoringPage() {
       <p>{supervisors.current.bio ?? 'Không có bio.'}</p>
       <h2>Expertise</h2>
       <p>{supervisors.current.expertise.map(item => `${item.name}${item.proficiencyLevel ? ` (${item.proficiencyLevel})` : ''}`).join(' · ') || 'Không có expertise.'}</p>
+      <p className="sup__contract-note">Directory contract does not include workload or capacity. Those backend-calculated values are displayed only in project-scoped candidate selection.</p>
     </main>
   }
 
   return <main className="sup">
     <h1>Supervisor Monitoring</h1>
+    <p className="sup__contract-note">Availability and expertise come from the Supervisor directory. Workload/capacity is not inferred here; use the project-scoped candidate contract when Backend supplies it.</p>
     <div className="sup__filters" aria-label="Supervisor filters">
       <input placeholder="Search" value={supervisors.filters.search ?? ''} onChange={event => supervisors.setFilters({ ...supervisors.filters, search: event.target.value || undefined, page: 1 })} />
       <input aria-label="Department ID" inputMode="numeric" placeholder="Department ID" value={supervisors.filters.departmentId ?? ''} onChange={event => supervisors.setFilters({ ...supervisors.filters, departmentId: event.target.value ? Number(event.target.value) : undefined, page: 1 })} />

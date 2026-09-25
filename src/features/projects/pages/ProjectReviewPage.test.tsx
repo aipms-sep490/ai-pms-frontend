@@ -70,7 +70,20 @@ describe('ProjectReviewPage', () => {
     hook.useProjectReview.mockReturnValue(state)
     detailPage()
     expect(screen.getByText('SINGLE_MAJOR')).toBeTruthy()
-    expect(screen.getByText(/Không có participating department decision/)).toBeTruthy()
+    expect(screen.queryByText(/Participating department decisions/)).toBeNull()
+    expect(screen.getByText(/No participating-department action/)).toBeTruthy()
+  })
+
+  it('does not render participating-department actions for SINGLE_MAJOR even if an action leaks from a workflow response', () => {
+    const state = reviewState({
+      detail: { academicScope: { projectMode: 'SINGLE_MAJOR', leadDepartmentId: 5, primaryMajorId: 7, requirements: [] }, latestSubmission: { id: 8, evidence: { scope: { projectMode: 'SINGLE_MAJOR', leadDepartmentId: 5, primaryMajorId: 7, requirements: [] }, policy: { minMembers: 3, maxMembers: 5, minDistinctMajors: 1 }, members: [], departmentIds: [5] }, decisions: [] } },
+      canApproveDepartment: true,
+      canRejectDepartment: true,
+    })
+    hook.useProjectReview.mockReturnValue(state)
+    detailPage()
+    expect(screen.queryByText('Approve as participating department')).toBeNull()
+    expect(screen.queryByText('Reject as participating department')).toBeNull()
   })
 
   it('renders decisions only when Backend actions permit them and requires a revision reason', () => {

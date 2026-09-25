@@ -103,5 +103,14 @@ describe('SupervisorMonitoringPage', () => {
     expect(screen.getByRole('heading', { name: 'Dr. Lan Nguyen' })).toBeTruthy()
     expect(screen.getByText('Distributed systems researcher.')).toBeTruthy()
     expect(screen.getByText('AI (Advanced)')).toBeTruthy()
+    expect(screen.getByText(/does not include workload or capacity/)).toBeTruthy()
+  })
+
+  it('renders unavailable from the directory contract without inventing capacity', () => {
+    hook.useSupervisors.mockReturnValue(state({ items: [{ ...supervisor, isAvailable: false }] }))
+    page()
+    expect(screen.getByText(/Computer Science.*Unavailable/)).toBeTruthy()
+    expect(screen.getByText(/Workload\/capacity is not inferred/)).toBeTruthy()
+    expect(screen.queryByText(/remaining of/)).toBeNull()
   })
 })
