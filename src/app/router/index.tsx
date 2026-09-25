@@ -33,6 +33,10 @@ import { SupervisorMonitoringPage } from '../../features/supervisors/pages/Super
 import { TopicManagementPage } from '../../features/topics/pages/TopicManagementPage'
 import { RegistrationSourcePage } from '../../features/registration/pages/RegistrationSourcePage'
 import { QualificationVerificationPage } from '../../features/qualifications/pages/QualificationVerificationPage'
+import { DeliverablesPage } from '../../features/deliverables/DeliverablesPage'
+import { EvaluatorAssignmentsPage } from '../../features/evaluations/EvaluatorAssignmentsPage'
+import { EvaluationWorkspacePage } from '../../features/evaluations/EvaluationWorkspacePage'
+import { ResultPublicationPage } from '../../features/results/ResultPublicationPage'
 import { ProtectedRoute } from '../../features/auth/components/ProtectedRoute'
 import { AcademicWorkflowGate, StudentJourneyProvider } from '../context'
 
@@ -67,6 +71,7 @@ export const appRouter = createBrowserRouter([
             { path: 'project/meetings', element: <MeetingsPage /> },
             { path: 'project/meetings/new', element: <CreateMeetingPage /> },
             { path: 'project/meetings/:meetingId', element: <MeetingDetailPage /> },
+            { path: 'project/deliverables', element: <DeliverablesPage /> },
           ] },
           { path: 'projects/lifecycle', element: <ProjectLifecyclePage /> },
           { path: 'team', element: <TeamManagementPage /> },
@@ -94,7 +99,10 @@ export const appRouter = createBrowserRouter([
             { path: 'supervisor/projects/:projectId/meetings', element: <MeetingsPage /> },
             { path: 'supervisor/projects/:projectId/meetings/new', element: <CreateMeetingPage /> },
             { path: 'supervisor/projects/:projectId/meetings/:meetingId', element: <MeetingDetailPage /> },
+            { path: 'supervisor/projects/:projectId/deliverables', element: <DeliverablesPage /> },
           ] },
+          { path: 'evaluator/evaluations', element: <EvaluatorAssignmentsPage /> },
+          { path: 'evaluator/evaluations/:evaluationId', element: <EvaluationWorkspacePage /> },
         ],
       },
       {
@@ -104,6 +112,7 @@ export const appRouter = createBrowserRouter([
           { path: 'academic/governance', element: <AcademicGovernancePage /> },
           { path: 'department/projects/review', element: <ProjectReviewPage /> },
           { path: 'department/projects/review/:id', element: <ProjectReviewPage /> },
+          { path: 'department/projects/:projectId/result', element: <ResultPublicationPage /> },
           { path: 'department/supervisors', element: <SupervisorMonitoringPage /> },
           { path: 'department/supervisors/:id', element: <SupervisorMonitoringPage /> },
           { path: 'department/student-qualifications', element: <QualificationVerificationPage /> },
