@@ -109,6 +109,13 @@ export function ProjectWorkspaceSummary({
               <span className="material-symbols-outlined text-[16px]">assignment</span>
               Báo cáo tiến độ
             </Link>
+            <Link
+              to={audience === 'student' ? '/project/deliverables' : `/supervisor/projects/${project.id}/deliverables`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              <span className="material-symbols-outlined text-[16px]">folder_open</span>
+              Deliverables
+            </Link>
           </div>
         </div>
       </header>
@@ -162,6 +169,21 @@ export function ProjectWorkspaceSummary({
           <div className="mt-5 pt-3 border-t border-slate-100">
             <Link className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50" to={audience === 'student' ? '/project/reports' : `/supervisor/projects/${project.id}/reports`}>
               Mở báo cáo tiến độ →
+            </Link>
+          </div>
+        </section>
+
+        <section className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs sm:p-6">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-violet-600">folder_open</span>
+              <h2 className="text-base font-bold text-slate-900">Deliverables & phiên bản</h2>
+            </div>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">Theo dõi các sản phẩm phải nộp, lịch sử phiên bản bất biến và nhận xét review. Backend xác thực quyền nộp, deadline, trạng thái đồ án và phiên bản mới nhất.</p>
+          </div>
+          <div className="mt-5 pt-3 border-t border-slate-100">
+            <Link className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50" to={audience === 'student' ? '/project/deliverables' : `/supervisor/projects/${project.id}/deliverables`}>
+              Mở deliverables →
             </Link>
           </div>
         </section>

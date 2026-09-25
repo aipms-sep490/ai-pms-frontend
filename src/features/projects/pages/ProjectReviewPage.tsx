@@ -139,6 +139,7 @@ export function ProjectReviewPage() {
       <section>
         <h2>{review.project?.code ?? `Project #${id}`} · {review.project?.title ?? 'Backend không cung cấp title'}</h2>
         <p>Team: {review.project?.teamName ?? '—'} · Status: {review.workflow?.status ?? review.project?.status ?? '—'}</p>
+        <Link className="review-page__open-link" to={`/department/projects/${id}/result`}>Theo dõi Evaluation & công bố kết quả</Link>
       </section>
       <ProjectProposalDetails review={review} />
       <ScopeSummary review={review} names={names} />

@@ -70,6 +70,16 @@ export async function httpPost<TResponse, TBody = unknown>(
   return send<TResponse>('POST', path, body, options)
 }
 
+/** Sends multipart requests without manufacturing a JSON content type or boundary. */
+export async function httpPostForm<TResponse>(
+  path: string,
+  body: FormData,
+  signalOrOptions?: AbortSignal | HttpRequestOptions,
+): Promise<TResponse> {
+  const options = normalizeOptions(signalOrOptions)
+  return send<TResponse>('POST', path, body, options)
+}
+
 export async function httpPut<TResponse, TBody = unknown>(
   path: string,
   body?: TBody,
@@ -104,13 +114,14 @@ async function send<TResponse>(
   hasRetriedAfterRefresh = false,
 ): Promise<TResponse> {
   const requestInit = createRequestInit(options)
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
   const response = await fetch(resolveUrl(path), {
     ...requestInit,
     method,
-    headers: body === undefined
+    headers: body === undefined || isFormData
       ? requestInit.headers
       : { ...requestInit.headers, 'Content-Type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
   })
 
   if (response.status === 401 && !options?.skipAuthRefresh && !hasRetriedAfterRefresh) {
