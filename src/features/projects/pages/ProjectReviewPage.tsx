@@ -1,27 +1,30 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
+import { useAcademicStructure } from '../../academic/hooks/useAcademicStructure'
+import { createAcademicNameResolver, type AcademicNameResolver } from '../components/academic-name-resolver'
+import { DepartmentDecisionHistory } from '../components/DepartmentDecisionHistory'
+import { ParticipatingDepartmentPanel } from '../components/ParticipatingDepartmentPanel'
 import { ProjectAcademicScopePanel } from '../components/ProjectAcademicScopePanel'
+import { summarizeParticipatingDecisions } from '../components/participating-decision-summary'
 import { useProjectReview } from '../hooks/useProjectReview'
 import './project-review.css'
 
-function ScopeSummary({ review }: { review: ReturnType<typeof useProjectReview> }) {
+function ScopeSummary({ review, names }: { review: ReturnType<typeof useProjectReview>; names: AcademicNameResolver }) {
   const scope = review.detail?.academicScope ?? review.detail?.latestSubmission?.evidence.scope
   const evidence = review.detail?.latestSubmission?.evidence
   if (!scope) return <p>Backend chưa cung cấp academic scope.</p>
 
   return (
     <>
-      <ProjectAcademicScopePanel scope={scope} participatingDepartmentIds={evidence?.departmentIds} />
-      {evidence ? <section aria-labelledby="review-evidence-heading">
-        <h2 id="review-evidence-heading">Registration evidence</h2>
-        <dl className="review-page__facts">
-          <div><dt>Snapshot</dt><dd>#{review.detail?.latestSubmission?.id}</dd></div>
-          <div><dt>Policy</dt><dd>{evidence.policy.minMembers}–{evidence.policy.maxMembers} members · {evidence.policy.minDistinctMajors} distinct majors</dd></div>
-        </dl>
-        <h3>Team roster</h3>
-        <ul>{evidence.members.map((member) => <li key={member.userId}>{member.fullName} · Major #{member.majorId}{member.isLeader ? ' · Leader' : ''}</li>)}</ul>
-      </section> : <p>Backend chưa cung cấp registration snapshot.</p>}
+      <ProjectAcademicScopePanel scope={scope} names={names} members={evidence?.members} />
+      {evidence ? <section aria-labelledby="review-scope-heading">
+      <h2 id="review-scope-heading">Registration evidence</h2>
+      <dl className="review-page__facts">
+        <div><dt>Snapshot</dt><dd>#{review.detail?.latestSubmission?.id}</dd></div>
+        <div><dt>Policy</dt><dd>{evidence.policy.minMembers}–{evidence.policy.maxMembers} members · {evidence.policy.minDistinctMajors} distinct majors</dd></div>
+      </dl>
+    </section> : <p>Backend chưa cung cấp registration snapshot.</p>}
     </>
   )
 }
@@ -62,6 +65,8 @@ function ProjectProposalDetails({ review }: { review: ReturnType<typeof useProje
 export function ProjectReviewPage() {
   const { id } = useParams()
   const review = useProjectReview(id ? Number(id) : undefined)
+  const academic = useAcademicStructure({ search: '', includeInactive: true })
+  const names = useMemo(() => createAcademicNameResolver(academic.hierarchy), [academic.hierarchy])
   const [search, setSearch] = useState('')
   const [reason, setReason] = useState('')
   const [message, setMessage] = useState('')
@@ -124,6 +129,9 @@ export function ProjectReviewPage() {
   const decisions = review.detail?.latestSubmission?.decisions ?? []
   const scope = review.detail?.academicScope ?? review.detail?.latestSubmission?.evidence.scope
   const isInterdisciplinary = scope?.projectMode === 'INTERDISCIPLINARY'
+  const departmentIds = review.detail?.latestSubmission?.evidence.departmentIds ?? []
+  const participatingSummary = summarizeParticipatingDecisions(departmentIds, decisions)
+  const mayPresentFinalApproval = review.canApprove && (!isInterdisciplinary || participatingSummary === 'ALL_APPROVED')
   return (
     <div className="review-page">
       <Link className="review-page__back-link" to="/department/projects/review">← Queue</Link>
@@ -134,25 +142,32 @@ export function ProjectReviewPage() {
         <Link className="review-page__open-link" to={`/department/projects/${id}/result`}>Theo dõi Evaluation & công bố kết quả</Link>
       </section>
       <ProjectProposalDetails review={review} />
-      <ScopeSummary review={review} />
-      {isInterdisciplinary ? <section>
-        <h2>Participating department decisions</h2>
-        {decisions.length ? <ul>{decisions.map((decision) => <li key={decision.departmentId}>Department #{decision.departmentId}: <strong>{decision.decision}</strong>{decision.reason ? ` · ${decision.reason}` : ''}</li>)}</ul> : <p>Không có participating department decision trong snapshot này.</p>}
-      </section> : null}
+      <ScopeSummary review={review} names={names} />
+      <ParticipatingDepartmentPanel
+        mode={scope?.projectMode ?? ''}
+        snapshotId={review.detail?.latestSubmission?.id}
+        departmentIds={departmentIds}
+        decisions={decisions}
+        names={names}
+        canApprove={review.canApproveDepartment}
+        canReject={review.canRejectDepartment}
+        pending={review.pending !== null}
+        onDecide={(decision) => void submitDepartment(decision)}
+      />
       <section>
         <h2>Review feedback</h2>
         <textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Lý do bắt buộc khi revision, reject hoặc Department reject" />
         <div className="review-page__actions">
           {review.canStart ? <Button disabled={review.pending !== null} onClick={() => void review.beginReview()}>Start review</Button> : null}
           {review.canRequestRevision ? <Button className="btn-revision" variant="secondary" disabled={review.pending !== null} onClick={() => void submit('revision')}>Request revision</Button> : null}
-          {isInterdisciplinary && review.canApproveDepartment ? <Button disabled={review.pending !== null} onClick={() => void submitDepartment('APPROVED')}>Approve as participating department</Button> : null}
-          {isInterdisciplinary && review.canRejectDepartment ? <Button className="btn-reject" variant="danger" disabled={review.pending !== null} onClick={() => void submitDepartment('REJECTED')}>Reject as participating department</Button> : null}
-          {review.canApprove ? <Button className="btn-approve" variant="primary" disabled={review.pending !== null} onClick={() => void submit('approve')}>Approve project</Button> : null}
+          {mayPresentFinalApproval ? <Button className="btn-approve" variant="primary" disabled={review.pending !== null} onClick={() => void submit('approve')}>Approve project</Button> : null}
           {review.canReject ? <Button className="btn-reject" variant="danger" disabled={review.pending !== null} onClick={() => void submit('reject')}>Reject project</Button> : null}
         </div>
+        {isInterdisciplinary && review.canApprove && participatingSummary !== 'ALL_APPROVED' ? <p className="mt-2 text-sm text-slate-600">Final approval is unavailable until every required participating Department has approved the current snapshot. A rejected decision does not change project state in the frontend.</p> : null}
         {review.pending ? <p role="status">Đang xử lý {review.pending}…</p> : null}
         {message ? <p role="status">{message}</p> : null}
       </section>
+      <DepartmentDecisionHistory />
       <section>
         <h2>History</h2>
         {review.history.length ? review.history.map((item, index) => <p key={`${item.changedAt}-${index}`}>{item.oldStatus ?? '—'} → {item.newStatus} · {item.changedByName} · {item.reason ?? '—'}</p>) : <p>Chưa có lịch sử status.</p>}

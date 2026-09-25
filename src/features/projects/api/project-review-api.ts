@@ -1,10 +1,10 @@
 import { httpGet, httpPost } from '../../../services/http/http-client'
-import type { ProjectDto, ProjectWorkflowActionsDto } from '../../../types/backend'
+import type { MajorRequirementDto, ProjectDto, ProjectWorkflowActionsDto } from '../../../types/backend'
 
 export interface ReviewQueuePage<T> { items: T[]; page: number; pageSize: number; totalCount: number; totalPages?: number }
 export interface ReviewProjectSummary { id: number; teamId: number; teamName: string; code: string; title: string; status: string; createdAt: string; submittedAt: string | null; majors: { majorCode: string; majorName: string }[] }
 export interface ReviewHistory { oldStatus: string | null; newStatus: string; changedByName: string; reason: string | null; changedAt: string }
-export interface ReviewScope { projectMode: string; primaryMajorId: number | null; leadDepartmentId: number; requirements: { majorId: number; minMembers: number; maxMembers: number; responsibility: string }[] }
+export interface ReviewScope { projectMode: string; primaryMajorId: number | null; leadDepartmentId: number; requirements: MajorRequirementDto[] }
 export interface DepartmentDecision { departmentId: number; decision: 'PENDING' | 'APPROVED' | 'REJECTED' | string; decidedBy: number | null; decidedAt: string | null; reason: string | null }
 export interface ReviewDetail { concurrencyToken: string; academicScope: ReviewScope | null; latestSubmission: null | { id: number; projectPeriodId: number; submittedBy: number; submittedAt: string; evidence: { scope: ReviewScope; policy: { minMembers: number; maxMembers: number; minDistinctMajors: number; version: string }; organizationId: number; windowStartAt: string; windowEndAt: string; members: { userId: number; fullName: string; majorId: number; isLeader: boolean }[]; departmentIds: number[] }; decisions: DepartmentDecision[] } }
 

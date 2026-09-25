@@ -63,4 +63,17 @@ describe('useProjectReview', () => {
     expect(result.current.error?.kind).toBe('conflict')
     expect(result.current.error?.message).toContain('A department decision was already recorded.')
   })
+
+  it.each([
+    [422, 'validation', 'A required quota is not satisfied.'],
+    [500, 'system', 'Unexpected server failure.'],
+  ])('classifies Backend %s without reporting a false mutation success', async (status, kind, message) => {
+    api.decideDepartment.mockRejectedValueOnce({ status, message })
+    const { result } = renderHook(() => useProjectReview(1))
+    await waitFor(() => expect(result.current.detail?.concurrencyToken).toBe('TOKEN_A'))
+    await act(async () => { expect(await result.current.decideParticipatingDepartment('APPROVED')).toBe(false) })
+    expect(result.current.error?.kind).toBe(kind)
+    expect(api.decideDepartment).toHaveBeenCalledTimes(1)
+    expect(api.getReviewDetail).toHaveBeenCalledTimes(status === 409 ? 2 : 1)
+  })
 })
