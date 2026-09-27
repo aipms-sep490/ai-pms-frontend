@@ -21,9 +21,9 @@ export function TopHeader({
   const { academic } = useAcademicWorkflow()
   const journey = useContext(StudentJourneyContext)
   const selectedSemester = academic?.selectedSemester
-  const openPeriod = academic?.periods.find((period) => period.isOpen)
   const { session } = useAuthSession()
   const role = getWorkspaceRole(session?.user)
+  const pendingStudent = role === 'student' && Boolean(journey?.isLoading || journey?.error)
   const semesterLabel = role === 'student' ? journey?.semester?.name || 'Học kỳ chưa xác định' : role === 'lecturer' ? 'Giảng viên' : role === 'department' ? 'Bộ môn' : role === 'admin' ? 'Quản trị' : 'Tài khoản'
   const teamLabel = role === 'student' ? journey?.team?.code || journey?.team?.name || 'Chưa có nhóm' : session?.user.fullName || 'Tài khoản'
   const stateLabel = {
@@ -40,7 +40,7 @@ export function TopHeader({
   }[journey?.journeyState ?? 'NO_TEAM']
 
   return (
-    <header className="sticky top-0 h-12 bg-white/95 backdrop-blur-md border-b border-hairline z-30 px-3 sm:px-4 md:px-6 flex items-center justify-between">
+    <header className="app-top-header sticky top-0 h-12 bg-white border-b border-hairline z-30 px-3 sm:px-4 md:px-6 flex items-center justify-between">
       {/* Left: Mobile hamburger & Breadcrumb */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <button
@@ -63,7 +63,7 @@ export function TopHeader({
         >
           <span className="font-semibold text-slate-800 shrink-0">{selectedSemester?.code ?? 'AI-PMS'}</span>
           <span aria-hidden="true" className="text-slate-300 shrink-0">/</span>
-          <span className="text-slate-600 font-medium hidden sm:inline shrink-0">{teamLabel}</span>
+          <span className="text-slate-600 font-medium hidden sm:inline shrink-0">{pendingStudent ? <span className="app-context-skeleton" aria-hidden="true" /> : teamLabel}</span>
           <span aria-hidden="true" className="hidden sm:inline text-slate-300 shrink-0">/</span>
           <span className="font-mono text-primary font-semibold truncate max-w-[200px] sm:max-w-xs md:max-w-none">
             {getBreadcrumbForPath(location.pathname)}
@@ -73,40 +73,14 @@ export function TopHeader({
 
       {/* Right: Controls & Badges */}
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-        {/* Command Search (Linear style - honest disabled preview, no fake shortcut) */}
-        <button
-          type="button"
-          disabled
-          aria-label="Tìm kiếm toàn hệ thống (Chức năng sắp có)"
-          title="Tìm kiếm toàn hệ thống (Chức năng sắp có)"
-          className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-md border border-hairline text-slate-400 text-xs cursor-not-allowed opacity-80"
-        >
-          <span className="material-symbols-outlined text-[15px] shrink-0" aria-hidden="true">
-            search
-          </span>
-          <span className="text-slate-500 font-medium">Tìm kiếm (Sắp có)</span>
-        </button>
-
-        {selectedSemester && role === 'student' ? (
+        {selectedSemester && role === 'student' && !pendingStudent ? (
           <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-[11px] font-mono font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
-            {selectedSemester.name} • {openPeriod?.name ?? stateLabel}
+            {selectedSemester.name} • {stateLabel}
           </span>
         ) : null}
         {role !== 'student' ? <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-[11px] font-mono font-medium"><span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />{semesterLabel}</span> : null}
 
-        {/* Notification Bell (Honest disabled state with tooltip) */}
-        <button
-          type="button"
-          disabled
-          aria-label="Thông báo học vụ (Chức năng sắp có)"
-          title="Thông báo học vụ (Chức năng sắp có)"
-          className="min-w-[44px] min-h-[44px] rounded-lg text-slate-400 flex items-center justify-center transition-colors cursor-not-allowed opacity-75"
-        >
-          <span className="material-symbols-outlined text-[20px] shrink-0" aria-hidden="true">
-            notifications
-          </span>
-        </button>
       </div>
     </header>
   )
