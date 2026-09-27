@@ -1,0 +1,22 @@
+.app-modal { width: min(480px, calc(100% - 32px)); max-height: calc(100dvh - 32px); margin: auto; padding: 0; border: 1px solid #dbe3e8; border-radius: 6px; background: #fff; color: #192e3a; box-shadow: none; }
+.app-modal::backdrop { background: rgb(19 37 46 / 35%); }
+.app-modal__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 24px; border-bottom: 1px solid #e5eaee; }
+.app-modal__header h2 { font-size: 17px; line-height: 1.5; font-weight: 600; margin: 0; overflow-wrap: anywhere; }
+.app-modal__header p { font-size: 13px; line-height: 1.6; color: #647080; margin: 8px 0 0; }
+.app-modal__close { flex-shrink: 0; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; color: #647080; cursor: pointer; }
+.app-modal__close:hover { background: #f2f5f6; }
+.app-modal__close:disabled { opacity: .5; cursor: default; }
+.app-modal__close span { font-size: 20px; }
+.app-modal__body { padding: 24px; }
+.app-confirmation__reason { display: flex; flex-direction: column; gap: 8px; font-size: 13px; line-height: 1.5; }
+.app-modal__body textarea { width: 100%; border: 1px solid #dbe3e8; border-radius: 6px; padding: 10px 12px; font-size: 14px; resize: vertical; }
+.app-modal__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+.app-modal__button { min-height: 40px; display: inline-flex; justify-content: center; align-items: center; padding: 8px 16px; border: 1px solid #dbe3e8; border-radius: 6px; background: #fff; font-size: 13px; line-height: 1.5; font-weight: 500; cursor: pointer; }
+.app-modal__button:hover { background: #f5f7f8; }
+.app-modal__button--primary { background: #245a49; border-color: #245a49; color: #fff; }
+.app-modal__button--primary:hover { background: #1d4c3e; }
+.app-modal__button--danger { color: #a13232; border-color: #e7bebe; }
+.app-modal__button:disabled { opacity: .5; cursor: default; }
+.app-modal :focus-visible { outline: 2px solid #245a49; outline-offset: 3px; }
+.app-modal--drawer { height: 100dvh; max-height: 100dvh; width: min(600px, 100%); max-width: 100%; margin: 0 0 0 auto; border-radius: 0; border-width: 0 0 0 1px; }
+@media (max-width: 600px) { .app-modal__header { padding: 16px; } .app-modal__body { padding: 16px; } }
