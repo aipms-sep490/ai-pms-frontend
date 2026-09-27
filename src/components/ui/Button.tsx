@@ -26,21 +26,21 @@ export function Button({
 
   const variantStyles = {
     primary:
-      'bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium shadow-xs active:scale-[0.99] border border-transparent',
+      'bg-[#245A49] hover:bg-[#1D4C3E] text-white font-medium active:scale-[0.99] border border-transparent',
     secondary:
-      'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 shadow-xs hover:border-slate-300 active:scale-[0.99]',
+      'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 hover:border-slate-300 active:scale-[0.99]',
     outline:
       'bg-transparent hover:bg-slate-100 text-slate-700 border border-slate-300 active:scale-[0.99]',
     ghost:
       'bg-transparent hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-transparent',
     danger:
-      'bg-red-600 hover:bg-red-700 text-white font-medium shadow-xs border border-transparent active:scale-[0.99]',
+      'bg-white hover:bg-red-50 text-red-700 font-medium border border-red-200 active:scale-[0.99]',
   }[variant]
 
   return (
     <button
       type={type}
-      className={`inline-flex items-center justify-center rounded-lg select-none whitespace-nowrap transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:pointer-events-none font-sans ${sizeStyles} ${variantStyles} ${className}`.trim()}
+      className={`inline-flex items-center justify-center rounded-md select-none whitespace-nowrap transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:pointer-events-none font-sans font-medium ${sizeStyles} ${variantStyles} ${className}`.trim()}
       {...props}
     >
       {icon && (
@@ -52,7 +52,7 @@ export function Button({
       {shortcut && (
         <kbd
           className={`ml-1 px-1.5 py-0.5 rounded font-mono text-[10px] leading-none font-semibold ${
-            variant === 'primary' || variant === 'danger'
+            variant === 'primary'
               ? 'bg-white/20 text-white'
               : 'bg-slate-100 text-slate-600 border border-slate-200'
           }`}

@@ -39,7 +39,7 @@ describe('TopicCataloguePage', () => {
 
   it('renders backend-scoped topic data, ignores URL scope, and does not treat compatibility advice as authority', () => {
     page()
-    expect(screen.getByText(/Phạm vi học vụ xác thực: SE · Software Engineering/)).toBeTruthy(); expect(screen.getByText('AI topic')).toBeTruthy(); expect(screen.getByText(/not compatible with your verified major/)).toBeTruthy()
+    expect(screen.getByText(/Chuyên ngành của bạn: SE · Software Engineering/)).toBeTruthy(); expect(screen.getByText('AI topic')).toBeTruthy(); expect(screen.getByText(/chưa phù hợp với chuyên ngành/)).toBeTruthy()
     expect(discovery.useTopicDiscovery.mock.calls[0][1]).toMatchObject({ academicSemesterId: 4, projectPeriodId: 9, status: 'PUBLISHED', page: 1, pageSize: 12 })
   })
 
@@ -47,7 +47,7 @@ describe('TopicCataloguePage', () => {
     api.selectTopic.mockResolvedValue({ ...project, topicId: 5, proposalSource: 'PUBLISHED_TOPIC', selectedTopic: { id: 5, code: 'TOP-5', title: 'AI topic' }, concurrencyToken: 'fresh-token' })
     page(); await openTopic(); fireEvent.click(screen.getByRole('button', { name: 'Chọn đề tài này' }))
     await waitFor(() => expect(api.selectTopic).toHaveBeenCalledWith(9, { topicId: 5, concurrencyToken: 'current-token' }))
-    expect(refreshAll).toHaveBeenCalled(); expect(await screen.findByText(/Đề tài Backend đã chọn: TOP-5 · AI topic/)).toBeTruthy()
+    expect(refreshAll).toHaveBeenCalled(); expect(await screen.findByText(/Đề tài đã chọn: TOP-5 · AI topic/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Chọn đề tài này' }))
     await waitFor(() => expect(api.selectTopic).toHaveBeenLastCalledWith(9, { topicId: 5, concurrencyToken: 'fresh-token' }))
   })
@@ -58,7 +58,7 @@ describe('TopicCataloguePage', () => {
     expect(screen.queryByRole('button', { name: 'Chọn đề tài này' })).toBeNull(); expect(screen.getByText(/Cần bản nháp có thể chỉnh sửa/)).toBeTruthy()
   })
 
-  it.each([[403, /Backend từ chối quyền/], [404, /Project hoặc đề tài không còn/], [409, /Dữ liệu Project và Topic đã được tải lại/] as const])('surfaces Backend %s selection errors without retrying the mutation', async (status, message) => {
+  it.each([[403, /Bạn chưa có quyền/], [404, /Hồ sơ hoặc đề tài không còn/], [409, /Đã tải lại hồ sơ và đề tài/] as const])('surfaces Backend %s selection errors without retrying the mutation', async (status, message) => {
     api.selectTopic.mockRejectedValue(new HttpError('Backend detail', status))
     page(); await openTopic(); fireEvent.click(screen.getByRole('button', { name: 'Chọn đề tài này' }))
     expect((await screen.findByRole('alert')).textContent).toMatch(message)

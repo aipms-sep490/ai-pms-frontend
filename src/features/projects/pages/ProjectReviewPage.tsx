@@ -3,12 +3,12 @@ import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { useAcademicStructure } from '../../academic/hooks/useAcademicStructure'
 import { createAcademicNameResolver, type AcademicNameResolver } from '../components/academic-name-resolver'
-import { DepartmentDecisionHistory } from '../components/DepartmentDecisionHistory'
 import { ParticipatingDepartmentPanel } from '../components/ParticipatingDepartmentPanel'
 import { ProjectAcademicScopePanel } from '../components/ProjectAcademicScopePanel'
 import { summarizeParticipatingDecisions } from '../components/participating-decision-summary'
 import { useProjectReview } from '../hooks/useProjectReview'
 import './project-review.css'
+import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 
 function ScopeSummary({ review, names }: { review: ReturnType<typeof useProjectReview>; names: AcademicNameResolver }) {
   const scope = review.detail?.academicScope ?? review.detail?.latestSubmission?.evidence.scope
@@ -63,6 +63,7 @@ function ProjectProposalDetails({ review }: { review: ReturnType<typeof useProje
 }
 
 export function ProjectReviewPage() {
+  const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const { id } = useParams()
   const review = useProjectReview(id ? Number(id) : undefined)
   const academic = useAcademicStructure({ search: '', includeInactive: true })
@@ -109,7 +110,7 @@ export function ProjectReviewPage() {
       setMessage('Lý do là bắt buộc cho revision hoặc reject.')
       return
     }
-    if ((kind === 'approve' || kind === 'reject') && !confirm(`Xác nhận ${kind} project?`)) return
+    if ((kind === 'approve' || kind === 'reject') && await requestConfirmation({ title: kind === 'approve' ? 'Phê duyệt đề cương?' : 'Từ chối đề cương?', description: review.project?.title ?? 'Xác nhận quyết định thẩm định đề cương này.', confirmLabel: kind === 'approve' ? 'Phê duyệt đề cương' : 'Từ chối đề cương', danger: kind === 'reject' }) === null) return
     const ok = await review.decide(kind, reason.trim() || undefined)
     setMessage(ok ? 'Backend đã xác nhận; dữ liệu review đã được làm mới.' : 'Thao tác không được Backend chấp nhận.')
     if (ok) setReason('')
@@ -120,7 +121,7 @@ export function ProjectReviewPage() {
       setMessage('Lý do là bắt buộc khi Department reject.')
       return
     }
-    if (decision === 'REJECTED' && !confirm('Xác nhận từ chối với tư cách participating department?')) return
+    if (decision === 'REJECTED' && await requestConfirmation({ title: 'Từ chối với tư cách bộ môn tham gia?', description: 'Quyết định và lý do của bạn sẽ được ghi nhận trong hồ sơ thẩm định.', confirmLabel: 'Ghi nhận từ chối', danger: true }) === null) return
     const ok = await review.decideParticipatingDepartment(decision, reason.trim() || undefined)
     setMessage(ok ? 'Backend đã ghi nhận quyết định Department; dữ liệu đã được làm mới.' : 'Thao tác không được Backend chấp nhận.')
     if (ok) setReason('')
@@ -167,11 +168,11 @@ export function ProjectReviewPage() {
         {review.pending ? <p role="status">Đang xử lý {review.pending}…</p> : null}
         {message ? <p role="status">{message}</p> : null}
       </section>
-      <DepartmentDecisionHistory />
       <section>
         <h2>History</h2>
         {review.history.length ? review.history.map((item, index) => <p key={`${item.changedAt}-${index}`}>{item.oldStatus ?? '—'} → {item.newStatus} · {item.changedByName} · {item.reason ?? '—'}</p>) : <p>Chưa có lịch sử status.</p>}
       </section>
+      {confirmationDialog}
     </div>
   )
 }

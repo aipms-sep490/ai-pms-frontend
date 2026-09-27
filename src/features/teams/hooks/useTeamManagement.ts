@@ -34,7 +34,7 @@ function classifyError(reason: unknown): TeamManagementError {
     if (response.status === 403) return { kind: 'forbidden', message: 'Bạn không có quyền thực hiện thao tác này trong phạm vi nhóm hiện tại.' }
     if (response.status === 404) return { kind: 'not-found', message: 'Dữ liệu nhóm hoặc lời mời không còn tồn tại hay không còn hiển thị.' }
     if (response.status === 409) return { kind: 'conflict', message: 'Dữ liệu nhóm vừa thay đổi hoặc thao tác không còn hợp lệ. Đã tải lại trạng thái mới nhất.' }
-    if (response.status === 400 || response.status === 422) return { kind: 'validation', message: 'Backend không chấp nhận thao tác theo chính sách eligibility hiện tại.' }
+    if (response.status === 400 || response.status === 422) return { kind: 'validation', message: 'Thao tác chưa phù hợp với điều kiện hoặc trạng thái hiện tại của nhóm.' }
   }
   return { kind: 'system', message: 'Không thể kết nối hệ thống để hoàn tất thao tác. Vui lòng thử lại.' }
 }

@@ -1,44 +1,107 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useExecutionAccess } from '../../execution/context/ExecutionAccessContext'
+import { ExecutionPage, ExIcon, ExPagination, ExState } from '../../execution/execution-ui'
+import { executionError, priorityLabels } from '../../execution/execution-utils'
 import { services } from '../../../services/service-gateway'
-import { HttpError } from '../../../services/http/http-client'
-import type { BackendTaskStatus, MilestoneDto, TaskDto } from '../../../types/backend'
+import type { BackendTaskStatus, MilestoneDto, PagedResult, TaskDto } from '../../../types/backend'
+import { dateLabel, isOverdue, taskStatusLabel } from '../../projects/utils/collaboration-workspace'
+import { WorkspaceTaskForm } from '../../projects/components/WorkspaceTaskForm'
 
-const columns: BackendTaskStatus[] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'IN_REVIEW', 'DONE', 'CANCELLED']
+const statuses: BackendTaskStatus[] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'IN_REVIEW', 'DONE', 'CANCELLED']
+const positiveId = (value: string | null) => { const id = Number(value); return Number.isSafeInteger(id) && id > 0 ? id : undefined }
 
 export function TaskBoardPage() {
-  const { project, canManageStructure, routeBase } = useExecutionAccess()
-  const [tasks, setTasks] = useState<TaskDto[]>([])
+  const { project, team, currentUserId, canManageStructure, routeBase } = useExecutionAccess()
+  const [params, setParams] = useSearchParams()
+  const page = positiveId(params.get('page')) ?? 1
+  const assigneeUserId = positiveId(params.get('assignee'))
+  const milestoneId = positiveId(params.get('milestone'))
+  const status = statuses.includes(params.get('status') as BackendTaskStatus) ? params.get('status')! : ''
+  const priority = Object.hasOwn(priorityLabels, params.get('priority') ?? '') ? params.get('priority')! : ''
+  const search = params.get('search') ?? ''
+  const overdue = params.get('overdue') === 'true'
+  const [draft, setDraft] = useState({ search, status, priority, milestone: String(milestoneId ?? ''), assignee: String(assigneeUserId ?? ''), overdue })
+  const [advanced, setAdvanced] = useState(Boolean(priority || milestoneId || overdue))
+  const [view, setView] = useState<'list' | 'status'>('list')
+  const [creating, setCreating] = useState(false)
+  const [created, setCreated] = useState(false)
+  const createRef = useRef<HTMLButtonElement>(null)
+  const restoreCreateFocus = useRef(false)
+  const [revision, setRevision] = useState(0)
+  const [data, setData] = useState<PagedResult<TaskDto> | null>(null)
   const [milestones, setMilestones] = useState<MilestoneDto[]>([])
-  const [search, setSearch] = useState('')
-  const [appliedSearch, setAppliedSearch] = useState('')
+  const [milestoneError, setMilestoneError] = useState('')
+  const [milestoneLoading, setMilestoneLoading] = useState(true)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<HttpError | null>(null)
-  const load = useCallback(async () => {
-    setLoading(true); setError(null)
-    try {
-      const [taskPage, milestoneItems] = await Promise.all([
-        services.task.getProjectTasks(project.id, { search: appliedSearch.trim() || undefined, page: 1, pageSize: 100 }),
-        services.milestone.getProjectMilestones(project.id),
-      ])
-      setTasks(taskPage.items); setMilestones(milestoneItems)
-    }
-    catch (reason) { setError(reason instanceof HttpError ? reason : new HttpError('Không thể tải Task.', 500)) }
-    finally { setLoading(false) }
-  }, [project.id, appliedSearch])
-  useEffect(() => { void load() }, [load]) // search is applied explicitly to avoid client-side authority/filtering
-  const grouped = useMemo(() => Object.fromEntries(columns.map((status) => [status, tasks.filter((task) => task.status === status)])) as Record<BackendTaskStatus, TaskDto[]>, [tasks])
-  if (loading) return <State message="Đang tải Task từ Backend…" />
-  if (error) return <State error message={error.status === 403 ? 'Backend không cấp quyền xem Task của Project này.' : error.message} retry={load} />
-  return <main className="mx-auto flex max-w-7xl flex-col gap-5 pb-12"><header><h1 className="text-2xl font-bold">Task Board</h1><p className="mt-1 text-sm text-slate-600">Trạng thái và dữ liệu đều do Backend trả về; Evidence/Comment chưa có contract.</p></header><form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); setAppliedSearch(search) }}><input aria-label="Tìm kiếm task" value={search} onChange={(event) => setSearch(event.target.value)} className="rounded border px-3 py-2 text-sm" placeholder="Tìm task"/><button className="rounded bg-slate-900 px-3 py-2 text-xs font-bold text-white">Lọc</button></form>{canManageStructure ? <CreateTask milestones={milestones} onCreated={load} /> : null}{tasks.length === 0 ? <section className="rounded-2xl border bg-white p-8 text-sm text-slate-600">Backend chưa trả Task nào cho Project ACTIVE này.</section> : <div className="grid gap-4 xl:grid-cols-6">{columns.map((status) => <section key={status} className="rounded-xl border bg-slate-50 p-3"><h2 className="text-xs font-bold">{status} · {grouped[status].length}</h2><div className="mt-3 space-y-2">{grouped[status].map((task) => <Link key={task.id} to={`${routeBase}/tasks/${task.id}`} className="block rounded-lg border bg-white p-3 text-xs hover:border-blue-400"><strong>{task.title}</strong><p className="mt-1 text-slate-500">{task.priority ?? 'Không ưu tiên'} · {task.dueAt ?? 'Chưa có hạn'}</p></Link>)}</div></section>)}</div>}<EvidenceBoundary /></main>
+  const [error, setError] = useState('')
+  useEffect(() => { setDraft({ search, status, priority, milestone: String(milestoneId ?? ''), assignee: String(assigneeUserId ?? ''), overdue }) }, [search, status, priority, milestoneId, assigneeUserId, overdue])
+  useEffect(() => {
+    const controller = new AbortController(); setLoading(true); setError('')
+    services.task.getProjectTasks(project.id, { page, pageSize: 20, search: search.trim() || undefined, assigneeUserId,
+      milestoneId, status: status || undefined, priority: priority || undefined, isOverdue: overdue || undefined }, controller.signal)
+      .then(next => { if (!controller.signal.aborted) setData(next) })
+      .catch(reason => { if (!controller.signal.aborted) setError(executionError(reason, 'tải công việc')) })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [project.id, page, search, assigneeUserId, milestoneId, status, priority, overdue, revision])
+  useEffect(() => {
+    const controller = new AbortController(); setMilestoneError(''); setMilestoneLoading(true); setMilestones([])
+    services.milestone.getProjectMilestones(project.id, controller.signal)
+      .then(items => { if (!controller.signal.aborted) setMilestones(items) })
+      .catch(reason => { if (!controller.signal.aborted) setMilestoneError(executionError(reason, 'tải mốc đồ án')) })
+      .finally(() => { if (!controller.signal.aborted) setMilestoneLoading(false) })
+    return () => controller.abort()
+  }, [project.id, revision])
+  const members = team?.members ?? []
+  const eligibleMilestones = milestones.filter(item => !['COMPLETED', 'CANCELLED'].includes(item.status))
+  const refresh = () => setRevision(value => value + 1)
+  function updateParams(key: string, value: string) {
+    const next = new URLSearchParams(params); next.delete('page'); if (value) next.set(key, value); else next.delete(key); setParams(next)
+  }
+  function apply(event: FormEvent) {
+    event.preventDefault()
+    const next = new URLSearchParams()
+    for (const [key, value] of Object.entries(draft)) if (value) next.set(key, String(value))
+    setParams(next)
+  }
+  const closeCreate = () => { restoreCreateFocus.current = true; setCreating(false) }
+  useEffect(() => {
+    if (!creating && restoreCreateFocus.current) { createRef.current?.focus(); restoreCreateFocus.current = false }
+  }, [creating])
+  const activeMember = members.find(member => member.userId === assigneeUserId)
+  return <ExecutionPage title="Công việc" eyebrow={project.code} description="Xem ai đang phụ trách, việc nào cần xử lý và hạn hoàn thành."
+    action={<><button className="ex-button" onClick={refresh} disabled={loading}><ExIcon name="refresh" />Cập nhật</button>{canManageStructure && <button ref={createRef} className="ex-button ex-button-primary" onClick={() => { setCreating(true); setCreated(false) }} disabled={creating}><ExIcon name="add" />Tạo công việc</button>}</>}>
+    {created && <p className="ex-notice" role="status">Đã tạo công việc.</p>}
+    {creating && (milestoneLoading ? <ExState loading /> : milestoneError ? <ExState message={milestoneError} retry={refresh} /> : eligibleMilestones.length ? <div className="mb-6"><WorkspaceTaskForm members={members} milestones={eligibleMilestones} onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); refresh() }} /></div>
+      : <section className="ex-panel"><ExState title="Cần có mốc đồ án đang thực hiện" message="Tạo một mốc trước khi thêm công việc cho nhóm." action={<Link className="ex-button" to={`${routeBase}/milestones`}>Quản lý mốc đồ án</Link>} /><div className="ex-padding"><button className="ex-text-button" onClick={closeCreate}>Đóng</button></div></section>)}
+    <section className="ex-panel" aria-label="Danh sách công việc">
+      <div className="ex-toolbar"><div className="ex-tabs" role="group" aria-label="Phạm vi công việc"><button aria-pressed={!assigneeUserId} onClick={() => updateParams('assignee', '')}>Cả nhóm</button>{currentUserId && <button aria-pressed={assigneeUserId === currentUserId} onClick={() => updateParams('assignee', String(currentUserId))}>Của tôi</button>}
+        {assigneeUserId && assigneeUserId !== currentUserId && <span className="ex-muted">{activeMember?.fullName ?? 'Thành viên đã chọn'} <button className="ex-text-button" onClick={() => updateParams('assignee', '')}>Bỏ lọc</button></span>}</div>
+        <div className="ex-tabs" role="group" aria-label="Cách hiển thị"><button aria-pressed={view === 'list'} onClick={() => setView('list')}><ExIcon name="format_list_bulleted" /> Danh sách</button><button aria-pressed={view === 'status'} onClick={() => setView('status')}>Theo trạng thái</button></div>
+      </div>
+      <form onSubmit={apply}>
+        <div className="ex-filters"><label className="ex-filter-search">Tìm công việc<input value={draft.search} onChange={event => setDraft({ ...draft, search: event.target.value })} placeholder="Tên công việc…" /></label>
+          <label>Trạng thái<select value={draft.status} onChange={event => setDraft({ ...draft, status: event.target.value })}><option value="">Tất cả</option>{statuses.map(value => <option key={value} value={value}>{taskStatusLabel(value)}</option>)}</select></label>
+          {members.length > 0 && <label>Người phụ trách<select value={draft.assignee} onChange={event => setDraft({ ...draft, assignee: event.target.value })}><option value="">Cả nhóm</option>{members.map(member => <option key={member.userId} value={member.userId}>{member.fullName}</option>)}</select></label>}
+          <button className="ex-button" type="submit">Áp dụng</button><button className="ex-text-button" type="button" aria-expanded={advanced} onClick={() => setAdvanced(value => !value)}>Bộ lọc khác</button>
+        </div>
+        {advanced && <div className="ex-filters"><label>Mốc đồ án<select value={draft.milestone} onChange={event => setDraft({ ...draft, milestone: event.target.value })}><option value="">Tất cả mốc</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label>Mức ưu tiên<select value={draft.priority} onChange={event => setDraft({ ...draft, priority: event.target.value })}><option value="">Tất cả mức</option>{Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="ex-filter-check"><input type="checkbox" checked={draft.overdue} onChange={event => setDraft({ ...draft, overdue: event.target.checked })} />Chỉ việc quá hạn</label><button className="ex-text-button" type="button" onClick={() => setParams({})}>Xóa bộ lọc</button></div>}
+      </form>
+      {loading ? <ExState loading /> : error ? <ExState message={error} retry={refresh} /> : data && <>
+        {!data.items.length ? <ExState title="Không có công việc phù hợp" message="Thử đổi bộ lọc hoặc tạo công việc mới cho nhóm." /> : <>
+          <div className="ex-task-list-heading" aria-hidden="true"><span>Công việc / mốc đồ án</span><span>Người phụ trách</span><span>Trạng thái</span><span>Hạn hoàn thành</span></div>
+          {view === 'list' ? <ul>{data.items.map(task => <TaskRow key={task.id} task={task} routeBase={routeBase} milestones={milestones} listSearch={params.toString()} />)}</ul>
+            : statuses.filter(value => data.items.some(task => task.status === value)).map(value => <div key={value}><h2 className="ex-group-heading">{taskStatusLabel(value)} <span className="ex-muted">· {data.items.filter(task => task.status === value).length} việc trên trang này</span></h2><ul>{data.items.filter(task => task.status === value).map(task => <TaskRow key={task.id} task={task} routeBase={routeBase} milestones={milestones} listSearch={params.toString()} />)}</ul></div>)}
+        </>}
+        <ExPagination page={page} pages={data.totalPages} total={data.totalCount} onPage={nextPage => { const next = new URLSearchParams(params); next.set('page', String(nextPage)); setParams(next) }} />
+      </>}
+    </section>
+  </ExecutionPage>
 }
-
-function CreateTask({ milestones, onCreated }: { milestones: MilestoneDto[]; onCreated: () => Promise<void> }) {
-  const [milestoneId, setMilestoneId] = useState(''); const [title, setTitle] = useState(''); const [error, setError] = useState('')
-  if (milestones.length === 0) return <p className="text-xs text-slate-500">Không thể tạo Task cho đến khi Backend trả về milestone.</p>
-  return <form className="flex flex-wrap gap-2 rounded-xl border bg-white p-4" onSubmit={(event) => { event.preventDefault(); const selected = Number(milestoneId); if (!Number.isInteger(selected)) { setError('Chọn milestone do Backend trả về.'); return }; void services.task.createTask({ milestoneId: selected, title, assigneeUserIds: [] }).then(onCreated).then(() => { setTitle(''); setError('') }).catch((reason: unknown) => setError(reason instanceof HttpError ? reason.message : 'Không thể tạo Task.')) }}><strong className="self-center text-sm">Tạo Task</strong><select aria-label="Milestone cho task" value={milestoneId} onChange={(event) => setMilestoneId(event.target.value)} required className="rounded border px-2"><option value="">Chọn milestone</option>{milestones.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select><input aria-label="Tên task" required value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Tên task" className="rounded border px-2"/><button className="rounded bg-blue-700 px-3 py-2 text-xs font-bold text-white">Tạo</button>{error ? <span role="alert" className="self-center text-xs text-rose-700">{error}</span> : null}</form>
+function TaskRow({ task, routeBase, milestones, listSearch }: { task: TaskDto; routeBase: string; milestones: MilestoneDto[]; listSearch: string }) {
+  const overdue = isOverdue({ ...task, assignees: [] }, Date.now())
+  return <li><Link className="ex-task-row" to={`${routeBase}/tasks/${task.id}`} state={{ taskListSearch: listSearch }}><span className="ex-task-title"><ExIcon name={task.status === 'DONE' ? 'check_circle' : task.status === 'BLOCKED' ? 'pause_circle' : 'radio_button_unchecked'} /><div><strong>{task.title}</strong><small>{milestones.find(item => item.id === task.milestoneId)?.title || 'Công việc của đồ án'} · Ưu tiên {priorityLabels[task.priority ?? '']?.toLowerCase() ?? 'chưa chọn'}</small></div></span>
+    <span className="ex-task-assignee">{task.assignees.map(person => person.userFullName).join(', ') || 'Chưa phân công'}</span><span className="ex-task-status"><span className={`ex-badge ex-badge-${task.status}`}>{taskStatusLabel(task.status)}</span></span><span className={`ex-task-date ${overdue ? 'is-overdue' : ''}`}>{dateLabel(task.dueAt)}{overdue && <small>Quá hạn</small>}</span>
+  </Link></li>
 }
-
-function State({ message, error, retry }: { message: string; error?: boolean; retry?: () => Promise<void> }) { return <section role={error ? 'alert' : 'status'} className={`mx-auto max-w-3xl rounded-2xl border p-5 text-sm ${error ? 'border-rose-200 bg-rose-50 text-rose-800' : 'bg-white'}`}>{message}{retry ? <button onClick={() => void retry()} className="ml-3 font-bold underline">Tải lại</button> : null}</section> }
-export function EvidenceBoundary() { return <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-950"><strong>BLOCKED_BY_BE_CONTRACT — Evidence & Comment</strong><p className="mt-1">Cần TaskEvidence tham chiếu file/version được ủy quyền, actor/timestamp, quyền task/project, list/create/remove; và TaskComment list/create với actor/timestamp cùng audit/history. Frontend không lưu cục bộ hoặc thay thế bằng Deliverable.</p></section> }

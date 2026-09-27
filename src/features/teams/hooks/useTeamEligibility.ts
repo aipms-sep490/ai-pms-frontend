@@ -12,24 +12,24 @@ export interface EligibilityIssueView {
 }
 
 const issueContent: Record<string, Omit<EligibilityIssueView, 'code' | 'majorId'>> = {
-  TOO_FEW_MEMBERS: { title: 'Chưa đủ thành viên', detail: 'Backend yêu cầu nhóm có thêm thành viên hợp lệ trước khi đăng ký.', recovery: 'Mời thêm ứng viên phù hợp nếu backend còn cho phép.' },
-  TOO_MANY_MEMBERS: { title: 'Vượt sĩ số tối đa', detail: 'Backend báo roster hiện vượt chính sách của đợt đăng ký.', recovery: 'Trưởng nhóm có thể xóa thành viên nếu action backend cho phép.' },
-  EXACTLY_ONE_LEADER_REQUIRED: { title: 'Cần đúng một Trưởng nhóm', detail: 'Backend không xác nhận roster có duy nhất một Trưởng nhóm.', recovery: 'Kiểm tra hoặc chuyển quyền Trưởng nhóm theo action backend.' },
-  INELIGIBLE_MEMBER: { title: 'Có thành viên chưa có hồ sơ học vụ hợp lệ', detail: 'Backend không xác nhận tư cách học vụ hoặc tổ chức của một thành viên.', recovery: 'Không thể sửa Major đã xác thực trên màn hình này; điều chỉnh roster hoặc liên hệ bộ môn.' },
-  TEAM_MUST_BE_SINGLE_MAJOR: { title: 'Roster không phù hợp chế độ đơn ngành', detail: 'Backend yêu cầu các thành viên hợp lệ thuộc cùng Major đã xác thực.', recovery: 'Điều chỉnh roster hoặc cấu hình phạm vi ngành nếu backend cho phép.' },
-  MEMBER_MAJOR_NOT_ALLOWED: { title: 'Có Major ngoài phạm vi nhóm', detail: 'Backend phát hiện Major đã xác thực của thành viên không thuộc MajorRequirements.', recovery: 'Điều chỉnh roster hoặc phạm vi ngành; không chỉnh Major thành viên trong trình duyệt.' },
-  REGISTRATION_WINDOW_UNAVAILABLE: { title: 'Đợt đăng ký chưa khả dụng', detail: 'Backend không tìm thấy cửa sổ đăng ký hợp lệ tại thời điểm kiểm tra.', recovery: 'Chờ đợt đăng ký mở hoặc liên hệ bộ môn.' },
-  TEAM_POLICY_UNCONFIGURED: { title: 'Chính sách formation chưa được cấu hình', detail: 'Backend chưa có chính sách eligibility hợp lệ cho đợt đăng ký.', recovery: 'Đây là cấu hình học vụ, sinh viên không thể tự sửa.' },
-  TEAM_POLICY_INVALID: { title: 'Chính sách formation không hợp lệ', detail: 'Backend đánh dấu chính sách eligibility hiện tại không hợp lệ.', recovery: 'Liên hệ bộ môn để điều chỉnh chính sách.' },
-  ROSTER_LOCKED: { title: 'Roster đã bị khóa', detail: 'Backend không cho phép thay đổi roster ở trạng thái dự án hiện tại.', recovery: 'Xem lifecycle dự án hoặc liên hệ bộ môn nếu cần hỗ trợ.' },
-  UNSUPPORTED_HYBRID_POLICY: { title: 'Hybrid policy chưa được backend hỗ trợ', detail: 'Team không có academic scope phù hợp với chính sách liên ngành hiện tại.', recovery: 'Cấu hình academic scope hợp lệ theo action backend.' },
-  INVALID_PROJECT_MODE: { title: 'Project mode không hợp lệ', detail: 'Backend không nhận diện chế độ academic scope hiện tại.', recovery: 'Trưởng nhóm cần kiểm tra lại academic scope.' },
-  LEAD_DEPARTMENT_REQUIRED: { title: 'Thiếu bộ môn chủ trì', detail: 'Academic scope chưa có Lead Department hợp lệ.', recovery: 'Trưởng nhóm cần kiểm tra lại academic scope.' },
-  MAJOR_REQUIREMENTS_INVALID: { title: 'Major requirements không hợp lệ', detail: 'Backend không chấp nhận danh sách MajorRequirements hiện tại.', recovery: 'Trưởng nhóm cần kiểm tra lại academic scope.' },
-  MAJOR_QUOTA_INVALID: { title: 'Major quota không hợp lệ', detail: 'Backend không chấp nhận min/max quota của scope.', recovery: 'Trưởng nhóm cần kiểm tra lại academic scope.' },
-  MAJOR_QUOTAS_INFEASIBLE: { title: 'Major quota không khả thi', detail: 'Tổng quota không tương thích chính sách formation của backend.', recovery: 'Đây là cấu hình scope; không thể sửa bằng roster đơn thuần.' },
-  PRIMARY_MAJOR_REQUIRED: { title: 'Thiếu Primary Major', detail: 'SINGLE_MAJOR cần Primary Major đúng với requirement được backend xác nhận.', recovery: 'Trưởng nhóm cần kiểm tra lại academic scope.' },
-  INTERDISCIPLINARY_MAJORS_REQUIRED: { title: 'Thiếu MajorRequirements liên ngành', detail: 'INTERDISCIPLINARY cần đủ major requirements theo chính sách backend.', recovery: 'Trưởng nhóm cần kiểm tra lại academic scope.' },
+  TOO_FEW_MEMBERS: { title: 'Chưa đủ thành viên', detail: 'Nhóm cần thêm thành viên đủ điều kiện trước khi đăng ký.', recovery: 'Mời thêm thành viên phù hợp.' },
+  TOO_MANY_MEMBERS: { title: 'Vượt sĩ số tối đa', detail: 'Số thành viên vượt giới hạn của đợt đăng ký.', recovery: 'Trưởng nhóm cần điều chỉnh danh sách thành viên.' },
+  EXACTLY_ONE_LEADER_REQUIRED: { title: 'Cần đúng một trưởng nhóm', detail: 'Danh sách hiện tại chưa có duy nhất một trưởng nhóm.', recovery: 'Kiểm tra lại vai trò của các thành viên.' },
+  INELIGIBLE_MEMBER: { title: 'Có thành viên chưa đủ điều kiện học vụ', detail: 'Một hoặc nhiều thành viên chưa có hồ sơ học vụ hợp lệ.', recovery: 'Liên hệ bộ môn để kiểm tra hồ sơ hoặc điều chỉnh danh sách thành viên.' },
+  TEAM_MUST_BE_SINGLE_MAJOR: { title: 'Thành viên chưa phù hợp với đồ án đơn ngành', detail: 'Các thành viên cần thuộc cùng chuyên ngành đăng ký.', recovery: 'Kiểm tra thành viên và hình thức đồ án đã chọn.' },
+  MEMBER_MAJOR_NOT_ALLOWED: { title: 'Có thành viên thuộc ngành chưa được đăng ký', detail: 'Ngành của thành viên nằm ngoài các ngành tham gia đồ án.', recovery: 'Kiểm tra lại danh sách thành viên và phạm vi ngành.' },
+  REGISTRATION_WINDOW_UNAVAILABLE: { title: 'Đợt đăng ký chưa mở', detail: 'Hiện chưa có đợt đăng ký phù hợp.', recovery: 'Chờ đợt đăng ký mở hoặc liên hệ bộ môn.' },
+  TEAM_POLICY_UNCONFIGURED: { title: 'Chưa có quy định đăng ký', detail: 'Đợt đăng ký chưa được cấu hình đầy đủ.', recovery: 'Liên hệ bộ môn để được hỗ trợ.' },
+  TEAM_POLICY_INVALID: { title: 'Cần kiểm tra quy định đăng ký', detail: 'Quy định hiện tại chưa hợp lệ.', recovery: 'Liên hệ bộ môn để điều chỉnh.' },
+  ROSTER_LOCKED: { title: 'Danh sách thành viên đã được chốt', detail: 'Không thể thay đổi thành viên ở trạng thái đồ án hiện tại.', recovery: 'Liên hệ bộ môn nếu cần hỗ trợ.' },
+  UNSUPPORTED_HYBRID_POLICY: { title: 'Hình thức đồ án chưa phù hợp', detail: 'Các ngành tham gia chưa phù hợp với quy định của đợt đăng ký.', recovery: 'Kiểm tra hình thức đồ án và các ngành tham gia.' },
+  INVALID_PROJECT_MODE: { title: 'Hình thức đồ án chưa hợp lệ', detail: 'Cần chọn hình thức đơn ngành hoặc liên ngành phù hợp.', recovery: 'Trưởng nhóm kiểm tra lại cấu hình ngành.' },
+  LEAD_DEPARTMENT_REQUIRED: { title: 'Thiếu bộ môn chủ trì', detail: 'Nhóm chưa có bộ môn chủ trì hợp lệ.', recovery: 'Trưởng nhóm kiểm tra lại cấu hình ngành.' },
+  MAJOR_REQUIREMENTS_INVALID: { title: 'Các ngành tham gia chưa hợp lệ', detail: 'Cần kiểm tra lại các ngành đã đăng ký cho đồ án.', recovery: 'Trưởng nhóm kiểm tra lại cấu hình ngành.' },
+  MAJOR_QUOTA_INVALID: { title: 'Giới hạn thành viên theo ngành chưa hợp lệ', detail: 'Số thành viên tối thiểu hoặc tối đa theo ngành chưa phù hợp.', recovery: 'Trưởng nhóm kiểm tra lại cấu hình ngành.' },
+  MAJOR_QUOTAS_INFEASIBLE: { title: 'Giới hạn thành viên theo ngành chưa phù hợp', detail: 'Tổng số thành viên theo ngành chưa khớp với quy định của đợt đăng ký.', recovery: 'Kiểm tra cấu hình ngành hoặc liên hệ bộ môn.' },
+  PRIMARY_MAJOR_REQUIRED: { title: 'Thiếu ngành đăng ký', detail: 'Đồ án đơn ngành cần xác định chuyên ngành tham gia.', recovery: 'Trưởng nhóm kiểm tra lại cấu hình ngành.' },
+  INTERDISCIPLINARY_MAJORS_REQUIRED: { title: 'Chưa đủ ngành tham gia', detail: 'Đồ án liên ngành cần đủ số ngành theo quy định.', recovery: 'Trưởng nhóm kiểm tra lại cấu hình ngành.' },
 }
 
 function issueView(code: string): EligibilityIssueView {
@@ -40,17 +40,17 @@ function issueView(code: string): EligibilityIssueView {
     return {
       code,
       majorId,
-      title: isMinimum ? 'Chưa đạt quota Major' : 'Vượt quota Major',
-      detail: `Backend đánh dấu Major #${majorId} ${isMinimum ? 'chưa đạt số thành viên tối thiểu' : 'vượt số thành viên tối đa'}.`,
-      recovery: isMinimum ? 'Mời thành viên có Major đã xác thực phù hợp nếu backend cho phép.' : 'Điều chỉnh roster nếu backend cho phép.',
+      title: isMinimum ? 'Một ngành chưa đủ thành viên' : 'Một ngành vượt sĩ số cho phép',
+      detail: isMinimum ? 'Số thành viên của ngành chưa đạt mức tối thiểu.' : 'Số thành viên của ngành vượt mức tối đa.',
+      recovery: 'Đối chiếu yêu cầu theo ngành bên dưới và điều chỉnh thành viên.',
     }
   }
   const known = issueContent[code]
   return known ? { code, ...known } : {
     code,
-    title: 'Backend báo một điều kiện chưa đạt',
-    detail: `Mã điều kiện từ backend: ${code}.`,
-    recovery: 'Tải lại dữ liệu hoặc liên hệ bộ môn nếu mã này tiếp tục xuất hiện.',
+    title: 'Có điều kiện đăng ký chưa đạt',
+    detail: 'Nhóm chưa đáp ứng đầy đủ điều kiện đăng ký hiện tại.',
+    recovery: 'Kiểm tra lại thông tin hoặc liên hệ bộ môn để được hỗ trợ.',
   }
 }
 

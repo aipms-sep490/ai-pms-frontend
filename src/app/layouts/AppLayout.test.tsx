@@ -4,10 +4,11 @@ import { MemoryRouter } from 'react-router-dom'
 import { AuthSessionContext, type AuthSessionContextValue } from '../../features/auth/context/auth-session-context'
 import { AcademicWorkflowContext } from '../context/academic-workflow-context'
 import { AppLayout } from './AppLayout'
+import { StudentJourneyContext, type StudentJourneyContextValue } from '../context/StudentJourneyContext'
 
 afterEach(cleanup)
 
-function renderAppLayout(initialEntries = ['/project/overview'], roles: string[] = ['STUDENT']) {
+function renderAppLayout(initialEntries = ['/project/overview'], roles: string[] = ['STUDENT'], journey: StudentJourneyContextValue | null = null) {
   const auth: AuthSessionContextValue = {
     session: { accessToken: 'test', tokenType: 'Bearer', expiresAtUtc: '', refreshToken: '', refreshTokenExpiresAtUtc: '', user: { id: 1, fullName: 'Nguyễn Hoàng Minh', email: 'lecturer@fe.edu.vn', roles } },
     status: 'authenticated', error: null, login: async () => { throw new Error('unused') }, logout: async () => {}, refreshProfile: async () => {}, restoreSession: async () => {},
@@ -19,21 +20,31 @@ function renderAppLayout(initialEntries = ['/project/overview'], roles: string[]
         authorization: { roles: [], permissions: [], departmentIds: [], majorIds: [] },
         status: 'idle', error: null, errorKind: null, refresh: async () => {},
       }}>
-        <MemoryRouter initialEntries={initialEntries}><AppLayout /></MemoryRouter>
+        <StudentJourneyContext.Provider value={journey}><MemoryRouter initialEntries={initialEntries}><AppLayout /></MemoryRouter></StudentJourneyContext.Provider>
       </AcademicWorkflowContext.Provider>
     </AuthSessionContext.Provider>,
   )
 }
 
 describe('AppLayout & Navigation Shell', () => {
-  it('renders brand header, student navigation, and honest disabled controls', () => {
+  it.each([{ isLoading: true, error: null }, { isLoading: false, error: 'Failed to fetch' }])('does not invent a team or show the registration menu before project context is known', (state) => {
+    const journey: StudentJourneyContextValue = { journeyState: 'TEAM_FORMING', profile: null, semester: null, period: null, team: null, project: null, assignments: [], workflowContext: null, teamActions: null, projectActions: null, refreshAll: async () => {}, setSimulatedJourneyState: () => {}, ...state }
+    renderAppLayout(['/project/tasks'], ['STUDENT'], journey)
+    expect(screen.queryByText('Chưa có nhóm')).toBeNull()
+    expect(screen.queryByText('Đang kiện toàn')).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Tổng quan lộ trình' })).toBeNull()
+    expect(screen.queryByText(/Sắp có/)).toBeNull()
+    expect(screen.getByRole('navigation', { name: /breadcrumb/ }).textContent).toContain('Công việc')
+  })
+  it('renders student navigation without unfinished controls', () => {
     renderAppLayout()
     expect(screen.getByText('AI-PMS • FPTU')).toBeDefined()
     expect(screen.getByText('Học kỳ chưa xác định')).toBeDefined()
     expect(screen.getAllByText('Tổng quan lộ trình').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('Đăng ký & Hồ sơ đề tài')).toBeDefined()
-    expect(screen.getByRole('button', { name: /Tìm kiếm toàn hệ thống/i }).hasAttribute('disabled')).toBe(true)
-    expect(screen.getByRole('button', { name: /Thông báo học vụ/i }).hasAttribute('disabled')).toBe(true)
+    expect(screen.getByText('Hồ sơ đồ án')).toBeDefined()
+    expect(screen.queryByRole('button', { name: /Tìm kiếm toàn hệ thống/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Thông báo học vụ/i })).toBeNull()
+    expect(screen.queryByText(/Sắp có/)).toBeNull()
   })
 
   it('toggles the mobile drawer and restores focus after Escape', () => {

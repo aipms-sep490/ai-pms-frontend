@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Modal } from '../../../components/ui/Modal'
 
 interface CreateTeamModalProps {
   isOpen: boolean
@@ -45,34 +46,23 @@ export function CreateTeamModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h3 className="text-base font-bold text-slate-900">Thành lập Nhóm Đồ án Mới</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Học kỳ: {semesterName}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 rounded-lg p-1 transition-colors"
-          >
-            <span className="material-symbols-outlined text-[20px]">close</span>
-          </button>
-        </div>
+    <Modal open={isOpen} title="Tạo nhóm đồ án" description={`Học kỳ: ${semesterName}`} busy={isLoading} onClose={onClose}>
 
-        <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label htmlFor="create-team-code" className="block text-xs font-medium text-slate-700 mb-1.5">
               Mã Nhóm *
             </label>
             <input
               type="text"
+              id="create-team-code"
+              autoFocus
+              disabled={isLoading}
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="Ví dụ: SE28 hoặc AI05"
               required
-              className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white uppercase font-mono"
+              className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white uppercase font-mono"
             />
             <p className="text-[11px] text-slate-500 mt-1">
               Mã định danh nhóm trong học kỳ (chữ và số viết hoa).
@@ -80,29 +70,33 @@ export function CreateTeamModal({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label htmlFor="create-team-name" className="block text-xs font-medium text-slate-700 mb-1.5">
               Tên Nhóm *
             </label>
             <input
               type="text"
+              id="create-team-name"
+              disabled={isLoading}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ví dụ: Nhóm SE28 - Capstone Project"
               required
-              className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label htmlFor="create-team-description" className="block text-xs font-medium text-slate-700 mb-1.5">
               Mô tả Nhóm (Tùy chọn)
             </label>
             <textarea
+              id="create-team-description"
+              disabled={isLoading}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="Định hướng nghiên cứu, mục tiêu đề tài của nhóm..."
-              className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
             />
           </div>
 
@@ -117,20 +111,20 @@ export function CreateTeamModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              disabled={isLoading}
+              className="app-modal__button"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors disabled:opacity-50"
+              className="app-modal__button app-modal__button--primary"
             >
               {isLoading ? 'Đang khởi tạo...' : 'Khởi tạo nhóm'}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { LecturerWorkspacePage } from './LecturerWorkspacePage'
@@ -11,22 +11,25 @@ const request = { id: 8, projectId: 9, supervisorProfileId: 4, requestedBy: 2, s
 const state = (overrides: Record<string, unknown> = {}) => ({ requests: [request], assignments: [], projects: { 9: { id: 9, title: 'Project', status: 'ACTIVE' } }, loading: false, acceptPending: null, rejectPending: null, error: null, refresh: vi.fn(), respond: vi.fn().mockResolvedValue(true), ...overrides })
 
 describe('LecturerWorkspacePage', () => {
-  it('uses the backend-scoped inbox response and sends an explicit accept decision', () => {
+  it('waits for the in-app confirmation before sending an accept decision', async () => {
     const hook = state()
     inbox.useSupervisorInbox.mockReturnValue(hook)
     vi.stubGlobal('confirm', vi.fn(() => true))
     render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)
-    expect(screen.getByText(/Backend chỉ trả/)).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Bàn làm việc' })).toBeTruthy()
     fireEvent.change(screen.getByLabelText('Phản hồi (tùy chọn)'), { target: { value: 'Accepted' } })
     fireEvent.click(screen.getByText('Accept & assign'))
-    expect(hook.respond).toHaveBeenCalledWith(request, 'accept', 'Accepted')
+    expect(hook.respond).not.toHaveBeenCalled()
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Nhận hướng dẫn' }))
+    await waitFor(() => expect(hook.respond).toHaveBeenCalledWith(request, 'accept', 'Accepted'))
+    expect(globalThis.confirm).not.toHaveBeenCalled()
   })
 
   it('shows an empty Backend inbox and a distinct forbidden response', () => {
     inbox.useSupervisorInbox.mockReturnValue(state({ requests: [], error: { kind: 'forbidden', message: 'Backend từ chối quyền Inbox hoặc request scope.' } }))
     render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)
     expect(screen.getByRole('alert').textContent).toContain('Inbox')
-    expect(screen.getByText(/Không có yêu cầu/)).toBeTruthy()
+    expect(screen.getByText('Chưa có yêu cầu hướng dẫn.')).toBeTruthy()
   })
 
   it('offers an ACTIVE workspace only for a current primary assignment', () => {

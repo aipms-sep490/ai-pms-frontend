@@ -36,7 +36,7 @@ describe('routes.config', () => {
     expect(implemented.map((r) => r.path).sort()).toEqual([
       '/project/overview',
       '/projects/lifecycle',
-      '/project/milestones/M3',
+      '/project/milestones',
       '/project/gantt',
       '/project/reports',
       '/project/meetings',
@@ -60,19 +60,23 @@ describe('routes.config', () => {
     it('keeps overview separate from the guarded ACTIVE workspace', () => {
       expect(getBreadcrumbForPath('/')).toBe('Tổng quan lộ trình')
       expect(getBreadcrumbForPath('/project/overview')).toBe('Tổng quan lộ trình')
-      expect(getBreadcrumbForPath('/project/workspace')).toBe('Không gian đồ án ACTIVE')
+      expect(getBreadcrumbForPath('/project/workspace')).toBe('Phối hợp nhóm')
     })
 
     it('resolves registered routes to their defined titles', () => {
-      expect(getBreadcrumbForPath('/projects/lifecycle')).toBe('Đăng ký & Hồ sơ đề tài')
-      expect(getBreadcrumbForPath('/project/gantt')).toBe('Gantt & Đường găng')
-      expect(getBreadcrumbForPath('/project/milestones/M3')).toBe('Tiến trình & Cột mốc')
-      expect(getBreadcrumbForPath('/project/milestones/M1')).toBe('Tiến trình & Cột mốc')
+      expect(getBreadcrumbForPath('/projects/lifecycle')).toBe('Hồ sơ đồ án')
+      expect(getBreadcrumbForPath('/project/gantt')).toBe('Lịch thực hiện')
+      expect(getBreadcrumbForPath('/project/milestones/M3')).toBe('Mốc đồ án')
+      expect(getBreadcrumbForPath('/project/milestones/M1')).toBe('Mốc đồ án')
       expect(getBreadcrumbForPath('/supervisor/workspace')).toBe('Bàn làm việc GVHD')
     })
 
-    it('strips leading slash for unknown paths as fallback', () => {
-      expect(getBreadcrumbForPath('/unknown/route')).toBe('unknown/route')
+    it('does not expose unknown URLs in a page title', () => {
+      expect(getBreadcrumbForPath('/unknown/route')).toBe('Trang không tồn tại')
+      expect(getBreadcrumbForPath('/academic')).toBe('Cấu trúc đào tạo')
+      expect(getBreadcrumbForPath('/academic/governance')).toBe('Quản lý học vụ')
+      expect(getBreadcrumbForPath('/department/student-qualifications')).toBe('Xác minh điều kiện tham gia')
+      expect(getBreadcrumbForPath('/project/source')).toBe('Chọn cách đăng ký đồ án')
     })
   })
 })

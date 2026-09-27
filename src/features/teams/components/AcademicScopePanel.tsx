@@ -86,11 +86,11 @@ export function AcademicScopePanel({
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+    <section className="rounded-md border border-slate-200 bg-white p-5 ">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="text-sm font-bold text-slate-900">Chế độ và phạm vi ngành</h3>
-          <p className="mt-1 text-xs text-slate-500">Backend dùng cấu hình này để lọc ứng viên và kiểm tra điều kiện nhóm.</p>
+          <p className="mt-1 text-xs text-slate-500">Chọn hình thức đồ án và các ngành tham gia để tìm thành viên phù hợp.</p>
         </div>
         {scope && <span className="rounded bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600">ĐÃ CẤU HÌNH</span>}
       </div>

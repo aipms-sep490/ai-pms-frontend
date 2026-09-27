@@ -1,4 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
+import { RouteFrame } from './RouteFrame'
 import { AppLayout } from '../layouts/AppLayout'
 import { HomeRedirect, RoleRoute } from '../../features/auth/components/RoleRoute'
 import { LecturerWorkspacePage } from '../../features/supervisors/pages/LecturerWorkspacePage'
@@ -40,7 +41,7 @@ import { ResultPublicationPage } from '../../features/results/ResultPublicationP
 import { ProtectedRoute } from '../../features/auth/components/ProtectedRoute'
 import { AcademicWorkflowGate, StudentJourneyProvider } from '../context'
 
-export const appRouter = createBrowserRouter([
+export const appRouter = createBrowserRouter([{ element: <RouteFrame />, children: [
   { path: 'login', element: <LoginPage /> },
   {
     element: (
@@ -128,4 +129,4 @@ export const appRouter = createBrowserRouter([
       { path: '*', element: <NotFoundPage /> },
     ],
   },
-])
+]}])

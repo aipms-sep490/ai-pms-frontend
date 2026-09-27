@@ -11,6 +11,12 @@ const api = vi.hoisted(() => ({
   getOverdueBlockedTasks: vi.fn().mockResolvedValue({ overdueTasks: [], blockedTasks: [] }),
 }))
 vi.mock('../../../app/context', () => journey)
+vi.mock('../hooks/useCollaborationWorkspace', () => ({ useCollaborationWorkspace: () => ({
+  timeline: { state: 'ready', data: { milestones: [] } },
+  summary: { state: 'ready', data: { totalTasks: 0, doneTasks: 0, progressPercentage: 0 } },
+  deliverables: { state: 'ready', data: [] }, feedback: { state: 'ready', data: { items: [], incomplete: false } },
+  meetings: { state: 'ready', data: [] }, updatedAt: null, reload: vi.fn(),
+}) }))
 vi.mock('../../../services/service-gateway', () => ({ services: { milestone: { getProjectMilestones: api.getProjectMilestones }, task: { getProjectProgressSummary: api.getProjectProgressSummary, getProjectTimeline: api.getProjectTimeline, getOverdueBlockedTasks: api.getOverdueBlockedTasks } } }))
 
 const activeJourney = {
@@ -30,11 +36,10 @@ describe('ActiveProjectWorkspacePage', () => {
   it('renders only backend-backed ACTIVE summary data after a reload', () => {
     journey.useStudentJourney.mockReturnValue(activeJourney)
     render(<MemoryRouter><ActiveProjectWorkspacePage /></MemoryRouter>)
-    expect(screen.getByRole('heading', { name: 'Không gian đồ án ACTIVE' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Phối hợp nhóm' })).toBeTruthy()
     expect(screen.getByText('AI-PMS')).toBeTruthy()
-    expect(screen.getByText('INTERDISCIPLINARY')).toBeTruthy()
-    expect(screen.getByText('Dr. Mai')).toBeTruthy()
-    expect(screen.getByText(/Milestone, Task và Timeline hiển thị dữ liệu thực thi/)).toBeTruthy()
+    expect(screen.getByText('Giảng viên hướng dẫn: Dr. Mai')).toBeTruthy()
+    expect(screen.getByText('0/0 việc hoàn thành')).toBeTruthy()
     expect(screen.queryByText(/chưa thuộc F9/)).toBeNull()
   })
 
