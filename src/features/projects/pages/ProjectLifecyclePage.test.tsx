@@ -49,14 +49,18 @@ describe('ProjectLifecyclePage', () => {
     expect(screen.queryByText(/Mô phỏng/)).toBeNull()
   })
 
-  it('renders backend lifecycle empty state', () => {
+  it('does not render the API and state-machine debug section', async () => {
     render(<ProjectLifecyclePage />, { wrapper: MemoryRouter })
-    expect(screen.getByText('Backend chưa trả về trạng thái lifecycle.')).toBeDefined()
+    expect(await screen.findByText('Chưa có lịch sử đồ án.')).toBeDefined()
+    expect(screen.queryByText(/GET \/api|Domain workflow|backend hỗ trợ/)).toBeNull()
+    expect(screen.getByText('Đang thực hiện')).toBeDefined()
   })
 
-  it('renders a forbidden lifecycle response', () => {
-    mocks.useProjectLifecycle.mockReturnValue({ data: null, error: new Error('Forbidden'), isLoading: false, isForbidden: true, isEmpty: false, retry: vi.fn() })
+  it('keeps a history error distinct from an empty history', async () => {
+    mocks.getHistory.mockRejectedValue(new Error('SQL details'))
     render(<ProjectLifecyclePage />, { wrapper: MemoryRouter })
-    expect(screen.getByRole('alert').textContent).toContain('Backend từ chối quyền')
+    expect((await screen.findByRole('alert')).textContent).toContain('Chưa tải được lịch sử đồ án')
+    expect(screen.queryByText('Chưa có lịch sử đồ án.')).toBeNull()
+    expect(screen.queryByText('SQL details')).toBeNull()
   })
 })

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { ProjectReviewPage } from './ProjectReviewPage'
@@ -100,7 +100,7 @@ describe('ProjectReviewPage', () => {
     expect(state.decideParticipatingDepartment).toHaveBeenCalledWith('APPROVED', 'Need supporting evidence')
   })
 
-  it('requires a reason and confirmation before a participating Department rejection', () => {
+  it('requires a reason and confirmation before a participating Department rejection', async () => {
     const state = reviewState({ canRejectDepartment: true })
     hook.useProjectReview.mockReturnValue(state)
     detailPage()
@@ -109,8 +109,10 @@ describe('ProjectReviewPage', () => {
     expect(state.decideParticipatingDepartment).not.toHaveBeenCalled()
     fireEvent.change(screen.getByPlaceholderText(/Lý do/), { target: { value: 'Quota evidence is missing' } })
     fireEvent.click(screen.getByText('Reject as participating department'))
-    expect(globalThis.confirm).toHaveBeenCalled()
-    expect(state.decideParticipatingDepartment).toHaveBeenCalledWith('REJECTED', 'Quota evidence is missing')
+    expect(state.decideParticipatingDepartment).not.toHaveBeenCalled()
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Ghi nhận từ chối' }))
+    await waitFor(() => expect(state.decideParticipatingDepartment).toHaveBeenCalledWith('REJECTED', 'Quota evidence is missing'))
+    expect(globalThis.confirm).not.toHaveBeenCalled()
   })
 
   it('keeps 401, 403, conflict, and empty queue distinct', () => {
