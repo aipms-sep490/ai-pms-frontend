@@ -15,7 +15,7 @@ const team = (overrides = {}) => ({
 })
 
 function summary(overrides = {}) {
-  const props = { team: team(), canRefresh: true, refreshPending: false, canContinueToRegistration: false, onRefresh: vi.fn().mockResolvedValue(undefined), onContinueToRegistration: vi.fn(), ...overrides }
+  const props = { team: team(), majorNames: { 10: 'Kỹ thuật phần mềm', 20: 'Kinh doanh', 30: 'Thiết kế' }, canRefresh: true, refreshPending: false, canContinueToRegistration: false, onRefresh: vi.fn().mockResolvedValue(undefined), onContinueToRegistration: vi.fn(), ...overrides }
   return { props, ...render(<TeamEligibilitySummary {...props} />) }
 }
 
@@ -23,9 +23,9 @@ describe('TeamEligibilitySummary', () => {
   it('renders INTERDISCIPLINARY requirements without a two-major limit and explains backend failures', () => {
     summary()
 
-    expect(screen.getByText('Major #10')).toBeTruthy()
-    expect(screen.getByText('Major #20')).toBeTruthy()
-    expect(screen.getByText('Major #30')).toBeTruthy()
+    expect(screen.getByText('Kỹ thuật phần mềm')).toBeTruthy()
+    expect(screen.getByText('Kinh doanh')).toBeTruthy()
+    expect(screen.getByText('Thiết kế')).toBeTruthy()
     expect(screen.getByText('Chưa đủ thành viên')).toBeTruthy()
     expect(screen.queryByText('Tiếp tục đăng ký đề tài')).toBeNull()
     expect(screen.queryByRole('textbox')).toBeNull()

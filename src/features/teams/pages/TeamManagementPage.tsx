@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TeamRosterTable } from '../components/TeamRosterTable'
 import { TeamInvitationsPanel } from '../components/TeamInvitationsPanel'
@@ -9,6 +9,9 @@ import { UpdateTeamModal } from '../components/UpdateTeamModal'
 import { TeamEligibilitySummary } from '../components/TeamEligibilitySummary'
 import { useTeamManagement } from '../hooks/useTeamManagement'
 import { StudentQualificationCard } from '../../qualifications/components/StudentQualificationCard'
+import { Modal } from '../../../components/ui/Modal'
+import { PageLoading } from '../../../components/ui/PageLoading'
+import { services } from '../../../services/service-gateway'
 
 export function TeamManagementPage() {
   const navigate = useNavigate()
@@ -24,6 +27,14 @@ export function TeamManagementPage() {
     refreshEligibility,
   } = management
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+  const organizationId = workflowContext?.academic.organization?.id ?? team?.members.find(member => member.organizationId)?.organizationId
+  const [majorNames, setMajorNames] = useState<Record<number, string>>({})
+  useEffect(() => {
+    let current = true
+    setMajorNames({})
+    if (organizationId) services.academic.getMajors(organizationId).then(majors => { if (current) setMajorNames(Object.fromEntries(majors.map(major => [major.id, major.name]))) }).catch(() => {})
+    return () => { current = false }
+  }, [organizationId])
 
   // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -52,7 +63,7 @@ export function TeamManagementPage() {
 
   const handleRefreshEligibility = async () => {
     await refreshEligibility()
-    showToast('Đã tải lại eligibility do backend xác thực.')
+    showToast('Đã cập nhật điều kiện đăng ký của nhóm.')
   }
 
   const handleSendInvitation = async (invitedUserId: number, message?: string) => {
@@ -100,13 +111,7 @@ export function TeamManagementPage() {
   }
 
   if (contextLoading) {
-    return (
-      <div className="flex flex-col gap-6 animate-pulse p-6">
-        <div className="h-10 bg-slate-200 rounded-xl w-1/3" />
-        <div className="h-24 bg-slate-200 rounded-2xl w-full" />
-        <div className="h-64 bg-slate-200 rounded-2xl w-full" />
-      </div>
-    )
+    return <PageLoading />
   }
 
   return (
@@ -114,7 +119,8 @@ export function TeamManagementPage() {
       {/* Toast Feedback */}
       {toastMessage && (
         <div
-          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg border flex items-center gap-2.5 text-xs font-semibold animate-in slide-in-from-bottom-5 duration-200 ${
+          role="status"
+          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-md border flex items-center gap-2.5 text-xs font-semibold ${
             toastMessage.type === 'success'
               ? 'bg-emerald-600 text-white border-emerald-700'
               : 'bg-rose-600 text-white border-rose-700'
@@ -128,7 +134,7 @@ export function TeamManagementPage() {
       )}
 
       {error && (
-        <div className={`flex items-center justify-between gap-3 rounded-xl border p-4 text-xs ${
+        <div className={`flex items-center justify-between gap-3 rounded-md border p-4 text-xs ${
           error.kind === 'conflict' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-rose-200 bg-rose-50 text-rose-800'
         }`}>
           <p>{error.message}</p>
@@ -140,15 +146,15 @@ export function TeamManagementPage() {
         </div>
       )}
 
-      <StudentQualificationCard />
+      {!rosterLocked && <StudentQualificationCard />}
 
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Quản lý Nhóm Đồ án</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Thành viên nhóm</h1>
           <p className="text-sm text-slate-500 mt-1">
             Học kỳ: <span className="font-semibold text-slate-700">{semester?.name ?? 'Chưa xác định'}</span> • Sinh viên:{' '}
-            <span className="font-semibold text-slate-700">{profile?.fullName ?? 'Sinh viên'}</span>{profile?.studentCode ? ` (${profile.studentCode})` : (profile?.id ? ` (ID #${profile.id})` : '')}
+            <span className="font-semibold text-slate-700">{profile?.fullName ?? 'Sinh viên'}</span>{profile?.studentCode ? ` (${profile.studentCode})` : ''}
           </p>
         </div>
 
@@ -156,7 +162,7 @@ export function TeamManagementPage() {
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition-colors"
+            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-bold flex items-center gap-2  transition-colors"
           >
             <span className="material-symbols-outlined text-[18px]">add_circle</span>
             Thành lập Nhóm Mới
@@ -169,7 +175,7 @@ export function TeamManagementPage() {
               <button
                 type="button"
                 onClick={() => setIsLeaveConfirmOpen(true)}
-                className="px-3.5 py-2 border border-slate-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 text-slate-600 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5"
+                className="px-3.5 py-2 border border-slate-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 text-slate-600 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[16px]">logout</span>
                 Rời nhóm
@@ -182,8 +188,8 @@ export function TeamManagementPage() {
       {/* When Student Has NO TEAM */}
       {!team ? (
         <div className="flex flex-col gap-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center flex flex-col items-center gap-4 shadow-xs">
-            <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+          <div className="bg-white border border-slate-200 rounded-md p-8 text-center flex flex-col items-center gap-4 ">
+            <div className="w-16 h-16 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
               <span className="material-symbols-outlined text-[36px]">group_add</span>
             </div>
             <div className="max-w-md">
@@ -195,7 +201,7 @@ export function TeamManagementPage() {
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition-colors"
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-bold flex items-center gap-2  transition-colors"
             >
               <span className="material-symbols-outlined text-[18px]">add</span>
               Bắt đầu tạo nhóm ngay
@@ -226,7 +232,7 @@ export function TeamManagementPage() {
         /* When Student HAS A TEAM */
         <div className="flex flex-col gap-6">
           {/* Team Overview Card */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
+          <div className="bg-white border border-slate-200 rounded-md p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 ">
             <div>
               <div className="flex items-center gap-3">
                 <span className="font-mono text-sm font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-lg">
@@ -248,7 +254,7 @@ export function TeamManagementPage() {
 
             <div className="flex items-center gap-3 shrink-0">
               {permissions.canEditTeam && (
-                <button type="button" onClick={() => setIsUpdateModalOpen(true)} className="rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                <button type="button" onClick={() => setIsUpdateModalOpen(true)} className="rounded-md border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
                   Chỉnh sửa nhóm
                 </button>
               )}
@@ -261,16 +267,17 @@ export function TeamManagementPage() {
             </div>
           </div>
 
-          <TeamEligibilitySummary
+          {!rosterLocked && <TeamEligibilitySummary
             team={team}
+            majorNames={majorNames}
             canRefresh={permissions.canRefreshEligibility}
             refreshPending={isMutationPending('refresh-eligibility', team.id)}
             canContinueToRegistration={team.eligibility.canRegister && permissions.canCreateProjectDraft}
             onRefresh={handleRefreshEligibility}
             onContinueToRegistration={() => navigate('/project/register')}
-          />
+          />}
 
-          <AcademicScopePanel
+          {!rosterLocked && <AcademicScopePanel
             teamId={team.id}
             period={period}
             workflowContext={workflowContext}
@@ -279,10 +286,12 @@ export function TeamManagementPage() {
             onSaved={retry}
             fallbackOrganizationId={team.members.find((member) => member.userId === currentUserId)?.organizationId}
             fallbackMajorId={profile?.majorId}
-          />
+          />}
+
+          {rosterLocked && <p className="text-sm text-slate-600">Danh sách thành viên đã được chốt theo hồ sơ đồ án.</p>}
 
           {leaderChangeRequests.some((request) => request.status === 'PENDING') && (
-            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
+            <section className="rounded-md border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
               <div className="flex items-center gap-2 font-bold">
                 <span className="material-symbols-outlined text-[18px]">hourglass_top</span>
                 Yêu cầu thay đổi Trưởng nhóm đang chờ Mentor phê duyệt
@@ -305,6 +314,7 @@ export function TeamManagementPage() {
             members={team.members}
             currentUserId={currentUserId}
             currentUserStudentCode={profile?.studentCode ?? undefined}
+            majorNames={majorNames}
             isLeader={permissions.canManageRoster}
             rosterLocked={rosterLocked}
             onRemoveMember={handleRemoveMember}
@@ -312,8 +322,9 @@ export function TeamManagementPage() {
           />
 
           {/* Invitations Panel */}
-          <TeamInvitationsPanel
+          {(!rosterLocked || sentInvitations.length > 0 || receivedInvitations.length > 0) && <TeamInvitationsPanel
             sentInvitations={sentInvitations}
+            memberNames={Object.fromEntries(team.members.map(member => [member.userId, member.fullName]))}
             receivedInvitations={receivedInvitations}
             isLeader={permissions.canInvite}
             rosterLocked={rosterLocked}
@@ -329,7 +340,7 @@ export function TeamManagementPage() {
             onCancelInvitation={handleCancelInvitation}
             onAcceptInvitation={handleAcceptInvitation}
             onRejectInvitation={handleRejectInvitation}
-          />
+          />}
         </div>
       )}
 
@@ -365,22 +376,13 @@ export function TeamManagementPage() {
 
       {/* Leave Team Confirmation Dialog */}
       {isLeaveConfirmOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 flex flex-col gap-4">
-            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
-              <span className="material-symbols-outlined text-[24px]">warning</span>
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Rời khỏi nhóm đồ án?</h3>
-              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                Bạn sẽ không còn là thành viên của nhóm {team?.name}. Trưởng nhóm phải bàn giao hoặc hoàn tất quy trình thay đổi Leader trước khi có thể rời nhóm.
-              </p>
-            </div>
+        <Modal open title="Rời khỏi nhóm đồ án?" description={`Bạn sẽ không còn là thành viên của nhóm ${team?.name ?? ''}. Trưởng nhóm cần bàn giao trước khi rời nhóm.`} busy={isMutationPending('leave', team?.id)} onClose={() => setIsLeaveConfirmOpen(false)}>
             <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setIsLeaveConfirmOpen(false)}
-                className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
+                disabled={isMutationPending('leave', team?.id)}
+                className="app-modal__button"
               >
                 Hủy
               </button>
@@ -388,13 +390,12 @@ export function TeamManagementPage() {
                 type="button"
                 onClick={handleLeaveTeam}
                 disabled={isMutationPending('leave', team?.id)}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50"
+                className="app-modal__button app-modal__button--danger"
               >
                 {isMutationPending('leave', team?.id) ? 'Đang xử lý...' : 'Xác nhận rời nhóm'}
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

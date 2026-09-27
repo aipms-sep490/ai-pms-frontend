@@ -41,6 +41,6 @@ describe('useTeamEligibility', () => {
       eligibility: { canRegister: false, rosterLocked: false, reasons: ['FUTURE_POLICY_REASON'] },
     })))
 
-    expect(result.current?.issues[0]).toMatchObject({ code: 'FUTURE_POLICY_REASON', title: 'Backend báo một điều kiện chưa đạt' })
+    expect(result.current?.issues[0]).toMatchObject({ code: 'FUTURE_POLICY_REASON', title: 'Có điều kiện đăng ký chưa đạt' })
   })
 })

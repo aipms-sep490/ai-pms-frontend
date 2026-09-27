@@ -5,6 +5,7 @@ interface TeamRosterTableProps {
   members: TeamMemberDto[]
   currentUserId: number
   currentUserStudentCode?: string
+  majorNames?: Record<number, string>
   isLeader: boolean
   rosterLocked: boolean
   onRemoveMember: (userId: number) => Promise<void>
@@ -15,6 +16,7 @@ export function TeamRosterTable({
   members,
   currentUserId,
   currentUserStudentCode,
+  majorNames = {},
   isLeader,
   rosterLocked,
   onRemoveMember,
@@ -34,12 +36,12 @@ export function TeamRosterTable({
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+    <div className="bg-white border border-slate-200 rounded-md overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
         <div>
-          <h3 className="text-base font-bold text-slate-900">Danh sách Thành viên (Roster)</h3>
+          <h3 className="text-base font-semibold text-slate-900">Thành viên nhóm</h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Hiện có {members.length} thành viên • Quy định đồ án yêu cầu 4 đến 5 thành viên
+            {members.length} thành viên
           </p>
         </div>
         {isLeader && !rosterLocked && members.length > 1 && (
@@ -59,9 +61,6 @@ export function TeamRosterTable({
           <thead className="bg-slate-50/80 text-xs text-slate-500 uppercase font-semibold border-b border-slate-100">
             <tr>
               <th className="py-3 px-4">Thành viên</th>
-              <th className="py-3 px-4">
-                Mã định danh
-              </th>
               <th className="py-3 px-4">Chuyên ngành</th>
               <th className="py-3 px-4">Vai trò</th>
               <th className="py-3 px-4">Tư cách đồ án</th>
@@ -71,7 +70,6 @@ export function TeamRosterTable({
           <tbody className="divide-y divide-slate-100">
             {members.map((member) => {
               const isSelf = member.userId === currentUserId
-              const identifier = isSelf && currentUserStudentCode ? currentUserStudentCode : `ID: #${member.userId}`
 
               return (
                 <tr key={member.userId} className={`hover:bg-slate-50/50 ${isSelf ? 'bg-blue-50/20' : ''}`}>
@@ -82,14 +80,12 @@ export function TeamRosterTable({
                     <div>
                       <span>{member.fullName}</span>
                       {isSelf && <span className="ml-1.5 text-[11px] text-blue-600 font-semibold">(Bạn)</span>}
+                      {isSelf && currentUserStudentCode && <span className="block text-xs text-slate-500">{currentUserStudentCode}</span>}
                     </div>
-                  </td>
-                  <td className="py-3 px-4 font-mono text-xs text-slate-700">
-                    {identifier}
                   </td>
                   <td className="py-3 px-4">
                     <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-xs font-semibold text-slate-700">
-                      {member.majorId ? `Major #${member.majorId}` : 'Chưa xác định'}
+                      {member.majorId && majorNames[member.majorId] ? majorNames[member.majorId] : 'Chưa có thông tin'}
                     </span>
                   </td>
                   <td className="py-3 px-4">
@@ -160,7 +156,6 @@ export function TeamRosterTable({
         </table>
       </div>
 
-      <div className="px-5 py-2.5 bg-slate-50/50 border-t border-slate-100 text-[11px] text-slate-400">Thông tin hiển thị đúng theo dữ liệu thành viên backend hiện cung cấp.</div>
     </div>
   )
 }

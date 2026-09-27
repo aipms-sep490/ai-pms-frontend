@@ -1,11 +1,13 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TeamInvitationsPanel } from './TeamInvitationsPanel'
 
 const candidate = {
   userId: 9, fullName: 'Nguyễn Văn A', email: 'a@example.test', studentCode: 'SE19009', majorId: 3,
   majorCode: 'SE', majorName: 'Software Engineering', invitationStatus: 'NONE', canInvite: true,
 }
+
+afterEach(cleanup)
 
 function panel(overrides = {}) {
   const props = {
@@ -21,6 +23,17 @@ function panel(overrides = {}) {
 }
 
 describe('TeamInvitationsPanel', () => {
+  it('uses known member names and does not mislabel cancelled or expired invitations as rejected', () => {
+    panel({ rosterLocked: true, memberNames: { 13: 'Võ Anh Duy', 9: 'Nguyễn Minh Khang' }, sentInvitations: [
+      { id: 1, teamId: 2, invitedUserId: 13, invitedBy: 9, status: 'CANCELLED', createdAt: '2026-08-14T07:15:42' },
+      { id: 2, teamId: 2, invitedUserId: 14, invitedBy: 9, status: 'EXPIRED', createdAt: '2026-08-15T07:15:42' },
+    ] })
+    expect(screen.getByText('Võ Anh Duy')).toBeTruthy()
+    expect(screen.getByText('Đã hủy')).toBeTruthy()
+    expect(screen.getByText('Đã hết hạn')).toBeTruthy()
+    expect(screen.queryByText('Đã từ chối')).toBeNull()
+    expect(screen.queryByText(/User ID|API BACKEND/)).toBeNull()
+  })
   it('renders backend candidates, sends search and paging to the feature hook', () => {
     const { props } = panel()
 
