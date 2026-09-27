@@ -1,10 +1,11 @@
-import { render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { ActiveProjectWorkspacePage } from './ActiveProjectWorkspacePage'
 
 const journey = vi.hoisted(() => ({ useStudentJourney: vi.fn() }))
 const api = vi.hoisted(() => ({
+  reload: vi.fn(),
   getProjectMilestones: vi.fn().mockResolvedValue([]),
   getProjectProgressSummary: vi.fn().mockResolvedValue({ progressPercentage: 0 }),
   getProjectTimeline: vi.fn().mockResolvedValue({ milestones: [] }),
@@ -15,7 +16,7 @@ vi.mock('../hooks/useCollaborationWorkspace', () => ({ useCollaborationWorkspace
   timeline: { state: 'ready', data: { milestones: [] } },
   summary: { state: 'ready', data: { totalTasks: 0, doneTasks: 0, progressPercentage: 0 } },
   deliverables: { state: 'ready', data: [] }, feedback: { state: 'ready', data: { items: [], incomplete: false } },
-  meetings: { state: 'ready', data: [] }, updatedAt: null, reload: vi.fn(),
+  meetings: { state: 'ready', data: [] }, updatedAt: null, reload: api.reload,
 }) }))
 vi.mock('../../../services/service-gateway', () => ({ services: { milestone: { getProjectMilestones: api.getProjectMilestones }, task: { getProjectProgressSummary: api.getProjectProgressSummary, getProjectTimeline: api.getProjectTimeline, getOverdueBlockedTasks: api.getOverdueBlockedTasks } } }))
 
@@ -30,7 +31,7 @@ const activeJourney = {
   assignments: [{ id: 3, projectId: 9, supervisorProfileId: 4, supervisorUserId: 5, supervisorName: 'Dr. Mai', supervisorRequestId: 7, isPrimary: true, assignedAt: '' }],
 }
 
-afterEach(() => { vi.clearAllMocks() })
+afterEach(() => { cleanup(); vi.clearAllMocks() })
 
 describe('ActiveProjectWorkspacePage', () => {
   it('renders only backend-backed ACTIVE summary data after a reload', () => {
@@ -47,5 +48,14 @@ describe('ActiveProjectWorkspacePage', () => {
     journey.useStudentJourney.mockReturnValue({ ...activeJourney, journeyState: 'SUPERVISOR_PENDING', project: { ...activeJourney.project, status: 'Approved' }, assignments: [] })
     render(<MemoryRouter initialEntries={['/project/workspace']}><Routes><Route path="/project/workspace" element={<ActiveProjectWorkspacePage />} /><Route path="/project/supervisor" element={<p>Supervisor selection</p>} /></Routes></MemoryRouter>)
     expect(screen.getByText('Supervisor selection')).toBeTruthy()
+  })
+
+  it('exposes the collaboration workspace refresh control', () => {
+    journey.useStudentJourney.mockReturnValue(activeJourney)
+
+    render(<MemoryRouter><ActiveProjectWorkspacePage /></MemoryRouter>)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cập nhật dữ liệu nhóm' }))
+    expect(api.reload).toHaveBeenCalledOnce()
   })
 })

@@ -9,7 +9,9 @@ import { ProgressReportsPage } from './ProgressReportsPage'
 import type { ReportDetail } from './report-types'
 
 const api = vi.hoisted(() => ({ getProgressReports: vi.fn(), getProgressReport: vi.fn(), createProgressReport: vi.fn(), updateProgressReport: vi.fn(), submitProgressReport: vi.fn(), addProgressReportFeedback: vi.fn() }))
+const ai = vi.hoisted(() => ({ getReportAiSummary: vi.fn() }))
 vi.mock('../../services/api/progress-reports.api', () => api)
+vi.mock('../ai/ai-api', () => ai)
 const draft: ReportDetail = {
   id: 17, projectId: 9, submittedBy: 2, submittedByName: 'Nguyễn Minh Anh', reportType: 'WEEKLY', periodStart: '2026-09-14', periodEnd: '2026-09-20',
   summary: 'Hoàn thành chức năng đăng ký', completedWork: 'Tích hợp API đề tài', plannedWork: 'Kiểm thử với giảng viên', issuesAndRisks: 'Không có',
@@ -31,6 +33,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   api.getProgressReport.mockResolvedValue(draft)
   api.getProgressReports.mockResolvedValue({ items: [draft], page: 1, pageSize: 10, totalCount: 1, totalPages: 1 })
+  ai.getReportAiSummary.mockResolvedValue({ projectId: 9, reportId: 17, reportType: 'WEEKLY', periodStart: '2026-09-14', periodEnd: '2026-09-20', summary: { completed: '', inProgress: '', blockers: '', risks: '', nextActions: '' }, contextScope: 'PROJECT', evidence: [], limitationNote: null, generatedAt: '2026-09-20T08:00:00Z' })
 })
 afterEach(cleanup)
 

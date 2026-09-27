@@ -1,4 +1,5 @@
 import { StudentJourneyHero } from '../../features/dashboard/components'
+import { StudentDashboardSummary } from '../../features/dashboard/components/StudentDashboardSummary'
 import { useStudentJourney } from '../context'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { resolveStudentNextAction } from '../../features/auth/utils/resolve-student-next-action'
@@ -35,6 +36,7 @@ export function OverviewPage() {
     <div className="flex flex-col gap-6">
       {/* Dynamic Student Journey Banner */}
       <StudentJourneyHero />
+      <StudentDashboardSummary />
 
       {!error ? (
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs" aria-labelledby="journey-next-step">

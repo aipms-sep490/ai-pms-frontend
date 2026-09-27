@@ -10,8 +10,8 @@ import {
   type AuthorizationContext,
 } from './access-policy'
 
-const leaderContext: AuthorizationContext = {
-  roles: ['STUDENT_LEADER'],
+const studentProjectContext: AuthorizationContext = {
+  roles: ['STUDENT'],
   permissions: ['project.lifecycle.read'],
   departmentIds: [14],
   majorIds: [29],
@@ -23,7 +23,7 @@ const leaderContext: AuthorizationContext = {
 describe('access policy', () => {
   it('requires permission, state, and project membership together', () => {
     expect(
-      canAccess(leaderContext, {
+      canAccess(studentProjectContext, {
         requiredPermissions: ['project.lifecycle.read'],
         allowedProjectStates: ['ACTIVE'],
         requireProjectMembership: true,
@@ -34,7 +34,7 @@ describe('access policy', () => {
   it('does not let a matching role replace a missing permission', () => {
     expect(
       canAccess(
-        { ...leaderContext, permissions: [] },
+        { ...studentProjectContext, permissions: [] },
         { requiredPermissions: ['project.lifecycle.read'] },
       ),
     ).toBe(false)
@@ -43,25 +43,25 @@ describe('access policy', () => {
   it('rejects a valid permission outside the allowed project state', () => {
     expect(
       canAccess(
-        { ...leaderContext, projectState: 'ARCHIVED' },
+        { ...studentProjectContext, projectState: 'ARCHIVED' },
         { allowedProjectStates: ['ACTIVE'] },
       ),
     ).toBe(false)
   })
 
-  it('keeps role checks separate for navigation and presentation', () => {
-    expect(hasRole(leaderContext, 'STUDENT_LEADER')).toBe(true)
-    expect(hasAnyRole(leaderContext, ['STUDENT_LEADER'])).toBe(true)
-    expect(hasAnyRole(leaderContext, ['SUPERVISOR'])).toBe(false)
+  it('limits identity-role checks to backend global roles', () => {
+    expect(hasRole(studentProjectContext, 'STUDENT')).toBe(true)
+    expect(hasAnyRole(studentProjectContext, ['STUDENT'])).toBe(true)
+    expect(hasAnyRole(studentProjectContext, ['LECTURER'])).toBe(false)
   })
 
   it('uses server-derived permissions and academic scope predicates', () => {
-    expect(hasPermission(leaderContext, 'project.lifecycle.read')).toBe(true)
-    expect(hasPermission(leaderContext, 'department.manage')).toBe(false)
-    expect(hasDepartmentScope(leaderContext, 14)).toBe(true)
-    expect(hasDepartmentScope(leaderContext, 99)).toBe(false)
-    expect(hasMajorScope(leaderContext, 29)).toBe(true)
-    expect(hasMajorScope(leaderContext, 30)).toBe(false)
+    expect(hasPermission(studentProjectContext, 'project.lifecycle.read')).toBe(true)
+    expect(hasPermission(studentProjectContext, 'department.manage')).toBe(false)
+    expect(hasDepartmentScope(studentProjectContext, 14)).toBe(true)
+    expect(hasDepartmentScope(studentProjectContext, 99)).toBe(false)
+    expect(hasMajorScope(studentProjectContext, 29)).toBe(true)
+    expect(hasMajorScope(studentProjectContext, 30)).toBe(false)
   })
 
   it('uses backend-evaluated actions instead of inventing a permission code', () => {

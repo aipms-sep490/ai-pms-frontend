@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { HttpError } from '../../../services/http/http-client'
 import { Button } from '../../../components/ui/Button'
 import { useAuthSession } from '../context/useAuthSession'
 import { getHomePath } from '../utils/role-access'
+import { GoogleLoginButton } from '../components/GoogleLoginButton'
 import './auth-pages.css'
 
 function getLoginErrorMessage(error: unknown): string {
@@ -59,6 +60,9 @@ export function LoginPage() {
           {formError && <p className="auth-error" role="alert">{formError}</p>}
           <Button className="auth-submit" type="submit" disabled={isSubmitting}>{isSubmitting ? 'Đang xác thực…' : 'Đăng nhập'}</Button>
         </form>
+        <div className="auth-divider" role="separator">hoặc</div>
+        <GoogleLoginButton />
+        <Link className="auth-recovery-link" to="/forgot-password">Quên mật khẩu?</Link>
         <p className="auth-session-note">Phiên đăng nhập được khôi phục tự động trong thời hạn của access token.</p>
       </section>
     </main>

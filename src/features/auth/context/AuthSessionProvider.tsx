@@ -4,6 +4,7 @@ import {
   login as requestLogin,
   logout as requestLogout,
   refresh as requestRefresh,
+  updateMyProfile as requestProfileUpdate,
 } from '../api/auth-api'
 import { AuthSessionContext } from './auth-session-context'
 import type {
@@ -125,6 +126,14 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
     }
   }, [clearSession, persistSession])
 
+  const acceptExternalLogin = useCallback(async (authenticatedSession: LoginSession) => {
+    const user = await getCurrentUser(authenticatedSession.accessToken, undefined, true)
+    const nextSession = { ...authenticatedSession, user }
+    persistSession(nextSession)
+    setStatus('authenticated')
+    return nextSession
+  }, [persistSession])
+
   const logout = useCallback(async () => {
     const refreshToken = sessionRef.current?.refreshToken ?? readStoredSession()?.refreshToken
     try {
@@ -148,9 +157,15 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
     }
   }, [persistSession, session])
 
+  const updateProfile = useCallback(async (profile: { fullName: string; phone: string | null; title: string | null }) => {
+    if (!session) throw new HttpError('Authentication is required.', 401)
+    const updated = await requestProfileUpdate(profile)
+    persistSession({ ...session, user: { ...session.user, fullName: updated.fullName } })
+  }, [persistSession, session])
+
   const value = useMemo(
-    () => ({ session, status, error, login, refreshProfile, logout, restoreSession }),
-    [session, status, error, login, refreshProfile, logout, restoreSession],
+    () => ({ session, status, error, login, acceptExternalLogin, refreshProfile, updateProfile, logout, restoreSession }),
+    [session, status, error, login, acceptExternalLogin, refreshProfile, updateProfile, logout, restoreSession],
   )
 
   return <AuthSessionContext.Provider value={value}>{children}</AuthSessionContext.Provider>

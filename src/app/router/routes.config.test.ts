@@ -6,8 +6,8 @@ import {
 } from './routes.config'
 
 describe('routes.config', () => {
-  it('defines exactly 11 MVP screens', () => {
-    expect(mvpRoutes).toHaveLength(11)
+  it('defines the MVP screens including final submission', () => {
+    expect(mvpRoutes).toHaveLength(14)
   })
 
   it('has unique route paths and unique IDs', () => {
@@ -40,6 +40,9 @@ describe('routes.config', () => {
       '/project/gantt',
       '/project/reports',
       '/project/meetings',
+      '/project/final-submission',
+      '/project/result',
+      '/project/contributions',
       '/supervisor/workspace',
       '/login',
       '/profile',
@@ -49,7 +52,7 @@ describe('routes.config', () => {
   describe('getStudentNavItems', () => {
     it('returns student workspace items and management preview items', () => {
       const { workspaceItems, managementItems } = getStudentNavItems()
-      expect(workspaceItems).toHaveLength(7)
+      expect(workspaceItems).toHaveLength(10)
       expect(managementItems).toHaveLength(2)
       expect(managementItems.map((m) => m.path)).toContain('/supervisor/workspace')
       expect(managementItems.map((m) => m.path)).toContain('/department/workspace')
@@ -69,6 +72,9 @@ describe('routes.config', () => {
       expect(getBreadcrumbForPath('/project/milestones/M3')).toBe('Mốc đồ án')
       expect(getBreadcrumbForPath('/project/milestones/M1')).toBe('Mốc đồ án')
       expect(getBreadcrumbForPath('/supervisor/workspace')).toBe('Bàn làm việc GVHD')
+      expect(getBreadcrumbForPath('/academic/rubrics')).toBe('Rubric đánh giá')
+      expect(getBreadcrumbForPath('/department/projects/2/evaluations')).toBe('Phân công evaluator')
+      expect(getBreadcrumbForPath('/department/projects/2/evaluators')).toBe('Phân công evaluator')
     })
 
     it('does not expose unknown URLs in a page title', () => {

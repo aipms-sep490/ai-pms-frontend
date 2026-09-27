@@ -22,10 +22,10 @@ export function Badge({
   const sizeStyles = size === 'sm' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-[11px]'
 
   const variantStyles = {
-    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    warning: 'bg-amber-50 text-amber-800 border-amber-200',
-    error: 'bg-red-50 text-red-700 border-red-200',
-    info: 'bg-blue-50 text-blue-700 border-blue-200',
+    success: 'bg-status-success-bg text-status-success-text border-status-success-border',
+    warning: 'bg-status-warning-bg text-status-warning-text border-status-warning-border',
+    error: 'bg-status-error-bg text-status-error-text border-status-error-border',
+    info: 'bg-primary-subtle text-primary border-primary/20',
     neutral: 'bg-slate-100 text-slate-700 border-slate-200',
     se: 'bg-blue-50 text-blue-700 border-blue-200',
     uiux: 'bg-purple-50 text-purple-700 border-purple-200',
@@ -34,10 +34,10 @@ export function Badge({
   }[variant]
 
   const dotColor = {
-    success: 'bg-emerald-500',
-    warning: 'bg-amber-500',
-    error: 'bg-red-500',
-    info: 'bg-blue-500',
+    success: 'bg-academic-emerald',
+    warning: 'bg-academic-amber',
+    error: 'bg-academic-coral',
+    info: 'bg-primary',
     neutral: 'bg-slate-400',
     se: 'bg-blue-600',
     uiux: 'bg-purple-600',
@@ -51,7 +51,7 @@ export function Badge({
     >
       {dot && (
         <span
-          className={`w-1.5 h-1.5 rounded-full ${dotColor} ${pulse ? 'animate-pulse' : ''}`}
+          className={`w-1.5 h-1.5 rounded-full ${dotColor} ${pulse ? 'animate-pulse motion-reduce:animate-none' : ''}`}
           aria-hidden="true"
         />
       )}

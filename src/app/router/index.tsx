@@ -3,6 +3,7 @@ import { RouteFrame } from './RouteFrame'
 import { AppLayout } from '../layouts/AppLayout'
 import { HomeRedirect, RoleRoute } from '../../features/auth/components/RoleRoute'
 import { LecturerWorkspacePage } from '../../features/supervisors/pages/LecturerWorkspacePage'
+import { SupervisorProfilePage } from '../../features/supervisors/pages/SupervisorProfilePage'
 import { SupervisorProjectWorkspacePage } from '../../features/supervisors/pages/SupervisorProjectWorkspacePage'
 import { SupervisorExecutionRoute } from '../../features/supervisors/components/SupervisorExecutionRoute'
 import { OverviewPage } from '../pages/OverviewPage'
@@ -25,6 +26,7 @@ import { ProjectRegistrationFormPage } from '../../features/projects/pages/Proje
 import { ProjectReviewStatusPage } from '../../features/projects/pages/ProjectReviewStatusPage'
 import { SupervisorSelectionPage } from '../../features/supervisors/pages/SupervisorSelectionPage'
 import { LoginPage } from '../../features/auth/pages/LoginPage'
+import { ForgotPasswordPage, ProfileSecurityPage, ResetPasswordPage } from '../../features/auth/pages/SelfServicePages'
 import { ProfilePage } from '../../features/auth/pages/ProfilePage'
 import { AcademicStructurePage } from '../../features/academic/pages/AcademicStructurePage'
 import { AcademicGovernancePage } from '../../features/academic/pages/AcademicGovernancePage'
@@ -39,10 +41,25 @@ import { EvaluatorAssignmentsPage } from '../../features/evaluations/EvaluatorAs
 import { EvaluationWorkspacePage } from '../../features/evaluations/EvaluationWorkspacePage'
 import { ResultPublicationPage } from '../../features/results/ResultPublicationPage'
 import { ProtectedRoute } from '../../features/auth/components/ProtectedRoute'
+import { NotificationsPage } from '../../features/notifications/NotificationsPage'
+import { PortfolioDashboardPage } from '../../features/dashboard/pages/PortfolioDashboardPage'
+import { SupervisorDashboardPage } from '../../features/dashboard/pages/SupervisorDashboardPage'
+import { FinalRequirementsPage, FinalSubmissionViewerPage, StudentFinalSubmissionPage } from '../../features/final-submission/FinalSubmissionPage'
+import { RubricManagementPage } from '../../features/evaluations/RubricManagementPage'
+import { EvaluatorAssignmentManagementPage } from '../../features/evaluations/EvaluatorAssignmentManagementPage'
+import { StudentProjectResultPage } from '../../features/results/StudentProjectResultPage'
+import { ProjectContributionsPage } from '../../features/contributions/ProjectContributionsPage'
+import { ProjectFilesPage } from '../../features/files/ProjectFilesPage'
+import { ProjectAiPage } from '../../features/ai/ProjectAiPage'
+import { DepartmentProjectRiskPage } from '../../features/ai/DepartmentProjectRiskPage'
+import { ArchivedProjectsPage } from '../../features/projects/pages/ArchivedProjectsPage'
+import { ProjectArchiveViewPage } from '../../features/projects/pages/ProjectArchiveViewPage'
 import { AcademicWorkflowGate, StudentJourneyProvider } from '../context'
 
 export const appRouter = createBrowserRouter([{ element: <RouteFrame />, children: [
   { path: 'login', element: <LoginPage /> },
+  { path: 'forgot-password', element: <ForgotPasswordPage /> },
+  { path: 'reset-password', element: <ResetPasswordPage /> },
   {
     element: (
       <ProtectedRoute>
@@ -56,6 +73,8 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
     children: [
       { index: true, element: <HomeRedirect /> },
       { path: 'profile', element: <ProfilePage /> },
+      { path: 'profile/security', element: <ProfileSecurityPage /> },
+      { path: 'notifications', element: <NotificationsPage /> },
       {
         element: <RoleRoute allowed={['student']} />,
         children: [
@@ -73,6 +92,9 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'project/meetings/new', element: <CreateMeetingPage /> },
             { path: 'project/meetings/:meetingId', element: <MeetingDetailPage /> },
             { path: 'project/deliverables', element: <DeliverablesPage /> },
+            { path: 'project/files', element: <ProjectFilesPage /> },
+            { path: 'project/contributions', element: <ProjectContributionsPage /> },
+            { path: 'project/ai', element: <ProjectAiPage /> },
           ] },
           { path: 'projects/lifecycle', element: <ProjectLifecyclePage /> },
           { path: 'team', element: <TeamManagementPage /> },
@@ -83,12 +105,16 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'project/edit', element: <ProjectRegistrationFormPage /> },
           { path: 'project/status', element: <ProjectReviewStatusPage /> },
           { path: 'project/supervisor', element: <SupervisorSelectionPage /> },
+          { path: 'project/final-submission', element: <StudentFinalSubmissionPage /> },
+          { path: 'project/result', element: <StudentProjectResultPage /> },
         ],
       },
       {
         element: <RoleRoute allowed={['lecturer']} />,
         children: [
           { path: 'supervisor/workspace', element: <LecturerWorkspacePage /> },
+          { path: 'supervisor/profile', element: <SupervisorProfilePage /> },
+          { path: 'supervisor/dashboard', element: <SupervisorDashboardPage /> },
           { element: <SupervisorExecutionRoute />, children: [
             { path: 'supervisor/projects/:projectId/workspace', element: <SupervisorProjectWorkspacePage /> },
             { path: 'supervisor/projects/:projectId/milestones/:milestoneId?', element: <MilestoneDetailPage /> },
@@ -101,19 +127,35 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'supervisor/projects/:projectId/meetings/new', element: <CreateMeetingPage /> },
             { path: 'supervisor/projects/:projectId/meetings/:meetingId', element: <MeetingDetailPage /> },
             { path: 'supervisor/projects/:projectId/deliverables', element: <DeliverablesPage /> },
+            { path: 'supervisor/projects/:projectId/files', element: <ProjectFilesPage /> },
+            { path: 'supervisor/projects/:projectId/contributions', element: <ProjectContributionsPage /> },
+            { path: 'supervisor/projects/:projectId/ai', element: <ProjectAiPage /> },
           ] },
+          { path: 'supervisor/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/supervisor/workspace" backLabel="Bàn làm việc GVHD" /> },
           { path: 'evaluator/evaluations', element: <EvaluatorAssignmentsPage /> },
           { path: 'evaluator/evaluations/:evaluationId', element: <EvaluationWorkspacePage /> },
+          { path: 'evaluator/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/evaluator/evaluations" backLabel="Danh sách assignments" /> },
         ],
       },
       {
         element: <RoleRoute allowed={['department', 'admin']} />,
         children: [
           { path: 'academic', element: <AcademicStructurePage /> },
+          { path: 'department/portfolio', element: <PortfolioDashboardPage /> },
+          { path: 'department/projects/archived', element: <ArchivedProjectsPage /> },
           { path: 'academic/governance', element: <AcademicGovernancePage /> },
+          { path: 'academic/rubrics', element: <RubricManagementPage /> },
           { path: 'department/projects/review', element: <ProjectReviewPage /> },
           { path: 'department/projects/review/:id', element: <ProjectReviewPage /> },
           { path: 'department/projects/:projectId/result', element: <ResultPublicationPage /> },
+          { path: 'department/projects/:projectId/evaluations', element: <EvaluatorAssignmentManagementPage /> },
+          { path: 'department/projects/:projectId/evaluators', element: <EvaluatorAssignmentManagementPage /> },
+          { path: 'department/projects/:projectId/final-requirements', element: <FinalRequirementsPage /> },
+          { path: 'department/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/department/portfolio" backLabel="Portfolio đồ án" /> },
+          { path: 'department/projects/:projectId/files', element: <ProjectFilesPage /> },
+          { path: 'department/projects/:projectId/contributions', element: <ProjectContributionsPage /> },
+          { path: 'department/projects/:projectId/risk', element: <DepartmentProjectRiskPage /> },
+          { path: 'department/projects/:projectId/archive-view', element: <ProjectArchiveViewPage /> },
           { path: 'department/supervisors', element: <SupervisorMonitoringPage /> },
           { path: 'department/supervisors/:id', element: <SupervisorMonitoringPage /> },
           { path: 'department/student-qualifications', element: <QualificationVerificationPage /> },

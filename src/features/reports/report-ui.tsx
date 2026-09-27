@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
 import { reportStatusLabels, type ReportStatus } from './report-types'
+import { ExecutionPage } from '../execution/execution-ui'
 import './reports.css'
 
 export function ReportBadge({ status }: { status: ReportStatus }) {
@@ -10,14 +10,7 @@ export function ReportBadge({ status }: { status: ReportStatus }) {
 export function ReportShell({ title, description, projectTitle, backTo, children, action }: {
   title: string; description: string; projectTitle: string; backTo: string; children: ReactNode; action?: ReactNode
 }) {
-  return <section className="reports">
-    <Link className="report-back" to={backTo}>← Quay lại không gian đồ án</Link>
-    <header className="report-header">
-      <div><p className="report-eyebrow">Theo dõi thực hiện • {projectTitle}</p><h1>{title}</h1><p className="report-description">{description}</p></div>
-      {action}
-    </header>
-    {children}
-  </section>
+  return <section className="reports"><ExecutionPage title={title} description={description} eyebrow={`Theo dõi thực hiện • ${projectTitle}`} backTo={backTo} action={action}>{children}</ExecutionPage></section>
 }
 
 export function ReportLoading() {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getCurrentUser, login, logout, refresh } from './auth-api'
+import { changePassword, getCurrentUser, login, logout, refresh, requestPasswordReset, resetPassword, updateMyProfile } from './auth-api'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -58,5 +58,22 @@ describe('auth API', () => {
       '/api/v1/auth/logout',
       expect.objectContaining({ method: 'POST', body: JSON.stringify({ refreshToken: 'refresh-token' }) }),
     )
+  })
+
+  it('uses only the documented self-service payloads', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 204, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await requestPasswordReset('student@example.edu.vn')
+    await resetPassword('reset-token', 'Strong!Pass1')
+    await changePassword('Current!Pass1', 'Strong!Pass1')
+    await updateMyProfile({ fullName: 'Student Updated', phone: null, title: 'Student' })
+
+    expect(fetchMock.mock.calls.map(call => [call[0], call[1].method, call[1].body])).toEqual([
+      ['/api/v1/auth/forgot-password', 'POST', JSON.stringify({ email: 'student@example.edu.vn' })],
+      ['/api/v1/auth/reset-password', 'POST', JSON.stringify({ token: 'reset-token', newPassword: 'Strong!Pass1' })],
+      ['/api/v1/auth/change-password', 'POST', JSON.stringify({ currentPassword: 'Current!Pass1', newPassword: 'Strong!Pass1' })],
+      ['/api/v1/users/me/profile', 'PUT', JSON.stringify({ fullName: 'Student Updated', phone: null, title: 'Student' })],
+    ])
   })
 })

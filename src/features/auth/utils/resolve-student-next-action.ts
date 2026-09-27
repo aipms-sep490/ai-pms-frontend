@@ -23,7 +23,7 @@ const details: Record<StudentJourneyState, Omit<StudentNextAction, 'route'>> = {
   SUPERVISOR_PENDING: { label: 'Chọn giảng viên', detail: 'Tìm và gửi yêu cầu tới giảng viên phù hợp.' },
   ACTIVE: { label: 'Mở không gian đồ án', detail: 'Project đã ACTIVE theo trạng thái và phân công được Backend xác nhận.' },
   FINAL_SUBMISSION: { label: 'Hoàn thiện bàn giao', detail: 'Kiểm tra hồ sơ và sản phẩm trước khi nộp bản cuối.' },
-  COMPLETED: { label: 'Xem hồ sơ đồ án', detail: 'Đồ án đã hoàn thành; hồ sơ và kết quả vẫn được lưu tại đây.' },
+  COMPLETED: { label: 'Xem kết quả đồ án', detail: 'Kết quả đã công bố được đọc trực tiếp từ Backend.' },
 }
 
 /**

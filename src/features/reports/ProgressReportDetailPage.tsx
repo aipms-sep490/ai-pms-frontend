@@ -1,4 +1,4 @@
-import { reportError } from './report-errors'
+import { reportError, reportNeedsAuthoritativeRefresh } from './report-errors'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom'
 import { useExecutionAccess, type ExecutionAccess } from '../execution/context/ExecutionAccessContext'
@@ -6,6 +6,7 @@ import * as api from '../../services/api/progress-reports.api'
 import { ReportEditor } from './ReportEditor'
 import { contentFields, formatReportDate, missingSubmissionFields, reportTypeLabels, type CreateReport, type ReportDetail } from './report-types'
 import { ReportBadge, ReportError, ReportLoading, ReportShell } from './report-ui'
+import { ReportAiSummary } from '../ai/components/ReportAiSummary'
 
 export function ProgressReportDetailPage({ create = false }: { create?: boolean }) {
   const access = useExecutionAccess()
@@ -57,7 +58,19 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
     if (locked.current) return
     locked.current = true; setBusy(true); setError(''); setSuccess('')
     try { await action() }
-    catch (reason) { if (mounted.current) setError(reportError(reason)) }
+    catch (reason) {
+      if (mounted.current) {
+        setError(reportError(reason))
+        if (!create && reportNeedsAuthoritativeRefresh(reason)) {
+          try {
+            const latest = await api.getProgressReport(id)
+            if (mounted.current && latest.projectId === project.id) setReport(latest)
+          } catch {
+            // Keep the original mutation error and the user's unsaved editor content.
+          }
+        }
+      }
+    }
     finally { locked.current = false; if (mounted.current) setBusy(false) }
   }
 
@@ -127,6 +140,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
             {report.feedbacks.length === 0 ? <p className="report-help">Chưa có nhận xét. Phản hồi của GVHD sẽ xuất hiện tại đây.</p> : <ol>{report.feedbacks.map((item) => <li key={item.id}><strong>{item.supervisorName}</strong><time dateTime={item.createdAt}>{formatReportDate(item.createdAt)}</time><p>{item.feedbackText}</p></li>)}</ol>}
             {actor === 'supervisor' && ['SUBMITTED', 'REVIEWED'].includes(report.status) && <form onSubmit={(event) => void sendFeedback(event)}><label htmlFor="report-feedback">Nhận xét mới</label><textarea id="report-feedback" required rows={5} value={feedback} disabled={busy} onChange={(event) => setFeedback(event.target.value)} placeholder="Nhận xét kết quả và hướng dẫn bước tiếp theo…" /><button className="report-button" disabled={busy || !feedback.trim()} type="submit">{busy ? 'Đang gửi…' : 'Gửi nhận xét'}</button></form>}
           </section>}
+          {report && <ReportAiSummary projectId={project.id} reportId={report.id} />}
         </aside>
       </div>
     </>}

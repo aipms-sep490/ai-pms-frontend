@@ -1,10 +1,11 @@
-import { useContext, type RefObject } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useContext, useEffect, useState, type RefObject } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { getBreadcrumbForPath } from '../router/routes.config'
 import { useAcademicWorkflow } from '../context/useAcademicWorkflow'
 import { StudentJourneyContext } from '../context/StudentJourneyContext'
 import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 import { useAuthSession } from '../../features/auth/context/useAuthSession'
+import { getUnreadCount } from '../../features/notifications/notifications-api'
 
 interface TopHeaderProps {
   onToggleMobileMenu: () => void
@@ -22,6 +23,19 @@ export function TopHeader({
   const journey = useContext(StudentJourneyContext)
   const selectedSemester = academic?.selectedSemester
   const { session } = useAuthSession()
+  const [unreadCount, setUnreadCount] = useState<number | null>(null)
+  useEffect(() => {
+    if (!session) return
+    let active = true
+    const refresh = () => {
+      void getUnreadCount()
+        .then(count => { if (active) setUnreadCount(count) })
+        .catch(() => { if (active) setUnreadCount(null) })
+    }
+    refresh()
+    window.addEventListener('ai-pms:notifications-changed', refresh)
+    return () => { active = false; window.removeEventListener('ai-pms:notifications-changed', refresh) }
+  }, [session])
   const role = getWorkspaceRole(session?.user)
   const pendingStudent = role === 'student' && Boolean(journey?.isLoading || journey?.error)
   const semesterLabel = role === 'student' ? journey?.semester?.name || 'Học kỳ chưa xác định' : role === 'lecturer' ? 'Giảng viên' : role === 'department' ? 'Bộ môn' : role === 'admin' ? 'Quản trị' : 'Tài khoản'
@@ -80,7 +94,15 @@ export function TopHeader({
           </span>
         ) : null}
         {role !== 'student' ? <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-[11px] font-mono font-medium"><span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />{semesterLabel}</span> : null}
-
+        <Link
+          to="/notifications"
+          aria-label={unreadCount === null ? 'Thông báo học vụ' : `Thông báo học vụ, ${unreadCount} chưa đọc`}
+          className="relative flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+        >
+          <span className="material-symbols-outlined text-[20px] shrink-0" aria-hidden="true">notifications</span>
+          {unreadCount !== null && unreadCount > 0 && <span aria-hidden="true" className="absolute right-0 top-0 rounded-full bg-rose-600 px-1.5 text-[10px] font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+        </Link>
+        <span className="sr-only" role="status" aria-atomic="true">{unreadCount === null ? '' : unreadCount === 0 ? 'Không có thông báo chưa đọc.' : `${unreadCount} thông báo chưa đọc.`}</span>
       </div>
     </header>
   )

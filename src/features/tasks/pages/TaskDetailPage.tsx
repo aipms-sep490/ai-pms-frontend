@@ -7,6 +7,7 @@ import { useExecutionMutation } from '../../execution/useExecutionMutation'
 import { services } from '../../../services/service-gateway'
 import type { ProjectTimelineDataDto, TaskDto, TaskStatusHistoryDto } from '../../../types/backend'
 import { taskStatusLabel, utcTimestamp } from '../../projects/utils/collaboration-workspace'
+import { TaskEvidenceAndComments } from '../components/TaskEvidenceAndComments'
 
 export function TaskDetailPage() {
   const { taskId } = useParams()
@@ -73,6 +74,7 @@ function TaskDetail({ id }: { id: number }) {
         </div>
       </section>
       <section className="ex-panel"><div className="ex-panel-heading"><h2>Lịch sử cập nhật</h2></div><div className="ex-padding">{historyLoading ? <ExState loading /> : historyError ? <ExState message={historyError} retry={reload} /> : history.length ? <ol className="ex-history">{[...history].sort((a,b) => utcTimestamp(b.changedAt) - utcTimestamp(a.changedAt) || b.id - a.id).map(item => <li key={item.id}><strong>{item.oldStatus ? taskStatusLabel(item.oldStatus) : 'Tạo công việc'} → {taskStatusLabel(item.newStatus)}</strong><time>{dateTimeLabel(item.changedAt)} · {item.changedByFullName}</time>{item.reason && <p>{item.reason}</p>}</li>)}</ol> : <p className="ex-muted">Chưa có thay đổi trạng thái.</p>}</div></section>
+      <TaskEvidenceAndComments taskId={task.id} currentUserId={currentUserId ?? null} canManageStructure={canManageStructure} />
       {mayDelete && <><button className="ex-text-button ex-danger-text" onClick={() => setDeleting(true)}>Xóa công việc</button>{deleting && <ExConfirm title="Xóa công việc này?" description="Chỉ công việc chưa có phân công, liên kết hoặc lịch sử mới được xóa. Các công việc đã thực hiện nên chuyển sang trạng thái Đã hủy." busy={mutation.busy} onCancel={() => setDeleting(false)} onConfirm={() => void mutation.run(() => services.task.deleteTask(task.id), () => navigate(`${routeBase}/tasks`, { replace: true }), 'Đã xóa công việc.')} />}</>}
     </div><aside><section className="ex-panel"><div className="ex-panel-heading"><h2>Cập nhật tiến độ</h2></div><div className="ex-padding">{canUpdateStatus ? <StatusEditor key={task.status} task={task} busy={mutation.busy} onSubmit={(newStatus, reason) => mutation.run(() => services.task.updateTaskStatus(task.id, { newStatus, reason: reason.trim() || null }), reload, 'Đã cập nhật trạng thái.')} />
       : <p className="ex-muted">Người phụ trách, trưởng nhóm và giảng viên hướng dẫn có thể cập nhật trạng thái công việc.</p>}</div></section></aside></div>

@@ -1,14 +1,21 @@
 export const aiPmsRoles = [
   'ADMIN',
   'DEPARTMENT_STAFF',
-  'SUPERVISOR',
-  'STUDENT_LEADER',
-  'STUDENT_MEMBER',
-  'EVALUATOR',
+  'LECTURER',
+  'STUDENT',
 ] as const
 
 export type AiPmsRole = (typeof aiPmsRoles)[number]
-export type WorkflowRole = AiPmsRole | string
+export type WorkflowRole = AiPmsRole
+
+/**
+ * Confines identity-role checks to the roles issued by the backend. Project
+ * authorities such as leader, supervisor, and evaluator are resolved from
+ * membership or assignment data on the scoped resource, never from this list.
+ */
+export function isAiPmsRole(role: string): role is AiPmsRole {
+  return (aiPmsRoles as readonly string[]).includes(role)
+}
 
 export const projectStates = [
   'DRAFT',

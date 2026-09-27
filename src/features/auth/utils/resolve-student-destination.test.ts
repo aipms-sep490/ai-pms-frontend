@@ -24,7 +24,7 @@ describe('resolveStudentDestination', () => {
   it('resolves every journey state to a real protected student route', () => {
     const knownStudentRoutes = new Set([
       '/team/create', '/team', '/project/register', '/project/edit', '/project/status',
-      '/project/supervisor', '/project/workspace', '/projects/lifecycle',
+      '/project/supervisor', '/project/workspace', '/project/final-submission', '/project/result', '/projects/lifecycle',
     ])
 
     for (const step of studentNavigation) {

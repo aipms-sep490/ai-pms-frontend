@@ -125,7 +125,7 @@ function MeetingDetailView({ id }: { id: number }) {
             <li key={participant.userId}>
               <div>
                 <strong>{participant.fullName}</strong>
-                {participant.userId === meeting.createdBy && <span className="ml-1.5 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">Tổ chức</span>}
+                {participant.userId === meeting.createdBy && <span className="mtg-organizer">Tổ chức</span>}
                 <small>{participant.attendanceStatus ? attendanceStatuses[participant.attendanceStatus] ?? participant.attendanceStatus : 'Chưa cập nhật'}</small>
               </div>
               {manage && scheduled && (

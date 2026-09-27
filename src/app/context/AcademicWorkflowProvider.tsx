@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useAuthSession } from '../../features/auth/context/useAuthSession'
-import type { AuthorizationContext } from '../../features/auth/policies/access-policy'
+import { isAiPmsRole, type AuthorizationContext } from '../../features/auth/policies/access-policy'
 import { HttpError } from '../../services/http/http-client'
 import { services } from '../../services/service-gateway'
 import type { UserWorkflowContextDto } from '../../types/backend'
@@ -34,7 +34,7 @@ function toAcademicSnapshot(context: UserWorkflowContextDto): AcademicContextSna
 
 function toAuthorization(context: UserWorkflowContextDto, sessionRoles: readonly string[]): AuthorizationContext {
   return {
-    roles: [...new Set([...sessionRoles, ...context.user.roles, ...context.user.effectiveRoles])],
+    roles: [...new Set([...sessionRoles, ...context.user.roles, ...context.user.effectiveRoles])].filter(isAiPmsRole),
     permissions: context.user.grantedPermissions,
     departmentIds: context.academic.department ? [context.academic.department.id] : [],
     majorIds: context.academic.major ? [context.academic.major.id] : [],

@@ -47,7 +47,7 @@ describe('TaskDetailPage', () => {
   it('keeps current details usable when history fails without claiming an empty history', async () => {
     api.getTaskHistory.mockRejectedValue(new Error('network')); renderPage(false)
     expect(await screen.findByRole('button', { name: 'Cập nhật trạng thái' })).toBeTruthy()
-    expect(await screen.findByRole('alert')).toBeTruthy()
+    expect(await screen.findByText('Chưa thể tải lịch sử. Hãy thử lại.')).toBeTruthy()
     expect(screen.queryByText('Chưa có thay đổi trạng thái.')).toBeNull()
   })
   it('blocks changes to a task outside the selected project', async () => {
@@ -70,7 +70,7 @@ describe('TaskDetailPage', () => {
     renderPage(true); fireEvent.click(await screen.findByRole('button', {name:'Xóa công việc'}))
     expect(api.deleteTask).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', {name:'Xác nhận xóa'}))
-    await screen.findByRole('alert'); expect(api.deleteTask).toHaveBeenCalledWith(8)
+    await screen.findByText('Chưa thể lưu thay đổi. Hãy thử lại.'); expect(api.deleteTask).toHaveBeenCalledWith(8)
     expect(screen.getByRole('heading', {name:'Phân tích yêu cầu'})).toBeTruthy()
   })
 })

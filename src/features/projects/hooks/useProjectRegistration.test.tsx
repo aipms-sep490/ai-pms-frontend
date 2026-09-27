@@ -55,7 +55,19 @@ describe('useProjectRegistration', () => {
     expect(api.submitProject).toHaveBeenCalledTimes(1)
     expect(state.refreshAll).toHaveBeenCalledTimes(1)
     expect(result.current.error).toMatchObject({ kind: 'conflict' })
-    expect(result.current.error?.message).toContain('stale')
+    expect(result.current.error?.message).toContain('Dữ liệu mới nhất đã được tải lại')
+  })
+
+  it('shows field-specific validation and does not send duplicate tags to the API', async () => {
+    const state = setup()
+    const { result } = renderHook(() => useProjectRegistration(state))
+    await act(async () => { result.current.setField('technologies', 'React, react') })
+    await act(async () => { await result.current.saveDraft() })
+    expect(api.updateDraft).not.toHaveBeenCalled()
+    expect(result.current.error).toMatchObject({
+      kind: 'validation',
+      fields: { technologies: 'Tên công nghệ không được trùng nhau.' },
+    })
   })
 
   it('keeps a member from receiving mutation permissions without backend actions', async () => {

@@ -60,14 +60,14 @@ export const studentNavigation: readonly StudentNavigationStep[] = [
   {
     state: 'FINAL_SUBMISSION',
     label: 'Final submission',
-    route: '/projects/lifecycle',
+    route: '/project/final-submission',
     availability: 'available',
     action: 'Complete checklist',
   },
   {
     state: 'COMPLETED',
     label: 'Completed or archived',
-    route: '/projects/lifecycle',
+    route: '/project/result',
     availability: 'available',
     action: 'View result',
   },

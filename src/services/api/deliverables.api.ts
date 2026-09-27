@@ -1,4 +1,4 @@
-import { httpDelete, httpGet, httpPost, httpPostForm, httpPut } from '../http/http-client'
+import { httpDelete, httpGet, httpGetBlob, httpPost, httpPostForm, httpPut } from '../http/http-client'
 import type { PagedResult } from '../../types/backend'
 import type { Deliverable, DeliverableFeedback, DeliverableVersion, SaveDeliverable } from '../../features/deliverables/deliverable-types'
 
@@ -29,3 +29,5 @@ export const reviewDeliverableVersion = (id: number, decision: 'ACCEPTED' | 'REJ
   httpPost<DeliverableFeedback>(`/deliverable-versions/${id}/review`, { decision, feedback })
 export const getDeliverableFeedback = (id: number, page = 1, pageSize = 20, signal?: AbortSignal) =>
   httpGet<PagedResult<DeliverableFeedback>>(`/deliverable-versions/${id}/feedback?${queryOf({ page, pageSize })}`, signal)
+export const downloadDeliverableFile = (id: number, signal?: AbortSignal) =>
+  httpGetBlob(`/files/${id}/download`, { signal })

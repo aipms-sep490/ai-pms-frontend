@@ -34,7 +34,10 @@ describe('shared HTTP authentication pipeline', () => {
     await expect(httpGet<void>('/teams/current')).resolves.toBeNull()
     expect(fetch).toHaveBeenCalledWith(
       '/api/v1/teams/current',
-      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer access-token' }) }),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer access-token' }),
+        credentials: 'include',
+      }),
     )
     expect(noContent.json).not.toHaveBeenCalled()
   })

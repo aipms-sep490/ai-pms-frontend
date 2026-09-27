@@ -9,7 +9,7 @@
  *  - Prefill: useEffect fills fields from project.* when project exists
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { ProjectRegistrationFormPage } from './ProjectRegistrationFormPage'
 
@@ -110,11 +110,11 @@ describe('ProjectRegistrationFormPage', () => {
       expect(titleInput).toBeDefined()
     })
 
-    it('renders STUDENT_PROPOSAL provenance from the Backend Project', async () => {
+    it('renders student-proposal provenance from the Project record', async () => {
       render(<ProjectRegistrationFormPage />, { wrapper: MemoryRouter })
       await waitForForm()
-      expect(screen.getByText('STUDENT_PROPOSAL')).toBeTruthy()
-      expect(screen.getByText(/Đề tài do sinh viên đề xuất/)).toBeTruthy()
+      expect(screen.getByText('Đề xuất của sinh viên')).toBeTruthy()
+      expect(screen.getByText(/Hồ sơ này được khởi tạo từ đề xuất của nhóm/)).toBeTruthy()
     })
 
     it('renders the Backend-selected Published Topic without copying its content into the draft', async () => {
@@ -124,7 +124,7 @@ describe('ProjectRegistrationFormPage', () => {
       })
       render(<ProjectRegistrationFormPage />, { wrapper: MemoryRouter })
       await waitForForm()
-      expect(screen.getByText('PUBLISHED_TOPIC')).toBeTruthy()
+      expect(screen.getByText('Đề tài đã công bố')).toBeTruthy()
       expect(screen.getByText(/TOP-5 · AI topic/)).toBeTruthy()
       expect(screen.getByDisplayValue('Prefilled Project Title')).toBeTruthy()
     })
@@ -232,6 +232,29 @@ describe('ProjectRegistrationFormPage', () => {
       render(<ProjectRegistrationFormPage />, { wrapper: MemoryRouter })
       await waitForForm()
       expect(document.querySelector('form')).toBeNull()
+    })
+  })
+
+  describe('new draft validation', () => {
+    it('focuses a field-linked summary and preserves the empty form when required data is missing', async () => {
+      mocks.useStudentJourney.mockReturnValue({
+        project: null,
+        team: { ...baseTeam, eligibility: { canRegister: true, rosterLocked: false, reasons: [] } },
+        profile: { id: 10, fullName: 'Le Van A', majorId: 3 },
+        teamActions: { canRegister: true, actions: [{ code: 'create_project_draft', allowed: true, issues: [] }] },
+        projectActions: null,
+        isLoading: false, error: null, refreshAll: vi.fn(),
+      })
+      mocks.getHistory.mockResolvedValue([])
+
+      render(<MemoryRouter initialEntries={['/project/register']}><ProjectRegistrationFormPage /></MemoryRouter>)
+      await waitForForm()
+      fireEvent.click(screen.getByRole('button', { name: 'Tạo bản nháp' }))
+      const summary = await screen.findByRole('alert')
+      expect(summary.textContent).toContain('Tên đề tài: Nhập tên đề tài.')
+      expect(summary.textContent).toContain('Lĩnh vực: Nhập lĩnh vực của đề tài.')
+      expect(screen.getByRole('textbox', { name: /Tên đề tài/ }).getAttribute('aria-invalid')).toBe('true')
+      expect(document.activeElement).toBe(summary)
     })
   })
 })

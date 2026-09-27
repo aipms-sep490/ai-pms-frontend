@@ -1,0 +1,30 @@
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
+import { PortfolioDashboardPage } from './PortfolioDashboardPage'
+
+const api = vi.hoisted(() => ({ getPortfolioDashboard: vi.fn(), exportPortfolioCsv: vi.fn(), archiveProject: vi.fn() }))
+vi.mock('../../auth/context/useAuthSession', () => ({ useAuthSession: () => ({ session: { user: { id: 3, roles: ['DEPARTMENT_STAFF'] } } }) }))
+vi.mock('../../auth/utils/role-access', () => ({ getWorkspaceRole: () => 'department' }))
+vi.mock('../api/dashboard-api', () => ({ getPortfolioDashboard: api.getPortfolioDashboard, exportPortfolioCsv: api.exportPortfolioCsv }))
+vi.mock('../../projects/api/archive-project', () => ({ archiveProject: api.archiveProject }))
+
+const dashboard = {
+  asOfUtc: '2026-09-28T00:00:00Z', departmentId: 1,
+  summary: { totalProjects: 1, projectStates: [{ status: 'ACTIVE', count: 1 }], majors: [{ majorId: 4, code: 'SE', name: 'Software Engineering', projectCount: 1 }], supervisors: [], riskLevels: [{ status: 'LOW', count: 1 }] },
+  projects: { items: [{ id: 7, code: 'PRJ-7', title: 'Portfolio contract', status: 'ACTIVE', teamId: 2, semesterId: 1, pendingProgressReviews: 0, departmentId: 1, departmentName: 'SE', majors: [], supervisor: null, analysis: { dataStatus: 'READY', riskLevel: 'LOW', trendStatus: 'STABLE', progressSummary: { progressPercentage: 50, overdueTasks: 0, blockedTasks: 0 } } }], page: 1, pageSize: 20, totalCount: 1, totalPages: 1 },
+}
+
+beforeEach(() => { vi.clearAllMocks(); api.getPortfolioDashboard.mockResolvedValue(dashboard) })
+afterEach(cleanup)
+
+describe('PortfolioDashboardPage', () => {
+  it('filters the backend portfolio by a returned major without inventing a client dataset', async () => {
+    render(<MemoryRouter><PortfolioDashboardPage /></MemoryRouter>)
+    await waitFor(() => expect(api.getPortfolioDashboard).toHaveBeenCalledWith('department', { page: 1, pageSize: 20 }))
+    expect(screen.getByRole('link', { name: 'Xem' })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'SE' }))
+    await waitFor(() => expect(api.getPortfolioDashboard).toHaveBeenLastCalledWith('department', { page: 1, pageSize: 20, majorId: 4 }))
+  })
+})

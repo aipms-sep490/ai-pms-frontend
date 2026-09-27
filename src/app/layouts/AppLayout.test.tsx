@@ -36,7 +36,7 @@ describe('AppLayout & Navigation Shell', () => {
     expect(screen.queryByText(/Sắp có/)).toBeNull()
     expect(screen.getByRole('navigation', { name: /breadcrumb/ }).textContent).toContain('Công việc')
   })
-  it('renders student navigation without unfinished controls', () => {
+  it('renders student navigation and notification access without unfinished controls', () => {
     renderAppLayout()
     expect(screen.getByText('AI-PMS • FPTU')).toBeDefined()
     expect(screen.getByText('Học kỳ chưa xác định')).toBeDefined()
@@ -44,6 +44,7 @@ describe('AppLayout & Navigation Shell', () => {
     expect(screen.getByText('Hồ sơ đồ án')).toBeDefined()
     expect(screen.queryByRole('button', { name: /Tìm kiếm toàn hệ thống/i })).toBeNull()
     expect(screen.queryByRole('button', { name: /Thông báo học vụ/i })).toBeNull()
+    expect(screen.getByRole('link', { name: /Thông báo học vụ/i }).getAttribute('href')).toBe('/notifications')
     expect(screen.queryByText(/Sắp có/)).toBeNull()
   })
 
@@ -69,5 +70,17 @@ describe('AppLayout & Navigation Shell', () => {
     renderAppLayout(['/department/projects/review'], ['DEPARTMENT_STAFF'])
     expect(screen.getByRole('link', { name: /Thẩm định đề cương/ })).toBeDefined()
     expect(screen.queryByRole('link', { name: /Tổng quan lộ trình/ })).toBeNull()
+  })
+
+  it('shows ACTIVE students the contribution, final-submission, and result routes', () => {
+    const journey: StudentJourneyContextValue = {
+      journeyState: 'ACTIVE', profile: null, semester: null, period: null, team: null, project: null,
+      assignments: [], workflowContext: null, teamActions: null, projectActions: null,
+      isLoading: false, error: null, refreshAll: async () => {}, setSimulatedJourneyState: () => {},
+    }
+    renderAppLayout(['/project/workspace'], ['STUDENT'], journey)
+    expect(screen.getByRole('link', { name: 'Đóng góp thành viên' }).getAttribute('href')).toBe('/project/contributions')
+    expect(screen.getByRole('link', { name: 'Bàn giao cuối' }).getAttribute('href')).toBe('/project/final-submission')
+    expect(screen.getByRole('link', { name: 'Kết quả đồ án' }).getAttribute('href')).toBe('/project/result')
   })
 })

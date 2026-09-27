@@ -61,6 +61,29 @@ export async function httpGet<T>(
   return send<T>('GET', path, undefined, options)
 }
 
+/** Download a protected file with the same single refresh attempt as JSON requests. */
+export async function httpGetBlob(
+  path: string,
+  options?: HttpRequestOptions,
+  hasRetriedAfterRefresh = false,
+): Promise<Blob> {
+  const requestInit = createRequestInit(options)
+  const response = await fetch(resolveUrl(path), {
+    ...requestInit,
+    method: 'GET',
+    headers: { ...requestInit.headers, Accept: '*/*' },
+  })
+  if (response.status === 401 && !options?.skipAuthRefresh && !hasRetriedAfterRefresh) {
+    const token = await refreshAccessToken()
+    if (token) return httpGetBlob(path, { ...options, accessToken: token, skipAuthRefresh: true }, true)
+  }
+  if (!response.ok) {
+    const problem = await readProblem(response)
+    throw new HttpError(problem.detail || problem.title || `Request failed with status ${response.status}.`, response.status, problem)
+  }
+  return response.blob()
+}
+
 export async function httpPost<TResponse, TBody = unknown>(
   path: string,
   body?: TBody,
@@ -176,7 +199,10 @@ function createRequestInit(options?: HttpRequestOptions): RequestInit {
     headers.Authorization = `Bearer ${token}`
   }
 
-  return { headers, signal: options?.signal }
+  // Google challenge/login binds the identity response to an HttpOnly, path-scoped cookie.
+  // Cross-origin local development therefore needs credentialed requests; the API's explicit
+  // CORS policy remains the authority for which origins may receive/send that cookie.
+  return { headers, signal: options?.signal, credentials: 'include' }
 }
 
 async function readResponse<T>(response: Response): Promise<T> {

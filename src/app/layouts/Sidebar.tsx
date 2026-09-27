@@ -185,19 +185,27 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                   {role === 'lecturer' ? 'Không gian Giảng viên' : role === 'unknown' ? 'Hồ sơ tài khoản' : 'Không gian Quản lý'}
                 </div>
                 {(role === 'lecturer' ? [
+                  { path: '/supervisor/dashboard', title: 'Tổng quan GVHD', icon: 'space_dashboard' },
                   { path: '/supervisor/workspace', title: 'Bàn làm việc GVHD', icon: 'supervisor_account' },
+                  { path: '/supervisor/profile', title: 'Hồ sơ GVHD', icon: 'badge' },
+                  { path: '/evaluator/evaluations', title: 'Đánh giá được giao', icon: 'grading' },
                   ...(location.pathname.match(/\/supervisor\/projects\/(\d+)/) ? [
                     { path: `/supervisor/projects/${location.pathname.match(/\/supervisor\/projects\/(\d+)/)![1]}/workspace`, title: 'Không gian đồ án', icon: 'folder_open' },
                     { path: `/supervisor/projects/${location.pathname.match(/\/supervisor\/projects\/(\d+)/)![1]}/meetings`, title: 'Lịch họp & biên bản', icon: 'calendar_month' },
                     { path: `/supervisor/projects/${location.pathname.match(/\/supervisor\/projects\/(\d+)/)![1]}/reports`, title: 'Báo cáo tiến độ', icon: 'assignment' },
+                    { path: `/supervisor/projects/${location.pathname.match(/\/supervisor\/projects\/(\d+)/)![1]}/files`, title: 'Kho tệp đồ án', icon: 'folder_open' },
+                    { path: `/supervisor/projects/${location.pathname.match(/\/supervisor\/projects\/(\d+)/)![1]}/contributions`, title: 'Đóng góp thành viên', icon: 'diversity_3' },
+                    { path: `/supervisor/projects/${location.pathname.match(/\/supervisor\/projects\/(\d+)/)![1]}/final-submission`, title: 'Gói bàn giao cuối', icon: 'inventory_2' },
                   ] : []),
                   { path: '/profile', title: 'Hồ sơ tài khoản', icon: 'account_circle' },
                 ] : role === 'department' || role === 'admin' ? [
+                  { path: '/department/portfolio', title: 'Portfolio đồ án', icon: 'space_dashboard' },
                   ...(role === 'admin' ? [{ path: '/admin/access', title: 'Quản trị quyền', icon: 'admin_panel_settings' }] : []),
                   { path: '/department/projects/review', title: 'Thẩm định đề cương', icon: 'fact_check' },
                   { path: '/department/supervisors', title: 'Giám sát GVHD', icon: 'school' },
                   { path: '/department/topics', title: 'Quản lý đề tài', icon: 'lightbulb' },
                   { path: '/academic', title: 'Cấu trúc đào tạo', icon: 'account_balance' },
+                  { path: '/academic/rubrics', title: 'Rubric đánh giá', icon: 'grading' },
                   { path: '/profile', title: 'Hồ sơ tài khoản', icon: 'account_circle' },
                 ] : [{ path: '/profile', title: 'Hồ sơ tài khoản', icon: 'account_circle' }]).map((item) => (
                   <NavLink key={item.path} to={item.path} onClick={() => { if (window.innerWidth < 1024) handleClose() }}
@@ -292,7 +300,11 @@ const activeWorkspaceItems: Pick<AppRouteMeta, 'id' | 'path' | 'title' | 'icon' 
   { id: 'gantt', path: '/project/gantt', title: 'Lịch thực hiện', icon: 'view_timeline', status: 'implemented' },
   { id: 'reports', path: '/project/reports', title: 'Báo cáo tiến độ', icon: 'assignment', status: 'implemented' },
   { id: 'deliverables', path: '/project/deliverables', title: 'Hạng mục cần nộp', icon: 'description', status: 'implemented' },
+  { id: 'files', path: '/project/files', title: 'Kho tệp đồ án', icon: 'folder_open', status: 'implemented' },
   { id: 'meetings', path: '/project/meetings', title: 'Lịch họp và biên bản', icon: 'calendar_month', status: 'implemented' },
+  { id: 'contributions', path: '/project/contributions', title: 'Đóng góp thành viên', icon: 'diversity_3', status: 'implemented' },
+  { id: 'final-submission', path: '/project/final-submission', title: 'Bàn giao cuối', icon: 'inventory_2', status: 'implemented' },
+  { id: 'result', path: '/project/result', title: 'Kết quả đồ án', icon: 'workspace_premium', status: 'implemented' },
   { id: 'team', path: '/team', title: 'Thành viên nhóm', icon: 'group', status: 'implemented' },
   { id: 'project', path: '/projects/lifecycle', title: 'Hồ sơ đồ án', icon: 'folder_open', status: 'implemented' },
 ]

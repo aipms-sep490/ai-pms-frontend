@@ -31,9 +31,12 @@ export type ProjectRegistrationErrorKind =
   | 'validation'
   | 'system'
 
+export type ProjectRegistrationField = 'title' | 'domain' | 'technologies' | 'keywords'
+
 export interface ProjectRegistrationError {
   kind: ProjectRegistrationErrorKind
   message: string
+  fields?: Partial<Record<ProjectRegistrationField, string>>
 }
 
 const emptyForm: ProjectRegistrationForm = {
@@ -47,6 +50,10 @@ export function normalizeProjectStatus(status?: string | null) {
 
 export function splitProjectTags(value: string) {
   return value.split(',').map((item) => item.trim()).filter(Boolean)
+}
+
+function normalizedTag(value: string) {
+  return value.trim().toLocaleUpperCase().replaceAll(' ', '_')
 }
 
 export function toProjectForm(project: ProjectDto | null): ProjectRegistrationForm {
@@ -69,10 +76,10 @@ export function classifyProjectError(reason: unknown): ProjectRegistrationError 
     if (reason.status === 401) return { kind: 'authentication', message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' }
     if (reason.status === 403) return { kind: 'forbidden', message: 'Bạn không có quyền hoặc phạm vi truy cập cho thao tác này.' }
     if (reason.status === 404) return { kind: 'not-found', message: 'Không tìm thấy hồ sơ đề tài trong phạm vi truy cập của bạn.' }
-    if (reason.status === 409) return { kind: 'conflict', message: `Backend từ chối thao tác vì dữ liệu hoặc điều kiện đăng ký đã thay đổi: ${reason.message}. Dữ liệu mới đã được tải lại; hãy xem lại và chủ động thực hiện lại thao tác.` }
-    if (reason.status === 400 || reason.status === 422) return { kind: 'validation', message: reason.message || 'Dữ liệu chưa thỏa điều kiện backend.' }
+    if (reason.status === 409) return { kind: 'conflict', message: 'Thông tin hồ sơ hoặc điều kiện đăng ký đã thay đổi. Dữ liệu mới nhất đã được tải lại; hãy kiểm tra trước khi thực hiện lại thao tác.' }
+    if (reason.status === 400 || reason.status === 422) return { kind: 'validation', message: 'Một số thông tin chưa hợp lệ. Hãy kiểm tra và chỉnh sửa trước khi lưu.' }
   }
-  return { kind: 'system', message: reason instanceof Error ? reason.message : 'Không thể kết nối hoặc xử lý yêu cầu. Hãy thử lại.' }
+  return { kind: 'system', message: 'Chưa thể lưu thông tin lúc này. Hãy thử lại.' }
 }
 
 interface UseProjectRegistrationOptions {
@@ -139,11 +146,22 @@ export function useProjectRegistration({
 
   useEffect(() => { void loadHistory() }, [loadHistory])
 
-  const validate = useCallback(() => {
-    if (!form.title.trim()) return 'Tên đề tài là bắt buộc.'
-    if (!form.domain.trim()) return 'Lĩnh vực (Domain) là bắt buộc theo hợp đồng backend.'
-    return null
-  }, [form.domain, form.title])
+  const validate = useCallback((): Partial<Record<ProjectRegistrationField, string>> => {
+    const fields: Partial<Record<ProjectRegistrationField, string>> = {}
+    if (!form.title.trim()) fields.title = 'Nhập tên đề tài.'
+    else if (form.title.trim().length > 500) fields.title = 'Tên đề tài không được quá 500 ký tự.'
+    if (!form.domain.trim()) fields.domain = 'Nhập lĩnh vực của đề tài.'
+    else if (form.domain.trim().length > 100) fields.domain = 'Lĩnh vực không được quá 100 ký tự.'
+
+    const validateTags = (value: string, field: 'technologies' | 'keywords', label: string) => {
+      const tags = splitProjectTags(value)
+      if (tags.some((tag) => tag.length > 100)) fields[field] = `${label} không được quá 100 ký tự.`
+      else if (new Set(tags.map(normalizedTag)).size !== tags.length) fields[field] = `${label} không được trùng nhau.`
+    }
+    validateTags(form.technologies, 'technologies', 'Tên công nghệ')
+    validateTags(form.keywords, 'keywords', 'Từ khóa')
+    return fields
+  }, [form.domain, form.keywords, form.technologies, form.title])
 
   const payload = useCallback(() => ({
     title: form.title.trim(), description: form.description.trim() || null,
@@ -165,9 +183,12 @@ export function useProjectRegistration({
   }, [refreshAll])
 
   const saveDraft = useCallback(async (): Promise<ProjectDto | null> => {
-    const validation = validate()
-    if (validation) { setError({ kind: 'validation', message: validation }); return null }
-    if (!canEdit) { setError({ kind: 'forbidden', message: 'Backend chưa cho phép tạo hoặc chỉnh sửa bản nháp này.' }); return null }
+    const fields = validate()
+    if (Object.keys(fields).length) {
+      setError({ kind: 'validation', message: 'Hãy kiểm tra các trường được đánh dấu.', fields })
+      return null
+    }
+    if (!canEdit) { setError({ kind: 'forbidden', message: 'Bạn chưa có quyền tạo hoặc chỉnh sửa bản nháp này.' }); return null }
     setError(null)
     const create = !project
     if (create) setCreating(true)
@@ -188,7 +209,7 @@ export function useProjectRegistration({
   const transition = useCallback(async (kind: 'submit' | 'resubmit'): Promise<ProjectDto | null> => {
     if (!project) { setError({ kind: 'validation', message: 'Hãy lưu bản nháp thành công trước khi nộp.' }); return null }
     const permitted = kind === 'submit' ? canSubmit : canResubmit
-    if (!permitted) { setError({ kind: 'forbidden', message: 'Backend chưa cho phép chuyển trạng thái này.' }); return null }
+    if (!permitted) { setError({ kind: 'forbidden', message: 'Bạn chưa thể chuyển hồ sơ sang bước tiếp theo.' }); return null }
     setError(null)
     if (kind === 'submit') setSubmitting(true)
     else setResubmitting(true)

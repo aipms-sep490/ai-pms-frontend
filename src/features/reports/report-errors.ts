@@ -10,3 +10,7 @@ export function reportError(reason: unknown): string {
   }
   return 'Không thể kết nối để hoàn tất thao tác. Kiểm tra kết nối và tải lại để xác nhận dữ liệu trước khi thử lại.'
 }
+
+export function reportNeedsAuthoritativeRefresh(reason: unknown): boolean {
+  return reason instanceof HttpError && reason.status === 409
+}
