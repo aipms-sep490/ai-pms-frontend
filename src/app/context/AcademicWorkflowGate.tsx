@@ -1,22 +1,23 @@
 import type { ReactNode } from 'react'
 import { useAcademicWorkflow } from './useAcademicWorkflow'
+import { PageLoading } from '../../components/ui/PageLoading'
 
 export function AcademicWorkflowGate({ children }: { children: ReactNode }) {
-  const { workflowContext, status, error, errorKind, refresh } = useAcademicWorkflow()
+  const { workflowContext, status, errorKind, refresh } = useAcademicWorkflow()
 
-  if (status === 'loading' && !workflowContext) {
-    return <ContextMessage title="Đang tải bối cảnh học vụ…" detail="Đang đồng bộ phạm vi học vụ và quyền truy cập của bạn." />
+  if ((status === 'idle' || status === 'loading') && !workflowContext) {
+    return <PageLoading fullPage />
   }
 
   if (status === 'forbidden') {
-    return <ContextMessage title="Bạn không có quyền truy cập bối cảnh học vụ này." detail="Quyền và phạm vi bộ môn được máy chủ kiểm soát." />
+    return <ContextMessage title="Bạn không có quyền truy cập." detail="Liên hệ bộ môn nếu bạn cần sử dụng chức năng này." />
   }
 
   if (status === 'unavailable') {
     const title = errorKind === 'authentication'
-      ? 'Không thể xác thực phiên đăng nhập cho bối cảnh học vụ.'
-      : 'Bối cảnh học vụ hiện chưa khả dụng.'
-    return <ContextMessage title={title} detail={error?.message ?? 'Vui lòng thử lại.'} onRetry={refresh} />
+      ? 'Chưa xác minh được phiên đăng nhập.'
+      : 'Chưa tải được thông tin tài khoản.'
+    return <ContextMessage title={title} detail="Hãy thử lại để tiếp tục." onRetry={refresh} />
   }
 
   return <>{children}</>

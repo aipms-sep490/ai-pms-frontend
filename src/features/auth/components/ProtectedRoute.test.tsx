@@ -21,7 +21,7 @@ function page(status: string, path = '/project/status/123') {
 describe('ProtectedRoute', () => {
   it('does not flash protected UI while restoring', () => {
     page('restoring')
-    expect(screen.getByText('Đang khôi phục phiên đăng nhập…')).toBeDefined()
+    expect(screen.getByRole('status', { name: 'Đang tải…' })).toBeDefined()
     expect(screen.queryByText('protected workspace')).toBeNull()
   })
 

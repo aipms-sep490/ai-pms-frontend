@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AcademicWorkflowContext, type AcademicWorkflowContextValue } from './academic-workflow-context'
 import { AcademicWorkflowGate } from './AcademicWorkflowGate'
+afterEach(cleanup)
 
 const baseValue: AcademicWorkflowContextValue = {
   currentUser: null,
@@ -23,9 +24,14 @@ function renderGate(value: Partial<AcademicWorkflowContextValue>) {
 }
 
 describe('AcademicWorkflowGate', () => {
+  it('keeps the first idle render neutral before a request starts', () => {
+    renderGate({ status: 'idle' })
+    expect(screen.getByRole('status', { name: 'Đang tải…' })).toBeDefined()
+    expect(screen.queryByText('workflow page')).toBeNull()
+  })
   it('does not render workflow pages before initial academic context loading completes', () => {
     renderGate({ status: 'loading' })
-    expect(screen.getByText('Đang tải bối cảnh học vụ…')).toBeDefined()
+    expect(screen.getByRole('status', { name: 'Đang tải…' })).toBeDefined()
     expect(screen.queryByText('workflow page')).toBeNull()
   })
 
@@ -38,7 +44,7 @@ describe('AcademicWorkflowGate', () => {
   it('offers retry for an unavailable academic context without redirecting to login', () => {
     const refresh = vi.fn().mockResolvedValue(undefined)
     renderGate({ status: 'unavailable', errorKind: 'system', error: new Error('Offline'), refresh })
-    expect(screen.getByText('Bối cảnh học vụ hiện chưa khả dụng.')).toBeDefined()
+    expect(screen.getByText('Chưa tải được thông tin tài khoản.')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Thử lại' })).toBeDefined()
     expect(screen.queryByText('workflow page')).toBeNull()
   })
