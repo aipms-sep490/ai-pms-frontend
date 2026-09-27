@@ -1,8 +1,8 @@
 import { StudentJourneyHero } from '../../features/dashboard/components'
 import { useStudentJourney } from '../context'
-import { useNavigate } from 'react-router-dom'
-import { getActivePrimaryAssignment } from '../../features/projects/utils/project-resolution.utils'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { resolveStudentNextAction } from '../../features/auth/utils/resolve-student-next-action'
+import { PageLoading } from '../../components/ui/PageLoading'
 
 const journeySteps = [
   { label: 'Tuyển quân', icon: 'group_add' },
@@ -13,9 +13,10 @@ const journeySteps = [
 ] as const
 
 export function OverviewPage() {
-  const { journeyState, error, project, team, assignments, semester } = useStudentJourney()
+  const { journeyState, error, project, isLoading } = useStudentJourney()
   const navigate = useNavigate()
-  const supervisor = getActivePrimaryAssignment(assignments)
+  if (isLoading) return <PageLoading />
+  if (!isLoading && !error && journeyState === 'ACTIVE' && project) return <Navigate to="/project/workspace" replace />
   const stageIndex = {
     NO_TEAM: 0,
     TEAM_FORMING: 0,
@@ -29,14 +30,13 @@ export function OverviewPage() {
     COMPLETED: 4,
   }[journeyState]
   const nextAction = resolveStudentNextAction({ journeyState, projectStatus: project?.status })
-  const showActiveHandoff = journeyState === 'ACTIVE'
 
   return (
     <div className="flex flex-col gap-6">
       {/* Dynamic Student Journey Banner */}
       <StudentJourneyHero />
 
-      {!showActiveHandoff && !error ? (
+      {!error ? (
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs" aria-labelledby="journey-next-step">
           <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Lộ trình đăng ký đồ án</p>
@@ -64,27 +64,6 @@ export function OverviewPage() {
               Tiếp tục
               <span className="material-symbols-outlined text-[17px]" aria-hidden="true">arrow_forward</span>
             </button>
-          </div>
-        </section>
-      ) : showActiveHandoff ? (
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs" aria-labelledby="active-project-title">
-          <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">Dữ liệu trực tiếp từ hệ thống</p>
-            <h2 id="active-project-title" className="mt-1 text-xl font-bold tracking-tight text-slate-900">
-              {project?.title || 'Đồ án đang hoạt động'}
-            </h2>
-            <p className="mt-1 text-xs text-slate-500">{project?.code} • {team?.name} ({team?.code})</p>
-          </div>
-          <dl className="grid gap-px bg-slate-100 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="bg-white px-5 py-4"><dt className="text-[11px] text-slate-500">Trạng thái</dt><dd className="mt-1 text-sm font-bold text-emerald-700">{project?.status}</dd></div>
-            <div className="bg-white px-5 py-4"><dt className="text-[11px] text-slate-500">Học kỳ</dt><dd className="mt-1 text-sm font-bold text-slate-900">{semester?.name || '—'}</dd></div>
-            <div className="bg-white px-5 py-4"><dt className="text-[11px] text-slate-500">Thành viên</dt><dd className="mt-1 text-sm font-bold text-slate-900">{team?.members.length ?? 0}</dd></div>
-            <div className="bg-white px-5 py-4"><dt className="text-[11px] text-slate-500">GVHD chính</dt><dd className="mt-1 text-sm font-bold text-slate-900">{supervisor?.supervisorName || 'Chưa phân công'}</dd></div>
-          </dl>
-          <div className="flex flex-wrap gap-3 bg-slate-50/70 px-5 py-5 sm:px-6">
-            <button type="button" onClick={() => navigate('/projects/lifecycle')} className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50">Xem hồ sơ thật</button>
-            <button type="button" onClick={() => navigate('/project/status')} className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50">Lịch sử xét duyệt</button>
-            <button type="button" onClick={() => navigate(nextAction.route)} className="rounded-lg bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-800">Mở không gian đồ án</button>
           </div>
         </section>
       ) : null}

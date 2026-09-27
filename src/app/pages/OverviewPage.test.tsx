@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { OverviewPage } from './OverviewPage'
 
 const journey = vi.hoisted(() => ({ useStudentJourney: vi.fn() }))
@@ -23,7 +23,7 @@ describe('OverviewPage', () => {
     expect(navigate).toHaveBeenCalledWith('/project/edit')
   })
 
-  it('offers the ACTIVE workspace instead of a milestone route after Backend-derived handoff', () => {
+  it('lands an ACTIVE project directly in the collaboration workspace after login', () => {
     journey.useStudentJourney.mockReturnValue({
       ...baseJourney,
       journeyState: 'ACTIVE',
@@ -31,9 +31,10 @@ describe('OverviewPage', () => {
       team: { name: 'SE-9', code: 'SE9', members: [] },
       assignments: [{ id: 3, projectId: 9, isPrimary: true, supervisorName: 'Dr. Mai' }],
     })
-    render(<MemoryRouter><OverviewPage /></MemoryRouter>)
-    fireEvent.click(screen.getByRole('button', { name: 'Mở không gian đồ án' }))
-    expect(navigate).toHaveBeenCalledWith('/project/workspace')
-    expect(navigate).not.toHaveBeenCalledWith('/project/milestones/M3')
+    render(<MemoryRouter initialEntries={['/project/overview']}><Routes>
+      <Route path="/project/overview" element={<OverviewPage />} />
+      <Route path="/project/workspace" element={<p>Phối hợp nhóm mới</p>} />
+    </Routes></MemoryRouter>)
+    expect(screen.getByText('Phối hợp nhóm mới')).toBeTruthy()
   })
 })
