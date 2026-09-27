@@ -38,10 +38,10 @@ function query(filters: TaskListFilters): string {
   return params.toString()
 }
 
-export const getTask = (id: number) => httpGet<TaskDto>(`/tasks/${id}`)
-export const getProjectTasks = (projectId: number, filters: TaskListFilters = {}) => {
+export const getTask = (id: number, signal?: AbortSignal) => httpGet<TaskDto>(`/tasks/${id}`, signal)
+export const getProjectTasks = (projectId: number, filters: TaskListFilters = {}, signal?: AbortSignal) => {
   const serialized = query({ page: 1, pageSize: 10, ...filters })
-  return httpGet<PagedResult<TaskDto>>(`/tasks/project/${projectId}?${serialized}`)
+  return httpGet<PagedResult<TaskDto>>(`/tasks/project/${projectId}?${serialized}`, signal)
 }
 export const createTask = (payload: CreateTaskPayload) => httpPost<TaskDto, CreateTaskPayload>('/tasks', payload)
 export const updateTask = (id: number, payload: UpdateTaskPayload) => httpPut<TaskDto, UpdateTaskPayload>(`/tasks/${id}`, payload)
@@ -50,7 +50,7 @@ export const setTaskAssignees = (id: number, assigneeUserIds: number[]) => httpP
 export const addTaskDependency = (payload: AddTaskDependencyPayload) => httpPost<TaskDto, AddTaskDependencyPayload>('/tasks/dependency', payload)
 export const removeTaskDependency = (id: number, dependsOnTaskId: number) => httpDelete<TaskDto>(`/tasks/${id}/dependency/${dependsOnTaskId}`)
 export const updateTaskStatus = (id: number, payload: UpdateTaskStatusPayload) => httpPut<TaskDto, UpdateTaskStatusPayload>(`/tasks/${id}/status`, payload)
-export const getTaskHistory = (id: number) => httpGet<TaskStatusHistoryDto[]>(`/tasks/${id}/history`)
+export const getTaskHistory = (id: number, signal?: AbortSignal) => httpGet<TaskStatusHistoryDto[]>(`/tasks/${id}/history`, signal)
 export const getOverdueBlockedTasks = (projectId: number) => httpGet<OverdueBlockedTasksDto>(`/tasks/project/${projectId}/overdue-blocked`)
-export const getProjectTimeline = (projectId: number) => httpGet<ProjectTimelineDataDto>(`/tasks/project/${projectId}/timeline`)
-export const getProjectProgressSummary = (projectId: number) => httpGet<ProjectProgressSummaryDto>(`/tasks/project/${projectId}/progress-summary`)
+export const getProjectTimeline = (projectId: number, signal?: AbortSignal) => httpGet<ProjectTimelineDataDto>(`/tasks/project/${projectId}/timeline`, signal)
+export const getProjectProgressSummary = (projectId: number, signal?: AbortSignal) => httpGet<ProjectProgressSummaryDto>(`/tasks/project/${projectId}/progress-summary`, signal)
