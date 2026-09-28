@@ -97,7 +97,8 @@ describe('Meetings end-user workflow', () => {
     expect(api.getMeeting).toHaveBeenCalledTimes(2)
   })
   it('adds a candidate and removes by user ID after explicit confirmation', async () => {
-    mount(); await ready(); await screen.findByLabelText('Thêm người tham gia')
+    mount(); await ready(); await waitFor(() => expect((screen.getByLabelText('Thêm người tham gia') as HTMLSelectElement).value).toBe(''))
+    await waitFor(() => expect((screen.getByLabelText('Thêm người tham gia') as HTMLSelectElement).options).toHaveLength(2))
     input('Thêm người tham gia', '6'); click('Thêm vào cuộc họp')
     await screen.findByText('Đã thêm người tham gia.'); await ready()
     expect(api.addMeetingParticipant).toHaveBeenCalledWith(42, 6, 'meeting-token')
