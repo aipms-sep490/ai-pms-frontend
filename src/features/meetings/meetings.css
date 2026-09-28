@@ -58,6 +58,11 @@
 .mtg-pagination > div, .mtg-actions, .mtg-form-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .mtg-form-actions { justify-content: flex-end; padding-top: 7px; }
 .mtg-form { margin-top: 18px; }
+.mtg-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.mtg-full { grid-column: 1 / -1; }
+.mtg-subheading { display: flex; align-items: baseline; gap: 4px; }
+.mtg-inline-field { flex-direction: row !important; align-items: center; gap: 8px !important; font-size: 11px !important; }
+.mtg-inline-field select { width: auto; min-height: 36px; padding: 6px 28px 6px 9px; }
 .mtg-form fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .mtg-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .mtg-form .mtg-candidate-list { border-top: 1px solid #e8edf3; padding-top: 15px; gap: 12px; }
@@ -102,7 +107,7 @@
   .mtg-row-icon { display: none; }
 }
 @media (max-width: 480px) {
-  .mtg-field-grid, .mtg-facts { grid-template-columns: minmax(0, 1fr); }
+  .mtg-field-grid, .mtg-form-grid, .mtg-facts { grid-template-columns: minmax(0, 1fr); }
   .mtg-filters { padding: 16px; }
   .mtg-list { padding: 0 16px; }
   .mtg-row { align-items: flex-start; flex-direction: column; gap: 12px; }

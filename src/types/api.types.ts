@@ -3,4 +3,6 @@ export interface ApiProblem {
   detail?: string
   status?: number
   traceId?: string
+  /** Stable backend business-error identifier when the endpoint provides one. */
+  code?: string
 }

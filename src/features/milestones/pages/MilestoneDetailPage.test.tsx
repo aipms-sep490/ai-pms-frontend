@@ -5,7 +5,7 @@ import { ExecutionAccessProvider } from '../../execution/context/ExecutionAccess
 import { MilestoneDetailPage } from './MilestoneDetailPage'
 const api = vi.hoisted(() => ({ getProjectMilestones: vi.fn(), getProjectMilestoneProgress: vi.fn(), createMilestone: vi.fn(), updateMilestone: vi.fn(), deleteMilestone: vi.fn(), reorderMilestones: vi.fn() }))
 vi.mock('../../../services/service-gateway', () => ({ services: { milestone: api } }))
-const m = { id:3,projectId:9,title:'Khởi động',status:'IN_PROGRESS',sortOrder:0 }
+const m = { id:3,projectId:9,title:'Khởi động',status:'IN_PROGRESS',sortOrder:0,concurrencyToken:'milestone-token' }
 function renderPage(manage: boolean, path = '/project/milestones/3') {
   return render(<MemoryRouter initialEntries={[path]}><ExecutionAccessProvider value={{ project:{id:9} as never,actor:'student',currentUserId:2,canManageStructure:manage,routeBase:'/project' }}><Routes><Route path="/project/milestones/:milestoneId?" element={<MilestoneDetailPage />} /></Routes></ExecutionAccessProvider></MemoryRouter>)
 }
@@ -38,7 +38,7 @@ describe('MilestoneDetailPage', () => {
     api.getProjectMilestones.mockResolvedValue([m,{...m,id:4,title:'Nghiệm thu',sortOrder:1}]); api.reorderMilestones.mockResolvedValue(undefined)
     renderPage(true,'/project/milestones'); fireEvent.click(await screen.findByRole('button', {name:'Đổi thứ tự'}))
     fireEvent.click(screen.getByRole('button', {name:'Đưa Nghiệm thu lên'})); fireEvent.click(screen.getByRole('button', {name:'Lưu thứ tự'}))
-    await vi.waitFor(() => expect(api.reorderMilestones).toHaveBeenCalledWith(9,[{milestoneId:4,sortOrder:0},{milestoneId:3,sortOrder:1}]))
+    await vi.waitFor(() => expect(api.reorderMilestones).toHaveBeenCalledWith(9,[{milestoneId:4,sortOrder:0,concurrencyToken:'milestone-token'},{milestoneId:3,sortOrder:1,concurrencyToken:'milestone-token'}]))
   })
   it('does not manufacture milestones for an empty project', async () => {
     api.getProjectMilestones.mockResolvedValue([]); renderPage(false,'/project/milestones')

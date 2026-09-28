@@ -82,7 +82,8 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
         if (mounted.current) navigate(`${routeBase}/reports/${created.id}`, { replace: true })
       } else {
         const { summary, completedWork, plannedWork, issuesAndRisks } = value
-        const updated = await api.updateProgressReport(id, { summary, completedWork, plannedWork, issuesAndRisks })
+        if (!report?.concurrencyToken) return
+        const updated = await api.updateProgressReport(id, { summary, completedWork, plannedWork, issuesAndRisks, concurrencyToken: report.concurrencyToken })
         if (!mounted.current) return
         setReport((current) => current && { ...current, ...updated }); setDirty(false); setConfirmSubmit(false)
         setEditorVersion((version) => version + 1); setSuccess('Đã lưu thay đổi. Trưởng nhóm có thể nộp khi nội dung đã đầy đủ.')
@@ -93,7 +94,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
   async function submit() {
     if (!report || actor !== 'student' || !canManageStructure || report.status !== 'DRAFT' || dirty || missingSubmissionFields(report).length) return
     await mutate(async () => {
-      const updated = await api.submitProgressReport(id)
+      const updated = await api.submitProgressReport(id, report.concurrencyToken)
       if (!mounted.current) return
       setReport((current) => current && { ...current, ...updated }); setConfirmSubmit(false)
       setSuccess('Đã nộp báo cáo. Nội dung đã được khóa và sẵn sàng để GVHD nhận xét.')
@@ -104,7 +105,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
     event.preventDefault()
     if (actor !== 'supervisor' || !report || !['SUBMITTED', 'REVIEWED'].includes(report.status) || !feedback.trim()) return
     await mutate(async () => {
-      await api.addProgressReportFeedback(id, feedback.trim())
+      await api.addProgressReportFeedback(id, feedback.trim(), report.concurrencyToken)
       if (!mounted.current) return
       // Clear only after POST succeeds; a failed follow-up GET must never invite a duplicate POST.
       setFeedback(''); setSuccess('Đã gửi nhận xét cho nhóm.'); setRevision((value) => value + 1)

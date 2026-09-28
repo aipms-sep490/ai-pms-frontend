@@ -9,12 +9,12 @@ import { CreateMeetingPage } from './CreateMeetingPage'
 import { MeetingDetailPage } from './MeetingDetailPage'
 import type { MeetingDetail } from './meeting-types'
 
-const api = vi.hoisted(() => ({ getMeetings: vi.fn(), getMeeting: vi.fn(), getMeetingCandidates: vi.fn(), createMeeting: vi.fn(), updateMeeting: vi.fn(), cancelMeeting: vi.fn(), completeMeeting: vi.fn(), updateMeetingNotes: vi.fn(), addMeetingParticipant: vi.fn(), removeMeetingParticipant: vi.fn(), addMeetingFeedback: vi.fn() }))
+const api = vi.hoisted(() => ({ getMeetings: vi.fn(), getMeeting: vi.fn(), getMeetingCandidates: vi.fn(), createMeeting: vi.fn(), updateMeeting: vi.fn(), cancelMeeting: vi.fn(), completeMeeting: vi.fn(), updateMeetingNotes: vi.fn(), addMeetingParticipant: vi.fn(), removeMeetingParticipant: vi.fn(), addMeetingFeedback: vi.fn(), getMeetingDecisions: vi.fn(), getMeetingActionItems: vi.fn(), createMeetingDecision: vi.fn(), createMeetingActionItem: vi.fn(), updateMeetingActionItem: vi.fn() }))
 vi.mock('../../services/api/meetings.api', () => api)
 const meeting: MeetingDetail = {
   id: 42, projectId: 2, title: 'Rà soát tiến độ tuần', agenda: 'Đánh giá kết quả và kế hoạch', meetingNotes: null,
   startAt: '2026-09-23T02:00:00', endAt: '2026-09-23T03:00:00', location: 'Phòng 302', onlineUrl: 'https://meet.google.com/abc-defg-hij',
-  status: 'SCHEDULED', createdBy: 9, createdByName: 'Khang', createdAt: '2026-09-22T08:00:00', updatedAt: '2026-09-22T08:00:00',
+  status: 'SCHEDULED', createdBy: 9, createdByName: 'Khang', createdAt: '2026-09-22T08:00:00', updatedAt: '2026-09-22T08:00:00', concurrencyToken: 'meeting-token',
   participants: [{ id: 101, meetingId: 42, userId: 9, fullName: 'Khang', email: 'khang@example.com', attendanceStatus: 'ACCEPTED', createdAt: '2026-09-22T08:00:00', updatedAt: '2026-09-22T08:00:00' }], feedbacks: [],
 }
 function mount({ actor = 'student', leader = true, userId = 9, path }: { actor?: 'student' | 'supervisor'; leader?: boolean; userId?: number; path?: string } = {}) {
@@ -38,6 +38,8 @@ beforeEach(() => {
   api.getMeeting.mockResolvedValue(meeting)
   api.getMeetings.mockResolvedValue(listResult())
   api.getMeetingCandidates.mockResolvedValue({ candidates: [{ userId: 9, fullName: 'Khang', role: 'Trưởng nhóm' }, { userId: 6, fullName: 'GVHD', role: 'Giảng viên hướng dẫn' }] })
+  api.getMeetingDecisions.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
+  api.getMeetingActionItems.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
 })
 afterEach(cleanup)
 
@@ -91,25 +93,25 @@ describe('Meetings end-user workflow', () => {
     expect((screen.getByLabelText(/Bắt đầu/) as HTMLInputElement).value).toBe('2026-09-23T09:00')
     input('Địa điểm', 'Phòng 401'); click('Lưu lịch họp')
     await screen.findByText('Đã lưu thay đổi lịch họp.'); await ready()
-    expect(api.updateMeeting).toHaveBeenCalledWith(42, { title: meeting.title, agenda: meeting.agenda, startAt: '2026-09-23T02:00:00.000Z', endAt: '2026-09-23T03:00:00.000Z', location: 'Phòng 401', onlineUrl: meeting.onlineUrl })
+    expect(api.updateMeeting).toHaveBeenCalledWith(42, { title: meeting.title, agenda: meeting.agenda, startAt: '2026-09-23T02:00:00.000Z', endAt: '2026-09-23T03:00:00.000Z', location: 'Phòng 401', onlineUrl: meeting.onlineUrl, concurrencyToken: 'meeting-token' })
     expect(api.getMeeting).toHaveBeenCalledTimes(2)
   })
   it('adds a candidate and removes by user ID after explicit confirmation', async () => {
     mount(); await ready(); await screen.findByLabelText('Thêm người tham gia')
     input('Thêm người tham gia', '6'); click('Thêm vào cuộc họp')
     await screen.findByText('Đã thêm người tham gia.'); await ready()
-    expect(api.addMeetingParticipant).toHaveBeenCalledWith(42, 6)
+    expect(api.addMeetingParticipant).toHaveBeenCalledWith(42, 6, 'meeting-token')
     click('Bỏ Khang khỏi cuộc họp')
     expect(api.removeMeetingParticipant).not.toHaveBeenCalled()
     click('Xác nhận'); await screen.findByText('Đã cập nhật danh sách người tham gia.')
-    expect(api.removeMeetingParticipant).toHaveBeenCalledWith(42, 9)
+    expect(api.removeMeetingParticipant).toHaveBeenCalledWith(42, 9, 'meeting-token')
   })
   it('stores notes and only changed attendance values, including after completion', async () => {
     api.getMeeting.mockResolvedValue({ ...meeting, status: 'COMPLETED' })
     mount(); await ready(); click('Cập nhật biên bản')
     input('Biên bản & kết luận', '  Thống nhất kiểm thử API  '); input('Khang', 'ATTENDED')
     click('Lưu biên bản & điểm danh'); await screen.findByText('Đã lưu biên bản và điểm danh.')
-    expect(api.updateMeetingNotes).toHaveBeenCalledWith(42, { meetingNotes: 'Thống nhất kiểm thử API', attendances: [{ userId: 9, attendanceStatus: 'ATTENDED' }] })
+    expect(api.updateMeetingNotes).toHaveBeenCalledWith(42, { meetingNotes: 'Thống nhất kiểm thử API', attendances: [{ userId: 9, attendanceStatus: 'ATTENDED' }], concurrencyToken: 'meeting-token' })
     await ready(); expect(screen.queryByRole('button', { name: 'Sửa lịch' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Bỏ Khang khỏi cuộc họp' })).toBeNull()
   })
@@ -117,7 +119,7 @@ describe('Meetings end-user workflow', () => {
     api.getMeeting.mockResolvedValue({ ...meeting, participants: [{ ...meeting.participants[0], attendanceStatus: null }] })
     mount(); await ready(); click('Cập nhật biên bản'); input('Biên bản & kết luận', 'Kết luận')
     click('Lưu biên bản & điểm danh'); await screen.findByText('Đã lưu biên bản và điểm danh.')
-    expect(api.updateMeetingNotes).toHaveBeenCalledWith(42, { meetingNotes: 'Kết luận', attendances: [] })
+    expect(api.updateMeetingNotes).toHaveBeenCalledWith(42, { meetingNotes: 'Kết luận', attendances: [], concurrencyToken: 'meeting-token' })
   })
   it('completes once despite repeated clicks and reloads the locked status', async () => {
     let resolve!: () => void
@@ -135,7 +137,7 @@ describe('Meetings end-user workflow', () => {
     expect(api.cancelMeeting).not.toHaveBeenCalled()
     api.getMeeting.mockResolvedValue({ ...meeting, status: 'CANCELLED' }); click('Xác nhận')
     await screen.findByText('Đã hủy')
-    expect(api.cancelMeeting).toHaveBeenCalledWith(42)
+    expect(api.cancelMeeting).toHaveBeenCalledWith(42, 'meeting-token')
     expect(screen.queryByRole('button', { name: 'Cập nhật biên bản' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Viết nhận xét' })).toBeNull()
   })
@@ -146,8 +148,36 @@ describe('Meetings end-user workflow', () => {
     api.getMeeting.mockResolvedValue({ ...meeting, status, feedbacks: [{ id: 1, supervisorName: 'GVHD', feedbackText: 'Cần bổ sung kiểm thử', createdAt: '2026-09-23T03:00:00Z' }] })
     click('Gửi nhận xét'); await screen.findByText('Đã gửi nhận xét cho nhóm.'); await ready()
     expect(screen.getByText('Cần bổ sung kiểm thử')).toBeTruthy()
-    expect(api.addMeetingFeedback).toHaveBeenCalledWith(42, 'Cần bổ sung kiểm thử')
+    expect(api.addMeetingFeedback).toHaveBeenCalledWith(42, 'Cần bổ sung kiểm thử', 'meeting-token')
     expect(screen.getByText(status === 'SCHEDULED' ? 'Đã lên lịch' : 'Đã hoàn tất')).toBeTruthy()
+  })
+  it('records a post-meeting decision with the latest meeting token', async () => {
+    api.getMeeting.mockResolvedValue({ ...meeting, status: 'COMPLETED' })
+    api.createMeetingDecision.mockResolvedValue({ id: 3, meetingId: 42, content: 'Chốt kiểm thử', decidedBy: 9, decidedAt: '2026-09-23T03:00:00Z' })
+    mount(); await ready(); await screen.findByText('Chưa có kết luận được ghi nhận.'); input('Kết luận mới', 'Chốt kiểm thử'); click('Ghi kết luận')
+    await waitFor(() => expect(api.createMeetingDecision).toHaveBeenCalledWith(42, 'Chốt kiểm thử', 'meeting-token'))
+  })
+  it('creates a meeting action with the current meeting token', async () => {
+    const action = { id: 7, meetingId: 42, title: 'Chuẩn bị demo', description: null, assigneeUserId: 6, dueAt: null, status: 'OPEN', concurrencyToken: 'action-token', createdBy: 9, createdAt: '2026-09-23T03:00:00Z', updatedAt: '2026-09-23T03:00:00Z' }
+    api.getMeeting.mockResolvedValue({ ...meeting, status: 'COMPLETED' })
+    api.createMeetingActionItem.mockResolvedValue(action)
+    mount(); await ready(); await screen.findByText('Chưa có công việc sau họp.')
+    fireEvent.change(screen.getByLabelText('Công việc', { exact: true }), { target: { value: 'Chuẩn bị demo' } }); input('Người phụ trách', '6'); click('Tạo công việc')
+    await waitFor(() => expect(api.createMeetingActionItem).toHaveBeenCalledWith(42, {
+      title: 'Chuẩn bị demo', description: null, assigneeUserId: 6, dueAt: null, status: 'OPEN', concurrencyToken: 'meeting-token',
+    }))
+  })
+  it('updates a reloaded meeting action with its server-issued action token', async () => {
+    const action = { id: 7, meetingId: 42, title: 'Chuẩn bị demo', description: null, assigneeUserId: 6, dueAt: null, status: 'OPEN', concurrencyToken: 'action-token', createdBy: 9, createdAt: '2026-09-23T03:00:00Z', updatedAt: '2026-09-23T03:00:00Z' }
+    api.getMeeting.mockResolvedValue({ ...meeting, status: 'COMPLETED' })
+    api.getMeetingActionItems.mockResolvedValue({ items: [action], page: 1, pageSize: 100, totalCount: 1 })
+    api.updateMeetingActionItem.mockResolvedValue({ ...action, status: 'IN_PROGRESS', concurrencyToken: 'action-token-v2' })
+    mount(); await ready()
+    await screen.findByText('Chuẩn bị demo')
+    input('Trạng thái', 'IN_PROGRESS')
+    await waitFor(() => expect(api.updateMeetingActionItem).toHaveBeenCalledWith(42, 7, {
+      title: 'Chuẩn bị demo', description: null, assigneeUserId: 6, dueAt: null, status: 'IN_PROGRESS', concurrencyToken: 'action-token',
+    }))
   })
   it('protects unsaved content on route changes and allows explicit discard', async () => {
     mount(); await ready(); click('Cập nhật biên bản'); input('Biên bản & kết luận', 'Chưa lưu')
@@ -162,7 +192,7 @@ describe('Meetings end-user workflow', () => {
     mount(); await ready(); click('Cập nhật biên bản'); input('Biên bản & kết luận', 'Chưa lưu')
     click('Đóng chỉnh sửa'); expect(screen.getByRole('alertdialog').textContent).toContain('chưa lưu')
     click('Quay lại'); expect(screen.getByLabelText('Biên bản & kết luận')).toBeTruthy()
-    click('Đóng chỉnh sửa'); click('Xác nhận'); expect(screen.queryByRole('textbox')).toBeNull()
+    click('Đóng chỉnh sửa'); click('Xác nhận'); expect(screen.queryByLabelText('Biên bản & kết luận')).toBeNull()
   })
   it('retains failed drafts and forbids replay until an explicit reload', async () => {
     api.updateMeetingNotes.mockRejectedValue(new HttpError('conflict', 409))
@@ -172,7 +202,7 @@ describe('Meetings end-user workflow', () => {
     fireEvent.submit(screen.getByLabelText('Biên bản & kết luận').closest('form')!)
     expect(api.updateMeetingNotes).toHaveBeenCalledTimes(1)
     click('Tải lại trạng thái'); expect(screen.getByRole('alertdialog').textContent).toContain('bỏ nội dung')
-    click('Xác nhận'); await ready(); expect(screen.queryByRole('textbox')).toBeNull()
+    click('Xác nhận'); await ready(); expect(screen.queryByLabelText('Biên bản & kết luận')).toBeNull()
   })
   it('retries GET only when saving succeeded but reloading failed', async () => {
     api.getMeeting.mockResolvedValueOnce(meeting).mockRejectedValueOnce(new HttpError('unavailable', 503)).mockResolvedValue({ ...meeting, status: 'COMPLETED' })

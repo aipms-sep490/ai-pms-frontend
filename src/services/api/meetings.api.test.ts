@@ -54,6 +54,32 @@ describe('Meetings HTTP contract', () => {
     await expect(api.completeMeeting(42)).rejects.toBeInstanceOf(HttpError)
     expect(fetch).toHaveBeenCalledTimes(1)
   })
+  it('includes concurrency tokens in every governed meeting mutation', async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetch)
+    const token = 'meeting-v2'
+    await api.updateMeeting(42, { title: 'Họp', agenda: null, startAt: '2026-09-23T02:00:00Z', endAt: null, location: null, onlineUrl: null, concurrencyToken: token })
+    await api.cancelMeeting(42, token)
+    await api.completeMeeting(42, token)
+    await api.updateMeetingNotes(42, { meetingNotes: 'Kết luận', attendances: [], concurrencyToken: token })
+    await api.addMeetingParticipant(42, 9, token)
+    await api.removeMeetingParticipant(42, 9, token)
+    await api.addMeetingFeedback(42, 'Đã xem', token)
+    await api.createMeetingDecision(42, 'Chốt kiểm thử', token)
+    await api.createMeetingActionItem(42, { title: 'Kiểm thử', description: null, assigneeUserId: 9, dueAt: null, status: 'OPEN', concurrencyToken: token })
+    await api.updateMeetingActionItem(42, 6, { title: 'Kiểm thử', description: null, assigneeUserId: 9, dueAt: null, status: 'DONE', concurrencyToken: 'action-v2' })
+    expect(fetch.mock.calls.map(([url, options]) => [url, options.method])).toEqual([
+      ['/api/v1/meetings/42', 'PUT'], ['/api/v1/meetings/42/cancel?concurrencyToken=meeting-v2', 'POST'],
+      ['/api/v1/meetings/42/complete?concurrencyToken=meeting-v2', 'POST'], ['/api/v1/meetings/42/notes', 'PUT'],
+      ['/api/v1/meetings/42/participants?concurrencyToken=meeting-v2', 'POST'], ['/api/v1/meetings/42/participants/9?concurrencyToken=meeting-v2', 'DELETE'],
+      ['/api/v1/meetings/42/feedback?concurrencyToken=meeting-v2', 'POST'], ['/api/v1/meetings/42/decisions', 'POST'],
+      ['/api/v1/meetings/42/action-items', 'POST'], ['/api/v1/meetings/42/action-items/6', 'PUT'],
+    ])
+    expect(JSON.parse(fetch.mock.calls[0][1].body).concurrencyToken).toBe(token)
+    expect(JSON.parse(fetch.mock.calls[3][1].body).concurrencyToken).toBe(token)
+    expect(JSON.parse(fetch.mock.calls[7][1].body)).toEqual({ content: 'Chốt kiểm thử', concurrencyToken: token })
+    expect(JSON.parse(fetch.mock.calls[9][1].body).concurrencyToken).toBe('action-v2')
+  })
   it('continues with current supervisors when the roster endpoint denies access', async () => {
     const fetch = vi.fn().mockResolvedValueOnce({ ok: false, status: 403, json: async () => ({ title: 'Forbidden' }) })
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ items: [{ supervisorUserId: 6, supervisorName: 'GVHD', endedAt: null }], totalPages: 1 }) })

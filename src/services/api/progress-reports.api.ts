@@ -20,6 +20,7 @@ export function getProgressReports(projectId: number, filters: ReportFilters = {
 }
 export const getProgressReport = (id: number, signal?: AbortSignal) => httpGet<ReportDetail>(`/progress-reports/${id}`, signal)
 export const createProgressReport = (projectId: number, body: CreateReport) => httpPost<ProgressReport>(`/projects/${projectId}/progress-reports`, body)
-export const updateProgressReport = (id: number, body: ReportContent) => httpPut<ProgressReport>(`/progress-reports/${id}`, body)
-export const submitProgressReport = (id: number) => httpPost<ProgressReport>(`/progress-reports/${id}/submit`)
-export const addProgressReportFeedback = (id: number, feedbackText: string) => httpPost<ReportFeedback>(`/progress-reports/${id}/feedback`, { feedbackText })
+export const updateProgressReport = (id: number, body: ReportContent & { concurrencyToken?: string }) => httpPut<ProgressReport>(`/progress-reports/${id}`, body)
+const reportTokenQuery = (concurrencyToken?: string) => concurrencyToken ? `?${new URLSearchParams({ concurrencyToken })}` : ''
+export const submitProgressReport = (id: number, concurrencyToken?: string) => httpPost<ProgressReport>(`/progress-reports/${id}/submit${reportTokenQuery(concurrencyToken)}`)
+export const addProgressReportFeedback = (id: number, feedbackText: string, concurrencyToken?: string) => httpPost<ReportFeedback>(`/progress-reports/${id}/feedback${reportTokenQuery(concurrencyToken)}`, { feedbackText })

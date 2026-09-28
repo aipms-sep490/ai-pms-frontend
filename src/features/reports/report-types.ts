@@ -18,6 +18,7 @@ export interface ProgressReport {
   isLate: boolean | null
   createdAt: string
   updatedAt: string
+  concurrencyToken?: string
 }
 
 export interface ReportFeedback {

@@ -2,8 +2,17 @@ import { httpGet, httpPost, httpPut } from '../http/http-client'
 import type { PagedResult } from '../../types/backend'
 import type { EvaluationAssignment, EvaluationDraft, EvaluationScoreInput } from '../../features/evaluations/evaluation-types'
 
+export interface EligibleEvaluator {
+  userId: number
+  displayName: string
+  departmentId: number
+  departmentName: string
+  evaluationTypes: Array<'SUPERVISOR' | 'LECTURER'>
+}
+
 export const getMyEvaluationAssignments = (page = 1, pageSize = 20, signal?: AbortSignal) => httpGet<PagedResult<EvaluationAssignment>>(`/evaluation-assignments/my?page=${page}&pageSize=${pageSize}`, signal)
 export const getProjectEvaluationAssignments = (projectId: number, status?: 'ACTIVE' | 'REVOKED', signal?: AbortSignal) => httpGet<PagedResult<EvaluationAssignment>>(`/projects/${projectId}/evaluation-assignments?page=1&pageSize=100${status ? `&status=${status}` : ''}`, signal)
+export const getEligibleEvaluators = (projectId: number, periodId: number, page = 1, pageSize = 100, signal?: AbortSignal) => httpGet<PagedResult<EligibleEvaluator>>(`/projects/${projectId}/eligible-evaluators?${new URLSearchParams({ periodId: String(periodId), page: String(page), pageSize: String(pageSize) })}`, signal)
 export const assignEvaluator = (projectId: number, body: { evaluatorId: number; projectPeriodId: number; evaluationType: 'SUPERVISOR' | 'LECTURER' }) => httpPost<EvaluationAssignment>(`/projects/${projectId}/evaluation-assignments`, body)
 export const revokeEvaluator = (assignmentId: number, concurrencyToken: string, reason: string) => httpPost<EvaluationAssignment>(`/evaluation-assignments/${assignmentId}/revoke`, { concurrencyToken, reason })
 export const createEvaluationDraft = (assignmentId: number) => httpPost<EvaluationDraft>(`/evaluation-assignments/${assignmentId}/evaluation`)

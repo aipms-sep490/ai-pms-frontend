@@ -15,7 +15,7 @@ vi.mock('../ai/ai-api', () => ai)
 const draft: ReportDetail = {
   id: 17, projectId: 9, submittedBy: 2, submittedByName: 'Nguyễn Minh Anh', reportType: 'WEEKLY', periodStart: '2026-09-14', periodEnd: '2026-09-20',
   summary: 'Hoàn thành chức năng đăng ký', completedWork: 'Tích hợp API đề tài', plannedWork: 'Kiểm thử với giảng viên', issuesAndRisks: 'Không có',
-  status: 'DRAFT', submittedAt: null, isLate: null, createdAt: '2026-09-20T08:00:00Z', updatedAt: '2026-09-20T08:00:00Z', feedbacks: [],
+  status: 'DRAFT', submittedAt: null, isLate: null, createdAt: '2026-09-20T08:00:00Z', updatedAt: '2026-09-20T08:00:00Z', concurrencyToken: 'report-token', feedbacks: [],
 }
 function mount({ actor = 'student', leader = true, path = '/project/reports/17' }: { actor?: 'student' | 'supervisor'; leader?: boolean; path?: string } = {}) {
   const access: ExecutionAccess = { project: { id: 9, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'], actor, canManageStructure: leader, currentUserId: actor === 'student' ? 2 : 5, routeBase: '/project' }
@@ -75,7 +75,7 @@ describe('Progress reports workflow', () => {
     expect(screen.queryByRole('button', { name: 'Nộp cho GVHD' })).toBeNull()
     input('Tóm tắt tiến độ', 'Đã cập nhật'); click('Lưu thay đổi')
     await screen.findByText(/Đã lưu thay đổi/)
-    expect(api.updateProgressReport).toHaveBeenCalledWith(17, { summary: 'Đã cập nhật', completedWork: draft.completedWork, plannedWork: draft.plannedWork, issuesAndRisks: draft.issuesAndRisks })
+    expect(api.updateProgressReport).toHaveBeenCalledWith(17, { summary: 'Đã cập nhật', completedWork: draft.completedWork, plannedWork: draft.plannedWork, issuesAndRisks: draft.issuesAndRisks, concurrencyToken: 'report-token' })
   })
   it('blocks submit for incomplete persisted drafts and unsaved changes', async () => {
     api.getProgressReport.mockResolvedValue({ ...draft, issuesAndRisks: ' ' })
@@ -134,7 +134,7 @@ describe('Progress reports workflow', () => {
     input('Nhận xét mới', `  ${feedback.feedbackText}  `); click('Gửi nhận xét')
     await screen.findByText('Đã nhận xét')
     expect(screen.getByText(feedback.feedbackText)).toBeTruthy()
-    expect(api.addProgressReportFeedback).toHaveBeenCalledWith(17, feedback.feedbackText)
+    expect(api.addProgressReportFeedback).toHaveBeenCalledWith(17, feedback.feedbackText, 'report-token')
     expect(screen.getByText('Đã nhận xét')).toBeTruthy()
     expect((screen.getByLabelText('Nhận xét mới') as HTMLTextAreaElement).value).toBe('')
   })
