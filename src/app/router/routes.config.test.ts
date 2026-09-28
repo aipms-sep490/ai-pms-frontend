@@ -43,6 +43,7 @@ describe('routes.config', () => {
       '/project/final-submission',
       '/project/result',
       '/project/contributions',
+      '/project/ai',
       '/supervisor/workspace',
       '/login',
       '/profile',

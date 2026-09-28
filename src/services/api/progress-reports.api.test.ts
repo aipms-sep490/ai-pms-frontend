@@ -25,4 +25,13 @@ describe('Progress report HTTP contract', () => {
     expect(JSON.parse(fetch.mock.calls[5][1].body)).toEqual({ feedbackText: 'Đã xem' })
     expect(fetch.mock.calls.every(([, options]) => options.headers.Authorization === 'Bearer test-token')).toBe(true)
   })
+  it('sends report versions for update, submit and feedback', async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetch)
+    await reports.updateProgressReport(17, { summary: 'Tiến độ', completedWork: null, plannedWork: null, issuesAndRisks: null, concurrencyToken: 'report-v2' })
+    await reports.submitProgressReport(17, 'report-v2')
+    await reports.addProgressReportFeedback(17, 'Đã xem', 'report-v2')
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual(['/api/v1/progress-reports/17', '/api/v1/progress-reports/17/submit?concurrencyToken=report-v2', '/api/v1/progress-reports/17/feedback?concurrencyToken=report-v2'])
+    expect(JSON.parse(fetch.mock.calls[0][1].body).concurrencyToken).toBe('report-v2')
+  })
 })

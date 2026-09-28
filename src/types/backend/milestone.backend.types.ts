@@ -13,6 +13,7 @@ export interface MilestoneDto {
   createdByFullName: string
   createdAt: string
   updatedAt: string
+  concurrencyToken?: string
 }
 
 export interface MilestoneProgressDto {

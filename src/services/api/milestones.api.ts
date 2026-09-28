@@ -12,11 +12,13 @@ export interface CreateMilestonePayload {
 
 export interface UpdateMilestonePayload extends Omit<CreateMilestonePayload, 'projectId'> {
   status: string
+  concurrencyToken?: string
 }
 
 export interface MilestoneReorderItem {
   milestoneId: number
   sortOrder: number
+  concurrencyToken?: string
 }
 
 export const getMilestone = (id: number, signal?: AbortSignal) => httpGet<MilestoneDto>(`/milestones/${id}`, signal)
@@ -24,5 +26,5 @@ export const getProjectMilestones = (projectId: number, signal?: AbortSignal) =>
 export const getProjectMilestoneProgress = (projectId: number, signal?: AbortSignal) => httpGet<MilestoneProgressDto[]>(`/milestones/project/${projectId}/progress`, signal)
 export const createMilestone = (payload: CreateMilestonePayload) => httpPost<MilestoneDto, CreateMilestonePayload>('/milestones', payload)
 export const updateMilestone = (id: number, payload: UpdateMilestonePayload) => httpPut<MilestoneDto, UpdateMilestonePayload>(`/milestones/${id}`, payload)
-export const deleteMilestone = async (id: number) => { await httpDelete(`/milestones/${id}`) }
+export const deleteMilestone = async (id: number, concurrencyToken?: string) => { await httpDelete(`/milestones/${id}${concurrencyToken ? `?${new URLSearchParams({ concurrencyToken })}` : ''}`) }
 export const reorderMilestones = async (projectId: number, items: MilestoneReorderItem[]) => { await httpPost(`/milestones/project/${projectId}/reorder`, items) }

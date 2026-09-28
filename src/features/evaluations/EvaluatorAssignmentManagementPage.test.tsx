@@ -6,13 +6,13 @@ import { EvaluatorAssignmentManagementPage } from './EvaluatorAssignmentManageme
 
 const api = vi.hoisted(() => ({
   getProject: vi.fn(), getProjectPeriods: vi.fn(), getProjectEvaluationAssignments: vi.fn(), getTeam: vi.fn(),
-  assignEvaluator: vi.fn(), revokeEvaluator: vi.fn(),
+  assignEvaluator: vi.fn(), revokeEvaluator: vi.fn(), getEligibleEvaluators: vi.fn(),
 }))
 vi.mock('../../services/api/projects.api', () => ({ getProject: api.getProject }))
 vi.mock('../academic/api/governance-api', () => ({ getProjectPeriods: api.getProjectPeriods }))
 vi.mock('../../services/api/evaluations.api', () => ({
   getProjectEvaluationAssignments: api.getProjectEvaluationAssignments,
-  assignEvaluator: api.assignEvaluator, revokeEvaluator: api.revokeEvaluator,
+  assignEvaluator: api.assignEvaluator, revokeEvaluator: api.revokeEvaluator, getEligibleEvaluators: api.getEligibleEvaluators,
 }))
 vi.mock('../../services/api/teams.api', () => ({ getTeam: api.getTeam }))
 
@@ -38,6 +38,7 @@ beforeEach(() => {
   api.getProject.mockResolvedValue({ id: 2, teamId: 10 })
   api.getProjectPeriods.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
   api.getProjectEvaluationAssignments.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
+  api.getEligibleEvaluators.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
 })
 afterEach(cleanup)
 
@@ -64,5 +65,16 @@ describe('EvaluatorAssignmentManagementPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận thu hồi' }))
 
     await waitFor(() => expect(api.revokeEvaluator).toHaveBeenCalledWith(8, 'latest-token', 'Đổi hội đồng'))
+  })
+  it('assigns only an evaluator returned for the selected active rubric period', async () => {
+    api.getProjectPeriods.mockResolvedValue({ items: [{ id: 7, name: 'Đợt bảo vệ', semesterName: 'Fall 2026', periodType: 'EVALUATION', status: 'ACTIVE', rubricId: 4 }], page: 1, pageSize: 100, totalCount: 1 })
+    api.getEligibleEvaluators.mockResolvedValue({ items: [{ userId: 6, displayName: 'GV Trần', departmentId: 1, departmentName: 'SE', evaluationTypes: ['LECTURER'] }], page: 1, pageSize: 100, totalCount: 1 })
+    api.assignEvaluator.mockResolvedValue({ id: 8 })
+    renderPage()
+    fireEvent.change(await screen.findByLabelText('Đợt đánh giá'), { target: { value: '7' } })
+    await waitFor(() => expect(api.getEligibleEvaluators).toHaveBeenCalledWith(2, 7, 1, 100, expect.any(AbortSignal)))
+    fireEvent.change(screen.getByLabelText('Evaluator'), { target: { value: '6' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Phân công evaluator' }))
+    await waitFor(() => expect(api.assignEvaluator).toHaveBeenCalledWith(2, { evaluatorId: 6, projectPeriodId: 7, evaluationType: 'LECTURER' }))
   })
 })

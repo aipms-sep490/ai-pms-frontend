@@ -5,7 +5,7 @@ import { ExecutionAccessProvider } from '../../execution/context/ExecutionAccess
 import { TaskDetailPage } from './TaskDetailPage'
 const api = vi.hoisted(() => ({ getTask: vi.fn(), getTaskHistory: vi.fn(), getProjectTimeline: vi.fn(), updateTask: vi.fn(), updateTaskStatus: vi.fn(), setTaskAssignees: vi.fn(), addTaskDependency: vi.fn(), removeTaskDependency: vi.fn(), deleteTask: vi.fn() }))
 vi.mock('../../../services/service-gateway', () => ({ services: { task: api } }))
-const task = { id: 8, milestoneId: 3, title: 'Phân tích yêu cầu', status: 'TODO', priority: 'MEDIUM', assignees: [{ id: 1, taskId: 8, userId: 2, userFullName: 'Khang', assignedBy: 1, assignedAt: '' }], dependencies: [] }
+const task = { id: 8, milestoneId: 3, title: 'Phân tích yêu cầu', status: 'TODO', priority: 'MEDIUM', concurrencyToken: 'task-token', assignees: [{ id: 1, taskId: 8, userId: 2, userFullName: 'Khang', assignedBy: 1, assignedAt: '' }], dependencies: [] }
 const timeline = { projectId: 9, milestones: [{ id: 3, title: 'Khởi động', tasks: [{ ...task, assignees: [{ userId: 2, fullName: 'Khang' }] }, { ...task, id: 10, title: 'Thiết kế dữ liệu', assignees: [] }] }] }
 function renderPage(manage: boolean, currentUserId = 2) {
   return render(<MemoryRouter initialEntries={['/project/tasks/8']}><ExecutionAccessProvider value={{ project: { id: 9 } as never, team: { members: [{ userId: 2, fullName: 'Khang' }, { userId: 5, fullName: 'Duy' }] } as never, actor: 'student', currentUserId, canManageStructure: manage, routeBase: '/project' }}><Routes><Route path="/project/tasks/:taskId" element={<TaskDetailPage />} /></Routes></ExecutionAccessProvider></MemoryRouter>)
@@ -35,14 +35,14 @@ describe('TaskDetailPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Phân công' }))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Duy' }))
     fireEvent.click(screen.getByRole('button', { name: 'Lưu phân công' }))
-    await vi.waitFor(() => expect(api.setTaskAssignees).toHaveBeenCalledWith(8,[2,5]))
+    await vi.waitFor(() => expect(api.setTaskAssignees).toHaveBeenCalledWith(8,[2,5], 'task-token'))
   })
   it('selects dependencies from actual project tasks', async () => {
     api.addTaskDependency.mockResolvedValue(undefined); renderPage(true)
     fireEvent.click(await screen.findByRole('button', { name: 'Thêm liên kết' }))
     fireEvent.change(screen.getByRole('combobox', { name: 'Công việc liên quan' }), { target: { value: '10' } })
     fireEvent.click(screen.getByRole('button', { name: 'Lưu liên kết' }))
-    await vi.waitFor(() => expect(api.addTaskDependency).toHaveBeenCalledWith({ taskId:8, dependsOnTaskId:10, dependencyType:'FINISH_TO_START' }))
+    await vi.waitFor(() => expect(api.addTaskDependency).toHaveBeenCalledWith({ taskId:8, dependsOnTaskId:10, dependencyType:'FINISH_TO_START', concurrencyToken: 'task-token' }))
   })
   it('keeps current details usable when history fails without claiming an empty history', async () => {
     api.getTaskHistory.mockRejectedValue(new Error('network')); renderPage(false)
@@ -61,8 +61,8 @@ describe('TaskDetailPage', () => {
     const reason = await screen.findByRole('textbox', { name:'Ghi chú thay đổi' })
     fireEvent.change(reason, {target:{value:'Chờ bộ dữ liệu'}})
     fireEvent.click(screen.getByRole('button', {name:'Cập nhật trạng thái'}))
-    await screen.findByRole('alert')
-    expect(api.updateTaskStatus).toHaveBeenCalledWith(8,{newStatus:'IN_PROGRESS',reason:'Chờ bộ dữ liệu'})
+    await screen.findByText('Chưa thể lưu thay đổi. Hãy thử lại.')
+    expect(api.updateTaskStatus).toHaveBeenCalledWith(8,{newStatus:'IN_PROGRESS',reason:'Chờ bộ dữ liệu',concurrencyToken:'task-token'})
     expect((reason as HTMLTextAreaElement).value).toBe('Chờ bộ dữ liệu')
   })
   it('requires confirmation and keeps details when deletion fails', async () => {
@@ -70,7 +70,7 @@ describe('TaskDetailPage', () => {
     renderPage(true); fireEvent.click(await screen.findByRole('button', {name:'Xóa công việc'}))
     expect(api.deleteTask).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', {name:'Xác nhận xóa'}))
-    await screen.findByText('Chưa thể lưu thay đổi. Hãy thử lại.'); expect(api.deleteTask).toHaveBeenCalledWith(8)
+    await screen.findByText('Chưa thể lưu thay đổi. Hãy thử lại.'); expect(api.deleteTask).toHaveBeenCalledWith(8, 'task-token')
     expect(screen.getByRole('heading', {name:'Phân tích yêu cầu'})).toBeTruthy()
   })
 })

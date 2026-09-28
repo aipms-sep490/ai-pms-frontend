@@ -51,6 +51,7 @@ export interface TaskDto {
   createdByFullName: string
   createdAt: string
   updatedAt: string
+  concurrencyToken?: string
   assignees: TaskAssigneeDto[]
   dependencies: TaskDependencyDto[]
 }
