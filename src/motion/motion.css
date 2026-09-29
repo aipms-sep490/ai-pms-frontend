@@ -1,0 +1,54 @@
+:root {
+  --mk-primary: var(--color-primary, #2563eb);
+  --mk-primary-hover: var(--color-primary-hover, #1d4ed8);
+  --mk-surface: var(--color-card, #ffffff);
+  --mk-border: var(--color-hairline, #e2e8f0);
+  --mk-ease: cubic-bezier(.16, 1, .3, 1);
+}
+
+.mk-page-enter {
+  animation: mk-fade-in-up 420ms var(--mk-ease) both;
+}
+
+.mk-press {
+  transition: transform 120ms var(--mk-ease), background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.mk-press:active:not(:disabled) {
+  transform: scale(.97) translateY(1px);
+}
+
+.mk-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #e8edf4;
+}
+
+.mk-skeleton::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / .72), transparent);
+  animation: mk-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes mk-fade-in-up {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes mk-shimmer {
+  to { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mk-page-enter,
+  .mk-skeleton::after {
+    animation: none !important;
+  }
+
+  .mk-press {
+    transition-duration: 0.01ms !important;
+  }
+}
