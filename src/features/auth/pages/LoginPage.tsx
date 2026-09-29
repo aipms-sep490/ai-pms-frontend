@@ -49,9 +49,7 @@ export function LoginPage() {
     <main className="auth-page-shell">
       <section className="auth-card" aria-labelledby="login-title">
         <div className="auth-brand"><span className="material-symbols-outlined" aria-hidden="true">school</span><span>AI-PMS · FPTU</span></div>
-        <p className="auth-eyebrow">Cổng xác thực học vụ</p>
-        <h1 id="login-title">Đăng nhập tài khoản</h1>
-        <p className="auth-description">Xác thực bằng tài khoản do hệ thống AI-PMS quản lý để xem hồ sơ và không gian làm việc được cấp quyền.</p>
+        <h1 className="auth-login-title" id="login-title">Đăng nhập tài khoản</h1>
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
           <label htmlFor="login-email">Email</label>
           <input id="login-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} aria-invalid={Boolean(formError)} disabled={isSubmitting} />
@@ -63,7 +61,6 @@ export function LoginPage() {
         <div className="auth-divider" role="separator">hoặc</div>
         <GoogleLoginButton />
         <Link className="auth-recovery-link" to="/forgot-password">Quên mật khẩu?</Link>
-        <p className="auth-session-note">Phiên đăng nhập được khôi phục tự động trong thời hạn của access token.</p>
       </section>
     </main>
   )
