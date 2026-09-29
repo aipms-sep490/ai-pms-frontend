@@ -1,0 +1,35 @@
+.governance-page .eyebrow { color: #2563eb; }
+.governance-page h1 { letter-spacing: -.03em; }
+.governance-status > span { border-color: #bfdbfe; background: #eff6ff; color: #1d4ed8; }
+.governance-filter { max-width: 720px; }
+.governance-periods { display: block; border-top: 1px solid #e2e8f0; }
+.governance-period {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(150px, .75fr) minmax(230px, 1fr);
+  gap: 14px 24px;
+  align-items: center;
+  padding: 16px 0;
+  border: 0;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 0;
+  background: transparent;
+}
+.governance-period > div:first-child { min-width: 0; }
+.governance-period > a { grid-column: 2; grid-row: 1; }
+.governance-period > button { grid-column: 2; grid-row: 2; width: fit-content; }
+.governance-period > .governance-status { grid-column: 3; grid-row: 1; justify-content: flex-end; }
+.governance-period > dl { grid-column: 3; grid-row: 2; justify-content: flex-end; }
+
+@media (max-width: 900px) {
+  .governance-period { grid-template-columns: minmax(0, 1fr) auto; }
+  .governance-period > a,
+  .governance-period > button,
+  .governance-period > .governance-status,
+  .governance-period > dl { grid-column: auto; grid-row: auto; justify-content: flex-start; }
+  .governance-period > dl { grid-column: 1 / -1; }
+}
+
+@media (max-width: 620px) {
+  .governance-period { display: flex; }
+  .governance-filter { max-width: none; }
+}
