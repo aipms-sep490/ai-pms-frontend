@@ -75,7 +75,7 @@ export function TeamInvitationsPanel({
             onClick={() => setActiveTab('sent')}
             className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
               activeTab === 'sent'
-                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                ? 'bg-[#edf3f0] text-[#0f5b4e] border border-[#a7f3d0]'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -86,7 +86,7 @@ export function TeamInvitationsPanel({
             onClick={() => setActiveTab('received')}
             className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
               activeTab === 'received'
-                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                ? 'bg-[#edf3f0] text-[#0f5b4e] border border-[#a7f3d0]'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -102,7 +102,7 @@ export function TeamInvitationsPanel({
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[16px] text-blue-600">person_add</span>
+                  <span className="material-symbols-outlined text-[16px] text-[#0f5b4e]">person_add</span>
                   Mời sinh viên vào nhóm
                 </h4>
               </div>
@@ -133,7 +133,7 @@ export function TeamInvitationsPanel({
                     </div>
                     <button type="button" onClick={() => handleSend(candidate)}
                       disabled={!candidate.canInvite || isMutationPending('invite', candidate.userId)}
-                      className="shrink-0 rounded-md bg-[#245a49] px-3 py-1.5 text-xs font-medium text-white disabled:bg-slate-300">
+                      className="shrink-0 rounded-lg bg-[#0f5b4e] px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-[#0a493f] active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500">
                       {candidate.invitationStatus === 'PENDING' ? 'Đã mời' : isMutationPending('invite', candidate.userId) ? 'Đang gửi...' : 'Gửi lời mời'}
                     </button>
                   </div>
@@ -222,7 +222,7 @@ export function TeamInvitationsPanel({
               {receivedInvitations.map((inv) => (
                 <div key={inv.id} className="p-4 flex items-center justify-between gap-4 hover:bg-slate-50">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                    <div className="w-9 h-9 rounded-full bg-[#edf3f0] text-[#0f5b4e] flex items-center justify-center font-bold text-xs">
                       <span className="material-symbols-outlined text-[20px]">groups</span>
                     </div>
                     <div>

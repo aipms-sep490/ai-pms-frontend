@@ -72,14 +72,14 @@ export function TeamRosterTable({
               const isSelf = member.userId === currentUserId
 
               return (
-                <tr key={member.userId} className={`hover:bg-slate-50/50 ${isSelf ? 'bg-blue-50/20' : ''}`}>
+                <tr key={member.userId} className={`hover:bg-slate-50/50 ${isSelf ? 'bg-emerald-50/30' : ''}`}>
                   <td className="py-3 px-4 font-medium text-slate-900 flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 text-slate-600 flex items-center justify-center font-bold text-xs">
                       {member.fullName.charAt(0)}
                     </div>
                     <div>
                       <span>{member.fullName}</span>
-                      {isSelf && <span className="ml-1.5 text-[11px] text-blue-600 font-semibold">(Bạn)</span>}
+                      {isSelf && <span className="ml-1.5 text-[11px] text-[#0f5b4e] font-semibold">(Bạn)</span>}
                       {isSelf && currentUserStudentCode && <span className="block text-xs text-slate-500">{currentUserStudentCode}</span>}
                     </div>
                   </td>

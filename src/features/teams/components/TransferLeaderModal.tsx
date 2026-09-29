@@ -60,7 +60,7 @@ export function TransferLeaderModal({
             </span>
             <p className="text-xs text-amber-900 leading-relaxed">
               {requiresMentorApproval
-                ? 'Leader hiện tại vẫn giữ quyền cho tới khi ' + (mentorName || 'Mentor') + ' phê duyệt yêu cầu. Hệ thống sẽ xác minh lại tư cách của Leader mới tại thời điểm phê duyệt.'
+                ? 'Trưởng nhóm hiện tại vẫn giữ quyền cho tới khi ' + (mentorName || 'Mentor') + ' phê duyệt yêu cầu. Hệ thống sẽ xác minh lại tư cách của Trưởng nhóm mới tại thời điểm phê duyệt.'
                 : 'Sau khi chuyển quyền, bạn sẽ trở thành thành viên thông thường và không thể tự thu hồi lại quyền Trưởng nhóm.'}
             </p>
           </div>
