@@ -68,6 +68,9 @@ describe('routes.config', () => {
     })
 
     it('resolves registered routes to their defined titles', () => {
+      expect(getBreadcrumbForPath('/forgot-password')).toBe('Quên mật khẩu')
+      expect(getBreadcrumbForPath('/reset-password')).toBe('Đặt lại mật khẩu')
+      expect(getBreadcrumbForPath('/profile/security')).toBe('Đổi mật khẩu')
       expect(getBreadcrumbForPath('/projects/lifecycle')).toBe('Hồ sơ đồ án')
       expect(getBreadcrumbForPath('/project/gantt')).toBe('Lịch thực hiện')
       expect(getBreadcrumbForPath('/project/milestones/M3')).toBe('Mốc đồ án')
