@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { HttpError } from '../../../services/http/http-client'
 import { Button } from '../../../components/ui/Button'
 import { useAuthSession } from '../context/useAuthSession'
@@ -18,6 +18,7 @@ function getLoginErrorMessage(error: unknown): string {
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login, session, status } = useAuthSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -50,6 +51,7 @@ export function LoginPage() {
       <section className="auth-card" aria-labelledby="login-title">
         <div className="auth-brand"><span className="material-symbols-outlined" aria-hidden="true">school</span><span>AI-PMS · FPTU</span></div>
         <h1 className="auth-login-title" id="login-title">Đăng nhập tài khoản</h1>
+        {(location.state as { passwordChanged?: boolean } | null)?.passwordChanged && <p className="auth-status" role="status">Mật khẩu đã được đổi. Hãy đăng nhập lại bằng mật khẩu mới.</p>}
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
           <label htmlFor="login-email">Email</label>
           <input id="login-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} aria-invalid={Boolean(formError)} disabled={isSubmitting} />

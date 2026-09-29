@@ -268,6 +268,9 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname === '/admin/access') return 'Quản trị quyền'
   if (pathname === '/supervisor/workspace') return 'Bàn làm việc GVHD'
   if (pathname === '/profile') return 'Hồ sơ tài khoản'
+  if (pathname === '/profile/security') return 'Đổi mật khẩu'
+  if (pathname === '/forgot-password') return 'Quên mật khẩu'
+  if (pathname === '/reset-password') return 'Đặt lại mật khẩu'
   const match = mvpRoutes.find((r) => r.path === pathname)
   if (match) {
     return match.title
