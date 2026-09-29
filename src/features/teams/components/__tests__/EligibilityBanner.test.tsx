@@ -20,7 +20,7 @@ describe('EligibilityBanner', () => {
       />,
     )
 
-    expect(screen.getByText(/Nhóm đủ điều kiện đăng ký đề tài/i)).toBeDefined()
+    expect(screen.getByText(/Nhóm đã đủ điều kiện đăng ký đồ án/i)).toBeDefined()
     expect(screen.getByRole('button', { name: /Kiểm tra lại/i })).toBeDefined()
   })
 

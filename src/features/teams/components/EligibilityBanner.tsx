@@ -65,7 +65,7 @@ export function EligibilityBanner({ eligibility, onRefresh }: EligibilityBannerP
           </div>
           <div>
             <h4 className="text-sm font-semibold text-emerald-900">
-              Nhóm đủ điều kiện đăng ký đề tài (Eligibility Passed)
+              Nhóm đã đủ điều kiện đăng ký đồ án
             </h4>
             <p className="text-xs text-emerald-700">
               Các tiêu chuẩn về sĩ số, cơ cấu chuyên ngành và tư cách thành viên đều đạt yêu cầu.
