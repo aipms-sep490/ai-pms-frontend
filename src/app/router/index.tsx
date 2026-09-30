@@ -30,8 +30,10 @@ import { ForgotPasswordPage, ProfileSecurityPage, ResetPasswordPage } from '../.
 import { ProfilePage } from '../../features/auth/pages/ProfilePage'
 import { AcademicStructurePage } from '../../features/academic/pages/AcademicStructurePage'
 import { AcademicGovernancePage } from '../../features/academic/pages/AcademicGovernancePage'
+import { PeriodPolicyManagementPage } from '../../features/academic/pages/PeriodPolicyManagementPage'
 import { AdminSecurityPage } from '../../features/users/pages/AdminSecurityPage'
 import { ProjectReviewPage } from '../../features/projects/pages/ProjectReviewPage'
+import { ProjectGovernancePage } from '../../features/projects/pages/ProjectGovernancePage'
 import { SupervisorMonitoringPage } from '../../features/supervisors/pages/SupervisorMonitoringPage'
 import { TopicManagementPage } from '../../features/topics/pages/TopicManagementPage'
 import { RegistrationSourcePage } from '../../features/registration/pages/RegistrationSourcePage'
@@ -146,6 +148,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'department/portfolio', element: <PortfolioDashboardPage /> },
           { path: 'department/projects/archived', element: <ArchivedProjectsPage /> },
           { path: 'academic/governance', element: <AcademicGovernancePage /> },
+          { path: 'academic/project-periods/:periodId/policy', element: <PeriodPolicyManagementPage /> },
           { path: 'academic/rubrics', element: <RubricManagementPage /> },
           { path: 'department/projects/review', element: <ProjectReviewPage /> },
           { path: 'department/projects/review/:id', element: <ProjectReviewPage /> },
@@ -153,6 +156,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'department/projects/:projectId/evaluations', element: <EvaluatorAssignmentManagementPage /> },
           { path: 'department/projects/:projectId/evaluators', element: <EvaluatorAssignmentManagementPage /> },
           { path: 'department/projects/:projectId/evaluation-schemes', element: <EvaluationSchemeManagementPage /> },
+          { path: 'department/projects/:projectId/governance', element: <ProjectGovernancePage /> },
           { path: 'department/projects/:projectId/final-requirements', element: <FinalRequirementsPage /> },
           { path: 'department/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/department/portfolio" backLabel="Portfolio đồ án" /> },
           { path: 'department/projects/:projectId/files', element: <ProjectFilesPage /> },
