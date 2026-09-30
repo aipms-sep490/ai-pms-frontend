@@ -250,6 +250,7 @@ export function getBreadcrumbForPath(pathname: string): string {
   }
   if (pathname.startsWith('/department/projects/review')) return 'Thẩm định đề cương'
   if (/^\/department\/projects\/\d+\/result(?:\/|$)/.test(pathname)) return 'Công bố kết quả đồ án'
+  if (/^\/department\/projects\/\d+\/evaluation-schemes(?:\/|$)/.test(pathname)) return 'Scheme đánh giá'
   if (/^\/department\/projects\/\d+\/(?:evaluations|evaluators)(?:\/|$)/.test(pathname)) return 'Phân công evaluator'
   if (/^\/department\/projects\/\d+\/final-requirements(?:\/|$)/.test(pathname)) return 'Yêu cầu bàn giao'
   if (pathname === '/project/final-submission' || /^\/(?:department|supervisor|evaluator)\/projects\/\d+\/final-submission(?:\/|$)/.test(pathname)) return 'Gói bàn giao cuối'

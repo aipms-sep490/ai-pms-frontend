@@ -47,6 +47,7 @@ import { SupervisorDashboardPage } from '../../features/dashboard/pages/Supervis
 import { FinalRequirementsPage, FinalSubmissionViewerPage, StudentFinalSubmissionPage } from '../../features/final-submission/FinalSubmissionPage'
 import { RubricManagementPage } from '../../features/evaluations/RubricManagementPage'
 import { EvaluatorAssignmentManagementPage } from '../../features/evaluations/EvaluatorAssignmentManagementPage'
+import { EvaluationSchemeManagementPage } from '../../features/evaluations/EvaluationSchemeManagementPage'
 import { StudentProjectResultPage } from '../../features/results/StudentProjectResultPage'
 import { ProjectContributionsPage } from '../../features/contributions/ProjectContributionsPage'
 import { ProjectFilesPage } from '../../features/files/ProjectFilesPage'
@@ -151,6 +152,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'department/projects/:projectId/result', element: <ResultPublicationPage /> },
           { path: 'department/projects/:projectId/evaluations', element: <EvaluatorAssignmentManagementPage /> },
           { path: 'department/projects/:projectId/evaluators', element: <EvaluatorAssignmentManagementPage /> },
+          { path: 'department/projects/:projectId/evaluation-schemes', element: <EvaluationSchemeManagementPage /> },
           { path: 'department/projects/:projectId/final-requirements', element: <FinalRequirementsPage /> },
           { path: 'department/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/department/portfolio" backLabel="Portfolio đồ án" /> },
           { path: 'department/projects/:projectId/files', element: <ProjectFilesPage /> },

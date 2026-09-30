@@ -80,6 +80,7 @@ describe('routes.config', () => {
       expect(getBreadcrumbForPath('/academic/rubrics')).toBe('Rubric đánh giá')
       expect(getBreadcrumbForPath('/department/projects/2/evaluations')).toBe('Phân công evaluator')
       expect(getBreadcrumbForPath('/department/projects/2/evaluators')).toBe('Phân công evaluator')
+      expect(getBreadcrumbForPath('/department/projects/2/evaluation-schemes')).toBe('Scheme đánh giá')
     })
 
     it('does not expose unknown URLs in a page title', () => {
