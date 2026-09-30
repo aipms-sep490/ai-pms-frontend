@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { useAcademicStructure } from '../../academic/hooks/useAcademicStructure'
 import { createAcademicNameResolver, type AcademicNameResolver } from '../components/academic-name-resolver'
+import { DepartmentDecisionHistory } from '../components/DepartmentDecisionHistory'
+import { MajorRequirementEditor, type MajorOption } from '../components/MajorRequirementEditor'
 import { ParticipatingDepartmentPanel } from '../components/ParticipatingDepartmentPanel'
 import { ProjectAcademicScopePanel } from '../components/ProjectAcademicScopePanel'
 import { summarizeParticipatingDecisions } from '../components/participating-decision-summary'
@@ -68,6 +70,7 @@ export function ProjectReviewPage() {
   const review = useProjectReview(id ? Number(id) : undefined)
   const academic = useAcademicStructure({ search: '', includeInactive: true })
   const names = useMemo(() => createAcademicNameResolver(academic.hierarchy), [academic.hierarchy])
+  const majorOptions = useMemo<MajorOption[]>(() => (academic.hierarchy ?? []).flatMap((organization) => organization.departments.flatMap((department) => department.majors.map((major) => ({ id: major.id, code: major.code, name: major.name })))), [academic.hierarchy])
   const [search, setSearch] = useState('')
   const [reason, setReason] = useState('')
   const [message, setMessage] = useState('')
@@ -144,6 +147,13 @@ export function ProjectReviewPage() {
       </section>
       <ProjectProposalDetails review={review} />
       <ScopeSummary review={review} names={names} />
+      <MajorRequirementEditor
+        requirements={review.requirements?.requirements ?? scope?.requirements ?? []}
+        projectMode={scope?.projectMode ?? ''}
+        majors={majorOptions}
+        busy={review.pending !== null}
+        onSave={review.replaceRequirements}
+      />
       <ParticipatingDepartmentPanel
         mode={scope?.projectMode ?? ''}
         snapshotId={review.detail?.latestSubmission?.id}
@@ -172,6 +182,11 @@ export function ProjectReviewPage() {
         <h2>History</h2>
         {review.history.length ? review.history.map((item, index) => <p key={`${item.changedAt}-${index}`}>{item.oldStatus ?? '—'} → {item.newStatus} · {item.changedByName} · {item.reason ?? '—'}</p>) : <p>Chưa có lịch sử status.</p>}
       </section>
+      <DepartmentDecisionHistory
+        snapshots={review.reviewSnapshots}
+        departmentName={names.department}
+        onPageChange={review.goToReviewSnapshotPage}
+      />
       {confirmationDialog}
     </div>
   )

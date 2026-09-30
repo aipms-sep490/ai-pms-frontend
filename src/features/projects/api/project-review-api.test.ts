@@ -3,10 +3,13 @@ import {
   decideDepartment,
   decideProjectReview,
   getProjectForReview,
+  getProjectMajorRequirements,
   getReviewActions,
   getReviewDetail,
   getReviewHistory,
   getReviewQueue,
+  getReviewSnapshots,
+  replaceProjectMajorRequirements,
   startReview,
 } from './project-review-api'
 
@@ -32,6 +35,17 @@ describe('project review API contract', () => {
     expect(fetch).toHaveBeenCalledWith('/api/v1/projects/4/academic-review', expect.anything())
     expect(fetch).toHaveBeenCalledWith('/api/v1/projects/4/history', expect.anything())
     expect(fetch).toHaveBeenCalledWith('/api/v1/projects/4/actions', expect.anything())
+  })
+
+  it('uses the backend requirements token and immutable snapshot routes', async () => {
+    const fetch = vi.fn().mockResolvedValue(ok({}))
+    vi.stubGlobal('fetch', fetch)
+    await getProjectMajorRequirements(4, 'token')
+    await replaceProjectMajorRequirements(4, { concurrencyToken: 'requirements-token', requirements: [{ majorId: 7, minMembers: 1, maxMembers: 2, responsibility: 'Technical' }] }, 'token')
+    await getReviewSnapshots(4, 'token', 2, 10)
+    expect(fetch).toHaveBeenCalledWith('/api/v1/projects/4/major-requirements', expect.anything())
+    expect(fetch).toHaveBeenCalledWith('/api/v1/projects/4/major-requirements', expect.objectContaining({ method: 'PUT', body: JSON.stringify({ concurrencyToken: 'requirements-token', requirements: [{ majorId: 7, minMembers: 1, maxMembers: 2, responsibility: 'Technical' }] }) }))
+    expect(fetch).toHaveBeenCalledWith('/api/v1/projects/4/review-snapshots?page=2&pageSize=10', expect.anything())
   })
 
   it('sends backend concurrency and snapshot fields without a client-derived approval decision', async () => {

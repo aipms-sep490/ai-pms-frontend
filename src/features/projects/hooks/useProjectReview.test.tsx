@@ -2,8 +2,8 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const api = vi.hoisted(() => ({
-  getReviewQueue: vi.fn(), getProjectForReview: vi.fn(), getReviewDetail: vi.fn(), getReviewHistory: vi.fn(), getReviewActions: vi.fn(),
-  startReview: vi.fn(), decideProjectReview: vi.fn(), decideDepartment: vi.fn(),
+  getReviewQueue: vi.fn(), getProjectForReview: vi.fn(), getReviewDetail: vi.fn(), getReviewHistory: vi.fn(), getReviewActions: vi.fn(), getProjectMajorRequirements: vi.fn(), getReviewSnapshots: vi.fn(),
+  startReview: vi.fn(), decideProjectReview: vi.fn(), decideDepartment: vi.fn(), replaceProjectMajorRequirements: vi.fn(),
 }))
 const session = { accessToken: 'token' }
 vi.mock('../api/project-review-api', () => api)
@@ -23,6 +23,8 @@ describe('useProjectReview', () => {
     api.getProjectForReview.mockReset().mockResolvedValue({ id: 1, code: 'P-1', title: 'Project' })
     api.getReviewDetail.mockReset().mockResolvedValue(detail())
     api.getReviewHistory.mockReset().mockResolvedValue([])
+    api.getProjectMajorRequirements.mockReset().mockResolvedValue({ concurrencyToken: 'REQUIREMENTS_A', requirements: [] })
+    api.getReviewSnapshots.mockReset().mockResolvedValue({ page: 1, pageSize: 20, totalCount: 0, items: [] })
     api.getReviewActions.mockReset().mockResolvedValue({ status: 'UnderReview', actions: [
       { code: 'start_review', allowed: true, reasons: [] },
       { code: 'approve_department', allowed: true, reasons: [] },
@@ -31,6 +33,7 @@ describe('useProjectReview', () => {
     api.startReview.mockReset().mockResolvedValue({})
     api.decideProjectReview.mockReset().mockResolvedValue({})
     api.decideDepartment.mockReset().mockResolvedValue({})
+    api.replaceProjectMajorRequirements.mockReset().mockResolvedValue({})
   })
 
   it('uses backend workflow actions rather than local status to expose review controls', async () => {
@@ -60,8 +63,18 @@ describe('useProjectReview', () => {
     expect(api.getProjectForReview).toHaveBeenCalledTimes(2)
     expect(api.getReviewHistory).toHaveBeenCalledTimes(2)
     expect(api.getReviewActions).toHaveBeenCalledTimes(2)
+    expect(api.getProjectMajorRequirements).toHaveBeenCalledTimes(2)
+    expect(api.getReviewSnapshots).toHaveBeenCalledTimes(2)
     expect(result.current.error?.kind).toBe('conflict')
     expect(result.current.error?.message).toContain('A department decision was already recorded.')
+  })
+
+  it('uses the server requirements token and refreshes after a successful replacement', async () => {
+    const { result } = renderHook(() => useProjectReview(1))
+    await waitFor(() => expect(result.current.requirements?.concurrencyToken).toBe('REQUIREMENTS_A'))
+    await act(async () => { expect(await result.current.replaceRequirements([{ majorId: 7, minMembers: 1, maxMembers: 2, responsibility: 'Technical' }])).toBe(true) })
+    expect(api.replaceProjectMajorRequirements).toHaveBeenCalledWith(1, { concurrencyToken: 'REQUIREMENTS_A', requirements: [{ majorId: 7, minMembers: 1, maxMembers: 2, responsibility: 'Technical' }] }, 'token')
+    expect(api.getProjectMajorRequirements).toHaveBeenCalledTimes(2)
   })
 
   it.each([
