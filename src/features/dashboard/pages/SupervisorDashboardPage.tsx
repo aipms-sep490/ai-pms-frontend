@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { HttpError } from '../../../services/http/http-client'
 import { getSupervisorDashboard, type DashboardFilter, type DashboardProject, type SupervisorDashboard } from '../api/dashboard-api'
+import { env } from '../../../app/config/env'
 
 const statuses = ['DRAFT', 'UNDER_REVIEW', 'APPROVED', 'ACTIVE', 'FINAL_SUBMISSION', 'COMPLETED', 'ARCHIVED']
 
@@ -59,7 +60,7 @@ function StatusCounts({ counts }: { counts: SupervisorDashboard['projectStates']
 
 function ProjectRow({ project }: { project: DashboardProject }) {
   const risk = project.analysis?.riskLevel
-  return <li className="flex flex-wrap items-start justify-between gap-3 py-4 text-sm"><div className="min-w-0"><p className="font-semibold text-slate-950">{project.code} · {project.title}</p><p className="mt-1 text-slate-600">{project.departmentName ?? 'Chưa có khoa'} · {project.pendingProgressReviews} báo cáo chờ duyệt</p><div className="mt-2 flex flex-wrap gap-2"><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{project.status}</span>{risk && <span className={risk === 'HIGH' ? 'rounded-full bg-status-error-bg px-2 py-1 text-xs font-medium text-status-error-text' : 'rounded-full bg-status-warning-bg px-2 py-1 text-xs font-medium text-status-warning-text'}>Rủi ro: {risk}</span>}</div></div>{project.status === 'ACTIVE' && <Link className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 hover:text-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to={`/supervisor/projects/${project.id}/workspace`}>Mở workspace</Link>}</li>
+  return <li className="flex flex-wrap items-start justify-between gap-3 py-4 text-sm"><div className="min-w-0"><p className="font-semibold text-slate-950">{project.code} · {project.title}</p><p className="mt-1 text-slate-600">{project.departmentName ?? 'Chưa có khoa'} · {project.pendingProgressReviews} báo cáo chờ duyệt</p><div className="mt-2 flex flex-wrap gap-2"><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{project.status}</span>{env.aiAdvisoryEnabled && risk && <span className={risk === 'HIGH' ? 'rounded-full bg-status-error-bg px-2 py-1 text-xs font-medium text-status-error-text' : 'rounded-full bg-status-warning-bg px-2 py-1 text-xs font-medium text-status-warning-text'}>Rủi ro: {risk}</span>}</div></div>{project.status === 'ACTIVE' && <Link className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 hover:text-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to={`/supervisor/projects/${project.id}/workspace`}>Mở workspace</Link>}</li>
 }
 
 function Pagination({ page, totalPages, disabled, onChange }: { page: number; totalPages: number; disabled: boolean; onChange: (page: number) => void }) {

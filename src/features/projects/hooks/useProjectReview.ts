@@ -6,19 +6,25 @@ import {
   decideDepartment,
   decideProjectReview,
   getProjectForReview,
+  getProjectMajorRequirements,
   getReviewActions,
   getReviewDetail,
   getReviewHistory,
   getReviewQueue,
+  getReviewSnapshots,
+  replaceProjectMajorRequirements,
   startReview,
+  type ProjectMajorRequirementInput,
+  type ProjectRequirements,
   type QueueQuery,
   type ReviewDetail,
   type ReviewHistory,
+  type ProjectReviewHistoryPage,
   type ReviewProjectSummary,
   type ReviewQueuePage,
 } from '../api/project-review-api'
 
-export type ReviewOperation = 'start' | 'revision' | 'approve' | 'reject' | 'department-approve' | 'department-reject'
+export type ReviewOperation = 'start' | 'revision' | 'approve' | 'reject' | 'department-approve' | 'department-reject' | 'requirements'
 export type ReviewErrorKind = 'unauthorized' | 'forbidden' | 'not-found' | 'conflict' | 'validation' | 'system'
 
 export interface ReviewError {
@@ -50,6 +56,9 @@ export function useProjectReview(id?: number) {
   const [project, setProject] = useState<ProjectDto | null>(null)
   const [detail, setDetail] = useState<ReviewDetail | null>(null)
   const [history, setHistory] = useState<ReviewHistory[]>([])
+  const [requirements, setRequirements] = useState<ProjectRequirements | null>(null)
+  const [reviewSnapshots, setReviewSnapshots] = useState<ProjectReviewHistoryPage | null>(null)
+  const [reviewSnapshotPage, setReviewSnapshotPage] = useState(1)
   const [workflow, setWorkflow] = useState<ProjectWorkflowActionsDto | null>(null)
   const [error, setError] = useState<ReviewError | null>(null)
   const [loading, setLoading] = useState(Boolean(session))
@@ -70,24 +79,28 @@ export function useProjectReview(id?: number) {
         return
       }
 
-      const [nextQueue, nextProject, nextDetail, nextHistory, nextWorkflow] = await Promise.all([
+      const [nextQueue, nextProject, nextDetail, nextHistory, nextWorkflow, nextRequirements, nextReviewSnapshots] = await Promise.all([
         queuePromise,
         getProjectForReview(id, session.accessToken),
         getReviewDetail(id, session.accessToken),
         getReviewHistory(id, session.accessToken),
         getReviewActions(id, session.accessToken),
+        getProjectMajorRequirements(id, session.accessToken),
+        getReviewSnapshots(id, session.accessToken, reviewSnapshotPage),
       ])
       setQueue(nextQueue)
       setProject(nextProject)
       setDetail(nextDetail)
       setHistory(nextHistory)
       setWorkflow(nextWorkflow)
+      setRequirements(nextRequirements)
+      setReviewSnapshots(nextReviewSnapshots)
     } catch (nextError) {
       setError(classifyError(nextError))
     } finally {
       setLoading(false)
     }
-  }, [id, query, session])
+  }, [id, query, reviewSnapshotPage, session])
 
   useEffect(() => {
     void refresh()
@@ -142,6 +155,14 @@ export function useProjectReview(id?: number) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail, execute, id, session])
 
+  const replaceRequirements = useCallback(async (nextRequirements: readonly ProjectMajorRequirementInput[]) => {
+    if (!session || !id || !requirements) throw new Error('Project requirements resource unavailable')
+    return execute('requirements', () => replaceProjectMajorRequirements(id, {
+      concurrencyToken: requirements.concurrencyToken,
+      requirements: nextRequirements,
+    }, session.accessToken))
+  }, [execute, id, requirements, session])
+
   const allowed = (code: string) => isActionAllowed(workflow?.actions ?? [], code)
 
   return {
@@ -150,6 +171,9 @@ export function useProjectReview(id?: number) {
     project,
     detail,
     history,
+    requirements,
+    reviewSnapshots,
+    reviewSnapshotPage,
     workflow,
     error,
     loading,
@@ -157,9 +181,11 @@ export function useProjectReview(id?: number) {
     refresh,
     setSearch: (search: string) => setQuery((current) => ({ ...current, page: 1, search })),
     goToPage: (page: number) => setQuery((current) => ({ ...current, page: Math.max(1, page) })),
+    goToReviewSnapshotPage: (page: number) => setReviewSnapshotPage(Math.max(1, page)),
     beginReview,
     decide,
     decideParticipatingDepartment,
+    replaceRequirements,
     canStart: allowed('start_review'),
     canRequestRevision: allowed('request_revision'),
     canApprove: allowed('approve_project'),

@@ -30,8 +30,10 @@ import { ForgotPasswordPage, ProfileSecurityPage, ResetPasswordPage } from '../.
 import { ProfilePage } from '../../features/auth/pages/ProfilePage'
 import { AcademicStructurePage } from '../../features/academic/pages/AcademicStructurePage'
 import { AcademicGovernancePage } from '../../features/academic/pages/AcademicGovernancePage'
+import { PeriodPolicyManagementPage } from '../../features/academic/pages/PeriodPolicyManagementPage'
 import { AdminSecurityPage } from '../../features/users/pages/AdminSecurityPage'
 import { ProjectReviewPage } from '../../features/projects/pages/ProjectReviewPage'
+import { ProjectGovernancePage } from '../../features/projects/pages/ProjectGovernancePage'
 import { SupervisorMonitoringPage } from '../../features/supervisors/pages/SupervisorMonitoringPage'
 import { TopicManagementPage } from '../../features/topics/pages/TopicManagementPage'
 import { RegistrationSourcePage } from '../../features/registration/pages/RegistrationSourcePage'
@@ -47,6 +49,7 @@ import { SupervisorDashboardPage } from '../../features/dashboard/pages/Supervis
 import { FinalRequirementsPage, FinalSubmissionViewerPage, StudentFinalSubmissionPage } from '../../features/final-submission/FinalSubmissionPage'
 import { RubricManagementPage } from '../../features/evaluations/RubricManagementPage'
 import { EvaluatorAssignmentManagementPage } from '../../features/evaluations/EvaluatorAssignmentManagementPage'
+import { EvaluationSchemeManagementPage } from '../../features/evaluations/EvaluationSchemeManagementPage'
 import { StudentProjectResultPage } from '../../features/results/StudentProjectResultPage'
 import { ProjectContributionsPage } from '../../features/contributions/ProjectContributionsPage'
 import { ProjectFilesPage } from '../../features/files/ProjectFilesPage'
@@ -55,6 +58,7 @@ import { DepartmentProjectRiskPage } from '../../features/ai/DepartmentProjectRi
 import { ArchivedProjectsPage } from '../../features/projects/pages/ArchivedProjectsPage'
 import { ProjectArchiveViewPage } from '../../features/projects/pages/ProjectArchiveViewPage'
 import { AcademicWorkflowGate, StudentJourneyProvider } from '../context'
+import { env } from '../config/env'
 
 export const appRouter = createBrowserRouter([{ element: <RouteFrame />, children: [
   { path: 'login', element: <LoginPage /> },
@@ -94,7 +98,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'project/deliverables', element: <DeliverablesPage /> },
             { path: 'project/files', element: <ProjectFilesPage /> },
             { path: 'project/contributions', element: <ProjectContributionsPage /> },
-            { path: 'project/ai', element: <ProjectAiPage /> },
+            ...(env.aiAdvisoryEnabled ? [{ path: 'project/ai', element: <ProjectAiPage /> }] : []),
           ] },
           { path: 'projects/lifecycle', element: <ProjectLifecyclePage /> },
           { path: 'team', element: <TeamManagementPage /> },
@@ -129,7 +133,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'supervisor/projects/:projectId/deliverables', element: <DeliverablesPage /> },
             { path: 'supervisor/projects/:projectId/files', element: <ProjectFilesPage /> },
             { path: 'supervisor/projects/:projectId/contributions', element: <ProjectContributionsPage /> },
-            { path: 'supervisor/projects/:projectId/ai', element: <ProjectAiPage /> },
+            ...(env.aiAdvisoryEnabled ? [{ path: 'supervisor/projects/:projectId/ai', element: <ProjectAiPage /> }] : []),
           ] },
           { path: 'supervisor/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/supervisor/workspace" backLabel="Bàn làm việc GVHD" /> },
           { path: 'evaluator/evaluations', element: <EvaluatorAssignmentsPage /> },
@@ -144,17 +148,20 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'department/portfolio', element: <PortfolioDashboardPage /> },
           { path: 'department/projects/archived', element: <ArchivedProjectsPage /> },
           { path: 'academic/governance', element: <AcademicGovernancePage /> },
+          { path: 'academic/project-periods/:periodId/policy', element: <PeriodPolicyManagementPage /> },
           { path: 'academic/rubrics', element: <RubricManagementPage /> },
           { path: 'department/projects/review', element: <ProjectReviewPage /> },
           { path: 'department/projects/review/:id', element: <ProjectReviewPage /> },
           { path: 'department/projects/:projectId/result', element: <ResultPublicationPage /> },
           { path: 'department/projects/:projectId/evaluations', element: <EvaluatorAssignmentManagementPage /> },
           { path: 'department/projects/:projectId/evaluators', element: <EvaluatorAssignmentManagementPage /> },
+          { path: 'department/projects/:projectId/evaluation-schemes', element: <EvaluationSchemeManagementPage /> },
+          { path: 'department/projects/:projectId/governance', element: <ProjectGovernancePage /> },
           { path: 'department/projects/:projectId/final-requirements', element: <FinalRequirementsPage /> },
           { path: 'department/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/department/portfolio" backLabel="Portfolio đồ án" /> },
           { path: 'department/projects/:projectId/files', element: <ProjectFilesPage /> },
           { path: 'department/projects/:projectId/contributions', element: <ProjectContributionsPage /> },
-          { path: 'department/projects/:projectId/risk', element: <DepartmentProjectRiskPage /> },
+          ...(env.aiAdvisoryEnabled ? [{ path: 'department/projects/:projectId/risk', element: <DepartmentProjectRiskPage /> }] : []),
           { path: 'department/projects/:projectId/archive-view', element: <ProjectArchiveViewPage /> },
           { path: 'department/supervisors', element: <SupervisorMonitoringPage /> },
           { path: 'department/supervisors/:id', element: <SupervisorMonitoringPage /> },

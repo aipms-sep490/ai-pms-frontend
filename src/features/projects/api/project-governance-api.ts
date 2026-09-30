@@ -1,0 +1,16 @@
+import { httpGet, httpPost, httpPut } from '../../../services/http/http-client'
+import type { PagedResult } from '../../../types/backend'
+
+export interface ReportingCycle { id: number; projectId: number; projectPeriodId: number; reportType: 'WEEKLY' | 'MONTHLY' | string; periodStart: string; periodEnd: string; deadline: string; latePolicy: 'BLOCK' | 'FLAG' | string; createdBy: number; createdAt: string; updatedAt: string; concurrencyToken: string }
+export interface ProjectActionItem { id: number; projectId: number; sourceType: 'MEETING' | 'PROGRESS_REPORT' | string; meetingId: number | null; progressReportId: number | null; title: string; description: string | null; ownerId: number | null; ownerName: string | null; taskId: number | null; taskTitle: string | null; milestoneId: number | null; milestoneTitle: string | null; dueAt: string | null; status: 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE' | 'CANCELLED' | string; createdBy: number; createdAt: string; updatedAt: string; concurrencyToken: string }
+export interface ProjectEvidence { id: number; projectId: number; sourceType: string; sourceId: number; majorId: number | null; classification: string; verificationStatus: string; submittedBy: number; submittedAt: string; notes: string | null }
+
+const root = (projectId: number) => `/projects/${projectId}`
+export const getReportingCycles = (projectId: number, signal?: AbortSignal) => httpGet<PagedResult<ReportingCycle>>(`${root(projectId)}/reporting-cycles?page=1&pageSize=100`, signal)
+export const createReportingCycle = (projectId: number, body: { reportType: 'WEEKLY' | 'MONTHLY'; periodStart: string; periodEnd: string; deadline: string; latePolicy: 'BLOCK' | 'FLAG'; projectPeriodId?: number }) => httpPost<ReportingCycle>(`${root(projectId)}/reporting-cycles`, body)
+export const updateReportingCycle = (projectId: number, id: number, body: Partial<Pick<ReportingCycle, 'periodStart' | 'periodEnd' | 'deadline' | 'latePolicy'>> & { concurrencyToken: string }) => httpPut<ReportingCycle>(`${root(projectId)}/reporting-cycles/${id}`, body)
+export const getProjectActionItems = (projectId: number, signal?: AbortSignal) => httpGet<PagedResult<ProjectActionItem>>(`${root(projectId)}/action-items?page=1&pageSize=100`, signal)
+export const createProjectActionItem = (projectId: number, body: { sourceType: 'MEETING' | 'PROGRESS_REPORT'; meetingId?: number; progressReportId?: number; title: string; description?: string | null; dueAt?: string | null }) => httpPost<ProjectActionItem>(`${root(projectId)}/action-items`, body)
+export const updateProjectActionItemStatus = (projectId: number, id: number, status: ProjectActionItem['status'], concurrencyToken: string) => httpPost<ProjectActionItem>(`${root(projectId)}/action-items/${id}/status`, { status, concurrencyToken })
+export const getProjectEvidence = (projectId: number, signal?: AbortSignal) => httpGet<PagedResult<ProjectEvidence>>(`${root(projectId)}/evidence?page=1&pageSize=100`, signal)
+export const createProjectEvidence = (projectId: number, body: { sourceType: 'MEETING' | 'PROGRESS_REPORT'; sourceId: number; majorId: number | null; notes?: string | null }) => httpPost<ProjectEvidence>(`${root(projectId)}/evidence`, body)
