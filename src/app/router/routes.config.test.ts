@@ -53,7 +53,8 @@ describe('routes.config', () => {
   describe('getStudentNavItems', () => {
     it('returns student workspace items and management preview items', () => {
       const { workspaceItems, managementItems } = getStudentNavItems()
-      expect(workspaceItems).toHaveLength(10)
+      expect(workspaceItems).toHaveLength(9)
+      expect(workspaceItems.map((item) => item.path)).not.toContain('/project/ai')
       expect(managementItems).toHaveLength(2)
       expect(managementItems.map((m) => m.path)).toContain('/supervisor/workspace')
       expect(managementItems.map((m) => m.path)).toContain('/department/workspace')
@@ -87,6 +88,8 @@ describe('routes.config', () => {
       expect(getBreadcrumbForPath('/academic/governance')).toBe('Quản lý học vụ')
       expect(getBreadcrumbForPath('/department/student-qualifications')).toBe('Xác minh điều kiện tham gia')
       expect(getBreadcrumbForPath('/project/source')).toBe('Chọn cách đăng ký đồ án')
+      expect(getBreadcrumbForPath('/project/ai')).toBe('Trang không tồn tại')
+      expect(getBreadcrumbForPath('/department/projects/7/risk')).toBe('Trang không tồn tại')
     })
   })
 })

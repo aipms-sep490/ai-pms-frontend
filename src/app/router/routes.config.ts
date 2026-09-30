@@ -172,7 +172,7 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
 export function getStudentNavItems() {
   const workspaceItems = mvpRoutes.filter(
     (r) => r.section === 'workspace' && (r.role === 'student' || r.role === 'all')
-  )
+  ).filter((route) => env.aiAdvisoryEnabled || route.path !== '/project/ai')
   const managementItems = mvpRoutes.filter(
     (r) => r.section === 'management'
   )
@@ -210,8 +210,8 @@ export function getBreadcrumbForPath(pathname: string): string {
     return 'Tổng quan lộ trình'
   }
   if (pathname === '/project/workspace') return 'Phối hợp nhóm'
-  if (pathname === '/project/ai' || /^\/supervisor\/projects\/\d+\/ai(?:\/|$)/.test(pathname)) return 'Trợ lý AI & Phân tích'
-  if (/^\/department\/projects\/\d+\/risk(?:\/|$)/.test(pathname)) return 'Phân tích rủi ro đồ án'
+  if (pathname === '/project/ai' || /^\/supervisor\/projects\/\d+\/ai(?:\/|$)/.test(pathname)) return env.aiAdvisoryEnabled ? 'Trợ lý AI & Phân tích' : 'Trang không tồn tại'
+  if (/^\/department\/projects\/\d+\/risk(?:\/|$)/.test(pathname)) return env.aiAdvisoryEnabled ? 'Phân tích rủi ro đồ án' : 'Trang không tồn tại'
   if (pathname === '/department/projects/archived') return 'Kho lưu trữ đồ án'
   if (/^\/department\/projects\/\d+\/archive-view(?:\/|$)/.test(pathname)) return 'Hồ sơ đồ án lưu trữ'
   if (/^\/supervisor\/projects\/\d+\/workspace(?:\/|$)/.test(pathname)) {
@@ -277,3 +277,4 @@ export function getBreadcrumbForPath(pathname: string): string {
   }
   return 'Trang không tồn tại'
 }
+import { env } from '../config/env'

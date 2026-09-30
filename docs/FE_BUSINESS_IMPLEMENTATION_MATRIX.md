@@ -4,6 +4,8 @@
 
 Snapshot: 2026-09-30. P1 integration is being implemented on `feature/fe-project-governance-contracts-20260930`, based on fresh `origin/develop`; the former governance branch was already merged through PR #37. Backend contract reference is `3579529`. Recheck deployed OpenAPI and the isolated database schema before runtime acceptance.
 
+The current release excludes AI advisory features. Core non-AI phase scope, business decisions and `DONE` evidence are defined in [CORE_PMS_PHASE_COMPLETION_PLAN.md](CORE_PMS_PHASE_COMPLETION_PLAN.md).
+
 `DONE` requires a real API-mode browser journey, persisted SQL evidence, authorization and conflict checks. `PARTIAL` means code exists without that evidence. `FE_DONE_BE_PENDING` means the FE can render a future contract but the authoritative BE contract is missing. `BLOCKED` means the missing contract prevents an honest production interaction.
 
 | Business flow | Actor and state | Authoritative API | FE surface | Current evidence and status |

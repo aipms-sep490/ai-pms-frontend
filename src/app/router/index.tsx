@@ -55,6 +55,7 @@ import { DepartmentProjectRiskPage } from '../../features/ai/DepartmentProjectRi
 import { ArchivedProjectsPage } from '../../features/projects/pages/ArchivedProjectsPage'
 import { ProjectArchiveViewPage } from '../../features/projects/pages/ProjectArchiveViewPage'
 import { AcademicWorkflowGate, StudentJourneyProvider } from '../context'
+import { env } from '../config/env'
 
 export const appRouter = createBrowserRouter([{ element: <RouteFrame />, children: [
   { path: 'login', element: <LoginPage /> },
@@ -94,7 +95,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'project/deliverables', element: <DeliverablesPage /> },
             { path: 'project/files', element: <ProjectFilesPage /> },
             { path: 'project/contributions', element: <ProjectContributionsPage /> },
-            { path: 'project/ai', element: <ProjectAiPage /> },
+            ...(env.aiAdvisoryEnabled ? [{ path: 'project/ai', element: <ProjectAiPage /> }] : []),
           ] },
           { path: 'projects/lifecycle', element: <ProjectLifecyclePage /> },
           { path: 'team', element: <TeamManagementPage /> },
@@ -129,7 +130,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'supervisor/projects/:projectId/deliverables', element: <DeliverablesPage /> },
             { path: 'supervisor/projects/:projectId/files', element: <ProjectFilesPage /> },
             { path: 'supervisor/projects/:projectId/contributions', element: <ProjectContributionsPage /> },
-            { path: 'supervisor/projects/:projectId/ai', element: <ProjectAiPage /> },
+            ...(env.aiAdvisoryEnabled ? [{ path: 'supervisor/projects/:projectId/ai', element: <ProjectAiPage /> }] : []),
           ] },
           { path: 'supervisor/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/supervisor/workspace" backLabel="Bàn làm việc GVHD" /> },
           { path: 'evaluator/evaluations', element: <EvaluatorAssignmentsPage /> },
@@ -154,7 +155,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'department/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/department/portfolio" backLabel="Portfolio đồ án" /> },
           { path: 'department/projects/:projectId/files', element: <ProjectFilesPage /> },
           { path: 'department/projects/:projectId/contributions', element: <ProjectContributionsPage /> },
-          { path: 'department/projects/:projectId/risk', element: <DepartmentProjectRiskPage /> },
+          ...(env.aiAdvisoryEnabled ? [{ path: 'department/projects/:projectId/risk', element: <DepartmentProjectRiskPage /> }] : []),
           { path: 'department/projects/:projectId/archive-view', element: <ProjectArchiveViewPage /> },
           { path: 'department/supervisors', element: <SupervisorMonitoringPage /> },
           { path: 'department/supervisors/:id', element: <SupervisorMonitoringPage /> },
