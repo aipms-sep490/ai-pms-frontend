@@ -5,6 +5,7 @@ import { TeamInvitationsPanel } from '../components/TeamInvitationsPanel'
 import { CreateTeamModal } from '../components/CreateTeamModal'
 import { TransferLeaderModal } from '../components/TransferLeaderModal'
 import { AcademicScopePanel } from '../components/AcademicScopePanel'
+import { StructuredResponsibilitiesPanel } from '../components/StructuredResponsibilitiesPanel'
 import { UpdateTeamModal } from '../components/UpdateTeamModal'
 import { TeamEligibilitySummary } from '../components/TeamEligibilitySummary'
 import { useTeamManagement } from '../hooks/useTeamManagement'
@@ -287,6 +288,7 @@ export function TeamManagementPage() {
             fallbackOrganizationId={team.members.find((member) => member.userId === currentUserId)?.organizationId}
             fallbackMajorId={profile?.majorId}
           />}
+          {!rosterLocked && team.academicScope && <StructuredResponsibilitiesPanel teamId={team.id} scope={team.academicScope} onSaved={retry} />}
 
           {rosterLocked && <p className="text-sm text-slate-600">Danh sách thành viên đã được chốt theo hồ sơ đồ án.</p>}
 
