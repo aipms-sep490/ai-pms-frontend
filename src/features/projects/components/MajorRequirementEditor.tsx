@@ -55,13 +55,13 @@ export function MajorRequirementEditor({ requirements, projectMode, majors, busy
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="major-requirement-editor-heading" className="font-bold text-slate-900">Yêu cầu nhân sự theo ngành</h2>
-          <p className="mt-1 text-sm text-slate-600">Dữ liệu được lưu bằng concurrency token; Backend vẫn quyết định quyền, trạng thái và quota hợp lệ.</p>
+          <p className="mt-1 text-sm text-slate-600">Phân công số lượng thành viên và trách nhiệm cho từng ngành tham gia.</p>
         </div>
         {!editing && <button type="button" onClick={beginEditing} disabled={busy || majors.length === 0} className="min-h-11 rounded-lg border border-indigo-600 px-3 py-2 text-sm font-semibold text-indigo-700 outline-none transition hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-600 disabled:cursor-not-allowed disabled:opacity-50">{requirements.length ? 'Chỉnh sửa requirements' : 'Cấu hình requirements'}</button>}
       </div>
 
       {!editing && <>
-        {requirements.length === 0 ? <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Chưa có requirement được Backend trả về cho project này.</p> : <ul className="mt-4 divide-y divide-slate-100 rounded-lg border border-slate-200" aria-label="Danh sách requirement theo ngành">{requirements.map((requirement) => { const major = majorById.get(requirement.majorId); return <li key={requirement.majorId} className="grid gap-1 px-3 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-4"><span className="font-medium text-slate-900">{major ? `${major.code} — ${major.name}` : `Major #${requirement.majorId}`}</span><span className="text-slate-600">{requirement.minMembers}–{requirement.maxMembers} SV</span><span className="text-slate-600">{requirement.responsibility}</span></li> })}</ul>}
+        {requirements.length === 0 ? <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Chưa có requirement được hệ thống trả về cho đồ án này.</p> : <ul className="mt-4 divide-y divide-slate-100 rounded-lg border border-slate-200" aria-label="Danh sách requirement theo ngành">{requirements.map((requirement) => { const major = majorById.get(requirement.majorId); return <li key={requirement.majorId} className="grid gap-1 px-3 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-4"><span className="font-medium text-slate-900">{major ? `${major.code} — ${major.name}` : `Major #${requirement.majorId}`}</span><span className="text-slate-600">{requirement.minMembers}–{requirement.maxMembers} SV</span><span className="text-slate-600">{requirement.responsibility}</span></li> })}</ul>}
         {majors.length === 0 && <p className="mt-3 text-sm text-slate-600" role="status">Đang chờ dữ liệu ngành từ Academic Structure trước khi có thể chỉnh sửa.</p>}
       </>}
 

@@ -15,9 +15,9 @@ const names = createAcademicNameResolver([{ organization: {} as any, departments
 describe('ProjectAcademicScopePanel', () => {
   it('renders SINGLE_MAJOR primary evidence without cross-department controls', () => {
     render(<ProjectAcademicScopePanel names={names} scope={{ projectMode: 'SINGLE_MAJOR', primaryMajorId: 7, leadDepartmentId: 4, requirements: [] }} members={[{ userId: 1, fullName: 'Linh', majorId: 7, isLeader: true }]} />)
-    expect(screen.getByText('SINGLE_MAJOR')).toBeTruthy()
+    expect(screen.getByText('Một ngành')).toBeTruthy()
     expect(screen.getByText('Software Engineering (SE)')).toBeTruthy()
-    expect(screen.getByText(/no participating-department review action/i)).toBeTruthy()
+    expect(screen.getByText(/Đồ án một ngành do bộ môn phụ trách thẩm định/)).toBeTruthy()
     expect(screen.queryByText(/Approve as participating/)).toBeNull()
   })
 
@@ -26,8 +26,8 @@ describe('ProjectAcademicScopePanel', () => {
       { majorId: 7, minMembers: 1, maxMembers: 2, responsibility: 'Technical delivery' },
       { majorId: 8, minMembers: 2, maxMembers: 3, responsibility: 'Business validation' },
     ] }} members={[{ userId: 1, fullName: 'Linh', majorId: 7, isLeader: true }, { userId: 2, fullName: 'Minh', majorId: 8, isLeader: false }]} />)
-    expect(screen.getByText('INTERDISCIPLINARY')).toBeTruthy()
-    expect(screen.getByText(/Quota: 1–2 members/)).toBeTruthy()
+    expect(screen.getByText('Liên ngành')).toBeTruthy()
+    expect(screen.getByText(/Số thành viên: 1–2 thành viên/)).toBeTruthy()
     expect(screen.getByText(/Business validation/)).toBeTruthy()
     expect(screen.getByText(/Minh.*Business Administration/)).toBeTruthy()
   })
