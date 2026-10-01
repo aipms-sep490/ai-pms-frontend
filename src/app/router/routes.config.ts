@@ -184,6 +184,8 @@ export function getStudentNavItems() {
  * Resolves a breadcrumb title from the current pathname.
  */
 export function getBreadcrumbForPath(pathname: string): string {
+  const registryBreadcrumb = getWorkspaceBreadcrumb(pathname)
+  if (registryBreadcrumb && (pathname !== '/project/ai' || env.aiAdvisoryEnabled)) return registryBreadcrumb
   if (/^\/project\/meetings\/new(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings\/new(?:\/|$)/.test(pathname)) {
     return 'Lên lịch họp'
   }
@@ -281,3 +283,4 @@ export function getBreadcrumbForPath(pathname: string): string {
   return 'Trang không tồn tại'
 }
 import { env } from '../config/env'
+import { getWorkspaceBreadcrumb } from './workspace-route-registry'

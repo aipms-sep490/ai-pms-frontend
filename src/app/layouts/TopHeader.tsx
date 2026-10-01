@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { getBreadcrumbForPath } from '../router/routes.config'
 import { useAcademicWorkflow } from '../context/useAcademicWorkflow'
 import { StudentJourneyContext } from '../context/StudentJourneyContext'
+import { useWorkspaceAccess } from '../context/workspace-access'
 import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 import { useAuthSession } from '../../features/auth/context/useAuthSession'
 import { getUnreadCount } from '../../features/notifications/notifications-api'
@@ -21,6 +22,7 @@ export function TopHeader({
   const location = useLocation()
   const { academic } = useAcademicWorkflow()
   const journey = useContext(StudentJourneyContext)
+  const workspaceAccess = useWorkspaceAccess()
   const selectedSemester = academic?.selectedSemester
   const { session } = useAuthSession()
   const [unreadCount, setUnreadCount] = useState<number | null>(null)
@@ -37,9 +39,12 @@ export function TopHeader({
     return () => { active = false; window.removeEventListener('ai-pms:notifications-changed', refresh) }
   }, [session])
   const role = getWorkspaceRole(session?.user)
-  const pendingStudent = role === 'student' && Boolean(journey?.isLoading || journey?.error)
+  const pendingStudent = role === 'student' && workspaceAccess.contextStatus === 'loading'
+  const unavailableStudent = role === 'student' && workspaceAccess.contextStatus === 'unavailable'
   const semesterLabel = role === 'student' ? journey?.semester?.name || 'Học kỳ chưa xác định' : role === 'lecturer' ? 'Giảng viên' : role === 'department' ? 'Bộ môn' : role === 'admin' ? 'Quản trị' : 'Tài khoản'
-  const teamLabel = role === 'student' ? journey?.team?.code || journey?.team?.name || 'Chưa có nhóm' : session?.user.fullName || 'Tài khoản'
+  const teamLabel = role === 'student'
+    ? journey?.team?.code || journey?.team?.name || (unavailableStudent ? 'Ngữ cảnh chưa tải được' : 'Chưa có nhóm')
+    : session?.user.fullName || 'Tài khoản'
   const stateLabel = {
     NO_TEAM: 'Chưa có nhóm',
     TEAM_FORMING: 'Đang kiện toàn',
@@ -87,6 +92,7 @@ export function TopHeader({
 
       {/* Right: Controls & Badges */}
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        {unavailableStudent ? <span className="hidden md:inline text-xs text-status-warning-text" role="alert">Ngữ cảnh đồ án chưa tải được</span> : null}
         {selectedSemester && role === 'student' && !pendingStudent ? (
           <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-[11px] font-mono font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
