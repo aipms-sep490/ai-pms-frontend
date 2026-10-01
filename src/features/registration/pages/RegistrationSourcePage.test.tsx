@@ -17,7 +17,7 @@ describe('RegistrationSourcePage', () => {
 
   it('uses only Backend STUDENT_PROPOSAL provenance and ignores query values', () => {
     page('/project/source?topicId=5&source=PUBLISHED_TOPIC')
-    expect(screen.getByText(/STUDENT_PROPOSAL · Đề tài do sinh viên đề xuất/)).toBeTruthy()
+    expect(screen.getByText(/Nhóm đang sử dụng đề tài tự đề xuất/)).toBeTruthy()
     expect(screen.queryByText('AI topic')).toBeNull()
     expect(screen.queryByText('5')).toBeNull()
   })
@@ -25,22 +25,22 @@ describe('RegistrationSourcePage', () => {
   it('requires a Project Draft before Published Topic selection', () => {
     journey.useStudentJourney.mockReturnValue(baseJourney(null as any))
     page()
-    expect(screen.getByText(/Cần Project Draft trước khi chọn đề tài/)).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Tạo Project Draft trước' }))
+    expect(screen.getByText(/Tạo bản nháp trước khi chọn đề tài/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo bản nháp đồ án' }))
     expect(screen.getByText('Project draft route')).toBeTruthy()
   })
 
   it('opens the selectable catalogue only for an editable Backend draft', () => {
     page()
-    fireEvent.click(screen.getByRole('button', { name: 'Mở Topic Catalogue' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Xem danh mục đề tài' }))
     expect(screen.getByText('Topic catalogue route')).toBeTruthy()
   })
 
   it('renders the Backend-selected topic without inventing a clear operation', () => {
     journey.useStudentJourney.mockReturnValue(baseJourney(draft('PUBLISHED_TOPIC')))
     page()
-    expect(screen.getByText(/PUBLISHED_TOPIC · TOP-5 · AI topic/)).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /Đề xuất dự án mới/ }))
-    expect(screen.getByText(/Frontend không có thao tác xóa hoặc đổi ngược Topic/)).toBeTruthy()
+    expect(screen.getByText(/Đề tài từ danh mục · TOP-5 · AI topic/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /Đề xuất đề tài riêng/ }))
+    expect(screen.getByText(/Tiếp tục soạn đề cương từ bản nháp hiện tại của nhóm/)).toBeTruthy()
   })
 })
