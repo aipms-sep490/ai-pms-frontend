@@ -355,3 +355,30 @@ safe global role/catalogue classification are `BE_HANDOFF_REQUIRED` under
 `BE-AW-009` and `BE-AW-010`; the UI fails closed for both. Authenticated Admin
 browser acceptance remains `BLOCKED_BY_CREDENTIAL`. Phase 6 is therefore
 **`PARTIAL_ACCEPTABLE`**.
+
+## 15. Phase 7: Unified Calendar and Deterministic Attention Center
+
+Phase 7 adds the authenticated shared `/calendar` route and no new business
+workflow. Calendar is a non-persisted, read-only projection; Attention is a
+deterministic presentation ordering of backend-returned facts. Neither surface
+authorizes mutation, turns a role into blanket project access, creates an AI or
+risk score, or replaces notifications.
+
+For a Student's current dashboard/project scope, task deadlines, milestone
+DateOnly deadlines, project meetings, dated deliverables and final-submission
+checklist deadlines render only when the source actually returns a date.
+Overdue/blocked values are factual attention rows. For Supervisor, Department,
+Evaluator and Admin, only independently delivered dashboard/assignment/account
+facts are used. Assignment timestamps and report periods are deliberately not
+treated as deadlines.
+
+Independent source failure and bounded-page truncation are visible in the
+source-status region. A partial/unavailable page makes no “all caught up”
+claim. Completed/closed/cancelled items are historical Calendar facts only when
+opted in, never ordinary Attention solely due to their status.
+
+`BE-AW-011` records the required range/cursor, actor-scoped backend projection;
+`BE-AW-003` remains the Mentor scope contract. Phase 7 is
+**`PARTIAL_ACCEPTABLE`**: safe delivered-source behavior is complete, while
+all-role range calendar acceptance and role-valid browser evidence remain
+backend/credential dependent.

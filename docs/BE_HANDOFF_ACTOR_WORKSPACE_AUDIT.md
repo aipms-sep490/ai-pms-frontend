@@ -223,3 +223,27 @@ the final authority.
 | FE behavior before delivery | Role/permission mutation and user-role assignment are fail-closed; existing mapping read/write is retained because it targets a selected returned role. |
 | FE behavior after delivery | Offer only backend-classified global roles and policy-permitted catalogue actions. |
 | Acceptance tests | Admin may assign `ADMIN`/`LECTURER`; attempts for evaluator/team/supervisor resource concepts deny; permission grant never authorizes an out-of-scope project mutation. |
+
+## Handoff K — bounded actor-scoped Calendar and Attention projection
+
+**ID:** `BE-AW-011`
+**Priority:** `BLOCKING_CONTRACT`
+**Status:** `BE_HANDOFF_REQUIRED`
+
+| Field | Required backend delivery |
+| --- | --- |
+| Feature | Unified calendar and deterministic attention facts across resources. |
+| Affected actors | Assigned Supervisor, active Discipline Mentor, Department Staff, active Evaluator and Admin. Student current-project composition may consume this later. |
+| FE consumer | Shared `/calendar`, `CalendarAttentionPage`, source-status and deep-link regions. |
+| Existing Backend behavior | Project-scoped task/milestone/meeting/deliverable/final reads are independently protected. Student dashboard has dated deadline arrays. Supervisor/Department dashboards have scoped counts and paged projects, but no dated resource rows. My evaluator assignments are active-only and paged but have no evaluation window/deadline. |
+| Missing contract | Read-only actor-scoped projection such as `GET /api/v1/workspaces/calendar-attention?from=YYYY-MM-DD&to=YYYY-MM-DD&sources=...&cursor=...`. It is not a command/action endpoint and does not persist a universal Event aggregate. |
+| Why FE cannot infer safely | Fan-out cannot prove every readable project, has divergent paging/snapshots, and cannot reinterpret report periods, assignment timestamps or dashboard counts as deadlines. Client-side hiding after fetch is not an authorization boundary. |
+| Proposed API/DTO | `{ asOfUtc, range:{from,to}, items:[{sourceType,sourceId,projectId?,projectName?,title,startAt?,endAt?,dueAt?,dateKind:DATE_ONLY|DATE_TIME,status,scopeLabel?,deepLinkHint?,metadata?}], attention:[{code,sourceType,sourceId,projectId?,title,description,dueAt?,status}], nextCursor?, sourceWarnings:[{source,code,message?}] }`. No risk score, severity decision or action grant. |
+| Authoritative scope/state rules | Resolve identity, assignment, Department/major scope, project visibility and resource lifecycle server-side for every row. Supervisor is not blanket Lecturer; Mentor needs exact active project-major assignment; Evaluator needs active assignment; Admin does not substitute for Department/project scope. Historical records may be returned but ordinary Attention requires an explicit returned fact. |
+| Date/time requirements | Report deadline must be explicitly persisted; `periodEnd` is not one. Evaluation window/deadline must be explicit. `DATE_ONLY` is never timezone-converted and DateTime declares UTC/offset. Undated resources are omitted rather than filled with placeholders. |
+| Pagination/range | Require cursor/stable page token, bounded requested range and deterministic ordering/snapshot (`asOfUtc`). Return `nextCursor`; do not require FE to enumerate project pages. Source warnings distinguish empty complete data from partial/unavailable data. |
+| Concurrency requirements | Read-only; mints no command token. A linked mutation re-evaluates current policy/token independently and may return `409`. Projection never authorizes mutation. |
+| Expected errors | `401` unauthenticated; `403` actor/scope denied; `400` bad range/source; `404` only where safe to disclose; `429/503` aggregation unavailable. Prefer `200` with per-source warning codes for independent degradation. |
+| FE behavior before delivery | Render only independently authorized bounded sources, mark multi-project calendar sources unavailable/partial, create no invented deadline or all-clear claim, and keep all controls read-only. |
+| FE behavior after delivery | Use returned projection/source warnings for range navigation and pagination. Deep links remain navigation only; existing route/mutation guards remain final authority. |
+| Acceptance scenarios | Student current project DateOnly milestone and UTC meeting; Supervisor only assigned projects; Mentor exact active project-major; Department only persisted scope; revoked evaluator absent; Admin not given Department/project events; report period without deadline omitted; evaluation window included; next cursor is partial not all clear; linked stale write still returns `409`. |

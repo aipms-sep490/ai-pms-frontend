@@ -47,6 +47,7 @@ export const workspaceRouteRegistry: readonly WorkspaceRouteMeta[] = [
   { id: 'governance-rubrics', path: '/academic/rubrics', title: 'Rubric đánh giá', breadcrumb: 'Rubric đánh giá', icon: 'grading', section: 'governance', identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
   { id: 'administration-access', path: '/admin/access', title: 'Quản trị nền tảng', breadcrumb: 'Quản trị quyền', icon: 'admin_panel_settings', section: 'administration', identityRoles: ['ADMIN'], navigationVisibility: 'always' },
   { id: 'account-profile', path: '/profile', title: 'Hồ sơ tài khoản', breadcrumb: 'Hồ sơ tài khoản', icon: 'account_circle', section: 'account', identityRoles: ['ADMIN', 'DEPARTMENT_STAFF', 'LECTURER', 'STUDENT'], navigationVisibility: 'always' },
+  { id: 'calendar-attention', path: '/calendar', title: 'Lịch tổng hợp', breadcrumb: 'Lịch tổng hợp', icon: 'calendar_month', section: 'account', identityRoles: ['ADMIN', 'DEPARTMENT_STAFF', 'LECTURER', 'STUDENT'], navigationVisibility: 'always' },
   { id: 'ai-advisory', path: '/project/ai', title: 'Trợ lý AI & Phân tích', breadcrumb: 'Trợ lý AI & Phân tích', icon: 'neurology', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.aiAdvisoryEnabled },
 ]
 

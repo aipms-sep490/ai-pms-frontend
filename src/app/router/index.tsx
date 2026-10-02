@@ -69,6 +69,7 @@ import { DepartmentWorkspacePage } from '../../features/department/pages/Departm
 import { DepartmentAcademicScopeRoute } from '../../features/department/components/DepartmentAcademicScopeRoute'
 import { ArchivedProjectsPage } from '../../features/projects/pages/ArchivedProjectsPage'
 import { ProjectArchiveViewPage } from '../../features/projects/pages/ProjectArchiveViewPage'
+import { CalendarAttentionPage } from '../../features/calendar/CalendarAttentionPage'
 import { AcademicWorkflowGate, StudentJourneyProvider } from '../context'
 import { env } from '../config/env'
 
@@ -91,6 +92,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
       { path: 'profile', element: <ProfilePage /> },
       { path: 'profile/security', element: <ProfileSecurityPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
+      { path: 'calendar', element: <CalendarAttentionPage /> },
       {
         element: <RoleRoute allowed={['student']} />,
         children: [
