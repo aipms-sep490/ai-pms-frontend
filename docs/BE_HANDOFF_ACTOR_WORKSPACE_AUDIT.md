@@ -108,3 +108,72 @@ the final authority.
 | FE behavior before delivery | Show only current period facts and directory facts; label evaluation/final/result aggregate as unavailable and render no publish/assignment/policy CTA. |
 | FE behavior after delivery | Render delivered read facts, preserve per-section unavailable/forbidden states, and expose a mutation only when a separate existing Backend action permits it. |
 | Acceptance tests | Lead vs participating read scope; Admin does not substitute for Department; foreign project `403/404`; archived project has no mutation; missing evaluation/final section does not hide review queue; stale write remains `409`. |
+
+## Handoff F — evaluator assignment workspace context
+
+**ID:** `BE-AW-006`
+**Priority:** `BLOCKING_CONTRACT`
+**Status:** `BE_HANDOFF_REQUIRED`
+
+| Field | Required backend delivery |
+| --- | --- |
+| Feature | Canonical evaluator assignment detail and workspace projection. |
+| Affected actor | A lecturer with an active persisted `EvaluationAssignment`; supervisor, mentor and ordinary lecturer identities remain separate. |
+| Affected FE route/component | `/evaluator/workspace`, `/evaluator/assignments/:assignmentId`, `EvaluatorAssignmentRoute`. |
+| Existing Backend | `GET /evaluation-assignments/my` lists active assignments only; draft lookup is indirect through `GET /projects/{projectId}/evaluations`. The draft commands independently enforce assignment, project, period and rubric rules. |
+| Missing contract | `GET /evaluation-assignments/{assignmentId}/workspace` (or equivalent) returning only the caller's assignment, its current `ACTIVE`/`REVOKED`/completed state, project/component display facts, rubric version, target names, evaluation-window facts and optionally current draft summary. |
+| Why FE cannot infer it | A client cannot distinguish a foreign ID, a deleted ID and a revoked/ended assignment from an active-only list. Project-scoped evaluation list also cannot provide deadline, component name or a definitive assignment lifecycle state. |
+| Proposed API/DTO | `{ assignment, project, component, scope: { code, major?, student? }, evaluationWindow, draft?: { id, status, updatedAt }, allowedReads, warnings }`. `scope.code` must be `COMMON`, `MAJOR_SPECIFIC` or `INDIVIDUAL`; target names may be null without removing IDs. |
+| Assignment/scope rules | Resolve current evaluator identity and exact active assignment server-side. A `MAJOR_SPECIFIC` projection returns only its persisted major; an `INDIVIDUAL` projection returns only its persisted student. Supervisor/mentor identity must not substitute. |
+| Project/evaluation state rules | Include immutable reason codes for revoked, completed, archived, closed-window or locked-package conditions. The read must not mint write authority; save/finalize retain command guards. |
+| Concurrency | Include current draft token only when a current draft is returned. Assignment revocation/close must make the next read deny or return the terminal state; writes retain `409` on stale token. |
+| Expected errors | `401` unauthenticated; `403` undisclosable foreign assignment; `404` missing assignment; `409` only for later command races; `200` terminal assignment state is allowed when it is safe to disclose. |
+| FE behavior before Backend delivery | Page scans the paged active-assignment list and fails closed when ID is absent. It does not distinguish not-found from revoked or expose target names/deadline not returned. |
+| FE behavior after Backend delivery | Direct route renders explicit ready, denied, not-found, revoked and completed states from the projection and refreshes it after each mutation/navigation. |
+| Acceptance scenarios | Lecturer without assignment, primary supervisor only, mentor only and foreign evaluator ID deny; an active evaluator sees exactly one assigned major/student; revoked assignment loses write after refresh; closed window is explained without client eligibility calculation. |
+
+## Handoff G — evaluator-scoped final package and evidence
+
+**ID:** `BE-AW-007`
+**Priority:** `BLOCKING_CONTRACT`
+**Status:** `BE_HANDOFF_REQUIRED`
+
+| Field | Required backend delivery |
+| --- | --- |
+| Feature | Read-only final submission/evidence projection scoped to one evaluator assignment. |
+| Affected actor | Active evaluator for the exact assignment scope. |
+| Affected FE route/component | `/evaluator/assignments/:assignmentId`, final package and evidence regions. |
+| Existing Backend | `GET /projects/{projectId}/final-submission` authorizes an active evaluator as a project reader. It returns a whole project package and contains no `COMMON`/major/student applicability for evidence/files. |
+| Missing contract | `GET /evaluation-assignments/{assignmentId}/evidence-package` returning assignment-scoped package metadata, readable deliverable versions/files/evidence, scope metadata, and per-section warnings. |
+| Why FE cannot infer it | Hiding unrelated rows after receiving a full package does not prevent disclosure and no client predicate can prove which file/evidence belongs to a major or individual target. |
+| Proposed API/DTO | `{ assignmentId, scope, package?: { id, status, submittedAt, items }, evidence: [{ id, source, majorId?, studentId?, files }], warnings }`; omitted sections must have deterministic reason codes. |
+| Assignment/scope rules | `COMMON` may contain only contract-defined common/project evidence. `MAJOR_SPECIFIC` may contain the assigned major only. `INDIVIDUAL` may contain the assigned student/applicable evidence only. The server must recheck active assignment, department, project state and supervisor-type constraint. |
+| Project/evaluation state rules | Locked final package may be read only while server scope permits. Revoked/ended assignment removes future read. No evaluator mutation, readiness decision or final-submission submit capability is included. |
+| Concurrency | Package snapshots are immutable; response includes snapshot/version identifiers. A later write to another resource never grants access; download endpoint rechecks current assignment scope. |
+| Expected errors | `401` unauthenticated; `403` foreign/revoked/scope mismatch; `404` no safe package/evidence disclosure; `409` stale snapshot only if a future explicit snapshot token is requested. |
+| FE behavior before Backend delivery | No package files/evidence are shown in the new evaluator workspace; no client-side filter is offered as security. |
+| FE behavior after Backend delivery | Render only returned items, retain independent unavailable/forbidden states and use returned download links/tokens; no mutation CTA. |
+| Acceptance scenarios | COMMON cannot browse major/private evidence; major evaluator cannot switch major; individual evaluator cannot see another student; revoked evaluator loses package read; final files and evidence downloads deny after revocation. |
+
+## Handoff H — evaluator-authorized rubric hierarchy projection
+
+**ID:** `BE-AW-008`
+**Priority:** `OPTIMIZATION`
+**Status:** `BE_HANDOFF_REQUIRED`
+
+| Field | Required backend delivery |
+| --- | --- |
+| Feature | Read-only rubric hierarchy/version metadata for an already authorized evaluator assignment. |
+| Affected actor | Active evaluator for an assignment draft or finalized evaluation. |
+| Affected FE route/component | `/evaluator/assignments/:assignmentId`, rubric context. |
+| Existing Backend | `EvaluationDraftDto` returns protected rubric version and leaf score criteria. Save validates that only leaf criteria are scored. |
+| Missing contract | Assignment/draft-scoped hierarchy with parent groups, effective weights, descriptions and leaf flags. |
+| Why FE cannot infer it | Parent-child hierarchy and display weights must come from the protected rubric version; recreating it from leaf rows changes meaning and could display stale mutable rubric metadata. |
+| Proposed API/DTO | Include `rubric: { id, rootId, version, criteria: [{ id, parentId?, name, description?, effectiveWeightPercent, maxScore?, isLeaf, required }] }` in `BE-AW-006` or `GET /evaluations/{id}/rubric`. |
+| Assignment/scope rules | Only the assignment's frozen/published rubric version is returned. Parent rows are aggregate/read-only; only `isLeaf:true` criteria can be saved through existing draft command. |
+| Project/evaluation state rules | Finalized evaluation uses the finalization snapshot; draft uses protected version. This read does not permit rubric administration or version changes. |
+| Concurrency | Draft token remains on draft command; hierarchy version/snapshot ID detects an obsolete display. |
+| Expected errors | `401` unauthenticated; `403` assignment mismatch; `404` undisclosable evaluation; `409` corrupt/obsolete protected version. |
+| FE behavior before Backend delivery | Show only returned leaf criteria and an explicit explanation; never create parent score inputs. |
+| FE behavior after Backend delivery | Render hierarchy read-only with accessible grouping, while retaining leaf-only score controls. |
+| Acceptance scenarios | Nested rubric displays parents without inputs; leaf score saves; foreign evaluator cannot read hierarchy; finalized hierarchy matches evaluation snapshot even if live rubric changes. |

@@ -79,8 +79,9 @@ uses dedicated client calls and hides actions on any missing response.
 | Phase 3D Mentor | `VERIFIED_FE` for exact assignment entry guard and read-only workspace routes; `BE_HANDOFF_REQUIRED` for a resource-level mentor context/capability matrix. |
 
 The detailed backend requests and acceptance scenarios are recorded in
-`BE_HANDOFF_ACTOR_WORKSPACE_AUDIT.md`. Phase 4 deliberately stops after the
-Department foundation; Evaluator and Admin workspace phases are `FUTURE_SCOPE`.
+`BE_HANDOFF_ACTOR_WORKSPACE_AUDIT.md`. Phase 4 deliberately stopped after the
+Department foundation. Evaluator is now covered by the Phase 5 checkpoint
+below; Admin remains `FUTURE_SCOPE`.
 
 ## 4. Phase 0–1: identity, navigation, and project scope
 
@@ -305,3 +306,29 @@ as a substitute.
 
 Phase 3C therefore remains **`PARTIAL_ACCEPTABLE`** end-to-end, while its implemented
 read-first workspace and established meeting-governance scope are complete.
+
+## 12. Phase 4: Department Academic Governance
+
+Phase 4 adds `/department/workspace` only for `DEPARTMENT_STAFF` with an active
+department academic scope from workflow context. It reuses review queue,
+portfolio and current workflow reads; review actions remain the returned
+project-action/snapshot/token contract. Admin is redirected to administration,
+not treated as Department Staff. Cross-resource governance readiness remains
+`BE_HANDOFF_REQUIRED` under `BE-AW-004` and `BE-AW-005`.
+
+## 13. Phase 5: Evaluator Workspace
+
+Phase 5 adds assignment-scoped `/evaluator/workspace` and
+`/evaluator/assignments/:assignmentId`. `LECTURER` is an identity boundary only:
+the detail route scans persisted active evaluator assignments and fails closed
+when the ID is absent. `COMMON`, `MAJOR_SPECIFIC` and `INDIVIDUAL` targets are
+displayed from the assignment and never switchable in the client. Draft creation,
+leaf-score saving, conflict refresh and finalization reuse the existing protected
+evaluation commands; all finalized UI is read-only.
+
+The API does not yet provide a canonical assignment-detail state, evaluator-scoped
+evidence/package, or protected rubric hierarchy. The workspace therefore does
+not disclose package/evidence files, does not calculate finalizability/results,
+and records `BE-AW-006` through `BE-AW-008`. Phase 5 is
+**`PARTIAL_ACCEPTABLE`**: the current FE-addressable contract is wired, while
+privacy/correctness-sensitive read gaps remain `BE_HANDOFF_REQUIRED`.

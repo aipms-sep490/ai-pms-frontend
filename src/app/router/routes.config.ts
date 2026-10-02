@@ -193,6 +193,8 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname === '/project/files' || /^\/supervisor\/projects\/\d+\/files(?:\/|$)/.test(pathname) || /^\/department\/projects\/\d+\/files(?:\/|$)/.test(pathname)) return 'Kho tệp đồ án'
   if (pathname === '/evaluator/evaluations') return 'Đánh giá được phân công'
   if (/^\/evaluator\/evaluations\/\d+(?:\/|$)/.test(pathname)) return 'Chi tiết đánh giá'
+  if (pathname === '/evaluator/workspace') return 'Không gian Evaluator'
+  if (/^\/evaluator\/assignments\/\d+(?:\/|$)/.test(pathname)) return 'Phân công đánh giá'
   if (/^\/project\/meetings\/\d+(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings\/\d+(?:\/|$)/.test(pathname)) {
     return 'Chi tiết cuộc họp'
   }

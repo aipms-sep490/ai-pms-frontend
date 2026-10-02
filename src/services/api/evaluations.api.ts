@@ -11,6 +11,23 @@ export interface EligibleEvaluator {
 }
 
 export const getMyEvaluationAssignments = (page = 1, pageSize = 20, signal?: AbortSignal) => httpGet<PagedResult<EvaluationAssignment>>(`/evaluation-assignments/my?page=${page}&pageSize=${pageSize}`, signal)
+
+/**
+ * The API is paged. Workspace guards must inspect the complete server-issued
+ * assignment collection, rather than treating the first page as an authority
+ * decision for a direct assignment URL.
+ */
+export async function getAllMyEvaluationAssignments(signal?: AbortSignal): Promise<EvaluationAssignment[]> {
+  const pageSize = 100
+  const first = await getMyEvaluationAssignments(1, pageSize, signal)
+  const items = [...first.items]
+  const pages = Math.ceil(first.totalCount / pageSize)
+  for (let page = 2; page <= pages; page += 1) {
+    const result = await getMyEvaluationAssignments(page, pageSize, signal)
+    items.push(...result.items)
+  }
+  return items
+}
 export const getProjectEvaluationAssignments = (projectId: number, status?: 'ACTIVE' | 'REVOKED', signal?: AbortSignal) => httpGet<PagedResult<EvaluationAssignment>>(`/projects/${projectId}/evaluation-assignments?page=1&pageSize=100${status ? `&status=${status}` : ''}`, signal)
 export interface EvaluationTarget { componentId: number; scope: EvaluationScope; majorId: number | null; studentId: number | null }
 export const getEvaluationSchemes = (projectId: number, signal?: AbortSignal) => httpGet<EvaluationScheme[]>(`/evaluation-schemes?projectId=${projectId}`, signal)

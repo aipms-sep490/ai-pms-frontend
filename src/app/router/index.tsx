@@ -45,6 +45,9 @@ import { QualificationVerificationPage } from '../../features/qualifications/pag
 import { DeliverablesPage } from '../../features/deliverables/DeliverablesPage'
 import { EvaluatorAssignmentsPage } from '../../features/evaluations/EvaluatorAssignmentsPage'
 import { EvaluationWorkspacePage } from '../../features/evaluations/EvaluationWorkspacePage'
+import { EvaluatorAssignmentRoute } from '../../features/evaluations/components/EvaluatorAssignmentRoute'
+import { EvaluatorAssignmentDetailPage } from '../../features/evaluations/pages/EvaluatorAssignmentDetailPage'
+import { EvaluatorWorkspacePage } from '../../features/evaluations/pages/EvaluatorWorkspacePage'
 import { ResultPublicationPage } from '../../features/results/ResultPublicationPage'
 import { ProtectedRoute } from '../../features/auth/components/ProtectedRoute'
 import { NotificationsPage } from '../../features/notifications/NotificationsPage'
@@ -160,6 +163,10 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'evaluator/evaluations', element: <EvaluatorAssignmentsPage /> },
           { path: 'evaluator/evaluations/:evaluationId', element: <EvaluationWorkspacePage /> },
           { path: 'evaluator/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/evaluator/evaluations" backLabel="Danh sách assignments" /> },
+          { path: 'evaluator/workspace', element: <EvaluatorWorkspacePage /> },
+          { element: <EvaluatorAssignmentRoute />, children: [
+            { path: 'evaluator/assignments/:assignmentId', element: <EvaluatorAssignmentDetailPage /> },
+          ] },
         ],
       },
       {
