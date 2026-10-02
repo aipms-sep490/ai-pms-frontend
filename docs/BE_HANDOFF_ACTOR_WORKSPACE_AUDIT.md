@@ -64,3 +64,47 @@ the final authority.
 | FE before delivery | The frontend may use the existing own-assignment response only to guard a read-only mentor entry by exact type/project/major. Each resource is then read from its current endpoint and fails independently; no write control appears. |
 | FE after delivery | Guard fetches the persisted context for every direct route entry and refreshes it after navigation/resume; each resource failure remains isolated and the context removes unsupported resource links earlier. |
 | Acceptance scenarios | Active mentor sees only assigned project/major; ended mentor is redirected; mentor is not accepted as Primary; evaluator assignment alone is denied; foreign project direct URL is denied; structural/evaluation controls never appear without a separate action. |
+
+## Handoff D — Department governance workspace aggregate
+
+**ID:** `BE-AW-004`
+**Priority:** `OPTIMIZATION`
+**Status:** `BE_HANDOFF_REQUIRED`
+
+| Field | Required backend delivery |
+| --- | --- |
+| Feature | Department governance landing aggregate for review, active-project attention, supervisor assignment issues, final submission and evaluation readiness. |
+| Affected actor | `DEPARTMENT_STAFF` with an active persisted department scope; never `ADMIN` by role substitution. |
+| Affected FE route/component | `/department/workspace`, `DepartmentWorkspacePage`. |
+| Current Backend | FE composes `GET /projects/review-queue`, `GET /dashboards/department`, supervisor directory and workflow-period reads. Each source is useful and independently scoped, but none is a single authoritative governance queue. |
+| Why FE cannot infer it | Cross-resource ordering and readiness would otherwise be a client-created business state; current counts may be paged or represent different snapshots. |
+| Missing contract | Optional `GET /departments/me/governance-workspace` DTO with `asOfUtc`, scoped summary, actionable records and each item's resource link/state. |
+| Proposed API/DTO | `{ departmentId, asOfUtc, reviewQueue, attention: [{ projectId, source, status, receivedAt?, reasons }], supervisorIssues, finalSubmissionReadiness, evaluationReadiness }`. Counts must be facts returned by services, not client-derived readiness. |
+| Authoritative scope/state rules | Resolve authenticated staff's current department scope server-side. Include only project/period resources the current actor can read. Do not expose a whole-project decision to a participating department unless existing workflow action permits it. |
+| Concurrency | Read is advisory; every linked mutation still obtains the current project action/snapshot/token and handles `409`. |
+| Expected status/error codes | `401` unauthenticated; `403` inactive/out-of-scope staff; `503` aggregation dependency unavailable; `200` may contain independent per-widget warnings. |
+| FE behavior before delivery | Current safe composition remains. Portfolio filtering produces presentation-only attention and never enables a mutation. |
+| FE behavior after delivery | Use aggregate for ordering/counts while retaining project review actions as authority. |
+| Acceptance tests | Lead and participating staff see only their scope; outside staff sees `403`; unavailable aggregate does not blank read sections; an aggregate count never enables approve/publish. |
+
+## Handoff E — Department policy, evaluation, final-result and supervisor governance reads
+
+**ID:** `BE-AW-005`
+**Priority:** `BLOCKING_CONTRACT`
+**Status:** `BE_HANDOFF_REQUIRED`
+
+| Field | Required backend delivery |
+| --- | --- |
+| Feature | Department-scoped, read-only governance details for policy versions/effective rules, supervisor assignment history/capacity, evaluation scope/eligibility, final-submission readiness and result visibility. |
+| Affected actor | `DEPARTMENT_STAFF` within persisted department/project/period scope; Lead and participating scope must be represented separately. |
+| Affected FE route/component | `/department/workspace` policy, Supervisors, Evaluation / Audit regions. |
+| Current Backend | Workflow context exposes project periods only; supervisor directory exposes availability/expertise only; scheme/assignment/result APIs are project-scoped. There is no scoped read model that joins policy version, assignment history, `COMMON`/`MAJOR_SPECIFIC`/`INDIVIDUAL` evaluation state, final readiness, result visibility and archive state. |
+| Why FE cannot infer it | Joining unrelated project-scoped data cannot prove Department participation, current policy applicability, evaluator eligibility, result visibility or a publish-ready state. |
+| Missing contract | Read-only department governance resources, either a scoped project detail endpoint or separate period/supervisor/evaluation/final endpoints. They must not be inferred from an Admin management API. |
+| Proposed API/DTO | `GET /departments/me/projects/{projectId}/governance-read-model` with `{ projectScope: { leadDepartmentId, participatingDepartmentIds, actorRelation }, policy, supervisors, evaluation, finalSubmission, result, archive }`. Nullable sections and `warnings` are required for partial delivery. |
+| Authoritative scope/state rules | Backend resolves exact Department role/scope, project participation, archive state and current period. A participating department may read its own scope but cannot receive `approve_project` from this DTO. Archived resources are read-only. |
+| Concurrency | The read model does not mint a command token. Existing review/result/evaluator writes retain their own snapshot/concurrency tokens and return `409` on staleness. |
+| Expected status/error codes | `401` unauthenticated; `403` role/scope mismatch; `404` missing or undisclosable project; `409` only from underlying mutation; `200` partial sections may be null with a stable warning code. |
+| FE behavior before delivery | Show only current period facts and directory facts; label evaluation/final/result aggregate as unavailable and render no publish/assignment/policy CTA. |
+| FE behavior after delivery | Render delivered read facts, preserve per-section unavailable/forbidden states, and expose a mutation only when a separate existing Backend action permits it. |
+| Acceptance tests | Lead vs participating read scope; Admin does not substitute for Department; foreign project `403/404`; archived project has no mutation; missing evaluation/final section does not hide review queue; stale write remains `409`. |

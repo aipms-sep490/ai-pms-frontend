@@ -37,7 +37,7 @@ route, role or UI flag never substitutes for an endpoint's authorization.
 | Evidence write | `FE_COMPLETE_BE_BLOCKED` + `BE_HANDOFF_REQUIRED` | No source-scoped authoritative write capability has been delivered, therefore no create/delete UI exists. |
 | Mentor entry and read-only workspace | `VERIFIED_FE` | Exact persisted active `DISCIPLINE_MENTOR` project/major assignment is required for every direct route. |
 | Role browser acceptance | `BLOCKED_BY_CREDENTIAL` | No valid Department, Supervisor, or Mentor account is substituted with Admin. |
-| Department governance | `FUTURE_SCOPE` | Begins only after the Stage-A frontend checkpoint. |
+| Department governance | `VERIFIED_FE` + `BE_HANDOFF_REQUIRED` | Phase 4 foundation began only after checkpoint `e9ced4f`; missing aggregate/read contracts remain documented and no governance mutation is invented. |
 
 | Phase | Actor | Capability | Business requirement | Current FE | Current BE | Authority source | Gap | Classification | Required action | Acceptance evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -49,7 +49,7 @@ route, role or UI flag never substitutes for an endpoint's authorization.
 | 2 | Student Leader | Final submission | Leader only; backend readiness/blockers are canonical | Existing viewer/submission flow | Final checklist reports `CanSubmit` and blockers | Final submission workflow | Re-audit only | `VERIFIED_FE` | Preserve current implementation | Leader/member tests |
 | 3A–C | Primary Supervisor | Supervision cockpit | Read scope; no blanket structural control | Scoped workspace/cockpit and ledger links exist | Assignment/resource reads and specialized feedback exist | Primary assignment + endpoint guard | Source/action write scope is handoff only | `VERIFIED_FE` + `BE_HANDOFF_REQUIRED` | Keep writes fail-closed until capability delivery | Partial-resource tests |
 | 3D | Discipline Mentor | Major-scoped follow-up | Assignment type + major; never becomes primary supervisor | Exact assignment route and read-only shell exist | Persisted `DISCIPLINE_MENTOR` assignment and scoped discipline writer rules exist | Assignment type/major plus endpoint guard | Mentor resource context is handoff only | `VERIFIED_FE` + `BE_HANDOFF_REQUIRED` | Restrict to exact scope; add resource context only after delivery | Mentor-major and mentor-not-primary tests |
-| Future | Department/Admin | Academic governance / platform administration | Do not start before closure gate | Existing unrelated surfaces remain | Existing governance APIs are not evidence of Phase 4 completion | Department scope/role and endpoint guard | Deferred by task sequencing | FUTURE_SCOPE | Start only after all Stage A required rows are verified | Stage A checkpoint |
+| 4 | Department Staff | Academic governance foundation | Department is separate from Admin; read composition and review actions remain server authority | Department-only workspace, local navigation and independent sections | Existing review, portfolio, directory and workflow-period reads are reused | Department policy/evaluation/final/supervisor governance aggregate is missing | `VERIFIED_FE` + `BE_HANDOFF_REQUIRED` | Keep non-delivered areas read-only/fail-closed | Route/partial failure/role tests |
 | Future | Industry Expert / review frameworks | New governance product scope | No silent implementation claim | No Stage A work | No Stage A contract audit | Future design | Not part of approved Stage A | FUTURE_SCOPE | Document only | N/A |
 
 ## Stage A gate

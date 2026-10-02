@@ -14,7 +14,7 @@ export function getWorkspaceRole(user?: Pick<AuthUser, 'roles'> | null): Workspa
 export function getHomePath(user?: Pick<AuthUser, 'roles'> | null): string {
   switch (getWorkspaceRole(user)) {
     case 'admin': return '/admin/access'
-    case 'department': return '/department/projects/review'
+    case 'department': return '/department/workspace'
     case 'lecturer': return '/supervisor/workspace'
     case 'student': return '/project/overview'
     default: return '/profile'

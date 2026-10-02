@@ -16,8 +16,9 @@ function renderRoutes(roles: string[], initialPath: string) {
       <Routes>
         <Route path="/" element={<HomeRedirect />} />
         <Route element={<RoleRoute allowed={['student']} />}><Route path="/project/workspace" element={<p>Student workspace</p>} /><Route path="/project/overview" element={<p>Student overview</p>} /></Route>
-        <Route element={<RoleRoute allowed={['department']} />}><Route path="/department/projects/review" element={<p>Department review</p>} /></Route>
+        <Route element={<RoleRoute allowed={['department']} />}><Route path="/department/projects/review" element={<p>Department review</p>} /><Route path="/department/workspace" element={<p>Department workspace</p>} /></Route>
         <Route element={<RoleRoute allowed={['lecturer']} />}><Route path="/supervisor/workspace" element={<p>Lecturer workspace</p>} /></Route>
+        <Route path="/admin/access" element={<p>Admin access</p>} />
       </Routes>
     </MemoryRouter>
   </AuthSessionContext.Provider>)
@@ -26,7 +27,7 @@ function renderRoutes(roles: string[], initialPath: string) {
 describe('role route', () => {
   it('redirects department staff away from the student workspace', () => {
     renderRoutes(['DEPARTMENT_STAFF'], '/project/workspace')
-    expect(screen.getByText('Department review')).toBeDefined()
+    expect(screen.getByText('Department workspace')).toBeDefined()
     expect(screen.queryByText('Student workspace')).toBeNull()
   })
 
@@ -38,5 +39,11 @@ describe('role route', () => {
   it('resolves the root path from backend roles', () => {
     renderRoutes(['STUDENT'], '/')
     expect(screen.getByText('Student overview')).toBeDefined()
+  })
+
+  it('does not treat Admin as Department Staff for the Department workspace', () => {
+    renderRoutes(['ADMIN'], '/department/workspace')
+    expect(screen.getByText('Admin access')).toBeDefined()
+    expect(screen.queryByText('Department workspace')).toBeNull()
   })
 })

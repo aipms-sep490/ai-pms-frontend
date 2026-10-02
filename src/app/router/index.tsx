@@ -60,6 +60,8 @@ import { ProjectFilesPage } from '../../features/files/ProjectFilesPage'
 import { ProjectEvidenceLedgerPage } from '../../features/evidence/ProjectEvidenceLedger'
 import { ProjectAiPage } from '../../features/ai/ProjectAiPage'
 import { DepartmentProjectRiskPage } from '../../features/ai/DepartmentProjectRiskPage'
+import { DepartmentWorkspacePage } from '../../features/department/pages/DepartmentWorkspacePage'
+import { DepartmentAcademicScopeRoute } from '../../features/department/components/DepartmentAcademicScopeRoute'
 import { ArchivedProjectsPage } from '../../features/projects/pages/ArchivedProjectsPage'
 import { ProjectArchiveViewPage } from '../../features/projects/pages/ProjectArchiveViewPage'
 import { AcademicWorkflowGate, StudentJourneyProvider } from '../context'
@@ -158,6 +160,14 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'evaluator/evaluations', element: <EvaluatorAssignmentsPage /> },
           { path: 'evaluator/evaluations/:evaluationId', element: <EvaluationWorkspacePage /> },
           { path: 'evaluator/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/evaluator/evaluations" backLabel="Danh sách assignments" /> },
+        ],
+      },
+      {
+        element: <RoleRoute allowed={['department']} />,
+        children: [
+          { element: <DepartmentAcademicScopeRoute />, children: [
+            { path: 'department/workspace', element: <DepartmentWorkspacePage /> },
+          ] },
         ],
       },
       {

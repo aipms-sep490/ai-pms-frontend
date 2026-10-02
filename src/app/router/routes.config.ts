@@ -138,7 +138,7 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
     breadcrumb: 'Bộ môn Workspace',
     icon: 'account_balance',
     role: 'department',
-    status: 'coming_soon',
+    status: 'implemented',
     badge: 'Khoa',
     section: 'management',
   },

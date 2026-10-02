@@ -1,4 +1,4 @@
-# AI-PMS workspace audit — Phase 0 through 3C
+# AI-PMS workspace audit — Phase 0 through 4
 
 **Audited on:** 2026-10-02
 **Frontend worktree:** `F:\AI-PMS\ai-pms-frontend-workspace-foundation-v3`
@@ -60,6 +60,7 @@ The browser never converts a global identity role into blanket project authority
 | 3A | Supervisor/lecturer assigned-project read foundation. | Assignment guard, landing cards, independently recoverable resource summaries, matrix. | `VERIFIED_FE`; structural supervisor mutation remains fail-closed. |
 | 3B | Supervisor report review and feedback journey. | Progress hub, scoped detail, existing feedback endpoint/form, tests for success/403/409. | `VERIFIED_FE` for UI/API integration; live Supervisor browser acceptance is `BLOCKED_BY_CREDENTIAL`. |
 | 3C | Supervisor operational workspace. | Evidence-first cockpit, independently settled resources, guarded final-submission route, established meeting governance. | `VERIFIED_FE` read scope; remaining mutations are `BE_HANDOFF_REQUIRED` and live Supervisor browser acceptance is `BLOCKED_BY_CREDENTIAL`. |
+| 4 | Department Academic Governance Workspace foundation. | Department-only route, independent review/portfolio/directory/period reads and links to existing action-gated academic review. | `PARTIAL_ACCEPTABLE`: foundation is `VERIFIED_FE`; governance aggregate/read gaps are `BE_HANDOFF_REQUIRED`; Department browser acceptance is `BLOCKED_BY_CREDENTIAL`. |
 
 ## Pre-Phase-4 closure update — 2026-10-02
 
@@ -78,8 +79,8 @@ uses dedicated client calls and hides actions on any missing response.
 | Phase 3D Mentor | `VERIFIED_FE` for exact assignment entry guard and read-only workspace routes; `BE_HANDOFF_REQUIRED` for a resource-level mentor context/capability matrix. |
 
 The detailed backend requests and acceptance scenarios are recorded in
-`BE_HANDOFF_ACTOR_WORKSPACE_AUDIT.md`. This audit intentionally stops before
-Phase 4.
+`BE_HANDOFF_ACTOR_WORKSPACE_AUDIT.md`. Phase 4 deliberately stops after the
+Department foundation; Evaluator and Admin workspace phases are `FUTURE_SCOPE`.
 
 ## 4. Phase 0–1: identity, navigation, and project scope
 
@@ -251,7 +252,7 @@ introduced by Phase 3B.
 
 | Priority | Gap | Required authority-side answer | Frontend posture until then |
 | --- | --- | --- | --- |
-| High | Complete capability coverage for task/milestone update/delete/reorder, assignee/dependency and evidence lifecycle. | Expose only real command eligibility/reason codes using the same backend guards as mutations. | Do not add a local role engine; retain server enforcement and label coverage `PARTIAL`. |
+| High | Complete capability coverage for task/milestone update/delete/reorder, assignee/dependency and evidence lifecycle. | Expose only real command eligibility/reason codes using the same backend guards as mutations. | Do not add a local role engine; retain server enforcement and label coverage `FE_COMPLETE_BE_BLOCKED`. |
 | Medium | Supervisor structural/mutation capability is not a complete project-level contract. | Publish only actual supported Supervisor command capabilities, with scope/state reasons. | Keep `canManageStructure: false`; use specialized feedback only. |
 | Medium | No consolidated supervisor attention/report-review queue. | Optional read contract that combines scoped server facts. | Keep independently loaded sections; no health/risk decision. |
 | Medium | Report DTO lacks confirmed task/milestone/evidence relation links. | Add relationship fields/endpoints only if business domain supports them. | Do not infer links from report prose. |
@@ -267,7 +268,7 @@ actions, keeps supervisor structural controls fail-closed, and treats feedback a
 feedback rather than approval. The material remaining issue is not a UI defect:
 the execution capability contract does not yet represent every existing
 structural mutation. Until that backend contract is complete and role-valid
-browser acceptance is available, the truthful overall status is **`PARTIAL`**,
+browser acceptance is available, the truthful overall status is **`PARTIAL_ACCEPTABLE`**,
 with Phases 3A–3B frontend implementation complete within their read-oriented
 and feedback-only scope.
 
@@ -292,7 +293,7 @@ business state is computed in the client.
 | Evaluation | My-assignment endpoint returns authoritative evaluator assignments | Entry only after matching active assignment; it does not expose grading. |
 | AI | Progress analysis is advisory and feature-flagged | Advisory display only; no risk decision, authorization or state transition. |
 
-`BLOCKED_BY_BE`: no audited aggregate safely supplies recent feedback/action
+`BE_HANDOFF_REQUIRED`: no audited aggregate safely supplies recent feedback/action
 items across project meetings, no consolidated supervision attention queue, and
 no complete Supervisor capability feed for task/milestone, deliverable/file,
 evidence or final-submission lifecycle actions. The UI links to authoritative
@@ -302,5 +303,5 @@ detail views and keeps those mutations absent.
 requires a role-valid credential and non-destructive fixture. Admin is not used
 as a substitute.
 
-Phase 3C therefore remains **`PARTIAL`** end-to-end, while its implemented
+Phase 3C therefore remains **`PARTIAL_ACCEPTABLE`** end-to-end, while its implemented
 read-first workspace and established meeting-governance scope are complete.
