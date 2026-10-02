@@ -17,8 +17,9 @@ const draft: ReportDetail = {
   summary: 'Hoàn thành chức năng đăng ký', completedWork: 'Tích hợp API đề tài', plannedWork: 'Kiểm thử với giảng viên', issuesAndRisks: 'Không có',
   status: 'DRAFT', submittedAt: null, isLate: null, createdAt: '2026-09-20T08:00:00Z', updatedAt: '2026-09-20T08:00:00Z', concurrencyToken: 'report-token', feedbacks: [],
 }
-function mount({ actor = 'student', leader = true, path = '/project/reports/17' }: { actor?: 'student' | 'supervisor'; leader?: boolean; path?: string } = {}) {
-  const access: ExecutionAccess = { project: { id: 9, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'], actor, canManageStructure: leader, currentUserId: actor === 'student' ? 2 : 5, routeBase: '/project' }
+const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
+function mount({ actor = 'student', leader = true, path = '/project/reports/17', createAllowed = actor === 'student' }: { actor?: 'student' | 'supervisor'; leader?: boolean; path?: string; createAllowed?: boolean } = {}) {
+  const access: ExecutionAccess = { project: { id: 9, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'], actor, canManageStructure: leader, executionCapabilities: actor === 'student' ? capabilities(createAllowed) : undefined, currentUserId: actor === 'student' ? 2 : 5, routeBase: '/project' }
   const router = createMemoryRouter([{ element: <ExecutionAccessProvider value={access}><Outlet /></ExecutionAccessProvider>, children: [
     { path: '/project/reports', element: <ProgressReportsPage /> },
     { path: '/project/reports/new', element: <ProgressReportDetailPage create /> },
@@ -57,6 +58,22 @@ describe('Progress reports workflow', () => {
     click('Lưu bản nháp')
     await screen.findByText('Người tạo: Nguyễn Minh Anh')
     expect(api.createProgressReport).toHaveBeenCalledWith(9, { reportType: 'WEEKLY', periodStart: '2026-09-14', periodEnd: '2026-09-20', summary: draft.summary, completedWork: null, plannedWork: null, issuesAndRisks: null })
+  })
+  it('lets a member create a report when the backend action allows it', async () => {
+    api.createProgressReport.mockResolvedValue(draft)
+    mount({ leader: false, path: '/project/reports/new', createAllowed: true })
+    input('Từ ngày', '2026-09-14'); input('Đến ngày', '2026-09-20'); input('Tóm tắt tiến độ', 'Tiến độ của tôi')
+    click('Lưu bản nháp')
+    await screen.findByText('Người tạo: Nguyễn Minh Anh')
+    expect(api.createProgressReport).toHaveBeenCalledTimes(1)
+  })
+  it('hides and blocks report creation when capability is unavailable or denied', async () => {
+    mount({ path: '/project/reports', createAllowed: false })
+    await screen.findByText(draft.summary)
+    expect(screen.queryByRole('link', { name: /Tạo báo cáo/ })).toBeNull()
+    cleanup(); mount({ path: '/project/reports/new', createAllowed: false })
+    expect(await screen.findByText(/Backend hiện không cho phép/)).toBeTruthy()
+    expect(api.createProgressReport).not.toHaveBeenCalled()
   })
   it('validates blank summary and reversed dates without sending requests', () => {
     mount({ path: '/project/reports/new' })
@@ -123,37 +140,47 @@ describe('Progress reports workflow', () => {
     mount({ actor: 'supervisor' }); await screen.findByText(draft.summary)
     expect(screen.queryByRole('textbox')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Nộp cho GVHD' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Gửi nhận xét' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Gửi phản hồi' })).toBeNull()
   })
   it('posts supervisor feedback and reloads authoritative REVIEWED detail', async () => {
     const feedback = { id: 44, supervisorName: 'ThS. Trần Mai', feedbackText: 'Bổ sung kiểm thử phân quyền.', createdAt: '2026-09-21T08:30:00Z' }
     api.getProgressReport.mockResolvedValueOnce({ ...draft, status: 'SUBMITTED' }).mockResolvedValue({ ...draft, status: 'REVIEWED', feedbacks: [feedback] })
     api.addProgressReportFeedback.mockResolvedValue(feedback)
     mount({ actor: 'supervisor' })
-    await screen.findByLabelText('Nhận xét mới')
-    input('Nhận xét mới', `  ${feedback.feedbackText}  `); click('Gửi nhận xét')
+    await screen.findByLabelText('Phản hồi mới')
+    input('Phản hồi mới', `  ${feedback.feedbackText}  `); click('Gửi phản hồi')
     await screen.findByText('Đã nhận xét')
     expect(screen.getByText(feedback.feedbackText)).toBeTruthy()
     expect(api.addProgressReportFeedback).toHaveBeenCalledWith(17, feedback.feedbackText, 'report-token')
     expect(screen.getByText('Đã nhận xét')).toBeTruthy()
-    expect((screen.getByLabelText('Nhận xét mới') as HTMLTextAreaElement).value).toBe('')
+    expect((screen.getByLabelText('Phản hồi mới') as HTMLTextAreaElement).value).toBe('')
   })
   it('retains feedback on forbidden POST without fabricating success', async () => {
     api.getProgressReport.mockResolvedValue({ ...draft, status: 'SUBMITTED' })
     api.addProgressReportFeedback.mockRejectedValue(new HttpError('forbidden', 403))
-    mount({ actor: 'supervisor' }); await screen.findByLabelText('Nhận xét mới')
-    input('Nhận xét mới', 'Cần thêm kiểm thử'); click('Gửi nhận xét')
+    mount({ actor: 'supervisor' }); await screen.findByLabelText('Phản hồi mới')
+    input('Phản hồi mới', 'Cần thêm kiểm thử'); click('Gửi phản hồi')
     expect((await screen.findByRole('alert')).textContent).toContain('không có quyền')
-    expect((screen.getByLabelText('Nhận xét mới') as HTMLTextAreaElement).value).toBe('Cần thêm kiểm thử')
+    expect((screen.getByLabelText('Phản hồi mới') as HTMLTextAreaElement).value).toBe('Cần thêm kiểm thử')
     expect(screen.queryByText('Đã nhận xét')).toBeNull()
+  })
+  it('refreshes authoritative detail and retains feedback on a concurrency conflict', async () => {
+    api.getProgressReport.mockResolvedValue({ ...draft, status: 'SUBMITTED' })
+    api.addProgressReportFeedback.mockRejectedValue(new HttpError('conflict', 409))
+    mount({ actor: 'supervisor' }); await screen.findByLabelText('Phản hồi mới')
+    input('Phản hồi mới', 'Giữ lại phản hồi này'); click('Gửi phản hồi')
+    expect((await screen.findByRole('alert')).textContent).toContain('Dữ liệu đã thay đổi')
+    await waitFor(() => expect(api.getProgressReport.mock.calls.length).toBeGreaterThanOrEqual(2))
+    expect((screen.getByLabelText('Phản hồi mới') as HTMLTextAreaElement).value).toBe('Giữ lại phản hồi này')
+    expect(api.addProgressReportFeedback).toHaveBeenCalledTimes(1)
   })
   it('does not re-post feedback when the refresh after success fails', async () => {
     api.getProgressReport.mockResolvedValueOnce({ ...draft, status: 'SUBMITTED' }).mockRejectedValueOnce(new TypeError('offline')).mockResolvedValue({ ...draft, status: 'REVIEWED' })
     api.addProgressReportFeedback.mockResolvedValue({ id: 44 })
-    mount({ actor: 'supervisor' }); await screen.findByLabelText('Nhận xét mới')
-    input('Nhận xét mới', 'Đã xem'); click('Gửi nhận xét')
+    mount({ actor: 'supervisor' }); await screen.findByLabelText('Phản hồi mới')
+    input('Phản hồi mới', 'Đã xem'); click('Gửi phản hồi')
     await screen.findByRole('alert')
-    expect(screen.getByText('Đã gửi nhận xét cho nhóm.')).toBeTruthy()
+    expect(screen.getByText('Đã gửi phản hồi cho nhóm.')).toBeTruthy()
     click('Tải lại'); await screen.findByText('Đã nhận xét')
     expect(api.addProgressReportFeedback).toHaveBeenCalledTimes(1)
   })
@@ -161,7 +188,7 @@ describe('Progress reports workflow', () => {
     api.getProgressReport.mockResolvedValue({ ...draft, status: 'REVIEWED', feedbacks: [{ id: 1, supervisorName: 'ThS. Mai', createdAt: '2026-09-21', feedbackText: 'Hoàn thiện tài liệu kiểm thử.' }] })
     mount(); await screen.findByText('Hoàn thiện tài liệu kiểm thử.')
     expect(screen.queryByRole('textbox')).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Gửi nhận xét' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Gửi phản hồi' })).toBeNull()
   })
 })
 

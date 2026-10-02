@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { ProjectDto, SupervisorAssignmentDto, SupervisorRequestDto, TeamDto, TeamLeaderChangeRequestDto } from '../../../types/backend'
 import { HttpError } from '../../../services/http/http-client'
 import { services } from '../../../services/service-gateway'
+import { loadOwnSupervisorAssignments } from '../utils/loadOwnSupervisorAssignments'
 
 export type InboxErrorKind = 'authentication' | 'forbidden' | 'not-found' | 'conflict' | 'validation' | 'system'
 export interface InboxError { kind: InboxErrorKind; message: string }
@@ -34,16 +35,16 @@ export function useSupervisorInbox() {
     try {
       const [inbox, ownAssignments, leaderChanges] = await Promise.all([
         services.supervisor.getSupervisorInbox(),
-        services.supervisor.getOwnAssignments(),
+        loadOwnSupervisorAssignments(),
         services.team.getLeaderChangeRequests(undefined, 'PENDING'),
       ])
       setRequests(inbox.items)
-      setAssignments(ownAssignments.items)
+      setAssignments(ownAssignments)
       setLeaderChangeRequests(leaderChanges.items)
 
       const projectIds = [...new Set([
         ...inbox.items.map((request) => request.projectId),
-        ...ownAssignments.items.map((assignment) => assignment.projectId),
+        ...ownAssignments.map((assignment) => assignment.projectId),
       ])]
       const projectResults = await Promise.allSettled(projectIds.map((projectId) => services.project.getProject(projectId)))
       const nextProjects: Record<number, ProjectDto> = {}

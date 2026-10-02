@@ -24,6 +24,8 @@ export interface SupervisorAssignmentDto {
   isPrimary: boolean
   assignedAt: string
   endedAt?: string | null
+  assignmentType?: 'PRIMARY' | 'DISCIPLINE_MENTOR' | string
+  majorId?: number | null
 }
 
 export interface SupervisorRequestDto {

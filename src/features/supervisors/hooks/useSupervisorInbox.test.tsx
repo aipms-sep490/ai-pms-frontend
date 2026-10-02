@@ -55,4 +55,17 @@ describe('useSupervisorInbox', () => {
     await act(async () => { expect(await result.current.respond({ ...request, status: 'CANCELLED' }, 'reject')).toBe(false) })
     expect(supervisor.respondToSupervisorRequest).not.toHaveBeenCalled()
   })
+
+  it('collects every server-issued assignment page before resolving the workspace scope', async () => {
+    const secondPage = { id: 10, projectId: 10, supervisorProfileId: 4, supervisorUserId: 4, supervisorName: 'Dr. Mai', isPrimary: true, assignedAt: '2026-09-15' }
+    supervisor.getOwnAssignments.mockReset()
+      .mockResolvedValueOnce({ items: [], totalPages: 2 })
+      .mockResolvedValueOnce({ items: [secondPage], totalPages: 2 })
+    gateway.project.getProject.mockResolvedValueOnce({ id: 9, teamId: 2, title: 'Project', status: 'ACTIVE' })
+      .mockResolvedValueOnce({ id: 10, teamId: 2, title: 'Later assignment', status: 'ACTIVE' })
+    const { result } = renderHook(() => useSupervisorInbox())
+    await waitFor(() => expect(result.current.assignments).toEqual([secondPage]))
+    expect(supervisor.getOwnAssignments).toHaveBeenNthCalledWith(1, { page: 1, pageSize: 100 })
+    expect(supervisor.getOwnAssignments).toHaveBeenNthCalledWith(2, { page: 2, pageSize: 100 })
+  })
 })

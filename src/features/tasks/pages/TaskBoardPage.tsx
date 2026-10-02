@@ -12,7 +12,10 @@ const statuses: BackendTaskStatus[] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'IN_REV
 const positiveId = (value: string | null) => { const id = Number(value); return Number.isSafeInteger(id) && id > 0 ? id : undefined }
 
 export function TaskBoardPage() {
-  const { project, team, currentUserId, canManageStructure, routeBase } = useExecutionAccess()
+  const { project, team, currentUserId, canManageStructure, executionCapabilities, actor, routeBase } = useExecutionAccess()
+  const canCreate = actor === 'student'
+    ? executionCapabilities?.get('create_task').allowed === true
+    : canManageStructure
   const [params, setParams] = useSearchParams()
   const page = positiveId(params.get('page')) ?? 1
   const assigneeUserId = positiveId(params.get('assignee'))
@@ -71,7 +74,7 @@ export function TaskBoardPage() {
   }, [creating])
   const activeMember = members.find(member => member.userId === assigneeUserId)
   return <ExecutionPage title="Công việc" eyebrow={project.code} description="Xem ai đang phụ trách, việc nào cần xử lý và hạn hoàn thành."
-    action={<><button className="ex-button" onClick={refresh} disabled={loading}><ExIcon name="refresh" />Cập nhật</button>{canManageStructure && <button ref={createRef} className="ex-button ex-button-primary" onClick={() => { setCreating(true); setCreated(false) }} disabled={creating}><ExIcon name="add" />Tạo công việc</button>}</>}>
+    action={<><button className="ex-button" onClick={refresh} disabled={loading}><ExIcon name="refresh" />Cập nhật</button>{canCreate && <button ref={createRef} className="ex-button ex-button-primary" onClick={() => { setCreating(true); setCreated(false) }} disabled={creating}><ExIcon name="add" />Tạo công việc</button>}</>}>
     {created && <p className="ex-notice" role="status">Đã tạo công việc.</p>}
     {creating && (milestoneLoading ? <ExState loading /> : milestoneError ? <ExState message={milestoneError} retry={refresh} /> : eligibleMilestones.length ? <div className="mb-6"><WorkspaceTaskForm members={members} milestones={eligibleMilestones} onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); refresh() }} /></div>
       : <section className="ex-panel"><ExState title="Cần có mốc đồ án đang thực hiện" message="Tạo một mốc trước khi thêm công việc cho nhóm." action={<Link className="ex-button" to={`${routeBase}/milestones`}>Quản lý mốc đồ án</Link>} /><div className="ex-padding"><button className="ex-text-button" onClick={closeCreate}>Đóng</button></div></section>)}

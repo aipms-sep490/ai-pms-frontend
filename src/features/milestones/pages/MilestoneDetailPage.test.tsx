@@ -6,8 +6,9 @@ import { MilestoneDetailPage } from './MilestoneDetailPage'
 const api = vi.hoisted(() => ({ getProjectMilestones: vi.fn(), getProjectMilestoneProgress: vi.fn(), createMilestone: vi.fn(), updateMilestone: vi.fn(), deleteMilestone: vi.fn(), reorderMilestones: vi.fn() }))
 vi.mock('../../../services/service-gateway', () => ({ services: { milestone: api } }))
 const m = { id:3,projectId:9,title:'Khởi động',status:'IN_PROGRESS',sortOrder:0,concurrencyToken:'milestone-token' }
-function renderPage(manage: boolean, path = '/project/milestones/3') {
-  return render(<MemoryRouter initialEntries={[path]}><ExecutionAccessProvider value={{ project:{id:9} as never,actor:'student',currentUserId:2,canManageStructure:manage,routeBase:'/project' }}><Routes><Route path="/project/milestones/:milestoneId?" element={<MilestoneDetailPage />} /></Routes></ExecutionAccessProvider></MemoryRouter>)
+const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
+function renderPage(manage: boolean, path = '/project/milestones/3', allowed = manage) {
+  return render(<MemoryRouter initialEntries={[path]}><ExecutionAccessProvider value={{ project:{id:9} as never,actor:'student',currentUserId:2,canManageStructure:manage,executionCapabilities:capabilities(allowed),routeBase:'/project' }}><Routes><Route path="/project/milestones/:milestoneId?" element={<MilestoneDetailPage />} /></Routes></ExecutionAccessProvider></MemoryRouter>)
 }
 beforeEach(() => { api.getProjectMilestones.mockResolvedValue([m]); api.getProjectMilestoneProgress.mockResolvedValue([{milestoneId:3,totalTasks:4,doneTasks:2,progressPercentage:50}]) })
 afterEach(() => { cleanup(); vi.resetAllMocks() })
@@ -33,6 +34,10 @@ describe('MilestoneDetailPage', () => {
     fireEvent.submit(screen.getByRole('textbox', {name:'Tên mốc'}).closest('form')!)
     await screen.findByRole('alert'); expect((screen.getByRole('textbox', {name:'Tên mốc'}) as HTMLInputElement).value).toBe('Kiểm thử nghiệm thu')
     expect(api.createMilestone).toHaveBeenCalledWith(expect.objectContaining({projectId:9,title:'Kiểm thử nghiệm thu',sortOrder:1}))
+  })
+  it('keeps the create CTA fail-closed when the backend denies a leader', async () => {
+    renderPage(true, '/project/milestones', false); await screen.findByText('1 mốc đồ án')
+    expect(screen.queryByRole('button', { name: 'Tạo mốc' })).toBeNull()
   })
   it('sends the complete changed ordering after moving a named milestone', async () => {
     api.getProjectMilestones.mockResolvedValue([m,{...m,id:4,title:'Nghiệm thu',sortOrder:1}]); api.reorderMilestones.mockResolvedValue(undefined)

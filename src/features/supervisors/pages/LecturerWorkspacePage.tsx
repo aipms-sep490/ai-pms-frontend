@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { useSupervisorInbox } from '../hooks/useSupervisorInbox'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
+import { useSupervisorProjectSummaries, type SupervisorProjectResource } from '../hooks/useSupervisorProjectSummaries'
 
 export function LecturerWorkspacePage() {
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const inbox = useSupervisorInbox()
+  const projectSummaries = useSupervisorProjectSummaries(inbox.assignments, inbox.projects ?? {})
   const leaderChangeRequests = inbox.leaderChangeRequests ?? []
   const [responseByRequest, setResponseByRequest] = useState<Record<number, string>>({})
   const [leaderResponseByRequest, setLeaderResponseByRequest] = useState<Record<number, string>>({})
@@ -87,17 +89,37 @@ export function LecturerWorkspacePage() {
         </ul>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
-        <h2 className="text-lg font-bold">Đồ án được phân công</h2>
-        {inbox.loading ? <p className="mt-3 text-sm text-slate-600">Đang tải đồ án…</p> : null}
-        {!inbox.loading && inbox.assignments.length === 0 ? <p className="mt-3 text-sm text-slate-600">Chưa được phân công đồ án.</p> : null}
-        <ul className="mt-4 space-y-2">{inbox.assignments.map((assignment) => {
+      <section className="rounded-2xl border border-hairline bg-card p-5 shadow-xs sm:p-6" aria-labelledby="assigned-projects">
+        <div className="flex flex-wrap items-end justify-between gap-2"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Theo dõi / phản hồi</p><h2 id="assigned-projects" className="mt-1 text-lg font-bold">Dự án đang hướng dẫn</h2><p className="mt-1 text-sm text-slate-600">Chỉ mở không gian giám sát cho assignment primary còn hiệu lực và project `ACTIVE`.</p></div></div>
+        {inbox.loading ? <p role="status" className="mt-4 text-sm text-slate-600">Đang tải đồ án được phân công…</p> : null}
+        {!inbox.loading && inbox.assignments.length === 0 ? <p className="mt-4 text-sm text-slate-600">Chưa được phân công đồ án.</p> : null}
+        <ul className="mt-4 grid gap-4 lg:grid-cols-2">{inbox.assignments.map((assignment) => {
           const project = inbox.projects?.[assignment.projectId]
           const isActive = project?.status?.replaceAll('_', '').toUpperCase() === 'ACTIVE'
-          return <li key={assignment.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-sm"><span>{project?.title ?? `Project #${assignment.projectId}`} · {assignment.isPrimary ? 'Primary Supervisor' : 'Mentor/secondary'} · assigned {assignment.assignedAt}{assignment.endedAt ? ` · ended ${assignment.endedAt}` : ''}</span>{assignment.isPrimary && !assignment.endedAt && isActive ? <div className="flex flex-wrap gap-2"><Link className="rounded-lg border border-emerald-300 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-50" to={`/supervisor/projects/${assignment.projectId}/workspace`}>Mở Project ACTIVE</Link><Link className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700" to={`/supervisor/projects/${assignment.projectId}/meetings`}>Lịch họp & biên bản</Link></div> : null}</li>
+          const canOpen = assignment.isPrimary && !assignment.endedAt && isActive
+          return <li key={assignment.id} className="min-w-0 rounded-xl border border-hairline bg-canvas p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h3 className="break-words font-semibold text-slate-900">{project?.title ?? `Project #${assignment.projectId}`}</h3><p className="mt-1 text-xs text-slate-600">{project?.code ?? `#${assignment.projectId}`} · {project?.teamName ?? 'Chưa tải được nhóm'}</p></div><span className="rounded-full border border-hairline bg-card px-2 py-1 text-xs font-semibold text-slate-700">{project?.status ?? 'Chưa tải trạng thái'}</span></div>
+            <p className="mt-3 text-xs text-slate-600">{assignment.isPrimary ? 'GVHD chính' : 'GVHD phụ/mentor'} · phân công {assignment.assignedAt}{assignment.endedAt ? ` · kết thúc ${assignment.endedAt}` : ''}</p>
+            {canOpen ? <ProjectSignals summary={projectSummaries[assignment.projectId]} /> : <p className="mt-4 rounded-lg border border-hairline bg-card p-3 text-xs text-slate-600">Không mở workspace: assignment hoặc trạng thái Project hiện không còn phù hợp.</p>}
+            {canOpen ? <div className="mt-4 flex flex-wrap gap-3"><Link className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to={`/supervisor/projects/${assignment.projectId}/workspace`}>Mở không gian giám sát</Link><Link className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to={`/supervisor/projects/${assignment.projectId}/meetings`}>Xem lịch họp</Link></div> : null}
+          </li>
         })}</ul>
       </section>
       {confirmationDialog}
     </main>
   )
+}
+
+function ProjectSignals({ summary }: { summary?: ReturnType<typeof useSupervisorProjectSummaries>[number] }) {
+  if (!summary) return <p role="status" className="mt-4 text-xs text-slate-600">Đang tải tiến độ và lịch theo dữ liệu Backend…</p>
+  return <dl className="mt-4 grid gap-2 text-xs sm:grid-cols-2">
+    <Signal label="Tiến độ" resource={summary.progress} render={data => `${data.percentage}% · ${data.doneTasks}/${data.totalTasks} việc`} />
+    <Signal label="Cần lưu ý" resource={summary.attention} render={data => `${data.overdue} quá hạn · ${data.blocked} vướng mắc`} />
+    <Signal label="Lịch họp sắp tới" resource={summary.meetings} render={data => data.nextAt ? new Date(data.nextAt).toLocaleString('vi-VN') : 'Chưa có lịch họp sắp tới'} />
+    <Signal label="Báo cáo tiến độ" resource={summary.reports} render={data => `${data.count} báo cáo`} />
+  </dl>
+}
+
+function Signal<T>({ label, resource, render }: { label: string; resource: SupervisorProjectResource<T>; render: (data: T) => string }) {
+  return <div className="min-w-0 rounded-lg border border-hairline bg-card p-3"><dt className="text-slate-600">{label}</dt><dd className="mt-1 break-words font-semibold text-slate-900">{resource.state === 'loading' ? 'Đang tải…' : resource.state === 'error' ? resource.message : render(resource.data)}</dd></div>
 }

@@ -7,11 +7,14 @@ import { useExecutionMutation } from '../../execution/useExecutionMutation'
 import { services } from '../../../services/service-gateway'
 import type { MilestoneDto, MilestoneProgressDto } from '../../../types/backend'
 import { dateLabel } from '../../projects/utils/collaboration-workspace'
+import { useMilestoneExecutionCapabilities } from '../../execution/hooks/useMilestoneExecutionCapabilities'
 
 export function MilestoneDetailPage() {
   const { milestoneId } = useParams()
   const navigate = useNavigate()
-  const { project, canManageStructure, routeBase } = useExecutionAccess()
+  const { project, executionCapabilities, routeBase } = useExecutionAccess()
+  const canCreate = executionCapabilities?.get('create_milestone').allowed === true
+  const canReorder = executionCapabilities?.get('reorder_milestones').allowed === true
   const [milestones, setMilestones] = useState<MilestoneDto[]>([])
   const [progress, setProgress] = useState<MilestoneProgressDto[]>([])
   const [loading, setLoading] = useState(true)
@@ -23,6 +26,7 @@ export function MilestoneDetailPage() {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [order, setOrder] = useState<MilestoneDto[] | null>(null)
+  const milestoneCapabilities = useMilestoneExecutionCapabilities(Number(milestoneId), revision)
   const mutation = useExecutionMutation()
   const clearMutation = mutation.clear
   const reload = () => setRevision(value => value + 1)
@@ -40,6 +44,9 @@ export function MilestoneDetailPage() {
   }, [project.id, revision])
   const selected = milestoneId ? milestones.find(item => item.id === Number(milestoneId)) : null
   const stats = progress.find(item => item.milestoneId === selected?.id)
+  const actionAllowed = (code: string) => milestoneCapabilities.get(code).allowed
+  const canUpdate = Boolean(selected) && actionAllowed('update_milestone')
+  const canDelete = Boolean(selected) && actionAllowed('delete_milestone')
   const save = (payload: import('../../../services/api/milestones.api').UpdateMilestonePayload) => selected
     ? mutation.run(() => services.milestone.updateMilestone(selected.id, { ...payload, concurrencyToken: selected.concurrencyToken }), () => { setEditing(false); reload() }) : Promise.resolve(false)
   function move(index: number, direction: number) {
@@ -49,7 +56,7 @@ export function MilestoneDetailPage() {
   const title = selected?.title ?? 'Mốc đồ án'
   return <ExecutionPage title={title} eyebrow={project.code} backTo={milestoneId ? `${routeBase}/milestones` : undefined}
     description={milestoneId ? 'Theo dõi thời gian, tiến độ và công việc thuộc mốc này.' : 'Chia đồ án thành các mốc rõ ràng để cả nhóm cùng theo dõi.'}
-    action={<><button className="ex-button" onClick={reload} disabled={loading || mutation.busy}><ExIcon name="refresh" />Cập nhật</button>{canManageStructure && !milestoneId && <button className="ex-button ex-button-primary" disabled={creating || mutation.busy} onClick={() => setCreating(true)}><ExIcon name="add" />Tạo mốc</button>}{canManageStructure && selected && <button className="ex-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing(true) }}><ExIcon name="edit" />Chỉnh sửa</button>}</>}>
+    action={<><button className="ex-button" onClick={reload} disabled={loading || mutation.busy}><ExIcon name="refresh" />Cập nhật</button>{canCreate && !milestoneId && <button className="ex-button ex-button-primary" disabled={creating || mutation.busy} onClick={() => setCreating(true)}><ExIcon name="add" />Tạo mốc</button>}{canUpdate && selected && <button className="ex-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing(true) }}><ExIcon name="edit" />Chỉnh sửa</button>}</>}>
     {mutation.error && <p className="ex-notice ex-notice-error" role="alert">{mutation.error}</p>}{mutation.notice && <p className="ex-notice" role="status">{mutation.notice}</p>}
     {progressError && <ExState message={progressError} retry={reload} />}
     {creating && <MilestoneForm key="create" busy={mutation.busy} onCancel={() => setCreating(false)} onSubmit={payload => mutation.run(() => services.milestone.createMilestone({ projectId: project.id, title: payload.title, description: payload.description, startDate: payload.startDate, dueDate: payload.dueDate,
@@ -61,11 +68,11 @@ export function MilestoneDetailPage() {
           <div className="ex-actions"><Link className="ex-button ex-button-primary" to={`${routeBase}/tasks?milestone=${selected.id}`}><ExIcon name="checklist" />Xem công việc của mốc</Link><Link className="ex-button" to={`${routeBase}/gantt`}>Xem lịch thực hiện</Link></div>
         </div>
       </section>
-      {canManageStructure && stats?.totalTasks === 0 && <button className="ex-text-button ex-danger-text" onClick={() => setDeleting(true)}>Xóa mốc</button>}
-      {canManageStructure && stats && stats.totalTasks > 0 && <p className="ex-muted">Mốc đã có công việc. Nếu dừng thực hiện, bạn có thể chọn trạng thái Đã hủy trong phần chỉnh sửa.</p>}
+      {canDelete && stats?.totalTasks === 0 && <button className="ex-text-button ex-danger-text" onClick={() => setDeleting(true)}>Xóa mốc</button>}
+      {canUpdate && stats && stats.totalTasks > 0 && <p className="ex-muted">Mốc đã có công việc. Nếu dừng thực hiện, bạn có thể chọn trạng thái Đã hủy trong phần chỉnh sửa.</p>}
       {deleting && <ExConfirm title="Xóa mốc đồ án này?" description="Mốc chưa có công việc sẽ được xóa khỏi kế hoạch. Bạn cần tạo lại nếu muốn sử dụng sau này." busy={mutation.busy} onCancel={() => setDeleting(false)} onConfirm={() => void mutation.run(() => services.milestone.deleteMilestone(selected.id, selected.concurrencyToken), () => { navigate(`${routeBase}/milestones`, { replace: true }); reload() }, 'Đã xóa mốc đồ án.')} />}
     </> : <section className="ex-panel"><ExState title="Không tìm thấy mốc đồ án" message="Mốc có thể đã được xóa hoặc đường dẫn không còn phù hợp." action={<Link className="ex-button" to={`${routeBase}/milestones`}>Về danh sách mốc</Link>} /></section>
-      : <section className="ex-panel" aria-label="Kế hoạch các mốc"><div className="ex-panel-heading"><div><h2>{milestones.length} mốc đồ án</h2><p>{milestones.filter(item => item.status === 'COMPLETED').length} mốc hoàn thành</p></div>{canManageStructure && milestones.length > 1 && !order && <button className="ex-text-button" onClick={() => { setOrder([...milestones]); mutation.clear() }}>Đổi thứ tự</button>}</div>
+      : <section className="ex-panel" aria-label="Kế hoạch các mốc"><div className="ex-panel-heading"><div><h2>{milestones.length} mốc đồ án</h2><p>{milestones.filter(item => item.status === 'COMPLETED').length} mốc hoàn thành</p></div>{canReorder && milestones.length > 1 && !order && <button className="ex-text-button" onClick={() => { setOrder([...milestones]); mutation.clear() }}>Đổi thứ tự</button>}</div>
         {!milestones.length ? <ExState title="Nhóm chưa có mốc đồ án" message="Thêm mốc để xác định mục tiêu, thời gian và công việc cần hoàn thành." /> : order ? <>
           <ol>{order.map((item,index) => <li className="ex-order-row" key={item.id}><span className="ex-milestone-number">{String(index + 1).padStart(2,'0')}</span><strong>{item.title}</strong><button className="ex-button" aria-label={`Đưa ${item.title} lên`} disabled={mutation.busy || index === 0} onClick={() => move(index,-1)}><ExIcon name="arrow_upward" /></button><button className="ex-button" aria-label={`Đưa ${item.title} xuống`} disabled={mutation.busy || index === order.length - 1} onClick={() => move(index,1)}><ExIcon name="arrow_downward" /></button></li>)}</ol>
           <div className="ex-form ex-form-footer"><button className="ex-button" disabled={mutation.busy} onClick={() => setOrder(null)}>Hủy</button><button className="ex-button ex-button-primary" disabled={mutation.busy} onClick={() => void mutation.run(() => services.milestone.reorderMilestones(project.id, order.map((item,sortOrder) => ({ milestoneId:item.id, sortOrder, concurrencyToken: item.concurrencyToken }))), () => { setOrder(null); reload() }, 'Đã lưu thứ tự các mốc.')}>Lưu thứ tự</button></div>

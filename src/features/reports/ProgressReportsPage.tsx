@@ -8,11 +8,12 @@ import { formatReportDate, reportStatusLabels, reportTypeLabels, type ProgressRe
 import { ReportBadge, ReportError, ReportLoading, ReportShell } from './report-ui'
 
 export function ProgressReportsPage() {
-  const { project, actor, routeBase } = useExecutionAccess()
-  return <ReportList key={project.id} projectId={project.id} projectTitle={project.title} actor={actor} routeBase={routeBase} />
+  const { project, actor, routeBase, executionCapabilities } = useExecutionAccess()
+  const canCreate = actor === 'student' && executionCapabilities?.get('create_progress_report').allowed === true
+  return <ReportList key={project.id} projectId={project.id} projectTitle={project.title} actor={actor} routeBase={routeBase} canCreate={canCreate} />
 }
 
-function ReportList({ projectId, projectTitle, actor, routeBase }: { projectId: number; projectTitle: string; actor: string; routeBase: string }) {
+function ReportList({ projectId, projectTitle, actor, routeBase, canCreate }: { projectId: number; projectTitle: string; actor: string; routeBase: string; canCreate: boolean }) {
   const [params, setParams] = useSearchParams()
   const rawStatus = params.get('status') ?? ''
   const rawType = params.get('reportType') ?? ''
@@ -46,7 +47,7 @@ function ReportList({ projectId, projectTitle, actor, routeBase }: { projectId: 
 
   return <ReportShell title="Báo cáo tiến độ" projectTitle={projectTitle} backTo={`${routeBase}/workspace`}
     description={actor === 'student' ? 'Ghi lại kết quả, lên kế hoạch tiếp theo và trao đổi với giảng viên hướng dẫn.' : 'Theo dõi kết quả từng kỳ và gửi nhận xét để nhóm triển khai bước tiếp theo.'}
-    action={actor === 'student' && <Link className="report-button" to={`${routeBase}/reports/new`}>+ Tạo báo cáo</Link>}>
+    action={canCreate && <Link className="report-button" to={`${routeBase}/reports/new`}>+ Tạo báo cáo</Link>}>
     <ol className="report-steps" aria-label="Quy trình báo cáo">
       <li><span>01</span><div><strong>Soạn bản nháp</strong><small>Các thành viên cùng chuẩn bị</small></div></li>
       <li><span>02</span><div><strong>Trưởng nhóm nộp</strong><small>Nội dung được khóa sau khi nộp</small></div></li>

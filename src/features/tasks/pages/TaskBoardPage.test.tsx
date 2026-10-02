@@ -7,8 +7,9 @@ const api = vi.hoisted(() => ({ getProjectTasks: vi.fn(), getProjectMilestones: 
 vi.mock('../../../services/service-gateway', () => ({ services: { task: api, milestone: api } }))
 const empty = { items: [], totalCount: 0, totalPages: 0, page: 1, pageSize: 20 }
 const item = { id: 1, milestoneId: 3, title: 'Phân tích yêu cầu', status: 'TODO', priority: 'MEDIUM', assignees: [] }
-function renderBoard(manage: boolean, url = '/project/tasks') {
-  return render(<MemoryRouter initialEntries={[url]}><ExecutionAccessProvider value={{ project: { id: 9 } as never, team: { members: [{ userId: 2, fullName: 'Khang' }, { userId: 5, fullName: 'Duy' }] } as never, actor: 'student', currentUserId: 2, canManageStructure: manage, routeBase: '/project' }}><TaskBoardPage /></ExecutionAccessProvider></MemoryRouter>)
+const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
+function renderBoard(manage: boolean, url = '/project/tasks', allowed = manage) {
+  return render(<MemoryRouter initialEntries={[url]}><ExecutionAccessProvider value={{ project: { id: 9 } as never, team: { members: [{ userId: 2, fullName: 'Khang' }, { userId: 5, fullName: 'Duy' }] } as never, actor: 'student', currentUserId: 2, canManageStructure: manage, executionCapabilities: capabilities(allowed), routeBase: '/project' }}><TaskBoardPage /></ExecutionAccessProvider></MemoryRouter>)
 }
 beforeEach(() => { api.getProjectTasks.mockResolvedValue(empty); api.getProjectMilestones.mockResolvedValue([{ id: 3, title: 'Khởi động', status: 'PLANNED' }]) })
 afterEach(() => { cleanup(); vi.resetAllMocks() })
@@ -27,6 +28,14 @@ describe('TaskBoardPage', () => {
     expect(api.createTask).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', {name:'Hủy'}))
     expect(document.activeElement).toBe(screen.getByRole('button', {name:'Tạo công việc'}))
+  })
+  it('does not let an advisory leader flag override a denied backend action', async () => {
+    renderBoard(true, '/project/tasks', false); await screen.findByText('Không có công việc phù hợp')
+    expect(screen.queryByRole('button', { name: 'Tạo công việc' })).toBeNull()
+  })
+  it('shows creation to a member only when the backend action allows it', async () => {
+    renderBoard(false, '/project/tasks', true); await screen.findByText('Không có công việc phù hợp')
+    expect(screen.getByRole('button', { name: 'Tạo công việc' })).toBeTruthy()
   })
   it('submits filters to BE only after applying', async () => {
     renderBoard(false); await screen.findByText('Không có công việc phù hợp')

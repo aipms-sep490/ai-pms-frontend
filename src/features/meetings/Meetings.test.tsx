@@ -17,9 +17,10 @@ const meeting: MeetingDetail = {
   status: 'SCHEDULED', createdBy: 9, createdByName: 'Khang', createdAt: '2026-09-22T08:00:00', updatedAt: '2026-09-22T08:00:00', concurrencyToken: 'meeting-token',
   participants: [{ id: 101, meetingId: 42, userId: 9, fullName: 'Khang', email: 'khang@example.com', attendanceStatus: 'ACCEPTED', createdAt: '2026-09-22T08:00:00', updatedAt: '2026-09-22T08:00:00' }], feedbacks: [],
 }
-function mount({ actor = 'student', leader = true, userId = 9, path }: { actor?: 'student' | 'supervisor'; leader?: boolean; userId?: number; path?: string } = {}) {
+const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
+function mount({ actor = 'student', leader = true, userId = 9, path, scheduleAllowed = leader }: { actor?: 'student' | 'supervisor'; leader?: boolean; userId?: number; path?: string; scheduleAllowed?: boolean } = {}) {
   const routeBase = actor === 'student' ? '/project' : '/supervisor/projects/2'
-  const access: ExecutionAccess = { project: { id: 2, teamId: 3, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'], actor, canManageStructure: leader, currentUserId: userId, routeBase }
+  const access: ExecutionAccess = { project: { id: 2, teamId: 3, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'], actor, canManageStructure: leader, executionCapabilities: actor === 'student' ? capabilities(scheduleAllowed) : undefined, currentUserId: userId, routeBase }
   const router = createMemoryRouter([{ element: <ExecutionAccessProvider value={access}><Outlet /></ExecutionAccessProvider>, children: [
     { path: `${routeBase}/workspace`, element: <h1>Workspace</h1> },
     { path: `${routeBase}/meetings`, element: <MeetingsPage /> },
@@ -83,10 +84,21 @@ describe('Meetings end-user workflow', () => {
     expect(screen.queryByRole('button', { name: 'Viết nhận xét' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Hoàn tất cuộc họp' })).toBeNull()
   })
+  it('lets a member schedule only when the backend action explicitly allows it', async () => {
+    mount({ leader: false, userId: 10, path: '/project/meetings/new', scheduleAllowed: true })
+    expect(await screen.findByLabelText(/Tiêu đề/)).toBeTruthy()
+  })
   it('allows the original organizer to manage after they cease to be leader', async () => {
     mount({ leader: false, userId: 9 }); await ready()
     expect(screen.getByRole('button', { name: 'Sửa lịch' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Cập nhật biên bản' })).toBeTruthy()
+  })
+  it('allows the assignment-scoped supervisor to open the established meeting governance controls', async () => {
+    api.getMeeting.mockResolvedValue({ ...meeting, status: 'COMPLETED' })
+    mount({ actor: 'supervisor', leader: false, userId: 6 }); await ready()
+    expect(screen.getByRole('button', { name: 'Cập nhật biên bản' })).toBeTruthy()
+    await screen.findByText('Chưa có công việc sau họp.')
+    expect(screen.getByLabelText('Công việc', { exact: true })).toBeTruthy()
   })
   it('updates schedule without changing its participants or shifting time', async () => {
     mount(); await ready(); click('Sửa lịch')

@@ -9,6 +9,7 @@ import type { ProjectTimelineDataDto, TaskDto, TaskStatusHistoryDto } from '../.
 import { taskStatusLabel, utcTimestamp } from '../../projects/utils/collaboration-workspace'
 import { TaskEvidenceAndComments } from '../components/TaskEvidenceAndComments'
 import { TaskDisciplinePanel } from '../components/TaskDisciplinePanel'
+import { useTaskExecutionCapabilities } from '../../execution/hooks/useTaskExecutionCapabilities'
 
 export function TaskDetailPage() {
   const { taskId } = useParams()
@@ -17,7 +18,7 @@ export function TaskDetailPage() {
 }
 function TaskDetail({ id }: { id: number }) {
   const access = useExecutionAccess()
-  const { project, canManageStructure, currentUserId, routeBase, team } = access
+  const { project, routeBase, team } = access
   const navigate = useNavigate()
   const location = useLocation()
   const listSearch = typeof location.state?.taskListSearch === 'string' ? location.state.taskListSearch : ''
@@ -26,6 +27,7 @@ function TaskDetail({ id }: { id: number }) {
   const [task, setTask] = useState<TaskDto | null>(null)
   const [history, setHistory] = useState<TaskStatusHistoryDto[]>([])
   const [timeline, setTimeline] = useState<ProjectTimelineDataDto | null>(null)
+  const taskCapabilities = useTaskExecutionCapabilities(id, revision)
   const [loading, setLoading] = useState(true)
   const [historyLoading, setHistoryLoading] = useState(true)
   const [error, setError] = useState('')
@@ -51,13 +53,19 @@ function TaskDetail({ id }: { id: number }) {
   const allTasks = timeline?.milestones.flatMap(item => item.tasks) ?? []
   const milestone = timeline?.milestones.find(item => item.id === task.milestoneId)
   const contextValid = Boolean(milestone)
-  const canUpdateStatus = contextValid && (canManageStructure || Boolean(currentUserId && task.assignees.some(person => person.userId === currentUserId)))
+  const allowed = (code: string) => taskCapabilities.get(code).allowed
+  const canUpdate = contextValid && allowed('update_task')
+  const canUpdateStatus = contextValid && allowed('change_task_status')
+  const canAssign = contextValid && allowed('assign_task')
+  const canManageDependencies = contextValid && allowed('manage_task_dependencies')
+  const canManageDisciplines = contextValid && allowed('manage_task_disciplines')
+  const canAddEvidence = contextValid && allowed('add_evidence')
   const candidates = team?.members.map(member => ({ userId: member.userId, fullName: member.fullName })) ??
     [...new Map(allTasks.flatMap(item => item.assignees).map(person => [person.userId, person])).values()]
-  const mayDelete = canManageStructure && contextValid && !historyLoading && !historyError && !history.length && !task.assignees.length && !task.dependencies.length && !allTasks.some(item => item.dependencies.some(dependency => dependency.dependsOnTaskId === task.id))
+  const mayDelete = contextValid && allowed('delete_task')
   const saved = () => { setEditing(null); reload() }
   return <ExecutionPage title={task.title} eyebrow={milestone?.title ?? project.code} backTo={taskListUrl}
-    action={<><button className="ex-button" disabled={loading || mutation.busy} onClick={reload}><ExIcon name="refresh" />Cập nhật</button>{canManageStructure && contextValid && <button className="ex-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('content') }}><ExIcon name="edit" />Chỉnh sửa</button>}</>}>
+    action={<><button className="ex-button" disabled={loading || mutation.busy} onClick={reload}><ExIcon name="refresh" />Cập nhật</button>{canUpdate && <button className="ex-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('content') }}><ExIcon name="edit" />Chỉnh sửa</button>}</>}>
     <div className="ex-actions mb-6"><span className={`ex-badge ex-badge-${task.status}`}>{taskStatusLabel(task.status)}</span><span className="ex-muted">Ưu tiên {priorityLabels[task.priority ?? '']?.toLowerCase() ?? 'chưa chọn'}</span></div>
     {error && <ExState message={error} retry={reload} />}{contextError && <ExState message={contextError} retry={reload} />}
     {timeline && !contextValid && <p className="ex-notice ex-notice-error" role="alert">Công việc này không thuộc đồ án đang xem. <Link className="ex-link" to={`${routeBase}/tasks`}>Về danh sách công việc</Link></p>}
@@ -65,18 +73,18 @@ function TaskDetail({ id }: { id: number }) {
     {editing === 'content' && <TaskContentEditor task={task} timeline={timeline} busy={mutation.busy} onCancel={() => setEditing(null)} onSubmit={payload => mutation.run(() => services.task.updateTask(task.id, { ...payload, concurrencyToken: task.concurrencyToken }), saved)} />}
     <div className="ex-detail-grid"><div>
       <section className="ex-panel"><div className="ex-panel-heading"><h2>Nội dung công việc</h2></div><div className="ex-padding ex-stack"><p className="ex-prose">{task.description?.trim() || 'Chưa có mô tả cho công việc này.'}</p><dl className="ex-facts"><div><dt>Bắt đầu dự kiến</dt><dd>{dateTimeLabel(task.startAt)}</dd></div><div><dt>Hạn hoàn thành</dt><dd>{dateTimeLabel(task.dueAt)}</dd></div>{task.parentTaskId && <div><dt>Thuộc công việc</dt><dd><Link className="ex-link" to={`${routeBase}/tasks/${task.parentTaskId}`}>{allTasks.find(item => item.id === task.parentTaskId)?.title ?? 'Xem công việc cha'}</Link></dd></div>}<div><dt>Mốc đồ án</dt><dd>{milestone ? <Link className="ex-link" to={`${routeBase}/milestones/${milestone.id}`}>{milestone.title}</Link> : 'Đang tải thông tin mốc…'}</dd></div></dl></div></section>
-      <section className="ex-panel"><div className="ex-panel-heading"><h2>Người phụ trách</h2>{canManageStructure && contextValid && <button className="ex-text-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('assignees') }}>Phân công</button>}</div>
+      <section className="ex-panel"><div className="ex-panel-heading"><h2>Người phụ trách</h2>{canAssign && <button className="ex-text-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('assignees') }}>Phân công</button>}</div>
         <div className="ex-padding">{editing === 'assignees' ? <AssigneeEditor key={task.updatedAt} task={task} candidates={candidates} busy={mutation.busy} onCancel={() => setEditing(null)} onSubmit={ids => mutation.run(() => services.task.setTaskAssignees(task.id, ids, task.concurrencyToken), saved)} />
           : <p className="ex-prose">{task.assignees.map(person => person.userFullName).join(', ') || 'Chưa phân công người phụ trách.'}</p>}{!team && editing === 'assignees' && <p className="ex-muted mt-3">Danh sách gồm những người đã được giao công việc trong đồ án. Trưởng nhóm có thể phân công thêm thành viên từ danh sách nhóm.</p>}</div>
       </section>
-      <section className="ex-panel"><div className="ex-panel-heading"><div><h2>Công việc liên quan</h2><p>Các việc cần bắt đầu hoặc hoàn thành trước công việc này.</p></div>{canManageStructure && contextValid && <button className="ex-text-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('dependency') }}>Thêm liên kết</button>}</div>
-        <div className="ex-padding">{task.dependencies.length ? <ul className="ex-dependencies">{task.dependencies.map(dependency => <li key={dependency.id}><div><Link className="ex-link" to={`${routeBase}/tasks/${dependency.dependsOnTaskId}`}>{allTasks.find(item => item.id === dependency.dependsOnTaskId)?.title ?? 'Xem công việc liên quan'}</Link><small>{dependencyLabels[dependency.dependencyType] ?? 'Liên kết công việc'}</small></div>{canManageStructure && contextValid && <button className="ex-text-button" disabled={mutation.busy} onClick={() => void mutation.run(() => services.task.removeTaskDependency(task.id, dependency.dependsOnTaskId, task.concurrencyToken), reload)}>Bỏ liên kết</button>}</li>)}</ul> : <p className="ex-muted">Chưa có liên kết với công việc khác.</p>}
+      <section className="ex-panel"><div className="ex-panel-heading"><div><h2>Công việc liên quan</h2><p>Các việc cần bắt đầu hoặc hoàn thành trước công việc này.</p></div>{canManageDependencies && <button className="ex-text-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('dependency') }}>Thêm liên kết</button>}</div>
+        <div className="ex-padding">{task.dependencies.length ? <ul className="ex-dependencies">{task.dependencies.map(dependency => <li key={dependency.id}><div><Link className="ex-link" to={`${routeBase}/tasks/${dependency.dependsOnTaskId}`}>{allTasks.find(item => item.id === dependency.dependsOnTaskId)?.title ?? 'Xem công việc liên quan'}</Link><small>{dependencyLabels[dependency.dependencyType] ?? 'Liên kết công việc'}</small></div>{canManageDependencies && <button className="ex-text-button" disabled={mutation.busy} onClick={() => void mutation.run(() => services.task.removeTaskDependency(task.id, dependency.dependsOnTaskId, task.concurrencyToken), reload)}>Bỏ liên kết</button>}</li>)}</ul> : <p className="ex-muted">Chưa có liên kết với công việc khác.</p>}
           {editing === 'dependency' && <DependencyEditor tasks={allTasks.filter(item => item.id !== task.id && !task.dependencies.some(dependency => dependency.dependsOnTaskId === item.id))} busy={mutation.busy} onCancel={() => setEditing(null)} onSubmit={(dependsOnTaskId, dependencyType) => mutation.run(() => services.task.addTaskDependency({ taskId: task.id, dependsOnTaskId, dependencyType, concurrencyToken: task.concurrencyToken }), saved)} />}
         </div>
       </section>
       <section className="ex-panel"><div className="ex-panel-heading"><h2>Lịch sử cập nhật</h2></div><div className="ex-padding">{historyLoading ? <ExState loading /> : historyError ? <ExState message={historyError} retry={reload} /> : history.length ? <ol className="ex-history">{[...history].sort((a,b) => utcTimestamp(b.changedAt) - utcTimestamp(a.changedAt) || b.id - a.id).map(item => <li key={item.id}><strong>{item.oldStatus ? taskStatusLabel(item.oldStatus) : 'Tạo công việc'} → {taskStatusLabel(item.newStatus)}</strong><time>{dateTimeLabel(item.changedAt)} · {item.changedByFullName}</time>{item.reason && <p>{item.reason}</p>}</li>)}</ol> : <p className="ex-muted">Chưa có thay đổi trạng thái.</p>}</div></section>
-      <TaskEvidenceAndComments taskId={task.id} currentUserId={currentUserId ?? null} canManageStructure={canManageStructure} />
-      <TaskDisciplinePanel taskId={task.id} majors={project.majors} />
+      <TaskEvidenceAndComments taskId={task.id} canAddEvidence={canAddEvidence} />
+      <TaskDisciplinePanel taskId={task.id} majors={project.majors} canManage={canManageDisciplines} />
       {mayDelete && <><button className="ex-text-button ex-danger-text" onClick={() => setDeleting(true)}>Xóa công việc</button>{deleting && <ExConfirm title="Xóa công việc này?" description="Chỉ công việc chưa có phân công, liên kết hoặc lịch sử mới được xóa. Các công việc đã thực hiện nên chuyển sang trạng thái Đã hủy." busy={mutation.busy} onCancel={() => setDeleting(false)} onConfirm={() => void mutation.run(() => services.task.deleteTask(task.id, task.concurrencyToken), () => navigate(`${routeBase}/tasks`, { replace: true }), 'Đã xóa công việc.')} />}</>}
     </div><aside><section className="ex-panel"><div className="ex-panel-heading"><h2>Cập nhật tiến độ</h2></div><div className="ex-padding">{canUpdateStatus ? <StatusEditor key={task.status} task={task} busy={mutation.busy} onSubmit={(newStatus, reason) => mutation.run(() => services.task.updateTaskStatus(task.id, { newStatus, reason: reason.trim() || null, concurrencyToken: task.concurrencyToken }), reload, 'Đã cập nhật trạng thái.')} />
       : <p className="ex-muted">Người phụ trách, trưởng nhóm và giảng viên hướng dẫn có thể cập nhật trạng thái công việc.</p>}</div></section></aside></div>

@@ -96,6 +96,32 @@ export interface ProjectWorkflowActionsDto {
   actions: WorkflowActionDto[]
 }
 
+export interface ProjectExecutionActionsDto {
+  asOfUtc: string
+  projectId: number
+  status: string
+  concurrencyToken: string
+  actions: WorkflowActionDto[]
+}
+
+export interface TaskExecutionActionsDto {
+  asOfUtc: string
+  taskId: number
+  projectId: number
+  status: string
+  concurrencyToken?: string | null
+  actions: WorkflowActionDto[]
+}
+
+export interface MilestoneExecutionActionsDto {
+  asOfUtc: string
+  milestoneId: number
+  projectId: number
+  status: string
+  concurrencyToken?: string | null
+  actions: WorkflowActionDto[]
+}
+
 export function isActionAllowed(actions: WorkflowActionDto[], code: string): boolean {
   return actions.some((action) => action.code === code && action.allowed)
 }

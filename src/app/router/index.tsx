@@ -5,7 +5,11 @@ import { HomeRedirect, RoleRoute } from '../../features/auth/components/RoleRout
 import { LecturerWorkspacePage } from '../../features/supervisors/pages/LecturerWorkspacePage'
 import { SupervisorProfilePage } from '../../features/supervisors/pages/SupervisorProfilePage'
 import { SupervisorProjectWorkspacePage } from '../../features/supervisors/pages/SupervisorProjectWorkspacePage'
+import { SupervisorProgressReviewPage } from '../../features/supervisors/pages/SupervisorProgressReviewPage'
+import { SupervisorFinalSubmissionPage } from '../../features/supervisors/pages/SupervisorFinalSubmissionPage'
 import { SupervisorExecutionRoute } from '../../features/supervisors/components/SupervisorExecutionRoute'
+import { MentorExecutionRoute } from '../../features/mentors/components/MentorExecutionRoute'
+import { MentorProjectWorkspacePage, MentorWorkspacePage } from '../../features/mentors/pages/MentorWorkspacePage'
 import { OverviewPage } from '../pages/OverviewPage'
 import { ActiveProjectWorkspacePage } from '../../features/projects/pages/ActiveProjectWorkspacePage'
 import { ActiveStudentProjectRoute } from '../../features/projects/components/ActiveStudentProjectRoute'
@@ -53,6 +57,7 @@ import { EvaluationSchemeManagementPage } from '../../features/evaluations/Evalu
 import { StudentProjectResultPage } from '../../features/results/StudentProjectResultPage'
 import { ProjectContributionsPage } from '../../features/contributions/ProjectContributionsPage'
 import { ProjectFilesPage } from '../../features/files/ProjectFilesPage'
+import { ProjectEvidenceLedgerPage } from '../../features/evidence/ProjectEvidenceLedger'
 import { ProjectAiPage } from '../../features/ai/ProjectAiPage'
 import { DepartmentProjectRiskPage } from '../../features/ai/DepartmentProjectRiskPage'
 import { ArchivedProjectsPage } from '../../features/projects/pages/ArchivedProjectsPage'
@@ -97,6 +102,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'project/meetings/:meetingId', element: <MeetingDetailPage /> },
             { path: 'project/deliverables', element: <DeliverablesPage /> },
             { path: 'project/files', element: <ProjectFilesPage /> },
+            { path: 'project/evidence', element: <ProjectEvidenceLedgerPage /> },
             { path: 'project/contributions', element: <ProjectContributionsPage /> },
             ...(env.aiAdvisoryEnabled ? [{ path: 'project/ai', element: <ProjectAiPage /> }] : []),
           ] },
@@ -119,8 +125,10 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'supervisor/workspace', element: <LecturerWorkspacePage /> },
           { path: 'supervisor/profile', element: <SupervisorProfilePage /> },
           { path: 'supervisor/dashboard', element: <SupervisorDashboardPage /> },
+          { path: 'mentor/workspace', element: <MentorWorkspacePage /> },
           { element: <SupervisorExecutionRoute />, children: [
             { path: 'supervisor/projects/:projectId/workspace', element: <SupervisorProjectWorkspacePage /> },
+            { path: 'supervisor/projects/:projectId/progress', element: <SupervisorProgressReviewPage /> },
             { path: 'supervisor/projects/:projectId/milestones/:milestoneId?', element: <MilestoneDetailPage /> },
             { path: 'supervisor/projects/:projectId/tasks', element: <TaskBoardPage /> },
             { path: 'supervisor/projects/:projectId/tasks/:taskId', element: <TaskDetailPage /> },
@@ -132,10 +140,21 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'supervisor/projects/:projectId/meetings/:meetingId', element: <MeetingDetailPage /> },
             { path: 'supervisor/projects/:projectId/deliverables', element: <DeliverablesPage /> },
             { path: 'supervisor/projects/:projectId/files', element: <ProjectFilesPage /> },
+            { path: 'supervisor/projects/:projectId/evidence', element: <ProjectEvidenceLedgerPage /> },
             { path: 'supervisor/projects/:projectId/contributions', element: <ProjectContributionsPage /> },
+            { path: 'supervisor/projects/:projectId/final-submission', element: <SupervisorFinalSubmissionPage /> },
             ...(env.aiAdvisoryEnabled ? [{ path: 'supervisor/projects/:projectId/ai', element: <ProjectAiPage /> }] : []),
           ] },
-          { path: 'supervisor/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/supervisor/workspace" backLabel="Bàn làm việc GVHD" /> },
+          { element: <MentorExecutionRoute />, children: [
+            { path: 'mentor/projects/:projectId/majors/:majorId/workspace', element: <MentorProjectWorkspacePage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/tasks', element: <TaskBoardPage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/tasks/:taskId', element: <TaskDetailPage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/reports', element: <ProgressReportsPage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/reports/:reportId', element: <ProgressReportDetailPage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/meetings', element: <MeetingsPage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/meetings/:meetingId', element: <MeetingDetailPage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/evidence', element: <ProjectEvidenceLedgerPage /> },
+          ] },
           { path: 'evaluator/evaluations', element: <EvaluatorAssignmentsPage /> },
           { path: 'evaluator/evaluations/:evaluationId', element: <EvaluationWorkspacePage /> },
           { path: 'evaluator/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/evaluator/evaluations" backLabel="Danh sách assignments" /> },

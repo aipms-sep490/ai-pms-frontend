@@ -9,9 +9,11 @@ import { HttpError } from '../../../services/http/http-client'
 import { CollaborationWorkspace } from './CollaborationWorkspace'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { projectStatusLabel } from '../utils/project-status'
+import { useProjectExecutionCapabilities } from '../../execution/hooks/useProjectExecutionCapabilities'
 
 export function ActiveProjectWorkspacePage() {
   const journey = useStudentJourney()
+  const executionCapabilities = useProjectExecutionCapabilities(journey.project?.id)
   const fallback = resolveStudentNextAction({
     journeyState: journey.journeyState,
     projectStatus: journey.project?.status,
@@ -31,6 +33,7 @@ export function ActiveProjectWorkspacePage() {
       team={journey.team}
       supervisor={getActivePrimaryAssignment(journey.assignments)}
       currentUserId={journey.profile?.id}
+      executionCapabilities={executionCapabilities}
     />
   )
 }
