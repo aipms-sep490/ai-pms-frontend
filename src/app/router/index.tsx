@@ -35,7 +35,9 @@ import { ProfilePage } from '../../features/auth/pages/ProfilePage'
 import { AcademicStructurePage } from '../../features/academic/pages/AcademicStructurePage'
 import { AcademicGovernancePage } from '../../features/academic/pages/AcademicGovernancePage'
 import { PeriodPolicyManagementPage } from '../../features/academic/pages/PeriodPolicyManagementPage'
-import { AdminSecurityPage } from '../../features/users/pages/AdminSecurityPage'
+import { AdminWorkspacePage } from '../../features/users/pages/AdminWorkspacePage'
+import { AdminRbacPage } from '../../features/users/pages/AdminRbacPage'
+import { AdminUserDetailPage } from '../../features/users/pages/AdminUserDetailPage'
 import { ProjectReviewPage } from '../../features/projects/pages/ProjectReviewPage'
 import { ProjectGovernancePage } from '../../features/projects/pages/ProjectGovernancePage'
 import { SupervisorMonitoringPage } from '../../features/supervisors/pages/SupervisorMonitoringPage'
@@ -181,6 +183,11 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
         element: <RoleRoute allowed={['department', 'admin']} />,
         children: [
           { path: 'academic', element: <AcademicStructurePage /> },
+        ],
+      },
+      {
+        element: <RoleRoute allowed={['department']} />,
+        children: [
           { path: 'department/portfolio', element: <PortfolioDashboardPage /> },
           { path: 'department/projects/archived', element: <ArchivedProjectsPage /> },
           { path: 'academic/governance', element: <AcademicGovernancePage /> },
@@ -208,7 +215,11 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
       },
       {
         element: <RoleRoute allowed={['admin']} />,
-        children: [{ path: 'admin/access', element: <AdminSecurityPage /> }],
+        children: [
+          { path: 'admin/access', element: <AdminWorkspacePage /> },
+          { path: 'admin/access/rbac', element: <AdminRbacPage /> },
+          { path: 'admin/access/users/:userId', element: <AdminUserDetailPage /> },
+        ],
       },
 
       { path: '*', element: <NotFoundPage /> },

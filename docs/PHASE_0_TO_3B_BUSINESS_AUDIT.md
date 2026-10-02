@@ -332,3 +332,26 @@ not disclose package/evidence files, does not calculate finalizability/results,
 and records `BE-AW-006` through `BE-AW-008`. Phase 5 is
 **`PARTIAL_ACCEPTABLE`**: the current FE-addressable contract is wired, while
 privacy/correctness-sensitive read gaps remain `BE_HANDOFF_REQUIRED`.
+
+## 14. Phase 6: System Administration Workspace
+
+Phase 6 modernizes the canonical `/admin/access` route into Platform
+Administration and adds guarded account-detail and RBAC routes. The route
+requires the `ADMIN` identity on the frontend and the Backend
+`AccountSecurityManagement` policy remains the final authority. Accounts,
+RBAC, audit, and academic structure are independently loaded so an audit
+failure does not hide account administration.
+
+Admin is not Department Staff: project review, evaluation publication,
+supervisor governance, project-period policy and other Department academic
+governance routes are no longer enclosed by the Admin-compatible route group.
+The reusable `/academic` structure page remains available where its Backend
+action authorizes it; it is not a claim of semester/project-period authority.
+
+Account create, atomic JSON import, account lifecycle, account detail,
+permission mapping, hierarchy read/managed action behavior, and audit metadata
+are `VERIFIED_FE` against delivered endpoints. Account update/profile scope and
+safe global role/catalogue classification are `BE_HANDOFF_REQUIRED` under
+`BE-AW-009` and `BE-AW-010`; the UI fails closed for both. Authenticated Admin
+browser acceptance remains `BLOCKED_BY_CREDENTIAL`. Phase 6 is therefore
+**`PARTIAL_ACCEPTABLE`**.

@@ -177,3 +177,49 @@ the final authority.
 | FE behavior before Backend delivery | Show only returned leaf criteria and an explicit explanation; never create parent score inputs. |
 | FE behavior after Backend delivery | Render hierarchy read-only with accessible grouping, while retaining leaf-only score controls. |
 | Acceptance scenarios | Nested rubric displays parents without inputs; leaf score saves; foreign evaluator cannot read hierarchy; finalized hierarchy matches evaluation snapshot even if live rubric changes. |
+
+## Handoff I — administrative account update and academic-profile scope
+
+**ID:** `BE-AW-009`
+**Priority:** `BLOCKING_CONTRACT`
+**Status:** `BE_HANDOFF_REQUIRED`
+
+| Field | Required backend delivery |
+| --- | --- |
+| Feature | Administrative update of an existing account identity and academic-profile links. |
+| Affected actor | Persisted `ADMIN` authorized by account-security policy; Department Staff must not substitute. |
+| Affected FE route/component | `/admin/access/users/:userId`, `AdminUserDetailPage`. |
+| Existing Backend | `GET /users/{id}`, create/import, lifecycle and global role endpoints are delivered. `PUT /users/me/profile` is self-service only; academic-profile verification is academic-management scoped. |
+| Missing contract | `PUT /api/v1/users/{userId}` and a separately explicit academic-profile scope command/read with policy-protected fields. |
+| Why FE cannot infer safely | A visible department/major ID cannot establish valid role shape, parent organization, account status, or downstream academic integrity. |
+| Proposed API/DTO | `{ concurrencyToken, fullName, phone?, title?, studentCode?, employeeCode?, academicProfile?: { organizationId?, departmentId?, majorId? } }` with returned account/profile state and validation issues. |
+| Authority/resource scope | Resolve Admin policy server-side; validate role-to-profile shape and active hierarchy parentage. This never grants project, supervisor, evaluator or Department-review scope. |
+| State rules | Inactive parent/invalid role link/duplicate code deny; existing project data is not silently rewritten. |
+| Concurrency | Required optimistic token; stale update returns `409` and FE retains input then reloads authoritative state. |
+| Expected errors | `400` validation; `401`; `403`; `404` undisclosable user; `409` duplicate/stale/integrity conflict. |
+| FE behavior before delivery | Identity and profile fields remain read-only; no local patch is fabricated. |
+| FE behavior after delivery | Show an explicit edit form, preserve recoverable input, confirm scope impact, and refresh after accepted write. |
+| Acceptance tests | Non-Admin/Department deny; invalid role/profile combination deny; inactive parent deny; stale token preserves form; valid update emits audit metadata. |
+
+## Handoff J — constrained platform role and permission catalogue policy
+
+**ID:** `BE-AW-010`
+**Priority:** `BLOCKING_CONTRACT`
+**Status:** `BE_HANDOFF_REQUIRED`
+
+| Field | Required backend delivery |
+| --- | --- |
+| Feature | Safe platform-catalogue creation/deletion and global-role assignment. |
+| Affected actor | Persisted `ADMIN` only. |
+| Affected FE route/component | `/admin/access/rbac`, account detail role controls. |
+| Existing Backend | Generic role/permission create, update, delete and mapping commands are account-security protected; role codes are otherwise arbitrary. |
+| Missing contract | Catalogue classification/allow-list for identity roles, platform custom roles, system records, and forbidden resource-scoped concepts. |
+| Why FE cannot infer safely | String filtering cannot prove a new role is not a project assignment such as `EVALUATOR`, `TEAM_LEADER`, or `PRIMARY_SUPERVISOR`. |
+| Proposed API/DTO | Add `{ category: IDENTITY|PLATFORM|RESOURCE_SCOPED, assignableGlobally, mutable, reasons }` to role DTOs and reject resource-scoped codes on global role commands. |
+| Authority/resource scope | Backend validates role semantics and protects system roles; permission mapping remains metadata and never bypasses project/department/assignment scope. |
+| State rules | Protected role deletion/change denies; last active Admin rules remain unchanged. |
+| Concurrency | Add role catalogue/version token if mappings are edited concurrently; otherwise server returns deterministic conflict. |
+| Expected errors | `400` invalid category; `401`; `403`; `404`; `409` duplicate/protected/stale. |
+| FE behavior before delivery | Role/permission mutation and user-role assignment are fail-closed; existing mapping read/write is retained because it targets a selected returned role. |
+| FE behavior after delivery | Offer only backend-classified global roles and policy-permitted catalogue actions. |
+| Acceptance tests | Admin may assign `ADMIN`/`LECTURER`; attempts for evaluator/team/supervisor resource concepts deny; permission grant never authorizes an out-of-scope project mutation. |
