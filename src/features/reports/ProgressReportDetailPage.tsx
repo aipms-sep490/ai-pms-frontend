@@ -16,7 +16,8 @@ export function ProgressReportDetailPage({ create = false }: { create?: boolean 
 }
 
 function ReportDetailView({ access, create, id }: { access: ExecutionAccess; create: boolean; id: number }) {
-  const { project, actor, canManageStructure, routeBase } = access
+  const { project, actor, canManageStructure, executionCapabilities, routeBase } = access
+  const canCreate = actor === 'student' && executionCapabilities?.get('create_progress_report').allowed === true
   const navigate = useNavigate()
   const [report, setReport] = useState<ReportDetail | null>(null)
   const [loading, setLoading] = useState(!create)
@@ -76,7 +77,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
   }
 
   async function save(value: CreateReport) {
-    if (actor !== 'student' || (!create && report?.status !== 'DRAFT')) return
+    if ((create && !canCreate) || actor !== 'student' || (!create && report?.status !== 'DRAFT')) return
     await mutate(async () => {
       if (create) {
         const created = await api.createProgressReport(project.id, value)
@@ -109,7 +110,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
       await api.addProgressReportFeedback(id, feedback.trim(), report.concurrencyToken)
       if (!mounted.current) return
       // Clear only after POST succeeds; a failed follow-up GET must never invite a duplicate POST.
-      setFeedback(''); setSuccess('Đã gửi nhận xét cho nhóm.'); setRevision((value) => value + 1)
+      setFeedback(''); setSuccess('Đã gửi phản hồi cho nhóm.'); setRevision((value) => value + 1)
     })
   }
 
@@ -121,7 +122,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
     {blocker.state === 'blocked' && <div className="report-notice report-notice--error" role="alert"><p>Bạn có nội dung chưa lưu. Rời trang sẽ bỏ những thay đổi này.</p><div className="flex flex-wrap gap-3"><button className="report-button report-button--secondary" onClick={() => blocker.reset()}>Ở lại soạn tiếp</button><button className="report-button" onClick={() => blocker.proceed()}>Bỏ thay đổi và rời trang</button></div></div>}
     {success && <p role="status" className="report-notice report-notice--success">{success}</p>}
     {error && <ReportError message={error} />}
-    {loading ? <ReportLoading /> : loadError ? <ReportError message={loadError} retry={() => setRevision((value) => value + 1)} /> : create && actor !== 'student' ? <ReportError message="Chỉ thành viên nhóm mới có thể tạo báo cáo." /> : <>
+    {loading ? <ReportLoading /> : loadError ? <ReportError message={loadError} retry={() => setRevision((value) => value + 1)} /> : create && !canCreate ? <ReportError message="Backend hiện không cho phép bạn tạo báo cáo tiến độ cho đồ án này." /> : <>
       {report && <div className="report-detail-banner"><div><p className="report-eyebrow">{reportTypeLabels[report.reportType]} • #{report.id}</p><h2>{formatReportDate(report.periodStart)} – {formatReportDate(report.periodEnd)}</h2><p>{report.status === 'DRAFT' ? 'Người tạo' : 'Người nộp'}: {report.submittedByName}{report.submittedAt ? ` • Nộp ngày ${formatReportDate(report.submittedAt)}` : ''}</p></div><div><ReportBadge status={report.status} />{report.isLate === true && <p className="report-late">Nộp trễ hạn</p>}</div></div>}
       <div className="report-detail-grid">
         <div>{editable ? <ReportEditor key={editorVersion} report={report ?? undefined} busy={busy} onSave={save} onDirtyChange={(value) => { setDirty(value); setConfirmSubmit(false) }} /> : report && <article className="report-panel report-reading"><h2>Nội dung báo cáo</h2>{contentFields.map(({ key, label }, index) => <section key={key}><h3><span>{String(index + 1).padStart(2, '0')}</span>{label}</h3><p>{report[key] || 'Chưa có nội dung.'}</p></section>)}</article>}</div>
@@ -138,11 +139,11 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
             </> : <p>Nội dung đã được khóa sau khi nộp. {report?.status === 'REVIEWED' ? 'GVHD đã gửi nhận xét; xem chi tiết bên dưới.' : 'Báo cáo đang chờ nhận xét từ GVHD.'}</p>}
             {!create && <button className="report-text-button" disabled={busy || hasUnsavedChanges} onClick={() => { setError(''); setRevision((value) => value + 1) }}>Tải lại trạng thái</button>}
           </section>
-          {report && <section className="report-panel report-feedback" aria-labelledby="feedback-title"><div className="report-section-heading"><h2 id="feedback-title">Nhận xét của GVHD</h2><span>{report.feedbacks.length}</span></div>
-            {report.feedbacks.length === 0 ? <p className="report-help">Chưa có nhận xét. Phản hồi của GVHD sẽ xuất hiện tại đây.</p> : <ol>{report.feedbacks.map((item) => <li key={item.id}><strong>{item.supervisorName}</strong><time dateTime={item.createdAt}>{formatReportDate(item.createdAt)}</time><p>{item.feedbackText}</p></li>)}</ol>}
-            {actor === 'supervisor' && ['SUBMITTED', 'REVIEWED'].includes(report.status) && <form onSubmit={(event) => void sendFeedback(event)}><label htmlFor="report-feedback">Nhận xét mới</label><textarea id="report-feedback" required rows={5} value={feedback} disabled={busy} onChange={(event) => setFeedback(event.target.value)} placeholder="Nhận xét kết quả và hướng dẫn bước tiếp theo…" /><button className="report-button" disabled={busy || !feedback.trim()} type="submit">{busy ? 'Đang gửi…' : 'Gửi nhận xét'}</button></form>}
+          {report && <section className="report-panel report-feedback" aria-labelledby="feedback-title"><div className="report-section-heading"><h2 id="feedback-title">Phản hồi của GVHD</h2><span>{report.feedbacks.length}</span></div>
+            {report.feedbacks.length === 0 ? <p className="report-help">Chưa có phản hồi. Phản hồi của GVHD sẽ xuất hiện tại đây.</p> : <ol>{report.feedbacks.map((item) => <li key={item.id}><strong>{item.supervisorName}</strong><time dateTime={item.createdAt}>{formatReportDate(item.createdAt)}</time><p>{item.feedbackText}</p></li>)}</ol>}
+            {actor === 'supervisor' && ['SUBMITTED', 'REVIEWED'].includes(report.status) && <form onSubmit={(event) => void sendFeedback(event)}><label htmlFor="report-feedback">Phản hồi mới</label><textarea id="report-feedback" required rows={5} value={feedback} disabled={busy} onChange={(event) => setFeedback(event.target.value)} placeholder="Phản hồi về kết quả và hướng dẫn bước tiếp theo…" /><button className="report-button" disabled={busy || !feedback.trim()} type="submit">{busy ? 'Đang gửi…' : 'Gửi phản hồi'}</button></form>}
           </section>}
-          {report && env.aiAdvisoryEnabled && <ReportAiSummary projectId={project.id} reportId={report.id} />}
+          {report && actor !== 'mentor' && env.aiAdvisoryEnabled && <ReportAiSummary projectId={project.id} reportId={report.id} />}
         </aside>
       </div>
     </>}

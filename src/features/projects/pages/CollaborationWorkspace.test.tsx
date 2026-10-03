@@ -35,7 +35,8 @@ function mockTransport(handler?: Handler) {
     throw new Error(`Unexpected test endpoint: ${url.pathname}`)
   }))
 }
-const renderWorkspace = (currentUserId = 1) => render(<MemoryRouter><CollaborationWorkspace project={project} team={team} currentUserId={currentUserId} /></MemoryRouter>)
+const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
+const renderWorkspace = (currentUserId = 1, createAllowed = currentUserId === 1) => render(<MemoryRouter><CollaborationWorkspace project={project} team={team} currentUserId={currentUserId} executionCapabilities={capabilities(createAllowed)} /></MemoryRouter>)
 
 beforeEach(() => { calls.length = 0; localStorage.setItem('token', 'test-session-token'); mockTransport() })
 afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
@@ -66,14 +67,38 @@ describe('collaboration workspace API integration', () => {
     let denied = true
     mockTransport(url => url.pathname.endsWith('/timeline') && denied ? json({ title: 'Forbidden' }, 403) : undefined)
     renderWorkspace(2)
-    expect(await screen.findAllByText('Bạn chưa có quyền xem công việc của nhóm.')).toHaveLength(3)
+    expect(await screen.findAllByText('Bạn chưa có quyền xem công việc của nhóm.')).toHaveLength(2)
     expect(screen.queryByRole('progressbar', { name: `Tiến độ công việc của ${names[0]}` })).toBeNull()
     expect(screen.queryByText('Nhóm không có công việc nào đang mở.')).toBeNull()
     expect(screen.getByText('1/3 việc hoàn thành')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Tạo công việc' })).toBeNull()
     denied = false
     fireEvent.click(screen.getAllByRole('button', { name: 'Thử lại' })[0])
-    expect(await screen.findByRole('progressbar', { name: `Tiến độ công việc của ${names[0]}` })).toBeTruthy()
+    expect((await screen.findAllByRole('link', { name: /Kiểm tra báo cáo/ })).length).toBeGreaterThan(0)
+  })
+
+  it('gives a member a private work queue without team-wide coordination controls', async () => {
+    renderWorkspace(2)
+
+    expect(await screen.findByRole('heading', { name: 'Không gian công việc của tôi' })).toBeTruthy()
+    expect(screen.queryByRole('region', { name: /Tiến độ từng thành viên/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Tạo công việc' })).toBeNull()
+    const taskSection = screen.getByRole('region', { name: 'Công việc của tôi' })
+    expect(within(taskSection).getByRole('link', { name: /Kiểm tra báo cáo/ })).toBeTruthy()
+    expect(within(taskSection).queryByText('Hoàn thiện luồng đăng ký')).toBeNull()
+    expect(within(taskSection).getByRole('link', { name: /Xem tất cả/ }).getAttribute('href')).toBe('/project/tasks?assignee=2')
+    expect(screen.getByRole('region', { name: /Đóng góp và chứng cứ/ })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Tệp và chứng cứ/ }).getAttribute('href')).toBe('/project/files')
+  })
+  it('does not let the overview leader presentation override a denied task action', async () => {
+    renderWorkspace(1, false)
+    await screen.findByRole('heading', { name: 'Điều phối đồ án' })
+    expect(screen.queryByRole('button', { name: 'Tạo công việc' })).toBeNull()
+  })
+  it('shows a task CTA to a member when the backend action explicitly allows it', async () => {
+    renderWorkspace(2, true)
+    await screen.findByRole('heading', { name: 'Không gian công việc của tôi' })
+    expect(screen.getByRole('button', { name: 'Tạo công việc' })).toBeTruthy()
   })
 
   it('reads all descending meeting pages before choosing the next meeting and preserves partial report feedback', async () => {

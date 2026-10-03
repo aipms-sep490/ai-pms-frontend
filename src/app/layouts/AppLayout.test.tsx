@@ -18,7 +18,7 @@ function renderAppLayout(initialEntries = ['/project/overview'], roles: string[]
       <AcademicWorkflowContext.Provider value={{
         currentUser: auth.session?.user ?? null, workflowContext: null, academic: null,
         authorization: { roles: [], permissions: [], departmentIds: [], majorIds: [] },
-        status: 'idle', error: null, errorKind: null, refresh: async () => {},
+        status: 'ready', error: null, errorKind: null, refresh: async () => {},
       }}>
         <StudentJourneyContext.Provider value={journey}><MemoryRouter initialEntries={initialEntries}><AppLayout /></MemoryRouter></StudentJourneyContext.Provider>
       </AcademicWorkflowContext.Provider>
@@ -62,7 +62,8 @@ describe('AppLayout & Navigation Shell', () => {
 
   it('shows role-specific navigation without a student workspace for lecturers', () => {
     renderAppLayout(['/supervisor/workspace'], ['LECTURER'])
-    expect(screen.getByRole('link', { name: /Bàn làm việc GVHD/ })).toBeDefined()
+    expect(screen.getByRole('link', { name: /Bàn làm việc giảng viên/ })).toBeDefined()
+    expect(screen.queryByRole('link', { name: /Đánh giá được phân công/ })).toBeNull()
     expect(screen.queryByRole('link', { name: /Tổng quan lộ trình/ })).toBeNull()
   })
 
@@ -72,9 +73,22 @@ describe('AppLayout & Navigation Shell', () => {
     expect(screen.queryByRole('link', { name: /Tổng quan lộ trình/ })).toBeNull()
   })
 
+  it('shows an unavailable-context state instead of an invented empty team after a journey error', () => {
+    const journey: StudentJourneyContextValue = { journeyState: 'TEAM_FORMING', profile: null, semester: null, period: null, team: null, project: null, assignments: [], workflowContext: null, teamActions: null, projectActions: null, isLoading: false, error: 'Network unavailable', refreshAll: async () => {}, setSimulatedJourneyState: () => {} }
+    renderAppLayout(['/project/overview'], ['STUDENT'], journey)
+    expect(screen.getAllByRole('alert').some((node) => node.textContent?.includes('Chưa tải được ngữ cảnh đồ án'))).toBe(true)
+    expect(screen.queryByRole('link', { name: 'Tổng quan lộ trình' })).toBeNull()
+  })
+
+  it('keeps platform administration separate from academic governance navigation', () => {
+    renderAppLayout(['/admin/access'], ['ADMIN'])
+    expect(screen.getByRole('link', { name: 'Quản trị nền tảng' })).toBeDefined()
+    expect(screen.queryByRole('link', { name: 'Thẩm định đề cương' })).toBeNull()
+  })
+
   it('shows ACTIVE students the contribution, final-submission, and result routes', () => {
     const journey: StudentJourneyContextValue = {
-      journeyState: 'ACTIVE', profile: null, semester: null, period: null, team: null, project: null,
+      journeyState: 'ACTIVE', profile: null, semester: null, period: null, team: null, project: { id: 1, status: 'ACTIVE' } as any,
       assignments: [], workflowContext: null, teamActions: null, projectActions: null,
       isLoading: false, error: null, refreshAll: async () => {}, setSimulatedJourneyState: () => {},
     }

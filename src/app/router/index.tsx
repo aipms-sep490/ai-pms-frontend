@@ -5,7 +5,11 @@ import { HomeRedirect, RoleRoute } from '../../features/auth/components/RoleRout
 import { LecturerWorkspacePage } from '../../features/supervisors/pages/LecturerWorkspacePage'
 import { SupervisorProfilePage } from '../../features/supervisors/pages/SupervisorProfilePage'
 import { SupervisorProjectWorkspacePage } from '../../features/supervisors/pages/SupervisorProjectWorkspacePage'
+import { SupervisorProgressReviewPage } from '../../features/supervisors/pages/SupervisorProgressReviewPage'
+import { SupervisorFinalSubmissionPage } from '../../features/supervisors/pages/SupervisorFinalSubmissionPage'
 import { SupervisorExecutionRoute } from '../../features/supervisors/components/SupervisorExecutionRoute'
+import { MentorExecutionRoute } from '../../features/mentors/components/MentorExecutionRoute'
+import { MentorProjectWorkspacePage, MentorWorkspacePage } from '../../features/mentors/pages/MentorWorkspacePage'
 import { OverviewPage } from '../pages/OverviewPage'
 import { ActiveProjectWorkspacePage } from '../../features/projects/pages/ActiveProjectWorkspacePage'
 import { ActiveStudentProjectRoute } from '../../features/projects/components/ActiveStudentProjectRoute'
@@ -31,7 +35,9 @@ import { ProfilePage } from '../../features/auth/pages/ProfilePage'
 import { AcademicStructurePage } from '../../features/academic/pages/AcademicStructurePage'
 import { AcademicGovernancePage } from '../../features/academic/pages/AcademicGovernancePage'
 import { PeriodPolicyManagementPage } from '../../features/academic/pages/PeriodPolicyManagementPage'
-import { AdminSecurityPage } from '../../features/users/pages/AdminSecurityPage'
+import { AdminWorkspacePage } from '../../features/users/pages/AdminWorkspacePage'
+import { AdminRbacPage } from '../../features/users/pages/AdminRbacPage'
+import { AdminUserDetailPage } from '../../features/users/pages/AdminUserDetailPage'
 import { ProjectReviewPage } from '../../features/projects/pages/ProjectReviewPage'
 import { ProjectGovernancePage } from '../../features/projects/pages/ProjectGovernancePage'
 import { SupervisorMonitoringPage } from '../../features/supervisors/pages/SupervisorMonitoringPage'
@@ -41,6 +47,9 @@ import { QualificationVerificationPage } from '../../features/qualifications/pag
 import { DeliverablesPage } from '../../features/deliverables/DeliverablesPage'
 import { EvaluatorAssignmentsPage } from '../../features/evaluations/EvaluatorAssignmentsPage'
 import { EvaluationWorkspacePage } from '../../features/evaluations/EvaluationWorkspacePage'
+import { EvaluatorAssignmentRoute } from '../../features/evaluations/components/EvaluatorAssignmentRoute'
+import { EvaluatorAssignmentDetailPage } from '../../features/evaluations/pages/EvaluatorAssignmentDetailPage'
+import { EvaluatorWorkspacePage } from '../../features/evaluations/pages/EvaluatorWorkspacePage'
 import { ResultPublicationPage } from '../../features/results/ResultPublicationPage'
 import { ProtectedRoute } from '../../features/auth/components/ProtectedRoute'
 import { NotificationsPage } from '../../features/notifications/NotificationsPage'
@@ -53,10 +62,14 @@ import { EvaluationSchemeManagementPage } from '../../features/evaluations/Evalu
 import { StudentProjectResultPage } from '../../features/results/StudentProjectResultPage'
 import { ProjectContributionsPage } from '../../features/contributions/ProjectContributionsPage'
 import { ProjectFilesPage } from '../../features/files/ProjectFilesPage'
+import { ProjectEvidenceLedgerPage } from '../../features/evidence/ProjectEvidenceLedger'
 import { ProjectAiPage } from '../../features/ai/ProjectAiPage'
 import { DepartmentProjectRiskPage } from '../../features/ai/DepartmentProjectRiskPage'
+import { DepartmentWorkspacePage } from '../../features/department/pages/DepartmentWorkspacePage'
+import { DepartmentAcademicScopeRoute } from '../../features/department/components/DepartmentAcademicScopeRoute'
 import { ArchivedProjectsPage } from '../../features/projects/pages/ArchivedProjectsPage'
 import { ProjectArchiveViewPage } from '../../features/projects/pages/ProjectArchiveViewPage'
+import { CalendarAttentionPage } from '../../features/calendar/CalendarAttentionPage'
 import { AcademicWorkflowGate, StudentJourneyProvider } from '../context'
 import { env } from '../config/env'
 
@@ -79,6 +92,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
       { path: 'profile', element: <ProfilePage /> },
       { path: 'profile/security', element: <ProfileSecurityPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
+      { path: 'calendar', element: <CalendarAttentionPage /> },
       {
         element: <RoleRoute allowed={['student']} />,
         children: [
@@ -97,6 +111,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'project/meetings/:meetingId', element: <MeetingDetailPage /> },
             { path: 'project/deliverables', element: <DeliverablesPage /> },
             { path: 'project/files', element: <ProjectFilesPage /> },
+            { path: 'project/evidence', element: <ProjectEvidenceLedgerPage /> },
             { path: 'project/contributions', element: <ProjectContributionsPage /> },
             ...(env.aiAdvisoryEnabled ? [{ path: 'project/ai', element: <ProjectAiPage /> }] : []),
           ] },
@@ -119,8 +134,10 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'supervisor/workspace', element: <LecturerWorkspacePage /> },
           { path: 'supervisor/profile', element: <SupervisorProfilePage /> },
           { path: 'supervisor/dashboard', element: <SupervisorDashboardPage /> },
+          { path: 'mentor/workspace', element: <MentorWorkspacePage /> },
           { element: <SupervisorExecutionRoute />, children: [
             { path: 'supervisor/projects/:projectId/workspace', element: <SupervisorProjectWorkspacePage /> },
+            { path: 'supervisor/projects/:projectId/progress', element: <SupervisorProgressReviewPage /> },
             { path: 'supervisor/projects/:projectId/milestones/:milestoneId?', element: <MilestoneDetailPage /> },
             { path: 'supervisor/projects/:projectId/tasks', element: <TaskBoardPage /> },
             { path: 'supervisor/projects/:projectId/tasks/:taskId', element: <TaskDetailPage /> },
@@ -132,19 +149,47 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'supervisor/projects/:projectId/meetings/:meetingId', element: <MeetingDetailPage /> },
             { path: 'supervisor/projects/:projectId/deliverables', element: <DeliverablesPage /> },
             { path: 'supervisor/projects/:projectId/files', element: <ProjectFilesPage /> },
+            { path: 'supervisor/projects/:projectId/evidence', element: <ProjectEvidenceLedgerPage /> },
             { path: 'supervisor/projects/:projectId/contributions', element: <ProjectContributionsPage /> },
+            { path: 'supervisor/projects/:projectId/final-submission', element: <SupervisorFinalSubmissionPage /> },
             ...(env.aiAdvisoryEnabled ? [{ path: 'supervisor/projects/:projectId/ai', element: <ProjectAiPage /> }] : []),
           ] },
-          { path: 'supervisor/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/supervisor/workspace" backLabel="Bàn làm việc GVHD" /> },
+          { element: <MentorExecutionRoute />, children: [
+            { path: 'mentor/projects/:projectId/majors/:majorId/workspace', element: <MentorProjectWorkspacePage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/tasks', element: <TaskBoardPage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/tasks/:taskId', element: <TaskDetailPage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/reports', element: <ProgressReportsPage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/reports/:reportId', element: <ProgressReportDetailPage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/meetings', element: <MeetingsPage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/meetings/:meetingId', element: <MeetingDetailPage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/evidence', element: <ProjectEvidenceLedgerPage /> },
+          ] },
           { path: 'evaluator/evaluations', element: <EvaluatorAssignmentsPage /> },
           { path: 'evaluator/evaluations/:evaluationId', element: <EvaluationWorkspacePage /> },
           { path: 'evaluator/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/evaluator/evaluations" backLabel="Danh sách assignments" /> },
+          { path: 'evaluator/workspace', element: <EvaluatorWorkspacePage /> },
+          { element: <EvaluatorAssignmentRoute />, children: [
+            { path: 'evaluator/assignments/:assignmentId', element: <EvaluatorAssignmentDetailPage /> },
+          ] },
+        ],
+      },
+      {
+        element: <RoleRoute allowed={['department']} />,
+        children: [
+          { element: <DepartmentAcademicScopeRoute />, children: [
+            { path: 'department/workspace', element: <DepartmentWorkspacePage /> },
+          ] },
         ],
       },
       {
         element: <RoleRoute allowed={['department', 'admin']} />,
         children: [
           { path: 'academic', element: <AcademicStructurePage /> },
+        ],
+      },
+      {
+        element: <RoleRoute allowed={['department']} />,
+        children: [
           { path: 'department/portfolio', element: <PortfolioDashboardPage /> },
           { path: 'department/projects/archived', element: <ArchivedProjectsPage /> },
           { path: 'academic/governance', element: <AcademicGovernancePage /> },
@@ -172,7 +217,11 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
       },
       {
         element: <RoleRoute allowed={['admin']} />,
-        children: [{ path: 'admin/access', element: <AdminSecurityPage /> }],
+        children: [
+          { path: 'admin/access', element: <AdminWorkspacePage /> },
+          { path: 'admin/access/rbac', element: <AdminRbacPage /> },
+          { path: 'admin/access/users/:userId', element: <AdminUserDetailPage /> },
+        ],
       },
 
       { path: '*', element: <NotFoundPage /> },

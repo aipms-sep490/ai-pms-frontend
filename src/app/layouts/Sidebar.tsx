@@ -1,8 +1,9 @@
 import { useContext, useEffect, useRef, useCallback, type RefObject } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
-import { getStudentNavItems, type AppRouteMeta } from '../router/routes.config'
+import { NavLink } from 'react-router-dom'
+import { getWorkspaceNavigation } from '../router/workspace-route-registry'
 import { StudentJourneyContext } from '../context'
 import { useAcademicWorkflow } from '../context/useAcademicWorkflow'
+import { useWorkspaceAccess } from '../context/workspace-access'
 import { useAuthSession } from '../../features/auth/context/useAuthSession'
 import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 import '../../components/ui/page-loading.css'
@@ -14,27 +15,35 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
-  const location = useLocation()
   const asideRef = useRef<HTMLElement | null>(null)
   const journey = useContext(StudentJourneyContext)
   const { academic } = useAcademicWorkflow()
+  const access = useWorkspaceAccess()
   const { logout, session } = useAuthSession()
   const role = getWorkspaceRole(session?.user)
   const { profile, semester, team, project } = journey ?? {}
-  const pendingStudent = role === 'student' && Boolean(journey?.isLoading || journey?.error)
+  const pendingStudent = role === 'student' && access.contextStatus === 'loading'
+  const unavailableStudent = role === 'student' && access.contextStatus === 'unavailable'
   const workspaceCode = role === 'student'
-    ? project?.code?.trim() || academic?.selectedSemester?.code || 'Ngữ cảnh chưa xác định'
+    ? project?.code?.trim() || academic?.selectedSemester?.code || (unavailableStudent ? 'Không tải được ngữ cảnh' : 'Ngữ cảnh chưa xác định')
     : 'AI-PMS'
   const teamLabel = role === 'student'
-    ? team?.code?.trim() || team?.name?.trim() || 'Chưa có nhóm'
+    ? team?.code?.trim() || team?.name?.trim() || (unavailableStudent ? 'Không tải được ngữ cảnh' : 'Chưa có nhóm')
     : role === 'lecturer' ? 'Giảng viên' : role === 'department' ? 'Bộ môn' : role === 'admin' ? 'Quản trị' : 'Tài khoản'
   const profileName = profile?.fullName?.trim() || session?.user.fullName || 'Tài khoản'
   const profileCode = role === 'student' ? profile?.studentCode || 'Tài khoản sinh viên' : session?.user.email || 'Tài khoản'
   const profileInitials = profileName.split(/\s+/).slice(-2).map((part) => part[0]).join('').toUpperCase()
 
-  const activeStudent = role === 'student' && journey?.journeyState === 'ACTIVE'
-  const { workspaceItems: registrationItems } = getStudentNavItems()
-  const workspaceItems = activeStudent ? activeWorkspaceItems : registrationItems.filter(item => item.status === 'implemented' && ['screen-1', 'screen-2'].includes(item.id))
+  const navigationItems = getWorkspaceNavigation(access)
+  const sectionLabel = role === 'student'
+    ? 'Không gian đồ án'
+    : role === 'lecturer'
+      ? 'Không gian giảng viên'
+      : role === 'department'
+        ? 'Quản trị học vụ'
+        : role === 'admin'
+          ? 'Quản trị nền tảng'
+          : 'Hồ sơ tài khoản'
 
   const handleClose = useCallback(() => {
     onClose()
@@ -153,7 +162,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                   type="button"
                   onClick={handleClose}
                   aria-label="Đóng ngăn điều hướng"
-                  className="lg:hidden min-w-[36px] min-h-[36px] rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+                  className="lg:hidden min-w-[44px] min-h-[44px] rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
                     close
@@ -179,53 +188,18 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
 
           {/* Main Navigation Links */}
           <nav className="p-3 flex flex-col gap-1 flex-1" aria-label="Menu chức năng học tập">
-            {role !== 'student' && (
-              <>
-                <div className="px-2.5 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400">
-                  {role === 'lecturer' ? 'Không gian Giảng viên' : role === 'unknown' ? 'Hồ sơ tài khoản' : 'Không gian Quản lý'}
-                </div>
-                {(role === 'lecturer' ? [
-                  { path: '/supervisor/dashboard', title: 'Tổng quan GVHD', icon: 'space_dashboard' },
-                  { path: '/supervisor/workspace', title: 'Bàn làm việc GVHD', icon: 'supervisor_account' },
-                  { path: '/supervisor/profile', title: 'Hồ sơ GVHD', icon: 'badge' },
-                  { path: '/evaluator/evaluations', title: 'Đánh giá được giao', icon: 'grading' },
-                  ...(location.pathname.match(/\/supervisor\/projects\/(\d+)/) ? [
-                    { path: `/supervisor/projects/${location.pathname.match(/\/supervisor\/projects\/(\d+)/)![1]}/workspace`, title: 'Không gian đồ án', icon: 'folder_open' },
-                    { path: `/supervisor/projects/${location.pathname.match(/\/supervisor\/projects\/(\d+)/)![1]}/meetings`, title: 'Lịch họp & biên bản', icon: 'calendar_month' },
-                    { path: `/supervisor/projects/${location.pathname.match(/\/supervisor\/projects\/(\d+)/)![1]}/reports`, title: 'Báo cáo tiến độ', icon: 'assignment' },
-                    { path: `/supervisor/projects/${location.pathname.match(/\/supervisor\/projects\/(\d+)/)![1]}/files`, title: 'Kho tệp đồ án', icon: 'folder_open' },
-                    { path: `/supervisor/projects/${location.pathname.match(/\/supervisor\/projects\/(\d+)/)![1]}/contributions`, title: 'Đóng góp thành viên', icon: 'diversity_3' },
-                    { path: `/supervisor/projects/${location.pathname.match(/\/supervisor\/projects\/(\d+)/)![1]}/final-submission`, title: 'Gói bàn giao cuối', icon: 'inventory_2' },
-                  ] : []),
-                  { path: '/profile', title: 'Hồ sơ tài khoản', icon: 'account_circle' },
-                ] : role === 'department' || role === 'admin' ? [
-                  { path: '/department/portfolio', title: 'Portfolio đồ án', icon: 'space_dashboard' },
-                  ...(role === 'admin' ? [{ path: '/admin/access', title: 'Quản trị quyền', icon: 'admin_panel_settings' }] : []),
-                  { path: '/department/projects/review', title: 'Thẩm định đề cương', icon: 'fact_check' },
-                  { path: '/department/supervisors', title: 'Giám sát GVHD', icon: 'school' },
-                  { path: '/department/topics', title: 'Quản lý đề tài', icon: 'lightbulb' },
-                  { path: '/academic', title: 'Cấu trúc đào tạo', icon: 'account_balance' },
-                  { path: '/academic/rubrics', title: 'Rubric đánh giá', icon: 'grading' },
-                  { path: '/profile', title: 'Hồ sơ tài khoản', icon: 'account_circle' },
-                ] : [{ path: '/profile', title: 'Hồ sơ tài khoản', icon: 'account_circle' }]).map((item) => (
-                  <NavLink key={item.path} to={item.path} onClick={() => { if (window.innerWidth < 1024) handleClose() }}
-                    className={({ isActive }) => `flex items-center gap-2.5 px-2.5 py-2 min-h-[40px] rounded-lg text-[13px] font-medium ${isActive ? 'bg-primary-subtle text-primary font-semibold' : 'text-slate-600 hover:bg-slate-100'}`}>
-                    <span className="material-symbols-outlined text-[18px]" aria-hidden="true">{item.icon}</span>{item.title}
-                  </NavLink>
-                ))}
-              </>
-            )}
-            {pendingStudent ? <div className="app-nav-skeleton" aria-hidden="true">{[0,1,2,3,4,5].map(item => <span key={item} />)}</div> : role === 'student' && <>
             <div className="px-2.5 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400">
-              {activeStudent ? 'Đồ án của nhóm' : 'Không gian Nhóm Đồ án'}
+              {sectionLabel}
             </div>
-
-            {/* Workspace Routes */}
-            {workspaceItems.map((item) => (
+            {pendingStudent ? <div className="app-nav-skeleton" aria-label="Đang tải điều hướng" role="status">{[0,1,2,3,4,5].map(item => <span key={item} />)}</div> : unavailableStudent ? (
+              <div className="rounded-md border border-status-warning-border bg-status-warning-bg px-2.5 py-2 text-xs leading-5 text-status-warning-text" role="alert">
+                Chưa tải được ngữ cảnh đồ án. Hãy thử lại từ trang đang mở.
+              </div>
+            ) : <>
+            {navigationItems.map((item) => (
                 <NavLink
                   key={item.id}
                   to={item.path}
-                  end={item.path === '/project/workspace'}
                   onClick={() => {
                     if (window.innerWidth < 1024) handleClose()
                   }}
@@ -239,24 +213,15 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span
-                      className={`material-symbols-outlined text-[18px] shrink-0 ${
-                        location.pathname === item.path ? 'text-primary' : 'text-slate-400'
-                      }`}
+                      className="material-symbols-outlined text-[18px] shrink-0 text-slate-400"
                       aria-hidden="true"
                     >
                       {item.icon}
                     </span>
                     <span className="truncate">{item.title}</span>
                   </div>
-                  {item.badge && (
-                    <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-primary-subtle text-primary font-semibold shrink-0 ml-1">
-                      {item.badge}
-                    </span>
-                  )}
                 </NavLink>
               ))}
-
-            {!activeStudent && <NavLink to="/team" onClick={() => { if (window.innerWidth < 1024) handleClose() }} className="flex items-center gap-2.5 px-2.5 py-2 min-h-[40px] rounded-lg text-[13px] font-medium text-slate-600 hover:bg-slate-100"><span className="material-symbols-outlined text-[18px]" aria-hidden="true">group</span>Thành viên nhóm</NavLink>}
 
             </>}
           </nav>
@@ -283,7 +248,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
             onClick={() => void logout()}
             aria-label="Đăng xuất"
             title="Đăng xuất / Chuyển tài khoản"
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-md transition-colors shrink-0 flex items-center justify-center"
+            className="min-h-[44px] min-w-[44px] p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-md transition-colors shrink-0 flex items-center justify-center"
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden="true">logout</span>
           </button>
@@ -292,19 +257,3 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
     </>
   )
 }
-
-const activeWorkspaceItems: Pick<AppRouteMeta, 'id' | 'path' | 'title' | 'icon' | 'status' | 'badge'>[] = [
-  { id: 'workspace', path: '/project/workspace', title: 'Phối hợp nhóm', icon: 'space_dashboard', status: 'implemented' },
-  { id: 'tasks', path: '/project/tasks', title: 'Công việc', icon: 'checklist', status: 'implemented' },
-  { id: 'milestones', path: '/project/milestones', title: 'Mốc đồ án', icon: 'flag', status: 'implemented' },
-  { id: 'gantt', path: '/project/gantt', title: 'Lịch thực hiện', icon: 'view_timeline', status: 'implemented' },
-  { id: 'reports', path: '/project/reports', title: 'Báo cáo tiến độ', icon: 'assignment', status: 'implemented' },
-  { id: 'deliverables', path: '/project/deliverables', title: 'Hạng mục cần nộp', icon: 'description', status: 'implemented' },
-  { id: 'files', path: '/project/files', title: 'Kho tệp đồ án', icon: 'folder_open', status: 'implemented' },
-  { id: 'meetings', path: '/project/meetings', title: 'Lịch họp và biên bản', icon: 'calendar_month', status: 'implemented' },
-  { id: 'contributions', path: '/project/contributions', title: 'Đóng góp thành viên', icon: 'diversity_3', status: 'implemented' },
-  { id: 'final-submission', path: '/project/final-submission', title: 'Bàn giao cuối', icon: 'inventory_2', status: 'implemented' },
-  { id: 'result', path: '/project/result', title: 'Kết quả đồ án', icon: 'workspace_premium', status: 'implemented' },
-  { id: 'team', path: '/team', title: 'Thành viên nhóm', icon: 'group', status: 'implemented' },
-  { id: 'project', path: '/projects/lifecycle', title: 'Hồ sơ đồ án', icon: 'folder_open', status: 'implemented' },
-]

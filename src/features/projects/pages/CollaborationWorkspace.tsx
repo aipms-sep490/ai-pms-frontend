@@ -4,10 +4,11 @@ import type { ProjectDto, SupervisorAssignmentDto, TeamDto } from '../../../type
 import { useCollaborationWorkspace, type Resource } from '../hooks/useCollaborationWorkspace'
 import { dateLabel, initials, isOpenTask, isOverdue, summarizeMembers, taskStatusLabel, utcTimestamp } from '../utils/collaboration-workspace'
 import { WorkspaceTaskForm } from '../components/WorkspaceTaskForm'
+import type { ProjectExecutionCapabilities } from '../../execution/hooks/useProjectExecutionCapabilities'
 import './collaboration-workspace.css'
 
-export function CollaborationWorkspace({ project, team, supervisor, currentUserId }: {
-  project: ProjectDto; team?: TeamDto | null; supervisor?: SupervisorAssignmentDto | null; currentUserId?: number
+export function CollaborationWorkspace({ project, team, supervisor, currentUserId, executionCapabilities }: {
+  project: ProjectDto; team?: TeamDto | null; supervisor?: SupervisorAssignmentDto | null; currentUserId?: number; executionCapabilities?: ProjectExecutionCapabilities
 }) {
   const data = useCollaborationWorkspace(project.id)
   const [selectedMember, setSelectedMember] = useState<number | null>(null)
@@ -17,15 +18,23 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
   const closeCreate = () => { setCreating(false); createRef.current?.focus() }
   const now = Date.now()
   const members = team?.members ?? []
+  // Persisted membership personalizes the read model only; every mutation is
+  // still authorized by its Backend endpoint and project execution state.
+  const isTeamLeader = Boolean(currentUserId && members.some(member => member.userId === currentUserId && member.isLeader))
   const timeline = data.timeline.state === 'ready' ? data.timeline.data : null
   const tasks = timeline?.milestones.flatMap(milestone => milestone.tasks) ?? []
   const memberRows = summarizeMembers(members, tasks, now)
-  const canCreate = members.some(member => member.userId === currentUserId && member.isLeader)
+  // Membership still shapes the read model; the API action contract alone gates creation.
+  const canCreate = executionCapabilities?.get('create_task').allowed === true
   const editableMilestones = timeline?.milestones.filter(item => !['COMPLETED', 'CANCELLED'].includes(item.status)) ?? []
   const attention = tasks.filter(task => task.status === 'BLOCKED' || isOverdue(task, now))
     .sort((a, b) => Number(b.status === 'BLOCKED') - Number(a.status === 'BLOCKED') || utcTimestamp(a.dueAt) - utcTimestamp(b.dueAt))
+  const focusedMemberId = isTeamLeader ? selectedMember : currentUserId ?? null
+  const attentionForActor = isTeamLeader
+    ? attention
+    : attention.filter(task => currentUserId !== undefined && task.assignees.some(person => person.userId === currentUserId))
   const openTasks = tasks.filter(isOpenTask)
-    .filter(task => selectedMember === null || task.assignees.some(person => person.userId === selectedMember))
+    .filter(task => focusedMemberId === null || task.assignees.some(person => person.userId === focusedMemberId))
     .sort((a, b) => utcTimestamp(a.dueAt) - utcTimestamp(b.dueAt) || a.id - b.id)
   const selectedName = members.find(member => member.userId === selectedMember)?.fullName
   const closestMilestone = timeline?.milestones.filter(item => !['COMPLETED', 'CANCELLED'].includes(item.status))
@@ -37,7 +46,7 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
   return <div className="collaboration-workspace">
     <header className="cw-page-heading">
       <div><p className="cw-eyebrow">{team?.name || project.teamName || 'Nhóm đồ án'} <span> / </span> {project.code}</p>
-        <h1>Phối hợp nhóm</h1><p className="cw-page-description">Theo dõi công việc, tháo gỡ vướng mắc và cùng hoàn thành đồ án.</p>
+        <h1>{isTeamLeader ? 'Điều phối đồ án' : 'Không gian công việc của tôi'}</h1><p className="cw-page-description">{isTeamLeader ? 'Theo dõi sức khỏe đồ án, phân công và các việc cần nhóm xử lý.' : 'Ưu tiên việc được giao, hạn gần, vướng mắc và các mốc cần phối hợp.'}</p>
       </div>
       <div className="cw-heading-actions"><button type="button" className="cw-button" onClick={data.reload} disabled={isLoading} aria-label="Cập nhật dữ liệu nhóm">
         <Icon name="refresh" />{isLoading ? 'Đang cập nhật…' : 'Cập nhật'}</button>
@@ -56,16 +65,16 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
       onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); data.reload() }} />
       : <section className="cw-panel cw-empty"><ResourceState resource={data.timeline} retry={data.reload} />{data.timeline.state === 'ready' && <p>Nhóm cần có một mốc đang thực hiện trước khi tạo công việc. <Link to="/project/milestones" className="cw-text-link">Quản lý mốc đồ án</Link></p>}</section>)}
 
-    {data.timeline.state === 'ready' && attention.length > 0 && <section className="cw-attention" aria-labelledby="attention-heading">
-      <Icon name="error_outline" /><div><h2 id="attention-heading">{attention.length} công việc cần nhóm xử lý</h2>
-        <p>{attention.filter(task => task.status === 'BLOCKED').length} việc đang vướng mắc · {attention.filter(task => isOverdue(task, now)).length} việc quá hạn</p>
-        <div className="cw-attention-links">{attention.slice(0, 2).map(task => <Link key={task.id} to={`/project/tasks/${task.id}`}><span>{task.title}</span><Icon name="arrow_outward" /></Link>)}</div>
-      </div><Link className="cw-text-link" to="/project/tasks">Xem công việc</Link>
+    {data.timeline.state === 'ready' && attentionForActor.length > 0 && <section className="cw-attention" aria-labelledby="attention-heading">
+      <Icon name="error_outline" /><div><h2 id="attention-heading">{attentionForActor.length} {isTeamLeader ? 'công việc cần nhóm xử lý' : 'việc cần bạn xử lý'}</h2>
+        <p>{attentionForActor.filter(task => task.status === 'BLOCKED').length} việc đang vướng mắc · {attentionForActor.filter(task => isOverdue(task, now)).length} việc quá hạn</p>
+        <div className="cw-attention-links">{attentionForActor.slice(0, 2).map(task => <Link key={task.id} to={`/project/tasks/${task.id}`}><span>{task.title}</span><Icon name="arrow_outward" /></Link>)}</div>
+      </div><Link className="cw-text-link" to={`/project/tasks${isTeamLeader || currentUserId === undefined ? '' : `?assignee=${currentUserId}`}`}>Xem công việc</Link>
     </section>}
 
     <div className="cw-columns">
       <div className="cw-main-column">
-        <section className="cw-panel" aria-labelledby="member-heading">
+        {isTeamLeader && <section className="cw-panel" aria-labelledby="member-heading">
           <div className="cw-section-heading"><div><h2 id="member-heading">Tiến độ từng thành viên <span className="cw-count">{members.length}</span></h2><p>Chọn một người để xem công việc họ đang phụ trách.</p></div><Link className="cw-text-link" to="/team">Xem nhóm<Icon name="arrow_outward" /></Link></div>
           <ResourceState resource={data.timeline} retry={data.reload} />
           {data.timeline.state === 'ready' && (memberRows.length ? <>
@@ -80,20 +89,20 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
             </li>)}</ul>
             <p className="cw-panel-note">Tiến độ = việc hoàn thành / tổng việc được giao, bao gồm việc đã hủy. Việc có nhiều người phụ trách được tính cho từng người.</p>
           </> : <p className="cw-empty">Chưa tải được danh sách thành viên của nhóm. <Link className="cw-text-link" to="/team">Xem thông tin nhóm</Link></p>)}
-        </section>
+        </section>}
 
         <section className="cw-panel" aria-labelledby="tasks-heading">
-          <div className="cw-section-heading"><div><h2 id="tasks-heading">{selectedName ? `Công việc của ${selectedName}` : 'Công việc sắp tới'}</h2><p>Ưu tiên những việc có hạn hoàn thành gần nhất.</p></div><Link className="cw-text-link" to={`/project/tasks${selectedMember === null ? '' : `?assignee=${selectedMember}`}`}>Xem tất cả<Icon name="arrow_outward" /></Link></div>
-          <div className="cw-filters" role="group" aria-label="Phạm vi công việc"><button className={selectedMember === null ? 'is-active' : ''} onClick={() => setSelectedMember(null)}>Cả nhóm</button>
+          <div className="cw-section-heading"><div><h2 id="tasks-heading">{isTeamLeader ? (selectedName ? `Công việc của ${selectedName}` : 'Công việc sắp tới') : 'Công việc của tôi'}</h2><p>{isTeamLeader ? 'Ưu tiên những việc có hạn hoàn thành gần nhất.' : 'Danh sách chỉ hiển thị các công việc được giao cho bạn.'}</p></div><Link className="cw-text-link" to={`/project/tasks${focusedMemberId === null ? '' : `?assignee=${focusedMemberId}`}`}>Xem tất cả<Icon name="arrow_outward" /></Link></div>
+          {isTeamLeader && <div className="cw-filters" role="group" aria-label="Phạm vi công việc"><button className={selectedMember === null ? 'is-active' : ''} onClick={() => setSelectedMember(null)}>Cả nhóm</button>
             {currentUserId && members.some(member => member.userId === currentUserId) && <button className={selectedMember === currentUserId ? 'is-active' : ''} onClick={() => setSelectedMember(currentUserId)}>Của tôi</button>}
             {selectedMember !== null && selectedMember !== currentUserId && <span className="cw-selected-name">{selectedName}</span>}
-          </div>
+          </div>}
           <ResourceState resource={data.timeline} retry={data.reload} />
           {data.timeline.state === 'ready' && (openTasks.length ? <ul className="cw-task-list">{openTasks.slice(0, 4).map(task => <li key={task.id}><Link className="cw-task-row" to={`/project/tasks/${task.id}`}>
             <span className={`cw-task-indicator ${task.status === 'BLOCKED' ? 'is-blocked' : ''}`} aria-hidden="true"><Icon name={task.status === 'BLOCKED' ? 'pause' : 'check_box_outline_blank'} /></span>
-            <span className="cw-task-text"><strong>{task.title}</strong><span>{task.assignees.map(person => person.fullName).join(', ') || 'Chưa phân công'} · {taskStatusLabel(task.status)}</span></span>
+            <span className="cw-task-text"><strong>{task.title}</strong><span>{isTeamLeader ? `${task.assignees.map(person => person.fullName).join(', ') || 'Chưa phân công'} · ${taskStatusLabel(task.status)}` : `${taskStatusLabel(task.status)} · được giao cho bạn`}</span></span>
             <span className={`cw-task-date ${isOverdue(task, now) ? 'is-overdue' : ''}`}>{isOverdue(task, now) && <span>Quá hạn</span>}{dateLabel(task.dueAt)}</span><Icon name="chevron_right" />
-          </Link></li>)}</ul> : <div className="cw-empty"><Icon name="check_circle" /><p>{selectedMember === null ? 'Nhóm không có công việc nào đang mở.' : 'Thành viên này không có công việc nào đang mở.'}</p></div>)}
+          </Link></li>)}</ul> : <div className="cw-empty"><Icon name="check_circle" /><p>{isTeamLeader ? (selectedMember === null ? 'Nhóm không có công việc nào đang mở.' : 'Thành viên này không có công việc nào đang mở.') : 'Bạn không có công việc nào đang mở.'}</p></div>)}
         </section>
 
         <section className="cw-panel" aria-labelledby="deliverable-heading">
@@ -102,6 +111,11 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
           {data.deliverables.state === 'ready' && (data.deliverables.data.length ? <ul className="cw-deliverable-list">{[...data.deliverables.data].sort((a, b) => Number(['ACCEPTED', 'CLOSED'].includes(a.status)) - Number(['ACCEPTED', 'CLOSED'].includes(b.status)) || utcTimestamp(a.dueAt) - utcTimestamp(b.dueAt)).slice(0, 3).map(item => <li key={item.id}><Link to="/project/deliverables"><Icon name="description" /><span><strong>{item.title}</strong><span>{item.latestVersion ? `Đã nộp ${item.latestVersion} phiên bản` : 'Chưa có bài nộp'} · {dateLabel(item.dueAt)}</span></span><span className={`cw-status ${item.status === 'ACCEPTED' ? 'cw-status-success' : ''}`}>{({ DRAFT: 'Bản nháp', OPEN: 'Đang nhận bài', SUBMITTED: 'Đã nộp', ACCEPTED: 'Đã chấp nhận', REJECTED: 'Không được chấp nhận', CLOSED: 'Đã đóng' })[item.status]}</span></Link></li>)}</ul>
             : <p className="cw-empty">Nhóm chưa có hạng mục cần nộp.</p>)}
         </section>
+
+        {!isTeamLeader && <section className="cw-panel" aria-labelledby="evidence-heading">
+          <div className="cw-section-heading"><div><h2 id="evidence-heading">Đóng góp và chứng cứ</h2><p>Xem phần đóng góp đã ghi nhận và các tệp chứng cứ của đồ án.</p></div><Icon name="folder_open" /></div>
+          <div className="cw-context-links"><Link className="cw-text-link" to="/project/contributions">Đóng góp của nhóm<Icon name="arrow_outward" /></Link><Link className="cw-text-link" to="/project/evidence">Evidence ledger<Icon name="arrow_outward" /></Link><Link className="cw-text-link" to="/project/files">Tệp và chứng cứ<Icon name="arrow_outward" /></Link></div>
+        </section>}
       </div>
 
       <aside className="cw-side-column" aria-label="Hướng dẫn và lịch của nhóm">

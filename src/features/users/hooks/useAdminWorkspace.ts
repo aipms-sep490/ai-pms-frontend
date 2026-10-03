@@ -1,65 +1,54 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { HttpError } from '../../../services/http/http-client'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import {
-  assignRole, createPermission, createRole, createUser, deletePermission, deleteRole, getAudit,
-  getPermissionMatrix, getPermissions, getRoles, getUsers, importUsers, removeRole,
-  replacePermissions, setUserStatus, updatePermission, updateRole,
-  type PermissionMatrix, type SecurityCatalogDraft, type UserAccount, type UserDraft,
+  activateUser, assignRole, blockUser, createPermission, createRole, createUser, deactivateUser,
+  deletePermission, deleteRole, getAudit, getPermissionMatrix, getPermissions, getRoles, getUsers,
+  importUsers, removeRole, replacePermissions, unblockUser, updatePermission, updateRole,
+  type AdminListQuery, type AuditListQuery, type Page, type Permission, type PermissionMatrix,
+  type Role, type SecurityCatalogDraft, type UserAccount, type UserDraft,
 } from '../api/admin-api'
 
-export function useAdminWorkspace() {
+type LoadState = 'loading' | 'ready' | 'error'
+type Resource<T> = { state: LoadState; value: T; error: Error | null }
+const loading = <T,>(value: T): Resource<T> => ({ state: 'loading', value, error: null })
+const failed = <T,>(value: T, reason: unknown): Resource<T> => ({ state: 'error', value, error: reason instanceof Error ? reason : new Error('Load failed') })
+
+export function useAdminWorkspace(filters: AdminListQuery = {}, auditFilters: AuditListQuery = {}) {
   const { session } = useAuthSession()
-  const [users, setUsers] = useState<UserAccount[]>([])
-  const [roles, setRoles] = useState<Awaited<ReturnType<typeof getRoles>>['items']>([])
-  const [permissions, setPermissions] = useState<Awaited<ReturnType<typeof getPermissions>>['items']>([])
-  const [matrix, setMatrix] = useState<PermissionMatrix | null>(null)
-  const [audit, setAudit] = useState<Awaited<ReturnType<typeof getAudit>>['items']>([])
-  const [loading, setLoading] = useState(Boolean(session))
-  const [error, setError] = useState<Error | null>(null)
+  const [users, setUsers] = useState<Resource<Page<UserAccount>>>(() => loading({ items: [], page: 1, pageSize: 20, totalCount: 0 }))
+  const [rbac, setRbac] = useState<Resource<{ roles: Role[]; permissions: Permission[]; matrix: PermissionMatrix | null }>>(() => loading({ roles: [], permissions: [], matrix: null }))
+  const [audit, setAudit] = useState<Resource<Page<Awaited<ReturnType<typeof getAudit>>['items'][number]>>>(() => loading({ items: [], page: 1, pageSize: 20, totalCount: 0 }))
   const [version, setVersion] = useState(0)
   const refresh = useCallback(() => setVersion((value) => value + 1), [])
+  const filterKey = JSON.stringify(filters)
+  const auditFilterKey = JSON.stringify(auditFilters)
+  const filtersRef = useRef(filters)
+  const auditFiltersRef = useRef(auditFilters)
+  filtersRef.current = filters
+  auditFiltersRef.current = auditFilters
 
   useEffect(() => {
-    if (!session) {
-      setLoading(false)
-      return
-    }
-    setLoading(true)
-    setError(null)
-    Promise.all([
-      getUsers(session.accessToken), getRoles(session.accessToken), getPermissions(session.accessToken),
-      getPermissionMatrix(session.accessToken), getAudit(session.accessToken),
-    ])
-      .then(([usersResult, rolesResult, permissionsResult, matrixResult, auditResult]) => {
-        setUsers(usersResult.items)
-        setRoles(rolesResult.items)
-        setPermissions(permissionsResult.items)
-        setMatrix(matrixResult)
-        setAudit(auditResult.items)
-      })
-      .catch((reason: unknown) => setError(reason instanceof Error ? reason : new Error('Load failed')))
-      .finally(() => setLoading(false))
-  }, [session, version])
+    if (!session) return
+    setUsers((current) => loading(current.value)); setRbac((current) => loading(current.value)); setAudit((current) => loading(current.value))
+    void getUsers(session.accessToken, filtersRef.current).then((value) => setUsers({ state: 'ready', value, error: null }), (reason) => setUsers((current) => failed(current.value, reason)))
+    void Promise.all([getRoles(session.accessToken), getPermissions(session.accessToken), getPermissionMatrix(session.accessToken)])
+      .then(([roles, permissions, matrix]) => setRbac({ state: 'ready', value: { roles: roles.items, permissions: permissions.items, matrix }, error: null }), (reason) => setRbac((current) => failed(current.value, reason)))
+    void getAudit(session.accessToken, auditFiltersRef.current).then((value) => setAudit({ state: 'ready', value, error: null }), (reason) => setAudit((current) => failed(current.value, reason)))
+  }, [auditFilterKey, filterKey, session, version])
 
-  const mutate = async (action: () => Promise<unknown>) => { await action(); refresh() }
   const token = () => session?.accessToken ?? ''
+  const mutate = async (action: () => Promise<unknown>) => { await action(); refresh() }
   return {
-    users, roles, permissions, matrix, audit, loading, error,
-    isUnauthorized: !session || (error instanceof HttpError && error.status === 401),
-    isForbidden: error instanceof HttpError && error.status === 403,
-    refresh,
+    users, rbac, audit, refresh, isUnauthorized: !session,
     createUser: (draft: UserDraft) => mutate(() => createUser(draft, token())),
     importUsers: (accounts: UserDraft[]) => mutate(() => importUsers(accounts, token())),
-    setStatus: (id: number, status: UserAccount['status']) => mutate(() => setUserStatus(id, status, token())),
-    assignRole: (id: number, role: number) => mutate(() => assignRole(id, role, token())),
-    removeRole: (id: number, role: number) => mutate(() => removeRole(id, role, token())),
+    activate: (id: number) => mutate(() => activateUser(id, token())), deactivate: (id: number) => mutate(() => deactivateUser(id, token())),
+    block: (id: number) => mutate(() => blockUser(id, token())), unblock: (id: number) => mutate(() => unblockUser(id, token())),
+    assignRole: (id: number, role: number) => mutate(() => assignRole(id, role, token())), removeRole: (id: number, role: number) => mutate(() => removeRole(id, role, token())),
     replacePermissions: (id: number, permissionIds: number[]) => mutate(() => replacePermissions(id, permissionIds, token())),
-    createRole: (draft: SecurityCatalogDraft) => mutate(() => createRole(draft, token())),
-    updateRole: (id: number, draft: SecurityCatalogDraft) => mutate(() => updateRole(id, draft, token())),
-    deleteRole: (id: number) => mutate(() => deleteRole(id, token())),
-    createPermission: (draft: SecurityCatalogDraft) => mutate(() => createPermission(draft, token())),
-    updatePermission: (id: number, draft: SecurityCatalogDraft) => mutate(() => updatePermission(id, draft, token())),
-    deletePermission: (id: number) => mutate(() => deletePermission(id, token())),
+    createRole: (draft: SecurityCatalogDraft) => mutate(() => createRole(draft, token())), updateRole: (id: number, draft: SecurityCatalogDraft) => mutate(() => updateRole(id, draft, token())), deleteRole: (id: number) => mutate(() => deleteRole(id, token())),
+    createPermission: (draft: SecurityCatalogDraft) => mutate(() => createPermission(draft, token())), updatePermission: (id: number, draft: SecurityCatalogDraft) => mutate(() => updatePermission(id, draft, token())), deletePermission: (id: number) => mutate(() => deletePermission(id, token())),
+    isForbidden: (resource: Resource<unknown>) => resource.error instanceof HttpError && resource.error.status === 403,
   }
 }

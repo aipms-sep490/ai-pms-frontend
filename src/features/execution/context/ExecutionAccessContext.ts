@@ -1,14 +1,17 @@
 import { createContext, useContext } from 'react'
 import type { ProjectDto, SupervisorAssignmentDto, TeamDto } from '../../../types/backend'
+import type { ProjectExecutionCapabilities } from '../hooks/useProjectExecutionCapabilities'
 
 export interface ExecutionAccess {
   project: ProjectDto
   team?: TeamDto | null
   supervisor?: SupervisorAssignmentDto | null
   currentUserId?: number
-  actor: 'student' | 'supervisor'
+  actor: 'student' | 'supervisor' | 'mentor'
   /** Advisory UX only. Backend remains the authorization authority. */
   canManageStructure: boolean
+  /** Student execution CTAs use the backend action contract and fail closed when absent. */
+  executionCapabilities?: ProjectExecutionCapabilities
   routeBase: string
 }
 

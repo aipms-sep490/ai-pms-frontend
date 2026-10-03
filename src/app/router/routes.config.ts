@@ -138,7 +138,7 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
     breadcrumb: 'Bộ môn Workspace',
     icon: 'account_balance',
     role: 'department',
-    status: 'coming_soon',
+    status: 'implemented',
     badge: 'Khoa',
     section: 'management',
   },
@@ -184,6 +184,8 @@ export function getStudentNavItems() {
  * Resolves a breadcrumb title from the current pathname.
  */
 export function getBreadcrumbForPath(pathname: string): string {
+  const registryBreadcrumb = getWorkspaceBreadcrumb(pathname)
+  if (registryBreadcrumb && (pathname !== '/project/ai' || env.aiAdvisoryEnabled)) return registryBreadcrumb
   if (/^\/project\/meetings\/new(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings\/new(?:\/|$)/.test(pathname)) {
     return 'Lên lịch họp'
   }
@@ -191,6 +193,8 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname === '/project/files' || /^\/supervisor\/projects\/\d+\/files(?:\/|$)/.test(pathname) || /^\/department\/projects\/\d+\/files(?:\/|$)/.test(pathname)) return 'Kho tệp đồ án'
   if (pathname === '/evaluator/evaluations') return 'Đánh giá được phân công'
   if (/^\/evaluator\/evaluations\/\d+(?:\/|$)/.test(pathname)) return 'Chi tiết đánh giá'
+  if (pathname === '/evaluator/workspace') return 'Không gian Evaluator'
+  if (/^\/evaluator\/assignments\/\d+(?:\/|$)/.test(pathname)) return 'Phân công đánh giá'
   if (/^\/project\/meetings\/\d+(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings\/\d+(?:\/|$)/.test(pathname)) {
     return 'Chi tiết cuộc họp'
   }
@@ -268,7 +272,9 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname === '/project/ai') return 'Trang không tồn tại'
   if (pathname.startsWith('/department/supervisors')) return 'Giám sát GVHD'
   if (pathname.startsWith('/department/topics')) return 'Quản lý đề tài'
-  if (pathname === '/admin/access') return 'Quản trị quyền'
+  if (pathname === '/admin/access') return 'Quản trị nền tảng'
+  if (pathname === '/admin/access/rbac') return 'Role và permission'
+  if (/^\/admin\/access\/users\/\d+(?:\/|$)/.test(pathname)) return 'Chi tiết tài khoản'
   if (pathname === '/supervisor/workspace') return 'Bàn làm việc GVHD'
   if (pathname === '/profile') return 'Hồ sơ tài khoản'
   if (pathname === '/profile/security') return 'Đổi mật khẩu'
@@ -281,3 +287,4 @@ export function getBreadcrumbForPath(pathname: string): string {
   return 'Trang không tồn tại'
 }
 import { env } from '../config/env'
+import { getWorkspaceBreadcrumb } from './workspace-route-registry'

@@ -14,9 +14,12 @@ export function CreateMeetingPage() {
   return <CreateMeetingView key={`${access.project.id}:${access.currentUserId}`} />
 }
 function CreateMeetingView() {
-  const { project, routeBase, canManageStructure, currentUserId } = useExecutionAccess()
+  const { project, routeBase, canManageStructure, executionCapabilities, actor, currentUserId } = useExecutionAccess()
+  const canSchedule = actor === 'student'
+    ? executionCapabilities?.get('schedule_meeting').allowed === true
+    : canManageStructure
   const navigate = useNavigate()
-  const candidates = useMeetingCandidates(project.id, project.teamId, canManageStructure)
+  const candidates = useMeetingCandidates(project.id, project.teamId, canSchedule)
   const [busy, setBusy] = useState(false)
   const locked = useRef(false)
   const alive = useRef(true)
@@ -25,7 +28,7 @@ function CreateMeetingView() {
   const [dirty, setDirty] = useState(false)
   useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
   async function save(body: CreateMeeting) {
-    if (!canManageStructure || locked.current || uncertain) return
+    if (!canSchedule || locked.current || uncertain) return
     locked.current = true; setBusy(true); setError('')
     try {
       const meeting = await createMeeting(project.id, body)
@@ -36,7 +39,7 @@ function CreateMeetingView() {
   }
   return <MeetingShell title="Lên lịch họp" projectTitle={project.title} backTo={`${routeBase}/workspace`} action={<Link className="mtg-button mtg-button--secondary" to={`${routeBase}/meetings`}>Danh sách cuộc họp</Link>}>
     <MeetingUnsavedNotice dirty={dirty} busy={busy} />
-    {!canManageStructure ? <MeetingError message="Chỉ trưởng nhóm hoặc GVHD được phân công mới có thể lên lịch họp." /> : <>
+    {!canSchedule ? <MeetingError message="Backend hiện không cho phép bạn lên lịch họp cho đồ án này." /> : <>
       {error && <MeetingError message={error} />}
       {uncertain && <p className="mtg-notice">Tạm khóa gửi lại để tránh tạo lịch trùng. Quay về danh sách và kiểm tra lịch vừa tạo trước khi mở một biểu mẫu mới.</p>}
       <section className="mtg-panel mtg-padded"><h2>Thông tin cuộc họp</h2><p className="mtg-help">Thời gian hiển thị và nhập theo giờ Việt Nam (UTC+7).</p>

@@ -4,10 +4,17 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { ExecutionAccessProvider } from '../../execution/context/ExecutionAccessProvider'
 import { TaskDetailPage } from './TaskDetailPage'
 const api = vi.hoisted(() => ({ getTask: vi.fn(), getTaskHistory: vi.fn(), getProjectTimeline: vi.fn(), updateTask: vi.fn(), updateTaskStatus: vi.fn(), setTaskAssignees: vi.fn(), addTaskDependency: vi.fn(), removeTaskDependency: vi.fn(), deleteTask: vi.fn() }))
+const workflow = vi.hoisted(() => ({ getTaskExecutionActions: vi.fn() }))
 vi.mock('../../../services/service-gateway', () => ({ services: { task: api } }))
+vi.mock('../../../services/api/workflow.api', () => workflow)
 const task = { id: 8, milestoneId: 3, title: 'Phân tích yêu cầu', status: 'TODO', priority: 'MEDIUM', concurrencyToken: 'task-token', assignees: [{ id: 1, taskId: 8, userId: 2, userFullName: 'Khang', assignedBy: 1, assignedAt: '' }], dependencies: [] }
 const timeline = { projectId: 9, milestones: [{ id: 3, title: 'Khởi động', tasks: [{ ...task, assignees: [{ userId: 2, fullName: 'Khang' }] }, { ...task, id: 10, title: 'Thiết kế dữ liệu', assignees: [] }] }] }
 function renderPage(manage: boolean, currentUserId = 2) {
+  const allow = (code: string, allowed: boolean) => ({ code, allowed, reasons: allowed ? [] : ['TEST_DENIED'] })
+  workflow.getTaskExecutionActions.mockResolvedValue({ taskId: 8, projectId: 9, status: 'TODO', concurrencyToken: 'task-token', actions: [
+    allow('update_task', manage), allow('delete_task', manage), allow('assign_task', manage), allow('manage_task_dependencies', manage),
+    allow('change_task_status', manage || currentUserId === 2), allow('manage_task_disciplines', manage || currentUserId === 2), allow('add_evidence', manage || currentUserId === 2),
+  ] })
   return render(<MemoryRouter initialEntries={['/project/tasks/8']}><ExecutionAccessProvider value={{ project: { id: 9 } as never, team: { members: [{ userId: 2, fullName: 'Khang' }, { userId: 5, fullName: 'Duy' }] } as never, actor: 'student', currentUserId, canManageStructure: manage, routeBase: '/project' }}><Routes><Route path="/project/tasks/:taskId" element={<TaskDetailPage />} /></Routes></ExecutionAccessProvider></MemoryRouter>)
 }
 beforeEach(() => { api.getTask.mockResolvedValue(task); api.getTaskHistory.mockResolvedValue([]); api.getProjectTimeline.mockResolvedValue(timeline) })

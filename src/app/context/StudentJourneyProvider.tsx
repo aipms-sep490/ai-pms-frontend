@@ -94,9 +94,17 @@ export function StudentJourneyProvider({ children }: { children: ReactNode }) {
       const nextTeamActions = !env.isMockMode && nextTeam
         ? await services.workflow.getTeamActions(nextTeam.id)
         : null
-      const nextProjectActions = !env.isMockMode && nextProject
-        ? await services.workflow.getProjectActions(nextProject.id)
-        : null
+      // Project execution capabilities are an advisory pre-gate. Their transport
+      // failure must not remove read-only project access; capability consumers
+      // receive null and fail closed instead.
+      let nextProjectActions: ProjectWorkflowActionsDto | null = null
+      if (!env.isMockMode && nextProject) {
+        try {
+          nextProjectActions = await services.workflow.getProjectActions(nextProject.id)
+        } catch {
+          nextProjectActions = null
+        }
+      }
 
       if (requestId !== refreshSequence.current) return
       setPeriod(nextPeriod)

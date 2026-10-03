@@ -7,6 +7,7 @@ import { services } from '../../../services/service-gateway'
 import type { ProjectDto, SupervisorAssignmentDto } from '../../../types/backend'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { ExState } from '../../execution/execution-ui'
+import { loadOwnSupervisorAssignments } from '../utils/loadOwnSupervisorAssignments'
 
 type AccessLoad = { project: ProjectDto; assignment: SupervisorAssignmentDto } | null
 const isActive = (status: string) => status.replaceAll('_', '').toUpperCase() === 'ACTIVE'
@@ -26,9 +27,9 @@ export function SupervisorExecutionRoute() {
     try {
       const [project, assignments] = await Promise.all([
         services.project.getProject(id),
-        services.supervisor.getOwnAssignments({ status: 'ACTIVE', page: 1, pageSize: 100 }),
+        loadOwnSupervisorAssignments({ status: 'ACTIVE' }),
       ])
-      const assignment = assignments.items.find((item) => item.projectId === id && item.isPrimary && !item.endedAt)
+      const assignment = assignments.find((item) => item.projectId === id && item.isPrimary && !item.endedAt)
       setData(assignment && isActive(project.status) ? { project, assignment } : null)
     } catch (reason) {
       if (reason instanceof HttpError && reason.status === 401) setError('Phiên đăng nhập đã hết hạn.')
@@ -41,5 +42,7 @@ export function SupervisorExecutionRoute() {
   if (loading) return <PageLoading />
   if (error) return <ExState message={error} retry={() => void load()} />
   if (!data) return <Navigate to="/supervisor/workspace" replace />
-  return <ExecutionAccessProvider value={{ project: data.project, supervisor: data.assignment, currentUserId: session?.user.id, actor: 'supervisor', canManageStructure: true, routeBase: `/supervisor/projects/${id}` }}><Outlet /></ExecutionAccessProvider>
+  // Assignment scope grants access to the read workspace only. Structural mutations
+  // remain fail-closed until the Backend publishes an action contract for this actor.
+  return <ExecutionAccessProvider value={{ project: data.project, supervisor: data.assignment, currentUserId: session?.user.id, actor: 'supervisor', canManageStructure: false, routeBase: `/supervisor/projects/${id}` }}><Outlet /></ExecutionAccessProvider>
 }

@@ -34,6 +34,7 @@ describe('routes.config', () => {
   it('marks exactly the implemented routes', () => {
     const implemented = mvpRoutes.filter((r) => r.status === 'implemented')
     expect(implemented.map((r) => r.path).sort()).toEqual([
+      '/department/workspace',
       '/project/overview',
       '/projects/lifecycle',
       '/project/milestones',
@@ -77,6 +78,7 @@ describe('routes.config', () => {
       expect(getBreadcrumbForPath('/project/milestones/M3')).toBe('Mốc đồ án')
       expect(getBreadcrumbForPath('/project/milestones/M1')).toBe('Mốc đồ án')
       expect(getBreadcrumbForPath('/supervisor/workspace')).toBe('Bàn làm việc GVHD')
+      expect(getBreadcrumbForPath('/department/workspace')).toBe('Quản lý Bộ môn')
       expect(getBreadcrumbForPath('/academic/rubrics')).toBe('Rubric đánh giá')
       expect(getBreadcrumbForPath('/department/projects/2/evaluations')).toBe('Phân công evaluator')
       expect(getBreadcrumbForPath('/department/projects/2/evaluators')).toBe('Phân công evaluator')

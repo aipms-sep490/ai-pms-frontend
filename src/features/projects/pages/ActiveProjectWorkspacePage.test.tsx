@@ -37,7 +37,7 @@ describe('ActiveProjectWorkspacePage', () => {
   it('renders only backend-backed ACTIVE summary data after a reload', () => {
     journey.useStudentJourney.mockReturnValue(activeJourney)
     render(<MemoryRouter><ActiveProjectWorkspacePage /></MemoryRouter>)
-    expect(screen.getByRole('heading', { name: 'Phối hợp nhóm' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Không gian công việc của tôi' })).toBeTruthy()
     expect(screen.getByText('AI-PMS')).toBeTruthy()
     expect(screen.getByText('Giảng viên hướng dẫn: Dr. Mai')).toBeTruthy()
     expect(screen.getByText('0/0 việc hoàn thành')).toBeTruthy()
