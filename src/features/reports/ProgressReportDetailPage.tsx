@@ -143,7 +143,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
             {report.feedbacks.length === 0 ? <p className="report-help">Chưa có phản hồi. Phản hồi của GVHD sẽ xuất hiện tại đây.</p> : <ol>{report.feedbacks.map((item) => <li key={item.id}><strong>{item.supervisorName}</strong><time dateTime={item.createdAt}>{formatReportDate(item.createdAt)}</time><p>{item.feedbackText}</p></li>)}</ol>}
             {actor === 'supervisor' && ['SUBMITTED', 'REVIEWED'].includes(report.status) && <form onSubmit={(event) => void sendFeedback(event)}><label htmlFor="report-feedback">Phản hồi mới</label><textarea id="report-feedback" required rows={5} value={feedback} disabled={busy} onChange={(event) => setFeedback(event.target.value)} placeholder="Phản hồi về kết quả và hướng dẫn bước tiếp theo…" /><button className="report-button" disabled={busy || !feedback.trim()} type="submit">{busy ? 'Đang gửi…' : 'Gửi phản hồi'}</button></form>}
           </section>}
-          {report && actor !== 'supervisor' && env.aiAdvisoryEnabled && <ReportAiSummary projectId={project.id} reportId={report.id} />}
+          {report && actor !== 'mentor' && env.aiAdvisoryEnabled && <ReportAiSummary projectId={project.id} reportId={report.id} />}
         </aside>
       </div>
     </>}

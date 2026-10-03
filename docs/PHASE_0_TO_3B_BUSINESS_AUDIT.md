@@ -382,3 +382,28 @@ opted in, never ordinary Attention solely due to their status.
 **`PARTIAL_ACCEPTABLE`**: safe delivered-source behavior is complete, while
 all-role range calendar acceptance and role-valid browser evidence remain
 backend/credential dependent.
+
+## 16. Phase 8: AI Advisory Integration
+
+Phase 8 consumes only three existing scoped Backend contracts: deterministic
+project progress analysis, on-demand progress-report summarization, and a
+bounded project assistant. The frontend sends only an assistant question; the
+Backend retrieves authorized project evidence and rechecks project access.
+Analysis, report summaries and assistant answers are visibly advisory, include
+returned limitations/evidence when present, and cannot invoke a mutation or
+create a capability.
+
+The report summary is user-requested rather than automatically generated. An
+unknown risk/data enum, insufficient data, insufficient evidence, denial,
+rate-limit or service error never becomes a healthy/all-clear presentation;
+surrounding canonical project/report UI stays available. Student and exact
+supervisor routes consume their current scoped project. Department retains its
+existing persisted-scope per-project read. Mentor, evaluator and Admin AI
+surfaces are not inferred from a role or from a generic project endpoint.
+
+Supervisor AI ranking is absent from the audited contract and remains
+`BLOCKED_BY_BE` as `BE-AW-013`. Traceable factor-to-resource/action mapping is
+an optional enhancement under `BE-AW-012`; current recommendations remain
+text-only. Phase 8 is **`PARTIAL_ACCEPTABLE`** pending role-valid browser
+acceptance, while all safely consumable delivered advisory contracts are
+integrated without a Backend or schema change.

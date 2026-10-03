@@ -247,3 +247,67 @@ the final authority.
 | FE behavior before delivery | Render only independently authorized bounded sources, mark multi-project calendar sources unavailable/partial, create no invented deadline or all-clear claim, and keep all controls read-only. |
 | FE behavior after delivery | Use returned projection/source warnings for range navigation and pagination. Deep links remain navigation only; existing route/mutation guards remain final authority. |
 | Acceptance scenarios | Student current project DateOnly milestone and UTC meeting; Supervisor only assigned projects; Mentor exact active project-major; Department only persisted scope; revoked evaluator absent; Admin not given Department/project events; report period without deadline omitted; evaluation window included; next cursor is partial not all clear; linked stale write still returns `409`. |
+
+## Handoff L — explainable AI factor evidence and safe intervention links
+
+**ID:** `BE-AW-012`
+**Priority:** `OPTIMIZATION`
+**Status:** `BE_HANDOFF_REQUIRED`
+
+| Field | Required backend delivery |
+| --- | --- |
+| Feature | Traceable evidence and optional safe navigation hints for each project progress-analysis factor/recommendation. |
+| Affected actor | Any actor already authorized for the exact project by the existing progress-analysis read; this proposal grants no new actor scope. |
+| Affected FE route/component | `ProjectProgressAnalysisPanel` in `/project/ai`, supervisor project workspace and `/department/projects/:projectId/risk`. |
+| Existing Backend behavior | `GET /api/v1/projects/{projectId}/progress-analysis` returns deterministic risk/factor/recommendation text with rule/model versions and limitations. `RiskFactorDto` has no source ID/reference URL and recommendations are plain strings. |
+| Missing contract | Optional per-factor source references and advisory navigation hints that are already canonical/authorized for the requesting actor. |
+| Proposed API/DTO | `factors:[{ code, feature, observedValue, severity, explanation, evidence:[{ sourceType, sourceId, title, referenceUrl? }] }], recommendations:[{ code, text, navigationHint?: { routeKey, resourceId? } }]`. `navigationHint` is navigation only, never an action code or mutation payload. |
+| Authoritative scope/state rules | Resolve project access before producing evidence. Omit a source/hint when the actor cannot safely read it, it is archived/undisclosable, or no canonical route exists. A factor never creates access to task, milestone, report, meeting or contribution data. |
+| Concurrency requirements | Read-only and snapshot/as-of metadata only. A linked canonical mutation must independently recheck current guards and return its normal `409` if stale. |
+| Expected error codes | Existing `401/403/404`; a valid response may omit evidence/hints. No optimistic action capability is acceptable. |
+| FE behavior before Backend delivery | Render Backend factor/recommendation text with clear advisory wording and no guessed link. |
+| FE behavior after Backend delivery | Display only returned evidence and navigate only through returned safe hints; do not turn a hint into a command. |
+| Acceptance scenarios | Student/team member, exact assigned supervisor and Department Staff receive only readable sources; a foreign resource is omitted; an unavailable source does not make risk healthy; clicking a hint never mutates; stale destination mutation still returns `409`. |
+
+## Handoff M — supervisor candidate ranking advisory after eligibility filtering
+
+**ID:** `BE-AW-013`
+**Priority:** `OPTIMIZATION`
+**Status:** `BE_HANDOFF_REQUIRED`
+
+| Field | Required backend delivery |
+| --- | --- |
+| Feature | Optional explanatory AI advisory over the already server-filtered supervisor candidate set. |
+| Affected actor | Only the actor authorized to read supervisor candidates for the exact project under existing supervisor-selection policy. |
+| Affected FE route/component | Future advisory region of the existing supervisor selection flow; no new Phase 8 screen. |
+| Existing Backend behavior | Candidate search and selection enforce their own project access, academic scope, availability/policy and command guards. There is no audited AI ranking/explanation endpoint. |
+| Missing contract | A read-only advisory endpoint that takes no client-supplied candidate inventory and returns only candidate IDs already eligible in the caller's current server result. |
+| Proposed API/DTO | `GET /projects/{projectId}/supervisor-candidates/advisory?candidateSnapshot=...` -> `{ asOfUtc, candidateSnapshot, recommendations:[{ candidateId, rationale, evidence, limitations }], limitationNote? }`. Candidate order/selection remains the canonical workflow. |
+| Authoritative scope/state rules | Backend resolves eligibility first, rechecks current period/project state and only then creates bounded advisory context. It must not rank ineligible, ended, unavailable or foreign candidates. Advisory does not authorize request/assignment. |
+| Concurrency requirements | Require an eligibility snapshot/version; return `409` or a deterministic stale reason when candidates/policy changed. Existing selection command rechecks independently. |
+| Expected error codes | `401`, `403`, `404`, `409` stale candidate snapshot, `429` AI limit and `503` advisory unavailable. |
+| FE behavior before Backend delivery | Keep the existing canonical candidate list; do not calculate a score, create an “AI best” badge, or suggest an assignment. |
+| FE behavior after Backend delivery | Label recommendation advisory-only, show evidence/limitations, refresh on stale snapshot, and link only to the canonical selection flow. |
+| Acceptance scenarios | Unauthorized/foreign project denies; ineligible candidate never appears; policy change stales advisory; unavailable AI leaves selection usable; accepting no recommendation changes nothing; actual assignment still rechecks authorization. |
+
+## Final synchronization classification — freeze baseline
+
+This classification is separate from each stable entry's original priority and
+status. It describes the minimum Backend delivery needed before the dedicated
+final FE-BE synchronization; it does not authorize speculative Frontend work.
+
+| ID | Final-sync classification | Rationale |
+| --- | --- | --- |
+| `BE-AW-001` | `FINAL_SYNC_BLOCKER` | Execution mutation visibility must match authoritative current guards. |
+| `BE-AW-002` | `FINAL_SYNC_BLOCKER` | Source-level evidence writes cannot be enabled safely without source authority. |
+| `BE-AW-003` | `FINAL_SYNC_BLOCKER` | The intended Mentor workspace needs a server-proven project-major scope. |
+| `BE-AW-004` | `POST_SYNC_OPTIMIZATION` | An aggregate improves ordering but does not enable governance commands. |
+| `BE-AW-005` | `FINAL_SYNC_BLOCKER` | Department governance/evaluation/final-result detail cannot be reconstructed safely in the client. |
+| `BE-AW-006` | `FINAL_SYNC_BLOCKER` | A canonical evaluator assignment route state is needed for an authoritative assignment workspace. |
+| `BE-AW-007` | `FINAL_SYNC_BLOCKER` | Evaluator package/evidence disclosure needs assignment-scoped projection. |
+| `BE-AW-008` | `POST_SYNC_OPTIMIZATION` | The protected rubric hierarchy improves read context; existing leaf-score authority remains server-side. |
+| `BE-AW-009` | `FINAL_SYNC_BLOCKER` | Admin identity/academic-profile editing must not be inferred from self-service profile APIs. |
+| `BE-AW-010` | `FINAL_SYNC_BLOCKER` | Platform role catalogue classification is needed before safely enabling global role mutation. |
+| `BE-AW-011` | `FINAL_SYNC_BLOCKER` | The released all-actor Calendar/Attention scope needs a bounded server projection. |
+| `BE-AW-012` | `POST_SYNC_OPTIMIZATION` | Existing AI factors remain safely text-only; structured evidence/navigation is an enhancement. |
+| `BE-AW-013` | `OPTIONAL/FUTURE` | Supervisor selection remains deterministic and usable without AI ranking. |
