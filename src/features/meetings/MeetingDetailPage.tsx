@@ -11,6 +11,8 @@ import { MeetingNotesForm } from './MeetingNotesForm'
 import { MeetingUnsavedNotice } from './MeetingUnsavedNotice'
 import { useMeetingCandidates } from './useMeetingCandidates'
 import { MeetingGovernancePanel } from './MeetingGovernancePanel'
+import { MeetingVideoSection } from './video/MeetingVideoSection'
+import { MeetingVideoPresencePanel } from './video/MeetingVideoPresencePanel'
 
 type Confirmation = { type: 'cancel' | 'complete' | 'discard' | 'refresh' } | { type: 'remove'; userId: number; name: string }
 export function MeetingDetailPage() {
@@ -117,6 +119,8 @@ function MeetingDetailView({ id }: { id: number }) {
         <section className="mtg-panel mtg-padded"><div className="mtg-section-heading"><h2>Biên bản & điểm danh</h2>{manage && writableNotes && editor !== 'notes' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('notes')}>Cập nhật biên bản</button>}</div>
           {editor === 'notes' ? <MeetingNotesForm meeting={meeting} busy={busy} locked={needsRefresh} onDirty={() => setDirty(true)} onCancel={closeEditor} onSave={async (body) => { if (manage && writableNotes) await mutate(() => api.updateMeetingNotes(id, { ...body, concurrencyToken: meeting.concurrencyToken }), 'Đã lưu biên bản và điểm danh.') }} /> : <p className="mtg-prose">{meeting.meetingNotes || 'Chưa có biên bản. Ghi lại kết luận sau buổi trao đổi để cả nhóm cùng theo dõi.'}</p>}
         </section>
+        <MeetingVideoSection meeting={meeting} routeBase={routeBase} />
+        <MeetingVideoPresencePanel meeting={meeting} />
         {meeting.concurrencyToken ? <MeetingGovernancePanel meeting={meeting} concurrencyToken={meeting.concurrencyToken} candidates={candidates.data} canManage={manage} disabled={disabled || dirty} onChanged={reload} /> : <section className="mtg-panel mtg-padded"><h2>Kết luận và công việc sau họp</h2><p className="mtg-help">Backend chưa trả concurrency token cho cuộc họp này. Tải lại trước khi thay đổi dữ liệu.</p></section>}
         <section className="mtg-panel mtg-padded" aria-labelledby="meeting-feedback-title"><div className="mtg-section-heading"><h2 id="meeting-feedback-title">Nhận xét của GVHD <span className="mtg-count">{meeting.feedbacks.length}</span></h2>{access.actor === 'supervisor' && writableNotes && editor !== 'feedback' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('feedback')}>Viết nhận xét</button>}</div>
           {meeting.feedbacks.length === 0 ? <p className="mtg-help">Chưa có nhận xét từ giảng viên.</p> : <ol className="mtg-feedback-list">{meeting.feedbacks.map((item) => <li key={item.id}><strong>{item.supervisorName}</strong><time dateTime={item.createdAt}>{formatMeetingTime(item.createdAt)}</time><p className="mtg-prose">{item.feedbackText}</p></li>)}</ol>}
