@@ -10,7 +10,11 @@ import { MeetingDetailPage } from './MeetingDetailPage'
 import type { MeetingDetail } from './meeting-types'
 
 const api = vi.hoisted(() => ({ getMeetings: vi.fn(), getMeeting: vi.fn(), getMeetingCandidates: vi.fn(), createMeeting: vi.fn(), updateMeeting: vi.fn(), cancelMeeting: vi.fn(), completeMeeting: vi.fn(), updateMeetingNotes: vi.fn(), addMeetingParticipant: vi.fn(), removeMeetingParticipant: vi.fn(), addMeetingFeedback: vi.fn(), getMeetingDecisions: vi.fn(), getMeetingActionItems: vi.fn(), createMeetingDecision: vi.fn(), createMeetingActionItem: vi.fn(), updateMeetingActionItem: vi.fn() }))
+const runtime = vi.hoisted(() => ({ env: { apiBaseUrl: '/api/v1', dataMode: 'api' as const, isMockMode: false, aiAdvisoryEnabled: false, videoMeetingEnabled: false } }))
 vi.mock('../../services/api/meetings.api', () => api)
+// This suite verifies the established legacy meeting workflow. Keep its feature-off contract
+// explicit so a developer's local Video rollout setting cannot change the assertions.
+vi.mock('../../app/config/env', () => runtime)
 const meeting: MeetingDetail = {
   id: 42, projectId: 2, title: 'Rà soát tiến độ tuần', agenda: 'Đánh giá kết quả và kế hoạch', meetingNotes: null,
   startAt: '2026-09-23T02:00:00', endAt: '2026-09-23T03:00:00', location: 'Phòng 302', onlineUrl: 'https://meet.google.com/abc-defg-hij',

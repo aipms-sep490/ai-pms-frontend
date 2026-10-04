@@ -1,0 +1,8 @@
+.mtg-livekit-room { display: grid; gap: 16px; min-width: 0; }
+.mtg-livekit-header, .mtg-livekit-footer { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.mtg-livekit-header h2 { margin: 4px 0; }
+.mtg-livekit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; min-height: min(58vh, 620px); padding: 12px; background: #102033; border-radius: 8px; }
+.mtg-livekit-grid .lk-participant-tile { min-height: 180px; border-radius: 6px; overflow: hidden; }
+.mtg-livekit-empty { align-self: center; justify-self: center; max-width: 42ch; text-align: center; color: #e2e8f0; }
+.mtg-livekit-controls { display: flex; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 480px) { .mtg-livekit-grid { grid-template-columns: minmax(0, 1fr); min-height: 42vh; } .mtg-livekit-controls, .mtg-livekit-controls .mtg-button { width: 100%; } }

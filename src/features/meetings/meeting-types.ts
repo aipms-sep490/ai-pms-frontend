@@ -18,6 +18,12 @@ export interface Meeting {
   createdAt: string
   updatedAt: string
   concurrencyToken?: string
+  /**
+   * Optional until the frozen Video Meeting API is deployed. Legacy API reads omit these
+   * fields, and callers must not infer either value from location or onlineUrl.
+   */
+  meetingDeliveryMode?: import('./video/meeting-video.types').MeetingDeliveryMode
+  videoChannel?: import('./video/meeting-video.types').MeetingVideoChannel
 }
 export interface MeetingParticipant {
   id: number
@@ -52,6 +58,9 @@ export interface MeetingSchedule {
   endAt: string | null
   location: string | null
   onlineUrl: string | null
+  /** Transitional optional fields: absent values preserve legacy Meeting API compatibility. */
+  meetingDeliveryMode?: import('./video/meeting-video.types').MeetingDeliveryMode
+  videoChannel?: import('./video/meeting-video.types').MeetingVideoChannel
 }
 export interface CreateMeeting extends MeetingSchedule { participantUserIds: number[] }
 export interface MeetingNotes {
