@@ -24,7 +24,7 @@ describe('ProjectReviewStatusPage', () => {
     journey.useStudentJourney.mockReturnValue({ project: project(status), isLoading: false, error: null, refreshAll: vi.fn() })
     registration.useProjectRegistration.mockReturnValue(state(status))
     render(<MemoryRouter><ProjectReviewStatusPage /></MemoryRouter>)
-    expect(screen.getByText(title)).toBeTruthy()
+    expect(screen.getByRole('heading', { name: title })).toBeTruthy()
   })
 
   it('keeps revision feedback visible and only offers the student edit route', () => {

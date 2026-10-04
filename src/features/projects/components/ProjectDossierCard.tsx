@@ -42,7 +42,7 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
             size="sm"
             icon="edit_document"
             disabled
-            title="Cần quyền Trưởng nhóm và hỗ trợ từ API backend"
+            title="Cần quyền Trưởng nhóm và hỗ trợ từ API hệ thống"
           >
             Chỉnh sửa hồ sơ (Sắp có)
           </Button>
