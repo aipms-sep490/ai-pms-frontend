@@ -53,7 +53,7 @@ export function MilestoneHeader({
             size="sm"
             icon="add"
             disabled
-            title="Chức năng tạo task sẽ khả dụng khi kết nối API Tasks"
+            title="Chức năng tạo công việc sẽ khả dụng khi kết nối API Tasks"
             className="shrink-0"
           >
             Tạo công việc mới (Sắp có)
