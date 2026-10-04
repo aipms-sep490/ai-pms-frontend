@@ -1,9 +1,10 @@
 import { endpoints } from '../../../services/api/endpoints'
 import { httpDelete, httpGet, httpPatch, httpPost, httpPut } from '../../../services/http/http-client'
 export interface Page<T>{items:T[];page:number;pageSize:number;totalCount:number}
-export interface UserAccount{id:number;departmentId:number|null;majorId:number|null;email:string;fullName:string;phone:string|null;studentCode:string|null;employeeCode:string|null;title:string|null;status:'ACTIVE'|'INACTIVE'|'SUSPENDED';accessFailedCount:number;lockoutEndAt:string|null;roles:string[]}
+export interface UserAccount{id:number;departmentId:number|null;majorId:number|null;email:string;fullName:string;phone:string|null;studentCode:string|null;employeeCode:string|null;title:string|null;status:'ACTIVE'|'INACTIVE'|'SUSPENDED';accessFailedCount:number;lockoutEndAt:string|null;roles:string[];concurrencyToken?:string|null}
 export interface Permission{id:number;code:string;name:string;description:string|null;isSystemPermission:boolean}
-export interface Role{id:number;code:string;name:string;description:string|null;isSystemRole:boolean;permissions:Permission[]}
+export interface Role{id:number;code:string;name:string;description:string|null;isSystemRole:boolean;permissions:Permission[];isAssignableGlobalRole:boolean;assignmentKind:string}
+export interface AcademicProfile { userId:number; fullName:string; email:string|null; studentCode:string|null; departmentId:number|null; departmentName:string|null; majorId:number|null; majorName:string|null; status:string; reviewedBy:number|null; reviewedAt:string|null; rejectionReason:string|null; concurrencyToken:string|null }
 export interface SecurityCatalogDraft{code:string;name:string;description:string|null}
 export interface PermissionMatrix{roles:Role[];permissions:Permission[]}
 export interface Audit{id:number;actorUserId:number|null;action:string;entityType:string;entityId:string|null;outcome:string;occurredAt:string;detailsJson:string|null}
@@ -13,6 +14,7 @@ export interface AuditListQuery extends AdminListQuery { actorUserId?: number; a
 const query=(path:string, values:Record<string,string|number|undefined>)=>{const params=new URLSearchParams();Object.entries(values).forEach(([key,value])=>{if(value!==undefined&&value!=='')params.set(key,String(value))});return params.size?`${path}?${params}`:path}
 export const getUsers=(token:string, filters:AdminListQuery={})=>httpGet<Page<UserAccount>>(query(endpoints.users,{search:filters.search,status:filters.status,page:filters.page??1,pageSize:filters.pageSize??20}),{accessToken:token})
 export const getUser=(id:number,token:string)=>httpGet<UserAccount>(`${endpoints.users}/${id}`,{accessToken:token})
+export const updateAcademicProfile=(id:number,body:{departmentId:number|null;majorId:number|null;concurrencyToken:string},token:string)=>httpPatch<AcademicProfile>(`${endpoints.users}/${id}/academic-profile`,body,{accessToken:token})
 export const getRoles=(token:string)=>httpGet<Page<Role>>(query(endpoints.securityRoles,{page:1,pageSize:100}),{accessToken:token})
 export const getPermissions=(token:string)=>httpGet<Page<Permission>>(query(endpoints.securityPermissions,{page:1,pageSize:100}),{accessToken:token})
 export const getPermissionMatrix=(token:string)=>httpGet<PermissionMatrix>(`${endpoints.securityPermissions}/matrix`,{accessToken:token})
