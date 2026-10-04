@@ -1,15 +1,12 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+
+import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import './execution.css'
 
 export function ExecutionPage({ title, description, eyebrow, backTo, action, children }: {
   title: string; description?: string; eyebrow?: string; backTo?: string; action?: ReactNode; children: ReactNode
 }) {
-  return <div className="execution-page">
-    {backTo && <Link className="ex-back" to={backTo}><ExIcon name="arrow_back" />Quay lại</Link>}
-    <header className="ex-heading"><div>{eyebrow && <p className="ex-eyebrow">{eyebrow}</p>}<h1>{title}</h1>{description && <p className="ex-description">{description}</p>}</div>{action && <div className="ex-actions">{action}</div>}</header>
-    {children}
-  </div>
+  return <WorkspacePage className="execution-page" title={title} description={description} eyebrow={eyebrow} backTo={backTo} action={action}>{children}</WorkspacePage>
 }
 export function ExIcon({ name }: { name: string }) { return <span className="material-symbols-outlined" aria-hidden="true">{name}</span> }
 export function ExState({ loading, message, title, retry, action }: { loading?: boolean; message?: string; title?: string; retry?: () => void; action?: ReactNode }) {
@@ -34,3 +31,4 @@ export function ExConfirm({ title, description, busy, onCancel, onConfirm }: { t
     <button className="ex-button ex-button-danger" type="button" disabled={busy} onClick={onConfirm}>{busy ? 'Đang xử lý…' : 'Xác nhận xóa'}</button>
   </div></section>
 }
+
