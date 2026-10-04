@@ -62,11 +62,11 @@ export function GanttHeader({
           <button
             type="button"
             disabled
-            title="Chức năng xuất dữ liệu tiến độ sang Microsoft Project / CSV đang được phát triển"
+            title="Chức năng xuất dữ liệu tiến độ sang Microsoft đồ án / CSV đang được phát triển"
             className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-400 border border-slate-200 rounded-lg bg-slate-50 cursor-not-allowed"
           >
             <span className="material-symbols-outlined text-sm">download</span>
-            Xuất MS Project / CSV
+            Xuất MS đồ án / CSV
           </button>
         </div>
       </div>
