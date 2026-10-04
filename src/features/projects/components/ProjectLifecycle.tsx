@@ -19,14 +19,14 @@ export function ProjectLifecycle({ states }: ProjectLifecycleProps) {
             {isTerminalProjectState(state.name) && <small>Terminal</small>}
           </div>
           <h2>{formatLabel(state.name)}</h2>
-          <p>Allowed next state{state.allowedNextStates.length === 1 ? '' : 's'}</p>
+          <p>Trạng thái tiếp theo{state.allowedNextStates.length === 1 ? '' : 's'}</p>
           <div className="next-states">
             {state.allowedNextStates.length > 0 ? (
               state.allowedNextStates.map((nextState) => (
                 <span key={nextState}>{formatLabel(nextState)}</span>
               ))
             ) : (
-              <span className="none">No transition</span>
+              <span className="none">Không có thay đổi tiếp theo</span>
             )}
           </div>
         </article>
