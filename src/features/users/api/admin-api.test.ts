@@ -13,6 +13,7 @@ import {
   unblockUser,
   updatePermission,
   updateRole,
+  updateAcademicProfile,
 } from './admin-api'
 
 const response = (body: unknown = {}) => ({ ok: true, status: 200, json: async () => body })
@@ -51,5 +52,12 @@ describe('account security catalog API', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/users?search=minh&status=ACTIVE&page=2&pageSize=20', expect.objectContaining({ method: 'GET' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/security/audit-logs?action=ACCOUNT_&outcome=SUCCESS&page=3&pageSize=20', expect.objectContaining({ method: 'GET' }))
     for (const suffix of ['activate', 'deactivate', 'block', 'unblock']) expect(fetchMock).toHaveBeenCalledWith(`/api/v1/users/8/${suffix}`, expect.objectContaining({ method: 'POST' }))
+  })
+
+  it('uses the academic-profile PATCH contract with the server concurrency token', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response())
+    vi.stubGlobal('fetch', fetchMock)
+    await updateAcademicProfile(8, { departmentId: 2, majorId: 9, concurrencyToken: 'user-v2' }, 'token')
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/users/8/academic-profile', expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ departmentId: 2, majorId: 9, concurrencyToken: 'user-v2' }) }))
   })
 })
