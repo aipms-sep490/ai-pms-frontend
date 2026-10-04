@@ -35,8 +35,8 @@ function TaskDetail({ id }: { id: number }) {
   const [contextError, setContextError] = useState('')
   const [editing, setEditing] = useState<'content' | 'assignees' | 'dependency' | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const mutation = useExecutionMutation()
   const reload = () => setRevision(value => value + 1)
+  const mutation = useExecutionMutation({ onForbidden: reload })
   useEffect(() => {
     if (!Number.isSafeInteger(id) || id < 1) { setError('Đường dẫn công việc không hợp lệ.'); setLoading(false); return }
     const controller = new AbortController(); const signal = controller.signal
@@ -59,7 +59,8 @@ function TaskDetail({ id }: { id: number }) {
   const canAssign = contextValid && allowed('assign_task')
   const canManageDependencies = contextValid && allowed('manage_task_dependencies')
   const canManageDisciplines = contextValid && allowed('manage_task_disciplines')
-  const canAddEvidence = contextValid && allowed('add_evidence')
+  // This is the exact code published by the task execution-capability contract.
+  const canAddEvidence = contextValid && allowed('add_task_evidence')
   const candidates = team?.members.map(member => ({ userId: member.userId, fullName: member.fullName })) ??
     [...new Map(allTasks.flatMap(item => item.assignees).map(person => [person.userId, person])).values()]
   const mayDelete = contextValid && allowed('delete_task')

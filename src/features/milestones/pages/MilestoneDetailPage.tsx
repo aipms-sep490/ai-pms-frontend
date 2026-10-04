@@ -27,9 +27,9 @@ export function MilestoneDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [order, setOrder] = useState<MilestoneDto[] | null>(null)
   const milestoneCapabilities = useMilestoneExecutionCapabilities(Number(milestoneId), revision)
-  const mutation = useExecutionMutation()
-  const clearMutation = mutation.clear
   const reload = () => setRevision(value => value + 1)
+  const mutation = useExecutionMutation({ onForbidden: reload })
+  const clearMutation = mutation.clear
   useEffect(() => { setCreating(false); setEditing(false); setDeleting(false); setOrder(null); clearMutation() }, [milestoneId, project.id, clearMutation])
   useEffect(() => {
     const controller = new AbortController(); setLoading(true); setError(''); setProgressError(''); setProgressLoading(true); setProgress([])
