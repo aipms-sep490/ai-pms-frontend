@@ -100,8 +100,8 @@ describe('Evaluator Workspace Phase 5', () => {
     const score = await screen.findByLabelText('Điểm Phân tích') as HTMLInputElement
     expect(score.disabled).toBe(true)
     expect(screen.queryByRole('button', { name: 'Yêu cầu chốt đánh giá' })).toBeNull()
-    expect(screen.getByText(/Mục evidence trong phạm vi: 2/)).toBeTruthy()
-    expect(screen.getByText(/không có URL tệp/)).toBeTruthy()
+    expect(screen.getByText(/Số item trong gói bàn giao: 2/)).toBeTruthy()
+    expect(screen.getByText(/không có evidence ledger, URL tệp/)).toBeTruthy()
     expect(screen.getByText(/Evaluator không có quyền công bố kết quả/)).toBeTruthy()
   })
 

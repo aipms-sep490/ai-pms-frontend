@@ -24,7 +24,7 @@ const meeting: MeetingDetail = {
 const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
 function mount({ actor = 'student', leader = true, userId = 9, path, scheduleAllowed = leader }: { actor?: 'student' | 'supervisor'; leader?: boolean; userId?: number; path?: string; scheduleAllowed?: boolean } = {}) {
   const routeBase = actor === 'student' ? '/project' : '/supervisor/projects/2'
-  const access: ExecutionAccess = { project: { id: 2, teamId: 3, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'], actor, canManageStructure: leader, executionCapabilities: actor === 'student' ? capabilities(scheduleAllowed) : undefined, currentUserId: userId, routeBase }
+  const access: ExecutionAccess = { project: { id: 2, teamId: 3, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'], actor, canManageStructure: leader, supervisor: actor === 'supervisor' ? { isPrimary: true, assignmentType: 'PRIMARY', endedAt: null } as never : undefined, executionCapabilities: capabilities(scheduleAllowed), currentUserId: userId, routeBase }
   const router = createMemoryRouter([{ element: <ExecutionAccessProvider value={access}><Outlet /></ExecutionAccessProvider>, children: [
     { path: `${routeBase}/workspace`, element: <h1>Workspace</h1> },
     { path: `${routeBase}/meetings`, element: <MeetingsPage /> },
@@ -88,9 +88,9 @@ describe('Meetings end-user workflow', () => {
     expect(screen.queryByRole('button', { name: 'Viết nhận xét' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Hoàn tất cuộc họp' })).toBeNull()
   })
-  it('lets a member schedule only when the backend action explicitly allows it', async () => {
+  it('keeps project scheduling hidden for a member even when a broad backend predicate allows it', async () => {
     mount({ leader: false, userId: 10, path: '/project/meetings/new', scheduleAllowed: true })
-    expect(await screen.findByLabelText(/Tiêu đề/)).toBeTruthy()
+    expect(await screen.findByText('Backend hiện không cho phép bạn lên lịch họp cho đồ án này.')).toBeTruthy()
   })
   it('allows the original organizer to manage after they cease to be leader', async () => {
     mount({ leader: false, userId: 9 }); await ready()

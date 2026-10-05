@@ -3,6 +3,7 @@ import type { Meeting } from '../meetings/meeting-types'
 import type { EvaluationAssignment } from '../evaluations/evaluation-types'
 import type { MilestoneDto, TaskDto } from '../../types/backend'
 import type { CalendarProjectionItem } from './calendar-types'
+import type { BackendCalendarItem } from '../../services/api/calendar.api'
 
 const completed = new Set(['DONE', 'COMPLETED', 'CANCELLED', 'CLOSED', 'ACCEPTED', 'ARCHIVED'])
 
@@ -58,4 +59,16 @@ export function progressReportProjection(report: { id: number; title: string; st
 export function evaluationProjection(assignment: EvaluationAssignment, deadline?: string | null): CalendarProjectionItem | null {
   if (!deadline) return null
   return { sourceType: 'EVALUATION_ASSIGNMENT', sourceId: assignment.id, projectId: assignment.projectId, title: 'Hạn đánh giá', dueAt: deadline, status: assignment.status, deepLink: `/evaluator/assignments/${assignment.id}` }
+}
+
+/** Never follow a backend deep link: route construction stays local and actor-scoped. */
+export function scopedCalendarProjection(item: BackendCalendarItem): CalendarProjectionItem | null {
+  const deepLink = item.sourceType === 'TASK' ? `/project/tasks/${item.sourceId}`
+    : item.sourceType === 'MILESTONE' ? `/project/milestones/${item.sourceId}`
+      : item.sourceType === 'MEETING' ? `/project/meetings/${item.sourceId}`
+        : item.sourceType === 'DELIVERABLE' ? '/project/deliverables'
+          : item.sourceType === 'FINAL_SUBMISSION' ? '/project/final-submission'
+            : item.sourceType === 'PROGRESS_REPORT' ? `/project/reports/${item.sourceId}` : null
+  if (!deepLink || (!item.startAt && !item.endAt && !item.dueAt)) return null
+  return { sourceType: item.sourceType, sourceId: item.sourceId, projectId: item.projectId, title: item.title, startAt: item.startAt ?? undefined, endAt: item.endAt ?? undefined, dueAt: item.dueAt ?? undefined, status: item.status, deepLink }
 }

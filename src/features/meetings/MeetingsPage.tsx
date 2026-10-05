@@ -6,16 +6,16 @@ import type { PagedResult } from '../../types/backend'
 import { meetingStatuses, type Meeting, type MeetingStatus } from './meeting-types'
 import { formatMeetingTime, meetingError } from './meeting-utils'
 import { MeetingError, MeetingLoading, MeetingShell, MeetingStatusBadge } from './meeting-ui'
+import { canUseProjectExecutionAction } from '../execution/execution-authority'
 
 export function MeetingsPage() {
   const access = useExecutionAccess()
   return <MeetingList key={`${access.project.id}:${access.currentUserId}`} />
 }
 function MeetingList() {
-  const { project, routeBase, canManageStructure, executionCapabilities, actor } = useExecutionAccess()
-  const canSchedule = actor === 'student'
-    ? executionCapabilities?.get('schedule_meeting').allowed === true
-    : canManageStructure
+  const access = useExecutionAccess()
+  const { project, routeBase } = access
+  const canSchedule = canUseProjectExecutionAction(access, 'schedule_meeting')
   const [params, setParams] = useSearchParams()
   const status = Object.hasOwn(meetingStatuses, params.get('status') ?? '') ? params.get('status') as MeetingStatus : ''
   const calendarDate = (value: string | null) => value && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) ? value : ''

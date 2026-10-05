@@ -8,6 +8,7 @@ import type { ProjectDto, SupervisorAssignmentDto } from '../../../types/backend
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { ExState } from '../../execution/execution-ui'
 import { loadOwnSupervisorAssignments } from '../utils/loadOwnSupervisorAssignments'
+import { useProjectExecutionCapabilities } from '../../execution/hooks/useProjectExecutionCapabilities'
 
 type AccessLoad = { project: ProjectDto; assignment: SupervisorAssignmentDto } | null
 const isActive = (status: string) => status.replaceAll('_', '').toUpperCase() === 'ACTIVE'
@@ -20,6 +21,7 @@ export function SupervisorExecutionRoute() {
   const [data, setData] = useState<AccessLoad>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const executionCapabilities = useProjectExecutionCapabilities(data?.project.id)
 
   const load = useCallback(async () => {
     if (!Number.isInteger(id) || id < 1) { setLoading(false); setError('Đường dẫn đồ án không hợp lệ.'); return }
@@ -42,7 +44,5 @@ export function SupervisorExecutionRoute() {
   if (loading) return <PageLoading />
   if (error) return <ExState message={error} retry={() => void load()} />
   if (!data) return <Navigate to="/supervisor/workspace" replace />
-  // Assignment scope grants access to the read workspace only. Structural mutations
-  // remain fail-closed until the Backend publishes an action contract for this actor.
-  return <ExecutionAccessProvider value={{ project: data.project, supervisor: data.assignment, currentUserId: session?.user.id, actor: 'supervisor', canManageStructure: false, routeBase: `/supervisor/projects/${id}` }}><Outlet /></ExecutionAccessProvider>
+  return <ExecutionAccessProvider value={{ project: data.project, supervisor: data.assignment, currentUserId: session?.user.id, actor: 'supervisor', canManageStructure: false, executionCapabilities, routeBase: `/supervisor/projects/${id}` }}><Outlet /></ExecutionAccessProvider>
 }

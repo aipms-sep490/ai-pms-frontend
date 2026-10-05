@@ -23,17 +23,27 @@ is refreshed.
 
 | Handoff | Backend endpoint inspected | FE result | Status |
 |---|---|---|---|
-| BE-AW-001 | `GET /projects/{id}/execution-actions`, `GET /tasks/{id}/execution-actions`, `GET /milestones/{id}/execution-actions` | Exact `ExecutionCapabilityDto` wired. Task evidence gate corrected to published `add_task_evidence`; task/milestone mutations refresh after 403. | `VERIFIED_FE_BE` |
-| BE-AW-002 | Existing `GET/POST /projects/{id}/evidence` | Backend mutation resolves source and state, but publishes no source/resource action read model. Governance evidence creation remains fail-closed/read-only rather than offering a broad CTA. | `PARTIAL_BACKEND_CONTRACT` |
-| BE-AW-003 | Assignment reads plus task execution capability | Existing Mentor route proves an exact active `DISCIPLINE_MENTOR` assignment and exact major; task mutation authority is capability-driven. There is no delivered major-scoped resource projection, so generic project-resource reads are not promoted as mentor-wide access. | `PARTIAL_BACKEND_CONTRACT` |
-| BE-AW-005 | `GET /projects/{id}/governance` | Not wired. The inspected service publishes `MANAGE_GOVERNANCE` for an Admin and returns an Admin platform scope, contrary to the handoff rule that Admin is not a Department academic actor. | `BACKEND_DEFECT` |
+| BE-AW-001 | `GET /projects/{id}/execution-actions`, `GET /tasks/{id}/execution-actions`, `GET /milestones/{id}/execution-actions` | Contract is wired, but structural manager actions inherit a backend predicate that accepts any active supervisor. FE only exposes structural CTAs to a Student Leader or proven active PRIMARY Supervisor. | `BLOCKED_BY_BACKEND` |
+| BE-AW-002 | Existing `GET/POST /projects/{id}/evidence` | `POST` resolves canonical source/project/major/actor/state server-side. FE offers only `TASK + taskId` evidence after `add_task_evidence` plus a safe actor scope; it sends no verification/submitter field. | `VERIFIED_USABLE` |
+| BE-AW-003 | Assignment reads plus task execution capability | Exact active Mentor assignment/major and authoritative task-discipline intersection are required. Structural task UI remains closed; unknown/error discipline scope is denied. | `PARTIAL_BACKEND_DEFECT` |
+| BE-AW-005 | `GET /projects/{id}/governance` | Governance read remains visible where existing route access permits; all cycle/action-item mutations are fail-closed. Admin and a merely participating Department scope are unsafe under the current predicate. | `BLOCKED_BY_BACKEND` |
 | BE-AW-006 | `GET /evaluation-assignments/{id}` | Evaluator direct route now requests the canonical assignment-detail projection. `canScore`, legacy read-only, and denial reason control mutation presentation. | `VERIFIED_FE_BE` |
-| BE-AW-007 | `GET /evaluation-assignments/{id}/evidence` | Evaluator displays server-scoped final-package metadata only. The backend does not return evidence/file rows or URLs; FE does not fabricate or client-filter them. | `PARTIAL_BACKEND_CONTRACT` |
+| BE-AW-007 | `GET /evaluation-assignments/{id}/evidence` | Evaluator displays final-submission metadata and item count only. The backend does not return a complete assignment-scoped evidence/file projection. | `PARTIAL_BACKEND_DEFECT` |
 | BE-AW-009 | `PATCH /users/{id}/academic-profile` | Admin detail sends the backend concurrency token, preserves a draft on 409, uses the returned scope snapshot, and does not cascade changes client-side. | `VERIFIED_FE_BE` |
 | BE-AW-010 | Security role DTOs | Role type consumes `isAssignableGlobalRole` and `assignmentKind`; account creation only offers server-classified global roles. | `VERIFIED_FE_BE` |
-| BE-AW-011 | `GET /calendar` | Not wired. Mentor and evaluator calendar queries are expanded to all project resource events in the inspected backend implementation, not their major/assignment scope. | `BACKEND_DEFECT` |
+| BE-AW-011 | `GET /calendar` | Student route uses bounded `from`/`to`/`pageSize` projection only; Mentor/Evaluator/Lecturer broad calendar stays unavailable because their backend project expansion is too broad. | `BLOCKED_BY_BACKEND` |
 
 ## Backend defects and incomplete contracts
+
+### BE-AW-001 and BE-AW-003: execution manager broadening
+
+The structural manager predicate used by task/project execution treats any
+active supervisor assignment as a manager. It does not distinguish a PRIMARY
+Supervisor from a discipline mentor. This is a backend authorization defect,
+not a frontend permission rule. The frontend applies a negative compatibility
+gate only: `backend Allowed` plus Student Leader or active PRIMARY Supervisor
+for structural actions. Mentor structural controls remain hidden; supported
+task status/evidence candidates also require exact active mentor route scope.
 
 ### BE-AW-005: governance scope broadening
 
@@ -58,19 +68,21 @@ all project IDs and then emits task, milestone, meeting, deliverable, and final
 submission facts for every selected project. This is broader than a discipline
 major or evaluator assignment scope.
 
-The existing FE calendar therefore retains its independently guarded,
-partial-source projection and its truthful unavailable messages. It does not
-issue the delivered calendar request in production API mode. Required backend
-remediation: enforce major/evaluation scope before selecting resources, test
-cross-major and foreign-assignment denial, and preserve `DateOnly` values
-without timezone conversion.
+The frontend uses this endpoint only for the Student's bounded team-project
+scope, with `from`, `to`, and `pageSize`; local routes are constructed from
+the returned source type rather than trusting backend deep links. Lecturer,
+Mentor, Evaluator, Department, and Admin do not adopt its broad projection.
+Required backend remediation: enforce major/evaluation scope before selecting
+resources, test cross-major and foreign-assignment denial, and preserve
+`DateOnly` values without timezone conversion.
 
 ### BE-AW-002, BE-AW-003, and BE-AW-007: remaining read/action granularity
 
-Evidence creation is server-validated but has no published source/resource
-capability that can safely drive a CTA. Mentor reads lack a dedicated
-major-scoped projection. Evaluator evidence is safely scoped but is metadata
-only. These are not replaced by frontend role, path, or client-side filters.
+Task evidence creation is server-validated and usable only with a canonical
+Task source plus the delivered task capability. Generic governance evidence
+creation stays fail-closed. Mentor reads still lack a dedicated major-scoped
+projection; evaluator evidence is metadata-only. These are not replaced by
+frontend role, path, or client-side filters.
 
 ## Frontend changes made
 
@@ -110,7 +122,7 @@ admin profile 409 preservation, role metadata, and explicit API mock mode.
 | Focused Video Meeting regression | 8 files, 34 tests passed (6.60 s) |
 | `pnpm typecheck` | Passed |
 | `pnpm lint` | Passed |
-| `pnpm test` | Invoked normally and allowed to terminate. A complete JSON-reporter verification recorded 301 files, 620/620 tests passed, 0 failed; no Vitest process remained. This disproved the previously observed worker-startup hang in this isolated worktree. |
+| Full Vitest evidence | Official Vitest 4-way sequential blob sharding completed naturally: shards 1/4, 2/4, 3/4, and 4/4 each exited 0 and wrote a non-empty blob (181,711; 171,490; 199,694; and 152,719 bytes). The merged JSON report at `artifacts/vitest/vitest-full.json` recorded 140 test files, 305/305 suites and 624/624 tests passed, with 0 failed/pending/todo suites and tests. This replaces the prior `FULL_VITEST_EVIDENCE_MISSING` reporter-finalization blocker. |
 | `pnpm build` | Passed: TypeScript build and Vite production build completed. Vite reported the existing LiveKit chunk-size advisory only. |
 | `git diff --check` | Passed |
 | Browser/network audit | Chrome DevTools API-mode check passed for unauthenticated guard: `/project/workspace` redirected to `/login`; at 375px, `scrollWidth === innerWidth`. The login UI handled the real `POST /api/v1/auth/google/challenge` 502 by showing the Google-unavailable state. |
@@ -122,10 +134,13 @@ and no mock browser acceptance was claimed.
 
 ## Final synchronization status
 
-`FINAL_SYNC_PARTIAL_ACCEPTABLE`.
+**Frontend implementation:** `MERGE_READY_FOR_VALID_BACKEND_CONTRACTS`.
 
-The frontend-safe integration and verification work is complete, but the
-overall synchronization remains `BLOCKED_BY_BACKEND` for governance and
-calendar authorization scope. In addition, source-aware evidence, mentor
-resource reads, and evaluator evidence rows need the noted backend contract
-granularity before this can become `FINAL_SYNC_READY_FOR_REVIEW`.
+**Overall system:** `PARTIAL_BACKEND_BLOCKED`.
+
+The frontend-safe integration is complete for contracts with a proven scope.
+The overall synchronization remains blocked by BE-AW-001 (and its BE-AW-003
+Mentor boundary impact), BE-AW-005 governance scope, BE-AW-007 evidence
+projection completeness, and BE-AW-011 multi-actor calendar scope. BE-AW-002
+is intentionally not a blocker: task-source evidence is now consumed through
+its canonical server-validated path.

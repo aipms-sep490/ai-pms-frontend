@@ -8,16 +8,16 @@ import { MeetingError, MeetingShell } from './meeting-ui'
 import { MeetingScheduleForm } from './MeetingScheduleForm'
 import { MeetingUnsavedNotice } from './MeetingUnsavedNotice'
 import { useMeetingCandidates } from './useMeetingCandidates'
+import { canUseProjectExecutionAction } from '../execution/execution-authority'
 
 export function CreateMeetingPage() {
   const access = useExecutionAccess()
   return <CreateMeetingView key={`${access.project.id}:${access.currentUserId}`} />
 }
 function CreateMeetingView() {
-  const { project, routeBase, canManageStructure, executionCapabilities, actor, currentUserId } = useExecutionAccess()
-  const canSchedule = actor === 'student'
-    ? executionCapabilities?.get('schedule_meeting').allowed === true
-    : canManageStructure
+  const access = useExecutionAccess()
+  const { project, routeBase, currentUserId } = access
+  const canSchedule = canUseProjectExecutionAction(access, 'schedule_meeting')
   const navigate = useNavigate()
   const candidates = useMeetingCandidates(project.id, project.teamId, canSchedule)
   const [busy, setBusy] = useState(false)

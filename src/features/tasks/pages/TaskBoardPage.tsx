@@ -7,15 +7,15 @@ import { services } from '../../../services/service-gateway'
 import type { BackendTaskStatus, MilestoneDto, PagedResult, TaskDto } from '../../../types/backend'
 import { dateLabel, isOverdue, taskStatusLabel } from '../../projects/utils/collaboration-workspace'
 import { WorkspaceTaskForm } from '../../projects/components/WorkspaceTaskForm'
+import { canUseProjectExecutionAction } from '../../execution/execution-authority'
 
 const statuses: BackendTaskStatus[] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'IN_REVIEW', 'DONE', 'CANCELLED']
 const positiveId = (value: string | null) => { const id = Number(value); return Number.isSafeInteger(id) && id > 0 ? id : undefined }
 
 export function TaskBoardPage() {
-  const { project, team, currentUserId, canManageStructure, executionCapabilities, actor, routeBase } = useExecutionAccess()
-  const canCreate = actor === 'student'
-    ? executionCapabilities?.get('create_task').allowed === true
-    : canManageStructure
+  const { project, team, currentUserId, routeBase } = useExecutionAccess()
+  const access = useExecutionAccess()
+  const canCreate = canUseProjectExecutionAction(access, 'create_task')
   const [params, setParams] = useSearchParams()
   const page = positiveId(params.get('page')) ?? 1
   const assigneeUserId = positiveId(params.get('assignee'))
