@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { ExecutionAccessProvider } from '../../execution/context/ExecutionAccessProvider'
 import { TaskDetailPage } from './TaskDetailPage'
+import { HttpError } from '../../../services/http/http-client'
 const api = vi.hoisted(() => ({ getTask: vi.fn(), getTaskHistory: vi.fn(), getProjectTimeline: vi.fn(), updateTask: vi.fn(), updateTaskStatus: vi.fn(), setTaskAssignees: vi.fn(), addTaskDependency: vi.fn(), removeTaskDependency: vi.fn(), deleteTask: vi.fn() }))
 const workflow = vi.hoisted(() => ({ getTaskExecutionActions: vi.fn() }))
 vi.mock('../../../services/service-gateway', () => ({ services: { task: api } }))
@@ -13,7 +14,7 @@ function renderPage(manage: boolean, currentUserId = 2) {
   const allow = (code: string, allowed: boolean) => ({ code, allowed, reasons: allowed ? [] : ['TEST_DENIED'] })
   workflow.getTaskExecutionActions.mockResolvedValue({ taskId: 8, projectId: 9, status: 'TODO', concurrencyToken: 'task-token', actions: [
     allow('update_task', manage), allow('delete_task', manage), allow('assign_task', manage), allow('manage_task_dependencies', manage),
-    allow('change_task_status', manage || currentUserId === 2), allow('manage_task_disciplines', manage || currentUserId === 2), allow('add_evidence', manage || currentUserId === 2),
+    allow('change_task_status', manage || currentUserId === 2), allow('manage_task_disciplines', manage || currentUserId === 2), allow('add_task_evidence', manage || currentUserId === 2),
   ] })
   return render(<MemoryRouter initialEntries={['/project/tasks/8']}><ExecutionAccessProvider value={{ project: { id: 9 } as never, team: { members: [{ userId: 2, fullName: 'Khang' }, { userId: 5, fullName: 'Duy' }] } as never, actor: 'student', currentUserId, canManageStructure: manage, routeBase: '/project' }}><Routes><Route path="/project/tasks/:taskId" element={<TaskDetailPage />} /></Routes></ExecutionAccessProvider></MemoryRouter>)
 }
@@ -71,6 +72,14 @@ describe('TaskDetailPage', () => {
     await screen.findByText('Chưa thể lưu thay đổi. Hãy thử lại.')
     expect(api.updateTaskStatus).toHaveBeenCalledWith(8,{newStatus:'IN_PROGRESS',reason:'Chờ bộ dữ liệu',concurrencyToken:'task-token'})
     expect((reason as HTMLTextAreaElement).value).toBe('Chờ bộ dữ liệu')
+  })
+  it('refreshes task and capability observations after a 403 without replaying the mutation', async () => {
+    api.updateTaskStatus.mockRejectedValue(new HttpError('denied', 403)); renderPage(false)
+    await screen.findByRole('button', { name: 'Cập nhật trạng thái' })
+    fireEvent.click(screen.getByRole('button', { name: 'Cập nhật trạng thái' }))
+    expect(await screen.findByText(/Quyền thao tác đã thay đổi/)).toBeTruthy()
+    await vi.waitFor(() => expect(workflow.getTaskExecutionActions.mock.calls.length).toBeGreaterThan(1))
+    expect(api.updateTaskStatus).toHaveBeenCalledTimes(1)
   })
   it('requires confirmation and keeps details when deletion fails', async () => {
     api.getTask.mockResolvedValue({...task,assignees:[]}); api.deleteTask.mockRejectedValue(new Error('conflict'))

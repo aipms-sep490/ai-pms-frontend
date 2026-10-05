@@ -2,6 +2,27 @@ import { httpDelete, httpGet, httpPost, httpPut } from '../http/http-client'
 import type { PagedResult } from '../../types/backend'
 import type { EvaluationAssignment, EvaluationDraft, EvaluationScheme, EvaluationScope, EvaluationScoreInput } from '../../features/evaluations/evaluation-types'
 
+/** Server-issued direct-assignment authority. `canScore` is authoritative for score mutations. */
+export interface EvaluationAssignmentDetail {
+  assignment: EvaluationAssignment
+  canScore: boolean
+  legacyReadOnly: boolean
+  denialReason: string | null
+}
+
+/** Deliberately metadata-only evidence projection, scoped by the Backend to the assignment. */
+export interface EvaluationAssignmentEvidence {
+  assignmentId: number
+  projectId: number
+  scope: EvaluationScope
+  majorId: number | null
+  studentId: number | null
+  finalSubmissionId: number | null
+  submittedAt: string | null
+  itemCount: number
+  isReadOnly: boolean
+}
+
 export interface EligibleEvaluator {
   userId: number
   displayName: string
@@ -11,6 +32,8 @@ export interface EligibleEvaluator {
 }
 
 export const getMyEvaluationAssignments = (page = 1, pageSize = 20, signal?: AbortSignal) => httpGet<PagedResult<EvaluationAssignment>>(`/evaluation-assignments/my?page=${page}&pageSize=${pageSize}`, signal)
+export const getEvaluationAssignmentDetail = (assignmentId: number, signal?: AbortSignal) => httpGet<EvaluationAssignmentDetail>(`/evaluation-assignments/${assignmentId}`, signal)
+export const getEvaluationAssignmentEvidence = (assignmentId: number, signal?: AbortSignal) => httpGet<EvaluationAssignmentEvidence>(`/evaluation-assignments/${assignmentId}/evidence`, signal)
 
 /**
  * The API is paged. Workspace guards must inspect the complete server-issued

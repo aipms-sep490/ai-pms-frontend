@@ -8,13 +8,15 @@ import { services } from '../../../services/service-gateway'
 import type { MilestoneDto, MilestoneProgressDto } from '../../../types/backend'
 import { dateLabel } from '../../projects/utils/collaboration-workspace'
 import { useMilestoneExecutionCapabilities } from '../../execution/hooks/useMilestoneExecutionCapabilities'
+import { canUseProjectExecutionAction, canUseTaskExecutionAction } from '../../execution/execution-authority'
 
 export function MilestoneDetailPage() {
   const { milestoneId } = useParams()
   const navigate = useNavigate()
-  const { project, executionCapabilities, routeBase } = useExecutionAccess()
-  const canCreate = executionCapabilities?.get('create_milestone').allowed === true
-  const canReorder = executionCapabilities?.get('reorder_milestones').allowed === true
+  const access = useExecutionAccess()
+  const { project, routeBase } = access
+  const canCreate = canUseProjectExecutionAction(access, 'create_milestone')
+  const canReorder = canUseProjectExecutionAction(access, 'reorder_milestones')
   const [milestones, setMilestones] = useState<MilestoneDto[]>([])
   const [progress, setProgress] = useState<MilestoneProgressDto[]>([])
   const [loading, setLoading] = useState(true)
@@ -27,9 +29,9 @@ export function MilestoneDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [order, setOrder] = useState<MilestoneDto[] | null>(null)
   const milestoneCapabilities = useMilestoneExecutionCapabilities(Number(milestoneId), revision)
-  const mutation = useExecutionMutation()
-  const clearMutation = mutation.clear
   const reload = () => setRevision(value => value + 1)
+  const mutation = useExecutionMutation({ onForbidden: reload })
+  const clearMutation = mutation.clear
   useEffect(() => { setCreating(false); setEditing(false); setDeleting(false); setOrder(null); clearMutation() }, [milestoneId, project.id, clearMutation])
   useEffect(() => {
     const controller = new AbortController(); setLoading(true); setError(''); setProgressError(''); setProgressLoading(true); setProgress([])
@@ -44,9 +46,9 @@ export function MilestoneDetailPage() {
   }, [project.id, revision])
   const selected = milestoneId ? milestones.find(item => item.id === Number(milestoneId)) : null
   const stats = progress.find(item => item.milestoneId === selected?.id)
-  const actionAllowed = (code: string) => milestoneCapabilities.get(code).allowed
-  const canUpdate = Boolean(selected) && actionAllowed('update_milestone')
-  const canDelete = Boolean(selected) && actionAllowed('delete_milestone')
+  const actionCapability = (code: string) => milestoneCapabilities.get(code)
+  const canUpdate = Boolean(selected) && canUseTaskExecutionAction(access, 'update_task', actionCapability('update_milestone'))
+  const canDelete = Boolean(selected) && canUseTaskExecutionAction(access, 'delete_task', actionCapability('delete_milestone'))
   const save = (payload: import('../../../services/api/milestones.api').UpdateMilestonePayload) => selected
     ? mutation.run(() => services.milestone.updateMilestone(selected.id, { ...payload, concurrencyToken: selected.concurrencyToken }), () => { setEditing(false); reload() }) : Promise.resolve(false)
   function move(index: number, direction: number) {

@@ -33,9 +33,9 @@ describe('TaskBoardPage', () => {
     renderBoard(true, '/project/tasks', false); await screen.findByText('Không có công việc phù hợp')
     expect(screen.queryByRole('button', { name: 'Tạo công việc' })).toBeNull()
   })
-  it('shows creation to a member only when the backend action allows it', async () => {
+  it('keeps project structural creation hidden for a member even when a broad backend predicate allows it', async () => {
     renderBoard(false, '/project/tasks', true); await screen.findByText('Không có công việc phù hợp')
-    expect(screen.getByRole('button', { name: 'Tạo công việc' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Tạo công việc' })).toBeNull()
   })
   it('submits filters to BE only after applying', async () => {
     renderBoard(false); await screen.findByText('Không có công việc phù hợp')

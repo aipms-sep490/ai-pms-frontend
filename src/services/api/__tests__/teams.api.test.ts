@@ -45,8 +45,10 @@ describe('teams.api contract', () => {
 
   it('keeps a mock eligibility PASS eligible and leaves roster locking to a separate backend transition', async () => {
     runtime.env.isMockMode = true
+    vi.resetModules()
+    const mockTeamsApi = await import('../teams.api')
 
-    const refreshed = await teamsApi.refreshEligibility(28)
+    const refreshed = await mockTeamsApi.refreshEligibility(28)
 
     expect(refreshed.status).toBe('ELIGIBLE')
     expect(refreshed.eligibility).toMatchObject({ canRegister: true, rosterLocked: false, reasons: [] })

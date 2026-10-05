@@ -10,6 +10,8 @@ import { taskStatusLabel, utcTimestamp } from '../../projects/utils/collaboratio
 import { TaskEvidenceAndComments } from '../components/TaskEvidenceAndComments'
 import { TaskDisciplinePanel } from '../components/TaskDisciplinePanel'
 import { useTaskExecutionCapabilities } from '../../execution/hooks/useTaskExecutionCapabilities'
+import { canUseTaskExecutionAction } from '../../execution/execution-authority'
+import * as disciplineApi from '../../projects/api/discipline-governance-api'
 
 export function TaskDetailPage() {
   const { taskId } = useParams()
@@ -33,10 +35,12 @@ function TaskDetail({ id }: { id: number }) {
   const [error, setError] = useState('')
   const [historyError, setHistoryError] = useState('')
   const [contextError, setContextError] = useState('')
+  const [mentorDisciplineScope, setMentorDisciplineScope] = useState<'loading' | 'ready' | 'unavailable'>('loading')
+  const [mentorDisciplineItems, setMentorDisciplineItems] = useState<disciplineApi.TaskDiscipline[]>([])
   const [editing, setEditing] = useState<'content' | 'assignees' | 'dependency' | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const mutation = useExecutionMutation()
   const reload = () => setRevision(value => value + 1)
+  const mutation = useExecutionMutation({ onForbidden: reload })
   useEffect(() => {
     if (!Number.isSafeInteger(id) || id < 1) { setError('Đường dẫn công việc không hợp lệ.'); setLoading(false); return }
     const controller = new AbortController(); const signal = controller.signal
@@ -49,20 +53,33 @@ function TaskDetail({ id }: { id: number }) {
       .catch(reason => { if (!signal.aborted) setContextError(executionError(reason, 'tải các công việc liên quan')) })
     return () => controller.abort()
   }, [id, project.id, revision])
+  useEffect(() => {
+    if (access.actor !== 'mentor') { setMentorDisciplineScope('ready'); setMentorDisciplineItems([]); return }
+    let active = true
+    setMentorDisciplineScope('loading'); setMentorDisciplineItems([])
+    void disciplineApi.getTaskDisciplines(id).then(result => {
+      if (!active) return
+      setMentorDisciplineItems(result.items); setMentorDisciplineScope('ready')
+    }).catch(() => { if (active) setMentorDisciplineScope('unavailable') })
+    return () => { active = false }
+  }, [access.actor, id, revision])
   if (!task) return <ExecutionPage title="Chi tiết công việc" backTo={taskListUrl}><ExState loading={loading} message={error} retry={error ? reload : undefined} /></ExecutionPage>
   const allTasks = timeline?.milestones.flatMap(item => item.tasks) ?? []
   const milestone = timeline?.milestones.find(item => item.id === task.milestoneId)
   const contextValid = Boolean(milestone)
-  const allowed = (code: string) => taskCapabilities.get(code).allowed
-  const canUpdate = contextValid && allowed('update_task')
-  const canUpdateStatus = contextValid && allowed('change_task_status')
-  const canAssign = contextValid && allowed('assign_task')
-  const canManageDependencies = contextValid && allowed('manage_task_dependencies')
-  const canManageDisciplines = contextValid && allowed('manage_task_disciplines')
-  const canAddEvidence = contextValid && allowed('add_evidence')
+  const allowed = (code: string) => taskCapabilities.get(code)
+  const mentorScopeProven = access.actor !== 'mentor' || (mentorDisciplineScope === 'ready' && Boolean(access.supervisor?.majorId) && mentorDisciplineItems.some(item => item.majorId === access.supervisor?.majorId))
+  const canUpdate = contextValid && canUseTaskExecutionAction(access, 'update_task', allowed('update_task'), mentorScopeProven)
+  const canUpdateStatus = contextValid && canUseTaskExecutionAction(access, 'change_task_status', allowed('change_task_status'), mentorScopeProven)
+  const canAssign = contextValid && canUseTaskExecutionAction(access, 'assign_task', allowed('assign_task'), mentorScopeProven)
+  const canManageDependencies = contextValid && canUseTaskExecutionAction(access, 'manage_task_dependencies', allowed('manage_task_dependencies'), mentorScopeProven)
+  // The current replace payload cannot prove a mentor-only discipline write scope, so this remains fail-closed.
+  const canManageDisciplines = contextValid && access.actor !== 'mentor' && canUseTaskExecutionAction(access, 'manage_task_disciplines', allowed('manage_task_disciplines'), mentorScopeProven)
+  // This is the exact code published by the task execution-capability contract.
+  const canAddEvidence = contextValid && canUseTaskExecutionAction(access, 'add_task_evidence', allowed('add_task_evidence'), mentorScopeProven)
   const candidates = team?.members.map(member => ({ userId: member.userId, fullName: member.fullName })) ??
     [...new Map(allTasks.flatMap(item => item.assignees).map(person => [person.userId, person])).values()]
-  const mayDelete = contextValid && allowed('delete_task')
+  const mayDelete = contextValid && canUseTaskExecutionAction(access, 'delete_task', allowed('delete_task'), mentorScopeProven)
   const saved = () => { setEditing(null); reload() }
   return <ExecutionPage title={task.title} eyebrow={milestone?.title ?? project.code} backTo={taskListUrl}
     action={<><button className="ex-button" disabled={loading || mutation.busy} onClick={reload}><ExIcon name="refresh" />Cập nhật</button>{canUpdate && <button className="ex-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('content') }}><ExIcon name="edit" />Chỉnh sửa</button>}</>}>
@@ -83,7 +100,7 @@ function TaskDetail({ id }: { id: number }) {
         </div>
       </section>
       <section className="ex-panel"><div className="ex-panel-heading"><h2>Lịch sử cập nhật</h2></div><div className="ex-padding">{historyLoading ? <ExState loading /> : historyError ? <ExState message={historyError} retry={reload} /> : history.length ? <ol className="ex-history">{[...history].sort((a,b) => utcTimestamp(b.changedAt) - utcTimestamp(a.changedAt) || b.id - a.id).map(item => <li key={item.id}><strong>{item.oldStatus ? taskStatusLabel(item.oldStatus) : 'Tạo công việc'} → {taskStatusLabel(item.newStatus)}</strong><time>{dateTimeLabel(item.changedAt)} · {item.changedByFullName}</time>{item.reason && <p>{item.reason}</p>}</li>)}</ol> : <p className="ex-muted">Chưa có thay đổi trạng thái.</p>}</div></section>
-      <TaskEvidenceAndComments taskId={task.id} canAddEvidence={canAddEvidence} />
+      <TaskEvidenceAndComments taskId={task.id} projectId={project.id} majors={project.majors ?? []} mentorMajorId={access.actor === 'mentor' ? access.supervisor?.majorId ?? null : null} canAddEvidence={canAddEvidence} />
       <TaskDisciplinePanel taskId={task.id} majors={project.majors} canManage={canManageDisciplines} />
       {mayDelete && <><button className="ex-text-button ex-danger-text" onClick={() => setDeleting(true)}>Xóa công việc</button>{deleting && <ExConfirm title="Xóa công việc này?" description="Chỉ công việc chưa có phân công, liên kết hoặc lịch sử mới được xóa. Các công việc đã thực hiện nên chuyển sang trạng thái Đã hủy." busy={mutation.busy} onCancel={() => setDeleting(false)} onConfirm={() => void mutation.run(() => services.task.deleteTask(task.id, task.concurrencyToken), () => navigate(`${routeBase}/tasks`, { replace: true }), 'Đã xóa công việc.')} />}</>}
     </div><aside><section className="ex-panel"><div className="ex-panel-heading"><h2>Cập nhật tiến độ</h2></div><div className="ex-padding">{canUpdateStatus ? <StatusEditor key={task.status} task={task} busy={mutation.busy} onSubmit={(newStatus, reason) => mutation.run(() => services.task.updateTaskStatus(task.id, { newStatus, reason: reason.trim() || null, concurrencyToken: task.concurrencyToken }), reload, 'Đã cập nhật trạng thái.')} />

@@ -4,13 +4,14 @@ import { getMeetings } from '../../services/api/meetings.api'
 import { getStudentDashboard, getSupervisorDashboard, getPortfolioDashboard } from '../dashboard/api/dashboard-api'
 import { getFinalChecklist } from '../final-submission/final-submission-api'
 import { getUsers } from '../users/api/admin-api'
+import { getScopedCalendar } from '../../services/api/calendar.api'
 import type { WorkspaceRole } from '../auth/utils/role-access'
 import type { CalendarAttentionData, CalendarProjectionItem, CalendarSourceStatus, AttentionItem } from './calendar-types'
-import { deliverableProjection, finalSubmissionProjection, meetingProjection } from './calendar-projections'
+import { deliverableProjection, finalSubmissionProjection, meetingProjection, scopedCalendarProjection } from './calendar-projections'
 
 export interface CalendarLoaderInput { role: WorkspaceRole; semesterId: number | null; accessToken?: string }
 
-export const calendarApis = { getStudentDashboard, getSupervisorDashboard, getPortfolioDashboard, getMeetings, getDeliverables, getFinalChecklist, getMyEvaluationAssignments, getUsers }
+export const calendarApis = { getStudentDashboard, getSupervisorDashboard, getPortfolioDashboard, getMeetings, getDeliverables, getFinalChecklist, getMyEvaluationAssignments, getUsers, getScopedCalendar }
 type CalendarApis = typeof calendarApis
 
 function errorStatus(id: string, label: string, reason: unknown): CalendarSourceStatus {
@@ -37,14 +38,22 @@ export async function loadCalendarAttention(input: CalendarLoaderInput, apis: Ca
   const result: CalendarAttentionData = { calendar: [], attention: [], sources: [] }
   if (input.role === 'student') {
     try {
-      const dashboard = await apis.getStudentDashboard(input.semesterId ?? undefined)
-      const project = dashboard.project
-      result.sources.push({ id: 'student-dashboard', label: 'Công việc và mốc đồ án', state: stateForItems([...dashboard.taskDeadlines, ...dashboard.milestoneDeadlines]) })
-      result.calendar.push(
-        ...dashboard.taskDeadlines.map((task) => ({ sourceType: 'TASK' as const, sourceId: task.id, projectId: project?.id, projectName: project?.title, title: task.title, dueAt: task.dueAtUtc, status: task.status, deepLink: `/project/tasks/${task.id}` })),
-        ...dashboard.milestoneDeadlines.map((milestone) => ({ sourceType: 'MILESTONE' as const, sourceId: milestone.id, projectId: project?.id, projectName: project?.title, title: milestone.title, dueAt: milestone.dueDate, status: milestone.status, deepLink: `/project/milestones/${milestone.id}` })),
+      const now = new Date()
+      const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 30)).toISOString()
+      const to = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 6, now.getUTCDate())).toISOString()
+      const [dashboard, scopedCalendar] = await Promise.allSettled([apis.getStudentDashboard(input.semesterId ?? undefined), apis.getScopedCalendar({ from, to, pageSize: 100 })])
+      if (dashboard.status === 'rejected') throw dashboard.reason
+      if (scopedCalendar.status === 'fulfilled') {
+        result.calendar.push(...scopedCalendar.value.items.map(scopedCalendarProjection).filter((item): item is CalendarProjectionItem => item !== null))
+        result.sources.push({ id: 'student-calendar', label: 'Lịch theo phạm vi đồ án', state: scopedCalendar.value.hasMore || !scopedCalendar.value.complete ? 'partial' : stateForItems(scopedCalendar.value.items), message: scopedCalendar.value.hasMore || !scopedCalendar.value.complete ? 'Hiển thị tối đa 100 mục trong khoảng thời gian đã chọn.' : undefined })
+      } else result.sources.push(errorStatus('student-calendar', 'Lịch theo phạm vi đồ án', scopedCalendar.reason))
+      const project = dashboard.value.project
+      result.sources.push({ id: 'student-dashboard', label: 'Công việc và mốc đồ án', state: stateForItems([...dashboard.value.taskDeadlines, ...dashboard.value.milestoneDeadlines]) })
+      if (scopedCalendar.status !== 'fulfilled') result.calendar.push(
+        ...dashboard.value.taskDeadlines.map((task) => ({ sourceType: 'TASK' as const, sourceId: task.id, projectId: project?.id, projectName: project?.title, title: task.title, dueAt: task.dueAtUtc, status: task.status, deepLink: `/project/tasks/${task.id}` })),
+        ...dashboard.value.milestoneDeadlines.map((milestone) => ({ sourceType: 'MILESTONE' as const, sourceId: milestone.id, projectId: project?.id, projectName: project?.title, title: milestone.title, dueAt: milestone.dueDate, status: milestone.status, deepLink: `/project/milestones/${milestone.id}` })),
       )
-      result.attention.push(...studentAttention(dashboard))
+      result.attention.push(...studentAttention(dashboard.value))
       result.sources.push({ id: 'progress-report-deadline', label: 'Hạn báo cáo tiến độ', state: 'unsupported', message: 'API hiện trả kỳ báo cáo, không trả hạn nộp báo cáo.' })
       if (!project) {
         result.sources.push({ id: 'project-resources', label: 'Lịch họp, hạng mục và bàn giao', state: 'unavailable', message: 'Chưa có đồ án hiện hành do backend trả về.' })
@@ -57,16 +66,16 @@ export async function loadCalendarAttention(input: CalendarLoaderInput, apis: Ca
       ])
       const [meetings, deliverables, finalChecklist] = resources
       if (meetings.status === 'fulfilled') {
-        result.calendar.push(...meetings.value.items.map((item) => meetingProjection(item, project.title)))
+        if (scopedCalendar.status !== 'fulfilled') result.calendar.push(...meetings.value.items.map((item) => meetingProjection(item, project.title)))
         result.sources.push({ id: 'meetings', label: 'Lịch họp', state: meetings.value.totalCount > meetings.value.items.length ? 'partial' : stateForItems(meetings.value.items), message: meetings.value.totalCount > meetings.value.items.length ? 'Chỉ hiển thị trang đầu tối đa 100 cuộc họp.' : undefined })
       } else result.sources.push(errorStatus('meetings', 'Lịch họp', meetings.reason))
       if (deliverables.status === 'fulfilled') {
-        result.calendar.push(...deliverables.value.items.map((item) => deliverableProjection(item, project.title)).filter((item): item is CalendarProjectionItem => item !== null))
+        if (scopedCalendar.status !== 'fulfilled') result.calendar.push(...deliverables.value.items.map((item) => deliverableProjection(item, project.title)).filter((item): item is CalendarProjectionItem => item !== null))
         result.sources.push({ id: 'deliverables', label: 'Hạng mục cần nộp', state: deliverables.value.totalCount > deliverables.value.items.length ? 'partial' : stateForItems(deliverables.value.items), message: deliverables.value.totalCount > deliverables.value.items.length ? 'Chỉ hiển thị trang đầu tối đa 100 hạng mục.' : undefined })
       } else result.sources.push(errorStatus('deliverables', 'Hạng mục cần nộp', deliverables.reason))
       if (finalChecklist.status === 'fulfilled') {
         const item = finalSubmissionProjection(project.id, project.title, finalChecklist.value.deadline)
-        if (item) result.calendar.push(item)
+        if (item && scopedCalendar.status !== 'fulfilled') result.calendar.push(item)
         result.sources.push({ id: 'final-submission', label: 'Bàn giao cuối', state: item ? 'ready' : 'empty' })
       } else result.sources.push(errorStatus('final-submission', 'Bàn giao cuối', finalChecklist.reason))
     } catch (reason) { result.sources.push(errorStatus('student-dashboard', 'Công việc và mốc đồ án', reason)) }

@@ -96,31 +96,20 @@ export interface ProjectWorkflowActionsDto {
   actions: WorkflowActionDto[]
 }
 
-export interface ProjectExecutionActionsDto {
-  asOfUtc: string
+/** Exact shape returned by /execution-actions. Resource state is optional for a project. */
+export interface ExecutionCapabilityDto {
+  resourceType: string
+  resourceId: number
   projectId: number
-  status: string
+  projectStatus: string
   concurrencyToken: string
   actions: WorkflowActionDto[]
+  resourceStatus?: string | null
 }
 
-export interface TaskExecutionActionsDto {
-  asOfUtc: string
-  taskId: number
-  projectId: number
-  status: string
-  concurrencyToken?: string | null
-  actions: WorkflowActionDto[]
-}
-
-export interface MilestoneExecutionActionsDto {
-  asOfUtc: string
-  milestoneId: number
-  projectId: number
-  status: string
-  concurrencyToken?: string | null
-  actions: WorkflowActionDto[]
-}
+export type ProjectExecutionActionsDto = ExecutionCapabilityDto
+export type TaskExecutionActionsDto = ExecutionCapabilityDto
+export type MilestoneExecutionActionsDto = ExecutionCapabilityDto
 
 export function isActionAllowed(actions: WorkflowActionDto[], code: string): boolean {
   return actions.some((action) => action.code === code && action.allowed)

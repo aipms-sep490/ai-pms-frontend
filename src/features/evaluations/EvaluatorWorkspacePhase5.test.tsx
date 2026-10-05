@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { HttpError } from '../../services/http/http-client'
 
-const api = vi.hoisted(() => ({ getAllMyEvaluationAssignments: vi.fn(), getProjectEvaluations: vi.fn(), createEvaluationDraft: vi.fn(), saveEvaluationDraft: vi.fn(), finalizeEvaluation: vi.fn() }))
+const api = vi.hoisted(() => ({ getAllMyEvaluationAssignments: vi.fn(), getEvaluationAssignmentDetail: vi.fn(), getEvaluationAssignmentEvidence: vi.fn(), getProjectEvaluations: vi.fn(), createEvaluationDraft: vi.fn(), saveEvaluationDraft: vi.fn(), finalizeEvaluation: vi.fn() }))
 vi.mock('../../services/api/evaluations.api', () => api)
 
 import { EvaluatorAssignmentRoute } from './components/EvaluatorAssignmentRoute'
@@ -17,6 +17,8 @@ const page = (path = '/evaluator/assignments/41') => render(<MemoryRouter initia
 beforeEach(() => {
   vi.clearAllMocks()
   api.getAllMyEvaluationAssignments.mockResolvedValue([assignment])
+  api.getEvaluationAssignmentDetail.mockResolvedValue({ assignment, canScore: true, legacyReadOnly: false, denialReason: null })
+  api.getEvaluationAssignmentEvidence.mockResolvedValue({ assignmentId: 41, projectId: 9, scope: 'MAJOR_SPECIFIC', majorId: 8, studentId: null, finalSubmissionId: 15, submittedAt: '2026-10-02T00:00:00Z', itemCount: 2, isReadOnly: true })
   api.getProjectEvaluations.mockResolvedValue({ items: [draft], page: 1, pageSize: 100, totalCount: 1 })
 })
 afterEach(cleanup)
@@ -40,14 +42,14 @@ describe('Evaluator Workspace Phase 5', () => {
   })
 
   it('fails closed for a foreign or revoked assignment id', async () => {
-    api.getAllMyEvaluationAssignments.mockResolvedValue([])
+    api.getEvaluationAssignmentDetail.mockRejectedValue(new HttpError('denied', 404))
     page()
     expect(await screen.findByText(/không còn hiệu lực hoặc không thuộc phạm vi/)).toBeTruthy()
     expect(screen.queryByText('Chấm điểm theo phạm vi được phân công')).toBeNull()
   })
 
   it('treats a backend 403 as a denied direct route, not lecturer evaluator authority', async () => {
-    api.getAllMyEvaluationAssignments.mockRejectedValue(new HttpError('denied', 403))
+    api.getEvaluationAssignmentDetail.mockRejectedValue(new HttpError('denied', 403))
     page()
     expect(await screen.findByText(/Đường dẫn không cấp quyền đánh giá/)).toBeTruthy()
   })
@@ -92,13 +94,23 @@ describe('Evaluator Workspace Phase 5', () => {
     expect(await screen.findByText(/Đánh giá đã chốt/)).toBeTruthy()
   })
 
-  it('renders finalized evaluations read-only and does not expose evidence or result authority', async () => {
+  it('renders finalized evaluations read-only and renders only server-scoped evidence metadata', async () => {
     api.getProjectEvaluations.mockResolvedValue({ items: [{ ...draft, status: 'FINALIZED', totalScore: 9, missingCriterionIds: [], missingRequiredCriterionIds: [], finalization: { finalizedBy: 5, finalizedAt: '2026-10-02T01:00:00Z', evidence: { finalSubmissionId: 1, artifactCount: 1, fileCount: 1 } } }], page: 1, pageSize: 100, totalCount: 1 })
     page()
     const score = await screen.findByLabelText('Điểm Phân tích') as HTMLInputElement
     expect(score.disabled).toBe(true)
     expect(screen.queryByRole('button', { name: 'Yêu cầu chốt đánh giá' })).toBeNull()
-    expect(screen.getByText(/chưa trả dữ liệu đã lọc/)).toBeTruthy()
+    expect(screen.getByText(/Số item trong gói bàn giao: 2/)).toBeTruthy()
+    expect(screen.getByText(/không có evidence ledger, URL tệp/)).toBeTruthy()
     expect(screen.getByText(/Evaluator không có quyền công bố kết quả/)).toBeTruthy()
+  })
+
+  it('uses the direct assignment contract and hides scoring mutations when Backend marks it read-only', async () => {
+    api.getEvaluationAssignmentDetail.mockResolvedValue({ assignment, canScore: false, legacyReadOnly: true, denialReason: 'LEGACY_SCOPE_UNKNOWN' })
+    page()
+    expect(await screen.findByText(/phạm vi phân công cũ hoặc không xác định/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Lưu bản nháp' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Yêu cầu chốt đánh giá' })).toBeNull()
+    expect(api.getEvaluationAssignmentDetail).toHaveBeenCalledWith(41, expect.any(AbortSignal))
   })
 })
