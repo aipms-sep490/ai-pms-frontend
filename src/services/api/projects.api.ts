@@ -32,8 +32,8 @@ export interface SelectProjectTopicPayload {
   concurrencyToken: string
 }
 
-// In-memory fallback project store for offline / dev demo
-let mockProjectStore: ProjectDto | null = {
+// Explicit development store; API mode neither reads nor initializes seed data.
+let mockProjectStore: ProjectDto | null = env.isMockMode ? {
   id: 50,
   teamId: 28,
   teamName: 'SE28',
@@ -65,9 +65,9 @@ let mockProjectStore: ProjectDto | null = {
     { id: 2, name: 'Clean Architecture', tagType: 'KEYWORD' },
     { id: 3, name: 'WBS', tagType: 'KEYWORD' },
   ],
-}
+} : null
 
-let mockHistoryStore: ProjectStatusHistoryDto[] = [
+let mockHistoryStore: ProjectStatusHistoryDto[] = env.isMockMode ? [
   {
     id: 1,
     projectId: 50,
@@ -78,7 +78,7 @@ let mockHistoryStore: ProjectStatusHistoryDto[] = [
     reason: 'Khởi tạo bản nháp đề cương đề tài đồ án',
     changedAt: '2026-09-05T09:00:00Z',
   },
-]
+] : []
 
 export async function getProjects(params?: {
   teamId?: number

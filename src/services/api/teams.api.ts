@@ -13,7 +13,6 @@ import type {
   TeamInvitationCandidateDto,
   TeamLeaderChangeRequestDto,
 } from '../../types/backend'
-import { getMockQualification, isMockStudentQualificationEligible } from '../mock/qualification.mock'
 import { hasMockProjectForTeam } from './projects.api'
 
 export interface CreateTeamPayload {
@@ -34,8 +33,13 @@ export interface InviteMemberPayload {
   message?: string | null
 }
 
-// In-memory fallback team for offline/dev testing
-let mockTeamStore: TeamDto | null = {
+/** The qualification fixture is unavailable to API-mode runtime code. */
+async function qualificationMock() {
+  return import('../mock/qualification.mock')
+}
+
+// Explicit development store; API mode neither reads nor initializes seed data.
+let mockTeamStore: TeamDto | null = env.isMockMode ? {
   id: 28,
   code: 'SE28',
   name: 'Đội ngũ Phát triển AI-PMS',
@@ -89,11 +93,11 @@ let mockTeamStore: TeamDto | null = {
     rosterLocked: false,
     reasons: [],
   },
-}
+} : null
 
 let mockLeaderChangeRequests: TeamLeaderChangeRequestDto[] = []
 
-let mockInvitationsStore: TeamInvitationDto[] = [
+let mockInvitationsStore: TeamInvitationDto[] = env.isMockMode ? [
   {
     id: 1,
     teamId: 28,
@@ -105,7 +109,7 @@ let mockInvitationsStore: TeamInvitationDto[] = [
     expiresAt: null,
     respondedAt: null,
   },
-]
+] : []
 
 export async function getCurrentTeam(academicSemesterId: number): Promise<TeamDto | null> {
   if (env.isMockMode) {
@@ -185,6 +189,7 @@ export async function getInvitationCandidates(
   const page = query.page ?? 1
   const pageSize = query.pageSize ?? 20
   if (env.isMockMode) {
+    const { isMockStudentQualificationEligible } = await qualificationMock()
     const search = query.search?.trim().toLowerCase() ?? ''
     const seed = [
       { userId: 5, fullName: 'Nguyễn Minh Châu', email: 'student5@example.test', studentCode: 'SE0005' },
@@ -220,6 +225,7 @@ export async function getInvitationCandidates(
 
 export async function refreshEligibility(teamId: number): Promise<TeamDto> {
   if (env.isMockMode) {
+    const { getMockQualification, isMockStudentQualificationEligible } = await qualificationMock()
     if (mockTeamStore && mockTeamStore.id === teamId) {
       const memberCount = mockTeamStore.members.length
       const leaders = mockTeamStore.members.filter((m) => m.isLeader)
@@ -259,6 +265,7 @@ export async function refreshEligibility(teamId: number): Promise<TeamDto> {
 
 export async function inviteMember(teamId: number, payload: InviteMemberPayload): Promise<TeamInvitationDto> {
   if (env.isMockMode) {
+    const { isMockStudentQualificationEligible } = await qualificationMock()
     if (!isMockStudentQualificationEligible(payload.invitedUserId)) {
       throw new Error('QUALIFICATION_REQUIRED')
     }
@@ -304,6 +311,7 @@ export async function getInvitations(
 
 export async function acceptInvitation(invitationId: number): Promise<TeamDto> {
   if (env.isMockMode) {
+    const { isMockStudentQualificationEligible } = await qualificationMock()
     const inv = mockInvitationsStore.find((i) => i.id === invitationId)
     if (!inv) throw new Error('Invitation #' + invitationId + ' not found.')
     if (!isMockStudentQualificationEligible(inv.invitedUserId)) throw new Error('QUALIFICATION_REQUIRED')
@@ -356,6 +364,7 @@ export async function leaveTeam(teamId: number): Promise<void> {
 
 export async function transferLeader(teamId: number, newLeaderUserId: number): Promise<TeamDto> {
   if (env.isMockMode) {
+    const { isMockStudentQualificationEligible } = await qualificationMock()
     if (hasMockProjectForTeam(teamId)) throw new Error('MENTOR_APPROVAL_REQUIRED')
     if (!isMockStudentQualificationEligible(newLeaderUserId)) throw new Error('QUALIFICATION_REQUIRED')
     if (mockTeamStore && mockTeamStore.id === teamId) {
@@ -382,6 +391,7 @@ export async function requestLeaderChange(
   message?: string,
 ): Promise<TeamLeaderChangeRequestDto> {
   if (env.isMockMode) {
+    const { isMockStudentQualificationEligible } = await qualificationMock()
     if (!mockTeamStore || mockTeamStore.id !== teamId) throw new Error('Team #' + teamId + ' not found.')
     if (!hasMockProjectForTeam(teamId)) throw new Error('PROJECT_MENTOR_NOT_REQUIRED')
     if (!isMockStudentQualificationEligible(newLeaderUserId)) throw new Error('QUALIFICATION_REQUIRED')
@@ -439,6 +449,7 @@ export async function respondToLeaderChange(
   message?: string,
 ): Promise<TeamLeaderChangeRequestDto> {
   if (env.isMockMode) {
+    const { isMockStudentQualificationEligible } = await qualificationMock()
     const request = mockLeaderChangeRequests.find((item) => item.id === requestId)
     if (!request) throw new Error('Leader change request #' + requestId + ' not found.')
     if (request.status !== 'PENDING') throw new Error('LEADER_CHANGE_ALREADY_PROCESSED')

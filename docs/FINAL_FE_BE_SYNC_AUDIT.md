@@ -1,9 +1,10 @@
 # Final FE-BE synchronization audit
 
-**Audit date:** 2026-10-04
+**Audit date:** 2026-10-05
 **Frontend baseline:** `origin/develop` `500f3c1eb601e9cd1080b6566e7cbee3cb72e545`
-**Backend inspected read-only:** `origin/develop` `f2fdb28e7e48326978d5f5c3368913d92fc3661a`
-**Frontend branch:** `feat/final-fe-be-sync-v3`
+**Frontend checkpoint:** `c18923583bfaea269bab8540490b9c4301c5481d`
+**Backend inspected read-only:** `develop` / `origin/develop` `dde3cebf544af509d2a187b275901f50060d9f8f`
+**Frontend continuation branch:** `feat/final-fe-be-sync-v3-r1` in an isolated linked worktree.
 
 This is a post-freeze integration audit. It does not alter the historical
 `AI-PMS_Frontend_Full_Implementation_Audit_v1.0.md`.
@@ -90,9 +91,12 @@ only. These are not replaced by frontend role, path, or client-side filters.
 `VITE_DATA_MODE` defaults to `api`; only an explicit value of `mock` enables the
 in-memory project/team/qualification stores. API mode propagates HTTP failures
 instead of returning mock success. Project and qualification mocks remain
-**explicit dev mocks** because their consumers branch on `env.isMockMode`; tests
-exercise the API-mode no-fallback path. No production-runtime fallback was
-found in these paths.
+**explicit dev mocks** because their consumers branch on `env.isMockMode`.
+Project and team seed stores are not initialized in API mode. The qualification
+fixture is dynamically imported only inside mock-mode branches, so API-mode
+service code has no runtime dependency on its seed data. Tests exercise the
+API-mode no-fallback path. No production-runtime fallback was found in these
+paths.
 
 ## Verification record
 
@@ -102,25 +106,26 @@ admin profile 409 preservation, role metadata, and explicit API mock mode.
 
 | Check | Result |
 |---|---|
-| Focused Vitest | 9 files, 58 tests passed (17.72 s) |
+| Focused Final Sync Vitest | 10 files, 51 tests passed (9.22 s) |
+| Focused Video Meeting regression | 8 files, 34 tests passed (6.60 s) |
 | `pnpm typecheck` | Passed |
 | `pnpm lint` | Passed |
-| `git diff --check origin/develop...HEAD` | Passed |
-| `pnpm test` | No final Vitest result/exit report after worker initialization; not counted as pass and no forced exit was used. |
-| `pnpm build` | Invocation did not return a final build report in this environment; not counted as pass. |
-| Browser/network audit | Blocked: the available browser automation runtime failed to initialize its kernel assets. No credential substitution or mocked acceptance was used. |
+| `pnpm test` | Invoked normally and allowed to terminate. A complete JSON-reporter verification recorded 301 files, 620/620 tests passed, 0 failed; no Vitest process remained. This disproved the previously observed worker-startup hang in this isolated worktree. |
+| `pnpm build` | Passed: TypeScript build and Vite production build completed. Vite reported the existing LiveKit chunk-size advisory only. |
+| `git diff --check` | Passed |
+| Browser/network audit | Chrome DevTools API-mode check passed for unauthenticated guard: `/project/workspace` redirected to `/login`; at 375px, `scrollWidth === innerWidth`. The login UI handled the real `POST /api/v1/auth/google/challenge` 502 by showing the Google-unavailable state. |
 
 Role-specific browser acceptance (Student Leader/Member, Primary Supervisor,
 Discipline Mentor, Department, Evaluator, and Admin) remains
-`BLOCKED_BY_CREDENTIAL` in addition to the unavailable browser runtime. No
-Admin account was substituted for academic roles.
+`BLOCKED_BY_CREDENTIAL`. No Admin account was substituted for academic roles,
+and no mock browser acceptance was claimed.
 
 ## Final synchronization status
 
-`FINAL_SYNC_BLOCKED_BY_BACKEND`.
+`FINAL_SYNC_PARTIAL_ACCEPTABLE`.
 
-The frontend changes above are safe and committed locally, but required
-governance and calendar contracts have authorization defects. In addition,
-source-aware evidence, mentor resource reads, and evaluator evidence rows need
-the noted backend contract granularity before this can become
-`FINAL_SYNC_READY_FOR_REVIEW`.
+The frontend-safe integration and verification work is complete, but the
+overall synchronization remains `BLOCKED_BY_BACKEND` for governance and
+calendar authorization scope. In addition, source-aware evidence, mentor
+resource reads, and evaluator evidence rows need the noted backend contract
+granularity before this can become `FINAL_SYNC_READY_FOR_REVIEW`.
