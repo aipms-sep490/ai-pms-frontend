@@ -1,3 +1,4 @@
+import { displayLabel } from '../../components/ui/display-label'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
@@ -11,7 +12,7 @@ import './calendar-attention.css'
 
 type ViewMode = 'agenda' | 'month'
 const sourceLabels: Record<CalendarProjectionItem['sourceType'], string> = {
-  TASK: 'Công việc', MILESTONE: 'Mốc đồ án', MEETING: 'Cuộc họp', DELIVERABLE: 'Hạng mục', FINAL_SUBMISSION: 'Bàn giao cuối', EVALUATION_ASSIGNMENT: 'Phân công đánh giá', PROGRESS_REPORT: 'Báo cáo tiến độ',
+  TASK: 'Công việc', MILESTONE: 'Mốc đồ án', MEETING: 'Cuộc họp', DELIVERABLE: 'Hạng mục', FINAL_SUBMISSION: 'Bàn giao cuối kỳ', EVALUATION_ASSIGNMENT: 'Phân công đánh giá', PROGRESS_REPORT: 'Báo cáo tiến độ',
 }
 
 function datedAt(item: CalendarProjectionItem): string | undefined { return item.dueAt ?? item.startAt ?? item.endAt }
@@ -47,12 +48,12 @@ export function CalendarAttentionPage() {
   }, {}), [items])
   const partialMessage = data ? sourceStateText(data) : null
 
-  return <section className="calendar-page" aria-labelledby="calendar-heading">
+  return <section className="calendar-page workspace-page" aria-labelledby="calendar-heading">
     <header className="calendar-page__header">
       <div>
-        <p className="calendar-page__eyebrow">Workspace chung · chỉ đọc</p>
+        <p className="calendar-page__eyebrow">Không gian chung · chỉ đọc</p>
         <h1 id="calendar-heading">Lịch tổng hợp &amp; điểm cần chú ý</h1>
-        <p>Hiển thị dữ liệu đã được backend cấp trong phạm vi hiện tại. Mục này không cấp quyền và không thay thế thông báo.</p>
+        <p>Tổng hợp các mốc thời gian trong phạm vi bạn được xem. Lịch giúp theo dõi công việc nhưng không thay thế thông báo.</p>
       </div>
       <Button variant="outline" icon="refresh" onClick={() => void refresh()} disabled={loading} aria-label="Tải lại lịch và điểm cần chú ý">Tải lại</Button>
     </header>
@@ -63,16 +64,16 @@ export function CalendarAttentionPage() {
       <div className="calendar-page__layout">
         <section className="calendar-panel" aria-labelledby="calendar-projection-heading">
           <div className="calendar-panel__toolbar">
-            <div><h2 id="calendar-projection-heading">Lịch theo dữ liệu nguồn</h2><p>Không có ngày giả lập. Ngày-only được giữ nguyên ngày lịch; thời điểm được hiển thị UTC+7.</p></div>
+            <div><h2 id="calendar-projection-heading">Lịch theo dữ liệu nguồn</h2><p>Các mốc theo ngày được giữ nguyên; thời điểm cụ thể hiển thị theo giờ Việt Nam.</p></div>
             <div className="calendar-panel__controls" aria-label="Tùy chọn hiển thị lịch">
               <div className="calendar-segmented" role="group" aria-label="Chế độ xem lịch">
-                <button type="button" aria-pressed={view === 'agenda'} onClick={() => setView('agenda')}>Agenda</button>
+                <button type="button" aria-pressed={view === 'agenda'} onClick={() => setView('agenda')}>Danh sách</button>
                 <button type="button" aria-pressed={view === 'month'} onClick={() => setView('month')}>Theo tháng</button>
               </div>
               <label className="calendar-checkbox"><input type="checkbox" checked={showHistorical} onChange={(event) => setShowHistorical(event.target.checked)} /> Hiện hoàn tất</label>
             </div>
           </div>
-          {items.length === 0 ? <div className="calendar-empty"><span className="material-symbols-outlined" aria-hidden="true">event_busy</span><p>Chưa có sự kiện có ngày được backend trả về cho ngữ cảnh này.</p></div> : view === 'agenda' ? <div className="calendar-agenda">
+          {items.length === 0 ? <div className="calendar-empty"><span className="material-symbols-outlined" aria-hidden="true">event_busy</span><p>Chưa có sự kiện nào có thời gian trong phạm vi hiện tại.</p></div> : view === 'agenda' ? <div className="calendar-agenda">
             {Object.entries(grouped).map(([date, entries]) => <div className="calendar-agenda__group" key={date}>
               <h3>{date === 'undated' ? 'Chưa có thời điểm' : formatCalendarDate(date)}</h3>
               {entries.map((item) => <CalendarRow item={item} key={`${item.sourceType}-${item.sourceId}`} />)}
@@ -83,7 +84,7 @@ export function CalendarAttentionPage() {
         </section>
         <aside className="attention-panel" aria-labelledby="attention-heading">
           <div className="attention-panel__heading"><div><h2 id="attention-heading">Điểm cần chú ý</h2><p>Ưu tiên trình bày, không phải phân loại rủi ro hay quyền thao tác.</p></div><span className="attention-panel__count" aria-label={`${data.attention.length} điểm cần chú ý`}>{data.attention.length}</span></div>
-          {data.attention.length === 0 ? <div className="calendar-empty"><span className="material-symbols-outlined" aria-hidden="true">task_alt</span><p>Không có điểm cần chú ý từ nguồn đã tải.</p></div> : <ul className="attention-list">{data.attention.map((item) => <li key={`${item.code}-${item.sourceId}`}><Link to={item.deepLink}><span className="attention-list__status">{item.status}</span><strong>{item.title}</strong><span>{item.description}</span>{item.dueAt && <time dateTime={item.dueAt}>{formatCalendarDate(item.dueAt)}</time>}</Link></li>)}</ul>}
+          {data.attention.length === 0 ? <div className="calendar-empty"><span className="material-symbols-outlined" aria-hidden="true">task_alt</span><p>Không có điểm cần chú ý từ nguồn đã tải.</p></div> : <ul className="attention-list">{data.attention.map((item) => <li key={`${item.code}-${item.sourceId}`}><Link to={item.deepLink}><span className="attention-list__status">{displayLabel(item.status)}</span><strong>{item.title}</strong><span>{item.description}</span>{item.dueAt && <time dateTime={item.dueAt}>{formatCalendarDate(item.dueAt)}</time>}</Link></li>)}</ul>}
         </aside>
       </div>
       <section className="calendar-sources" aria-labelledby="calendar-sources-heading"><h2 id="calendar-sources-heading">Trạng thái nguồn dữ liệu</h2><ul>{data.sources.map((source) => <li key={source.id}><span className={`calendar-source-dot calendar-source-dot--${source.state}`} aria-hidden="true" /><div><strong>{source.label}</strong><span>{source.message ?? (source.state === 'ready' ? 'Đã tải dữ liệu nguồn.' : 'Không có dữ liệu để hiển thị.')}</span></div></li>)}</ul></section>
@@ -96,7 +97,12 @@ function CalendarRow({ item, compact = false }: { item: CalendarProjectionItem; 
   return <Link className={`calendar-event${compact ? ' calendar-event--compact' : ''}`} to={item.deepLink}>
     <span className="calendar-event__type">{sourceLabels[item.sourceType]}</span>
     <span className="calendar-event__body"><strong>{item.title}</strong>{item.projectName && <span>{item.projectName}</span>}<span>{timestamp ? formatCalendarDate(timestamp) : 'Chưa có thời điểm'}</span></span>
-    <span className="calendar-event__status">{item.status}</span>
+    <span className="calendar-event__status">{calendarStatusLabel(item.status)}</span>
     <span className="material-symbols-outlined" aria-hidden="true">chevron_right</span>
   </Link>
 }
+
+function calendarStatusLabel(status: string) {
+  return ({ TODO: 'Cần làm', IN_PROGRESS: 'Đang thực hiện', DONE: 'Hoàn tất', COMPLETED: 'Hoàn tất', SCHEDULED: 'Đã lên lịch', CANCELLED: 'Đã hủy', OVERDUE: 'Quá hạn', SUBMITTED: 'Đã nộp' } as Record<string, string>)[status] ?? status
+}
+
