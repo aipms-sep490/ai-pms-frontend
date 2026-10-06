@@ -72,7 +72,7 @@ describe('Progress reports workflow', () => {
     await screen.findByText(draft.summary)
     expect(screen.queryByRole('link', { name: /Tạo báo cáo/ })).toBeNull()
     cleanup(); mount({ path: '/project/reports/new', createAllowed: false })
-    expect(await screen.findByText(/Backend hiện không cho phép/)).toBeTruthy()
+    expect(await screen.findByText(/Bạn chưa thể tạo báo cáo/)).toBeTruthy()
     expect(api.createProgressReport).not.toHaveBeenCalled()
   })
   it('validates blank summary and reversed dates without sending requests', () => {

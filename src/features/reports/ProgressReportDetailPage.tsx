@@ -122,7 +122,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
     {blocker.state === 'blocked' && <div className="report-notice report-notice--error" role="alert"><p>Bạn có nội dung chưa lưu. Rời trang sẽ bỏ những thay đổi này.</p><div className="flex flex-wrap gap-3"><button className="report-button report-button--secondary" onClick={() => blocker.reset()}>Ở lại soạn tiếp</button><button className="report-button" onClick={() => blocker.proceed()}>Bỏ thay đổi và rời trang</button></div></div>}
     {success && <p role="status" className="report-notice report-notice--success">{success}</p>}
     {error && <ReportError message={error} />}
-    {loading ? <ReportLoading /> : loadError ? <ReportError message={loadError} retry={() => setRevision((value) => value + 1)} /> : create && !canCreate ? <ReportError message="Backend hiện không cho phép bạn tạo báo cáo tiến độ cho đồ án này." /> : <>
+    {loading || (create && executionCapabilities?.status === 'loading') ? <ReportLoading /> : loadError ? <ReportError message={loadError} retry={() => setRevision((value) => value + 1)} /> : create && !canCreate ? <ReportError message="Bạn chưa thể tạo báo cáo tiến độ cho đồ án này." /> : <>
       {report && <div className="report-detail-banner"><div><p className="report-eyebrow">{reportTypeLabels[report.reportType]} • #{report.id}</p><h2>{formatReportDate(report.periodStart)} – {formatReportDate(report.periodEnd)}</h2><p>{report.status === 'DRAFT' ? 'Người tạo' : 'Người nộp'}: {report.submittedByName}{report.submittedAt ? ` • Nộp ngày ${formatReportDate(report.submittedAt)}` : ''}</p></div><div><ReportBadge status={report.status} />{report.isLate === true && <p className="report-late">Nộp trễ hạn</p>}</div></div>}
       <div className="report-detail-grid">
         <div>{editable ? <ReportEditor key={editorVersion} report={report ?? undefined} busy={busy} onSave={save} onDirtyChange={(value) => { setDirty(value); setConfirmSubmit(false) }} /> : report && <article className="report-panel report-reading"><h2>Nội dung báo cáo</h2>{contentFields.map(({ key, label }, index) => <section key={key}><h3><span>{String(index + 1).padStart(2, '0')}</span>{label}</h3><p>{report[key] || 'Chưa có nội dung.'}</p></section>)}</article>}</div>
@@ -149,3 +149,4 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
     </>}
   </ReportShell>
 }
+
