@@ -52,7 +52,7 @@ describe('MeetingScheduleForm Video Meeting rollout', () => {
     if (url) fireEvent.change(screen.getByLabelText('Liên kết họp trực tuyến'), { target: { value: url } })
     const body = await submit(onSave)
     expect(body).toMatchObject({ meetingDeliveryMode: expectedMode, videoChannel: expectedChannel, location: location ?? null, onlineUrl: url ?? null })
-    if (expectedChannel === 'IN_APP_VIDEO') expect(screen.getByText(/Chưa có phòng hoặc mã truy cập nào được tạo/)).toBeTruthy()
+    if (expectedChannel === 'IN_APP_VIDEO') expect(screen.getByText(/Phòng họp sẽ được tạo khi người tổ chức bắt đầu/)).toBeTruthy()
   })
 
   it('requires a location when the selected delivery mode needs one', async () => {
@@ -76,7 +76,7 @@ describe('MeetingScheduleForm Video Meeting rollout', () => {
   it('edits an existing legacy meeting without manufacturing a Video Meeting state', async () => {
     runtime.env.videoMeetingEnabled = true
     const onSave = renderForm(legacyMeeting)
-    expect(screen.getByText(/lịch họp cũ/)).toBeTruthy()
+    expect(screen.getByText(/được tạo trước khi tính năng phòng họp trực tuyến được bật/)).toBeTruthy()
     fireEvent.change(screen.getByLabelText('Địa điểm'), { target: { value: 'Phòng 401' } })
     fireEvent.submit(screen.getByRole('button', { name: 'Lưu lịch họp' }).closest('form')!)
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))
