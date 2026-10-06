@@ -16,11 +16,12 @@ describe('MajorRequirementEditor', () => {
     ]))
   })
 
-  it('submits a valid requirement list to the backend callback', () => {
+  it('submits a valid requirement list to the backend callback', async () => {
     const onSave = vi.fn().mockResolvedValue(true)
     render(<MajorRequirementEditor projectMode="SINGLE_MAJOR" requirements={[{ majorId: 7, minMembers: 1, maxMembers: 2, responsibility: 'Technical' }]} majors={[{ id: 7, code: 'SE', name: 'Software Engineering' }]} busy={false} onSave={onSave} />)
     fireEvent.click(screen.getByRole('button', { name: /Chỉnh sửa requirements/i }))
     fireEvent.click(screen.getByRole('button', { name: /Lưu requirements/i }))
     expect(onSave).toHaveBeenCalledWith([{ majorId: 7, minMembers: 1, maxMembers: 2, responsibility: 'Technical' }])
+    await screen.findByRole('button', { name: /Chỉnh sửa requirements/i })
   })
 })

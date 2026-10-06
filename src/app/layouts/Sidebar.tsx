@@ -200,6 +200,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                 <NavLink
                   key={item.id}
                   to={item.path}
+                  end={item.path === '/academic'}
                   onClick={() => {
                     if (window.innerWidth < 1024) handleClose()
                   }}

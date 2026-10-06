@@ -102,10 +102,10 @@ export function ProjectWorkspaceSummary({
           <div className="flex flex-wrap gap-2 shrink-0">
             <Link
               to={audience === 'student' ? '/project/meetings' : `/supervisor/projects/${project.id}/meetings`}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-bold text-white  hover:bg-blue-700"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[#0f5b4e] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#0a493f]"
             >
               <span className="material-symbols-outlined text-[16px]">calendar_month</span>
-              Lịch họp & biên bản
+              Lịch họp và biên bản
             </Link>
             <Link
               to={audience === 'student' ? '/project/reports' : `/supervisor/projects/${project.id}/reports`}
@@ -151,13 +151,13 @@ export function ProjectWorkspaceSummary({
         <section className="flex flex-col justify-between rounded-md border border-slate-200 bg-white p-5  sm:p-6">
           <div>
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-blue-600">calendar_month</span>
-              <h2 className="text-base font-bold text-slate-900">Lịch họp & biên bản</h2>
+              <span className="material-symbols-outlined text-[#0f5b4e]">calendar_month</span>
+              <h2 className="text-base font-bold text-slate-900">Lịch họp và biên bản</h2>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">Thống nhất lịch trao đổi với GVHD, mời thành viên và lưu kết luận, điểm danh, nhận xét sau mỗi buổi họp.</p>
           </div>
           <div className="mt-5 pt-3 border-t border-slate-100">
-            <Link className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white  hover:bg-blue-700" to={audience === 'student' ? '/project/meetings' : `/supervisor/projects/${project.id}/meetings`}>
+            <Link className="inline-flex items-center gap-1.5 rounded-lg bg-[#0f5b4e] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0a493f]" to={audience === 'student' ? '/project/meetings' : `/supervisor/projects/${project.id}/meetings`}>
               Mở lịch họp →
             </Link>
           </div>

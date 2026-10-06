@@ -33,7 +33,7 @@ describe('AdminUserDetailPage academic profile contract', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cập nhật phạm vi học thuật' }))
     await waitFor(() => expect(api.updateAcademicProfile).toHaveBeenCalledWith(7, { departmentId: 3, majorId: 12, concurrencyToken: 'user-token' }, 'admin-token'))
     expect(await screen.findByText('Software Engineering')).toBeTruthy()
-    expect(screen.getByText('PENDING')).toBeTruthy()
+    expect(screen.getByText('Chờ xử lý')).toBeTruthy()
   })
 
   it('preserves the entered scope and reloads the authoritative snapshot on 409', async () => {

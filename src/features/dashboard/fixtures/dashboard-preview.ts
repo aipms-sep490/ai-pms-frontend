@@ -116,7 +116,7 @@ export const dashboardPreviewData: DashboardPreviewData = {
       iconColor: 'text-emerald-600',
       badgeText: '1 Điểm nghẽn',
       badgeVariant: 'error',
-      subtitle: 'Nghẽn tại task SEP-108',
+      subtitle: 'Nghẽn tại công việc SEP-108',
       isSimulation: true,
     },
     {
@@ -136,7 +136,7 @@ export const dashboardPreviewData: DashboardPreviewData = {
   aiInsight: {
     title: 'Khuyến nghị trọng tâm Sprint 2 (Mốc M3)',
     description:
-      'Task SEP-108 (JWT Authentication) đang quá hạn 1 ngày. Tác vụ này là điểm chặn trực tiếp của SEP-112 (Design System). Đề xuất: Phân bổ thêm nguồn lực SE để thông luồng xác thực trước mốc đánh giá.',
+      'công việc SEP-108 (JWT Authentication) đang quá hạn 1 ngày. Tác vụ này là điểm chặn trực tiếp của SEP-112 (Design System). Đề xuất: Phân bổ thêm nguồn lực SE để thông luồng xác thực trước mốc đánh giá.',
     commitCount: 42,
     isSimulation: true,
   },

@@ -18,7 +18,7 @@ export function StudentJourneyHero() {
         badge: 'Chưa đồng bộ dữ liệu',
         badgeClass: 'bg-rose-100 text-rose-800 border-rose-200',
         title: 'Không thể tải trạng thái đồ án',
-        desc: `${error}. Hãy kiểm tra kết nối Backend rồi thử lại.`,
+        desc: `${error}. Hãy kiểm tra kết nối rồi thử lại.`,
         icon: 'cloud_off',
         iconBg: 'bg-rose-600 text-white',
         ctaText: 'Thử tải lại',
@@ -30,24 +30,24 @@ export function StudentJourneyHero() {
       case 'NO_TEAM':
         return {
           badge: 'Giai đoạn 1: Tuyển quân',
-          badgeClass: 'bg-blue-100 text-blue-800 border-blue-200',
+          badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
           title: 'Bạn chưa tham gia nhóm đồ án nào trong học kỳ này',
           desc: `Học kỳ ${semester?.name ?? 'hiện tại'} đang mở đợt đăng ký đồ án tốt nghiệp (${period?.name ?? 'đợt đăng ký hiện tại'}). Hãy khởi tạo nhóm mới hoặc kiểm tra hộp thư lời mời từ các nhóm khác.`,
           icon: 'group_add',
-          iconBg: 'bg-blue-600 text-white',
-          ctaText: 'Quản lý Nhóm & Xem Lời mời',
+          iconBg: 'bg-[#0f5b4e] text-white',
+          ctaText: 'Quản lý nhóm và lời mời',
           ctaRoute: '/team',
           ctaIcon: 'arrow_forward',
         }
       case 'TEAM_FORMING':
         return {
-          badge: 'Giai đoạn 2: Kiện toàn Đội hình',
+          badge: 'Giai đoạn 2: Hoàn thiện nhóm',
           badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
           title: `Nhóm ${teamDisplayName} đang kiện toàn nhân sự`,
           desc: `Hiện có ${team?.members.length ?? 0}/${maxTeamSize} thành viên. Quy chế yêu cầu từ ${minTeamSize} đến ${maxTeamSize} thành viên ${projectModeLabel}. Hãy hoàn thiện đội hình và kiểm tra điều kiện để mở cổng đăng ký đề tài.`,
           icon: 'diversity_3',
           iconBg: 'bg-amber-500 text-white',
-          ctaText: 'Kiểm tra Điều kiện & Roster',
+          ctaText: 'Kiểm tra điều kiện nhóm',
           ctaRoute: '/team',
           ctaIcon: 'checklist',
         }
@@ -55,25 +55,25 @@ export function StudentJourneyHero() {
         return {
           badge: 'Giai đoạn 3: Soạn thảo Đề cương',
           badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-          title: 'Đội hình đã đủ điều kiện! Hãy đăng ký đề cương đồ án',
+          title: 'Nhóm đã đủ điều kiện để đăng ký đề cương',
           desc: `Nhóm ${teamDisplayName} đã đạt chuẩn nhân sự ${projectModeLabel}. Bạn có thể tham khảo danh mục đề tài gợi ý từ Khoa hoặc trực tiếp soạn thảo đề cương mới.`,
           icon: 'assignment_turned_in',
           iconBg: 'bg-emerald-600 text-white',
-          ctaText: 'Đăng ký Đề cương Đồ án',
+          ctaText: 'Đăng ký đề cương',
           ctaRoute: '/project/register',
           ctaIcon: 'edit_document',
-          secondaryText: 'Khám phá Đề tài Tham khảo',
+          secondaryText: 'Xem đề tài tham khảo',
           secondaryRoute: '/topics',
         }
       case 'PROJECT_PENDING':
         return {
-          badge: 'Giai đoạn 4: Khoa Thẩm định',
-          badgeClass: 'bg-purple-100 text-purple-800 border-purple-200',
-          title: 'Đề cương đồ án đang được Hội đồng Khoa xét duyệt',
+          badge: 'Giai đoạn 4: Khoa thẩm định',
+          badgeClass: 'bg-amber-50 text-amber-800 border-amber-200',
+          title: 'Đề cương đang được khoa xét duyệt',
           desc: `Đề tài "${project?.title ?? 'Đang tải...'}" (Mã: ${project?.code ?? 'CP...'}) đã được nộp thành công lên Bộ môn. Vui lòng theo dõi thông báo và trạng thái thẩm định.`,
           icon: 'hourglass_top',
-          iconBg: 'bg-purple-600 text-white',
-          ctaText: 'Xem Tiến trình Thẩm định',
+          iconBg: 'bg-amber-600 text-white',
+          ctaText: 'Xem tiến trình thẩm định',
           ctaRoute: '/project/status',
           ctaIcon: 'visibility',
         }
@@ -94,7 +94,7 @@ export function StudentJourneyHero() {
           badge: 'Kết quả thẩm định',
           badgeClass: 'bg-rose-100 text-rose-800 border-rose-200',
           title: 'Đề cương chưa được Bộ môn chấp thuận',
-          desc: 'Xem kết quả và lịch sử thẩm định do Backend trả về. Màn hình này không cấp quyền tạo hoặc nộp lại đề cương.',
+          desc: 'Xem kết quả và toàn bộ lịch sử thẩm định của đề cương. Bạn có thể theo dõi nhận xét tại đây.',
           icon: 'assignment_late',
           iconBg: 'bg-rose-600 text-white',
           ctaText: 'Xem kết quả thẩm định',
@@ -104,12 +104,12 @@ export function StudentJourneyHero() {
       case 'SUPERVISOR_PENDING':
         return {
           badge: 'Giai đoạn 5: Ghép cặp GVHD',
-          badgeClass: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+          badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
           title: 'Đề cương đã được duyệt! Hãy chọn Giảng viên Hướng dẫn',
           desc: `Đề tài của nhóm ${teamDisplayName} đã thông qua vòng thẩm định của Bộ môn. Bước tiếp theo là gửi yêu cầu tới giảng viên có chuyên môn phù hợp.`,
           icon: 'school',
-          iconBg: 'bg-indigo-600 text-white',
-          ctaText: 'Chọn Giảng viên Hướng dẫn',
+          iconBg: 'bg-[#0f5b4e] text-white',
+          ctaText: 'Chọn giảng viên hướng dẫn',
           ctaRoute: '/project/supervisor',
           ctaIcon: 'person_search',
         }
@@ -121,11 +121,11 @@ export function StudentJourneyHero() {
           title: `Đồ án: ${project?.title ?? 'Đang cập nhật thông tin'}`,
           desc: `GVHD: ${activeSupervisor?.supervisorName ?? 'Chưa phân công'} • Học kỳ: ${semester?.name ?? 'Chưa xác định'} • Thành viên: ${team?.members.length ?? 0} bạn • Nhóm: ${team?.code || teamDisplayName}`,
           icon: 'rocket_launch',
-          iconBg: 'bg-blue-600 text-white',
-          ctaText: 'Xem Cột mốc & Tasks (Kanban)',
+          iconBg: 'bg-[#0f5b4e] text-white',
+          ctaText: 'Xem mốc và công việc',
           ctaRoute: '/project/milestones/M3',
           ctaIcon: 'view_kanban',
-          secondaryText: 'Biểu đồ Gantt',
+          secondaryText: 'Lịch thực hiện',
           secondaryRoute: '/project/gantt',
         }
     }
@@ -134,22 +134,22 @@ export function StudentJourneyHero() {
   const config = getJourneyConfig()
 
   return (
-    <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-6 shadow-md border border-slate-700/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
-      <div className="flex items-start gap-4 max-w-3xl">
+    <section className="flex flex-col justify-between gap-6 workspace-surface p-6 md:flex-row md:items-center">
+      <div className="flex items-start gap-4 min-w-0 max-w-3xl">
         <div className={`w-12 h-12 rounded-2xl ${config.iconBg} flex items-center justify-center font-bold text-xl shrink-0 shadow-sm mt-0.5`}>
           <span className="material-symbols-outlined text-[26px]">{config.icon}</span>
         </div>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex min-w-0 flex-col gap-1.5">
           <div className="flex items-center gap-2.5 flex-wrap">
             <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${config.badgeClass}`}>
               {config.badge}
             </span>
-            <span className="text-[11px] text-slate-400 font-mono">
+            <span className="text-[11px] text-slate-500 font-mono">
               SV: {profile?.fullName ?? 'Sinh viên'}{profile?.studentCode ? ` (${profile.studentCode})` : (profile?.id ? ` (ID #${profile.id})` : '')}
             </span>
           </div>
-          <h2 className="text-lg font-bold tracking-tight text-white">{config.title}</h2>
-          <p className="text-xs text-slate-300 leading-relaxed">{config.desc}</p>
+          <h2 className="text-lg font-bold tracking-tight text-slate-950">{config.title}</h2>
+          <p className="text-xs text-slate-600 leading-relaxed">{config.desc}</p>
         </div>
       </div>
 
@@ -158,7 +158,7 @@ export function StudentJourneyHero() {
           <button
             type="button"
             onClick={() => navigate(config.secondaryRoute!)}
-            className="px-4 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-xl text-xs font-semibold transition-colors"
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 transition-colors hover:border-[#0f5b4e]/30 hover:bg-[#edf3f0]"
           >
             {config.secondaryText}
           </button>
@@ -166,12 +166,13 @@ export function StudentJourneyHero() {
         <button
           type="button"
           onClick={() => error ? void refreshAll() : navigate(config.ctaRoute)}
-          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+          className="flex items-center gap-1.5 rounded-lg bg-[#0f5b4e] px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-[#0a493f]"
         >
           <span className="material-symbols-outlined text-[18px]">{config.ctaIcon}</span>
           {config.ctaText}
         </button>
       </div>
-    </div>
+    </section>
   )
 }
+

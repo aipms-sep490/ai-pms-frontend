@@ -53,7 +53,11 @@ export function updateMyProfile(profile: EditableProfile): Promise<AuthUser> {
 }
 
 export interface GoogleChallenge { challengeId: string; clientId: string; nonce: string; expiresAtUtc: string }
-export function getGoogleChallenge(): Promise<GoogleChallenge> { return httpPost('/v1/auth/google/challenge', { purpose: 'LOGIN' }, { skipAuthRefresh: true }) }
+export function getGoogleChallenge(purpose: 'LOGIN' | 'LINK' = 'LOGIN'): Promise<GoogleChallenge> { return httpPost('/v1/auth/google/challenge', { purpose }, { skipAuthRefresh: true }) }
+export interface ExternalLogin { provider: string; email: string; linkedAtUtc: string }
+export const getExternalLogins = () => httpGet<ExternalLogin[]>('/v1/auth/external-logins')
+export const linkGoogle = (challengeId: string, idToken: string, currentPassword: string) => httpPost<void>('/v1/auth/google/link', { challengeId, idToken, currentPassword })
+export const unlinkGoogle = (currentPassword: string) => httpPost<void>('/v1/auth/google/unlink', { currentPassword })
 export function loginWithGoogle(challengeId: string, idToken: string): Promise<LoginSession> {
   return httpPost('/v1/auth/google/login', { challengeId, idToken }, { skipAuthRefresh: true })
 }

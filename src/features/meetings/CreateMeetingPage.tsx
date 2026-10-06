@@ -4,7 +4,7 @@ import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { createMeeting } from '../../services/api/meetings.api'
 import type { CreateMeeting } from './meeting-types'
 import { meetingError, mustRefreshAfterError } from './meeting-utils'
-import { MeetingError, MeetingShell } from './meeting-ui'
+import { MeetingError, MeetingLoading, MeetingShell } from './meeting-ui'
 import { MeetingScheduleForm } from './MeetingScheduleForm'
 import { MeetingUnsavedNotice } from './MeetingUnsavedNotice'
 import { useMeetingCandidates } from './useMeetingCandidates'
@@ -39,7 +39,7 @@ function CreateMeetingView() {
   }
   return <MeetingShell title="Lên lịch họp" projectTitle={project.title} backTo={`${routeBase}/workspace`} action={<Link className="mtg-button mtg-button--secondary" to={`${routeBase}/meetings`}>Danh sách cuộc họp</Link>}>
     <MeetingUnsavedNotice dirty={dirty} busy={busy} />
-    {!canSchedule ? <MeetingError message="Backend hiện không cho phép bạn lên lịch họp cho đồ án này." /> : <>
+    {access.executionCapabilities?.status === 'loading' ? <MeetingLoading /> : !canSchedule ? <MeetingError message="Bạn chưa có quyền lên lịch họp cho đồ án này." /> : <>
       {error && <MeetingError message={error} />}
       {uncertain && <p className="mtg-notice">Tạm khóa gửi lại để tránh tạo lịch trùng. Quay về danh sách và kiểm tra lịch vừa tạo trước khi mở một biểu mẫu mới.</p>}
       <section className="mtg-panel mtg-padded"><h2>Thông tin cuộc họp</h2><p className="mtg-help">Thời gian hiển thị và nhập theo giờ Việt Nam (UTC+7).</p>
@@ -51,3 +51,4 @@ function CreateMeetingView() {
     </>}
   </MeetingShell>
 }
+

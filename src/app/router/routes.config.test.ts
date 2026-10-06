@@ -78,11 +78,11 @@ describe('routes.config', () => {
       expect(getBreadcrumbForPath('/project/milestones/M3')).toBe('Mốc đồ án')
       expect(getBreadcrumbForPath('/project/milestones/M1')).toBe('Mốc đồ án')
       expect(getBreadcrumbForPath('/supervisor/workspace')).toBe('Bàn làm việc GVHD')
-      expect(getBreadcrumbForPath('/department/workspace')).toBe('Quản lý Bộ môn')
-      expect(getBreadcrumbForPath('/academic/rubrics')).toBe('Rubric đánh giá')
-      expect(getBreadcrumbForPath('/department/projects/2/evaluations')).toBe('Phân công evaluator')
-      expect(getBreadcrumbForPath('/department/projects/2/evaluators')).toBe('Phân công evaluator')
-      expect(getBreadcrumbForPath('/department/projects/2/evaluation-schemes')).toBe('Scheme đánh giá')
+      expect(getBreadcrumbForPath('/department/workspace')).toBe('Quản lý bộ môn')
+      expect(getBreadcrumbForPath('/academic/rubrics')).toBe('Bộ tiêu chí đánh giá')
+      expect(getBreadcrumbForPath('/department/projects/2/evaluations')).toBe('Phân công người chấm')
+      expect(getBreadcrumbForPath('/department/projects/2/evaluators')).toBe('Phân công người chấm')
+      expect(getBreadcrumbForPath('/department/projects/2/evaluation-schemes')).toBe('phương án đánh giá đánh giá')
     })
 
     it('does not expose unknown URLs in a page title', () => {

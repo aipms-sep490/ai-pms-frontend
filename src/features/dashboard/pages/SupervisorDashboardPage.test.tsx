@@ -20,7 +20,7 @@ describe('SupervisorDashboardPage', () => {
   it('uses the backend filter contract for status and pagination', async () => {
     render(<MemoryRouter><SupervisorDashboardPage /></MemoryRouter>)
     await waitFor(() => expect(api.getSupervisorDashboard).toHaveBeenCalledWith({ page: 1, pageSize: 20 }))
-    expect(screen.getByRole('link', { name: 'Mở workspace' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Mở không gian đồ án' })).toBeTruthy()
 
     fireEvent.change(screen.getByLabelText('Trạng thái'), { target: { value: 'ACTIVE' } })
     await waitFor(() => expect(api.getSupervisorDashboard).toHaveBeenLastCalledWith({ page: 1, pageSize: 20, status: 'ACTIVE' }))

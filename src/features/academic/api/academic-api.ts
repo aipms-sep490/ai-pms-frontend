@@ -1,5 +1,5 @@
 import { endpoints } from '../../../services/api/endpoints'
-import { httpGet, httpPatch, httpPost, httpPut } from '../../../services/http/http-client'
+import { httpDelete, httpGet, httpPatch, httpPost, httpPut } from '../../../services/http/http-client'
 import type {
   AcademicEntityKind,
   AcademicFilters,
@@ -77,3 +77,9 @@ export function setAcademicRecordStatus(
 
   return httpPatch(`${path}/${id}/status`, { isActive }, { accessToken })
 }
+
+export function deleteAcademicRecord(kind: AcademicEntityKind, id: number, accessToken: string): Promise<void> {
+  const path = { organization: endpoints.academicOrganizations, department: endpoints.academicDepartments, major: endpoints.academicMajors }[kind]
+  return httpDelete(`${path}/${id}`, { accessToken })
+}
+

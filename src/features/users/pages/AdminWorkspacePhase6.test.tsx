@@ -32,13 +32,13 @@ describe('Admin workspace Phase 6', () => {
     render(<MemoryRouter><AdminWorkspacePage /></MemoryRouter>)
     expect(screen.getByText('Nguyễn Minh')).toBeTruthy()
     expect(screen.getByText('Bạn không có quyền xem nhật ký bảo mật.')).toBeTruthy()
-    expect(screen.getByText(/Cập nhật academic profile/)).toBeTruthy()
+    expect(screen.getByText(/Mở hồ sơ từng tài khoản/)).toBeTruthy()
   })
 
   it('maps permissions only for a selected role and explains that mapping is not project authority', () => {
     workspace.useAdminWorkspace.mockReturnValue(ready())
     render(<MemoryRouter><AdminRbacPage /></MemoryRouter>)
-    expect(screen.getByText(/không tạo quyền trên project/)).toBeTruthy()
+    expect(screen.getByText(/Phân công trong đồ án được quản lý/)).toBeTruthy()
     expect(screen.getByText('ADMIN')).toBeTruthy()
   })
 })

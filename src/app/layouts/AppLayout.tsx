@@ -3,6 +3,8 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { TopHeader } from './TopHeader'
 import '../../features/projects/pages/collaboration-workspace.css'
+import '../../components/ui/workspace-page.css'
+import '../../components/ui/workspace-polish.css'
 
 export function AppLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)

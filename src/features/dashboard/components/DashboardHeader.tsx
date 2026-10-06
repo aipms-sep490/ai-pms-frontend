@@ -33,7 +33,7 @@ export function DashboardHeader({
             info
           </span>
           <span className="leading-snug">
-            <strong>Chế độ xem trước giao diện</strong> — Dữ liệu minh họa, chưa kết nối API backend thực tế.
+            <strong>Chế độ xem trước giao diện</strong> — Dữ liệu minh họa, chưa kết nối API hệ thống thực tế.
           </span>
         </div>
         <Badge variant="warning" size="sm" className="shrink-0">
@@ -77,7 +77,7 @@ export function DashboardHeader({
             size="sm"
             icon="download"
             disabled
-            title="Chức năng xuất báo cáo sẽ khả dụng khi kết nối backend"
+            title="Chức năng xuất báo cáo sẽ khả dụng khi kết nối hệ thống"
             className="flex-1 sm:flex-initial justify-center"
           >
             Xuất báo cáo (Sắp có)
@@ -97,7 +97,7 @@ export function DashboardHeader({
             size="sm"
             icon="add"
             disabled
-            title="Chức năng tạo task sẽ khả dụng ở phân hệ Tasks"
+            title="Chức năng tạo công việc sẽ khả dụng ở phân hệ Tasks"
             className="w-full sm:w-auto justify-center"
           >
             Tạo việc mới (Sắp có)

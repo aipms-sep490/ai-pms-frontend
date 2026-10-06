@@ -41,7 +41,7 @@ describe('ProfilePage', () => {
 
     expect(screen.getByText('Department Staff')).toBeDefined()
     expect(screen.getByText('#42')).toBeDefined()
-    expect(screen.getByText('DEPARTMENT_STAFF')).toBeDefined()
+    expect(screen.getByText('Cán bộ bộ môn')).toBeDefined()
   })
 
   it('keeps a recoverable error distinct from the signed-out state', () => {

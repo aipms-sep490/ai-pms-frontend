@@ -84,7 +84,7 @@ describe('AcademicStructurePage', () => {
     renderPage()
     expect(screen.queryByRole('button', { name: 'Thêm tổ chức' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Chỉnh sửa' })).toBeNull()
-    expect(screen.getByText(/chế độ xem/i)).toBeDefined()
+    expect(screen.getByText(/Bạn có thể xem cấu trúc đào tạo/i)).toBeDefined()
   })
 
   it('submits supported search and organization filters to the hook', () => {
@@ -105,7 +105,7 @@ describe('AcademicStructurePage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }))
     await vi.waitFor(() => {
       expect(state.submitRecord).toHaveBeenCalledWith(expect.objectContaining({ kind: 'organization', code: 'FPTU2' }))
-      expect(screen.getByText('Đã lưu thay đổi. Danh sách đang được đồng bộ lại từ backend.')).toBeDefined()
+      expect(screen.getByText('Đã lưu thay đổi. Danh sách đang được đồng bộ lại từ hệ thống.')).toBeDefined()
     })
   })
 })

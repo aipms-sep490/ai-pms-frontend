@@ -28,21 +28,21 @@ describe('AI advisory components', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tạo tóm tắt AI' }))
     await screen.findByText('Weekly report')
     expect(api.getReportAiSummary).toHaveBeenCalledWith(9, 17)
-    expect(screen.getByText('Tham chiếu Backend: /api/v1/progress-reports/17')).toBeTruthy()
+    expect(screen.getByText('Nguồn tham chiếu: /api/v1/progress-reports/17')).toBeTruthy()
   })
 
   it('keeps the report-summary failure local and explains an authorization denial', async () => {
     api.getReportAiSummary.mockRejectedValue(new HttpError('forbidden', 403))
     render(<ReportAiSummary projectId={9} reportId={17} />)
     fireEvent.click(screen.getByRole('button', { name: 'Tạo tóm tắt AI' }))
-    expect((await screen.findByRole('alert')).textContent).toContain('Backend không cấp quyền')
+    expect((await screen.findByRole('alert')).textContent).toContain('Hệ thống không cấp quyền')
   })
 
   it('does not render an unknown backend risk enum as a healthy state', async () => {
     api.getProjectProgressAnalysis.mockResolvedValue({ ...analysis, riskLevel: 'FUTURE_ENUM' })
     render(<ProjectProgressAnalysisPanel projectId={9} />)
     expect(await screen.findByText('Trạng thái chưa hỗ trợ')).toBeTruthy()
-    expect(screen.getByText(/không diễn giải kết quả này là an toàn/i)).toBeTruthy()
+    expect(screen.getByText(/Chưa thể xác định mức rủi ro/)).toBeTruthy()
     expect(screen.queryByText('Rủi ro: FUTURE_ENUM')).toBeNull()
   })
 
@@ -64,7 +64,7 @@ describe('AI advisory components', () => {
     fireEvent.change(screen.getByLabelText('Câu hỏi'), { target: { value: 'Ưu tiên?' } })
     fireEvent.click(screen.getByRole('button', { name: 'Gửi câu hỏi' }))
     await screen.findByText('Ưu tiên task quá hạn.')
-    expect(screen.getByText('Tham chiếu Backend: /api/v1/progress-reports/17')).toBeTruthy()
+    expect(screen.getByText('Nguồn tham chiếu: /api/v1/progress-reports/17')).toBeTruthy()
     await waitFor(() => expect(screen.getByText(/Chưa đủ chứng cứ/)).toBeTruthy())
   })
 })

@@ -3,9 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { PortfolioDashboardPage } from './PortfolioDashboardPage'
 
-const api = vi.hoisted(() => ({ getPortfolioDashboard: vi.fn(), exportPortfolioCsv: vi.fn(), archiveProject: vi.fn(), getReviewActions: vi.fn() }))
+const api = vi.hoisted(() => ({ getWorkspaceRole: vi.fn(), getPortfolioDashboard: vi.fn(), exportPortfolioCsv: vi.fn(), archiveProject: vi.fn(), getReviewActions: vi.fn() }))
 vi.mock('../../auth/context/useAuthSession', () => ({ useAuthSession: () => ({ session: { accessToken: 'department-token', user: { id: 3, roles: ['DEPARTMENT_STAFF'] } } }) }))
-vi.mock('../../auth/utils/role-access', () => ({ getWorkspaceRole: () => 'department' }))
+vi.mock('../../auth/utils/role-access', () => ({ getWorkspaceRole: api.getWorkspaceRole }))
 vi.mock('../api/dashboard-api', () => ({ getPortfolioDashboard: api.getPortfolioDashboard, exportPortfolioCsv: api.exportPortfolioCsv }))
 vi.mock('../../projects/api/archive-project', () => ({ archiveProject: api.archiveProject }))
 vi.mock('../../projects/api/project-review-api', () => ({ getReviewActions: api.getReviewActions }))
@@ -16,7 +16,7 @@ const dashboard = {
   projects: { items: [{ id: 7, code: 'PRJ-7', title: 'Portfolio contract', status: 'ACTIVE', teamId: 2, semesterId: 1, pendingProgressReviews: 0, departmentId: 1, departmentName: 'SE', majors: [], supervisor: null, analysis: { dataStatus: 'READY', riskLevel: 'LOW', trendStatus: 'STABLE', progressSummary: { progressPercentage: 50, overdueTasks: 0, blockedTasks: 0 } } }], page: 1, pageSize: 20, totalCount: 1, totalPages: 1 },
 }
 
-beforeEach(() => { vi.clearAllMocks(); api.getPortfolioDashboard.mockResolvedValue(dashboard); api.getReviewActions.mockResolvedValue({ actions: [{ code: 'archive_project', allowed: false, reasons: ['Chưa đủ điều kiện'] }] }) })
+beforeEach(() => { vi.clearAllMocks(); api.getWorkspaceRole.mockReturnValue('department'); api.getPortfolioDashboard.mockResolvedValue(dashboard); api.getReviewActions.mockResolvedValue({ actions: [{ code: 'archive_project', allowed: false, reasons: ['Chưa đủ điều kiện'] }] }) })
 afterEach(cleanup)
 
 describe('PortfolioDashboardPage', () => {
@@ -37,4 +37,14 @@ describe('PortfolioDashboardPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Lưu trữ' }))
     await waitFor(() => expect(api.archiveProject).toHaveBeenCalledWith(7, null))
   })
+})
+
+it('provides the admin dashboard without department workflow links or mutations', async () => {
+  api.getWorkspaceRole.mockReturnValue('admin')
+  render(<MemoryRouter><PortfolioDashboardPage /></MemoryRouter>)
+  await screen.findByText(/Portfolio contract/)
+  expect(api.getPortfolioDashboard).toHaveBeenCalledWith('admin', { page: 1, pageSize: 20 })
+  expect(screen.queryByRole('link', { name: 'Xem' })).toBeNull()
+  expect(screen.queryByRole('link', { name: 'Tệp' })).toBeNull()
+  expect(api.getReviewActions).not.toHaveBeenCalled()
 })

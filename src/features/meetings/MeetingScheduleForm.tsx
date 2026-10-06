@@ -59,13 +59,13 @@ export function MeetingScheduleForm({ meeting, busy, locked = false, candidates 
         {values.meetingDeliveryMode === 'ONSITE'
           ? <label className="mtg-choice"><input type="radio" name="videoChannel" checked readOnly /><span>Không có kênh trực tuyến</span></label>
           : ([['EXTERNAL_LINK', 'Liên kết ngoài'], ['IN_APP_VIDEO', 'Video trong AI-PMS']] as const).map(([channel, label]) => <label className="mtg-choice" key={channel}><input type="radio" name="videoChannel" checked={values.videoChannel === channel} onChange={() => updateVideoChannel(channel)} /><span>{label}</span></label>)}
-      </div>{values.videoChannel === 'IN_APP_VIDEO' && <p className="mtg-help">AI-PMS sẽ cung cấp phòng họp khi Backend Video Meeting đã được triển khai. Chưa có phòng hoặc mã truy cập nào được tạo khi lưu lịch.</p>}</fieldset>
+      </div>{values.videoChannel === 'IN_APP_VIDEO' && <p className="mtg-help">Phòng họp sẽ được tạo khi người tổ chức bắt đầu phiên video. Lưu lịch ở bước này chưa mở kết nối hoặc cấp quyền truy cập.</p>}</fieldset>
       <div className="mtg-field-grid">
         {(values.meetingDeliveryMode === 'ONSITE' || values.meetingDeliveryMode === 'HYBRID') && <label>Địa điểm<input required value={values.location} onChange={(event) => update('location', event.target.value)} placeholder="Phòng họp hoặc địa điểm gặp mặt" /></label>}
         {values.videoChannel === 'EXTERNAL_LINK' && <label>Liên kết họp trực tuyến<input required type="url" value={values.onlineUrl} onChange={(event) => update('onlineUrl', event.target.value)} placeholder="https://…" /></label>}
       </div>
     </> : <>
-      {legacyMeeting && env.videoMeetingEnabled && <p className="mtg-notice">Đây là lịch họp cũ chưa có trường Video Meeting. Bạn vẫn có thể chỉnh sửa địa điểm và liên kết hiện có mà không suy diễn hay thay đổi hình thức tham gia.</p>}
+      {legacyMeeting && env.videoMeetingEnabled && <p className="mtg-notice">Lịch họp này được tạo trước khi tính năng phòng họp trực tuyến được bật. Bạn vẫn có thể chỉnh sửa địa điểm và liên kết hiện có.</p>}
       <div className="mtg-field-grid"><label>Địa điểm<input value={values.location} onChange={(event) => update('location', event.target.value)} placeholder="Phòng họp hoặc địa điểm gặp mặt" /></label><label>Liên kết họp trực tuyến<input type="url" value={values.onlineUrl} onChange={(event) => update('onlineUrl', event.target.value)} placeholder="https://…" /></label></div>
     </>}
     <label>Nội dung dự kiến<textarea rows={5} value={values.agenda} onChange={(event) => update('agenda', event.target.value)} placeholder="Các đầu việc cần trao đổi, quyết định hoặc xin ý kiến…" /></label>

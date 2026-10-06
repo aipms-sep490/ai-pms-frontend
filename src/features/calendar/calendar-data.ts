@@ -56,7 +56,7 @@ export async function loadCalendarAttention(input: CalendarLoaderInput, apis: Ca
       result.attention.push(...studentAttention(dashboard.value))
       result.sources.push({ id: 'progress-report-deadline', label: 'Hạn báo cáo tiến độ', state: 'unsupported', message: 'API hiện trả kỳ báo cáo, không trả hạn nộp báo cáo.' })
       if (!project) {
-        result.sources.push({ id: 'project-resources', label: 'Lịch họp, hạng mục và bàn giao', state: 'unavailable', message: 'Chưa có đồ án hiện hành do backend trả về.' })
+        result.sources.push({ id: 'project-resources', label: 'Lịch họp, hạng mục và bàn giao', state: 'unavailable', message: 'Chưa có đồ án hiện hành do hệ thống trả về.' })
         return { ...result, attention: sort(result.attention) }
       }
       const resources = await Promise.allSettled([
@@ -76,8 +76,8 @@ export async function loadCalendarAttention(input: CalendarLoaderInput, apis: Ca
       if (finalChecklist.status === 'fulfilled') {
         const item = finalSubmissionProjection(project.id, project.title, finalChecklist.value.deadline)
         if (item && scopedCalendar.status !== 'fulfilled') result.calendar.push(item)
-        result.sources.push({ id: 'final-submission', label: 'Bàn giao cuối', state: item ? 'ready' : 'empty' })
-      } else result.sources.push(errorStatus('final-submission', 'Bàn giao cuối', finalChecklist.reason))
+        result.sources.push({ id: 'final-submission', label: 'Bàn giao cuối kỳ', state: item ? 'ready' : 'empty' })
+      } else result.sources.push(errorStatus('final-submission', 'Bàn giao cuối kỳ', finalChecklist.reason))
     } catch (reason) { result.sources.push(errorStatus('student-dashboard', 'Công việc và mốc đồ án', reason)) }
     return { ...result, attention: sort(result.attention) }
   }
@@ -94,9 +94,9 @@ export async function loadCalendarAttention(input: CalendarLoaderInput, apis: Ca
     } else result.sources.push(errorStatus('supervisor-dashboard', 'Danh mục hướng dẫn', supervisor.reason))
     if (evaluations.status === 'fulfilled') {
       result.sources.push({ id: 'evaluation-assignments', label: 'Phân công đánh giá', state: evaluations.value.totalCount > evaluations.value.items.length ? 'partial' : 'unsupported', message: 'DTO hiện không có hạn đánh giá; không tạo sự kiện lịch.' })
-      result.attention.push(...evaluations.value.items.map((item) => ({ code: 'EVALUATION_ASSIGNMENT_ACTIVE', source: 'EVALUATION_ASSIGNMENT' as const, sourceId: item.id, title: `Phân công đánh giá #${item.id}`, description: 'Phân công đang hoạt động theo backend.', status: item.status, presentationPriority: 40, deepLink: `/evaluator/assignments/${item.id}` })))
+      result.attention.push(...evaluations.value.items.map((item) => ({ code: 'EVALUATION_ASSIGNMENT_ACTIVE', source: 'EVALUATION_ASSIGNMENT' as const, sourceId: item.id, title: `Phân công đánh giá #${item.id}`, description: 'Phân công đang hoạt động theo hệ thống.', status: item.status, presentationPriority: 40, deepLink: `/evaluator/assignments/${item.id}` })))
     } else result.sources.push(errorStatus('evaluation-assignments', 'Phân công đánh giá', evaluations.reason))
-    result.sources.push({ id: 'lecturer-calendar', label: 'Lịch đa đồ án', state: 'unavailable', message: 'Backend chưa cung cấp projection theo actor và khoảng thời gian.' })
+    result.sources.push({ id: 'lecturer-calendar', label: 'Lịch đa đồ án', state: 'unavailable', message: 'Hệ thống chưa cung cấp projection theo actor và khoảng thời gian.' })
     return { ...result, attention: sort(result.attention) }
   }
   if (input.role === 'department') {
@@ -105,7 +105,7 @@ export async function loadCalendarAttention(input: CalendarLoaderInput, apis: Ca
       result.sources.push({ id: 'department-dashboard', label: 'Portfolio bộ môn', state: dashboard.projects.totalCount > dashboard.projects.items.length ? 'partial' : stateForItems(dashboard.projects.items), message: dashboard.projects.totalCount > dashboard.projects.items.length ? 'Chỉ hiển thị trang đầu tối đa 20 đồ án.' : undefined })
       result.attention.push(...dashboard.projects.items.flatMap((project) => project.pendingProgressReviews > 0 ? [{ code: 'PROJECT_PROGRESS_FEEDBACK_PENDING', source: 'PROJECT' as const, sourceId: project.id, title: project.title, description: `${project.pendingProgressReviews} báo cáo chờ phản hồi theo dashboard.`, status: project.status, presentationPriority: 30, deepLink: '/department/portfolio' }] : []))
     } catch (reason) { result.sources.push(errorStatus('department-dashboard', 'Portfolio bộ môn', reason)) }
-    result.sources.push({ id: 'department-calendar', label: 'Lịch portfolio', state: 'unavailable', message: 'Backend chưa cấp mốc thời gian của resource theo phạm vi bộ môn.' })
+    result.sources.push({ id: 'department-calendar', label: 'Lịch portfolio', state: 'unavailable', message: 'Hệ thống chưa cấp mốc thời gian của resource theo phạm vi bộ môn.' })
     return { ...result, attention: sort(result.attention) }
   }
   if (input.role === 'admin') {
@@ -118,7 +118,7 @@ export async function loadCalendarAttention(input: CalendarLoaderInput, apis: Ca
       result.sources.push({ id: 'accounts', label: 'Tài khoản nền tảng', state: accounts.totalCount > accounts.items.length ? 'partial' : stateForItems(accounts.items), message: accounts.totalCount > accounts.items.length ? 'Chỉ hiển thị trang đầu tối đa 20 tài khoản.' : undefined })
       result.attention.push(...accounts.items.filter((account) => account.status !== 'ACTIVE').map((account) => ({ code: `ACCOUNT_${account.status}`, source: 'ACCOUNT' as const, sourceId: account.id, title: account.fullName, description: `Tài khoản đang ở trạng thái ${account.status}.`, status: account.status, presentationPriority: account.status === 'SUSPENDED' ? 10 : 30, deepLink: `/admin/access/users/${account.id}` })))
     } catch (reason) { result.sources.push(errorStatus('accounts', 'Tài khoản nền tảng', reason)) }
-    result.sources.push({ id: 'admin-calendar', label: 'Lịch nền tảng', state: 'unavailable', message: 'Backend chưa có calendar projection quản trị theo khoảng thời gian.' })
+    result.sources.push({ id: 'admin-calendar', label: 'Lịch nền tảng', state: 'unavailable', message: 'Hệ thống chưa có calendar projection quản trị theo khoảng thời gian.' })
     return { ...result, attention: sort(result.attention) }
   }
   result.sources.push({ id: 'calendar', label: 'Lịch tổng hợp', state: 'unavailable', message: 'Vai trò hiện tại chưa có nguồn projection được xác nhận.' })

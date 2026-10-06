@@ -1,3 +1,5 @@
+import { MilestoneTemplatesPage } from '../../features/milestones/MilestoneTemplatesPage'
+import { ProfileVerificationsPage } from '../../features/academic/pages/ProfileVerificationsPage'
 import { createBrowserRouter } from 'react-router-dom'
 import { RouteFrame } from './RouteFrame'
 import { AppLayout } from '../layouts/AppLayout'
@@ -169,7 +171,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           ] },
           { path: 'evaluator/evaluations', element: <EvaluatorAssignmentsPage /> },
           { path: 'evaluator/evaluations/:evaluationId', element: <EvaluationWorkspacePage /> },
-          { path: 'evaluator/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/evaluator/evaluations" backLabel="Danh sách assignments" /> },
+          { path: 'evaluator/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/evaluator/evaluations" backLabel="Danh sách phân công" /> },
           { path: 'evaluator/workspace', element: <EvaluatorWorkspacePage /> },
           { element: <EvaluatorAssignmentRoute />, children: [
             { path: 'evaluator/assignments/:assignmentId', element: <EvaluatorAssignmentDetailPage /> },
@@ -188,6 +190,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
         element: <RoleRoute allowed={['department', 'admin']} />,
         children: [
           { path: 'academic', element: <AcademicStructurePage /> },
+          { path: 'academic/profile-verifications', element: <ProfileVerificationsPage /> },
         ],
       },
       {
@@ -206,7 +209,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'department/projects/:projectId/evaluation-schemes', element: <EvaluationSchemeManagementPage /> },
           { path: 'department/projects/:projectId/governance', element: <ProjectGovernancePage /> },
           { path: 'department/projects/:projectId/final-requirements', element: <FinalRequirementsPage /> },
-          { path: 'department/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/department/portfolio" backLabel="Portfolio đồ án" /> },
+          { path: 'department/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/department/portfolio" backLabel="Danh mục đồ án" /> },
           { path: 'department/projects/:projectId/files', element: <ProjectFilesPage /> },
           { path: 'department/projects/:projectId/contributions', element: <ProjectContributionsPage /> },
           ...(env.aiAdvisoryEnabled ? [{ path: 'department/projects/:projectId/risk', element: <DepartmentProjectRiskPage /> }] : []),
@@ -222,6 +225,8 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
         element: <RoleRoute allowed={['admin']} />,
         children: [
           { path: 'admin/access', element: <AdminWorkspacePage /> },
+          { path: 'admin/portfolio', element: <PortfolioDashboardPage /> },
+          { path: 'admin/milestone-templates', element: <MilestoneTemplatesPage /> },
           { path: 'admin/access/rbac', element: <AdminRbacPage /> },
           { path: 'admin/access/users/:userId', element: <AdminUserDetailPage /> },
         ],
@@ -231,3 +236,4 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
     ],
   },
 ]}])
+

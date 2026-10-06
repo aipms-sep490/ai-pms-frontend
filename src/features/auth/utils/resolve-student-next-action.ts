@@ -15,15 +15,15 @@ export interface StudentNextAction {
 
 const details: Record<StudentJourneyState, Omit<StudentNextAction, 'route'>> = {
   NO_TEAM: { label: 'Tạo hoặc tham gia nhóm', detail: 'Tạo nhóm hoặc phản hồi lời mời đang chờ.' },
-  TEAM_FORMING: { label: 'Hoàn thiện đội hình', detail: 'Cấu hình ngành, mời thành viên và kiểm tra điều kiện do Backend trả về.' },
+  TEAM_FORMING: { label: 'Hoàn thiện nhóm', detail: 'Chọn chuyên ngành, mời thành viên và kiểm tra điều kiện của nhóm.' },
   TEAM_ELIGIBLE: { label: 'Soạn đề cương', detail: 'Nhóm đã sẵn sàng để mở hoặc tiếp tục bản đăng ký.' },
   PROJECT_PENDING: { label: 'Theo dõi thẩm định', detail: 'Xem trạng thái và phản hồi mới nhất từ Bộ môn.' },
-  REVISION_REQUIRED: { label: 'Xử lý yêu cầu sửa', detail: 'Đọc phản hồi, cập nhật đề cương và nộp lại theo quyền Backend.' },
-  PROJECT_REJECTED: { label: 'Xem kết quả thẩm định', detail: 'Đề cương không được chấp thuận. Xem kết quả và lịch sử do Backend trả về.' },
+  REVISION_REQUIRED: { label: 'Xử lý yêu cầu sửa', detail: 'Đọc phản hồi, cập nhật đề cương và nộp lại khi đủ điều kiện.' },
+  PROJECT_REJECTED: { label: 'Xem kết quả thẩm định', detail: 'Đề cương chưa được chấp thuận. Xem kết quả và lịch sử thẩm định.' },
   SUPERVISOR_PENDING: { label: 'Chọn giảng viên', detail: 'Tìm và gửi yêu cầu tới giảng viên phù hợp.' },
-  ACTIVE: { label: 'Mở không gian đồ án', detail: 'Project đã ACTIVE theo trạng thái và phân công được Backend xác nhận.' },
+  ACTIVE: { label: 'Mở không gian đồ án', detail: 'Đồ án đang thực hiện và đã có phân công hướng dẫn.' },
   FINAL_SUBMISSION: { label: 'Hoàn thiện bàn giao', detail: 'Kiểm tra hồ sơ và sản phẩm trước khi nộp bản cuối.' },
-  COMPLETED: { label: 'Xem kết quả đồ án', detail: 'Kết quả đã công bố được đọc trực tiếp từ Backend.' },
+  COMPLETED: { label: 'Xem kết quả đồ án', detail: 'Kết quả đã được công bố và sẵn sàng để xem.' },
 }
 
 /**
@@ -36,7 +36,7 @@ export function resolveStudentNextAction({ journeyState, projectStatus }: Studen
 
   const isDraft = projectStatus?.replaceAll('_', '').toUpperCase() === 'DRAFT'
   if (journeyState === 'TEAM_ELIGIBLE' && isDraft) {
-    return { label: 'Tiếp tục bản nháp', route: '/project/edit', detail: 'Bản nháp hiện hữu được Backend trả về; hãy cập nhật trước khi nộp.' }
+    return { label: 'Tiếp tục bản nháp', route: '/project/edit', detail: 'Cập nhật bản nháp hiện có trước khi nộp.' }
   }
 
   return { ...details[journeyState], route: configured.route }
