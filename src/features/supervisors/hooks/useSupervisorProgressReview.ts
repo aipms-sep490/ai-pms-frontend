@@ -13,7 +13,7 @@ export type ProgressReviewResource<T> =
 const loading = { state: 'loading' } as const
 
 function errorMessage(reason: unknown, label: string) {
-  if (reason instanceof HttpError && reason.status === 403) return `Backend không cấp quyền xem ${label} của đồ án này.`
+  if (reason instanceof HttpError && reason.status === 403) return `Hệ thống không cấp quyền xem ${label} của đồ án này.`
   if (reason instanceof HttpError && reason.status === 404) return `${label} hoặc đồ án không còn khả dụng.`
   return `Chưa tải được ${label}. Hãy thử lại.`
 }

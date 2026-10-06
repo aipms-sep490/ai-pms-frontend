@@ -19,14 +19,14 @@ describe('DepartmentAcademicScopeRoute', () => {
   it('fails closed for an inactive Department scope without treating it as an empty workspace', () => {
     workflow.mockReturnValue({ status: 'ready', academic: { hasActiveDepartmentScope: false, departments: [{ id: 2 }] }, refresh: vi.fn() })
     renderGuard()
-    expect(screen.getByText('Department scope không hợp lệ hoặc đã hết hiệu lực.')).toBeDefined()
+    expect(screen.getByText('Phạm vi bộ môn không hợp lệ hoặc đã hết hiệu lực.')).toBeDefined()
     expect(screen.queryByText('Department workspace')).toBeNull()
   })
 
   it('keeps unavailable context distinct and retryable', () => {
     workflow.mockReturnValue({ status: 'unavailable', academic: null, refresh: vi.fn() })
     renderGuard()
-    expect(screen.getByText('Chưa xác minh được Department scope.')).toBeDefined()
+    expect(screen.getByText('Chưa xác minh được phạm vi bộ môn.')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Thử lại' })).toBeDefined()
   })
 })

@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { FinalChecklist } from '../../final-submission/final-submission-api'
 import type { Meeting } from '../../meetings/meeting-types'
 import type { MilestoneDto, PagedResult } from '../../../types/backend'
 import { services } from '../../../services/service-gateway'
 import { getDeliverables } from '../../../services/api/deliverables.api'
 import { getMyEvaluationAssignments } from '../../../services/api/evaluations.api'
 import { getMeetings } from '../../../services/api/meetings.api'
-import { getFinalChecklist } from '../../final-submission/final-submission-api'
 import { getProgressReports } from '../../../services/api/progress-reports.api'
 
 export type SupervisorOperationalResource<T> =
@@ -18,7 +16,6 @@ export interface SupervisorOperationalSummary {
   meeting: SupervisorOperationalResource<{ count: number; next: Meeting | null }>
   milestone: SupervisorOperationalResource<{ count: number; current: MilestoneDto | null }>
   deliverables: SupervisorOperationalResource<{ count: number }>
-  finalChecklist: SupervisorOperationalResource<FinalChecklist>
   pendingReports: SupervisorOperationalResource<{ count: number }>
   evaluator: SupervisorOperationalResource<boolean>
 }
@@ -61,23 +58,22 @@ function nearestMeeting(items: Meeting[]) {
  */
 export function useSupervisorOperationalSummary(projectId: number) {
   const [summary, setSummary] = useState<SupervisorOperationalSummary>({
-    meeting: loading, milestone: loading, deliverables: loading, finalChecklist: loading, pendingReports: loading, evaluator: loading,
+    meeting: loading, milestone: loading, deliverables: loading, pendingReports: loading, evaluator: loading,
   })
   const requestSequence = useRef(0)
 
   const reload = useCallback(async () => {
     const requestId = ++requestSequence.current
-    setSummary({ meeting: loading, milestone: loading, deliverables: loading, finalChecklist: loading, pendingReports: loading, evaluator: loading })
+    setSummary({ meeting: loading, milestone: loading, deliverables: loading, pendingReports: loading, evaluator: loading })
     const results = await Promise.allSettled([
       loadScheduledMeetings(projectId, new Date().toISOString()),
       services.milestone.getProjectMilestones(projectId),
       getDeliverables(projectId, { page: 1, pageSize: 1 }),
-      getFinalChecklist(projectId),
       getProgressReports(projectId, { status: 'SUBMITTED', page: 1, pageSize: 1 }),
       loadMyEvaluationAssignments(),
     ])
     if (requestId !== requestSequence.current) return
-    const [meetings, milestones, deliverables, checklist, pendingReports, assignments] = results
+    const [meetings, milestones, deliverables, pendingReports, assignments] = results
     setSummary({
       meeting: meetings.status === 'fulfilled'
         ? { state: 'ready', data: { count: meetings.value.totalCount, next: nearestMeeting(meetings.value.items) } }
@@ -91,15 +87,12 @@ export function useSupervisorOperationalSummary(projectId: number) {
       deliverables: deliverables.status === 'fulfilled'
         ? { state: 'ready', data: { count: deliverables.value.totalCount } }
         : failure('deliverables'),
-      finalChecklist: checklist.status === 'fulfilled'
-        ? { state: 'ready', data: checklist.value }
-        : failure('checklist bàn giao cuối'),
       pendingReports: pendingReports.status === 'fulfilled'
         ? { state: 'ready', data: { count: pendingReports.value.totalCount } }
         : failure('báo cáo chờ phản hồi'),
       evaluator: assignments.status === 'fulfilled'
         ? { state: 'ready', data: assignments.value.some((item) => item.projectId === projectId && item.status === 'ACTIVE') }
-        : failure('phân công evaluator'),
+        : failure('phân công người chấm'),
     })
   }, [projectId])
 
