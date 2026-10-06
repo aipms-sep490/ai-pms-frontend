@@ -13,6 +13,7 @@ import { StudentQualificationCard } from '../../qualifications/components/Studen
 import { Modal } from '../../../components/ui/Modal'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { services } from '../../../services/service-gateway'
+import { EligibilityHistoryPanel } from '../components/EligibilityHistoryPanel'
 
 export function TeamManagementPage() {
   const navigate = useNavigate()
@@ -96,7 +97,7 @@ export function TeamManagementPage() {
     await transferLeader(newLeaderUserId, message)
     showToast(
       requiresMentorApproval
-        ? 'Đã gửi yêu cầu thay đổi Trưởng nhóm tới Mentor. Leader hiện tại vẫn giữ quyền cho tới khi được phê duyệt.'
+        ? 'Đã gửi yêu cầu đổi trưởng nhóm tới giảng viên hướng dẫn. Trưởng nhóm hiện tại vẫn giữ quyền cho đến khi yêu cầu được chấp thuận.'
         : 'Đã bàn giao quyền Trưởng nhóm thành công!',
     )
   }
@@ -116,7 +117,7 @@ export function TeamManagementPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto pb-12">
+    <div className="workspace-page flex flex-col gap-6">
       {/* Toast Feedback */}
       {toastMessage && (
         <div
@@ -152,7 +153,7 @@ export function TeamManagementPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Thành viên nhóm</h1>
+          <h1 className="font-heading text-[clamp(26px,2.1vw,32px)] font-bold leading-tight tracking-tight text-slate-900">Thành viên nhóm</h1>
           <p className="text-sm text-slate-500 mt-1">
             Học kỳ: <span className="font-semibold text-slate-700">{semester?.name ?? 'Chưa xác định'}</span> • Sinh viên:{' '}
             <span className="font-semibold text-slate-700">{profile?.fullName ?? 'Sinh viên'}</span>{profile?.studentCode ? ` (${profile.studentCode})` : ''}
@@ -163,7 +164,7 @@ export function TeamManagementPage() {
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-bold flex items-center gap-2  transition-colors"
+            className="px-4 py-2.5 bg-[#0f5b4e] hover:bg-[#0a493f] text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-[0_2px_8px_-2px_rgba(15,91,78,0.25)]"
           >
             <span className="material-symbols-outlined text-[18px]">add_circle</span>
             Thành lập Nhóm Mới
@@ -190,7 +191,7 @@ export function TeamManagementPage() {
       {!team ? (
         <div className="flex flex-col gap-6">
           <div className="bg-white border border-slate-200 rounded-md p-8 text-center flex flex-col items-center gap-4 ">
-            <div className="w-16 h-16 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-md bg-[#edf3f0] text-[#0f5b4e] flex items-center justify-center">
               <span className="material-symbols-outlined text-[36px]">group_add</span>
             </div>
             <div className="max-w-md">
@@ -202,7 +203,7 @@ export function TeamManagementPage() {
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-bold flex items-center gap-2  transition-colors"
+              className="px-5 py-2.5 bg-[#0f5b4e] hover:bg-[#0a493f] text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-[0_2px_8px_-2px_rgba(15,91,78,0.25)]"
             >
               <span className="material-symbols-outlined text-[18px]">add</span>
               Bắt đầu tạo nhóm ngay
@@ -236,7 +237,7 @@ export function TeamManagementPage() {
           <div className="bg-white border border-slate-200 rounded-md p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 ">
             <div>
               <div className="flex items-center gap-3">
-                <span className="font-mono text-sm font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-lg">
+                <span className="font-mono text-sm font-bold bg-[#edf3f0] text-[#0f5b4e] border border-[#a7f3d0] px-2.5 py-0.5 rounded-lg">
                   {team.code}
                 </span>
                 <h2 className="text-lg font-bold text-slate-900">{team.name}</h2>
@@ -278,7 +279,9 @@ export function TeamManagementPage() {
             onContinueToRegistration={() => navigate('/project/register')}
           />}
 
+          <EligibilityHistoryPanel teamId={team.id} canCheck={permissions.canRefreshEligibility} canLock={!rosterLocked && team.status === 'ELIGIBLE' && team.members.some(member => member.isLeader && member.userId === currentUserId)} onChanged={() => { retry() }} />
           {!rosterLocked && <AcademicScopePanel
+            
             teamId={team.id}
             period={period}
             workflowContext={workflowContext}
@@ -296,7 +299,7 @@ export function TeamManagementPage() {
             <section className="rounded-md border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
               <div className="flex items-center gap-2 font-bold">
                 <span className="material-symbols-outlined text-[18px]">hourglass_top</span>
-                Yêu cầu thay đổi Trưởng nhóm đang chờ Mentor phê duyệt
+                Yêu cầu đổi trưởng nhóm đang chờ người phụ trách duyệt
               </div>
               {leaderChangeRequests.filter((request) => request.status === 'PENDING').map((request) => {
                 const target = team.members.find((member) => member.userId === request.newLeaderUserId)
@@ -402,3 +405,4 @@ export function TeamManagementPage() {
     </div>
   )
 }
+

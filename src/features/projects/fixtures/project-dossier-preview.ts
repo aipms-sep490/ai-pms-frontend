@@ -46,7 +46,7 @@ export const projectDossierPreview: ProjectDossier = {
       id: 'MEM-02',
       name: 'Trần Thị B',
       studentId: 'ID #2',
-      role: 'Kỹ sư Backend & Cơ sở dữ liệu',
+      role: 'Kỹ sư hệ thống & Cơ sở dữ liệu',
       major: 'SE',
       responsibility: 'Thiết kế database, RESTful APIs, xác thực JWT, concurrency control',
       storyPoints: 0,

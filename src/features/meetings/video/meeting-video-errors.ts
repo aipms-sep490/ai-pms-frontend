@@ -2,9 +2,9 @@ import { HttpError } from '../../../services/http/http-client'
 
 const videoErrorMessages: Record<string, string> = {
   VIDEO_NOT_ENABLED: 'Cuộc họp này chưa bật Video trong AI-PMS.',
-  VIDEO_SESSION_NOT_STARTED: 'Phiên Video chưa được bắt đầu.',
-  VIDEO_SESSION_ALREADY_ACTIVE: 'Phiên Video hiện đang hoạt động.',
-  VIDEO_SESSION_ENDED: 'Phiên Video đã kết thúc.',
+  VIDEO_SESSION_NOT_STARTED: 'Người tổ chức chưa mở phòng họp.',
+  VIDEO_SESSION_ALREADY_ACTIVE: 'Phòng họp đang hoạt động.',
+  VIDEO_SESSION_ENDED: 'Phòng họp đã kết thúc.',
   VIDEO_SESSION_FAILED: 'Không thể khởi tạo phiên Video.',
   PROJECT_NOT_ACTIVE: 'Đồ án chưa ở trạng thái hoạt động.',
   MEETING_NOT_SCHEDULED: 'Cuộc họp chưa ở trạng thái đã lên lịch.',
@@ -33,3 +33,4 @@ export function meetingVideoErrorCode(code?: string | null): string {
 export function meetingVideoError(reason: unknown): string {
   return reason instanceof HttpError ? meetingVideoErrorCode(reason.problem?.code) : unknownVideoError
 }
+

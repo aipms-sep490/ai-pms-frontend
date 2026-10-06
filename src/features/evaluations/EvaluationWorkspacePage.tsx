@@ -1,3 +1,4 @@
+import { displayLabel } from '../../components/ui/display-label'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import * as api from '../../services/api/evaluations.api'
@@ -79,7 +80,7 @@ export function EvaluationWorkspacePage() {
   }
 
   if (loading) {
-    return <p role="status" className="mx-auto max-w-5xl rounded-xl border border-hairline bg-card p-4 text-sm text-slate-600">Đang tải rubric và draft do Backend bảo vệ…</p>
+    return <p role="status" className="mx-auto max-w-5xl rounded-xl border border-hairline bg-card p-4 text-sm text-slate-600">Đang tải bộ tiêu chí và bản nháp điểm…</p>
   }
 
   if (!draft) {
@@ -95,9 +96,9 @@ export function EvaluationWorkspacePage() {
   return (
     <main className="mx-auto max-w-5xl space-y-6 pb-12">
       <header className="rounded-2xl border border-hairline bg-card p-5 shadow-xs sm:p-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[.14em] text-primary">Backend calculated · {draft.calculationRule}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[.14em] text-primary">Điểm do hệ thống tính · {draft.calculationRule}</p>
         <h1 className="mt-1 text-2xl font-bold text-slate-900">{draft.rubricName} · v{draft.rubricVersion}</h1>
-        <p className="mt-2 text-sm text-slate-600">Project #{draft.projectId} · {draft.evaluationType} · tổng tạm tính do Backend: <strong>{draft.totalScore === null ? 'chưa đủ tiêu chí' : `${draft.totalScore}/${draft.scoreScale}`}</strong>.</p>
+        <p className="mt-2 text-sm text-slate-600">Đồ án #{draft.projectId} · {displayLabel(draft.evaluationType)} · tổng tạm tính do hệ thống: <strong>{draft.totalScore === null ? 'chưa đủ tiêu chí' : `${draft.totalScore}/${draft.scoreScale}`}</strong>.</p>
         <Link to={`/evaluator/projects/${draft.projectId}/final-submission`} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Xem gói bàn giao đã khóa</Link>
       </header>
 
@@ -126,17 +127,17 @@ export function EvaluationWorkspacePage() {
             <textarea aria-label="Nhận xét tổng thể" name="comments" defaultValue={draft.comments ?? ''} maxLength={10000} disabled={busy || draft.status !== 'DRAFT'} className={`${inputClass} w-full`} />
           </label>
           {draft.status === 'DRAFT'
-            ? <button disabled={busy} className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-primary bg-primary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-reduce:transition-none disabled:opacity-50">Lưu draft điểm</button>
-            : <p className="mt-4 text-sm font-semibold text-academic-emerald">Evaluation đã finalization lúc {draft.finalization ? new Date(draft.finalization.finalizedAt).toLocaleString('vi-VN') : '—'}.</p>}
+            ? <button disabled={busy} className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-primary bg-primary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-reduce:transition-none disabled:opacity-50">Lưu bản nháp điểm</button>
+            : <p className="mt-4 text-sm font-semibold text-academic-emerald">Evaluation đã chốt điểm lúc {draft.finalization ? new Date(draft.finalization.finalizedAt).toLocaleString('vi-VN') : '—'}.</p>}
         </section>
       </form>
 
       {draft.status === 'DRAFT' ? <section className="rounded-2xl border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text">
-        <h2 className="font-bold">Finalize evaluation</h2>
-        <p className="mt-1">Finalize là hành động do evaluator xác nhận và Backend tái kiểm tra rubric, token, final-submission package, evaluation window và toàn bộ tiêu chí.</p>
-        {draft.missingCriterionIds.length ? <p className="mt-2">Còn thiếu {draft.missingCriterionIds.length} tiêu chí; chưa thể finalize.</p> : null}
-        <label className="mt-3 flex items-start gap-2"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} disabled={!canFinalize || busy} /><span>Tôi xác nhận nộp điểm final theo rubric hiện tại.</span></label>
-        <button type="button" disabled={!canFinalize || !confirmed || busy} onClick={() => void finalize()} className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-primary bg-primary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-reduce:transition-none disabled:opacity-50">Finalize evaluation</button>
+        <h2 className="font-bold">Chốt kết quả đánh giá</h2>
+        <p className="mt-1">Kiểm tra đầy đủ các tiêu chí trước khi chốt. Sau khi chốt, bạn không thể sửa điểm trực tiếp.</p>
+        {draft.missingCriterionIds.length ? <p className="mt-2">Còn thiếu {draft.missingCriterionIds.length} tiêu chí; chưa thể chốt điểm.</p> : null}
+        <label className="mt-3 flex items-start gap-2"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} disabled={!canFinalize || busy} /><span>Tôi xác nhận nộp điểm theo bộ tiêu chí hiện tại.</span></label>
+        <button type="button" disabled={!canFinalize || !confirmed || busy} onClick={() => void finalize()} className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-primary bg-primary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-reduce:transition-none disabled:opacity-50">Chốt kết quả đánh giá</button>
       </section> : null}
 
       <BackLink />
@@ -145,5 +146,5 @@ export function EvaluationWorkspacePage() {
 }
 
 function BackLink() {
-  return <Link to="/evaluator/evaluations" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">← Danh sách assignments</Link>
+  return <Link to="/evaluator/evaluations" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">← Danh sách phân công</Link>
 }

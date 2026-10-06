@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, type RefObject } from 'react'
+import { useContext, useEffect, useRef, useState, type RefObject } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { getBreadcrumbForPath } from '../router/routes.config'
 import { useAcademicWorkflow } from '../context/useAcademicWorkflow'
@@ -6,7 +6,8 @@ import { StudentJourneyContext } from '../context/StudentJourneyContext'
 import { useWorkspaceAccess } from '../context/workspace-access'
 import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 import { useAuthSession } from '../../features/auth/context/useAuthSession'
-import { getUnreadCount } from '../../features/notifications/notifications-api'
+import { getNotifications, getUnreadCount, markNotificationRead, type NotificationItem } from '../../features/notifications/notifications-api'
+import { NotificationRow, NotificationEmpty, NotificationLoading } from '../../features/notifications/NotificationRow'
 
 interface TopHeaderProps {
   onToggleMobileMenu: () => void
@@ -26,6 +27,16 @@ export function TopHeader({
   const selectedSemester = academic?.selectedSemester
   const { session } = useAuthSession()
   const [unreadCount, setUnreadCount] = useState<number | null>(null)
+  const [notificationOpen, setNotificationOpen] = useState(false)
+  const [preview, setPreview] = useState<NotificationItem[]>([])
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState('')
+  const [previewFilter, setPreviewFilter] = useState<'all' | 'unread'>('unread')
+  const [previewBusy, setPreviewBusy] = useState(false)
+  const previewRequest = useRef(0)
+  const previewMutation = useRef(false)
+  const notificationRef = useRef<HTMLDivElement | null>(null)
+  const notificationTriggerRef = useRef<HTMLButtonElement | null>(null)
   useEffect(() => {
     if (!session) return
     let active = true
@@ -38,6 +49,39 @@ export function TopHeader({
     window.addEventListener('ai-pms:notifications-changed', refresh)
     return () => { active = false; window.removeEventListener('ai-pms:notifications-changed', refresh) }
   }, [session])
+  useEffect(() => {
+    if (!notificationOpen) return
+    const closeOutside = (event: MouseEvent) => {
+      if (!notificationRef.current?.contains(event.target as Node)) setNotificationOpen(false)
+    }
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') { setNotificationOpen(false); notificationTriggerRef.current?.focus() } }
+    document.addEventListener('mousedown', closeOutside)
+    window.addEventListener('keydown', closeOnEscape)
+    return () => { document.removeEventListener('mousedown', closeOutside); window.removeEventListener('keydown', closeOnEscape) }
+  }, [notificationOpen])
+  const loadPreview = async (filter = previewFilter) => {
+    const id = ++previewRequest.current
+    setPreviewLoading(true)
+    setPreviewError('')
+    try { const result = await getNotifications(1, filter === 'unread' ? false : undefined); if (id === previewRequest.current) setPreview(result.items.slice(0, 5)) }
+    catch { if (id === previewRequest.current) { setPreviewError('Không thể tải thông báo. Hãy thử lại.'); setPreview([]) } }
+    finally { if (id === previewRequest.current) setPreviewLoading(false) }
+  }
+  const toggleNotifications = () => {
+    if (!notificationOpen) void loadPreview()
+    setNotificationOpen(!notificationOpen)
+  }
+  const readPreview = async (item: NotificationItem) => {
+    if (previewMutation.current) return
+    previewMutation.current = true
+    setPreviewBusy(true)
+    try {
+      await markNotificationRead(item.id)
+      await loadPreview()
+      window.dispatchEvent(new Event('ai-pms:notifications-changed'))
+    } catch { setPreviewError('Chưa đánh dấu được thông báo. Hãy thử lại.'); }
+    finally { previewMutation.current = false; setPreviewBusy(false) }
+  }
   const role = getWorkspaceRole(session?.user)
   const pendingStudent = role === 'student' && workspaceAccess.contextStatus === 'loading'
   const unavailableStudent = role === 'student' && workspaceAccess.contextStatus === 'unavailable'
@@ -84,7 +128,7 @@ export function TopHeader({
           <span aria-hidden="true" className="text-slate-300 shrink-0">/</span>
           <span className="text-slate-600 font-medium hidden sm:inline shrink-0">{pendingStudent ? <span className="app-context-skeleton" aria-hidden="true" /> : teamLabel}</span>
           <span aria-hidden="true" className="hidden sm:inline text-slate-300 shrink-0">/</span>
-          <span className="font-mono text-primary font-semibold truncate max-w-[200px] sm:max-w-xs md:max-w-none">
+          <span className="text-primary font-semibold truncate max-w-[200px] sm:max-w-xs md:max-w-none">
             {getBreadcrumbForPath(location.pathname)}
           </span>
         </nav>
@@ -100,16 +144,30 @@ export function TopHeader({
           </span>
         ) : null}
         {role !== 'student' ? <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-[11px] font-mono font-medium"><span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />{semesterLabel}</span> : null}
-        <Link
-          to="/notifications"
-          aria-label={unreadCount === null ? 'Thông báo học vụ' : `Thông báo học vụ, ${unreadCount} chưa đọc`}
-          className="relative flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-        >
-          <span className="material-symbols-outlined text-[20px] shrink-0" aria-hidden="true">notifications</span>
-          {unreadCount !== null && unreadCount > 0 && <span aria-hidden="true" className="absolute right-0 top-0 rounded-full bg-rose-600 px-1.5 text-[10px] font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
-        </Link>
+        <div className="relative" ref={notificationRef}>
+          <button
+            ref={notificationTriggerRef}
+            type="button"
+            onClick={toggleNotifications}
+            aria-expanded={notificationOpen}
+            aria-controls="notification-preview"
+            aria-label={unreadCount === null ? 'Mở thông báo học vụ' : `Mở thông báo học vụ, ${unreadCount} chưa đọc`}
+            className="relative flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-[#edf3f0] hover:text-[#0f5b4e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f5b4e]"
+          >
+            <span className="material-symbols-outlined text-[20px] shrink-0" aria-hidden="true">notifications</span>
+            {unreadCount !== null && unreadCount > 0 && <span aria-hidden="true" className="absolute right-0 top-0 rounded-full bg-rose-600 px-1.5 text-[10px] font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+          </button>
+          {notificationOpen && <section id="notification-preview" aria-label="Thông báo mới" className="notification-popover">
+            <div className="notification-popover-header"><div><h2>Thông báo</h2><p>{unreadCount === null ? 'Cập nhật dành cho bạn' : unreadCount > 0 ? unreadCount + ' thông báo chưa đọc' : 'Bạn đã đọc hết thông báo mới'}</p></div><button type="button" className="notification-close" aria-label="Đóng bảng thông báo" onClick={() => { setNotificationOpen(false); notificationTriggerRef.current?.focus() }}><span className="material-symbols-outlined" aria-hidden="true">close</span></button></div>
+            <div className="notification-toolbar"><div className="notification-tabs" role="group" aria-label="Lọc thông báo nhanh">{(['unread', 'all'] as const).map(value => <button key={value} type="button" aria-pressed={previewFilter === value} disabled={previewBusy} onClick={() => { setPreviewFilter(value); void loadPreview(value) }}>{value === 'unread' ? 'Chưa đọc' : 'Tất cả'}</button>)}</div><button type="button" className="notification-action" disabled={previewLoading || previewBusy} onClick={() => void loadPreview()}>Làm mới</button></div>
+            {previewError && <p role="alert" className="notification-error">{previewError}<button type="button" disabled={previewLoading || previewBusy} onClick={() => void loadPreview()}>Tải lại</button></p>}
+            <div className="notification-popover-scroll">{previewLoading ? <NotificationLoading /> : preview.length ? <ul className="notification-list">{preview.map(item => <NotificationRow key={item.id} item={item} busy={previewBusy} compact onRead={() => void readPreview(item)} />)}</ul> : !previewError ? <NotificationEmpty unread={previewFilter === 'unread'} /> : null}</div>
+            <Link to="/notifications" onClick={() => setNotificationOpen(false)} className="notification-popover-footer">Xem tất cả<span aria-hidden="true">→</span></Link>
+          </section>}
+        </div>
         <span className="sr-only" role="status" aria-atomic="true">{unreadCount === null ? '' : unreadCount === 0 ? 'Không có thông báo chưa đọc.' : `${unreadCount} thông báo chưa đọc.`}</span>
       </div>
     </header>
   )
 }
+

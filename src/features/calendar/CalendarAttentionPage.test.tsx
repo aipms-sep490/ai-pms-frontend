@@ -30,7 +30,7 @@ describe('CalendarAttentionPage', () => {
   it('has no mutation control and supports the mobile-primary agenda view', async () => {
     render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
     await screen.findAllByText('Task có hạn')
-    expect(screen.getByRole('button', { name: 'Agenda' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('button', { name: 'Danh sách' }).getAttribute('aria-pressed')).toBe('true')
     expect(screen.queryByRole('button', { name: /Tạo|Duyệt|Gửi phản hồi|Lưu/ })).toBeNull()
   })
 })

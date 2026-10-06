@@ -7,9 +7,9 @@ export function DepartmentAcademicScopeRoute() {
   const { academic, status, refresh } = useAcademicWorkflow()
 
   if (status === 'idle' || status === 'loading') return <PageLoading fullPage />
-  if (status === 'unavailable') return <ScopeMessage title="Chưa xác minh được Department scope." detail="Hãy thử tải lại thông tin học vụ trước khi tiếp tục." onRetry={refresh} />
+  if (status === 'unavailable') return <ScopeMessage title="Chưa xác minh được phạm vi bộ môn." detail="Hãy thử tải lại thông tin học vụ trước khi tiếp tục." onRetry={refresh} />
   if (status === 'forbidden' || !academic?.hasActiveDepartmentScope || academic.departments.length === 0) {
-    return <ScopeMessage title="Department scope không hợp lệ hoặc đã hết hiệu lực." detail="Backend không xác nhận quyền truy cập Academic Governance Workspace." />
+    return <ScopeMessage title="Phạm vi bộ môn không hợp lệ hoặc đã hết hiệu lực." detail="Bạn không có quyền truy cập khu vực quản lý học vụ này." />
   }
 
   return <Outlet />

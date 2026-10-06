@@ -27,6 +27,17 @@ function renderAppLayout(initialEntries = ['/project/overview'], roles: string[]
 }
 
 describe('AppLayout & Navigation Shell', () => {
+  it('opens notifications in a popover and returns focus to the bell on Escape', () => {
+    renderAppLayout()
+    const bell = screen.getByRole('button', { name: /Mở thông báo học vụ/ })
+    fireEvent.click(bell)
+    expect(bell.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByRole('region', { name: 'Thông báo mới' })).toBeDefined()
+    screen.getByRole('link', { name: 'Xem tất cả' }).focus()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('region', { name: 'Thông báo mới' })).toBeNull()
+    expect(document.activeElement).toBe(bell)
+  })
   it.each([{ isLoading: true, error: null }, { isLoading: false, error: 'Failed to fetch' }])('does not invent a team or show the registration menu before project context is known', (state) => {
     const journey: StudentJourneyContextValue = { journeyState: 'TEAM_FORMING', profile: null, semester: null, period: null, team: null, project: null, assignments: [], workflowContext: null, teamActions: null, projectActions: null, refreshAll: async () => {}, setSimulatedJourneyState: () => {}, ...state }
     renderAppLayout(['/project/tasks'], ['STUDENT'], journey)
@@ -43,8 +54,7 @@ describe('AppLayout & Navigation Shell', () => {
     expect(screen.getAllByText('Tổng quan lộ trình').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Hồ sơ đồ án')).toBeDefined()
     expect(screen.queryByRole('button', { name: /Tìm kiếm toàn hệ thống/i })).toBeNull()
-    expect(screen.queryByRole('button', { name: /Thông báo học vụ/i })).toBeNull()
-    expect(screen.getByRole('link', { name: /Thông báo học vụ/i }).getAttribute('href')).toBe('/notifications')
+    expect(screen.getByRole('button', { name: /Mở thông báo học vụ/i })).toBeDefined()
     expect(screen.queryByText(/Sắp có/)).toBeNull()
   })
 
@@ -94,7 +104,7 @@ describe('AppLayout & Navigation Shell', () => {
     }
     renderAppLayout(['/project/workspace'], ['STUDENT'], journey)
     expect(screen.getByRole('link', { name: 'Đóng góp thành viên' }).getAttribute('href')).toBe('/project/contributions')
-    expect(screen.getByRole('link', { name: 'Bàn giao cuối' }).getAttribute('href')).toBe('/project/final-submission')
+    expect(screen.getByRole('link', { name: 'Bàn giao cuối kỳ' }).getAttribute('href')).toBe('/project/final-submission')
     expect(screen.getByRole('link', { name: 'Kết quả đồ án' }).getAttribute('href')).toBe('/project/result')
   })
 })

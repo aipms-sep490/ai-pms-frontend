@@ -47,7 +47,7 @@ export function MeetingVideoSection({ meeting, routeBase }: { meeting: MeetingDe
   const roomPath = `${routeBase}/meetings/${meeting.id}/video`
 
   return <section className="mtg-panel mtg-padded mtg-video-section" aria-labelledby="meeting-video-title">
-    <div className="mtg-section-heading"><div><p className="mtg-eyebrow">VIDEO TRONG AI-PMS</p><h2 id="meeting-video-title">Phòng họp Video</h2></div></div>
+    <div className="mtg-section-heading"><div><p className="mtg-eyebrow">HỌP TRỰC TUYẾN</p><h2 id="meeting-video-title">Phòng họp trực tuyến</h2></div></div>
     {state.status === 'loading' && <p className="mtg-help" role="status">Đang tải quyền truy cập Video…</p>}
     {state.status === 'error' && <div className="mtg-notice mtg-notice--error" role="alert"><p>{state.message}</p><button className="mtg-button mtg-button--secondary" onClick={refresh}>Tải lại quyền Video</button></div>}
     {resource && <>

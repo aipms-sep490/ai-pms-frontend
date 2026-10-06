@@ -114,7 +114,7 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
 
         {!isTeamLeader && <section className="cw-panel" aria-labelledby="evidence-heading">
           <div className="cw-section-heading"><div><h2 id="evidence-heading">Đóng góp và chứng cứ</h2><p>Xem phần đóng góp đã ghi nhận và các tệp chứng cứ của đồ án.</p></div><Icon name="folder_open" /></div>
-          <div className="cw-context-links"><Link className="cw-text-link" to="/project/contributions">Đóng góp của nhóm<Icon name="arrow_outward" /></Link><Link className="cw-text-link" to="/project/evidence">Evidence ledger<Icon name="arrow_outward" /></Link><Link className="cw-text-link" to="/project/files">Tệp và chứng cứ<Icon name="arrow_outward" /></Link></div>
+          <div className="cw-context-links"><Link className="cw-text-link" to="/project/contributions">Đóng góp của nhóm<Icon name="arrow_outward" /></Link><Link className="cw-text-link" to="/project/evidence">Sổ minh chứng<Icon name="arrow_outward" /></Link><Link className="cw-text-link" to="/project/files">Tệp và chứng cứ<Icon name="arrow_outward" /></Link></div>
         </section>}
       </div>
 

@@ -6,10 +6,10 @@ describe('LayeredEvaluationFoundation', () => {
   it('documents future scopes without inventing inputs, scores, or mutations', () => {
     render(<LayeredEvaluationFoundation />)
 
-    expect(screen.getByText(/W7-BE-02/)).toBeTruthy()
-    expect(screen.getByText(/COMMON/)).toBeTruthy()
-    expect(screen.getByText(/MAJOR_SPECIFIC/)).toBeTruthy()
-    expect(screen.getByText(/INDIVIDUAL/)).toBeTruthy()
+    expect(screen.getByText(/Chưa thể mở đánh giá theo phạm vi/)).toBeTruthy()
+    expect(screen.getByText(/Cả đồ án/)).toBeTruthy()
+    expect(screen.getByText(/Theo chuyên ngành/)).toBeTruthy()
+    expect(screen.getByText(/Theo sinh viên/)).toBeTruthy()
     expect(screen.queryByRole('spinbutton')).toBeNull()
     expect(screen.queryByRole('button')).toBeNull()
   })

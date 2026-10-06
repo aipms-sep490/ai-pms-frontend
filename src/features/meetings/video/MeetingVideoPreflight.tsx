@@ -16,9 +16,9 @@ function stopTracks(stream: MediaStream | null) {
 
 function mediaErrorMessage(reason: unknown) {
   const name = reason instanceof DOMException ? reason.name : ''
-  if (name === 'NotAllowedError' || name === 'SecurityError') return 'Trình duyệt chưa cho phép dùng camera hoặc microphone. Hãy cấp quyền rồi thử lại.'
+  if (name === 'NotAllowedError' || name === 'SecurityError') return 'Trình duyệt chưa cho phép dùng camera hoặc micrô. Hãy cấp quyền rồi thử lại.'
   if (name === 'NotFoundError' || name === 'OverconstrainedError') return 'Không tìm thấy thiết bị đã chọn. Bạn có thể thử chế độ chỉ âm thanh.'
-  return 'Không thể khởi tạo thiết bị media trên trình duyệt này. Hãy thử lại hoặc chọn chế độ chỉ âm thanh.'
+  return 'Không thể mở thiết bị âm thanh hoặc hình ảnh trên trình duyệt này. Hãy thử lại hoặc chọn chế độ chỉ nghe.'
 }
 
 export function MeetingVideoPreflight({ onBack, onConnectRequested }: {
@@ -49,11 +49,11 @@ export function MeetingVideoPreflight({ onBack, onConnectRequested }: {
   async function startPreview(next = selection) {
     const mediaDevices = typeof navigator === 'undefined' ? undefined : navigator.mediaDevices
     if (!mediaDevices?.getUserMedia || !mediaDevices.enumerateDevices) {
-      setError('Trình duyệt này không hỗ trợ kiểm tra camera và microphone.')
+      setError('Trình duyệt này không hỗ trợ kiểm tra camera và micrô.')
       return
     }
     if (!next.audioEnabled && !next.videoEnabled) {
-      setError('Hãy bật ít nhất microphone hoặc camera trước khi xem trước.')
+      setError('Hãy bật ít nhất micrô hoặc camera trước khi xem trước.')
       return
     }
     const request = requestRef.current + 1
@@ -98,8 +98,12 @@ export function MeetingVideoPreflight({ onBack, onConnectRequested }: {
   function updateSelection(change: Partial<MeetingVideoPreflightSelection>) {
     const next = { ...selection, ...change }
     setSelection(next)
-    // This handler is itself an explicit user interaction; replace the local preview safely.
-    void startPreview(next)
+    setError('')
+    // Changing a setting alone must not request browser device permissions.
+    if (streamRef.current) {
+      if (!next.audioEnabled && !next.videoEnabled) clearPreview()
+      else void startPreview(next)
+    }
   }
 
   function back() {
@@ -110,21 +114,21 @@ export function MeetingVideoPreflight({ onBack, onConnectRequested }: {
   return <section className="mtg-panel mtg-padded mtg-video-preflight" aria-labelledby="video-preflight-title">
     <p className="mtg-eyebrow">KIỂM TRA THIẾT BỊ</p>
     <h2 id="video-preflight-title">Sẵn sàng trước khi tham gia</h2>
-    <p className="mtg-help">Camera và microphone chỉ được yêu cầu sau khi bạn chọn xem trước. AI-PMS chưa kết nối vào phòng họp ở bước này.</p>
+    <p className="mtg-help">Quyền dùng camera và micrô chỉ được yêu cầu khi bạn chọn xem trước. AI-PMS chưa kết nối vào phòng họp ở bước này.</p>
     {error && <div className="mtg-notice mtg-notice--error" role="alert"><p>{error}</p></div>}
     <div className="mtg-video-toggle-row" aria-label="Tùy chọn thiết bị">
-      <button type="button" className="mtg-button mtg-button--secondary" aria-pressed={selection.audioEnabled} onClick={() => updateSelection({ audioEnabled: !selection.audioEnabled })}>Microphone: {selection.audioEnabled ? 'Bật' : 'Tắt'}</button>
+      <button type="button" className="mtg-button mtg-button--secondary" aria-pressed={selection.audioEnabled} onClick={() => updateSelection({ audioEnabled: !selection.audioEnabled })}>Micrô: {selection.audioEnabled ? 'Bật' : 'Tắt'}</button>
       <button type="button" className="mtg-button mtg-button--secondary" aria-pressed={selection.videoEnabled} onClick={() => updateSelection({ videoEnabled: !selection.videoEnabled })}>Camera: {selection.videoEnabled ? 'Bật' : 'Tắt'}</button>
     </div>
     {(devices.audio.length > 0 || devices.video.length > 0) && <div className="mtg-form-grid mtg-video-device-grid">
-      <label>Microphone<select value={selection.audioInputId} disabled={loading || !selection.audioEnabled} onChange={(event) => updateSelection({ audioInputId: event.target.value })}><option value="">Mặc định</option>{devices.audio.map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || `Microphone ${index + 1}`}</option>)}</select></label>
+      <label>Micrô<select value={selection.audioInputId} disabled={loading || !selection.audioEnabled} onChange={(event) => updateSelection({ audioInputId: event.target.value })}><option value="">Mặc định</option>{devices.audio.map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || `Micrô ${index + 1}`}</option>)}</select></label>
       <label>Camera<select value={selection.videoInputId} disabled={loading || !selection.videoEnabled} onChange={(event) => updateSelection({ videoInputId: event.target.value })}><option value="">Mặc định</option>{devices.video.map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || `Camera ${index + 1}`}</option>)}</select></label>
     </div>}
-    {stream ? <div className="mtg-video-preview"><video ref={videoRef} muted playsInline autoPlay /><p role="status">Thiết bị đã sẵn sàng. Bạn có thể tham gia cuộc họp khi đã sẵn sàng.</p></div> : <p className="mtg-help">Chưa có xem trước. Bạn có thể dùng chế độ chỉ âm thanh nếu không có camera.</p>}
+    {stream ? <div className="mtg-video-preview"><video ref={videoRef} muted playsInline autoPlay /><p role="status">Thiết bị đã sẵn sàng. Chọn tham gia để vào phòng họp.</p></div> : <div className="mtg-video-preview mtg-video-preview--idle"><div className="mtg-video-preview-placeholder"><span className="material-symbols-outlined" aria-hidden="true">{selection.videoEnabled ? 'videocam' : 'videocam_off'}</span><strong>{selection.videoEnabled ? 'Xem trước camera' : 'Camera đang tắt'}</strong><span>{loading ? 'Đang mở thiết bị…' : 'Hình ảnh chỉ hiển thị sau khi bạn bật xem trước.'}</span></div><p>Chưa có xem trước. Bạn có thể dùng chế độ chỉ âm thanh, hoặc tắt cả hai thiết bị để chỉ nghe.</p></div>}
     <div className="mtg-actions mtg-video-actions">
-      <button type="button" className="mtg-button mtg-button--secondary" disabled={loading} onClick={() => void startPreview()}>{loading ? 'Đang kiểm tra…' : stream ? 'Kiểm tra lại thiết bị' : 'Bật xem trước'}</button>
+      <button type="button" className="mtg-button mtg-button--secondary" disabled={loading || (!selection.audioEnabled && !selection.videoEnabled)} onClick={() => void startPreview()}>{loading ? 'Đang kiểm tra…' : stream ? 'Kiểm tra lại thiết bị' : 'Bật xem trước'}</button>
       <button type="button" className="mtg-button mtg-button--secondary" onClick={back}>Quay lại chi tiết cuộc họp</button>
-      <button type="button" className="mtg-button" disabled={!stream || loading} onClick={() => onConnectRequested(selection)}>Tham gia cuộc họp</button>
+      <button type="button" className="mtg-button" disabled={loading || (!stream && (selection.audioEnabled || selection.videoEnabled))} onClick={() => onConnectRequested(selection)}>Tham gia cuộc họp</button>
     </div>
   </section>
 }

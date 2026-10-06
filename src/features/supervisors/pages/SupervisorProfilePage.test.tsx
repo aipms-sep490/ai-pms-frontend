@@ -38,6 +38,6 @@ describe('SupervisorProfilePage', () => {
   it('announces an authorization failure from the backend', async () => {
     api.list.mockRejectedValue(new HttpError('forbidden', 403))
     render(<SupervisorProfilePage />, { wrapper: MemoryRouter })
-    expect((await screen.findByRole('alert')).textContent).toContain('Backend từ chối quyền cập nhật hồ sơ giảng viên')
+    expect((await screen.findByRole('alert')).textContent).toContain('Hệ thống từ chối quyền cập nhật hồ sơ giảng viên')
   })
 })

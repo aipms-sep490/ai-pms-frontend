@@ -53,7 +53,7 @@ export function AiPreview({ insight }: AiPreviewProps) {
             icon="auto_awesome"
             disabled
             className="text-xs"
-            title="Chức năng tạo báo cáo tự động bằng AI sẽ khả dụng khi kết nối backend"
+            title="Chức năng tạo báo cáo tự động bằng AI sẽ khả dụng khi kết nối hệ thống"
           >
             Báo cáo AI (Sắp có)
           </Button>

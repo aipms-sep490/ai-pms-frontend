@@ -19,6 +19,7 @@ export function LiveKitRoomAdapter({ credential, preferences, title, canEnd, onL
   const [room, setRoom] = useState<Room | null>(null)
   const [state, setState] = useState<AdapterState>('connecting')
   const [error, setError] = useState('')
+  const [controlError, setControlError] = useState('')
 
   useEffect(() => {
     if (!isBrowserSupported()) { setState('failed'); setError('Trình duyệt này không hỗ trợ WebRTC cần thiết cho Video.'); return }
@@ -38,8 +39,8 @@ export function LiveKitRoomAdapter({ credential, preferences, title, canEnd, onL
       try {
         await nextRoom.connect(credential.serverUrl, credential.accessToken)
         if (!active) return
-        await nextRoom.localParticipant.setMicrophoneEnabled(preferences.audioEnabled, preferences.audioInputId ? { deviceId: preferences.audioInputId } : undefined)
-        await nextRoom.localParticipant.setCameraEnabled(preferences.videoEnabled, preferences.videoInputId ? { deviceId: preferences.videoInputId } : undefined)
+        await nextRoom.localParticipant.setMicrophoneEnabled(preferences.audioEnabled && credential.capabilities.publishAudio, preferences.audioInputId ? { deviceId: preferences.audioInputId } : undefined)
+        await nextRoom.localParticipant.setCameraEnabled(preferences.videoEnabled && credential.capabilities.publishVideo, preferences.videoInputId ? { deviceId: preferences.videoInputId } : undefined)
         if (active) { setRoom(nextRoom); setState('connected') }
       } catch (reason) {
         if (active) { setState('failed'); setError(liveKitErrorMessage(reason)); onTerminal(liveKitErrorMessage(reason)) }
@@ -52,5 +53,5 @@ export function LiveKitRoomAdapter({ credential, preferences, title, canEnd, onL
 
   if (error) return <p className="mtg-notice mtg-notice--error" role="alert">{error}</p>
   if (!room) return <p className="mtg-loading" role="status">{labels[state]}</p>
-  return <RoomContext.Provider value={room}><LiveKitRoomContent room={room} title={title} connectionState={labels[state]} canEnd={canEnd} onLeave={onLeave} onEndRequested={onEndRequested} onGovernance={onGovernance} governanceOpen={governanceOpen} onProviderError={(reason) => setError(liveKitErrorMessage(reason))} />{governance}</RoomContext.Provider>
+  return <RoomContext.Provider value={room}>{controlError && <div className="mtg-notice mtg-notice--error mtg-livekit-control-error" role="alert"><p>{controlError}</p><button className="mtg-text-button" onClick={() => setControlError('')}>Đóng thông báo</button></div>}<LiveKitRoomContent room={room} title={title} connectionState={labels[state]} canEnd={canEnd} mediaCapabilities={credential.capabilities} onLeave={onLeave} onEndRequested={onEndRequested} onGovernance={onGovernance} governanceOpen={governanceOpen} onProviderError={(reason) => setControlError(liveKitErrorMessage(reason))} />{governance}</RoomContext.Provider>
 }

@@ -21,7 +21,7 @@ export const REFERENCE_TOPICS: TopicItem[] = [
     description:
       'Nghiên cứu và xây dựng nền tảng quản lý đồ án tốt nghiệp tích hợp AI Agent hỗ trợ sinh viên phân rã mục tiêu thành Work Breakdown Structure (WBS), tự động cảnh báo tiến độ và đánh giá năng lực theo chuẩn CDIO.',
     objectives:
-      '1. Tối ưu hóa quy trình theo dõi tiến độ đồ án giữa Khoa - Giảng viên - Sinh viên.\n2. Tích hợp AI Agent gợi ý phân bổ task và ước lượng thời lượng sprint.\n3. Cung cấp bảng điều khiển trực quan hóa Gantt Chart và Kanban.',
+      '1. Tối ưu hóa quy trình theo dõi tiến độ đồ án giữa Khoa - Giảng viên - Sinh viên.\n2. Tích hợp AI Agent gợi ý phân bổ công việc và ước lượng thời lượng sprint.\n3. Cung cấp bảng điều khiển trực quan hóa Gantt Chart và Kanban.',
     expectedOutput:
       'Hệ thống Web Platform hoàn chỉnh, tài liệu kiến trúc Clean Architecture, bộ kiểm thử tự động đạt độ bao phủ > 80%, mô hình đánh giá rủi ro trễ hạn.',
     technologies: ['.NET 9', 'React 19', 'TypeScript', 'Tailwind CSS', 'SQL Server', 'Gemini AI API'],

@@ -1,3 +1,4 @@
+import { ExternalLoginsPanel } from '../components/ExternalLoginsPanel'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
@@ -5,6 +6,7 @@ import { HttpError } from '../../../services/http/http-client'
 import { changePassword, requestPasswordReset, resetPassword } from '../api/auth-api'
 import { useAuthSession } from '../context/useAuthSession'
 import './auth-pages.css'
+import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 
 const passwordMessage = 'Ít nhất 10 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.'
 
@@ -170,8 +172,8 @@ export function ProfileSecurityPage() {
 
   if (!session) return <main className="auth-page-shell"><section className="auth-card"><h1>Cần đăng nhập</h1><Link to="/login">Mở trang đăng nhập</Link></section></main>
 
-  return <section className="auth-profile" aria-labelledby="security-title">
-    <h1 id="security-title">Đổi mật khẩu</h1>
+  return <WorkspacePage title="Bảo mật tài khoản" eyebrow="Tài khoản cá nhân" description="Cập nhật mật khẩu để bảo vệ tài khoản của bạn." backTo="/profile"><section className="profile-workspace workspace-surface" aria-labelledby="security-title">
+    <h2 id="security-title" className="text-lg font-semibold">Đổi mật khẩu</h2>
     <p className="auth-description">Sau khi đổi mật khẩu, bạn cần đăng nhập lại.</p>
     <form className="auth-form" onSubmit={submit} noValidate>
       <label htmlFor="current-password">Mật khẩu hiện tại</label>
@@ -184,5 +186,6 @@ export function ProfileSecurityPage() {
       {error && <p className="auth-error" role="alert">{error}</p>}
       <Button type="submit" disabled={pending}>{pending ? 'Đang đổi mật khẩu…' : 'Đổi mật khẩu'}</Button>
     </form>
-  </section>
+  </section><ExternalLoginsPanel /></WorkspacePage>
 }
+

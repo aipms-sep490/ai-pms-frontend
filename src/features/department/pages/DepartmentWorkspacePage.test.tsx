@@ -35,9 +35,9 @@ describe('DepartmentWorkspacePage', () => {
 
     renderPage()
 
-    expect(await screen.findByText('Department Academic Governance Workspace')).toBeDefined()
+    expect(await screen.findByText('Điều hành học vụ bộ môn')).toBeDefined()
     expect((await screen.findAllByText(/Scoped project/)).length).toBeGreaterThan(0)
-    expect(screen.getAllByRole('link', { name: 'Mở review' })[0].getAttribute('href')).toBe('/department/projects/review/9')
+    expect(screen.getAllByRole('link', { name: 'Xem thẩm định' })[0].getAttribute('href')).toBe('/department/projects/review/9')
     expect(screen.queryByRole('button', { name: /approve|publish|assign/i })).toBeNull()
   })
 
@@ -49,8 +49,8 @@ describe('DepartmentWorkspacePage', () => {
 
     renderPage()
 
-    expect((await screen.findAllByText('Dịch vụ Backend hiện không khả dụng.')).length).toBeGreaterThan(0)
-    expect(await screen.findByText('Academic review queue')).toBeDefined()
+    expect((await screen.findAllByText('Dịch vụ hiện tạm thời không khả dụng.')).length).toBeGreaterThan(0)
+    expect(await screen.findByText('Chờ thẩm định')).toBeDefined()
     expect(screen.getByText('Project review')).toBeDefined()
   })
 })

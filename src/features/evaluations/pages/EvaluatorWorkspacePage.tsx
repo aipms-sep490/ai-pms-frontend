@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Button } from '../../../components/ui/Button'
 import * as api from '../../../services/api/evaluations.api'
 import { evaluationError } from '../evaluation-errors'
 import type { EvaluationAssignment, EvaluationDraft } from '../evaluation-types'
@@ -58,7 +59,7 @@ export function EvaluatorWorkspacePage() {
   return <main className="mx-auto max-w-6xl space-y-6 pb-12">
     <header className="rounded-xl border border-hairline bg-card p-5 sm:p-6">
       <p className="text-xs font-semibold uppercase tracking-[.14em] text-primary">Đánh giá theo phân công</p>
-      <h1 className="mt-1 text-2xl font-bold text-slate-900">Không gian làm việc Evaluator</h1>
+      <h1 className="mt-1 text-2xl font-bold text-slate-900">Bàn làm việc đánh giá</h1>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Mỗi phân công xác định phạm vi đồ án, ngành hoặc sinh viên. Máy chủ xác nhận quyền xem, lưu bản nháp và chốt điểm ở từng thao tác.</p>
     </header>
 
@@ -71,8 +72,8 @@ export function EvaluatorWorkspacePage() {
         <Summary label="Bản nháp đang chấm" value={summary.drafts} />
         <Summary label="Đã chốt" value={summary.finalized} />
       </section>
-      <p className="text-sm text-slate-600">Máy chủ chưa cung cấp aggregate “sẵn sàng chốt” hoặc hạn chấm theo từng phân công. Điều kiện chốt được kiểm tra lại khi gửi yêu cầu.</p>
-      {!assignments.length ? <section className="rounded-xl border border-hairline bg-card p-5 text-sm text-slate-700"><h2 className="font-semibold text-slate-900">Chưa có phân công đánh giá đang hiệu lực</h2><p className="mt-1">Vai trò giảng viên, hướng dẫn hoặc mentor không tự tạo quyền evaluator.</p></section> : null}
+      <p className="text-sm text-slate-600">Mở từng phân công để xem nội dung chấm và điều kiện chốt điểm.</p>
+      {!assignments.length ? <section className="rounded-xl border border-hairline bg-card p-5 text-sm text-slate-700"><h2 className="font-semibold text-slate-900">Chưa có phân công đánh giá đang hiệu lực</h2><p className="mt-1">Bạn sẽ thấy đồ án ở đây khi được phân công chấm.</p></section> : null}
       <section className="space-y-3" aria-label="Danh sách phân công đánh giá">
         {assignments.map((assignment) => {
           const row = drafts[assignment.id]
@@ -81,7 +82,9 @@ export function EvaluatorWorkspacePage() {
               <h2 className="break-words font-semibold text-slate-900">Đồ án #{assignment.projectId} · Thành phần #{assignment.componentId ?? '—'}</h2>
               <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm text-slate-600 sm:grid-cols-2"><div><dt className="inline font-medium text-slate-700">Phạm vi: </dt><dd className="inline">{scopeLabel(assignment)}</dd></div><div><dt className="inline font-medium text-slate-700">Rubric: </dt><dd className="inline">#{assignment.rubricId}</dd></div><div><dt className="inline font-medium text-slate-700">Trạng thái: </dt><dd className="inline">{row?.status === 'unavailable' ? 'Chưa tải được trạng thái bản nháp' : draftLabel(row?.draft ?? null)}</dd></div><div><dt className="inline font-medium text-slate-700">Phân công: </dt><dd className="inline">{new Date(assignment.assignedAt).toLocaleString('vi-VN')}</dd></div></dl>
             </div>
-            <Link to={`/evaluator/assignments/${assignment.id}`} className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở phân công</Link>
+            <Link to={`/evaluator/assignments/${assignment.id}`}>
+              <Button variant="outline">Mở phân công</Button>
+            </Link>
           </article>
         })}
       </section>

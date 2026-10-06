@@ -11,7 +11,7 @@ describe('ProjectModeSelector', () => {
     const onSelect = vi.fn()
     render(<ProjectModeSelector selectedMode="SINGLE_MAJOR" onSelectMode={onSelect} />)
 
-    expect(screen.getByText('Đơn ngành (Single Major)')).toBeDefined()
+    expect(screen.getByText('Một ngành')).toBeDefined()
     expect(screen.getByText('MỘT CHUYÊN NGÀNH')).toBeDefined()
     expect(screen.getAllByRole('radio')[0]).toHaveProperty('checked', true)
   })
@@ -22,6 +22,7 @@ describe('ProjectModeSelector', () => {
 
     fireEvent.click(screen.getAllByRole('radio')[1])
     expect(onSelect).toHaveBeenCalledWith('INTERDISCIPLINARY')
+    expect(onSelect).toHaveBeenCalledTimes(1)
   })
 
   it('locks both modes after the team academic scope is configured', () => {

@@ -6,6 +6,14 @@ export interface ProjectActionItem { id: number; projectId: number; sourceType: 
 export interface ProjectEvidence { id: number; projectId: number; sourceType: string; sourceId: number; majorId: number | null; classification: string; verificationStatus: string; submittedBy: number; submittedAt: string; notes: string | null }
 
 const root = (projectId: number) => `/projects/${projectId}`
+export interface ProjectGovernance { projectId: number; projectStatus: string; leadDepartment: { departmentId: number; name: string } | null; participatingDepartments: Array<{ departmentId: number; name: string }> | null; actorScope: { departmentId: number | null; isAdmin: boolean }; allowedActions: string[] | null; blockers: string[] | null }
+export function canManageProjectGovernance(value: ProjectGovernance): boolean {
+  return !!value.allowedActions?.includes('MANAGE_GOVERNANCE') && !value.actorScope.isAdmin && value.leadDepartment !== null && value.leadDepartment.departmentId === value.actorScope.departmentId && !['ARCHIVED', 'COMPLETED'].includes(value.projectStatus.toUpperCase())
+}
+export const getProjectGovernance = (projectId: number) => httpGet<ProjectGovernance>(`${root(projectId)}/governance`)
+export const getReportingCycle = (projectId: number, id: number) => httpGet<ReportingCycle>(`${root(projectId)}/reporting-cycles/${id}`)
+export const getProjectActionItem = (projectId: number, id: number) => httpGet<ProjectActionItem>(`${root(projectId)}/action-items/${id}`)
+export const updateProjectActionItem = (projectId: number, id: number, body: Pick<ProjectActionItem, 'title' | 'description' | 'ownerId' | 'taskId' | 'milestoneId' | 'dueAt' | 'concurrencyToken'>) => httpPut<ProjectActionItem>(`${root(projectId)}/action-items/${id}`, body)
 export const getReportingCycles = (projectId: number, signal?: AbortSignal) => httpGet<PagedResult<ReportingCycle>>(`${root(projectId)}/reporting-cycles?page=1&pageSize=100`, signal)
 export const createReportingCycle = (projectId: number, body: { reportType: 'WEEKLY' | 'MONTHLY'; periodStart: string; periodEnd: string; deadline: string; latePolicy: 'BLOCK' | 'FLAG'; projectPeriodId?: number }) => httpPost<ReportingCycle>(`${root(projectId)}/reporting-cycles`, body)
 export const updateReportingCycle = (projectId: number, id: number, body: Partial<Pick<ReportingCycle, 'periodStart' | 'periodEnd' | 'deadline' | 'latePolicy'>> & { concurrencyToken: string }) => httpPut<ReportingCycle>(`${root(projectId)}/reporting-cycles/${id}`, body)

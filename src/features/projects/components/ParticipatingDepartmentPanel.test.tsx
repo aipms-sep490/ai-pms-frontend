@@ -17,18 +17,18 @@ describe('ParticipatingDepartmentPanel', () => {
       { departmentId: 4, decision: 'APPROVED', decidedBy: 11, decidedAt: '2026-09-23T00:00:00Z', reason: null },
       { departmentId: 5, decision: 'REJECTED', decidedBy: 12, decidedAt: null, reason: 'No qualified member' },
     ]} />)
-    expect(screen.getByText(/Current snapshot #12 only/)).toBeTruthy()
-    expect(screen.getByText('APPROVED')).toBeTruthy()
-    expect(screen.getByText('REJECTED')).toBeTruthy()
-    expect(screen.getByText('PENDING')).toBeTruthy()
+    expect(screen.getByText(/Bản đề cương #12 đã nộp/)).toBeTruthy()
+    expect(screen.getByText('Đã chấp thuận')).toBeTruthy()
+    expect(screen.getByText('Không chấp thuận')).toBeTruthy()
+    expect(screen.getByText('Chờ xử lý')).toBeTruthy()
     expect(screen.getByText(/No qualified member/)).toBeTruthy()
   })
 
   it('only offers backend-derived actor actions for the current interdisciplinary snapshot', () => {
     const onDecide = vi.fn()
     render(<ParticipatingDepartmentPanel mode="INTERDISCIPLINARY" snapshotId={12} departmentIds={[4]} names={names} canApprove canReject pending={false} onDecide={onDecide} decisions={[]} />)
-    fireEvent.click(screen.getByText('Approve as participating department'))
-    fireEvent.click(screen.getByText('Reject as participating department'))
+    fireEvent.click(screen.getByText('Chấp thuận đề cương'))
+    fireEvent.click(screen.getByText('Không chấp thuận'))
     expect(onDecide).toHaveBeenNthCalledWith(1, 'APPROVED')
     expect(onDecide).toHaveBeenNthCalledWith(2, 'REJECTED')
   })

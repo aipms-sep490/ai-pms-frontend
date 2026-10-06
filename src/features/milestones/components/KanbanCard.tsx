@@ -9,7 +9,7 @@ export function KanbanCard({ task }: KanbanCardProps) {
   return (
     <article
       aria-label={`Công việc ${task.id}: ${task.title}`}
-      title="Kéo thả Kanban sẽ hoạt động khi tích hợp state management & backend"
+      title="Kéo thả Kanban sẽ hoạt động khi tích hợp state management & hệ thống"
       className={`p-3.5 rounded-lg bg-white border transition-all duration-150 shadow-2xs select-none ${
         task.isCritical
           ? 'border-red-300 border-l-4 border-l-red-500 bg-red-50/20'

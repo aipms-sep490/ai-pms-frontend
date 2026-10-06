@@ -71,8 +71,8 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
   {
     id: 'screen-10',
     path: '/project/meetings',
-    title: 'Lịch họp & biên bản',
-    breadcrumb: 'Lịch họp & biên bản',
+    title: 'Lịch họp và biên bản',
+    breadcrumb: 'Lịch họp và biên bản',
     icon: 'diversity_3',
     role: 'student',
     status: 'implemented',
@@ -81,8 +81,8 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
   {
     id: 'final-submission',
     path: '/project/final-submission',
-    title: 'Bàn giao cuối',
-    breadcrumb: 'Bàn giao cuối',
+    title: 'Bàn giao cuối kỳ',
+    breadcrumb: 'Bàn giao cuối kỳ',
     icon: 'inventory_2',
     role: 'student',
     status: 'implemented',
@@ -111,8 +111,8 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
   {
     id: 'screen-4',
     path: '/project/ai',
-    title: 'Trợ lý AI & Phân tích',
-    breadcrumb: 'AI Analytics',
+    title: 'Trợ lý AI và phân tích',
+    breadcrumb: 'Phân tích bằng AI',
     icon: 'neurology',
     role: 'student',
     status: 'implemented',
@@ -124,7 +124,7 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
     id: 'screen-8',
     path: '/supervisor/workspace',
     title: 'Bàn làm việc GVHD',
-    breadcrumb: 'GVHD Workspace',
+    breadcrumb: 'Bàn làm việc giảng viên',
     icon: 'supervisor_account',
     role: 'supervisor',
     status: 'implemented',
@@ -134,8 +134,8 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
   {
     id: 'screen-9',
     path: '/department/workspace',
-    title: 'Quản lý Bộ môn',
-    breadcrumb: 'Bộ môn Workspace',
+    title: 'Quản lý bộ môn',
+    breadcrumb: 'Quản lý bộ môn',
     icon: 'account_balance',
     role: 'department',
     status: 'implemented',
@@ -147,7 +147,7 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
   {
     id: 'screen-6',
     path: '/login',
-    title: 'Cổng Đăng nhập & Phân quyền',
+    title: 'Đăng nhập',
     breadcrumb: 'Đăng nhập',
     icon: 'lock',
     role: 'all',
@@ -191,15 +191,16 @@ export function getBreadcrumbForPath(pathname: string): string {
   }
   if (pathname === '/project/deliverables' || /^\/supervisor\/projects\/\d+\/deliverables(?:\/|$)/.test(pathname)) return 'Hạng mục cần nộp'
   if (pathname === '/project/files' || /^\/supervisor\/projects\/\d+\/files(?:\/|$)/.test(pathname) || /^\/department\/projects\/\d+\/files(?:\/|$)/.test(pathname)) return 'Kho tệp đồ án'
+  if (pathname === '/project/evidence' || /^\/(?:supervisor|department)\/projects\/\d+\/evidence(?:\/|$)/.test(pathname)) return 'Sổ minh chứng'
   if (pathname === '/evaluator/evaluations') return 'Đánh giá được phân công'
   if (/^\/evaluator\/evaluations\/\d+(?:\/|$)/.test(pathname)) return 'Chi tiết đánh giá'
-  if (pathname === '/evaluator/workspace') return 'Không gian Evaluator'
+  if (pathname === '/evaluator/workspace') return 'Bàn làm việc đánh giá'
   if (/^\/evaluator\/assignments\/\d+(?:\/|$)/.test(pathname)) return 'Phân công đánh giá'
   if (/^\/project\/meetings\/\d+(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings\/\d+(?:\/|$)/.test(pathname)) {
     return 'Chi tiết cuộc họp'
   }
   if (/^\/project\/meetings(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings(?:\/|$)/.test(pathname)) {
-    return 'Lịch họp & biên bản'
+    return 'Lịch họp và biên bản'
   }
   if (/^\/project\/reports\/new(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/reports\/new(?:\/|$)/.test(pathname)) {
     return 'Soạn báo cáo tiến độ'
@@ -214,7 +215,7 @@ export function getBreadcrumbForPath(pathname: string): string {
     return 'Tổng quan lộ trình'
   }
   if (pathname === '/project/workspace') return 'Phối hợp nhóm'
-  if (pathname === '/project/ai' || /^\/supervisor\/projects\/\d+\/ai(?:\/|$)/.test(pathname)) return env.aiAdvisoryEnabled ? 'Trợ lý AI & Phân tích' : 'Trang không tồn tại'
+  if (pathname === '/project/ai' || /^\/supervisor\/projects\/\d+\/ai(?:\/|$)/.test(pathname)) return env.aiAdvisoryEnabled ? 'Trợ lý AI và phân tích' : 'Trang không tồn tại'
   if (/^\/department\/projects\/\d+\/risk(?:\/|$)/.test(pathname)) return env.aiAdvisoryEnabled ? 'Phân tích rủi ro đồ án' : 'Trang không tồn tại'
   if (pathname === '/department/projects/archived') return 'Kho lưu trữ đồ án'
   if (/^\/department\/projects\/\d+\/archive-view(?:\/|$)/.test(pathname)) return 'Hồ sơ đồ án lưu trữ'
@@ -254,26 +255,26 @@ export function getBreadcrumbForPath(pathname: string): string {
   }
   if (pathname.startsWith('/department/projects/review')) return 'Thẩm định đề cương'
   if (/^\/department\/projects\/\d+\/result(?:\/|$)/.test(pathname)) return 'Công bố kết quả đồ án'
-  if (/^\/department\/projects\/\d+\/evaluation-schemes(?:\/|$)/.test(pathname)) return 'Scheme đánh giá'
-  if (/^\/department\/projects\/\d+\/governance(?:\/|$)/.test(pathname)) return 'Cadence & evidence'
-  if (/^\/department\/projects\/\d+\/(?:evaluations|evaluators)(?:\/|$)/.test(pathname)) return 'Phân công evaluator'
+  if (/^\/department\/projects\/\d+\/evaluation-schemes(?:\/|$)/.test(pathname)) return 'phương án đánh giá đánh giá'
+  if (/^\/department\/projects\/\d+\/governance(?:\/|$)/.test(pathname)) return 'Điều phối đồ án'
+  if (/^\/department\/projects\/\d+\/(?:evaluations|evaluators)(?:\/|$)/.test(pathname)) return 'Phân công người chấm'
   if (/^\/department\/projects\/\d+\/final-requirements(?:\/|$)/.test(pathname)) return 'Yêu cầu bàn giao'
   if (pathname === '/project/final-submission' || /^\/(?:department|supervisor|evaluator)\/projects\/\d+\/final-submission(?:\/|$)/.test(pathname)) return 'Gói bàn giao cuối'
   if (/^\/department\/projects\/\d+\/contributions(?:\/|$)/.test(pathname)) return 'Đóng góp thành viên'
   if (/^\/supervisor\/projects\/\d+\/contributions(?:\/|$)/.test(pathname)) return 'Đóng góp thành viên'
-  if (pathname === '/department/portfolio') return 'Portfolio đồ án'
-  if (pathname === '/academic/rubrics') return 'Rubric đánh giá'
+  if (pathname === '/department/portfolio') return 'Danh mục đồ án'
+  if (pathname === '/academic/rubrics') return 'Bộ tiêu chí đánh giá'
   if (pathname === '/notifications') return 'Thông báo'
   if (pathname === '/supervisor/dashboard') return 'Tổng quan GVHD'
   if (pathname === '/department/student-qualifications') return 'Xác minh điều kiện tham gia'
   if (pathname === '/academic') return 'Cấu trúc đào tạo'
-  if (/^\/academic\/project-periods\/\d+\/policy(?:\/|$)/.test(pathname)) return 'Policy versioning'
+  if (/^\/academic\/project-periods\/\d+\/policy(?:\/|$)/.test(pathname)) return 'Phiên bản chính sách'
   if (pathname === '/academic/governance') return 'Quản lý học vụ'
   if (pathname === '/project/ai') return 'Trang không tồn tại'
   if (pathname.startsWith('/department/supervisors')) return 'Giám sát GVHD'
   if (pathname.startsWith('/department/topics')) return 'Quản lý đề tài'
   if (pathname === '/admin/access') return 'Quản trị nền tảng'
-  if (pathname === '/admin/access/rbac') return 'Role và permission'
+  if (pathname === '/admin/access/rbac') return 'Vai trò và quyền truy cập'
   if (/^\/admin\/access\/users\/\d+(?:\/|$)/.test(pathname)) return 'Chi tiết tài khoản'
   if (pathname === '/supervisor/workspace') return 'Bàn làm việc GVHD'
   if (pathname === '/profile') return 'Hồ sơ tài khoản'

@@ -1,3 +1,5 @@
+import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
@@ -37,6 +39,7 @@ export function AcademicStructurePage() {
   const [operationError, setOperationError] = useState<string | null>(null)
   const [operationSuccess, setOperationSuccess] = useState<string | null>(null)
   const academic = useAcademicStructure(filters)
+  const { requestConfirmation, confirmationDialog } = useActionConfirmation()
 
   const organizations = useMemo(
     () => academic.hierarchy?.map(({ organization }) => organization) ?? [],
@@ -55,7 +58,7 @@ export function AcademicStructurePage() {
     try {
       await academic.submitRecord(draft)
       setEditor(null)
-      setOperationSuccess('Đã lưu thay đổi. Danh sách đang được đồng bộ lại từ backend.')
+      setOperationSuccess('Đã lưu thay đổi. Danh sách đang được đồng bộ lại từ hệ thống.')
     } catch (reason: unknown) {
       const error = reason instanceof Error ? reason : new Error('Save failed')
       setOperationError(getErrorMessage(error))
@@ -75,7 +78,7 @@ export function AcademicStructurePage() {
   }
 
   if (academic.isUnauthenticated) {
-    return <section className="academic-state-panel academic-error-panel" role="alert"><div><strong>Cần đăng nhập để xem cấu trúc học vụ</strong><p>Hãy xác thực trước khi backend trả dữ liệu theo scope học vụ của bạn.</p></div><Link to="/login" className="academic-link-button">Đăng nhập</Link></section>
+    return <section className="academic-state-panel academic-error-panel" role="alert"><div><strong>Cần đăng nhập để xem cấu trúc học vụ</strong><p>Đăng nhập để xem thông tin đào tạo của bạn.</p></div><Link to="/login" className="academic-link-button">Đăng nhập</Link></section>
   }
 
   if (academic.isLoading) {
@@ -83,11 +86,11 @@ export function AcademicStructurePage() {
   }
 
   if (academic.isUnauthorized) {
-    return <section className="academic-state-panel academic-error-panel" role="alert"><div><strong>Phiên đăng nhập đã hết hạn</strong><p>Đăng nhập lại để đọc dữ liệu học vụ từ backend.</p></div><Link to="/login" className="academic-link-button">Đăng nhập</Link></section>
+    return <section className="academic-state-panel academic-error-panel" role="alert"><div><strong>Phiên đăng nhập đã hết hạn</strong><p>Đăng nhập lại để tiếp tục xem thông tin đào tạo.</p></div><Link to="/login" className="academic-link-button">Đăng nhập</Link></section>
   }
 
   if (academic.isForbidden) {
-    return <section className="academic-state-panel academic-error-panel" role="alert"><div><strong>Không có quyền truy cập</strong><p>Backend từ chối dữ liệu ngoài scope học vụ được cấp.</p></div></section>
+    return <section className="academic-state-panel academic-error-panel" role="alert"><div><strong>Không có quyền truy cập</strong><p>Bạn chưa được cấp quyền xem thông tin đào tạo này.</p></div></section>
   }
 
   if (academic.error) {
@@ -95,15 +98,9 @@ export function AcademicStructurePage() {
   }
 
   return (
-    <div className="academic-page">
-      <header className="academic-page-heading">
-        <div>
-          <p className="eyebrow">UC-018 · UC-023</p>
-          <h1>Cấu trúc học vụ</h1>
-          <p>Quản lý quan hệ Tổ chức → Bộ môn → Chuyên ngành từ nguồn dữ liệu backend. Scope và quyền cuối cùng luôn do backend xác nhận.</p>
-        </div>
-        {academic.canManageOrganizations && <Button onClick={() => openEditor('organization')}>Thêm tổ chức</Button>}
-      </header>
+    <WorkspacePage className="academic-page" title="Cấu trúc đào tạo" eyebrow="Quản lý học vụ" description="Sắp xếp tổ chức, bộ môn và chuyên ngành; quản lý thông tin và trạng thái hoạt động." action={academic.canManageOrganizations && <Button onClick={() => openEditor('organization')}>Thêm tổ chức</Button>}>
+      {confirmationDialog}
+      
 
       <form className="academic-filter-bar" onSubmit={(event) => { event.preventDefault(); setFilters(draftFilters) }}>
         <label>
@@ -113,7 +110,7 @@ export function AcademicStructurePage() {
         <label>
           Phạm vi tổ chức
           <select value={draftFilters.organizationId ?? ''} onChange={(event) => setDraftFilters((current) => ({ ...current, organizationId: event.target.value ? Number(event.target.value) : undefined }))}>
-            <option value="">Tất cả tổ chức được backend trả về</option>
+            <option value="">Tất cả tổ chức</option>
             {organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.code} · {organization.name}</option>)}
           </select>
         </label>
@@ -122,7 +119,7 @@ export function AcademicStructurePage() {
       </form>
 
       {!academic.canManageAcademicStructure && academic.context && (
-        <p className="academic-permission-note" role="status">Bạn đang ở chế độ xem. Các thao tác thay đổi chỉ hiển thị khi backend trả action <code>manage_academic_structure</code> là khả dụng.</p>
+        <p className="academic-permission-note" role="status">Bạn có thể xem cấu trúc đào tạo. Quyền chỉnh sửa do quản trị viên cấp.</p>
       )}
       {operationError && <p className="academic-operation-error" role="alert">{operationError}</p>}
       {operationSuccess && <p className="academic-operation-success" role="status">{operationSuccess}</p>}
@@ -138,6 +135,12 @@ export function AcademicStructurePage() {
           onEdit={openEditor}
           onCreate={({ kind }) => openEditor(kind)}
           onStatusChange={changeStatus}
+          onDelete={async (kind, record) => {
+            if (await requestConfirmation({ title: 'Xóa ' + record.name + '?', description: 'Không thể khôi phục sau khi xóa. Nếu dữ liệu đang được sử dụng, hệ thống sẽ từ chối thao tác.', confirmLabel: 'Xóa', danger: true }) === null) return
+            setOperationError(null); setOperationSuccess(null)
+            try { await academic.deleteRecord(kind, record.id); setOperationSuccess('Đã xóa bản ghi.') }
+            catch (reason) { setOperationError(reason instanceof HttpError && reason.status === 409 ? 'Bản ghi đang được sử dụng và chưa thể xóa.' : 'Chưa xóa được bản ghi. Hãy kiểm tra quyền truy cập và thử lại.') }
+          }}
         />
       ) : null}
 
@@ -153,6 +156,6 @@ export function AcademicStructurePage() {
           />
         </div>
       )}
-    </div>
+    </WorkspacePage>
   )
 }

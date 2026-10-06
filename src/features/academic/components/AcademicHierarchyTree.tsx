@@ -17,6 +17,7 @@ interface AcademicHierarchyTreeProps {
   isSubmitting: boolean
   onEdit: (kind: AcademicEntityKind, record: AcademicRecord) => void
   onStatusChange: (kind: AcademicEntityKind, id: number, isActive: boolean) => Promise<void>
+  onDelete?: (kind: AcademicEntityKind, record: AcademicRecord) => Promise<void>
   onCreate: (draft: Pick<AcademicRecordDraft, 'kind'>) => void
 }
 
@@ -31,9 +32,11 @@ function RecordActions({
   isSubmitting,
   onEdit,
   onStatusChange,
+  onDelete,
 }: {
   kind: AcademicEntityKind
   record: AcademicRecord
+  onDelete?: (kind: AcademicEntityKind, record: AcademicRecord) => Promise<void>
   visible: boolean
   isSubmitting: boolean
   onEdit: (kind: AcademicEntityKind, record: AcademicRecord) => void
@@ -46,6 +49,7 @@ function RecordActions({
       <Button variant={record.isActive ? 'outline' : 'secondary'} size="sm" onClick={() => void onStatusChange(kind, record.id, !record.isActive)} disabled={isSubmitting}>
         {record.isActive ? 'Ngừng hoạt động' : 'Kích hoạt'}
       </Button>
+      {onDelete && <Button variant="ghost" size="sm" disabled={isSubmitting} onClick={() => void onDelete(kind, record)}>Xóa</Button>}
     </div>
   )
 }
@@ -57,6 +61,7 @@ export function AcademicHierarchyTree({
   isSubmitting,
   onEdit,
   onStatusChange,
+  onDelete,
   onCreate,
 }: AcademicHierarchyTreeProps) {
   return (
@@ -69,7 +74,7 @@ export function AcademicHierarchyTree({
               <h2>{organization.name}</h2>
               {organization.description && <p>{organization.description}</p>}
             </div>
-            <div className="academic-node-tools"><StatusBadge isActive={organization.isActive} /><RecordActions kind="organization" record={organization} visible={canManageOrganizations} isSubmitting={isSubmitting} onEdit={onEdit} onStatusChange={onStatusChange} /></div>
+            <div className="academic-node-tools"><StatusBadge isActive={organization.isActive} /><RecordActions kind="organization" record={organization} visible={canManageOrganizations} isSubmitting={isSubmitting} onEdit={onEdit} onStatusChange={onStatusChange} onDelete={onDelete} /></div>
           </header>
 
           <div className="academic-children" data-testid={`organization-${organization.id}-departments`}>
@@ -78,14 +83,14 @@ export function AcademicHierarchyTree({
               <article className="academic-node department" key={department.id}>
                 <header className="academic-node-header">
                   <div><span className="academic-node-label">Bộ môn · {department.code}</span><h4>{department.name}</h4>{department.description && <p>{department.description}</p>}</div>
-                  <div className="academic-node-tools"><StatusBadge isActive={department.isActive} /><RecordActions kind="department" record={department} visible={canManageAcademicStructure} isSubmitting={isSubmitting} onEdit={onEdit} onStatusChange={onStatusChange} /></div>
+                  <div className="academic-node-tools"><StatusBadge isActive={department.isActive} /><RecordActions kind="department" record={department} visible={canManageAcademicStructure} isSubmitting={isSubmitting} onEdit={onEdit} onStatusChange={onStatusChange} onDelete={onDelete} /></div>
                 </header>
                 <div className="academic-children major-list" data-testid={`department-${department.id}-majors`}>
                   <div className="academic-children-heading"><h5>Chuyên ngành</h5>{canManageAcademicStructure && <Button size="sm" variant="secondary" onClick={() => onCreate({ kind: 'major' })}>Thêm chuyên ngành</Button>}</div>
                   {majors.length === 0 ? <p className="academic-inline-empty">Chưa có chuyên ngành.</p> : majors.map((major) => (
                     <article className="academic-major" key={major.id}>
                       <div><span className="academic-node-label">Chuyên ngành · {major.code}</span><strong>{major.name}</strong>{major.description && <p>{major.description}</p>}</div>
-                      <div className="academic-node-tools"><StatusBadge isActive={major.isActive} /><RecordActions kind="major" record={major} visible={canManageAcademicStructure} isSubmitting={isSubmitting} onEdit={onEdit} onStatusChange={onStatusChange} /></div>
+                      <div className="academic-node-tools"><StatusBadge isActive={major.isActive} /><RecordActions kind="major" record={major} visible={canManageAcademicStructure} isSubmitting={isSubmitting} onEdit={onEdit} onStatusChange={onStatusChange} onDelete={onDelete} /></div>
                     </article>
                   ))}
                 </div>

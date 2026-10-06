@@ -66,7 +66,7 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
   const mayManageActions = canManage && meeting.status !== 'CANCELLED'
   const controlsDisabled = disabled || busy || awaitingRefresh
   return <section className="mtg-panel mtg-padded" aria-labelledby="meeting-governance-title">
-    <div className="mtg-section-heading"><div><h2 id="meeting-governance-title">Kết luận và công việc sau họp</h2><p className="mtg-help">Kết luận chỉ được ghi sau khi cuộc họp hoàn tất. Máy chủ kiểm tra lại quyền, trạng thái và token.</p></div></div>
+    <div className="mtg-section-heading"><div><h2 id="meeting-governance-title">Kết luận và công việc sau họp</h2><p className="mtg-help">Ghi kết luận sau khi cuộc họp hoàn tất để cả nhóm theo dõi bước tiếp theo.</p></div></div>
     {loading && <p role="status" className="mtg-help">Đang tải kết luận và công việc…</p>}
     {error && <div className="mtg-notice mtg-notice--error" role="alert"><p>{error}</p><button className="mtg-text-button" onClick={onChanged}>Tải lại dữ liệu cuộc họp</button></div>}
     {notice && <p className="mtg-notice mtg-notice--success" role="status">{notice}</p>}

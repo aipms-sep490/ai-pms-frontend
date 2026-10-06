@@ -4,6 +4,7 @@ import { canPerformBackendAction } from '../../auth/policies/access-policy'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import {
   getAcademicHierarchy,
+  deleteAcademicRecord,
   getAcademicWorkflowContext,
   saveAcademicRecord,
   setAcademicRecordStatus,
@@ -106,5 +107,11 @@ export function useAcademicStructure(filters: AcademicFilters = emptyFilters) {
     retry,
     submitRecord,
     changeStatus,
+    deleteRecord: async (kind: AcademicEntityKind, id: number) => {
+      if (!session) throw new Error('Cần đăng nhập để tiếp tục.')
+      setIsSubmitting(true)
+      try { await deleteAcademicRecord(kind, id, session.accessToken); retry() }
+      finally { setIsSubmitting(false) }
+    },
   }
 }

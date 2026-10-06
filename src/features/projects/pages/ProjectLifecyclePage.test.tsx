@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../hooks/useProjectLifecycle', () => ({ useProjectLifecycle: mocks.useProjectLifecycle }))
 vi.mock('../../../app/context', () => ({ useStudentJourney: mocks.useStudentJourney }))
 vi.mock('../../../services/service-gateway', () => ({ services: { project: { getHistory: mocks.getHistory } } }))
+vi.mock('../api/discipline-governance-api', () => ({ getProjectResponsibilities: vi.fn().mockResolvedValue({ items: [], isSnapshot: true, isAvailable: true, concurrencyToken: null }) }))
 
 const journey = {
   project: {
@@ -43,7 +44,7 @@ afterEach(() => { cleanup(); vi.clearAllMocks() })
 describe('ProjectLifecyclePage', () => {
   it('renders only backend-backed project, team and supervisor data', async () => {
     render(<ProjectLifecyclePage />, { wrapper: MemoryRouter })
-    expect(screen.getByText('AI-PMS thật')).toBeDefined()
+    expect(screen.getByText(/AI-PMS thật/)).toBeDefined()
     expect(screen.getAllByText('Nguyễn Minh Khang').length).toBeGreaterThan(0)
     expect(screen.getByText('Nguyễn Hoàng Minh')).toBeDefined()
     expect(screen.queryByText(/Mô phỏng/)).toBeNull()

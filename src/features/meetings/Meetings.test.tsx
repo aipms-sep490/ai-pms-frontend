@@ -90,7 +90,7 @@ describe('Meetings end-user workflow', () => {
   })
   it('keeps project scheduling hidden for a member even when a broad backend predicate allows it', async () => {
     mount({ leader: false, userId: 10, path: '/project/meetings/new', scheduleAllowed: true })
-    expect(await screen.findByText('Backend hiện không cho phép bạn lên lịch họp cho đồ án này.')).toBeTruthy()
+    expect(await screen.findByText('Bạn chưa có quyền lên lịch họp cho đồ án này.')).toBeTruthy()
   })
   it('allows the original organizer to manage after they cease to be leader', async () => {
     mount({ leader: false, userId: 9 }); await ready()
@@ -265,3 +265,4 @@ describe('Meetings end-user workflow', () => {
     expect(screen.queryByRole('link', { name: /Lên lịch họp/ })).toBeNull()
   })
 })
+

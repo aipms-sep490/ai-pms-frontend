@@ -1,9 +1,11 @@
+import { AcademicProfileSummary } from '../../academic/components/AcademicProfileSummary'
 import { Link } from 'react-router-dom'
 import { useState, type FormEvent } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { HttpError } from '../../../services/http/http-client'
 import { useAuthSession } from '../context/useAuthSession'
 import './auth-pages.css'
+import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 
 function getProfileErrorMessage(error: Error): string {
   if (error instanceof HttpError) {
@@ -24,7 +26,7 @@ export function ProfilePage() {
       <section className="auth-profile-empty" aria-labelledby="profile-access-title">
         <p className="auth-eyebrow">Hồ sơ tài khoản</p>
         <h1 id="profile-access-title">Cần đăng nhập để xem hồ sơ</h1>
-        <p>Hồ sơ được đọc từ endpoint hiện tại của backend sau khi xác thực thành công.</p>
+        <p>Đăng nhập để xem và cập nhật thông tin cá nhân.</p>
         <Link className="auth-link-button" to="/login">Mở trang đăng nhập</Link>
       </section>
     )
@@ -40,17 +42,25 @@ export function ProfilePage() {
     setMessage(null)
     try {
       await updateProfile({ fullName, phone: String(form.get('phone') ?? '').trim() || null, title: String(form.get('title') ?? '').trim() || null })
-      setMessage('Hồ sơ đã được backend cập nhật.')
+      setMessage('Đã cập nhật hồ sơ của bạn.')
       setIsEditing(false)
     } catch (reason) { setMessage(getProfileErrorMessage(reason instanceof Error ? reason : new Error())) }
   }
 
   return (
-    <section className="auth-profile" aria-labelledby="profile-title">
-      <div>
-        <p className="auth-eyebrow">Hồ sơ đã xác thực</p>
-        <h1 id="profile-title">{session.user.fullName}</h1>
-        <p className="auth-description">{session.user.email}</p>
+    <WorkspacePage title="Hồ sơ tài khoản" eyebrow="Tài khoản cá nhân" description="Quản lý thông tin cá nhân và thiết lập bảo mật của bạn." action={<Button variant="secondary" onClick={() => void refreshProfile()} disabled={isRefreshing} icon="refresh">{isRefreshing ? 'Đang làm mới…' : 'Làm mới hồ sơ'}</Button>}>
+    <section className="profile-workspace workspace-surface" aria-labelledby="profile-title">
+      <div className="profile-identity">
+        <div className="w-16 h-16 rounded-full bg-[#0f5b4e] text-white flex items-center justify-center font-bold text-2xl shadow-sm shrink-0">
+          {session.user.fullName.charAt(0)}
+        </div>
+        <div>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#edf3f0] text-[#0f5b4e] border border-[#0f5b4e]/20 font-mono text-[10px] font-bold uppercase tracking-wider mb-1">
+            Hồ sơ đã xác thực
+          </span>
+          <h2 id="profile-title" className="text-xl font-bold text-slate-900">{session.user.fullName}</h2>
+          <p className="auth-description text-xs text-slate-500 mt-0.5">{session.user.email}</p>
+        </div>
       </div>
 
       <div className="auth-profile-grid">
@@ -59,24 +69,23 @@ export function ProfilePage() {
           <strong>#{session.user.id}</strong>
         </div>
         <div>
-          <span>Vai trò từ backend</span>
-          <strong>{session.user.roles.length > 0 ? session.user.roles.join(', ') : 'Chưa có vai trò'}</strong>
+          <span>Vai trò tài khoản</span>
+          <strong>{session.user.roles.length > 0 ? session.user.roles.map(role => ({ STUDENT: 'Sinh viên', LECTURER: 'Giảng viên', DEPARTMENT_STAFF: 'Cán bộ bộ môn', ADMIN: 'Quản trị viên' } as Record<string, string>)[role] ?? role).join(', ') : 'Chưa có vai trò'}</strong>
         </div>
       </div>
 
+      <AcademicProfileSummary />
       {error && <p className="auth-error" role="alert">{getProfileErrorMessage(error)}</p>}
       {message && <p className="auth-status" role="status">{message}</p>}
 
       {isEditing ? <form className="auth-form" onSubmit={submit} noValidate>
         <label htmlFor="profile-name">Họ và tên</label><input id="profile-name" name="fullName" defaultValue={session.user.fullName} required />
         <label htmlFor="profile-phone">Số điện thoại</label><input id="profile-phone" name="phone" type="tel" autoComplete="tel" />
-        <label htmlFor="profile-title">Chức danh</label><input id="profile-title" name="title" autoComplete="organization-title" />
+        <label htmlFor="profile-job-title">Chức danh</label><input id="profile-job-title" name="title" autoComplete="organization-title" />
         <div className="auth-actions"><Button type="submit">Lưu hồ sơ</Button><Button type="button" variant="secondary" onClick={() => setIsEditing(false)}>Hủy</Button></div>
-      </form> : <div className="auth-actions"><Button onClick={() => setIsEditing(true)}>Chỉnh sửa hồ sơ</Button><Link className="auth-link-button" to="/profile/security">Bảo mật tài khoản</Link></div>}
-
-      <Button variant="secondary" onClick={() => void refreshProfile()} disabled={isRefreshing}>
-        {isRefreshing ? 'Đang làm mới…' : 'Làm mới hồ sơ'}
-      </Button>
+      </form> : <div className="auth-actions"><Button onClick={() => setIsEditing(true)}>Chỉnh sửa hồ sơ</Button><Link className="profile-security-link" to="/profile/security">Bảo mật tài khoản<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link></div>}
     </section>
+    </WorkspacePage>
   )
 }
+

@@ -13,7 +13,7 @@ beforeEach(() => { vi.clearAllMocks(); api.getEvaluationDraft.mockResolvedValue(
 describe('EvaluationWorkspacePage', () => {
   it('does not allow finalization while Backend reports missing criteria', async () => {
     page(); await screen.findByText('Final rubric · v1')
-    expect((screen.getByRole('button', { name: 'Finalize evaluation' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Chốt kết quả đánh giá' }) as HTMLButtonElement).disabled).toBe(true)
     expect(api.finalizeEvaluation).not.toHaveBeenCalled()
   })
   it('saves a complete explicit score-set with the latest concurrency token', async () => {
@@ -21,12 +21,12 @@ describe('EvaluationWorkspacePage', () => {
     page(); await screen.findByText('Final rubric · v1')
     fireEvent.change(screen.getByLabelText('Điểm Thiết kế'), { target: { value: '8' } })
     fireEvent.change(screen.getByLabelText('Nhận xét Thiết kế'), { target: { value: 'Rõ ràng' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Lưu draft điểm' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp điểm' }))
     await waitFor(() => expect(api.saveEvaluationDraft).toHaveBeenCalledWith(5, { concurrencyToken: 'current-token', comments: null, scores: [{ rubricCriterionId: 12, score: 8, comments: 'Rõ ràng' }] }))
   })
   it('reloads the protected draft rather than retrying a stale save', async () => {
     api.saveEvaluationDraft.mockRejectedValue(new HttpError('stale', 409)); page(); await screen.findByText('Final rubric · v1')
-    fireEvent.click(screen.getByRole('button', { name: 'Lưu draft điểm' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp điểm' }))
     await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/đã thay đổi/))
     expect(api.saveEvaluationDraft).toHaveBeenCalledOnce(); expect(api.getEvaluationDraft.mock.calls.length).toBeGreaterThan(1)
   })

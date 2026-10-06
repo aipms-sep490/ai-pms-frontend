@@ -40,8 +40,8 @@ let mockProjectStore: ProjectDto | null = env.isMockMode ? {
   code: 'CP_FA26_SE28',
   title: 'Hệ thống Quản trị Vòng đời Đồ án Tốt nghiệp Ứng dụng AI Hỗ trợ Phân rã Công việc WBS',
   description: 'Nghiên cứu và xây dựng nền tảng quản lý đồ án tốt nghiệp tích hợp AI Agent hỗ trợ sinh viên phân rã mục tiêu thành Work Breakdown Structure (WBS).',
-  objectives: '1. Tối ưu hóa quy trình theo dõi tiến độ đồ án giữa Khoa - Giảng viên - Sinh viên.\n2. Tích hợp AI Agent gợi ý phân bổ task và ước lượng thời lượng sprint.\n3. Cung cấp bảng điều khiển trực quan hóa Gantt Chart và Kanban.',
-  problemStatement: 'Hiện nay quy trình quản lý đồ án tốt nghiệp còn thủ công, thiếu công cụ giám sát tiến độ thời gian thực và việc phân bổ task cho sinh viên chưa có sự hỗ trợ của trí tuệ nhân tạo.',
+  objectives: '1. Tối ưu hóa quy trình theo dõi tiến độ đồ án giữa Khoa - Giảng viên - Sinh viên.\n2. Tích hợp AI Agent gợi ý phân bổ công việc và ước lượng thời lượng sprint.\n3. Cung cấp bảng điều khiển trực quan hóa Gantt Chart và Kanban.',
+  problemStatement: 'Hiện nay quy trình quản lý đồ án tốt nghiệp còn thủ công, thiếu công cụ giám sát tiến độ thời gian thực và việc phân bổ công việc cho sinh viên chưa có sự hỗ trợ của trí tuệ nhân tạo.',
   expectedOutput: 'Hệ thống Web Platform hoàn chỉnh, tài liệu kiến trúc Clean Architecture, bộ kiểm thử tự động đạt độ bao phủ > 80%, mô hình đánh giá rủi ro trễ hạn.',
   status: 'Draft',
   registeredAt: '2026-09-05T09:00:00Z',
@@ -130,7 +130,7 @@ export async function getProject(id: number): Promise<ProjectDto> {
     if (mockProjectStore && mockProjectStore.id === id) {
       return mockProjectStore
     }
-    throw new Error(`Project #${id} not found.`)
+    throw new Error(`Đồ án #${id} not found.`)
   }
   return await httpGet<ProjectDto>(`/projects/${id}`)
 }
@@ -190,7 +190,7 @@ export async function createDraft(payload: CreateProjectDraftPayload): Promise<P
 export async function updateDraft(id: number, payload: UpdateProjectDraftPayload): Promise<ProjectDto> {
   if (env.isMockMode) {
     if (!mockProjectStore || mockProjectStore.id !== id) {
-      throw new Error(`Project #${id} not found.`)
+      throw new Error(`Đồ án #${id} not found.`)
     }
     const now = new Date().toISOString()
     mockProjectStore = {
@@ -221,7 +221,7 @@ export async function setMajors(
       }
       return mockProjectStore
     }
-    throw new Error(`Project #${id} not found.`)
+    throw new Error(`Đồ án #${id} not found.`)
   }
   return await httpPut<ProjectDto, { concurrencyToken: string; requiredMajorIds: number[] }>(
     `/projects/${id}/majors`,
@@ -231,7 +231,7 @@ export async function setMajors(
 
 export async function selectTopic(id: number, payload: SelectProjectTopicPayload): Promise<ProjectDto> {
   if (env.isMockMode) {
-    if (!mockProjectStore || mockProjectStore.id !== id) throw new Error(`Project #${id} not found.`)
+    if (!mockProjectStore || mockProjectStore.id !== id) throw new Error(`Đồ án #${id} not found.`)
     mockProjectStore = {
       ...mockProjectStore,
       topicId: payload.topicId,
@@ -247,7 +247,7 @@ export async function selectTopic(id: number, payload: SelectProjectTopicPayload
 export async function submitProject(id: number, concurrencyToken: string): Promise<ProjectDto> {
   if (env.isMockMode) {
     if (!mockProjectStore || mockProjectStore.id !== id) {
-      throw new Error(`Project #${id} not found.`)
+      throw new Error(`Đồ án #${id} not found.`)
     }
     const now = new Date().toISOString()
     const oldStatus = mockProjectStore.status
@@ -278,7 +278,7 @@ export async function submitProject(id: number, concurrencyToken: string): Promi
 export async function resubmitProject(id: number, concurrencyToken: string): Promise<ProjectDto> {
   if (env.isMockMode) {
     if (!mockProjectStore || mockProjectStore.id !== id) {
-      throw new Error(`Project #${id} not found.`)
+      throw new Error(`Đồ án #${id} not found.`)
     }
     const now = new Date().toISOString()
     const oldStatus = mockProjectStore.status

@@ -23,7 +23,7 @@ describe('OverviewPage', () => {
     expect(navigate).toHaveBeenCalledWith('/project/edit')
   })
 
-  it('lands an ACTIVE project directly in the collaboration workspace after login', () => {
+  it('keeps an ACTIVE project on the journey overview', () => {
     journey.useStudentJourney.mockReturnValue({
       ...baseJourney,
       journeyState: 'ACTIVE',
@@ -35,6 +35,7 @@ describe('OverviewPage', () => {
       <Route path="/project/overview" element={<OverviewPage />} />
       <Route path="/project/workspace" element={<p>Phối hợp nhóm mới</p>} />
     </Routes></MemoryRouter>)
-    expect(screen.getByText('Phối hợp nhóm mới')).toBeTruthy()
+    expect(screen.getAllByText('Lộ trình đăng ký đồ án').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Phối hợp nhóm mới')).toBeNull()
   })
 })
