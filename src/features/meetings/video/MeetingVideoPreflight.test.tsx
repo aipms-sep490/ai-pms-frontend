@@ -31,4 +31,15 @@ describe('MeetingVideoPreflight', () => {
     expect(screen.getByRole('alert').textContent).toContain('không hỗ trợ')
     expect(getUserMedia).not.toHaveBeenCalled()
   })
+
+  it('lets a participant join to listen without requesting device access', () => {
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia, enumerateDevices } })
+    const onConnectRequested = vi.fn()
+    render(<MeetingVideoPreflight onBack={vi.fn()} onConnectRequested={onConnectRequested} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Micrô: Bật' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Camera: Bật' }))
+    expect(getUserMedia).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Tham gia cuộc họp' }))
+    expect(onConnectRequested).toHaveBeenCalledWith({ audioEnabled: false, videoEnabled: false, audioInputId: '', videoInputId: '' })
+  })
 })

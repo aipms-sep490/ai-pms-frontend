@@ -46,7 +46,7 @@ describe('MeetingVideoRoomPage join boundary', () => {
     api.joinMeetingVideo.mockResolvedValue({ provider: 'LIVEKIT', serverUrl: 'wss://video.example', participantIdentity: 'u-9', participantName: 'Khang', accessToken: 'short-lived', expiresAt: '2026-10-03T03:00:00Z', capabilities: { publishAudio: true, publishVideo: true, screenShare: false, moderator: false } })
     api.endMeetingVideo.mockResolvedValue(undefined)
     mount(); await screen.findByRole('button', { name: 'Tham gia cuộc họp' }); fireEvent.click(screen.getByRole('button', { name: 'Tham gia cuộc họp' })); await screen.findByText('Đã kết nối: Khang')
-    fireEvent.click(screen.getByRole('button', { name: 'Kết thúc phòng mock' })); expect(screen.getByRole('alertdialog').textContent).toContain('không hoàn tất cuộc họp')
+    fireEvent.click(screen.getByRole('button', { name: 'Kết thúc phòng mock' })); expect(screen.getByRole('alertdialog').textContent).toContain('Cuộc họp vẫn được giữ nguyên trên lịch')
     fireEvent.click(screen.getByRole('button', { name: 'Kết thúc phòng' })); fireEvent.click(screen.getByRole('button', { name: /Đang kết thúc/ }))
     await waitFor(() => expect(api.endMeetingVideo).toHaveBeenCalledTimes(1)); expect(api.endMeetingVideo).toHaveBeenCalledWith(42)
     expect('completeMeeting' in api).toBe(false)

@@ -30,7 +30,7 @@ describe('MeetingVideoRoomPage', () => {
   it('requires backend canJoin before showing preflight and maps the stable denial code', async () => {
     api.getMeeting.mockResolvedValue(meeting)
     mount()
-    expect(await screen.findByText('Chưa thể tham gia Video')).toBeTruthy()
+    expect(await screen.findByText('Chưa thể tham gia phòng họp')).toBeTruthy()
     expect(screen.getByText('Bạn không được phép tham gia Video.')).toBeTruthy()
     expect(screen.queryByText('Sẵn sàng trước khi tham gia')).toBeNull()
   })
