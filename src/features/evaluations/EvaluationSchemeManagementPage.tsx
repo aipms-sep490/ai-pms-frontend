@@ -1,3 +1,5 @@
+import { displayLabel } from '../../components/ui/display-label'
+import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getProject } from '../../services/api/projects.api'
@@ -9,6 +11,7 @@ import { listRubrics, type Rubric } from './rubrics-api'
 import { getProjectPeriods } from '../academic/api/governance-api'
 import type { ProjectPeriod } from '../academic/types/governance.types'
 import { useAuthSession } from '../auth/context/useAuthSession'
+import { Button } from '../../components/ui/Button'
 
 type DraftComponent = schemesApi.EvaluationSchemeComponentInput & { key: string }
 
@@ -26,10 +29,10 @@ const scopeLabel: Record<EvaluationScope, string> = {
 
 function errorMessage(reason: unknown, fallback: string) {
   if (reason instanceof HttpError) {
-    if (reason.status === 403) return 'Backend không cấp quyền quản lý scheme đánh giá trong phạm vi đồ án này.'
-    if (reason.status === 404) return 'Không tìm thấy đồ án, rubric, kỳ đánh giá hoặc scheme. Hãy tải lại dữ liệu.'
-    if (reason.status === 409) return 'Dữ liệu nghiệp vụ đã thay đổi (roster, policy, rubric, package hoặc token). Dữ liệu mới đã được tải lại; hãy kiểm tra trước khi thao tác lại.'
-    if (reason.status === 400) return reason.problem?.detail || 'Scheme không thỏa điều kiện nghiệp vụ do Backend kiểm tra.'
+    if (reason.status === 403) return 'Hệ thống không cấp quyền quản lý phương án đánh giá trong phạm vi đồ án này.'
+    if (reason.status === 404) return 'Không tìm thấy đồ án, bộ tiêu chí, kỳ đánh giá hoặc phương án đánh giá. Hãy tải lại dữ liệu.'
+    if (reason.status === 409) return 'Dữ liệu đánh giá đã thay đổi. Thông tin mới đã được tải lại; hãy kiểm tra trước khi tiếp tục.'
+    if (reason.status === 400) return reason.problem?.detail || 'phương án đánh giá không thỏa điều kiện nghiệp vụ do hệ thống kiểm tra.'
   }
   return fallback
 }
@@ -65,7 +68,7 @@ export function EvaluationSchemeManagementPage() {
 
   const load = useCallback(async () => {
     if (!session || !Number.isInteger(projectId) || projectId < 1) {
-      setError('Project ID không hợp lệ hoặc phiên đăng nhập chưa sẵn sàng.')
+      setError('đồ án ID không hợp lệ hoặc phiên đăng nhập chưa sẵn sàng.')
       setLoading(false)
       return
     }
@@ -82,7 +85,7 @@ export function EvaluationSchemeManagementPage() {
       setRubrics(rubricPage.items)
       setError(null)
     } catch (reason) {
-      setError(errorMessage(reason, 'Không thể tải scheme đánh giá, rubric và kỳ đánh giá.'))
+      setError(errorMessage(reason, 'Không thể tải phương án đánh giá, bộ tiêu chí và kỳ đánh giá.'))
     } finally { setLoading(false) }
   }, [projectId, session])
 
@@ -113,21 +116,21 @@ export function EvaluationSchemeManagementPage() {
 
   const validate = () => {
     const issues: string[] = []
-    if (!name.trim() || name.trim().length > 200) issues.push('Nhập tên scheme từ 1 đến 200 ký tự.')
-    if (!selectedPeriod || selectedPeriod.status !== 'ACTIVE') issues.push('Chọn kỳ EVALUATION đang ACTIVE.')
+    if (!name.trim() || name.trim().length > 200) issues.push('Nhập tên phương án đánh giá từ 1 đến 200 ký tự.')
+    if (!selectedPeriod || selectedPeriod.status !== 'ACTIVE') issues.push('Chọn đợt đánh giá đang diễn ra.')
     if (threshold < 0 || threshold > 10 || !validNumber(threshold, 2)) issues.push('Ngưỡng đạt phải từ 0 đến 10 với tối đa 2 chữ số thập phân.')
-    if (!components.length || components.length > 100) issues.push('Scheme cần từ 1 đến 100 component.')
+    if (!components.length || components.length > 100) issues.push('phương án đánh giá cần từ 1 đến 100 thành phần.')
     components.forEach((item, index) => {
       const row = index + 1
-      if (!item.name.trim() || item.name.trim().length > 200) issues.push(`Component ${row} cần tên hợp lệ.`)
-      if (!rubrics.some(rubric => rubric.id === item.rubricId)) issues.push(`Component ${row} phải dùng một rubric PUBLISHED Backend trả về.`)
-      if (item.scope === 'COMMON' ? item.majorId !== null : item.majorId === null || !majorIds.has(item.majorId)) issues.push(`Component ${row} có scope/major không thuộc đồ án.`)
-      if (item.requiredEvaluators < 1 || item.requiredEvaluators > 20 || !Number.isInteger(item.requiredEvaluators)) issues.push(`Component ${row} cần 1–20 evaluator.`)
-      if (item.projectWeightPercent < 0 || item.projectWeightPercent > 100 || item.studentWeightPercent < 0 || item.studentWeightPercent > 100 || !validNumber(item.projectWeightPercent, 4) || !validNumber(item.studentWeightPercent, 4) || item.projectWeightPercent + item.studentWeightPercent === 0) issues.push(`Component ${row} có trọng số không hợp lệ.`)
-      if (item.scope === 'INDIVIDUAL' && item.projectWeightPercent !== 0) issues.push(`Component ${row}: INDIVIDUAL không được đóng góp điểm project.`)
+      if (!item.name.trim() || item.name.trim().length > 200) issues.push(`Thành phần ${row} cần tên hợp lệ.`)
+      if (!rubrics.some(rubric => rubric.id === item.rubricId)) issues.push(`Thành phần ${row} cần chọn bộ tiêu chí đã công bố.`)
+      if (item.scope === 'COMMON' ? item.majorId !== null : item.majorId === null || !majorIds.has(item.majorId)) issues.push(`Thành phần ${row} có phạm vi hoặc chuyên ngành không phù hợp với đồ án.`)
+      if (item.requiredEvaluators < 1 || item.requiredEvaluators > 20 || !Number.isInteger(item.requiredEvaluators)) issues.push(`Thành phần ${row} cần 1–20 người chấm.`)
+      if (item.projectWeightPercent < 0 || item.projectWeightPercent > 100 || item.studentWeightPercent < 0 || item.studentWeightPercent > 100 || !validNumber(item.projectWeightPercent, 4) || !validNumber(item.studentWeightPercent, 4) || item.projectWeightPercent + item.studentWeightPercent === 0) issues.push(`Thành phần ${row} có trọng số không hợp lệ.`)
+      if (item.scope === 'INDIVIDUAL' && item.projectWeightPercent !== 0) issues.push(`Thành phần ${row}: INDIVIDUAL không được đóng góp điểm project.`)
     })
-    if (projectWeight !== 100) issues.push('Tổng trọng số điểm project phải đúng 100%.')
-    studentWeights.filter(item => item.total !== 100).forEach(item => issues.push(`Tổng trọng số điểm student của ngành ${item.major.majorCode} phải đúng 100%.`))
+    if (projectWeight !== 100) issues.push('Tổng trọng số điểm đồ án phải đúng 100%.')
+    studentWeights.filter(item => item.total !== 100).forEach(item => issues.push(`Tổng trọng số điểm sinh viên của ngành ${item.major.majorCode} phải đúng 100%.`))
     return issues
   }
 
@@ -140,7 +143,7 @@ export function EvaluationSchemeManagementPage() {
       components: components.map(({ key: _key, ...item }) => ({ ...item, name: item.name.trim() })),
       ...(selected ? { concurrencyToken: selected.concurrencyToken } : {}),
     }
-    void run(() => selected ? schemesApi.updateEvaluationScheme(selected.id, input) : schemesApi.createEvaluationScheme(input), selected ? 'Đã lưu thay đổi cho scheme draft.' : 'Đã tạo scheme draft.', true)
+    void run(() => selected ? schemesApi.updateEvaluationScheme(selected.id, input) : schemesApi.createEvaluationScheme(input), selected ? 'Đã lưu thay đổi cho phương án đánh giá bản nháp.' : 'Đã tạo phương án đánh giá bản nháp.', true)
   }
 
   const run = async (operation: () => Promise<EvaluationScheme | void>, success: string, selectResult = false) => {
@@ -156,36 +159,36 @@ export function EvaluationSchemeManagementPage() {
       setNotice(success)
     } catch (reason) {
       if (reason instanceof HttpError && reason.status === 409) await load()
-      setError(errorMessage(reason, 'Không thể hoàn tất thao tác với scheme.'))
+      setError(errorMessage(reason, 'Không thể hoàn tất thao tác với phương án đánh giá.'))
     } finally { setBusy(false) }
   }
 
   const publish = () => {
-    if (!selected || !window.confirm('Công bố scheme sẽ đóng băng roster và policy version. Sau đó nội dung không thể sửa trực tiếp. Tiếp tục?')) return
-    void run(() => schemesApi.publishEvaluationScheme(selected.id, selected.concurrencyToken), 'Đã công bố scheme và đóng băng snapshot nghiệp vụ.', true)
+    if (!selected || !window.confirm('Công bố phương án sẽ chốt danh sách thành viên và chính sách áp dụng. Muốn chỉnh sửa sau đó, bạn cần tạo phiên bản mới. Tiếp tục?')) return
+    void run(() => schemesApi.publishEvaluationScheme(selected.id, selected.concurrencyToken), 'Đã công bố phương án đánh giá và đóng băng bản tổng hợp nghiệp vụ.', true)
   }
   const version = () => {
     if (!selected) return
-    void run(() => schemesApi.createEvaluationSchemeVersion(selected.id, selected.concurrencyToken), 'Đã tạo phiên bản draft mới từ scheme đã công bố.', true)
+    void run(() => schemesApi.createEvaluationSchemeVersion(selected.id, selected.concurrencyToken), 'Đã tạo phiên bản bản nháp mới từ phương án đánh giá đã công bố.', true)
   }
   const remove = () => {
-    if (!selected || !window.confirm('Xóa draft này? Thao tác không thể hoàn tác.')) return
-    void run(() => schemesApi.deleteEvaluationScheme(selected.id, selected.concurrencyToken), 'Đã xóa scheme draft.'); setSelected(null); setCreating(false)
+    if (!selected || !window.confirm('Xóa bản nháp này? Thao tác không thể hoàn tác.')) return
+    void run(() => schemesApi.deleteEvaluationScheme(selected.id, selected.concurrencyToken), 'Đã xóa phương án đánh giá bản nháp.'); setSelected(null); setCreating(false)
   }
 
   const editable = creating || selected?.status === 'DRAFT'
-  return <main className="mx-auto max-w-7xl space-y-5 pb-12">
-    <header className="flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-2xl font-bold text-slate-900">Scheme đánh giá</h1><p className="mt-1 max-w-3xl text-sm text-slate-600">Thiết kế thành phần chấm, phạm vi và trọng số trước khi phân công evaluator. Backend là nguồn quyết định cuối cùng về package lock, roster, policy và rubric.</p></div><div className="flex flex-wrap gap-2"><Link to={`/department/projects/${projectId}/evaluations`} className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Phân công evaluator</Link><button type="button" onClick={startDraft} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary/90">Tạo scheme draft</button></div></header>
+  return <WorkspacePage className="space-y-5 evaluation-scheme-page" title="Phương án đánh giá" eyebrow="Đánh giá đồ án" description="Thiết lập các thành phần, trọng số và ngưỡng đạt trước khi phân công người chấm." action={<><Link to={`/department/projects/${projectId}/evaluations`}><Button variant="secondary">Phân công người chấm</Button></Link><Button onClick={startDraft} icon="add">Tạo bản nháp</Button></>}>
+    
     {error && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">{error} <button type="button" className="font-semibold underline" onClick={() => void load()}>Tải lại</button></div>}
     {notice && <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">{notice}</p>}
     <div className="grid gap-5 xl:grid-cols-[20rem_1fr]">
-      <section className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="font-semibold text-slate-900">Phiên bản của project</h2>{loading ? <p role="status" className="mt-3 text-sm text-slate-600">Đang tải scheme…</p> : items.length === 0 ? <p className="mt-3 text-sm text-slate-600">Chưa có scheme. Chỉ tạo draft khi final package và kỳ đánh giá đã sẵn sàng.</p> : <ul className="mt-3 space-y-2">{items.map(item => <li key={item.id}><button type="button" onClick={() => choose(item)} className={`min-h-11 w-full rounded-lg border p-3 text-left text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected?.id === item.id ? 'border-primary bg-primary/5' : 'border-slate-200 hover:bg-slate-50'}`}><strong>{item.name}</strong><span className="mt-1 block text-xs text-slate-600">v{item.version} · {item.status} · {item.components.length} component</span></button></li>)}</ul>}</section>
-      <section className="rounded-xl border border-slate-200 bg-white p-5">{!creating && !selected ? <p className="text-sm text-slate-600">Chọn một scheme hoặc tạo draft mới. Scheme PUBLISHED là chỉ đọc; hãy tạo phiên bản để thay đổi.</p> : <form onSubmit={save} className="space-y-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900">{creating ? 'Scheme draft mới' : `${selected?.name} · v${selected?.version}`}</h2>{selected && <p className="mt-1 text-xs text-slate-600">{selected.status} · {selected.policyVersionId ? `Policy snapshot #${selected.policyVersionId}` : 'Chưa có policy snapshot'}</p>}</div>{selected && <div className="flex flex-wrap gap-2">{selected.status === 'DRAFT' && <><button type="button" disabled={busy} onClick={publish} className="min-h-11 rounded-lg bg-primary px-3 text-sm font-semibold text-white disabled:opacity-50">Công bố & đóng băng</button><button type="button" disabled={busy} onClick={remove} className="min-h-11 rounded-lg border border-rose-300 px-3 text-sm font-semibold text-rose-700 disabled:opacity-50">Xóa draft</button></>}{selected.status !== 'DRAFT' && <button type="button" disabled={busy} onClick={version} className="min-h-11 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-700 disabled:opacity-50">Tạo phiên bản</button>}</div>}</div>
-        <div className="grid gap-3 md:grid-cols-3"><label className="text-sm font-medium text-slate-700">Tên scheme<input value={name} disabled={!editable || busy} onChange={event => setName(event.target.value)} required className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100" /></label><label className="text-sm font-medium text-slate-700">Kỳ đánh giá<select value={periodId} disabled={!editable || busy} onChange={event => setPeriodId(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100"><option value={0}>Chọn kỳ EVALUATION</option>{periods.map(item => <option key={item.id} value={item.id}>{item.name} · {item.status}</option>)}</select></label><label className="text-sm font-medium text-slate-700">Ngưỡng đạt (0–10)<input type="number" min="0" max="10" step="0.01" value={threshold} disabled={!editable || busy} onChange={event => setThreshold(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100" /></label></div>
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"><strong>Kiểm tra trước khi lưu:</strong><span className={projectWeight === 100 ? 'ml-2 text-emerald-700' : 'ml-2 text-rose-700'}>Project: {projectWeight}% / 100%</span>{studentWeights.map(item => <span key={item.major.majorId} className={item.total === 100 ? 'ml-3 text-emerald-700' : 'ml-3 text-rose-700'}>Student {item.major.majorCode}: {item.total}% / 100%</span>)}<p className="mt-2 text-xs text-slate-600">`COMMON` không chọn major. `MAJOR_SPECIFIC` và `INDIVIDUAL` chỉ được chọn major thuộc project; `INDIVIDUAL` có project weight bằng 0.</p></div>
-        <fieldset disabled={!editable || busy} className="space-y-3"><legend className="font-semibold text-slate-900">Components</legend>{components.map((item, index) => <div key={item.key} className="rounded-lg border border-slate-200 p-4"><div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">Component {index + 1}</h3>{editable && components.length > 1 && <button type="button" onClick={() => setComponents(current => current.filter(row => row.key !== item.key))} className="min-h-11 text-sm font-semibold text-rose-700">Xóa</button>}</div><div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4"><label className="text-sm">Tên<input value={item.name} onChange={event => updateComponent(item.key, { name: event.target.value })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label><label className="text-sm">Phạm vi<select value={item.scope} onChange={event => changeScope(item.key, event.target.value as EvaluationScope)} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3">{(Object.keys(scopeLabel) as EvaluationScope[]).map(scope => <option key={scope} value={scope}>{scopeLabel[scope]}</option>)}</select></label><label className="text-sm">Chuyên ngành<select value={item.majorId ?? ''} disabled={item.scope === 'COMMON'} onChange={event => updateComponent(item.key, { majorId: Number(event.target.value) || null })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100"><option value="">Không áp dụng</option>{project?.majors.map(major => <option key={major.majorId} value={major.majorId}>{major.majorCode} · {major.majorName}</option>)}</select></label><label className="text-sm">Rubric published<select value={item.rubricId} onChange={event => updateComponent(item.key, { rubricId: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3"><option value={0}>Chọn rubric</option>{rubrics.map(rubric => <option key={rubric.id} value={rubric.id}>{rubric.code} · v{rubric.version}</option>)}</select></label><label className="text-sm">Project weight %<input type="number" min="0" max="100" step="0.0001" value={item.projectWeightPercent} disabled={item.scope === 'INDIVIDUAL'} onChange={event => updateComponent(item.key, { projectWeightPercent: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100" /></label><label className="text-sm">Student weight %<input type="number" min="0" max="100" step="0.0001" value={item.studentWeightPercent} onChange={event => updateComponent(item.key, { studentWeightPercent: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label><label className="text-sm">Số evaluator<input type="number" min="1" max="20" step="1" value={item.requiredEvaluators} onChange={event => updateComponent(item.key, { requiredEvaluators: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label></div></div>)}</fieldset>
-        {editable && <div className="flex flex-wrap gap-3"><button type="button" onClick={() => setComponents(current => [...current, component('COMMON')])} className="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700">Thêm component</button><button type="submit" disabled={busy} className="min-h-11 rounded-lg bg-primary px-5 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Đang lưu…' : 'Lưu draft'}</button></div>}
+      <section className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="font-semibold text-slate-900">Phiên bản của đồ án</h2>{loading ? <p role="status" className="mt-3 text-sm text-slate-600">Đang tải phương án đánh giá…</p> : items.length === 0 ? <p className="mt-3 text-sm text-slate-600">Chưa có phương án đánh giá. Bạn có thể tạo bản nháp khi gói bàn giao và đợt đánh giá đã sẵn sàng.</p> : <ul className="mt-3 space-y-2">{items.map(item => <li key={item.id}><button type="button" onClick={() => choose(item)} className={`min-h-11 w-full rounded-lg border p-3 text-left text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected?.id === item.id ? 'border-primary bg-primary/5' : 'border-slate-200 hover:bg-slate-50'}`}><strong>{item.name}</strong><span className="mt-1 block text-xs text-slate-600">v{item.version} · {displayLabel(item.status)} · {item.components.length} thành phần</span></button></li>)}</ul>}</section>
+      <section className="rounded-xl border border-slate-200 bg-white p-5">{!creating && !selected ? <p className="text-sm text-slate-600">Chọn phương án ở bên trái hoặc tạo bản nháp mới. Muốn sửa phương án đã công bố, hãy tạo phiên bản mới.</p> : <form onSubmit={save} className="space-y-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900">{creating ? 'Bản nháp phương án đánh giá mới' : `${selected?.name} · v${selected?.version}`}</h2>{selected && <p className="mt-1 text-xs text-slate-600">{displayLabel(selected.status)} · {selected.policyVersionId ? `Chính sách #${selected.policyVersionId}` : 'Chưa chốt chính sách áp dụng'}</p>}</div>{selected && <div className="flex flex-wrap gap-2">{selected.status === 'DRAFT' && <><Button disabled={busy} onClick={publish} icon="lock">Công bố & đóng băng</Button><Button variant="danger" disabled={busy} onClick={remove} icon="delete">Xóa bản nháp</Button></>}{selected.status !== 'DRAFT' && <Button variant="secondary" disabled={busy} onClick={version} icon="content_copy">Tạo phiên bản</Button>}</div>}</div>
+        <div className="grid gap-3 md:grid-cols-3"><label className="text-sm font-medium text-slate-700">Tên phương án đánh giá<input value={name} disabled={!editable || busy} onChange={event => setName(event.target.value)} required className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100" /></label><label className="text-sm font-medium text-slate-700">Kỳ đánh giá<select value={periodId} disabled={!editable || busy} onChange={event => setPeriodId(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100"><option value={0}>Chọn đợt đánh giá</option>{periods.map(item => <option key={item.id} value={item.id}>{item.name} · {displayLabel(item.status)}</option>)}</select></label><label className="text-sm font-medium text-slate-700">Ngưỡng đạt (0–10)<input type="number" min="0" max="10" step="0.01" value={threshold} disabled={!editable || busy} onChange={event => setThreshold(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100" /></label></div>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"><strong>Kiểm tra trước khi lưu:</strong><span className={projectWeight === 100 ? 'ml-2 text-emerald-700' : 'ml-2 text-rose-700'}>Điểm đồ án: {projectWeight}% / 100%</span>{studentWeights.map(item => <span key={item.major.majorId} className={item.total === 100 ? 'ml-3 text-emerald-700' : 'ml-3 text-rose-700'}>Sinh viên {item.major.majorCode}: {item.total}% / 100%</span>)}<p className="mt-2 text-xs text-slate-600">Thành phần chung áp dụng cho cả đồ án. Thành phần theo ngành hoặc sinh viên chỉ áp dụng cho ngành tham gia; điểm cá nhân không đóng góp vào điểm đồ án.</p></div>
+        <fieldset disabled={!editable || busy} className="space-y-3"><legend className="font-semibold text-slate-900">Các thành phần đánh giá</legend>{components.map((item, index) => <div key={item.key} className="rounded-lg border border-slate-200 p-4"><div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">Thành phần {index + 1}</h3>{editable && components.length > 1 && <Button variant="danger" size="sm" onClick={() => setComponents(current => current.filter(row => row.key !== item.key))}>Xóa</Button>}</div><div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4"><label className="text-sm">Tên<input value={item.name} onChange={event => updateComponent(item.key, { name: event.target.value })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label><label className="text-sm">Phạm vi<select value={item.scope} onChange={event => changeScope(item.key, event.target.value as EvaluationScope)} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3">{(Object.keys(scopeLabel) as EvaluationScope[]).map(scope => <option key={scope} value={scope}>{scopeLabel[scope]}</option>)}</select></label><label className="text-sm">Chuyên ngành<select value={item.majorId ?? ''} disabled={item.scope === 'COMMON'} onChange={event => updateComponent(item.key, { majorId: Number(event.target.value) || null })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100"><option value="">Không áp dụng</option>{project?.majors.map(major => <option key={major.majorId} value={major.majorId}>{major.majorCode} · {major.majorName}</option>)}</select></label><label className="text-sm">Bộ tiêu chí đã công bố<select value={item.rubricId} onChange={event => updateComponent(item.key, { rubricId: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3"><option value={0}>Chọn bộ tiêu chí</option>{rubrics.map(rubric => <option key={rubric.id} value={rubric.id}>{rubric.code} · v{rubric.version}</option>)}</select></label><label className="text-sm">Trọng số điểm đồ án (%)<input type="number" min="0" max="100" step="0.0001" value={item.projectWeightPercent} disabled={item.scope === 'INDIVIDUAL'} onChange={event => updateComponent(item.key, { projectWeightPercent: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100" /></label><label className="text-sm">Trọng số điểm sinh viên (%)<input type="number" min="0" max="100" step="0.0001" value={item.studentWeightPercent} onChange={event => updateComponent(item.key, { studentWeightPercent: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label><label className="text-sm">Số người chấm<input type="number" min="1" max="20" step="1" value={item.requiredEvaluators} onChange={event => updateComponent(item.key, { requiredEvaluators: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label></div></div>)}</fieldset>
+        {editable && <div className="flex flex-wrap gap-3"><Button variant="secondary" onClick={() => setComponents(current => [...current, component('COMMON')])} icon="add">Thêm thành phần</Button><Button type="submit" disabled={busy}>{busy ? 'Đang lưu…' : 'Lưu bản nháp'}</Button></div>}
       </form>}</section>
     </div>
-  </main>
+  </WorkspacePage>
 }

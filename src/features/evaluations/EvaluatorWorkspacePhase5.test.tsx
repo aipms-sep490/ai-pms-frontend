@@ -38,7 +38,7 @@ describe('Evaluator Workspace Phase 5', () => {
     api.getAllMyEvaluationAssignments.mockResolvedValue([])
     page('/evaluator/workspace')
     expect(await screen.findByText('Chưa có phân công đánh giá đang hiệu lực')).toBeTruthy()
-    expect(screen.getByText(/không tự tạo quyền evaluator/)).toBeTruthy()
+    expect(screen.getByText(/khi được phân công chấm/)).toBeTruthy()
   })
 
   it('fails closed for a foreign or revoked assignment id', async () => {
@@ -101,8 +101,8 @@ describe('Evaluator Workspace Phase 5', () => {
     expect(score.disabled).toBe(true)
     expect(screen.queryByRole('button', { name: 'Yêu cầu chốt đánh giá' })).toBeNull()
     expect(screen.getByText(/Số item trong gói bàn giao: 2/)).toBeTruthy()
-    expect(screen.getByText(/không có evidence ledger, URL tệp/)).toBeTruthy()
-    expect(screen.getByText(/Evaluator không có quyền công bố kết quả/)).toBeTruthy()
+    expect(screen.getByText(/Thông tin bàn giao dưới đây chỉ để đối chiếu/)).toBeTruthy()
+    expect(screen.getByText(/Kết quả chính thức được bộ môn công bố sau khi hoàn tất đánh giá/)).toBeTruthy()
   })
 
   it('uses the direct assignment contract and hides scoring mutations when Backend marks it read-only', async () => {
