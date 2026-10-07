@@ -7,6 +7,7 @@ import { useWorkspaceAccess } from '../context/workspace-access'
 import { useAuthSession } from '../../features/auth/context/useAuthSession'
 import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 import '../../components/ui/page-loading.css'
+import { useChat } from '../../features/chat/ChatProvider'
 
 interface SidebarProps {
   isOpen: boolean
@@ -15,6 +16,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
+  const { inbox } = useChat()
+  const chatUnread = inbox.items.reduce((sum, room) => sum + room.unreadCount, 0)
   const asideRef = useRef<HTMLElement | null>(null)
   const journey = useContext(StudentJourneyContext)
   const { academic } = useAcademicWorkflow()
@@ -220,6 +223,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                       {item.icon}
                     </span>
                     <span className="truncate">{item.title}</span>
+                    {item.id === 'chat' && chatUnread > 0 && <span className="rounded-full bg-primary px-2 text-xs text-white" aria-label="Có tin nhắn chưa đọc">{chatUnread}{inbox.hasMore ? '+' : ''}</span>}
                   </div>
                 </NavLink>
               ))}

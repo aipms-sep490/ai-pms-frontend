@@ -2,13 +2,16 @@
 import { AuthSessionProvider } from '../../features/auth/context/AuthSessionProvider'
 import { AcademicWorkflowProvider } from '../context/AcademicWorkflowProvider'
 import { appRouter } from '../router'
+import { ChatProvider } from '../../features/chat/ChatProvider'
 
 export function AppProviders() {
   return (
     <AuthSessionProvider>
-      <AcademicWorkflowProvider>
-        <RouterProvider router={appRouter} />
-      </AcademicWorkflowProvider>
+      <ChatProvider>
+        <AcademicWorkflowProvider>
+          <RouterProvider router={appRouter} />
+        </AcademicWorkflowProvider>
+      </ChatProvider>
     </AuthSessionProvider>
   )
 }

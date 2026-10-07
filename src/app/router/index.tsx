@@ -75,6 +75,7 @@ import { ProjectArchiveViewPage } from '../../features/projects/pages/ProjectArc
 import { CalendarAttentionPage } from '../../features/calendar/CalendarAttentionPage'
 import { AcademicWorkflowGate, StudentJourneyProvider } from '../context'
 import { env } from '../config/env'
+import { ChatPage } from '../../features/chat/ChatPage'
 
 export const appRouter = createBrowserRouter([{ element: <RouteFrame />, children: [
   { path: 'login', element: <LoginPage /> },
@@ -96,6 +97,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
       { path: 'profile/security', element: <ProfileSecurityPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'calendar', element: <CalendarAttentionPage /> },
+      { path: 'messages/:conversationId?', element: <ChatPage /> },
       {
         element: <RoleRoute allowed={['student']} />,
         children: [
