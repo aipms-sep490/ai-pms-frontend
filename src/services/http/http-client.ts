@@ -163,7 +163,7 @@ async function send<TResponse>(
   return readResponse<TResponse>(response)
 }
 
-async function refreshAccessToken(): Promise<string | null> {
+export async function refreshAccessToken(): Promise<string | null> {
   const bridge = authenticationBridge
   if (!bridge) return null
 
