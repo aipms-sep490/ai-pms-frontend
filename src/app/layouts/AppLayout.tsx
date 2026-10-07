@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { TopHeader } from './TopHeader'
+import { ChatDock } from '../../features/chat/ChatDock'
 import '../../features/projects/pages/collaboration-workspace.css'
 import '../../components/ui/workspace-page.css'
 import '../../components/ui/workspace-polish.css'
@@ -41,6 +42,7 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <ChatDock />
     </div>
   )
 }
