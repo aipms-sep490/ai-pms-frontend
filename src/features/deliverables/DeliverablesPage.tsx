@@ -1,3 +1,4 @@
+import { Modal } from '../../components/ui/Modal'
 import { displayLabel } from '../../components/ui/display-label'
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -44,6 +45,7 @@ function DeliverablesView() {
   const [editing, setEditing] = useState<Deliverable | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Deliverable | null>(null)
   const mutationLock = useRef(false)
+  const detailRequest = useRef(0)
 
   useEffect(() => setFilterDraft({ search: search ?? '', status: status ?? '', deliverableType: deliverableType ?? '' }), [search, status, deliverableType])
 
@@ -62,21 +64,23 @@ function DeliverablesView() {
   }, [deliverableType, page, project.id, search, status])
 
   const loadVersions = useCallback(async (item: Deliverable, versionPage = 1, signal?: AbortSignal) => {
-    setSelected(item); setSelectedVersion(null); setFeedback(null); setDetailLoading(true); setError('')
+    const request = ++detailRequest.current
+    setSelected(item); setVersions(null); setSelectedVersion(null); setFeedback(null); setDetailLoading(true); setError('')
     try {
       const result = await api.getDeliverableVersions(item.id, versionPage, 10, signal)
-      if (!signal?.aborted) setVersions({ ...result, deliverableId: item.id })
-    } catch (reason) { if (!signal?.aborted) setError(deliverableError(reason)) }
-    finally { if (!signal?.aborted) setDetailLoading(false) }
+      if (!signal?.aborted && request === detailRequest.current) setVersions({ ...result, deliverableId: item.id })
+    } catch (reason) { if (!signal?.aborted && request === detailRequest.current) setError(deliverableError(reason)) }
+    finally { if (!signal?.aborted && request === detailRequest.current) setDetailLoading(false) }
   }, [])
 
   const loadFeedback = useCallback(async (version: DeliverableVersion, feedbackPage = 1, signal?: AbortSignal) => {
-    setSelectedVersion(version); setDetailLoading(true); setError('')
+    const request = ++detailRequest.current
+    setSelectedVersion(version); setFeedback(null); setDetailLoading(true); setError('')
     try {
       const result = await api.getDeliverableFeedback(version.id, feedbackPage, 10, signal)
-      if (!signal?.aborted) setFeedback({ ...result, versionId: version.id })
-    } catch (reason) { if (!signal?.aborted) setError(deliverableError(reason)) }
-    finally { if (!signal?.aborted) setDetailLoading(false) }
+      if (!signal?.aborted && request === detailRequest.current) setFeedback({ ...result, versionId: version.id })
+    } catch (reason) { if (!signal?.aborted && request === detailRequest.current) setError(deliverableError(reason)) }
+    finally { if (!signal?.aborted && request === detailRequest.current) setDetailLoading(false) }
   }, [])
 
   useEffect(() => { const controller = new AbortController(); void load(controller.signal); return () => controller.abort() }, [load, revision])
@@ -160,12 +164,13 @@ function DeliverablesView() {
     finally { mutationLock.current = false; setBusy(false) }
   }
 
+  const closeHistory = () => { ++detailRequest.current; setSelected(null); setVersions(null); setSelectedVersion(null); setFeedback(null); setDetailLoading(false) }
   const types = useMemo(() => [...new Set(data?.items.map((item) => item.deliverableType).filter((value): value is string => Boolean(value)) ?? [])], [data])
   return <ExecutionPage title="Hạng mục cần nộp" eyebrow={`Thực hiện đồ án • ${project.title}`} backTo={`${routeBase}/workspace`}
     description="Theo dõi yêu cầu đầu ra, các phiên bản đã nộp và phản hồi của giảng viên."
     action={<><Link className="ex-button" to={`${routeBase}/workspace`}><ExIcon name="dashboard" />Không gian đồ án</Link>{canManageStructure && <button className="ex-button ex-button-primary" type="button" onClick={() => { setShowCreate((value) => !value); setEditing(null) }}><ExIcon name="add" />Tạo hạng mục</button>}</>}>
     {success && <p className="ex-notice" role="status">{success}</p>}
-    {error && <div className="ex-notice ex-notice-error" role="alert"><p>{error}</p><button className="ex-text-button" disabled={loading || busy} onClick={() => setRevision((value) => value + 1)}>Tải lại dữ liệu</button></div>}
+    {error && !selected && <div className="ex-notice ex-notice-error" role="alert"><p>{error}</p><button className="ex-text-button" disabled={loading || busy} onClick={() => setRevision((value) => value + 1)}>Tải lại dữ liệu</button></div>}
     {showCreate && canManageStructure && <DefinitionForm title="Tạo hạng mục cần nộp" item={null} busy={busy} onSubmit={saveDefinition} onCancel={() => setShowCreate(false)} />}
 
     <section className="ex-panel" aria-label="Danh sách hạng mục cần nộp">
@@ -191,17 +196,16 @@ function DeliverablesView() {
       </>}
     </section>
 
-    {selected && <section className="ex-panel" aria-labelledby="version-history-title">
-      <div className="ex-panel-heading"><div><h2 id="version-history-title">Lịch sử phiên bản</h2><p>{selected.title} • dữ liệu bất biến theo từng lần nộp</p></div><button className="ex-text-button" onClick={() => { setSelected(null); setVersions(null); setSelectedVersion(null); setFeedback(null) }}>Đóng</button></div>
+    {selected && <Modal open drawer busy={busy} title="Lịch sử phiên bản" description={selected.title} onClose={closeHistory}><div className="deliverable-history-detail">
+      {error && <p role="alert" className="ex-notice ex-notice-error">{error}</p>}
       {detailLoading && !versions ? <ExState loading /> : versions && versions.items.length === 0 ? <ExState title="Chưa có phiên bản" message="Thành viên nhóm có thể nộp phiên bản đầu tiên khi đồ án đang ở giai đoạn thực hiện." /> : versions && <>
         <div className="deliverable-history">{versions.items.map((version) => <article key={version.id} className="deliverable-history-row"><div><h3>Phiên bản {version.versionNumber}</h3><p>{version.note || 'Không có ghi chú.'}</p><small>Nộp {formatDate(version.submittedAt)}</small></div><span className={`ex-badge ex-badge-${version.status}`}>{statusLabel[version.status] ?? version.status}</span><div className="deliverable-file-list">{version.files.map((file) => <button key={file.id} className="ex-text-button" type="button" disabled={busy} onClick={() => void download(file)}><ExIcon name="download" />{file.fileName} ({formatBytes(file.sizeBytes)})</button>)}</div><button className="ex-text-button" type="button" onClick={() => void loadFeedback(version)}>Xem phản hồi</button>
           {actor === 'supervisor' && version.status === 'SUBMITTED' && version.versionNumber === selected.latestVersion && <form className="deliverable-review" onSubmit={(event) => reviewVersion(event, version)}><label>Quyết định<select name="decision"><option value="ACCEPTED">Chấp nhận</option><option value="REJECTED">Yêu cầu chỉnh sửa</option></select></label><label>Nhận xét bắt buộc<input aria-label={`Nhận xét V${version.versionNumber}`} name="feedback" required maxLength={10000} /></label><button className="ex-button ex-button-primary" disabled={busy}>Gửi đánh giá</button></form>}
         </article>)}</div>
         <ExPagination page={versions.page} pages={versions.totalPages} total={versions.totalCount} busy={detailLoading} onPage={(next) => void loadVersions(selected, next)} />
       </>}
-    </section>}
-
-    {selectedVersion && <section className="ex-panel" aria-labelledby="version-feedback-title"><div className="ex-panel-heading"><div><h2 id="version-feedback-title">Phản hồi phiên bản {selectedVersion.versionNumber}</h2><p>Nhận xét đã lưu của giảng viên hướng dẫn.</p></div><button className="ex-text-button" onClick={() => { setSelectedVersion(null); setFeedback(null) }}>Đóng</button></div>{detailLoading && !feedback ? <ExState loading /> : feedback && feedback.items.length === 0 ? <ExState title="Chưa có phản hồi" message="Phản hồi sẽ xuất hiện sau khi giảng viên đánh giá phiên bản." /> : feedback && <><ol className="deliverable-feedback">{feedback.items.map((item) => <li key={item.id}><p>{item.feedback}</p><time dateTime={item.createdAt}>{formatDate(item.createdAt)}</time></li>)}</ol><ExPagination page={feedback.page} pages={feedback.totalPages} total={feedback.totalCount} busy={detailLoading} onPage={(next) => void loadFeedback(selectedVersion, next)} /></>}</section>}
+    {selectedVersion && <section className="ex-panel" aria-labelledby="version-feedback-title"><div className="ex-panel-heading"><div><h2 id="version-feedback-title">Phản hồi phiên bản {selectedVersion.versionNumber}</h2><p>Nhận xét đã lưu của giảng viên hướng dẫn.</p></div><button className="ex-text-button" onClick={() => { ++detailRequest.current; setSelectedVersion(null); setFeedback(null); setDetailLoading(false) }}>Đóng</button></div>{detailLoading && !feedback ? <ExState loading /> : feedback && feedback.items.length === 0 ? <ExState title="Chưa có phản hồi" message="Phản hồi sẽ xuất hiện sau khi giảng viên đánh giá phiên bản." /> : feedback && <><ol className="deliverable-feedback">{feedback.items.map((item) => <li key={item.id}><p>{item.feedback}</p><time dateTime={item.createdAt}>{formatDate(item.createdAt)}</time></li>)}</ol><ExPagination page={feedback.page} pages={feedback.totalPages} total={feedback.totalCount} busy={detailLoading} onPage={(next) => void loadFeedback(selectedVersion, next)} /></>}</section>}
+    </div></Modal>}
   </ExecutionPage>
 }
 

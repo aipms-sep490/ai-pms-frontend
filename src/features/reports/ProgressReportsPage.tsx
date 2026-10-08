@@ -67,7 +67,7 @@ function ReportList({ projectId, projectTitle, actor, routeBase, canCreate }: { 
           {data.items.map((report) => <li key={report.id}><Link to={`${routeBase}/reports/${report.id}`} className="report-row">
             <div className="report-row-icon" aria-hidden="true"><span className="material-symbols-outlined">article</span></div>
             <div className="report-row-main"><div className="report-row-meta"><span>{reportTypeLabels[report.reportType]}</span><span>#{report.id}</span></div><h3>{formatReportDate(report.periodStart)} – {formatReportDate(report.periodEnd)}</h3><p>{report.summary}</p><small>{report.status === 'DRAFT' ? 'Người tạo' : 'Người nộp'}: {report.submittedByName}</small></div>
-            <div className="report-row-state"><ReportBadge status={report.status} />{report.isLate === true && <small className="report-late">Nộp trễ hạn</small>}<span className="report-open">Xem báo cáo →</span></div>
+            <div className="report-row-state"><ReportBadge status={report.status} />{report.isLate === true && <small className="report-late">Nộp trễ hạn</small>}<span className="report-open workspace-action-link">Xem báo cáo<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></span></div>
           </Link></li>)}
         </ul>}
         <nav className="report-pagination" aria-label="Phân trang báo cáo"><span>Trang {page} / {Math.max(1, data.totalPages)}</span><div><button className="report-button report-button--secondary" disabled={page <= 1} onClick={() => filter('page', String(page - 1))}>Trang trước</button><button className="report-button report-button--secondary" disabled={page >= data.totalPages} onClick={() => filter('page', String(page + 1))}>Trang sau</button></div></nav>

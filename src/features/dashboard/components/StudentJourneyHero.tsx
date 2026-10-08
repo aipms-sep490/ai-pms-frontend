@@ -123,7 +123,7 @@ export function StudentJourneyHero() {
           icon: 'rocket_launch',
           iconBg: 'bg-[#0f5b4e] text-white',
           ctaText: 'Xem mốc và công việc',
-          ctaRoute: '/project/milestones/M3',
+          ctaRoute: '/project/milestones',
           ctaIcon: 'view_kanban',
           secondaryText: 'Lịch thực hiện',
           secondaryRoute: '/project/gantt',

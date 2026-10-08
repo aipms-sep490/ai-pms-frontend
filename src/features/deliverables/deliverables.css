@@ -47,3 +47,13 @@
   .deliverable-history-row { grid-template-columns: minmax(0,1fr); padding: 16px; }
   .deliverable-history-row > .ex-badge { justify-self: start; }
 }
+
+.deliverable-history-row > .ex-badge { align-self:start; justify-self:end; width:fit-content; }
+.deliverable-history-row > .ex-text-button { justify-self:start; }
+.deliverable-history-detail .deliverable-history-row { padding:20px 0; }
+.deliverable-history-detail .ex-panel { border:0; border-radius:0; box-shadow:none; margin-top:20px; border-top:1px solid #e5ece8; }
+.deliverable-history-detail .ex-panel-heading { padding:20px 0 12px; }
+.deliverable-history-detail .deliverable-feedback { padding:0; }
+
+.deliverable-review :is(input,select) { display:block; width:100%; min-width:0; min-height:40px; padding:8px 12px; border:1px solid #d7e0dc; border-radius:8px; background:#fff; color:#14201d; font:inherit; font-size:13px; font-weight:500; text-transform:none; letter-spacing:normal; }
+.deliverable-review :is(input,select):focus-visible { outline:2px solid #0f5b4e; outline-offset:2px; }

@@ -27,4 +27,13 @@ describe('SupervisorDashboardPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
     await waitFor(() => expect(api.getSupervisorDashboard).toHaveBeenLastCalledWith({ page: 2, pageSize: 20, status: 'ACTIVE' }))
   })
+  it('hides outdated project data when refresh fails', async () => {
+    render(<MemoryRouter><SupervisorDashboardPage /></MemoryRouter>)
+    await screen.findByText('PRJ-7 · Dashboard contract')
+    api.getSupervisorDashboard.mockRejectedValueOnce(new Error('network'))
+    fireEvent.click(screen.getByRole('button', { name: 'Tải lại' }))
+    await screen.findByRole('alert')
+    expect(screen.queryByText('PRJ-7 · Dashboard contract')).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Mở không gian đồ án' })).toBeNull()
+  })
 })

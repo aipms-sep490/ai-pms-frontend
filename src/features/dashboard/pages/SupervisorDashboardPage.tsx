@@ -1,10 +1,13 @@
 import { projectStatusLabel } from '../../projects/utils/project-status'
 import { displayLabel } from '../../../components/ui/display-label'
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { HttpError } from '../../../services/http/http-client'
 import { getSupervisorDashboard, type DashboardFilter, type DashboardProject, type SupervisorDashboard } from '../api/dashboard-api'
 import { env } from '../../../app/config/env'
+import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import { Button } from '../../../components/ui/Button'
+import { PageLoading } from '../../../components/ui/PageLoading'
 
 const statuses = ['DRAFT', 'UNDER_REVIEW', 'APPROVED', 'ACTIVE', 'FINAL_SUBMISSION', 'COMPLETED', 'ARCHIVED']
 
@@ -14,46 +17,53 @@ export function SupervisorDashboardPage() {
   const [searchInput, setSearchInput] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const request = useRef(0)
 
   const load = useCallback(async () => {
-    setLoading(true)
+    const current = ++request.current
+    setLoading(true); setError(null)
     try {
-      setData(await getSupervisorDashboard(filter))
-      setError(null)
+      const result = await getSupervisorDashboard(filter)
+      if (request.current === current) setData(result)
     } catch (reason) {
+      if (request.current !== current) return
+      setData(null)
       setError(reason instanceof HttpError && reason.status === 403
         ? 'Bạn chưa có quyền xem tổng quan hướng dẫn này.'
-        : 'Không thể tải dashboard GVHD. Hãy thử lại.')
-    } finally { setLoading(false) }
+        : 'Chưa tải được tổng quan hướng dẫn. Hãy thử lại.')
+    } finally { if (request.current === current) setLoading(false) }
   }, [filter])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    const pending = request
+    void load()
+    return () => { pending.current++ }
+  }, [load])
 
   const applyFilter = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setFilter(current => ({ ...current, search: searchInput.trim() || undefined, page: 1 }))
   }
 
-  return <main className="mk-page-enter mx-auto max-w-6xl space-y-5 pb-12">
-    <header className="space-y-1 border-b border-hairline pb-5"><p className="font-mono text-xs font-semibold uppercase tracking-wide text-primary">Không gian giảng viên</p><h1 className="font-heading text-2xl font-bold text-slate-950">Tổng quan hướng dẫn</h1><p className="max-w-3xl text-sm leading-6 text-slate-600">Theo dõi khối lượng hướng dẫn, báo cáo chờ phản hồi và các đồ án cần chú ý.</p></header>
-    <form className="flex max-w-4xl flex-wrap gap-3 border-b border-hairline pb-5" onSubmit={applyFilter}>
+  return <WorkspacePage className="mk-page-enter space-y-6" eyebrow="Không gian giảng viên" title="Tổng quan hướng dẫn" description="Theo dõi khối lượng hướng dẫn, báo cáo chờ phản hồi và các đồ án cần chú ý." action={<Button variant="outline" icon="refresh" disabled={loading} onClick={() => void load()}>Tải lại</Button>}>
+    <form className="workspace-surface flex flex-wrap gap-4 p-6" onSubmit={applyFilter}>
       <label className="flex min-w-52 flex-1 flex-col gap-1 text-sm font-medium text-slate-800" htmlFor="supervisor-dashboard-search">Tìm đồ án<input id="supervisor-dashboard-search" value={searchInput} onChange={event => setSearchInput(event.target.value)} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" placeholder="Mã hoặc tên đồ án" /></label>
       <label className="flex flex-col gap-1 text-sm font-medium text-slate-800" htmlFor="supervisor-dashboard-status">Trạng thái<select id="supervisor-dashboard-status" value={filter.status ?? ''} onChange={event => setFilter(current => ({ ...current, status: event.target.value || undefined, page: 1 }))} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><option value="">Tất cả</option>{statuses.map(status => <option key={status} value={status}>{projectStatusLabel(status)}</option>)}</select></label>
       <button type="submit" className="min-h-11 self-end rounded-lg border border-hairline px-4 text-sm font-semibold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Áp dụng</button>
     </form>
-    {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><p className="font-semibold">Không thể tải dashboard</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại</button></div>}
-    {loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-slate-700">Đang tải dashboard…</p>}
-    {!loading && data && <>
-      <section aria-label="Chỉ số khối lượng" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Metric label="Đồ án được phân công" value={data.workload.assignedProjects} /><Metric label="Báo cáo chờ duyệt" value={data.pendingProgressReviews} tone={data.pendingProgressReviews > 0 ? 'warning' : 'neutral'} /><Metric label="Công việc quá hạn" value={data.overdueTasks} tone={data.overdueTasks > 0 ? 'error' : 'neutral'} /><Metric label="Đồ án / hạn mức" value={data.workload.profileMaxActiveProjects === null ? 'Chưa cấu hình' : `${data.workload.assignedProjects}/${data.workload.profileMaxActiveProjects}`} tone={!data.workload.hasProfile || !data.workload.isAvailable ? 'warning' : 'success'} /></section>
-      <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs"><div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-heading font-semibold text-slate-950">Đồ án phụ trách</h2><p className="mt-1 text-sm text-slate-600">Dữ liệu tại {formatAsOf(data.asOfUtc)}.</p></div><StatusCounts counts={data.projectStates} /></div>{data.projects.items.length === 0 ? <p className="mt-4 text-sm text-slate-600">Không có đồ án phù hợp với bộ lọc hiện tại.</p> : <ul className="mt-4 divide-y divide-hairline">{data.projects.items.map(project => <ProjectRow key={project.id} project={project} />)}</ul>}</section>
+    {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><p className="font-semibold">Chưa tải được tổng quan</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại</button></div>}
+    {loading && <PageLoading label="Đang tải tổng quan hướng dẫn…" />}
+    {!loading && !error && data && <>
+      <section aria-label="Chỉ số khối lượng" className="workspace-metrics"><Metric label="Đồ án được phân công" value={data.workload.assignedProjects} /><Metric label="Báo cáo chờ duyệt" value={data.pendingProgressReviews} tone={data.pendingProgressReviews > 0 ? 'warning' : 'neutral'} /><Metric label="Công việc quá hạn" value={data.overdueTasks} tone={data.overdueTasks > 0 ? 'error' : 'neutral'} /><Metric label="Đồ án / hạn mức" value={data.workload.profileMaxActiveProjects === null ? 'Chưa cấu hình' : `${data.workload.assignedProjects}/${data.workload.profileMaxActiveProjects}`} tone={!data.workload.hasProfile || !data.workload.isAvailable ? 'warning' : 'success'} /></section>
+      <section className="workspace-surface workspace-surface-padding mt-6"><div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-heading font-semibold text-slate-950">Đồ án phụ trách</h2><p className="mt-1 text-sm text-slate-600">Dữ liệu tại {formatAsOf(data.asOfUtc)}.</p></div><StatusCounts counts={data.projectStates} /></div>{data.projects.items.length === 0 ? <p className="mt-4 text-sm text-slate-600">Không có đồ án phù hợp với bộ lọc hiện tại.</p> : <ul className="mt-4 divide-y divide-hairline">{data.projects.items.map(project => <ProjectRow key={project.id} project={project} />)}</ul>}</section>
       <Pagination page={filter.page ?? 1} totalPages={data.projects.totalPages} disabled={loading} onChange={page => setFilter(current => ({ ...current, page }))} />
     </>}
-  </main>
+  </WorkspacePage>
 }
 
 function Metric({ label, value, tone = 'neutral' }: { label: string; value: number | string; tone?: 'neutral' | 'success' | 'warning' | 'error' }) {
   const tones = { neutral: 'border-hairline', success: 'border-status-success-border', warning: 'border-status-warning-border', error: 'border-status-error-border' }
-  return <div className={`rounded-xl border bg-card p-4 shadow-xs ${tones[tone]}`}><p className="text-xs font-medium text-slate-600">{label}</p><p className="mt-1 text-2xl font-bold tabular-nums text-slate-950">{value}</p></div>
+  return <div className={`workspace-metric ${tones[tone]}`}><p className="text-xs font-medium text-slate-600">{label}</p><p className="mt-1 text-2xl font-bold tabular-nums text-slate-950">{value}</p></div>
 }
 
 function StatusCounts({ counts }: { counts: SupervisorDashboard['projectStates'] }) {
@@ -62,7 +72,7 @@ function StatusCounts({ counts }: { counts: SupervisorDashboard['projectStates']
 
 function ProjectRow({ project }: { project: DashboardProject }) {
   const risk = project.analysis?.riskLevel
-  return <li className="flex flex-wrap items-start justify-between gap-3 py-4 text-sm"><div className="min-w-0"><p className="font-semibold text-slate-950">{project.code} · {project.title}</p><p className="mt-1 text-slate-600">{project.departmentName ?? 'Chưa có bộ môn'} · {project.pendingProgressReviews} báo cáo chờ duyệt</p><div className="mt-2 flex flex-wrap gap-2"><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{displayLabel(project.status)}</span>{env.aiAdvisoryEnabled && risk && <span className={risk === 'HIGH' ? 'rounded-full bg-status-error-bg px-2 py-1 text-xs font-medium text-status-error-text' : 'rounded-full bg-status-warning-bg px-2 py-1 text-xs font-medium text-status-warning-text'}>Rủi ro: {risk}</span>}</div></div>{project.status === 'ACTIVE' && <Link className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 hover:text-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to={`/supervisor/projects/${project.id}/workspace`}>Mở không gian đồ án</Link>}</li>
+  return <li className="flex flex-wrap items-start justify-between gap-3 py-4 text-sm"><div className="min-w-0"><p className="font-semibold text-slate-950">{project.code} · {project.title}</p><p className="mt-1 text-slate-600">{project.departmentName ?? 'Chưa có bộ môn'} · {project.pendingProgressReviews} báo cáo chờ duyệt</p><div className="mt-2 flex flex-wrap gap-2"><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{displayLabel(project.status)}</span>{env.aiAdvisoryEnabled && risk && <span className={risk === 'HIGH' ? 'rounded-full bg-status-error-bg px-2 py-1 text-xs font-medium text-status-error-text' : 'rounded-full bg-status-warning-bg px-2 py-1 text-xs font-medium text-status-warning-text'}>Rủi ro: {displayLabel(risk)}</span>}</div></div>{project.status === 'ACTIVE' && <Link className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 hover:text-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to={`/supervisor/projects/${project.id}/workspace`}>Mở không gian đồ án</Link>}</li>
 }
 
 function Pagination({ page, totalPages, disabled, onChange }: { page: number; totalPages: number; disabled: boolean; onChange: (page: number) => void }) {
