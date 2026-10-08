@@ -5,6 +5,7 @@ import type {
   StudentQualificationDto,
   SubmitStudentQualificationEvidencePayload,
 } from '../../types/backend'
+import { HttpError } from '../http/http-client'
 
 const now = () => new Date().toISOString()
 
@@ -104,6 +105,8 @@ let qualifications: StudentQualificationDto[] = [
   },
 ]
 
+qualifications.forEach(item => { item.concurrencyToken = crypto.randomUUID() })
+
 export function getMockQualificationPolicy(projectPeriodId: number): ProjectPeriodQualificationPolicyDto {
   return projectPeriodId === policy.projectPeriodId
     ? { ...policy }
@@ -156,6 +159,7 @@ export function submitMockQualificationEvidence(
     verifiedBy: null,
     verifiedAt: null,
     rejectionReason: null,
+    concurrencyToken: crypto.randomUUID(),
     createdAt: existing?.createdAt ?? now(),
     updatedAt: now(),
   }
@@ -178,13 +182,15 @@ export function getMockQualificationQueue(
   return { items, page, pageSize, totalCount: filtered.length, totalPages: Math.ceil(filtered.length / pageSize) }
 }
 
-export function decideMockQualification(id: number, verified: boolean, reason?: string): StudentQualificationDto {
+export function decideMockQualification(id: number, verified: boolean, reason?: string, expectedConcurrencyToken?: string): StudentQualificationDto {
   const index = qualifications.findIndex((item) => item.id === id)
   if (index < 0) throw new Error('Qualification #' + id + ' not found.')
   const current = qualifications[index]
+  if (expectedConcurrencyToken && expectedConcurrencyToken !== current.concurrencyToken) throw new HttpError('Evidence changed; reload the qualification.', 409)
   if (current.verificationStatus !== 'PENDING_VERIFICATION') throw new Error('QUALIFICATION_ALREADY_PROCESSED')
   const updated: StudentQualificationDto = {
     ...current,
+    concurrencyToken: crypto.randomUUID(),
     verificationStatus: verified ? 'VERIFIED' : 'REJECTED',
     verifiedBy: 20,
     verifiedAt: now(),

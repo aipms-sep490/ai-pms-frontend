@@ -3,6 +3,7 @@ import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getProject } from '../../services/api/projects.api'
+import { readAllPages } from '../../services/api/paged-read'
 import { HttpError } from '../../services/http/http-client'
 import type { ProjectDto } from '../../types/backend'
 import * as schemesApi from '../../services/api/evaluations.api'
@@ -76,13 +77,13 @@ export function EvaluationSchemeManagementPage() {
     try {
       const [nextProject, schemeItems, periodPage, rubricPage] = await Promise.all([
         getProject(projectId), schemesApi.getEvaluationSchemes(projectId),
-        getProjectPeriods(session.accessToken, { search: '', periodType: 'EVALUATION' }),
-        listRubrics(1, 'PUBLISHED'),
+        readAllPages(page => getProjectPeriods(session.accessToken, { search: '', periodType: 'EVALUATION' }, undefined, page)),
+        readAllPages(page => listRubrics(page, 'PUBLISHED')),
       ])
       setProject(nextProject)
       setItems(schemeItems)
-      setPeriods(periodPage.items.filter(item => item.periodType === 'EVALUATION'))
-      setRubrics(rubricPage.items)
+      setPeriods(periodPage.filter(item => item.periodType === 'EVALUATION'))
+      setRubrics(rubricPage)
       setError(null)
     } catch (reason) {
       setError(errorMessage(reason, 'Không thể tải phương án đánh giá, bộ tiêu chí và kỳ đánh giá.'))

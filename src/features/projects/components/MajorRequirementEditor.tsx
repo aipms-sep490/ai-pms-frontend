@@ -9,12 +9,13 @@ interface MajorRequirementEditorProps {
   projectMode: string
   majors: readonly MajorOption[]
   busy: boolean
+  readOnly?: boolean
   onSave: (requirements: readonly ProjectMajorRequirementInput[]) => Promise<boolean>
 }
 
 const emptyRequirement = (): ProjectMajorRequirementInput => ({ majorId: 0, minMembers: 1, maxMembers: 1, responsibility: '' })
 
-export function MajorRequirementEditor({ requirements, projectMode, majors, busy, onSave }: MajorRequirementEditorProps) {
+export function MajorRequirementEditor({ requirements, projectMode, majors, busy, readOnly = false, onSave }: MajorRequirementEditorProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<ProjectMajorRequirementInput[]>(() => [...requirements])
   const [issues, setIssues] = useState<string[]>([])
@@ -37,6 +38,7 @@ export function MajorRequirementEditor({ requirements, projectMode, majors, busy
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (readOnly) return
     const validation = validateMajorRequirements(draft, projectMode)
     const nextIssues = [...validation.issues]
     if (draft.length === 0) nextIssues.push('Cần có ít nhất một requirement theo ngành.')
@@ -57,7 +59,7 @@ export function MajorRequirementEditor({ requirements, projectMode, majors, busy
           <h2 id="major-requirement-editor-heading" className="font-bold text-slate-900">Yêu cầu nhân sự theo ngành</h2>
           <p className="mt-1 text-sm text-slate-600">Phân công số lượng thành viên và trách nhiệm cho từng ngành tham gia.</p>
         </div>
-        {!editing && <button type="button" onClick={beginEditing} disabled={busy || majors.length === 0} className="min-h-11 rounded-lg border border-indigo-600 px-3 py-2 text-sm font-semibold text-indigo-700 outline-none transition hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-600 disabled:cursor-not-allowed disabled:opacity-50">{requirements.length ? 'Chỉnh sửa requirements' : 'Cấu hình requirements'}</button>}
+        {!editing && !readOnly && <button type="button" onClick={beginEditing} disabled={busy || majors.length === 0} className="min-h-11 rounded-lg border border-indigo-600 px-3 py-2 text-sm font-semibold text-indigo-700 outline-none transition hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-600 disabled:cursor-not-allowed disabled:opacity-50">{requirements.length ? 'Chỉnh sửa requirements' : 'Cấu hình requirements'}</button>}
       </div>
 
       {!editing && <>
@@ -65,7 +67,8 @@ export function MajorRequirementEditor({ requirements, projectMode, majors, busy
         {majors.length === 0 && <p className="mt-3 text-sm text-slate-600" role="status">Đang chờ dữ liệu ngành từ Academic Structure trước khi có thể chỉnh sửa.</p>}
       </>}
 
-      {editing && <form className="mt-4 space-y-4" onSubmit={submit} noValidate>
+      {readOnly && <p className="mt-3 text-sm text-slate-600">Yêu cầu nhân sự chỉ được chỉnh ở bản nháp hoặc khi đã yêu cầu sửa đề cương.</p>}
+      {editing && !readOnly && <form className="mt-4 space-y-4" onSubmit={submit} noValidate>
         {issues.length > 0 && <div ref={issueSummary} tabIndex={-1} role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800 outline-none"><p className="font-semibold">Kiểm tra lại requirements</p><ul className="mt-1 list-disc pl-5">{issues.map((issue) => <li key={issue}>{issue}</li>)}</ul></div>}
         {draft.map((requirement, index) => <fieldset key={`${requirement.majorId}-${index}`} className="grid gap-3 rounded-lg border border-slate-200 p-3 lg:grid-cols-[minmax(12rem,1fr)_7rem_7rem_minmax(12rem,1fr)_auto] lg:items-end"><legend className="sr-only">Requirement {index + 1}</legend>
           <label className="grid gap-1 text-sm font-medium text-slate-700">Ngành<select required value={requirement.majorId || ''} onChange={(event) => update(index, { majorId: Number(event.target.value) })} className="min-h-11 rounded-md border border-slate-300 bg-white px-2 text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"><option value="">Chọn ngành</option>{majors.map((major) => <option key={major.id} value={major.id} disabled={draft.some((item, itemIndex) => itemIndex !== index && item.majorId === major.id)}>{major.code} — {major.name}</option>)}</select></label>

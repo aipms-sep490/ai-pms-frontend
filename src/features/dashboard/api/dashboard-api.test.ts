@@ -1,9 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { exportPortfolioCsv, getPortfolioDashboard } from './dashboard-api'
+import { exportPortfolio, exportPortfolioCsv, getPortfolioDashboard } from './dashboard-api'
 
 afterEach(() => { vi.unstubAllGlobals(); localStorage.clear() })
 
 describe('portfolio API', () => {
+  it.each(['pdf', 'xlsx'] as const)('exports %s with server filters and without paging', async format => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, blob: async () => new Blob(['fixture']) }); vi.stubGlobal('fetch', fetch)
+    await exportPortfolio({ majorId: 3, status: 'COMPLETED', page: 8, pageSize: 20 }, format)
+    expect(fetch.mock.calls[0][0]).toBe(`/api/v1/dashboards/portfolio/export?majorId=3&status=COMPLETED&format=${format}`)
+  })
   it('exports the same filters without a pagination limit and preserves the bearer token', async () => {
     localStorage.setItem('token', 'staff-token')
     const fetch = vi.fn()
