@@ -72,7 +72,7 @@ describe('AppLayout & Navigation Shell', () => {
 
   it('shows role-specific navigation without a student workspace for lecturers', () => {
     renderAppLayout(['/supervisor/workspace'], ['LECTURER'])
-    expect(screen.getByRole('link', { name: /Bàn làm việc giảng viên/ })).toBeDefined()
+    expect(screen.getByRole('link', { name: /Hướng dẫn đồ án/ })).toBeDefined()
     expect(screen.queryByRole('link', { name: /Đánh giá được phân công/ })).toBeNull()
     expect(screen.queryByRole('link', { name: /Tổng quan lộ trình/ })).toBeNull()
   })
@@ -81,6 +81,23 @@ describe('AppLayout & Navigation Shell', () => {
     renderAppLayout(['/department/projects/review'], ['DEPARTMENT_STAFF'])
     expect(screen.getByRole('link', { name: /Thẩm định đề cương/ })).toBeDefined()
     expect(screen.queryByRole('link', { name: /Tổng quan lộ trình/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Tìm chức năng' })).toBeNull()
+    expect(document.querySelector('[data-experience=enhanced]')).toBeNull()
+  })
+
+  it('opens quick navigation with the keyboard, focuses search and matches Vietnamese without accents', () => {
+    renderAppLayout(['/supervisor/projects/7/workspace'], ['LECTURER'])
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    const search = screen.getByRole('textbox', { name: 'Tên chức năng' })
+    expect(document.activeElement).toBe(search)
+    fireEvent.change(search, { target: { value: 'lich hop' } })
+    expect(screen.getByRole('button', { name: 'Lịch họp của đồ án' })).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Quản trị nền tảng' })).toBeNull()
+    fireEvent.keyDown(search, { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Lịch họp của đồ án' }))
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('shows an unavailable-context state instead of an invented empty team after a journey error', () => {
@@ -94,6 +111,10 @@ describe('AppLayout & Navigation Shell', () => {
     renderAppLayout(['/admin/access'], ['ADMIN'])
     expect(screen.getByRole('link', { name: 'Quản trị nền tảng' })).toBeDefined()
     expect(screen.queryByRole('link', { name: 'Thẩm định đề cương' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Tìm chức năng' }))
+    expect(screen.getByRole('button', { name: 'Phân quyền hệ thống' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Thông báo' })).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Thẩm định đề cương' })).toBeNull()
   })
 
   it('shows ACTIVE students the contribution, final-submission, and result routes', () => {

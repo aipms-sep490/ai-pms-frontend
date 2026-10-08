@@ -8,6 +8,7 @@ import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 import { useAuthSession } from '../../features/auth/context/useAuthSession'
 import { getNotifications, getUnreadCount, markNotificationRead, type NotificationItem } from '../../features/notifications/notifications-api'
 import { NotificationRow, NotificationEmpty, NotificationLoading } from '../../features/notifications/NotificationRow'
+import { QuickNavigation } from '../../components/ui/QuickNavigation'
 
 interface TopHeaderProps {
   onToggleMobileMenu: () => void
@@ -144,6 +145,7 @@ export function TopHeader({
           </span>
         ) : null}
         {role !== 'student' ? <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-[11px] font-mono font-medium"><span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />{semesterLabel}</span> : null}
+        <QuickNavigation access={workspaceAccess} />
         <div className="relative" ref={notificationRef}>
           <button
             ref={notificationTriggerRef}

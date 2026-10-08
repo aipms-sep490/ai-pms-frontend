@@ -171,7 +171,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           ] },
           { path: 'evaluator/evaluations', element: <EvaluatorAssignmentsPage /> },
           { path: 'evaluator/evaluations/:evaluationId', element: <EvaluationWorkspacePage /> },
-          { path: 'evaluator/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/evaluator/evaluations" backLabel="Danh sách phân công" /> },
+          { path: 'evaluator/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/evaluator/workspace" backLabel="Danh sách phân công" /> },
           { path: 'evaluator/workspace', element: <EvaluatorWorkspacePage /> },
           { element: <EvaluatorAssignmentRoute />, children: [
             { path: 'evaluator/assignments/:assignmentId', element: <EvaluatorAssignmentDetailPage /> },
