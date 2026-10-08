@@ -54,4 +54,14 @@ describe('NotificationsPage', () => {
     await screen.findByRole('alert')
     expect(screen.queryByRole('heading', { name: 'Chưa có thông báo' })).toBeNull()
   })
+
+  it('does not display results from the previous filter when the new filter fails', async () => {
+    api.getNotifications.mockResolvedValueOnce(page).mockRejectedValueOnce(new Error('network'))
+    render(<NotificationsPage />)
+    await screen.findByRole('heading', { name: unread.title })
+    fireEvent.click(screen.getByRole('button', { name: 'Chưa đọc' }))
+    await screen.findByRole('alert')
+    expect(screen.queryByRole('heading', { name: unread.title })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Chưa có thông báo' })).toBeNull()
+  })
 })

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
+import { ListLoading } from '../../components/ui/ListLoading'
 import './execution.css'
 
 export function ExecutionPage({ title, description, eyebrow, backTo, action, children }: {
@@ -10,7 +11,7 @@ export function ExecutionPage({ title, description, eyebrow, backTo, action, chi
 }
 export function ExIcon({ name }: { name: string }) { return <span className="material-symbols-outlined" aria-hidden="true">{name}</span> }
 export function ExState({ loading, message, title, retry, action }: { loading?: boolean; message?: string; title?: string; retry?: () => void; action?: ReactNode }) {
-  if (loading) return <div className="ex-loading" role="status" aria-label="Đang tải dữ liệu"><span /><span /><span /></div>
+  if (loading) return <ListLoading label="Đang tải dữ liệu" />
   return <div className={retry ? 'ex-notice ex-notice-error' : 'ex-empty'} role={retry ? 'alert' : undefined}>
     {title && <h2>{title}</h2>}{message && <p>{message}</p>}{retry && <button type="button" className="ex-text-button" onClick={retry}>Thử lại</button>}{action}
   </div>

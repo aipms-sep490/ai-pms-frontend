@@ -102,7 +102,7 @@ export async function loadCalendarAttention(input: CalendarLoaderInput, apis: Ca
   if (input.role === 'department') {
     try {
       const dashboard = await apis.getPortfolioDashboard('department', { semesterId: input.semesterId ?? undefined, page: 1, pageSize: 20 })
-      result.sources.push({ id: 'department-dashboard', label: 'Portfolio bộ môn', state: dashboard.projects.totalCount > dashboard.projects.items.length ? 'partial' : stateForItems(dashboard.projects.items), message: dashboard.projects.totalCount > dashboard.projects.items.length ? 'Chỉ hiển thị trang đầu tối đa 20 đồ án.' : undefined })
+      result.sources.push({ id: 'department-dashboard', label: 'Danh mục đồ án bộ môn', state: dashboard.projects.totalCount > dashboard.projects.items.length ? 'partial' : stateForItems(dashboard.projects.items), message: dashboard.projects.totalCount > dashboard.projects.items.length ? 'Chỉ hiển thị trang đầu tối đa 20 đồ án.' : undefined })
       result.attention.push(...dashboard.projects.items.flatMap((project) => project.pendingProgressReviews > 0 ? [{ code: 'PROJECT_PROGRESS_FEEDBACK_PENDING', source: 'PROJECT' as const, sourceId: project.id, title: project.title, description: `${project.pendingProgressReviews} báo cáo chờ phản hồi theo dashboard.`, status: project.status, presentationPriority: 30, deepLink: '/department/portfolio' }] : []))
     } catch (reason) { result.sources.push(errorStatus('department-dashboard', 'Portfolio bộ môn', reason)) }
     result.sources.push({ id: 'department-calendar', label: 'Lịch portfolio', state: 'unavailable', message: 'Hệ thống chưa cấp mốc thời gian của resource theo phạm vi bộ môn.' })
@@ -118,7 +118,7 @@ export async function loadCalendarAttention(input: CalendarLoaderInput, apis: Ca
       result.sources.push({ id: 'accounts', label: 'Tài khoản nền tảng', state: accounts.totalCount > accounts.items.length ? 'partial' : stateForItems(accounts.items), message: accounts.totalCount > accounts.items.length ? 'Chỉ hiển thị trang đầu tối đa 20 tài khoản.' : undefined })
       result.attention.push(...accounts.items.filter((account) => account.status !== 'ACTIVE').map((account) => ({ code: `ACCOUNT_${account.status}`, source: 'ACCOUNT' as const, sourceId: account.id, title: account.fullName, description: `Tài khoản đang ở trạng thái ${account.status}.`, status: account.status, presentationPriority: account.status === 'SUSPENDED' ? 10 : 30, deepLink: `/admin/access/users/${account.id}` })))
     } catch (reason) { result.sources.push(errorStatus('accounts', 'Tài khoản nền tảng', reason)) }
-    result.sources.push({ id: 'admin-calendar', label: 'Lịch nền tảng', state: 'unavailable', message: 'Hệ thống chưa có calendar projection quản trị theo khoảng thời gian.' })
+    result.sources.push({ id: 'admin-calendar', label: 'Lịch nền tảng', state: 'unavailable', message: 'Lịch tổng hợp chưa hỗ trợ tài khoản quản trị.' })
     return { ...result, attention: sort(result.attention) }
   }
   result.sources.push({ id: 'calendar', label: 'Lịch tổng hợp', state: 'unavailable', message: 'Vai trò hiện tại chưa có nguồn projection được xác nhận.' })

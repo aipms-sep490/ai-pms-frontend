@@ -64,7 +64,7 @@ export function CalendarAttentionPage() {
       <div className="calendar-page__layout">
         <section className="calendar-panel" aria-labelledby="calendar-projection-heading">
           <div className="calendar-panel__toolbar">
-            <div><h2 id="calendar-projection-heading">Lịch theo dữ liệu nguồn</h2><p>Các mốc theo ngày được giữ nguyên; thời điểm cụ thể hiển thị theo giờ Việt Nam.</p></div>
+            <div><h2 id="calendar-projection-heading">Lịch của bạn</h2><p>Theo dõi lịch họp, công việc và mốc đồ án. Thời gian hiển thị theo giờ Việt Nam.</p></div>
             <div className="calendar-panel__controls" aria-label="Tùy chọn hiển thị lịch">
               <div className="calendar-segmented" role="group" aria-label="Chế độ xem lịch">
                 <button type="button" aria-pressed={view === 'agenda'} onClick={() => setView('agenda')}>Danh sách</button>
@@ -83,7 +83,7 @@ export function CalendarAttentionPage() {
           </div>}
         </section>
         <aside className="attention-panel" aria-labelledby="attention-heading">
-          <div className="attention-panel__heading"><div><h2 id="attention-heading">Điểm cần chú ý</h2><p>Ưu tiên trình bày, không phải phân loại rủi ro hay quyền thao tác.</p></div><span className="attention-panel__count" aria-label={`${data.attention.length} điểm cần chú ý`}>{data.attention.length}</span></div>
+          <div className="attention-panel__heading"><div><h2 id="attention-heading">Điểm cần chú ý</h2><p>Những việc sắp đến hạn hoặc cần bạn theo dõi.</p></div><span className="attention-panel__count" aria-label={`${data.attention.length} điểm cần chú ý`}>{data.attention.length}</span></div>
           {data.attention.length === 0 ? <div className="calendar-empty"><span className="material-symbols-outlined" aria-hidden="true">task_alt</span><p>Không có điểm cần chú ý từ nguồn đã tải.</p></div> : <ul className="attention-list">{data.attention.map((item) => <li key={`${item.code}-${item.sourceId}`}><Link to={item.deepLink}><span className="attention-list__status">{displayLabel(item.status)}</span><strong>{item.title}</strong><span>{item.description}</span>{item.dueAt && <time dateTime={item.dueAt}>{formatCalendarDate(item.dueAt)}</time>}</Link></li>)}</ul>}
         </aside>
       </div>
