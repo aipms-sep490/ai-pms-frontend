@@ -1,5 +1,4 @@
-/// <reference types="vitest/config" />
-import { defineConfig } from 'vite'
+import { configDefaults, defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
@@ -11,6 +10,12 @@ export default defineConfig({
     // Windows editors can briefly expose an empty file while replacing its contents.
     watch: { awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 } },
     proxy: {
+      '/hubs': {
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:5080',
+        changeOrigin: true,
+        ws: true,
+        secure: true,
+      },
       '/api': {
         target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:5080',
         changeOrigin: true,
@@ -19,6 +24,7 @@ export default defineConfig({
     },
   },
   test: {
+    exclude: [...configDefaults.exclude, 'e2e/**'],
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
   },

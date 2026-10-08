@@ -265,6 +265,7 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname === '/department/portfolio') return 'Danh mục đồ án'
   if (pathname === '/academic/rubrics') return 'Bộ tiêu chí đánh giá'
   if (pathname === '/notifications') return 'Thông báo'
+  if (pathname === '/messages' || pathname.startsWith('/messages/')) return 'Tin nhắn'
   if (pathname === '/supervisor/dashboard') return 'Tổng quan hướng dẫn'
   if (pathname === '/department/student-qualifications') return 'Xác minh điều kiện tham gia'
   if (pathname === '/academic') return 'Cấu trúc đào tạo'

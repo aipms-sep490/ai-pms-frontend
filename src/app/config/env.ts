@@ -17,4 +17,5 @@ export const env = {
   /** AI is an opt-in advisory capability and must never be required for core PMS work. */
   aiAdvisoryEnabled,
   videoMeetingEnabled,
+  chatEnabled: import.meta.env.VITE_ENABLE_CHAT?.trim().toLowerCase() === 'true',
 } as const
