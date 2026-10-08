@@ -41,14 +41,14 @@ export async function getVerificationQueue(params: {
   return httpGet<PagedResult<StudentQualificationDto>>('/student-qualifications/verification-queue?' + query.toString())
 }
 
-export async function verify(id: number): Promise<StudentQualificationDto> {
-  if (env.isMockMode) return (await qualificationMock()).decideMockQualification(id, true)
-  return httpPost<StudentQualificationDto>('/student-qualifications/' + id + '/verify')
+export async function verify(id: number, expectedConcurrencyToken?: string): Promise<StudentQualificationDto> {
+  if (env.isMockMode) return (await qualificationMock()).decideMockQualification(id, true, undefined, expectedConcurrencyToken)
+  return httpPost<StudentQualificationDto>('/student-qualifications/' + id + '/verify', { expectedConcurrencyToken })
 }
 
-export async function reject(id: number, reason: string): Promise<StudentQualificationDto> {
-  if (env.isMockMode) return (await qualificationMock()).decideMockQualification(id, false, reason)
-  return httpPost<StudentQualificationDto, { reason: string }>('/student-qualifications/' + id + '/reject', { reason })
+export async function reject(id: number, reason: string, expectedConcurrencyToken?: string): Promise<StudentQualificationDto> {
+  if (env.isMockMode) return (await qualificationMock()).decideMockQualification(id, false, reason, expectedConcurrencyToken)
+  return httpPost<StudentQualificationDto>('/student-qualifications/' + id + '/reject', { reason, expectedConcurrencyToken })
 }
 
 export async function getPeriodPolicy(projectPeriodId: number): Promise<ProjectPeriodQualificationPolicyDto> {

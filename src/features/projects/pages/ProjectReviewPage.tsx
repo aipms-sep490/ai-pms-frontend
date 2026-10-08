@@ -129,7 +129,7 @@ export function ProjectReviewPage() {
       setMessage('Lý do là bắt buộc khi bộ môn từ chối.')
       return
     }
-    if (decision === 'REJECTED' && await requestConfirmation({ title: 'Từ chối với tư cách bộ môn tham gia?', description: 'Quyết định và lý do của bạn sẽ được ghi nhận trong hồ sơ thẩm định.', confirmLabel: 'Ghi nhận từ chối', danger: true }) === null) return
+    if (await requestConfirmation({ title: decision === 'REJECTED' ? 'Từ chối với tư cách bộ môn tham gia?' : 'Đồng ý với tư cách bộ môn tham gia?', description: 'Quyết định của bộ môn được ghi nhận cho phiên bản đăng ký hiện tại; quyết định này không thay thế phê duyệt cuối của bộ môn chủ trì.', confirmLabel: decision === 'REJECTED' ? 'Ghi nhận từ chối' : 'Ghi nhận đồng ý', danger: decision === 'REJECTED' }) === null) return
     const ok = await review.decideParticipatingDepartment(decision, reason.trim() || undefined)
     setMessage(ok ? 'Đã ghi nhận quyết định của bộ môn và cập nhật hồ sơ.' : 'Không thể ghi nhận thao tác. Vui lòng tải lại và thử lại.')
     if (ok) setReason('')
@@ -157,6 +157,7 @@ export function ProjectReviewPage() {
         projectMode={scope?.projectMode ?? ''}
         majors={majorOptions}
         busy={review.pending !== null}
+        readOnly={!['DRAFT', 'REVISION_REQUIRED'].includes((review.workflow?.status ?? review.project?.status ?? '').toUpperCase())}
         onSave={review.replaceRequirements}
       />
       <ParticipatingDepartmentPanel
@@ -172,7 +173,7 @@ export function ProjectReviewPage() {
       />
       <section>
         <h2>Phản hồi thẩm định</h2>
-        <textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Nhập lý do khi yêu cầu chỉnh sửa hoặc từ chối" />
+        <textarea aria-label="Phản hồi thẩm định" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Nhập lý do khi yêu cầu chỉnh sửa hoặc từ chối" />
         <div className="review-page__actions">
           {review.canStart ? <Button disabled={review.pending !== null} onClick={() => void review.beginReview()}>Bắt đầu thẩm định</Button> : null}
           {review.canRequestRevision ? <Button className="btn-revision" variant="secondary" disabled={review.pending !== null} onClick={() => void submit('revision')}>Yêu cầu chỉnh sửa</Button> : null}

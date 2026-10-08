@@ -19,6 +19,7 @@ export interface StudentQualificationDto {
   verifiedBy?: number | null
   verifiedAt?: string | null
   rejectionReason?: string | null
+  concurrencyToken?: string
   createdAt: string
   updatedAt: string
 }

@@ -22,8 +22,10 @@
 .topic__filters { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 12px; }
 .topic label { display: grid; gap: 6px; color: #334155; font-size: 13px; font-weight: 650; }
 .topic input,
-.topic select { min-width: 0; min-height: 42px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #0f172a; font-size: 14px; }
+.topic textarea,
+.topic select { min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #0f172a; font-size: 14px; }
 .topic input:focus,
+.topic textarea:focus,
 .topic select:focus { border-color: #0f5b4e; outline: 3px solid rgba(15, 91, 78, .15); outline-offset: 0; }
 .topic__create,
 .topic__detail,
@@ -70,3 +72,5 @@
   .topic__create-action > *,
   .topic__close > button { width: 100%; }
 }
+
+.topic textarea { resize: vertical; width: 100%; }

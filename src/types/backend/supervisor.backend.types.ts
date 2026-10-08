@@ -26,6 +26,10 @@ export interface SupervisorAssignmentDto {
   endedAt?: string | null
   assignmentType?: 'PRIMARY' | 'DISCIPLINE_MENTOR' | string
   majorId?: number | null
+  allowedActions?: Array<{ code: string; allowed: boolean }> | null
+  reasons?: string[] | null
+  endReason?: string | null
+  replacesAssignmentId?: number | null
 }
 
 export interface SupervisorRequestDto {

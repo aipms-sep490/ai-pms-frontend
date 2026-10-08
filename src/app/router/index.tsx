@@ -69,6 +69,7 @@ import { ProjectEvidenceLedgerPage } from '../../features/evidence/ProjectEviden
 import { ProjectAiPage } from '../../features/ai/ProjectAiPage'
 import { DepartmentProjectRiskPage } from '../../features/ai/DepartmentProjectRiskPage'
 import { DepartmentWorkspacePage } from '../../features/department/pages/DepartmentWorkspacePage'
+import { DepartmentProjectLayout } from '../../features/department/components/DepartmentProjectLayout'
 import { DepartmentAcademicScopeRoute } from '../../features/department/components/DepartmentAcademicScopeRoute'
 import { ArchivedProjectsPage } from '../../features/projects/pages/ArchivedProjectsPage'
 import { ProjectArchiveViewPage } from '../../features/projects/pages/ProjectArchiveViewPage'
@@ -198,6 +199,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
       {
         element: <RoleRoute allowed={['department']} />,
         children: [
+          { element: <DepartmentAcademicScopeRoute />, children: [{ element: <DepartmentProjectLayout />, children: [
           { path: 'department/portfolio', element: <PortfolioDashboardPage /> },
           { path: 'department/projects/archived', element: <ArchivedProjectsPage /> },
           { path: 'academic/governance', element: <AcademicGovernancePage /> },
@@ -221,6 +223,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'department/student-qualifications', element: <QualificationVerificationPage /> },
           { path: 'department/topics', element: <TopicManagementPage /> },
           { path: 'department/topics/:id', element: <TopicManagementPage /> },
+          ] }] },
         ],
       },
       {

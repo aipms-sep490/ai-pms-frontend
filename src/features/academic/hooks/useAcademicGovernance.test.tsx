@@ -19,12 +19,12 @@ vi.mock('../api/governance-api', () => governanceApi)
 describe('useAcademicGovernance', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    auth.useAuthSession.mockReturnValue({ session: { accessToken: 'access-token' } })
+    auth.useAuthSession.mockReturnValue({ session: { accessToken: 'access-token', user: { roles: ['ADMIN'] } } })
     governanceApi.getSemesters.mockResolvedValue({ items: [] })
     governanceApi.getProjectPeriods.mockResolvedValue({ items: [] })
   })
 
-  it('allows governance controls when the backend action is allowed, independent of a frontend role label', async () => {
+  it('allows administrator controls when the backend action is also allowed', async () => {
     academicApi.getAcademicWorkflowContext.mockResolvedValue({
       actions: [{ code: 'manage_academic_structure', allowed: true, issues: [] }],
     })
@@ -33,6 +33,14 @@ describe('useAcademicGovernance', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.canManage).toBe(true)
+  })
+
+  it('does not grant AdminOnly semester/period writes to department staff through a generic action', async () => {
+    auth.useAuthSession.mockReturnValue({ session: { accessToken: 'staff', user: { roles: ['DEPARTMENT_STAFF'] } } })
+    academicApi.getAcademicWorkflowContext.mockResolvedValue({ actions: [{ code: 'manage_academic_structure', allowed: true, issues: [] }] })
+    const { result } = renderHook(() => useAcademicGovernance())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.canManage).toBe(false)
   })
 
   it('keeps governance controls read-only when the backend action is denied', async () => {
