@@ -35,7 +35,7 @@ export function ArchivedProjectsPage() {
   }, [load])
 
   return (
-    <main className="mx-auto max-w-6xl space-y-5 pb-12">
+    <main className="workspace-page mx-auto max-w-6xl space-y-5 pb-12">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="font-mono text-xs font-semibold uppercase tracking-wide text-primary">

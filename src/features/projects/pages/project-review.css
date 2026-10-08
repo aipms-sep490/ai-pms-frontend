@@ -6,8 +6,8 @@
   margin: 0 auto;
 }
 
-.review-page article,
-.review-page section {
+.review-page > article,
+.review-page > section {
   padding: 20px;
   border: 1px solid #e2e8f0;
   border-radius: 14px;
@@ -208,3 +208,12 @@
     width: 100%;
   }
 }
+
+.review-page h1 { font-size:clamp(26px,2.5vw,32px); line-height:1.2; letter-spacing:-.03em; }
+.review-history-list { display:grid; gap:0; }
+.review-history-list > p { margin:0; padding:14px 0; border-bottom:1px solid #e4ebe7; font-size:14px; line-height:1.65; overflow-wrap:anywhere; }
+.review-history-list > p:last-child { border-bottom:0; padding-bottom:0; }
+.review-page > p { color:#596863; font-size:14px; line-height:1.6; }
+
+.review-page > :is(article,section) { border:0; border-radius:0; box-shadow:none; padding:26px; }
+.review-page > section section { border:0; border-radius:0; box-shadow:none; }

@@ -15,7 +15,7 @@
   letter-spacing: .14em;
 }
 
-.topic h1 { margin: 0; color: #0f172a; font-size: 24px; font-weight: 750; letter-spacing: -.02em; }
+.topic h1 { margin: 0; color: #0f172a; font-family: var(--font-heading); font-size: clamp(26px, 2.1vw, 32px); line-height: 1.25; font-weight: 750; letter-spacing: -.035em; }
 .topic__header > span,
 .topic__section-heading > span { display: block; margin-top: 8px; color: #64748b; font-size: 14px; line-height: 1.6; }
 .topic h2 { margin: 0; color: #0f172a; font-size: 17px; font-weight: 700; }

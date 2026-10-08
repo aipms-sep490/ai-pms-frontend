@@ -1,3 +1,4 @@
+import { projectStatusLabel } from '../utils/project-status'
 import { displayLabel } from '../../../components/ui/display-label'
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -147,7 +148,7 @@ export function ProjectReviewPage() {
       <h1>Thẩm định đề cương</h1>
       <section>
         <h2>{review.project?.code ?? `Đồ án #${id}`} · {review.project?.title ?? 'Chưa có tên đề cương'}</h2>
-        <p>Nhóm: {review.project?.teamName ?? '—'} · Trạng thái: {review.workflow?.status ?? review.project?.status ?? '—'}</p>
+        <p>Nhóm: {review.project?.teamName ?? '—'} · Trạng thái: {projectStatusLabel(review.workflow?.status ?? review.project?.status ?? '')}</p>
         <Link className="review-page__open-link" to={`/department/projects/${id}/result`}>Theo dõi đánh giá và công bố kết quả</Link>
       </section>
       <ProjectProposalDetails review={review} />
@@ -172,7 +173,8 @@ export function ProjectReviewPage() {
       />
       <section>
         <h2>Phản hồi thẩm định</h2>
-        <textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Nhập lý do khi yêu cầu chỉnh sửa hoặc từ chối" />
+        <label className="sr-only" htmlFor="review-reason">Lý do thẩm định</label>
+        {(review.canStart || review.canRequestRevision || review.canApprove || review.canReject || review.canApproveDepartment || review.canRejectDepartment) ? <textarea id="review-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Nhập lý do khi yêu cầu chỉnh sửa hoặc từ chối" /> : <p>Hồ sơ hiện không có bước thẩm định cần xử lý.</p>}
         <div className="review-page__actions">
           {review.canStart ? <Button disabled={review.pending !== null} onClick={() => void review.beginReview()}>Bắt đầu thẩm định</Button> : null}
           {review.canRequestRevision ? <Button className="btn-revision" variant="secondary" disabled={review.pending !== null} onClick={() => void submit('revision')}>Yêu cầu chỉnh sửa</Button> : null}
@@ -185,7 +187,9 @@ export function ProjectReviewPage() {
       </section>
       <section>
         <h2>Lịch sử xử lý</h2>
-        {review.history.length ? review.history.map((item, index) => <p key={`${item.changedAt}-${index}`}>{item.oldStatus ?? '—'} → {item.newStatus} · {item.changedByName} · {item.reason ?? '—'}</p>) : <p>Chưa có lịch sử trạng thái.</p>}
+        <div className="review-history-list">
+        {review.history.length ? review.history.map((item, index) => <p key={`${item.changedAt}-${index}`}>{item.oldStatus ? projectStatusLabel(item.oldStatus) : 'Khởi tạo'} → {projectStatusLabel(item.newStatus)} · {item.changedByName} · {item.reason ?? '—'}</p>) : <p>Chưa có lịch sử trạng thái.</p>}
+        </div>
       </section>
       <DepartmentDecisionHistory
         snapshots={review.reviewSnapshots}

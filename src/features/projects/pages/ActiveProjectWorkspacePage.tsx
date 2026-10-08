@@ -1,4 +1,5 @@
 import { Link, Navigate } from 'react-router-dom'
+import { ButtonLink } from '../../../components/ui/ButtonLink'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useStudentJourney } from '../../../app/context'
 import type { ProjectDto, SupervisorAssignmentDto, TeamDto } from '../../../types/backend'
@@ -91,7 +92,7 @@ export function ProjectWorkspaceSummary({
   const teamName = team?.name ?? project.teamName ?? 'Chưa có thông tin nhóm'
 
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-6 pb-12">
+    <main className="workspace-page mx-auto flex max-w-6xl flex-col gap-6 pb-12">
       <header className="rounded-md border border-emerald-200 bg-emerald-50 p-5  sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -157,9 +158,7 @@ export function ProjectWorkspaceSummary({
             <p className="mt-2 text-sm leading-relaxed text-slate-600">Thống nhất lịch trao đổi với GVHD, mời thành viên và lưu kết luận, điểm danh, nhận xét sau mỗi buổi họp.</p>
           </div>
           <div className="mt-5 pt-3 border-t border-slate-100">
-            <Link className="inline-flex items-center gap-1.5 rounded-lg bg-[#0f5b4e] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0a493f]" to={audience === 'student' ? '/project/meetings' : `/supervisor/projects/${project.id}/meetings`}>
-              Mở lịch họp →
-            </Link>
+            <ButtonLink variant="primary" icon="calendar_month" to={audience === 'student' ? '/project/meetings' : `/supervisor/projects/${project.id}/meetings`}>Mở lịch họp</ButtonLink>
           </div>
         </section>
 
@@ -167,14 +166,12 @@ export function ProjectWorkspaceSummary({
           <div>
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-emerald-600">assignment</span>
-              <h2 className="text-base font-bold text-slate-900">Báo cáo tiến độ & phản hồi</h2>
+              <h2 className="text-base font-bold text-slate-900">Báo cáo tiến độ và phản hồi</h2>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">{audience === 'student' ? 'Tổng hợp kết quả theo tuần hoặc tháng. Cả nhóm cùng soạn bản nháp, trưởng nhóm nộp và theo dõi nhận xét từ giảng viên hướng dẫn.' : 'Đọc báo cáo theo từng kỳ, kiểm tra kết quả và gửi nhận xét để nhóm hoàn thiện các bước tiếp theo.'}</p>
           </div>
           <div className="mt-5 pt-3 border-t border-slate-100">
-            <Link className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700  hover:bg-slate-50" to={audience === 'student' ? '/project/reports' : `/supervisor/projects/${project.id}/reports`}>
-              Mở báo cáo tiến độ →
-            </Link>
+            <ButtonLink variant="outline" icon="assignment" to={audience === 'student' ? '/project/reports' : `/supervisor/projects/${project.id}/reports`}>Mở báo cáo tiến độ</ButtonLink>
           </div>
         </section>
 

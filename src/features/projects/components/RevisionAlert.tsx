@@ -46,12 +46,12 @@ export function RevisionAlert({
         )}
       </div>
 
-      <div className="bg-white/90 border border-amber-200 rounded-xl p-4 ml-13">
+      <div className="mt-4 border-l-2 border-amber-300 pl-4">
         <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 block mb-1">
           Nội dung thẩm định từ {reviewerName || 'Hội đồng Khoa CNTT'}:
         </span>
         <p className="text-xs text-slate-800 leading-relaxed font-medium">
-          "{reason || 'Cần bổ sung chi tiết kiến trúc phân hệ AI, ma trận RTM và phương pháp đánh giá thực nghiệm.'}"
+          "{reason || 'Chưa có nội dung nhận xét.'}"
         </p>
         {displayDate && (
           <span className="text-[10px] text-slate-400 mt-2 block">

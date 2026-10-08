@@ -1,3 +1,4 @@
+import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { services } from '../../../services/service-gateway'
@@ -56,28 +57,24 @@ export function QualificationVerificationPage() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 pb-12">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
-        <p className="text-xs font-medium text-slate-600">Điều kiện tham gia</p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">Xác minh điều kiện tham gia đồ án</h1>
-        <p className="mt-2 text-sm text-slate-600">Xác minh hồ sơ của sinh viên thuộc bộ môn trước khi tham gia nhóm và đăng ký đồ án.</p>
-      </header>
+    <WorkspacePage className="space-y-6" title="Xác minh điều kiện tham gia đồ án" eyebrow="Điều kiện tham gia" description="Kiểm tra hồ sơ của sinh viên thuộc bộ môn trước khi tham gia nhóm và đăng ký đồ án." action={<Button variant="secondary" disabled={loading || pendingId !== null} onClick={() => void refresh()}>Tải lại</Button>}>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+
+      <section className="workspace-surface p-5">
         <div className="flex flex-wrap gap-3">
-          <input className="min-w-64 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tên hoặc mã sinh viên" />
-          <select className="rounded-xl border border-slate-200 px-3 py-2 text-sm" value={status} onChange={(event) => setStatus(event.target.value)}>
+          <input aria-label="Tìm sinh viên" className="min-w-0 w-full sm:min-w-64 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tên hoặc mã sinh viên" />
+          <select aria-label="Trạng thái xác minh" className="rounded-xl border border-slate-200 px-3 py-2 text-sm" value={status} onChange={(event) => setStatus(event.target.value)}>
             <option value="PENDING_VERIFICATION">Chờ xác minh</option>
             <option value="VERIFIED">Đã xác minh</option>
             <option value="REJECTED">Bị từ chối</option>
             <option value="EXPIRED">Đã hết hạn</option>
           </select>
-          <Button variant="secondary" onClick={() => void refresh()} disabled={loading}>Tải lại</Button>
+
         </div>
         {error ? <p role="alert" className="mt-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
+      <section className="workspace-surface overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
             <tr><th className="p-3">Sinh viên</th><th className="p-3">Đào tạo</th><th className="p-3">Chứng chỉ</th><th className="p-3">Xác minh</th><th className="p-3 text-right">Thao tác</th></tr>
@@ -85,7 +82,7 @@ export function QualificationVerificationPage() {
           <tbody className="divide-y divide-slate-100">
             {items.map((item) => (
               <tr key={item.id}>
-                <td className="p-3"><b>{item.fullName}</b><div className="text-xs text-slate-500">{item.studentCode ?? 'User #' + item.userId}</div></td>
+                <td className="p-3"><b>{item.fullName}</b><div className="text-xs text-slate-500">{item.studentCode ?? 'Tài khoản #' + item.userId}</div></td>
                 <td className="p-3">{item.trainingStatus === 'TRAINING_COMPLETED' ? 'Đã hoàn thành' : item.trainingStatus === 'PENDING_TRAINING' ? 'Chưa hoàn thành' : 'Chưa xác định'}</td>
                 <td className="p-3">{item.certificateNumber ?? 'Chưa có'}</td>
                 <td className="p-3">{{ PENDING_VERIFICATION: 'Chờ xác minh', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối', EXPIRED: 'Đã hết hạn' }[item.verificationStatus] ?? 'Chưa xác định'}</td>
@@ -105,6 +102,6 @@ export function QualificationVerificationPage() {
         {loading ? <p className="p-6 text-center text-sm text-slate-500">Đang tải…</p> : null}
       </section>
       {confirmationDialog}
-    </main>
+    </WorkspacePage>
   )
 }
