@@ -1,3 +1,4 @@
+import { ProjectSectionNavigation } from '../../execution/ProjectSectionNavigation'
 import { useCallback, useEffect, useState } from 'react'
 import { Navigate, Outlet, useParams } from 'react-router-dom'
 import { useAuthSession } from '../../auth/context/useAuthSession'
@@ -44,5 +45,5 @@ export function SupervisorExecutionRoute() {
   if (loading) return <PageLoading />
   if (error) return <ExState message={error} retry={() => void load()} />
   if (!data) return <Navigate to="/supervisor/workspace" replace />
-  return <ExecutionAccessProvider value={{ project: data.project, supervisor: data.assignment, currentUserId: session?.user.id, actor: 'supervisor', canManageStructure: false, executionCapabilities, routeBase: `/supervisor/projects/${id}` }}><Outlet /></ExecutionAccessProvider>
+  return <ExecutionAccessProvider value={{ project: data.project, supervisor: data.assignment, currentUserId: session?.user.id, actor: 'supervisor', canManageStructure: false, executionCapabilities, routeBase: `/supervisor/projects/${id}` }}><ProjectSectionNavigation /><Outlet /></ExecutionAccessProvider>
 }

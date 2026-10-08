@@ -22,7 +22,7 @@ describe('SupervisorProfilePage', () => {
 
   it('hydrates the authenticated lecturer profile and saves backend-authorized edits', async () => {
     render(<SupervisorProfilePage />, { wrapper: MemoryRouter })
-    await screen.findByText('Computing · Profile #8')
+    await screen.findByText('Computing · Hồ sơ #8')
     fireEvent.change(screen.getByLabelText('Giới thiệu chuyên môn'), { target: { value: 'Updated bio' } })
     fireEvent.click(screen.getByRole('button', { name: 'Lưu hồ sơ giảng viên' }))
     await waitFor(() => expect(api.updateOwnProfile).toHaveBeenCalledWith(12, { bio: 'Updated bio', isAvailable: true }, 'token'))
@@ -38,6 +38,6 @@ describe('SupervisorProfilePage', () => {
   it('announces an authorization failure from the backend', async () => {
     api.list.mockRejectedValue(new HttpError('forbidden', 403))
     render(<SupervisorProfilePage />, { wrapper: MemoryRouter })
-    expect((await screen.findByRole('alert')).textContent).toContain('Hệ thống từ chối quyền cập nhật hồ sơ giảng viên')
+    expect((await screen.findByRole('alert')).textContent).toContain('Bạn chưa có quyền cập nhật hồ sơ giảng viên')
   })
 })

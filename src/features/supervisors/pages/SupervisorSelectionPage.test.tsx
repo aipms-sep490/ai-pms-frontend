@@ -39,3 +39,15 @@ describe('SupervisorSelectionPage', () => {
     expect(screen.getByText(/chưa thể gửi yêu cầu hướng dẫn/)).toBeTruthy()
   })
 })
+
+it('uses the assignment name and formatted dates in request history, without inactive search controls', () => {
+  journey.useStudentJourney.mockReturnValue(currentJourney)
+  const assignment = { supervisorProfileId: 4, supervisorName: 'Nguyễn Mai', assignedAt: '2026-09-12T09:00:00' }
+  selection.useSupervisorSelection.mockReturnValue(state({ canSend: false, assignments: [assignment], activeAssignment: assignment, requests: [{ id: 1, supervisorProfileId: 4, status: 'ACCEPTED', requestedAt: '2026-09-10T09:00:00' }] }))
+  render(<MemoryRouter><SupervisorSelectionPage /></MemoryRouter>)
+  expect(screen.getAllByText(/Nguyễn Mai/).length).toBe(2)
+  expect(screen.queryByText(/T09:00/)).toBeNull()
+  expect(screen.queryByLabelText('Tìm giảng viên')).toBeNull()
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Giảng viên hướng dẫn')
+  expect(screen.queryByText(/Tìm giảng viên phù hợp/)).toBeNull()
+})

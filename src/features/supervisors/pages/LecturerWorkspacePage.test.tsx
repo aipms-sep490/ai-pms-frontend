@@ -19,9 +19,9 @@ describe('LecturerWorkspacePage', () => {
     inbox.useSupervisorInbox.mockReturnValue(hook)
     vi.stubGlobal('confirm', vi.fn(() => true))
     render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)
-    expect(screen.getByRole('heading', { name: 'Bàn làm việc' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Hướng dẫn đồ án' })).toBeTruthy()
     fireEvent.change(screen.getByLabelText('Phản hồi (tùy chọn)'), { target: { value: 'Accepted' } })
-    fireEvent.click(screen.getByText('Accept & assign'))
+    fireEvent.click(screen.getByText('Nhận hướng dẫn'))
     expect(hook.respond).not.toHaveBeenCalled()
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Nhận hướng dẫn' }))
     await waitFor(() => expect(hook.respond).toHaveBeenCalledWith(request, 'accept', 'Accepted'))
@@ -38,13 +38,16 @@ describe('LecturerWorkspacePage', () => {
   it('offers an ACTIVE workspace only for a current primary assignment', () => {
     inbox.useSupervisorInbox.mockReturnValue(state({ requests: [], assignments: [{ id: 3, projectId: 9, isPrimary: true, assignedAt: '2026-09-15' }] }))
     render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)
-    expect(screen.getByRole('link', { name: 'Mở không gian giám sát' }).getAttribute('href')).toBe('/supervisor/projects/9/workspace')
+    expect(screen.getByRole('link', { name: 'Tổng quan đồ án' }).getAttribute('href')).toBe('/supervisor/projects/9/workspace')
+    for (const [name, path] of [['Công việc', 'tasks'], ['Báo cáo tiến độ', 'reports'], ['Lịch họp', 'meetings'], ['Hạng mục cần nộp', 'deliverables']]) {
+      expect(screen.getByRole('link', { name }).getAttribute('href')).toBe('/supervisor/projects/9/' + path)
+    }
   })
 
   it('does not synthesize an ACTIVE route from an assignment when the refreshed project is not ACTIVE', () => {
     inbox.useSupervisorInbox.mockReturnValue(state({ requests: [], projects: { 9: { id: 9, title: 'Project', status: 'SUPERVISOR_PENDING' } }, assignments: [{ id: 3, projectId: 9, isPrimary: true, assignedAt: '2026-09-15' }] }))
     render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)
-    expect(screen.queryByRole('link', { name: 'Mở không gian giám sát' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Tổng quan đồ án' })).toBeNull()
   })
 
   it('keeps a project card usable when an individual summary resource fails', () => {
@@ -53,6 +56,6 @@ describe('LecturerWorkspacePage', () => {
     render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)
     expect(screen.getByText('Chưa tải được tiến độ.')).toBeTruthy()
     expect(screen.getByText('1 quá hạn · 2 vướng mắc')).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Mở không gian giám sát' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Tổng quan đồ án' })).toBeTruthy()
   })
 })

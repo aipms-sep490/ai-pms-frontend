@@ -20,10 +20,10 @@
 .sup h1 {
   margin: 4px 0 0;
   color: #020617;
-  font-size: clamp(24px, 3vw, 32px);
+  font-size: clamp(26px, 2.1vw, 32px);
   font-weight: 700;
   letter-spacing: -0.025em;
-  line-height: 1.15;
+  line-height: 1.25;
 }
 
 .sup__header > div:first-child > p:last-child,
@@ -296,7 +296,7 @@
   font-size: 14px;
 }
 
-.sup__state h1 { font-size: 22px; }
+.sup__state h1 { font-size: clamp(26px, 2.1vw, 32px); }
 
 .sup__state-link {
   color: #0f5b4e;
