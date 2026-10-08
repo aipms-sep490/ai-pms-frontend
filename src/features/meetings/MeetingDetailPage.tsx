@@ -4,7 +4,7 @@ import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import * as api from '../../services/api/meetings.api'
 import type { MeetingDetail } from './meeting-types'
 import { attendanceStatuses } from './meeting-types'
-import { canManageMeeting, formatMeetingTime, meetingError, mustRefreshAfterError, safeMeetingUrl } from './meeting-utils'
+import { canManageMeeting, formatMeetingTime, meetingVenue, meetingError, mustRefreshAfterError, safeMeetingUrl } from './meeting-utils'
 import { MeetingError, MeetingLoading, MeetingShell, MeetingStatusBadge } from './meeting-ui'
 import { MeetingScheduleForm } from './MeetingScheduleForm'
 import { MeetingNotesForm } from './MeetingNotesForm'
@@ -100,7 +100,7 @@ function MeetingDetailView({ id }: { id: number }) {
     : confirmation?.type === 'refresh' ? 'Tải lại dữ liệu mới nhất sẽ bỏ nội dung đang sửa. Tiếp tục?'
     : 'Bỏ các thay đổi chưa lưu trong biểu mẫu này?'
   const onlineUrl = safeMeetingUrl(meeting?.onlineUrl ?? null)
-  return <MeetingShell title={meeting && !loadError ? meeting.title : 'Chi tiết cuộc họp'} projectTitle={project.title} backTo={`${routeBase}/workspace`} action={<Link className="mtg-button mtg-button--secondary" to={`${routeBase}/meetings`}>Danh sách cuộc họp</Link>}>
+  return <MeetingShell title={meeting && !loadError ? meeting.title : 'Chi tiết cuộc họp'} projectTitle={project.title} backTo={`${routeBase}/meetings`} description="Thông tin cuộc họp, biên bản và những việc cả nhóm đã thống nhất." action={<Link className="mtg-button mtg-button--secondary" to={`${routeBase}/meetings`}>Danh sách cuộc họp</Link>}>
     <MeetingUnsavedNotice dirty={dirty} busy={busy} />
     {success && <p role="status" className="mtg-notice mtg-notice--success">{success}</p>}
     {error && <MeetingError message={error} />}
@@ -109,23 +109,17 @@ function MeetingDetailView({ id }: { id: number }) {
     {loading ? <MeetingLoading /> : loadError ? <MeetingError message={loadError} retry={reload} /> : meeting && <>
       <div className="mtg-detail-banner"><div><p className="mtg-eyebrow">Thời gian · Giờ Việt Nam (UTC+7)</p><h2>{formatMeetingTime(meeting.startAt)}</h2><p>{meeting.endAt ? `Kết thúc: ${formatMeetingTime(meeting.endAt)}` : 'Chưa xác định giờ kết thúc'}</p></div><MeetingStatusBadge status={meeting.status} /></div>
       <div className="mtg-detail-grid"><div className="mtg-stack">
-        <section className="mtg-panel mtg-padded"><div className="mtg-section-heading"><h2>Nội dung & địa điểm</h2>{manage && scheduled && editor !== 'schedule' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('schedule')}>Sửa lịch</button>}</div>
+        <section className="mtg-panel mtg-padded"><div className="mtg-section-heading"><h2>Nội dung và địa điểm</h2>{manage && scheduled && editor !== 'schedule' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('schedule')}>Sửa lịch</button>}</div>
           {editor === 'schedule' ? <MeetingScheduleForm meeting={meeting} busy={busy} locked={needsRefresh} onDirty={() => setDirty(true)} onCancel={closeEditor} onSave={async (body) => {
             if (!manage || !scheduled) return
             const { participantUserIds: _participants, ...schedule } = body
             await mutate(() => api.updateMeeting(id, { ...schedule, concurrencyToken: meeting.concurrencyToken }), 'Đã lưu thay đổi lịch họp.')
-          }} /> : <><p className="mtg-prose">{meeting.agenda || 'Chưa có nội dung dự kiến.'}</p><dl className="mtg-facts"><div><dt>Địa điểm</dt><dd>{meeting.location || 'Chưa xác định'}</dd></div><div><dt>Người tổ chức</dt><dd>{meeting.createdByName}</dd></div></dl>{onlineUrl ? <a className="mtg-button mtg-button--secondary" href={onlineUrl} target="_blank" rel="noopener noreferrer">Mở phòng họp ↗</a> : meeting.onlineUrl && <p className="mtg-help">Liên kết họp không hợp lệ. Liên hệ người tổ chức để cập nhật.</p>}</>}
+          }} /> : <><p className="mtg-prose">{meeting.agenda || 'Chưa có nội dung dự kiến.'}</p><dl className="mtg-facts"><div><dt>Địa điểm</dt><dd>{meetingVenue(meeting)}</dd></div><div><dt>Người tổ chức</dt><dd>{meeting.createdByName}</dd></div></dl>{onlineUrl ? <a className="mtg-button mtg-button--secondary" href={onlineUrl} target="_blank" rel="noopener noreferrer">Mở phòng họp ↗</a> : meeting.onlineUrl && <p className="mtg-help">Liên kết họp không hợp lệ. Liên hệ người tổ chức để cập nhật.</p>}</>}
         </section>
-        <section className="mtg-panel mtg-padded"><div className="mtg-section-heading"><h2>Biên bản & điểm danh</h2>{manage && writableNotes && editor !== 'notes' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('notes')}>Cập nhật biên bản</button>}</div>
+        <section className="mtg-panel mtg-padded"><div className="mtg-section-heading"><h2>Biên bản và điểm danh</h2>{manage && writableNotes && editor !== 'notes' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('notes')}>Cập nhật biên bản</button>}</div>
           {editor === 'notes' ? <MeetingNotesForm meeting={meeting} busy={busy} locked={needsRefresh} onDirty={() => setDirty(true)} onCancel={closeEditor} onSave={async (body) => { if (manage && writableNotes) await mutate(() => api.updateMeetingNotes(id, { ...body, concurrencyToken: meeting.concurrencyToken }), 'Đã lưu biên bản và điểm danh.') }} /> : <p className="mtg-prose">{meeting.meetingNotes || 'Chưa có biên bản. Ghi lại kết luận sau buổi trao đổi để cả nhóm cùng theo dõi.'}</p>}
         </section>
-        <MeetingVideoSection meeting={meeting} routeBase={routeBase} />
-        <MeetingVideoPresencePanel meeting={meeting} />
-        {meeting.concurrencyToken ? <MeetingGovernancePanel meeting={meeting} concurrencyToken={meeting.concurrencyToken} candidates={candidates.data} canManage={manage} disabled={disabled || dirty} onChanged={reload} /> : <section className="mtg-panel mtg-padded"><h2>Kết luận và công việc sau họp</h2><p className="mtg-help">Thông tin cuộc họp chưa đầy đủ. Tải lại trước khi chỉnh sửa.</p></section>}
-        <section className="mtg-panel mtg-padded" aria-labelledby="meeting-feedback-title"><div className="mtg-section-heading"><h2 id="meeting-feedback-title">Nhận xét của GVHD <span className="mtg-count">{meeting.feedbacks.length}</span></h2>{access.actor === 'supervisor' && writableNotes && editor !== 'feedback' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('feedback')}>Viết nhận xét</button>}</div>
-          {meeting.feedbacks.length === 0 ? <p className="mtg-help">Chưa có nhận xét từ giảng viên.</p> : <ol className="mtg-feedback-list">{meeting.feedbacks.map((item) => <li key={item.id}><strong>{item.supervisorName}</strong><time dateTime={item.createdAt}>{formatMeetingTime(item.createdAt)}</time><p className="mtg-prose">{item.feedbackText}</p></li>)}</ol>}
-          {editor === 'feedback' && <form className="mtg-form" onSubmit={sendFeedback}><fieldset disabled={disabled}><label>Nhận xét mới<textarea rows={4} required value={feedback} onChange={(event) => { setFeedback(event.target.value); setDirty(true) }} /></label><div className="mtg-form-actions"><button type="button" className="mtg-button mtg-button--secondary" onClick={closeEditor}>Đóng chỉnh sửa</button><button className="mtg-button" disabled={!feedback.trim()} type="submit">Gửi nhận xét</button></div></fieldset></form>}
-        </section>
+
       </div><aside className="mtg-stack">
         <section className="mtg-panel mtg-padded"><h2>Người tham gia <span className="mtg-count">{meeting.participants.length}</span></h2>
           <ul className="mtg-participants">{meeting.participants.map((participant) => (
@@ -149,12 +143,22 @@ function MeetingDetailView({ id }: { id: number }) {
             void mutate(() => api.addMeetingParticipant(id, selected, meeting.concurrencyToken), 'Đã thêm người tham gia.')
           }}><label>Thêm người tham gia<select value={participantId} disabled={disabled || dirty} onChange={(event) => setParticipantId(event.target.value)}><option value="">Chọn thành viên hoặc GVHD</option>{candidates.data.filter((candidate) => !meeting.participants.some((participant) => participant.userId === candidate.userId)).map((candidate) => <option key={candidate.userId} value={candidate.userId}>{candidate.fullName} · {candidate.role}</option>)}</select></label><button className="mtg-button mtg-button--secondary" disabled={disabled || dirty || !participantId} type="submit">Thêm vào cuộc họp</button></form>}</>}
         </section>
-        <section className="mtg-panel mtg-padded"><h2>Trạng thái cuộc họp</h2><p className="mtg-help">{scheduled ? 'Hoàn tất khi buổi trao đổi kết thúc. Hủy lịch nếu cuộc họp không diễn ra.' : meeting.status === 'COMPLETED' ? 'Lịch và danh sách tham gia đã được khóa. Người quản lý vẫn có thể bổ sung biên bản và điểm danh.' : 'Cuộc họp đã hủy. Nội dung và lịch sử được giữ lại để tra cứu.'}</p>
+
+      </aside></div>
+      <div className="mtg-stack mtg-followup">
+        <section className="mtg-panel mtg-padded mtg-status-panel"><h2>Trạng thái cuộc họp</h2><p className="mtg-help">{scheduled ? 'Hoàn tất khi buổi trao đổi kết thúc. Hủy lịch nếu cuộc họp không diễn ra.' : meeting.status === 'COMPLETED' ? 'Lịch và danh sách tham gia đã được khóa. Người quản lý vẫn có thể bổ sung biên bản và điểm danh.' : 'Cuộc họp đã hủy. Nội dung và lịch sử được giữ lại để tra cứu.'}</p>
           {manage && scheduled && <div className="mtg-stack"><button className="mtg-button" disabled={disabled || dirty} onClick={() => setConfirmation({ type: 'complete' })}>Hoàn tất cuộc họp</button><button className="mtg-button mtg-button--danger" disabled={disabled || dirty} onClick={() => setConfirmation({ type: 'cancel' })}>Hủy lịch họp</button></div>}
           {dirty && <p className="mtg-help">Lưu hoặc đóng phần đang chỉnh sửa trước khi thực hiện thao tác khác.</p>}
           {!needsRefresh && <button className="mtg-text-button mtg-refresh" disabled={busy} onClick={() => dirty ? setConfirmation({ type: 'refresh' }) : reload()}>Tải lại trạng thái</button>}
         </section>
-      </aside></div>
+        <MeetingVideoSection meeting={meeting} routeBase={routeBase} />
+        <MeetingVideoPresencePanel meeting={meeting} />
+        {meeting.concurrencyToken ? <MeetingGovernancePanel meeting={meeting} concurrencyToken={meeting.concurrencyToken} candidates={candidates.data} canManage={manage} disabled={disabled || dirty} onChanged={reload} /> : <section className="mtg-panel mtg-padded"><h2>Kết luận và công việc sau họp</h2><p className="mtg-help">Thông tin cuộc họp chưa đầy đủ. Tải lại trước khi chỉnh sửa.</p></section>}
+        <section className="mtg-panel mtg-padded" aria-labelledby="meeting-feedback-title"><div className="mtg-section-heading"><h2 id="meeting-feedback-title">Nhận xét của GVHD <span className="mtg-count">{meeting.feedbacks.length}</span></h2>{access.actor === 'supervisor' && writableNotes && editor !== 'feedback' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('feedback')}>Viết nhận xét</button>}</div>
+          {meeting.feedbacks.length === 0 ? <p className="mtg-help">Chưa có nhận xét từ giảng viên.</p> : <ol className="mtg-feedback-list">{meeting.feedbacks.map((item) => <li key={item.id}><strong>{item.supervisorName}</strong><time dateTime={item.createdAt}>{formatMeetingTime(item.createdAt)}</time><p className="mtg-prose">{item.feedbackText}</p></li>)}</ol>}
+          {editor === 'feedback' && <form className="mtg-form" onSubmit={sendFeedback}><fieldset disabled={disabled}><label>Nhận xét mới<textarea rows={4} required value={feedback} onChange={(event) => { setFeedback(event.target.value); setDirty(true) }} /></label><div className="mtg-form-actions"><button type="button" className="mtg-button mtg-button--secondary" onClick={closeEditor}>Đóng chỉnh sửa</button><button className="mtg-button" disabled={!feedback.trim()} type="submit">Gửi nhận xét</button></div></fieldset></form>}
+        </section>
+      </div>
     </>}
   </MeetingShell>
 }

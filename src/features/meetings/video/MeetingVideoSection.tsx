@@ -55,7 +55,7 @@ export function MeetingVideoSection({ meeting, routeBase }: { meeting: MeetingDe
       {denialMessages.length > 0 && <ul className="mtg-video-denials" role="alert">{denialMessages.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul>}
       {actionError && <p className="mtg-notice mtg-notice--error" role="alert">{actionError}</p>}
       <div className="mtg-actions mtg-video-actions">
-        {resource.capabilities.canStart && <button className="mtg-button" disabled={starting} onClick={() => void start()}>{starting ? 'Đang bắt đầu…' : 'Bắt đầu Video'}</button>}
+        {resource.capabilities.canStart && <button className="mtg-button" disabled={starting} onClick={() => void start()}>{starting ? 'Đang bắt đầu…' : 'Mở phòng họp'}</button>}
         {resource.capabilities.canJoin && <Link className="mtg-button mtg-button--secondary" to={roomPath}>Kiểm tra trước khi tham gia</Link>}
       </div>
     </>}

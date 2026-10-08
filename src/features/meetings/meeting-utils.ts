@@ -49,3 +49,10 @@ export function meetingError(reason: unknown): string {
 export function mustRefreshAfterError(reason: unknown): boolean {
   return !(reason instanceof HttpError && [400, 422].includes(reason.status))
 }
+
+export function meetingVenue(meeting: Pick<MeetingDetail, 'location' | 'onlineUrl' | 'videoChannel' | 'meetingDeliveryMode'>): string {
+  if (meeting.location) return meeting.meetingDeliveryMode === 'HYBRID' ? meeting.location + ' · Kết hợp trực tuyến' : meeting.location
+  if (meeting.videoChannel === 'IN_APP_VIDEO') return 'Phòng họp trực tuyến AI-PMS'
+  if (meeting.meetingDeliveryMode === 'REMOTE' || meeting.onlineUrl) return 'Họp trực tuyến'
+  return 'Chưa xác định địa điểm'
+}
