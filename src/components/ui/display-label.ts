@@ -1,7 +1,9 @@
 const labels: Record<string, string> = {
+  BEGINNER: 'Cơ bản', INTERMEDIATE: 'Khá', ADVANCED: 'Nâng cao', EXPERT: 'Chuyên sâu',
+  HIGH: 'Cao', MEDIUM: 'Trung bình', LOW: 'Thấp',
   DRAFT: 'Bản nháp', PUBLISHED: 'Đã công bố', RETIRED: 'Ngừng sử dụng', ACTIVE: 'Đang hoạt động',
   UPCOMING: 'Sắp diễn ra', CLOSED: 'Đã đóng', ARCHIVED: 'Đã lưu trữ', LOCKED: 'Đã khóa',
-  PENDING: 'Chờ xử lý', APPROVED: 'Đã chấp thuận', REJECTED: 'Không chấp thuận',
+  ACCEPTED: 'Đã nhận hướng dẫn', ELIGIBLE: 'Đủ điều kiện', INELIGIBLE: 'Chưa đủ điều kiện', PENDING: 'Chờ xử lý', APPROVED: 'Đã chấp thuận', REJECTED: 'Không chấp thuận',
   SUBMITTED: 'Đã nộp', FINALIZED: 'Đã chốt', COMPLETED: 'Đã hoàn thành', CANCELLED: 'Đã hủy',
   COMMON: 'Cả đồ án', MAJOR_SPECIFIC: 'Theo chuyên ngành', INDIVIDUAL: 'Theo sinh viên',
   SINGLE_MAJOR: 'Một ngành', INTERDISCIPLINARY: 'Liên ngành',

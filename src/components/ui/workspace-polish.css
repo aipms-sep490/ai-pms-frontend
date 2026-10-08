@@ -1,4 +1,33 @@
 /* Consistent page typography; local component styles still own their layout. */
+@import './interaction-polish.css';
+.app-page-content > .workspace-page { margin-inline:auto; }
+.workspace-metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:0; padding:22px 24px; margin-block:24px; border:1px solid #dce5e1; border-radius:14px; background:#fff; }
+.workspace-metric { min-width:0; padding:0 24px; border:0; border-radius:0; background:transparent; box-shadow:none; }
+.workspace-metric:first-child { padding-left:0; }
+.workspace-metric + .workspace-metric { border-left:1px solid #dce5e1; }
+.workspace-metrics > article { background:transparent; }
+.workspace-filter-grid { display:grid; grid-template-columns:minmax(0,2fr) minmax(160px,1fr) auto; gap:16px; align-items:end; padding:20px; background:#fff; border-radius:12px; margin-bottom:24px; }
+.workspace-filter-grid > label:first-child { grid-column:auto; }
+.workspace-summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:24px; margin:24px 0; }
+.workspace-summary { min-width:0; padding:22px; background:#fff; border:1px solid #dce5e1; border-radius:14px; box-shadow:none; }
+.workspace-editor-row { padding:20px 0; border-bottom:1px solid #e5ece8; }
+.workspace-record-row { padding:16px 0; border-bottom:1px solid #e5ece8; }
+.workspace-record-row:last-child { border-bottom:0; }
+.workspace-note { border-block:1px solid #e5ece8; line-height:1.7; }
+.supervisor-profile-page > header { padding:0 0 24px; background:transparent; border:0; border-radius:0; box-shadow:none; }
+.supervisor-profile-page > form { border:0; border-radius:14px; box-shadow:none; }
+.app-page-content :where(h2,h3,p,dt,dd) { overflow-wrap:break-word; }
+.app-page-content :where(button,a) { transition:background-color .15s,color .15s,border-color .15s; }
+@media(max-width:640px) {
+ .workspace-metrics { grid-template-columns:1fr 1fr; gap:20px 16px; padding:20px 16px; }
+ .workspace-metric,.workspace-metric:first-child { padding:0; }
+ .workspace-metric + .workspace-metric { border-left:0; }
+ .workspace-filter-grid { grid-template-columns:1fr; padding:16px; }
+ .workspace-filter-grid > label { grid-column:auto; }
+ .department-quick-links { grid-template-columns:1fr 1fr; }
+ .department-quick-links > a { min-height:72px; gap:8px; padding:12px; font-size:13px; }
+ .workspace-metrics > :last-child:nth-child(odd):not(:first-child) { grid-column:1 / -1; }
+}
 .app-page-content h1 { font-family: var(--font-heading); font-size: clamp(26px, 2.1vw, 32px); font-weight: 750; line-height: 1.25; letter-spacing: -.035em; color: #14201d; overflow-wrap: anywhere; }
 .app-page-content :where(h2, h3, h4, h5) { font-weight: 650; line-height: 1.45; }
 .app-page-content :where(input, select, textarea) { font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
@@ -50,3 +79,16 @@
   .academic-major { padding: 16px 0; }
   .topic__section-heading { gap: 8px; }
 }
+
+/* Compact navigation actions share one treatment across role workspaces. */
+.workspace-action-link { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:36px; max-width:100%; padding:6px 10px; border:1px solid #d7e4dd; border-radius:8px; background:#f5f9f6; color:#0f5b4e; font-size:13px; font-weight:600; line-height:1.5; text-decoration:none; }
+.workspace-action-link:hover, .group:hover .workspace-action-link { background:#e7f1eb; border-color:#a9c6b6; color:#094d40; text-decoration:none; }
+.workspace-action-link .material-symbols-outlined { flex:0 0 18px; width:18px; font-size:18px; }
+.workspace-empty-detail { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 300px; padding: 32px 20px; text-align: center; }
+.workspace-empty-detail > .material-symbols-outlined { padding: 14px; border-radius: 14px; background: #edf4ef; color: #105d4e; font-size: 32px; }
+.workspace-empty-detail h2 { font-size: 18px; font-weight: 650; }
+.workspace-empty-detail p { max-width: 460px; color: #63746b; font-size: 14px; line-height: 1.7; }
+/* Lists grow with their content; long summaries don't leave the adjacent panel behind. */
+.deadline-panel { align-self:start; }
+.deadline-panel > ul { max-height:26rem; overflow-y:auto; padding-inline:3px; scrollbar-gutter:stable; }
+@media(max-width:640px) { .deadline-panel > ul { max-height:none; overflow:visible; } }
