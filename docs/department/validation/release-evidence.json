@@ -1,0 +1,848 @@
+{
+  "generatedAtUtc": "2026-10-08T15:47:43.578Z",
+  "testedSourceCommit": "7f85fdf042a9e76200248cd6033b41d724705ef0",
+  "baseCommit": "a6f804bf973e711bb542497b8a9b142a8ad70ca3",
+  "backendCommit": "3742760582a23e72c878fb61f1dadf225dfbca01",
+  "backendDevelopCi": "https://github.com/aipms-sep490/ai-pms-backend/actions/runs/37787168149",
+  "acceptance": {
+    "frontendContracts": "DONE",
+    "realMutationLifecycle": "PARTIAL",
+    "remaining": "Valid scoped isolated lifecycle fixture; no shared DB domain mutations tested"
+  },
+  "suite": {
+    "command": "pnpm exec vitest run --reporter=json --outputFile=.cache/depart-release-full-vitest.json",
+    "rawBytes": 262607,
+    "rawSha256": "58d820af4265c1422eb10985206a41f8c5317ef971fd6edac2fcae6fd41a51a3",
+    "expectedFiles": 158,
+    "resultFiles": 158,
+    "tests": 717,
+    "passed": 717,
+    "failed": 0,
+    "pending": 0,
+    "success": true,
+    "files": [
+      {
+        "path": "src/app/context/__tests__/StudentJourneyState.test.ts",
+        "tests": 12,
+        "status": "passed"
+      },
+      {
+        "path": "src/app/context/AcademicWorkflowGate.test.tsx",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/app/context/AcademicWorkflowProvider.test.tsx",
+        "tests": 7,
+        "status": "passed"
+      },
+      {
+        "path": "src/app/layouts/AppLayout.test.tsx",
+        "tests": 10,
+        "status": "passed"
+      },
+      {
+        "path": "src/app/pages/OverviewPage.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/app/router/RouteFrame.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/app/router/routes.config.test.ts",
+        "tests": 8,
+        "status": "passed"
+      },
+      {
+        "path": "src/app/router/workspace-route-registry.test.ts",
+        "tests": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/components/ui/WorkflowActionGate.test.tsx",
+        "tests": 6,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/academic/api/academic-api.test.ts",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/academic/api/governance-api.test.ts",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/academic/components/AcademicRecordForm.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/academic/hooks/useAcademicGovernance.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/academic/pages/AcademicGovernancePage.test.tsx",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/academic/pages/AcademicStructurePage.test.tsx",
+        "tests": 7,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/academic/pages/ProfileVerificationsPage.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/ai/ai-api.test.ts",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/ai/AiAdvisoryComponents.test.tsx",
+        "tests": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/auth/api/auth-api.test.ts",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/auth/components/ExternalLoginsPanel.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/auth/components/ProtectedRoute.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/auth/components/RoleRoute.test.tsx",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/auth/context/AuthSessionProvider.test.tsx",
+        "tests": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/auth/pages/LoginPage.test.tsx",
+        "tests": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/auth/pages/ProfilePage.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/auth/pages/SelfServicePages.test.tsx",
+        "tests": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/auth/policies/access-policy.test.ts",
+        "tests": 6,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/auth/utils/intended-destination.test.ts",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/auth/utils/resolve-student-destination.test.ts",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/auth/utils/role-access.test.ts",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/calendar/calendar-data.test.ts",
+        "tests": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/calendar/calendar-projections.test.ts",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/calendar/CalendarAttentionPage.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/chat/chat-events.test.ts",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/chat/ChatDock.test.tsx",
+        "tests": 6,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/chat/ChatProvider.test.tsx",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/chat/ChatThread.test.tsx",
+        "tests": 10,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/contributions/contributions-api.test.ts",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/contributions/ProjectContributionsPage.test.tsx",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/dashboard/api/dashboard-api.test.ts",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/dashboard/pages/PortfolioDashboardPage.test.tsx",
+        "tests": 10,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/dashboard/pages/SupervisorDashboardPage.test.tsx",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/dashboard/utils/filter-tasks.test.ts",
+        "tests": 8,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/deliverables/DeliverablesPage.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/department/components/DepartmentAcademicScopeRoute.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/department/components/DepartmentProjectLayout.test.tsx",
+        "tests": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/department/hooks/useDepartmentSection.test.tsx",
+        "tests": 7,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/department/pages/DepartmentWorkspacePage.test.tsx",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/evaluations/components/LayeredEvaluationFoundation.test.tsx",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/evaluations/EvaluationWorkspacePage.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/evaluations/evaluator-assignment-api.test.ts",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/evaluations/EvaluatorAssignmentManagementPage.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/evaluations/EvaluatorWorkspacePhase5.test.tsx",
+        "tests": 10,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/evaluations/rubrics-api.test.ts",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/evidence/ProjectEvidenceLedger.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/execution/execution-authority.test.ts",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/execution/hooks/useExecutionActionCapabilities.test.ts",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/files/project-files-api.test.ts",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/files/ProjectFilesPage.test.tsx",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/final-submission/final-submission-api.test.ts",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/final-submission/FinalSubmissionViewerPage.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/final-submission/StudentFinalSubmissionPage.test.tsx",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/meetings/meeting-utils.test.ts",
+        "tests": 10,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/meetings/Meetings.test.tsx",
+        "tests": 27,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/meetings/MeetingScheduleForm.video.test.tsx",
+        "tests": 9,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/meetings/video/meeting-video-api.test.ts",
+        "tests": 21,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/meetings/video/MeetingVideoJoinFlow.test.tsx",
+        "tests": 6,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/meetings/video/MeetingVideoPreflight.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/meetings/video/MeetingVideoPresencePanel.test.tsx",
+        "tests": 9,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/meetings/video/MeetingVideoRoomPage.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/meetings/video/MeetingVideoSection.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/meetings/video/providers/livekit/__tests__/LiveKitRoomAdapter.test.tsx",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/meetings/video/useMeetingVideoAccess.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/mentors/components/MentorExecutionRoute.test.tsx",
+        "tests": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/milestones/mappers/__tests__/milestone-kanban.mapper.test.ts",
+        "tests": 6,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/milestones/MilestoneTemplatesPage.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/milestones/pages/MilestoneDetailPage.test.tsx",
+        "tests": 7,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/milestones/utils/filter-kanban-tasks.test.ts",
+        "tests": 7,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/notifications/notifications-api.test.ts",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/notifications/NotificationsPage.test.tsx",
+        "tests": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/progress/mappers/__tests__/gantt.mapper.test.ts",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/progress/pages/GanttPage.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/progress/utils/filter-gantt-tasks.test.ts",
+        "tests": 6,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/progress/utils/schedule.test.ts",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/api/archive-project.test.ts",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/api/project-governance-api.test.ts",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/api/project-review-api.test.ts",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/components/__tests__/ProjectModeSelector.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/components/__tests__/RevisionAlert.test.tsx",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/components/academic-name-resolver.test.ts",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/components/DepartmentDecisionHistory.test.tsx",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/components/DepartmentGovernanceOverview.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/components/MajorRequirementEditor.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/components/ParticipatingDepartmentPanel.test.tsx",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/components/ProjectAcademicScopePanel.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/hooks/useProjectRegistration.test.tsx",
+        "tests": 11,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/hooks/useProjectReview.test.tsx",
+        "tests": 6,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/mappers/__tests__/project-dossier.mapper.test.ts",
+        "tests": 8,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/pages/ActiveProjectWorkspacePage.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/pages/CollaborationWorkspace.test.tsx",
+        "tests": 8,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/pages/ProjectLifecyclePage.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/pages/ProjectRegistrationFormPage.test.tsx",
+        "tests": 12,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/pages/ProjectReviewPage.test.tsx",
+        "tests": 8,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/pages/ProjectReviewStatusPage.test.tsx",
+        "tests": 8,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/pages/TopicCataloguePage.test.tsx",
+        "tests": 6,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/projects/utils/collaboration-workspace.test.ts",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/qualifications/components/QualificationCertificateViewer.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/qualifications/pages/QualificationVerificationPage.test.tsx",
+        "tests": 6,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/registration/hooks/useTopicDiscovery.test.tsx",
+        "tests": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/registration/pages/RegistrationSourcePage.test.tsx",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/registration/utils/academic-scope-validation.test.ts",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/reports/ProgressReports.test.tsx",
+        "tests": 20,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/results/ResultPublicationPage.test.tsx",
+        "tests": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/results/StudentResultPublicationPanel.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/supervisors/api/supervisor-api.test.ts",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/supervisors/components/AssignmentManagementPanel.test.tsx",
+        "tests": 7,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/supervisors/components/SupervisorExecutionRoute.test.tsx",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/supervisors/hooks/useSupervisorInbox.test.tsx",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/supervisors/hooks/useSupervisorOperationalSummary.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/supervisors/hooks/useSupervisorProjectSummaries.test.tsx",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/supervisors/hooks/useSupervisorSelection.test.tsx",
+        "tests": 8,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/supervisors/pages/LecturerWorkspacePage.test.tsx",
+        "tests": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/supervisors/pages/SupervisorMonitoringPage.test.tsx",
+        "tests": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/supervisors/pages/SupervisorProfilePage.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/supervisors/pages/SupervisorProgressReviewPage.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/supervisors/pages/SupervisorProjectWorkspacePage.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/supervisors/pages/SupervisorSelectionPage.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/tasks/pages/TaskBoardPage.test.tsx",
+        "tests": 7,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/tasks/pages/TaskDetailPage.test.tsx",
+        "tests": 10,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/tasks/task-evidence-api.test.ts",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/teams/components/__tests__/EligibilityBanner.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/teams/components/EligibilityHistoryPanel.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/teams/components/TeamEligibilitySummary.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/teams/components/TeamInvitationsPanel.test.tsx",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/teams/hooks/useTeamEligibility.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/teams/hooks/useTeamManagement.test.tsx",
+        "tests": 12,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/teams/pages/TeamManagementPage.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/topics/api/topic-api.test.ts",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/topics/hooks/useTopics.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/topics/pages/TopicManagementPage.test.tsx",
+        "tests": 7,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/users/api/admin-api.test.ts",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/users/pages/AdminUserDetailPage.test.tsx",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/features/users/pages/AdminWorkspacePhase6.test.tsx",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/services/api/__tests__/api-client-behavior.test.ts",
+        "tests": 20,
+        "status": "passed"
+      },
+      {
+        "path": "src/services/api/__tests__/milestones.api.test.ts",
+        "tests": 4,
+        "status": "passed"
+      },
+      {
+        "path": "src/services/api/__tests__/projects.api.test.ts",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/services/api/__tests__/tasks.api.test.ts",
+        "tests": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/services/api/__tests__/teams.api.test.ts",
+        "tests": 10,
+        "status": "passed"
+      },
+      {
+        "path": "src/services/api/deliverables.api.test.ts",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/services/api/evaluations.api.test.ts",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/services/api/meetings.api.test.ts",
+        "tests": 6,
+        "status": "passed"
+      },
+      {
+        "path": "src/services/api/paged-read.test.ts",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/services/api/progress-reports.api.test.ts",
+        "tests": 2,
+        "status": "passed"
+      },
+      {
+        "path": "src/services/api/project-results.api.test.ts",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/services/api/student-qualifications.api.test.ts",
+        "tests": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/services/api/supervisors.api.test.ts",
+        "tests": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/services/http/http-client.test.ts",
+        "tests": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/services/mock/qualification.mock.test.ts",
+        "tests": 1,
+        "status": "passed"
+      }
+    ]
+  },
+  "quality": {
+    "frozenInstall": "PASS",
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "build": "PASS",
+    "diffCheck": "PASS",
+    "warnings": [
+      "3 existing chat Fast Refresh warnings",
+      "Application and LiveKit chunks exceed 500 kB"
+    ]
+  },
+  "browser": {
+    "mock": {
+      "mode": "MOCKED_COMPONENT_AND_APP_BROWSER",
+      "realBackend": false,
+      "checks": 44,
+      "passed": true,
+      "errors": 0,
+      "unknownEndpoints": 0
+    },
+    "live": {
+      "mode": "LIVE_READ_ONLY_PLAYWRIGHT",
+      "realBackend": true,
+      "checks": 51,
+      "passed": true,
+      "errors": 0,
+      "blockedDomainWrites": 0,
+      "domainMutations": 0,
+      "includes": "Read routes, responsive, keyboard/form validation, CSV/XLSX/PDF download headers"
+    }
+  },
+  "excludedArtifacts": "No credentials, live storage state, trace/HAR, personal export content, screenshots or runtime files published"
+}

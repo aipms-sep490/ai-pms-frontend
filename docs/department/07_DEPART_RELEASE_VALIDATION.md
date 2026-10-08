@@ -21,6 +21,12 @@ Runtime hiện tại có 1 project ACTIVE với ACADEMIC_SCOPE_UNKNOWN, qualific
 
 Bằng chứng sẽ được ghi tại `docs/department/validation/release-evidence.json`, với commit source được kiểm tra, danh sách test file/count/status và browser check counts. Các con số trước delivery ở báo cáo 06 là lịch sử; dùng evidence mới và CI của PR khi đánh giá bàn giao.
 
+## Kết quả local trên commit source
+
+Commit source `7f85fdf042a9e76200248cd6033b41d724705ef0` đã được kiểm tra sau khi commit: frozen install/typecheck/lint/build/diff-check PASS; full suite 158/158 test files, 717/717 tests PASS, failed=0, pending=0, success=true. Danh sách test files trong reporter được đối chiếu với toàn bộ inventory src, không thiếu hoặc thừa suite. Playwright 44 mock checks và 51 live read/export checks PASS, zero pageerrors/unknown endpoints/blocked domain writes. Warning chat Fast Refresh/chunk lớn từ upstream giữ nguyên; không đổi package hoặc lockfile.
+
+[Machine-readable release evidence](validation/release-evidence.json) không chứa credential/token, nội dung cá nhân của export hoặc trace live. Commit bổ sung evidence/tài liệu không đổi source so với commit đã test; PR CI sẽ kiểm tra chính head cuối. Review/PR CI/post-merge CI được kiểm tra riêng khi delivery; không dùng local PASS để thay gate CI.
+
 ## Checklist nhóm dự án chạy sau merge
 
 1. Dùng develop FE cùng BE có D01–D08; cài đúng lockfile, đăng nhập từng actor trên môi trường cách ly.

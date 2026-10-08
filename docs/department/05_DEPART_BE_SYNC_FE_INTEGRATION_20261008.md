@@ -1,5 +1,7 @@
 # DEPART — Đồng bộ BE, nối FE và kiểm chứng ngày 08/10/2026
 
+> Người dùng đã yêu cầu delivery FE lên develop trong lượt tiếp theo. Các ghi chú “chưa commit/push/merge” dưới đây mô tả lịch sử trước authorization mới; trạng thái bàn giao và evidence ở [07 — Release validation](07_DEPART_RELEASE_VALIDATION.md).
+
 > Lần kiểm tra lại sau khi người dùng khởi động dự án và các sửa UI/UX mới nằm ở §6. Số liệu §4 là lần kiểm tra trước đó.
 
 > **Lần rà BE/dữ liệu và hoàn thiện dashboard tiếp theo:** xem [06 — Current data/API review](06_DEPART_CURRENT_DATA_API_REVIEW.md). Bằng chứng mới nhất: 158 files/717 tests, 44 mock checks, 51 live GET/export checks; project legacy hiện UNKNOWN scope.
