@@ -1,0 +1,513 @@
+[
+  {
+    "role": "department",
+    "route": "/department/workspace",
+    "heading": "Quản lý đồ án bộ môn",
+    "overflow": false,
+    "text": "Không gian bộ môn\nQuản lý đồ án bộ môn\n\nInformation Technology. Theo dõi danh mục đồ án, hồ sơ chờ thẩm định và nguồn lực hướng dẫn.\n\nThẩm định đề cương\nfolder_managed\nDanh mục đồ án\nrule\nThẩm định đề cương\nsupervisor_account\nGiảng viên hướng dẫn\ndate_range\nKỳ đồ án\n\nTổng quan\n\nTình hình hiện tại\nChờ thẩm định\nfact_check\n\nĐang tải dữ liệu…\n\nĐồ án quản lý\nfolder_managed\n\nĐang tải dữ liệu…\n\nGiảng viên\nsupervisor_account\n\nĐang tải dữ liệu…\n\nCần chú ý\n\nĐồ án cần chú ý\n\nTổng hợp từ báo cáo chờ duyệt, công việc đang vướng mắc và công việc quá hạn.\n\nĐang tải dữ liệu…\n\nThẩm định học vụ\n\nHồ sơ thẩm định gần nhất\n\nMở từng hồ sơ để xem nhận xét và các thao tác dành cho tài khoản hiện tại.\n\nĐang tải dữ liệu…\n\nKế hoạch học vụ\n\nKỳ đồ án\n\nCác giai đoạn đang được cấu hình trong học kỳ hiện tại.\n\nĐăng ký\n\nSEP490 Project Registration\nĐã đóng\n\n07:00 01/09/2026 → 06:59 01/10/2026\n\nThẩm định\n\nSEP490 Proposal Review\nĐã đóng\n\n15:00 01/09/2026 → 06:59 16/09/2026\n\nThực hiện\n\nSEP490 Project Execution\nĐang mở\n\n07:00 16/09/2026 → 06:59 11/12/2026\n\nBàn giao cuối kỳ\n\nSEP490 Final Submission and Defense\nĐã đóng\n\n07:00 11/12/2026 → 06:59 01/01/2027\n\nverified_user\nQuyền theo từng hồ sơ\n\nThao tác đánh giá, phân công và công bố kết quả chỉ xuất hiện trong hồ sơ đồ án khi tài khoản có đủ quyền và dữ liệu đã sẵn sàng."
+  },
+  {
+    "role": "department",
+    "route": "/department/portfolio",
+    "heading": "Danh mục đồ án",
+    "overflow": false,
+    "text": "Phạm vi bộ môn\nDanh mục đồ án\n\nTheo dõi trạng thái và tiến độ các đồ án trong phạm vi được cấp.\n\nXuất CSV\nTìm đồ án\nTrạng thái\nTất cả\nBản nháp\nĐang thẩm định\nĐã phê duyệt\nĐang thực hiện\nĐang bàn giao\nĐã hoàn thành\nĐã lưu trữ\nÁp dụng\n\nĐang tải danh mục đồ án…"
+  },
+  {
+    "role": "department",
+    "route": "/department/projects/archived",
+    "heading": "Kho lưu trữ đồ án",
+    "overflow": false,
+    "text": "PHẠM VI BỘ MÔN\n\nKho lưu trữ đồ án\n\nTra cứu các đồ án đã đưa vào kho. Nội dung chỉ được xem và hiển thị theo quyền của tài khoản hiện tại.\n\narrow_back\nQuay lại danh mục\n\nĐang tải kho lưu trữ…"
+  },
+  {
+    "role": "department",
+    "route": "/academic",
+    "heading": "Cấu trúc đào tạo",
+    "overflow": false,
+    "text": "Quản lý học vụ\nCấu trúc đào tạo\n\nSắp xếp tổ chức, bộ môn và chuyên ngành; quản lý thông tin và trạng thái hoạt động.\n\nTìm theo mã hoặc tên\nPhạm vi tổ chức\nTất cả tổ chức\nFPTU_DN · FPT University - Da Nang Campus\nBao gồm bản ghi ngừng hoạt động\nÁp dụng bộ lọc\nTỔ CHỨC · FPTU_DN\nFPT University - Da Nang Campus\n\nAcademic organization for the AI-PMS SEP490 Capstone Project scenario at FPT University - Da Nang Campus.\n\nĐang hoạt động\nBộ môn\nBỘ MÔN · BA\nBusiness Administration\n\nAcademic unit for business and management programs that may participate in multidisciplinary university projects.\n\nĐang hoạt động\nChỉnh sửa\nNgừng hoạt động\nXóa\nChuyên ngành\nThêm chuyên ngành\nCHUYÊN NGÀNH · MKT\nMarketing\n\nMarketing strategy, customer insights, digital channels, communication, and data-informed business decision making.\n\nĐang hoạt động\nChỉnh sửa\nNgừng hoạt động\nXóa\nBỘ MÔN · IT\nInformation Technology\n\nAcademic unit for Information Technology programs, including Software Engineering, Artificial Intelligence, Applied Data Science, and Information Assurance.\n\nĐang hoạt động\nChỉnh sửa\nNgừng hoạt động\nXóa\nChuyên ngành\nThêm chuyên ngành\nCHUYÊN NGÀNH · ADS\nApplied Data Science\n\nData analytics, statistics, machine learning, visualization, big-data processing, and applied predictive modeling.\n\nĐang hoạt động\nChỉnh sửa\nNgừng hoạt động\nXóa\nCHUYÊN NGÀNH · AI\nArtificial Intelligence\n\nMachine learning, natural language processing, recommendation systems, computer vision, and intelligent applications.\n\nĐang hoạt động\nChỉnh sửa\nNgừng hoạt động\nXóa\nCHUYÊN NGÀNH · IA\nInformation Assurance\n\nInformation security, secure systems, risk management, networks, and information assurance.\n\nĐang hoạt động\nChỉnh sửa\nNgừ"
+  },
+  {
+    "role": "department",
+    "route": "/academic/profile-verifications",
+    "heading": "Xác minh hồ sơ học vụ",
+    "overflow": false,
+    "text": "Quản lý học vụ\nXác minh hồ sơ học vụ\n\nKiểm tra thông tin bộ môn, chuyên ngành và phản hồi hồ sơ cần bổ sung.\n\nrefresh\nTải lại\nTRẠNG THÁI\nChờ xác minh\nĐã xác minh\nCần bổ sung\nTất cả hồ sơ\n0 hồ sơ\n\nĐang tải hồ sơ…\n\nTrang trước\nTrang 1 / 1\nTrang sau"
+  },
+  {
+    "role": "department",
+    "route": "/department/projects/review",
+    "heading": "Danh sách đề cương chờ xử lý",
+    "overflow": false,
+    "text": "THẨM ĐỊNH ĐỀ CƯƠNG\n\nDanh sách đề cương chờ xử lý\nTìm và mở hồ sơ đề cương thuộc phạm vi bộ môn của bạn.\nTìm đề cương\nTìm kiếm\n\nKhông có đề cương nào trong phạm vi bộ môn ở thời điểm này."
+  },
+  {
+    "role": "department",
+    "route": "/department/projects/review/2",
+    "heading": "Thẩm định đề cương",
+    "overflow": false,
+    "text": "← Danh sách thẩm định\nThẩm định đề cương\nSEP490-FA26-AIPMS · Building an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\n\nNhóm: AI-PMS · Trạng thái: Đang thực hiện\n\nTheo dõi đánh giá và công bố kết quả\nNội dung đề cương\nNhóm\nAI-PMS\nNgành\nSE — Software Engineering, AI — Artificial Intelligence, ADS — Applied Data Science, MKT — Marketing\nLĩnh vực\n—\nCông nghệ\n—\nTừ khóa\n—\nNgày nộp\n14:00:00 28/8/2026\nNguồn đề cương\nĐề xuất của sinh viên\nMô tả\n\nWeb-based academic project management platform supporting multi-major team formation, project approval, supervisor assignment, milestones, tasks, reports, deliverables, meetings, feedback, evaluation, notifications, and future AI services.\n\nBối cảnh và vấn đề\n\nChưa có nội dung bối cảnh và vấn đề.\n\nMục tiêu\n\nProvide transparent academic project progress tracking; support multi-major and cross-department collaboration; improve supervision and feedback; record deliverables and evaluations; prepare a clean data foundation for later AI progress analysis, risk prediction, supervisor recommendation, report summarization, and chatbot features.\n\nSản phẩm kỳ vọng\n\nChưa có sản phẩm kỳ vọng.\n\nChưa có phạm vi học thuật cho đề cương này.\n\nYêu cầu nhân sự theo ngành\n\nPhân công số lượng thành viên và trách nhiệm cho từng ngành tham gia.\n\nChỉnh sửa yêu cầu\n\nChưa có yêu cầu về số thành viên theo ngành.\n\nPhản hồi thẩm định\nLý do thẩm định\n\nHồ sơ hiện không có bước thẩm định cần xử lý.\n\nLịch sử xử lý\n\nKhởi tạo → Bản nháp · Nguyễn Minh Khang · Initial project registration created by team leader.\n\nBản nháp → Đã nộp đề cương · Nguyễn Minh Khang · Team completed the initial proposal and submitted it fo"
+  },
+  {
+    "role": "department",
+    "route": "/department/projects/2/evaluation-schemes",
+    "heading": "Phương án đánh giá",
+    "overflow": false,
+    "text": "Đánh giá đồ án\nPhương án đánh giá\n\nThiết lập các thành phần, trọng số và ngưỡng đạt trước khi phân công người chấm.\n\nPhân công người chấm\nadd\nTạo bản nháp\nPhiên bản của đồ án\n\nĐang tải phương án đánh giá…\n\nChọn phương án ở bên trái hoặc tạo bản nháp mới. Muốn sửa phương án đã công bố, hãy tạo phiên bản mới."
+  },
+  {
+    "role": "department",
+    "route": "/department/projects/2/result",
+    "heading": "Công bố kết quả đồ án",
+    "overflow": false,
+    "text": "Đồ án #2\nCông bố kết quả đồ án\n\nKiểm tra cách tính điểm, xem trước kết quả và công bố khi đã đủ điều kiện.\n\nCách tính điểm\nNgưỡng đạt:\n\nChưa có phân công đánh giá nào có hiệu lực cho đồ án này.\n\nLưu cách tính điểm\nXem trước kết quả\n\nCần công bố phương án đánh giá theo phạm vi trước khi xem trước kết quả. Kết quả cũ chỉ có thể xem.\n\nTôi đã kiểm tra và xác nhận công bố kết quả trong bản xem trước này.\nCông bố kết quả\nKết quả từng sinh viên\n\nChọn sinh viên trong phương án đánh giá đã công bố để xem điểm và điều kiện công bố.\n\nSinh viên\nChọn sinh viên\nXem trước kết quả\n\nChưa có danh sách sinh viên trong phương án đánh giá đã công bố.\n\narrow_back\nVề thẩm định đề cương"
+  },
+  {
+    "role": "department",
+    "route": "/department/projects/2/evaluations",
+    "heading": "Phân công người chấm",
+    "overflow": false,
+    "text": "Đánh giá đồ án\nPhân công người chấm\n\nChọn đợt đánh giá, thành phần chấm và giảng viên phù hợp cho đồ án.\n\nschema\nPhương án đánh giá\nPhân công mới\n\nChỉ những giảng viên đủ điều kiện cho đợt và thành phần đã chọn mới xuất hiện trong danh sách.\n\nĐợt đánh giá\nChọn đợt\nThành phần đánh giá\nChọn thành phần đã công bố\nNgười chấm\nChọn người chấm\nVai trò đánh giá\nGiảng viên đánh giá\nGVHD\nPhân công người chấm\n\nChưa có đợt đánh giá thuộc phạm vi quản lý của bạn.\n\nPhân công hiện có\n\nTheo dõi người chấm đang được phân công và lịch sử thu hồi.\n\nTrạng thái\nTất cả\nĐang hiệu lực\nĐã thu hồi\n\nChưa có người chấm phù hợp với bộ lọc này.\n\nCông bố kết quả\narrow_forward"
+  },
+  {
+    "role": "department",
+    "route": "/department/projects/2/governance",
+    "heading": "Điều phối đồ án",
+    "overflow": false,
+    "text": "Đồ án #2\nĐiều phối đồ án\n\nTheo dõi lịch báo cáo, việc cần làm sau trao đổi và minh chứng của nhóm.\n\nLịch nộp báo cáo\nLoại báo cáo\nHàng tuần\nHàng tháng\nKhi quá hạn\nCho nộp và đánh dấu trễ\nKhông cho nộp\nTừ ngày\nĐến ngày\nHạn nộp\nTạo lịch nộp\nViệc cần làm sau trao đổi\nNguồn trao đổi\nChọn cuộc họp hoặc báo cáo\nCuộc họp: Final Submission Readiness Review\nCuộc họp: M3 Weekly Progress Sync\nCuộc họp: Test\nCuộc họp: Họp thử nghiệm Video Call AI-PMS\nCuộc họp: TEST\nCuộc họp: Kiểm tra giao diện phòng họp\nCuộc họp: Kiểm thử Video AI-PMS\nCuộc họp: Database and Architecture Review\nCuộc họp: Hop GVHD dinh ky voi sinh vien\nCuộc họp: Hop danh gia tien do tuan FA26\nCuộc họp: Sprint44\nCuộc họp: Sprint 4\nCuộc họp: Họp trao đổi tiến độ Sprint 2.\nCuộc họp: Project Kickoff with Supervisors\nBáo cáo #30002\nBáo cáo #20003\nBáo cáo #20002\nBáo cáo #3\nBáo cáo #4\nBáo cáo #2\nCông việc\nMô tả\nHạn hoàn thành\nThêm công việc\nLịch báo cáo hiện có\n\nChưa có lịch báo cáo.\n\nCông việc sau trao đổi\n\nCác công việc đã ghi nhận sau c"
+  },
+  {
+    "role": "department",
+    "route": "/department/projects/2/final-requirements",
+    "heading": "Yêu cầu bàn giao",
+    "overflow": false,
+    "text": "Yêu cầu bàn giao\n\nĐồ án #2 · Chọn các hạng mục nhóm cần nộp trước khi chốt bàn giao.\n\nhạng mục bắt buộc\nM3 Progress Package\nDatabase Design Package\nProject Proposal\nLưu yêu cầu\nXem gói đã khóa\narrow_forward"
+  },
+  {
+    "role": "department",
+    "route": "/department/projects/2/final-submission",
+    "heading": "Gói bàn giao cuối",
+    "overflow": false,
+    "text": "Gói bàn giao cuối\n\nĐồ án #2 · Nội dung và tệp trong bản bàn giao đã chốt.\n\ninventory_2\nChưa có gói bàn giao cuối đã khóa\n\nĐồ án chưa chốt gói bàn giao cuối kỳ.\n\narrow_back\nDanh mục đồ án"
+  },
+  {
+    "role": "department",
+    "route": "/department/projects/2/files",
+    "heading": "Kho tệp đồ án",
+    "overflow": false,
+    "text": "Tài liệu đồ án\nĐồ án #2\nKho tệp đồ án\n\nTìm và quản lý tài liệu theo công việc, báo cáo và cuộc họp của nhóm.\n\n6 tệp phù hợp\nBộ lọc tệp\n\nTìm theo tên, định dạng, người tải và nguồn phát sinh.\n\nfilter_list\nTÊN TỆP\nNGUỒN TỆP\nTất cả nguồn\nCông việc\nBáo cáo tiến độ\nCuộc họp\nPhiên bản hạng mục\nPhản hồi\nÁp dụng\nXóa lọc\nLọc thêm theo ngày, định dạng và người tải\nTệp trong phạm vi đồ án\n\nSắp xếp theo thời điểm cập nhật từ hệ thống.\n\n6 tệp\ndescription\nM3_Progress_Evidence.zip\n\nPhiên bản hạng mục #5 · application/zip · 9.0 MB\n\nTải bởi #11 · 14:15:42 14/8/2026\n\nTải xuống\ndescription\nAI_Data_Readiness_Feedback.txt\n\nPhản hồi #4 · text/plain · 8 KB\n\nTải bởi #7 · 14:15:42 14/8/2026\n\nTải xuống\ndescription\nDatabase_Architecture_Review_Minutes.docx\n\nCuộc họp #3 · application/vnd.openxmlformats-officedocument.wordprocessingml.document · 192 KB\n\nTải bởi #12 · 14:15:42 14/8/2026\n\nTải xuống\ndescription\nWeekly_Report_Week01.pdf\n\nBáo cáo tiến độ #2 · application/pdf · 768 KB\n\nTải bởi #9 · 14:15:42 14/8/2026\n\nT"
+  },
+  {
+    "role": "department",
+    "route": "/department/projects/2/contributions",
+    "heading": "Đóng góp của thành viên",
+    "overflow": false,
+    "text": "THEO DÕI ĐÓNG GÓP\nĐồ án #2\nĐóng góp của thành viên\n\nTheo dõi hoạt động và mở từng chứng cứ do hệ thống ghi nhận. Chỉ số hoạt động hỗ trợ đối chiếu, không thay thế điểm học phần.\n\nNGUỒN DỮ LIỆU\nDữ liệu hiện tại\nBản tổng hợp đã lưu\nLưu bản tổng hợp\n\nTHÀNH VIÊN\n\n5\n\nDữ liệu hiện tại\n\nCÔNG VIỆC HOÀN TẤT\n\n12/21\n\nTheo nhiệm vụ được giao\n\nTỔNG CHỨNG CỨ\n\n38\n\nTrong trang hiện tại\n\nPHIÊN BẢN QUY TẮC\n\nactivity-v2\n\nSUFFICIENT\n\nHoạt động theo thành viên\n\nCập nhật theo hoạt động hiện tại\n\n5 thành viên trên trang\nMK\nNguyễn Minh Khang\nUSER #9\n\nCông việc\n5/7\n\nBáo cáo\n6\n\nCuộc họp\n5\n\nBản nộp\n2\n\nTệp\n0\n\nHoạt động\n15.5\n\n18\nXem chứng cứ\nGH\nTrần Gia Hân\nUSER #10\n\nCông việc\n3/4\n\nBáo cáo\n0\n\nCuộc họp\n4\n\nBản nộp\n1\n\nTệp\n0\n\nHoạt động\n6.5\n\n8\nXem chứng cứ\nQB\nPhạm Quốc Bảo\nUSER #11\n\nCông việc\n0/3\n\nBáo cáo\n0\n\nCuộc họp\n3\n\nBản nộp\n1\n\nTệp\n0\n\nHoạt động\n4\n\n4\nXem chứng cứ\nKL\nLê Khánh Linh\nUSER #12\n\nCông việc\n3/5\n\nBáo cáo\n0\n\nCuộc họp\n2\n\nBản nộp\n0\n\nTệp\n0\n\nHoạt động\n3.5\n\n5\nXem chứng cứ\nAD\nVõ Anh Duy\nUSER #13\n\nCông việc\n1/2\n\nBáo "
+  },
+  {
+    "role": "department",
+    "route": "/department/supervisors",
+    "heading": "Giảng viên hướng dẫn",
+    "overflow": false,
+    "text": "KHÔNG GIAN BỘ MÔN\n\nGiảng viên hướng dẫn\n\nTra cứu hồ sơ, chuyên môn và trạng thái sẵn sàng của giảng viên trong bộ môn.\n\n3\nhồ sơ\nTÌM KIẾM\nMÃ BỘ MÔN\nCHUYÊN MÔN\nTRẠNG THÁI\nTất cả trạng thái\nSẵn sàng nhận hướng dẫn\nTạm thời chưa nhận\nHM\nNguyễn Hoàng Minh\n\nInformation Technology\n\nAcademic Project Supervision\nASP.NET Core\nSoftware Architecture\n+1\nSẵn sàng\narrow_forward\nĐL\nPhạm Đức Long\n\nInformation Technology\n\nCloud Deployment\nDocker and CI/CD\nSẵn sàng\narrow_forward\nTT\nTrần Thu Trang\n\nInformation Technology\n\nLarge Language Models\nLearning Analytics\nNatural Language Processing\n+1\nSẵn sàng\narrow_forward"
+  },
+  {
+    "role": "department",
+    "route": "/department/student-qualifications",
+    "heading": "Xác minh điều kiện tham gia đồ án",
+    "overflow": false,
+    "text": "Điều kiện tham gia\nXác minh điều kiện tham gia đồ án\n\nKiểm tra hồ sơ của sinh viên thuộc bộ môn trước khi tham gia nhóm và đăng ký đồ án.\n\nTải lại\nChờ xác minh\nĐã xác minh\nBị từ chối\nĐã hết hạn\nTải lại\nSINH VIÊN\tĐÀO TẠO\tCHỨNG CHỈ\tXÁC MINH\tTHAO TÁC\n\nKhông có hồ sơ phù hợp."
+  },
+  {
+    "role": "department",
+    "route": "/department/topics",
+    "heading": "Quản lý đề tài",
+    "overflow": false,
+    "text": "DANH MỤC HỌC VỤ\n\nQuản lý đề tài\nTạo, công bố và theo dõi các đề tài dùng cho kỳ đồ án.\nTìm đề tài\nTrạng thái\nBản nháp\nĐã công bố\nĐã đóng\nTạo đề tài mới\nadd\n\nDANH SÁCH\n\nĐề tài hiện có\n0 đề tài\n\nKhông có đề tài trong trạng thái đã chọn."
+  },
+  {
+    "role": "admin",
+    "route": "/admin/access/users/9",
+    "heading": "Nguyễn Minh Khang",
+    "overflow": false,
+    "text": "← Danh sách tài khoản\n\nTÀI KHOẢN #9\n\nNguyễn Minh Khang\n\nkhangnmde180901@fpt.edu.vn\n\nĐang hoạt động\nDanh tính\nEmail\nkhangnmde180901@fpt.edu.vn\nMã\nDE180901\nChức danh\nStudent\nĐiện thoại\nKhông có\nVai trò\n\nSinh viên\n\nChỉnh sửa thông tin tài khoản và vai trò hệ thống. Phân công hướng dẫn hoặc đánh giá được quản lý theo từng đồ án.\n\nTrạng thái và bảo mật\nLần đăng nhập thất bại\n0\nKhóa đến\nKhông có\nVô hiệu hóa\nKhóa\nPhạm vi học thuật\nBộ môn\n#2\nNgành\n#3\nBộ môn\nChưa liên kết\nBusiness Administration\nInformation Technology\nChuyên ngành\nChưa liên kết\nADS · Applied Data Science\nAI · Artificial Intelligence\nIA · Information Assurance\nSE · Software Engineering\n\nChọn bộ môn và chuyên ngành đang hoạt động, phù hợp với thông tin học vụ của tài khoản.\n\nCập nhật phạm vi học thuật"
+  },
+  {
+    "role": "admin",
+    "route": "/admin/access/rbac",
+    "heading": "Vai trò và quyền truy cập",
+    "overflow": false,
+    "text": "PHÂN QUYỀN NỀN TẢNG\n\nVai trò và quyền truy cập\n\nQuản lý quyền truy cập của từng vai trò. Phân công trong đồ án được quản lý ở không gian học vụ.\n\nVề tổng quan\nDanh sách vai trò\n\nChọn vai trò để xem và điều chỉnh các quyền được cấp.\n\nADMIN\nAdministrator\nVai trò hệ thống\nDEPARTMENT_STAFF\nDepartment Staff\nVai trò hệ thống\nLECTURER\nLecturer\nVai trò hệ thống\nSTUDENT\nStudent\nVai trò hệ thống\n\nChọn một vai trò ở bên trái để xem quyền truy cập.\n\nCác vai trò theo đồ án như trưởng nhóm, giảng viên hướng dẫn và người chấm được cấp qua phân công, không gán tại đây."
+  },
+  {
+    "role": "admin",
+    "route": "/admin/milestone-templates",
+    "heading": "Mẫu mốc đồ án",
+    "overflow": false,
+    "text": "Quản trị học vụ\nMẫu mốc đồ án\n\nChuẩn bị bộ mốc dùng chung, quản lý phiên bản và áp dụng cho từng kỳ đồ án.\n\nadd\nTạo mẫu\nCác mẫu hiện có\nrefresh\nTải lại\n\nChưa có mẫu. Tạo mẫu đầu tiên để bắt đầu."
+  },
+  {
+    "role": "admin",
+    "route": "/admin/portfolio",
+    "heading": "Danh mục đồ án",
+    "overflow": false,
+    "text": "Tổng quan nền tảng\nDanh mục đồ án\n\nTheo dõi trạng thái và tiến độ các đồ án trong phạm vi được cấp.\n\nXuất CSV\nTìm đồ án\nTrạng thái\nTất cả\nBản nháp\nĐang thẩm định\nĐã phê duyệt\nĐang thực hiện\nĐang bàn giao\nĐã hoàn thành\nĐã lưu trữ\nÁp dụng\nTổng đồ án\n4\nĐang thực hiện\n2\nĐã hoàn thành\n0\nTheo trạng thái\nĐang thực hiện: 2\nĐã phê duyệt: 2\nTheo chuyên ngành\nADS: 1\nAI: 1\nIA: 1\nMKT: 1\nSE: 3\nDanh sách đồ án\n\nDữ liệu tại 04:54 7/10/26. Hệ thống ghi nhận lịch sử xuất dữ liệu.\n\nTất cả ngành\nADS\nAI\nIA\nMKT\nSE\n\nVIDEO-TEST-20261005 · [TEST] Video Meeting Integration\n\nInformation Technology · Chưa có GVHD\n\nĐang thực hiện\n\nPRJ-1265A42F · aaaa\n\nInformation Technology · Chưa có GVHD\n\nĐã phê duyệt\n\nPRJ-839F174F · He thong Giam sat An ninh Thong tin va Phat hien Xam nhap Ung dung AI\n\nInformation Technology · Chưa có GVHD\n\nĐã phê duyệt\n\nSEP490-FA26-AIPMS · Building an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\n\nInformation Technology · Nguyễn Hoàng Minh\n\nĐang thực hiện"
+  },
+  {
+    "role": "admin",
+    "route": "/profile",
+    "heading": "Hồ sơ tài khoản",
+    "overflow": false,
+    "text": "Tài khoản cá nhân\nHồ sơ tài khoản\n\nQuản lý thông tin cá nhân và thiết lập bảo mật của bạn.\n\nrefresh\nLàm mới hồ sơ\nN\nHỒ SƠ ĐÃ XÁC THỰC\nNguyễn Minh Quân\n\naipms.admin@fpt.edu.vn\n\nMã tài khoản\n#4\nVai trò tài khoản\nQuản trị viên, Cán bộ bộ môn\nThông tin học vụ\n\nChưa tải được hồ sơ học vụ. Thử lại\n\nChỉnh sửa hồ sơ\nBảo mật tài khoản\narrow_forward"
+  },
+  {
+    "role": "admin",
+    "route": "/profile/security",
+    "heading": "Bảo mật tài khoản",
+    "overflow": false,
+    "text": "arrow_back\nQuay lại\nTài khoản cá nhân\nBảo mật tài khoản\n\nCập nhật mật khẩu để bảo vệ tài khoản của bạn.\n\nĐổi mật khẩu\n\nSau khi đổi mật khẩu, bạn cần đăng nhập lại.\n\nMật khẩu hiện tại\nMật khẩu mới\n\nÍt nhất 10 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.\n\nXác nhận mật khẩu mới\nĐổi mật khẩu\nTài khoản Google\n\nLiên kết Google để có thêm cách đăng nhập. Xác nhận mật khẩu hiện tại trước khi thay đổi.\n\nChưa liên kết tài khoản Google.\n\nMật khẩu hiện tại\nLiên kết Google"
+  },
+  {
+    "role": "admin",
+    "route": "/notifications",
+    "heading": "Thông báo",
+    "overflow": false,
+    "text": "Trung tâm cập nhật\nThông báo\n\nLịch họp, nhận xét và những thay đổi cần theo dõi — tập trung ở một nơi.\n\nTất cả\nChưa đọc\nLàm mới\nĐánh dấu tất cả đã đọc\nnotifications_none\nChưa có thông báo\n\nLịch họp, nhận xét và cập nhật đồ án sẽ xuất hiện tại đây."
+  },
+  {
+    "role": "admin",
+    "route": "/calendar",
+    "heading": "Lịch tổng hợp & điểm cần chú ý",
+    "overflow": false,
+    "text": "KHÔNG GIAN CHUNG · CHỈ ĐỌC\n\nLịch tổng hợp & điểm cần chú ý\n\nTổng hợp các mốc thời gian trong phạm vi bạn được xem. Lịch giúp theo dõi công việc nhưng không thay thế thông báo.\n\nrefresh\nTải lại\ninfo\n2 nguồn chưa đầy đủ. Những nguồn khác vẫn được hiển thị.\nLịch theo dữ liệu nguồn\n\nCác mốc theo ngày được giữ nguyên; thời điểm cụ thể hiển thị theo giờ Việt Nam.\n\nDanh sách\nTheo tháng\nHiện hoàn tất\nevent_busy\n\nChưa có sự kiện nào có thời gian trong phạm vi hiện tại.\n\nĐiểm cần chú ý\n\nƯu tiên trình bày, không phải phân loại rủi ro hay quyền thao tác.\n\n0\ntask_alt\n\nKhông có điểm cần chú ý từ nguồn đã tải.\n\nTrạng thái nguồn dữ liệu\nTài khoản nền tảng\nChỉ hiển thị trang đầu tối đa 20 tài khoản.\nLịch nền tảng\nHệ thống chưa có calendar projection quản trị theo khoảng thời gian."
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/dashboard",
+    "heading": "Tổng quan hướng dẫn",
+    "overflow": false,
+    "text": "KHÔNG GIAN GIẢNG VIÊN\n\nTổng quan hướng dẫn\n\nTheo dõi khối lượng hướng dẫn, báo cáo chờ phản hồi và các đồ án cần chú ý.\n\nTìm đồ án\nTrạng thái\nTất cả\nBản nháp\nĐang thẩm định\nĐã phê duyệt\nĐang thực hiện\nĐang bàn giao\nĐã hoàn thành\nĐã lưu trữ\nÁp dụng\n\nĐồ án được phân công\n\n1\n\nBáo cáo chờ duyệt\n\n1\n\nCông việc quá hạn\n\n0\n\nĐồ án / hạn mức\n\n1/3\n\nĐồ án phụ trách\n\nDữ liệu tại 04:55 7/10/26.\n\nĐang hoạt động: 1\n\nSEP490-FA26-AIPMS · Building an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\n\nChưa có bộ môn · 1 báo cáo chờ duyệt\n\nĐang hoạt động\nMở không gian đồ án"
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/profile",
+    "heading": "Nguyễn Hoàng Minh",
+    "overflow": false,
+    "text": "HỒ SƠ GIẢNG VIÊN\n\nNguyễn Hoàng Minh\n\nCập nhật chuyên môn, giới thiệu và khả năng nhận hướng dẫn đồ án.\n\nInformation Technology · Hồ sơ #2\n\nGiới thiệu chuyên môn\n\nTối đa 4.000 ký tự. Để trống nếu chưa muốn công bố giới thiệu.\n\nSẵn sàng nhận yêu cầu hướng dẫn\nChuyên môn\n\nThêm các lĩnh vực bạn có thể hướng dẫn cho sinh viên.\n\nThêm chuyên môn\nTên chuyên môn\nMức độ\nChưa xác định\nCơ bản\nTrung cấp\nNâng cao\nChuyên gia\nXóa\nTên chuyên môn\nMức độ\nChưa xác định\nCơ bản\nTrung cấp\nNâng cao\nChuyên gia\nXóa\nTên chuyên môn\nMức độ\nChưa xác định\nCơ bản\nTrung cấp\nNâng cao\nChuyên gia\nXóa\nTên chuyên môn\nMức độ\nChưa xác định\nCơ bản\nTrung cấp\nNâng cao\nChuyên gia\nXóa\nLưu hồ sơ giảng viên\nHủy thay đổi"
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/projects/2/workspace",
+    "heading": "Tổng quan đồ án",
+    "overflow": false,
+    "text": "GIẢNG VIÊN HƯỚNG DẪN\n\nTổng quan đồ án\n\nTheo dõi tiến độ, nội dung cần phản hồi và toàn bộ tài liệu của đồ án được phân công.\n\nLàm mới dữ liệu\nĐổi đồ án\n\nSEP490-FA26-AIPMS · AI-PMS\n\nBuilding an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\nTrạng thái\nĐang thực hiện\nNhóm\nAI-PMS\nGVHD\nNguyễn Hoàng Minh\nMốc đang thực hiện\nM3 - Execution and Collaboration Modules\nHạng mục bàn giao\n3 hạng mục\nCần chú ý\n\nCác mục cần theo dõi trong tiến độ hiện tại của đồ án.\n\nBáo cáo chờ phản hồi\n\n1 báo cáo chờ phản hồi\n\nViệc quá hạn / vướng mắc\n\n0 quá hạn · 1 vướng mắc\n\nCuộc họp sắp tới\n\nFinal Submission Readiness Review · 21:00 18/12/26\nTài liệu và hoạt động\n\nTruy cập nội dung cần xem hoặc phản hồi cho nhóm.\n\nTiến độ\nTiến độ, vướng mắc và phản hồi.\nXem"
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/projects/2/progress",
+    "heading": "Theo dõi tiến độ và báo cáo",
+    "overflow": false,
+    "text": "arrow_back\nQuay lại\nGiám sát tiến độ\nSEP490-FA26-AIPMS\nTheo dõi tiến độ và báo cáo\n\nTheo dõi kết quả thực hiện, những việc cần lưu ý và gửi phản hồi cho nhóm.\n\nrefresh\nLàm mới dữ liệu\nTổng quan tiến độ\nTiến độ tổng quan\n54.55%\n\n6/11 công việc · 2/5 mốc hoàn thành\n\nCông việc cần lưu ý\n1\n\n0 quá hạn · 1 vướng mắc\n\nBáo cáo theo kỳ\n6\n\n1 đã nộp · 5 đã có phản hồi trong trang đang xem\n\nBáo cáo tiến độ\n\nMở báo cáo để xem kết quả và gửi nhận xét cho nhóm.\n\nMở danh sách có bộ lọc\nĐã nhận xét\n#30002 · 22/09/2026 – 29/09/2026\nmục tiêu\n\nKhó khăn & rủi ro: không\n\nNgười nộp: Nguyễn Minh Khang · 13:44:30 22/9/2026\n\nĐọc và phản hồi\nĐã nhận xét\n#20003 · 22/09/2026 – 28/09/2026\nTóm tắt ..\n\nKhó khăn & rủi ro: khó khăn..\n\nNgười nộp: Nguyễn Minh Khang · 01:11:42 22/9/2026\n\nĐọc và phản hồi\nĐã nhận xét\n#20002 · 1"
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/projects/2/tasks",
+    "heading": "Công việc",
+    "overflow": false,
+    "text": "SEP490-FA26-AIPMS\nCông việc\n\nXem ai đang phụ trách, việc nào cần xử lý và hạn hoàn thành.\n\nrefresh\nCập nhật\nCả nhóm\nCủa tôi\nformat_list_bulleted\nDanh sách\nTheo trạng thái\nTÌM CÔNG VIỆC\nTRẠNG THÁI\nTất cả\nChưa bắt đầu\nĐang làm\nĐang vướng mắc\nChờ kiểm tra\nHoàn thành\nĐã hủy\nÁp dụng\nBộ lọc khác"
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/projects/2/tasks/9",
+    "heading": "Chi tiết công việc",
+    "overflow": false,
+    "text": "arrow_back\nQuay lại\nChi tiết công việc"
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/projects/2/milestones",
+    "heading": "Mốc đồ án",
+    "overflow": false,
+    "text": "SEP490-FA26-AIPMS\nMốc đồ án\n\nChia đồ án thành các mốc rõ ràng để cả nhóm cùng theo dõi.\n\nrefresh\nCập nhật"
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/projects/2/gantt",
+    "heading": "Lịch thực hiện",
+    "overflow": false,
+    "text": "SEP490-FA26-AIPMS\nLịch thực hiện\n\nXem thời gian của các mốc và công việc để sắp xếp kế hoạch của nhóm.\n\nflag\nQuản lý mốc\nrefresh\nCập nhật\nCác mốc\nCả công việc\nTheo tháng\nTheo tuần\nMốc đồ án\nTất cả các mốc\n\nChưa có thời gian dự kiến\nThời gian trên biểu đồ lấy từ ngày đã đặt cho mốc và công việc."
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/projects/2/reports",
+    "heading": "Báo cáo tiến độ",
+    "overflow": false,
+    "text": "arrow_back\nQuay lại\nTheo dõi thực hiện\nBuilding an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\nBáo cáo tiến độ\n\nTheo dõi kết quả từng kỳ và gửi nhận xét để nhóm triển khai bước tiếp theo.\n\n01\nSoạn bản nháp\nCác thành viên cùng chuẩn bị\n02\nTrưởng nhóm nộp\nNội dung được khóa sau khi nộp\n03\nGVHD nhận xét\nCả nhóm xem phản hồi tại đây\nTRẠNG THÁI\nTất cả trạng thái\nBản nháp\nĐã nộp\nĐã nhận xét\nLOẠI BÁO CÁO\nTuần & tháng\nBáo cáo tuần\nBáo cáo tháng\nLàm mới\nLịch sử báo cáo\n6 báo cáo\narticle\nBáo cáo tuần\n#30002\n22/09/2026 – 29/09/2026\n\nmục tiêu\n\nNgười nộp: Nguyễn Minh Khang\nĐã nhận xét\nXem báo cáo\narrow_forward\narticle\nBáo cáo tuần\n#20003\n22/09/2026 – 28/09/2026\n\nTóm tắt ..\n\nNgười nộp: Nguyễn Minh Khang\nĐã nhận xét\nXem báo cáo\narrow_forward\n"
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/projects/2/reports/30002",
+    "heading": "Chi tiết báo cáo",
+    "overflow": false,
+    "text": "arrow_back\nQuay lại\nTheo dõi thực hiện\nBuilding an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\nChi tiết báo cáo\n\nNội dung báo cáo và lịch sử nhận xét của giảng viên hướng dẫn.\n\nDanh sách báo cáo\n\nBÁO CÁO TUẦN • #30002\n\n22/09/2026 – 29/09/2026\n\nNgười nộp: Nguyễn Minh Khang • Nộp ngày 22/09/2026\n\nĐã nhận xét\nNội dung báo cáo\n01\nTóm tắt tiến độ\n\nmục tiêu\n\n02\nCông việc đã hoàn thành\n\nCông việc\n\n03\nKế hoạch kỳ tiếp theo\n\nkế hoạch\n\n04\nKhó khăn & rủi ro\n\nkhông\n\nPhản hồi của GVHD\n1\nNguyễn Hoàng Minh\n22/09/2026\n\nabc\n\nPHẢN HỒI MỚI\nGửi phản hồi\nTrạng thái báo cáo\n\nNội dung đã được khóa sau khi nộp. GVHD đã gửi nhận xét; xem chi tiết bên dưới.\n\nTải lại trạng thái"
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/projects/2/meetings",
+    "heading": "Lịch họp và biên bản",
+    "overflow": false,
+    "text": "arrow_back\nQuay lại\nTrao đổi và hướng dẫn\nBuilding an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\nLịch họp và biên bản\n\nLên lịch, ghi lại kết luận và thống nhất bước tiếp theo cùng giảng viên.\n\n01\nThống nhất lịch\n02\nGhi nhận cuộc họp\n03\nTheo dõi phản hồi\nGiờ Việt Nam · UTC+7\nTrạng thái\nTất cả trạng thái\nĐã lên lịch\nĐã hoàn tất\nĐã hủy\nTừ ngày\nĐến ngày\nÁp dụng\nXóa bộ lọc\nCác cuộc họp\nLàm mới\ncalendar_month\n\n21:00 18/12/26 · UTC+7\n\nFinal Submission Readiness Review\n\nAlpha Building, FPT University - Da Nang Campus\n\n7 người tham gia · Tổ chức bởi Nguyễn Minh Khang\nĐã lên lịch\nXem chi tiết\narrow_forward\ncalendar_month\n\n22:00 10/11/26 · UTC+7\n\nM3 Weekly Progress Sync\n\nGamma Building, FPT University - Da Nang Campus\n\n5 người tham gia ·"
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/projects/2/meetings/4",
+    "heading": "M3 Weekly Progress Sync",
+    "overflow": false,
+    "text": "arrow_back\nQuay lại\nTrao đổi và hướng dẫn\nBuilding an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\nM3 Weekly Progress Sync\n\nThông tin cuộc họp, biên bản và những việc cả nhóm đã thống nhất.\n\nDanh sách cuộc họp\n\nTHỜI GIAN · GIỜ VIỆT NAM (UTC+7)\n\n22:00 10/11/26\n\nKết thúc: 23:00 10/11/26\n\nĐã hoàn tất\nNội dung và địa điểm\n\nReview milestone/task module, progress reporting, file metadata, deliverables, and blockers.\n\nĐịa điểm\nGamma Building, FPT University - Da Nang Campus\nNgười tổ chức\nNguyễn Minh Khang\nBiên bản và điểm danh\nCập nhật biên bản\n\nMilestone/task module is in progress. File storage integration is blocked until object-storage configuration is confirmed.\n\nKết luận và công việc sau họp\n\nGhi kết luận sau khi cuộc họp hoàn tất"
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/projects/2/meetings/new",
+    "heading": "Lên lịch họp",
+    "overflow": false,
+    "text": "arrow_back\nQuay lại\nTrao đổi và hướng dẫn\nBuilding an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\nLên lịch họp\n\nLên lịch, ghi lại kết luận và thống nhất bước tiếp theo cùng giảng viên.\n\nDanh sách cuộc họp\nThông tin cuộc họp\n\nThời gian hiển thị và nhập theo giờ Việt Nam (UTC+7).\n\nĐang tải thành viên và GVHD…\n\nTiêu đề cuộc họp\nBắt đầu (giờ Việt Nam)\nKết thúc (không bắt buộc)\nHình thức tham gia\nTại chỗ\nTừ xa\nKết hợp\nKênh trực tuyến\nKhông có kênh trực tuyến\nĐịa điểm\nNội dung dự kiến\nMời người tham gia\n\nNgười tạo được tự động thêm vào cuộc họp. Bạn có thể mời thêm sau khi lưu lịch.\n\nTạo cuộc họp"
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/projects/2/deliverables",
+    "heading": "Hạng mục cần nộp",
+    "overflow": false,
+    "text": "arrow_back\nQuay lại\nThực hiện đồ án\nBuilding an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\nHạng mục cần nộp\n\nTheo dõi yêu cầu đầu ra, các phiên bản đã nộp và phản hồi của giảng viên.\n\ndashboard\nKhông gian đồ án\nTÌM THEO TÊN\nTRẠNG THÁI\nTất cả\nBản nháp\nĐang mở\nChờ duyệt\nĐã chấp nhận\nCần chỉnh sửa\nĐã khóa\nLOẠI HẠNG MỤC\nÁp dụng\nXóa lọc"
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/projects/2/files",
+    "heading": "Kho tệp đồ án",
+    "overflow": false,
+    "text": "Tài liệu đồ án\nĐồ án #2\nKho tệp đồ án\n\nTìm và quản lý tài liệu theo công việc, báo cáo và cuộc họp của nhóm.\n\n6 tệp phù hợp\nBộ lọc tệp\n\nTìm theo tên, định dạng, người tải và nguồn phát sinh.\n\nfilter_list\nTÊN TỆP\nNGUỒN TỆP\nTất cả nguồn\nCông việc\nBáo cáo tiến độ\nCuộc họp\nPhiên bản hạng mục\nPhản hồi\nÁp dụng\nXóa lọc\nLọc thêm theo ngày, định dạng và người tải\nupload_file\nĐính kèm tệp\n\nChọn công việc, báo cáo hoặc cuộc họp để đính kèm tài liệu.\n\nĐang xác nhận hạng mục có thể đính kèm…\n\nTệp trong phạm vi đồ án\n\nSắp xếp theo thời điểm cập nhật từ hệ thống.\n\n6 tệp\ndescription\nM3_Progress_Evidence.zip\n\nPhiên bản hạng mục #5 · application/zip · 9.0 MB\n\n"
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/projects/2/evidence",
+    "heading": "Sổ minh chứng",
+    "overflow": false,
+    "text": "ĐỒ ÁN #2 · SỔ MINH CHỨNG\n\nSổ minh chứng\n\nTra cứu minh chứng theo công việc, báo cáo và cuộc họp; đối chiếu nội dung đã được xác minh.\n\nNguồn\nTất cả nguồn\nCông việc\nHạng mục bàn giao\nCuộc họp\nBáo cáo tiến độ\nTệp\nTrạng thái xác minh\nTất cả trạng thái\nChờ xác minh\nĐã xác minh\nBị từ chối\nMã ngành\nÁp dụng\nXóa lọc\nChưa có minh chứng phù hợp\n\nHãy thử điều chỉnh bộ lọc. Trạng thái xác minh được lấy trực tiếp từ hệ thống."
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/projects/2/contributions",
+    "heading": "Đóng góp của thành viên",
+    "overflow": false,
+    "text": "THEO DÕI ĐÓNG GÓP\nĐồ án #2\nĐóng góp của thành viên\n\nTheo dõi hoạt động và mở từng chứng cứ do hệ thống ghi nhận. Chỉ số hoạt động hỗ trợ đối chiếu, không thay thế điểm học phần.\n\nNGUỒN DỮ LIỆU\nDữ liệu hiện tại\nBản tổng hợp đã lưu\n\nTHÀNH VIÊN\n\n5\n\nDữ liệu hiện tại\n\nCÔNG VIỆC HOÀN TẤT\n\n12/21\n\nTheo nhiệm vụ được giao\n\nTỔNG CHỨNG CỨ\n\n38\n\nTrong trang hiện tại\n\nPHIÊN BẢN QUY TẮC\n\nactivity-v2\n\nĐủ dữ liệu\n\nHoạt động theo thành viên\n\nCập nhật theo hoạt động hiện tại\n\n5 thành viên trên trang\nMK\nNguyễn Minh Khang\nThành viên #9\n\nCông việc\n5/7\n\nBáo cáo\n6\n\nCuộc họp\n5\n\nBản nộp\n2\n\nTệp\n0\n\nHoạt động\n15.5\n\n18\nXem chứng cứ\nGH\nTrần Gia Hân\nThành viên #10\n\nCông việ"
+  },
+  {
+    "role": "lecturer",
+    "route": "/supervisor/projects/2/final-submission",
+    "heading": "Gói bàn giao cuối",
+    "overflow": false,
+    "text": "Gói bàn giao cuối\n\nĐồ án #2 · Nội dung và tệp trong bản bàn giao đã chốt.\n\ninventory_2\nChưa có gói bàn giao cuối đã khóa\n\nĐồ án chưa chốt gói bàn giao cuối kỳ.\n\narrow_back\nTổng quan đồ án"
+  },
+  {
+    "role": "lecturer",
+    "route": "/mentor/workspace",
+    "heading": "Hướng dẫn chuyên ngành",
+    "overflow": false,
+    "text": "Phân công chuyên ngành\nHướng dẫn chuyên ngành\n\nTheo dõi công việc và tiến độ của các chuyên ngành bạn được phân công hướng dẫn.\n\nrefresh\nTải lại\nChưa có phân công hướng dẫn chuyên ngành\n\nBạn sẽ thấy đồ án ở đây khi được phân công hướng dẫn chuyên ngành."
+  },
+  {
+    "role": "lecturer",
+    "route": "/evaluator/workspace",
+    "heading": "Đánh giá đồ án",
+    "overflow": false,
+    "text": "Đánh giá theo phân công\nĐánh giá đồ án\n\nTheo dõi các lượt chấm được giao, lưu nhận xét và hoàn thiện đánh giá.\n\nPhân công đang hiệu lực\n\n0\n\nBản nháp đang chấm\n\n0\n\nĐã chốt\n\n0\n\nMở từng phân công để xem nội dung chấm và điều kiện chốt điểm.\n\nChưa có phân công đánh giá đang hiệu lực\n\nBạn sẽ thấy đồ án ở đây khi được phân công chấm."
+  },
+  {
+    "role": "lecturer",
+    "route": "/evaluator/evaluations",
+    "heading": "Đánh giá được phân công",
+    "overflow": false,
+    "text": "ĐÁNH GIÁ ĐỒ ÁN\n\nĐánh giá được phân công\n\nXem các đồ án được phân công, lưu bản nháp và chốt kết quả sau khi hoàn tất chấm điểm.\n\nChưa có phân công đánh giá đang hiệu lực trong phạm vi hiện tại.\n\narrow_back\nVề bàn làm việc giảng viên"
+  },
+  {
+    "role": "student",
+    "route": "/project/overview",
+    "heading": "Tổng quan lộ trình",
+    "overflow": false,
+    "text": "Không gian đồ án\nTổng quan lộ trình\n\nTheo dõi trạng thái đồ án, việc cần ưu tiên và bước tiếp theo của nhóm.\n\nrocket_launch\nGiai đoạn Thực hiện: Đang hoạt động\nSV: Nguyễn Minh Khang (DE180901)\nĐồ án: Building an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\n\nGVHD: Nguyễn Hoàng Minh • Học kỳ: Fall 2026 • Thành viên: 5 bạn • Nhóm: SEP490_G01\n\nLịch thực hiện\nview_kanban\nXem mốc và công việc\n\nCông việc đang mở\n\n2\n\nCông việc quá hạn\n\n0\n\nThông báo chưa đọc\n\n5\n\nTiến độ đồ án\n\nTrạng thái đồ án: Đang thực hiện.\n\nRủi ro: Trung bình\n\nTiến độ: 55% · Đang vướng: 1 · Quá hạn: 0\n\nCông việc sắp đến"
+  },
+  {
+    "role": "student",
+    "route": "/projects/lifecycle",
+    "heading": "Hồ sơ đồ án",
+    "overflow": false,
+    "text": "SEP490-FA26-AIPMS\nHồ sơ đồ án\n\nBuilding an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities · AI-PMS (SEP490_G01) · Fall 2026\n\nTRẠNG THÁI\nĐang thực hiện\nTRƯỞNG NHÓM\nNguyễn Minh Khang\nCHUYÊN NGÀNH\nSoftware Engineering, Artificial Intelligence, Applied Data Science, Marketing\nGIẢNG VIÊN HƯỚNG DẪN\nNguyễn Hoàng Minh\nflag\nMỤC TIÊU ĐỒ ÁN\n\nProvide transparent academic project progress tracking; support multi-major and cross-department collaboration; improve supervision and feedback; record deliverables and evaluations; prepare a clean data foundation for later AI progress analysis, risk predi"
+  },
+  {
+    "role": "student",
+    "route": "/project/workspace",
+    "heading": "Điều phối đồ án",
+    "overflow": false,
+    "text": "AI-PMS / SEP490-FA26-AIPMS\n\nĐiều phối đồ án\n\nTheo dõi tiến độ, phân công công việc và hỗ trợ nhóm xử lý vướng mắc.\n\nrefresh\nĐang cập nhật…\nfolder_open\nBuilding an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\nGiảng viên hướng dẫn: Nguyễn Hoàng Minh\n6/11 việc hoàn thành\n54,6%\nerror_outline\n1 công việc cần nhóm xử lý\n\n1 việc đang vướng mắc · 0 việc quá hạn\n\nIntegrate file metadata repository\narrow_forward\nXem công việc\nTiến độ từng thành viên 5\n\nChọn một người để xem công việc họ đang phụ trách.\n\nXem nhóm\narrow_forward\nTHÀNH VIÊN / CÔNG VIỆC ĐANG LÀM\nĐÃ HOÀN THÀNH\nCẦN CHÚ Ý\nMK\nNguyễn "
+  },
+  {
+    "role": "student",
+    "route": "/project/tasks",
+    "heading": "Công việc",
+    "overflow": false,
+    "text": "SEP490-FA26-AIPMS\nCông việc\n\nXem ai đang phụ trách, việc nào cần xử lý và hạn hoàn thành.\n\nrefresh\nCập nhật\nCả nhóm\nCủa tôi\nformat_list_bulleted\nDanh sách\nTheo trạng thái\nTÌM CÔNG VIỆC\nTRẠNG THÁI\nTất cả\nChưa bắt đầu\nĐang làm\nĐang vướng mắc\nChờ kiểm tra\nHoàn thành\nĐã hủy\nNGƯỜI PHỤ TRÁCH\nCả nhóm\nNguyễn Minh Khang\nTrần Gia Hân\nPhạm Quốc Bảo\nLê Khánh Linh\nVõ Anh Duy\nÁp dụng\nBộ lọc khác\nCÔNG VIỆC / MỐC ĐỒ ÁN\nNGƯỜI PHỤ TRÁCH\nTRẠNG THÁI\nHẠN HOÀN THÀNH\ncheck_circle\nAnalyze academic project workflow\nM1 - Requirements and Proposal · Ưu tiên cao\nNguyễn Minh Khang, Lê Khánh Linh\nHoàn thành\n06/09\ncheck_circle\nDesign initial SQL Server ERD\nM1 - Requirement"
+  },
+  {
+    "role": "student",
+    "route": "/project/tasks/9",
+    "heading": "Chi tiết công việc",
+    "overflow": false,
+    "text": "arrow_back\nQuay lại\nChi tiết công việc"
+  },
+  {
+    "role": "student",
+    "route": "/project/milestones",
+    "heading": "Mốc đồ án",
+    "overflow": false,
+    "text": "SEP490-FA26-AIPMS\nMốc đồ án\n\nChia đồ án thành các mốc rõ ràng để cả nhóm cùng theo dõi.\n\nrefresh\nCập nhật\n5 mốc đồ án\n\n2 mốc hoàn thành\n\n01\nM1 - Requirements and Proposal\n\n3 công việc\n\nHoàn thành\n3/3 việc · 100%\nHạn: 15/09\n02\nM2 - Architecture and Core MVP\n\n3 công việc\n\nHoàn thành\n3/3 việc · 100%\nHạn: 15/10\n03\nM3 - Execution and Collaboration Modules\n\n3 công việc\n\nĐang thực hiện\n0/3 việc · 0%\nHạn: 30/11\n04\nM4 - Final Submission and Defense\n\n2 công việc\n\nChưa bắt đầu\n0/2 việc · 0%\nHạn: 31/12\n05\ntast 5\n\n0 công việc\n\nChưa bắt đầu\n0/0 việc · 0%\nHạn: 03/10"
+  },
+  {
+    "role": "student",
+    "route": "/project/milestones/4",
+    "heading": "Mốc đồ án",
+    "overflow": false,
+    "text": "arrow_back\nQuay lại\nSEP490-FA26-AIPMS\nMốc đồ án\n\nTheo dõi thời gian, tiến độ và công việc thuộc mốc này.\n\nrefresh\nCập nhật"
+  },
+  {
+    "role": "student",
+    "route": "/project/gantt",
+    "heading": "Lịch thực hiện",
+    "overflow": false,
+    "text": "SEP490-FA26-AIPMS\nLịch thực hiện\n\nXem thời gian của các mốc và công việc để sắp xếp kế hoạch của nhóm.\n\nflag\nQuản lý mốc\nrefresh\nCập nhật\nTiến độ chung\n54,6%\nViệc hoàn thành\n6/11\nQuá hạn\n0\nVướng mắc\n1\nCác mốc\nCả công việc\nTheo tháng\nTheo tuần\nMốc đồ án\nTất cả các mốc\nM1 - Requirements and Proposal\nM2 - Architecture and Core MVP\nM3 - Execution and Collaboration Modules\nM4 - Final Submission and Defense\ntast 5\n\n29/08/2026 – 03/01/2027\nThời gian trên biểu đồ lấy từ ngày đã đặt cho mốc và công việc.\n\nCuộn ngang để xem toàn bộ khoảng thời gian.\n\nMốc / công việc\nTháng 9/2026\nTháng 10/2026\nTháng 11/2026\nTháng 12/2026\nchevron_right\nM1 - Requirements "
+  },
+  {
+    "role": "student",
+    "route": "/project/reports",
+    "heading": "Báo cáo tiến độ",
+    "overflow": false,
+    "text": "arrow_back\nQuay lại\nTheo dõi thực hiện\nBuilding an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\nBáo cáo tiến độ\n\nGhi lại kết quả, lên kế hoạch tiếp theo và trao đổi với giảng viên hướng dẫn.\n\n01\nSoạn bản nháp\nCác thành viên cùng chuẩn bị\n02\nTrưởng nhóm nộp\nNội dung được khóa sau khi nộp\n03\nGVHD nhận xét\nCả nhóm xem phản hồi tại đây\nTRẠNG THÁI\nTất cả trạng thái\nBản nháp\nĐã nộp\nĐã nhận xét\nLOẠI BÁO CÁO\nTuần & tháng\nBáo cáo tuần\nBáo cáo tháng\nLàm mới\nLịch sử báo cáo\n6 báo cáo\narticle\nBáo cáo tuần\n#30002\n22/09/2026 – 29/09/2026\n\nmục tiêu\n\nNgười nộp: Nguyễn Minh Khang\nĐã nhận xét\nXem bá"
+  },
+  {
+    "role": "student",
+    "route": "/project/reports/30002",
+    "heading": "Chi tiết báo cáo",
+    "overflow": false,
+    "text": "arrow_back\nQuay lại\nTheo dõi thực hiện\nBuilding an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\nChi tiết báo cáo\n\nNội dung báo cáo và lịch sử nhận xét của giảng viên hướng dẫn.\n\nDanh sách báo cáo\n\nBÁO CÁO TUẦN • #30002\n\n22/09/2026 – 29/09/2026\n\nNgười nộp: Nguyễn Minh Khang • Nộp ngày 22/09/2026\n\nĐã nhận xét\nNội dung báo cáo\n01\nTóm tắt tiến độ\n\nmục tiêu\n\n02\nCông việc đã hoàn thành\n\nCông việc\n\n03\nKế hoạch kỳ tiếp theo\n\nkế hoạch\n\n04\nKhó khăn & rủi ro\n\nkhông\n\nPhản hồi của GVHD\n1\nNguyễn Hoàng Minh\n22/09/2026\n\nabc\n\nTrạng thái báo cáo\n\nNội dung đã được khóa sau khi nộp. GVHD đã gửi nhận x"
+  },
+  {
+    "role": "student",
+    "route": "/project/meetings",
+    "heading": "Lịch họp và biên bản",
+    "overflow": false,
+    "text": "arrow_back\nQuay lại\nTrao đổi và hướng dẫn\nBuilding an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\nLịch họp và biên bản\n\nSắp xếp lịch họp, ghi lại kết luận và thống nhất việc cần làm tiếp theo.\n\n01\nThống nhất lịch\n02\nGhi nhận cuộc họp\n03\nTheo dõi phản hồi\nGiờ Việt Nam · UTC+7\nTrạng thái\nTất cả trạng thái\nĐã lên lịch\nĐã hoàn tất\nĐã hủy\nTừ ngày\nĐến ngày\nÁp dụng\nXóa bộ lọc\nCác cuộc họp\nLàm mới\ncalendar_month\n\n21:00 18/12/26 · UTC+7\n\nFinal Submission Readiness Review\n\nAlpha Building, FPT University - Da Nang Campus\n\n7 người tham gia · Tổ chức bởi Nguyễn Minh Khang\nĐã lên lịch\nXem chi t"
+  },
+  {
+    "role": "student",
+    "route": "/project/meetings/4",
+    "heading": "M3 Weekly Progress Sync",
+    "overflow": false,
+    "text": "arrow_back\nQuay lại\nTrao đổi và hướng dẫn\nBuilding an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\nM3 Weekly Progress Sync\n\nThông tin cuộc họp, biên bản và những việc cả nhóm đã thống nhất.\n\nDanh sách cuộc họp\n\nTHỜI GIAN · GIỜ VIỆT NAM (UTC+7)\n\n22:00 10/11/26\n\nKết thúc: 23:00 10/11/26\n\nĐã hoàn tất\nNội dung và địa điểm\n\nReview milestone/task module, progress reporting, file metadata, deliverables, and blockers.\n\nĐịa điểm\nGamma Building, FPT University - Da Nang Campus\nNgười tổ chức\nNguyễn Minh Khang\nBiên bản và điểm danh\nCập nhật biên bản\n\nMilestone/task module is in progress. File "
+  },
+  {
+    "role": "student",
+    "route": "/project/deliverables",
+    "heading": "Hạng mục cần nộp",
+    "overflow": false,
+    "text": "arrow_back\nQuay lại\nThực hiện đồ án\nBuilding an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities\nHạng mục cần nộp\n\nTheo dõi yêu cầu đầu ra, các phiên bản đã nộp và phản hồi của giảng viên.\n\ndashboard\nKhông gian đồ án\nadd\nTạo hạng mục\nTÌM THEO TÊN\nTRẠNG THÁI\nTất cả\nBản nháp\nĐang mở\nChờ duyệt\nĐã chấp nhận\nCần chỉnh sửa\nĐã khóa\nLOẠI HẠNG MỤC\nÁp dụng\nXóa lọc"
+  },
+  {
+    "role": "student",
+    "route": "/project/files",
+    "heading": "Kho tệp đồ án",
+    "overflow": false,
+    "text": "Tài liệu đồ án\nĐồ án #2\nKho tệp đồ án\n\nTìm và quản lý tài liệu theo công việc, báo cáo và cuộc họp của nhóm.\n\n6 tệp phù hợp\nBộ lọc tệp\n\nTìm theo tên, định dạng, người tải và nguồn phát sinh.\n\nfilter_list\nTÊN TỆP\nNGUỒN TỆP\nTất cả nguồn\nCông việc\nBáo cáo tiến độ\nCuộc họp\nPhiên bản hạng mục\nPhản hồi\nÁp dụng\nXóa lọc\nLọc thêm theo ngày, định dạng và người tải\nupload_file\nĐính kèm tệp\n\nChọn công việc, báo cáo hoặc cuộc họp để đính kèm tài liệu.\n\nĐang xác nhận hạng mục có thể đính kèm…\n\nTệp trong phạm vi đồ án\n\nSắp xếp theo thời điểm cập nhật từ hệ thống.\n\n6 tệp\ndescription\nM3_Progress_Evidence.zip\n\nPhiên bản hạng mục #5 · application/zip · 9.0 MB\n\n"
+  },
+  {
+    "role": "student",
+    "route": "/project/evidence",
+    "heading": "Sổ minh chứng",
+    "overflow": false,
+    "text": "ĐỒ ÁN #2 · SỔ MINH CHỨNG\n\nSổ minh chứng\n\nTra cứu minh chứng theo công việc, báo cáo và cuộc họp; đối chiếu nội dung đã được xác minh.\n\nNguồn\nTất cả nguồn\nCông việc\nHạng mục bàn giao\nCuộc họp\nBáo cáo tiến độ\nTệp\nTrạng thái xác minh\nTất cả trạng thái\nChờ xác minh\nĐã xác minh\nBị từ chối\nMã ngành\nÁp dụng\nXóa lọc\nChưa có minh chứng phù hợp\n\nHãy thử điều chỉnh bộ lọc. Trạng thái xác minh được lấy trực tiếp từ hệ thống."
+  },
+  {
+    "role": "student",
+    "route": "/project/contributions",
+    "heading": "Đóng góp của thành viên",
+    "overflow": false,
+    "text": "THEO DÕI ĐÓNG GÓP\nĐồ án #2\nĐóng góp của thành viên\n\nTheo dõi hoạt động và mở từng chứng cứ do hệ thống ghi nhận. Chỉ số hoạt động hỗ trợ đối chiếu, không thay thế điểm học phần.\n\nNGUỒN DỮ LIỆU\nDữ liệu hiện tại\nBản tổng hợp đã lưu\n\nTHÀNH VIÊN\n\n5\n\nDữ liệu hiện tại\n\nCÔNG VIỆC HOÀN TẤT\n\n12/21\n\nTheo nhiệm vụ được giao\n\nTỔNG CHỨNG CỨ\n\n38\n\nTrong trang hiện tại\n\nPHIÊN BẢN QUY TẮC\n\nactivity-v2\n\nĐủ dữ liệu\n\nHoạt động theo thành viên\n\nCập nhật theo hoạt động hiện tại\n\n5 thành viên trên trang\nMK\nNguyễn Minh Khang\nThành viên #9\n\nCông việc\n5/7\n\nBáo cáo\n6\n\nCu"
+  },
+  {
+    "role": "student",
+    "route": "/project/final-submission",
+    "heading": "Bàn giao cuối đồ án",
+    "overflow": false,
+    "text": "Hoàn tất đồ án\nBàn giao cuối đồ án\n\nChuẩn bị các phiên bản sản phẩm và gửi gói bàn giao của nhóm.\n\nBản nháp bàn giao\n\nChọn rõ phiên bản của từng hạng mục. Bản nháp không tự chọn phiên bản mới nhất.\n\nĐợt bàn giao\nChọn đợt\nSEP490 Final Submission and Defense · Sắp diễn ra\nGhi chú\nHạng mục\nChọn hạng mục\nM3 Progress Package\nDatabase Design Package\nProject Proposal\nPhiên bản\nChọn phiên bản hợp lệ\nTạo bản nháp\nKiểm tra trước khi bàn giao\n\nHạn: Chưa có\n\nwarning\nChưa thể nộp:\nChưa đến đợt bàn giao cuối đang hiệu lực • Chưa có bản nháp bàn giao • Bộ môn"
+  },
+  {
+    "role": "student",
+    "route": "/project/result",
+    "heading": "Kết quả đồ án",
+    "overflow": false,
+    "text": "Kết quả chính thức\nKết quả đồ án\n\nXem điểm số và kết luận sau khi bộ môn công bố kết quả.\n\nhourglass_top\nKết quả chưa được công bố\n\nBạn sẽ xem được điểm và kết luận tại đây sau khi bộ môn hoàn tất quy trình công bố.\n\narrow_back\nVề hồ sơ đồ án"
+  },
+  {
+    "role": "student",
+    "route": "/team",
+    "heading": "Thành viên nhóm",
+    "overflow": false,
+    "text": "Thành viên nhóm\n\nHọc kỳ: Fall 2026 • Sinh viên: Nguyễn Minh Khang (DE180901)\n\nSEP490_G01\nAI-PMS\nĐã khóa theo đề tài\n\nSEP490 capstone team developing AI-PMS with members from Information Technology and Business Administration specializations to exercise multi-major and cross-department collaboration.\n\nSĩ số nhóm\n5 / 5 thành viên\nLịch sử kiểm tra điều kiện nhóm\n\nDanh sách thành viên đã được chốt theo hồ sơ đồ án.\n\nThành viên nhóm\n\n5 thành viên\n\nTHÀNH VIÊN\tCHUYÊN NGÀNH\tVAI TRÒ\tTƯ CÁCH ĐỒ ÁN\n\nN\nNguyễn Minh Khang(Bạn)\nDE180901\nSoftware Engineering\t\n"
+  },
+  {
+    "role": "student",
+    "route": "/team/create",
+    "heading": "Thành viên nhóm",
+    "overflow": false,
+    "text": "Thành viên nhóm\n\nHọc kỳ: Fall 2026 • Sinh viên: Nguyễn Minh Khang (DE180901)\n\nSEP490_G01\nAI-PMS\nĐã khóa theo đề tài\n\nSEP490 capstone team developing AI-PMS with members from Information Technology and Business Administration specializations to exercise multi-major and cross-department collaboration.\n\nSĩ số nhóm\n5 / 5 thành viên\nLịch sử kiểm tra điều kiện nhóm\n\nDanh sách thành viên đã được chốt theo hồ sơ đồ án.\n\nThành viên nhóm\n\n5 thành viên\n\nTHÀNH VIÊN\tCHUYÊN NGÀNH\tVAI TRÒ\tTƯ CÁCH ĐỒ ÁN\n\nN\nNguyễn Minh Khang(Bạn)\nDE180901\nSoftware Engineering\t\n"
+  },
+  {
+    "role": "student",
+    "route": "/topics",
+    "heading": "Danh mục đề tài đã công bố",
+    "overflow": false,
+    "text": "Danh mục đề tài đã công bố\n\nTham khảo các đề tài đã công bố. Trưởng nhóm có thể chọn đề tài khi hồ sơ còn ở dạng bản nháp.\n\nDanh mục đề tài\n\nChuyên ngành của bạn: SE · Software Engineering.\n\nĐề xuất đề tài riêng\nMọi chế độ\nĐơn ngành\nLiên ngành\nPhù hợp với ngành của tôi\nKhông có đề tài phù hợp\n\nThay đổi bộ lọc hoặc kiểm tra lại bối cảnh học vụ."
+  },
+  {
+    "role": "student",
+    "route": "/project/source",
+    "heading": "Đăng ký đồ án",
+    "overflow": false,
+    "text": "← Danh mục đề tài\nĐăng ký đồ án\n\nChọn đề tài có sẵn hoặc đề xuất đề tài riêng cho nhóm.\n\nCách đăng ký hiện tại\n\nNhóm đang sử dụng đề tài tự đề xuất.\n\nĐề tài đã công bố\nChọn đề tài phù hợp từ danh mục của bộ môn.\nĐề xuất đề tài riêng\nNhóm tự xây dựng đề cương và gửi bộ môn thẩm định.\nBản nháp hiện chưa thể đổi đề tài. Hãy kiểm tra trạng thái đăng ký của nhóm."
+  },
+  {
+    "role": "student",
+    "route": "/project/register",
+    "heading": "Đề cương đang ở chế độ chỉ xem",
+    "overflow": false,
+    "text": "task_alt\nĐề cương đang ở chế độ chỉ xem\n\nHồ sơ đang ở trạng thái Đang thực hiện và hiện chưa thể chỉnh sửa.\n\nXem trạng thái đề cương"
+  },
+  {
+    "role": "student",
+    "route": "/project/edit",
+    "heading": "Đề cương đang ở chế độ chỉ xem",
+    "overflow": false,
+    "text": "task_alt\nĐề cương đang ở chế độ chỉ xem\n\nHồ sơ đang ở trạng thái Đang thực hiện và hiện chưa thể chỉnh sửa.\n\nXem trạng thái đề cương"
+  },
+  {
+    "role": "student",
+    "route": "/project/status",
+    "heading": "Trạng thái đề cương",
+    "overflow": false,
+    "text": "Trạng thái đề cương\n\nSEP490-FA26-AIPMS · AI-PMS\n\nTải lại thông tin\n\nĐANG HOẠT ĐỘNG\n\nACTIVE\n\nTrạng thái được hệ thống cung cấp.\n\nLịch sử thay đổi trạng thái\nKhởi tạo → DRAFT\n10:00:00 20/8/2026\n\nNguyễn Minh Khang · Initial project registration created by team leader.\n\nDRAFT → SUBMITTED\n14:00:00 28/8/2026\n\nNguyễn Minh Khang · Team completed the initial proposal and submitted it for department review.\n\nSUBMITTED → UNDER_REVIEW\n09:00:00 2/9/2026\n\nLê Thu Hà · Department staff started proposal review.\n\nUNDER_REVIEW → APPROVED\n15:30:00 10/9/2026\n\nLê Th"
+  },
+  {
+    "role": "student",
+    "route": "/project/supervisor",
+    "heading": "Chọn giảng viên hướng dẫn",
+    "overflow": false,
+    "text": "ĐỊNH HƯỚNG ĐỒ ÁN\n\nChọn giảng viên hướng dẫn\n\nSEP490-FA26-AIPMS · Building an AI-Powered Multi-disciplinary and Multi-major Academic Project Progress Management System for Universities · Đang thực hiện\n\nTìm giảng viên phù hợp với chuyên môn của đồ án và gửi lời mời từ tài khoản trưởng nhóm.\n\nĐã có phân công hướng dẫn chính thức\n\nNguyễn Hoàng Minh · phân công lúc 2026-09-12T09:00:00\n\nYêu cầu hướng dẫn\nKhông chấp thuận · Hồ sơ giảng viên #4 · gửi lúc 2026-09-10T16:30:00\n\nLời nhắn: We would also like support for deployment and DevOps if supervision"
+  }
+]
