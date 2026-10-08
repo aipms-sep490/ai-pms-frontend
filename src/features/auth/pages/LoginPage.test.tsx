@@ -20,6 +20,26 @@ afterEach(() => {
 })
 
 describe('LoginPage', () => {
+  it('reveals and conceals the password without submitting or changing it', () => {
+    render(<LoginPage />, { wrapper: MemoryRouter })
+    const password = screen.getByLabelText('Mật khẩu') as HTMLInputElement
+    fireEvent.change(password, { target: { value: 'test-value' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Hiện mật khẩu' }))
+    expect(password.type).toBe('text')
+    expect(password.value).toBe('test-value')
+    fireEvent.click(screen.getByRole('button', { name: 'Ẩn mật khẩu' }))
+    expect(password.type).toBe('password')
+    expect(authSession.login).not.toHaveBeenCalled()
+  })
+
+  it('disables credential controls while authentication is pending', () => {
+    authSession.status = 'authenticating'
+    render(<LoginPage />, { wrapper: MemoryRouter })
+    expect((screen.getByLabelText('Email') as HTMLInputElement).disabled).toBe(true)
+    expect((screen.getByLabelText('Mật khẩu') as HTMLInputElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Hiện mật khẩu' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
   it('blocks an invalid email before invoking the API', () => {
     render(<LoginPage />, { wrapper: MemoryRouter })
 
