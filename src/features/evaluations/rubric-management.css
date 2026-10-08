@@ -1,91 +1,38 @@
-.rubric-page {
-  animation: mk-fade-in-up 420ms var(--mk-ease) both;
-}
 
-.rubric-page > header {
-  align-items: end;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--color-hairline);
-}
-
-.rubric-page > header h1 {
-  letter-spacing: -.025em;
-}
-
-.rubric-page > header p {
-  max-width: 62ch;
-  line-height: 1.6;
-}
-
-.rubric-page > .grid {
-  gap: 0;
-  align-items: start;
-}
-
-.rubric-page > .grid > section:first-child {
-  padding: 0 20px 0 0;
-  border: 0;
-  border-right: 1px solid var(--color-hairline);
-  border-radius: 0;
-  background: transparent;
-}
-
-.rubric-page > .grid > section:first-child label {
-  max-width: 180px;
-}
-
-.rubric-page > .grid > section:first-child ul {
-  gap: 0;
-}
-
-.rubric-page > .grid > section:first-child li button {
-  border-width: 0 0 1px;
-  border-radius: 0;
-  padding: 12px 6px;
-  background: transparent;
-}
-
-.rubric-page > .grid > section:first-child li button:hover,
-.rubric-page > .grid > section:first-child li button.bg-blue-50 {
-  background: var(--color-primary-subtle);
-  color: #1e3a8a;
-}
-
-.rubric-page > .grid > section:last-child {
-  min-width: 0;
-  min-height: 220px;
-  padding: 4px 0 0 24px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-}
-
-.rubric-page form .space-y-3 > div {
-  border-width: 0 0 0 2px;
-  border-color: #dbe3ee;
-  border-radius: 0;
-  background: transparent;
-  padding: 4px 0 4px 14px;
-}
-
-@media (min-width: 768px) {
-  .rubric-page > .grid {
-    grid-template-columns: 15rem minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 767px) {
-  .rubric-page > .grid > section:first-child {
-    padding: 0 0 18px;
-    border-right: 0;
-    border-bottom: 1px solid var(--color-hairline);
-  }
-
-  .rubric-page > .grid > section:last-child {
-    padding: 20px 0 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rubric-page { animation: none; }
-}
+.rubric-page > .grid { align-items:start; }
+.rubric-page > .grid > section { min-width:0; border:1px solid #dfe8e2; border-radius:14px; background:#fff; padding:24px; box-shadow:0 2px 5px rgb(20 55 36 / 3%); }
+.rubric-page > .grid > section:first-child { padding:20px; }
+.rubric-page > .grid > section:first-child h2 { font-size:16px; }
+.rubric-page > .grid > section:first-child li button { border:0; border-radius:8px; padding:12px; background:transparent; }
+.rubric-page > .grid > section:first-child li button:hover { background:#f2f6f3; }
+.rubric-page > .grid > section:first-child li button[aria-pressed=true] { background:#eaf3ed; color:#0f5b4e; box-shadow:inset 3px 0 #0f5b4e; }
+.rubric-page > .grid > section:first-child li button span { margin-top:4px; line-height:1.6; }
+.rubric-page .rubric-detail { min-height:360px; }
+.rubric-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; gap:12px; text-align:center; color:#596863; }
+.rubric-empty > .material-symbols-outlined { color:#0f5b4e; font-size:36px; padding:16px; background:#edf4ef; border-radius:14px; }
+.rubric-empty h2 { color:#14201d; font-size:18px; }
+.rubric-empty p { max-width:42ch; font-size:14px; }
+.criterion-heading { margin:0 0 14px; font-size:13px; color:#0f5b4e; }
+.rubric-page form label { color:#3d4a46; line-height:1.6; }
+.rubric-page form :is(input:not([type=checkbox]),select,textarea) { background:#fff; border-color:#d7e0dc; border-radius:8px; font-size:14px; }
+.rubric-page form :is(input,select,textarea):disabled { background:#f5f7f6; color:#596863; }
+@media(max-width:900px) { .rubric-page > .grid { grid-template-columns:1fr; } .rubric-page > .grid > section { padding:20px; } .rubric-page > .grid > section:first-child ul { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; } .rubric-page > .grid > section:first-child label { max-width:320px; } }
+.rubric-read-view { margin-top: 24px; }
+.rubric-read-view > h3 { font-size: 18px; line-height: 1.5; font-weight: 650; }
+.rubric-read-scope { display: flex; flex-wrap: wrap; gap: 16px 40px; margin: 18px 0; }
+.rubric-read-scope dt { color: #677a72; font-size: 12px; margin-bottom: 4px; }
+.rubric-read-scope dd { font-size: 14px; margin: 0; }
+.rubric-read-description { font-size: 14px; color: #53695f; line-height: 1.7; }
+.rubric-criteria-title { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; padding-top: 24px; margin-top: 24px; border-top: 1px solid #e6ece8; }
+.rubric-criteria-title h3 { font-size: 16px; font-weight: 650; }
+.rubric-criteria-title span { font-size: 12px; color: #677a72; }
+.rubric-read-criteria, .rubric-read-criteria ol { list-style: none; padding: 0; margin: 0; }
+.rubric-read-criteria > li + li { border-top: 1px solid #e6ece8; }
+.rubric-read-criterion { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 12px; padding: 20px 0; }
+.rubric-criterion-number { color: #70847b; font-size: 12px; padding-top: 3px; }
+.rubric-read-criterion h4 { font-size: 14px; line-height: 1.6; font-weight: 600; }
+.rubric-read-criterion p { margin-top: 6px; font-size: 13px; line-height: 1.7; color: #53695f; overflow-wrap: anywhere; }
+.rubric-criterion-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 12px; color: #677a72; margin-top: 8px; }
+.rubric-criterion-weight { font-size: 16px; color: #105d4e; font-variant-numeric: tabular-nums; }
+.rubric-read-criteria ol { margin-left: 20px; padding-left: 20px; border-left: 2px solid #e6ece8; }
+@media (max-width: 620px) { .rubric-read-criterion { gap: 8px; grid-template-columns: 20px minmax(0,1fr) auto; } .rubric-page > .grid > section { padding: 20px; } }

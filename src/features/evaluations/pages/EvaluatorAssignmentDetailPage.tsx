@@ -1,3 +1,7 @@
+import { UnsavedChangesNotice } from '../../../components/ui/UnsavedChangesNotice'
+import { dateTimeLabel } from '../../execution/execution-utils'
+import './evaluator-detail.css'
+import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
@@ -62,6 +66,14 @@ export function EvaluatorAssignmentDetailPage() {
   }, [assignment.id])
 
   const scoringAllowed = detail.canScore && !detail.legacyReadOnly
+  const dirty = Boolean(draft && (overallComment.trim() !== (draft.comments ?? '').trim() || draft.scores.some(criterion => {
+    const row = values[criterion.rubricCriterionId]
+    const raw = row?.score.trim() ?? ''
+    const score = raw === '' ? null : Number(raw)
+    return score !== criterion.score || (row?.comments.trim() ?? '') !== (criterion.comments ?? '').trim()
+  })))
+  const canFinalize = Boolean(scoringAllowed && draft?.status === 'DRAFT' && !dirty && draft.totalScore !== null && draft.missingCriterionIds.length === 0)
+
 
   const updateCriterion = (criterion: EvaluationScore, patch: Partial<FieldValues[number]>) => {
     setValues((current) => ({ ...current, [criterion.rubricCriterionId]: { ...(current[criterion.rubricCriterionId] ?? { score: '', comments: '' }), ...patch } }))
@@ -112,8 +124,8 @@ export function EvaluatorAssignmentDetailPage() {
   }
 
   async function finalize() {
-    if (!scoringAllowed || !draft) return
-    const confirmed = await requestConfirmation({ title: 'Chốt đánh giá?', description: 'Điểm được kiểm tra theo bộ tiêu chí, phân công và thời hạn đánh giá hiện tại.', confirmLabel: 'Yêu cầu chốt đánh giá', danger: true })
+    if (!canFinalize || !draft || busy) return
+    const confirmed = await requestConfirmation({ title: 'Chốt đánh giá?', description: 'Chốt bản điểm đã lưu. Sau khi chốt, bạn không thể sửa điểm hoặc nhận xét. Hệ thống kiểm tra lại phân công và thời hạn đánh giá.', confirmLabel: 'Yêu cầu chốt đánh giá', danger: true })
     if (confirmed === null) return
     setBusy(true); setMessage(null)
     try {
@@ -126,15 +138,14 @@ export function EvaluatorAssignmentDetailPage() {
   }
 
   const editable = draft?.status === 'DRAFT'
-  const rubricSummary = useMemo(() => draft ? `${draft.rubricName} · phiên bản ${draft.rubricVersion}` : `Rubric #${assignment.rubricId}`, [assignment.rubricId, draft])
-  return <main className="mx-auto max-w-5xl space-y-6 pb-12">
+  const rubricSummary = useMemo(() => draft ? `${draft.rubricName} · phiên bản ${draft.rubricVersion}` : `Bộ tiêu chí #${assignment.rubricId}`, [assignment.rubricId, draft])
+  return <WorkspacePage title="Chấm điểm theo phạm vi được phân công" eyebrow={`Phân công #${assignment.id}`} description="Đối chiếu minh chứng, ghi điểm và nhận xét cho từng tiêu chí." backTo="/evaluator/workspace" className="evaluation-workspace evaluator-detail space-y-6 pb-12">
     <header className="rounded-xl border border-hairline bg-card p-5 sm:p-6">
-      <p className="text-xs font-semibold uppercase tracking-[.14em] text-primary">Phân công #{assignment.id}</p>
-      <h1 className="mt-1 text-2xl font-bold text-slate-900">Chấm điểm theo phạm vi được phân công</h1>
-      <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm text-slate-600 sm:grid-cols-2"><div><dt className="inline font-semibold text-slate-700">Đồ án: </dt><dd className="inline">#{assignment.projectId}</dd></div><div><dt className="inline font-semibold text-slate-700">Rubric: </dt><dd className="inline">{rubricSummary}</dd></div><div className="sm:col-span-2"><dt className="inline font-semibold text-slate-700">Phạm vi: </dt><dd className="inline">{scopeDescription(assignment.scope, assignment.majorId, assignment.studentId)}</dd></div></dl>
+      <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm text-slate-600 sm:grid-cols-2"><div><dt className="inline font-semibold text-slate-700">Đồ án: </dt><dd className="inline">#{assignment.projectId}</dd></div><div><dt className="inline font-semibold text-slate-700">Bộ tiêu chí: </dt><dd className="inline">{rubricSummary}</dd></div><div className="sm:col-span-2"><dt className="inline font-semibold text-slate-700">Phạm vi: </dt><dd className="inline">{scopeDescription(assignment.scope, assignment.majorId, assignment.studentId)}</dd></div></dl>
     </header>
 
     {message ? <section role="alert" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text">{message}</section> : null}
+      <section className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-semibold text-slate-900">Tóm tắt gói bàn giao</h2>{evidenceState === 'loading' ? <p role="status" className="mt-1 text-sm leading-6 text-slate-600">Đang tải thông tin gói bàn giao theo phân công…</p> : null}{evidenceState === 'unavailable' ? <p role="alert" className="mt-1 text-sm leading-6 text-status-warning-text">Chưa tải được thông tin gói bàn giao theo phân công. Các phần chấm điểm khác vẫn giữ nguyên.</p> : null}{evidenceState === 'ready' && evidence ? <div className="mt-2 space-y-1 text-sm leading-6 text-slate-600"><p>Gói bàn giao: {evidence.finalSubmissionId ? `#${evidence.finalSubmissionId}` : 'Chưa có'}</p><p>Thời điểm nộp: {evidence.submittedAt ? dateTimeLabel(evidence.submittedAt) : 'Chưa có'}</p><p>Số hạng mục bàn giao: {evidence.itemCount}</p><p>Thông tin bàn giao dưới đây chỉ để đối chiếu trong quá trình chấm.</p></div> : null}<Link className="workspace-action-link mt-3" to={`/evaluator/projects/${assignment.projectId}/final-submission`} state={{ assignmentReturn: `/evaluator/assignments/${assignment.id}` }}>Xem gói bàn giao đã khóa<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link></section>
     {state === 'loading' ? <p role="status" className="rounded-xl border border-hairline bg-card p-4 text-sm text-slate-600">Đang tải bản nháp và tiêu chí chấm…</p> : null}
     {state === 'unavailable' ? <section className="rounded-xl border border-status-error-border bg-status-error-bg p-5 text-sm text-status-error-text">Chưa tải được bản nháp đánh giá. <button type="button" className="min-h-11 font-semibold underline" onClick={() => void load(true)}>Tải lại</button></section> : null}
     {!scoringAllowed ? <section role="alert" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text"><h2 className="font-semibold">Phân công chỉ đọc</h2><p className="mt-1 leading-6">{detail.denialReason === 'LEGACY_SCOPE_UNKNOWN' ? 'Hệ thống đánh dấu phạm vi phân công cũ hoặc không xác định; không có thao tác chấm điểm.' : 'Hệ thống không cấp quyền chấm điểm cho phân công này. Các thao tác tạo, lưu và chốt được ẩn.'}</p></section> : null}
@@ -142,19 +153,20 @@ export function EvaluatorAssignmentDetailPage() {
 
     {state === 'ready' && draft ? <>
       <section className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-semibold text-slate-900">Bộ tiêu chí áp dụng</h2><p className="mt-1 text-sm leading-6 text-slate-600">Nhập điểm và nhận xét cho từng tiêu chí trong bộ đánh giá đã được công bố.</p></section>
-      <form onSubmit={(event) => void save(event)} className="space-y-4" noValidate>
+      <form className="evaluator-scoring-form" onSubmit={(event) => void save(event)} noValidate>
         {[...draft.scores].sort((a, b) => a.sortOrder - b.sortOrder).map((criterion) => <section key={criterion.rubricCriterionId} className="rounded-xl border border-hairline bg-card p-5">
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]"><div className="min-w-0"><h2 className="break-words font-semibold text-slate-900">{criterion.name}{criterion.isRequired ? <span aria-label="bắt buộc" className="ml-1 text-status-error-text">*</span> : null}</h2><p className="mt-1 break-words text-sm leading-6 text-slate-600">{criterion.description || 'Không có mô tả.'} · trọng số {criterion.weightPercent}% · tối đa {criterion.maxScore}</p></div><label className="text-sm font-semibold text-slate-700">Điểm<input aria-label={`Điểm ${criterion.name}`} aria-describedby={fieldErrors[criterion.rubricCriterionId] ? `score-error-${criterion.rubricCriterionId}` : undefined} value={values[criterion.rubricCriterionId]?.score ?? ''} onChange={(event) => updateCriterion(criterion, { score: event.target.value })} disabled={!scoringAllowed || !editable || busy} inputMode="decimal" type="number" min="0" max={criterion.maxScore} step="0.01" className="mt-1 block w-full rounded-lg border border-hairline bg-card px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50" /></label></div>
           {fieldErrors[criterion.rubricCriterionId] ? <p id={`score-error-${criterion.rubricCriterionId}`} className="mt-2 text-sm text-status-error-text">{fieldErrors[criterion.rubricCriterionId]}</p> : null}
           <label className="mt-3 block text-sm font-semibold text-slate-700">Nhận xét tiêu chí<textarea aria-label={`Nhận xét ${criterion.name}`} value={values[criterion.rubricCriterionId]?.comments ?? ''} onChange={(event) => updateCriterion(criterion, { comments: event.target.value })} disabled={!scoringAllowed || !editable || busy} maxLength={2000} className="mt-1 block min-h-24 w-full rounded-lg border border-hairline bg-card px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50" /></label>
         </section>)}
-        <section className="rounded-xl border border-hairline bg-card p-5"><label className="block text-sm font-semibold text-slate-700">Nhận xét tổng thể<textarea aria-label="Nhận xét tổng thể" value={overallComment} onChange={(event) => setOverallComment(event.target.value)} disabled={!scoringAllowed || !editable || busy} maxLength={10000} className="mt-1 block min-h-28 w-full rounded-lg border border-hairline bg-card px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50" /></label>{scoringAllowed && editable ? <button type="submit" disabled={busy} className="mt-4 min-h-11 rounded-lg border border-primary px-4 text-sm font-semibold text-primary disabled:opacity-50">{busy ? 'Đang lưu…' : 'Lưu bản nháp'}</button> : <p className="mt-4 text-sm font-semibold text-academic-emerald">{draft.status === 'FINALIZED' ? `Đánh giá đã chốt${draft.finalization ? ` lúc ${new Date(draft.finalization.finalizedAt).toLocaleString('vi-VN')}` : ''}; chỉ đọc.` : 'Chỉ đọc theo contract phân công của hệ thống.'}</p>}</section>
+        <section className="rounded-xl border border-hairline bg-card p-5"><label className="block text-sm font-semibold text-slate-700">Nhận xét tổng thể<textarea aria-label="Nhận xét tổng thể" value={overallComment} onChange={(event) => setOverallComment(event.target.value)} disabled={!scoringAllowed || !editable || busy} maxLength={10000} className="mt-1 block min-h-28 w-full rounded-lg border border-hairline bg-card px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50" /></label>{scoringAllowed && editable ? <button type="submit" disabled={busy} className="mt-4 min-h-11 rounded-lg border border-primary px-4 text-sm font-semibold text-primary disabled:opacity-50">{busy ? 'Đang lưu…' : 'Lưu bản nháp'}</button> : <p className="mt-4 text-sm font-semibold text-academic-emerald">{draft.status === 'FINALIZED' ? `Đánh giá đã chốt${draft.finalization ? ` lúc ${dateTimeLabel(draft.finalization.finalizedAt)}` : ''}; chỉ đọc.` : 'Bạn có quyền xem đánh giá này.'}</p>}</section>
       </form>
-      {scoringAllowed && editable ? <section className="rounded-xl border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text"><h2 className="font-semibold">Chốt đánh giá</h2><p className="mt-1 leading-6">Không có client-side “đủ điều kiện chốt”. Khi bạn yêu cầu chốt, máy chủ kiểm tra toàn bộ điều kiện và trả kết quả chính thức.</p><button type="button" disabled={busy} onClick={() => void finalize()} className="mt-4 min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">Yêu cầu chốt đánh giá</button></section> : null}
-      <section className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-semibold text-slate-900">Tóm tắt gói bàn giao</h2>{evidenceState === 'loading' ? <p role="status" className="mt-1 text-sm leading-6 text-slate-600">Đang tải metadata gói bàn giao theo phân công…</p> : null}{evidenceState === 'unavailable' ? <p role="alert" className="mt-1 text-sm leading-6 text-status-warning-text">Chưa tải được metadata gói bàn giao theo phân công. Các phần chấm điểm khác vẫn giữ nguyên.</p> : null}{evidenceState === 'ready' && evidence ? <div className="mt-2 space-y-1 text-sm leading-6 text-slate-600"><p>Gói bàn giao: {evidence.finalSubmissionId ? `#${evidence.finalSubmissionId}` : 'Chưa có'}</p><p>Thời điểm nộp: {evidence.submittedAt ? new Date(evidence.submittedAt).toLocaleString('vi-VN') : 'Chưa có'}</p><p>Số item trong gói bàn giao: {evidence.itemCount}</p><p>Thông tin bàn giao dưới đây chỉ để đối chiếu trong quá trình chấm.</p></div> : null}</section>
+      {scoringAllowed && editable ? <section className="rounded-xl border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text"><h2 className="font-semibold">Chốt đánh giá</h2><dl className="evaluator-score-summary"><div><dt>Điểm đã lưu</dt><dd>{draft.totalScore === null ? 'Chưa đủ điểm' : `${draft.totalScore}/${draft.scoreScale}`}</dd></div><div><dt>Tiêu chí còn thiếu</dt><dd>{draft.missingCriterionIds.length}</dd></div><div><dt>Bản nháp</dt><dd>{dirty ? 'Có thay đổi chưa lưu' : 'Đã đồng bộ'}</dd></div></dl>{dirty ? <p role="status" className="mt-3 font-semibold">Lưu bản nháp trước khi chốt để áp dụng điểm và nhận xét vừa sửa.</p> : null}<p className="mt-1 leading-6">Kiểm tra điểm và nhận xét trước khi chốt. Hệ thống sẽ xác nhận các điều kiện để hoàn tất đánh giá.</p><button type="button" disabled={busy || !canFinalize} onClick={() => void finalize()} className="mt-4 min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">Yêu cầu chốt đánh giá</button></section> : null}
+
       <section className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-semibold text-slate-900">Kết quả công bố</h2><p className="mt-1 text-sm leading-6 text-slate-600">Kết quả chính thức được bộ môn công bố sau khi hoàn tất đánh giá.</p></section>
     </> : null}
     <Link to="/evaluator/workspace" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">← Về không gian người chấm</Link>
+    <UnsavedChangesNotice dirty={dirty && editable && scoringAllowed} busy={busy} />
     {confirmationDialog}
-  </main>
+  </WorkspacePage>
 }

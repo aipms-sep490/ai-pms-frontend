@@ -1,6 +1,9 @@
+import { Button } from '../../../components/ui/Button'
+import { dateTimeLabel } from '../../execution/execution-utils'
+import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import { ListLoading } from '../../../components/ui/ListLoading'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Button } from '../../../components/ui/Button'
 import * as api from '../../../services/api/evaluations.api'
 import { evaluationError } from '../evaluation-errors'
 import type { EvaluationAssignment, EvaluationDraft } from '../evaluation-types'
@@ -21,6 +24,7 @@ function draftLabel(draft: EvaluationDraft | null): string {
 
 /** Operational landing. Counts are derived only from the active assignments and their returned drafts. */
 export function EvaluatorWorkspacePage() {
+  const [filter, setFilter] = useState<'all' | 'pending' | 'finalized' | 'unavailable'>('all')
   const [assignments, setAssignments] = useState<EvaluationAssignment[]>([])
   const [drafts, setDrafts] = useState<Record<number, DraftState>>({})
   const [state, setState] = useState<'loading' | 'ready' | 'unavailable'>('loading')
@@ -56,42 +60,38 @@ export function EvaluatorWorkspacePage() {
     finalized: Object.values(drafts).filter((row) => row.status === 'ready' && row.draft?.status === 'FINALIZED').length,
   }), [assignments, drafts])
 
-  return <main className="mx-auto max-w-6xl space-y-6 pb-12">
-    <header className="rounded-xl border border-hairline bg-card p-5 sm:p-6">
-      <p className="text-xs font-semibold uppercase tracking-[.14em] text-primary">Đánh giá theo phân công</p>
-      <h1 className="mt-1 text-2xl font-bold text-slate-900">Bàn làm việc đánh giá</h1>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Mỗi phân công xác định phạm vi đồ án, ngành hoặc sinh viên. Máy chủ xác nhận quyền xem, lưu bản nháp và chốt điểm ở từng thao tác.</p>
-    </header>
+  const visibleAssignments = assignments.filter(assignment => filter === 'all' || (filter === 'finalized' ? drafts[assignment.id]?.draft?.status === 'FINALIZED' : filter === 'unavailable' ? drafts[assignment.id]?.status === 'unavailable' : drafts[assignment.id]?.status === 'ready' && drafts[assignment.id]?.draft?.status !== 'FINALIZED'))
 
-    {state === 'loading' ? <p role="status" className="rounded-xl border border-hairline bg-card p-4 text-sm text-slate-600">Đang tải phân công đánh giá…</p> : null}
+  return <WorkspacePage title="Đánh giá đồ án" eyebrow="Đánh giá theo phân công" description="Theo dõi các lượt chấm được giao, lưu nhận xét và hoàn thiện đánh giá." className="evaluation-workspace space-y-6 pb-12" action={<Button variant="secondary" icon="refresh" disabled={state === 'loading'} onClick={() => void load()}>Tải lại</Button>}>
+    {state === 'loading' ? <ListLoading label="Đang tải phân công đánh giá…" /> : null}
     {state === 'unavailable' ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{evaluationError(null)} <button type="button" className="ml-2 min-h-11 font-semibold underline" onClick={() => void load()}>Tải lại</button></section> : null}
 
     {state === 'ready' ? <>
-      <section aria-label="Tóm tắt phân công" className="grid gap-3 sm:grid-cols-3">
+      <section aria-label="Tóm tắt phân công" className="workspace-metrics">
         <Summary label="Phân công đang hiệu lực" value={summary.active} />
         <Summary label="Bản nháp đang chấm" value={summary.drafts} />
         <Summary label="Đã chốt" value={summary.finalized} />
       </section>
-      <p className="text-sm text-slate-600">Mở từng phân công để xem nội dung chấm và điều kiện chốt điểm.</p>
+      {Object.values(drafts).some(row => row.status === 'unavailable') ? <p role="status" className="text-sm text-status-warning-text">Một số phân công chưa tải được trạng thái. Các số liệu bản nháp và đã chốt chỉ tính phần tải thành công.</p> : null}
+      <div className="flex flex-wrap items-end justify-between gap-3"><p className="text-sm text-slate-600">Mở từng phân công để đối chiếu bàn giao, nhập điểm và lưu nhận xét.</p><label className="text-sm font-semibold text-slate-700">Trạng thái đánh giá<select className="mt-1 block min-h-10 rounded-lg border border-hairline bg-card px-3" value={filter} onChange={event => setFilter(event.target.value as typeof filter)}><option value="all">Tất cả phân công</option><option value="pending">Chưa chốt</option><option value="finalized">Đã chốt</option><option value="unavailable">Chưa tải được trạng thái</option></select></label></div>
       {!assignments.length ? <section className="rounded-xl border border-hairline bg-card p-5 text-sm text-slate-700"><h2 className="font-semibold text-slate-900">Chưa có phân công đánh giá đang hiệu lực</h2><p className="mt-1">Bạn sẽ thấy đồ án ở đây khi được phân công chấm.</p></section> : null}
+      {assignments.length > 0 && !visibleAssignments.length ? <p role="status" className="workspace-surface p-5 text-sm text-slate-600">Không có phân công phù hợp với bộ lọc. Chọn tất cả để xem lại danh sách.</p> : null}
       <section className="space-y-3" aria-label="Danh sách phân công đánh giá">
-        {assignments.map((assignment) => {
+        {visibleAssignments.map((assignment) => {
           const row = drafts[assignment.id]
           return <article key={assignment.id} className="grid min-w-0 gap-4 rounded-xl border border-hairline bg-card p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
             <div className="min-w-0">
               <h2 className="break-words font-semibold text-slate-900">Đồ án #{assignment.projectId} · Thành phần #{assignment.componentId ?? '—'}</h2>
-              <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm text-slate-600 sm:grid-cols-2"><div><dt className="inline font-medium text-slate-700">Phạm vi: </dt><dd className="inline">{scopeLabel(assignment)}</dd></div><div><dt className="inline font-medium text-slate-700">Rubric: </dt><dd className="inline">#{assignment.rubricId}</dd></div><div><dt className="inline font-medium text-slate-700">Trạng thái: </dt><dd className="inline">{row?.status === 'unavailable' ? 'Chưa tải được trạng thái bản nháp' : draftLabel(row?.draft ?? null)}</dd></div><div><dt className="inline font-medium text-slate-700">Phân công: </dt><dd className="inline">{new Date(assignment.assignedAt).toLocaleString('vi-VN')}</dd></div></dl>
+              <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm text-slate-600 sm:grid-cols-2"><div><dt className="inline font-medium text-slate-700">Phạm vi: </dt><dd className="inline">{scopeLabel(assignment)}</dd></div><div><dt className="inline font-medium text-slate-700">Bộ tiêu chí: </dt><dd className="inline">#{assignment.rubricId}</dd></div><div><dt className="inline font-medium text-slate-700">Trạng thái: </dt><dd className="inline">{row?.status === 'unavailable' ? 'Chưa tải được trạng thái bản nháp' : draftLabel(row?.draft ?? null)}</dd></div><div><dt className="inline font-medium text-slate-700">Phân công: </dt><dd className="inline">{dateTimeLabel(assignment.assignedAt)}</dd></div></dl>
             </div>
-            <Link to={`/evaluator/assignments/${assignment.id}`}>
-              <Button variant="outline">Mở phân công</Button>
-            </Link>
+            <Link className="inline-flex min-h-11 items-center justify-center rounded-lg border border-hairline px-4 text-sm font-semibold text-primary hover:bg-primary/5" to={`/evaluator/assignments/${assignment.id}`}>{row?.status === 'unavailable' ? 'Xem phân công' : row?.draft?.status === 'FINALIZED' ? 'Xem đánh giá' : row?.draft ? 'Tiếp tục chấm' : 'Bắt đầu chấm'}</Link>
           </article>
         })}
       </section>
     </> : null}
-  </main>
+  </WorkspacePage>
 }
 
 function Summary({ label, value }: { label: string; value: number }) {
-  return <section className="rounded-xl border border-hairline bg-card p-4"><p className="text-sm text-slate-600">{label}</p><p className="mt-1 text-2xl font-bold text-slate-900">{value}</p></section>
+  return <section className="workspace-metric"><p className="text-sm text-slate-600">{label}</p><p className="mt-1 text-2xl font-bold text-slate-900">{value}</p></section>
 }
