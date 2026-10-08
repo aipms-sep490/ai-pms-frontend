@@ -30,11 +30,13 @@ export function useAdminWorkspace(filters: AdminListQuery = {}, auditFilters: Au
 
   useEffect(() => {
     if (!session) return
+    let currentRequest = true
     setUsers((current) => loading(current.value)); setRbac((current) => loading(current.value)); setAudit((current) => loading(current.value))
-    void getUsers(session.accessToken, filtersRef.current).then((value) => setUsers({ state: 'ready', value, error: null }), (reason) => setUsers((current) => failed(current.value, reason)))
+    void getUsers(session.accessToken, filtersRef.current).then((value) => { if (currentRequest) setUsers({ state: 'ready', value, error: null }) }, (reason) => { if (currentRequest) setUsers((current) => failed(current.value, reason)) })
     void Promise.all([getRoles(session.accessToken), getPermissions(session.accessToken), getPermissionMatrix(session.accessToken)])
-      .then(([roles, permissions, matrix]) => setRbac({ state: 'ready', value: { roles: roles.items, permissions: permissions.items, matrix }, error: null }), (reason) => setRbac((current) => failed(current.value, reason)))
-    void getAudit(session.accessToken, auditFiltersRef.current).then((value) => setAudit({ state: 'ready', value, error: null }), (reason) => setAudit((current) => failed(current.value, reason)))
+      .then(([roles, permissions, matrix]) => { if (currentRequest) setRbac({ state: 'ready', value: { roles: roles.items, permissions: permissions.items, matrix }, error: null }) }, (reason) => { if (currentRequest) setRbac((current) => failed(current.value, reason)) })
+    void getAudit(session.accessToken, auditFiltersRef.current).then((value) => { if (currentRequest) setAudit({ state: 'ready', value, error: null }) }, (reason) => { if (currentRequest) setAudit((current) => failed(current.value, reason)) })
+    return () => { currentRequest = false }
   }, [auditFilterKey, filterKey, session, version])
 
   const token = () => session?.accessToken ?? ''
