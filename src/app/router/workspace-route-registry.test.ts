@@ -33,8 +33,11 @@ describe('workspace route registry', () => {
     const department = getWorkspaceNavigation(access({ identityRole: 'department', identityRoles: ['DEPARTMENT_STAFF'] }))
     const admin = getWorkspaceNavigation(access({ identityRole: 'admin', identityRoles: ['ADMIN'] }))
     expect(department.map((route) => route.id)).toContain('governance-review')
+    expect(department.map((route) => route.path)).toEqual(expect.arrayContaining(['/department/workspace', '/department/student-qualifications', '/department/projects/archived']))
     expect(admin.map((route) => route.id)).toContain('administration-access')
     expect(admin.map((route) => route.id)).not.toContain('governance-review')
+    expect(admin.map((route) => route.id)).not.toContain('governance-qualifications')
+    expect(admin.map((route) => route.id)).not.toContain('governance-archives')
   })
 
   it('does not reveal contextual links while context is loading or unavailable', () => {

@@ -1,50 +1,37 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { useTopics } from '../hooks/useTopics'
-import type { CreateTopic, ProjectMode, TopicContent } from '../api/topic-api'
+import { TopicContentForm } from '../components/TopicContentForm'
+import { useTopicCatalog } from '../hooks/useTopicCatalog'
+import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
+import { topicErrorMessage } from '../api/topic-api'
 import './topic-management.css'
 
-const numberValue = (value: string) => Number(value)
-const initialContent: TopicContent = { title: '', description: null, problemStatement: null, objectives: null, expectedOutput: null, domain: null, technologies: [], keywords: [], projectMode: 'SINGLE_MAJOR', primaryMajorId: null, requirements: [] }
 const statusLabels = { DRAFT: 'Bản nháp', PUBLISHED: 'Đã công bố', CLOSED: 'Đã đóng' } as const
-const modeLabels: Record<ProjectMode, string> = { SINGLE_MAJOR: 'Một ngành', INTERDISCIPLINARY: 'Liên ngành' }
+const modeLabels: Record<'SINGLE_MAJOR' | 'INTERDISCIPLINARY', string> = { SINGLE_MAJOR: 'Một ngành', INTERDISCIPLINARY: 'Liên ngành' }
 
 export function TopicManagementPage() {
   const { id } = useParams()
   const topics = useTopics(id ? Number(id) : undefined)
+  const catalog = useTopicCatalog()
+  const [draftDirty, setDraftDirty] = useState(false)
+  const decisionVersion = useRef(0)
+  useEffect(() => { decisionVersion.current++; setDraftDirty(false) }, [id, topics.current?.concurrencyToken])
+  const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const [message, setMessage] = useState<string | null>(null)
-  const [create, setCreate] = useState({ projectPeriodId: '', code: '', leadDepartmentId: '', title: '', projectMode: 'SINGLE_MAJOR' as ProjectMode, primaryMajorId: '', requirementMajorId: '' })
-  const [reason, setReason] = useState('')
-  const [editedTitle, setEditedTitle] = useState('')
 
   if (topics.isUnauthorized) return <Link to="/login">Đăng nhập</Link>
   if (topics.loading) return <p>Đang tải danh mục đề tài…</p>
   if (topics.isForbidden) return <p>Bạn không có quyền quản lý đề tài trong bộ môn này.</p>
   if (topics.error) return <p>Không thể tải danh mục đề tài. <Button onClick={() => void topics.refresh()}>Thử lại</Button></p>
 
-  const createDraft = async (event: React.FormEvent) => {
-    event.preventDefault()
-    setMessage(null)
-    try {
-      const input: CreateTopic = {
-        projectPeriodId: numberValue(create.projectPeriodId),
-        code: create.code,
-        leadDepartmentId: numberValue(create.leadDepartmentId),
-        content: {
-          ...initialContent,
-          title: create.title,
-          projectMode: create.projectMode,
-          primaryMajorId: create.primaryMajorId ? numberValue(create.primaryMajorId) : null,
-          requirements: [{ majorId: numberValue(create.requirementMajorId), minMembers: 1, maxMembers: 1, responsibility: 'Required member' }],
-        },
-      }
-      await topics.create(input)
-      setMessage('Đã tạo bản nháp đề tài.')
-      setCreate({ projectPeriodId: '', code: '', leadDepartmentId: '', title: '', projectMode: 'SINGLE_MAJOR', primaryMajorId: '', requirementMajorId: '' })
-    } catch {
-      setMessage('Không thể tạo bản nháp. Vui lòng kiểm tra thông tin và thử lại.')
-    }
+  const decide = async (close = false) => {
+    const version = decisionVersion.current
+    const decision = await requestConfirmation({ title: close ? 'Đóng đề tài?' : 'Công bố đề tài?', description: close ? 'Ghi rõ lý do đóng đề tài.' : 'Công bố phiên bản đã lưu. Hãy lưu các chỉnh sửa bản nháp trước, rồi kiểm tra nội dung đề cương, ngành, kỳ đăng ký và chính sách.', confirmLabel: close ? 'Đóng đề tài' : 'Công bố đề tài', danger: close, ...(close ? { reasonLabel: 'Lý do đóng' } : {}) })
+    if (decision === null || version !== decisionVersion.current) return
+    try { if (close) await topics.close(decision); else await topics.publish(); setMessage(close ? 'Đã đóng đề tài.' : 'Đã công bố đề tài.') }
+    catch (reason) { setMessage(topicErrorMessage(reason)) }
   }
 
   if (id && topics.current) {
@@ -66,9 +53,18 @@ export function TopicManagementPage() {
           </dl>
           <h2>Yêu cầu theo ngành</h2>
           {topic.requirements.length ? <ul>{topic.requirements.map((requirement) => <li key={requirement.majorId}>{requirement.majorName || `Ngành #${requirement.majorId}`}: {requirement.minMembers}–{requirement.maxMembers} · {requirement.responsibility}</li>)}</ul> : <p>Chưa có yêu cầu theo ngành.</p>}
+          <h2>Bối cảnh và vấn đề</h2><p>{topic.problemStatement || 'Chưa có nội dung.'}</p>
+          <h2>Mục tiêu</h2><p>{topic.objectives || 'Chưa có nội dung.'}</p>
+          <h2>Sản phẩm kỳ vọng</h2><p>{topic.expectedOutput || 'Chưa có nội dung.'}</p>
+          <h2>Lĩnh vực và công nghệ</h2><p>{topic.domain || 'Chưa có lĩnh vực'} · {topic.technologies.join(', ') || 'Chưa có công nghệ'}</p>
+          <h2>Từ khóa</h2><p>{topic.keywords.join(', ') || 'Chưa có từ khóa'}</p>
         </section>
-        {topic.status === 'DRAFT' && <section className="topic__edit"><h2>Chỉnh sửa bản nháp</h2><label>Tên đề tài<input aria-label="Tên đề tài" value={editedTitle || topic.title} onChange={event => setEditedTitle(event.target.value)} /></label><div className="topic__actions"><Button disabled={topics.saving} onClick={() => void topics.update({ ...topic, title: editedTitle || topic.title }).catch(() => undefined)}>Lưu bản nháp</Button><Button variant="secondary" disabled={topics.saving} onClick={() => void topics.publish().catch(() => undefined)}>Công bố</Button></div></section>}
-        {topic.status !== 'CLOSED' && <form className="topic__close" onSubmit={event => { event.preventDefault(); if (reason.trim()) void topics.close(reason).catch(() => undefined) }}><label>Lý do đóng<input aria-label="Lý do đóng" value={reason} onChange={event => setReason(event.target.value)} /></label><Button type="submit" variant="danger" disabled={topics.saving || !reason.trim()}>Đóng đề tài</Button></form>}
+        {confirmationDialog}
+        {message && <p className="topic__message" role="status">{message}</p>}
+        {topics.mutationError && <p role="alert">{topicErrorMessage(topics.mutationError)}</p>}
+        {topic.status === 'DRAFT' && catalog.department?.id === topic.leadDepartmentId && <section className="topic__edit"><h2>Chỉnh sửa bản nháp</h2><TopicContentForm key={`${topic.id}:${topic.concurrencyToken}`} initial={topic} onDirtyChange={setDraftDirty} catalog={catalog} busy={topics.saving} onSave={async content => { const result = await topics.update(content); setMessage('Đã lưu đầy đủ nội dung đề cương.'); return result }} />{draftDirty && <p role="status">Có chỉnh sửa chưa lưu. Lưu bản nháp trước khi công bố.</p>}<Button variant="secondary" disabled={topics.saving || draftDirty} onClick={() => void decide()}>Công bố</Button></section>}
+        {topic.status !== 'CLOSED' && catalog.department?.id === topic.leadDepartmentId && <Button variant="danger" disabled={topics.saving} onClick={() => void decide(true)}>Đóng đề tài</Button>}
+
       </main>
     )
   }
@@ -84,20 +80,8 @@ export function TopicManagementPage() {
         <label><span>Tìm đề tài</span><input placeholder="Mã hoặc tên đề tài" value={topics.filters.search ?? ''} onChange={event => topics.setFilters({ ...topics.filters, search: event.target.value || undefined, page: 1 })} /></label>
         <label><span>Trạng thái</span><select aria-label="Trạng thái đề tài" value={topics.filters.status ?? 'DRAFT'} onChange={event => topics.setFilters({ ...topics.filters, status: event.target.value as 'DRAFT' | 'PUBLISHED' | 'CLOSED', page: 1 })}><option value="DRAFT">Bản nháp</option><option value="PUBLISHED">Đã công bố</option><option value="CLOSED">Đã đóng</option></select></label>
       </form>
-      <details className="topic__create-disclosure"><summary>Tạo đề tài mới<span className="material-symbols-outlined" aria-hidden="true">add</span></summary><form className="topic__create" onSubmit={createDraft}>
-        <div className="topic__section-heading"><div><p>TẠO MỚI</p><h2>Tạo bản nháp đề tài</h2></div><span>Điền các thông tin nền tảng. Nội dung chi tiết có thể cập nhật sau khi tạo.</span></div>
-        <div className="topic__form-grid">
-          <label>Kỳ đồ án ID<input required inputMode="numeric" placeholder="Ví dụ: 12" value={create.projectPeriodId} onChange={event => setCreate({ ...create, projectPeriodId: event.target.value })} /></label>
-          <label>Mã đề tài<input required placeholder="Ví dụ: AI-2026-01" value={create.code} onChange={event => setCreate({ ...create, code: event.target.value })} /></label>
-          <label>Bộ môn phụ trách ID<input required inputMode="numeric" placeholder="Ví dụ: 3" value={create.leadDepartmentId} onChange={event => setCreate({ ...create, leadDepartmentId: event.target.value })} /></label>
-          <label className="topic__wide">Tên đề tài<input required placeholder="Nhập tên đề tài" value={create.title} onChange={event => setCreate({ ...create, title: event.target.value })} /></label>
-          <label>Hình thức<select aria-label="Hình thức đồ án" value={create.projectMode} onChange={event => setCreate({ ...create, projectMode: event.target.value as ProjectMode })}><option value="SINGLE_MAJOR">Một ngành</option><option value="INTERDISCIPLINARY">Liên ngành</option></select></label>
-          <label>Ngành chính ID<input inputMode="numeric" placeholder="Không bắt buộc" value={create.primaryMajorId} onChange={event => setCreate({ ...create, primaryMajorId: event.target.value })} /></label>
-          <label>Ngành yêu cầu ID<input required inputMode="numeric" placeholder="Ví dụ: 5" value={create.requirementMajorId} onChange={event => setCreate({ ...create, requirementMajorId: event.target.value })} /></label>
-        </div>
-        <div className="topic__create-action"><Button type="submit" disabled={topics.saving}>{topics.saving ? 'Đang tạo…' : 'Tạo bản nháp'}</Button></div>
-      </form>
-      </details>
+      <details className="topic__create-disclosure"><summary>Tạo đề tài mới<span className="material-symbols-outlined" aria-hidden="true">add</span></summary><h2>Tạo bản nháp đề tài</h2><TopicContentForm catalog={catalog} busy={topics.saving} onSave={async () => undefined} create={{ onCreate: async input => { const result = await topics.create(input); setMessage('Đã tạo bản nháp đề tài.'); return result } }} /></details>
+      {topics.mutationError && <p role="alert">{topicErrorMessage(topics.mutationError)}</p>}
       {message && <p className="topic__message" role="status">{message}</p>}
       <section className="topic__list" aria-labelledby="topic-list-title">
         <div className="topic__section-heading"><div><p>DANH SÁCH</p><h2 id="topic-list-title">Đề tài hiện có</h2></div><span>{topics.totalCount} đề tài</span></div>

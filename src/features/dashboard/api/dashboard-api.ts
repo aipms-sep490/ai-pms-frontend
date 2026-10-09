@@ -76,7 +76,9 @@ function query(filter: DashboardFilter): string {
 export const getStudentDashboard = (semesterId?: number) => httpGet<StudentDashboard>(`/v1/dashboards/student${query({ semesterId })}`)
 export const getSupervisorDashboard = (filter: DashboardFilter) => httpGet<SupervisorDashboard>(`/v1/dashboards/supervisor${query(filter)}`)
 export const getPortfolioDashboard = (role: 'department' | 'admin', filter: DashboardFilter) => httpGet<PortfolioDashboard>(`/v1/dashboards/${role}${query(filter)}`)
-export function exportPortfolioCsv(filter: DashboardFilter) {
+export type PortfolioExportFormat = 'csv' | 'xlsx' | 'pdf'
+export function exportPortfolio(filter: DashboardFilter, format: PortfolioExportFormat) {
   const suffix = query({ ...filter, page: undefined, pageSize: undefined })
-  return httpGetBlob(`/v1/dashboards/portfolio/export${suffix}${suffix ? '&' : '?'}format=csv`)
+  return httpGetBlob(`/v1/dashboards/portfolio/export${suffix}${suffix ? '&' : '?'}format=${format}`)
 }
+export const exportPortfolioCsv = (filter: DashboardFilter) => exportPortfolio(filter, 'csv')

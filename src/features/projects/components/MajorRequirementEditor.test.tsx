@@ -1,7 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MajorRequirementEditor } from './MajorRequirementEditor'
 import { validateMajorRequirements } from './major-requirement-validation'
+
+afterEach(cleanup)
 
 describe('MajorRequirementEditor', () => {
   it('validates unique majors and quota consistency before a backend mutation', () => {
@@ -23,5 +25,17 @@ describe('MajorRequirementEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: /Lưu yêu cầu/i }))
     expect(onSave).toHaveBeenCalledWith([{ majorId: 7, minMembers: 1, maxMembers: 2, responsibility: 'Technical' }])
     await screen.findByRole('button', { name: /Chỉnh sửa yêu cầu/i })
+  })
+
+  it('removes editing controls when the project becomes read-only during editing', () => {
+    const onSave = vi.fn()
+    const props = { projectMode: 'SINGLE_MAJOR' as const, requirements: [{ majorId: 7, minMembers: 1, maxMembers: 2, responsibility: 'Technical' }], majors: [{ id: 7, code: 'SE', name: 'Software Engineering' }], busy: false, onSave }
+    const view = render(<MajorRequirementEditor {...props} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Chỉnh sửa yêu cầu' }))
+    expect(screen.getByRole('button', { name: 'Lưu yêu cầu' })).toBeTruthy()
+    view.rerender(<MajorRequirementEditor {...props} readOnly />)
+    expect(screen.queryByRole('button', { name: 'Lưu yêu cầu' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Chỉnh sửa yêu cầu' })).toBeNull()
+    expect(onSave).not.toHaveBeenCalled()
   })
 })

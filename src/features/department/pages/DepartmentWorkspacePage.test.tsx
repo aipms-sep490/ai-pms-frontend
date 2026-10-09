@@ -27,6 +27,22 @@ const supervisors = { items: [{ id: 4, userId: 11, fullName: 'Lecturer One', dep
 function renderPage() { return render(<MemoryRouter><DepartmentWorkspacePage /></MemoryRouter>) }
 
 describe('DepartmentWorkspacePage', () => {
+  it('does not present upcoming periods as closed and labels academic period types', async () => {
+    mocks.academic.mockReturnValue({ ...academic, academic: { ...academic.academic, periods: [{ ...academic.academic.periods[0], periodType: 'FINAL_SUBMISSION', status: 'UPCOMING', isOpen: false }] } })
+    mocks.reviews.mockResolvedValue(reviewPage); mocks.portfolio.mockResolvedValue(portfolio); mocks.supervisors.mockResolvedValue(supervisors)
+    renderPage()
+    expect(await screen.findByText('Sắp diễn ra')).toBeDefined()
+    expect(screen.getByText('Bàn giao cuối kỳ')).toBeDefined()
+    expect(screen.queryByText('Đã đóng')).toBeNull()
+  })
+
+  it('distinguishes an active period outside its opening window from closed status', async () => {
+    mocks.academic.mockReturnValue({ ...academic, academic: { ...academic.academic, periods: [{ ...academic.academic.periods[0], isOpen: false }] } })
+    mocks.reviews.mockResolvedValue(reviewPage); mocks.portfolio.mockResolvedValue(portfolio); mocks.supervisors.mockResolvedValue(supervisors)
+    renderPage()
+    expect(await screen.findByText('Ngoài thời gian mở')).toBeDefined()
+    expect(screen.queryByText('Đã đóng')).toBeNull()
+  })
   it('composes published Department reads and keeps project review as the authority route', async () => {
     mocks.academic.mockReturnValue(academic)
     mocks.reviews.mockResolvedValue(reviewPage)

@@ -42,6 +42,7 @@ export function AcademicGovernancePage() {
     <p className="text-sm text-slate-600">Điều kiện về thành viên và ngành tham gia được quản lý trong chính sách của từng giai đoạn.</p>
     <form className="governance-filter" onSubmit={(event) => { event.preventDefault(); setFilters({ search }) }}><input aria-label="Tìm học kỳ hoặc giai đoạn" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm theo mã hoặc tên"/><Button type="submit" variant="secondary">Lọc</Button></form>
     {!governance.canManage ? <p className="governance-note">Bạn đang ở chế độ chỉ xem.</p> : null}{operationError && !editor ? <p className="governance-error" role="alert">{operationError}</p> : null}{operationSuccess ? <p className="governance-message" role="status">{operationSuccess}</p> : null}
+    {!governance.canManage && <p role="status" className="rounded-lg border border-hairline bg-card p-4 text-sm text-slate-600">Cấu trúc học kỳ và kỳ đồ án do quản trị viên cấu hình. Bộ môn có thể xem và mở chính sách của kỳ thuộc phạm vi được cấp.</p>}
     <section aria-labelledby="governance-semesters-title">
       <div className="governance-section-title"><h2 id="governance-semesters-title">Học kỳ</h2><span>{governance.semesters.length} học kỳ</span></div>
       <div className="governance-grid">{governance.semesters.map(semester => <article key={semester.id} className="governance-card">

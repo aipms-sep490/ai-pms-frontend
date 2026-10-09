@@ -61,6 +61,7 @@ export interface ProjectDto {
    * Backend-governed team scope captured on the project when it is available.
    * It is display-only in the student registration UI.
    */
+  academicScopeProvenance?: string
   academicScope?: import('./team.backend.types').TeamAcademicScopeDto | null
   topicId?: number | null
   proposalSource?: 'STUDENT_PROPOSAL' | 'PUBLISHED_TOPIC' | string

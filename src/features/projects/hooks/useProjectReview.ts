@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { HttpError } from '../../../services/http/http-client'
 import { isActionAllowed, type ProjectDto, type ProjectWorkflowActionsDto } from '../../../types/backend'
 import { useAuthSession } from '../../auth/context/useAuthSession'
@@ -106,7 +106,10 @@ export function useProjectReview(id?: number) {
     void refresh()
   }, [refresh])
 
+  const mutationLock = useRef(false)
   const execute = useCallback(async (operation: ReviewOperation, request: () => Promise<unknown>) => {
+    if (mutationLock.current) return false
+    mutationLock.current = true
     setPending(operation)
     setError(null)
     try {
@@ -120,6 +123,7 @@ export function useProjectReview(id?: number) {
       setError(classified)
       return false
     } finally {
+      mutationLock.current = false
       setPending(null)
     }
   }, [refresh])

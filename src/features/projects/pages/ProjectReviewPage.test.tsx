@@ -35,6 +35,14 @@ const reviewState = (overrides: Record<string, unknown> = {}) => ({
 
 const detailPage = () => render(<MemoryRouter initialEntries={['/department/projects/review/1']}><Routes><Route path="/department/projects/review/:id" element={<ProjectReviewPage />} /></Routes></MemoryRouter>)
 
+it('keeps requirements read-only on an ACTIVE project according to the backend lock rule', () => {
+  academic.useAcademicStructure.mockReturnValue({ hierarchy: [], departments: [], majors: [], loading: false, error: null })
+  hook.useProjectReview.mockReturnValue(reviewState({ workflow: { status: 'ACTIVE' } }))
+  detailPage()
+  expect(screen.queryByRole('button', { name: /Cấu hình requirements|Chỉnh sửa requirements/ })).toBeNull()
+  expect(screen.getByText('Yêu cầu nhân sự chỉ được chỉnh ở bản nháp hoặc khi đã yêu cầu sửa đề cương.')).toBeTruthy()
+})
+
 describe('ProjectReviewPage', () => {
   beforeEach(() => {
     vi.stubGlobal('confirm', vi.fn(() => true))
@@ -86,7 +94,7 @@ describe('ProjectReviewPage', () => {
     expect(screen.queryByText('Chấp thuận đề cương')).toBeNull()
   })
 
-  it('renders decisions only when Backend actions permit them and requires a revision reason', () => {
+  it('renders decisions only when Backend actions permit them and requires a revision reason', async () => {
     const state = reviewState({ canRequestRevision: true, canApproveDepartment: true, canApprove: false })
     hook.useProjectReview.mockReturnValue(state)
     detailPage()
@@ -97,7 +105,9 @@ describe('ProjectReviewPage', () => {
     fireEvent.click(screen.getByText('Yêu cầu chỉnh sửa'))
     expect(state.decide).toHaveBeenCalledWith('revision', 'Need supporting evidence')
     fireEvent.click(screen.getByText('Chấp thuận đề cương'))
-    expect(state.decideParticipatingDepartment).toHaveBeenCalledWith('APPROVED', 'Need supporting evidence')
+    expect(state.decideParticipatingDepartment).not.toHaveBeenCalled()
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Ghi nhận đồng ý' }))
+    await waitFor(() => expect(state.decideParticipatingDepartment).toHaveBeenCalledWith('APPROVED', 'Need supporting evidence'))
   })
 
   it('requires a reason and confirmation before a participating Department rejection', async () => {

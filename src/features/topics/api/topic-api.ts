@@ -1,8 +1,13 @@
 import { endpoints } from '../../../services/api/endpoints'
-import { httpGet, httpPost, httpPut } from '../../../services/http/http-client'
+import { HttpError, httpGet, httpPost, httpPut } from '../../../services/http/http-client'
+import { departmentError } from '../../department/hooks/useDepartmentSection'
 import type { ProjectMode as RegistrationProjectMode } from '../../registration/types/registration-source.types'
 
 export type TopicStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED'
+export function topicErrorMessage(reason: unknown): string {
+  if (reason instanceof HttpError && [400, 409, 422].includes(reason.status) && reason.problem?.detail) return reason.problem.detail
+  return departmentError(reason).message
+}
 export type ProjectMode = RegistrationProjectMode
 
 export interface TopicRequirement { majorId: number; majorCode?: string; majorName?: string; departmentId?: number; departmentName?: string; minMembers: number; maxMembers: number; responsibility: string }

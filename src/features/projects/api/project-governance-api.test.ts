@@ -1,7 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { canManageProjectGovernance, createProjectEvidence, type ProjectGovernance } from './project-governance-api'
+import { canManageProjectGovernance, createProjectEvidence, governanceReadOnlyReason, type ProjectGovernance } from './project-governance-api'
 
 afterEach(() => { vi.unstubAllGlobals(); localStorage.clear() })
+
+it('distinguishes missing canonical scope from permission denial and aggregate mismatch', () => {
+  const value: ProjectGovernance = { projectId: 2, projectStatus: 'ACTIVE', leadDepartment: { departmentId: 2, name: 'IT' }, participatingDepartments: [], actorScope: { departmentId: 2, isAdmin: false }, allowedActions: ['MANAGE_GOVERNANCE'], blockers: [] }
+  expect(governanceReadOnlyReason(value)).toContain('chưa có thông tin khoa chủ trì')
+  expect(governanceReadOnlyReason(value, 3)).toContain('thuộc phạm vi khoa chủ trì')
+  expect(governanceReadOnlyReason({ ...value, leadDepartment: { departmentId: 1, name: 'Other' } }, 2)).toContain('chưa khớp')
+  expect(governanceReadOnlyReason({ ...value, projectStatus: 'COMPLETED' })).toContain('đã kết thúc')
+  expect(canManageProjectGovernance(value)).toBe(true)
+})
 
 describe('project evidence contract', () => {
   it('requires lead department scope and an editable project even when the capability is broad', () => {
