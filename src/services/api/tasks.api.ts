@@ -24,9 +24,10 @@ export interface CreateTaskPayload {
   startAt?: string | null
   dueAt?: string | null
   assigneeUserIds: number[]
+  disciplines?: Array<{ majorId: number; role: 'PRIMARY' | 'SUPPORTING' }>
 }
 
-export interface UpdateTaskPayload extends Omit<CreateTaskPayload, 'assigneeUserIds'> { concurrencyToken?: string }
+export interface UpdateTaskPayload extends Omit<CreateTaskPayload, 'assigneeUserIds' | 'disciplines'> { concurrencyToken?: string }
 export interface AddTaskDependencyPayload { taskId: number; dependsOnTaskId: number; dependencyType: string; concurrencyToken?: string }
 export interface UpdateTaskStatusPayload { newStatus: string; reason?: string | null; concurrencyToken?: string }
 

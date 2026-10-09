@@ -61,7 +61,7 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
     </section>
 
     {created && <p className="cw-success" role="status"><Icon name="check_circle" />Đã tạo công việc.</p>}
-    {creating && (data.timeline.state === 'ready' && editableMilestones.length ? <WorkspaceTaskForm milestones={editableMilestones} members={members}
+    {creating && (data.timeline.state === 'ready' && editableMilestones.length ? <WorkspaceTaskForm project={project} milestones={editableMilestones} members={members}
       onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); data.reload() }} />
       : <section className="cw-panel cw-empty"><ResourceState resource={data.timeline} retry={data.reload} />{data.timeline.state === 'ready' && <p>Nhóm cần có một mốc đang thực hiện trước khi tạo công việc. <Link to="/project/milestones" className="cw-text-link">Quản lý mốc đồ án</Link></p>}</section>)}
 

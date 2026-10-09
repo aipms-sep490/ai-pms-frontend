@@ -6,7 +6,8 @@ import { CollaborationWorkspace } from './CollaborationWorkspace'
 
 // Transport fixtures exist only in tests. Production uses the shared authenticated HTTP client.
 const project: ProjectDto = { id: 9, teamId: 2, teamName: 'Nhóm đồ án', code: 'PRJ-9', title: 'Hệ thống quản lý đồ án',
-  status: 'Active', registeredAt: '', createdBy: 1, createdByName: 'Nguyễn Minh An', createdAt: '', updatedAt: '', concurrencyToken: 'test', majors: [], tags: [] }
+  status: 'Active', registeredAt: '', createdBy: 1, createdByName: 'Nguyễn Minh An', createdAt: '', updatedAt: '', concurrencyToken: 'test', majors: [{ id: 1, majorId: 3, majorCode: 'SE', majorName: 'Phần mềm' }], tags: [],
+  academicScopeProvenance: 'FROZEN_REGISTRATION_SNAPSHOT', academicScope: { projectMode: 'SINGLE_MAJOR', primaryMajorId: 3, leadDepartmentId: 2, concurrencyToken: 'scope', requirements: [{ majorId: 3, minMembers: 1, maxMembers: 5, responsibility: 'Phát triển' }] } }
 const names = ['Nguyễn Minh An', 'Trần Thu Hà', 'Lê Quốc Bảo', 'Phạm Anh Duy', 'Võ Ngọc Linh']
 const team: TeamDto = { id: 2, academicSemesterId: 1, code: 'SE9', name: 'Nhóm đồ án', status: 'ACTIVE',
   members: names.map((fullName, index) => ({ userId: index + 1, fullName, isLeader: index === 0, isEligibleStudent: true })),
@@ -28,6 +29,7 @@ function mockTransport(handler?: Handler) {
     calls.push({ url, init })
     const custom = handler?.(url, init)
     if (custom !== undefined) return custom
+    if (url.pathname.endsWith('/major-requirements')) return json({ requirements: [{ majorId: 3 }], concurrencyToken: 'test' })
     if (url.pathname.endsWith('/timeline')) return json({ projectId: 9, milestones: [milestone] })
     if (url.pathname.endsWith('/progress-summary')) return json({ projectId: 9, totalTasks: 3, doneTasks: 1, blockedTasks: 1, overdueTasks: 1, totalMilestones: 1, completedMilestones: 0, progressPercentage: 100 / 3 })
     if (/\/projects\/9\/(deliverables|progress-reports|meetings)$/.test(url.pathname)) return json(page())
@@ -132,6 +134,7 @@ describe('collaboration workspace API integration', () => {
     await screen.findByRole('progressbar', { name: `Tiến độ công việc của ${names[0]}` })
     fireEvent.click(screen.getByRole('button', { name: 'Tạo công việc' }))
     const form = screen.getByRole('region', { name: 'Tạo công việc' })
+    await within(form).findByRole('combobox', { name: 'Ngành chính' })
     fireEvent.change(within(form).getByRole('textbox', { name: 'Tên công việc' }), { target: { value: '  Hoàn thiện đăng nhập  ' } })
     fireEvent.change(within(form).getByRole('combobox', { name: 'Mốc đồ án' }), { target: { value: '3' } })
     fireEvent.change(within(form).getByLabelText(/Hạn hoàn thành/), { target: { value: '2099-10-01T15:00' } })
@@ -141,7 +144,7 @@ describe('collaboration workspace API integration', () => {
     expect((within(form).getByRole('textbox', { name: 'Tên công việc' }) as HTMLInputElement).value).toBe('  Hoàn thiện đăng nhập  ')
     const creation = calls.find(call => call.init?.method === 'POST')!
     expect(JSON.parse(String(creation.init?.body))).toEqual({ milestoneId: 3, title: 'Hoàn thiện đăng nhập', description: null,
-      priority: 'MEDIUM', dueAt: '2099-10-01T08:00:00.000Z', assigneeUserIds: [2] })
+      priority: 'MEDIUM', dueAt: '2099-10-01T08:00:00.000Z', assigneeUserIds: [2], disciplines: [] })
     fail = false
     fireEvent.click(within(form).getByRole('button', { name: 'Tạo công việc' }))
     expect(await screen.findByText('Đã tạo công việc.')).toBeTruthy()

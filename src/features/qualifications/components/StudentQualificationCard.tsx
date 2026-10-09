@@ -1,28 +1,36 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { services } from '../../../services/service-gateway'
 import type { StudentQualificationDto } from '../../../types/backend'
+import { QualificationCertificateForm } from './QualificationCertificateForm'
 
-export function StudentQualificationCard() {
+export function StudentQualificationCard({ onSubmitted }: { onSubmitted?: () => Promise<void> }) {
   const [qualification, setQualification] = useState<StudentQualificationDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState('')
+  const [uploadBusy, setUploadBusy] = useState(false)
+  const sequence = useRef(0)
 
   const load = async () => {
+    const request = ++sequence.current
     setLoading(true)
     setError(null)
     try {
-      setQualification(await services.qualification.getMine())
+      const value = await services.qualification.getMine()
+      if (request === sequence.current) setQualification(value)
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Không thể tải điều kiện tham gia đồ án.')
+      if (request === sequence.current) setError(reason instanceof Error ? reason.message : 'Không thể tải điều kiện tham gia đồ án.')
     } finally {
-      setLoading(false)
+      if (request === sequence.current) setLoading(false)
     }
   }
 
-  useEffect(() => { void load() }, [])
-
-  const verified = qualification?.verificationStatus === 'VERIFIED'
-    && (!qualification.expiresAt || new Date(qualification.expiresAt) > new Date())
+  useEffect(() => { const requests = sequence; void load(); return () => { requests.current++ } }, [])
+  const submitted = (value: StudentQualificationDto) => {
+    sequence.current++; setQualification(value); setLoading(false); setError(null)
+    setNotice('Đã nộp chứng nhận. Trạng thái xác minh được cập nhật từ hệ thống.')
+    if (onSubmitted) void onSubmitted().catch(() => setNotice('Đã nộp chứng nhận. Chưa cập nhật được điều kiện nhóm; hãy tải lại dữ liệu nhóm.'))
+  }
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
@@ -31,7 +39,7 @@ export function StudentQualificationCard() {
           <h2 className="mt-1 text-base font-bold text-slate-900">Điều kiện tham gia đồ án</h2>
           <p className="mt-1 text-xs text-slate-500">Trạng thái này do dữ liệu đào tạo/chứng chỉ và xác minh học vụ quyết định; sinh viên không tự xác nhận đủ điều kiện.</p>
         </div>
-        <button type="button" onClick={() => void load()} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+        <button type="button" onClick={() => void load()} disabled={loading || uploadBusy} className="min-h-11 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
           Tải lại
         </button>
       </div>
@@ -39,17 +47,20 @@ export function StudentQualificationCard() {
       {error ? <p role="alert" className="mt-4 rounded-lg bg-rose-50 p-3 text-xs text-rose-700">{error}</p> : null}
       {!loading && !error && !qualification ? (
         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          Hồ sơ chưa được xác minh. Liên hệ bộ môn để hoàn thiện điều kiện tham gia đồ án.
+          Chưa có chứng nhận. Bạn có thể nộp hồ sơ bên dưới để bộ môn xác minh.
         </div>
       ) : null}
-      {qualification ? (
+      {!loading && !error && qualification ? (
         <dl className="mt-4 grid gap-3 sm:grid-cols-4">
           <div><dt className="text-[11px] text-slate-500">Đào tạo</dt><dd className="mt-1 text-sm font-medium">{qualification.trainingStatus === 'TRAINING_COMPLETED' ? 'Đã hoàn thành' : qualification.trainingStatus === 'PENDING_TRAINING' ? 'Chưa hoàn thành' : 'Chưa xác định'}</dd></div>
           <div><dt className="text-[11px] text-slate-500">Xác minh</dt><dd className="mt-1 text-sm font-medium">{{ PENDING_VERIFICATION: 'Chờ xác minh', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối', EXPIRED: 'Đã hết hạn' }[qualification.verificationStatus] ?? 'Chưa xác định'}</dd></div>
           <div><dt className="text-[11px] uppercase text-slate-400">Chứng chỉ</dt><dd className="mt-1 text-sm font-semibold">{qualification.certificateNumber ?? 'Chưa có'}</dd></div>
-          <div><dt className="text-[11px] uppercase text-slate-400">Tư cách</dt><dd className={'mt-1 text-sm font-bold ' + (verified ? 'text-emerald-700' : 'text-amber-700')}>{verified ? 'ĐỦ ĐIỀU KIỆN' : 'CHƯA ĐỦ ĐIỀU KIỆN'}</dd></div>
+          <div><dt className="text-[11px] text-slate-500">Điều kiện đăng ký</dt><dd className="mt-1 text-sm">Theo kiểm tra điều kiện nhóm của hệ thống.</dd></div>
         </dl>
       ) : null}
+      {!loading && !error && qualification?.rejectionReason && <p className="mt-3 text-sm text-status-error-text">Lý do từ chối: {qualification.rejectionReason}</p>}
+      {notice && <p role="status" className="mt-3 text-sm text-primary">{notice}</p>}
+      {!loading && !error && <QualificationCertificateForm onSubmitted={submitted} onBusyChange={setUploadBusy} />}
     </section>
   )
 }
