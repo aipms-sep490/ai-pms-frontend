@@ -123,8 +123,8 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
   {
     id: 'screen-8',
     path: '/supervisor/workspace',
-    title: 'Bàn làm việc GVHD',
-    breadcrumb: 'Bàn làm việc giảng viên',
+    title: 'Hướng dẫn đồ án',
+    breadcrumb: 'Hướng dẫn đồ án',
     icon: 'supervisor_account',
     role: 'supervisor',
     status: 'implemented',
@@ -194,7 +194,7 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname === '/project/evidence' || /^\/(?:supervisor|department)\/projects\/\d+\/evidence(?:\/|$)/.test(pathname)) return 'Sổ minh chứng'
   if (pathname === '/evaluator/evaluations') return 'Đánh giá được phân công'
   if (/^\/evaluator\/evaluations\/\d+(?:\/|$)/.test(pathname)) return 'Chi tiết đánh giá'
-  if (pathname === '/evaluator/workspace') return 'Bàn làm việc đánh giá'
+  if (pathname === '/evaluator/workspace') return 'Đánh giá đồ án'
   if (/^\/evaluator\/assignments\/\d+(?:\/|$)/.test(pathname)) return 'Phân công đánh giá'
   if (/^\/project\/meetings\/\d+(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings\/\d+(?:\/|$)/.test(pathname)) {
     return 'Chi tiết cuộc họp'
@@ -255,7 +255,7 @@ export function getBreadcrumbForPath(pathname: string): string {
   }
   if (pathname.startsWith('/department/projects/review')) return 'Thẩm định đề cương'
   if (/^\/department\/projects\/\d+\/result(?:\/|$)/.test(pathname)) return 'Công bố kết quả đồ án'
-  if (/^\/department\/projects\/\d+\/evaluation-schemes(?:\/|$)/.test(pathname)) return 'phương án đánh giá đánh giá'
+  if (/^\/department\/projects\/\d+\/evaluation-schemes(?:\/|$)/.test(pathname)) return 'Phương án đánh giá'
   if (/^\/department\/projects\/\d+\/governance(?:\/|$)/.test(pathname)) return 'Điều phối đồ án'
   if (/^\/department\/projects\/\d+\/(?:evaluations|evaluators)(?:\/|$)/.test(pathname)) return 'Phân công người chấm'
   if (/^\/department\/projects\/\d+\/final-requirements(?:\/|$)/.test(pathname)) return 'Yêu cầu bàn giao'
@@ -266,18 +266,18 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname === '/academic/rubrics') return 'Bộ tiêu chí đánh giá'
   if (pathname === '/notifications') return 'Thông báo'
   if (pathname === '/messages' || pathname.startsWith('/messages/')) return 'Tin nhắn'
-  if (pathname === '/supervisor/dashboard') return 'Tổng quan GVHD'
+  if (pathname === '/supervisor/dashboard') return 'Tổng quan hướng dẫn'
   if (pathname === '/department/student-qualifications') return 'Xác minh điều kiện tham gia'
   if (pathname === '/academic') return 'Cấu trúc đào tạo'
   if (/^\/academic\/project-periods\/\d+\/policy(?:\/|$)/.test(pathname)) return 'Phiên bản chính sách'
   if (pathname === '/academic/governance') return 'Quản lý học vụ'
   if (pathname === '/project/ai') return 'Trang không tồn tại'
-  if (pathname.startsWith('/department/supervisors')) return 'Giám sát GVHD'
+  if (pathname.startsWith('/department/supervisors')) return 'Giảng viên hướng dẫn'
   if (pathname.startsWith('/department/topics')) return 'Quản lý đề tài'
   if (pathname === '/admin/access') return 'Quản trị nền tảng'
   if (pathname === '/admin/access/rbac') return 'Vai trò và quyền truy cập'
   if (/^\/admin\/access\/users\/\d+(?:\/|$)/.test(pathname)) return 'Chi tiết tài khoản'
-  if (pathname === '/supervisor/workspace') return 'Bàn làm việc GVHD'
+  if (pathname === '/supervisor/workspace') return 'Hướng dẫn đồ án'
   if (pathname === '/profile') return 'Hồ sơ tài khoản'
   if (pathname === '/profile/security') return 'Đổi mật khẩu'
   if (pathname === '/forgot-password') return 'Quên mật khẩu'

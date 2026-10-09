@@ -4,7 +4,7 @@ import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { getMeetings } from '../../services/api/meetings.api'
 import type { PagedResult } from '../../types/backend'
 import { meetingStatuses, type Meeting, type MeetingStatus } from './meeting-types'
-import { formatMeetingTime, meetingError } from './meeting-utils'
+import { formatMeetingTime, meetingVenue, meetingError } from './meeting-utils'
 import { MeetingError, MeetingLoading, MeetingShell, MeetingStatusBadge } from './meeting-ui'
 import { canUseProjectExecutionAction } from '../execution/execution-authority'
 
@@ -70,8 +70,8 @@ function MeetingList() {
       {loading ? <MeetingLoading /> : error ? <MeetingError message={error} retry={() => setRevision((value) => value + 1)} /> : data && <>
         {data.items.length === 0 ? <div className="mtg-empty"><span className="material-symbols-outlined" aria-hidden="true">event_note</span><h3>{status || from || to || page > 1 ? 'Không có cuộc họp phù hợp' : 'Chưa có lịch họp'}</h3><p>{canSchedule ? 'Lên lịch để cả nhóm thống nhất thời gian và nội dung trao đổi.' : 'Cuộc họp do người được hệ thống cho phép lên lịch sẽ xuất hiện tại đây.'}</p>{page > 1 && <button className="mtg-button mtg-button--secondary" onClick={() => goToPage(1)}>Về trang đầu</button>}</div> : <ul className="mtg-list">{data.items.map((meeting) => <li key={meeting.id}><Link className="mtg-row" to={`${routeBase}/meetings/${meeting.id}`}>
           <span className="mtg-row-icon material-symbols-outlined" aria-hidden="true">calendar_month</span>
-          <div className="mtg-row-main"><p className="mtg-eyebrow">{formatMeetingTime(meeting.startAt)} · UTC+7</p><h3>{meeting.title}</h3><p>{meeting.location || (meeting.onlineUrl ? 'Họp trực tuyến' : 'Chưa xác định địa điểm')}</p><small>{meeting.participantCount} người tham gia · Tổ chức bởi {meeting.createdByName}</small></div>
-          <div className="mtg-row-state"><MeetingStatusBadge status={meeting.status} /><span className="mtg-row-open">Xem chi tiết →</span></div>
+          <div className="mtg-row-main"><p className="mtg-eyebrow">{formatMeetingTime(meeting.startAt)} · UTC+7</p><h3>{meeting.title}</h3><p>{meetingVenue(meeting)}</p><small>{meeting.participantCount} người tham gia · Tổ chức bởi {meeting.createdByName}</small></div>
+          <div className="mtg-row-state"><MeetingStatusBadge status={meeting.status} /><span className="mtg-row-open workspace-action-link">Xem chi tiết<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></span></div>
         </Link></li>)}</ul>}
         <nav className="mtg-pagination" aria-label="Phân trang cuộc họp"><span>{data.totalCount} cuộc họp · Trang {page} / {Math.max(1, data.totalPages)}</span><div><button className="mtg-button mtg-button--secondary" disabled={page <= 1} onClick={() => goToPage(page - 1)}>Trang trước</button><button className="mtg-button mtg-button--secondary" disabled={page >= data.totalPages} onClick={() => goToPage(page + 1)}>Trang sau</button></div></nav>
       </>}

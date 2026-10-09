@@ -1,3 +1,4 @@
+import { ButtonLink } from '../../components/ui/ButtonLink'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { displayLabel } from '../../components/ui/display-label'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
@@ -142,8 +143,8 @@ export function EvaluatorAssignmentManagementPage() {
   const eligibleStudents = selectedComponent?.scope === 'INDIVIDUAL' ? (selectedScheme?.students.filter((student) => student.majorId === selectedComponent.majorId) ?? []) : []
 
   return (
-    <WorkspacePage className="space-y-6" title="Phân công người chấm" eyebrow="Đánh giá đồ án" description="Chọn đợt đánh giá, thành phần chấm và giảng viên phù hợp cho đồ án." action={<Link to={`/department/projects/${projectId}/evaluation-schemes`}><Button variant="secondary" icon="schema">Phương án đánh giá</Button></Link>}>
-      
+    <WorkspacePage className="space-y-6" title="Phân công người chấm" eyebrow="Đánh giá đồ án" description="Chọn đợt đánh giá, thành phần chấm và giảng viên phù hợp cho đồ án." action={<ButtonLink to={`/department/projects/${projectId}/evaluation-schemes`} icon="schema">Phương án đánh giá</ButtonLink>}>
+
     {error && <div ref={errorSummary} tabIndex={-1} role="alert" aria-labelledby="assignment-error-title" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><p id="assignment-error-title" className="font-semibold">Chưa thể hoàn tất thao tác</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại dữ liệu</button></div>}
     {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{notice}</p>}
     {loading && <p role="status" className="rounded-lg border border-hairline bg-card p-4 text-sm text-slate-700">Đang tải phân công…</p>}

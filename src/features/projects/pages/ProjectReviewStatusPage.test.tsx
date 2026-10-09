@@ -48,3 +48,12 @@ describe('ProjectReviewStatusPage', () => {
     expect(screen.getAllByText(/Scope is not feasible/).length).toBeGreaterThan(0)
   })
 })
+
+it('localizes active status and historical enum names', () => {
+  journey.useStudentJourney.mockReturnValue({ project: project('ACTIVE'), isLoading: false, error: null, refreshAll: vi.fn() })
+  registration.useProjectRegistration.mockReturnValue({ ...state('ACTIVE'), history: [{ id: 1, oldStatus: 'DRAFT', newStatus: 'UNDER_REVIEW', changedAt: '2026-09-15T08:00:00Z' }] })
+  render(<MemoryRouter><ProjectReviewStatusPage /></MemoryRouter>)
+  expect(screen.getByRole('heading', { name: 'Đang thực hiện' })).toBeTruthy()
+  expect(screen.getByText('Bản nháp → Đang thẩm định')).toBeTruthy()
+  expect(screen.queryByText('ACTIVE')).toBeNull()
+})

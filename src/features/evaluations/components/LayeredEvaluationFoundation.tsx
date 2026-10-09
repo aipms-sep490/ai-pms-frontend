@@ -9,7 +9,7 @@ export function LayeredEvaluationFoundation() {
       <p className="text-[11px] font-bold uppercase tracking-wider">Đánh giá theo phạm vi</p>
       <h2 id="layered-evaluation-heading" className="mt-1 font-bold">Chưa thể mở đánh giá theo phạm vi</h2>
       <p className="mt-2">Chức năng này chưa sẵn sàng. Bạn vẫn có thể xem các phân công đánh giá đã được cấp.</p>
-      <ul className="mt-3 list-disc pl-5">{availability.capabilities.map((capability) => <li key={capability.scope}>{displayLabel(capability.scope)} → {capability.requiredTarget} target · backend pending</li>)}</ul>
+      <ul className="mt-3 list-disc pl-5">{availability.capabilities.map((capability) => <li key={capability.scope}>{displayLabel(capability.scope)} · Chưa hỗ trợ chấm điểm</li>)}</ul>
     </section>
   )
 }

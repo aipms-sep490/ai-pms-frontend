@@ -51,7 +51,7 @@ describe('DepartmentWorkspacePage', () => {
 
     renderPage()
 
-    expect(await screen.findByText('Điều hành học vụ bộ môn')).toBeDefined()
+    expect(await screen.findByText('Quản lý đồ án bộ môn')).toBeDefined()
     expect((await screen.findAllByText(/Scoped project/)).length).toBeGreaterThan(0)
     expect(screen.getAllByRole('link', { name: 'Xem thẩm định' })[0].getAttribute('href')).toBe('/department/projects/review/9')
     expect(screen.queryByRole('button', { name: /approve|publish|assign/i })).toBeNull()

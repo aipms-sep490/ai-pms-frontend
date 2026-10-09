@@ -1,3 +1,4 @@
+import { displayLabel } from '../../../components/ui/display-label'
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
@@ -16,7 +17,7 @@ export function SupervisorMonitoringPage() {
 
   if (isDetail && supervisors.current) {
     const current = supervisors.current
-    return <main className="sup">
+    return <main className="workspace-page sup">
       <Link className="sup__back" to="/department/supervisors"><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Danh sách giảng viên</Link>
       <header className="sup__profile-header">
         <span className="sup__avatar" aria-hidden="true">{initials(current.fullName)}</span>
@@ -25,15 +26,15 @@ export function SupervisorMonitoringPage() {
       </header>
       <div className="sup__detail-grid">
         <section className="sup__panel"><p className="sup__section-label">Giới thiệu</p><p className="sup__bio">{current.bio ?? 'Giảng viên chưa cập nhật phần giới thiệu.'}</p></section>
-        <section className="sup__panel"><p className="sup__section-label">Chuyên môn</p>{current.expertise.length ? <ul className="sup__expertise">{current.expertise.map(item => <li key={`${item.name}-${item.proficiencyLevel}`}><span>{item.name}</span>{item.proficiencyLevel && <small>{item.proficiencyLevel}</small>}</li>)}</ul> : <p className="sup__muted">Chưa có dữ liệu chuyên môn.</p>}</section>
+        <section className="sup__panel"><p className="sup__section-label">Chuyên môn</p>{current.expertise.length ? <ul className="sup__expertise">{current.expertise.map(item => <li key={`${item.name}-${displayLabel(item.proficiencyLevel)}`}><span>{item.name}</span>{item.proficiencyLevel && <small>{item.proficiencyLevel}</small>}</li>)}</ul> : <p className="sup__muted">Chưa có dữ liệu chuyên môn.</p>}</section>
       </div>
-      <aside className="sup__notice"><span className="material-symbols-outlined" aria-hidden="true">info</span><p>Tải công việc và sức chứa chỉ xuất hiện trong màn chọn giảng viên theo từng đồ án khi hệ thống cung cấp dữ liệu.</p></aside>
+      <aside className="sup__notice"><span className="material-symbols-outlined" aria-hidden="true">info</span><p>Số đồ án đang hướng dẫn và số nhóm có thể nhận thêm được hiển thị khi chọn giảng viên cho đồ án.</p></aside>
     </main>
   }
 
   if (isDetail) return <StatePanel title="Không tìm thấy giảng viên" detail="Hồ sơ có thể đã bị xóa hoặc nằm ngoài phạm vi bộ môn."><Link className="sup__state-link" to="/department/supervisors">Quay lại danh sách</Link></StatePanel>
 
-  return <main className="sup">
+  return <main className="workspace-page sup">
     <header className="sup__header"><div><p className="sup__eyebrow">Không gian bộ môn</p><h1>Giảng viên hướng dẫn</h1><p>Tra cứu hồ sơ, chuyên môn và trạng thái sẵn sàng của giảng viên trong bộ môn.</p></div><div className="sup__count"><strong>{supervisors.totalCount}</strong><span>hồ sơ</span></div></header>
     <div className="sup__filters" aria-label="Lọc giảng viên hướng dẫn">
       <label><span>Tìm kiếm</span><input placeholder="Tên giảng viên" value={supervisors.filters.search ?? ''} onChange={event => supervisors.setFilters({ ...supervisors.filters, search: event.target.value || undefined, page: 1 })} /></label>
@@ -66,7 +67,7 @@ function Status({ available }: { available: boolean }) {
 }
 
 function StatePanel({ title, detail, busy = false, children }: { title: string; detail: string; busy?: boolean; children?: ReactNode }) {
-  return <main className="sup sup__state"><span className={`material-symbols-outlined ${busy ? 'sup__spin' : ''}`} aria-hidden="true">{busy ? 'progress_activity' : 'info'}</span><h1>{title}</h1><p>{detail}</p>{children}</main>
+  return <main className="workspace-page sup sup__state"><span className={`material-symbols-outlined ${busy ? 'sup__spin' : ''}`} aria-hidden="true">{busy ? 'progress_activity' : 'info'}</span><h1>{title}</h1><p>{detail}</p>{children}</main>
 }
 
 function initials(value: string) {

@@ -101,3 +101,12 @@ it('provides the admin dashboard without department workflow links or mutations'
   expect(screen.queryByRole('link', { name: 'Tệp' })).toBeNull()
   expect(api.getReviewActions).not.toHaveBeenCalled()
 })
+
+it('does not archive a project when the confirmation is cancelled', async () => {
+  api.getPortfolioDashboard.mockResolvedValue({ ...dashboard, projects: { ...dashboard.projects, items: [{ ...dashboard.projects.items[0], status: 'COMPLETED' }] } })
+  api.getReviewActions.mockResolvedValue({ actions: [{ code: 'archive_project', allowed: true, reasons: [] }] })
+  render(<MemoryRouter><PortfolioDashboardPage /></MemoryRouter>)
+  fireEvent.click(await screen.findByRole('button', { name: 'Lưu trữ' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Hủy' }))
+  expect(api.archiveProject).not.toHaveBeenCalled()
+})

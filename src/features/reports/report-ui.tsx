@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ListLoading } from '../../components/ui/ListLoading'
 import { reportStatusLabels, type ReportStatus } from './report-types'
 import { ExecutionPage } from '../execution/execution-ui'
 import './reports.css'
@@ -14,7 +15,7 @@ export function ReportShell({ title, description, projectTitle, backTo, children
 }
 
 export function ReportLoading() {
-  return <div className="report-loading" role="status"><span>Đang tải báo cáo…</span><div /><div /><div /></div>
+  return <ListLoading label="Đang tải báo cáo…" />
 }
 
 export function ReportError({ message, retry }: { message: string; retry?: () => void }) {

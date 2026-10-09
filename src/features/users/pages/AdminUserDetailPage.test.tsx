@@ -7,6 +7,7 @@ const api = vi.hoisted(() => ({ getUser: vi.fn(), updateAcademicProfile: vi.fn()
 const auth = vi.hoisted(() => ({ useAuthSession: vi.fn() }))
 const workspace = vi.hoisted(() => ({ useAdminWorkspace: vi.fn() }))
 vi.mock('../api/admin-api', () => api)
+vi.mock('../../academic/api/academic-api', () => ({ getAcademicHierarchy: vi.fn().mockResolvedValue([{ departments: [{ department: { id: 2, name: 'Bộ môn cũ', isActive: true }, majors: [] }, { department: { id: 3, name: 'Software Engineering', isActive: true }, majors: [{ id: 12, name: 'AI', code: 'AI', isActive: true }] }] }]) }))
 vi.mock('../../auth/context/useAuthSession', () => auth)
 vi.mock('../hooks/useAdminWorkspace', () => workspace)
 
@@ -28,11 +29,12 @@ describe('AdminUserDetailPage academic profile contract', () => {
     api.updateAcademicProfile.mockResolvedValue({ userId: 7, fullName: 'Nguyễn Minh', email: 'minh@example.test', studentCode: null, departmentId: 3, departmentName: 'Software Engineering', majorId: 12, majorName: 'AI', status: 'PENDING', reviewedBy: null, reviewedAt: null, rejectionReason: null, concurrencyToken: 'fresh-token' })
     renderPage()
     await screen.findByText('Nguyễn Minh')
-    fireEvent.change(screen.getByLabelText('Bộ môn ID'), { target: { value: '3' } })
-    fireEvent.change(screen.getByLabelText('Ngành ID'), { target: { value: '12' } })
+    await waitFor(() => expect((screen.getByLabelText('Bộ môn') as HTMLSelectElement).disabled).toBe(false))
+    fireEvent.change(screen.getByLabelText('Bộ môn'), { target: { value: '3' } })
+    fireEvent.change(screen.getByLabelText('Chuyên ngành'), { target: { value: '12' } })
     fireEvent.click(screen.getByRole('button', { name: 'Cập nhật phạm vi học thuật' }))
     await waitFor(() => expect(api.updateAcademicProfile).toHaveBeenCalledWith(7, { departmentId: 3, majorId: 12, concurrencyToken: 'user-token' }, 'admin-token'))
-    expect(await screen.findByText('Software Engineering')).toBeTruthy()
+    expect((await screen.findAllByText('Software Engineering')).length).toBeGreaterThan(0)
     expect(screen.getByText('Chờ xử lý')).toBeTruthy()
   })
 
@@ -41,7 +43,8 @@ describe('AdminUserDetailPage academic profile contract', () => {
     api.updateAcademicProfile.mockRejectedValue(new HttpError('stale', 409))
     renderPage()
     await screen.findByText('Nguyễn Minh')
-    const department = screen.getByLabelText('Bộ môn ID') as HTMLInputElement
+    await waitFor(() => expect((screen.getByLabelText('Bộ môn') as HTMLSelectElement).disabled).toBe(false))
+    const department = screen.getByLabelText('Bộ môn') as HTMLSelectElement
     fireEvent.change(department, { target: { value: '3' } })
     fireEvent.click(screen.getByRole('button', { name: 'Cập nhật phạm vi học thuật' }))
     expect(await screen.findByText(/dữ liệu bạn nhập được giữ/)).toBeTruthy()

@@ -34,7 +34,6 @@ export function ProjectLifecyclePage() {
   if (!project || !team) return <ExecutionPage title="Hồ sơ đồ án"><ExState title="Nhóm chưa có hồ sơ đồ án" message="Hoàn thiện điều kiện nhóm rồi tạo đề cương để đăng ký." action={<Link className="ex-button" to="/project/register">Tạo đề cương</Link>} /></ExecutionPage>
   return <ExecutionPage title="Hồ sơ đồ án" eyebrow={project.code} description={`${project.title} · ${team.name} (${team.code})${semester?.name ? ` · ${semester.name}` : ''}`}>
     <div className="lifecycle-page">
-    <ProjectResponsibilitiesPanel projectId={project.id} majors={project.majors} />
     <section className="lifecycle-section lifecycle-overview" aria-label="Thông tin đồ án">
       <dl className="lifecycle-facts">
         <div>
@@ -98,6 +97,7 @@ export function ProjectLifecyclePage() {
         ))}
       </div>
     </section>
+    <ProjectResponsibilitiesPanel projectId={project.id} majors={project.majors} />
     <section className="lifecycle-section lifecycle-history">
       <h2 className="lifecycle-section-heading text-base font-bold text-slate-900">Lịch sử đồ án</h2>
       {historyLoading ? (

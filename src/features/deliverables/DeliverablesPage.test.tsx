@@ -51,3 +51,18 @@ describe('DeliverablesPage', () => {
     expect(api.getDeliverableFeedback).toHaveBeenCalledWith(7, 1, 10, undefined)
   })
 })
+
+it('ignores a late version response after closing and opening another deliverable', async () => {
+  const other = { ...item, id: 5, title: 'Sản phẩm cuối' }
+  api.getDeliverables.mockResolvedValue({ items: [item, other], page: 1, pageSize: 10, totalCount: 2, totalPages: 1 })
+  let resolveOld!: (value: unknown) => void
+  api.getDeliverableVersions.mockImplementation((id: number) => id === 4 ? new Promise(resolve => { resolveOld = resolve }) : Promise.resolve({ items: [], page: 1, pageSize: 10, totalCount: 0, totalPages: 0 }))
+  page(); await screen.findByText('Báo cáo thiết kế')
+  fireEvent.click(screen.getAllByRole('button', { name: 'Xem phiên bản' })[0])
+  fireEvent.click(screen.getByRole('button', { name: 'Đóng hộp thoại' }))
+  fireEvent.click(screen.getAllByRole('button', { name: 'Xem phiên bản' })[1])
+  await screen.findByRole('heading', { name: 'Chưa có phiên bản' })
+  resolveOld({ items: [{ id: 7, versionNumber: 1, note: 'Phản hồi tải cũ', status: 'OPEN', files: [] }], totalCount: 1 })
+  await waitFor(() => expect(screen.queryByText('Phản hồi tải cũ')).toBeNull())
+  expect(screen.getByRole('dialog', { name: 'Lịch sử phiên bản' }).textContent).toContain('Sản phẩm cuối')
+})

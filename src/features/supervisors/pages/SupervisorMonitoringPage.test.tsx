@@ -105,7 +105,7 @@ describe('SupervisorMonitoringPage', () => {
     expect(screen.getByText('Distributed systems researcher.')).toBeTruthy()
     expect(screen.getByText('AI')).toBeTruthy()
     expect(screen.getByText('Advanced')).toBeTruthy()
-    expect(screen.getByText(/Tải công việc và sức chứa/)).toBeTruthy()
+    expect(screen.getByText(/Số đồ án đang hướng dẫn/)).toBeTruthy()
   })
 
   it('renders unavailable from the directory contract without inventing capacity', () => {

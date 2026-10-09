@@ -116,7 +116,7 @@ try {
   await page.getByLabel('Mật khẩu', { exact: true }).fill('synthetic-only')
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
   await page.goto(`${base}/department/workspace`)
-  await visible('heading', 'Điều hành học vụ bộ môn')
+  await visible('heading', 'Quản lý đồ án bộ môn')
   for (const width of [375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     await page.evaluate(() => document.fonts.ready)

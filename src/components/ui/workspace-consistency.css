@@ -1,0 +1,34 @@
+/* Shared product rhythm across student, lecturer, department and admin routes. */
+.app-page-content {
+ --workspace-gap:24px;
+ --workspace-panel-padding:24px;
+ --workspace-control-gap:12px;
+ --workspace-radius:14px;
+ --workspace-motion:180ms;
+}
+.app-page-content :is(.ex-detail-grid,.mtg-detail-grid,.report-detail-grid,.cw-columns,.calendar-page__layout,.workspace-summary-grid,.admin-detail-grid) { gap:var(--workspace-gap); }
+.app-page-content :is(.ex-padding,.mtg-padded,.report-editor,.report-reading,.report-action-panel,.report-feedback,.workspace-summary) { padding:var(--workspace-panel-padding); }
+.app-page-content :is(.ex-fields,.mtg-field-grid,.report-period-fields,.academic-form-grid,.topic__form-grid,.admin-form) { gap:16px; }
+.app-page-content :is(.mtg-actions,.report-form-actions,.ex-actions,.admin-actions,.academic-node-tools) { gap:var(--workspace-control-gap); }
+.app-page-content .workspace-master-detail { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--workspace-gap); align-items:start; }
+.app-page-content .workspace-master-detail > * { min-width:0; }
+@media(min-width:1024px) {
+ .app-page-content .workspace-master-detail { grid-template-columns:minmax(250px, .32fr) minmax(0,1fr); }
+ .app-page-content .workspace-master-detail > :first-child { position:sticky; top:84px; max-height:calc(100dvh - 108px); overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
+}
+@media(max-width:1023px) {
+ .app-page-content .workspace-master-detail > :first-child { position:static; max-height:none; overflow:visible; }
+ .app-page-content .workspace-master-detail > .admin-role-list { border-right:0; border-bottom:1px solid #e5ece8; padding:0 0 16px; }
+}
+.app-page-content :is(.mk-press,.mtg-button,.report-button,.ex-button,.ex-button-primary,.ex-button-danger,.admin-link-button) {
+ transition:background-color var(--workspace-motion) ease, border-color var(--workspace-motion) ease, color var(--workspace-motion) ease, box-shadow var(--workspace-motion) ease, transform var(--workspace-motion) ease;
+}
+.app-page-content :is(.mtg-button,.report-button,.ex-button,.ex-button-primary,.ex-button-danger):disabled { pointer-events:none; }
+.app-page-content :is(.mk-press,.mtg-button,.report-button,.ex-button,.admin-link-button):focus-visible { outline:2px solid #0f5b4e; outline-offset:3px; }
+@media(max-width:640px) {
+ .app-page-content { --workspace-gap:16px; --workspace-panel-padding:18px; --workspace-control-gap:8px; }
+}
+@media(prefers-reduced-motion:reduce) {
+ .app-page-content :is(button,a), .app-page-content :is(button,a) .material-symbols-outlined { transition:none !important; }
+ .app-page-content :is(.mk-press,.mtg-button,.report-button,.ex-button,.ex-button-primary,.ex-button-danger):active { transform:none !important; }
+}

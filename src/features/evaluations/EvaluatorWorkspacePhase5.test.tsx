@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { HttpError } from '../../services/http/http-client'
 
 const api = vi.hoisted(() => ({ getAllMyEvaluationAssignments: vi.fn(), getEvaluationAssignmentDetail: vi.fn(), getEvaluationAssignmentEvidence: vi.fn(), getProjectEvaluations: vi.fn(), createEvaluationDraft: vi.fn(), saveEvaluationDraft: vi.fn(), finalizeEvaluation: vi.fn() }))
@@ -12,7 +12,10 @@ import { EvaluatorAssignmentDetailPage } from './pages/EvaluatorAssignmentDetail
 
 const assignment = { id: 41, projectId: 9, evaluatorId: 5, rubricId: 7, projectPeriodId: 3, departmentId: 2, evaluationType: 'LECTURER' as const, status: 'ACTIVE' as const, assignedBy: 1, assignedAt: '2026-10-02T00:00:00Z', revokedAt: null, concurrencyToken: 'assignment-token', scope: 'MAJOR_SPECIFIC' as const, majorId: 8, studentId: null, componentId: 11, policyVersionId: 4 }
 const draft = { id: 51, assignmentId: 41, projectId: 9, evaluatorId: 5, rubricId: 7, rubricName: 'Rubric hệ thống', rootRubricId: 7, rubricVersion: 2, evaluationType: 'LECTURER', status: 'DRAFT', comments: null, totalScore: null, scoreScale: 10, calculationRule: 'WEIGHTED_10', missingCriterionIds: [12], missingRequiredCriterionIds: [12], concurrencyToken: 'draft-token', createdAt: '2026-10-02T00:00:00Z', updatedAt: '2026-10-02T00:00:00Z', finalization: null, scores: [{ rubricCriterionId: 12, name: 'Phân tích', description: 'Căn cứ rõ ràng', weightPercent: 100, maxScore: 10, sortOrder: 1, isRequired: true, score: null, comments: null }] }
-const page = (path = '/evaluator/assignments/41') => render(<MemoryRouter initialEntries={[path]}><Routes><Route path="evaluator/workspace" element={<EvaluatorWorkspacePage />} /><Route element={<EvaluatorAssignmentRoute />}><Route path="evaluator/assignments/:assignmentId" element={<EvaluatorAssignmentDetailPage />} /></Route></Routes></MemoryRouter>)
+const page = (path = '/evaluator/assignments/41') => render(<RouterProvider router={createMemoryRouter([
+  { path: '/evaluator/workspace', element: <EvaluatorWorkspacePage /> },
+  { element: <EvaluatorAssignmentRoute />, children: [{ path: '/evaluator/assignments/:assignmentId', element: <EvaluatorAssignmentDetailPage /> }] },
+], { initialEntries: [path] })} />)
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -24,6 +27,46 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Evaluator Workspace Phase 5', () => {
+  it('does not classify an unavailable draft as a new or pending evaluation', async () => {
+    api.getProjectEvaluations.mockRejectedValue(new Error('offline'))
+    page('/evaluator/workspace')
+    expect(await screen.findByRole('link', { name: 'Xem phân công' })).toBeTruthy()
+    expect(screen.queryByRole('link', { name: 'Bắt đầu chấm' })).toBeNull()
+    fireEvent.change(screen.getByLabelText('Trạng thái đánh giá'), { target: { value: 'pending' } })
+    expect(screen.queryByRole('link', { name: 'Xem phân công' })).toBeNull()
+    fireEvent.change(screen.getByLabelText('Trạng thái đánh giá'), { target: { value: 'unavailable' } })
+    expect(screen.getByRole('link', { name: 'Xem phân công' })).toBeTruthy()
+  })
+  it('filters completed assignments and makes the next scoring action explicit', async () => {
+    page('/evaluator/workspace')
+    expect(await screen.findByRole('link', { name: 'Tiếp tục chấm' })).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Trạng thái đánh giá'), { target: { value: 'finalized' } })
+    expect(screen.queryByRole('link', { name: 'Tiếp tục chấm' })).toBeNull()
+    expect(screen.getByText(/Không có phân công phù hợp/)).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Trạng thái đánh giá'), { target: { value: 'all' } })
+    expect(screen.getByRole('link', { name: 'Tiếp tục chấm' })).toBeTruthy()
+  })
+  it('requires saving changed scores before finalization and protects the return link', async () => {
+    const complete = { ...draft, totalScore: 8, missingCriterionIds: [], missingRequiredCriterionIds: [], scores: [{ ...draft.scores[0], score: 8 }] }
+    api.getProjectEvaluations.mockResolvedValue({ items: [complete] })
+    page()
+    fireEvent.change(await screen.findByLabelText('Điểm Phân tích'), { target: { value: '9' } })
+    expect((screen.getByRole('button', { name: 'Yêu cầu chốt đánh giá' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('link', { name: 'Quay lại' }))
+    expect(await screen.findByRole('button', { name: 'Ở lại' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Ở lại' }))
+    expect((screen.getByLabelText('Điểm Phân tích') as HTMLInputElement).value).toBe('9')
+    api.saveEvaluationDraft.mockResolvedValue({ ...complete, totalScore: 9, scores: [{ ...draft.scores[0], score: 9 }] })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Yêu cầu chốt đánh giá' }) as HTMLButtonElement).disabled).toBe(false))
+    expect(api.finalizeEvaluation).not.toHaveBeenCalled()
+  })
+  it('blocks finalization with incomplete criteria and links the locked package in the current project', async () => {
+    page()
+    await screen.findByLabelText('Điểm Phân tích')
+    expect((screen.getByRole('button', { name: 'Yêu cầu chốt đánh giá' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByRole('link', { name: 'Xem gói bàn giao đã khóa' }).getAttribute('href')).toBe('/evaluator/projects/9/final-submission')
+  })
   it('renders persisted COMMON, MAJOR_SPECIFIC and INDIVIDUAL assignments without a target-switch control', async () => {
     api.getAllMyEvaluationAssignments.mockResolvedValue([assignment, { ...assignment, id: 42, scope: 'COMMON', majorId: null, studentId: null }, { ...assignment, id: 43, scope: 'INDIVIDUAL', majorId: 8, studentId: 99 }])
     api.getProjectEvaluations.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
@@ -85,6 +128,7 @@ describe('Evaluator Workspace Phase 5', () => {
   })
 
   it('uses the application confirmation before requesting backend finalization', async () => {
+    api.getProjectEvaluations.mockResolvedValue({ items: [{ ...draft, totalScore: 8, missingCriterionIds: [], missingRequiredCriterionIds: [], scores: [{ ...draft.scores[0], score: 8 }] }] })
     api.finalizeEvaluation.mockResolvedValue({ ...draft, status: 'FINALIZED', totalScore: 8, missingCriterionIds: [], missingRequiredCriterionIds: [], finalization: { finalizedBy: 5, finalizedAt: '2026-10-02T01:00:00Z', evidence: { finalSubmissionId: 1, artifactCount: 1, fileCount: 1 } } })
     page()
     fireEvent.click(await screen.findByRole('button', { name: 'Yêu cầu chốt đánh giá' }))
@@ -100,7 +144,7 @@ describe('Evaluator Workspace Phase 5', () => {
     const score = await screen.findByLabelText('Điểm Phân tích') as HTMLInputElement
     expect(score.disabled).toBe(true)
     expect(screen.queryByRole('button', { name: 'Yêu cầu chốt đánh giá' })).toBeNull()
-    expect(screen.getByText(/Số item trong gói bàn giao: 2/)).toBeTruthy()
+    expect(screen.getByText(/Số hạng mục bàn giao: 2/)).toBeTruthy()
     expect(screen.getByText(/Thông tin bàn giao dưới đây chỉ để đối chiếu/)).toBeTruthy()
     expect(screen.getByText(/Kết quả chính thức được bộ môn công bố sau khi hoàn tất đánh giá/)).toBeTruthy()
   })

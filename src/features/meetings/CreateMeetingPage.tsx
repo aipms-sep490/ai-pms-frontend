@@ -37,7 +37,7 @@ function CreateMeetingView() {
       if (alive.current) { setError(meetingError(reason)); setUncertain(mustRefreshAfterError(reason)) }
     } finally { locked.current = false; if (alive.current) setBusy(false) }
   }
-  return <MeetingShell title="Lên lịch họp" projectTitle={project.title} backTo={`${routeBase}/workspace`} action={<Link className="mtg-button mtg-button--secondary" to={`${routeBase}/meetings`}>Danh sách cuộc họp</Link>}>
+  return <MeetingShell title="Lên lịch họp" projectTitle={project.title} backTo={`${routeBase}/meetings`} action={<Link className="mtg-button mtg-button--secondary" to={`${routeBase}/meetings`}>Danh sách cuộc họp</Link>}>
     <MeetingUnsavedNotice dirty={dirty} busy={busy} />
     {access.executionCapabilities?.status === 'loading' ? <MeetingLoading /> : !canSchedule ? <MeetingError message="Bạn chưa có quyền lên lịch họp cho đồ án này." /> : <>
       {error && <MeetingError message={error} />}

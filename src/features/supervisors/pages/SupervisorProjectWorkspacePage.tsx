@@ -1,3 +1,4 @@
+import { SpotlightLink } from '../../../components/ui/SpotlightLink'
 import { Link } from 'react-router-dom'
 import { env } from '../../../app/config/env'
 import { ProjectProgressAnalysisPanel } from '../../ai/components/ProjectProgressAnalysisPanel'
@@ -10,14 +11,14 @@ import { useSupervisorProgressReview } from '../hooks/useSupervisorProgressRevie
 type WorkspaceArea = { key: string; title: string; description: string; path: string }
 
 const areas: WorkspaceArea[] = [
-  { key: 'progress', title: 'Tiến độ', description: 'Báo cáo, blocker và phản hồi.', path: 'progress' },
+  { key: 'progress', title: 'Tiến độ', description: 'Tiến độ, vướng mắc và phản hồi.', path: 'progress' },
   { key: 'tasks', title: 'Công việc & mốc', description: 'Hạn, phụ trách và trạng thái.', path: 'tasks' },
   { key: 'meetings', title: 'Cuộc họp', description: 'Lịch, biên bản, kết luận và việc sau họp.', path: 'meetings' },
   { key: 'deliverables', title: 'Hạng mục bàn giao', description: 'Phiên bản nộp và phản hồi.', path: 'deliverables' },
   { key: 'files', title: 'Kho tệp đồ án', description: 'Tài liệu theo từng hạng mục.', path: 'files' },
   { key: 'evidence', title: 'Sổ minh chứng', description: 'Nguồn phát sinh và trạng thái xác minh.', path: 'evidence' },
   { key: 'contributions', title: 'Đóng góp', description: 'Chỉ số hoạt động có chứng cứ.', path: 'contributions' },
-  { key: 'final', title: 'Bàn giao cuối kỳ', description: 'Checklist và gói đã khóa.', path: 'final-submission' },
+  { key: 'final', title: 'Bàn giao cuối kỳ', description: 'Kiểm tra hồ sơ và xem bản bàn giao.', path: 'final-submission' },
 ]
 
 /** Assignment-scoped, evidence-first cockpit. It does not invent a supervisor role or a write capability. */
@@ -32,12 +33,12 @@ export function SupervisorProjectWorkspacePage() {
   ]
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 pb-12">
+    <main className="workspace-page mx-auto max-w-6xl space-y-6 pb-12">
       <header className="border-b border-hairline pb-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Giám sát đồ án được phân công</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Giảng viên hướng dẫn</p>
         <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Không gian vận hành của GVHD</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Tổng quan đồ án</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Theo dõi tiến độ, nội dung cần phản hồi và toàn bộ tài liệu của đồ án được phân công.</p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -56,7 +57,7 @@ export function SupervisorProjectWorkspacePage() {
           <Metric label="Trạng thái" value={projectStatusLabel(access.project.status)} />
           <Metric label="Nhóm" value={access.project.teamName ?? 'Chưa có thông tin'} />
           <Metric label="GVHD" value={access.supervisor?.supervisorName ?? 'Chưa có thông tin'} />
-          <ResourceMetric label="Mốc đang thực hiện" resource={operational.milestone} render={(data) => data.current?.title ?? (data.count ? 'Chưa có mốc IN_PROGRESS' : 'Chưa có mốc')} />
+          <ResourceMetric label="Mốc đang thực hiện" resource={operational.milestone} render={(data) => data.current?.title ?? (data.count ? 'Chưa có mốc đang thực hiện' : 'Chưa có mốc')} />
           <ResourceMetric label="Hạng mục bàn giao" resource={operational.deliverables} render={(data) => `${data.count} hạng mục`} />
         </dl>
       </section>
@@ -64,15 +65,15 @@ export function SupervisorProjectWorkspacePage() {
       <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-labelledby="supervision-attention">
         <div className="border-b border-hairline px-5 py-4 sm:px-6"><h2 id="supervision-attention" className="font-bold text-slate-900">Cần chú ý</h2><p className="mt-1 text-sm text-slate-600">Các mục cần theo dõi trong tiến độ hiện tại của đồ án.</p></div>
         <div className="grid divide-y divide-hairline sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-3">
-          <AttentionItem title="Báo cáo chờ phản hồi" link={`${access.routeBase}/progress`} resource={operational.pendingReports} render={(data) => data.count ? `${data.count} báo cáo SUBMITTED` : 'Không có báo cáo SUBMITTED'} />
+          <AttentionItem title="Báo cáo chờ phản hồi" link={`${access.routeBase}/progress`} resource={operational.pendingReports} render={(data) => data.count ? `${data.count} báo cáo chờ phản hồi` : 'Không có báo cáo chờ phản hồi'} />
           <AttentionItem title="Việc quá hạn / vướng mắc" link={`${access.routeBase}/tasks?overdue=true`} resource={progress.attention} render={(data) => `${data.overdueTasks.length} quá hạn · ${data.blockedTasks.length} vướng mắc`} />
           <AttentionItem title="Cuộc họp sắp tới" link={operational.meeting.state === 'ready' && operational.meeting.data.next ? `${access.routeBase}/meetings/${operational.meeting.data.next.id}` : `${access.routeBase}/meetings`} resource={operational.meeting} render={(data) => data.next ? `${data.next.title} · ${formatMeetingTime(data.next.startAt)}` : 'Chưa có lịch họp sắp tới'} />
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-labelledby="supervision-navigation">
-        <div className="border-b border-hairline px-5 py-4 sm:px-6"><h2 id="supervision-navigation" className="font-bold text-slate-900">Phạm vi giám sát</h2><p className="mt-1 text-sm text-slate-600">Mỗi vùng mở route đã được ràng buộc với đồ án và phân công hiện tại.</p></div>
-        <nav className="grid sm:grid-cols-2 lg:grid-cols-3" aria-label="Các vùng vận hành đồ án">
+      <section className="workspace-navigation-section" aria-labelledby="supervision-navigation">
+        <div className="border-b border-hairline px-5 py-4 sm:px-6"><h2 id="supervision-navigation" className="font-bold text-slate-900">Tài liệu và hoạt động</h2><p className="mt-1 text-sm text-slate-600">Truy cập nội dung cần xem hoặc phản hồi cho nhóm.</p></div>
+        <nav className="workspace-launchpad grid sm:grid-cols-2" aria-label="Chức năng hướng dẫn đồ án">
           {availableAreas.map((area) => <WorkspaceLink key={area.key} area={area} routeBase={access.routeBase} />)}
           {evaluatorAssigned && <WorkspaceLink area={{ key: 'evaluation', title: 'Đánh giá', description: 'Mở phân công đánh giá hiện tại.', path: '/evaluator/evaluations' }} routeBase="" />}
         </nav>
@@ -88,7 +89,7 @@ export function SupervisorProjectWorkspacePage() {
 
 function WorkspaceLink({ area, routeBase }: { area: WorkspaceArea; routeBase: string }) {
   const to = area.path.startsWith('/') ? area.path : `${routeBase}/${area.path}`
-  return <Link className="group min-w-0 border-b border-hairline px-5 py-4 last:border-b-0 hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary sm:odd:border-r lg:[&:nth-child(3n)]:border-r-0" to={to}><span className="block break-words font-semibold text-slate-900 group-hover:text-primary">{area.title}</span><span className="mt-1 block break-words text-sm leading-6 text-slate-600">{area.description}</span><span className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-primary underline underline-offset-4">Xem chi tiết</span></Link>
+  return <SpotlightLink className="group flex flex-col gap-3 min-w-0 border-b border-hairline px-5 py-4 last:border-b-0 hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary sm:odd:border-r" to={to}><span className="block break-words font-semibold text-slate-900 group-hover:text-primary">{area.title}</span><span className="mt-1 block break-words text-sm leading-6 text-slate-600">{area.description}</span><span className="workspace-action-link mt-3">Xem chi tiết<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></span></SpotlightLink>
 }
 
 function AttentionItem<T>({ title, link, resource, render }: { title: string; link: string; resource: SupervisorOperationalResource<T>; render: (data: T) => string }) {

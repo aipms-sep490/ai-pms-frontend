@@ -124,8 +124,10 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
     {error && <ReportError message={error} />}
     {loading || (create && executionCapabilities?.status === 'loading') ? <ReportLoading /> : loadError ? <ReportError message={loadError} retry={() => setRevision((value) => value + 1)} /> : create && !canCreate ? <ReportError message="Bạn chưa thể tạo báo cáo tiến độ cho đồ án này." /> : <>
       {report && <div className="report-detail-banner"><div><p className="report-eyebrow">{reportTypeLabels[report.reportType]} • #{report.id}</p><h2>{formatReportDate(report.periodStart)} – {formatReportDate(report.periodEnd)}</h2><p>{report.status === 'DRAFT' ? 'Người tạo' : 'Người nộp'}: {report.submittedByName}{report.submittedAt ? ` • Nộp ngày ${formatReportDate(report.submittedAt)}` : ''}</p></div><div><ReportBadge status={report.status} />{report.isLate === true && <p className="report-late">Nộp trễ hạn</p>}</div></div>}
-      <div className="report-detail-grid">
-        <div>{editable ? <ReportEditor key={editorVersion} report={report ?? undefined} busy={busy} onSave={save} onDirtyChange={(value) => { setDirty(value); setConfirmSubmit(false) }} /> : report && <article className="report-panel report-reading"><h2>Nội dung báo cáo</h2>{contentFields.map(({ key, label }, index) => <section key={key}><h3><span>{String(index + 1).padStart(2, '0')}</span>{label}</h3><p>{report[key] || 'Chưa có nội dung.'}</p></section>)}</article>}</div>
+      <div className={`report-detail-grid${editable ? '' : ' report-detail-grid--reading'}`}>
+        <div className="report-main">{editable ? <ReportEditor key={editorVersion} report={report ?? undefined} busy={busy} onSave={save} onDirtyChange={(value) => { setDirty(value); setConfirmSubmit(false) }} /> : report && <article className="report-panel report-reading"><h2>Nội dung báo cáo</h2>{contentFields.map(({ key, label }, index) => <section key={key}><h3><span>{String(index + 1).padStart(2, '0')}</span>{label}</h3><p>{report[key] || 'Chưa có nội dung.'}</p></section>)}</article>}
+
+        </div>
         <aside className="report-aside">
           <section className="report-panel report-action-panel"><h2>{report?.status === 'DRAFT' || create ? 'Trước khi nộp' : 'Trạng thái báo cáo'}</h2>
             {create ? <p>Chọn kỳ báo cáo và điền tóm tắt để lưu nháp. Trưởng nhóm nộp sau khi cả bốn mục đã hoàn thiện.</p> : report?.status === 'DRAFT' ? <>
@@ -139,14 +141,13 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
             </> : <p>Nội dung đã được khóa sau khi nộp. {report?.status === 'REVIEWED' ? 'GVHD đã gửi nhận xét; xem chi tiết bên dưới.' : 'Báo cáo đang chờ nhận xét từ GVHD.'}</p>}
             {!create && <button className="report-text-button" disabled={busy || hasUnsavedChanges} onClick={() => { setError(''); setRevision((value) => value + 1) }}>Tải lại trạng thái</button>}
           </section>
+          {report && actor !== 'mentor' && env.aiAdvisoryEnabled && <ReportAiSummary projectId={project.id} reportId={report.id} />}
+        </aside>
+      </div>
           {report && <section className="report-panel report-feedback" aria-labelledby="feedback-title"><div className="report-section-heading"><h2 id="feedback-title">Phản hồi của GVHD</h2><span>{report.feedbacks.length}</span></div>
             {report.feedbacks.length === 0 ? <p className="report-help">Chưa có phản hồi. Phản hồi của GVHD sẽ xuất hiện tại đây.</p> : <ol>{report.feedbacks.map((item) => <li key={item.id}><strong>{item.supervisorName}</strong><time dateTime={item.createdAt}>{formatReportDate(item.createdAt)}</time><p>{item.feedbackText}</p></li>)}</ol>}
             {actor === 'supervisor' && ['SUBMITTED', 'REVIEWED'].includes(report.status) && <form onSubmit={(event) => void sendFeedback(event)}><label htmlFor="report-feedback">Phản hồi mới</label><textarea id="report-feedback" required rows={5} value={feedback} disabled={busy} onChange={(event) => setFeedback(event.target.value)} placeholder="Phản hồi về kết quả và hướng dẫn bước tiếp theo…" /><button className="report-button" disabled={busy || !feedback.trim()} type="submit">{busy ? 'Đang gửi…' : 'Gửi phản hồi'}</button></form>}
           </section>}
-          {report && actor !== 'mentor' && env.aiAdvisoryEnabled && <ReportAiSummary projectId={project.id} reportId={report.id} />}
-        </aside>
-      </div>
     </>}
   </ReportShell>
 }
-

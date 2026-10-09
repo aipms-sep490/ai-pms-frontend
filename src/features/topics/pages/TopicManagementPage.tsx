@@ -37,7 +37,7 @@ export function TopicManagementPage() {
   if (id && topics.current) {
     const topic = topics.current
     return (
-      <main className="topic mk-page-enter">
+      <main className="workspace-page topic mk-page-enter">
         <Link className="topic__back" to="/department/topics">← Danh mục đề tài</Link>
         <header className="topic__header">
           <p>ĐỀ TÀI {topic.code}</p>
@@ -70,7 +70,7 @@ export function TopicManagementPage() {
   }
 
   return (
-    <main className="topic mk-page-enter">
+    <main className="workspace-page topic mk-page-enter">
       <header className="topic__header">
         <p>DANH MỤC HỌC VỤ</p>
         <h1>Quản lý đề tài</h1>

@@ -47,3 +47,9 @@ describe('role route', () => {
     expect(screen.queryByText('Department workspace')).toBeNull()
   })
 })
+
+it('allows explicitly assigned department access for a user who also has Admin, matching the menu', () => {
+  renderRoutes(['ADMIN', 'DEPARTMENT_STAFF'], '/department/projects/review')
+  expect(screen.getByText('Department review')).toBeDefined()
+  expect(screen.queryByText('Admin access')).toBeNull()
+})

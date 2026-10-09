@@ -6,6 +6,7 @@ import { useAuthSession } from '../context/useAuthSession'
 import { getHomePath } from '../utils/role-access'
 import { GoogleLoginButton } from '../components/GoogleLoginButton'
 import './auth-pages.css'
+import './login-design.css'
 
 function getLoginErrorMessage(error: unknown): string {
   if (error instanceof HttpError) {
@@ -22,6 +23,7 @@ export function LoginPage() {
   const { login, session, status } = useAuthSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const isSubmitting = status === 'authenticating' || status === 'refreshing'
 
@@ -47,23 +49,35 @@ export function LoginPage() {
   }
 
   return (
-    <main className="auth-page-shell">
-      <section className="auth-card" aria-labelledby="login-title">
-        <div className="auth-brand"><span className="material-symbols-outlined" aria-hidden="true">school</span><span>AI-PMS · FPTU</span></div>
+    <main className="login-page">
+      <aside className="login-story" aria-label="Giới thiệu AI-PMS">
+        <div className="login-brand"><span className="material-symbols-outlined" aria-hidden="true">school</span><div><strong>AI-PMS</strong><span>Không gian đồ án · FPT University</span></div></div>
+        <div className="login-story-copy"><p className="login-story-label">Cùng nhóm. Cùng giảng viên.</p><h2>Từ ý tưởng đến<br />đồ án hoàn chỉnh.</h2><p>Kế hoạch, trao đổi và kết quả của cả nhóm — kết nối trong một không gian.</p></div>
+        <ol className="login-journey" aria-label="Quy trình đồ án">
+          <li><span className="material-symbols-outlined" aria-hidden="true">lightbulb</span><div><strong>Khởi đầu có định hướng</strong><span>Đề tài, nhóm và giảng viên hướng dẫn</span></div></li>
+          <li><span className="material-symbols-outlined" aria-hidden="true">route</span><div><strong>Theo sát từng bước</strong><span>Công việc, mốc tiến độ và trao đổi</span></div></li>
+          <li><span className="material-symbols-outlined" aria-hidden="true">task_alt</span><div><strong>Hoàn thiện cùng nhau</strong><span>Bàn giao, phản hồi và đánh giá</span></div></li>
+        </ol>
+        <p className="login-story-footer">Một nền tảng cho sinh viên, giảng viên và nhà trường.</p>
+      </aside>
+      <div className="login-form-side"><section className="login-form-panel" aria-labelledby="login-title">
+        <div className="login-mobile-brand"><span className="material-symbols-outlined" aria-hidden="true">school</span><strong>AI-PMS · FPTU</strong></div>
+        <p className="login-welcome">Chào mừng trở lại</p>
         <h1 className="auth-login-title" id="login-title">Đăng nhập tài khoản</h1>
+        <p className="login-description">Tiếp tục công việc và theo dõi đồ án của bạn.</p>
         {(location.state as { passwordChanged?: boolean } | null)?.passwordChanged && <p className="auth-status" role="status">Mật khẩu đã được đổi. Hãy đăng nhập lại bằng mật khẩu mới.</p>}
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
           <label htmlFor="login-email">Email</label>
-          <input id="login-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} aria-invalid={Boolean(formError)} disabled={isSubmitting} />
-          <label htmlFor="login-password">Mật khẩu</label>
-          <input id="login-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} aria-invalid={Boolean(formError)} disabled={isSubmitting} />
-          {formError && <p className="auth-error" role="alert">{formError}</p>}
-          <Button className="auth-submit" type="submit" disabled={isSubmitting}>{isSubmitting ? 'Đang xác thực…' : 'Đăng nhập'}</Button>
+          <input id="login-email" type="email" autoComplete="username" placeholder="Email của bạn" spellCheck={false} autoCapitalize="none" value={email} onChange={(event) => setEmail(event.target.value)} aria-invalid={Boolean(formError)} aria-describedby={formError ? 'login-error' : undefined} disabled={isSubmitting} />
+          <div className="login-password-label"><label htmlFor="login-password">Mật khẩu</label><Link to="/forgot-password">Quên mật khẩu?</Link></div>
+          <div className="login-password-field"><input id="login-password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" placeholder="Nhập mật khẩu" value={password} onChange={(event) => setPassword(event.target.value)} aria-invalid={Boolean(formError)} aria-describedby={formError ? 'login-error' : undefined} disabled={isSubmitting} /><button type="button" aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} aria-pressed={showPassword} disabled={isSubmitting} onClick={() => setShowPassword(value => !value)}><span className="material-symbols-outlined" aria-hidden="true">{showPassword ? 'visibility_off' : 'visibility'}</span></button></div>
+          {formError && <p id="login-error" className="auth-error" role="alert">{formError}</p>}
+          <Button className="auth-submit" type="submit" disabled={isSubmitting} icon={isSubmitting ? undefined : 'arrow_forward'}>{isSubmitting ? 'Đang xác thực…' : 'Đăng nhập'}</Button>
         </form>
         <div className="auth-divider" role="separator">hoặc</div>
         <GoogleLoginButton />
-        <Link className="auth-recovery-link" to="/forgot-password">Quên mật khẩu?</Link>
-      </section>
+        <p className="login-help"><span className="material-symbols-outlined" aria-hidden="true">help_outline</span>Chưa có tài khoản? Liên hệ cán bộ phụ trách bộ môn để được hỗ trợ.</p>
+      </section><p className="login-form-footer">AI-PMS · Quản lý và theo dõi đồ án học thuật</p></div>
     </main>
   )
 }

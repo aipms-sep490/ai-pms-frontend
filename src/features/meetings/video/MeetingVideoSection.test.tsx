@@ -19,7 +19,7 @@ afterEach(() => { cleanup(); runtime.env.videoMeetingEnabled = true; api.startMe
 describe('MeetingVideoSection', () => {
   it('uses capability flags rather than role-like controls and omits end/record actions', () => {
     render(<MemoryRouter><MeetingVideoSection meeting={meeting} routeBase="/project" /></MemoryRouter>)
-    expect(screen.queryByRole('button', { name: 'Bắt đầu Video' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Mở phòng họp' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'Kiểm tra trước khi tham gia' })).toBeNull()
     expect(screen.queryByText(/Kết thúc Video|Ghi hình/)).toBeNull()
   })
@@ -28,7 +28,7 @@ describe('MeetingVideoSection', () => {
     access.state.resource.capabilities = { canStart: true, canJoin: true, canEnd: false, canRecord: false }
     api.startMeetingVideo.mockResolvedValue(undefined)
     render(<MemoryRouter><MeetingVideoSection meeting={meeting} routeBase="/project" /></MemoryRouter>)
-    fireEvent.click(screen.getByRole('button', { name: 'Bắt đầu Video' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mở phòng họp' }))
     fireEvent.click(screen.getByRole('button', { name: /Đang bắt đầu/ }))
     await waitFor(() => expect(api.startMeetingVideo).toHaveBeenCalledTimes(1))
     expect(api.startMeetingVideo).toHaveBeenCalledWith(42)

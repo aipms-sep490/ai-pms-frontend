@@ -1,0 +1,88 @@
+/* Product layout: one content surface, section spacing, and quiet dividers.
+   Controls, status notices, dialogs, and video surfaces keep their own boundaries. */
+.workspace-flat :is(.workspace-surface,.ex-panel,.report-panel,.mtg-panel) {
+  border:1px solid #dfe8e2; border-radius:14px; box-shadow:0 2px 5px rgb(20 55 36 / 3%);
+}
+.workspace-flat :is(.ex-panel-heading,.mtg-list-heading,.report-list-heading) { background:transparent; }
+.workspace-flat .ex-panel-heading { border-bottom:0; padding-bottom:12px; }
+.workspace-flat .ex-panel-heading + .ex-padding { padding-top:8px; }
+.workspace-flat :is(.ex-detail-grid > div:first-child,.mtg-detail-grid > .mtg-stack:first-child,.report-main) {
+  background:#fff; border-radius:14px; padding:28px; min-width:0; gap:0;
+}
+.workspace-flat .ex-detail-grid > div:first-child > .ex-panel {
+  margin:0; padding:24px 0; border:0; box-shadow:none; border-radius:0; border-bottom:1px solid #e7ede9; overflow:visible;
+}
+.workspace-flat .ex-detail-grid > div:first-child > .ex-panel:first-child { padding-top:0; }
+.workspace-flat .ex-detail-grid > div:first-child > .ex-panel:last-child { border-bottom:0; padding-bottom:0; }
+.workspace-flat .ex-detail-grid > div:first-child > .ex-panel :is(.ex-panel-heading,.ex-padding) { padding-inline:0; }
+.workspace-flat .mtg-detail-grid > .mtg-stack:first-child > .mtg-panel {
+  padding:26px 0; border:0; box-shadow:none; border-radius:0; border-bottom:1px solid #e7ede9; overflow:visible;
+}
+.workspace-flat .mtg-detail-grid > .mtg-stack:first-child > .mtg-panel:first-child { padding-top:0; }
+.workspace-flat .mtg-detail-grid > .mtg-stack:first-child > .mtg-panel:last-child { border-bottom:0; padding-bottom:0; }
+.workspace-flat .report-main > .report-panel { padding:26px 0; border:0; box-shadow:none; border-radius:0; }
+.workspace-flat .report-main > .report-panel:first-child { padding-top:0; }
+.workspace-flat .report-main > .report-panel + .report-panel { border-top:1px solid #e7ede9; }
+.workspace-flat .report-main > .report-panel:last-child { padding-bottom:0; }
+.workspace-flat :is(.ex-detail-grid > aside,.mtg-detail-grid > aside,.report-aside) > :is(.ex-panel,.mtg-panel,.report-panel) {
+  background:transparent; border:0; box-shadow:none; border-radius:0; padding:20px 4px; border-bottom:1px solid #dce5e0;
+}
+.workspace-flat .ex-detail-grid > aside .ex-panel-heading,
+.workspace-flat .ex-detail-grid > aside .ex-padding { padding-inline:0; background:transparent; }
+.workspace-flat .task-evidence-comments > div { padding:24px 0; border:0; border-radius:0; background:transparent; }
+.workspace-flat .task-evidence-comments { margin-top:0; gap:0; }
+.workspace-flat .task-evidence-comments > div + div { border-top:1px solid #e7ede9; }
+.workspace-flat .lifecycle-page { background:white; border-radius:14px; padding:28px; gap:0; }
+.workspace-flat .lifecycle-section { border:0; border-radius:0; box-shadow:none; padding:24px 0; }
+.workspace-flat .lifecycle-section + .lifecycle-section { border-top:1px solid #e7ede9; }
+.workspace-flat .lifecycle-section:first-child { padding-top:0; }
+.workspace-flat .lifecycle-section:last-child { padding-bottom:0; }
+.workspace-flat :is(.lifecycle-facts > div,.lifecycle-brief > div,.lifecycle-member) { background:transparent; border-radius:0; box-shadow:none; }
+.workspace-flat.evaluation-workspace > section,
+.workspace-flat.evaluation-workspace > header:not(.workspace-heading),
+.workspace-flat.evaluation-workspace > form > section { border:0; border-radius:0; box-shadow:none; }
+.workspace-flat.evaluation-workspace > form { background:white; padding:28px; }
+.workspace-flat.evaluation-workspace > form > section { padding:24px 0; }
+.workspace-flat.evaluation-workspace > form > section + section { border-top:1px solid #e7ede9; }
+.workspace-flat.evaluation-workspace > form > section:first-child { padding-top:0; }
+.workspace-flat.evaluation-workspace > form > section:last-child { padding-bottom:0; }
+@media(max-width:760px) {
+ .workspace-flat :is(.ex-detail-grid > div:first-child,.mtg-detail-grid > .mtg-stack:first-child,.report-main,.lifecycle-page),
+ .workspace-flat.evaluation-workspace > form { padding:20px; }
+ .workspace-flat :is(.ex-detail-grid > aside,.mtg-detail-grid > aside,.report-aside) > :is(.ex-panel,.mtg-panel,.report-panel) { padding:20px 0; }
+}
+
+.workspace-flat .lifecycle-facts > div { padding:8px 20px; }
+.workspace-flat .lifecycle-facts > div:first-child { padding-left:0; }
+.workspace-flat .lifecycle-brief > div { padding:24px 20px 0 0; }
+.workspace-flat .lifecycle-brief > div + div { padding-left:20px; padding-right:0; }
+.workspace-flat .lifecycle-section-heading { padding:0 0 16px; border:0; }
+.workspace-flat .lifecycle-member { padding:16px 20px 16px 0; }
+.workspace-flat .lifecycle-member:nth-child(even) { padding-left:20px; padding-right:0; }
+.workspace-flat .lifecycle-history .ex-timeline { padding-right:0; }
+@media(max-width:640px) {
+ .workspace-flat .lifecycle-facts > div { padding:16px 0; }
+ .workspace-flat .lifecycle-brief > div + div { padding-left:0; }
+ .workspace-flat .lifecycle-member:nth-child(n) { padding-inline:0; }
+}
+
+.workspace-flat :is(.mtg-detail-banner,.report-detail-banner) { border:1px solid #ceded4; border-radius:14px; background:#edf4ef; padding:20px 24px; }
+.workspace-flat.evaluation-workspace [aria-label="Danh sách phân công đánh giá"] > article { border:0; border-radius:0; border-bottom:1px solid #e7ede9; }
+
+.workspace-flat .policy-history-row { border:0; border-radius:0; border-bottom:1px solid #e7ede9; }
+.workspace-flat.evaluation-workspace [aria-label="Danh sách phân công đánh giá"] { background:#fff; border-radius:14px; padding:8px 24px; }
+.workspace-flat.evaluation-workspace [aria-label="Danh sách phân công đánh giá"] > article { padding:20px 0; background:transparent; }
+
+/* Bound the complete detail column, leaving its sections unboxed. */
+.workspace-flat :is(.ex-detail-grid > div:first-child,.mtg-detail-grid > .mtg-stack:first-child,.report-main,.lifecycle-page) { border:1px solid #dfe8e2; box-shadow:0 2px 5px rgb(20 55 36 / 3%); }
+
+.workspace-flat :is(.ex-detail-grid > aside,.mtg-detail-grid > aside,.report-aside) { align-self:start; min-width:0; padding:8px 24px; background:#fff; border:1px solid #dfe8e2; border-radius:14px; box-shadow:0 2px 5px rgb(20 55 36 / 3%); }
+.workspace-flat :is(.ex-detail-grid > aside,.mtg-detail-grid > aside,.report-aside) > :is(.ex-panel,.mtg-panel,.report-panel):last-child { border-bottom:0; }
+@media(max-width:760px) { .workspace-flat :is(.ex-detail-grid > aside,.mtg-detail-grid > aside,.report-aside) { padding:4px 20px; } .workspace-flat :is(.mtg-detail-banner,.report-detail-banner) { padding:18px 20px; } }
+
+.workspace-flat :is(.mtg-detail-banner > .mtg-status,.report-detail-banner > .report-badge) { align-self:flex-start; width:fit-content; }
+/* Section padding belongs to the section, not to both heading and body. */
+.workspace-flat .ex-detail-grid > div:first-child > .ex-panel > .ex-panel-heading { padding-top: 0; padding-bottom: 12px; }
+.workspace-flat .ex-detail-grid > div:first-child > .ex-panel > .ex-padding { padding-bottom: 0; }
+.workspace-flat .ex-detail-grid > aside .ex-panel-heading { padding-top: 0; padding-bottom: 14px; }
+.workspace-flat .ex-detail-grid > aside .ex-padding { padding-top: 0; padding-bottom: 0; }

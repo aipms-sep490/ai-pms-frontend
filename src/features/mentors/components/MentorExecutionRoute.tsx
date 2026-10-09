@@ -1,3 +1,4 @@
+import { ProjectSectionNavigation } from '../../execution/ProjectSectionNavigation'
 import { useCallback, useEffect, useState } from 'react'
 import { Navigate, Outlet, useParams } from 'react-router-dom'
 import { useAuthSession } from '../../auth/context/useAuthSession'
@@ -45,5 +46,5 @@ export function MentorExecutionRoute() {
   if (loading) return <PageLoading />
   if (error) return <ExState message={error} retry={() => void load()} />
   if (!data) return <Navigate to="/mentor/workspace" replace />
-  return <ExecutionAccessProvider value={{ project: data.project, supervisor: data.assignment, currentUserId: session?.user.id, actor: 'mentor', canManageStructure: false, routeBase: `/mentor/projects/${project}/majors/${major}` }}><Outlet /></ExecutionAccessProvider>
+  return <ExecutionAccessProvider value={{ project: data.project, supervisor: data.assignment, currentUserId: session?.user.id, actor: 'mentor', canManageStructure: false, routeBase: `/mentor/projects/${project}/majors/${major}` }}><ProjectSectionNavigation /><Outlet /></ExecutionAccessProvider>
 }

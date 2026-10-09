@@ -1,3 +1,6 @@
+import { dateTimeLabel } from '../execution/execution-utils'
+import { Modal } from '../../components/ui/Modal'
+import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useStudentJourney } from '../../app/context'
@@ -8,6 +11,7 @@ import * as api from './contributions-api'
 import type { ContributionEvidence, ContributionSummary } from './contributions-api'
 
 export function ProjectContributionsPage() {
+  const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const routeId = Number(useParams().projectId)
   const journey = useStudentJourney()
   const { session } = useAuthSession()
@@ -47,7 +51,7 @@ export function ProjectContributionsPage() {
   }, [projectId, selectedUserId, evidencePage, sourceType])
 
   const rebuild = async () => {
-    if (!projectId || !window.confirm('Tạo bản tổng hợp đóng góp theo dữ liệu đồ án hiện tại?')) return
+    if (!projectId || await requestConfirmation({ title: 'Lưu bản tổng hợp đóng góp?', description: 'Ghi lại hoạt động của các thành viên theo dữ liệu hiện tại để đối chiếu sau này.', confirmLabel: 'Lưu bản tổng hợp' }) === null) return
     setBusy(true)
     try { const next = await api.rebuildContributionSnapshot(projectId); setSummary(next); setSnapshot(true); setPage(1); setError(null) }
     catch (reason) { if (reason instanceof HttpError && reason.status === 409) await load(); setError(reason instanceof HttpError && reason.status === 409 ? 'Dữ liệu đã thay đổi. Đã tải lại đóng góp; hãy kiểm tra trước khi tạo bản tổng hợp mới.' : 'Hệ thống không thể tạo bản tổng hợp đóng góp trong phạm vi này.') }
@@ -59,7 +63,7 @@ export function ProjectContributionsPage() {
   const completedTasks = summary?.members.reduce((total, member) => total + member.completedTasks, 0) ?? 0
   const assignedTasks = summary?.members.reduce((total, member) => total + member.assignedTasks, 0) ?? 0
 
-  return <main className="workspace-page space-y-5">
+  return <main className="workspace-page space-y-5">{confirmationDialog}
     <header className="flex flex-col gap-4 border-b border-hairline pb-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
         <div className="flex items-center gap-2 mb-2">
@@ -90,7 +94,7 @@ export function ProjectContributionsPage() {
         <SummaryMetric label="Thành viên" value={summary.totalCount} helper={snapshot ? 'Bản tổng hợp đã lưu' : 'Dữ liệu hiện tại'} />
         <SummaryMetric label="Công việc hoàn tất" value={`${completedTasks}/${assignedTasks}`} helper="Theo nhiệm vụ được giao" />
         <SummaryMetric label="Tổng chứng cứ" value={totalEvidence} helper="Trong trang hiện tại" />
-        <SummaryMetric label="Phiên bản quy tắc" value={summary.ruleVersion} helper={summary.snapshotAt ? formatDate(summary.snapshotAt) : summary.dataStatus} compact />
+        <SummaryMetric label="Phiên bản quy tắc" value={summary.ruleVersion} helper={summary.snapshotAt ? formatDate(summary.snapshotAt) : ({ SUFFICIENT: 'Đủ dữ liệu', INSUFFICIENT_DATA: 'Chưa đủ dữ liệu' }[summary.dataStatus] ?? 'Chưa xác định')} compact />
       </section>
 
       {summary.dataStatus === 'INSUFFICIENT_DATA' && <div role="status" className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"><span className="material-symbols-outlined mt-0.5 text-[19px]" aria-hidden="true">info</span><p>Chưa đủ chứng cứ để so sánh hoạt động giữa các thành viên. Đây không phải là đánh giá hoặc điểm học phần.</p></div>}
@@ -101,20 +105,21 @@ export function ProjectContributionsPage() {
           <span className="rounded-full border border-[#a7f3d0] bg-[#edf3f0] px-2.5 py-1 text-xs font-bold text-[#0f5b4e]">{summary.members.length} thành viên trên trang</span>
         </div>
         {summary.members.length === 0 ? <div className="p-8 text-center text-sm text-slate-600">Chưa có dữ liệu đóng góp trong nguồn đã chọn.</div> : <ul className="divide-y divide-hairline">{summary.members.map(member => <li key={member.userId} className={`grid gap-4 p-4 transition-colors sm:p-5 lg:grid-cols-[minmax(14rem,1.3fr)_minmax(20rem,2fr)_auto] lg:items-center ${selectedUserId === member.userId ? 'bg-[#edf3f0]/70' : 'hover:bg-slate-50/80'}`}>
-          <div className="flex min-w-0 items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#edf3f0] text-sm font-bold text-[#0f5b4e]">{initials(member.displayName)}</span><div className="min-w-0"><strong className="block truncate text-sm text-slate-950">{member.displayName}</strong><span className="font-mono text-[11px] text-slate-500">USER #{member.userId}</span></div></div>
+          <div className="flex min-w-0 items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#edf3f0] text-sm font-bold text-[#0f5b4e]">{initials(member.displayName)}</span><div className="min-w-0"><strong className="block truncate text-sm text-slate-950">{member.displayName}</strong><span className="font-mono text-[11px] text-slate-500">Thành viên #{member.userId}</span></div></div>
           <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-xs sm:grid-cols-3"><ContributionStat label="Công việc" value={`${member.completedTasks}/${member.assignedTasks}`} /><ContributionStat label="Báo cáo" value={member.submittedReports} /><ContributionStat label="Cuộc họp" value={member.attendedMeetings} /><ContributionStat label="Bản nộp" value={member.submittedDeliverableVersions} /><ContributionStat label="Tệp" value={member.uploadedFiles} /><ContributionStat label="Hoạt động" value={member.activityScore} /></div>
           <button type="button" aria-label="Xem chứng cứ" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3.5 text-sm font-semibold text-[#0f5b4e] transition-colors hover:border-[#0f5b4e]/30 hover:bg-[#edf3f0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f5b4e]" onClick={() => { setSelectedUserId(member.userId); setEvidencePage(1); setSourceType('') }}><span className="font-mono text-xs font-bold">{member.evidenceCount}</span> Xem chứng cứ</button>
         </li>)}</ul>}
         {summary.totalCount > 20 && <Pager page={page} total={summary.totalCount} onChange={setPage} />}
       </section>
 
-      {selectedUserId && <section className="overflow-hidden rounded-lg border border-hairline bg-white" aria-labelledby="member-evidence-heading">
-        <div className="flex flex-col gap-4 border-b border-hairline p-4 sm:flex-row sm:items-end sm:justify-between sm:p-5"><div className="min-w-0"><p className="font-mono text-xs font-semibold uppercase tracking-[0.12em] text-[#0f5b4e]">Minh chứng · Thành viên #{selectedUserId}</p><h2 id="member-evidence-heading" className="mt-1 truncate text-lg font-semibold text-slate-950">{selectedMember?.displayName ?? `Thành viên #${selectedUserId}`}</h2><p className="mt-1 text-xs leading-5 text-slate-500">Hoạt động đã được ghi nhận; dùng để đối chiếu đóng góp, không thay thế điểm đánh giá.</p></div><label className="grid shrink-0 gap-1 text-xs font-semibold text-slate-600">Nguồn chứng cứ<select aria-label="Nguồn chứng cứ" className="min-h-11 min-w-52 rounded-md border border-hairline bg-white px-3 text-sm font-medium text-slate-900 outline-none focus:border-[#0f5b4e] focus:ring-2 focus:ring-[#0f5b4e]/15" value={sourceType} onChange={event => { setSourceType(event.target.value); setEvidencePage(1) }}><option value="">Tất cả nguồn</option><option value="TASK">Công việc</option><option value="PROGRESS_REPORT">Báo cáo tiến độ</option><option value="MEETING">Cuộc họp</option><option value="DELIVERABLE_VERSION">Phiên bản hạng mục</option><option value="FILE">Tệp</option></select></label></div>
+      {selectedUserId && <Modal open drawer title="Minh chứng đóng góp" description={selectedMember?.displayName ?? `Thành viên #${selectedUserId}`} onClose={() => setSelectedUserId(null)}><div>
+        {error && <p role="alert" className="mb-4 text-sm text-rose-700">{error}</p>}
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-hairline pb-4"><p className="max-w-60 text-sm leading-6 text-slate-500">Hoạt động được ghi nhận để đối chiếu đóng góp của thành viên.</p><label className="grid shrink-0 gap-1 text-xs font-semibold text-slate-600">Nguồn chứng cứ<select aria-label="Nguồn chứng cứ" className="min-h-11 min-w-52 rounded-md border border-hairline bg-white px-3 text-sm font-medium text-slate-900 outline-none focus:border-[#0f5b4e] focus:ring-2 focus:ring-[#0f5b4e]/15" value={sourceType} onChange={event => { setSourceType(event.target.value); setEvidencePage(1) }}><option value="">Tất cả nguồn</option><option value="TASK">Công việc</option><option value="PROGRESS_REPORT">Báo cáo tiến độ</option><option value="MEETING">Cuộc họp</option><option value="DELIVERABLE_VERSION">Phiên bản hạng mục</option><option value="FILE">Tệp</option></select></label></div>
         {evidenceLoading && <div role="status" className="p-5 text-sm text-slate-600">Đang tải chứng cứ…</div>}
         {!evidenceLoading && evidence.length === 0 && <div className="p-8 text-center text-sm text-slate-600"><span className="material-symbols-outlined mb-2 block text-3xl text-slate-300" aria-hidden="true">inventory_2</span>Chưa có chứng cứ phù hợp.</div>}
-        {!evidenceLoading && evidence.length > 0 && <ul className="divide-y divide-hairline">{evidence.map(item => <li key={`${item.sourceType}-${item.sourceId}`} className="grid gap-3 p-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:px-5"><span className="grid size-9 place-items-center rounded-md bg-[#edf3f0] text-[#0f5b4e]"><span className="material-symbols-outlined text-[19px]" aria-hidden="true">description</span></span><div className="min-w-0"><strong className="block truncate text-sm text-slate-950">{item.label}</strong><span className="mt-1 block font-mono text-[11px] text-slate-500">{sourceLabel(item.sourceType)} #{item.sourceId}</span></div><div className="text-left sm:text-right"><span className="block text-xs text-slate-600">{formatDate(item.occurredAt)}</span><span className="mt-1 block font-mono text-[11px] text-slate-500">CREDIT {item.credit}</span></div></li>)}</ul>}
+        {!evidenceLoading && evidence.length > 0 && <ul className="divide-y divide-hairline">{evidence.map(item => <li key={`${item.sourceType}-${item.sourceId}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center"><span className="grid size-9 place-items-center rounded-md bg-[#edf3f0] text-[#0f5b4e]"><span className="material-symbols-outlined text-[19px]" aria-hidden="true">description</span></span><div className="min-w-0"><strong className="block break-words text-sm text-slate-950">{item.sourceType === 'PROGRESS_REPORT' ? ({ WEEKLY: 'Báo cáo tuần', MONTHLY: 'Báo cáo tháng' }[item.label] ?? item.label) : item.label}</strong><span className="mt-1 block font-mono text-[11px] text-slate-500">{sourceLabel(item.sourceType)} #{item.sourceId}</span></div><div className="col-start-2 text-left sm:col-start-auto sm:text-right"><span className="block text-xs text-slate-600">{formatDate(item.occurredAt)}</span><span className="mt-1 block font-mono text-[11px] text-slate-500">Mức đóng góp: {item.credit}</span></div></li>)}</ul>}
         {evidenceTotal > 20 && <Pager page={evidencePage} total={evidenceTotal} onChange={setEvidencePage} />}
-      </section>}
+      </div></Modal>}
     </>}
   </main>
 }
@@ -136,12 +141,11 @@ function initials(value: string) {
 }
 
 function sourceLabel(value: string) {
-  return ({ TASK: 'CÔNG VIỆC', PROGRESS_REPORT: 'BÁO CÁO', MEETING: 'CUỘC HỌP', DELIVERABLE_VERSION: 'BẢN NỘP', FILE: 'TỆP' } as Record<string, string>)[value] ?? value
+  return ({ TASK: 'Công việc', PROGRESS_REPORT: 'Báo cáo', MEETING: 'Cuộc họp', DELIVERABLE_VERSION: 'Bản nộp', FILE: 'Tệp' } as Record<string, string>)[value] ?? value
 }
 
 function formatDate(value: string) {
-  const date = new Date(value)
-  return Number.isNaN(date.valueOf()) ? value : date.toLocaleString('vi-VN')
+  return dateTimeLabel(value)
 }
 
 

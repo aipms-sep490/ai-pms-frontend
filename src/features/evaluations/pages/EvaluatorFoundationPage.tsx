@@ -2,5 +2,5 @@ import { LayeredEvaluationFoundation } from '../components/LayeredEvaluationFoun
 
 /** Reserved composition point for the future evaluator route; no lifecycle is implemented here. */
 export function EvaluatorFoundationPage() {
-  return <main className="mx-auto max-w-4xl p-6"><LayeredEvaluationFoundation /></main>
+  return <main className="workspace-page mx-auto max-w-4xl p-6"><LayeredEvaluationFoundation /></main>
 }

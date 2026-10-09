@@ -36,7 +36,7 @@ function mount({ actor = 'student', leader = true, userId = 9, path, scheduleAll
 }
 const input = (name: string, value: string) => fireEvent.change(screen.getByLabelText(name, { exact: false }), { target: { value } })
 const click = (name: string) => fireEvent.click(screen.getByRole('button', { name }))
-const ready = () => screen.findByRole('heading', { name: 'Nội dung & địa điểm' })
+const ready = () => screen.findByRole('heading', { name: 'Nội dung và địa điểm' })
 const listResult = (items: unknown[] = [{ ...meeting, participantCount: 1 }]) => ({ items, page: 1, pageSize: 10, totalCount: items.length, totalPages: items.length ? 1 : 0 })
 beforeEach(() => {
   vi.resetAllMocks()
@@ -102,7 +102,7 @@ describe('Meetings end-user workflow', () => {
     mount({ actor: 'supervisor', leader: false, userId: 6 }); await ready()
     expect(screen.getByRole('button', { name: 'Cập nhật biên bản' })).toBeTruthy()
     await screen.findByText('Chưa có công việc sau họp.')
-    expect(screen.getByLabelText('Công việc', { exact: true })).toBeTruthy()
+    click('Thêm công việc'); expect(screen.getByLabelText('Công việc', { exact: true })).toBeTruthy()
   })
   it('updates schedule without changing its participants or shifting time', async () => {
     mount(); await ready(); click('Sửa lịch')
@@ -171,7 +171,7 @@ describe('Meetings end-user workflow', () => {
   it('records a post-meeting decision with the latest meeting token', async () => {
     api.getMeeting.mockResolvedValue({ ...meeting, status: 'COMPLETED' })
     api.createMeetingDecision.mockResolvedValue({ id: 3, meetingId: 42, content: 'Chốt kiểm thử', decidedBy: 9, decidedAt: '2026-09-23T03:00:00Z' })
-    mount(); await ready(); await screen.findByText('Chưa có kết luận được ghi nhận.'); input('Kết luận mới', 'Chốt kiểm thử'); click('Ghi kết luận')
+    mount(); await ready(); await screen.findByText('Chưa có kết luận được ghi nhận.'); click('Ghi kết luận'); input('Kết luận mới', 'Chốt kiểm thử'); click('Lưu kết luận')
     await waitFor(() => expect(api.createMeetingDecision).toHaveBeenCalledWith(42, 'Chốt kiểm thử', 'meeting-token'))
   })
   it('creates a meeting action with the current meeting token', async () => {
@@ -179,7 +179,7 @@ describe('Meetings end-user workflow', () => {
     api.getMeeting.mockResolvedValue({ ...meeting, status: 'COMPLETED' })
     api.createMeetingActionItem.mockResolvedValue(action)
     mount(); await ready(); await screen.findByText('Chưa có công việc sau họp.')
-    fireEvent.change(screen.getByLabelText('Công việc', { exact: true }), { target: { value: 'Chuẩn bị demo' } }); input('Người phụ trách', '6'); click('Tạo công việc')
+    click('Thêm công việc'); fireEvent.change(screen.getByLabelText('Công việc', { exact: true }), { target: { value: 'Chuẩn bị demo' } }); input('Người phụ trách', '6'); click('Tạo công việc')
     await waitFor(() => expect(api.createMeetingActionItem).toHaveBeenCalledWith(42, {
       title: 'Chuẩn bị demo', description: null, assigneeUserId: 6, dueAt: null, status: 'OPEN', concurrencyToken: 'meeting-token',
     }))

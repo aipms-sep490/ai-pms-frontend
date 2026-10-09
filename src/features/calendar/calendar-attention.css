@@ -9,3 +9,7 @@
 @media(max-width:800px){.calendar-page__header,.calendar-panel__toolbar,.attention-panel__heading{flex-direction:column}.calendar-page__header>.inline-flex{width:100%}.calendar-panel__controls{justify-content:space-between}.calendar-page__layout{grid-template-columns:1fr}.attention-panel{order:2}.calendar-month{grid-template-columns:1fr}.calendar-event{grid-template-columns:1fr auto}.calendar-event__type{grid-row:1;grid-column:1}.calendar-event__body{grid-column:1;grid-row:2}.calendar-event__status{grid-column:2;grid-row:1 / span 2;align-self:center}.calendar-event>.material-symbols-outlined{grid-column:2;grid-row:1 / span 2;display:none}.calendar-event--compact{grid-template-columns:1fr auto}.calendar-sources ul{grid-template-columns:1fr}}
 
 .calendar-page__header h1 { font-size: clamp(26px,2.1vw,32px); line-height: 1.25; letter-spacing: -.035em; }
+@media (min-width:801px) {
+ .attention-panel { position:sticky; top:84px; max-height:calc(100dvh - 108px); overflow-y:auto; scrollbar-gutter:stable; }
+ .attention-panel__heading { position:sticky; top:0; z-index:1; }
+}

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useCallback, type RefObject } from 'react'
+import { Fragment, useContext, useEffect, useRef, useCallback, type RefObject } from 'react'
 import { NavLink } from 'react-router-dom'
 import { getWorkspaceNavigation } from '../router/workspace-route-registry'
 import { StudentJourneyContext } from '../context'
@@ -36,7 +36,9 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
   const profileCode = role === 'student' ? profile?.studentCode || 'Tài khoản sinh viên' : session?.user.email || 'Tài khoản'
   const profileInitials = profileName.split(/\s+/).slice(-2).map((part) => part[0]).join('').toUpperCase()
 
-  const navigationItems = getWorkspaceNavigation(access)
+  const sectionOrder = ['student', 'lecturer', 'administration', 'governance', 'account']
+  const navigationItems = [...getWorkspaceNavigation(access)].sort((a, b) => sectionOrder.indexOf(a.section) - sectionOrder.indexOf(b.section))
+  const sectionLabels: Record<string, string> = { student: 'Đồ án của nhóm', lecturer: 'Hướng dẫn và đánh giá', governance: 'Quản lý học vụ', administration: 'Quản trị hệ thống', account: 'Tài khoản và lịch' }
   const sectionLabel = role === 'student'
     ? 'Không gian đồ án'
     : role === 'lecturer'
@@ -189,7 +191,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
           </div>
 
           {/* Main Navigation Links */}
-          <nav className="p-3 flex flex-col gap-1 flex-1" aria-label="Menu chức năng học tập">
+          <nav className="p-3 flex flex-col gap-1 flex-1" aria-label="Menu chức năng">
             <div className="px-2.5 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400">
               {sectionLabel}
             </div>
@@ -198,7 +200,9 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                 Chưa tải được ngữ cảnh đồ án. Hãy thử lại từ trang đang mở.
               </div>
             ) : <>
-            {navigationItems.map((item) => (
+            {navigationItems.map((item, index) => (
+              <Fragment key={item.id}>
+                {(index === 0 || navigationItems[index - 1].section !== item.section) && <div className="px-2.5 pt-4 pb-1 text-[11px] font-semibold text-slate-500">{sectionLabels[item.section]}</div>}
                 <NavLink
                   key={item.id}
                   to={item.path}
@@ -225,6 +229,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                     {item.id === 'chat' && chatUnread > 0 && <span className="rounded-full bg-primary px-2 text-xs text-white" aria-label="Có tin nhắn chưa đọc">{chatUnread > 99 ? '99+' : chatUnread}</span>}
                   </div>
                 </NavLink>
+              </Fragment>
               ))}
 
             </>}

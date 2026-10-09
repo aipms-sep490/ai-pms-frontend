@@ -25,7 +25,7 @@ afterEach(() => { cleanup(); vi.clearAllMocks() })
 describe('SupervisorProgressReviewPage', () => {
   it('renders backend progress and report data with a scoped detail link', () => {
     render(<MemoryRouter><SupervisorProgressReviewPage /></MemoryRouter>)
-    expect(screen.getByRole('heading', { name: 'Theo dõi tiến độ & báo cáo' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Theo dõi tiến độ và báo cáo' })).toBeTruthy()
     expect(screen.getByText('1 quá hạn · 1 vướng mắc')).toBeTruthy()
     expect(screen.getByText('Cần rà soát phân quyền')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Đọc và phản hồi' }).getAttribute('href')).toBe('/supervisor/projects/9/reports/17')

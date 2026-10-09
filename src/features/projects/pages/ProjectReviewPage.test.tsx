@@ -61,7 +61,7 @@ describe('ProjectReviewPage', () => {
     expect(screen.getByText('Liên ngành')).toBeTruthy()
     expect(screen.getByText(/Student One/)).toBeTruthy()
     expect(screen.getAllByText('Software Engineering (SE)').length).toBeGreaterThan(0)
-    expect(screen.getByText((_, element) => element?.textContent?.startsWith('Submitted → UnderReview') ?? false)).toBeTruthy()
+    expect(screen.getByText((_, element) => element?.tagName === 'P' && (element.textContent?.startsWith('Đã nộp đề cương → Đang thẩm định') ?? false))).toBeTruthy()
     expect(screen.getByText('Đề xuất của sinh viên')).toBeTruthy()
   })
 

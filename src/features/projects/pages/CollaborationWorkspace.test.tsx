@@ -80,10 +80,10 @@ describe('collaboration workspace API integration', () => {
   it('gives a member a private work queue without team-wide coordination controls', async () => {
     renderWorkspace(2)
 
-    expect(await screen.findByRole('heading', { name: 'Không gian công việc của tôi' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Công việc của tôi' })).toBeTruthy()
     expect(screen.queryByRole('region', { name: /Tiến độ từng thành viên/ })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Tạo công việc' })).toBeNull()
-    const taskSection = screen.getByRole('region', { name: 'Công việc của tôi' })
+    const taskSection = screen.getByRole('region', { name: 'Việc được giao' })
     expect(within(taskSection).getByRole('link', { name: /Kiểm tra báo cáo/ })).toBeTruthy()
     expect(within(taskSection).queryByText('Hoàn thiện luồng đăng ký')).toBeNull()
     expect(within(taskSection).getByRole('link', { name: /Xem tất cả/ }).getAttribute('href')).toBe('/project/tasks?assignee=2')
@@ -97,7 +97,7 @@ describe('collaboration workspace API integration', () => {
   })
   it('shows a task CTA to a member when the backend action explicitly allows it', async () => {
     renderWorkspace(2, true)
-    await screen.findByRole('heading', { name: 'Không gian công việc của tôi' })
+    await screen.findByRole('heading', { name: 'Công việc của tôi' })
     expect(screen.getByRole('button', { name: 'Tạo công việc' })).toBeTruthy()
   })
 

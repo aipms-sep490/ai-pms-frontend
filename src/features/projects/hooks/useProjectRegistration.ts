@@ -139,7 +139,7 @@ export function useProjectRegistration({
   const loadHistory = useCallback(async () => {
     if (!project) { setHistory([]); return }
     setHistoryLoading(true)
-    try { setHistory(await services.project.getHistory(project.id)) }
+    try { setHistory(await services.project.getHistory(project.id)); setError(null) }
     catch (reason) { setError(classifyProjectError(reason)) }
     finally { setHistoryLoading(false) }
   }, [project])

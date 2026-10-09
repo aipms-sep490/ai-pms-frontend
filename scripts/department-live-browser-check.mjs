@@ -33,7 +33,7 @@ await page.route('**/api/v1/**', async route => {
   return route.continue()
 })
 const routes = [
-  ['/department/workspace', 'Điều hành học vụ bộ môn'],
+  ['/department/workspace', 'Quản lý đồ án bộ môn'],
   ['/department/student-qualifications', 'Xác minh điều kiện tham gia đồ án'],
   ['/department/projects/review', 'Danh sách đề cương chờ xử lý'],
   ['/department/portfolio', 'Danh mục đồ án'],
@@ -62,7 +62,7 @@ try {
   const loginResponse = page.waitForResponse(r => new URL(r.url()).pathname === '/api/v1/auth/login')
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
   assert.equal((await loginResponse).status(), 200, 'Application login must succeed.')
-  await ready('Điều hành học vụ bộ môn')
+  await ready('Quản lý đồ án bộ môn')
   const actor = await page.evaluate(async () => {
     const session = JSON.parse(localStorage.getItem('ai-pms.auth-session') || '{}')
     const r = await fetch('/api/v1/auth/me/context', { headers: { Authorization: `Bearer ${session.accessToken}` } })
@@ -139,7 +139,7 @@ try {
   await page.getByText('A published scoped evaluation scheme is required. Legacy results remain read-only.', { exact: true }).waitFor()
   checks.push({ name: 'real-scheme-precondition-no-legacy-form', passed: true })
   await page.goto(`${base}/department/workspace`)
-  await ready('Điều hành học vụ bộ môn')
+  await ready('Quản lý đồ án bộ môn')
   await page.getByRole('link', { name: 'Điều kiện sinh viên', exact: true }).first().click()
   await ready('Xác minh điều kiện tham gia đồ án')
   checks.push({ name: 'live-sidebar-navigation', passed: true })
@@ -156,7 +156,7 @@ try {
   assert.equal(await navigation.inputValue(), `/department/projects/${projectId}/governance`)
   checks.push({ name: 'compact-selector-preserves-project-and-back', passed: true })
   await page.goto(`${base}/department/workspace`)
-  await ready('Điều hành học vụ bộ môn')
+  await ready('Quản lý đồ án bộ môn')
   const guide = page.getByText('Hướng dẫn vận hành DEPART theo vòng đời đồ án', { exact: true })
   await guide.focus(); await page.keyboard.press('Enter')
   await page.getByRole('link', { name: 'Kiểm tra khoa và chuyên ngành', exact: true }).waitFor()

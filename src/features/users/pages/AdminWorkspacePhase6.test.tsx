@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 
 const workspace = vi.hoisted(() => ({ useAdminWorkspace: vi.fn() }))
 vi.mock('../hooks/useAdminWorkspace', () => workspace)
+vi.mock('../../academic/components/AcademicScopeFields', () => ({ AcademicScopeFields: () => null }))
 import { AdminWorkspacePage } from './AdminWorkspacePage'
 import { AdminRbacPage } from './AdminRbacPage'
 
@@ -18,6 +19,13 @@ const ready = (overrides = {}) => ({
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
 describe('Admin workspace Phase 6', () => {
+  it('carries account filters and pagination to the detail return path', () => {
+    workspace.useAdminWorkspace.mockReturnValue(ready())
+    function Detail() { return <p>{useLocation().state?.returnTo}</p> }
+    render(<MemoryRouter initialEntries={['/admin/access?search=Minh&status=ACTIVE&page=2']}><Routes><Route path="/admin/access" element={<AdminWorkspacePage />} /><Route path="/admin/access/users/:id" element={<Detail />} /></Routes></MemoryRouter>)
+    fireEvent.click(screen.getByRole('link', { name: 'Xem chi tiết' }))
+    expect(screen.getByText('/admin/access?search=Minh&status=ACTIVE&page=2')).toBeTruthy()
+  })
   it('renders bounded account metadata and excludes project-scoped roles from the global account role selector', () => {
     workspace.useAdminWorkspace.mockReturnValue(ready())
     render(<MemoryRouter><AdminWorkspacePage /></MemoryRouter>)
@@ -40,5 +48,40 @@ describe('Admin workspace Phase 6', () => {
     render(<MemoryRouter><AdminRbacPage /></MemoryRouter>)
     expect(screen.getByText(/Phân công trong đồ án được quản lý/)).toBeTruthy()
     expect(screen.getByText('ADMIN')).toBeTruthy()
+  })
+})
+
+
+describe('Admin form state', () => {
+  it('keeps permissions hidden by a filter when saving the selected role', async () => {
+    const replacePermissions = vi.fn().mockResolvedValue(undefined)
+    workspace.useAdminWorkspace.mockReturnValue(ready({ replacePermissions, rbac: { state: 'ready', error: null, value: { roles: [{ ...role, permissions: [permission] }], permissions: [permission, { ...permission, id: 10, code: 'ACCOUNT_WRITE', name: 'Write accounts' }], matrix: { roles: [], permissions: [] } } } }))
+    render(<MemoryRouter><AdminRbacPage /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('button', { name: /ADMIN/ }))
+    fireEvent.change(screen.getByLabelText('Tìm quyền truy cập'), { target: { value: 'WRITE' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /ACCOUNT_WRITE/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu phân quyền' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Lưu quyền truy cập' }))
+    await waitFor(() => expect(replacePermissions).toHaveBeenCalledWith(1, [9, 10]))
+  })
+  it('replaces the checkbox selection when switching roles', () => {
+    workspace.useAdminWorkspace.mockReturnValue(ready({ rbac: { state: 'ready', error: null, value: { roles: [{ ...role, permissions: [permission] }, { ...role, id: 2, code: 'LECTURER', permissions: [] }], permissions: [permission], matrix: { roles: [], permissions: [] } } } }))
+    render(<MemoryRouter><AdminRbacPage /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('button', { name: /ADMIN/ }))
+    expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: /LECTURER/ }))
+    expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(false)
+  })
+  it('keeps entered account details when creation fails', async () => {
+    const createUser = vi.fn().mockRejectedValue(new Error('Failed'))
+    workspace.useAdminWorkspace.mockReturnValue(ready({ createUser }))
+    render(<MemoryRouter><AdminWorkspacePage /></MemoryRouter>)
+    fireEvent.change(screen.getByLabelText('Họ tên'), { target: { value: 'Nguyễn An' } })
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'an@example.test' } })
+    fireEvent.change(screen.getByLabelText('Mật khẩu ban đầu'), { target: { value: 'Example123!' } })
+    fireEvent.submit(screen.getByLabelText('Họ tên').closest('form')!)
+    await waitFor(() => expect(createUser).toHaveBeenCalledOnce())
+    await waitFor(() => expect((screen.getByLabelText('Họ tên') as HTMLInputElement).disabled).toBe(false))
+    expect((screen.getByLabelText('Họ tên') as HTMLInputElement).value).toBe('Nguyễn An')
   })
 })
