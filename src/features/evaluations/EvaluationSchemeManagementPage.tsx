@@ -17,6 +17,12 @@ import { useAuthSession } from '../auth/context/useAuthSession'
 import { Button } from '../../components/ui/Button'
 
 type DraftComponent = schemesApi.EvaluationSchemeComponentInput & { key: string }
+type SchemeConflict = {
+  schemeId: number
+  latest: EvaluationScheme | null
+  loaded: boolean
+  draft: { name: string; periodId: number; threshold: number; components: DraftComponent[] }
+}
 
 const component = (scope: EvaluationScope = 'COMMON'): DraftComponent => ({
   key: crypto.randomUUID(), name: '', scope, majorId: null, rubricId: 0,
@@ -34,7 +40,7 @@ function errorMessage(reason: unknown, fallback: string) {
   if (reason instanceof HttpError) {
     if (reason.status === 403) return 'Hệ thống không cấp quyền quản lý phương án đánh giá trong phạm vi đồ án này.'
     if (reason.status === 404) return 'Không tìm thấy đồ án, bộ tiêu chí, kỳ đánh giá hoặc phương án đánh giá. Hãy tải lại dữ liệu.'
-    if (reason.status === 409) return 'Dữ liệu đánh giá đã thay đổi. Thông tin mới đã được tải lại; hãy kiểm tra trước khi tiếp tục.'
+    if (reason.status === 409) return 'Dữ liệu đánh giá đã thay đổi. Hãy kiểm tra bản trên hệ thống trước khi tiếp tục.'
     if (reason.status === 400) return reason.problem?.detail || 'phương án đánh giá không thỏa điều kiện nghiệp vụ do hệ thống kiểm tra.'
   }
   return fallback
@@ -49,10 +55,16 @@ function validNumber(value: number, decimals: number) {
 }
 
 export function EvaluationSchemeManagementPage() {
-  const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const projectId = Number(useParams().projectId)
+  return <EvaluationSchemeEditor key={projectId} projectId={projectId} />
+}
+
+function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
+  const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const { session } = useAuthSession()
   const errorSummary = useRef<HTMLDivElement>(null)
+  const mounted = useRef(true)
+  const operationPending = useRef(false)
   const [project, setProject] = useState<ProjectDto | null>(null)
   const [periods, setPeriods] = useState<ProjectPeriod[]>([])
   const [rubrics, setRubrics] = useState<Rubric[]>([])
@@ -67,6 +79,9 @@ export function EvaluationSchemeManagementPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [conflict, setConflict] = useState<SchemeConflict | null>(null)
+
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
 
   useEffect(() => { if (error) errorSummary.current?.focus() }, [error])
 
@@ -83,14 +98,20 @@ export function EvaluationSchemeManagementPage() {
         readAllPages(page => getProjectPeriods(session.accessToken, { search: '', periodType: 'EVALUATION' }, undefined, page)),
         readAllPages(page => listRubrics(page, 'PUBLISHED')),
       ])
+      if (!mounted.current) return
       setProject(nextProject)
       setItems(schemeItems)
       setPeriods(periodPage.filter(item => item.periodType === 'EVALUATION'))
       setRubrics(rubricPage)
+      setConflict(current => current ? { ...current, latest: schemeItems.find(item => item.id === current.schemeId) ?? null, loaded: true } : null)
       setError(null)
+      return schemeItems
     } catch (reason) {
-      setError(errorMessage(reason, 'Không thể tải phương án đánh giá, bộ tiêu chí và kỳ đánh giá.'))
-    } finally { setLoading(false) }
+      if (mounted.current) {
+        setConflict(current => current ? { ...current, loaded: false } : null)
+        setError(errorMessage(reason, 'Không thể tải phương án đánh giá, bộ tiêu chí và kỳ đánh giá.'))
+      }
+    } finally { if (mounted.current) setLoading(false) }
   }, [projectId, session])
 
   useEffect(() => { void load() }, [load])
@@ -105,10 +126,21 @@ export function EvaluationSchemeManagementPage() {
 
   const choose = (scheme: EvaluationScheme) => {
     setSelected(scheme); setCreating(false); setName(scheme.name); setPeriodId(scheme.projectPeriodId)
-    setThreshold(scheme.passThreshold); setComponents(asDraft(scheme)); setError(null); setNotice(null)
+    setThreshold(scheme.passThreshold); setComponents(asDraft(scheme)); setError(null); setNotice(null); setConflict(null)
   }
   const startDraft = () => {
-    setSelected(null); setCreating(true); setName(''); setPeriodId(0); setThreshold(5); setComponents([component()]); setError(null); setNotice(null)
+    setSelected(null); setCreating(true); setName(''); setPeriodId(0); setThreshold(5); setComponents([component()]); setError(null); setNotice(null); setConflict(null)
+  }
+  const blocked = busy || loading || Boolean(conflict)
+  const useServer = () => {
+    if (!conflict?.loaded) return
+    if (conflict.latest) choose(conflict.latest)
+    else { setSelected(null); setCreating(false); setConflict(null); setError(null); setNotice('Phương án này không còn trên hệ thống. Nội dung chưa lưu đã được bỏ theo lựa chọn của bạn.') }
+  }
+  const keepDraft = () => {
+    if (!conflict?.loaded || conflict.latest?.status !== 'DRAFT') return
+    setSelected(conflict.latest); setConflict(null); setError(null)
+    setNotice('Đã giữ nội dung bạn nhập với phiên bản hiện tại. Kiểm tra lại rồi lưu bản nháp khi sẵn sàng.')
   }
   const updateComponent = (key: string, patch: Partial<DraftComponent>) => setComponents(current => current.map(item => item.key === key ? { ...item, ...patch } : item))
   const changeScope = (key: string, scope: EvaluationScope) => setComponents(current => current.map(item => item.key !== key ? item : {
@@ -140,6 +172,7 @@ export function EvaluationSchemeManagementPage() {
 
   const save = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (blocked || (selected && selected.status !== 'DRAFT')) return
     const issues = validate()
     if (issues.length) { setError(issues.join(' ')); return }
     const input: schemesApi.SaveEvaluationSchemeInput = {
@@ -151,49 +184,79 @@ export function EvaluationSchemeManagementPage() {
   }
 
   const run = async (operation: () => Promise<EvaluationScheme | void>, success: string, selectResult = false) => {
+    if (operationPending.current || blocked || !mounted.current) return
+    operationPending.current = true
     setBusy(true); setError(null); setNotice(null)
     try {
       const result = await operation()
-      await load()
+      if (!mounted.current) return
+      const freshItems = await load()
+      if (!mounted.current) return
       if (result && selectResult) choose(result)
+      else if (!result && !selectResult) { setSelected(null); setCreating(false) }
       else if (selected) {
-        const fresh = (await schemesApi.getEvaluationSchemes(projectId)).find(item => item.id === selected.id)
+        const fresh = freshItems?.find(item => item.id === selected.id)
         if (fresh) choose(fresh)
+        else if (freshItems) { setSelected(null); setCreating(false) }
       }
       setNotice(success)
     } catch (reason) {
-      if (reason instanceof HttpError && reason.status === 409) await load()
-      setError(errorMessage(reason, 'Không thể hoàn tất thao tác với phương án đánh giá.'))
-    } finally { setBusy(false) }
+      if (!mounted.current) return
+      if (reason instanceof HttpError && reason.status === 409) {
+        if (selected) setConflict({ schemeId: selected.id, latest: null, loaded: false, draft: { name, periodId, threshold, components } })
+        const freshItems = await load()
+        if (mounted.current && freshItems) setError(errorMessage(reason, 'Không thể hoàn tất thao tác với phương án đánh giá.'))
+      } else setError(errorMessage(reason, 'Không thể hoàn tất thao tác với phương án đánh giá.'))
+    } finally { operationPending.current = false; if (mounted.current) setBusy(false) }
   }
 
   const publish = async () => {
-    if (!selected || await requestConfirmation({ title: 'Công bố phương án đánh giá?', description: 'Danh sách thành viên và chính sách áp dụng sẽ được chốt. Để chỉnh sửa sau đó, hãy tạo phiên bản mới.', confirmLabel: 'Công bố phương án' }) === null) return
+    if (blocked || !selected || selected.status !== 'DRAFT' || await requestConfirmation({ title: 'Công bố phương án đánh giá?', description: 'Danh sách thành viên và chính sách áp dụng sẽ được chốt. Để chỉnh sửa sau đó, hãy tạo phiên bản mới.', confirmLabel: 'Công bố phương án' }) === null) return
     void run(() => schemesApi.publishEvaluationScheme(selected.id, selected.concurrencyToken), 'Đã công bố phương án đánh giá và chốt thông tin áp dụng.', true)
   }
   const version = () => {
-    if (!selected) return
+    if (blocked || !selected || selected.status === 'DRAFT') return
     void run(() => schemesApi.createEvaluationSchemeVersion(selected.id, selected.concurrencyToken), 'Đã tạo phiên bản nháp mới từ phương án đánh giá đã công bố.', true)
   }
   const remove = async () => {
-    if (!selected || await requestConfirmation({ title: 'Xóa bản nháp?', description: 'Bản nháp này sẽ bị xóa và không thể khôi phục.', confirmLabel: 'Xóa bản nháp', danger: true }) === null) return
-    void run(() => schemesApi.deleteEvaluationScheme(selected.id, selected.concurrencyToken), 'Đã xóa phương án đánh giá bản nháp.'); setSelected(null); setCreating(false)
+    if (blocked || !selected || selected.status !== 'DRAFT' || await requestConfirmation({ title: 'Xóa bản nháp?', description: 'Bản nháp này sẽ bị xóa và không thể khôi phục.', confirmLabel: 'Xóa bản nháp', danger: true }) === null) return
+    void run(() => schemesApi.deleteEvaluationScheme(selected.id, selected.concurrencyToken), 'Đã xóa phương án đánh giá bản nháp.')
   }
 
   const editable = creating || selected?.status === 'DRAFT'
-  return <WorkspacePage className="space-y-5 evaluation-scheme-page" title="Phương án đánh giá" eyebrow="Đánh giá đồ án" description="Thiết lập các thành phần, trọng số và ngưỡng đạt trước khi phân công người chấm." action={<><ButtonLink to={`/department/projects/${projectId}/evaluations`}>Phân công người chấm</ButtonLink><Button onClick={startDraft} icon="add">Tạo bản nháp</Button></>}>
+  return <WorkspacePage className="space-y-5 evaluation-scheme-page" title="Phương án đánh giá" eyebrow="Đánh giá đồ án" description="Thiết lập các thành phần, trọng số và ngưỡng đạt trước khi phân công người chấm." action={<><ButtonLink to={`/department/projects/${projectId}/evaluations`}>Phân công người chấm</ButtonLink><Button disabled={blocked} onClick={startDraft} icon="add">Tạo bản nháp</Button></>}>
     
     {confirmationDialog}
-    {error && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">{error} <button type="button" className="font-semibold underline" onClick={() => void load()}>Tải lại</button></div>}
+    {error && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">{error} <button type="button" className="font-semibold underline" disabled={busy || loading} onClick={() => void load()}>Tải lại</button></div>}
+    {conflict && <section aria-labelledby="scheme-conflict-title" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-slate-800">
+      <h2 id="scheme-conflict-title" className="font-semibold">Kiểm tra thay đổi trước khi tiếp tục</h2>
+      <p className="mt-2">Nội dung bạn nhập vẫn được giữ. Chưa có thao tác nào được gửi lại; hãy so sánh và chọn bản muốn dùng.</p>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <details><summary className="cursor-pointer font-semibold">Nội dung bạn đang nhập</summary><SchemeDraftSummary draft={conflict.draft} periods={periods} rubrics={rubrics} project={project} /></details>
+        <div><h3 className="font-semibold">Bản hiện tại trên hệ thống</h3>{!conflict.loaded ? <p className="mt-2">Chưa xác minh được bản hiện tại. Tải lại để tiếp tục.</p> : conflict.latest ? <><p className="mt-2">v{conflict.latest.version} · {displayLabel(conflict.latest.status)}</p><SchemeDraftSummary draft={{ name: conflict.latest.name, periodId: conflict.latest.projectPeriodId, threshold: conflict.latest.passThreshold, components: asDraft(conflict.latest) }} periods={periods} rubrics={rubrics} project={project} /></> : <p className="mt-2">Phương án này không còn trong danh sách được phép truy cập. Bạn có thể xem lại nội dung đã nhập trước khi quay về danh sách.</p>}</div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <Button variant="secondary" disabled={busy || loading || !conflict.loaded} onClick={useServer}>{conflict.latest ? 'Dùng bản trên hệ thống' : 'Bỏ nội dung và về danh sách'}</Button>
+        {conflict.latest?.status === 'DRAFT' && <Button disabled={busy || loading || !conflict.loaded} onClick={keepDraft}>Giữ nội dung để tiếp tục sửa</Button>}
+        <Button variant="outline" disabled={busy || loading} onClick={() => void load()}>Tải lại bản hiện tại</Button>
+      </div>
+    </section>}
     {notice && <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">{notice}</p>}
     <div className="workspace-master-detail">
-      <section className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="font-semibold text-slate-900">Phiên bản của đồ án</h2>{loading ? <p role="status" className="mt-3 text-sm text-slate-600">Đang tải phương án đánh giá…</p> : items.length === 0 ? <p className="mt-3 text-sm text-slate-600">Chưa có phương án đánh giá. Bạn có thể tạo bản nháp khi gói bàn giao và đợt đánh giá đã sẵn sàng.</p> : <ul className="mt-3 space-y-2">{items.map(item => <li key={item.id}><button type="button" onClick={() => choose(item)} className={`min-h-11 w-full rounded-lg border p-3 text-left text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected?.id === item.id ? 'border-primary bg-primary/5' : 'border-slate-200 hover:bg-slate-50'}`}><strong>{item.name}</strong><span className="mt-1 block text-xs text-slate-600">v{item.version} · {displayLabel(item.status)} · {item.components.length} thành phần</span></button></li>)}</ul>}</section>
-      <section className="rounded-xl border border-slate-200 bg-white p-5">{!creating && !selected ? <div className="workspace-empty-detail"><span className="material-symbols-outlined" aria-hidden="true">schema</span><h2>Thiết lập phương án đánh giá</h2><p>Chọn phiên bản để xem, hoặc tạo bản nháp với các thành phần và trọng số của đợt đánh giá.</p><Button variant="secondary" onClick={startDraft}>Tạo bản nháp</Button></div> : <form onSubmit={save} className="space-y-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900">{creating ? 'Bản nháp phương án đánh giá mới' : `${selected?.name} · v${selected?.version}`}</h2>{selected && <p className="mt-1 text-xs text-slate-600">{displayLabel(selected.status)} · {selected.policyVersionId ? `Chính sách #${selected.policyVersionId}` : 'Chưa chốt chính sách áp dụng'}</p>}</div>{selected && <div className="flex flex-wrap gap-2">{selected.status === 'DRAFT' && <><Button disabled={busy} onClick={publish} icon="lock">Công bố phương án</Button><Button variant="danger" disabled={busy} onClick={remove} icon="delete">Xóa bản nháp</Button></>}{selected.status !== 'DRAFT' && <Button variant="secondary" disabled={busy} onClick={version} icon="content_copy">Tạo phiên bản</Button>}</div>}</div>
-        <div className="grid gap-3 md:grid-cols-3"><label className="text-sm font-medium text-slate-700">Tên phương án đánh giá<input value={name} disabled={!editable || busy} onChange={event => setName(event.target.value)} required className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100" /></label><label className="text-sm font-medium text-slate-700">Kỳ đánh giá<select value={periodId} disabled={!editable || busy} onChange={event => setPeriodId(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100"><option value={0}>Chọn đợt đánh giá</option>{periods.map(item => <option key={item.id} value={item.id}>{item.name} · {displayLabel(item.status)}</option>)}</select></label><label className="text-sm font-medium text-slate-700">Ngưỡng đạt (0–10)<input type="number" min="0" max="10" step="0.01" value={threshold} disabled={!editable || busy} onChange={event => setThreshold(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100" /></label></div>
+      <section className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="font-semibold text-slate-900">Phiên bản của đồ án</h2>{loading ? <p role="status" className="mt-3 text-sm text-slate-600">Đang tải phương án đánh giá…</p> : items.length === 0 ? <p className="mt-3 text-sm text-slate-600">Chưa có phương án đánh giá. Bạn có thể tạo bản nháp khi gói bàn giao và đợt đánh giá đã sẵn sàng.</p> : <ul className="mt-3 space-y-2">{items.map(item => <li key={item.id}><button type="button" disabled={blocked} onClick={() => choose(item)} className={`min-h-11 w-full rounded-lg border p-3 text-left text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected?.id === item.id ? 'border-primary bg-primary/5' : 'border-slate-200 hover:bg-slate-50'}`}><strong>{item.name}</strong><span className="mt-1 block text-xs text-slate-600">v{item.version} · {displayLabel(item.status)} · {item.components.length} thành phần</span></button></li>)}</ul>}</section>
+      <section className="rounded-xl border border-slate-200 bg-white p-5">{!creating && !selected ? <div className="workspace-empty-detail"><span className="material-symbols-outlined" aria-hidden="true">schema</span><h2>Thiết lập phương án đánh giá</h2><p>Chọn phiên bản để xem, hoặc tạo bản nháp với các thành phần và trọng số của đợt đánh giá.</p><Button variant="secondary" disabled={blocked} onClick={startDraft}>Tạo bản nháp</Button></div> : <form onSubmit={save} className="space-y-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900">{creating ? 'Bản nháp phương án đánh giá mới' : `${selected?.name} · v${selected?.version}`}</h2>{selected && <p className="mt-1 text-xs text-slate-600">{displayLabel(selected.status)} · {selected.policyVersionId ? `Chính sách #${selected.policyVersionId}` : 'Chưa chốt chính sách áp dụng'}</p>}</div>{selected && <div className="flex flex-wrap gap-2">{selected.status === 'DRAFT' && <><Button disabled={blocked} onClick={publish} icon="lock">Công bố phương án</Button><Button variant="danger" disabled={blocked} onClick={remove} icon="delete">Xóa bản nháp</Button></>}{selected.status !== 'DRAFT' && <Button variant="secondary" disabled={blocked} onClick={version} icon="content_copy">Tạo phiên bản</Button>}</div>}</div>
+        <div className="grid gap-3 md:grid-cols-3"><label className="text-sm font-medium text-slate-700">Tên phương án đánh giá<input value={name} disabled={!editable || blocked} onChange={event => setName(event.target.value)} required className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100" /></label><label className="text-sm font-medium text-slate-700">Kỳ đánh giá<select value={periodId} disabled={!editable || blocked} onChange={event => setPeriodId(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100"><option value={0}>Chọn đợt đánh giá</option>{periods.map(item => <option key={item.id} value={item.id}>{item.name} · {displayLabel(item.status)}</option>)}</select></label><label className="text-sm font-medium text-slate-700">Ngưỡng đạt (0–10)<input type="number" min="0" max="10" step="0.01" value={threshold} disabled={!editable || blocked} onChange={event => setThreshold(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100" /></label></div>
         <div className="workspace-note py-4 text-sm text-slate-700"><strong>Kiểm tra trước khi lưu:</strong><span className={projectWeight === 100 ? 'ml-2 text-emerald-700' : 'ml-2 text-rose-700'}>Điểm đồ án: {projectWeight}% / 100%</span>{studentWeights.map(item => <span key={item.major.majorId} className={item.total === 100 ? 'ml-3 text-emerald-700' : 'ml-3 text-rose-700'}>Sinh viên {item.major.majorCode}: {item.total}% / 100%</span>)}<p className="mt-2 text-xs text-slate-600">Thành phần chung áp dụng cho cả đồ án. Thành phần theo ngành hoặc sinh viên chỉ áp dụng cho ngành tham gia; điểm cá nhân không đóng góp vào điểm đồ án.</p></div>
-        <fieldset disabled={!editable || busy} className="space-y-3"><legend className="font-semibold text-slate-900">Các thành phần đánh giá</legend>{components.map((item, index) => <div key={item.key} className="workspace-editor-row"><div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">Thành phần {index + 1}</h3>{editable && components.length > 1 && <Button variant="danger" size="sm" onClick={() => setComponents(current => current.filter(row => row.key !== item.key))}>Xóa</Button>}</div><div className="mt-3 grid gap-3 md:grid-cols-2"><label className="text-sm">Tên<input value={item.name} onChange={event => updateComponent(item.key, { name: event.target.value })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label><label className="text-sm">Phạm vi<select value={item.scope} onChange={event => changeScope(item.key, event.target.value as EvaluationScope)} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3">{(Object.keys(scopeLabel) as EvaluationScope[]).map(scope => <option key={scope} value={scope}>{scopeLabel[scope]}</option>)}</select></label><label className="text-sm">Chuyên ngành<select value={item.majorId ?? ''} disabled={item.scope === 'COMMON'} onChange={event => updateComponent(item.key, { majorId: Number(event.target.value) || null })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100"><option value="">Không áp dụng</option>{project?.majors.map(major => <option key={major.majorId} value={major.majorId}>{major.majorCode} · {major.majorName}</option>)}</select></label><label className="text-sm">Bộ tiêu chí đã công bố<select value={item.rubricId} onChange={event => updateComponent(item.key, { rubricId: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3"><option value={0}>Chọn bộ tiêu chí</option>{rubrics.map(rubric => <option key={rubric.id} value={rubric.id}>{rubric.code} · v{rubric.version}</option>)}</select></label><label className="text-sm">Trọng số điểm đồ án (%)<input type="number" min="0" max="100" step="0.0001" value={item.projectWeightPercent} disabled={item.scope === 'INDIVIDUAL'} onChange={event => updateComponent(item.key, { projectWeightPercent: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100" /></label><label className="text-sm">Trọng số điểm sinh viên (%)<input type="number" min="0" max="100" step="0.0001" value={item.studentWeightPercent} onChange={event => updateComponent(item.key, { studentWeightPercent: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label><label className="text-sm">Số người chấm<input type="number" min="1" max="20" step="1" value={item.requiredEvaluators} onChange={event => updateComponent(item.key, { requiredEvaluators: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label></div></div>)}</fieldset>
-        {editable && <div className="flex flex-wrap gap-3"><Button variant="secondary" onClick={() => setComponents(current => [...current, component('COMMON')])} icon="add">Thêm thành phần</Button><Button type="submit" disabled={busy}>{busy ? 'Đang lưu…' : 'Lưu bản nháp'}</Button>{creating && <Button variant="secondary" disabled={busy} onClick={() => setCreating(false)}>Hủy tạo mới</Button>}</div>}
+        <fieldset disabled={!editable || blocked} className="space-y-3"><legend className="font-semibold text-slate-900">Các thành phần đánh giá</legend>{components.map((item, index) => <div key={item.key} className="workspace-editor-row"><div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">Thành phần {index + 1}</h3>{editable && components.length > 1 && <Button variant="danger" size="sm" onClick={() => setComponents(current => current.filter(row => row.key !== item.key))}>Xóa</Button>}</div><div className="mt-3 grid gap-3 md:grid-cols-2"><label className="text-sm">Tên<input value={item.name} onChange={event => updateComponent(item.key, { name: event.target.value })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label><label className="text-sm">Phạm vi<select value={item.scope} onChange={event => changeScope(item.key, event.target.value as EvaluationScope)} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3">{(Object.keys(scopeLabel) as EvaluationScope[]).map(scope => <option key={scope} value={scope}>{scopeLabel[scope]}</option>)}</select></label><label className="text-sm">Chuyên ngành<select value={item.majorId ?? ''} disabled={item.scope === 'COMMON'} onChange={event => updateComponent(item.key, { majorId: Number(event.target.value) || null })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100"><option value="">Không áp dụng</option>{project?.majors.map(major => <option key={major.majorId} value={major.majorId}>{major.majorCode} · {major.majorName}</option>)}</select></label><label className="text-sm">Bộ tiêu chí đã công bố<select value={item.rubricId} onChange={event => updateComponent(item.key, { rubricId: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3"><option value={0}>Chọn bộ tiêu chí</option>{rubrics.map(rubric => <option key={rubric.id} value={rubric.id}>{rubric.code} · v{rubric.version}</option>)}</select></label><label className="text-sm">Trọng số điểm đồ án (%)<input type="number" min="0" max="100" step="0.0001" value={item.projectWeightPercent} disabled={item.scope === 'INDIVIDUAL'} onChange={event => updateComponent(item.key, { projectWeightPercent: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100" /></label><label className="text-sm">Trọng số điểm sinh viên (%)<input type="number" min="0" max="100" step="0.0001" value={item.studentWeightPercent} onChange={event => updateComponent(item.key, { studentWeightPercent: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label><label className="text-sm">Số người chấm<input type="number" min="1" max="20" step="1" value={item.requiredEvaluators} onChange={event => updateComponent(item.key, { requiredEvaluators: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label></div></div>)}</fieldset>
+        {editable && <div className="flex flex-wrap gap-3"><Button variant="secondary" disabled={blocked} onClick={() => setComponents(current => [...current, component('COMMON')])} icon="add">Thêm thành phần</Button><Button type="submit" disabled={blocked}>{busy ? 'Đang lưu…' : 'Lưu bản nháp'}</Button>{creating && <Button variant="secondary" disabled={blocked} onClick={() => setCreating(false)}>Hủy tạo mới</Button>}</div>}
       </form>}</section>
     </div>
   </WorkspacePage>
+}
+
+function SchemeDraftSummary({ draft, periods, rubrics, project }: { draft: SchemeConflict['draft']; periods: ProjectPeriod[]; rubrics: Rubric[]; project: ProjectDto | null }) {
+  return <div className="mt-2 space-y-2 break-words">
+    <p><strong>Tên:</strong> {draft.name || 'Chưa nhập'} · <strong>Kỳ:</strong> {periods.find(item => item.id === draft.periodId)?.name ?? 'Chưa xác minh'} · <strong>Ngưỡng đạt:</strong> {draft.threshold}</p>
+    <ul className="space-y-2">{draft.components.map(item => <li key={item.key}><strong>{item.name || 'Chưa đặt tên'}</strong> · {scopeLabel[item.scope]} · {item.majorId ? (project?.majors.find(major => major.majorId === item.majorId)?.majorName ?? 'Ngành chưa xác minh') : 'Toàn đồ án'} · Bộ tiêu chí {rubrics.find(rubric => rubric.id === item.rubricId)?.code ?? 'chưa xác minh'}<br />Điểm đồ án: {item.projectWeightPercent}% · Sinh viên: {item.studentWeightPercent}% · Người chấm: {item.requiredEvaluators}</li>)}</ul>
+  </div>
 }
