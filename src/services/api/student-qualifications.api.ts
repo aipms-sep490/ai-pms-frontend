@@ -6,8 +6,28 @@ import type {
   StudentQualificationDto,
   SubmitStudentQualificationEvidencePayload,
 } from '../../types/backend'
-import { httpGet, httpPost, httpPut } from '../http/http-client'
+import { HttpError, httpGet, httpPost, httpPostForm, httpPut } from '../http/http-client'
 const MOCK_CURRENT_STUDENT_ID = 1
+
+export interface UploadQualificationCertificatePayload {
+  file: File
+  certificateNumber?: string
+  issuedAt?: string
+  expiresAt?: string
+}
+
+/** This endpoint stores the certificate AND submits the evidence in one transaction. */
+export async function uploadCertificate(payload: UploadQualificationCertificatePayload): Promise<StudentQualificationDto> {
+  if (env.isMockMode) throw new HttpError('Certificate upload requires API mode.', 503)
+  const body = new FormData()
+  body.append('File', payload.file)
+  body.append('QualificationType', 'CAPSTONE_READINESS')
+  body.append('TrainingStatus', 'TRAINING_COMPLETED')
+  if (payload.certificateNumber) body.append('CertificateNumber', payload.certificateNumber)
+  if (payload.issuedAt) body.append('IssuedAt', payload.issuedAt)
+  if (payload.expiresAt) body.append('ExpiresAt', payload.expiresAt)
+  return httpPostForm<StudentQualificationDto>('/student-qualifications/me/certificate', body)
+}
 
 /** The fixture is loaded only for an explicitly selected development data mode. */
 async function qualificationMock() {

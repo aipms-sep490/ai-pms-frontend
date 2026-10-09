@@ -148,7 +148,7 @@ export function TeamManagementPage() {
         </div>
       )}
 
-      {!rosterLocked && <StudentQualificationCard />}
+      {!rosterLocked && <StudentQualificationCard key={currentUserId} onSubmitted={management.refreshAll} />}
 
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
