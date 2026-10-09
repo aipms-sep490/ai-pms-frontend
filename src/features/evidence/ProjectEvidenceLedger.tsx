@@ -1,50 +1,65 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { HttpError } from '../../services/http/http-client'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { getProjectEvidence, type ProjectEvidence, type ProjectEvidenceQuery } from '../projects/api/project-governance-api'
+import { useProjectDisciplineScope } from '../projects/hooks/useProjectDisciplineScope'
 
 const sourceTypes = ['TASK', 'DELIVERABLE', 'MEETING', 'PROGRESS_REPORT', 'FILE'] as const
-const verificationStatuses = ['PENDING', 'VERIFIED', 'REJECTED'] as const
+const verificationStatuses = ['PENDING', 'UNKNOWN'] as const
 const sourceLabels: Record<(typeof sourceTypes)[number], string> = { TASK: 'Công việc', DELIVERABLE: 'Hạng mục bàn giao', MEETING: 'Cuộc họp', PROGRESS_REPORT: 'Báo cáo tiến độ', FILE: 'Tệp' }
-const verificationLabels: Record<(typeof verificationStatuses)[number], string> = { PENDING: 'Chờ xác minh', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối' }
+const verificationLabels: Record<string, string> = { PENDING: 'Chờ xác minh', UNKNOWN: 'Chưa xác định', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối' }
 const pageSize = 20
 
 type Filters = Pick<ProjectEvidenceQuery, 'sourceType' | 'majorId' | 'verificationStatus'>
 
 export function ProjectEvidenceLedgerPage() {
   const access = useExecutionAccess()
-  return <ProjectEvidenceLedger projectId={access.project.id} routeBase={access.routeBase} />
+  const scope = useProjectDisciplineScope(access.project)
+  if (access.actor === 'mentor' && !access.supervisor?.majorId) return <p role="alert">Chưa xác định được ngành hướng dẫn. Hãy tải lại hồ sơ phân công.</p>
+  return <>
+    {scope.loading && <p role="status" className="mb-4 text-sm">Đang tải phạm vi ngành…</p>}
+    {scope.error && <p role="status" className="mb-4 text-sm text-slate-600">{scope.error} Bộ lọc ngành tạm thời chưa khả dụng. <button type="button" className="min-h-11 underline" onClick={scope.retry}>Tải lại phạm vi ngành</button></p>}
+    <ProjectEvidenceLedger projectId={access.project.id} routeBase={access.routeBase} majors={scope.majors} lockedMajorId={access.actor === 'mentor' ? access.supervisor?.majorId ?? undefined : undefined} />
+  </>
 }
 
 /** Read-only until a source-scoped execution capability is delivered by Backend. */
-export function ProjectEvidenceLedger({ projectId, routeBase }: { projectId: number; routeBase: string }) {
-  const [filters, setFilters] = useState<Filters>({})
-  const [majorInput, setMajorInput] = useState('')
+interface LedgerProps { projectId: number; routeBase: string; majors?: { majorId: number; majorName: string }[]; lockedMajorId?: number }
+export function ProjectEvidenceLedger(props: LedgerProps) {
+  return <EvidenceLedger key={`${props.projectId}:${props.routeBase}:${props.lockedMajorId ?? ''}`} {...props} />
+}
+function EvidenceLedger({ projectId, routeBase, majors = [], lockedMajorId }: LedgerProps) {
+  const [filters, setFilters] = useState<Filters>({ majorId: lockedMajorId })
+  const [majorInput, setMajorInput] = useState(String(lockedMajorId ?? ''))
   const [page, setPage] = useState(1)
   const [result, setResult] = useState<{ items: ProjectEvidence[]; totalCount: number; totalPages: number } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const sequence = useRef(0)
 
   const query = useMemo(() => ({ ...filters, page, pageSize }), [filters, page])
   const load = useCallback(async () => {
-    setLoading(true)
+    const request = ++sequence.current
+    setLoading(true); setResult(null); setError(null)
     try {
       const next = await getProjectEvidence(projectId, query)
+      if (request !== sequence.current) return
       setResult(next)
       setError(null)
     } catch (reason) {
-      setError(messageFor(reason))
+      if (request === sequence.current) setError(messageFor(reason))
     } finally {
-      setLoading(false)
+      if (request === sequence.current) setLoading(false)
     }
   }, [projectId, query])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => { const requests = sequence; void load(); return () => { requests.current++ } }, [load])
 
   const applyMajor = () => {
-    const majorId = Number(majorInput)
-    setFilters(current => ({ ...current, majorId: Number.isSafeInteger(majorId) && majorId > 0 ? majorId : undefined }))
+    const majorId = lockedMajorId ?? Number(majorInput)
+    if (!lockedMajorId && majorInput && !majors.some(item => item.majorId === majorId)) return
+    setFilters(current => ({ ...current, majorId: lockedMajorId ?? (majorInput ? majorId : undefined) }))
     setPage(1)
   }
   const changeFilter = (key: keyof Omit<Filters, 'majorId'>, value: string) => {
@@ -57,7 +72,7 @@ export function ProjectEvidenceLedger({ projectId, routeBase }: { projectId: num
     <header className="border-b border-hairline pb-5">
       <p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-primary">Đồ án #{projectId} · Sổ minh chứng</p>
       <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Sổ minh chứng</h1>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Tra cứu minh chứng theo công việc, báo cáo và cuộc họp; đối chiếu nội dung đã được xác minh.</p>
+      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Tra cứu minh chứng theo công việc, báo cáo và cuộc họp; đối chiếu trạng thái từ hệ thống.</p>
     </header>
 
     <section className="rounded-xl border border-hairline bg-card p-4 shadow-xs sm:p-5" aria-label="Lọc minh chứng">
@@ -72,10 +87,14 @@ export function ProjectEvidenceLedger({ projectId, routeBase }: { projectId: num
             <option value="">Tất cả trạng thái</option>{verificationStatuses.map(value => <option key={value} value={value}>{verificationLabels[value]}</option>)}
           </select>
         </label>
-        <label className="text-sm font-medium text-slate-800">Mã ngành
-          <input value={majorInput} inputMode="numeric" pattern="[0-9]*" onChange={event => setMajorInput(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') applyMajor() }} placeholder="Để trống: tất cả" className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-slate-900 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" />
+        <label className="text-sm font-medium text-slate-800">Ngành
+          <select value={majorInput} disabled={!!lockedMajorId || !majors.length} onChange={event => setMajorInput(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            {!lockedMajorId && <option value="">Tất cả ngành</option>}
+            {lockedMajorId && !majors.some(item => item.majorId === lockedMajorId) && <option value={lockedMajorId}>Ngành hướng dẫn #{lockedMajorId}</option>}
+            {majors.map(item => <option key={item.majorId} value={item.majorId}>{item.majorName}</option>)}
+          </select>
         </label>
-        <div className="flex items-end gap-2"><button type="button" onClick={applyMajor} className="min-h-11 flex-1 rounded-lg border border-primary bg-card px-4 text-sm font-semibold text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Áp dụng</button><button type="button" onClick={() => { setFilters({}); setMajorInput(''); setPage(1) }} className="min-h-11 rounded-lg px-3 text-sm font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Xóa lọc</button></div>
+        <div className="flex items-end gap-2"><button type="button" onClick={applyMajor} className="min-h-11 flex-1 rounded-lg border border-primary bg-card px-4 text-sm font-semibold text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Áp dụng</button><button type="button" onClick={() => { setFilters({ majorId: lockedMajorId }); setMajorInput(String(lockedMajorId ?? '')); setPage(1) }} className="min-h-11 rounded-lg px-3 text-sm font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Xóa lọc</button></div>
       </div>
     </section>
 

@@ -38,7 +38,7 @@ export const getReviewDetail = (id: number, accessToken: string) => httpGet<Revi
 export const getProjectForReview = (id: number, accessToken: string) => httpGet<ProjectDto>(`/v1/projects/${id}`, auth(accessToken))
 export const getReviewHistory = (id: number, accessToken: string) => httpGet<ReviewHistory[]>(`/v1/projects/${id}/history`, auth(accessToken))
 export const getReviewActions = (id: number, accessToken: string) => httpGet<ProjectWorkflowActionsDto>(`/v1/projects/${id}/actions`, auth(accessToken))
-export const getProjectMajorRequirements = (id: number, accessToken: string) => httpGet<ProjectRequirements>(`/v1/projects/${id}/major-requirements`, auth(accessToken))
+export const getProjectMajorRequirements = (id: number, accessToken?: string, signal?: AbortSignal) => httpGet<ProjectRequirements>(`/v1/projects/${id}/major-requirements`, { accessToken, signal })
 export const replaceProjectMajorRequirements = (id: number, input: { concurrencyToken: string; requirements: readonly ProjectMajorRequirementInput[] }, accessToken: string) => httpPut<ProjectRequirements>(`/v1/projects/${id}/major-requirements`, input, auth(accessToken))
 export const getReviewSnapshots = (id: number, accessToken: string, page = 1, pageSize = 20) => httpGet<ProjectReviewHistoryPage>(`/v1/projects/${id}/review-snapshots?page=${page}&pageSize=${pageSize}`, auth(accessToken))
 export const startReview = (id: number, concurrencyToken: string, accessToken: string) => httpPost(`/v1/projects/${id}/start-review`, { concurrencyToken }, auth(accessToken))
