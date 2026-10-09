@@ -39,6 +39,28 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Progress reports workflow', () => {
+  it('opens a report through its row without a duplicate view action', async () => {
+    mount({ path: '/project/reports' })
+    const row = await screen.findByRole('link', { name: /Hoàn thành chức năng đăng ký/ })
+    expect(row.getAttribute('href')).toBe('/project/reports/17')
+    expect(screen.queryByText('Xem báo cáo')).toBeNull()
+    fireEvent.click(row)
+    expect(await screen.findByRole('heading', { name: 'Chi tiết báo cáo' })).toBeTruthy()
+  })
+
+  it('keeps the unsaved edit guard when using Back from a direct report link', async () => {
+    mount(); await screen.findByLabelText(/Tóm tắt tiến độ/)
+    input('Tóm tắt tiến độ', 'Nội dung chưa lưu')
+    fireEvent.click(screen.getByRole('link', { name: 'Quay lại' }))
+    expect(await screen.findByText('Bạn có nội dung chưa lưu. Rời trang sẽ bỏ những thay đổi này.')).toBeTruthy()
+    click('Ở lại soạn tiếp')
+    expect((screen.getByLabelText(/Tóm tắt tiến độ/) as HTMLTextAreaElement).value).toBe('Nội dung chưa lưu')
+    fireEvent.click(screen.getByRole('link', { name: 'Quay lại' }))
+    click('Bỏ thay đổi và rời trang')
+    expect(await screen.findByRole('heading', { name: 'Lịch sử báo cáo' })).toBeTruthy()
+    expect(api.updateProgressReport).not.toHaveBeenCalled()
+  })
+
   it('protects unsaved edits when navigating away and allows an explicit discard', async () => {
     mount(); await screen.findByLabelText(/Tóm tắt tiến độ/)
     input('Tóm tắt tiến độ', 'Nội dung chưa lưu')
