@@ -99,6 +99,8 @@ it('provides the admin dashboard without department workflow links or mutations'
   expect(api.getPortfolioDashboard).toHaveBeenCalledWith('admin', { page: 1, pageSize: 20 })
   expect(screen.queryByRole('link', { name: 'Xem' })).toBeNull()
   expect(screen.queryByRole('link', { name: 'Tệp' })).toBeNull()
+  expect(screen.getByRole('link', { name: 'Phương án đánh giá' }).getAttribute('href')).toBe('/admin/projects/7/evaluation-schemes')
+  expect(screen.getByRole('link', { name: 'Kết quả' }).getAttribute('href')).toBe('/admin/projects/7/result')
   expect(api.getReviewActions).not.toHaveBeenCalled()
 })
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
+import { projectEvaluationPaths } from '../evaluations/project-evaluation-paths'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { Button } from '../../components/ui/Button'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
@@ -14,6 +15,7 @@ const outcome = (value: string | null) => ({ PASS: 'Đạt', FAIL: 'Chưa đạt
 
 export function ResultPublicationPage() {
   const projectId = Number(useParams().projectId)
+  const paths = projectEvaluationPaths(projectId, useLocation().pathname)
   const { academic } = useAcademicWorkflow()
   const [preview, setPreview] = useState<ResultPreview | null>(null), [published, setPublished] = useState<ProjectResult | null>(null)
   const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [confirmed, setConfirmed] = useState(false)
@@ -63,13 +65,13 @@ export function ResultPublicationPage() {
 
   return <WorkspacePage title="Công bố kết quả đồ án" eyebrow={`Đồ án #${validId ? projectId : '—'}`} description="Kiểm tra phương án đánh giá, hồ sơ bàn giao và kết quả trước khi công bố.">
     {confirmationDialog}
-    <section className="workspace-surface space-y-3 p-4 sm:p-5"><h2 className="font-heading font-semibold">Phương án đánh giá theo phạm vi</h2><p className="text-sm text-slate-600">Trình tự kiểm tra: hồ sơ bàn giao → phương án đánh giá đã công bố → phân công và điểm của người chấm → bản xem trước → xác nhận công bố. Điểm đồ án và từng sinh viên do hệ thống tính; chính sách cũ chỉ để tra cứu lịch sử.</p>{validId && <div className="flex flex-wrap gap-3"><Link className="inline-flex min-h-11 items-center font-semibold text-primary underline" to={`/department/projects/${projectId}/final-submission`}>Kiểm tra hồ sơ bàn giao</Link><Link className="inline-flex min-h-11 items-center font-semibold text-primary underline" to={`/department/projects/${projectId}/evaluation-schemes`}>Quản lý phương án đánh giá</Link><Link className="inline-flex min-h-11 items-center font-semibold text-primary underline" to={`/department/projects/${projectId}/evaluators`}>Phân công người chấm</Link></div>}</section>
+    <section className="workspace-surface space-y-3 p-4 sm:p-5"><h2 className="font-heading font-semibold">Phương án đánh giá theo phạm vi</h2><p className="text-sm text-slate-600">Trình tự kiểm tra: hồ sơ bàn giao → phương án đánh giá đã công bố → phân công và điểm của người chấm → bản xem trước → xác nhận công bố. Điểm đồ án và từng sinh viên do hệ thống tính; chính sách cũ chỉ để tra cứu lịch sử.</p>{validId && <div className="flex flex-wrap gap-3"><Link className="inline-flex min-h-11 items-center font-semibold text-primary underline" to={paths.submission}>Kiểm tra hồ sơ bàn giao</Link><Link className="inline-flex min-h-11 items-center font-semibold text-primary underline" to={paths.scheme}>Quản lý phương án đánh giá</Link><Link className="inline-flex min-h-11 items-center font-semibold text-primary underline" to={paths.evaluators}>Phân công người chấm</Link></div>}</section>
     {error && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error}</div>}
     <Button className="min-h-11" variant="secondary" disabled={busy || loading || !validId} onClick={() => void load()}>Tải lại kết quả</Button>
     {loading && <p role="status">Đang tải kết quả và bản xem trước…</p>}
     {!loading && notice && <p role="status" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text">{notice}</p>}
     {!loading && published && <section className="workspace-surface space-y-2 p-5" aria-label="Kết quả đồ án đã công bố"><h2 className="font-semibold text-status-success-text">Kết quả đã công bố: {outcome(published.outcome)}</h2><p>Tổng điểm {published.totalScore} · Ngưỡng đạt {published.passThreshold}</p><p className="break-words text-sm text-slate-600">{published.calculationRule}</p><p className="text-sm text-slate-600">{new Date(published.publishedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</p></section>}
     {!loading && preview && <section className="workspace-surface space-y-4 p-4 sm:p-5" aria-label="Bản xem trước kết quả"><h2 className="font-heading font-semibold">Xem trước kết quả</h2><p>Điểm: {preview.totalScore ?? '—'} · Ngưỡng: {preview.passThreshold ?? '—'} · {outcome(preview.outcome)}</p>{preview.blockers.length > 0 && <ul className="list-disc space-y-2 break-words pl-5 text-sm text-status-warning-text">{preview.blockers.map(blocker => <li key={blocker}>{blocker === 'ADMIN_REQUIRED_FOR_CROSS_DEPARTMENT_PUBLICATION' ? 'Kết quả đồ án liên khoa cần ADMIN công bố. Bạn vẫn có thể xử lý kết quả sinh viên trong khoa theo quyền được cấp.' : blocker}</li>)}</ul>}<label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={confirmed} disabled={!preview.canPublish || busy} onChange={event => setConfirmed(event.target.checked)} />Tôi đã kiểm tra bản xem trước này và xác nhận công bố.</label><Button className="min-h-11" disabled={!preview.canPublish || !confirmed || busy} onClick={() => void publish()}>Công bố kết quả đồ án</Button>{!preview.canPublish && <p className="text-sm text-slate-600">Cần xử lý các điều kiện còn thiếu trước khi công bố.</p>}</section>}
-    {validId && <StudentResultPublicationPanel key={projectId} projectId={projectId} departmentId={academic?.departments.length === 1 ? academic.departments[0].id : undefined} />}
+    {validId && <StudentResultPublicationPanel key={projectId} projectId={projectId} departmentId={!paths.admin && academic?.departments.length === 1 ? academic.departments[0].id : undefined} />}
   </WorkspacePage>
 }
