@@ -6,6 +6,13 @@ import {
 } from './routes.config'
 
 describe('routes.config', () => {
+  it.each([
+    ['result', 'Công bố kết quả đồ án'],
+    ['evaluation-schemes', 'Phương án đánh giá'],
+    ['evaluators', 'Phân công người chấm'],
+  ])('names the Admin project %s screen in the app shell', (leaf, title) => {
+    expect(getBreadcrumbForPath(`/admin/projects/9/${leaf}`)).toBe(title)
+  })
   it('defines the MVP screens including final submission', () => {
     expect(mvpRoutes).toHaveLength(14)
   })

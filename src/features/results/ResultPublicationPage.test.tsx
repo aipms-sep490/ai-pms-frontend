@@ -7,11 +7,19 @@ import { ResultPublicationPage } from './ResultPublicationPage'
 const api = vi.hoisted(() => ({ getProjectResult: vi.fn(), getResultPreview: vi.fn(), publishProjectResult: vi.fn(), configureResultPolicy: vi.fn() }))
 vi.mock('../../services/api/project-results.api', () => api)
 vi.mock('../../app/context/useAcademicWorkflow', () => ({ useAcademicWorkflow: () => ({ academic: { departments: [{ id: 2 }] } }) }))
-vi.mock('./StudentResultPublicationPanel', () => ({ StudentResultPublicationPanel: () => <section aria-label="Kết quả sinh viên độc lập" /> }))
+vi.mock('./StudentResultPublicationPanel', () => ({ StudentResultPublicationPanel: ({ departmentId }: { departmentId?: number }) => <section aria-label="Kết quả sinh viên độc lập" data-department={departmentId} /> }))
 const preview = (token = 'current-token') => ({ canPublish: true, totalScore: 8, passThreshold: 5, outcome: 'PASS', blockers: [], confirmationToken: token })
 function page() { render(<MemoryRouter initialEntries={['/department/projects/9/result']}><Routes><Route path="/department/projects/:projectId/result" element={<ResultPublicationPage />} /></Routes></MemoryRouter>) }
 beforeEach(() => { api.getProjectResult.mockResolvedValue(null); api.getResultPreview.mockResolvedValue(preview()); api.publishProjectResult.mockResolvedValue({}) })
 afterEach(() => { cleanup(); vi.resetAllMocks() })
+
+it('keeps admin navigation and all authorized student targets even with a linked department', async () => {
+  render(<MemoryRouter initialEntries={['/admin/projects/9/result']}><Routes><Route path="/admin/projects/:projectId/result" element={<ResultPublicationPage />} /></Routes></MemoryRouter>)
+  await screen.findByRole('region', { name: 'Bản xem trước kết quả' })
+  expect(screen.getByRole('link', { name: 'Quản lý phương án đánh giá' }).getAttribute('href')).toBe('/admin/projects/9/evaluation-schemes')
+  expect(screen.getByRole('link', { name: 'Phân công người chấm' }).getAttribute('href')).toBe('/admin/projects/9/evaluators')
+  expect(screen.getByRole('region', { name: 'Kết quả sinh viên độc lập' }).getAttribute('data-department')).toBeNull()
+})
 
 it('replaces legacy writes with scoped scheme navigation', async () => {
   page()

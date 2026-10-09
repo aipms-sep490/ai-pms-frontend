@@ -62,6 +62,7 @@ import { FinalRequirementsPage, FinalSubmissionViewerPage, StudentFinalSubmissio
 import { RubricManagementPage } from '../../features/evaluations/RubricManagementPage'
 import { EvaluatorAssignmentManagementPage } from '../../features/evaluations/EvaluatorAssignmentManagementPage'
 import { EvaluationSchemeManagementPage } from '../../features/evaluations/EvaluationSchemeManagementPage'
+import { AdminEvaluationLayout } from '../../features/evaluations/AdminEvaluationLayout'
 import { StudentProjectResultPage } from '../../features/results/StudentProjectResultPage'
 import { ProjectContributionsPage } from '../../features/contributions/ProjectContributionsPage'
 import { ProjectFilesPage } from '../../features/files/ProjectFilesPage'
@@ -231,6 +232,12 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
         children: [
           { path: 'admin/access', element: <AdminWorkspacePage /> },
           { path: 'admin/portfolio', element: <PortfolioDashboardPage /> },
+          { path: 'admin/projects/:projectId', element: <AdminEvaluationLayout />, children: [
+            { path: 'evaluation-schemes', element: <EvaluationSchemeManagementPage /> },
+            { path: 'evaluators', element: <EvaluatorAssignmentManagementPage /> },
+            { path: 'final-submission', element: <FinalSubmissionViewerPage backTo="/admin/portfolio" backLabel="Danh mục đồ án" /> },
+            { path: 'result', element: <ResultPublicationPage /> },
+          ] },
           { path: 'admin/milestone-templates', element: <MilestoneTemplatesPage /> },
           { path: 'admin/access/rbac', element: <AdminRbacPage /> },
           { path: 'admin/access/users/:userId', element: <AdminUserDetailPage /> },

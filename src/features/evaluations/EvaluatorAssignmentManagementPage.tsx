@@ -2,7 +2,8 @@ import { ButtonLink } from '../../components/ui/ButtonLink'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { displayLabel } from '../../components/ui/display-label'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
+import { projectEvaluationPaths } from './project-evaluation-paths'
 import { useAuthSession } from '../auth/context/useAuthSession'
 import { getProjectPeriods } from '../academic/api/governance-api'
 import type { ProjectPeriod } from '../academic/types/governance.types'
@@ -28,6 +29,7 @@ function assignedAt(value: string) {
 
 export function EvaluatorAssignmentManagementPage() {
   const projectId = Number(useParams().projectId)
+  const paths = projectEvaluationPaths(projectId, useLocation().pathname)
   const { session } = useAuthSession()
   const errorSummary = useRef<HTMLDivElement>(null)
   const [periods, setPeriods] = useState<ProjectPeriod[]>([])
@@ -143,7 +145,7 @@ export function EvaluatorAssignmentManagementPage() {
   const eligibleStudents = selectedComponent?.scope === 'INDIVIDUAL' ? (selectedScheme?.students.filter((student) => student.majorId === selectedComponent.majorId) ?? []) : []
 
   return (
-    <WorkspacePage className="space-y-6" title="Phân công người chấm" eyebrow="Đánh giá đồ án" description="Chọn đợt đánh giá, thành phần chấm và giảng viên phù hợp cho đồ án." action={<ButtonLink to={`/department/projects/${projectId}/evaluation-schemes`} icon="schema">Phương án đánh giá</ButtonLink>}>
+    <WorkspacePage className="space-y-6" title="Phân công người chấm" eyebrow="Đánh giá đồ án" description="Chọn đợt đánh giá, thành phần chấm và giảng viên phù hợp cho đồ án." action={<ButtonLink to={paths.scheme} icon="schema">Phương án đánh giá</ButtonLink>}>
 
     {error && <div ref={errorSummary} tabIndex={-1} role="alert" aria-labelledby="assignment-error-title" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><p id="assignment-error-title" className="font-semibold">Chưa thể hoàn tất thao tác</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại dữ liệu</button></div>}
     {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{notice}</p>}
@@ -176,7 +178,7 @@ export function EvaluatorAssignmentManagementPage() {
     </>}
     <div>
       <Link
-        to={`/department/projects/${projectId}/result`}
+        to={paths.result}
         className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all"
       >
         <span>Công bố kết quả</span>
