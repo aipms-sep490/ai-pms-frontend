@@ -1,0 +1,25 @@
+.curriculum-import { display: grid; gap: 16px; font-size: 14px; line-height: 1.6; }
+.curriculum-import > * { min-width: 0; }
+.curriculum-import__guide { margin: 0; color: #526075; }
+.curriculum-import a { color: #0f5b4e; font-weight: 700; text-decoration: underline; }
+.curriculum-import__file { display: grid; gap: 10px; padding: 16px; border: 1px dashed #9ca9bb; border-radius: 10px; background: #f2f8f4; font-weight: 600; }
+.curriculum-import__file input { width: 100%; min-width: 0; font: inherit; }
+.curriculum-import__file input::file-selector-button { min-height: 40px; margin-right: 10px; border: 1px solid #9ca9bb; border-radius: 6px; background: white; padding: 6px 12px; cursor: pointer; }
+.curriculum-import__filename { margin: 0; overflow-wrap: anywhere; color: #526075; }
+.curriculum-import__check { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0; }
+.curriculum-import__check input { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 3px; accent-color: #0f5b4e; }
+.curriculum-import__table { max-height: 420px; overflow: auto; border: 1px solid #d8dee8; border-radius: 6px; }
+.curriculum-import table { width: 100%; min-width: 510px; border-collapse: collapse; font-size: 12px; }
+.curriculum-import caption { text-align: left; padding: 10px; font-weight: 600; color: #526075; }
+.curriculum-import th,.curriculum-import td { padding: 10px; text-align: left; vertical-align: top; border-bottom: 1px solid #e4e8ef; overflow-wrap: anywhere; max-width: 180px; }
+.curriculum-import th { background: #f2f8f4; position: sticky; top: 0; }
+.curriculum-import td p { color: #991b1b; margin: 6px 0 0; }
+.curriculum-import__status { display: inline-block; padding: 2px 6px; border-radius: 4px; white-space: nowrap; background: #f1f5f9; color: #475569; }
+.curriculum-import__status--update { background: #dcfce7; color: #166534; }
+.curriculum-import__status--error { background: #fee2e2; color: #991b1b; }
+.curriculum-import__error,.curriculum-import__success { padding: 12px; border-radius: 6px; margin: 0; overflow-wrap: anywhere; }
+.curriculum-import__error { background: #fef2f2; color: #991b1b; }
+.curriculum-import__success { background: #ecfdf5; color: #065f46; }
+.curriculum-import__pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0; }
+.curriculum-import .app-modal__actions { margin-top: 0; }
+@media (max-width: 480px) { .curriculum-import .app-modal__actions > button { flex: 1 1 auto; } }
