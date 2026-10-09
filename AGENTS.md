@@ -10,6 +10,6 @@
 
 ## FE2
 
-- Kế hoạch tại `docs/fe2/FE2_ROADMAP_2026-10-09.md` đang **CHỜ NGƯỜI DÙNG DUYỆT**. Chưa triển khai các task trong roadmap cho đến khi người dùng duyệt hoặc chỉ định task được làm.
+- Kế hoạch tại `docs/fe2/FE2_ROADMAP_2026-10-09.md` đã được người dùng duyệt và yêu cầu bắt đầu ngày 09/10/2026. Triển khai task core theo roadmap; các extension vẫn cần approval/contract liên quan.
 - FE2 sở hữu router/sidebar/shared guards và evaluation/result publication; FE1 sở hữu student/qualification/team/execution và StudentProjectResultPage. Phối hợp trước khi sửa bề mặt chung hoặc module của FE1, trừ khi người dùng đã yêu cầu trực tiếp.
 - Tái sử dụng contract hiện có; BE quyết định authority, scope, trạng thái, scoring và persistence. Không biến CIB v4 PROPOSED/OPEN thành chính sách chính thức bằng code FE.
