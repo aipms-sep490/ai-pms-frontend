@@ -1,0 +1,17 @@
+.roster-export { display: grid; gap: 18px; }
+.roster-export__format { display: flex; align-items: flex-start; gap: 12px; padding: 16px; border: 1px solid #d7e6de; border-radius: 10px; background: #f2f8f4; }
+.roster-export__format > span { color: #0f5b4e; }
+.roster-export__format strong { font-size: 15px; }
+.roster-export__format p { margin: 6px 0 0; color: #526075; font-size: 12px; line-height: 1.7; }
+.roster-export fieldset { display: grid; gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.roster-export label { display: flex; flex-wrap: wrap; gap: 6px; color: #334155; font-size: 14px; font-weight: 600; }
+.roster-export select { width: 100%; min-width: 0; min-height: 44px; padding: 10px; border: 1px solid #9ca9bb; border-radius: 6px; background: #fff; color: #172033; font: inherit; }
+.roster-export select:disabled { background: #f5f7f8; color: #64748b; }
+.roster-export__hint { margin: 0; font-size: 12px; line-height: 1.65; color: #526075; }
+.roster-export__error,.roster-export__success { margin: 0; padding: 12px; border-radius: 6px; font-size: 14px; line-height: 1.6; }
+.roster-export__error { background: #fef2f2; color: #991b1b; }
+.roster-export__success { background: #ecfdf5; color: #065f46; }
+.roster-export .app-modal__actions { margin-top: 0; }
+.admin-roster-heading { flex-wrap: wrap; align-items: flex-start; }
+.admin-roster-heading > div { flex: 1 1 300px; }
+@media (max-width: 480px) { .roster-export .app-modal__actions > button { flex: 1; } }
