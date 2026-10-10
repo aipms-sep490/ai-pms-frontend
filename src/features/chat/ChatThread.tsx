@@ -5,7 +5,11 @@ import { useChat } from './ChatProvider'
 import { chatApi, mergeMessages, type ChatConversation, type ChatMessage, type ChatPerson, type SendMessage } from './chat-api'
 import { chatDay, chatTime, utcDate } from './chat-view'
 import { ChatMessageContent } from './ChatMessageContent'
+import { ChatAttachments } from './ChatAttachments'
+import { ChatReactionBar } from './ChatReactionBar'
+import { attachmentError, canSubmitMessage, formatBytes, toggleReaction } from './chat-attachments'
 import { chatConnectionLabel } from './chat-events'
+import { env } from '../../app/config/env'
 
 export function chatError(e: unknown) {
   if (e instanceof HttpError) {
@@ -34,6 +38,9 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
   const [edit, setEdit] = useState<ChatMessage | null>(null)
   const [recall, setRecall] = useState<ChatMessage | null>(null)
   const [pending, setPending] = useState<Pending[]>([])
+  const [files, setFiles] = useState<File[]>([])
+  const [fileError, setFileError] = useState('')
+  const fileInput = useRef<HTMLInputElement>(null)
   const [typing, setTyping] = useState<Record<string, number>>({})
   const [online, setOnline] = useState<string[]>([])
   const view = useRef<HTMLDivElement>(null)
@@ -174,9 +181,41 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
     }
   }
   const canSend = active && ready && room?.status === 'OPEN' && room.canSend === true
+  const canAttach = canSend && env.chatAttachmentsEnabled
+  const reactTo = (message: ChatMessage, emoji: string) => {
+    if (!canAttach) return
+    const mine = message.reactions?.find(r => r.emoji === emoji)?.mine ?? false
+    const flip = () => setMessages(old => old.map(m => m.id === message.id ? toggleReaction(m, emoji) : m))
+    flip()
+    void (mine ? chatApi.unreact(id, message.id, emoji) : chatApi.react(id, message.id, emoji)).catch(e => { if (!live.current) return; if (denied(e)) { clear(); return } flip(); setError(chatError(e)) })
+  }
+  const addFiles = (incoming: FileList | null) => {
+    if (!incoming) return
+    const accepted: File[] = []
+    for (const file of Array.from(incoming)) { const problem = attachmentError(file); if (problem) { setFileError(`${file.name}: ${problem}`); continue } accepted.push(file) }
+    if (accepted.length) { setFiles(old => [...old, ...accepted].slice(0, 10)); setFileError('') }
+    if (fileInput.current) fileInput.current.value = ''
+  }
+  const sendWithAttachments = async (text: string, chosen: File[], replyTo: ChatMessage | null) => {
+    setBusy(true); setError('')
+    following.current = true; setNewMessages(0)
+    try {
+      const uploaded = await Promise.all(chosen.map(file => chatApi.uploadAttachment(id, file)))
+      if (!live.current || revoked.current) return
+      const canonical = await chatApi.send(id, { clientMessageId: crypto.randomUUID(), body: text, ...(replyTo ? { replyToMessageId: replyTo.id } : {}), attachmentFileIds: uploaded.map(a => a.id) })
+      if (!live.current || revoked.current) return
+      setMessages(old => mergeMessages(old, [canonical]).slice(-500)); refresh(id)
+    } catch (e) {
+      if (!live.current) return
+      if (denied(e)) { clear(); return }
+      setError(chatError(e)); setDraft(text); setFiles(chosen); setReply(replyTo)
+    } finally { if (live.current) setBusy(false) }
+  }
   const submit = () => {
-    if (!canSend || !draft.trim() || draft.length > 4000 || busy) return
-    if (edit) { void mutate(async () => { await chatApi.edit(id, edit, draft); setEdit(null); setDraft(''); refresh(id) }); return }
+    if (!canSend || busy || draft.length > 4000) return
+    if (edit) { if (!draft.trim()) return; void mutate(async () => { await chatApi.edit(id, edit, draft); setEdit(null); setDraft(''); refresh(id) }); return }
+    if (!canSubmitMessage(draft, files.length)) return
+    if (files.length) { const text = draft, chosen = files, replyTo = reply; setDraft(''); setReply(null); setFiles([]); clearTimeout(typingStop.current); if (connection && state === 'connected') void connection.invoke('SetTyping', id, false).catch(() => {}); void sendWithAttachments(text, chosen, replyTo); return }
     const item: Pending = { request: { clientMessageId: crypto.randomUUID(), body: draft, ...(reply ? { replyToMessageId: reply.id } : {}) }, sending: true }
     following.current = true; setNewMessages(0); if (historyWindows.current[0]) { historyWindows.current = [undefined]; setReload(n => n + 1) } setPending(old => [...old, item]); clearTimeout(typingStop.current); if (connection && state === 'connected') void connection.invoke('SetTyping', id, false).catch(() => {}); setDraft(''); setReply(null); void send(item)
   }
@@ -193,7 +232,8 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
         {(!index || chatDay(messages[index - 1].createdAt) !== chatDay(message.createdAt)) && <p className="chat-date">{chatDay(message.createdAt)}</p>}
         <article data-message-id={message.id} className={message.senderId === userId ? 'own' : ''}><div>{(!index || messages[index - 1].senderId !== message.senderId || chatDay(messages[index - 1].createdAt) !== chatDay(message.createdAt)) && <strong>{message.senderName}</strong>}<time dateTime={utcDate(message.createdAt).toISOString()}>{chatTime(message.createdAt)}</time></div>
         {message.reply && <blockquote><button type="button" disabled={message.reply.unavailable} onClick={() => { const target = [...(view.current?.querySelectorAll<HTMLElement>('[data-message-id]') ?? [])].find(element => element.dataset.messageId === message.reply?.id); if (target) { target.scrollIntoView({ block: 'center', behavior: 'auto' }); target.focus() } }}>{message.reply.unavailable ? 'Tin nhắn gốc không còn khả dụng' : message.reply.body}</button></blockquote>}
-        <p>{message.recalledAt ? 'Tin nhắn đã thu hồi' : <ChatMessageContent body={message.body || ''} />}</p><small className="chat-delivery">{message.senderId === userId && !message.recalledAt ? members.some(person => person.userId !== userId && person.lastReadSequence && BigInt(person.lastReadSequence) >= BigInt(message.sequence)) ? 'Đã đọc' : 'Đã gửi' : ''}</small>{message.editedAt && !message.recalledAt && <small>Đã chỉnh sửa</small>}
+        <p>{message.recalledAt ? 'Tin nhắn đã thu hồi' : <ChatMessageContent body={message.body || ''} />}</p>{!message.recalledAt && message.attachments?.length ? <ChatAttachments attachments={message.attachments} /> : null}<small className="chat-delivery">{message.senderId === userId && !message.recalledAt ? members.some(person => person.userId !== userId && person.lastReadSequence && BigInt(person.lastReadSequence) >= BigInt(message.sequence)) ? 'Đã đọc' : 'Đã gửi' : ''}</small>{message.editedAt && !message.recalledAt && <small>Đã chỉnh sửa</small>}
+        {!message.recalledAt && <ChatReactionBar reactions={message.reactions ?? []} canReact={canAttach} onToggle={emoji => reactTo(message, emoji)} />}
         {canSend && !message.recalledAt && <div className="chat-message-actions"><button onClick={() => { setReply(message); setEdit(null); composer.current?.focus() }}>Trả lời</button>{message.canEdit && <button onClick={() => { setEdit(message); setReply(null); setDraft(message.body || ''); composer.current?.focus() }}>Sửa</button>}{message.canRecall && <button onClick={() => setRecall(message)}>Thu hồi</button>}</div>}
       </article></div>)}
       {pending.map(item => <article className="own chat-pending" key={item.request.clientMessageId}><p>{item.request.body}</p><small>{item.sending ? 'Đang gửi...' : item.error}</small>{!item.sending && <button disabled={!canSend} onClick={() => void send(item)}>Gửi lại</button>}</article>)}
@@ -205,8 +245,10 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
     {recall && <div className="chat-confirm" role="group" aria-label="Xác nhận thu hồi"><p>Thu hồi tin nhắn này?</p><button disabled={!canSend || busy} onClick={() => void mutate(async () => { await chatApi.recall(id, recall); setRecall(null); refresh(id) })}>Xác nhận thu hồi</button><button onClick={() => setRecall(null)}>Hủy</button></div>}
     <form className="chat-compose" onSubmit={e => { e.preventDefault(); submit() }}>
       {(reply || edit) && <div className="chat-reply-draft"><span>{edit ? 'Đang sửa tin nhắn' : `Trả lời ${reply?.senderName}: ${(reply?.body || '').slice(0, 120)}`}</span><button type="button" onClick={() => { setReply(null); if (edit) setDraft(''); setEdit(null) }}>Hủy</button></div>}
+      {canAttach && files.length > 0 && <ul className="chat-compose-files">{files.map((file, index) => <li key={`${file.name}-${index}`}><span>{file.name} · {formatBytes(file.size)}</span><button type="button" aria-label={`Bỏ tệp ${file.name}`} onClick={() => setFiles(old => old.filter((_, i) => i !== index))}>✕</button></li>)}</ul>}
+      {fileError && <p className="chat-error" role="alert">{fileError}</p>}
       <label>Tin nhắn<textarea ref={composer} value={draft} disabled={!canSend} rows={2} maxLength={4000} placeholder={canSend ? 'Viết tin nhắn...' : 'Hiện không thể gửi tin'} onChange={e => { setDraft(e.target.value); clearTimeout(typingStop.current); if (connection && state === 'connected') typingStop.current = setTimeout(() => { void connection.invoke('SetTyping', id, false).catch(() => {}) }, 2500); if (connection && state === 'connected' && Date.now() - lastTyping.current >= 3000) { lastTyping.current = Date.now(); void connection.invoke('SetTyping', id, true).catch(() => {}) } }} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } }} /></label>
-      <div className="chat-compose-footer"><small>Shift + Enter để xuống dòng · {draft.length}/4000</small><button type="submit" disabled={!canSend || !draft.trim() || busy}>{edit ? 'Lưu sửa' : 'Gửi'}</button></div>
+      <div className="chat-compose-footer">{canAttach && !edit ? <button type="button" className="chat-attach-button" aria-label="Đính kèm tệp hoặc ảnh" disabled={busy} onClick={() => fileInput.current?.click()}><span className="material-symbols-outlined" aria-hidden="true">attach_file</span></button> : null}{canAttach && !edit ? <input ref={fileInput} type="file" multiple hidden onChange={e => addFiles(e.target.files)} /> : null}<small>Shift + Enter để xuống dòng · {draft.length}/4000</small><button type="submit" disabled={!canSend || busy || (edit ? !draft.trim() : !canSubmitMessage(draft, files.length))}>{edit ? 'Lưu sửa' : 'Gửi'}</button></div>
     </form>
   </section>
 }

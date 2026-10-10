@@ -14,6 +14,17 @@ function renderBoard(manage: boolean, url = '/project/tasks', allowed = manage) 
 beforeEach(() => { api.getProjectTasks.mockResolvedValue(empty); api.getProjectMilestones.mockResolvedValue([{ id: 3, title: 'Khởi động', status: 'PLANNED' }]) })
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 describe('TaskBoardPage', () => {
+  it('shows a paged board using backend statuses without hiding blocked or cancelled tasks', async () => {
+    api.getProjectTasks.mockResolvedValue({ ...empty, items: [item, { ...item, id: 2, title: 'Đang bị chặn', status: 'BLOCKED' }, { ...item, id: 3, title: 'Đã hủy công việc', status: 'CANCELLED' }], totalCount: 23, totalPages: 2 })
+    renderBoard(false)
+    await screen.findByText('Phân tích yêu cầu')
+    fireEvent.click(screen.getByRole('button', { name: 'Bảng Kanban' }))
+    expect(screen.getByRole('region', { name: 'Bảng công việc theo trang' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Đang bị chặn/ })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Đã hủy công việc/ })).toBeTruthy()
+    expect(screen.getByText(/Chỉ hiển thị công việc trên trang hiện tại/)).toBeTruthy()
+    expect(api.getProjectTasks).toHaveBeenCalledTimes(1)
+  })
   it('hides creation for ordinary members', async () => {
     renderBoard(false); await screen.findByText('Không có công việc phù hợp')
     expect(screen.queryByRole('button', { name: 'Tạo công việc' })).toBeNull()

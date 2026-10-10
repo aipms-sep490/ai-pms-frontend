@@ -1,6 +1,6 @@
-import { httpDelete, httpGet, httpPost, httpPut } from '../http/http-client'
+import { httpDelete, httpGet, httpGetBlob, httpPost, httpPut } from '../http/http-client'
 import type { PagedResult } from '../../types/backend'
-import type { EvaluationAssignment, EvaluationDraft, EvaluationScheme, EvaluationScope, EvaluationScoreInput } from '../../features/evaluations/evaluation-types'
+import type { EvaluationAssignment, EvaluationDraft, EvaluationScheme, EvaluationScope, EvaluationScoreInput, EvaluatorRole } from '../../features/evaluations/evaluation-types'
 
 /** Server-issued direct-assignment authority. `canScore` is authoritative for score mutations. */
 export interface EvaluationAssignmentDetail {
@@ -11,6 +11,10 @@ export interface EvaluationAssignmentDetail {
 }
 
 /** Deliberately metadata-only evidence projection, scoped by the Backend to the assignment. */
+/** One report file an evaluator may open while scoring. `reportType` labels the COLD report slot
+ * (e.g. "Software Requirement") when the backend provides it. */
+export interface EvidenceFile { id: number; fileName: string; contentType: string; sizeBytes: number; reportType?: string | null }
+
 export interface EvaluationAssignmentEvidence {
   assignmentId: number
   projectId: number
@@ -21,6 +25,8 @@ export interface EvaluationAssignmentEvidence {
   submittedAt: string | null
   itemCount: number
   isReadOnly: boolean
+  /** Optional until the backend ships inline preview; absent falls back to the locked-package link. */
+  files?: EvidenceFile[]
 }
 
 export interface EligibleEvaluator {
@@ -28,12 +34,15 @@ export interface EligibleEvaluator {
   displayName: string
   departmentId: number
   departmentName: string
-  evaluationTypes: Array<'SUPERVISOR' | 'LECTURER'>
+  // Superset keeps DISCIPLINE_MENTOR/INDUSTRY ready without breaking the live SUPERVISOR/LECTURER flow.
+  evaluationTypes: Array<'SUPERVISOR' | 'LECTURER' | 'DISCIPLINE_MENTOR' | 'INDUSTRY' | (string & {})>
 }
 
 export const getMyEvaluationAssignments = (page = 1, pageSize = 20, signal?: AbortSignal) => httpGet<PagedResult<EvaluationAssignment>>(`/evaluation-assignments/my?page=${page}&pageSize=${pageSize}`, signal)
 export const getEvaluationAssignmentDetail = (assignmentId: number, signal?: AbortSignal) => httpGet<EvaluationAssignmentDetail>(`/evaluation-assignments/${assignmentId}`, signal)
 export const getEvaluationAssignmentEvidence = (assignmentId: number, signal?: AbortSignal) => httpGet<EvaluationAssignmentEvidence>(`/evaluation-assignments/${assignmentId}/evidence`, signal)
+/** Scoped download: the backend enforces that the evaluator only reaches files within their assignment. */
+export const downloadEvaluationEvidenceFile = (assignmentId: number, fileId: number, signal?: AbortSignal) => httpGetBlob(`/evaluation-assignments/${assignmentId}/evidence/files/${fileId}/download`, { signal })
 
 /**
  * The API is paged. Workspace guards must inspect the complete server-issued
@@ -77,7 +86,7 @@ export const publishEvaluationScheme = (id: number, concurrencyToken: string) =>
 export const createEvaluationSchemeVersion = (id: number, concurrencyToken: string) => httpPost<EvaluationScheme>(`/evaluation-schemes/${id}/versions`, { concurrencyToken })
 export const deleteEvaluationScheme = (id: number, concurrencyToken: string) => httpDelete(`/evaluation-schemes/${id}?concurrencyToken=${encodeURIComponent(concurrencyToken)}`)
 export const getEligibleEvaluators = (projectId: number, periodId: number, target: EvaluationTarget, page = 1, pageSize = 100, signal?: AbortSignal) => httpGet<PagedResult<EligibleEvaluator>>(`/projects/${projectId}/eligible-evaluators?${new URLSearchParams({ periodId: String(periodId), componentId: String(target.componentId), scope: target.scope, ...(target.majorId !== null ? { majorId: String(target.majorId) } : {}), ...(target.studentId !== null ? { studentId: String(target.studentId) } : {}), page: String(page), pageSize: String(pageSize) })}`, signal)
-export const assignEvaluator = (projectId: number, body: { evaluatorId: number; projectPeriodId: number; evaluationType: 'SUPERVISOR' | 'LECTURER' } & EvaluationTarget) => httpPost<EvaluationAssignment>(`/projects/${projectId}/evaluation-assignments`, body)
+export const assignEvaluator = (projectId: number, body: { evaluatorId: number; projectPeriodId: number; evaluationType: EvaluatorRole } & EvaluationTarget) => httpPost<EvaluationAssignment>(`/projects/${projectId}/evaluation-assignments`, body)
 export const revokeEvaluator = (assignmentId: number, concurrencyToken: string, reason: string) => httpPost<EvaluationAssignment>(`/evaluation-assignments/${assignmentId}/revoke`, { concurrencyToken, reason })
 export const createEvaluationDraft = (assignmentId: number) => httpPost<EvaluationDraft>(`/evaluation-assignments/${assignmentId}/evaluation`)
 export const getEvaluationDraft = (evaluationId: number, signal?: AbortSignal) => httpGet<EvaluationDraft>(`/evaluations/${evaluationId}`, signal)

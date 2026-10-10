@@ -5,3 +5,20 @@
 .evaluator-score-summary dt { font-size: 12px; color: #64748b; }
 .evaluator-score-summary dd { margin-top: 4px; font-weight: 600; font-variant-numeric: tabular-nums; }
 @media (max-width: 600px) { .evaluator-score-summary { grid-template-columns: 1fr; gap: 10px; } }
+
+/* COLD view + score side-by-side layout */
+.evaluator-detail .evaluator-cold-layout { display: flex; flex-direction: column; gap: 24px; }
+.evaluator-detail .evaluator-cold-main { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.evaluator-detail .evaluator-cold-aside { min-width: 0; }
+@media (min-width: 1024px) {
+  .evaluator-detail .evaluator-cold-layout:has(.evaluator-cold-aside) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+  .evaluator-detail .evaluator-cold-aside { position: sticky; top: 16px; }
+}
+.evaluator-detail .report-preview-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.evaluator-detail .report-preview-tab { min-height: 36px; padding: 4px 10px; border: 1px solid var(--color-hairline); border-radius: 8px; background: var(--color-card); font-size: 13px; color: var(--color-ink, #1e293b); }
+.evaluator-detail .report-preview-tab--active { border-color: var(--color-primary); background: var(--color-primary-subtle); color: var(--color-primary); font-weight: 600; }
+.evaluator-detail .report-preview-stage { margin-top: 12px; border: 1px solid var(--color-hairline); border-radius: 10px; background: var(--color-canvas); overflow: hidden; }
+.evaluator-detail .report-preview-frame { width: 100%; height: min(70vh, 640px); border: 0; display: block; background: #fff; }
+.evaluator-detail .report-preview-image { width: 100%; max-height: min(70vh, 640px); object-fit: contain; display: block; background: #fff; }
+.evaluator-detail .report-preview-note { padding: 16px; font-size: 14px; line-height: 1.6; color: #475569; }
+@media (max-width: 1023px) { .evaluator-detail .report-preview-frame { height: 56vh; } }

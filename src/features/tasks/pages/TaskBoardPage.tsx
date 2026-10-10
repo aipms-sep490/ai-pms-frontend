@@ -9,6 +9,8 @@ import { dateLabel, isOverdue, taskStatusLabel } from '../../projects/utils/coll
 import { WorkspaceTaskForm } from '../../projects/components/WorkspaceTaskForm'
 import { canUseProjectExecutionAction } from '../../execution/execution-authority'
 import { env } from '../../../app/config/env'
+import { SprintBacklogPanel } from '../components/SprintBacklogPanel'
+import './task-board.css'
 
 const statuses: BackendTaskStatus[] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'IN_REVIEW', 'DONE', 'CANCELLED']
 const disciplineRoles = ['PRIMARY', 'SUPPORTING'] as const
@@ -33,13 +35,14 @@ export function TaskBoardPage() {
     ? (params.get('role') as 'PRIMARY' | 'SUPPORTING') : undefined
   const [draft, setDraft] = useState({ search, status, priority, milestone: String(milestoneId ?? ''), assignee: String(assigneeUserId ?? ''), overdue, major: String(majorId ?? ''), role: disciplineRole ?? '' })
   const [advanced, setAdvanced] = useState(Boolean(priority || milestoneId || overdue || majorId || disciplineRole))
-  const [view, setView] = useState<'list' | 'status'>('list')
+  const [view, setView] = useState<'list' | 'status' | 'board' | 'sprint'>('list')
   const [creating, setCreating] = useState(false)
   const [created, setCreated] = useState(false)
   const createRef = useRef<HTMLButtonElement>(null)
   const restoreCreateFocus = useRef(false)
   const [revision, setRevision] = useState(0)
   const [data, setData] = useState<PagedResult<TaskDto> | null>(null)
+  const [observedAt, setObservedAt] = useState(() => Date.now())
   const [milestones, setMilestones] = useState<MilestoneDto[]>([])
   const [milestoneError, setMilestoneError] = useState('')
   const [milestoneLoading, setMilestoneLoading] = useState(true)
@@ -50,7 +53,7 @@ export function TaskBoardPage() {
     const controller = new AbortController(); setLoading(true); setError('')
     services.task.getProjectTasks(project.id, { page, pageSize: 20, search: search.trim() || undefined, assigneeUserId,
       milestoneId, status: status || undefined, priority: priority || undefined, isOverdue: overdue || undefined, majorId, disciplineRole }, controller.signal)
-      .then(next => { if (!controller.signal.aborted) setData(next) })
+      .then(next => { if (!controller.signal.aborted) { setData(next); setObservedAt(Date.now()) } })
       .catch(reason => { if (!controller.signal.aborted) setError(executionError(reason, 'tải công việc')) })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
@@ -85,10 +88,10 @@ export function TaskBoardPage() {
     {created && <p className="ex-notice" role="status">Đã tạo công việc.</p>}
     {creating && (milestoneLoading ? <ExState loading /> : milestoneError ? <ExState message={milestoneError} retry={refresh} /> : eligibleMilestones.length ? <div className="mb-6"><WorkspaceTaskForm project={project} members={members} milestones={eligibleMilestones} onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); refresh() }} /></div>
       : <section className="ex-panel"><ExState title="Cần có mốc đồ án đang thực hiện" message="Tạo một mốc trước khi thêm công việc cho nhóm." action={<Link className="ex-button" to={`${routeBase}/milestones`}>Quản lý mốc đồ án</Link>} /><div className="ex-padding"><button className="ex-text-button" onClick={closeCreate}>Đóng</button></div></section>)}
-    <section className="ex-panel" aria-label="Danh sách công việc">
+    <section className="ex-panel task-board-panel" aria-label="Danh sách công việc">
       <div className="ex-toolbar"><div className="ex-tabs" role="group" aria-label="Phạm vi công việc"><button aria-pressed={!assigneeUserId} onClick={() => updateParams('assignee', '')}>Cả nhóm</button>{currentUserId && <button aria-pressed={assigneeUserId === currentUserId} onClick={() => updateParams('assignee', String(currentUserId))}>Của tôi</button>}
         {assigneeUserId && assigneeUserId !== currentUserId && <span className="ex-muted">{activeMember?.fullName ?? 'Thành viên đã chọn'} <button className="ex-text-button" onClick={() => updateParams('assignee', '')}>Bỏ lọc</button></span>}</div>
-        <div className="ex-tabs" role="group" aria-label="Cách hiển thị"><button aria-pressed={view === 'list'} onClick={() => setView('list')}><ExIcon name="format_list_bulleted" /> Danh sách</button><button aria-pressed={view === 'status'} onClick={() => setView('status')}>Theo trạng thái</button></div>
+        <div className="ex-tabs" role="group" aria-label="Cách hiển thị"><button aria-pressed={view === 'list'} onClick={() => setView('list')}><ExIcon name="format_list_bulleted" /> Danh sách</button><button aria-pressed={view === 'status'} onClick={() => setView('status')}>Theo trạng thái</button><button aria-pressed={view === 'board'} onClick={() => setView('board')}>Bảng Kanban</button>{env.jiraSprintEnabled && <button aria-pressed={view === 'sprint'} onClick={() => setView('sprint')}>Sprint &amp; Backlog</button>}</div>
       </div>
       <form onSubmit={apply}>
         <div className="ex-filters"><label className="ex-filter-search">Tìm công việc<input value={draft.search} onChange={event => setDraft({ ...draft, search: event.target.value })} placeholder="Tên công việc…" /></label>
@@ -98,11 +101,11 @@ export function TaskBoardPage() {
         </div>
         {advanced && <div className="ex-filters">{showMajorFilter && <><label>Ngành<select value={draft.major} onChange={event => setDraft({ ...draft, major: event.target.value })}><option value="">Tất cả ngành</option>{project.majors.map(item => <option key={item.id} value={item.majorId}>{item.majorName}</option>)}</select></label><label>Vai trò ngành<select value={draft.role} onChange={event => setDraft({ ...draft, role: event.target.value })}><option value="">Tất cả vai trò</option>{disciplineRoles.map(value => <option key={value} value={value}>{disciplineRoleLabels[value]}</option>)}</select></label></>}<label>Mốc đồ án<select value={draft.milestone} onChange={event => setDraft({ ...draft, milestone: event.target.value })}><option value="">Tất cả mốc</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label>Mức ưu tiên<select value={draft.priority} onChange={event => setDraft({ ...draft, priority: event.target.value })}><option value="">Tất cả mức</option>{Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="ex-filter-check"><input type="checkbox" checked={draft.overdue} onChange={event => setDraft({ ...draft, overdue: event.target.checked })} />Chỉ việc quá hạn</label><button className="ex-text-button" type="button" onClick={() => setParams({})}>Xóa bộ lọc</button></div>}
       </form>
-      {loading ? <ExState loading /> : error ? <ExState message={error} retry={refresh} /> : data && <>
+      {view === 'sprint' ? <SprintBacklogPanel projectId={project.id} routeBase={routeBase} /> : loading ? <ExState loading /> : error ? <ExState message={error} retry={refresh} /> : data && <>
         {!data.items.length ? <ExState title="Không có công việc phù hợp" message="Thử đổi bộ lọc hoặc tạo công việc mới cho nhóm." /> : <>
-          <div className="ex-task-list-heading" aria-hidden="true"><span>Công việc / mốc đồ án</span><span>Người phụ trách</span><span>Trạng thái</span><span>Hạn hoàn thành</span></div>
+          {view === 'board' ? <><p className="ex-muted ex-padding">Chỉ hiển thị công việc trên trang hiện tại, theo bộ lọc đã áp dụng. Mở chi tiết công việc để thực hiện thao tác được cấp.</p><section className="task-board-scroll" aria-label="Bảng công việc theo trang" tabIndex={0}>{statuses.map(value => <section className="task-board-column" key={value} aria-label={taskStatusLabel(value)}><h2>{taskStatusLabel(value)} <span>· {data.items.filter(task => task.status === value).length}</span></h2><ul>{data.items.filter(task => task.status === value).map(task => <li key={task.id}><Link className="task-board-card" to={`${routeBase}/tasks/${task.id}`} state={{ taskListSearch: params.toString() }}><small>#{task.id} · {priorityLabels[task.priority ?? ''] ?? 'Chưa có ưu tiên'}</small><strong>{task.title}</strong>{(task.storyPoints != null || (task.labels?.length ?? 0) > 0) && <span className="task-card-chips">{task.storyPoints != null && <span className="sprint-point-badge" aria-label={`${task.storyPoints} điểm`}>{task.storyPoints}</span>}{(task.labels ?? []).map(label => <span key={label} className="sprint-label-chip">{label}</span>)}</span>}<span>{task.assignees.map(person => person.userFullName).join(', ') || 'Chưa phân công'}</span><span className={isOverdue({ ...task, assignees: [] }, observedAt) ? 'text-status-error-text' : ''}>{dateLabel(task.dueAt)}</span></Link></li>)}</ul>{!data.items.some(task => task.status === value) && <p className="ex-muted">Không có việc trên trang này.</p>}</section>)}</section></> : <><div className="ex-task-list-heading" aria-hidden="true"><span>Công việc / mốc đồ án</span><span>Người phụ trách</span><span>Trạng thái</span><span>Hạn hoàn thành</span></div>
           {view === 'list' ? <ul>{data.items.map(task => <TaskRow key={task.id} task={task} routeBase={routeBase} milestones={milestones} listSearch={params.toString()} />)}</ul>
-            : statuses.filter(value => data.items.some(task => task.status === value)).map(value => <div key={value}><h2 className="ex-group-heading">{taskStatusLabel(value)} <span className="ex-muted">· {data.items.filter(task => task.status === value).length} việc trên trang này</span></h2><ul>{data.items.filter(task => task.status === value).map(task => <TaskRow key={task.id} task={task} routeBase={routeBase} milestones={milestones} listSearch={params.toString()} />)}</ul></div>)}
+            : statuses.filter(value => data.items.some(task => task.status === value)).map(value => <div key={value}><h2 className="ex-group-heading">{taskStatusLabel(value)} <span className="ex-muted">· {data.items.filter(task => task.status === value).length} việc trên trang này</span></h2><ul>{data.items.filter(task => task.status === value).map(task => <TaskRow key={task.id} task={task} routeBase={routeBase} milestones={milestones} listSearch={params.toString()} />)}</ul></div>)}</>}
         </>}
         <ExPagination page={page} pages={data.totalPages} total={data.totalCount} onPage={nextPage => { const next = new URLSearchParams(params); next.set('page', String(nextPage)); setParams(next) }} />
       </>}

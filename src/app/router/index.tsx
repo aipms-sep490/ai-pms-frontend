@@ -1,4 +1,5 @@
 import { MilestoneTemplatesPage } from '../../features/milestones/MilestoneTemplatesPage'
+import { WorkflowPreviewPage } from '../../features/workflow-preview/WorkflowPreviewPage'
 import { ProfileVerificationsPage } from '../../features/academic/pages/ProfileVerificationsPage'
 import { createBrowserRouter } from 'react-router-dom'
 import { RouteFrame } from './RouteFrame'
@@ -252,6 +253,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
         ],
       },
 
+      ...(env.workflowPreviewEnabled ? [{ path: 'preview/workflows', element: <WorkflowPreviewPage /> }] : []),
       { path: '*', element: <NotFoundPage /> },
     ],
   },

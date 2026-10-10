@@ -54,6 +54,23 @@ export interface TaskDto {
   concurrencyToken?: string
   assignees: TaskAssigneeDto[]
   dependencies: TaskDependencyDto[]
+  /** Jira-style fields; optional until the backend ships sprint support. Absent renders as backlog, no points, no labels. */
+  sprintId?: number | null
+  storyPoints?: number | null
+  labels?: string[]
+}
+
+export type SprintStatus = 'PLANNING' | 'ACTIVE' | 'COMPLETED'
+
+export interface SprintDto {
+  id: number
+  projectId: number
+  name: string
+  goal?: string | null
+  startAt?: string | null
+  endAt?: string | null
+  status: SprintStatus | string
+  concurrencyToken?: string
 }
 
 export interface OverdueBlockedTasksDto {

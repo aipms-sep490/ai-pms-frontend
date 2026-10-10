@@ -11,6 +11,7 @@ import { evaluationError, isConflict } from '../evaluation-errors'
 import type { EvaluationDraft, EvaluationScore } from '../evaluation-types'
 import type { EvaluationAssignmentEvidence } from '../../../services/api/evaluations.api'
 import { useEvaluatorAssignment } from '../hooks/useEvaluatorAssignment'
+import { ReportPreviewPanel } from './ReportPreviewPanel'
 
 type FieldValues = Record<number, { score: string; comments: string }>
 
@@ -138,6 +139,8 @@ export function EvaluatorAssignmentDetailPage() {
   }
 
   const editable = draft?.status === 'DRAFT'
+  const previewFiles = evidence?.files ?? []
+  const hasPreview = evidenceState === 'ready' && previewFiles.length > 0
   const rubricSummary = useMemo(() => draft ? `${draft.rubricName} · phiên bản ${draft.rubricVersion}` : `Bộ tiêu chí #${assignment.rubricId}`, [assignment.rubricId, draft])
   return <WorkspacePage title="Chấm điểm theo phạm vi được phân công" eyebrow={`Phân công #${assignment.id}`} description="Đối chiếu minh chứng, ghi điểm và nhận xét cho từng tiêu chí." backTo="/evaluator/workspace" className="evaluation-workspace evaluator-detail space-y-6 pb-12">
     <header className="rounded-xl border border-hairline bg-card p-5 sm:p-6">
@@ -145,6 +148,9 @@ export function EvaluatorAssignmentDetailPage() {
     </header>
 
     {message ? <section role="alert" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text">{message}</section> : null}
+    <div className="evaluator-cold-layout">
+    {hasPreview ? <aside className="evaluator-cold-aside"><ReportPreviewPanel assignmentId={assignment.id} files={previewFiles} /></aside> : null}
+    <div className="evaluator-cold-main">
       <section className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-semibold text-slate-900">Tóm tắt gói bàn giao</h2>{evidenceState === 'loading' ? <p role="status" className="mt-1 text-sm leading-6 text-slate-600">Đang tải thông tin gói bàn giao theo phân công…</p> : null}{evidenceState === 'unavailable' ? <p role="alert" className="mt-1 text-sm leading-6 text-status-warning-text">Chưa tải được thông tin gói bàn giao theo phân công. Các phần chấm điểm khác vẫn giữ nguyên.</p> : null}{evidenceState === 'ready' && evidence ? <div className="mt-2 space-y-1 text-sm leading-6 text-slate-600"><p>Gói bàn giao: {evidence.finalSubmissionId ? `#${evidence.finalSubmissionId}` : 'Chưa có'}</p><p>Thời điểm nộp: {evidence.submittedAt ? dateTimeLabel(evidence.submittedAt) : 'Chưa có'}</p><p>Số hạng mục bàn giao: {evidence.itemCount}</p><p>Thông tin bàn giao dưới đây chỉ để đối chiếu trong quá trình chấm.</p></div> : null}<Link className="workspace-action-link mt-3" to={`/evaluator/projects/${assignment.projectId}/final-submission`} state={{ assignmentReturn: `/evaluator/assignments/${assignment.id}` }}>Xem gói bàn giao đã khóa<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link></section>
     {state === 'loading' ? <p role="status" className="rounded-xl border border-hairline bg-card p-4 text-sm text-slate-600">Đang tải bản nháp và tiêu chí chấm…</p> : null}
     {state === 'unavailable' ? <section className="rounded-xl border border-status-error-border bg-status-error-bg p-5 text-sm text-status-error-text">Chưa tải được bản nháp đánh giá. <button type="button" className="min-h-11 font-semibold underline" onClick={() => void load(true)}>Tải lại</button></section> : null}
@@ -165,6 +171,8 @@ export function EvaluatorAssignmentDetailPage() {
 
       <section className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-semibold text-slate-900">Kết quả công bố</h2><p className="mt-1 text-sm leading-6 text-slate-600">Kết quả chính thức được bộ môn công bố sau khi hoàn tất đánh giá.</p></section>
     </> : null}
+    </div>
+    </div>
     <Link to="/evaluator/workspace" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">← Về không gian người chấm</Link>
     <UnsavedChangesNotice dirty={dirty && editable && scoringAllowed} busy={busy} />
     {confirmationDialog}
