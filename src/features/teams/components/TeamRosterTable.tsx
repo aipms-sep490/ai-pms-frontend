@@ -79,7 +79,7 @@ export function TeamRosterTable({
                     </div>
                     <div>
                       <span>{member.fullName}</span>
-                      {isSelf && <span className="ml-1.5 text-[11px] text-[#0f5b4e] font-semibold">(Bạn)</span>}
+                      {isSelf && <span className="ml-1.5 text-xs text-primary font-semibold">(Bạn)</span>}
                       {isSelf && currentUserStudentCode && <span className="block text-xs text-slate-500">{currentUserStudentCode}</span>}
                     </div>
                   </td>

@@ -51,11 +51,11 @@ export function ProfilePage() {
     <WorkspacePage title="Hồ sơ tài khoản" eyebrow="Tài khoản cá nhân" description="Quản lý thông tin cá nhân và thiết lập bảo mật của bạn." action={<Button variant="secondary" onClick={() => void refreshProfile()} disabled={isRefreshing} icon="refresh">{isRefreshing ? 'Đang làm mới…' : 'Làm mới hồ sơ'}</Button>}>
     <section className="profile-workspace workspace-surface" aria-labelledby="profile-title">
       <div className="profile-identity">
-        <div className="w-16 h-16 rounded-full bg-[#0f5b4e] text-white flex items-center justify-center font-bold text-2xl shadow-sm shrink-0">
+        <div className="w-16 h-16 rounded-full bg-primary text-white flex items-center justify-center font-bold text-2xl shadow-sm shrink-0">
           {session.user.fullName.charAt(0)}
         </div>
         <div>
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#edf3f0] text-[#0f5b4e] border border-[#0f5b4e]/20 font-mono text-[10px] font-bold uppercase tracking-wider mb-1">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-primary-subtle text-primary border border-primary/20 font-mono text-xs font-bold uppercase tracking-wider mb-1">
             Hồ sơ đã xác thực
           </span>
           <h2 id="profile-title" className="text-xl font-bold text-slate-900">{session.user.fullName}</h2>

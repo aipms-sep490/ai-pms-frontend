@@ -54,7 +54,7 @@ export function KanbanBoard({
                       <span className="text-xs font-medium text-slate-600">
                         Chưa có dữ liệu chi tiết trong fixture
                       </span>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-xs text-slate-400">
                         Chỉ số tổng ({totalMilestoneTasks} tác vụ) là metadata kế hoạch
                       </span>
                     </div>

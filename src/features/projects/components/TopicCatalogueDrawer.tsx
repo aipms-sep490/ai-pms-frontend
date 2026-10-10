@@ -27,11 +27,11 @@ export function TopicCatalogueDrawer({
                 {topic.code}
               </span>
               {topic.isInterdisciplinary ? (
-                <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
                   Liên ngành
                 </span>
               ) : (
-                <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
                   Đơn ngành
                 </span>
               )}

@@ -18,13 +18,13 @@
 }
 @media(max-width:1023px) {
  .app-page-content .workspace-master-detail > :first-child { position:static; max-height:none; overflow:visible; }
- .app-page-content .workspace-master-detail > .admin-role-list { border-right:0; border-bottom:1px solid #e5ece8; padding:0 0 16px; }
+ .app-page-content .workspace-master-detail > .admin-role-list { border-right:0; border-bottom:1px solid var(--color-line); padding:0 0 16px; }
 }
 .app-page-content :is(.mk-press,.mtg-button,.report-button,.ex-button,.ex-button-primary,.ex-button-danger,.admin-link-button) {
  transition:background-color var(--workspace-motion) ease, border-color var(--workspace-motion) ease, color var(--workspace-motion) ease, box-shadow var(--workspace-motion) ease, transform var(--workspace-motion) ease;
 }
 .app-page-content :is(.mtg-button,.report-button,.ex-button,.ex-button-primary,.ex-button-danger):disabled { pointer-events:none; }
-.app-page-content :is(.mk-press,.mtg-button,.report-button,.ex-button,.admin-link-button):focus-visible { outline:2px solid #0f5b4e; outline-offset:3px; }
+.app-page-content :is(.mk-press,.mtg-button,.report-button,.ex-button,.admin-link-button):focus-visible { outline:2px solid var(--color-primary); outline-offset:3px; }
 @media(max-width:640px) {
  .app-page-content { --workspace-gap:16px; --workspace-panel-padding:18px; --workspace-control-gap:8px; }
 }

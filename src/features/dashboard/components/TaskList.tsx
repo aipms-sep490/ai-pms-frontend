@@ -115,7 +115,7 @@ export function TaskList({ tasks }: TaskListProps) {
                     </span>
                     <MultidisciplinaryTag major={task.major} />
                     {task.isCritical && (
-                      <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-800 border border-red-200 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-800 border border-red-200 whitespace-nowrap">
                         ! Đường găng nghẽn
                       </span>
                     )}
@@ -123,7 +123,7 @@ export function TaskList({ tasks }: TaskListProps) {
                   <p className="text-[13px] font-medium text-slate-900 leading-snug line-clamp-2 break-words">
                     {task.title}
                   </p>
-                  <div className="flex items-center gap-3 text-[11px] text-slate-500 font-sans">
+                  <div className="flex items-center gap-3 text-xs text-slate-500 font-sans">
                     <span className="truncate">Phụ trách: {task.assignee}</span>
                     <span aria-hidden="true">•</span>
                     <span

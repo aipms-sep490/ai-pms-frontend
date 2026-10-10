@@ -12,6 +12,7 @@ import '../../components/ui/workspace-experience.css'
 import { isDeferredDepartmentPath } from '../../components/ui/workspace-experience'
 import { useAuthSession } from '../../features/auth/context/useAuthSession'
 import { getWorkspaceRole } from '../../features/auth/utils/role-access'
+import { TourProvider } from '../../features/onboarding/TourProvider'
 
 export function AppLayout() {
   const location = useLocation()
@@ -30,6 +31,7 @@ export function AppLayout() {
   }
 
   return (
+    <TourProvider>
     <div className="min-h-screen bg-canvas text-slate-900 flex font-sans antialiased collaboration-shell">
       {/* 1. Sidebar Rail & Mobile Drawer */}
       <Sidebar
@@ -54,5 +56,6 @@ export function AppLayout() {
       </div>
       <ChatDock />
     </div>
+    </TourProvider>
   )
 }

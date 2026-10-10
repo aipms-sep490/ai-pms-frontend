@@ -55,14 +55,14 @@ export function TeamEligibilitySummary({
 
       <div className="mt-5 grid gap-3 md:grid-cols-2">
         <div className="py-3">
-          <p className="text-[11px] font-medium text-slate-500">Hình thức đồ án</p>
+          <p className="text-xs font-medium text-slate-500">Hình thức đồ án</p>
           <p className="mt-1 text-sm font-medium text-slate-900">{eligibility.mode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành'}</p>
           {eligibility.mode === 'SINGLE_MAJOR' && (
             <p className="mt-1 text-xs text-slate-600">Các thành viên cần thuộc ngành đăng ký của nhóm.</p>
           )}
         </div>
         <div className="py-3">
-          <p className="text-[11px] font-medium text-slate-500">Thành viên được kiểm tra</p>
+          <p className="text-xs font-medium text-slate-500">Thành viên được kiểm tra</p>
           <ul className="mt-1 space-y-1 text-xs text-slate-700">
             {eligibility.members.map((member) => <li key={member.userId}>{member.fullName}</li>)}
           </ul>
@@ -95,7 +95,7 @@ export function TeamEligibilitySummary({
               <div key={issue.code} className="border-b border-amber-200 py-3">
                 <p className="text-xs font-bold text-amber-950">{issue.title}</p>
                 <p className="mt-1 text-xs text-slate-700">{issue.detail}</p>
-                <p className="mt-1.5 text-[11px] font-medium text-amber-900">Tiếp theo: {issue.recovery}</p>
+                <p className="mt-1.5 text-xs font-medium text-amber-900">Tiếp theo: {issue.recovery}</p>
               </div>
             ))}
           </div>

@@ -20,7 +20,7 @@ export function MultidisciplinaryTag({ major, className = '' }: Multidisciplinar
 
   return (
     <span
-      className={`inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] font-bold tracking-tight border whitespace-nowrap ${styles[major]} ${className}`.trim()}
+      className={`inline-flex items-center px-1.5 py-0.5 rounded font-mono text-xs font-bold tracking-tight border whitespace-nowrap ${styles[major]} ${className}`.trim()}
     >
       [{displayMajor}]
     </span>

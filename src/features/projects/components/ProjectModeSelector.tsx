@@ -19,7 +19,7 @@ export function ProjectModeSelector({
         <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
           Hình thức đồ án *
         </label>
-        <span className="text-[11px] text-slate-500 font-medium">
+        <span className="text-xs text-slate-500 font-medium">
           {disabled ? 'Hình thức đồ án của nhóm đã được chốt' : 'Chọn theo cơ cấu ngành của nhóm'}
         </span>
       </div>
@@ -39,7 +39,7 @@ export function ProjectModeSelector({
               <span className="material-symbols-outlined text-[22px] text-primary">apartment</span>
               <div>
                 <h4 className="text-sm font-bold text-slate-900">Một ngành</h4>
-                <span className="inline-block mt-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+                <span className="inline-block mt-0.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
                   MỘT CHUYÊN NGÀNH
                 </span>
               </div>
@@ -58,7 +58,7 @@ export function ProjectModeSelector({
           <p className="text-xs text-slate-500 leading-relaxed">
             Dành cho nhóm có tất cả thành viên thuộc cùng một chuyên ngành.
           </p>
-          <div className="pt-2 border-t border-slate-100/80 flex items-center gap-1.5 text-[11px] font-semibold text-primary">
+          <div className="pt-2 border-t border-slate-100/80 flex items-center gap-1.5 text-xs font-semibold text-primary">
             <span className="material-symbols-outlined text-[15px]">check_circle</span>
             Phù hợp khi mọi thành viên thuộc cùng một ngành
           </div>
@@ -78,7 +78,7 @@ export function ProjectModeSelector({
               <span className="material-symbols-outlined text-[22px] text-primary">hub</span>
               <div>
                 <h4 className="text-sm font-bold text-slate-900">Liên ngành</h4>
-                <span className="inline-block mt-0.5 text-[10px] font-bold text-primary bg-primary-subtle border border-primary/35 px-1.5 py-0.2 rounded">
+                <span className="inline-block mt-0.5 text-xs font-bold text-primary bg-primary-subtle border border-primary/35 px-1.5 py-0.2 rounded">
                   NHIỀU CHUYÊN NGÀNH
                 </span>
               </div>
@@ -97,7 +97,7 @@ export function ProjectModeSelector({
           <p className="text-xs text-slate-500 leading-relaxed">
             Dành cho nhóm phối hợp nhiều chuyên ngành, có phân công và số thành viên phù hợp cho từng ngành.
           </p>
-          <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5 text-[11px] font-semibold text-primary">
+          <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5 text-xs font-semibold text-primary">
             <span className="material-symbols-outlined text-[15px]">account_tree</span>
             Hệ thống kiểm tra số lượng thành viên và phân công theo từng ngành
           </div>

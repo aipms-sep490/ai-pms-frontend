@@ -43,3 +43,23 @@ it('rejects a returned result belonging to another student', async () => {
   await screen.findByRole('alert')
   expect(screen.queryByText('8.25')).toBeNull()
 })
+it('renders the BE-09 component breakdown, marking a null score as pending not zero', async () => {
+  mocks.getStudentResult.mockResolvedValue({ ...result, schemeName: 'Khung đánh giá liên ngành', schemeVersion: 2, components: [
+    { scope: 'COMMON', majorName: null, weightPercent: 50, score: 8, status: 'SCORED' },
+    { scope: 'MAJOR', majorName: 'Phần mềm', weightPercent: 30, score: null, status: 'PENDING' },
+  ] })
+  render(<MemoryRouter><StudentProjectResultPage /></MemoryRouter>)
+  await screen.findByText('8.25')
+  expect(screen.getByText('Khung đánh giá liên ngành · v2')).toBeTruthy()
+  expect(screen.getByText('Chi tiết thành phần điểm')).toBeTruthy()
+  expect(screen.getByText('Điểm chung')).toBeTruthy()
+  expect(screen.getByText('Chưa có điểm')).toBeTruthy()
+  expect(screen.getByText('Đã chấm')).toBeTruthy()
+})
+it('shows only the summary when BE-09 breakdown fields are absent', async () => {
+  mocks.getStudentResult.mockResolvedValue(result)
+  render(<MemoryRouter><StudentProjectResultPage /></MemoryRouter>)
+  await screen.findByText('8.25')
+  expect(screen.queryByText('Chi tiết thành phần điểm')).toBeNull()
+  expect(screen.getByText('Quy định #2')).toBeTruthy()
+})

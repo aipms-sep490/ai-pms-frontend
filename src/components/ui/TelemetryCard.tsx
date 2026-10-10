@@ -26,7 +26,7 @@ export function TelemetryCard({
       className={`p-4 rounded-xl bg-white border border-slate-200 shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between gap-3 ${className}`.trim()}
     >
       <div className="flex items-center justify-between text-slate-500">
-        <span className="uppercase tracking-wider font-mono text-[11px] font-semibold">
+        <span className="uppercase tracking-wider font-mono text-xs font-semibold">
           {label}
         </span>
         {icon && (
@@ -46,7 +46,7 @@ export function TelemetryCard({
       {(statusBadge || subtitle) && (
         <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
           {statusBadge && <div>{statusBadge}</div>}
-          {subtitle && <span className="text-[11px] text-slate-500 truncate">{subtitle}</span>}
+          {subtitle && <span className="text-xs text-slate-500 truncate">{subtitle}</span>}
         </div>
       )}
     </div>

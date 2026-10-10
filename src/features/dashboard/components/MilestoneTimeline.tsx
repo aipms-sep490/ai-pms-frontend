@@ -18,7 +18,7 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
               Lộ trình 6 Cột mốc Khóa luận Tốt nghiệp (Fall 2026)
             </CardTitle>
           </div>
-          <span className="font-mono text-[11px] text-slate-500 font-semibold">
+          <span className="font-mono text-xs text-slate-500 font-semibold">
             Chu kỳ 15 tuần chuẩn hóa CDIO / ABET
           </span>
         </div>
@@ -52,7 +52,7 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
                   >
                     {m.id}
                   </span>
-                  <span className="font-mono text-[10px] text-slate-500 font-medium">
+                  <span className="font-mono text-xs text-slate-500 font-medium">
                     {m.date}
                   </span>
                 </div>
@@ -64,7 +64,7 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
                 </div>
 
                 <div className="space-y-1 pt-1 border-t border-slate-200/60">
-                  <div className="flex items-center justify-between text-[10px] font-mono">
+                  <div className="flex items-center justify-between text-xs font-mono">
                     <span className="text-slate-500">Tiến độ</span>
                     <span
                       className={`font-bold ${

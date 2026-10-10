@@ -10,8 +10,12 @@ import { HttpError } from '../../services/http/http-client'
 import { departmentError } from '../department/hooks/useDepartmentSection'
 import type { ProjectResult, ResultPreview } from './result-types'
 import { StudentResultPublicationPanel } from './StudentResultPublicationPanel'
+import { env } from '../../app/config/env'
 
 const outcome = (value: string | null) => ({ PASS: 'Đạt', FAIL: 'Chưa đạt', PASSED: 'Đạt', FAILED: 'Chưa đạt' }[value ?? ''] ?? value ?? 'Chưa có kết luận')
+const crossDeptBlockerText = (leadPublish: boolean) => leadPublish
+  ? 'Kết quả đồ án liên khoa do nhân viên Khoa chủ trì (Lead Department) công bố. Bạn vẫn có thể xử lý kết quả sinh viên trong khoa theo quyền được cấp.'
+  : 'Kết quả đồ án liên khoa cần ADMIN công bố. Bạn vẫn có thể xử lý kết quả sinh viên trong khoa theo quyền được cấp.'
 
 export function ResultPublicationPage() {
   const projectId = Number(useParams().projectId)
@@ -23,6 +27,8 @@ export function ResultPublicationPage() {
   const version = useRef(0), lock = useRef(false), errorSummary = useRef<HTMLDivElement>(null)
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const validId = Number.isSafeInteger(projectId) && projectId > 0
+  // BE-03: once Lead Department owns publication, Admin no longer publishes project results.
+  const hidePublishForAdmin = env.leadDepartmentPublishEnabled && paths.admin
   useEffect(() => { if (error) errorSummary.current?.focus() }, [error])
 
   const load = useCallback(async () => {
@@ -71,7 +77,7 @@ export function ResultPublicationPage() {
     {loading && <p role="status">Đang tải kết quả và bản xem trước…</p>}
     {!loading && notice && <p role="status" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text">{notice}</p>}
     {!loading && published && <section className="workspace-surface space-y-2 p-5" aria-label="Kết quả đồ án đã công bố"><h2 className="font-semibold text-status-success-text">Kết quả đã công bố: {outcome(published.outcome)}</h2><p>Tổng điểm {published.totalScore} · Ngưỡng đạt {published.passThreshold}</p><p className="break-words text-sm text-slate-600">{published.calculationRule}</p><p className="text-sm text-slate-600">{new Date(published.publishedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</p></section>}
-    {!loading && preview && <section className="workspace-surface space-y-4 p-4 sm:p-5" aria-label="Bản xem trước kết quả"><h2 className="font-heading font-semibold">Xem trước kết quả</h2><p>Điểm: {preview.totalScore ?? '—'} · Ngưỡng: {preview.passThreshold ?? '—'} · {outcome(preview.outcome)}</p>{preview.blockers.length > 0 && <ul className="list-disc space-y-2 break-words pl-5 text-sm text-status-warning-text">{preview.blockers.map(blocker => <li key={blocker}>{blocker === 'ADMIN_REQUIRED_FOR_CROSS_DEPARTMENT_PUBLICATION' ? 'Kết quả đồ án liên khoa cần ADMIN công bố. Bạn vẫn có thể xử lý kết quả sinh viên trong khoa theo quyền được cấp.' : blocker}</li>)}</ul>}<label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={confirmed} disabled={!preview.canPublish || busy} onChange={event => setConfirmed(event.target.checked)} />Tôi đã kiểm tra bản xem trước này và xác nhận công bố.</label><Button className="min-h-11" disabled={!preview.canPublish || !confirmed || busy} onClick={() => void publish()}>Công bố kết quả đồ án</Button>{!preview.canPublish && <p className="text-sm text-slate-600">Cần xử lý các điều kiện còn thiếu trước khi công bố.</p>}</section>}
+    {!loading && preview && <section className="workspace-surface space-y-4 p-4 sm:p-5" aria-label="Bản xem trước kết quả"><h2 className="font-heading font-semibold">Xem trước kết quả</h2><p>Điểm: {preview.totalScore ?? '—'} · Ngưỡng: {preview.passThreshold ?? '—'} · {outcome(preview.outcome)}</p>{preview.blockers.length > 0 && <ul className="list-disc space-y-2 break-words pl-5 text-sm text-status-warning-text">{preview.blockers.map(blocker => <li key={blocker}>{blocker === 'ADMIN_REQUIRED_FOR_CROSS_DEPARTMENT_PUBLICATION' ? crossDeptBlockerText(env.leadDepartmentPublishEnabled) : blocker}</li>)}</ul>}{hidePublishForAdmin ? <p className="rounded-lg border border-hairline bg-slate-50 p-3 text-sm text-slate-600">Kết quả đồ án do nhân viên Khoa chủ trì (Lead Department) công bố. Tài khoản quản trị chỉ xem bản xem trước, không công bố kết quả.</p> : <><label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={confirmed} disabled={!preview.canPublish || busy} onChange={event => setConfirmed(event.target.checked)} />Tôi đã kiểm tra bản xem trước này và xác nhận công bố.</label><Button className="min-h-11" disabled={!preview.canPublish || !confirmed || busy} onClick={() => void publish()}>Công bố kết quả đồ án</Button>{!preview.canPublish && <p className="text-sm text-slate-600">Cần xử lý các điều kiện còn thiếu trước khi công bố.</p>}</>}</section>}
     {validId && <StudentResultPublicationPanel key={projectId} projectId={projectId} departmentId={!paths.admin && academic?.departments.length === 1 ? academic.departments[0].id : undefined} />}
   </WorkspacePage>
 }

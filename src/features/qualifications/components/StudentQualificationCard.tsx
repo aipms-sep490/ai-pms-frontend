@@ -52,10 +52,10 @@ export function StudentQualificationCard({ onSubmitted }: { onSubmitted?: () => 
       ) : null}
       {!loading && !error && qualification ? (
         <dl className="mt-4 grid gap-3 sm:grid-cols-4">
-          <div><dt className="text-[11px] text-slate-500">Đào tạo</dt><dd className="mt-1 text-sm font-medium">{qualification.trainingStatus === 'TRAINING_COMPLETED' ? 'Đã hoàn thành' : qualification.trainingStatus === 'PENDING_TRAINING' ? 'Chưa hoàn thành' : 'Chưa xác định'}</dd></div>
-          <div><dt className="text-[11px] text-slate-500">Xác minh</dt><dd className="mt-1 text-sm font-medium">{{ PENDING_VERIFICATION: 'Chờ xác minh', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối', EXPIRED: 'Đã hết hạn' }[qualification.verificationStatus] ?? 'Chưa xác định'}</dd></div>
-          <div><dt className="text-[11px] uppercase text-slate-400">Chứng chỉ</dt><dd className="mt-1 text-sm font-semibold">{qualification.certificateNumber ?? 'Chưa có'}</dd></div>
-          <div><dt className="text-[11px] text-slate-500">Điều kiện đăng ký</dt><dd className="mt-1 text-sm">Theo kiểm tra điều kiện nhóm của hệ thống.</dd></div>
+          <div><dt className="text-xs text-slate-500">Đào tạo</dt><dd className="mt-1 text-sm font-medium">{qualification.trainingStatus === 'TRAINING_COMPLETED' ? 'Đã hoàn thành' : qualification.trainingStatus === 'PENDING_TRAINING' ? 'Chưa hoàn thành' : 'Chưa xác định'}</dd></div>
+          <div><dt className="text-xs text-slate-500">Xác minh</dt><dd className="mt-1 text-sm font-medium">{{ PENDING_VERIFICATION: 'Chờ xác minh', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối', EXPIRED: 'Đã hết hạn' }[qualification.verificationStatus] ?? 'Chưa xác định'}</dd></div>
+          <div><dt className="text-xs uppercase text-slate-400">Chứng chỉ</dt><dd className="mt-1 text-sm font-semibold">{qualification.certificateNumber ?? 'Chưa có'}</dd></div>
+          <div><dt className="text-xs text-slate-500">Điều kiện đăng ký</dt><dd className="mt-1 text-sm">Theo kiểm tra điều kiện nhóm của hệ thống.</dd></div>
         </dl>
       ) : null}
       {!loading && !error && qualification?.rejectionReason && <p className="mt-3 text-sm text-status-error-text">Lý do từ chối: {qualification.rejectionReason}</p>}

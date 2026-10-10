@@ -9,8 +9,8 @@
 .topic__header p,
 .topic__section-heading p {
   margin: 0 0 6px;
-  color: #0f5b4e;
-  font-size: 11px;
+  color: var(--color-primary);
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: .14em;
 }
@@ -26,34 +26,34 @@
 .topic select { min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #0f172a; font-size: 14px; }
 .topic input:focus,
 .topic textarea:focus,
-.topic select:focus { border-color: #0f5b4e; outline: 3px solid rgba(15, 91, 78, .15); outline-offset: 0; }
+.topic select:focus { border-color: var(--color-primary); outline: 3px solid rgba(15, 91, 78, .15); outline-offset: 0; }
 .topic__create,
 .topic__detail,
 .topic__edit,
 .topic__close,
-.topic__list { min-width: 0; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; }
-.topic__section-heading { display: flex; justify-content: space-between; gap: 20px; align-items: end; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; }
+.topic__list { min-width: 0; padding: 20px; border: 1px solid var(--color-hairline); border-radius: 12px; background: #fff; }
+.topic__section-heading { display: flex; justify-content: space-between; gap: 20px; align-items: end; padding-bottom: 16px; border-bottom: 1px solid var(--color-hairline); }
 .topic__section-heading > span { max-width: 520px; margin: 0; text-align: right; }
 .topic__form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
 .topic__wide { grid-column: span 2; }
 .topic__create-action { display: flex; justify-content: flex-end; margin-top: 18px; }
-.topic__message { margin: 0; padding: 12px 14px; border: 1px solid rgba(15, 91, 78, 0.2); border-radius: 8px; background: #edf3f0; color: #0a493f; }
+.topic__message { margin: 0; padding: 12px 14px; border: 1px solid rgba(15, 91, 78, 0.2); border-radius: 8px; background: var(--color-primary-subtle); color: var(--color-primary-hover); }
 .topic__list { display: grid; gap: 10px; }
-.topic__list article { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 16px 20px; border: 1px solid #e2e8f0; border-radius: 10px; background: white; transition: all 160ms ease; }
+.topic__list article { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 16px 20px; border: 1px solid var(--color-hairline); border-radius: 10px; background: white; transition: all 160ms ease; }
 .topic__list article:hover { border-color: rgba(15, 91, 78, 0.3); box-shadow: 0 4px 12px -2px rgba(15, 91, 78, 0.06); }
 .topic__list article a { display: block; margin-top: 4px; color: #0f172a; font-weight: 700; text-decoration: none; font-size: 15px; }
-.topic__list article a:hover { color: #0f5b4e; }
+.topic__list article a:hover { color: var(--color-primary); }
 .topic__list article p { margin: 4px 0 0; color: #64748b; font-size: 13px; line-height: 1.5; }
-.topic__status { color: #0f5b4e; font-size: 11px; font-weight: 700; text-transform: uppercase; background: #edf3f0; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(15, 91, 78, 0.15); }
+.topic__status { color: var(--color-primary); font-size: 12px; font-weight: 700; text-transform: uppercase; background: var(--color-primary-subtle); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(15, 91, 78, 0.15); }
 .topic__empty { margin: 16px 0 0; padding: 18px; border: 1px dashed #cbd5e1; border-radius: 8px; color: #64748b; text-align: center; }
 .topic__pagination,
 .topic__actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .topic__pagination { justify-content: flex-end; }
-.topic__back { width: fit-content; color: #0f5b4e; font-size: 14px; font-weight: 650; text-decoration: none; }
+.topic__back { width: fit-content; color: var(--color-primary); font-size: 14px; font-weight: 650; text-decoration: none; }
 .topic__detail { display: grid; gap: 12px; }
 .topic__detail p { margin: 0; color: #475569; line-height: 1.65; }
 .topic__detail dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 4px 0; }
-.topic__detail dl div { padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; }
+.topic__detail dl div { padding: 12px; border: 1px solid var(--color-hairline); border-radius: 8px; }
 .topic__detail dt { color: #64748b; font-size: 12px; }
 .topic__detail dd { margin: 4px 0 0; color: #0f172a; font-weight: 650; }
 .topic__edit,

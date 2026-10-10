@@ -8,8 +8,11 @@ import type { BackendTaskStatus, MilestoneDto, PagedResult, TaskDto } from '../.
 import { dateLabel, isOverdue, taskStatusLabel } from '../../projects/utils/collaboration-workspace'
 import { WorkspaceTaskForm } from '../../projects/components/WorkspaceTaskForm'
 import { canUseProjectExecutionAction } from '../../execution/execution-authority'
+import { env } from '../../../app/config/env'
 
 const statuses: BackendTaskStatus[] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'IN_REVIEW', 'DONE', 'CANCELLED']
+const disciplineRoles = ['PRIMARY', 'SUPPORTING'] as const
+const disciplineRoleLabels: Record<string, string> = { PRIMARY: 'Ngành chính', SUPPORTING: 'Ngành hỗ trợ' }
 const positiveId = (value: string | null) => { const id = Number(value); return Number.isSafeInteger(id) && id > 0 ? id : undefined }
 
 export function TaskBoardPage() {
@@ -24,8 +27,12 @@ export function TaskBoardPage() {
   const priority = Object.hasOwn(priorityLabels, params.get('priority') ?? '') ? params.get('priority')! : ''
   const search = params.get('search') ?? ''
   const overdue = params.get('overdue') === 'true'
-  const [draft, setDraft] = useState({ search, status, priority, milestone: String(milestoneId ?? ''), assignee: String(assigneeUserId ?? ''), overdue })
-  const [advanced, setAdvanced] = useState(Boolean(priority || milestoneId || overdue))
+  const showMajorFilter = env.taskMajorFilterEnabled && project.majors.length > 1
+  const majorId = showMajorFilter ? positiveId(params.get('major')) : undefined
+  const disciplineRole = showMajorFilter && disciplineRoles.includes(params.get('role') as (typeof disciplineRoles)[number])
+    ? (params.get('role') as 'PRIMARY' | 'SUPPORTING') : undefined
+  const [draft, setDraft] = useState({ search, status, priority, milestone: String(milestoneId ?? ''), assignee: String(assigneeUserId ?? ''), overdue, major: String(majorId ?? ''), role: disciplineRole ?? '' })
+  const [advanced, setAdvanced] = useState(Boolean(priority || milestoneId || overdue || majorId || disciplineRole))
   const [view, setView] = useState<'list' | 'status'>('list')
   const [creating, setCreating] = useState(false)
   const [created, setCreated] = useState(false)
@@ -38,16 +45,16 @@ export function TaskBoardPage() {
   const [milestoneLoading, setMilestoneLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  useEffect(() => { setDraft({ search, status, priority, milestone: String(milestoneId ?? ''), assignee: String(assigneeUserId ?? ''), overdue }) }, [search, status, priority, milestoneId, assigneeUserId, overdue])
+  useEffect(() => { setDraft({ search, status, priority, milestone: String(milestoneId ?? ''), assignee: String(assigneeUserId ?? ''), overdue, major: String(majorId ?? ''), role: disciplineRole ?? '' }) }, [search, status, priority, milestoneId, assigneeUserId, overdue, majorId, disciplineRole])
   useEffect(() => {
     const controller = new AbortController(); setLoading(true); setError('')
     services.task.getProjectTasks(project.id, { page, pageSize: 20, search: search.trim() || undefined, assigneeUserId,
-      milestoneId, status: status || undefined, priority: priority || undefined, isOverdue: overdue || undefined }, controller.signal)
+      milestoneId, status: status || undefined, priority: priority || undefined, isOverdue: overdue || undefined, majorId, disciplineRole }, controller.signal)
       .then(next => { if (!controller.signal.aborted) setData(next) })
       .catch(reason => { if (!controller.signal.aborted) setError(executionError(reason, 'tải công việc')) })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
-  }, [project.id, page, search, assigneeUserId, milestoneId, status, priority, overdue, revision])
+  }, [project.id, page, search, assigneeUserId, milestoneId, status, priority, overdue, majorId, disciplineRole, revision])
   useEffect(() => {
     const controller = new AbortController(); setMilestoneError(''); setMilestoneLoading(true); setMilestones([])
     services.milestone.getProjectMilestones(project.id, controller.signal)
@@ -89,7 +96,7 @@ export function TaskBoardPage() {
           {members.length > 0 && <label>Người phụ trách<select value={draft.assignee} onChange={event => setDraft({ ...draft, assignee: event.target.value })}><option value="">Cả nhóm</option>{members.map(member => <option key={member.userId} value={member.userId}>{member.fullName}</option>)}</select></label>}
           <button className="ex-button" type="submit">Áp dụng</button><button className="ex-text-button" type="button" aria-expanded={advanced} onClick={() => setAdvanced(value => !value)}>Bộ lọc khác</button>
         </div>
-        {advanced && <div className="ex-filters"><label>Mốc đồ án<select value={draft.milestone} onChange={event => setDraft({ ...draft, milestone: event.target.value })}><option value="">Tất cả mốc</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label>Mức ưu tiên<select value={draft.priority} onChange={event => setDraft({ ...draft, priority: event.target.value })}><option value="">Tất cả mức</option>{Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="ex-filter-check"><input type="checkbox" checked={draft.overdue} onChange={event => setDraft({ ...draft, overdue: event.target.checked })} />Chỉ việc quá hạn</label><button className="ex-text-button" type="button" onClick={() => setParams({})}>Xóa bộ lọc</button></div>}
+        {advanced && <div className="ex-filters">{showMajorFilter && <><label>Ngành<select value={draft.major} onChange={event => setDraft({ ...draft, major: event.target.value })}><option value="">Tất cả ngành</option>{project.majors.map(item => <option key={item.id} value={item.majorId}>{item.majorName}</option>)}</select></label><label>Vai trò ngành<select value={draft.role} onChange={event => setDraft({ ...draft, role: event.target.value })}><option value="">Tất cả vai trò</option>{disciplineRoles.map(value => <option key={value} value={value}>{disciplineRoleLabels[value]}</option>)}</select></label></>}<label>Mốc đồ án<select value={draft.milestone} onChange={event => setDraft({ ...draft, milestone: event.target.value })}><option value="">Tất cả mốc</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label>Mức ưu tiên<select value={draft.priority} onChange={event => setDraft({ ...draft, priority: event.target.value })}><option value="">Tất cả mức</option>{Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="ex-filter-check"><input type="checkbox" checked={draft.overdue} onChange={event => setDraft({ ...draft, overdue: event.target.checked })} />Chỉ việc quá hạn</label><button className="ex-text-button" type="button" onClick={() => setParams({})}>Xóa bộ lọc</button></div>}
       </form>
       {loading ? <ExState loading /> : error ? <ExState message={error} retry={refresh} /> : data && <>
         {!data.items.length ? <ExState title="Không có công việc phù hợp" message="Thử đổi bộ lọc hoặc tạo công việc mới cho nhóm." /> : <>

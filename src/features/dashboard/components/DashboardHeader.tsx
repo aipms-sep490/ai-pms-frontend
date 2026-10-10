@@ -43,7 +43,7 @@ export function DashboardHeader({
 
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mt-1">
         <div className="flex flex-col gap-1 min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-slate-500 uppercase tracking-wider">
             <span>Kỳ {semester}</span>
             <span aria-hidden="true">›</span>
             <span>{projectCode}</span>

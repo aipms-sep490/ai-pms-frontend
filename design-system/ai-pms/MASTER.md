@@ -18,20 +18,25 @@ AI-PMS coordinates the student project lifecycle, supervisor workload, academic 
 
 | Role | Token | Value | Use |
 | --- | --- | --- | --- |
-| Institutional primary | `primary` | `#1E3A5F` | Navigation, primary actions, active focus, trusted context |
-| Primary hover | `primary-hover` | `#16314F` | Hover and pressed primary controls |
-| Primary subtle | `primary-subtle` | `#E9EEF5` | Headers, selected context, low-emphasis primary surfaces |
+| Institutional primary | `primary` | `#0F5B4E` | Navigation, primary actions, active focus, trusted context |
+| Primary hover | `primary-hover` | `#0A493F` | Hover and pressed primary controls |
+| Primary subtle | `primary-subtle` | `#EDF3F0` | Headers, selected context, low-emphasis primary surfaces |
+| Ink | `ink` | `#14201D` | Primary text and headings |
+| Ink soft | `ink-soft` | `#3D4A46` | Secondary emphasis text |
+| Ink muted | `ink-muted` | `#596863` | Supporting text, metadata, captions |
+| Line | `line` | `#E5ECE8` | Soft dividers inside cards |
+| Line strong | `line-strong` | `#D7E0DC` | Card and section borders |
 | Canvas | `canvas` | `#F8FAFC` | Application background |
 | Card | `card` | `#FFFFFF` | Readable data surfaces |
-| Hairline | `hairline` | `#CBD5E1` | Card/input boundaries and dividers |
+| Hairline | `hairline` | `#E2E8F0` | Input boundaries and table rules |
 | Success | `status-success-*` | emerald family | Verified, completed, no attention required |
 | Warning | `status-warning-*` | amber family | Due, blocked, pending human attention |
 | Error | `status-error-*` | red family | Failed loading, validation, forbidden/error feedback |
 
 Rules:
 
-- Blue/navy is structural, not a success signal.
-- Green means a confirmed positive state only.
+- Primary green is structural (navigation, primary action), not a success signal; success uses the `status-success-*` tokens.
+- Status (emerald) green means a confirmed positive state only.
 - Amber means attention or a pending decision, never a destructive outcome.
 - Red means error/destructive feedback only.
 - Status must include a visible label and, where helpful, a consistent icon; never rely on color alone.
@@ -40,7 +45,8 @@ Rules:
 
 - Keep `Geist` for body, `Plus Jakarta Sans` for headings, and `JetBrains Mono` for compact metadata. Do not introduce a serif or external font solely for the academic tone.
 - Reuse `Button`, `Badge`, `Card`, `AppLayout`, `Sidebar`, and `TopHeader`; update these primitives before adding page-local copies.
-- Use registered Tailwind semantic utilities such as `bg-primary`, `text-primary`, `border-hairline`, `bg-card`, and `bg-status-warning-bg`. Do not repeat raw palette hex values in workspace components.
+- Use registered Tailwind semantic utilities such as `bg-primary`, `text-ink`, `text-ink-muted`, `border-line`, `border-hairline`, `bg-card`, and `bg-status-warning-bg`. In CSS use `var(--color-*)`. Do not repeat raw palette hex values in workspace components or page CSS.
+- Minimum text size is 12px (`text-xs`). Do not use `text-[10px]`/`text-[11px]` or `font-size` below 12px.
 
 ## Interaction and accessibility
 

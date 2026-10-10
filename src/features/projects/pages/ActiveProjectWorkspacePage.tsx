@@ -96,14 +96,14 @@ export function ProjectWorkspaceSummary({
       <header className="rounded-md border border-emerald-200 bg-emerald-50 p-5  sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-[11px] font-medium text-slate-600">Đồ án đang thực hiện</p>
+            <p className="text-xs font-medium text-slate-600">Đồ án đang thực hiện</p>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">Không gian đồ án</h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-700">Theo dõi công việc, tiến độ và trao đổi với nhóm trong quá trình thực hiện đồ án.</p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
             <Link
               to={audience === 'student' ? '/project/meetings' : `/supervisor/projects/${project.id}/meetings`}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#0f5b4e] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#0a493f]"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-white hover:bg-primary-hover"
             >
               <span className="material-symbols-outlined text-[16px]">calendar_month</span>
               Lịch họp và biên bản
@@ -128,7 +128,7 @@ export function ProjectWorkspaceSummary({
 
       <section className="overflow-hidden rounded-md border border-slate-200 bg-white " aria-labelledby="active-project-summary">
         <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{audience === 'student' ? 'Không gian sinh viên' : 'Không gian GVHD được phân công'}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{audience === 'student' ? 'Không gian sinh viên' : 'Không gian GVHD được phân công'}</p>
           <h2 id="active-project-summary" className="mt-1 text-xl font-bold tracking-tight text-slate-900">{project.title}</h2>
           <p className="mt-1 text-xs text-slate-500">{project.code} • {teamName}</p>
         </div>
@@ -152,7 +152,7 @@ export function ProjectWorkspaceSummary({
         <section className="flex flex-col justify-between rounded-md border border-slate-200 bg-white p-5  sm:p-6">
           <div>
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#0f5b4e]">calendar_month</span>
+              <span className="material-symbols-outlined text-primary">calendar_month</span>
               <h2 className="text-base font-bold text-slate-900">Lịch họp và biên bản</h2>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">Thống nhất lịch trao đổi với GVHD, mời thành viên và lưu kết luận, điểm danh, nhận xét sau mỗi buổi họp.</p>
@@ -199,7 +199,7 @@ function WorkspaceState({ message, retry, error = false }: { message: string; re
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
-  return <div className="bg-white px-5 py-4"><dt className="text-[11px] text-slate-500">{label}</dt><dd className="mt-1 text-sm font-semibold text-slate-900">{value}</dd></div>
+  return <div className="bg-white px-5 py-4"><dt className="text-xs text-slate-500">{label}</dt><dd className="mt-1 text-sm font-semibold text-slate-900">{value}</dd></div>
 }
 
 function TextBlock({ title, value }: { title: string; value?: string | null }) {

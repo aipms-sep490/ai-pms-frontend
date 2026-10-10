@@ -164,7 +164,7 @@ export function TeamManagementPage() {
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2.5 bg-[#0f5b4e] hover:bg-[#0a493f] text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-[0_2px_8px_-2px_rgba(15,91,78,0.25)]"
+            className="px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-[0_2px_8px_-2px_rgba(15,91,78,0.25)]"
           >
             <span className="material-symbols-outlined text-[18px]">add_circle</span>
             Thành lập Nhóm Mới
@@ -191,7 +191,7 @@ export function TeamManagementPage() {
       {!team ? (
         <div className="flex flex-col gap-6">
           <div className="bg-white border border-slate-200 rounded-md p-8 text-center flex flex-col items-center gap-4 ">
-            <div className="w-16 h-16 rounded-md bg-[#edf3f0] text-[#0f5b4e] flex items-center justify-center">
+            <div className="w-16 h-16 rounded-md bg-primary-subtle text-primary flex items-center justify-center">
               <span className="material-symbols-outlined text-[36px]">group_add</span>
             </div>
             <div className="max-w-md">
@@ -203,7 +203,7 @@ export function TeamManagementPage() {
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="px-5 py-2.5 bg-[#0f5b4e] hover:bg-[#0a493f] text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-[0_2px_8px_-2px_rgba(15,91,78,0.25)]"
+              className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-[0_2px_8px_-2px_rgba(15,91,78,0.25)]"
             >
               <span className="material-symbols-outlined text-[18px]">add</span>
               Bắt đầu tạo nhóm ngay
@@ -237,11 +237,11 @@ export function TeamManagementPage() {
           <div className="bg-white border border-slate-200 rounded-md p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 ">
             <div>
               <div className="flex items-center gap-3">
-                <span className="font-mono text-sm font-bold bg-[#edf3f0] text-[#0f5b4e] border border-[#a7f3d0] px-2.5 py-0.5 rounded-lg">
+                <span className="font-mono text-sm font-bold bg-primary-subtle text-primary border border-status-success-border px-2.5 py-0.5 rounded-lg">
                   {team.code}
                 </span>
                 <h2 className="text-lg font-bold text-slate-900">{team.name}</h2>
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700">
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
                   {team.status === 'ELIGIBLE'
                     ? 'Đủ điều kiện đăng ký'
                     : team.status === 'LOCKED'
@@ -261,7 +261,7 @@ export function TeamManagementPage() {
                 </button>
               )}
               <div className="text-right">
-                <span className="text-[11px] text-slate-400 block">Sĩ số nhóm</span>
+                <span className="text-xs text-slate-400 block">Sĩ số nhóm</span>
                 <span className="text-sm font-bold text-slate-800">
               {team.members.length} / {maxTeamSize} thành viên
                 </span>

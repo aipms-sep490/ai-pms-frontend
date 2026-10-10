@@ -1,4 +1,4 @@
-.login-page { min-height:100dvh; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); background:#fcfdfb; color:#14201d; font-family:var(--font-sans); }
+.login-page { min-height:100dvh; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); background:#fcfdfb; color:var(--color-ink); font-family:var(--font-sans); }
 .login-story { position:relative; isolation:isolate; display:flex; flex-direction:column; gap:40px; padding:clamp(40px,5vw,80px); overflow:hidden; background:#104e43; color:#f5faf5; }
 .login-story::before { content:''; position:absolute; width:650px; height:650px; border:1px solid rgb(219 237 199 / 12%); border-radius:50%; right:-350px; top:110px; box-shadow:0 0 0 80px rgb(219 237 199 / 3%),0 0 0 160px rgb(219 237 199 / 3%); z-index:-1; pointer-events:none; }
 .login-brand { display:flex; align-items:center; gap:14px; }
@@ -21,7 +21,7 @@
 .login-form-side { display:flex; flex-direction:column; justify-content:center; align-items:center; padding:48px 40px 28px; gap:36px; }
 .login-form-panel { width:100%; max-width:400px; margin-block:auto; }
 .login-mobile-brand { display:none; }
-.login-welcome { margin:0 0 12px; font-size:13px; font-weight:600; color:#0f5b4e; }
+.login-welcome { margin:0 0 12px; font-size:13px; font-weight:600; color:var(--color-primary); }
 .login-form-panel h1 { margin:0; font-size:clamp(28px,2.5vw,36px); line-height:1.25; letter-spacing:-.04em; font-weight:750; font-family:var(--font-heading); }
 .login-description { margin:12px 0 0; color:#68786e; font-size:14px; line-height:1.7; }
 .login-form-panel .auth-form { gap:9px; margin-top:32px; }
@@ -29,12 +29,12 @@
 .login-form-panel .auth-form > input,.login-password-field input { width:100%; min-width:0; height:50px; border-color:#d8e2d9; border-radius:10px; font:inherit; font-size:14px; background:#fff; }
 .login-form-panel input::placeholder { color:#94a198; }
 .login-password-label { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:14px; }
-.login-password-label a { color:#0f5b4e; font-size:12px; font-weight:600; text-decoration:none; }
+.login-password-label a { color:var(--color-primary); font-size:12px; font-weight:600; text-decoration:none; }
 .login-password-label a:hover { text-decoration:underline; text-underline-offset:3px; }
 .login-password-field { position:relative; }
 .login-password-field input { padding-right:52px; }
 .login-password-field button { position:absolute; top:5px; right:5px; display:grid; place-items:center; width:40px; height:40px; border-radius:7px; background:transparent; color:#76877c; cursor:pointer; }
-.login-password-field button:hover:not(:disabled) { background:#eef4ee; color:#0f5b4e; }
+.login-password-field button:hover:not(:disabled) { background:#eef4ee; color:var(--color-primary); }
 .login-password-field button:disabled { opacity:.5; cursor:default; }
 .login-password-field .material-symbols-outlined { font-size:20px; }
 .login-form-panel .auth-submit { height:50px; margin-top:15px; border-radius:10px; flex-direction:row-reverse; }
@@ -46,14 +46,14 @@
 .login-form-panel .auth-google-fallback button { padding:4px 8px; text-underline-offset:3px; }
 .login-help { display:flex; align-items:flex-start; gap:9px; margin:28px 0 0; font-size:12px; line-height:1.8; color:#78857b; }
 .login-help .material-symbols-outlined { font-size:18px; flex-shrink:0; margin-top:2px; }
-.login-form-footer { margin:0; color:#8a968d; font-size:11px; text-align:center; }
-.login-page :is(a,button):focus-visible { outline:2px solid #0f5b4e; outline-offset:3px; }
+.login-form-footer { margin:0; color:#8a968d; font-size:12px; text-align:center; }
+.login-page :is(a,button):focus-visible { outline:2px solid var(--color-primary); outline-offset:3px; }
 @media(max-width:1000px) { .login-story { padding:40px 32px; gap:32px; }.login-story-copy h2 { font-size:40px; }.login-form-side { padding-inline:32px; } }
 @media(max-width:760px) {
  .login-page { grid-template-columns:1fr; }
  .login-story { display:none; }
  .login-form-side { min-height:100dvh; padding:32px 24px 24px; gap:32px; }
  .login-form-panel { max-width:420px; }
- .login-mobile-brand { display:flex; align-items:center; gap:10px; color:#0f5b4e; margin-bottom:40px; font-size:17px; }
+ .login-mobile-brand { display:flex; align-items:center; gap:10px; color:var(--color-primary); margin-bottom:40px; font-size:17px; }
  .login-mobile-brand .material-symbols-outlined { padding:8px; background:#e8f1e8; border-radius:10px; font-size:24px; }
 }

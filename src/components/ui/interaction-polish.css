@@ -1,9 +1,9 @@
 /* React Bits SpotlightCard, calibrated for light application surfaces. */
-.workspace-launchpad .workspace-feature-watermark { position:absolute; right:22px; top:20px; font-size:84px; color:#0f5b4e; opacity:.055; transform:rotate(-12deg); pointer-events:none; transition:transform 350ms ease,opacity 350ms ease; }
+.workspace-launchpad .workspace-feature-watermark { position:absolute; right:22px; top:20px; font-size:84px; color:var(--color-primary); opacity:.055; transform:rotate(-12deg); pointer-events:none; transition:transform 350ms ease,opacity 350ms ease; }
 .workspace-launchpad .workspace-spotlight > :is(strong,span.font-semibold) { font-size:17px; letter-spacing:-.025em; }
 .workspace-page .workspace-launchpad > .workspace-spotlight { background:linear-gradient(145deg,#fff 50%,#f1f7f2); }
 @media(hover:hover) and (pointer:fine) { .workspace-launchpad .workspace-spotlight:hover .workspace-feature-watermark { transform:rotate(0deg) scale(1.08); opacity:.11; } }
-.workspace-launchpad .workspace-spotlight .workspace-action-link { background:#0f5b4e; color:white; border:1px solid transparent; box-shadow:0 3px 7px -4px #0f5b4e70; }
+.workspace-launchpad .workspace-spotlight .workspace-action-link { background:var(--color-primary); color:white; border:1px solid transparent; box-shadow:0 3px 7px -4px #0f5b4e70; }
 .workspace-launchpad .workspace-spotlight .workspace-action-link .material-symbols-outlined { display:grid; place-items:center; width:22px; height:22px; border-radius:50%; background:rgb(255 255 255 / 15%); font-size:16px; }
 .ui-button-primary { position:relative; isolation:isolate; overflow:hidden; }
 .ui-button-primary::before { content:''; position:absolute; inset:-60% -30%; background:linear-gradient(110deg,transparent 35%,rgb(255 255 255 / 18%) 48%,transparent 60%); transform:translateX(-110%); pointer-events:none; z-index:-1; }
@@ -11,9 +11,9 @@
 .ui-button-primary:focus-visible::before { transform:translateX(110%); transition:transform 550ms ease; }
 .workspace-page .workspace-launchpad { gap:16px; padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; overflow:visible; }
 .workspace-page .workspace-launchpad > .workspace-spotlight { padding:24px; border:1px solid #dce8df; border-radius:16px; background:linear-gradient(145deg,#fff 50%,#f1f7f2); box-shadow:0 3px 12px -6px rgb(15 91 78 / 15%); overflow:hidden; transition:transform 220ms ease,border-color 220ms ease,box-shadow 220ms ease; }
-.workspace-spotlight > .workspace-feature-icon { width:44px; height:44px; display:grid; place-items:center; border-radius:12px; background:linear-gradient(145deg,#eef7eb,#d9eee2); color:#0f5b4e; font-size:23px; box-shadow:inset 0 1px 0 rgb(255 255 255 / 80%); margin-bottom:4px; }
+.workspace-spotlight > .workspace-feature-icon { width:44px; height:44px; display:grid; place-items:center; border-radius:12px; background:linear-gradient(145deg,#eef7eb,#d9eee2); color:var(--color-primary); font-size:23px; box-shadow:inset 0 1px 0 rgb(255 255 255 / 80%); margin-bottom:4px; }
 .workspace-navigation-section > div:first-child { padding:0 0 18px; border:0; }
-.workspace-spotlight .workspace-action-link { display:inline-flex; align-items:center; gap:9px; padding:7px 11px; border-radius:8px; background:#edf5ef; color:#0f5b4e; font-size:12px; font-weight:600; text-decoration:none; }
+.workspace-spotlight .workspace-action-link { display:inline-flex; align-items:center; gap:9px; padding:7px 11px; border-radius:8px; background:#edf5ef; color:var(--color-primary); font-size:12px; font-weight:600; text-decoration:none; }
 @media(hover:hover) and (pointer:fine) { .workspace-page .workspace-launchpad > .workspace-spotlight:hover { transform:translateY(-3px); border-color:#a2cbb5; box-shadow:0 12px 26px -14px rgb(15 91 78 / 28%); }.workspace-spotlight:hover .workspace-feature-icon { background:linear-gradient(145deg,#deefcf,#bce2cf); } }
 .workspace-spotlight { position: relative; isolation: isolate; --mouse-x: 50%; --mouse-y: 50%; }
 .workspace-spotlight::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(260px circle at var(--mouse-x) var(--mouse-y), rgb(15 91 78 / 9%), transparent 80%); opacity: 0; transition: opacity 220ms ease; pointer-events: none; z-index: -1; }
