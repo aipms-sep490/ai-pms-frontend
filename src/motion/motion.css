@@ -1,8 +1,8 @@
 :root {
-  --mk-primary: var(--color-primary, #2563eb);
-  --mk-primary-hover: var(--color-primary-hover, #1d4ed8);
+  --mk-primary: var(--color-primary, #0f5b4e);
+  --mk-primary-hover: var(--color-primary-hover, #0a493f);
   --mk-surface: var(--color-card, #ffffff);
-  --mk-border: var(--color-hairline, #e2e8f0);
+  --mk-border: var(--color-hairline, var(--color-hairline));
   --mk-ease: cubic-bezier(.16, 1, .3, 1);
 }
 

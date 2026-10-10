@@ -136,6 +136,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
         role={isOpen ? 'dialog' : undefined}
         aria-modal={isOpen ? true : undefined}
         aria-label="Menu điều hướng chính"
+        data-tour="sidebar"
         className={`fixed left-0 top-0 bottom-0 w-60 bg-white border-r border-hairline z-50 flex flex-col justify-between select-none sidebar-rail ${
           isOpen ? 'drawer-open' : ''
         }`}
@@ -154,7 +155,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                   <span className="font-heading font-bold text-[14px] text-slate-900 tracking-tight leading-tight">
                     AI-PMS • FPTU
                   </span>
-                  <span className="font-mono text-[10px] text-slate-500 leading-tight">
+                  <span className="font-mono text-xs text-slate-500 leading-tight">
                     {pendingStudent ? <span className="app-context-skeleton" aria-hidden="true" /> : role === 'student' ? semester?.name || 'Học kỳ chưa xác định' : teamLabel}
                   </span>
                 </div>
@@ -181,7 +182,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                 <span className="material-symbols-outlined text-[14px] text-academic-emerald shrink-0" aria-hidden="true">
                   verified
                 </span>
-                <span className="font-mono text-[11px] font-semibold text-slate-800 truncate">
+                <span className="font-mono text-xs font-semibold text-slate-800 truncate">
                   {pendingStudent ? <span className="app-context-skeleton" aria-hidden="true" /> : <>{workspaceCode} / {teamLabel}</>}
                 </span>
               </div>
@@ -192,7 +193,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
 
           {/* Main Navigation Links */}
           <nav className="p-3 flex flex-col gap-1 flex-1" aria-label="Menu chức năng">
-            <div className="px-2.5 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400">
+            <div className="px-2.5 py-1 text-xs font-mono font-semibold uppercase tracking-wider text-slate-400">
               {sectionLabel}
             </div>
             {pendingStudent ? <div className="app-nav-skeleton" aria-label="Đang tải điều hướng" role="status">{[0,1,2,3,4,5].map(item => <span key={item} />)}</div> : unavailableStudent ? (
@@ -202,10 +203,11 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
             ) : <>
             {navigationItems.map((item, index) => (
               <Fragment key={item.id}>
-                {(index === 0 || navigationItems[index - 1].section !== item.section) && <div className="px-2.5 pt-4 pb-1 text-[11px] font-semibold text-slate-500">{sectionLabels[item.section]}</div>}
+                {(index === 0 || navigationItems[index - 1].section !== item.section) && <div className="px-2.5 pt-4 pb-1 text-xs font-semibold text-slate-500">{sectionLabels[item.section]}</div>}
                 <NavLink
                   key={item.id}
                   to={item.path}
+                  data-tour={index === 0 ? 'sidebar-primary' : undefined}
                   end={item.path === '/academic'}
                   onClick={() => {
                     if (window.innerWidth < 1024) handleClose()
@@ -237,7 +239,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
         </div>
 
         {/* Bottom Profile Footer (Student Baseline for Batch 0-2) */}
-        <div className="p-3 border-t border-hairline bg-slate-50/70 flex items-center justify-between gap-2">
+        <div data-tour="profile" className="p-3 border-t border-hairline bg-slate-50/70 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center font-heading font-bold text-xs text-slate-700 relative shrink-0">
               {profileInitials}
@@ -247,7 +249,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
               <span className="text-[12px] font-semibold text-slate-900 truncate">
                 {profileName}
               </span>
-              <span className="font-mono text-[10px] text-slate-500 truncate">
+              <span className="font-mono text-xs text-slate-500 truncate">
                 {profileCode}
               </span>
             </div>

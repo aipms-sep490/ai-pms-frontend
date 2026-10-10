@@ -5,6 +5,11 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 const workspace = vi.hoisted(() => ({ useAdminWorkspace: vi.fn() }))
 vi.mock('../hooks/useAdminWorkspace', () => workspace)
 vi.mock('../../academic/components/AcademicScopeFields', () => ({ AcademicScopeFields: () => null }))
+// This suite exercises the RBAC edit capability, so run it with write enabled.
+vi.mock('../../../app/config/env', async () => {
+  const actual = await vi.importActual<typeof import('../../../app/config/env')>('../../../app/config/env')
+  return { env: { ...actual.env, rbacWriteEnabled: true } }
+})
 import { AdminWorkspacePage } from './AdminWorkspacePage'
 import { AdminRbacPage } from './AdminRbacPage'
 

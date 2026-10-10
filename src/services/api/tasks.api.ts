@@ -11,6 +11,10 @@ export interface TaskListFilters {
   dueTo?: string
   isOverdue?: boolean
   isBlocked?: boolean
+  /** BE-07: filter by project major (the real major id, not the project-major row id). */
+  majorId?: number
+  /** BE-07: filter by the task's discipline role for that major. */
+  disciplineRole?: 'PRIMARY' | 'SUPPORTING'
   page?: number
   pageSize?: number
 }

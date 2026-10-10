@@ -62,11 +62,11 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
         {/* Supervisor Box */}
         <div className="p-3.5 rounded-lg bg-slate-50 border border-hairline flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <span className="font-mono text-xs font-semibold uppercase tracking-wider text-slate-500">
               Giảng viên Hướng dẫn chính
             </span>
             {dossier.supervisor.hasDigitalSignature && (
-              <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded whitespace-nowrap">
+              <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded whitespace-nowrap">
                 <span className="material-symbols-outlined text-[12px]">edit_note</span>
                 Chữ ký số mô phỏng (Demo)
               </span>
@@ -79,11 +79,11 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
             <p className="text-xs text-slate-600">
               {dossier.supervisor.title} • {dossier.supervisor.department}
             </p>
-            <p className="font-mono text-[11px] text-slate-500 mt-1">
+            <p className="font-mono text-xs text-slate-500 mt-1">
               Email: {dossier.supervisor.email}
             </p>
             {dossier.supervisor.signatureDate && (
-              <p className="font-mono text-[10px] text-slate-400 mt-0.5">
+              <p className="font-mono text-xs text-slate-400 mt-0.5">
                 Thời điểm ký: {dossier.supervisor.signatureDate}
               </p>
             )}
@@ -93,10 +93,10 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
         {/* Reviewer Box */}
         <div className="p-3.5 rounded-lg bg-slate-50 border border-hairline flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <span className="font-mono text-xs font-semibold uppercase tracking-wider text-slate-500">
               Cán bộ / Giảng viên Phản biện
             </span>
-            <span className="font-mono text-[10px] text-slate-400 bg-slate-200/70 px-2 py-0.5 rounded whitespace-nowrap">
+            <span className="font-mono text-xs text-slate-400 bg-slate-200/70 px-2 py-0.5 rounded whitespace-nowrap">
               Được phân công
             </span>
           </div>
@@ -107,7 +107,7 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
             <p className="text-xs text-slate-600">
               {dossier.reviewer.title} • {dossier.reviewer.department}
             </p>
-            <p className="font-mono text-[11px] text-slate-500 mt-1">
+            <p className="font-mono text-xs text-slate-500 mt-1">
               Email: {dossier.reviewer.email}
             </p>
           </div>

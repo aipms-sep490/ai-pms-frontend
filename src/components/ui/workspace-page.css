@@ -1,14 +1,14 @@
-.workspace-page { --page-gutter: 24px; width: 100%; max-width: 1200px; min-width: 0; margin-inline: auto; padding-bottom: 32px; color: #14201d; font-size: 14px; line-height: 1.6; }
-.workspace-back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 20px; color: #596863; font-size: 13px; text-decoration: none; }
-.workspace-back:hover { color: #0f5b4e; text-decoration: underline; }
+.workspace-page { --page-gutter: 24px; width: 100%; max-width: 1200px; min-width: 0; margin-inline: auto; padding-bottom: 32px; color: var(--color-ink); font-size: 14px; line-height: 1.6; }
+.workspace-back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 20px; color: var(--color-ink-muted); font-size: 13px; text-decoration: none; }
+.workspace-back:hover { color: var(--color-primary); text-decoration: underline; }
 .workspace-back .material-symbols-outlined { font-size: 18px; }
 .workspace-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .workspace-heading-copy { min-width: 0; flex: 1; }
 .workspace-context { display: flex; align-items: center; gap: 10px; min-width: 0; margin-bottom: 10px; }
-.workspace-kicker { flex-shrink: 0; padding: 4px 9px; border-radius: 6px; background: #eaf2ed; color: #0f5b4e; font-family: var(--font-sans); font-size: 12px; font-weight: 600; line-height: 1.5; }
-.workspace-context-detail { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #596863; font-size: 12px; }
-.workspace-page .workspace-heading h1 { margin: 0; font-family: var(--font-heading); font-size: clamp(26px, 2.1vw, 32px); font-weight: 750; line-height: 1.25; letter-spacing: -.035em; color: #14201d; overflow-wrap: anywhere; }
-.workspace-page .workspace-heading-copy > p { max-width: 72ch; margin: 8px 0 0; color: #596863; font-size: 14px; line-height: 1.65; }
+.workspace-kicker { flex-shrink: 0; padding: 4px 9px; border-radius: 6px; background: #eaf2ed; color: var(--color-primary); font-family: var(--font-sans); font-size: 12px; font-weight: 600; line-height: 1.5; }
+.workspace-context-detail { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-ink-muted); font-size: 12px; }
+.workspace-page .workspace-heading h1 { margin: 0; font-family: var(--font-heading); font-size: clamp(26px, 2.1vw, 32px); font-weight: 750; line-height: 1.25; letter-spacing: -.035em; color: var(--color-ink); overflow-wrap: anywhere; }
+.workspace-page .workspace-heading-copy > p { max-width: 72ch; margin: 8px 0 0; color: var(--color-ink-muted); font-size: 14px; line-height: 1.65; }
 .workspace-heading-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; flex-shrink: 0; padding-top: 36px; }
 .workspace-surface { min-width: 0; border: 1px solid #dce5e1; border-radius: 10px; background: white; overflow: hidden; }
 .workspace-surface-padding { padding: var(--page-gutter); }
@@ -24,7 +24,7 @@
 
 .workspace-page.execution-page { max-width: 1200px; }
 .api-form label { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 13px; font-weight: 500; color: #334155; }
-.api-form :is(input:not([type="checkbox"]), select, textarea) { width: 100%; min-width: 0; min-height: 40px; border: 1px solid #d7e0dc; border-radius: 8px; padding: 9px 12px; background: white; color: #14201d; font: inherit; }
-.api-form :is(input, select, textarea):focus-visible { outline: 2px solid #0f5b4e; outline-offset: 2px; }
+.api-form :is(input:not([type="checkbox"]), select, textarea) { width: 100%; min-width: 0; min-height: 40px; border: 1px solid var(--color-line-strong); border-radius: 8px; padding: 9px 12px; background: white; color: var(--color-ink); font: inherit; }
+.api-form :is(input, select, textarea):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .api-form :is(input, select, textarea):disabled { background: #f5f7f6; color: #64748b; }
 .ex-form.api-form { display: grid; gap: 16px; }

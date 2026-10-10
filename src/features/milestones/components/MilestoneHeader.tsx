@@ -124,7 +124,7 @@ export function MilestoneHeader({
                 style={{ width: `${milestone.progress}%` }}
               />
             </div>
-            <div className="flex items-center justify-between font-mono text-[10px] text-slate-500">
+            <div className="flex items-center justify-between font-mono text-xs text-slate-500">
               <span>Hoàn thành: {milestone.completedTasks} / {milestone.totalTasks} tác vụ</span>
             </div>
           </div>

@@ -47,14 +47,14 @@ export function RevisionAlert({
       </div>
 
       <div className="mt-4 border-l-2 border-amber-300 pl-4">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 block mb-1">
+        <span className="text-xs font-bold uppercase tracking-wider text-amber-900 block mb-1">
           Nội dung thẩm định từ {reviewerName || 'Hội đồng Khoa CNTT'}:
         </span>
         <p className="text-xs text-slate-800 leading-relaxed font-medium">
           "{reason || 'Chưa có nội dung nhận xét.'}"
         </p>
         {displayDate && (
-          <span className="text-[10px] text-slate-400 mt-2 block">
+          <span className="text-xs text-slate-400 mt-2 block">
             Thời gian phản hồi: {new Date(displayDate).toLocaleString('vi-VN')}
           </span>
         )}

@@ -29,10 +29,10 @@ export function ProjectAcademicScopePanel({ scope, names, members = [] }: Projec
     <section aria-labelledby="project-academic-scope-heading" className="rounded-xl border border-slate-200 bg-slate-50 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Thông tin đào tạo</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Thông tin đào tạo</p>
           <h2 id="project-academic-scope-heading" className="mt-1 text-base font-bold text-slate-900">Phạm vi đào tạo</h2>
         </div>
-        <span className={`rounded-full px-2 py-1 text-[10px] font-bold bg-primary-subtle text-primary`}>
+        <span className={`rounded-full px-2 py-1 text-xs font-bold bg-primary-subtle text-primary`}>
           {interdisciplinary ? 'Liên ngành' : 'Một ngành'}
         </span>
       </div>

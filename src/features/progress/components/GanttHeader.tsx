@@ -23,7 +23,7 @@ export function GanttHeader({
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
               Biểu đồ Gantt Đa ngành & Phân tích Đường găng
             </h1>
-            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">
+            <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">
               Dữ liệu mô phỏng
             </span>
           </div>
@@ -80,7 +80,7 @@ export function GanttHeader({
             Tuần T{telemetry.currentWeek}
           </span>
           <span className="text-slate-500">(08/09 - 14/09)</span>
-          <span className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-blue-100/80 text-blue-800">
+          <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100/80 text-blue-800">
             Mốc M3 • Đang diễn ra
           </span>
         </div>

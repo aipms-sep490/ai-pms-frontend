@@ -87,9 +87,9 @@ export function GanttChart({
                       <div className="flex items-center justify-center gap-1">
                         <span>{w.label}</span>
                       </div>
-                      <div className="text-[11px] font-normal mt-0.5">
+                      <div className="text-xs font-normal mt-0.5">
                         {isCurrent ? (
-                          <span className="px-1 py-0.2 rounded bg-red-100 text-red-700 font-bold text-[11px]">
+                          <span className="px-1 py-0.2 rounded bg-red-100 text-red-700 font-bold text-xs">
                             Hiện tại
                           </span>
                         ) : (
@@ -123,7 +123,7 @@ export function GanttChart({
                       <div className="text-xs font-sans font-medium text-slate-800 truncate" title={m.title}>
                         {m.title}
                       </div>
-                      <div className="text-[11px] font-normal text-slate-500 mt-0.5">
+                      <div className="text-xs font-normal text-slate-500 mt-0.5">
                         {isCurrent ? (
                           <span className="font-bold text-red-600">Hiện tại (67%)</span>
                         ) : (
@@ -170,7 +170,7 @@ export function GanttChart({
                       <span className="truncate text-xs font-semibold text-slate-900 xl:text-[13px]" title={group.name}>
                         {group.name}
                       </span>
-                      <span className="px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-slate-200 text-slate-700 shrink-0">
+                      <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-slate-200 text-slate-700 shrink-0">
                         {group.milestoneId}
                       </span>
                     </div>
@@ -312,7 +312,7 @@ export function GanttChart({
                             </span>
                             {isCritical && (
                               <span
-                                className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-700 shrink-0"
+                                className="px-1.5 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-700 shrink-0"
                                 title="Nhiệm vụ trên đường găng"
                               >
                                 ! Găng
@@ -329,7 +329,7 @@ export function GanttChart({
                               className="flex items-center gap-1.5 truncate"
                               title={`${task.assignee} (${task.assigneeRole})`}
                             >
-                              <span className="w-5 h-5 rounded-full bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-700 flex items-center justify-center shrink-0">
+                              <span className="w-5 h-5 rounded-full bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-center shrink-0">
                                 {initials}
                               </span>
                               <span className="truncate">{shortName}</span>
@@ -361,7 +361,7 @@ export function GanttChart({
 
                           {/* Task duration bar */}
                           <div
-                            className={`relative z-10 h-6.5 rounded-md px-2 flex items-center justify-between text-[11px] font-mono shadow-xs overflow-hidden mx-1 border transition-all ${
+                            className={`relative z-10 h-6.5 rounded-md px-2 flex items-center justify-between text-xs font-mono shadow-xs overflow-hidden mx-1 border transition-all ${
                               isCritical
                                 ? 'border-rose-500 bg-rose-50 text-rose-950 font-bold ring-1 ring-rose-300/50'
                                 : task.progress === 100
@@ -394,7 +394,7 @@ export function GanttChart({
                             <span className="relative z-10 font-bold truncate">
                               {task.id}
                             </span>
-                            <span className="relative z-10 text-[11px] opacity-90 shrink-0">
+                            <span className="relative z-10 text-xs opacity-90 shrink-0">
                               {task.progress}%
                             </span>
                           </div>
@@ -408,7 +408,7 @@ export function GanttChart({
         </div>
       </div>
 
-      <div className="border-t border-slate-100 bg-white px-3 py-1.5 text-right text-[11px] text-slate-500 lg:hidden">
+      <div className="border-t border-slate-100 bg-white px-3 py-1.5 text-right text-xs text-slate-500 lg:hidden">
         Giữ Shift và cuộn, hoặc kéo thanh phía dưới để xem các tuần tiếp theo →
       </div>
 

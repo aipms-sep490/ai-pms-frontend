@@ -34,7 +34,7 @@ export function StudentJourneyHero() {
           title: 'Bạn chưa tham gia nhóm đồ án nào trong học kỳ này',
           desc: `Học kỳ ${semester?.name ?? 'hiện tại'} đang mở đợt đăng ký đồ án tốt nghiệp (${period?.name ?? 'đợt đăng ký hiện tại'}). Hãy khởi tạo nhóm mới hoặc kiểm tra hộp thư lời mời từ các nhóm khác.`,
           icon: 'group_add',
-          iconBg: 'bg-[#0f5b4e] text-white',
+          iconBg: 'bg-primary text-white',
           ctaText: 'Quản lý nhóm và lời mời',
           ctaRoute: '/team',
           ctaIcon: 'arrow_forward',
@@ -108,7 +108,7 @@ export function StudentJourneyHero() {
           title: 'Đề cương đã được duyệt! Hãy chọn Giảng viên Hướng dẫn',
           desc: `Đề tài của nhóm ${teamDisplayName} đã thông qua vòng thẩm định của Bộ môn. Bước tiếp theo là gửi yêu cầu tới giảng viên có chuyên môn phù hợp.`,
           icon: 'school',
-          iconBg: 'bg-[#0f5b4e] text-white',
+          iconBg: 'bg-primary text-white',
           ctaText: 'Chọn giảng viên hướng dẫn',
           ctaRoute: '/project/supervisor',
           ctaIcon: 'person_search',
@@ -121,7 +121,7 @@ export function StudentJourneyHero() {
           title: `Đồ án: ${project?.title ?? 'Đang cập nhật thông tin'}`,
           desc: `GVHD: ${activeSupervisor?.supervisorName ?? 'Chưa phân công'} • Học kỳ: ${semester?.name ?? 'Chưa xác định'} • Thành viên: ${team?.members.length ?? 0} bạn • Nhóm: ${team?.code || teamDisplayName}`,
           icon: 'rocket_launch',
-          iconBg: 'bg-[#0f5b4e] text-white',
+          iconBg: 'bg-primary text-white',
           ctaText: 'Xem mốc và công việc',
           ctaRoute: '/project/milestones',
           ctaIcon: 'view_kanban',
@@ -141,10 +141,10 @@ export function StudentJourneyHero() {
         </div>
         <div className="flex min-w-0 flex-col gap-1.5">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${config.badgeClass}`}>
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${config.badgeClass}`}>
               {config.badge}
             </span>
-            <span className="text-[11px] text-slate-500 font-mono">
+            <span className="text-xs text-slate-500 font-mono">
               SV: {profile?.fullName ?? 'Sinh viên'}{profile?.studentCode ? ` (${profile.studentCode})` : (profile?.id ? ` (ID #${profile.id})` : '')}
             </span>
           </div>
@@ -158,7 +158,7 @@ export function StudentJourneyHero() {
           <button
             type="button"
             onClick={() => navigate(config.secondaryRoute!)}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 transition-colors hover:border-[#0f5b4e]/30 hover:bg-[#edf3f0]"
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 transition-colors hover:border-primary/30 hover:bg-primary-subtle"
           >
             {config.secondaryText}
           </button>
@@ -166,7 +166,7 @@ export function StudentJourneyHero() {
         <button
           type="button"
           onClick={() => error ? void refreshAll() : navigate(config.ctaRoute)}
-          className="flex items-center gap-1.5 rounded-lg bg-[#0f5b4e] px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-[#0a493f]"
+          className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-primary-hover"
         >
           <span className="material-symbols-outlined text-[18px]">{config.ctaIcon}</span>
           {config.ctaText}

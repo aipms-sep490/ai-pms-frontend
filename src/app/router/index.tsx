@@ -68,6 +68,10 @@ import { ProjectContributionsPage } from '../../features/contributions/ProjectCo
 import { ProjectFilesPage } from '../../features/files/ProjectFilesPage'
 import { ProjectEvidenceLedgerPage } from '../../features/evidence/ProjectEvidenceLedger'
 import { ProjectAiPage } from '../../features/ai/ProjectAiPage'
+import { ProjectGatesPage } from '../../features/gates/ProjectGatesPage'
+import { ProjectWorkingAgreementPage } from '../../features/working-agreement/ProjectWorkingAgreementPage'
+import { ProjectDefensePage } from '../../features/defense/ProjectDefensePage'
+import { ProjectPeerEvaluationPage } from '../../features/peer-eval/ProjectPeerEvaluationPage'
 import { DepartmentProjectRiskPage } from '../../features/ai/DepartmentProjectRiskPage'
 import { DepartmentWorkspacePage } from '../../features/department/pages/DepartmentWorkspacePage'
 import { DepartmentProjectLayout } from '../../features/department/components/DepartmentProjectLayout'
@@ -121,6 +125,10 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'project/files', element: <ProjectFilesPage /> },
             { path: 'project/evidence', element: <ProjectEvidenceLedgerPage /> },
             { path: 'project/contributions', element: <ProjectContributionsPage /> },
+            ...(env.gatesEnabled ? [{ path: 'project/gates', element: <ProjectGatesPage /> }] : []),
+            ...(env.workingAgreementEnabled ? [{ path: 'project/agreement', element: <ProjectWorkingAgreementPage /> }] : []),
+            ...(env.defenseScheduleEnabled ? [{ path: 'project/defense', element: <ProjectDefensePage /> }] : []),
+            ...(env.peerEvaluationEnabled ? [{ path: 'project/peer-evaluation', element: <ProjectPeerEvaluationPage /> }] : []),
             ...(env.aiAdvisoryEnabled ? [{ path: 'project/ai', element: <ProjectAiPage /> }] : []),
           ] },
           { path: 'projects/lifecycle', element: <ProjectLifecyclePage /> },

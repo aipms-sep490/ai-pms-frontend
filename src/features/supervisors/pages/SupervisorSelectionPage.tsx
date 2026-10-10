@@ -6,6 +6,8 @@ import { Button } from '../../../components/ui/Button'
 import { useStudentJourney } from '../../../app/context'
 import { useSupervisorSelection } from '../hooks/useSupervisorSelection'
 import { projectStatusLabel } from '../../projects/utils/project-status'
+import { SupervisorRecommendationPanel } from '../components/SupervisorRecommendationPanel'
+import { env } from '../../../app/config/env'
 
 export function SupervisorSelectionPage() {
   const journey = useStudentJourney()
@@ -57,6 +59,11 @@ export function SupervisorSelectionPage() {
           {request.status === 'REJECTED' ? <p className="mt-2 text-xs text-slate-600">Bạn có thể chọn một giảng viên phù hợp khác.</p> : null}
         </li>)}</ul> : <p className="mt-2 text-sm text-slate-600">Chưa có yêu cầu hướng dẫn.</p>}
       </section>
+
+      {env.supervisorRecommendationEnabled && selection.canSend && journey.project && <SupervisorRecommendationPanel
+        projectId={journey.project.id}
+        candidateIds={new Set(selection.candidates.map(candidate => candidate.id))}
+        onPick={id => setSelectedId(id)} />}
 
       {(!selection.activeAssignment || selection.canSend) && <section className="workspace-surface workspace-surface-padding">
         <div className="flex flex-wrap items-end gap-3">

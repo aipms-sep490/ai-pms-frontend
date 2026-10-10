@@ -40,7 +40,7 @@ export function ApprovalTimelineCard({ timeline }: ApprovalTimelineCardProps) {
                   {isCompleted ? (
                     <span className="material-symbols-outlined text-[13px]">check</span>
                   ) : (
-                    <span className="font-mono text-[10px] font-bold">{stage.step}</span>
+                    <span className="font-mono text-xs font-bold">{stage.step}</span>
                   )}
                 </div>
 
@@ -60,17 +60,17 @@ export function ApprovalTimelineCard({ timeline }: ApprovalTimelineCardProps) {
                         {stage.step}. {stage.title}
                       </span>
                       {isCompleted && (
-                        <span className="font-mono text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                        <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
                           Hoàn tất
                         </span>
                       )}
                       {isCurrent && (
-                        <span className="font-mono text-[10px] font-semibold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">
+                        <span className="font-mono text-xs font-semibold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">
                           Đang diễn ra
                         </span>
                       )}
                     </div>
-                    <span className="font-mono text-[11px] text-slate-500">
+                    <span className="font-mono text-xs text-slate-500">
                       {stage.date}
                     </span>
                   </div>
@@ -79,7 +79,7 @@ export function ApprovalTimelineCard({ timeline }: ApprovalTimelineCardProps) {
                     Kết luận: <span className="text-slate-900">{stage.decision}</span>
                   </p>
 
-                  <div className="flex flex-wrap items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-slate-200/60 text-[11px] text-slate-500">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-slate-200/60 text-xs text-slate-500">
                     <span>Thẩm định: <strong>{stage.reviewer}</strong></span>
                     {stage.note && <span className="italic text-slate-400">{stage.note}</span>}
                   </div>

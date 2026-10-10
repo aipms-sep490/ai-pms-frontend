@@ -1,10 +1,10 @@
 /* The shared form also mounts outside the collaboration shell, on the task board. */
 .cw-create {
-  --cw-ink: #14201d;
-  --cw-muted: #596863;
-  --cw-line: var(--color-hairline, #d7e0dc);
-  --cw-accent: var(--color-primary, #0f5b4e);
-  --cw-accent-soft: #edf3f0;
+  --cw-ink: var(--color-ink);
+  --cw-muted: var(--color-ink-muted);
+  --cw-line: var(--color-hairline, var(--color-line-strong));
+  --cw-accent: var(--color-primary, var(--color-primary));
+  --cw-accent-soft: var(--color-primary-subtle);
 }
 .cw-create :is(button, input:not([type="checkbox"]), select) { min-height: 44px; }
 .cw-create :is(button, input, select, textarea):focus-visible { outline: 2px solid var(--cw-accent); outline-offset: 3px; }

@@ -9,7 +9,7 @@
 .review-page > article,
 .review-page > section {
   padding: 20px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-hairline);
   border-radius: 14px;
   background: #ffffff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
@@ -33,7 +33,7 @@
 
 .review-page__header p {
   margin: 0 0 6px;
-  color: #0f5b4e;
+  color: var(--color-primary);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -79,7 +79,7 @@
 
 .review-page textarea:focus {
   outline: none;
-  border-color: #0f5b4e;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(15, 91, 78, 0.15);
 }
 
@@ -145,14 +145,14 @@
 .review-page .btn-revision {
   background-color: #fef3c7 !important;
   color: #92400e !important;
-  border-color: #fde68a !important;
+  border-color: var(--color-status-warning-border) !important;
 }
 .review-page .btn-revision:hover {
-  background-color: #fde68a !important;
+  background-color: var(--color-status-warning-border) !important;
 }
 
 .review-page .btn-reject {
-  background-color: #dc2626 !important;
+  background-color: var(--color-status-error-text) !important;
   color: #ffffff !important;
   border-color: transparent !important;
 }
@@ -166,7 +166,7 @@
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #0f5b4e;
+  color: var(--color-primary);
   text-decoration: none;
   margin-bottom: 4px;
   width: fit-content;
@@ -184,7 +184,7 @@
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
-  background-color: #0f5b4e;
+  background-color: var(--color-primary);
   color: #ffffff;
   text-decoration: none;
   margin-top: 10px;
@@ -192,7 +192,7 @@
   width: fit-content;
 }
 .review-page__open-link:hover {
-  background-color: #0a493f;
+  background-color: var(--color-primary-hover);
 }
 
 @media (max-width: 620px) {
@@ -213,7 +213,7 @@
 .review-history-list { display:grid; gap:0; }
 .review-history-list > p { margin:0; padding:14px 0; border-bottom:1px solid #e4ebe7; font-size:14px; line-height:1.65; overflow-wrap:anywhere; }
 .review-history-list > p:last-child { border-bottom:0; padding-bottom:0; }
-.review-page > p { color:#596863; font-size:14px; line-height:1.6; }
+.review-page > p { color:var(--color-ink-muted); font-size:14px; line-height:1.6; }
 
 .review-page > :is(article,section) { border:0; border-radius:0; box-shadow:none; padding:26px; }
 .review-page > section section { border:0; border-radius:0; box-shadow:none; }

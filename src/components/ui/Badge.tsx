@@ -19,7 +19,7 @@ export function Badge({
   children,
   className = '',
 }: BadgeProps) {
-  const sizeStyles = size === 'sm' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-[11px]'
+  const sizeStyles = size === 'sm' ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-0.5 text-xs'
 
   const variantStyles = {
     success: 'bg-status-success-bg text-status-success-text border-status-success-border',

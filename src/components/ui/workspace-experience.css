@@ -16,10 +16,10 @@
 [data-experience=enhanced] form label { font-size:13px; letter-spacing:normal; line-height:1.6; text-transform:none; }
 [data-experience=enhanced] form :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=file]),select) { min-height:44px; font-size:14px; border-radius:9px; }
 [data-experience=enhanced] form textarea { font-size:14px; line-height:1.7; border-radius:9px; }
-[data-experience=enhanced] form :is(input,select,textarea):focus-visible { outline:2px solid #0f5b4e; outline-offset:2px; }
+[data-experience=enhanced] form :is(input,select,textarea):focus-visible { outline:2px solid var(--color-primary); outline-offset:2px; }
 [data-experience=enhanced] :is(.api-form,.ex-form,.mtg-form,.report-editor,.admin-form) label { font-size:13px; font-weight:550; line-height:1.6; }
 [data-experience=enhanced] :is(.api-form,.ex-form,.mtg-form,.report-editor,.admin-form) :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { border-color:#cfddd3; border-radius:9px; background:#fff; font-size:14px; }
-[data-experience=enhanced] :is(.api-form,.ex-form,.mtg-form,.report-editor,.admin-form) :is(input,select,textarea):focus-visible { outline:2px solid #0f5b4e; outline-offset:2px; }
+[data-experience=enhanced] :is(.api-form,.ex-form,.mtg-form,.report-editor,.admin-form) :is(input,select,textarea):focus-visible { outline:2px solid var(--color-primary); outline-offset:2px; }
 [data-experience=enhanced] :is(.api-form,.ex-form,.mtg-form,.report-editor,.admin-form) :is(input,select,textarea):disabled { background:#f2f5f1; color:#7a8b7e; }
 [data-experience=enhanced] :is(.report-row,.mtg-row) { padding:20px 24px; gap:18px; }
 [data-experience=enhanced] :is(.report-list,.mtg-list) { padding:0 0 8px; }
@@ -33,13 +33,13 @@
 [data-experience=enhanced] table td { padding-block:16px; }
 [data-experience=enhanced] table tbody tr { transition:background-color 160ms; }
 [data-experience=enhanced] table tbody tr:hover { background:#f2f7f1; }
-[data-experience=enhanced] table td a { display:inline-flex; align-items:center; min-height:34px; font-weight:550; color:#0f5b4e; text-underline-offset:3px; }
+[data-experience=enhanced] table td a { display:inline-flex; align-items:center; min-height:34px; font-weight:550; color:var(--color-primary); text-underline-offset:3px; }
 [data-experience=enhanced] :is(.report-reading,.mtg-prose,.ex-description) { font-size:15px; line-height:1.8; }
 [data-experience=enhanced] .report-reading p { font-size:15px; max-width:75ch; }
 [data-experience=enhanced] :is(.ex-empty,.mtg-empty,.report-empty) { padding:clamp(28px,4vw,48px) 24px; background:linear-gradient(135deg,#fff,#f4f8f1); }
 [data-experience=enhanced] :is(.ex-empty,.mtg-empty,.report-empty) p { max-width:55ch; margin-inline:auto; font-size:14px; line-height:1.75; }
 [data-experience=enhanced] .admin-disclosure { margin-top:20px; border:1px solid var(--experience-line); border-radius:12px; overflow:hidden; background:#fff; }
-[data-experience=enhanced] .admin-disclosure>summary { padding:16px 20px; color:#0f5b4e; font-size:14px; font-weight:600; }
+[data-experience=enhanced] .admin-disclosure>summary { padding:16px 20px; color:var(--color-primary); font-size:14px; font-weight:600; }
 [data-experience=enhanced] .admin-disclosure[open]>summary { background:#f2f7ef; border-bottom:1px solid var(--experience-line); }
 [data-experience=enhanced] .admin-disclosure>form { padding:20px; }
 @media(max-width:640px) {

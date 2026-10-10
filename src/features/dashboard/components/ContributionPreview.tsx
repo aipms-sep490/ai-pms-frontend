@@ -19,7 +19,7 @@ export function ContributionPreview({ contributions }: ContributionPreviewProps)
               Tỷ lệ Đóng góp Thành viên (Mô phỏng)
             </CardTitle>
           </div>
-          <span className="font-mono text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+          <span className="font-mono text-xs text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
             Mô phỏng CDIO
           </span>
         </div>
@@ -57,7 +57,7 @@ export function ContributionPreview({ contributions }: ContributionPreviewProps)
           ))}
         </div>
 
-        <div className="p-2.5 rounded bg-slate-50 border border-slate-200/80 text-[11px] text-slate-600 flex items-center gap-2 mt-1">
+        <div className="p-2.5 rounded bg-slate-50 border border-slate-200/80 text-xs text-slate-600 flex items-center gap-2 mt-1">
           <span className="material-symbols-outlined text-[15px] text-emerald-600 shrink-0" aria-hidden="true">
             verified
           </span>

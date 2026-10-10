@@ -7,9 +7,9 @@
 .mtg-livekit-footer { border-top: 1px solid #e8edf3; }
 .mtg-livekit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 12px; min-height: clamp(280px, calc(100dvh - 560px), 540px); padding: 14px; background: #0f172a; }
 .mtg-livekit-grid .lk-participant-tile { min-height: 190px; border-radius: 7px; overflow: hidden; }
-.mtg-livekit-empty { align-self: center; justify-self: center; max-width: 42ch; text-align: center; color: #e2e8f0; }
+.mtg-livekit-empty { align-self: center; justify-self: center; max-width: 42ch; text-align: center; color: var(--color-hairline); }
 .mtg-livekit-controls { display: flex; gap: 8px; flex-wrap: wrap; }
-.mtg-livekit-controls .mtg-button[aria-pressed="false"] { border-color: #d7e0eb; color: #526681; background: #f8fafc; }
+.mtg-livekit-controls .mtg-button[aria-pressed="false"] { border-color: #d7e0eb; color: #526681; background: var(--color-canvas); }
 .mtg-livekit-control-error { margin: 0 0 12px; }
 @media (max-width: 760px) { .mtg-livekit-header, .mtg-livekit-footer { align-items: stretch; flex-direction: column; padding: 14px; } .mtg-livekit-header .mtg-actions, .mtg-livekit-footer > .mtg-button { width: 100%; } .mtg-livekit-grid { min-height: 42vh; } }
 @media (max-width: 480px) { .mtg-livekit-grid { grid-template-columns: minmax(0, 1fr); } .mtg-livekit-controls, .mtg-livekit-controls .mtg-button, .mtg-livekit-header .mtg-actions .mtg-button { width: 100%; } }

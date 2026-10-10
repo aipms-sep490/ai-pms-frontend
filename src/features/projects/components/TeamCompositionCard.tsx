@@ -25,7 +25,7 @@ export function TeamCompositionCard({ members, breakdown }: TeamCompositionCardP
           {breakdown.map((item) => (
             <div
               key={item.major}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-50 border border-hairline"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-medium bg-slate-50 border border-hairline"
             >
               <MultidisciplinaryTag major={item.major} />
               <span className="text-slate-600 font-semibold">{item.percent}%</span>
@@ -39,7 +39,7 @@ export function TeamCompositionCard({ members, breakdown }: TeamCompositionCardP
         <div className="overflow-x-auto no-scrollbar">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-50 border-b border-hairline font-mono text-[11px] text-slate-500 uppercase tracking-wider">
+              <tr className="bg-slate-50 border-b border-hairline font-mono text-xs text-slate-500 uppercase tracking-wider">
                 <th className="py-2.5 px-4 font-semibold">Thành viên</th>
                 <th className="py-2.5 px-3 font-semibold">Chuyên ngành</th>
                 <th className="py-2.5 px-4 font-semibold min-w-[200px]">Trách nhiệm chính</th>
@@ -55,7 +55,7 @@ export function TeamCompositionCard({ members, breakdown }: TeamCompositionCardP
                       <span className="font-heading font-semibold text-slate-900">
                         {member.name}
                       </span>
-                      <span className="font-mono text-[11px] text-slate-500">
+                      <span className="font-mono text-xs text-slate-500">
                         {member.studentId} • {member.role}
                       </span>
                     </div>
@@ -71,12 +71,12 @@ export function TeamCompositionCard({ members, breakdown }: TeamCompositionCardP
                       <span className="font-mono font-bold text-slate-800 text-xs">
                         {member.storyPoints} SP
                       </span>
-                      <span className="font-mono text-[10px] text-slate-400">
+                      <span className="font-mono text-xs text-slate-400">
                         ({member.contributionPercent}%)
                       </span>
                     </div>
                   </td>
-                  <td className="py-3 px-4 font-mono text-[11px] text-slate-500 truncate max-w-[200px]">
+                  <td className="py-3 px-4 font-mono text-xs text-slate-500 truncate max-w-[200px]">
                     {member.email}
                   </td>
                 </tr>

@@ -9,6 +9,7 @@ import { useAuthSession } from '../../features/auth/context/useAuthSession'
 import { getNotifications, getUnreadCount, markNotificationRead, type NotificationItem } from '../../features/notifications/notifications-api'
 import { NotificationRow, NotificationEmpty, NotificationLoading } from '../../features/notifications/NotificationRow'
 import { QuickNavigation } from '../../components/ui/QuickNavigation'
+import { TourLauncher } from '../../features/onboarding/TourLauncher'
 
 interface TopHeaderProps {
   onToggleMobileMenu: () => void
@@ -123,6 +124,7 @@ export function TopHeader({
 
         <nav
           aria-label="Đường dẫn điều hướng breadcrumb"
+          data-tour="breadcrumb"
           className="flex items-center gap-1.5 sm:gap-2 text-xs text-slate-500 font-sans truncate"
         >
           <span className="font-semibold text-slate-800 shrink-0">{selectedSemester?.code ?? 'AI-PMS'}</span>
@@ -139,25 +141,27 @@ export function TopHeader({
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
         {unavailableStudent ? <span className="hidden md:inline text-xs text-status-warning-text" role="alert">Ngữ cảnh đồ án chưa tải được</span> : null}
         {selectedSemester && role === 'student' && !pendingStudent ? (
-          <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-[11px] font-mono font-medium">
+          <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-xs font-mono font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
             {selectedSemester.name} • {stateLabel}
           </span>
         ) : null}
-        {role !== 'student' ? <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-[11px] font-mono font-medium"><span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />{semesterLabel}</span> : null}
+        {role !== 'student' ? <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-xs font-mono font-medium"><span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />{semesterLabel}</span> : null}
         <QuickNavigation access={workspaceAccess} />
+        <TourLauncher />
         <div className="relative" ref={notificationRef}>
           <button
             ref={notificationTriggerRef}
             type="button"
+            data-tour="notifications"
             onClick={toggleNotifications}
             aria-expanded={notificationOpen}
             aria-controls="notification-preview"
             aria-label={unreadCount === null ? 'Mở thông báo học vụ' : `Mở thông báo học vụ, ${unreadCount} chưa đọc`}
-            className="relative flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-[#edf3f0] hover:text-[#0f5b4e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f5b4e]"
+            className="relative flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <span className="material-symbols-outlined text-[20px] shrink-0" aria-hidden="true">notifications</span>
-            {unreadCount !== null && unreadCount > 0 && <span aria-hidden="true" className="absolute right-0 top-0 rounded-full bg-rose-600 px-1.5 text-[10px] font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+            {unreadCount !== null && unreadCount > 0 && <span aria-hidden="true" className="absolute right-0 top-0 rounded-full bg-rose-600 px-1.5 text-xs font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
           </button>
           {notificationOpen && <section id="notification-preview" aria-label="Thông báo mới" className="notification-popover">
             <div className="notification-popover-header"><div><h2>Thông báo</h2><p>{unreadCount === null ? 'Cập nhật dành cho bạn' : unreadCount > 0 ? unreadCount + ' thông báo chưa đọc' : 'Bạn đã đọc hết thông báo mới'}</p></div><button type="button" className="notification-close" aria-label="Đóng bảng thông báo" onClick={() => { setNotificationOpen(false); notificationTriggerRef.current?.focus() }}><span className="material-symbols-outlined" aria-hidden="true">close</span></button></div>

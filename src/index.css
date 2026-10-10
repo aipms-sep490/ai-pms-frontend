@@ -14,6 +14,13 @@
   --color-primary-hover: #0a493f;
   --color-primary-subtle: #edf3f0;
 
+  /* Neutral ink and line scale shared by every workspace page. */
+  --color-ink: #14201d;
+  --color-ink-soft: #3d4a46;
+  --color-ink-muted: #596863;
+  --color-line: #e5ece8;
+  --color-line-strong: #d7e0dc;
+
   --color-academic-emerald: #047857;
   --color-academic-amber: #a16207;
   --color-academic-coral: #dc2626;
@@ -123,7 +130,7 @@ select:disabled {
 .eyebrow {
   margin: 0;
   color: var(--color-primary);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;

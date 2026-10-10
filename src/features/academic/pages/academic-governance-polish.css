@@ -5,18 +5,18 @@
 .governance-filter input { background:#fff; min-width:0; padding:10px 14px; min-height:42px; }
 .governance-section-title { margin-bottom:14px; align-items:center; }
 .governance-section-title h2 { font-size:18px; font-weight:650; }
-.governance-section-title > span { color:#596863; font-size:13px; }
+.governance-section-title > span { color:var(--color-ink-muted); font-size:13px; }
 .governance-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
 .governance-periods { grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
 .governance-card,.governance-period { display:flex; flex-direction:column; gap:18px; min-width:0; padding:24px; border:1px solid #dfe8e2; border-radius:14px; background:#fff; box-shadow:0 2px 5px rgb(20 55 36 / 3%); }
 .governance-record-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; width:100%; }
 .governance-record-heading > div { min-width:0; }
 .governance-record-heading h3 { margin:5px 0 0; font-size:16px; line-height:1.5; }
-.governance-record-heading .governance-record-code { margin:0; font-size:12px; font-weight:600; color:#0f5b4e; }
-.governance-record-kind { flex-shrink:0; color:#596863; font-size:12px; }
+.governance-record-heading .governance-record-code { margin:0; font-size:12px; font-weight:600; color:var(--color-primary); }
+.governance-record-kind { flex-shrink:0; color:var(--color-ink-muted); font-size:12px; }
 .governance-record-meta { margin:-10px 0 0; }
 .governance-card .governance-dates,.governance-period .governance-dates { display:grid; grid-template-columns:1fr 1fr; gap:16px; width:100%; }
-.governance-dates dt { color:#596863; font-size:12px; }
+.governance-dates dt { color:var(--color-ink-muted); font-size:12px; }
 .governance-dates dd { margin:4px 0 0; font-size:13px; font-weight:500; font-variant-numeric:tabular-nums; }
 .governance-period .governance-period-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; width:100%; padding-top:16px; border-top:1px solid #e7ede9; }
 .governance-period-facts dt { font-size:12px; line-height:1.5; }
@@ -24,14 +24,14 @@
 .governance-record-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; width:100%; margin-top:auto; padding-top:18px; border-top:1px solid #e7ede9; }
 .governance-record-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
 .governance-status { gap:10px; }
-.governance-status > .governance-badge { border:0; border-radius:6px; padding:4px 8px; font-weight:600; color:#596863; background:#f0f3f1; }
-.governance-status > .governance-badge--active { color:#0f5b4e; background:#e7f2eb; }
+.governance-status > .governance-badge { border:0; border-radius:6px; padding:4px 8px; font-weight:600; color:var(--color-ink-muted); background:#f0f3f1; }
+.governance-status > .governance-badge--active { color:var(--color-primary); background:#e7f2eb; }
 .governance-status > .governance-badge--upcoming { color:#854d0e; background:#fff5d8; }
-.governance-status select { min-height:36px; max-width:100%; padding:6px 10px; border:1px solid #d7e0dc; border-radius:8px; background:#fff; color:#0f5b4e; font-size:12px; }
+.governance-status select { min-height:36px; max-width:100%; padding:6px 10px; border:1px solid var(--color-line-strong); border-radius:8px; background:#fff; color:var(--color-primary); font-size:12px; }
 .governance-editor form { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
 .governance-editor label { display:flex; flex-direction:column; gap:8px; min-width:0; font-size:13px; }
-.governance-editor :is(input,select) { width:100%; min-height:42px; padding:10px 12px; background:#fff; border:1px solid #d7e0dc; border-radius:8px; font:inherit; }
-.governance-editor input:disabled { background:#f5f7f6; color:#596863; }
+.governance-editor :is(input,select) { width:100%; min-height:42px; padding:10px 12px; background:#fff; border:1px solid var(--color-line-strong); border-radius:8px; font:inherit; }
+.governance-editor input:disabled { background:#f5f7f6; color:var(--color-ink-muted); }
 .governance-editor form > :is(p,button) { grid-column:1/-1; }
 .governance-editor form > button { justify-self:end; }
 @media(max-width:900px) { .governance-periods { grid-template-columns:1fr; } }

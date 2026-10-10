@@ -79,16 +79,16 @@ export function ProjectLifecyclePage() {
       <div className="lifecycle-members">
         {team.members.map(member => (
           <div key={member.userId} className="lifecycle-member">
-            <div className="size-10 rounded-full bg-[#edf3f0] text-[#0f5b4e] flex items-center justify-center font-bold text-xs shrink-0 border border-[#0f5b4e]/10">
+            <div className="size-10 rounded-full bg-primary-subtle text-primary flex items-center justify-center font-bold text-xs shrink-0 border border-primary/10">
               {member.fullName.charAt(0)}
             </div>
             <div className="min-w-0 flex-1">
               <span className="font-semibold text-sm text-slate-900 block truncate">{member.fullName}</span>
-              <span className="text-[11px] text-slate-500 block">Thành viên #{member.userId}</span>
+              <span className="text-xs text-slate-500 block">Thành viên #{member.userId}</span>
             </div>
             <span className={`shrink-0 text-xs px-2.5 py-0.5 rounded-full font-semibold ${
               member.isLeader
-                ? 'bg-[#edf3f0] text-[#0f5b4e] border border-[#a7f3d0]'
+                ? 'bg-primary-subtle text-primary border border-status-success-border'
                 : 'bg-slate-100 text-slate-600 border border-slate-200'
             }`}>
               {member.isLeader ? 'Trưởng nhóm' : 'Thành viên'}
