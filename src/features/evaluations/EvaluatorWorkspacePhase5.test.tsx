@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { HttpError } from '../../services/http/http-client'
 
-const api = vi.hoisted(() => ({ getAllMyEvaluationAssignments: vi.fn(), getEvaluationAssignmentDetail: vi.fn(), getEvaluationAssignmentEvidence: vi.fn(), getProjectEvaluations: vi.fn(), createEvaluationDraft: vi.fn(), saveEvaluationDraft: vi.fn(), finalizeEvaluation: vi.fn() }))
+const api = vi.hoisted(() => ({ getAllMyEvaluationAssignments: vi.fn(), getEvaluationAssignmentDetail: vi.fn(), getEvaluationAssignmentEvidence: vi.fn(), downloadEvaluationEvidenceFile: vi.fn(), getProjectEvaluations: vi.fn(), createEvaluationDraft: vi.fn(), saveEvaluationDraft: vi.fn(), finalizeEvaluation: vi.fn() }))
 vi.mock('../../services/api/evaluations.api', () => api)
 
 import { EvaluatorAssignmentRoute } from './components/EvaluatorAssignmentRoute'
@@ -156,5 +156,22 @@ describe('Evaluator Workspace Phase 5', () => {
     expect(screen.queryByRole('button', { name: 'Lưu bản nháp' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Yêu cầu chốt đánh giá' })).toBeNull()
     expect(api.getEvaluationAssignmentDetail).toHaveBeenCalledWith(41, expect.any(AbortSignal))
+  })
+
+  it('shows the report preview beside the scoring form when the backend ships evidence files', async () => {
+    vi.stubGlobal('URL', { ...URL, createObjectURL: () => 'blob:report', revokeObjectURL: () => {} })
+    api.getEvaluationAssignmentEvidence.mockResolvedValue({ assignmentId: 41, projectId: 9, scope: 'MAJOR_SPECIFIC', majorId: 8, studentId: null, finalSubmissionId: 15, submittedAt: '2026-10-02T00:00:00Z', itemCount: 2, isReadOnly: false, files: [
+      { id: 1, fileName: 'srs.pdf', contentType: 'application/pdf', sizeBytes: 2048, reportType: 'Software Requirement' },
+      { id: 2, fileName: 'guide.zip', contentType: 'application/zip', sizeBytes: 4096, reportType: 'User Guide' },
+    ] })
+    api.downloadEvaluationEvidenceFile.mockResolvedValue(new Blob(['x'], { type: 'application/pdf' }))
+    page()
+    // The PDF report renders inline next to the rubric (scoring input still present).
+    expect(await screen.findByTitle('Báo cáo Software Requirement')).toBeTruthy()
+    expect(screen.getByLabelText('Điểm Phân tích')).toBeTruthy()
+    // The non-previewable ZIP report is offered as a download, never faked as a preview.
+    fireEvent.click(screen.getByRole('tab', { name: 'User Guide' }))
+    expect(await screen.findByText(/không xem trực tiếp trên trình duyệt được/)).toBeTruthy()
+    vi.unstubAllGlobals()
   })
 })

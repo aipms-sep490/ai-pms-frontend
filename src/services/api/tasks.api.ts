@@ -1,4 +1,4 @@
-import type { OverdueBlockedTasksDto, PagedResult, ProjectProgressSummaryDto, ProjectTimelineDataDto, TaskDto, TaskStatusHistoryDto } from '../../types/backend'
+import type { OverdueBlockedTasksDto, PagedResult, ProjectProgressSummaryDto, ProjectTimelineDataDto, SprintDto, TaskDto, TaskStatusHistoryDto } from '../../types/backend'
 import { httpDelete, httpGet, httpPost, httpPut } from '../http/http-client'
 
 export interface TaskListFilters {
@@ -11,6 +11,8 @@ export interface TaskListFilters {
   dueTo?: string
   isOverdue?: boolean
   isBlocked?: boolean
+  /** Jira: filter by sprint (0/'backlog' meaning unassigned, when the backend supports it). */
+  sprintId?: number
   /** BE-07: filter by project major (the real major id, not the project-major row id). */
   majorId?: number
   /** BE-07: filter by the task's discipline role for that major. */
@@ -29,7 +31,13 @@ export interface CreateTaskPayload {
   dueAt?: string | null
   assigneeUserIds: number[]
   disciplines?: Array<{ majorId: number; role: 'PRIMARY' | 'SUPPORTING' }>
+  /** Jira fields; optional until the backend ships sprint support. */
+  sprintId?: number | null
+  storyPoints?: number | null
+  labels?: string[]
 }
+
+export interface CreateSprintPayload { name: string; goal?: string | null; startAt?: string | null; endAt?: string | null }
 
 export interface UpdateTaskPayload extends Omit<CreateTaskPayload, 'assigneeUserIds' | 'disciplines'> { concurrencyToken?: string }
 export interface AddTaskDependencyPayload { taskId: number; dependsOnTaskId: number; dependencyType: string; concurrencyToken?: string }
@@ -60,3 +68,10 @@ export const getTaskHistory = (id: number, signal?: AbortSignal) => httpGet<Task
 export const getOverdueBlockedTasks = (projectId: number) => httpGet<OverdueBlockedTasksDto>(`/tasks/project/${projectId}/overdue-blocked`)
 export const getProjectTimeline = (projectId: number, signal?: AbortSignal) => httpGet<ProjectTimelineDataDto>(`/tasks/project/${projectId}/timeline`, signal)
 export const getProjectProgressSummary = (projectId: number, signal?: AbortSignal) => httpGet<ProjectProgressSummaryDto>(`/tasks/project/${projectId}/progress-summary`, signal)
+
+// Jira-style sprints (proposed contract; BE must confirm routes + invariants before the flag is enabled).
+export const getProjectSprints = (projectId: number, signal?: AbortSignal) => httpGet<SprintDto[]>(`/projects/${projectId}/sprints`, signal)
+export const createSprint = (projectId: number, payload: CreateSprintPayload) => httpPost<SprintDto, CreateSprintPayload>(`/projects/${projectId}/sprints`, payload)
+export const updateSprintStatus = (sprintId: number, status: 'ACTIVE' | 'COMPLETED', concurrencyToken?: string) => httpPut<SprintDto, { status: string; concurrencyToken?: string }>(`/sprints/${sprintId}/status`, { status, concurrencyToken })
+export const setTaskSprint = (taskId: number, sprintId: number | null, concurrencyToken?: string) => httpPut<TaskDto, { sprintId: number | null; concurrencyToken?: string }>(`/tasks/${taskId}/sprint`, { sprintId, concurrencyToken })
+export const setTaskPlanning = (taskId: number, payload: { storyPoints: number | null; labels: string[]; concurrencyToken?: string }) => httpPut<TaskDto, typeof payload>(`/tasks/${taskId}/planning`, payload)

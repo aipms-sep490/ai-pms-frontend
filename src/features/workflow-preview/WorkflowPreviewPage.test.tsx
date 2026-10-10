@@ -1,0 +1,51 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import { WorkflowPreviewPage } from './WorkflowPreviewPage'
+const flags = vi.hoisted(() => ({ workflowPreviewEnabled: true }))
+vi.mock('../../app/config/env', () => ({ env: flags }))
+beforeEach(() => { flags.workflowPreviewEnabled = true })
+afterEach(cleanup)
+const show = () => render(<MemoryRouter><WorkflowPreviewPage /></MemoryRouter>)
+describe('workflow preview boundaries', () => {
+  it('blocks the fixture UI when the gate is disabled', () => {
+    flags.workflowPreviewEnabled = false; show()
+    expect(screen.getByText('Preview chưa bật')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Chấm nguội' })).toBeNull()
+  })
+  it('finalizes only saved complete scores and locks the inputs', () => {
+    show(); fireEvent.click(screen.getByRole('button', { name: 'Chấm nguội' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất' }))
+    expect(screen.getByRole('alert').textContent).toContain('SCORES_INCOMPLETE')
+    screen.getAllByRole('spinbutton').forEach(input => fireEvent.change(input, { target: { value: '5' } }))
+    expect((screen.getByRole('button', { name: 'Hoàn tất' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu nháp' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất' }))
+    expect(screen.getByText(/FINALIZED — chỉ xem/)).toBeTruthy()
+    expect(screen.getByRole('group', { name: 'Tiêu chí minh họa' }).hasAttribute('disabled')).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Tổng quan COLD' }))
+    expect(screen.getByText('1/1 FINALIZED')).toBeTruthy()
+  })
+  it('preserves weekly score identity and does not change leader before approval', () => {
+    show(); fireEvent.click(screen.getByRole('button', { name: 'Điểm cá nhân tuần' }))
+    screen.getAllByRole('spinbutton').forEach(input => fireEvent.change(input, { target: { value: '8' } }))
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi điểm tuần' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'Sinh viên' }), { target: { value: '2' } })
+    expect((screen.getAllByRole('spinbutton')[0] as HTMLInputElement).value).toBe('')
+    fireEvent.change(screen.getByRole('combobox', { name: 'Sinh viên' }), { target: { value: '1' } })
+    expect((screen.getAllByRole('spinbutton')[0] as HTMLInputElement).value).toBe('8')
+    fireEvent.click(screen.getByRole('button', { name: 'Đổi trưởng nhóm' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Lý do đổi trưởng nhóm' }), { target: { value: 'Thay đổi người điều phối' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu' }))
+    expect(screen.getByText('Trưởng nhóm hiện tại: Nguyễn An (fixture)')).toBeTruthy()
+    fireEvent.change(screen.getByRole('combobox', { name: 'Vai trò thử nghiệm' }), { target: { value: 'supervisor' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Duyệt' }))
+    expect(screen.getByText('Trưởng nhóm hiện tại: Trần Bình (fixture)')).toBeTruthy()
+  })
+  it('offers retry for a load failure without discarding the fixture state', () => {
+    show(); fireEvent.change(screen.getByRole('combobox', { name: 'Kịch bản hiển thị' }), { target: { value: 'error' } })
+    expect(screen.getByRole('alert').textContent).toContain('PREVIEW_LOAD_FAILED')
+    fireEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
+    expect(screen.getByRole('table', { name: 'Bảy vị trí báo cáo' })).toBeTruthy()
+  })
+})

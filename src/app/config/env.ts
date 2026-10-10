@@ -48,6 +48,8 @@ export const env = {
   apiBaseUrl: apiBaseUrl.replace(/\/$/, ''),
   dataMode,
   isMockMode: dataMode === 'mock',
+  /** Proposed UX sandbox only; never expose fixture mutations in API mode. */
+  workflowPreviewEnabled: dataMode === 'mock' && import.meta.env.VITE_ENABLE_WORKFLOW_PREVIEW?.trim().toLowerCase() === 'true',
   /** AI is an opt-in advisory capability and must never be required for core PMS work. */
   aiAdvisoryEnabled,
   videoMeetingEnabled,
@@ -63,4 +65,8 @@ export const env = {
   leadDepartmentPublishEnabled,
   rbacWriteEnabled,
   chatEnabled: import.meta.env.VITE_ENABLE_CHAT?.trim().toLowerCase() === 'true',
+  /** Gates chat file/image upload and reactions until the backend contract ships; default off. */
+  chatAttachmentsEnabled: import.meta.env.VITE_ENABLE_CHAT_ATTACHMENTS?.trim().toLowerCase() === 'true',
+  /** Gates Jira-style sprint/backlog/story-point/label UI until the backend sprint contract ships; default off. */
+  jiraSprintEnabled: import.meta.env.VITE_ENABLE_JIRA_SPRINT?.trim().toLowerCase() === 'true',
 } as const

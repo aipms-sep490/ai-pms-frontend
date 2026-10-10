@@ -64,3 +64,10 @@ it('loads published values without making the frozen scheme editable', async () 
   expect((screen.getByLabelText('Ngưỡng đạt (0–10)') as HTMLInputElement).disabled).toBe(true)
   expect(screen.queryByRole('button', { name: 'Lưu bản nháp' })).toBeNull()
 })
+
+it('flags a PROPOSED scheme as not-yet-approved so it is not mistaken for official grading', async () => {
+  api.getEvaluationSchemes.mockResolvedValue([{ ...scheme, status: 'PROPOSED' }])
+  page(); fireEvent.click(await screen.findByRole('button', { name: /Scheme server/ }))
+  expect(screen.getByText('Đề xuất — chưa duyệt')).toBeTruthy()
+  expect(screen.getByRole('note').textContent).toContain('chưa được bộ môn phê duyệt')
+})

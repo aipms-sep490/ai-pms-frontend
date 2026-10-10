@@ -1,0 +1,46 @@
+.task-board-scroll { display: flex; gap: 16px; max-width: 100%; overflow-x: auto; padding: 16px; align-items: stretch; }
+.task-board-scroll:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+.task-board-column { flex: 0 0 260px; min-width: 0; padding: 12px; border: 1px solid var(--color-hairline); border-radius: 8px; background: var(--color-canvas); }
+.task-board-column h2 { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+.task-board-column h2 span { color: var(--color-ink-muted); font-variant-numeric: tabular-nums; }
+.task-board-column ul { display: flex; flex-direction: column; gap: 12px; }
+.task-board-card { display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px solid var(--color-hairline); border-radius: 6px; background: var(--color-card); color: var(--color-ink); overflow-wrap: anywhere; min-height: 44px; font-size: 14px; }
+.task-board-card small { font-size: 12px; color: var(--color-ink-muted); }
+.task-board-card:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+.task-board-card:hover { border-color: var(--color-primary); }
+.task-board-panel .ex-toolbar { flex-wrap: wrap; }
+.task-board-panel .ex-tabs { flex-wrap: wrap; min-width: 0; max-width: 100%; }
+.task-board-panel :is(.ex-tabs button,.ex-filters button,.ex-filters input,.ex-filters select,.ex-pagination button) { min-height: 44px; height: auto; }
+.task-board-panel .ex-pagination { flex-wrap: wrap; }
+
+/* Sprint & Backlog (Jira-style, feature-flagged) */
+.sprint-view { display: flex; flex-direction: column; gap: 16px; }
+.sprint-notice { padding: 10px 14px; border-radius: 8px; background: var(--color-status-success-bg); color: var(--color-status-success-text); font-size: 14px; }
+.sprint-error { padding: 10px 14px; border-radius: 8px; background: var(--color-status-error-bg); color: var(--color-status-error-text); font-size: 14px; }
+.sprint-create-fields { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.sprint-create-fields label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.sprint-create-fields input { min-height: 40px; border: 1px solid var(--color-hairline); border-radius: 6px; padding: 6px 10px; }
+.sprint-card-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: start; }
+.sprint-card-actions { display: flex; gap: 8px; }
+.sprint-badge { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; vertical-align: middle; }
+.sprint-badge--active { background: var(--color-status-success-bg); color: var(--color-status-success-text); }
+.sprint-badge--planning { background: var(--color-canvas); color: var(--color-ink-muted, #64748b); border: 1px solid var(--color-hairline); }
+.sprint-points { font-size: 14px; font-variant-numeric: tabular-nums; margin-bottom: 10px; }
+.sprint-task-rows { display: flex; flex-direction: column; gap: 8px; list-style: none; }
+.sprint-task-row { border: 1px solid var(--color-hairline); border-radius: 8px; padding: 10px 12px; }
+.sprint-task-main { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; }
+.sprint-task-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; }
+.sprint-point-badge { min-width: 22px; text-align: center; padding: 1px 6px; border-radius: 999px; background: var(--color-primary-subtle); color: var(--color-primary); font-weight: 700; font-size: 12px; }
+.sprint-label-chip { padding: 1px 8px; border-radius: 999px; background: var(--color-canvas); border: 1px solid var(--color-hairline); font-size: 12px; }
+.sprint-task-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 8px; }
+.sprint-task-controls select { min-height: 40px; border: 1px solid var(--color-hairline); border-radius: 6px; padding: 4px 8px; }
+.sprint-task-edit { margin-top: 10px; border-top: 1px dashed var(--color-hairline); padding-top: 10px; }
+.sprint-point-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.sprint-point-option { min-height: 36px; min-width: 36px; border: 1px solid var(--color-hairline); border-radius: 8px; background: var(--color-card); font-size: 13px; }
+.sprint-point-option--on { border-color: var(--color-primary); background: var(--color-primary-subtle); color: var(--color-primary); font-weight: 700; }
+.sprint-task-edit label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.sprint-task-edit input { min-height: 40px; border: 1px solid var(--color-hairline); border-radius: 6px; padding: 6px 10px; }
+.sprint-task-edit-actions { display: flex; gap: 8px; margin-top: 10px; }
+.sprint-completed { list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.task-card-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

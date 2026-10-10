@@ -80,4 +80,14 @@ describe('EvaluatorAssignmentManagementPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Phân công người chấm' }))
     await waitFor(() => expect(api.assignEvaluator).toHaveBeenCalledWith(2, { evaluatorId: 6, projectPeriodId: 7, evaluationType: 'LECTURER', componentId: 42, scope: 'COMMON', majorId: null, studentId: null }))
   })
+
+  it('warns when a required component of the selected period lacks enough active evaluators', async () => {
+    api.getProjectPeriods.mockResolvedValue({ items: [{ id: 7, name: 'Đợt bảo vệ', semesterName: 'Fall 2026', periodType: 'EVALUATION', status: 'ACTIVE', rubricId: 4 }], page: 1, pageSize: 100, totalCount: 1 })
+    api.getEvaluationSchemes.mockResolvedValue([{ id: 31, rootId: 31, version: 1, projectId: 2, projectPeriodId: 7, name: 'Scheme Fall', status: 'PUBLISHED', passThreshold: 5, concurrencyToken: 'scheme-token', policyVersionId: 6, calculationRule: 'RULE', students: [], components: [{ id: 42, name: 'Chuyên ngành Marketing', scope: 'MAJOR_SPECIFIC', majorId: 9, rubricId: 4, projectWeightPercent: 50, studentWeightPercent: 30, requiredEvaluators: 2 }] }])
+    api.getProjectEvaluationAssignments.mockResolvedValue({ items: [{ id: 8, projectId: 2, evaluatorId: 6, rubricId: 4, projectPeriodId: 7, departmentId: 1, evaluationType: 'LECTURER', status: 'ACTIVE', assignedBy: 3, assignedAt: '2026-09-28T00:00:00Z', revokedAt: null, concurrencyToken: 't', scope: 'MAJOR_SPECIFIC', majorId: 9, studentId: null, componentId: 42, policyVersionId: 6 }], page: 1, pageSize: 100, totalCount: 1 })
+    renderPage()
+    fireEvent.change(await screen.findByLabelText('Đợt đánh giá'), { target: { value: '7' } })
+    expect(await screen.findByText('Độ phủ người chấm theo thành phần')).toBeTruthy()
+    expect(screen.getByText('1/2 người chấm')).toBeTruthy()
+  })
 })
