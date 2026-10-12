@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { BackLink } from './BackLink'
 import './workspace-page.css'
 import './workspace-flat.css'
 
@@ -8,7 +8,7 @@ export function WorkspacePage({ title, description, eyebrow, backTo, action, chi
 }) {
   const parts = eyebrow?.split(/[•·]/)
   return <div className={`workspace-page workspace-flat ${className}`}>
-    {backTo && <Link className="workspace-back" to={backTo}><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Quay lại</Link>}
+    {backTo && <BackLink className="workspace-back" fallback={backTo}><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Quay lại</BackLink>}
     <header className="workspace-heading">
       <div className="workspace-heading-copy">
         {eyebrow && <div className="workspace-context"><span className="workspace-kicker">{parts?.[0].trim()}</span>{parts && parts.length > 1 && <span className="workspace-context-detail" title={parts.slice(1).join(' · ')}>{parts.slice(1).join(' · ')}</span>}</div>}

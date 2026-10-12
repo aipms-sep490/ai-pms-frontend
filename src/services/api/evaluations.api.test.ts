@@ -25,4 +25,14 @@ describe('Evaluation HTTP contract', () => {
     expect(JSON.parse(fetch.mock.calls[2][1].body)).toMatchObject({ concurrencyToken: 'scheme-token', projectId: 9 })
     expect(JSON.parse(fetch.mock.calls[3][1].body)).toEqual({ concurrencyToken: 'scheme-token' })
   })
+
+  it('forwards additive BE policy, stage and exact evaluator weights without applying FE defaults', async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) }); vi.stubGlobal('fetch', fetch)
+    const body: api.SaveEvaluationSchemeInput = { projectId: 9, projectPeriodId: 7, name: 'Version 2', passThreshold: 6.5, concurrencyToken: 'fresh-token', components: [{ name: 'Defense', scope: 'COMMON', majorId: null, rubricId: 4, projectWeightPercent: 100, studentWeightPercent: 100, requiredEvaluators: 2, stage: 'DEFENSE', evaluatorWeights: [{ evaluatorId: 7, weightPercent: 75.125 }, { evaluatorId: 8, weightPercent: 24.875 }] }], policy: { isDemo: false, approvalStatus: 'APPROVED', approvalReference: 'QD/2026/123', formula: 'COMPONENT_WEIGHTS', calculationVersion: 'DECIMAL_V2', roundingMode: 'AWAY_FROM_ZERO', decimalPlaces: 2 } }
+    await api.updateEvaluationScheme(3, body)
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual(body)
+    const { policy: _policy, ...metadataOnly } = body
+    await api.updateEvaluationScheme(3, metadataOnly)
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).not.toHaveProperty('policy')
+  })
 })

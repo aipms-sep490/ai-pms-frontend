@@ -3,6 +3,12 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { HttpError } from '../../services/http/http-client'
 import { ResultPublicationPage } from './ResultPublicationPage'
+import { projectCapabilities } from '../../test/project-capabilities'
+
+const capabilitiesApi = vi.hoisted(() => ({ getMyCapabilities: vi.fn() }))
+const auth = vi.hoisted(() => ({ session: { accessToken: 'fixture', user: { roles: ['DEPARTMENT_STAFF'] } } }))
+vi.mock('../auth/context/useAuthSession', () => ({ useAuthSession: () => auth }))
+vi.mock('../capabilities/capabilities-api', async () => ({ ...await vi.importActual<typeof import('../capabilities/capabilities-api')>('../capabilities/capabilities-api'), ...capabilitiesApi }))
 
 const api = vi.hoisted(() => ({ getProjectResult: vi.fn(), getResultPreview: vi.fn(), publishProjectResult: vi.fn(), configureResultPolicy: vi.fn() }))
 vi.mock('../../services/api/project-results.api', () => api)
@@ -10,7 +16,7 @@ vi.mock('../../app/context/useAcademicWorkflow', () => ({ useAcademicWorkflow: (
 vi.mock('./StudentResultPublicationPanel', () => ({ StudentResultPublicationPanel: ({ departmentId }: { departmentId?: number }) => <section aria-label="Kết quả sinh viên độc lập" data-department={departmentId} /> }))
 const preview = (token = 'current-token') => ({ canPublish: true, totalScore: 8, passThreshold: 5, outcome: 'PASS', blockers: [], confirmationToken: token })
 function page() { render(<MemoryRouter initialEntries={['/department/projects/9/result']}><Routes><Route path="/department/projects/:projectId/result" element={<ResultPublicationPage />} /></Routes></MemoryRouter>) }
-beforeEach(() => { api.getProjectResult.mockResolvedValue(null); api.getResultPreview.mockResolvedValue(preview()); api.publishProjectResult.mockResolvedValue({}) })
+beforeEach(() => { auth.session = { accessToken: 'fixture', user: { roles: ['DEPARTMENT_STAFF'] } }; capabilitiesApi.getMyCapabilities.mockResolvedValue(projectCapabilities(9)); api.getProjectResult.mockResolvedValue(null); api.getResultPreview.mockResolvedValue(preview()); api.publishProjectResult.mockResolvedValue({}) })
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 
 it('keeps admin navigation and all authorized student targets even with a linked department', async () => {
@@ -61,4 +67,29 @@ it('shows a project preview forbidden error while preserving independent student
   expect((await screen.findByRole('alert')).textContent).toContain('quyền')
   expect(screen.getByRole('region', { name: 'Kết quả sinh viên độc lập' })).toBeDefined()
   expect(screen.queryByRole('button', { name: 'Công bố kết quả đồ án' })).toBeNull()
+})
+
+it('refuses an old confirmation after identity and capability changes, even if the new actor is allowed', async () => {
+  const ui = () => <MemoryRouter initialEntries={['/department/projects/9/result']}><Routes><Route path="/department/projects/:projectId/result" element={<ResultPublicationPage />} /></Routes></MemoryRouter>
+  const rendered = render(ui())
+  await screen.findByRole('checkbox')
+  fireEvent.click(screen.getByRole('checkbox')); fireEvent.click(screen.getByRole('button', { name: 'Công bố kết quả đồ án' }))
+  capabilitiesApi.getMyCapabilities.mockResolvedValue(projectCapabilities(9))
+  auth.session = { accessToken: 'other-lead', user: { roles: ['DEPARTMENT_STAFF'] } }
+  rendered.rerender(ui())
+  await waitFor(() => expect(capabilitiesApi.getMyCapabilities).toHaveBeenCalledTimes(2))
+  await waitFor(() => expect(screen.getByRole('checkbox').getAttribute('checked')).toBeNull())
+  fireEvent.click(screen.getByRole('button', { name: 'Xác nhận công bố' }))
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  expect(api.publishProjectResult).not.toHaveBeenCalled()
+})
+
+it('does not expose publication when server capability verification fails', async () => {
+  capabilitiesApi.getMyCapabilities.mockRejectedValue(new HttpError('Unavailable', 503))
+  page()
+  await screen.findByText(/Chưa xác minh được thao tác khả dụng/)
+  await screen.findByRole('region', { name: 'Bản xem trước kết quả' })
+  expect(screen.queryByRole('checkbox')).toBeNull()
+  expect(screen.queryByRole('button', { name: 'Công bố kết quả đồ án' })).toBeNull()
+  expect(api.publishProjectResult).not.toHaveBeenCalled()
 })

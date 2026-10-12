@@ -3,9 +3,13 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { EvaluationSchemeManagementPage } from './EvaluationSchemeManagementPage'
 import { HttpError } from '../../services/http/http-client'
+import { projectCapabilities } from '../../test/project-capabilities'
 
-const api = vi.hoisted(() => ({ getProject: vi.fn(), getProjectPeriods: vi.fn(), listRubrics: vi.fn(), getEvaluationSchemes: vi.fn(), createEvaluationScheme: vi.fn(), updateEvaluationScheme: vi.fn() }))
-const auth = vi.hoisted(() => ({ session: { accessToken: 'fixture', user: { roles: ['ADMIN'] } } }))
+const capabilitiesApi = vi.hoisted(() => ({ getMyCapabilities: vi.fn() }))
+vi.mock('../capabilities/capabilities-api', async () => ({ ...await vi.importActual<typeof import('../capabilities/capabilities-api')>('../capabilities/capabilities-api'), ...capabilitiesApi }))
+
+const api = vi.hoisted(() => ({ getProject: vi.fn(), getProjectPeriods: vi.fn(), listRubrics: vi.fn(), getEvaluationSchemes: vi.fn(), createEvaluationScheme: vi.fn(), updateEvaluationScheme: vi.fn(), createEvaluationSchemeVersion: vi.fn() }))
+const auth = vi.hoisted(() => ({ session: { accessToken: 'fixture', user: { roles: ['ADMIN', 'DEPARTMENT_STAFF'] } } }))
 vi.mock('../auth/context/useAuthSession', () => ({ useAuthSession: () => auth }))
 vi.mock('../../services/api/projects.api', () => ({ getProject: api.getProject }))
 vi.mock('../academic/api/governance-api', () => ({ getProjectPeriods: api.getProjectPeriods }))
@@ -13,6 +17,8 @@ vi.mock('./rubrics-api', () => ({ listRubrics: api.listRubrics }))
 vi.mock('../../services/api/evaluations.api', () => api)
 const scheme = { id: 2, projectId: 9, projectPeriodId: 4, name: 'Scheme server', status: 'DRAFT', passThreshold: 6.5, concurrencyToken: 'old-token', components: [{ id: 1, name: 'Common', scope: 'COMMON', majorId: null, rubricId: 8, projectWeightPercent: 100, studentWeightPercent: 100, requiredEvaluators: 1 }] }
 beforeEach(() => {
+  auth.session = { accessToken: 'fixture', user: { roles: ['ADMIN', 'DEPARTMENT_STAFF'] } }
+  capabilitiesApi.getMyCapabilities.mockResolvedValue(projectCapabilities(9))
   api.getProject.mockResolvedValue({ id: 9, majors: [{ majorId: 3, majorCode: 'SE' }] })
   api.getProjectPeriods.mockResolvedValue({ items: [{ id: 4, name: 'Period', periodType: 'EVALUATION', status: 'ACTIVE' }], page: 1, totalPages: 1 })
   api.listRubrics.mockResolvedValue({ items: [{ id: 8, code: 'IT', version: 1 }], page: 1, totalPages: 1 })
@@ -70,4 +76,97 @@ it('flags a PROPOSED scheme as not-yet-approved so it is not mistaken for offici
   page(); fireEvent.click(await screen.findByRole('button', { name: /Scheme server/ }))
   expect(screen.getByText('Đề xuất — chưa duyệt')).toBeTruthy()
   expect(screen.getByRole('note').textContent).toContain('chưa được bộ môn phê duyệt')
+  expect(screen.getByRole('note').textContent).toContain('không thay cho phê duyệt học thuật')
+})
+
+const officialPolicy = { isDemo: false, approvalStatus: 'APPROVED', approvalReference: 'QD-2026-123', formula: 'COMPONENT_WEIGHTS', calculationVersion: 'DECIMAL_V2', roundingMode: 'AWAY_FROM_ZERO', decimalPlaces: 2 }
+it('preserves server stage and evaluator weights when saving unrelated draft fields, without rewriting approval', async () => {
+  const component = { ...scheme.components[0], stage: 'COLD', requiredEvaluators: 2, evaluatorWeights: [{ evaluatorId: 7, weightPercent: 75.125 }, { evaluatorId: 8, weightPercent: 24.875 }] }
+  const source = { ...scheme, policy: officialPolicy, components: [component] }
+  api.getEvaluationSchemes.mockResolvedValue([source])
+  api.updateEvaluationScheme.mockResolvedValue({ ...source, concurrencyToken: 'next-token' })
+  page(); fireEvent.click(await screen.findByRole('button', { name: /Scheme server/ }))
+  fireEvent.change(screen.getByLabelText('Tên phương án đánh giá'), { target: { value: 'Renamed' } })
+  fireEvent.submit(screen.getByLabelText('Tên phương án đánh giá').closest('form')!)
+  await waitFor(() => expect(api.updateEvaluationScheme).toHaveBeenCalledTimes(1))
+  const input = api.updateEvaluationScheme.mock.calls[0][1]
+  expect(input.components).toEqual([component])
+  expect(input).not.toHaveProperty('policy')
+  expect(input.concurrencyToken).toBe('old-token')
+  await screen.findByText('Đã lưu thay đổi cho phương án đánh giá bản nháp.')
+})
+
+it.each(['COLD', 'DEFENSE', 'ON_GOING', null])('accepts a zero-weight tracking component only for COLD, not %s otherwise', async stage => {
+  const source = { ...scheme, components: [scheme.components[0], { ...scheme.components[0], id: 2, name: 'Tracking', projectWeightPercent: 0, studentWeightPercent: 0, stage }] }
+  api.getEvaluationSchemes.mockResolvedValue([source])
+  api.updateEvaluationScheme.mockResolvedValue(source)
+  page(); fireEvent.click(await screen.findByRole('button', { name: /Scheme server/ }))
+  fireEvent.submit(screen.getByLabelText('Tên phương án đánh giá').closest('form')!)
+  if (stage === 'COLD') {
+    await waitFor(() => expect(api.updateEvaluationScheme).toHaveBeenCalledTimes(1))
+    expect(api.updateEvaluationScheme.mock.calls[0][1].components[1]).toMatchObject({ stage: 'COLD', projectWeightPercent: 0, studentWeightPercent: 0 })
+  } else {
+    await screen.findByRole('alert')
+    expect(api.updateEvaluationScheme).not.toHaveBeenCalled()
+  }
+})
+
+it('selects BE successor metadata without inheriting old approval or lock time, leaving the source frozen', async () => {
+  const source = { ...scheme, version: 1, status: 'PUBLISHED', policy: officialPolicy, lockedAt: '2026-10-09T00:00:00Z' }
+  const successor = { ...source, id: 3, version: 2, status: 'DRAFT', concurrencyToken: 'successor-token', policy: { ...officialPolicy, isDemo: true, approvalStatus: 'DEMO', approvalReference: null }, lockedAt: null }
+  api.getEvaluationSchemes.mockResolvedValue([source])
+  api.createEvaluationSchemeVersion.mockImplementation(async () => {
+    api.getEvaluationSchemes.mockResolvedValue([source, successor])
+    return successor
+  })
+  page(); fireEvent.click(await screen.findByRole('button', { name: /Scheme server/ }))
+  expect(screen.getByText('Đã ghi nhận phê duyệt')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Tạo phiên bản' }))
+  await screen.findByText('Minh họa — chưa dùng chính thức')
+  expect(screen.queryByText('QD-2026-123')).toBeNull()
+  expect(screen.getByText('Chưa ghi nhận')).toBeTruthy()
+  expect(api.createEvaluationSchemeVersion).toHaveBeenCalledWith(2, 'old-token')
+  expect(api.updateEvaluationScheme).not.toHaveBeenCalled()
+  fireEvent.click(screen.getAllByRole('button', { name: /Scheme server/ })[0])
+  expect(screen.getByText('QD-2026-123')).toBeTruthy()
+  expect((screen.getByLabelText('Tên phương án đánh giá') as HTMLInputElement).disabled).toBe(true)
+})
+
+it('does not report successful version creation or lose original provenance when BE rejects it', async () => {
+  api.getEvaluationSchemes.mockResolvedValue([{ ...scheme, status: 'PUBLISHED', policy: officialPolicy }])
+  api.createEvaluationSchemeVersion.mockRejectedValue(new HttpError('Forbidden', 403))
+  page(); fireEvent.click(await screen.findByRole('button', { name: /Scheme server/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Tạo phiên bản' }))
+  await screen.findByRole('alert')
+  expect(screen.getByText('QD-2026-123')).toBeTruthy()
+  expect(screen.queryByText(/Đã tạo phiên bản nháp mới/)).toBeNull()
+  expect(api.createEvaluationSchemeVersion).toHaveBeenCalledTimes(1)
+})
+
+it('keeps an Admin-only actor read-only even if a draft is available', async () => {
+  auth.session = { accessToken: 'fixture', user: { roles: ['ADMIN'] } }
+  capabilitiesApi.getMyCapabilities.mockResolvedValue(projectCapabilities(9, false))
+  page(); fireEvent.click(await screen.findByRole('button', { name: /Scheme server/ }))
+  expect(screen.queryByRole('button', { name: 'Tạo bản nháp' })).toBeNull()
+  expect(screen.queryByRole('button', { name: 'Công bố' })).toBeNull()
+  expect((screen.getByLabelText('Tên phương án đánh giá') as HTMLInputElement).disabled).toBe(true)
+  fireEvent.submit(screen.getByLabelText('Tên phương án đánh giá').closest('form')!)
+  expect(api.updateEvaluationScheme).not.toHaveBeenCalled()
+  expect(api.createEvaluationScheme).not.toHaveBeenCalled()
+})
+it('preserves the draft and revokes editing while failed capabilities are retried', async () => {
+  page(); fireEvent.click(await screen.findByRole('button', { name: /Scheme server/ }))
+  fireEvent.change(screen.getByLabelText('Tên phương án đánh giá'), { target: { value: 'Unsaved work' } })
+  api.updateEvaluationScheme.mockRejectedValue(new HttpError('Forbidden', 403))
+  capabilitiesApi.getMyCapabilities.mockRejectedValue(new HttpError('Unavailable', 503))
+  fireEvent.submit(screen.getByLabelText('Tên phương án đánh giá').closest('form')!)
+  await screen.findByText(/Chưa xác minh được thao tác khả dụng/)
+  expect((screen.getByLabelText('Tên phương án đánh giá') as HTMLInputElement).value).toBe('Unsaved work')
+  expect((screen.getByLabelText('Tên phương án đánh giá') as HTMLInputElement).disabled).toBe(true)
+  fireEvent.submit(screen.getByLabelText('Tên phương án đánh giá').closest('form')!)
+  expect(api.updateEvaluationScheme).toHaveBeenCalledTimes(1)
+  capabilitiesApi.getMyCapabilities.mockResolvedValue(projectCapabilities(9))
+  fireEvent.click(screen.getByRole('button', { name: 'Tải lại quyền thao tác' }))
+  await waitFor(() => expect((screen.getByLabelText('Tên phương án đánh giá') as HTMLInputElement).disabled).toBe(false))
+  expect((screen.getByLabelText('Tên phương án đánh giá') as HTMLInputElement).value).toBe('Unsaved work')
 })

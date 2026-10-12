@@ -1,0 +1,9 @@
+.resource-permission-action:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.academic-capability-page {
+  /* The shared collaboration shell currently invalidates this token through
+     self-reference. Reuse the existing root motion token in these FE2 pages. */
+  --color-primary: var(--mk-primary);
+}

@@ -56,6 +56,8 @@ export function PeriodPolicyManagementPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [conflicted, setConflicted] = useState(false)
+  const mutationLock = useRef(false)
 
   useEffect(() => { if (error) errorSummary.current?.focus() }, [error])
   const load = useCallback(async () => {
@@ -67,14 +69,15 @@ export function PeriodPolicyManagementPage() {
         api.getEffectivePeriodPolicy(periodId).catch(reason => reason instanceof HttpError && reason.status === 404 ? null : Promise.reject(reason)),
       ])
       setHistory(nextHistory); setEffective(nextEffective); setError(null)
-    } catch (reason) { setError(errorText(reason)) } finally { setLoading(false) }
+    } catch (reason) { setHistory([]); setEffective(null); setError(errorText(reason)) } finally { setLoading(false) }
   }, [periodId])
   useEffect(() => { void load() }, [load])
 
-  const editDraft = (policy: api.PeriodPolicy) => { setEditing(policy); setDraft(fromPolicy(policy)); setError(null); setNotice(null) }
+  const editDraft = (policy: api.PeriodPolicy) => { if (loading || busy) return; setEditing(policy); setDraft(fromPolicy(policy)); setError(null); setNotice(null); setConflicted(false) }
   const createSuccessor = () => {
+    if (loading || busy || !history.length || history[0].status === 'DRAFT') return
     if (!effective) { setError('Cần có một chính sách đang hiệu lực trước khi tạo bản kế tiếp.'); return }
-    setEditing(null); setDraft({ ...fromPolicy(effective), effectiveFrom: localDateTime(new Date().toISOString()) }); setError(null); setNotice(null)
+    setEditing(null); setDraft({ ...fromPolicy(effective), effectiveFrom: localDateTime(new Date().toISOString()) }); setError(null); setNotice(null); setConflicted(false)
   }
   const validate = () => {
     if (!draft) return 'Không có dữ liệu chính sách để lưu.'
@@ -86,6 +89,7 @@ export function PeriodPolicyManagementPage() {
   }
   const save = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (loading || busy || conflicted || mutationLock.current) return
     const issue = validate(); if (issue || !draft) { setError(issue); return }
     const latest = history[0]
     if (!latest) { setError('Chưa có lịch sử chính sách để xác định phiên bản kế tiếp.'); return }
@@ -99,7 +103,7 @@ export function PeriodPolicyManagementPage() {
     void run(() => api.savePeriodPolicy(periodId, input), editing ? 'Đã lưu bản nháp chính sách.' : 'Đã tạo bản kế tiếp ở trạng thái nháp.', true)
   }
   const publish = async () => {
-    if (!editing || editing.status !== 'DRAFT' || !draft) return
+    if (loading || busy || conflicted || mutationLock.current || !editing || editing.status !== 'DRAFT' || !draft) return
     if (await requestConfirmation({ title: 'Công bố chính sách?', description: 'Phiên bản này sẽ được áp dụng ngay và kết thúc hiệu lực của phiên bản trước.', confirmLabel: 'Công bố chính sách' }) === null) return
     const now = new Date()
     const input: api.SavePeriodPolicyInput = {
@@ -110,6 +114,8 @@ export function PeriodPolicyManagementPage() {
     void run(() => api.savePeriodPolicy(periodId, input), 'Đã công bố phiên bản chính sách mới.', false)
   }
   const run = async (operation: () => Promise<api.PeriodPolicy>, success: string, openResult: boolean) => {
+    if (loading || conflicted || mutationLock.current) return
+    mutationLock.current = true
     setBusy(true); setError(null); setNotice(null)
     try {
       const result = await operation(); await load()
@@ -117,18 +123,19 @@ export function PeriodPolicyManagementPage() {
       else { setEditing(null); setDraft(null) }
       setNotice(success)
     } catch (reason) {
-      if (reason instanceof HttpError && reason.status === 409) await load()
+      if (reason instanceof HttpError && reason.status === 409) { setConflicted(true); await load() }
       setError(errorText(reason))
-    } finally { setBusy(false) }
+    } finally { mutationLock.current = false; setBusy(false) }
   }
 
   return <WorkspacePage className="space-y-6" title="Phiên bản chính sách" eyebrow={`Giai đoạn đồ án #${periodId}`} description="Xem lịch sử và điều chỉnh các điều kiện áp dụng cho giai đoạn này." backTo="/academic/governance">
     {confirmationDialog}
+    {history[0]?.status === 'DRAFT' && <p className="workspace-note p-4 text-sm">Đang có bản nháp chính sách. Chọn bản nháp trong lịch sử để sửa hoặc công bố trước khi tạo bản kế tiếp.</p>}{conflicted && <p role="status" className="workspace-note p-4 text-sm">Bản nhập được giữ để đối chiếu và đã khóa lưu/công bố. Chọn bản nháp mới trong lịch sử hoặc tạo bản kế tiếp từ chính sách hiện hành vừa tải; hệ thống không tự gửi lại thao tác.</p>}
     {error && <div ref={errorSummary} tabIndex={-1} role="alert" aria-labelledby="policy-error-title" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><p id="policy-error-title" className="font-semibold">Chưa thể hoàn tất thao tác</p><p className="mt-1">{error}</p><button type="button" onClick={() => void load()} className="mt-2 min-h-11 font-semibold underline underline-offset-4">Tải lại dữ liệu</button></div>}
     {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{notice}</p>}
-    <section className="workspace-surface p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900">Chính sách hiện hành</h2>{effective ? <p className="mt-1 text-sm text-slate-600">Phiên bản {effective.version} · {policyStatusLabels[effective.status] ?? effective.status} · hiệu lực {formatDateTime(effective.effectiveFrom)} đến {formatDateTime(effective.effectiveTo)}</p> : <p className="mt-1 text-sm text-status-warning-text">Chưa có chính sách hiệu lực tại thời điểm hiện tại.</p>}</div><button type="button" disabled={loading || busy || !effective} onClick={createSuccessor} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Tạo bản kế tiếp</button></div>{effective && <PolicyFields policy={effective.policy} />}</section>
-    <div className="workspace-master-detail"><section className="workspace-surface p-5"><h2 className="font-semibold text-slate-900">Lịch sử phiên bản</h2>{loading ? <p role="status" className="mt-3 text-sm text-slate-600">Đang tải lịch sử chính sách…</p> : history.length === 0 ? <p className="mt-3 text-sm text-slate-600">Chưa có phiên bản chính sách.</p> : <ul className="mt-3 space-y-2">{history.map(item => <li key={item.id}><button type="button" onClick={() => item.status === 'DRAFT' ? editDraft(item) : undefined} disabled={item.status !== 'DRAFT'} className={`policy-history-row min-h-11 w-full p-3 text-left text-sm ${item.status === 'DRAFT' ? 'border-status-warning-border bg-status-warning-bg hover:bg-status-warning-bg/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary' : 'border-hairline bg-slate-50'}`}><strong>Phiên bản {item.version} · {policyStatusLabels[item.status] ?? item.status}</strong><span className="mt-1 block text-xs text-slate-600">{formatDateTime(item.effectiveFrom)} → {formatDateTime(item.effectiveTo)}</span>{item.status === 'DRAFT' && <span className="mt-1 block text-xs font-semibold text-status-warning-text">Có thể chỉnh sửa</span>}</button></li>)}</ul>}</section>
-      <section className="workspace-surface p-5">{!draft ? <p className="text-sm text-slate-600">Chọn “Tạo bản kế tiếp” để thay đổi chính sách. Các phiên bản đã công bố hoặc đã khóa chỉ xuất hiện trong lịch sử.</p> : <form onSubmit={save} className="space-y-5"><div><h2 className="font-semibold text-slate-900">{editing ? `Chỉnh sửa bản nháp ${editing.version}` : 'Bản nháp kế tiếp'}</h2><p className="mt-1 text-sm text-slate-600">Khi công bố, phiên bản mới sẽ áp dụng từ thời điểm hiện tại. Hệ thống kiểm tra lại thời gian hiệu lực và điều kiện sử dụng trước khi lưu.</p></div><PolicyEditor draft={draft} disabled={busy} onChange={setDraft} /><div className="flex flex-wrap gap-3"><button type="submit" disabled={busy} className="min-h-11 rounded-lg border border-primary px-4 text-sm font-semibold text-primary disabled:opacity-50">{busy ? 'Đang lưu…' : 'Lưu bản nháp'}</button>{editing?.status === 'DRAFT' && <button type="button" disabled={busy} onClick={publish} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">Công bố ngay</button>}<button type="button" disabled={busy} onClick={() => { setEditing(null); setDraft(null); setError(null) }} className="min-h-11 px-3 text-sm font-semibold text-slate-700 underline underline-offset-4">Hủy</button></div></form>}</section></div>
+    <section className="workspace-surface p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900">Chính sách hiện hành</h2>{effective ? <p className="mt-1 text-sm text-slate-600">Phiên bản {effective.version} · {policyStatusLabels[effective.status] ?? effective.status} · hiệu lực {formatDateTime(effective.effectiveFrom)} đến {formatDateTime(effective.effectiveTo)}</p> : <p className="mt-1 text-sm text-status-warning-text">Chưa có chính sách hiệu lực tại thời điểm hiện tại.</p>}</div><button type="button" disabled={loading || busy || !effective || history[0]?.status === 'DRAFT'} onClick={createSuccessor} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Tạo bản kế tiếp</button></div>{effective && <PolicyFields policy={effective.policy} />}</section>
+    <div className="workspace-master-detail"><section className="workspace-surface p-5"><h2 className="font-semibold text-slate-900">Lịch sử phiên bản</h2>{loading ? <p role="status" className="mt-3 text-sm text-slate-600">Đang tải lịch sử chính sách…</p> : history.length === 0 ? <p className="mt-3 text-sm text-slate-600">Chưa có phiên bản chính sách.</p> : <ul className="mt-3 space-y-2">{history.map(item => <li key={item.id}><button type="button" onClick={() => item.status === 'DRAFT' ? editDraft(item) : undefined} disabled={loading || busy || item.status !== 'DRAFT'} className={`policy-history-row min-h-11 w-full p-3 text-left text-sm ${item.status === 'DRAFT' ? 'border-status-warning-border bg-status-warning-bg hover:bg-status-warning-bg/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary' : 'border-hairline bg-slate-50'}`}><strong>Phiên bản {item.version} · {policyStatusLabels[item.status] ?? item.status}</strong><span className="mt-1 block text-xs text-slate-600">{formatDateTime(item.effectiveFrom)} → {formatDateTime(item.effectiveTo)}</span>{item.status === 'DRAFT' && <span className="mt-1 block text-xs font-semibold text-status-warning-text">Có thể chỉnh sửa</span>}</button></li>)}</ul>}</section>
+      <section className="workspace-surface p-5">{!draft ? <p className="text-sm text-slate-600">Chọn “Tạo bản kế tiếp” để thay đổi chính sách. Các phiên bản đã công bố hoặc đã khóa chỉ xuất hiện trong lịch sử.</p> : <form onSubmit={save} className="space-y-5"><div><h2 className="font-semibold text-slate-900">{editing ? `Chỉnh sửa bản nháp ${editing.version}` : 'Bản nháp kế tiếp'}</h2><p className="mt-1 text-sm text-slate-600">Khi công bố, phiên bản mới sẽ áp dụng từ thời điểm hiện tại. Hệ thống kiểm tra lại thời gian hiệu lực và điều kiện sử dụng trước khi lưu.</p></div><PolicyEditor draft={draft} disabled={loading || busy || conflicted} onChange={setDraft} /><div className="flex flex-wrap gap-3"><button type="submit" disabled={loading || busy || conflicted} className="min-h-11 rounded-lg border border-primary px-4 text-sm font-semibold text-primary disabled:opacity-50">{busy ? 'Đang lưu…' : 'Lưu bản nháp'}</button>{editing?.status === 'DRAFT' && <button type="button" disabled={loading || busy || conflicted} onClick={publish} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">Công bố ngay</button>}<button type="button" disabled={busy} onClick={() => { setEditing(null); setDraft(null); setError(null) }} className="min-h-11 px-3 text-sm font-semibold text-slate-700 underline underline-offset-4">Hủy</button></div></form>}</section></div>
     <QualificationPolicyPanel periodId={periodId} />
   </WorkspacePage>
 }
