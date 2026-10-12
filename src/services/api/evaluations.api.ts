@@ -1,6 +1,6 @@
 import { httpDelete, httpGet, httpGetBlob, httpPost, httpPut } from '../http/http-client'
 import type { PagedResult } from '../../types/backend'
-import type { EvaluationAssignment, EvaluationDraft, EvaluationScheme, EvaluationScope, EvaluationScoreInput, EvaluatorRole } from '../../features/evaluations/evaluation-types'
+import type { EvaluationAssignment, EvaluationDraft, EvaluationScheme, EvaluationScope, EvaluationScoreInput, EvaluationStage, EvaluatorRole, SchemeEvaluatorWeight, SchemePolicy } from '../../features/evaluations/evaluation-types'
 
 /** Server-issued direct-assignment authority. `canScore` is authoritative for score mutations. */
 export interface EvaluationAssignmentDetail {
@@ -71,6 +71,9 @@ export interface EvaluationSchemeComponentInput {
   projectWeightPercent: number
   studentWeightPercent: number
   requiredEvaluators: number
+  /** Preserve historical nulls; never silently backfill a stage while saving other fields. */
+  stage?: EvaluationStage | null
+  evaluatorWeights?: SchemeEvaluatorWeight[] | null
 }
 export interface SaveEvaluationSchemeInput {
   projectId: number
@@ -79,6 +82,8 @@ export interface SaveEvaluationSchemeInput {
   passThreshold: number
   components: EvaluationSchemeComponentInput[]
   concurrencyToken?: string
+  /** Omitted on update retains BE provenance; omitted on create defaults to DEMO. */
+  policy?: SchemePolicy
 }
 export const createEvaluationScheme = (body: SaveEvaluationSchemeInput) => httpPost<EvaluationScheme>('/evaluation-schemes', body)
 export const updateEvaluationScheme = (id: number, body: SaveEvaluationSchemeInput) => httpPut<EvaluationScheme>(`/evaluation-schemes/${id}`, body)

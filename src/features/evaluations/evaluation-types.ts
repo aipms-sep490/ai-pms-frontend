@@ -12,9 +12,20 @@ export interface EvaluationAssignment {
   industryScoringMode?: 'ADVISORY' | 'WEIGHTED'; advisory?: boolean
 }
 export type EvaluationScope = Exclude<EvaluationAssignment['scope'], 'UNKNOWN'>
-export interface EvaluationSchemeComponent { id: number; name: string; scope: EvaluationScope; majorId: number | null; rubricId: number; projectWeightPercent: number; studentWeightPercent: number; requiredEvaluators: number }
+export type EvaluationStage = 'ON_GOING' | 'COLD' | 'DEFENSE' | (string & {})
+export interface SchemeEvaluatorWeight { evaluatorId: number; weightPercent: number }
+export interface SchemePolicy {
+  isDemo: boolean; approvalStatus: string; approvalReference: string | null
+  formula: string; calculationVersion: string; roundingMode: string; decimalPlaces: number
+}
+export interface EvaluationSchemeComponent {
+  id: number; name: string; scope: EvaluationScope; majorId: number | null; rubricId: number
+  projectWeightPercent: number; studentWeightPercent: number; requiredEvaluators: number
+  /** Missing weights use the BE equal-mean rule; historical stages remain unknown. */
+  evaluatorWeights?: SchemeEvaluatorWeight[] | null; stage?: EvaluationStage | null
+}
 export interface EvaluationSchemeStudent { studentId: number; majorId: number; departmentId: number }
-export interface EvaluationScheme { id: number; rootId: number; version: number; projectId: number; projectPeriodId: number; name: string; status: 'DRAFT' | 'PROPOSED' | 'PUBLISHED' | 'FROZEN' | string; passThreshold: number; concurrencyToken: string; policyVersionId: number | null; components: EvaluationSchemeComponent[]; students: EvaluationSchemeStudent[]; calculationRule: string }
+export interface EvaluationScheme { id: number; rootId: number; version: number; projectId: number; projectPeriodId: number; name: string; status: 'DRAFT' | 'PROPOSED' | 'PUBLISHED' | 'FROZEN' | string; passThreshold: number; concurrencyToken: string; policyVersionId: number | null; components: EvaluationSchemeComponent[]; students: EvaluationSchemeStudent[]; calculationRule: string; policy?: SchemePolicy | null; lockedAt?: string | null }
 export interface EvaluationScore { rubricCriterionId: number; name: string; description: string | null; weightPercent: number; maxScore: number; sortOrder: number; isRequired: boolean; score: number | null; comments: string | null }
 export interface EvaluationDraft {
   id: number; assignmentId: number; projectId: number; evaluatorId: number; rubricId: number; rubricName: string; rootRubricId: number; rubricVersion: number
