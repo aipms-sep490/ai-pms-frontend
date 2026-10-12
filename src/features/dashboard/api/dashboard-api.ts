@@ -57,6 +57,21 @@ export interface StudentDashboard {
   contributionDataStatus: string
 }
 
+/** BE-N10 · GET /dashboards/me. A tiny cross-role summary card, additive to the role-specific
+ * dashboards above — never a replacement for their numbers. */
+export interface ActorDashboardSummary {
+  asOfUtc: string
+  projectCount: number
+  openTasks: number
+  overdueTasks: number
+  pendingEvaluations: number
+  unreadNotifications: number
+  activeAccounts: number | null
+  scope: string
+  /** False means some figures above could not be computed; render a caveat, not a hard error. */
+  complete: boolean
+}
+
 export interface DashboardFilter {
   semesterId?: number
   departmentId?: number
@@ -73,6 +88,7 @@ function query(filter: DashboardFilter): string {
   return params.size ? `?${params}` : ''
 }
 
+export const getActorDashboard = (semesterId?: number, signal?: AbortSignal) => httpGet<ActorDashboardSummary>(`/v1/dashboards/me${query({ semesterId })}`, signal)
 export const getStudentDashboard = (semesterId?: number) => httpGet<StudentDashboard>(`/v1/dashboards/student${query({ semesterId })}`)
 export const getSupervisorDashboard = (filter: DashboardFilter) => httpGet<SupervisorDashboard>(`/v1/dashboards/supervisor${query(filter)}`)
 export const getPortfolioDashboard = (role: 'department' | 'admin', filter: DashboardFilter) => httpGet<PortfolioDashboard>(`/v1/dashboards/${role}${query(filter)}`)

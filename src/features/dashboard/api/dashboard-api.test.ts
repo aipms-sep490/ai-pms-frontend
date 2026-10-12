@@ -1,7 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { exportPortfolio, exportPortfolioCsv, getPortfolioDashboard } from './dashboard-api'
+import { exportPortfolio, exportPortfolioCsv, getActorDashboard, getPortfolioDashboard } from './dashboard-api'
 
 afterEach(() => { vi.unstubAllGlobals(); localStorage.clear() })
+
+describe('actor dashboard API (BE-N10)', () => {
+  it('reads the cross-role summary from /dashboards/me, with and without a semester filter', async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetch)
+    await getActorDashboard()
+    await getActorDashboard(7)
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual(['/api/v1/dashboards/me', '/api/v1/dashboards/me?semesterId=7'])
+  })
+})
 
 describe('portfolio API', () => {
   it.each(['pdf', 'xlsx'] as const)('exports %s with server filters and without paging', async format => {
