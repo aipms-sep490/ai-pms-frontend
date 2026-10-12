@@ -10,6 +10,7 @@ import { SupervisorProfilePage } from '../../features/supervisors/pages/Supervis
 import { SupervisorProjectWorkspacePage } from '../../features/supervisors/pages/SupervisorProjectWorkspacePage'
 import { SupervisorProgressReviewPage } from '../../features/supervisors/pages/SupervisorProgressReviewPage'
 import { SupervisorFinalSubmissionPage } from '../../features/supervisors/pages/SupervisorFinalSubmissionPage'
+import { WeeklyAssessmentsPage } from '../../features/weekly-assessments/WeeklyAssessmentsPage'
 import { SupervisorExecutionRoute } from '../../features/supervisors/components/SupervisorExecutionRoute'
 import { MentorExecutionRoute } from '../../features/mentors/components/MentorExecutionRoute'
 import { MentorProjectWorkspacePage, MentorWorkspacePage } from '../../features/mentors/pages/MentorWorkspacePage'
@@ -172,6 +173,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'supervisor/projects/:projectId/evidence', element: <ProjectEvidenceLedgerPage /> },
             { path: 'supervisor/projects/:projectId/contributions', element: <ProjectContributionsPage /> },
             { path: 'supervisor/projects/:projectId/final-submission', element: <SupervisorFinalSubmissionPage /> },
+            ...(env.weeklyAssessmentEnabled ? [{ path: 'supervisor/projects/:projectId/weekly-assessments', element: <WeeklyAssessmentsPage /> }] : []),
             ...(env.aiAdvisoryEnabled ? [{ path: 'supervisor/projects/:projectId/ai', element: <ProjectAiPage /> }] : []),
           ] },
           { element: <MentorExecutionRoute />, children: [

@@ -35,6 +35,10 @@ const defenseScheduleEnabled = import.meta.env.VITE_ENABLE_DEFENSE?.trim().toLow
  * server decides canWrite per item. Enable only after the cold-submissions
  * endpoints ship. */
 const coldReportEnabled = import.meta.env.VITE_ENABLE_COLD_REPORT?.trim().toLowerCase() === 'true'
+/** Weekly individual demo assessment (BE-N04). Primary-supervisor-only; isDemo/
+ * affectsOfficialResult are always true/false server-side, never computed by FE.
+ * Enable only after the weekly-assessments endpoints ship. */
+const weeklyAssessmentEnabled = import.meta.env.VITE_ENABLE_WEEKLY_ASSESSMENT?.trim().toLowerCase() === 'true'
 /** Peer evaluation (BE-19b). Evidence only, never a score. Enable after endpoints ship. */
 const peerEvaluationEnabled = import.meta.env.VITE_ENABLE_PEER_EVAL?.trim().toLowerCase() === 'true'
 /** Result correction / appeal requests (BE-19b). A correction creates a new result
@@ -68,6 +72,7 @@ export const env = {
   supervisorRecommendationEnabled,
   defenseScheduleEnabled,
   coldReportEnabled,
+  weeklyAssessmentEnabled,
   peerEvaluationEnabled,
   resultCorrectionEnabled,
   leadDepartmentPublishEnabled,
