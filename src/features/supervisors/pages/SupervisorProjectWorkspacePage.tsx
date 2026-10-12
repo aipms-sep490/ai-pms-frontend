@@ -29,6 +29,7 @@ export function SupervisorProjectWorkspacePage() {
   const evaluatorAssigned = operational.evaluator.state === 'ready' && operational.evaluator.data
   const availableAreas = [
     ...areas,
+    ...(env.gatesEnabled ? [{ key: 'checkpoints', title: 'Checkpoint theo dõi', description: 'Kế hoạch theo dõi và kết luận từng giai đoạn.', path: 'checkpoints' }] : []),
     ...(env.aiAdvisoryEnabled ? [{ key: 'ai', title: 'Rủi ro và AI', description: 'Phân tích tham khảo từ dữ liệu tiến độ.', path: 'ai' }] : []),
   ]
 

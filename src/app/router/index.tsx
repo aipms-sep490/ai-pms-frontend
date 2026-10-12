@@ -171,6 +171,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'supervisor/projects/:projectId/contributions', element: <ProjectContributionsPage /> },
             { path: 'supervisor/projects/:projectId/final-submission', element: <SupervisorFinalSubmissionPage /> },
             ...(env.aiAdvisoryEnabled ? [{ path: 'supervisor/projects/:projectId/ai', element: <ProjectAiPage /> }] : []),
+            ...(env.gatesEnabled ? [{ path: 'supervisor/projects/:projectId/checkpoints', element: <ProjectGatesPage /> }] : []),
           ] },
           { element: <MentorExecutionRoute />, children: [
             { path: 'mentor/projects/:projectId/majors/:majorId/workspace', element: <MentorProjectWorkspacePage /> },
@@ -181,6 +182,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'mentor/projects/:projectId/majors/:majorId/meetings', element: <MeetingsPage /> },
             { path: 'mentor/projects/:projectId/majors/:majorId/meetings/:meetingId', element: <MeetingDetailPage /> },
             { path: 'mentor/projects/:projectId/majors/:majorId/evidence', element: <ProjectEvidenceLedgerPage /> },
+            ...(env.gatesEnabled ? [{ path: 'mentor/projects/:projectId/majors/:majorId/checkpoints', element: <ProjectGatesPage /> }] : []),
           ] },
           { path: 'evaluator/evaluations', element: <EvaluatorAssignmentsPage /> },
           { path: 'evaluator/evaluations/:evaluationId', element: <EvaluationWorkspacePage /> },
