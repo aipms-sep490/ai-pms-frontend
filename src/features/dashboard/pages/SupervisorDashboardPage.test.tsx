@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { SupervisorDashboardPage } from './SupervisorDashboardPage'
 
-const api = vi.hoisted(() => ({ getSupervisorDashboard: vi.fn() }))
-vi.mock('../api/dashboard-api', () => ({ getSupervisorDashboard: api.getSupervisorDashboard }))
+const api = vi.hoisted(() => ({ getSupervisorDashboard: vi.fn(), getActorDashboard: vi.fn() }))
+vi.mock('../api/dashboard-api', () => ({ getSupervisorDashboard: api.getSupervisorDashboard, getActorDashboard: api.getActorDashboard }))
 
 const dashboard = {
   asOfUtc: '2026-09-28T00:00:00Z',
@@ -13,7 +13,7 @@ const dashboard = {
   projects: { items: [{ id: 7, code: 'PRJ-7', title: 'Dashboard contract', status: 'ACTIVE', teamId: 2, semesterId: 1, pendingProgressReviews: 1, departmentId: 1, departmentName: 'SE', majors: [], supervisor: { userId: 4, name: 'GV A' }, analysis: { dataStatus: 'READY', riskLevel: 'HIGH', trendStatus: 'UP', progressSummary: { progressPercentage: 50, overdueTasks: 1, blockedTasks: 0 } } }], page: 1, pageSize: 20, totalCount: 22, totalPages: 2 },
 }
 
-beforeEach(() => { vi.clearAllMocks(); api.getSupervisorDashboard.mockResolvedValue(dashboard) })
+beforeEach(() => { vi.clearAllMocks(); api.getSupervisorDashboard.mockResolvedValue(dashboard); api.getActorDashboard.mockRejectedValue(new Error('not under test')) })
 afterEach(cleanup)
 
 describe('SupervisorDashboardPage', () => {

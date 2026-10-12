@@ -8,6 +8,7 @@ import { env } from '../../../app/config/env'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { Button } from '../../../components/ui/Button'
 import { PageLoading } from '../../../components/ui/PageLoading'
+import { ActorDashboardCard } from '../components/ActorDashboardCard'
 
 const statuses = ['DRAFT', 'UNDER_REVIEW', 'APPROVED', 'ACTIVE', 'FINAL_SUBMISSION', 'COMPLETED', 'ARCHIVED']
 
@@ -46,6 +47,7 @@ export function SupervisorDashboardPage() {
   }
 
   return <WorkspacePage className="mk-page-enter space-y-6" eyebrow="Không gian giảng viên" title="Tổng quan hướng dẫn" description="Theo dõi khối lượng hướng dẫn, báo cáo chờ phản hồi và các đồ án cần chú ý." action={<Button variant="outline" icon="refresh" disabled={loading} onClick={() => void load()}>Tải lại</Button>}>
+    <ActorDashboardCard />
     <form className="workspace-surface flex flex-wrap gap-4 p-6" onSubmit={applyFilter}>
       <label className="flex min-w-52 flex-1 flex-col gap-1 text-sm font-medium text-slate-800" htmlFor="supervisor-dashboard-search">Tìm đồ án<input id="supervisor-dashboard-search" value={searchInput} onChange={event => setSearchInput(event.target.value)} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" placeholder="Mã hoặc tên đồ án" /></label>
       <label className="flex flex-col gap-1 text-sm font-medium text-slate-800" htmlFor="supervisor-dashboard-status">Trạng thái<select id="supervisor-dashboard-status" value={filter.status ?? ''} onChange={event => setFilter(current => ({ ...current, status: event.target.value || undefined, page: 1 }))} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><option value="">Tất cả</option>{statuses.map(status => <option key={status} value={status}>{projectStatusLabel(status)}</option>)}</select></label>
