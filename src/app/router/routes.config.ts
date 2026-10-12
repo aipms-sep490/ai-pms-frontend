@@ -191,6 +191,7 @@ export function getBreadcrumbForPath(pathname: string): string {
   }
   if (pathname === '/project/deliverables' || /^\/supervisor\/projects\/\d+\/deliverables(?:\/|$)/.test(pathname)) return 'Hạng mục cần nộp'
   if (/^\/supervisor\/projects\/\d+\/weekly-assessments(?:\/|$)/.test(pathname)) return 'Điểm cá nhân theo tuần'
+  if (/^\/(?:supervisor\/projects\/\d+|mentor\/projects\/\d+\/majors\/\d+)\/checkpoints(?:\/|$)/.test(pathname)) return 'Checkpoint theo dõi tiến độ'
   if (pathname === '/project/files' || /^\/supervisor\/projects\/\d+\/files(?:\/|$)/.test(pathname) || /^\/department\/projects\/\d+\/files(?:\/|$)/.test(pathname)) return 'Kho tệp đồ án'
   if (pathname === '/project/evidence' || /^\/(?:supervisor|department)\/projects\/\d+\/evidence(?:\/|$)/.test(pathname)) return 'Sổ minh chứng'
   if (pathname === '/evaluator/evaluations') return 'Đánh giá được phân công'

@@ -1,18 +1,17 @@
-import { httpGet, httpPost } from '../../services/http/http-client'
-import type { ProjectCheckpoint } from './gates-types'
+import { httpGet, httpPost, httpPut } from '../../services/http/http-client'
+import type { PagedResult } from '../../types/backend'
+import type { CheckpointDecisionValue, CheckpointEvidenceRef, ProjectCheckpoint } from './gates-types'
 
-// BE-12 endpoints. FE is built ahead of the backend; until it ships these calls
-// return 404/501 and the page shows its error state.
-export const getProjectCheckpoints = (projectId: number, signal?: AbortSignal) =>
-  httpGet<ProjectCheckpoint[]>(`/projects/${projectId}/checkpoints`, signal)
+export const getProjectCheckpoints = (projectId: number, page = 1, pageSize = 50, signal?: AbortSignal) =>
+  httpGet<PagedResult<ProjectCheckpoint>>(`/projects/${projectId}/checkpoints?page=${page}&pageSize=${pageSize}`, signal)
 
-export interface SubmitGateReviewPayload {
-  decision: 'PASSED' | 'REVISION_REQUIRED'
-  reason?: string
-  majorId?: number
-  evidenceIds?: number[]
-  concurrencyToken?: string
-}
+export const createCheckpoint = (projectId: number, body: { title: string; majorId: number | null; plannedAt: string }) =>
+  httpPost<ProjectCheckpoint>(`/projects/${projectId}/checkpoints`, body)
 
-export const submitGateReview = (checkpointId: number, payload: SubmitGateReviewPayload) =>
-  httpPost<ProjectCheckpoint>(`/checkpoints/${checkpointId}/reviews`, payload)
+export const updateCheckpoint = (projectId: number, id: number, body: { title: string; majorId: number | null; plannedAt: string; concurrencyToken: string }) =>
+  httpPut<ProjectCheckpoint>(`/projects/${projectId}/checkpoints/${id}`, body)
+
+/** Evidence citations require a reviewed project-evidence record (review-target → reviews flow);
+ * until that is wired here, decisions are recorded with an empty evidence list. */
+export const decideCheckpoint = (id: number, body: { concurrencyToken: string; decision: CheckpointDecisionValue; reason: string; evidence: CheckpointEvidenceRef[] }) =>
+  httpPost<ProjectCheckpoint>(`/checkpoints/${id}/decisions`, body)

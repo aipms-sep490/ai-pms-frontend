@@ -1,58 +1,100 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
-import { ProjectGatesPage } from './ProjectGatesPage'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { createMemoryRouter, Outlet, RouterProvider } from 'react-router-dom'
+import { ExecutionAccessProvider } from '../execution/context/ExecutionAccessProvider'
+import type { ExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { HttpError } from '../../services/http/http-client'
+import { ProjectGatesPage } from './ProjectGatesPage'
+import type { ProjectCheckpoint } from './gates-types'
 
-const mocks = vi.hoisted(() => ({ journey: { project: { id: 9 } as { id: number } | null }, getProjectCheckpoints: vi.fn() }))
-vi.mock('../../app/context', () => ({ useStudentJourney: () => mocks.journey }))
-vi.mock('./gates-api', () => ({ getProjectCheckpoints: mocks.getProjectCheckpoints }))
+const api = vi.hoisted(() => ({ getProjectCheckpoints: vi.fn(), createCheckpoint: vi.fn(), updateCheckpoint: vi.fn(), decideCheckpoint: vi.fn() }))
+vi.mock('./gates-api', () => api)
 
-const render_ = () => render(<MemoryRouter><ProjectGatesPage /></MemoryRouter>)
+const checkpoint: ProjectCheckpoint = {
+  id: 1, projectId: 9, title: 'Chốt đề cương', majorId: null, plannedAt: '2026-10-20T00:00:00Z', concurrencyToken: 'cp-token',
+  isOverdue: true, canManage: true, decisions: [], trackingOnly: true, blocksAcademicWorkflow: false,
+}
 
-beforeEach(() => { mocks.journey.project = { id: 9 } })
-afterEach(() => { cleanup(); vi.resetAllMocks() })
+function mount(actor: 'student' | 'supervisor' = 'supervisor') {
+  const access: ExecutionAccess = { project: { id: 9, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'], actor, canManageStructure: true, currentUserId: 5, routeBase: '/supervisor/projects/9' }
+  const router = createMemoryRouter([{ element: <ExecutionAccessProvider value={access}><Outlet /></ExecutionAccessProvider>, children: [
+    { path: '/gates', element: <ProjectGatesPage /> },
+  ] }], { initialEntries: ['/gates'] })
+  return render(<RouterProvider router={router} />)
+}
+const paged = (items: ProjectCheckpoint[]) => ({ items, page: 1, pageSize: 50, totalCount: items.length, totalPages: 1 })
+
+beforeEach(() => vi.resetAllMocks())
+afterEach(cleanup)
 
 describe('ProjectGatesPage', () => {
-  it('lists gates with status, required flag and review history', async () => {
-    mocks.getProjectCheckpoints.mockResolvedValue([
-      { id: 1, projectId: 9, gateCode: 'G1', title: 'Chốt đề cương', isRequired: true, dueAt: '2026-10-20T00:00:00Z', status: 'PASSED', reviews: [{ id: 5, checkpointId: 1, reviewerId: 3, reviewerName: 'GV Minh', decision: 'PASSED', reason: 'Đạt yêu cầu', decidedAt: '2026-10-18T00:00:00Z' }] },
-      { id: 2, projectId: 9, gateCode: 'G2', title: 'Giữa kỳ', isRequired: false, dueAt: null, status: 'MISSED' },
-    ])
-    render_()
+  it('shows an overdue-without-conclusion risk badge, never a failure state', async () => {
+    api.getProjectCheckpoints.mockResolvedValue(paged([checkpoint]))
+    mount()
     expect(await screen.findByText('Chốt đề cương')).toBeTruthy()
-    expect(screen.getByText('Đạt')).toBeTruthy()
-    expect(screen.getByText('Quá hạn')).toBeTruthy()
-    expect(screen.getByText('Bắt buộc')).toBeTruthy()
-    expect(screen.getByText('Theo dõi')).toBeTruthy()
-    expect(screen.getByText('GV Minh')).toBeTruthy()
-    expect(screen.getByText('Đạt yêu cầu')).toBeTruthy()
+    expect(screen.getByText('Quá hạn, chưa kết luận')).toBeTruthy()
+    expect(screen.getByText('Chưa có kết luận.')).toBeTruthy()
   })
 
-  it('shows an empty state when the period declared no gates', async () => {
-    mocks.getProjectCheckpoints.mockResolvedValue([])
-    render_()
-    expect(await screen.findByText('Kỳ đồ án chưa khai báo cổng kiểm soát nào.')).toBeTruthy()
+  it('renders decision history with its badge and reason', async () => {
+    api.getProjectCheckpoints.mockResolvedValue(paged([{ ...checkpoint, isOverdue: false, decisions: [{ id: 5, decision: 'MET', reason: 'Đạt yêu cầu', decidedBy: 3, decidedAt: '2026-10-18T00:00:00Z', evidence: [] }] }]))
+    mount()
+    const item = (await screen.findByText('Đạt yêu cầu')).closest('li') as HTMLElement
+    expect(within(item).getByText('Đạt')).toBeTruthy()
+    expect(screen.queryByText('Quá hạn, chưa kết luận')).toBeNull()
   })
 
-  it('surfaces an error and retries', async () => {
-    mocks.getProjectCheckpoints.mockRejectedValueOnce(new HttpError('nope', 500)).mockResolvedValueOnce([])
-    render_()
-    expect((await screen.findByRole('alert')).textContent).toContain('Chưa tải được')
-    fireEvent.click(screen.getByRole('button', { name: 'Tải lại' }))
-    expect(await screen.findByText('Kỳ đồ án chưa khai báo cổng kiểm soát nào.')).toBeTruthy()
+  it('shows an empty state when there are no checkpoints', async () => {
+    api.getProjectCheckpoints.mockResolvedValue(paged([]))
+    mount()
+    expect(await screen.findByText('Đồ án chưa có checkpoint theo dõi nào.')).toBeTruthy()
   })
 
-  it('shows a distinct message when access is denied', async () => {
-    mocks.getProjectCheckpoints.mockRejectedValue(new HttpError('forbidden', 403))
-    render_()
-    expect((await screen.findByRole('alert')).textContent).toContain('chưa có quyền')
+  it('surfaces a distinct message on 403', async () => {
+    api.getProjectCheckpoints.mockRejectedValue(new HttpError('forbidden', 403))
+    mount()
+    expect((await screen.findByRole('alert')).textContent).toContain('chưa có quyền xem')
   })
 
-  it('handles no active project', async () => {
-    mocks.journey.project = null
-    render_()
-    expect(await screen.findByText(/Không tìm thấy đồ án đang hoạt động/)).toBeTruthy()
-    expect(mocks.getProjectCheckpoints).not.toHaveBeenCalled()
+  it('hides the create form and decision controls for a read-only student actor', async () => {
+    api.getProjectCheckpoints.mockResolvedValue(paged([{ ...checkpoint, canManage: false }]))
+    mount('student')
+    await screen.findByText('Chốt đề cương')
+    expect(screen.queryByText('Tạo checkpoint mới')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Ghi kết luận' })).toBeNull()
+  })
+
+  it('creates a checkpoint with a null majorId when left blank', async () => {
+    api.getProjectCheckpoints.mockResolvedValue(paged([]))
+    api.createCheckpoint.mockResolvedValue(checkpoint)
+    mount()
+    await screen.findByText('Tạo checkpoint mới')
+    fireEvent.change(screen.getByLabelText('Tiêu đề'), { target: { value: 'Review giữa kỳ' } })
+    fireEvent.change(screen.getByLabelText('Thời điểm dự kiến'), { target: { value: '2026-11-01T09:00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo checkpoint' }))
+    await waitFor(() => expect(api.createCheckpoint).toHaveBeenCalledWith(9, { title: 'Review giữa kỳ', majorId: null, plannedAt: new Date('2026-11-01T09:00').toISOString() }))
+  })
+
+  it('records a decision with the checkpoint concurrency token and empty evidence', async () => {
+    api.getProjectCheckpoints.mockResolvedValue(paged([checkpoint]))
+    api.decideCheckpoint.mockResolvedValue({ ...checkpoint, decisions: [{ id: 9, decision: 'AT_RISK', reason: 'Chưa đủ minh chứng', decidedBy: 5, decidedAt: '2026-10-21T00:00:00Z', evidence: [] }] })
+    mount()
+    await screen.findByText('Chốt đề cương')
+    fireEvent.change(screen.getByLabelText('Kết luận'), { target: { value: 'AT_RISK' } })
+    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Chưa đủ minh chứng' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Ghi kết luận' }))
+    await waitFor(() => expect(api.decideCheckpoint).toHaveBeenCalledWith(1, { concurrencyToken: 'cp-token', decision: 'AT_RISK', reason: 'Chưa đủ minh chứng', evidence: [] }))
+    const item = (await screen.findByText('Chưa đủ minh chứng')).closest('li') as HTMLElement
+    expect(within(item).getByText('Rủi ro')).toBeTruthy()
+  })
+
+  it('reloads the list instead of replaying the mutation on a 409 conflict', async () => {
+    api.getProjectCheckpoints.mockResolvedValue(paged([checkpoint]))
+    api.decideCheckpoint.mockRejectedValue(new HttpError('stale', 409))
+    mount()
+    await screen.findByText('Chốt đề cương')
+    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Thử lại' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Ghi kết luận' }))
+    await waitFor(() => expect(api.getProjectCheckpoints).toHaveBeenCalledTimes(2))
   })
 })

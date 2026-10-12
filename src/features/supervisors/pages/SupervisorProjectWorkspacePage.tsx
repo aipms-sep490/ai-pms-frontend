@@ -30,6 +30,7 @@ export function SupervisorProjectWorkspacePage() {
   const availableAreas = [
     ...areas,
     ...(env.weeklyAssessmentEnabled ? [{ key: 'weekly', title: 'Điểm cá nhân theo tuần', description: 'Chấm tham khảo theo tuần, không vào kết quả chính thức.', path: 'weekly-assessments' }] : []),
+    ...(env.gatesEnabled ? [{ key: 'checkpoints', title: 'Checkpoint theo dõi', description: 'Kế hoạch theo dõi và kết luận từng giai đoạn.', path: 'checkpoints' }] : []),
     ...(env.aiAdvisoryEnabled ? [{ key: 'ai', title: 'Rủi ro và AI', description: 'Phân tích tham khảo từ dữ liệu tiến độ.', path: 'ai' }] : []),
   ]
 
