@@ -29,6 +29,7 @@ export function SupervisorProjectWorkspacePage() {
   const evaluatorAssigned = operational.evaluator.state === 'ready' && operational.evaluator.data
   const availableAreas = [
     ...areas,
+    ...(env.weeklyAssessmentEnabled ? [{ key: 'weekly', title: 'Điểm cá nhân theo tuần', description: 'Chấm tham khảo theo tuần, không vào kết quả chính thức.', path: 'weekly-assessments' }] : []),
     ...(env.aiAdvisoryEnabled ? [{ key: 'ai', title: 'Rủi ro và AI', description: 'Phân tích tham khảo từ dữ liệu tiến độ.', path: 'ai' }] : []),
   ]
 

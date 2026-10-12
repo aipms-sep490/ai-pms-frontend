@@ -31,6 +31,10 @@ const supervisorRecommendationEnabled = import.meta.env.VITE_ENABLE_SUPERVISOR_R
 /** Defense schedule / committee screen (BE-14). Enable only after the
  * defense-session endpoints ship; the screen is read-only for students. */
 const defenseScheduleEnabled = import.meta.env.VITE_ENABLE_DEFENSE?.trim().toLowerCase() === 'true'
+/** Weekly individual demo assessment (BE-N04). Primary-supervisor-only; isDemo/
+ * affectsOfficialResult are always true/false server-side, never computed by FE.
+ * Enable only after the weekly-assessments endpoints ship. */
+const weeklyAssessmentEnabled = import.meta.env.VITE_ENABLE_WEEKLY_ASSESSMENT?.trim().toLowerCase() === 'true'
 /** Peer evaluation (BE-19b). Evidence only, never a score. Enable after endpoints ship. */
 const peerEvaluationEnabled = import.meta.env.VITE_ENABLE_PEER_EVAL?.trim().toLowerCase() === 'true'
 /** Result correction / appeal requests (BE-19b). A correction creates a new result
@@ -60,6 +64,7 @@ export const env = {
   aiRunHistoryEnabled,
   supervisorRecommendationEnabled,
   defenseScheduleEnabled,
+  weeklyAssessmentEnabled,
   peerEvaluationEnabled,
   resultCorrectionEnabled,
   leadDepartmentPublishEnabled,
