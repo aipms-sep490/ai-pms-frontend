@@ -31,9 +31,9 @@ const supervisorRecommendationEnabled = import.meta.env.VITE_ENABLE_SUPERVISOR_R
 /** Defense schedule / committee screen (BE-14). Enable only after the
  * defense-session endpoints ship; the screen is read-only for students. */
 const defenseScheduleEnabled = import.meta.env.VITE_ENABLE_DEFENSE?.trim().toLowerCase() === 'true'
-/** COLD report checklist/draft/upload/submit (BE-N01). Per-major templates; the
- * server decides canWrite per item. Enable only after the cold-submissions
- * endpoints ship. */
+/** COLD report templates/checklist/draft/upload/submit (BE-N01). Shared by the
+ * student submission screen and this department template-management screen.
+ * Enable only after the cold-submissions endpoints ship. */
 const coldReportEnabled = import.meta.env.VITE_ENABLE_COLD_REPORT?.trim().toLowerCase() === 'true'
 /** Weekly individual demo assessment (BE-N04). Primary-supervisor-only; isDemo/
  * affectsOfficialResult are always true/false server-side, never computed by FE.
