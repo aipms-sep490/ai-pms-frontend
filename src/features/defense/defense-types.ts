@@ -1,28 +1,20 @@
-// BE-14 contract (BE_DongVV_Nhiem_vu.md):
-//   evaluation_committees(id, project_period_id, department_id, name)
-//   committee_members(committee_id, user_id, role CHAIR|SECRETARY|MEMBER|INDUSTRY)
-//   defense_sessions(id, committee_id, project_id, start_at, end_at, location, online_url, status)
-// This FE reads the scheduled session for a student's project. It is built ahead
-// of the backend and stays behind VITE_ENABLE_DEFENSE.
+// BE-14 contract, verified against AcademicTrackingContracts.cs / AcademicTrackingController.cs:
+//   POST/GET /api/v1/projects/{id}/defense-sessions, POST /defense-sessions/{id}/cancel, GET /defense-sessions/{id}
+// Students and participating-department readers get schedule metadata only (time/room/status),
+// never committee membership/contact data; only Primary/lead staff may read defense-committees.
+// This FE intentionally does not fetch or render a committee roster for the student view.
 
-export type CommitteeRole = 'CHAIR' | 'SECRETARY' | 'MEMBER' | 'INDUSTRY' | string
-export type DefenseSessionStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | string
-
-export interface CommitteeMember {
-  userId: number
-  userName?: string | null
-  role: CommitteeRole
-}
+export type DefenseSessionStatus = 'SCHEDULED' | 'CANCELLED' | (string & {})
 
 export interface DefenseSession {
   id: number
-  committeeId: number
   projectId: number
-  committeeName?: string | null
+  committeeId: number
   startAt: string
-  endAt?: string | null
-  location?: string | null
-  onlineUrl?: string | null
+  endAt: string
+  room: string
   status: DefenseSessionStatus
-  members: CommitteeMember[]
+  concurrencyToken: string
+  cancellationReason: string | null
+  canCancel: boolean
 }
