@@ -3,6 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { AuthSessionContext, type AuthSessionContextValue } from '../auth/context/auth-session-context'
 import { EvaluatorAssignmentManagementPage } from './EvaluatorAssignmentManagementPage'
+import { projectCapabilities } from '../../test/project-capabilities'
+import { HttpError } from '../../services/http/http-client'
+
+const capabilitiesApi = vi.hoisted(() => ({ getMyCapabilities: vi.fn() }))
+vi.mock('../capabilities/capabilities-api', async () => ({ ...await vi.importActual<typeof import('../capabilities/capabilities-api')>('../capabilities/capabilities-api'), ...capabilitiesApi }))
 
 const api = vi.hoisted(() => ({
   getProject: vi.fn(), getProjectPeriods: vi.fn(), getProjectEvaluationAssignments: vi.fn(), getTeam: vi.fn(),
@@ -35,6 +40,7 @@ function renderPage(path = '/department/projects/2/evaluators') {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  capabilitiesApi.getMyCapabilities.mockResolvedValue(projectCapabilities(2))
   api.getProject.mockResolvedValue({ id: 2, teamId: 10 })
   api.getProjectPeriods.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
   api.getProjectEvaluationAssignments.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
@@ -44,6 +50,18 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('EvaluatorAssignmentManagementPage', () => {
+  it.each(['denied', 'unavailable'])('reads assignments without write or candidate access when capabilities are %s', async state => {
+    if (state === 'denied') capabilitiesApi.getMyCapabilities.mockResolvedValue(projectCapabilities(2, false))
+    else capabilitiesApi.getMyCapabilities.mockRejectedValue(new HttpError('Unavailable', 503))
+    api.getProjectEvaluationAssignments.mockResolvedValue({ items: [{ id: 8, evaluatorId: 6, projectPeriodId: 7, rubricId: 4, departmentId: 1, evaluationType: 'LECTURER', status: 'ACTIVE', assignedAt: '2026-10-09', concurrencyToken: 't' }], page: 1, totalCount: 1 })
+    renderPage()
+    await screen.findByText('#8 · giảng viên #6')
+    expect(screen.queryByRole('heading', { name: 'Phân công mới' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Thu hồi' })).toBeNull()
+    expect(api.getEligibleEvaluators).not.toHaveBeenCalled()
+    expect(api.assignEvaluator).not.toHaveBeenCalled()
+    expect(api.revokeEvaluator).not.toHaveBeenCalled()
+  })
   it('loads scoped evaluation periods without requiring access to the student team', async () => {
     api.getTeam.mockRejectedValue(new Error('403'))
     renderPage()
