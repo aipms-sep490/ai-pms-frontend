@@ -73,6 +73,7 @@ import { ProjectGatesPage } from '../../features/gates/ProjectGatesPage'
 import { ProjectWorkingAgreementPage } from '../../features/working-agreement/ProjectWorkingAgreementPage'
 import { ProjectDefensePage } from '../../features/defense/ProjectDefensePage'
 import { ProjectPeerEvaluationPage } from '../../features/peer-eval/ProjectPeerEvaluationPage'
+import { ColdChecklistPage } from '../../features/cold-reports/ColdChecklistPage'
 import { DepartmentProjectRiskPage } from '../../features/ai/DepartmentProjectRiskPage'
 import { DepartmentWorkspacePage } from '../../features/department/pages/DepartmentWorkspacePage'
 import { DepartmentProjectLayout } from '../../features/department/components/DepartmentProjectLayout'
@@ -129,6 +130,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             ...(env.gatesEnabled ? [{ path: 'project/gates', element: <ProjectGatesPage /> }] : []),
             ...(env.workingAgreementEnabled ? [{ path: 'project/agreement', element: <ProjectWorkingAgreementPage /> }] : []),
             ...(env.defenseScheduleEnabled ? [{ path: 'project/defense', element: <ProjectDefensePage /> }] : []),
+            ...(env.coldReportEnabled ? [{ path: 'project/cold-reports', element: <ColdChecklistPage /> }] : []),
             ...(env.peerEvaluationEnabled ? [{ path: 'project/peer-evaluation', element: <ProjectPeerEvaluationPage /> }] : []),
             ...(env.aiAdvisoryEnabled ? [{ path: 'project/ai', element: <ProjectAiPage /> }] : []),
           ] },
