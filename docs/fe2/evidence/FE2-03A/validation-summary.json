@@ -1,0 +1,64 @@
+{
+  "task": "FE2-03A",
+  "status": "FE_DONE_BE_PENDING",
+  "branch": "fix/fe2-03a-scheme-conflict-20261009",
+  "baseline": "3426d70e5f7f0320ee5c057ade39aca267cb0434",
+  "scope": "source/component/mock API browser regression",
+  "realApiAcceptance": false,
+  "vitest": {
+    "failed": 0,
+    "passed": 792,
+    "files": 171,
+    "pending": 0,
+    "success": true
+  },
+  "browser": {
+    "errors": [],
+    "cases": [
+      {
+        "case": "conflict/draft/locked commands/focus/keyboard/no overflow",
+        "width": 1440,
+        "pass": true
+      },
+      {
+        "case": "explicit reconciliation/new token/one subsequent write",
+        "width": 1440,
+        "pass": true
+      },
+      {
+        "case": "conflict/draft/locked commands/focus/keyboard/no overflow",
+        "width": 1024,
+        "pass": true
+      },
+      {
+        "case": "explicit reconciliation/new token/one subsequent write",
+        "width": 1024,
+        "pass": true
+      },
+      {
+        "case": "conflict/draft/locked commands/focus/keyboard/no overflow",
+        "width": 768,
+        "pass": true
+      },
+      {
+        "case": "explicit reconciliation/new token/one subsequent write",
+        "width": 768,
+        "pass": true
+      },
+      {
+        "case": "conflict/draft/locked commands/focus/keyboard/no overflow",
+        "width": 375,
+        "pass": true
+      },
+      {
+        "case": "explicit reconciliation/new token/one subsequent write",
+        "width": 375,
+        "pass": true
+      }
+    ]
+  },
+  "typecheck": "PASS",
+  "lint": "PASS_WITH_WARNINGS",
+  "build": "PASS_WITH_CHUNK_WARNINGS",
+  "diffCheck": "PASS"
+}
