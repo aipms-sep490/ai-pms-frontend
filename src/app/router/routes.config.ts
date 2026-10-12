@@ -274,6 +274,7 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname === '/project/ai') return 'Trang không tồn tại'
   if (pathname.startsWith('/department/supervisors')) return 'Giảng viên hướng dẫn'
   if (pathname.startsWith('/department/topics')) return 'Quản lý đề tài'
+  if (pathname.startsWith('/department/cold-templates')) return 'Bộ report chấm nguội theo ngành'
   if (pathname === '/admin/access') return 'Quản trị nền tảng'
   if (pathname === '/admin/access/rbac') return 'Vai trò và quyền truy cập'
   if (/^\/admin\/access\/users\/\d+(?:\/|$)/.test(pathname)) return 'Chi tiết tài khoản'

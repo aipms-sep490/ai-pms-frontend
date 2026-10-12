@@ -31,6 +31,10 @@ const supervisorRecommendationEnabled = import.meta.env.VITE_ENABLE_SUPERVISOR_R
 /** Defense schedule / committee screen (BE-14). Enable only after the
  * defense-session endpoints ship; the screen is read-only for students. */
 const defenseScheduleEnabled = import.meta.env.VITE_ENABLE_DEFENSE?.trim().toLowerCase() === 'true'
+/** COLD report templates/checklist/draft/upload/submit (BE-N01). Shared by the
+ * student submission screen and this department template-management screen.
+ * Enable only after the cold-submissions endpoints ship. */
+const coldReportEnabled = import.meta.env.VITE_ENABLE_COLD_REPORT?.trim().toLowerCase() === 'true'
 /** Peer evaluation (BE-19b). Evidence only, never a score. Enable after endpoints ship. */
 const peerEvaluationEnabled = import.meta.env.VITE_ENABLE_PEER_EVAL?.trim().toLowerCase() === 'true'
 /** Result correction / appeal requests (BE-19b). A correction creates a new result
@@ -60,6 +64,7 @@ export const env = {
   aiRunHistoryEnabled,
   supervisorRecommendationEnabled,
   defenseScheduleEnabled,
+  coldReportEnabled,
   peerEvaluationEnabled,
   resultCorrectionEnabled,
   leadDepartmentPublishEnabled,

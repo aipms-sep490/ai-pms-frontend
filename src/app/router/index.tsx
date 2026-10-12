@@ -46,6 +46,7 @@ import { ProjectReviewPage } from '../../features/projects/pages/ProjectReviewPa
 import { ProjectGovernancePage } from '../../features/projects/pages/ProjectGovernancePage'
 import { SupervisorMonitoringPage } from '../../features/supervisors/pages/SupervisorMonitoringPage'
 import { TopicManagementPage } from '../../features/topics/pages/TopicManagementPage'
+import { ColdTemplateManagementPage } from '../../features/cold-templates/ColdTemplateManagementPage'
 import { RegistrationSourcePage } from '../../features/registration/pages/RegistrationSourcePage'
 import { QualificationVerificationPage } from '../../features/qualifications/pages/QualificationVerificationPage'
 import { DeliverablesPage } from '../../features/deliverables/DeliverablesPage'
@@ -233,6 +234,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'department/student-qualifications', element: <QualificationVerificationPage /> },
           { path: 'department/topics', element: <TopicManagementPage /> },
           { path: 'department/topics/:id', element: <TopicManagementPage /> },
+          ...(env.coldReportEnabled ? [{ path: 'department/cold-templates', element: <ColdTemplateManagementPage /> }] : []),
           ] }] },
         ],
       },
