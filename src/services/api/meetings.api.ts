@@ -1,6 +1,6 @@
 import { HttpError, httpDelete, httpGet, httpPost, httpPut } from '../http/http-client'
 import type { PagedResult, SupervisorAssignmentDto, TeamDto } from '../../types/backend'
-import type { CreateMeeting, Meeting, MeetingActionItem, MeetingCandidate, MeetingDecision, MeetingDetail, MeetingFeedback, MeetingNotes, MeetingParticipant, MeetingSchedule, MeetingStatus, SaveMeetingActionItem } from '../../features/meetings/meeting-types'
+import type { CreateMeeting, CreateMeetingSeries, Meeting, MeetingActionItem, MeetingCandidate, MeetingCollaboration, MeetingDecision, MeetingDetail, MeetingFeedback, MeetingNotes, MeetingNotesVersion, MeetingParticipant, MeetingRsvp, MeetingSchedule, MeetingSeries, MeetingStatus, SaveMeetingActionItem } from '../../features/meetings/meeting-types'
 
 export interface MeetingFilters { status?: MeetingStatus; from?: string; to?: string; page?: number; pageSize?: number }
 export function getMeetings(projectId: number, filters: MeetingFilters = {}, signal?: AbortSignal) {
@@ -25,6 +25,14 @@ export const getMeetingActionItems = (id: number, signal?: AbortSignal) => httpG
 export const createMeetingDecision = (id: number, content: string, concurrencyToken: string) => httpPost<MeetingDecision>(`/meetings/${id}/decisions`, { content, concurrencyToken })
 export const createMeetingActionItem = (id: number, body: SaveMeetingActionItem) => httpPost<MeetingActionItem>(`/meetings/${id}/action-items`, body)
 export const updateMeetingActionItem = (meetingId: number, actionId: number, body: SaveMeetingActionItem) => httpPut<MeetingActionItem>(`/meetings/${meetingId}/action-items/${actionId}`, body)
+
+// BE-06/N06/N07 · verified against AIPMS.Api MeetingCollaborationController + MeetingCollaborationDtos.
+export const createMeetingSeries = (projectId: number, body: CreateMeetingSeries) => httpPost<MeetingSeries>(`/projects/${projectId}/meeting-series`, body)
+export const getMeetingCollaboration = (meetingId: number, signal?: AbortSignal) => httpGet<MeetingCollaboration>(`/meetings/${meetingId}/collaboration`, signal)
+export const respondMeetingRsvp = (meetingId: number, status: string, concurrencyToken: string) => httpPut<MeetingRsvp>(`/meetings/${meetingId}/rsvp`, { status, concurrencyToken })
+export const lockMeetingNotes = (meetingId: number, concurrencyToken: string) => httpPost<MeetingCollaboration>(`/meetings/${meetingId}/notes/lock`, { concurrencyToken })
+export const getMeetingNotesHistory = (meetingId: number, page = 1, pageSize = 20, signal?: AbortSignal) =>
+  httpGet<PagedResult<MeetingNotesVersion>>(`/meetings/${meetingId}/notes/history?${new URLSearchParams({ page: String(page), pageSize: String(pageSize) })}`, signal)
 
 /** Only project roster and current assignments; never the global account directory. */
 export async function getMeetingCandidates(projectId: number, teamId: number, signal?: AbortSignal): Promise<{ candidates: MeetingCandidate[]; notice?: string }> {

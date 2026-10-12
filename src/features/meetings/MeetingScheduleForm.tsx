@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { env } from '../../app/config/env'
-import type { CreateMeeting, MeetingCandidate, MeetingDetail } from './meeting-types'
+import type { CreateMeeting, MeetingCandidate, MeetingDetail, MeetingRecurrence } from './meeting-types'
+import { recurrenceLabels } from './meeting-types'
 import type { MeetingDeliveryMode, MeetingVideoChannel } from './video/meeting-video.types'
 import { safeMeetingUrl, toMeetingInput, toMeetingUtc } from './meeting-utils'
 
@@ -18,6 +19,9 @@ export function MeetingScheduleForm({ meeting, busy, locked = false, candidates 
     videoChannel: meeting?.videoChannel ?? 'NONE' as MeetingVideoChannel,
   }))
   const [participants, setParticipants] = useState<number[]>([])
+  const [recurrence, setRecurrence] = useState<MeetingRecurrence>('NONE')
+  const [occurrenceCount, setOccurrenceCount] = useState('1')
+  const seriesEnabled = env.meetingCollaborationEnabled && !meeting
   const [error, setError] = useState('')
   function update(key: keyof typeof values, value: string) { setValues((current) => ({ ...current, [key]: value })); setError(''); onDirty() }
   function updateDeliveryMode(meetingDeliveryMode: MeetingDeliveryMode) {
@@ -44,9 +48,16 @@ export function MeetingScheduleForm({ meeting, busy, locked = false, candidates 
       if (!usesExternalLink) onlineUrl = null
     }
     if (onlineUrl && !safeMeetingUrl(onlineUrl)) { setError('Liên kết họp phải là địa chỉ http:// hoặc https:// hợp lệ, không chứa tài khoản hoặc mật khẩu.'); return }
+    let series: { recurrence: MeetingRecurrence; occurrenceCount: number } | undefined
+    if (seriesEnabled) {
+      const count = Number(occurrenceCount)
+      if (!Number.isInteger(count) || count < 1 || count > 12) { setError('Số lần lặp phải từ 1 đến 12.'); return }
+      if (recurrence === 'NONE' && count !== 1) { setError('Không lặp lại chỉ áp dụng cho 1 lần họp.'); return }
+      series = { recurrence, occurrenceCount: count }
+    }
     const delivery = showVideoControls ? { meetingDeliveryMode: values.meetingDeliveryMode, videoChannel: values.videoChannel } : {}
     await onSave({ title: values.title.trim(), agenda: values.agenda.trim() || null, startAt: toMeetingUtc(values.startAt), endAt: values.endAt ? toMeetingUtc(values.endAt) : null,
-      location, onlineUrl, participantUserIds: participants.filter((id) => id !== currentUserId), ...delivery })
+      location, onlineUrl, participantUserIds: participants.filter((id) => id !== currentUserId), ...delivery, ...series })
   }
   return <form className="mtg-form" onSubmit={(event) => void save(event)}><fieldset disabled={busy || locked}>
     <label>Tiêu đề cuộc họp<input required maxLength={255} value={values.title} onChange={(event) => update('title', event.target.value)} placeholder="Ví dụ: Rà soát tiến độ và kế hoạch tuần" /></label>
@@ -69,6 +80,12 @@ export function MeetingScheduleForm({ meeting, busy, locked = false, candidates 
       <div className="mtg-field-grid"><label>Địa điểm<input value={values.location} onChange={(event) => update('location', event.target.value)} placeholder="Phòng họp hoặc địa điểm gặp mặt" /></label><label>Liên kết họp trực tuyến<input type="url" value={values.onlineUrl} onChange={(event) => update('onlineUrl', event.target.value)} placeholder="https://…" /></label></div>
     </>}
     <label>Nội dung dự kiến<textarea rows={5} value={values.agenda} onChange={(event) => update('agenda', event.target.value)} placeholder="Các đầu việc cần trao đổi, quyết định hoặc xin ý kiến…" /></label>
+    {seriesEnabled && <fieldset className="mtg-choice-group"><legend>Lặp lại</legend><div className="mtg-field-grid">
+      <label>Tần suất<select value={recurrence} onChange={(event) => { const next = event.target.value as MeetingRecurrence; setRecurrence(next); if (next === 'NONE') setOccurrenceCount('1'); setError(''); onDirty() }}>
+        {(Object.entries(recurrenceLabels) as Array<[MeetingRecurrence, string]>).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+      </select></label>
+      {recurrence !== 'NONE' && <label>Số lần họp<input type="number" min={1} max={12} value={occurrenceCount} onChange={(event) => { setOccurrenceCount(event.target.value); setError(''); onDirty() }} /></label>}
+    </div>{recurrence !== 'NONE' && <p className="mtg-help">Hệ thống sẽ tạo {occurrenceCount || '…'} cuộc họp cách nhau {recurrence === 'WEEKLY' ? '7 ngày' : '14 ngày'}, bắt đầu từ thời gian đã chọn.</p>}</fieldset>}
     {!meeting && <fieldset className="mtg-candidate-list"><legend>Mời người tham gia</legend><p className="mtg-help">Người tạo được tự động thêm vào cuộc họp. Bạn có thể mời thêm sau khi lưu lịch.</p>{candidates.map((candidate) => <label className="mtg-checkbox" key={candidate.userId}><input type="checkbox" checked={candidate.userId === currentUserId || participants.includes(candidate.userId)} disabled={candidate.userId === currentUserId} onChange={(event) => { setParticipants(event.target.checked ? [...participants, candidate.userId] : participants.filter((id) => id !== candidate.userId)); onDirty() }} /><span>{candidate.fullName}<small>{candidate.role}{candidate.userId === currentUserId ? ' · Bạn' : ''}</small></span></label>)}</fieldset>}
     {error && <p role="alert" className="mtg-validation">{error}</p>}
     <div className="mtg-form-actions">{onCancel && <button type="button" className="mtg-button mtg-button--secondary" onClick={onCancel}>Đóng chỉnh sửa</button>}<button className="mtg-button" type="submit">{locked ? 'Cần kiểm tra lại trạng thái' : busy ? 'Đang lưu…' : meeting ? 'Lưu lịch họp' : 'Tạo cuộc họp'}</button></div>
