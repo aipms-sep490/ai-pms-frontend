@@ -21,10 +21,10 @@ export function ChatReactionBar({ reactions, canReact, onToggle }: ChatReactionB
         <button
           key={reaction.emoji}
           type="button"
-          className={reaction.mine ? 'chat-reaction chat-reaction--mine' : 'chat-reaction'}
+          className={reaction.reactedByMe ? 'chat-reaction chat-reaction--mine' : 'chat-reaction'}
           disabled={!canReact}
-          aria-pressed={reaction.mine}
-          aria-label={`${reaction.emoji} ${reaction.count}${reaction.mine ? ', bạn đã thả' : ''}`}
+          aria-pressed={reaction.reactedByMe}
+          aria-label={`${reaction.emoji} ${reaction.count}${reaction.reactedByMe ? ', bạn đã thả' : ''}`}
           onClick={() => canReact && onToggle(reaction.emoji)}
         >
           {reaction.emoji} {reaction.count}

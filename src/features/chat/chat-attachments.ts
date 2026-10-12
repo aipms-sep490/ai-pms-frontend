@@ -5,6 +5,8 @@ export const CHAT_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as
 
 /** 10 MiB, matching the limit used consistently elsewhere in the app (COLD reports). */
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
+/** BE caps uploads at 10 files per message. */
+export const MAX_ATTACHMENTS_PER_MESSAGE = 10
 
 export const isImageAttachment = (file: Pick<ChatAttachment, 'contentType'>) => file.contentType.startsWith('image/')
 
@@ -29,12 +31,12 @@ export function toggleReaction(message: ChatMessage, emoji: string): ChatMessage
   const existing = current.find(reaction => reaction.emoji === emoji)
   let next: ChatReaction[]
   if (!existing) {
-    next = [...current, { emoji, count: 1, mine: true }]
-  } else if (existing.mine) {
+    next = [...current, { emoji, count: 1, reactedByMe: true }]
+  } else if (existing.reactedByMe) {
     const count = existing.count - 1
-    next = count > 0 ? current.map(r => (r.emoji === emoji ? { ...r, count, mine: false } : r)) : current.filter(r => r.emoji !== emoji)
+    next = count > 0 ? current.map(r => (r.emoji === emoji ? { ...r, count, reactedByMe: false } : r)) : current.filter(r => r.emoji !== emoji)
   } else {
-    next = current.map(r => (r.emoji === emoji ? { ...r, count: r.count + 1, mine: true } : r))
+    next = current.map(r => (r.emoji === emoji ? { ...r, count: r.count + 1, reactedByMe: true } : r))
   }
   return { ...message, reactions: next }
 }
