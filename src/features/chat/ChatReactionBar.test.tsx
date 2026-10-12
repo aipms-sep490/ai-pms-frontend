@@ -4,7 +4,7 @@ import { ChatReactionBar } from './ChatReactionBar'
 import type { ChatReaction } from './chat-api'
 afterEach(cleanup)
 
-const reactions: ChatReaction[] = [{ emoji: '👍', count: 2, mine: true }]
+const reactions: ChatReaction[] = [{ emoji: '👍', count: 2, reactedByMe: true }]
 
 describe('ChatReactionBar', () => {
   it('renders existing counts read-only when reacting is disabled', () => {

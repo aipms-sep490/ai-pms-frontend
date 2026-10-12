@@ -7,7 +7,7 @@ import { chatDay, chatTime, utcDate } from './chat-view'
 import { ChatMessageContent } from './ChatMessageContent'
 import { ChatAttachments } from './ChatAttachments'
 import { ChatReactionBar } from './ChatReactionBar'
-import { attachmentError, canSubmitMessage, formatBytes, toggleReaction } from './chat-attachments'
+import { attachmentError, canSubmitMessage, formatBytes, MAX_ATTACHMENTS_PER_MESSAGE, toggleReaction } from './chat-attachments'
 import { chatConnectionLabel } from './chat-events'
 import { env } from '../../app/config/env'
 
@@ -184,16 +184,18 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
   const canAttach = canSend && env.chatAttachmentsEnabled
   const reactTo = (message: ChatMessage, emoji: string) => {
     if (!canAttach) return
-    const mine = message.reactions?.find(r => r.emoji === emoji)?.mine ?? false
+    const already = message.reactions?.find(r => r.emoji === emoji)?.reactedByMe ?? false
     const flip = () => setMessages(old => old.map(m => m.id === message.id ? toggleReaction(m, emoji) : m))
     flip()
-    void (mine ? chatApi.unreact(id, message.id, emoji) : chatApi.react(id, message.id, emoji)).catch(e => { if (!live.current) return; if (denied(e)) { clear(); return } flip(); setError(chatError(e)) })
+    void (already ? chatApi.unreact(id, message.id, emoji) : chatApi.react(id, message.id, emoji))
+      .then(canonical => { if (!live.current || revoked.current) return; setMessages(old => mergeMessages(old, [canonical]).slice(-500)) })
+      .catch(e => { if (!live.current) return; if (denied(e)) { clear(); return } flip(); setError(chatError(e)) })
   }
   const addFiles = (incoming: FileList | null) => {
     if (!incoming) return
     const accepted: File[] = []
     for (const file of Array.from(incoming)) { const problem = attachmentError(file); if (problem) { setFileError(`${file.name}: ${problem}`); continue } accepted.push(file) }
-    if (accepted.length) { setFiles(old => [...old, ...accepted].slice(0, 10)); setFileError('') }
+    if (accepted.length) { setFiles(old => [...old, ...accepted].slice(0, MAX_ATTACHMENTS_PER_MESSAGE)); setFileError('') }
     if (fileInput.current) fileInput.current.value = ''
   }
   const sendWithAttachments = async (text: string, chosen: File[], replyTo: ChatMessage | null) => {
@@ -202,7 +204,7 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
     try {
       const uploaded = await Promise.all(chosen.map(file => chatApi.uploadAttachment(id, file)))
       if (!live.current || revoked.current) return
-      const canonical = await chatApi.send(id, { clientMessageId: crypto.randomUUID(), body: text, ...(replyTo ? { replyToMessageId: replyTo.id } : {}), attachmentFileIds: uploaded.map(a => a.id) })
+      const canonical = await chatApi.send(id, { clientMessageId: crypto.randomUUID(), body: text.trim() ? text : null, ...(replyTo ? { replyToMessageId: replyTo.id } : {}), attachmentIds: uploaded.map(a => a.id) })
       if (!live.current || revoked.current) return
       setMessages(old => mergeMessages(old, [canonical]).slice(-500)); refresh(id)
     } catch (e) {
@@ -210,6 +212,15 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
       if (denied(e)) { clear(); return }
       setError(chatError(e)); setDraft(text); setFiles(chosen); setReply(replyTo)
     } finally { if (live.current) setBusy(false) }
+  }
+  const isMuted = !!room?.mutedUntil && Date.parse(room.mutedUntil) > Date.now()
+  const [mutePending, setMutePending] = useState(false)
+  const setMute = (mutedUntil: string | null) => {
+    setMutePending(true)
+    chatApi.mute(id, mutedUntil)
+      .then(updated => { if (!live.current || revoked.current) return; setRoom(updated) })
+      .catch(e => { if (!live.current) return; if (denied(e)) { clear(); return } setError(chatError(e)) })
+      .finally(() => { if (live.current) setMutePending(false) })
   }
   const submit = () => {
     if (!canSend || busy || draft.length > 4000) return
@@ -220,7 +231,18 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
     following.current = true; setNewMessages(0); if (historyWindows.current[0]) { historyWindows.current = [undefined]; setReload(n => n + 1) } setPending(old => [...old, item]); clearTimeout(typingStop.current); if (connection && state === 'connected') void connection.invoke('SetTyping', id, false).catch(() => {}); setDraft(''); setReply(null); void send(item)
   }
   return <section className="chat-main" aria-label="Nội dung trò chuyện" hidden={!active}>
-    <header className="chat-header"><Link to="/messages">Quay lại</Link><div><h2>{room?.title || 'Cuộc trò chuyện'}</h2><p>{!ready ? 'Đang xác minh quyền và kết nối' : canSend ? room?.kind === 'DIRECT' ? 'Trao đổi riêng trong phạm vi được phép' : room?.kind === 'TEAM' ? 'Nhóm sinh viên trong team' : 'Sinh viên và người hướng dẫn đồ án' : 'Chỉ đọc · không thể gửi, sửa hoặc thu hồi'}</p><p className="chat-mobile-connection" role="status">{chatConnectionLabel(state)}</p></div></header>
+    <header className="chat-header"><Link to="/messages">Quay lại</Link><div><h2>{room?.title || 'Cuộc trò chuyện'}{isMuted && <span className="chat-muted-badge" aria-label="Đã tắt thông báo"> 🔇</span>}</h2><p>{!ready ? 'Đang xác minh quyền và kết nối' : canSend ? room?.kind === 'DIRECT' ? 'Trao đổi riêng trong phạm vi được phép' : room?.kind === 'TEAM' ? 'Nhóm sinh viên trong team' : 'Sinh viên và người hướng dẫn đồ án' : 'Chỉ đọc · không thể gửi, sửa hoặc thu hồi'}</p><p className="chat-mobile-connection" role="status">{chatConnectionLabel(state)}</p></div>
+      {ready && room && <label className="chat-mute-control">Thông báo
+        <select value={isMuted ? 'muted' : 'on'} disabled={mutePending} onChange={e => { if (e.target.value === 'muted') return; setMute(e.target.value === 'on' ? null : new Date(Date.now() + Number(e.target.value) * 3_600_000).toISOString()) }}>
+          <option value="on">Đang nhận</option>
+          {isMuted && <option value="muted">Đang tắt đến {new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(room.mutedUntil!))}</option>}
+          <option value="1">Tắt 1 giờ</option>
+          <option value="8">Tắt 8 giờ</option>
+          <option value="24">Tắt 1 ngày</option>
+          <option value="168">Tắt 1 tuần</option>
+        </select>
+      </label>}
+    </header>
     {error && <p role="alert" className="chat-error">{error} <button onClick={() => { revoked.current = false; setReload(n => n + 1) }}>Tải lại</button></p>}
     <details className="chat-members"><summary>Thành viên và trạng thái đã đọc</summary><ul>{members.map(person => <li key={person.userId}>{person.fullName}{online.includes(person.userId) ? ' · Đang kết nối' : ''}{person.userId !== userId && person.lastReadSequence && messages.some(m => m.senderId === userId && BigInt(m.sequence) <= BigInt(person.lastReadSequence!)) ? ' · Đã đọc tin của bạn' : ''}</li>)}</ul>
       {memberCursor && <button disabled={busy} onClick={() => void mutate(async () => { const page = await chatApi.members(id, memberCursor); if (!live.current || revoked.current) return; setMembers(old => [...old, ...page.items]); setMemberCursor(page.nextCursor) })}>Xem thêm thành viên</button>}</details>
@@ -232,7 +254,7 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
         {(!index || chatDay(messages[index - 1].createdAt) !== chatDay(message.createdAt)) && <p className="chat-date">{chatDay(message.createdAt)}</p>}
         <article data-message-id={message.id} className={message.senderId === userId ? 'own' : ''}><div>{(!index || messages[index - 1].senderId !== message.senderId || chatDay(messages[index - 1].createdAt) !== chatDay(message.createdAt)) && <strong>{message.senderName}</strong>}<time dateTime={utcDate(message.createdAt).toISOString()}>{chatTime(message.createdAt)}</time></div>
         {message.reply && <blockquote><button type="button" disabled={message.reply.unavailable} onClick={() => { const target = [...(view.current?.querySelectorAll<HTMLElement>('[data-message-id]') ?? [])].find(element => element.dataset.messageId === message.reply?.id); if (target) { target.scrollIntoView({ block: 'center', behavior: 'auto' }); target.focus() } }}>{message.reply.unavailable ? 'Tin nhắn gốc không còn khả dụng' : message.reply.body}</button></blockquote>}
-        <p>{message.recalledAt ? 'Tin nhắn đã thu hồi' : <ChatMessageContent body={message.body || ''} />}</p>{!message.recalledAt && message.attachments?.length ? <ChatAttachments attachments={message.attachments} /> : null}<small className="chat-delivery">{message.senderId === userId && !message.recalledAt ? members.some(person => person.userId !== userId && person.lastReadSequence && BigInt(person.lastReadSequence) >= BigInt(message.sequence)) ? 'Đã đọc' : 'Đã gửi' : ''}</small>{message.editedAt && !message.recalledAt && <small>Đã chỉnh sửa</small>}
+        <p>{message.recalledAt ? 'Tin nhắn đã thu hồi' : <ChatMessageContent body={message.body || ''} />}</p>{!message.recalledAt && message.attachments?.length ? <ChatAttachments attachments={message.attachments} conversationId={id} messageId={message.id} /> : null}<small className="chat-delivery">{message.senderId === userId && !message.recalledAt ? members.some(person => person.userId !== userId && person.lastReadSequence && BigInt(person.lastReadSequence) >= BigInt(message.sequence)) ? 'Đã đọc' : 'Đã gửi' : ''}</small>{message.editedAt && !message.recalledAt && <small>Đã chỉnh sửa</small>}
         {!message.recalledAt && <ChatReactionBar reactions={message.reactions ?? []} canReact={canAttach} onToggle={emoji => reactTo(message, emoji)} />}
         {canSend && !message.recalledAt && <div className="chat-message-actions"><button onClick={() => { setReply(message); setEdit(null); composer.current?.focus() }}>Trả lời</button>{message.canEdit && <button onClick={() => { setEdit(message); setReply(null); setDraft(message.body || ''); composer.current?.focus() }}>Sửa</button>}{message.canRecall && <button onClick={() => setRecall(message)}>Thu hồi</button>}</div>}
       </article></div>)}
