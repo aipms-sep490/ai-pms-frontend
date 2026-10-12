@@ -35,26 +35,26 @@ describe('chat attachment + reaction helpers', () => {
 
   it('adds a new reaction when the user has none', () => {
     const next = toggleReaction(baseMessage([]), '👍')
-    expect(next.reactions).toEqual([{ emoji: '👍', count: 1, mine: true }])
+    expect(next.reactions).toEqual([{ emoji: '👍', count: 1, reactedByMe: true }])
   })
 
   it('removes the user’s own reaction and drops the emoji when count hits zero', () => {
-    const next = toggleReaction(baseMessage([{ emoji: '👍', count: 1, mine: true }]), '👍')
+    const next = toggleReaction(baseMessage([{ emoji: '👍', count: 1, reactedByMe: true }]), '👍')
     expect(next.reactions).toEqual([])
   })
 
   it('keeps others’ count when the user removes theirs', () => {
-    const next = toggleReaction(baseMessage([{ emoji: '❤️', count: 3, mine: true }]), '❤️')
-    expect(next.reactions).toEqual([{ emoji: '❤️', count: 2, mine: false }])
+    const next = toggleReaction(baseMessage([{ emoji: '❤️', count: 3, reactedByMe: true }]), '❤️')
+    expect(next.reactions).toEqual([{ emoji: '❤️', count: 2, reactedByMe: false }])
   })
 
   it('increments and marks mine when the user joins an existing reaction', () => {
-    const next = toggleReaction(baseMessage([{ emoji: '😂', count: 2, mine: false }]), '😂')
-    expect(next.reactions).toEqual([{ emoji: '😂', count: 3, mine: true }])
+    const next = toggleReaction(baseMessage([{ emoji: '😂', count: 2, reactedByMe: false }]), '😂')
+    expect(next.reactions).toEqual([{ emoji: '😂', count: 3, reactedByMe: true }])
   })
 
   it('is its own inverse (optimistic revert)', () => {
-    const start = baseMessage([{ emoji: '👍', count: 2, mine: false }])
+    const start = baseMessage([{ emoji: '👍', count: 2, reactedByMe: false }])
     expect(toggleReaction(toggleReaction(start, '👍'), '👍').reactions).toEqual(start.reactions)
   })
 })

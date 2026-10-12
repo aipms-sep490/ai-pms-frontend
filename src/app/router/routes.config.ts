@@ -190,6 +190,8 @@ export function getBreadcrumbForPath(pathname: string): string {
     return 'Lên lịch họp'
   }
   if (pathname === '/project/deliverables' || /^\/supervisor\/projects\/\d+\/deliverables(?:\/|$)/.test(pathname)) return 'Hạng mục cần nộp'
+  if (/^\/supervisor\/projects\/\d+\/weekly-assessments(?:\/|$)/.test(pathname)) return 'Điểm cá nhân theo tuần'
+  if (/^\/(?:supervisor\/projects\/\d+|mentor\/projects\/\d+\/majors\/\d+)\/checkpoints(?:\/|$)/.test(pathname)) return 'Checkpoint theo dõi tiến độ'
   if (pathname === '/project/files' || /^\/supervisor\/projects\/\d+\/files(?:\/|$)/.test(pathname) || /^\/department\/projects\/\d+\/files(?:\/|$)/.test(pathname)) return 'Kho tệp đồ án'
   if (pathname === '/project/evidence' || /^\/(?:supervisor|department)\/projects\/\d+\/evidence(?:\/|$)/.test(pathname)) return 'Sổ minh chứng'
   if (pathname === '/evaluator/evaluations') return 'Đánh giá được phân công'
@@ -274,6 +276,7 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname === '/project/ai') return 'Trang không tồn tại'
   if (pathname.startsWith('/department/supervisors')) return 'Giảng viên hướng dẫn'
   if (pathname.startsWith('/department/topics')) return 'Quản lý đề tài'
+  if (pathname.startsWith('/department/cold-templates')) return 'Bộ report chấm nguội theo ngành'
   if (pathname === '/admin/access') return 'Quản trị nền tảng'
   if (pathname === '/admin/access/rbac') return 'Vai trò và quyền truy cập'
   if (/^\/admin\/access\/users\/\d+(?:\/|$)/.test(pathname)) return 'Chi tiết tài khoản'

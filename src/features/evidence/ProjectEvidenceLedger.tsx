@@ -4,6 +4,8 @@ import { HttpError } from '../../services/http/http-client'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { getProjectEvidence, type ProjectEvidence, type ProjectEvidenceQuery } from '../projects/api/project-governance-api'
 import { useProjectDisciplineScope } from '../projects/hooks/useProjectDisciplineScope'
+import { getEvidenceReviewTarget, getEvidenceReviews, reviewEvidence } from './evidence-review-api'
+import type { EvidenceReview, EvidenceReviewDecision, EvidenceReviewTarget } from './evidence-review-types'
 
 const sourceTypes = ['TASK', 'DELIVERABLE', 'MEETING', 'PROGRESS_REPORT', 'FILE'] as const
 const verificationStatuses = ['PENDING', 'UNKNOWN'] as const
@@ -20,16 +22,18 @@ export function ProjectEvidenceLedgerPage() {
   return <>
     {scope.loading && <p role="status" className="mb-4 text-sm">Đang tải phạm vi ngành…</p>}
     {scope.error && <p role="status" className="mb-4 text-sm text-slate-600">{scope.error} Bộ lọc ngành tạm thời chưa khả dụng. <button type="button" className="min-h-11 underline" onClick={scope.retry}>Tải lại phạm vi ngành</button></p>}
-    <ProjectEvidenceLedger projectId={access.project.id} routeBase={access.routeBase} majors={scope.majors} lockedMajorId={access.actor === 'mentor' ? access.supervisor?.majorId ?? undefined : undefined} />
+    <ProjectEvidenceLedger projectId={access.project.id} routeBase={access.routeBase} majors={scope.majors} lockedMajorId={access.actor === 'mentor' ? access.supervisor?.majorId ?? undefined : undefined} actor={access.actor} />
   </>
 }
 
-/** Read-only until a source-scoped execution capability is delivered by Backend. */
-interface LedgerProps { projectId: number; routeBase: string; majors?: { majorId: number; majorName: string }[]; lockedMajorId?: number }
+/** Listing is read-only; review decisions are written via BE-13 (project-evidence/{id}/reviews).
+ * `actor` is presentation-only (hides the review toggle for students, who have no
+ * review-history API access at all) — the server remains the sole review authority. */
+interface LedgerProps { projectId: number; routeBase: string; majors?: { majorId: number; majorName: string }[]; lockedMajorId?: number; actor?: 'student' | 'supervisor' | 'mentor' }
 export function ProjectEvidenceLedger(props: LedgerProps) {
   return <EvidenceLedger key={`${props.projectId}:${props.routeBase}:${props.lockedMajorId ?? ''}`} {...props} />
 }
-function EvidenceLedger({ projectId, routeBase, majors = [], lockedMajorId }: LedgerProps) {
+function EvidenceLedger({ projectId, routeBase, majors = [], lockedMajorId, actor }: LedgerProps) {
   const [filters, setFilters] = useState<Filters>({ majorId: lockedMajorId })
   const [majorInput, setMajorInput] = useState(String(lockedMajorId ?? ''))
   const [page, setPage] = useState(1)
@@ -101,13 +105,84 @@ function EvidenceLedger({ projectId, routeBase, majors = [], lockedMajorId }: Le
     {error && <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" onClick={() => void load()} className="ml-2 min-h-11 font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Thử lại</button></section>}
     {loading && <p role="status" aria-live="polite" className="rounded-xl border border-hairline bg-card p-5 text-sm text-slate-700">Đang tải minh chứng…</p>}
     {!loading && !error && result?.items.length === 0 && <section className="rounded-xl border border-hairline bg-card p-5 text-sm text-slate-700"><h2 className="font-semibold text-slate-900">Chưa có minh chứng phù hợp</h2><p className="mt-1 leading-6">Hãy thử điều chỉnh bộ lọc. Trạng thái xác minh được lấy trực tiếp từ hệ thống.</p></section>}
-    {!loading && !error && result?.items.length ? <EvidenceList items={result.items} routeBase={routeBase} /> : null}
+    {!loading && !error && result?.items.length ? <EvidenceList items={result.items} routeBase={routeBase} actor={actor} /> : null}
     {!loading && !error && result && result.totalPages > 1 && <nav aria-label="Phân trang minh chứng" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-card p-4 text-sm"><button type="button" disabled={page <= 1} onClick={() => setPage(current => current - 1)} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Trang trước</button><span aria-live="polite">Trang {page} / {totalPages} · {result.totalCount} minh chứng</span><button type="button" disabled={page >= totalPages} onClick={() => setPage(current => current + 1)} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Trang sau</button></nav>}
   </main>
 }
 
-function EvidenceList({ items, routeBase }: { items: ProjectEvidence[]; routeBase: string }) {
-  return <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-label="Danh sách minh chứng"><ul className="divide-y divide-hairline">{items.map(item => <li key={item.id} className="grid gap-3 p-4 sm:p-5 lg:grid-cols-[minmax(12rem,1fr)_minmax(9rem,.7fr)_minmax(10rem,.7fr)_auto] lg:items-start"><div className="min-w-0"><p className="font-semibold text-slate-900">{sourceLabels[item.sourceType as keyof typeof sourceLabels] ?? item.sourceType} #{item.sourceId}</p><p className="mt-1 text-sm text-slate-600">{item.majorId ? `Ngành #${item.majorId}` : 'Chưa phân loại ngành'} · {item.classification}</p>{item.notes ? <p className="mt-2 break-words text-sm leading-6 text-slate-700">{item.notes}</p> : <p className="mt-2 text-sm text-slate-500">Không có ghi chú.</p>}</div><div className="text-sm"><p className="font-medium text-slate-900">{verificationLabels[item.verificationStatus as keyof typeof verificationLabels] ?? item.verificationStatus}</p><p className="mt-1 text-slate-600">Người gửi #{item.submittedBy}</p></div><p className="text-sm leading-6 text-slate-600">{formatDate(item.submittedAt)}</p><div>{sourcePath(routeBase, item) ? <Link to={sourcePath(routeBase, item)!} className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở nguồn</Link> : <span className="inline-flex min-h-11 items-center text-sm text-slate-500">Chưa có đường dẫn nguồn</span>}</div></li>)}</ul></section>
+function EvidenceList({ items, routeBase, actor }: { items: ProjectEvidence[]; routeBase: string; actor?: 'student' | 'supervisor' | 'mentor' }) {
+  return <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-label="Danh sách minh chứng"><ul className="divide-y divide-hairline">{items.map(item => <li key={item.id} className="grid gap-3 p-4 sm:p-5">
+    <div className="grid gap-3 lg:grid-cols-[minmax(12rem,1fr)_minmax(9rem,.7fr)_minmax(10rem,.7fr)_auto] lg:items-start">
+      <div className="min-w-0"><p className="font-semibold text-slate-900">{sourceLabels[item.sourceType as keyof typeof sourceLabels] ?? item.sourceType} #{item.sourceId}</p><p className="mt-1 text-sm text-slate-600">{item.majorId ? `Ngành #${item.majorId}` : 'Chưa phân loại ngành'} · {item.classification}</p>{item.notes ? <p className="mt-2 break-words text-sm leading-6 text-slate-700">{item.notes}</p> : <p className="mt-2 text-sm text-slate-500">Không có ghi chú.</p>}</div>
+      <div className="text-sm"><p className="font-medium text-slate-900">{verificationLabels[item.verificationStatus as keyof typeof verificationLabels] ?? item.verificationStatus}</p><p className="mt-1 text-slate-600">Người gửi #{item.submittedBy}</p></div>
+      <p className="text-sm leading-6 text-slate-600">{formatDate(item.submittedAt)}</p>
+      <div>{sourcePath(routeBase, item) ? <Link to={sourcePath(routeBase, item)!} className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở nguồn</Link> : <span className="inline-flex min-h-11 items-center text-sm text-slate-500">Chưa có đường dẫn nguồn</span>}</div>
+    </div>
+    {actor && actor !== 'student' && <EvidenceReviewSection evidenceId={item.id} />}
+  </li>)}</ul></section>
+}
+
+const reviewDecisionLabels: Record<string, string> = { ACCEPTED: 'Đã chấp nhận', CHANGES_REQUESTED: 'Cần bổ sung', REJECTED: 'Từ chối' }
+
+function EvidenceReviewSection({ evidenceId }: { evidenceId: number }) {
+  const [open, setOpen] = useState(false)
+  const [target, setTarget] = useState<EvidenceReviewTarget | null>(null)
+  const [history, setHistory] = useState<EvidenceReview[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [decision, setDecision] = useState<EvidenceReviewDecision>('ACCEPTED')
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const load = useCallback(() => {
+    setLoading(true); setError('')
+    Promise.all([getEvidenceReviewTarget(evidenceId), getEvidenceReviews(evidenceId, 1, 20)])
+      .then(([targetResult, historyResult]) => { setTarget(targetResult); setHistory(historyResult.items) })
+      .catch((reason_: unknown) => setError(reason_ instanceof HttpError && reason_.status === 403 ? 'Bạn không có quyền duyệt minh chứng này.' : 'Không tải được dữ liệu duyệt. Hãy thử lại.'))
+      .finally(() => setLoading(false))
+  }, [evidenceId])
+
+  function toggle() {
+    const next = !open
+    setOpen(next)
+    if (next && !target && !loading) load()
+  }
+
+  async function submit() {
+    if (!target || !reason.trim()) return
+    setBusy(true); setError('')
+    try {
+      await reviewEvidence(evidenceId, { sourceVersionId: target.sourceVersionId, expectedSourceVersion: target.sourceVersion, expectedLatestReviewId: target.latestReviewId, decision, reason: reason.trim() })
+      setReason('')
+      load()
+    } catch (reason_) {
+      if (reason_ instanceof HttpError && reason_.status === 409) { load(); return }
+      setError(reason_ instanceof HttpError && reason_.status === 403 ? 'Bạn không có quyền duyệt minh chứng này.' : 'Không ghi được kết quả duyệt. Hãy thử lại.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return <div className="border-t border-hairline pt-3">
+    <button type="button" className="min-h-9 text-sm font-semibold text-primary underline underline-offset-4" onClick={toggle}>{open ? 'Ẩn duyệt minh chứng' : 'Duyệt minh chứng'}</button>
+    {open && <div className="mt-3 space-y-3">
+      {loading && <p role="status" className="text-sm text-slate-600">Đang tải…</p>}
+      {error && <p role="alert" className="text-sm text-status-error-text">{error}</p>}
+      {!loading && history && history.length > 0 && <ul className="space-y-2">
+        {history.map((review) => <li key={review.id} className="text-sm"><span className="font-semibold text-slate-900">{reviewDecisionLabels[review.decision] ?? review.decision}</span> <span className="text-slate-500">· {formatDate(review.reviewedAt)}</span><p className="mt-0.5 text-slate-700">{review.reason}</p></li>)}
+      </ul>}
+      {!loading && target && !target.canReview && <p className="text-sm text-slate-500">{target.denialReason ?? 'Chưa thể duyệt minh chứng này.'}</p>}
+      {!loading && target?.canReview && <div className="flex flex-wrap items-end gap-2">
+        <label className="text-sm text-slate-700">Kết quả<select className="mt-1 block min-h-10 rounded-lg border border-hairline p-2 text-sm" value={decision} disabled={busy} onChange={(event) => setDecision(event.target.value as EvidenceReviewDecision)}>
+          <option value="ACCEPTED">Đã chấp nhận</option>
+          <option value="CHANGES_REQUESTED">Cần bổ sung</option>
+          <option value="REJECTED">Từ chối</option>
+        </select></label>
+        <label className="flex-1 min-w-48 text-sm text-slate-700">Lý do<input className="mt-1 w-full min-h-10 rounded-lg border border-hairline p-2 text-sm" value={reason} disabled={busy} onChange={(event) => setReason(event.target.value)} /></label>
+        <button type="button" className="min-h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={busy || !reason.trim()} onClick={() => void submit()}>Ghi kết quả duyệt</button>
+      </div>}
+    </div>}
+  </div>
 }
 
 function sourcePath(routeBase: string, item: ProjectEvidence): string | null {

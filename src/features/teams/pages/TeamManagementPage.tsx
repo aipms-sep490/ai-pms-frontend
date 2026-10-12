@@ -52,6 +52,18 @@ export function TeamManagementPage() {
   const maxTeamSize = team?.academicScope?.requirements.reduce((sum, requirement) => sum + requirement.maxMembers, 0)
     || period?.maxTeamSize || 5
 
+  // Presentation-only grouping hint for the invite candidate list; the server's
+  // eligibility reasons (MAJOR_MIN_MEMBERS:<majorId>) remain the authority on PASS/FAIL.
+  const unfilledMajors = team?.academicScope?.projectMode === 'INTERDISCIPLINARY'
+    ? team.academicScope.requirements
+      .map((requirement) => ({
+        majorId: requirement.majorId,
+        majorName: majorNames[requirement.majorId],
+        remaining: requirement.minMembers - team.members.filter((member) => member.majorId === requirement.majorId).length,
+      }))
+      .filter((entry) => entry.remaining > 0)
+    : []
+
   // Actions
   const handleCreateTeam = async (data: { code: string; name: string; description?: string }) => {
     await createTeam(data)
@@ -333,6 +345,7 @@ export function TeamManagementPage() {
             receivedInvitations={receivedInvitations}
             isLeader={permissions.canInvite}
             rosterLocked={rosterLocked}
+            unfilledMajors={unfilledMajors}
             candidates={candidates}
             candidateSearch={candidateSearch}
             candidateLoading={isLoadingCandidates}

@@ -10,6 +10,7 @@ import { SupervisorProfilePage } from '../../features/supervisors/pages/Supervis
 import { SupervisorProjectWorkspacePage } from '../../features/supervisors/pages/SupervisorProjectWorkspacePage'
 import { SupervisorProgressReviewPage } from '../../features/supervisors/pages/SupervisorProgressReviewPage'
 import { SupervisorFinalSubmissionPage } from '../../features/supervisors/pages/SupervisorFinalSubmissionPage'
+import { WeeklyAssessmentsPage } from '../../features/weekly-assessments/WeeklyAssessmentsPage'
 import { SupervisorExecutionRoute } from '../../features/supervisors/components/SupervisorExecutionRoute'
 import { MentorExecutionRoute } from '../../features/mentors/components/MentorExecutionRoute'
 import { MentorProjectWorkspacePage, MentorWorkspacePage } from '../../features/mentors/pages/MentorWorkspacePage'
@@ -46,6 +47,7 @@ import { ProjectReviewPage } from '../../features/projects/pages/ProjectReviewPa
 import { ProjectGovernancePage } from '../../features/projects/pages/ProjectGovernancePage'
 import { SupervisorMonitoringPage } from '../../features/supervisors/pages/SupervisorMonitoringPage'
 import { TopicManagementPage } from '../../features/topics/pages/TopicManagementPage'
+import { ColdTemplateManagementPage } from '../../features/cold-templates/ColdTemplateManagementPage'
 import { RegistrationSourcePage } from '../../features/registration/pages/RegistrationSourcePage'
 import { QualificationVerificationPage } from '../../features/qualifications/pages/QualificationVerificationPage'
 import { DeliverablesPage } from '../../features/deliverables/DeliverablesPage'
@@ -73,6 +75,7 @@ import { ProjectGatesPage } from '../../features/gates/ProjectGatesPage'
 import { ProjectWorkingAgreementPage } from '../../features/working-agreement/ProjectWorkingAgreementPage'
 import { ProjectDefensePage } from '../../features/defense/ProjectDefensePage'
 import { ProjectPeerEvaluationPage } from '../../features/peer-eval/ProjectPeerEvaluationPage'
+import { ColdChecklistPage } from '../../features/cold-reports/ColdChecklistPage'
 import { DepartmentProjectRiskPage } from '../../features/ai/DepartmentProjectRiskPage'
 import { DepartmentWorkspacePage } from '../../features/department/pages/DepartmentWorkspacePage'
 import { DepartmentProjectLayout } from '../../features/department/components/DepartmentProjectLayout'
@@ -129,6 +132,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             ...(env.gatesEnabled ? [{ path: 'project/gates', element: <ProjectGatesPage /> }] : []),
             ...(env.workingAgreementEnabled ? [{ path: 'project/agreement', element: <ProjectWorkingAgreementPage /> }] : []),
             ...(env.defenseScheduleEnabled ? [{ path: 'project/defense', element: <ProjectDefensePage /> }] : []),
+            ...(env.coldReportEnabled ? [{ path: 'project/cold-reports', element: <ColdChecklistPage /> }] : []),
             ...(env.peerEvaluationEnabled ? [{ path: 'project/peer-evaluation', element: <ProjectPeerEvaluationPage /> }] : []),
             ...(env.aiAdvisoryEnabled ? [{ path: 'project/ai', element: <ProjectAiPage /> }] : []),
           ] },
@@ -170,7 +174,9 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'supervisor/projects/:projectId/evidence', element: <ProjectEvidenceLedgerPage /> },
             { path: 'supervisor/projects/:projectId/contributions', element: <ProjectContributionsPage /> },
             { path: 'supervisor/projects/:projectId/final-submission', element: <SupervisorFinalSubmissionPage /> },
+            ...(env.weeklyAssessmentEnabled ? [{ path: 'supervisor/projects/:projectId/weekly-assessments', element: <WeeklyAssessmentsPage /> }] : []),
             ...(env.aiAdvisoryEnabled ? [{ path: 'supervisor/projects/:projectId/ai', element: <ProjectAiPage /> }] : []),
+            ...(env.gatesEnabled ? [{ path: 'supervisor/projects/:projectId/checkpoints', element: <ProjectGatesPage /> }] : []),
           ] },
           { element: <MentorExecutionRoute />, children: [
             { path: 'mentor/projects/:projectId/majors/:majorId/workspace', element: <MentorProjectWorkspacePage /> },
@@ -181,6 +187,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'mentor/projects/:projectId/majors/:majorId/meetings', element: <MeetingsPage /> },
             { path: 'mentor/projects/:projectId/majors/:majorId/meetings/:meetingId', element: <MeetingDetailPage /> },
             { path: 'mentor/projects/:projectId/majors/:majorId/evidence', element: <ProjectEvidenceLedgerPage /> },
+            ...(env.gatesEnabled ? [{ path: 'mentor/projects/:projectId/majors/:majorId/checkpoints', element: <ProjectGatesPage /> }] : []),
           ] },
           { path: 'evaluator/evaluations', element: <EvaluatorAssignmentsPage /> },
           { path: 'evaluator/evaluations/:evaluationId', element: <EvaluationWorkspacePage /> },
@@ -233,6 +240,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'department/student-qualifications', element: <QualificationVerificationPage /> },
           { path: 'department/topics', element: <TopicManagementPage /> },
           { path: 'department/topics/:id', element: <TopicManagementPage /> },
+          ...(env.coldReportEnabled ? [{ path: 'department/cold-templates', element: <ColdTemplateManagementPage /> }] : []),
           ] }] },
         ],
       },

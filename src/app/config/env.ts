@@ -31,6 +31,14 @@ const supervisorRecommendationEnabled = import.meta.env.VITE_ENABLE_SUPERVISOR_R
 /** Defense schedule / committee screen (BE-14). Enable only after the
  * defense-session endpoints ship; the screen is read-only for students. */
 const defenseScheduleEnabled = import.meta.env.VITE_ENABLE_DEFENSE?.trim().toLowerCase() === 'true'
+/** COLD report templates/checklist/draft/upload/submit (BE-N01). Shared by the
+ * student submission screen and this department template-management screen.
+ * Enable only after the cold-submissions endpoints ship. */
+const coldReportEnabled = import.meta.env.VITE_ENABLE_COLD_REPORT?.trim().toLowerCase() === 'true'
+/** Weekly individual demo assessment (BE-N04). Primary-supervisor-only; isDemo/
+ * affectsOfficialResult are always true/false server-side, never computed by FE.
+ * Enable only after the weekly-assessments endpoints ship. */
+const weeklyAssessmentEnabled = import.meta.env.VITE_ENABLE_WEEKLY_ASSESSMENT?.trim().toLowerCase() === 'true'
 /** Peer evaluation (BE-19b). Evidence only, never a score. Enable after endpoints ship. */
 const peerEvaluationEnabled = import.meta.env.VITE_ENABLE_PEER_EVAL?.trim().toLowerCase() === 'true'
 /** Result correction / appeal requests (BE-19b). A correction creates a new result
@@ -43,6 +51,9 @@ const leadDepartmentPublishEnabled = import.meta.env.VITE_ENABLE_LEAD_PUBLISH?.t
 /** RBAC matrix editing (BE-11). MVP keeps the Admin permission matrix READ-ONLY;
  * turn this on only once editing the system matrix is designed and seeded. */
 const rbacWriteEnabled = import.meta.env.VITE_ENABLE_RBAC_WRITE?.trim().toLowerCase() === 'true'
+/** Meeting series/recurrence, RSVP and notes-lock (BE-06/N06/N07). Enable only
+ * after the /meeting-series and /meetings/{id}/collaboration endpoints ship. */
+const meetingCollaborationEnabled = import.meta.env.VITE_ENABLE_MEETING_COLLABORATION?.trim().toLowerCase() === 'true'
 
 export const env = {
   apiBaseUrl: apiBaseUrl.replace(/\/$/, ''),
@@ -60,6 +71,8 @@ export const env = {
   aiRunHistoryEnabled,
   supervisorRecommendationEnabled,
   defenseScheduleEnabled,
+  coldReportEnabled,
+  weeklyAssessmentEnabled,
   peerEvaluationEnabled,
   resultCorrectionEnabled,
   leadDepartmentPublishEnabled,
@@ -69,4 +82,5 @@ export const env = {
   chatAttachmentsEnabled: import.meta.env.VITE_ENABLE_CHAT_ATTACHMENTS?.trim().toLowerCase() === 'true',
   /** Gates Jira-style sprint/backlog/story-point/label UI until the backend sprint contract ships; default off. */
   jiraSprintEnabled: import.meta.env.VITE_ENABLE_JIRA_SPRINT?.trim().toLowerCase() === 'true',
+  meetingCollaborationEnabled,
 } as const

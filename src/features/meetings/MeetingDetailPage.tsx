@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
+import { env } from '../../app/config/env'
 import * as api from '../../services/api/meetings.api'
-import type { MeetingDetail } from './meeting-types'
-import { attendanceStatuses } from './meeting-types'
+import type { MeetingCollaboration, MeetingDetail } from './meeting-types'
+import { attendanceStatuses, recurrenceLabels, rsvpStatusLabels } from './meeting-types'
 import { canManageMeeting, formatMeetingTime, meetingVenue, meetingError, mustRefreshAfterError, safeMeetingUrl } from './meeting-utils'
 import { MeetingError, MeetingLoading, MeetingShell, MeetingStatusBadge } from './meeting-ui'
 import { MeetingScheduleForm } from './MeetingScheduleForm'
 import { MeetingNotesForm } from './MeetingNotesForm'
+import { MeetingNotesHistoryPanel } from './MeetingNotesHistoryPanel'
 import { MeetingUnsavedNotice } from './MeetingUnsavedNotice'
 import { useMeetingCandidates } from './useMeetingCandidates'
 import { MeetingGovernancePanel } from './MeetingGovernancePanel'
@@ -37,11 +39,16 @@ function MeetingDetailView({ id }: { id: number }) {
   const [participantId, setParticipantId] = useState('')
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
   const confirmationRef = useRef<HTMLDivElement>(null)
+  const [collaboration, setCollaboration] = useState<MeetingCollaboration | null>(null)
+  const [rsvpBusy, setRsvpBusy] = useState(false)
+  const [lockBusy, setLockBusy] = useState(false)
   const lock = useRef(false)
   const alive = useRef(true)
   const manage = Boolean(meeting && canManageMeeting(access, meeting))
   const scheduled = meeting?.status === 'SCHEDULED'
   const writableNotes = meeting?.status === 'SCHEDULED' || meeting?.status === 'COMPLETED'
+  const notesLocked = Boolean(collaboration?.notesLockedAt)
+  const notesEditable = writableNotes && !notesLocked
   const candidates = useMeetingCandidates(project.id, project.teamId, manage && meeting?.status !== 'CANCELLED')
   const disabled = busy || needsRefresh
   useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
@@ -58,6 +65,15 @@ function MeetingDetailView({ id }: { id: number }) {
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
   }, [project.id, id, revision])
+
+  useEffect(() => {
+    if (!env.meetingCollaborationEnabled || !Number.isSafeInteger(id) || id < 1) { setCollaboration(null); return }
+    const controller = new AbortController()
+    api.getMeetingCollaboration(id, controller.signal)
+      .then((result) => { if (!controller.signal.aborted) setCollaboration(result) })
+      .catch(() => { if (!controller.signal.aborted) setCollaboration(null) })
+    return () => controller.abort()
+  }, [id, revision])
 
   async function mutate(operation: () => Promise<unknown>, message: string) {
     if (lock.current || needsRefresh) return
@@ -88,6 +104,20 @@ function MeetingDetailView({ id }: { id: number }) {
     else if (confirmation.type === 'cancel') await mutate(() => api.cancelMeeting(id, meeting.concurrencyToken), 'Đã hủy lịch họp. Lịch sử cuộc họp vẫn được giữ lại.')
     else await mutate(() => api.completeMeeting(id, meeting.concurrencyToken), 'Đã đánh dấu cuộc họp hoàn tất.')
   }
+  async function respondRsvp(status: string) {
+    if (rsvpBusy || !collaboration?.myRsvp || meeting?.status !== 'SCHEDULED') return
+    setRsvpBusy(true); setError('')
+    try { const updated = await api.respondMeetingRsvp(id, status, collaboration.myRsvp.concurrencyToken); if (alive.current) setCollaboration((current) => current ? { ...current, myRsvp: updated } : current) }
+    catch (reason) { if (alive.current) setError(meetingError(reason)) }
+    finally { if (alive.current) setRsvpBusy(false) }
+  }
+  async function lockNotes() {
+    if (lockBusy || !collaboration?.canLockNotes) return
+    setLockBusy(true); setError('')
+    try { const updated = await api.lockMeetingNotes(id, collaboration.concurrencyToken); if (alive.current) { setCollaboration(updated); setSuccess('Đã khóa biên bản cuộc họp.') } }
+    catch (reason) { if (alive.current) setError(meetingError(reason)) }
+    finally { if (alive.current) setLockBusy(false) }
+  }
   function sendFeedback(event: FormEvent) {
     event.preventDefault()
     if (access.actor !== 'supervisor' || !writableNotes || !feedback.trim()) return
@@ -107,7 +137,7 @@ function MeetingDetailView({ id }: { id: number }) {
     {needsRefresh && !loadError && <div className="mtg-notice"><p>Thao tác đang tạm khóa cho đến khi tải lại trạng thái mới nhất.</p><button className="mtg-button mtg-button--secondary" disabled={busy} onClick={() => dirty ? setConfirmation({ type: 'refresh' }) : reload()}>Tải lại trạng thái</button></div>}
     {confirmation && <div ref={confirmationRef} tabIndex={-1} className="mtg-confirm" role="alertdialog" aria-label="Xác nhận thao tác"><p>{confirmationText}</p><div className="mtg-actions"><button className="mtg-button mtg-button--secondary" disabled={busy} onClick={() => setConfirmation(null)}>Quay lại</button><button className="mtg-button" disabled={busy} onClick={() => void confirm()}>{busy ? 'Đang xử lý…' : 'Xác nhận'}</button></div></div>}
     {loading ? <MeetingLoading /> : loadError ? <MeetingError message={loadError} retry={reload} /> : meeting && <>
-      <div className="mtg-detail-banner"><div><p className="mtg-eyebrow">Thời gian · Giờ Việt Nam (UTC+7)</p><h2>{formatMeetingTime(meeting.startAt)}</h2><p>{meeting.endAt ? `Kết thúc: ${formatMeetingTime(meeting.endAt)}` : 'Chưa xác định giờ kết thúc'}</p></div><MeetingStatusBadge status={meeting.status} /></div>
+      <div className="mtg-detail-banner"><div><p className="mtg-eyebrow">Thời gian · Giờ Việt Nam (UTC+7)</p><h2>{formatMeetingTime(meeting.startAt)}</h2><p>{meeting.endAt ? `Kết thúc: ${formatMeetingTime(meeting.endAt)}` : 'Chưa xác định giờ kết thúc'}</p>{collaboration?.seriesId && <p className="mtg-help">Thuộc chuỗi lặp {recurrenceLabels[collaboration.recurrence as keyof typeof recurrenceLabels] ?? collaboration.recurrence}{collaboration.occurrenceNumber ? ` · Lần thứ ${collaboration.occurrenceNumber}` : ''}</p>}</div><MeetingStatusBadge status={meeting.status} /></div>
       <div className="mtg-detail-grid"><div className="mtg-stack">
         <section className="mtg-panel mtg-padded"><div className="mtg-section-heading"><h2>Nội dung và địa điểm</h2>{manage && scheduled && editor !== 'schedule' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('schedule')}>Sửa lịch</button>}</div>
           {editor === 'schedule' ? <MeetingScheduleForm meeting={meeting} busy={busy} locked={needsRefresh} onDirty={() => setDirty(true)} onCancel={closeEditor} onSave={async (body) => {
@@ -116,8 +146,10 @@ function MeetingDetailView({ id }: { id: number }) {
             await mutate(() => api.updateMeeting(id, { ...schedule, concurrencyToken: meeting.concurrencyToken }), 'Đã lưu thay đổi lịch họp.')
           }} /> : <><p className="mtg-prose">{meeting.agenda || 'Chưa có nội dung dự kiến.'}</p><dl className="mtg-facts"><div><dt>Địa điểm</dt><dd>{meetingVenue(meeting)}</dd></div><div><dt>Người tổ chức</dt><dd>{meeting.createdByName}</dd></div></dl>{onlineUrl ? <a className="mtg-button mtg-button--secondary" href={onlineUrl} target="_blank" rel="noopener noreferrer">Mở phòng họp ↗</a> : meeting.onlineUrl && <p className="mtg-help">Liên kết họp không hợp lệ. Liên hệ người tổ chức để cập nhật.</p>}</>}
         </section>
-        <section className="mtg-panel mtg-padded"><div className="mtg-section-heading"><h2>Biên bản và điểm danh</h2>{manage && writableNotes && editor !== 'notes' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('notes')}>Cập nhật biên bản</button>}</div>
-          {editor === 'notes' ? <MeetingNotesForm meeting={meeting} busy={busy} locked={needsRefresh} onDirty={() => setDirty(true)} onCancel={closeEditor} onSave={async (body) => { if (manage && writableNotes) await mutate(() => api.updateMeetingNotes(id, { ...body, concurrencyToken: meeting.concurrencyToken }), 'Đã lưu biên bản và điểm danh.') }} /> : <p className="mtg-prose">{meeting.meetingNotes || 'Chưa có biên bản. Ghi lại kết luận sau buổi trao đổi để cả nhóm cùng theo dõi.'}</p>}
+        <section className="mtg-panel mtg-padded"><div className="mtg-section-heading"><h2>Biên bản và điểm danh</h2><div className="mtg-actions">{env.meetingCollaborationEnabled && collaboration?.canLockNotes && <button className="mtg-text-button" disabled={disabled || dirty || lockBusy} onClick={() => void lockNotes()}>{lockBusy ? 'Đang khóa…' : 'Khóa biên bản'}</button>}{manage && notesEditable && editor !== 'notes' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('notes')}>Cập nhật biên bản</button>}</div></div>
+          {notesLocked && <p className="mtg-help">Biên bản đã được khóa{formatMeetingTime(collaboration?.notesLockedAt ?? '') !== 'Chưa rõ thời gian' ? ` lúc ${formatMeetingTime(collaboration?.notesLockedAt ?? '')}` : ''}, không thể chỉnh sửa thêm.</p>}
+          {editor === 'notes' ? <MeetingNotesForm meeting={meeting} busy={busy} locked={needsRefresh || notesLocked} onDirty={() => setDirty(true)} onCancel={closeEditor} onSave={async (body) => { if (manage && notesEditable) await mutate(() => api.updateMeetingNotes(id, { ...body, concurrencyToken: meeting.concurrencyToken }), 'Đã lưu biên bản và điểm danh.') }} /> : <p className="mtg-prose">{meeting.meetingNotes || 'Chưa có biên bản. Ghi lại kết luận sau buổi trao đổi để cả nhóm cùng theo dõi.'}</p>}
+          {env.meetingCollaborationEnabled && <MeetingNotesHistoryPanel meetingId={id} refreshKey={collaboration?.notesVersion ?? 0} />}
         </section>
 
       </div><aside className="mtg-stack">
@@ -128,12 +160,21 @@ function MeetingDetailView({ id }: { id: number }) {
                 <strong>{participant.fullName}</strong>
                 {participant.userId === meeting.createdBy && <span className="mtg-organizer">Tổ chức</span>}
                 <small>{participant.attendanceStatus ? attendanceStatuses[participant.attendanceStatus] ?? participant.attendanceStatus : 'Chưa cập nhật'}</small>
+                {env.meetingCollaborationEnabled && participant.rsvpStatus && <small className="mtg-rsvp-chip">{rsvpStatusLabels[participant.rsvpStatus] ?? participant.rsvpStatus}</small>}
               </div>
               {manage && scheduled && (
                 <button className="mtg-text-button" aria-label={`Bỏ ${participant.fullName} khỏi cuộc họp`} disabled={disabled || dirty} onClick={() => setConfirmation({ type: 'remove', userId: participant.userId, name: participant.fullName })}>Bỏ</button>
               )}
             </li>
           ))}</ul>
+          {env.meetingCollaborationEnabled && collaboration?.myRsvp && scheduled && <div className="mtg-rsvp" role="group" aria-label="Phản hồi tham dự">
+            <p className="mtg-help">Bạn tham dự cuộc họp này?</p>
+            <div className="mtg-actions">
+              {([['ACCEPTED', 'Tham dự'], ['TENTATIVE', 'Có thể'], ['DECLINED', 'Từ chối']] as const).map(([status, label]) => (
+                <button key={status} type="button" className="mtg-button mtg-button--secondary" aria-pressed={collaboration.myRsvp?.status === status} disabled={rsvpBusy} onClick={() => void respondRsvp(status)}>{label}</button>
+              ))}
+            </div>
+          </div>}
           {meeting.participants.length === 0 && <p className="mtg-help">Chưa có người tham gia.</p>}
           {manage && scheduled && candidates.notice && <p className="mtg-help">{candidates.notice}</p>}
           {manage && scheduled && <>{candidates.loading ? <p role="status" className="mtg-help">Đang tải danh sách mời…</p> : candidates.error ? <MeetingError message={candidates.error} retry={candidates.retry} /> : <form className="mtg-form" onSubmit={(event) => {
@@ -150,6 +191,7 @@ function MeetingDetailView({ id }: { id: number }) {
           {manage && scheduled && <div className="mtg-stack"><button className="mtg-button" disabled={disabled || dirty} onClick={() => setConfirmation({ type: 'complete' })}>Hoàn tất cuộc họp</button><button className="mtg-button mtg-button--danger" disabled={disabled || dirty} onClick={() => setConfirmation({ type: 'cancel' })}>Hủy lịch họp</button></div>}
           {dirty && <p className="mtg-help">Lưu hoặc đóng phần đang chỉnh sửa trước khi thực hiện thao tác khác.</p>}
           {!needsRefresh && <button className="mtg-text-button mtg-refresh" disabled={busy} onClick={() => dirty ? setConfirmation({ type: 'refresh' }) : reload()}>Tải lại trạng thái</button>}
+          {env.meetingCollaborationEnabled && manage && collaboration && collaboration.emailDeliveries.length > 0 && <div className="mtg-stack"><h3 className="mtg-subheading">Gửi email nhắc</h3><ul className="mtg-email-deliveries">{collaboration.emailDeliveries.map((delivery, index) => <li key={`${delivery.userId}-${delivery.notificationType}-${index}`}>{delivery.notificationType} · {delivery.status}{delivery.attemptCount > 1 ? ` · ${delivery.attemptCount} lần thử` : ''}{delivery.sentAt ? ` · ${formatMeetingTime(delivery.sentAt)}` : ''}</li>)}</ul>{collaboration.hasMoreEmailDeliveries && <p className="mtg-help">Còn thêm lượt gửi email chưa hiển thị.</p>}</div>}
         </section>
         <MeetingVideoSection meeting={meeting} routeBase={routeBase} />
         <MeetingVideoPresencePanel meeting={meeting} />
