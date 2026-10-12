@@ -58,6 +58,7 @@ export interface TaskDto {
   sprintId?: number | null
   storyPoints?: number | null
   labels?: string[]
+  taskCode?: string | null
 }
 
 export type SprintStatus = 'PLANNING' | 'ACTIVE' | 'COMPLETED'
@@ -66,11 +67,35 @@ export interface SprintDto {
   id: number
   projectId: number
   name: string
-  goal?: string | null
-  startAt?: string | null
-  endAt?: string | null
+  startAt: string
+  endAt: string
+  startedAt?: string | null
+  completedAt?: string | null
   status: SprintStatus | string
-  concurrencyToken?: string
+  concurrencyToken: string
+  canEdit: boolean
+  canStart: boolean
+  canComplete: boolean
+}
+
+export interface SprintCarryover {
+  taskId: number
+  targetSprintId?: number | null
+  taskConcurrencyToken: string
+}
+
+export interface SprintBurndownPointDto {
+  at: string
+  scopePoints: number
+  remainingPoints: number
+  unestimatedTasks: number
+}
+
+export interface SprintBurndownDto {
+  sprintId: number
+  historyStartsAt?: string | null
+  points: SprintBurndownPointDto[]
+  complete: boolean
 }
 
 export interface OverdueBlockedTasksDto {
