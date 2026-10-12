@@ -1,5 +1,7 @@
 # FE2-01A — Current contract / authority / route mapping
 
+> **Snapshot lịch sử ngày 09/10, không dùng các quyền/field bên dưới như contract hiện hành.** Nguồn BE mới `e625ee2` đã thay authority và thêm metadata; source/DTO hiện hành được ghi trong [FE2-01B](evidence/FE2-01B/README.md) và [FE2-03B](evidence/FE2-03B/README.md). Admin không mặc định có quyền academic mutation; FE dùng `actions[].code/allowed/reasons` của `/projects/{id}/my-capabilities`. Quyền quản lý scheme/evaluators và publication theo frozen lead/participating component scope; stage/weights/policy theo DTO đã merge. Contract source đã có không xác nhận đang deploy hoặc đã nghiệm thu staging.
+
 Ngày 09/10/2026. Roadmap đã được người dùng duyệt và yêu cầu bắt đầu. Nhánh task: `docs/fe2-01a-contract-mapping-20261009`, tạo từ develop `3426d70e5f7f0320ee5c057ade39aca267cb0434` sau fetch. BE source: `3742760582a23e72c878fb61f1dadf225dfbca01`.
 
 **SOURCE_MAPPING_COMPLETE / BE_FREEZE_PENDING**. Không gọi API live, không đọc DB, không thay code FE/BE. Source mapping không phải signed OpenAPI release hoặc academic approval. Các path dưới có prefix `/api/v1`.

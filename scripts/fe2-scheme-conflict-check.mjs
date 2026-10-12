@@ -34,6 +34,7 @@ try {
           current = { ...current, ...input, concurrencyToken: 'saved-token' }; body = current
         }
       } else if (path.endsWith('/evaluation-schemes')) body = [current]
+      else if (path.endsWith('/projects/2/my-capabilities')) body = { projectId: 2, projectStatus: 'FINAL_SUBMISSION', concurrencyToken: 'project-token', academicScopeProvenance: 'FROZEN_REGISTRATION_SNAPSHOT', leadDepartmentId: 2, managedDepartmentIds: [2], registrationSnapshotId: 3, schemeId: 31, schemeConcurrencyToken: current.concurrencyToken, policyVersionId: null, actions: [{ code: 'manage_evaluation_scheme', allowed: true, reasons: [] }] }
       else if (path.endsWith('/projects/2')) body = { id: 2, majors: [{ majorId: 1, majorCode: 'IT', majorName: 'CNTT' }] }
       else if (path.endsWith('/project-periods')) body = { items: [{ id: 7, name: 'Đợt bảo vệ', periodType: 'EVALUATION', status: 'ACTIVE' }], totalCount: 1 }
       else if (path.endsWith('/rubrics')) body = { items: [{ id: 4, code: 'RUBRIC', version: 1 }], totalCount: 1 }
@@ -53,7 +54,7 @@ try {
     await comparison.locator('summary').focus()
     await page.keyboard.press('Enter')
     await expect(comparison.getByText('Nội dung chưa lưu của tôi', { exact: false })).toBeVisible()
-    await expect(comparison.getByText('Phương án trên server', { exact: false })).toBeVisible()
+    await expect(comparison.getByRole('heading', { name: /Phương án trên server/ })).toBeVisible()
     if (writes.length !== 1) throw new Error('Conflict mutation was replayed')
     if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) throw new Error(`Overflow at ${width}`)
     await comparison.screenshot({ path: `${outputDir}/conflict-${width}.png` })

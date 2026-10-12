@@ -20,6 +20,7 @@ import { useAuthSession } from '../auth/context/useAuthSession'
 import { Button } from '../../components/ui/Button'
 import { ResourcePermissionNotice } from '../../components/ui/ResourcePermissionNotice'
 import { useProjectCapabilities } from '../capabilities/useProjectCapabilities'
+import { SchemeConflictReview, type SchemeConflict } from './SchemeConflictReview'
 
 type DraftComponent = schemesApi.EvaluationSchemeComponentInput & { key: string }
 
@@ -54,8 +55,12 @@ function validNumber(value: number, decimals: number) {
 }
 
 export function EvaluationSchemeManagementPage() {
-  const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const projectId = Number(useParams().projectId)
+  return <EvaluationSchemeEditor key={projectId} projectId={projectId} />
+}
+
+function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
+  const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const paths = projectEvaluationPaths(projectId, useLocation().pathname)
   const { session } = useAuthSession()
   const capabilities = useProjectCapabilities(projectId)
@@ -77,8 +82,11 @@ export function EvaluationSchemeManagementPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const [conflicted, setConflicted] = useState(false)
+  const [conflict, setConflict] = useState<SchemeConflict | null>(null)
+  const conflicted = conflict !== null
+  const mounted = useRef(true)
   const mutationLock = useRef(false)
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
 
   useEffect(() => { if (error) errorSummary.current?.focus() }, [error])
 
@@ -96,17 +104,22 @@ export function EvaluationSchemeManagementPage() {
         readAllPages(page => getProjectPeriods(session.accessToken, { search: '', periodType: 'EVALUATION' }, undefined, page)),
         readAllPages(page => listRubrics(page, 'PUBLISHED')),
       ])
+      if (!mounted.current || authority.current.session !== session) return
       setProject(nextProject)
       setItems(schemeItems)
       setPeriods(periodPage.filter(item => item.periodType === 'EVALUATION'))
       setRubrics(rubricPage)
+      setConflict(current => current ? { ...current, latest: schemeItems.find(item => item.id === current.schemeId) ?? null, loaded: true } : null)
       setError(null)
+      return schemeItems
     } catch (reason) {
+      if (!mounted.current || authority.current.session !== session) return
       setItems([])
       setPeriods([])
       setRubrics([])
+      setConflict(current => current ? { ...current, loaded: false } : null)
       setError(errorMessage(reason, 'Không thể tải phương án đánh giá, bộ tiêu chí và kỳ đánh giá.'))
-    } finally { setLoading(false) }
+    } finally { if (mounted.current && authority.current.session === session) setLoading(false) }
   }, [projectId, session])
 
   useEffect(() => { void load() }, [load])
@@ -120,12 +133,23 @@ export function EvaluationSchemeManagementPage() {
   })), [components, project])
 
   const choose = (scheme: EvaluationScheme) => {
+    if (busy || loading) return
     setSelected(scheme); setCreating(false); setName(scheme.name); setPeriodId(scheme.projectPeriodId)
-    setThreshold(scheme.passThreshold); setComponents(asDraft(scheme)); setError(null); setNotice(null); setConflicted(false)
+    setThreshold(scheme.passThreshold); setComponents(asDraft(scheme)); setError(null); setNotice(null); setConflict(null)
   }
   const startDraft = () => {
-    if (!canManage || busy || loading || !project) return
-    setSelected(null); setCreating(true); setName(''); setPeriodId(0); setThreshold(''); setComponents([component()]); setError(null); setNotice(null); setConflicted(false)
+    if (!canManage || busy || loading || conflicted || !project) return
+    setSelected(null); setCreating(true); setName(''); setPeriodId(0); setThreshold(''); setComponents([component()]); setError(null); setNotice(null); setConflict(null)
+  }
+  const useServer = () => {
+    if (busy || loading || !conflict?.loaded) return
+    if (conflict.latest) choose(conflict.latest)
+    else { setSelected(null); setCreating(false); setConflict(null); setError(null) }
+  }
+  const keepDraft = () => {
+    if (!canManage || busy || loading || !project || !conflict?.loaded || conflict.latest?.status !== 'DRAFT') return
+    setSelected(conflict.latest); setConflict(null); setError(null)
+    setNotice('Đã giữ nội dung bạn nhập với phiên bản hiện tại. Kiểm tra lại rồi lưu bản nháp khi sẵn sàng.')
   }
   const updateComponent = (key: string, patch: Partial<DraftComponent>) => setComponents(current => current.map(item => item.key === key ? { ...item, ...patch } : item))
   const changeScope = (key: string, scope: EvaluationScope) => setComponents(current => current.map(item => item.key !== key ? item : {
@@ -157,7 +181,7 @@ export function EvaluationSchemeManagementPage() {
 
   const save = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!canManage) return
+    if (!canManage || (!creating && selected?.status !== 'DRAFT')) return
     if (busy || conflicted || loading || !project || threshold === '') { if (threshold === '') setError('Nhập ngưỡng đạt từ cấu hình đã được duyệt.'); return }
     const issues = validate()
     if (issues.length) { setError(issues.join(' ')); return }
@@ -170,56 +194,67 @@ export function EvaluationSchemeManagementPage() {
   }
 
   const run = async (operation: () => Promise<EvaluationScheme | void>, success: string, selectResult = false) => {
-    if (!authority.current.allowed || authority.current.projectId !== projectId || authority.current.session !== session || authority.current.data !== capabilities.data || mutationLock.current || conflicted || !project) return
+    if (!mounted.current || !authority.current.allowed || authority.current.projectId !== projectId || authority.current.session !== session || authority.current.data !== capabilities.data || mutationLock.current || conflicted || loading || !project) return
     mutationLock.current = true
     setBusy(true); setError(null); setNotice(null)
     try {
       const result = await operation()
+      if (!mounted.current || authority.current.session !== session) return
       capabilities.retry()
-      await load()
-      if (result && selectResult) choose(result)
+      const freshItems = await load()
+      if (!mounted.current || authority.current.session !== session) return
+      if (result && selectResult) {
+        setSelected(result); setCreating(false); setName(result.name); setPeriodId(result.projectPeriodId)
+        setThreshold(result.passThreshold); setComponents(asDraft(result)); setConflict(null)
+      }
       else if (selected) {
-        const fresh = (await schemesApi.getEvaluationSchemes(projectId)).find(item => item.id === selected.id)
-        if (fresh) choose(fresh)
+        const fresh = freshItems?.find(item => item.id === selected.id)
+        if (fresh) { setSelected(fresh); setName(fresh.name); setPeriodId(fresh.projectPeriodId); setThreshold(fresh.passThreshold); setComponents(asDraft(fresh)) }
+        else if (freshItems) { setSelected(null); setCreating(false) }
       }
       setNotice(success)
     } catch (reason) {
+      if (!mounted.current || authority.current.session !== session) return
       capabilities.retry()
-      if (reason instanceof HttpError && reason.status === 409) { setConflicted(true); await load() }
+      if (reason instanceof HttpError && reason.status === 409) {
+        setConflict({ schemeId: selected?.id ?? null, latest: null, loaded: false, draft: { name, periodId, threshold, components } })
+        const freshItems = await load()
+        if (!mounted.current || authority.current.session !== session || !freshItems) return
+      }
       setError(errorMessage(reason, 'Không thể hoàn tất thao tác với phương án đánh giá.'))
-    } finally { mutationLock.current = false; setBusy(false) }
+    } finally { mutationLock.current = false; if (mounted.current) setBusy(false) }
   }
 
   const publish = async () => {
-    if (!canManage || !selected || await requestConfirmation({ title: 'Công bố phương án đánh giá?', description: 'Cấu hình và danh sách thành viên sẽ được khóa để chấm. Thao tác này không phê duyệt học thuật hay công bố điểm chính thức. Muốn chỉnh sửa sau đó, hãy tạo phiên bản mới.', confirmLabel: 'Công bố phương án' }) === null) return
+    if (!canManage || !selected || selected.status !== 'DRAFT' || await requestConfirmation({ title: 'Công bố phương án đánh giá?', description: 'Cấu hình và danh sách thành viên sẽ được khóa để chấm. Thao tác này không phê duyệt học thuật hay công bố điểm chính thức. Muốn chỉnh sửa sau đó, hãy tạo phiên bản mới.', confirmLabel: 'Công bố phương án' }) === null) return
     void run(() => schemesApi.publishEvaluationScheme(selected.id, selected.concurrencyToken), 'Đã công bố phương án đánh giá và chốt thông tin áp dụng.', true)
   }
   const version = () => {
-    if (!canManage || !selected) return
-    void run(() => schemesApi.createEvaluationSchemeVersion(selected.id, selected.concurrencyToken), 'Đã tạo phiên bản nháp mới từ phương án đánh giá đã công bố.', true)
+    if (!canManage || !selected || selected.status === 'DRAFT') return
+    void run(() => schemesApi.createEvaluationSchemeVersion(selected.id, selected.concurrencyToken), 'Đã tạo phiên bản nháp mới ở chế độ minh họa; không kế thừa phê duyệt và thời điểm khóa của phiên bản cũ.', true)
   }
   const remove = async () => {
-    if (!canManage || !selected || await requestConfirmation({ title: 'Xóa bản nháp?', description: 'Bản nháp này sẽ bị xóa và không thể khôi phục.', confirmLabel: 'Xóa bản nháp', danger: true }) === null) return
-    await run(async () => { await schemesApi.deleteEvaluationScheme(selected.id, selected.concurrencyToken); setSelected(null); setCreating(false) }, 'Đã xóa phương án đánh giá bản nháp.')
+    if (!canManage || !selected || selected.status !== 'DRAFT' || await requestConfirmation({ title: 'Xóa bản nháp?', description: 'Bản nháp này sẽ bị xóa và không thể khôi phục.', confirmLabel: 'Xóa bản nháp', danger: true }) === null) return
+    await run(() => schemesApi.deleteEvaluationScheme(selected.id, selected.concurrencyToken), 'Đã xóa phương án đánh giá bản nháp.')
   }
 
   const editable = canManage && !conflicted && project !== null && (creating || selected?.status === 'DRAFT')
-  return <WorkspacePage className="space-y-5 evaluation-scheme-page academic-capability-page" title="Phương án đánh giá" eyebrow="Đánh giá đồ án" description="Thiết lập các thành phần, trọng số và ngưỡng đạt trước khi phân công người chấm." action={<><ButtonLink to={paths.evaluators}>Phân công người chấm</ButtonLink>{canManage && <Button disabled={busy || loading || !project} onClick={startDraft} icon="add">Tạo bản nháp</Button>}</>}>
+  return <WorkspacePage className="space-y-5 evaluation-scheme-page academic-capability-page" title="Phương án đánh giá" eyebrow="Đánh giá đồ án" description="Thiết lập các thành phần, trọng số và ngưỡng đạt trước khi phân công người chấm." action={<><ButtonLink to={paths.evaluators}>Phân công người chấm</ButtonLink>{canManage && <Button disabled={busy || loading || conflicted || !project} onClick={startDraft} icon="add">Tạo bản nháp</Button>}</>}>
     
     {confirmationDialog}
     <ResourcePermissionNotice loading={capabilities.loading} error={capabilities.error} allowed={canManage} reason={capabilities.reasonLabel('manage_evaluation_scheme')} onRetry={capabilities.retry} />
-    {conflicted && <p role="status" className="workspace-note p-4 text-sm">Bản nhập của bạn được giữ để đối chiếu. Chọn phiên bản mới trong danh sách để tải lại dữ liệu và tiếp tục; hệ thống không tự gửi lại thao tác.</p>}
+    {conflict && <SchemeConflictReview conflict={conflict} periods={periods} rubrics={rubrics} project={project} busy={busy || loading} canManage={canManage} onReload={() => void load()} onUseServer={useServer} onKeepDraft={keepDraft} />}
     {error && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">{error} <button type="button" className="font-semibold underline" onClick={() => void load()}>Tải lại</button></div>}
     {notice && <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">{notice}</p>}
     <p className="workspace-note p-4 text-sm">Bản nháp cần ngưỡng đạt và trọng số từ quy định đã được duyệt. Việc công bố kỹ thuật không thay cho phê duyệt học thuật; không dùng tỷ lệ minh họa của tài liệu làm quy định chính thức.</p>
     <div className="workspace-master-detail">
-      <section className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="font-semibold text-slate-900">Phiên bản của đồ án</h2>{loading ? <p role="status" className="mt-3 text-sm text-slate-600">Đang tải phương án đánh giá…</p> : items.length === 0 ? <p className="mt-3 text-sm text-slate-600">Chưa có phương án đánh giá. Bạn có thể tạo bản nháp khi gói bàn giao và đợt đánh giá đã sẵn sàng.</p> : <ul className="mt-3 space-y-2">{items.map(item => <li key={item.id}><button type="button" onClick={() => choose(item)} className={`min-h-11 w-full rounded-lg border p-3 text-left text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected?.id === item.id ? 'border-primary bg-primary/5' : 'border-slate-200 hover:bg-slate-50'}`}><strong>{item.name}</strong><span className="mt-1 block text-xs text-slate-600">v{item.version} · {displayLabel(item.status)} · {item.components.length} thành phần</span></button></li>)}</ul>}</section>
-      <section className="rounded-xl border border-slate-200 bg-white p-5">{!creating && !selected ? <div className="workspace-empty-detail"><span className="material-symbols-outlined" aria-hidden="true">schema</span><h2>Thiết lập phương án đánh giá</h2><p>Chọn phiên bản để xem, hoặc tạo bản nháp với các thành phần và trọng số của đợt đánh giá.</p>{canManage && <Button variant="secondary" disabled={busy || loading || !project} onClick={startDraft}>Tạo bản nháp</Button>}</div> : <form onSubmit={save} className="space-y-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900">{creating ? 'Bản nháp phương án đánh giá mới' : `${selected?.name} · v${selected?.version}`}</h2>{selected && <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600"><StatusBadge status={selected.status} /> <span>{selected.policyVersionId ? `Chính sách kỳ đánh giá #${selected.policyVersionId}` : 'Chưa chốt chính sách áp dụng'}</span></p>}{selected && (selected.status ?? '').toUpperCase() === 'PROPOSED' && <p role="note" className="mt-2 rounded-lg border border-status-warning-border bg-status-warning-bg p-2 text-xs text-status-warning-text">Phương án này mới là đề xuất, chưa được bộ môn phê duyệt. Khóa cấu hình để chấm không thay cho phê duyệt học thuật; hệ thống kiểm tra riêng điều kiện công bố điểm chính thức.</p>}</div>{selected && canManage && <div className="flex flex-wrap gap-2">{selected.status === 'DRAFT' && <><Button disabled={busy || conflicted || !project} onClick={publish} icon="lock">Công bố phương án</Button><Button variant="danger" disabled={busy || conflicted || !project} onClick={remove} icon="delete">Xóa bản nháp</Button></>}{selected.status !== 'DRAFT' && <Button variant="secondary" disabled={busy || conflicted || !project} onClick={version} icon="content_copy">Tạo phiên bản</Button>}</div>}</div>
+      <section className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="font-semibold text-slate-900">Phiên bản của đồ án</h2>{loading ? <p role="status" className="mt-3 text-sm text-slate-600">Đang tải phương án đánh giá…</p> : items.length === 0 ? <p className="mt-3 text-sm text-slate-600">Chưa có phương án đánh giá. Bạn có thể tạo bản nháp khi gói bàn giao và đợt đánh giá đã sẵn sàng.</p> : <ul className="mt-3 space-y-2">{items.map(item => <li key={item.id}><button type="button" disabled={busy || loading} onClick={() => choose(item)} className={`min-h-11 w-full rounded-lg border p-3 text-left text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected?.id === item.id ? 'border-primary bg-primary/5' : 'border-slate-200 hover:bg-slate-50'}`}><strong>{item.name}</strong><span className="mt-1 block text-xs text-slate-600">v{item.version} · {displayLabel(item.status)} · {item.components.length} thành phần</span></button></li>)}</ul>}</section>
+      <section className="rounded-xl border border-slate-200 bg-white p-5">{!creating && !selected ? <div className="workspace-empty-detail"><span className="material-symbols-outlined" aria-hidden="true">schema</span><h2>Thiết lập phương án đánh giá</h2><p>Chọn phiên bản để xem, hoặc tạo bản nháp với các thành phần và trọng số của đợt đánh giá.</p>{canManage && <Button variant="secondary" disabled={busy || loading || conflicted || !project} onClick={startDraft}>Tạo bản nháp</Button>}</div> : <form onSubmit={save} className="space-y-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900">{creating ? 'Bản nháp phương án đánh giá mới' : `${selected?.name} · v${selected?.version}`}</h2>{selected && <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600"><StatusBadge status={selected.status} /> <span>{selected.policyVersionId ? `Chính sách kỳ đánh giá #${selected.policyVersionId}` : 'Chưa chốt chính sách áp dụng'}</span></p>}{selected && (selected.status ?? '').toUpperCase() === 'PROPOSED' && <p role="note" className="mt-2 rounded-lg border border-status-warning-border bg-status-warning-bg p-2 text-xs text-status-warning-text">Phương án này mới là đề xuất, chưa được bộ môn phê duyệt. Khóa cấu hình để chấm không thay cho phê duyệt học thuật; hệ thống kiểm tra riêng điều kiện công bố điểm chính thức.</p>}</div>{selected && canManage && <div className="flex flex-wrap gap-2">{selected.status === 'DRAFT' && <><Button disabled={busy || conflicted || !project} onClick={publish} icon="lock">Công bố phương án</Button><Button variant="danger" disabled={busy || conflicted || !project} onClick={remove} icon="delete">Xóa bản nháp</Button></>}{selected.status !== 'DRAFT' && <Button variant="secondary" disabled={busy || conflicted || !project} onClick={version} icon="content_copy">Tạo phiên bản</Button>}</div>}</div>
         {selected && <EvaluationSchemePolicySummary scheme={selected} />}{creating && <p className="workspace-note p-4 text-sm">Bản nháp mới được hệ thống lưu ở chế độ minh họa khi chưa có chính sách phê duyệt riêng.</p>}
         <div className="grid gap-3 md:grid-cols-3"><label className="text-sm font-medium text-slate-700">Tên phương án đánh giá<input value={name} disabled={!editable || busy} onChange={event => setName(event.target.value)} required className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100" /></label><label className="text-sm font-medium text-slate-700">Kỳ đánh giá<select value={periodId} disabled={!editable || busy} onChange={event => setPeriodId(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100"><option value={0}>Chọn đợt đánh giá</option>{periods.map(item => <option key={item.id} value={item.id}>{item.name} · {displayLabel(item.status)}</option>)}</select></label><label className="text-sm font-medium text-slate-700">Ngưỡng đạt (0–10)<input type="number" min="0" max="10" step="0.01" value={threshold} disabled={!editable || busy} onChange={event => setThreshold(event.target.value === '' ? '' : Number(event.target.value))} required className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100" /></label></div>
         <div className="workspace-note py-4 text-sm text-slate-700"><strong>Kiểm tra trước khi lưu:</strong><span className={projectWeight === 100 ? 'ml-2 text-emerald-700' : 'ml-2 text-rose-700'}>Điểm đồ án: {projectWeight}% / 100%</span>{studentWeights.map(item => <span key={item.major.majorId} className={item.total === 100 ? 'ml-3 text-emerald-700' : 'ml-3 text-rose-700'}>Sinh viên {item.major.majorCode}: {item.total}% / 100%</span>)}<p className="mt-2 text-xs text-slate-600">Thành phần chung áp dụng cho cả đồ án. Thành phần theo ngành hoặc sinh viên chỉ áp dụng cho ngành tham gia; điểm cá nhân không đóng góp vào điểm đồ án.</p></div>
         <fieldset disabled={!editable || busy} className="space-y-3"><legend className="font-semibold text-slate-900">Các thành phần đánh giá</legend>{components.map((item, index) => <div key={item.key} className="workspace-editor-row"><div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">Thành phần {index + 1}</h3>{editable && components.length > 1 && <Button variant="danger" size="sm" onClick={() => setComponents(current => current.filter(row => row.key !== item.key))}>Xóa</Button>}</div><div className="mt-3 grid gap-3 md:grid-cols-2"><label className="text-sm">Tên<input value={item.name} onChange={event => updateComponent(item.key, { name: event.target.value })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label><label className="text-sm">Phạm vi<select value={item.scope} onChange={event => changeScope(item.key, event.target.value as EvaluationScope)} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3">{(Object.keys(scopeLabel) as EvaluationScope[]).map(scope => <option key={scope} value={scope}>{scopeLabel[scope]}</option>)}</select></label><label className="text-sm">Chuyên ngành<select value={item.majorId ?? ''} disabled={item.scope === 'COMMON'} onChange={event => updateComponent(item.key, { majorId: Number(event.target.value) || null })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100"><option value="">Không áp dụng</option>{project?.majors.map(major => <option key={major.majorId} value={major.majorId}>{major.majorCode} · {major.majorName}</option>)}</select></label><label className="text-sm">Bộ tiêu chí đã công bố<select value={item.rubricId} onChange={event => updateComponent(item.key, { rubricId: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3"><option value={0}>Chọn bộ tiêu chí</option>{rubrics.map(rubric => <option key={rubric.id} value={rubric.id}>{rubric.code} · v{rubric.version}</option>)}</select></label><label className="text-sm">Trọng số điểm đồ án (%)<input type="number" min="0" max="100" step="0.0001" value={item.projectWeightPercent} disabled={item.scope === 'INDIVIDUAL'} onChange={event => updateComponent(item.key, { projectWeightPercent: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 disabled:bg-slate-100" /></label><label className="text-sm">Trọng số điểm sinh viên (%)<input type="number" min="0" max="100" step="0.0001" value={item.studentWeightPercent} onChange={event => updateComponent(item.key, { studentWeightPercent: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label><label className="text-sm">Số người chấm<input type="number" min="1" max="20" step="1" value={item.requiredEvaluators} onChange={event => updateComponent(item.key, { requiredEvaluators: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" /></label></div></div>)}</fieldset>
-        {editable && <div className="flex flex-wrap gap-3"><Button variant="secondary" onClick={() => setComponents(current => [...current, component('COMMON')])} icon="add">Thêm thành phần</Button><Button type="submit" disabled={busy}>{busy ? 'Đang lưu…' : 'Lưu bản nháp'}</Button>{creating && <Button variant="secondary" disabled={busy} onClick={() => setCreating(false)}>Hủy tạo mới</Button>}</div>}
+        {canManage && (creating || selected?.status === 'DRAFT') && <div className="flex flex-wrap gap-3"><Button variant="secondary" disabled={!editable || busy || loading} onClick={() => setComponents(current => [...current, component('COMMON')])} icon="add">Thêm thành phần</Button><Button type="submit" disabled={!editable || busy || loading}>{busy ? 'Đang lưu…' : 'Lưu bản nháp'}</Button>{creating && <Button variant="secondary" disabled={busy} onClick={() => setCreating(false)}>Hủy tạo mới</Button>}</div>}
       </form>}</section>
     </div>
   </WorkspacePage>

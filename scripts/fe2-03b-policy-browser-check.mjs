@@ -33,6 +33,7 @@ try {
     if (path === '/auth/me/context') return respond({ asOfUtc: '2026-10-12T00:00:00Z', user: { ...user, status: 'ACTIVE', effectiveRoles: user.roles, grantedPermissions: [], requiresTokenRefresh: false }, academic: { organization: null, department: null, major: null, hasActiveDepartmentScope: false, hasEligibleStudentProfile: false, issues: [] }, currentSemesters: [], selectedSemester: null, semesterSelectionIssues: [], periods: [], currentTeam: null, actions: [] })
     if (path === '/notifications/unread-count') return respond({ count: 0 })
     if (path === '/projects/9') return respond({ id: 9, code: 'P9', title: 'Đồ án fixture', status: 'FINAL_SUBMISSION', majors: [{ majorId: 3, majorCode: 'SE', majorName: 'Kỹ thuật phần mềm' }] })
+    if (path === '/projects/9/my-capabilities') return respond({ projectId: 9, projectStatus: 'FINAL_SUBMISSION', concurrencyToken: 'fixture-project', academicScopeProvenance: 'FROZEN_REGISTRATION_SNAPSHOT', leadDepartmentId: 2, managedDepartmentIds: [], registrationSnapshotId: 3, schemeId: 2, schemeConcurrencyToken: 'fixture-token', policyVersionId: 1, actions: [{ code: 'manage_evaluation_scheme', allowed: false, reasons: ['LEAD_DEPARTMENT_REQUIRED'] }] })
     if (path === '/evaluation-schemes') return respond(schemes)
     if (path === '/academic/project-periods') return respond(paged([{ id: 4, name: 'Đợt đánh giá', periodType: 'EVALUATION', status: 'ACTIVE' }]))
     if (path === '/rubrics') return respond(paged([{ id: 8, code: 'SE', name: 'Bộ tiêu chí', version: 1, status: 'PUBLISHED' }]))

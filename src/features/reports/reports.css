@@ -40,6 +40,7 @@
 .report-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 18px; padding: 17px 0; background: #ffffff; text-decoration: none; color: inherit; transition: background-color 160ms ease; }
 .reports .report-row:hover, .reports .report-row:focus-visible { background: var(--color-primary-subtle); }
 .reports .report-row:focus-visible { outline-offset: -2px; }
+.reports .report-row:hover .report-row-main h3, .reports .report-row:focus-visible .report-row-main h3 { color: var(--color-primary); text-decoration: underline; text-underline-offset: 3px; }
 .report-row-icon { height: 44px; width: 44px; flex-shrink: 0; display: grid; place-items: center; color: var(--color-primary); background: var(--color-primary-subtle); border: 1px solid rgba(15, 91, 78, 0.15); border-radius: 10px; }
 .report-row-main { min-width: 0; }
 .report-row-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; margin-bottom: 4px; }

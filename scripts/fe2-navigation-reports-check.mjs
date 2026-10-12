@@ -7,7 +7,7 @@ const errors = []
 page.on('pageerror', e => errors.push(e.message))
 const report = { id: 17, projectId: 9, submittedBy: 2, submittedByName: 'Nguyễn Minh Anh', reportType: 'WEEKLY', periodStart: '2026-09-14', periodEnd: '2026-09-20', summary: 'Hoàn thành chức năng đăng ký', completedWork: 'Tích hợp API', plannedWork: 'Kiểm thử', issuesAndRisks: 'Không có', status: 'SUBMITTED', submittedAt: '2026-09-20T08:00:00Z', isLate: false, createdAt: '2026-09-20T08:00:00Z', updatedAt: '2026-09-20T08:00:00Z', concurrencyToken: 'report-token', feedbacks: [] }
 await page.route('**/api/v1/**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(new URL(route.request().url()).pathname.endsWith('/progress-reports') ? { items: [report], totalCount: 1, page: 1, pageSize: 10, totalPages: 1 } : report) }))
-const base = 'http://127.0.0.1:5199/e2e/fixtures/fe2-navigation-reports.html'
+const base = process.env.FE2_NAVIGATION_FIXTURE_URL || 'http://127.0.0.1:5199/e2e/fixtures/fe2-navigation-reports.html'
 const checks = []
 try {
   await page.goto(base)
@@ -36,7 +36,7 @@ try {
   assert.equal(new URL(page.url()).pathname, '/project/reports')
   checks.push('Direct detail link falls back to report list')
   await mkdir('test-results/fe2-navigation-reports', { recursive: true })
-  for (const width of [1440, 768, 375]) {
+  for (const width of [1440, 1024, 768, 375]) {
     await page.setViewportSize({ width, height: 900 })
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Overflow at ${width}`)
     await page.keyboard.press('Tab')
