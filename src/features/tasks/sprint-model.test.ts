@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { activeSprint, backlogTasks, canCompleteSprint, canStartSprint, collectLabels, parseLabels, pendingTasksInSprint, sprintPoints, tasksInSprint } from './sprint-model'
+import { activeSprint, backlogTasks, collectLabels, parseLabels, pendingTasksInSprint, sprintPoints, tasksInSprint } from './sprint-model'
 import type { SprintDto, TaskDto } from '../../types/backend'
 
-const sprint = (id: number, status: string): SprintDto => ({ id, projectId: 1, name: `S${id}`, status })
+const sprint = (id: number, status: string): SprintDto => ({
+  id, projectId: 1, name: `S${id}`, status, startAt: '2026-10-01', endAt: '2026-10-14', concurrencyToken: 'ct',
+  canEdit: true, canStart: status === 'PLANNING', canComplete: status === 'ACTIVE',
+})
 const task = (id: number, over: Partial<TaskDto>): TaskDto => ({ id, milestoneId: 1, title: `T${id}`, status: 'TODO', createdBy: 1, createdByFullName: 'x', createdAt: '', updatedAt: '', assignees: [], dependencies: [], ...over })
 
 describe('sprint model', () => {
@@ -11,26 +14,17 @@ describe('sprint model', () => {
     expect(activeSprint([sprint(1, 'PLANNING')])).toBeNull()
   })
 
-  it('allows starting a planning sprint only when none is active', () => {
-    const sprints = [sprint(1, 'PLANNING'), sprint(2, 'PLANNING')]
-    expect(canStartSprint(sprints, 1)).toBe(true)
-    expect(canStartSprint([sprint(1, 'PLANNING'), sprint(2, 'ACTIVE')], 1)).toBe(false)
-    expect(canStartSprint(sprints, 99)).toBe(false)
-  })
-
   it('splits tasks into sprint members and backlog', () => {
     const tasks = [task(1, { sprintId: 5 }), task(2, { sprintId: null }), task(3, {})]
     expect(tasksInSprint(tasks, 5).map(t => t.id)).toEqual([1])
     expect(backlogTasks(tasks).map(t => t.id)).toEqual([2, 3])
   })
 
-  it('blocks completing a sprint until every task is done or cancelled', () => {
+  it('lists still-open tasks in a sprint for carryover selection', () => {
     const open = [task(1, { sprintId: 5, status: 'IN_PROGRESS' })]
     const closed = [task(1, { sprintId: 5, status: 'DONE' }), task(2, { sprintId: 5, status: 'CANCELLED' })]
     expect(pendingTasksInSprint(open, 5)).toHaveLength(1)
-    expect(canCompleteSprint(sprint(5, 'ACTIVE'), open)).toBe(false)
-    expect(canCompleteSprint(sprint(5, 'ACTIVE'), closed)).toBe(true)
-    expect(canCompleteSprint(sprint(5, 'PLANNING'), closed)).toBe(false)
+    expect(pendingTasksInSprint(closed, 5)).toHaveLength(0)
   })
 
   it('sums committed and done story points', () => {

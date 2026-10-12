@@ -2,14 +2,13 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import * as tasksApi from '../../../services/api/tasks.api'
 import { executionError } from '../../execution/execution-utils'
-import type { SprintDto, TaskDto } from '../../../types/backend'
-import { backlogTasks, canCompleteSprint, canStartSprint, collectLabels, parseLabels, sprintPoints, STORY_POINTS, tasksInSprint } from '../sprint-model'
+import type { SprintBurndownDto, SprintCarryover, SprintDto, TaskDto } from '../../../types/backend'
+import { backlogTasks, collectLabels, parseLabels, pendingTasksInSprint, sprintPoints, STORY_POINTS, tasksInSprint } from '../sprint-model'
 
 /**
- * Jira-style sprint + backlog view. Self-contained: fetches its own sprints and task page.
- * Mutations go through the proposed sprint API, which the backend must implement before the
- * `jiraSprintEnabled` flag is turned on. The lifecycle invariants (one active sprint, no completing
- * with open tasks) are enforced client-side here and must be re-enforced on the server.
+ * Jira-style sprint + backlog view. Self-contained: fetches its own sprints and task board page.
+ * Mutations go through the real BE-N08 sprint contract (SprintsController); lifecycle gates
+ * (`canStart`/`canComplete`/`canEdit`) come from the server per sprint, not client-side guessing.
  */
 export function SprintBacklogPanel({ projectId, routeBase }: { projectId: number; routeBase: string }) {
   const [sprints, setSprints] = useState<SprintDto[]>([])
@@ -18,17 +17,18 @@ export function SprintBacklogPanel({ projectId, routeBase }: { projectId: number
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [form, setForm] = useState({ name: '', goal: '', startAt: '', endAt: '' })
+  const [form, setForm] = useState({ name: '', startAt: '', endAt: '' })
   const [revision, setRevision] = useState(0)
+  const [completingSprintId, setCompletingSprintId] = useState<number | null>(null)
 
   // Fetch sets state only in the async callbacks; a reload bumps `revision` from an event handler.
   useEffect(() => {
     const abort = new AbortController()
     let alive = true
     Promise.all([
-      tasksApi.getProjectSprints(projectId, abort.signal),
-      tasksApi.getProjectTasks(projectId, { page: 1, pageSize: 100 }, abort.signal),
-    ]).then(([sprintList, taskPage]) => { if (!alive) return; setSprints(sprintList); setTasks(taskPage.items); setState('ready'); setError('') })
+      tasksApi.getProjectSprints(projectId, 1, 50, abort.signal),
+      tasksApi.getTaskBoard(projectId, {}, abort.signal),
+    ]).then(([sprintPage, taskPage]) => { if (!alive) return; setSprints(sprintPage.items); setTasks(taskPage.items); setState('ready'); setError('') })
       .catch(reason => { if (alive && !abort.signal.aborted) { setError(executionError(reason)); setState('error') } })
     return () => { alive = false; abort.abort() }
   }, [projectId, revision])
@@ -44,14 +44,16 @@ export function SprintBacklogPanel({ projectId, routeBase }: { projectId: number
   const createSprint = (event: FormEvent) => {
     event.preventDefault()
     if (!form.name.trim()) { setError('Nhập tên sprint.'); return }
-    if (form.startAt && form.endAt && form.endAt < form.startAt) { setError('Ngày kết thúc không được trước ngày bắt đầu.'); return }
-    void run(() => tasksApi.createSprint(projectId, { name: form.name.trim(), goal: form.goal.trim() || null, startAt: form.startAt || null, endAt: form.endAt || null }), 'Đã tạo sprint.')
-      .then(() => setForm({ name: '', goal: '', startAt: '', endAt: '' }))
+    if (!form.startAt || !form.endAt) { setError('Chọn ngày bắt đầu và kết thúc.'); return }
+    if (form.endAt < form.startAt) { setError('Ngày kết thúc không được trước ngày bắt đầu.'); return }
+    void run(() => tasksApi.createSprint(projectId, { name: form.name.trim(), startAt: form.startAt, endAt: form.endAt }), 'Đã tạo sprint.')
+      .then(() => setForm({ name: '', startAt: '', endAt: '' }))
   }
 
   const labels = collectLabels(tasks)
   const planningOrActive = sprints.filter(s => s.status !== 'COMPLETED')
   const completed = sprints.filter(s => s.status === 'COMPLETED')
+  const completingSprint = completingSprintId != null ? sprints.find(s => s.id === completingSprintId) ?? null : null
 
   if (state === 'loading') return <p role="status" className="ex-muted ex-padding">Đang tải sprint và backlog…</p>
   if (state === 'error') return <section className="ex-panel"><div className="ex-padding"><p role="alert" className="text-status-error-text">{error || 'Chưa tải được dữ liệu sprint.'}</p><button type="button" className="ex-button mt-2" onClick={reload}>Tải lại</button></div></section>
@@ -64,31 +66,16 @@ export function SprintBacklogPanel({ projectId, routeBase }: { projectId: number
       <div className="ex-panel-heading"><h2>Tạo sprint</h2></div>
       <div className="ex-padding sprint-create-fields">
         <label>Tên sprint<input value={form.name} maxLength={120} required onChange={e => setForm({ ...form, name: e.target.value })} /></label>
-        <label>Mục tiêu<input value={form.goal} maxLength={255} onChange={e => setForm({ ...form, goal: e.target.value })} /></label>
-        <label>Bắt đầu<input type="date" value={form.startAt} onChange={e => setForm({ ...form, startAt: e.target.value })} /></label>
-        <label>Kết thúc<input type="date" value={form.endAt} onChange={e => setForm({ ...form, endAt: e.target.value })} /></label>
+        <label>Bắt đầu<input type="date" value={form.startAt} required onChange={e => setForm({ ...form, startAt: e.target.value })} /></label>
+        <label>Kết thúc<input type="date" value={form.endAt} required onChange={e => setForm({ ...form, endAt: e.target.value })} /></label>
         <button type="submit" className="ex-button ex-button-primary" disabled={busy}>Tạo sprint</button>
       </div>
     </form>
 
-    {planningOrActive.map(sprint => {
-      const points = sprintPoints(tasks, sprint.id)
-      const startable = canStartSprint(sprints, sprint.id)
-      const completable = canCompleteSprint(sprint, tasks)
-      return <section key={sprint.id} className="ex-panel sprint-card" aria-label={`Sprint ${sprint.name}`}>
-        <div className="ex-panel-heading sprint-card-head">
-          <div><h2>{sprint.name} <span className={`sprint-badge sprint-badge--${String(sprint.status).toLowerCase()}`}>{sprint.status === 'ACTIVE' ? 'Đang chạy' : 'Lên kế hoạch'}</span></h2>{sprint.goal && <p className="ex-muted">{sprint.goal}</p>}</div>
-          <div className="sprint-card-actions">
-            {sprint.status === 'PLANNING' && <button type="button" className="ex-button" disabled={busy || !startable} title={startable ? undefined : 'Đã có sprint khác đang chạy'} onClick={() => void run(() => tasksApi.updateSprintStatus(sprint.id, 'ACTIVE', sprint.concurrencyToken), `Đã bắt đầu ${sprint.name}.`)}>Bắt đầu</button>}
-            {sprint.status === 'ACTIVE' && <button type="button" className="ex-button" disabled={busy || !completable} title={completable ? undefined : 'Còn công việc chưa hoàn tất hoặc hủy'} onClick={() => void run(() => tasksApi.updateSprintStatus(sprint.id, 'COMPLETED', sprint.concurrencyToken), `Đã hoàn tất ${sprint.name}.`)}>Hoàn tất</button>}
-          </div>
-        </div>
-        <div className="ex-padding">
-          <p className="sprint-points">{points.done}/{points.total} điểm hoàn thành · {points.count} công việc. <span className="ex-muted">Chưa có dữ liệu burndown theo ngày.</span></p>
-          <TaskRows tasks={tasksInSprint(tasks, sprint.id)} sprints={sprints} routeBase={routeBase} busy={busy} labelOptions={labels} run={run} />
-        </div>
-      </section>
-    })}
+    {planningOrActive.map(sprint => <SprintCard
+      key={sprint.id} sprint={sprint} tasks={tasks} sprints={sprints} routeBase={routeBase} busy={busy} labelOptions={labels}
+      run={run} onRequestComplete={() => setCompletingSprintId(sprint.id)}
+    />)}
 
     <section className="ex-panel sprint-card" aria-label="Backlog">
       <div className="ex-panel-heading"><h2>Backlog</h2></div>
@@ -98,6 +85,100 @@ export function SprintBacklogPanel({ projectId, routeBase }: { projectId: number
     </section>
 
     {completed.length > 0 && <section className="ex-panel"><div className="ex-panel-heading"><h2>Sprint đã hoàn tất</h2></div><ul className="ex-padding sprint-completed">{completed.map(sprint => { const points = sprintPoints(tasks, sprint.id); return <li key={sprint.id}>{sprint.name} · {points.done}/{points.total} điểm · {points.count} công việc</li> })}</ul></section>}
+
+    {completingSprint && <CompleteSprintDialog
+      sprint={completingSprint} openTasks={pendingTasksInSprint(tasks, completingSprint.id)}
+      otherSprints={planningOrActive.filter(s => s.id !== completingSprint.id)} busy={busy}
+      onCancel={() => setCompletingSprintId(null)}
+      onConfirm={carryover => void run(() => tasksApi.completeSprint(projectId, completingSprint.id, completingSprint.concurrencyToken, carryover), `Đã hoàn tất ${completingSprint.name}.`).then(() => setCompletingSprintId(null))}
+    />}
+  </div>
+}
+
+function SprintCard({ sprint, tasks, sprints, routeBase, busy, labelOptions, run, onRequestComplete }: {
+  sprint: SprintDto; tasks: TaskDto[]; sprints: SprintDto[]; routeBase: string; busy: boolean; labelOptions: string[]
+  run: (action: () => Promise<unknown>, success: string) => Promise<void>; onRequestComplete: () => void
+}) {
+  const points = sprintPoints(tasks, sprint.id)
+  const [burndown, setBurndown] = useState<SprintBurndownDto | null>(null)
+  const projectIdForBurndown = sprint.projectId
+
+  useEffect(() => {
+    const abort = new AbortController()
+    tasksApi.getSprintBurndown(projectIdForBurndown, sprint.id, abort.signal)
+      .then(data => { if (!abort.signal.aborted) setBurndown(data) })
+      .catch(() => { if (!abort.signal.aborted) setBurndown(null) })
+    return () => abort.abort()
+  }, [projectIdForBurndown, sprint.id])
+
+  return <section className="ex-panel sprint-card" aria-label={`Sprint ${sprint.name}`}>
+    <div className="ex-panel-heading sprint-card-head">
+      <div><h2>{sprint.name} <span className={`sprint-badge sprint-badge--${String(sprint.status).toLowerCase()}`}>{sprint.status === 'ACTIVE' ? 'Đang chạy' : 'Lên kế hoạch'}</span></h2></div>
+      <div className="sprint-card-actions">
+        {sprint.status === 'PLANNING' && <button type="button" className="ex-button" disabled={busy || !sprint.canStart} title={sprint.canStart ? undefined : 'Chưa thể bắt đầu sprint này'} onClick={() => void run(() => tasksApi.startSprint(sprint.projectId, sprint.id, sprint.concurrencyToken), `Đã bắt đầu ${sprint.name}.`)}>Bắt đầu</button>}
+        {sprint.status === 'ACTIVE' && <button type="button" className="ex-button" disabled={busy || !sprint.canComplete} title={sprint.canComplete ? undefined : 'Chưa thể hoàn tất sprint này'} onClick={onRequestComplete}>Hoàn tất</button>}
+      </div>
+    </div>
+    <div className="ex-padding">
+      <p className="sprint-points">{points.done}/{points.total} điểm hoàn thành · {points.count} công việc.</p>
+      <BurndownSummary burndown={burndown} />
+      <TaskRows tasks={tasksInSprint(tasks, sprint.id)} sprints={sprints} routeBase={routeBase} busy={busy} labelOptions={labelOptions} run={run} />
+    </div>
+  </section>
+}
+
+function BurndownSummary({ burndown }: { burndown: SprintBurndownDto | null }) {
+  if (!burndown || burndown.points.length === 0) return <p className="ex-muted">Chưa có dữ liệu burndown theo ngày.</p>
+  const latest = burndown.points[burndown.points.length - 1]
+  return <div className="sprint-burndown">
+    <p className="ex-muted">
+      Burndown: còn {latest.remainingPoints}/{latest.scopePoints} điểm{latest.unestimatedTasks > 0 ? ` · ${latest.unestimatedTasks} việc chưa ước lượng` : ''}
+      {burndown.complete ? ' · Đã hoàn tất' : ''}
+    </p>
+    <ul className="sprint-burndown-points">
+      {burndown.points.map(point => <li key={point.at}>{new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short' }).format(new Date(point.at))}: {point.remainingPoints}/{point.scopePoints}</li>)}
+    </ul>
+  </div>
+}
+
+function CompleteSprintDialog({ sprint, openTasks, otherSprints, busy, onCancel, onConfirm }: {
+  sprint: SprintDto; openTasks: TaskDto[]; otherSprints: SprintDto[]; busy: boolean
+  onCancel: () => void; onConfirm: (carryover: SprintCarryover[]) => void
+}) {
+  const [targets, setTargets] = useState<Record<number, string>>({})
+
+  const confirm = () => {
+    const carryover: SprintCarryover[] = openTasks.map(task => ({
+      taskId: task.id,
+      targetSprintId: targets[task.id] ? Number(targets[task.id]) : null,
+      taskConcurrencyToken: task.concurrencyToken ?? '',
+    }))
+    onConfirm(carryover)
+  }
+
+  return <div className="ex-panel sprint-complete-dialog" role="dialog" aria-label={`Hoàn tất sprint ${sprint.name}`}>
+    <div className="ex-panel-heading"><h2>Hoàn tất {sprint.name}</h2></div>
+    <div className="ex-padding">
+      {openTasks.length === 0 && <p className="ex-muted">Không còn công việc nào đang mở trong sprint này.</p>}
+      {openTasks.length > 0 && <>
+        <p>Chọn nơi chuyển các công việc chưa hoàn tất trước khi đóng sprint:</p>
+        <ul className="sprint-carryover-list">
+          {openTasks.map(task => <li key={task.id}>
+            <span>#{task.id} · {task.title}</span>
+            <label><span className="sr-only">Chuyển công việc #{task.id} đến</span>
+              <select value={targets[task.id] ?? ''} disabled={busy} onChange={e => setTargets({ ...targets, [task.id]: e.target.value })}>
+                <option value="">Backlog</option>
+                {otherSprints.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </label>
+          </li>)}
+        </ul>
+      </>}
+      <div className="sprint-task-edit-actions">
+        <button type="button" className="ex-button ex-button-primary" disabled={busy} onClick={confirm}>Xác nhận hoàn tất</button>
+        <button type="button" className="ex-button" disabled={busy} onClick={onCancel}>Hủy</button>
+      </div>
+    </div>
   </div>
 }
 
@@ -118,11 +199,19 @@ function TaskRow({ task, sprints, routeBase, busy, labelOptions, run }: {
   const [labelsText, setLabelsText] = useState((task.labels ?? []).join(', '))
   const openSprints = sprints.filter(s => s.status !== 'COMPLETED')
 
-  const savePlanning = () => void run(() => tasksApi.setTaskPlanning(task.id, { storyPoints: points === '' ? null : Number(points), labels: parseLabels(labelsText), concurrencyToken: task.concurrencyToken }), 'Đã cập nhật điểm và nhãn.').then(() => setEditing(false))
+  const saveBoard = (overrides: { sprintId?: number | null; storyPoints?: number | null; labels?: string[] }) =>
+    run(() => tasksApi.saveTaskBoard(task.id, {
+      sprintId: 'sprintId' in overrides ? overrides.sprintId : task.sprintId,
+      storyPoints: 'storyPoints' in overrides ? overrides.storyPoints : task.storyPoints,
+      labels: overrides.labels ?? (task.labels ?? []),
+      concurrencyToken: task.concurrencyToken,
+    }), 'sprintId' in overrides ? 'Đã chuyển công việc.' : 'Đã cập nhật điểm và nhãn.')
+
+  const savePlanning = () => void saveBoard({ storyPoints: points === '' ? null : Number(points), labels: parseLabels(labelsText) }).then(() => setEditing(false))
 
   return <li className="sprint-task-row">
     <div className="sprint-task-main">
-      <Link className="ex-link" to={`${routeBase}/tasks/${task.id}`}>#{task.id} · {task.title}</Link>
+      <Link className="ex-link" to={`${routeBase}/tasks/${task.id}`}>#{task.taskCode ?? task.id} · {task.title}</Link>
       <div className="sprint-task-meta">
         {task.storyPoints != null && <span className="sprint-point-badge" aria-label={`${task.storyPoints} điểm`}>{task.storyPoints}</span>}
         {(task.labels ?? []).map(label => <span key={label} className="sprint-label-chip">{label}</span>)}
@@ -131,7 +220,7 @@ function TaskRow({ task, sprints, routeBase, busy, labelOptions, run }: {
     </div>
     <div className="sprint-task-controls">
       <label className="sprint-move"><span className="sr-only">Chuyển sprint cho công việc #{task.id}</span>
-        <select value={task.sprintId ?? ''} disabled={busy} onChange={e => void run(() => tasksApi.setTaskSprint(task.id, e.target.value ? Number(e.target.value) : null, task.concurrencyToken), 'Đã chuyển công việc.')}>
+        <select value={task.sprintId ?? ''} disabled={busy} onChange={e => void saveBoard({ sprintId: e.target.value ? Number(e.target.value) : null })}>
           <option value="">Backlog</option>
           {openSprints.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
