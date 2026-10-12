@@ -6,6 +6,10 @@ const candidate = {
   userId: 9, fullName: 'Nguyễn Văn A', email: 'a@example.test', studentCode: 'SE19009', majorId: 3,
   majorCode: 'SE', majorName: 'Software Engineering', invitationStatus: 'NONE', canInvite: true,
 }
+const marketingCandidate = {
+  userId: 10, fullName: 'Trần Thị B', email: 'b@example.test', studentCode: 'MK19010', majorId: 7,
+  majorCode: 'MKT', majorName: 'Marketing', invitationStatus: 'NONE', canInvite: true,
+}
 
 afterEach(cleanup)
 
@@ -59,5 +63,34 @@ describe('TeamInvitationsPanel', () => {
     fireEvent.click(screen.getByText('Thử lại'))
 
     expect(props.onRetryCandidates).toHaveBeenCalledOnce()
+  })
+
+  it('shows no major chips when nothing is unfilled, same as before this feature', () => {
+    panel()
+    expect(screen.queryByText('Tất cả ngành')).toBeNull()
+  })
+
+  it('filters the current page of candidates by the selected unfilled major without changing the server query', () => {
+    const { props } = panel({
+      candidates: { items: [candidate, marketingCandidate], page: 1, pageSize: 20, totalCount: 2, totalPages: 1 },
+      unfilledMajors: [{ majorId: 7, majorName: 'Marketing', remaining: 2 }],
+    })
+    expect(screen.getByText(/Nguyễn Văn A/)).toBeTruthy()
+    expect(screen.getByText(/Trần Thị B/)).toBeTruthy()
+
+    fireEvent.click(screen.getByText('Marketing (còn thiếu 2)'))
+    expect(screen.queryByText(/Nguyễn Văn A/)).toBeNull()
+    expect(screen.getByText(/Trần Thị B/)).toBeTruthy()
+    expect(props.onCandidateSearchChange).not.toHaveBeenCalled()
+    expect(props.onCandidatePageChange).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByText('Tất cả ngành'))
+    expect(screen.getByText(/Nguyễn Văn A/)).toBeTruthy()
+  })
+
+  it('shows a page-local empty message distinct from the no-candidates message when a major filter matches nothing on this page', () => {
+    panel({ unfilledMajors: [{ majorId: 99, majorName: 'Thiết kế', remaining: 1 }] })
+    fireEvent.click(screen.getByText('Thiết kế (còn thiếu 1)'))
+    expect(screen.getByText('Không có ứng viên ngành này trong trang hiện tại.')).toBeTruthy()
   })
 })

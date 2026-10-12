@@ -8,6 +8,10 @@ interface TeamInvitationsPanelProps {
   receivedInvitations: TeamInvitationDto[]
   isLeader: boolean
   rosterLocked: boolean
+  /** Presentation-only hint (derived from team.academicScope + current roster) for
+   * which interdisciplinary major still needs members. Never a substitute for the
+   * server's own eligibility reasons. */
+  unfilledMajors?: { majorId: number; majorName?: string; remaining: number }[]
   candidates: PagedResult<TeamInvitationCandidateDto>
   candidateSearch: string
   candidateLoading: boolean
@@ -28,6 +32,7 @@ export function TeamInvitationsPanel({
   receivedInvitations,
   isLeader,
   rosterLocked,
+  unfilledMajors = [],
   candidates,
   candidateSearch,
   candidateLoading,
@@ -43,6 +48,8 @@ export function TeamInvitationsPanel({
 }: TeamInvitationsPanelProps) {
   const [activeTab, setActiveTab] = useState<'sent' | 'received'>('sent')
   const [message, setMessage] = useState('')
+  const [majorFilter, setMajorFilter] = useState<number | null>(null)
+  const visibleCandidates = majorFilter == null ? candidates.items : candidates.items.filter((candidate) => candidate.majorId === majorFilter)
   const personName = (id: number) => memberNames[id] || candidates.items.find(candidate => candidate.userId === id)?.fullName
   const statusLabel = (status: string) => ({ PENDING: 'Đang chờ phản hồi', ACCEPTED: 'Đã chấp nhận', REJECTED: 'Đã từ chối', CANCELLED: 'Đã hủy', EXPIRED: 'Đã hết hạn' }[status] || 'Chưa có thông tin')
 
@@ -120,12 +127,27 @@ export function TeamInvitationsPanel({
                   <button type="button" onClick={onRetryCandidates} disabled={candidateLoading} className="shrink-0 rounded border border-current px-2 py-1 disabled:opacity-50">Thử lại</button>
                 </div>
               )}
+              {unfilledMajors.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs font-semibold text-slate-500">Còn thiếu:</span>
+                  <button type="button" onClick={() => setMajorFilter(null)}
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${majorFilter === null ? 'bg-primary-subtle text-primary border border-status-success-border' : 'text-slate-600 hover:bg-slate-100'}`}>
+                    Tất cả ngành
+                  </button>
+                  {unfilledMajors.map((entry) => (
+                    <button key={entry.majorId} type="button" onClick={() => setMajorFilter(entry.majorId)}
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${majorFilter === entry.majorId ? 'bg-primary-subtle text-primary border border-status-success-border' : 'text-slate-600 hover:bg-slate-100'}`}>
+                      {entry.majorName ?? `Ngành #${entry.majorId}`} (còn thiếu {entry.remaining})
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="divide-y divide-slate-200">
                 {candidateLoading ? (
                   <p className="p-3 text-xs text-slate-500">Đang tải ứng viên phù hợp...</p>
-                ) : candidates.items.length === 0 ? (
-                  <p className="p-3 text-xs text-slate-500">Không có sinh viên phù hợp với điều kiện nhóm.</p>
-                ) : candidates.items.map((candidate) => (
+                ) : visibleCandidates.length === 0 ? (
+                  <p className="p-3 text-xs text-slate-500">{majorFilter == null ? 'Không có sinh viên phù hợp với điều kiện nhóm.' : 'Không có ứng viên ngành này trong trang hiện tại.'}</p>
+                ) : visibleCandidates.map((candidate) => (
                   <div key={candidate.userId} className="flex items-center justify-between gap-3 p-3">
                     <div className="min-w-0 text-xs">
                       <p className="truncate font-bold text-slate-900">{candidate.fullName} · {candidate.studentCode ?? candidate.email}</p>
