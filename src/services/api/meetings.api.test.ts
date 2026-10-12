@@ -96,3 +96,30 @@ describe('Meetings HTTP contract', () => {
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('Meeting collaboration HTTP contract (BE-06/N06/N07)', () => {
+  it('sends series creation, collaboration read, RSVP, notes-lock and notes-history to the real routes', async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetch); localStorage.setItem('token', 'collab-token')
+    const signal = new AbortController().signal
+    const schedule = { title: 'Họp tuần', agenda: null, startAt: '2026-09-23T02:00:00Z', endAt: null, location: null, onlineUrl: null, participantUserIds: [9] }
+    await api.createMeetingSeries(2, { meeting: schedule, recurrence: 'WEEKLY', occurrenceCount: 4 })
+    await api.getMeetingCollaboration(42, signal)
+    await api.respondMeetingRsvp(42, 'ACCEPTED', 'rsvp-token')
+    await api.lockMeetingNotes(42, 'meeting-token')
+    await api.getMeetingNotesHistory(42, 2, 10, signal)
+    expect(fetch.mock.calls.map(([url, options]) => [url, options.method])).toEqual([
+      ['/api/v1/projects/2/meeting-series', 'POST'],
+      ['/api/v1/meetings/42/collaboration', 'GET'],
+      ['/api/v1/meetings/42/rsvp', 'PUT'],
+      ['/api/v1/meetings/42/notes/lock', 'POST'],
+      ['/api/v1/meetings/42/notes/history?page=2&pageSize=10', 'GET'],
+    ])
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ meeting: schedule, recurrence: 'WEEKLY', occurrenceCount: 4 })
+    expect(JSON.parse(fetch.mock.calls[2][1].body)).toEqual({ status: 'ACCEPTED', concurrencyToken: 'rsvp-token' })
+    expect(JSON.parse(fetch.mock.calls[3][1].body)).toEqual({ concurrencyToken: 'meeting-token' })
+    expect(fetch.mock.calls[1][1].signal).toBe(signal)
+    expect(fetch.mock.calls[4][1].signal).toBe(signal)
+    expect(fetch.mock.calls.every(([, options]) => options.headers.Authorization === 'Bearer collab-token')).toBe(true)
+  })
+})

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
-import { createMeeting } from '../../services/api/meetings.api'
+import { createMeeting, createMeetingSeries } from '../../services/api/meetings.api'
 import type { CreateMeeting } from './meeting-types'
 import { meetingError, mustRefreshAfterError } from './meeting-utils'
 import { MeetingError, MeetingLoading, MeetingShell } from './meeting-ui'
@@ -31,8 +31,14 @@ function CreateMeetingView() {
     if (!canSchedule || locked.current || uncertain) return
     locked.current = true; setBusy(true); setError('')
     try {
-      const meeting = await createMeeting(project.id, body)
-      if (alive.current) navigate(`${routeBase}/meetings/${meeting.id}`, { replace: true })
+      const { recurrence, occurrenceCount, ...schedule } = body
+      if (recurrence && recurrence !== 'NONE') {
+        await createMeetingSeries(project.id, { meeting: schedule, recurrence, occurrenceCount: occurrenceCount ?? 1 })
+        if (alive.current) navigate(`${routeBase}/meetings`, { replace: true })
+      } else {
+        const meeting = await createMeeting(project.id, schedule)
+        if (alive.current) navigate(`${routeBase}/meetings/${meeting.id}`, { replace: true })
+      }
     } catch (reason) {
       if (alive.current) { setError(meetingError(reason)); setUncertain(mustRefreshAfterError(reason)) }
     } finally { locked.current = false; if (alive.current) setBusy(false) }

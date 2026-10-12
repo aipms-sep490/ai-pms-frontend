@@ -43,6 +43,9 @@ const leadDepartmentPublishEnabled = import.meta.env.VITE_ENABLE_LEAD_PUBLISH?.t
 /** RBAC matrix editing (BE-11). MVP keeps the Admin permission matrix READ-ONLY;
  * turn this on only once editing the system matrix is designed and seeded. */
 const rbacWriteEnabled = import.meta.env.VITE_ENABLE_RBAC_WRITE?.trim().toLowerCase() === 'true'
+/** Meeting series/recurrence, RSVP and notes-lock (BE-06/N06/N07). Enable only
+ * after the /meeting-series and /meetings/{id}/collaboration endpoints ship. */
+const meetingCollaborationEnabled = import.meta.env.VITE_ENABLE_MEETING_COLLABORATION?.trim().toLowerCase() === 'true'
 
 export const env = {
   apiBaseUrl: apiBaseUrl.replace(/\/$/, ''),
@@ -69,4 +72,5 @@ export const env = {
   chatAttachmentsEnabled: import.meta.env.VITE_ENABLE_CHAT_ATTACHMENTS?.trim().toLowerCase() === 'true',
   /** Gates Jira-style sprint/backlog/story-point/label UI until the backend sprint contract ships; default off. */
   jiraSprintEnabled: import.meta.env.VITE_ENABLE_JIRA_SPRINT?.trim().toLowerCase() === 'true',
+  meetingCollaborationEnabled,
 } as const
