@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
+import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../components/ui/Table'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { formatPercent, formatScore } from '../../components/ui/format'
 import { useStudentJourney } from '../../app/context'
 import { getStudentResult } from '../../services/api/project-results.api'
 import { HttpError } from '../../services/http/http-client'
@@ -48,21 +51,27 @@ function PublishedStudentResult({ project, studentId }: { project: ProjectDto; s
     {components.length > 0 && <div className="border-t border-hairline p-5 sm:p-6">
       <h3 className="text-sm font-bold text-slate-950">Chi tiết thành phần điểm</h3>
       <p className="mt-1 text-xs text-slate-500">Thành phần chưa có điểm được đánh dấu "Chưa có điểm", không tính là 0.</p>
-      <div className="mt-4 overflow-x-auto"><table className="w-full border-collapse text-sm">
-        <thead><tr className="border-b border-hairline text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-          <th scope="col" className="py-2 pr-4">Thành phần</th><th scope="col" className="py-2 pr-4">Ngành</th><th scope="col" className="py-2 pr-4 text-right">Trọng số</th><th scope="col" className="py-2 pr-4 text-right">Điểm</th><th scope="col" className="py-2">Trạng thái</th>
-        </tr></thead>
-        <tbody>{components.map((component, index) => {
+      <Table stack className="mt-4" aria-label="Chi tiết thành phần điểm">
+        <TableHead>
+          <TableRow head>
+            <TableHeaderCell>Thành phần</TableHeaderCell>
+            <TableHeaderCell>Ngành</TableHeaderCell>
+            <TableHeaderCell numeric>Trọng số</TableHeaderCell>
+            <TableHeaderCell numeric>Điểm</TableHeaderCell>
+            <TableHeaderCell>Trạng thái</TableHeaderCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>{components.map((component, index) => {
           const pending = component.score === null
-          return <tr key={`${component.scope}-${component.majorName ?? ''}-${index}`} className="border-b border-hairline/70">
-            <td className="py-2.5 pr-4 font-medium text-slate-900">{scopeLabel(component.scope)}</td>
-            <td className="py-2.5 pr-4 text-slate-600">{component.majorName ?? '—'}</td>
-            <td className="py-2.5 pr-4 text-right font-mono text-slate-700">{component.weightPercent}%</td>
-            <td className="py-2.5 pr-4 text-right font-mono font-semibold text-slate-900">{pending ? '—' : component.score}</td>
-            <td className="py-2.5"><span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${pending ? 'bg-status-warning-bg text-status-warning-text border border-status-warning-border' : 'bg-status-success-bg text-status-success-text border border-status-success-border'}`}>{pending ? 'Chưa có điểm' : 'Đã chấm'}</span></td>
-          </tr>
-        })}</tbody>
-      </table></div>
+          return <TableRow key={`${component.scope}-${component.majorName ?? ''}-${index}`}>
+            <TableCell label="Thành phần" className="font-medium text-slate-900">{scopeLabel(component.scope)}</TableCell>
+            <TableCell label="Ngành">{component.majorName ?? '—'}</TableCell>
+            <TableCell label="Trọng số" numeric>{formatPercent(component.weightPercent)}</TableCell>
+            <TableCell label="Điểm" numeric className="font-semibold">{formatScore(component.score)}</TableCell>
+            <TableCell label="Trạng thái"><StatusBadge tone={pending ? 'warning' : 'success'} label={pending ? 'Chưa có điểm' : 'Đã chấm'} /></TableCell>
+          </TableRow>
+        })}</TableBody>
+      </Table>
     </div>}
     <p className="border-t border-hairline bg-slate-50 p-5 text-sm leading-6 text-slate-600">Điểm và kết luận lấy từ kết quả cá nhân đã công bố. {components.length === 0 && 'Chi tiết thành phần chỉ hiển thị khi hệ thống cung cấp dữ liệu được phép xem.'}</p>
   </section>
