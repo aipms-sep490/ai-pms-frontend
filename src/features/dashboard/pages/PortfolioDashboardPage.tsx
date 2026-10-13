@@ -12,6 +12,7 @@ import { getReviewActions } from '../../projects/api/project-review-api'
 import { env } from '../../../app/config/env'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { departmentError } from '../../department/hooks/useDepartmentSection'
+import { PageLoading } from '../../../components/ui/PageLoading'
 
 const statuses = ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'REVISION_REQUIRED', 'REJECTED', 'APPROVED', 'SUPERVISOR_PENDING', 'ACTIVE', 'FINAL_SUBMISSION', 'COMPLETED', 'ARCHIVED']
 
@@ -95,7 +96,7 @@ export function PortfolioDashboardPage() {
     {confirmationDialog}
     {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><p className="font-semibold">Không thể hoàn tất thao tác</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại dữ liệu</button></div>}
     {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{notice}</p>}
-    {loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-slate-700">Đang tải danh mục đồ án…</p>}
+    {loading && <PageLoading label="Đang tải danh mục đồ án…" />}
     {!loading && data && <>
       <section aria-label="Tóm tắt danh mục đồ án" className="workspace-metrics"><Metric label="Tổng đồ án" value={data.summary.totalProjects} /><Metric label="Đang thực hiện" value={activeCount} tone="success" /><Metric label="Đã hoàn thành" value={completedCount} />{env.aiAdvisoryEnabled && <Metric label="Cần chú ý theo rủi ro" value={attentionRisks} tone={attentionRisks > 0 ? 'warning' : 'neutral'} />}</section>
       <section className="workspace-summary-grid"><SummaryCard title="Theo trạng thái" items={data.summary.projectStates.map(item => `${projectStatusLabel(item.status)}: ${item.count}`)} />{env.aiAdvisoryEnabled && <SummaryCard title="Theo rủi ro" items={data.summary.riskLevels.map(item => `${displayLabel(item.status)}: ${item.count}`)} />}<SummaryCard title="Theo chuyên ngành" items={data.summary.majors.map(item => `${item.code}: ${item.projectCount}`)} /></section>

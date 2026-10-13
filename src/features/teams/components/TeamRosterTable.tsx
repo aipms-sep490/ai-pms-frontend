@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import type { TeamMemberDto } from '../../../types/backend'
+import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../../components/ui/Table'
+import { badgeToneClass } from '../../../components/ui/status-badge-tone'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
 
 interface TeamRosterTableProps {
   members: TeamMemberDto[]
@@ -24,6 +27,7 @@ export function TeamRosterTable({
 }: TeamRosterTableProps) {
   const [removingId, setRemovingId] = useState<number | null>(null)
   const [confirmKickId, setConfirmKickId] = useState<number | null>(null)
+  const showActions = isLeader && !rosterLocked
 
   const handleKick = async (userId: number) => {
     setRemovingId(userId)
@@ -36,11 +40,11 @@ export function TeamRosterTable({
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-md overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+    <div className="overflow-hidden rounded-md border border-hairline bg-card">
+      <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
         <div>
           <h3 className="text-base font-semibold text-slate-900">Thành viên nhóm</h3>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="mt-0.5 text-xs text-slate-500">
             {members.length} thành viên
           </p>
         </div>
@@ -48,7 +52,7 @@ export function TeamRosterTable({
           <button
             type="button"
             onClick={onOpenTransferLeader}
-            className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-hairline px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
           >
             <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
             Chuyển quyền Trưởng nhóm
@@ -56,106 +60,103 @@ export function TeamRosterTable({
         )}
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-slate-600">
-          <thead className="bg-slate-50/80 text-xs text-slate-500 uppercase font-semibold border-b border-slate-100">
-            <tr>
-              <th className="py-3 px-4">Thành viên</th>
-              <th className="py-3 px-4">Chuyên ngành</th>
-              <th className="py-3 px-4">Vai trò</th>
-              <th className="py-3 px-4">Tư cách đồ án</th>
-              {isLeader && !rosterLocked && <th className="py-3 px-4 text-right">Thao tác</th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {members.map((member) => {
-              const isSelf = member.userId === currentUserId
+      <Table stack aria-label="Danh sách thành viên nhóm">
+        <TableHead>
+          <TableRow head>
+            <TableHeaderCell>Thành viên</TableHeaderCell>
+            <TableHeaderCell>Chuyên ngành</TableHeaderCell>
+            <TableHeaderCell>Vai trò</TableHeaderCell>
+            <TableHeaderCell>Tư cách đồ án</TableHeaderCell>
+            {showActions && <TableHeaderCell align="right">Thao tác</TableHeaderCell>}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {members.map((member) => {
+            const isSelf = member.userId === currentUserId
 
-              return (
-                <tr key={member.userId} className={`hover:bg-slate-50/50 ${isSelf ? 'bg-emerald-50/30' : ''}`}>
-                  <td className="py-3 px-4 font-medium text-slate-900 flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 text-slate-600 flex items-center justify-center font-bold text-xs">
+            return (
+              <TableRow key={member.userId} className={isSelf ? 'bg-status-success-bg/40' : ''}>
+                <TableCell label="Thành viên" className="font-medium text-slate-900">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full border border-hairline bg-slate-100 text-xs font-bold text-slate-600">
                       {member.fullName.charAt(0)}
                     </div>
                     <div>
                       <span>{member.fullName}</span>
-                      {isSelf && <span className="ml-1.5 text-xs text-primary font-semibold">(Bạn)</span>}
+                      {isSelf && <span className="ml-1.5 text-xs font-semibold text-primary">(Bạn)</span>}
                       {isSelf && currentUserStudentCode && <span className="block text-xs text-slate-500">{currentUserStudentCode}</span>}
                     </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-xs font-semibold text-slate-700">
-                      {member.majorId && majorNames[member.majorId] ? majorNames[member.majorId] : 'Chưa có thông tin'}
+                  </div>
+                </TableCell>
+                <TableCell label="Chuyên ngành">
+                  <span className="inline-flex rounded-md border border-hairline bg-slate-50 px-2 py-0.5 font-mono text-xs font-semibold text-slate-700">
+                    {member.majorId && majorNames[member.majorId] ? majorNames[member.majorId] : 'Chưa có thông tin'}
+                  </span>
+                </TableCell>
+                <TableCell label="Vai trò">
+                  {member.isLeader ? (
+                    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${badgeToneClass.warning}`}>
+                      <span className="material-symbols-outlined text-[14px]">star</span>
+                      Trưởng nhóm
                     </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    {member.isLeader ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-                        <span className="material-symbols-outlined text-[14px]">star</span>
-                        Trưởng nhóm
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs text-slate-600 bg-slate-100">
-                        Thành viên
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4">
-                    {member.isEligibleStudent && member.isProjectQualificationEligible !== false ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-emerald-700 font-medium">
-                        <span className="material-symbols-outlined text-[16px]">verified</span>
-                        Đủ điều kiện{member.qualificationStatus === 'VERIFIED' ? ' · Đã xác minh' : ''}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs text-rose-700 font-medium">
-                        <span className="material-symbols-outlined text-[16px]">cancel</span>
-                        Chưa đủ điều kiện{member.qualificationStatus ? ' · ' + member.qualificationStatus : ''}
-                      </span>
-                    )}
-                  </td>
-                  {isLeader && !rosterLocked && (
-                    <td className="py-3 px-4 text-right">
-                      {!member.isLeader && (
-                        <div>
-                          {confirmKickId === member.userId ? (
-                            <div className="inline-flex items-center gap-1.5">
-                              <span className="text-xs text-rose-600 font-medium">Xác nhận xóa?</span>
-                              <button
-                                type="button"
-                                onClick={() => handleKick(member.userId)}
-                                disabled={removingId === member.userId}
-                                className="px-2 py-1 bg-rose-600 text-white rounded text-xs font-semibold hover:bg-rose-700 disabled:opacity-50"
-                              >
-                                {removingId === member.userId ? '...' : 'Xóa'}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setConfirmKickId(null)}
-                                className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs hover:bg-slate-200"
-                              >
-                                Hủy
-                              </button>
-                            </div>
-                          ) : (
+                  ) : (
+                    <StatusBadge tone="neutral" label="Thành viên" />
+                  )}
+                </TableCell>
+                <TableCell label="Tư cách đồ án">
+                  {member.isEligibleStudent && member.isProjectQualificationEligible !== false ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-status-success-text">
+                      <span className="material-symbols-outlined text-[16px]">verified</span>
+                      Đủ điều kiện{member.qualificationStatus === 'VERIFIED' ? ' · Đã xác minh' : ''}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-status-error-text">
+                      <span className="material-symbols-outlined text-[16px]">cancel</span>
+                      Chưa đủ điều kiện{member.qualificationStatus ? ' · ' + member.qualificationStatus : ''}
+                    </span>
+                  )}
+                </TableCell>
+                {showActions && (
+                  <TableCell label="Thao tác" align="right">
+                    {!member.isLeader && (
+                      <div>
+                        {confirmKickId === member.userId ? (
+                          <div className="inline-flex items-center gap-1.5">
+                            <span className="text-xs font-medium text-rose-600">Xác nhận xóa?</span>
                             <button
                               type="button"
-                              onClick={() => setConfirmKickId(member.userId)}
-                              className="px-2.5 py-1 text-xs text-rose-600 hover:bg-rose-50 rounded-md font-semibold transition-colors"
+                              onClick={() => handleKick(member.userId)}
+                              disabled={removingId === member.userId}
+                              className="rounded bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
                             >
-                              Xóa khỏi nhóm
+                              {removingId === member.userId ? '...' : 'Xóa'}
                             </button>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                  )}
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-
+                            <button
+                              type="button"
+                              onClick={() => setConfirmKickId(null)}
+                              className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600 hover:bg-slate-200"
+                            >
+                              Hủy
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmKickId(member.userId)}
+                            className="rounded-md px-2.5 py-1 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50"
+                          >
+                            Xóa khỏi nhóm
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </TableCell>
+                )}
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
     </div>
   )
 }

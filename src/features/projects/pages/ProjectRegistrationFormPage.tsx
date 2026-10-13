@@ -4,6 +4,7 @@ import { useStudentJourney } from '../../../app/context'
 import { RevisionAlert } from '../components/RevisionAlert'
 import { normalizeProjectStatus, useProjectRegistration, type ProjectRegistrationField } from '../hooks/useProjectRegistration'
 import { projectStatusLabel } from '../utils/project-status'
+import { PageLoading } from '../../../components/ui/PageLoading'
 
 export function ProjectRegistrationFormPage() {
   const navigate = useNavigate()
@@ -66,7 +67,7 @@ export function ProjectRegistrationFormPage() {
       </header>
 
       {!hasProject && !registration.canCreate && <FailureState message="Chưa thể tạo bản nháp. Nhóm cần đủ điều kiện đăng ký và bạn cần là trưởng nhóm." onRetry={() => void journey.refreshAll()} />}
-      {registeringNewAfterRejection && <section className="rounded-md border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800"><strong>Đăng ký đề tài mới sau khi đề tài trước bị từ chối.</strong><p className="mt-1">Biểu mẫu này tạo một bản nháp hoàn toàn mới; đề cương cũ vẫn được giữ trong lịch sử.</p></section>}
+      {registeringNewAfterRejection && <section className="rounded-md border border-status-error-border bg-status-error-bg p-4 text-xs text-status-error-text"><strong>Đăng ký đề tài mới sau khi đề tài trước bị từ chối.</strong><p className="mt-1">Biểu mẫu này tạo một bản nháp hoàn toàn mới; đề cương cũ vẫn được giữ trong lịch sử.</p></section>}
       {revision && registration.latestRevision && <RevisionAlert reason={registration.latestRevision.reason} reviewerName={registration.latestRevision.changedByName || 'Hệ thống'} timestamp={registration.latestRevision.changedAt} onEdit={() => {}} />}
       {registrationProject ? <ProjectProvenance project={registrationProject} /> : null}
       <GovernedScope scope={registration.academicScope} requiredMajorIds={registration.requiredMajorIds} />
@@ -98,7 +99,7 @@ export function ProjectRegistrationFormPage() {
 
 function ProjectProvenance({ project }: { project: NonNullable<ReturnType<typeof useStudentJourney>['project']> }) {
   const source = project.proposalSource ?? 'STUDENT_PROPOSAL'
-  return <section className="rounded-md border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-950"><p className="text-xs font-bold uppercase tracking-wider">Nguồn đề tài</p>{source === 'PUBLISHED_TOPIC' ? <p className="mt-2 text-xs"><strong>Đề tài đã công bố</strong> · {project.selectedTopic ? `${project.selectedTopic.code} · ${project.selectedTopic.title}` : 'Chưa tải được thông tin chi tiết của đề tài đã chọn.'}</p> : <p className="mt-2 text-xs"><strong>Đề xuất của sinh viên</strong> · Hồ sơ này được khởi tạo từ đề xuất của nhóm.</p>}<p className="mt-2 text-xs">Nội dung đề cương được nhóm rà soát và cập nhật riêng trong biểu mẫu này.</p></section>
+  return <section className="rounded-md border border-status-success-border bg-status-success-bg p-5 text-sm text-status-success-text"><p className="text-xs font-bold uppercase tracking-wider">Nguồn đề tài</p>{source === 'PUBLISHED_TOPIC' ? <p className="mt-2 text-xs"><strong>Đề tài đã công bố</strong> · {project.selectedTopic ? `${project.selectedTopic.code} · ${project.selectedTopic.title}` : 'Chưa tải được thông tin chi tiết của đề tài đã chọn.'}</p> : <p className="mt-2 text-xs"><strong>Đề xuất của sinh viên</strong> · Hồ sơ này được khởi tạo từ đề xuất của nhóm.</p>}<p className="mt-2 text-xs">Nội dung đề cương được nhóm rà soát và cập nhật riêng trong biểu mẫu này.</p></section>
 }
 
 function GovernedScope({ scope }: { scope: ReturnType<typeof useProjectRegistration>['academicScope']; requiredMajorIds: number[] }) {
@@ -112,13 +113,13 @@ function ValidationSummary({ fields = {}, message, summaryRef }: { fields?: Part
   const labels: Record<ProjectRegistrationField, string> = {
     title: 'Tên đề tài', domain: 'Lĩnh vực', technologies: 'Công nghệ', keywords: 'Từ khóa',
   }
-  return <div ref={summaryRef} role="alert" tabIndex={-1} className="rounded-md border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+  return <div ref={summaryRef} role="alert" tabIndex={-1} className="rounded-md border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">
     <p className="font-bold">{message}</p>
     <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
       {Object.entries(fields).map(([field, detail]) => <li key={field}><a className="underline underline-offset-2" href={`#project-${field}`}>{labels[field as ProjectRegistrationField]}: {detail}</a></li>)}
     </ul>
   </div>
 }
-function LoadingState() { return <div className="mx-auto flex max-w-4xl flex-col gap-5 animate-pulse"><div className="h-8 w-1/3 rounded-md bg-slate-200" /><div className="h-96 rounded-md bg-slate-200" /></div> }
-function FailureState({ message, onRetry }: { message: string; onRetry: () => void }) { return <section className="rounded-md border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950" role="alert"><p>{message}</p><button type="button" onClick={onRetry} className="mt-3 rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold">Tải lại</button></section> }
-function ErrorMessage({ kind: _kind, message, onRetry }: { kind: string; message: string; onRetry?: () => void }) { return <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800" role="alert">{message}{onRetry && <button type="button" onClick={onRetry} className="ml-2 font-bold underline">Thử lại</button>}</div> }
+function LoadingState() { return <div className="mx-auto max-w-4xl"><PageLoading label="Đang tải biểu mẫu đề cương…" /></div> }
+function FailureState({ message, onRetry }: { message: string; onRetry: () => void }) { return <section className="rounded-md border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text" role="alert"><p>{message}</p><button type="button" onClick={onRetry} className="mt-3 rounded-md border border-status-warning-border bg-white px-3 py-1.5 text-xs font-bold">Tải lại</button></section> }
+function ErrorMessage({ kind: _kind, message, onRetry }: { kind: string; message: string; onRetry?: () => void }) { return <div className="rounded-md border border-status-error-border bg-status-error-bg p-3 text-xs text-status-error-text" role="alert">{message}{onRetry && <button type="button" onClick={onRetry} className="ml-2 font-bold underline">Thử lại</button>}</div> }

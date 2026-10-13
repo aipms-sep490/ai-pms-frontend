@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { Modal } from '../../../components/ui/Modal'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from '../../../components/ui/Table'
 import { HttpError } from '../../../services/http/http-client'
 import { AcademicScopeFields } from '../../academic/components/AcademicScopeFields'
 import { useAuthSession } from '../../auth/context/useAuthSession'
@@ -96,9 +98,26 @@ export function StudentImportDialog({ onClose, onImported }: { onClose: () => vo
           <p><strong>{preview.departmentName} · {preview.majorName}</strong></p>
           <p role="status">{preview.rows.length} sinh viên · {preview.rows.filter(row => row.errors.length > 0).length} dòng lỗi</p>
           <label className="curriculum-import__check"><input type="checkbox" checked={onlyErrors} onChange={event => { setOnlyErrors(event.target.checked); setPage(1) }} />Chỉ hiện dòng lỗi</label>
-          <div className="curriculum-import__table" role="region" tabIndex={0} aria-label="Chi tiết sinh viên nhập"><table><caption>Kiểm tra thông tin trước khi tạo tài khoản</caption><thead><tr><th>Dòng / MSSV</th><th>Họ tên / Email</th><th>SĐT / Khung</th><th>Kết quả</th></tr></thead><tbody>
-            {visibleRows.slice((page - 1) * 25, page * 25).map(({ account, errors: rowErrors }) => <tr key={account.rowNumber}><td>{account.rowNumber}<br /><strong>{account.studentCode || 'Thiếu MSSV'}</strong></td><td>{account.fullName}<br />{account.email}</td><td>{account.phone || '—'}<br />{account.curriculumCode || '—'}</td><td>{rowErrors.length ? rowErrors.map((code, index) => <p key={index}>{errors[code] ?? code}</p>) : <span className="curriculum-import__status curriculum-import__status--update">Sẽ tạo mới</span>}</td></tr>)}
-          </tbody></table></div>
+          <div role="region" tabIndex={0} aria-label="Chi tiết sinh viên nhập">
+            <Table stack>
+              <TableHead>
+                <TableRow head>
+                  <TableHeaderCell>Dòng / MSSV</TableHeaderCell>
+                  <TableHeaderCell>Họ tên / Email</TableHeaderCell>
+                  <TableHeaderCell>SĐT / Khung</TableHeaderCell>
+                  <TableHeaderCell>Kết quả</TableHeaderCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {visibleRows.slice((page - 1) * 25, page * 25).map(({ account, errors: rowErrors }) => <TableRow key={account.rowNumber}>
+                  <TableCell label="Dòng / MSSV">{account.rowNumber}<br /><strong>{account.studentCode || 'Thiếu MSSV'}</strong></TableCell>
+                  <TableCell label="Họ tên / Email">{account.fullName}<br />{account.email}</TableCell>
+                  <TableCell label="SĐT / Khung">{account.phone || '—'}<br />{account.curriculumCode || '—'}</TableCell>
+                  <TableCell label="Kết quả">{rowErrors.length ? rowErrors.map((code, index) => <p key={index} className="text-status-error-text">{errors[code] ?? code}</p>) : <StatusBadge tone="success" label="Sẽ tạo mới" />}</TableCell>
+                </TableRow>)}
+              </TableBody>
+            </Table>
+          </div>
           {!visibleRows.length && <p>Không có dòng phù hợp bộ lọc.</p>}
           {pages > 1 && <div className="curriculum-import__pagination"><Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Trang trước</Button><span>Trang {page}/{pages}</span><Button variant="outline" size="sm" disabled={page >= pages} onClick={() => setPage(value => value + 1)}>Trang sau</Button></div>}
           {!canCommit ? <p className="curriculum-import__error">Chưa thể tạo tài khoản. Sửa các dòng lỗi rồi chọn lại file; tài khoản đã tồn tại sẽ không bị ghi đè.</p> : <label className="curriculum-import__check"><input type="checkbox" checked={confirmed} disabled={!!pending} onChange={event => setConfirmed(event.target.checked)} />Tôi đã kiểm tra và xác nhận tạo {preview.rows.length} tài khoản sinh viên đăng nhập Google.</label>}

@@ -10,6 +10,7 @@ import { HttpError } from '../../services/http/http-client'
 import * as api from './rubrics-api'
 import type { CriterionInput, Rubric, RubricCriterion } from './rubrics-api'
 import { Button } from '../../components/ui/Button'
+import { formatPercent, formatScore } from '../../components/ui/format'
 import './rubric-management.css'
 
 const newCriterion = (): CriterionInput => ({ name: '', description: null, weightPercent: 100, maxScore: 10, sortOrder: 0, isRequired: true, children: [] })
@@ -170,5 +171,5 @@ function RubricReadView({ rubric, departments, semesters }: { rubric: Rubric; de
   </div>
 }
 function CriterionReadView({ item, number }: { item: RubricCriterion; number: string }) {
-  return <li><div className="rubric-read-criterion"><span className="rubric-criterion-number">{number}</span><div><h4>{item.name}</h4>{item.description && <p>{item.description}</p>}<div className="rubric-criterion-meta">{item.children.length === 0 && <><span>Điểm tối đa: {item.maxScore}</span>{item.isRequired && <span>Bắt buộc</span>}</>}</div></div><strong className="rubric-criterion-weight">{item.weightPercent}%</strong></div>{item.children.length > 0 && <ol>{item.children.map((child, index) => <CriterionReadView key={child.id} item={child} number={number + '.' + (index + 1)} />)}</ol>}</li>
+  return <li><div className="rubric-read-criterion"><span className="rubric-criterion-number">{number}</span><div><h4>{item.name}</h4>{item.description && <p>{item.description}</p>}<div className="rubric-criterion-meta">{item.children.length === 0 && <><span>Điểm tối đa: {formatScore(item.maxScore)}</span>{item.isRequired && <span>Bắt buộc</span>}</>}</div></div><strong className="rubric-criterion-weight">{formatPercent(item.weightPercent)}</strong></div>{item.children.length > 0 && <ol>{item.children.map((child, index) => <CriterionReadView key={child.id} item={child} number={number + '.' + (index + 1)} />)}</ol>}</li>
 }
