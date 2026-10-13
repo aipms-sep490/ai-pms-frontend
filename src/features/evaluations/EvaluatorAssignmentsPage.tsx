@@ -37,14 +37,14 @@ export function EvaluatorAssignmentsPage() {
 
       {error ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error}</section> : null}
       {loading ? <ListLoading label="Đang tải danh sách phân công đánh giá…" /> : null}
-      {!loading && !error && !items.length ? <p className="workspace-surface p-6 text-sm text-slate-600">Chưa có phân công đánh giá đang hiệu lực trong phạm vi hiện tại.</p> : null}
+      {!loading && !error && !items.length ? <p className="workspace-surface p-6 text-sm text-ink-muted">Chưa có phân công đánh giá đang hiệu lực trong phạm vi hiện tại.</p> : null}
 
       <section className="space-y-3" aria-label="Các phân công đánh giá">
         {!loading && items.map((assignment) => (
           <article key={assignment.id} className="workspace-surface flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <h2 className="font-bold text-slate-900">Đồ án #{assignment.projectId} · {displayLabel(assignment.evaluationType)}</h2>
-              <p className="mt-2 text-sm text-slate-500">Bộ tiêu chí #{assignment.rubricId} · Bộ môn #{assignment.departmentId} · Phân công {new Date(assignment.assignedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</p>
+              <h2 className="font-bold text-ink">Đồ án #{assignment.projectId} · {displayLabel(assignment.evaluationType)}</h2>
+              <p className="mt-2 text-sm text-ink-muted">Bộ tiêu chí #{assignment.rubricId} · Bộ môn #{assignment.departmentId} · Phân công {new Date(assignment.assignedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</p>
             </div>
             <Button className="min-h-11 shrink-0" disabled={busyId !== null} onClick={() => void openWorkspace(assignment)}>
               {busyId === assignment.id ? 'Đang kiểm tra…' : 'Mở không gian đánh giá'}

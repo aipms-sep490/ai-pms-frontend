@@ -41,8 +41,8 @@ export function ArchivedProjectsPage() {
           <p className="font-mono text-xs font-semibold uppercase tracking-wide text-primary">
             {scope === 'admin' ? 'Phạm vi quản trị' : 'Phạm vi bộ môn'}
           </p>
-          <h1 className="mt-1 font-heading text-2xl font-bold text-slate-950">Kho lưu trữ đồ án</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+          <h1 className="mt-1 font-heading text-2xl font-bold text-ink">Kho lưu trữ đồ án</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">
             Tra cứu các đồ án đã đưa vào kho. Nội dung chỉ được xem và hiển thị theo quyền của tài khoản hiện tại.
           </p>
         </div>
@@ -52,7 +52,7 @@ export function ArchivedProjectsPage() {
       </header>
 
       {loading && (
-        <p role="status" className="rounded-xl border border-hairline bg-card p-5 text-sm text-slate-600">
+        <p role="status" className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-muted">
           Đang tải kho lưu trữ…
         </p>
       )}
@@ -68,16 +68,16 @@ export function ArchivedProjectsPage() {
 
       {!loading && data && (
         <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs">
-          <p className="text-sm font-medium text-slate-700">{data.projects.totalCount} đồ án đã lưu trữ trong phạm vi hiện tại.</p>
+          <p className="text-sm font-medium text-ink-soft">{data.projects.totalCount} đồ án đã lưu trữ trong phạm vi hiện tại.</p>
           {data.projects.items.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-500">Chưa có đồ án nào được chuyển vào kho lưu trữ trong phạm vi của bạn.</p>
+            <p className="mt-4 text-sm text-ink-muted">Chưa có đồ án nào được chuyển vào kho lưu trữ trong phạm vi của bạn.</p>
           ) : (
             <ul className="mt-4 divide-y divide-hairline">
               {data.projects.items.map((project) => (
                 <li key={project.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
                   <div>
-                    <p className="font-semibold text-slate-950">{project.code} · {project.title}</p>
-                    <p className="mt-1 text-sm text-slate-500">Trạng thái: {displayLabel(project.status)}</p>
+                    <p className="font-semibold text-ink">{project.code} · {project.title}</p>
+                    <p className="mt-1 text-sm text-ink-muted">Trạng thái: {displayLabel(project.status)}</p>
                   </div>
                   <Link to={`/department/projects/${project.id}/archive-view`}>
                     <Button variant="secondary" size="sm" icon="visibility">Xem chi tiết</Button>

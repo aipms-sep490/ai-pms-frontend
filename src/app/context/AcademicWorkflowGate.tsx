@@ -27,8 +27,8 @@ function ContextMessage({ title, detail, onRetry }: { title: string; detail: str
   return (
     <main className="min-h-screen grid place-items-center bg-canvas p-6 text-center" aria-live="polite">
       <div className="max-w-md">
-        <h1 className="text-base font-semibold text-slate-800">{title}</h1>
-        <p className="mt-2 text-sm text-slate-600">{detail}</p>
+        <h1 className="text-base font-semibold text-ink-soft">{title}</h1>
+        <p className="mt-2 text-sm text-ink-muted">{detail}</p>
         {onRetry ? (
           <button type="button" className="mt-4 text-blue-700 underline" onClick={() => void onRetry()}>
             Thử lại

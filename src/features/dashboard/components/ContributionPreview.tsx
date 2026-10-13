@@ -47,17 +47,17 @@ export function ContributionPreview({ contributions }: ContributionPreviewProps)
             <div key={member.name} className="flex items-center justify-between">
               <div className="flex items-center gap-2 min-w-0">
                 <span className={`w-2.5 h-2.5 rounded-full ${member.color} shrink-0`} aria-hidden="true" />
-                <span className="font-medium text-slate-800 truncate">{member.name}</span>
+                <span className="font-medium text-ink-soft truncate">{member.name}</span>
                 <MultidisciplinaryTag major={member.major} />
               </div>
-              <span className="font-mono font-bold text-slate-700 shrink-0 ml-2">
+              <span className="font-mono font-bold text-ink-soft shrink-0 ml-2">
                 {member.percentage}% ({member.storyPoints} SP)
               </span>
             </div>
           ))}
         </div>
 
-        <div className="p-2.5 rounded bg-slate-50 border border-slate-200/80 text-xs text-slate-600 flex items-center gap-2 mt-1">
+        <div className="p-2.5 rounded bg-canvas border border-hairline/80 text-xs text-ink-muted flex items-center gap-2 mt-1">
           <span className="material-symbols-outlined text-[15px] text-emerald-600 shrink-0" aria-hidden="true">
             verified
           </span>

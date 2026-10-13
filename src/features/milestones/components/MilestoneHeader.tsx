@@ -17,7 +17,7 @@ export function MilestoneHeader({
   onSelectMilestone,
 }: MilestoneHeaderProps) {
   return (
-    <Card className="border-hairline bg-white shadow-xs">
+    <Card className="border-hairline bg-card shadow-xs">
       <CardContent className="p-4 md:p-5 flex flex-col gap-4">
         {/* Top bar: Milestone Switcher & Action CTA */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-hairline">
@@ -39,7 +39,7 @@ export function MilestoneHeader({
                   className={`px-3 py-1 text-xs font-mono font-bold rounded-md transition-all cursor-pointer whitespace-nowrap ${
                     isSelected
                       ? 'bg-primary text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                      : 'text-ink-muted hover:text-ink hover:bg-slate-200/60'
                   }`}
                 >
                   {key}
@@ -84,23 +84,23 @@ export function MilestoneHeader({
                   ? 'Đang thực hiện'
                   : 'Sắp diễn ra'}
               </Badge>
-              <span className="font-mono text-xs text-slate-500">
+              <span className="font-mono text-xs text-ink-muted">
                 {milestone.startDate} – {milestone.endDate}
               </span>
             </div>
 
-            <h1 className="font-heading text-xl md:text-2xl font-bold text-slate-900 tracking-tight leading-snug">
+            <h1 className="font-heading text-xl md:text-2xl font-bold text-ink tracking-tight leading-snug">
               Cột mốc {milestone.id}: {milestone.name}
             </h1>
-            <p className="text-xs md:text-sm text-slate-600 font-sans leading-relaxed">
+            <p className="text-xs md:text-sm text-ink-muted font-sans leading-relaxed">
               {milestone.description}
             </p>
           </div>
 
           {/* Progress Indicator */}
-          <div className="flex flex-col gap-1.5 w-full lg:w-56 shrink-0 p-3 rounded-lg bg-slate-50 border border-hairline">
+          <div className="flex flex-col gap-1.5 w-full lg:w-56 shrink-0 p-3 rounded-lg bg-canvas border border-hairline">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-mono font-semibold text-slate-700">Tiến độ tổng thể</span>
+              <span className="font-mono font-semibold text-ink-soft">Tiến độ tổng thể</span>
               <span className="font-mono font-bold text-primary text-sm">
                 {milestone.progress}%
               </span>
@@ -124,7 +124,7 @@ export function MilestoneHeader({
                 style={{ width: `${milestone.progress}%` }}
               />
             </div>
-            <div className="flex items-center justify-between font-mono text-xs text-slate-500">
+            <div className="flex items-center justify-between font-mono text-xs text-ink-muted">
               <span>Hoàn thành: {milestone.completedTasks} / {milestone.totalTasks} tác vụ</span>
             </div>
           </div>

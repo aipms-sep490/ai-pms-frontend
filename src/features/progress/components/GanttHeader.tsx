@@ -20,28 +20,28 @@ export function GanttHeader({
             <span className="material-symbols-outlined text-blue-600 text-2xl">
               calendar_month
             </span>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            <h1 className="text-xl font-bold tracking-tight text-ink">
               Biểu đồ Gantt Đa ngành & Phân tích Đường găng
             </h1>
             <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">
               Dữ liệu mô phỏng
             </span>
           </div>
-          <p className="mt-0.5 text-xs text-slate-500">
+          <p className="mt-0.5 text-xs text-ink-muted">
             Tiến độ tổng thể 15 tuần học kỳ Fall 2026 • Theo dõi đường găng (Critical Path Method — CPM)
           </p>
         </div>
 
         {/* View Mode & Export Controls */}
         <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5">
+          <div className="inline-flex rounded-lg border border-hairline bg-slate-100 p-0.5">
             <button
               type="button"
               onClick={() => onViewModeChange('weeks')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
                 viewMode === 'weeks'
-                  ? 'bg-white text-blue-600 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-card text-blue-600 shadow-xs'
+                  : 'text-ink-muted hover:text-ink'
               }`}
             >
               Xem theo tuần (15T)
@@ -51,8 +51,8 @@ export function GanttHeader({
               onClick={() => onViewModeChange('milestones')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
                 viewMode === 'milestones'
-                  ? 'bg-white text-blue-600 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-card text-blue-600 shadow-xs'
+                  : 'text-ink-muted hover:text-ink'
               }`}
             >
               Xem theo mốc (M1–M6)
@@ -63,7 +63,7 @@ export function GanttHeader({
             type="button"
             disabled
             title="Chức năng xuất dữ liệu tiến độ sang Microsoft đồ án / CSV đang được phát triển"
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-400 border border-slate-200 rounded-lg bg-slate-50 cursor-not-allowed"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-400 border border-hairline rounded-lg bg-canvas cursor-not-allowed"
           >
             <span className="material-symbols-outlined text-sm">download</span>
             Xuất MS đồ án / CSV
@@ -72,14 +72,14 @@ export function GanttHeader({
       </div>
 
       {/* Compact Single-Row Summary Strip */}
-      <div className="p-3 rounded-lg border border-slate-200 bg-slate-50/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="p-3 rounded-lg border border-hairline bg-canvas/80 flex flex-wrap items-center justify-between gap-3 text-xs">
         {/* Metric 1: Current Week / Milestone */}
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-          <span className="font-semibold text-slate-900">
+          <span className="font-semibold text-ink">
             Tuần T{telemetry.currentWeek}
           </span>
-          <span className="text-slate-500">(08/09 - 14/09)</span>
+          <span className="text-ink-muted">(08/09 - 14/09)</span>
           <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100/80 text-blue-800">
             Mốc M3 • Đang diễn ra
           </span>
@@ -88,10 +88,10 @@ export function GanttHeader({
         <div className="hidden lg:block h-4 w-px bg-slate-200" />
 
         {/* Metric 2: WBS Tasks */}
-        <div className="flex items-center gap-1.5 text-slate-600">
-          <span className="font-bold text-slate-900">{telemetry.totalTasks}</span>
+        <div className="flex items-center gap-1.5 text-ink-muted">
+          <span className="font-bold text-ink">{telemetry.totalTasks}</span>
           <span>công việc:</span>
-          <span className="text-slate-500">
+          <span className="text-ink-muted">
             {telemetry.completedTasksCount} hoàn thành • {telemetry.inProgressTasksCount} đang làm • {telemetry.upcomingTasksCount} sắp tới
           </span>
         </div>
@@ -110,14 +110,14 @@ export function GanttHeader({
 
         {/* Metric 4: Average Progress */}
         <div className="flex items-center gap-2">
-          <span className="text-slate-600">Tiến độ WBS:</span>
+          <span className="text-ink-muted">Tiến độ WBS:</span>
           <div className="w-16 bg-slate-200 rounded-full h-2 overflow-hidden">
             <div
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${telemetry.overallProgress}%` }}
             />
           </div>
-          <span className="font-bold font-mono text-slate-900">{telemetry.overallProgress}%</span>
+          <span className="font-bold font-mono text-ink">{telemetry.overallProgress}%</span>
         </div>
       </div>
 

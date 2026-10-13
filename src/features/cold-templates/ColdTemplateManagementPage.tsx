@@ -78,19 +78,19 @@ export function ColdTemplateManagementPage() {
   return <WorkspacePage className="space-y-5" title="Bộ report chấm nguội theo ngành" eyebrow="COLD · theo ngành, không dùng chung"
     description="Mỗi ngành tự định nghĩa bộ report của mình theo kỳ đồ án. Mẫu IT SEP490 chỉ là ví dụ, không áp đặt cho ngành khác. Mỗi lần tạo là một phiên bản mới, bất biến.">
     <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs">
-      <h2 className="text-sm font-bold text-slate-900">Tìm template đã có</h2>
+      <h2 className="text-sm font-bold text-ink">Tìm template đã có</h2>
       <div className="mt-3 flex flex-wrap items-end gap-2">
-        <label className="text-sm text-slate-700">Mã ngành<input type="number" className="mt-1 block rounded-lg border border-hairline p-2 text-sm" value={majorId} onChange={(event) => setMajorId(event.target.value)} /></label>
-        <label className="text-sm text-slate-700">Mã kỳ đồ án<input type="number" className="mt-1 block rounded-lg border border-hairline p-2 text-sm" value={projectPeriodId} onChange={(event) => setProjectPeriodId(event.target.value)} /></label>
+        <label className="text-sm text-ink-soft">Mã ngành<input type="number" className="mt-1 block rounded-lg border border-hairline p-2 text-sm" value={majorId} onChange={(event) => setMajorId(event.target.value)} /></label>
+        <label className="text-sm text-ink-soft">Mã kỳ đồ án<input type="number" className="mt-1 block rounded-lg border border-hairline p-2 text-sm" value={projectPeriodId} onChange={(event) => setProjectPeriodId(event.target.value)} /></label>
         <button type="button" className="min-h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={loading || !majorId || !projectPeriodId} onClick={() => void search()}>Tìm</button>
       </div>
-      {loading && <p role="status" className="mt-3 text-sm text-slate-600">Đang tải…</p>}
+      {loading && <p role="status" className="mt-3 text-sm text-ink-muted">Đang tải…</p>}
       {listError && <p role="alert" className="mt-3 text-sm text-status-error-text">{listError}</p>}
-      {templates && templates.length === 0 && <p className="mt-3 text-sm text-slate-500">Chưa có template cho ngành/kỳ này.</p>}
+      {templates && templates.length === 0 && <p className="mt-3 text-sm text-ink-muted">Chưa có template cho ngành/kỳ này.</p>}
       {templates && templates.length > 0 && <ul className="mt-3 space-y-3">
         {templates.map((template) => <li key={template.id} className="rounded-lg border border-hairline p-3">
-          <p className="font-semibold text-slate-900">{template.name} (v{template.version})</p>
-          <ul className="mt-1 space-y-0.5 text-sm text-slate-600">
+          <p className="font-semibold text-ink">{template.name} (v{template.version})</p>
+          <ul className="mt-1 space-y-0.5 text-sm text-ink-muted">
             {template.reports.map((report) => <li key={report.code}>{report.code} — {report.name}{report.required ? ' · Bắt buộc' : ''}</li>)}
           </ul>
         </li>)}
@@ -99,15 +99,15 @@ export function ColdTemplateManagementPage() {
 
     <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-bold text-slate-900">Tạo template mới (phiên bản mới)</h2>
+        <h2 className="text-sm font-bold text-ink">Tạo template mới (phiên bản mới)</h2>
         <button type="button" className="min-h-9 text-sm font-semibold text-primary underline underline-offset-4" onClick={() => void loadItExample()}>Dùng mẫu IT (chỉ để tham khảo)</button>
       </div>
-      <label className="mt-3 block text-sm text-slate-700">Tên template<input className="mt-1 block w-full rounded-lg border border-hairline p-2 text-sm" value={name} disabled={creating} onChange={(event) => setName(event.target.value)} /></label>
+      <label className="mt-3 block text-sm text-ink-soft">Tên template<input className="mt-1 block w-full rounded-lg border border-hairline p-2 text-sm" value={name} disabled={creating} onChange={(event) => setName(event.target.value)} /></label>
       <div className="mt-3 space-y-2">
         {rows.map((row, index) => <div key={index} className="flex flex-wrap items-center gap-2">
           <input className="min-w-32 rounded-lg border border-hairline p-2 text-sm" placeholder="Mã report" value={row.code} disabled={creating} onChange={(event) => updateRow(index, { code: event.target.value })} />
           <input className="min-w-48 flex-1 rounded-lg border border-hairline p-2 text-sm" placeholder="Tên report" value={row.name} disabled={creating} onChange={(event) => updateRow(index, { name: event.target.value })} />
-          <label className="flex items-center gap-1 text-sm text-slate-700"><input type="checkbox" checked={row.required} disabled={creating} onChange={(event) => updateRow(index, { required: event.target.checked })} />Bắt buộc</label>
+          <label className="flex items-center gap-1 text-sm text-ink-soft"><input type="checkbox" checked={row.required} disabled={creating} onChange={(event) => updateRow(index, { required: event.target.checked })} />Bắt buộc</label>
           <button type="button" className="min-h-9 text-sm text-status-error-text underline underline-offset-4 disabled:opacity-50" disabled={creating || rows.length === 1} onClick={() => removeRow(index)}>Xóa</button>
         </div>)}
       </div>

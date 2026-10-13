@@ -32,7 +32,7 @@ export function AppLayout() {
 
   return (
     <TourProvider>
-    <div className="min-h-screen bg-canvas text-slate-900 flex font-sans antialiased collaboration-shell">
+    <div className="min-h-screen bg-canvas text-ink flex font-sans antialiased collaboration-shell">
       {/* 1. Sidebar Rail & Mobile Drawer */}
       <Sidebar
         isOpen={isMobileMenuOpen}

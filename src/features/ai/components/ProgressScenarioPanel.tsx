@@ -5,7 +5,7 @@ import { Button } from '../../../components/ui/Button'
 interface Analysis { riskLevel: string; overdueTaskRatio: number; blockedTaskRatio: number; recommendations: string[] | null }
 export function ProgressScenarioPanel() {
   const [result, setResult] = useState<Analysis | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false), lock = useRef(false)
-  return <section className="workspace-surface p-5 sm:p-6 space-y-4"><h2 className="font-semibold">Thử phân tích tiến độ</h2><p className="text-sm text-slate-600">Nhập số liệu để tham khảo rủi ro. Kết quả này không cập nhật tiến độ đồ án.</p><form className="api-form grid gap-3 sm:grid-cols-2" onSubmit={async event => {
+  return <section className="workspace-surface p-5 sm:p-6 space-y-4"><h2 className="font-semibold">Thử phân tích tiến độ</h2><p className="text-sm text-ink-muted">Nhập số liệu để tham khảo rủi ro. Kết quả này không cập nhật tiến độ đồ án.</p><form className="api-form grid gap-3 sm:grid-cols-2" onSubmit={async event => {
     event.preventDefault(); if (lock.current) return
     const f = new FormData(event.currentTarget), totalTasks = Number(f.get('total')), overdueTasks = Number(f.get('overdue')), blockedTasks = Number(f.get('blocked')), milestoneCompletionRate = Number(f.get('completed')) / 100
     setError(''); setResult(null)

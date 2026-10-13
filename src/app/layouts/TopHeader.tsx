@@ -105,7 +105,7 @@ export function TopHeader({
   }[journey?.journeyState ?? 'NO_TEAM']
 
   return (
-    <header className="app-top-header sticky top-0 h-12 bg-white border-b border-hairline z-30 px-3 sm:px-4 md:px-6 flex items-center justify-between">
+    <header className="app-top-header sticky top-0 h-12 bg-card border-b border-hairline z-30 px-3 sm:px-4 md:px-6 flex items-center justify-between">
       {/* Left: Mobile hamburger & Breadcrumb */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <button
@@ -115,7 +115,7 @@ export function TopHeader({
           aria-label={isMobileMenuOpen ? 'Đóng menu điều hướng' : 'Mở menu điều hướng'}
           aria-expanded={isMobileMenuOpen}
           aria-controls="main-sidebar"
-          className="lg:hidden min-w-[44px] min-h-[44px] -ml-2 text-slate-600 hover:text-slate-900 rounded-md hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+          className="lg:hidden min-w-[44px] min-h-[44px] -ml-2 text-ink-muted hover:text-ink rounded-md hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
         >
           <span className="material-symbols-outlined text-[22px] shrink-0" aria-hidden="true">
             {isMobileMenuOpen ? 'close' : 'menu'}
@@ -125,11 +125,11 @@ export function TopHeader({
         <nav
           aria-label="Đường dẫn điều hướng breadcrumb"
           data-tour="breadcrumb"
-          className="flex items-center gap-1.5 sm:gap-2 text-xs text-slate-500 font-sans truncate"
+          className="flex items-center gap-1.5 sm:gap-2 text-xs text-ink-muted font-sans truncate"
         >
-          <span className="font-semibold text-slate-800 shrink-0">{selectedSemester?.code ?? 'AI-PMS'}</span>
+          <span className="font-semibold text-ink-soft shrink-0">{selectedSemester?.code ?? 'AI-PMS'}</span>
           <span aria-hidden="true" className="text-slate-300 shrink-0">/</span>
-          <span className="text-slate-600 font-medium hidden sm:inline shrink-0">{pendingStudent ? <span className="app-context-skeleton" aria-hidden="true" /> : teamLabel}</span>
+          <span className="text-ink-muted font-medium hidden sm:inline shrink-0">{pendingStudent ? <span className="app-context-skeleton" aria-hidden="true" /> : teamLabel}</span>
           <span aria-hidden="true" className="hidden sm:inline text-slate-300 shrink-0">/</span>
           <span className="text-primary font-semibold truncate max-w-[200px] sm:max-w-xs md:max-w-none">
             {getBreadcrumbForPath(location.pathname)}
@@ -158,7 +158,7 @@ export function TopHeader({
             aria-expanded={notificationOpen}
             aria-controls="notification-preview"
             aria-label={unreadCount === null ? 'Mở thông báo học vụ' : `Mở thông báo học vụ, ${unreadCount} chưa đọc`}
-            className="relative flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="relative flex min-h-11 min-w-11 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <span className="material-symbols-outlined text-[20px] shrink-0" aria-hidden="true">notifications</span>
             {unreadCount !== null && unreadCount > 0 && <span aria-hidden="true" className="absolute right-0 top-0 rounded-full bg-rose-600 px-1.5 text-xs font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}

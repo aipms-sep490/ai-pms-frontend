@@ -14,7 +14,7 @@ export function TourLauncher() {
       aria-expanded={isActive}
       aria-label={label ? `Mở ${label.toLowerCase()}` : 'Mở hướng dẫn sử dụng'}
       title="Hướng dẫn sử dụng"
-      className="tour-launcher relative flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      className="tour-launcher relative flex min-h-11 min-w-11 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
     >
       <span className="material-symbols-outlined text-[20px] shrink-0" aria-hidden="true">help</span>
       <span className="tour-launcher-label">Hướng dẫn</span>

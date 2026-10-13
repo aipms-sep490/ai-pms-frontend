@@ -137,7 +137,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
         aria-modal={isOpen ? true : undefined}
         aria-label="Menu điều hướng chính"
         data-tour="sidebar"
-        className={`fixed left-0 top-0 bottom-0 w-60 bg-white border-r border-hairline z-50 flex flex-col justify-between select-none sidebar-rail ${
+        className={`fixed left-0 top-0 bottom-0 w-60 bg-card border-r border-hairline z-50 flex flex-col justify-between select-none sidebar-rail ${
           isOpen ? 'drawer-open' : ''
         }`}
       >
@@ -152,10 +152,10 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                   </span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-heading font-bold text-[14px] text-slate-900 tracking-tight leading-tight">
+                  <span className="font-heading font-bold text-[14px] text-ink tracking-tight leading-tight">
                     AI-PMS • FPTU
                   </span>
-                  <span className="font-mono text-xs text-slate-500 leading-tight">
+                  <span className="font-mono text-xs text-ink-muted leading-tight">
                     {pendingStudent ? <span className="app-context-skeleton" aria-hidden="true" /> : role === 'student' ? semester?.name || 'Học kỳ chưa xác định' : teamLabel}
                   </span>
                 </div>
@@ -167,7 +167,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                   type="button"
                   onClick={handleClose}
                   aria-label="Đóng ngăn điều hướng"
-                  className="lg:hidden min-w-[44px] min-h-[44px] rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+                  className="lg:hidden min-w-[44px] min-h-[44px] rounded-md text-ink-muted hover:text-ink hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
                     close
@@ -177,12 +177,12 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
             </div>
 
             {/* Academic Context Badge */}
-            <div className="px-2.5 py-1.5 rounded-lg bg-slate-50 border border-hairline flex items-center justify-between text-xs">
+            <div className="px-2.5 py-1.5 rounded-lg bg-canvas border border-hairline flex items-center justify-between text-xs">
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="material-symbols-outlined text-[14px] text-academic-emerald shrink-0" aria-hidden="true">
                   verified
                 </span>
-                <span className="font-mono text-xs font-semibold text-slate-800 truncate">
+                <span className="font-mono text-xs font-semibold text-ink-soft truncate">
                   {pendingStudent ? <span className="app-context-skeleton" aria-hidden="true" /> : <>{workspaceCode} / {teamLabel}</>}
                 </span>
               </div>
@@ -203,7 +203,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
             ) : <>
             {navigationItems.map((item, index) => (
               <Fragment key={item.id}>
-                {(index === 0 || navigationItems[index - 1].section !== item.section) && <div className="px-2.5 pt-4 pb-1 text-xs font-semibold text-slate-500">{sectionLabels[item.section]}</div>}
+                {(index === 0 || navigationItems[index - 1].section !== item.section) && <div className="px-2.5 pt-4 pb-1 text-xs font-semibold text-ink-muted">{sectionLabels[item.section]}</div>}
                 <NavLink
                   key={item.id}
                   to={item.path}
@@ -216,7 +216,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                     `flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-[13px] font-medium transition-all duration-150 ${
                       isActive
                         ? 'bg-primary-subtle text-primary font-semibold'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        : 'text-ink-muted hover:text-ink hover:bg-slate-100'
                     }`
                   }
                 >
@@ -239,17 +239,17 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
         </div>
 
         {/* Bottom Profile Footer (Student Baseline for Batch 0-2) */}
-        <div data-tour="profile" className="p-3 border-t border-hairline bg-slate-50/70 flex items-center justify-between gap-2">
+        <div data-tour="profile" className="p-3 border-t border-hairline bg-canvas/70 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center font-heading font-bold text-xs text-slate-700 relative shrink-0">
+            <div className="w-8 h-8 rounded-full bg-slate-200 border border-line-strong flex items-center justify-center font-heading font-bold text-xs text-ink-soft relative shrink-0">
               {profileInitials}
               <span className={`absolute bottom-0 right-0 w-2 h-2 rounded-full ring-2 ring-white ${session ? 'bg-academic-emerald' : 'bg-slate-300'}`} />
             </div>
             <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-[12px] font-semibold text-slate-900 truncate">
+              <span className="text-[12px] font-semibold text-ink truncate">
                 {profileName}
               </span>
-              <span className="font-mono text-xs text-slate-500 truncate">
+              <span className="font-mono text-xs text-ink-muted truncate">
                 {profileCode}
               </span>
             </div>
@@ -259,7 +259,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
             onClick={() => void logout()}
             aria-label="Đăng xuất"
             title="Đăng xuất / Chuyển tài khoản"
-            className="min-h-[44px] min-w-[44px] p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-md transition-colors shrink-0 flex items-center justify-center"
+            className="min-h-[44px] min-w-[44px] p-1.5 text-slate-400 hover:text-ink-soft hover:bg-slate-200/60 rounded-md transition-colors shrink-0 flex items-center justify-center"
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden="true">logout</span>
           </button>

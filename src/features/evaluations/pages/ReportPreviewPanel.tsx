@@ -21,7 +21,7 @@ export function ReportPreviewPanel({ assignmentId, files }: { assignmentId: numb
   return (
     <section className="rounded-xl border border-hairline bg-card p-4 report-preview" aria-label="Xem báo cáo để chấm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold text-slate-900">Báo cáo của sinh viên</h2>
+        <h2 className="font-semibold text-ink">Báo cáo của sinh viên</h2>
         <button type="button" className="text-sm font-semibold text-primary underline-offset-4 hover:underline" onClick={() => void downloadFile(assignmentId, selected)}>Tải xuống</button>
       </div>
       {files.length > 1 && (
@@ -31,7 +31,7 @@ export function ReportPreviewPanel({ assignmentId, files }: { assignmentId: numb
           ))}
         </div>
       )}
-      <p className="mt-2 text-xs text-slate-500">{selected.fileName} · {formatBytes(selected.sizeBytes)}</p>
+      <p className="mt-2 text-xs text-ink-muted">{selected.fileName} · {formatBytes(selected.sizeBytes)}</p>
       <PreviewStage key={selected.id} assignmentId={assignmentId} file={selected} />
     </section>
   )

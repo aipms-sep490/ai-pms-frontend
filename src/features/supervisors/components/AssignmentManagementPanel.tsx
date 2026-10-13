@@ -42,14 +42,14 @@ export function AssignmentManagementPanel({ projectId, projectStatus = 'ACTIVE' 
   }
   return <section className="workspace-surface space-y-4 p-4 sm:p-6" aria-labelledby="assignment-management-title">{confirmationDialog}
     <div className="flex flex-wrap items-center justify-between gap-3"><h2 id="assignment-management-title" className="font-semibold">Phân công hướng dẫn</h2><Button className="min-h-11" variant="secondary" disabled={busy || loading} onClick={() => void load()}>Tải lại</Button></div>
-    <p className="text-sm text-slate-600">Quyền thay và kết thúc được hệ thống xác định cho từng phân công, theo khoa chủ trì hoặc khoa phụ trách ngành. Ứng viên được kiểm tra lại khi lưu.</p>
+    <p className="text-sm text-ink-muted">Quyền thay và kết thúc được hệ thống xác định cho từng phân công, theo khoa chủ trì hoặc khoa phụ trách ngành. Ứng viên được kiểm tra lại khi lưu.</p>
     {loading && <p role="status">Đang tải phân công…</p>}{error && <p role="alert" className="text-sm text-status-error-text">{error}</p>}{notice && <p role="status" className="text-sm text-status-success-text">{notice}</p>}
-    <ul className="divide-y divide-hairline">{assignments.map(item => <li key={item.id} className="space-y-3 py-4"><div className="flex flex-wrap justify-between gap-2"><strong className="break-words text-sm">{item.supervisorName}</strong><span className="text-xs text-slate-600">{item.endedAt ? 'Đã kết thúc' : item.isPrimary ? 'Hướng dẫn chính' : 'Hướng dẫn chuyên ngành'}</span></div>
+    <ul className="divide-y divide-hairline">{assignments.map(item => <li key={item.id} className="space-y-3 py-4"><div className="flex flex-wrap justify-between gap-2"><strong className="break-words text-sm">{item.supervisorName}</strong><span className="text-xs text-ink-muted">{item.endedAt ? 'Đã kết thúc' : item.isPrimary ? 'Hướng dẫn chính' : 'Hướng dẫn chuyên ngành'}</span></div>
       {item.endReason && <p className="break-words text-sm">Lý do kết thúc: {item.endReason}</p>}{item.replacesAssignmentId && <p className="text-sm">Thay thế phân công #{item.replacesAssignmentId}</p>}
       {!item.endedAt && projectStatus === 'ACTIVE' && allowed(item, 'REPLACE') && <ReplacementPicker assignmentId={item.id} busy={busy} onReplace={id => void update(item, id)} />}
       {!item.endedAt && projectStatus === 'ACTIVE' && allowed(item, 'END') && <Button className="min-h-11" variant="secondary" disabled={busy} onClick={() => void update(item)}>Kết thúc phân công</Button>}
-      {!item.endedAt && (!allowed(item, 'REPLACE') || !allowed(item, 'END') || projectStatus !== 'ACTIVE') && <p className="break-words text-sm text-slate-600">{projectStatus !== 'ACTIVE' ? 'Đồ án không ở trạng thái đang thực hiện; phân công chỉ được xem.' : item.reasons?.map(assignmentReasonLabel).join(' · ') || 'Hệ thống chưa cấp quyền cho một hoặc nhiều thao tác trên phân công này.'}</p>}
-    </li>)}</ul>{!loading && !error && !assignments.length && <p className="text-sm text-slate-600">Chưa có phân công hướng dẫn.</p>}
+      {!item.endedAt && (!allowed(item, 'REPLACE') || !allowed(item, 'END') || projectStatus !== 'ACTIVE') && <p className="break-words text-sm text-ink-muted">{projectStatus !== 'ACTIVE' ? 'Đồ án không ở trạng thái đang thực hiện; phân công chỉ được xem.' : item.reasons?.map(assignmentReasonLabel).join(' · ') || 'Hệ thống chưa cấp quyền cho một hoặc nhiều thao tác trên phân công này.'}</p>}
+    </li>)}</ul>{!loading && !error && !assignments.length && <p className="text-sm text-ink-muted">Chưa có phân công hướng dẫn.</p>}
   </section>
 }
 

@@ -33,17 +33,17 @@ export function StudentQualificationCard({ onSubmitted }: { onSubmitted?: () => 
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+    <section className="rounded-2xl border border-hairline bg-card p-5 shadow-xs">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="mt-1 text-base font-bold text-slate-900">Điều kiện tham gia đồ án</h2>
-          <p className="mt-1 text-xs text-slate-500">Trạng thái này do dữ liệu đào tạo/chứng chỉ và xác minh học vụ quyết định; sinh viên không tự xác nhận đủ điều kiện.</p>
+          <h2 className="mt-1 text-base font-bold text-ink">Điều kiện tham gia đồ án</h2>
+          <p className="mt-1 text-xs text-ink-muted">Trạng thái này do dữ liệu đào tạo/chứng chỉ và xác minh học vụ quyết định; sinh viên không tự xác nhận đủ điều kiện.</p>
         </div>
-        <button type="button" onClick={() => void load()} disabled={loading || uploadBusy} className="min-h-11 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+        <button type="button" onClick={() => void load()} disabled={loading || uploadBusy} className="min-h-11 rounded-lg border border-hairline px-3 py-1.5 text-xs font-semibold text-ink-muted hover:bg-canvas">
           Tải lại
         </button>
       </div>
-      {loading ? <p className="mt-4 text-sm text-slate-500">Đang tải trạng thái xác minh…</p> : null}
+      {loading ? <p className="mt-4 text-sm text-ink-muted">Đang tải trạng thái xác minh…</p> : null}
       {error ? <p role="alert" className="mt-4 rounded-lg bg-rose-50 p-3 text-xs text-rose-700">{error}</p> : null}
       {!loading && !error && !qualification ? (
         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -52,10 +52,10 @@ export function StudentQualificationCard({ onSubmitted }: { onSubmitted?: () => 
       ) : null}
       {!loading && !error && qualification ? (
         <dl className="mt-4 grid gap-3 sm:grid-cols-4">
-          <div><dt className="text-xs text-slate-500">Đào tạo</dt><dd className="mt-1 text-sm font-medium">{qualification.trainingStatus === 'TRAINING_COMPLETED' ? 'Đã hoàn thành' : qualification.trainingStatus === 'PENDING_TRAINING' ? 'Chưa hoàn thành' : 'Chưa xác định'}</dd></div>
-          <div><dt className="text-xs text-slate-500">Xác minh</dt><dd className="mt-1 text-sm font-medium">{{ PENDING_VERIFICATION: 'Chờ xác minh', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối', EXPIRED: 'Đã hết hạn' }[qualification.verificationStatus] ?? 'Chưa xác định'}</dd></div>
+          <div><dt className="text-xs text-ink-muted">Đào tạo</dt><dd className="mt-1 text-sm font-medium">{qualification.trainingStatus === 'TRAINING_COMPLETED' ? 'Đã hoàn thành' : qualification.trainingStatus === 'PENDING_TRAINING' ? 'Chưa hoàn thành' : 'Chưa xác định'}</dd></div>
+          <div><dt className="text-xs text-ink-muted">Xác minh</dt><dd className="mt-1 text-sm font-medium">{{ PENDING_VERIFICATION: 'Chờ xác minh', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối', EXPIRED: 'Đã hết hạn' }[qualification.verificationStatus] ?? 'Chưa xác định'}</dd></div>
           <div><dt className="text-xs uppercase text-slate-400">Chứng chỉ</dt><dd className="mt-1 text-sm font-semibold">{qualification.certificateNumber ?? 'Chưa có'}</dd></div>
-          <div><dt className="text-xs text-slate-500">Điều kiện đăng ký</dt><dd className="mt-1 text-sm">Theo kiểm tra điều kiện nhóm của hệ thống.</dd></div>
+          <div><dt className="text-xs text-ink-muted">Điều kiện đăng ký</dt><dd className="mt-1 text-sm">Theo kiểm tra điều kiện nhóm của hệ thống.</dd></div>
         </dl>
       ) : null}
       {!loading && !error && qualification?.rejectionReason && <p className="mt-3 text-sm text-status-error-text">Lý do từ chối: {qualification.rejectionReason}</p>}

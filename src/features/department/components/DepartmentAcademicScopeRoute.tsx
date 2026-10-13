@@ -16,5 +16,5 @@ export function DepartmentAcademicScopeRoute() {
 }
 
 function ScopeMessage({ title, detail, onRetry }: { title: string; detail: string; onRetry?: () => Promise<void> }) {
-  return <section className="workspace-surface mx-auto my-8 max-w-xl p-6 text-center" role="alert"><h1 className="text-xl font-semibold text-slate-800">{title}</h1><p className="mt-3 text-sm leading-6 text-slate-600">{detail}</p><div className="mt-5 flex flex-wrap justify-center gap-3"><Link className="ex-button" to="/profile">Xem hồ sơ tài khoản</Link>{onRetry ? <button type="button" className="ex-button" onClick={() => void onRetry()}>Thử lại</button> : null}</div></section>
+  return <section className="workspace-surface mx-auto my-8 max-w-xl p-6 text-center" role="alert"><h1 className="text-xl font-semibold text-ink-soft">{title}</h1><p className="mt-3 text-sm leading-6 text-ink-muted">{detail}</p><div className="mt-5 flex flex-wrap justify-center gap-3"><Link className="ex-button" to="/profile">Xem hồ sơ tài khoản</Link>{onRetry ? <button type="button" className="ex-button" onClick={() => void onRetry()}>Thử lại</button> : null}</div></section>
 }

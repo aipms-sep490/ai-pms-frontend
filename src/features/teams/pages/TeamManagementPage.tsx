@@ -165,10 +165,10 @@ export function TeamManagementPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="font-heading text-[clamp(26px,2.1vw,32px)] font-bold leading-tight tracking-tight text-slate-900">Thành viên nhóm</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Học kỳ: <span className="font-semibold text-slate-700">{semester?.name ?? 'Chưa xác định'}</span> • Sinh viên:{' '}
-            <span className="font-semibold text-slate-700">{profile?.fullName ?? 'Sinh viên'}</span>{profile?.studentCode ? ` (${profile.studentCode})` : ''}
+          <h1 className="font-heading text-[clamp(26px,2.1vw,32px)] font-bold leading-tight tracking-tight text-ink">Thành viên nhóm</h1>
+          <p className="text-sm text-ink-muted mt-1">
+            Học kỳ: <span className="font-semibold text-ink-soft">{semester?.name ?? 'Chưa xác định'}</span> • Sinh viên:{' '}
+            <span className="font-semibold text-ink-soft">{profile?.fullName ?? 'Sinh viên'}</span>{profile?.studentCode ? ` (${profile.studentCode})` : ''}
           </p>
         </div>
 
@@ -189,7 +189,7 @@ export function TeamManagementPage() {
               <button
                 type="button"
                 onClick={() => setIsLeaveConfirmOpen(true)}
-                className="px-3.5 py-2 border border-slate-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 text-slate-600 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5"
+                className="px-3.5 py-2 border border-hairline hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 text-ink-muted rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[16px]">logout</span>
                 Rời nhóm
@@ -202,13 +202,13 @@ export function TeamManagementPage() {
       {/* When Student Has NO TEAM */}
       {!team ? (
         <div className="flex flex-col gap-6">
-          <div className="bg-white border border-slate-200 rounded-md p-8 text-center flex flex-col items-center gap-4 ">
+          <div className="bg-card border border-hairline rounded-md p-8 text-center flex flex-col items-center gap-4 ">
             <div className="w-16 h-16 rounded-md bg-primary-subtle text-primary flex items-center justify-center">
               <span className="material-symbols-outlined text-[36px]">group_add</span>
             </div>
             <div className="max-w-md">
-              <h3 className="text-lg font-bold text-slate-900">Bạn chưa tham gia nhóm đồ án nào</h3>
-              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              <h3 className="text-lg font-bold text-ink">Bạn chưa tham gia nhóm đồ án nào</h3>
+              <p className="text-xs text-ink-muted mt-1.5 leading-relaxed">
                 Để đăng ký đề tài đồ án tốt nghiệp, bạn cần thành lập một nhóm mới hoặc chấp nhận lời mời tham gia từ các nhóm khác.
               </p>
             </div>
@@ -246,14 +246,14 @@ export function TeamManagementPage() {
         /* When Student HAS A TEAM */
         <div className="flex flex-col gap-6">
           {/* Team Overview Card */}
-          <div className="bg-white border border-slate-200 rounded-md p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 ">
+          <div className="bg-card border border-hairline rounded-md p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 ">
             <div>
               <div className="flex items-center gap-3">
                 <span className="font-mono text-sm font-bold bg-primary-subtle text-primary border border-status-success-border px-2.5 py-0.5 rounded-lg">
                   {team.code}
                 </span>
-                <h2 className="text-lg font-bold text-slate-900">{team.name}</h2>
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
+                <h2 className="text-lg font-bold text-ink">{team.name}</h2>
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-ink-soft">
                   {team.status === 'ELIGIBLE'
                     ? 'Đủ điều kiện đăng ký'
                     : team.status === 'LOCKED'
@@ -262,19 +262,19 @@ export function TeamManagementPage() {
                 </span>
               </div>
               {team.description && (
-                <p className="text-xs text-slate-500 mt-1.5 max-w-2xl">{team.description}</p>
+                <p className="text-xs text-ink-muted mt-1.5 max-w-2xl">{team.description}</p>
               )}
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
               {permissions.canEditTeam && (
-                <button type="button" onClick={() => setIsUpdateModalOpen(true)} className="rounded-md border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                <button type="button" onClick={() => setIsUpdateModalOpen(true)} className="rounded-md border border-hairline px-3.5 py-2 text-xs font-semibold text-ink-muted hover:bg-canvas">
                   Chỉnh sửa nhóm
                 </button>
               )}
               <div className="text-right">
                 <span className="text-xs text-slate-400 block">Sĩ số nhóm</span>
-                <span className="text-sm font-bold text-slate-800">
+                <span className="text-sm font-bold text-ink-soft">
               {team.members.length} / {maxTeamSize} thành viên
                 </span>
               </div>
@@ -305,7 +305,7 @@ export function TeamManagementPage() {
           />}
           {!rosterLocked && team.academicScope && <StructuredResponsibilitiesPanel teamId={team.id} scope={team.academicScope} onSaved={retry} />}
 
-          {rosterLocked && <p className="text-sm text-slate-600">Danh sách thành viên đã được chốt theo hồ sơ đồ án.</p>}
+          {rosterLocked && <p className="text-sm text-ink-muted">Danh sách thành viên đã được chốt theo hồ sơ đồ án.</p>}
 
           {leaderChangeRequests.some((request) => request.status === 'PENDING') && (
             <section className="rounded-md border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">

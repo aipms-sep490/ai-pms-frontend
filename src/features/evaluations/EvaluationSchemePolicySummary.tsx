@@ -18,9 +18,9 @@ export function EvaluationSchemePolicySummary({ scheme }: { scheme: EvaluationSc
   const demo = policy?.isDemo === true
   const lockedDate = scheme.lockedAt ? new Date(scheme.lockedAt) : null
   const lockedTime = lockedDate && Number.isFinite(lockedDate.getTime()) ? lockedDate.toLocaleString('vi-VN') : 'Chưa ghi nhận'
-  return <section aria-label="Thông tin chính sách đánh giá" className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+  return <section aria-label="Thông tin chính sách đánh giá" className="space-y-4 rounded-lg border border-hairline bg-canvas p-4 text-sm text-ink-soft">
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <h3 className="font-semibold text-slate-900">Phê duyệt và cách tính</h3>
+      <h3 className="font-semibold text-ink">Phê duyệt và cách tính</h3>
       <Badge variant={approved ? 'success' : 'warning'} className="max-w-full whitespace-normal">
         {demo ? 'Minh họa — chưa dùng chính thức' : approved ? 'Đã ghi nhận phê duyệt' : 'Chưa xác định phê duyệt'}
       </Badge>
@@ -29,17 +29,17 @@ export function EvaluationSchemePolicySummary({ scheme }: { scheme: EvaluationSc
       {demo ? 'Khóa cấu hình minh họa không cho phép công bố điểm chính thức.' : approved ? 'Tham chiếu phê duyệt do hệ thống cung cấp; quyền và điều kiện công bố kết quả được kiểm tra riêng.' : 'Chưa có thông tin phê duyệt đầy đủ; không suy ra chính sách chính thức từ trạng thái phiên bản.'}
     </p>
     <dl className="grid min-w-0 gap-3 sm:grid-cols-2">
-      <div className="min-w-0"><dt className="text-xs text-slate-600">Trạng thái phê duyệt trên hệ thống</dt><dd className="mt-1 break-all">{label(policy?.approvalStatus)}</dd></div>
-      <div className="min-w-0"><dt className="text-xs text-slate-600">Tham chiếu phê duyệt</dt><dd className="mt-1 whitespace-pre-wrap break-all">{policy?.approvalReference?.trim() || 'Chưa có tham chiếu'}</dd></div>
-      <div><dt className="text-xs text-slate-600">Thời điểm khóa</dt><dd className="mt-1">{lockedTime}</dd></div>
-      <div className="min-w-0"><dt className="text-xs text-slate-600">Công thức</dt><dd className="mt-1 break-all">{label(policy?.formula)}</dd></div>
-      <div className="min-w-0"><dt className="text-xs text-slate-600">Phiên bản tính điểm</dt><dd className="mt-1 break-all">{label(policy?.calculationVersion)}</dd></div>
-      <div className="min-w-0"><dt className="text-xs text-slate-600">Làm tròn</dt><dd className="mt-1 break-all">{label(policy?.roundingMode)}</dd></div>
-      <div><dt className="text-xs text-slate-600">Số chữ số thập phân</dt><dd className="mt-1">{Number.isInteger(policy?.decimalPlaces) ? policy?.decimalPlaces : 'Chưa xác định'}</dd></div>
+      <div className="min-w-0"><dt className="text-xs text-ink-muted">Trạng thái phê duyệt trên hệ thống</dt><dd className="mt-1 break-all">{label(policy?.approvalStatus)}</dd></div>
+      <div className="min-w-0"><dt className="text-xs text-ink-muted">Tham chiếu phê duyệt</dt><dd className="mt-1 whitespace-pre-wrap break-all">{policy?.approvalReference?.trim() || 'Chưa có tham chiếu'}</dd></div>
+      <div><dt className="text-xs text-ink-muted">Thời điểm khóa</dt><dd className="mt-1">{lockedTime}</dd></div>
+      <div className="min-w-0"><dt className="text-xs text-ink-muted">Công thức</dt><dd className="mt-1 break-all">{label(policy?.formula)}</dd></div>
+      <div className="min-w-0"><dt className="text-xs text-ink-muted">Phiên bản tính điểm</dt><dd className="mt-1 break-all">{label(policy?.calculationVersion)}</dd></div>
+      <div className="min-w-0"><dt className="text-xs text-ink-muted">Làm tròn</dt><dd className="mt-1 break-all">{label(policy?.roundingMode)}</dd></div>
+      <div><dt className="text-xs text-ink-muted">Số chữ số thập phân</dt><dd className="mt-1">{Number.isInteger(policy?.decimalPlaces) ? policy?.decimalPlaces : 'Chưa xác định'}</dd></div>
     </dl>
     {!policy && <p>Phiên bản cũ thiếu nguồn chính sách. Giữ dữ liệu lịch sử; không tự gán công thức hoặc tính lại điểm.</p>}
-    <div className="space-y-2 border-t border-slate-200 pt-3">
-      <h4 className="font-semibold text-slate-900">Giai đoạn và trọng số người chấm đã lưu</h4>
+    <div className="space-y-2 border-t border-hairline pt-3">
+      <h4 className="font-semibold text-ink">Giai đoạn và trọng số người chấm đã lưu</h4>
       <ul className="space-y-3">{scheme.components.map(item => <li key={item.id} className="min-w-0 break-words">
         <strong>{item.name}</strong><p className="mt-1">Giai đoạn: {label(item.stage)}</p>
         {item.evaluatorWeights == null ? <p>Trung bình đều theo hệ thống · {item.requiredEvaluators} người chấm bắt buộc.</p> : item.evaluatorWeights.length === 0 ? <p>Danh sách trọng số rỗng — cần kiểm tra cấu hình trên hệ thống.</p> : <>

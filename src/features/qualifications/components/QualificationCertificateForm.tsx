@@ -38,9 +38,9 @@ export function QualificationCertificateForm({ onSubmitted, onBusyChange }: { on
     finally { pending.current = false; setBusy(false); onBusyChange?.(false) }
   }
   return <form className="mt-5 border-t border-hairline pt-4" onSubmit={event => void submit(event)} aria-label="Nộp chứng nhận đào tạo">
-    <h3 className="font-semibold text-slate-900">Nộp hoặc nộp lại chứng nhận</h3>
-    <p id="certificate-help" className="mt-1 text-sm leading-6 text-slate-600">PDF, PNG hoặc JPEG, tối đa 20 MiB. Hồ sơ sẽ chờ bộ môn xác minh; nộp tệp chưa xác nhận đủ điều kiện đăng ký.</p>
-    {env.isMockMode && <p role="status" className="mt-2 text-sm text-slate-600">Nộp chứng nhận cần kết nối API. Chế độ dữ liệu mẫu chỉ hỗ trợ xem.</p>}
+    <h3 className="font-semibold text-ink">Nộp hoặc nộp lại chứng nhận</h3>
+    <p id="certificate-help" className="mt-1 text-sm leading-6 text-ink-muted">PDF, PNG hoặc JPEG, tối đa 20 MiB. Hồ sơ sẽ chờ bộ môn xác minh; nộp tệp chưa xác nhận đủ điều kiện đăng ký.</p>
+    {env.isMockMode && <p role="status" className="mt-2 text-sm text-ink-muted">Nộp chứng nhận cần kết nối API. Chế độ dữ liệu mẫu chỉ hỗ trợ xem.</p>}
     <fieldset disabled={busy || env.isMockMode} className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2">
       <label className="min-w-0 text-sm font-medium sm:col-span-2">Tệp chứng nhận<input name="file" type="file" accept="application/pdf,image/png,image/jpeg" aria-describedby="certificate-help certificate-error" className={`${inputClass} min-w-0 max-w-full`} /></label>
       <label className="text-sm font-medium sm:col-span-2">Số chứng nhận (không bắt buộc)<input name="certificateNumber" maxLength={100} className={inputClass} /></label>

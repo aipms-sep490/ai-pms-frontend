@@ -21,10 +21,10 @@ export function ReportAiSummary({ projectId, reportId }: { projectId: number; re
       : error ? <div role="alert" className="mt-3 text-sm"><p>{error}</p><button type="button" className="report-text-button" onClick={() => void load()}>Thử lại</button></div>
         : !summary ? <button type="button" className="report-text-button mt-3" onClick={() => void load()}>Tạo tóm tắt AI</button>
           : <>
-            <dl className="mt-3 space-y-3 text-sm">{([['Đã hoàn thành', summary.summary.completed], ['Đang thực hiện', summary.summary.inProgress], ['Vướng mắc', summary.summary.blockers], ['Rủi ro', summary.summary.risks], ['Việc tiếp theo', summary.summary.nextActions]] as const).map(([label, value]) => <div key={label}><dt className="font-semibold text-slate-900">{label}</dt><dd className="mt-1 whitespace-pre-wrap text-slate-700">{value || 'Hệ thống chưa có nội dung.'}</dd></div>)}</dl>
-            {summary.limitationNote && <p className="mt-3 text-sm text-slate-700"><strong>Giới hạn:</strong> {summary.limitationNote}</p>}
+            <dl className="mt-3 space-y-3 text-sm">{([['Đã hoàn thành', summary.summary.completed], ['Đang thực hiện', summary.summary.inProgress], ['Vướng mắc', summary.summary.blockers], ['Rủi ro', summary.summary.risks], ['Việc tiếp theo', summary.summary.nextActions]] as const).map(([label, value]) => <div key={label}><dt className="font-semibold text-ink">{label}</dt><dd className="mt-1 whitespace-pre-wrap text-ink-soft">{value || 'Hệ thống chưa có nội dung.'}</dd></div>)}</dl>
+            {summary.limitationNote && <p className="mt-3 text-sm text-ink-soft"><strong>Giới hạn:</strong> {summary.limitationNote}</p>}
             <EvidenceReferences items={summary.evidence} heading="Chứng cứ dùng để tạo tóm tắt" />
-            <p className="mt-3 text-xs text-slate-500">Phạm vi {summary.contextScope} · {summary.evidence.length} chứng cứ · tạo lúc {formatDate(summary.generatedAt)}</p>
+            <p className="mt-3 text-xs text-ink-muted">Phạm vi {summary.contextScope} · {summary.evidence.length} chứng cứ · tạo lúc {formatDate(summary.generatedAt)}</p>
           </>}
   </section>
 }
