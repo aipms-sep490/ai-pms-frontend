@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getActionReasons, isActionAllowed, type ProjectDto, type ProjectWorkflowActionsDto, type SupervisorAssignmentDto, type SupervisorCandidateDto, type SupervisorRequestDto, type TeamDto, type UserAccountDto } from '../../../types/backend'
+import { env } from '../../../app/config/env'
 import { HttpError } from '../../../services/http/http-client'
 import { services } from '../../../services/service-gateway'
 import { normalizeProjectStatus } from '../../projects/hooks/useProjectRegistration'
 import { getActivePrimaryAssignment } from '../../projects/utils/project-resolution.utils'
+
+/** Mock mode has no backend `actions[]`/`reasons[]` to read (StudentJourneyProvider never
+ * fetches project-actions when isMockMode), so every other hook in this app re-derives its
+ * own boolean gate from plain status checks in mock mode — this mirrors that same pattern,
+ * using the same DRAFT/REVISION_REQUIRED/APPROVED/ACTIVE window the real D18 BE rule allows. */
+const MOCK_SEND_ELIGIBLE_STATUSES = new Set(['DRAFT', 'REVISIONREQUIRED', 'APPROVED', 'ACTIVE'])
 
 export type SupervisorAssignmentType = 'PRIMARY' | 'DISCIPLINE_MENTOR'
 
@@ -37,17 +44,29 @@ export function useSupervisorSelection({
   const appliedQuery = useRef({ search: '', expertise: '' })
 
   const isLeader = Boolean(team?.members.some((member) => member.userId === profile?.id && member.isLeader))
-  const canSendAction = isActionAllowed(actions?.actions ?? [], 'send_supervisor_request')
+  const canSendAction = env.isMockMode
+    ? MOCK_SEND_ELIGIBLE_STATUSES.has(normalizeProjectStatus(project?.status))
+    : isActionAllowed(actions?.actions ?? [], 'send_supervisor_request')
   const activeAssignment = useMemo(() => getActivePrimaryAssignment(assignments), [assignments])
   /** Mirrors A1's readiness checklist: the submit/resubmit action's reasons already name
    * exactly which required majors still lack a confirmed Mentor — BE is the source of truth,
-   * the FE never re-derives this from assignments itself. */
+   * the FE never re-derives this from assignments itself. Mock mode has no such reasons to
+   * read, so it falls back to a heuristic: every required major other than the primary one,
+   * minus whichever already has an active (unended) Mentor assignment. */
   const missingMentorMajorIds = useMemo(() => {
+    if (env.isMockMode) {
+      if (!project || project.majors.length < 2) return []
+      const primaryMajorId = project.academicScope?.primaryMajorId
+      const confirmedMentorMajors = new Set(
+        assignments.filter((item) => item.assignmentType === 'DISCIPLINE_MENTOR' && !item.endedAt).map((item) => item.majorId),
+      )
+      return project.majors.map((item) => item.majorId).filter((majorId) => majorId !== primaryMajorId && !confirmedMentorMajors.has(majorId))
+    }
     const relevantAction = project?.status && normalizeProjectStatus(project.status) === 'REVISIONREQUIRED' ? 'resubmit_project' : 'submit_project'
     return getActionReasons(actions?.actions ?? [], relevantAction)
       .filter((reason) => reason.startsWith('MENTOR_NOT_CONFIRMED:'))
       .map((reason) => Number(reason.split(':')[1]))
-  }, [actions, project])
+  }, [actions, project, assignments])
   const canSendMentor = canSendAction && isLeader && missingMentorMajorIds.length > 0
 
   const refresh = useCallback(async (refreshCandidates = true, filters = appliedQuery.current) => {
