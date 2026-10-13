@@ -4,9 +4,9 @@ import { PageLoading } from './PageLoading'
 type StateProps = { title: string; message: string; action?: ReactNode }
 
 function StatePanel({ title, message, action }: StateProps) {
-  return <section className="rounded-md border border-hairline bg-card p-4 text-sm text-slate-700" aria-label={title}>
-    <h2 className="font-heading text-base font-semibold text-slate-900">{title}</h2>
-    <p className="mt-1 leading-6 text-slate-600">{message}</p>
+  return <section className="rounded-md border border-hairline bg-card p-4 text-sm text-ink-soft" aria-label={title}>
+    <h2 className="font-heading text-base font-semibold text-ink">{title}</h2>
+    <p className="mt-1 leading-6 text-ink-muted">{message}</p>
     {action ? <div className="mt-3">{action}</div> : null}
   </section>
 }

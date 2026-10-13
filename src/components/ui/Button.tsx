@@ -40,7 +40,7 @@ export function Button({
           className={`ml-1 px-1.5 py-0.5 rounded font-mono text-xs leading-none font-semibold ${
             variant === 'primary'
               ? 'bg-white/20 text-white'
-              : 'bg-slate-100 text-slate-600 border border-slate-200'
+              : 'bg-slate-100 text-slate-600 border border-hairline'
           }`}
         >
           {shortcut}
