@@ -47,3 +47,30 @@ export function describeReadinessReason(code: string, resolveMajorName?: (majorI
 export function buildReadinessChecklist(reasons: string[], resolveMajorName?: (majorId: number) => string | undefined): ReadinessItem[] {
   return reasons.map((code) => describeReadinessReason(code, resolveMajorName))
 }
+
+export interface ProposalContentDraft {
+  problemStatement: string
+  objectives: string
+  expectedOutput: string
+  domain: string
+  technologies: string
+  keywords: string
+}
+
+/**
+ * Client-side mirror of the backend's `TopicRules.ProposalCompletenessIssues` (BE only
+ * runs this check against the saved Project, on submit). Letting the student see the
+ * same `PROPOSAL_CONTENT_INCOMPLETE:<field>` codes while still typing — before they save
+ * a draft and round-trip to the backend — catches the gap sooner, but BE stays the only
+ * enforcer; this never blocks typing or saving, only informs.
+ */
+export function proposalContentIssues(draft: ProposalContentDraft): string[] {
+  const issues: string[] = []
+  if (!draft.problemStatement.trim()) issues.push('PROPOSAL_CONTENT_INCOMPLETE:problemStatement')
+  if (!draft.objectives.trim()) issues.push('PROPOSAL_CONTENT_INCOMPLETE:objectives')
+  if (!draft.expectedOutput.trim()) issues.push('PROPOSAL_CONTENT_INCOMPLETE:expectedOutput')
+  if (!draft.domain.trim()) issues.push('PROPOSAL_CONTENT_INCOMPLETE:domain')
+  if (!draft.technologies.trim()) issues.push('PROPOSAL_CONTENT_INCOMPLETE:technologies')
+  if (!draft.keywords.trim()) issues.push('PROPOSAL_CONTENT_INCOMPLETE:keywords')
+  return issues
+}

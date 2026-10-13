@@ -257,4 +257,51 @@ describe('ProjectRegistrationFormPage', () => {
       expect(document.activeElement).toBe(summary)
     })
   })
+
+  describe('live proposal readiness checklist', () => {
+    it('flags blank required proposal fields before the student ever saves', async () => {
+      mocks.useStudentJourney.mockReturnValue({
+        project: null,
+        team: { ...baseTeam, eligibility: { canRegister: true, rosterLocked: false, reasons: [] } },
+        profile: { id: 10, fullName: 'Le Van A', majorId: 3 },
+        teamActions: { canRegister: true, actions: [{ code: 'create_project_draft', allowed: true, issues: [] }] },
+        projectActions: null,
+        isLoading: false, error: null, refreshAll: vi.fn(),
+      })
+      mocks.getHistory.mockResolvedValue([])
+      render(<MemoryRouter initialEntries={['/project/register']}><ProjectRegistrationFormPage /></MemoryRouter>)
+      await waitForForm()
+      expect(screen.getByText('Thiếu nội dung: Bối cảnh / vấn đề cần giải quyết.')).toBeTruthy()
+      expect(screen.getByText('Thiếu nội dung: Lĩnh vực.')).toBeTruthy()
+    })
+
+    it('clears a field from the checklist as soon as it is filled in, without saving', async () => {
+      mocks.useStudentJourney.mockReturnValue({
+        project: null,
+        team: { ...baseTeam, eligibility: { canRegister: true, rosterLocked: false, reasons: [] } },
+        profile: { id: 10, fullName: 'Le Van A', majorId: 3 },
+        teamActions: { canRegister: true, actions: [{ code: 'create_project_draft', allowed: true, issues: [] }] },
+        projectActions: null,
+        isLoading: false, error: null, refreshAll: vi.fn(),
+      })
+      mocks.getHistory.mockResolvedValue([])
+      render(<MemoryRouter initialEntries={['/project/register']}><ProjectRegistrationFormPage /></MemoryRouter>)
+      await waitForForm()
+      expect(screen.getByText('Thiếu nội dung: Lĩnh vực.')).toBeTruthy()
+      fireEvent.change(screen.getByRole('textbox', { name: /Lĩnh vực/ }), { target: { value: 'An toàn thông tin' } })
+      expect(screen.queryByText('Thiếu nội dung: Lĩnh vực.')).toBeNull()
+    })
+
+    it('does not show the live checklist for a Published-Topic project', async () => {
+      mocks.useStudentJourney.mockReturnValue({
+        project: { ...makeProject('REVISION_REQUIRED'), proposalSource: 'PUBLISHED_TOPIC', selectedTopic: { id: 5, code: 'TOP-5', title: 'AI topic' } },
+        team: baseTeam, profile: { id: 10, fullName: 'Le Van A', majorId: 3 },
+        teamActions: null, projectActions: makeProjectActions(true, true), isLoading: false, error: null, refreshAll: vi.fn(),
+      })
+      mocks.getHistory.mockResolvedValue([])
+      render(<ProjectRegistrationFormPage />, { wrapper: MemoryRouter })
+      await waitForForm()
+      expect(screen.queryByText('Thiếu nội dung: Lĩnh vực.')).toBeNull()
+    })
+  })
 })

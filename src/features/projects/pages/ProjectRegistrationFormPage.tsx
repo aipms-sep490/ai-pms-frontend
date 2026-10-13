@@ -4,6 +4,7 @@ import { useStudentJourney } from '../../../app/context'
 import { RegistrationReadinessChecklist } from '../components/RegistrationReadinessChecklist'
 import { RevisionAlert } from '../components/RevisionAlert'
 import { normalizeProjectStatus, useProjectRegistration, type ProjectRegistrationField } from '../hooks/useProjectRegistration'
+import { proposalContentIssues } from '../utils/submission-readiness'
 import { projectStatusLabel } from '../utils/project-status'
 import { PageLoading } from '../../../components/ui/PageLoading'
 
@@ -24,6 +25,12 @@ export function ProjectRegistrationFormPage() {
   const editable = !hasProject || registration.canEdit
   const submitting = registration.submitting || registration.resubmitting
   const validationSummaryRef = useRef<HTMLDivElement>(null)
+  // Live, client-side mirror of the backend's STUDENT_PROPOSAL completeness check — catches
+  // a blank required field while the student is still typing, before the first save/submit
+  // round-trip would surface the same PROPOSAL_CONTENT_INCOMPLETE code from the backend.
+  const proposalSource = registrationProject?.proposalSource ?? 'STUDENT_PROPOSAL'
+  const liveProposalIssues = editable && proposalSource !== 'PUBLISHED_TOPIC' ? proposalContentIssues(registration.form) : []
+  const readinessReasons = [...liveProposalIssues, ...registration.submitReasons.filter((reason) => !liveProposalIssues.includes(reason))]
 
   useEffect(() => {
     if (registration.error?.kind === 'validation') validationSummaryRef.current?.focus()
@@ -87,7 +94,7 @@ export function ProjectRegistrationFormPage() {
           <TextField id="project-keywords" label="Từ khóa" hint="Phân cách bằng dấu phẩy" value={registration.form.keywords} disabled={!editable} error={registration.error?.fields?.keywords} onChange={(value) => registration.setField('keywords', value)} />
         </div>
         {registration.error && registration.error.kind !== 'validation' && <ErrorMessage kind={registration.error.kind} message={registration.error.message} onRetry={registration.error.kind === 'system' ? () => void journey.refreshAll() : undefined} />}
-        {hasProject && <RegistrationReadinessChecklist reasons={registration.submitReasons} />}
+        {editable && <RegistrationReadinessChecklist reasons={readinessReasons} />}
         <footer className="flex flex-col justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center">
           <button type="button" onClick={() => void save()} disabled={!registration.canEdit || registration.creating || registration.saving || submitting} className="rounded-md border border-slate-300 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
             {registration.creating ? 'Đang tạo nháp...' : registration.saving ? 'Đang lưu...' : hasProject ? 'Lưu thay đổi' : 'Tạo bản nháp'}

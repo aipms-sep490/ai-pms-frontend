@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { buildReadinessChecklist, describeReadinessReason } from './submission-readiness'
+import { buildReadinessChecklist, describeReadinessReason, proposalContentIssues } from './submission-readiness'
+
+const fullDraft = { problemStatement: 'p', objectives: 'o', expectedOutput: 'e', domain: 'd', technologies: 't', keywords: 'k' }
 
 describe('describeReadinessReason', () => {
   it('maps a known static reason code to its Vietnamese label', () => {
@@ -48,5 +50,22 @@ describe('buildReadinessChecklist', () => {
 
   it('returns an empty list for an empty reason set', () => {
     expect(buildReadinessChecklist([])).toEqual([])
+  })
+})
+
+describe('proposalContentIssues', () => {
+  it('returns no issues when every field is filled in', () => {
+    expect(proposalContentIssues(fullDraft)).toEqual([])
+  })
+
+  it('flags each blank or whitespace-only field with its own code, in field order', () => {
+    expect(proposalContentIssues({ ...fullDraft, objectives: '   ', domain: '' })).toEqual([
+      'PROPOSAL_CONTENT_INCOMPLETE:objectives',
+      'PROPOSAL_CONTENT_INCOMPLETE:domain',
+    ])
+  })
+
+  it('flags every field when the draft is entirely empty', () => {
+    expect(proposalContentIssues({ problemStatement: '', objectives: '', expectedOutput: '', domain: '', technologies: '', keywords: '' })).toHaveLength(6)
   })
 })
