@@ -27,14 +27,14 @@ export function ProjectResultBreakdown({ commonScore, majorAggregate, majorBreak
       {hasComposition && (
         <section className="workspace-surface space-y-3 p-4 sm:p-5" aria-label="Cấu thành điểm đồ án">
           <h2 className="font-heading font-semibold">Cấu thành điểm đồ án</h2>
-          <p className="text-sm text-slate-600">Điểm đồ án = 50% điểm chung + 50% tổng hợp theo ngành. Không cộng điểm cá nhân vào điểm đồ án.</p>
+          <p className="text-sm text-ink-muted">Điểm đồ án = 50% điểm chung + 50% tổng hợp theo ngành. Không cộng điểm cá nhân vào điểm đồ án.</p>
           <dl className="grid gap-4 sm:grid-cols-2">
-            <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Điểm chung (COMMON)</dt><dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-slate-900">{formatScore(commonScore)}</dd></div>
-            <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tổng hợp theo ngành (MajorAggregate)</dt><dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-slate-900">{formatScore(majorAggregate)}</dd></div>
+            <div><dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Điểm chung (COMMON)</dt><dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-ink">{formatScore(commonScore)}</dd></div>
+            <div><dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Tổng hợp theo ngành (MajorAggregate)</dt><dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-ink">{formatScore(majorAggregate)}</dd></div>
           </dl>
           {(majorBreakdown?.length ?? 0) > 0 && (
             <div>
-              <p className="mb-1 text-xs text-slate-500">Ngành chưa có điểm được đánh dấu "Chưa có điểm", không tính là 0.</p>
+              <p className="mb-1 text-xs text-ink-muted">Ngành chưa có điểm được đánh dấu "Chưa có điểm", không tính là 0.</p>
               <Table stack aria-label="Điểm theo ngành">
                 <TableHead>
                   <TableRow head>
@@ -50,7 +50,7 @@ export function ProjectResultBreakdown({ commonScore, majorAggregate, majorBreak
                     const statusLabel = pending ? 'Chưa có điểm' : displayLabel(major.status) !== 'Chưa xác định' && major.status ? displayLabel(major.status) : 'Đã chấm'
                     return (
                       <TableRow key={`${major.majorId}-${index}`}>
-                        <TableCell label="Ngành" className="font-medium text-slate-900">{major.majorName ?? `Ngành #${major.majorId}`}</TableCell>
+                        <TableCell label="Ngành" className="font-medium text-ink">{major.majorName ?? `Ngành #${major.majorId}`}</TableCell>
                         <TableCell label="Trọng số ngành" numeric>{formatPercent(major.weightPercent)}</TableCell>
                         <TableCell label="Điểm ngành" numeric className="font-semibold">{formatScore(major.majorScore)}</TableCell>
                         <TableCell label="Trạng thái"><StatusBadge tone={pending ? 'warning' : 'success'} label={statusLabel} /></TableCell>
@@ -66,12 +66,12 @@ export function ProjectResultBreakdown({ commonScore, majorAggregate, majorBreak
       {advisory.length > 0 && (
         <section className="workspace-surface space-y-2 p-4 sm:p-5" aria-label="Góp ý cố vấn">
           <h2 className="font-heading font-semibold">Góp ý cố vấn doanh nghiệp</h2>
-          <p className="text-sm text-slate-600">Các góp ý dưới đây là cố vấn thực tiễn, <strong>không tính vào điểm số</strong> trừ khi phương án đánh giá được duyệt có trọng số.</p>
+          <p className="text-sm text-ink-muted">Các góp ý dưới đây là cố vấn thực tiễn, <strong>không tính vào điểm số</strong> trừ khi phương án đánh giá được duyệt có trọng số.</p>
           <ul className="space-y-2 text-sm">
             {advisory.map(item => (
-              <li key={item.assignmentId} className="rounded-lg border border-hairline bg-slate-50 p-3">
-                <span className="inline-flex items-center rounded-full border border-hairline bg-white px-2 py-0.5 text-xs font-semibold text-slate-600">{displayLabel('ADVISORY')}</span>
-                <span className="ml-2 text-slate-700">{item.source ? displayLabel(item.source) : 'Chuyên gia doanh nghiệp'} · người chấm #{item.evaluatorId}</span>
+              <li key={item.assignmentId} className="rounded-lg border border-hairline bg-canvas p-3">
+                <span className="inline-flex items-center rounded-full border border-hairline bg-card px-2 py-0.5 text-xs font-semibold text-ink-muted">{displayLabel('ADVISORY')}</span>
+                <span className="ml-2 text-ink-soft">{item.source ? displayLabel(item.source) : 'Chuyên gia doanh nghiệp'} · người chấm #{item.evaluatorId}</span>
               </li>
             ))}
           </ul>

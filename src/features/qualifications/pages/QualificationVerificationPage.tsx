@@ -42,21 +42,21 @@ export function QualificationVerificationPage() {
       {queue.error && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{queue.error}</div>}
       {notice && <p role="status" className="text-sm text-status-success-text">{notice}</p>}
     </section>
-    {queue.loading ? <p role="status" className="p-4 text-sm">Đang tải hồ sơ…</p> : !queue.error && queue.items.length === 0 ? <p className="workspace-surface p-5 text-sm text-slate-600">Không có hồ sơ phù hợp.</p> : <ul className="space-y-3" aria-label="Hồ sơ sinh viên">{queue.items.map(item => <li key={item.id} className="workspace-surface p-4 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words font-heading font-semibold">{item.fullName}</h2><p className="mt-1 font-mono text-xs text-slate-600">{item.studentCode ?? `Sinh viên #${item.userId}`}</p></div><span className="rounded-lg bg-primary-subtle px-3 py-2 text-sm text-primary">{statuses[item.verificationStatus] ?? item.verificationStatus}</span></div>
+    {queue.loading ? <p role="status" className="p-4 text-sm">Đang tải hồ sơ…</p> : !queue.error && queue.items.length === 0 ? <p className="workspace-surface p-5 text-sm text-ink-muted">Không có hồ sơ phù hợp.</p> : <ul className="space-y-3" aria-label="Hồ sơ sinh viên">{queue.items.map(item => <li key={item.id} className="workspace-surface p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words font-heading font-semibold">{item.fullName}</h2><p className="mt-1 font-mono text-xs text-ink-muted">{item.studentCode ?? `Sinh viên #${item.userId}`}</p></div><span className="rounded-lg bg-primary-subtle px-3 py-2 text-sm text-primary">{statuses[item.verificationStatus] ?? item.verificationStatus}</span></div>
       <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-        <div><dt className="text-slate-500">Đào tạo</dt><dd>{item.trainingStatus === 'TRAINING_COMPLETED' ? 'Đã hoàn thành' : 'Chưa hoàn thành'}</dd></div>
-        <div><dt className="text-slate-500">Số chứng chỉ</dt><dd className="break-all">{item.certificateNumber ?? 'Chưa khai báo'}</dd></div>
-        <div><dt className="text-slate-500">Ngày cấp</dt><dd>{date(item.issuedAt)}</dd></div>
-        <div><dt className="text-slate-500">Ngày hết hạn</dt><dd>{date(item.expiresAt)}</dd></div>
+        <div><dt className="text-ink-muted">Đào tạo</dt><dd>{item.trainingStatus === 'TRAINING_COMPLETED' ? 'Đã hoàn thành' : 'Chưa hoàn thành'}</dd></div>
+        <div><dt className="text-ink-muted">Số chứng chỉ</dt><dd className="break-all">{item.certificateNumber ?? 'Chưa khai báo'}</dd></div>
+        <div><dt className="text-ink-muted">Ngày cấp</dt><dd>{date(item.issuedAt)}</dd></div>
+        <div><dt className="text-ink-muted">Ngày hết hạn</dt><dd>{date(item.expiresAt)}</dd></div>
       </dl>
       {item.certificateFileId && <QualificationCertificateViewer key={`${item.id}:${item.concurrencyToken}:${item.certificateFileId}`} qualificationId={item.id} />}
       {item.rejectionReason && <p className="mt-3 break-words text-sm text-status-error-text">Lý do từ chối: {item.rejectionReason}</p>}
-      {item.verifiedAt && <p className="mt-3 text-sm text-slate-600">Đã xử lý ngày {date(item.verifiedAt)} · Người xác minh #{item.verifiedBy}</p>}
+      {item.verifiedAt && <p className="mt-3 text-sm text-ink-muted">Đã xử lý ngày {date(item.verifiedAt)} · Người xác minh #{item.verifiedBy}</p>}
       {item.verificationStatus === 'PENDING_VERIFICATION' && <div className="mt-4 flex flex-wrap gap-3">
         <span title={item.trainingStatus !== 'TRAINING_COMPLETED' ? 'Cần hoàn thành đào tạo trước khi xác minh.' : undefined}><Button className="min-h-11" disabled={pendingId !== null || !item.concurrencyToken || item.trainingStatus !== 'TRAINING_COMPLETED'} onClick={() => void decide(item.id, item.concurrencyToken ?? '', false)}>Xác minh</Button></span>
         <Button className="min-h-11" variant="danger" disabled={pendingId !== null || !item.concurrencyToken} onClick={() => void decide(item.id, item.concurrencyToken ?? '', true)}>Từ chối</Button>
-        {!item.concurrencyToken && <p className="self-center text-sm text-slate-600">Hồ sơ chưa có phiên bản xác minh. Hãy tải lại; chưa thể quyết định.</p>}{item.trainingStatus !== 'TRAINING_COMPLETED' && <p className="self-center text-sm text-slate-600">Cần hoàn thành đào tạo trước khi xác minh.</p>}
+        {!item.concurrencyToken && <p className="self-center text-sm text-ink-muted">Hồ sơ chưa có phiên bản xác minh. Hãy tải lại; chưa thể quyết định.</p>}{item.trainingStatus !== 'TRAINING_COMPLETED' && <p className="self-center text-sm text-ink-muted">Cần hoàn thành đào tạo trước khi xác minh.</p>}
       </div>}
     </li>)}</ul>}
     {!queue.loading && !queue.error && <nav className="flex flex-wrap items-center justify-between gap-3 text-sm" aria-label="Phân trang hồ sơ xác minh"><Button className="min-h-11" variant="secondary" disabled={queue.page <= 1 || pendingId !== null} onClick={() => queue.setPage(queue.page - 1)}>Trang trước</Button><p>Trang {queue.page} / {queue.totalPages} · {queue.totalCount} hồ sơ</p><Button className="min-h-11" variant="secondary" disabled={queue.page >= queue.totalPages || pendingId !== null} onClick={() => queue.setPage(queue.page + 1)}>Trang sau</Button></nav>}

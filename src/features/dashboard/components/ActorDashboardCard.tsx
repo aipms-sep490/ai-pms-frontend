@@ -23,7 +23,7 @@ export function ActorDashboardCard() {
   if (failed || !data) return null
   return <section className="workspace-surface p-5" aria-label="Tổng quan nhanh">
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <h2 className="font-heading text-sm font-semibold text-slate-950">Tổng quan nhanh · {scopeLabel[data.scope] ?? data.scope}</h2>
+      <h2 className="font-heading text-sm font-semibold text-ink">Tổng quan nhanh · {scopeLabel[data.scope] ?? data.scope}</h2>
       {!data.complete && <span className="rounded-full bg-status-warning-bg px-2 py-0.5 text-xs font-medium text-status-warning-text">Số liệu chưa đầy đủ</span>}
     </div>
     <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
@@ -38,6 +38,6 @@ export function ActorDashboardCard() {
 }
 
 function ActorMetric({ label, value, tone = 'neutral' }: { label: string; value: number; tone?: 'neutral' | 'warning' | 'error' }) {
-  const tones = { neutral: 'text-slate-950', warning: 'text-status-warning-text', error: 'text-status-error-text' }
-  return <div><p className="text-xs font-medium text-slate-600">{label}</p><p className={`mt-1 text-xl font-bold tabular-nums ${tones[tone]}`}>{value}</p></div>
+  const tones = { neutral: 'text-ink', warning: 'text-status-warning-text', error: 'text-status-error-text' }
+  return <div><p className="text-xs font-medium text-ink-muted">{label}</p><p className={`mt-1 text-xl font-bold tabular-nums ${tones[tone]}`}>{value}</p></div>
 }

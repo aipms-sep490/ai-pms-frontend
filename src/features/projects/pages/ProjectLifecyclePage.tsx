@@ -57,23 +57,23 @@ export function ProjectLifecyclePage() {
         <div>
           <div className="lifecycle-subheading">
             <span className="material-symbols-outlined text-[19px]" aria-hidden="true">flag</span>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">Mục tiêu đồ án</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">Mục tiêu đồ án</h2>
           </div>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-slate-600">{project.objectives || 'Chưa có nội dung.'}</p>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-ink-muted">{project.objectives || 'Chưa có nội dung.'}</p>
         </div>
         <div>
           <div className="lifecycle-subheading">
             <span className="material-symbols-outlined text-[19px]" aria-hidden="true">inventory_2</span>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">Sản phẩm kỳ vọng</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">Sản phẩm kỳ vọng</h2>
           </div>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-slate-600">{project.expectedOutput || 'Chưa có nội dung.'}</p>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-ink-muted">{project.expectedOutput || 'Chưa có nội dung.'}</p>
         </div>
       </div>
     </section>
     <section className="lifecycle-section">
       <div className="lifecycle-section-heading">
-        <h2 className="text-base font-bold text-slate-900">
-          Thành viên nhóm <span className="text-xs font-normal text-slate-500">({team.members.length} thành viên)</span>
+        <h2 className="text-base font-bold text-ink">
+          Thành viên nhóm <span className="text-xs font-normal text-ink-muted">({team.members.length} thành viên)</span>
         </h2>
       </div>
       <div className="lifecycle-members">
@@ -83,13 +83,13 @@ export function ProjectLifecyclePage() {
               {member.fullName.charAt(0)}
             </div>
             <div className="min-w-0 flex-1">
-              <span className="font-semibold text-sm text-slate-900 block truncate">{member.fullName}</span>
-              <span className="text-xs text-slate-500 block">Thành viên #{member.userId}</span>
+              <span className="font-semibold text-sm text-ink block truncate">{member.fullName}</span>
+              <span className="text-xs text-ink-muted block">Thành viên #{member.userId}</span>
             </div>
             <span className={`shrink-0 text-xs px-2.5 py-0.5 rounded-full font-semibold ${
               member.isLeader
                 ? 'bg-primary-subtle text-primary border border-status-success-border'
-                : 'bg-slate-100 text-slate-600 border border-slate-200'
+                : 'bg-slate-100 text-ink-muted border border-hairline'
             }`}>
               {member.isLeader ? 'Trưởng nhóm' : 'Thành viên'}
             </span>
@@ -99,7 +99,7 @@ export function ProjectLifecyclePage() {
     </section>
     <ProjectResponsibilitiesPanel projectId={project.id} majors={project.majors} />
     <section className="lifecycle-section lifecycle-history">
-      <h2 className="lifecycle-section-heading text-base font-bold text-slate-900">Lịch sử đồ án</h2>
+      <h2 className="lifecycle-section-heading text-base font-bold text-ink">Lịch sử đồ án</h2>
       {historyLoading ? (
         <ExState loading />
       ) : historyError ? (
@@ -111,12 +111,12 @@ export function ProjectLifecyclePage() {
               <span className="ex-timeline-dot" aria-hidden="true" />
               <div className="lifecycle-history-content">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <strong className="font-semibold text-slate-900">
+                  <strong className="font-semibold text-ink">
                     {item.oldStatus ? projectStatusLabel(item.oldStatus) : 'Khởi tạo'} → {projectStatusLabel(item.newStatus)}
                   </strong>
-                  <time className="font-mono text-xs text-slate-500">{dateTimeLabel(item.changedAt)}</time>
+                  <time className="font-mono text-xs text-ink-muted">{dateTimeLabel(item.changedAt)}</time>
                 </div>
-                <p className="mt-1.5 text-xs text-slate-600">
+                <p className="mt-1.5 text-xs text-ink-muted">
                   {item.changedByName || 'Hệ thống'}{item.reason ? ` · ${historyReasonLabel(item.reason)}` : ''}
                 </p>
               </div>

@@ -58,8 +58,8 @@ export function ProfilePage() {
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-primary-subtle text-primary border border-primary/20 font-mono text-xs font-bold uppercase tracking-wider mb-1">
             Hồ sơ đã xác thực
           </span>
-          <h2 id="profile-title" className="text-xl font-bold text-slate-900">{session.user.fullName}</h2>
-          <p className="auth-description text-xs text-slate-500 mt-0.5">{session.user.email}</p>
+          <h2 id="profile-title" className="text-xl font-bold text-ink">{session.user.fullName}</h2>
+          <p className="auth-description text-xs text-ink-muted mt-0.5">{session.user.email}</p>
         </div>
       </div>
 

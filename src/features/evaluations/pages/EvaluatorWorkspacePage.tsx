@@ -73,16 +73,16 @@ export function EvaluatorWorkspacePage() {
         <Summary label="Đã chốt" value={summary.finalized} />
       </section>
       {Object.values(drafts).some(row => row.status === 'unavailable') ? <p role="status" className="text-sm text-status-warning-text">Một số phân công chưa tải được trạng thái. Các số liệu bản nháp và đã chốt chỉ tính phần tải thành công.</p> : null}
-      <div className="flex flex-wrap items-end justify-between gap-3"><p className="text-sm text-slate-600">Mở từng phân công để đối chiếu bàn giao, nhập điểm và lưu nhận xét.</p><label className="text-sm font-semibold text-slate-700">Trạng thái đánh giá<select className="mt-1 block min-h-10 rounded-lg border border-hairline bg-card px-3" value={filter} onChange={event => setFilter(event.target.value as typeof filter)}><option value="all">Tất cả phân công</option><option value="pending">Chưa chốt</option><option value="finalized">Đã chốt</option><option value="unavailable">Chưa tải được trạng thái</option></select></label></div>
-      {!assignments.length ? <section className="rounded-xl border border-hairline bg-card p-5 text-sm text-slate-700"><h2 className="font-semibold text-slate-900">Chưa có phân công đánh giá đang hiệu lực</h2><p className="mt-1">Bạn sẽ thấy đồ án ở đây khi được phân công chấm.</p></section> : null}
-      {assignments.length > 0 && !visibleAssignments.length ? <p role="status" className="workspace-surface p-5 text-sm text-slate-600">Không có phân công phù hợp với bộ lọc. Chọn tất cả để xem lại danh sách.</p> : null}
+      <div className="flex flex-wrap items-end justify-between gap-3"><p className="text-sm text-ink-muted">Mở từng phân công để đối chiếu bàn giao, nhập điểm và lưu nhận xét.</p><label className="text-sm font-semibold text-ink-soft">Trạng thái đánh giá<select className="mt-1 block min-h-10 rounded-lg border border-hairline bg-card px-3" value={filter} onChange={event => setFilter(event.target.value as typeof filter)}><option value="all">Tất cả phân công</option><option value="pending">Chưa chốt</option><option value="finalized">Đã chốt</option><option value="unavailable">Chưa tải được trạng thái</option></select></label></div>
+      {!assignments.length ? <section className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-soft"><h2 className="font-semibold text-ink">Chưa có phân công đánh giá đang hiệu lực</h2><p className="mt-1">Bạn sẽ thấy đồ án ở đây khi được phân công chấm.</p></section> : null}
+      {assignments.length > 0 && !visibleAssignments.length ? <p role="status" className="workspace-surface p-5 text-sm text-ink-muted">Không có phân công phù hợp với bộ lọc. Chọn tất cả để xem lại danh sách.</p> : null}
       <section className="space-y-3" aria-label="Danh sách phân công đánh giá">
         {visibleAssignments.map((assignment) => {
           const row = drafts[assignment.id]
           return <article key={assignment.id} className="grid min-w-0 gap-4 rounded-xl border border-hairline bg-card p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
             <div className="min-w-0">
-              <h2 className="break-words font-semibold text-slate-900">Đồ án #{assignment.projectId} · Thành phần #{assignment.componentId ?? '—'}</h2>
-              <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm text-slate-600 sm:grid-cols-2"><div><dt className="inline font-medium text-slate-700">Phạm vi: </dt><dd className="inline">{scopeLabel(assignment)}</dd></div><div><dt className="inline font-medium text-slate-700">Bộ tiêu chí: </dt><dd className="inline">#{assignment.rubricId}</dd></div><div><dt className="inline font-medium text-slate-700">Trạng thái: </dt><dd className="inline">{row?.status === 'unavailable' ? 'Chưa tải được trạng thái bản nháp' : draftLabel(row?.draft ?? null)}</dd></div><div><dt className="inline font-medium text-slate-700">Phân công: </dt><dd className="inline">{dateTimeLabel(assignment.assignedAt)}</dd></div></dl>
+              <h2 className="break-words font-semibold text-ink">Đồ án #{assignment.projectId} · Thành phần #{assignment.componentId ?? '—'}</h2>
+              <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm text-ink-muted sm:grid-cols-2"><div><dt className="inline font-medium text-ink-soft">Phạm vi: </dt><dd className="inline">{scopeLabel(assignment)}</dd></div><div><dt className="inline font-medium text-ink-soft">Bộ tiêu chí: </dt><dd className="inline">#{assignment.rubricId}</dd></div><div><dt className="inline font-medium text-ink-soft">Trạng thái: </dt><dd className="inline">{row?.status === 'unavailable' ? 'Chưa tải được trạng thái bản nháp' : draftLabel(row?.draft ?? null)}</dd></div><div><dt className="inline font-medium text-ink-soft">Phân công: </dt><dd className="inline">{dateTimeLabel(assignment.assignedAt)}</dd></div></dl>
             </div>
             <Link className="inline-flex min-h-11 items-center justify-center rounded-lg border border-hairline px-4 text-sm font-semibold text-primary hover:bg-primary/5" to={`/evaluator/assignments/${assignment.id}`}>{row?.status === 'unavailable' ? 'Xem phân công' : row?.draft?.status === 'FINALIZED' ? 'Xem đánh giá' : row?.draft ? 'Tiếp tục chấm' : 'Bắt đầu chấm'}</Link>
           </article>
@@ -93,5 +93,5 @@ export function EvaluatorWorkspacePage() {
 }
 
 function Summary({ label, value }: { label: string; value: number }) {
-  return <section className="workspace-metric"><p className="text-sm text-slate-600">{label}</p><p className="mt-1 text-2xl font-bold text-slate-900">{value}</p></section>
+  return <section className="workspace-metric"><p className="text-sm text-ink-muted">{label}</p><p className="mt-1 text-2xl font-bold text-ink">{value}</p></section>
 }

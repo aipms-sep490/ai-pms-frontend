@@ -40,8 +40,8 @@ export function TaskList({ tasks }: TaskListProps) {
             aria-pressed={filter === 'all'}
             className={`px-2.5 py-1.5 min-h-[36px] sm:min-h-0 rounded transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               filter === 'all'
-                ? 'bg-white text-slate-900 font-semibold shadow-2xs'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-card text-ink font-semibold shadow-2xs'
+                : 'text-ink-muted hover:text-ink-soft'
             }`}
           >
             Tất cả ({counts.all})
@@ -52,8 +52,8 @@ export function TaskList({ tasks }: TaskListProps) {
             aria-pressed={filter === 'in_progress'}
             className={`px-2.5 py-1.5 min-h-[36px] sm:min-h-0 rounded transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               filter === 'in_progress'
-                ? 'bg-white text-primary font-semibold shadow-2xs'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-card text-primary font-semibold shadow-2xs'
+                : 'text-ink-muted hover:text-ink-soft'
             }`}
           >
             Đang làm ({counts.inProgress})
@@ -64,8 +64,8 @@ export function TaskList({ tasks }: TaskListProps) {
             aria-pressed={filter === 'overdue'}
             className={`px-2.5 py-1.5 min-h-[36px] sm:min-h-0 rounded transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               filter === 'overdue'
-                ? 'bg-white text-status-error-text font-semibold shadow-2xs'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-card text-status-error-text font-semibold shadow-2xs'
+                : 'text-ink-muted hover:text-ink-soft'
             }`}
           >
             Quá hạn ({counts.overdue})
@@ -76,8 +76,8 @@ export function TaskList({ tasks }: TaskListProps) {
             aria-pressed={filter === 'done'}
             className={`px-2.5 py-1.5 min-h-[36px] sm:min-h-0 rounded transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               filter === 'done'
-                ? 'bg-white text-status-success-text font-semibold shadow-2xs'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-card text-status-success-text font-semibold shadow-2xs'
+                : 'text-ink-muted hover:text-ink-soft'
             }`}
           >
             Đã xong ({counts.done})
@@ -87,14 +87,14 @@ export function TaskList({ tasks }: TaskListProps) {
 
       <CardContent className="p-0 divide-y divide-slate-100">
         {displayedTasks.length === 0 ? (
-          <div className="p-8 text-center text-sm text-slate-500">
+          <div className="p-8 text-center text-sm text-ink-muted">
             Không có công việc nào trong danh mục này.
           </div>
         ) : (
           displayedTasks.map((task) => (
             <div
               key={task.id}
-              className={`p-3.5 px-4 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition-colors ${
+              className={`p-3.5 px-4 flex items-center justify-between gap-3 hover:bg-canvas/80 transition-colors ${
                 task.isCritical ? 'bg-red-50/40 border-l-4 border-l-red-500' : ''
               }`}
             >
@@ -106,11 +106,11 @@ export function TaskList({ tasks }: TaskListProps) {
                   aria-label={`Trạng thái công việc ${task.id}: ${
                     task.status === 'done' ? 'Đã hoàn thành' : 'Chưa hoàn thành'
                   }`}
-                  className="mt-0.5 rounded border-slate-300 text-primary focus:ring-primary cursor-not-allowed"
+                  className="mt-0.5 rounded border-line-strong text-primary focus:ring-primary cursor-not-allowed"
                 />
                 <div className="flex flex-col gap-1 min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-xs font-bold text-slate-700 whitespace-nowrap">
+                    <span className="font-mono text-xs font-bold text-ink-soft whitespace-nowrap">
                       {task.id}
                     </span>
                     <MultidisciplinaryTag major={task.major} />
@@ -120,15 +120,15 @@ export function TaskList({ tasks }: TaskListProps) {
                       </span>
                     )}
                   </div>
-                  <p className="text-[13px] font-medium text-slate-900 leading-snug line-clamp-2 break-words">
+                  <p className="text-[13px] font-medium text-ink leading-snug line-clamp-2 break-words">
                     {task.title}
                   </p>
-                  <div className="flex items-center gap-3 text-xs text-slate-500 font-sans">
+                  <div className="flex items-center gap-3 text-xs text-ink-muted font-sans">
                     <span className="truncate">Phụ trách: {task.assignee}</span>
                     <span aria-hidden="true">•</span>
                     <span
                       className={`font-mono ${
-                        task.status === 'overdue' ? 'text-status-error-text font-semibold' : 'text-slate-500'
+                        task.status === 'overdue' ? 'text-status-error-text font-semibold' : 'text-ink-muted'
                       }`}
                     >
                       Hạn: {task.deadline}
@@ -140,7 +140,7 @@ export function TaskList({ tasks }: TaskListProps) {
               {/* Right Progress */}
               <div className="flex items-center gap-3 shrink-0">
                 <div className="hidden sm:flex flex-col items-end gap-1 w-20">
-                  <span className="font-mono text-xs font-bold text-slate-700">
+                  <span className="font-mono text-xs font-bold text-ink-soft">
                     {task.progress}%
                   </span>
                   <div

@@ -37,11 +37,11 @@ export function SupervisorRecommendationPanel({ projectId, candidateIds, onPick 
   const items = run?.items ?? []
 
   return <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs">
-    <h2 className="font-heading text-lg font-semibold text-slate-950">Gợi ý giảng viên hướng dẫn</h2>
-    <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">Danh sách xếp hạng theo chuyên môn và năng lực tiếp nhận. Đây chỉ là gợi ý tham khảo; bạn vẫn tự chọn và gửi lời mời.</p>
-    {loading && <p role="status" className="mt-4 text-sm text-slate-500">Đang tải gợi ý…</p>}
+    <h2 className="font-heading text-lg font-semibold text-ink">Gợi ý giảng viên hướng dẫn</h2>
+    <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">Danh sách xếp hạng theo chuyên môn và năng lực tiếp nhận. Đây chỉ là gợi ý tham khảo; bạn vẫn tự chọn và gửi lời mời.</p>
+    {loading && <p role="status" className="mt-4 text-sm text-ink-muted">Đang tải gợi ý…</p>}
     {!loading && error && <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><span>Chưa tải được gợi ý giảng viên.</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
-    {!loading && !error && items.length === 0 && <p className="mt-4 text-sm text-slate-500">Chưa có gợi ý nào cho đồ án này.</p>}
+    {!loading && !error && items.length === 0 && <p className="mt-4 text-sm text-ink-muted">Chưa có gợi ý nào cho đồ án này.</p>}
     {!loading && !error && items.length > 0 && <ol className="mt-4 space-y-3">
       {items.map((item, index) => <RecommendationRow key={item.supervisorId} item={item} rank={index + 1}
         selectable={!candidateIds || candidateIds.has(item.supervisorId)} onPick={onPick} />)}
@@ -57,19 +57,19 @@ function RecommendationRow({ item, rank, selectable, onPick }: {
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <span className="flex size-6 items-center justify-center rounded-full bg-primary-subtle text-xs font-bold text-primary">{rank}</span>
-          <h3 className="text-base font-bold text-slate-950">{item.lecturerName}</h3>
+          <h3 className="text-base font-bold text-ink">{item.lecturerName}</h3>
         </div>
-        {item.departmentName?.trim() && <p className="mt-1 text-xs text-slate-500">{item.departmentName}</p>}
+        {item.departmentName?.trim() && <p className="mt-1 text-xs text-ink-muted">{item.departmentName}</p>}
       </div>
       <div className="flex flex-col items-end gap-1">
         <span className="rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-1 text-xs font-semibold text-primary">Phù hợp {scorePercent(item.score)}</span>
-        {typeof item.availableCapacity === 'number' && <span className="text-xs text-slate-500">Còn nhận {item.availableCapacity} nhóm</span>}
+        {typeof item.availableCapacity === 'number' && <span className="text-xs text-ink-muted">Còn nhận {item.availableCapacity} nhóm</span>}
       </div>
     </div>
     {item.matchedExpertise.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">
-      {item.matchedExpertise.map(tag => <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{tag}</span>)}
+      {item.matchedExpertise.map(tag => <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-ink-muted">{tag}</span>)}
     </div>}
-    {item.reasons.length > 0 && <ul className="mt-3 space-y-1 text-sm leading-6 text-slate-700">
+    {item.reasons.length > 0 && <ul className="mt-3 space-y-1 text-sm leading-6 text-ink-soft">
       {item.reasons.map((reason, index) => <li key={index} className="flex gap-2"><span aria-hidden="true">•</span><span>{reason}</span></li>)}
     </ul>}
     {onPick && selectable && <button type="button" onClick={() => onPick(item.supervisorId)} className="mt-3 min-h-11 rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-primary-subtle">Chọn giảng viên này</button>}

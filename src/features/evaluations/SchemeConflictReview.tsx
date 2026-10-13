@@ -16,7 +16,7 @@ export function SchemeConflictReview({ conflict, periods, rubrics, project, busy
   conflict: SchemeConflict; periods: ProjectPeriod[]; rubrics: Rubric[]; project: ProjectDto | null
   busy: boolean; canManage: boolean; onReload: () => void; onUseServer: () => void; onKeepDraft: () => void
 }) {
-  return <section aria-labelledby="scheme-conflict-title" className="space-y-3 rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-sm text-slate-800">
+  return <section aria-labelledby="scheme-conflict-title" className="space-y-3 rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-sm text-ink-soft">
     <h2 id="scheme-conflict-title" className="font-semibold">Kiểm tra thay đổi trước khi tiếp tục</h2>
     <p>Nội dung bạn nhập vẫn được giữ. Chưa có thao tác nào được gửi lại; hãy so sánh và chọn bản muốn dùng.</p>
     <div className="grid min-w-0 gap-4 md:grid-cols-2">

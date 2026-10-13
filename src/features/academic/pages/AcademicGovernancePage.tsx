@@ -39,10 +39,10 @@ export function AcademicGovernancePage() {
   if (governance.error) return <section className="governance-state" role="alert">{errorText(governance.error)} <Button onClick={governance.retry}>Thử lại</Button></section>
   return <WorkspacePage className="governance-page" title="Học kỳ và giai đoạn đồ án" eyebrow="Quản lý học vụ" description="Thiết lập thời gian đăng ký, thực hiện và đánh giá cho từng học kỳ." action={governance.canManage ? <div className="governance-actions"><Button onClick={() => openEditor({ kind: 'semester' })}>Thêm học kỳ</Button><Button variant="secondary" onClick={() => openEditor({ kind: 'period' })}>Thêm giai đoạn</Button></div> : null}>
     
-    <p className="text-sm text-slate-600">Điều kiện về thành viên và ngành tham gia được quản lý trong chính sách của từng giai đoạn.</p>
+    <p className="text-sm text-ink-muted">Điều kiện về thành viên và ngành tham gia được quản lý trong chính sách của từng giai đoạn.</p>
     <form className="governance-filter" onSubmit={(event) => { event.preventDefault(); setFilters({ search }) }}><input aria-label="Tìm học kỳ hoặc giai đoạn" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm theo mã hoặc tên"/><Button type="submit" variant="secondary">Lọc</Button></form>
     {!governance.canManage ? <p className="governance-note">Bạn đang ở chế độ chỉ xem.</p> : null}{operationError && !editor ? <p className="governance-error" role="alert">{operationError}</p> : null}{operationSuccess ? <p className="governance-message" role="status">{operationSuccess}</p> : null}
-    {!governance.canManage && <p role="status" className="rounded-lg border border-hairline bg-card p-4 text-sm text-slate-600">Cấu trúc học kỳ và kỳ đồ án do quản trị viên cấu hình. Bộ môn có thể xem và mở chính sách của kỳ thuộc phạm vi được cấp.</p>}
+    {!governance.canManage && <p role="status" className="rounded-lg border border-hairline bg-card p-4 text-sm text-ink-muted">Cấu trúc học kỳ và kỳ đồ án do quản trị viên cấu hình. Bộ môn có thể xem và mở chính sách của kỳ thuộc phạm vi được cấp.</p>}
     <section aria-labelledby="governance-semesters-title">
       <div className="governance-section-title"><h2 id="governance-semesters-title">Học kỳ</h2><span>{governance.semesters.length} học kỳ</span></div>
       <div className="governance-grid">{governance.semesters.map(semester => <article key={semester.id} className="governance-card">
@@ -119,7 +119,7 @@ function ProjectPeriodForm({ record, semesters, error, submitting, onCancel, onS
     <label>Loại giai đoạn<select name="periodType" defaultValue={record?.periodType} disabled={submitting}>{projectPeriodTypes.map(type => <option key={type} value={type}>{labels[type]}</option>)}</select></label>
     <label>Bắt đầu<input name="startAt" type="datetime-local" required defaultValue={record ? toDateTime(record.startAt) : undefined} disabled={submitting} /></label>
     <label>Kết thúc<input name="endAt" type="datetime-local" required defaultValue={record ? toDateTime(record.endAt) : undefined} disabled={submitting} /></label>
-    <p className="text-xs text-slate-600">{record ? 'Các điều kiện hiện tại được hiển thị để đối chiếu. Mở phiên bản chính sách để thay đổi điều kiện áp dụng.' : 'Các điều kiện dưới đây sẽ được dùng cho chính sách ban đầu của giai đoạn.'}</p>
+    <p className="text-xs text-ink-muted">{record ? 'Các điều kiện hiện tại được hiển thị để đối chiếu. Mở phiên bản chính sách để thay đổi điều kiện áp dụng.' : 'Các điều kiện dưới đây sẽ được dùng cho chính sách ban đầu của giai đoạn.'}</p>
     <label>Thành viên tối thiểu<input name="minTeamSize" type="number" min="1" required disabled={Boolean(record) || submitting} defaultValue={record?.minTeamSize ?? 3} /></label>
     <label>Thành viên tối đa<input name="maxTeamSize" type="number" min="1" required disabled={Boolean(record) || submitting} defaultValue={record?.maxTeamSize ?? 5} /></label>
     <label>Số ngành tối thiểu<input name="minDistinctMajors" type="number" min="1" required disabled={Boolean(record) || submitting} defaultValue={record?.minDistinctMajors ?? 1} /></label>

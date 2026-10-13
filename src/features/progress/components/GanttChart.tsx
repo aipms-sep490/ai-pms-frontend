@@ -29,14 +29,14 @@ export function GanttChart({
 }: GanttChartProps) {
   if (groups.length === 0) {
     return (
-      <div className="p-12 text-center border border-slate-200 rounded-lg bg-white">
+      <div className="p-12 text-center border border-hairline rounded-lg bg-card">
         <span className="material-symbols-outlined text-4xl text-slate-400 mb-2">
           filter_alt_off
         </span>
-        <h3 className="text-sm font-semibold text-slate-800">
+        <h3 className="text-sm font-semibold text-ink-soft">
           Không tìm thấy công việc phù hợp
         </h3>
-        <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
+        <p className="mt-1 text-xs text-ink-muted max-w-sm mx-auto">
           Không có tác vụ nào thỏa mãn điều kiện lọc đường găng hoặc từ khóa tìm kiếm đã chọn. Vui lòng thử bỏ bộ lọc.
         </p>
       </div>
@@ -46,7 +46,7 @@ export function GanttChart({
   const isMilestonesView = viewMode === 'milestones'
 
   return (
-    <div className="border border-slate-200 rounded-lg bg-white shadow-xs overflow-hidden">
+    <div className="border border-hairline rounded-lg bg-card shadow-xs overflow-hidden">
       {/* Scrollable Container with Sticky Left Column */}
       <div
         className="w-full overflow-x-auto focus-visible:outline-none [scrollbar-color:theme(colors.slate.300)_theme(colors.slate.100)] [scrollbar-width:thin]"
@@ -55,9 +55,9 @@ export function GanttChart({
       >
         <div className="min-w-[1070px] xl:min-w-[1210px] 2xl:min-w-[1270px]">
           {/* Header Row */}
-          <div className="flex border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700">
+          <div className="flex border-b border-hairline bg-canvas text-xs font-semibold text-ink-soft">
             {/* Sticky Left WBS Columns */}
-            <div className="sticky left-0 z-30 flex w-[320px] shrink-0 items-center border-r border-slate-200 bg-slate-50 px-2 py-2.5 xl:w-[460px] xl:px-3 2xl:w-[520px]">
+            <div className="sticky left-0 z-30 flex w-[320px] shrink-0 items-center border-r border-hairline bg-canvas px-2 py-2.5 xl:w-[460px] xl:px-3 2xl:w-[520px]">
               <div className="min-w-0 flex-1 font-bold">Cây phân rã công việc (WBS)</div>
               <div className="hidden w-[64px] shrink-0 text-center xl:block 2xl:w-[72px]">Ngành</div>
               <div className="w-[90px] shrink-0 2xl:w-[110px]">Phụ trách</div>
@@ -78,10 +78,10 @@ export function GanttChart({
                   return (
                     <div
                       key={w.weekNumber}
-                      className={`py-2 px-1 text-center font-mono text-xs border-r border-slate-200 last:border-r-0 transition-colors ${
+                      className={`py-2 px-1 text-center font-mono text-xs border-r border-hairline last:border-r-0 transition-colors ${
                         isCurrent
                           ? 'bg-red-50/70 text-red-600 font-bold border-b-2 border-b-red-500'
-                          : 'text-slate-600'
+                          : 'text-ink-muted'
                       }`}
                     >
                       <div className="flex items-center justify-center gap-1">
@@ -113,17 +113,17 @@ export function GanttChart({
                   return (
                     <div
                       key={m.id}
-                      className={`py-2 px-2 text-center font-mono text-xs border-r border-slate-200 last:border-r-0 transition-colors ${
+                      className={`py-2 px-2 text-center font-mono text-xs border-r border-hairline last:border-r-0 transition-colors ${
                         isCurrent
                           ? 'bg-red-50/70 text-red-600 font-bold border-b-2 border-b-red-500'
-                          : 'text-slate-600'
+                          : 'text-ink-muted'
                       }`}
                     >
                       <div className="font-bold">{m.label}</div>
-                      <div className="text-xs font-sans font-medium text-slate-800 truncate" title={m.title}>
+                      <div className="text-xs font-sans font-medium text-ink-soft truncate" title={m.title}>
                         {m.title}
                       </div>
-                      <div className="text-xs font-normal text-slate-500 mt-0.5">
+                      <div className="text-xs font-normal text-ink-muted mt-0.5">
                         {isCurrent ? (
                           <span className="font-bold text-red-600">Hiện tại (67%)</span>
                         ) : (
@@ -142,14 +142,14 @@ export function GanttChart({
             const isExpanded = expandedGroupIds.has(group.id)
 
             return (
-              <div key={group.id} className="border-b border-slate-200 last:border-b-0">
+              <div key={group.id} className="border-b border-hairline last:border-b-0">
                 {/* Group Header Row (44px height) */}
                 <div
                   onClick={() => onToggleGroup(group.id)}
-                  className="flex h-11 bg-slate-100/80 hover:bg-slate-100 text-xs font-semibold text-slate-900 cursor-pointer select-none transition-colors"
+                  className="flex h-11 bg-slate-100/80 hover:bg-slate-100 text-xs font-semibold text-ink cursor-pointer select-none transition-colors"
                 >
                   {/* Sticky Left Group Info */}
-                  <div className="sticky left-0 z-20 flex w-[320px] shrink-0 items-center border-r border-slate-200 bg-slate-100 px-2 py-1.5 xl:w-[460px] xl:px-3 2xl:w-[520px]">
+                  <div className="sticky left-0 z-20 flex w-[320px] shrink-0 items-center border-r border-hairline bg-slate-100 px-2 py-1.5 xl:w-[460px] xl:px-3 2xl:w-[520px]">
                     <div className="flex min-w-0 flex-1 items-center gap-1 truncate lg:gap-1.5">
                       <button
                         type="button"
@@ -158,32 +158,32 @@ export function GanttChart({
                           onToggleGroup(group.id)
                         }}
                         aria-label={isExpanded ? `Thu gọn nhóm ${group.name}` : `Mở rộng nhóm ${group.name}`}
-                        className="w-5 h-5 rounded hover:bg-slate-200 text-slate-600 flex items-center justify-center shrink-0 transition-colors"
+                        className="w-5 h-5 rounded hover:bg-slate-200 text-ink-muted flex items-center justify-center shrink-0 transition-colors"
                       >
                         <span className="material-symbols-outlined text-base">
                           {isExpanded ? 'keyboard_arrow_down' : 'keyboard_arrow_right'}
                         </span>
                       </button>
-                      <span className="font-mono text-slate-600 text-xs font-bold">
+                      <span className="font-mono text-ink-muted text-xs font-bold">
                         {group.wbsCode}
                       </span>
-                      <span className="truncate text-xs font-semibold text-slate-900 xl:text-[13px]" title={group.name}>
+                      <span className="truncate text-xs font-semibold text-ink xl:text-[13px]" title={group.name}>
                         {group.name}
                       </span>
-                      <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-slate-200 text-slate-700 shrink-0">
+                      <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-slate-200 text-ink-soft shrink-0">
                         {group.milestoneId}
                       </span>
                     </div>
 
-                    <div className="hidden w-[64px] shrink-0 text-center text-xs text-slate-500 xl:block 2xl:w-[72px]">
+                    <div className="hidden w-[64px] shrink-0 text-center text-xs text-ink-muted xl:block 2xl:w-[72px]">
                       —
                     </div>
 
-                    <div className="w-[90px] shrink-0 text-xs text-slate-600 2xl:w-[110px]">
+                    <div className="w-[90px] shrink-0 text-xs text-ink-muted 2xl:w-[110px]">
                       {group.tasks.length} tác vụ
                     </div>
 
-                    <div className="w-[52px] shrink-0 pr-2 text-right font-mono text-xs font-bold text-slate-800 2xl:w-[58px] 2xl:pr-3">
+                    <div className="w-[52px] shrink-0 pr-2 text-right font-mono text-xs font-bold text-ink-soft 2xl:w-[58px] 2xl:pr-3">
                       {group.progress}%
                     </div>
                   </div>
@@ -296,16 +296,16 @@ export function GanttChart({
                     return (
                       <div
                         key={task.id}
-                        className="flex h-10 border-t border-slate-100 hover:bg-slate-50/90 text-xs transition-colors"
+                        className="flex h-10 border-t border-line hover:bg-canvas/90 text-xs transition-colors"
                       >
                         {/* Sticky Left Task Info */}
-                        <div className="sticky left-0 z-10 flex w-[320px] shrink-0 items-center border-r border-slate-200 bg-white px-2 py-1 xl:w-[460px] xl:px-3 2xl:w-[520px]">
+                        <div className="sticky left-0 z-10 flex w-[320px] shrink-0 items-center border-r border-hairline bg-card px-2 py-1 xl:w-[460px] xl:px-3 2xl:w-[520px]">
                           <div className="flex min-w-0 flex-1 items-center gap-1 truncate pl-2 lg:gap-1.5 lg:pl-6">
-                            <span className="font-mono text-xs font-bold text-slate-600 shrink-0">
+                            <span className="font-mono text-xs font-bold text-ink-muted shrink-0">
                               {task.id}
                             </span>
                             <span
-                              className="truncate text-xs font-medium text-slate-800 xl:text-[13px]"
+                              className="truncate text-xs font-medium text-ink-soft xl:text-[13px]"
                               title={task.name}
                             >
                               {task.name}
@@ -324,19 +324,19 @@ export function GanttChart({
                             <MultidisciplinaryTag major={task.major} />
                           </div>
 
-                          <div className="w-[90px] shrink-0 truncate text-xs text-slate-600 2xl:w-[110px]">
+                          <div className="w-[90px] shrink-0 truncate text-xs text-ink-muted 2xl:w-[110px]">
                             <div
                               className="flex items-center gap-1.5 truncate"
                               title={`${task.assignee} (${task.assigneeRole})`}
                             >
-                              <span className="w-5 h-5 rounded-full bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-center shrink-0">
+                              <span className="w-5 h-5 rounded-full bg-slate-100 border border-hairline text-xs font-bold text-ink-soft flex items-center justify-center shrink-0">
                                 {initials}
                               </span>
                               <span className="truncate">{shortName}</span>
                             </div>
                           </div>
 
-                          <div className="w-[52px] shrink-0 pr-2 text-right font-mono text-xs font-semibold text-slate-700 2xl:w-[58px] 2xl:pr-3">
+                          <div className="w-[52px] shrink-0 pr-2 text-right font-mono text-xs font-semibold text-ink-soft 2xl:w-[58px] 2xl:pr-3">
                             {task.progress}%
                           </div>
                         </div>
@@ -368,7 +368,7 @@ export function GanttChart({
                                 ? 'border-emerald-400 bg-emerald-50 text-emerald-950 font-semibold'
                                 : task.progress > 0
                                 ? 'border-blue-400 bg-blue-50 text-blue-950 font-semibold'
-                                : 'border-slate-300 bg-slate-100 text-slate-600'
+                                : 'border-line-strong bg-slate-100 text-ink-muted'
                             }`}
                             style={{
                               gridColumnStart: task.startWeek,
@@ -408,14 +408,14 @@ export function GanttChart({
         </div>
       </div>
 
-      <div className="border-t border-slate-100 bg-white px-3 py-1.5 text-right text-xs text-slate-500 lg:hidden">
+      <div className="border-t border-line bg-card px-3 py-1.5 text-right text-xs text-ink-muted lg:hidden">
         Giữ Shift và cuộn, hoặc kéo thanh phía dưới để xem các tuần tiếp theo →
       </div>
 
       {/* Legend Footer */}
-      <div className="p-3 border-t border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
+      <div className="p-3 border-t border-hairline bg-canvas flex flex-wrap items-center justify-between gap-3 text-xs text-ink-muted">
         <div className="flex flex-wrap items-center gap-4">
-          <span className="font-semibold text-slate-700">Chú thích:</span>
+          <span className="font-semibold text-ink-soft">Chú thích:</span>
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded bg-blue-500 shrink-0" />
             <span>Đang thực hiện</span>
@@ -440,7 +440,7 @@ export function GanttChart({
           </div>
         </div>
 
-        <div className="text-xs text-slate-500 font-mono">
+        <div className="text-xs text-ink-muted font-mono">
           {isMilestonesView
             ? 'Trục 6 Cột mốc: M1 (15/08) → M6 (30/11/2026)'
             : 'Trục 15 tuần: W01 (18/08) → W15 (30/11/2026)'}

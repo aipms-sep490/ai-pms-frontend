@@ -43,7 +43,7 @@ export function DashboardHeader({
 
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mt-1">
         <div className="flex flex-col gap-1 min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-slate-500 uppercase tracking-wider">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-ink-muted uppercase tracking-wider">
             <span>Kỳ {semester}</span>
             <span aria-hidden="true">›</span>
             <span>{projectCode}</span>
@@ -51,12 +51,12 @@ export function DashboardHeader({
             <span className="text-primary font-semibold">{groupCode}</span>
           </div>
 
-          <h1 className="font-heading text-xl md:text-2xl font-bold text-slate-900 tracking-tight leading-snug break-words">
+          <h1 className="font-heading text-xl md:text-2xl font-bold text-ink tracking-tight leading-snug break-words">
             {projectName}
           </h1>
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 mt-0.5">
-            <span className="font-medium text-slate-800">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-muted mt-0.5">
+            <span className="font-medium text-ink-soft">
               Trưởng nhóm: {teamLeader}
             </span>
             <span className="text-slate-300" aria-hidden="true">•</span>

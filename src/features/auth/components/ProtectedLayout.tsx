@@ -10,7 +10,7 @@ export function ProtectedLayout() {
 
   if (status === 'authenticating' || (session && getWorkspaceRole(session.user) === 'student' && isJourneyLoading)) {
     return (
-      <main className="min-h-screen grid place-items-center bg-slate-50 text-sm text-slate-600">
+      <main className="min-h-screen grid place-items-center bg-canvas text-sm text-ink-muted">
         {status === 'authenticating' ? 'Đang khôi phục phiên đăng nhập…' : 'Đang đồng bộ dữ liệu đồ án…'}
       </main>
     )
