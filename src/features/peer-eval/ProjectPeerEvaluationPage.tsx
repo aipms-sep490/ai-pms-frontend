@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { PageLoading } from '../../components/ui/PageLoading'
+import { StatusBadge } from '../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { useStudentJourney } from '../../app/context'
 import { HttpError } from '../../services/http/http-client'
@@ -61,7 +63,7 @@ export function ProjectPeerEvaluationPage() {
   return <WorkspacePage className="space-y-5" title="Đánh giá đồng đội" eyebrow="Peer evaluation"
     description="Đánh giá đóng góp của các thành viên trong nhóm. Đây là minh chứng tham khảo cho giảng viên, không phải là điểm số.">
     {!projectId && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-slate-600">Không tìm thấy đồ án đang hoạt động để đánh giá đồng đội.</p>}
-    {projectId && loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-slate-600">Đang tải…</p>}
+    {projectId && loading && <PageLoading label="Đang tải đánh giá đồng đội…" />}
     {projectId && !loading && error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><span>{error}</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
     {projectId && !loading && !error && data && teammates.length === 0 && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-slate-600">Nhóm chưa có thành viên khác để đánh giá.</p>}
 
@@ -69,7 +71,7 @@ export function ProjectPeerEvaluationPage() {
       <p className="flex items-center gap-2 rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm font-semibold text-status-success-text"><span className="material-symbols-outlined text-base" aria-hidden="true">task_alt</span>Bạn đã gửi đánh giá đồng đội.</p>
       <ul className="space-y-2">
         {data.items.map(item => <li key={item.evaluateeUserId} className="rounded-xl border border-hairline bg-card p-4 shadow-xs text-sm">
-          <div className="flex items-center justify-between gap-2"><span className="font-semibold text-slate-900">{item.evaluateeName?.trim() || teammates.find(mate => mate.userId === item.evaluateeUserId)?.fullName || `Thành viên #${item.evaluateeUserId}`}</span><span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{ratingLabels[item.rating] ?? item.rating}</span></div>
+          <div className="flex items-center justify-between gap-2"><span className="font-semibold text-slate-900">{item.evaluateeName?.trim() || teammates.find(mate => mate.userId === item.evaluateeUserId)?.fullName || `Thành viên #${item.evaluateeUserId}`}</span><StatusBadge tone="neutral" label={ratingLabels[item.rating] ?? String(item.rating)} /></div>
           {item.comment?.trim() && <p className="mt-1 leading-6 text-slate-700">{item.comment}</p>}
         </li>)}
       </ul>

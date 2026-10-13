@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import { PageLoading } from '../../components/ui/PageLoading'
+import { StatusBadge } from '../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { useStudentJourney } from '../../app/context'
 import { HttpError } from '../../services/http/http-client'
@@ -56,12 +58,12 @@ export function ProjectWorkingAgreementPage() {
   return <WorkspacePage className="space-y-5" title="Cam kết làm việc nhóm" eyebrow="Working Agreement"
     description="Thống nhất nguyên tắc làm việc của nhóm. Mỗi thành viên xác nhận một lần cho phiên bản hiện tại.">
     {!projectId && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-slate-600">Không tìm thấy đồ án đang hoạt động để xem cam kết nhóm.</p>}
-    {projectId && loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-slate-600">Đang tải cam kết nhóm…</p>}
+    {projectId && loading && <PageLoading label="Đang tải cam kết nhóm…" />}
     {projectId && !loading && error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><span>{error}</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
     {projectId && !loading && !error && !agreement && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-slate-600">Nhóm chưa có bản cam kết làm việc nào.</p>}
     {projectId && !loading && !error && agreement && <>
       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-        <span className="rounded-full border border-hairline bg-slate-50 px-2 py-0.5 font-semibold text-slate-600">Phiên bản {agreement.version}</span>
+        <StatusBadge tone="neutral" label={`Phiên bản ${agreement.version}`} />
         <span>Cập nhật {formatDateTime(agreement.createdAt)}</span>
         {agreement.createdByName?.trim() && <span>· {agreement.createdByName}</span>}
       </div>
