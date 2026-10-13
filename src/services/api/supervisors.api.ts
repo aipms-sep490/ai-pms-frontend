@@ -167,8 +167,11 @@ export async function sendRequest(
   projectId: number,
   supervisorProfileId: number,
   message?: string,
+  assignmentType: 'PRIMARY' | 'DISCIPLINE_MENTOR' = 'PRIMARY',
+  majorId?: number,
 ): Promise<SupervisorRequestDto> {
   if (env.isMockMode) {
+    const requestedAt = new Date().toISOString()
     const newReq: SupervisorRequestDto = {
       id: mockRequestsStore.length + 1,
       projectId,
@@ -177,16 +180,19 @@ export async function sendRequest(
       status: 'PENDING',
       requestMessage: message ?? null,
       responseMessage: null,
-      requestedAt: new Date().toISOString(),
+      requestedAt,
       respondedAt: null,
+      assignmentType,
+      majorId: majorId ?? null,
+      expiresAt: new Date(Date.parse(requestedAt) + 7 * 24 * 60 * 60 * 1000).toISOString(),
     }
     mockRequestsStore.push(newReq)
     return newReq
   }
 
-  return await httpPost<SupervisorRequestDto, { supervisorProfileId: number; message?: string }>(
+  return await httpPost<SupervisorRequestDto, { supervisorProfileId: number; message?: string; assignmentType: string; majorId?: number }>(
     `/projects/${projectId}/supervisor-requests`,
-    { supervisorProfileId, message },
+    { supervisorProfileId, message, assignmentType, majorId },
   )
 }
 

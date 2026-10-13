@@ -12,9 +12,9 @@ afterEach(() => { cleanup(); vi.clearAllMocks() })
 const state = (overrides: Record<string, unknown> = {}) => ({
   candidates: [{ id: 4, fullName: 'Dr Nguyen', departmentName: 'SE', bio: null, expertise: [{ name: 'AI' }], activeProjects: 1, remainingSlots: 2, semesterLimit: 5 }],
   requests: [], assignments: [], activeAssignment: null, loading: false, candidateLoading: false, sendRequestPending: false, cancelPending: null, error: null,
-  query: { search: '', expertise: '' }, setQuery: vi.fn(), applyFilters: vi.fn(), refresh: vi.fn(), send: vi.fn().mockResolvedValue(true), cancel: vi.fn(), canSend: true, isLeader: true, ...overrides,
+  query: { search: '', expertise: '' }, setQuery: vi.fn(), applyFilters: vi.fn(), refresh: vi.fn(), send: vi.fn().mockResolvedValue(true), cancel: vi.fn(), canSend: true, canSendMentor: false, missingMentorMajorIds: [], isLeader: true, ...overrides,
 })
-const currentJourney = { project: { id: 9, code: 'P-9', title: 'Project', status: 'Approved' }, team: {}, profile: { id: 2 }, projectActions: {}, refreshAll: vi.fn(), isLoading: false }
+const currentJourney = { project: { id: 9, code: 'P-9', title: 'Project', status: 'Approved', majors: [] }, team: {}, profile: { id: 2 }, projectActions: {}, refreshAll: vi.fn(), isLoading: false }
 
 describe('SupervisorSelectionPage', () => {
   it('renders only project-specific candidates and sends an explicit user-selected request', async () => {
@@ -26,7 +26,7 @@ describe('SupervisorSelectionPage', () => {
     expect(screen.getByText(/Tìm giảng viên phù hợp/)).toBeTruthy()
     fireEvent.click(screen.getByText('Chọn giảng viên'))
     fireEvent.click(screen.getByText('Gửi yêu cầu'))
-    expect(hook.send).toHaveBeenCalledWith(hook.candidates[0], '')
+    expect(hook.send).toHaveBeenCalledWith(hook.candidates[0], '', 'PRIMARY', undefined)
     fireEvent.click(screen.getByText('Lọc danh sách'))
     expect(hook.applyFilters).toHaveBeenCalledTimes(1)
   })
@@ -50,4 +50,16 @@ it('uses the assignment name and formatted dates in request history, without ina
   expect(screen.queryByLabelText('Tìm giảng viên')).toBeNull()
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Giảng viên hướng dẫn')
   expect(screen.queryByText(/Tìm giảng viên phù hợp/)).toBeNull()
+})
+
+it('lets the leader pick which open slot to invite a candidate for when a mentor is also missing', () => {
+  const assignment = { supervisorProfileId: 4, supervisorName: 'Nguyễn Mai', assignedAt: '2026-09-12T09:00:00' }
+  journey.useStudentJourney.mockReturnValue({ ...currentJourney, project: { ...currentJourney.project, majors: [{ majorId: 7, majorCode: 'AI', majorName: 'Trí tuệ nhân tạo' }] } })
+  const hook = state({ activeAssignment: assignment, assignments: [assignment], canSendMentor: true, missingMentorMajorIds: [7] })
+  selection.useSupervisorSelection.mockReturnValue(hook)
+  render(<MemoryRouter><SupervisorSelectionPage /></MemoryRouter>)
+  expect(screen.getByText('Mentor — Trí tuệ nhân tạo')).toBeTruthy()
+  fireEvent.click(screen.getByText('Chọn giảng viên'))
+  fireEvent.click(screen.getByText('Gửi yêu cầu'))
+  expect(hook.send).toHaveBeenCalledWith(hook.candidates[0], '', 'DISCIPLINE_MENTOR', 7)
 })

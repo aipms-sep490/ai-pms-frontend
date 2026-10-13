@@ -21,12 +21,21 @@ describe('supervision API contracts', () => {
     await getAssignments(9, { page: 3, pageSize: 5 })
     await getSupervisorInbox({ status: 'PENDING', page: 2, pageSize: 10 })
     await getOwnAssignments({ page: 2, pageSize: 10 })
-    expect(fetch).toHaveBeenCalledWith('/api/v1/projects/9/supervisor-requests', expect.objectContaining({ method: 'POST', body: JSON.stringify({ supervisorProfileId: 4, message: 'Please supervise' }) }))
+    expect(fetch).toHaveBeenCalledWith('/api/v1/projects/9/supervisor-requests', expect.objectContaining({ method: 'POST', body: JSON.stringify({ supervisorProfileId: 4, message: 'Please supervise', assignmentType: 'PRIMARY' }) }))
     expect(fetch).toHaveBeenCalledWith('/api/v1/projects/9/supervisor-requests?page=2&pageSize=10&status=PENDING', expect.anything())
     expect(fetch).toHaveBeenCalledWith('/api/v1/supervisor-requests/12/cancel', expect.objectContaining({ method: 'POST' }))
     expect(fetch).toHaveBeenCalledWith('/api/v1/projects/9/supervisor-assignments?page=3&pageSize=5', expect.anything())
     expect(fetch).toHaveBeenCalledWith('/api/v1/supervisors/requests?page=2&pageSize=10&status=PENDING', expect.anything())
     expect(fetch).toHaveBeenCalledWith('/api/v1/supervisors/assignments?page=2&pageSize=10', expect.anything())
+  })
+
+  it('serializes a DISCIPLINE_MENTOR request with its major id', async () => {
+    const fetch = vi.fn().mockResolvedValue(ok({}))
+    vi.stubGlobal('fetch', fetch)
+    await sendRequest(9, 4, undefined, 'DISCIPLINE_MENTOR', 7)
+    expect(fetch).toHaveBeenCalledWith('/api/v1/projects/9/supervisor-requests', expect.objectContaining({
+      method: 'POST', body: JSON.stringify({ supervisorProfileId: 4, message: undefined, assignmentType: 'DISCIPLINE_MENTOR', majorId: 7 }),
+    }))
   })
 
   it('sends the optional response message only to the requested supervisor decision route', async () => {

@@ -25,7 +25,7 @@ describe('useSupervisorSelection', () => {
     await waitFor(() => expect(result.current.candidates).toHaveLength(1))
     expect(supervisor.getCandidates).toHaveBeenCalledWith(9, { search: undefined, expertise: undefined })
     await act(async () => { expect(await result.current.send(candidate as never, 'Message')).toBe(true) })
-    expect(supervisor.sendRequest).toHaveBeenCalledWith(9, 4, 'Message')
+    expect(supervisor.sendRequest).toHaveBeenCalledWith(9, 4, 'Message', 'PRIMARY', undefined)
   })
 
   it('keeps draft filters local until the explicit filter action applies them to the project-scoped API', async () => {
@@ -93,5 +93,49 @@ describe('useSupervisorSelection', () => {
     expect(supervisor.cancelRequest).toHaveBeenCalledTimes(1)
     expect(supervisor.getRequests).toHaveBeenCalledTimes(2)
     expect(result.current.error?.message).toContain('Request already processed.')
+  })
+
+  it('derives missingMentorMajorIds from the submit action reasons, not from assignments', async () => {
+    const draftProject = { id: 9, status: 'Draft' }
+    const draftActions = { actions: [{ code: 'send_supervisor_request', allowed: true, reasons: [] }, { code: 'submit_project', allowed: false, reasons: ['SUPERVISOR_NOT_CONFIRMED', 'MENTOR_NOT_CONFIRMED:7', 'MENTOR_NOT_CONFIRMED:9'] }] }
+    const { result } = renderHook(() => useSupervisorSelection({ project: draftProject as never, team: leaderTeam as never, profile: { id: 2 } as never, actions: draftActions as never, refreshAll: vi.fn() }))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.missingMentorMajorIds).toEqual([7, 9])
+    expect(result.current.canSendMentor).toBe(true)
+  })
+
+  it('reads reasons off resubmit_project while the project is in REVISIONREQUIRED', async () => {
+    const revisionProject = { id: 9, status: 'RevisionRequired' }
+    const revisionActions = { actions: [{ code: 'send_supervisor_request', allowed: true, reasons: [] }, { code: 'resubmit_project', allowed: false, reasons: ['MENTOR_NOT_CONFIRMED:3'] }] }
+    const { result } = renderHook(() => useSupervisorSelection({ project: revisionProject as never, team: leaderTeam as never, profile: { id: 2 } as never, actions: revisionActions as never, refreshAll: vi.fn() }))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.missingMentorMajorIds).toEqual([3])
+  })
+
+  it('sends a DISCIPLINE_MENTOR request for a major that still needs one', async () => {
+    const draftProject = { id: 9, status: 'Draft' }
+    const draftActions = { actions: [{ code: 'send_supervisor_request', allowed: true, reasons: [] }, { code: 'submit_project', allowed: false, reasons: ['MENTOR_NOT_CONFIRMED:7'] }] }
+    const refreshAll = vi.fn().mockResolvedValue(undefined)
+    const { result } = renderHook(() => useSupervisorSelection({ project: draftProject as never, team: leaderTeam as never, profile: { id: 2 } as never, actions: draftActions as never, refreshAll }))
+    await waitFor(() => expect(result.current.candidates).toHaveLength(1))
+    await act(async () => { expect(await result.current.send(candidate as never, undefined, 'DISCIPLINE_MENTOR', 7)).toBe(true) })
+    expect(supervisor.sendRequest).toHaveBeenCalledWith(9, 4, undefined, 'DISCIPLINE_MENTOR', 7)
+  })
+
+  it('refuses a mentor request for a major the backend did not flag as missing', async () => {
+    const draftProject = { id: 9, status: 'Draft' }
+    const draftActions = { actions: [{ code: 'send_supervisor_request', allowed: true, reasons: [] }, { code: 'submit_project', allowed: false, reasons: ['MENTOR_NOT_CONFIRMED:7'] }] }
+    const { result } = renderHook(() => useSupervisorSelection({ project: draftProject as never, team: leaderTeam as never, profile: { id: 2 } as never, actions: draftActions as never, refreshAll: vi.fn() }))
+    await waitFor(() => expect(result.current.candidates).toHaveLength(1))
+    await act(async () => { expect(await result.current.send(candidate as never, undefined, 'DISCIPLINE_MENTOR', 99)).toBe(false) })
+    expect(supervisor.sendRequest).not.toHaveBeenCalled()
+  })
+
+  it('still loads mentor candidates once a primary assignment already exists', async () => {
+    supervisor.getAssignments.mockResolvedValue({ items: [{ id: 3, projectId: 9, isPrimary: true, assignedAt: '2026-09-15' }] })
+    const draftActions = { actions: [{ code: 'send_supervisor_request', allowed: true, reasons: [] }, { code: 'submit_project', allowed: false, reasons: ['MENTOR_NOT_CONFIRMED:7'] }] }
+    const { result } = renderHook(() => useSupervisorSelection({ project: project as never, team: leaderTeam as never, profile: { id: 2 } as never, actions: draftActions as never, refreshAll: vi.fn() }))
+    await waitFor(() => expect(result.current.candidates).toHaveLength(1))
+    expect(result.current.activeAssignment).toBeTruthy()
   })
 })
