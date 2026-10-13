@@ -32,7 +32,6 @@
 .admin-panel :is(h2,h3) { font-weight:650; font-size:16px; line-height:1.4; }
 .admin-panel-heading p { margin-top:8px; }
 .admin-panel[aria-labelledby=system-status-title] > p { margin:12px 0; }
-.admin-table-wrap td .admin-status { display:inline-flex; color:inherit; }
 
 /* Flat administration: summaries and forms share a surface instead of nested boxes. */
 .admin-workspace > .admin-panel { border:0; border-radius:0; padding:28px; box-shadow:none; }

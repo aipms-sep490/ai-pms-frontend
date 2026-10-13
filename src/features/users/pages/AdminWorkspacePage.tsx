@@ -1,5 +1,8 @@
 import { displayLabel } from '../../../components/ui/display-label'
 import { ListLoading } from '../../../components/ui/ListLoading'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import type { BadgeTone } from '../../../components/ui/status-badge-tone'
+import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from '../../../components/ui/Table'
 import { AcademicScopeFields } from '../../academic/components/AcademicScopeFields'
 import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -68,7 +71,26 @@ export function AdminWorkspacePage() {
       </form>
       {admin.users.state === 'loading' ? <ListLoading label="Đang tải danh sách tài khoản…" /> : null}
       {admin.users.state === 'error' ? <Failure message={admin.isForbidden(admin.users) ? 'Bạn không có quyền quản trị tài khoản.' : 'Chưa tải được danh sách tài khoản.'} retry={admin.refresh} /> : null}
-      {admin.users.state === 'ready' ? <div className="admin-table-wrap"><table><thead><tr><th>Người dùng</th><th>Vai trò hệ thống</th><th>Trạng thái</th><th>Phạm vi học thuật</th><th aria-label="Thao tác" /></tr></thead><tbody>{admin.users.value.items.map((user) => <tr key={user.id}><td><strong>{user.fullName}</strong><span>{user.email}</span><small>{user.studentCode ?? user.employeeCode ?? 'Không có mã'}</small></td><td>{user.roles.filter((role) => globalRoles.some((globalRole) => globalRole.code === role)).map(role => role === 'LECTURER' ? 'Giảng viên' : role === 'EVALUATOR' ? 'Người chấm' : displayLabel(role)).join(', ') || 'Chưa gán'}</td><td><Status status={user.status} /></td><td>{user.departmentId ? `Bộ môn #${user.departmentId}` : '—'}{user.majorId ? ` · Ngành #${user.majorId}` : ''}</td><td><Link to={`/admin/access/users/${user.id}`} state={{ returnTo: `/admin/access?${params.toString()}` }}>Xem chi tiết</Link></td></tr>)}</tbody></table></div> : null}
+      {admin.users.state === 'ready' ? <Table stack>
+        <TableHead>
+          <TableRow head>
+            <TableHeaderCell>Người dùng</TableHeaderCell>
+            <TableHeaderCell>Vai trò hệ thống</TableHeaderCell>
+            <TableHeaderCell>Trạng thái</TableHeaderCell>
+            <TableHeaderCell>Phạm vi học thuật</TableHeaderCell>
+            <TableHeaderCell aria-label="Thao tác" />
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {admin.users.value.items.map((user) => <TableRow key={user.id}>
+            <TableCell label="Người dùng"><div className="flex flex-col"><strong>{user.fullName}</strong><span>{user.email}</span><small className="text-ink-muted">{user.studentCode ?? user.employeeCode ?? 'Không có mã'}</small></div></TableCell>
+            <TableCell label="Vai trò hệ thống">{user.roles.filter((role) => globalRoles.some((globalRole) => globalRole.code === role)).map(role => role === 'LECTURER' ? 'Giảng viên' : role === 'EVALUATOR' ? 'Người chấm' : displayLabel(role)).join(', ') || 'Chưa gán'}</TableCell>
+            <TableCell label="Trạng thái"><Status status={user.status} /></TableCell>
+            <TableCell label="Phạm vi học thuật">{user.departmentId ? `Bộ môn #${user.departmentId}` : '—'}{user.majorId ? ` · Ngành #${user.majorId}` : ''}</TableCell>
+            <TableCell label="Thao tác"><Link to={`/admin/access/users/${user.id}`} state={{ returnTo: `/admin/access?${params.toString()}` }}>Xem chi tiết</Link></TableCell>
+          </TableRow>)}
+        </TableBody>
+      </Table> : null}
       {admin.users.state === 'ready' && !admin.users.value.items.length ? <p>Không có tài khoản phù hợp với bộ lọc hiện tại.</p> : null}
       {admin.users.state === 'ready' && <Pagination page={admin.users.value.page} pageSize={admin.users.value.pageSize} total={admin.users.value.totalCount} onPage={(next) => setFilter({ page: String(next) })} />}
       <details className="admin-disclosure"><summary>Tạo tài khoản</summary><form className="admin-form" onSubmit={submitCreate}><fieldset className="admin-create-fields" disabled={busy}><label>Họ tên<input name="fullName" required /></label><label>Email<input name="email" type="email" required /></label><label>Mật khẩu ban đầu<input name="password" type="password" minLength={8} required autoComplete="new-password" /></label><label>Mã sinh viên<input name="studentCode" /></label><label>Mã nhân sự<input name="employeeCode" /></label><AcademicScopeFields {...accountScope} onChange={setAccountScope} /><fieldset><legend>Vai trò hệ thống</legend>{globalRoles.map((role) => <label key={role.id} className="admin-choice"><input name="roleIds" type="checkbox" value={role.id} />{role.code === 'LECTURER' ? 'Giảng viên' : displayLabel(role.code)}</label>)}</fieldset><p className="admin-boundary">Vai trò trưởng nhóm, giảng viên hướng dẫn và người chấm được quản lý theo từng đồ án.</p><Button type="submit" disabled={busy}>{busy ? 'Đang tạo…' : 'Tạo tài khoản'}</Button></fieldset></form></details>
@@ -82,7 +104,8 @@ export function AdminWorkspacePage() {
 }
 
 function Fact({ label, value }: { label: string; value: string }) { return <div><span>{label}</span><strong>{value}</strong></div> }
-function Status({ status }: { status: UserAccount['status'] }) { const label = { ACTIVE: 'Đang hoạt động', INACTIVE: 'Ngừng hoạt động', SUSPENDED: 'Đang khóa' }[status]; return <span className={`admin-status admin-status-${status.toLowerCase()}`}>{label}</span> }
+const statusTone: Record<UserAccount['status'], BadgeTone> = { ACTIVE: 'success', INACTIVE: 'neutral', SUSPENDED: 'danger' }
+function Status({ status }: { status: UserAccount['status'] }) { const label = { ACTIVE: 'Đang hoạt động', INACTIVE: 'Ngừng hoạt động', SUSPENDED: 'Đang khóa' }[status]; return <StatusBadge tone={statusTone[status]} label={label} /> }
 function Failure({ message, retry }: { message: string; retry: () => void }) { return <p className="admin-error" role="alert">{message} <Button size="sm" variant="outline" onClick={retry}>Thử lại</Button></p> }
 function Pagination({ page, pageSize, total, onPage }: { page: number; pageSize: number; total: number; onPage: (page: number) => void }) { const pages = Math.max(1, Math.ceil(total / pageSize)); return <div className="admin-pagination"><span>Trang {page}/{pages} · {total} kết quả</span><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => onPage(page - 1)}>Trang trước</Button><Button size="sm" variant="outline" disabled={page >= pages} onClick={() => onPage(page + 1)}>Trang sau</Button></div> }
 
