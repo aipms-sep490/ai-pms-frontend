@@ -50,7 +50,7 @@ export function RevisionAlert({
         <span className="text-xs font-bold uppercase tracking-wider text-amber-900 block mb-1">
           Nội dung thẩm định từ {reviewerName || 'Hội đồng Khoa CNTT'}:
         </span>
-        <p className="text-xs text-slate-800 leading-relaxed font-medium">
+        <p className="text-xs text-ink-soft leading-relaxed font-medium">
           "{reason || 'Chưa có nội dung nhận xét.'}"
         </p>
         {displayDate && (
