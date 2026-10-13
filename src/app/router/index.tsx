@@ -1,91 +1,37 @@
-import { MilestoneTemplatesPage } from '../../features/milestones/MilestoneTemplatesPage'
-import { WorkflowPreviewPage } from '../../features/workflow-preview/WorkflowPreviewPage'
-import { ProfileVerificationsPage } from '../../features/academic/pages/ProfileVerificationsPage'
 import { createBrowserRouter } from 'react-router-dom'
 import { RouteFrame } from './RouteFrame'
 import { AppLayout } from '../layouts/AppLayout'
 import { HomeRedirect, RoleRoute } from '../../features/auth/components/RoleRoute'
-import { LecturerWorkspacePage } from '../../features/supervisors/pages/LecturerWorkspacePage'
-import { SupervisorProfilePage } from '../../features/supervisors/pages/SupervisorProfilePage'
-import { SupervisorProjectWorkspacePage } from '../../features/supervisors/pages/SupervisorProjectWorkspacePage'
-import { SupervisorProgressReviewPage } from '../../features/supervisors/pages/SupervisorProgressReviewPage'
-import { SupervisorFinalSubmissionPage } from '../../features/supervisors/pages/SupervisorFinalSubmissionPage'
-import { WeeklyAssessmentsPage } from '../../features/weekly-assessments/WeeklyAssessmentsPage'
 import { SupervisorExecutionRoute } from '../../features/supervisors/components/SupervisorExecutionRoute'
 import { MentorExecutionRoute } from '../../features/mentors/components/MentorExecutionRoute'
-import { MentorProjectWorkspacePage, MentorWorkspacePage } from '../../features/mentors/pages/MentorWorkspacePage'
-import { OverviewPage } from '../pages/OverviewPage'
-import { ActiveProjectWorkspacePage } from '../../features/projects/pages/ActiveProjectWorkspacePage'
 import { ActiveStudentProjectRoute } from '../../features/projects/components/ActiveStudentProjectRoute'
-import { TaskBoardPage } from '../../features/tasks/pages/TaskBoardPage'
-import { TaskDetailPage } from '../../features/tasks/pages/TaskDetailPage'
-import { ProgressReportsPage } from '../../features/reports/ProgressReportsPage'
-import { MeetingsPage } from '../../features/meetings/MeetingsPage'
-import { CreateMeetingPage } from '../../features/meetings/CreateMeetingPage'
-import { MeetingDetailPage } from '../../features/meetings/MeetingDetailPage'
-import { MeetingVideoRoomPage } from '../../features/meetings/video/MeetingVideoRoomPage'
-import { ProgressReportDetailPage } from '../../features/reports/ProgressReportDetailPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
-import { ProjectLifecyclePage } from '../../features/projects/pages/ProjectLifecyclePage'
-import { MilestoneDetailPage } from '../../features/milestones/pages/MilestoneDetailPage'
-import { GanttPage } from '../../features/progress/pages/GanttPage'
-import { TeamManagementPage } from '../../features/teams/pages/TeamManagementPage'
-import { TopicCataloguePage } from '../../features/projects/pages/TopicCataloguePage'
-import { ProjectRegistrationFormPage } from '../../features/projects/pages/ProjectRegistrationFormPage'
-import { ProjectReviewStatusPage } from '../../features/projects/pages/ProjectReviewStatusPage'
-import { SupervisorSelectionPage } from '../../features/supervisors/pages/SupervisorSelectionPage'
-import { LoginPage } from '../../features/auth/pages/LoginPage'
-import { ForgotPasswordPage, ProfileSecurityPage, ResetPasswordPage } from '../../features/auth/pages/SelfServicePages'
-import { ProfilePage } from '../../features/auth/pages/ProfilePage'
-import { AcademicStructurePage } from '../../features/academic/pages/AcademicStructurePage'
-import { AcademicGovernancePage } from '../../features/academic/pages/AcademicGovernancePage'
-import { PeriodPolicyManagementPage } from '../../features/academic/pages/PeriodPolicyManagementPage'
-import { AdminWorkspacePage } from '../../features/users/pages/AdminWorkspacePage'
-import { AdminRbacPage } from '../../features/users/pages/AdminRbacPage'
-import { AdminUserDetailPage } from '../../features/users/pages/AdminUserDetailPage'
-import { ProjectReviewPage } from '../../features/projects/pages/ProjectReviewPage'
-import { ProjectGovernancePage } from '../../features/projects/pages/ProjectGovernancePage'
-import { SupervisorMonitoringPage } from '../../features/supervisors/pages/SupervisorMonitoringPage'
-import { TopicManagementPage } from '../../features/topics/pages/TopicManagementPage'
-import { ColdTemplateManagementPage } from '../../features/cold-templates/ColdTemplateManagementPage'
-import { RegistrationSourcePage } from '../../features/registration/pages/RegistrationSourcePage'
-import { QualificationVerificationPage } from '../../features/qualifications/pages/QualificationVerificationPage'
-import { DeliverablesPage } from '../../features/deliverables/DeliverablesPage'
-import { EvaluatorAssignmentsPage } from '../../features/evaluations/EvaluatorAssignmentsPage'
-import { EvaluationWorkspacePage } from '../../features/evaluations/EvaluationWorkspacePage'
 import { EvaluatorAssignmentRoute } from '../../features/evaluations/components/EvaluatorAssignmentRoute'
-import { EvaluatorAssignmentDetailPage } from '../../features/evaluations/pages/EvaluatorAssignmentDetailPage'
-import { EvaluatorWorkspacePage } from '../../features/evaluations/pages/EvaluatorWorkspacePage'
-import { ResultPublicationPage } from '../../features/results/ResultPublicationPage'
 import { ProtectedRoute } from '../../features/auth/components/ProtectedRoute'
-import { NotificationsPage } from '../../features/notifications/NotificationsPage'
-import { PortfolioDashboardPage } from '../../features/dashboard/pages/PortfolioDashboardPage'
-import { SupervisorDashboardPage } from '../../features/dashboard/pages/SupervisorDashboardPage'
-import { FinalRequirementsPage, FinalSubmissionViewerPage, StudentFinalSubmissionPage } from '../../features/final-submission/FinalSubmissionPage'
-import { RubricManagementPage } from '../../features/evaluations/RubricManagementPage'
-import { EvaluatorAssignmentManagementPage } from '../../features/evaluations/EvaluatorAssignmentManagementPage'
-import { EvaluationSchemeManagementPage } from '../../features/evaluations/EvaluationSchemeManagementPage'
-import { AdminEvaluationLayout } from '../../features/evaluations/AdminEvaluationLayout'
-import { StudentProjectResultPage } from '../../features/results/StudentProjectResultPage'
-import { ProjectContributionsPage } from '../../features/contributions/ProjectContributionsPage'
-import { ProjectFilesPage } from '../../features/files/ProjectFilesPage'
-import { ProjectEvidenceLedgerPage } from '../../features/evidence/ProjectEvidenceLedger'
-import { ProjectAiPage } from '../../features/ai/ProjectAiPage'
-import { ProjectGatesPage } from '../../features/gates/ProjectGatesPage'
-import { ProjectWorkingAgreementPage } from '../../features/working-agreement/ProjectWorkingAgreementPage'
-import { ProjectDefensePage } from '../../features/defense/ProjectDefensePage'
-import { ProjectPeerEvaluationPage } from '../../features/peer-eval/ProjectPeerEvaluationPage'
-import { ColdChecklistPage } from '../../features/cold-reports/ColdChecklistPage'
-import { DepartmentProjectRiskPage } from '../../features/ai/DepartmentProjectRiskPage'
-import { DepartmentWorkspacePage } from '../../features/department/pages/DepartmentWorkspacePage'
-import { DepartmentProjectLayout } from '../../features/department/components/DepartmentProjectLayout'
-import { DepartmentAcademicScopeRoute } from '../../features/department/components/DepartmentAcademicScopeRoute'
-import { ArchivedProjectsPage } from '../../features/projects/pages/ArchivedProjectsPage'
-import { ProjectArchiveViewPage } from '../../features/projects/pages/ProjectArchiveViewPage'
-import { CalendarAttentionPage } from '../../features/calendar/CalendarAttentionPage'
 import { AcademicWorkflowGate, StudentJourneyProvider } from '../context'
 import { env } from '../config/env'
+import { DepartmentProjectLayout } from '../../features/department/components/DepartmentProjectLayout'
+import { DepartmentAcademicScopeRoute } from '../../features/department/components/DepartmentAcademicScopeRoute'
+import { AdminEvaluationLayout } from '../../features/evaluations/AdminEvaluationLayout'
 import { ChatPage } from '../../features/chat/ChatPage'
+import {
+  MilestoneTemplatesPage, WorkflowPreviewPage, ProfileVerificationsPage, LecturerWorkspacePage, SupervisorProfilePage,
+  SupervisorProjectWorkspacePage, SupervisorProgressReviewPage, SupervisorFinalSubmissionPage, WeeklyAssessmentsPage,
+  MentorProjectWorkspacePage, MentorWorkspacePage, OverviewPage, ActiveProjectWorkspacePage, TaskBoardPage, TaskDetailPage,
+  ProgressReportsPage, MeetingsPage, CreateMeetingPage, MeetingDetailPage, MeetingVideoRoomPage, ProgressReportDetailPage,
+  ProjectLifecyclePage, MilestoneDetailPage, GanttPage, TeamManagementPage, TopicCataloguePage, ProjectRegistrationFormPage,
+  ProjectReviewStatusPage, SupervisorSelectionPage, LoginPage, ForgotPasswordPage, ProfileSecurityPage, ResetPasswordPage,
+  ProfilePage, AcademicStructurePage, AcademicGovernancePage, PeriodPolicyManagementPage, AdminWorkspacePage, AdminRbacPage,
+  AdminUserDetailPage, ProjectReviewPage, ProjectGovernancePage, SupervisorMonitoringPage, TopicManagementPage,
+  ColdTemplateManagementPage, RegistrationSourcePage, QualificationVerificationPage, DeliverablesPage,
+  EvaluatorAssignmentsPage, EvaluationWorkspacePage, EvaluatorAssignmentDetailPage, EvaluatorWorkspacePage,
+  ResultPublicationPage, NotificationsPage, PortfolioDashboardPage, SupervisorDashboardPage, FinalRequirementsPage,
+  FinalSubmissionViewerPage, StudentFinalSubmissionPage, RubricManagementPage, EvaluatorAssignmentManagementPage,
+  EvaluationSchemeManagementPage, StudentProjectResultPage, ProjectContributionsPage, ProjectFilesPage,
+  ProjectEvidenceLedgerPage, ProjectAiPage, ProjectGatesPage, ProjectWorkingAgreementPage, ProjectDefensePage,
+  ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, ArchivedProjectsPage,
+  ProjectArchiveViewPage, CalendarAttentionPage,
+} from './lazy-pages'
 
 export const appRouter = createBrowserRouter([{ element: <RouteFrame />, children: [
   { path: 'login', element: <LoginPage /> },
@@ -266,4 +212,3 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
     ],
   },
 ]}])
-
