@@ -9,7 +9,7 @@ vi.mock('../../../app/context', () => journey)
 vi.mock('../hooks/useProjectRegistration', () => registration)
 
 const project = (status: string) => ({ id: 9, code: 'P-9', teamName: 'Team 4', title: 'Project', status })
-const state = (status: string) => ({ status, canEdit: status === 'DRAFT' || status === 'REVISIONREQUIRED', latestRevision: status === 'REVISIONREQUIRED' ? { reason: 'Clarify scope', changedByName: 'Staff', changedAt: '2026-09-15' } : null, error: null, history: [], historyLoading: false, loadHistory: vi.fn() })
+const state = (status: string) => ({ status, canEdit: status === 'DRAFT' || status === 'REVISIONREQUIRED', latestRevision: status === 'REVISIONREQUIRED' ? { reason: 'Clarify scope', changedByName: 'Staff', changedAt: '2026-09-15' } : null, error: null, history: [], historyLoading: false, loadHistory: vi.fn(), submitReasons: [] })
 
 describe('ProjectReviewStatusPage', () => {
   afterEach(cleanup)

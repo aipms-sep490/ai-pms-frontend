@@ -1,6 +1,7 @@
 import { useEffect, useRef, type FormEvent, type RefObject } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useStudentJourney } from '../../../app/context'
+import { RegistrationReadinessChecklist } from '../components/RegistrationReadinessChecklist'
 import { RevisionAlert } from '../components/RevisionAlert'
 import { normalizeProjectStatus, useProjectRegistration, type ProjectRegistrationField } from '../hooks/useProjectRegistration'
 import { projectStatusLabel } from '../utils/project-status'
@@ -86,6 +87,7 @@ export function ProjectRegistrationFormPage() {
           <TextField id="project-keywords" label="Từ khóa" hint="Phân cách bằng dấu phẩy" value={registration.form.keywords} disabled={!editable} error={registration.error?.fields?.keywords} onChange={(value) => registration.setField('keywords', value)} />
         </div>
         {registration.error && registration.error.kind !== 'validation' && <ErrorMessage kind={registration.error.kind} message={registration.error.message} onRetry={registration.error.kind === 'system' ? () => void journey.refreshAll() : undefined} />}
+        {hasProject && <RegistrationReadinessChecklist reasons={registration.submitReasons} />}
         <footer className="flex flex-col justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center">
           <button type="button" onClick={() => void save()} disabled={!registration.canEdit || registration.creating || registration.saving || submitting} className="rounded-md border border-slate-300 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
             {registration.creating ? 'Đang tạo nháp...' : registration.saving ? 'Đang lưu...' : hasProject ? 'Lưu thay đổi' : 'Tạo bản nháp'}
