@@ -43,13 +43,13 @@ export function UpdateTeamModal({ isOpen, team, onClose, onSubmit, isPending }: 
   return (
     <Modal open={isOpen} title="Cập nhật thông tin nhóm" description={`Mã nhóm ${team.code} không thể thay đổi.`} busy={isPending} onClose={onClose}>
         <form onSubmit={submit} className="flex flex-col gap-4">
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+          <label className="text-xs font-bold uppercase tracking-wider text-ink-soft">
             Tên nhóm *
-            <input autoFocus disabled={isPending} value={name} onChange={(event) => setName(event.target.value)} className="mt-1.5 w-full rounded-md border border-slate-300 px-3.5 py-2.5 text-sm font-normal normal-case tracking-normal" />
+            <input autoFocus disabled={isPending} value={name} onChange={(event) => setName(event.target.value)} className="mt-1.5 w-full rounded-md border border-line-strong px-3.5 py-2.5 text-sm font-normal normal-case tracking-normal" />
           </label>
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+          <label className="text-xs font-bold uppercase tracking-wider text-ink-soft">
             Mô tả
-            <textarea disabled={isPending} value={description} onChange={(event) => setDescription(event.target.value)} rows={3} className="mt-1.5 w-full rounded-md border border-slate-300 px-3.5 py-2.5 text-sm font-normal normal-case tracking-normal" />
+            <textarea disabled={isPending} value={description} onChange={(event) => setDescription(event.target.value)} rows={3} className="mt-1.5 w-full rounded-md border border-line-strong px-3.5 py-2.5 text-sm font-normal normal-case tracking-normal" />
           </label>
           {error && <p className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs font-medium text-rose-700">{error}</p>}
           <div className="flex justify-end gap-3 pt-2">

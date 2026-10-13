@@ -43,8 +43,8 @@ export function TeamRosterTable({
     <div className="overflow-hidden rounded-md border border-hairline bg-card">
       <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
         <div>
-          <h3 className="text-base font-semibold text-slate-900">Thành viên nhóm</h3>
-          <p className="mt-0.5 text-xs text-slate-500">
+          <h3 className="text-base font-semibold text-ink">Thành viên nhóm</h3>
+          <p className="mt-0.5 text-xs text-ink-muted">
             {members.length} thành viên
           </p>
         </div>
@@ -52,7 +52,7 @@ export function TeamRosterTable({
           <button
             type="button"
             onClick={onOpenTransferLeader}
-            className="flex items-center gap-1.5 rounded-lg border border-hairline px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+            className="flex items-center gap-1.5 rounded-lg border border-hairline px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:bg-canvas"
           >
             <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
             Chuyển quyền Trưởng nhóm
@@ -76,20 +76,20 @@ export function TeamRosterTable({
 
             return (
               <TableRow key={member.userId} className={isSelf ? 'bg-status-success-bg/40' : ''}>
-                <TableCell label="Thành viên" className="font-medium text-slate-900">
+                <TableCell label="Thành viên" className="font-medium text-ink">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full border border-hairline bg-slate-100 text-xs font-bold text-slate-600">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full border border-hairline bg-slate-100 text-xs font-bold text-ink-muted">
                       {member.fullName.charAt(0)}
                     </div>
                     <div>
                       <span>{member.fullName}</span>
                       {isSelf && <span className="ml-1.5 text-xs font-semibold text-primary">(Bạn)</span>}
-                      {isSelf && currentUserStudentCode && <span className="block text-xs text-slate-500">{currentUserStudentCode}</span>}
+                      {isSelf && currentUserStudentCode && <span className="block text-xs text-ink-muted">{currentUserStudentCode}</span>}
                     </div>
                   </div>
                 </TableCell>
                 <TableCell label="Chuyên ngành">
-                  <span className="inline-flex rounded-md border border-hairline bg-slate-50 px-2 py-0.5 font-mono text-xs font-semibold text-slate-700">
+                  <span className="inline-flex rounded-md border border-hairline bg-canvas px-2 py-0.5 font-mono text-xs font-semibold text-ink-soft">
                     {member.majorId && majorNames[member.majorId] ? majorNames[member.majorId] : 'Chưa có thông tin'}
                   </span>
                 </TableCell>
@@ -134,7 +134,7 @@ export function TeamRosterTable({
                             <button
                               type="button"
                               onClick={() => setConfirmKickId(null)}
-                              className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600 hover:bg-slate-200"
+                              className="rounded bg-slate-100 px-2 py-1 text-xs text-ink-muted hover:bg-slate-200"
                             >
                               Hủy
                             </button>

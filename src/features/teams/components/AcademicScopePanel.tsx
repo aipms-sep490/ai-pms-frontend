@@ -86,13 +86,13 @@ export function AcademicScopePanel({
   }
 
   return (
-    <section className="rounded-md border border-slate-200 bg-white p-5 ">
+    <section className="rounded-md border border-hairline bg-card p-5 ">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-900">Chế độ và phạm vi ngành</h3>
-          <p className="mt-1 text-xs text-slate-500">Chọn hình thức đồ án và các ngành tham gia để tìm thành viên phù hợp.</p>
+          <h3 className="text-sm font-bold text-ink">Chế độ và phạm vi ngành</h3>
+          <p className="mt-1 text-xs text-ink-muted">Chọn hình thức đồ án và các ngành tham gia để tìm thành viên phù hợp.</p>
         </div>
-        {scope && <span className="rounded bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600">ĐÃ CẤU HÌNH</span>}
+        {scope && <span className="rounded bg-slate-100 px-2 py-1 text-xs font-bold text-ink-muted">ĐÃ CẤU HÌNH</span>}
       </div>
 
       {canConfigure && (
@@ -102,14 +102,14 @@ export function AcademicScopePanel({
               <button key={value} type="button" onClick={() => {
                 setMode(value)
                 if (value === 'SINGLE_MAJOR') setSelectedIds(myMajorId ? [myMajorId] : selectedIds.slice(0, 1))
-              }} className={`rounded-lg px-3 py-2 text-xs font-bold ${mode === value ? 'bg-primary text-white shadow-[0_2px_8px_-2px_rgba(15,91,78,0.25)]' : 'bg-slate-100 text-slate-600'}`}>
+              }} className={`rounded-lg px-3 py-2 text-xs font-bold ${mode === value ? 'bg-primary text-white shadow-[0_2px_8px_-2px_rgba(15,91,78,0.25)]' : 'bg-slate-100 text-ink-muted'}`}>
                 {value === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành'}
               </button>
             ))}
           </div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {majors.map((major) => (
-              <label key={major.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 p-3 text-xs">
+              <label key={major.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-hairline p-3 text-xs">
                 <input type={mode === 'SINGLE_MAJOR' ? 'radio' : 'checkbox'} name="academic-major"
                   checked={selectedIds.includes(major.id)} onChange={() => toggleMajor(major.id)} />
                 <span><strong>{major.code}</strong> — {major.name}</span>
@@ -124,7 +124,7 @@ export function AcademicScopePanel({
         </div>
       )}
       {!canConfigure && scope && (
-        <p className="mt-3 text-xs text-slate-600">
+        <p className="mt-3 text-xs text-ink-muted">
           {scope.projectMode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành'} · {scope.requirements.length} ngành tham gia
         </p>
       )}

@@ -29,11 +29,11 @@ export function TeamEligibilitySummary({
             <span className="material-symbols-outlined">{pass ? 'verified' : 'warning'}</span>
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-500">Điều kiện đăng ký</p>
+            <p className="text-xs font-medium text-ink-muted">Điều kiện đăng ký</p>
             <h3 className={`mt-0.5 text-base font-bold ${pass ? 'text-emerald-950' : 'text-amber-950'}`}>
               {pass ? 'Nhóm đủ điều kiện đăng ký' : 'Nhóm cần hoàn thiện điều kiện đăng ký'}
             </h3>
-            <p className="mt-1 text-xs text-slate-600">
+            <p className="mt-1 text-xs text-ink-muted">
               Kiểm tra các điều kiện bên dưới trước khi đăng ký đề tài.
             </p>
           </div>
@@ -55,15 +55,15 @@ export function TeamEligibilitySummary({
 
       <div className="mt-5 grid gap-3 md:grid-cols-2">
         <div className="py-3">
-          <p className="text-xs font-medium text-slate-500">Hình thức đồ án</p>
-          <p className="mt-1 text-sm font-medium text-slate-900">{eligibility.mode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành'}</p>
+          <p className="text-xs font-medium text-ink-muted">Hình thức đồ án</p>
+          <p className="mt-1 text-sm font-medium text-ink">{eligibility.mode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành'}</p>
           {eligibility.mode === 'SINGLE_MAJOR' && (
-            <p className="mt-1 text-xs text-slate-600">Các thành viên cần thuộc ngành đăng ký của nhóm.</p>
+            <p className="mt-1 text-xs text-ink-muted">Các thành viên cần thuộc ngành đăng ký của nhóm.</p>
           )}
         </div>
         <div className="py-3">
-          <p className="text-xs font-medium text-slate-500">Thành viên được kiểm tra</p>
-          <ul className="mt-1 space-y-1 text-xs text-slate-700">
+          <p className="text-xs font-medium text-ink-muted">Thành viên được kiểm tra</p>
+          <ul className="mt-1 space-y-1 text-xs text-ink-soft">
             {eligibility.members.map((member) => <li key={member.userId}>{member.fullName}</li>)}
           </ul>
         </div>
@@ -71,13 +71,13 @@ export function TeamEligibilitySummary({
 
       {eligibility.requirements.length > 0 && (
         <div className="mt-4">
-          <h4 className="text-xs font-medium text-slate-600">Yêu cầu thành viên theo ngành</h4>
+          <h4 className="text-xs font-medium text-ink-muted">Yêu cầu thành viên theo ngành</h4>
           <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {eligibility.requirements.map((requirement) => (
-              <div key={requirement.majorId} className="border-b border-slate-200 py-3 text-xs">
-                <p className="font-medium text-slate-900">{majorNames[requirement.majorId] ?? 'Chưa có thông tin ngành'}</p>
-                <p className="mt-1 text-slate-600">{requirement.minMembers}–{requirement.maxMembers} thành viên</p>
-                <p className="mt-1 text-slate-600">Vai trò: {requirement.responsibility}</p>
+              <div key={requirement.majorId} className="border-b border-hairline py-3 text-xs">
+                <p className="font-medium text-ink">{majorNames[requirement.majorId] ?? 'Chưa có thông tin ngành'}</p>
+                <p className="mt-1 text-ink-muted">{requirement.minMembers}–{requirement.maxMembers} thành viên</p>
+                <p className="mt-1 text-ink-muted">Vai trò: {requirement.responsibility}</p>
                 <p className={`mt-2 font-semibold ${requirement.status === 'FAIL' ? 'text-rose-700' : 'text-emerald-700'}`}>
                   {requirement.status === 'FAIL' ? 'Chưa đạt yêu cầu về sĩ số' : 'Không có vi phạm về sĩ số'}
                 </p>
@@ -89,12 +89,12 @@ export function TeamEligibilitySummary({
 
       {!pass && (
         <div className="mt-4">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600">Điều kiện cần xử lý</h4>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted">Điều kiện cần xử lý</h4>
           <div className="mt-2 grid gap-2 md:grid-cols-2">
             {eligibility.issues.map((issue) => (
               <div key={issue.code} className="border-b border-amber-200 py-3">
                 <p className="text-xs font-bold text-amber-950">{issue.title}</p>
-                <p className="mt-1 text-xs text-slate-700">{issue.detail}</p>
+                <p className="mt-1 text-xs text-ink-soft">{issue.detail}</p>
                 <p className="mt-1.5 text-xs font-medium text-amber-900">Tiếp theo: {issue.recovery}</p>
               </div>
             ))}
@@ -102,7 +102,7 @@ export function TeamEligibilitySummary({
         </div>
       )}
 
-      <div className="mt-4 flex flex-col gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-4 flex flex-col gap-2 border-t border-hairline pt-4 sm:flex-row sm:items-center sm:justify-between">
         {pass && canContinueToRegistration && (
           <button type="button" onClick={onContinueToRegistration} className="shrink-0 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-700">
             Tiếp tục đăng ký đề tài
