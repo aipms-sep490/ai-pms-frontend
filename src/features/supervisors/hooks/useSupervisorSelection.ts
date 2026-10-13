@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { isActionAllowed, type ProjectDto, type ProjectWorkflowActionsDto, type SupervisorAssignmentDto, type SupervisorCandidateDto, type SupervisorRequestDto, type TeamDto, type UserAccountDto } from '../../../types/backend'
+import { getActionReasons, isActionAllowed, type ProjectDto, type ProjectWorkflowActionsDto, type SupervisorAssignmentDto, type SupervisorCandidateDto, type SupervisorRequestDto, type TeamDto, type UserAccountDto } from '../../../types/backend'
 import { HttpError } from '../../../services/http/http-client'
 import { services } from '../../../services/service-gateway'
+import { normalizeProjectStatus } from '../../projects/hooks/useProjectRegistration'
 import { getActivePrimaryAssignment } from '../../projects/utils/project-resolution.utils'
+
+export type SupervisorAssignmentType = 'PRIMARY' | 'DISCIPLINE_MENTOR'
 
 export type SupervisionErrorKind = 'authentication' | 'forbidden' | 'not-found' | 'conflict' | 'validation' | 'system'
 export interface SupervisionError { kind: SupervisionErrorKind; message: string }
@@ -34,8 +37,18 @@ export function useSupervisorSelection({
   const appliedQuery = useRef({ search: '', expertise: '' })
 
   const isLeader = Boolean(team?.members.some((member) => member.userId === profile?.id && member.isLeader))
-  const canSend = isActionAllowed(actions?.actions ?? [], 'send_supervisor_request')
+  const canSendAction = isActionAllowed(actions?.actions ?? [], 'send_supervisor_request')
   const activeAssignment = useMemo(() => getActivePrimaryAssignment(assignments), [assignments])
+  /** Mirrors A1's readiness checklist: the submit/resubmit action's reasons already name
+   * exactly which required majors still lack a confirmed Mentor — BE is the source of truth,
+   * the FE never re-derives this from assignments itself. */
+  const missingMentorMajorIds = useMemo(() => {
+    const relevantAction = project?.status && normalizeProjectStatus(project.status) === 'REVISIONREQUIRED' ? 'resubmit_project' : 'submit_project'
+    return getActionReasons(actions?.actions ?? [], relevantAction)
+      .filter((reason) => reason.startsWith('MENTOR_NOT_CONFIRMED:'))
+      .map((reason) => Number(reason.split(':')[1]))
+  }, [actions, project])
+  const canSendMentor = canSendAction && isLeader && missingMentorMajorIds.length > 0
 
   const refresh = useCallback(async (refreshCandidates = true, filters = appliedQuery.current) => {
     if (!project) { setCandidates([]); setRequests([]); setAssignments([]); setLoading(false); return }
@@ -47,7 +60,8 @@ export function useSupervisorSelection({
       ])
       setRequests(requestResult.items)
       setAssignments(assignmentResult.items)
-      if (refreshCandidates && canSend && isLeader && !getActivePrimaryAssignment(assignmentResult.items)) {
+      const stillNeedsPrimary = !getActivePrimaryAssignment(assignmentResult.items)
+      if (refreshCandidates && canSendAction && isLeader && (stillNeedsPrimary || missingMentorMajorIds.length > 0)) {
         setCandidateLoading(true)
         const candidateResult = await services.supervisor.getCandidates(project.id, {
           search: filters.search.trim() || undefined,
@@ -57,7 +71,7 @@ export function useSupervisorSelection({
       } else setCandidates([])
     } catch (nextError) { setError(classify(nextError)) }
     finally { setLoading(false); setCandidateLoading(false) }
-  }, [canSend, isLeader, project])
+  }, [canSendAction, isLeader, missingMentorMajorIds.length, project])
 
   useEffect(() => { void refresh() }, [refresh])
 
@@ -67,11 +81,16 @@ export function useSupervisorSelection({
     await refresh(true, filters)
   }, [query, refresh])
 
-  const send = useCallback(async (candidate: SupervisorCandidateDto, message?: string) => {
-    if (!project || !canSend || !isLeader || activeAssignment || sendRequestPending) return false
+  const send = useCallback(async (
+    candidate: SupervisorCandidateDto, message?: string,
+    assignmentType: SupervisorAssignmentType = 'PRIMARY', majorId?: number,
+  ) => {
+    if (!project || !canSendAction || !isLeader || sendRequestPending) return false
+    if (assignmentType === 'PRIMARY' && activeAssignment) return false
+    if (assignmentType === 'DISCIPLINE_MENTOR' && (!majorId || !missingMentorMajorIds.includes(majorId))) return false
     setSendRequestPending(true); setError(null)
     try {
-      await services.supervisor.sendRequest(project.id, candidate.id, message?.trim() || undefined)
+      await services.supervisor.sendRequest(project.id, candidate.id, message?.trim() || undefined, assignmentType, majorId)
       await Promise.all([refresh(true), refreshAll()])
       return true
     } catch (nextError) {
@@ -81,7 +100,7 @@ export function useSupervisorSelection({
       setError(next)
       return false
     } finally { setSendRequestPending(false) }
-  }, [activeAssignment, canSend, isLeader, project, refresh, refreshAll, sendRequestPending])
+  }, [activeAssignment, canSendAction, isLeader, missingMentorMajorIds, project, refresh, refreshAll, sendRequestPending])
 
   const cancel = useCallback(async (request: SupervisorRequestDto) => {
     if (request.status !== 'PENDING' || !requests.some((item) => item.id === request.id && item.status === 'PENDING') || cancelPending !== null) return false
@@ -98,5 +117,10 @@ export function useSupervisorSelection({
     } finally { setCancelPending(null) }
   }, [cancelPending, refresh, refreshAll, requests])
 
-  return { candidates, requests, assignments, activeAssignment, loading, candidateLoading, sendRequestPending, cancelPending, error, query, setQuery, applyFilters, refresh, send, cancel, canSend: canSend && isLeader && !activeAssignment, isLeader }
+  return {
+    candidates, requests, assignments, activeAssignment, loading, candidateLoading, sendRequestPending, cancelPending,
+    error, query, setQuery, applyFilters, refresh, send, cancel, isLeader, missingMentorMajorIds,
+    canSend: canSendAction && isLeader && !activeAssignment,
+    canSendMentor,
+  }
 }

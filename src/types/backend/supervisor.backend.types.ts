@@ -37,12 +37,15 @@ export interface SupervisorRequestDto {
   projectId: number
   supervisorProfileId: number
   requestedBy: number
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | string
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED' | 'RELEASED' | string
   requestMessage?: string | null
   responseMessage?: string | null
   requestedAt: string
   respondedAt?: string | null
   assignmentId?: number | null
+  assignmentType?: 'PRIMARY' | 'DISCIPLINE_MENTOR' | string
+  majorId?: number | null
+  expiresAt?: string | null
 }
 
 export interface SupervisorCandidateDto {
