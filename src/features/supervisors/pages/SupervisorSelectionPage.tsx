@@ -8,6 +8,20 @@ import { useSupervisorSelection } from '../hooks/useSupervisorSelection'
 import { projectStatusLabel } from '../../projects/utils/project-status'
 import { SupervisorRecommendationPanel } from '../components/SupervisorRecommendationPanel'
 import { env } from '../../../app/config/env'
+import { PageLoading } from '../../../components/ui/PageLoading'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import type { BadgeTone } from '../../../components/ui/status-badge-tone'
+
+/** PENDING/ACCEPTED/REJECTED/CANCELLED per SupervisorRequestDto.status — ACCEPTED is the only
+ * terminal success; REJECTED needs the leader's attention, CANCELLED was their own choice. */
+function requestStatusTone(status: string): BadgeTone {
+  switch (status.toUpperCase()) {
+    case 'ACCEPTED': return 'success'
+    case 'PENDING': return 'warning'
+    case 'REJECTED': return 'danger'
+    default: return 'neutral'
+  }
+}
 
 export function SupervisorSelectionPage() {
   const journey = useStudentJourney()
@@ -29,7 +43,7 @@ export function SupervisorSelectionPage() {
     if (sent) { setSelectedId(null); setMessage('') }
   }
 
-  if (journey.isLoading || selection.loading) return <p className="p-6">Đang tải quy trình chọn giảng viên hướng dẫn…</p>
+  if (journey.isLoading || selection.loading) return <div className="p-6"><PageLoading label="Đang tải quy trình chọn giảng viên hướng dẫn…" /></div>
   if (!journey.project) return <section className="p-6"><h1>Chọn giảng viên hướng dẫn</h1><p>Bạn chưa có đồ án để thực hiện bước này.</p></section>
   if (selection.error?.kind === 'authentication') return <p className="p-6"><Link to="/login">Đăng nhập lại để tiếp tục.</Link></p>
 
@@ -42,17 +56,17 @@ export function SupervisorSelectionPage() {
         <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">{selection.activeAssignment ? 'Xem phân công hiện tại và lịch sử yêu cầu hướng dẫn của nhóm.' : 'Tìm giảng viên phù hợp với chuyên môn của đồ án và gửi lời mời từ tài khoản trưởng nhóm.'}</p>
       </header>
 
-      {selection.error ? <section role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{selection.error.message}<Button className="ml-3" size="sm" variant="secondary" onClick={() => void selection.refresh(true)}>Tải lại</Button></section> : null}
+      {selection.error ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{selection.error.message}<Button className="ml-3" size="sm" variant="secondary" onClick={() => void selection.refresh(true)}>Tải lại</Button></section> : null}
 
-      {selection.activeAssignment ? <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
-        <h2 className="font-bold text-emerald-900">Đã có phân công hướng dẫn chính thức</h2>
-        <p className="mt-1 text-sm text-emerald-800">{selection.activeAssignment.supervisorName} · phân công lúc {dateTimeLabel(selection.activeAssignment.assignedAt)}</p>
+      {selection.activeAssignment ? <section className="rounded-2xl border border-status-success-border bg-status-success-bg p-6">
+        <h2 className="font-bold text-status-success-text">Đã có phân công hướng dẫn chính thức</h2>
+        <p className="mt-1 text-sm text-status-success-text">{selection.activeAssignment.supervisorName} · phân công lúc {dateTimeLabel(selection.activeAssignment.assignedAt)}</p>
       </section> : null}
 
       <section className="border-b border-hairline pb-6">
         <h2 className="text-lg font-bold text-slate-900">Yêu cầu hướng dẫn</h2>
         {selection.requests.length ? <ul className="mt-3 divide-y divide-hairline">{selection.requests.map((request) => <li key={request.id} className="py-3 text-sm">
-          <strong>{displayLabel(request.status)}</strong> · {selection.assignments.find(item => item.supervisorProfileId === request.supervisorProfileId)?.supervisorName ?? selection.candidates.find(item => item.id === request.supervisorProfileId)?.fullName ?? `Giảng viên #${request.supervisorProfileId}`} · gửi lúc {dateTimeLabel(request.requestedAt)}
+          <StatusBadge tone={requestStatusTone(request.status)} label={displayLabel(request.status)} /> · {selection.assignments.find(item => item.supervisorProfileId === request.supervisorProfileId)?.supervisorName ?? selection.candidates.find(item => item.id === request.supervisorProfileId)?.fullName ?? `Giảng viên #${request.supervisorProfileId}`} · gửi lúc {dateTimeLabel(request.requestedAt)}
           {request.requestMessage ? <p className="mt-1">Lời nhắn: {request.requestMessage}</p> : null}
           {request.responseMessage ? <p className="mt-1">Phản hồi: {request.responseMessage}</p> : null}
           {request.status === 'PENDING' && selection.isLeader ? <Button className="mt-2" size="sm" variant="danger" disabled={selection.cancelPending !== null} onClick={() => void selection.cancel(request)}>Hủy yêu cầu</Button> : null}
