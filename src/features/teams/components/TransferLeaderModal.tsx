@@ -66,14 +66,14 @@ export function TransferLeaderModal({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-ink-soft uppercase tracking-wider mb-2">
               Chọn thành viên kế nhiệm *
             </label>
-            <div className="divide-y divide-slate-100 border border-slate-200 rounded-md overflow-hidden">
+            <div className="divide-y divide-slate-100 border border-hairline rounded-md overflow-hidden">
               {eligibleMembers.map((m) => (
                 <label
                   key={m.userId}
-                  className={`flex items-center justify-between p-3 cursor-pointer hover:bg-slate-50 transition-colors ${
+                  className={`flex items-center justify-between p-3 cursor-pointer hover:bg-canvas transition-colors ${
                     selectedUserId === m.userId ? 'bg-blue-50/40' : ''
                   }`}
                 >
@@ -88,7 +88,7 @@ export function TransferLeaderModal({
                       className="text-blue-600 focus:ring-blue-500"
                     />
                     <div>
-                      <p className="text-xs font-semibold text-slate-900">{m.fullName}</p>
+                      <p className="text-xs font-semibold text-ink">{m.fullName}</p>
                     </div>
                   </div>
                 </label>
@@ -97,10 +97,10 @@ export function TransferLeaderModal({
           </div>
 
           {requiresMentorApproval && (
-            <label className="block text-xs font-bold text-slate-700">
+            <label className="block text-xs font-bold text-ink-soft">
               Lý do / ghi chú
               <textarea
-                className="mt-2 w-full rounded-md border border-slate-200 p-3 font-normal"
+                className="mt-2 w-full rounded-md border border-hairline p-3 font-normal"
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
                 placeholder="Mô tả ngắn lý do đề nghị thay đổi Trưởng nhóm"

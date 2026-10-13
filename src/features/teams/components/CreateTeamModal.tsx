@@ -50,7 +50,7 @@ export function CreateTeamModal({
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label htmlFor="create-team-code" className="block text-xs font-medium text-slate-700 mb-1.5">
+            <label htmlFor="create-team-code" className="block text-xs font-medium text-ink-soft mb-1.5">
               Mã Nhóm *
             </label>
             <input
@@ -62,15 +62,15 @@ export function CreateTeamModal({
               onChange={(e) => setCode(e.target.value)}
               placeholder="Ví dụ: SE28 hoặc AI05"
               required
-              className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white uppercase font-mono"
+              className="w-full px-3.5 py-2.5 text-sm border border-line-strong rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-card uppercase font-mono"
             />
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-ink-muted mt-1">
               Mã định danh nhóm trong học kỳ (chữ và số viết hoa).
             </p>
           </div>
 
           <div>
-            <label htmlFor="create-team-name" className="block text-xs font-medium text-slate-700 mb-1.5">
+            <label htmlFor="create-team-name" className="block text-xs font-medium text-ink-soft mb-1.5">
               Tên Nhóm *
             </label>
             <input
@@ -81,12 +81,12 @@ export function CreateTeamModal({
               onChange={(e) => setName(e.target.value)}
               placeholder="Ví dụ: Nhóm SE28 - Capstone đồ án"
               required
-              className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full px-3.5 py-2.5 text-sm border border-line-strong rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-card"
             />
           </div>
 
           <div>
-            <label htmlFor="create-team-description" className="block text-xs font-medium text-slate-700 mb-1.5">
+            <label htmlFor="create-team-description" className="block text-xs font-medium text-ink-soft mb-1.5">
               Mô tả Nhóm (Tùy chọn)
             </label>
             <textarea
@@ -96,7 +96,7 @@ export function CreateTeamModal({
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="Định hướng nghiên cứu, mục tiêu đề tài của nhóm..."
-              className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full px-3.5 py-2.5 text-sm border border-line-strong rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-card"
             />
           </div>
 
