@@ -6,6 +6,7 @@ import type { EvaluationScoreInput } from '../evaluations/evaluation-types'
 import { formatCalendarDate, formatWeeklyDateTime } from './weekly-types'
 import { weeklyError, weeklyNeedsAuthoritativeRefresh } from './weekly-errors'
 import { WeeklyBadge, WeeklyError, WeeklyLoading, WeeklyShell } from './weekly-ui'
+import { formatScore } from '../../components/ui/format'
 
 type ScoreEdit = { score: string; comments: string }
 type EditableCriterion = { rubricCriterionId: number; name: string; description: string | null; maxScore: number }
@@ -199,7 +200,7 @@ function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted }
       <label>Nhận xét chung<textarea value={comments} disabled={!canEditNow || busy} onChange={(event) => setComments(event.target.value)} /></label>
     </div>}
 
-    {assessment?.totalScore != null && <div style={{ padding: '0 24px 12px' }}><strong>Tổng điểm tham khảo: {assessment.totalScore}</strong></div>}
+    {assessment?.totalScore != null && <div style={{ padding: '0 24px 12px' }}><strong>Tổng điểm tham khảo: {formatScore(assessment.totalScore)}</strong></div>}
     {assessment?.submittedAt && <div style={{ padding: '0 24px 12px' }}><small>Đã nộp: {formatWeeklyDateTime(assessment.submittedAt)}</small></div>}
 
     <div className="weekly-actions">
