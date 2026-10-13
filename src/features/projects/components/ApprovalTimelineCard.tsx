@@ -7,7 +7,7 @@ interface ApprovalTimelineCardProps {
 
 export function ApprovalTimelineCard({ timeline }: ApprovalTimelineCardProps) {
   return (
-    <Card className="border-hairline bg-white shadow-xs">
+    <Card className="border-hairline bg-card shadow-xs">
       <CardHeader className="pb-3 border-b border-hairline">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-[18px] text-academic-emerald" aria-hidden="true">
@@ -34,7 +34,7 @@ export function ApprovalTimelineCard({ timeline }: ApprovalTimelineCardProps) {
                       ? 'bg-academic-emerald text-white'
                       : isCurrent
                       ? 'bg-primary text-white animate-pulse'
-                      : 'bg-slate-200 text-slate-500'
+                      : 'bg-slate-200 text-ink-muted'
                   }`}
                 >
                   {isCompleted ? (
@@ -50,13 +50,13 @@ export function ApprovalTimelineCard({ timeline }: ApprovalTimelineCardProps) {
                     isCurrent
                       ? 'bg-primary-subtle/50 border-primary/30'
                       : isCompleted
-                      ? 'bg-slate-50/70 border-hairline'
-                      : 'bg-white border-dashed border-slate-200'
+                      ? 'bg-canvas/70 border-hairline'
+                      : 'bg-card border-dashed border-hairline'
                   }`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="font-heading font-bold text-xs md:text-sm text-slate-900">
+                      <span className="font-heading font-bold text-xs md:text-sm text-ink">
                         {stage.step}. {stage.title}
                       </span>
                       {isCompleted && (
@@ -70,16 +70,16 @@ export function ApprovalTimelineCard({ timeline }: ApprovalTimelineCardProps) {
                         </span>
                       )}
                     </div>
-                    <span className="font-mono text-xs text-slate-500">
+                    <span className="font-mono text-xs text-ink-muted">
                       {stage.date}
                     </span>
                   </div>
 
-                  <p className="text-xs font-medium text-slate-700 mt-1">
-                    Kết luận: <span className="text-slate-900">{stage.decision}</span>
+                  <p className="text-xs font-medium text-ink-soft mt-1">
+                    Kết luận: <span className="text-ink">{stage.decision}</span>
                   </p>
 
-                  <div className="flex flex-wrap items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-slate-200/60 text-xs text-slate-500">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-hairline/60 text-xs text-ink-muted">
                     <span>Thẩm định: <strong>{stage.reviewer}</strong></span>
                     {stage.note && <span className="italic text-slate-400">{stage.note}</span>}
                   </div>

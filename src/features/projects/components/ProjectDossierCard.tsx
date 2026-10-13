@@ -9,14 +9,14 @@ interface ProjectDossierCardProps {
 
 export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
   return (
-    <Card className="border-hairline bg-white shadow-xs">
+    <Card className="border-hairline bg-card shadow-xs">
       <CardHeader className="flex-col xl:flex-row xl:items-start justify-between gap-4 pb-3 border-b border-hairline">
         <div className="flex flex-col gap-2 min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-xs font-bold text-primary bg-primary-subtle border border-hairline px-2 py-0.5 rounded whitespace-nowrap">
               {dossier.projectCode} • {dossier.groupCode}
             </span>
-            <span className="font-mono text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded whitespace-nowrap">
+            <span className="font-mono text-xs text-ink-muted bg-slate-100 px-2 py-0.5 rounded whitespace-nowrap">
               Kỳ {dossier.semester}
             </span>
             <Badge variant="success" size="sm" dot>
@@ -27,10 +27,10 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
             </span>
           </div>
 
-          <h1 className="font-heading text-xl md:text-2xl font-bold text-slate-900 tracking-tight leading-snug break-words">
+          <h1 className="font-heading text-xl md:text-2xl font-bold text-ink tracking-tight leading-snug break-words">
             {dossier.titleVi}
           </h1>
-          <p className="text-xs md:text-sm text-slate-500 font-sans italic">
+          <p className="text-xs md:text-sm text-ink-muted font-sans italic">
             English: {dossier.titleEn}
           </p>
         </div>
@@ -60,9 +60,9 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
 
       <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Supervisor Box */}
-        <div className="p-3.5 rounded-lg bg-slate-50 border border-hairline flex flex-col gap-2">
+        <div className="p-3.5 rounded-lg bg-canvas border border-hairline flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <span className="font-mono text-xs font-semibold uppercase tracking-wider text-ink-muted">
               Giảng viên Hướng dẫn chính
             </span>
             {dossier.supervisor.hasDigitalSignature && (
@@ -73,13 +73,13 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
             )}
           </div>
           <div>
-            <p className="font-heading font-bold text-sm text-slate-900">
+            <p className="font-heading font-bold text-sm text-ink">
               {dossier.supervisor.name}
             </p>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-ink-muted">
               {dossier.supervisor.title} • {dossier.supervisor.department}
             </p>
-            <p className="font-mono text-xs text-slate-500 mt-1">
+            <p className="font-mono text-xs text-ink-muted mt-1">
               Email: {dossier.supervisor.email}
             </p>
             {dossier.supervisor.signatureDate && (
@@ -91,9 +91,9 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
         </div>
 
         {/* Reviewer Box */}
-        <div className="p-3.5 rounded-lg bg-slate-50 border border-hairline flex flex-col gap-2">
+        <div className="p-3.5 rounded-lg bg-canvas border border-hairline flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <span className="font-mono text-xs font-semibold uppercase tracking-wider text-ink-muted">
               Cán bộ / Giảng viên Phản biện
             </span>
             <span className="font-mono text-xs text-slate-400 bg-slate-200/70 px-2 py-0.5 rounded whitespace-nowrap">
@@ -101,13 +101,13 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
             </span>
           </div>
           <div>
-            <p className="font-heading font-bold text-sm text-slate-900">
+            <p className="font-heading font-bold text-sm text-ink">
               {dossier.reviewer.name}
             </p>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-ink-muted">
               {dossier.reviewer.title} • {dossier.reviewer.department}
             </p>
-            <p className="font-mono text-xs text-slate-500 mt-1">
+            <p className="font-mono text-xs text-ink-muted mt-1">
               Email: {dossier.reviewer.email}
             </p>
           </div>
