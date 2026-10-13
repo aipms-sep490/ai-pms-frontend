@@ -114,3 +114,8 @@ export type MilestoneExecutionActionsDto = ExecutionCapabilityDto
 export function isActionAllowed(actions: WorkflowActionDto[], code: string): boolean {
   return actions.some((action) => action.code === code && action.allowed)
 }
+
+/** Reason codes attached to `code`, present whether or not the action is currently allowed. */
+export function getActionReasons(actions: WorkflowActionDto[], code: string): string[] {
+  return actions.find((action) => action.code === code)?.reasons ?? []
+}

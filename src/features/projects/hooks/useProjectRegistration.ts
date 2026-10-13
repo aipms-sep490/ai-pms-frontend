@@ -10,7 +10,7 @@ import type {
   TeamWorkflowActionsDto,
   UserAccountDto,
 } from '../../../types/backend'
-import { isActionAllowed } from '../../../types/backend'
+import { getActionReasons, isActionAllowed } from '../../../types/backend'
 
 export interface ProjectRegistrationForm {
   title: string
@@ -124,6 +124,7 @@ export function useProjectRegistration({
   const canResubmit = Boolean(project) && (env.isMockMode
     ? isLeader && status === 'REVISIONREQUIRED'
     : isActionAllowed(projectActions?.actions ?? [], 'resubmit_project'))
+  const submitReasons = getActionReasons(projectActions?.actions ?? [], status === 'REVISIONREQUIRED' ? 'resubmit_project' : 'submit_project')
   const canContinueToSupervisor = Boolean(project) && !env.isMockMode
     && isActionAllowed(projectActions?.actions ?? [], 'send_supervisor_request')
   const academicScope = project?.academicScope ?? team?.academicScope ?? null
@@ -228,7 +229,7 @@ export function useProjectRegistration({
 
   return {
     form, setField, status, academicScope, requiredMajorIds, latestRevision, history, historyLoading,
-    canRegister, canCreate, canEdit, canSubmit, canResubmit, canContinueToSupervisor, isLeader,
+    canRegister, canCreate, canEdit, canSubmit, canResubmit, canContinueToSupervisor, isLeader, submitReasons,
     creating, saving, submitting, resubmitting, error, clearError: () => setError(null),
     saveDraft, submit: () => transition('submit'), resubmit: () => transition('resubmit'), loadHistory,
   }
