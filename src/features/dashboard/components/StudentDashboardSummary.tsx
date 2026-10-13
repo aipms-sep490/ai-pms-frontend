@@ -4,6 +4,7 @@ import { HttpError } from '../../../services/http/http-client'
 import { getStudentDashboard, type StudentDashboard } from '../api/dashboard-api'
 import { projectStatusLabel } from '../../projects/utils/project-status'
 import { ActorDashboardCard } from './ActorDashboardCard'
+import { PageLoading } from '../../../components/ui/PageLoading'
 
 export function StudentDashboardSummary() {
   const [data, setData] = useState<StudentDashboard | null>(null)
@@ -16,7 +17,7 @@ export function StudentDashboardSummary() {
     finally { setLoading(false) }
   }, [])
   useEffect(() => { void load() }, [load])
-  if (loading) return <section role="status" className="workspace-surface p-6 text-sm text-slate-700">Đang tải chỉ số cá nhân…</section>
+  if (loading) return <PageLoading label="Đang tải chỉ số cá nhân…" />
   if (error || !data) return <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-5 text-sm text-status-error-text"><p className="font-semibold">Chưa tải được tổng quan cá nhân</p><p className="mt-1">{error ?? 'Không có dữ liệu trả về.'}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại</button></section>
   const risk = data.project?.analysis?.riskLevel
   return <section className="space-y-5" aria-label="Tổng quan cá nhân">
