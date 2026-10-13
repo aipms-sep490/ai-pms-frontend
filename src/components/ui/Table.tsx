@@ -38,7 +38,7 @@ export function TableRow({ children, className = '', head = false, ...props }: H
 
 export function TableHeaderCell({ children, className = '', align = 'left', numeric = false, ...props }: ThHTMLAttributes<HTMLTableCellElement> & { align?: Align; numeric?: boolean }) {
   return (
-    <th scope="col" className={`py-2 pr-4 last:pr-0 ${alignClass[numeric ? 'right' : align]} text-xs font-semibold uppercase tracking-wide text-slate-500 ${className}`.trim()} {...props}>
+    <th scope="col" className={`py-2 pr-4 last:pr-0 ${alignClass[numeric ? 'right' : align]} text-xs font-semibold uppercase tracking-wide text-ink-muted ${className}`.trim()} {...props}>
       {children}
     </th>
   )
@@ -50,7 +50,7 @@ export function TableCell({ children, className = '', align = 'left', numeric = 
   return (
     <td
       data-label={label}
-      className={`py-2.5 pr-4 last:pr-0 ${alignClass[numeric ? 'right' : align]} ${numeric ? 'font-mono tabular-nums text-slate-900' : 'text-slate-700'} ${className}`.trim()}
+      className={`py-2.5 pr-4 last:pr-0 ${alignClass[numeric ? 'right' : align]} ${numeric ? 'font-mono tabular-nums text-ink' : 'text-ink-soft'} ${className}`.trim()}
       {...props}
     >
       {children}

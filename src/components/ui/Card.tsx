@@ -9,8 +9,8 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 export function Card({ children, className = '', hoverable = false, ...props }: CardProps) {
   return (
     <div
-      className={`bg-white rounded-xl border border-slate-200 shadow-xs transition-all duration-150 ${
-        hoverable ? 'hover:border-slate-300 hover:shadow-sm' : ''
+      className={`bg-card rounded-xl border border-hairline shadow-xs transition-all duration-150 ${
+        hoverable ? 'hover:border-line-strong hover:shadow-sm' : ''
       } ${className}`.trim()}
       {...props}
     >
@@ -26,7 +26,7 @@ export function CardHeader({
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={`p-4 pb-3 border-b border-slate-100 flex items-center justify-between gap-3 ${className}`.trim()}
+      className={`p-4 pb-3 border-b border-line flex items-center justify-between gap-3 ${className}`.trim()}
       {...props}
     >
       {children}
@@ -41,7 +41,7 @@ export function CardTitle({
 }: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
-      className={`font-heading text-sm font-semibold text-slate-900 tracking-tight ${className}`.trim()}
+      className={`font-heading text-sm font-semibold text-ink tracking-tight ${className}`.trim()}
       {...props}
     >
       {children}
@@ -55,7 +55,7 @@ export function CardDescription({
   ...props
 }: HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={`text-xs text-slate-500 font-sans mt-0.5 ${className}`.trim()} {...props}>
+    <p className={`text-xs text-ink-muted font-sans mt-0.5 ${className}`.trim()} {...props}>
       {children}
     </p>
   )
@@ -80,7 +80,7 @@ export function CardFooter({
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={`p-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 ${className}`.trim()}
+      className={`p-4 pt-3 border-t border-line flex items-center justify-between text-xs text-ink-muted ${className}`.trim()}
       {...props}
     >
       {children}

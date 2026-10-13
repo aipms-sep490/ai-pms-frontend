@@ -23,9 +23,9 @@ export function TelemetryCard({
 }: TelemetryCardProps) {
   return (
     <div
-      className={`p-4 rounded-xl bg-white border border-slate-200 shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between gap-3 ${className}`.trim()}
+      className={`p-4 rounded-xl bg-card border border-hairline shadow-xs hover:border-line-strong transition-all flex flex-col justify-between gap-3 ${className}`.trim()}
     >
-      <div className="flex items-center justify-between text-slate-500">
+      <div className="flex items-center justify-between text-ink-muted">
         <span className="uppercase tracking-wider font-mono text-xs font-semibold">
           {label}
         </span>
@@ -37,16 +37,16 @@ export function TelemetryCard({
       </div>
 
       <div className="flex items-baseline gap-2">
-        <span className="font-heading text-2xl font-bold text-slate-900 tracking-tight leading-none">
+        <span className="font-heading text-2xl font-bold text-ink tracking-tight leading-none">
           {value}
         </span>
-        {unit && <span className="text-xs font-sans text-slate-500">{unit}</span>}
+        {unit && <span className="text-xs font-sans text-ink-muted">{unit}</span>}
       </div>
 
       {(statusBadge || subtitle) && (
-        <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-line text-xs">
           {statusBadge && <div>{statusBadge}</div>}
-          {subtitle && <span className="text-xs text-slate-500 truncate">{subtitle}</span>}
+          {subtitle && <span className="text-xs text-ink-muted truncate">{subtitle}</span>}
         </div>
       )}
     </div>

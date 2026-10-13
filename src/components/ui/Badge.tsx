@@ -26,7 +26,7 @@ export function Badge({
     warning: 'bg-status-warning-bg text-status-warning-text border-status-warning-border',
     error: 'bg-status-error-bg text-status-error-text border-status-error-border',
     info: 'bg-primary-subtle text-primary border-primary/20',
-    neutral: 'bg-slate-100 text-slate-700 border-slate-200',
+    neutral: 'bg-slate-100 text-slate-700 border-hairline',
     se: 'bg-blue-50 text-blue-700 border-blue-200',
     uiux: 'bg-purple-50 text-purple-700 border-purple-200',
     ai: 'bg-amber-50 text-amber-800 border-amber-200',
