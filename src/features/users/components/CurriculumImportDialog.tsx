@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { Modal } from '../../../components/ui/Modal'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import type { BadgeTone } from '../../../components/ui/status-badge-tone'
+import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from '../../../components/ui/Table'
 import { HttpError } from '../../../services/http/http-client'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import { getWorkspaceRole } from '../../auth/utils/role-access'
@@ -8,6 +11,7 @@ import { commitCurriculum, curriculumCommitRows, previewCurriculum, type Curricu
 import './curriculum-import.css'
 
 const labels: Record<string, string> = { UPDATE: 'Sẽ cập nhật', UNCHANGED: 'Không đổi', SKIPPED: 'Bỏ qua', ERROR: 'Có lỗi' }
+const rowTone: Record<string, BadgeTone> = { UPDATE: 'success', ERROR: 'danger', UNCHANGED: 'neutral', SKIPPED: 'neutral' }
 const errorLabels: Record<string, string> = {
   STUDENT_CODE_INVALID: 'MSSV không hợp lệ.', DUPLICATE_STUDENT_CODE: 'MSSV bị trùng trong tệp.',
   CURRICULUM_CODE_INVALID: 'Khung không hợp lệ (tối đa 100 ký tự).', STUDENT_NOT_FOUND: 'Không tìm thấy sinh viên duy nhất khớp MSSV.',
@@ -98,10 +102,30 @@ export function CurriculumImportDialog({ onClose, onImported }: { onClose: () =>
         {preview && <section aria-label="Kết quả xem trước">
           <p role="status">{preview.rows.length} dòng: {counts('UPDATE')} cập nhật · {counts('UNCHANGED')} không đổi · {counts('SKIPPED')} bỏ qua · {counts('ERROR')} lỗi</p>
           <label className="curriculum-import__check"><input type="checkbox" checked={onlyErrors} onChange={event => { setOnlyErrors(event.target.checked); setPage(1) }} />Chỉ hiện dòng lỗi</label>
-          <div className="curriculum-import__table" tabIndex={0} role="region" aria-label="Chi tiết từng dòng nhập">
-            <table><caption>Đối chiếu dữ liệu hiện tại và Khung trong tệp</caption><thead><tr><th>Dòng</th><th>Sinh viên</th><th>Khung hiện tại</th><th>Khung trong tệp</th><th>Kết quả</th></tr></thead><tbody>
-              {filtered.slice((page - 1) * 25, page * 25).map(row => <tr key={row.rowNumber}><td>{row.rowNumber}</td><td><strong>{row.studentCode || 'Thiếu MSSV'}</strong><br />{row.fullName ?? 'Chưa xác định'}</td><td>{row.currentCurriculumCode || '—'}</td><td>{row.curriculumCode || 'Trống'}</td><td><span className={`curriculum-import__status curriculum-import__status--${row.status.toLowerCase()}`}>{labels[row.status] ?? 'Chưa hỗ trợ'}</span>{row.errors.map((code, index) => <p key={`${code}-${index}`}>{errorLabels[code] ?? code}</p>)}</td></tr>)}
-            </tbody></table>
+          <div role="region" tabIndex={0} aria-label="Chi tiết từng dòng nhập">
+            <Table stack>
+              <TableHead>
+                <TableRow head>
+                  <TableHeaderCell>Dòng</TableHeaderCell>
+                  <TableHeaderCell>Sinh viên</TableHeaderCell>
+                  <TableHeaderCell>Khung hiện tại</TableHeaderCell>
+                  <TableHeaderCell>Khung trong tệp</TableHeaderCell>
+                  <TableHeaderCell>Kết quả</TableHeaderCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filtered.slice((page - 1) * 25, page * 25).map(row => <TableRow key={row.rowNumber}>
+                  <TableCell label="Dòng">{row.rowNumber}</TableCell>
+                  <TableCell label="Sinh viên"><strong>{row.studentCode || 'Thiếu MSSV'}</strong><br />{row.fullName ?? 'Chưa xác định'}</TableCell>
+                  <TableCell label="Khung hiện tại">{row.currentCurriculumCode || '—'}</TableCell>
+                  <TableCell label="Khung trong tệp">{row.curriculumCode || 'Trống'}</TableCell>
+                  <TableCell label="Kết quả">
+                    <StatusBadge tone={rowTone[row.status] ?? 'neutral'} label={labels[row.status] ?? 'Chưa hỗ trợ'} />
+                    {row.errors.map((code, index) => <p key={`${code}-${index}`} className="mt-1 text-status-error-text">{errorLabels[code] ?? code}</p>)}
+                  </TableCell>
+                </TableRow>)}
+              </TableBody>
+            </Table>
           </div>
           {!filtered.length && <p>Không có dòng phù hợp bộ lọc.</p>}
           {pages > 1 && <div className="curriculum-import__pagination"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Trang trước</Button><span>Trang {page}/{pages}</span><Button size="sm" variant="outline" disabled={page >= pages} onClick={() => setPage(value => value + 1)}>Trang sau</Button></div>}

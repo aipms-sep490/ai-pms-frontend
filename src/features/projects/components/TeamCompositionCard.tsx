@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { MultidisciplinaryTag } from '../../../components/ui/MultidisciplinaryTag'
+import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from '../../../components/ui/Table'
 import type { ProjectMember, ProjectDossier } from '../types/project-dossier.types'
 
 interface TeamCompositionCardProps {
@@ -9,7 +10,7 @@ interface TeamCompositionCardProps {
 
 export function TeamCompositionCard({ members, breakdown }: TeamCompositionCardProps) {
   return (
-    <Card className="border-hairline bg-white shadow-xs">
+    <Card className="border-hairline bg-card shadow-xs">
       <CardHeader className="flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-hairline">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">
@@ -25,65 +26,59 @@ export function TeamCompositionCard({ members, breakdown }: TeamCompositionCardP
           {breakdown.map((item) => (
             <div
               key={item.major}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-medium bg-slate-50 border border-hairline"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-medium bg-card border border-hairline"
             >
               <MultidisciplinaryTag major={item.major} />
-              <span className="text-slate-600 font-semibold">{item.percent}%</span>
-              <span className="text-slate-400">({item.count})</span>
+              <span className="text-ink-muted font-semibold">{item.percent}%</span>
+              <span className="text-ink-muted">({item.count})</span>
             </div>
           ))}
         </div>
       </CardHeader>
 
       <CardContent className="p-0">
-        <div className="overflow-x-auto no-scrollbar">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-slate-50 border-b border-hairline font-mono text-xs text-slate-500 uppercase tracking-wider">
-                <th className="py-2.5 px-4 font-semibold">Thành viên</th>
-                <th className="py-2.5 px-3 font-semibold">Chuyên ngành</th>
-                <th className="py-2.5 px-4 font-semibold min-w-[200px]">Trách nhiệm chính</th>
-                <th className="py-2.5 px-3 font-semibold text-center whitespace-nowrap">Đóng góp</th>
-                <th className="py-2.5 px-4 font-semibold">Liên hệ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-hairline">
-              {members.map((member) => (
-                <tr key={member.id} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="py-3 px-4">
-                    <div className="flex flex-col">
-                      <span className="font-heading font-semibold text-slate-900">
-                        {member.name}
-                      </span>
-                      <span className="font-mono text-xs text-slate-500">
-                        {member.studentId} • {member.role}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-3 whitespace-nowrap">
-                    <MultidisciplinaryTag major={member.major} />
-                  </td>
-                  <td className="py-3 px-4 text-slate-600 leading-relaxed">
-                    {member.responsibility}
-                  </td>
-                  <td className="py-3 px-3 text-center whitespace-nowrap">
-                    <div className="inline-flex flex-col items-center">
-                      <span className="font-mono font-bold text-slate-800 text-xs">
-                        {member.storyPoints} SP
-                      </span>
-                      <span className="font-mono text-xs text-slate-400">
-                        ({member.contributionPercent}%)
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 font-mono text-xs text-slate-500 truncate max-w-[200px]">
-                    {member.email}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table stack className="text-xs">
+          <TableHead>
+            <TableRow head>
+              <TableHeaderCell>Thành viên</TableHeaderCell>
+              <TableHeaderCell>Chuyên ngành</TableHeaderCell>
+              <TableHeaderCell>Trách nhiệm chính</TableHeaderCell>
+              <TableHeaderCell numeric>Đóng góp</TableHeaderCell>
+              <TableHeaderCell>Liên hệ</TableHeaderCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {members.map((member) => (
+              <TableRow key={member.id}>
+                <TableCell label="Thành viên">
+                  <div className="flex flex-col">
+                    <span className="font-heading font-semibold text-ink">
+                      {member.name}
+                    </span>
+                    <span className="font-mono text-xs text-ink-muted">
+                      {member.studentId} • {member.role}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell label="Chuyên ngành">
+                  <MultidisciplinaryTag major={member.major} />
+                </TableCell>
+                <TableCell label="Trách nhiệm chính" className="leading-relaxed">
+                  {member.responsibility}
+                </TableCell>
+                <TableCell label="Đóng góp" numeric>
+                  <div className="inline-flex flex-col items-end">
+                    <span className="font-bold">{member.storyPoints} SP</span>
+                    <span className="text-ink-muted">({member.contributionPercent}%)</span>
+                  </div>
+                </TableCell>
+                <TableCell label="Liên hệ" className="truncate max-w-[200px]">
+                  {member.email}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   )
