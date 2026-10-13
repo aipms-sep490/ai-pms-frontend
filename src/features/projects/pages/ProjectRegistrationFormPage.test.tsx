@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   useStudentJourney: vi.fn(),
   navigate: vi.fn(),
   getHistory: vi.fn(),
+  getTopicSimilarity: vi.fn(),
 }))
 
 vi.mock('../../../app/context', () => ({
@@ -35,7 +36,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
 vi.mock('../../../services/service-gateway', () => ({
   services: {
     project: { getHistory: mocks.getHistory, updateDraft: vi.fn(), resubmit: vi.fn() },
-    topic: { getTopicById: vi.fn() },
+    topic: { getTopicById: vi.fn(), getTopicSimilarity: mocks.getTopicSimilarity },
   },
 }))
 
@@ -135,6 +136,33 @@ describe('ProjectRegistrationFormPage', () => {
       const saveBtn = screen.getAllByRole('button').find(b => b.textContent?.includes('save') || b.textContent?.includes('Lưu'))
       expect(saveBtn).toBeDefined()
       expect((saveBtn as HTMLButtonElement).disabled).toBe(false)
+    })
+
+    it('surfaces an exact topic-title match as a blocking warning after the leader checks it', async () => {
+      mocks.getTopicSimilarity.mockResolvedValue({ exactMatch: { id: 9, title: 'Prefilled Project Title' }, similar: [] })
+      render(<ProjectRegistrationFormPage />, { wrapper: MemoryRouter })
+      await waitForForm()
+      fireEvent.click(screen.getByText('Kiểm tra trùng đề tài'))
+      expect(await screen.findByText(/Tên đề tài trùng với đề tài đã có/)).toBeTruthy()
+      expect(mocks.getTopicSimilarity).toHaveBeenCalledWith(expect.objectContaining({ title: 'Prefilled Project Title' }))
+    })
+
+    it('lists near-duplicate topics as a non-blocking warning', async () => {
+      mocks.getTopicSimilarity.mockResolvedValue({ exactMatch: null, similar: [{ id: 2, title: 'Đề tài gần giống', semesterCode: 'FA25', score: 0.62 }] })
+      render(<ProjectRegistrationFormPage />, { wrapper: MemoryRouter })
+      await waitForForm()
+      fireEvent.click(screen.getByText('Kiểm tra trùng đề tài'))
+      expect(await screen.findByText(/Đề tài gần giống · kỳ FA25 · giống 62%/)).toBeTruthy()
+    })
+
+    it('clears the previous similarity result once the title changes again', async () => {
+      mocks.getTopicSimilarity.mockResolvedValue({ exactMatch: { id: 9, title: 'Prefilled Project Title' }, similar: [] })
+      render(<ProjectRegistrationFormPage />, { wrapper: MemoryRouter })
+      await waitForForm()
+      fireEvent.click(screen.getByText('Kiểm tra trùng đề tài'))
+      await screen.findByText(/Tên đề tài trùng với đề tài đã có/)
+      fireEvent.change(screen.getByDisplayValue('Prefilled Project Title'), { target: { value: 'Tên khác' } })
+      expect(screen.queryByText(/Tên đề tài trùng với đề tài đã có/)).toBeNull()
     })
   })
 

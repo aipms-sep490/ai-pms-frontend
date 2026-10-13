@@ -32,3 +32,21 @@ export interface TopicDto {
   concurrencyToken: string
   matchesMyMajor?: boolean | null
 }
+
+export interface TopicSimilarityExactMatchDto {
+  id: number
+  code?: string | null
+  title: string
+}
+
+export interface SimilarTopicMatchDto {
+  id: number
+  title: string
+  semesterCode: string
+  score: number
+}
+
+export interface TopicSimilarityResultDto {
+  exactMatch: TopicSimilarityExactMatchDto | null
+  similar: SimilarTopicMatchDto[]
+}
