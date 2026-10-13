@@ -1,8 +1,10 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const supervisor = vi.hoisted(() => ({ getRequests: vi.fn(), getAssignments: vi.fn(), getCandidates: vi.fn(), sendRequest: vi.fn(), cancelRequest: vi.fn() }))
 vi.mock('../../../services/service-gateway', () => ({ services: { supervisor } }))
+const envState = vi.hoisted(() => ({ isMockMode: false }))
+vi.mock('../../../app/config/env', () => ({ env: envState }))
 import { useSupervisorSelection } from './useSupervisorSelection'
 
 const candidate = { id: 4, fullName: 'Supervisor', departmentName: 'SE', expertise: [], activeProjects: 1, remainingSlots: 2, semesterLimit: 5 }
@@ -17,7 +19,9 @@ describe('useSupervisorSelection', () => {
     supervisor.getCandidates.mockReset().mockResolvedValue({ items: [candidate] })
     supervisor.sendRequest.mockReset().mockResolvedValue({ id: 1, status: 'PENDING' })
     supervisor.cancelRequest.mockReset().mockResolvedValue({ id: 1, status: 'CANCELLED' })
+    envState.isMockMode = false
   })
+  afterEach(() => { envState.isMockMode = false })
 
   it('loads candidates only through the project-specific adapter and sends only for a backend-authorized leader', async () => {
     const refreshAll = vi.fn().mockResolvedValue(undefined)
@@ -137,5 +141,47 @@ describe('useSupervisorSelection', () => {
     const { result } = renderHook(() => useSupervisorSelection({ project: project as never, team: leaderTeam as never, profile: { id: 2 } as never, actions: draftActions as never, refreshAll: vi.fn() }))
     await waitFor(() => expect(result.current.candidates).toHaveLength(1))
     expect(result.current.activeAssignment).toBeTruthy()
+  })
+
+  describe('mock mode (no backend actions[] to read — StudentJourneyProvider never fetches it)', () => {
+    beforeEach(() => { envState.isMockMode = true })
+
+    it('allows sending a PRIMARY request purely off project status, with no actions payload at all', async () => {
+      const draftProject = { id: 9, status: 'Draft', majors: [{ majorId: 101, majorCode: 'SE', majorName: 'SE' }] }
+      const { result } = renderHook(() => useSupervisorSelection({ project: draftProject as never, team: leaderTeam as never, profile: { id: 2 } as never, actions: null, refreshAll: vi.fn() }))
+      await waitFor(() => expect(result.current.candidates).toHaveLength(1))
+      expect(result.current.canSend).toBe(true)
+      await act(async () => { expect(await result.current.send(candidate as never, 'Message')).toBe(true) })
+      expect(supervisor.sendRequest).toHaveBeenCalledWith(9, 4, 'Message', 'PRIMARY', undefined)
+    })
+
+    it('refuses to send for a status outside the DRAFT/REVISION_REQUIRED/APPROVED/ACTIVE window', async () => {
+      const completedProject = { id: 9, status: 'Completed', majors: [] }
+      const { result } = renderHook(() => useSupervisorSelection({ project: completedProject as never, team: leaderTeam as never, profile: { id: 2 } as never, actions: null, refreshAll: vi.fn() }))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      expect(result.current.canSend).toBe(false)
+      await act(async () => { expect(await result.current.send(candidate as never)).toBe(false) })
+      expect(supervisor.sendRequest).not.toHaveBeenCalled()
+    })
+
+    it('derives missingMentorMajorIds from project.majors minus the primary and any already-confirmed Mentor', async () => {
+      const interdisciplinaryProject = {
+        id: 9, status: 'Draft',
+        majors: [{ majorId: 101, majorCode: 'SE' }, { majorId: 102, majorCode: 'AI' }, { majorId: 103, majorCode: 'IS' }],
+        academicScope: { primaryMajorId: 101 },
+      }
+      supervisor.getAssignments.mockResolvedValue({ items: [{ id: 1, projectId: 9, majorId: 102, assignmentType: 'DISCIPLINE_MENTOR', endedAt: null }] })
+      const { result } = renderHook(() => useSupervisorSelection({ project: interdisciplinaryProject as never, team: leaderTeam as never, profile: { id: 2 } as never, actions: null, refreshAll: vi.fn() }))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      expect(result.current.missingMentorMajorIds).toEqual([103])
+      expect(result.current.canSendMentor).toBe(true)
+    })
+
+    it('reports no missing mentors for a single-major project', async () => {
+      const singleMajorProject = { id: 9, status: 'Draft', majors: [{ majorId: 101, majorCode: 'SE' }] }
+      const { result } = renderHook(() => useSupervisorSelection({ project: singleMajorProject as never, team: leaderTeam as never, profile: { id: 2 } as never, actions: null, refreshAll: vi.fn() }))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      expect(result.current.missingMentorMajorIds).toEqual([])
+    })
   })
 })
