@@ -1,6 +1,6 @@
 import { env } from '../../app/config/env'
 import type { MajorType } from '../../components/ui/MultidisciplinaryTag'
-import type { PagedResult, TopicDto } from '../../types/backend'
+import type { PagedResult, TopicDto, TopicSimilarityResultDto } from '../../types/backend'
 import type { TopicItem, TopicCatalogueQuery } from '../../types/topic.types'
 import { REFERENCE_TOPICS } from '../fixtures/topic-catalogue.fixture'
 import { httpGet } from '../http/http-client'
@@ -67,4 +67,19 @@ export async function getTopicById(id: string): Promise<TopicItem | null> {
   const numericId = Number(id)
   if (!Number.isSafeInteger(numericId) || numericId <= 0) return null
   return toTopicItem(await httpGet<TopicDto>(`/topics/${numericId}`))
+}
+
+/** Soft pre-check only — the backend is the sole enforcer (422 DUPLICATE_TOPIC_TITLE on
+ * submit). This just lets the student see a likely collision before they get that far. */
+export async function getTopicSimilarity(params: {
+  title: string
+  keywords?: string[]
+  leadDepartmentId?: number
+  periodWindow?: number
+}): Promise<TopicSimilarityResultDto> {
+  if (env.isMockMode) return { exactMatch: null, similar: [] }
+  const query = new URLSearchParams({ title: params.title, periodWindow: String(params.periodWindow ?? 3) })
+  if (params.keywords?.length) query.set('keywords', params.keywords.join(','))
+  if (params.leadDepartmentId) query.set('leadDepartmentId', String(params.leadDepartmentId))
+  return httpGet<TopicSimilarityResultDto>(`/topics/similarity-check?${query.toString()}`)
 }

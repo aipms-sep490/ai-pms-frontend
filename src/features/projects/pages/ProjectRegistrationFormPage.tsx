@@ -1,10 +1,12 @@
-import { useEffect, useRef, type FormEvent, type RefObject } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type RefObject } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useStudentJourney } from '../../../app/context'
 import { RevisionAlert } from '../components/RevisionAlert'
-import { normalizeProjectStatus, useProjectRegistration, type ProjectRegistrationField } from '../hooks/useProjectRegistration'
+import { normalizeProjectStatus, splitProjectTags, useProjectRegistration, type ProjectRegistrationField } from '../hooks/useProjectRegistration'
 import { projectStatusLabel } from '../utils/project-status'
 import { PageLoading } from '../../../components/ui/PageLoading'
+import { services } from '../../../services/service-gateway'
+import type { TopicSimilarityResultDto } from '../../../types/backend'
 
 export function ProjectRegistrationFormPage() {
   const navigate = useNavigate()
@@ -23,10 +25,29 @@ export function ProjectRegistrationFormPage() {
   const editable = !hasProject || registration.canEdit
   const submitting = registration.submitting || registration.resubmitting
   const validationSummaryRef = useRef<HTMLDivElement>(null)
+  const [similarity, setSimilarity] = useState<{ title: string; result: TopicSimilarityResultDto } | null>(null)
+  const [similarityLoading, setSimilarityLoading] = useState(false)
+  // A result only applies to the title it was computed for — once the title changes again,
+  // it's stale and hidden without needing a separate effect to clear it out.
+  const currentSimilarity = similarity?.title === registration.form.title.trim() ? similarity.result : null
 
   useEffect(() => {
     if (registration.error?.kind === 'validation') validationSummaryRef.current?.focus()
   }, [registration.error])
+
+  const checkSimilarity = async () => {
+    const title = registration.form.title.trim()
+    if (!title) return
+    setSimilarityLoading(true)
+    try {
+      const result = await services.topic.getTopicSimilarity({
+        title, keywords: splitProjectTags(registration.form.keywords),
+        leadDepartmentId: registration.academicScope?.leadDepartmentId,
+      })
+      setSimilarity({ title, result })
+    } catch { setSimilarity(null) }
+    finally { setSimilarityLoading(false) }
+  }
 
   const save = async () => {
     const saved = await registration.saveDraft()
@@ -76,6 +97,12 @@ export function ProjectRegistrationFormPage() {
         <p className="text-xs text-slate-500"><span aria-hidden="true">*</span> Trường bắt buộc</p>
         {registration.error?.kind === 'validation' && <ValidationSummary summaryRef={validationSummaryRef} fields={registration.error.fields} message={registration.error.message} />}
         <TextField id="project-title" label="Tên đề tài" value={registration.form.title} required disabled={!editable} error={registration.error?.fields?.title} onChange={(value) => registration.setField('title', value)} />
+        {editable && <div>
+          <button type="button" onClick={() => void checkSimilarity()} disabled={!registration.form.title.trim() || similarityLoading} className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+            {similarityLoading ? 'Đang kiểm tra…' : 'Kiểm tra trùng đề tài'}
+          </button>
+          <SimilarityResult result={currentSimilarity} />
+        </div>}
         <TextArea id="project-description" label="Mô tả ngắn" value={registration.form.description} disabled={!editable} onChange={(value) => registration.setField('description', value)} />
         <TextArea id="project-problem" label="Bối cảnh và vấn đề cần giải quyết" value={registration.form.problemStatement} disabled={!editable} onChange={(value) => registration.setField('problemStatement', value)} />
         <TextArea id="project-objectives" label="Mục tiêu đề tài" value={registration.form.objectives} disabled={!editable} onChange={(value) => registration.setField('objectives', value)} />
@@ -105,6 +132,24 @@ function ProjectProvenance({ project }: { project: NonNullable<ReturnType<typeof
 function GovernedScope({ scope }: { scope: ReturnType<typeof useProjectRegistration>['academicScope']; requiredMajorIds: number[] }) {
   const modeLabel = scope?.projectMode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành'
   return <section className="rounded-md border border-slate-200 bg-slate-50 p-5"><p className="text-xs font-bold uppercase tracking-wider text-slate-500">Phạm vi đăng ký</p>{scope ? <div className="mt-3 grid gap-3 text-xs sm:grid-cols-3"><p><strong>Hình thức:</strong> {modeLabel}</p><p><strong>Bộ môn phụ trách:</strong> Mã tham chiếu #{scope.leadDepartmentId}</p><p><strong>Ngành chính:</strong> {scope.primaryMajorId ? `Mã tham chiếu #${scope.primaryMajorId}` : 'Không áp dụng'}</p><p className="sm:col-span-3"><strong>Ngành tham gia:</strong> {scope.requirements.map((item) => `Ngành #${item.majorId} (${item.minMembers}–${item.maxMembers} thành viên)`).join(' · ') || 'Chưa có thông tin ngành tham gia'}</p></div> : <p className="mt-2 text-xs text-slate-600">Chưa tải được phạm vi đăng ký của nhóm. Thông tin này được xác định trong quá trình lập nhóm.</p>}</section>
+}
+
+/** Soft, client-side pre-check only — the backend is the sole enforcer (422
+ * DUPLICATE_TOPIC_TITLE on submit). An exact match is called out as a strong warning;
+ * near matches are informational so the student can judge for themselves. */
+function SimilarityResult({ result }: { result: TopicSimilarityResultDto | null }) {
+  if (!result || (!result.exactMatch && result.similar.length === 0)) return null
+  return <div className="mt-2 space-y-2">
+    {result.exactMatch && <p role="alert" className="rounded-md border border-status-error-border bg-status-error-bg p-3 text-xs text-status-error-text">
+      Tên đề tài trùng với đề tài đã có: <strong>{result.exactMatch.title}</strong>. Hệ thống sẽ từ chối khi nộp nếu không đổi tên.
+    </p>}
+    {result.similar.length > 0 && <div className="rounded-md border border-status-warning-border bg-status-warning-bg p-3 text-xs text-status-warning-text">
+      <p className="font-semibold">Có thể gần giống các đề tài sau:</p>
+      <ul className="mt-1 list-disc space-y-0.5 pl-4">
+        {result.similar.map((item) => <li key={item.id}>{item.title} · kỳ {item.semesterCode} · giống {Math.round(item.score * 100)}%</li>)}
+      </ul>
+    </div>}
+  </div>
 }
 
 function TextField({ id, label, hint, value, required, disabled, error, onChange }: { id: string; label: string; hint?: string; value: string; required?: boolean; disabled: boolean; error?: string; onChange: (value: string) => void }) { const helpId = `${id}-help`; return <label htmlFor={id} className="block text-xs font-bold uppercase tracking-wider text-slate-700">{label}{required ? <span aria-hidden="true"> *</span> : ''}<input id={id} value={value} disabled={disabled} aria-invalid={Boolean(error)} aria-describedby={hint || error ? helpId : undefined} onChange={(event) => onChange(event.target.value)} className={`mt-1.5 w-full rounded-md border px-3.5 py-2.5 text-sm normal-case tracking-normal disabled:bg-slate-100 ${error ? 'border-rose-600' : 'border-slate-300'}`} />{error ? <span id={helpId} className="mt-1 block text-xs font-medium normal-case tracking-normal text-rose-700">{error}</span> : hint ? <span id={helpId} className="mt-1 block text-xs font-normal normal-case tracking-normal text-slate-500">{hint}</span> : null}</label> }
