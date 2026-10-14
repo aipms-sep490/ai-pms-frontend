@@ -1,0 +1,16 @@
+AI-PMS Claude UIUX Kit V2 — source files (external skills are not included)
+.claude/rules/ai-pms-human-crafted-ui.md
+.claude/rules/ai-pms-ui-ux.md
+.claude/skills/ai-pms-uiux/SKILL.md
+CLAUDE_UIUX_APPEND.md
+PROMPT_CLAUDE_3_SKILLS_IMPECCABLE_MASTER.md
+PROMPT_CLAUDE_AUDIT_ONLY.md
+PROMPT_CLAUDE_MASTER.md
+README_START_HERE.md
+docs/uiux/01-DESIGN-SYSTEM.md
+docs/uiux/02-INTERACTION-RULES.md
+docs/uiux/03-ROLE-SCREEN-MATRIX.md
+docs/uiux/04-AUDIT-ACCEPTANCE.md
+docs/uiux/05-FE-BE-CONTRACT.md
+docs/uiux/06-ANTI-AI-DESIGN-PLAYBOOK.md
+docs/uiux/07-3-SKILLS-QUALITY-GATES.md

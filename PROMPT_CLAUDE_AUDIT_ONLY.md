@@ -1,0 +1,5 @@
+# QUICK PROMPT — AUDIT ONLY (no source changes)
+
+Using the local AI-PMS `.claude/rules/ai-pms-ui-ux.md` and `/ai-pms-uiux` skill, perform a **read-only UI/UX audit of the actual frontend**. Inspect React route map, app shell, design tokens, shared components, API client, capability guards, SRS/SDD/v5 workflows, then run the app and capture browser screenshots at 390/768/1280/1440 widths where possible. Do not modify source files, database or dependencies.
+
+Produce a prioritized `route | actor/state | issue | file:line | screenshot evidence | severity P0/P1/P2 | fix | regression test` audit. Specifically audit every button/link/form/select/table/filter/modal/toast/loading/empty/error/permission/readonly/AI insight and evaluation rubric state. Distinguish actual findings from assumptions. Recommend ONE unified Academic Operations SaaS visual direction, shared component plan and an implementable first vertical slice without changing backend contracts. If browser access fails, report unverified views. No invented screenshots or scores.

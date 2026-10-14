@@ -1,0 +1,9 @@
+# Prompt — AI-PMS Meeting + Video + Floating Chat + Notifications
+
+Please use the installed Frontend Design, UI UX Pro Max and Impeccable skills as appropriate, plus all `.claude/rules/` and `docs/uiux/` contracts. Analyze and improve collaboration as an integrated user workflow, NOT a decorative mock screen.
+
+1. Inspect current React and Backend for meeting calendar/detail, attendance, minutes, action items, AI assistant, notification center, external meeting URL, RTC/video provider and human messaging. Show paths and real endpoints, and classify each VERIFY-CODE / SRS-REQUIREMENT / PROPOSED / OPEN / MOCK.
+2. Map concrete journey: user opens project → views scheduled meeting → inspects agenda/participants → joins via actual available method → captures attendance and minutes → creates linked action item → notified participant opens authorized task; AI assistant remains separately scoped.
+3. For embedded video ONLY IF verified/approved, design and implement prejoin, active speaker/gallery, collapsible participant/notes/chat sidebar, toolbar, mic/camera/leave controls, responsive mobile full-screen/bottom sheet, device/network errors and cleanup. Otherwise propose integration with vendor/security/BE requirements and present only genuine external join where real URL is supported.
+4. For chat widget distinguish human messaging, meeting chat, AI assistant and notification center. Single overlay coordinator; bubble must not cover app actions or in-call controls; safe-area/keyboard/focus, drafts, retry and status badges from actual data.
+5. Implement a single verified vertical slice, preserve RBAC/policy/lifecycle, test 390/768/1280/1440 and keyboard/401/403/409/422/offline/archived state; provide before-after screenshots, actual test results, implementation gaps, BE/API/privacy proposals.
