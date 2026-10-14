@@ -1,6 +1,6 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { cleanup, render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { StudentJourneyHero } from './StudentJourneyHero'
 
 vi.mock('../../../app/context', () => ({
@@ -9,6 +9,8 @@ vi.mock('../../../app/context', () => ({
     team: null, semester: null, period: null, profile: null, error: null,
   }),
 }))
+
+afterEach(() => { cleanup(); vi.resetAllMocks() })
 
 function Location() { return <output data-testid="location">{useLocation().pathname}</output> }
 
