@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
-  assignIndustryExpert, downloadIndustryEvidenceFile, getIndustryEvidence, getIndustryFeedbackHistory,
-  getIndustryInvitations, getMyIndustryAssignments, getProjectIndustryAssignments, inviteIndustryExpert,
-  revokeIndustryAssignment, revokeIndustryInvitation, shareIndustryEvidence, submitIndustryFeedback,
-  unshareIndustryEvidence,
+  assignIndustryExpert, downloadIndustryEvidenceFile, enrollIndustryGoogle, getIndustryEvidence,
+  getIndustryFeedbackHistory, getIndustryGoogleChallenge, getIndustryInvitations, getMyIndustryAssignments,
+  getProjectIndustryAssignments, inviteIndustryExpert, revokeIndustryAssignment, revokeIndustryInvitation,
+  shareIndustryEvidence, submitIndustryFeedback, unshareIndustryEvidence,
 } from './industry-api'
 
 afterEach(() => { vi.unstubAllGlobals(); localStorage.clear() })
@@ -59,5 +59,21 @@ describe('Industry lead assignment + expert portal HTTP contract', () => {
       ['/api/v1/industry/assignments/7/feedback?page=1&pageSize=20', 'GET'],
     ])
     expect(JSON.parse(fetch.mock.calls[4][1].body)).toEqual({ concurrencyToken: 'c', expectedVersion: 0, content: 'Góp ý.' })
+  })
+})
+
+describe('Industry Google enrollment HTTP contract', () => {
+  it('requests the challenge and exchanges it against the real anonymous routes', async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetch)
+    await getIndustryGoogleChallenge()
+    await enrollIndustryGoogle('challenge-1', 'id-token', 'a'.repeat(64))
+    expect(fetch.mock.calls.map(([url, options]) => [url, options.method])).toEqual([
+      ['/api/v1/auth/industry/google/challenge', 'POST'],
+      ['/api/v1/auth/industry/google/enroll', 'POST'],
+    ])
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ challengeId: 'challenge-1', idToken: 'id-token', invitationToken: 'a'.repeat(64) })
+    // Anonymous endpoints must never trigger the authenticated-session refresh path.
+    expect(fetch.mock.calls.every(([, options]) => !('Authorization' in options.headers))).toBe(true)
   })
 })

@@ -1,13 +1,14 @@
 import { httpGet, httpGetBlob, httpPost } from '../../services/http/http-client'
 import type { PagedResult } from '../../types/backend'
+import type { GoogleChallenge } from '../auth/api/auth-api'
+import type { LoginSession } from '../auth/types/auth.types'
 
 // BE Industry Advisory contract — BACKEND_READY (AIPMS.Api/Controllers/IndustryController.cs,
-// AIPMS.Infrastructure/Services/Projects/IndustryService*.cs). Advisory only: an expert never gets
-// an academic role, never scores, and `AdvisoryOnly` is always true server-side on an assignment/
-// feedback entry. This file covers admin invitations, the lead's project assignment + evidence
-// sharing, and the expert's own portal (read assignment, evidence, feedback). Google OAuth
-// enrollment (`/auth/industry/google/*`) is a separate, tracked follow-up — building it needs real
-// Google Identity Services integration and deployed provider config.
+// AIPMS.Infrastructure/Services/Projects/IndustryService*.cs, IndustryEnrollmentController.cs).
+// Advisory only: an expert never gets an academic role, never scores, and `AdvisoryOnly` is always
+// true server-side on an assignment/feedback entry. Covers admin invitations, the lead's project
+// assignment + evidence sharing, the expert's own portal, and the Google enrollment exchange that
+// turns an emailed invitation into a signed-in zero-role session.
 
 export type ExpertInvitationStatus = 'PENDING' | 'CONSUMED' | 'EXPIRED' | 'REVOKED'
 
@@ -119,3 +120,16 @@ export const submitIndustryFeedback = (assignmentId: number, body: { concurrency
 /** Readable by the assigned expert (while live) or the project's lead. */
 export const getIndustryFeedbackHistory = (assignmentId: number, page = 1, pageSize = 20, signal?: AbortSignal) =>
   httpGet<PagedResult<IndustryFeedback>>(`/industry/assignments/${assignmentId}/feedback?page=${page}&pageSize=${pageSize}`, signal)
+
+// Google enrollment (anonymous, IndustryEnrollmentController.cs). The challenge sets an HttpOnly
+// cookie scoped to /api/v1/auth/industry, bound to this browser; the browser sends it automatically
+// (http-client always uses credentials:'include'). `GoogleChallenge`/`LoginSession` are the same
+// shapes the existing student/staff Google login already uses — the backend returns the identical
+// DTOs for both flows.
+export const getIndustryGoogleChallenge = (): Promise<GoogleChallenge> =>
+  httpPost('/auth/industry/google/challenge', {}, { skipAuthRefresh: true })
+
+/** `invitationToken` is the 64-char secret from the emailed invitation link's URL fragment
+ * (`#invitation=...`) — never sent to any server in a query string or referrer. */
+export const enrollIndustryGoogle = (challengeId: string, idToken: string, invitationToken: string): Promise<LoginSession> =>
+  httpPost('/auth/industry/google/enroll', { challengeId, idToken, invitationToken }, { skipAuthRefresh: true })

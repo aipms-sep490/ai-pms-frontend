@@ -4,42 +4,7 @@ import { HttpError } from '../../../services/http/http-client'
 import { getGoogleChallenge, linkGoogle, loginWithGoogle } from '../api/auth-api'
 import { useAuthSession } from '../context/useAuthSession'
 import { getHomePath } from '../utils/role-access'
-
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (config: { client_id: string; nonce: string; callback: (response: { credential?: string }) => void }) => void
-          renderButton: (element: HTMLElement, options: Record<string, unknown>) => void
-        }
-      }
-    }
-  }
-}
-
-let script: Promise<void> | null = null
-
-function loadGoogleScript() {
-  if (window.google?.accounts?.id) return Promise.resolve()
-  if (!script) {
-    script = new Promise((resolve, reject) => {
-      const tag = document.createElement('script')
-      tag.src = 'https://accounts.google.com/gsi/client'
-      tag.async = true
-      const timeout = window.setTimeout(() => { script = null; tag.remove(); reject(new Error('Google Identity timed out.')) }, 15000)
-      tag.onload = () => { window.clearTimeout(timeout); resolve() }
-      tag.onerror = () => {
-        window.clearTimeout(timeout)
-        script = null
-        tag.remove()
-        reject(new Error('Google Identity could not load.'))
-      }
-      document.head.append(tag)
-    })
-  }
-  return script
-}
+import { loadGoogleScript } from '../utils/google-identity'
 
 function errorMessage(error: unknown) {
   if (error instanceof HttpError && error.status === 403) return 'Nguồn truy cập này chưa được phép đăng nhập bằng Google.'
