@@ -30,7 +30,7 @@ import {
   EvaluationSchemeManagementPage, StudentProjectResultPage, ProjectContributionsPage, ProjectFilesPage,
   ProjectEvidenceLedgerPage, ProjectAiPage, ProjectGatesPage, ProjectWorkingAgreementPage, ProjectDefensePage,
   ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, ArchivedProjectsPage,
-  ProjectArchiveViewPage, CalendarAttentionPage, AdminIndustryInvitationsPage,
+  ProjectArchiveViewPage, CalendarAttentionPage, AdminIndustryInvitationsPage, IndustryExpertWorkspacePage,
 } from './lazy-pages'
 
 export const appRouter = createBrowserRouter([{ element: <RouteFrame />, children: [
@@ -207,6 +207,10 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           ...(env.industryEnabled ? [{ path: 'admin/industry', element: <AdminIndustryInvitationsPage /> }] : []),
         ],
       },
+      ...(env.industryEnabled ? [{
+        element: <RoleRoute allowed={['industry']} />,
+        children: [{ path: 'industry/workspace', element: <IndustryExpertWorkspacePage /> }],
+      }] : []),
 
       ...(env.workflowPreviewEnabled ? [{ path: 'preview/workflows', element: <WorkflowPreviewPage /> }] : []),
       { path: '*', element: <NotFoundPage /> },

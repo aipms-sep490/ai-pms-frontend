@@ -18,4 +18,15 @@ describe('role-based workspace', () => {
     expect(getWorkspaceRole({ roles: ['STUDENT', 'DEPARTMENT_STAFF'] })).toBe('department')
     expect(getWorkspaceRole({ roles: ['LECTURER', 'ADMIN'] })).toBe('admin')
   })
+
+  it('treats a zero-role authenticated account as an industry expert, not as no user', () => {
+    expect(getWorkspaceRole({ roles: [] })).toBe('industry')
+    expect(getHomePath({ roles: [] })).toBe('/industry/workspace')
+  })
+
+  it('does not treat no user at all as an industry expert', () => {
+    expect(getWorkspaceRole(null)).toBe('unknown')
+    expect(getWorkspaceRole(undefined)).toBe('unknown')
+    expect(getHomePath(null)).toBe('/profile')
+  })
 })

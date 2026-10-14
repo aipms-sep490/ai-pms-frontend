@@ -18,6 +18,7 @@ function renderRoutes(roles: string[], initialPath: string) {
         <Route element={<RoleRoute allowed={['student']} />}><Route path="/project/workspace" element={<p>Student workspace</p>} /><Route path="/project/overview" element={<p>Student overview</p>} /></Route>
         <Route element={<RoleRoute allowed={['department']} />}><Route path="/department/projects/review" element={<p>Department review</p>} /><Route path="/department/workspace" element={<p>Department workspace</p>} /></Route>
         <Route element={<RoleRoute allowed={['lecturer']} />}><Route path="/supervisor/workspace" element={<p>Lecturer workspace</p>} /></Route>
+        <Route element={<RoleRoute allowed={['industry']} />}><Route path="/industry/workspace" element={<p>Industry workspace</p>} /></Route>
         <Route path="/admin/access" element={<p>Admin access</p>} />
       </Routes>
     </MemoryRouter>
@@ -52,4 +53,17 @@ it('allows explicitly assigned department access for a user who also has Admin, 
   renderRoutes(['ADMIN', 'DEPARTMENT_STAFF'], '/department/projects/review')
   expect(screen.getByText('Department review')).toBeDefined()
   expect(screen.queryByText('Admin access')).toBeNull()
+})
+
+it('lets a zero-role (industry expert) account reach its own workspace', () => {
+  renderRoutes([], '/industry/workspace')
+  expect(screen.getByText('Industry workspace')).toBeDefined()
+})
+
+it('redirects a zero-role account away from a role-coded workspace, and vice versa', () => {
+  renderRoutes([], '/project/workspace')
+  expect(screen.getByText('Industry workspace')).toBeDefined()
+  cleanup()
+  renderRoutes(['STUDENT'], '/industry/workspace')
+  expect(screen.getByText('Student overview')).toBeDefined()
 })
