@@ -1,10 +1,39 @@
-import { httpGet, httpPost } from '../../services/http/http-client'
-import type { MyPeerEvaluations, PeerEvaluationInput } from './peer-eval-types'
+import { httpGet, httpPost, httpPut } from '../../services/http/http-client'
+import type { PagedResult } from '../../types/backend'
+import type { MyPeerEvaluation, PeerEvaluationSubmission, PeerRatingInput, PeerRound } from './peer-eval-types'
 
-// BE-19b endpoints. FE is built ahead of the backend; until it ships these calls
-// return 404/501 and the page shows the matching state.
-export const getMyPeerEvaluations = (projectId: number, signal?: AbortSignal) =>
-  httpGet<MyPeerEvaluations>(`/projects/${projectId}/peer-evaluations/mine`, signal)
+// BE-19b endpoints (AIPMS.Api/Controllers/PeerEvaluationsController.cs). `mine` auto-resolves the
+// project's current OPEN round when roundId is omitted; NO_OPEN_ROUND is an explicit, valid
+// status, never silently substituted by the client.
+export const getMyPeerEvaluation = (projectId: number, roundId?: number, signal?: AbortSignal) =>
+  httpGet<MyPeerEvaluation>(
+    `/projects/${projectId}/peer-evaluations/mine${roundId != null ? `?roundId=${roundId}` : ''}`, signal,
+  )
 
-export const submitPeerEvaluations = (projectId: number, items: PeerEvaluationInput[]) =>
-  httpPost<MyPeerEvaluations, { items: PeerEvaluationInput[] }>(`/projects/${projectId}/peer-evaluations`, { items })
+/** `mine` doesn't carry the roster (who to rate) — that lives on the round itself. Rounds are
+ * listed newest-first and at most one is OPEN, so the active round is reliably near the top. */
+export const getPeerRounds = (projectId: number, page = 1, pageSize = 50, signal?: AbortSignal) =>
+  httpGet<PagedResult<PeerRound>>(
+    `/projects/${projectId}/peer-evaluations/rounds?page=${page}&pageSize=${pageSize}`, signal,
+  )
+
+/**
+ * Upserts the draft. `concurrencyToken` must be the existing draft's current token, or omitted to
+ * create the first draft for this round — a token sent with no existing draft, or a stale one, is
+ * a 409 `PEER_STALE`. Partial items are fine (draft-save doesn't require covering every member);
+ * `submit` is what enforces completeness.
+ */
+export const savePeerEvaluationDraft = (
+  projectId: number, roundId: number, items: PeerRatingInput[], concurrencyToken?: string,
+) => httpPut<PeerEvaluationSubmission, { concurrencyToken?: string; items: PeerRatingInput[] }>(
+  `/projects/${projectId}/peer-evaluations/rounds/${roundId}/mine`,
+  { concurrencyToken, items },
+)
+
+/** Requires a draft covering every other current roster member (409 `PEER_INCOMPLETE` otherwise).
+ * Idempotent once already SUBMITTED — a double click just returns the same submission. */
+export const submitPeerEvaluation = (projectId: number, roundId: number, concurrencyToken: string) =>
+  httpPost<PeerEvaluationSubmission, { concurrencyToken: string }>(
+    `/projects/${projectId}/peer-evaluations/rounds/${roundId}/mine/submit`,
+    { concurrencyToken },
+  )
