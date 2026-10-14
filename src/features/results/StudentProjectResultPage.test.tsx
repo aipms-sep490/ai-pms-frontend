@@ -6,7 +6,7 @@ import { HttpError } from '../../services/http/http-client'
 const mocks = vi.hoisted(() => ({ journey: { project: { id: 1, majors: [{ majorId: 3, majorName: 'Phần mềm' }] } as { id: number; majors: {majorId:number;majorName:string}[] } | null, profile: { id: 7 }, isLoading: false }, getStudentResult: vi.fn() }))
 vi.mock('../../app/context', () => ({ useStudentJourney: () => mocks.journey }))
 vi.mock('../../services/api/project-results.api', () => ({ getStudentResult: mocks.getStudentResult }))
-const result = { projectId: 1, studentId: 7, majorId: 3, schemeId: 2, totalScore: 8.25, passThreshold: 5, outcome: 'PASSED', publishedAt: '2026-10-01T12:00:00Z', calculationRule: 'SERVER_RULE', snapshotJson: '{}' }
+const result = { projectId: 1, studentId: 7, majorId: 3, schemeId: 2, totalScore: 8.25, passThreshold: 5, outcome: 'PASSED', publishedAt: '2026-10-01T12:00:00Z', calculationRule: 'SERVER_RULE', snapshotJson: '{}', version: 1 }
 afterEach(() => { cleanup(); vi.resetAllMocks(); mocks.journey.project = { id: 1, majors: [{ majorId: 3, majorName: 'Phần mềm' }] } })
 it('does not show the previous own result when the project context disappears', async () => {
   mocks.getStudentResult.mockResolvedValue(result)
@@ -44,17 +44,27 @@ it('rejects a returned result belonging to another student', async () => {
   expect(screen.queryByText('8.25')).toBeNull()
 })
 it('renders the BE-09 component breakdown, marking a null score as pending not zero', async () => {
-  mocks.getStudentResult.mockResolvedValue({ ...result, schemeName: 'Khung đánh giá liên ngành', schemeVersion: 2, components: [
-    { scope: 'COMMON', majorName: null, weightPercent: 50, score: 8, status: 'SCORED' },
-    { scope: 'MAJOR', majorName: 'Phần mềm', weightPercent: 30, score: null, status: 'PENDING' },
-  ] })
+  mocks.getStudentResult.mockResolvedValue({ ...result, breakdown: {
+    schemeName: 'Khung đánh giá liên ngành', schemeVersion: 2, calculationVersion: 'DECIMAL_V2', isLegacy: false,
+    approvalStatus: 'APPROVED', readiness: 'READY', majorBreakdown: [],
+    components: [
+      { componentId: 1, name: 'Common', scope: 'COMMON', majorId: null, weightPercent: 50, score: 8, requiredEvaluators: 2, finalizedEvaluators: 2 },
+      { componentId: 2, name: 'Major', scope: 'MAJOR', majorId: 3, weightPercent: 30, score: null, requiredEvaluators: 3, finalizedEvaluators: 1 },
+    ],
+  } })
   render(<MemoryRouter><StudentProjectResultPage /></MemoryRouter>)
   await screen.findByText('8.25')
   expect(screen.getByText('Khung đánh giá liên ngành · v2')).toBeTruthy()
   expect(screen.getByText('Chi tiết thành phần điểm')).toBeTruthy()
   expect(screen.getByText('Điểm chung')).toBeTruthy()
-  expect(screen.getByText('Chưa có điểm')).toBeTruthy()
+  expect(screen.getByText('Chưa có điểm (1/3 người chấm)')).toBeTruthy()
   expect(screen.getByText('Đã chấm')).toBeTruthy()
+})
+it('flags a corrected (v2+) result instead of presenting it as the original publication', async () => {
+  mocks.getStudentResult.mockResolvedValue({ ...result, version: 2, supersedesVersion: 1 })
+  render(<MemoryRouter><StudentProjectResultPage /></MemoryRouter>)
+  await screen.findByText('8.25')
+  expect(screen.getByText(/đã đính chính.*phiên bản 2.*thay thế phiên bản 1/)).toBeTruthy()
 })
 it('shows only the summary when BE-09 breakdown fields are absent', async () => {
   mocks.getStudentResult.mockResolvedValue(result)

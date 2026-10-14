@@ -1,9 +1,15 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import { ProjectResultBreakdown } from './ProjectResultBreakdown'
-import type { ProjectMajorScore, ResultContribution } from './result-types'
+import type { ResultBreakdown, ResultContribution } from './result-types'
 
 afterEach(cleanup)
+
+const breakdown = (over: Partial<ResultBreakdown> = {}): ResultBreakdown => ({
+  calculationVersion: 'DECIMAL_V2', isLegacy: false, approvalStatus: 'APPROVED', readiness: 'READY',
+  commonScore: 8, majorAggregate: 7.33, majorBreakdown: [], components: [],
+  ...over,
+})
 
 describe('ProjectResultBreakdown', () => {
   it('renders nothing when the backend ships no breakdown or advisory data', () => {
@@ -12,15 +18,24 @@ describe('ProjectResultBreakdown', () => {
   })
 
   it('shows COMMON, MajorAggregate and per-major rows, marking a pending major without a zero', () => {
-    const majors: ProjectMajorScore[] = [
-      { majorId: 1, majorName: 'IT', majorScore: 9, weightPercent: 50 },
-      { majorId: 2, majorName: 'Marketing', majorScore: null, weightPercent: 50 },
-    ]
-    render(<ProjectResultBreakdown commonScore={8} majorAggregate={7.33} majorBreakdown={majors} />)
-    expect(screen.getByText('IT')).toBeTruthy()
+    render(<ProjectResultBreakdown breakdown={breakdown({ majorBreakdown: [
+      { majorId: 1, score: 9 },
+      { majorId: 2, score: null },
+    ] })} />)
+    expect(screen.getByText('Ngành #1')).toBeTruthy()
     expect(screen.getByText('Chưa có điểm')).toBeTruthy()
-    // The pending Marketing row shows an em dash, never 0.
+    // The pending major row shows an em dash, never 0.
     expect(screen.queryByText('0')).toBeNull()
+  })
+
+  it('flags a non-approved (demo/proposed) scheme — e.g. an unapproved Marketing rubric — instead of presenting it as official', () => {
+    render(<ProjectResultBreakdown breakdown={breakdown({ approvalStatus: 'PROPOSED', isDemo: true })} />)
+    expect(screen.getByText('Phương án demo / chưa duyệt chính thức')).toBeTruthy()
+  })
+
+  it('does not flag an approved, non-demo scheme', () => {
+    render(<ProjectResultBreakdown breakdown={breakdown({ approvalStatus: 'APPROVED', isDemo: false })} />)
+    expect(screen.queryByText(/demo \/ chưa duyệt/)).toBeNull()
   })
 
   it('lists advisory contributions separately and states they are not scored', () => {
