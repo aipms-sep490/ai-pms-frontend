@@ -95,8 +95,10 @@ export function SupervisorSelectionPage() {
         </li>)}</ul> : <p className="mt-2 text-sm text-slate-600">Chưa có yêu cầu hướng dẫn.</p>}
       </section>
 
-      {env.supervisorRecommendationEnabled && selection.canSend && journey.project && <SupervisorRecommendationPanel
+      {env.supervisorRecommendationEnabled && selection.canSend && journey.project && activeSlot && <SupervisorRecommendationPanel
         projectId={journey.project.id}
+        assignmentType={activeSlot.type}
+        majorId={activeSlot.majorId}
         candidateIds={new Set(selection.candidates.map(candidate => candidate.id))}
         onPick={id => choose(id)} />}
 
