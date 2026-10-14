@@ -30,7 +30,7 @@ import {
   EvaluationSchemeManagementPage, StudentProjectResultPage, ProjectContributionsPage, ProjectFilesPage,
   ProjectEvidenceLedgerPage, ProjectAiPage, ProjectGatesPage, ProjectWorkingAgreementPage, ProjectDefensePage,
   ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, ArchivedProjectsPage,
-  ProjectArchiveViewPage, CalendarAttentionPage,
+  ProjectArchiveViewPage, CalendarAttentionPage, AdminIndustryInvitationsPage,
 } from './lazy-pages'
 
 export const appRouter = createBrowserRouter([{ element: <RouteFrame />, children: [
@@ -204,6 +204,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'admin/milestone-templates', element: <MilestoneTemplatesPage /> },
           { path: 'admin/access/rbac', element: <AdminRbacPage /> },
           { path: 'admin/access/users/:userId', element: <AdminUserDetailPage /> },
+          ...(env.industryEnabled ? [{ path: 'admin/industry', element: <AdminIndustryInvitationsPage /> }] : []),
         ],
       },
 

@@ -1,50 +1,65 @@
 import { useEffect, useState } from 'react'
 import { HttpError } from '../../../services/http/http-client'
-import { getSupervisorRecommendations, type SupervisorRecommendationItem, type SupervisorRecommendationRun } from '../api/supervisor-recommendation-api'
+import {
+  previewSupervisorRecommendations,
+  type SupervisorRecommendationAssignmentType,
+  type SupervisorRecommendationItem,
+} from '../api/supervisor-recommendation-api'
 
 const scorePercent = (score: number) => `${Math.round(Math.max(0, Math.min(1, score)) * 100)}%`
 
+const EXPERTISE_STATUS_LABEL: Record<string, string> = {
+  UNKNOWN: 'Giảng viên chưa khai báo chuyên môn.',
+  NO_MATCH: 'Chuyên môn hiện khai báo không khớp ngành yêu cầu.',
+}
+
 /**
- * BE-18: advisory ranking of supervisors for a project. Read-only — picking a
- * suggestion only pre-selects a candidate; the student still sends the request
+ * BE-18: advisory ranking of supervisors for a project, scoped to the assignment slot the leader
+ * is currently filling (PRIMARY or a specific DISCIPLINE_MENTOR major). Read-only, unpersisted
+ * preview — picking a suggestion only pre-selects a candidate; the student still sends the request
  * manually. AI never creates a request or an assignment (BR-60–63).
  */
-export function SupervisorRecommendationPanel({ projectId, candidateIds, onPick }: {
+export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRIMARY', majorId, candidateIds, onPick }: {
   projectId: number
-  /** Supervisor ids that are selectable in the current flow. */
+  assignmentType?: SupervisorRecommendationAssignmentType
+  /** Required for a DISCIPLINE_MENTOR slot; must stay unset for PRIMARY. */
+  majorId?: number
+  /** Supervisor profile ids that are selectable in the current flow. */
   candidateIds?: ReadonlySet<number>
   onPick?: (supervisorId: number) => void
 }) {
-  const [run, setRun] = useState<SupervisorRecommendationRun | null>(null)
+  const [items, setItems] = useState<SupervisorRecommendationItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [revision, setRevision] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
-    void getSupervisorRecommendations(projectId, controller.signal)
-      .then(data => { if (!controller.signal.aborted) { setRun(data); setError(false) } })
+    setLoading(true); setErrorMessage(null)
+    void previewSupervisorRecommendations(projectId, { assignmentType, majorId }, controller.signal)
+      .then(data => { if (!controller.signal.aborted) { setItems(data.candidates.items); setErrorMessage(null) } })
       .catch(reason => {
         if (controller.signal.aborted) return
-        if (reason instanceof HttpError && reason.status === 404) { setRun(null); setError(false) }
-        else setError(true)
+        setItems([])
+        setErrorMessage(reason instanceof HttpError && reason.status === 403
+          ? 'Bạn chưa có quyền xem gợi ý giảng viên cho vị trí này.'
+          : 'Chưa tải được gợi ý giảng viên.')
       })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
-  }, [projectId, revision])
+  }, [projectId, assignmentType, majorId, revision])
 
-  const retry = () => { setLoading(true); setError(false); setRun(null); setRevision(value => value + 1) }
-  const items = run?.items ?? []
+  const retry = () => setRevision(value => value + 1)
 
   return <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs">
     <h2 className="font-heading text-lg font-semibold text-ink">Gợi ý giảng viên hướng dẫn</h2>
     <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">Danh sách xếp hạng theo chuyên môn và năng lực tiếp nhận. Đây chỉ là gợi ý tham khảo; bạn vẫn tự chọn và gửi lời mời.</p>
     {loading && <p role="status" className="mt-4 text-sm text-ink-muted">Đang tải gợi ý…</p>}
-    {!loading && error && <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><span>Chưa tải được gợi ý giảng viên.</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
-    {!loading && !error && items.length === 0 && <p className="mt-4 text-sm text-ink-muted">Chưa có gợi ý nào cho đồ án này.</p>}
-    {!loading && !error && items.length > 0 && <ol className="mt-4 space-y-3">
-      {items.map((item, index) => <RecommendationRow key={item.supervisorId} item={item} rank={index + 1}
-        selectable={!candidateIds || candidateIds.has(item.supervisorId)} onPick={onPick} />)}
+    {!loading && errorMessage && <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><span>{errorMessage}</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
+    {!loading && !errorMessage && items.length === 0 && <p className="mt-4 text-sm text-ink-muted">Chưa có gợi ý nào cho vị trí này.</p>}
+    {!loading && !errorMessage && items.length > 0 && <ol className="mt-4 space-y-3">
+      {items.map((item, index) => <RecommendationRow key={item.candidate.id} item={item} rank={index + 1}
+        selectable={!candidateIds || candidateIds.has(item.candidate.id)} onPick={onPick} />)}
     </ol>}
   </section>
 }
@@ -52,27 +67,27 @@ export function SupervisorRecommendationPanel({ projectId, candidateIds, onPick 
 function RecommendationRow({ item, rank, selectable, onPick }: {
   item: SupervisorRecommendationItem; rank: number; selectable: boolean; onPick?: (supervisorId: number) => void
 }) {
+  const { candidate } = item
   return <li className="rounded-xl border border-hairline bg-card p-4 shadow-xs">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <span className="flex size-6 items-center justify-center rounded-full bg-primary-subtle text-xs font-bold text-primary">{rank}</span>
-          <h3 className="text-base font-bold text-ink">{item.lecturerName}</h3>
+          <h3 className="text-base font-bold text-ink">{candidate.fullName}</h3>
         </div>
-        {item.departmentName?.trim() && <p className="mt-1 text-xs text-ink-muted">{item.departmentName}</p>}
+        {candidate.departmentName?.trim() && <p className="mt-1 text-xs text-ink-muted">{candidate.departmentName}</p>}
       </div>
       <div className="flex flex-col items-end gap-1">
         <span className="rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-1 text-xs font-semibold text-primary">Phù hợp {scorePercent(item.score)}</span>
-        {typeof item.availableCapacity === 'number' && <span className="text-xs text-ink-muted">Còn nhận {item.availableCapacity} nhóm</span>}
+        <span className="text-xs text-ink-muted">Còn nhận {candidate.remainingSlots} nhóm</span>
       </div>
     </div>
-    {item.matchedExpertise.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">
-      {item.matchedExpertise.map(tag => <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-ink-muted">{tag}</span>)}
-    </div>}
-    {item.reasons.length > 0 && <ul className="mt-3 space-y-1 text-sm leading-6 text-ink-soft">
-      {item.reasons.map((reason, index) => <li key={index} className="flex gap-2"><span aria-hidden="true">•</span><span>{reason}</span></li>)}
-    </ul>}
-    {onPick && selectable && <button type="button" onClick={() => onPick(item.supervisorId)} className="mt-3 min-h-11 rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-primary-subtle">Chọn giảng viên này</button>}
+    {item.matchedExpertise.length > 0
+      ? <div className="mt-3 flex flex-wrap gap-1.5">
+        {item.matchedExpertise.map(tag => <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-ink-muted">{tag}</span>)}
+      </div>
+      : EXPERTISE_STATUS_LABEL[item.expertiseStatus] && <p className="mt-3 text-xs text-ink-muted">{EXPERTISE_STATUS_LABEL[item.expertiseStatus]}</p>}
+    {onPick && selectable && <button type="button" onClick={() => onPick(candidate.id)} className="mt-3 min-h-11 rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-primary-subtle">Chọn giảng viên này</button>}
     {onPick && !selectable && <p className="mt-3 text-xs text-slate-400">Giảng viên này hiện không nằm trong danh sách có thể mời.</p>}
   </li>
 }

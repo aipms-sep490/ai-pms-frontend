@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 const room = vi.hoisted(() => ({ connect: vi.fn().mockResolvedValue(undefined), disconnect: vi.fn(), on: vi.fn(), off: vi.fn(), localParticipant: { setMicrophoneEnabled: vi.fn().mockResolvedValue(undefined), setCameraEnabled: vi.fn().mockResolvedValue(undefined) } }))
 vi.mock('livekit-client', () => ({ Room: class { constructor() { return room } }, RoomEvent: { ConnectionStateChanged: 'state', Disconnected: 'disconnected' }, ConnectionState: { Connected: 'connected', Reconnecting: 'reconnecting', Disconnected: 'disconnected' }, isBrowserSupported: () => true }))
@@ -7,6 +7,8 @@ vi.mock('@livekit/components-styles', () => ({}))
 vi.mock('@livekit/components-react', () => ({ RoomContext: { Provider: ({ children }: { children: unknown }) => children } }))
 vi.mock('../LiveKitRoomContent', () => ({ LiveKitRoomContent: ({ onProviderError }: { onProviderError: (reason: unknown) => void }) => <><p>Provider room content</p><button onClick={() => onProviderError(new Error('Camera error'))}>Fail camera</button></> }))
 import { LiveKitRoomAdapter } from '../LiveKitRoomAdapter'
+
+afterEach(() => { cleanup() })
 
 describe('LiveKitRoomAdapter', () => {
   it('creates and connects one provider room only after a credential exists, applies local preferences, and cleans up', async () => {

@@ -1,10 +1,12 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './ProtectedRoute'
 
 const auth = vi.hoisted(() => ({ useAuthSession: vi.fn() }))
 vi.mock('../context/useAuthSession', () => auth)
+
+afterEach(() => { cleanup(); vi.resetAllMocks() })
 
 function page(status: string, path = '/project/status/123') {
   auth.useAuthSession.mockReturnValue({ status, restoreSession: vi.fn() })

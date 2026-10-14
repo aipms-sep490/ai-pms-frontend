@@ -1,15 +1,18 @@
 import { httpGet, httpPost } from '../../services/http/http-client'
 import type { AgreementSection, WorkingAgreement } from './working-agreement-types'
 
-// BE-16 endpoints. FE is built ahead of the backend; until it ships these calls
-// return 404/501 and the page shows its error state.
+// BE-16 endpoints — BACKEND_READY (AIPMS.Api/Controllers/WorkingAgreementsController.cs).
+// GET resolves to `null` (backend 204) when no agreement exists yet. Accept/publish/draft-save
+// all require the row's current `concurrencyToken`; omitting or staling it is a 409
+// WORKING_AGREEMENT_STALE. Draft-save and publish are leader-only and not wired by this page yet
+// — tracked as a follow-up (leader authoring UI).
 export const getWorkingAgreement = (projectId: number, signal?: AbortSignal) =>
-  httpGet<WorkingAgreement>(`/projects/${projectId}/working-agreement`, signal)
+  httpGet<WorkingAgreement | null>(`/projects/${projectId}/working-agreement`, signal)
 
-export const acceptWorkingAgreement = (projectId: number, agreementId: number) =>
-  httpPost<WorkingAgreement, { agreementId: number }>(
+export const acceptWorkingAgreement = (projectId: number, agreementId: number, concurrencyToken: string) =>
+  httpPost<WorkingAgreement, { agreementId: number; concurrencyToken: string }>(
     `/projects/${projectId}/working-agreement/acceptances`,
-    { agreementId },
+    { agreementId, concurrencyToken },
   )
 
 /**
