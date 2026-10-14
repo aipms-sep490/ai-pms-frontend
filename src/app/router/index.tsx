@@ -31,12 +31,14 @@ import {
   ProjectEvidenceLedgerPage, ProjectAiPage, ProjectGatesPage, ProjectWorkingAgreementPage, ProjectDefensePage,
   ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, ArchivedProjectsPage,
   ProjectArchiveViewPage, CalendarAttentionPage, AdminIndustryInvitationsPage, IndustryExpertWorkspacePage,
+  IndustryEnrollmentPage,
 } from './lazy-pages'
 
 export const appRouter = createBrowserRouter([{ element: <RouteFrame />, children: [
   { path: 'login', element: <LoginPage /> },
   { path: 'forgot-password', element: <ForgotPasswordPage /> },
   { path: 'reset-password', element: <ResetPasswordPage /> },
+  ...(env.industryEnabled ? [{ path: 'industry/enroll', element: <IndustryEnrollmentPage /> }] : []),
   {
     element: (
       <ProtectedRoute>

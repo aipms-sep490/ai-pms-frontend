@@ -13,6 +13,10 @@ function renderRoute(path = '/supervisor/projects/9/tasks') {
   return render(<MemoryRouter initialEntries={[path]}><Routes><Route element={<SupervisorExecutionRoute />}><Route path="/supervisor/projects/:projectId/tasks" element={<AccessProbe />} /></Route><Route path="/supervisor/workspace" element={<p>Supervisor home</p>} /></Routes></MemoryRouter>)
 }
 function AccessProbe() { const access = useExecutionAccess(); return <p>Supervisor tasks allowed · {String(access.canManageStructure)}</p> }
+// Unlike every other test file here, this one never unmounted its render — a scheduled React
+// update (e.g. from the paginated-assignments effect) could flush after Vitest tears down this
+// file's jsdom environment, throwing "window is not defined" as an unhandled error (seen in CI,
+// not locally, since it depends on which file runs next in the same worker).
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 describe('SupervisorExecutionRoute', () => {
   it('allows an assigned supervisor into an ACTIVE project execution route', async () => {

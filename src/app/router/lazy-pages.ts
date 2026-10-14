@@ -47,6 +47,7 @@ export const AdminWorkspacePage = lazy(() => import('../../features/users/pages/
 export const AdminRbacPage = lazy(() => import('../../features/users/pages/AdminRbacPage').then(m => ({ default: m.AdminRbacPage })))
 export const AdminIndustryInvitationsPage = lazy(() => import('../../features/industry/AdminIndustryInvitationsPage').then(m => ({ default: m.AdminIndustryInvitationsPage })))
 export const IndustryExpertWorkspacePage = lazy(() => import('../../features/industry/IndustryExpertWorkspacePage').then(m => ({ default: m.IndustryExpertWorkspacePage })))
+export const IndustryEnrollmentPage = lazy(() => import('../../features/industry/IndustryEnrollmentPage').then(m => ({ default: m.IndustryEnrollmentPage })))
 export const AdminUserDetailPage = lazy(() => import('../../features/users/pages/AdminUserDetailPage').then(m => ({ default: m.AdminUserDetailPage })))
 export const ProjectReviewPage = lazy(() => import('../../features/projects/pages/ProjectReviewPage').then(m => ({ default: m.ProjectReviewPage })))
 export const ProjectGovernancePage = lazy(() => import('../../features/projects/pages/ProjectGovernancePage').then(m => ({ default: m.ProjectGovernancePage })))
