@@ -9,4 +9,16 @@ describe('Project result HTTP contract', () => {
     expect(JSON.parse(fetch.mock.calls[1][1].body)).toMatchObject({ assignments: [{ assignmentId: 2, weightPercent: 100 }], concurrencyToken: null })
     expect(JSON.parse(fetch.mock.calls[3][1].body)).toEqual({ confirmationToken: 'a'.repeat(64) })
   })
+
+  it('reads published-version history and a specific version for both project and student scope', async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) }); vi.stubGlobal('fetch', fetch); localStorage.setItem('token', 'result-token')
+    await api.getProjectResultHistory(9); await api.getProjectResultVersion(9, 2)
+    await api.getStudentResultHistory(9, 12); await api.getStudentResultVersion(9, 12, 2)
+    expect(fetch.mock.calls.map(([url, options]) => [url, options.method])).toEqual([
+      ['/api/v1/projects/9/result/history?page=1&pageSize=20', 'GET'],
+      ['/api/v1/projects/9/result/versions/2', 'GET'],
+      ['/api/v1/projects/9/students/12/result/history?page=1&pageSize=20', 'GET'],
+      ['/api/v1/projects/9/students/12/result/versions/2', 'GET'],
+    ])
+  })
 })

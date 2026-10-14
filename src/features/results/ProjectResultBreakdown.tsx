@@ -1,59 +1,62 @@
 import { displayLabel } from '../../components/ui/display-label'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../components/ui/Table'
 import { StatusBadge } from '../../components/ui/StatusBadge'
-import { formatPercent, formatScore } from '../../components/ui/format'
-import type { ProjectMajorScore, ResultContribution } from './result-types'
+import { formatScore } from '../../components/ui/format'
+import type { ResultBreakdown, ResultContribution } from './result-types'
 
 interface ProjectResultBreakdownProps {
-  commonScore?: number | null
-  majorAggregate?: number | null
-  majorBreakdown?: ProjectMajorScore[]
+  breakdown?: ResultBreakdown | null
   contributions?: ResultContribution[]
 }
 
 /**
  * Project-level composition for v5 `ProjectResult = 50% COMMON + 50% MajorAggregate`.
- * Every section is optional: when the backend has not shipped the breakdown the whole
- * block renders nothing, so the caller still shows the numeric total on its own.
- * Advisory contributions (industry ADVISORY) are listed apart and never summed.
+ * Renders nothing when the backend hasn't shipped a breakdown yet, so the caller still shows the
+ * numeric total on its own. Advisory contributions (industry ADVISORY) are listed apart and never
+ * summed. A non-approved scheme (demo/proposed — e.g. an unapproved Marketing rubric template) is
+ * flagged; never present it as an official academic breakdown without that signal.
  */
-export function ProjectResultBreakdown({ commonScore, majorAggregate, majorBreakdown, contributions }: ProjectResultBreakdownProps) {
-  const hasComposition = commonScore !== undefined || majorAggregate !== undefined || (majorBreakdown?.length ?? 0) > 0
+export function ProjectResultBreakdown({ breakdown, contributions }: ProjectResultBreakdownProps) {
   const advisory = (contributions ?? []).filter(item => item.advisory)
-  if (!hasComposition && advisory.length === 0) return null
+  if (!breakdown && advisory.length === 0) return null
 
   return (
     <>
-      {hasComposition && (
+      {breakdown && (
         <section className="workspace-surface space-y-3 p-4 sm:p-5" aria-label="Cấu thành điểm đồ án">
-          <h2 className="font-heading font-semibold">Cấu thành điểm đồ án</h2>
-          <p className="text-sm text-ink-muted">Điểm đồ án = 50% điểm chung + 50% tổng hợp theo ngành. Không cộng điểm cá nhân vào điểm đồ án.</p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-heading font-semibold">Cấu thành điểm đồ án</h2>
+            {(breakdown.isDemo || breakdown.approvalStatus !== 'APPROVED') && (
+              <StatusBadge tone="warning" label={breakdown.isLegacy ? 'Chính sách cũ (tra cứu)' : 'Phương án demo / chưa duyệt chính thức'} />
+            )}
+          </div>
+          <p className="text-sm text-ink-muted">
+            Điểm đồ án = 50% điểm chung + 50% tổng hợp theo ngành. Không cộng điểm cá nhân vào điểm đồ án.
+            {breakdown.schemeName && ` Theo phương án "${breakdown.schemeName}"${breakdown.schemeVersion ? ` (v${breakdown.schemeVersion})` : ''}.`}
+          </p>
           <dl className="grid gap-4 sm:grid-cols-2">
-            <div><dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Điểm chung (COMMON)</dt><dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-ink">{formatScore(commonScore)}</dd></div>
-            <div><dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Tổng hợp theo ngành (MajorAggregate)</dt><dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-ink">{formatScore(majorAggregate)}</dd></div>
+            <div><dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Điểm chung (COMMON)</dt><dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-ink">{formatScore(breakdown.commonScore)}</dd></div>
+            <div><dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Tổng hợp theo ngành (MajorAggregate)</dt><dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-ink">{formatScore(breakdown.majorAggregate)}</dd></div>
           </dl>
-          {(majorBreakdown?.length ?? 0) > 0 && (
+          {breakdown.majorBreakdown.length > 0 && (
             <div>
               <p className="mb-1 text-xs text-ink-muted">Ngành chưa có điểm được đánh dấu "Chưa có điểm", không tính là 0.</p>
               <Table stack aria-label="Điểm theo ngành">
                 <TableHead>
                   <TableRow head>
                     <TableHeaderCell>Ngành</TableHeaderCell>
-                    <TableHeaderCell numeric>Trọng số ngành</TableHeaderCell>
                     <TableHeaderCell numeric>Điểm ngành</TableHeaderCell>
                     <TableHeaderCell>Trạng thái</TableHeaderCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {majorBreakdown!.map((major, index) => {
-                    const pending = major.majorScore === null
-                    const statusLabel = pending ? 'Chưa có điểm' : displayLabel(major.status) !== 'Chưa xác định' && major.status ? displayLabel(major.status) : 'Đã chấm'
+                  {breakdown.majorBreakdown.map((major, index) => {
+                    const pending = major.score === null
                     return (
                       <TableRow key={`${major.majorId}-${index}`}>
-                        <TableCell label="Ngành" className="font-medium text-ink">{major.majorName ?? `Ngành #${major.majorId}`}</TableCell>
-                        <TableCell label="Trọng số ngành" numeric>{formatPercent(major.weightPercent)}</TableCell>
-                        <TableCell label="Điểm ngành" numeric className="font-semibold">{formatScore(major.majorScore)}</TableCell>
-                        <TableCell label="Trạng thái"><StatusBadge tone={pending ? 'warning' : 'success'} label={statusLabel} /></TableCell>
+                        <TableCell label="Ngành" className="font-medium text-ink">{`Ngành #${major.majorId}`}</TableCell>
+                        <TableCell label="Điểm ngành" numeric className="font-semibold">{formatScore(major.score)}</TableCell>
+                        <TableCell label="Trạng thái"><StatusBadge tone={pending ? 'warning' : 'success'} label={pending ? 'Chưa có điểm' : 'Đã chấm'} /></TableCell>
                       </TableRow>
                     )
                   })}
