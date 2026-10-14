@@ -281,6 +281,7 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname === '/admin/access/rbac') return 'Vai trò và quyền truy cập'
   if (/^\/admin\/access\/users\/\d+(?:\/|$)/.test(pathname)) return 'Chi tiết tài khoản'
   if (pathname === '/admin/industry') return 'Mời chuyên gia doanh nghiệp'
+  if (pathname === '/industry/workspace') return 'Không gian cố vấn doanh nghiệp'
   if (pathname === '/supervisor/workspace') return 'Hướng dẫn đồ án'
   if (pathname === '/profile') return 'Hồ sơ tài khoản'
   if (pathname === '/profile/security') return 'Đổi mật khẩu'
