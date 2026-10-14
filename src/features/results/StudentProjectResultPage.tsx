@@ -75,7 +75,7 @@ function PublishedStudentResult({ project, studentId }: { project: ProjectDto; s
     </div>}
     <p className="border-t border-hairline bg-canvas p-5 text-sm leading-6 text-ink-muted">Điểm và kết luận lấy từ kết quả cá nhân đã công bố. {components.length === 0 && 'Chi tiết thành phần chỉ hiển thị khi hệ thống cung cấp dữ liệu được phép xem.'}</p>
   </section>
-  {env.resultCorrectionEnabled && <ResultCorrectionPanel projectId={project.id} />}
+  {env.resultCorrectionEnabled && <ResultCorrectionPanel projectId={project.id} studentId={studentId} resultVersion={result.version} components={components} />}
   </>
 }
 function ResultFact({ label, value, prominent = false }: { label: string; value: string; prominent?: boolean }) {
