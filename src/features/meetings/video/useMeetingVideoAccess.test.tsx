@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { cleanup, renderHook, waitFor } from '@testing-library/react'
 
 const runtime = vi.hoisted(() => ({ env: { videoMeetingEnabled: false } }))
 const api = vi.hoisted(() => ({ getMeetingVideoSession: vi.fn() }))
@@ -9,7 +9,7 @@ import { useMeetingVideoAccess } from './useMeetingVideoAccess'
 
 const resource = { meetingId: 42, meetingStatus: 'SCHEDULED', meetingDeliveryMode: 'REMOTE', videoChannel: 'IN_APP_VIDEO', session: null, capabilities: { canStart: false, canJoin: true, canEnd: false, canRecord: false }, joinWindow: null, denialReasons: [] } as const
 
-afterEach(() => { runtime.env.videoMeetingEnabled = false; api.getMeetingVideoSession.mockReset() })
+afterEach(() => { cleanup(); runtime.env.videoMeetingEnabled = false; api.getMeetingVideoSession.mockReset() })
 
 describe('useMeetingVideoAccess', () => {
   it('does not call the Video API while rollout is off or the channel is external', () => {

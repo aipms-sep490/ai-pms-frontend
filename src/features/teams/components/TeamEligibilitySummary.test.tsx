@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TeamEligibilitySummary } from './TeamEligibilitySummary'
 
 const team = (overrides = {}) => ({
@@ -18,6 +18,8 @@ function summary(overrides = {}) {
   const props = { team: team(), majorNames: { 10: 'Kỹ thuật phần mềm', 20: 'Kinh doanh', 30: 'Thiết kế' }, canRefresh: true, refreshPending: false, canContinueToRegistration: false, onRefresh: vi.fn().mockResolvedValue(undefined), onContinueToRegistration: vi.fn(), ...overrides }
   return { props, ...render(<TeamEligibilitySummary {...props} />) }
 }
+
+afterEach(() => { cleanup() })
 
 describe('TeamEligibilitySummary', () => {
   it('renders INTERDISCIPLINARY requirements without a two-major limit and explains backend failures', () => {

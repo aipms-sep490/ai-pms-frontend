@@ -1,6 +1,8 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it } from 'vitest'
 import { DepartmentDecisionHistory } from './DepartmentDecisionHistory'
+
+afterEach(() => { cleanup() })
 
 describe('DepartmentDecisionHistory', () => {
   it('renders immutable snapshots supplied by the backend', () => {

@@ -1,6 +1,8 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it } from 'vitest'
 import { LayeredEvaluationFoundation } from './LayeredEvaluationFoundation'
+
+afterEach(() => { cleanup() })
 
 describe('LayeredEvaluationFoundation', () => {
   it('documents future scopes without inventing inputs, scores, or mutations', () => {

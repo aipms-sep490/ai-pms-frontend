@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { OverviewPage } from './OverviewPage'
@@ -13,7 +13,7 @@ const baseJourney = {
   error: null, isLoading: false, project: null, team: null, assignments: [], semester: null,
 }
 
-afterEach(() => { vi.clearAllMocks() })
+afterEach(() => { cleanup(); vi.clearAllMocks() })
 
 describe('OverviewPage', () => {
   it('uses the central resolver for the next pre-ACTIVE action', () => {
