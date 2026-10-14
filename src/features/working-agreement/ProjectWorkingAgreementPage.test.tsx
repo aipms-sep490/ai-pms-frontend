@@ -17,12 +17,23 @@ vi.mock('./working-agreement-api', async () => {
 
 const render_ = () => render(<MemoryRouter><ProjectWorkingAgreementPage /></MemoryRouter>)
 
+const action = (code: string, allowed: boolean, reasons: string[] = []) => ({ code, allowed, reasons })
+
+// Mirrors the real WorkingAgreementDto (AIPMS.Infrastructure/Services/Projects/WorkingAgreementService.cs):
+// `actions` is backend-authoritative and always carries all three action codes.
 const agreement = (over: Partial<Record<string, unknown>> = {}) => ({
   id: 3, projectId: 9, version: 2, status: 'ACTIVE',
   contentJson: JSON.stringify({ sections: [{ title: 'Họp nhóm', body: 'Mỗi tuần một lần.' }] }),
-  createdAt: '2026-10-05T03:00:00Z', createdByName: 'Nhóm trưởng',
-  acceptances: [{ userId: 5, userName: 'Bạn A', acceptedAt: '2026-10-06T03:00:00Z' }],
-  memberCount: 3, required: true, ...over,
+  createdAt: '2026-10-05T03:00:00Z', concurrencyToken: 'token-v2',
+  acceptances: [{ userId: 5, acceptedAt: '2026-10-06T03:00:00Z' }],
+  memberCount: 3, required: true, acceptedByMe: false,
+  readiness: { required: true },
+  actions: [
+    action('manage_working_agreement', false, ['ACTIVE_LEADER_AND_WRITABLE_PROJECT_REQUIRED']),
+    action('publish_working_agreement', false, ['AGREEMENT_VERSION_NOT_ACTIONABLE']),
+    action('accept_working_agreement', true),
+  ],
+  ...over,
 })
 
 beforeEach(() => { mocks.journey.project = { id: 9 }; mocks.journey.profile = { id: 7 } })
@@ -34,36 +45,63 @@ describe('ProjectWorkingAgreementPage', () => {
     render_()
     expect(await screen.findByText('Họp nhóm')).toBeTruthy()
     expect(screen.getByText('Mỗi tuần một lần.')).toBeTruthy()
-    expect(screen.getByText('Bạn A')).toBeTruthy()
+    expect(screen.getByText('Thành viên #5')).toBeTruthy()
     expect(screen.getByText(/Đã xác nhận 1\/3/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Tôi đồng ý với cam kết' })).toBeTruthy()
   })
 
-  it('accepts the agreement and refetches', async () => {
+  it('accepts the agreement with the row concurrency token and refetches', async () => {
     mocks.getWorkingAgreement
       .mockResolvedValueOnce(agreement())
-      .mockResolvedValueOnce(agreement({ acceptances: [
-        { userId: 5, userName: 'Bạn A', acceptedAt: '2026-10-06T03:00:00Z' },
-        { userId: 7, userName: 'Tôi', acceptedAt: '2026-10-07T03:00:00Z' },
+      .mockResolvedValueOnce(agreement({ acceptedByMe: true, acceptances: [
+        { userId: 5, acceptedAt: '2026-10-06T03:00:00Z' },
+        { userId: 7, acceptedAt: '2026-10-07T03:00:00Z' },
       ] }))
     mocks.acceptWorkingAgreement.mockResolvedValue({})
     render_()
     fireEvent.click(await screen.findByRole('button', { name: 'Tôi đồng ý với cam kết' }))
-    await waitFor(() => expect(mocks.acceptWorkingAgreement).toHaveBeenCalledWith(9, 3))
+    await waitFor(() => expect(mocks.acceptWorkingAgreement).toHaveBeenCalledWith(9, 3, 'token-v2'))
     expect(await screen.findByText('Bạn đã xác nhận bản cam kết này.')).toBeTruthy()
   })
 
-  it('shows accepted state when the viewer already accepted', async () => {
+  it('shows accepted state when the viewer already accepted, with no accept button', async () => {
     mocks.getWorkingAgreement.mockResolvedValue(agreement({ acceptedByMe: true }))
     render_()
     expect(await screen.findByText('Bạn đã xác nhận bản cam kết này.')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Tôi đồng ý với cam kết' })).toBeNull()
   })
 
-  it('treats a 404 as no agreement yet', async () => {
-    mocks.getWorkingAgreement.mockRejectedValue(new HttpError('none', 404))
+  it('hides the accept button and shows the backend reason when the action is not allowed', async () => {
+    mocks.getWorkingAgreement.mockResolvedValue(agreement({
+      acceptedByMe: false,
+      actions: [action('accept_working_agreement', false, ['CURRENT_UNACCEPTED_AGREEMENT_REQUIRED'])],
+    }))
+    render_()
+    expect(await screen.findByText(/chưa thể xác nhận cam kết này/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Tôi đồng ý với cam kết' })).toBeNull()
+  })
+
+  it('refetches on a 409 (stale token / roster changed) instead of leaving a dead retry', async () => {
+    mocks.getWorkingAgreement
+      .mockResolvedValueOnce(agreement())
+      .mockResolvedValueOnce(agreement({ version: 3, concurrencyToken: 'token-v3' }))
+    mocks.acceptWorkingAgreement.mockRejectedValue(new HttpError('stale', 409))
+    render_()
+    fireEvent.click(await screen.findByRole('button', { name: 'Tôi đồng ý với cam kết' }))
+    expect(await screen.findByText(/vừa được cập nhật/)).toBeTruthy()
+    await waitFor(() => expect(mocks.getWorkingAgreement).toHaveBeenCalledTimes(2))
+  })
+
+  it('treats a resolved null (backend 204) as no agreement yet', async () => {
+    mocks.getWorkingAgreement.mockResolvedValue(null)
     render_()
     expect(await screen.findByText('Nhóm chưa có bản cam kết làm việc nào.')).toBeTruthy()
+  })
+
+  it('shows a generic retryable error on an unexpected failure (e.g. 404)', async () => {
+    mocks.getWorkingAgreement.mockRejectedValue(new HttpError('not found', 404))
+    render_()
+    expect(await screen.findByText('Chưa tải được cam kết nhóm. Hãy thử lại.')).toBeTruthy()
   })
 
   it('shows a distinct message when access is denied', async () => {
