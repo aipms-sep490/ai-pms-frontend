@@ -8,6 +8,7 @@ import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { HttpError } from '../../../services/http/http-client'
+import { env } from '../../../app/config/env'
 import type { UserAccount, UserDraft } from '../api/admin-api'
 import { useAdminWorkspace } from '../hooks/useAdminWorkspace'
 import './admin-workspace.css'
@@ -51,7 +52,7 @@ export function AdminWorkspacePage() {
 
   return <main className="workspace-page admin-workspace" aria-labelledby="admin-title">
     <header className="admin-heading"><div><p className="admin-kicker">QUẢN TRỊ NỀN TẢNG</p><h1 id="admin-title">Hệ thống và quyền truy cập</h1><p>Quản lý tài khoản, phân quyền và theo dõi hoạt động trên hệ thống.</p></div><Link className="admin-link-button" to="/academic">Cấu trúc tổ chức</Link></header>
-    <nav className="admin-tabs" aria-label="Khu vực quản trị"><a href="#accounts">Tài khoản</a><Link to="/admin/access/rbac">Phân quyền</Link><a href="#audit">Nhật ký bảo mật</a></nav>
+    <nav className="admin-tabs" aria-label="Khu vực quản trị"><a href="#accounts">Tài khoản</a><Link to="/admin/access/rbac">Phân quyền</Link><a href="#audit">Nhật ký bảo mật</a>{env.industryEnabled && <Link to="/admin/industry">Chuyên gia doanh nghiệp</Link>}</nav>
     {notice ? <p className="admin-notice" role="status">{notice}</p> : null}
     <SystemStatusPanel />
 
