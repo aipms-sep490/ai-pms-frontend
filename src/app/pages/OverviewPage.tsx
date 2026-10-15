@@ -1,4 +1,5 @@
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
+import { Button } from '../../components/ui/Button'
 import { StudentJourneyHero } from '../../features/dashboard/components'
 import { StudentDashboardSummary } from '../../features/dashboard/components/StudentDashboardSummary'
 import { useStudentJourney } from '../context'
@@ -61,11 +62,9 @@ export function OverviewPage() {
               <h3 className="text-sm font-bold text-ink">{nextAction.label}</h3>
               <p className="mt-1 text-xs leading-relaxed text-ink-muted">{nextAction.detail}</p>
             </div>
-            <button type="button" onClick={() => navigate(nextAction.route)}
-              className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+            <Button onClick={() => navigate(nextAction.route)} icon="arrow_forward" className="flex-row-reverse shrink-0">
               Tiếp tục
-              <span className="material-symbols-outlined text-[17px]" aria-hidden="true">arrow_forward</span>
-            </button>
+            </Button>
           </div>
         </section>
       ) : null}
