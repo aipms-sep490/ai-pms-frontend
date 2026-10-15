@@ -67,6 +67,21 @@ describe('Evaluator Workspace Phase 5', () => {
     expect((screen.getByRole('button', { name: 'Yêu cầu chốt đánh giá' }) as HTMLButtonElement).disabled).toBe(true)
     expect(screen.queryByRole('link', { name: 'Xem gói bàn giao đã khóa' })).toBeNull(); expect(screen.getByText('Chỉ xem và tải các tệp trong phạm vi phân công này.')).toBeTruthy()
   })
+
+  it('releases the save lock so the saved draft can be finalized', async () => {
+    const complete = { ...draft, totalScore: 8, missingCriterionIds: [], missingRequiredCriterionIds: [], scores: [{ ...draft.scores[0], score: 8 }] }
+    api.saveEvaluationDraft.mockResolvedValue(complete)
+    api.finalizeEvaluation.mockResolvedValue({ ...complete, status: 'FINALIZED' })
+    page()
+    fireEvent.change(await screen.findByLabelText('Điểm Phân tích'), { target: { value: '8' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
+    await screen.findByText('Đã lưu bản nháp theo dữ liệu máy chủ.')
+    fireEvent.click(screen.getByRole('button', { name: 'Yêu cầu chốt đánh giá' }))
+    const confirmations = await screen.findAllByRole('button', { name: 'Yêu cầu chốt đánh giá' })
+    expect(confirmations.length).toBe(2)
+    fireEvent.click(confirmations.at(-1)!)
+    await waitFor(() => expect(api.finalizeEvaluation).toHaveBeenCalledWith(51, 'draft-token'))
+  })
   it('renders persisted COMMON, MAJOR_SPECIFIC and INDIVIDUAL assignments without a target-switch control', async () => {
     api.getAllMyEvaluationAssignments.mockResolvedValue([assignment, { ...assignment, id: 42, scope: 'COMMON', majorId: null, studentId: null }, { ...assignment, id: 43, scope: 'INDIVIDUAL', majorId: 8, studentId: 99 }])
     api.getProjectEvaluations.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })

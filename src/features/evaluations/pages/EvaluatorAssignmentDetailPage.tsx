@@ -128,7 +128,7 @@ export function EvaluatorAssignmentDetailPage() {
       if (isConflict(reason)) { setConflicted(true); await load(true) }
       if (reason instanceof HttpError && (reason.status === 403 || reason.status === 404)) { setPermissionLost(true); setEvidence(null); setDraft(null) }
       setMessage(evaluationError(reason))
-    } finally { setBusy(false) }
+    } finally { mutationLock.current = false; setBusy(false) }
   }
 
   async function finalize() {
@@ -144,7 +144,7 @@ export function EvaluatorAssignmentDetailPage() {
       if (isConflict(reason)) { setConflicted(true); await load(true) }
       if (reason instanceof HttpError && (reason.status === 403 || reason.status === 404)) { setPermissionLost(true); setEvidence(null); setDraft(null) }
       setMessage(evaluationError(reason))
-    } finally { setBusy(false) }
+    } finally { mutationLock.current = false; setBusy(false) }
   }
 
   const editable = draft?.status === 'DRAFT'
