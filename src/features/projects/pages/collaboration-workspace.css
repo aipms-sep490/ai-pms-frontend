@@ -5,8 +5,6 @@
   --cw-line: var(--color-line-strong);
   --cw-accent: var(--color-primary);
   --cw-accent-soft: var(--color-primary-subtle);
-  --color-primary: var(--color-primary);
-  --color-primary-subtle: var(--color-primary-subtle);
   color: var(--cw-ink);
   background: #f8faf9;
 }
