@@ -61,8 +61,53 @@ export interface ColdChecklist {
   items: ColdChecklistItem[]
 }
 
+export interface ColdGradingProgress {
+  componentId: number
+  name: string
+  scope: string
+  majorId: number | null
+  studentId: number | null
+  requiredEvaluators: number
+  assignedEvaluators: number
+  finalizedEvaluators: number
+  score: number | null
+  contributesToResult: boolean
+}
+
+export interface ColdProgress {
+  projectId: number
+  packageStatus: string
+  visibleReports: number
+  submittedReports: number
+  lockedReports: number
+  ready: boolean
+  blockers: string[]
+  grading: ColdGradingProgress[]
+}
+
+export interface ColdTemplateTarget {
+  templateId: number
+  scope: 'COMMON' | 'MAJOR_SPECIFIC' | 'INDIVIDUAL' | string
+  studentId?: number | null
+}
+
+export interface ApplyColdChecklistRequest {
+  projectPeriodId: number
+  deadline: string
+  targets: ColdTemplateTarget[]
+}
+
 export const getColdChecklist = (projectId: number, signal?: AbortSignal) =>
   httpGet<ColdChecklist>(`/projects/${projectId}/cold/checklist`, signal)
+
+export const applyColdChecklist = (projectId: number, body: ApplyColdChecklistRequest) =>
+  httpPost<ColdChecklist>(`/projects/${projectId}/cold/checklist`, body)
+
+export const getColdProgress = (projectId: number, signal?: AbortSignal) =>
+  httpGet<ColdProgress>(`/projects/${projectId}/cold/progress`, signal)
+
+export const lockColdChecklist = (projectId: number, concurrencyToken: string) =>
+  httpPost<ColdChecklist>(`/projects/${projectId}/cold/lock`, { concurrencyToken })
 
 /** Omit `concurrencyToken` to create the first draft version; include it to edit the current draft. */
 export const saveColdDraft = (itemId: number, body: { expectedLatestVersion: number; note?: string | null; concurrencyToken?: string | null }) =>
@@ -87,3 +132,4 @@ export const submitColdSubmission = (submissionId: number, concurrencyToken: str
 /** Scoped download: the backend enforces the caller may only reach files within their own target. */
 export const downloadColdSubmissionFile = (submissionId: number, fileId: number, signal?: AbortSignal) =>
   httpGetBlob(`/cold-submissions/${submissionId}/files/${fileId}/download`, { signal })
+

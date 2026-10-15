@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAcademicGovernance } from './useAcademicGovernance'
 
 const auth = vi.hoisted(() => ({ useAuthSession: vi.fn() }))
-const academicApi = vi.hoisted(() => ({ getAcademicWorkflowContext: vi.fn() }))
+const academicApi = vi.hoisted(() => ({
+  getAcademicWorkflowContext: vi.fn(),
+  getAcademicHierarchy: vi.fn(),
+}))
 const governanceApi = vi.hoisted(() => ({
   getSemesters: vi.fn(),
   getProjectPeriods: vi.fn(),
@@ -20,6 +23,7 @@ describe('useAcademicGovernance', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     auth.useAuthSession.mockReturnValue({ session: { accessToken: 'access-token', user: { roles: ['ADMIN'] } } })
+    academicApi.getAcademicHierarchy.mockResolvedValue({ organizations: [], departments: [], majors: [] })
     governanceApi.getSemesters.mockResolvedValue({ items: [] })
     governanceApi.getProjectPeriods.mockResolvedValue({ items: [] })
   })

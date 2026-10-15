@@ -65,3 +65,15 @@ it('retains editable input after validation rejection without claiming success',
   expect((screen.getByLabelText('Thành viên tối đa') as HTMLInputElement).disabled).toBe(false)
   expect(screen.queryByText('Đã lưu bản nháp chính sách.')).toBeNull()
 })
+it('toggles requireWorkingAgreement and includes it in save payload', async () => {
+  page(); fireEvent.click(await screen.findByRole('button', { name: /Phiên bản 2/ }))
+  const checkbox = screen.getByLabelText(/Bắt buộc có Thỏa thuận làm việc nhóm/) as HTMLInputElement
+  expect(checkbox.checked).toBe(false)
+  fireEvent.click(checkbox)
+  expect(checkbox.checked).toBe(true)
+  api.savePeriodPolicy.mockResolvedValue({ ...draft, policy: { ...draft.policy, requireWorkingAgreement: true } })
+  submit()
+  await waitFor(() => expect(api.savePeriodPolicy).toHaveBeenCalledWith(4, expect.objectContaining({
+    policy: expect.objectContaining({ requireWorkingAgreement: true })
+  })))
+})

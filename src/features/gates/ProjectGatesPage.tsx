@@ -88,18 +88,46 @@ function CheckpointRow({ checkpoint, onChanged, onConflict }: {
 }) {
   const [decision, setDecision] = useState<CheckpointDecisionValue>('MET')
   const [reason, setReason] = useState('')
+  const [evidenceRows, setEvidenceRows] = useState<{ evidenceId: string; reviewId: string }[]>([])
   const [busy, setBusy] = useState(false)
   const [rowError, setRowError] = useState('')
   const latestDecision = checkpoint.decisions.at(-1)
   const unresolvedRisk = checkpoint.isOverdue && !checkpoint.decisions.some((d) => d.decision === 'MET' || d.decision === 'CANCELLED')
 
+  function addEvidenceRow() {
+    setEvidenceRows((curr) => [...curr, { evidenceId: '', reviewId: '' }])
+  }
+  function updateEvidenceRow(index: number, patch: { evidenceId?: string; reviewId?: string }) {
+    setEvidenceRows((curr) => curr.map((row, i) => (i === index ? { ...row, ...patch } : row)))
+  }
+  function removeEvidenceRow(index: number) {
+    setEvidenceRows((curr) => curr.filter((_, i) => i !== index))
+  }
+
   async function submitDecision() {
     if (!reason.trim()) return
+
+    const parsedEvidence = evidenceRows
+      .map((r) => ({ evidenceId: Number(r.evidenceId), reviewId: Number(r.reviewId) }))
+      .filter((e) => e.evidenceId > 0 && e.reviewId > 0)
+
+    const requiresEvidence = checkpoint.blocksAcademicWorkflow || !checkpoint.trackingOnly
+    if (decision === 'MET' && requiresEvidence && parsedEvidence.length === 0) {
+      setRowError('Kết luận "Đạt" cho checkpoint bắt buộc phải đính kèm ít nhất một minh chứng đã được review.')
+      return
+    }
+
     setBusy(true); setRowError('')
     try {
-      const updated = await decideCheckpoint(checkpoint.id, { concurrencyToken: checkpoint.concurrencyToken, decision, reason: reason.trim(), evidence: [] })
+      const updated = await decideCheckpoint(checkpoint.id, {
+        concurrencyToken: checkpoint.concurrencyToken,
+        decision,
+        reason: reason.trim(),
+        evidence: parsedEvidence,
+      })
       onChanged(updated)
       setReason('')
+      setEvidenceRows([])
     } catch (reason_) {
       if (reason_ instanceof HttpError && reason_.status === 409) { onConflict(); return }
       setRowError(reason_ instanceof HttpError && reason_.status === 403 ? 'Bạn chưa có quyền ghi kết luận cho checkpoint này.' : 'Không ghi được kết luận. Hãy thử lại.')
@@ -124,21 +152,75 @@ function CheckpointRow({ checkpoint, onChanged, onConflict }: {
           <span className="text-xs text-ink-muted">{new Date(d.decidedAt).toLocaleDateString('vi-VN')}</span>
         </div>
         {d.reason && <p className="mt-0.5 text-sm leading-6 text-ink-muted">{d.reason}</p>}
+        {d.evidence && d.evidence.length > 0 && (
+          <p className="mt-1 text-xs text-ink-muted">
+            Minh chứng đã review: {d.evidence.map((e) => `#${e.evidenceId} (Review #${e.reviewId})`).join(', ')}
+          </p>
+        )}
       </li>)}
     </ul>}
     {checkpoint.decisions.length === 0 && <p className="mt-3 text-sm text-ink-muted">Chưa có kết luận.</p>}
 
     {rowError && <p role="alert" className="mt-3 text-sm text-status-error-text">{rowError}</p>}
 
-    {checkpoint.canManage && <div className="mt-4 flex flex-wrap items-end gap-2 border-t border-hairline pt-3">
-      <label className="text-sm text-ink-soft">Kết luận<select className="mt-1 block rounded-lg border border-hairline p-2 text-sm" value={decision} disabled={busy} onChange={(event) => setDecision(event.target.value as CheckpointDecisionValue)}>
-        <option value="MET">Đạt</option>
-        <option value="AT_RISK">Rủi ro</option>
-        <option value="NOT_MET">Chưa đạt</option>
-        <option value="CANCELLED">Hủy</option>
-      </select></label>
-      <label className="flex-1 min-w-48 text-sm text-ink-soft">Lý do<input className="mt-1 w-full rounded-lg border border-hairline p-2 text-sm" value={reason} disabled={busy} onChange={(event) => setReason(event.target.value)} /></label>
-      <button type="button" className="min-h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={busy || !reason.trim()} onClick={() => void submitDecision()}>Ghi kết luận</button>
+    {checkpoint.canManage && <div className="mt-4 space-y-3 border-t border-hairline pt-3">
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="text-sm text-ink-soft">Kết luận<select className="mt-1 block rounded-lg border border-hairline p-2 text-sm" value={decision} disabled={busy} onChange={(event) => setDecision(event.target.value as CheckpointDecisionValue)}>
+          <option value="MET">Đạt</option>
+          <option value="AT_RISK">Rủi ro</option>
+          <option value="NOT_MET">Chưa đạt</option>
+          <option value="CANCELLED">Hủy</option>
+        </select></label>
+        <label className="flex-1 min-w-48 text-sm text-ink-soft">Lý do<input className="mt-1 w-full rounded-lg border border-hairline p-2 text-sm" value={reason} disabled={busy} onChange={(event) => setReason(event.target.value)} /></label>
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-ink-soft">
+            Minh chứng đính kèm {decision === 'MET' ? '(Bắt buộc cho Đạt)' : '(Tùy chọn)'}
+          </span>
+          <button
+            type="button"
+            className="text-xs font-semibold text-primary hover:underline"
+            disabled={busy}
+            onClick={addEvidenceRow}
+          >
+            + Thêm minh chứng
+          </button>
+        </div>
+        {evidenceRows.map((ev, idx) => (
+          <div key={idx} className="flex items-center gap-2">
+            <input
+              type="number"
+              placeholder="Evidence ID"
+              className="w-32 rounded-lg border border-hairline p-1.5 text-xs"
+              value={ev.evidenceId}
+              disabled={busy}
+              onChange={(e) => updateEvidenceRow(idx, { evidenceId: e.target.value })}
+            />
+            <input
+              type="number"
+              placeholder="Review ID"
+              className="w-32 rounded-lg border border-hairline p-1.5 text-xs"
+              value={ev.reviewId}
+              disabled={busy}
+              onChange={(e) => updateEvidenceRow(idx, { reviewId: e.target.value })}
+            />
+            <button
+              type="button"
+              className="text-xs text-status-error-text hover:underline"
+              disabled={busy}
+              onClick={() => removeEvidenceRow(idx)}
+            >
+              Xóa
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="pt-1">
+        <button type="button" className="min-h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={busy || !reason.trim()} onClick={() => void submitDecision()}>Ghi kết luận</button>
+      </div>
     </div>}
     {latestDecision?.decision === 'CANCELLED' && <p className="mt-2 text-xs text-slate-400">Checkpoint đã hủy; không thêm kết luận mới.</p>}
   </li>

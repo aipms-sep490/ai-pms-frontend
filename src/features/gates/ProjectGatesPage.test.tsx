@@ -97,4 +97,40 @@ describe('ProjectGatesPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ghi kết luận' }))
     await waitFor(() => expect(api.getProjectCheckpoints).toHaveBeenCalledTimes(2))
   })
+
+  it('records decision with reviewed evidence citations attached', async () => {
+    api.getProjectCheckpoints.mockResolvedValue(paged([checkpoint]))
+    api.decideCheckpoint.mockResolvedValue({
+      ...checkpoint,
+      decisions: [{ id: 10, decision: 'MET', reason: 'Đủ điều kiện', decidedBy: 5, decidedAt: '2026-10-22T00:00:00Z', evidence: [{ evidenceId: 101, reviewId: 202 }] }],
+    })
+    mount()
+    await screen.findByText('Chốt đề cương')
+    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Đủ điều kiện' } })
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Thêm minh chứng' }))
+    fireEvent.change(screen.getByPlaceholderText('Evidence ID'), { target: { value: '101' } })
+    fireEvent.change(screen.getByPlaceholderText('Review ID'), { target: { value: '202' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ghi kết luận' }))
+    await waitFor(() => expect(api.decideCheckpoint).toHaveBeenCalledWith(1, {
+      concurrencyToken: 'cp-token',
+      decision: 'MET',
+      reason: 'Đủ điều kiện',
+      evidence: [{ evidenceId: 101, reviewId: 202 }],
+    }))
+  })
+
+  it('prevents concluding MET without evidence for a workflow-blocking checkpoint', async () => {
+    const blockingCheckpoint = { ...checkpoint, blocksAcademicWorkflow: true, trackingOnly: false }
+    api.getProjectCheckpoints.mockResolvedValue(paged([blockingCheckpoint]))
+    mount()
+    await screen.findByText('Chốt đề cương')
+
+    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Đạt không có bằng chứng' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Ghi kết luận' }))
+
+    expect(await screen.findByText(/bắt buộc phải đính kèm ít nhất một minh chứng/)).toBeTruthy()
+    expect(api.decideCheckpoint).not.toHaveBeenCalled()
+  })
 })

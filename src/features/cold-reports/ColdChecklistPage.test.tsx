@@ -8,8 +8,15 @@ import { ColdChecklistPage } from './ColdChecklistPage'
 import type { ColdChecklist, ColdSubmission } from '../../services/api/cold.api'
 
 const api = vi.hoisted(() => ({
-  getColdChecklist: vi.fn(), saveColdDraft: vi.fn(), uploadColdSubmissionFile: vi.fn(),
-  removeColdSubmissionFile: vi.fn(), submitColdSubmission: vi.fn(), downloadColdSubmissionFile: vi.fn(),
+  getColdChecklist: vi.fn(),
+  saveColdDraft: vi.fn(),
+  uploadColdSubmissionFile: vi.fn(),
+  removeColdSubmissionFile: vi.fn(),
+  submitColdSubmission: vi.fn(),
+  downloadColdSubmissionFile: vi.fn(),
+  getColdProgress: vi.fn(),
+  lockColdChecklist: vi.fn(),
+  getColdSubmissionHistory: vi.fn(),
 }))
 vi.mock('../../services/api/cold.api', () => api)
 
@@ -32,7 +39,20 @@ function mount(checklist: ColdChecklist) {
   return render(<RouterProvider router={router} />)
 }
 
-beforeEach(() => vi.resetAllMocks())
+beforeEach(() => {
+  vi.resetAllMocks()
+  api.getColdProgress.mockResolvedValue({
+    projectId: 9,
+    packageStatus: 'OPEN',
+    visibleReports: 1,
+    submittedReports: 0,
+    lockedReports: 0,
+    ready: false,
+    blockers: [],
+    grading: [],
+  })
+  api.getColdSubmissionHistory.mockResolvedValue({ items: [], page: 1, pageSize: 20, totalCount: 0, totalPages: 0 })
+})
 afterEach(cleanup)
 
 describe('COLD checklist page', () => {
