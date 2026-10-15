@@ -1,4 +1,5 @@
 import type { AuthUser } from '../types/auth.types'
+import { env } from '../../../app/config/env'
 
 export type WorkspaceRole = 'student' | 'lecturer' | 'department' | 'admin' | 'unknown'
 
@@ -12,6 +13,7 @@ export function getWorkspaceRole(user?: Pick<AuthUser, 'roles'> | null): Workspa
 }
 
 export function getHomePath(user?: Pick<AuthUser, 'roles'> | null): string {
+  if (env.industryEnabled && user?.roles.length === 0) return '/industry/workspace'
   switch (getWorkspaceRole(user)) {
     case 'admin': return '/admin/access'
     case 'department': return '/department/workspace'

@@ -60,6 +60,7 @@ export const EvaluationWorkspacePage = lazy(() => import('../../features/evaluat
 export const EvaluatorAssignmentDetailPage = lazy(() => import('../../features/evaluations/pages/EvaluatorAssignmentDetailPage').then(m => ({ default: m.EvaluatorAssignmentDetailPage })))
 export const EvaluatorWorkspacePage = lazy(() => import('../../features/evaluations/pages/EvaluatorWorkspacePage').then(m => ({ default: m.EvaluatorWorkspacePage })))
 export const ResultPublicationPage = lazy(() => import('../../features/results/ResultPublicationPage').then(m => ({ default: m.ResultPublicationPage })))
+export const ResultCorrectionsPage = lazy(() => import('../../features/results/ResultCorrectionsPage').then(m => ({ default: m.ResultCorrectionsPage })))
 export const NotificationsPage = lazy(() => import('../../features/notifications/NotificationsPage').then(m => ({ default: m.NotificationsPage })))
 export const PortfolioDashboardPage = lazy(() => import('../../features/dashboard/pages/PortfolioDashboardPage').then(m => ({ default: m.PortfolioDashboardPage })))
 export const SupervisorDashboardPage = lazy(() => import('../../features/dashboard/pages/SupervisorDashboardPage').then(m => ({ default: m.SupervisorDashboardPage })))
