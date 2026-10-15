@@ -1,11 +1,17 @@
-import { httpGet, httpPost } from '../../services/http/http-client'
+import { httpGet, httpPost, httpPut } from '../../services/http/http-client'
+import type { PagedResult } from '../../types/backend'
 import type { AgreementSection, WorkingAgreement } from './working-agreement-types'
 
-// BE-16 endpoints — BACKEND_READY (AIPMS.Api/Controllers/WorkingAgreementsController.cs).
-// GET resolves to `null` (backend 204) when no agreement exists yet. Accept/publish/draft-save
-// all require the row's current `concurrencyToken`; omitting or staling it is a 409
-// WORKING_AGREEMENT_STALE. Draft-save and publish are leader-only and not wired by this page yet
-// — tracked as a follow-up (leader authoring UI).
+// First/successor drafts use expectedLatestVersion; editing a draft also requires its token.
+export const saveWorkingAgreement = (projectId: number, body: {
+  expectedLatestVersion: number; concurrencyToken?: string; sections: AgreementSection[]
+}) => httpPut<WorkingAgreement>(`/projects/${projectId}/working-agreement/draft`, body)
+
+export const publishWorkingAgreement = (projectId: number, agreementId: number, concurrencyToken: string) =>
+  httpPost<WorkingAgreement>(`/projects/${projectId}/working-agreement/publish`, { agreementId, concurrencyToken })
+
+export const getWorkingAgreementHistory = (projectId: number, page = 1, pageSize = 10, signal?: AbortSignal) =>
+  httpGet<PagedResult<WorkingAgreement>>(`/projects/${projectId}/working-agreement/history?page=${page}&pageSize=${pageSize}`, signal)
 export const getWorkingAgreement = (projectId: number, signal?: AbortSignal) =>
   httpGet<WorkingAgreement | null>(`/projects/${projectId}/working-agreement`, signal)
 

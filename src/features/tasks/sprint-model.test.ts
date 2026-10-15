@@ -4,14 +4,14 @@ import type { SprintDto, TaskDto } from '../../types/backend'
 
 const sprint = (id: number, status: string): SprintDto => ({
   id, projectId: 1, name: `S${id}`, status, startAt: '2026-10-01', endAt: '2026-10-14', concurrencyToken: 'ct',
-  canEdit: true, canStart: status === 'PLANNING', canComplete: status === 'ACTIVE',
+  canEdit: true, canStart: status === 'PLANNED', canComplete: status === 'ACTIVE',
 })
 const task = (id: number, over: Partial<TaskDto>): TaskDto => ({ id, milestoneId: 1, title: `T${id}`, status: 'TODO', createdBy: 1, createdByFullName: 'x', createdAt: '', updatedAt: '', assignees: [], dependencies: [], ...over })
 
 describe('sprint model', () => {
   it('finds the single active sprint', () => {
-    expect(activeSprint([sprint(1, 'PLANNING'), sprint(2, 'ACTIVE')])?.id).toBe(2)
-    expect(activeSprint([sprint(1, 'PLANNING')])).toBeNull()
+    expect(activeSprint([sprint(1, 'PLANNED'), sprint(2, 'ACTIVE')])?.id).toBe(2)
+    expect(activeSprint([sprint(1, 'PLANNED')])).toBeNull()
   })
 
   it('splits tasks into sprint members and backlog', () => {
