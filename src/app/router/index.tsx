@@ -157,6 +157,9 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
         children: [
           { path: 'academic', element: <AcademicStructurePage /> },
           { path: 'academic/profile-verifications', element: <ProfileVerificationsPage /> },
+          { path: 'academic/governance', element: <AcademicGovernancePage /> },
+          { path: 'academic/project-periods/:periodId/policy', element: <PeriodPolicyManagementPage /> },
+          { path: 'academic/rubrics', element: <RubricManagementPage /> },
         ],
       },
       {
@@ -165,9 +168,6 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { element: <DepartmentAcademicScopeRoute />, children: [{ element: <DepartmentProjectLayout />, children: [
           { path: 'department/portfolio', element: <PortfolioDashboardPage /> },
           { path: 'department/projects/archived', element: <ArchivedProjectsPage /> },
-          { path: 'academic/governance', element: <AcademicGovernancePage /> },
-          { path: 'academic/project-periods/:periodId/policy', element: <PeriodPolicyManagementPage /> },
-          { path: 'academic/rubrics', element: <RubricManagementPage /> },
           { path: 'department/projects/review', element: <ProjectReviewPage /> },
           { path: 'department/projects/review/:id', element: <ProjectReviewPage /> },
           { path: 'department/projects/:projectId/result', element: <ResultPublicationPage /> },
