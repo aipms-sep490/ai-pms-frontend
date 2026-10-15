@@ -18,3 +18,33 @@ export interface DefenseSession {
   cancellationReason: string | null
   canCancel: boolean
 }
+
+export interface CommitteeMember {
+  userId: number
+  majorId: number
+}
+
+export interface DefenseCommittee {
+  id: number
+  projectId: number
+  name: string
+  members: CommitteeMember[]
+  grantsEvaluatorAuthority?: boolean
+}
+
+export interface CreateCommitteeRequest {
+  name: string
+  members: CommitteeMember[]
+}
+
+export interface ScheduleDefenseRequest {
+  committeeId: number
+  startAt: string
+  endAt: string
+  room: string
+}
+
+export interface CancelDefenseRequest {
+  concurrencyToken: string
+  reason: string
+}

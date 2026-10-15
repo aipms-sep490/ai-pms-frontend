@@ -29,7 +29,7 @@ export function TaskBoardPage() {
   const priority = Object.hasOwn(priorityLabels, params.get('priority') ?? '') ? params.get('priority')! : ''
   const search = params.get('search') ?? ''
   const overdue = params.get('overdue') === 'true'
-  const showMajorFilter = env.taskMajorFilterEnabled && project.majors.length > 1
+  const showMajorFilter = env.taskMajorFilterEnabled && (project.majors?.length ?? 0) > 1
   const majorId = showMajorFilter ? positiveId(params.get('major')) : undefined
   const disciplineRole = showMajorFilter && disciplineRoles.includes(params.get('role') as (typeof disciplineRoles)[number])
     ? (params.get('role') as 'PRIMARY' | 'SUPPORTING') : undefined

@@ -69,7 +69,7 @@ export function AcademicGovernancePage() {
       {!governance.periods.length && <p className="governance-empty">Chưa có giai đoạn phù hợp với bộ lọc.</p>}
     </section>
     {confirmationDialog}
-    {editor?.kind === 'semester' ? <SemesterForm record={editor.record} error={operationError} submitting={governance.submitting} onCancel={() => setEditor(null)} onSubmit={saveSemester}/> : null}{editor?.kind === 'period' ? <ProjectPeriodForm record={editor.record} semesters={governance.semesters} error={operationError} submitting={governance.submitting} onCancel={() => setEditor(null)} onSubmit={savePeriod}/> : null}
+    {editor?.kind === 'semester' ? <SemesterForm record={editor.record} organizations={governance.organizations} error={operationError} submitting={governance.submitting} onCancel={() => setEditor(null)} onSubmit={saveSemester}/> : null}{editor?.kind === 'period' ? <ProjectPeriodForm record={editor.record} semesters={governance.semesters} error={operationError} submitting={governance.submitting} onCancel={() => setEditor(null)} onSubmit={savePeriod}/> : null}
   </WorkspacePage>
 }
 
@@ -80,7 +80,7 @@ function Status({ label, status, busy, canManage, onChange }: { label: string; s
 function Modal({ title, children, busy, onClose }: { title: string; children: ReactNode; busy: boolean; onClose: () => void }) {
   return <AppModal open title={title} busy={busy} onClose={onClose}><div className="governance-editor">{children}</div></AppModal>
 }
-function SemesterForm({ record, error, submitting, onCancel, onSubmit }: { record?: Semester; error: string | null; submitting: boolean; onCancel: () => void; onSubmit: (draft: SemesterDraft) => Promise<void> }) {
+function SemesterForm({ record, organizations = [], error, submitting, onCancel, onSubmit }: { record?: Semester; organizations?: Array<{ id: number; code: string; name: string }>; error: string | null; submitting: boolean; onCancel: () => void; onSubmit: (draft: SemesterDraft) => Promise<void> }) {
   const [validationError, setValidationError] = useState('')
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -91,7 +91,7 @@ function SemesterForm({ record, error, submitting, onCancel, onSubmit }: { recor
   }
   return <Modal title={record ? 'Chỉnh sửa học kỳ' : 'Tạo học kỳ'} busy={submitting} onClose={onCancel}><form onSubmit={submit}>
     {(validationError || error) && <p role="alert" className="governance-error">{validationError || error}</p>}
-    {!record && <label>Mã đơn vị<input name="organizationId" type="number" min="1" required disabled={submitting} /></label>}
+    {!record && <label>Đơn vị tổ chức{organizations.length > 0 ? <select name="organizationId" required disabled={submitting} defaultValue=""><option value="" disabled>-- Chọn đơn vị tổ chức --</option>{organizations.map(org => <option key={org.id} value={org.id}>{org.name} ({org.code})</option>)}</select> : <input name="organizationId" type="number" min="1" required disabled={submitting} placeholder="Mã đơn vị" />}</label>}
     <label>Mã học kỳ<input name="code" required defaultValue={record?.code} disabled={submitting} /></label>
     <label>Tên học kỳ<input name="name" required defaultValue={record?.name} disabled={submitting} /></label>
     <label>Bắt đầu<input name="startDate" type="date" required defaultValue={record ? toDate(record.startDate) : undefined} disabled={submitting} /></label>

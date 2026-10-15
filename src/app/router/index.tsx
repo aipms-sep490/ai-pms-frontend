@@ -170,6 +170,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'academic/governance', element: <AcademicGovernancePage /> },
           { path: 'academic/project-periods/:periodId/policy', element: <PeriodPolicyManagementPage /> },
           { path: 'academic/profile-verifications', element: <ProfileVerificationsPage /> },
+          { path: 'academic/rubrics', element: <RubricManagementPage /> },
         ],
       },
       ...(env.resultCorrectionEnabled ? [{
@@ -182,7 +183,6 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { element: <DepartmentAcademicScopeRoute />, children: [{ element: <DepartmentProjectLayout />, children: [
           { path: 'department/portfolio', element: <PortfolioDashboardPage /> },
           { path: 'department/projects/archived', element: <ArchivedProjectsPage /> },
-          { path: 'academic/rubrics', element: <RubricManagementPage /> },
           { path: 'department/projects/review', element: <ProjectReviewPage /> },
           { path: 'department/projects/review/:id', element: <ProjectReviewPage /> },
           { path: 'department/projects/:projectId/result', element: <ResultPublicationPage /> },
