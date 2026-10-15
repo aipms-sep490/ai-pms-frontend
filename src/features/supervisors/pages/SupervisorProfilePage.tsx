@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
+import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import { InlineAlert } from '../../../components/ui/InlineAlert'
 import { HttpError } from '../../../services/http/http-client'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import { list, replaceExpertise, updateOwnProfile, type Supervisor, type SupervisorExpertiseDraft } from '../api/supervisor-api'
@@ -79,18 +81,13 @@ export function SupervisorProfilePage() {
   }
 
   if (!session) return <main className="workspace-page mx-auto max-w-3xl p-6"><Link to="/login">Đăng nhập để cập nhật hồ sơ giảng viên.</Link></main>
-  return <main className="workspace-page mx-auto max-w-3xl supervisor-profile-page space-y-5 pb-12" aria-labelledby="supervisor-profile-title">
-    <header className="rounded-2xl border border-hairline bg-card p-6 shadow-xs">
-      <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Hồ sơ giảng viên</p>
-      <h1 id="supervisor-profile-title" className="mt-1 text-2xl font-bold text-ink">{session.user.fullName}</h1>
-      <p className="mt-1 text-sm text-ink-muted">Cập nhật chuyên môn, giới thiệu và khả năng nhận hướng dẫn đồ án.</p>
-    </header>
+  return <WorkspacePage className="max-w-3xl space-y-5" eyebrow="Hồ sơ giảng viên" title={session.user.fullName} description="Cập nhật chuyên môn, giới thiệu và khả năng nhận hướng dẫn đồ án.">
 
-    {error ? <div ref={summaryRef} role="alert" tabIndex={-1} className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"><strong>Không thể lưu hồ sơ.</strong><p className="mt-1">{error}</p><Button className="mt-3" size="sm" variant="outline" onClick={() => void load()}>Tải lại</Button></div> : null}
-    {message ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{message}</p> : null}
+    {error ? <InlineAlert ref={summaryRef} tone="danger" title="Không thể lưu hồ sơ." onRetry={() => void load()}>{error}</InlineAlert> : null}
+    {message ? <InlineAlert tone="success">{message}</InlineAlert> : null}
     {loading ? <section role="status" className="rounded-2xl border border-hairline bg-card p-6 text-sm text-ink-muted">Đang tải hồ sơ giảng viên từ hệ thống…</section> : null}
     {!loading ? <form className="space-y-5 rounded-2xl border border-hairline bg-card p-6 shadow-xs" onSubmit={save} noValidate>
-      {!profile ? <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Chưa có hồ sơ giảng viên. Lần lưu đầu tiên sẽ tạo hồ sơ cho tài khoản đã xác thực này.</p> : <p className="text-sm text-ink-muted">{profile.departmentName} · Hồ sơ #{profile.id}</p>}
+      {!profile ? <InlineAlert tone="info">Chưa có hồ sơ giảng viên. Lần lưu đầu tiên sẽ tạo hồ sơ cho tài khoản đã xác thực này.</InlineAlert> : <p className="text-sm text-ink-muted">{profile.departmentName} · Hồ sơ #{profile.id}</p>}
       <label className="block text-sm font-medium text-ink-soft" htmlFor="supervisor-bio">Giới thiệu chuyên môn</label>
       <textarea id="supervisor-bio" value={bio} maxLength={4000} rows={5} onChange={(event) => setBio(event.target.value)} className="w-full rounded-lg border border-line-strong p-3 text-sm" aria-describedby="supervisor-bio-help" />
       <p id="supervisor-bio-help" className="-mt-3 text-xs text-ink-muted">Tối đa 4.000 ký tự. Để trống nếu chưa muốn công bố giới thiệu.</p>
@@ -101,5 +98,5 @@ export function SupervisorProfilePage() {
       </section>
       <div className="flex flex-wrap gap-3"><Button type="submit" disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu hồ sơ giảng viên'}</Button><Button type="button" variant="secondary" disabled={saving} onClick={() => void load()}>Hủy thay đổi</Button></div>
     </form> : null}
-  </main>
+  </WorkspacePage>
 }

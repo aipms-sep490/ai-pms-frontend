@@ -3,6 +3,7 @@ import { ButtonLink } from '../../../components/ui/ButtonLink'
 import { projectStatusLabel } from '../../projects/utils/project-status'
 import { Button } from '../../../components/ui/Button'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import { InlineAlert } from '../../../components/ui/InlineAlert'
 import { ListLoading } from '../../../components/ui/ListLoading'
 import { useCallback, useEffect, useState } from 'react'
 import { HttpError } from '../../../services/http/http-client'
@@ -36,7 +37,7 @@ export function MentorWorkspacePage() {
 
   return <WorkspacePage className="space-y-6" title="Hướng dẫn chuyên ngành" eyebrow="Phân công chuyên ngành" description="Theo dõi công việc và tiến độ của các chuyên ngành bạn được phân công hướng dẫn." action={<Button variant="secondary" icon="refresh" disabled={loading} onClick={() => void load()}>Tải lại</Button>}>
 
-    {error && <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" onClick={() => void load()} className="ml-2 min-h-11 font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Thử lại</button></section>}
+    {error && <InlineAlert tone="danger" onRetry={() => void load()}>{error}</InlineAlert>}
     {loading && <ListLoading label="Đang tải phân công hướng dẫn…" />}
     {!loading && !error && !items.length && <section className="workspace-surface p-5 text-sm text-ink-soft"><h2 className="font-semibold text-ink">Chưa có phân công hướng dẫn chuyên ngành</h2><p className="mt-1 leading-6">Bạn sẽ thấy đồ án ở đây khi được phân công hướng dẫn chuyên ngành.</p></section>}
     {!loading && items.length ? <ul className="grid gap-4 md:grid-cols-2">{items.map(({ assignment, project, error: projectError }) => <li key={assignment.id} className="min-w-0 workspace-surface p-5"><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Hướng dẫn chuyên ngành #{assignment.majorId}</p><h2 className="mt-2 break-words text-lg font-bold text-ink">{project?.title ?? `Đồ án #${assignment.projectId}`}</h2><p className="mt-1 text-sm text-ink-muted">{project?.code ?? `#${assignment.projectId}`} · {project?.status ? projectStatusLabel(project.status) : 'Chưa tải trạng thái'}</p>{projectError ? <p role="alert" className="mt-4 text-sm text-status-error-text">{projectError}</p> : project?.status?.replaceAll('_', '').toUpperCase() !== 'ACTIVE' ? <p className="mt-4 text-sm text-ink-muted">Đồ án hiện không trong giai đoạn thực hiện. Chưa thể mở không gian theo dõi.</p> : <nav className="mt-4 flex flex-wrap gap-2" aria-label="Chức năng hướng dẫn chuyên ngành"><ButtonLink variant="primary" to={`/mentor/projects/${assignment.projectId}/majors/${assignment.majorId}/workspace`}>Mở phạm vi theo dõi</ButtonLink><ButtonLink to={`/mentor/projects/${assignment.projectId}/majors/${assignment.majorId}/tasks`}>Công việc</ButtonLink><ButtonLink to={`/mentor/projects/${assignment.projectId}/majors/${assignment.majorId}/reports`}>Báo cáo tiến độ</ButtonLink><ButtonLink to={`/mentor/projects/${assignment.projectId}/majors/${assignment.majorId}/meetings`}>Lịch họp</ButtonLink></nav>}</li>)}</ul> : null}
