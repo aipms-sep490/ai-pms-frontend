@@ -2,6 +2,8 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AcademicWorkflowContext, type AcademicWorkflowContextValue } from './academic-workflow-context'
 import { AcademicWorkflowGate } from './AcademicWorkflowGate'
+vi.mock('../../features/auth/context/useAuthSession', () => ({ useAuthSession: () => ({ session: { user: { roles: ['STUDENT'] } } }) }))
+
 afterEach(cleanup)
 
 const baseValue: AcademicWorkflowContextValue = {

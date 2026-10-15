@@ -45,7 +45,7 @@ export function AcademicWorkflowProvider({ children }: { children: ReactNode }) 
   const { session, status: sessionStatus } = useAuthSession()
   const sessionAccessToken = session?.accessToken
   const sessionUserId = session?.user.id
-  const hasAuthenticatedSession = sessionStatus === 'authenticated' && sessionUserId !== undefined
+  const hasAuthenticatedSession = sessionStatus === 'authenticated' && sessionUserId !== undefined && Boolean(session?.user.roles.length)
   const [workflowContext, setWorkflowContext] = useState<UserWorkflowContextDto | null>(null)
   const [status, setStatus] = useState<AcademicWorkflowStatus>('idle')
   const [error, setError] = useState<Error | null>(null)

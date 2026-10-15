@@ -68,8 +68,8 @@ describe('EvaluatorAssignmentManagementPage', () => {
 
     expect(await screen.findByText('Chưa có đợt đánh giá thuộc phạm vi quản lý của bạn.')).toBeDefined()
     expect(screen.getByText('Chưa có người chấm phù hợp với bộ lọc này.')).toBeDefined()
-    expect(api.getProjectPeriods).toHaveBeenCalledWith('department-token', { search: '', periodType: 'EVALUATION' })
-    expect(api.getProjectEvaluationAssignments).toHaveBeenCalledWith(2)
+    expect(api.getProjectPeriods).toHaveBeenCalledWith('department-token', { search: '', periodType: 'EVALUATION' }, undefined, 1)
+    expect(api.getProjectEvaluationAssignments).toHaveBeenCalledWith(2, undefined, undefined, 1)
     await waitFor(() => expect(api.getTeam).not.toHaveBeenCalled())
   })
 

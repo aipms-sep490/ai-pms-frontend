@@ -3,7 +3,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { GoogleLoginButton } from './GoogleLoginButton'
 import { HttpError } from '../../../services/http/http-client'
 
-const mocks = vi.hoisted(() => ({ challenge: vi.fn(), login: vi.fn(), link: vi.fn(), accept: vi.fn(), navigate: vi.fn(), location: { state: null as unknown } }))
+const mocks = vi.hoisted(() => ({ challenge: vi.fn(), login: vi.fn(), link: vi.fn(), accept: vi.fn(), navigate: vi.fn(), industryChallenge: vi.fn(), enroll: vi.fn(), location: { state: null as unknown } }))
+vi.mock('../../industry/industry-session-api', () => ({ createIndustryChallenge: mocks.industryChallenge, enrollIndustryExpert: mocks.enroll }))
 vi.mock('../api/auth-api', () => ({ getGoogleChallenge: mocks.challenge, loginWithGoogle: mocks.login, linkGoogle: mocks.link }))
 vi.mock('../context/useAuthSession', () => ({ useAuthSession: () => ({ acceptExternalLogin: mocks.accept }) }))
 vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.navigate, useLocation: () => mocks.location }))
@@ -77,4 +78,16 @@ it('shows a retry when the challenge endpoint rejects the browser origin', async
   await waitFor(() => expect(screen.getByRole('status').textContent).toContain('chưa được phép'))
   expect(window.google!.accounts.id.renderButton).not.toHaveBeenCalled()
   expect(screen.getByRole('button', { name: 'Thử lại' })).toBeTruthy()
+})
+
+it('uses the Industry challenge and shared session without invoking academic Google login', async () => {
+  const invitationToken = 'x'.repeat(64), session = { user: { id: 90, roles: [] } }
+  mocks.industryChallenge.mockResolvedValue({ challengeId: 'industry', clientId: 'client', nonce: 'industry-nonce', expiresAtUtc: new Date(Date.now() + 300000).toISOString() })
+  mocks.enroll.mockResolvedValue(session); mocks.accept.mockResolvedValue(session); mocks.location.state = { from: '/academic/governance' }
+  render(<GoogleLoginButton purpose="INDUSTRY_ENROLL" invitationToken={invitationToken} />)
+  await waitFor(() => expect(window.google!.accounts.id.renderButton).toHaveBeenCalled())
+  await act(() => callback({ credential: 'expert-id-token' }))
+  expect(mocks.enroll).toHaveBeenCalledWith({ challengeId: 'industry', idToken: 'expert-id-token', invitationToken })
+  expect(mocks.login).not.toHaveBeenCalled(); expect(mocks.challenge).not.toHaveBeenCalled()
+  expect(mocks.accept).toHaveBeenCalledWith(session); expect(mocks.navigate).toHaveBeenCalledWith('/industry/workspace', { replace: true })
 })

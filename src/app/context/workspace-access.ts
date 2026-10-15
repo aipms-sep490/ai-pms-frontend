@@ -52,7 +52,7 @@ export function useWorkspaceAccess(): WorkspaceAccess {
   const [evaluatorState, setEvaluatorState] = useState<{ status: WorkspaceContextStatus; hasAssignment: boolean }>({ status: 'unknown', hasAssignment: false })
 
   useEffect(() => {
-    if (getWorkspaceRole(user) !== 'lecturer') {
+    if (!user?.roles.some(role => role.toUpperCase() === 'LECTURER')) {
       setEvaluatorState({ status: 'unknown', hasAssignment: false })
       return
     }
@@ -67,7 +67,7 @@ export function useWorkspaceAccess(): WorkspaceAccess {
   return useMemo(() => {
     const identityRoles = normalizeRoles(user?.roles)
     const identityRole = getWorkspaceRole(user)
-    const isStudent = identityRole === 'student'
+    const isStudent = identityRoles.includes('STUDENT')
     const isLoading = sessionStatus === 'restoring' || academic.status === 'idle' || academic.status === 'loading' || (isStudent && Boolean(journey?.isLoading))
     const error = academic.error?.message ?? (isStudent ? journey?.error ?? null : null)
     const contextStatus: WorkspaceContextStatus = isLoading

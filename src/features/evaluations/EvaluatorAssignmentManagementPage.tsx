@@ -1,3 +1,4 @@
+import { readAllPages } from '../../services/api/paged-read'
 import { ButtonLink } from '../../components/ui/ButtonLink'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { displayLabel } from '../../components/ui/display-label'
@@ -67,16 +68,16 @@ export function EvaluatorAssignmentManagementPage() {
     }
     setLoading(true); setLoaded(false); setAssignments([]); setPeriods([]); setSchemes([])
     try {
-      const assignmentsRequest = assignmentStatus === 'ALL' ? getProjectEvaluationAssignments(projectId) : getProjectEvaluationAssignments(projectId, assignmentStatus)
+      const assignmentsRequest = readAllPages(page => getProjectEvaluationAssignments(projectId, assignmentStatus === 'ALL' ? undefined : assignmentStatus, undefined, page))
       const [project, currentAssignments, options, schemeOptions] = await Promise.all([
         getProject(projectId), assignmentsRequest,
-        getProjectPeriods(session.accessToken, { search: '', periodType: 'EVALUATION' }),
+        readAllPages(page => getProjectPeriods(session.accessToken, { search: '', periodType: 'EVALUATION' }, undefined, page)),
         getEvaluationSchemes(projectId),
       ])
       if (!project.id) throw new Error('Project missing')
-      setPeriods(options.items.filter(item => item.periodType === 'EVALUATION'))
+      setPeriods(options.filter(item => item.periodType === 'EVALUATION'))
       setSchemes(schemeOptions)
-      setAssignments(currentAssignments.items)
+      setAssignments(currentAssignments)
       setLoaded(true); setError(null)
     } catch (reason) {
       setError(assignmentError(reason, 'Không thể tải phân công người chấm và kỳ đánh giá.'))
