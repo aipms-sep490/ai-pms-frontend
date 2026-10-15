@@ -12,8 +12,22 @@ import { useTeamManagement } from '../hooks/useTeamManagement'
 import { StudentQualificationCard } from '../../qualifications/components/StudentQualificationCard'
 import { Modal } from '../../../components/ui/Modal'
 import { PageLoading } from '../../../components/ui/PageLoading'
+import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import { Button } from '../../../components/ui/Button'
+import { InlineAlert } from '../../../components/ui/InlineAlert'
+import { Toast } from '../../../components/ui/Toast'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { services } from '../../../services/service-gateway'
 import { EligibilityHistoryPanel } from '../components/EligibilityHistoryPanel'
+
+function teamStatusTone(status: string): { tone: BadgeTone; label: string } {
+  switch (status) {
+    case 'ELIGIBLE': return { tone: 'success', label: 'Đủ điều kiện đăng ký' }
+    case 'LOCKED': return { tone: 'info', label: 'Đã khóa theo đề tài' }
+    default: return { tone: 'neutral', label: 'Đang kiện toàn nhân sự' }
+  }
+}
 
 export function TeamManagementPage() {
   const navigate = useNavigate()
@@ -128,76 +142,34 @@ export function TeamManagementPage() {
     return <PageLoading />
   }
 
-  return (
-    <div className="workspace-page flex flex-col gap-6">
-      {/* Toast Feedback */}
-      {toastMessage && (
-        <div
-          role="status"
-          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-md border flex items-center gap-2.5 text-xs font-semibold ${
-            toastMessage.type === 'success'
-              ? 'bg-emerald-600 text-white border-emerald-700'
-              : 'bg-rose-600 text-white border-rose-700'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[18px]">
-            {toastMessage.type === 'success' ? 'check_circle' : 'error'}
-          </span>
-          {toastMessage.text}
-        </div>
+  const headerDescription = (
+    <>
+      Học kỳ: <span className="font-semibold text-ink-soft">{semester?.name ?? 'Chưa xác định'}</span> • Sinh viên:{' '}
+      <span className="font-semibold text-ink-soft">{profile?.fullName ?? 'Sinh viên'}</span>{profile?.studentCode ? ` (${profile.studentCode})` : ''}
+    </>
+  )
+  const headerAction = (
+    <>
+      {!team && permissions.canCreateTeam && (
+        <Button icon="add_circle" onClick={() => setIsCreateModalOpen(true)}>Thành lập Nhóm Mới</Button>
       )}
+      {team && permissions.canLeave && (
+        <Button variant="outline" icon="logout" onClick={() => setIsLeaveConfirmOpen(true)}>Rời nhóm</Button>
+      )}
+    </>
+  )
+
+  return (
+    <WorkspacePage title="Thành viên nhóm" description={headerDescription} action={headerAction} className="flex flex-col gap-6">
+      {toastMessage && <Toast message={toastMessage.text} tone={toastMessage.type} />}
 
       {error && (
-        <div className={`flex items-center justify-between gap-3 rounded-md border p-4 text-xs ${
-          error.kind === 'conflict' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-rose-200 bg-rose-50 text-rose-800'
-        }`}>
-          <p>{error.message}</p>
-          {error.kind !== 'authentication' && (
-            <button type="button" onClick={() => void retry()} disabled={isRefreshing} className="shrink-0 rounded-lg border border-current px-3 py-1.5 font-semibold disabled:opacity-50">
-              {isRefreshing ? 'Đang tải lại...' : 'Tải lại'}
-            </button>
-          )}
-        </div>
+        <InlineAlert tone={error.kind === 'conflict' ? 'warning' : 'danger'} onRetry={error.kind !== 'authentication' ? () => void retry() : undefined} retryPending={isRefreshing}>
+          {error.message}
+        </InlineAlert>
       )}
 
       {!rosterLocked && <StudentQualificationCard key={currentUserId} onSubmitted={management.refreshAll} />}
-
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-[clamp(26px,2.1vw,32px)] font-bold leading-tight tracking-tight text-ink">Thành viên nhóm</h1>
-          <p className="text-sm text-ink-muted mt-1">
-            Học kỳ: <span className="font-semibold text-ink-soft">{semester?.name ?? 'Chưa xác định'}</span> • Sinh viên:{' '}
-            <span className="font-semibold text-ink-soft">{profile?.fullName ?? 'Sinh viên'}</span>{profile?.studentCode ? ` (${profile.studentCode})` : ''}
-          </p>
-        </div>
-
-        {!team && permissions.canCreateTeam && (
-          <button
-            type="button"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-[0_2px_8px_-2px_rgba(15,91,78,0.25)]"
-          >
-            <span className="material-symbols-outlined text-[18px]">add_circle</span>
-            Thành lập Nhóm Mới
-          </button>
-        )}
-
-        {team && (
-          <div className="flex items-center gap-2">
-            {permissions.canLeave && (
-              <button
-                type="button"
-                onClick={() => setIsLeaveConfirmOpen(true)}
-                className="px-3.5 py-2 border border-hairline hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 text-ink-muted rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5"
-              >
-                <span className="material-symbols-outlined text-[16px]">logout</span>
-                Rời nhóm
-              </button>
-            )}
-          </div>
-        )}
-      </div>
 
       {/* When Student Has NO TEAM */}
       {!team ? (
@@ -212,14 +184,7 @@ export function TeamManagementPage() {
                 Để đăng ký đề tài đồ án tốt nghiệp, bạn cần thành lập một nhóm mới hoặc chấp nhận lời mời tham gia từ các nhóm khác.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setIsCreateModalOpen(true)}
-              className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-[0_2px_8px_-2px_rgba(15,91,78,0.25)]"
-            >
-              <span className="material-symbols-outlined text-[18px]">add</span>
-              Bắt đầu tạo nhóm ngay
-            </button>
+            <Button icon="add" onClick={() => setIsCreateModalOpen(true)}>Bắt đầu tạo nhóm ngay</Button>
           </div>
 
           {/* Received invitations box */}
@@ -253,13 +218,7 @@ export function TeamManagementPage() {
                   {team.code}
                 </span>
                 <h2 className="text-lg font-bold text-ink">{team.name}</h2>
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-ink-soft">
-                  {team.status === 'ELIGIBLE'
-                    ? 'Đủ điều kiện đăng ký'
-                    : team.status === 'LOCKED'
-                      ? 'Đã khóa theo đề tài'
-                      : 'Đang kiện toàn nhân sự'}
-                </span>
+                <StatusBadge {...teamStatusTone(team.status)} />
               </div>
               {team.description && (
                 <p className="text-xs text-ink-muted mt-1.5 max-w-2xl">{team.description}</p>
@@ -268,9 +227,7 @@ export function TeamManagementPage() {
 
             <div className="flex items-center gap-3 shrink-0">
               {permissions.canEditTeam && (
-                <button type="button" onClick={() => setIsUpdateModalOpen(true)} className="rounded-md border border-hairline px-3.5 py-2 text-xs font-semibold text-ink-muted hover:bg-canvas">
-                  Chỉnh sửa nhóm
-                </button>
+                <Button variant="outline" size="sm" onClick={() => setIsUpdateModalOpen(true)}>Chỉnh sửa nhóm</Button>
               )}
               <div className="text-right">
                 <span className="text-xs text-slate-400 block">Sĩ số nhóm</span>
@@ -415,7 +372,7 @@ export function TeamManagementPage() {
             </div>
         </Modal>
       )}
-    </div>
+    </WorkspacePage>
   )
 }
 

@@ -9,6 +9,8 @@ import { projectStatusLabel } from '../../projects/utils/project-status'
 import { SupervisorRecommendationPanel } from '../components/SupervisorRecommendationPanel'
 import { env } from '../../../app/config/env'
 import { PageLoading } from '../../../components/ui/PageLoading'
+import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import { InlineAlert } from '../../../components/ui/InlineAlert'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 
@@ -64,18 +66,18 @@ export function SupervisorSelectionPage() {
   if (!journey.project) return <section className="p-6"><h1>Chọn giảng viên hướng dẫn</h1><p>Bạn chưa có đồ án để thực hiện bước này.</p></section>
   if (selection.error?.kind === 'authentication') return <p className="p-6"><Link to="/login">Đăng nhập lại để tiếp tục.</Link></p>
 
-  return (
-    <main className="workspace-page mk-page-enter mx-auto max-w-5xl space-y-6 pb-12">
-      <header className="border-b border-hairline pb-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-primary">Định hướng đồ án</p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">{selection.activeAssignment ? 'Giảng viên hướng dẫn' : 'Chọn giảng viên hướng dẫn'}</h1>
-        <p className="mt-2 text-sm text-slate-600">{journey.project.code} · {journey.project.title} · {projectStatusLabel(journey.project.status)}</p>
-        <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">{selection.activeAssignment
-          ? (selection.missingMentorMajorIds.length > 0 ? 'Đã có GVHD chính. Mời thêm Mentor cho các ngành liên quan còn thiếu xác nhận.' : 'Xem phân công hiện tại và lịch sử yêu cầu hướng dẫn của nhóm.')
-          : 'Bạn có thể mời GVHD chính và Mentor từng ngành (nếu đồ án liên ngành) ngay khi đề cương còn là bản nháp — không cần chờ Bộ môn duyệt. Tìm giảng viên phù hợp và gửi lời mời từ tài khoản trưởng nhóm.'}</p>
-      </header>
+  const headerDescription = (
+    <>
+      <span className="block">{journey.project.code} · {journey.project.title} · {projectStatusLabel(journey.project.status)}</span>
+      <span className="mt-1 block max-w-3xl leading-6 text-slate-500">{selection.activeAssignment
+        ? (selection.missingMentorMajorIds.length > 0 ? 'Đã có GVHD chính. Mời thêm Mentor cho các ngành liên quan còn thiếu xác nhận.' : 'Xem phân công hiện tại và lịch sử yêu cầu hướng dẫn của nhóm.')
+        : 'Bạn có thể mời GVHD chính và Mentor từng ngành (nếu đồ án liên ngành) ngay khi đề cương còn là bản nháp — không cần chờ Bộ môn duyệt. Tìm giảng viên phù hợp và gửi lời mời từ tài khoản trưởng nhóm.'}</span>
+    </>
+  )
 
-      {selection.error ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{selection.error.message}<Button className="ml-3" size="sm" variant="secondary" onClick={() => void selection.refresh(true)}>Tải lại</Button></section> : null}
+  return (
+    <WorkspacePage eyebrow="Định hướng đồ án" title={selection.activeAssignment ? 'Giảng viên hướng dẫn' : 'Chọn giảng viên hướng dẫn'} description={headerDescription} className="space-y-6">
+      {selection.error ? <InlineAlert tone="danger" onRetry={() => void selection.refresh(true)}>{selection.error.message}</InlineAlert> : null}
 
       {selection.activeAssignment ? <section className="rounded-2xl border border-status-success-border bg-status-success-bg p-6">
         <h2 className="font-bold text-status-success-text">Đã có phân công hướng dẫn chính thức</h2>
@@ -136,6 +138,6 @@ export function SupervisorSelectionPage() {
         <textarea id="request-message" className="mt-1 w-full rounded border border-slate-300 p-3" value={message} onChange={(event) => setMessage(event.target.value)} />
         <div className="mt-3 flex gap-2"><Button type="submit" disabled={selection.sendRequestPending}>Gửi yêu cầu</Button><Button type="button" variant="secondary" onClick={() => { setSelectedId(null); setSelectedSlot(null) }}>Hủy</Button></div>
       </form> : null}
-    </main>
+    </WorkspacePage>
   )
 }

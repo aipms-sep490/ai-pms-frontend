@@ -4,7 +4,7 @@ import './workspace-page.css'
 import './workspace-flat.css'
 
 export function WorkspacePage({ title, description, eyebrow, backTo, action, children, className = '' }: {
-  title: string; description?: string; eyebrow?: string; backTo?: string; action?: ReactNode; children: ReactNode; className?: string
+  title: string; description?: ReactNode; eyebrow?: string; backTo?: string; action?: ReactNode; children: ReactNode; className?: string
 }) {
   const parts = eyebrow?.split(/[•·]/)
   return <div className={`workspace-page workspace-flat ${className}`}>
