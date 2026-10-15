@@ -5,4 +5,5 @@ export interface ApiProblem {
   traceId?: string
   /** Stable backend business-error identifier when the endpoint provides one. */
   code?: string
+  errors?: Record<string, string[]>
 }

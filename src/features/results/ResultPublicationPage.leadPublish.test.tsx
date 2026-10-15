@@ -19,6 +19,7 @@ vi.mock('../../app/config/env', async () => {
   return { env: { ...actual.env, leadDepartmentPublishEnabled: true } }
 })
 
+vi.mock('./ResultHistoryPanel', () => ({ ResultHistoryPanel: () => <section aria-label="Lịch sử kết quả độc lập" /> }))
 const preview = () => ({ canPublish: true, totalScore: 8, passThreshold: 5, outcome: 'PASS', blockers: [], confirmationToken: 'tok' })
 const renderAt = (path: string, pattern: string) =>
   render(<MemoryRouter initialEntries={[path]}><Routes><Route path={pattern} element={<ResultPublicationPage />} /></Routes></MemoryRouter>)
