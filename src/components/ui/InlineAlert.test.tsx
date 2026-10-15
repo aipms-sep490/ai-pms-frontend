@@ -1,3 +1,4 @@
+import { createRef } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { InlineAlert } from './InlineAlert'
@@ -23,5 +24,12 @@ describe('InlineAlert', () => {
     render(<InlineAlert tone="warning" onRetry={() => {}} retryPending>Đang tải lại</InlineAlert>)
     const button = screen.getByRole('button', { name: 'Đang tải lại…' }) as HTMLButtonElement
     expect(button.disabled).toBe(true)
+  })
+
+  it('accepts a ref so a freshly-appeared error can be moved into focus', () => {
+    const ref = createRef<HTMLElement>()
+    render(<InlineAlert ref={ref} tone="danger">Lỗi</InlineAlert>)
+    ref.current?.focus()
+    expect(document.activeElement).toBe(ref.current)
   })
 })

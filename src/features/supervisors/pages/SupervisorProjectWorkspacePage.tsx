@@ -1,5 +1,8 @@
 import { SpotlightLink } from '../../../components/ui/SpotlightLink'
 import { Link } from 'react-router-dom'
+import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import { Button } from '../../../components/ui/Button'
+import { ButtonLink } from '../../../components/ui/ButtonLink'
 import { env } from '../../../app/config/env'
 import { ProjectProgressAnalysisPanel } from '../../ai/components/ProjectProgressAnalysisPanel'
 import { useExecutionAccess } from '../../execution/context/ExecutionAccessContext'
@@ -35,21 +38,16 @@ export function SupervisorProjectWorkspacePage() {
   ]
 
   return (
-    <main className="workspace-page mx-auto max-w-6xl space-y-6 pb-12">
-      <header className="border-b border-hairline pb-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Giảng viên hướng dẫn</p>
-        <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-ink">Tổng quan đồ án</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">Theo dõi tiến độ, nội dung cần phản hồi và toàn bộ tài liệu của đồ án được phân công.</p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button type="button" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary bg-card px-4 text-sm font-semibold text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => { progress.reload(); void operational.reload() }}>Làm mới dữ liệu</button>
-            <Link className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary bg-card px-4 text-sm font-semibold text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to="/supervisor/workspace">Đổi đồ án</Link>
-          </div>
-        </div>
-      </header>
-
+    <WorkspacePage
+      className="max-w-6xl space-y-6"
+      eyebrow="Giảng viên hướng dẫn"
+      title="Tổng quan đồ án"
+      description="Theo dõi tiến độ, nội dung cần phản hồi và toàn bộ tài liệu của đồ án được phân công."
+      action={<div className="flex flex-wrap gap-3">
+        <Button variant="outline" onClick={() => { progress.reload(); void operational.reload() }}>Làm mới dữ liệu</Button>
+        <ButtonLink variant="outline" to="/supervisor/workspace">Đổi đồ án</ButtonLink>
+      </div>}
+    >
       <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-labelledby="supervision-project-summary">
         <div className="border-b border-hairline px-5 py-4 sm:px-6">
           <p className="text-xs font-medium text-ink-muted">{access.project.code} · {access.project.teamName ?? 'Chưa có thông tin nhóm'}</p>
@@ -85,7 +83,7 @@ export function SupervisorProjectWorkspacePage() {
       {env.aiAdvisoryEnabled && <ProjectProgressAnalysisPanel projectId={access.project.id} compact />}
 
       <p className="text-sm leading-6 text-ink-muted">Phản hồi, người tham gia, biên bản, kết luận và công việc sau họp được quản lý trong chi tiết từng cuộc họp.</p>
-    </main>
+    </WorkspacePage>
   )
 }
 

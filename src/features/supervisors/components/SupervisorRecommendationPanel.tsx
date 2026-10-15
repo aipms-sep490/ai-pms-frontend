@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { Button } from '../../../components/ui/Button'
+import { InlineAlert } from '../../../components/ui/InlineAlert'
 import { HttpError } from '../../../services/http/http-client'
 import {
   previewSupervisorRecommendations,
@@ -55,7 +57,7 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
     <h2 className="font-heading text-lg font-semibold text-ink">Gợi ý giảng viên hướng dẫn</h2>
     <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">Danh sách xếp hạng theo chuyên môn và năng lực tiếp nhận. Đây chỉ là gợi ý tham khảo; bạn vẫn tự chọn và gửi lời mời.</p>
     {loading && <p role="status" className="mt-4 text-sm text-ink-muted">Đang tải gợi ý…</p>}
-    {!loading && errorMessage && <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><span>{errorMessage}</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
+    {!loading && errorMessage && <InlineAlert tone="danger" className="mt-4" onRetry={retry}>{errorMessage}</InlineAlert>}
     {!loading && !errorMessage && items.length === 0 && <p className="mt-4 text-sm text-ink-muted">Chưa có gợi ý nào cho vị trí này.</p>}
     {!loading && !errorMessage && items.length > 0 && <ol className="mt-4 space-y-3">
       {items.map((item, index) => <RecommendationRow key={item.candidate.id} item={item} rank={index + 1}
@@ -87,7 +89,7 @@ function RecommendationRow({ item, rank, selectable, onPick }: {
         {item.matchedExpertise.map(tag => <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-ink-muted">{tag}</span>)}
       </div>
       : EXPERTISE_STATUS_LABEL[item.expertiseStatus] && <p className="mt-3 text-xs text-ink-muted">{EXPERTISE_STATUS_LABEL[item.expertiseStatus]}</p>}
-    {onPick && selectable && <button type="button" onClick={() => onPick(candidate.id)} className="mt-3 min-h-11 rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-primary-subtle">Chọn giảng viên này</button>}
+    {onPick && selectable && <Button variant="outline" size="sm" className="mt-3" onClick={() => onPick(candidate.id)}>Chọn giảng viên này</Button>}
     {onPick && !selectable && <p className="mt-3 text-xs text-slate-400">Giảng viên này hiện không nằm trong danh sách có thể mời.</p>}
   </li>
 }
