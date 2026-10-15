@@ -8,7 +8,9 @@ const mocks = vi.hoisted(() => ({
   journey: { project: { id: 9 } as { id: number } | null, profile: { id: 7 } as { id: number } | null },
   getWorkingAgreement: vi.fn(),
   acceptWorkingAgreement: vi.fn(),
+  getMyCapabilities: vi.fn(),
 }))
+vi.mock('../capabilities/capabilities-api', () => ({ getMyCapabilities: mocks.getMyCapabilities }))
 vi.mock('../../app/context', () => ({ useStudentJourney: () => mocks.journey }))
 vi.mock('./working-agreement-api', async () => {
   const actual = await vi.importActual<typeof import('./working-agreement-api')>('./working-agreement-api')
@@ -36,7 +38,7 @@ const agreement = (over: Partial<Record<string, unknown>> = {}) => ({
   ...over,
 })
 
-beforeEach(() => { mocks.journey.project = { id: 9 }; mocks.journey.profile = { id: 7 } })
+beforeEach(() => { mocks.journey.project = { id: 9 }; mocks.journey.profile = { id: 7 }; mocks.getMyCapabilities.mockResolvedValue({ actions: [] }) })
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 
 describe('ProjectWorkingAgreementPage', () => {
@@ -101,19 +103,19 @@ describe('ProjectWorkingAgreementPage', () => {
   it('shows a generic retryable error on an unexpected failure (e.g. 404)', async () => {
     mocks.getWorkingAgreement.mockRejectedValue(new HttpError('not found', 404))
     render_()
-    expect(await screen.findByText('Chưa tải được cam kết nhóm. Hãy thử lại.')).toBeTruthy()
+    expect(await screen.findByText(/Không tìm thấy dữ liệu hoặc tính năng chưa được bật/)).toBeTruthy()
   })
 
   it('shows a distinct message when access is denied', async () => {
     mocks.getWorkingAgreement.mockRejectedValue(new HttpError('forbidden', 403))
     render_()
-    expect((await screen.findByRole('alert')).textContent).toContain('chưa có quyền')
+    expect((await screen.findByRole('alert')).textContent).toContain('không có quyền')
   })
 
   it('handles no active project', async () => {
     mocks.journey.project = null
     render_()
-    expect(await screen.findByText(/Không tìm thấy đồ án đang hoạt động/)).toBeTruthy()
+    expect(await screen.findByText(/Không tìm thấy đồ án để xem cam kết/)).toBeTruthy()
     expect(mocks.getWorkingAgreement).not.toHaveBeenCalled()
   })
 })

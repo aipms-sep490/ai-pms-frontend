@@ -2,6 +2,15 @@ import { httpGet, httpPost, httpPut } from '../../services/http/http-client'
 import type { PagedResult } from '../../types/backend'
 import type { MyPeerEvaluation, PeerEvaluationSubmission, PeerRatingInput, PeerRound } from './peer-eval-types'
 
+export const createPeerRound = (projectId: number, body: { title: string; opensAt: string; closesAt: string }) =>
+  httpPost<PeerRound>(`/projects/${projectId}/peer-evaluations/rounds`, body)
+
+export const closePeerRound = (projectId: number, roundId: number, concurrencyToken: string) =>
+  httpPost<PeerRound>(`/projects/${projectId}/peer-evaluations/rounds/${roundId}/close`, { concurrencyToken })
+
+export const getPeerSubmissions = (projectId: number, roundId: number, page = 1, pageSize = 10, signal?: AbortSignal) =>
+  httpGet<PagedResult<PeerEvaluationSubmission>>(`/projects/${projectId}/peer-evaluations?roundId=${roundId}&page=${page}&pageSize=${pageSize}`, signal)
+
 // BE-19b endpoints (AIPMS.Api/Controllers/PeerEvaluationsController.cs). `mine` auto-resolves the
 // project's current OPEN round when roundId is omitted; NO_OPEN_ROUND is an explicit, valid
 // status, never silently substituted by the client.

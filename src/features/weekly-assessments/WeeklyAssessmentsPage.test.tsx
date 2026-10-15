@@ -10,8 +10,10 @@ import type { Rubric, WeeklyAssessment, WeeklyAssessmentCalendar } from '../../s
 const api = vi.hoisted(() => ({
   getWeeklyAssessmentWeeks: vi.fn(), getWeeklyAssessmentRubrics: vi.fn(), getWeeklyAssessmentHistory: vi.fn(),
   getWeeklyAssessment: vi.fn(), saveWeeklyAssessment: vi.fn(), submitWeeklyAssessment: vi.fn(),
+  getTeam: vi.fn(),
 }))
 vi.mock('../../services/api/weekly.api', () => api)
+vi.mock('../../services/api/teams.api', () => ({ getTeam: api.getTeam }))
 
 const calendar: WeeklyAssessmentCalendar = {
   academicSemesterId: 3, timeZoneId: 'Asia/Ho_Chi_Minh',
@@ -34,12 +36,13 @@ const draft: WeeklyAssessment = {
   createdAt: '2026-09-15T00:00:00Z', submittedAt: null, canEdit: true, canSubmit: true, isDemo: true, affectsOfficialResult: false,
 }
 
-function mount() {
+function mount(withTeam = true) {
   const access: ExecutionAccess = {
     project: { id: 9, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'],
     team: { id: 1, academicSemesterId: 3, code: 'T1', name: 'Nhóm 1', status: 'ACTIVE', members: [{ userId: 12, fullName: 'Nguyễn Văn A', isEligibleStudent: true, isLeader: true }], eligibility: { canRegister: true, rosterLocked: true } } as ExecutionAccess['team'],
     actor: 'supervisor', canManageStructure: false, currentUserId: 5, routeBase: '/supervisor/projects/9',
   }
+  if (!withTeam) { access.team = undefined; access.project.teamId = 1 }
   const router = createMemoryRouter([{ element: <ExecutionAccessProvider value={access}><Outlet /></ExecutionAccessProvider>, children: [
     { path: '/supervisor/projects/:projectId/weekly-assessments', element: <WeeklyAssessmentsPage /> },
   ] }], { initialEntries: ['/supervisor/projects/9/weekly-assessments'] })
@@ -54,6 +57,63 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Weekly assessments page', () => {
+  it('loads the team when the Primary workspace has no student roster', async () => {
+    api.getTeam.mockResolvedValue({ members: [{ userId: 12, fullName: 'Nguyễn Văn A' }] })
+    api.getWeeklyAssessmentHistory.mockResolvedValue({ items: [draft], totalCount: 1 })
+    mount(false)
+    await screen.findByDisplayValue('8')
+    expect(api.getTeam).toHaveBeenCalledWith(1)
+    expect(screen.getByRole('option', { name: 'Nguyễn Văn A' })).toBeTruthy()
+  })
+  it('does not offer first-draft creation when reading the latest version fails', async () => {
+    api.getWeeklyAssessmentHistory.mockRejectedValue(new HttpError('forbidden', 403))
+    mount(); await screen.findByRole('alert')
+    expect(screen.queryByRole('button', { name: 'Tạo bản chấm' })).toBeNull()
+    expect(screen.queryByLabelText('Rubric áp dụng')).toBeNull()
+  })
+  it('keeps the refreshed token when save succeeds but submission fails', async () => {
+    api.getWeeklyAssessmentHistory.mockResolvedValue({ items: [draft], totalCount: 1 })
+    api.saveWeeklyAssessment.mockResolvedValue({ ...draft, concurrencyToken: 'fresh-token', scores: [{ ...draft.scores[0], score: 9 }] })
+    api.submitWeeklyAssessment.mockRejectedValueOnce(new HttpError('unavailable', 503)).mockResolvedValueOnce({ ...draft, status: 'SUBMITTED' })
+    mount()
+    fireEvent.change(await screen.findByLabelText('Điểm Chủ động'), { target: { value: '9' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Nộp điểm' }))
+    await screen.findByRole('alert')
+    fireEvent.click(screen.getByRole('button', { name: 'Nộp điểm' }))
+    await waitFor(() => expect(api.submitWeeklyAssessment).toHaveBeenCalledTimes(2))
+    expect(api.submitWeeklyAssessment).toHaveBeenLastCalledWith(501, 'fresh-token')
+    expect(api.saveWeeklyAssessment).toHaveBeenCalledTimes(1)
+  })
+  it('asks before discarding visible edits on a week change', async () => {
+    api.getWeeklyAssessmentHistory.mockResolvedValue({ items: [draft], totalCount: 1 })
+    mount()
+    fireEvent.change(await screen.findByLabelText('Điểm Chủ động'), { target: { value: '9' } })
+    fireEvent.change(screen.getByLabelText('Tuần'), { target: { value: '3' } })
+    await screen.findByRole('dialog')
+    expect(api.getWeeklyAssessmentHistory).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Bỏ thay đổi và chuyển' }))
+    await waitFor(() => expect(api.getWeeklyAssessmentHistory).toHaveBeenCalledTimes(2))
+  })
+  it('saves visible edits before submitting and uses the refreshed token', async () => {
+    api.getWeeklyAssessmentHistory.mockResolvedValue({ items: [draft], totalCount: 1 })
+    api.saveWeeklyAssessment.mockResolvedValue({ ...draft, concurrencyToken: 'saved-token', scores: [{ ...draft.scores[0], score: 9 }] })
+    api.submitWeeklyAssessment.mockResolvedValue({ ...draft, status: 'SUBMITTED', canEdit: false, canSubmit: false })
+    mount()
+    fireEvent.change(await screen.findByLabelText('Điểm Chủ động'), { target: { value: '9' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Nộp điểm' }))
+    await waitFor(() => expect(api.submitWeeklyAssessment).toHaveBeenCalledWith(501, 'saved-token'))
+    expect(api.saveWeeklyAssessment).toHaveBeenCalledWith(9, expect.objectContaining({ scores: [{ rubricCriterionId: 56, score: 9, comments: null }] }))
+  })
+  it('offers an append-only revision for a submitted row whose canEdit is false', async () => {
+    api.getWeeklyAssessmentHistory.mockResolvedValue({ items: [{ ...draft, status: 'SUBMITTED', canEdit: false, canSubmit: false }], totalCount: 1 })
+    api.saveWeeklyAssessment.mockResolvedValue({ ...draft, version: 2 })
+    mount()
+    fireEvent.change(await screen.findByLabelText('Lý do chỉnh sửa'), { target: { value: 'Bổ sung phản hồi' } })
+    expect(screen.queryByRole('spinbutton')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo chỉnh sửa (phiên bản mới)' }))
+    await waitFor(() => expect(api.saveWeeklyAssessment).toHaveBeenCalledWith(9, expect.objectContaining({ expectedLatestVersion: 1, revisionReason: 'Bổ sung phản hồi' })))
+    expect(api.saveWeeklyAssessment.mock.calls[0][1]).not.toHaveProperty('concurrencyToken')
+  })
   it('defaults to the latest started week and offers a rubric picker when nothing exists yet', async () => {
     api.getWeeklyAssessmentHistory.mockResolvedValue({ items: [], page: 1, pageSize: 1, totalCount: 0, totalPages: 0 })
     mount()
@@ -115,6 +175,7 @@ describe('Weekly assessments page', () => {
   it('blocks editing a week that has not started yet', async () => {
     api.getWeeklyAssessmentHistory.mockResolvedValue({ items: [], page: 1, pageSize: 1, totalCount: 0, totalPages: 0 })
     mount()
+    await screen.findByLabelText('Rubric áp dụng')
     fireEvent.change(await screen.findByLabelText('Tuần'), { target: { value: '3' } })
     expect(await screen.findByText('Tuần này chưa tới, chưa thể chấm.')).toBeTruthy()
   })

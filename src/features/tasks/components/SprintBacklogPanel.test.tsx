@@ -12,10 +12,10 @@ vi.mock('../../../services/api/tasks.api', () => api)
 
 const task = (id: number, over: Partial<TaskDto>): TaskDto => ({ id, milestoneId: 1, title: `T${id}`, status: 'TODO', createdBy: 1, createdByFullName: 'x', createdAt: '', updatedAt: '', assignees: [], dependencies: [], ...over })
 const sprint = (over: Partial<SprintDto>): SprintDto => ({
-  id: 1, projectId: 9, name: 'Sprint 1', status: 'PLANNING', startAt: '2026-10-01', endAt: '2026-10-14',
+  id: 1, projectId: 9, name: 'Sprint 1', status: 'PLANNED', startAt: '2026-10-01', endAt: '2026-10-14',
   concurrencyToken: 'sprint-ct', canEdit: true, canStart: true, canComplete: false, ...over,
 })
-const render_ = () => render(<MemoryRouter><SprintBacklogPanel projectId={9} routeBase="/project" /></MemoryRouter>)
+const render_ = (canManage = true) => render(<MemoryRouter><SprintBacklogPanel projectId={9} routeBase="/project" canManage={canManage} /></MemoryRouter>)
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -26,6 +26,25 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('SprintBacklogPanel', () => {
+  it('does not allow readers to create or change board planning', async () => {
+    render_(false)
+    const backlog = await screen.findByRole('region', { name: 'Backlog' })
+    expect(screen.queryByLabelText('Tên sprint')).toBeNull()
+    expect((within(backlog).getByRole('combobox') as HTMLSelectElement).disabled).toBe(true)
+    expect((within(backlog).getByRole('button', { name: 'Điểm & nhãn' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('keeps unsaved labels visible after the server rejects a planning update', async () => {
+    api.saveTaskBoard.mockRejectedValue(new Error('offline'))
+    render_()
+    const backlog = await screen.findByRole('region', { name: 'Backlog' })
+    fireEvent.click(within(backlog).getByRole('button', { name: 'Điểm & nhãn' }))
+    fireEvent.change(within(backlog).getByLabelText('Nhãn (phân tách bằng dấu phẩy)'), { target: { value: 'review-needed' } })
+    fireEvent.click(within(backlog).getByRole('button', { name: 'Lưu' }))
+    await screen.findByRole('alert')
+    expect(within(backlog).getByDisplayValue('review-needed')).toBeTruthy()
+    expect(api.getTaskBoard).toHaveBeenCalledTimes(1)
+  })
   it('shows sprint members, backlog and a committed-points summary', async () => {
     render_()
     expect(await screen.findByRole('link', { name: '#10 · T10' })).toBeTruthy()

@@ -36,6 +36,18 @@ beforeEach(() => { mocks.journey.project = { id: 9 }; mocks.journey.profile = { 
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 
 describe('ProjectPeerEvaluationPage', () => {
+  it('asks before switching rounds with unsaved feedback', async () => {
+    mocks.getMyPeerEvaluation.mockResolvedValue({ roundId: 3, status: 'NOT_STARTED', submission: null })
+    mocks.getPeerRounds.mockResolvedValue(roundsPage([round(), round({ id: 2, title: 'Đợt cũ', status: 'CLOSED', canSubmit: false })]))
+    render_(); await screen.findByText('Bạn B')
+    fireEvent.click(screen.getAllByRole('button', { name: '4 · Tốt' })[0])
+    fireEvent.click(screen.getByRole('button', { name: 'Xem các đợt trước' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Xem bài của tôi · Đợt cũ' }))
+    await screen.findByRole('dialog')
+    expect(mocks.getMyPeerEvaluation).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Bỏ thay đổi và chuyển' }))
+    await waitFor(() => expect(mocks.getMyPeerEvaluation).toHaveBeenLastCalledWith(9, 2, expect.any(AbortSignal)))
+  })
   it('resolves the open round and shows a form for the roster excluding the current user', async () => {
     mocks.getMyPeerEvaluation.mockResolvedValue({ roundId: 3, status: 'NOT_STARTED', submission: null })
     mocks.getPeerRounds.mockResolvedValue(roundsPage([round()]))

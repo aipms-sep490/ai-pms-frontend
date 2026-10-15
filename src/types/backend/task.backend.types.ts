@@ -61,7 +61,7 @@ export interface TaskDto {
   taskCode?: string | null
 }
 
-export type SprintStatus = 'PLANNING' | 'ACTIVE' | 'COMPLETED'
+export type SprintStatus = 'PLANNED' | 'ACTIVE' | 'COMPLETED'
 
 export interface SprintDto {
   id: number
