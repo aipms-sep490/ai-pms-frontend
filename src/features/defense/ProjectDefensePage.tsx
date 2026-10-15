@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useLocation, useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { useStudentJourney } from '../../app/context'
 import { HttpError } from '../../services/http/http-client'
@@ -436,7 +437,6 @@ export function ProjectDefensePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [revision, setRevision] = useState(0)
-  const [showManagement, setShowManagement] = useState(false)
 
   useEffect(() => {
     if (!projectId) return
@@ -455,25 +455,12 @@ export function ProjectDefensePage() {
   }, [projectId, revision])
 
   const retry = () => { setLoading(true); setError(null); setSessions(null); setRevision((value) => value + 1) }
-  const hasScheduled = Boolean(sessions?.some((s) => s.status === 'SCHEDULED'))
-
   return (
     <WorkspacePage
       className="space-y-5"
       title="Lịch bảo vệ"
       eyebrow="Hội đồng đánh giá"
       description="Thời gian và phòng bảo vệ của đồ án. Thành phần hội đồng không hiển thị ở đây."
-      action={
-        projectId ? (
-          <button
-            type="button"
-            className="text-xs font-semibold text-primary underline underline-offset-4"
-            onClick={() => setShowManagement((curr) => !curr)}
-          >
-            {showManagement ? 'Ẩn quản lý hội đồng' : 'Quản lý hội đồng & lịch'}
-          </button>
-        ) : undefined
-      }
     >
       {!projectId && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Không tìm thấy đồ án đang hoạt động để xem lịch bảo vệ.</p>}
       {projectId && loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải lịch bảo vệ…</p>}
@@ -487,13 +474,37 @@ export function ProjectDefensePage() {
         />
       )}
 
-      {projectId && showManagement && (
-        <DefenseManagementPanel
-          projectId={projectId}
-          hasScheduledSession={hasScheduled}
-          onSessionScheduled={() => setRevision((v) => v + 1)}
-        />
-      )}
+    </WorkspacePage>
+  )
+}
+
+/** Management is exposed only from lecturer/department routes, never from the student page. */
+export function ProjectDefenseManagementPage() {
+  const routeProjectId = useParams().projectId
+  const pathname = useLocation().pathname
+  const projectId = Number(routeProjectId ?? pathname.match(/projects\/(\d+)\/defense/)?.[1])
+  const [sessions, setSessions] = useState<DefenseSession[] | null>(null)
+  const [error, setError] = useState('')
+  const [revision, setRevision] = useState(0)
+
+  useEffect(() => {
+    if (!Number.isSafeInteger(projectId) || projectId < 1) return
+    const controller = new AbortController()
+    setError('')
+    getProjectDefenseSessions(projectId, 1, 20, controller.signal)
+      .then((result) => { if (!controller.signal.aborted) setSessions(result.items) })
+      .catch((reason: unknown) => {
+        if (!controller.signal.aborted) setError(reason instanceof HttpError && reason.status === 403 ? 'Bạn không có quyền quản lý lịch bảo vệ của đồ án này.' : 'Chưa tải được lịch bảo vệ.')
+      })
+    return () => controller.abort()
+  }, [projectId, revision])
+
+  if (!Number.isSafeInteger(projectId) || projectId < 1) return <WorkspacePage title="Quản lý bảo vệ"><p role="alert">Mã đồ án không hợp lệ.</p></WorkspacePage>
+  return (
+    <WorkspacePage title="Quản lý hội đồng & lịch bảo vệ" eyebrow={`Đồ án #${projectId}`} description="Khoa hoặc Primary quản lý hội đồng và lịch bảo vệ trong phạm vi được backend cấp.">
+      {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error}</p>}
+      {!error && sessions && <DefenseManagementPanel projectId={projectId} hasScheduledSession={sessions.some((session) => session.status === 'SCHEDULED')} onSessionScheduled={() => setRevision((value) => value + 1)} />}
+      {!error && !sessions && <p role="status">Đang tải lịch bảo vệ…</p>}
     </WorkspacePage>
   )
 }
