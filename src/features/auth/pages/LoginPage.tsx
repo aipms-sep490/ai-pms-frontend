@@ -8,6 +8,11 @@ import { GoogleLoginButton } from '../components/GoogleLoginButton'
 import './auth-pages.css'
 import './login-design.css'
 
+function getRedirectTarget(state: unknown): string | null {
+  const from = (state as { from?: string } | null)?.from
+  return from && from.startsWith('/') && !from.startsWith('/login') ? from : null
+}
+
 function getLoginErrorMessage(error: unknown): string {
   if (error instanceof HttpError) {
     if (error.status === 401) return 'Email hoặc mật khẩu không chính xác.'
@@ -27,7 +32,7 @@ export function LoginPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const isSubmitting = status === 'authenticating' || status === 'refreshing'
 
-  if (status === 'authenticated' && session) return <Navigate to={getHomePath(session.user)} replace />
+  if (status === 'authenticated' && session) return <Navigate to={getRedirectTarget(location.state) ?? getHomePath(session.user)} replace />
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -42,7 +47,7 @@ export function LoginPage() {
     }
     try {
       const authenticatedSession = await login({ email: email.trim(), password })
-      navigate(getHomePath(authenticatedSession.user), { replace: true })
+      navigate(getRedirectTarget(location.state) ?? getHomePath(authenticatedSession.user), { replace: true })
     } catch (error: unknown) {
       setFormError(getLoginErrorMessage(error))
     }

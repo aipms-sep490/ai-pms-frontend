@@ -113,4 +113,41 @@ describe('LoginPage', () => {
 
     await vi.waitFor(() => expect(screen.getByText('student workspace')).toBeDefined())
   })
+
+  it('returns to the originally-requested page instead of the role home after login', async () => {
+    authSession.login.mockResolvedValue({ user: { roles: ['STUDENT'] } })
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/login', state: { from: '/project/meetings/42' } }]}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/project/overview" element={<p>student workspace</p>} />
+          <Route path="/project/meetings/42" element={<p>requested meeting</p>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'staff@example.edu.vn' } })
+    fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'secret' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Đăng nhập' }))
+
+    await vi.waitFor(() => expect(screen.getByText('requested meeting')).toBeDefined())
+  })
+
+  it('ignores an unsafe or looping redirect target and falls back to the role home', async () => {
+    authSession.login.mockResolvedValue({ user: { roles: ['STUDENT'] } })
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/login', state: { from: '/login' } }]}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/project/overview" element={<p>student workspace</p>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'staff@example.edu.vn' } })
+    fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'secret' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Đăng nhập' }))
+
+    await vi.waitFor(() => expect(screen.getByText('student workspace')).toBeDefined())
+  })
 })
