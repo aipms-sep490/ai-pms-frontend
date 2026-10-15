@@ -6,6 +6,9 @@ import { RevisionAlert } from '../components/RevisionAlert'
 import { normalizeProjectStatus, splitProjectTags, useProjectRegistration, type ProjectRegistrationField } from '../hooks/useProjectRegistration'
 import { projectStatusLabel } from '../utils/project-status'
 import { PageLoading } from '../../../components/ui/PageLoading'
+import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import { Button } from '../../../components/ui/Button'
+import { InlineAlert } from '../../../components/ui/InlineAlert'
 import { services } from '../../../services/service-gateway'
 import type { TopicSimilarityResultDto } from '../../../types/backend'
 
@@ -62,7 +65,7 @@ export function ProjectRegistrationFormPage() {
   }
 
   if (journey.isLoading) return <LoadingState />
-  if (journey.error) return <FailureState message={journey.error} onRetry={() => void journey.refreshAll()} />
+  if (journey.error) return <div className="mx-auto max-w-4xl"><InlineAlert tone="warning" onRetry={() => void journey.refreshAll()}>{journey.error}</InlineAlert></div>
 
   if (hasProject && !editable && !revision) {
     return (
@@ -70,26 +73,22 @@ export function ProjectRegistrationFormPage() {
         <span className="material-symbols-outlined text-4xl text-blue-600" aria-hidden="true">task_alt</span>
         <h1 className="mt-3 text-xl font-bold text-slate-900">Đề cương đang ở chế độ chỉ xem</h1>
         <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-600">Hồ sơ đang ở trạng thái <strong>{projectStatusLabel(journey.project?.status ?? '')}</strong> và hiện chưa thể chỉnh sửa.</p>
-        <button type="button" onClick={() => navigate('/project/status')} className="mt-5 rounded-md bg-primary px-5 py-2.5 text-xs font-bold text-white hover:bg-primary/90">Xem trạng thái đề cương</button>
+        <Button className="mt-5" onClick={() => navigate('/project/status')}>Xem trạng thái đề cương</Button>
       </section>
     )
   }
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-16">
-      <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-        <div>
-          <button type="button" onClick={() => navigate(-1)} className="mb-2 inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800">
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span> Quay lại
-          </button>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{revision ? 'Chỉnh sửa và nộp lại đề cương' : hasProject ? 'Chỉnh sửa đề cương đồ án' : 'Tạo bản nháp đề cương'}</h1>
-          <p className="mt-1 text-xs text-slate-500">Nhóm: <strong className="text-slate-700">{journey.team?.name ?? 'Chưa có nhóm'}</strong>. Hình thức đồ án, ngành và bộ môn được quản lý theo thông tin học vụ.</p>
-        </div>
-        <button type="button" onClick={() => navigate('/project/status')} className="rounded-md border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem trạng thái</button>
-      </header>
-
-      {!hasProject && !registration.canCreate && <FailureState message="Chưa thể tạo bản nháp. Nhóm cần đủ điều kiện đăng ký và bạn cần là trưởng nhóm." onRetry={() => void journey.refreshAll()} />}
-      {registeringNewAfterRejection && <section className="rounded-md border border-status-error-border bg-status-error-bg p-4 text-xs text-status-error-text"><strong>Đăng ký đề tài mới sau khi đề tài trước bị từ chối.</strong><p className="mt-1">Biểu mẫu này tạo một bản nháp hoàn toàn mới; đề cương cũ vẫn được giữ trong lịch sử.</p></section>}
+    <WorkspacePage
+      backTo="/project/status"
+      eyebrow="Đề tài và đăng ký"
+      title={revision ? 'Chỉnh sửa và nộp lại đề cương' : hasProject ? 'Chỉnh sửa đề cương đồ án' : 'Tạo bản nháp đề cương'}
+      description={<>Nhóm: <strong className="text-slate-700">{journey.team?.name ?? 'Chưa có nhóm'}</strong>. Hình thức đồ án, ngành và bộ môn được quản lý theo thông tin học vụ.</>}
+      action={<Button variant="outline" onClick={() => navigate('/project/status')}>Xem trạng thái</Button>}
+      className="space-y-6"
+    >
+      {!hasProject && !registration.canCreate && <InlineAlert tone="warning" onRetry={() => void journey.refreshAll()}>Chưa thể tạo bản nháp. Nhóm cần đủ điều kiện đăng ký và bạn cần là trưởng nhóm.</InlineAlert>}
+      {registeringNewAfterRejection && <InlineAlert tone="danger" title="Đăng ký đề tài mới sau khi đề tài trước bị từ chối.">Biểu mẫu này tạo một bản nháp hoàn toàn mới; đề cương cũ vẫn được giữ trong lịch sử.</InlineAlert>}
       {revision && registration.latestRevision && <RevisionAlert reason={registration.latestRevision.reason} reviewerName={registration.latestRevision.changedByName || 'Hệ thống'} timestamp={registration.latestRevision.changedAt} onEdit={() => {}} />}
       {registrationProject ? <ProjectProvenance project={registrationProject} /> : null}
       <GovernedScope scope={registration.academicScope} requiredMajorIds={registration.requiredMajorIds} />
@@ -99,9 +98,9 @@ export function ProjectRegistrationFormPage() {
         {registration.error?.kind === 'validation' && <ValidationSummary summaryRef={validationSummaryRef} fields={registration.error.fields} message={registration.error.message} />}
         <TextField id="project-title" label="Tên đề tài" value={registration.form.title} required disabled={!editable} error={registration.error?.fields?.title} onChange={(value) => registration.setField('title', value)} />
         {editable && <div>
-          <button type="button" onClick={() => void checkSimilarity()} disabled={!registration.form.title.trim() || similarityLoading} className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+          <Button variant="secondary" size="sm" onClick={() => void checkSimilarity()} disabled={!registration.form.title.trim() || similarityLoading}>
             {similarityLoading ? 'Đang kiểm tra…' : 'Kiểm tra trùng đề tài'}
-          </button>
+          </Button>
           <SimilarityResult result={currentSimilarity} />
         </div>}
         <TextArea id="project-description" label="Mô tả ngắn" value={registration.form.description} disabled={!editable} onChange={(value) => registration.setField('description', value)} />
@@ -113,16 +112,16 @@ export function ProjectRegistrationFormPage() {
           <TextField id="project-technologies" label="Công nghệ" hint="Phân cách bằng dấu phẩy" value={registration.form.technologies} disabled={!editable} error={registration.error?.fields?.technologies} onChange={(value) => registration.setField('technologies', value)} />
           <TextField id="project-keywords" label="Từ khóa" hint="Phân cách bằng dấu phẩy" value={registration.form.keywords} disabled={!editable} error={registration.error?.fields?.keywords} onChange={(value) => registration.setField('keywords', value)} />
         </div>
-        {registration.error && registration.error.kind !== 'validation' && <ErrorMessage kind={registration.error.kind} message={registration.error.message} onRetry={registration.error.kind === 'system' ? () => void journey.refreshAll() : undefined} />}
+        {registration.error && registration.error.kind !== 'validation' && <InlineAlert tone={registration.error.kind === 'forbidden' ? 'warning' : 'danger'} onRetry={registration.error.kind === 'system' ? () => void journey.refreshAll() : undefined}>{registration.error.message}</InlineAlert>}
         {hasProject && <RegistrationReadinessChecklist reasons={registration.submitReasons} />}
         <footer className="flex flex-col justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center">
-          <button type="button" onClick={() => void save()} disabled={!registration.canEdit || registration.creating || registration.saving || submitting} className="rounded-md border border-slate-300 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+          <Button variant="secondary" onClick={() => void save()} disabled={!registration.canEdit || registration.creating || registration.saving || submitting}>
             {registration.creating ? 'Đang tạo nháp...' : registration.saving ? 'Đang lưu...' : hasProject ? 'Lưu thay đổi' : 'Tạo bản nháp'}
-          </button>
-          {hasProject ? <button type="submit" disabled={submitting || registration.saving || (revision ? !registration.canResubmit : !registration.canSubmit)} className="rounded-md bg-primary px-5 py-2.5 text-xs font-bold text-white hover:bg-primary/90 disabled:opacity-50">{registration.submitting ? 'Đang nộp...' : registration.resubmitting ? 'Đang nộp lại...' : revision ? 'Nộp lại sau chỉnh sửa' : 'Nộp đề cương'}</button> : <p className="text-xs text-slate-500">Sau khi tạo bản nháp thành công, bạn có thể rà soát và nộp bằng thao tác riêng.</p>}
+          </Button>
+          {hasProject ? <Button type="submit" disabled={submitting || registration.saving || (revision ? !registration.canResubmit : !registration.canSubmit)}>{registration.submitting ? 'Đang nộp...' : registration.resubmitting ? 'Đang nộp lại...' : revision ? 'Nộp lại sau chỉnh sửa' : 'Nộp đề cương'}</Button> : <p className="text-xs text-slate-500">Sau khi tạo bản nháp thành công, bạn có thể rà soát và nộp bằng thao tác riêng.</p>}
         </footer>
       </form>
-    </div>
+    </WorkspacePage>
   )
 }
 
@@ -168,5 +167,3 @@ function ValidationSummary({ fields = {}, message, summaryRef }: { fields?: Part
   </div>
 }
 function LoadingState() { return <div className="mx-auto max-w-4xl"><PageLoading label="Đang tải biểu mẫu đề cương…" /></div> }
-function FailureState({ message, onRetry }: { message: string; onRetry: () => void }) { return <section className="rounded-md border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text" role="alert"><p>{message}</p><button type="button" onClick={onRetry} className="mt-3 rounded-md border border-status-warning-border bg-white px-3 py-1.5 text-xs font-bold">Tải lại</button></section> }
-function ErrorMessage({ kind: _kind, message, onRetry }: { kind: string; message: string; onRetry?: () => void }) { return <div className="rounded-md border border-status-error-border bg-status-error-bg p-3 text-xs text-status-error-text" role="alert">{message}{onRetry && <button type="button" onClick={onRetry} className="ml-2 font-bold underline">Thử lại</button>}</div> }
