@@ -150,12 +150,12 @@ export function IndustryExpertPortalPage() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-semibold text-ink text-sm">{a.projectTitle}</h3>
-                    <span className="shrink-0 rounded bg-subtle px-1.5 py-0.5 text-[11px] font-semibold text-ink-soft border border-hairline">
+                    <span className="shrink-0 rounded bg-subtle px-1.5 py-0.5 text-xs font-semibold text-ink-soft border border-hairline">
                       {a.scope}
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-ink-muted">Mã đồ án: {a.projectCode}</p>
-                  <p className="mt-1 text-[11px] text-ink-soft">
+                  <p className="mt-1 text-xs text-ink-soft">
                     {new Date(a.startsAt).toLocaleDateString('vi-VN')} – {new Date(a.endsAt).toLocaleDateString('vi-VN')}
                   </p>
                 </li>
@@ -193,7 +193,7 @@ export function IndustryExpertPortalPage() {
                       <li key={f.id} className="flex items-center justify-between rounded-lg border border-hairline p-3 text-xs bg-subtle">
                         <div>
                           <p className="font-semibold text-ink">{f.fileName}</p>
-                          <p className="text-ink-muted text-[11px]">
+                          <p className="text-ink-muted text-xs">
                             {f.contentType} · {(f.sizeBytes / 1024).toFixed(1)} KB
                           </p>
                         </div>

@@ -220,7 +220,7 @@ function RecommendationRow({ item, rank, selectable, onPick }: {
 
     {/* Generation reasons & criteria */}
     {item.reasons.length > 0 && (
-      <div className="mt-2 flex flex-wrap items-center gap-1 text-[11px] text-ink-muted">
+      <div className="mt-2 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
         <span className="font-semibold text-ink-soft">Tiêu chí:</span>
         {item.reasons.map((r) => (
           <span key={r} className="rounded bg-subtle px-1.5 py-0.5 border border-hairline">{r}</span>

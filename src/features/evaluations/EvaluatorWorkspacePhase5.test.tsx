@@ -4,7 +4,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { HttpError } from '../../services/http/http-client'
 
 const api = vi.hoisted(() => ({ getAllMyEvaluationAssignments: vi.fn(), getEvaluationAssignmentDetail: vi.fn(), getEvaluationAssignmentEvidence: vi.fn(), downloadEvaluationEvidenceFile: vi.fn(), getProjectEvaluations: vi.fn(), createEvaluationDraft: vi.fn(), saveEvaluationDraft: vi.fn(), finalizeEvaluation: vi.fn() }))
-vi.mock('../../services/api/evaluations.api', () => api)
+vi.mock('../../services/api/evaluations.api', async importOriginal => ({ ...await importOriginal<typeof import('../../services/api/evaluations.api')>(), ...api }))
 
 import { EvaluatorAssignmentRoute } from './components/EvaluatorAssignmentRoute'
 import { EvaluatorWorkspacePage } from './pages/EvaluatorWorkspacePage'
@@ -65,7 +65,22 @@ describe('Evaluator Workspace Phase 5', () => {
     page()
     await screen.findByLabelText('Điểm Phân tích')
     expect((screen.getByRole('button', { name: 'Yêu cầu chốt đánh giá' }) as HTMLButtonElement).disabled).toBe(true)
-    expect(screen.getByRole('link', { name: 'Xem gói bàn giao đã khóa' }).getAttribute('href')).toBe('/evaluator/projects/9/final-submission')
+    expect(screen.queryByRole('link', { name: 'Xem gói bàn giao đã khóa' })).toBeNull(); expect(screen.getByText('Chỉ xem và tải các tệp trong phạm vi phân công này.')).toBeTruthy()
+  })
+
+  it('releases the save lock so the saved draft can be finalized', async () => {
+    const complete = { ...draft, totalScore: 8, missingCriterionIds: [], missingRequiredCriterionIds: [], scores: [{ ...draft.scores[0], score: 8 }] }
+    api.saveEvaluationDraft.mockResolvedValue(complete)
+    api.finalizeEvaluation.mockResolvedValue({ ...complete, status: 'FINALIZED' })
+    page()
+    fireEvent.change(await screen.findByLabelText('Điểm Phân tích'), { target: { value: '8' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
+    await screen.findByText('Đã lưu bản nháp theo dữ liệu máy chủ.')
+    fireEvent.click(screen.getByRole('button', { name: 'Yêu cầu chốt đánh giá' }))
+    const confirmations = await screen.findAllByRole('button', { name: 'Yêu cầu chốt đánh giá' })
+    expect(confirmations.length).toBe(2)
+    fireEvent.click(confirmations.at(-1)!)
+    await waitFor(() => expect(api.finalizeEvaluation).toHaveBeenCalledWith(51, 'draft-token'))
   })
   it('renders persisted COMMON, MAJOR_SPECIFIC and INDIVIDUAL assignments without a target-switch control', async () => {
     api.getAllMyEvaluationAssignments.mockResolvedValue([assignment, { ...assignment, id: 42, scope: 'COMMON', majorId: null, studentId: null }, { ...assignment, id: 43, scope: 'INDIVIDUAL', majorId: 8, studentId: 99 }])
@@ -160,9 +175,9 @@ describe('Evaluator Workspace Phase 5', () => {
 
   it('shows the report preview beside the scoring form when the backend ships evidence files', async () => {
     vi.stubGlobal('URL', { ...URL, createObjectURL: () => 'blob:report', revokeObjectURL: () => {} })
-    api.getEvaluationAssignmentEvidence.mockResolvedValue({ assignmentId: 41, projectId: 9, scope: 'MAJOR_SPECIFIC', majorId: 8, studentId: null, finalSubmissionId: 15, submittedAt: '2026-10-02T00:00:00Z', itemCount: 2, isReadOnly: false, files: [
-      { id: 1, fileName: 'srs.pdf', contentType: 'application/pdf', sizeBytes: 2048, reportType: 'Software Requirement' },
-      { id: 2, fileName: 'guide.zip', contentType: 'application/zip', sizeBytes: 4096, reportType: 'User Guide' },
+    api.getEvaluationAssignmentEvidence.mockResolvedValue({ assignmentId: 41, projectId: 9, scope: 'MAJOR_SPECIFIC', majorId: 8, studentId: null, finalSubmissionId: 15, submittedAt: '2026-10-02T00:00:00Z', itemCount: 2, isReadOnly: true, items: [
+      { id: 101, fileId: 1, fileName: 'srs.pdf', contentType: 'application/pdf', fileSizeBytes: 2048, title: 'Software Requirement', deliverableVersionId: 51, versionNumber: 2 },
+      { id: 102, fileId: 2, fileName: 'guide.zip', contentType: 'application/zip', fileSizeBytes: 4096, title: 'User Guide', deliverableVersionId: 52, versionNumber: 3 },
     ] })
     api.downloadEvaluationEvidenceFile.mockResolvedValue(new Blob(['x'], { type: 'application/pdf' }))
     page()

@@ -6,6 +6,7 @@ import { RegistrationReadinessChecklist } from '../components/RegistrationReadin
 import { RevisionAlert } from '../components/RevisionAlert'
 import { useProjectRegistration } from '../hooks/useProjectRegistration'
 import { PageLoading } from '../../../components/ui/PageLoading'
+import { TeamReflectionPanel } from '../../student-collaboration/TeamReflectionPanel'
 
 const statusCopy: Record<string, { title: string; detail: string }> = {
   DRAFT: { title: 'Bản nháp', detail: 'Rà soát đề cương và nộp để bộ môn xét duyệt khi đủ điều kiện.' },
@@ -41,6 +42,7 @@ export function ProjectReviewStatusPage() {
     <RegistrationReadinessChecklist reasons={registration.submitReasons} />
     {registration.error && <StatusError message={registration.error.kind === 'system' ? 'Không thể tải lịch sử đồ án. Hãy thử lại.' : registration.error.message} onRetry={() => void registration.loadHistory()} />}
     <section className="rounded-2xl border border-hairline bg-card p-5"><h2 className="text-base font-bold text-slate-900">Lịch sử thay đổi trạng thái</h2>{registration.historyLoading ? <p className="mt-3 text-sm text-slate-500">Đang tải lịch sử…</p> : registration.error && !registration.history.length ? <p className="mt-3 text-sm text-slate-500">Lịch sử chưa tải được.</p> : registration.history.length ? <ol className="mt-4 space-y-3">{registration.history.map((item) => <li key={item.id} className="workspace-record-row text-sm"><div className="flex flex-wrap justify-between gap-2"><strong>{item.oldStatus ? projectStatusLabel(item.oldStatus) : 'Khởi tạo'} → {projectStatusLabel(item.newStatus)}</strong><time className="text-xs text-slate-500">{dateTimeLabel(item.changedAt)}</time></div><p className="mt-1 text-xs text-slate-600">{item.changedByName || 'Hệ thống'}{item.reason ? ` · ${item.reason}` : ''}</p></li>)}</ol> : <p className="mt-3 text-sm text-slate-500">Chưa có lịch sử thay đổi trạng thái.</p>}</section>
+    <TeamReflectionPanel projectId={project.id} audience="preactivation" />
   </div>
 }
 

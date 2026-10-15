@@ -1,4 +1,5 @@
 import { SpotlightLink } from '../../../components/ui/SpotlightLink'
+import { TeamReflectionPanel } from '../../student-collaboration/TeamReflectionPanel'
 import { Link } from 'react-router-dom'
 import { env } from '../../../app/config/env'
 import { ProjectProgressAnalysisPanel } from '../../ai/components/ProjectProgressAnalysisPanel'
@@ -85,6 +86,7 @@ export function SupervisorProjectWorkspacePage() {
       {env.aiAdvisoryEnabled && <ProjectProgressAnalysisPanel projectId={access.project.id} compact />}
 
       <p className="text-sm leading-6 text-ink-muted">Phản hồi, người tham gia, biên bản, kết luận và công việc sau họp được quản lý trong chi tiết từng cuộc họp.</p>
+      <TeamReflectionPanel projectId={access.project.id} audience="primary" canManagePeer={access.supervisor?.assignmentType === 'PRIMARY' && access.supervisor.isPrimary && !access.supervisor.endedAt && ['ACTIVE', 'FINAL_SUBMISSION'].includes(access.project.status.toUpperCase())} />
     </main>
   )
 }

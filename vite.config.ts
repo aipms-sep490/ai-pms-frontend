@@ -1,13 +1,13 @@
 import { configDefaults, defineConfig } from 'vitest/config'
-import { loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { loadEnv } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
-  const proxyTarget = env.VITE_API_PROXY_TARGET || process.env.VITE_API_PROXY_TARGET || 'https://api-staging.khaidz.com'
-
+  // Vite has not loaded .env files into process.env while evaluating this config.
+  const configEnv = loadEnv(mode, process.cwd(), 'VITE_')
+  const proxyTarget = process.env.VITE_API_PROXY_TARGET?.trim() || configEnv.VITE_API_PROXY_TARGET?.trim() || 'http://localhost:5080'
   return {
     plugins: [react(), tailwindcss()],
     server: {

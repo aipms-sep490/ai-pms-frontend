@@ -6,6 +6,7 @@ import { dateLabel, initials, isOpenTask, isOverdue, summarizeMembers, taskStatu
 import { WorkspaceTaskForm } from '../components/WorkspaceTaskForm'
 import type { ProjectExecutionCapabilities } from '../../execution/hooks/useProjectExecutionCapabilities'
 import './collaboration-workspace.css'
+import { TeamReflectionPanel } from '../../student-collaboration/TeamReflectionPanel'
 
 export function CollaborationWorkspace({ project, team, supervisor, currentUserId, executionCapabilities }: {
   project: ProjectDto; team?: TeamDto | null; supervisor?: SupervisorAssignmentDto | null; currentUserId?: number; executionCapabilities?: ProjectExecutionCapabilities
@@ -60,6 +61,7 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
         : <ResourceState resource={data.summary} retry={data.reload} />}</div>
     </section>
 
+    <TeamReflectionPanel projectId={project.id} studentId={currentUserId} audience="student" />
     {created && <p className="cw-success" role="status"><Icon name="check_circle" />Đã tạo công việc.</p>}
     {creating && (data.timeline.state === 'ready' && editableMilestones.length ? <WorkspaceTaskForm project={project} milestones={editableMilestones} members={members}
       onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); data.reload() }} />

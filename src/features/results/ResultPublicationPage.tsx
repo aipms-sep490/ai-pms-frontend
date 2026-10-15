@@ -14,6 +14,8 @@ import { ProjectResultBreakdown } from './ProjectResultBreakdown'
 import { ResourcePermissionNotice } from '../../components/ui/ResourcePermissionNotice'
 import { useProjectCapabilities } from '../capabilities/useProjectCapabilities'
 import type { ProjectCapabilities } from '../capabilities/capabilities-types'
+import { env } from '../../app/config/env'
+import { ResultHistoryPanel } from './ResultHistoryPanel'
 
 const outcome = (value: string | null) => ({ PASS: 'Đạt', FAIL: 'Chưa đạt', PASSED: 'Đạt', FAILED: 'Chưa đạt' }[value ?? ''] ?? value ?? 'Chưa có kết luận')
 const leadPublicationMessage = 'Chỉ khoa chủ trì được công bố kết quả học thuật. Quyền hiện tại của bạn do hệ thống xác minh theo phạm vi đồ án.'
@@ -86,5 +88,7 @@ export function ResultPublicationPage() {
     {!loading && preview && <section className="workspace-surface space-y-4 p-4 sm:p-5" aria-label="Bản xem trước kết quả"><h2 className="font-heading font-semibold">Xem trước kết quả</h2><p>Điểm: {preview.totalScore ?? '—'} · Ngưỡng: {preview.passThreshold ?? '—'} · {outcome(preview.outcome)}</p>{preview.blockers.length > 0 && <ul className="list-disc space-y-2 break-words pl-5 text-sm text-status-warning-text">{preview.blockers.map(blocker => <li key={blocker}>{blocker === 'ADMIN_REQUIRED_FOR_CROSS_DEPARTMENT_PUBLICATION' ? leadPublicationMessage : blocker}</li>)}</ul>}{!canPublish ? <p className="rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-muted">{capabilities.reasonLabel('publish_project_result')}</p> : <><label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={confirmed !== null && confirmed === capabilities.data} disabled={!canPublish || !preview.canPublish || busy} onChange={event => setConfirmed(event.target.checked ? capabilities.data : null)} />Tôi đã kiểm tra bản xem trước này và xác nhận công bố.</label><Button className="min-h-11 resource-permission-action" disabled={!canPublish || !preview.canPublish || confirmed === null || confirmed !== capabilities.data || busy} onClick={() => void publish()}>Công bố kết quả đồ án</Button>{!preview.canPublish && <p className="text-sm text-ink-muted">Cần xử lý các điều kiện còn thiếu trước khi công bố.</p>}</>}</section>}
     {!loading && preview && <ProjectResultBreakdown breakdown={preview.breakdown} contributions={preview.contributions} />}
     {validId && <StudentResultPublicationPanel key={projectId} projectId={projectId} departmentId={!paths.admin && academic?.departments.length === 1 ? academic.departments[0].id : undefined} />}
+    {validId && published && <ResultHistoryPanel key={`${projectId}:${published.version}`} projectId={projectId} />}
+    {validId && !paths.admin && env.resultCorrectionEnabled && <Link className="inline-flex min-h-11 items-center text-primary underline" to={paths.corrections}>Phúc khảo và đính chính kết quả</Link>}
   </WorkspacePage>
 }

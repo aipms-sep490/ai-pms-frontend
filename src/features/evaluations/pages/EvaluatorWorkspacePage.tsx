@@ -1,3 +1,4 @@
+import { readAllPages } from '../../../services/api/paged-read'
 import { Button } from '../../../components/ui/Button'
 import { dateTimeLabel } from '../../execution/execution-utils'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
@@ -36,7 +37,7 @@ export function EvaluatorWorkspacePage() {
       setAssignments(items)
       const projectIds = [...new Set(items.map((item) => item.projectId))]
       const rows = await Promise.all(projectIds.map(async (projectId) => {
-        try { return [projectId, { status: 'ready' as const, items: (await api.getProjectEvaluations(projectId)).items }] as const }
+        try { return [projectId, { status: 'ready' as const, items: (await readAllPages(page => api.getProjectEvaluations(projectId, undefined, page))) }] as const }
         catch { return [projectId, { status: 'unavailable' as const, items: [] as EvaluationDraft[] }] as const }
       }))
       const next: Record<number, DraftState> = {}

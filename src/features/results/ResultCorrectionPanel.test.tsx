@@ -1,63 +1,39 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { ResultCorrectionPanel } from './ResultCorrectionPanel'
+import { StudentAppealPanel } from './ResultCorrectionPanel'
 import { HttpError } from '../../services/http/http-client'
-
-const mocks = vi.hoisted(() => ({ getResultCorrectionRequests: vi.fn(), submitResultCorrectionRequest: vi.fn() }))
-vi.mock('./result-correction-api', () => ({
-  getResultCorrectionRequests: mocks.getResultCorrectionRequests,
-  submitResultCorrectionRequest: mocks.submitResultCorrectionRequest,
-}))
-
-afterEach(() => { cleanup(); vi.resetAllMocks() })
-
-describe('ResultCorrectionPanel', () => {
-  it('submits a request when none is open and refetches', async () => {
-    mocks.getResultCorrectionRequests
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{ id: 1, reason: 'Điểm chung chưa đúng trọng số.', status: 'PENDING', createdAt: '2026-10-09T03:00:00Z' }])
-    mocks.submitResultCorrectionRequest.mockResolvedValue({})
-    render(<ResultCorrectionPanel projectId={9} />)
-    const textarea = await screen.findByPlaceholderText(/Nêu rõ phần điểm/)
-    fireEvent.change(textarea, { target: { value: 'Điểm chung chưa đúng trọng số.' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu phúc khảo' }))
-    await waitFor(() => expect(mocks.submitResultCorrectionRequest).toHaveBeenCalledWith(9, 'Điểm chung chưa đúng trọng số.'))
-    expect(await screen.findByText('Chờ xử lý')).toBeTruthy()
-  })
-
-  it('blocks a too-short reason', async () => {
-    mocks.getResultCorrectionRequests.mockResolvedValue([])
-    render(<ResultCorrectionPanel projectId={9} />)
-    const textarea = await screen.findByPlaceholderText(/Nêu rõ phần điểm/)
-    fireEvent.change(textarea, { target: { value: 'sai' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu phúc khảo' }))
-    expect(await screen.findByRole('alert')).toBeTruthy()
-    expect(mocks.submitResultCorrectionRequest).not.toHaveBeenCalled()
-  })
-
-  it('hides the form while a request is open and shows the accepted version', async () => {
-    mocks.getResultCorrectionRequests.mockResolvedValue([
-      { id: 1, reason: 'Xem lại điểm cá nhân.', status: 'ACCEPTED', createdAt: '2026-10-09T03:00:00Z', responseNote: 'Đã điều chỉnh.', newResultVersion: 2 },
-    ])
-    render(<ResultCorrectionPanel projectId={9} />)
-    expect(await screen.findByText('Đã chấp nhận')).toBeTruthy()
-    expect(screen.getByText('Đã tạo kết quả phiên bản 2.')).toBeTruthy()
-    // ACCEPTED is not open, so the form is available again
-    expect(screen.getByRole('button', { name: 'Gửi yêu cầu phúc khảo' })).toBeTruthy()
-  })
-
-  it('prevents a new request while one is pending', async () => {
-    mocks.getResultCorrectionRequests.mockResolvedValue([
-      { id: 1, reason: 'Chờ xử lý.', status: 'PENDING', createdAt: '2026-10-09T03:00:00Z' },
-    ])
-    render(<ResultCorrectionPanel projectId={9} />)
-    expect(await screen.findByText(/đang có một yêu cầu phúc khảo chờ xử lý/)).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Gửi yêu cầu phúc khảo' })).toBeNull()
-  })
-
-  it('treats a 404 as no requests', async () => {
-    mocks.getResultCorrectionRequests.mockRejectedValue(new HttpError('none', 404))
-    render(<ResultCorrectionPanel projectId={9} />)
-    expect(await screen.findByRole('button', { name: 'Gửi yêu cầu phúc khảo' })).toBeTruthy()
-  })
+const mocks = vi.hoisted(() => ({ getResultCorrectionRequests: vi.fn(), getAppealWindows: vi.fn(), submitResultCorrectionRequest: vi.fn(), getStudentResult: vi.fn() }))
+vi.mock('./result-correction-api', () => mocks)
+vi.mock('../../services/api/project-results.api', () => ({ getStudentResult: mocks.getStudentResult }))
+vi.mock('./AppealRequestDetail', () => ({ AppealRequestDetail: ({ requestId }: { requestId: number }) => <p>Chi tiết yêu cầu {requestId}</p> }))
+vi.mock('./ResultHistoryPanel', () => ({ ResultHistoryPanel: () => <p>Lịch sử kết quả</p> }))
+const published = { projectId: 9, studentId: 88, version: 2, breakdown: { components: [{ componentId: 6, name: 'Chấm ngành', scope: 'MAJOR_SPECIFIC', stage: 'COLD', weightPercent: 50 }] } }
+const window = { id: 5, policyId: 4, status: 'OPEN', closesAt: '2026-12-01T00:00:00Z', targets: [{ targetType: 'STUDENT', studentId: 88, resultVersion: 2 }] }
+const page = { items: [], totalCount: 0, page: 1, pageSize: 20 }
+beforeEach(() => { vi.clearAllMocks(); mocks.getResultCorrectionRequests.mockResolvedValue(page); mocks.getAppealWindows.mockResolvedValue({ ...page, items: [window], totalCount: 1 }); mocks.getStudentResult.mockResolvedValue(published) })
+afterEach(cleanup)
+const renderPanel = () => render(<StudentAppealPanel projectId={9} studentId={88} />)
+async function fill() { await screen.findByText('Chưa có yêu cầu phúc khảo.'); fireEvent.change(screen.getByLabelText('Đợt phúc khảo'), { target: { value: '5' } }); fireEvent.change(screen.getByLabelText('Thành phần kết quả'), { target: { value: '6' } }); fireEvent.change(screen.getByLabelText('Lý do phúc khảo'), { target: { value: 'Đối chiếu minh chứng đã khóa.' } }) }
+it('submits an explicit own-student component/version/window, never a reason-only request', async () => {
+  mocks.submitResultCorrectionRequest.mockResolvedValue({ id: 7 }); renderPanel(); await fill(); fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu phúc khảo' }));
+  await waitFor(() => expect(mocks.submitResultCorrectionRequest).toHaveBeenCalledWith(9, { source: 'STUDENT_APPEAL', policyId: 4, windowId: 5, targetType: 'STUDENT', studentId: 88, resultVersion: 2, componentId: 6, reason: 'Đối chiếu minh chứng đã khóa.' }))
+  expect(await screen.findByText('Chi tiết yêu cầu 7')).toBeTruthy()
+})
+it('does not offer another student or stale result version from a window', async () => {
+  mocks.getAppealWindows.mockResolvedValue({ ...page, items: [{ ...window, targets: [{ targetType: 'STUDENT', studentId: 99, resultVersion: 2 }, { targetType: 'STUDENT', studentId: 88, resultVersion: 1 }] }], totalCount: 1 }); renderPanel();
+  expect(await screen.findByText('Chưa có đợt phúc khảo đang mở cho phiên bản kết quả của bạn.')).toBeTruthy()
+  expect((screen.getByRole('button', { name: 'Gửi yêu cầu phúc khảo' }) as HTMLButtonElement).disabled).toBe(true)
+})
+it('retains the reason after 409, refreshes, and requires explicit acknowledgement without replay', async () => {
+  mocks.submitResultCorrectionRequest.mockRejectedValue(new HttpError('stale', 409)); renderPanel(); await fill(); fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu phúc khảo' }));
+  const acknowledge = await screen.findByRole('button', { name: 'Tôi đã đối chiếu dữ liệu mới' }); await waitFor(() => expect((acknowledge as HTMLButtonElement).disabled).toBe(false))
+  expect((screen.getByLabelText('Lý do phúc khảo') as HTMLTextAreaElement).value).toBe('Đối chiếu minh chứng đã khóa.')
+  expect(mocks.submitResultCorrectionRequest).toHaveBeenCalledTimes(1)
+  expect((screen.getByRole('button', { name: 'Gửi yêu cầu phúc khảo' }) as HTMLButtonElement).closest('fieldset')?.disabled).toBe(true)
+})
+it('treats unavailable appeal routes as unavailable, not an empty writable feature', async () => {
+  mocks.getResultCorrectionRequests.mockRejectedValue(new HttpError('disabled', 404)); renderPanel(); expect(await screen.findByRole('alert')).toBeTruthy(); expect(screen.queryByRole('button', { name: 'Gửi yêu cầu phúc khảo' })).toBeNull()
+})
+it('uses server counts to request the next page', async () => {
+  mocks.getResultCorrectionRequests.mockResolvedValue({ ...page, totalCount: 21 }); renderPanel(); await screen.findByText('Chưa có yêu cầu phúc khảo.'); fireEvent.click(screen.getByRole('button', { name: 'Trang sau' })); await waitFor(() => expect(mocks.getResultCorrectionRequests).toHaveBeenCalledWith(9, 2, expect.any(AbortSignal)))
 })

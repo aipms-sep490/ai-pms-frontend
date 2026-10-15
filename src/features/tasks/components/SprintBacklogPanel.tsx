@@ -1,20 +1,23 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import * as tasksApi from '../../../services/api/tasks.api'
 import { executionError } from '../../execution/execution-utils'
 import type { SprintBurndownDto, SprintCarryover, SprintDto, TaskDto } from '../../../types/backend'
 import { backlogTasks, collectLabels, parseLabels, pendingTasksInSprint, sprintPoints, STORY_POINTS, tasksInSprint } from '../sprint-model'
+import { loadSprintBoard } from '../sprint-board-data'
+import { HttpError } from '../../../services/http/http-client'
 
 /**
  * Jira-style sprint + backlog view. Self-contained: fetches its own sprints and task board page.
  * Mutations go through the real BE-N08 sprint contract (SprintsController); lifecycle gates
  * (`canStart`/`canComplete`/`canEdit`) come from the server per sprint, not client-side guessing.
  */
-export function SprintBacklogPanel({ projectId, routeBase }: { projectId: number; routeBase: string }) {
+export function SprintBacklogPanel({ projectId, routeBase, canManage = false }: { projectId: number; routeBase: string; canManage?: boolean }) {
   const [sprints, setSprints] = useState<SprintDto[]>([])
   const [tasks, setTasks] = useState<TaskDto[]>([])
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [busy, setBusy] = useState(false)
+  const mutation = useRef(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [form, setForm] = useState({ name: '', startAt: '', endAt: '' })
@@ -25,29 +28,27 @@ export function SprintBacklogPanel({ projectId, routeBase }: { projectId: number
   useEffect(() => {
     const abort = new AbortController()
     let alive = true
-    Promise.all([
-      tasksApi.getProjectSprints(projectId, 1, 50, abort.signal),
-      tasksApi.getTaskBoard(projectId, {}, abort.signal),
-    ]).then(([sprintPage, taskPage]) => { if (!alive) return; setSprints(sprintPage.items); setTasks(taskPage.items); setState('ready'); setError('') })
-      .catch(reason => { if (alive && !abort.signal.aborted) { setError(executionError(reason)); setState('error') } })
+    loadSprintBoard(projectId, abort.signal).then(data => { if (!alive) return; setSprints(data.sprints); setTasks(data.tasks); setState('ready') })
+      .catch(reason => { if (alive && !abort.signal.aborted) { setError(reason instanceof Error && reason.message.startsWith('SPRINT_BOARD_') ? 'Board quá lớn hoặc vừa thay đổi trong lúc tải. Chưa thể xác nhận đầy đủ công việc; hãy tải lại hoặc dùng bộ lọc ở danh sách công việc.' : executionError(reason)); setState('error') } })
     return () => { alive = false; abort.abort() }
   }, [projectId, revision])
 
   const reload = () => { setState('loading'); setRevision(r => r + 1) }
   const run = async (action: () => Promise<unknown>, success: string) => {
+    if (mutation.current || !canManage) return false
+    mutation.current = true
     setBusy(true); setError(''); setNotice('')
-    try { await action(); setNotice(success); reload() }
-    catch (reason) { setError(executionError(reason)) }
-    finally { setBusy(false) }
+    try { await action(); setNotice(success); reload(); return true }
+    catch (reason) { setError(executionError(reason)); if (reason instanceof HttpError && reason.status === 409) { setCompletingSprintId(null); reload() } return false }
+    finally { mutation.current = false; setBusy(false) }
   }
 
   const createSprint = (event: FormEvent) => {
     event.preventDefault()
     if (!form.name.trim()) { setError('Nhập tên sprint.'); return }
     if (!form.startAt || !form.endAt) { setError('Chọn ngày bắt đầu và kết thúc.'); return }
-    if (form.endAt < form.startAt) { setError('Ngày kết thúc không được trước ngày bắt đầu.'); return }
-    void run(() => tasksApi.createSprint(projectId, { name: form.name.trim(), startAt: form.startAt, endAt: form.endAt }), 'Đã tạo sprint.')
-      .then(() => setForm({ name: '', startAt: '', endAt: '' }))
+    if (form.endAt <= form.startAt) { setError('Ngày kết thúc phải sau ngày bắt đầu.'); return }
+    void run(async () => { const result = await tasksApi.createSprint(projectId, { name: form.name.trim(), startAt: form.startAt, endAt: form.endAt }); setForm({ name: '', startAt: '', endAt: '' }); return result }, 'Đã tạo sprint.')
   }
 
   const labels = collectLabels(tasks)
@@ -62,7 +63,7 @@ export function SprintBacklogPanel({ projectId, routeBase }: { projectId: number
     {notice && <p role="status" className="sprint-notice">{notice}</p>}
     {error && <p role="alert" className="sprint-error">{error}</p>}
 
-    <form className="ex-panel sprint-create" onSubmit={createSprint}>
+    {canManage && <form className="ex-panel sprint-create" onSubmit={createSprint}>
       <div className="ex-panel-heading"><h2>Tạo sprint</h2></div>
       <div className="ex-padding sprint-create-fields">
         <label>Tên sprint<input value={form.name} maxLength={120} required onChange={e => setForm({ ...form, name: e.target.value })} /></label>
@@ -70,17 +71,17 @@ export function SprintBacklogPanel({ projectId, routeBase }: { projectId: number
         <label>Kết thúc<input type="date" value={form.endAt} required onChange={e => setForm({ ...form, endAt: e.target.value })} /></label>
         <button type="submit" className="ex-button ex-button-primary" disabled={busy}>Tạo sprint</button>
       </div>
-    </form>
+    </form>}
 
     {planningOrActive.map(sprint => <SprintCard
-      key={sprint.id} sprint={sprint} tasks={tasks} sprints={sprints} routeBase={routeBase} busy={busy} labelOptions={labels}
+      key={sprint.id} sprint={sprint} tasks={tasks} sprints={sprints} routeBase={routeBase} busy={busy || !canManage} labelOptions={labels}
       run={run} onRequestComplete={() => setCompletingSprintId(sprint.id)}
     />)}
 
     <section className="ex-panel sprint-card" aria-label="Backlog">
       <div className="ex-panel-heading"><h2>Backlog</h2></div>
       <div className="ex-padding">
-        <TaskRows tasks={backlogTasks(tasks)} sprints={sprints} routeBase={routeBase} busy={busy} labelOptions={labels} run={run} emptyText="Không có công việc trong backlog." />
+        <TaskRows tasks={backlogTasks(tasks)} sprints={sprints} routeBase={routeBase} busy={busy || !canManage} labelOptions={labels} run={run} emptyText="Không có công việc trong backlog." />
       </div>
     </section>
 
@@ -88,16 +89,16 @@ export function SprintBacklogPanel({ projectId, routeBase }: { projectId: number
 
     {completingSprint && <CompleteSprintDialog
       sprint={completingSprint} openTasks={pendingTasksInSprint(tasks, completingSprint.id)}
-      otherSprints={planningOrActive.filter(s => s.id !== completingSprint.id)} busy={busy}
+      otherSprints={planningOrActive.filter(s => s.id !== completingSprint.id && s.status === 'PLANNED')} busy={busy}
       onCancel={() => setCompletingSprintId(null)}
-      onConfirm={carryover => void run(() => tasksApi.completeSprint(projectId, completingSprint.id, completingSprint.concurrencyToken, carryover), `Đã hoàn tất ${completingSprint.name}.`).then(() => setCompletingSprintId(null))}
+      onConfirm={carryover => void run(() => tasksApi.completeSprint(projectId, completingSprint.id, completingSprint.concurrencyToken, carryover), `Đã hoàn tất ${completingSprint.name}.`).then(saved => { if (saved) setCompletingSprintId(null) })}
     />}
   </div>
 }
 
 function SprintCard({ sprint, tasks, sprints, routeBase, busy, labelOptions, run, onRequestComplete }: {
   sprint: SprintDto; tasks: TaskDto[]; sprints: SprintDto[]; routeBase: string; busy: boolean; labelOptions: string[]
-  run: (action: () => Promise<unknown>, success: string) => Promise<void>; onRequestComplete: () => void
+  run: (action: () => Promise<unknown>, success: string) => Promise<boolean>; onRequestComplete: () => void
 }) {
   const points = sprintPoints(tasks, sprint.id)
   const [burndown, setBurndown] = useState<SprintBurndownDto | null>(null)
@@ -115,7 +116,7 @@ function SprintCard({ sprint, tasks, sprints, routeBase, busy, labelOptions, run
     <div className="ex-panel-heading sprint-card-head">
       <div><h2>{sprint.name} <span className={`sprint-badge sprint-badge--${String(sprint.status).toLowerCase()}`}>{sprint.status === 'ACTIVE' ? 'Đang chạy' : 'Lên kế hoạch'}</span></h2></div>
       <div className="sprint-card-actions">
-        {sprint.status === 'PLANNING' && <button type="button" className="ex-button" disabled={busy || !sprint.canStart} title={sprint.canStart ? undefined : 'Chưa thể bắt đầu sprint này'} onClick={() => void run(() => tasksApi.startSprint(sprint.projectId, sprint.id, sprint.concurrencyToken), `Đã bắt đầu ${sprint.name}.`)}>Bắt đầu</button>}
+        {sprint.status === 'PLANNED' && <button type="button" className="ex-button" disabled={busy || !sprint.canStart} title={sprint.canStart ? undefined : 'Chưa thể bắt đầu sprint này'} onClick={() => void run(() => tasksApi.startSprint(sprint.projectId, sprint.id, sprint.concurrencyToken), `Đã bắt đầu ${sprint.name}.`)}>Bắt đầu</button>}
         {sprint.status === 'ACTIVE' && <button type="button" className="ex-button" disabled={busy || !sprint.canComplete} title={sprint.canComplete ? undefined : 'Chưa thể hoàn tất sprint này'} onClick={onRequestComplete}>Hoàn tất</button>}
       </div>
     </div>
@@ -184,7 +185,7 @@ function CompleteSprintDialog({ sprint, openTasks, otherSprints, busy, onCancel,
 
 function TaskRows({ tasks, sprints, routeBase, busy, labelOptions, run, emptyText }: {
   tasks: TaskDto[]; sprints: SprintDto[]; routeBase: string; busy: boolean; labelOptions: string[]
-  run: (action: () => Promise<unknown>, success: string) => Promise<void>; emptyText?: string
+  run: (action: () => Promise<unknown>, success: string) => Promise<boolean>; emptyText?: string
 }) {
   if (!tasks.length) return <p className="ex-muted">{emptyText ?? 'Chưa có công việc.'}</p>
   return <ul className="sprint-task-rows">{tasks.map(task => <TaskRow key={task.id} task={task} sprints={sprints} routeBase={routeBase} busy={busy} labelOptions={labelOptions} run={run} />)}</ul>
@@ -192,12 +193,13 @@ function TaskRows({ tasks, sprints, routeBase, busy, labelOptions, run, emptyTex
 
 function TaskRow({ task, sprints, routeBase, busy, labelOptions, run }: {
   task: TaskDto; sprints: SprintDto[]; routeBase: string; busy: boolean; labelOptions: string[]
-  run: (action: () => Promise<unknown>, success: string) => Promise<void>
+  run: (action: () => Promise<unknown>, success: string) => Promise<boolean>
 }) {
   const [editing, setEditing] = useState(false)
   const [points, setPoints] = useState<string>(task.storyPoints == null ? '' : String(task.storyPoints))
   const [labelsText, setLabelsText] = useState((task.labels ?? []).join(', '))
   const openSprints = sprints.filter(s => s.status !== 'COMPLETED')
+  const readOnly = busy || task.status === 'CANCELLED'
 
   const saveBoard = (overrides: { sprintId?: number | null; storyPoints?: number | null; labels?: string[] }) =>
     run(() => tasksApi.saveTaskBoard(task.id, {
@@ -207,7 +209,7 @@ function TaskRow({ task, sprints, routeBase, busy, labelOptions, run }: {
       concurrencyToken: task.concurrencyToken,
     }), 'sprintId' in overrides ? 'Đã chuyển công việc.' : 'Đã cập nhật điểm và nhãn.')
 
-  const savePlanning = () => void saveBoard({ storyPoints: points === '' ? null : Number(points), labels: parseLabels(labelsText) }).then(() => setEditing(false))
+  const savePlanning = () => void saveBoard({ storyPoints: points === '' ? null : Number(points), labels: parseLabels(labelsText) }).then(saved => { if (saved) setEditing(false) })
 
   return <li className="sprint-task-row">
     <div className="sprint-task-main">
@@ -220,15 +222,15 @@ function TaskRow({ task, sprints, routeBase, busy, labelOptions, run }: {
     </div>
     <div className="sprint-task-controls">
       <label className="sprint-move"><span className="sr-only">Chuyển sprint cho công việc #{task.id}</span>
-        <select value={task.sprintId ?? ''} disabled={busy} onChange={e => void saveBoard({ sprintId: e.target.value ? Number(e.target.value) : null })}>
+        <select value={task.sprintId ?? ''} disabled={readOnly} onChange={e => void saveBoard({ sprintId: e.target.value ? Number(e.target.value) : null })}>
           <option value="">Backlog</option>
           {openSprints.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       </label>
-      <button type="button" className="ex-text-button" disabled={busy} onClick={() => setEditing(v => !v)} aria-expanded={editing}>Điểm & nhãn</button>
+      <button type="button" className="ex-text-button" disabled={readOnly} onClick={() => setEditing(v => !v)} aria-expanded={editing}>Điểm & nhãn</button>
     </div>
     {editing && <form className="sprint-task-edit" onSubmit={e => { e.preventDefault(); savePlanning() }}>
-      <fieldset disabled={busy}>
+      <fieldset disabled={readOnly}>
         <div className="sprint-point-picker" role="group" aria-label="Chọn điểm story">
           {STORY_POINTS.map(value => <button type="button" key={value} aria-pressed={points === String(value)} className={points === String(value) ? 'sprint-point-option sprint-point-option--on' : 'sprint-point-option'} onClick={() => setPoints(String(value))}>{value}</button>)}
           <button type="button" className="sprint-point-option" onClick={() => setPoints('')}>Xóa</button>
