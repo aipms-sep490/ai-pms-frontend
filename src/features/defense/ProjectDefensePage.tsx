@@ -49,7 +49,7 @@ function mapConflictReason(reason: unknown, fallback: string): string {
 }
 
 export function DefenseScheduleView({
-  projectId,
+  projectId: _projectId,
   sessions,
   onCancelled,
 }: {

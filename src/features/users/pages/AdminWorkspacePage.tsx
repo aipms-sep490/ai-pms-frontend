@@ -50,9 +50,27 @@ export function AdminWorkspacePage() {
     try { const accounts = JSON.parse(importText) as UserDraft[]; if (!Array.isArray(accounts) || !accounts.length) throw new Error('invalid'); void run(() => admin.importUsers(accounts), 'Máy chủ đã nhập toàn bộ lô tài khoản.').then(ok => { if (ok) setImportText('') }) } catch { setNotice('Tệp JSON phải là mảng tài khoản theo cấu trúc yêu cầu. Lô không được gửi khi dữ liệu chưa hợp lệ.') }
   }
 
+  const activeTab = (params.get('tab') as 'accounts' | 'audit' | null) ?? 'accounts'
+
   return <main className="workspace-page admin-workspace" aria-labelledby="admin-title">
-    <header className="admin-heading"><div><p className="admin-kicker">QUẢN TRỊ NỀN TẢNG</p><h1 id="admin-title">Hệ thống và quyền truy cập</h1><p>Quản lý tài khoản, phân quyền và theo dõi hoạt động trên hệ thống.</p></div><Link className="admin-link-button" to="/academic">Cấu trúc tổ chức</Link></header>
-    <nav className="admin-tabs" aria-label="Khu vực quản trị"><a href="#accounts">Tài khoản</a><Link to="/admin/access/rbac">Phân quyền</Link><a href="#audit">Nhật ký bảo mật</a>{env.industryEnabled && <Link to="/admin/industry">Chuyên gia doanh nghiệp</Link>}</nav>
+    <header className="admin-heading">
+      <div>
+        <p className="admin-kicker">QUẢN TRỊ NỀN TẢNG</p>
+        <h1 id="admin-title">Hệ thống và quyền truy cập</h1>
+        <p>Quản lý tài khoản, phân quyền và theo dõi hoạt động trên hệ thống.</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Link className="admin-link-button" to="/academic/governance">Quản lý học vụ</Link>
+        <Link className="admin-link-button" to="/academic">Cấu trúc tổ chức</Link>
+      </div>
+    </header>
+    <nav className="admin-tabs" aria-label="Khu vực quản trị">
+      <button type="button" className={`admin-tab-btn ${activeTab === 'accounts' ? 'is-active' : ''}`} onClick={() => setFilter({ tab: 'accounts' })}>Tài khoản người dùng</button>
+      <Link to="/admin/access/rbac">Phân quyền</Link>
+      <button type="button" className={`admin-tab-btn ${activeTab === 'audit' ? 'is-active' : ''}`} onClick={() => setFilter({ tab: 'audit' })}>Nhật ký bảo mật</button>
+      <Link to="/academic/governance">Học kỳ & Kỳ đồ án</Link>
+      {env.industryEnabled && <Link to="/admin/industry">Chuyên gia doanh nghiệp</Link>}
+    </nav>
     {notice ? <p className="admin-notice" role="status">{notice}</p> : null}
     <SystemStatusPanel />
 
@@ -63,12 +81,13 @@ export function AdminWorkspacePage() {
       <p className="admin-boundary">Theo dõi tài khoản, vai trò và hoạt động quản trị trên hệ thống.</p>
     </section>
 
-    <section id="accounts" className="admin-panel" aria-labelledby="accounts-title"><div className="admin-panel-heading admin-roster-heading"><div><h2 id="accounts-title">Tài khoản người dùng</h2><p>Tìm kiếm, lọc trạng thái và quản lý vòng đời tài khoản. Vai trò hệ thống được quản lý riêng với phân công trong đồ án.</p></div><Button icon="upload" onClick={() => setStudentImportOpen(true)}>Nhập sinh viên từ Excel</Button><Button variant="outline" icon="download" onClick={() => setExportOpen(true)}>Xuất Excel danh sách nhóm</Button></div>
+    <section id="accounts" className="admin-panel" aria-labelledby="accounts-title" hidden={activeTab !== 'accounts'}><div className="admin-panel-heading admin-roster-heading"><div><h2 id="accounts-title">Tài khoản người dùng</h2><p>Tìm kiếm, lọc trạng thái và quản lý vòng đời tài khoản. Vai trò hệ thống được quản lý riêng với phân công trong đồ án.</p></div><div className="flex flex-wrap gap-2"><Button icon="upload" onClick={() => setStudentImportOpen(true)}>Nhập sinh viên từ Excel</Button><Button variant="outline" icon="download" onClick={() => setExportOpen(true)}>Xuất Excel danh sách nhóm</Button></div></div>
       {exportOpen && <RosterExportDialog onClose={() => setExportOpen(false)} />}
       {curriculumImportOpen && <CurriculumImportDialog onClose={() => setCurriculumImportOpen(false)} onImported={admin.refresh} />}
       {studentImportOpen && <StudentImportDialog onClose={() => setStudentImportOpen(false)} onImported={admin.refresh} />}
-      <form key={JSON.stringify([search,status])} className="admin-filter" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); setFilter({ search: String(data.get('search') ?? ''), status: String(data.get('status') ?? '') }) }}>
+      <form key={JSON.stringify([search,status])} className="admin-filter" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); setFilter({ search: String(data.get('search') ?? ''), status: String(data.get('status') ?? ''), page: '1' }) }}>
         <label>Tìm kiếm<input name="search" defaultValue={search} placeholder="Tên, email hoặc mã" /></label><label>Trạng thái<select name="status" defaultValue={status}><option value="">Tất cả</option><option value="ACTIVE">Đang hoạt động</option><option value="INACTIVE">Ngừng hoạt động</option><option value="SUSPENDED">Đang khóa</option></select></label><Button type="submit" variant="secondary">Áp dụng</Button>
+        {(search || status) ? <Button type="button" variant="outline" onClick={() => setFilter({ search: '', status: '', page: '1' })}>Đặt lại bộ lọc</Button> : null}
       </form>
       {admin.users.state === 'loading' ? <ListLoading label="Đang tải danh sách tài khoản…" /> : null}
       {admin.users.state === 'error' ? <Failure message={admin.isForbidden(admin.users) ? 'Bạn không có quyền quản trị tài khoản.' : 'Chưa tải được danh sách tài khoản.'} retry={admin.refresh} /> : null}
@@ -100,7 +119,7 @@ export function AdminWorkspacePage() {
       <p className="admin-gap">Mở hồ sơ từng tài khoản để cập nhật bộ môn và chuyên ngành. Phân công đồ án được quản lý riêng.</p>
     </section>
 
-    <section id="audit" className="admin-panel" aria-labelledby="audit-title"><div className="admin-panel-heading"><div><h2 id="audit-title">Nhật ký bảo mật</h2><p>Theo dõi thời gian, người thực hiện và nội dung hoạt động quản trị.</p></div></div><form className="admin-filter" onSubmit={(event) => { event.preventDefault(); setFilter({ auditAction: String(new FormData(event.currentTarget).get('action') ?? '') }) }}><label>Hành động<input name="action" defaultValue={auditAction} placeholder="Ví dụ: ACCOUNT_" /></label><Button type="submit" variant="secondary">Lọc</Button></form>{admin.audit.state === 'loading' ? <ListLoading label="Đang tải nhật ký…" /> : null}{admin.audit.state === 'error' ? <Failure message={admin.isForbidden(admin.audit) ? 'Bạn không có quyền xem nhật ký bảo mật.' : 'Chưa tải được nhật ký bảo mật.'} retry={admin.refresh} /> : null}{admin.audit.state === 'ready' ? <ul className="admin-audit-list">{admin.audit.value.items.map((record) => <li key={record.id}><strong title={record.action}>{auditActionLabel(record.action)}</strong><span>{record.entityType === 'USER' ? 'Tài khoản' : record.entityType} #{record.entityId ?? '—'} · {record.outcome === 'SUCCESS' ? 'Thành công' : record.outcome === 'FAILURE' ? 'Thất bại' : record.outcome}</span><time>{new Date(record.occurredAt).toLocaleString('vi-VN')}</time></li>)}</ul> : null}</section>
+    <section id="audit" className="admin-panel" aria-labelledby="audit-title" hidden={activeTab !== 'audit'}><div className="admin-panel-heading"><div><h2 id="audit-title">Nhật ký bảo mật</h2><p>Theo dõi thời gian, người thực hiện và nội dung hoạt động quản trị.</p></div></div><form className="admin-filter" onSubmit={(event) => { event.preventDefault(); setFilter({ auditAction: String(new FormData(event.currentTarget).get('action') ?? '') }) }}><label>Hành động<input name="action" defaultValue={auditAction} placeholder="Ví dụ: ACCOUNT_, AUTH_" /></label><Button type="submit" variant="secondary">Lọc</Button>{auditAction ? <Button type="button" variant="outline" onClick={() => setFilter({ auditAction: '' })}>Đặt lại</Button> : null}</form>{admin.audit.state === 'loading' ? <ListLoading label="Đang tải nhật ký…" /> : null}{admin.audit.state === 'error' ? <Failure message={admin.isForbidden(admin.audit) ? 'Bạn không có quyền xem nhật ký bảo mật.' : 'Chưa tải được nhật ký bảo mật.'} retry={admin.refresh} /> : null}{admin.audit.state === 'ready' ? <ul className="admin-audit-list">{admin.audit.value.items.map((record) => <li key={record.id}><strong title={record.action}>{auditActionLabel(record.action)}</strong><span>{record.entityType === 'USER' ? 'Tài khoản' : record.entityType} #{record.entityId ?? '—'} · {record.outcome === 'SUCCESS' ? 'Thành công' : record.outcome === 'FAILURE' ? 'Thất bại' : record.outcome}</span><time>{new Date(record.occurredAt).toLocaleString('vi-VN')}</time></li>)}</ul> : null}{admin.audit.state === 'ready' && admin.audit.value.totalCount > 0 && <Pagination page={admin.audit.value.page} pageSize={admin.audit.value.pageSize} total={admin.audit.value.totalCount} onPage={(next) => setFilter({ page: String(next) })} />}</section>
   </main>
 }
 
@@ -108,6 +127,20 @@ function Fact({ label, value }: { label: string; value: string }) { return <div>
 const statusTone: Record<UserAccount['status'], BadgeTone> = { ACTIVE: 'success', INACTIVE: 'neutral', SUSPENDED: 'danger' }
 function Status({ status }: { status: UserAccount['status'] }) { const label = { ACTIVE: 'Đang hoạt động', INACTIVE: 'Ngừng hoạt động', SUSPENDED: 'Đang khóa' }[status]; return <StatusBadge tone={statusTone[status]} label={label} /> }
 function Failure({ message, retry }: { message: string; retry: () => void }) { return <p className="admin-error" role="alert">{message} <Button size="sm" variant="outline" onClick={retry}>Thử lại</Button></p> }
-function Pagination({ page, pageSize, total, onPage }: { page: number; pageSize: number; total: number; onPage: (page: number) => void }) { const pages = Math.max(1, Math.ceil(total / pageSize)); return <div className="admin-pagination"><span>Trang {page}/{pages} · {total} kết quả</span><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => onPage(page - 1)}>Trang trước</Button><Button size="sm" variant="outline" disabled={page >= pages} onClick={() => onPage(page + 1)}>Trang sau</Button></div> }
+function Pagination({ page, pageSize, total, onPage }: { page: number; pageSize: number; total: number; onPage: (page: number) => void }) {
+  const pages = Math.max(1, Math.ceil(total / pageSize))
+  return (
+    <div className="admin-pagination">
+      <span>Trang {page}/{pages} · {total} kết quả</span>
+      <div className="flex items-center gap-1">
+        <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => onPage(1)}>Đầu</Button>
+        <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => onPage(page - 1)}>Trang trước</Button>
+        <Button size="sm" variant="outline" disabled={page >= pages} onClick={() => onPage(page + 1)}>Trang sau</Button>
+        <Button size="sm" variant="outline" disabled={page >= pages} onClick={() => onPage(pages)}>Cuối</Button>
+      </div>
+    </div>
+  )
+}
 
 function auditActionLabel(code: string) { return ({ AUTH_LOGIN: 'Đăng nhập', AUTH_LOGOUT: 'Đăng xuất', AUTH_REFRESH_TOKEN_ROTATED: 'Gia hạn phiên đăng nhập', ACCOUNT_CREATED: 'Tạo tài khoản', ACCOUNT_UPDATED: 'Cập nhật tài khoản' } as Record<string,string>)[code] ?? code }
+

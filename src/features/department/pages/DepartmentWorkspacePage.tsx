@@ -54,6 +54,7 @@ export function DepartmentWorkspacePage() {
       <Link className="flex min-h-16 items-center bg-card px-4 text-sm font-semibold text-primary hover:bg-primary-subtle" to="/department/topics">Quản lý đề tài</Link>
       <Link className="flex min-h-16 items-center bg-card px-4 text-sm font-semibold text-primary hover:bg-primary-subtle" to="/academic/governance">Học kỳ và chính sách</Link>
       <Link className="flex min-h-16 items-center bg-card px-4 text-sm font-semibold text-primary hover:bg-primary-subtle" to="/academic/rubrics">Rubric đánh giá</Link>
+      <Link className="flex min-h-16 items-center bg-card px-4 text-sm font-semibold text-primary hover:bg-primary-subtle" to="/department/cold-templates">Bộ report chấm nguội theo ngành</Link>
     </nav>
 
     <section id="overview" aria-labelledby="department-overview-heading" className="space-y-3 scroll-mt-4">
