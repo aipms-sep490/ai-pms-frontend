@@ -9,6 +9,6 @@ export function resolveIntendedDestination(
 ): string {
   const from = (state as IntendedDestinationState | null)?.from
   if (typeof from !== 'string') return fallback
-  if (!from.startsWith('/') || from.startsWith('//') || from.includes('://')) return fallback
+  if (!from.startsWith('/') || from.startsWith('//') || from.includes('://') || from.startsWith('/login')) return fallback
   return from
 }

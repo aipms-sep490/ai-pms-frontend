@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { HttpError } from '../../../services/http/http-client'
 import { getGoogleChallenge, linkGoogle, loginWithGoogle } from '../api/auth-api'
 import { useAuthSession } from '../context/useAuthSession'
 import { getHomePath } from '../utils/role-access'
+import { resolveIntendedDestination } from '../utils/intended-destination'
 
 declare global {
   interface Window {
@@ -52,6 +53,7 @@ function errorMessage(error: unknown) {
 export function GoogleLoginButton({ purpose = 'LOGIN', currentPassword = '', onLinked }: { purpose?: 'LOGIN' | 'LINK'; currentPassword?: string; onLinked?: () => void } = {}) {
   const host = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
+  const location = useLocation()
   const { acceptExternalLogin } = useAuthSession()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -99,7 +101,7 @@ export function GoogleLoginButton({ purpose = 'LOGIN', currentPassword = '', onL
               if (!acceptExternalLogin) return
               const session = await loginWithGoogle(challenge.challengeId, response.credential)
               const completed = await acceptExternalLogin(session)
-              if (active) navigate(getHomePath(completed.user), { replace: true })
+              if (active) navigate(resolveIntendedDestination(location.state, getHomePath(completed.user)), { replace: true })
             } catch (reason) {
               if (active) { expired = true; host.current?.replaceChildren(); setError(errorMessage(reason)) }
             } finally {
@@ -116,7 +118,7 @@ export function GoogleLoginButton({ purpose = 'LOGIN', currentPassword = '', onL
       }
     })()
     return () => { active = false; clearTimeout(expiryTimer) }
-  }, [acceptExternalLogin, navigate, attempt, purpose, currentPassword, onLinked])
+  }, [acceptExternalLogin, navigate, attempt, purpose, currentPassword, onLinked, location.state])
 
   return <div className="auth-google">
     <div ref={host} hidden={busy} aria-label={purpose === 'LINK' ? 'Liên kết tài khoản Google' : 'Đăng nhập với Google'} />
