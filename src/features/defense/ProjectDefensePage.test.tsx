@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { ProjectDefensePage } from './ProjectDefensePage'
+import { ProjectDefenseManagementPage, ProjectDefensePage } from './ProjectDefensePage'
 import { HttpError } from '../../services/http/http-client'
 import type { DefenseSession } from './defense-types'
 
@@ -28,6 +28,7 @@ const scheduled: DefenseSession = {
 }
 
 const render_ = () => render(<MemoryRouter><ProjectDefensePage /></MemoryRouter>)
+const renderManagement = () => render(<MemoryRouter initialEntries={['/supervisor/projects/9/defense']}><ProjectDefenseManagementPage /></MemoryRouter>)
 const paged = (items: DefenseSession[]) => ({ items, page: 1, pageSize: 20, totalCount: items.length, totalPages: 1 })
 
 beforeEach(() => {
@@ -105,11 +106,7 @@ describe('ProjectDefensePage', () => {
     })
     mocks.scheduleDefense.mockResolvedValue({ ...scheduled, id: 2, committeeId: 5 })
 
-    render_()
-    expect(await screen.findByText(/chưa được xếp lịch bảo vệ/)).toBeTruthy()
-
-    // Open management panel
-    fireEvent.click(screen.getByRole('button', { name: 'Quản lý hội đồng & lịch' }))
+    renderManagement()
     expect(await screen.findByText('Quản lý hội đồng & Lịch bảo vệ (Khoa / Quản trị)')).toBeTruthy()
 
     // Check loaded committee

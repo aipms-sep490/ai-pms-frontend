@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { HttpError } from '../../services/http/http-client'
 import {
@@ -13,10 +14,11 @@ import {
 } from './industry-api'
 
 export function IndustryExpertPortalPage() {
+  const routeAssignmentId = Number(useParams().assignmentId)
   const [assignments, setAssignments] = useState<IndustryAssignment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | null>(null)
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | null>(Number.isSafeInteger(routeAssignmentId) && routeAssignmentId > 0 ? routeAssignmentId : null)
 
   const [files, setFiles] = useState<IndustryFile[]>([])
   const [loadingFiles, setLoadingFiles] = useState(false)
