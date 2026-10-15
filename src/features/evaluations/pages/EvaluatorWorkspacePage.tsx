@@ -1,4 +1,5 @@
 import { Button } from '../../../components/ui/Button'
+import { InlineAlert } from '../../../components/ui/InlineAlert'
 import { dateTimeLabel } from '../../execution/execution-utils'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { ListLoading } from '../../../components/ui/ListLoading'
@@ -64,7 +65,7 @@ export function EvaluatorWorkspacePage() {
 
   return <WorkspacePage title="Đánh giá đồ án" eyebrow="Đánh giá theo phân công" description="Theo dõi các lượt chấm được giao, lưu nhận xét và hoàn thiện đánh giá." className="evaluation-workspace space-y-6 pb-12" action={<Button variant="secondary" icon="refresh" disabled={state === 'loading'} onClick={() => void load()}>Tải lại</Button>}>
     {state === 'loading' ? <ListLoading label="Đang tải phân công đánh giá…" /> : null}
-    {state === 'unavailable' ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{evaluationError(null)} <button type="button" className="ml-2 min-h-11 font-semibold underline" onClick={() => void load()}>Tải lại</button></section> : null}
+    {state === 'unavailable' ? <InlineAlert tone="danger" onRetry={() => void load()}>{evaluationError(null)}</InlineAlert> : null}
 
     {state === 'ready' ? <>
       <section aria-label="Tóm tắt phân công" className="workspace-metrics">
