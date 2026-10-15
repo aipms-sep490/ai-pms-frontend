@@ -49,6 +49,16 @@
   --color-tag-qa-bg: #f0fdfa;
   --color-tag-is: #475569;
   --color-tag-is-bg: #f1f5f9;
+
+  /* Z-index scale — one ordered map for every global overlay surface, per
+     docs/uiux/01-DESIGN-SYSTEM.md. Local/internal stacking (a sticky column
+     label inside a scrolling chart, a decorative pseudo-element) is not part
+     of this map and stays as a small literal at its own site. */
+  --z-index-chat: 40;
+  --z-index-drawer: 50;
+  --z-index-modal: 60;
+  --z-index-modal-confirm: 70;
+  --z-index-tour: 100;
 }
 
 :root {

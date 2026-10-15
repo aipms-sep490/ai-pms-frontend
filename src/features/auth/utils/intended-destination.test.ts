@@ -10,4 +10,13 @@ describe('resolveIntendedDestination', () => {
     expect(resolveIntendedDestination({ from: 'https://evil.example' })).toBe('/project/workspace')
     expect(resolveIntendedDestination({ from: '//evil.example' })).toBe('/project/workspace')
   })
+
+  it('refuses to loop back to the login page itself', () => {
+    expect(resolveIntendedDestination({ from: '/login' })).toBe('/project/workspace')
+    expect(resolveIntendedDestination({ from: '/login?next=/x' })).toBe('/project/workspace')
+  })
+
+  it('uses a custom fallback when supplied', () => {
+    expect(resolveIntendedDestination(null, '/admin/access')).toBe('/admin/access')
+  })
 })

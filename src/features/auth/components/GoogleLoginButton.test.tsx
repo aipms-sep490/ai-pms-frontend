@@ -3,15 +3,16 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { GoogleLoginButton } from './GoogleLoginButton'
 import { HttpError } from '../../../services/http/http-client'
 
-const mocks = vi.hoisted(() => ({ challenge: vi.fn(), login: vi.fn(), link: vi.fn(), accept: vi.fn(), navigate: vi.fn() }))
+const mocks = vi.hoisted(() => ({ challenge: vi.fn(), login: vi.fn(), link: vi.fn(), accept: vi.fn(), navigate: vi.fn(), location: { state: null as unknown } }))
 vi.mock('../api/auth-api', () => ({ getGoogleChallenge: mocks.challenge, loginWithGoogle: mocks.login, linkGoogle: mocks.link }))
 vi.mock('../context/useAuthSession', () => ({ useAuthSession: () => ({ acceptExternalLogin: mocks.accept }) }))
-vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.navigate }))
+vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.navigate, useLocation: () => mocks.location }))
 vi.mock('../utils/role-access', () => ({ getHomePath: () => '/home' }))
 let callback: (response: { credential?: string }) => Promise<void>
 
 beforeEach(() => {
   mocks.challenge.mockResolvedValue({ challengeId: 'first', clientId: 'client', nonce: 'nonce', expiresAtUtc: new Date(Date.now() + 300000).toISOString() })
+  mocks.location.state = null
   window.google = { accounts: { id: {
     initialize: vi.fn(config => { callback = config.callback as typeof callback }),
     renderButton: vi.fn(),
@@ -28,6 +29,16 @@ it('completes the existing application session after Google verification', async
   expect(mocks.login).toHaveBeenCalledWith('first', 'test-credential')
   expect(mocks.accept).toHaveBeenCalledWith(session)
   expect(mocks.navigate).toHaveBeenCalledWith('/home', { replace: true })
+})
+
+it('returns to the originally-requested page instead of the role home after Google login', async () => {
+  const session = { user: { id: 1 } }
+  mocks.login.mockResolvedValue(session); mocks.accept.mockResolvedValue(session)
+  mocks.location.state = { from: '/project/meetings/42' }
+  render(<GoogleLoginButton />)
+  await waitFor(() => expect(window.google!.accounts.id.renderButton).toHaveBeenCalled())
+  await act(() => callback({ credential: 'test-credential' }))
+  expect(mocks.navigate).toHaveBeenCalledWith('/project/meetings/42', { replace: true })
 })
 
 it('gets a fresh challenge after a rejected login and explains account linking', async () => {
