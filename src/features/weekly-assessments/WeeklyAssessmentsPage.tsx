@@ -83,6 +83,26 @@ function WeeklyAssessmentsBody({ projectId, projectTitle, routeBase, members }: 
           {members.map((member) => <option key={member.userId} value={member.userId}>{member.fullName}</option>)}
         </select></label>
       </div>
+      <div className="weekly-members-strip mt-3 flex flex-wrap gap-2" aria-label="Chọn nhanh sinh viên">
+        {members.map((member) => (
+          <button
+            key={member.userId}
+            type="button"
+            disabled={editorState.busy}
+            onClick={() => void changeSelection(() => setSelectedStudentId(member.userId))}
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+              selectedStudentId === member.userId
+                ? 'bg-primary text-white shadow-xs'
+                : 'border border-hairline bg-card text-ink-soft hover:border-primary/50 hover:bg-slate-50'
+            }`}
+          >
+            <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${selectedStudentId === member.userId ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'}`}>
+              {member.fullName.trim().charAt(0).toUpperCase()}
+            </span>
+            {member.fullName}
+          </button>
+        ))}
+      </div>
       {selectedWeek != null && selectedStudentId != null && (() => {
         const week = weeks.find((w) => w.weekNumber === selectedWeek)
         return <WeeklyAssessmentEditor key={`${selectedStudentId}:${selectedWeek}`} projectId={projectId} weekNumber={selectedWeek} studentId={selectedStudentId} hasStarted={week?.hasStarted ?? false} onEditorState={setEditorState} />

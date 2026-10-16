@@ -46,8 +46,24 @@ export function LecturerWorkspacePage() {
           const assignedDateFormatted = assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString('vi-VN') : '—'
           const endedDateFormatted = assignment.endedAt ? new Date(assignment.endedAt).toLocaleDateString('vi-VN') : ''
           return <li key={assignment.id} className="lecturer-project">
-            <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h3 className="break-words font-semibold text-ink">{project?.title ?? `Đồ án #${assignment.projectId}`}</h3><p className="mt-1 text-xs text-ink-muted">{project?.code ?? `#${assignment.projectId}`} · {project?.teamName ?? 'Chưa tải được nhóm'}</p></div><span className="rounded-full border border-hairline bg-card px-2 py-1 text-xs font-semibold text-ink-soft">{project?.status === 'ACTIVE' ? 'Đang thực hiện' : displayLabel(project?.status)}</span></div>
-            <p className="mt-3 text-xs text-ink-muted">{assignment.isPrimary ? 'Hướng dẫn chính' : 'Đồng hướng dẫn'} · phân công {assignedDateFormatted}{endedDateFormatted ? ` · kết thúc ${endedDateFormatted}` : ''}</p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="mb-1 flex items-center gap-2">
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${assignment.isPrimary ? 'bg-primary/15 text-primary' : 'bg-blue-100 text-blue-800'}`}>
+                    {assignment.isPrimary ? 'Hướng dẫn chính' : 'Đồng hướng dẫn'}
+                  </span>
+                  <span className="text-xs text-ink-muted">· {project?.code ?? `#${assignment.projectId}`}</span>
+                </div>
+                <h3 className="break-words font-semibold text-ink text-lg">{project?.title ?? `Đồ án #${assignment.projectId}`}</h3>
+                <p className="mt-1 text-xs text-ink-muted">Nhóm sinh viên: <strong className="text-ink-soft">{project?.teamName ?? 'Chưa tải được nhóm'}</strong></p>
+              </div>
+              <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${project?.status === 'ACTIVE' ? 'border-status-success-border bg-status-success-bg text-status-success-text' : 'border-hairline bg-card text-ink-soft'}`}>
+                {project?.status === 'ACTIVE' ? 'Đang thực hiện' : displayLabel(project?.status)}
+              </span>
+            </div>
+            <p className="mt-3 text-xs text-ink-muted">
+              Phân công: {assignedDateFormatted}{endedDateFormatted ? ` · Kết thúc: ${endedDateFormatted}` : ''}
+            </p>
             {canOpen ? <ProjectSignals summary={projectSummaries[assignment.projectId]} /> : <p className="mt-4 text-sm text-ink-muted">Phân công đã kết thúc hoặc đồ án không còn trong giai đoạn thực hiện.</p>}
             {canOpen ? <nav className="lecturer-project-actions" aria-label={`Chức năng đồ án ${project?.code ?? assignment.projectId}`}>
               <Link className="lecturer-action lecturer-action-primary" to={`/supervisor/projects/${assignment.projectId}/workspace`}>Tổng quan đồ án <span aria-hidden="true">→</span></Link>
@@ -67,14 +83,54 @@ export function LecturerWorkspacePage() {
         <ul className="mt-4 space-y-3">{[...inbox.requests].sort((a, b) => Number(b.status === 'PENDING') - Number(a.status === 'PENDING')).map((request) => {
           const project = inbox.projects?.[request.projectId]
           const team = project ? inbox.teams?.[project.teamId] : null
-          return <li key={request.id} className="lecturer-request text-sm"><details open={request.status === 'PENDING'}><summary className="lecturer-request-summary">
-          <div className="flex flex-wrap justify-between gap-2"><strong>{project?.title ?? `Đồ án #${request.projectId}`}{project?.code ? ` · ${project.code}` : ''}</strong><span>{displayLabel(request.status)}</span></div>
-          </summary><p className="mt-3 text-xs text-ink-muted">Ngày gửi: {new Date(request.requestedAt).toLocaleDateString('vi-VN')}</p>
-          {team ? <div className="mt-4 lecturer-team"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{team.name} · {team.code}</strong><span className="text-xs text-ink-muted">{team.members.length} thành viên</span></div><ul className="mt-2 grid gap-2 sm:grid-cols-2">{team.members.map((member) => <li key={member.userId} className="text-xs text-ink-soft"><span className="font-semibold text-ink">{member.fullName}</span>{member.isLeader ? ' · Trưởng nhóm' : ''}{member.majorId ? ` · Chuyên ngành #${member.majorId}` : ''}</li>)}</ul></div> : null}
-          {request.requestMessage ? <p className="mt-3 leading-relaxed text-ink-muted">Lời nhắn của nhóm: {request.requestMessage}</p> : null}
-          {request.responseMessage ? <p className="mt-3 leading-relaxed text-ink-muted">Phản hồi: {request.responseMessage}</p> : null}
-          {request.status === 'PENDING' ? <div className="mt-3 space-y-2"><label className="block text-xs">Phản hồi (tùy chọn)<textarea className="mt-1 block w-full rounded border border-line-strong p-2" value={responseByRequest[request.id] ?? ''} onChange={(event) => setResponseByRequest((current) => ({ ...current, [request.id]: event.target.value }))} /></label><div className="flex flex-wrap gap-2"><Button disabled={inbox.acceptPending !== null || inbox.rejectPending !== null} onClick={() => void decide(request.id, 'accept')}>Nhận hướng dẫn</Button><Button variant="danger" disabled={inbox.acceptPending !== null || inbox.rejectPending !== null} onClick={() => void decide(request.id, 'reject')}>Từ chối</Button></div></div> : null}
-        </details></li>})}</ul>
+          const isPending = request.status === 'PENDING'
+          return <li key={request.id} className="lecturer-request text-sm rounded-lg p-3 transition-colors">
+            <details open={isPending} className="group">
+              <summary className="lecturer-request-summary cursor-pointer">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-sm" aria-hidden="true">mail</span>
+                    <strong>{project?.title ?? `Đồ án #${request.projectId}`}{project?.code ? ` · ${project.code}` : ''}</strong>
+                  </div>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isPending ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
+                    {displayLabel(request.status)}
+                  </span>
+                </div>
+              </summary>
+              <p className="mt-3 text-xs text-ink-muted">Ngày gửi: {new Date(request.requestedAt).toLocaleDateString('vi-VN')}</p>
+              {team ? (
+                <div className="mt-4 lecturer-team rounded-r-md bg-slate-50/60 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <strong>{team.name} · {team.code}</strong>
+                    <span className="text-xs text-ink-muted">{team.members.length} thành viên</span>
+                  </div>
+                  <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {team.members.map((member) => (
+                      <li key={member.userId} className="text-xs text-ink-soft">
+                        <span className="font-semibold text-ink">{member.fullName}</span>
+                        {member.isLeader ? ' · Trưởng nhóm' : ''}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {request.requestMessage ? <p className="mt-3 leading-relaxed text-ink-muted text-xs bg-card border border-hairline rounded-md p-2.5">Lời nhắn của nhóm: {request.requestMessage}</p> : null}
+              {request.responseMessage ? <p className="mt-3 leading-relaxed text-ink-muted text-xs bg-emerald-50/50 border border-emerald-100 rounded-md p-2.5">Phản hồi: {request.responseMessage}</p> : null}
+              {request.status === 'PENDING' ? (
+                <div className="mt-3 space-y-2">
+                  <label className="block text-xs font-medium text-ink-soft">
+                    Phản hồi (tùy chọn)
+                    <textarea className="mt-1 block w-full rounded-md border border-line-strong p-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" rows={2} value={responseByRequest[request.id] ?? ''} onChange={(event) => setResponseByRequest((current) => ({ ...current, [request.id]: event.target.value }))} />
+                  </label>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button disabled={inbox.acceptPending !== null || inbox.rejectPending !== null} onClick={() => void decide(request.id, 'accept')}>Nhận hướng dẫn</Button>
+                    <Button variant="danger" disabled={inbox.acceptPending !== null || inbox.rejectPending !== null} onClick={() => void decide(request.id, 'reject')}>Từ chối</Button>
+                  </div>
+                </div>
+              ) : null}
+            </details>
+          </li>
+        })}</ul>
       </section>
 
       <section className="lecturer-requests">

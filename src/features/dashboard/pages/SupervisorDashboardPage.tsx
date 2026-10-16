@@ -64,8 +64,8 @@ export function SupervisorDashboardPage() {
 }
 
 function Metric({ label, value, tone = 'neutral' }: { label: string; value: number | string; tone?: 'neutral' | 'success' | 'warning' | 'error' }) {
-  const tones = { neutral: 'border-hairline', success: 'border-status-success-border', warning: 'border-status-warning-border', error: 'border-status-error-border' }
-  return <div className={`workspace-metric ${tones[tone]}`}><p className="text-xs font-medium text-ink-muted">{label}</p><p className="mt-1 text-2xl font-bold tabular-nums text-ink">{value}</p></div>
+  const tones = { neutral: 'border-hairline', success: 'border-status-success-border bg-emerald-50/30', warning: 'border-status-warning-border bg-amber-50/30', error: 'border-status-error-border bg-rose-50/30' }
+  return <div className={`workspace-metric rounded-xl border p-4 ${tones[tone]}`}><p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">{label}</p><p className="mt-2 text-2xl font-bold tabular-nums text-ink">{value}</p></div>
 }
 
 function StatusCounts({ counts }: { counts: SupervisorDashboard['projectStates'] }) {
@@ -74,7 +74,34 @@ function StatusCounts({ counts }: { counts: SupervisorDashboard['projectStates']
 
 function ProjectRow({ project }: { project: DashboardProject }) {
   const risk = project.analysis?.riskLevel
-  return <li className="flex flex-wrap items-start justify-between gap-3 py-4 text-sm"><div className="min-w-0"><p className="font-semibold text-ink">{project.code} · {project.title}</p><p className="mt-1 text-ink-muted">{project.departmentName ?? 'Chưa có bộ môn'} · {project.pendingProgressReviews} báo cáo chờ duyệt</p><div className="mt-2 flex flex-wrap gap-2"><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-ink-soft">{displayLabel(project.status)}</span>{env.aiAdvisoryEnabled && risk && <span className={risk === 'HIGH' ? 'rounded-full bg-status-error-bg px-2 py-1 text-xs font-medium text-status-error-text' : 'rounded-full bg-status-warning-bg px-2 py-1 text-xs font-medium text-status-warning-text'}>Rủi ro: {displayLabel(risk)}</span>}</div></div>{project.status === 'ACTIVE' && <Link className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 hover:text-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to={`/supervisor/projects/${project.id}/workspace`}>Mở không gian đồ án</Link>}</li>
+  const progressPct = project.analysis?.progressSummary?.progressPercentage
+  const hasPending = project.pendingProgressReviews > 0
+  return <li className="flex flex-wrap items-center justify-between gap-4 py-4 text-sm transition-colors hover:bg-slate-50/50 rounded-lg px-3">
+    <div className="min-w-0 flex-1">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="font-semibold text-ink text-base">{project.code} · {project.title}</p>
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-ink-soft">{displayLabel(project.status)}</span>
+        {env.aiAdvisoryEnabled && risk && <span className={risk === 'HIGH' ? 'rounded-full bg-status-error-bg px-2 py-0.5 text-xs font-semibold text-status-error-text' : 'rounded-full bg-status-warning-bg px-2 py-0.5 text-xs font-semibold text-status-warning-text'}>Rủi ro: {displayLabel(risk)}</span>}
+      </div>
+      <p className="mt-1.5 text-xs text-ink-muted">
+        Bộ môn: <strong className="text-ink-soft">{project.departmentName ?? 'Chưa có bộ môn'}</strong>
+        {hasPending ? <span className="ml-3 inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 font-bold text-amber-800">⚠️ {project.pendingProgressReviews} báo cáo chờ duyệt</span> : <span className="ml-3 text-ink-muted">0 báo cáo chờ duyệt</span>}
+      </p>
+      {progressPct != null && (
+        <div className="mt-2.5 flex items-center gap-3 max-w-xs">
+          <div className="h-1.5 flex-1 rounded-full bg-slate-200 overflow-hidden">
+            <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${Math.min(100, Math.max(0, progressPct))}%` }} />
+          </div>
+          <span className="text-xs font-semibold tabular-nums text-ink-soft">{progressPct}% tiến độ</span>
+        </div>
+      )}
+    </div>
+    {project.status === 'ACTIVE' && (
+      <Link className="inline-flex min-h-10 items-center justify-center rounded-lg border border-primary bg-card px-4 text-xs font-bold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors shadow-2xs" to={`/supervisor/projects/${project.id}/workspace`}>
+        Mở không gian đồ án
+      </Link>
+    )}
+  </li>
 }
 
 function Pagination({ page, totalPages, disabled, onChange }: { page: number; totalPages: number; disabled: boolean; onChange: (page: number) => void }) {
