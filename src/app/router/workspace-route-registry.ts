@@ -57,7 +57,6 @@ export const workspaceRouteRegistry: readonly WorkspaceRouteMeta[] = [
   { id: 'admin-milestone-templates', path: '/admin/milestone-templates', title: 'Mẫu mốc đồ án', breadcrumb: 'Mẫu mốc đồ án', icon: 'flag', section: 'administration', identityRoles: ['ADMIN'], navigationVisibility: 'always' },
   { id: 'account-profile', path: '/profile', title: 'Hồ sơ tài khoản', breadcrumb: 'Hồ sơ tài khoản', icon: 'account_circle', section: 'account', identityRoles: ['ADMIN', 'DEPARTMENT_STAFF', 'LECTURER', 'STUDENT'], navigationVisibility: 'always' },
   { id: 'calendar-attention', path: '/calendar', title: 'Lịch tổng hợp', breadcrumb: 'Lịch tổng hợp', icon: 'calendar_month', section: 'account', identityRoles: ['ADMIN', 'DEPARTMENT_STAFF', 'LECTURER', 'STUDENT'], navigationVisibility: 'always' },
-  { id: 'chat', path: '/messages', title: 'Tin nhắn', breadcrumb: 'Tin nhắn', icon: 'chat', section: 'account', identityRoles: ['ADMIN', 'DEPARTMENT_STAFF', 'LECTURER', 'STUDENT'], navigationVisibility: 'always', featureEnabled: env.chatEnabled },
   { id: 'student-gates', path: '/project/gates', title: 'Cổng kiểm soát', breadcrumb: 'Cổng kiểm soát tiến độ', icon: 'verified_user', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.gatesEnabled },
   { id: 'student-agreement', path: '/project/agreement', title: 'Cam kết nhóm', breadcrumb: 'Cam kết làm việc nhóm', icon: 'handshake', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', featureEnabled: env.workingAgreementEnabled },
   { id: 'student-defense', path: '/project/defense', title: 'Lịch bảo vệ', breadcrumb: 'Lịch bảo vệ', icon: 'gavel', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.defenseScheduleEnabled },
@@ -77,6 +76,7 @@ export function getWorkspaceNavigation(access: WorkspaceAccess): readonly Worksp
 }
 
 export function getWorkspaceBreadcrumb(pathname: string): string | null {
+  if (pathname === '/messages' || pathname.startsWith('/messages/')) return 'Tin nhắn'
   return workspaceRouteRegistry.find((route) => route.path === pathname)?.breadcrumb ?? null
 }
 

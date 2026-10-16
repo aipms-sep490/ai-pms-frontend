@@ -17,14 +17,37 @@ export function ChatDock() {
   return <SessionChatDock key={session.user.id} userId={String(session.user.id)} />
 }
 function SessionChatDock({ userId }: { userId: string }) {
-  const { unreadCount, unreadKnown, state } = useChat()
+  const { unreadCount, unreadKnown, state, inbox } = useChat()
   const location = useLocation()
   const [view, setView] = useState<ChatDockView>({ type: 'closed' })
+  const [incomingToast, setIncomingToast] = useState<{ id: string; title: string; snippet: string } | null>(null)
+  const prevUnreadRef = useRef(unreadCount)
   const dialog = useRef<HTMLDialogElement>(null), launcher = useRef<HTMLButtonElement>(null)
   const fullPage = location.pathname === '/messages' || location.pathname.startsWith('/messages/')
   const expanded = !fullPage && (view.type === 'list' || view.type === 'conversation')
   const conversationId = view.type === 'conversation' || view.type === 'minimized' ? view.conversationId : undefined
   const finish = (next: ChatDockView) => { setView(next); launcher.current?.focus() }
+
+  useEffect(() => {
+    if (unreadCount > prevUnreadRef.current && !expanded) {
+      const room = inbox?.items?.find(r => r.unreadCount > 0) || inbox?.items?.[0]
+      if (room) {
+        setIncomingToast({
+          id: room.id,
+          title: room.title || 'Tin nhắn mới',
+          snippet: room.lastMessage?.body || 'Bạn vừa nhận được một tin nhắn mới.',
+        })
+        const timer = setTimeout(() => setIncomingToast(null), 6000)
+        return () => clearTimeout(timer)
+      }
+    }
+    prevUnreadRef.current = unreadCount
+  }, [unreadCount, expanded, inbox?.items])
+
+  useEffect(() => {
+    if (expanded) setIncomingToast(null)
+  }, [expanded])
+
   useEffect(() => {
     const panel = dialog.current
     if (!panel) return
@@ -69,6 +92,38 @@ function SessionChatDock({ userId }: { userId: string }) {
       {view.type === 'list' && <ChatConversations onOpen={room => setView({ type: 'conversation', conversationId: room.id })} />}
       {conversationId && <ChatThread key={conversationId} id={conversationId} userId={userId} active={expanded && view.type === 'conversation'} />}
     </dialog>
+
+    {incomingToast && !expanded && (
+      <aside
+        className="chat-incoming-toast"
+        role="status"
+        aria-label="Thông báo tin nhắn mới"
+        onClick={() => {
+          setView({ type: 'conversation', conversationId: incomingToast.id })
+          setIncomingToast(null)
+        }}
+      >
+        <div className="chat-toast-avatar" aria-hidden="true">
+          <span className="material-symbols-outlined text-[18px]">chat</span>
+        </div>
+        <div className="chat-toast-content">
+          <strong className="chat-toast-title">{incomingToast.title}</strong>
+          <span className="chat-toast-snippet">{incomingToast.snippet}</span>
+        </div>
+        <button
+          type="button"
+          className="chat-toast-close"
+          aria-label="Đóng thông báo tin nhắn"
+          onClick={e => {
+            e.stopPropagation()
+            setIncomingToast(null)
+          }}
+        >
+          ✕
+        </button>
+      </aside>
+    )}
+
     <ChatLauncher count={unreadCount} known={unreadKnown} expanded={expanded} minimized={view.type === 'minimized'} buttonRef={launcher}
       onClick={() => expanded ? finish({ type: 'minimized', conversationId }) : setView(view.type === 'minimized' && view.conversationId ? { type: 'conversation', conversationId: view.conversationId } : { type: 'list' })} />
   </div>

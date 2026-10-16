@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-
+import { generatePageNumbers } from '../../components/ui/Pagination'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { ListLoading } from '../../components/ui/ListLoading'
 import './execution.css'
@@ -20,10 +20,14 @@ export function ExProgress({ value, label }: { value: number; label: string }) {
   const percentage = Math.max(0, Math.min(100, value))
   return <span className="ex-progress" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percentage)}><span style={{ width: `${percentage}%` }} /></span>
 }
+
 export function ExPagination({ page, pages, total, busy, onPage }: { page: number; pages: number; total: number; busy?: boolean; onPage: (page: number) => void }) {
-  return <nav className="ex-pagination" aria-label="Phân trang"><span>{total} kết quả · Trang {page}/{Math.max(1, pages)}</span><div>
+  const totalPages = Math.max(1, pages)
+  const numbers = generatePageNumbers(page, totalPages)
+  return <nav className="ex-pagination" aria-label="Phân trang"><span>{total} kết quả · Trang {page}/{totalPages}</span><div className="flex items-center gap-1">
     <button type="button" className="ex-button" disabled={busy || page <= 1} onClick={() => onPage(page - 1)}><ExIcon name="chevron_left" />Trước</button>
-    <button type="button" className="ex-button" disabled={busy || page >= pages} onClick={() => onPage(page + 1)}>Sau<ExIcon name="chevron_right" /></button>
+    {numbers.map((item, index) => item === 'ellipsis' ? <span key={`e-${index}`} className="px-1 text-slate-400 font-bold" aria-hidden="true">…</span> : <button key={`p-${item}`} type="button" className={`ex-button ${item === page ? 'ex-button-primary font-bold' : ''}`} disabled={busy} aria-current={item === page ? 'page' : undefined} onClick={() => onPage(item)}>{item}</button>)}
+    <button type="button" className="ex-button" disabled={busy || page >= totalPages} onClick={() => onPage(page + 1)}>Sau<ExIcon name="chevron_right" /></button>
   </div></nav>
 }
 export function ExConfirm({ title, description, busy, onCancel, onConfirm }: { title: string; description: string; busy: boolean; onCancel: () => void; onConfirm: () => void }) {

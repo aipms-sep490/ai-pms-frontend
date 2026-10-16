@@ -70,6 +70,16 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+body {
+  min-height: 100vh;
+  background-color: var(--color-canvas);
+  background-image:
+    radial-gradient(at 0% 0%, rgba(15, 91, 78, 0.035) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(15, 91, 78, 0.025) 0px, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(4, 120, 87, 0.02) 0px, transparent 60%);
+  background-attachment: fixed;
+}
+
 * {
   box-sizing: border-box;
   border-color: var(--color-hairline);

@@ -92,7 +92,7 @@ export function ProjectRegistrationFormPage() {
       {registeringNewAfterRejection && <section className="rounded-md border border-status-error-border bg-status-error-bg p-4 text-xs text-status-error-text"><strong>Đăng ký đề tài mới sau khi đề tài trước bị từ chối.</strong><p className="mt-1">Biểu mẫu này tạo một bản nháp hoàn toàn mới; đề cương cũ vẫn được giữ trong lịch sử.</p></section>}
       {revision && registration.latestRevision && <RevisionAlert reason={registration.latestRevision.reason} reviewerName={registration.latestRevision.changedByName || 'Hệ thống'} timestamp={registration.latestRevision.changedAt} onEdit={() => {}} />}
       {registrationProject ? <ProjectProvenance project={registrationProject} /> : null}
-      <GovernedScope scope={registration.academicScope} requiredMajorIds={registration.requiredMajorIds} />
+      <GovernedScope scope={registration.academicScope} requiredMajorIds={registration.requiredMajorIds} majors={registrationProject?.majors ?? journey.project?.majors ?? []} />
 
       <form onSubmit={submit} className="flex flex-col gap-6 rounded-md border border-slate-200 bg-white p-5">
         <p className="text-xs text-slate-500"><span aria-hidden="true">*</span> Trường bắt buộc</p>
@@ -131,9 +131,42 @@ function ProjectProvenance({ project }: { project: NonNullable<ReturnType<typeof
   return <section className="rounded-md border border-status-success-border bg-status-success-bg p-5 text-sm text-status-success-text"><p className="text-xs font-bold uppercase tracking-wider">Nguồn đề tài</p>{source === 'PUBLISHED_TOPIC' ? <p className="mt-2 text-xs"><strong>Đề tài đã công bố</strong> · {project.selectedTopic ? `${project.selectedTopic.code} · ${project.selectedTopic.title}` : 'Chưa tải được thông tin chi tiết của đề tài đã chọn.'}</p> : <p className="mt-2 text-xs"><strong>Đề xuất của sinh viên</strong> · Hồ sơ này được khởi tạo từ đề xuất của nhóm.</p>}<p className="mt-2 text-xs">Nội dung đề cương được nhóm rà soát và cập nhật riêng trong biểu mẫu này.</p></section>
 }
 
-function GovernedScope({ scope }: { scope: ReturnType<typeof useProjectRegistration>['academicScope']; requiredMajorIds: number[] }) {
+function GovernedScope({
+  scope,
+  majors = [],
+}: {
+  scope: ReturnType<typeof useProjectRegistration>['academicScope']
+  requiredMajorIds: number[]
+  majors?: { majorId: number; majorName: string; majorCode: string }[]
+}) {
   const modeLabel = scope?.projectMode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành'
-  return <section className="rounded-md border border-slate-200 bg-slate-50 p-5"><p className="text-xs font-bold uppercase tracking-wider text-slate-500">Phạm vi đăng ký</p>{scope ? <div className="mt-3 grid gap-3 text-xs sm:grid-cols-3"><p><strong>Hình thức:</strong> {modeLabel}</p><p><strong>Bộ môn phụ trách:</strong> Mã tham chiếu #{scope.leadDepartmentId}</p><p><strong>Ngành chính:</strong> {scope.primaryMajorId ? `Mã tham chiếu #${scope.primaryMajorId}` : 'Không áp dụng'}</p><p className="sm:col-span-3"><strong>Ngành tham gia:</strong> {scope.requirements.map((item) => `Ngành #${item.majorId} (${item.minMembers}–${item.maxMembers} thành viên)`).join(' · ') || 'Chưa có thông tin ngành tham gia'}</p></div> : <p className="mt-2 text-xs text-slate-600">Chưa tải được phạm vi đăng ký của nhóm. Thông tin này được xác định trong quá trình lập nhóm.</p>}</section>
+  const majorMap = new Map(majors.map((m) => [m.majorId, `${m.majorName} (${m.majorCode})`]))
+
+  return (
+    <section className="rounded-md border border-slate-200 bg-slate-50 p-5">
+      <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Phạm vi đăng ký</p>
+      {scope ? (
+        <div className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
+          <p><strong>Hình thức:</strong> {modeLabel}</p>
+          <p><strong>Bộ môn phụ trách:</strong> Bộ môn quản trị #{scope.leadDepartmentId}</p>
+          <p><strong>Ngành chính:</strong> {scope.primaryMajorId ? (majorMap.get(scope.primaryMajorId) ?? `Ngành #${scope.primaryMajorId}`) : 'Không áp dụng'}</p>
+          <p className="sm:col-span-3">
+            <strong>Ngành tham gia:</strong>{' '}
+            {scope.requirements.length > 0
+              ? scope.requirements
+                  .map((item) => {
+                    const label = majorMap.get(item.majorId) ?? `Ngành #${item.majorId}`
+                    return `${label} (${item.minMembers}–${item.maxMembers} thành viên)`
+                  })
+                  .join(' · ')
+              : 'Chưa có thông tin ngành tham gia'}
+          </p>
+        </div>
+      ) : (
+        <p className="mt-2 text-xs text-slate-600">Chưa tải được phạm vi đăng ký của nhóm. Thông tin này được xác định trong quá trình lập nhóm.</p>
+      )}
+    </section>
+  )
 }
 
 /** Soft, client-side pre-check only — the backend is the sole enforcer (422
