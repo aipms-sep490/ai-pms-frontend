@@ -96,7 +96,7 @@ function WeeklyAssessmentsBody({ projectId, projectTitle, routeBase, members }: 
                 : 'border border-hairline bg-card text-ink-soft hover:border-primary/50 hover:bg-slate-50'
             }`}
           >
-            <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${selectedStudentId === member.userId ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'}`}>
+            <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${selectedStudentId === member.userId ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'}`}>
               {member.fullName.trim().charAt(0).toUpperCase()}
             </span>
             {member.fullName}

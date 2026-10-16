@@ -87,6 +87,8 @@ export const DepartmentWorkspacePage = lazy(() => import('../../features/departm
 export const ArchivedProjectsPage = lazy(() => import('../../features/projects/pages/ArchivedProjectsPage').then(m => ({ default: m.ArchivedProjectsPage })))
 export const ProjectArchiveViewPage = lazy(() => import('../../features/projects/pages/ProjectArchiveViewPage').then(m => ({ default: m.ProjectArchiveViewPage })))
 export const CalendarAttentionPage = lazy(() => import('../../features/calendar/CalendarAttentionPage').then(m => ({ default: m.CalendarAttentionPage })))
+export const ReviewGateGovernancePage = lazy(() => import('../../features/review-gates/pages/ReviewGateGovernancePage').then(m => ({ default: m.ReviewGateGovernancePage })))
 // ChatPage stays a plain static import in router/index.tsx: ChatDock (statically imported
+
 // by AppLayout) also pulls from this same module, so Vite can never actually split it into
 // its own chunk — wrapping it in lazy() here would just be a no-op dynamic import.

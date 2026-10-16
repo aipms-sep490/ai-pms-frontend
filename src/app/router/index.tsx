@@ -32,8 +32,9 @@ import {
   EvaluationSchemeManagementPage, StudentProjectResultPage, ProjectContributionsPage, ProjectFilesPage,
   ProjectEvidenceLedgerPage, ProjectAiPage, ProjectGatesPage, ProjectWorkingAgreementPage, ProjectDefensePage, ProjectDefenseManagementPage,
   ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, ArchivedProjectsPage,
-  ProjectArchiveViewPage, CalendarAttentionPage, AdminIndustryInvitationsPage,
+  ProjectArchiveViewPage, CalendarAttentionPage, AdminIndustryInvitationsPage, ReviewGateGovernancePage,
 } from './lazy-pages'
+
 
 export const appRouter = createBrowserRouter([{ element: <RouteFrame />, children: [
   { path: 'login', element: <LoginPage /> },
@@ -161,6 +162,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
         children: [
           { element: <DepartmentAcademicScopeRoute />, children: [
             { path: 'department/workspace', element: <DepartmentWorkspacePage /> },
+            { path: 'department/projects/progress-matrix', element: <ReviewGateGovernancePage /> },
           ] },
         ],
       },
@@ -170,6 +172,8 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'academic', element: <AcademicStructurePage /> },
           { path: 'academic/governance', element: <AcademicGovernancePage /> },
           { path: 'academic/project-periods/:periodId/policy', element: <PeriodPolicyManagementPage /> },
+          { path: 'academic/project-periods/:periodId/review-gates', element: <ReviewGateGovernancePage /> },
+          { path: 'academic/review-gates', element: <ReviewGateGovernancePage /> },
           { path: 'academic/profile-verifications', element: <ProfileVerificationsPage /> },
           { path: 'academic/rubrics', element: <RubricManagementPage /> },
         ],

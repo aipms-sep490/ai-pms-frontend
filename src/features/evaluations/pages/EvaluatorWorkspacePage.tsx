@@ -86,7 +86,7 @@ export function EvaluatorWorkspacePage() {
           return <article key={assignment.id} className="grid min-w-0 gap-4 rounded-xl border border-hairline bg-card p-5 transition-all hover:border-primary/40 hover:shadow-xs md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
             <div className="min-w-0">
               <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-purple-700">
+                <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-purple-700">
                   {assignment.evaluationType === 'LECTURER' ? 'Hội đồng chấm' : assignment.evaluationType}
                 </span>
                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${isFinalized ? 'bg-status-success-bg text-status-success-text' : isDraft ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>

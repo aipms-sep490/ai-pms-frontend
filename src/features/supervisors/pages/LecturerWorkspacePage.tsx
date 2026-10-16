@@ -49,7 +49,7 @@ export function LecturerWorkspacePage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="mb-1 flex items-center gap-2">
-                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${assignment.isPrimary ? 'bg-primary/15 text-primary' : 'bg-blue-100 text-blue-800'}`}>
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${assignment.isPrimary ? 'bg-primary/15 text-primary' : 'bg-blue-100 text-blue-800'}`}>
                     {assignment.isPrimary ? 'Hướng dẫn chính' : 'Đồng hướng dẫn'}
                   </span>
                   <span className="text-xs text-ink-muted">· {project?.code ?? `#${assignment.projectId}`}</span>
