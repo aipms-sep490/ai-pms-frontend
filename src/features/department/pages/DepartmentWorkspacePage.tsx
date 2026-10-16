@@ -43,24 +43,36 @@ export function DepartmentWorkspacePage() {
   const departmentName = academic.academic?.departments.map(department => department.name).join(', ') || 'Bộ môn hiện tại'
   const attention = useMemo(() => portfolio.data?.projects.items.filter((project) => project.pendingProgressReviews > 0 || (project.analysis?.progressSummary.blockedTasks ?? 0) > 0 || (project.analysis?.progressSummary.overdueTasks ?? 0) > 0) ?? [], [portfolio.data])
 
-  return <WorkspacePage className="space-y-7" title="Quản lý đồ án bộ môn" eyebrow="Không gian bộ môn" description={`${departmentName}. Theo dõi danh mục đồ án, hồ sơ chờ thẩm định và nguồn lực hướng dẫn.`} action={<Link className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover" to="/department/projects/review">Thẩm định đề cương</Link>}>
+  return <WorkspacePage className="space-y-7" title="Quản lý đồ án bộ môn" eyebrow="Không gian bộ môn" description={`${departmentName}. Theo dõi danh mục đồ án, hồ sơ chờ thẩm định và nguồn lực hướng dẫn.`} action={
+    <div className="flex flex-wrap items-center gap-2">
+      <Link className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-subtle/50 px-3 text-xs font-semibold text-primary hover:bg-primary-subtle hover:border-primary transition-all" to="/department/projects/progress-matrix">
+        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">view_timeline</span>
+        Ma trận Tiến độ Gates
+      </Link>
+      <Link className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-xs font-semibold text-white hover:bg-primary-hover shadow-2xs transition-all" to="/department/projects/review">
+        Thẩm định đề cương
+      </Link>
+    </div>
+  }>
 
     <nav aria-label="Lối tắt bộ môn" className="department-quick-links grid overflow-hidden rounded-lg border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4">
-      <SpotlightLink className="flex min-h-16 items-center gap-3 bg-card px-4 text-sm font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/portfolio"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">folder_managed</span>Danh mục đồ án</SpotlightLink>
-      <SpotlightLink className="flex min-h-16 items-center gap-3 bg-card px-4 text-sm font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/projects/review"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">rule</span>Thẩm định đề cương</SpotlightLink>
-      <SpotlightLink className="flex min-h-16 items-center gap-3 bg-card px-4 text-sm font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/supervisors"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">supervisor_account</span>Giảng viên hướng dẫn</SpotlightLink>
-      <a className="flex min-h-16 items-center gap-3 bg-card px-4 text-sm font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" href="#periods"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">date_range</span>Kỳ đồ án</a>
-      <Link className="flex min-h-16 items-center bg-card px-4 text-sm font-semibold text-primary hover:bg-primary-subtle" to="/department/student-qualifications">Xác minh điều kiện sinh viên</Link>
-      <Link className="flex min-h-16 items-center bg-card px-4 text-sm font-semibold text-primary hover:bg-primary-subtle" to="/department/topics">Quản lý đề tài</Link>
-      <Link className="flex min-h-16 items-center bg-card px-4 text-sm font-semibold text-primary hover:bg-primary-subtle" to="/academic/governance">Học kỳ và chính sách</Link>
-      <Link className="flex min-h-16 items-center bg-card px-4 text-sm font-semibold text-primary hover:bg-primary-subtle" to="/academic/rubrics">Rubric đánh giá</Link>
-      <Link className="flex min-h-16 items-center bg-card px-4 text-sm font-semibold text-primary hover:bg-primary-subtle" to="/department/cold-templates">Bộ report chấm nguội theo ngành</Link>
+      <SpotlightLink className="flex min-h-16 items-center gap-3 bg-card px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/projects/progress-matrix"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">view_timeline</span>Ma trận Tiến độ Gates</SpotlightLink>
+      <SpotlightLink className="flex min-h-16 items-center gap-3 bg-card px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/academic/review-gates"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">rule_settings</span>Chính sách Review Gates</SpotlightLink>
+      <SpotlightLink className="flex min-h-16 items-center gap-3 bg-card px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/portfolio"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">folder_managed</span>Danh mục đồ án</SpotlightLink>
+      <SpotlightLink className="flex min-h-16 items-center gap-3 bg-card px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/projects/review"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">rule</span>Thẩm định đề cương</SpotlightLink>
+      <SpotlightLink className="flex min-h-16 items-center gap-3 bg-card px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/supervisors"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">supervisor_account</span>Giảng viên hướng dẫn</SpotlightLink>
+      <a className="flex min-h-16 items-center gap-3 bg-card px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" href="#periods"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">date_range</span>Kỳ đồ án</a>
+      <Link className="flex min-h-16 items-center bg-card px-4 text-xs font-semibold text-primary hover:bg-primary-subtle" to="/department/student-qualifications">Xác minh điều kiện sinh viên</Link>
+      <Link className="flex min-h-16 items-center bg-card px-4 text-xs font-semibold text-primary hover:bg-primary-subtle" to="/department/topics">Quản lý đề tài</Link>
+      <Link className="flex min-h-16 items-center bg-card px-4 text-xs font-semibold text-primary hover:bg-primary-subtle" to="/academic/governance">Học kỳ và chính sách</Link>
+      <Link className="flex min-h-16 items-center bg-card px-4 text-xs font-semibold text-primary hover:bg-primary-subtle" to="/academic/rubrics">Rubric đánh giá</Link>
+      <Link className="flex min-h-16 items-center bg-card px-4 text-xs font-semibold text-primary hover:bg-primary-subtle" to="/department/cold-templates">Bộ report chấm nguội theo ngành</Link>
     </nav>
 
     <section id="overview" aria-labelledby="department-overview-heading" className="space-y-3 scroll-mt-4">
       <div><p className="text-xs font-semibold text-primary">Tổng quan</p><h2 id="department-overview-heading" className="mt-1 font-heading text-xl font-bold text-ink">Tình hình hiện tại</h2></div>
       <div className="workspace-metrics">
-        <DepartmentMetric title="Chờ thẩm định" icon="fact_check" section={reviews} onRetry={reviews.refresh} value={reviews.data?.totalCount ?? 0} detail="Hồ sơ trong hàng đợi bộ môn" href="/department/projects/review" action="Xem hồ sơ" />
+        <DepartmentMetric title="Chờ thẩm định" icon="fact_check" section={reviews} onRetry={reviews.refresh} value={reviews.data?.totalCount ?? 0} detail="Đề cương chờ bộ môn phê duyệt" href="/department/projects/review" action="Xem hồ sơ" />
         <DepartmentMetric title="Đồ án quản lý" icon="folder_managed" section={portfolio} onRetry={portfolio.refresh} value={portfolio.data?.summary.totalProjects ?? 0} detail="Trong danh mục bộ môn" href="/department/portfolio" action="Xem danh mục" />
         <DepartmentMetric title="Giảng viên" icon="supervisor_account" section={supervisors} onRetry={supervisors.refresh} value={supervisors.data?.totalCount ?? 0} detail="Hồ sơ trong danh bạ" href="/department/supervisors" action="Xem giảng viên" />
       </div>

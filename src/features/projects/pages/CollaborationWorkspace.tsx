@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { ProjectDto, SupervisorAssignmentDto, TeamDto } from '../../../types/backend'
 import { useCollaborationWorkspace, type Resource } from '../hooks/useCollaborationWorkspace'
@@ -7,6 +7,8 @@ import { WorkspaceTaskForm } from '../components/WorkspaceTaskForm'
 import type { ProjectExecutionCapabilities } from '../../execution/hooks/useProjectExecutionCapabilities'
 import './collaboration-workspace.css'
 import { TeamReflectionPanel } from '../../student-collaboration/TeamReflectionPanel'
+import { getStudentReviewTimeline } from '../../review-gates/api/review-gates-api'
+import type { StudentReviewTimelineDto } from '../../review-gates/types/review-gates.types'
 
 export function CollaborationWorkspace({ project, team, supervisor, currentUserId, executionCapabilities }: {
   project: ProjectDto; team?: TeamDto | null; supervisor?: SupervisorAssignmentDto | null; currentUserId?: number; executionCapabilities?: ProjectExecutionCapabilities
@@ -44,6 +46,24 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
   const isLoading = [data.timeline, data.summary, data.feedback, data.deliverables, data.meetings].some(item => item.state === 'loading')
   const progress = summary ? Math.max(0, Math.min(100, summary.progressPercentage)) : null
 
+  const [reviewTimeline, setReviewTimeline] = useState<StudentReviewTimelineDto | null>(null)
+
+  useEffect(() => {
+    let active = true
+    getStudentReviewTimeline(String(project.id))
+      .then((res) => {
+        if (active) setReviewTimeline(res)
+      })
+      .catch(() => {
+        // Silently skip if gates are unconfigured
+      })
+    return () => {
+      active = false
+    }
+  }, [project.id])
+
+  const activeGate = reviewTimeline?.gates.find((g) => g.code === reviewTimeline.currentGateCode) || reviewTimeline?.gates[0]
+
   return <div className="collaboration-workspace">
     <header className="cw-page-heading">
       <div><p className="cw-eyebrow">{team?.name || project.teamName || 'Nhóm đồ án'} <span> / </span> {project.code}</p>
@@ -62,6 +82,117 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
     </section>
 
     <TeamReflectionPanel projectId={project.id} studentId={currentUserId} audience="student" />
+
+    {activeGate && (
+      <section
+        className={`mb-6 rounded-xl border p-4 shadow-xs transition-all ${
+          activeGate.status === 'REVISION_REQUIRED'
+            ? 'border-amber-300 bg-amber-50/80 text-amber-900'
+            : activeGate.status === 'IN_REVIEW'
+            ? 'border-blue-300 bg-blue-50/80 text-blue-900'
+            : activeGate.status === 'PASSED'
+            ? 'border-emerald-300 bg-emerald-50/80 text-emerald-900'
+            : 'border-slate-200 bg-white text-slate-800'
+        }`}
+        aria-label="Cổng kiểm soát tiến độ Review Gate"
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span
+              className={`material-symbols-outlined mt-0.5 rounded-lg p-2 text-xl ${
+                activeGate.status === 'REVISION_REQUIRED'
+                  ? 'bg-amber-100 text-amber-700'
+                  : activeGate.status === 'IN_REVIEW'
+                  ? 'bg-blue-100 text-blue-700'
+                  : activeGate.status === 'PASSED'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-slate-100 text-slate-700'
+              }`}
+              aria-hidden="true"
+            >
+              {activeGate.status === 'REVISION_REQUIRED'
+                ? 'warning'
+                : activeGate.status === 'IN_REVIEW'
+                ? 'schedule'
+                : activeGate.status === 'PASSED'
+                ? 'check_circle'
+                : 'flag_circle'}
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-md bg-slate-900 px-2 py-0.5 text-xs font-bold text-white">
+                  {activeGate.code}
+                </span>
+                <strong className="text-sm font-bold text-slate-900">
+                  {activeGate.title}
+                </strong>
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-bold border ${
+                    activeGate.status === 'REVISION_REQUIRED'
+                      ? 'border-amber-300 bg-amber-100 text-amber-800'
+                      : activeGate.status === 'IN_REVIEW'
+                      ? 'border-blue-300 bg-blue-100 text-blue-800'
+                      : activeGate.status === 'PASSED'
+                      ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
+                      : 'border-slate-200 bg-slate-100 text-slate-700'
+                  }`}
+                >
+                  {activeGate.status === 'REVISION_REQUIRED'
+                    ? 'YÊU CẦU CHỈNH SỬA'
+                    : activeGate.status === 'IN_REVIEW'
+                    ? 'ĐANG THẨM ĐỊNH'
+                    : activeGate.status === 'PASSED'
+                    ? 'ĐÃ ĐẠT (PASSED)'
+                    : activeGate.status === 'PLANNED'
+                    ? 'KẾ HOẠCH'
+                    : activeGate.status}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-slate-600">
+                {activeGate.status === 'REVISION_REQUIRED'
+                  ? 'Hội đồng thẩm định yêu cầu cập nhật lại các minh chứng chưa đạt trước khi chốt kết quả.'
+                  : activeGate.status === 'IN_REVIEW'
+                  ? 'Hồ sơ đang trong phiên thẩm định của Hội đồng. Vui lòng theo dõi phản hồi.'
+                  : activeGate.status === 'PASSED'
+                  ? 'Nhóm đã hoàn thành các tiêu chí kiểm soát chất lượng của cổng này.'
+                  : `Thời gian dự kiến: ${activeGate.windowStart} - ${activeGate.windowEnd}`}
+                {activeGate.blockingReasons.length > 0 && (
+                  <span className="block mt-1 font-semibold text-rose-700">
+                    Trở ngại: {activeGate.blockingReasons[0].message}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 sm:self-center">
+            {isTeamLeader ? (
+              <Link
+                to="/project/timeline"
+                className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-emerald-700 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-emerald-800 transition"
+              >
+                <span>Xem Dòng thời gian & Nộp minh chứng</span>
+                <span className="material-symbols-outlined text-base leading-none" aria-hidden="true">
+                  arrow_forward
+                </span>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 italic">Chế độ xem</span>
+                <Link
+                  to="/project/timeline"
+                  className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition"
+                >
+                  <span>Xem chi tiết cổng</span>
+                  <span className="material-symbols-outlined text-base leading-none" aria-hidden="true">
+                    arrow_forward
+                  </span>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+    )}
     {created && <p className="cw-success" role="status"><Icon name="check_circle" />Đã tạo công việc.</p>}
     {creating && (data.timeline.state === 'ready' && editableMilestones.length ? <WorkspaceTaskForm project={project} milestones={editableMilestones} members={members}
       onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); data.reload() }} />

@@ -68,6 +68,7 @@ export function LecturerWorkspacePage() {
             {canOpen ? <nav className="lecturer-project-actions" aria-label={`Chức năng đồ án ${project?.code ?? assignment.projectId}`}>
               <Link className="lecturer-action lecturer-action-primary" to={`/supervisor/projects/${assignment.projectId}/workspace`}>Tổng quan đồ án <span aria-hidden="true">→</span></Link>
               <Link className="lecturer-action" to={`/supervisor/projects/${assignment.projectId}/tasks`}>Công việc</Link>
+              <Link className="lecturer-action" to={`/supervisor/projects/${assignment.projectId}/review-gates`}>Tiến trình Gates</Link>
               <Link className="lecturer-action" to={`/supervisor/projects/${assignment.projectId}/reports`}>Báo cáo tiến độ</Link>
               <Link className="lecturer-action" to={`/supervisor/projects/${assignment.projectId}/meetings`}>Lịch họp</Link>
               <Link className="lecturer-action" to={`/supervisor/projects/${assignment.projectId}/deliverables`}>Hạng mục cần nộp</Link>
