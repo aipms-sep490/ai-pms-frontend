@@ -758,6 +758,13 @@ class ReviewGatesMockAdapter {
   async saveTemplate(template: ReviewGateTemplate): Promise<ReviewGateTemplate> {
     const idx = this.templates.findIndex(t => t.id === template.id)
     if (idx !== -1) {
+      if (this.templates[idx].status === 'PUBLISHED') {
+        const currentGatesStr = JSON.stringify(this.templates[idx].gates)
+        const newGatesStr = JSON.stringify(template.gates)
+        if (currentGatesStr !== newGatesStr) {
+          throw new Error('403: Không thể sửa đổi cấu trúc đợt thẩm định của mẫu chính sách đã công bố (PUBLISHED). Hãy tạo bản nháp hoặc phiên bản mới.')
+        }
+      }
       if (this.templates[idx].concurrencyToken !== template.concurrencyToken) {
         throw new Error('409: Dữ liệu mẫu tiến trình đã được cập nhật bởi quản trị viên khác. Hãy tải lại trang.')
       }

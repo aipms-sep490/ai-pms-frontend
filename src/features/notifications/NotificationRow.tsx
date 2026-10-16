@@ -6,6 +6,33 @@ import type { NotificationItem } from './notifications-api'
 import { notificationCopy, notificationTime } from './notification-copy'
 import './notifications.css'
 
+export function resolveReviewGateNotificationLink(
+  notificationType: string,
+  roles: readonly string[],
+): { url: string; label: string } | null {
+  if (
+    notificationType.startsWith('GATE_') ||
+    notificationType.startsWith('REVIEW_') ||
+    notificationType.startsWith('DISCIPLINE_') ||
+    notificationType === 'EVIDENCE_VERIFIED' ||
+    notificationType === 'DEFENSE_READINESS_CHANGED'
+  ) {
+    if (roles.includes('STUDENT')) {
+      return { url: '/project/timeline', label: 'Mở tiến trình Review Gate' }
+    } else if (
+      roles.includes('LECTURER') &&
+      (notificationType.includes('ASSIGNED') || notificationType.includes('SUBMITTED'))
+    ) {
+      return { url: '/review/gate-assignments', label: 'Mở hàng đợi thẩm định' }
+    } else if (roles.includes('LECTURER')) {
+      return { url: '/supervision/my-projects', label: 'Mở đồ án theo dõi' }
+    } else if (roles.includes('DEPARTMENT_STAFF') || roles.includes('ADMIN')) {
+      return { url: '/department/projects/progress-matrix', label: 'Mở ma trận tiến trình' }
+    }
+  }
+  return null
+}
+
 export function NotificationRow({ item, busy, onRead, compact = false }: { item: NotificationItem; busy: boolean; onRead: () => void; compact?: boolean }) {
   const copy = notificationCopy(item)
   const auth = useContext(AuthSessionContext)
@@ -16,22 +43,8 @@ export function NotificationRow({ item, busy, onRead, compact = false }: { item:
   let actionLink: { url: string; label: string } | null = null
   if (appealLink) {
     actionLink = { url: appealLink, label: 'Xem yêu cầu phúc khảo' }
-  } else if (
-    item.notificationType.startsWith('GATE_') ||
-    item.notificationType.startsWith('REVIEW_') ||
-    item.notificationType.startsWith('DISCIPLINE_') ||
-    item.notificationType === 'EVIDENCE_VERIFIED' ||
-    item.notificationType === 'DEFENSE_READINESS_CHANGED'
-  ) {
-    if (roles.includes('STUDENT')) {
-      actionLink = { url: '/project/timeline', label: 'Mở tiến trình Review Gate' }
-    } else if (roles.includes('LECTURER') && (item.notificationType.includes('ASSIGNED') || item.notificationType.includes('SUBMITTED'))) {
-      actionLink = { url: '/review/gate-assignments', label: 'Mở hàng đợi thẩm định' }
-    } else if (roles.includes('LECTURER')) {
-      actionLink = { url: '/supervision/my-projects', label: 'Mở đồ án theo dõi' }
-    } else if (roles.includes('DEPARTMENT_STAFF') || roles.includes('ADMIN')) {
-      actionLink = { url: '/department/projects/progress-matrix', label: 'Mở ma trận tiến trình' }
-    }
+  } else {
+    actionLink = resolveReviewGateNotificationLink(item.notificationType, roles)
   }
 
   return <li className={`notification-row ${item.isRead ? '' : 'notification-row--unread'} ${compact ? 'notification-row--compact' : ''}`}>
