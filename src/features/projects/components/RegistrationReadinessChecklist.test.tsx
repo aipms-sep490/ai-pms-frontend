@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { RegistrationReadinessChecklist } from './RegistrationReadinessChecklist'
+import { MemoryRouter } from 'react-router-dom'
 
 afterEach(() => { cleanup() })
 
@@ -11,10 +12,11 @@ describe('RegistrationReadinessChecklist', () => {
   })
 
   it('renders one item per reason code, resolving dynamic codes', () => {
-    render(<RegistrationReadinessChecklist reasons={['SUPERVISOR_NOT_CONFIRMED', 'MENTOR_NOT_CONFIRMED:9']}
-      resolveMajorName={(majorId) => majorId === 9 ? 'Trí tuệ nhân tạo' : undefined} />)
+    render(<MemoryRouter><RegistrationReadinessChecklist reasons={['SUPERVISOR_NOT_CONFIRMED', 'MENTOR_NOT_CONFIRMED:9']}
+      resolveMajorName={(majorId) => majorId === 9 ? 'Trí tuệ nhân tạo' : undefined} /></MemoryRouter>)
     expect(screen.getByText('Chưa có giảng viên hướng dẫn chính xác nhận lời mời.')).toBeTruthy()
     expect(screen.getByText('Chưa có Mentor xác nhận cho ngành Trí tuệ nhân tạo.')).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Mời giảng viên hướng dẫn/ }).getAttribute('href')).toBe('/project/supervisor')
   })
 
   it('exposes the checklist as a named status region for assistive tech', () => {

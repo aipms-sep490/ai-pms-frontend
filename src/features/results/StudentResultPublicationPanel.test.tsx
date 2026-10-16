@@ -6,18 +6,18 @@ vi.mock('../../services/api/project-results.api', () => api)
 vi.mock('../../services/api/evaluations.api', () => api)
 beforeEach(() => { api.getEvaluationSchemes.mockResolvedValue([{ status: 'PUBLISHED', students: [{ studentId: 9 }, { studentId: 10 }] }]); api.getStudentResult.mockResolvedValue(null); api.getStudentResultPreview.mockResolvedValue({ canPublish: true, confirmationToken: 'preview-9', blockers: [], totalScore: 8, passThreshold: 5, outcome: 'PASS' }); api.publishStudentResult.mockResolvedValue({ totalScore: 8, outcome: 'PASS' }) })
 afterEach(() => { cleanup(); vi.clearAllMocks() })
-async function preview() { fireEvent.change(await screen.findByRole('combobox'), { target: { value: '9' } }); await screen.findByRole('option', { name: 'Sinh viên #9' }); fireEvent.click(screen.getByRole('button', { name: 'Xem trước kết quả' })); return screen.findByRole('button', { name: 'Công bố kết quả sinh viên' }) }
+async function preview() { fireEvent.change(await screen.findByRole('combobox'), { target: { value: '9' } }); await screen.findByRole('option', { name: 'Nguyễn An' }); fireEvent.click(screen.getByRole('button', { name: 'Xem trước kết quả' })); return screen.findByRole('button', { name: 'Công bố kết quả sinh viên' }) }
 it('publishes the server preview token only after confirmation', async () => {
-  render(<StudentResultPublicationPanel projectId={2} />)
-  await screen.findByRole('option', { name: 'Sinh viên #9' })
+  render(<StudentResultPublicationPanel projectId={2} studentNames={{ 9: 'Nguyễn An', 10: 'Trần Bình' }} />)
+  await screen.findByRole('option', { name: 'Nguyễn An' })
   fireEvent.click(await preview())
   expect(api.publishStudentResult).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: 'Công bố kết quả' }))
   await waitFor(() => expect(api.publishStudentResult).toHaveBeenCalledWith(2, 9, 'preview-9'))
 })
 it('clears the preview when another student is selected', async () => {
-  render(<StudentResultPublicationPanel projectId={2} />)
-  await screen.findByRole('option', { name: 'Sinh viên #9' }); await preview()
+  render(<StudentResultPublicationPanel projectId={2} studentNames={{ 9: 'Nguyễn An', 10: 'Trần Bình' }} />)
+  await screen.findByRole('option', { name: 'Nguyễn An' }); await preview()
   fireEvent.change(screen.getByRole('combobox'), { target: { value: '10' } })
   expect(screen.queryByRole('button', { name: 'Công bố kết quả sinh viên' })).toBeNull()
   expect(api.publishStudentResult).not.toHaveBeenCalled()

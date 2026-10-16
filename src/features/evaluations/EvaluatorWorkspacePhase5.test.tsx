@@ -10,7 +10,7 @@ import { EvaluatorAssignmentRoute } from './components/EvaluatorAssignmentRoute'
 import { EvaluatorWorkspacePage } from './pages/EvaluatorWorkspacePage'
 import { EvaluatorAssignmentDetailPage } from './pages/EvaluatorAssignmentDetailPage'
 
-const assignment = { id: 41, projectId: 9, evaluatorId: 5, rubricId: 7, projectPeriodId: 3, departmentId: 2, evaluationType: 'LECTURER' as const, status: 'ACTIVE' as const, assignedBy: 1, assignedAt: '2026-10-02T00:00:00Z', revokedAt: null, concurrencyToken: 'assignment-token', scope: 'MAJOR_SPECIFIC' as const, majorId: 8, studentId: null, componentId: 11, policyVersionId: 4 }
+const assignment = { projectTitle: "StudySpace SE28", componentName: "Chuyên môn IT", rubricName: "Đánh giá phần mềm", majorName: "Công nghệ thông tin", studentName: "Nguyễn An", id: 41, projectId: 9, evaluatorId: 5, rubricId: 7, projectPeriodId: 3, departmentId: 2, evaluationType: 'LECTURER' as const, status: 'ACTIVE' as const, assignedBy: 1, assignedAt: '2026-10-02T00:00:00Z', revokedAt: null, concurrencyToken: 'assignment-token', scope: 'MAJOR_SPECIFIC' as const, majorId: 8, studentId: null, componentId: 11, policyVersionId: 4 }
 const draft = { id: 51, assignmentId: 41, projectId: 9, evaluatorId: 5, rubricId: 7, rubricName: 'Rubric hệ thống', rootRubricId: 7, rubricVersion: 2, evaluationType: 'LECTURER', status: 'DRAFT', comments: null, totalScore: null, scoreScale: 10, calculationRule: 'WEIGHTED_10', missingCriterionIds: [12], missingRequiredCriterionIds: [12], concurrencyToken: 'draft-token', createdAt: '2026-10-02T00:00:00Z', updatedAt: '2026-10-02T00:00:00Z', finalization: null, scores: [{ rubricCriterionId: 12, name: 'Phân tích', description: 'Căn cứ rõ ràng', weightPercent: 100, maxScore: 10, sortOrder: 1, isRequired: true, score: null, comments: null }] }
 const page = (path = '/evaluator/assignments/41') => render(<RouterProvider router={createMemoryRouter([
   { path: '/evaluator/workspace', element: <EvaluatorWorkspacePage /> },
@@ -86,9 +86,9 @@ describe('Evaluator Workspace Phase 5', () => {
     api.getAllMyEvaluationAssignments.mockResolvedValue([assignment, { ...assignment, id: 42, scope: 'COMMON', majorId: null, studentId: null }, { ...assignment, id: 43, scope: 'INDIVIDUAL', majorId: 8, studentId: 99 }])
     api.getProjectEvaluations.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
     page('/evaluator/workspace')
-    expect(await screen.findByText(/Ngành được phân công #8/)).toBeTruthy()
+    expect(await screen.findByText(/Công nghệ thông tin/)).toBeTruthy()
     expect(screen.getByText('Phạm vi chung của đồ án')).toBeTruthy()
-    expect(screen.getByText(/Sinh viên được phân công #99/)).toBeTruthy()
+    expect(screen.getByText(/Nguyễn An/)).toBeTruthy()
     expect(screen.queryByRole('button', { name: /đổi ngành|đổi sinh viên/i })).toBeNull()
   })
 
@@ -116,7 +116,7 @@ describe('Evaluator Workspace Phase 5', () => {
     api.getProjectEvaluations.mockRejectedValue(new Error('offline'))
     page()
     expect(await screen.findByText(/Chưa tải được bản nháp đánh giá/)).toBeTruthy()
-    expect(screen.getByText('Phân công #41')).toBeTruthy()
+    expect(screen.getByText('Chuyên môn IT')).toBeTruthy()
   })
 
   it('creates a draft only for the guarded assignment and uses leaf criteria for saving', async () => {
@@ -160,7 +160,7 @@ describe('Evaluator Workspace Phase 5', () => {
     expect(score.disabled).toBe(true)
     expect(screen.queryByRole('button', { name: 'Yêu cầu chốt đánh giá' })).toBeNull()
     expect(screen.getByText(/Số hạng mục bàn giao: 2/)).toBeTruthy()
-    expect(screen.getByText(/Thông tin bàn giao dưới đây chỉ để đối chiếu/)).toBeTruthy()
+    expect(screen.getByText(/Tài liệu được hiển thị tại mục Báo cáo của sinh viên/)).toBeTruthy()
     expect(screen.getByText(/Kết quả chính thức được bộ môn công bố sau khi hoàn tất đánh giá/)).toBeTruthy()
   })
 

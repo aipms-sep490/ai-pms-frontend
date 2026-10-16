@@ -1,4 +1,10 @@
-import { useContext, useState } from 'react'
+import { getReviewDetail } from '../projects/api/project-review-api'
+import { useAuthSession } from '../auth/context/useAuthSession'
+import { getAcademicHierarchy } from '../academic/api/academic-api'
+import { getProjectPeriods } from '../academic/api/governance-api'
+import { readAllPages } from '../../services/api/paged-read'
+import { getProjects } from '../../services/api/projects.api'
+import { useContext, useEffect, useState } from 'react'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { HttpError } from '../../services/http/http-client'
 import { createColdTemplate, getColdTemplateItExample, getColdTemplates } from '../../services/api/cold-templates.api'
@@ -34,8 +40,22 @@ function errorMessage(reason: unknown): string {
 export function ColdTemplateManagementPage() {
   const academicContext = useContext(AcademicWorkflowContext)
   const currentDepartment = academicContext?.academic?.departments?.[0]
-  const availableMajors = academicContext?.academic?.majors ?? []
-  const availablePeriods = academicContext?.academic?.periods ?? []
+  const { session } = useAuthSession()
+  const [availableMajors, setMajors] = useState<Array<{ id: number; name: string; code: string }>>([])
+  const [availablePeriods, setPeriods] = useState<Array<{ id: number; name: string; code: string; periodType: string }>>([])
+  const [availableProjects, setProjects] = useState<Array<{ id: number; title: string; code: string }>>([])
+  const [catalogError, setCatalogError] = useState('')
+  useEffect(() => {
+    let active = true
+    if (!session) return
+    void Promise.all([getAcademicHierarchy(session.accessToken, { search: '', includeInactive: false }), readAllPages(page => getProjectPeriods(session.accessToken, { search: '' }, undefined, page)), readAllPages(page => getProjects({ page, pageSize: 100 }))]).then(([hierarchy, periods, projects]) => {
+      if (!active) return
+      setMajors(hierarchy.flatMap(o => o.departments).filter(d => !currentDepartment || d.department.id === currentDepartment.id).flatMap(d => d.majors))
+      setPeriods(periods.filter(p => p.periodType === 'EVALUATION' || p.periodType === 'FINAL_SUBMISSION'))
+      setProjects(projects)
+    }).catch(() => { if (active) setCatalogError('Chưa tải được danh sách ngành và kỳ. Hãy tải lại trang.') })
+    return () => { active = false }
+  }, [session, currentDepartment])
 
   const [majorId, setMajorId] = useState('')
   const [projectPeriodId, setProjectPeriodId] = useState('')
@@ -51,6 +71,16 @@ export function ColdTemplateManagementPage() {
 
   // Apply template to project state
   const [applyProjectId, setApplyProjectId] = useState('')
+  const [students, setStudents] = useState<Array<{ userId: number; fullName: string }>>([])
+  useEffect(() => {
+    let active = true
+    setStudents([])
+    setTargetRows(current => current.map(row => ({ ...row, studentId: '' })))
+    if (applyProjectId && session) void getReviewDetail(Number(applyProjectId), session.accessToken).then(review => {
+      if (active) setStudents(review.latestSubmission?.evidence.members ?? [])
+    }).catch(() => { if (active) setApplyError('Chưa tải được danh sách sinh viên của đồ án. Hãy chọn lại đồ án.') })
+    return () => { active = false }
+  }, [applyProjectId, session])
   const [applyPeriodId, setApplyPeriodId] = useState('')
   const [applyDeadline, setApplyDeadline] = useState('')
   const [targetRows, setTargetRows] = useState<TargetRow[]>([emptyTargetRow()])
@@ -107,7 +137,7 @@ export function ColdTemplateManagementPage() {
       setTemplates((current) => [created, ...(current ?? [])])
       setName('')
       setRows([emptyRow()])
-      setCreateSuccess(`Đã tạo thành công template "${created.name}" (phiên bản v${created.version}) với ID #${created.id}.`)
+      setCreateSuccess(`Đã tạo thành công template "${created.name}" (phiên bản v${created.version}).`)
     } catch (reason) {
       setCreateError(errorMessage(reason))
     } finally {
@@ -152,10 +182,12 @@ export function ColdTemplateManagementPage() {
         deadline: new Date(applyDeadline).toISOString(),
         targets: validTargets,
       })
-      setApplySuccess(`Áp dụng checklist thành công cho đồ án #${pId} (ID checklist: ${result.id}, tổng ${result.items.length} mục)`)
+      setApplySuccess(`Đã áp dụng checklist cho đồ án. Tổng số hạng mục: ${result.items.length}.`)
     } catch (reason) {
       if (reason instanceof HttpError) {
-        setApplyError(reason.message || `Lỗi ${reason.status}: Không thể áp checklist.`)
+        setApplyError(reason.message?.includes('checklist is applied once')
+          ? 'Đồ án này đã được áp checklist COLD. Mỗi đồ án chỉ áp dụng một lần; phạm vi và hạn nộp đã được khóa.'
+          : reason.message || `Lỗi ${reason.status}: Không thể áp checklist.`)
       } else {
         setApplyError('Không thể áp dụng checklist. Hãy kiểm tra thông tin.')
       }
@@ -208,7 +240,7 @@ export function ColdTemplateManagementPage() {
                   <option value="">-- Chọn ngành trực thuộc khoa --</option>
                   {availableMajors.map((m) => (
                     <option key={m.id} value={m.id}>
-                      [{m.code}] {m.name} (Mã ngành ID: #{m.id})
+                      [{m.code}] {m.name} 
                     </option>
                   ))}
                 </select>
@@ -229,7 +261,7 @@ export function ColdTemplateManagementPage() {
                     const isEligible = p.periodType === 'EVALUATION' || p.periodType === 'FINAL_SUBMISSION'
                     return (
                       <option key={p.id} value={p.id}>
-                        [{p.periodType}] {p.name} (#{p.id}) {isEligible ? '— [Hợp lệ cho COLD]' : '— [Chỉ đọc/Khác]'}
+                        [{p.periodType}] {p.name}  {isEligible ? '— [Hợp lệ cho COLD]' : '— [Chỉ đọc/Khác]'}
                       </option>
                     )
                   })}
@@ -240,36 +272,27 @@ export function ColdTemplateManagementPage() {
         )}
       </section>
 
+      {catalogError && <p role="alert">{catalogError}</p>}
       {/* KHUÔN 1: Tra cứu & Danh sách Templates */}
       <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-3">
           <div>
             <h2 className="text-base font-bold text-ink">Khuôn 1: Tra cứu template đã có</h2>
-            <p className="text-xs text-ink-muted">Nhập Mã ngành và Mã kỳ đồ án để xem các bộ template đã được tạo.</p>
+            <p className="text-xs text-ink-muted">Chọn ngành và kỳ đồ án để xem các bộ template đã được tạo.</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-3">
           <label className="text-sm font-semibold text-ink-soft">
-            Mã ngành
-            <input
-              type="number"
-              className="mt-1 block w-full rounded-lg border border-hairline p-2 text-sm"
-              placeholder="VD: 20002"
-              value={majorId}
-              onChange={(event) => setMajorId(event.target.value)}
-            />
+            Ngành áp dụng
+            <select className="mt-1 block w-full rounded-lg border border-hairline bg-card p-2 text-sm" value={majorId} onChange={(event) => setMajorId(event.target.value)}><option value="">-- Chọn ngành --</option>{availableMajors.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.code})</option> )}</select>
           </label>
+
           <label className="text-sm font-semibold text-ink-soft">
-            Mã kỳ đồ án
-            <input
-              type="number"
-              className="mt-1 block w-full rounded-lg border border-hairline p-2 text-sm"
-              placeholder="VD: 20003"
-              value={projectPeriodId}
-              onChange={(event) => setProjectPeriodId(event.target.value)}
-            />
+            Kỳ đồ án áp dụng
+            <select className="mt-1 block w-full rounded-lg border border-hairline bg-card p-2 text-sm" value={projectPeriodId} onChange={(event) => setProjectPeriodId(event.target.value)}><option value="">-- Chọn kỳ đồ án --</option>{availablePeriods.filter(p => p.periodType === 'EVALUATION' || p.periodType === 'FINAL_SUBMISSION').map(p => <option key={p.id} value={p.id}>{p.name} ({p.code})</option> )}</select>
           </label>
+
           <button
             type="button"
             className="min-h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
@@ -442,24 +465,12 @@ export function ColdTemplateManagementPage() {
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <label className="text-sm font-semibold text-ink-soft">
-            Mã đồ án (Project ID)
-            <input
-              type="number"
-              className="mt-1 block w-full rounded-lg border border-hairline p-2 text-sm"
-              value={applyProjectId}
-              placeholder="VD: 101"
-              onChange={(e) => setApplyProjectId(e.target.value)}
-            />
+            Đồ án áp dụng
+            <select className="mt-1 block w-full rounded-lg border border-hairline bg-card p-2 text-sm" value={applyProjectId} onChange={(e) => setApplyProjectId(e.target.value)}><option value="">-- Chọn đồ án --</option>{availableProjects.map(p => <option key={p.id} value={p.id}>{p.title} ({p.code})</option>)}</select>
           </label>
           <label className="text-sm font-semibold text-ink-soft">
-            Mã kỳ áp dụng
-            <input
-              type="number"
-              className="mt-1 block w-full rounded-lg border border-hairline p-2 text-sm"
-              value={applyPeriodId || projectPeriodId}
-              placeholder="VD: 20003"
-              onChange={(e) => setApplyPeriodId(e.target.value)}
-            />
+            Kỳ áp dụng
+            <select className="mt-1 block w-full rounded-lg border border-hairline bg-card p-2 text-sm" value={applyPeriodId || projectPeriodId} onChange={(e) => setApplyPeriodId(e.target.value)}><option value="">-- Chọn kỳ --</option>{availablePeriods.map(p => <option key={p.id} value={p.id}>{p.name} ({p.code})</option>)}</select>
           </label>
           <label className="text-sm font-semibold text-ink-soft">
             Hạn nộp báo cáo (Deadline)
@@ -476,13 +487,7 @@ export function ColdTemplateManagementPage() {
           <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Danh sách target templates</h3>
           {targetRows.map((target, idx) => (
             <div key={idx} className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-canvas p-2.5">
-              <input
-                type="number"
-                placeholder="Template ID"
-                className="w-32 rounded-md border border-hairline p-1.5 text-sm font-mono"
-                value={target.templateId}
-                onChange={(e) => updateTargetRow(idx, { templateId: e.target.value })}
-              />
+              <select className="min-w-56 rounded-md border border-hairline bg-card p-1.5 text-sm" value={target.templateId} onChange={(e) => updateTargetRow(idx, { templateId: e.target.value })}><option value="">-- Chọn template --</option>{(templates ?? []).map(t => <option key={t.id} value={t.id}>{t.name} (v{t.version})</option>)}</select>
               <select
                 className="rounded-md border border-hairline bg-canvas p-1.5 text-sm"
                 value={target.scope}
@@ -493,13 +498,7 @@ export function ColdTemplateManagementPage() {
                 <option value="INDIVIDUAL">INDIVIDUAL (Cá nhân)</option>
               </select>
               {target.scope === 'INDIVIDUAL' && (
-                <input
-                  type="number"
-                  placeholder="Student ID"
-                  className="w-32 rounded-md border border-hairline p-1.5 text-sm font-mono"
-                  value={target.studentId}
-                  onChange={(e) => updateTargetRow(idx, { studentId: e.target.value })}
-                />
+                <select aria-label="Sinh viên được áp dụng" className="rounded-md border border-hairline bg-card p-1.5 text-sm" value={target.studentId} onChange={(e) => updateTargetRow(idx, { studentId: e.target.value })}><option value="">-- Chọn sinh viên --</option>{students.map(student => <option key={student.userId} value={student.userId}>{student.fullName}</option>)}</select>
               )}
               <button
                 type="button"

@@ -55,7 +55,7 @@ describe('EvaluatorAssignmentManagementPage', () => {
     else capabilitiesApi.getMyCapabilities.mockRejectedValue(new HttpError('Unavailable', 503))
     api.getProjectEvaluationAssignments.mockResolvedValue({ items: [{ id: 8, evaluatorId: 6, projectPeriodId: 7, rubricId: 4, departmentId: 1, evaluationType: 'LECTURER', status: 'ACTIVE', assignedAt: '2026-10-09', concurrencyToken: 't' }], page: 1, totalCount: 1 })
     renderPage()
-    await screen.findByText('#8 · giảng viên #6')
+    await screen.findByText(/Giảng viên được phân công/)
     expect(screen.queryByRole('heading', { name: 'Phân công mới' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Thu hồi' })).toBeNull()
     expect(api.getEligibleEvaluators).not.toHaveBeenCalled()
@@ -109,3 +109,4 @@ describe('EvaluatorAssignmentManagementPage', () => {
     expect(screen.getByText('1/2 người chấm')).toBeTruthy()
   })
 })
+

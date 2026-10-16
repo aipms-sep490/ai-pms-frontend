@@ -73,6 +73,9 @@ export function toProjectForm(project: ProjectDto | null): ProjectRegistrationFo
 
 export function classifyProjectError(reason: unknown): ProjectRegistrationError {
   if (reason instanceof HttpError) {
+    if (reason.status === 409 && reason.message.includes('active eligibility check snapshot')) return {
+      kind: 'validation', message: 'Nhóm chưa có kết quả kiểm tra điều kiện còn hiệu lực. Vào Thành viên nhóm → Lịch sử kiểm tra điều kiện nhóm → Kiểm tra điều kiện, rồi quay lại nộp đề cương.',
+    }
     if (reason.status === 401) return { kind: 'authentication', message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' }
     if (reason.status === 403) return { kind: 'forbidden', message: 'Bạn không có quyền hoặc phạm vi truy cập cho thao tác này.' }
     if (reason.status === 404) return { kind: 'not-found', message: 'Không tìm thấy hồ sơ đề tài trong phạm vi truy cập của bạn.' }
@@ -140,7 +143,7 @@ export function useProjectRegistration({
   const loadHistory = useCallback(async () => {
     if (!project) { setHistory([]); return }
     setHistoryLoading(true)
-    try { setHistory(await services.project.getHistory(project.id)); setError(null) }
+    try { setHistory(await services.project.getHistory(project.id)) }
     catch (reason) { setError(classifyProjectError(reason)) }
     finally { setHistoryLoading(false) }
   }, [project])

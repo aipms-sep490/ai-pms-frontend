@@ -1,10 +1,11 @@
+import { getProjectEvaluationAssignments } from '../../services/api/evaluations.api'
+import { readAllPages } from '../../services/api/paged-read'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { projectEvaluationPaths } from '../evaluations/project-evaluation-paths'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { Button } from '../../components/ui/Button'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
-import { useAcademicWorkflow } from '../../app/context/useAcademicWorkflow'
 import * as results from '../../services/api/project-results.api'
 import { HttpError } from '../../services/http/http-client'
 import { departmentError } from '../department/hooks/useDepartmentSection'
@@ -22,8 +23,22 @@ const leadPublicationMessage = 'Chỉ khoa chủ trì được công bố kết 
 
 export function ResultPublicationPage() {
   const projectId = Number(useParams().projectId)
+  const [labels, setLabels] = useState<{ project: string; majors: Record<number, string>; students: Record<number, string> }>({ project: '', majors: {}, students: {} })
+  useEffect(() => {
+    let active = true
+    setLabels({ project: '', majors: {}, students: {} })
+    void readAllPages(page => getProjectEvaluationAssignments(projectId, undefined, undefined, page)).then(items => {
+      if (!active) return
+      const majors: Record<number, string> = {}, students: Record<number, string> = {}
+      for (const item of items) {
+        if (item.majorId && item.majorName) majors[item.majorId] = item.majorName
+        if (item.studentId && item.studentName) students[item.studentId] = item.studentName
+      }
+      setLabels({ project: items.find(item => item.projectTitle)?.projectTitle ?? '', majors, students })
+    }).catch(() => undefined)
+    return () => { active = false }
+  }, [projectId])
   const paths = projectEvaluationPaths(projectId, useLocation().pathname)
-  const { academic } = useAcademicWorkflow()
   const capabilities = useProjectCapabilities(projectId)
   const canPublish = capabilities.can('publish_project_result')
   const publicationAuthority = useRef({ projectId, data: capabilities.data, allowed: false })
@@ -76,7 +91,7 @@ export function ResultPublicationPage() {
     } finally { lock.current = false; setBusy(false) }
   }
 
-  return <WorkspacePage className="academic-capability-page" title="Công bố kết quả đồ án" eyebrow={`Đồ án #${validId ? projectId : '—'}`} description="Kiểm tra phương án đánh giá, hồ sơ bàn giao và kết quả trước khi công bố.">
+  return <WorkspacePage className="academic-capability-page" title="Công bố kết quả đồ án" eyebrow={labels.project || 'Kết quả đồ án'} description="Kiểm tra phương án đánh giá, hồ sơ bàn giao và kết quả trước khi công bố.">
     {confirmationDialog}
     {!published && <ResourcePermissionNotice loading={capabilities.loading} error={capabilities.error} allowed={canPublish} reason={capabilities.reasonLabel('publish_project_result')} onRetry={capabilities.retry} />}
     <section className="workspace-surface space-y-3 p-4 sm:p-5"><h2 className="font-heading font-semibold">Phương án đánh giá theo phạm vi</h2><p className="text-sm text-ink-muted">Trình tự kiểm tra: hồ sơ bàn giao → phương án đánh giá đã công bố → phân công và điểm của người chấm → bản xem trước → xác nhận công bố. Điểm đồ án và từng sinh viên do hệ thống tính; chính sách cũ chỉ để tra cứu lịch sử.</p>{validId && <div className="flex flex-wrap gap-3"><Link className="inline-flex min-h-11 items-center font-semibold text-primary underline" to={paths.submission}>Kiểm tra hồ sơ bàn giao</Link><Link className="inline-flex min-h-11 items-center font-semibold text-primary underline" to={paths.scheme}>Quản lý phương án đánh giá</Link><Link className="inline-flex min-h-11 items-center font-semibold text-primary underline" to={paths.evaluators}>Phân công người chấm</Link></div>}</section>
@@ -84,10 +99,10 @@ export function ResultPublicationPage() {
     <Button className="min-h-11 resource-permission-action" variant="secondary" disabled={busy || loading || !validId} onClick={() => { capabilities.retry(); void load() }}>Tải lại kết quả</Button>
     {loading && <p role="status">Đang tải kết quả và bản xem trước…</p>}
     {!loading && notice && <p role="status" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text">{notice}</p>}
-    {!loading && published && <><section className="workspace-surface space-y-2 p-5" aria-label="Kết quả đồ án đã công bố"><h2 className="font-semibold text-status-success-text">Kết quả đã công bố: {outcome(published.outcome)}</h2><p>Tổng điểm {published.totalScore} · Ngưỡng đạt {published.passThreshold}</p><p className="break-words text-sm text-ink-muted">{published.calculationRule}</p><p className="text-sm text-ink-muted">{new Date(published.publishedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</p>{published.version > 1 && <p className="rounded-lg border border-status-warning-border bg-status-warning-bg p-2 text-sm text-status-warning-text">Đây là kết quả đã đính chính — phiên bản {published.version}{published.supersedesVersion != null ? `, thay thế phiên bản ${published.supersedesVersion}` : ''}.</p>}</section><ProjectResultBreakdown breakdown={published.breakdown} contributions={published.contributions} /></>}
-    {!loading && preview && <section className="workspace-surface space-y-4 p-4 sm:p-5" aria-label="Bản xem trước kết quả"><h2 className="font-heading font-semibold">Xem trước kết quả</h2><p>Điểm: {preview.totalScore ?? '—'} · Ngưỡng: {preview.passThreshold ?? '—'} · {outcome(preview.outcome)}</p>{preview.blockers.length > 0 && <ul className="list-disc space-y-2 break-words pl-5 text-sm text-status-warning-text">{preview.blockers.map(blocker => <li key={blocker}>{blocker === 'ADMIN_REQUIRED_FOR_CROSS_DEPARTMENT_PUBLICATION' ? leadPublicationMessage : blocker}</li>)}</ul>}{!canPublish ? <p className="rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-muted">{capabilities.reasonLabel('publish_project_result')}</p> : <><label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={confirmed !== null && confirmed === capabilities.data} disabled={!canPublish || !preview.canPublish || busy} onChange={event => setConfirmed(event.target.checked ? capabilities.data : null)} />Tôi đã kiểm tra bản xem trước này và xác nhận công bố.</label><Button className="min-h-11 resource-permission-action" disabled={!canPublish || !preview.canPublish || confirmed === null || confirmed !== capabilities.data || busy} onClick={() => void publish()}>Công bố kết quả đồ án</Button>{!preview.canPublish && <p className="text-sm text-ink-muted">Cần xử lý các điều kiện còn thiếu trước khi công bố.</p>}</>}</section>}
-    {!loading && preview && <ProjectResultBreakdown breakdown={preview.breakdown} contributions={preview.contributions} />}
-    {validId && <StudentResultPublicationPanel key={projectId} projectId={projectId} departmentId={!paths.admin && academic?.departments.length === 1 ? academic.departments[0].id : undefined} />}
+    {!loading && published && <><section className="workspace-surface space-y-2 p-5" aria-label="Kết quả đồ án đã công bố"><h2 className="font-semibold text-status-success-text">Kết quả đã công bố: {outcome(published.outcome)}</h2><p>Tổng điểm {published.totalScore} · Ngưỡng đạt {published.passThreshold}</p><p className="break-words text-sm text-ink-muted">{published.calculationRule}</p><p className="text-sm text-ink-muted">{new Date(published.publishedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</p>{published.version > 1 && <p className="rounded-lg border border-status-warning-border bg-status-warning-bg p-2 text-sm text-status-warning-text">Đây là kết quả đã đính chính — phiên bản {published.version}{published.supersedesVersion != null ? `, thay thế phiên bản ${published.supersedesVersion}` : ''}.</p>}</section><ProjectResultBreakdown majorNames={labels.majors} breakdown={published.breakdown} contributions={published.contributions} /></>}
+    {!loading && preview && <section className="workspace-surface space-y-4 p-4 sm:p-5" aria-label="Bản xem trước kết quả"><h2 className="font-heading font-semibold">Xem trước kết quả</h2><p>Điểm: {preview.totalScore ?? '—'} · Ngưỡng: {preview.passThreshold ?? '—'} · {outcome(preview.outcome)}</p>{preview.blockers.length > 0 && <ul className="list-disc space-y-2 break-words pl-5 text-sm text-status-warning-text">{preview.blockers.map(blocker => <li key={blocker}>{blocker === 'ADMIN_REQUIRED_FOR_CROSS_DEPARTMENT_PUBLICATION' ? leadPublicationMessage : blocker === 'DEMO_SCHEME_NOT_OFFICIAL' ? 'Phương án minh họa chưa được phê duyệt để công bố điểm chính thức.' : blocker}</li>)}</ul>}{!canPublish ? <p className="rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-muted">{capabilities.reasonLabel('publish_project_result')}</p> : <><label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={confirmed !== null && confirmed === capabilities.data} disabled={!canPublish || !preview.canPublish || busy} onChange={event => setConfirmed(event.target.checked ? capabilities.data : null)} />Tôi đã kiểm tra bản xem trước này và xác nhận công bố.</label><Button className="min-h-11 resource-permission-action" disabled={!canPublish || !preview.canPublish || confirmed === null || confirmed !== capabilities.data || busy} onClick={() => void publish()}>Công bố kết quả đồ án</Button>{!preview.canPublish && <p className="text-sm text-ink-muted">Cần xử lý các điều kiện còn thiếu trước khi công bố.</p>}</>}</section>}
+    {!loading && preview && <ProjectResultBreakdown majorNames={labels.majors} breakdown={preview.breakdown} contributions={preview.contributions} />}
+    {validId && <StudentResultPublicationPanel key={projectId} projectId={projectId} studentNames={labels.students} />}
     {validId && published && <ResultHistoryPanel key={`${projectId}:${published.version}`} projectId={projectId} />}
     {validId && !paths.admin && env.resultCorrectionEnabled && <Link className="inline-flex min-h-11 items-center text-primary underline" to={paths.corrections}>Phúc khảo và đính chính kết quả</Link>}
   </WorkspacePage>

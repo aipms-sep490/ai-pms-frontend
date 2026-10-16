@@ -4,7 +4,9 @@ import { StatusBadge } from '../../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from '../../../components/ui/Table'
 import { AcademicScopeFields } from '../../academic/components/AcademicScopeFields'
-import { useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useAuthSession } from '../../auth/context/useAuthSession'
+import { getAcademicHierarchy } from '../../academic/api/academic-api'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { HttpError } from '../../../services/http/http-client'
@@ -22,6 +24,22 @@ const messageFor = (reason: unknown) => reason instanceof HttpError ? reason.mes
 const integer = (value: FormDataEntryValue | null) => { const result = Number(value); return Number.isInteger(result) && result > 0 ? result : null }
 
 export function AdminWorkspacePage() {
+  const { session } = useAuthSession()
+  const [academicNames, setAcademicNames] = useState<{ departments: Record<number, string>; majors: Record<number, string> }>({ departments: {}, majors: {} })
+  useEffect(() => {
+    const abort = new AbortController()
+    setAcademicNames({ departments: {}, majors: {} })
+    if (session?.accessToken) void getAcademicHierarchy(session.accessToken, { search: '', includeInactive: true }, abort.signal).then(rows => {
+      if (abort.signal.aborted) return
+      const departments: Record<number, string> = {}, majors: Record<number, string> = {}
+      for (const organization of rows) for (const entry of organization.departments) {
+        departments[entry.department.id] = entry.department.name
+        for (const major of entry.majors) majors[major.id] = major.name
+      }
+      setAcademicNames({ departments, majors })
+    }).catch(() => undefined)
+    return () => abort.abort()
+  }, [session?.accessToken])
   const [params, setParams] = useSearchParams()
   const page = Math.max(1, Number(params.get('page') ?? '1') || 1)
   const search = params.get('search') ?? ''
@@ -106,7 +124,7 @@ export function AdminWorkspacePage() {
             <TableCell label="Người dùng"><div className="flex flex-col"><strong>{user.fullName}</strong><span>{user.email}</span><small className="text-ink-muted">{user.studentCode ?? user.employeeCode ?? 'Không có mã'}</small></div></TableCell>
             <TableCell label="Vai trò hệ thống">{user.roles.filter((role) => globalRoles.some((globalRole) => globalRole.code === role)).map(role => role === 'LECTURER' ? 'Giảng viên' : role === 'EVALUATOR' ? 'Người chấm' : displayLabel(role)).join(', ') || 'Chưa gán'}</TableCell>
             <TableCell label="Trạng thái"><Status status={user.status} /></TableCell>
-            <TableCell label="Phạm vi học thuật">{user.departmentId ? `Bộ môn #${user.departmentId}` : '—'}{user.majorId ? ` · Ngành #${user.majorId}` : ''}</TableCell>
+            <TableCell label="Phạm vi học thuật">{user.departmentId ? academicNames.departments[user.departmentId] ?? 'Chưa tải được tên bộ môn' : 'Chưa liên kết bộ môn'}{user.majorId ? ` · ${academicNames.majors[user.majorId] ?? 'Chưa tải được tên ngành'}` : ''}</TableCell>
             <TableCell label="Thao tác"><Link to={`/admin/access/users/${user.id}`} state={{ returnTo: `/admin/access?${params.toString()}` }}>Xem chi tiết</Link></TableCell>
           </TableRow>)}
         </TableBody>

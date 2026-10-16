@@ -5,6 +5,7 @@ import { formatScore } from '../../components/ui/format'
 import type { ResultBreakdown, ResultContribution } from './result-types'
 
 interface ProjectResultBreakdownProps {
+  majorNames?: Record<number, string>
   breakdown?: ResultBreakdown | null
   contributions?: ResultContribution[]
 }
@@ -16,7 +17,7 @@ interface ProjectResultBreakdownProps {
  * summed. A non-approved scheme (demo/proposed — e.g. an unapproved Marketing rubric template) is
  * flagged; never present it as an official academic breakdown without that signal.
  */
-export function ProjectResultBreakdown({ breakdown, contributions }: ProjectResultBreakdownProps) {
+export function ProjectResultBreakdown({ breakdown, contributions, majorNames = {} }: ProjectResultBreakdownProps) {
   const advisory = (contributions ?? []).filter(item => item.advisory)
   if (!breakdown && advisory.length === 0) return null
 
@@ -54,7 +55,7 @@ export function ProjectResultBreakdown({ breakdown, contributions }: ProjectResu
                     const pending = major.score === null
                     return (
                       <TableRow key={`${major.majorId}-${index}`}>
-                        <TableCell label="Ngành" className="font-medium text-ink">{`Ngành #${major.majorId}`}</TableCell>
+                        <TableCell label="Ngành" className="font-medium text-ink">{majorNames[major.majorId] ?? 'Chưa tải được tên ngành'}</TableCell>
                         <TableCell label="Điểm ngành" numeric className="font-semibold">{formatScore(major.score)}</TableCell>
                         <TableCell label="Trạng thái"><StatusBadge tone={pending ? 'warning' : 'success'} label={pending ? 'Chưa có điểm' : 'Đã chấm'} /></TableCell>
                       </TableRow>

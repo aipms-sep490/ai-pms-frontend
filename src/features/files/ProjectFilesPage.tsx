@@ -5,6 +5,7 @@ import { useParams } from 'react-router-dom'
 import { useStudentJourney } from '../../app/context'
 import { services } from '../../services/service-gateway'
 import { getMeetings } from '../../services/api/meetings.api'
+import { getDeliverables, getDeliverableVersions } from '../../services/api/deliverables.api'
 import { getProgressReports } from '../../services/api/progress-reports.api'
 import { HttpError } from '../../services/http/http-client'
 import { useAuthSession } from '../auth/context/useAuthSession'
@@ -40,6 +41,34 @@ export function ProjectFilesPage() {
   const [busy, setBusy] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<ProjectFile | null>(null)
   const [parents, setParents] = useState<ParentOption[]>([])
+  const [versionLabels, setVersionLabels] = useState<Record<number, string>>({})
+  useEffect(() => {
+    setVersionLabels({})
+    if (!projectId || !data?.items.some(file => file.parentType === 'VERSION')) return
+    let active = true
+    const wanted = new Set(data.items.filter(file => file.parentType === 'VERSION').map(file => file.parentId))
+    void (async () => {
+      const labels: Record<number, string> = {}
+      for (let page = 1; ; page++) {
+        const result = await getDeliverables(projectId, { page, pageSize: 100 })
+        for (const item of result.items) {
+          if (!active) return
+          for (let versionPage = 1; ; versionPage++) {
+            const versions = await getDeliverableVersions(item.id, versionPage, 100)
+            for (const version of versions.items) if (wanted.has(version.id)) {
+              labels[version.id] = `${item.title} · V${version.versionNumber}`
+              wanted.delete(version.id)
+            }
+            if (!wanted.size || versionPage * 100 >= versions.totalCount) break
+          }
+          if (!wanted.size) break
+        }
+        if (!wanted.size || page * 100 >= result.totalCount) break
+      }
+      if (active) setVersionLabels(labels)
+    })().catch(() => { /* Keep a readable generic label when source access is denied. */ })
+    return () => { active = false }
+  }, [projectId, data])
   const [parentLoading, setParentLoading] = useState(false)
   const [parentError, setParentError] = useState<string | null>(null)
   const [parentRevision, setParentRevision] = useState(0)
@@ -165,7 +194,7 @@ export function ProjectFilesPage() {
     </section>}
 
     <section className="workspace-surface" aria-labelledby="project-file-list"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-4 sm:px-6"><div><h2 id="project-file-list" className="font-semibold text-ink">Tệp trong phạm vi đồ án</h2><p className="mt-1 text-xs text-ink-muted">Sắp xếp theo thời điểm cập nhật từ hệ thống.</p></div>{data && !loading && <span className="rounded-full border border-status-success-border bg-primary-subtle px-2.5 py-1 text-xs font-bold text-primary">{data.totalCount} tệp</span>}</div>
-      {loading ? <ListLoading label="Đang tải kho tệp…" /> : !projectId ? <p className="p-5 text-sm text-ink-muted">Không tìm thấy đồ án để xem tệp.</p> : data && data.items.length === 0 ? <div className="p-8 text-center text-sm text-ink-muted"><span className="material-symbols-outlined mb-2 block text-3xl text-slate-300" aria-hidden="true">folder_off</span>Chưa có tệp phù hợp. Hãy thay đổi bộ lọc hoặc đính kèm tệp mới.</div> : data && <><ul className="divide-y divide-hairline">{data.items.map(file => <li key={file.id} className="grid gap-3 px-4 py-4 text-sm transition-colors hover:bg-canvas/80 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:px-5"><span className="grid size-10 place-items-center rounded-xl bg-primary-subtle text-primary"><span className="material-symbols-outlined text-[20px]" aria-hidden="true">description</span></span><div className="min-w-0"><strong className="block break-words text-ink">{file.fileName}</strong><p className="mt-1 text-xs text-ink-muted">{parentLabels[file.parentType] ?? file.parentType} <span className="font-mono">#{file.parentId}</span> · <span title={file.contentType || undefined}>{fileFormat(file.contentType, file.fileName)}</span> · <span className="font-mono">{formatBytes(file.sizeBytes)}</span></p><p className="mt-1 text-xs text-ink-muted">Tải bởi <span>{journey.team?.members.find(member => member.userId === file.uploadedBy)?.fullName ?? `Tài khoản #${file.uploadedBy}`}</span> · {dateTimeLabel(file.createdAt)}</p></div><div className="flex flex-wrap gap-2"><button type="button" disabled={busy} className="min-h-10 rounded-md border border-hairline px-3.5 font-semibold text-primary hover:border-primary/30 hover:bg-primary-subtle disabled:opacity-50 transition-all" onClick={() => void download(file)}>Tải xuống</button>{canDelete(file) && <button type="button" disabled={busy} className="min-h-10 rounded-md px-2.5 font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50 transition-colors" onClick={() => setDeleteTarget(file)}>Xóa</button>}</div></li>)}</ul><nav aria-label="Phân trang kho tệp" className="flex items-center justify-between gap-3 border-t border-hairline px-4 py-3 text-sm sm:px-6"><button type="button" disabled={busy || data.page <= 1} className="min-h-10 rounded-md border border-hairline px-3 font-semibold text-primary disabled:opacity-40" onClick={() => setFilters(current => ({ ...current, page: (current.page ?? 1) - 1 }))}>Trang trước</button><span className="font-mono text-xs text-ink-muted">Trang {data.page} / {totalPages} · {data.totalCount} tệp</span><button type="button" disabled={busy || data.page >= totalPages} className="min-h-10 rounded-md border border-hairline px-3 font-semibold text-primary disabled:opacity-40" onClick={() => setFilters(current => ({ ...current, page: (current.page ?? 1) + 1 }))}>Trang sau</button></nav></>}
+      {loading ? <ListLoading label="Đang tải kho tệp…" /> : !projectId ? <p className="p-5 text-sm text-ink-muted">Không tìm thấy đồ án để xem tệp.</p> : data && data.items.length === 0 ? <div className="p-8 text-center text-sm text-ink-muted"><span className="material-symbols-outlined mb-2 block text-3xl text-slate-300" aria-hidden="true">folder_off</span>Chưa có tệp phù hợp. Hãy thay đổi bộ lọc hoặc đính kèm tệp mới.</div> : data && <><ul className="divide-y divide-hairline">{data.items.map(file => <li key={file.id} className="grid gap-3 px-4 py-4 text-sm transition-colors hover:bg-canvas/80 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:px-5"><span className="grid size-10 place-items-center rounded-xl bg-primary-subtle text-primary"><span className="material-symbols-outlined text-[20px]" aria-hidden="true">description</span></span><div className="min-w-0"><strong className="block break-words text-ink">{file.fileName}</strong><p className="mt-1 text-xs text-ink-muted">{(file.parentType === 'VERSION' ? versionLabels[file.parentId] : parents.find(parent => parent.type === file.parentType && parent.id === file.parentId)?.label) ?? parentLabels[file.parentType] ?? 'Tệp đồ án'} · <span title={file.contentType || undefined}>{fileFormat(file.contentType, file.fileName)}</span> · <span className="font-mono">{formatBytes(file.sizeBytes)}</span></p><p className="mt-1 text-xs text-ink-muted">Tải bởi <span>{journey.team?.members.find(member => member.userId === file.uploadedBy)?.fullName ?? `Tài khoản #${file.uploadedBy}`}</span> · {dateTimeLabel(file.createdAt)}</p></div><div className="flex flex-wrap gap-2"><button type="button" disabled={busy} className="min-h-10 rounded-md border border-hairline px-3.5 font-semibold text-primary hover:border-primary/30 hover:bg-primary-subtle disabled:opacity-50 transition-all" onClick={() => void download(file)}>Tải xuống</button>{canDelete(file) && <button type="button" disabled={busy} className="min-h-10 rounded-md px-2.5 font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50 transition-colors" onClick={() => setDeleteTarget(file)}>Xóa</button>}</div></li>)}</ul><nav aria-label="Phân trang kho tệp" className="flex items-center justify-between gap-3 border-t border-hairline px-4 py-3 text-sm sm:px-6"><button type="button" disabled={busy || data.page <= 1} className="min-h-10 rounded-md border border-hairline px-3 font-semibold text-primary disabled:opacity-40" onClick={() => setFilters(current => ({ ...current, page: (current.page ?? 1) - 1 }))}>Trang trước</button><span className="font-mono text-xs text-ink-muted">Trang {data.page} / {totalPages} · {data.totalCount} tệp</span><button type="button" disabled={busy || data.page >= totalPages} className="min-h-10 rounded-md border border-hairline px-3 font-semibold text-primary disabled:opacity-40" onClick={() => setFilters(current => ({ ...current, page: (current.page ?? 1) + 1 }))}>Trang sau</button></nav></>}
     </section>
     {deleteTarget && <Modal open busy={busy} title={`Xóa tệp “${deleteTarget.fileName}”?`} description="Tệp sẽ được xóa khỏi hạng mục đang lưu trữ. Thao tác này không thể hoàn tác." onClose={() => setDeleteTarget(null)}><div className="app-modal__actions"><button type="button" disabled={busy} className="app-modal__button" onClick={() => setDeleteTarget(null)}>Giữ lại</button><button type="button" disabled={busy} className="app-modal__button app-modal__button--danger" onClick={() => void remove()}>{busy ? 'Đang xóa…' : 'Xác nhận xóa'}</button></div></Modal>}
   </WorkspacePage>
@@ -206,3 +235,4 @@ function fileFormat(contentType: string | null | undefined, fileName: string) {
   const formats: Record<string, string> = { 'application/pdf': 'PDF', 'application/zip': 'ZIP', 'application/x-zip-compressed': 'ZIP', 'text/plain': 'Văn bản', 'text/csv': 'CSV', 'application/msword': 'Word', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word', 'application/vnd.ms-excel': 'Excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel', 'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint', 'image/png': 'PNG', 'image/jpeg': 'JPEG', 'image/webp': 'WebP' }
   return formats[contentType ?? ''] ?? (fileName.includes('.') ? fileName.split('.').at(-1)?.toUpperCase() : 'Tệp đính kèm')
 }
+

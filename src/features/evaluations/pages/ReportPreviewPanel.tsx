@@ -40,7 +40,7 @@ export function ReportPreviewPanel({ assignmentId, files }: { assignmentId: numb
         </div>
       )}
       <p className="mt-2 text-xs text-ink-muted">{selected.fileName} · {formatBytes(selected.sizeBytes)}</p>
-      <p className="text-xs text-ink-muted">Phiên bản: {selected.versionNumber ?? 'Chưa xác định'} · Deliverable version: {selected.deliverableVersionId ?? '—'} · COLD submission: {selected.coldSubmissionId ?? '—'}</p>
+      <p className="text-xs text-ink-muted">Phiên bản: {selected.versionNumber ?? 'Chưa xác định'} · Tệp thuộc gói minh chứng đã khóa</p>
       {downloadError && <p role="alert">{downloadError}</p>}
       <PreviewStage key={`${assignmentId}:${selected.id}:${selected.deliverableVersionId}:${selected.coldSubmissionId}`} assignmentId={assignmentId} file={selected} download={download} />
     </section>

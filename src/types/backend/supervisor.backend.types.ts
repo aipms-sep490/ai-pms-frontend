@@ -33,6 +33,7 @@ export interface SupervisorAssignmentDto {
 }
 
 export interface SupervisorRequestDto {
+  supervisorName?: string | null
   id: number
   projectId: number
   supervisorProfileId: number

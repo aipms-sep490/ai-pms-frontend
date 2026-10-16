@@ -13,8 +13,8 @@ type DraftState = { status: 'loading' | 'ready' | 'unavailable'; draft: Evaluati
 
 function scopeLabel(assignment: EvaluationAssignment): string {
   if (assignment.scope === 'COMMON') return 'Phạm vi chung của đồ án'
-  if (assignment.scope === 'MAJOR_SPECIFIC') return `Ngành được phân công #${assignment.majorId ?? '—'}`
-  if (assignment.scope === 'INDIVIDUAL') return `Sinh viên được phân công #${assignment.studentId ?? '—'}`
+  if (assignment.scope === 'MAJOR_SPECIFIC') return assignment.majorName ?? 'Chưa tải được tên ngành'
+  if (assignment.scope === 'INDIVIDUAL') return assignment.studentName ?? 'Chưa tải được tên sinh viên'
   return 'Phạm vi chưa được máy chủ xác nhận'
 }
 
@@ -82,8 +82,8 @@ export function EvaluatorWorkspacePage() {
           const row = drafts[assignment.id]
           return <article key={assignment.id} className="grid min-w-0 gap-4 rounded-xl border border-hairline bg-card p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
             <div className="min-w-0">
-              <h2 className="break-words font-semibold text-ink">Đồ án #{assignment.projectId} · Thành phần #{assignment.componentId ?? '—'}</h2>
-              <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm text-ink-muted sm:grid-cols-2"><div><dt className="inline font-medium text-ink-soft">Phạm vi: </dt><dd className="inline">{scopeLabel(assignment)}</dd></div><div><dt className="inline font-medium text-ink-soft">Bộ tiêu chí: </dt><dd className="inline">#{assignment.rubricId}</dd></div><div><dt className="inline font-medium text-ink-soft">Trạng thái: </dt><dd className="inline">{row?.status === 'unavailable' ? 'Chưa tải được trạng thái bản nháp' : draftLabel(row?.draft ?? null)}</dd></div><div><dt className="inline font-medium text-ink-soft">Phân công: </dt><dd className="inline">{dateTimeLabel(assignment.assignedAt)}</dd></div></dl>
+              <h2 className="break-words font-semibold text-ink">{assignment.projectTitle ?? 'Chưa tải được tên đồ án'} · {assignment.componentName ?? scopeLabel(assignment)}</h2>
+              <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm text-ink-muted sm:grid-cols-2"><div><dt className="inline font-medium text-ink-soft">Phạm vi: </dt><dd className="inline">{scopeLabel(assignment)}</dd></div><div><dt className="inline font-medium text-ink-soft">Bộ tiêu chí: </dt><dd className="inline">{assignment.rubricName ?? row?.draft?.rubricName ?? 'Chưa tải được tên bộ tiêu chí'}</dd></div><div><dt className="inline font-medium text-ink-soft">Trạng thái: </dt><dd className="inline">{row?.status === 'unavailable' ? 'Chưa tải được trạng thái bản nháp' : draftLabel(row?.draft ?? null)}</dd></div><div><dt className="inline font-medium text-ink-soft">Phân công: </dt><dd className="inline">{dateTimeLabel(assignment.assignedAt)}</dd></div></dl>
             </div>
             <Link className="inline-flex min-h-11 items-center justify-center rounded-lg border border-hairline px-4 text-sm font-semibold text-primary hover:bg-primary/5" to={`/evaluator/assignments/${assignment.id}`}>{row?.status === 'unavailable' ? 'Xem phân công' : row?.draft?.status === 'FINALIZED' ? 'Xem đánh giá' : row?.draft ? 'Tiếp tục chấm' : 'Bắt đầu chấm'}</Link>
           </article>

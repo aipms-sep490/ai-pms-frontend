@@ -35,6 +35,11 @@ it('replaces legacy writes with scoped scheme navigation', async () => {
   expect(screen.queryByRole('button', { name: 'Lưu cách tính điểm' })).toBeNull()
   expect(api.configureResultPolicy).not.toHaveBeenCalled()
 })
+it('preserves the backend-scoped roster for a lead department across participating departments', async () => {
+  page()
+  await screen.findByRole('region', { name: 'Bản xem trước kết quả' })
+  expect(screen.getByRole('region', { name: 'Kết quả sinh viên độc lập' }).getAttribute('data-department')).toBeNull()
+})
 it('requires review and confirmation, and cancellation never publishes', async () => {
   page(); await screen.findByRole('region', { name: 'Bản xem trước kết quả' })
   const button = screen.getByRole('button', { name: 'Công bố kết quả đồ án' }) as HTMLButtonElement

@@ -99,11 +99,28 @@ function MeetingVideoRoomAccess({ meeting, backTo }: { meeting: MeetingDetail; b
   return <>{joinError && <p className="mtg-notice mtg-notice--error" role="alert">{joinError}</p>}<MeetingVideoPreflight onBack={() => navigate(backTo)} onConnectRequested={(selection) => void requestConnect(selection)} />{joining && <p className="mtg-loading" role="status">Đang chuẩn bị phòng họp…</p>}</>
 }
 
-function RoomGovernanceDrawer({ meeting, backTo, canManage, open, onClose }: { meeting: MeetingDetail; backTo: string; canManage: boolean; open: boolean; onClose: () => void }) {
+function RoomGovernanceDrawer({ meeting: initialMeeting, backTo, canManage, open, onClose }: { meeting: MeetingDetail; backTo: string; canManage: boolean; open: boolean; onClose: () => void }) {
+  const [meeting, setMeeting] = useState(initialMeeting)
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [error, setError] = useState('')
+  const [needsRefresh, setNeedsRefresh] = useState(false)
+  const saveLock = useRef(false)
+  async function reload() {
+    try { setMeeting(await meetingsApi.getMeeting(initialMeeting.id)); setNeedsRefresh(false); setError('') }
+    catch (reason) { setError(meetingError(reason)) }
+  }
+  async function save(body: Parameters<typeof meetingsApi.updateMeetingNotes>[1]) {
+    if (saveLock.current || needsRefresh) return
+    saveLock.current = true; setBusy(true); setError(''); setNotice('')
+    try { await meetingsApi.updateMeetingNotes(meeting.id, { ...body, concurrencyToken: meeting.concurrencyToken }); setNotice('Đã lưu biên bản và điểm danh.'); await reload() }
+    catch (reason) { setError(meetingError(reason)); setNeedsRefresh(true) }
+    finally { saveLock.current = false; setBusy(false) }
+  }
   const closeRef = useRef<HTMLButtonElement>(null)
   useEffect(() => { if (open) closeRef.current?.focus() }, [open])
   useEffect(() => { const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey) }, [onClose])
   if (!open) return null
   const writableNotes = canManage && (meeting.status === 'SCHEDULED' || meeting.status === 'COMPLETED')
-  return <aside className="mtg-video-governance" aria-label="Quản trị cuộc họp"><div className="mtg-section-heading"><h2>Quản trị cuộc họp</h2><button ref={closeRef} className="mtg-button mtg-button--secondary" onClick={onClose}>Đóng</button></div><h3>Nội dung dự kiến</h3><p className="mtg-prose">{meeting.agenda || 'Chưa có nội dung dự kiến.'}</p>{writableNotes && meeting.concurrencyToken && <MeetingNotesForm meeting={meeting} busy={false} onDirty={() => undefined} onCancel={() => undefined} onSave={(body) => meetingsApi.updateMeetingNotes(meeting.id, { ...body, concurrencyToken: meeting.concurrencyToken }).then(() => undefined)} />}{meeting.concurrencyToken && <MeetingGovernancePanel meeting={meeting} concurrencyToken={meeting.concurrencyToken} candidates={[]} canManage={canManage} disabled={false} onChanged={() => undefined} />}<Link className="mtg-button mtg-button--secondary" to={backTo}>Mở quản trị cuộc họp</Link></aside>
+  return <aside className="mtg-video-governance" aria-label="Quản trị cuộc họp"><div className="mtg-section-heading"><h2>Quản trị cuộc họp</h2><button ref={closeRef} className="mtg-button mtg-button--secondary" onClick={onClose}>Đóng</button></div><h3>Nội dung dự kiến</h3><p className="mtg-prose">{meeting.agenda || 'Chưa có nội dung dự kiến.'}</p>{writableNotes && meeting.concurrencyToken && <><MeetingNotesForm meeting={meeting} busy={busy} locked={needsRefresh} onDirty={() => setNotice('')} onCancel={onClose} onSave={save} />{notice && <p role="status">{notice}</p>}{error && <p role="alert">{error}</p>}{needsRefresh && <button className="mtg-button mtg-button--secondary" disabled={busy} onClick={() => void reload()}>Tải lại phiên bản để tiếp tục</button>}</>}{meeting.concurrencyToken && <MeetingGovernancePanel meeting={meeting} concurrencyToken={meeting.concurrencyToken} candidates={[]} canManage={canManage} disabled={busy || needsRefresh} onChanged={() => void reload()} />}<Link className="mtg-button mtg-button--secondary" to={backTo}>Mở quản trị cuộc họp</Link></aside>
 }

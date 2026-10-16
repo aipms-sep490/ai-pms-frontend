@@ -1,4 +1,5 @@
 import { buildReadinessChecklist } from '../utils/submission-readiness'
+import { Link } from 'react-router-dom'
 
 interface RegistrationReadinessChecklistProps {
   reasons: string[]
@@ -11,6 +12,7 @@ interface RegistrationReadinessChecklistProps {
 export function RegistrationReadinessChecklist({ reasons, resolveMajorName, title = 'Cần hoàn tất trước khi nộp' }: RegistrationReadinessChecklistProps) {
   const items = buildReadinessChecklist(reasons, resolveMajorName)
   if (!items.length) return null
+  const needsSupervision = items.some((item) => item.code === 'SUPERVISOR_NOT_CONFIRMED' || item.code.startsWith('MENTOR_NOT_CONFIRMED:'))
 
   return (
     <section role="status" aria-label={title} className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4">
@@ -23,6 +25,13 @@ export function RegistrationReadinessChecklist({ reasons, resolveMajorName, titl
           </li>
         ))}
       </ul>
+      {needsSupervision && <>
+        <p className="mt-3 text-xs text-status-warning-text">Lưu thay đổi đề cương trước khi chuyển sang mời giảng viên.</p>
+        <Link to="/project/supervisor" className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white hover:bg-primary/90">
+          <span className="material-symbols-outlined text-[16px]" aria-hidden="true">person_add</span>
+          Mời giảng viên hướng dẫn / Mentor
+        </Link>
+      </>}
     </section>
   )
 }

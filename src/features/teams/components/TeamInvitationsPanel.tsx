@@ -143,7 +143,7 @@ export function TeamInvitationsPanel({
                 </div>
               )}
               <div className="divide-y divide-slate-200">
-                {candidateLoading ? (
+                {candidateLoading && candidates.items.length === 0 ? (
                   <p className="p-3 text-xs text-ink-muted">Đang tải ứng viên phù hợp...</p>
                 ) : visibleCandidates.length === 0 ? (
                   <p className="p-3 text-xs text-ink-muted">{majorFilter == null ? 'Không có sinh viên phù hợp với điều kiện nhóm.' : 'Không có ứng viên ngành này trong trang hiện tại.'}</p>

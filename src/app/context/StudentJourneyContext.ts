@@ -27,6 +27,8 @@ export interface StudentJourneyContextValue {
   isLoading: boolean
   error: string | null
   refreshAll: () => Promise<void>
+  /** Refresh server state without replacing the current page with a loading screen. */
+  refreshAllSilently?: () => Promise<void>
   setSimulatedJourneyState: (state: StudentJourneyState) => void
 }
 

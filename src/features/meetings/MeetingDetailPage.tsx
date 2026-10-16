@@ -107,7 +107,13 @@ function MeetingDetailView({ id }: { id: number }) {
   async function respondRsvp(status: string) {
     if (rsvpBusy || !collaboration?.myRsvp || meeting?.status !== 'SCHEDULED') return
     setRsvpBusy(true); setError('')
-    try { const updated = await api.respondMeetingRsvp(id, status, collaboration.myRsvp.concurrencyToken); if (alive.current) setCollaboration((current) => current ? { ...current, myRsvp: updated } : current) }
+    try {
+      const updated = await api.respondMeetingRsvp(id, status, collaboration.myRsvp.concurrencyToken)
+      if (alive.current) {
+        setCollaboration((current) => current ? { ...current, myRsvp: updated } : current)
+        setMeeting((current) => current ? { ...current, participants: current.participants.map(participant => participant.userId === updated.userId ? { ...participant, rsvpStatus: updated.status } : participant) } : current)
+      }
+    }
     catch (reason) { if (alive.current) setError(meetingError(reason)) }
     finally { if (alive.current) setRsvpBusy(false) }
   }
@@ -149,6 +155,13 @@ function MeetingDetailView({ id }: { id: number }) {
         <section className="mtg-panel mtg-padded"><div className="mtg-section-heading"><h2>Biên bản và điểm danh</h2><div className="mtg-actions">{env.meetingCollaborationEnabled && collaboration?.canLockNotes && <button className="mtg-text-button" disabled={disabled || dirty || lockBusy} onClick={() => void lockNotes()}>{lockBusy ? 'Đang khóa…' : 'Khóa biên bản'}</button>}{manage && notesEditable && editor !== 'notes' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('notes')}>Cập nhật biên bản</button>}</div></div>
           {notesLocked && <p className="mtg-help">Biên bản đã được khóa{formatMeetingTime(collaboration?.notesLockedAt ?? '') !== 'Chưa rõ thời gian' ? ` lúc ${formatMeetingTime(collaboration?.notesLockedAt ?? '')}` : ''}, không thể chỉnh sửa thêm.</p>}
           {editor === 'notes' ? <MeetingNotesForm meeting={meeting} busy={busy} locked={needsRefresh || notesLocked} onDirty={() => setDirty(true)} onCancel={closeEditor} onSave={async (body) => { if (manage && notesEditable) await mutate(() => api.updateMeetingNotes(id, { ...body, concurrencyToken: meeting.concurrencyToken }), 'Đã lưu biên bản và điểm danh.') }} /> : <p className="mtg-prose">{meeting.meetingNotes || 'Chưa có biên bản. Ghi lại kết luận sau buổi trao đổi để cả nhóm cùng theo dõi.'}</p>}
+          {editor !== 'notes' && <section aria-label="Điểm danh chính thức">
+            <h3 className="mtg-subheading">Điểm danh người tham gia</h3>
+            {meeting.participants.length === 0 ? <p className="mtg-help">Chưa có người tham gia để điểm danh.</p> : <ul className="mtg-participants">
+              {meeting.participants.map(participant => <li key={participant.userId}><div><strong>{participant.fullName}</strong><small>{participant.attendanceStatus && participant.attendanceStatus !== 'INVITED' ? attendanceStatuses[participant.attendanceStatus] ?? 'Chưa cập nhật điểm danh' : 'Chưa cập nhật điểm danh'}</small></div></li>)}
+            </ul>}
+            <p className="mtg-help">Điểm danh do người quản lý ghi nhận, độc lập với phản hồi lời mời và dữ liệu kết nối Video.</p>
+          </section>}
           {env.meetingCollaborationEnabled && <MeetingNotesHistoryPanel meetingId={id} refreshKey={collaboration?.notesVersion ?? 0} />}
         </section>
 
@@ -169,6 +182,7 @@ function MeetingDetailView({ id }: { id: number }) {
           ))}</ul>
           {env.meetingCollaborationEnabled && collaboration?.myRsvp && scheduled && <div className="mtg-rsvp" role="group" aria-label="Phản hồi tham dự">
             <p className="mtg-help">Bạn tham dự cuộc họp này?</p>
+            <p role="status" className="mtg-help">{rsvpBusy ? 'Đang lưu phản hồi…' : `Phản hồi của bạn: ${rsvpStatusLabels[collaboration.myRsvp.status] ?? collaboration.myRsvp.status}`}</p>
             <div className="mtg-actions">
               {([['ACCEPTED', 'Tham dự'], ['TENTATIVE', 'Có thể'], ['DECLINED', 'Từ chối']] as const).map(([status, label]) => (
                 <button key={status} type="button" className="mtg-button mtg-button--secondary" aria-pressed={collaboration.myRsvp?.status === status} disabled={rsvpBusy} onClick={() => void respondRsvp(status)}>{label}</button>

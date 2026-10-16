@@ -36,6 +36,14 @@ describe('ProjectReviewStatusPage', () => {
     expect(screen.queryByText('Approve')).toBeNull()
   })
 
+  it('does not show draft submission blockers after the proposal was submitted', () => {
+    journey.useStudentJourney.mockReturnValue({ project: project('SUBMITTED'), isLoading: false, error: null, refreshAll: vi.fn() })
+    registration.useProjectRegistration.mockReturnValue({ ...state('SUBMITTED'), submitReasons: ['ROSTER_LOCKED', 'INVALID_PROJECT_STATE'] })
+    render(<MemoryRouter><ProjectReviewStatusPage /></MemoryRouter>)
+    expect(screen.queryByText(/ROSTER_LOCKED/)).toBeNull()
+    expect(screen.queryByText(/CẦN HOÀN TẤT TRƯỚC KHI NỘP/i)).toBeNull()
+  })
+
   it('offers a new registration after rejection when Backend grants create_project_draft', () => {
     journey.useStudentJourney.mockReturnValue({ project: project('Rejected'), isLoading: false, error: null, refreshAll: vi.fn() })
     registration.useProjectRegistration.mockReturnValue({
