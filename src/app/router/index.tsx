@@ -33,6 +33,7 @@ import {
   ProjectEvidenceLedgerPage, ProjectAiPage, ProjectGatesPage, ProjectWorkingAgreementPage, ProjectDefensePage, ProjectDefenseManagementPage,
   ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, ArchivedProjectsPage,
   ProjectArchiveViewPage, CalendarAttentionPage, AdminIndustryInvitationsPage, ReviewGateGovernancePage,
+  StudentReviewTimelinePage, AssignedGateReviewPage,
 } from './lazy-pages'
 
 
@@ -105,6 +106,8 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'project/supervisor', element: <SupervisorSelectionPage /> },
           { path: 'project/final-submission', element: <StudentFinalSubmissionPage /> },
           { path: 'project/result', element: <StudentProjectResultPage /> },
+          { path: 'project/timeline', element: <StudentReviewTimelinePage /> },
+          { path: 'project/review-gates', element: <StudentReviewTimelinePage /> },
         ],
       },
       {
@@ -155,6 +158,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { element: <EvaluatorAssignmentRoute />, children: [
             { path: 'evaluator/assignments/:assignmentId', element: <EvaluatorAssignmentDetailPage /> },
           ] },
+          { path: 'review/gate-assignments', element: <AssignedGateReviewPage /> },
         ],
       },
       {

@@ -86,8 +86,11 @@ export const DepartmentProjectRiskPage = lazy(() => import('../../features/ai/De
 export const DepartmentWorkspacePage = lazy(() => import('../../features/department/pages/DepartmentWorkspacePage').then(m => ({ default: m.DepartmentWorkspacePage })))
 export const ArchivedProjectsPage = lazy(() => import('../../features/projects/pages/ArchivedProjectsPage').then(m => ({ default: m.ArchivedProjectsPage })))
 export const ProjectArchiveViewPage = lazy(() => import('../../features/projects/pages/ProjectArchiveViewPage').then(m => ({ default: m.ProjectArchiveViewPage })))
-export const CalendarAttentionPage = lazy(() => import('../../features/calendar/CalendarAttentionPage').then(m => ({ default: m.CalendarAttentionPage })))
 export const ReviewGateGovernancePage = lazy(() => import('../../features/review-gates/pages/ReviewGateGovernancePage').then(m => ({ default: m.ReviewGateGovernancePage })))
+export const StudentReviewTimelinePage = lazy(() => import('../../features/review-gates/pages/StudentReviewTimelinePage').then(m => ({ default: m.StudentReviewTimelinePage })))
+export const AssignedGateReviewPage = lazy(() => import('../../features/review-gates/pages/AssignedGateReviewPage').then(m => ({ default: m.AssignedGateReviewPage })))
+export const CalendarAttentionPage = lazy(() => import('../../features/calendar/CalendarAttentionPage').then(m => ({ default: m.CalendarAttentionPage })))
+
 // ChatPage stays a plain static import in router/index.tsx: ChatDock (statically imported
 
 // by AppLayout) also pulls from this same module, so Vite can never actually split it into

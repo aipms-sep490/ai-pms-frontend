@@ -90,3 +90,92 @@ export interface DefenseReadinessSummary {
   blockedCount: number
   conditions: DefenseCondition[]
 }
+
+export interface StudentGateRequirement {
+  id: string
+  code: string
+  title: string
+  type: RequirementType
+  scope: RequirementScope
+  isMandatory: boolean
+  verificationStatus: 'PENDING' | 'SUBMITTED' | 'ACCEPTED' | 'REJECTED'
+  latestArtifact?: {
+    version: number
+    filename: string
+    submittedAt: string
+    submittedBy: string
+    notes?: string
+  }
+  reviewerFeedback?: string
+}
+
+export interface StudentGateInstance {
+  gateInstanceId: string
+  code: string
+  title: string
+  objective: string
+  status: GateStatus
+  reviewEligibility: 'READY' | 'BLOCKED' | 'NOT_READY'
+  isRequired: boolean
+  windowStart: string
+  windowEnd: string
+  blockingReasons: Array<{ code: string; requirementCode?: string; message: string }>
+  requirements: StudentGateRequirement[]
+}
+
+export interface StudentReviewTimelineDto {
+  projectId: string
+  projectCode: string
+  projectName: string
+  projectMode: 'SINGLE_MAJOR' | 'INTERDISCIPLINARY'
+  major: string
+  effectivePolicyVersion: string
+  currentGateCode: string
+  gates: StudentGateInstance[]
+  capabilities: {
+    canSubmitPackage: boolean
+    canSubmitRevision: boolean
+    blockingReasons: string[]
+  }
+}
+
+export interface SubmitRevisionRequest {
+  projectId: string
+  gateCode: string
+  requirementId: string
+  artifactName: string
+  notes: string
+  expectedVersion: number
+}
+
+export interface AssignedReviewItem {
+  id: string
+  projectId: string
+  projectCode: string
+  projectName: string
+  gateCode: string
+  gateTitle: string
+  scope: string
+  dueAt: string
+  status: 'PENDING_REVIEW' | 'IN_REVIEW' | 'DECIDED'
+  latestDecision?: 'PASSED' | 'REVISION_REQUIRED'
+  requirements: StudentGateRequirement[]
+  reviewerNotes?: string
+  concurrencyToken: string
+}
+
+export interface VerifyEvidenceRequest {
+  assignmentId: string
+  requirementId: string
+  decision: 'ACCEPTED' | 'REJECTED'
+  feedback?: string
+  concurrencyToken: string
+}
+
+export interface GateDecisionRequest {
+  assignmentId: string
+  decision: 'PASSED' | 'REVISION_REQUIRED'
+  notes: string
+  concurrencyToken: string
+}
+

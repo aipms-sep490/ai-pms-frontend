@@ -1,7 +1,12 @@
 import type {
+  AssignedReviewItem,
   DefenseReadinessSummary,
+  GateDecisionRequest,
   ProjectReviewMatrixRow,
   ReviewGateTemplate,
+  StudentReviewTimelineDto,
+  SubmitRevisionRequest,
+  VerifyEvidenceRequest,
 } from '../types/review-gates.types'
 
 const initialTemplates: ReviewGateTemplate[] = [
@@ -434,6 +439,309 @@ const initialMatrix: ProjectReviewMatrixRow[] = [
   },
 ]
 
+const initialStudentTimeline: StudentReviewTimelineDto = {
+    projectId: 'IT-01',
+    projectCode: 'IT-SEP490-01',
+    projectName: 'Campus Support Platform',
+    projectMode: 'SINGLE_MAJOR',
+    major: 'Information Technology',
+    effectivePolicyVersion: '1.0',
+    currentGateCode: 'R2',
+    capabilities: {
+      canSubmitPackage: true,
+      canSubmitRevision: true,
+      blockingReasons: [],
+    },
+    gates: [
+      {
+        gateInstanceId: 'inst-r1',
+        code: 'R1',
+        title: 'Requirement & Analysis',
+        objective: 'Xác nhận problem, yêu cầu người dùng và phạm vi giải pháp.',
+        status: 'PASSED',
+        reviewEligibility: 'READY',
+        isRequired: true,
+        windowStart: '2026-09-05',
+        windowEnd: '2026-09-25',
+        blockingReasons: [],
+        requirements: [
+          {
+            id: 'req-r1-1',
+            code: 'R1-PROPOSAL',
+            title: 'Project Proposal',
+            type: 'DOCUMENT',
+            scope: 'COMMON',
+            isMandatory: true,
+            verificationStatus: 'ACCEPTED',
+            latestArtifact: {
+              version: 1,
+              filename: 'Proposal_v1.pdf',
+              submittedAt: '2026-09-20 14:00',
+              submittedBy: 'Nguyen Van A (Leader)',
+            },
+          },
+          {
+            id: 'req-r1-2',
+            code: 'R1-SRS',
+            title: 'Software Requirement Specification (SRS)',
+            type: 'DOCUMENT',
+            scope: 'IT',
+            isMandatory: true,
+            verificationStatus: 'ACCEPTED',
+            latestArtifact: {
+              version: 1,
+              filename: 'SRS_v1.0.pdf',
+              submittedAt: '2026-09-22 10:30',
+              submittedBy: 'Nguyen Van A (Leader)',
+            },
+          },
+        ],
+      },
+      {
+        gateInstanceId: 'inst-r2',
+        code: 'R2',
+        title: 'System Design & Prototype',
+        objective: 'Review kiến trúc, thiết kế cơ sở dữ liệu, prototype có minh chứng tương tác.',
+        status: 'REVISION_REQUIRED',
+        reviewEligibility: 'READY',
+        isRequired: true,
+        windowStart: '2026-09-26',
+        windowEnd: '2026-10-16',
+        blockingReasons: [
+          {
+            code: 'MANDATORY_EVIDENCE_REJECTED',
+            requirementCode: 'R2-SDD',
+            message: 'Tài liệu Software Design Document (SDD) bị từ chối: Architecture diagram cần bổ sung component boundary.',
+          },
+        ],
+        requirements: [
+          {
+            id: 'req-r2-1',
+            code: 'R2-ERD',
+            title: 'Architecture & Database ERD',
+            type: 'EVIDENCE',
+            scope: 'IT',
+            isMandatory: true,
+            verificationStatus: 'ACCEPTED',
+            latestArtifact: {
+              version: 1,
+              filename: 'ERD_Architecture_v1.pdf',
+              submittedAt: '2026-10-10 09:15',
+              submittedBy: 'Nguyen Van A (Leader)',
+            },
+            reviewerFeedback: 'ERD chuẩn hóa tốt, đã ánh xạ đủ quan hệ nghiệp vụ.',
+          },
+          {
+            id: 'req-r2-2',
+            code: 'R2-SDD',
+            title: 'Software Design Document (SDD)',
+            type: 'DOCUMENT',
+            scope: 'IT',
+            isMandatory: true,
+            verificationStatus: 'REJECTED',
+            latestArtifact: {
+              version: 2,
+              filename: 'SDD_v2.pdf',
+              submittedAt: '2026-10-14 16:30',
+              submittedBy: 'Nguyen Van A (Leader)',
+              notes: 'Bổ sung sequence diagram cho auth module.',
+            },
+            reviewerFeedback: 'Reviewer yêu cầu bổ sung Software Design Document và architecture boundary notes trước khi xét PASS.',
+          },
+          {
+            id: 'req-r2-3',
+            code: 'R2-PROTO',
+            title: 'Figma Interactive Prototype',
+            type: 'DEMO',
+            scope: 'IT',
+            isMandatory: false,
+            verificationStatus: 'ACCEPTED',
+            latestArtifact: {
+              version: 1,
+              filename: 'https://figma.com/proto/campus-support-v1',
+              submittedAt: '2026-10-12 11:00',
+              submittedBy: 'Tran Thi B (Member)',
+            },
+          },
+        ],
+      },
+      {
+        gateInstanceId: 'inst-r3',
+        code: 'R3',
+        title: 'Implementation & Testing',
+        objective: 'Kiểm tra kết quả hiện thực hóa MVP và minh chứng kiểm thử tự động.',
+        status: 'PLANNED',
+        reviewEligibility: 'BLOCKED',
+        isRequired: true,
+        windowStart: '2026-10-17',
+        windowEnd: '2026-11-11',
+        blockingReasons: [
+          {
+            code: 'PREREQUISITE_GATE_NOT_PASSED',
+            requirementCode: 'R2',
+            message: 'Cần hoàn thành và đạt PASS tại Review 2 trước khi mở đợt thẩm định Review 3.',
+          },
+        ],
+        requirements: [
+          {
+            id: 'req-r3-1',
+            code: 'R3-MVP',
+            title: 'Working MVP Source Code & PR',
+            type: 'LINK',
+            scope: 'IT',
+            isMandatory: true,
+            verificationStatus: 'PENDING',
+          },
+          {
+            id: 'req-r3-2',
+            code: 'R3-TEST',
+            title: 'Test Coverage Report (>70%)',
+            type: 'DOCUMENT',
+            scope: 'IT',
+            isMandatory: true,
+            verificationStatus: 'PENDING',
+          },
+        ],
+      },
+      {
+        gateInstanceId: 'inst-r4',
+        code: 'R4',
+        title: 'Final Readiness & Deployment',
+        objective: 'Kiểm tra hồ sơ tổng kết, triển khai thực tế và điều kiện sẵn sàng bảo vệ.',
+        status: 'PLANNED',
+        reviewEligibility: 'BLOCKED',
+        isRequired: true,
+        windowStart: '2026-11-12',
+        windowEnd: '2026-12-05',
+        blockingReasons: [
+          {
+            code: 'PREREQUISITE_GATE_NOT_PASSED',
+            requirementCode: 'R3',
+            message: 'Chưa hoàn thành Review 3.',
+          },
+        ],
+        requirements: [
+          {
+            id: 'req-r4-1',
+            code: 'R4-REPORT',
+            title: 'Final Capstone Report',
+            type: 'DOCUMENT',
+            scope: 'COMMON',
+            isMandatory: true,
+            verificationStatus: 'PENDING',
+          },
+          {
+            id: 'req-r4-2',
+            code: 'R4-DEPLOY',
+            title: 'Production Staging Deployment URL',
+            type: 'LINK',
+            scope: 'IT',
+            isMandatory: true,
+            verificationStatus: 'PENDING',
+          },
+        ],
+      },
+    ],
+  }
+
+const initialAssignedReviews: AssignedReviewItem[] = [
+    {
+      id: 'rev-it-01-r2',
+      projectId: 'IT-01',
+      projectCode: 'IT-SEP490-01',
+      projectName: 'Campus Support Platform',
+      gateCode: 'R2',
+      gateTitle: 'System Design & Prototype',
+      scope: 'IT',
+      dueAt: '2026-10-18 23:59',
+      status: 'IN_REVIEW',
+      latestDecision: 'REVISION_REQUIRED',
+      reviewerNotes: 'Cần sửa SDD trước khi xét PASS. Architecture boundary chưa rõ.',
+      concurrencyToken: 'token-rev-01',
+      requirements: [
+        {
+          id: 'req-r2-1',
+          code: 'R2-ERD',
+          title: 'Architecture & Database ERD',
+          type: 'EVIDENCE',
+          scope: 'IT',
+          isMandatory: true,
+          verificationStatus: 'ACCEPTED',
+          latestArtifact: {
+            version: 1,
+            filename: 'ERD_Architecture_v1.pdf',
+            submittedAt: '2026-10-10 09:15',
+            submittedBy: 'Nguyen Van A (Leader)',
+          },
+          reviewerFeedback: 'ERD chuẩn hóa tốt, đã ánh xạ đủ quan hệ nghiệp vụ.',
+        },
+        {
+          id: 'req-r2-2',
+          code: 'R2-SDD',
+          title: 'Software Design Document (SDD)',
+          type: 'DOCUMENT',
+          scope: 'IT',
+          isMandatory: true,
+          verificationStatus: 'REJECTED',
+          latestArtifact: {
+            version: 2,
+            filename: 'SDD_v2.pdf',
+            submittedAt: '2026-10-14 16:30',
+            submittedBy: 'Nguyen Van A (Leader)',
+            notes: 'Bổ sung sequence diagram cho auth module.',
+          },
+          reviewerFeedback: 'Reviewer yêu cầu bổ sung Software Design Document và architecture boundary notes trước khi xét PASS.',
+        },
+        {
+          id: 'req-r2-3',
+          code: 'R2-PROTO',
+          title: 'Figma Interactive Prototype',
+          type: 'DEMO',
+          scope: 'IT',
+          isMandatory: false,
+          verificationStatus: 'ACCEPTED',
+          latestArtifact: {
+            version: 1,
+            filename: 'https://figma.com/proto/campus-support-v1',
+            submittedAt: '2026-10-12 11:00',
+            submittedBy: 'Tran Thi B (Member)',
+          },
+        },
+      ],
+    },
+    {
+      id: 'rev-it-02-r3',
+      projectId: 'IT-02',
+      projectCode: 'IT-SEP490-02',
+      projectName: 'Smart Library System',
+      gateCode: 'R3',
+      gateTitle: 'Implementation & Testing',
+      scope: 'IT',
+      dueAt: '2026-11-01 23:59',
+      status: 'PENDING_REVIEW',
+      concurrencyToken: 'token-rev-02',
+      requirements: [
+        {
+          id: 'req-it2-r3-1',
+          code: 'R3-MVP',
+          title: 'Smart Library Core MVP API',
+          type: 'LINK',
+          scope: 'IT',
+          isMandatory: true,
+          verificationStatus: 'SUBMITTED',
+          latestArtifact: {
+            version: 1,
+            filename: 'https://github.com/aipms/smart-library/pull/42',
+            submittedAt: '2026-10-16 14:20',
+            submittedBy: 'Le Van C (Leader)',
+            notes: 'Đã hoàn thành module mượn trả và xác thực thẻ RFID.',
+          },
+        },
+      ],
+    },
+  ]
+
+  
 class ReviewGatesMockAdapter {
   private templates: ReviewGateTemplate[] = JSON.parse(JSON.stringify(initialTemplates))
   private matrix: ProjectReviewMatrixRow[] = JSON.parse(JSON.stringify(initialMatrix))
@@ -574,6 +882,156 @@ class ReviewGatesMockAdapter {
       conditions,
     }
   }
+
+private studentTimeline: StudentReviewTimelineDto = JSON.parse(JSON.stringify(initialStudentTimeline))
+  private assignedReviews: AssignedReviewItem[] = JSON.parse(JSON.stringify(initialAssignedReviews))
+
+  reset(): void {
+    this.templates = JSON.parse(JSON.stringify(initialTemplates))
+    this.matrix = JSON.parse(JSON.stringify(initialMatrix))
+    this.studentTimeline = JSON.parse(JSON.stringify(initialStudentTimeline))
+    this.assignedReviews = JSON.parse(JSON.stringify(initialAssignedReviews))
+  }
+
+  async getStudentReviewTimeline(_projectId = 'IT-01'): Promise<StudentReviewTimelineDto> {
+    await new Promise(r => setTimeout(r, 60))
+    return JSON.parse(JSON.stringify(this.studentTimeline))
+  }
+
+  async submitRevision(req: SubmitRevisionRequest, isLeader: boolean): Promise<StudentReviewTimelineDto> {
+    await new Promise(r => setTimeout(r, 80))
+    if (!isLeader) {
+      throw new Error('403: Không đủ thẩm quyền. Chỉ trưởng nhóm (Student Leader) mới có quyền nộp hồ sơ review hoặc bản sửa.')
+    }
+    if (!req.artifactName?.trim() || !req.notes?.trim()) {
+      throw new Error('422: Minh chứng nộp và lý do chỉnh sửa không được để trống.')
+    }
+
+    const gate = this.studentTimeline.gates.find(g => g.code === req.gateCode)
+    if (!gate) throw new Error(`404: Không tìm thấy Gate ${req.gateCode}`)
+    const reqItem = gate.requirements.find(r => r.id === req.requirementId)
+    if (!reqItem) throw new Error(`404: Không tìm thấy requirement ${req.requirementId}`)
+
+    const nextVer = (reqItem.latestArtifact?.version ?? 0) + 1
+    reqItem.verificationStatus = 'SUBMITTED'
+    reqItem.latestArtifact = {
+      version: nextVer,
+      filename: req.artifactName,
+      submittedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      submittedBy: 'Nguyen Van A (Leader)',
+      notes: req.notes,
+    }
+    gate.status = 'IN_REVIEW'
+    gate.blockingReasons = []
+
+    const assigned = this.assignedReviews.find(a => a.projectId === req.projectId && a.gateCode === req.gateCode)
+    if (assigned) {
+      const aReq = assigned.requirements.find(r => r.id === req.requirementId)
+      if (aReq) {
+        aReq.verificationStatus = 'SUBMITTED'
+        aReq.latestArtifact = reqItem.latestArtifact
+      }
+      assigned.status = 'IN_REVIEW'
+      assigned.concurrencyToken = `token-${Date.now()}`
+    }
+
+    return JSON.parse(JSON.stringify(this.studentTimeline))
+  }
+
+  async getAssignedReviews(): Promise<AssignedReviewItem[]> {
+    await new Promise(r => setTimeout(r, 60))
+    return JSON.parse(JSON.stringify(this.assignedReviews))
+  }
+
+  async verifyEvidence(req: VerifyEvidenceRequest): Promise<AssignedReviewItem> {
+    await new Promise(r => setTimeout(r, 80))
+    const assigned = this.assignedReviews.find(a => a.id === req.assignmentId)
+    if (!assigned) throw new Error(`404: Không tìm thấy phân công review ${req.assignmentId}`)
+
+    if (assigned.concurrencyToken !== req.concurrencyToken) {
+      throw new Error('409: Dữ liệu đã thay đổi bởi phiên làm việc khác. Vui lòng tải lại.')
+    }
+
+    const requirement = assigned.requirements.find(r => r.id === req.requirementId)
+    if (!requirement) throw new Error(`404: Không tìm thấy requirement ${req.requirementId}`)
+
+    requirement.verificationStatus = req.decision
+    if (req.feedback) requirement.reviewerFeedback = req.feedback
+    assigned.concurrencyToken = `token-${Date.now()}`
+
+    const gate = this.studentTimeline.gates.find(g => g.code === assigned.gateCode)
+    if (gate) {
+      const gReq = gate.requirements.find(r => r.id === req.requirementId)
+      if (gReq) {
+        gReq.verificationStatus = req.decision
+        if (req.feedback) gReq.reviewerFeedback = req.feedback
+      }
+    }
+
+    return JSON.parse(JSON.stringify(assigned))
+  }
+
+  async submitGateDecision(req: GateDecisionRequest): Promise<AssignedReviewItem> {
+    await new Promise(r => setTimeout(r, 90))
+    const assigned = this.assignedReviews.find(a => a.id === req.assignmentId)
+    if (!assigned) throw new Error(`404: Không tìm thấy phân công review ${req.assignmentId}`)
+
+    if (assigned.concurrencyToken !== req.concurrencyToken) {
+      throw new Error('409: Dữ liệu đã thay đổi bởi phiên làm việc khác. Vui lòng tải lại.')
+    }
+
+    if (!req.notes?.trim()) {
+      throw new Error('422: Bắt buộc ghi nhận xét thẩm định khi ra quyết định.')
+    }
+
+    if (req.decision === 'PASSED') {
+      const unacceptedMandatory = assigned.requirements.filter(r => r.isMandatory && r.verificationStatus !== 'ACCEPTED')
+      if (unacceptedMandatory.length > 0) {
+        throw new Error(
+          `422: Không thể xác nhận Gate PASS vì còn ${unacceptedMandatory.length} minh chứng bắt buộc chưa được ACCEPTED (${unacceptedMandatory.map(r => r.title).join(', ')}).`,
+        )
+      }
+    }
+
+    assigned.latestDecision = req.decision
+    assigned.status = 'DECIDED'
+    assigned.reviewerNotes = req.notes
+    assigned.concurrencyToken = `token-${Date.now()}`
+
+    const gate = this.studentTimeline.gates.find(g => g.code === assigned.gateCode)
+    if (gate) {
+      gate.status = req.decision
+      if (req.decision === 'PASSED') {
+        const nextIdx = this.studentTimeline.gates.findIndex(g => g.code === assigned.gateCode) + 1
+        if (nextIdx < this.studentTimeline.gates.length) {
+          this.studentTimeline.gates[nextIdx].reviewEligibility = 'READY'
+          this.studentTimeline.gates[nextIdx].blockingReasons = []
+          this.studentTimeline.currentGateCode = this.studentTimeline.gates[nextIdx].code
+        }
+      } else {
+        gate.blockingReasons = [
+          {
+            code: 'REVISION_REQUIRED_BY_REVIEWER',
+            message: req.notes,
+          },
+        ]
+      }
+    }
+
+    const matrixRow = this.matrix.find(p => p.projectId === assigned.projectId)
+    if (matrixRow) {
+      matrixRow.gateStatuses[assigned.gateCode] = req.decision
+      if (req.decision === 'PASSED') {
+        const nextIdx = ['R1', 'R2', 'R3', 'R4'].indexOf(assigned.gateCode) + 1
+        if (nextIdx < 4) {
+          matrixRow.gateStatuses[['R1', 'R2', 'R3', 'R4'][nextIdx]] = 'PLANNED'
+        }
+      }
+    }
+
+    return JSON.parse(JSON.stringify(assigned))
+  }
 }
 
 export const reviewGatesMockAdapter = new ReviewGatesMockAdapter()
+

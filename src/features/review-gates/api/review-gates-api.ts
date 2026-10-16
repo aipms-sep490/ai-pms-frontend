@@ -1,8 +1,13 @@
 import { reviewGatesMockAdapter } from './review-gates-mock-adapter'
 import type {
+  AssignedReviewItem,
   DefenseReadinessSummary,
+  GateDecisionRequest,
   ProjectReviewMatrixRow,
   ReviewGateTemplate,
+  StudentReviewTimelineDto,
+  SubmitRevisionRequest,
+  VerifyEvidenceRequest,
 } from '../types/review-gates.types'
 
 /**
@@ -51,3 +56,27 @@ export async function updateHybridScopeDecision(
 export async function getDefenseReadiness(projectId: string): Promise<DefenseReadinessSummary> {
   return reviewGatesMockAdapter.getDefenseReadiness(projectId)
 }
+
+export async function getStudentReviewTimeline(projectId?: string): Promise<StudentReviewTimelineDto> {
+  return reviewGatesMockAdapter.getStudentReviewTimeline(projectId)
+}
+
+export async function submitRevision(
+  req: SubmitRevisionRequest,
+  isLeader: boolean,
+): Promise<StudentReviewTimelineDto> {
+  return reviewGatesMockAdapter.submitRevision(req, isLeader)
+}
+
+export async function getAssignedReviews(): Promise<AssignedReviewItem[]> {
+  return reviewGatesMockAdapter.getAssignedReviews()
+}
+
+export async function verifyEvidence(req: VerifyEvidenceRequest): Promise<AssignedReviewItem> {
+  return reviewGatesMockAdapter.verifyEvidence(req)
+}
+
+export async function submitGateDecision(req: GateDecisionRequest): Promise<AssignedReviewItem> {
+  return reviewGatesMockAdapter.submitGateDecision(req)
+}
+
