@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { downloadEvaluationEvidenceFile, type EvidenceFile } from '../../../services/api/evaluations.api'
 import { fileLabel, formatBytes, previewKind } from '../report-preview'
 
+const fileKey = (file: EvidenceFile) => String(file.evidenceItemId ?? file.id) + ':' + String(file.deliverableVersionId ?? '') + ':' + String(file.coldSubmissionId ?? '')
+
 async function downloadFile(assignmentId: number, file: EvidenceFile) {
   const blob = await downloadEvaluationEvidenceFile(assignmentId, file.id)
   const href = URL.createObjectURL(blob)
@@ -15,30 +17,38 @@ async function downloadFile(assignmentId: number, file: EvidenceFile) {
  * assignment-scoped endpoint, so the backend remains the authority on what this evaluator may open.
  */
 export function ReportPreviewPanel({ assignmentId, files }: { assignmentId: number; files: EvidenceFile[] }) {
-  const [selectedId, setSelectedId] = useState<number>(files[0]?.id ?? 0)
-  const selected = files.find(file => file.id === selectedId) ?? files[0]
+  const [selectedKey, setSelectedKey] = useState(files[0] ? fileKey(files[0]) : '')
+  const [downloadError, setDownloadError] = useState('')
+  const download = async (file: EvidenceFile) => {
+    setDownloadError('')
+    try { await downloadFile(assignmentId, file) }
+    catch { setDownloadError('Không thể tải tệp. Quyền phân công hoặc phiên bản minh chứng có thể đã thay đổi. Hãy tải lại phân công.') }
+  }
+  const selected = files.find(file => fileKey(file) === selectedKey) ?? files[0]
   if (!selected) return null
   return (
     <section className="rounded-xl border border-hairline bg-card p-4 report-preview" aria-label="Xem báo cáo để chấm">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-semibold text-ink">Báo cáo của sinh viên</h2>
-        <button type="button" className="text-sm font-semibold text-primary underline-offset-4 hover:underline" onClick={() => void downloadFile(assignmentId, selected)}>Tải xuống</button>
+        <button type="button" className="text-sm font-semibold text-primary underline-offset-4 hover:underline" onClick={() => void download(selected)}>Tải xuống</button>
       </div>
       {files.length > 1 && (
         <div className="report-preview-tabs" role="tablist" aria-label="Chọn báo cáo">
           {files.map(file => (
-            <button key={file.id} type="button" role="tab" aria-selected={file.id === selected.id} className={file.id === selected.id ? 'report-preview-tab report-preview-tab--active' : 'report-preview-tab'} onClick={() => setSelectedId(file.id)}>{fileLabel(file)}</button>
+            <button key={fileKey(file)} type="button" role="tab" aria-selected={fileKey(file) === fileKey(selected)} className={fileKey(file) === fileKey(selected) ? 'report-preview-tab report-preview-tab--active' : 'report-preview-tab'} onClick={() => setSelectedKey(fileKey(file))}>{fileLabel(file)}</button>
           ))}
         </div>
       )}
       <p className="mt-2 text-xs text-ink-muted">{selected.fileName} · {formatBytes(selected.sizeBytes)}</p>
-      <PreviewStage key={selected.id} assignmentId={assignmentId} file={selected} />
+      <p className="text-xs text-ink-muted">Phiên bản: {selected.versionNumber ?? 'Chưa xác định'} · Tệp thuộc gói minh chứng đã khóa</p>
+      {downloadError && <p role="alert">{downloadError}</p>}
+      <PreviewStage key={`${assignmentId}:${selected.id}:${selected.deliverableVersionId}:${selected.coldSubmissionId}`} assignmentId={assignmentId} file={selected} download={download} />
     </section>
   )
 }
 
 /** Remounted per file (via key), so its fetch state resets without a synchronous effect reset. */
-function PreviewStage({ assignmentId, file }: { assignmentId: number; file: EvidenceFile }) {
+function PreviewStage({ assignmentId, file, download }: { assignmentId: number; file: EvidenceFile; download: (file: EvidenceFile) => Promise<void> }) {
   const kind = previewKind(file)
   const [url, setUrl] = useState<string | null>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(kind === 'other' ? 'ready' : 'loading')
@@ -56,10 +66,10 @@ function PreviewStage({ assignmentId, file }: { assignmentId: number; file: Evid
   return (
     <div className="report-preview-stage">
       {status === 'loading' && kind !== 'other' ? <p role="status" className="report-preview-note">Đang tải báo cáo…</p> : null}
-      {status === 'error' ? <p role="alert" className="report-preview-note">Chưa tải được bản xem trước. <button type="button" className="font-semibold underline" onClick={() => void downloadFile(assignmentId, file)}>Tải xuống để xem</button></p> : null}
+      {status === 'error' ? <p role="alert" className="report-preview-note">Chưa tải được bản xem trước. <button type="button" className="font-semibold underline" onClick={() => void download(file)}>Tải xuống để xem</button></p> : null}
       {status === 'ready' && kind === 'pdf' && url ? <iframe title={`Báo cáo ${fileLabel(file)}`} src={url} sandbox="allow-same-origin" className="report-preview-frame" /> : null}
       {status === 'ready' && kind === 'image' && url ? <img src={url} alt={`Báo cáo ${fileLabel(file)}`} className="report-preview-image" /> : null}
-      {kind === 'other' ? <p className="report-preview-note">Định dạng này không xem trực tiếp trên trình duyệt được. <button type="button" className="font-semibold text-primary underline" onClick={() => void downloadFile(assignmentId, file)}>Tải xuống {file.fileName}</button> để đối chiếu khi chấm.</p> : null}
+      {kind === 'other' ? <p className="report-preview-note">Định dạng này không xem trực tiếp trên trình duyệt được. <button type="button" className="font-semibold text-primary underline" onClick={() => void download(file)}>Tải xuống {file.fileName}</button> để đối chiếu khi chấm.</p> : null}
     </div>
   )
 }

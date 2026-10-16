@@ -7,6 +7,9 @@ import type { ColdTemplate } from '../../services/api/cold-templates.api'
 const api = vi.hoisted(() => ({ getColdTemplateItExample: vi.fn(), getColdTemplates: vi.fn(), createColdTemplate: vi.fn() }))
 vi.mock('../../services/api/cold-templates.api', () => api)
 
+const coldApi = vi.hoisted(() => ({ applyColdChecklist: vi.fn() }))
+vi.mock('../../services/api/cold.api', () => coldApi)
+
 const template: ColdTemplate = {
   id: 1, majorId: 12, projectPeriodId: 34, name: 'Marketing research reports', version: 1,
   reports: [{ code: 'MARKET_RESEARCH', name: 'Market research', required: true }],
@@ -81,5 +84,28 @@ describe('ColdTemplateManagementPage', () => {
     fireEvent.change(screen.getByPlaceholderText('Mã report'), { target: { value: 'CODE' } })
     fireEvent.change(screen.getByPlaceholderText('Tên report'), { target: { value: 'Name' } })
     expect(create.disabled).toBe(false)
+  })
+
+  it('allows applying template checklist to a project with scope and deadline', async () => {
+    coldApi.applyColdChecklist.mockResolvedValue({ id: 10, items: [{ id: 1 }] })
+    render(<ColdTemplateManagementPage />)
+
+    fireEvent.change(screen.getByLabelText('Mã đồ án (Project ID)'), { target: { value: '101' } })
+    fireEvent.change(screen.getByLabelText('Mã kỳ áp dụng'), { target: { value: '34' } })
+    fireEvent.change(screen.getByLabelText('Hạn nộp báo cáo (Deadline)'), { target: { value: '2026-12-31T23:59' } })
+    fireEvent.change(screen.getByPlaceholderText('Template ID'), { target: { value: '1' } })
+
+    const applyBtn = screen.getByRole('button', { name: 'Áp dụng checklist vào đồ án' })
+    expect(applyBtn.hasAttribute('disabled')).toBe(false)
+    fireEvent.click(applyBtn)
+
+    await waitFor(() => {
+      expect(coldApi.applyColdChecklist).toHaveBeenCalledWith(101, expect.objectContaining({
+        projectPeriodId: 34,
+        targets: [{ templateId: 1, scope: 'COMMON', studentId: null }],
+      }))
+    })
+
+    expect(await screen.findByText(/Áp dụng checklist thành công cho đồ án #101/)).toBeTruthy()
   })
 })

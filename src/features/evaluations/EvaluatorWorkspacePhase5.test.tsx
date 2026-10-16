@@ -4,13 +4,13 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { HttpError } from '../../services/http/http-client'
 
 const api = vi.hoisted(() => ({ getAllMyEvaluationAssignments: vi.fn(), getEvaluationAssignmentDetail: vi.fn(), getEvaluationAssignmentEvidence: vi.fn(), downloadEvaluationEvidenceFile: vi.fn(), getProjectEvaluations: vi.fn(), createEvaluationDraft: vi.fn(), saveEvaluationDraft: vi.fn(), finalizeEvaluation: vi.fn() }))
-vi.mock('../../services/api/evaluations.api', () => api)
+vi.mock('../../services/api/evaluations.api', async importOriginal => ({ ...await importOriginal<typeof import('../../services/api/evaluations.api')>(), ...api }))
 
 import { EvaluatorAssignmentRoute } from './components/EvaluatorAssignmentRoute'
 import { EvaluatorWorkspacePage } from './pages/EvaluatorWorkspacePage'
 import { EvaluatorAssignmentDetailPage } from './pages/EvaluatorAssignmentDetailPage'
 
-const assignment = { id: 41, projectId: 9, evaluatorId: 5, rubricId: 7, projectPeriodId: 3, departmentId: 2, evaluationType: 'LECTURER' as const, status: 'ACTIVE' as const, assignedBy: 1, assignedAt: '2026-10-02T00:00:00Z', revokedAt: null, concurrencyToken: 'assignment-token', scope: 'MAJOR_SPECIFIC' as const, majorId: 8, studentId: null, componentId: 11, policyVersionId: 4 }
+const assignment = { projectTitle: "StudySpace SE28", componentName: "Chuyên môn IT", rubricName: "Đánh giá phần mềm", majorName: "Công nghệ thông tin", studentName: "Nguyễn An", id: 41, projectId: 9, evaluatorId: 5, rubricId: 7, projectPeriodId: 3, departmentId: 2, evaluationType: 'LECTURER' as const, status: 'ACTIVE' as const, assignedBy: 1, assignedAt: '2026-10-02T00:00:00Z', revokedAt: null, concurrencyToken: 'assignment-token', scope: 'MAJOR_SPECIFIC' as const, majorId: 8, studentId: null, componentId: 11, policyVersionId: 4 }
 const draft = { id: 51, assignmentId: 41, projectId: 9, evaluatorId: 5, rubricId: 7, rubricName: 'Rubric hệ thống', rootRubricId: 7, rubricVersion: 2, evaluationType: 'LECTURER', status: 'DRAFT', comments: null, totalScore: null, scoreScale: 10, calculationRule: 'WEIGHTED_10', missingCriterionIds: [12], missingRequiredCriterionIds: [12], concurrencyToken: 'draft-token', createdAt: '2026-10-02T00:00:00Z', updatedAt: '2026-10-02T00:00:00Z', finalization: null, scores: [{ rubricCriterionId: 12, name: 'Phân tích', description: 'Căn cứ rõ ràng', weightPercent: 100, maxScore: 10, sortOrder: 1, isRequired: true, score: null, comments: null }] }
 const page = (path = '/evaluator/assignments/41') => render(<RouterProvider router={createMemoryRouter([
   { path: '/evaluator/workspace', element: <EvaluatorWorkspacePage /> },
@@ -65,15 +65,30 @@ describe('Evaluator Workspace Phase 5', () => {
     page()
     await screen.findByLabelText('Điểm Phân tích')
     expect((screen.getByRole('button', { name: 'Yêu cầu chốt đánh giá' }) as HTMLButtonElement).disabled).toBe(true)
-    expect(screen.getByRole('link', { name: 'Xem gói bàn giao đã khóa' }).getAttribute('href')).toBe('/evaluator/projects/9/final-submission')
+    expect(screen.queryByRole('link', { name: 'Xem gói bàn giao đã khóa' })).toBeNull(); expect(screen.getByText('Chỉ xem và tải các tệp trong phạm vi phân công này.')).toBeTruthy()
+  })
+
+  it('releases the save lock so the saved draft can be finalized', async () => {
+    const complete = { ...draft, totalScore: 8, missingCriterionIds: [], missingRequiredCriterionIds: [], scores: [{ ...draft.scores[0], score: 8 }] }
+    api.saveEvaluationDraft.mockResolvedValue(complete)
+    api.finalizeEvaluation.mockResolvedValue({ ...complete, status: 'FINALIZED' })
+    page()
+    fireEvent.change(await screen.findByLabelText('Điểm Phân tích'), { target: { value: '8' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
+    await screen.findByText('Đã lưu bản nháp theo dữ liệu máy chủ.')
+    fireEvent.click(screen.getByRole('button', { name: 'Yêu cầu chốt đánh giá' }))
+    const confirmations = await screen.findAllByRole('button', { name: 'Yêu cầu chốt đánh giá' })
+    expect(confirmations.length).toBe(2)
+    fireEvent.click(confirmations.at(-1)!)
+    await waitFor(() => expect(api.finalizeEvaluation).toHaveBeenCalledWith(51, 'draft-token'))
   })
   it('renders persisted COMMON, MAJOR_SPECIFIC and INDIVIDUAL assignments without a target-switch control', async () => {
     api.getAllMyEvaluationAssignments.mockResolvedValue([assignment, { ...assignment, id: 42, scope: 'COMMON', majorId: null, studentId: null }, { ...assignment, id: 43, scope: 'INDIVIDUAL', majorId: 8, studentId: 99 }])
     api.getProjectEvaluations.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
     page('/evaluator/workspace')
-    expect(await screen.findByText(/Ngành được phân công #8/)).toBeTruthy()
+    expect(await screen.findByText(/Công nghệ thông tin/)).toBeTruthy()
     expect(screen.getByText('Phạm vi chung của đồ án')).toBeTruthy()
-    expect(screen.getByText(/Sinh viên được phân công #99/)).toBeTruthy()
+    expect(screen.getByText(/Nguyễn An/)).toBeTruthy()
     expect(screen.queryByRole('button', { name: /đổi ngành|đổi sinh viên/i })).toBeNull()
   })
 
@@ -101,7 +116,7 @@ describe('Evaluator Workspace Phase 5', () => {
     api.getProjectEvaluations.mockRejectedValue(new Error('offline'))
     page()
     expect(await screen.findByText(/Chưa tải được bản nháp đánh giá/)).toBeTruthy()
-    expect(screen.getByText('Phân công #41')).toBeTruthy()
+    expect(screen.getByText('Chuyên môn IT')).toBeTruthy()
   })
 
   it('creates a draft only for the guarded assignment and uses leaf criteria for saving', async () => {
@@ -145,7 +160,7 @@ describe('Evaluator Workspace Phase 5', () => {
     expect(score.disabled).toBe(true)
     expect(screen.queryByRole('button', { name: 'Yêu cầu chốt đánh giá' })).toBeNull()
     expect(screen.getByText(/Số hạng mục bàn giao: 2/)).toBeTruthy()
-    expect(screen.getByText(/Thông tin bàn giao dưới đây chỉ để đối chiếu/)).toBeTruthy()
+    expect(screen.getByText(/Tài liệu được hiển thị tại mục Báo cáo của sinh viên/)).toBeTruthy()
     expect(screen.getByText(/Kết quả chính thức được bộ môn công bố sau khi hoàn tất đánh giá/)).toBeTruthy()
   })
 
@@ -160,9 +175,9 @@ describe('Evaluator Workspace Phase 5', () => {
 
   it('shows the report preview beside the scoring form when the backend ships evidence files', async () => {
     vi.stubGlobal('URL', { ...URL, createObjectURL: () => 'blob:report', revokeObjectURL: () => {} })
-    api.getEvaluationAssignmentEvidence.mockResolvedValue({ assignmentId: 41, projectId: 9, scope: 'MAJOR_SPECIFIC', majorId: 8, studentId: null, finalSubmissionId: 15, submittedAt: '2026-10-02T00:00:00Z', itemCount: 2, isReadOnly: false, files: [
-      { id: 1, fileName: 'srs.pdf', contentType: 'application/pdf', sizeBytes: 2048, reportType: 'Software Requirement' },
-      { id: 2, fileName: 'guide.zip', contentType: 'application/zip', sizeBytes: 4096, reportType: 'User Guide' },
+    api.getEvaluationAssignmentEvidence.mockResolvedValue({ assignmentId: 41, projectId: 9, scope: 'MAJOR_SPECIFIC', majorId: 8, studentId: null, finalSubmissionId: 15, submittedAt: '2026-10-02T00:00:00Z', itemCount: 2, isReadOnly: true, items: [
+      { id: 101, fileId: 1, fileName: 'srs.pdf', contentType: 'application/pdf', fileSizeBytes: 2048, title: 'Software Requirement', deliverableVersionId: 51, versionNumber: 2 },
+      { id: 102, fileId: 2, fileName: 'guide.zip', contentType: 'application/zip', fileSizeBytes: 4096, title: 'User Guide', deliverableVersionId: 52, versionNumber: 3 },
     ] })
     api.downloadEvaluationEvidenceFile.mockResolvedValue(new Blob(['x'], { type: 'application/pdf' }))
     page()

@@ -184,7 +184,11 @@ export function getStudentNavItems() {
  * Resolves a breadcrumb title from the current pathname.
  */
 export function getBreadcrumbForPath(pathname: string): string {
+  if (pathname === '/industry/enroll') return env.industryEnabled ? 'Đăng ký chuyên gia doanh nghiệp' : 'Trang không tồn tại'
+  if (pathname === '/industry' || pathname === '/industry/workspace') return env.industryEnabled ? 'Phân công tư vấn doanh nghiệp' : 'Trang không tồn tại'
+  if (/^\/industry\/assignments\/\d+(?:\/|$)/.test(pathname)) return env.industryEnabled ? 'Chi tiết phân công tư vấn' : 'Trang không tồn tại'
   const registryBreadcrumb = getWorkspaceBreadcrumb(pathname)
+  if (/^\/(?:review|department)\/projects\/\d+\/corrections(?:\/|$)/.test(pathname)) return 'Phúc khảo và đính chính'
   if (registryBreadcrumb && (pathname !== '/project/ai' || env.aiAdvisoryEnabled)) return registryBreadcrumb
   if (/^\/project\/meetings\/new(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings\/new(?:\/|$)/.test(pathname)) {
     return 'Lên lịch họp'

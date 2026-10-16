@@ -1,3 +1,4 @@
+import { readAllPages } from '../../services/api/paged-read'
 import { displayLabel } from '../../components/ui/display-label'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -16,14 +17,14 @@ export function EvaluatorAssignmentsPage() {
   const [error, setError] = useState<string | null>(null)
   const load = useCallback(async () => {
     setLoading(true); setError(null)
-    try { setItems((await api.getMyEvaluationAssignments(1, 100)).items) } catch (reason) { setItems([]); setError(evaluationError(reason)) } finally { setLoading(false) }
+    try { setItems(await api.getAllMyEvaluationAssignments()) } catch (reason) { setItems([]); setError(evaluationError(reason)) } finally { setLoading(false) }
   }, [])
   useEffect(() => { void load() }, [load])
 
   async function openWorkspace(assignment: EvaluationAssignment) {
     setBusyId(assignment.id); setError(null)
     try {
-      const existing = (await api.getProjectEvaluations(assignment.projectId)).items.find((evaluation) => evaluation.assignmentId === assignment.id)
+      const existing = (await readAllPages(page => api.getProjectEvaluations(assignment.projectId, undefined, page))).find((evaluation) => evaluation.assignmentId === assignment.id)
       const evaluation = existing ?? await api.createEvaluationDraft(assignment.id)
       navigate(`/evaluator/evaluations/${evaluation.id}`)
     } catch (reason) {

@@ -3,10 +3,21 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { SupervisorRecommendationPanel } from './SupervisorRecommendationPanel'
 import { HttpError } from '../../../services/http/http-client'
 
-const mocks = vi.hoisted(() => ({ previewSupervisorRecommendations: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  previewSupervisorRecommendations: vi.fn(),
+  createSupervisorRecommendationRun: vi.fn(),
+  getSupervisorRecommendationHistory: vi.fn(),
+  getSupervisorRecommendationRun: vi.fn(),
+}))
 vi.mock('../api/supervisor-recommendation-api', async () => {
   const actual = await vi.importActual<typeof import('../api/supervisor-recommendation-api')>('../api/supervisor-recommendation-api')
-  return { ...actual, previewSupervisorRecommendations: mocks.previewSupervisorRecommendations }
+  return {
+    ...actual,
+    previewSupervisorRecommendations: mocks.previewSupervisorRecommendations,
+    createSupervisorRecommendationRun: mocks.createSupervisorRecommendationRun,
+    getSupervisorRecommendationHistory: mocks.getSupervisorRecommendationHistory,
+    getSupervisorRecommendationRun: mocks.getSupervisorRecommendationRun,
+  }
 })
 
 afterEach(() => { cleanup(); vi.resetAllMocks() })
@@ -86,5 +97,58 @@ describe('SupervisorRecommendationPanel', () => {
     mocks.previewSupervisorRecommendations.mockRejectedValue(new HttpError('disabled', 404))
     render(<SupervisorRecommendationPanel projectId={9} />)
     expect((await screen.findByRole('alert')).textContent).toContain('Chưa tải được')
+  })
+
+  it('displays warning when candidate is currently not eligible', async () => {
+    mocks.previewSupervisorRecommendations.mockResolvedValue(preview([
+      item({ currentlyEligible: false, currentReasons: ['CAPACITY_EXCEEDED'] }),
+    ]))
+    render(<SupervisorRecommendationPanel projectId={9} />)
+    expect(await screen.findByText(/Giảng viên này hiện không còn đủ điều kiện/)).toBeTruthy()
+    expect(screen.getByText(/CAPACITY_EXCEEDED/)).toBeTruthy()
+  })
+
+  it('allows saving current recommendation run and viewing history runs', async () => {
+    const { waitFor } = await import('@testing-library/react')
+    mocks.previewSupervisorRecommendations.mockResolvedValue(preview([item()]))
+    mocks.createSupervisorRecommendationRun.mockResolvedValue({
+      id: 88, projectId: 9, createdBy: 1, createdAt: '2026-10-15T10:00:00Z', engineVersion: 'rules-v1',
+      assignmentType: 'PRIMARY', majorId: null, search: null, page: 1, pageSize: 20, totalCount: 1,
+      items: [item({ candidate: candidate({ id: 11, fullName: 'TS. An' }) })],
+    })
+    mocks.getSupervisorRecommendationHistory.mockResolvedValue({
+      items: [{ id: 88, createdAt: '2026-10-15T10:00:00Z', createdBy: 1, assignmentType: 'PRIMARY', majorId: null, engineVersion: 'rules-v1', itemCount: 1, totalCount: 1 }],
+      page: 1, pageSize: 20, totalCount: 1, totalPages: 1,
+    })
+    mocks.getSupervisorRecommendationRun.mockResolvedValue({
+      id: 88, projectId: 9, createdBy: 1, createdAt: '2026-10-15T10:00:00Z', engineVersion: 'rules-v1',
+      assignmentType: 'PRIMARY', majorId: null, search: null, page: 1, pageSize: 20, totalCount: 1,
+      items: [item({ candidate: candidate({ id: 11, fullName: 'TS. An (từ Run 88)' }) })],
+    })
+
+    render(<SupervisorRecommendationPanel projectId={9} />)
+    await screen.findByText('TS. An')
+
+    // Click "Lưu run hiện tại"
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu run hiện tại' }))
+    await waitFor(() => {
+      expect(mocks.createSupervisorRecommendationRun).toHaveBeenCalledWith(9, { assignmentType: 'PRIMARY', majorId: undefined })
+    })
+    expect(await screen.findByText(/Đã lưu phiên gợi ý #88/)).toBeTruthy()
+
+    // Click "Lịch sử gợi ý"
+    fireEvent.click(screen.getByRole('button', { name: 'Lịch sử gợi ý' }))
+    await waitFor(() => {
+      expect(mocks.getSupervisorRecommendationHistory).toHaveBeenCalledWith(9, 1, 20)
+    })
+    expect(await screen.findByText(/Lịch sử các phiên gợi ý đã lưu/)).toBeTruthy()
+
+    // Click "Xem" for run 88
+    fireEvent.click(screen.getByRole('button', { name: /Xem \(1 GV\)/ }))
+    await waitFor(() => {
+      expect(mocks.getSupervisorRecommendationRun).toHaveBeenCalledWith(9, 88)
+    })
+    expect(await screen.findByText('TS. An (từ Run 88)')).toBeTruthy()
+    expect(screen.getByText(/Đang xem kết quả lịch sử/)).toBeTruthy()
   })
 })

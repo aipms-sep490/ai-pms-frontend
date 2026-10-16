@@ -1,9 +1,17 @@
 import type { ReactNode } from 'react'
 import { useAcademicWorkflow } from './useAcademicWorkflow'
 import { PageLoading } from '../../components/ui/PageLoading'
+import { Navigate } from 'react-router-dom'
+import { useAuthSession } from '../../features/auth/context/useAuthSession'
+import { env } from '../config/env'
 
 export function AcademicWorkflowGate({ children }: { children: ReactNode }) {
   const { workflowContext, status, errorKind, refresh } = useAcademicWorkflow()
+  const { session } = useAuthSession()
+
+  if (session?.user.roles.length === 0) {
+    return env.industryEnabled ? <Navigate to="/industry/workspace" replace /> : <ContextMessage title="Tài khoản chưa có vai trò học thuật." detail="Cổng tư vấn chưa được mở trên môi trường này." />
+  }
 
   if ((status === 'idle' || status === 'loading') && !workflowContext) {
     return <PageLoading fullPage />

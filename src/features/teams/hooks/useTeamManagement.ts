@@ -49,7 +49,7 @@ function mutationKey(action: string, id?: number): string {
  */
 export function useTeamManagement() {
   const journey = useStudentJourney()
-  const { team, project, assignments, profile, semester, workflowContext, teamActions, refreshAll } = journey
+  const { team, project, assignments, profile, semester, workflowContext, teamActions, refreshAll, refreshAllSilently } = journey
   const [sentInvitations, setSentInvitations] = useState<TeamInvitationDto[]>([])
   const [receivedInvitations, setReceivedInvitations] = useState<TeamInvitationDto[]>([])
   const [candidates, setCandidates] = useState<PagedResult<TeamInvitationCandidateDto>>(emptyPage())
@@ -166,14 +166,14 @@ export function useTeamManagement() {
   const refreshAuthoritativeState = useCallback(async () => {
     setIsRefreshing(true)
     try {
-      await refreshAll()
+      await (refreshAllSilently ?? refreshAll)()
       await refreshInvitations()
       await refreshCandidates()
       await refreshLeaderChanges()
     } finally {
       setIsRefreshing(false)
     }
-  }, [refreshAll, refreshCandidates, refreshInvitations, refreshLeaderChanges])
+  }, [refreshAll, refreshAllSilently, refreshCandidates, refreshInvitations, refreshLeaderChanges])
 
   const retry = useCallback(async () => {
     setError(null)

@@ -28,6 +28,16 @@ describe('LecturerWorkspacePage', () => {
     expect(globalThis.confirm).not.toHaveBeenCalled()
   })
 
+  it('uses the project major name for request members instead of exposing the major id', () => {
+    inbox.useSupervisorInbox.mockReturnValue(state({
+      projects: { 9: { id: 9, title: 'Project', status: 'ACTIVE', teamId: 21, majors: [{ majorId: 3, majorName: 'V5 Information Technology' }] } },
+      teams: { 21: { id: 21, name: 'Nhóm 1', code: 'SE28', members: [{ userId: 2, fullName: 'Leader', majorId: 3, isLeader: true }] } },
+    }))
+    render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)
+    expect(screen.getByText(/V5 Information Technology/)).toBeTruthy()
+    expect(screen.queryByText(/Chuyên ngành #3/)).toBeNull()
+  })
+
   it('shows an empty Backend inbox and a distinct forbidden response', () => {
     inbox.useSupervisorInbox.mockReturnValue(state({ requests: [], error: { kind: 'forbidden', message: 'Backend từ chối quyền Inbox hoặc request scope.' } }))
     render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)

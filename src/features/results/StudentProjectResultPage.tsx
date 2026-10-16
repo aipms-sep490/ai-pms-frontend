@@ -65,7 +65,7 @@ function PublishedStudentResult({ project, studentId }: { project: ProjectDto; s
         <TableBody>{components.map((component, index) => {
           const pending = component.score === null
           return <TableRow key={`${component.componentId}-${index}`}>
-            <TableCell label="Thành phần" className="font-medium text-ink">{scopeLabel(component.scope)}{component.majorId != null && ` · Ngành #${component.majorId}`}</TableCell>
+            <TableCell label="Thành phần" className="font-medium text-ink">{scopeLabel(component.scope)}{component.majorId != null && ` · ${project.majors.find(major => major.majorId === component.majorId)?.majorName || `Ngành #${component.majorId}`}`}</TableCell>
             <TableCell label="Trọng số" numeric>{formatPercent(component.weightPercent)}</TableCell>
             <TableCell label="Điểm" numeric className="font-semibold">{formatScore(component.score)}</TableCell>
             <TableCell label="Trạng thái"><StatusBadge tone={pending ? 'warning' : 'success'} label={pending ? `Chưa có điểm (${component.finalizedEvaluators}/${component.requiredEvaluators} người chấm)` : 'Đã chấm'} /></TableCell>
@@ -82,5 +82,5 @@ function ResultFact({ label, value, prominent = false }: { label: string; value:
   return <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{label}</dt><dd className={`mt-2 break-words text-ink ${prominent ? 'text-4xl font-bold' : 'text-sm font-medium'}`}>{value}</dd></div>
 }
 function scopeLabel(scope: string) {
-  return ({ COMMON: 'Điểm chung', MAJOR: 'Theo ngành', INDIVIDUAL: 'Cá nhân' } as Record<string, string>)[scope.toUpperCase()] ?? scope
+  return ({ COMMON: 'Điểm chung', MAJOR: 'Theo ngành', MAJOR_SPECIFIC: 'Theo ngành', INDIVIDUAL: 'Cá nhân' } as Record<string, string>)[scope.toUpperCase()] ?? scope
 }

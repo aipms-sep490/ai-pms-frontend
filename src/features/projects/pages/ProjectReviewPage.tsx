@@ -1,4 +1,5 @@
 import { projectStatusLabel } from '../utils/project-status'
+import { dateTimeLabel } from '../../execution/execution-utils'
 import { displayLabel } from '../../../components/ui/display-label'
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -25,7 +26,7 @@ function ScopeSummary({ review, names }: { review: ReturnType<typeof useProjectR
       {evidence ? <section aria-labelledby="review-scope-heading">
       <h2 id="review-scope-heading">Minh chứng đăng ký</h2>
       <dl className="review-page__facts">
-        <div><dt>Phiên bản nộp</dt><dd>#{review.detail?.latestSubmission?.id}</dd></div>
+        <div><dt>Bản nộp gần nhất</dt><dd>{review.detail?.latestSubmission?.submittedAt ? `Nộp lúc ${dateTimeLabel(review.detail.latestSubmission.submittedAt)}` : 'Chưa có thông tin thời gian nộp'}</dd></div>
         <div><dt>Điều kiện đội hình</dt><dd>{evidence.policy.minMembers}–{evidence.policy.maxMembers} thành viên · tối thiểu {evidence.policy.minDistinctMajors} ngành</dd></div>
       </dl>
     </section> : <p>Chưa có phiên bản đăng ký để thẩm định.</p>}

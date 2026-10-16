@@ -13,7 +13,28 @@ export interface EvaluationAssignmentDetail {
 /** Deliberately metadata-only evidence projection, scoped by the Backend to the assignment. */
 /** One report file an evaluator may open while scoring. `reportType` labels the COLD report slot
  * (e.g. "Software Requirement") when the backend provides it. */
-export interface EvidenceFile { id: number; fileName: string; contentType: string; sizeBytes: number; reportType?: string | null }
+export interface EvidenceFile { evidenceItemId?: number; id: number; fileName: string; contentType: string; sizeBytes: number; reportType?: string | null; deliverableVersionId?: number | null; versionNumber?: number | null; sha256?: string | null; coldSubmissionId?: number | null }
+
+/** Wire projection from staging; item id and fileId identify different resources. */
+export interface EvaluationEvidenceItem {
+  id: number
+  title: string | null
+  description: string | null
+  sourceType: string | null
+  sourceId: number | null
+  fileId: number | null
+  fileName: string | null
+  contentType: string | null
+  fileSizeBytes: number | null
+  majorId: number | null
+  studentId: number | null
+  submittedAt: string | null
+  downloadUrl: string | null
+  deliverableVersionId: number | null
+  versionNumber: number | null
+  sha256: string | null
+  coldSubmissionId: number | null
+}
 
 export interface EvaluationAssignmentEvidence {
   assignmentId: number
@@ -25,8 +46,18 @@ export interface EvaluationAssignmentEvidence {
   submittedAt: string | null
   itemCount: number
   isReadOnly: boolean
-  /** Optional until the backend ships inline preview; absent falls back to the locked-package link. */
-  files?: EvidenceFile[]
+  items: EvaluationEvidenceItem[] | null
+  stage?: EvaluationStage | null
+  coldPackageId?: number | null
+}
+
+export function evaluationEvidenceFiles(evidence: EvaluationAssignmentEvidence | null): EvidenceFile[] {
+  return (evidence?.items ?? []).flatMap(item => item.fileId == null ? [] : [{
+    evidenceItemId: item.id, id: item.fileId, fileName: item.fileName ?? item.title ?? `Tệp #${item.fileId}`,
+    contentType: item.contentType ?? 'application/octet-stream', sizeBytes: item.fileSizeBytes ?? 0,
+    reportType: item.title, deliverableVersionId: item.deliverableVersionId,
+    versionNumber: item.versionNumber, sha256: item.sha256, coldSubmissionId: item.coldSubmissionId,
+  }])
 }
 
 export interface EligibleEvaluator {
@@ -42,7 +73,7 @@ export const getMyEvaluationAssignments = (page = 1, pageSize = 20, signal?: Abo
 export const getEvaluationAssignmentDetail = (assignmentId: number, signal?: AbortSignal) => httpGet<EvaluationAssignmentDetail>(`/evaluation-assignments/${assignmentId}`, signal)
 export const getEvaluationAssignmentEvidence = (assignmentId: number, signal?: AbortSignal) => httpGet<EvaluationAssignmentEvidence>(`/evaluation-assignments/${assignmentId}/evidence`, signal)
 /** Scoped download: the backend enforces that the evaluator only reaches files within their assignment. */
-export const downloadEvaluationEvidenceFile = (assignmentId: number, fileId: number, signal?: AbortSignal) => httpGetBlob(`/evaluation-assignments/${assignmentId}/evidence/files/${fileId}/download`, { signal })
+export const downloadEvaluationEvidenceFile = (assignmentId: number, fileId: number, signal?: AbortSignal) => httpGetBlob(`/evaluation-assignments/${assignmentId}/evidence/files/${fileId}`, { signal })
 
 /**
  * The API is paged. Workspace guards must inspect the complete server-issued
@@ -60,7 +91,7 @@ export async function getAllMyEvaluationAssignments(signal?: AbortSignal): Promi
   }
   return items
 }
-export const getProjectEvaluationAssignments = (projectId: number, status?: 'ACTIVE' | 'REVOKED', signal?: AbortSignal) => httpGet<PagedResult<EvaluationAssignment>>(`/projects/${projectId}/evaluation-assignments?page=1&pageSize=100${status ? `&status=${status}` : ''}`, signal)
+export const getProjectEvaluationAssignments = (projectId: number, status?: 'ACTIVE' | 'REVOKED', signal?: AbortSignal, page = 1) => httpGet<PagedResult<EvaluationAssignment>>(`/projects/${projectId}/evaluation-assignments?page=${page}&pageSize=100${status ? `&status=${status}` : ''}`, signal)
 export interface EvaluationTarget { componentId: number; scope: EvaluationScope; majorId: number | null; studentId: number | null }
 export const getEvaluationSchemes = (projectId: number, signal?: AbortSignal) => httpGet<EvaluationScheme[]>(`/evaluation-schemes?projectId=${projectId}`, signal)
 export interface EvaluationSchemeComponentInput {
@@ -95,6 +126,6 @@ export const assignEvaluator = (projectId: number, body: { evaluatorId: number; 
 export const revokeEvaluator = (assignmentId: number, concurrencyToken: string, reason: string) => httpPost<EvaluationAssignment>(`/evaluation-assignments/${assignmentId}/revoke`, { concurrencyToken, reason })
 export const createEvaluationDraft = (assignmentId: number) => httpPost<EvaluationDraft>(`/evaluation-assignments/${assignmentId}/evaluation`)
 export const getEvaluationDraft = (evaluationId: number, signal?: AbortSignal) => httpGet<EvaluationDraft>(`/evaluations/${evaluationId}`, signal)
-export const getProjectEvaluations = (projectId: number, signal?: AbortSignal) => httpGet<PagedResult<EvaluationDraft>>(`/projects/${projectId}/evaluations?page=1&pageSize=100`, signal)
+export const getProjectEvaluations = (projectId: number, signal?: AbortSignal, page = 1) => httpGet<PagedResult<EvaluationDraft>>(`/projects/${projectId}/evaluations?page=${page}&pageSize=100`, signal)
 export const saveEvaluationDraft = (evaluationId: number, body: { concurrencyToken: string; comments: string | null; scores: EvaluationScoreInput[] }) => httpPut<EvaluationDraft>(`/evaluations/${evaluationId}/draft`, body)
 export const finalizeEvaluation = (evaluationId: number, concurrencyToken: string) => httpPost<EvaluationDraft>(`/evaluations/${evaluationId}/finalize`, { concurrencyToken })

@@ -14,6 +14,7 @@ const api = vi.hoisted(() => ({ getProjectResult: vi.fn(), getResultPreview: vi.
 vi.mock('../../services/api/project-results.api', () => api)
 vi.mock('../../app/context/useAcademicWorkflow', () => ({ useAcademicWorkflow: () => ({ academic: { departments: [{ id: 2 }] } }) }))
 vi.mock('./StudentResultPublicationPanel', () => ({ StudentResultPublicationPanel: ({ departmentId }: { departmentId?: number }) => <section aria-label="Kết quả sinh viên độc lập" data-department={departmentId} /> }))
+vi.mock('./ResultHistoryPanel', () => ({ ResultHistoryPanel: () => <section aria-label="Lịch sử kết quả độc lập" /> }))
 const preview = (token = 'current-token') => ({ canPublish: true, totalScore: 8, passThreshold: 5, outcome: 'PASS', blockers: [], confirmationToken: token })
 function page() { render(<MemoryRouter initialEntries={['/department/projects/9/result']}><Routes><Route path="/department/projects/:projectId/result" element={<ResultPublicationPage />} /></Routes></MemoryRouter>) }
 beforeEach(() => { auth.session = { accessToken: 'fixture', user: { roles: ['DEPARTMENT_STAFF'] } }; capabilitiesApi.getMyCapabilities.mockResolvedValue(projectCapabilities(9)); api.getProjectResult.mockResolvedValue(null); api.getResultPreview.mockResolvedValue(preview()); api.publishProjectResult.mockResolvedValue({}) })
@@ -33,6 +34,11 @@ it('replaces legacy writes with scoped scheme navigation', async () => {
   expect(screen.getByRole('link', { name: 'Quản lý phương án đánh giá' }).getAttribute('href')).toBe('/department/projects/9/evaluation-schemes')
   expect(screen.queryByRole('button', { name: 'Lưu cách tính điểm' })).toBeNull()
   expect(api.configureResultPolicy).not.toHaveBeenCalled()
+})
+it('preserves the backend-scoped roster for a lead department across participating departments', async () => {
+  page()
+  await screen.findByRole('region', { name: 'Bản xem trước kết quả' })
+  expect(screen.getByRole('region', { name: 'Kết quả sinh viên độc lập' }).getAttribute('data-department')).toBeNull()
 })
 it('requires review and confirmation, and cancellation never publishes', async () => {
   page(); await screen.findByRole('region', { name: 'Bản xem trước kết quả' })

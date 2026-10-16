@@ -40,6 +40,14 @@ describe('SupervisorSelectionPage', () => {
   })
 })
 
+it('shows the request name even when the invited lecturer is absent from candidates and assignments', () => {
+  journey.useStudentJourney.mockReturnValue(currentJourney)
+  selection.useSupervisorSelection.mockReturnValue(state({ candidates: [], requests: [{ id: 1, supervisorProfileId: 6, supervisorName: 'V5 IT Evaluator', status: 'PENDING', requestedAt: '2026-10-16T06:26:00' }] }))
+  render(<MemoryRouter><SupervisorSelectionPage /></MemoryRouter>)
+  expect(screen.getByText(/V5 IT Evaluator/)).toBeTruthy()
+  expect(screen.queryByText(/Giảng viên #6/)).toBeNull()
+})
+
 it('uses the assignment name and formatted dates in request history, without inactive search controls', () => {
   journey.useStudentJourney.mockReturnValue(currentJourney)
   const assignment = { supervisorProfileId: 4, supervisorName: 'Nguyễn Mai', assignedAt: '2026-09-12T09:00:00' }

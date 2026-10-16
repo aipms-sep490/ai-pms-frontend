@@ -85,7 +85,7 @@ export function SupervisorSelectionPage() {
       <section className="border-b border-hairline pb-6">
         <h2 className="text-lg font-bold text-slate-900">Yêu cầu hướng dẫn</h2>
         {selection.requests.length ? <ul className="mt-3 divide-y divide-hairline">{selection.requests.map((request) => <li key={request.id} className="py-3 text-sm">
-          <StatusBadge tone={requestStatusTone(request.status)} label={displayLabel(request.status)} /> · <span className="font-semibold">{slotLabel(request.assignmentType, request.majorId, majorName)}</span> · {selection.assignments.find(item => item.supervisorProfileId === request.supervisorProfileId)?.supervisorName ?? selection.candidates.find(item => item.id === request.supervisorProfileId)?.fullName ?? `Giảng viên #${request.supervisorProfileId}`} · gửi lúc {dateTimeLabel(request.requestedAt)}
+          <StatusBadge tone={requestStatusTone(request.status)} label={displayLabel(request.status)} /> · <span className="font-semibold">{slotLabel(request.assignmentType, request.majorId, majorName)}</span> · {request.supervisorName?.trim() || selection.assignments.find(item => item.supervisorProfileId === request.supervisorProfileId)?.supervisorName || selection.candidates.find(item => item.id === request.supervisorProfileId)?.fullName || 'Chưa tải được tên giảng viên'} · gửi lúc {dateTimeLabel(request.requestedAt)}
           {request.status === 'PENDING' && request.expiresAt ? <span className="text-xs text-slate-500"> · hết hạn lúc {dateTimeLabel(request.expiresAt)}</span> : null}
           {request.requestMessage ? <p className="mt-1">Lời nhắn: {request.requestMessage}</p> : null}
           {request.responseMessage ? <p className="mt-1">Phản hồi: {request.responseMessage}</p> : null}

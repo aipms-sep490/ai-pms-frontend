@@ -100,6 +100,10 @@ describe('Meeting RSVP and notes lock (BE-06/N07)', () => {
     fireEvent.click(accept)
     await waitFor(() => expect(api.respondMeetingRsvp).toHaveBeenCalledWith(42, 'ACCEPTED', 'rsvp-token'))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Tham dự' }).getAttribute('aria-pressed')).toBe('true'))
+    expect(screen.queryByText('Chưa phản hồi')).toBeNull()
+    expect(screen.getByText(/^Phản hồi của bạn:/).textContent).not.toContain('INVITED')
+    fireEvent.click(screen.getByRole('button', { name: 'Có thể' }))
+    await waitFor(() => expect(api.respondMeetingRsvp).toHaveBeenLastCalledWith(42, 'TENTATIVE', 'rsvp-token-2'))
   })
 
   it('locks notes when canLockNotes is true and hides the edit trigger afterward', async () => {

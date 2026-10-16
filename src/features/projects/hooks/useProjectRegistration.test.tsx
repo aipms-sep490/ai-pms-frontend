@@ -82,4 +82,11 @@ describe('useProjectRegistration', () => {
   it.each([[401, 'authentication'], [403, 'forbidden'], [404, 'not-found'], [409, 'conflict'], [422, 'validation']] as const)('classifies backend %s as %s', (status, kind) => {
     expect(classifyProjectError(new HttpError('backend', status)).kind).toBe(kind)
   })
+
+  it('explains the eligibility snapshot requirement as validation guidance', () => {
+    expect(classifyProjectError(new HttpError('An active eligibility check snapshot is required before project submission.', 409))).toMatchObject({
+      kind: 'validation',
+      message: expect.stringContaining('Lịch sử kiểm tra điều kiện nhóm'),
+    })
+  })
 })

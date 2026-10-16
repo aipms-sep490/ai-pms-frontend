@@ -4,6 +4,7 @@
 export type EvaluatorRole = 'SUPERVISOR' | 'LECTURER' | 'DISCIPLINE_MENTOR' | 'INDUSTRY' | (string & {})
 
 export interface EvaluationAssignment {
+  projectTitle?: string | null; componentName?: string | null; rubricName?: string | null; majorName?: string | null; studentName?: string | null
   id: number; projectId: number; evaluatorId: number; rubricId: number; projectPeriodId: number; departmentId: number
   evaluationType: EvaluatorRole; status: 'ACTIVE' | 'REVOKED'; assignedBy: number; assignedAt: string; revokedAt: string | null; concurrencyToken: string
   scope: 'COMMON' | 'MAJOR_SPECIFIC' | 'INDIVIDUAL' | 'UNKNOWN'; majorId: number | null; studentId: number | null; componentId: number | null; policyVersionId: number | null

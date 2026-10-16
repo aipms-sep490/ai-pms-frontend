@@ -37,7 +37,6 @@ function toJourneyProfile(workflow: ReturnType<typeof useAcademicWorkflow>['work
   }
 }
 import { useAuthSession } from '../../features/auth/context/useAuthSession'
-import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 
 export function StudentJourneyProvider({ children }: { children: ReactNode }) {
   const { workflowContext } = useAcademicWorkflow()
@@ -55,9 +54,9 @@ export function StudentJourneyProvider({ children }: { children: ReactNode }) {
   const profile = toJourneyProfile(workflowContext)
   const semester = workflowContext?.selectedSemester ?? null
 
-  const refreshAll = useCallback(async () => {
+  const refreshAllInternal = useCallback(async (silent = false) => {
     const requestId = ++refreshSequence.current
-    if (!session || getWorkspaceRole(session.user) !== 'student') {
+    if (!session || !session.user.roles.some(role => role.toUpperCase() === 'STUDENT')) {
       setPeriod(null)
       setTeam(null)
       setProject(null)
@@ -70,7 +69,7 @@ export function StudentJourneyProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    setIsLoading(true)
+    if (!silent) setIsLoading(true)
     setError(null)
     try {
       // Global context owns identity, authorization and selected semester.
@@ -122,6 +121,9 @@ export function StudentJourneyProvider({ children }: { children: ReactNode }) {
     }
   }, [semester, session])
 
+  const refreshAll = useCallback(() => refreshAllInternal(false), [refreshAllInternal])
+  const refreshAllSilently = useCallback(() => refreshAllInternal(true), [refreshAllInternal])
+
   useEffect(() => {
     void refreshAll()
   }, [refreshAll])
@@ -146,6 +148,7 @@ export function StudentJourneyProvider({ children }: { children: ReactNode }) {
         isLoading,
         error,
         refreshAll,
+        refreshAllSilently,
         setSimulatedJourneyState,
       }}
     >

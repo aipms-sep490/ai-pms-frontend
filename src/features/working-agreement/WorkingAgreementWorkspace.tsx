@@ -9,6 +9,7 @@ import { isActionAllowed, type PagedResult, type WorkflowActionDto } from '../..
 import { getMyCapabilities } from '../capabilities/capabilities-api'
 import { CollaborationIntro, CollaborationPager, collaborationDate, collaborationError } from '../student-collaboration/collaboration-ui'
 import * as api from './working-agreement-api'
+import { services } from '../../services/service-gateway'
 import { WORKING_AGREEMENT_ACTIONS as actions, type AgreementSection, type WorkingAgreement } from './working-agreement-types'
 
 const statusLabel = { DRAFT: 'Bản nháp', ACTIVE: 'Đang áp dụng', SUPERSEDED: 'Đã thay thế' }
@@ -31,6 +32,7 @@ export function WorkingAgreementWorkspace({ projectId, readOnly = false }: { pro
   const [capabilities, setCapabilities] = useState<WorkflowActionDto[]>([])
   const [loading, setLoading] = useState(true), [error, setError] = useState(''), [notice, setNotice] = useState('')
   const [revision, setRevision] = useState(0), [editing, setEditing] = useState(false)
+  const [memberNames, setMemberNames] = useState<Record<number, string>>({})
   const [sections, setSections] = useState<AgreementSection[]>(blank), [conflict, setConflict] = useState(false)
   const [busy, setBusy] = useState(false), [historyOpen, setHistoryOpen] = useState(false)
   const mutation = useRef(false)
@@ -49,6 +51,13 @@ export function WorkingAgreementWorkspace({ projectId, readOnly = false }: { pro
       .finally(() => { if (!abort.signal.aborted) setLoading(false) })
     return () => abort.abort()
   }, [projectId, readOnly, revision])
+  useEffect(() => {
+    let active = true
+    void services.project.getProject(projectId).then(project => services.team.getTeam(project.teamId)).then(team => {
+      if (active) setMemberNames(Object.fromEntries(team.members.map(member => [member.userId, member.fullName])))
+    }).catch(() => { if (active) setMemberNames({}) })
+    return () => { active = false }
+  }, [projectId])
   const manage = !readOnly && !loading && isActionAllowed(capabilities, actions.manage)
   const publish = !readOnly && latest?.status === 'DRAFT' && isActionAllowed(latest.actions, actions.publish)
   async function mutate(action: () => Promise<WorkingAgreement>, message: string, closeEditor = false) {
@@ -95,7 +104,7 @@ export function WorkingAgreementWorkspace({ projectId, readOnly = false }: { pro
       <p className="collab-muted">Đã xác nhận {latest.acceptances.length}/{latest.memberCount} thành viên.</p>
       <p className="collab-muted">{latest.required ? 'Kỳ này yêu cầu đủ xác nhận trước khi đồ án được kích hoạt.' : 'Cam kết hỗ trợ nhóm phối hợp, theo chính sách của kỳ.'}</p>
       {(latest.readiness.reasons ?? []).map(code => <p className="collab-note" key={code}>{reasonLabel[code] ?? 'Chưa đủ điều kiện theo chính sách hiện tại.'}</p>)}
-      {latest.acceptances.map(item => <div key={item.userId}><strong>Thành viên #{item.userId}</strong><p className="collab-muted">{collaborationDate(item.acceptedAt)}</p></div>)}
+      {latest.acceptances.map(item => <div key={item.userId}><strong>{memberNames[item.userId] ?? 'Thành viên chưa tải được tên'}</strong><p className="collab-muted">{collaborationDate(item.acceptedAt)}</p></div>)}
     </aside></div>}
     {!loading && active?.status === 'ACTIVE' && <section className="collab-card">
       {latest?.id !== active.id && <><h2>Cam kết đang áp dụng · v{active.version}</h2><AgreementContents agreement={active} /></>}

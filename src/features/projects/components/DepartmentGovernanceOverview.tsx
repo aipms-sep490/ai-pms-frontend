@@ -1,10 +1,13 @@
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { getEvaluationSchemes } from '../../../services/api/evaluations.api'
 import { Badge } from '../../../components/ui/Badge'
 import { displayLabel } from '../../../components/ui/display-label'
 import type { ProjectGovernance } from '../api/project-governance-api'
 
 // Display the service's conclusions; readiness never grants a mutation permission.
 const blockerLabels: Record<string, string> = {
+  DEMO_SCHEME_NOT_OFFICIAL: 'Phương án đang ở chế độ demo. Chưa đủ điều kiện công bố điểm chính thức; vẫn có thể phân công và chấm thử.',
   ACADEMIC_SCOPE_UNKNOWN: 'Chưa xác minh được phạm vi khoa và ngành của hồ sơ đăng ký.',
   PRIMARY_SUPERVISOR_REQUIRED: 'Cần có giảng viên hướng dẫn chính.',
   PROJECT_READ_ONLY: 'Đồ án đã kết thúc; dữ liệu chỉ được xem.',
@@ -16,7 +19,29 @@ const publicationLabel = (value?: string | null) => value === 'NOT_PUBLISHED' ? 
 const linkClass = 'inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary hover:bg-primary-subtle'
 
 export function DepartmentGovernanceOverview({ governance: data }: { governance: ProjectGovernance }) {
+  const [componentNames, setComponentNames] = useState<Record<string, string>>({})
+  useEffect(() => {
+    setComponentNames({})
+    if (!data.blockers?.some(reason => reason.startsWith('MISSING_EVALUATOR:'))) return
+    const controller = new AbortController()
+    void getEvaluationSchemes(data.projectId, controller.signal).then(schemes => {
+      if (!controller.signal.aborted) setComponentNames(Object.fromEntries(schemes.flatMap(scheme => scheme.components.map(component => [String(component.id), component.name]))))
+    }).catch(() => { /* Keep the actionable fallback if scheme details are unavailable. */ })
+    return () => controller.abort()
+  }, [data.projectId, data.blockers])
+  function explain(reason: string) {
+    if (reason.startsWith('MISSING_EVALUATOR:')) {
+      const name = componentNames[reason.split(':')[1]]
+      return name ? `Chưa đủ người chấm cho phần “${name}”. Vào Phân công người chấm để bổ sung.` : 'Một thành phần đánh giá chưa đủ người chấm. Vào Phân công người chấm để kiểm tra.'
+    }
+    return blockerLabels[reason] ?? reason
+  }
   const base = `/department/projects/${data.projectId}`
+  const blockers = [...new Set(data.blockers ?? [])]
+  const unfinishedCount = blockers.filter(reason => reason.startsWith('EVALUATION_NOT_FINALIZED:')).length
+  const visibleBlockers = blockers.filter(reason => !reason.startsWith('EVALUATION_NOT_FINALIZED:'))
+  if (unfinishedCount) visibleBlockers.push(`Còn ${unfinishedCount} bài chấm chưa được chốt. Người chấm cần hoàn tất và chốt bài trước khi tổng hợp kết quả.`)
+  const actorDepartment = [data.leadDepartment, ...(data.participatingDepartments ?? [])].find(department => department?.departmentId === data.actorScope.departmentId)?.name ?? 'Khoa của tài khoản'
   const knownScope = ['FROZEN_REGISTRATION_SNAPSHOT', 'CURRENT_CONFIGURATION'].includes(data.academicScopeProvenance ?? '')
   const scopeLabel = data.academicScopeProvenance === 'FROZEN_REGISTRATION_SNAPSHOT' ? 'Đã khóa theo hồ sơ đăng ký' : data.academicScopeProvenance === 'CURRENT_CONFIGURATION' ? 'Cấu hình hiện tại của bản nháp' : 'Chưa xác minh'
   const steps = [
@@ -29,11 +54,13 @@ export function DepartmentGovernanceOverview({ governance: data }: { governance:
     <dl className="grid gap-4 rounded-lg border border-hairline bg-canvas p-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
       <div><dt className="text-ink-muted">Khoa chủ trì</dt><dd className="mt-1 break-words font-semibold">{data.leadDepartment?.name ?? 'Chưa xác định'}</dd></div>
       <div><dt className="text-ink-muted">Khoa tham gia</dt><dd className="mt-1 break-words">{data.participatingDepartments?.map(item => item.name).join(', ') || 'Chưa có dữ liệu'}</dd></div>
-      <div><dt className="text-ink-muted">Phạm vi tài khoản</dt><dd className="mt-1">{data.actorScope.isAdmin ? 'Quản trị viên' : data.actorScope.departmentId ? `Khoa #${data.actorScope.departmentId}` : 'Chưa xác định'}{data.actorScope.majorIds?.length ? ` · ${data.actorScope.majorIds.length} ngành` : ''}</dd></div>
+      <div><dt className="text-ink-muted">Phạm vi tài khoản</dt><dd className="mt-1">{data.actorScope.isAdmin ? 'Quản trị viên' : data.actorScope.departmentId ? actorDepartment : 'Chưa xác định'}{data.actorScope.majorIds?.length ? ` · ${data.actorScope.majorIds.length} ngành` : ''}</dd></div>
       <div><dt className="text-ink-muted">Hướng dẫn chính</dt><dd className="mt-1">{data.readiness ? data.readiness.hasPrimarySupervisor ? 'Đã có phân công' : 'Chưa có phân công' : 'Chưa có kết luận'}</dd></div>
     </dl>
-    {data.blockers?.length ? <div className="rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text"><h3 className="font-semibold">Điều kiện cần xử lý</h3><ul className="mt-2 list-disc space-y-2 pl-5">{[...new Set(data.blockers)].map(reason => <li className="break-words" key={reason}>{blockerLabels[reason] ?? reason}</li>)}</ul>{!knownScope && <p className="mt-3">Cần người phụ trách kiểm tra hồ sơ đăng ký và phạm vi khoa/ngành. Các thao tác học thuật vẫn bị khóa theo quyền hiện tại.</p>}</div> : null}
+    {data.blockers?.length ? <div className="rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text"><h3 className="font-semibold">Điều kiện cần xử lý</h3><ul className="mt-2 list-disc space-y-2 pl-5">{visibleBlockers.map(reason => <li className="break-words" key={reason}>{explain(reason)}</li>)}</ul>{!knownScope && <p className="mt-3">Cần người phụ trách kiểm tra hồ sơ đăng ký và phạm vi khoa/ngành. Các thao tác học thuật vẫn bị khóa theo quyền hiện tại.</p>}</div> : null}
     <div className="grid gap-3 lg:grid-cols-3">{steps.map(step => <article key={step.title} className="flex flex-col items-start gap-3 rounded-lg border border-hairline p-4"><h3 className="font-semibold">{step.title}</h3><p className="break-words text-sm text-ink-muted">{step.status}</p><Badge variant={step.ready === true ? 'success' : 'neutral'} className="text-xs">{step.ready === undefined ? 'Chưa có kết luận' : step.ready ? 'Đủ điều kiện theo kiểm tra hiện tại' : 'Chưa sẵn sàng'}</Badge><Link className={`${linkClass} mt-auto`} to={step.to}>{step.link}</Link></article>)}</div>
     <div className="flex flex-wrap gap-2 border-t border-hairline pt-3"><Link to={`/department/projects/review/${data.projectId}`} className={linkClass}>Đối chiếu hồ sơ thẩm định</Link><Link to={`${base}/evaluators`} className={linkClass}>Xem phân công người chấm</Link></div>
   </section>
 }
+
+

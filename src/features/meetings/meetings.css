@@ -146,7 +146,8 @@
 .mtg-video-preflight > h2 { margin: 6px 0 8px; font-size: clamp(20px, 2.4vw, 26px); letter-spacing: -.025em; }
 .mtg-video-toggle-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0 14px; }
 .mtg-video-toggle-row .mtg-button { min-width: 148px; }
-.mtg-video-toggle-row .mtg-button[aria-pressed="true"] { border-color: var(--color-primary); background: var(--color-primary-subtle); color: var(--color-primary-hover); }
+.mtg-video-toggle-row .mtg-button[aria-pressed="true"],
+.mtg-rsvp .mtg-button[aria-pressed="true"] { border-color: var(--color-primary); background: var(--color-primary-subtle); color: var(--color-primary-hover); font-weight: 700; }
 .mtg-video-toggle-row .mtg-button[aria-pressed="false"] { border-color: #dbe3ee; background: var(--color-canvas); color: #64748b; }
 .mtg-video-device-grid { margin: 14px 0; }
 .mtg-video-preview { display: grid; grid-template-columns: minmax(260px, 1.45fr) minmax(200px, .55fr); gap: 18px; align-items: center; margin: 18px 0; padding: 12px; border: 1px solid #dbe3ee; border-radius: 10px; background: var(--color-canvas); }

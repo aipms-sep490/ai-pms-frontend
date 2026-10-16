@@ -1,3 +1,6 @@
+import { getReviewDetail } from '../projects/api/project-review-api'
+import { list as listSupervisors } from '../supervisors/api/supervisor-api'
+import { readAllPages } from '../../services/api/paged-read'
 import { ButtonLink } from '../../components/ui/ButtonLink'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { displayLabel } from '../../components/ui/display-label'
@@ -21,7 +24,7 @@ type AssignmentFormErrors = { evaluatorId?: string; periodId?: string; component
 function assignmentError(reason: unknown, fallback: string) {
   if (reason instanceof HttpError && reason.status === 403) return 'Hệ thống không cấp quyền thực hiện thao tác này trong phạm vi đồ án.'
   if (reason instanceof HttpError && reason.status === 404) return 'Không tìm thấy đồ án hoặc phân công. Hãy tải lại dữ liệu.'
-  return fallback
+  return reason instanceof Error && reason.message.startsWith('Đã lưu ') ? reason.message : fallback
 }
 
 function assignedAt(value: string) {
@@ -37,6 +40,9 @@ export function EvaluatorAssignmentManagementPage() {
   const canManage = capabilities.can('manage_evaluators')
   const mutationLock = useRef(false)
   const errorSummary = useRef<HTMLDivElement>(null)
+  const [studentNames, setStudentNames] = useState<Record<number, string>>({})
+  const [majorNames, setMajorNames] = useState<Record<number, string>>({})
+  const [evaluatorNames, setEvaluatorNames] = useState<Record<number, string>>({})
   const [periods, setPeriods] = useState<ProjectPeriod[]>([])
   const [schemes, setSchemes] = useState<EvaluationScheme[]>([])
   const [assignments, setAssignments] = useState<EvaluationAssignment[]>([])
@@ -67,16 +73,18 @@ export function EvaluatorAssignmentManagementPage() {
     }
     setLoading(true); setLoaded(false); setAssignments([]); setPeriods([]); setSchemes([])
     try {
-      const assignmentsRequest = assignmentStatus === 'ALL' ? getProjectEvaluationAssignments(projectId) : getProjectEvaluationAssignments(projectId, assignmentStatus)
+      const assignmentsRequest = readAllPages(page => getProjectEvaluationAssignments(projectId, assignmentStatus === 'ALL' ? undefined : assignmentStatus, undefined, page))
       const [project, currentAssignments, options, schemeOptions] = await Promise.all([
         getProject(projectId), assignmentsRequest,
-        getProjectPeriods(session.accessToken, { search: '', periodType: 'EVALUATION' }),
+        readAllPages(page => getProjectPeriods(session.accessToken, { search: '', periodType: 'EVALUATION' }, undefined, page)),
         getEvaluationSchemes(projectId),
       ])
       if (!project.id) throw new Error('Project missing')
-      setPeriods(options.items.filter(item => item.periodType === 'EVALUATION'))
+      setMajorNames(Object.fromEntries((project.majors ?? []).map(m => [m.majorId, m.majorName])))
+      void getReviewDetail(projectId, session.accessToken).then(review => setStudentNames(Object.fromEntries((review.latestSubmission?.evidence.members ?? []).map(m => [m.userId, m.fullName])))).catch(() => undefined)
+      setPeriods(options.filter(item => item.periodType === 'EVALUATION'))
       setSchemes(schemeOptions)
-      setAssignments(currentAssignments.items)
+      setAssignments(currentAssignments)
       setLoaded(true); setError(null)
     } catch (reason) {
       setError(assignmentError(reason, 'Không thể tải phân công người chấm và kỳ đánh giá.'))
@@ -84,10 +92,19 @@ export function EvaluatorAssignmentManagementPage() {
   }, [assignmentStatus, projectId, session])
 
   useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    if (!session) return
+    let active = true
+    void readAllPages(page => listSupervisors(session.accessToken, { page, pageSize: 100 })).then(people => {
+      if (active) setEvaluatorNames(Object.fromEntries(people.map(person => [person.userId, person.fullName])))
+    }).catch(() => undefined)
+    return () => { active = false }
+  }, [session, projectId])
 
   const selectedScheme = schemes.find((scheme) => scheme.components.some((component) => component.id === Number(componentId))) ?? null
   const selectedComponent: EvaluationSchemeComponent | null = selectedScheme?.components.find((component) => component.id === Number(componentId)) ?? null
-  const selectedStudentId = studentId ? Number(studentId) : null
+  const selectedStudentIds = studentId.split(',').filter(Boolean).map(Number)
+  const selectedStudentId = selectedStudentIds[0] ?? null
   const targetReady = Boolean(selectedComponent && (selectedComponent.scope !== 'INDIVIDUAL' || selectedStudentId))
 
   useEffect(() => {
@@ -99,12 +116,12 @@ export function EvaluatorAssignmentManagementPage() {
     }
     const controller = new AbortController()
     setCandidatesLoading(true); setEligibleEvaluators([]); setEvaluatorId('')
-    getEligibleEvaluators(projectId, period, { componentId: selectedComponent.id, scope: selectedComponent.scope, majorId: selectedComponent.majorId, studentId: selectedComponent.scope === 'INDIVIDUAL' ? selectedStudentId : null }, 1, 100, controller.signal)
-      .then(page => { if (!controller.signal.aborted) setEligibleEvaluators(page.items) })
+    Promise.all((selectedComponent.scope === 'INDIVIDUAL' ? selectedStudentIds : [null]).map(target => readAllPages(page => getEligibleEvaluators(projectId, period, { componentId: selectedComponent.id, scope: selectedComponent.scope, majorId: selectedComponent.majorId, studentId: target }, page, 100, controller.signal)))).then(groups => ({ items: (groups[0] ?? []).filter(candidate => groups.every(group => group.some(other => other.userId === candidate.userId && candidate.evaluationTypes.every(type => other.evaluationTypes.includes(type))))) }))
+      .then(page => { if (!controller.signal.aborted) { setEligibleEvaluators(page.items); setEvaluatorNames(current => ({ ...current, ...Object.fromEntries(page.items.map(item => [item.userId, item.displayName])) })) } })
       .catch(reason => { if (!controller.signal.aborted) setError(assignmentError(reason, 'Không thể tải danh sách người chấm hợp lệ cho đợt này.')) })
       .finally(() => { if (!controller.signal.aborted) setCandidatesLoading(false) })
     return () => controller.abort()
-  }, [canManage, periodId, periods, projectId, selectedComponent, selectedStudentId, targetReady])
+  }, [canManage, periodId, periods, projectId, selectedComponent, studentId, targetReady])
 
   const run = async (operation: () => Promise<unknown>, fallback: string, success: string) => {
     if (!canManage || mutationLock.current) return
@@ -139,7 +156,20 @@ export function EvaluatorAssignmentManagementPage() {
     setFieldErrors(errors)
     if (Object.keys(errors).length > 0) { setError('Kiểm tra các trường được đánh dấu trước khi phân công.'); return }
     if (!selectedComponent) return
-    void run(() => assignEvaluator(projectId, { evaluatorId: evaluator, projectPeriodId: period, evaluationType, componentId: selectedComponent.id, scope: selectedComponent.scope, majorId: selectedComponent.majorId, studentId: selectedComponent.scope === 'INDIVIDUAL' ? selectedStudentId : null }), 'Không thể lưu phân công. Máy chủ có thể đã thay đổi phương án đánh giá, thành phần, danh sách thành viên, bộ tiêu chí hoặc kỳ đánh giá.', 'Đã phân công người chấm. Danh sách bên dưới đã được cập nhật.')
+    void run(async () => {
+      const targets = selectedComponent.scope === 'INDIVIDUAL' ? selectedStudentIds : [null]
+      let completed = 0
+      for (const target of targets) {
+        try {
+          await assignEvaluator(projectId, { evaluatorId: evaluator, projectPeriodId: period, evaluationType, componentId: selectedComponent.id, scope: selectedComponent.scope, majorId: selectedComponent.majorId, studentId: target })
+          completed++
+        } catch {
+          await load()
+          throw new Error('Đã lưu ' + completed + '/' + targets.length + ' phân công. Đã dừng ở mục lỗi; hãy kiểm tra danh sách trước khi thử lại.')
+        }
+      }
+      setStudentId('')
+    }, 'Không thể lưu phân công.', 'Đã lưu các phân công đã chọn. Danh sách đã được cập nhật.')
   }
 
   const submitRevoke = (event: FormEvent<HTMLFormElement>) => {
@@ -158,7 +188,10 @@ export function EvaluatorAssignmentManagementPage() {
   // active evaluators. Only reliable when active assignments are in the loaded set.
   const activeAssignments = assignments.filter((item) => item.status === 'ACTIVE')
   const coverageGaps = assignmentStatus === 'REVOKED' ? [] : publishedComponents
-    .map(({ scheme, component }) => ({ scheme, component, assigned: activeAssignments.filter((item) => item.componentId === component.id).length, required: component.requiredEvaluators }))
+    .map(({ scheme, component }) => ({ scheme, component, assigned: component.scope === 'INDIVIDUAL'
+      ? scheme.students.filter(student => student.majorId === component.majorId).reduce((total, student) => total + Math.min(component.requiredEvaluators, activeAssignments.filter(item => item.componentId === component.id && item.studentId === student.studentId).length), 0)
+      : activeAssignments.filter((item) => item.componentId === component.id).length,
+      required: component.requiredEvaluators * (component.scope === 'INDIVIDUAL' ? scheme.students.filter(student => student.majorId === component.majorId).length : 1) }))
     .filter((row) => row.assigned < row.required)
   const roleOptions = (evaluatorId ? eligibleEvaluators.find((item) => item.userId === Number(evaluatorId))?.evaluationTypes : undefined) ?? ['LECTURER', 'SUPERVISOR']
 
@@ -173,8 +206,8 @@ export function EvaluatorAssignmentManagementPage() {
       {canManage && <section aria-labelledby="new-assignment-title" className="rounded-xl border border-hairline bg-card p-5 shadow-xs"><h2 id="new-assignment-title" className="font-heading font-semibold text-ink">Phân công mới</h2><p className="mt-1 text-sm leading-6 text-ink-muted">Chỉ những giảng viên đủ điều kiện cho đợt và thành phần đã chọn mới xuất hiện trong danh sách.</p>
         <form className="mt-4 grid gap-4 sm:grid-cols-3" onSubmit={submit} noValidate>
           <label className="text-sm font-medium text-ink-soft" htmlFor="evaluation-period">Đợt đánh giá<select id="evaluation-period" aria-invalid={Boolean(fieldErrors.periodId)} aria-describedby={fieldErrors.periodId ? 'evaluation-period-error' : undefined} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" required value={periodId} onChange={event => { setPeriodId(event.target.value); setComponentId(''); setStudentId(''); setEvaluatorId(''); setFieldErrors(current => ({ ...current, periodId: undefined, componentId: undefined, studentId: undefined, evaluatorId: undefined })) }} disabled={busy}><option value="">Chọn đợt</option>{periods.map(item => <option key={item.id} value={item.id} disabled={item.status !== 'ACTIVE'}>{item.semesterName} · {item.name} · {displayLabel(item.status)}</option>)}</select>{fieldErrors.periodId && <span id="evaluation-period-error" className="mt-1 block text-xs text-status-error-text">{fieldErrors.periodId}</span>}</label>
-          <label className="text-sm font-medium text-ink-soft" htmlFor="scheme-component">Thành phần đánh giá<select id="scheme-component" aria-invalid={Boolean(fieldErrors.componentId)} aria-describedby={fieldErrors.componentId ? 'scheme-component-error' : undefined} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" required value={componentId} onChange={event => { setComponentId(event.target.value); setStudentId(''); setEvaluatorId(''); setFieldErrors(current => ({ ...current, componentId: undefined, studentId: undefined, evaluatorId: undefined })) }} disabled={busy || !periodId}><option value="">Chọn thành phần đã công bố</option>{publishedComponents.map(({ scheme, component }) => <option key={component.id} value={component.id}>{scheme.name} v{scheme.version} · {component.name} · {displayLabel(component.scope)}{component.majorId ? ` · major #${component.majorId}` : ''}</option>)}</select>{fieldErrors.componentId && <span id="scheme-component-error" className="mt-1 block text-xs text-status-error-text">{fieldErrors.componentId}</span>}</label>
-          {selectedComponent?.scope === 'INDIVIDUAL' && <label className="text-sm font-medium text-ink-soft" htmlFor="assignment-student">Sinh viên<select id="assignment-student" aria-invalid={Boolean(fieldErrors.studentId)} aria-describedby={fieldErrors.studentId ? 'assignment-student-error' : undefined} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" required value={studentId} onChange={event => { setStudentId(event.target.value); setEvaluatorId(''); setFieldErrors(current => ({ ...current, studentId: undefined, evaluatorId: undefined })) }} disabled={busy}><option value="">Chọn sinh viên trong danh sách đã chốt</option>{eligibleStudents.map(student => <option key={student.studentId} value={student.studentId}>Sinh viên #{student.studentId} · major #{student.majorId}</option>)}</select>{fieldErrors.studentId && <span id="assignment-student-error" className="mt-1 block text-xs text-status-error-text">{fieldErrors.studentId}</span>}</label>}
+          <label className="text-sm font-medium text-ink-soft" htmlFor="scheme-component">Thành phần đánh giá<select id="scheme-component" aria-invalid={Boolean(fieldErrors.componentId)} aria-describedby={fieldErrors.componentId ? 'scheme-component-error' : undefined} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" required value={componentId} onChange={event => { setComponentId(event.target.value); setStudentId(''); setEvaluatorId(''); setFieldErrors(current => ({ ...current, componentId: undefined, studentId: undefined, evaluatorId: undefined })) }} disabled={busy || !periodId}><option value="">Chọn thành phần đã công bố</option>{publishedComponents.map(({ scheme, component }) => <option key={component.id} value={component.id}>{scheme.name} v{scheme.version} · {component.name} · {displayLabel(component.scope)}{component.majorId ? ` · ${majorNames[component.majorId] ?? 'Ngành đã chốt'}` : ''}</option>)}</select>{fieldErrors.componentId && <span id="scheme-component-error" className="mt-1 block text-xs text-status-error-text">{fieldErrors.componentId}</span>}</label>
+          {selectedComponent?.scope === 'INDIVIDUAL' && <label className="text-sm font-medium text-ink-soft" htmlFor="assignment-student">Sinh viên (giữ Ctrl để chọn nhiều)<select id="assignment-student" aria-invalid={Boolean(fieldErrors.studentId)} aria-describedby={fieldErrors.studentId ? 'assignment-student-error' : undefined} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" multiple size={Math.min(6, Math.max(3, eligibleStudents.length))} required value={selectedStudentIds.map(String)} onChange={event => { setStudentId(Array.from(event.target.selectedOptions, option => option.value).filter(Boolean).join(',')); setEvaluatorId(''); setFieldErrors(current => ({ ...current, studentId: undefined, evaluatorId: undefined })) }} disabled={busy}><option value="">Chọn sinh viên trong danh sách đã chốt</option>{eligibleStudents.map(student => <option key={student.studentId} value={student.studentId}>{studentNames[student.studentId] ?? 'Sinh viên (chưa tải được tên)'} · {majorNames[student.majorId] ?? 'Ngành của sinh viên'}</option>)}</select>{fieldErrors.studentId && <span id="assignment-student-error" className="mt-1 block text-xs text-status-error-text">{fieldErrors.studentId}</span>}</label>}
           <label className="text-sm font-medium text-ink-soft" htmlFor="evaluator-id">Người chấm<select id="evaluator-id" aria-invalid={Boolean(fieldErrors.evaluatorId)} aria-describedby={fieldErrors.evaluatorId ? 'evaluator-id-error' : undefined} required className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={evaluatorId} onChange={event => { const selected = eligibleEvaluators.find(item => item.userId === Number(event.target.value)); setEvaluatorId(event.target.value); if (selected && !selected.evaluationTypes.includes(evaluationType)) setEvaluationType(selected.evaluationTypes[0] ?? 'LECTURER'); setFieldErrors(current => ({ ...current, evaluatorId: undefined })) }} disabled={busy || candidatesLoading || !periodId}><option value="">{candidatesLoading ? 'Đang tải người chấm…' : 'Chọn người chấm'}</option>{eligibleEvaluators.map(item => <option key={item.userId} value={item.userId}>{item.displayName} · {item.departmentName} · {item.evaluationTypes.join('/')}</option>)}</select>{fieldErrors.evaluatorId && <span id="evaluator-id-error" className="mt-1 block text-xs text-status-error-text">{fieldErrors.evaluatorId}</span>}</label>
           <label className="text-sm font-medium text-ink-soft" htmlFor="evaluation-type">Vai trò đánh giá<select id="evaluation-type" className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={evaluationType} onChange={event => setEvaluationType(event.target.value as EvaluatorRole)} disabled={busy || !evaluatorId}>{roleOptions.map(type => <option key={type} value={type}>{displayLabel(type)}</option>)}</select>{evaluationType === 'INDUSTRY' && <span className="mt-1 block text-xs text-status-warning-text">Doanh nghiệp mặc định là cố vấn, không tính điểm trừ khi phương án đánh giá được duyệt có trọng số.</span>}</label>
           <div className="sm:col-span-3">
@@ -196,10 +229,10 @@ export function EvaluatorAssignmentManagementPage() {
         {coverageGaps.length === 0
           ? <p className="mt-1 text-sm text-status-success-text">Mọi thành phần đã công bố của đợt này đã đủ số người chấm theo yêu cầu.</p>
           : <><p className="mt-1 text-sm text-status-warning-text">Các thành phần sau chưa đủ người chấm — không thể chốt kết quả cho tới khi đủ coverage (BRX-EVAL-03).</p>
-            <ul className="mt-3 space-y-1 text-sm">{coverageGaps.map(({ scheme, component, assigned, required }) => <li key={component.id} className="flex flex-wrap items-center gap-2"><span className="font-medium text-ink">{scheme.name} v{scheme.version} · {component.name}</span><span className="text-ink-muted">({displayLabel(component.scope)}{component.majorId ? ` · ngành #${component.majorId}` : ''})</span><span className="font-mono font-semibold text-status-warning-text">{assigned}/{required} người chấm</span></li>)}</ul></>}
+            <ul className="mt-3 space-y-1 text-sm">{coverageGaps.map(({ scheme, component, assigned, required }) => <li key={component.id} className="flex flex-wrap items-center gap-2"><span className="font-medium text-ink">{scheme.name} v{scheme.version} · {component.name}</span><span className="text-ink-muted">({displayLabel(component.scope)}{component.majorId ? ` · ${majorNames[component.majorId] ?? 'Ngành đã chốt'}` : ''})</span><span className="font-mono font-semibold text-status-warning-text">{assigned}/{required} người chấm</span></li>)}</ul></>}
       </section>}
       <section aria-labelledby="assignment-list-title" className="rounded-xl border border-hairline bg-card p-5 shadow-xs"><div className="flex flex-wrap items-end justify-between gap-3"><div><h2 id="assignment-list-title" className="font-heading font-semibold text-ink">Phân công hiện có</h2><p className="mt-1 text-sm text-ink-muted">Theo dõi người chấm đang được phân công và lịch sử thu hồi.</p></div><label className="text-sm font-medium text-ink-soft" htmlFor="assignment-status">Trạng thái<select id="assignment-status" className="mt-1 min-h-11 rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={assignmentStatus} onChange={event => setAssignmentStatus(event.target.value as AssignmentStatusFilter)} disabled={busy}><option value="ALL">Tất cả</option><option value="ACTIVE">Đang hiệu lực</option><option value="REVOKED">Đã thu hồi</option></select></label></div>
-        {assignments.length === 0 ? <p className="mt-4 text-sm text-ink-muted">Chưa có người chấm phù hợp với bộ lọc này.</p> : <ul className="mt-4 divide-y divide-hairline">{assignments.map(item => <li key={item.id} className="py-4 text-sm"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold text-ink">#{item.id} · giảng viên #{item.evaluatorId}</p><p className="mt-1 text-ink-muted">{displayLabel(item.evaluationType)} · bộ tiêu chí #{item.rubricId} · kỳ #{item.projectPeriodId}</p><p className="mt-1 font-mono text-xs text-ink-muted">Phân công {assignedAt(item.assignedAt)} · khoa #{item.departmentId}</p></div><span className={item.status === 'ACTIVE' ? 'rounded-full bg-status-success-bg px-2.5 py-1 text-xs font-semibold text-status-success-text' : 'rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-ink-soft'}>{item.status === 'ACTIVE' ? 'Đang hiệu lực' : 'Đã thu hồi'}</span></div>{canManage && item.status === 'ACTIVE' && <div className="mt-3">{revokeTarget?.id === item.id ? <form onSubmit={submitRevoke} className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3"><label className="block text-sm font-medium text-ink-soft" htmlFor={`revoke-reason-${item.id}`}>Lý do thu hồi<input id={`revoke-reason-${item.id}`} aria-invalid={Boolean(fieldErrors.revokeReason)} aria-describedby={fieldErrors.revokeReason ? `revoke-reason-error-${item.id}` : undefined} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={revokeReason} onChange={event => { setRevokeReason(event.target.value); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }} disabled={busy} autoFocus />{fieldErrors.revokeReason && <span id={`revoke-reason-error-${item.id}`} className="mt-1 block text-xs text-status-error-text">{fieldErrors.revokeReason}</span>}</label><p className="mt-2 text-xs text-ink-soft">Thao tác này gỡ quyền chấm ngay lập tức và không thể tự khôi phục từ giao diện.</p><div className="mt-3 flex flex-wrap gap-2"><Button type="submit" variant="danger" disabled={busy}>{busy ? 'Đang thu hồi…' : 'Xác nhận thu hồi'}</Button><Button type="button" variant="secondary" disabled={busy} onClick={() => { setRevokeTarget(null); setRevokeReason(''); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }}>Hủy</Button></div></form> : <button type="button" disabled={busy} className="min-h-11 font-semibold text-status-error-text underline underline-offset-4 disabled:opacity-50" onClick={() => { setRevokeTarget(item); setRevokeReason(''); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }}>Thu hồi</button>}</div>}</li>)}</ul>}
+        {assignments.length === 0 ? <p className="mt-4 text-sm text-ink-muted">Chưa có người chấm phù hợp với bộ lọc này.</p> : <ul className="mt-4 divide-y divide-hairline">{assignments.map(item => <li key={item.id} className="py-4 text-sm"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold text-ink">{evaluatorNames[item.evaluatorId] ?? 'Giảng viên được phân công'} · {schemes.flatMap(s => s.components).find(c => c.id === item.componentId)?.name ?? displayLabel(item.scope)}{item.studentId ? ` · ${studentNames[item.studentId] ?? 'Sinh viên được phân chấm'}` : ''}</p><p className="mt-1 text-ink-muted">{displayLabel(item.evaluationType)} · {periods.find(p => p.id === item.projectPeriodId)?.name ?? 'Đợt đánh giá'}</p><p className="mt-1 font-mono text-xs text-ink-muted">Phân công {assignedAt(item.assignedAt)}</p></div><span className={item.status === 'ACTIVE' ? 'rounded-full bg-status-success-bg px-2.5 py-1 text-xs font-semibold text-status-success-text' : 'rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-ink-soft'}>{item.status === 'ACTIVE' ? 'Đang hiệu lực' : 'Đã thu hồi'}</span></div>{canManage && item.status === 'ACTIVE' && <div className="mt-3">{revokeTarget?.id === item.id ? <form onSubmit={submitRevoke} className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3"><label className="block text-sm font-medium text-ink-soft" htmlFor={`revoke-reason-${item.id}`}>Lý do thu hồi<input id={`revoke-reason-${item.id}`} aria-invalid={Boolean(fieldErrors.revokeReason)} aria-describedby={fieldErrors.revokeReason ? `revoke-reason-error-${item.id}` : undefined} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={revokeReason} onChange={event => { setRevokeReason(event.target.value); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }} disabled={busy} autoFocus />{fieldErrors.revokeReason && <span id={`revoke-reason-error-${item.id}`} className="mt-1 block text-xs text-status-error-text">{fieldErrors.revokeReason}</span>}</label><p className="mt-2 text-xs text-ink-soft">Thao tác này gỡ quyền chấm ngay lập tức và không thể tự khôi phục từ giao diện.</p><div className="mt-3 flex flex-wrap gap-2"><Button type="submit" variant="danger" disabled={busy}>{busy ? 'Đang thu hồi…' : 'Xác nhận thu hồi'}</Button><Button type="button" variant="secondary" disabled={busy} onClick={() => { setRevokeTarget(null); setRevokeReason(''); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }}>Hủy</Button></div></form> : <button type="button" disabled={busy} className="min-h-11 font-semibold text-status-error-text underline underline-offset-4 disabled:opacity-50" onClick={() => { setRevokeTarget(item); setRevokeReason(''); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }}>Thu hồi</button>}</div>}</li>)}</ul>}
       </section>
     </>}
     <div>

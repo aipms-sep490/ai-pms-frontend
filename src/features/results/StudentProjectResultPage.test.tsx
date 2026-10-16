@@ -6,6 +6,7 @@ import { HttpError } from '../../services/http/http-client'
 const mocks = vi.hoisted(() => ({ journey: { project: { id: 1, majors: [{ majorId: 3, majorName: 'Phần mềm' }] } as { id: number; majors: {majorId:number;majorName:string}[] } | null, profile: { id: 7 }, isLoading: false }, getStudentResult: vi.fn() }))
 vi.mock('../../app/context', () => ({ useStudentJourney: () => mocks.journey }))
 vi.mock('../../services/api/project-results.api', () => ({ getStudentResult: mocks.getStudentResult }))
+vi.mock('./ResultCorrectionPanel', () => ({ ResultCorrectionPanel: () => null }))
 const result = { projectId: 1, studentId: 7, majorId: 3, schemeId: 2, totalScore: 8.25, passThreshold: 5, outcome: 'PASSED', publishedAt: '2026-10-01T12:00:00Z', calculationRule: 'SERVER_RULE', snapshotJson: '{}', version: 1 }
 afterEach(() => { cleanup(); vi.resetAllMocks(); mocks.journey.project = { id: 1, majors: [{ majorId: 3, majorName: 'Phần mềm' }] } })
 it('does not show the previous own result when the project context disappears', async () => {
@@ -49,7 +50,7 @@ it('renders the BE-09 component breakdown, marking a null score as pending not z
     approvalStatus: 'APPROVED', readiness: 'READY', majorBreakdown: [],
     components: [
       { componentId: 1, name: 'Common', scope: 'COMMON', majorId: null, weightPercent: 50, score: 8, requiredEvaluators: 2, finalizedEvaluators: 2 },
-      { componentId: 2, name: 'Major', scope: 'MAJOR', majorId: 3, weightPercent: 30, score: null, requiredEvaluators: 3, finalizedEvaluators: 1 },
+      { componentId: 2, name: 'Major', scope: 'MAJOR_SPECIFIC', majorId: 3, weightPercent: 30, score: null, requiredEvaluators: 3, finalizedEvaluators: 1 },
     ],
   } })
   render(<MemoryRouter><StudentProjectResultPage /></MemoryRouter>)
@@ -57,6 +58,7 @@ it('renders the BE-09 component breakdown, marking a null score as pending not z
   expect(screen.getByText('Khung đánh giá liên ngành · v2')).toBeTruthy()
   expect(screen.getByText('Chi tiết thành phần điểm')).toBeTruthy()
   expect(screen.getByText('Điểm chung')).toBeTruthy()
+  expect(screen.getByText('Theo ngành · Phần mềm')).toBeTruthy()
   expect(screen.getByText('Chưa có điểm (1/3 người chấm)')).toBeTruthy()
   expect(screen.getByText('Đã chấm')).toBeTruthy()
 })

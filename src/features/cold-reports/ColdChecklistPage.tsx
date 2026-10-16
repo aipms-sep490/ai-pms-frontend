@@ -15,21 +15,46 @@ function ColdChecklistBody({ projectId, projectTitle, actor, routeBase }: {
   projectId: number; projectTitle: string; actor: string; routeBase: string
 }) {
   const [checklist, setChecklist] = useState<ColdChecklist | null>(null)
+  const [progress, setProgress] = useState<api.ColdProgress | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [locking, setLocking] = useState(false)
+  const [lockError, setLockError] = useState('')
   const [revision, setRevision] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
-    setLoading(true); setError('')
-    api.getColdChecklist(projectId, controller.signal)
-      .then((result) => { if (!controller.signal.aborted) setChecklist(result) })
+    setLoading(true); setError(''); setLockError('')
+    Promise.all([
+      api.getColdChecklist(projectId, controller.signal),
+      api.getColdProgress ? api.getColdProgress(projectId, controller.signal).catch(() => null) : Promise.resolve(null),
+    ])
+      .then(([chk, prog]) => {
+        if (!controller.signal.aborted) {
+          setChecklist(chk)
+          if (prog) setProgress(prog)
+        }
+      })
       .catch((reason: unknown) => { if (!controller.signal.aborted) setError(coldError(reason)) })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
   }, [projectId, revision])
 
   function reload() { setRevision((value) => value + 1) }
+
+  async function handleLock() {
+    if (!checklist) return
+    setLocking(true); setLockError('')
+    try {
+      const locked = await api.lockColdChecklist(projectId, checklist.concurrencyToken)
+      setChecklist(locked)
+      reload()
+    } catch (reason) {
+      setLockError(coldError(reason))
+    } finally {
+      setLocking(false)
+    }
+  }
 
   function replaceItem(updated: ColdSubmission) {
     setChecklist((current) => current && {
@@ -38,12 +63,45 @@ function ColdChecklistBody({ projectId, projectTitle, actor, routeBase }: {
     })
   }
 
+  const allBlockers = Array.from(new Set([...(checklist?.blockers ?? []), ...(progress?.blockers ?? [])]))
+
   return <ColdShell title="Chấm nguội theo ngành" projectTitle={projectTitle} backTo={`${routeBase}/workspace`}
     description={actor === 'student' ? 'Nộp từng báo cáo theo ngành/cá nhân được giao trước hạn. Hội đồng chấm sau khi khóa gói.' : 'Theo dõi báo cáo chấm nguội của nhóm theo từng ngành và cá nhân.'}>
     {loading ? <ColdLoading /> : error ? <ColdError message={error} retry={reload} /> : checklist && <>
-      {checklist.blockers.length > 0 && <div className="cold-notice cold-notice--warning"><p>Chưa đủ điều kiện khóa gói:</p><ul>{checklist.blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul></div>}
+      {allBlockers.length > 0 && <div className="cold-notice cold-notice--warning"><p>Chưa đủ điều kiện khóa gói:</p><ul>{allBlockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul></div>}
+      {lockError && <ColdError message={lockError} />}
+      
+      {progress && <div className="cold-panel" style={{ marginBottom: 16 }}>
+        <div className="cold-panel-heading">
+          <h2>Tiến độ gói chấm nguội</h2>
+          <span style={{ fontWeight: 600 }}>Trạng thái: {progress.packageStatus}</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, padding: 12 }}>
+          <div><small>Báo cáo hiển thị</small><p style={{ fontSize: 18, fontWeight: 700 }}>{progress.visibleReports}</p></div>
+          <div><small>Đã nộp</small><p style={{ fontSize: 18, fontWeight: 700 }}>{progress.submittedReports}</p></div>
+          <div><small>Đã khóa</small><p style={{ fontSize: 18, fontWeight: 700 }}>{progress.lockedReports}</p></div>
+          <div><small>Sẵn sàng chấm</small><p style={{ fontSize: 18, fontWeight: 700, color: progress.ready ? 'green' : 'inherit' }}>{progress.ready ? 'Đạt' : 'Chưa đạt'}</p></div>
+        </div>
+      </div>}
+
       <div className="cold-panel">
-        <div className="cold-panel-heading"><h2>Danh sách báo cáo</h2><span>Hạn nộp: {formatColdDateTime(checklist.deadline)}</span></div>
+        <div className="cold-panel-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2>Danh sách báo cáo</h2>
+            <span>Hạn nộp: {formatColdDateTime(checklist.deadline)}</span>
+            {checklist.lockedAt && <span style={{ marginLeft: 12, color: '#16a34a', fontWeight: 600 }}>• Đã khóa: {formatColdDateTime(checklist.lockedAt)}</span>}
+          </div>
+          {checklist.canLock && (
+            <button
+              className="cold-button"
+              type="button"
+              disabled={locking || checklist.status === 'LOCKED'}
+              onClick={() => void handleLock()}
+            >
+              {locking ? 'Đang khóa…' : 'Khóa gói chấm nguội'}
+            </button>
+          )}
+        </div>
         {checklist.items.length === 0 ? <div className="cold-empty">Chưa có checklist báo cáo nào được áp dụng cho đồ án này.</div> : <ul className="cold-list">
           {checklist.items.map((item) => <ColdItemRow key={item.id} item={item} onChanged={replaceItem} onConflict={reload} />)}
         </ul>}
@@ -114,6 +172,29 @@ function ColdItemRow({ item, onChanged, onConflict }: {
     }
   }
 
+  const [showHistory, setShowHistory] = useState(false)
+  const [history, setHistory] = useState<ColdSubmission[] | null>(null)
+  const [loadingHistory, setLoadingHistory] = useState(false)
+
+  async function toggleHistory() {
+    if (showHistory) {
+      setShowHistory(false)
+      return
+    }
+    setShowHistory(true)
+    if (!history) {
+      setLoadingHistory(true)
+      try {
+        const res = await api.getColdSubmissionHistory(item.id, 1, 50)
+        setHistory(res.items)
+      } catch {
+        // history fetch error handled quietly
+      } finally {
+        setLoadingHistory(false)
+      }
+    }
+  }
+
   const isDraft = latest?.status === 'DRAFT'
   const canEditDraft = item.canWrite && isDraft
   const canResubmit = item.canWrite && latest?.status === 'SUBMITTED'
@@ -165,5 +246,50 @@ function ColdItemRow({ item, onChanged, onConflict }: {
         <button className="cold-button cold-button--secondary" type="button" disabled={busy} onClick={resubmitNewVersion}>Nộp lại (tạo phiên bản mới)</button>
       </div>}
     </div>)}
+
+    <div style={{ marginTop: 10 }}>
+      <button
+        type="button"
+        className="cold-button cold-button--secondary"
+        onClick={() => void toggleHistory()}
+        style={{ fontSize: 12, padding: '4px 10px' }}
+      >
+        {showHistory ? 'Ẩn lịch sử nộp' : 'Xem lịch sử nộp'}
+      </button>
+    </div>
+
+    {showHistory && (
+      <div style={{ marginTop: 10, padding: 12, border: '1px solid #cbd5e1', borderRadius: 8, background: '#f8fafc' }}>
+        <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: '#1e293b' }}>Lịch sử các phiên bản:</h4>
+        {loadingHistory && <p style={{ fontSize: 12, color: '#64748b' }}>Đang tải lịch sử…</p>}
+        {history && history.length === 0 && <p style={{ fontSize: 12, color: '#64748b' }}>Chưa có bản ghi lịch sử nào.</p>}
+        {history && history.map((sub) => (
+          <div key={sub.id} style={{ padding: '8px 0', borderBottom: '1px solid #e2e8f0', fontSize: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 600 }}>Phiên bản {sub.version} ({sub.status})</span>
+              <span style={{ color: '#64748b', fontSize: 11 }}>{sub.submittedAt ? formatColdDateTime(sub.submittedAt) : formatColdDateTime(sub.createdAt)}</span>
+            </div>
+            {sub.note && <p style={{ margin: '4px 0', color: '#334155' }}>Ghi chú: {sub.note}</p>}
+            {sub.files.length > 0 && (
+              <ul style={{ listStyle: 'none', paddingLeft: 0, marginTop: 4 }}>
+                {sub.files.map((file) => (
+                  <li key={file.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 }}>
+                    <span>{file.fileName} <small>({formatFileSize(file.sizeBytes)})</small></span>
+                    <button
+                      type="button"
+                      className="cold-button cold-button--secondary"
+                      style={{ fontSize: 11, padding: '2px 8px' }}
+                      onClick={() => void downloadFile(file.id, file.fileName)}
+                    >
+                      Tải bản này
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+    )}
   </li>
 }

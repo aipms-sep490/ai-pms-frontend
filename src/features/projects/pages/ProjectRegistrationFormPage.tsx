@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type RefObject } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useStudentJourney } from '../../../app/context'
+import { RegistrationAcademicScope } from '../components/RegistrationAcademicScope'
 import { RegistrationReadinessChecklist } from '../components/RegistrationReadinessChecklist'
 import { RevisionAlert } from '../components/RevisionAlert'
 import { normalizeProjectStatus, splitProjectTags, useProjectRegistration, type ProjectRegistrationField } from '../hooks/useProjectRegistration'
@@ -92,7 +93,7 @@ export function ProjectRegistrationFormPage() {
       {registeringNewAfterRejection && <section className="rounded-md border border-status-error-border bg-status-error-bg p-4 text-xs text-status-error-text"><strong>Đăng ký đề tài mới sau khi đề tài trước bị từ chối.</strong><p className="mt-1">Biểu mẫu này tạo một bản nháp hoàn toàn mới; đề cương cũ vẫn được giữ trong lịch sử.</p></section>}
       {revision && registration.latestRevision && <RevisionAlert reason={registration.latestRevision.reason} reviewerName={registration.latestRevision.changedByName || 'Hệ thống'} timestamp={registration.latestRevision.changedAt} onEdit={() => {}} />}
       {registrationProject ? <ProjectProvenance project={registrationProject} /> : null}
-      <GovernedScope scope={registration.academicScope} requiredMajorIds={registration.requiredMajorIds} />
+      <RegistrationAcademicScope scope={registration.academicScope} organizationId={journey.semester?.organizationId} />
 
       <form onSubmit={submit} className="flex flex-col gap-6 rounded-md border border-slate-200 bg-white p-5">
         <p className="text-xs text-slate-500"><span aria-hidden="true">*</span> Trường bắt buộc</p>
@@ -131,11 +132,6 @@ function ProjectProvenance({ project }: { project: NonNullable<ReturnType<typeof
   return <section className="rounded-md border border-status-success-border bg-status-success-bg p-5 text-sm text-status-success-text"><p className="text-xs font-bold uppercase tracking-wider">Nguồn đề tài</p>{source === 'PUBLISHED_TOPIC' ? <p className="mt-2 text-xs"><strong>Đề tài đã công bố</strong> · {project.selectedTopic ? `${project.selectedTopic.code} · ${project.selectedTopic.title}` : 'Chưa tải được thông tin chi tiết của đề tài đã chọn.'}</p> : <p className="mt-2 text-xs"><strong>Đề xuất của sinh viên</strong> · Hồ sơ này được khởi tạo từ đề xuất của nhóm.</p>}<p className="mt-2 text-xs">Nội dung đề cương được nhóm rà soát và cập nhật riêng trong biểu mẫu này.</p></section>
 }
 
-function GovernedScope({ scope }: { scope: ReturnType<typeof useProjectRegistration>['academicScope']; requiredMajorIds: number[] }) {
-  const modeLabel = scope?.projectMode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành'
-  return <section className="rounded-md border border-slate-200 bg-slate-50 p-5"><p className="text-xs font-bold uppercase tracking-wider text-slate-500">Phạm vi đăng ký</p>{scope ? <div className="mt-3 grid gap-3 text-xs sm:grid-cols-3"><p><strong>Hình thức:</strong> {modeLabel}</p><p><strong>Bộ môn phụ trách:</strong> Mã tham chiếu #{scope.leadDepartmentId}</p><p><strong>Ngành chính:</strong> {scope.primaryMajorId ? `Mã tham chiếu #${scope.primaryMajorId}` : 'Không áp dụng'}</p><p className="sm:col-span-3"><strong>Ngành tham gia:</strong> {scope.requirements.map((item) => `Ngành #${item.majorId} (${item.minMembers}–${item.maxMembers} thành viên)`).join(' · ') || 'Chưa có thông tin ngành tham gia'}</p></div> : <p className="mt-2 text-xs text-slate-600">Chưa tải được phạm vi đăng ký của nhóm. Thông tin này được xác định trong quá trình lập nhóm.</p>}</section>
-}
-
 /** Soft, client-side pre-check only — the backend is the sole enforcer (422
  * DUPLICATE_TOPIC_TITLE on submit). An exact match is called out as a strong warning;
  * near matches are informational so the student can judge for themselves. */
@@ -169,4 +165,11 @@ function ValidationSummary({ fields = {}, message, summaryRef }: { fields?: Part
 }
 function LoadingState() { return <div className="mx-auto max-w-4xl"><PageLoading label="Đang tải biểu mẫu đề cương…" /></div> }
 function FailureState({ message, onRetry }: { message: string; onRetry: () => void }) { return <section className="rounded-md border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text" role="alert"><p>{message}</p><button type="button" onClick={onRetry} className="mt-3 rounded-md border border-status-warning-border bg-white px-3 py-1.5 text-xs font-bold">Tải lại</button></section> }
-function ErrorMessage({ kind: _kind, message, onRetry }: { kind: string; message: string; onRetry?: () => void }) { return <div className="rounded-md border border-status-error-border bg-status-error-bg p-3 text-xs text-status-error-text" role="alert">{message}{onRetry && <button type="button" onClick={onRetry} className="ml-2 font-bold underline">Thử lại</button>}</div> }
+function ErrorMessage({ kind: _kind, message, onRetry }: { kind: string; message: string; onRetry?: () => void }) {
+  const needsEligibility = message.includes('kiểm tra điều kiện còn hiệu lực')
+  return <div className="rounded-md border border-status-error-border bg-status-error-bg p-3 text-xs text-status-error-text" role="alert">
+    <span>{message}</span>
+    {needsEligibility && <Link to="/team" className="ml-2 inline-block font-bold underline">Mở kiểm tra điều kiện nhóm</Link>}
+    {onRetry && <button type="button" onClick={onRetry} className="ml-2 font-bold underline">Thử lại</button>}
+  </div>
+}

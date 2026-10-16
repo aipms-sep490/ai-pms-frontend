@@ -7,6 +7,7 @@ export interface PeriodPolicyFields {
   maxTeamSize: number
   minDistinctMajors: number
   maxProjectsPerSupervisor: number
+  requireWorkingAgreement?: boolean
 }
 
 export interface PeriodPolicy {

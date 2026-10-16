@@ -246,6 +246,7 @@ export function FinalSubmissionViewerPage({ backTo = '/projects/lifecycle', back
 
 export function FinalRequirementsPage() {
   const projectId = Number(useParams().projectId)
+  const [success, setSuccess] = useState<string | null>(null)
   const [requirements, setRequirements] = useState<FinalRequirements | null>(null)
   const [deliverables, setDeliverables] = useState<Deliverable[]>([])
   const [selectedIds, setSelectedIds] = useState<number[]>([])
@@ -263,8 +264,8 @@ export function FinalRequirementsPage() {
   useEffect(() => { void load() }, [load])
   const save = async () => {
     if (!requirements || selectedIds.length === 0) { setError('Chọn ít nhất một hạng mục bắt buộc.'); return }
-    setBusy(true)
-    try { await api.configureFinalRequirements(projectId, selectedIds, requirements.concurrencyToken); await load() }
+    setBusy(true); setSuccess(null); setError(null)
+    try { await api.configureFinalRequirements(projectId, selectedIds, requirements.concurrencyToken); await load(); setSuccess('Đã lưu bộ yêu cầu bàn giao.') }
     catch (reason) { if (reason instanceof HttpError && reason.status === 409) await load(); setError(message(reason)) }
     finally { setBusy(false) }
   }
@@ -275,6 +276,7 @@ export function FinalRequirementsPage() {
         <p className="mt-1 text-sm text-ink-muted">Đồ án #{projectId} · Chọn các hạng mục nhóm cần nộp trước khi chốt bàn giao.</p>
       </header>
       {error && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error} <button type="button" className="font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
+      {success && <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{success}</p>}
       {loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải yêu cầu…</p>}
       {!loading && requirements && (
         <>

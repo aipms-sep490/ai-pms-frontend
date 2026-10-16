@@ -14,6 +14,8 @@ import { DepartmentProjectLayout } from '../../features/department/components/De
 import { DepartmentAcademicScopeRoute } from '../../features/department/components/DepartmentAcademicScopeRoute'
 import { AdminEvaluationLayout } from '../../features/evaluations/AdminEvaluationLayout'
 import { ChatPage } from '../../features/chat/ChatPage'
+import { IndustryLayout } from '../../features/auth/components/IndustryRoutes'
+import { IndustryEnrollmentRoute } from '../../features/auth/components/IndustryEnrollmentRoute'
 import {
   MilestoneTemplatesPage, WorkflowPreviewPage, ProfileVerificationsPage, LecturerWorkspacePage, SupervisorProfilePage,
   SupervisorProjectWorkspacePage, SupervisorProgressReviewPage, SupervisorFinalSubmissionPage, WeeklyAssessmentsPage,
@@ -22,13 +24,13 @@ import {
   ProjectLifecyclePage, MilestoneDetailPage, GanttPage, TeamManagementPage, TopicCataloguePage, ProjectRegistrationFormPage,
   ProjectReviewStatusPage, SupervisorSelectionPage, LoginPage, ForgotPasswordPage, ProfileSecurityPage, ResetPasswordPage,
   ProfilePage, AcademicStructurePage, AcademicGovernancePage, PeriodPolicyManagementPage, AdminWorkspacePage, AdminRbacPage,
-  AdminUserDetailPage, ProjectReviewPage, ProjectGovernancePage, SupervisorMonitoringPage, TopicManagementPage,
+  AdminUserDetailPage, IndustryExpertPortalPage, ProjectReviewPage, ProjectGovernancePage, SupervisorMonitoringPage, TopicManagementPage,
   ColdTemplateManagementPage, RegistrationSourcePage, QualificationVerificationPage, DeliverablesPage,
   EvaluatorAssignmentsPage, EvaluationWorkspacePage, EvaluatorAssignmentDetailPage, EvaluatorWorkspacePage,
-  ResultPublicationPage, NotificationsPage, PortfolioDashboardPage, SupervisorDashboardPage, FinalRequirementsPage,
+  ResultPublicationPage, ResultCorrectionsPage, NotificationsPage, PortfolioDashboardPage, SupervisorDashboardPage, FinalRequirementsPage,
   FinalSubmissionViewerPage, StudentFinalSubmissionPage, RubricManagementPage, EvaluatorAssignmentManagementPage,
   EvaluationSchemeManagementPage, StudentProjectResultPage, ProjectContributionsPage, ProjectFilesPage,
-  ProjectEvidenceLedgerPage, ProjectAiPage, ProjectGatesPage, ProjectWorkingAgreementPage, ProjectDefensePage,
+  ProjectEvidenceLedgerPage, ProjectAiPage, ProjectGatesPage, ProjectWorkingAgreementPage, ProjectDefensePage, ProjectDefenseManagementPage,
   ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, ArchivedProjectsPage,
   ProjectArchiveViewPage, CalendarAttentionPage, AdminIndustryInvitationsPage,
 } from './lazy-pages'
@@ -37,6 +39,15 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
   { path: 'login', element: <LoginPage /> },
   { path: 'forgot-password', element: <ForgotPasswordPage /> },
   { path: 'reset-password', element: <ResetPasswordPage /> },
+  ...(env.industryEnabled ? [{ path: 'industry/enroll', element: <IndustryEnrollmentRoute /> }] : []),
+  ...(env.industryEnabled ? [{
+    path: 'industry', element: <ProtectedRoute><IndustryLayout /></ProtectedRoute>,
+    children: [
+      { index: true, element: <IndustryExpertPortalPage /> },
+      { path: 'workspace', element: <IndustryExpertPortalPage /> },
+      { path: 'assignments/:assignmentId', element: <IndustryExpertPortalPage /> },
+    ],
+  }] : []),
   {
     element: (
       <ProtectedRoute>
@@ -76,12 +87,12 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'project/evidence', element: <ProjectEvidenceLedgerPage /> },
             { path: 'project/contributions', element: <ProjectContributionsPage /> },
             ...(env.gatesEnabled ? [{ path: 'project/gates', element: <ProjectGatesPage /> }] : []),
-            ...(env.workingAgreementEnabled ? [{ path: 'project/agreement', element: <ProjectWorkingAgreementPage /> }] : []),
             ...(env.defenseScheduleEnabled ? [{ path: 'project/defense', element: <ProjectDefensePage /> }] : []),
             ...(env.coldReportEnabled ? [{ path: 'project/cold-reports', element: <ColdChecklistPage /> }] : []),
             ...(env.peerEvaluationEnabled ? [{ path: 'project/peer-evaluation', element: <ProjectPeerEvaluationPage /> }] : []),
             ...(env.aiAdvisoryEnabled ? [{ path: 'project/ai', element: <ProjectAiPage /> }] : []),
           ] },
+          ...(env.workingAgreementEnabled ? [{ path: 'project/agreement', element: <ProjectWorkingAgreementPage /> }] : []),
           { path: 'projects/lifecycle', element: <ProjectLifecyclePage /> },
           { path: 'team', element: <TeamManagementPage /> },
           { path: 'team/create', element: <TeamManagementPage /> },
@@ -123,6 +134,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             ...(env.weeklyAssessmentEnabled ? [{ path: 'supervisor/projects/:projectId/weekly-assessments', element: <WeeklyAssessmentsPage /> }] : []),
             ...(env.aiAdvisoryEnabled ? [{ path: 'supervisor/projects/:projectId/ai', element: <ProjectAiPage /> }] : []),
             ...(env.gatesEnabled ? [{ path: 'supervisor/projects/:projectId/checkpoints', element: <ProjectGatesPage /> }] : []),
+            ...(env.defenseScheduleEnabled ? [{ path: 'supervisor/projects/:projectId/defense', element: <ProjectDefenseManagementPage /> }] : []),
           ] },
           { element: <MentorExecutionRoute />, children: [
             { path: 'mentor/projects/:projectId/majors/:majorId/workspace', element: <MentorProjectWorkspacePage /> },
@@ -156,25 +168,31 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
         element: <RoleRoute allowed={['department', 'admin']} />,
         children: [
           { path: 'academic', element: <AcademicStructurePage /> },
+          { path: 'academic/governance', element: <AcademicGovernancePage /> },
+          { path: 'academic/project-periods/:periodId/policy', element: <PeriodPolicyManagementPage /> },
           { path: 'academic/profile-verifications', element: <ProfileVerificationsPage /> },
+          { path: 'academic/rubrics', element: <RubricManagementPage /> },
         ],
       },
+      ...(env.resultCorrectionEnabled ? [{
+        element: <RoleRoute allowed={['department', 'lecturer']} />,
+        children: [{ path: 'review/projects/:projectId/corrections', element: <ResultCorrectionsPage /> }],
+      }] : []),
       {
         element: <RoleRoute allowed={['department']} />,
         children: [
           { element: <DepartmentAcademicScopeRoute />, children: [{ element: <DepartmentProjectLayout />, children: [
           { path: 'department/portfolio', element: <PortfolioDashboardPage /> },
           { path: 'department/projects/archived', element: <ArchivedProjectsPage /> },
-          { path: 'academic/governance', element: <AcademicGovernancePage /> },
-          { path: 'academic/project-periods/:periodId/policy', element: <PeriodPolicyManagementPage /> },
-          { path: 'academic/rubrics', element: <RubricManagementPage /> },
           { path: 'department/projects/review', element: <ProjectReviewPage /> },
           { path: 'department/projects/review/:id', element: <ProjectReviewPage /> },
           { path: 'department/projects/:projectId/result', element: <ResultPublicationPage /> },
+          ...(env.resultCorrectionEnabled ? [{ path: 'department/projects/:projectId/corrections', element: <ResultCorrectionsPage /> }] : []),
           { path: 'department/projects/:projectId/evaluations', element: <EvaluatorAssignmentManagementPage /> },
           { path: 'department/projects/:projectId/evaluators', element: <EvaluatorAssignmentManagementPage /> },
           { path: 'department/projects/:projectId/evaluation-schemes', element: <EvaluationSchemeManagementPage /> },
           { path: 'department/projects/:projectId/governance', element: <ProjectGovernancePage /> },
+          ...(env.defenseScheduleEnabled ? [{ path: 'department/projects/:projectId/defense', element: <ProjectDefenseManagementPage /> }] : []),
           { path: 'department/projects/:projectId/final-requirements', element: <FinalRequirementsPage /> },
           { path: 'department/projects/:projectId/final-submission', element: <FinalSubmissionViewerPage backTo="/department/portfolio" backLabel="Danh mục đồ án" /> },
           { path: 'department/projects/:projectId/files', element: <ProjectFilesPage /> },
