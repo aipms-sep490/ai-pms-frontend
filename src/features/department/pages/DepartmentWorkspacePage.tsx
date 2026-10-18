@@ -43,9 +43,9 @@ export function DepartmentWorkspacePage() {
   const departmentName = academic.academic?.departments.map(department => department.name).join(', ') || 'Bộ môn hiện tại'
   const attention = useMemo(() => portfolio.data?.projects.items.filter((project) => project.pendingProgressReviews > 0 || (project.analysis?.progressSummary.blockedTasks ?? 0) > 0 || (project.analysis?.progressSummary.overdueTasks ?? 0) > 0) ?? [], [portfolio.data])
 
-  return <WorkspacePage className="space-y-7" title="Quản lý đồ án bộ môn" eyebrow="Không gian bộ môn" description={`${departmentName}. Theo dõi danh mục đồ án, hồ sơ chờ thẩm định và nguồn lực hướng dẫn.`} action={
+  return <WorkspacePage className="space-y-8" title="Quản lý đồ án bộ môn" eyebrow="Không gian bộ môn" description={`${departmentName}. Theo dõi danh mục đồ án, hồ sơ chờ thẩm định và nguồn lực hướng dẫn.`} action={
     <div className="flex flex-wrap items-center gap-2">
-      <Link className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-subtle/50 px-3 text-xs font-semibold text-primary hover:bg-primary-subtle hover:border-primary transition-all" to="/department/projects/progress-matrix">
+      <Link className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-subtle/50 px-3.5 text-xs font-semibold text-primary hover:bg-primary-subtle hover:border-primary transition-all" to="/department/projects/progress-matrix">
         <span className="material-symbols-outlined text-[18px]" aria-hidden="true">view_timeline</span>
         Ma trận Tiến độ Gates
       </Link>
@@ -55,39 +55,352 @@ export function DepartmentWorkspacePage() {
     </div>
   }>
 
-    <nav aria-label="Lối tắt bộ môn" className="department-quick-links grid overflow-hidden rounded-lg border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4">
-      <SpotlightLink className="flex min-h-16 items-center gap-3 bg-card px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/projects/progress-matrix"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">view_timeline</span>Ma trận Tiến độ Gates</SpotlightLink>
-      <SpotlightLink className="flex min-h-16 items-center gap-3 bg-card px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/academic/review-gates"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">rule_settings</span>Chính sách Review Gates</SpotlightLink>
-      <SpotlightLink className="flex min-h-16 items-center gap-3 bg-card px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/portfolio"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">folder_managed</span>Danh mục đồ án</SpotlightLink>
-      <SpotlightLink className="flex min-h-16 items-center gap-3 bg-card px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/projects/review"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">rule</span>Thẩm định đề cương</SpotlightLink>
-      <SpotlightLink className="flex min-h-16 items-center gap-3 bg-card px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/supervisors"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">supervisor_account</span>Giảng viên hướng dẫn</SpotlightLink>
-      <a className="flex min-h-16 items-center gap-3 bg-card px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" href="#periods"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">date_range</span>Kỳ đồ án</a>
-      <Link className="flex min-h-16 items-center bg-card px-4 text-xs font-semibold text-primary hover:bg-primary-subtle" to="/department/student-qualifications">Xác minh điều kiện sinh viên</Link>
-      <Link className="flex min-h-16 items-center bg-card px-4 text-xs font-semibold text-primary hover:bg-primary-subtle" to="/department/topics">Quản lý đề tài</Link>
-      <Link className="flex min-h-16 items-center bg-card px-4 text-xs font-semibold text-primary hover:bg-primary-subtle" to="/academic/governance">Học kỳ và chính sách</Link>
-      <Link className="flex min-h-16 items-center bg-card px-4 text-xs font-semibold text-primary hover:bg-primary-subtle" to="/academic/rubrics">Rubric đánh giá</Link>
-      <Link className="flex min-h-16 items-center bg-card px-4 text-xs font-semibold text-primary hover:bg-primary-subtle" to="/department/cold-templates">Bộ report chấm nguội theo ngành</Link>
-    </nav>
+    <DepartmentWorkflowGuide />
 
-    <section id="overview" aria-labelledby="department-overview-heading" className="space-y-3 scroll-mt-4">
-      <div><p className="text-xs font-semibold text-primary">Tổng quan</p><h2 id="department-overview-heading" className="mt-1 font-heading text-xl font-bold text-ink">Tình hình hiện tại</h2></div>
-      <div className="workspace-metrics">
-        <DepartmentMetric title="Chờ thẩm định" icon="fact_check" section={reviews} onRetry={reviews.refresh} value={reviews.data?.totalCount ?? 0} detail="Đề cương chờ bộ môn phê duyệt" href="/department/projects/review" action="Xem hồ sơ" />
-        <DepartmentMetric title="Đồ án quản lý" icon="folder_managed" section={portfolio} onRetry={portfolio.refresh} value={portfolio.data?.summary.totalProjects ?? 0} detail="Trong danh mục bộ môn" href="/department/portfolio" action="Xem danh mục" />
-        <DepartmentMetric title="Giảng viên" icon="supervisor_account" section={supervisors} onRetry={supervisors.refresh} value={supervisors.data?.totalCount ?? 0} detail="Hồ sơ trong danh bạ" href="/department/supervisors" action="Xem giảng viên" />
+    {/* =========================================================================
+        TIER 1: HÀNG ĐỢI TÁC VỤ CẦN XỬ LÝ NGAY (URGENT ACTION QUEUE)
+        ========================================================================= */}
+    <section id="action-queue" aria-labelledby="urgent-actions-heading" className="space-y-4 rounded-2xl border border-amber-200/70 bg-gradient-to-b from-amber-50/40 to-transparent p-5 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-amber-200/50 pb-3">
+        <div>
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900 uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse" />
+            Khu vực 1: Tác vụ khẩn cấp
+          </span>
+          <h2 id="urgent-actions-heading" className="mt-1 font-heading text-xl font-bold text-ink">
+            Hàng đợi tác vụ cần xử lý ngay (Urgent Action Queue)
+          </h2>
+          <p className="mt-1 text-xs text-ink-muted">
+            Tập trung các đề cương chờ duyệt và đồ án có tín hiệu nguy cơ trễ hạn hoặc bị chặn.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Sub-block A: Hồ sơ thẩm định đề cương gần nhất */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">fact_check</span>
+              Đề cương chờ thẩm định
+            </h3>
+            <span className="text-xs font-semibold text-ink-muted">
+              {reviews.data?.totalCount ?? 0} hồ sơ
+            </span>
+          </div>
+
+          <SectionState section={reviews} onRetry={reviews.refresh}>
+            <div className="space-y-2.5">
+              {reviews.data?.items.map((project) => (
+                <article key={project.id} className="rounded-xl border border-hairline bg-card p-4 transition-all hover:border-primary/40 hover:shadow-2xs">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-mono font-bold text-primary">{project.code}</p>
+                      <h4 className="mt-1 break-words font-semibold text-ink text-sm">{project.title}</h4>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-ink-muted">
+                      {projectStatusLabel(project.status)}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-ink-muted truncate">
+                    {project.teamName} · {project.majors.map((major) => major.majorCode).join(', ') || 'Chưa xác định ngành'}
+                  </p>
+                  <div className="mt-3 flex justify-end">
+                    <Link className="workspace-action-link text-xs font-semibold" to={`/department/projects/review/${project.id}`}>
+                      Xem thẩm định
+                      <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </SectionState>
+        </div>
+
+        {/* Sub-block B: Đồ án có tín hiệu cần xử lý (Attention Signals) */}
+        <div id="attention" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-amber-700" aria-hidden="true">warning</span>
+              Đồ án có tín hiệu cần chú ý
+            </h3>
+            {attention.length > 0 && (
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                {attention.length} đồ án
+              </span>
+            )}
+          </div>
+
+          <SectionState section={portfolio} onRetry={portfolio.refresh}>
+            {attention.length ? (
+              <div className="space-y-2.5">
+                {attention.map((project) => (
+                  <article key={project.id} className="rounded-xl border border-hairline bg-card p-4 transition-all hover:border-amber-300 hover:shadow-2xs">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h4 className="truncate font-semibold text-ink text-sm">{project.code} · {project.title}</h4>
+                        <div className="mt-2 flex flex-wrap gap-3 text-xs text-ink-muted">
+                          <Signal label="Báo cáo chờ duyệt" value={project.pendingProgressReviews} />
+                          <Signal label="Bị chặn" value={project.analysis?.progressSummary.blockedTasks ?? 0} />
+                          <Signal label="Quá hạn" value={project.analysis?.progressSummary.overdueTasks ?? 0} />
+                        </div>
+                      </div>
+                      <Link
+                        className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-hairline px-3 text-xs font-semibold text-primary hover:border-primary hover:bg-primary-subtle shrink-0"
+                        to={`/department/projects/${project.id}/governance`}
+                      >
+                        Mở hồ sơ
+                      </Link>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs font-medium text-emerald-800 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px] text-emerald-600" aria-hidden="true">check_circle</span>
+                Không có tín hiệu cần chú ý trong trang danh mục này.
+              </div>
+            )}
+          </SectionState>
+
+          {portfolio.data && portfolio.data.projects.totalPages > 1 && (
+            <nav aria-label="Phân trang tín hiệu đồ án" className="flex items-center justify-between text-xs pt-2">
+              <Button size="sm" variant="secondary" disabled={portfolioPage <= 1} onClick={() => setPortfolioPage(portfolioPage - 1)}>
+                Trang trước
+              </Button>
+              <span className="text-ink-muted font-medium">Trang {portfolio.data.projects.page} / {portfolio.data.projects.totalPages}</span>
+              <Button size="sm" variant="secondary" disabled={portfolioPage >= portfolio.data.projects.totalPages} onClick={() => setPortfolioPage(portfolioPage + 1)}>
+                Trang sau
+              </Button>
+            </nav>
+          )}
+        </div>
       </div>
     </section>
 
-    <DepartmentWorkflowGuide />
+    {/* =========================================================================
+        TIER 2: GIÁM SÁT TIẾN TRÌNH & CỔNG THẨM ĐỊNH (PROGRESS MONITORING)
+        ========================================================================= */}
+    <section id="monitoring" aria-labelledby="monitoring-heading" className="space-y-4">
+      <div>
+        <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-900 uppercase tracking-wider">
+          Khu vực 2: Vận hành & Giám sát
+        </span>
+        <h2 id="monitoring-heading" className="mt-1 font-heading text-xl font-bold text-ink">
+          Giám sát tiến độ học vụ & Cổng Thẩm định (Progress Monitoring)
+        </h2>
+        <p className="mt-1 text-xs text-ink-muted">
+          Theo dõi tổng thể các đợt Review Gates, khối lượng đồ án bộ môn quản lý và đội ngũ giảng viên.
+        </p>
+      </div>
 
-    <section id="attention" aria-labelledby="department-attention-heading" className="space-y-3 scroll-mt-4"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-semibold text-amber-700">Cần chú ý</p><h2 id="department-attention-heading" className="mt-1 font-heading text-xl font-bold text-ink">Đồ án có tín hiệu cần xử lý</h2><p className="mt-1 text-sm text-ink-muted">Tín hiệu từ các đồ án trong trang danh mục đang xem; không phải tổng số cảnh báo của toàn bộ môn.</p></div>{attention.length > 0 && <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">{attention.length} đồ án</span>}</div><SectionState section={portfolio} onRetry={portfolio.refresh}>{attention.length ? <div className="overflow-hidden rounded-lg border border-hairline bg-card">{attention.map((project) => <article key={project.id} className="grid gap-4 border-b border-hairline p-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-5"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate font-semibold text-ink">{project.code} · {project.title}</h3><span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-ink-muted">{projectStatusLabel(project.status)}</span></div><div className="mt-3 flex flex-wrap gap-4 text-xs text-ink-muted"><Signal label="Báo cáo chờ duyệt" value={project.pendingProgressReviews} /><Signal label="Bị chặn" value={project.analysis?.progressSummary.blockedTasks ?? 0} /><Signal label="Quá hạn" value={project.analysis?.progressSummary.overdueTasks ?? 0} /></div></div><Link className="inline-flex min-h-10 items-center justify-center rounded-md border border-hairline px-3 text-sm font-semibold text-primary hover:border-primary hover:bg-primary-subtle" to={`/department/projects/${project.id}/governance`}>Mở hồ sơ</Link></article>)}</div> : <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">Không có tín hiệu cần chú ý trong trang danh mục này.</div>}</SectionState></section>
+      {/* Spotlight Card: Ma trận Tiến độ Review Gates */}
+      <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-primary-subtle/70 via-card to-card p-5 sm:p-6 shadow-2xs">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center shadow-xs shrink-0">
+              <span className="material-symbols-outlined text-[26px]" aria-hidden="true">view_timeline</span>
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-ink">Ma trận Tiến độ Review Gates Toàn khóa</h3>
+              <p className="mt-1 text-xs text-ink-muted max-w-xl">
+                Bảng theo dõi trực quan trạng thái từng Cổng thẩm định của 100% đồ án trong kỳ học. Nhận biết tức thời đồ án đạt chuẩn, chờ nộp bài hoặc bị yêu cầu sửa đổi.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/department/projects/progress-matrix"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-xs font-bold text-white hover:bg-primary-hover shadow-xs transition-all shrink-0 cursor-pointer"
+          >
+            Mở Ma trận Tiến độ
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
+          </Link>
+        </div>
+      </div>
 
-    {portfolio.data && <nav aria-label="Phân trang tín hiệu đồ án" className="flex flex-wrap items-center justify-between gap-3 text-sm"><Button className="min-h-11" variant="secondary" disabled={portfolioPage <= 1} onClick={() => setPortfolioPage(portfolioPage - 1)}>Trang trước</Button><span>Trang {portfolio.data.projects.page} / {Math.max(1, portfolio.data.projects.totalPages)}</span><Button className="min-h-11" variant="secondary" disabled={portfolioPage >= portfolio.data.projects.totalPages} onClick={() => setPortfolioPage(portfolioPage + 1)}>Trang sau</Button></nav>}
-    <section aria-labelledby="department-operations-heading" className="space-y-3"><div><p className="text-xs font-semibold text-primary">Thẩm định học vụ</p><h2 id="department-operations-heading" className="mt-1 font-heading text-xl font-bold text-ink">Hồ sơ thẩm định gần nhất</h2><p className="mt-1 text-sm text-ink-muted">Mở từng hồ sơ để xem nhận xét và các thao tác dành cho tài khoản hiện tại.</p></div><SectionState section={reviews} onRetry={reviews.refresh}>{<div className="grid gap-3 md:grid-cols-2">{reviews.data?.items.map((project) => <article key={project.id} className="rounded-lg border border-hairline bg-card p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold text-primary">{project.code}</p><h3 className="mt-1 break-words font-semibold text-ink">{project.title}</h3></div><span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-ink-muted">{projectStatusLabel(project.status)}</span></div><p className="mt-2 text-sm text-ink-muted">{project.teamName} · {project.majors.map((major) => major.majorCode).join(', ') || 'Chưa xác định ngành'}</p><Link className="workspace-action-link mt-3" to={`/department/projects/review/${project.id}`}>Xem thẩm định<span className="material-symbols-outlined text-[17px]" aria-hidden="true">arrow_forward</span></Link></article>)}</div>}</SectionState></section>
+      {/* Core Operational Metrics */}
+      <div className="workspace-metrics">
+        <DepartmentMetric
+          title="Chờ thẩm định"
+          icon="fact_check"
+          section={reviews}
+          onRetry={reviews.refresh}
+          value={reviews.data?.totalCount ?? 0}
+          detail="Đề cương chờ bộ môn phê duyệt"
+          href="/department/projects/review"
+          action="Xem hồ sơ"
+        />
+        <DepartmentMetric
+          title="Đồ án quản lý"
+          icon="folder_managed"
+          section={portfolio}
+          onRetry={portfolio.refresh}
+          value={portfolio.data?.summary.totalProjects ?? 0}
+          detail="Trong danh mục bộ môn"
+          href="/department/portfolio"
+          action="Xem danh mục"
+        />
+        <DepartmentMetric
+          title="Giảng viên"
+          icon="supervisor_account"
+          section={supervisors}
+          onRetry={supervisors.refresh}
+          value={supervisors.data?.totalCount ?? 0}
+          detail="Hồ sơ trong danh bạ"
+          href="/department/supervisors"
+          action="Xem giảng viên"
+        />
+      </div>
 
-    <section id="periods" aria-labelledby="department-policy-heading" className="space-y-3 scroll-mt-4"><div><p className="text-xs font-semibold text-primary">Kế hoạch học vụ</p><h2 id="department-policy-heading" className="mt-1 font-heading text-xl font-bold text-ink">Kỳ đồ án</h2><p className="mt-1 text-sm text-ink-muted">Các giai đoạn đang được cấu hình trong học kỳ hiện tại.</p></div>{academic.status === 'loading' || academic.status === 'idle' ? <p role="status" className="rounded-lg border border-hairline bg-card p-4 text-sm text-ink-muted">Đang tải kỳ đồ án…</p> : academic.status === 'ready' ? periods.length ? <div className="grid gap-3 md:grid-cols-2">{periods.map((period) => <article key={period.id} className="rounded-lg border border-hairline bg-card p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-mono text-xs font-semibold uppercase text-primary">{displayLabel(period.periodType)}</p><h3 className="mt-1 font-semibold text-ink">{period.name}</h3></div><span className={`rounded-full border px-2 py-1 text-xs font-semibold ${period.isOpen ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-hairline bg-canvas text-ink-muted'}`}>{period.isOpen ? 'Đang mở' : period.status === 'ACTIVE' ? 'Ngoài thời gian mở' : displayLabel(period.status)}</span></div><p className="mt-3 font-mono text-xs leading-5 text-ink-muted">{formatPeriodDate(period.startAtUtc)} → {formatPeriodDate(period.endAtUtc)}</p></article>)}</div> : <p className="rounded-lg border border-hairline bg-card p-4 text-sm text-ink-muted">Chưa có kỳ đồ án trong học kỳ hiện tại.</p> : <p role="alert" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text">Không thể tải thông tin kỳ đồ án. Các khu vực khác vẫn hoạt động bình thường.</p>}</section>
+      {/* Quick Monitoring Navigation Links */}
+      <nav aria-label="Lối tắt giám sát bộ môn" className="grid overflow-hidden rounded-xl border border-hairline bg-card sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-hairline">
+        <SpotlightLink className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/portfolio">
+          <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">folder_managed</span>
+          Danh mục đồ án
+        </SpotlightLink>
+        <SpotlightLink className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/supervisors">
+          <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">supervisor_account</span>
+          Giảng viên hướng dẫn
+        </SpotlightLink>
+        <SpotlightLink className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/topics">
+          <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">lightbulb</span>
+          Quản lý đề tài
+        </SpotlightLink>
+        <SpotlightLink className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/student-qualifications">
+          <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">verified</span>
+          Xác minh điều kiện sinh viên
+        </SpotlightLink>
+      </nav>
+    </section>
 
-    <section className="rounded-lg border border-hairline bg-primary-subtle p-4 sm:p-5" aria-label="Phạm vi thao tác"><div className="flex gap-3"><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">verified_user</span><div><h2 className="font-semibold text-ink">Quyền theo từng hồ sơ</h2><p className="mt-1 text-sm leading-6 text-ink-muted">Thao tác đánh giá, phân công và công bố kết quả chỉ xuất hiện trong hồ sơ đồ án khi tài khoản có đủ quyền và dữ liệu đã sẵn sàng.</p></div></div></section>
+    {/* =========================================================================
+        TIER 3: CẤU HÌNH HỌC KỲ & QUY CHẾ (ACADEMIC CONFIGURATION)
+        ========================================================================= */}
+    <section id="configuration" aria-labelledby="academic-configuration-heading" className="space-y-4 pt-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-6">
+        <div>
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-purple-50 px-2 py-0.5 text-xs font-bold text-purple-900 uppercase tracking-wider">
+            Khu vực 3: Cấu hình & Quy chế
+          </span>
+          <h2 id="academic-configuration-heading" className="mt-1 font-heading text-xl font-bold text-ink">
+            Kế hoạch học vụ & Chính sách đào tạo (Academic Configuration)
+          </h2>
+          <p className="mt-1 text-xs text-ink-muted">
+            Quản trị thời gian mở các kỳ đồ án, thiết lập mẫu Cổng thẩm định theo ngành và bộ tiêu chí Rubric.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Sub-block A: Kỳ đồ án hiện tại */}
+        <div id="periods" className="space-y-3 lg:col-span-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">date_range</span>
+              Kỳ đồ án trong học kỳ
+            </h3>
+            <Link to="/academic/governance" className="text-xs font-semibold text-primary hover:underline">
+              Quản lý học vụ →
+            </Link>
+          </div>
+
+          {academic.status === 'loading' || academic.status === 'idle' ? (
+            <p role="status" className="rounded-xl border border-hairline bg-card p-4 text-xs text-ink-muted">
+              Đang tải kỳ đồ án…
+            </p>
+          ) : academic.status === 'ready' ? (
+            periods.length ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {periods.map((period) => (
+                  <article key={period.id} className="rounded-xl border border-hairline bg-card p-4 space-y-2">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="font-mono text-xs font-semibold uppercase text-primary">
+                          {displayLabel(period.periodType)}
+                        </p>
+                        <h4 className="mt-0.5 font-bold text-ink text-sm">{period.name}</h4>
+                      </div>
+                      <span
+                        className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
+                          period.isOpen
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            : period.status === 'ACTIVE'
+                            ? 'border-hairline bg-canvas text-ink-muted'
+                            : 'border-blue-200 bg-blue-50 text-blue-700'
+                        }`}
+                      >
+                        {period.isOpen ? 'Đang mở' : period.status === 'ACTIVE' ? 'Ngoài thời gian mở' : displayLabel(period.status)}
+                      </span>
+                    </div>
+                    <p className="font-mono text-xs text-ink-muted">
+                      {formatPeriodDate(period.startAtUtc)} → {formatPeriodDate(period.endAtUtc)}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-xl border border-hairline bg-card p-4 text-xs text-ink-muted">
+                Chưa có kỳ đồ án trong học kỳ hiện tại.
+              </p>
+            )
+          ) : (
+            <p role="alert" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-xs text-status-warning-text">
+              Không thể tải thông tin kỳ đồ án. Các khu vực khác vẫn hoạt động bình thường.
+            </p>
+          )}
+        </div>
+
+        {/* Sub-block B: Lối tắt cấu hình chính sách */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">rule_settings</span>
+            Thiết lập chính sách
+          </h3>
+          <div className="rounded-xl border border-hairline bg-card p-4 flex flex-col gap-2">
+            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-slate-50 transition-colors" to="/academic/review-gates">
+              <span className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">rule_settings</span>
+                Chính sách Review Gates
+              </span>
+              <span className="material-symbols-outlined text-[16px] text-slate-400" aria-hidden="true">arrow_forward</span>
+            </Link>
+            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-slate-50 transition-colors" to="/academic">
+              <span className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">account_balance</span>
+                Cấu trúc đào tạo
+              </span>
+              <span className="material-symbols-outlined text-[16px] text-slate-400" aria-hidden="true">arrow_forward</span>
+            </Link>
+            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-slate-50 transition-colors" to="/academic/governance">
+              <span className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">date_range</span>
+                Học kỳ và chính sách
+              </span>
+              <span className="material-symbols-outlined text-[16px] text-slate-400" aria-hidden="true">arrow_forward</span>
+            </Link>
+            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-slate-50 transition-colors" to="/academic/rubrics">
+              <span className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">grading</span>
+                Bộ tiêu chí Rubric
+              </span>
+              <span className="material-symbols-outlined text-[16px] text-slate-400" aria-hidden="true">arrow_forward</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-hairline bg-primary-subtle/50 p-4" aria-label="Phạm vi thao tác">
+        <div className="flex gap-3">
+          <span className="material-symbols-outlined text-[20px] text-primary shrink-0" aria-hidden="true">verified_user</span>
+          <div>
+            <h4 className="font-bold text-ink text-xs">Quyền theo từng hồ sơ</h4>
+            <p className="mt-0.5 text-xs leading-5 text-ink-muted">
+              Thao tác đánh giá, phân công và công bố kết quả chỉ xuất hiện trong hồ sơ đồ án khi tài khoản có đủ quyền và dữ liệu đã sẵn sàng.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
   </WorkspacePage>
 }
 

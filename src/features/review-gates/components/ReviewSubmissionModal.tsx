@@ -97,25 +97,30 @@ export function ReviewSubmissionModal({
 
         <div>
           <label className="block text-xs font-bold text-slate-700">
-            Tên tệp minh chứng hoặc liên kết (URL / Git PR) *
+            Tên tệp minh chứng hoặc liên kết (URL / Git PR) <span className="text-rose-600">*</span>
           </label>
           <input
             type="text"
             required
+            aria-required="true"
             disabled={!isLeader || busy}
             value={artifactName}
             onChange={(e) => setArtifactName(e.target.value)}
             placeholder="Ví dụ: SDD_v3.pdf hoặc https://github.com/.../pull/42"
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-primary focus:outline-hidden disabled:bg-slate-100"
           />
+          <p className="mt-1 text-xs text-slate-500">
+            Hỗ trợ các định dạng PDF, DOCX, ZIP hoặc liên kết Git PR / Google Drive công khai.
+          </p>
         </div>
 
         <div>
           <label className="block text-xs font-bold text-slate-700">
-            Giải trình nội dung thay đổi / Ghi chú *
+            Giải trình nội dung thay đổi / Ghi chú <span className="text-rose-600">*</span>
           </label>
           <textarea
             required
+            aria-required="true"
             rows={3}
             disabled={!isLeader || busy}
             value={notes}
@@ -123,10 +128,13 @@ export function ReviewSubmissionModal({
             placeholder="Mô tả cụ thể những điểm đã chỉnh sửa theo phản hồi của reviewer..."
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-primary focus:outline-hidden disabled:bg-slate-100"
           />
+          <p className="mt-1 text-xs text-slate-500">
+            Nêu rõ các nội dung hoặc tài liệu đã cập nhật để Hội đồng dễ dàng đối chiếu và thẩm định lại.
+          </p>
         </div>
 
         {error && (
-          <div className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs font-semibold text-rose-700">
+          <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs font-semibold text-rose-700">
             {error}
           </div>
         )}

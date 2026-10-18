@@ -311,7 +311,6 @@ export function StudentReviewTimeline({
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {selectedGate.requirements.map((req) => {
-                    const canSubmit = isLeader && req.verificationStatus !== 'ACCEPTED'
                     return (
                       <tr key={req.id} className="hover:bg-slate-50/70">
                         <td className="px-3.5 py-3">
@@ -347,20 +346,39 @@ export function StudentReviewTimeline({
                           )}
                         </td>
                         <td className="px-3.5 py-3 text-right">
-                          <button
-                            type="button"
-                            disabled={!canSubmit}
-                            onClick={() => setActiveReqForSubmission(req)}
-                            className={`rounded-lg px-3 py-1.5 font-bold transition-all ${
-                              canSubmit
-                                ? req.verificationStatus === 'REJECTED'
-                                  ? 'bg-rose-600 text-white shadow-xs hover:bg-rose-700'
-                                  : 'bg-primary text-white shadow-xs hover:bg-primary-hover'
-                                : 'cursor-not-allowed bg-slate-100 text-slate-400'
-                            }`}
-                          >
-                            {req.verificationStatus === 'REJECTED' ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
-                          </button>
+                          {req.verificationStatus === 'ACCEPTED' ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                              <span className="material-symbols-outlined text-sm" aria-hidden="true">check</span>
+                              Đã chấp thuận
+                            </span>
+                          ) : isLeader ? (
+                            <button
+                              type="button"
+                              onClick={() => setActiveReqForSubmission(req)}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all focus:outline-hidden focus:ring-2 focus:ring-offset-1 ${
+                                req.verificationStatus === 'REJECTED'
+                                  ? 'bg-rose-600 text-white shadow-xs hover:bg-rose-700 focus:ring-rose-500'
+                                  : 'bg-primary text-white shadow-xs hover:bg-primary-hover focus:ring-primary'
+                              }`}
+                            >
+                              {req.verificationStatus === 'REJECTED' ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
+                            </button>
+                          ) : (
+                            <div className="flex flex-col items-end gap-0.5">
+                              <button
+                                type="button"
+                                disabled
+                                aria-disabled="true"
+                                aria-describedby={`member-only-notice-${req.id}`}
+                                className="cursor-not-allowed rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-400"
+                              >
+                                {req.verificationStatus === 'REJECTED' ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
+                              </button>
+                              <span id={`member-only-notice-${req.id}`} className="text-xs text-slate-400 italic">
+                                Chỉ Trưởng nhóm
+                              </span>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     )

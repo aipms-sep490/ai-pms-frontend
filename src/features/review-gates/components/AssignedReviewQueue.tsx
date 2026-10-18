@@ -308,11 +308,11 @@ export function AssignedReviewQueue({
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs text-slate-500">
                 {!allMandatoryAccepted ? (
-                  <span className="font-semibold text-rose-600">
+                  <span id="pass-eligibility-reason" className="font-semibold text-rose-600">
                     ⚠️ Chưa đủ điều kiện PASS: Còn {mandatoryReqs.length - acceptedMandatoryCount} minh chứng bắt buộc chưa duyệt đạt.
                   </span>
                 ) : (
-                  <span className="font-semibold text-emerald-600">
+                  <span id="pass-eligibility-reason" className="font-semibold text-emerald-600">
                     ✓ Đủ điều kiện phê duyệt PASS đợt thẩm định này.
                   </span>
                 )}
@@ -329,6 +329,7 @@ export function AssignedReviewQueue({
                 <Button
                   variant="primary"
                   disabled={!allMandatoryAccepted || busy}
+                  aria-describedby="pass-eligibility-reason"
                   onClick={() => handleDecision('PASSED')}
                   title={!allMandatoryAccepted ? 'Cần duyệt đạt toàn bộ minh chứng bắt buộc trước' : undefined}
                 >

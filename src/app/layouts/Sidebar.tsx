@@ -1,5 +1,5 @@
-import { Fragment, useContext, useEffect, useRef, useCallback, type RefObject } from 'react'
-import { NavLink } from 'react-router-dom'
+import { Fragment, useContext, useEffect, useRef, useCallback, useState, useMemo, type RefObject } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import { getWorkspaceNavigation } from '../router/workspace-route-registry'
 import { StudentJourneyContext } from '../context'
 import { useAcademicWorkflow } from '../context/useAcademicWorkflow'
@@ -17,6 +17,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
   const { unreadCount: chatUnread } = useChat()
+  const location = useLocation()
   const asideRef = useRef<HTMLElement | null>(null)
   const journey = useContext(StudentJourneyContext)
   const { academic } = useAcademicWorkflow()
@@ -40,7 +41,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
   const navigationItems = [...getWorkspaceNavigation(access)].sort((a, b) => sectionOrder.indexOf(a.section) - sectionOrder.indexOf(b.section))
   const sectionLabels: Record<string, string> = { student: 'Đồ án của nhóm', lecturer: 'Hướng dẫn và đánh giá', governance: 'Quản lý học vụ', administration: 'Quản trị hệ thống', account: 'Tài khoản và lịch' }
   const sectionLabel = role === 'student'
-    ? 'Không gian đồ án'
+    ? 'Hành trình đồ án'
     : role === 'lecturer'
       ? 'Không gian giảng viên'
       : role === 'department'
@@ -48,6 +49,47 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
         : role === 'admin'
           ? 'Quản trị nền tảng'
           : 'Hồ sơ tài khoản'
+
+  // Student 5-Pillar Navigation grouping
+  const studentGroups = useMemo(() => {
+    if (role !== 'student') return null
+    const groupsMap = new Map<string, { group: string; order: number; items: typeof navigationItems }>()
+    for (const item of navigationItems) {
+      if (item.section === 'student' && item.group) {
+        const existing = groupsMap.get(item.group)
+        if (existing) {
+          existing.items.push(item)
+        } else {
+          groupsMap.set(item.group, {
+            group: item.group,
+            order: item.groupOrder ?? 99,
+            items: [item],
+          })
+        }
+      }
+    }
+    return Array.from(groupsMap.values()).sort((a, b) => a.order - b.order)
+  }, [navigationItems, role])
+
+  // Accordion collapsed state for student groups (default expanded, auto-expand active)
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
+
+  const toggleGroup = useCallback((groupName: string) => {
+    setCollapsedGroups((prev) => ({
+      ...prev,
+      [groupName]: !prev[groupName],
+    }))
+  }, [])
+
+  // Auto-expand group containing current route when location changes
+  useEffect(() => {
+    if (studentGroups) {
+      const activeGroup = studentGroups.find((g) => g.items.some((i) => i.path === location.pathname))
+      if (activeGroup && collapsedGroups[activeGroup.group]) {
+        setCollapsedGroups((prev) => ({ ...prev, [activeGroup.group]: false }))
+      }
+    }
+  }, [location.pathname, studentGroups, collapsedGroups])
 
   const handleClose = useCallback(() => {
     onClose()
@@ -199,6 +241,111 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
             {pendingStudent ? <div className="app-nav-skeleton" aria-label="Đang tải điều hướng" role="status">{[0,1,2,3,4,5].map(item => <span key={item} />)}</div> : unavailableStudent ? (
               <div className="rounded-md border border-status-warning-border bg-status-warning-bg px-2.5 py-2 text-xs leading-5 text-status-warning-text" role="alert">
                 Chưa tải được ngữ cảnh đồ án. Hãy thử lại từ trang đang mở.
+              </div>
+            ) : studentGroups && studentGroups.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {studentGroups.map(({ group, items }, groupIndex) => {
+                  const isCollapsed = Boolean(collapsedGroups[group])
+                  const hasActive = items.some((i) => i.path === location.pathname)
+                  const groupId = `student-nav-group-${groupIndex}`
+
+                  return (
+                    <div key={group} className="flex flex-col">
+                      <button
+                        type="button"
+                        onClick={() => toggleGroup(group)}
+                        aria-expanded={!isCollapsed}
+                        aria-controls={groupId}
+                        className={`flex items-center justify-between px-2.5 py-1.5 min-h-[38px] rounded-lg text-xs font-bold transition-colors cursor-pointer select-none ${
+                          hasActive ? 'text-primary bg-primary/10' : 'text-slate-600 hover:text-ink hover:bg-slate-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate uppercase tracking-wider">{group}</span>
+                          <span className="rounded-full bg-slate-200/80 px-1.5 py-0.5 text-xs font-semibold text-slate-600">
+                            {items.length}
+                          </span>
+                        </div>
+                        <span
+                          className={`material-symbols-outlined text-[18px] text-slate-400 transition-transform duration-200 shrink-0 ${
+                            isCollapsed ? '' : 'rotate-180'
+                          }`}
+                          aria-hidden="true"
+                        >
+                          expand_more
+                        </span>
+                      </button>
+
+                      {!isCollapsed && (
+                        <div id={groupId} className="flex flex-col gap-0.5 mt-0.5 pl-1.5 border-l-2 border-slate-100 ml-2">
+                          {items.map((item, itemIndex) => (
+                            <NavLink
+                              key={item.id}
+                              to={item.path}
+                              data-tour={groupIndex === 0 && itemIndex === 0 ? 'sidebar-primary' : undefined}
+                              end={item.path === '/academic'}
+                              onClick={() => {
+                                if (window.innerWidth < 1024) handleClose()
+                              }}
+                              className={({ isActive }) =>
+                                `flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-xs font-medium transition-all duration-150 ${
+                                  isActive
+                                    ? 'bg-primary-subtle text-primary font-semibold'
+                                    : 'text-ink-muted hover:text-ink hover:bg-slate-100'
+                                }`
+                              }
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span
+                                  className="material-symbols-outlined text-[18px] shrink-0 text-slate-400"
+                                  aria-hidden="true"
+                                >
+                                  {item.icon}
+                                </span>
+                                <span className="truncate">{item.title}</span>
+                                {item.id === 'chat' && chatUnread > 0 && (
+                                  <span className="rounded-full bg-primary px-2 text-xs text-white" aria-label="Có tin nhắn chưa đọc">
+                                    {chatUnread > 99 ? '99+' : chatUnread}
+                                  </span>
+                                )}
+                              </div>
+                            </NavLink>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+
+                {/* Account & general items for student */}
+                {navigationItems.filter((i) => i.section !== 'student').length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-hairline flex flex-col gap-0.5">
+                    <div className="px-2.5 py-1 text-xs font-semibold text-ink-muted">Tài khoản và lịch</div>
+                    {navigationItems.filter((i) => i.section !== 'student').map((item) => (
+                      <NavLink
+                        key={item.id}
+                        to={item.path}
+                        onClick={() => {
+                          if (window.innerWidth < 1024) handleClose()
+                        }}
+                        className={({ isActive }) =>
+                          `flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-xs font-medium transition-all duration-150 ${
+                            isActive
+                              ? 'bg-primary-subtle text-primary font-semibold'
+                              : 'text-ink-muted hover:text-ink hover:bg-slate-100'
+                          }`
+                        }
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="material-symbols-outlined text-[18px] shrink-0 text-slate-400" aria-hidden="true">
+                            {item.icon}
+                          </span>
+                          <span className="truncate">{item.title}</span>
+                        </div>
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : <>
             {navigationItems.map((item, index) => (

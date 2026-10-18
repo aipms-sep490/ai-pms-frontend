@@ -10,6 +10,8 @@ export interface WorkspaceRouteMeta {
   breadcrumb: string
   icon: string
   section: NavigationSection
+  group?: string
+  groupOrder?: number
   identityRoles: readonly string[]
   /** Presentation metadata only; direct-route authorization remains separate. */
   requiredPermission?: string
@@ -21,25 +23,45 @@ export interface WorkspaceRouteMeta {
 
 /** Canonical metadata for the app-shell routes migrated in Workspace Phase 1. */
 export const workspaceRouteRegistry: readonly WorkspaceRouteMeta[] = [
-  { id: 'student-overview', path: '/project/overview', title: 'Tổng quan lộ trình', breadcrumb: 'Tổng quan lộ trình', icon: 'dashboard', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'always' },
-  { id: 'student-lifecycle', path: '/projects/lifecycle', title: 'Hồ sơ đồ án', breadcrumb: 'Hồ sơ đồ án', icon: 'folder_open', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'always' },
-  { id: 'student-workspace', path: '/project/workspace', title: 'Phối hợp nhóm', breadcrumb: 'Phối hợp nhóm', icon: 'space_dashboard', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
-  { id: 'student-tasks', path: '/project/tasks', title: 'Công việc', breadcrumb: 'Công việc', icon: 'checklist', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
-  { id: 'student-milestones', path: '/project/milestones', title: 'Mốc đồ án', breadcrumb: 'Mốc đồ án', icon: 'flag', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
-  { id: 'student-gantt', path: '/project/gantt', title: 'Lịch thực hiện', breadcrumb: 'Lịch thực hiện', icon: 'view_timeline', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
-  { id: 'student-reports', path: '/project/reports', title: 'Báo cáo tiến độ', breadcrumb: 'Báo cáo tiến độ', icon: 'assignment', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
-  { id: 'student-deliverables', path: '/project/deliverables', title: 'Hạng mục cần nộp', breadcrumb: 'Hạng mục cần nộp', icon: 'description', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
-  { id: 'student-files', path: '/project/files', title: 'Kho tệp đồ án', breadcrumb: 'Kho tệp đồ án', icon: 'folder_open', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
-  { id: 'student-meetings', path: '/project/meetings', title: 'Lịch họp và biên bản', breadcrumb: 'Lịch họp và biên bản', icon: 'calendar_month', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
-  { id: 'student-contributions', path: '/project/contributions', title: 'Đóng góp thành viên', breadcrumb: 'Đóng góp thành viên', icon: 'diversity_3', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
-  { id: 'student-final-submission', path: '/project/final-submission', title: 'Bàn giao cuối kỳ', breadcrumb: 'Gói bàn giao cuối', icon: 'inventory_2', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual' },
-  { id: 'student-result', path: '/project/result', title: 'Kết quả đồ án', breadcrumb: 'Kết quả', icon: 'workspace_premium', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual' },
-  { id: 'student-team', path: '/team', title: 'Thành viên nhóm', breadcrumb: 'Thành viên nhóm', icon: 'group', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'always' },
+  // 1. Điều phối & Tiến độ (Coordination & Review Gates)
+  { id: 'student-workspace', path: '/project/workspace', title: 'Phối hợp nhóm', breadcrumb: 'Phối hợp nhóm', icon: 'space_dashboard', section: 'student', group: '1. Điều phối & Tiến độ', groupOrder: 1, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
+  { id: 'student-review-timeline', path: '/project/timeline', title: 'Tiến trình Review Gates', breadcrumb: 'Tiến trình Review Gates', icon: 'flag_circle', section: 'student', group: '1. Điều phối & Tiến độ', groupOrder: 1, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
+  { id: 'student-milestones', path: '/project/milestones', title: 'Mốc đồ án', breadcrumb: 'Mốc đồ án', icon: 'flag', section: 'student', group: '1. Điều phối & Tiến độ', groupOrder: 1, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
+  { id: 'student-gantt', path: '/project/gantt', title: 'Lịch thực hiện', breadcrumb: 'Lịch thực hiện', icon: 'view_timeline', section: 'student', group: '1. Điều phối & Tiến độ', groupOrder: 1, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
+
+  // 2. Thực thi công việc (Daily Work & Deliverables)
+  { id: 'student-tasks', path: '/project/tasks', title: 'Công việc', breadcrumb: 'Công việc', icon: 'checklist', section: 'student', group: '2. Thực thi công việc', groupOrder: 2, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
+  { id: 'student-meetings', path: '/project/meetings', title: 'Lịch họp và biên bản', breadcrumb: 'Lịch họp và biên bản', icon: 'calendar_month', section: 'student', group: '2. Thực thi công việc', groupOrder: 2, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
+  { id: 'student-reports', path: '/project/reports', title: 'Báo cáo tiến độ', breadcrumb: 'Báo cáo tiến độ', icon: 'assignment', section: 'student', group: '2. Thực thi công việc', groupOrder: 2, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
+  { id: 'student-deliverables', path: '/project/deliverables', title: 'Hạng mục cần nộp', breadcrumb: 'Hạng mục cần nộp', icon: 'description', section: 'student', group: '2. Thực thi công việc', groupOrder: 2, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
+  { id: 'student-files', path: '/project/files', title: 'Kho tệp đồ án', breadcrumb: 'Kho tệp đồ án', icon: 'folder_open', section: 'student', group: '2. Thực thi công việc', groupOrder: 2, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
+
+  // 3. Tương tác & Hỗ trợ (Collaboration, AI & Peer Evaluation)
+  { id: 'student-contributions', path: '/project/contributions', title: 'Đóng góp thành viên', breadcrumb: 'Đóng góp thành viên', icon: 'diversity_3', section: 'student', group: '3. Tương tác & Hỗ trợ', groupOrder: 3, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
+  { id: 'student-peer-eval', path: '/project/peer-evaluation', title: 'Đánh giá đồng đội', breadcrumb: 'Đánh giá đồng đội', icon: 'groups', section: 'student', group: '3. Tương tác & Hỗ trợ', groupOrder: 3, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.peerEvaluationEnabled },
+  { id: 'ai-advisory', path: '/project/ai', title: 'Trợ lý AI và phân tích', breadcrumb: 'Trợ lý AI và phân tích', icon: 'neurology', section: 'student', group: '3. Tương tác & Hỗ trợ', groupOrder: 3, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.aiAdvisoryEnabled },
+  { id: 'student-agreement', path: '/project/agreement', title: 'Cam kết nhóm', breadcrumb: 'Cam kết làm việc nhóm', icon: 'handshake', section: 'student', group: '3. Tương tác & Hỗ trợ', groupOrder: 3, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', featureEnabled: env.workingAgreementEnabled },
+
+  // 4. Nghiệm thu & Bảo vệ (Finalization & Defense)
+  { id: 'student-final-submission', path: '/project/final-submission', title: 'Bàn giao cuối kỳ', breadcrumb: 'Gói bàn giao cuối', icon: 'inventory_2', section: 'student', group: '4. Nghiệm thu & Bảo vệ', groupOrder: 4, identityRoles: ['STUDENT'], navigationVisibility: 'contextual' },
+  { id: 'student-defense', path: '/project/defense', title: 'Lịch bảo vệ', breadcrumb: 'Lịch bảo vệ', icon: 'gavel', section: 'student', group: '4. Nghiệm thu & Bảo vệ', groupOrder: 4, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.defenseScheduleEnabled },
+  { id: 'student-result', path: '/project/result', title: 'Kết quả đồ án', breadcrumb: 'Kết quả', icon: 'workspace_premium', section: 'student', group: '4. Nghiệm thu & Bảo vệ', groupOrder: 4, identityRoles: ['STUDENT'], navigationVisibility: 'contextual' },
+  { id: 'student-cold-reports', path: '/project/cold-reports', title: 'Chấm nguội', breadcrumb: 'Chấm nguội theo ngành', icon: 'fact_check', section: 'student', group: '4. Nghiệm thu & Bảo vệ', groupOrder: 4, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.coldReportEnabled },
+
+  // 5. Hồ sơ & Đề tài (Profile, Lifecycle & Team)
+  { id: 'student-overview', path: '/project/overview', title: 'Tổng quan lộ trình', breadcrumb: 'Tổng quan lộ trình', icon: 'dashboard', section: 'student', group: '5. Hồ sơ & Đề tài', groupOrder: 5, identityRoles: ['STUDENT'], navigationVisibility: 'always' },
+  { id: 'student-lifecycle', path: '/projects/lifecycle', title: 'Hồ sơ đồ án', breadcrumb: 'Hồ sơ đồ án', icon: 'badge', section: 'student', group: '5. Hồ sơ & Đề tài', groupOrder: 5, identityRoles: ['STUDENT'], navigationVisibility: 'always' },
+  { id: 'student-team', path: '/team', title: 'Thành viên nhóm', breadcrumb: 'Thành viên nhóm', icon: 'group', section: 'student', group: '5. Hồ sơ & Đề tài', groupOrder: 5, identityRoles: ['STUDENT'], navigationVisibility: 'always' },
+  { id: 'student-gates', path: '/project/gates', title: 'Cổng kiểm soát', breadcrumb: 'Cổng kiểm soát tiến độ', icon: 'verified_user', section: 'student', group: '5. Hồ sơ & Đề tài', groupOrder: 5, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.gatesEnabled },
+
+  // Lecturer & Supervision
   { id: 'lecturer-dashboard', path: '/supervisor/dashboard', title: 'Tổng quan hướng dẫn', breadcrumb: 'Tổng quan hướng dẫn', icon: 'space_dashboard', section: 'lecturer', identityRoles: ['LECTURER'], navigationVisibility: 'always' },
   { id: 'lecturer-workspace', path: '/supervisor/workspace', title: 'Hướng dẫn đồ án', breadcrumb: 'Hướng dẫn đồ án', icon: 'supervisor_account', section: 'lecturer', identityRoles: ['LECTURER'], navigationVisibility: 'always' },
   { id: 'lecturer-profile', path: '/supervisor/profile', title: 'Hồ sơ giảng viên', breadcrumb: 'Hồ sơ giảng viên', icon: 'badge', section: 'lecturer', identityRoles: ['LECTURER'], navigationVisibility: 'always' },
   { id: 'mentor-work', path: '/mentor/workspace', title: 'Hướng dẫn chuyên ngành', breadcrumb: 'Hướng dẫn chuyên ngành', icon: 'school', section: 'lecturer', identityRoles: ['LECTURER'], navigationVisibility: 'always' },
   { id: 'evaluator-work', path: '/evaluator/workspace', title: 'Đánh giá đồ án', breadcrumb: 'Đánh giá đồ án', icon: 'grading', section: 'lecturer', identityRoles: ['LECTURER'], navigationVisibility: 'contextual', requiredAssignment: 'EVALUATOR' },
+
+  // Department Academic Governance
   { id: 'governance-home', path: '/department/workspace', title: 'Tổng quan bộ môn', breadcrumb: 'Tổng quan bộ môn', icon: 'dashboard', section: 'governance', identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
   { id: 'governance-qualifications', path: '/department/student-qualifications', title: 'Điều kiện sinh viên', breadcrumb: 'Xác minh điều kiện tham gia', icon: 'verified', section: 'governance', identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
   { id: 'governance-archives', path: '/department/projects/archived', title: 'Đồ án lưu trữ', breadcrumb: 'Đồ án lưu trữ', icon: 'inventory_2', section: 'governance', identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
@@ -51,19 +73,18 @@ export const workspaceRouteRegistry: readonly WorkspaceRouteMeta[] = [
   { id: 'governance-periods', path: '/academic/governance', title: 'Học kỳ và kỳ đồ án', breadcrumb: 'Quản lý học vụ', icon: 'date_range', section: 'governance', identityRoles: ['DEPARTMENT_STAFF', 'ADMIN'], navigationVisibility: 'always' },
   { id: 'governance-cold-templates', path: '/department/cold-templates', title: 'Bộ report chấm nguội', breadcrumb: 'Bộ report chấm nguội theo ngành', icon: 'rule', section: 'governance', identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always', featureEnabled: env.coldReportEnabled },
   { id: 'governance-rubrics', path: '/academic/rubrics', title: 'Bộ tiêu chí đánh giá', breadcrumb: 'Bộ tiêu chí đánh giá', icon: 'grading', section: 'governance', identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
+
+  // Platform Administration
   { id: 'administration-access', path: '/admin/access', title: 'Quản trị nền tảng', breadcrumb: 'Quản trị quyền', icon: 'admin_panel_settings', section: 'administration', identityRoles: ['ADMIN'], navigationVisibility: 'always' },
   { id: 'administration-portfolio', path: '/admin/portfolio', title: 'Tổng quan đồ án', breadcrumb: 'Tổng quan đồ án', icon: 'space_dashboard', section: 'administration', identityRoles: ['ADMIN'], navigationVisibility: 'always' },
   { id: 'academic-profile-verifications', path: '/academic/profile-verifications', title: 'Xác minh hồ sơ học vụ', breadcrumb: 'Xác minh hồ sơ học vụ', icon: 'verified_user', section: 'governance', identityRoles: ['DEPARTMENT_STAFF', 'ADMIN'], navigationVisibility: 'always' },
   { id: 'admin-milestone-templates', path: '/admin/milestone-templates', title: 'Mẫu mốc đồ án', breadcrumb: 'Mẫu mốc đồ án', icon: 'flag', section: 'administration', identityRoles: ['ADMIN'], navigationVisibility: 'always' },
+
+  // Shared Account & Calendar
   { id: 'account-profile', path: '/profile', title: 'Hồ sơ tài khoản', breadcrumb: 'Hồ sơ tài khoản', icon: 'account_circle', section: 'account', identityRoles: ['ADMIN', 'DEPARTMENT_STAFF', 'LECTURER', 'STUDENT'], navigationVisibility: 'always' },
   { id: 'calendar-attention', path: '/calendar', title: 'Lịch tổng hợp', breadcrumb: 'Lịch tổng hợp', icon: 'calendar_month', section: 'account', identityRoles: ['ADMIN', 'DEPARTMENT_STAFF', 'LECTURER', 'STUDENT'], navigationVisibility: 'always' },
-  { id: 'student-gates', path: '/project/gates', title: 'Cổng kiểm soát', breadcrumb: 'Cổng kiểm soát tiến độ', icon: 'verified_user', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.gatesEnabled },
-  { id: 'student-review-timeline', path: '/project/timeline', title: 'Tiến trình Review Gates', breadcrumb: 'Tiến trình Review Gates', icon: 'flag_circle', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
-  { id: 'student-agreement', path: '/project/agreement', title: 'Cam kết nhóm', breadcrumb: 'Cam kết làm việc nhóm', icon: 'handshake', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', featureEnabled: env.workingAgreementEnabled },
-  { id: 'student-defense', path: '/project/defense', title: 'Lịch bảo vệ', breadcrumb: 'Lịch bảo vệ', icon: 'gavel', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.defenseScheduleEnabled },
-  { id: 'student-cold-reports', path: '/project/cold-reports', title: 'Chấm nguội', breadcrumb: 'Chấm nguội theo ngành', icon: 'fact_check', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.coldReportEnabled },
-  { id: 'student-peer-eval', path: '/project/peer-evaluation', title: 'Đánh giá đồng đội', breadcrumb: 'Đánh giá đồng đội', icon: 'groups', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.peerEvaluationEnabled },
-  { id: 'ai-advisory', path: '/project/ai', title: 'Trợ lý AI và phân tích', breadcrumb: 'Trợ lý AI và phân tích', icon: 'neurology', section: 'student', identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.aiAdvisoryEnabled },
+
+  // Review Gates Governance & Assignments
   { id: 'governance-review-gates', path: '/academic/review-gates', title: 'Chính sách Review Gates', breadcrumb: 'Chính sách Review Gates', icon: 'rule_settings', section: 'governance', identityRoles: ['DEPARTMENT_STAFF', 'ADMIN'], navigationVisibility: 'always' },
   { id: 'governance-progress-matrix', path: '/department/projects/progress-matrix', title: 'Ma trận Tiến độ Gates', breadcrumb: 'Ma trận Tiến độ Gates', icon: 'view_timeline', section: 'governance', identityRoles: ['DEPARTMENT_STAFF', 'ADMIN'], navigationVisibility: 'always' },
   { id: 'reviewer-gate-assignments', path: '/review/gate-assignments', title: 'Thẩm định Review Gates', breadcrumb: 'Thẩm định Review Gates', icon: 'verified_user', section: 'lecturer', identityRoles: ['LECTURER', 'DEPARTMENT_STAFF'], navigationVisibility: 'always' },
