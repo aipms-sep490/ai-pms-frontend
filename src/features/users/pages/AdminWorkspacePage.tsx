@@ -4,7 +4,7 @@ import { StatusBadge } from '../../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from '../../../components/ui/Table'
 import { AcademicScopeFields } from '../../academic/components/AcademicScopeFields'
-import { useMemo, useRef, useState, type FormEvent } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { HttpError } from '../../../services/http/http-client'
@@ -16,6 +16,10 @@ import { SystemStatusPanel } from '../components/SystemStatusPanel'
 import { RosterExportDialog } from '../components/RosterExportDialog'
 import { CurriculumImportDialog } from '../components/CurriculumImportDialog'
 import { StudentImportDialog } from '../components/StudentImportDialog'
+import { AuthSessionContext } from '../../auth/context/auth-session-context'
+import { getAcademicHierarchy } from '../../academic/api/academic-api'
+import type { AcademicHierarchyOrganization } from '../../academic/types/academic.types'
+import { createAcademicNameResolver } from '../../projects/components/academic-name-resolver'
 
 const blankAccount: UserDraft = { departmentId: null, majorId: null, email: '', password: '', fullName: '', phone: null, studentCode: null, employeeCode: null, title: null, roleIds: [] }
 const messageFor = (reason: unknown) => reason instanceof HttpError ? reason.message : 'Chưa thể hoàn tất thao tác. Hãy thử lại.'
@@ -37,6 +41,20 @@ export function AdminWorkspacePage() {
   const [studentImportOpen, setStudentImportOpen] = useState(false)
   const busyRef = useRef(false)
   const globalRoles = useMemo(() => admin.rbac.value.roles.filter((role) => role.isAssignableGlobalRole && role.assignmentKind === 'GLOBAL'), [admin.rbac.value.roles])
+  const authSession = useContext(AuthSessionContext)
+  const token = authSession?.session?.accessToken
+  const [hierarchy, setHierarchy] = useState<AcademicHierarchyOrganization[]>([])
+
+  useEffect(() => {
+    if (!token) return
+    const controller = new AbortController()
+    getAcademicHierarchy(token, { search: '', includeInactive: true }, controller.signal)
+      .then(items => { if (!controller.signal.aborted) setHierarchy(items) })
+      .catch(() => { /* silent fallback */ })
+    return () => controller.abort()
+  }, [token])
+
+  const academicResolver = useMemo(() => createAcademicNameResolver(hierarchy), [hierarchy])
   const setFilter = (patch: Record<string, string>) => { const next = new URLSearchParams(params); Object.entries(patch).forEach(([key, value]) => value ? next.set(key, value) : next.delete(key)); if (!('page' in patch)) next.set('page', '1'); setParams(next) }
   const run = async (action: () => Promise<unknown>, success: string) => { if (busyRef.current) return false; busyRef.current = true; setBusy(true); try { await action(); setNotice(success); return true } catch (reason) { setNotice(messageFor(reason)); return false } finally { busyRef.current = false; setBusy(false) } }
 
@@ -106,7 +124,10 @@ export function AdminWorkspacePage() {
             <TableCell label="Người dùng"><div className="flex flex-col"><strong>{user.fullName}</strong><span>{user.email}</span><small className="text-ink-muted">{user.studentCode ?? user.employeeCode ?? 'Không có mã'}</small></div></TableCell>
             <TableCell label="Vai trò hệ thống">{user.roles.filter((role) => globalRoles.some((globalRole) => globalRole.code === role)).map(role => role === 'LECTURER' ? 'Giảng viên' : role === 'EVALUATOR' ? 'Người chấm' : displayLabel(role)).join(', ') || 'Chưa gán'}</TableCell>
             <TableCell label="Trạng thái"><Status status={user.status} /></TableCell>
-            <TableCell label="Phạm vi học thuật">{user.departmentId ? `Bộ môn #${user.departmentId}` : '—'}{user.majorId ? ` · Ngành #${user.majorId}` : ''}</TableCell>
+            <TableCell label="Phạm vi học thuật">
+              {user.departmentId ? academicResolver.department(user.departmentId) : '—'}
+              {user.majorId ? ` · ${academicResolver.major(user.majorId)}` : ''}
+            </TableCell>
             <TableCell label="Thao tác"><Link to={`/admin/access/users/${user.id}`} state={{ returnTo: `/admin/access?${params.toString()}` }}>Xem chi tiết</Link></TableCell>
           </TableRow>)}
         </TableBody>

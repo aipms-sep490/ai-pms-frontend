@@ -236,7 +236,7 @@ export function StudentReviewTimeline({
               key={gate.gateInstanceId}
               type="button"
               onClick={() => setSelectedGateCode(gate.code)}
-              className={`rounded-xl border p-4 text-left transition-all ${
+              className={`rounded-xl border p-4 text-left transition-all duration-200 motion-reduce:transition-none ${
                 isSelected
                   ? 'border-primary bg-primary-subtle/50 shadow-xs ring-1 ring-primary'
                   : 'border-slate-200 bg-white hover:border-slate-300'
@@ -298,7 +298,7 @@ export function StudentReviewTimeline({
               Danh mục Minh chứng Học thuật ({selectedGate.requirements.length} yêu cầu)
             </h4>
             <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full text-left text-xs">
+              <table className="w-full min-w-[720px] text-left text-xs">
                 <thead className="border-b border-slate-200 bg-slate-50 font-semibold text-slate-600">
                   <tr>
                     <th className="px-3.5 py-2.5">Yêu cầu minh chứng</th>

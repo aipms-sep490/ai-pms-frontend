@@ -57,6 +57,95 @@ export function SupervisorDashboardPage() {
     {loading && <PageLoading label="Đang tải tổng quan hướng dẫn…" />}
     {!loading && !error && data && <>
       <section aria-label="Chỉ số khối lượng" className="workspace-metrics"><Metric label="Đồ án được phân công" value={data.workload.assignedProjects} /><Metric label="Báo cáo chờ duyệt" value={data.pendingProgressReviews} tone={data.pendingProgressReviews > 0 ? 'warning' : 'neutral'} /><Metric label="Công việc quá hạn" value={data.overdueTasks} tone={data.overdueTasks > 0 ? 'error' : 'neutral'} /><Metric label="Đồ án / hạn mức" value={data.workload.profileMaxActiveProjects === null ? 'Chưa cấu hình' : `${data.workload.assignedProjects}/${data.workload.profileMaxActiveProjects}`} tone={!data.workload.hasProfile || !data.workload.isAvailable ? 'warning' : 'success'} /></section>
+
+      {/* Quick Action Inbox (P1.1) */}
+      {(() => {
+        const urgentProjects = data.projects.items.filter(
+          p => p.pendingProgressReviews > 0 ||
+               (p.analysis?.progressSummary?.overdueTasks ?? 0) > 0 ||
+               (p.analysis?.progressSummary?.blockedTasks ?? 0) > 0 ||
+               p.analysis?.riskLevel === 'HIGH'
+        )
+        if (!urgentProjects.length) return null
+        return (
+          <section aria-label="Hộp thư duyệt nhanh" className="rounded-xl border border-amber-300 bg-amber-50/70 p-5 shadow-xs">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-amber-200/80 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-amber-700 text-xl" aria-hidden="true">
+                  mark_email_unread
+                </span>
+                <div>
+                  <h2 className="text-base font-bold text-amber-950">
+                    Hộp thư duyệt nhanh & Việc khẩn cấp (Action Inbox)
+                  </h2>
+                  <p className="text-xs text-amber-800">
+                    Có {urgentProjects.length} đồ án đang có báo cáo tiến độ chờ xác nhận hoặc công việc quá hạn/vướng mắc.
+                  </p>
+                </div>
+              </div>
+              <span className="inline-flex items-center rounded-full bg-amber-200 px-3 py-1 text-xs font-bold text-amber-900">
+                {data.pendingProgressReviews} báo cáo chờ phản hồi
+              </span>
+            </div>
+
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {urgentProjects.map(proj => (
+                <div
+                  key={proj.id}
+                  className="flex flex-col justify-between rounded-lg border border-amber-200 bg-white p-4 shadow-2xs"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <strong className="text-sm font-bold text-slate-900">{proj.code}</strong>
+                      {proj.pendingProgressReviews > 0 ? (
+                        <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800 border border-amber-300">
+                          {proj.pendingProgressReviews} báo cáo chờ duyệt
+                        </span>
+                      ) : proj.analysis?.riskLevel === 'HIGH' ? (
+                        <span className="rounded-md bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-800 border border-rose-200">
+                          Rủi ro cao
+                        </span>
+                      ) : null}
+                    </div>
+                    <h3 className="mt-1 text-xs font-semibold text-slate-800 line-clamp-1">{proj.title}</h3>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Bộ môn: {proj.departmentName ?? 'Chưa có bộ môn'}
+                      {(proj.analysis?.progressSummary?.overdueTasks ?? 0) > 0 && (
+                        <span className="ml-2 text-rose-600 font-semibold">
+                          · {proj.analysis?.progressSummary?.overdueTasks} việc quá hạn
+                        </span>
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="mt-3.5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2.5">
+                    <Link
+                      to={`/supervisor/projects/${proj.id}/reports`}
+                      className="inline-flex min-h-9 items-center gap-1 rounded-md bg-primary px-3 py-1 text-xs font-bold text-white shadow-2xs hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      <span className="material-symbols-outlined text-sm" aria-hidden="true">
+                        assignment
+                      </span>
+                      Xem & Duyệt báo cáo
+                    </Link>
+                    <Link
+                      to={`/supervisor/projects/${proj.id}/workspace`}
+                      className="inline-flex min-h-9 items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      Vào không gian
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-3 text-xs text-amber-800/90 italic">
+              * Nhận xét và xác nhận báo cáo của Giảng viên hướng dẫn ghi nhận sự đồng hành chuyên môn; thẩm định đạt cổng chính thức do Thẩm định viên (Reviewer) độc lập phê duyệt.
+            </p>
+          </section>
+        )
+      })()}
+
       <section className="workspace-surface workspace-surface-padding mt-6"><div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-heading font-semibold text-ink">Đồ án phụ trách</h2><p className="mt-1 text-sm text-ink-muted">Dữ liệu tại {formatAsOf(data.asOfUtc)}.</p></div><StatusCounts counts={data.projectStates} /></div>{data.projects.items.length === 0 ? <p className="mt-4 text-sm text-ink-muted">Không có đồ án phù hợp với bộ lọc hiện tại.</p> : <ul className="mt-4 divide-y divide-hairline">{data.projects.items.map(project => <ProjectRow key={project.id} project={project} />)}</ul>}</section>
       <Pagination page={filter.page ?? 1} totalPages={data.projects.totalPages} disabled={loading} onChange={page => setFilter(current => ({ ...current, page }))} />
     </>}

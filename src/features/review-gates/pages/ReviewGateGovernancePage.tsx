@@ -257,59 +257,61 @@ export function ReviewGateGovernancePage() {
                   </button>
                 </div>
 
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-100">
-                    <tr>
-                      <th className="py-3 px-4">Tên Mẫu Tiến trình</th>
-                      <th className="py-3 px-4">Chế độ / Ngành</th>
-                      <th className="py-3 px-3 text-center">Số Gate</th>
-                      <th className="py-3 px-3 text-center">Phiên bản</th>
-                      <th className="py-3 px-3 text-center">Trạng thái</th>
-                      <th className="py-3 px-4 text-right">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {templates.map(tmpl => (
-                      <tr key={tmpl.id} className="hover:bg-slate-50">
-                        <td className="py-3.5 px-4">
-                          <strong className="block font-bold text-slate-900">{tmpl.name}</strong>
-                          <span className="text-xs text-slate-400 font-mono">{tmpl.code}</span>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="block font-semibold text-slate-800">
-                            {tmpl.mode === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành'}
-                          </span>
-                          <span className="text-xs text-slate-500">{tmpl.major}</span>
-                        </td>
-                        <td className="py-3.5 px-3 text-center font-bold">{tmpl.gatesCount}</td>
-                        <td className="py-3.5 px-3 text-center font-mono">v{tmpl.version}</td>
-                        <td className="py-3.5 px-3 text-center">
-                          <span
-                            className={`rounded-full px-2.5 py-0.5 text-xs font-bold border ${
-                              tmpl.status === 'PUBLISHED'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                : 'bg-amber-50 text-amber-700 border-amber-200'
-                            }`}
-                          >
-                            {tmpl.status === 'PUBLISHED' ? 'ĐÃ CÔNG BỐ' : 'BẢN NHÁP'}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedTemplateId(tmpl.id)
-                              setActiveTab('builder')
-                            }}
-                            className="rounded-md border border-slate-200 px-3 py-1 font-semibold text-primary hover:bg-slate-100"
-                          >
-                            Thiết kế Gate ↗
-                          </button>
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[640px] text-left text-xs">
+                    <thead className="bg-slate-50 font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-100">
+                      <tr>
+                        <th className="py-3 px-4">Tên Mẫu Tiến trình</th>
+                        <th className="py-3 px-4">Chế độ / Ngành</th>
+                        <th className="py-3 px-3 text-center">Số Gate</th>
+                        <th className="py-3 px-3 text-center">Phiên bản</th>
+                        <th className="py-3 px-3 text-center">Trạng thái</th>
+                        <th className="py-3 px-4 text-right">Thao tác</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                      {templates.map(tmpl => (
+                        <tr key={tmpl.id} className="hover:bg-slate-50">
+                          <td className="py-3.5 px-4">
+                            <strong className="block font-bold text-slate-900">{tmpl.name}</strong>
+                            <span className="text-xs text-slate-400 font-mono">{tmpl.code}</span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="block font-semibold text-slate-800">
+                              {tmpl.mode === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành'}
+                            </span>
+                            <span className="text-xs text-slate-500">{tmpl.major}</span>
+                          </td>
+                          <td className="py-3.5 px-3 text-center font-bold">{tmpl.gatesCount}</td>
+                          <td className="py-3.5 px-3 text-center font-mono">v{tmpl.version}</td>
+                          <td className="py-3.5 px-3 text-center">
+                            <span
+                              className={`rounded-full px-2.5 py-0.5 text-xs font-bold border ${
+                                tmpl.status === 'PUBLISHED'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                              }`}
+                            >
+                              {tmpl.status === 'PUBLISHED' ? 'ĐÃ CÔNG BỐ' : 'BẢN NHÁP'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedTemplateId(tmpl.id)
+                                setActiveTab('builder')
+                              }}
+                              className="rounded-md border border-slate-200 px-3 py-1 font-semibold text-primary hover:bg-slate-100"
+                            >
+                              Thiết kế Gate ↗
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}

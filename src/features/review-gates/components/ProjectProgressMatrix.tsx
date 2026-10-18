@@ -95,7 +95,7 @@ export function ProjectProgressMatrix({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full min-w-[720px] text-left text-xs">
             <thead className="border-b border-slate-100 bg-slate-50/60 font-semibold uppercase tracking-wider text-slate-500">
               <tr>
                 <th className="py-3 px-4">Mã / Tên đồ án</th>

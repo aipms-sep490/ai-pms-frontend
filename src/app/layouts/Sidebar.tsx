@@ -267,7 +267,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                           </span>
                         </div>
                         <span
-                          className={`material-symbols-outlined text-[18px] text-slate-400 transition-transform duration-200 shrink-0 ${
+                          className={`material-symbols-outlined text-[18px] text-slate-400 transition-transform duration-200 motion-reduce:transition-none shrink-0 ${
                             isCollapsed ? '' : 'rotate-180'
                           }`}
                           aria-hidden="true"
@@ -288,7 +288,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                                 if (window.innerWidth < 1024) handleClose()
                               }}
                               className={({ isActive }) =>
-                                `flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-xs font-medium transition-all duration-150 ${
+                                `flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-xs font-medium transition-all duration-150 motion-reduce:transition-none ${
                                   isActive
                                     ? 'bg-primary-subtle text-primary font-semibold'
                                     : 'text-ink-muted hover:text-ink hover:bg-slate-100'
