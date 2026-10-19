@@ -23,9 +23,9 @@ export function DataSourceStatus({
 
   const dotToneClass: Record<DataSourceState, string> = {
     ready: 'bg-primary',
-    partial: 'bg-amber-600',
+    partial: 'bg-warning-strong',
     error: 'bg-danger',
-    empty: 'bg-slate-400',
+    empty: 'bg-line-strong',
     unavailable: 'bg-ink-muted',
     unsupported: 'bg-ink-muted',
   }
@@ -53,7 +53,7 @@ export function DataSourceStatus({
         {sources.map(source => (
           <li key={source.id} className="flex items-start gap-2.5 text-xs">
             <span
-              className={`mt-1 h-2 w-2 flex-none rounded-full ${dotToneClass[source.state] ?? 'bg-slate-400'}`}
+              className={`mt-1 h-2 w-2 flex-none rounded-full ${dotToneClass[source.state] ?? 'bg-line-strong'}`}
               aria-hidden="true"
             />
             <div className="min-w-0">
