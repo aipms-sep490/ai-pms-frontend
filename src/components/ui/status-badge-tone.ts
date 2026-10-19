@@ -5,7 +5,7 @@ export const badgeToneClass: Record<BadgeTone, string> = {
   warning: 'border-status-warning-border bg-status-warning-bg text-status-warning-text',
   danger: 'border-status-error-border bg-status-error-bg text-status-error-text',
   info: 'border-primary/30 bg-primary-subtle text-primary',
-  neutral: 'border-hairline bg-slate-100 text-slate-700',
+  neutral: 'border-hairline bg-canvas text-ink-soft',
 }
 
 /**
