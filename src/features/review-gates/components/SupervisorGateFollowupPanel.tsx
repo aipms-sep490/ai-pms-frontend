@@ -24,17 +24,21 @@ export function SupervisorGateFollowupPanel({
   const [feedback, setFeedback] = useState('')
   const [busy, setBusy] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!feedback.trim()) return
     try {
       setBusy(true)
+      setError(null)
       if (onSendFeedback) {
         await onSendFeedback(feedback.trim())
       }
       setSubmitted(true)
       setFeedback('')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Không thể lưu nhận xét hướng dẫn.')
     } finally {
       setBusy(false)
     }
@@ -63,6 +67,13 @@ export function SupervisorGateFollowupPanel({
       <div className="rounded-lg border border-slate-100 bg-slate-50 p-3 text-xs text-slate-600">
         ℹ️ <strong>Phạm vi vai trò:</strong> Giảng viên hướng dẫn (Primary Supervisor) có thẩm quyền đôn đốc, nhận xét, định hướng hành động (follow-up action items) cho nhóm sinh viên. Quyết định duyệt đạt Gate thuộc về Hội đồng / Giảng viên thẩm định độc lập được phân công.
       </div>
+
+      {error && (
+        <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-800 flex items-center justify-between">
+          <span>✕ {error}</span>
+          <button type="button" onClick={() => setError(null)} className="text-rose-600 hover:text-rose-900">✕</button>
+        </div>
+      )}
 
       {submitted ? (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-700 flex items-center justify-between">

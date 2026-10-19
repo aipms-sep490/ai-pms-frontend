@@ -5,7 +5,9 @@ import type {
   ProjectReviewMatrixRow,
   ReviewGateTemplate,
   StudentReviewTimelineDto,
+  SubmitGatePackageRequest,
   SubmitRevisionRequest,
+  SupervisorFeedbackRequest,
   VerifyEvidenceRequest,
 } from '../types/review-gates.types'
 
@@ -786,11 +788,14 @@ class ReviewGatesMockAdapter {
     return JSON.parse(JSON.stringify(created))
   }
 
-  async publishTemplate(id: string): Promise<ReviewGateTemplate> {
+  async publishTemplate(id: string, concurrencyToken?: string): Promise<ReviewGateTemplate> {
     const item = this.templates.find(t => t.id === id)
     if (!item) throw new Error('Template not found')
     if (item.gates.length === 0) {
       throw new Error('422: Không thể công bố mẫu tiến trình khi chưa có Review Gate nào.')
+    }
+    if (concurrencyToken && item.concurrencyToken && item.concurrencyToken !== concurrencyToken) {
+      throw new Error('409: Dữ liệu mẫu tiến trình đã được cập nhật bởi quản trị viên khác. Hãy tải lại trang.')
     }
     item.status = 'PUBLISHED'
     item.version = (parseFloat(item.version) + 0.1).toFixed(1)
@@ -814,6 +819,30 @@ class ReviewGatesMockAdapter {
     const project = this.matrix.find(p => p.projectId === projectId)
     if (!project) throw new Error('Project not found')
     project.gateStatuses[gateCode] = newStatus
+
+    // Sync to cached timeline if present
+    const timeline = this.studentTimelines[projectId]
+    if (timeline) {
+      const gate = timeline.gates.find(g => g.code === gateCode)
+      if (gate) {
+        gate.status = newStatus
+        if (newStatus === 'PASSED') {
+          gate.blockingReasons = []
+          gate.requirements.forEach(r => {
+            if (r.isMandatory && r.verificationStatus !== 'ACCEPTED') {
+              r.verificationStatus = 'ACCEPTED'
+            }
+          })
+          // Advance next gate if applicable
+          const nextGateIdx = timeline.gates.findIndex(g => g.code === gateCode) + 1
+          if (nextGateIdx < timeline.gates.length && timeline.gates[nextGateIdx].status === 'PLANNED') {
+            timeline.gates[nextGateIdx].reviewEligibility = 'READY'
+            timeline.gates[nextGateIdx].blockingReasons = []
+          }
+        }
+      }
+    }
+
     return JSON.parse(JSON.stringify(project))
   }
 
@@ -890,19 +919,46 @@ class ReviewGatesMockAdapter {
     }
   }
 
-private studentTimeline: StudentReviewTimelineDto = JSON.parse(JSON.stringify(initialStudentTimeline))
+  private studentTimelines: Record<string, StudentReviewTimelineDto> = {
+    'IT-01': JSON.parse(JSON.stringify(initialStudentTimeline)),
+  }
   private assignedReviews: AssignedReviewItem[] = JSON.parse(JSON.stringify(initialAssignedReviews))
+
+  private getOrCreateTimeline(projectId = 'IT-01'): StudentReviewTimelineDto {
+    if (!this.studentTimelines[projectId]) {
+      const project = this.matrix.find(p => p.projectId === projectId)
+      const cloned: StudentReviewTimelineDto = JSON.parse(JSON.stringify(initialStudentTimeline))
+      cloned.projectId = projectId
+      if (project) {
+        cloned.projectName = project.projectName
+        cloned.projectCode = project.projectId
+        cloned.projectMode = project.mode
+        cloned.major = project.major
+        cloned.taskProgress = project.taskProgress
+        cloned.gates.forEach(g => {
+          if (project.gateStatuses[g.code]) {
+            g.status = project.gateStatuses[g.code]
+          }
+        })
+      }
+      this.studentTimelines[projectId] = cloned
+    }
+    return this.studentTimelines[projectId]
+  }
 
   reset(): void {
     this.templates = JSON.parse(JSON.stringify(initialTemplates))
     this.matrix = JSON.parse(JSON.stringify(initialMatrix))
-    this.studentTimeline = JSON.parse(JSON.stringify(initialStudentTimeline))
+    this.studentTimelines = {
+      'IT-01': JSON.parse(JSON.stringify(initialStudentTimeline)),
+    }
     this.assignedReviews = JSON.parse(JSON.stringify(initialAssignedReviews))
   }
 
-  async getStudentReviewTimeline(_projectId = 'IT-01'): Promise<StudentReviewTimelineDto> {
+  async getStudentReviewTimeline(projectId = 'IT-01'): Promise<StudentReviewTimelineDto> {
     await new Promise(r => setTimeout(r, 60))
-    return JSON.parse(JSON.stringify(this.studentTimeline))
+    const timeline = this.getOrCreateTimeline(projectId)
+    return JSON.parse(JSON.stringify(timeline))
   }
 
   async submitRevision(req: SubmitRevisionRequest, isLeader: boolean): Promise<StudentReviewTimelineDto> {
@@ -914,12 +970,18 @@ private studentTimeline: StudentReviewTimelineDto = JSON.parse(JSON.stringify(in
       throw new Error('422: Minh chứng nộp và lý do chỉnh sửa không được để trống.')
     }
 
-    const gate = this.studentTimeline.gates.find(g => g.code === req.gateCode)
+    const timeline = this.getOrCreateTimeline(req.projectId)
+    const gate = timeline.gates.find(g => g.code === req.gateCode)
     if (!gate) throw new Error(`404: Không tìm thấy Gate ${req.gateCode}`)
     const reqItem = gate.requirements.find(r => r.id === req.requirementId)
     if (!reqItem) throw new Error(`404: Không tìm thấy requirement ${req.requirementId}`)
 
-    const nextVer = (reqItem.latestArtifact?.version ?? 0) + 1
+    const currentVer = reqItem.latestArtifact?.version ?? 0
+    if (req.expectedVersion !== undefined && req.expectedVersion !== currentVer) {
+      throw new Error(`409: Xung đột phiên bản minh chứng. Phiên bản dự kiến: ${req.expectedVersion}, phiên bản hiện tại trên hệ thống: ${currentVer}. Vui lòng tải lại dữ liệu mới nhất.`)
+    }
+
+    const nextVer = currentVer + 1
     reqItem.verificationStatus = 'SUBMITTED'
     reqItem.latestArtifact = {
       version: nextVer,
@@ -942,12 +1004,53 @@ private studentTimeline: StudentReviewTimelineDto = JSON.parse(JSON.stringify(in
       assigned.concurrencyToken = `token-${Date.now()}`
     }
 
-    return JSON.parse(JSON.stringify(this.studentTimeline))
+    // Also sync to matrix row
+    const mRow = this.matrix.find(p => p.projectId === req.projectId)
+    if (mRow) {
+      mRow.gateStatuses[req.gateCode] = 'IN_REVIEW'
+    }
+
+    return JSON.parse(JSON.stringify(timeline))
+  }
+
+  async submitGateForReview(req: SubmitGatePackageRequest): Promise<StudentReviewTimelineDto> {
+    await new Promise(r => setTimeout(r, 60))
+    const timeline = this.getOrCreateTimeline(req.projectId)
+    const gate = timeline.gates.find(g => g.code === req.gateCode)
+    if (!gate) throw new Error(`404: Không tìm thấy Gate ${req.gateCode}`)
+    gate.status = 'IN_REVIEW'
+    gate.blockingReasons = []
+    const mRow = this.matrix.find(p => p.projectId === req.projectId)
+    if (mRow) {
+      mRow.gateStatuses[req.gateCode] = 'IN_REVIEW'
+    }
+    return JSON.parse(JSON.stringify(timeline))
+  }
+
+  async submitSupervisorFeedback(req: SupervisorFeedbackRequest): Promise<void> {
+    await new Promise(r => setTimeout(r, 60))
+    if (!req.feedback?.trim()) {
+      throw new Error('422: Nội dung nhận xét hướng dẫn không được để trống.')
+    }
+    const timeline = this.getOrCreateTimeline(req.projectId)
+    if (!timeline.supervisorFeedbacks) {
+      timeline.supervisorFeedbacks = []
+    }
+    timeline.supervisorFeedbacks.push({
+      gateCode: req.gateCode,
+      feedback: req.feedback.trim(),
+      submittedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      supervisorName: 'GVHD Chính',
+    })
   }
 
   async getAssignedReviews(): Promise<AssignedReviewItem[]> {
     await new Promise(r => setTimeout(r, 60))
     return JSON.parse(JSON.stringify(this.assignedReviews))
+  }
+
+  get studentTimeline(): StudentReviewTimelineDto {
+    return this.getOrCreateTimeline('IT-01')
   }
 
   async verifyEvidence(req: VerifyEvidenceRequest): Promise<AssignedReviewItem> {
@@ -966,7 +1069,8 @@ private studentTimeline: StudentReviewTimelineDto = JSON.parse(JSON.stringify(in
     if (req.feedback) requirement.reviewerFeedback = req.feedback
     assigned.concurrencyToken = `token-${Date.now()}`
 
-    const gate = this.studentTimeline.gates.find(g => g.code === assigned.gateCode)
+    const targetTimeline = this.getOrCreateTimeline(assigned.projectId)
+    const gate = targetTimeline.gates.find(g => g.code === assigned.gateCode)
     if (gate) {
       const gReq = gate.requirements.find(r => r.id === req.requirementId)
       if (gReq) {
@@ -1005,15 +1109,16 @@ private studentTimeline: StudentReviewTimelineDto = JSON.parse(JSON.stringify(in
     assigned.reviewerNotes = req.notes
     assigned.concurrencyToken = `token-${Date.now()}`
 
-    const gate = this.studentTimeline.gates.find(g => g.code === assigned.gateCode)
+    const targetTimeline = this.getOrCreateTimeline(assigned.projectId)
+    const gate = targetTimeline.gates.find(g => g.code === assigned.gateCode)
     if (gate) {
       gate.status = req.decision
       if (req.decision === 'PASSED') {
-        const nextIdx = this.studentTimeline.gates.findIndex(g => g.code === assigned.gateCode) + 1
-        if (nextIdx < this.studentTimeline.gates.length) {
-          this.studentTimeline.gates[nextIdx].reviewEligibility = 'READY'
-          this.studentTimeline.gates[nextIdx].blockingReasons = []
-          this.studentTimeline.currentGateCode = this.studentTimeline.gates[nextIdx].code
+        const nextIdx = targetTimeline.gates.findIndex(g => g.code === assigned.gateCode) + 1
+        if (nextIdx < targetTimeline.gates.length) {
+          targetTimeline.gates[nextIdx].reviewEligibility = 'READY'
+          targetTimeline.gates[nextIdx].blockingReasons = []
+          targetTimeline.currentGateCode = targetTimeline.gates[nextIdx].code
         }
       } else {
         gate.blockingReasons = [
@@ -1025,15 +1130,10 @@ private studentTimeline: StudentReviewTimelineDto = JSON.parse(JSON.stringify(in
       }
     }
 
-    const matrixRow = this.matrix.find(p => p.projectId === assigned.projectId)
-    if (matrixRow) {
-      matrixRow.gateStatuses[assigned.gateCode] = req.decision
-      if (req.decision === 'PASSED') {
-        const nextIdx = ['R1', 'R2', 'R3', 'R4'].indexOf(assigned.gateCode) + 1
-        if (nextIdx < 4) {
-          matrixRow.gateStatuses[['R1', 'R2', 'R3', 'R4'][nextIdx]] = 'PLANNED'
-        }
-      }
+    // Also update matrix row
+    const project = this.matrix.find(p => p.projectId === assigned.projectId)
+    if (project) {
+      project.gateStatuses[assigned.gateCode] = req.decision
     }
 
     return JSON.parse(JSON.stringify(assigned))

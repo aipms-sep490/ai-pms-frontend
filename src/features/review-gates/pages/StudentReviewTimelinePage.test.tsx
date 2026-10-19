@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom'
 import { StudentReviewTimelinePage } from './StudentReviewTimelinePage'
 import { reviewGatesMockAdapter } from '../api/review-gates-mock-adapter'
+import { AuthSessionContext } from '../../auth/context/auth-session-context'
 
 describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
   beforeEach(() => {
@@ -82,5 +83,96 @@ describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
     actionBtns.forEach((btn) => {
       expect((btn as HTMLButtonElement).disabled).toBe(true)
     })
+  })
+
+  it('displays error alert when revision submission encounters concurrency conflict (409)', async () => {
+    vi.spyOn(reviewGatesMockAdapter, 'submitRevision').mockRejectedValueOnce(
+      new Error('409: Phiên bản minh chứng đã thay đổi bởi thành viên khác. Vui lòng tải lại trang.'),
+    )
+
+    render(
+      <MemoryRouter>
+        <StudentReviewTimelinePage />
+      </MemoryRouter>,
+    )
+
+    await screen.findByText('Campus Support Platform')
+
+    const submitRevisionBtn = screen.getByRole('button', { name: 'Nộp bản sửa' })
+    fireEvent.click(submitRevisionBtn)
+
+    const artifactInput = screen.getByPlaceholderText(/Ví dụ: SDD_v3.pdf/)
+    const notesInput = screen.getByPlaceholderText(/Mô tả cụ thể những điểm đã chỉnh sửa/)
+    fireEvent.change(artifactInput, { target: { value: 'SDD_v3_Conflict.pdf' } })
+    fireEvent.change(notesInput, { target: { value: 'Ghi chú thử nghiệm conflict' } })
+
+    const confirmBtn = screen.getByRole('button', { name: 'Xác nhận nộp bản sửa' })
+    fireEvent.click(confirmBtn)
+
+    expect(await screen.findByRole('alert')).toBeTruthy()
+    expect(screen.getByText(/409: Phiên bản minh chứng đã thay đổi/)).toBeTruthy()
+  })
+
+  it('allows supervisor to submit guidance feedback for active gate', async () => {
+    const mockLecturerContext = {
+      session: {
+        user: {
+          id: 'lec-1',
+          fullName: 'Dr. Nguyen Van Giang',
+          email: 'giang@university.edu.vn',
+          roles: ['LECTURER'],
+        },
+        token: 'test-token',
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      },
+      status: 'authenticated' as const,
+      error: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshProfile: vi.fn(),
+      restoreSession: vi.fn(),
+    }
+
+    render(
+      <AuthSessionContext.Provider value={mockLecturerContext as any}>
+        <MemoryRouter>
+          <StudentReviewTimelinePage />
+        </MemoryRouter>
+      </AuthSessionContext.Provider>,
+    )
+
+    await screen.findByText('Campus Support Platform')
+
+    expect(screen.getByText('Giám sát Học vụ (Supervision)')).toBeTruthy()
+
+    const feedbackInput = screen.getByPlaceholderText(/Ví dụ: Cần rà soát tính nhất quán/)
+    fireEvent.change(feedbackInput, { target: { value: 'Nhóm cần hoàn thiện sơ đồ luồng dữ liệu trước thứ 6.' } })
+
+    const sendBtn = screen.getByRole('button', { name: 'Gửi nhận xét hướng dẫn' })
+    const form = sendBtn.closest('form')!
+    fireEvent.submit(form)
+
+    expect(await screen.findByText(/Đã gửi nhận xét hướng dẫn cho nhóm sinh viên thành công/)).toBeTruthy()
+  })
+
+  it('rejects files larger than 20MB in submission modal', async () => {
+    render(
+      <MemoryRouter>
+        <StudentReviewTimelinePage />
+      </MemoryRouter>,
+    )
+
+    await screen.findByText('Campus Support Platform')
+
+    const submitRevisionBtn = screen.getByRole('button', { name: 'Nộp bản sửa' })
+    fireEvent.click(submitRevisionBtn)
+
+    const dropArea = screen.getByText(/Kéo thả tệp minh chứng vào đây/)
+    const oversizedFile = new File(['x'.repeat(100)], 'huge-file.pdf', { type: 'application/pdf' })
+    Object.defineProperty(oversizedFile, 'size', { value: 25 * 1024 * 1024 })
+
+    fireEvent.drop(dropArea, { dataTransfer: { files: [oversizedFile] } })
+
+    expect(await screen.findByText(/Tệp vượt quá dung lượng tối đa cho phép \(20MB\)/)).toBeTruthy()
   })
 })

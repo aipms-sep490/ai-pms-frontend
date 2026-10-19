@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import {
   getDefenseReadiness,
@@ -20,9 +21,11 @@ import { InterdisciplinaryGatePanel } from '../components/InterdisciplinaryGateP
 import { DefenseReadinessChecker } from '../components/DefenseReadinessChecker'
 
 export function ReviewGateGovernancePage() {
+  const { periodId } = useParams<{ periodId?: string }>()
   const [activeTab, setActiveTab] = useState<'overview' | 'builder' | 'matrix' | 'hybrid' | 'defense'>('overview')
   const [templates, setTemplates] = useState<ReviewGateTemplate[]>([])
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('tmpl-it-2026')
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('IT-02')
   const [matrixProjects, setMatrixProjects] = useState<ProjectReviewMatrixRow[]>([])
   const [defenseSummary, setDefenseSummary] = useState<DefenseReadinessSummary | null>(null)
   const [loading, setLoading] = useState(true)
@@ -32,7 +35,15 @@ export function ReviewGateGovernancePage() {
 
   useEffect(() => {
     loadAllData()
-  }, [])
+  }, [periodId])
+
+  useEffect(() => {
+    if (selectedProjectId) {
+      getDefenseReadiness(selectedProjectId)
+        .then(res => setDefenseSummary(res))
+        .catch(() => {})
+    }
+  }, [selectedProjectId])
 
   async function loadAllData() {
     setLoading(true)
@@ -41,7 +52,7 @@ export function ReviewGateGovernancePage() {
       const [tmplList, matrixList, defSummary] = await Promise.all([
         getReviewGateTemplates(),
         getProjectReviewMatrix(),
-        getDefenseReadiness('IT-02'),
+        getDefenseReadiness(selectedProjectId),
       ])
       setTemplates(tmplList)
       setMatrixProjects(matrixList)
@@ -85,7 +96,7 @@ export function ReviewGateGovernancePage() {
     setError(null)
     setNotice(null)
     try {
-      const published = await publishReviewGateTemplate(currentTemplate.id)
+      const published = await publishReviewGateTemplate(currentTemplate.id, currentTemplate.concurrencyToken)
       setTemplates(prev => prev.map(t => (t.id === published.id ? published : t)))
       setNotice(`Đã công bố chính thức mẫu tiến trình ${published.name} (phiên bản v${published.version}).`)
     } catch (err) {
@@ -93,6 +104,31 @@ export function ReviewGateGovernancePage() {
     } finally {
       setBusy(false)
     }
+  }
+
+  function handleCloneTemplate(templateToClone: ReviewGateTemplate) {
+    const nextVer = (parseFloat(templateToClone.version) + 1.0).toFixed(1)
+    const cloned: ReviewGateTemplate = {
+      ...templateToClone,
+      id: `tmpl-draft-${Date.now()}`,
+      code: `${templateToClone.code}-v${nextVer}`,
+      name: `${templateToClone.name} (Bản nháp v${nextVer})`,
+      status: 'DRAFT',
+      version: `${nextVer}-draft`,
+      concurrencyToken: `token-${Date.now()}`,
+      gates: templateToClone.gates.map((g, gi) => ({
+        ...g,
+        id: `gate-clone-${Date.now()}-${gi}`,
+        requirements: g.requirements.map((r, ri) => ({
+          ...r,
+          id: `req-clone-${Date.now()}-${ri}`,
+        })),
+      })),
+    }
+    setTemplates(prev => [cloned, ...prev])
+    setSelectedTemplateId(cloned.id)
+    setActiveTab('builder')
+    setNotice(`Đã nhân bản ${templateToClone.name} thành bản nháp mới v${cloned.version}.`)
   }
 
   async function handleUpdateDecision(
@@ -105,7 +141,9 @@ export function ReviewGateGovernancePage() {
       setMatrixProjects(prev => prev.map(p => (p.projectId === updated.projectId ? updated : p)))
       setNotice(`Đã ghi nhận kết luận thẩm định cho đồ án ${projectId}: ${gateCode} → ${newStatus}.`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể cập nhật kết luận thẩm định.')
+      const msg = err instanceof Error ? err.message : 'Không thể cập nhật kết luận thẩm định.'
+      setError(msg)
+      throw err
     }
   }
 
@@ -119,7 +157,9 @@ export function ReviewGateGovernancePage() {
       setMatrixProjects(prev => prev.map(p => (p.projectId === updated.projectId ? updated : p)))
       setNotice(`Đã cập nhật quyết định ngành ${scope} của đồ án ${projectId}: ${newStatus}.`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể cập nhật quyết định ngành.')
+      const msg = err instanceof Error ? err.message : 'Không thể cập nhật quyết định ngành.'
+      setError(msg)
+      throw err
     }
   }
 
@@ -225,7 +265,9 @@ export function ReviewGateGovernancePage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                 <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
                   <span className="text-xs font-semibold text-slate-500">Kỳ học áp dụng</span>
-                  <p className="mt-1 text-xl font-bold text-slate-800">Fall 2026 · SEP490</p>
+                  <p className="mt-1 text-xl font-bold text-slate-800">
+                    {periodId ? decodeURIComponent(periodId) : 'Fall 2026 · SEP490'}
+                  </p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
                   <span className="text-xs font-semibold text-slate-500">Mẫu tiến trình</span>
@@ -233,7 +275,9 @@ export function ReviewGateGovernancePage() {
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
                   <span className="text-xs font-semibold text-slate-500">Số Gates tiêu chuẩn</span>
-                  <p className="mt-1 text-2xl font-black text-slate-800">04 Gates</p>
+                  <p className="mt-1 text-2xl font-black text-slate-800">
+                    {templates.length > 0 ? `${templates[0].gatesCount < 10 ? '0' : ''}${templates[0].gatesCount} Gates` : '04 Gates'}
+                  </p>
                 </div>
                 <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 shadow-2xs">
                   <span className="text-xs font-semibold text-amber-800">Trạng thái phê duyệt</span>
@@ -248,10 +292,38 @@ export function ReviewGateGovernancePage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setSelectedTemplateId('tmpl-it-2026')
+                      const newDraft: ReviewGateTemplate = {
+                        id: `tmpl-draft-${Date.now()}`,
+                        code: `TMPL-${Date.now().toString().slice(-4)}`,
+                        name: 'Mẫu tiến trình mới (Bản nháp)',
+                        mode: 'SINGLE_MAJOR',
+                        major: 'Kỹ thuật Phần mềm',
+                        gatesCount: 1,
+                        status: 'DRAFT',
+                        version: '1.0-draft',
+                        concurrencyToken: `token-${Date.now()}`,
+                        gates: [
+                          {
+                            id: `gate-${Date.now()}-1`,
+                            code: 'R1',
+                            title: 'Đợt 1: Đề cương & Đặc tả (Bản nháp)',
+                            objective: 'Thẩm định đề cương chi tiết và yêu cầu chức năng.',
+                            required: true,
+                            blockNextGate: true,
+                            start: '2026-11-01',
+                            end: '2026-11-15',
+                            reviewerPolicy: 'Assigned Reviewer',
+                            reviewScope: 'COMMON',
+                            requirements: [],
+                          },
+                        ],
+                      }
+                      setTemplates(prev => [newDraft, ...prev])
+                      setSelectedTemplateId(newDraft.id)
                       setActiveTab('builder')
+                      setNotice('Đã tạo bản nháp tiến trình mới. Vui lòng thiết lập cấu trúc Gates và lưu bản nháp.')
                     }}
-                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-primary-hover"
+                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-primary-hover cursor-pointer"
                   >
                     ＋ Tạo Mẫu Tiến trình Mới
                   </button>
@@ -295,7 +367,17 @@ export function ReviewGateGovernancePage() {
                               {tmpl.status === 'PUBLISHED' ? 'ĐÃ CÔNG BỐ' : 'BẢN NHÁP'}
                             </span>
                           </td>
-                          <td className="py-3.5 px-4 text-right">
+                          <td className="py-3.5 px-4 text-right space-x-2">
+                            {tmpl.status === 'PUBLISHED' && (
+                              <button
+                                type="button"
+                                onClick={() => handleCloneTemplate(tmpl)}
+                                className="rounded-md border border-slate-200 px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-100"
+                                title="Nhân bản tạo phiên bản nháp mới"
+                              >
+                                Nhân bản
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => {
@@ -323,6 +405,7 @@ export function ReviewGateGovernancePage() {
               onChange={handleTemplateChange}
               onSaveDraft={handleSaveDraft}
               onPublish={handlePublish}
+              onClone={handleCloneTemplate}
               busy={busy}
             />
           )}
@@ -332,15 +415,19 @@ export function ReviewGateGovernancePage() {
             <ProjectProgressMatrix
               projects={matrixProjects}
               onUpdateDecision={handleUpdateDecision}
-              onSelectHybridProject={() => setActiveTab('hybrid')}
+              onSelectProject={(id) => setSelectedProjectId(id)}
+              onSelectHybridProject={(id) => {
+                setSelectedProjectId(id)
+                setActiveTab('hybrid')
+              }}
             />
           )}
 
           {/* TAB 4: HYBRID */}
           {activeTab === 'hybrid' && (
             <InterdisciplinaryGatePanel
-              projectId="HYB-01"
-              hybridScopes={matrixProjects.find(p => p.projectId === 'HYB-01')?.hybridScopes}
+              projectId={selectedProjectId}
+              hybridScopes={matrixProjects.find(p => p.projectId === selectedProjectId)?.hybridScopes}
               onUpdateScopeDecision={handleUpdateHybridScopeDecision}
             />
           )}
@@ -350,7 +437,7 @@ export function ReviewGateGovernancePage() {
             <DefenseReadinessChecker
               summary={defenseSummary}
               onRecheck={() => {
-                getDefenseReadiness('IT-02').then(res => setDefenseSummary(res))
+                getDefenseReadiness(selectedProjectId).then(res => setDefenseSummary(res))
                 setNotice('Đã kiểm tra lại điều kiện bảo vệ.')
               }}
             />

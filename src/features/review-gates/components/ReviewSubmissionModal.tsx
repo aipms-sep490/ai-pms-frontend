@@ -44,17 +44,17 @@ export function ReviewSubmissionModal({
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase()
     if (ext === 'pdf') return 'picture_as_pdf'
-    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext || '')) return 'folder_zip'
-    if (['doc', 'docx'].includes(ext || '')) return 'description'
+    if (['zip', '7z', 'tar', 'gz'].includes(ext || '')) return 'folder_zip'
+    if (['docx'].includes(ext || '')) return 'description'
     if (['png', 'jpg', 'jpeg', 'webp'].includes(ext || '')) return 'image'
     if (['xls', 'xlsx'].includes(ext || '')) return 'table_chart'
     return 'draft'
   }
 
   const handleFileSelect = (file: File) => {
-    const maxBytes = 25 * 1024 * 1024 // 25MB
+    const maxBytes = 20 * 1024 * 1024 // 20MB aligned with backend UploadValidator
     if (file.size > maxBytes) {
-      setError(`Tệp vượt quá dung lượng tối đa cho phép (25MB). Dung lượng tệp hiện tại: ${formatFileSize(file.size)}`)
+      setError(`Tệp vượt quá dung lượng tối đa cho phép (20MB). Dung lượng tệp hiện tại: ${formatFileSize(file.size)}`)
       return
     }
     setSelectedFile(file)
@@ -182,7 +182,7 @@ export function ReviewSubmissionModal({
                   type="file"
                   className="hidden"
                   disabled={!isLeader || busy}
-                  accept=".pdf,.docx,.doc,.zip,.rar,.png,.jpg,.jpeg,.xlsx,.pptx"
+                  accept=".pdf,.docx,.zip,.png,.jpg,.jpeg,.xlsx,.pptx"
                   onChange={(e) => {
                     const picked = e.target.files?.[0]
                     if (picked) handleFileSelect(picked)
@@ -195,7 +195,7 @@ export function ReviewSubmissionModal({
                   Kéo thả tệp minh chứng vào đây, hoặc <span className="text-primary underline">chọn từ thiết bị</span>
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Hỗ trợ định dạng PDF, DOCX, ZIP, PNG, JPG (Tối đa 25MB)
+                  Hỗ trợ định dạng PDF, DOCX, ZIP, PNG, JPG (Tối đa 20MB theo quy chuẩn hệ thống)
                 </p>
               </div>
             ) : (

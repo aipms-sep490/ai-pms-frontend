@@ -8,7 +8,9 @@ import type {
   ProjectReviewMatrixRow,
   ReviewGateTemplate,
   StudentReviewTimelineDto,
+  SubmitGatePackageRequest,
   SubmitRevisionRequest,
+  SupervisorFeedbackRequest,
   VerifyEvidenceRequest,
 } from '../types/review-gates.types'
 
@@ -31,15 +33,15 @@ export async function getReviewGateTemplate(id: string): Promise<ReviewGateTempl
 
 export async function saveReviewGateTemplate(template: ReviewGateTemplate): Promise<ReviewGateTemplate> {
   if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.saveTemplate(template)
-  if (template.id && !template.id.startsWith('tmpl-temp')) {
+  if (template.id && !template.id.startsWith('tmpl-temp') && !template.id.startsWith('tmpl-draft')) {
     return httpPut<ReviewGateTemplate>(`/academic/gate-templates/${template.id}`, template)
   }
   return httpPost<ReviewGateTemplate>('/academic/gate-templates', template)
 }
 
-export async function publishReviewGateTemplate(id: string): Promise<ReviewGateTemplate> {
-  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.publishTemplate(id)
-  return httpPost<ReviewGateTemplate>(`/academic/gate-templates/${id}/publish`, {})
+export async function publishReviewGateTemplate(id: string, concurrencyToken?: string): Promise<ReviewGateTemplate> {
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.publishTemplate(id, concurrencyToken)
+  return httpPost<ReviewGateTemplate>(`/academic/gate-templates/${id}/publish`, { concurrencyToken })
 }
 
 export async function getProjectReviewMatrix(filterMode?: string): Promise<ProjectReviewMatrixRow[]> {
@@ -98,4 +100,18 @@ export async function verifyEvidence(req: VerifyEvidenceRequest): Promise<Assign
 export async function submitGateDecision(req: GateDecisionRequest): Promise<AssignedReviewItem> {
   if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.submitGateDecision(req)
   return httpPost<AssignedReviewItem>(`/review-gates/assignments/${req.assignmentId}/decision`, req)
+}
+
+export async function submitGateForReview(
+  req: SubmitGatePackageRequest,
+): Promise<StudentReviewTimelineDto> {
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.submitGateForReview(req)
+  return httpPost<StudentReviewTimelineDto>(`/projects/${req.projectId}/review-gates/${req.gateCode}/submit-package`, req)
+}
+
+export async function submitSupervisorFeedback(
+  req: SupervisorFeedbackRequest,
+): Promise<void> {
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.submitSupervisorFeedback(req)
+  return httpPost<void>(`/projects/${req.projectId}/review-gates/${req.gateCode}/supervisor-feedback`, req)
 }

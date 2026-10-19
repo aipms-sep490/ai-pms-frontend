@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { AuthSessionContext } from '../../auth/context/auth-session-context'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { PageLoading } from '../../../components/ui/PageLoading'
-import { getStudentReviewTimeline, submitRevision } from '../api/review-gates-api'
+import { getStudentReviewTimeline, submitRevision, submitSupervisorFeedback } from '../api/review-gates-api'
 import type { StudentReviewTimelineDto } from '../types/review-gates.types'
 import { StudentReviewTimeline } from '../components/StudentReviewTimeline'
 import { SupervisorGateFollowupPanel } from '../components/SupervisorGateFollowupPanel'
@@ -21,20 +21,20 @@ export function StudentReviewTimelinePage() {
   const isLecturer = auth?.session?.user.roles.includes('LECTURER') ?? false
   const isStaff = (auth?.session?.user.roles.includes('DEPARTMENT_STAFF') || auth?.session?.user.roles.includes('ADMIN')) ?? false
 
-  // Default leader state from auth or fallback to true for testing
+  // Leader state: In real sessions, rely on team/project capabilities; allow mock preview toggle
   const authIsLeader = isLecturer || isStaff ? false : (auth?.session?.user.roles.includes('STUDENT_LEADER') ?? true)
   const [isLeader, setIsLeader] = useState(authIsLeader)
 
-  const loadTimeline = async () => {
+  const loadTimeline = async (silent = false) => {
     try {
-      setLoading(true)
+      if (!silent) setLoading(true)
       setError(null)
       const data = await getStudentReviewTimeline(effectiveProjectId)
       setTimeline(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Không thể tải tiến trình thẩm định của nhóm.')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
@@ -49,6 +49,10 @@ export function StudentReviewTimelinePage() {
     notes: string,
   ) => {
     if (!timeline) return
+    const targetGate = timeline.gates.find((g) => g.code === gateCode)
+    const targetReq = targetGate?.requirements.find((r) => r.id === requirementId)
+    const expectedVersion = targetReq?.latestArtifact?.version ?? 0
+
     const updated = await submitRevision(
       {
         projectId: timeline.projectId,
@@ -56,7 +60,7 @@ export function StudentReviewTimelinePage() {
         requirementId,
         artifactName,
         notes,
-        expectedVersion: 1,
+        expectedVersion,
       },
       isLeader,
     )
@@ -104,7 +108,12 @@ export function StudentReviewTimelinePage() {
               gateStatus={currentGate.status}
               blockerMessage={currentGate.blockingReasons[0]?.message}
               onSendFeedback={async (feedback) => {
-                console.info('Supervisor advisory feedback submitted:', feedback)
+                await submitSupervisorFeedback({
+                  projectId: timeline.projectId,
+                  gateCode: currentGate.code,
+                  feedback,
+                })
+                await loadTimeline(true)
               }}
             />
           )}

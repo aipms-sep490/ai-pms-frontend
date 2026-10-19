@@ -11,6 +11,7 @@ interface ReviewGateBuilderProps {
   onChange: (updated: ReviewGateTemplate) => void
   onSaveDraft: () => void
   onPublish: () => void
+  onClone?: (template: ReviewGateTemplate) => void
   busy?: boolean
 }
 
@@ -19,6 +20,7 @@ export function ReviewGateBuilder({
   onChange,
   onSaveDraft,
   onPublish,
+  onClone,
   busy = false,
 }: ReviewGateBuilderProps) {
   const [selectedGateIndex, setSelectedGateIndex] = useState(0)
@@ -107,11 +109,22 @@ export function ReviewGateBuilder({
         </div>
 
         <div className="flex items-center gap-2.5">
+          {template.status === 'PUBLISHED' && onClone && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onClone(template)}
+              className="rounded-lg border border-primary/30 bg-primary-subtle px-3 py-2 text-xs font-bold text-primary hover:bg-primary/20"
+              title="Nhân bản tạo phiên bản nháp mới"
+            >
+              Nhân bản bản nháp mới
+            </button>
+          )}
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || template.status === 'PUBLISHED'}
             onClick={onSaveDraft}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50"
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-50"
           >
             Lưu bản nháp
           </button>
@@ -125,6 +138,14 @@ export function ReviewGateBuilder({
           </button>
         </div>
       </div>
+
+      {template.status === 'PUBLISHED' && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-800 flex items-center justify-between">
+          <span>
+            🔒 <strong>Mẫu tiến trình đã công bố chính thức:</strong> Cấu trúc các Review Gate đã được khóa bất biến. Để thay đổi yêu cầu hoặc bổ sung Gate cho đợt thẩm định tiếp theo, vui lòng chọn <strong>Nhân bản bản nháp mới</strong>.
+          </span>
+        </div>
+      )}
 
       {/* Main Builder Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">

@@ -131,6 +131,13 @@ export interface StudentReviewTimelineDto {
   major: string
   effectivePolicyVersion: string
   currentGateCode: string
+  taskProgress?: number
+  supervisorFeedbacks?: Array<{
+    gateCode: string
+    feedback: string
+    submittedAt: string
+    supervisorName?: string
+  }>
   gates: StudentGateInstance[]
   capabilities: {
     canSubmitPackage: boolean
@@ -146,6 +153,21 @@ export interface SubmitRevisionRequest {
   artifactName: string
   notes: string
   expectedVersion: number
+  mode?: 'file' | 'link'
+  linkUrl?: string
+  file?: File
+}
+
+export interface SubmitGatePackageRequest {
+  projectId: string
+  gateCode: string
+  notes?: string
+}
+
+export interface SupervisorFeedbackRequest {
+  projectId: string
+  gateCode: string
+  feedback: string
 }
 
 export interface AssignedReviewItem {

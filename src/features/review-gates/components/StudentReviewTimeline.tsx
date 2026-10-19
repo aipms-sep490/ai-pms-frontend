@@ -115,13 +115,22 @@ export function StudentReviewTimeline({
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <span className="text-xs font-semibold text-slate-500">Tiến độ công việc (Task Board)</span>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-blue-700">90%</span>
+            <span className="text-2xl font-black text-blue-700">
+              {timeline.taskProgress != null ? `${timeline.taskProgress}%` : 'Chưa đồng bộ'}
+            </span>
             <span className="text-xs text-blue-600 font-medium">Khác với tiến độ học vụ</span>
           </div>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-blue-600 transition-all duration-300" style={{ width: '90%' }} />
+            <div
+              className="h-full rounded-full bg-blue-600 transition-all duration-300"
+              style={{ width: `${timeline.taskProgress ?? 0}%` }}
+            />
           </div>
-          <p className="mt-1.5 text-xs text-slate-400">Hoàn thành task kỹ thuật không đồng nghĩa với đạt cổng.</p>
+          <p className="mt-1.5 text-xs text-slate-400">
+            {timeline.taskProgress != null
+              ? 'Dữ liệu từ task board; hoàn thành task kỹ thuật không thay thế đạt cổng học vụ.'
+              : 'Chưa kết nối dữ liệu Task Board.'}
+          </p>
         </div>
 
         {/* KPI 3: Current Review Gate */}
@@ -352,17 +361,46 @@ export function StudentReviewTimeline({
                               Đã chấp thuận
                             </span>
                           ) : isLeader ? (
-                            <button
-                              type="button"
-                              onClick={() => setActiveReqForSubmission(req)}
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all focus:outline-hidden focus:ring-2 focus:ring-offset-1 ${
-                                req.verificationStatus === 'REJECTED'
-                                  ? 'bg-rose-600 text-white shadow-xs hover:bg-rose-700 focus:ring-rose-500'
-                                  : 'bg-primary text-white shadow-xs hover:bg-primary-hover focus:ring-primary'
-                              }`}
-                            >
-                              {req.verificationStatus === 'REJECTED' ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
-                            </button>
+                            (() => {
+                              const isRevision = req.verificationStatus === 'REJECTED'
+                              const canSubmitThis = isRevision
+                                ? (timeline.capabilities?.canSubmitRevision ?? true)
+                                : (timeline.capabilities?.canSubmitPackage ?? true)
+                              const blockingReason = timeline.capabilities?.blockingReasons?.[0]
+
+                              if (!canSubmitThis) {
+                                return (
+                                  <div className="flex flex-col items-end gap-0.5">
+                                    <button
+                                      type="button"
+                                      disabled
+                                      aria-disabled="true"
+                                      title={blockingReason || 'Hồ sơ hiện bị khóa nộp'}
+                                      className="cursor-not-allowed rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-400"
+                                    >
+                                      {isRevision ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
+                                    </button>
+                                    <span className="max-w-[180px] truncate text-right text-[11px] text-rose-500 italic" title={blockingReason}>
+                                      {blockingReason || 'Bị chặn nộp'}
+                                    </span>
+                                  </div>
+                                )
+                              }
+
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveReqForSubmission(req)}
+                                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all focus:outline-hidden focus:ring-2 focus:ring-offset-1 ${
+                                    isRevision
+                                      ? 'bg-rose-600 text-white shadow-xs hover:bg-rose-700 focus:ring-rose-500'
+                                      : 'bg-primary text-white shadow-xs hover:bg-primary-hover focus:ring-primary'
+                                  }`}
+                                >
+                                  {isRevision ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
+                                </button>
+                              )
+                            })()
                           ) : (
                             <div className="flex flex-col items-end gap-0.5">
                               <button

@@ -155,4 +155,76 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
     expect(await screen.findByRole('alert')).toBeTruthy()
     expect(screen.getByText(/409: Dữ liệu mẫu tiến trình đã được cập nhật/)).toBeTruthy()
   })
+
+  it('creates a fresh draft template when clicking Tạo Mẫu Tiến trình Mới', async () => {
+    render(
+      <MemoryRouter>
+        <ReviewGateGovernancePage />
+      </MemoryRouter>,
+    )
+
+    await screen.findByText('IT Capstone – Review 1–4')
+    const createBtn = screen.getByRole('button', { name: '＋ Tạo Mẫu Tiến trình Mới' })
+    fireEvent.click(createBtn)
+
+    // Should switch to Builder tab with new draft title
+    expect(await screen.findByText(/Mẫu tiến trình mới \(Bản nháp\)/)).toBeTruthy()
+    expect(screen.getByText('BẢN NHÁP')).toBeTruthy()
+  })
+
+  it('clones a published template into an editable draft template', async () => {
+    await reviewGatesMockAdapter.publishTemplate('tmpl-it-2026')
+
+    render(
+      <MemoryRouter>
+        <ReviewGateGovernancePage />
+      </MemoryRouter>,
+    )
+
+    await screen.findByText('IT Capstone – Review 1–4')
+    fireEvent.click(screen.getByRole('button', { name: 'Thiết kế Review Gates (Builder)' }))
+
+    expect(await screen.findByText('ĐÃ CÔNG BỐ')).toBeTruthy()
+    expect(screen.getByText(/Mẫu tiến trình đã công bố chính thức:/)).toBeTruthy()
+
+    // Click clone button
+    const cloneBtn = screen.getByRole('button', { name: /Nhân bản bản nháp mới/ })
+    fireEvent.click(cloneBtn)
+
+    expect(await screen.findByText(/IT Capstone – Review 1–4 \(Bản nháp/)).toBeTruthy()
+    expect(screen.getByText('BẢN NHÁP')).toBeTruthy()
+  })
+
+  it('dynamically displays gate columns in matrix and rolls back on decision conflict', async () => {
+    vi.spyOn(reviewGatesMockAdapter, 'updateProjectGateDecision').mockRejectedValueOnce(
+      new Error('409: Phiên bản bản ghi tiến trình dự án đã thay đổi.'),
+    )
+
+    render(
+      <MemoryRouter>
+        <ReviewGateGovernancePage />
+      </MemoryRouter>,
+    )
+
+    await screen.findByText('IT Capstone – Review 1–4')
+    fireEvent.click(screen.getByRole('button', { name: 'Ma trận Giám sát Tiến trình (Matrix)' }))
+
+    // Check dynamic headers (R1..R4)
+    expect(await screen.findByText('R1')).toBeTruthy()
+    expect(screen.getByText('R2')).toBeTruthy()
+    expect(screen.getByText('R3')).toBeTruthy()
+    expect(screen.getByText('R4')).toBeTruthy()
+
+    // Click on IT-01 to open inspection drawer
+    fireEvent.click(screen.getByText('Campus Support Platform'))
+    expect(await screen.findByText('Ghi nhận kết luận thẩm định (Reviewer Scoped Decision)')).toBeTruthy()
+
+    // Submit decision in drawer
+    const submitDecisionBtn = screen.getByRole('button', { name: 'Cập nhật quyết định Reviewer' })
+    fireEvent.click(submitDecisionBtn)
+
+    // Check conflict error is displayed
+    const conflictMsgs = await screen.findAllByText(/409: Phiên bản bản ghi tiến trình/)
+    expect(conflictMsgs.length).toBeGreaterThanOrEqual(1)
+  })
 })

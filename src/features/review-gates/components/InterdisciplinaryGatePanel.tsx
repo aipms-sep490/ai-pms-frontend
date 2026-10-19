@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { GateStatus } from '../types/review-gates.types'
 
 interface InterdisciplinaryGatePanelProps {
@@ -8,7 +8,7 @@ interface InterdisciplinaryGatePanelProps {
     projectId: string,
     scope: string,
     newStatus: 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW',
-  ) => void
+  ) => Promise<void> | void
 }
 
 const defaultScopes: Record<string, GateStatus> = {
@@ -18,17 +18,54 @@ const defaultScopes: Record<string, GateStatus> = {
   Design: 'REVISION_REQUIRED',
 }
 
+const scopeMeta: Record<string, { name: string; desc: string }> = {
+  COMMON: {
+    name: 'Tích hợp chung (Common Integration)',
+    desc: 'Mục tiêu chung, bài toán liên ngành và ma trận liên kết yêu cầu',
+  },
+  IT: {
+    name: 'Công nghệ thông tin (IT Architecture & API)',
+    desc: 'Thiết kế hệ thống, sơ đồ CSDL và giao tiếp RESTful API',
+  },
+  Marketing: {
+    name: 'Digital Marketing (Customer Research & GTM)',
+    desc: 'Chân dung khách hàng, kế hoạch truyền thông và định vị sản phẩm',
+  },
+  Design: {
+    name: 'Thiết kế UX/UI (User Journey & Prototype)',
+    desc: 'Luồng trải nghiệm người dùng và nguyên mẫu tương tác Hi-Fi',
+  },
+}
+
 export function InterdisciplinaryGatePanel({
   projectId = 'HYB-01',
   hybridScopes = defaultScopes,
   onUpdateScopeDecision,
 }: InterdisciplinaryGatePanelProps) {
   const [scopes, setScopes] = useState<Record<string, GateStatus>>(hybridScopes)
+  const [busyScope, setBusyScope] = useState<string | null>(null)
+  const [scopeError, setScopeError] = useState<string | null>(null)
 
-  function handleScopeChange(scope: string, val: 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW') {
-    const next = { ...scopes, [scope]: val }
-    setScopes(next)
-    onUpdateScopeDecision(projectId, scope, val)
+  useEffect(() => {
+    if (hybridScopes) {
+      setScopes(hybridScopes)
+    }
+  }, [hybridScopes])
+
+  async function handleScopeChange(scope: string, val: 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW') {
+    const prevVal = scopes[scope]
+    setScopes(prev => ({ ...prev, [scope]: val }))
+    setBusyScope(scope)
+    setScopeError(null)
+    try {
+      await onUpdateScopeDecision(projectId, scope, val)
+    } catch (err: unknown) {
+      // Rollback on error
+      setScopes(prev => ({ ...prev, [scope]: prevVal }))
+      setScopeError(err instanceof Error ? err.message : 'Không thể cập nhật quyết định ngành.')
+    } finally {
+      setBusyScope(null)
+    }
   }
 
   const allPassed = Object.values(scopes).every(s => s === 'PASSED')
@@ -75,6 +112,12 @@ export function InterdisciplinaryGatePanel({
               </p>
             </div>
 
+            {scopeError && (
+              <div role="alert" className="mx-4 mt-3 rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-700">
+                ✕ {scopeError}
+              </div>
+            )}
+
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-100">
                 <tr>
@@ -84,62 +127,49 @@ export function InterdisciplinaryGatePanel({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {[
-                  {
-                    scope: 'COMMON',
-                    name: 'Tích hợp chung (Common Integration)',
-                    desc: 'Mục tiêu chung, bài toán liên ngành và ma trận liên kết yêu cầu',
-                  },
-                  {
-                    scope: 'IT',
-                    name: 'Công nghệ thông tin (IT Architecture & API)',
-                    desc: 'Thiết kế hệ thống, sơ đồ CSDL và giao tiếp RESTful API',
-                  },
-                  {
-                    scope: 'Marketing',
-                    name: 'Digital Marketing (Customer Research & GTM)',
-                    desc: 'Chân dung khách hàng, kế hoạch truyền thông và định vị sản phẩm',
-                  },
-                  {
-                    scope: 'Design',
-                    name: 'Thiết kế UX/UI (User Journey & Prototype)',
-                    desc: 'Luồng trải nghiệm người dùng và nguyên mẫu tương tác Hi-Fi',
-                  },
-                ].map(item => (
-                  <tr key={item.scope} className="hover:bg-slate-50">
-                    <td className="py-3.5 px-4">
-                      <strong className="block font-semibold text-slate-900">{item.name}</strong>
-                      <span className="text-xs text-slate-500">{item.desc}</span>
-                    </td>
-                    <td className="py-3.5 px-3 text-center">
-                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
-                        BẮT BUỘC
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <select
-                        value={scopes[item.scope] || 'IN_REVIEW'}
-                        onChange={e =>
-                          handleScopeChange(
-                            item.scope,
-                            e.target.value as 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW',
-                          )
-                        }
-                        className={`rounded-lg border p-1.5 text-xs font-bold focus:outline-none ${
-                          scopes[item.scope] === 'PASSED'
-                            ? 'border-emerald-300 bg-emerald-50/50 text-emerald-800'
-                            : scopes[item.scope] === 'REVISION_REQUIRED'
-                            ? 'border-rose-300 bg-rose-50/50 text-rose-800'
-                            : 'border-blue-300 bg-blue-50/50 text-blue-800'
-                        }`}
-                      >
-                        <option value="PASSED">✓ ĐẠT (PASSED)</option>
-                        <option value="REVISION_REQUIRED">⚠ CẦN SỬA (REVISION)</option>
-                        <option value="IN_REVIEW">⏳ ĐANG XÉT (IN_REVIEW)</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))}
+                {Object.keys(scopes).map(scopeKey => {
+                  const item = {
+                    scope: scopeKey,
+                    name: scopeMeta[scopeKey]?.name || `Chuyên ngành ${scopeKey}`,
+                    desc: scopeMeta[scopeKey]?.desc || `Thẩm định yêu cầu chuyên ngành ${scopeKey}`,
+                  }
+                  return (
+                    <tr key={item.scope} className="hover:bg-slate-50">
+                      <td className="py-3.5 px-4">
+                        <strong className="block font-semibold text-slate-900">{item.name}</strong>
+                        <span className="text-xs text-slate-500">{item.desc}</span>
+                      </td>
+                      <td className="py-3.5 px-3 text-center">
+                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
+                          BẮT BUỘC
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <select
+                          disabled={busyScope === item.scope}
+                          value={scopes[item.scope] || 'IN_REVIEW'}
+                          onChange={e =>
+                            handleScopeChange(
+                              item.scope,
+                              e.target.value as 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW',
+                            )
+                          }
+                          className={`rounded-lg border p-1.5 text-xs font-bold focus:outline-none ${
+                            scopes[item.scope] === 'PASSED'
+                              ? 'border-emerald-300 bg-emerald-50/50 text-emerald-800'
+                              : scopes[item.scope] === 'REVISION_REQUIRED'
+                              ? 'border-rose-300 bg-rose-50/50 text-rose-800'
+                              : 'border-blue-300 bg-blue-50/50 text-blue-800'
+                          } ${busyScope === item.scope ? 'opacity-50 cursor-wait' : ''}`}
+                        >
+                          <option value="PASSED">✓ ĐẠT (PASSED)</option>
+                          <option value="REVISION_REQUIRED">⚠ CẦN SỬA (REVISION)</option>
+                          <option value="IN_REVIEW">⏳ ĐANG XÉT (IN_REVIEW)</option>
+                        </select>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

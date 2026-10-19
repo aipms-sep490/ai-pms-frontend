@@ -7,8 +7,9 @@ interface ProjectProgressMatrixProps {
     projectId: string,
     gateCode: string,
     newStatus: 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW',
-  ) => void
+  ) => Promise<void> | void
   onSelectHybridProject?: (projectId: string) => void
+  onSelectProject?: (projectId: string) => void
 }
 
 const statusPillClasses: Record<GateStatus, string> = {
@@ -31,13 +32,21 @@ export function ProjectProgressMatrix({
   projects,
   onUpdateDecision,
   onSelectHybridProject,
+  onSelectProject,
 }: ProjectProgressMatrixProps) {
   const [filterMode, setFilterMode] = useState<string>('ALL')
   const [inspectingProject, setInspectingProject] = useState<ProjectReviewMatrixRow | null>(null)
   const [selectedGateToDecide, setSelectedGateToDecide] = useState<string>('R2')
   const [decisionChoice, setDecisionChoice] = useState<'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW'>('PASSED')
+  const [updatingDecision, setUpdatingDecision] = useState(false)
+  const [decisionError, setDecisionError] = useState<string | null>(null)
 
   const filteredProjects = projects.filter(p => filterMode === 'ALL' || p.mode === filterMode)
+
+  const allGateCodes = Array.from(
+    new Set(projects.flatMap(p => Object.keys(p.gateStatuses))),
+  ).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+  const displayGateCodes = allGateCodes.length > 0 ? allGateCodes : ['R1', 'R2', 'R3', 'R4']
 
   return (
     <div className="space-y-5">
@@ -100,10 +109,9 @@ export function ProjectProgressMatrix({
               <tr>
                 <th className="py-3 px-4">Mã / Tên đồ án</th>
                 <th className="py-3 px-4">Chuyên ngành / Mode</th>
-                <th className="py-3 px-3 text-center">R1 / G1</th>
-                <th className="py-3 px-3 text-center">R2 / G2</th>
-                <th className="py-3 px-3 text-center">R3 / G3</th>
-                <th className="py-3 px-3 text-center">R4 / G4</th>
+                {displayGateCodes.map(code => (
+                  <th key={code} className="py-3 px-3 text-center">{code}</th>
+                ))}
                 <th className="py-3 px-4">Tiến độ Task*</th>
               </tr>
             </thead>
@@ -116,6 +124,8 @@ export function ProjectProgressMatrix({
                     onClick={() => {
                       setInspectingProject(proj)
                       setSelectedGateToDecide(keys[1] || keys[0] || 'R2')
+                      setDecisionError(null)
+                      if (onSelectProject) onSelectProject(proj.projectId)
                     }}
                     className="cursor-pointer transition-colors hover:bg-slate-50"
                   >
@@ -129,17 +139,21 @@ export function ProjectProgressMatrix({
                         {proj.mode === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành'}
                       </span>
                     </td>
-                    {keys.slice(0, 4).map(code => {
+                    {displayGateCodes.map(code => {
                       const st = proj.gateStatuses[code]
                       return (
                         <td key={code} className="py-3.5 px-3 text-center">
-                          <span
-                            className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-bold ${
-                              statusPillClasses[st]
-                            }`}
-                          >
-                            {st}
-                          </span>
+                          {st ? (
+                            <span
+                              className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-bold ${
+                                statusPillClasses[st] || 'bg-slate-100 text-slate-500'
+                              }`}
+                            >
+                              {st}
+                            </span>
+                          ) : (
+                            <span className="text-slate-300">-</span>
+                          )}
                         </td>
                       )
                     })}
@@ -266,25 +280,47 @@ export function ProjectProgressMatrix({
                   </div>
                 </div>
 
+                {decisionError && (
+                  <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-700">
+                    <strong className="block font-bold">Lỗi cập nhật quyết định:</strong>
+                    <span>{decisionError}</span>
+                    {decisionError.includes('409') && (
+                      <p className="mt-1 text-[11px] text-rose-600 italic">
+                        Dữ liệu đã có thay đổi mới từ người dùng khác. Vui lòng kiểm tra lại trước khi gửi.
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <button
                   type="button"
-                  onClick={() => {
-                    onUpdateDecision(inspectingProject.projectId, selectedGateToDecide, decisionChoice)
-                    setInspectingProject(prev =>
-                      prev
-                        ? {
-                            ...prev,
-                            gateStatuses: {
-                              ...prev.gateStatuses,
-                              [selectedGateToDecide]: decisionChoice,
-                            },
-                          }
-                        : null,
-                    )
+                  disabled={updatingDecision}
+                  onClick={async () => {
+                    try {
+                      setUpdatingDecision(true)
+                      setDecisionError(null)
+                      await onUpdateDecision(inspectingProject.projectId, selectedGateToDecide, decisionChoice)
+                      setInspectingProject(prev =>
+                        prev
+                          ? {
+                              ...prev,
+                              gateStatuses: {
+                                ...prev.gateStatuses,
+                                [selectedGateToDecide]: decisionChoice,
+                              },
+                            }
+                          : null,
+                      )
+                    } catch (err: unknown) {
+                      const msg = err instanceof Error ? err.message : 'Không thể cập nhật quyết định thẩm định.'
+                      setDecisionError(msg)
+                    } finally {
+                      setUpdatingDecision(false)
+                    }
                   }}
-                  className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-white shadow-2xs hover:bg-primary-hover"
+                  className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-white shadow-2xs hover:bg-primary-hover disabled:opacity-50"
                 >
-                  Cập nhật quyết định Reviewer
+                  {updatingDecision ? 'Đang cập nhật...' : 'Cập nhật quyết định Reviewer'}
                 </button>
               </div>
 
