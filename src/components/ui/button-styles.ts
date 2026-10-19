@@ -12,13 +12,15 @@ export function buttonClassName({ size = 'md', variant = 'primary', className = 
     primary:
       'bg-primary hover:bg-primary-hover text-white hover:text-white font-medium shadow-primary hover:shadow-primary-hover active:scale-[0.98] active:translate-y-[0.5px] border border-transparent',
     secondary:
-      'bg-white hover:bg-primary-subtle/80 text-ink border border-hairline hover:border-primary/40 shadow-xs active:scale-[0.98] active:translate-y-[0.5px]',
+      'bg-card hover:bg-primary-subtle/80 text-ink border border-hairline hover:border-primary/40 shadow-xs active:scale-[0.98] active:translate-y-[0.5px]',
     outline:
       'bg-transparent hover:bg-primary-subtle text-primary border border-hairline hover:border-primary active:scale-[0.98] active:translate-y-[0.5px]',
     ghost:
-      'bg-transparent hover:bg-slate-100 text-ink-muted hover:text-ink border border-transparent',
+      'bg-transparent hover:bg-canvas text-ink-muted hover:text-ink border border-transparent',
+    warning:
+      'bg-card hover:bg-status-warning-bg text-status-warning-text font-medium border border-status-warning-border active:scale-[0.99]',
     danger:
-      'bg-white hover:bg-status-error-bg text-danger-text font-medium border border-status-error-border active:scale-[0.99]',
+      'bg-card hover:bg-status-error-bg text-status-error-text font-medium border border-status-error-border active:scale-[0.99]',
   }[variant]
 
   return `mk-press ui-button-${variant} inline-flex items-center justify-center rounded-lg select-none whitespace-nowrap transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:pointer-events-none font-sans font-medium ${sizeStyles} ${variantStyles} ${className}`.trim()
