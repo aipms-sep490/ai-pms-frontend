@@ -194,28 +194,35 @@ export function getBreadcrumbForPath(pathname: string): string {
     return 'Lên lịch họp'
   }
   if (pathname === '/project/deliverables' || /^\/supervisor\/projects\/\d+\/deliverables(?:\/|$)/.test(pathname)) return 'Hạng mục cần nộp'
-  if (/^\/supervisor\/projects\/\d+\/weekly-assessments(?:\/|$)/.test(pathname)) return 'Điểm cá nhân theo tuần'
+  if (/^\/project\/weekly-assessments(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/weekly-assessments(?:\/|$)/.test(pathname)) return 'Điểm cá nhân theo tuần'
   if (/^\/(?:supervisor\/projects\/\d+|mentor\/projects\/\d+\/majors\/\d+)\/checkpoints(?:\/|$)/.test(pathname)) return 'Checkpoint theo dõi tiến độ'
-  if (/^\/supervisor\/projects\/\d+\/review-gates(?:\/|$)/.test(pathname)) return 'Tiến trình Review Gates'
+  if (pathname === '/project/review-gates' || /^\/supervisor\/projects\/\d+\/review-gates(?:\/|$)/.test(pathname)) return 'Tiến trình Review Gates'
+  if (/^\/academic\/project-periods\/\d+\/review-gates(?:\/|$)/.test(pathname)) return 'Chính sách Review Gates'
+  if (/^\/academic\/project-periods\/\d+\/room-planner(?:\/|$)/.test(pathname)) return 'Phòng & lịch Gate 3/4'
+  if (pathname === '/academic/assistant') return env.academicAiAssistantEnabled ? 'Trợ lý AI học vụ' : 'Trang không tồn tại'
+  if (/^\/(?:supervisor|department)\/projects\/\d+\/defense(?:\/|$)/.test(pathname)) return 'Lịch và hội đồng bảo vệ'
+  if (/^\/lecturer\/defense-sessions\/\d+(?:\/|$)/.test(pathname)) return 'Phiên bảo vệ'
+  if (/^\/supervisor\/projects\/\d+\/progress(?:\/|$)/.test(pathname)) return 'Đánh giá tiến độ'
+  if (/^\/mentor\/projects\/\d+\/majors\/\d+\/workspace(?:\/|$)/.test(pathname)) return 'Hướng dẫn chuyên ngành'
   if (pathname === '/project/files' || /^\/supervisor\/projects\/\d+\/files(?:\/|$)/.test(pathname) || /^\/department\/projects\/\d+\/files(?:\/|$)/.test(pathname)) return 'Kho tệp đồ án'
-  if (pathname === '/project/evidence' || /^\/(?:supervisor|department)\/projects\/\d+\/evidence(?:\/|$)/.test(pathname)) return 'Sổ minh chứng'
+  if (pathname === '/project/evidence' || /^\/(?:supervisor|department)\/projects\/\d+\/evidence(?:\/|$)/.test(pathname) || /^\/mentor\/projects\/\d+\/majors\/\d+\/evidence(?:\/|$)/.test(pathname)) return 'Sổ minh chứng'
   if (pathname === '/evaluator/evaluations') return 'Đánh giá được phân công'
   if (/^\/evaluator\/evaluations\/\d+(?:\/|$)/.test(pathname)) return 'Chi tiết đánh giá'
   if (pathname === '/evaluator/workspace') return 'Đánh giá đồ án'
   if (/^\/evaluator\/assignments\/\d+(?:\/|$)/.test(pathname)) return 'Phân công đánh giá'
-  if (/^\/project\/meetings\/\d+(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings\/\d+(?:\/|$)/.test(pathname)) {
+  if (/^\/project\/meetings\/\d+(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings\/\d+(?:\/|$)/.test(pathname) || /^\/mentor\/projects\/\d+\/majors\/\d+\/meetings\/\d+(?:\/|$)/.test(pathname)) {
     return 'Chi tiết cuộc họp'
   }
-  if (/^\/project\/meetings(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings(?:\/|$)/.test(pathname)) {
+  if (/^\/project\/meetings(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings(?:\/|$)/.test(pathname) || /^\/mentor\/projects\/\d+\/majors\/\d+\/meetings(?:\/|$)/.test(pathname)) {
     return 'Lịch họp và biên bản'
   }
   if (/^\/project\/reports\/new(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/reports\/new(?:\/|$)/.test(pathname)) {
     return 'Soạn báo cáo tiến độ'
   }
-  if (/^\/project\/reports\/\d+(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/reports\/\d+(?:\/|$)/.test(pathname)) {
+  if (/^\/project\/reports\/\d+(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/reports\/\d+(?:\/|$)/.test(pathname) || /^\/mentor\/projects\/\d+\/majors\/\d+\/reports\/\d+(?:\/|$)/.test(pathname)) {
     return 'Chi tiết báo cáo'
   }
-  if (pathname.startsWith('/project/reports') || /^\/supervisor\/projects\/\d+\/reports(?:\/|$)/.test(pathname)) {
+  if (pathname.startsWith('/project/reports') || /^\/supervisor\/projects\/\d+\/reports(?:\/|$)/.test(pathname) || /^\/mentor\/projects\/\d+\/majors\/\d+\/reports(?:\/|$)/.test(pathname)) {
     return 'Báo cáo tiến độ'
   }
   if (pathname === '/' || pathname === '/project/overview') {
@@ -232,10 +239,10 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname.startsWith('/project/milestones') || /^\/supervisor\/projects\/\d+\/milestones(?:\/|$)/.test(pathname)) {
     return 'Mốc đồ án'
   }
-  if (/^\/project\/tasks\/\d+(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/tasks\/\d+(?:\/|$)/.test(pathname)) {
+  if (/^\/project\/tasks\/\d+(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/tasks\/\d+(?:\/|$)/.test(pathname) || /^\/mentor\/projects\/\d+\/majors\/\d+\/tasks\/\d+(?:\/|$)/.test(pathname)) {
     return 'Chi tiết công việc'
   }
-  if (pathname.startsWith('/project/tasks') || /^\/supervisor\/projects\/\d+\/tasks(?:\/|$)/.test(pathname)) {
+  if (pathname.startsWith('/project/tasks') || /^\/supervisor\/projects\/\d+\/tasks(?:\/|$)/.test(pathname) || /^\/mentor\/projects\/\d+\/majors\/\d+\/tasks(?:\/|$)/.test(pathname)) {
     return 'Công việc'
   }
   if (pathname === '/project/gantt' || /^\/supervisor\/projects\/\d+\/gantt(?:\/|$)/.test(pathname)) {

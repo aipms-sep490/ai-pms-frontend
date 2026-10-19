@@ -1,5 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
-import { RouteFrame } from './RouteFrame'
+import { RouteErrorBoundary, RouteFrame } from './RouteFrame'
 import { AppLayout } from '../layouts/AppLayout'
 import { HomeRedirect, RoleRoute } from '../../features/auth/components/RoleRoute'
 import { SupervisorExecutionRoute } from '../../features/supervisors/components/SupervisorExecutionRoute'
@@ -40,7 +40,7 @@ import {
 } from './lazy-pages'
 
 
-export const appRouter = createBrowserRouter([{ element: <RouteFrame />, children: [
+export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorElement: <RouteErrorBoundary />, children: [
   { path: 'login', element: <LoginPage /> },
   { path: 'forgot-password', element: <ForgotPasswordPage /> },
   { path: 'reset-password', element: <ResetPasswordPage /> },
