@@ -26,12 +26,12 @@ export function Badge({
     warning: 'bg-status-warning-bg text-status-warning-text border-status-warning-border',
     error: 'bg-status-error-bg text-status-error-text border-status-error-border',
     info: 'bg-primary-subtle text-primary border-primary/20',
-    neutral: 'bg-slate-100 text-slate-700 border-hairline',
-    se: 'bg-[var(--color-tag-se-bg)] text-[var(--color-tag-se)] border-[var(--color-tag-se)]/20',
-    uiux: 'bg-[var(--color-tag-uiux-bg)] text-[var(--color-tag-uiux)] border-[var(--color-tag-uiux)]/20',
-    ai: 'bg-[var(--color-tag-ai-bg)] text-[var(--color-tag-ai)] border-[var(--color-tag-ai)]/20',
-    qa: 'bg-[var(--color-tag-qa-bg)] text-[var(--color-tag-qa)] border-[var(--color-tag-qa)]/20',
-    is: 'bg-[var(--color-tag-is-bg)] text-[var(--color-tag-is)] border-[var(--color-tag-is)]/20',
+    neutral: 'bg-canvas text-ink-soft border-hairline',
+    se: 'bg-tag-se-bg text-tag-se border-tag-se/20',
+    uiux: 'bg-tag-uiux-bg text-tag-uiux border-tag-uiux/20',
+    ai: 'bg-tag-ai-bg text-tag-ai border-tag-ai/20',
+    qa: 'bg-tag-qa-bg text-tag-qa border-tag-qa/20',
+    is: 'bg-tag-is-bg text-tag-is border-tag-is/20',
   }[variant]
 
   const dotColor = {
@@ -39,12 +39,12 @@ export function Badge({
     warning: 'bg-academic-amber',
     error: 'bg-academic-coral',
     info: 'bg-primary',
-    neutral: 'bg-slate-400',
-    se: 'bg-[var(--color-tag-se)]',
-    uiux: 'bg-[var(--color-tag-uiux)]',
-    ai: 'bg-[var(--color-tag-ai)]',
-    qa: 'bg-[var(--color-tag-qa)]',
-    is: 'bg-[var(--color-tag-is)]',
+    neutral: 'bg-ink-muted',
+    se: 'bg-tag-se',
+    uiux: 'bg-tag-uiux',
+    ai: 'bg-tag-ai',
+    qa: 'bg-tag-qa',
+    is: 'bg-tag-is',
   }[variant]
 
   return (

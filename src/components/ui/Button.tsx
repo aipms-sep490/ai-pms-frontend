@@ -4,7 +4,7 @@ import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react'
 
 interface ButtonBaseProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   ref?: Ref<HTMLButtonElement>
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'warning' | 'danger'
   size?: 'sm' | 'md' | 'lg'
   icon?: string
   shortcut?: string
@@ -49,7 +49,7 @@ export function Button({
           className={`ml-1 px-1.5 py-0.5 rounded font-mono text-xs leading-none font-semibold ${
             variant === 'primary'
               ? 'bg-white/20 text-white'
-              : 'bg-slate-100 text-slate-600 border border-hairline'
+              : 'bg-canvas text-ink-soft border border-hairline'
           }`}
         >
           {shortcut}
