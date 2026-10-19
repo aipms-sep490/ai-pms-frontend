@@ -380,7 +380,7 @@ export function StudentReviewTimeline({
                                     >
                                       {isRevision ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
                                     </button>
-                                    <span className="max-w-[180px] truncate text-right text-[11px] text-rose-500 italic" title={blockingReason}>
+                                    <span className="max-w-[180px] truncate text-right text-xs text-rose-500 italic" title={blockingReason}>
                                       {blockingReason || 'Bị chặn nộp'}
                                     </span>
                                   </div>

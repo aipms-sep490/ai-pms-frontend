@@ -285,7 +285,7 @@ export function ProjectProgressMatrix({
                     <strong className="block font-bold">Lỗi cập nhật quyết định:</strong>
                     <span>{decisionError}</span>
                     {decisionError.includes('409') && (
-                      <p className="mt-1 text-[11px] text-rose-600 italic">
+                      <p className="mt-1 text-xs text-rose-600 italic">
                         Dữ liệu đã có thay đổi mới từ người dùng khác. Vui lòng kiểm tra lại trước khi gửi.
                       </p>
                     )}
