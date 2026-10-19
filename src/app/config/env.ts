@@ -88,4 +88,6 @@ export const env = {
   jiraSprintEnabled: import.meta.env.VITE_ENABLE_JIRA_SPRINT?.trim().toLowerCase() === 'true',
   meetingCollaborationEnabled,
   industryEnabled,
+  /** Controls Review Gates data source: true (default) uses mock adapter; false routes to ASP.NET Core endpoints. */
+  reviewGatesMockEnabled: import.meta.env.VITE_USE_MOCK_REVIEW_GATES?.trim().toLowerCase() !== 'false',
 } as const

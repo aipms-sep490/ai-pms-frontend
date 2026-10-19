@@ -1,3 +1,5 @@
+import { env } from '../../../app/config/env'
+import { httpGet, httpPost, httpPut } from '../../../services/http/http-client'
 import { reviewGatesMockAdapter } from './review-gates-mock-adapter'
 import type {
   AssignedReviewItem,
@@ -13,28 +15,37 @@ import type {
 /**
  * Review Gates API Client.
  * When real Backend Review Gates endpoints are deployed in ASP.NET Core,
- * this client will seamlessly route to httpGet / httpPost / httpPut.
- * Until then, it routes to reviewGatesMockAdapter to ensure a 100% working,
- * stable vertical slice adhering strictly to PROMPT B requirements.
+ * setting VITE_USE_MOCK_REVIEW_GATES=false will automatically route to
+ * httpGet / httpPost / httpPut without modifying UI components.
+ * When in mock mode (default), it routes to reviewGatesMockAdapter.
  */
 export async function getReviewGateTemplates(): Promise<ReviewGateTemplate[]> {
-  return reviewGatesMockAdapter.getTemplates()
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.getTemplates()
+  return httpGet<ReviewGateTemplate[]>('/academic/gate-templates')
 }
 
 export async function getReviewGateTemplate(id: string): Promise<ReviewGateTemplate | null> {
-  return reviewGatesMockAdapter.getTemplateById(id)
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.getTemplateById(id)
+  return httpGet<ReviewGateTemplate>(`/academic/gate-templates/${id}`)
 }
 
 export async function saveReviewGateTemplate(template: ReviewGateTemplate): Promise<ReviewGateTemplate> {
-  return reviewGatesMockAdapter.saveTemplate(template)
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.saveTemplate(template)
+  if (template.id && !template.id.startsWith('tmpl-temp')) {
+    return httpPut<ReviewGateTemplate>(`/academic/gate-templates/${template.id}`, template)
+  }
+  return httpPost<ReviewGateTemplate>('/academic/gate-templates', template)
 }
 
 export async function publishReviewGateTemplate(id: string): Promise<ReviewGateTemplate> {
-  return reviewGatesMockAdapter.publishTemplate(id)
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.publishTemplate(id)
+  return httpPost<ReviewGateTemplate>(`/academic/gate-templates/${id}/publish`, {})
 }
 
 export async function getProjectReviewMatrix(filterMode?: string): Promise<ProjectReviewMatrixRow[]> {
-  return reviewGatesMockAdapter.getMonitoringMatrix(filterMode)
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.getMonitoringMatrix(filterMode)
+  const query = filterMode && filterMode !== 'ALL' ? `?mode=${filterMode}` : ''
+  return httpGet<ProjectReviewMatrixRow[]>(`/departments/review-gates/matrix${query}`)
 }
 
 export async function updateGateDecision(
@@ -42,7 +53,8 @@ export async function updateGateDecision(
   gateCode: string,
   newStatus: 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW',
 ): Promise<ProjectReviewMatrixRow> {
-  return reviewGatesMockAdapter.updateProjectGateDecision(projectId, gateCode, newStatus)
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.updateProjectGateDecision(projectId, gateCode, newStatus)
+  return httpPost<ProjectReviewMatrixRow>(`/projects/${projectId}/review-gates/${gateCode}/decision`, { newStatus })
 }
 
 export async function updateHybridScopeDecision(
@@ -50,33 +62,40 @@ export async function updateHybridScopeDecision(
   scope: string,
   newStatus: 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW',
 ): Promise<ProjectReviewMatrixRow> {
-  return reviewGatesMockAdapter.updateHybridScopeDecision(projectId, scope, newStatus)
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.updateHybridScopeDecision(projectId, scope, newStatus)
+  return httpPost<ProjectReviewMatrixRow>(`/projects/${projectId}/review-gates/scopes/${scope}`, { newStatus })
 }
 
 export async function getDefenseReadiness(projectId: string): Promise<DefenseReadinessSummary> {
-  return reviewGatesMockAdapter.getDefenseReadiness(projectId)
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.getDefenseReadiness(projectId)
+  return httpGet<DefenseReadinessSummary>(`/projects/${projectId}/defense-readiness`)
 }
 
 export async function getStudentReviewTimeline(projectId?: string): Promise<StudentReviewTimelineDto> {
-  return reviewGatesMockAdapter.getStudentReviewTimeline(projectId)
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.getStudentReviewTimeline(projectId)
+  const path = projectId ? `/projects/${projectId}/review-gates/timeline` : '/students/me/review-gates/timeline'
+  return httpGet<StudentReviewTimelineDto>(path)
 }
 
 export async function submitRevision(
   req: SubmitRevisionRequest,
   isLeader: boolean,
 ): Promise<StudentReviewTimelineDto> {
-  return reviewGatesMockAdapter.submitRevision(req, isLeader)
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.submitRevision(req, isLeader)
+  return httpPost<StudentReviewTimelineDto>(`/projects/${req.projectId}/review-gates/${req.gateCode}/evidence`, req)
 }
 
 export async function getAssignedReviews(): Promise<AssignedReviewItem[]> {
-  return reviewGatesMockAdapter.getAssignedReviews()
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.getAssignedReviews()
+  return httpGet<AssignedReviewItem[]>('/reviewers/me/gate-assignments')
 }
 
 export async function verifyEvidence(req: VerifyEvidenceRequest): Promise<AssignedReviewItem> {
-  return reviewGatesMockAdapter.verifyEvidence(req)
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.verifyEvidence(req)
+  return httpPost<AssignedReviewItem>(`/review-gates/assignments/${req.assignmentId}/evidence/${req.requirementId}/verify`, req)
 }
 
 export async function submitGateDecision(req: GateDecisionRequest): Promise<AssignedReviewItem> {
-  return reviewGatesMockAdapter.submitGateDecision(req)
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.submitGateDecision(req)
+  return httpPost<AssignedReviewItem>(`/review-gates/assignments/${req.assignmentId}/decision`, req)
 }
-
