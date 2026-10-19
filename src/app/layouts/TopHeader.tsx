@@ -123,7 +123,7 @@ export function TopHeader({
           aria-label={isMobileMenuOpen ? 'Đóng menu điều hướng' : 'Mở menu điều hướng'}
           aria-expanded={isMobileMenuOpen}
           aria-controls="main-sidebar"
-          className="lg:hidden min-w-[44px] min-h-[44px] -ml-2 text-ink-muted hover:text-ink rounded-md hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+          className="lg:hidden min-w-[44px] min-h-[44px] -ml-2 text-ink-muted hover:text-ink rounded-md hover:bg-canvas flex items-center justify-center transition-colors cursor-pointer"
         >
           <span className="material-symbols-outlined text-[22px] shrink-0" aria-hidden="true">
             {isMobileMenuOpen ? 'close' : 'menu'}
@@ -136,9 +136,9 @@ export function TopHeader({
           className="flex items-center gap-1.5 sm:gap-2 text-xs text-ink-muted font-sans truncate"
         >
           <span className="font-semibold text-ink-soft shrink-0">{selectedSemester?.code ?? 'AIPMS'}</span>
-          <span aria-hidden="true" className="text-slate-300 shrink-0">/</span>
+          <span aria-hidden="true" className="text-line-strong shrink-0">/</span>
           <span className="text-ink-muted font-medium hidden sm:inline shrink-0">{pendingStudent ? <span className="app-context-skeleton" aria-hidden="true" /> : teamLabel}</span>
-          <span aria-hidden="true" className="hidden sm:inline text-slate-300 shrink-0">/</span>
+          <span aria-hidden="true" className="hidden sm:inline text-line-strong shrink-0">/</span>
           <span className="text-primary font-semibold truncate max-w-[200px] sm:max-w-xs md:max-w-none">
             {getBreadcrumbForPath(location.pathname)}
           </span>
@@ -154,7 +154,7 @@ export function TopHeader({
             {selectedSemester.name} • {stateLabel}
           </span>
         ) : null}
-        {role !== 'student' ? <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-xs font-mono font-medium"><span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />{semesterLabel}</span> : null}
+        {role !== 'student' ? <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-xs font-mono font-medium"><span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />{selectedSemester ? `${selectedSemester.name} • ${semesterLabel}` : semesterLabel}</span> : null}
         <QuickNavigation access={workspaceAccess} />
         <TourLauncher />
         <div className="relative" ref={notificationRef}>
