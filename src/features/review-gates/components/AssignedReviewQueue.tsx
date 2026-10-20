@@ -17,12 +17,14 @@ interface AssignedReviewQueueProps {
     notes: string,
     concurrencyToken?: string,
   ) => Promise<void>
+  onReload?: () => Promise<void> | void
 }
 
 export function AssignedReviewQueue({
   assignments,
   onVerifyEvidence,
   onSubmitDecision,
+  onReload,
 }: AssignedReviewQueueProps) {
   const [selectedId, setSelectedId] = useState(assignments[0]?.id || '')
   const [reviewNotes, setReviewNotes] = useState('')
@@ -30,6 +32,13 @@ export function AssignedReviewQueue({
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
+  const [previewingArtifact, setPreviewingArtifact] = useState<{
+    filename: string
+    version: number
+    submittedBy: string
+    submittedAt: string
+    notes?: string
+  } | null>(null)
 
   const selectedItem = assignments.find((a) => a.id === selectedId) || assignments[0]
 
@@ -46,6 +55,7 @@ export function AssignedReviewQueue({
   const mandatoryReqs = selectedItem.requirements.filter((r) => r.isMandatory)
   const acceptedMandatoryCount = mandatoryReqs.filter((r) => r.verificationStatus === 'ACCEPTED').length
   const allMandatoryAccepted = acceptedMandatoryCount === mandatoryReqs.length
+  const isDecided = selectedItem.status === 'DECIDED'
 
   const handleVerify = async (requirementId: string, decision: 'ACCEPTED' | 'REJECTED') => {
     try {
@@ -164,12 +174,37 @@ export function AssignedReviewQueue({
 
           {/* Feedback & Error alerts */}
           {actionError && (
-            <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
-              ✕ {actionError}
-            </div>
+            actionError.includes('409') || actionError.toLowerCase().includes('conflict') ? (
+              <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-xs text-amber-900 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-amber-800">
+                  <span className="material-symbols-outlined text-base">warning</span>
+                  <span>Xung đột dữ liệu (HTTP 409 Conflict)</span>
+                </div>
+                <p>
+                  Hồ sơ đợt thẩm định này đã có thay đổi mới từ người dùng khác hoặc token phiên làm việc đã cũ.
+                  Nội dung nhận xét bạn đang soạn thảo bên dưới <strong>vẫn được giữ nguyên</strong>.
+                </p>
+                {onReload && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setActionError(null)
+                      await onReload()
+                    }}
+                    className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-amber-700"
+                  >
+                    Tải lại dữ liệu mới nhất
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
+                ✕ {actionError}
+              </div>
+            )
           )}
           {successMsg && (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-700">
+            <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-700">
               ✓ {successMsg}
             </div>
           )}
@@ -229,8 +264,25 @@ export function AssignedReviewQueue({
                     {req.latestArtifact ? (
                       <div className="mt-2.5 rounded-md border border-slate-200 bg-white p-2.5 text-slate-700">
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-slate-900">
-                            Tệp minh chứng: <a href="#preview" className="text-primary hover:underline">{req.latestArtifact.filename}</a>
+                          <span className="font-semibold text-slate-900 inline-flex items-center gap-1.5">
+                            <span>Tệp minh chứng:</span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPreviewingArtifact({
+                                  filename: req.latestArtifact!.filename,
+                                  version: req.latestArtifact!.version,
+                                  submittedBy: req.latestArtifact!.submittedBy,
+                                  submittedAt: req.latestArtifact!.submittedAt,
+                                  notes: req.latestArtifact!.notes,
+                                })
+                              }
+                              className="inline-flex items-center gap-1 font-semibold text-primary hover:underline cursor-pointer"
+                              title="Xem chi tiết siêu dữ liệu phiên bản minh chứng"
+                            >
+                              <span className="material-symbols-outlined text-xs">visibility</span>
+                              <span>{req.latestArtifact.filename}</span>
+                            </button>
                           </span>
                           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
                             Phiên bản v{req.latestArtifact.version}
@@ -263,7 +315,7 @@ export function AssignedReviewQueue({
                       <Button
                         size="sm"
                         variant="secondary"
-                        disabled={busy}
+                        disabled={busy || isDecided}
                         onClick={() => handleVerify(req.id, 'ACCEPTED')}
                       >
                         ✓ Duyệt đạt
@@ -271,7 +323,7 @@ export function AssignedReviewQueue({
                       <Button
                         size="sm"
                         variant="danger"
-                        disabled={busy}
+                        disabled={busy || isDecided}
                         onClick={() => handleVerify(req.id, 'REJECTED')}
                       >
                         ✕ Yêu cầu sửa
@@ -288,9 +340,15 @@ export function AssignedReviewQueue({
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
               Quyết định Thẩm định Review Gate (Toàn diện)
             </h4>
-            <p className="mt-1 text-xs text-slate-500">
-              Quyết định Gate PASS chỉ được kích hoạt khi <strong>toàn bộ minh chứng bắt buộc</strong> đã được xác minh ĐẠT (ACCEPTED).
-            </p>
+            {isDecided ? (
+              <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-800">
+                ✓ Đợt thẩm định này đã ghi nhận kết luận chính thức ({selectedItem.latestDecision || 'ĐÃ CHỐT'}). Quyền thẩm định đã đóng băng.
+              </div>
+            ) : (
+              <p className="mt-1 text-xs text-slate-500">
+                Quyết định Gate PASS chỉ được kích hoạt khi <strong>toàn bộ minh chứng bắt buộc</strong> đã được xác minh ĐẠT (ACCEPTED).
+              </p>
+            )}
 
             <div className="mt-3">
               <label className="block text-xs font-bold text-slate-700">
@@ -299,15 +357,20 @@ export function AssignedReviewQueue({
               <textarea
                 rows={3}
                 value={reviewNotes}
+                disabled={isDecided}
                 onChange={(e) => setReviewNotes(e.target.value)}
-                placeholder="Nhập chi tiết đánh giá, căn cứ quyết định, các điểm cần nhóm lưu ý..."
-                className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-xs text-slate-900 focus:border-primary focus:outline-hidden"
+                placeholder={isDecided ? 'Đợt thẩm định đã hoàn tất quyết định.' : 'Nhập chi tiết đánh giá, căn cứ quyết định, các điểm cần nhóm lưu ý...'}
+                className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-xs text-slate-900 focus:border-primary focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-500"
               />
             </div>
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs text-slate-500">
-                {!allMandatoryAccepted ? (
+                {isDecided ? (
+                  <span className="font-semibold text-emerald-600">
+                    ✓ Đã hoàn tất phiên thẩm định.
+                  </span>
+                ) : !allMandatoryAccepted ? (
                   <span id="pass-eligibility-reason" className="font-semibold text-rose-600">
                     ⚠️ Chưa đủ điều kiện PASS: Còn {mandatoryReqs.length - acceptedMandatoryCount} minh chứng bắt buộc chưa duyệt đạt.
                   </span>
@@ -321,17 +384,17 @@ export function AssignedReviewQueue({
               <div className="flex items-center gap-2.5">
                 <Button
                   variant="danger"
-                  disabled={busy}
+                  disabled={busy || isDecided}
                   onClick={() => handleDecision('REVISION_REQUIRED')}
                 >
                   Yêu cầu nhóm chỉnh sửa (Revision Required)
                 </Button>
                 <Button
                   variant="primary"
-                  disabled={!allMandatoryAccepted || busy}
+                  disabled={!allMandatoryAccepted || busy || isDecided}
                   aria-describedby="pass-eligibility-reason"
                   onClick={() => handleDecision('PASSED')}
-                  title={!allMandatoryAccepted ? 'Cần duyệt đạt toàn bộ minh chứng bắt buộc trước' : undefined}
+                  title={isDecided ? 'Đợt thẩm định đã hoàn tất' : !allMandatoryAccepted ? 'Cần duyệt đạt toàn bộ minh chứng bắt buộc trước' : undefined}
                 >
                   {busy ? 'Đang lưu...' : 'Xác nhận Gate PASS (Đạt)'}
                 </Button>
@@ -340,6 +403,80 @@ export function AssignedReviewQueue({
           </div>
         </div>
       </div>
+
+      {/* Exact Artifact Version Preview Modal */}
+      {previewingArtifact && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-xl text-primary">description</span>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Chi tiết Siêu dữ liệu Minh chứng (Metadata Preview)</h3>
+                  <p className="text-xs text-slate-500">Xem trước thông tin siêu dữ liệu phiên bản (không phải trình đọc tệp nội dung)</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewingArtifact(null)}
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="rounded-lg border border-slate-100 bg-slate-50 p-3 space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Tên tệp:</span>
+                  <span className="font-bold text-slate-800">{previewingArtifact.filename}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Phiên bản thẩm định:</span>
+                  <span className="rounded-md bg-primary-subtle px-2 py-0.5 font-bold text-primary">v{previewingArtifact.version}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Người nộp:</span>
+                  <span className="font-semibold text-slate-700">{previewingArtifact.submittedBy}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Thời gian nộp:</span>
+                  <span className="font-semibold text-slate-700">{previewingArtifact.submittedAt}</span>
+                </div>
+                {previewingArtifact.notes && (
+                  <div className="border-t border-slate-200/60 pt-1.5">
+                    <span className="text-slate-500 block mb-0.5">Ghi chú nộp bài:</span>
+                    <p className="italic text-slate-700">"{previewingArtifact.notes}"</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-blue-900">
+                <p className="font-semibold text-xs">
+                  Chế độ bảo mật lưu trữ:
+                </p>
+                <p className="mt-1 text-xs text-blue-800">
+                  Hệ thống bảo vệ quyền riêng tư học vụ: liên kết tải về trực tiếp từ Storage Provider được tạo theo phiên bảo mật có thời hạn và gắn với thẩm quyền tài khoản của Reviewer.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setPreviewingArtifact(null)}
+              >
+                Đóng
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,17 +1,19 @@
 import { useState } from 'react'
 import type { StudentGateRequirement, StudentReviewTimelineDto } from '../types/review-gates.types'
-import { ReviewSubmissionModal } from './ReviewSubmissionModal'
+import { ReviewSubmissionModal, type ReviewSubmissionPayload } from './ReviewSubmissionModal'
 
 interface StudentReviewTimelineProps {
   timeline: StudentReviewTimelineDto
   isLeader: boolean
+  isAuthenticated?: boolean
   onToggleRole?: () => void
-  onSubmitRevision: (gateCode: string, requirementId: string, artifactName: string, notes: string) => Promise<void>
+  onSubmitRevision: (gateCode: string, requirementId: string, payload: ReviewSubmissionPayload) => Promise<void>
 }
 
 export function StudentReviewTimeline({
   timeline,
   isLeader,
+  isAuthenticated = true,
   onToggleRole,
   onSubmitRevision,
 }: StudentReviewTimelineProps) {
@@ -22,8 +24,9 @@ export function StudentReviewTimeline({
   const selectedGate = timeline.gates.find((g) => g.code === selectedGateCode) || timeline.gates[0]
   const completedGatesCount = timeline.gates.filter((g) => g.status === 'PASSED').length
   const totalGatesCount = timeline.gates.length
-  const academicProgress = Math.round((completedGatesCount / (totalGatesCount || 1)) * 100)
-  const isDefenseReady = completedGatesCount === totalGatesCount && totalGatesCount > 0
+  // Server-authoritative values (no client calculation or fallback heuristics)
+  const academicProgress = timeline.academicProgress
+  const isDefenseReady = timeline.isDefenseReady
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -74,27 +77,36 @@ export function StudentReviewTimeline({
 
         <div className="flex items-center gap-2.5">
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700">
-            Vai trò hiện tại: <strong className={isLeader ? 'text-primary' : 'text-slate-800'}>{isLeader ? 'Trưởng nhóm (Leader)' : 'Thành viên (Member)'}</strong>
+            Vai trò hiện tại: <strong className={isLeader ? 'text-primary' : 'text-slate-800'}>{isLeader ? 'Trưởng nhóm (Leader)' : isAuthenticated ? 'Thành viên (Member)' : 'Chưa xác thực (Guest)'}</strong>
           </div>
           {onToggleRole && (
-            <button
-              type="button"
-              onClick={onToggleRole}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-2xs hover:bg-slate-50"
-              title="Đổi vai trò để kiểm thử quyền Leader vs Member"
-            >
-              ⇄ Đổi vai trò kiểm thử
-            </button>
+            <div className="flex items-center gap-1.5">
+              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 uppercase tracking-wider">
+                Mô phỏng
+              </span>
+              <button
+                type="button"
+                onClick={onToggleRole}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-2xs hover:bg-slate-50 cursor-pointer"
+                title="Đổi vai trò để kiểm thử quyền Leader vs Member (Chế độ mô phỏng)"
+              >
+                ⇄ Đổi vai trò kiểm thử
+              </button>
+            </div>
           )}
         </div>
       </div>
 
       {/* Role Notice */}
-      {!isLeader && (
+      {!isAuthenticated ? (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
+          <strong>Thông báo phân quyền:</strong> Chưa phát hiện phiên làm việc sinh viên hợp lệ. Quyền nộp hồ sơ, sửa đổi minh chứng và các thao tác thẩm định chỉ dành cho sinh viên thuộc nhóm đồ án.
+        </div>
+      ) : !isLeader ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
           <strong>Thông báo quyền hạn:</strong> Bạn đang xem với vai trò Thành viên (Student Member). Bạn có thể xem toàn bộ tiến trình, lịch sử nhận xét và minh chứng. Quyền nộp hồ sơ thẩm định chính thức và bản sửa đổi Gate thuộc về Trưởng nhóm.
         </div>
-      )}
+      ) : null}
 
       {/* 4 KPI Summary Cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -102,13 +114,22 @@ export function StudentReviewTimeline({
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <span className="text-xs font-semibold text-slate-500">Tiến độ thực hiện học vụ</span>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-emerald-700">{academicProgress}%</span>
+            <span className="text-2xl font-black text-emerald-700">
+              {academicProgress != null ? `${academicProgress}%` : 'Chưa có dữ liệu'}
+            </span>
             <span className="text-xs text-slate-400">({completedGatesCount}/{totalGatesCount} Cổng đạt)</span>
           </div>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-emerald-600 transition-all duration-300" style={{ width: `${academicProgress}%` }} />
+            <div
+              className="h-full rounded-full bg-emerald-600 transition-all duration-300"
+              style={{ width: `${academicProgress ?? 0}%` }}
+            />
           </div>
-          <p className="mt-1.5 text-xs text-slate-400">Chỉ tính các cổng đã được Hội đồng duyệt PASS.</p>
+          <p className="mt-1.5 text-xs text-slate-400">
+            {timeline.academicProgressSource
+              ? `Nguồn: ${timeline.academicProgressSource}`
+              : 'Dữ liệu tiến độ học thuật chính thức do Hội đồng thẩm định phê duyệt.'}
+          </p>
         </div>
 
         {/* KPI 2: Task Progress */}
@@ -160,12 +181,29 @@ export function StudentReviewTimeline({
             </button>
           </div>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className={`text-base font-black ${isDefenseReady ? 'text-emerald-700' : 'text-amber-700'}`}>
-              {isDefenseReady ? 'ĐỦ ĐIỀU KIỆN (DỰ KIẾN)' : 'CHƯA ĐỦ ĐIỀU KIỆN'}
+            <span
+              className={`text-base font-black ${
+                isDefenseReady === true
+                  ? 'text-emerald-700'
+                  : isDefenseReady === false
+                  ? 'text-amber-700'
+                  : 'text-slate-600'
+              }`}
+            >
+              {timeline.defenseReadinessStatus ||
+                (isDefenseReady === true
+                  ? 'ĐỦ ĐIỀU KIỆN (DỰ KIẾN)'
+                  : isDefenseReady === false
+                  ? 'CHƯA ĐỦ ĐIỀU KIỆN'
+                  : 'CHƯA ĐƯỢC ĐÁNH GIÁ')}
             </span>
           </div>
           <p className="mt-2 text-xs text-slate-500">
-            {isDefenseReady ? 'Đã hoàn thành các cổng tiên quyết.' : `Còn ${totalGatesCount - completedGatesCount} cổng chưa hoàn tất thẩm định.`}
+            {isDefenseReady === true
+              ? 'Đã hoàn thành các cổng thẩm định tiên quyết.'
+              : isDefenseReady === false
+              ? `Còn ${totalGatesCount - completedGatesCount} cổng chưa hoàn tất thẩm định.`
+              : 'Chưa có kết luận chính thức từ Hội đồng học thuật.'}
           </p>
           <p className="mt-1 text-xs text-slate-400 italic">Đánh giá tư vấn; không tự ý khóa cổng nộp cuối.</p>
         </div>
@@ -184,54 +222,34 @@ export function StudentReviewTimeline({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
-                <span>Khối chung (Common)</span>
-                <span>50%</span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full bg-emerald-600 rounded-full" style={{ width: '50%' }} />
-              </div>
-              <span className="text-xs text-slate-400 mt-1 block">Trọng số: 40%</span>
+          {timeline.disciplineProgress && timeline.disciplineProgress.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {timeline.disciplineProgress.map((branch) => (
+                <div key={branch.scope}>
+                  <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
+                    <span>{branch.name}</span>
+                    <span>{branch.progress}%</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full bg-emerald-600 rounded-full transition-all duration-300"
+                      style={{ width: `${branch.progress}%` }}
+                    />
+                  </div>
+                  {branch.weight != null && (
+                    <span className="text-xs text-slate-400 mt-1 block">Trọng số: {branch.weight}%</span>
+                  )}
+                </div>
+              ))}
             </div>
-
-            <div>
-              <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
-                <span>Ngành Phần mềm (IT)</span>
-                <span>100%</span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full bg-emerald-600 rounded-full" style={{ width: '100%' }} />
-              </div>
-              <span className="text-xs text-slate-400 mt-1 block">Trọng số: 20%</span>
+          ) : (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
+              ℹ️ Đồ án liên ngành đang chờ Hội đồng công bố cấu trúc phân nhánh và trọng số chuyên môn theo snapshot kỳ học.
             </div>
-
-            <div>
-              <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
-                <span>Ngành Marketing</span>
-                <span>50%</span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full bg-amber-500 rounded-full" style={{ width: '50%' }} />
-              </div>
-              <span className="text-xs text-slate-400 mt-1 block">Trọng số: 20%</span>
-            </div>
-
-            <div>
-              <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
-                <span>Ngành Thiết kế (Design)</span>
-                <span>0%</span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full bg-rose-500 rounded-full" style={{ width: '0%' }} />
-              </div>
-              <span className="text-xs text-slate-400 mt-1 block">Trọng số: 20%</span>
-            </div>
-          </div>
+          )}
 
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-            ⚠️ <strong>Quy tắc Cổng Tích hợp:</strong> Cổng đánh giá tích hợp liên ngành chỉ được thông qua khi toàn bộ các ngành thành viên bắt buộc (Common, IT, Marketing, Design) đều được phê duyệt ĐẠT.
+            ⚠️ <strong>Quy tắc Cổng Tích hợp:</strong> Cổng đánh giá tích hợp liên ngành chỉ được thông qua khi toàn bộ các ngành thành viên bắt buộc đều được phê duyệt ĐẠT.
           </div>
         </div>
       )}
@@ -364,8 +382,8 @@ export function StudentReviewTimeline({
                             (() => {
                               const isRevision = req.verificationStatus === 'REJECTED'
                               const canSubmitThis = isRevision
-                                ? (timeline.capabilities?.canSubmitRevision ?? true)
-                                : (timeline.capabilities?.canSubmitPackage ?? true)
+                                ? (timeline.capabilities?.canSubmitRevision ?? false)
+                                : (timeline.capabilities?.canSubmitPackage ?? false)
                               const blockingReason = timeline.capabilities?.blockingReasons?.[0]
 
                               if (!canSubmitThis) {
@@ -413,7 +431,7 @@ export function StudentReviewTimeline({
                                 {req.verificationStatus === 'REJECTED' ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
                               </button>
                               <span id={`member-only-notice-${req.id}`} className="text-xs text-slate-400 italic">
-                                Chỉ Trưởng nhóm
+                                {isAuthenticated ? 'Chỉ Trưởng nhóm' : 'Chưa đăng nhập'}
                               </span>
                             </div>
                           )}
@@ -435,9 +453,17 @@ export function StudentReviewTimeline({
         requirement={activeReqForSubmission}
         gateCode={selectedGate?.code || ''}
         isLeader={isLeader}
-        onSubmit={async (artifactName, notes) => {
+        canSubmit={
+          isAuthenticated && (
+            activeReqForSubmission?.verificationStatus === 'REJECTED'
+              ? (timeline.capabilities?.canSubmitRevision ?? false)
+              : (timeline.capabilities?.canSubmitPackage ?? false)
+          )
+        }
+        blockingMessage={timeline.capabilities?.blockingReasons?.[0]}
+        onSubmit={async (payload) => {
           if (!activeReqForSubmission || !selectedGate) return
-          await onSubmitRevision(selectedGate.code, activeReqForSubmission.id, artifactName, notes)
+          await onSubmitRevision(selectedGate.code, activeReqForSubmission.id, payload)
         }}
       />
 

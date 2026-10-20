@@ -85,6 +85,7 @@ export function AssignedGateReviewPage() {
           assignments={assignments}
           onVerifyEvidence={handleVerifyEvidence}
           onSubmitDecision={handleSubmitDecision}
+          onReload={loadAssignments}
         />
       )}
     </WorkspacePage>

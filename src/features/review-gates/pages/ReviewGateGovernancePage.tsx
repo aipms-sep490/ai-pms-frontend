@@ -231,7 +231,14 @@ export function ReviewGateGovernancePage() {
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('hybrid')}
+          onClick={() => {
+            const currentHasHybrid = matrixProjects.find(p => p.projectId === selectedProjectId)?.hybridScopes
+            if (!currentHasHybrid) {
+              const firstHybrid = matrixProjects.find(p => p.mode === 'INTERDISCIPLINARY' || p.hybridScopes)
+              if (firstHybrid) setSelectedProjectId(firstHybrid.projectId)
+            }
+            setActiveTab('hybrid')
+          }}
           className={`rounded-lg px-4 py-2 text-xs font-bold transition-all ${
             activeTab === 'hybrid'
               ? 'bg-primary text-white shadow-2xs'
@@ -425,22 +432,88 @@ export function ReviewGateGovernancePage() {
 
           {/* TAB 4: HYBRID */}
           {activeTab === 'hybrid' && (
-            <InterdisciplinaryGatePanel
-              projectId={selectedProjectId}
-              hybridScopes={matrixProjects.find(p => p.projectId === selectedProjectId)?.hybridScopes}
-              onUpdateScopeDecision={handleUpdateHybridScopeDecision}
-            />
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <label htmlFor="hybrid-project-select" className="text-xs font-bold text-slate-700">
+                    Đồ án liên ngành:
+                  </label>
+                  <select
+                    id="hybrid-project-select"
+                    value={selectedProjectId}
+                    onChange={e => setSelectedProjectId(e.target.value)}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800"
+                  >
+                    {matrixProjects
+                      .filter(p => p.mode === 'INTERDISCIPLINARY' || p.hybridScopes)
+                      .map(p => (
+                        <option key={p.projectId} value={p.projectId}>
+                          {p.projectId} — {p.projectName}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <span className="text-xs text-slate-500">
+                  {matrixProjects.filter(p => p.mode === 'INTERDISCIPLINARY' || p.hybridScopes).length} đồ án liên ngành
+                </span>
+              </div>
+
+              <InterdisciplinaryGatePanel
+                projectId={selectedProjectId}
+                hybridScopes={matrixProjects.find(p => p.projectId === selectedProjectId)?.hybridScopes}
+                onUpdateScopeDecision={handleUpdateHybridScopeDecision}
+              />
+            </div>
           )}
 
           {/* TAB 5: DEFENSE READINESS */}
-          {activeTab === 'defense' && defenseSummary && (
-            <DefenseReadinessChecker
-              summary={defenseSummary}
-              onRecheck={() => {
-                getDefenseReadiness(selectedProjectId).then(res => setDefenseSummary(res))
-                setNotice('Đã kiểm tra lại điều kiện bảo vệ.')
-              }}
-            />
+          {activeTab === 'defense' && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <label htmlFor="defense-project-select" className="text-xs font-bold text-slate-700">
+                    Chọn đồ án thẩm định điều kiện bảo vệ:
+                  </label>
+                  <select
+                    id="defense-project-select"
+                    value={selectedProjectId}
+                    onChange={e => {
+                      const newId = e.target.value
+                      setSelectedProjectId(newId)
+                      getDefenseReadiness(newId)
+                        .then(res => setDefenseSummary(res))
+                        .catch(() => setDefenseSummary(null))
+                    }}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800"
+                  >
+                    {matrixProjects.map(p => (
+                      <option key={p.projectId} value={p.projectId}>
+                        {p.projectId} — {p.projectName} ({p.mode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <span className="text-xs text-slate-500">
+                  Mã dự án: <strong>{selectedProjectId}</strong>
+                </span>
+              </div>
+
+              {defenseSummary ? (
+                <DefenseReadinessChecker
+                  summary={defenseSummary}
+                  onRecheck={() => {
+                    getDefenseReadiness(selectedProjectId)
+                      .then(res => setDefenseSummary(res))
+                      .catch(() => {})
+                    setNotice('Đã kiểm tra lại điều kiện bảo vệ.')
+                  }}
+                />
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+                  Chưa có dữ liệu điều kiện bảo vệ cho đồ án {selectedProjectId}.
+                </div>
+              )}
+            </div>
           )}
         </>
       )}

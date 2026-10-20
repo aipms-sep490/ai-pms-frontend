@@ -3,13 +3,23 @@ import { Modal } from '../../../components/ui/Modal'
 import { Button } from '../../../components/ui/Button'
 import type { StudentGateRequirement } from '../types/review-gates.types'
 
+export interface ReviewSubmissionPayload {
+  artifactName: string
+  notes: string
+  mode: 'file' | 'link'
+  file?: File | null
+  linkUrl?: string
+}
+
 interface ReviewSubmissionModalProps {
   open: boolean
   onClose: () => void
   requirement: StudentGateRequirement | null
   gateCode: string
   isLeader: boolean
-  onSubmit: (artifactName: string, notes: string) => Promise<void>
+  canSubmit?: boolean
+  blockingMessage?: string
+  onSubmit: (payload: ReviewSubmissionPayload) => Promise<void>
 }
 
 export function ReviewSubmissionModal({
@@ -18,8 +28,11 @@ export function ReviewSubmissionModal({
   requirement,
   gateCode,
   isLeader,
+  canSubmit,
+  blockingMessage,
   onSubmit,
 }: ReviewSubmissionModalProps) {
+  const isPermitted = canSubmit !== undefined ? canSubmit : isLeader
   const [submissionMode, setSubmissionMode] = useState<'file' | 'link'>('file')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -64,8 +77,8 @@ export function ReviewSubmissionModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isLeader) {
-      setError('Chỉ trưởng nhóm (Student Leader) mới có thẩm quyền nộp hồ sơ review.')
+    if (!isPermitted) {
+      setError(blockingMessage || 'Bạn không có thẩm quyền nộp hồ sơ review hoặc yêu cầu này đang bị chặn.')
       return
     }
     if (!artifactName.trim()) {
@@ -80,7 +93,13 @@ export function ReviewSubmissionModal({
     try {
       setBusy(true)
       setError(null)
-      await onSubmit(artifactName.trim(), notes.trim())
+      await onSubmit({
+        artifactName: artifactName.trim(),
+        notes: notes.trim(),
+        mode: submissionMode,
+        file: selectedFile,
+        linkUrl: submissionMode === 'link' ? artifactName.trim() : undefined,
+      })
       setSelectedFile(null)
       setArtifactName('')
       setNotes('')
@@ -101,9 +120,9 @@ export function ReviewSubmissionModal({
       busy={busy}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {!isLeader && (
+        {!isPermitted && (
           <div className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-xs font-semibold text-status-warning-text">
-            ⚠️ <strong>Quyền hạn:</strong> Bạn đang đăng nhập với vai trò Thành viên (Student Member). Quyền nộp hồ sơ review và bản sửa đổi chính thức thuộc về Trưởng nhóm (Student Leader).
+            ⚠️ <strong>Quyền hạn:</strong> {blockingMessage || 'Bạn đang xem với vai trò Thành viên (Student Member). Quyền nộp hồ sơ review và bản sửa đổi chính thức thuộc về Trưởng nhóm (Student Leader).'}
           </div>
         )}
 
@@ -164,24 +183,24 @@ export function ReviewSubmissionModal({
                 onDrop={(e) => {
                   e.preventDefault()
                   setIsDragging(false)
-                  if (!isLeader || busy) return
+                  if (!isPermitted || busy) return
                   const dropped = e.dataTransfer.files?.[0]
                   if (dropped) handleFileSelect(dropped)
                 }}
                 onClick={() => {
-                  if (isLeader && !busy) fileInputRef.current?.click()
+                  if (isPermitted && !busy) fileInputRef.current?.click()
                 }}
                 className={`relative cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-all ${
                   isDragging
                     ? 'border-primary bg-primary/5 scale-[1.01]'
                     : 'border-slate-300 hover:border-primary/60 hover:bg-slate-50'
-                } ${!isLeader || busy ? 'cursor-not-allowed opacity-60' : ''}`}
+                } ${!isPermitted || busy ? 'cursor-not-allowed opacity-60' : ''}`}
               >
                 <input
                   ref={fileInputRef}
                   type="file"
                   className="hidden"
-                  disabled={!isLeader || busy}
+                  disabled={!isPermitted || busy}
                   accept=".pdf,.docx,.zip,.png,.jpg,.jpeg,.xlsx,.pptx"
                   onChange={(e) => {
                     const picked = e.target.files?.[0]
@@ -219,7 +238,7 @@ export function ReviewSubmissionModal({
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
-                    disabled={!isLeader || busy}
+                    disabled={!isPermitted || busy}
                     onClick={() => fileInputRef.current?.click()}
                     className="text-xs font-medium text-primary hover:underline px-2 py-1 cursor-pointer"
                   >
@@ -227,7 +246,7 @@ export function ReviewSubmissionModal({
                   </button>
                   <button
                     type="button"
-                    disabled={!isLeader || busy}
+                    disabled={!isPermitted || busy}
                     onClick={() => { setSelectedFile(null); setArtifactName('') }}
                     aria-label="Hủy chọn tệp"
                     className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-colors cursor-pointer"
@@ -246,7 +265,7 @@ export function ReviewSubmissionModal({
                 type="text"
                 required
                 aria-required="true"
-                disabled={!isLeader || busy}
+                disabled={!isPermitted || busy}
                 value={artifactName}
                 onChange={(e) => setArtifactName(e.target.value)}
                 placeholder="Ví dụ: SDD_v3.pdf hoặc https://github.com/.../pull/42"
@@ -266,7 +285,7 @@ export function ReviewSubmissionModal({
               type="text"
               required
               aria-required="true"
-              disabled={!isLeader || busy}
+              disabled={!isPermitted || busy}
               value={artifactName}
               onChange={(e) => setArtifactName(e.target.value)}
               placeholder="Ví dụ: SDD_v3.pdf hoặc https://github.com/.../pull/42"
@@ -286,7 +305,7 @@ export function ReviewSubmissionModal({
             required
             aria-required="true"
             rows={3}
-            disabled={!isLeader || busy}
+            disabled={!isPermitted || busy}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Mô tả cụ thể những điểm đã chỉnh sửa theo phản hồi của reviewer..."
@@ -307,7 +326,7 @@ export function ReviewSubmissionModal({
           <Button type="button" variant="secondary" onClick={onClose} disabled={busy}>
             Hủy
           </Button>
-          <Button type="submit" disabled={!isLeader || busy}>
+          <Button type="submit" disabled={!isPermitted || busy}>
             {busy ? 'Đang gửi...' : isRevision ? 'Xác nhận nộp bản sửa' : 'Nộp minh chứng'}
           </Button>
         </div>

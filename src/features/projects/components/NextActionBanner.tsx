@@ -378,9 +378,9 @@ export function NextActionBanner({
           requirement={submissionReq}
           gateCode={activeGate.code}
           isLeader={isLeader}
-          onSubmit={async (artifactName, notes) => {
+          onSubmit={async (payload) => {
             if (onSubmitRevision) {
-              await onSubmitRevision(activeGate.code, submissionReq.id, artifactName, notes)
+              await onSubmitRevision(activeGate.code, submissionReq.id, payload.artifactName, payload.notes)
             }
           }}
         />

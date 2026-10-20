@@ -123,6 +123,14 @@ export interface StudentGateInstance {
   requirements: StudentGateRequirement[]
 }
 
+export interface DisciplineBranchProgress {
+  scope: string
+  name: string
+  progress: number
+  weight?: number
+  status?: GateStatus
+}
+
 export interface StudentReviewTimelineDto {
   projectId: string
   projectCode: string
@@ -132,6 +140,11 @@ export interface StudentReviewTimelineDto {
   effectivePolicyVersion: string
   currentGateCode: string
   taskProgress?: number
+  academicProgress?: number | null
+  academicProgressSource?: string
+  isDefenseReady?: boolean | null
+  defenseReadinessStatus?: string
+  disciplineProgress?: DisciplineBranchProgress[]
   supervisorFeedbacks?: Array<{
     gateCode: string
     feedback: string

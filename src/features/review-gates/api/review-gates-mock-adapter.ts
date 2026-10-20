@@ -449,6 +449,14 @@ const initialStudentTimeline: StudentReviewTimelineDto = {
     major: 'Information Technology',
     effectivePolicyVersion: '1.0',
     currentGateCode: 'R2',
+    academicProgress: 25,
+    academicProgressSource: 'Hội đồng thẩm định Khoa CNTT (R1 Đạt)',
+    isDefenseReady: false,
+    defenseReadinessStatus: 'NOT_READY',
+    disciplineProgress: [
+      { scope: 'IT', name: 'Công nghệ thông tin', progress: 50, status: 'IN_REVIEW' },
+    ],
+    taskProgress: 68,
     capabilities: {
       canSubmitPackage: true,
       canSubmitRevision: true,
@@ -935,6 +943,15 @@ class ReviewGatesMockAdapter {
         cloned.projectMode = project.mode
         cloned.major = project.major
         cloned.taskProgress = project.taskProgress
+        if (project.mode === 'INTERDISCIPLINARY') {
+          cloned.disciplineProgress = [
+            { scope: 'IT', name: 'Công nghệ thông tin', progress: 60, status: 'IN_REVIEW' },
+            { scope: 'Marketing', name: 'Digital Marketing', progress: 50, status: 'IN_REVIEW' },
+            { scope: 'Design', name: 'Thiết kế UX/UI', progress: 40, status: 'REVISION_REQUIRED' },
+          ]
+          cloned.academicProgress = 25
+          cloned.academicProgressSource = 'Hội đồng liên ngành IT/MKT/Design (G1 Đạt)'
+        }
         cloned.gates.forEach(g => {
           if (project.gateStatuses[g.code]) {
             g.status = project.gateStatuses[g.code]
@@ -985,7 +1002,7 @@ class ReviewGatesMockAdapter {
     reqItem.verificationStatus = 'SUBMITTED'
     reqItem.latestArtifact = {
       version: nextVer,
-      filename: req.artifactName,
+      filename: req.file?.name || req.linkUrl || req.artifactName,
       submittedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
       submittedBy: 'Nguyen Van A (Leader)',
       notes: req.notes,

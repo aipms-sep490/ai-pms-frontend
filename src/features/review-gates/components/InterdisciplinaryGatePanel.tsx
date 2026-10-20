@@ -11,13 +11,6 @@ interface InterdisciplinaryGatePanelProps {
   ) => Promise<void> | void
 }
 
-const defaultScopes: Record<string, GateStatus> = {
-  COMMON: 'PASSED',
-  IT: 'PASSED',
-  Marketing: 'PASSED',
-  Design: 'REVISION_REQUIRED',
-}
-
 const scopeMeta: Record<string, { name: string; desc: string }> = {
   COMMON: {
     name: 'Tích hợp chung (Common Integration)',
@@ -38,21 +31,24 @@ const scopeMeta: Record<string, { name: string; desc: string }> = {
 }
 
 export function InterdisciplinaryGatePanel({
-  projectId = 'HYB-01',
-  hybridScopes = defaultScopes,
+  projectId,
+  hybridScopes,
   onUpdateScopeDecision,
 }: InterdisciplinaryGatePanelProps) {
-  const [scopes, setScopes] = useState<Record<string, GateStatus>>(hybridScopes)
+  const [scopes, setScopes] = useState<Record<string, GateStatus>>(hybridScopes || {})
   const [busyScope, setBusyScope] = useState<string | null>(null)
   const [scopeError, setScopeError] = useState<string | null>(null)
 
   useEffect(() => {
     if (hybridScopes) {
       setScopes(hybridScopes)
+    } else {
+      setScopes({})
     }
   }, [hybridScopes])
 
   async function handleScopeChange(scope: string, val: 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW') {
+    if (!projectId) return
     const prevVal = scopes[scope]
     setScopes(prev => ({ ...prev, [scope]: val }))
     setBusyScope(scope)
@@ -68,8 +64,25 @@ export function InterdisciplinaryGatePanel({
     }
   }
 
-  const allPassed = Object.values(scopes).every(s => s === 'PASSED')
+  const scopeKeys = Object.keys(scopes)
+  const allPassed = scopeKeys.length > 0 && Object.values(scopes).every(s => s === 'PASSED')
   const hasRevision = Object.values(scopes).some(s => s === 'REVISION_REQUIRED')
+
+  if (scopeKeys.length === 0) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-xs">
+        <span className="material-symbols-outlined mx-auto text-4xl text-slate-300">hub</span>
+        <h3 className="mt-3 text-sm font-bold text-slate-800">
+          Chưa có phân nhánh chuyên môn liên ngành
+        </h3>
+        <p className="mx-auto mt-1.5 max-w-md text-xs text-slate-500">
+          {projectId
+            ? `Đồ án ${projectId} chưa có cấu trúc phân nhánh liên ngành hoặc đang chờ Hội đồng thẩm định công bố snapshot các phân ban chuyên môn.`
+            : 'Vui lòng chọn đồ án liên ngành để xem chi tiết các phân nhánh chuyên môn.'}
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -78,7 +91,7 @@ export function InterdisciplinaryGatePanel({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-primary">
-              Đồ án liên ngành · {projectId}
+              Đồ án liên ngành · {projectId || 'Chưa chọn đồ án'}
             </span>
             <h2 className="text-lg font-bold text-slate-800">
               G2 · Integrated Concept & Architecture Gate
@@ -95,7 +108,7 @@ export function InterdisciplinaryGatePanel({
           </span>
         </div>
         <p className="mt-2 text-xs text-slate-500">
-          Khoa Trưởng ngành: <strong className="text-slate-700">Công nghệ thông tin</strong> · Các ngành tham gia: <strong className="text-slate-700">IT, Marketing, Thiết kế Đồ họa</strong>
+          Đồ án liên ngành được thẩm định độc lập theo từng phân ban chuyên môn trước khi xét duyệt Cổng tích hợp chung.
         </p>
       </div>
 
@@ -127,7 +140,7 @@ export function InterdisciplinaryGatePanel({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {Object.keys(scopes).map(scopeKey => {
+                {scopeKeys.map(scopeKey => {
                   const item = {
                     scope: scopeKey,
                     name: scopeMeta[scopeKey]?.name || `Chuyên ngành ${scopeKey}`,
@@ -179,18 +192,12 @@ export function InterdisciplinaryGatePanel({
               Liên kết phụ thuộc giữa các chuyên ngành (Cross-discipline Traceability)
             </h4>
             <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-2.5">
-                <span><strong>Marketing</strong>: Nghiên cứu người dùng</span>
-                <span className="text-slate-400">→ Luồng thiết kế của <strong>Design</strong></span>
-              </div>
-              <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-2.5">
-                <span><strong>Design</strong>: Prototype giao diện hoàn chỉnh</span>
-                <span className="text-slate-400">→ Hiện thực hóa tính năng phía <strong>IT</strong></span>
-              </div>
-              <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-2.5">
-                <span><strong>IT</strong>: Khung API và chức năng cốt lõi</span>
-                <span className="text-slate-400">→ Thử nghiệm thực tế <strong>COMMON Demo</strong></span>
-              </div>
+              {scopeKeys.map(s => (
+                <div key={s} className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-2.5">
+                  <span><strong>{scopeMeta[s]?.name || s}</strong>: Yêu cầu chuẩn đầu ra chuyên ngành</span>
+                  <span className="text-slate-400">→ Điều kiện tiên quyết xét duyệt <strong>Cổng tích hợp chung</strong></span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -212,7 +219,7 @@ export function InterdisciplinaryGatePanel({
             </div>
             <p className="mt-2 text-xs leading-relaxed opacity-90">
               {allPassed
-                ? 'Tất cả các ngành (IT, Marketing, Design và Common) đều đã xác nhận PASSED. Khoa trưởng ngành có thể ký duyệt chính thức để chuyển sang Gate kế tiếp.'
+                ? 'Tất cả các ngành tham gia đều đã xác nhận PASSED. Khoa trưởng ngành có thể ký duyệt chính thức để chuyển sang Gate kế tiếp.'
                 : 'Gate liên ngành KHÔNG THỂ PASS nếu bất kỳ ngành bắt buộc nào chưa đạt hoặc cần chỉnh sửa.'}
             </p>
           </div>

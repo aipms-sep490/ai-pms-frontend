@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { env } from '../../../app/config/env'
 import type { GateStatus, ProjectReviewMatrixRow } from '../types/review-gates.types'
 
 interface ProjectProgressMatrixProps {
@@ -242,87 +243,106 @@ export function ProjectProgressMatrix({
                 </div>
               )}
 
-              {/* Reviewer Action Simulation */}
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 space-y-3">
-                <strong className="block font-bold text-slate-800">
-                  Ghi nhận kết luận thẩm định (Reviewer Scoped Decision)
-                </strong>
-                <p className="text-xs text-slate-500">
-                  Chỉ reviewer có thẩm quyền được cấp phân công mới có thể chốt quyết định chính thức.
-                </p>
+              {/* Reviewer Action Simulation (Mock/Dev) or Read-Only Governance Notice */}
+              {env.reviewGatesMockEnabled ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3.5 space-y-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
+                      Mô phỏng Sandbox
+                    </span>
+                    <strong className="block text-xs font-bold text-slate-800">
+                      Ghi nhận kết luận thẩm định (Reviewer Scoped Decision)
+                    </strong>
+                  </div>
+                  <p className="text-xs text-amber-800">
+                    Chỉ dùng trong môi trường thử nghiệm Frontend (Sandbox / Mock). Không có giá trị phê duyệt học vụ chính thức.
+                  </p>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600">Chọn Gate</label>
-                    <select
-                      value={selectedGateToDecide}
-                      onChange={e => setSelectedGateToDecide(e.target.value)}
-                      className="mt-1 w-full rounded border border-slate-200 bg-white p-1.5 text-xs font-semibold"
-                    >
-                      {Object.keys(inspectingProject.gateStatuses).map(c => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600">Chọn Gate</label>
+                      <select
+                        value={selectedGateToDecide}
+                        onChange={e => setSelectedGateToDecide(e.target.value)}
+                        className="mt-1 w-full rounded border border-slate-200 bg-white p-1.5 text-xs font-semibold"
+                      >
+                        {Object.keys(inspectingProject.gateStatuses).map(c => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600">Kết luận</label>
+                      <select
+                        value={decisionChoice}
+                        onChange={e => setDecisionChoice(e.target.value as 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW')}
+                        className="mt-1 w-full rounded border border-slate-200 bg-white p-1.5 text-xs font-semibold"
+                      >
+                        <option value="PASSED">ĐẠT (PASSED)</option>
+                        <option value="REVISION_REQUIRED">CẦN SỬA (REVISION)</option>
+                        <option value="IN_REVIEW">ĐANG XÉT (IN_REVIEW)</option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600">Kết luận</label>
-                    <select
-                      value={decisionChoice}
-                      onChange={e => setDecisionChoice(e.target.value as 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW')}
-                      className="mt-1 w-full rounded border border-slate-200 bg-white p-1.5 text-xs font-semibold"
-                    >
-                      <option value="PASSED">ĐẠT (PASSED)</option>
-                      <option value="REVISION_REQUIRED">CẦN SỬA (REVISION)</option>
-                      <option value="IN_REVIEW">ĐANG XÉT (IN_REVIEW)</option>
-                    </select>
-                  </div>
+
+                  {decisionError && (
+                    <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-700">
+                      <strong className="block font-bold">Lỗi cập nhật quyết định:</strong>
+                      <span>{decisionError}</span>
+                      {decisionError.includes('409') && (
+                        <p className="mt-1 text-xs text-rose-600 italic">
+                          Dữ liệu đã có thay đổi mới từ người dùng khác. Vui lòng kiểm tra lại trước khi gửi.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={updatingDecision}
+                    onClick={async () => {
+                      try {
+                        setUpdatingDecision(true)
+                        setDecisionError(null)
+                        await onUpdateDecision(inspectingProject.projectId, selectedGateToDecide, decisionChoice)
+                        setInspectingProject(prev =>
+                          prev
+                            ? {
+                                ...prev,
+                                gateStatuses: {
+                                  ...prev.gateStatuses,
+                                  [selectedGateToDecide]: decisionChoice,
+                                },
+                              }
+                            : null,
+                        )
+                      } catch (err: unknown) {
+                        const msg = err instanceof Error ? err.message : 'Không thể cập nhật quyết định thẩm định.'
+                        setDecisionError(msg)
+                      } finally {
+                        setUpdatingDecision(false)
+                      }
+                    }}
+                    className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-white shadow-2xs hover:bg-primary-hover disabled:opacity-50"
+                  >
+                    {updatingDecision ? 'Đang cập nhật...' : 'Cập nhật quyết định Reviewer'}
+                  </button>
                 </div>
-
-                {decisionError && (
-                  <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-700">
-                    <strong className="block font-bold">Lỗi cập nhật quyết định:</strong>
-                    <span>{decisionError}</span>
-                    {decisionError.includes('409') && (
-                      <p className="mt-1 text-xs text-rose-600 italic">
-                        Dữ liệu đã có thay đổi mới từ người dùng khác. Vui lòng kiểm tra lại trước khi gửi.
-                      </p>
-                    )}
+              ) : (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm text-slate-500">visibility</span>
+                    <strong className="block text-xs font-bold text-slate-800">
+                      Giám sát Tiến trình Thẩm định
+                    </strong>
                   </div>
-                )}
-
-                <button
-                  type="button"
-                  disabled={updatingDecision}
-                  onClick={async () => {
-                    try {
-                      setUpdatingDecision(true)
-                      setDecisionError(null)
-                      await onUpdateDecision(inspectingProject.projectId, selectedGateToDecide, decisionChoice)
-                      setInspectingProject(prev =>
-                        prev
-                          ? {
-                              ...prev,
-                              gateStatuses: {
-                                ...prev.gateStatuses,
-                                [selectedGateToDecide]: decisionChoice,
-                              },
-                            }
-                          : null,
-                      )
-                    } catch (err: unknown) {
-                      const msg = err instanceof Error ? err.message : 'Không thể cập nhật quyết định thẩm định.'
-                      setDecisionError(msg)
-                    } finally {
-                      setUpdatingDecision(false)
-                    }
-                  }}
-                  className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-white shadow-2xs hover:bg-primary-hover disabled:opacity-50"
-                >
-                  {updatingDecision ? 'Đang cập nhật...' : 'Cập nhật quyết định Reviewer'}
-                </button>
-              </div>
+                  <p className="text-xs text-slate-600">
+                    Giao diện này dành riêng cho việc giám sát tiến độ của Khoa / Bộ môn. Quyết định thẩm định chính thức chỉ được thực hiện bởi Reviewer được phân công thông qua Hàng đợi thẩm định với mã token xác thực.
+                  </p>
+                </div>
+              )}
 
               {inspectingProject.mode === 'INTERDISCIPLINARY' && onSelectHybridProject && (
                 <button

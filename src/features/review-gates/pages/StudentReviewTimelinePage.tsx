@@ -1,11 +1,13 @@
 import { useContext, useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
+import { env } from '../../../app/config/env'
 import { AuthSessionContext } from '../../auth/context/auth-session-context'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { getStudentReviewTimeline, submitRevision, submitSupervisorFeedback } from '../api/review-gates-api'
 import type { StudentReviewTimelineDto } from '../types/review-gates.types'
 import { StudentReviewTimeline } from '../components/StudentReviewTimeline'
+import type { ReviewSubmissionPayload } from '../components/ReviewSubmissionModal'
 import { SupervisorGateFollowupPanel } from '../components/SupervisorGateFollowupPanel'
 
 export function StudentReviewTimelinePage() {
@@ -21,9 +23,14 @@ export function StudentReviewTimelinePage() {
   const isLecturer = auth?.session?.user.roles.includes('LECTURER') ?? false
   const isStaff = (auth?.session?.user.roles.includes('DEPARTMENT_STAFF') || auth?.session?.user.roles.includes('ADMIN')) ?? false
 
-  // Leader state: In real sessions, rely on team/project capabilities; allow mock preview toggle
-  const authIsLeader = isLecturer || isStaff ? false : (auth?.session?.user.roles.includes('STUDENT_LEADER') ?? true)
+  // Leader state: In real sessions, rely on team/project capabilities (deny-by-default if session absent); allow mock preview toggle only in dev sandbox
+  const authIsLeader = isLecturer || isStaff ? false : (auth?.session?.user.roles.includes('STUDENT_LEADER') ?? false)
   const [isLeader, setIsLeader] = useState(authIsLeader)
+  const isLeaderToggleAllowed = Boolean(import.meta.env.DEV && env.reviewGatesMockEnabled)
+
+  useEffect(() => {
+    setIsLeader(authIsLeader)
+  }, [authIsLeader])
 
   const loadTimeline = async (silent = false) => {
     try {
@@ -45,8 +52,7 @@ export function StudentReviewTimelinePage() {
   const handleSubmitRevision = async (
     gateCode: string,
     requirementId: string,
-    artifactName: string,
-    notes: string,
+    payload: ReviewSubmissionPayload,
   ) => {
     if (!timeline) return
     const targetGate = timeline.gates.find((g) => g.code === gateCode)
@@ -58,8 +64,11 @@ export function StudentReviewTimelinePage() {
         projectId: timeline.projectId,
         gateCode,
         requirementId,
-        artifactName,
-        notes,
+        artifactName: payload.artifactName,
+        notes: payload.notes,
+        mode: payload.mode,
+        file: payload.file || undefined,
+        linkUrl: payload.linkUrl,
         expectedVersion,
       },
       isLeader,
@@ -121,7 +130,8 @@ export function StudentReviewTimelinePage() {
           <StudentReviewTimeline
             timeline={timeline}
             isLeader={isLeader}
-            onToggleRole={() => setIsLeader(!isLeader)}
+            isAuthenticated={Boolean(auth?.session)}
+            onToggleRole={isLeaderToggleAllowed ? () => setIsLeader(!isLeader) : undefined}
             onSubmitRevision={handleSubmitRevision}
           />
         </div>

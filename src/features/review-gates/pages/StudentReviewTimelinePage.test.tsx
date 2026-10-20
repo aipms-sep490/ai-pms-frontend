@@ -5,6 +5,25 @@ import { StudentReviewTimelinePage } from './StudentReviewTimelinePage'
 import { reviewGatesMockAdapter } from '../api/review-gates-mock-adapter'
 import { AuthSessionContext } from '../../auth/context/auth-session-context'
 
+const mockLeaderContext = {
+  session: {
+    user: {
+      id: 'stu-1',
+      fullName: 'Nguyen Van A (Leader)',
+      email: 'leader@university.edu.vn',
+      roles: ['STUDENT_LEADER'],
+    },
+    token: 'test-token',
+    expiresAt: new Date(Date.now() + 3600000).toISOString(),
+  },
+  status: 'authenticated' as const,
+  error: null,
+  login: vi.fn(),
+  logout: vi.fn(),
+  refreshProfile: vi.fn(),
+  restoreSession: vi.fn(),
+}
+
 describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -30,11 +49,30 @@ describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
     expect(screen.getByText('Software Design Document (SDD)')).toBeTruthy()
   })
 
-  it('allows leader to open submission modal and submit SDD revision', async () => {
+  it('denies submission capability by default when unauthenticated (deny-by-default)', async () => {
     render(
       <MemoryRouter>
         <StudentReviewTimelinePage />
       </MemoryRouter>,
+    )
+
+    await screen.findByText('Campus Support Platform')
+
+    // Deny by default: actions are disabled for non-leaders without session
+    const actionBtns = screen.getAllByRole('button', { name: /Nộp bản sửa|Nộp lại|Nộp tài liệu/ })
+    actionBtns.forEach((btn) => {
+      expect((btn as HTMLButtonElement).disabled).toBe(true)
+    })
+    expect(screen.getByText(/Chưa phát hiện phiên làm việc sinh viên hợp lệ/)).toBeTruthy()
+  })
+
+  it('allows leader to open submission modal and submit SDD revision', async () => {
+    render(
+      <AuthSessionContext.Provider value={mockLeaderContext as any}>
+        <MemoryRouter>
+          <StudentReviewTimelinePage />
+        </MemoryRouter>
+      </AuthSessionContext.Provider>,
     )
 
     await screen.findByText('Campus Support Platform')
@@ -65,9 +103,11 @@ describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
 
   it('blocks member from submitting project-level gate review', async () => {
     render(
-      <MemoryRouter>
-        <StudentReviewTimelinePage />
-      </MemoryRouter>,
+      <AuthSessionContext.Provider value={mockLeaderContext as any}>
+        <MemoryRouter>
+          <StudentReviewTimelinePage />
+        </MemoryRouter>
+      </AuthSessionContext.Provider>,
     )
 
     await screen.findByText('Campus Support Platform')
@@ -91,9 +131,11 @@ describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
     )
 
     render(
-      <MemoryRouter>
-        <StudentReviewTimelinePage />
-      </MemoryRouter>,
+      <AuthSessionContext.Provider value={mockLeaderContext as any}>
+        <MemoryRouter>
+          <StudentReviewTimelinePage />
+        </MemoryRouter>
+      </AuthSessionContext.Provider>,
     )
 
     await screen.findByText('Campus Support Platform')
@@ -157,9 +199,11 @@ describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
 
   it('rejects files larger than 20MB in submission modal', async () => {
     render(
-      <MemoryRouter>
-        <StudentReviewTimelinePage />
-      </MemoryRouter>,
+      <AuthSessionContext.Provider value={mockLeaderContext as any}>
+        <MemoryRouter>
+          <StudentReviewTimelinePage />
+        </MemoryRouter>
+      </AuthSessionContext.Provider>,
     )
 
     await screen.findByText('Campus Support Platform')

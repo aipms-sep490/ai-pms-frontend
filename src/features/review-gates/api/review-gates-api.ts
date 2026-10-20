@@ -84,7 +84,20 @@ export async function submitRevision(
   isLeader: boolean,
 ): Promise<StudentReviewTimelineDto> {
   if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.submitRevision(req, isLeader)
-  return httpPost<StudentReviewTimelineDto>(`/projects/${req.projectId}/review-gates/${req.gateCode}/evidence`, req)
+
+  if (req.mode === 'file' && req.file) {
+    // Fail-closed when real BE file upload contract is not confirmed yet
+    throw new Error('BLOCKED_BY_BE: Backend chưa cung cấp endpoint tiếp nhận multipart/form-data cho tệp minh chứng Review Gate.')
+  }
+
+  return httpPost<StudentReviewTimelineDto>(`/projects/${req.projectId}/review-gates/${req.gateCode}/evidence`, {
+    requirementId: req.requirementId,
+    artifactName: req.artifactName,
+    notes: req.notes,
+    expectedVersion: req.expectedVersion,
+    mode: req.mode,
+    linkUrl: req.linkUrl,
+  })
 }
 
 export async function getAssignedReviews(): Promise<AssignedReviewItem[]> {
