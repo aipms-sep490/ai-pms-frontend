@@ -1,10 +1,11 @@
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { env } from '../../../app/config/env'
 import { AuthSessionContext } from '../../auth/context/auth-session-context'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { PageLoading } from '../../../components/ui/PageLoading'
-import { getStudentReviewTimeline, submitRevision, submitSupervisorFeedback } from '../api/review-gates-api'
+import { getDefenseReadiness, getStudentReviewTimeline, submitGateForReview, submitRevision, submitSupervisorFeedback } from '../api/review-gates-api'
+import type { DefenseReadinessSummary } from '../types/review-gates.types'
 import type { StudentReviewTimelineDto } from '../types/review-gates.types'
 import { StudentReviewTimeline } from '../components/StudentReviewTimeline'
 import type { ReviewSubmissionPayload } from '../components/ReviewSubmissionModal'
@@ -19,34 +20,48 @@ export function StudentReviewTimelinePage() {
   const [timeline, setTimeline] = useState<StudentReviewTimelineDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [readiness, setReadiness] = useState<DefenseReadinessSummary | null>(null)
+  const loadId = useRef(0)
+  const readinessId = useRef(0)
+
+  const applyTimeline = (value: StudentReviewTimelineDto) => {
+    setTimeline(value)
+    setReadiness(null)
+    const generation = ++readinessId.current
+    void getDefenseReadiness(value.projectId).then(result => {
+      if (generation === readinessId.current) setReadiness(result)
+    }).catch(() => { /* Readiness stays unknown; no fixture conclusion. */ })
+  }
 
   const isLecturer = auth?.session?.user.roles.includes('LECTURER') ?? false
   const isStaff = (auth?.session?.user.roles.includes('DEPARTMENT_STAFF') || auth?.session?.user.roles.includes('ADMIN')) ?? false
 
   // Leader state: In real sessions, rely on team/project capabilities (deny-by-default if session absent); allow mock preview toggle only in dev sandbox
-  const authIsLeader = isLecturer || isStaff ? false : (auth?.session?.user.roles.includes('STUDENT_LEADER') ?? false)
-  const [isLeader, setIsLeader] = useState(authIsLeader)
+  const authIsLeader = !isLecturer && !isStaff && Boolean(auth?.session) && Boolean(
+    timeline?.capabilities.canSubmitPackage || timeline?.capabilities.canSubmitRevision,
+  )
+  const [mockLeaderOverride, setMockLeaderOverride] = useState<boolean | null>(null)
   const isLeaderToggleAllowed = Boolean(import.meta.env.DEV && env.reviewGatesMockEnabled)
-
-  useEffect(() => {
-    setIsLeader(authIsLeader)
-  }, [authIsLeader])
+  const isLeader = isLeaderToggleAllowed && mockLeaderOverride !== null ? mockLeaderOverride : authIsLeader
 
   const loadTimeline = async (silent = false) => {
+    const request = ++loadId.current
     try {
       if (!silent) setLoading(true)
       setError(null)
       const data = await getStudentReviewTimeline(effectiveProjectId)
-      setTimeline(data)
+      if (request === loadId.current) applyTimeline(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể tải tiến trình thẩm định của nhóm.')
+      if (silent) throw err
+      if (request === loadId.current) setError(err instanceof Error ? err.message : 'Không thể tải tiến trình thẩm định của nhóm.')
     } finally {
-      if (!silent) setLoading(false)
+      if (!silent && request === loadId.current) setLoading(false)
     }
   }
 
   useEffect(() => {
     void loadTimeline()
+    return () => { loadId.current++; readinessId.current++ }
   }, [effectiveProjectId])
 
   const handleSubmitRevision = async (
@@ -70,10 +85,11 @@ export function StudentReviewTimelinePage() {
         file: payload.file || undefined,
         linkUrl: payload.linkUrl,
         expectedVersion,
+        concurrencyToken: targetGate?.concurrencyToken,
       },
       isLeader,
     )
-    setTimeline(updated)
+    applyTimeline(updated)
   }
 
   const currentGate = timeline?.gates.find((g) => g.code === timeline.currentGateCode) || timeline?.gates[0]
@@ -116,14 +132,14 @@ export function StudentReviewTimelinePage() {
               gateTitle={currentGate.title}
               gateStatus={currentGate.status}
               blockerMessage={currentGate.blockingReasons[0]?.message}
-              onSendFeedback={async (feedback) => {
+              onSendFeedback={env.reviewGatesMockEnabled ? async (feedback) => {
                 await submitSupervisorFeedback({
                   projectId: timeline.projectId,
                   gateCode: currentGate.code,
                   feedback,
                 })
                 await loadTimeline(true)
-              }}
+              } : undefined}
             />
           )}
 
@@ -131,8 +147,14 @@ export function StudentReviewTimelinePage() {
             timeline={timeline}
             isLeader={isLeader}
             isAuthenticated={Boolean(auth?.session)}
-            onToggleRole={isLeaderToggleAllowed ? () => setIsLeader(!isLeader) : undefined}
+            onToggleRole={isLeaderToggleAllowed ? () => setMockLeaderOverride(!isLeader) : undefined}
             onSubmitRevision={handleSubmitRevision}
+            readiness={readiness}
+            onReload={() => loadTimeline(true)}
+            onSubmitForReview={async (gateCode) => {
+              const gate = timeline.gates.find(item => item.code === gateCode)
+              applyTimeline(await submitGateForReview({ projectId: timeline.projectId, gateCode, concurrencyToken: gate?.concurrencyToken }))
+            }}
           />
         </div>
       ) : null}

@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { Modal } from '../../../components/ui/Modal'
 import { Button } from '../../../components/ui/Button'
+import { env } from '../../../app/config/env'
+import { HttpError } from '../../../services/http/http-client'
 import type { StudentGateRequirement } from '../types/review-gates.types'
 
 export interface ReviewSubmissionPayload {
@@ -20,6 +22,8 @@ interface ReviewSubmissionModalProps {
   canSubmit?: boolean
   blockingMessage?: string
   onSubmit: (payload: ReviewSubmissionPayload) => Promise<void>
+  onReload?: () => Promise<void>
+  revisionRequired?: boolean
 }
 
 export function ReviewSubmissionModal({
@@ -31,6 +35,8 @@ export function ReviewSubmissionModal({
   canSubmit,
   blockingMessage,
   onSubmit,
+  onReload,
+  revisionRequired = false,
 }: ReviewSubmissionModalProps) {
   const isPermitted = canSubmit !== undefined ? canSubmit : isLeader
   const [submissionMode, setSubmissionMode] = useState<'file' | 'link'>('file')
@@ -41,12 +47,13 @@ export function ReviewSubmissionModal({
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [conflict, setConflict] = useState(false)
 
   if (!requirement) return null
 
   const currentVer = requirement.latestArtifact?.version ?? 0
   const nextVer = currentVer + 1
-  const isRevision = requirement.verificationStatus === 'REJECTED'
+  const isRevision = revisionRequired || requirement.verificationStatus === 'REJECTED'
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`
@@ -85,6 +92,10 @@ export function ReviewSubmissionModal({
       setError('Vui lòng chọn tệp tải lên hoặc nhập tên/liên kết minh chứng.')
       return
     }
+    if (!env.reviewGatesMockEnabled && (submissionMode !== 'file' || !selectedFile)) {
+      setError('Vui lòng chọn tệp minh chứng thực tế; API chưa hỗ trợ nộp liên kết ngoài.')
+      return
+    }
     if (!notes.trim()) {
       setError('Vui lòng nhập ghi chú hoặc giải trình nội dung nộp.')
       return
@@ -105,6 +116,7 @@ export function ReviewSubmissionModal({
       setNotes('')
       onClose()
     } catch (err) {
+      setConflict(err instanceof HttpError && err.status === 409)
       setError(err instanceof Error ? err.message : 'Có lỗi xảy ra khi nộp hồ sơ.')
     } finally {
       setBusy(false)
@@ -160,7 +172,7 @@ export function ReviewSubmissionModal({
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">upload_file</span>
             Tải tệp lên (PDF, DOCX, ZIP)
           </button>
-          <button
+          {env.reviewGatesMockEnabled && <button
             type="button"
             onClick={() => setSubmissionMode('link')}
             className={`flex items-center gap-1.5 pb-2.5 px-3 border-b-2 transition-colors cursor-pointer ${
@@ -171,13 +183,23 @@ export function ReviewSubmissionModal({
           >
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">link</span>
             Liên kết ngoài (Git PR / Cloud)
-          </button>
+          </button>}
         </div>
 
         {submissionMode === 'file' ? (
           <div className="space-y-3">
             {!selectedFile ? (
               <div
+                role="button"
+                tabIndex={isPermitted && !busy ? 0 : -1}
+                aria-label="Chọn tệp minh chứng"
+                aria-disabled={!isPermitted || busy}
+                onKeyDown={(e) => {
+                  if ((e.key === 'Enter' || e.key === ' ') && isPermitted && !busy) {
+                    e.preventDefault()
+                    fileInputRef.current?.click()
+                  }
+                }}
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
                 onDragLeave={(e) => { if (e.currentTarget.contains(e.relatedTarget as Node)) return; setIsDragging(false) }}
                 onDrop={(e) => {
@@ -199,6 +221,7 @@ export function ReviewSubmissionModal({
                 <input
                   ref={fileInputRef}
                   type="file"
+                  aria-label="Tệp minh chứng"
                   className="hidden"
                   disabled={!isPermitted || busy}
                   accept=".pdf,.docx,.zip,.png,.jpg,.jpeg,.xlsx,.pptx"
@@ -239,7 +262,7 @@ export function ReviewSubmissionModal({
                   <button
                     type="button"
                     disabled={!isPermitted || busy}
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => { setSelectedFile(null); setArtifactName('') }}
                     className="text-xs font-medium text-primary hover:underline px-2 py-1 cursor-pointer"
                   >
                     Đổi tệp
@@ -272,7 +295,7 @@ export function ReviewSubmissionModal({
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-primary focus:outline-hidden disabled:bg-slate-100"
               />
               <p className="mt-1 text-xs text-slate-500">
-                {selectedFile ? 'Đã tự động điền theo tệp tải lên. Bạn có thể đổi tên hiển thị nếu muốn.' : 'Chọn tệp ở trên để tải lên hoặc nhập tên tệp.'}
+                {env.reviewGatesMockEnabled ? 'Mô phỏng: có thể nhập tên minh chứng để thử giao diện.' : 'Chọn tệp ở trên. Tên file tải lên được lưu theo tệp đã chọn.'}
               </p>
             </div>
           </div>
@@ -319,6 +342,13 @@ export function ReviewSubmissionModal({
         {error && (
           <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs font-semibold text-rose-700">
             {error}
+            {conflict && onReload && <button type="button" disabled={busy} className="mt-2 block text-xs underline"
+              onClick={async () => {
+                setBusy(true)
+                try { await onReload(); setError(null); setConflict(false) }
+                catch (err) { setError(err instanceof Error ? err.message : 'Không thể tải lại dữ liệu.') }
+                finally { setBusy(false) }
+              }}>Tải lại dữ liệu, giữ tệp và ghi chú</button>}
           </div>
         )}
 

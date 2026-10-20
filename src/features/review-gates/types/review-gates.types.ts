@@ -1,4 +1,6 @@
 export type RequirementType =
+  | 'FILE'
+  | 'EXTERNAL_LINK'
   | 'DOCUMENT'
   | 'EVIDENCE'
   | 'DEMO'
@@ -19,11 +21,13 @@ export type VerificationMode = 'HUMAN' | 'SYSTEM' | 'SYSTEM + HUMAN'
 
 export interface GateRequirement {
   id: string
+  code?: string
   title: string
   description?: string
   type: RequirementType
   scope: RequirementScope
   majorId?: number | null
+  targetStudentId?: number | null
   verification: VerificationMode
   required: boolean
   minCount?: number
@@ -33,13 +37,14 @@ export interface GateRequirement {
 export interface ReviewGate {
   id: string
   code: string
+  sequence?: number
   title: string
   objective: string
   required: boolean
   blockNextGate: boolean
   blocksDefense?: boolean
-  start: string
-  end: string
+  start: string | null
+  end: string | null
   reviewerPolicy: string
   reviewScope: 'COMMON' | 'MAJOR_SPECIFIC'
   requirements: GateRequirement[]
@@ -51,7 +56,7 @@ export interface ReviewGateTemplate {
   id: string
   code: string
   name: string
-  projectPeriodId?: number
+  projectPeriodId?: number | null
   mode: 'SINGLE_MAJOR' | 'INTERDISCIPLINARY'
   major: string
   gatesCount: number
@@ -104,9 +109,13 @@ export interface StudentGateRequirement {
     filename: string
     submittedAt: string
     submittedBy: string
-    notes?: string
-  }
-  reviewerFeedback?: string
+    notes?: string | null
+    contentType?: string
+    sizeBytes?: number
+    sha256?: string
+    downloadUrl?: string
+  } | null
+  reviewerFeedback?: string | null
 }
 
 export interface StudentGateInstance {
@@ -117,8 +126,9 @@ export interface StudentGateInstance {
   status: GateStatus
   reviewEligibility: 'READY' | 'BLOCKED' | 'NOT_READY'
   isRequired: boolean
-  windowStart: string
-  windowEnd: string
+  windowStart: string | null
+  windowEnd: string | null
+  concurrencyToken?: string
   blockingReasons: Array<{ code: string; requirementCode?: string; message: string }>
   requirements: StudentGateRequirement[]
 }
@@ -166,6 +176,7 @@ export interface SubmitRevisionRequest {
   artifactName: string
   notes: string
   expectedVersion: number
+  concurrencyToken?: string
   mode?: 'file' | 'link'
   linkUrl?: string
   file?: File
@@ -175,6 +186,7 @@ export interface SubmitGatePackageRequest {
   projectId: string
   gateCode: string
   notes?: string
+  concurrencyToken?: string
 }
 
 export interface SupervisorFeedbackRequest {
@@ -191,11 +203,11 @@ export interface AssignedReviewItem {
   gateCode: string
   gateTitle: string
   scope: string
-  dueAt: string
-  status: 'PENDING_REVIEW' | 'IN_REVIEW' | 'DECIDED'
-  latestDecision?: 'PASSED' | 'REVISION_REQUIRED'
+  dueAt: string | null
+  status: 'PENDING_REVIEW' | 'IN_REVIEW' | 'DECIDED' | 'REVOKED'
+  latestDecision?: 'PASSED' | 'REVISION_REQUIRED' | null
   requirements: StudentGateRequirement[]
-  reviewerNotes?: string
+  reviewerNotes?: string | null
   concurrencyToken: string
 }
 

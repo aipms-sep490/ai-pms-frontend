@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { StudentReviewTimelinePage } from './StudentReviewTimelinePage'
 import { reviewGatesMockAdapter } from '../api/review-gates-mock-adapter'
@@ -78,7 +78,7 @@ describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
     await screen.findByText('Campus Support Platform')
 
     // Find the "Nộp bản sửa" button for rejected SDD
-    const submitRevisionBtn = screen.getByRole('button', { name: 'Nộp bản sửa' })
+    const submitRevisionBtn = within(screen.getByRole('row', { name: /Software Design Document \(SDD\)/ })).getByRole('button', { name: 'Nộp bản sửa' })
     fireEvent.click(submitRevisionBtn)
 
     // Modal opens
@@ -140,7 +140,7 @@ describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
 
     await screen.findByText('Campus Support Platform')
 
-    const submitRevisionBtn = screen.getByRole('button', { name: 'Nộp bản sửa' })
+    const submitRevisionBtn = within(screen.getByRole('row', { name: /Software Design Document \(SDD\)/ })).getByRole('button', { name: 'Nộp bản sửa' })
     fireEvent.click(submitRevisionBtn)
 
     const artifactInput = screen.getByPlaceholderText(/Ví dụ: SDD_v3.pdf/)
@@ -208,7 +208,7 @@ describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
 
     await screen.findByText('Campus Support Platform')
 
-    const submitRevisionBtn = screen.getByRole('button', { name: 'Nộp bản sửa' })
+    const submitRevisionBtn = within(screen.getByRole('row', { name: /Software Design Document \(SDD\)/ })).getByRole('button', { name: 'Nộp bản sửa' })
     fireEvent.click(submitRevisionBtn)
 
     const dropArea = screen.getByText(/Kéo thả tệp minh chứng vào đây/)

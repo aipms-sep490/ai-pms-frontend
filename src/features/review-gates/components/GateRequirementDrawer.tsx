@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { env } from '../../../app/config/env'
 import type {
   GateRequirement,
   RequirementScope,
@@ -14,6 +15,7 @@ interface GateRequirementDrawerProps {
 }
 
 const requirementTypes: RequirementType[] = [
+  'FILE',
   'DOCUMENT',
   'EVIDENCE',
   'DEMO',
@@ -41,6 +43,10 @@ export function GateRequirementDrawer({
   onSave,
 }: GateRequirementDrawerProps) {
   const [title, setTitle] = useState(requirement?.title || '')
+  const [code, setCode] = useState(requirement?.code || '')
+  const [majorId, setMajorId] = useState(String(requirement?.majorId ?? ''))
+  const [studentId, setStudentId] = useState(String(requirement?.targetStudentId ?? ''))
+  const [error, setError] = useState<string | null>(null)
   const [type, setType] = useState<RequirementType>(requirement?.type || 'DOCUMENT')
   const [scope, setScope] = useState<RequirementScope>(requirement?.scope || 'COMMON')
   const [verification, setVerification] = useState<VerificationMode>(
@@ -53,14 +59,24 @@ export function GateRequirementDrawer({
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
     if (!title.trim()) return
+    const needsMajor = scope === 'MAJOR_SPECIFIC' || scope === 'INDIVIDUAL'
+    const isValidId = (value: string) => /^\d+$/.test(value) && Number.isSafeInteger(Number(value)) && Number(value) > 0
+    if (!env.reviewGatesMockEnabled && (!code.trim() || (needsMajor && !isValidId(majorId)) || (scope === 'INDIVIDUAL' && !isValidId(studentId)))) {
+      setError('Nhập mã yêu cầu và mã ngành/sinh viên đích hợp lệ theo phạm vi đã chọn.')
+      return
+    }
 
     onSave({
       id: requirement?.id || `req-${Date.now()}`,
+      code: code.trim() || requirement?.code,
       title: title.trim(),
       type,
       scope,
       verification,
       required,
+      description: requirement?.description,
+      majorId: needsMajor ? Number(majorId) || null : null,
+      targetStudentId: scope === 'INDIVIDUAL' ? Number(studentId) || null : null,
     })
     onClose()
   }
@@ -97,6 +113,11 @@ export function GateRequirementDrawer({
 
         <form onSubmit={handleSubmit} className="flex flex-1 flex-col justify-between overflow-y-auto py-5">
           <div className="space-y-4">
+            <div>
+              <label htmlFor="req-code" className="block text-xs font-semibold text-slate-700">Mã yêu cầu *</label>
+              <input id="req-code" required={!env.reviewGatesMockEnabled} value={code} onChange={e => setCode(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm" />
+            </div>
+            {error && <p role="alert" className="text-xs text-rose-700">{error}</p>}
             <div>
               <label htmlFor="req-title" className="block text-xs font-semibold text-slate-700">
                 Tên yêu cầu / Tiêu chuẩn đầu ra *
@@ -140,7 +161,7 @@ export function GateRequirementDrawer({
                   onChange={e => setScope(e.target.value as RequirementScope)}
                   className="mt-1.5 w-full rounded-lg border border-slate-200 p-2.5 text-sm text-slate-900 focus:border-primary focus:outline-none"
                 >
-                  {requirementScopes.map(s => (
+                  {requirementScopes.filter(s => env.reviewGatesMockEnabled || ['COMMON', 'MAJOR_SPECIFIC', 'INDIVIDUAL'].includes(s)).map(s => (
                     <option key={s} value={s}>
                       {s}
                     </option>
@@ -148,6 +169,15 @@ export function GateRequirementDrawer({
                 </select>
               </div>
             </div>
+
+            {(scope === 'MAJOR_SPECIFIC' || scope === 'INDIVIDUAL') && <div>
+              <label htmlFor="req-major" className="block text-xs font-semibold text-slate-700">Mã ngành đích *</label>
+              <input id="req-major" inputMode="numeric" value={majorId} onChange={e => setMajorId(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm" />
+            </div>}
+            {scope === 'INDIVIDUAL' && <div>
+              <label htmlFor="req-student" className="block text-xs font-semibold text-slate-700">Mã sinh viên đích *</label>
+              <input id="req-student" inputMode="numeric" value={studentId} onChange={e => setStudentId(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm" />
+            </div>}
 
             <div>
               <label htmlFor="req-verification" className="block text-xs font-semibold text-slate-700">

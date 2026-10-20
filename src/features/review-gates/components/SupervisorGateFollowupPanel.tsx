@@ -75,7 +75,9 @@ export function SupervisorGateFollowupPanel({
         </div>
       )}
 
-      {submitted ? (
+      {!onSendFeedback ? (
+        <p role="status" className="text-xs text-slate-600">Chưa hỗ trợ lưu nhận xét hướng dẫn qua API Review Gates.</p>
+      ) : submitted ? (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-700 flex items-center justify-between">
           <span>✓ Đã gửi nhận xét hướng dẫn cho nhóm sinh viên thành công.</span>
           <button type="button" onClick={() => setSubmitted(false)} className="text-primary hover:underline">Gửi thêm</button>

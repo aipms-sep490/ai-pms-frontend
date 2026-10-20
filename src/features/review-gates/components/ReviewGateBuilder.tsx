@@ -5,6 +5,7 @@ import type {
   ReviewGateTemplate,
 } from '../types/review-gates.types'
 import { GateRequirementDrawer } from './GateRequirementDrawer'
+import { env } from '../../../app/config/env'
 
 interface ReviewGateBuilderProps {
   template: ReviewGateTemplate
@@ -30,6 +31,7 @@ export function ReviewGateBuilder({
   const currentGate = template.gates[selectedGateIndex] || template.gates[0]
 
   function updateCurrentGate(field: keyof ReviewGate, value: unknown) {
+    if (template.status === 'PUBLISHED') return
     const nextGates = [...template.gates]
     nextGates[selectedGateIndex] = {
       ...nextGates[selectedGateIndex],
@@ -42,6 +44,7 @@ export function ReviewGateBuilder({
   }
 
   function handleAddGate() {
+    if (template.status === 'PUBLISHED') return
     if (template.gates.length >= 8) return
     const nextIndex = template.gates.length + 1
     const prefix = template.mode === 'INTERDISCIPLINARY' ? 'G' : 'R'
@@ -52,8 +55,8 @@ export function ReviewGateBuilder({
       objective: 'Chưa cấu hình mục tiêu học thuật',
       required: true,
       blockNextGate: true,
-      start: '2026-11-15',
-      end: '2026-11-30',
+      start: env.reviewGatesMockEnabled ? '2026-11-15' : null,
+      end: env.reviewGatesMockEnabled ? '2026-11-30' : null,
       reviewerPolicy: 'Assigned Reviewer',
       reviewScope: 'COMMON',
       requirements: [],
@@ -67,6 +70,7 @@ export function ReviewGateBuilder({
   }
 
   function handleSaveRequirement(req: GateRequirement) {
+    if (template.status === 'PUBLISHED') return
     if (!currentGate) return
     const nextRequirements = [...currentGate.requirements]
     if (editingRequirementIndex !== null) {
@@ -78,6 +82,7 @@ export function ReviewGateBuilder({
   }
 
   function handleDeleteRequirement(index: number) {
+    if (template.status === 'PUBLISHED') return
     if (!currentGate) return
     const nextRequirements = currentGate.requirements.filter((_, i) => i !== index)
     updateCurrentGate('requirements', nextRequirements)
@@ -263,7 +268,7 @@ export function ReviewGateBuilder({
                   <label className="block text-xs font-semibold text-slate-700">Bắt đầu nhận hồ sơ</label>
                   <input
                     type="date"
-                    value={currentGate.start}
+                    value={currentGate.start?.slice(0, 10) ?? ''}
                     onChange={e => updateCurrentGate('start', e.target.value)}
                     className="mt-1.5 w-full rounded-lg border border-slate-200 p-2 text-xs text-slate-900"
                   />
@@ -272,7 +277,7 @@ export function ReviewGateBuilder({
                   <label className="block text-xs font-semibold text-slate-700">Kết thúc nhận hồ sơ</label>
                   <input
                     type="date"
-                    value={currentGate.end}
+                    value={currentGate.end?.slice(0, 10) ?? ''}
                     onChange={e => updateCurrentGate('end', e.target.value)}
                     className="mt-1.5 w-full rounded-lg border border-slate-200 p-2 text-xs text-slate-900"
                   />

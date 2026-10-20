@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { PageLoading } from '../../../components/ui/PageLoading'
-import { getAssignedReviews, submitGateDecision, verifyEvidence } from '../api/review-gates-api'
+import { getAssignedReviewPage, submitGateDecision, verifyEvidence } from '../api/review-gates-api'
+import { Pagination } from '../../../components/ui/Pagination'
 import type { AssignedReviewItem } from '../types/review-gates.types'
 import { AssignedReviewQueue } from '../components/AssignedReviewQueue'
 
@@ -9,23 +10,35 @@ export function AssignedGateReviewPage() {
   const [assignments, setAssignments] = useState<AssignedReviewItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [hasLoaded, setHasLoaded] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [totalCount, setTotalCount] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const requestId = useRef(0)
 
-  const loadAssignments = async () => {
+  const loadAssignments = useCallback(async () => {
+    const currentRequest = ++requestId.current
     try {
       setLoading(true)
       setError(null)
-      const data = await getAssignedReviews()
-      setAssignments(data)
+      const data = await getAssignedReviewPage(page, pageSize)
+      if (currentRequest !== requestId.current) return
+      setAssignments(data.items)
+      setTotalCount(data.totalCount)
+      setTotalPages(data.totalPages)
+      setHasLoaded(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể tải danh sách đồ án được phân công thẩm định.')
+      if (currentRequest === requestId.current) setError(err instanceof Error ? err.message : 'Không thể tải danh sách đồ án được phân công thẩm định.')
     } finally {
-      setLoading(false)
+      if (currentRequest === requestId.current) setLoading(false)
     }
-  }
+  }, [page, pageSize])
 
   useEffect(() => {
     void loadAssignments()
-  }, [])
+    return () => { requestId.current++ }
+  }, [loadAssignments])
 
   const handleVerifyEvidence = async (
     assignmentId: string,
@@ -65,11 +78,12 @@ export function AssignedGateReviewPage() {
       title="Thẩm định Tiến trình Đồ án (Review Gates)"
       description="Xem xét minh chứng học thuật theo phiên bản được nộp, đối chiếu tiêu chí và đưa ra quyết định thẩm định chính thức."
     >
-      {loading ? (
+      {loading && !hasLoaded ? (
         <div className="py-12">
           <PageLoading label="Đang tải các đợt thẩm định được phân công..." />
         </div>
-      ) : error ? (
+      ) : <>
+      {error && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-700">
           <p className="font-semibold">{error}</p>
           <button
@@ -80,14 +94,19 @@ export function AssignedGateReviewPage() {
             Thử lại
           </button>
         </div>
-      ) : (
+      )}
+      {hasLoaded && <div aria-busy={loading}>
         <AssignedReviewQueue
           assignments={assignments}
           onVerifyEvidence={handleVerifyEvidence}
           onSubmitDecision={handleSubmitDecision}
           onReload={loadAssignments}
+          loading={loading}
         />
-      )}
+        <Pagination page={page} pages={totalPages} total={totalCount} pageSize={pageSize} busy={loading}
+          onPage={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1) }} />
+      </div>}
+      </>}
     </WorkspacePage>
   )
 }

@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import type { AssignedReviewItem } from '../types/review-gates.types'
 import { Button } from '../../../components/ui/Button'
+import { HttpError } from '../../../services/http/http-client'
+import { env } from '../../../app/config/env'
+import { EvidenceDownloadButton } from './EvidenceDownloadButton'
 
 interface AssignedReviewQueueProps {
   assignments: AssignedReviewItem[]
@@ -18,6 +21,7 @@ interface AssignedReviewQueueProps {
     concurrencyToken?: string,
   ) => Promise<void>
   onReload?: () => Promise<void> | void
+  loading?: boolean
 }
 
 export function AssignedReviewQueue({
@@ -25,22 +29,26 @@ export function AssignedReviewQueue({
   onVerifyEvidence,
   onSubmitDecision,
   onReload,
+  loading = false,
 }: AssignedReviewQueueProps) {
   const [selectedId, setSelectedId] = useState(assignments[0]?.id || '')
-  const [reviewNotes, setReviewNotes] = useState('')
+  const [notesByAssignment, setNotesByAssignment] = useState<Record<string, string>>({})
   const [feedbackInput, setFeedbackInput] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [conflict, setConflict] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [previewingArtifact, setPreviewingArtifact] = useState<{
     filename: string
     version: number
     submittedBy: string
     submittedAt: string
-    notes?: string
+    notes?: string | null
   } | null>(null)
 
   const selectedItem = assignments.find((a) => a.id === selectedId) || assignments[0]
+  const reviewNotes = notesByAssignment[selectedItem?.id || ''] || ''
+  const setReviewNotes = (value: string) => setNotesByAssignment(prev => ({ ...prev, [selectedItem.id]: value }))
 
   if (!selectedItem) {
     return (
@@ -55,17 +63,18 @@ export function AssignedReviewQueue({
   const mandatoryReqs = selectedItem.requirements.filter((r) => r.isMandatory)
   const acceptedMandatoryCount = mandatoryReqs.filter((r) => r.verificationStatus === 'ACCEPTED').length
   const allMandatoryAccepted = acceptedMandatoryCount === mandatoryReqs.length
-  const isDecided = selectedItem.status === 'DECIDED'
+  const isDecided = selectedItem.status === 'DECIDED' || selectedItem.status === 'REVOKED'
 
   const handleVerify = async (requirementId: string, decision: 'ACCEPTED' | 'REJECTED') => {
     try {
       setBusy(true)
       setActionError(null)
       setSuccessMsg(null)
-      const feedback = feedbackInput[requirementId]?.trim()
+      const feedback = feedbackInput[`${selectedItem.id}:${requirementId}`]?.trim()
       await onVerifyEvidence(selectedItem.id, requirementId, decision, feedback, selectedItem.concurrencyToken)
       setSuccessMsg(`Đã cập nhật trạng thái minh chứng thành ${decision === 'ACCEPTED' ? 'Chấp thuận' : 'Yêu cầu nộp lại'}.`)
     } catch (err) {
+      setConflict(err instanceof HttpError ? err.status === 409 : env.reviewGatesMockEnabled && err instanceof Error && err.message.includes('409'))
       setActionError(err instanceof Error ? err.message : 'Lỗi khi xác minh minh chứng.')
     } finally {
       setBusy(false)
@@ -86,6 +95,7 @@ export function AssignedReviewQueue({
       setSuccessMsg(`Đã lưu quyết định thẩm định Gate thành công: ${decision === 'PASSED' ? 'ĐẠT (PASSED)' : 'CẦN CHỈNH SỬA'}.`)
       setReviewNotes('')
     } catch (err) {
+      setConflict(err instanceof HttpError ? err.status === 409 : env.reviewGatesMockEnabled && err instanceof Error && err.message.includes('409'))
       setActionError(err instanceof Error ? err.message : 'Lỗi khi ra quyết định thẩm định.')
     } finally {
       setBusy(false)
@@ -174,7 +184,7 @@ export function AssignedReviewQueue({
 
           {/* Feedback & Error alerts */}
           {actionError && (
-            actionError.includes('409') || actionError.toLowerCase().includes('conflict') ? (
+            conflict ? (
               <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-xs text-amber-900 space-y-2">
                 <div className="flex items-center gap-2 font-bold text-amber-800">
                   <span className="material-symbols-outlined text-base">warning</span>
@@ -300,22 +310,23 @@ export function AssignedReviewQueue({
                     ) : (
                       <div className="mt-2 text-slate-400 italic">Sinh viên chưa nộp minh chứng cho yêu cầu này.</div>
                     )}
+                    <EvidenceDownloadButton projectId={selectedItem.projectId} gateCode={selectedItem.gateCode} requirement={req} />
 
                     {/* Reviewer Feedback & Actions */}
                     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-200/70 pt-2.5">
                       <input
                         type="text"
                         placeholder="Nhận xét cụ thể cho minh chứng này (tùy chọn)..."
-                        value={feedbackInput[req.id] || req.reviewerFeedback || ''}
+                        value={feedbackInput[`${selectedItem.id}:${req.id}`] ?? req.reviewerFeedback ?? ''}
                         onChange={(e) =>
-                          setFeedbackInput((prev) => ({ ...prev, [req.id]: e.target.value }))
+                          setFeedbackInput((prev) => ({ ...prev, [`${selectedItem.id}:${req.id}`]: e.target.value }))
                         }
                         className="flex-1 rounded-md border border-slate-300 px-2.5 py-1 text-xs text-slate-900 focus:border-primary focus:outline-hidden"
                       />
                       <Button
                         size="sm"
                         variant="secondary"
-                        disabled={busy || isDecided}
+                        disabled={busy || loading || isDecided || !req.latestArtifact}
                         onClick={() => handleVerify(req.id, 'ACCEPTED')}
                       >
                         ✓ Duyệt đạt
@@ -323,7 +334,7 @@ export function AssignedReviewQueue({
                       <Button
                         size="sm"
                         variant="danger"
-                        disabled={busy || isDecided}
+                        disabled={busy || loading || isDecided || !req.latestArtifact}
                         onClick={() => handleVerify(req.id, 'REJECTED')}
                       >
                         ✕ Yêu cầu sửa
@@ -384,14 +395,14 @@ export function AssignedReviewQueue({
               <div className="flex items-center gap-2.5">
                 <Button
                   variant="danger"
-                  disabled={busy || isDecided}
+                  disabled={busy || loading || isDecided}
                   onClick={() => handleDecision('REVISION_REQUIRED')}
                 >
                   Yêu cầu nhóm chỉnh sửa (Revision Required)
                 </Button>
                 <Button
                   variant="primary"
-                  disabled={!allMandatoryAccepted || busy || isDecided}
+                  disabled={!allMandatoryAccepted || busy || loading || isDecided}
                   aria-describedby="pass-eligibility-reason"
                   onClick={() => handleDecision('PASSED')}
                   title={isDecided ? 'Đợt thẩm định đã hoàn tất' : !allMandatoryAccepted ? 'Cần duyệt đạt toàn bộ minh chứng bắt buộc trước' : undefined}
@@ -460,7 +471,7 @@ export function AssignedReviewQueue({
                   Chế độ bảo mật lưu trữ:
                 </p>
                 <p className="mt-1 text-xs text-blue-800">
-                  Hệ thống bảo vệ quyền riêng tư học vụ: liên kết tải về trực tiếp từ Storage Provider được tạo theo phiên bảo mật có thời hạn và gắn với thẩm quyền tài khoản của Reviewer.
+                  Tải tệp qua API có xác thực. Hệ thống kiểm tra quyền trên từng request và phục vụ đúng phiên bản được yêu cầu.
                 </p>
               </div>
             </div>

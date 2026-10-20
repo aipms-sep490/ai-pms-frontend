@@ -5,7 +5,7 @@ import type {
   StudentGateRequirement,
   StudentReviewTimelineDto,
 } from '../../review-gates/types/review-gates.types'
-import { ReviewSubmissionModal } from '../../review-gates/components/ReviewSubmissionModal'
+import { ReviewSubmissionModal, type ReviewSubmissionPayload } from '../../review-gates/components/ReviewSubmissionModal'
 
 export interface NextActionBannerProps {
   timeline: StudentReviewTimelineDto | null
@@ -24,8 +24,7 @@ export interface NextActionBannerProps {
   onSubmitRevision?: (
     gateCode: string,
     requirementId: string,
-    artifactName: string,
-    notes: string,
+    payload: ReviewSubmissionPayload,
   ) => Promise<void>
 }
 
@@ -378,9 +377,11 @@ export function NextActionBanner({
           requirement={submissionReq}
           gateCode={activeGate.code}
           isLeader={isLeader}
+          revisionRequired={activeGate.status === 'REVISION_REQUIRED'}
+          canSubmit={isLeader && Boolean(timeline?.capabilities.canSubmitRevision)}
           onSubmit={async (payload) => {
             if (onSubmitRevision) {
-              await onSubmitRevision(activeGate.code, submissionReq.id, payload.artifactName, payload.notes)
+              await onSubmitRevision(activeGate.code, submissionReq.id, payload)
             }
           }}
         />

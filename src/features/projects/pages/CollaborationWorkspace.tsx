@@ -10,6 +10,7 @@ import { TeamReflectionPanel } from '../../student-collaboration/TeamReflectionP
 import { getStudentReviewTimeline, submitRevision } from '../../review-gates/api/review-gates-api'
 import type { StudentReviewTimelineDto } from '../../review-gates/types/review-gates.types'
 import { NextActionBanner } from '../components/NextActionBanner'
+import type { ReviewSubmissionPayload } from '../../review-gates/components/ReviewSubmissionModal'
 
 export function CollaborationWorkspace({ project, team, supervisor, currentUserId, executionCapabilities }: {
   project: ProjectDto; team?: TeamDto | null; supervisor?: SupervisorAssignmentDto | null; currentUserId?: number; executionCapabilities?: ProjectExecutionCapabilities
@@ -68,8 +69,7 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
   const handleSubmitRevision = async (
     gateCode: string,
     requirementId: string,
-    artifactName: string,
-    notes: string,
+    payload: ReviewSubmissionPayload,
   ) => {
     if (!reviewTimeline) return
     const updated = await submitRevision(
@@ -77,9 +77,10 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
         projectId: reviewTimeline.projectId,
         gateCode,
         requirementId,
-        artifactName,
-        notes,
-        expectedVersion: 1,
+        ...payload,
+        file: payload.file ?? undefined,
+        expectedVersion: reviewTimeline.gates.find(g => g.code === gateCode)?.requirements.find(r => r.id === requirementId)?.latestArtifact?.version ?? 0,
+        concurrencyToken: reviewTimeline.gates.find(g => g.code === gateCode)?.concurrencyToken,
       },
       isTeamLeader,
     )
