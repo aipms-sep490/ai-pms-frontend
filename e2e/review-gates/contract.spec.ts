@@ -96,6 +96,38 @@ test('controlled HTTP: upload 409 reload preserves the selected file and notes',
   expect(submitted).toBe(2)
 })
 
+test('controlled HTTP: busy queue shows retry instead of an empty assignment list', async ({ page }) => {
+  let reads = 0
+  await page.route('**/gate-assignments?*', route => ++reads === 1
+    ? route.fulfill({ status: 409, json: { code: 'REVIEW_QUEUE_BUSY', detail: 'The reviewer queue is busy; retry shortly.' } })
+    : route.fulfill({ json: { items: [assignment], page: 1, pageSize: 20, totalCount: 1, totalPages: 1 } }))
+  await login(page, 'reviewer')
+  await expect(page.getByRole('alert')).toContainText('Hàng đợi thẩm định đang bận')
+  await expect(page.getByText('Không có đợt thẩm định nào được phân công')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Thử lại', exact: true }).click()
+  await expect(page.getByPlaceholder(/Nhập chi tiết đánh giá/)).toBeVisible()
+  expect(reads).toBe(2)
+})
+
+test('controlled HTTP: busy reload preserves draft and blocks decisions until queue refresh succeeds', async ({ page }) => {
+  let reads = 0
+  await page.route('**/gate-assignments?*', route => ++reads === 2
+    ? route.fulfill({ status: 409, json: { code: 'REVIEW_QUEUE_BUSY', detail: 'The reviewer queue is busy; retry shortly.' } })
+    : route.fulfill({ json: { items: [assignment], page: 1, pageSize: 20, totalCount: 1, totalPages: 1 } }))
+  await page.route('**/decision', route => route.fulfill({ status: 409, json: { detail: 'The review gate changed; reload before retrying.' } }))
+  await login(page, 'reviewer')
+  await page.getByPlaceholder(/Nhập chi tiết đánh giá/).fill('Preserve reviewer draft during queue contention')
+  await page.getByRole('button', { name: /Yêu cầu nhóm chỉnh sửa/ }).click()
+  await page.getByRole('button', { name: 'Tải lại dữ liệu mới nhất' }).click()
+  await expect(page.getByRole('alert')).toContainText('Hàng đợi thẩm định đang bận')
+  await expect(page.getByPlaceholder(/Nhập chi tiết đánh giá/)).toHaveValue('Preserve reviewer draft during queue contention')
+  await expect(page.getByRole('button', { name: /Yêu cầu nhóm chỉnh sửa/ })).toBeDisabled()
+  await page.getByRole('button', { name: 'Thử lại', exact: true }).click()
+  await expect(page.getByRole('button', { name: /Yêu cầu nhóm chỉnh sửa/ })).toBeEnabled()
+  await expect(page.getByPlaceholder(/Nhập chi tiết đánh giá/)).toHaveValue('Preserve reviewer draft during queue contention')
+  expect(reads).toBe(3)
+})
+
 test('controlled HTTP: exact download handles authorization revocation', async ({ page }) => {
   await page.route('**/evidence/1/download', route => route.fulfill({ status: 403, json: { detail: 'Assignment revoked' } }))
   await login(page, 'reviewer')
