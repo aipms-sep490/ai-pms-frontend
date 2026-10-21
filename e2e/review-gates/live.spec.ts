@@ -51,7 +51,7 @@ for (const mode of ['SINGLE_MAJOR', 'INTERDISCIPLINARY'] as const) {
     const extraRequirements = mode === 'INTERDISCIPLINARY' ? data.majors.map(m => ({ code: m.code, title: `${m.code} evidence`, type: 'FILE', scope: 'MAJOR_SPECIFIC', majorId: m.id, required: true, verification: 'HUMAN' })) : []
     const baseGate = { code: 'R1', sequence: 1, title: 'Acceptance review', objective: 'Synthetic isolated lifecycle', required: true, blockNextGate: true, blocksDefense: false, start: null, end: null, reviewerPolicy: 'Assigned Reviewer', reviewScope: 'COMMON', requirements: [{ code: 'COMMON', title: 'Common report', type: 'FILE', scope: 'COMMON', required: true, verification: 'HUMAN' }, ...extraRequirements] }
     const template = await call<ReviewGateTemplate>(admin, '/academic/gate-templates', {
-      projectPeriodId: project.periodId, code: `ACCEPT-${mode}`, name: `Acceptance ${mode}`, mode, major: '', version: '1.0', gates: [baseGate, { ...baseGate, code: 'R2', sequence: 2, title: 'Next review', requirements: [baseGate.requirements[0]] }],
+      projectPeriodId: project.periodId, code: `ACCEPT-${mode}`, name: `Acceptance ${mode}`, mode, major: '', version: '1.0', gates: [baseGate, { ...baseGate, code: 'R2', sequence: 2, title: 'Next review', requirements: [baseGate.requirements[0], { code: 'PRIVATE', title: 'Individual evidence', type: 'FILE', scope: 'INDIVIDUAL', majorId: data.majors.find(m => m.code === 'E2E-SE')!.id, targetStudentId: leader.user.id, required: false, verification: 'HUMAN' }] }],
     })
     await call(admin, `/academic/gate-templates/${template.id}/publish`, { concurrencyToken: template.concurrencyToken })
     let timeline = await read()
@@ -66,6 +66,19 @@ for (const mode of ['SINGLE_MAJOR', 'INTERDISCIPLINARY'] as const) {
       await assign(await login(request, 'staff.cs@e2e.invalid'), 'MAJOR_SPECIFIC', data.majors.find(m => m.code === 'E2E-SE')!.id)
       await assign(await login(request, 'staff.ds@e2e.invalid'), 'MAJOR_SPECIFIC', data.majors.find(m => m.code === 'E2E-DS')!.id)
     }
+    // Bounded concurrency smoke, not a capacity benchmark or forced SQL deadlock test.
+    const queueReads = await Promise.all(Array.from({ length: 24 }, async (_, index) => {
+      const response = await request.get(`${root}/api/v1/reviewers/me/gate-assignments?page=1&pageSize=20`, {
+        headers: { Authorization: `Bearer ${actors[index % actors.length].session.accessToken}` },
+      })
+      const body = await response.json()
+      expect([200, 409], JSON.stringify(body)).toContain(response.status())
+      if (response.status() === 409) expect(body.code).toBe('REVIEW_QUEUE_BUSY')
+      else expect(body.items.some((item: AssignedReviewItem) => item.projectId === projectId)).toBe(true)
+      return { status: response.status(), code: body.code ?? null }
+    }))
+    expect(queueReads.some(read => read.status === 200)).toBe(true)
+    await testInfo.attach('concurrent-queue-reads', { body: Buffer.from(JSON.stringify({ concurrency: 24, queueReads })), contentType: 'application/json' })
     await openActor(page, leader, 'student', projectId)
     await page.getByRole('row', { name: /Common report/ }).getByRole('button', { name: 'Nộp tài liệu', exact: true }).click()
     await page.getByLabel('Tệp minh chứng', { exact: true }).setInputFiles({ name: 'common.pdf', mimeType: 'application/pdf', buffer: initialBytes })
@@ -146,6 +159,43 @@ for (const mode of ['SINGLE_MAJOR', 'INTERDISCIPLINARY'] as const) {
     expect(revoked.status()).toBe(403)
     const anonymous = await request.get(`${root}/api/v1${downloadPath}`)
     expect(anonymous.status()).toBe(401)
+    if (mode === 'INTERDISCIPLINARY') {
+      // Negative mutations must preserve authority; these use only the owned catalog.
+      const adminHeaders = { Authorization: `Bearer ${admin.accessToken}` }
+      const deniedCases = [
+        { name: 'active supervisor COI', expected: 409, code: 'REVIEWER_CONFLICT', body: { projectId, gateCode: 'R2', reviewerId: data.actors.find(a => a.email === 'supervisor@e2e.invalid')!.id, scope: 'COMMON' } },
+        { name: 'reviewer outside requested major', expected: 403, body: { projectId, gateCode: 'R2', reviewerId: data.actors.find(a => a.email === 'staff.ds@e2e.invalid')!.id, scope: 'MAJOR_SPECIFIC', majorId: data.majors.find(m => m.code === 'E2E-SE')!.id } },
+        { name: 'individual target outside team', expected: 400, body: { projectId, gateCode: 'R2', reviewerId: evaluator.user.id, scope: 'INDIVIDUAL', studentId: admin.user.id } },
+      ]
+      for (const denied of deniedCases) {
+        const response = await request.post(`${root}/api/v1/review-gates/assignments`, { headers: adminHeaders, data: denied.body })
+        expect(response.status(), denied.name).toBe(denied.expected)
+        if (denied.code) expect((await response.json()).code).toBe(denied.code)
+      }
+      timeline = await read()
+      const privateRequirement = timeline.gates[1].requirements.find(r => r.code === 'PRIVATE')!
+      const privateUpload = await request.post(`${root}/api/v1/projects/${projectId}/review-gates/R2/evidence/file`, {
+        headers: { Authorization: `Bearer ${leader.accessToken}` }, multipart: {
+          file: { name: 'private.pdf', mimeType: 'application/pdf', buffer: revisedBytes }, requirementId: privateRequirement.id,
+          expectedVersion: '0', concurrencyToken: timeline.gates[1].concurrencyToken!,
+        },
+      })
+      expect(privateUpload.status(), await privateUpload.text()).toBe(200)
+      const staffCs = await login(request, 'staff.cs@e2e.invalid')
+      const privateAssignment = await call<AssignedReviewItem>(admin, '/review-gates/assignments', { projectId, gateCode: 'R2', reviewerId: staffCs.user.id, scope: 'INDIVIDUAL', studentId: leader.user.id })
+      expect(privateAssignment.requirements.map(r => r.id)).toEqual([privateRequirement.id])
+      const privatePath = `${root}/api/v1/projects/${projectId}/review-gates/R2/requirements/${privateRequirement.id}/evidence/1/download`
+      const member = await login(request, 'member@e2e.invalid')
+      for (const [session, expected] of [[leader, 200], [staffCs, 200], [member, 403]] as const) {
+        const response = await request.get(privatePath, { headers: { Authorization: `Bearer ${session.accessToken}` } })
+        expect(response.status(), 'INDIVIDUAL download scope').toBe(expected)
+      }
+      const mentor = await login(request, 'mentor.ds@e2e.invalid')
+      const seRequirement = timeline.gates[0].requirements.find(r => r.code === 'E2E-SE')!
+      const crossMajor = await request.get(`${root}/api/v1/projects/${projectId}/review-gates/R1/requirements/${seRequirement.id}/evidence/1/download`, { headers: { Authorization: `Bearer ${mentor.accessToken}` } })
+      await testInfo.attach('negative-scope-evidence', { body: Buffer.from(JSON.stringify({ deniedCases: deniedCases.map(({ name, expected }) => ({ name, expected })), individual: 'target and assigned reviewer 200; other student 403', crossMajorMentorDownload: { expected: 403, actual: crossMajor.status() } })), contentType: 'application/json' })
+      expect.soft(crossMajor.status(), 'Discipline mentor must not download another major evidence').toBe(403)
+    }
     await page.reload()
     await page.screenshot({ path: testInfo.outputPath(`${mode}-completed.png`), fullPage: true })
     await testInfo.attach('sanitized-api-evidence', { body: Buffer.from(JSON.stringify({ mode, projectId, apiEvidence, originalBytes: initialBytes.length, revoked: revoked.status(), anonymous: anonymous.status() }, null, 2)), contentType: 'application/json' })

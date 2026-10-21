@@ -43,7 +43,7 @@ try {
   & (Join-Path $backend 'scripts\prepare-v5-demo.ps1') -ConnectionString $masterConnection -DatabaseName $database | Out-Null
   $fixture = @{
     projects = @(Query "SELECT p.id, p.code, s.project_period_id AS periodId FROM dbo.projects p JOIN dbo.project_registration_snapshots s ON s.project_id=p.id WHERE p.code IN ('E2E-SINGLE-P','E2E-INTER-P')")
-    actors = @(Query "SELECT id,email FROM dbo.users WHERE email IN ('admin@e2e.invalid','single.leader@e2e.invalid','leader@e2e.invalid','evaluator@e2e.invalid','staff.cs@e2e.invalid','staff.ds@e2e.invalid')")
+    actors = @(Query "SELECT id,email FROM dbo.users WHERE email IN ('admin@e2e.invalid','single.leader@e2e.invalid','leader@e2e.invalid','member@e2e.invalid','supervisor@e2e.invalid','mentor.ds@e2e.invalid','evaluator@e2e.invalid','staff.cs@e2e.invalid','staff.ds@e2e.invalid')")
     majors = @(Query "SELECT id,code FROM dbo.majors WHERE code IN ('E2E-SE','E2E-DS')")
   }
   $fixturePath = Join-Path $evidence 'live-fixture.json'

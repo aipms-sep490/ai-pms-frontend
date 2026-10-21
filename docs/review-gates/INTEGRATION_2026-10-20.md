@@ -1,5 +1,7 @@
 # Review Gates FE integration — 20/10/2026
 
+> Historical snapshot. See [21/10 verification](INTEGRATION_2026-10-21.md) for current staging deployment, authenticated demo checks and the confirmed cross-major download blocker.
+
 Status: **FE_DONE_BE_PENDING** for shared/staging cutover. The scoped single-major and two-major browser/API lifecycles passed against a dedicated local API and an owned SQL catalog. This is not production or shared-database acceptance.
 
 ## Source and contract

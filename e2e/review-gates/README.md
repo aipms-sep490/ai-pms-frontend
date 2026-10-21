@@ -23,4 +23,10 @@ Requires PowerShell 7, SQL Server reachable by `AIPMS_TEST_SQL_CONNECTION` with 
 
 Evidence defaults to `test-results/review-gates-live`; override `-OutputDirectory` to preserve it separately. API logs and fixture identities are synthetic. Browser traces are off to avoid retaining login credentials/tokens. A missing owned fixture skips `live.spec.ts`; an actual lifecycle failure remains a failed test.
 
-Coverage: single-major and two-major projects; actual multipart files; revision/resubmit; all scoped verifications/decisions before PASS; next gate; old-version byte/hash readback; active assignment download before/after revoke; unauthenticated denial. Revoke is tested on an active next-gate assignment because BE rejects revoking a DECIDED assignment. Individual scope, concurrent stress, production auth/CORS and shared/staging readiness require separate acceptance.
+Coverage: single-major and two-major projects; actual multipart files; revision/resubmit; all scoped verifications/decisions before PASS; next gate; old-version byte/hash readback; active assignment download before/after revoke; unauthenticated denial. Revoke uses an active next-gate assignment because BE rejects revoking DECIDED assignments. Each mode also sends 24 concurrent queue reads. The interdisciplinary case covers COI, out-of-major assignment, individual targets/download permissions and a discipline mentor downloading another major's evidence. This bounded concurrency smoke does not force SQL retry exhaustion or prove production capacity. Audit rollback and shared/staging lifecycle still require separate acceptance.
+
+The extended suite currently exposes a BE failure at `aee0dc0`: a DS mentor downloads SE evidence with 200 instead of 403. This remains a failing assertion, not a skip or accepted response. See [the current integration report](../../docs/review-gates/INTEGRATION_2026-10-21.md).
+
+## Staging connection
+
+Run `pnpm run dev:review-gates:staging` and open `http://localhost:5175`. It sets API/proxy/mock overrides only in the Vite process and preserves env files. Use approved demo identities and projects; never point `run-live.ps1` at staging. Authenticated staging lifecycle requires prepared project/template/assignment data. Credentials belong in the operator's private process/session, never in a committed spec or report.
