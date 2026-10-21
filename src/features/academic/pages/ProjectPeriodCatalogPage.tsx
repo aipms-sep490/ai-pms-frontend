@@ -128,16 +128,16 @@ export function ProjectPeriodCatalogPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
-          <Link to="/team" className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-2 text-xs font-semibold text-ink-soft hover:bg-canvas">
-            <span className="material-symbols-outlined text-sm text-primary">groups</span>
+          <Link to="/team" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            <span className="material-symbols-outlined text-sm text-primary" aria-hidden="true">groups</span>
             Quản lý nhóm
           </Link>
-          <Link to="/projects/lifecycle" className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-2 text-xs font-semibold text-ink-soft hover:bg-canvas">
-            <span className="material-symbols-outlined text-sm text-primary">timeline</span>
+          <Link to="/projects/lifecycle" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            <span className="material-symbols-outlined text-sm text-primary" aria-hidden="true">timeline</span>
             Lộ trình đồ án
           </Link>
-          <Link to="/topics" className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-2 text-xs font-semibold text-ink-soft hover:bg-canvas">
-            <span className="material-symbols-outlined text-sm text-primary">explore</span>
+          <Link to="/topics" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            <span className="material-symbols-outlined text-sm text-primary" aria-hidden="true">explore</span>
             Khám phá đề tài
           </Link>
         </div>
@@ -168,17 +168,17 @@ export function ProjectPeriodCatalogPage() {
     </section>
 
     <section className="rounded-xl border border-hairline bg-card p-4 sm:p-5" aria-label="Tìm kỳ đăng ký">
-      <form onSubmit={submitSearch} className="flex flex-col gap-3 lg:flex-row">
+      <form onSubmit={submitSearch} className="flex flex-col gap-3 lg:flex-row lg:items-end">
         <label className="min-w-0 flex-1 text-sm font-semibold text-ink-soft">Tìm theo mã hoặc tên kỳ
-          <input value={searchText} onChange={event => setSearchText(event.target.value)} placeholder="Ví dụ: Fall 2026" className="mt-1.5 min-h-11 w-full rounded-lg border border-hairline bg-canvas px-3 text-ink outline-primary" />
+          <input value={searchText} onChange={event => setSearchText(event.target.value)} placeholder="Ví dụ: Fall 2026" className="mt-1.5 min-h-11 w-full rounded-lg border border-hairline bg-canvas px-3 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" />
         </label>
         <label className="text-sm font-semibold text-ink-soft lg:w-56">Học kỳ
-          <select value={urlSemesterId ?? ''} onChange={event => handleSemesterChange(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-lg border border-hairline bg-canvas px-3 text-ink">
+          <select value={urlSemesterId ?? ''} onChange={event => handleSemesterChange(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-lg border border-hairline bg-canvas px-3 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
             <option value="">Tất cả học kỳ</option>
             {semesters.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
         </label>
-        <button type="submit" className="min-h-11 self-end rounded-lg bg-primary px-5 font-semibold text-white hover:bg-primary-hover">Tìm kiếm</button>
+        <button type="submit" className="min-h-11 whitespace-nowrap rounded-lg bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:self-end">Tìm kiếm</button>
       </form>
     </section>
     <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
@@ -232,9 +232,9 @@ export function ProjectPeriodCatalogPage() {
         </li>
       })}</ul>
       <nav className="mt-5 flex items-center justify-center gap-3" aria-label="Phân trang kỳ đăng ký">
-        <button type="button" disabled={urlPage <= 1} onClick={() => handlePageChange(urlPage - 1)} className="min-h-11 rounded-lg border border-hairline bg-card px-4 text-primary disabled:opacity-40">Trang trước</button>
+        <button type="button" disabled={urlPage <= 1} onClick={() => handlePageChange(urlPage - 1)} className="min-h-11 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold text-primary transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40">Trang trước</button>
         <span className="text-sm font-semibold text-ink-soft">{urlPage} / {totalPages}</span>
-        <button type="button" disabled={urlPage >= totalPages} onClick={() => handlePageChange(urlPage + 1)} className="min-h-11 rounded-lg border border-hairline bg-card px-4 text-primary disabled:opacity-40">Trang sau</button>
+        <button type="button" disabled={urlPage >= totalPages} onClick={() => handlePageChange(urlPage + 1)} className="min-h-11 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold text-primary transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40">Trang sau</button>
       </nav>
     </>}
   </WorkspacePage>
