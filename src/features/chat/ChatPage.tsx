@@ -18,8 +18,8 @@ export function ChatPage() {
   const { conversationId } = useParams()
   const { session } = useAuthSession()
   const { chatDenied, refresh } = useChat()
-  if (!env.chatEnabled) return <p role="status">Tính năng chat chưa được bật.</p>
-  if (env.isMockMode) return <p role="status">Chat realtime cần phiên đăng nhập API thật. Chế độ mock không kết nối hoặc gửi tin đến BE.</p>
+  if (!env.chatEnabled) return <div className="workspace-surface p-5 text-sm text-ink-muted"><p role="status">Tính năng chat chưa được bật.</p></div>
+  if (env.isMockMode) return <div className="workspace-surface p-5 text-sm text-ink-muted"><p role="status">Chat realtime cần phiên đăng nhập API thật. Chế độ mock không kết nối hoặc gửi tin đến BE.</p></div>
   if (chatDenied) return <section className="chat-unavailable" role="alert">
     <BackLink fallback={session ? getHomePath(session.user) : '/profile'} className="chat-page-back"><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Quay lại không gian làm việc</BackLink>
     <h1>Tin nhắn chưa khả dụng</h1>
@@ -116,22 +116,22 @@ export function ChatConversations({ id, onOpen, backTo, compact = false }: { id?
         <details className="chat-new"><summary><span className="material-symbols-outlined" aria-hidden="true">edit_square</span><span>Cuộc trò chuyện mới</span><span className="material-symbols-outlined chat-new-chevron" aria-hidden="true">expand_more</span></summary>
           <div className="chat-new-body">
             {(journey?.team || journey?.project || projects.length > 0) && <div className="chat-groups">
-              {journey?.team && <button disabled={busy} onClick={() => group('teams', journey.team!.id)}><span className="material-symbols-outlined" aria-hidden="true">groups</span>Nhóm {journey.team.name}</button>}
-              {journey?.project && <button disabled={busy} onClick={() => group('projects', journey.project!.id)}><span className="material-symbols-outlined" aria-hidden="true">folder_open</span>Đồ án {journey.project.title}</button>}
-              {projects.map(project => <button key={project} disabled={busy} onClick={() => group('projects', project)}><span className="material-symbols-outlined" aria-hidden="true">folder_open</span>Nhóm đồ án #{project}</button>)}
-              {moreAssignments && <button onClick={() => setAssignmentPage(n => n + 1)}>Thêm đồ án được phân công</button>}
+              {journey?.team && <button type="button" disabled={busy} onClick={() => group('teams', journey.team!.id)}><span className="material-symbols-outlined" aria-hidden="true">groups</span>Nhóm {journey.team.name}</button>}
+              {journey?.project && <button type="button" disabled={busy} onClick={() => group('projects', journey.project!.id)}><span className="material-symbols-outlined" aria-hidden="true">folder_open</span>Đồ án {journey.project.title}</button>}
+              {projects.map(project => <button type="button" key={project} disabled={busy} onClick={() => group('projects', project)}><span className="material-symbols-outlined" aria-hidden="true">folder_open</span>Nhóm đồ án #{project}</button>)}
+              {moreAssignments && <button type="button" onClick={() => setAssignmentPage(n => n + 1)}>Thêm đồ án được phân công</button>}
             </div>}
             <label>Tìm người nhận trong đồ án<input value={search} maxLength={100} onChange={e => setSearch(e.target.value)} placeholder="Nhập tên người nhận…" /></label>
-            <div className="chat-search-results">{people.items.map(person => <button key={person.userId} disabled={busy} onClick={() => void perform(async () => open(await chatApi.direct(person.userId)))}><span className="chat-person-dot" aria-hidden="true">{person.fullName.trim().split(/\s+/).slice(-2).map(p => p[0]).join('')}</span><span>{person.fullName}</span></button>)}
+            <div className="chat-search-results">{people.items.map(person => <button type="button" key={person.userId} disabled={busy} onClick={() => void perform(async () => open(await chatApi.direct(person.userId)))}><span className="chat-person-dot" aria-hidden="true">{person.fullName.trim().split(/\s+/).slice(-2).map(p => p[0]).join('')}</span><span>{person.fullName}</span></button>)}
               {peopleLoading && <p role="status">Đang tìm người nhận…</p>}
-              {peopleError && <p role="alert">{peopleError} <button onClick={() => setPeopleRetry(n => n + 1)}>Tìm lại</button></p>}
+              {peopleError && <p className="chat-error" role="alert">{peopleError} <button type="button" onClick={() => setPeopleRetry(n => n + 1)}>Tìm lại</button></p>}
               {!peopleLoading && !peopleError && !people.items.length && <p>Không có người nhận phù hợp.</p>}
-              {people.hasMore && <button disabled={busy} onClick={() => void perform(async () => { const page = await chatApi.recipients(search, people.nextCursor!); setPeople({ ...page, items: [...people.items, ...page.items] }) })}>Thêm người nhận</button>}
+              {people.hasMore && <button type="button" disabled={busy} onClick={() => void perform(async () => { const page = await chatApi.recipients(search, people.nextCursor!); setPeople({ ...page, items: [...people.items, ...page.items] }) })}>Thêm người nhận</button>}
             </div>
           </div>
         </details>
       </div>
-      {(error || inboxError) && <p className="chat-error" role="alert">{error || inboxError} <button onClick={() => refresh()}>Tải lại</button></p>}
+      {(error || inboxError) && <p className="chat-error" role="alert">{error || inboxError} <button type="button" onClick={() => refresh()}>Tải lại</button></p>}
       <nav className="chat-list" aria-label="Hộp thư">{rooms.slice(0, visibleCount).map(room => {
         const kindClass = room.kind === 'PROJECT' ? 'is-project' : room.kind === 'TEAM' ? 'is-team' : 'is-direct'
         return <button type="button" key={room.id} onClick={() => onOpen(room)} className={`${id === room.id ? 'active' : ''}${room.unreadCount > 0 ? ' is-unread' : ''}`.trim()} aria-current={id === room.id ? 'true' : undefined}>
