@@ -86,6 +86,9 @@ describe('EvaluationSchemeManagementPage concurrency reconciliation', () => {
     api.updateEvaluationScheme.mockRejectedValueOnce(conflictError())
     fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
     await screen.findByRole('region', { name: 'Kiểm tra thay đổi trước khi tiếp tục' })
+    // Wait for the denied capability response, not the temporary unknown/loading state.
+    await screen.findByRole('button', { name: 'Tải lại quyền thao tác' })
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Dùng bản trên hệ thống' }) as HTMLButtonElement).disabled).toBe(false))
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Giữ nội dung để tiếp tục sửa' })).toBeNull())
     expect((screen.getByLabelText('Tên phương án đánh giá') as HTMLInputElement).value).toBe('Nội dung của tôi')
     expect((screen.getByLabelText('Tên phương án đánh giá') as HTMLInputElement).disabled).toBe(true)
