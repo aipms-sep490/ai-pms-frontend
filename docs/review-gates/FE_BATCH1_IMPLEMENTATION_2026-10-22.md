@@ -8,9 +8,9 @@ Nguồn yêu cầu: `F:/AI-PMS/ai-pms-frontend/docs/review-gates/FE_BATCH1_LAM_T
 
 - Worktree chuẩn bị: `F:/AI-PMS/ai-pms-frontend-batch1`. Sau yêu cầu gộp của người dùng ngày 22/10, bản đã kiểm thử được chốt bằng commit cục bộ và đưa vào `feat/uiux-master-redesign` tại `F:/AI-PMS/ai-pms-frontend`.
 - Nhánh: `feat/fe-batch1-20261022`, tạo từ `origin/develop` đã fetch tại `a6771ba88f2e7ccf024d5c1210576c518b49b61c`.
-- Tích hợp nhánh UI `11b7d62ff014929febf9b0a32d4496e145b440e6` bằng merge không commit. Đã giải quyết 6 xung đột; không còn file unmerged. Giữ tên học thuật dễ đọc từ develop cùng bố cục/thao tác từ nhánh UI.
-- **Đã cho phép gộp cục bộ theo yêu cầu trực tiếp của người dùng.** Commit tích hợp giữ cả ancestry develop và nhánh UI; nhánh `feat/uiux-master-redesign` được fast-forward tới bản tích hợp. Không thay đổi nhánh develop, không push hoặc tạo PR.
-- Không reset/stash checkout gốc; 3 tài liệu untracked ở checkout gốc được giữ nguyên. Chỉ tạo commit và gộp cục bộ theo yêu cầu mới; không push hoặc tạo PR.
+- Tích hợp nhánh UI `11b7d62ff014929febf9b0a32d4496e145b440e6`, giải quyết 6 xung đột và chốt tại commit `f6a8fb9469e23a3621fe7e1c72f2d3dd75631ff0`. Không còn file unmerged. Giữ tên học thuật dễ đọc từ develop cùng bố cục/thao tác từ nhánh UI.
+- **Người dùng đã yêu cầu gộp và sau đó kiểm tra, push đầy đủ lên `feat/uiux-master-redesign`.** Commit tích hợp giữ cả ancestry develop và nhánh UI; nhánh UI được fast-forward tới bản tích hợp. Phạm vi xuất bản là nhánh UI; không cập nhật develop hoặc tạo PR.
+- Không reset/stash checkout gốc. Ba tài liệu yêu cầu/handoff ban đầu được bổ sung vào Git với nội dung giữ nguyên: `BE_HANDOFF_2026-10-21.md`, `FE_BATCH1_LAM_TRUOC_2026-10-22.md`, `FE_TASKS_2026-10-22.md`.
 - Không sửa BE/DB, không tạo/publish template hoặc thực hiện mutation nghiệp vụ trên staging.
 - `.env.example` khớp byte với nhánh UI gốc; không tạo/sửa `.env`. Không thêm dependency hoặc thư viện UI vào project.
 
@@ -53,7 +53,9 @@ Không thực hiện các phần loại khỏi đợt 1: evidence/link, supervis
 | HTTP errors | Controlled sources: 401/403/404/409/422/429/500 không biến thành empty thành công; calendar vẫn giữ nguồn đọc được |
 | Mutation review | Đảo guard production khiến test fail; đã khôi phục source |
 | Lint | **0 error, 193 warning**. Nhánh UI gốc có 184; 9 cảnh báo còn lại thuộc phần develop mới tích hợp. Không thêm warning từ mã batch 1, không thêm suppression. **Chưa đạt điều kiện 0 warning nếu hiểu “lint sạch” theo nghĩa đó** |
-| Git | diff --check PASS; 0 file unmerged; đã commit/gộp cục bộ; chưa push/PR |
+| Git | diff --check của mã tích hợp PASS; 0 file unmerged; commit tích hợp `f6a8fb9` đã nằm trên nhánh UI; người dùng đã cho phép push đầy đủ nhánh UI |
+
+Kiểm chứng lại trong checkout chính tại đúng commit mã nguồn `f6a8fb9`: typecheck/build PASS, 33/33 Playwright controlled PASS, lint 0 error/193 warning và 1.376/1.376 unit PASS với `--maxWorkers=4`. Lượt unit đầu có một timeout truy vấn rubric khoảng 1 giây khi chạy đồng thời; ca riêng 5/5 và full suite bốn worker đều qua, không sửa source hoặc assertion. Log lần lỗi và lần chạy lại được giữ tại `F:/AI-PMS/artifacts/fe-batch1-local-merge-20261022/merge-receipt.json`. Commit tài liệu tiếp theo không đổi mã chạy hoặc bài kiểm thử.
 
 ## Staging thực tế — không suy diễn từ tài liệu đầu vào
 
@@ -79,7 +81,7 @@ Tài liệu yêu cầu cho rằng nhánh timeline null có thể verify ngay. **
 3. **Leader:** quyết định việc giữ/bỏ nav cũ EvaluatorAssignmentsPage. Route được giữ nguyên trong batch này.
 4. **QA:** native browser zoom 200%. CSS zoom đã qua nhưng tổ hợp phím DevTools không thay đổi DPR/innerWidth, vì vậy không tính là bằng chứng zoom gốc.
 5. **Repo quality:** xử lý 193 cảnh báo lint kế thừa nếu yêu cầu bàn giao là zero-warning. Batch này không mở rộng sang dọn toàn repo.
-6. **Git:** người dùng đã yêu cầu gộp vào nhánh UI; commit/merge cục bộ đã được cho phép. Vẫn cần yêu cầu riêng nếu muốn push hoặc mở PR; develop giữ nguyên.
+6. **Git:** push nhánh UI đã được người dùng yêu cầu trực tiếp. Bằng chứng xác minh remote sau khi xuất bản nằm ngoài repo tại `F:/AI-PMS/artifacts/fe-batch1-push-20261022/publication-receipt.json`; không mở PR hoặc cập nhật develop trong phạm vi này.
 
 ## Vị trí bằng chứng và chạy lại
 
@@ -102,7 +104,7 @@ Get-Content .env.example | ForEach-Object {
   }
 }
 $env:VITE_ENABLE_AI_ADVISORY='true'
-npm test
+npx vitest run --maxWorkers=4
 
 $env:BATCH1_AXE_PATH='F:/AI-PMS/.local/fe-batch1-audit/node_modules/axe-core/axe.min.js'
 # Cấp BATCH1_DEMO_PASSWORD qua môi trường process nếu chạy kiểm tra staging.
