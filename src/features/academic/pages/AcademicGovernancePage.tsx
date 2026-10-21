@@ -63,8 +63,10 @@ export function AcademicGovernancePage() {
         <dl className="governance-period-facts"><div><dt>Số thành viên</dt><dd>{period.minTeamSize}–{period.maxTeamSize}</dd></div><div><dt>Số ngành tối thiểu</dt><dd>{period.minDistinctMajors}</dd></div><div><dt>Đồ án tối đa mỗi GVHD</dt><dd>{period.maxProjectsPerSupervisor}</dd></div></dl>
         <div className="governance-record-footer"><div className="governance-record-actions">
           <Link to={`/academic/project-periods/${period.id}/policy`} className="workspace-action-link">Các phiên bản chính sách<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>
+          <Link to={`/academic/project-periods/${period.id}/review-gates`} className="workspace-action-link">Cấu hình Review Gates<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>
           {governance.canManage && !['CLOSED', 'ARCHIVED'].includes(period.status) && <Button size="sm" variant="secondary" onClick={() => openEditor({ kind: 'period', record: period })}>Chỉnh sửa cấu trúc</Button>}
         </div><Status label={`giai đoạn ${period.name}`} status={period.status} busy={governance.submitting} canManage={governance.canManage} onChange={status => changeStatus('period', period.id, status, period.status)} /></div>
+
       </article>)}</div>
       {!governance.periods.length && <p className="governance-empty">Chưa có giai đoạn phù hợp với bộ lọc.</p>}
     </section>

@@ -8,11 +8,11 @@ department scope guard. Admin entry points for scheme, assignment, locked submis
 and results are under `/admin/projects/:projectId/…`; Admin identity is not an academic
 review assignment. Each backend endpoint continues to enforce resource authority.
 
-`LayeredEvaluationFoundation`, `EvaluatorFoundationPage` and
-`useLayeredEvaluationAvailability` are legacy proposal scaffolding, not mounted in
-the production router. Their pending flags do not describe availability of the
-current scheme/evaluator/result APIs. Keep them disabled until a future approved
-contract needs them; do not enable grading by changing a local boolean.
+The unused proposal foundation pages, components and capability placeholders were
+removed in FE Batch 1 (2026-10-22). Current scheme/evaluator/result APIs retain
+backend authority; local flags do not establish academic approval.
+`EvaluatorAssignmentsPage` remains available at `/evaluator/evaluations` pending
+the leader's navigation decision; this cleanup does not remove that route.
 
 New scheme drafts require an explicit threshold and component weights. Publishing
 a technical scheme version does not establish academic approval of a proposed rubric.

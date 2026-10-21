@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 
+vi.mock('../../auth/context/useAuthSession', () => ({ useAuthSession: () => ({ session: null }) }))
 const workspace = vi.hoisted(() => ({ useAdminWorkspace: vi.fn() }))
 vi.mock('../hooks/useAdminWorkspace', () => workspace)
 vi.mock('../../academic/components/AcademicScopeFields', () => ({ AcademicScopeFields: () => null }))

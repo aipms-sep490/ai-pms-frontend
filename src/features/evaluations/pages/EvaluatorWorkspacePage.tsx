@@ -80,12 +80,28 @@ export function EvaluatorWorkspacePage() {
       <section className="space-y-3" aria-label="Danh sách phân công đánh giá">
         {visibleAssignments.map((assignment) => {
           const row = drafts[assignment.id]
-          return <article key={assignment.id} className="grid min-w-0 gap-4 rounded-xl border border-hairline bg-card p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+          const isFinalized = row?.draft?.status === 'FINALIZED'
+          const isDraft = row?.draft?.status === 'DRAFT'
+          const rubricTitle = assignment.rubricName ?? row?.draft?.rubricName ?? 'Chưa tải được tên bộ tiêu chí'
+          return <article key={assignment.id} className="grid min-w-0 gap-4 rounded-xl border border-hairline bg-card p-5 transition-all hover:border-primary/40 hover:shadow-xs md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
             <div className="min-w-0">
-              <h2 className="break-words font-semibold text-ink">{assignment.projectTitle ?? 'Chưa tải được tên đồ án'} · {assignment.componentName ?? scopeLabel(assignment)}</h2>
-              <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm text-ink-muted sm:grid-cols-2"><div><dt className="inline font-medium text-ink-soft">Phạm vi: </dt><dd className="inline">{scopeLabel(assignment)}</dd></div><div><dt className="inline font-medium text-ink-soft">Bộ tiêu chí: </dt><dd className="inline">{assignment.rubricName ?? row?.draft?.rubricName ?? 'Chưa tải được tên bộ tiêu chí'}</dd></div><div><dt className="inline font-medium text-ink-soft">Trạng thái: </dt><dd className="inline">{row?.status === 'unavailable' ? 'Chưa tải được trạng thái bản nháp' : draftLabel(row?.draft ?? null)}</dd></div><div><dt className="inline font-medium text-ink-soft">Phân công: </dt><dd className="inline">{dateTimeLabel(assignment.assignedAt)}</dd></div></dl>
+              <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-purple-700">
+                  {assignment.evaluationType === 'LECTURER' ? 'Hội đồng chấm' : assignment.evaluationType}
+                </span>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${isFinalized ? 'bg-status-success-bg text-status-success-text' : isDraft ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
+                  {row?.status === 'unavailable' ? 'Chưa tải được trạng thái' : draftLabel(row?.draft ?? null)}
+                </span>
+              </div>
+              <h2 className="break-words font-semibold text-ink text-base">{assignment.projectTitle ?? 'Chưa tải được tên đồ án'} · {assignment.componentName ?? scopeLabel(assignment)}</h2>
+              <dl className="mt-2 grid gap-x-6 gap-y-1.5 text-xs text-ink-muted sm:grid-cols-2">
+                <div><dt className="inline font-semibold text-ink-soft">Phạm vi chấm: </dt><dd className="inline">{scopeLabel(assignment)}</dd></div>
+                <div><dt className="inline font-semibold text-ink-soft">Bộ tiêu chí: </dt><dd className="inline">{rubricTitle}</dd></div>
+                <div><dt className="inline font-semibold text-ink-soft">Trạng thái: </dt><dd className="inline">{row?.status === 'unavailable' ? 'Chưa tải được trạng thái bản nháp' : draftLabel(row?.draft ?? null)}</dd></div>
+                <div><dt className="inline font-semibold text-ink-soft">Ngày phân công: </dt><dd className="inline">{dateTimeLabel(assignment.assignedAt)}</dd></div>
+              </dl>
             </div>
-            <Link className="inline-flex min-h-11 items-center justify-center rounded-lg border border-hairline px-4 text-sm font-semibold text-primary hover:bg-primary/5" to={`/evaluator/assignments/${assignment.id}`}>{row?.status === 'unavailable' ? 'Xem phân công' : row?.draft?.status === 'FINALIZED' ? 'Xem đánh giá' : row?.draft ? 'Tiếp tục chấm' : 'Bắt đầu chấm'}</Link>
+            <Link className={`inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-xs font-bold transition-colors ${isFinalized ? 'border border-hairline bg-slate-50 text-ink hover:bg-slate-100' : isDraft ? 'bg-primary text-white hover:bg-primary-hover shadow-xs' : 'border border-primary bg-card text-primary hover:bg-primary-subtle'}`} to={`/evaluator/assignments/${assignment.id}`}>{row?.status === 'unavailable' ? 'Xem phân công' : row?.draft?.status === 'FINALIZED' ? 'Xem đánh giá' : row?.draft ? 'Tiếp tục chấm' : 'Bắt đầu chấm'}</Link>
           </article>
         })}
       </section>

@@ -32,8 +32,10 @@ import {
   EvaluationSchemeManagementPage, StudentProjectResultPage, ProjectContributionsPage, ProjectFilesPage,
   ProjectEvidenceLedgerPage, ProjectAiPage, ProjectGatesPage, ProjectWorkingAgreementPage, ProjectDefensePage, ProjectDefenseManagementPage,
   ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, ArchivedProjectsPage,
-  ProjectArchiveViewPage, CalendarAttentionPage, AdminIndustryInvitationsPage,
+  ProjectArchiveViewPage, CalendarAttentionPage, AdminIndustryInvitationsPage, ReviewGateGovernancePage,
+  StudentReviewTimelinePage, AssignedGateReviewPage,
 } from './lazy-pages'
+
 
 export const appRouter = createBrowserRouter([{ element: <RouteFrame />, children: [
   { path: 'login', element: <LoginPage /> },
@@ -104,6 +106,8 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'project/supervisor', element: <SupervisorSelectionPage /> },
           { path: 'project/final-submission', element: <StudentFinalSubmissionPage /> },
           { path: 'project/result', element: <StudentProjectResultPage /> },
+          { path: 'project/timeline', element: <StudentReviewTimelinePage /> },
+          { path: 'project/review-gates', element: <StudentReviewTimelinePage /> },
         ],
       },
       {
@@ -131,6 +135,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'supervisor/projects/:projectId/evidence', element: <ProjectEvidenceLedgerPage /> },
             { path: 'supervisor/projects/:projectId/contributions', element: <ProjectContributionsPage /> },
             { path: 'supervisor/projects/:projectId/final-submission', element: <SupervisorFinalSubmissionPage /> },
+            { path: 'supervisor/projects/:projectId/review-gates', element: <StudentReviewTimelinePage /> },
             ...(env.weeklyAssessmentEnabled ? [{ path: 'supervisor/projects/:projectId/weekly-assessments', element: <WeeklyAssessmentsPage /> }] : []),
             ...(env.aiAdvisoryEnabled ? [{ path: 'supervisor/projects/:projectId/ai', element: <ProjectAiPage /> }] : []),
             ...(env.gatesEnabled ? [{ path: 'supervisor/projects/:projectId/checkpoints', element: <ProjectGatesPage /> }] : []),
@@ -154,6 +159,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { element: <EvaluatorAssignmentRoute />, children: [
             { path: 'evaluator/assignments/:assignmentId', element: <EvaluatorAssignmentDetailPage /> },
           ] },
+          { path: 'review/gate-assignments', element: <AssignedGateReviewPage /> },
         ],
       },
       {
@@ -161,6 +167,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
         children: [
           { element: <DepartmentAcademicScopeRoute />, children: [
             { path: 'department/workspace', element: <DepartmentWorkspacePage /> },
+            { path: 'department/projects/progress-matrix', element: <ReviewGateGovernancePage /> },
           ] },
         ],
       },
@@ -170,6 +177,8 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'academic', element: <AcademicStructurePage /> },
           { path: 'academic/governance', element: <AcademicGovernancePage /> },
           { path: 'academic/project-periods/:periodId/policy', element: <PeriodPolicyManagementPage /> },
+          { path: 'academic/project-periods/:periodId/review-gates', element: <ReviewGateGovernancePage /> },
+          { path: 'academic/review-gates', element: <ReviewGateGovernancePage /> },
           { path: 'academic/profile-verifications', element: <ProfileVerificationsPage /> },
           { path: 'academic/rubrics', element: <RubricManagementPage /> },
         ],

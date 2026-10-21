@@ -1,110 +1,55 @@
-import { getMyEvaluationAssignments } from '../../services/api/evaluations.api'
-import { getDeliverables } from '../../services/api/deliverables.api'
-import { getMeetings } from '../../services/api/meetings.api'
-import { getStudentDashboard, getSupervisorDashboard, getPortfolioDashboard } from '../dashboard/api/dashboard-api'
-import { getFinalChecklist } from '../final-submission/final-submission-api'
 import { getUsers } from '../users/api/admin-api'
 import { getScopedCalendar } from '../../services/api/calendar.api'
+import { getStudentNextActions, getSupervisorTriageQueue, getDepartmentUrgentActions } from './action-aggregators-api'
+import type { ActionAggregatorResponse } from './action-aggregators-api'
+import { aggregatorAttention } from './action-aggregators'
 import type { WorkspaceRole } from '../auth/utils/role-access'
 import type { CalendarAttentionData, CalendarProjectionItem, CalendarSourceStatus, AttentionItem } from './calendar-types'
-import { deliverableProjection, finalSubmissionProjection, meetingProjection, scopedCalendarProjection } from './calendar-projections'
+import { scopedCalendarProjection } from './calendar-projections'
 
-export interface CalendarLoaderInput { role: WorkspaceRole; semesterId: number | null; accessToken?: string }
-
-export const calendarApis = { getStudentDashboard, getSupervisorDashboard, getPortfolioDashboard, getMeetings, getDeliverables, getFinalChecklist, getMyEvaluationAssignments, getUsers, getScopedCalendar }
+export interface CalendarLoaderInput { role: WorkspaceRole; semesterId: number | null; departmentId?: number | null; accessToken?: string; signal?: AbortSignal }
+export const calendarApis = { getUsers, getScopedCalendar, getStudentNextActions, getSupervisorTriageQueue, getDepartmentUrgentActions }
 type CalendarApis = typeof calendarApis
-
 function errorStatus(id: string, label: string, reason: unknown): CalendarSourceStatus {
-  const message = reason instanceof Error ? reason.message : 'Không thể tải nguồn dữ liệu.'
-  return { id, label, state: 'error', message }
+  return { id, label, state: 'error', message: reason instanceof Error ? reason.message : 'Không thể tải nguồn dữ liệu.' }
 }
-
 function sort(items: AttentionItem[]): AttentionItem[] {
-  return [...items].sort((left, right) => left.presentationPriority - right.presentationPriority || (left.dueAt ?? '').localeCompare(right.dueAt ?? ''))
+  return [...items].sort((a, b) => a.presentationPriority - b.presentationPriority || (a.dueAt ?? '').localeCompare(b.dueAt ?? ''))
 }
-
-function stateForItems(items: readonly unknown[]): 'ready' | 'empty' {
-  return items.length === 0 ? 'empty' : 'ready'
-}
-
-function studentAttention(input: { taskDeadlines: Array<{ id: number; title: string; status: string; dueAtUtc: string; isOverdue: boolean }>; milestoneDeadlines: Array<{ id: number; title: string; status: string; dueDate: string; isOverdue: boolean }> }): AttentionItem[] {
-  return [
-    ...input.taskDeadlines.filter((item) => item.isOverdue || item.status === 'BLOCKED').map((item) => ({ code: item.isOverdue ? 'TASK_OVERDUE' : 'TASK_BLOCKED', source: 'TASK' as const, sourceId: item.id, title: item.title, description: item.isOverdue ? 'Công việc đã quá hạn theo dữ liệu dashboard.' : 'Công việc đang ở trạng thái BLOCKED theo dữ liệu dashboard.', dueAt: item.dueAtUtc, status: item.status, presentationPriority: item.isOverdue ? 10 : 20, deepLink: `/project/tasks/${item.id}` })),
-    ...input.milestoneDeadlines.filter((item) => item.isOverdue).map((item) => ({ code: 'MILESTONE_OVERDUE', source: 'MILESTONE' as const, sourceId: item.id, title: item.title, description: 'Mốc đồ án đã quá hạn theo dữ liệu dashboard.', dueAt: item.dueDate, status: item.status, presentationPriority: 15, deepLink: `/project/milestones/${item.id}` })),
-  ]
-}
+function stateForItems(items: readonly unknown[]): 'ready' | 'empty' { return items.length ? 'ready' : 'empty' }
 
 export async function loadCalendarAttention(input: CalendarLoaderInput, apis: CalendarApis = calendarApis): Promise<CalendarAttentionData> {
   const result: CalendarAttentionData = { calendar: [], attention: [], sources: [] }
-  if (input.role === 'student') {
+  async function loadActions(id: string, label: string, read: () => Promise<ActionAggregatorResponse>) {
     try {
-      const now = new Date()
-      const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 30)).toISOString()
-      const to = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 6, now.getUTCDate())).toISOString()
-      const [dashboard, scopedCalendar] = await Promise.allSettled([apis.getStudentDashboard(input.semesterId ?? undefined), apis.getScopedCalendar({ from, to, pageSize: 100 })])
-      if (dashboard.status === 'rejected') throw dashboard.reason
-      if (scopedCalendar.status === 'fulfilled') {
-        result.calendar.push(...scopedCalendar.value.items.map(scopedCalendarProjection).filter((item): item is CalendarProjectionItem => item !== null))
-        result.sources.push({ id: 'student-calendar', label: 'Lịch theo phạm vi đồ án', state: scopedCalendar.value.hasMore || !scopedCalendar.value.complete ? 'partial' : stateForItems(scopedCalendar.value.items), message: scopedCalendar.value.hasMore || !scopedCalendar.value.complete ? 'Hiển thị tối đa 100 mục trong khoảng thời gian đã chọn.' : undefined })
-      } else result.sources.push(errorStatus('student-calendar', 'Lịch theo phạm vi đồ án', scopedCalendar.reason))
-      const project = dashboard.value.project
-      result.sources.push({ id: 'student-dashboard', label: 'Công việc và mốc đồ án', state: stateForItems([...dashboard.value.taskDeadlines, ...dashboard.value.milestoneDeadlines]) })
-      if (scopedCalendar.status !== 'fulfilled') result.calendar.push(
-        ...dashboard.value.taskDeadlines.map((task) => ({ sourceType: 'TASK' as const, sourceId: task.id, projectId: project?.id, projectName: project?.title, title: task.title, dueAt: task.dueAtUtc, status: task.status, deepLink: `/project/tasks/${task.id}` })),
-        ...dashboard.value.milestoneDeadlines.map((milestone) => ({ sourceType: 'MILESTONE' as const, sourceId: milestone.id, projectId: project?.id, projectName: project?.title, title: milestone.title, dueAt: milestone.dueDate, status: milestone.status, deepLink: `/project/milestones/${milestone.id}` })),
-      )
-      result.attention.push(...studentAttention(dashboard.value))
-      result.sources.push({ id: 'progress-report-deadline', label: 'Hạn báo cáo tiến độ', state: 'unsupported', message: 'API hiện trả kỳ báo cáo, không trả hạn nộp báo cáo.' })
-      if (!project) {
-        result.sources.push({ id: 'project-resources', label: 'Lịch họp, hạng mục và bàn giao', state: 'unavailable', message: 'Chưa có đồ án hiện hành do hệ thống trả về.' })
-        return { ...result, attention: sort(result.attention) }
-      }
-      const resources = await Promise.allSettled([
-        apis.getMeetings(project.id, { page: 1, pageSize: 100 }),
-        apis.getDeliverables(project.id, { page: 1, pageSize: 100 }),
-        apis.getFinalChecklist(project.id),
-      ])
-      const [meetings, deliverables, finalChecklist] = resources
-      if (meetings.status === 'fulfilled') {
-        if (scopedCalendar.status !== 'fulfilled') result.calendar.push(...meetings.value.items.map((item) => meetingProjection(item, project.title)))
-        result.sources.push({ id: 'meetings', label: 'Lịch họp', state: meetings.value.totalCount > meetings.value.items.length ? 'partial' : stateForItems(meetings.value.items), message: meetings.value.totalCount > meetings.value.items.length ? 'Chỉ hiển thị trang đầu tối đa 100 cuộc họp.' : undefined })
-      } else result.sources.push(errorStatus('meetings', 'Lịch họp', meetings.reason))
-      if (deliverables.status === 'fulfilled') {
-        if (scopedCalendar.status !== 'fulfilled') result.calendar.push(...deliverables.value.items.map((item) => deliverableProjection(item, project.title)).filter((item): item is CalendarProjectionItem => item !== null))
-        result.sources.push({ id: 'deliverables', label: 'Hạng mục cần nộp', state: deliverables.value.totalCount > deliverables.value.items.length ? 'partial' : stateForItems(deliverables.value.items), message: deliverables.value.totalCount > deliverables.value.items.length ? 'Chỉ hiển thị trang đầu tối đa 100 hạng mục.' : undefined })
-      } else result.sources.push(errorStatus('deliverables', 'Hạng mục cần nộp', deliverables.reason))
-      if (finalChecklist.status === 'fulfilled') {
-        const item = finalSubmissionProjection(project.id, project.title, finalChecklist.value.deadline)
-        if (item && scopedCalendar.status !== 'fulfilled') result.calendar.push(item)
-        result.sources.push({ id: 'final-submission', label: 'Bàn giao cuối kỳ', state: item ? 'ready' : 'empty' })
-      } else result.sources.push(errorStatus('final-submission', 'Bàn giao cuối kỳ', finalChecklist.reason))
-    } catch (reason) { result.sources.push(errorStatus('student-dashboard', 'Công việc và mốc đồ án', reason)) }
-    return { ...result, attention: sort(result.attention) }
+      const data = await read()
+      result.attention.push(...data.items.map(aggregatorAttention))
+      result.attentionAsOfUtc = data.asOfUtc
+      result.sources.push({ id, label, state: stateForItems(data.items) })
+    } catch (reason) { result.sources.push(errorStatus(id, label, reason)) }
   }
-  if (input.role === 'lecturer') {
-    const requests = await Promise.allSettled([apis.getSupervisorDashboard({ semesterId: input.semesterId ?? undefined, page: 1, pageSize: 20 }), apis.getMyEvaluationAssignments(1, 20)])
-    const [supervisor, evaluations] = requests
-    if (supervisor.status === 'fulfilled') {
-      result.sources.push({ id: 'supervisor-dashboard', label: 'Danh mục hướng dẫn', state: supervisor.value.projects.totalCount > supervisor.value.projects.items.length ? 'partial' : stateForItems(supervisor.value.projects.items), message: supervisor.value.projects.totalCount > supervisor.value.projects.items.length ? 'Chỉ hiển thị trang đầu tối đa 20 đồ án.' : undefined })
-      result.attention.push(...supervisor.value.projects.items.flatMap((project) => [
-        ...(project.pendingProgressReviews > 0 ? [{ code: 'PROGRESS_FEEDBACK_PENDING', source: 'PROJECT' as const, sourceId: project.id, title: project.title, description: `${project.pendingProgressReviews} báo cáo đang chờ phản hồi theo dashboard.`, status: project.status, presentationPriority: 30, deepLink: `/supervisor/projects/${project.id}/progress` }] : []),
-        ...(project.analysis && project.analysis.progressSummary.overdueTasks > 0 ? [{ code: 'PROJECT_OVERDUE_TASKS', source: 'PROJECT' as const, sourceId: project.id, title: project.title, description: `${project.analysis.progressSummary.overdueTasks} công việc quá hạn theo dashboard.`, status: project.status, presentationPriority: 10, deepLink: `/supervisor/projects/${project.id}/workspace` }] : []),
-        ...(project.analysis && project.analysis.progressSummary.blockedTasks > 0 ? [{ code: 'PROJECT_BLOCKED_TASKS', source: 'PROJECT' as const, sourceId: project.id, title: project.title, description: `${project.analysis.progressSummary.blockedTasks} công việc BLOCKED theo dashboard.`, status: project.status, presentationPriority: 20, deepLink: `/supervisor/projects/${project.id}/workspace` }] : []),
-      ]))
-    } else result.sources.push(errorStatus('supervisor-dashboard', 'Danh mục hướng dẫn', supervisor.reason))
-    if (evaluations.status === 'fulfilled') {
-      result.sources.push({ id: 'evaluation-assignments', label: 'Phân công đánh giá', state: evaluations.value.totalCount > evaluations.value.items.length ? 'partial' : 'unsupported', message: 'DTO hiện không có hạn đánh giá; không tạo sự kiện lịch.' })
-      result.attention.push(...evaluations.value.items.map((item) => ({ code: 'EVALUATION_ASSIGNMENT_ACTIVE', source: 'EVALUATION_ASSIGNMENT' as const, sourceId: item.id, title: `Phân công đánh giá #${item.id}`, description: 'Phân công đang hoạt động theo hệ thống.', status: item.status, presentationPriority: 40, deepLink: `/evaluator/assignments/${item.id}` })))
-    } else result.sources.push(errorStatus('evaluation-assignments', 'Phân công đánh giá', evaluations.reason))
-    result.sources.push({ id: 'lecturer-calendar', label: 'Lịch đa đồ án', state: 'unavailable', message: 'Hệ thống chưa cung cấp projection theo actor và khoảng thời gian.' })
+  if (input.role === 'student' || input.role === 'lecturer') {
+    const role = input.role
+    const now = new Date()
+    const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 30)).toISOString()
+    const to = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 6, now.getUTCDate())).toISOString()
+    await Promise.all([
+      (async () => {
+        try {
+          const data = await apis.getScopedCalendar({ from, to, pageSize: 100 }, input.signal)
+          result.calendar.push(...data.items.map(item => scopedCalendarProjection(item, role)).filter((item): item is CalendarProjectionItem => item !== null))
+          const partial = data.hasMore || !data.complete
+          result.sources.push({ id: `${role}-calendar`, label: role === 'student' ? 'Lịch theo phạm vi đồ án' : 'Lịch đa đồ án', state: partial ? 'partial' : stateForItems(data.items), message: partial ? 'Hiển thị tối đa 100 mục trong khoảng thời gian đã chọn; nguồn chưa đầy đủ.' : undefined })
+        } catch (reason) { result.sources.push(errorStatus(`${role}-calendar`, 'Lịch theo phạm vi được phân công', reason)) }
+      })(),
+      loadActions(role === 'student' ? 'next-actions' : 'triage-queue', role === 'student' ? 'Việc cần làm của sinh viên' : 'Việc cần xử lý của giảng viên', () => role === 'student' ? apis.getStudentNextActions(input.signal) : apis.getSupervisorTriageQueue(input.signal)),
+    ])
     return { ...result, attention: sort(result.attention) }
   }
   if (input.role === 'department') {
-    try {
-      const dashboard = await apis.getPortfolioDashboard('department', { semesterId: input.semesterId ?? undefined, page: 1, pageSize: 20 })
-      result.sources.push({ id: 'department-dashboard', label: 'Danh mục đồ án bộ môn', state: dashboard.projects.totalCount > dashboard.projects.items.length ? 'partial' : stateForItems(dashboard.projects.items), message: dashboard.projects.totalCount > dashboard.projects.items.length ? 'Chỉ hiển thị trang đầu tối đa 20 đồ án.' : undefined })
-      result.attention.push(...dashboard.projects.items.flatMap((project) => project.pendingProgressReviews > 0 ? [{ code: 'PROJECT_PROGRESS_FEEDBACK_PENDING', source: 'PROJECT' as const, sourceId: project.id, title: project.title, description: `${project.pendingProgressReviews} báo cáo chờ phản hồi theo dashboard.`, status: project.status, presentationPriority: 30, deepLink: '/department/portfolio' }] : []))
-    } catch (reason) { result.sources.push(errorStatus('department-dashboard', 'Portfolio bộ môn', reason)) }
+    if (input.departmentId != null && Number.isSafeInteger(input.departmentId) && input.departmentId > 0) {
+      await loadActions('urgent-actions', 'Việc cần xử lý của bộ môn', () => apis.getDepartmentUrgentActions(input.departmentId!, input.signal))
+    } else result.sources.push({ id: 'urgent-actions', label: 'Việc cần xử lý của bộ môn', state: 'unavailable', message: 'Chưa xác định được bộ môn từ phiên đăng nhập. Không truy vấn phạm vi khác.' })
     result.sources.push({ id: 'department-calendar', label: 'Lịch portfolio', state: 'unavailable', message: 'Hệ thống chưa cấp mốc thời gian của resource theo phạm vi bộ môn.' })
     return { ...result, attention: sort(result.attention) }
   }

@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   acceptWorkingAgreement: vi.fn(),
   getMyCapabilities: vi.fn(),
 }))
+vi.mock('../../services/service-gateway', () => ({ services: { project: { getProject: () => Promise.resolve({ id: 9, teamId: 1, majors: [] }) }, team: { getTeam: () => Promise.resolve({ members: [{ userId: 5, fullName: 'Nguyễn Văn An' }] }) } } }))
 vi.mock('../capabilities/capabilities-api', () => ({ getMyCapabilities: mocks.getMyCapabilities }))
 vi.mock('../../app/context', () => ({ useStudentJourney: () => mocks.journey }))
 vi.mock('./working-agreement-api', async () => {
@@ -47,7 +48,7 @@ describe('ProjectWorkingAgreementPage', () => {
     render_()
     expect(await screen.findByText('Họp nhóm')).toBeTruthy()
     expect(screen.getByText('Mỗi tuần một lần.')).toBeTruthy()
-    expect(screen.getByText('Thành viên #5')).toBeTruthy()
+    expect(screen.getByText('Nguyễn Văn An')).toBeTruthy()
     expect(screen.getByText(/Đã xác nhận 1\/3/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Tôi đồng ý với cam kết' })).toBeTruthy()
   })

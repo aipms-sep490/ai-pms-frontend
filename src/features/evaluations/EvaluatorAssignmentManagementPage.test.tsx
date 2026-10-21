@@ -109,4 +109,3 @@ describe('EvaluatorAssignmentManagementPage', () => {
     expect(screen.getByText('1/2 người chấm')).toBeTruthy()
   })
 })
-

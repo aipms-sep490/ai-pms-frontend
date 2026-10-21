@@ -25,7 +25,10 @@ export interface AttentionItem {
   status: string
   /** UI ordering only. It is never used to make an authorization decision. */
   presentationPriority: number
-  deepLink: string
+  deepLink: string | null
+  icon?: string
+  tone?: import('../../components/ui/status-badge-tone').BadgeTone
+  severity?: 'HIGH' | 'NORMAL'
 }
 
 /** Complete, empty, degraded and unsupported reads remain visibly distinct. */
@@ -39,6 +42,7 @@ export interface CalendarSourceStatus {
 }
 
 export interface CalendarAttentionData {
+  attentionAsOfUtc?: string
   calendar: CalendarProjectionItem[]
   attention: AttentionItem[]
   sources: CalendarSourceStatus[]

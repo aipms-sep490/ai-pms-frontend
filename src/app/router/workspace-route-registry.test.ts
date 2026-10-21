@@ -44,4 +44,25 @@ describe('workspace route registry', () => {
     expect(getWorkspaceNavigation(access({ identityRole: 'student', identityRoles: ['STUDENT'], contextStatus: 'loading' }))).toEqual([])
     expect(getWorkspaceNavigation(access({ identityRole: 'student', identityRoles: ['STUDENT'], contextStatus: 'unavailable', projectId: 4, projectState: 'ACTIVE' })).map((route) => route.id)).not.toContain('student-tasks')
   })
+
+  it('organizes active student navigation into 5 distinct journey groups', () => {
+    const studentRoutes = getWorkspaceNavigation(access({ identityRole: 'student', identityRoles: ['STUDENT'], projectId: 1, projectState: 'ACTIVE' }))
+      .filter((route) => route.section === 'student')
+
+    const groups = Array.from(new Set(studentRoutes.map((r) => r.group).filter(Boolean)))
+    expect(groups).toEqual([
+      '1. Điều phối & Tiến độ',
+      '2. Thực thi công việc',
+      '3. Tương tác & Hỗ trợ',
+      '4. Nghiệm thu & Bảo vệ',
+      '5. Hồ sơ & Đề tài',
+    ])
+    // Verify key destinations in their respective groups
+    expect(studentRoutes.find((r) => r.path === '/project/timeline')?.group).toBe('1. Điều phối & Tiến độ')
+    expect(studentRoutes.find((r) => r.path === '/project/tasks')?.group).toBe('2. Thực thi công việc')
+    expect(studentRoutes.find((r) => r.path === '/project/contributions')?.group).toBe('3. Tương tác & Hỗ trợ')
+    expect(studentRoutes.find((r) => r.path === '/project/final-submission')?.group).toBe('4. Nghiệm thu & Bảo vệ')
+    expect(studentRoutes.find((r) => r.path === '/projects/lifecycle')?.group).toBe('5. Hồ sơ & Đề tài')
+  })
 })
+
