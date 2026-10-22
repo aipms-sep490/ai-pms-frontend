@@ -43,6 +43,7 @@ export interface CalendarSourceStatus {
 
 export interface CalendarAttentionData {
   attentionAsOfUtc?: string
+  otherOpenActionsCount?: number
   calendar: CalendarProjectionItem[]
   attention: AttentionItem[]
   sources: CalendarSourceStatus[]

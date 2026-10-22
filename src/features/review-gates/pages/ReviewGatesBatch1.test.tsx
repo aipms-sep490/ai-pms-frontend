@@ -74,6 +74,25 @@ describe('server-authoritative timeline progress', () => {
     expect(screen.getByText('Chưa có dữ liệu')).toBeTruthy()
     expect(screen.queryByRole('progressbar', { name: 'Tiến độ Công nghệ thông tin' })).toBeNull()
   })
+  it.each([
+    ['NOT_CONFIGURED', 'Chưa cấu hình trọng số Cổng thẩm định.'],
+    ['INSUFFICIENT_DATA', 'Chưa đủ dữ liệu để xác định tiến độ học vụ.'],
+    ['WEIGHTED_GATES', 'Tính theo trọng số các Cổng thẩm định đã đạt.'],
+    ['FROZEN_GATE_WEIGHTS', 'Tính theo trọng số các Cổng thẩm định đã đạt.'],
+    ['NEW_BACKEND_SOURCE', 'Nguồn tiến độ học vụ chưa được xác định.'],
+  ])('localizes academic source %s and never exposes its code', (source, label) => {
+    const { container } = renderTimeline({ academicProgress: null, academicProgressSource: source })
+    expect(screen.getByText(label)).toBeTruthy()
+    expect(container.textContent).not.toContain(source)
+    expect(screen.queryByRole('progressbar', { name: 'Tiến độ học vụ' })).toBeNull()
+  })
+  it('uses compact readable text for an unconfigured academic KPI, retaining large numeric progress', () => {
+    renderTimeline({ academicProgress: null, academicProgressSource: 'NOT_CONFIGURED' })
+    const label = screen.getByText('Chưa áp dụng quy chế Cổng thẩm định')
+    expect(label.classList.contains('text-base')).toBe(true)
+    expect(label.classList.contains('text-2xl')).toBe(false)
+    expect(screen.getByText('75%').classList.contains('text-2xl')).toBe(true)
+  })
   it('uses server submit capabilities independently of advisory readiness', () => {
     renderTimeline({ gates: timeline.gates.map(g => ({ ...g, status: 'PLANNED' })), isDefenseReady: false })
     expect((screen.getByRole('button', { name: 'Gửi hồ sơ thẩm định' }) as HTMLButtonElement).disabled).toBe(false)

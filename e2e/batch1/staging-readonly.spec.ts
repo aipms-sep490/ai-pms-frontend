@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { mkdirSync, writeFileSync } from 'node:fs'
-const root = 'F:/AI-PMS/artifacts/fe-batch1-20261022'
+const root = process.env.BATCH1_EVIDENCE_DIR || 'F:/AI-PMS/artifacts/fe-batch1-20261022'
 const actors = [
   { actor: 'student-p1', email: 'p1.se1@demo.aipms.invalid', endpoint: '/students/me/next-actions' },
   { actor: 'student-p3', email: 'p3.se1@demo.aipms.invalid', endpoint: '/students/me/next-actions' },

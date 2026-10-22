@@ -17,6 +17,16 @@ interface StudentReviewTimelineProps {
   onReload?: () => Promise<void>
 }
 
+function academicProgressSourceLabel(source?: string): string {
+  switch (source) {
+    case 'NOT_CONFIGURED': return 'Chưa cấu hình trọng số Cổng thẩm định.'
+    case 'INSUFFICIENT_DATA': return 'Chưa đủ dữ liệu để xác định tiến độ học vụ.'
+    case 'FROZEN_GATE_WEIGHTS':
+    case 'WEIGHTED_GATES': return 'Tính theo trọng số các Cổng thẩm định đã đạt.'
+    default: return 'Nguồn tiến độ học vụ chưa được xác định.'
+  }
+}
+
 export function StudentReviewTimeline({
   timeline,
   isLeader,
@@ -125,15 +135,15 @@ export function StudentReviewTimeline({
       ) : null}
 
       {/* 4 KPI Summary Cards */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {/* KPI 1: Academic Execution Progress */}
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
+        <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
           <span className="text-xs font-semibold text-slate-600">Tiến độ thực hiện học vụ</span>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-emerald-700">
+          <div className="mt-1 flex min-h-16 flex-col justify-between gap-1">
+            <span className={academicProgress != null ? 'text-2xl font-black text-emerald-700' : 'text-base font-semibold leading-6 text-emerald-700'}>
               {academicProgress != null ? `${academicProgress}%` : timeline.academicProgressSource === 'NOT_CONFIGURED' ? 'Chưa áp dụng quy chế Cổng thẩm định' : 'Chưa có dữ liệu'}
             </span>
-            <span className="text-xs text-slate-400">({completedGatesCount}/{totalGatesCount} Cổng đạt)</span>
+            <span className="text-xs text-slate-600">({completedGatesCount}/{totalGatesCount} Cổng đạt)</span>
           </div>
           {academicProgress != null && <div role="progressbar" aria-label="Tiến độ học vụ" aria-valuenow={academicProgress} aria-valuemin={0} aria-valuemax={100} className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
             <div
@@ -141,10 +151,8 @@ export function StudentReviewTimeline({
               style={{ width: `${academicProgress}%` }}
             />
           </div>}
-          <p className="mt-1.5 text-xs text-slate-400">
-            {timeline.academicProgressSource
-              ? `Nguồn: ${timeline.academicProgressSource}`
-              : 'Dữ liệu tiến độ học thuật chính thức do Hội đồng thẩm định phê duyệt.'}
+          <p className="mt-1.5 text-xs text-slate-600">
+            {academicProgressSourceLabel(timeline.academicProgressSource)}
           </p>
         </div>
 

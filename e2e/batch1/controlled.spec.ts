@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { readFileSync, writeFileSync } from 'node:fs'
 
-const root = 'F:/AI-PMS/artifacts/fe-batch1-20261022'
+const root = process.env.BATCH1_EVIDENCE_DIR || 'F:/AI-PMS/artifacts/fe-batch1-20261022'
 const longTitle = 'Đồ án liên ngành nghiên cứu hệ thống quản lý tiến trình thẩm định và phân tích dữ liệu học thuật có tên rất dài'
 const template = { id: '1', code: 'TEST', name: longTitle, projectPeriodId: 1, mode: 'INTERDISCIPLINARY', major: 'Công nghệ thông tin, Marketing và Thiết kế', gatesCount: 4, status: 'DRAFT', version: '1', concurrencyToken: 'template-token', gates: [20, 20, 35, 25].map((weight, i) => ({ id: String(i + 1), code: `R${i + 1}`, title: `Đợt thẩm định ${i + 1} · ${longTitle}`, objective: longTitle, required: true, blockNextGate: false, start: null, end: null, reviewerPolicy: 'Assigned Reviewer', reviewScope: 'COMMON', requirements: [], weight })) }
 const timeline = { projectId: '1', projectCode: 'P1', projectName: longTitle, projectMode: 'INTERDISCIPLINARY', major: 'Công nghệ thông tin', effectivePolicyVersion: '1', currentGateCode: 'R2', taskProgress: 75, academicProgress: 20, academicProgressSource: 'WEIGHTED_GATES', isDefenseReady: false, defenseReadinessStatus: 'NOT_READY', disciplineProgress: [{ scope: 'COMMON', name: 'Phần chung', progress: 20, weight: 40 }, { scope: 'MAJOR:1', name: 'Công nghệ thông tin', progress: null, weight: 60 }], gates: template.gates.map((g, i) => ({ gateInstanceId: g.id, code: g.code, title: g.title, objective: g.objective, status: i === 0 ? 'PASSED' : i === 1 ? 'IN_REVIEW' : 'PLANNED', reviewEligibility: 'READY', isRequired: true, windowStart: null, windowEnd: null, concurrencyToken: 'gate-token', blockingReasons: [], requirements: [], weight: g.weight })), capabilities: { canSubmitPackage: true, canSubmitRevision: true, blockingReasons: [] } }
@@ -11,6 +11,7 @@ async function fixtures(page: Page, mode = 'number') {
   await page.route('**/api/v1/**', async route => {
     const path = new URL(route.request().url()).pathname
     requests.push(path)
+    if (path.endsWith('/dashboards/student')) return route.fulfill({ json: { project: { id: 1, title: longTitle }, taskDeadlines: [], milestoneDeadlines: [] } })
     if (path.includes('/gate-templates')) return route.fulfill({ json: [template] })
     if (path.endsWith('/matrix')) return route.fulfill({ json: [] })
     if (path.endsWith('/timeline')) return route.fulfill({ json: mode === 'null' ? { ...timeline, academicProgress: null, academicProgressSource: 'NOT_CONFIGURED', gates: [] } : timeline })

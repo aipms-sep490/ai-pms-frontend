@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test'
 export default defineConfig({
   testDir: './e2e/batch1', workers: 1, timeout: 60_000,
-  outputDir: 'F:/AI-PMS/artifacts/fe-batch1-20261022/browser',
+  outputDir: `${process.env.BATCH1_EVIDENCE_DIR || 'F:/AI-PMS/artifacts/fe-batch1-20261022'}/browser`,
   reporter: [['list'], ['json', { outputFile: process.env.BATCH1_E2E_REPORT || 'F:/AI-PMS/artifacts/fe-batch1-20261022/playwright.json' }]],
   use: { baseURL: 'http://127.0.0.1:5198', headless: true, trace: 'off', actionTimeout: 12_000, launchOptions: { executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe' } },
   webServer: {

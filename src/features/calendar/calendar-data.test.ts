@@ -3,6 +3,10 @@ import { loadCalendarAttention } from './calendar-data'
 
 function apis() {
   return {
+    getStudentDashboard: vi.fn().mockResolvedValue({ project: { id: 7, title: 'Đồ án' }, taskDeadlines: [], milestoneDeadlines: [] }),
+    getMeetings: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
+    getDeliverables: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
+    getFinalChecklist: vi.fn().mockResolvedValue({ deadline: null }),
     getUsers: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
     getScopedCalendar: vi.fn().mockResolvedValue({ items: [{ sourceType: 'MEETING', sourceId: 3, projectId: 7, title: 'Lịch từ projection', dueAt: '2026-10-22T08:00:00Z', status: 'SCHEDULED', deepLink: '/supervisor/projects/7/meetings/3' }], hasMore: false, complete: true }),
     getStudentNextActions: vi.fn().mockResolvedValue({ asOfUtc: '2026-10-22T08:00:00Z', projectId: 7, items: [] }),
@@ -19,6 +23,10 @@ describe('calendar and aggregator reads', () => {
     expect(data.calendar[0].deepLink).toBe(role === 'lecturer' ? '/supervisor/projects/7/meetings/3' : '/project/meetings/3')
     expect(api.getStudentNextActions).toHaveBeenCalledTimes(role === 'student' ? 1 : 0)
     expect(api.getSupervisorTriageQueue).toHaveBeenCalledTimes(role === 'lecturer' ? 1 : 0)
+    expect(api.getStudentDashboard).toHaveBeenCalledTimes(role === 'student' ? 1 : 0)
+    expect(api.getMeetings).not.toHaveBeenCalled()
+    expect(api.getDeliverables).not.toHaveBeenCalled()
+    expect(api.getFinalChecklist).not.toHaveBeenCalled()
     expect(data.attention).toEqual([])
     expect(data.attentionAsOfUtc).toBe('2026-10-22T08:00:00Z')
     expect(data.sources).toContainEqual(expect.objectContaining({ state: 'empty' }))
@@ -37,19 +45,114 @@ describe('calendar and aggregator reads', () => {
   })
   it('keeps attention when calendar fails and never invents a date', async () => {
     const api = apis(); api.getScopedCalendar.mockRejectedValue(new Error('503'))
-    api.getStudentNextActions.mockResolvedValue({ asOfUtc: '2026-10-22T08:00:00Z', projectId: 7, items: [{ kind: 'REVIEW_GATE', id: 2, projectId: 7, title: 'Chờ thẩm định', status: 'IN_REVIEW', severity: 'NORMAL', dueAt: null, deepLink: null }] })
+    api.getStudentNextActions.mockResolvedValue({ asOfUtc: '2026-10-22T08:00:00Z', projectId: 7, items: [{ kind: 'REVIEW_GATE', id: 2, projectId: 7, title: 'Bị chặn', status: 'BLOCKED', severity: 'HIGH', dueAt: null, deepLink: null }] })
     const data = await loadCalendarAttention({ role: 'student', semesterId: null }, api)
     expect(data.attention).toMatchObject([{ code: 'REVIEW_GATE', dueAt: undefined, deepLink: null }])
     expect(data.calendar).toEqual([])
   })
   it('reads the authorized department and fails closed without it', async () => {
     const api = apis()
-    await loadCalendarAttention({ role: 'department', semesterId: null, departmentId: 4 }, api)
+    await loadCalendarAttention({ role: 'department', semesterId: null, departmentIds: [4] }, api)
     expect(api.getDepartmentUrgentActions).toHaveBeenCalledExactlyOnceWith(4, undefined)
     api.getDepartmentUrgentActions.mockClear()
     const data = await loadCalendarAttention({ role: 'department', semesterId: null }, api)
     expect(api.getDepartmentUrgentActions).not.toHaveBeenCalled()
     expect(data.sources[0].state).toBe('unavailable')
+  })
+  it('restores overdue milestones without duplicating dashboard task attention', async () => {
+    const api = apis()
+    api.getStudentDashboard.mockResolvedValue({ project: { id: 7, title: 'Đồ án' }, taskDeadlines: [{ id: 1, title: 'Task quá hạn', status: 'TODO', dueAtUtc: '2026-10-01', isOverdue: true }], milestoneDeadlines: [{ id: 2, title: 'Mốc quá hạn', status: 'OPEN', dueDate: '2026-10-01', isOverdue: true }, { id: 3, title: 'Mốc đúng hạn', status: 'OPEN', dueDate: '2026-12-01', isOverdue: false }] })
+    api.getStudentNextActions.mockResolvedValue({ asOfUtc: '2026-10-22T08:00:00Z', items: [{ kind: 'TASK', id: 1, projectId: 7, title: 'Task quá hạn', status: 'TODO', severity: 'HIGH', dueAt: '2026-10-01', deepLink: '/project/tasks/1' }] })
+    const data = await loadCalendarAttention({ role: 'student', semesterId: 2 }, api)
+    expect(data.attention.map(x => x.code)).toEqual(['TASK', 'MILESTONE_OVERDUE'])
+    expect(data.attention.filter(x => x.code === 'TASK')).toHaveLength(1)
+    expect(data.attention[1]).toMatchObject({ sourceId: 2, presentationPriority: 15, deepLink: '/project/milestones/2' })
+    expect(data.sources.find(x => x.id === 'student-dashboard')?.state).toBe('ready')
+  })
+  it('starts dashboard, calendar and aggregator independently and preserves healthy sources if dashboard fails', async () => {
+    const api = apis()
+    let rejectDashboard!: (reason: Error) => void
+    api.getStudentDashboard.mockImplementation(() => new Promise((_, reject) => { rejectDashboard = reject }))
+    const pending = loadCalendarAttention({ role: 'student', semesterId: null }, api)
+    expect(api.getStudentNextActions).toHaveBeenCalledTimes(1)
+    expect(api.getScopedCalendar).toHaveBeenCalledTimes(1)
+    rejectDashboard(new Error('Dashboard unavailable'))
+    const data = await pending
+    expect(data.calendar).toHaveLength(1)
+    expect(data.sources.find(x => x.id === 'student-dashboard')?.state).toBe('error')
+    expect(data.sources.find(x => x.id === 'next-actions')?.state).toBe('empty')
+  })
+  it('restores student calendar resources only after scoped calendar fails', async () => {
+    const api = apis()
+    api.getScopedCalendar.mockRejectedValue(new Error('Calendar 500'))
+    api.getStudentDashboard.mockResolvedValue({ project: { id: 7, title: 'Đồ án' }, taskDeadlines: [{ id: 1, title: 'Task có hạn', status: 'TODO', dueAtUtc: '2026-10-25', isOverdue: false }], milestoneDeadlines: [{ id: 2, title: 'Mốc có hạn', status: 'OPEN', dueDate: '2026-10-26', isOverdue: false }] })
+    api.getMeetings.mockResolvedValue({ items: [{ id: 3, projectId: 7, title: 'Họp dự phòng', startAt: '2026-10-27T08:00:00Z', endAt: null, status: 'SCHEDULED' }], totalCount: 101 })
+    api.getDeliverables.mockResolvedValue({ items: [{ id: 4, projectId: 7, title: 'Hạng mục', dueAt: '2026-10-28', status: 'OPEN' }, { id: 5, projectId: 7, title: 'Không có hạn', dueAt: null, status: 'OPEN' }], totalCount: 2 })
+    api.getFinalChecklist.mockResolvedValue({ deadline: '2026-10-29' })
+    const data = await loadCalendarAttention({ role: 'student', semesterId: null }, api)
+    expect(data.calendar.map(x => x.sourceType)).toEqual(['TASK', 'MILESTONE', 'MEETING', 'DELIVERABLE', 'FINAL_SUBMISSION'])
+    expect(data.sources.find(x => x.id === 'student-calendar')).toMatchObject({ state: 'error', message: 'Calendar 500' })
+    expect(data.sources.find(x => x.id === 'meetings')?.state).toBe('partial')
+    expect(data.sources.find(x => x.id === 'deliverables')?.state).toBe('ready')
+    expect(data.sources.find(x => x.id === 'final-submission')?.state).toBe('ready')
+    expect(api.getMeetings).toHaveBeenCalledTimes(1)
+    expect(api.getStudentNextActions).toHaveBeenCalledTimes(1)
+  })
+  it('isolates fallback resource failures and keeps missing final deadlines empty', async () => {
+    const api = apis()
+    api.getScopedCalendar.mockRejectedValue(new Error('500'))
+    api.getMeetings.mockRejectedValue(new Error('Meetings 403'))
+    const data = await loadCalendarAttention({ role: 'student', semesterId: null }, api)
+    expect(data.sources.find(x => x.id === 'meetings')).toMatchObject({ state: 'error', message: 'Meetings 403' })
+    expect(data.sources.find(x => x.id === 'deliverables')?.state).toBe('empty')
+    expect(data.sources.find(x => x.id === 'final-submission')?.state).toBe('empty')
+    expect(data.calendar).toEqual([])
+  })
+  it('does not query project resources without a dashboard project', async () => {
+    const api = apis()
+    api.getScopedCalendar.mockRejectedValue(new Error('500'))
+    api.getStudentDashboard.mockResolvedValue({ project: null, taskDeadlines: [], milestoneDeadlines: [] })
+    const data = await loadCalendarAttention({ role: 'student', semesterId: null }, api)
+    expect(data.sources.find(x => x.id === 'project-resources')?.state).toBe('unavailable')
+    expect(api.getMeetings).not.toHaveBeenCalled()
+  })
+  it.each(['student', 'lecturer', 'department'] as const)('keeps only HIGH items in %s attention and discloses other open work', async role => {
+    const api = apis()
+    const response = { asOfUtc: '2026-10-22T08:00:00Z', items: [{ kind: 'TASK', id: 1, projectId: 7, title: 'Đúng hạn', status: 'TODO', severity: 'NORMAL', dueAt: null, deepLink: null }, { kind: 'TASK', id: 2, projectId: 7, title: 'Quá hạn', status: 'TODO', severity: 'HIGH', dueAt: '2026-10-01', deepLink: null }, { kind: 'REVIEW_GATE', id: 3, projectId: 7, title: 'Gate bị chặn', status: 'BLOCKED', severity: 'HIGH', dueAt: null, deepLink: null }] }
+    api.getStudentNextActions.mockResolvedValue(response)
+    api.getSupervisorTriageQueue.mockResolvedValue(response)
+    api.getDepartmentUrgentActions.mockResolvedValue({ ...response, departmentId: 1 })
+    const data = await loadCalendarAttention({ role, semesterId: null, departmentIds: [1] }, api)
+    expect(data.attention.map(x => x.title).sort()).toEqual(['Quá hạn', 'Gate bị chặn'].sort())
+    expect(data.otherOpenActionsCount).toBe(1)
+    expect(data.sources.find(x => x.id === (role === 'student' ? 'next-actions' : role === 'lecturer' ? 'triage-queue' : 'urgent-actions-1'))?.state).toBe('ready')
+  })
+  it('preserves both unsupported deadline disclosures without pretending to read removed sources', async () => {
+    const api = apis()
+    const student = await loadCalendarAttention({ role: 'student', semesterId: null }, api)
+    const lecturer = await loadCalendarAttention({ role: 'lecturer', semesterId: null }, api)
+    expect(student.sources).toContainEqual(expect.objectContaining({ id: 'progress-report-deadline', state: 'unsupported', message: 'API hiện trả kỳ báo cáo, không trả hạn nộp báo cáo.' }))
+    expect(lecturer.sources).toContainEqual(expect.objectContaining({ id: 'evaluation-assignments', state: 'unsupported', message: 'DTO hiện không có hạn đánh giá; không tạo sự kiện lịch.' }))
+    expect(lecturer.sources.some(x => x.id === 'supervisor-dashboard')).toBe(false)
+    expect(student.sources.some(x => x.id === 'meetings')).toBe(false)
+  })
+  it('merges authorized department results and reports each failed department independently', async () => {
+    const api = apis()
+    api.getDepartmentUrgentActions.mockImplementation(async id => {
+      if (id === 3) throw new Error('Bộ môn 3: 403')
+      return { asOfUtc: id === 1 ? '2026-10-22T08:00:00.100Z' : '2026-10-22T08:00:00Z', departmentId: id, items: [{ kind: 'PROJECT', id, projectId: id, title: `Bộ môn ${id}`, status: 'PENDING', severity: 'HIGH', dueAt: null, deepLink: null }] }
+    })
+    const data = await loadCalendarAttention({ role: 'department', semesterId: null, departmentIds: [1, 2, 3, 1] }, api)
+    expect(api.getDepartmentUrgentActions.mock.calls.map(x => x[0])).toEqual([1, 2, 3])
+    expect(data.attention.map(x => x.title)).toEqual(['Bộ môn 1', 'Bộ môn 2'])
+    expect(data.sources.find(x => x.id === 'urgent-actions-3')).toMatchObject({ state: 'error', message: 'Bộ môn 3: 403' })
+    expect(data.attentionAsOfUtc).toBe('2026-10-22T08:00:00Z')
+  })
+  it.each([{ departmentIds: [] }, { departmentIds: [0, -1, 1.5, Number.NaN] }])('fails closed with no valid departments: %j', async ({ departmentIds }) => {
+    const api = apis()
+    const data = await loadCalendarAttention({ role: 'department', semesterId: null, departmentIds }, api)
+    expect(api.getDepartmentUrgentActions).not.toHaveBeenCalled()
+    expect(data.sources).toContainEqual(expect.objectContaining({ id: 'urgent-actions', state: 'unavailable', message: expect.stringContaining('phiên đăng nhập') }))
   })
   it('retains unsupported admin calendar and existing account source', async () => {
     const api = apis()
