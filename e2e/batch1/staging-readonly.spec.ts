@@ -26,10 +26,12 @@ for (const actor of actors) test(`staging read only: ${actor.actor}`, async ({ p
   const evidence: Record<string, unknown> = { actor: actor.actor, loginStatus: response.status(), reads: [] }
   const reads = evidence.reads as Array<Record<string, unknown>>
   let endpoint = actor.endpoint
+  let departmentName: string | null = null
   if (!endpoint) {
     const scope = await request.get('/api/v1/auth/me/context', { headers })
     const data = await scope.json()
     const id = data.department?.id ?? data.academicScope?.departmentId ?? data.user?.departmentId ?? data.academic?.department?.id
+    departmentName = data.academic?.department?.name ?? data.department?.name ?? null
     evidence.departmentScopeStatus = scope.status()
     evidence.scopeTopLevelFields = Object.keys(data)
     expect(id).toBeGreaterThan(0)
@@ -47,6 +49,11 @@ for (const actor of actors) test(`staging read only: ${actor.actor}`, async ({ p
   await page.goto('/calendar')
   await expect(page.getByRole('heading', { name: 'Lịch tổng hợp & điểm cần chú ý' })).toBeVisible()
   await expect(page.getByText('Dữ liệu tính đến:', { exact: false })).toBeVisible({ timeout: 20_000 })
+  if (actor.actor === 'department') {
+    expect(departmentName).toBeTruthy()
+    await expect(page.getByText(`Việc cần xử lý · ${departmentName}`, { exact: true })).toBeVisible()
+    evidence.departmentSourceName = departmentName
+  }
   await page.screenshot({ path: `${root}/staging-${actor.actor}-calendar.png`, fullPage: true })
   if (actor.actor.startsWith('student')) {
     await page.goto('/project/timeline')

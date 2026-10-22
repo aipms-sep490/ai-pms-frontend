@@ -154,6 +154,21 @@ describe('calendar and aggregator reads', () => {
     expect(api.getDepartmentUrgentActions).not.toHaveBeenCalled()
     expect(data.sources).toContainEqual(expect.objectContaining({ id: 'urgent-actions', state: 'unavailable', message: expect.stringContaining('phiên đăng nhập') }))
   })
+  it.each([{ departmentIds: [1] }, { departmentIds: [1, 2] }])('labels authorized department sources with academic names: %j', async ({ departmentIds }) => {
+    const api = apis()
+    const departments = [{ id: 1, name: 'Công nghệ thông tin' }, { id: 2, name: 'Quản trị kinh doanh' }, { id: 99, name: 'Ngoài phạm vi được cấp' }]
+    const result = await loadCalendarAttention({ role: 'department', semesterId: null, departmentIds, departments }, api)
+    expect(api.getDepartmentUrgentActions.mock.calls.map(call => call[0])).toEqual(departmentIds)
+    expect(result.sources.filter(source => source.id.startsWith('urgent-actions-'))).toEqual(departmentIds.map(id => expect.objectContaining({ id: `urgent-actions-${id}`, label: `Việc cần xử lý · ${departments.find(department => department.id === id)?.name}` })))
+    expect(result.sources.some(source => source.label.includes('Bộ môn 1') || source.label.includes('Bộ môn 2'))).toBe(false)
+  })
+  it('retains named department identity on failure and falls back safely if a name is absent', async () => {
+    const api = apis()
+    api.getDepartmentUrgentActions.mockRejectedValue(new Error('403'))
+    const data = await loadCalendarAttention({ role: 'department', semesterId: null, departmentIds: [1, 2], departments: [{ id: 1, name: 'Công nghệ thông tin' }] }, api)
+    expect(data.sources).toContainEqual(expect.objectContaining({ id: 'urgent-actions-1', label: 'Việc cần xử lý · Công nghệ thông tin', state: 'error', message: '403' }))
+    expect(data.sources).toContainEqual(expect.objectContaining({ id: 'urgent-actions-2', label: 'Việc cần xử lý · Bộ môn 2', state: 'error' }))
+  })
   it('retains unsupported admin calendar and existing account source', async () => {
     const api = apis()
     const data = await loadCalendarAttention({ role: 'admin', semesterId: null, accessToken: 't' }, api)

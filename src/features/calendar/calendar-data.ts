@@ -11,8 +11,9 @@ import { aggregatorAttention } from './action-aggregators'
 import type { WorkspaceRole } from '../auth/utils/role-access'
 import type { CalendarAttentionData, CalendarProjectionItem, CalendarSourceStatus, AttentionItem } from './calendar-types'
 import { deliverableProjection, finalSubmissionProjection, meetingProjection, scopedCalendarProjection } from './calendar-projections'
+import type { AcademicReferenceDto } from '../../types/backend'
 
-export interface CalendarLoaderInput { role: WorkspaceRole; semesterId: number | null; departmentIds?: readonly number[]; accessToken?: string; signal?: AbortSignal }
+export interface CalendarLoaderInput { role: WorkspaceRole; semesterId: number | null; departmentIds?: readonly number[]; departments?: readonly Pick<AcademicReferenceDto, 'id' | 'name'>[]; accessToken?: string; signal?: AbortSignal }
 export const calendarApis = { getUsers, getScopedCalendar, getStudentNextActions, getSupervisorTriageQueue, getDepartmentUrgentActions, getStudentDashboard, getMeetings, getDeliverables, getFinalChecklist }
 type CalendarApis = typeof calendarApis
 function errorStatus(id: string, label: string, reason: unknown): CalendarSourceStatus {
@@ -115,7 +116,10 @@ export async function loadCalendarAttention(input: CalendarLoaderInput, apis: Ca
   if (input.role === 'department') {
     const departmentIds = [...new Set(input.departmentIds ?? [])].filter(id => Number.isSafeInteger(id) && id > 0)
     if (departmentIds.length) {
-      await Promise.allSettled(departmentIds.map(id => loadActions(`urgent-actions-${id}`, `Việc cần xử lý · Bộ môn ${id}`, () => apis.getDepartmentUrgentActions(id, input.signal))))
+      await Promise.allSettled(departmentIds.map(id => {
+        const name = input.departments?.find(department => department.id === id)?.name ?? `Bộ môn ${id}`
+        return loadActions(`urgent-actions-${id}`, `Việc cần xử lý · ${name}`, () => apis.getDepartmentUrgentActions(id, input.signal))
+      }))
     } else result.sources.push({ id: 'urgent-actions', label: 'Việc cần xử lý của bộ môn', state: 'unavailable', message: 'Chưa xác định được bộ môn từ phiên đăng nhập. Không truy vấn phạm vi khác.' })
     result.sources.push({ id: 'department-calendar', label: 'Lịch portfolio', state: 'unavailable', message: 'Hệ thống chưa cấp mốc thời gian của resource theo phạm vi bộ môn.' })
     return { ...result, attention: sort(result.attention) }

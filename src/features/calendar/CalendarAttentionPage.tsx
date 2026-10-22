@@ -18,6 +18,9 @@ const sourceLabels: Record<CalendarProjectionItem['sourceType'], string> = {
 
 function datedAt(item: CalendarProjectionItem): string | undefined { return item.dueAt ?? item.startAt ?? item.endAt }
 function dateKey(item: CalendarProjectionItem): string { return datedAt(item)?.slice(0, 10) ?? '' }
+function isAttentionSource(id: string): boolean {
+  return ['next-actions', 'triage-queue', 'accounts', 'student-dashboard'].includes(id) || id.startsWith('urgent-actions-')
+}
 function sourceStateText(data: CalendarAttentionData): string | null {
   const affected = data.sources.filter((source) => source.state !== 'ready' && source.state !== 'empty')
   return affected.length ? `${affected.length} nguồn chưa đầy đủ. Những nguồn khác vẫn được hiển thị.` : null
@@ -35,9 +38,9 @@ export function CalendarAttentionPage() {
   const refresh = useCallback(async (signal?: AbortSignal) => {
     const request = ++generation.current
     setLoading(true)
-    const next = await loadCalendarAttention({ role: access.identityRole, semesterId: access.selectedSemesterId, accessToken: session?.accessToken, departmentIds: access.departmentIds, signal })
+    const next = await loadCalendarAttention({ role: access.identityRole, semesterId: access.selectedSemesterId, accessToken: session?.accessToken, departmentIds: access.departmentIds, departments: access.departments, signal })
     if (!signal?.aborted && request === generation.current) { setData(next); setLoading(false) }
-  }, [access.identityRole, access.selectedSemesterId, session?.accessToken, access.departmentIds])
+  }, [access.identityRole, access.selectedSemesterId, session?.accessToken, access.departmentIds, access.departments])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -54,7 +57,8 @@ export function CalendarAttentionPage() {
     return groups
   }, {}), [items])
   const partialMessage = data ? sourceStateText(data) : null
-  const attentionKnown = (data?.attention.length ?? 0) > 0 || (data?.sources.some(source => (['next-actions', 'triage-queue', 'accounts'].includes(source.id) || source.id.startsWith('urgent-actions-')) && (source.state === 'ready' || source.state === 'empty')) ?? false)
+  const attentionSources = data?.sources.filter(source => isAttentionSource(source.id)) ?? []
+  const attentionKnown = attentionSources.length > 0 && attentionSources.every(source => source.state === 'ready' || source.state === 'empty')
   const calendarKnown = data?.sources.some(source => ['student-calendar', 'lecturer-calendar', 'student-dashboard', 'meetings', 'deliverables', 'final-submission'].includes(source.id) && ['ready', 'empty', 'partial'].includes(source.state)) ?? false
 
   return <section className="calendar-page workspace-page" aria-labelledby="calendar-heading">
@@ -93,6 +97,10 @@ export function CalendarAttentionPage() {
         </section>
         <aside className="attention-panel" aria-labelledby="attention-heading">
           <div className="attention-panel__heading"><div><h2 id="attention-heading">Điểm cần chú ý</h2><p>Những việc ưu tiên cao và mốc đồ án quá hạn.</p></div><span className="attention-panel__count" aria-label={attentionKnown ? `${data.attention.length} điểm cần chú ý` : 'Chưa xác định số việc cần làm'}>{attentionKnown ? data.attention.length : '—'}</span></div>
+          {!attentionKnown && <div className="mx-4 mb-3 space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <p role="status">Một số nguồn chưa tải được; danh sách có thể chưa đầy đủ.</p>
+            <Button variant="outline" size="sm" icon="refresh" onClick={() => void refresh()} disabled={loading}>Tải lại danh sách</Button>
+          </div>}
           {data.attentionAsOfUtc && <p className="px-4 pb-3 text-xs text-ink-muted">Dữ liệu tính đến: <time dateTime={data.attentionAsOfUtc}>{formatCalendarDate(data.attentionAsOfUtc)}</time></p>}
           {(data.otherOpenActionsCount ?? 0) > 0 && <p className="px-4 pb-3 text-sm text-ink-muted" role="status">Còn {data.otherOpenActionsCount} việc đang mở không thuộc nhóm ưu tiên cao.</p>}
           {data.attention.length === 0

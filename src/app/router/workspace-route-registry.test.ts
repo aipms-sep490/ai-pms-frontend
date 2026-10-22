@@ -3,7 +3,7 @@ import { getWorkspaceNavigation, workspaceRouteRegistry } from './workspace-rout
 import type { WorkspaceAccess } from '../context/workspace-access'
 
 const access = (overrides: Partial<WorkspaceAccess>): WorkspaceAccess => ({
-  identityRole: 'unknown', identityRoles: [], permissions: [], departmentIds: [], majorIds: [], selectedSemesterId: null,
+  identityRole: 'unknown', identityRoles: [], permissions: [], departmentIds: [], departments: [], majorIds: [], selectedSemesterId: null,
   teamId: null, projectId: null, projectState: null, assignments: [], teamActions: null, projectActions: null,
   contextStatus: 'ready', contextError: null, actionStatus: 'unknown', assignmentStatus: 'unknown', isWorkflowActionAllowed: () => false,
   ...overrides,
