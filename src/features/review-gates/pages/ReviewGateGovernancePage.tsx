@@ -464,15 +464,15 @@ export function ReviewGateGovernancePage() {
           {activeTab === 'hybrid' && (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <label htmlFor="hybrid-project-select" className="text-xs font-bold text-slate-700">
+                <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
+                  <label htmlFor="hybrid-project-select" className="shrink-0 text-xs font-bold text-slate-700">
                     Đồ án liên ngành:
                   </label>
                   <select
                     id="hybrid-project-select"
                     value={selectedProjectId}
                     onChange={e => setSelectedProjectId(e.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800"
+                    className="min-h-11 min-w-0 max-w-full flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     {matrixProjects
                       .filter(p => p.mode === 'INTERDISCIPLINARY' || p.hybridScopes)
@@ -491,6 +491,7 @@ export function ReviewGateGovernancePage() {
               <InterdisciplinaryGatePanel
                 projectId={selectedProjectId}
                 hybridScopes={matrixProjects.find(p => p.projectId === selectedProjectId)?.hybridScopes}
+                hybridScopeLabels={matrixProjects.find(p => p.projectId === selectedProjectId)?.hybridScopeLabels}
                 onUpdateScopeDecision={handleUpdateHybridScopeDecision}
               />
             </div>

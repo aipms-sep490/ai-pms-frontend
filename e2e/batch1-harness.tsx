@@ -7,11 +7,12 @@ import { AcademicWorkflowContext } from '../src/app/context/academic-workflow-co
 import { ReviewGateGovernancePage } from '../src/features/review-gates/pages/ReviewGateGovernancePage'
 import { StudentReviewTimelinePage } from '../src/features/review-gates/pages/StudentReviewTimelinePage'
 import { CalendarAttentionPage } from '../src/features/calendar/CalendarAttentionPage'
+import { AssignedGateReviewPage } from '../src/features/review-gates/pages/AssignedGateReviewPage'
 
 const params = new URLSearchParams(location.search)
 const actor = params.get('actor')
 const role = actor === 'lecturer' ? 'LECTURER' : actor === 'department' ? 'DEPARTMENT_STAFF' : 'STUDENT'
-const departmentIds = params.get('departments') === 'multiple' ? [1, 2] : [4]
+const departmentIds = params.get('departments') === 'none' ? [] : params.get('departments') === 'multiple' ? [1, 2] : [4]
 const academic = role === 'DEPARTMENT_STAFF' ? {
   organization: null,
   departments: params.get('departmentNames') === 'missing' ? [] : [
@@ -30,7 +31,7 @@ createRoot(document.getElementById('root')!).render(
       <AcademicWorkflowContext.Provider value={{ currentUser: session.user, workflowContext: null, academic, authorization: { roles: [role], permissions: [], departmentIds: role === 'DEPARTMENT_STAFF' ? departmentIds : [], majorIds: [] }, status: 'ready', error: null, errorKind: null, refresh: done }}>
         <main className="mx-auto min-w-0 max-w-7xl p-3">
           <p className="mb-3 text-sm text-ink-muted">Kiểm thử HTTP có kiểm soát · Không phải dữ liệu staging</p>
-          {params.get('view') === 'builder' ? <ReviewGateGovernancePage /> : params.get('view') === 'calendar' ? <CalendarAttentionPage /> : <StudentReviewTimelinePage />}
+          {params.get('view') === 'builder' ? <ReviewGateGovernancePage /> : params.get('view') === 'calendar' ? <CalendarAttentionPage /> : params.get('view') === 'reviewer' ? <AssignedGateReviewPage /> : <StudentReviewTimelinePage />}
         </main>
       </AcademicWorkflowContext.Provider>
     </AuthSessionContext.Provider>

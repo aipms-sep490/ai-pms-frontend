@@ -150,7 +150,7 @@ export function ProjectProgressMatrix({
                                 statusPillClasses[st] || 'bg-slate-100 text-slate-500'
                               }`}
                             >
-                              {st}
+                              {statusLabels[st] ?? 'Chưa xác định'}
                             </span>
                           ) : (
                             <span className="text-slate-300">-</span>
@@ -159,7 +159,7 @@ export function ProjectProgressMatrix({
                       )
                     })}
                     <td className="py-3.5 px-4 min-w-[130px]">
-                      <div className="flex items-center gap-2">
+                      {proj.hasTasks === false ? <span className="text-xs text-slate-600">Chưa có công việc</span> : <div className="flex items-center gap-2">
                         <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
                           <div
                             className="h-full rounded-full bg-primary"
@@ -167,7 +167,7 @@ export function ProjectProgressMatrix({
                           />
                         </div>
                         <span className="text-xs font-bold text-slate-600">{proj.taskProgress}%</span>
-                      </div>
+                      </div>}
                     </td>
                   </tr>
                 )
@@ -201,7 +201,8 @@ export function ProjectProgressMatrix({
               <button
                 type="button"
                 onClick={() => setInspectingProject(null)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100"
+                aria-label="Đóng chi tiết đồ án"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
               >
                 ✕
               </button>

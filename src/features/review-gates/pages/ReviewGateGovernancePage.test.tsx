@@ -103,7 +103,7 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
 
     expect(await screen.findByText('G2 · Integrated Concept & Architecture Gate')).toBeTruthy()
     expect(screen.getByText('CHỜ THẨM ĐỊNH CÁC NGÀNH')).toBeTruthy()
-    expect(screen.getByText('REVISION REQUIRED')).toBeTruthy()
+    expect(screen.getByText('Có nhánh cần chỉnh sửa')).toBeTruthy()
 
     // Find the dropdown for Design scope (which is currently REVISION_REQUIRED) and update to PASSED
     const selects = screen.getAllByRole('combobox')
@@ -114,8 +114,9 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
 
     // Now all scopes are PASSED
     await waitFor(() => {
-      expect(screen.getByText('ĐỦ ĐIỀU KIỆN PASS')).toBeTruthy()
-      expect(screen.getByText('READY FOR PASS')).toBeTruthy()
+      expect(screen.getByText('CÁC NHÁNH ĐÃ ĐẠT')).toBeTruthy()
+      expect(screen.getByText('Các nhánh đã đạt')).toBeTruthy()
+      expect(screen.queryByText('READY FOR PASS')).toBeNull()
     })
   })
 

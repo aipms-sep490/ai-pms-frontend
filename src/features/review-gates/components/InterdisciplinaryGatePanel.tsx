@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { GateStatus } from '../types/review-gates.types'
+import { env } from '../../../app/config/env'
 
 interface InterdisciplinaryGatePanelProps {
   projectId?: string
   hybridScopes?: Record<string, GateStatus>
+  hybridScopeLabels?: Record<string, string>
   onUpdateScopeDecision: (
     projectId: string,
     scope: string,
@@ -33,6 +35,7 @@ const scopeMeta: Record<string, { name: string; desc: string }> = {
 export function InterdisciplinaryGatePanel({
   projectId,
   hybridScopes,
+  hybridScopeLabels,
   onUpdateScopeDecision,
 }: InterdisciplinaryGatePanelProps) {
   const [scopes, setScopes] = useState<Record<string, GateStatus>>(hybridScopes || {})
@@ -48,7 +51,7 @@ export function InterdisciplinaryGatePanel({
   }, [hybridScopes])
 
   async function handleScopeChange(scope: string, val: 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW') {
-    if (!projectId) return
+    if (!projectId || !env.reviewGatesMockEnabled || busyScope) return
     const prevVal = scopes[scope]
     setScopes(prev => ({ ...prev, [scope]: val }))
     setBusyScope(scope)
@@ -67,6 +70,7 @@ export function InterdisciplinaryGatePanel({
   const scopeKeys = Object.keys(scopes)
   const allPassed = scopeKeys.length > 0 && Object.values(scopes).every(s => s === 'PASSED')
   const hasRevision = Object.values(scopes).some(s => s === 'REVISION_REQUIRED')
+  const scopeName = (key: string) => hybridScopeLabels?.[key]?.trim() || scopeMeta[key]?.name || `Ngành ${key}`
 
   if (scopeKeys.length === 0) {
     return (
@@ -104,7 +108,7 @@ export function InterdisciplinaryGatePanel({
                 : 'bg-amber-50 text-amber-700 border-amber-200'
             }`}
           >
-            {allPassed ? 'ĐỦ ĐIỀU KIỆN PASS' : 'CHỜ THẨM ĐỊNH CÁC NGÀNH'}
+            {allPassed ? 'CÁC NHÁNH ĐÃ ĐẠT' : 'CHỜ THẨM ĐỊNH CÁC NGÀNH'}
           </span>
         </div>
         <p className="mt-2 text-xs text-slate-500">
@@ -115,7 +119,7 @@ export function InterdisciplinaryGatePanel({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Scopes Table */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+          <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-x-auto">
             <div className="border-b border-slate-100 p-4">
               <h3 className="text-sm font-bold text-slate-800">
                 Thẩm định phân theo từng Chuyên ngành (Scope Review)
@@ -143,8 +147,8 @@ export function InterdisciplinaryGatePanel({
                 {scopeKeys.map(scopeKey => {
                   const item = {
                     scope: scopeKey,
-                    name: scopeMeta[scopeKey]?.name || `Chuyên ngành ${scopeKey}`,
-                    desc: scopeMeta[scopeKey]?.desc || `Thẩm định yêu cầu chuyên ngành ${scopeKey}`,
+                    name: scopeName(scopeKey),
+                    desc: scopeMeta[scopeKey]?.desc || 'Thẩm định yêu cầu chuyên ngành',
                   }
                   return (
                     <tr key={item.scope} className="hover:bg-slate-50">
@@ -159,7 +163,8 @@ export function InterdisciplinaryGatePanel({
                       </td>
                       <td className="py-3.5 px-4">
                         <select
-                          disabled={busyScope === item.scope}
+                          aria-label={`Trạng thái thẩm định · ${item.name}`}
+                          disabled={!env.reviewGatesMockEnabled || busyScope !== null}
                           value={scopes[item.scope] || 'IN_REVIEW'}
                           onChange={e =>
                             handleScopeChange(
@@ -167,7 +172,7 @@ export function InterdisciplinaryGatePanel({
                               e.target.value as 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW',
                             )
                           }
-                          className={`rounded-lg border p-1.5 text-xs font-bold focus:outline-none ${
+                          className={`min-h-11 max-w-full rounded-lg border p-1.5 text-xs font-bold focus:ring-2 focus:ring-primary ${
                             scopes[item.scope] === 'PASSED'
                               ? 'border-emerald-300 bg-emerald-50/50 text-emerald-800'
                               : scopes[item.scope] === 'REVISION_REQUIRED'
@@ -175,9 +180,11 @@ export function InterdisciplinaryGatePanel({
                               : 'border-blue-300 bg-blue-50/50 text-blue-800'
                           } ${busyScope === item.scope ? 'opacity-50 cursor-wait' : ''}`}
                         >
-                          <option value="PASSED">✓ ĐẠT (PASSED)</option>
-                          <option value="REVISION_REQUIRED">⚠ CẦN SỬA (REVISION)</option>
-                          <option value="IN_REVIEW">⏳ ĐANG XÉT (IN_REVIEW)</option>
+                          <option value="PASSED">Đã đạt</option>
+                          <option value="REVISION_REQUIRED">Cần chỉnh sửa</option>
+                          <option value="IN_REVIEW">Đang thẩm định</option>
+                          <option value="PLANNED" disabled>Chưa bắt đầu</option>
+                          <option value="LOCKED" disabled>Chưa mở</option>
                         </select>
                       </td>
                     </tr>
@@ -193,8 +200,8 @@ export function InterdisciplinaryGatePanel({
             </h4>
             <div className="space-y-2 text-xs">
               {scopeKeys.map(s => (
-                <div key={s} className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-2.5">
-                  <span><strong>{scopeMeta[s]?.name || s}</strong>: Yêu cầu chuẩn đầu ra chuyên ngành</span>
+                <div key={s} className="flex flex-wrap gap-2 items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-2.5">
+                  <span><strong>{scopeName(s)}</strong>: Yêu cầu chuẩn đầu ra chuyên ngành</span>
                   <span className="text-slate-400">→ Điều kiện tiên quyết xét duyệt <strong>Cổng tích hợp chung</strong></span>
                 </div>
               ))}
@@ -212,23 +219,20 @@ export function InterdisciplinaryGatePanel({
             }`}
           >
             <span className="text-xs font-bold uppercase tracking-wider">
-              Kết luận thẩm định liên ngành
+              Theo dõi thẩm định liên ngành
             </span>
             <div className="mt-2 text-2xl font-black">
-              {allPassed ? 'READY FOR PASS' : hasRevision ? 'REVISION REQUIRED' : 'BLOCKED'}
+              {allPassed ? 'Các nhánh đã đạt' : hasRevision ? 'Có nhánh cần chỉnh sửa' : 'Chờ thẩm định'}
             </div>
             <p className="mt-2 text-xs leading-relaxed opacity-90">
-              {allPassed
-                ? 'Tất cả các ngành tham gia đều đã xác nhận PASSED. Khoa trưởng ngành có thể ký duyệt chính thức để chuyển sang Gate kế tiếp.'
-                : 'Gate liên ngành KHÔNG THỂ PASS nếu bất kỳ ngành bắt buộc nào chưa đạt hoặc cần chỉnh sửa.'}
+              Trạng thái từng nhánh do hệ thống trả về. Kết luận cổng và điều kiện chuyển tiếp được xác định bởi hệ thống và reviewer được phân công.
             </p>
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-600 space-y-2 shadow-xs">
-            <strong className="block font-bold text-slate-800">Thẩm quyền pháp lý:</strong>
+            <strong className="block font-bold text-slate-800">Phạm vi giám sát:</strong>
             <p className="leading-relaxed">
-              Khoa Trưởng ngành chỉ điều phối và chốt kết quả chung khi các ngành tham gia đã đồng thuận.
-              Không một ngành nào được quyền tự ý duyệt thay thế kết luận chuyên môn của ngành khác.
+              Bảng này chỉ hiển thị tiến trình. Reviewer được phân công gửi quyết định tại hàng đợi thẩm định trong phạm vi được cấp.
             </p>
           </div>
         </div>
