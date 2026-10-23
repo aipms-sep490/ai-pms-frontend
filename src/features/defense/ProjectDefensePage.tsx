@@ -146,7 +146,7 @@ export function DefenseScheduleView({
           {scheduled?.canCancel && !showCancelModal && (
             <button
               type="button"
-              className="text-xs font-semibold text-status-error-text underline underline-offset-4"
+              className="min-h-11 px-2 text-xs font-semibold text-status-error-text underline underline-offset-4"
               onClick={() => setShowCancelModal(true)}
             >
               Hủy lịch
@@ -160,11 +160,11 @@ export function DefenseScheduleView({
       )}
 
       {showCancelModal && scheduled && (
-        <div className="mt-4 rounded-lg border border-hairline bg-subtle p-3 space-y-2">
+        <div className="mt-4 space-y-2 rounded-lg border border-hairline bg-canvas p-3">
           <label className="block text-xs font-semibold text-ink-soft">
             Lý do hủy lịch bảo vệ (bắt buộc)
             <textarea
-              className="mt-1 w-full rounded-md border border-hairline p-2 text-sm"
+              className="mt-1 w-full rounded-md border border-hairline bg-card p-2 font-normal text-sm text-ink"
               rows={2}
               value={cancelReason}
               placeholder="vd: Điều chỉnh phòng bảo vệ theo yêu cầu khoa"
@@ -176,7 +176,7 @@ export function DefenseScheduleView({
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
-              className="px-3 py-1 text-xs font-semibold text-ink-muted hover:underline"
+              className="min-h-11 px-3 py-1 text-xs font-semibold text-ink-muted hover:underline"
               disabled={cancelling}
               onClick={() => { setShowCancelModal(false); setCancelError('') }}
             >
@@ -184,7 +184,7 @@ export function DefenseScheduleView({
             </button>
             <button
               type="button"
-              className="rounded-md bg-status-error-bg border border-status-error-border px-3 py-1 text-xs font-semibold text-status-error-text disabled:opacity-50"
+              className="min-h-11 rounded-md border border-status-error-border bg-status-error-bg px-3 py-1 text-xs font-semibold text-status-error-text disabled:opacity-50"
               disabled={cancelling || !cancelReason.trim()}
               onClick={() => void handleCancel()}
             >
@@ -391,7 +391,7 @@ export function DefenseManagementPanel({
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {c.members.map((m, idx) => (
-                    <span key={idx} className="rounded bg-subtle px-1.5 py-0.5 border border-hairline text-ink-soft">
+                    <span key={idx} className="rounded border border-hairline bg-canvas px-1.5 py-0.5 text-ink-soft">
                       Giảng viên #{m.userId} · Ngành #{m.majorId}
                     </span>
                   ))}
@@ -408,12 +408,12 @@ export function DefenseManagementPanel({
         )}
 
         {/* Tạo hội đồng mới */}
-        <div className="mt-4 border-t border-hairline pt-3 space-y-3">
-          <h4 className="text-xs font-semibold text-ink uppercase tracking-wide">Tạo hội đồng mới</h4>
+        <div className="mt-4 space-y-3 border-t border-hairline pt-3">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-ink">Tạo hội đồng mới</h4>
           <label className="block text-xs text-ink-soft">
             Tên hội đồng
             <input
-              className="mt-1 block w-full rounded-md border border-hairline p-2 text-sm"
+              className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm text-ink"
               value={committeeName}
               placeholder="vd: Hội đồng bảo vệ Kỹ thuật phần mềm 01"
               disabled={creatingCommittee}
@@ -421,15 +421,15 @@ export function DefenseManagementPanel({
             />
           </label>
           <div className="space-y-2">
-            <span className="text-xs text-ink-soft font-semibold">Danh sách thành viên hội đồng</span>
+            <span className="text-xs font-semibold text-ink-soft">Danh sách thành viên hội đồng</span>
             {candidateState === 'loading' && <p role="status" className="text-xs text-ink-muted">Đang kiểm tra giảng viên đủ điều kiện…</p>}
-            {candidateState === 'error' && <p role="alert" className="text-xs text-status-error-text">Chưa tải được ứng viên từ máy chủ. <button type="button" className="underline" onClick={() => setCandidateRevision(v => v + 1)}>Thử lại</button></p>}
+            {candidateState === 'error' && <p role="alert" className="text-xs text-status-error-text">Chưa tải được ứng viên từ máy chủ. <button type="button" className="min-h-11 underline" onClick={() => setCandidateRevision(v => v + 1)}>Thử lại</button></p>}
             {candidateState === 'ready' && candidates.length === 0 && <p role="status" className="text-xs text-ink-muted">Chưa có giảng viên đủ chuyên môn trong phạm vi bộ môn phụ trách.</p>}
             {candidateState === 'ready' && candidates.some(c => c.blockReason === 'SUPERVISOR_CONFLICT') && <p className="text-xs text-status-warning-text">Giảng viên đang hướng dẫn đồ án này được hiển thị để đối chiếu nhưng bị khóa chọn.</p>}
             {memberRows.map((row, idx) => (
               <div key={idx} className="flex flex-wrap items-end gap-2">
                 <label className="min-w-64 flex-1 text-xs text-ink-soft">Giảng viên và chuyên ngành {idx + 1}
-                  <select className="mt-1 min-h-11 w-full rounded-md border border-hairline bg-card p-2 text-sm" value={row.userId && row.majorId ? `${row.userId}:${row.majorId}` : ''}
+                  <select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-sm text-ink" value={row.userId && row.majorId ? `${row.userId}:${row.majorId}` : ''}
                     disabled={creatingCommittee || candidateState !== 'ready'}
                     onChange={event => { const [userId = '', majorId = ''] = event.target.value.split(':'); updateMemberRow(idx, { userId, majorId }) }}>
                     <option value="">Chọn người chấm đủ điều kiện</option>
@@ -439,14 +439,14 @@ export function DefenseManagementPanel({
                   </select>
                 </label>
                 <label className="text-xs text-ink-soft">Vai trò trong hội đồng
-                  <select className="mt-1 min-h-11 rounded-md border border-hairline bg-card p-2 text-sm" value={row.role} disabled={creatingCommittee}
+                  <select className="mt-1 min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-sm text-ink" value={row.role} disabled={creatingCommittee}
                     onChange={event => updateMemberRow(idx, { role: event.target.value as 'MEMBER' | 'CHAIR' | 'SECRETARY' })}>
                     <option value="MEMBER">Thành viên</option><option value="CHAIR">Chủ tịch</option><option value="SECRETARY">Thư ký</option>
                   </select>
                 </label>
                 <button
                   type="button"
-                  className="text-xs text-status-error-text hover:underline"
+                  className="min-h-11 px-2 text-xs text-status-error-text hover:underline"
                   disabled={creatingCommittee || memberRows.length === 1}
                   onClick={() => removeMemberRow(idx)}
                 >
@@ -456,7 +456,7 @@ export function DefenseManagementPanel({
             ))}
             <button
               type="button"
-              className="text-xs font-semibold text-primary hover:underline"
+              className="min-h-11 text-xs font-semibold text-primary hover:underline"
               disabled={creatingCommittee}
               onClick={addMemberRow}
             >
@@ -466,7 +466,7 @@ export function DefenseManagementPanel({
           {createCommitteeError && <p role="alert" className="text-xs text-status-error-text">{createCommitteeError}</p>}
           <button
             type="button"
-            className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+            className="min-h-11 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
             disabled={creatingCommittee || candidateState !== 'ready' || !committeeName.trim()}
             onClick={() => void handleCreateCommittee()}
           >
@@ -489,7 +489,7 @@ export function DefenseManagementPanel({
               <label className="text-xs text-ink-soft">
                 Chọn hội đồng bảo vệ
                 <select
-                  className="mt-1 block w-full rounded-md border border-hairline p-2 text-sm"
+                  className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-sm text-ink"
                   value={selectedCommitteeId}
                   disabled={scheduling || !committees.some(c => c.status === 'CONFIRMED')}
                   onChange={(e) => setSelectedCommitteeId(e.target.value)}
@@ -505,7 +505,7 @@ export function DefenseManagementPanel({
               <label className="text-xs text-ink-soft">
                 Phòng bảo vệ
                 <input
-                  className="mt-1 block w-full rounded-md border border-hairline p-2 text-sm"
+                  className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm text-ink"
                   value={room}
                   placeholder="vd: A1.01 hoặc Online Meet"
                   disabled={scheduling}
@@ -517,7 +517,7 @@ export function DefenseManagementPanel({
                 <input
                   type="datetime-local"
                   min={localDateTime(new Date().toISOString())}
-                  className="mt-1 block w-full rounded-md border border-hairline p-2 text-sm"
+                  className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm text-ink"
                   value={startAt}
                   disabled={scheduling}
                   onChange={(e) => setStartAt(e.target.value)}
@@ -528,7 +528,7 @@ export function DefenseManagementPanel({
                 <input
                   type="datetime-local"
                   min={startAt || localDateTime(new Date().toISOString())}
-                  className="mt-1 block w-full rounded-md border border-hairline p-2 text-sm"
+                  className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm text-ink"
                   value={endAt}
                   disabled={scheduling}
                   onChange={(e) => setEndAt(e.target.value)}
@@ -539,7 +539,7 @@ export function DefenseManagementPanel({
             {scheduleSuccess && <p role="status" className="text-xs text-status-success-text">{scheduleSuccess}</p>}
             <button
               type="button"
-              className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+              className="min-h-11 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
               disabled={scheduling || !selectedCommitteeId || !startAt || !endAt || !room.trim()}
               onClick={() => void handleScheduleDefense()}
             >
@@ -623,7 +623,7 @@ export function ProjectDefenseManagementPage() {
     return () => controller.abort()
   }, [projectId, revision])
 
-  if (!Number.isSafeInteger(projectId) || projectId < 1) return <WorkspacePage title="Quản lý bảo vệ"><p role="alert">Mã đồ án không hợp lệ.</p></WorkspacePage>
+  if (!Number.isSafeInteger(projectId) || projectId < 1) return <WorkspacePage title="Quản lý bảo vệ"><p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">Mã đồ án không hợp lệ.</p></WorkspacePage>
   return (
     <WorkspacePage title={isDepartmentRoute ? 'Quản lý hội đồng & lịch bảo vệ' : 'Lịch bảo vệ đồ án'} eyebrow={`Đồ án #${projectId}`} description={isDepartmentRoute ? 'Bộ môn phụ trách thành lập hội đồng và xếp lịch trong phạm vi BE cấp.' : 'Giảng viên hướng dẫn theo dõi lịch bảo vệ; bộ môn phụ trách phân hội đồng.'}>
       <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
@@ -632,7 +632,7 @@ export function ProjectDefenseManagementPage() {
       {!error && sessions && (isDepartmentRoute
         ? <DefenseManagementPanel projectId={projectId} hasScheduledSession={sessions.some((session) => session.status === 'SCHEDULED')} onSessionScheduled={() => setRevision((value) => value + 1)} />
         : <DefenseScheduleView projectId={projectId} sessions={sessions} />)}
-      {!error && !sessions && <p role="status">Đang tải lịch bảo vệ…</p>}
+      {!error && !sessions && <p role="status" className="workspace-surface p-5 text-sm text-ink-muted">Đang tải lịch bảo vệ…</p>}
     </WorkspacePage>
   )
 }
