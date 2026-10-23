@@ -4,6 +4,7 @@ import type { AttentionItem } from './calendar-types'
 
 const kinds: Record<ActionAggregatorKind, { label: string; icon: string }> = {
   TASK: { label: 'Công việc', icon: 'checklist' },
+  MILESTONE: { label: 'Mốc đồ án', icon: 'flag' },
   REVIEW_GATE: { label: 'Cổng thẩm định', icon: 'flag_circle' },
   PROGRESS_REPORT: { label: 'Báo cáo tiến độ', icon: 'assignment' },
   PROGRESS_REVIEW: { label: 'Phản hồi báo cáo', icon: 'rate_review' },
@@ -29,7 +30,7 @@ export function aggregatorAttention(item: ActionAggregatorItem): AttentionItem {
   const tone: BadgeTone = meta ? item.severity === 'HIGH' ? 'warning' : 'neutral' : 'neutral'
   return {
     code: item.kind, source: 'PROJECT', sourceId: item.id, title: item.title,
-    description: meta?.label ?? `Mục cần chú ý (${item.kind || 'chưa xác định'})`,
+    description: meta?.label ?? 'Mục cần chú ý chưa xác định loại',
     icon: meta?.icon ?? 'info', tone, severity: item.severity,
     dueAt: item.dueAt ?? undefined, status: item.status,
     presentationPriority: item.severity === 'HIGH' ? 10 : 20,

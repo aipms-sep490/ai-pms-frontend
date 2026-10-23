@@ -19,10 +19,10 @@ const sourceLabels: Record<CalendarProjectionItem['sourceType'], string> = {
 function datedAt(item: CalendarProjectionItem): string | undefined { return item.dueAt ?? item.startAt ?? item.endAt }
 function dateKey(item: CalendarProjectionItem): string { return datedAt(item)?.slice(0, 10) ?? '' }
 function isAttentionSource(id: string): boolean {
-  return ['next-actions', 'triage-queue', 'accounts', 'student-dashboard'].includes(id) || id.startsWith('urgent-actions-')
+  return ['next-actions', 'triage-queue', 'accounts', 'urgent-actions'].includes(id) || id.startsWith('urgent-actions-')
 }
 function sourceStateText(data: CalendarAttentionData): string | null {
-  const affected = data.sources.filter((source) => source.state !== 'ready' && source.state !== 'empty')
+  const affected = data.sources.filter((source) => !isAttentionSource(source.id) && (source.state === 'error' || source.state === 'partial'))
   return affected.length ? `${affected.length} nguồn chưa đầy đủ. Những nguồn khác vẫn được hiển thị.` : null
 }
 
@@ -59,9 +59,12 @@ export function CalendarAttentionPage() {
   const partialMessage = data ? sourceStateText(data) : null
   const attentionSources = data?.sources.filter(source => isAttentionSource(source.id)) ?? []
   const attentionKnown = attentionSources.length > 0 && attentionSources.every(source => source.state === 'ready' || source.state === 'empty')
+  const attentionErrors = attentionSources.filter(source => source.state === 'error')
+  const attentionUnavailable = attentionSources.filter(source => source.state === 'unavailable' || source.state === 'unsupported')
+  const attentionPartial = attentionSources.filter(source => source.state === 'partial')
   const calendarKnown = data?.sources.some(source => ['student-calendar', 'lecturer-calendar', 'student-dashboard', 'meetings', 'deliverables', 'final-submission'].includes(source.id) && ['ready', 'empty', 'partial'].includes(source.state)) ?? false
 
-  return <section className="calendar-page workspace-page" aria-labelledby="calendar-heading">
+  return <section className="calendar-page workspace-page" aria-labelledby="calendar-heading" aria-busy={loading}>
     <header className="calendar-page__header">
       <div>
         <p className="calendar-page__eyebrow">Không gian chung · chỉ đọc</p>
@@ -72,7 +75,7 @@ export function CalendarAttentionPage() {
     </header>
 
     {loading && <PageLoading label="Đang tải lịch tổng hợp" />}
-    {!loading && data && <>
+    {data && <>
       {partialMessage && <div className="calendar-page__notice" role="status"><span className="material-symbols-outlined" aria-hidden="true">info</span><span>{partialMessage}</span></div>}
       <div className="calendar-page__layout">
         <section className="calendar-panel" aria-labelledby="calendar-projection-heading">
@@ -96,16 +99,20 @@ export function CalendarAttentionPage() {
           </div>}
         </section>
         <aside className="attention-panel" aria-labelledby="attention-heading">
-          <div className="attention-panel__heading"><div><h2 id="attention-heading">Điểm cần chú ý</h2><p>Những việc ưu tiên cao và mốc đồ án quá hạn.</p></div><span className="attention-panel__count" aria-label={attentionKnown ? `${data.attention.length} điểm cần chú ý` : 'Chưa xác định số việc cần làm'}>{attentionKnown ? data.attention.length : '—'}</span></div>
-          {!attentionKnown && <div className="mx-4 mb-3 space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-            <p role="status">Một số nguồn chưa tải được; danh sách có thể chưa đầy đủ.</p>
-            <Button variant="outline" size="sm" icon="refresh" onClick={() => void refresh()} disabled={loading}>Tải lại danh sách</Button>
+          <div className="attention-panel__heading"><div><h2 id="attention-heading">Điểm cần chú ý</h2><p>Những việc ưu tiên cao và mốc đồ án quá hạn.</p></div><span className="attention-panel__count" role="status" aria-atomic="true" aria-label={attentionKnown ? `${data.attention.length} điểm cần chú ý` : 'Chưa xác định số việc cần làm'}><span aria-hidden="true">{attentionKnown ? data.attention.length : '—'}</span><span className="sr-only">{attentionKnown ? `${data.attention.length} điểm cần chú ý` : 'Chưa xác định số việc cần làm'}</span></span></div>
+          {attentionErrors.length > 0 && <div role="alert" className="mx-4 mb-3 space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <p>Một số nguồn chưa tải được; danh sách có thể chưa đầy đủ.</p>
+            {attentionErrors.map(source => <p key={source.id}>{source.message}</p>)}
+            <Button variant="outline" size="sm" className="min-h-11" icon="refresh" onClick={() => void refresh()} disabled={loading}>Tải lại danh sách</Button>
           </div>}
+          {attentionUnavailable.map(source => <p key={source.id} className="px-4 pb-3 text-sm text-ink-muted">{source.message ?? 'Chưa có nguồn dữ liệu trong phạm vi hiện tại.'}</p>)}
+          {attentionPartial.map(source => <p key={source.id} className="px-4 pb-3 text-sm text-ink-muted">{source.message}</p>)}
+          {attentionSources.length === 0 && <p className="px-4 pb-3 text-sm text-ink-muted">Chưa có nguồn việc cần làm trong phạm vi hiện tại. Xem trạng thái nguồn dữ liệu bên dưới.</p>}
           {data.attentionAsOfUtc && <p className="px-4 pb-3 text-xs text-ink-muted">Dữ liệu tính đến: <time dateTime={data.attentionAsOfUtc}>{formatCalendarDate(data.attentionAsOfUtc)}</time></p>}
-          {(data.otherOpenActionsCount ?? 0) > 0 && <p className="px-4 pb-3 text-sm text-ink-muted" role="status">Còn {data.otherOpenActionsCount} việc đang mở không thuộc nhóm ưu tiên cao.</p>}
-          {data.attention.length === 0
-            ? <div className="calendar-empty" role="status"><span className="material-symbols-outlined" aria-hidden="true">task_alt</span><p>{attentionKnown ? (data.otherOpenActionsCount ?? 0) > 0 ? 'Không có điểm cần chú ý ưu tiên cao.' : 'Không có việc cần làm.' : 'Chưa tải được danh sách việc cần làm. Xem trạng thái nguồn và thử tải lại.'}</p></div>
-            : <ul className="attention-list">{data.attention.map(item => <li key={`${item.code}-${item.sourceId}`}>
+          {(data.otherOpenActionsCount ?? 0) > 0 && <p className="px-4 pb-3 text-sm text-ink-muted">Còn {data.otherOpenActionsCount} việc đang mở không thuộc nhóm ưu tiên cao.</p>}
+          {data.attention.length === 0 && attentionKnown
+            ? <div className="calendar-empty"><span className="material-symbols-outlined" aria-hidden="true">task_alt</span><p>{(data.otherOpenActionsCount ?? 0) > 0 ? 'Không có điểm cần chú ý ưu tiên cao.' : 'Không có việc cần làm.'}</p><a className="inline-flex min-h-11 items-center text-sm text-primary underline" href="#calendar-sources-heading">Xem phạm vi nguồn dữ liệu</a></div>
+            : data.attention.length > 0 && <ul className="attention-list">{data.attention.map(item => <li key={`${item.code}-${item.sourceId}`}>
               {item.deepLink ? <Link to={item.deepLink}><AttentionContent item={item} /></Link> : <div className="attention-list__content"><AttentionContent item={item} /><span className="text-xs">Chưa có liên kết nội bộ hợp lệ.</span></div>}
             </li>)}</ul>}
 

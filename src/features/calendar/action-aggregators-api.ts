@@ -1,6 +1,6 @@
 import { httpGet } from '../../services/http/http-client'
 
-export type ActionAggregatorKind = 'TASK' | 'REVIEW_GATE' | 'PROGRESS_REPORT' | 'PROGRESS_REVIEW' | 'MEETING_SIGN_OFF' | 'REVIEWER_ASSIGNMENT' | 'SUPERVISOR_REQUEST' | 'APPEAL'
+export type ActionAggregatorKind = 'TASK' | 'MILESTONE' | 'REVIEW_GATE' | 'PROGRESS_REPORT' | 'PROGRESS_REVIEW' | 'MEETING_SIGN_OFF' | 'REVIEWER_ASSIGNMENT' | 'SUPERVISOR_REQUEST' | 'APPEAL'
 export interface ActionAggregatorItem {
   /** Kept as a string so an unknown server kind remains visible. */
   kind: string
@@ -12,7 +12,7 @@ export interface ActionAggregatorItem {
   dueAt: string | null
   deepLink: string | null
 }
-export interface ActionAggregatorResponse { asOfUtc: string; items: ActionAggregatorItem[] }
+export interface ActionAggregatorResponse { asOfUtc: string; items: ActionAggregatorItem[]; totalCount: number; hasMore: boolean }
 export interface StudentNextActions extends ActionAggregatorResponse { projectId: number | null }
 export interface DepartmentUrgentActions extends ActionAggregatorResponse { departmentId: number }
 

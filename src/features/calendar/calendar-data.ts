@@ -79,7 +79,7 @@ export async function loadCalendarAttention(input: CalendarLoaderInput, apis: Ca
       }
       // A combined view must not claim a newer snapshot than its oldest successful source.
       if (!result.attentionAsOfUtc || Date.parse(data.asOfUtc) < Date.parse(result.attentionAsOfUtc)) result.attentionAsOfUtc = data.asOfUtc
-      result.sources.push({ id, label, state: stateForItems(data.items), message: 'Chỉ phản ánh các mục API trả về; API chưa cung cấp tổng số hoặc tín hiệu cắt dữ liệu.' })
+      result.sources.push({ id, label, state: data.hasMore ? 'partial' : stateForItems(data.items), message: data.hasMore ? `Hiển thị ${data.items.length} trong tổng số ${data.totalCount} việc.` : undefined })
     } catch (reason) { result.sources.push(errorStatus(id, label, reason)) }
   }
   if (input.role === 'student' || input.role === 'lecturer') {
@@ -92,7 +92,6 @@ export async function loadCalendarAttention(input: CalendarLoaderInput, apis: Ca
         if (role !== 'student') return null
         try {
           const data = await apis.getStudentDashboard(input.semesterId ?? undefined)
-          result.attention.push(...data.milestoneDeadlines.filter(m => m.isOverdue).map(m => ({ code: 'MILESTONE_OVERDUE', source: 'MILESTONE' as const, sourceId: m.id, title: m.title, description: 'Mốc đồ án đã quá hạn theo dữ liệu dashboard.', dueAt: m.dueDate, status: m.status, presentationPriority: 15, deepLink: `/project/milestones/${m.id}` })))
           result.sources.push({ id: 'student-dashboard', label: 'Mốc đồ án từ dashboard', state: stateForItems(data.milestoneDeadlines) })
           return data
         } catch (reason) { result.sources.push(errorStatus('student-dashboard', 'Mốc đồ án từ dashboard', reason)); return null }

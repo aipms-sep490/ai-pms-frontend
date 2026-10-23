@@ -18,7 +18,14 @@ describe('aggregator contract and links', () => {
     expect(item.description).not.toContain('Mục cần chú ý')
     expect(item.icon).not.toBe('info'); expect(item.tone).toBe('warning')
   })
+  it('presents the backend milestone kind with its domain label and flag icon', () => {
+    expect(aggregatorAttention({ kind: 'MILESTONE', id: 2, projectId: 7, title: 'Mốc quá hạn', status: 'OPEN', severity: 'HIGH', dueAt: '2026-10-01', deepLink: '/project/milestones/2' })).toMatchObject({
+      code: 'MILESTONE', description: 'Mốc đồ án', icon: 'flag', tone: 'warning', deepLink: '/project/milestones/2',
+    })
+  })
   it('retains unknown kinds with neutral text and no unsafe navigation', () => {
-    expect(aggregatorAttention({ kind: 'FUTURE_KIND', id: 1, projectId: null, title: 'Việc mới', status: 'PENDING', severity: 'NORMAL', dueAt: null, deepLink: '//evil.test' })).toMatchObject({ title: 'Việc mới', description: 'Mục cần chú ý (FUTURE_KIND)', tone: 'neutral', deepLink: null })
+    const item = aggregatorAttention({ kind: 'FUTURE_KIND', id: 1, projectId: null, title: 'Việc mới', status: 'PENDING', severity: 'NORMAL', dueAt: null, deepLink: '//evil.test' })
+    expect(item).toMatchObject({ title: 'Việc mới', description: 'Mục cần chú ý chưa xác định loại', tone: 'neutral', deepLink: null })
+    expect(item.description).not.toContain('FUTURE_KIND')
   })
 })
