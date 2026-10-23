@@ -70,6 +70,16 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+body {
+  min-height: 100vh;
+  background-color: var(--color-canvas);
+  background-image:
+    radial-gradient(at 0% 0%, rgba(15, 91, 78, 0.035) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(15, 91, 78, 0.025) 0px, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(4, 120, 87, 0.02) 0px, transparent 60%);
+  background-attachment: fixed;
+}
+
 * {
   box-sizing: border-box;
   border-color: var(--color-hairline);
@@ -220,3 +230,22 @@ select:disabled {
   }
 }
 
+
+/* Review Gates forms and timeline: preserve long labels and keyboard affordances. */
+.review-gates-surface { overflow-wrap: anywhere; }
+.review-gates-surface :is(button, input, select, textarea):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+.review-gates-surface :is(input, select, textarea) { min-width: 0; max-width: 100%; }
+.review-gates-surface .text-slate-400 { color: var(--color-slate-600); }
+.review-gates-surface button { min-height: 44px; }
+.review-gates-surface fieldset:disabled { opacity: .85; }
+.app-modal:has(.review-submission-form) .app-modal__close { min-width: 44px; min-height: 44px; }
+.app-modal:has(.review-submission-form) { max-height: min(calc(100% - 32px), calc(100dvh - 32px)); }
+.review-gate-decisions button { height: auto; min-height: 44px; max-width: 100%; white-space: normal; padding-block: .5rem; }
+.attention-list__content { display: grid; gap: .5rem; padding: 1rem; overflow-wrap: anywhere; }
+
+.review-gates-surface :is(input, select, textarea):not(:disabled) { border-color: var(--color-ink-muted); }
+.review-gates-surface button:not(:disabled)[class*="border-slate-200"] { border-color: var(--color-ink-muted); }
+.calendar-segmented { border-color: var(--color-ink-muted); }
+.calendar-segmented button[aria-pressed=true] { outline: 1px solid var(--color-primary); }
+.calendar-page :is(button, input):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+.attention-list .material-symbols-outlined { color: var(--color-primary); font-size: 1.2rem; }

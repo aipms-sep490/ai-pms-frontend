@@ -18,11 +18,11 @@ describe('ProjectResultBreakdown', () => {
   })
 
   it('shows COMMON, MajorAggregate and per-major rows, marking a pending major without a zero', () => {
-    render(<ProjectResultBreakdown breakdown={breakdown({ majorBreakdown: [
+    render(<ProjectResultBreakdown majorNames={{ 1: 'Công nghệ thông tin', 2: 'Thiết kế' }} breakdown={breakdown({ majorBreakdown: [
       { majorId: 1, score: 9 },
       { majorId: 2, score: null },
     ] })} />)
-    expect(screen.getByText('Ngành #1')).toBeTruthy()
+    expect(screen.getByText('Công nghệ thông tin')).toBeTruthy()
     expect(screen.getByText('Chưa có điểm')).toBeTruthy()
     // The pending major row shows an em dash, never 0.
     expect(screen.queryByText('0')).toBeNull()

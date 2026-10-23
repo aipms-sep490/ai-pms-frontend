@@ -2,7 +2,7 @@ import { useContext, useEffect, useMemo, useState } from 'react'
 import { useAuthSession } from '../../features/auth/context/useAuthSession'
 import { getWorkspaceRole, type WorkspaceRole } from '../../features/auth/utils/role-access'
 import type { Permission } from '../../features/auth/policies/access-policy'
-import type { WorkflowActionDto } from '../../types/backend'
+import type { AcademicReferenceDto, WorkflowActionDto } from '../../types/backend'
 import { getMyEvaluationAssignments } from '../../services/api/evaluations.api'
 import { useAcademicWorkflow } from './useAcademicWorkflow'
 import { StudentJourneyContext } from './StudentJourneyContext'
@@ -15,6 +15,7 @@ export interface WorkspaceAccess {
   identityRoles: readonly string[]
   permissions: readonly Permission[]
   departmentIds: readonly number[]
+  departments: readonly Pick<AcademicReferenceDto, 'id' | 'name'>[]
   majorIds: readonly number[]
   selectedSemesterId: number | null
   teamId: number | null
@@ -30,6 +31,8 @@ export interface WorkspaceAccess {
   assignmentStatus: WorkspaceContextStatus
   isWorkflowActionAllowed: (code: string) => boolean
 }
+
+const emptyDepartments: WorkspaceAccess['departments'] = []
 
 function normalizeRoles(roles: readonly string[] | undefined): string[] {
   return (roles ?? []).map((role) => role.toUpperCase())
@@ -101,6 +104,7 @@ export function useWorkspaceAccess(): WorkspaceAccess {
       identityRoles,
       permissions: academic.authorization.permissions,
       departmentIds: academic.authorization.departmentIds,
+      departments: academic.academic?.departments ?? emptyDepartments,
       majorIds: academic.authorization.majorIds,
       selectedSemesterId: academic.academic?.selectedSemester?.id ?? null,
       teamId: journey?.team?.id ?? null,
@@ -115,5 +119,5 @@ export function useWorkspaceAccess(): WorkspaceAccess {
       assignmentStatus: evaluatorState.status,
       isWorkflowActionAllowed: (code) => isWorkflowActionAllowed(projectActions ?? teamActions ?? academic.workflowContext?.actions ?? null, code),
     }
-  }, [academic.academic?.selectedSemester?.id, academic.authorization.departmentIds, academic.authorization.majorIds, academic.authorization.permissions, academic.error?.message, academic.status, academic.workflowContext?.actions, evaluatorState, journey, session, sessionStatus, user])
+  }, [academic.academic?.departments, academic.academic?.selectedSemester?.id, academic.authorization.departmentIds, academic.authorization.majorIds, academic.authorization.permissions, academic.error?.message, academic.status, academic.workflowContext?.actions, evaluatorState, journey, session, sessionStatus, user])
 }

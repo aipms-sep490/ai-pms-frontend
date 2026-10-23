@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { ProjectDto, SupervisorAssignmentDto, TeamDto } from '../../../types/backend'
 import { useCollaborationWorkspace, type Resource } from '../hooks/useCollaborationWorkspace'
@@ -7,6 +7,10 @@ import { WorkspaceTaskForm } from '../components/WorkspaceTaskForm'
 import type { ProjectExecutionCapabilities } from '../../execution/hooks/useProjectExecutionCapabilities'
 import './collaboration-workspace.css'
 import { TeamReflectionPanel } from '../../student-collaboration/TeamReflectionPanel'
+import { getStudentReviewTimeline, submitRevision } from '../../review-gates/api/review-gates-api'
+import type { StudentReviewTimelineDto } from '../../review-gates/types/review-gates.types'
+import { NextActionBanner } from '../components/NextActionBanner'
+import type { ReviewSubmissionPayload } from '../../review-gates/components/ReviewSubmissionModal'
 
 export function CollaborationWorkspace({ project, team, supervisor, currentUserId, executionCapabilities }: {
   project: ProjectDto; team?: TeamDto | null; supervisor?: SupervisorAssignmentDto | null; currentUserId?: number; executionCapabilities?: ProjectExecutionCapabilities
@@ -44,6 +48,45 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
   const isLoading = [data.timeline, data.summary, data.feedback, data.deliverables, data.meetings].some(item => item.state === 'loading')
   const progress = summary ? Math.max(0, Math.min(100, summary.progressPercentage)) : null
 
+  const [reviewTimeline, setReviewTimeline] = useState<StudentReviewTimelineDto | null>(null)
+
+  useEffect(() => {
+    let active = true
+    getStudentReviewTimeline(String(project.id))
+      .then((res) => {
+        if (active) setReviewTimeline(res)
+      })
+      .catch(() => {
+        // Silently skip if gates are unconfigured
+      })
+    return () => {
+      active = false
+    }
+  }, [project.id])
+
+  const activeGate = reviewTimeline?.gates.find((g) => g.code === reviewTimeline.currentGateCode) || reviewTimeline?.gates[0]
+
+  const handleSubmitRevision = async (
+    gateCode: string,
+    requirementId: string,
+    payload: ReviewSubmissionPayload,
+  ) => {
+    if (!reviewTimeline) return
+    const updated = await submitRevision(
+      {
+        projectId: reviewTimeline.projectId,
+        gateCode,
+        requirementId,
+        ...payload,
+        file: payload.file ?? undefined,
+        expectedVersion: reviewTimeline.gates.find(g => g.code === gateCode)?.requirements.find(r => r.id === requirementId)?.latestArtifact?.version ?? 0,
+        concurrencyToken: reviewTimeline.gates.find(g => g.code === gateCode)?.concurrencyToken,
+      },
+      isTeamLeader,
+    )
+    setReviewTimeline(updated)
+  }
+
   return <div className="collaboration-workspace">
     <header className="cw-page-heading">
       <div><p className="cw-eyebrow">{team?.name || project.teamName || 'Nhóm đồ án'} <span> / </span> {project.code}</p>
@@ -62,6 +105,18 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
     </section>
 
     <TeamReflectionPanel projectId={project.id} studentId={currentUserId} audience="student" />
+
+    <NextActionBanner
+      timeline={reviewTimeline}
+      activeGate={activeGate}
+      isLeader={isTeamLeader}
+      closestMilestone={closestMilestone}
+      taskAttentionCount={{
+        overdue: summary?.overdueTasks ?? attention.filter(t => isOverdue(t, now)).length,
+        blocked: summary?.blockedTasks ?? attention.filter(t => t.status === 'BLOCKED').length,
+      }}
+      onSubmitRevision={handleSubmitRevision}
+    />
     {created && <p className="cw-success" role="status"><Icon name="check_circle" />Đã tạo công việc.</p>}
     {creating && (data.timeline.state === 'ready' && editableMilestones.length ? <WorkspaceTaskForm project={project} milestones={editableMilestones} members={members}
       onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); data.reload() }} />

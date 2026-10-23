@@ -1,14 +1,21 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CalendarAttentionPage } from './CalendarAttentionPage'
 import { loadCalendarAttention } from './calendar-data'
 
-vi.mock('../../app/context/workspace-access', () => ({ useWorkspaceAccess: () => ({ identityRole: 'student', selectedSemesterId: 1 }) }))
+const access = vi.hoisted(() => ({ identityRole: 'student', selectedSemesterId: 1, departmentIds: [] as number[], departments: [] as { id: number; name: string }[] }))
+vi.mock('../../app/context/workspace-access', () => ({ useWorkspaceAccess: () => access }))
 vi.mock('../auth/context/useAuthSession', () => ({ useAuthSession: () => ({ session: { accessToken: 'token' } }) }))
 vi.mock('./calendar-data', () => ({ loadCalendarAttention: vi.fn() }))
 
 const loader = vi.mocked(loadCalendarAttention)
+async function expectAttentionBadge(visualValue: string, announcement: string) {
+  const badge = await screen.findByRole('status', { name: announcement })
+  expect(badge.getAttribute('aria-atomic')).toBe('true')
+  expect(within(badge).getByText(visualValue, { selector: '[aria-hidden="true"]' }).textContent).toBe(visualValue)
+  expect(within(badge).getByText(announcement, { selector: '.sr-only' }).textContent).toBe(announcement)
+}
 const data = {
   calendar: [{ sourceType: 'TASK' as const, sourceId: 1, title: 'Task có hạn', dueAt: '2026-10-04T01:00:00Z', status: 'TODO', deepLink: '/project/tasks/1' }],
   attention: [{ code: 'TASK_OVERDUE', source: 'TASK' as const, sourceId: 1, title: 'Task có hạn', description: 'Công việc đã quá hạn theo dữ liệu dashboard.', dueAt: '2026-10-01T01:00:00Z', status: 'TODO', presentationPriority: 10, deepLink: '/project/tasks/1' }],
@@ -17,7 +24,7 @@ const data = {
 
 describe('CalendarAttentionPage', () => {
   afterEach(cleanup)
-  beforeEach(() => loader.mockResolvedValue(data))
+  beforeEach(() => { loader.mockClear(); loader.mockResolvedValue(data); access.identityRole = 'student'; access.departmentIds = []; access.departments = [] })
 
   it('renders independent calendar and attention facts with a partial-data notice', async () => {
     render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
@@ -32,5 +39,118 @@ describe('CalendarAttentionPage', () => {
     await screen.findAllByText('Task có hạn')
     expect(screen.getByRole('button', { name: 'Danh sách' }).getAttribute('aria-pressed')).toBe('true')
     expect(screen.queryByRole('button', { name: /Tạo|Duyệt|Gửi phản hồi|Lưu/ })).toBeNull()
+  })
+  it('discloses filtered open work without calling it urgent or a load failure', async () => {
+    loader.mockResolvedValue({ calendar: [], attention: [], otherOpenActionsCount: 12, sources: [{ id: 'next-actions', label: 'Việc cần làm', state: 'ready' }] })
+    render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    expect(await screen.findByText('Còn 12 việc đang mở không thuộc nhóm ưu tiên cao.')).toBeTruthy()
+    expect(screen.getByText('Không có điểm cần chú ý ưu tiên cao.')).toBeTruthy()
+    expect(screen.queryByText(/Chưa tải được danh sách/)).toBeNull()
+  })
+  it('passes every authorized department from the session to the loader', async () => {
+    access.identityRole = 'department'; access.departmentIds = [1, 2]
+    access.departments = [{ id: 1, name: 'Công nghệ thông tin' }, { id: 2, name: 'Quản trị kinh doanh' }]
+    render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    await screen.findAllByText('Task có hạn')
+    expect(loader).toHaveBeenCalledWith(expect.objectContaining({ departmentIds: [1, 2], departments: access.departments }))
+  })
+  it('keeps healthy department items without claiming a count when another department fails', async () => {
+    loader.mockResolvedValue({ ...data, sources: [{ id: 'urgent-actions-1', label: 'Bộ môn 1', state: 'ready' }, { id: 'urgent-actions-2', label: 'Bộ môn 2', state: 'error' }] })
+    render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    await expectAttentionBadge('—', 'Chưa xác định số việc cần làm')
+    expect(screen.getAllByText('Task có hạn')).toHaveLength(2)
+    expect(within(screen.getByRole('complementary')).getByText('Một số nguồn chưa tải được; danh sách có thể chưa đầy đủ.')).toBeTruthy()
+  })
+  it('does not claim a total when next-actions fails, while preserving available items and supporting retry', async () => {
+    const failed = 'next-actions'; const healthy = 'student-dashboard'; const title = 'Mục đã tải vẫn đọc được'
+    const attention = [{ ...data.attention[0], title }]
+    loader.mockResolvedValue({ calendar: [], attention, sources: [{ id: failed, label: failed, state: 'error' }, { id: healthy, label: healthy, state: 'ready' }] })
+    render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    await expectAttentionBadge('—', 'Chưa xác định số việc cần làm')
+    const panel = within(screen.getByRole('complementary'))
+    expect(panel.getByText(title)).toBeTruthy()
+    expect(panel.getByRole('alert').textContent).toContain('Một số nguồn chưa tải được; danh sách có thể chưa đầy đủ.')
+    loader.mockResolvedValue({ calendar: [], attention, sources: [{ id: failed, label: failed, state: 'ready' }, { id: healthy, label: healthy, state: 'ready' }] })
+    fireEvent.click(panel.getByRole('button', { name: 'Tải lại danh sách' }))
+    await screen.findByLabelText('1 điểm cần chú ý')
+    expect(loader).toHaveBeenCalledTimes(2)
+    expect(screen.queryByText('Một số nguồn chưa tải được; danh sách có thể chưa đầy đủ.')).toBeNull()
+  })
+  it.each([0, 2])('claims the count %s when the aggregator succeeds even if the calendar dashboard fails', async count => {
+    loader.mockResolvedValue({ calendar: [], attention: count ? [data.attention[0], { ...data.attention[0], sourceId: 2, title: 'Mốc đồ án' }] : [], sources: [{ id: 'next-actions', label: 'Việc cần làm', state: count ? 'ready' : 'empty' }, { id: 'student-dashboard', label: 'Lịch dự phòng', state: 'error', message: 'Dashboard 500' }] })
+    render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    await expectAttentionBadge(String(count), `${count} điểm cần chú ý`)
+    expect(screen.queryByText('Một số nguồn chưa tải được; danh sách có thể chưa đầy đủ.')).toBeNull()
+    if (!count) expect(screen.getByText('Không có việc cần làm.')).toBeTruthy()
+  })
+  it.each(['unavailable', 'unsupported'] as const)('shows the source reason once inside attention for %s scope without a retry action', async state => {
+    access.identityRole = 'department'
+    const message = 'Chưa xác định được bộ môn từ phiên đăng nhập. Không truy vấn phạm vi khác.'
+    loader.mockResolvedValue({ calendar: [], attention: [], sources: [{ id: 'urgent-actions', label: 'Việc cần xử lý của bộ môn', state, message }] })
+    render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    await screen.findByLabelText('Chưa xác định số việc cần làm')
+    const panel = within(screen.getByRole('complementary'))
+    expect(panel.getAllByText(message)).toHaveLength(1)
+    expect(panel.queryByRole('button', { name: 'Tải lại danh sách' })).toBeNull()
+    expect(panel.queryByRole('alert')).toBeNull()
+    expect(panel.queryByText('Một số nguồn chưa tải được; danh sách có thể chưa đầy đủ.')).toBeNull()
+    expect(panel.queryByText('Chưa tải được danh sách việc cần làm. Xem trạng thái nguồn và thử tải lại.')).toBeNull()
+    expect(loader).toHaveBeenCalledTimes(1)
+  })
+  it('announces a genuine source error with an alert and provides one functioning retry', async () => {
+    loader.mockResolvedValueOnce({ calendar: [], attention: [], sources: [{ id: 'triage-queue', label: 'Việc cần xử lý', state: 'error', message: '503: Không thể tải dữ liệu.' }] })
+    loader.mockResolvedValue({ calendar: [], attention: data.attention, sources: [{ id: 'triage-queue', label: 'Việc cần xử lý', state: 'ready' }] })
+    render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    await screen.findByLabelText('Chưa xác định số việc cần làm')
+    const panel = within(screen.getByRole('complementary'))
+    expect(panel.getByRole('alert').textContent).toContain('Một số nguồn chưa tải được')
+    expect(panel.getAllByRole('button', { name: 'Tải lại danh sách' })).toHaveLength(1)
+    fireEvent.click(panel.getByRole('button', { name: 'Tải lại danh sách' }))
+    await screen.findByLabelText('1 điểm cần chú ý')
+    expect(loader).toHaveBeenCalledTimes(2)
+    expect(within(screen.getByRole('complementary')).queryByRole('alert')).toBeNull()
+  })
+  it('announces the asynchronously loaded badge in one atomic status region with count context', async () => {
+    loader.mockResolvedValue({ calendar: [], attention: data.attention, sources: [{ id: 'next-actions', label: 'Việc cần làm', state: 'ready' }] })
+    render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    await screen.findByLabelText('1 điểm cần chú ý')
+    const statuses = within(screen.getByRole('complementary')).getAllByRole('status').filter(region => region.textContent?.includes('1 điểm cần chú ý'))
+    expect(statuses).toHaveLength(1)
+    expect(statuses[0].getAttribute('aria-atomic')).toBe('true')
+    expect(statuses[0].textContent).not.toBe('1')
+  })
+  it('discloses the returned and total counts for a truncated source without offering an error retry', async () => {
+    loader.mockResolvedValue({ calendar: [], attention: data.attention, otherOpenActionsCount: 1, sources: [{ id: 'next-actions', label: 'Việc cần làm', state: 'partial', message: 'Hiển thị 2 trong tổng số 73 việc.' }] })
+    render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    await screen.findByLabelText('Chưa xác định số việc cần làm')
+    const panel = within(screen.getByRole('complementary'))
+    expect(panel.getByText('Hiển thị 2 trong tổng số 73 việc.')).toBeTruthy()
+    expect(panel.getByText('Còn 1 việc đang mở không thuộc nhóm ưu tiên cao.')).toBeTruthy()
+    expect(panel.queryByRole('button', { name: 'Tải lại danh sách' })).toBeNull()
+    expect(panel.queryByRole('alert')).toBeNull()
+  })
+  it.each(['partial', 'unavailable', 'unsupported'] as const)('does not claim a count for an attention source in state %s', async state => {
+    loader.mockResolvedValue({ ...data, sources: [{ id: 'accounts', label: 'Tài khoản', state }] })
+    render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    await expectAttentionBadge('—', 'Chưa xác định số việc cần làm')
+  })
+  it('never infers completeness from an item when no attention source is known', async () => {
+    loader.mockResolvedValue({ ...data, sources: [] })
+    render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    await expectAttentionBadge('—', 'Chưa xác định số việc cần làm')
+    expect(screen.getAllByText('Task có hạn')).toHaveLength(2)
+  })
+  it('does not refetch on unrelated view changes or rerenders with stable department context', async () => {
+    access.identityRole = 'department'; access.departmentIds = [1, 2]
+    access.departments = [{ id: 1, name: 'Công nghệ thông tin' }, { id: 2, name: 'Quản trị kinh doanh' }]
+    const { rerender } = render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    await screen.findAllByText('Task có hạn')
+    fireEvent.click(screen.getByRole('button', { name: 'Theo tháng' }))
+    rerender(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    expect(loader).toHaveBeenCalledTimes(1)
+    access.departments = [{ id: 1, name: 'Tên bộ môn đã cập nhật' }, access.departments[1]]
+    rerender(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    await waitFor(() => expect(loader).toHaveBeenCalledTimes(2))
+    expect(loader).toHaveBeenLastCalledWith(expect.objectContaining({ departments: access.departments }))
   })
 })

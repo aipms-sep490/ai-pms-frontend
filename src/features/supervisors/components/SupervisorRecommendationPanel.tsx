@@ -135,7 +135,7 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
     {selectedRun && (
       <div className="mt-3 flex items-center justify-between rounded-lg bg-subtle p-3 border border-hairline">
         <p className="text-xs text-ink-soft">
-          Đang xem kết quả lịch sử <strong>Run #{selectedRun.id}</strong> (Tạo lúc: {new Date(selectedRun.createdAt).toLocaleString('vi-VN')})
+          Đang xem kết quả lịch sử <strong>Lượt gợi ý #{selectedRun.id}</strong> (Tạo lúc: {new Date(selectedRun.createdAt).toLocaleString('vi-VN')})
         </p>
         <button
           type="button"
@@ -168,7 +168,7 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
             {historyRuns.map((r) => (
               <li key={r.id} className="flex items-center justify-between text-xs rounded bg-card p-2 border border-hairline">
                 <span>
-                  <strong>Run #{r.id}</strong> · {r.assignmentType}{r.majorId ? ` (Ngành #${r.majorId})` : ''} · {new Date(r.createdAt).toLocaleString('vi-VN')}
+                  <strong>Lượt gợi ý #{r.id}</strong> · {r.assignmentType}{r.majorId ? ` (Ngành #${r.majorId})` : ''} · {new Date(r.createdAt).toLocaleString('vi-VN')}
                 </span>
                 <button
                   type="button"

@@ -4,12 +4,16 @@ import { projectStatusLabel } from '../../projects/utils/project-status'
 import { Button } from '../../../components/ui/Button'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { ListLoading } from '../../../components/ui/ListLoading'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { HttpError } from '../../../services/http/http-client'
 import { services } from '../../../services/service-gateway'
 import type { ProjectDto, SupervisorAssignmentDto } from '../../../types/backend'
 import { loadOwnSupervisorAssignments } from '../../supervisors/utils/loadOwnSupervisorAssignments'
 import { useExecutionAccess } from '../../execution/context/ExecutionAccessContext'
+import { AuthSessionContext } from '../../auth/context/auth-session-context'
+import { getAcademicHierarchy } from '../../academic/api/academic-api'
+import type { AcademicHierarchyOrganization } from '../../academic/types/academic.types'
+import { createAcademicNameResolver } from '../../projects/components/academic-name-resolver'
 
 type AssignmentProject = { assignment: SupervisorAssignmentDto; project: ProjectDto | null; error: string | null }
 const isMentor = (assignment: SupervisorAssignmentDto) => assignment.assignmentType === 'DISCIPLINE_MENTOR' && assignment.majorId != null && !assignment.endedAt
@@ -18,6 +22,21 @@ export function MentorWorkspacePage() {
   const [items, setItems] = useState<AssignmentProject[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const authSession = useContext(AuthSessionContext)
+  const token = authSession?.session?.accessToken
+  const [hierarchy, setHierarchy] = useState<AcademicHierarchyOrganization[]>([])
+
+  useEffect(() => {
+    if (!token) return
+    const controller = new AbortController()
+    getAcademicHierarchy(token, { search: '', includeInactive: true }, controller.signal)
+      .then(items => { if (!controller.signal.aborted) setHierarchy(items) })
+      .catch(() => { /* silent fallback */ })
+    return () => controller.abort()
+  }, [token])
+
+  const academicResolver = useMemo(() => createAcademicNameResolver(hierarchy), [hierarchy])
+
   const load = useCallback(async () => {
     setLoading(true); setError(null)
     try {
@@ -39,7 +58,52 @@ export function MentorWorkspacePage() {
     {error && <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" onClick={() => void load()} className="ml-2 min-h-11 font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Thử lại</button></section>}
     {loading && <ListLoading label="Đang tải phân công hướng dẫn…" />}
     {!loading && !error && !items.length && <section className="workspace-surface p-5 text-sm text-ink-soft"><h2 className="font-semibold text-ink">Chưa có phân công hướng dẫn chuyên ngành</h2><p className="mt-1 leading-6">Bạn sẽ thấy đồ án ở đây khi được phân công hướng dẫn chuyên ngành.</p></section>}
-    {!loading && items.length ? <ul className="grid gap-4 md:grid-cols-2">{items.map(({ assignment, project, error: projectError }) => <li key={assignment.id} className="min-w-0 workspace-surface p-5"><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Hướng dẫn chuyên ngành #{assignment.majorId}</p><h2 className="mt-2 break-words text-lg font-bold text-ink">{project?.title ?? `Đồ án #${assignment.projectId}`}</h2><p className="mt-1 text-sm text-ink-muted">{project?.code ?? `#${assignment.projectId}`} · {project?.status ? projectStatusLabel(project.status) : 'Chưa tải trạng thái'}</p>{projectError ? <p role="alert" className="mt-4 text-sm text-status-error-text">{projectError}</p> : project?.status?.replaceAll('_', '').toUpperCase() !== 'ACTIVE' ? <p className="mt-4 text-sm text-ink-muted">Đồ án hiện không trong giai đoạn thực hiện. Chưa thể mở không gian theo dõi.</p> : <nav className="mt-4 flex flex-wrap gap-2" aria-label="Chức năng hướng dẫn chuyên ngành"><ButtonLink variant="primary" to={`/mentor/projects/${assignment.projectId}/majors/${assignment.majorId}/workspace`}>Mở phạm vi theo dõi</ButtonLink><ButtonLink to={`/mentor/projects/${assignment.projectId}/majors/${assignment.majorId}/tasks`}>Công việc</ButtonLink><ButtonLink to={`/mentor/projects/${assignment.projectId}/majors/${assignment.majorId}/reports`}>Báo cáo tiến độ</ButtonLink><ButtonLink to={`/mentor/projects/${assignment.projectId}/majors/${assignment.majorId}/meetings`}>Lịch họp</ButtonLink></nav>}</li>)}</ul> : null}
+    {!loading && items.length ? (
+      <>
+        <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-xs text-blue-900 shadow-2xs">
+          <strong>Thông tin điều phối Đồ án Liên ngành:</strong> Giảng viên hướng dẫn chuyên ngành (Discipline Mentor) theo dõi, đôn đốc và ký duyệt các nội dung công việc trong phạm vi chuyên môn được phân công. Tiến độ chung và đánh giá toàn diện do Giảng viên hướng dẫn chính (Primary Supervisor) và Hội đồng thẩm định quản trị.
+        </div>
+        <ul className="grid gap-4 md:grid-cols-2">
+          {items.map(({ assignment, project, error: projectError }) => {
+            const majorName = assignment.majorId ? academicResolver.major(assignment.majorId) : `Chuyên ngành #${assignment.majorId}`
+            const isInterdisciplinary = project?.academicScope?.projectMode === 'INTERDISCIPLINARY'
+            return (
+              <li key={assignment.id} className="min-w-0 workspace-surface p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">
+                    Phân công: {majorName}
+                  </p>
+                  {isInterdisciplinary && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-800 border border-blue-200">
+                      <span className="material-symbols-outlined text-sm" aria-hidden="true">hub</span>
+                      Liên ngành
+                    </span>
+                  )}
+                </div>
+                <h2 className="mt-2 break-words text-lg font-bold text-ink">
+                  {project?.title ?? `Đồ án #${assignment.projectId}`}
+                </h2>
+                <p className="mt-1 text-sm text-ink-muted">
+                  {project?.code ?? `#${assignment.projectId}`} · {project?.status ? projectStatusLabel(project.status) : 'Chưa tải trạng thái'}
+                </p>
+                {projectError ? (
+                  <p role="alert" className="mt-4 text-sm text-status-error-text">{projectError}</p>
+                ) : project?.status?.replaceAll('_', '').toUpperCase() !== 'ACTIVE' ? (
+                  <p className="mt-4 text-sm text-ink-muted">Đồ án hiện không trong giai đoạn thực hiện. Chưa thể mở không gian theo dõi.</p>
+                ) : (
+                  <nav className="mt-4 flex flex-wrap gap-2" aria-label="Chức năng hướng dẫn chuyên ngành">
+                    <ButtonLink variant="primary" to={`/mentor/projects/${assignment.projectId}/majors/${assignment.majorId}/workspace`}>Mở phạm vi theo dõi</ButtonLink>
+                    <ButtonLink to={`/mentor/projects/${assignment.projectId}/majors/${assignment.majorId}/tasks`}>Công việc</ButtonLink>
+                    <ButtonLink to={`/mentor/projects/${assignment.projectId}/majors/${assignment.majorId}/reports`}>Báo cáo tiến độ</ButtonLink>
+                    <ButtonLink to={`/mentor/projects/${assignment.projectId}/majors/${assignment.majorId}/meetings`}>Lịch họp</ButtonLink>
+                  </nav>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      </>
+    ) : null}
   </WorkspacePage>
 }
 

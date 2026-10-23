@@ -240,7 +240,7 @@ export function ColdTemplateManagementPage() {
                   <option value="">-- Chọn ngành trực thuộc khoa --</option>
                   {availableMajors.map((m) => (
                     <option key={m.id} value={m.id}>
-                      [{m.code}] {m.name} 
+                      [{m.code}] {m.name}
                     </option>
                   ))}
                 </select>

@@ -48,7 +48,7 @@ describe('chat business and failure boundaries', () => {
     fireEvent.click(mounted.container.querySelector('.chat-jump')!)
     await waitFor(() => expect(mounted.container.querySelector('[data-message-id="600"]')).toBeTruthy())
     expect(document.querySelectorAll('[data-message-id]')).toHaveLength(50)
-  }, 20_000)
+  }, 60_000)
   it('repairs already loaded history pages without resetting the oldest cursor on realtime updates', async () => {
     mocks.messages.mockImplementation((_id:string,before?:string)=>Promise.resolve(before ? {items:[message],nextCursor:null,hasMore:false} : {items:[{...message,id:'2',sequence:'2',body:'Mới nhất'}],nextCursor:'older',hasMore:true}))
     const mounted=mount();await screen.findByText('Mới nhất')

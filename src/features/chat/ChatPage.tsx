@@ -75,7 +75,15 @@ export function ChatConversations({ id, onOpen }: { id?: string; onOpen: (room: 
   const group = (kind: 'teams' | 'projects', source: number) => void perform(async () => open(await chatApi.group(kind, String(source))))
   const rooms = inbox.items.filter(room => room.title.toLocaleLowerCase('vi-VN').includes(debouncedFilter.toLocaleLowerCase('vi-VN')))
   return <aside className="chat-sidebar" aria-label="Cuộc trò chuyện">
-      <header><h1>Tin nhắn</h1><span role="status">{chatConnectionLabel(state)}</span><p className="chat-scope-note">Trao đổi với thành viên cùng team và người hướng dẫn được phân công trong đồ án.</p></header>
+      <header className="chat-sidebar-header">
+        <div className="flex items-center justify-between">
+          <h1>Tin nhắn</h1>
+          <span className={`chat-status-pill ${state === 'connected' ? 'is-connected' : 'is-syncing'}`} title={chatConnectionLabel(state)}>
+            <span className="chat-status-dot" aria-hidden="true" />
+            {state === 'connected' ? 'Trực tuyến' : 'Đang kết nối'}
+          </span>
+        </div>
+      </header>
       <details className="chat-new"><summary>Cuộc trò chuyện mới</summary>
         <div className="chat-groups">
           {journey?.team && <button disabled={busy} onClick={() => group('teams', journey.team!.id)}>Nhóm {journey.team.name}</button>}
@@ -83,16 +91,19 @@ export function ChatConversations({ id, onOpen }: { id?: string; onOpen: (room: 
           {projects.map(project => <button key={project} disabled={busy} onClick={() => group('projects', project)}>Nhóm đồ án #{project}</button>)}
           {moreAssignments && <button onClick={() => setAssignmentPage(n => n + 1)}>Thêm đồ án được phân công</button>}
         </div>
-        <label>Tìm người cùng nhóm hoặc hướng dẫn<input value={search} maxLength={100} onChange={e => setSearch(e.target.value)} placeholder="Tên người nhận" /></label>
+        <label>Tìm người nhận trong đồ án<input value={search} maxLength={100} onChange={e => setSearch(e.target.value)} placeholder="Tên người nhận…" /></label>
         <div className="chat-search-results">{people.items.map(person => <button key={person.userId} disabled={busy} onClick={() => void perform(async () => open(await chatApi.direct(person.userId)))}>{person.fullName}</button>)}
-          {peopleLoading && <p role="status">Đang tìm người nhận được phép…</p>}
+          {peopleLoading && <p role="status">Đang tìm người nhận…</p>}
           {peopleError && <p role="alert">{peopleError} <button onClick={() => setPeopleRetry(n => n + 1)}>Tìm lại</button></p>}
           {!peopleLoading && !peopleError && !people.items.length && <p>Không có người nhận phù hợp.</p>}
           {people.hasMore && <button disabled={busy} onClick={() => void perform(async () => { const page = await chatApi.recipients(search, people.nextCursor!); setPeople({ ...page, items: [...people.items, ...page.items] }) })}>Thêm người nhận</button>}
         </div>
       </details>
       {(error || inboxError) && <p className="chat-error" role="alert">{error || inboxError} <button onClick={() => refresh()}>Tải lại</button></p>}
-      <label className="chat-filter">Tìm cuộc trò chuyện<input data-chat-list-focus value={filter} maxLength={100} onChange={e => setFilter(e.target.value)} placeholder="Tên cuộc trò chuyện" /></label>
+      <div className="chat-search-wrap">
+        <span className="material-symbols-outlined" aria-hidden="true">search</span>
+        <input data-chat-list-focus value={filter} maxLength={100} onChange={e => setFilter(e.target.value)} placeholder="Tìm cuộc trò chuyện…" />
+      </div>
       <nav className="chat-list" aria-label="Hộp thư">{rooms.slice(0, visibleCount).map(room => <button type="button" key={room.id} onClick={() => onOpen(room)} className={id === room.id ? 'active' : ''} aria-current={id === room.id ? 'true' : undefined}>
         <span className="chat-avatar" aria-hidden="true">{room.kind === 'DIRECT' ? room.title.trim().split(/\s+/).slice(-2).map(part => part[0]).join('') : <span className="material-symbols-outlined">groups</span>}</span>
         <span className="chat-conversation-info"><strong>{room.title}{room.mutedUntil && Date.parse(room.mutedUntil) > Date.now() && <span aria-label="Đã tắt thông báo"> 🔇</span>}</strong><small>{room.kind === 'TEAM' ? 'Nhóm sinh viên' : room.kind === 'PROJECT' ? 'Nhóm đồ án' : 'Trao đổi riêng'} · {chatTime(room.updatedAt)}</small><small>{room.lastMessage?.recalledAt ? 'Tin nhắn đã thu hồi' : room.lastMessage?.body || 'Bắt đầu trao đổi'}</small></span>

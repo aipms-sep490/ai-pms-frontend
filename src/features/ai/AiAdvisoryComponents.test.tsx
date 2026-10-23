@@ -48,7 +48,7 @@ describe('AI advisory components', () => {
 
   it('keeps the assistant advisory-only and surfaces a rate-limit failure', async () => {
     api.askProjectAssistant.mockRejectedValue(new HttpError('rate limited', 429))
-    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE' } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage /></ExecutionAccessProvider></MemoryRouter>)
+    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage /></ExecutionAccessProvider></MemoryRouter>)
     await screen.findByText('Rủi ro và tiến độ đồ án')
     fireEvent.change(screen.getByLabelText('Câu hỏi'), { target: { value: 'Việc nào cần ưu tiên?' } })
     fireEvent.click(screen.getByRole('button', { name: 'Gửi câu hỏi' }))
@@ -59,7 +59,7 @@ describe('AI advisory components', () => {
 
   it('renders assistant evidence without converting an API reference into a command', async () => {
     api.askProjectAssistant.mockResolvedValue({ projectId: 9, answer: 'Ưu tiên task quá hạn.', contextScope: 'Project #9', evidence: summary.evidence, limitationNote: 'Dữ liệu có giới hạn.', insufficientEvidence: true, generatedAt: '2026-10-03T08:00:00Z' })
-    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE' } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage /></ExecutionAccessProvider></MemoryRouter>)
+    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage /></ExecutionAccessProvider></MemoryRouter>)
     await screen.findByText('Rủi ro và tiến độ đồ án')
     fireEvent.change(screen.getByLabelText('Câu hỏi'), { target: { value: 'Ưu tiên?' } })
     fireEvent.click(screen.getByRole('button', { name: 'Gửi câu hỏi' }))

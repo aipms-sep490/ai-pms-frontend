@@ -62,5 +62,3 @@ export function DepartmentGovernanceOverview({ governance: data }: { governance:
     <div className="flex flex-wrap gap-2 border-t border-hairline pt-3"><Link to={`/department/projects/review/${data.projectId}`} className={linkClass}>Đối chiếu hồ sơ thẩm định</Link><Link to={`${base}/evaluators`} className={linkClass}>Xem phân công người chấm</Link></div>
   </section>
 }
-
-

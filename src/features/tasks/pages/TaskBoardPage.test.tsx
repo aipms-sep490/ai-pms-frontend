@@ -9,7 +9,7 @@ const empty = { items: [], totalCount: 0, totalPages: 0, page: 1, pageSize: 20 }
 const item = { id: 1, milestoneId: 3, title: 'Phân tích yêu cầu', status: 'TODO', priority: 'MEDIUM', assignees: [] }
 const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
 function renderBoard(manage: boolean, url = '/project/tasks', allowed = manage) {
-  return render(<MemoryRouter initialEntries={[url]}><ExecutionAccessProvider value={{ project: { id: 9 } as never, team: { members: [{ userId: 2, fullName: 'Khang' }, { userId: 5, fullName: 'Duy' }] } as never, actor: 'student', currentUserId: 2, canManageStructure: manage, executionCapabilities: capabilities(allowed), routeBase: '/project' }}><TaskBoardPage /></ExecutionAccessProvider></MemoryRouter>)
+  return render(<MemoryRouter initialEntries={[url]}><ExecutionAccessProvider value={{ project: { id: 9, majors: [] } as never, team: { members: [{ userId: 2, fullName: 'Khang' }, { userId: 5, fullName: 'Duy' }] } as never, actor: 'student', currentUserId: 2, canManageStructure: manage, executionCapabilities: capabilities(allowed), routeBase: '/project' }}><TaskBoardPage /></ExecutionAccessProvider></MemoryRouter>)
 }
 beforeEach(() => { api.getProjectTasks.mockResolvedValue(empty); api.getProjectMilestones.mockResolvedValue([{ id: 3, title: 'Khởi động', status: 'PLANNED' }]) })
 afterEach(() => { cleanup(); vi.resetAllMocks() })

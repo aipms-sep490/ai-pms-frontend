@@ -5,6 +5,7 @@ import type { ColdChecklist, ColdChecklistItem, ColdSubmission } from '../../ser
 import { coldScopeLabel, formatColdDateTime, formatFileSize } from './cold-types'
 import { coldError, coldNeedsAuthoritativeRefresh } from './cold-errors'
 import { ColdBadge, ColdError, ColdLoading, ColdShell } from './cold-ui'
+import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 
 export function ColdChecklistPage() {
   const { project, actor, routeBase } = useExecutionAccess()
@@ -175,6 +176,7 @@ function ColdItemRow({ item, onChanged, onConflict }: {
   const [showHistory, setShowHistory] = useState(false)
   const [history, setHistory] = useState<ColdSubmission[] | null>(null)
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [previewFile, setPreviewFile] = useState<{ id: number; fileName: string; sizeBytes: number; contentType?: string; submissionId: number } | null>(null)
 
   async function toggleHistory() {
     if (showHistory) {
@@ -238,7 +240,10 @@ function ColdItemRow({ item, onChanged, onConflict }: {
       <ul className="cold-file-list">
         {latest.files.map((file) => <li key={file.id}>
           <span>{file.fileName} <small>({formatFileSize(file.sizeBytes)})</small></span>
-          <button className="cold-button cold-button--secondary" type="button" onClick={() => void downloadFile(file.id, file.fileName)}>Tải xuống</button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="cold-button cold-button--secondary" type="button" onClick={() => setPreviewFile({ id: file.id, fileName: file.fileName, sizeBytes: file.sizeBytes, contentType: file.contentType, submissionId: latest.id })}>Xem trước</button>
+            <button className="cold-button cold-button--secondary" type="button" onClick={() => void downloadFile(file.id, file.fileName)}>Tải xuống</button>
+          </div>
         </li>)}
       </ul>
       {latest.submittedAt && <small>Đã nộp: {formatColdDateTime(latest.submittedAt)}</small>}
@@ -291,5 +296,6 @@ function ColdItemRow({ item, onChanged, onConflict }: {
         ))}
       </div>
     )}
+    {previewFile && <DocumentPreviewModal open fileName={previewFile.fileName} fileSize={previewFile.sizeBytes} contentType={previewFile.contentType} loadBlob={signal => api.downloadColdSubmissionFile(previewFile.submissionId, previewFile.id, signal)} onDownload={() => downloadFile(previewFile.id, previewFile.fileName)} onClose={() => setPreviewFile(null)} />}
   </li>
 }

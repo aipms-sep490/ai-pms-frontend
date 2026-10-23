@@ -53,5 +53,13 @@ export function LiveKitRoomAdapter({ credential, preferences, title, canEnd, onL
 
   if (error) return <p className="mtg-notice mtg-notice--error" role="alert">{error}</p>
   if (!room) return <p className="mtg-loading" role="status">{labels[state]}</p>
-  return <RoomContext.Provider value={room}>{controlError && <div className="mtg-notice mtg-notice--error mtg-livekit-control-error" role="alert"><p>{controlError}</p><button className="mtg-text-button" onClick={() => setControlError('')}>Đóng thông báo</button></div>}<LiveKitRoomContent room={room} title={title} connectionState={labels[state]} canEnd={canEnd} mediaCapabilities={credential.capabilities} onLeave={onLeave} onEndRequested={onEndRequested} onGovernance={onGovernance} governanceOpen={governanceOpen} onProviderError={(reason) => setControlError(liveKitErrorMessage(reason))} />{governance}</RoomContext.Provider>
+  return <RoomContext.Provider value={room}>
+    {controlError && <div className="mtg-notice mtg-notice--error mtg-livekit-control-error" role="alert"><p>{controlError}</p><button className="mtg-text-button" onClick={() => setControlError('')}>Đóng thông báo</button></div>}
+    <div className={`mtg-video-cockpit ${governanceOpen ? 'mtg-video-cockpit--split' : ''}`}>
+      <div className="mtg-video-cockpit-stage">
+        <LiveKitRoomContent room={room} title={title} connectionState={labels[state]} canEnd={canEnd} mediaCapabilities={credential.capabilities} onLeave={onLeave} onEndRequested={onEndRequested} onGovernance={onGovernance} governanceOpen={governanceOpen} onProviderError={(reason) => setControlError(liveKitErrorMessage(reason))} />
+      </div>
+      {governance}
+    </div>
+  </RoomContext.Provider>
 }

@@ -36,4 +36,12 @@ describe('SupervisorDashboardPage', () => {
     expect(screen.queryByText('PRJ-7 · Dashboard contract')).toBeNull()
     expect(screen.queryByRole('link', { name: 'Mở không gian đồ án' })).toBeNull()
   })
+
+  it('renders Action Inbox when projects have pending reviews or overdue tasks', async () => {
+    render(<MemoryRouter><SupervisorDashboardPage /></MemoryRouter>)
+    expect(await screen.findByRole('region', { name: 'Hộp thư duyệt nhanh' })).toBeTruthy()
+    expect(screen.getByText(/Hộp thư duyệt nhanh & Việc khẩn cấp/)).toBeTruthy()
+    expect(screen.getByText('1 báo cáo chờ duyệt')).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Xem & Duyệt báo cáo/ })).toBeTruthy()
+  })
 })

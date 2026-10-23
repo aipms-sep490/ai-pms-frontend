@@ -13,6 +13,7 @@ type WorkspaceArea = { key: string; title: string; description: string; path: st
 
 const areas: WorkspaceArea[] = [
   { key: 'progress', title: 'Tiến độ', description: 'Tiến độ, vướng mắc và phản hồi.', path: 'progress' },
+  { key: 'review-gates', title: 'Tiến trình Gates', description: 'Theo dõi thẩm định hồ sơ, minh chứng và hướng dẫn khắc phục.', path: 'review-gates' },
   { key: 'tasks', title: 'Công việc & mốc', description: 'Hạn, phụ trách và trạng thái.', path: 'tasks' },
   { key: 'meetings', title: 'Cuộc họp', description: 'Lịch, biên bản, kết luận và việc sau họp.', path: 'meetings' },
   { key: 'deliverables', title: 'Hạng mục bàn giao', description: 'Phiên bản nộp và phản hồi.', path: 'deliverables' },
