@@ -65,6 +65,11 @@ export function DocumentPreviewModal({
   const [rotation, setRotation] = useState(0)
   const [downloading, setDownloading] = useState(false)
   const objectUrlRef = useRef<string | null>(null)
+  // Callers pass a new inline loadBlob closure every render. Read it through a ref so an unrelated
+  // parent re-render does not re-trigger the fetch effect and re-download the file; the effect keys
+  // on the file identity (fileName/contentType) instead, which still re-fetches when the file changes.
+  const loadBlobRef = useRef(loadBlob)
+  loadBlobRef.current = loadBlob
 
   const category = getFileCategory(fileName, contentType)
 
@@ -105,7 +110,7 @@ export function DocumentPreviewModal({
     setLoading(true)
     setError(null)
 
-    loadBlob(controller.signal)
+    loadBlobRef.current(controller.signal)
       .then(async (resultBlob) => {
         if (!active) return
         setBlob(resultBlob)
@@ -138,7 +143,7 @@ export function DocumentPreviewModal({
         objectUrlRef.current = null
       }
     }
-  }, [open, loadBlob, category])
+  }, [open, fileName, contentType, category])
 
   // Handle direct download
   const handleDownload = async () => {
