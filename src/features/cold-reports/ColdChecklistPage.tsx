@@ -2,7 +2,7 @@ import { useEffect, useState, type ChangeEvent } from 'react'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import * as api from '../../services/api/cold.api'
 import type { ColdChecklist, ColdChecklistItem, ColdSubmission } from '../../services/api/cold.api'
-import { coldScopeLabel, formatColdDateTime, formatFileSize } from './cold-types'
+import { coldPackageStatusLabel, coldScopeLabel, coldStatusLabel, formatColdDateTime, formatFileSize } from './cold-types'
 import { coldError, coldNeedsAuthoritativeRefresh } from './cold-errors'
 import { ColdBadge, ColdError, ColdLoading, ColdShell } from './cold-ui'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
@@ -76,25 +76,25 @@ function ColdChecklistBody({ projectId, projectTitle, actor, routeBase }: {
       <ActionVerdict actions={[{ code: 'LOCK_COLD_PACKAGE', allowed: checklist.canLock, reasons: allBlockers }]} actionCode="LOCK_COLD_PACKAGE" status="ready" okLabel="Đủ điều kiện khóa gói" blockedLabel="Chưa đủ điều kiện khóa gói" />
       {lockError && <ColdError message={lockError} />}
       
-      {progress && <div className="cold-panel" style={{ marginBottom: 16 }}>
+      {progress && <div className="cold-panel cold-panel--progress">
         <div className="cold-panel-heading">
           <h2>Tiến độ gói chấm nguội</h2>
-          <span style={{ fontWeight: 600 }}>Trạng thái: {progress.packageStatus}</span>
+          <span className="cold-progress-status">Trạng thái: {coldPackageStatusLabel(progress.packageStatus)}</span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, padding: 12 }}>
-          <div><small>Báo cáo hiển thị</small><p style={{ fontSize: 18, fontWeight: 700 }}>{progress.visibleReports}</p></div>
-          <div><small>Đã nộp</small><p style={{ fontSize: 18, fontWeight: 700 }}>{progress.submittedReports}</p></div>
-          <div><small>Đã khóa</small><p style={{ fontSize: 18, fontWeight: 700 }}>{progress.lockedReports}</p></div>
-          <div><small>Sẵn sàng chấm</small><p style={{ fontSize: 18, fontWeight: 700, color: progress.ready ? 'green' : 'inherit' }}>{progress.ready ? 'Đạt' : 'Chưa đạt'}</p></div>
+        <div className="cold-progress-grid">
+          <div className="cold-progress-metric"><small>Báo cáo hiển thị</small><p className="cold-progress-value">{progress.visibleReports}</p></div>
+          <div className="cold-progress-metric"><small>Đã nộp</small><p className="cold-progress-value">{progress.submittedReports}</p></div>
+          <div className="cold-progress-metric"><small>Đã khóa</small><p className="cold-progress-value">{progress.lockedReports}</p></div>
+          <div className="cold-progress-metric"><small>Sẵn sàng chấm</small><p className={`cold-progress-value${progress.ready ? ' cold-progress-value--ready' : ''}`}>{progress.ready ? 'Đạt' : 'Chưa đạt'}</p></div>
         </div>
       </div>}
 
       <div className="cold-panel">
-        <div className="cold-panel-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="cold-panel-heading">
           <div>
             <h2>Danh sách báo cáo</h2>
             <span>Hạn nộp: {formatColdDateTime(checklist.deadline)}</span>
-            {checklist.lockedAt && <span style={{ marginLeft: 12, color: 'var(--color-status-success-text)', fontWeight: 600 }}>• Đã khóa: {formatColdDateTime(checklist.lockedAt)}</span>}
+            {checklist.lockedAt && <span className="cold-locked-meta">• Đã khóa: {formatColdDateTime(checklist.lockedAt)}</span>}
           </div>
           {checklist.canLock && (
             <button
@@ -219,7 +219,7 @@ function ColdItemRow({ item, onChanged, onConflict }: {
 
     {rowError && <ColdError message={rowError} />}
 
-    {!latest && item.canWrite && <div className="cold-editor-actions" style={{ marginTop: 12 }}>
+    {!latest && item.canWrite && <div className="cold-editor-actions cold-editor-actions--spaced">
       <button className="cold-button" type="button" disabled={busy} onClick={createDraft}>Tạo bản nháp</button>
     </div>}
 
@@ -228,13 +228,13 @@ function ColdItemRow({ item, onChanged, onConflict }: {
       <ul className="cold-file-list">
         {latest.files.map((file) => <li key={file.id}>
           <span>{file.fileName} <small>({formatFileSize(file.sizeBytes)})</small></span>
-          <button className="cold-button cold-button--secondary" type="button" disabled={busy} onClick={() => removeFile(file.id)}>Xóa</button>
+          <button className="cold-button cold-button--secondary cold-button--compact" type="button" disabled={busy} onClick={() => removeFile(file.id)}>Xóa</button>
         </li>)}
         {latest.files.length === 0 && <li><small>Chưa có tệp nào.</small></li>}
       </ul>
       <div className="cold-editor-actions">
         <input type="file" accept=".pdf,.docx,.zip" disabled={busy} onChange={uploadFile} />
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="cold-inline-actions">
           <button className="cold-button cold-button--secondary" type="button" disabled={busy} onClick={saveNote}>Lưu ghi chú</button>
           <button className="cold-button" type="button" disabled={busy || latest.files.length === 0} onClick={submit}>Nộp báo cáo</button>
         </div>
@@ -244,50 +244,48 @@ function ColdItemRow({ item, onChanged, onConflict }: {
       <ul className="cold-file-list">
         {latest.files.map((file) => <li key={file.id}>
           <span>{file.fileName} <small>({formatFileSize(file.sizeBytes)})</small></span>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button className="cold-button cold-button--secondary" type="button" onClick={() => setPreviewFile({ id: file.id, fileName: file.fileName, sizeBytes: file.sizeBytes, contentType: file.contentType, submissionId: latest.id })}>Xem trước</button>
-            <button className="cold-button cold-button--secondary" type="button" onClick={() => void downloadFile(file.id, file.fileName)}>Tải xuống</button>
+          <div className="cold-inline-actions">
+            <button className="cold-button cold-button--secondary cold-button--compact" type="button" onClick={() => setPreviewFile({ id: file.id, fileName: file.fileName, sizeBytes: file.sizeBytes, contentType: file.contentType, submissionId: latest.id })}>Xem trước</button>
+            <button className="cold-button cold-button--secondary cold-button--compact" type="button" onClick={() => void downloadFile(file.id, file.fileName)}>Tải xuống</button>
           </div>
         </li>)}
       </ul>
       {latest.submittedAt && <small>Đã nộp: {formatColdDateTime(latest.submittedAt)}</small>}
-      {canResubmit && <div className="cold-editor-actions" style={{ marginTop: 12 }}>
+      {canResubmit && <div className="cold-editor-actions cold-editor-actions--spaced">
         <button className="cold-button cold-button--secondary" type="button" disabled={busy} onClick={resubmitNewVersion}>Nộp lại (tạo phiên bản mới)</button>
       </div>}
     </div>)}
 
-    <div style={{ marginTop: 10 }}>
+    <div className="cold-history-toggle">
       <button
         type="button"
-        className="cold-button cold-button--secondary"
+        className="cold-button cold-button--secondary cold-button--compact"
         onClick={() => void toggleHistory()}
-        style={{ fontSize: 12, padding: '4px 10px' }}
       >
         {showHistory ? 'Ẩn lịch sử nộp' : 'Xem lịch sử nộp'}
       </button>
     </div>
 
     {showHistory && (
-      <div style={{ marginTop: 10, padding: 12, border: '1px solid var(--color-line-strong)', borderRadius: 8, background: 'var(--color-canvas)' }}>
-        <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--color-ink)' }}>Lịch sử các phiên bản:</h4>
-        {loadingHistory && <p style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>Đang tải lịch sử…</p>}
-        {history && history.length === 0 && <p style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>Chưa có bản ghi lịch sử nào.</p>}
+      <div className="cold-history">
+        <h4 className="cold-history-title">Lịch sử các phiên bản:</h4>
+        {loadingHistory && <p className="cold-history-muted">Đang tải lịch sử…</p>}
+        {history && history.length === 0 && <p className="cold-history-muted">Chưa có bản ghi lịch sử nào.</p>}
         {history && history.map((sub) => (
-          <div key={sub.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--color-hairline)', fontSize: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 600 }}>Phiên bản {sub.version} ({sub.status})</span>
-              <span style={{ color: 'var(--color-ink-muted)', fontSize: 12 }}>{sub.submittedAt ? formatColdDateTime(sub.submittedAt) : formatColdDateTime(sub.createdAt)}</span>
+          <div key={sub.id} className="cold-history-item">
+            <div className="cold-history-item-head">
+              <span className="cold-history-version">Phiên bản {sub.version} ({coldStatusLabel(sub.status)})</span>
+              <span className="cold-history-date">{sub.submittedAt ? formatColdDateTime(sub.submittedAt) : formatColdDateTime(sub.createdAt)}</span>
             </div>
-            {sub.note && <p style={{ margin: '4px 0', color: 'var(--color-ink-soft)' }}>Ghi chú: {sub.note}</p>}
+            {sub.note && <p className="cold-history-note">Ghi chú: {sub.note}</p>}
             {sub.files.length > 0 && (
-              <ul style={{ listStyle: 'none', paddingLeft: 0, marginTop: 4 }}>
+              <ul className="cold-history-files">
                 {sub.files.map((file) => (
-                  <li key={file.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 }}>
+                  <li key={file.id} className="cold-history-file">
                     <span>{file.fileName} <small>({formatFileSize(file.sizeBytes)})</small></span>
                     <button
                       type="button"
-                      className="cold-button cold-button--secondary"
-                      style={{ fontSize: 12, padding: '2px 8px' }}
+                      className="cold-button cold-button--secondary cold-button--compact"
                       onClick={() => void downloadFile(file.id, file.fileName)}
                     >
                       Tải bản này
