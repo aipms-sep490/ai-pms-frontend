@@ -3,6 +3,7 @@ import { httpGet, httpGetBlob, httpPost, httpPostForm, httpPut } from '../../../
 import type { PagedResult } from '../../../types/backend/common.backend.types'
 import { requireGateToken, toTemplateRequest } from './review-gates-contract'
 import { reviewGatesMockAdapter } from './review-gates-mock-adapter'
+import { safeEvidenceLink } from '../utils/evidence-link'
 import type {
   AssignedReviewItem,
   DefenseReadinessSummary,
@@ -16,7 +17,7 @@ import type {
   VerifyEvidenceRequest,
 } from '../types/review-gates.types'
 
-/** API contract verified against BE a1f510b. Mock transport remains explicitly separate. */
+/** Real routes/DTOs checked against BE acc6f04 and subsequent origin/develop. */
 export async function getReviewGateTemplates(): Promise<ReviewGateTemplate[]> {
   if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.getTemplates()
   return httpGet<ReviewGateTemplate[]>('/academic/gate-templates')
@@ -82,7 +83,14 @@ export async function submitRevision(
   if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.submitRevision(req, isLeader)
 
   if (!isLeader) throw new Error('Bạn không có quyền nộp minh chứng.')
-  if (req.mode === 'link') throw new Error('API chưa hỗ trợ nộp liên kết ngoài; vui lòng tải tệp minh chứng.')
+  if (req.mode === 'link') {
+    const linkUrl = req.linkUrl?.trim()
+    if (!safeEvidenceLink(linkUrl)) throw new Error('Vui lòng nhập liên kết HTTPS tuyệt đối, có tên miền hợp lệ và không chứa thông tin đăng nhập.')
+    return httpPost<StudentReviewTimelineDto>(`/projects/${req.projectId}/review-gates/${encodeURIComponent(req.gateCode)}/evidence`, {
+      requirementId: req.requirementId, artifactName: linkUrl, notes: req.notes,
+      expectedVersion: req.expectedVersion, concurrencyToken: requireGateToken(req.concurrencyToken), linkUrl,
+    })
+  }
   if (!req.file) throw new Error('Vui lòng chọn tệp minh chứng thực tế.')
   if (req.file.size > 20 * 1024 * 1024) throw new Error('Tệp vượt quá giới hạn 20 MiB.')
   const body = new FormData()
@@ -135,5 +143,5 @@ export async function submitSupervisorFeedback(
   req: SupervisorFeedbackRequest,
 ): Promise<void> {
   if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.submitSupervisorFeedback(req)
-  throw new Error('API chưa hỗ trợ nhận xét hướng dẫn tại Review Gate.')
+  await httpPost(`/projects/${req.projectId}/review-gates/${encodeURIComponent(req.gateCode)}/feedback`, { feedback: req.feedback })
 }

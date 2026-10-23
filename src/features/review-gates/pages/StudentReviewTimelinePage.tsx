@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { env } from '../../../app/config/env'
 import { AuthSessionContext } from '../../auth/context/auth-session-context'
@@ -11,6 +11,7 @@ import { StudentReviewTimeline } from '../components/StudentReviewTimeline'
 import type { ReviewSubmissionPayload } from '../components/ReviewSubmissionModal'
 import { SupervisorGateFollowupPanel } from '../components/SupervisorGateFollowupPanel'
 import { HttpError } from '../../../services/http/http-client'
+import { Button } from '../../../components/ui/Button'
 
 function timelineError(error: unknown): string {
   if (error instanceof HttpError) {
@@ -34,15 +35,18 @@ export function StudentReviewTimelinePage() {
   const [readiness, setReadiness] = useState<DefenseReadinessSummary | null>(null)
   const loadId = useRef(0)
   const readinessId = useRef(0)
+  const routeGeneration = useRef(0)
+  const [feedbackRefreshWarning, setFeedbackRefreshWarning] = useState<string | null>(null)
+  const [feedbackRefreshing, setFeedbackRefreshing] = useState(false)
 
-  const applyTimeline = (value: StudentReviewTimelineDto) => {
+  const applyTimeline = useCallback((value: StudentReviewTimelineDto) => {
     setTimeline(value)
     setReadiness(null)
     const generation = ++readinessId.current
     void getDefenseReadiness(value.projectId).then(result => {
       if (generation === readinessId.current) setReadiness(result)
     }).catch(() => { /* Readiness stays unknown; no fixture conclusion. */ })
-  }
+  }, [])
 
   const isLecturer = auth?.session?.user.roles.includes('LECTURER') ?? false
   const isStaff = (auth?.session?.user.roles.includes('DEPARTMENT_STAFF') || auth?.session?.user.roles.includes('ADMIN')) ?? false
@@ -55,7 +59,7 @@ export function StudentReviewTimelinePage() {
   const isLeaderToggleAllowed = Boolean(import.meta.env.DEV && env.reviewGatesMockEnabled)
   const isLeader = isLeaderToggleAllowed && mockLeaderOverride !== null ? mockLeaderOverride : authIsLeader
 
-  const loadTimeline = async (silent = false) => {
+  const loadTimeline = useCallback(async (silent = false) => {
     const request = ++loadId.current
     try {
       if (!silent) setLoading(true)
@@ -63,17 +67,38 @@ export function StudentReviewTimelinePage() {
       const data = await getStudentReviewTimeline(effectiveProjectId)
       if (request === loadId.current) applyTimeline(data)
     } catch (err) {
-      if (silent) throw err
+      if (silent && request === loadId.current) throw err
       if (request === loadId.current) setError(timelineError(err))
     } finally {
       if (!silent && request === loadId.current) setLoading(false)
     }
-  }
+  }, [effectiveProjectId, applyTimeline])
+
+  const invalidateLoads = useCallback(() => {
+    loadId.current++
+    readinessId.current++
+    routeGeneration.current++
+  }, [])
 
   useEffect(() => {
+    setFeedbackRefreshWarning(null)
+    setFeedbackRefreshing(false)
     void loadTimeline()
-    return () => { loadId.current++; readinessId.current++ }
-  }, [effectiveProjectId])
+    return invalidateLoads
+  }, [loadTimeline, invalidateLoads])
+
+  const refreshFeedback = async (generation = routeGeneration.current) => {
+    if (generation !== routeGeneration.current) return
+    setFeedbackRefreshing(true)
+    try {
+      await loadTimeline(true)
+      if (generation === routeGeneration.current) setFeedbackRefreshWarning(null)
+    } catch {
+      if (generation === routeGeneration.current) setFeedbackRefreshWarning('Nhận xét đã được lưu nhưng chưa tải lại được tiến trình. Nội dung đang nhập được giữ lại.')
+    } finally {
+      if (generation === routeGeneration.current) setFeedbackRefreshing(false)
+    }
+  }
 
   const handleSubmitRevision = async (
     gateCode: string,
@@ -81,6 +106,7 @@ export function StudentReviewTimelinePage() {
     payload: ReviewSubmissionPayload,
   ) => {
     if (!timeline) return
+    const generation = routeGeneration.current
     const targetGate = timeline.gates.find((g) => g.code === gateCode)
     const targetReq = targetGate?.requirements.find((r) => r.id === requirementId)
     const expectedVersion = targetReq?.latestArtifact?.version ?? 0
@@ -100,7 +126,7 @@ export function StudentReviewTimelinePage() {
       },
       isLeader,
     )
-    applyTimeline(updated)
+    if (generation === routeGeneration.current) applyTimeline(updated)
   }
 
   const currentGate = timeline?.gates.find((g) => g.code === timeline.currentGateCode) || timeline?.gates[0]
@@ -117,6 +143,12 @@ export function StudentReviewTimelinePage() {
       title="Tiến trình & Hồ sơ Thẩm định Đồ án"
       description="Theo dõi các đợt Review Gates (R1..R4), kiểm tra trạng thái minh chứng và nộp bản cập nhật theo phản hồi của hội đồng thẩm định."
     >
+      {feedbackRefreshWarning && <div role="alert" className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+        <p>{feedbackRefreshWarning}</p>
+        <Button variant="outline" className="mt-2 min-h-11" disabled={feedbackRefreshing} onClick={() => void refreshFeedback()}>
+          {feedbackRefreshing ? 'Đang tải lại nhận xét...' : 'Tải lại nhận xét'}
+        </Button>
+      </div>}
       {loading ? (
         <div className="py-12">
           <PageLoading label="Đang tải tiến trình Review Gates của nhóm..." />
@@ -136,6 +168,7 @@ export function StudentReviewTimelinePage() {
         <div className="space-y-6">
           {isLecturer && currentGate && (
             <SupervisorGateFollowupPanel
+              key={`${timeline.projectId}-${currentGate.code}`}
               projectId={timeline.projectId}
               projectName={timeline.projectName}
               projectCode={timeline.projectCode}
@@ -143,14 +176,16 @@ export function StudentReviewTimelinePage() {
               gateTitle={currentGate.title}
               gateStatus={currentGate.status}
               blockerMessage={currentGate.blockingReasons[0]?.message}
-              onSendFeedback={env.reviewGatesMockEnabled ? async (feedback) => {
+              onSendFeedback={async (feedback) => {
+                const generation = routeGeneration.current
                 await submitSupervisorFeedback({
                   projectId: timeline.projectId,
                   gateCode: currentGate.code,
                   feedback,
                 })
-                await loadTimeline(true)
-              } : undefined}
+                // A failed refresh must not imply that an acknowledged POST failed.
+                void refreshFeedback(generation)
+              }}
             />
           )}
 
@@ -163,8 +198,10 @@ export function StudentReviewTimelinePage() {
             readiness={readiness}
             onReload={() => loadTimeline(true)}
             onSubmitForReview={async (gateCode) => {
+              const generation = routeGeneration.current
               const gate = timeline.gates.find(item => item.code === gateCode)
-              applyTimeline(await submitGateForReview({ projectId: timeline.projectId, gateCode, concurrencyToken: gate?.concurrencyToken }))
+              const updated = await submitGateForReview({ projectId: timeline.projectId, gateCode, concurrencyToken: gate?.concurrencyToken })
+              if (generation === routeGeneration.current) applyTimeline(updated)
             }}
           />
         </div>

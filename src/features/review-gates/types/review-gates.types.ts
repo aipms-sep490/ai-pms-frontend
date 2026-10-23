@@ -73,9 +73,11 @@ export interface ProjectReviewMatrixRow {
   major: string
   dept: string
   taskProgress: number
+  hasTasks?: boolean
   gateStatuses: Record<string, GateStatus>
   blockingReasons?: Record<string, string[]>
   hybridScopes?: Record<string, GateStatus>
+  hybridScopeLabels?: Record<string, string>
 }
 
 export interface DefenseCondition {
@@ -112,6 +114,7 @@ export interface StudentGateRequirement {
     sizeBytes?: number
     sha256?: string
     downloadUrl?: string
+    linkUrl?: string | null
   } | null
   reviewerFeedback?: string | null
 }

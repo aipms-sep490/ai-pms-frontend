@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { Button } from '../../../components/ui/Button'
+import { reviewGateError } from '../utils/review-gate-error'
+import { gateStatusLabels } from '../utils/review-gate-labels'
+import type { GateStatus } from '../types/review-gates.types'
 
 interface SupervisorGateFollowupPanelProps {
   projectId: string
@@ -25,11 +28,14 @@ export function SupervisorGateFollowupPanel({
   const [busy, setBusy] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const fieldId = useId()
+  const sending = useRef(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!feedback.trim()) return
+    if (sending.current || !onSendFeedback || !feedback.trim()) return
     try {
+      sending.current = true
       setBusy(true)
       setError(null)
       if (onSendFeedback) {
@@ -38,9 +44,10 @@ export function SupervisorGateFollowupPanel({
       setSubmitted(true)
       setFeedback('')
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Không thể lưu nhận xét hướng dẫn.')
+      setError(reviewGateError(err))
     } finally {
       setBusy(false)
+      sending.current = false
     }
   }
 
@@ -54,7 +61,7 @@ export function SupervisorGateFollowupPanel({
         <div className="flex items-center gap-2">
           <span className="rounded-md bg-slate-900 px-2 py-0.5 text-xs font-bold text-white">{currentGateCode}</span>
           <span className="text-xs font-semibold text-slate-700">{gateTitle}</span>
-          <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">{gateStatus}</span>
+          <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">{gateStatusLabels[gateStatus as GateStatus] ?? 'Chưa xác định'}</span>
         </div>
       </div>
 
@@ -68,34 +75,32 @@ export function SupervisorGateFollowupPanel({
         ℹ️ <strong>Phạm vi vai trò:</strong> Giảng viên hướng dẫn (Primary Supervisor) có thẩm quyền đôn đốc, nhận xét, định hướng hành động (follow-up action items) cho nhóm sinh viên. Quyết định duyệt đạt Gate thuộc về Hội đồng / Giảng viên thẩm định độc lập được phân công.
       </div>
 
-      {error && (
-        <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-800 flex items-center justify-between">
-          <span>✕ {error}</span>
-          <button type="button" onClick={() => setError(null)} className="text-rose-600 hover:text-rose-900">✕</button>
-        </div>
-      )}
-
       {!onSendFeedback ? (
-        <p role="status" className="text-xs text-slate-600">Chưa hỗ trợ lưu nhận xét hướng dẫn qua API Review Gates.</p>
+        <p className="text-xs text-slate-600">Chế độ chỉ đọc. Mở tiến trình đồ án trong phạm vi hướng dẫn để gửi nhận xét.</p>
       ) : submitted ? (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-700 flex items-center justify-between">
+        <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-700 flex flex-wrap gap-2 items-center justify-between">
           <span>✓ Đã gửi nhận xét hướng dẫn cho nhóm sinh viên thành công.</span>
-          <button type="button" onClick={() => setSubmitted(false)} className="text-primary hover:underline">Gửi thêm</button>
+          <button type="button" onClick={() => setSubmitted(false)} className="min-h-11 min-w-11 text-primary hover:underline">Gửi thêm</button>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-3">
-          <label className="block text-xs font-bold text-slate-700">
+          <label htmlFor={fieldId} className="block text-xs font-bold text-slate-700">
             Nhận xét hướng dẫn / Gợi ý khắc phục cho nhóm sinh viên:
           </label>
           <textarea
+            id={fieldId}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? `${fieldId}-error` : undefined}
+            disabled={busy}
             rows={2}
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             placeholder="Ví dụ: Cần rà soát tính nhất quán giữa cơ sở dữ liệu ERD và API contract theo nhận xét của reviewer..."
             className="w-full rounded-lg border border-slate-300 p-2.5 text-xs text-slate-900 focus:border-primary focus:outline-hidden"
           />
+          {error && <p id={`${fieldId}-error`} role="alert" className="text-xs text-rose-800">{error}</p>}
           <div className="flex justify-end">
-            <Button type="submit" disabled={busy || !feedback.trim()}>
+            <Button type="submit" className="min-h-11" disabled={busy || !feedback.trim()}>
               {busy ? 'Đang gửi...' : 'Gửi nhận xét hướng dẫn'}
             </Button>
           </div>

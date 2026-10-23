@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import type { DefenseReadinessSummary, StudentGateRequirement, StudentReviewTimelineDto } from '../types/review-gates.types'
+import type { DefenseReadinessSummary, GateStatus, StudentGateRequirement, StudentReviewTimelineDto } from '../types/review-gates.types'
 import { ReviewSubmissionModal, type ReviewSubmissionPayload } from './ReviewSubmissionModal'
 import { EvidenceDownloadButton } from './EvidenceDownloadButton'
 import { DefenseReadinessChecker } from './DefenseReadinessChecker'
 import { Modal } from '../../../components/ui/Modal'
 import { env } from '../../../app/config/env'
+import { evidenceArtifactLabel } from '../utils/evidence-link'
+import { gateStatusLabels, requirementTypeLabel } from '../utils/review-gate-labels'
+import { displayLabel } from '../../../components/ui/display-label'
 
 interface StudentReviewTimelineProps {
   timeline: StudentReviewTimelineDto
@@ -54,10 +57,10 @@ export function StudentReviewTimeline({
     && selectedGate.code === timeline.currentGateCode && selectedGate.status !== 'LOCKED' && selectedGate.status !== 'PASSED'
     && (selectedGate.status === 'REVISION_REQUIRED' ? timeline.capabilities.canSubmitRevision : timeline.capabilities.canSubmitPackage))
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: GateStatus) => {
     switch (status) {
       case 'PASSED':
-        return <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">✓ ĐÃ ĐẠT (PASSED)</span>
+        return <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">✓ ĐÃ ĐẠT</span>
       case 'REVISION_REQUIRED':
         return <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-700 border border-rose-200">! CẦN CHỈNH SỬA</span>
       case 'IN_REVIEW':
@@ -65,7 +68,7 @@ export function StudentReviewTimeline({
       case 'PLANNED':
         return <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600 border border-slate-200">KẾ HOẠCH</span>
       default:
-        return <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">{status}</span>
+        return <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">{gateStatusLabels[status] ?? 'Chưa xác định'}</span>
     }
   }
 
@@ -189,7 +192,7 @@ export function StudentReviewTimeline({
             <span className="text-slate-600">Hạn chót thẩm định:</span>
             <span className="font-semibold text-slate-700">{selectedGate?.windowEnd || 'Theo kỳ'}</span>
           </div>
-          <p className="mt-1.5 text-xs text-slate-400">Trạng thái: {selectedGate?.status}</p>
+          <p className="mt-1.5 text-xs text-slate-600">Trạng thái: {selectedGate ? gateStatusLabels[selectedGate.status] ?? 'Chưa xác định' : 'Chưa xác định'}</p>
         </div>
 
         {/* KPI 4: Defense Readiness Advisory */}
@@ -378,9 +381,9 @@ export function StudentReviewTimeline({
                         </td>
                         <td className="px-3 py-3">
                           <span className="rounded-md bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
-                            {req.type}
+                            {requirementTypeLabel(req.type)}
                           </span>
-                          <span className="ml-1 text-slate-400">({req.scope})</span>
+                          <span className="ml-1 text-slate-400">({displayLabel(req.scope)})</span>
                         </td>
                         <td className="px-3 py-3 font-semibold text-slate-700">
                           {req.isMandatory ? <span className="text-rose-600 font-bold">Bắt buộc</span> : 'Tùy chọn'}
@@ -391,7 +394,7 @@ export function StudentReviewTimeline({
                         <td className="px-3.5 py-3">
                           {req.latestArtifact ? (
                             <div>
-                              <strong className="text-slate-800">v{req.latestArtifact.version}: {req.latestArtifact.filename}</strong>
+                              <strong className="break-all text-slate-800" title={req.latestArtifact.linkUrl ?? req.latestArtifact.filename}>v{req.latestArtifact.version}: {evidenceArtifactLabel(req.latestArtifact)}</strong>
                               <div className="text-slate-400">{req.latestArtifact.submittedAt} · {req.latestArtifact.submittedBy}</div>
                               {req.latestArtifact.notes && <div className="text-slate-600 italic mt-0.5">"{req.latestArtifact.notes}"</div>}
                               <EvidenceDownloadButton projectId={timeline.projectId} gateCode={selectedGate.code} requirement={req} />
@@ -409,9 +412,8 @@ export function StudentReviewTimeline({
                           ) : isLeader ? (
                             (() => {
                               const isRevision = selectedGate.status === 'REVISION_REQUIRED' || req.verificationStatus === 'REJECTED'
-                              const unsupportedLink = !env.reviewGatesMockEnabled && (req.type === 'EXTERNAL_LINK' || req.type === 'LINK')
-                              const canSubmitThis = canSubmitSelectedGate && !unsupportedLink
-                              const blockingReason = unsupportedLink ? 'Chưa hỗ trợ nộp liên kết qua API.' : timeline.capabilities?.blockingReasons?.[0]
+                              const canSubmitThis = canSubmitSelectedGate
+                              const blockingReason = timeline.capabilities?.blockingReasons?.[0]
 
                               if (!canSubmitThis) {
                                 return (
@@ -436,7 +438,7 @@ export function StudentReviewTimeline({
                                 <button
                                   type="button"
                                   onClick={() => setActiveReqForSubmission(req)}
-                                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all focus:outline-hidden focus:ring-2 focus:ring-offset-1 ${
+                                  className={`min-h-11 rounded-lg px-3 py-1.5 text-xs font-bold transition-all focus:outline-hidden focus:ring-2 focus:ring-offset-1 ${
                                     isRevision
                                       ? 'bg-rose-600 text-white shadow-xs hover:bg-rose-700 focus:ring-rose-500'
                                       : 'bg-primary text-white shadow-xs hover:bg-primary-hover focus:ring-primary'
@@ -489,6 +491,15 @@ export function StudentReviewTimeline({
       )}
 
       {/* Submission Modal */}
+      {selectedGate && <section className="rounded-xl border border-slate-200 bg-white p-5" aria-label={`Nhận xét hướng dẫn · ${selectedGate.code}`}>
+        <h3 className="font-bold text-slate-900">Nhận xét hướng dẫn · {selectedGate.code}</h3>
+        <p className="mt-1 text-xs text-slate-600">Nhận xét tư vấn, không thay đổi kết luận thẩm định của reviewer.</p>
+        {(timeline.supervisorFeedbacks ?? []).filter(item => item.gateCode === selectedGate.code).length > 0
+          ? <ul className="mt-3 space-y-3">{timeline.supervisorFeedbacks?.filter(item => item.gateCode === selectedGate.code).map((item, index) => <li key={`${item.submittedAt}-${index}`} className="break-words text-sm">
+            <p className="whitespace-pre-wrap">{item.feedback}</p><p className="text-xs text-slate-600">{item.supervisorName ?? 'Giảng viên hướng dẫn'} · <time dateTime={item.submittedAt}>{item.submittedAt}</time></p>
+          </li>)}</ul>
+          : <p className="mt-3 text-sm text-slate-600">Chưa có nhận xét cho cổng này. Theo dõi phản hồi của giảng viên hướng dẫn tại đây.</p>}
+      </section>}
       <ReviewSubmissionModal
         key={activeReqForSubmission?.id || 'closed'}
         open={Boolean(activeReqForSubmission)}

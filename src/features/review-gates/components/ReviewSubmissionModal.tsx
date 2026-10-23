@@ -4,6 +4,10 @@ import { Button } from '../../../components/ui/Button'
 import { env } from '../../../app/config/env'
 import { HttpError } from '../../../services/http/http-client'
 import type { StudentGateRequirement } from '../types/review-gates.types'
+import { safeEvidenceLink } from '../utils/evidence-link'
+import { requirementTypeLabel } from '../utils/review-gate-labels'
+import { displayLabel } from '../../../components/ui/display-label'
+import { reviewGateError } from '../utils/review-gate-error'
 
 export interface ReviewSubmissionPayload {
   artifactName: string
@@ -39,7 +43,8 @@ export function ReviewSubmissionModal({
   revisionRequired = false,
 }: ReviewSubmissionModalProps) {
   const isPermitted = canSubmit !== undefined ? canSubmit : isLeader
-  const [submissionMode, setSubmissionMode] = useState<'file' | 'link'>('file')
+  const externalLinkRequired = requirement?.type === 'EXTERNAL_LINK'
+  const [submissionMode, setSubmissionMode] = useState<'file' | 'link'>(externalLinkRequired ? 'link' : 'file')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -48,6 +53,8 @@ export function ReviewSubmissionModal({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [conflict, setConflict] = useState(false)
+  const [linkError, setLinkError] = useState<string | null>(null)
+  const sending = useRef(false)
 
   if (!requirement) return null
 
@@ -84,16 +91,22 @@ export function ReviewSubmissionModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (sending.current) return
     if (!isPermitted) {
       setError(blockingMessage || 'Bạn không có thẩm quyền nộp hồ sơ review hoặc yêu cầu này đang bị chặn.')
       return
     }
+    if (submissionMode === 'link' && (!externalLinkRequired || !safeEvidenceLink(artifactName.trim()))) {
+      setLinkError('Vui lòng nhập liên kết HTTPS tuyệt đối có tên miền hợp lệ, không chứa thông tin đăng nhập.')
+      return
+    }
+    setLinkError(null)
     if (!artifactName.trim()) {
       setError('Vui lòng chọn tệp tải lên hoặc nhập tên/liên kết minh chứng.')
       return
     }
-    if (!env.reviewGatesMockEnabled && (submissionMode !== 'file' || !selectedFile)) {
-      setError('Vui lòng chọn tệp minh chứng thực tế; API chưa hỗ trợ nộp liên kết ngoài.')
+    if (!env.reviewGatesMockEnabled && submissionMode === 'file' && !selectedFile) {
+      setError('Vui lòng chọn tệp minh chứng thực tế.')
       return
     }
     if (!notes.trim()) {
@@ -102,6 +115,7 @@ export function ReviewSubmissionModal({
     }
 
     try {
+      sending.current = true
       setBusy(true)
       setError(null)
       await onSubmit({
@@ -117,9 +131,10 @@ export function ReviewSubmissionModal({
       onClose()
     } catch (err) {
       setConflict(err instanceof HttpError && err.status === 409)
-      setError(err instanceof Error ? err.message : 'Có lỗi xảy ra khi nộp hồ sơ.')
+      setError(reviewGateError(err))
     } finally {
       setBusy(false)
+      sending.current = false
     }
   }
 
@@ -131,7 +146,7 @@ export function ReviewSubmissionModal({
       description={`Cập nhật minh chứng học thuật cho đợt thẩm định ${gateCode}`}
       busy={busy}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} noValidate className="review-submission-form space-y-4">
         {!isPermitted && (
           <div className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-xs font-semibold text-status-warning-text">
             ⚠️ <strong>Quyền hạn:</strong> {blockingMessage || 'Bạn đang xem với vai trò Thành viên (Student Member). Quyền nộp hồ sơ review và bản sửa đổi chính thức thuộc về Trưởng nhóm (Student Leader).'}
@@ -145,7 +160,7 @@ export function ReviewSubmissionModal({
           </div>
           <div className="flex justify-between">
             <span className="font-semibold text-slate-600">Loại minh chứng:</span>
-            <span className="font-medium text-slate-800">{requirement.type} · Scope: {requirement.scope}</span>
+            <span className="font-medium text-slate-800">{requirementTypeLabel(requirement.type)} · {displayLabel(requirement.scope)}</span>
           </div>
           <div className="flex justify-between">
             <span className="font-semibold text-slate-600">Phiên bản sẽ tạo:</span>
@@ -160,10 +175,11 @@ export function ReviewSubmissionModal({
 
         {/* Tab switcher: File upload vs Link */}
         <div className="flex border-b border-slate-200 text-xs font-semibold">
-          <button
+          {!externalLinkRequired && <button
             type="button"
             onClick={() => setSubmissionMode('file')}
-            className={`flex items-center gap-1.5 pb-2.5 px-3 border-b-2 transition-colors cursor-pointer ${
+            disabled={busy}
+            className={`flex min-h-11 items-center gap-1.5 pb-2.5 px-3 border-b-2 transition-colors cursor-pointer ${
               submissionMode === 'file'
                 ? 'border-primary text-primary font-bold'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -171,11 +187,12 @@ export function ReviewSubmissionModal({
           >
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">upload_file</span>
             Tải tệp lên (PDF, DOCX, ZIP)
-          </button>
-          {env.reviewGatesMockEnabled && <button
+          </button>}
+          {externalLinkRequired && <button
             type="button"
+            disabled={busy}
             onClick={() => setSubmissionMode('link')}
-            className={`flex items-center gap-1.5 pb-2.5 px-3 border-b-2 transition-colors cursor-pointer ${
+            className={`flex min-h-11 items-center gap-1.5 pb-2.5 px-3 border-b-2 transition-colors cursor-pointer ${
               submissionMode === 'link'
                 ? 'border-primary text-primary font-bold'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -281,10 +298,11 @@ export function ReviewSubmissionModal({
             )}
 
             <div>
-              <label className="block text-xs font-bold text-slate-700">
+              <label htmlFor="evidence-filename" className="block text-xs font-bold text-slate-700">
                 Tên hiển thị tài liệu minh chứng <span className="text-rose-600">*</span>
               </label>
               <input
+                id="evidence-filename"
                 type="text"
                 required
                 aria-required="true"
@@ -301,10 +319,13 @@ export function ReviewSubmissionModal({
           </div>
         ) : (
           <div>
-            <label className="block text-xs font-bold text-slate-700">
+            <label htmlFor="external-evidence-url" className="block text-xs font-bold text-slate-700">
               Liên kết minh chứng ngoài (URL / Git PR / Google Drive) <span className="text-rose-600">*</span>
             </label>
             <input
+              id="external-evidence-url"
+              aria-invalid={Boolean(linkError)}
+              aria-describedby={linkError ? 'external-evidence-url-error' : 'external-evidence-url-help'}
               type="text"
               required
               aria-required="true"
@@ -312,19 +333,21 @@ export function ReviewSubmissionModal({
               value={artifactName}
               onChange={(e) => setArtifactName(e.target.value)}
               placeholder="Ví dụ: SDD_v3.pdf hoặc https://github.com/.../pull/42"
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-primary focus:outline-hidden disabled:bg-slate-100"
+              className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-primary focus-visible:ring-2 focus-visible:ring-primary disabled:bg-slate-100"
             />
-            <p className="mt-1 text-xs text-slate-500">
+            {linkError && <p id="external-evidence-url-error" role="alert" className="mt-1 text-xs text-rose-700">{linkError}</p>}
+            <p id="external-evidence-url-help" className="mt-1 text-xs text-slate-500">
               Đảm bảo đường dẫn ở chế độ công khai hoặc đã cấp quyền truy cập cho Giảng viên / Hội đồng thẩm định.
             </p>
           </div>
         )}
 
         <div>
-          <label className="block text-xs font-bold text-slate-700">
+          <label htmlFor="evidence-notes" className="block text-xs font-bold text-slate-700">
             Giải trình nội dung thay đổi / Ghi chú <span className="text-rose-600">*</span>
           </label>
           <textarea
+            id="evidence-notes"
             required
             aria-required="true"
             rows={3}
@@ -353,10 +376,10 @@ export function ReviewSubmissionModal({
         )}
 
         <div className="flex justify-end gap-2.5 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={busy}>
+          <Button type="button" className="min-h-11" variant="secondary" onClick={onClose} disabled={busy}>
             Hủy
           </Button>
-          <Button type="submit" disabled={!isPermitted || busy}>
+          <Button type="submit" className="min-h-11" disabled={!isPermitted || busy}>
             {busy ? 'Đang gửi...' : isRevision ? 'Xác nhận nộp bản sửa' : 'Nộp minh chứng'}
           </Button>
         </div>

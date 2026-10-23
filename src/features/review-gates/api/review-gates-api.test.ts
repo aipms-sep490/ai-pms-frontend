@@ -45,8 +45,14 @@ describe('Review Gates transport against BE a1f510b (mock disabled)', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('does not pretend unsupported external links are persisted evidence', async () => {
-    await expect(api.submitRevision({ projectId: '1', gateCode: 'R1', requirementId: '21', artifactName: 'https://example.com', linkUrl: 'https://example.com', notes: '', expectedVersion: 0, concurrencyToken: token, mode: 'link' }, true)).rejects.toThrow(/liên kết/i)
+  it('submits external links through the JSON evidence route with concurrency', async () => {
+    await api.submitRevision({ projectId: '1', gateCode: 'R1', requirementId: '21', artifactName: 'https://example.com', linkUrl: 'https://example.com', notes: 'Link evidence', expectedVersion: 0, concurrencyToken: token, mode: 'link' }, true)
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/projects/1/review-gates/R1/evidence')
+    expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toEqual({ requirementId: '21', artifactName: 'https://example.com', linkUrl: 'https://example.com', notes: 'Link evidence', expectedVersion: 0, concurrencyToken: token })
+  })
+
+  it.each(['', 'http://example.com', '//example.com', 'javascript:alert(1)', 'https://user:pass@example.com', 'https:example.com', 'https://'])('rejects unsafe link %s before HTTP', async linkUrl => {
+    await expect(api.submitRevision({ projectId: '1', gateCode: 'R1', requirementId: '21', artifactName: linkUrl, linkUrl, notes: '', expectedVersion: 0, concurrencyToken: token, mode: 'link' }, true)).rejects.toThrow(/https/i)
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
@@ -90,8 +96,9 @@ describe('Review Gates transport against BE a1f510b (mock disabled)', () => {
     expect(fetchMock.mock.calls[0][1]?.headers).toMatchObject({ Authorization: 'Bearer test-access-token' })
   })
 
-  it('does not call a supervisor-feedback endpoint absent from the BE contract', async () => {
-    await expect(api.submitSupervisorFeedback({ projectId: '1', gateCode: 'R1', feedback: 'Advice' })).rejects.toThrow(/chưa hỗ trợ/i)
-    expect(fetchMock).not.toHaveBeenCalled()
+  it('sends supervisor advice through feedback without a concurrency token', async () => {
+    await api.submitSupervisorFeedback({ projectId: '1', gateCode: 'R1', feedback: 'Advice' })
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/projects/1/review-gates/R1/feedback')
+    expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toEqual({ feedback: 'Advice' })
   })
 })

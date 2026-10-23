@@ -4,6 +4,7 @@ import { Button } from '../../../components/ui/Button'
 import { HttpError } from '../../../services/http/http-client'
 import { env } from '../../../app/config/env'
 import { EvidenceDownloadButton } from './EvidenceDownloadButton'
+import { evidenceArtifactLabel, isLinkArtifact } from '../utils/evidence-link'
 
 interface AssignedReviewQueueProps {
   assignments: AssignedReviewItem[]
@@ -44,6 +45,8 @@ export function AssignedReviewQueue({
     submittedBy: string
     submittedAt: string
     notes?: string | null
+    linkUrl?: string | null
+    contentType?: string
   } | null>(null)
 
   const selectedItem = assignments.find((a) => a.id === selectedId) || assignments[0]
@@ -275,23 +278,17 @@ export function AssignedReviewQueue({
                       <div className="mt-2.5 rounded-md border border-slate-200 bg-white p-2.5 text-slate-700">
                         <div className="flex items-center justify-between">
                           <span className="font-semibold text-slate-900 inline-flex items-center gap-1.5">
-                            <span>Tệp minh chứng:</span>
+                            <span>{isLinkArtifact(req.latestArtifact) ? 'Liên kết minh chứng:' : 'Tệp minh chứng:'}</span>
                             <button
                               type="button"
                               onClick={() =>
-                                setPreviewingArtifact({
-                                  filename: req.latestArtifact!.filename,
-                                  version: req.latestArtifact!.version,
-                                  submittedBy: req.latestArtifact!.submittedBy,
-                                  submittedAt: req.latestArtifact!.submittedAt,
-                                  notes: req.latestArtifact!.notes,
-                                })
+                                setPreviewingArtifact(req.latestArtifact!)
                               }
                               className="inline-flex items-center gap-1 font-semibold text-primary hover:underline cursor-pointer"
                               title="Xem chi tiết siêu dữ liệu phiên bản minh chứng"
                             >
-                              <span className="material-symbols-outlined text-xs">visibility</span>
-                              <span>{req.latestArtifact.filename}</span>
+                              <span className="material-symbols-outlined text-xs" aria-hidden="true">visibility</span>
+                              <span className="break-all" title={req.latestArtifact.linkUrl ?? req.latestArtifact.filename}>{evidenceArtifactLabel(req.latestArtifact)}</span>
                             </button>
                           </span>
                           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
@@ -392,7 +389,7 @@ export function AssignedReviewQueue({
                 )}
               </div>
 
-              <div className="flex items-center gap-2.5">
+              <div className="review-gate-decisions flex min-w-0 max-w-full flex-wrap items-center gap-2.5">
                 <Button
                   variant="danger"
                   disabled={busy || loading || isDecided}
@@ -421,8 +418,9 @@ export function AssignedReviewQueue({
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
           role="dialog"
           aria-modal="true"
+          aria-label="Chi tiết siêu dữ liệu minh chứng"
         >
-          <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl space-y-4">
+          <div className="max-h-[calc(100dvh-2rem)] w-full min-w-0 max-w-lg overflow-y-auto rounded-xl border border-slate-200 bg-white p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-xl text-primary">description</span>
@@ -433,8 +431,9 @@ export function AssignedReviewQueue({
               </div>
               <button
                 type="button"
+                aria-label="Đóng chi tiết minh chứng"
                 onClick={() => setPreviewingArtifact(null)}
-                className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer"
+                className="min-h-11 min-w-11 shrink-0 text-slate-600 hover:text-slate-900 text-lg font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -442,9 +441,9 @@ export function AssignedReviewQueue({
 
             <div className="space-y-3 text-xs">
               <div className="rounded-lg border border-slate-100 bg-slate-50 p-3 space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Tên tệp:</span>
-                  <span className="font-bold text-slate-800">{previewingArtifact.filename}</span>
+                <div className="flex min-w-0 justify-between gap-3">
+                  <span className="shrink-0 text-slate-600">{isLinkArtifact(previewingArtifact) ? 'Liên kết ngoài:' : 'Tên tệp:'}</span>
+                  <span className="min-w-0 break-all font-bold text-slate-800" title={previewingArtifact.linkUrl ?? previewingArtifact.filename}>{evidenceArtifactLabel(previewingArtifact)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Phiên bản thẩm định:</span>
@@ -468,10 +467,12 @@ export function AssignedReviewQueue({
 
               <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-blue-900">
                 <p className="font-semibold text-xs">
-                  Chế độ bảo mật lưu trữ:
+                  {isLinkArtifact(previewingArtifact) ? 'Minh chứng dạng liên kết:' : 'Chế độ bảo mật lưu trữ:'}
                 </p>
                 <p className="mt-1 text-xs text-blue-800">
-                  Tải tệp qua API có xác thực. Hệ thống kiểm tra quyền trên từng request và phục vụ đúng phiên bản được yêu cầu.
+                  {isLinkArtifact(previewingArtifact)
+                    ? 'Minh chứng được mở ngoài hệ thống. Quyền truy cập nội dung do dịch vụ đích quản lý; không có tệp để tải từ hệ thống.'
+                    : 'Tải tệp qua API có xác thực. Hệ thống kiểm tra quyền trên từng request và phục vụ đúng phiên bản được yêu cầu.'}
                 </p>
               </div>
             </div>

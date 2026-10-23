@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { env } from '../../../app/config/env'
 import { downloadReviewGateEvidence } from '../api/review-gates-api'
 import type { StudentGateRequirement } from '../types/review-gates.types'
+import { evidenceLinkLabel, isLinkArtifact, safeEvidenceLink } from '../utils/evidence-link'
 
 export function EvidenceDownloadButton({ projectId, gateCode, requirement }: {
   projectId: string; gateCode: string; requirement: StudentGateRequirement
@@ -10,6 +11,14 @@ export function EvidenceDownloadButton({ projectId, gateCode, requirement }: {
   const [error, setError] = useState<string | null>(null)
   const artifact = requirement.latestArtifact
   if (!artifact) return null
+  if (isLinkArtifact(artifact)) {
+    const link = safeEvidenceLink(artifact.linkUrl ?? artifact.filename)
+    return link ? <a href={link} target="_blank" rel="noopener noreferrer" title={link}
+      aria-label={`Mở minh chứng ngoài hệ thống: ${link}`}
+      className="mt-2 inline-flex min-h-11 max-w-full items-center break-all text-xs font-semibold text-primary underline">
+      Mở minh chứng ngoài hệ thống · {evidenceLinkLabel(link)}
+    </a> : <p role="alert" className="mt-2 text-xs text-rose-700">Liên kết minh chứng không hợp lệ; chỉ mở URL HTTPS an toàn.</p>
+  }
 
   async function download() {
     if (!artifact) return
@@ -35,7 +44,7 @@ export function EvidenceDownloadButton({ projectId, gateCode, requirement }: {
 
   return <div className="mt-2 space-y-1">
     <button type="button" disabled={busy || env.reviewGatesMockEnabled || !artifact.downloadUrl}
-      onClick={() => void download()} className="text-xs font-semibold text-primary underline disabled:text-slate-400 disabled:no-underline">
+      onClick={() => void download()} className="min-h-11 text-xs font-semibold text-primary underline disabled:text-slate-400 disabled:no-underline">
       {busy ? 'Đang tải...' : `Tải tệp v${artifact.version}`}
     </button>
     {env.reviewGatesMockEnabled && <p className="text-xs text-slate-500">Mô phỏng: chưa có nội dung tệp thực tế.</p>}

@@ -238,6 +238,9 @@ select:disabled {
 .review-gates-surface .text-slate-400 { color: var(--color-slate-600); }
 .review-gates-surface button { min-height: 44px; }
 .review-gates-surface fieldset:disabled { opacity: .85; }
+.app-modal:has(.review-submission-form) .app-modal__close { min-width: 44px; min-height: 44px; }
+.app-modal:has(.review-submission-form) { max-height: min(calc(100% - 32px), calc(100dvh - 32px)); }
+.review-gate-decisions button { height: auto; min-height: 44px; max-width: 100%; white-space: normal; padding-block: .5rem; }
 .attention-list__content { display: grid; gap: .5rem; padding: 1rem; overflow-wrap: anywhere; }
 
 .review-gates-surface :is(input, select, textarea):not(:disabled) { border-color: var(--color-ink-muted); }

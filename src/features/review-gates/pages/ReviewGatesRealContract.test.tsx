@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { Link, MemoryRouter } from 'react-router-dom'
 import { AuthSessionContext } from '../../auth/context/auth-session-context'
 import type { AuthSessionContextValue } from '../../auth/context/auth-session-context'
 import { StudentReviewTimelinePage } from './StudentReviewTimelinePage'
@@ -43,6 +43,51 @@ describe('Review Gates UI using real contract (controlled HTTP responses)', () =
     fetchMock.mockResolvedValue(Response.json({ ...timeline, gates: [{ ...gate, requirements: [{ ...requirement, verificationStatus: 'ACCEPTED' }] }] }))
     render(<AuthSessionContext.Provider value={auth}><MemoryRouter><StudentReviewTimelinePage /></MemoryRouter></AuthSessionContext.Provider>)
     expect((await screen.findByRole('button', { name: 'Nộp bản sửa' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('keeps the new project route when a previous project feedback POST finishes late', async () => {
+    let finish!: (response: Response) => void
+    const pending = new Promise<Response>(resolve => { finish = resolve })
+    fetchMock.mockImplementation(async (url, init) => {
+      if (init?.method === 'POST') return pending
+      if (String(url).endsWith('/defense-readiness')) return Response.json({ isReady: false, conditions: [] })
+      if (String(url).includes('/projects/2/')) return Response.json({ ...timeline, projectId: '2', projectName: 'Second route project' })
+      return Response.json(timeline)
+    })
+    const lecturerAuth = { ...auth, session: { ...auth.session!, user: { ...auth.session!.user, roles: ['LECTURER'] } } }
+    render(<AuthSessionContext.Provider value={lecturerAuth}><MemoryRouter initialEntries={['/project?projectId=1']}>
+      <Link to="/project?projectId=2">Mở đồ án thứ hai</Link><StudentReviewTimelinePage />
+    </MemoryRouter></AuthSessionContext.Provider>)
+    const field = await screen.findByRole('textbox', { name: /Nhận xét hướng dẫn/ })
+    fireEvent.change(field, { target: { value: 'Nhận xét của đồ án thứ nhất' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi nhận xét hướng dẫn' }))
+    fireEvent.click(screen.getByRole('link', { name: 'Mở đồ án thứ hai' }))
+    await screen.findAllByText('Second route project')
+    await act(async () => { finish(Response.json({})); await pending })
+    expect(screen.getAllByText('Second route project').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Real contract project')).toBeNull()
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/projects/1/review-gates/timeline'))).toHaveLength(1)
+  })
+
+  it('preserves a second feedback draft when refresh fails after an acknowledged submission', async () => {
+    let finishRefresh!: (response: Response) => void
+    const pendingRefresh = new Promise<Response>(resolve => { finishRefresh = resolve })
+    let saved = false
+    fetchMock.mockImplementation(async (url, init) => {
+      if (init?.method === 'POST') { saved = true; return Response.json({}) }
+      if (String(url).endsWith('/defense-readiness')) return Response.json({ isReady: false, conditions: [] })
+      return saved ? pendingRefresh : Response.json(timeline)
+    })
+    const lecturerAuth = { ...auth, session: { ...auth.session!, user: { ...auth.session!.user, roles: ['LECTURER'] } } }
+    render(<AuthSessionContext.Provider value={lecturerAuth}><MemoryRouter><StudentReviewTimelinePage /></MemoryRouter></AuthSessionContext.Provider>)
+    fireEvent.change(await screen.findByRole('textbox', { name: /Nhận xét hướng dẫn/ }), { target: { value: 'Nhận xét đã lưu' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi nhận xét hướng dẫn' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Gửi thêm' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /Nhận xét hướng dẫn/ }), { target: { value: 'Nháp thứ hai chưa gửi' } })
+    await act(async () => { finishRefresh(Response.json({ detail: 'Readback failed' }, { status: 500 })); await pendingRefresh })
+    expect((screen.getByRole('textbox', { name: /Nhận xét hướng dẫn/ }) as HTMLTextAreaElement).value).toBe('Nháp thứ hai chưa gửi')
+    expect(screen.getByRole('alert').textContent).toContain('Nhận xét đã được lưu')
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(1)
   })
 
   it('loads the paged queue and keeps notes after a structured 409 and refresh', async () => {
