@@ -16,7 +16,7 @@ export function StudentJourneyHero() {
     if (error) {
       return {
         badge: 'Chưa đồng bộ dữ liệu',
-        badgeClass: 'bg-status-error-bg text-danger-text border-status-error-border',
+        badgeClass: 'bg-status-error-bg text-status-error-text border-status-error-border',
         title: 'Không thể tải trạng thái đồ án',
         desc: error,
         icon: 'cloud_off',
@@ -80,7 +80,7 @@ export function StudentJourneyHero() {
       case 'REVISION_REQUIRED':
         return {
           badge: 'Cần xử lý: Yêu cầu Chỉnh sửa',
-          badgeClass: 'bg-status-error-bg text-danger-text border-status-error-border animate-pulse',
+          badgeClass: 'bg-status-error-bg text-status-error-text border-status-error-border motion-safe:animate-pulse',
           title: 'Bộ môn yêu cầu nhóm chỉnh sửa lại đề cương đồ án',
           desc: 'Đề cương của bạn đã có phản hồi từ Hội đồng thẩm định. Vui lòng đọc kỹ ý kiến nhận xét của Bộ môn, cập nhật nội dung và nộp lại trước thời hạn.',
           icon: 'warning',
@@ -92,7 +92,7 @@ export function StudentJourneyHero() {
       case 'PROJECT_REJECTED':
         return {
           badge: 'Kết quả thẩm định',
-          badgeClass: 'bg-status-error-bg text-danger-text border-status-error-border',
+          badgeClass: 'bg-status-error-bg text-status-error-text border-status-error-border',
           title: 'Đề cương chưa được Bộ môn chấp thuận',
           desc: 'Xem kết quả và toàn bộ lịch sử thẩm định của đề cương. Bạn có thể theo dõi nhận xét tại đây.',
           icon: 'assignment_late',
