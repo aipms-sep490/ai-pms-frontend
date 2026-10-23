@@ -83,6 +83,8 @@ export const ProjectDefenseManagementPage = lazy(() => import('../../features/de
 export const ProjectPeerEvaluationPage = lazy(() => import('../../features/peer-eval/ProjectPeerEvaluationPage').then(m => ({ default: m.ProjectPeerEvaluationPage })))
 export const ColdChecklistPage = lazy(() => import('../../features/cold-reports/ColdChecklistPage').then(m => ({ default: m.ColdChecklistPage })))
 export const DepartmentProjectRiskPage = lazy(() => import('../../features/ai/DepartmentProjectRiskPage').then(m => ({ default: m.DepartmentProjectRiskPage })))
+export const AcademicKnowledgeManagementPage = lazy(() => import('../../features/ai/AcademicKnowledgeManagementPage').then(m => ({ default: m.AcademicKnowledgeManagementPage })))
+export const AcademicAssistantPage = lazy(() => import('../../features/ai/AcademicAssistantPage').then(m => ({ default: m.AcademicAssistantPage })))
 export const DepartmentWorkspacePage = lazy(() => import('../../features/department/pages/DepartmentWorkspacePage').then(m => ({ default: m.DepartmentWorkspacePage })))
 export const ArchivedProjectsPage = lazy(() => import('../../features/projects/pages/ArchivedProjectsPage').then(m => ({ default: m.ArchivedProjectsPage })))
 export const ProjectArchiveViewPage = lazy(() => import('../../features/projects/pages/ProjectArchiveViewPage').then(m => ({ default: m.ProjectArchiveViewPage })))

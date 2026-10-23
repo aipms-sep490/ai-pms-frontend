@@ -40,6 +40,7 @@ export const workspaceRouteRegistry: readonly WorkspaceRouteMeta[] = [
   { id: 'student-contributions', path: '/project/contributions', title: 'Đóng góp thành viên', breadcrumb: 'Đóng góp thành viên', icon: 'diversity_3', section: 'student', group: '3. Tương tác & Hỗ trợ', groupOrder: 3, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'] },
   { id: 'student-peer-eval', path: '/project/peer-evaluation', title: 'Đánh giá đồng đội', breadcrumb: 'Đánh giá đồng đội', icon: 'groups', section: 'student', group: '3. Tương tác & Hỗ trợ', groupOrder: 3, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.peerEvaluationEnabled },
   { id: 'ai-advisory', path: '/project/ai', title: 'Trợ lý AI và phân tích', breadcrumb: 'Trợ lý AI và phân tích', icon: 'neurology', section: 'student', group: '3. Tương tác & Hỗ trợ', groupOrder: 3, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.aiAdvisoryEnabled },
+  { id: 'academic-ai-assistant', path: '/academic/assistant', title: 'Trợ lý AI học vụ', breadcrumb: 'Trợ lý AI học vụ', icon: 'menu_book', section: 'student', group: '3. Tương tác & Hỗ trợ', groupOrder: 3, identityRoles: ['STUDENT'], navigationVisibility: 'always', featureEnabled: env.academicAiAssistantEnabled },
   { id: 'student-agreement', path: '/project/agreement', title: 'Cam kết nhóm', breadcrumb: 'Cam kết làm việc nhóm', icon: 'handshake', section: 'student', group: '3. Tương tác & Hỗ trợ', groupOrder: 3, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', featureEnabled: env.workingAgreementEnabled },
 
   // 4. Nghiệm thu & Bảo vệ (Finalization & Defense)
@@ -73,6 +74,7 @@ export const workspaceRouteRegistry: readonly WorkspaceRouteMeta[] = [
   { id: 'governance-periods', path: '/academic/governance', title: 'Học kỳ và kỳ đồ án', breadcrumb: 'Quản lý học vụ', icon: 'date_range', section: 'governance', identityRoles: ['DEPARTMENT_STAFF', 'ADMIN'], navigationVisibility: 'always' },
   { id: 'governance-cold-templates', path: '/department/cold-templates', title: 'Bộ report chấm nguội', breadcrumb: 'Bộ report chấm nguội theo ngành', icon: 'rule', section: 'governance', identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always', featureEnabled: env.coldReportEnabled },
   { id: 'governance-rubrics', path: '/academic/rubrics', title: 'Bộ tiêu chí đánh giá', breadcrumb: 'Bộ tiêu chí đánh giá', icon: 'grading', section: 'governance', identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
+  { id: 'governance-knowledge', path: '/academic/knowledge', title: 'Kho tài liệu AI học vụ', breadcrumb: 'Kho tài liệu AI học vụ', icon: 'menu_book', section: 'governance', identityRoles: ['DEPARTMENT_STAFF', 'ADMIN'], navigationVisibility: 'always' },
 
   // Platform Administration
   { id: 'administration-access', path: '/admin/access', title: 'Quản trị nền tảng', breadcrumb: 'Quản trị quyền', icon: 'admin_panel_settings', section: 'administration', identityRoles: ['ADMIN'], navigationVisibility: 'always' },

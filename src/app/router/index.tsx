@@ -34,6 +34,8 @@ import {
   ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, ArchivedProjectsPage,
   ProjectArchiveViewPage, CalendarAttentionPage, AdminIndustryInvitationsPage, ReviewGateGovernancePage,
   StudentReviewTimelinePage, AssignedGateReviewPage,
+  AcademicKnowledgeManagementPage,
+  AcademicAssistantPage,
 } from './lazy-pages'
 
 
@@ -108,6 +110,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'project/result', element: <StudentProjectResultPage /> },
           { path: 'project/timeline', element: <StudentReviewTimelinePage /> },
           { path: 'project/review-gates', element: <StudentReviewTimelinePage /> },
+          ...(env.academicAiAssistantEnabled ? [{ path: 'academic/assistant', element: <AcademicAssistantPage /> }] : []),
         ],
       },
       {
@@ -181,6 +184,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'academic/review-gates', element: <ReviewGateGovernancePage /> },
           { path: 'academic/profile-verifications', element: <ProfileVerificationsPage /> },
           { path: 'academic/rubrics', element: <RubricManagementPage /> },
+          { path: 'academic/knowledge', element: <AcademicKnowledgeManagementPage /> },
         ],
       },
       ...(env.resultCorrectionEnabled ? [{
