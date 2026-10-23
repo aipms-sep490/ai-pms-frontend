@@ -65,7 +65,7 @@ export function DefenseChangeRequestsPanel({ periodId, rooms, onScheduleChanged 
     } finally { setBusyId(null) }
   }
 
-  return <section aria-label="Yêu cầu đổi lịch bảo vệ" className="rounded-2xl border border-hairline bg-surface p-4 shadow-xs">
+  return <section aria-label="Yêu cầu đổi lịch bảo vệ" className="rounded-2xl border border-hairline bg-card p-4 shadow-xs">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h2 className="text-lg font-bold">Yêu cầu đổi lịch bảo vệ · Gate 4</h2>
       <button type="button" onClick={reload} disabled={busyId !== null}
@@ -84,7 +84,7 @@ export function DefenseChangeRequestsPanel({ periodId, rooms, onScheduleChanged 
       <label className="mt-3 block text-sm font-semibold">Ghi chú xử lý
         <textarea value={notes[request.id] ?? ''} maxLength={2000} disabled={busyId !== null}
           onChange={event => setNotes(current => ({ ...current, [request.id]: event.target.value }))}
-          className="mt-1 min-h-20 w-full rounded-lg border border-hairline p-2" />
+          className="mt-1 min-h-20 w-full rounded-lg border border-hairline bg-card p-2 font-normal text-ink" />
       </label>
       <div className="mt-3 flex flex-wrap gap-2">
         <button type="button" onClick={() => void decide(request, 'APPROVED')} disabled={busyId !== null}

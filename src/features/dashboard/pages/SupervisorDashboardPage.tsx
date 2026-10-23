@@ -50,8 +50,8 @@ export function SupervisorDashboardPage() {
   return <WorkspacePage className="mk-page-enter space-y-6" eyebrow="Không gian giảng viên" title="Tổng quan hướng dẫn" description="Theo dõi khối lượng hướng dẫn, báo cáo chờ phản hồi và các đồ án cần chú ý." action={<Button variant="outline" icon="refresh" disabled={loading} onClick={() => void load()}>Tải lại</Button>}>
     <ActorDashboardCard />
     <form className="workspace-surface flex flex-wrap gap-4 p-6" onSubmit={applyFilter}>
-      <label className="flex min-w-52 flex-1 flex-col gap-1 text-sm font-medium text-ink-soft" htmlFor="supervisor-dashboard-search">Tìm đồ án<input id="supervisor-dashboard-search" value={searchInput} onChange={event => setSearchInput(event.target.value)} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" placeholder="Mã hoặc tên đồ án" /></label>
-      <label className="flex flex-col gap-1 text-sm font-medium text-ink-soft" htmlFor="supervisor-dashboard-status">Trạng thái<select id="supervisor-dashboard-status" value={filter.status ?? ''} onChange={event => setFilter(current => ({ ...current, status: event.target.value || undefined, page: 1 }))} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><option value="">Tất cả</option>{statuses.map(status => <option key={status} value={status}>{projectStatusLabel(status)}</option>)}</select></label>
+      <label className="flex min-w-52 flex-1 flex-col gap-1 text-sm font-medium text-ink-soft" htmlFor="supervisor-dashboard-search">Tìm đồ án<input id="supervisor-dashboard-search" value={searchInput} onChange={event => setSearchInput(event.target.value)} className="min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" placeholder="Mã hoặc tên đồ án" /></label>
+      <label className="flex flex-col gap-1 text-sm font-medium text-ink-soft" htmlFor="supervisor-dashboard-status">Trạng thái<select id="supervisor-dashboard-status" value={filter.status ?? ''} onChange={event => setFilter(current => ({ ...current, status: event.target.value || undefined, page: 1 }))} className="min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><option value="">Tất cả</option>{statuses.map(status => <option key={status} value={status}>{projectStatusLabel(status)}</option>)}</select></label>
       <button type="submit" className="min-h-11 self-end rounded-lg border border-hairline px-4 text-sm font-semibold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Áp dụng</button>
     </form>
     {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><p className="font-semibold">Chưa tải được tổng quan</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại</button></div>}
@@ -110,7 +110,7 @@ export function SupervisorDashboardPage() {
                           {proj.pendingProgressReviews} báo cáo chờ duyệt
                         </span>
                       ) : proj.analysis?.riskLevel === 'HIGH' ? (
-                        <span className="rounded-md bg-status-error-bg px-2 py-0.5 text-xs font-bold text-danger-text border border-status-error-border">
+                        <span className="rounded-md bg-status-error-bg px-2 py-0.5 text-xs font-bold text-status-error-text border border-status-error-border">
                           Rủi ro cao
                         </span>
                       ) : null}
@@ -119,14 +119,14 @@ export function SupervisorDashboardPage() {
                     <p className="mt-1 text-xs text-ink-muted">
                       Bộ môn: {proj.departmentName ?? 'Chưa có bộ môn'}
                       {(proj.analysis?.progressSummary?.overdueTasks ?? 0) > 0 && (
-                        <span className="ml-2 text-danger-text font-semibold">
+                        <span className="ml-2 text-status-error-text font-semibold">
                           · {proj.analysis?.progressSummary?.overdueTasks} việc quá hạn
                         </span>
                       )}
                     </p>
                   </div>
 
-                  <div className="mt-3.5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2.5">
+                  <div className="mt-3.5 flex flex-wrap items-center gap-2 border-t border-hairline pt-2.5">
                     <Link
                       to={`/supervisor/projects/${proj.id}/reports`}
                       className="inline-flex min-h-9 items-center gap-1 rounded-md bg-primary px-3 py-1 text-xs font-bold text-white shadow-2xs hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -181,7 +181,7 @@ function ProjectRow({ project }: { project: DashboardProject }) {
       </p>
       {progressPct != null && (
         <div className="mt-2.5 flex items-center gap-3 max-w-xs">
-          <div className="h-1.5 flex-1 rounded-full bg-slate-200 overflow-hidden">
+          <div className="h-1.5 flex-1 rounded-full bg-canvas border border-hairline overflow-hidden">
             <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${Math.min(100, Math.max(0, progressPct))}%` }} />
           </div>
           <span className="text-xs font-semibold tabular-nums text-ink-soft">{progressPct}% tiến độ</span>
@@ -189,7 +189,7 @@ function ProjectRow({ project }: { project: DashboardProject }) {
       )}
     </div>
     {project.status === 'ACTIVE' && (
-      <Link className="inline-flex min-h-10 items-center justify-center rounded-lg border border-primary bg-card px-4 text-xs font-bold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors shadow-2xs" to={`/supervisor/projects/${project.id}/workspace`}>
+      <Link className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary bg-card px-4 text-xs font-bold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors shadow-2xs" to={`/supervisor/projects/${project.id}/workspace`}>
         Mở không gian đồ án
       </Link>
     )}
