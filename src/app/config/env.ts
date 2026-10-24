@@ -25,6 +25,7 @@ const taskMajorFilterEnabled = import.meta.env.VITE_ENABLE_TASK_MAJOR_FILTER?.tr
 /** Saved AI analysis run history (BE-15). Enable only after the `/ai/runs`
  * endpoints ship; the panel is read-only. */
 const aiRunHistoryEnabled = import.meta.env.VITE_ENABLE_AI_RUN_HISTORY?.trim().toLowerCase() === 'true'
+const academicAiAssistantEnabled = import.meta.env.VITE_ENABLE_AI_ACADEMIC_ASSISTANT?.trim().toLowerCase() === 'true'
 /** Supervisor recommendation ranking (BE-18, P2). Advisory only; never creates a
  * request or assignment. Enable only after the recommendation endpoints ship. */
 const supervisorRecommendationEnabled = import.meta.env.VITE_ENABLE_SUPERVISOR_RECOMMENDATION?.trim().toLowerCase() === 'true'
@@ -73,6 +74,7 @@ export const env = {
   unifiedCapabilitiesEnabled,
   taskMajorFilterEnabled,
   aiRunHistoryEnabled,
+  academicAiAssistantEnabled,
   supervisorRecommendationEnabled,
   defenseScheduleEnabled,
   coldReportEnabled,
