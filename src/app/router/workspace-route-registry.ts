@@ -74,7 +74,7 @@ export const workspaceRouteRegistry: readonly WorkspaceRouteMeta[] = [
   { id: 'governance-periods', path: '/academic/governance', title: 'Học kỳ và kỳ đồ án', breadcrumb: 'Quản lý học vụ', icon: 'date_range', section: 'governance', identityRoles: ['DEPARTMENT_STAFF', 'ADMIN'], navigationVisibility: 'always' },
   { id: 'governance-cold-templates', path: '/department/cold-templates', title: 'Bộ report chấm nguội', breadcrumb: 'Bộ report chấm nguội theo ngành', icon: 'rule', section: 'governance', identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always', featureEnabled: env.coldReportEnabled },
   { id: 'governance-rubrics', path: '/academic/rubrics', title: 'Bộ tiêu chí đánh giá', breadcrumb: 'Bộ tiêu chí đánh giá', icon: 'grading', section: 'governance', identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
-  { id: 'governance-knowledge', path: '/academic/knowledge', title: 'Kho tài liệu AI học vụ', breadcrumb: 'Kho tài liệu AI học vụ', icon: 'menu_book', section: 'governance', identityRoles: ['DEPARTMENT_STAFF', 'ADMIN'], navigationVisibility: 'always' },
+  { id: 'governance-knowledge', path: '/academic/knowledge', title: 'Kho tài liệu AI học vụ', breadcrumb: 'Kho tài liệu AI học vụ', icon: 'menu_book', section: 'governance', identityRoles: ['DEPARTMENT_STAFF', 'ADMIN'], navigationVisibility: 'always', featureEnabled: env.academicAiAssistantEnabled },
 
   // Platform Administration
   { id: 'administration-access', path: '/admin/access', title: 'Quản trị nền tảng', breadcrumb: 'Quản trị quyền', icon: 'admin_panel_settings', section: 'administration', identityRoles: ['ADMIN'], navigationVisibility: 'always' },

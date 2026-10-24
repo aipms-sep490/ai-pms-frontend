@@ -1,0 +1,27 @@
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { AcademicAssistantPanel } from './AcademicAssistantPanel'
+
+afterEach(cleanup)
+const ask = vi.hoisted(() => vi.fn())
+vi.mock('../academic-ai-api', () => ({ askAcademicAssistant: ask }))
+beforeEach(() => { ask.mockReset() })
+it('labels fallback and displays exact document and project evidence', async () => {
+  ask.mockResolvedValue({ answer: 'Nội dung nguồn', generationStatus: 'FALLBACK', insufficientEvidence: false, citations: [{ documentId: 1, versionId: 1, title: 'Quy trình IT', version: 'v1', excerpt: 'Hướng dẫn nộp', documentType: 'PROCESS' }], projectEvidence: [{ title: 'Task kiểm thử', excerpt: 'Đã hoàn thành' }], limitationNote: null })
+  render(<AcademicAssistantPanel projectId={5} />)
+  fireEvent.change(screen.getByLabelText('Câu hỏi học vụ'), { target: { value: 'Nộp gì?' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Hỏi trợ lý học vụ' }))
+  expect(await screen.findByText('Trích đoạn nguồn · fallback')).toBeTruthy()
+  expect(screen.getByText('Task kiểm thử')).toBeTruthy()
+  expect(ask).toHaveBeenCalledWith('Nộp gì?', 5, expect.any(AbortSignal))
+})
+it('discards a pending answer when the project changes', async () => {
+  let resolve!: (value: unknown) => void
+  ask.mockImplementation(() => new Promise(done => { resolve = done }))
+  const { rerender } = render(<AcademicAssistantPanel projectId={5} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Hạn nộp và biểu mẫu cần dùng là gì?' }))
+  rerender(<AcademicAssistantPanel projectId={6} />)
+  resolve({ answer: 'Private old project', citations: [], projectEvidence: [] })
+  await waitFor(() => expect((screen.getByRole('button', { name: 'Hỏi trợ lý học vụ' }) as HTMLButtonElement).disabled).toBe(false))
+  expect(screen.queryByText('Private old project')).toBeNull()
+})

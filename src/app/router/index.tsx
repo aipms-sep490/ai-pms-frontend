@@ -184,7 +184,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'academic/review-gates', element: <ReviewGateGovernancePage /> },
           { path: 'academic/profile-verifications', element: <ProfileVerificationsPage /> },
           { path: 'academic/rubrics', element: <RubricManagementPage /> },
-          { path: 'academic/knowledge', element: <AcademicKnowledgeManagementPage /> },
+          ...(env.academicAiAssistantEnabled ? [{ path: 'academic/knowledge', element: <AcademicKnowledgeManagementPage /> }] : []),
         ],
       },
       ...(env.resultCorrectionEnabled ? [{
