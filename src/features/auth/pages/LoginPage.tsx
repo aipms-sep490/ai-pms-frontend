@@ -11,6 +11,7 @@ import './login-design.css'
 
 function getLoginErrorMessage(error: unknown): string {
   if (error instanceof HttpError) {
+    if (error.status === 429) return 'Bạn đã gửi quá nhiều yêu cầu đăng nhập. Hãy chờ một lúc rồi thử lại.'
     if (error.status === 401) return 'Email hoặc mật khẩu không chính xác.'
     if (error.status === 403) return 'Tài khoản chưa hoạt động hoặc không được phép đăng nhập.'
     if (error.status === 400) return 'Thông tin đăng nhập chưa hợp lệ. Hãy kiểm tra lại email và mật khẩu.'

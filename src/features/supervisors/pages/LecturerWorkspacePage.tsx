@@ -43,6 +43,8 @@ export function LecturerWorkspacePage() {
           const project = inbox.projects?.[assignment.projectId]
           const isActive = project?.status?.replaceAll('_', '').toUpperCase() === 'ACTIVE'
           const canOpen = assignment.isPrimary && !assignment.endedAt && isActive
+          const isMentor = assignment.assignmentType === 'DISCIPLINE_MENTOR'
+          const canOpenMentor = isMentor && !assignment.endedAt && isActive && Boolean(assignment.majorId)
           const assignedDateFormatted = assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString('vi-VN') : '—'
           const endedDateFormatted = assignment.endedAt ? new Date(assignment.endedAt).toLocaleDateString('vi-VN') : ''
           return <li key={assignment.id} className="lecturer-project">
@@ -50,7 +52,7 @@ export function LecturerWorkspacePage() {
               <div className="min-w-0">
                 <div className="mb-1 flex items-center gap-2">
                   <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${assignment.isPrimary ? 'bg-primary/15 text-primary' : 'bg-blue-100 text-blue-800'}`}>
-                    {assignment.isPrimary ? 'Hướng dẫn chính' : 'Đồng hướng dẫn'}
+                    {assignment.isPrimary ? 'Hướng dẫn chính' : isMentor ? 'Hướng dẫn chuyên ngành' : 'Đồng hướng dẫn'}
                   </span>
                   <span className="text-xs text-ink-muted">· {project?.code ?? `#${assignment.projectId}`}</span>
                 </div>
@@ -64,7 +66,8 @@ export function LecturerWorkspacePage() {
             <p className="mt-3 text-xs text-ink-muted">
               Phân công: {assignedDateFormatted}{endedDateFormatted ? ` · Kết thúc: ${endedDateFormatted}` : ''}
             </p>
-            {canOpen ? <ProjectSignals summary={projectSummaries[assignment.projectId]} /> : <p className="mt-4 text-sm text-ink-muted">Phân công đã kết thúc hoặc đồ án không còn trong giai đoạn thực hiện.</p>}
+            {canOpen ? <ProjectSignals summary={projectSummaries[assignment.projectId]} /> : <p className="mt-4 text-sm text-ink-muted">{canOpenMentor ? 'Phân công đang hoạt động trong phạm vi chuyên ngành.' : 'Phân công đã kết thúc hoặc đồ án không còn trong giai đoạn thực hiện.'}</p>}
+            {canOpenMentor ? <nav className="lecturer-project-actions" aria-label={`Hướng dẫn chuyên ngành đồ án ${project?.code ?? assignment.projectId}`}><Link className="lecturer-action lecturer-action-primary" to={`/mentor/projects/${assignment.projectId}/majors/${assignment.majorId}/workspace`}>Mở hướng dẫn chuyên ngành</Link></nav> : null}
             {canOpen ? <nav className="lecturer-project-actions" aria-label={`Chức năng đồ án ${project?.code ?? assignment.projectId}`}>
               <Link className="lecturer-action lecturer-action-primary" to={`/supervisor/projects/${assignment.projectId}/workspace`}>Tổng quan đồ án <span aria-hidden="true">→</span></Link>
               <Link className="lecturer-action" to={`/supervisor/projects/${assignment.projectId}/tasks`}>Công việc</Link>

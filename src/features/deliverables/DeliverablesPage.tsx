@@ -1,4 +1,5 @@
 import { Modal } from '../../components/ui/Modal'
+import { utcTimestamp } from '../projects/utils/collaboration-workspace'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { displayLabel } from '../../components/ui/display-label'
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
@@ -228,7 +229,7 @@ function definitionFromForm(form: HTMLFormElement): SaveDeliverable | null {
 }
 function positivePage(value: string | null) { const parsed = Number(value ?? 1); return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 1 }
 function toUtc(value: string): string | null { return value ? new Date(`${value}:00+07:00`).toISOString() : null }
-function toDateTimeInput(value: string | null) { if (!value) return ''; const date = new Date(value); if (Number.isNaN(date.getTime())) return ''; return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' }).format(date).replace(' ', 'T') }
-function formatDate(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Thời gian không hợp lệ' : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' }).format(date) }
+function toDateTimeInput(value: string | null) { if (!value) return ''; const date = new Date(utcTimestamp(value)); if (Number.isNaN(date.getTime())) return ''; return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' }).format(date).replace(' ', 'T') }
+function formatDate(value: string) { const date = new Date(utcTimestamp(value)); return Number.isNaN(date.getTime()) ? 'Thời gian không hợp lệ' : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' }).format(date) }
 function formatBytes(value: number) { if (value < 1024) return `${value} B`; if (value < 1024 * 1024) return `${Math.ceil(value / 1024)} KB`; return `${(value / 1024 / 1024).toFixed(1)} MB` }
 function isUploadFile(value: File | null): value is File { return Boolean(value && value.size > 0 && value.name) }

@@ -1,3 +1,4 @@
+import { dateTimeLabel } from '../../execution/execution-utils'
 interface RevisionAlertProps {
   reason?: string | null
   reviewerName?: string | null
@@ -55,7 +56,7 @@ export function RevisionAlert({
         </p>
         {displayDate && (
           <span className="text-xs text-slate-400 mt-2 block">
-            Thời gian phản hồi: {new Date(displayDate).toLocaleString('vi-VN')}
+            Thời gian phản hồi: {dateTimeLabel(displayDate)}
           </span>
         )}
       </div>

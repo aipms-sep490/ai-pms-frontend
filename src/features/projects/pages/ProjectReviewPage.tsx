@@ -50,7 +50,7 @@ function ProjectProposalDetails({ review }: { review: ReturnType<typeof useProje
         <div><dt>Lĩnh vực</dt><dd>{tags('DOMAIN').join(', ') || '—'}</dd></div>
         <div><dt>Công nghệ</dt><dd>{tags('TECHNOLOGY').join(', ') || '—'}</dd></div>
         <div><dt>Từ khóa</dt><dd>{tags('KEYWORD').join(', ') || '—'}</dd></div>
-        <div><dt>Ngày nộp</dt><dd>{project.submittedAt ? new Date(project.submittedAt).toLocaleString('vi-VN') : '—'}</dd></div>
+        <div><dt>Ngày nộp</dt><dd>{project.submittedAt ? dateTimeLabel(project.submittedAt) : '—'}</dd></div>
         <div><dt>Nguồn đề cương</dt><dd>{project.proposalSource === 'PUBLISHED_TOPIC'
           ? <>Đề tài đã công bố{project.selectedTopic ? ` · #${project.topicId ?? project.selectedTopic.id} · ${project.selectedTopic.code} — ${project.selectedTopic.title}` : project.topicId ? ` · #${project.topicId}` : ''}</>
           : 'Đề xuất của sinh viên'}</dd></div>

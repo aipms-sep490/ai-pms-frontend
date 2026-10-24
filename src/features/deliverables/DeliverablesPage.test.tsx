@@ -20,6 +20,15 @@ beforeEach(() => {
   api.getDeliverableFeedback.mockResolvedValue({ items: [], page: 1, pageSize: 10, totalCount: 0, totalPages: 0 })
 })
 describe('DeliverablesPage', () => {
+  it('preserves the original UTC deadline when editing an offsetless server timestamp', async () => {
+    api.getDeliverables.mockResolvedValue({ items: [{ ...item, dueAt: '2026-10-30T11:00:00' }], page: 1, pageSize: 10, totalCount: 1, totalPages: 1 })
+    page('supervisor'); await screen.findByText('Báo cáo thiết kế')
+    fireEvent.click(screen.getByRole('button', { name: 'Sửa' }))
+    expect((screen.getByLabelText('Hạn nộp theo giờ Việt Nam') as HTMLInputElement).value).toBe('2026-10-30T18:00')
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu hạng mục' }))
+    await waitFor(() => expect(api.updateDeliverable).toHaveBeenCalledWith(4, expect.objectContaining({ dueAt: '2026-10-30T11:00:00.000Z' })))
+  })
+
   it('uses server latestVersion for an upload and refreshes after a 409 instead of retrying', async () => {
     api.submitDeliverableVersion.mockRejectedValue(new HttpError('stale', 409))
     page(); await screen.findByText('Báo cáo thiết kế')
