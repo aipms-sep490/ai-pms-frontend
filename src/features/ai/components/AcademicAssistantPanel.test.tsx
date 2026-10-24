@@ -4,8 +4,26 @@ import { AcademicAssistantPanel } from './AcademicAssistantPanel'
 
 afterEach(cleanup)
 const ask = vi.hoisted(() => vi.fn())
-vi.mock('../academic-ai-api', () => ({ askAcademicAssistant: ask }))
+const askFiles = vi.hoisted(() => vi.fn())
+vi.mock('../academic-ai-api', () => ({ askAcademicAssistant: ask, askAcademicAssistantWithFiles: askFiles, downloadAssistantAnswer: vi.fn() }))
 beforeEach(() => { ask.mockReset() })
+it('sends selected files and labels user-provided evidence separately', async () => {
+  askFiles.mockResolvedValue({ answer: 'Summary', answerType: 'ATTACHMENT', generationStatus: 'COMPLETED', citations: [], projectEvidence: [], attachments: [{ fileName: 'notes.txt' }] })
+  render(<AcademicAssistantPanel />)
+  const file = new File(['meeting notes'], 'notes.txt', { type: 'text/plain' })
+  fireEvent.change(screen.getByLabelText('Đính kèm ảnh hoặc tài liệu'), { target: { files: [file] } })
+  fireEvent.change(screen.getByLabelText('Câu hỏi học vụ'), { target: { value: 'Tóm tắt' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Hỏi trợ lý học vụ' }))
+  expect(await screen.findByText('Dựa trên tệp bạn gửi')).toBeTruthy()
+  expect(askFiles).toHaveBeenCalledWith('Tóm tắt', [file], undefined, expect.any(AbortSignal))
+  expect(screen.queryByText('Tài liệu tham chiếu')).toBeNull()
+})
+it('rejects unsupported files before submitting', () => {
+  render(<AcademicAssistantPanel />)
+  fireEvent.change(screen.getByLabelText('Đính kèm ảnh hoặc tài liệu'), { target: { files: [new File(['x'], 'run.exe')] } })
+  expect(screen.getByRole('alert').textContent).toContain('Định dạng chưa được hỗ trợ')
+  expect(screen.queryByLabelText('Tệp đã chọn')).toBeNull()
+})
 it('labels general conversation without suggesting it is an official sourced answer', async () => {
   ask.mockResolvedValue({ answer: 'Xin chào!', answerType: 'GENERAL', generationStatus: 'COMPLETED', insufficientEvidence: false, citations: [], projectEvidence: [], limitationNote: 'Thông tin tham khảo từ AI.' })
   render(<AcademicAssistantPanel />)
