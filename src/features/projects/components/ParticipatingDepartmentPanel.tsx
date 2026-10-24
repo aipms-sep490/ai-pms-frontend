@@ -1,3 +1,4 @@
+import { dateTimeLabel } from '../../execution/execution-utils'
 import { displayLabel } from '../../../components/ui/display-label'
 import { Button } from '../../../components/ui/Button'
 import type { DepartmentDecision } from '../api/project-review-api'
@@ -31,7 +32,7 @@ export function ParticipatingDepartmentPanel({
           <strong>{names.department(departmentId)}</strong>
           <span className="ml-2 font-semibold">{displayLabel(decision?.decision ?? 'PENDING')}</span>
           {decision?.decidedBy ? <p className="mt-1 text-ink-muted">Người thẩm định #{decision.decidedBy}</p> : null}
-          {decision?.decidedAt ? <p className="mt-1 text-ink-muted">Thẩm định lúc: {new Date(decision.decidedAt).toLocaleString('vi-VN')}</p> : null}
+          {decision?.decidedAt ? <p className="mt-1 text-ink-muted">Thẩm định lúc: {dateTimeLabel(decision.decidedAt)}</p> : null}
           {decision?.reason ? <p className="mt-1 text-ink-muted">Lý do: {decision.reason}</p> : null}
         </li>
       })}</ul> : <p className="mt-2 text-sm text-ink-muted">Chưa có bộ môn tham gia thẩm định bản đề cương này.</p>}

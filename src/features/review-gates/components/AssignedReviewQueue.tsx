@@ -5,6 +5,7 @@ import { HttpError } from '../../../services/http/http-client'
 import { env } from '../../../app/config/env'
 import { EvidenceDownloadButton } from './EvidenceDownloadButton'
 import { evidenceArtifactLabel, isLinkArtifact } from '../utils/evidence-link'
+import { dateTimeLabel } from '../../execution/execution-utils'
 
 interface AssignedReviewQueueProps {
   assignments: AssignedReviewItem[]
@@ -140,7 +141,7 @@ export function AssignedReviewQueue({
                   <h4 className="mt-2 text-xs font-bold text-slate-900">{item.projectName}</h4>
                   <p className="text-xs text-slate-500">{item.projectCode}</p>
                   <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2 text-xs">
-                    <span className="text-slate-400">Hạn: {item.dueAt}</span>
+                    <span className="text-slate-400">Hạn: {dateTimeLabel(item.dueAt)}</span>
                     <span
                       className={`font-bold ${
                         item.status === 'DECIDED'
@@ -166,12 +167,12 @@ export function AssignedReviewQueue({
           {/* Header */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-md bg-primary px-2.5 py-0.5 text-xs font-bold text-white">
                   {selectedItem.gateCode}
                 </span>
                 <h3 className="text-base font-bold text-slate-900">{selectedItem.projectName}</h3>
-                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600 border border-slate-200">
+                <span className="max-w-full break-all rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600 border border-slate-200">
                   {selectedItem.projectCode}
                 </span>
               </div>
@@ -179,8 +180,8 @@ export function AssignedReviewQueue({
                 Đợt thẩm định: <strong className="text-slate-700">{selectedItem.gateTitle}</strong> · Phạm vi chuyên môn: <strong className="text-primary">{selectedItem.scope}</strong>
               </p>
             </div>
-            <div className="text-right text-xs text-slate-500">
-              <div>Thời hạn chấm: <strong>{selectedItem.dueAt}</strong></div>
+            <div className="text-left text-xs text-slate-500 sm:text-right">
+              <div>Thời hạn chấm: <strong>{dateTimeLabel(selectedItem.dueAt)}</strong></div>
               <div>Trạng thái: <strong className="text-slate-800">{selectedItem.status}</strong></div>
             </div>
           </div>
@@ -224,11 +225,11 @@ export function AssignedReviewQueue({
 
           {/* Requirements Checklist */}
           <div>
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
                 Minh chứng cần xác minh ({selectedItem.requirements.length})
               </h4>
-              <span className="text-xs font-semibold text-slate-500">
+              <span className="whitespace-nowrap text-xs font-semibold text-slate-500">
                 Đã duyệt: <strong className="text-emerald-600">{acceptedMandatoryCount}</strong> / {mandatoryReqs.length} bắt buộc
               </span>
             </div>
@@ -296,7 +297,7 @@ export function AssignedReviewQueue({
                           </span>
                         </div>
                         <div className="mt-1 text-slate-400">
-                          Nộp bởi {req.latestArtifact.submittedBy} lúc {req.latestArtifact.submittedAt}
+                          Nộp bởi {req.latestArtifact.submittedBy} lúc {dateTimeLabel(req.latestArtifact.submittedAt)}
                         </div>
                         {req.latestArtifact.notes && (
                           <div className="mt-1 text-slate-600 italic">

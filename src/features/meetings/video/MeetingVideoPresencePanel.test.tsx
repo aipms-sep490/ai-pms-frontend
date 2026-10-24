@@ -8,7 +8,7 @@ const api = vi.hoisted(() => ({ getMeetingVideoPresence: vi.fn() }))
 vi.mock('../../../app/config/env', () => runtime)
 vi.mock('./meeting-video-api', () => api)
 import { MeetingVideoPresencePanel } from './MeetingVideoPresencePanel'
-import { formatPresenceDuration } from './meeting-video-presence-utils'
+import { formatPresenceDuration, formatPresenceTime } from './meeting-video-presence-utils'
 
 const meeting: MeetingDetail = { id: 42, projectId: 2, title: 'Video', agenda: null, meetingNotes: null, startAt: '2026-10-03T02:00:00Z', endAt: null, location: null, onlineUrl: null, status: 'COMPLETED', createdBy: 9, createdByName: 'Khang', createdAt: '2026-10-02T02:00:00Z', updatedAt: '2026-10-02T02:00:00Z', participants: [{ id: 1, meetingId: 42, userId: 9, fullName: 'Nguyễn Văn A', email: 'a@example.test', attendanceStatus: 'INVITED', createdAt: '2026-10-02T00:00:00Z', updatedAt: '2026-10-02T00:00:00Z' }], feedbacks: [], videoChannel: 'IN_APP_VIDEO' }
 
@@ -56,5 +56,11 @@ describe('MeetingVideoPresencePanel', () => {
 
   it('formats aggregate durations without attendance thresholds', () => {
     expect(formatPresenceDuration(0)).toBe('Dưới 1 phút'); expect(formatPresenceDuration(65)).toBe('1 phút'); expect(formatPresenceDuration(3599)).toBe('59 phút')
+  })
+
+  it('shows offsetless server UTC timestamps at the same Vietnam time as explicit UTC', () => {
+    expect(formatPresenceTime('2026-10-24T00:21:00')).toBe(formatPresenceTime('2026-10-24T00:21:00Z'))
+    expect(formatPresenceTime('2026-10-24T00:21:00')).toContain('07:21')
+    expect(formatPresenceTime('invalid')).toBe('Chưa có dữ liệu')
   })
 })
