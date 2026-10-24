@@ -90,6 +90,6 @@ export const env = {
   jiraSprintEnabled: import.meta.env.VITE_ENABLE_JIRA_SPRINT?.trim().toLowerCase() === 'true',
   meetingCollaborationEnabled,
   industryEnabled,
-  /** Production always uses the real API, even when a mock flag is set by mistake. */
-  reviewGatesMockEnabled: !import.meta.env.PROD && import.meta.env.VITE_USE_MOCK_REVIEW_GATES?.trim().toLowerCase() !== 'false',
+  /** Real API by default; development mocks require explicit opt-in and never run in production. */
+  reviewGatesMockEnabled: !import.meta.env.PROD && import.meta.env.VITE_USE_MOCK_REVIEW_GATES?.trim().toLowerCase() === 'true',
 } as const

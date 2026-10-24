@@ -4,6 +4,12 @@ import { MemoryRouter } from 'react-router-dom'
 import type { ProjectDto, TeamDto, TimelineTaskDto } from '../../../types/backend'
 import { CollaborationWorkspace } from './CollaborationWorkspace'
 
+// Review Gates is a separate integration; this suite verifies the five workspace resource reads below.
+vi.mock('../../../app/config/env', async importOriginal => {
+  const { env } = await importOriginal<typeof import('../../../app/config/env')>()
+  return { env: { ...env, reviewGatesMockEnabled: true } }
+})
+
 // Transport fixtures exist only in tests. Production uses the shared authenticated HTTP client.
 const project: ProjectDto = { id: 9, teamId: 2, teamName: 'Nhóm đồ án', code: 'PRJ-9', title: 'Hệ thống quản lý đồ án',
   status: 'Active', registeredAt: '', createdBy: 1, createdByName: 'Nguyễn Minh An', createdAt: '', updatedAt: '', concurrencyToken: 'test', majors: [{ id: 1, majorId: 3, majorCode: 'SE', majorName: 'Phần mềm' }], tags: [],

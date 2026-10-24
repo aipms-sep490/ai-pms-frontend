@@ -12,6 +12,7 @@ import type { ReviewSubmissionPayload } from '../components/ReviewSubmissionModa
 import { SupervisorGateFollowupPanel } from '../components/SupervisorGateFollowupPanel'
 import { HttpError } from '../../../services/http/http-client'
 import { Button } from '../../../components/ui/Button'
+import { ReviewGatesMockNotice } from '../components/ReviewGatesMockNotice'
 
 function timelineError(error: unknown): string {
   if (error instanceof HttpError) {
@@ -143,6 +144,7 @@ export function StudentReviewTimelinePage() {
       title="Tiến trình & Hồ sơ Thẩm định Đồ án"
       description="Theo dõi các đợt Review Gates (R1..R4), kiểm tra trạng thái minh chứng và nộp bản cập nhật theo phản hồi của hội đồng thẩm định."
     >
+      <ReviewGatesMockNotice />
       {feedbackRefreshWarning && <div role="alert" className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
         <p>{feedbackRefreshWarning}</p>
         <Button variant="outline" className="mt-2 min-h-11" disabled={feedbackRefreshing} onClick={() => void refreshFeedback()}>
