@@ -4,7 +4,7 @@ import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
-import { HttpError } from '../../../services/http/http-client'
+import { classifyAcademicError } from '../utils/academic-error-utils'
 import { useAcademicGovernance } from '../hooks/useAcademicGovernance'
 import { projectPeriodTypes, type GovernanceStatus, type ProjectPeriod, type ProjectPeriodDraft, type Semester, type SemesterDraft } from '../types/governance.types'
 import './academic-governance.css'
@@ -15,7 +15,7 @@ const labels: Record<string, string> = { REGISTRATION: 'Đăng ký', PROJECT_REV
 const statusLabels: Record<GovernanceStatus, string> = { DRAFT: 'Bản nháp', UPCOMING: 'Sắp diễn ra', ACTIVE: 'Đang hoạt động', CLOSED: 'Đã đóng', ARCHIVED: 'Đã lưu trữ' }
 type Editor = { kind: 'semester'; record?: Semester } | { kind: 'period'; record?: ProjectPeriod }
 
-function errorText(error: Error) { return error instanceof HttpError && error.status === 403 ? 'Bạn chưa có quyền quản trị cấu hình này.' : 'Không thể đồng bộ cấu hình học vụ. Hãy thử lại.' }
+function errorText(reason: unknown) { return classifyAcademicError(reason, 'Không thể đồng bộ cấu hình học vụ. Hãy thử lại.') }
 function toDate(value: string) { return value.slice(0, 10) }
 function toDateTime(value: string) { return value.slice(0, 16) }
 function formatDateTime(value: string) { const date = new Date(value); return Number.isNaN(date.valueOf()) ? value : date.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) }
@@ -29,9 +29,9 @@ export function AcademicGovernancePage() {
   const [operationSuccess, setOperationSuccess] = useState<string | null>(null)
   const governance = useAcademicGovernance(filters)
   const openEditor = (next: Editor) => { setOperationError(null); setOperationSuccess(null); setEditor(next) }
-  const saveSemester = async (draft: SemesterDraft) => { setOperationError(null); setOperationSuccess(null); try { await governance.saveSemester(draft); setEditor(null); setOperationSuccess('Đã lưu học kỳ và cập nhật danh sách.') } catch (reason: unknown) { setOperationError(errorText(reason instanceof Error ? reason : new Error('Save failed'))) } }
-  const savePeriod = async (draft: ProjectPeriodDraft) => { setOperationError(null); setOperationSuccess(null); try { await governance.saveProjectPeriod(draft); setEditor(null); setOperationSuccess('Đã lưu cấu trúc giai đoạn. Chính sách áp dụng được quản lý ở màn hình riêng.') } catch (reason: unknown) { setOperationError(errorText(reason instanceof Error ? reason : new Error('Save failed'))) } }
-  const changeStatus = async (kind: 'semester' | 'period', id: number, status: GovernanceStatus, expectedStatus: GovernanceStatus) => { if (await requestConfirmation({ title: 'Thay đổi trạng thái?', description: `Chuyển ${kind === 'semester' ? 'học kỳ' : 'giai đoạn'} sang ${statusLabels[status].toLowerCase()}.`, confirmLabel: 'Xác nhận thay đổi' }) === null) return; setOperationError(null); setOperationSuccess(null); try { await governance.setStatus(kind, id, status, expectedStatus); setOperationSuccess(`Đã chuyển trạng thái sang ${statusLabels[status].toLowerCase()}.`) } catch (reason: unknown) { setOperationError(errorText(reason instanceof Error ? reason : new Error('Status change failed'))) } }
+  const saveSemester = async (draft: SemesterDraft) => { setOperationError(null); setOperationSuccess(null); try { await governance.saveSemester(draft); setEditor(null); setOperationSuccess('Đã lưu học kỳ và cập nhật danh sách.') } catch (reason: unknown) { setOperationError(errorText(reason)) } }
+  const savePeriod = async (draft: ProjectPeriodDraft) => { setOperationError(null); setOperationSuccess(null); try { await governance.saveProjectPeriod(draft); setEditor(null); setOperationSuccess('Đã lưu cấu trúc giai đoạn. Chính sách áp dụng được quản lý ở màn hình riêng.') } catch (reason: unknown) { setOperationError(errorText(reason)) } }
+  const changeStatus = async (kind: 'semester' | 'period', id: number, status: GovernanceStatus, expectedStatus: GovernanceStatus) => { if (await requestConfirmation({ title: 'Thay đổi trạng thái?', description: `Chuyển ${kind === 'semester' ? 'học kỳ' : 'giai đoạn'} sang ${statusLabels[status].toLowerCase()}.`, confirmLabel: 'Xác nhận thay đổi' }) === null) return; setOperationError(null); setOperationSuccess(null); try { await governance.setStatus(kind, id, status, expectedStatus); setOperationSuccess(`Đã chuyển trạng thái sang ${statusLabels[status].toLowerCase()}.`) } catch (reason: unknown) { setOperationError(errorText(reason)) } }
 
   if (governance.isUnauthorized) return <section className="governance-state" role="alert"><strong>Cần đăng nhập để xem cấu hình học vụ.</strong><Link to="/login">Đăng nhập</Link></section>
   if (governance.loading) return <section className="governance-state" role="status">Đang tải học kỳ và các giai đoạn đồ án…</section>

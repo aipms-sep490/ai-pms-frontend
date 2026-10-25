@@ -3,6 +3,7 @@ import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { HttpError } from '../../../services/http/http-client'
+import { classifyAcademicError } from '../utils/academic-error-utils'
 import * as api from '../api/period-policy-api'
 import { QualificationPolicyPanel } from '../components/QualificationPolicyPanel'
 
@@ -38,10 +39,8 @@ function errorText(reason: unknown) {
   if (reason instanceof HttpError) {
     if (reason.status === 403) return 'Bạn chưa có quyền quản lý chính sách của giai đoạn này.'
     if (reason.status === 404) return 'Không tìm thấy giai đoạn hoặc chưa có chính sách đang hiệu lực.'
-    if (reason.status === 409) return 'Chính sách vừa được thay đổi. Dữ liệu mới đã được tải lại; hãy kiểm tra trước khi thao tác tiếp.'
-    if (reason.status === 400) return reason.problem?.detail || 'Dữ liệu chính sách chưa đáp ứng các điều kiện áp dụng.'
   }
-  return 'Không thể đồng bộ phiên bản chính sách. Hãy thử tải lại.'
+  return classifyAcademicError(reason, 'Không thể đồng bộ phiên bản chính sách. Hãy thử tải lại.')
 }
 
 export function PeriodPolicyManagementPage() {
