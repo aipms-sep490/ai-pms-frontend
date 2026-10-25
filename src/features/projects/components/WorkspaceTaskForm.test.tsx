@@ -7,6 +7,15 @@ vi.mock('../../../services/service-gateway', () => ({ services: { task: { create
 vi.mock('../api/project-review-api', () => ({ getProjectMajorRequirements: api.getProjectMajorRequirements }))
 const project = { id: 9, academicScopeProvenance: 'FROZEN_REGISTRATION_SNAPSHOT', academicScope: { projectMode: 'INTERDISCIPLINARY', requirements: [{ majorId: 3 }, { majorId: 12 }] }, majors: [{ majorId: 3, majorName: 'Phần mềm' }, { majorId: 12, majorName: 'Thiết kế' }] } as ProjectDto
 afterEach(() => { cleanup(); vi.resetAllMocks() })
+it('prefills an assistant draft but still requires a valid milestone and discipline before creating', async () => {
+  api.getProjectMajorRequirements.mockResolvedValue({ requirements: [{ majorId: 3 }, { majorId: 12 }] })
+  render(<WorkspaceTaskForm project={project} initialDraft={{ title: 'Kiểm thử đăng nhập', description: 'Kiểm tra mật khẩu sai' }} milestones={[{ id: 2, title: 'Mốc 1' }]} members={[]} onCancel={vi.fn()} onCreated={vi.fn()} />)
+  await screen.findByRole('combobox', { name: 'Ngành chính' })
+  expect((screen.getByLabelText('Tên công việc') as HTMLInputElement).value).toBe('Kiểm thử đăng nhập')
+  expect(api.createTask).not.toHaveBeenCalled()
+  fireEvent.submit(screen.getByRole('button', { name: 'Tạo công việc' }).closest('form')!)
+  expect(api.createTask).not.toHaveBeenCalled()
+})
 it('requires one primary and submits supporting disciplines in the same create request', async () => {
   api.getProjectMajorRequirements.mockResolvedValue({ requirements: [{ majorId: 3 }, { majorId: 12 }] })
   api.createTask.mockResolvedValue({ id: 1 })

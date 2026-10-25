@@ -1,3 +1,4 @@
+import { readAssistantStreamResult } from './assistant-stream-result.mjs'
 import { chromium } from '@playwright/test'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -16,14 +17,16 @@ try {
   await page.getByLabel('Email', { exact: true }).fill(process.env.ACADEMIC_TEST_EMAIL)
   await page.getByLabel('Mật khẩu', { exact: true }).fill(process.env.ACADEMIC_TEST_PASSWORD)
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
-  await page.waitForURL('**/academic/assistant', { timeout: 30000 })
-  await page.getByLabel('Câu hỏi học vụ').fill('Rubric và scheme khác nhau như thế nào?')
-  const responsePromise = page.waitForResponse(response => response.url().endsWith('/academic/assistant/ask'), { timeout: 65000 })
-  await page.getByRole('button', { name: 'Hỏi trợ lý học vụ', exact: true }).click()
+  await page.waitForURL('**/project/overview', { timeout: 30000 })
+  await page.getByLabel('Câu hỏi học vụ').fill('Dựa trên tài liệu DEMO Hướng dẫn rubric và công bố kết quả được cung cấp, rubric và scheme khác nhau thế nào? Trích dẫn tài liệu và ghi rõ đây chỉ là DEMO.')
+  const responsePromise = page.waitForResponse(response => response.url().endsWith('/academic/assistant/stream'), { timeout: 65000 })
+  await page.getByRole('button', { name: 'Gửi', exact: true }).click()
   const response = await responsePromise
-  const result = await response.json()
+  const result = await readAssistantStreamResult(response, page)
   if (!response.ok() || !result.runId || !result.citations?.length) throw new Error(`Academic response failed: ${response.status()}`)
   await page.getByText('Tài liệu tham chiếu', { exact: true }).waitFor()
+  await page.getByRole('button', { name: `${result.citations[0].title} · v${result.citations[0].version}`, exact: true }).click()
+  await page.getByLabel('Nguồn trích dẫn').waitFor()
   await page.screenshot({ path: join(output, 'academic-desktop.png'), fullPage: true })
   await page.setViewportSize({ width: 390, height: 844 })
   await page.screenshot({ path: join(output, 'academic-mobile.png'), fullPage: true })

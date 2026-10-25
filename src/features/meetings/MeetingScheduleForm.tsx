@@ -5,8 +5,8 @@ import { recurrenceLabels } from './meeting-types'
 import type { MeetingDeliveryMode, MeetingVideoChannel } from './video/meeting-video.types'
 import { safeMeetingUrl, toMeetingInput, toMeetingUtc } from './meeting-utils'
 
-export function MeetingScheduleForm({ meeting, busy, locked = false, candidates = [], currentUserId, onSave, onDirty, onCancel }: {
-  meeting?: MeetingDetail; busy: boolean; locked?: boolean; candidates?: MeetingCandidate[]; currentUserId?: number
+export function MeetingScheduleForm({ meeting, initialDraft, busy, locked = false, candidates = [], currentUserId, onSave, onDirty, onCancel }: {
+  initialDraft?: { title: string; description: string }; meeting?: MeetingDetail; busy: boolean; locked?: boolean; candidates?: MeetingCandidate[]; currentUserId?: number
   onSave: (body: CreateMeeting) => Promise<void>; onDirty: () => void; onCancel?: () => void
 }) {
   // Do not infer a legacy meeting's delivery state from location or onlineUrl. It remains a
@@ -14,7 +14,7 @@ export function MeetingScheduleForm({ meeting, busy, locked = false, candidates 
   const legacyMeeting = Boolean(meeting && (!meeting.meetingDeliveryMode || !meeting.videoChannel))
   const showVideoControls = env.videoMeetingEnabled && !legacyMeeting
   const [values, setValues] = useState(() => ({
-    title: meeting?.title ?? '', agenda: meeting?.agenda ?? '', startAt: toMeetingInput(meeting?.startAt ?? null), endAt: toMeetingInput(meeting?.endAt ?? null), location: meeting?.location ?? '', onlineUrl: meeting?.onlineUrl ?? '',
+    title: meeting?.title ?? initialDraft?.title ?? '', agenda: meeting?.agenda ?? initialDraft?.description ?? '', startAt: toMeetingInput(meeting?.startAt ?? null), endAt: toMeetingInput(meeting?.endAt ?? null), location: meeting?.location ?? '', onlineUrl: meeting?.onlineUrl ?? '',
     meetingDeliveryMode: meeting?.meetingDeliveryMode ?? 'ONSITE' as MeetingDeliveryMode,
     videoChannel: meeting?.videoChannel ?? 'NONE' as MeetingVideoChannel,
   }))

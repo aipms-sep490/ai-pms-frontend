@@ -1,5 +1,9 @@
-import { AcademicAssistantPanel } from './components/AcademicAssistantPanel'
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { openAssistant } from './assistant-dock-events'
 
 export function AcademicAssistantPage() {
-  return <main className="workspace-page mx-auto max-w-5xl space-y-5 pb-12"><header><p className="font-mono text-xs font-semibold uppercase tracking-wide text-primary">Trợ lý AI</p><h1 className="mt-1 font-heading text-2xl font-bold text-ink">Trợ lý AI học vụ</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">Tra cứu quy trình, biểu mẫu, thời hạn và tiêu chí đã được công bố.</p></header><AcademicAssistantPanel /></main>
+  const navigate = useNavigate()
+  useEffect(() => { navigate('/project/overview', { replace: true, state: { openAssistant: true } }) }, [navigate])
+  return <button type="button" onClick={openAssistant}>Mở trợ lý AI</button>
 }

@@ -9,6 +9,7 @@ import { ChatThread } from './ChatThread'
 import { ChatLauncher } from './ChatLauncher'
 import { chatConnectionLabel } from './chat-events'
 import './chat.css'
+import { floatingPanelEvent } from '../ai/assistant-dock-events'
 
 export type ChatDockView = { type: 'closed' } | { type: 'list' } | { type: 'conversation'; conversationId: string } | { type: 'minimized'; conversationId?: string }
 export function ChatDock() {
@@ -27,6 +28,15 @@ function SessionChatDock({ userId }: { userId: string }) {
   const expanded = !fullPage && (view.type === 'list' || view.type === 'conversation')
   const conversationId = view.type === 'conversation' || view.type === 'minimized' ? view.conversationId : undefined
   const finish = (next: ChatDockView) => { setView(next); launcher.current?.focus() }
+
+  useEffect(() => {
+    const closeOther = (event: Event) => {
+      if ((event as CustomEvent).detail !== 'messages') setView(current => current.type === 'conversation' ? { type: 'minimized', conversationId: current.conversationId } : { type: 'minimized' })
+    }
+    window.addEventListener(floatingPanelEvent, closeOther)
+    return () => window.removeEventListener(floatingPanelEvent, closeOther)
+  }, [])
+  useEffect(() => { if (expanded) window.dispatchEvent(new CustomEvent(floatingPanelEvent, { detail: 'messages' })) }, [expanded])
 
   useEffect(() => {
     if (unreadCount > prevUnreadRef.current && !expanded) {
