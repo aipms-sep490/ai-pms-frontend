@@ -44,8 +44,8 @@ export function changePassword(currentPassword: string, newPassword: string): Pr
 
 export interface EditableProfile {
   fullName: string
-  phone: string | null
-  title: string | null
+  phone?: string | null
+  title?: string | null
 }
 
 export function updateMyProfile(profile: EditableProfile): Promise<AuthUser> {
