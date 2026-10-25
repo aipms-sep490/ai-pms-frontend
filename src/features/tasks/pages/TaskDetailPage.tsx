@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useExecutionAccess } from '../../execution/context/ExecutionAccessContext'
 import { ExecutionPage, ExConfirm, ExIcon, ExState } from '../../execution/execution-ui'
@@ -131,5 +131,20 @@ function DependencyEditor({ tasks, busy, onCancel, onSubmit }: { tasks: { id: nu
 }
 function StatusEditor({ task, busy, onSubmit }: { task: TaskDto; busy: boolean; onSubmit: (status: string, reason: string) => Promise<boolean> }) {
   const next = taskTransitions[task.status] ?? []
-  return <form onSubmit={event => { event.preventDefault(); const form = new FormData(event.currentTarget); void onSubmit(String(form.get('status')), String(form.get('reason') ?? '')) }}><fieldset disabled={busy}><label className="ex-field">Trạng thái tiếp theo<select name="status" defaultValue={next[0] ?? ''} required>{next.map(value => <option key={value} value={value}>{taskStatusLabel(value)}</option>)}</select></label><label className="ex-field mt-4">Ghi chú thay đổi<textarea name="reason" rows={2} maxLength={2000} placeholder="Vướng mắc hoặc lý do cập nhật (nếu có)" /></label><button className="ex-button ex-button-primary mt-4 w-full" disabled={!next.length}>{busy ? 'Đang lưu…' : 'Cập nhật trạng thái'}</button></fieldset></form>
+  const reasonRef = useRef<HTMLTextAreaElement>(null)
+  const [fieldError, setFieldError] = useState('')
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    const status = String(form.get('status'))
+    const reason = String(form.get('reason') ?? '')
+    if (status === 'BLOCKED' && !reason.trim()) {
+      setFieldError('Cần nhập lý do vướng mắc trước khi chuyển sang trạng thái Vướng mắc.')
+      reasonRef.current?.focus()
+      return
+    }
+    setFieldError('')
+    void onSubmit(status, reason)
+  }
+  return <form onSubmit={submit}><fieldset disabled={busy}><label className="ex-field">Trạng thái tiếp theo<select name="status" defaultValue={next[0] ?? ''} required>{next.map(value => <option key={value} value={value}>{taskStatusLabel(value)}</option>)}</select></label><label className="ex-field mt-4">Ghi chú thay đổi<textarea ref={reasonRef} name="reason" rows={2} maxLength={1000} aria-invalid={Boolean(fieldError)} aria-describedby={fieldError ? 'task-status-reason-error' : undefined} onChange={() => { if (fieldError) setFieldError('') }} placeholder="Vướng mắc hoặc lý do cập nhật (nếu có)" /></label>{fieldError && <p id="task-status-reason-error" className="ex-notice ex-notice-error" role="alert">{fieldError}</p>}<button className="ex-button ex-button-primary mt-4 w-full" disabled={!next.length}>{busy ? 'Đang lưu…' : 'Cập nhật trạng thái'}</button></fieldset></form>
 }

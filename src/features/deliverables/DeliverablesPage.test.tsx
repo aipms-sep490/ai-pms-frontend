@@ -37,8 +37,19 @@ describe('DeliverablesPage', () => {
     fireEvent.submit(screen.getByRole('button', { name: 'Nộp phiên bản' }).closest('form')!)
     await waitFor(() => expect(api.submitDeliverableVersion).toHaveBeenCalledWith(4, 1, expect.any(File), ''))
     await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/Dữ liệu đã thay đổi/))
+    expect(screen.getByRole('alert').textContent).not.toContain('phiên bản không còn mới nhất')
     expect(api.submitDeliverableVersion).toHaveBeenCalledOnce()
     expect(api.getDeliverables.mock.calls.length).toBeGreaterThan(1)
+  })
+
+  it('offers a reload after a server read error without displaying raw backend detail or trace ID', async () => {
+    api.getDeliverables.mockRejectedValueOnce(new HttpError('Internal English detail', 503, { detail: 'Internal English detail', traceId: 'secret-trace' }))
+    page()
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).not.toMatch(/Internal English detail|secret-trace/)
+    fireEvent.click(screen.getByRole('button', { name: 'Tải lại dữ liệu' }))
+    expect(await screen.findByText('Báo cáo thiết kế')).toBeTruthy()
+    expect(api.getDeliverables).toHaveBeenCalledTimes(2)
   })
 
   it('shows reviewer controls only for the assigned supervisor and a submitted version', async () => {
