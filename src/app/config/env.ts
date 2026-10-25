@@ -91,5 +91,5 @@ export const env = {
   meetingCollaborationEnabled,
   industryEnabled,
   /** Production always uses the real API, even when a mock flag is set by mistake. */
-  reviewGatesMockEnabled: !import.meta.env.PROD && import.meta.env.VITE_USE_MOCK_REVIEW_GATES?.trim().toLowerCase() !== 'false',
+  reviewGatesMockEnabled: !import.meta.env.PROD && import.meta.env.VITE_USE_MOCK_REVIEW_GATES?.trim().toLowerCase() === 'true',
 } as const

@@ -8,11 +8,21 @@ describe('Review Gates mock production boundary', () => {
     vi.resetModules()
     expect((await import('./env')).env.reviewGatesMockEnabled).toBe(false)
   })
-  it('retains explicit development mocks', async () => {
+  it('retains explicit development mocks when opt-in is true', async () => {
     vi.stubEnv('PROD', false)
     vi.stubEnv('VITE_USE_MOCK_REVIEW_GATES', 'true')
     vi.resetModules()
     expect((await import('./env')).env.reviewGatesMockEnabled).toBe(true)
+  })
+  it('defaults to false in development when flag is undefined or false (opt-in default)', async () => {
+    vi.stubEnv('PROD', false)
+    vi.stubEnv('VITE_USE_MOCK_REVIEW_GATES', undefined)
+    vi.resetModules()
+    expect((await import('./env')).env.reviewGatesMockEnabled).toBe(false)
+
+    vi.stubEnv('VITE_USE_MOCK_REVIEW_GATES', 'false')
+    vi.resetModules()
+    expect((await import('./env')).env.reviewGatesMockEnabled).toBe(false)
   })
   it('calls the actual timeline transport in production even with the mock flag true', async () => {
     vi.stubEnv('PROD', true)
