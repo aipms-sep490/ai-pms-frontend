@@ -80,6 +80,7 @@ export function useTeamManagement() {
     canRefreshEligibility: actionAllowed('refresh_eligibility', isLeader && !rosterLocked),
     canCreateProjectDraft: actionAllowed('create_project_draft', isLeader && Boolean(team?.eligibility.canRegister)),
     canLeave: actionAllowed('leave_team', !isLeader && !rosterLocked),
+    canViewInvitations: actionAllowed('view_team_invitations', isLeader),
   }), [actionAllowed, isLeader, rosterLocked, team])
 
   const isMutationPending = useCallback((action: string, id?: number) => (
@@ -89,19 +90,34 @@ export function useTeamManagement() {
   const refreshInvitations = useCallback(async () => {
     setIsLoadingInvitations(true)
     try {
-      const [sent, received] = await Promise.all([
-        team ? services.team.getInvitations(team.id) : Promise.resolve(emptyPage<TeamInvitationDto>()),
-        services.team.getInvitations(),
+      const sentPromise = (team && (permissions.canInvite || permissions.canViewInvitations))
+        ? services.team.getInvitations(team.id)
+        : Promise.resolve(emptyPage<TeamInvitationDto>())
+      const receivedPromise = services.team.getInvitations()
+
+      const [sentResult, receivedResult] = await Promise.allSettled([
+        sentPromise,
+        receivedPromise,
       ])
-      setSentInvitations(sent.items)
-      // The backend scopes this collection to the authenticated recipient. Do not re-authorize it in the browser.
-      setReceivedInvitations(received.items)
+
+      if (sentResult.status === 'fulfilled') {
+        setSentInvitations(sentResult.value.items)
+      } else {
+        setSentInvitations([])
+      }
+
+      if (receivedResult.status === 'fulfilled') {
+        // The backend scopes this collection to the authenticated recipient. Do not re-authorize it in the browser.
+        setReceivedInvitations(receivedResult.value.items)
+      } else {
+        setError(classifyError(receivedResult.reason))
+      }
     } catch (reason) {
       setError(classifyError(reason))
     } finally {
       setIsLoadingInvitations(false)
     }
-  }, [team])
+  }, [permissions.canViewInvitations, team])
 
   const refreshLeaderChanges = useCallback(async () => {
     if (!team) {
@@ -111,8 +127,8 @@ export function useTeamManagement() {
     try {
       const result = await services.team.getLeaderChangeRequests(team.id)
       setLeaderChangeRequests(result.items)
-    } catch (reason) {
-      setError(classifyError(reason))
+    } catch {
+      setLeaderChangeRequests([])
     }
   }, [team])
 

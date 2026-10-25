@@ -129,4 +129,45 @@ describe('useTeamManagement', () => {
     await waitFor(() => expect(result.current.error).toMatchObject({ kind }))
     expect(result.current.error?.message).not.toContain('Sensitive backend detail')
   })
+
+  it('does not request team sent invitations when user is not leader (FE1-F2 FUNC-03)', async () => {
+    const memberJourney = {
+      ...journeyState(),
+      profile: { id: 2, fullName: 'Member' },
+      team: {
+        ...team,
+        members: [
+          { userId: 1, fullName: 'Leader', isEligibleStudent: true, isLeader: true },
+          { userId: 2, fullName: 'Member', isEligibleStudent: true, isLeader: false },
+        ],
+      },
+      teamActions: { actions: [
+        { code: 'view_team', allowed: true, reasons: [] },
+        { code: 'leave_team', allowed: true, reasons: [] },
+      ] },
+    }
+    mocked.journey.useStudentJourney.mockReturnValue(memberJourney)
+
+    const { result } = renderHook(() => useTeamManagement())
+
+    await waitFor(() => expect(result.current.receivedInvitations).toEqual([invitation]))
+    expect(mocked.team.getInvitations).not.toHaveBeenCalledWith(28)
+    expect(result.current.sentInvitations).toEqual([])
+    expect(result.current.error).toBeNull()
+  })
+
+  it('keeps page error null when sent invitations reject with 403 (Promise.allSettled resilience)', async () => {
+    mocked.team.getInvitations.mockImplementation((teamId?: number) => {
+      if (teamId !== undefined) {
+        return Promise.reject(new HttpError('Forbidden', 403))
+      }
+      return Promise.resolve(page())
+    })
+
+    const { result } = renderHook(() => useTeamManagement())
+
+    await waitFor(() => expect(result.current.receivedInvitations).toEqual([invitation]))
+    expect(result.current.sentInvitations).toEqual([])
+    expect(result.current.error).toBeNull()
+  })
 })
