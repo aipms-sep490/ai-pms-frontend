@@ -41,7 +41,11 @@ export function ProfilePage() {
     if (!updateProfile) { setMessage('Chức năng cập nhật hồ sơ hiện chưa sẵn sàng.'); return }
     setMessage(null)
     try {
-      await updateProfile({ fullName, phone: String(form.get('phone') ?? '').trim() || null, title: String(form.get('title') ?? '').trim() || null })
+      const phoneRaw = form.get('phone')
+      const titleRaw = form.get('title')
+      const phone = phoneRaw !== null ? (String(phoneRaw).trim() || null) : (session.user.phone ?? null)
+      const title = titleRaw !== null ? (String(titleRaw).trim() || null) : (session.user.title ?? null)
+      await updateProfile({ fullName, phone, title })
       setMessage('Đã cập nhật hồ sơ của bạn.')
       setIsEditing(false)
     } catch (reason) { setMessage(getProfileErrorMessage(reason instanceof Error ? reason : new Error())) }
@@ -72,6 +76,14 @@ export function ProfilePage() {
           <span>Vai trò tài khoản</span>
           <strong>{session.user.roles.length > 0 ? session.user.roles.map(role => ({ STUDENT: 'Sinh viên', LECTURER: 'Giảng viên', DEPARTMENT_STAFF: 'Cán bộ bộ môn', ADMIN: 'Quản trị viên' } as Record<string, string>)[role] ?? role).join(', ') : 'Chưa có vai trò'}</strong>
         </div>
+        <div>
+          <span>Chức danh</span>
+          <strong>{session.user.title || 'Chưa cập nhật'}</strong>
+        </div>
+        <div>
+          <span>Số điện thoại</span>
+          <strong>{session.user.phone || 'Chưa cập nhật'}</strong>
+        </div>
       </div>
 
       <AcademicProfileSummary />
@@ -80,12 +92,11 @@ export function ProfilePage() {
 
       {isEditing ? <form className="auth-form" onSubmit={submit} noValidate>
         <label htmlFor="profile-name">Họ và tên</label><input id="profile-name" name="fullName" defaultValue={session.user.fullName} required />
-        <label htmlFor="profile-phone">Số điện thoại</label><input id="profile-phone" name="phone" type="tel" autoComplete="tel" />
-        <label htmlFor="profile-job-title">Chức danh</label><input id="profile-job-title" name="title" autoComplete="organization-title" />
+        <label htmlFor="profile-phone">Số điện thoại</label><input id="profile-phone" name="phone" type="tel" autoComplete="tel" defaultValue={session.user.phone ?? ''} />
+        <label htmlFor="profile-job-title">Chức danh</label><input id="profile-job-title" name="title" autoComplete="organization-title" defaultValue={session.user.title ?? ''} />
         <div className="auth-actions"><Button type="submit">Lưu hồ sơ</Button><Button type="button" variant="secondary" onClick={() => setIsEditing(false)}>Hủy</Button></div>
       </form> : <div className="auth-actions"><Button onClick={() => setIsEditing(true)}>Chỉnh sửa hồ sơ</Button><Link className="profile-security-link" to="/profile/security">Bảo mật tài khoản<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link></div>}
     </section>
     </WorkspacePage>
   )
 }
-
