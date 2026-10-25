@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams, useLocation, useNavigate } from 'react-router-dom'
 import { useExecutionAccess } from '../../execution/context/ExecutionAccessContext'
 import { ExecutionPage, ExIcon, ExPagination, ExState } from '../../execution/execution-ui'
 import { executionError, priorityLabels, taskTransitions } from '../../execution/execution-utils'
@@ -19,6 +19,9 @@ const positiveId = (value: string | null) => { const id = Number(value); return 
 
 export function TaskBoardPage() {
   const { project, team, currentUserId, routeBase } = useExecutionAccess()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [assistantDraft, setAssistantDraft] = useState<{ title: string; description: string } | undefined>()
   const access = useExecutionAccess()
   const canCreate = canUseProjectExecutionAction(access, 'create_task')
   const [params, setParams] = useSearchParams()
@@ -37,6 +40,13 @@ export function TaskBoardPage() {
   const [advanced, setAdvanced] = useState(Boolean(priority || milestoneId || overdue || majorId || disciplineRole))
   const [view, setView] = useState<'list' | 'status' | 'board' | 'sprint'>('list')
   const [creating, setCreating] = useState(false)
+  useEffect(() => {
+    const incoming = location.state?.assistantDraft
+    if (canCreate && incoming?.kind === 'TASK' && incoming.projectId === project.id && typeof incoming.title === 'string' && typeof incoming.description === 'string') {
+      setAssistantDraft({ title: incoming.title.slice(0, 255), description: incoming.description.slice(0, 4000) }); setCreating(true)
+      navigate(location.pathname + location.search, { replace: true, state: null })
+    }
+  }, [location, navigate, project.id, canCreate])
   const [created, setCreated] = useState(false)
   const createRef = useRef<HTMLButtonElement>(null)
   const restoreCreateFocus = useRef(false)
@@ -114,7 +124,7 @@ export function TaskBoardPage() {
     for (const [key, value] of Object.entries(draft)) if (value) next.set(key, String(value))
     setParams(next)
   }
-  const closeCreate = () => { restoreCreateFocus.current = true; setCreating(false) }
+  const closeCreate = () => { restoreCreateFocus.current = true; setCreating(false); setAssistantDraft(undefined) }
   useEffect(() => {
     if (!creating && restoreCreateFocus.current) { createRef.current?.focus(); restoreCreateFocus.current = false }
   }, [creating])
@@ -123,7 +133,7 @@ export function TaskBoardPage() {
     action={<><button className="ex-button" onClick={refresh} disabled={loading}><ExIcon name="refresh" />Cập nhật</button>{canCreate && <button ref={createRef} className="ex-button ex-button-primary" onClick={() => { setCreating(true); setCreated(false) }} disabled={creating}><ExIcon name="add" />Tạo công việc</button>}</>}>
     {created && <p className="ex-notice" role="status">Đã tạo công việc.</p>}
     {dragNotice && <p className="ex-notice" role="status">{dragNotice}</p>}
-    {creating && (milestoneLoading ? <ExState loading /> : milestoneError ? <ExState message={milestoneError} retry={refresh} /> : eligibleMilestones.length ? <div className="mb-6"><WorkspaceTaskForm project={project} members={members} milestones={eligibleMilestones} onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); refresh() }} /></div>
+    {creating && (milestoneLoading ? <ExState loading /> : milestoneError ? <ExState message={milestoneError} retry={refresh} /> : eligibleMilestones.length ? <div className="mb-6"><WorkspaceTaskForm initialDraft={assistantDraft} project={project} members={members} milestones={eligibleMilestones} onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); refresh() }} /></div>
       : <section className="ex-panel"><ExState title="Cần có mốc đồ án đang thực hiện" message="Tạo một mốc trước khi thêm công việc cho nhóm." action={<Link className="ex-button" to={`${routeBase}/milestones`}>Quản lý mốc đồ án</Link>} /><div className="ex-padding"><button className="ex-text-button" onClick={closeCreate}>Đóng</button></div></section>)}
     <section className="ex-panel task-board-panel" aria-label="Danh sách công việc">
       <div className="ex-toolbar"><div className="ex-tabs" role="group" aria-label="Phạm vi công việc"><button aria-pressed={!assigneeUserId} onClick={() => updateParams('assignee', '')}>Cả nhóm</button>{currentUserId && <button aria-pressed={assigneeUserId === currentUserId} onClick={() => updateParams('assignee', String(currentUserId))}>Của tôi</button>}

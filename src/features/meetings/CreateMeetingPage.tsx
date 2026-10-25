@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { createMeeting, createMeetingSeries } from '../../services/api/meetings.api'
 import type { CreateMeeting } from './meeting-types'
@@ -19,6 +19,13 @@ function CreateMeetingView() {
   const { project, routeBase, currentUserId } = access
   const canSchedule = canUseProjectExecutionAction(access, 'schedule_meeting')
   const navigate = useNavigate()
+  const location = useLocation()
+  const [assistantDraft] = useState(() => {
+    const draft = location.state?.assistantDraft
+    return draft?.kind === 'MEETING' && draft.projectId === project.id && typeof draft.title === 'string' && typeof draft.description === 'string'
+      ? { title: draft.title.slice(0, 255), description: draft.description.slice(0, 4000) } : undefined
+  })
+  useEffect(() => { if (location.state?.assistantDraft) navigate(location.pathname, { replace: true, state: null }) }, [location, navigate])
   const candidates = useMeetingCandidates(project.id, project.teamId, canSchedule)
   const [busy, setBusy] = useState(false)
   const locked = useRef(false)
@@ -52,7 +59,7 @@ function CreateMeetingView() {
         {candidates.loading && <p role="status" className="mtg-help">Đang tải thành viên và GVHD…</p>}
         {candidates.error && <MeetingError message={`Chưa tải được danh sách mời. ${candidates.error}`} retry={candidates.retry} />}
         {candidates.notice && <p className="mtg-notice">{candidates.notice}</p>}
-        <MeetingScheduleForm busy={busy} locked={uncertain} currentUserId={currentUserId} candidates={candidates.data} onSave={save} onDirty={() => setDirty(true)} />
+        <MeetingScheduleForm initialDraft={assistantDraft} busy={busy} locked={uncertain} currentUserId={currentUserId} candidates={candidates.data} onSave={save} onDirty={() => setDirty(true)} />
       </section>
     </>}
   </MeetingShell>
