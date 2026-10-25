@@ -5,6 +5,7 @@ import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { classifyAcademicError } from '../utils/academic-error-utils'
+import { dateTimeLabel, localDateTime, toUtcDateTime } from '../../execution/execution-utils'
 import { useAcademicGovernance } from '../hooks/useAcademicGovernance'
 import { projectPeriodTypes, type GovernanceStatus, type ProjectPeriod, type ProjectPeriodDraft, type Semester, type SemesterDraft } from '../types/governance.types'
 import './academic-governance.css'
@@ -17,8 +18,8 @@ type Editor = { kind: 'semester'; record?: Semester } | { kind: 'period'; record
 
 function errorText(reason: unknown) { return classifyAcademicError(reason, 'Không thể đồng bộ cấu hình học vụ. Hãy thử lại.') }
 function toDate(value: string) { return value.slice(0, 10) }
-function toDateTime(value: string) { return value.slice(0, 16) }
-function formatDateTime(value: string) { const date = new Date(value); return Number.isNaN(date.valueOf()) ? value : date.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) }
+function toDateTime(value: string) { return localDateTime(value) }
+function formatDateTime(value: string) { return dateTimeLabel(value) }
 
 export function AcademicGovernancePage() {
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
@@ -105,10 +106,14 @@ function ProjectPeriodForm({ record, semesters, error, submitting, onCancel, onS
   const [validationError, setValidationError] = useState('')
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const form = new FormData(event.currentTarget), startAt = String(form.get('startAt')), endAt = String(form.get('endAt'))
+    const form = new FormData(event.currentTarget)
+    const rawStartAt = String(form.get('startAt'))
+    const rawEndAt = String(form.get('endAt'))
+    const startAt = toUtcDateTime(rawStartAt) ?? rawStartAt
+    const endAt = toUtcDateTime(rawEndAt) ?? rawEndAt
     const minTeamSize = record?.minTeamSize ?? Number(form.get('minTeamSize')), maxTeamSize = record?.maxTeamSize ?? Number(form.get('maxTeamSize'))
     const minDistinctMajors = record?.minDistinctMajors ?? Number(form.get('minDistinctMajors')), maxProjectsPerSupervisor = record?.maxProjectsPerSupervisor ?? Number(form.get('maxProjectsPerSupervisor'))
-    if (startAt >= endAt) { setValidationError('Thời gian kết thúc phải sau thời gian bắt đầu.'); return }
+    if (!rawStartAt || !rawEndAt || rawStartAt >= rawEndAt) { setValidationError('Thời gian kết thúc phải sau thời gian bắt đầu.'); return }
     if (maxTeamSize < minTeamSize || minDistinctMajors > maxTeamSize) { setValidationError('Kiểm tra số thành viên tối thiểu, tối đa và số ngành tham gia.'); return }
     setValidationError('')
     void onSubmit({ id: record?.id, academicSemesterId: record?.academicSemesterId ?? Number(form.get('semesterId')), code: String(form.get('code')).trim(), name: String(form.get('name')).trim(), periodType: String(form.get('periodType')) as ProjectPeriodDraft['periodType'], startAt, endAt, minTeamSize, maxTeamSize, minDistinctMajors, maxProjectsPerSupervisor, rubricId: record?.rubricId ?? null })

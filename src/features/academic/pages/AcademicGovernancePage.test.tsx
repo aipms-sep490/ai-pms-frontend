@@ -1,5 +1,5 @@
 import { HttpError } from '../../../services/http/http-client'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { AcademicGovernancePage } from './AcademicGovernancePage'
@@ -103,5 +103,20 @@ describe('AcademicGovernancePage', () => {
     })
     render(<AcademicGovernancePage />, { wrapper: MemoryRouter })
     expect(screen.getByRole('alert').textContent).toContain('trùng lặp với một giai đoạn khác cùng loại')
+  })
+  it('submits project period startAt and endAt as UTC ISO timestamps (FUNC-01)', async () => {
+    const saveProjectPeriod = vi.fn().mockResolvedValue(undefined)
+    governanceHook.useAcademicGovernance.mockReturnValue({
+      ...state(),
+      saveProjectPeriod,
+    })
+    render(<AcademicGovernancePage />, { wrapper: MemoryRouter })
+    fireEvent.click(screen.getByRole('button', { name: 'Chỉnh sửa cấu trúc' }))
+    const submitBtn = screen.getByRole('button', { name: 'Lưu cấu trúc giai đoạn' })
+    fireEvent.click(submitBtn)
+    await waitFor(() => expect(saveProjectPeriod).toHaveBeenCalledTimes(1))
+    const payload = saveProjectPeriod.mock.calls[0][0]
+    expect(payload.startAt).toContain('Z')
+    expect(payload.endAt).toContain('Z')
   })
 })
