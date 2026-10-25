@@ -1,3 +1,4 @@
+import { readAssistantStreamResult } from './assistant-stream-result.mjs'
 import { chromium } from '@playwright/test'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -33,10 +34,10 @@ try {
   for (const item of cases) {
     await page.getByLabel('Đính kèm ảnh hoặc tài liệu').setInputFiles({ name: item.name, mimeType: item.mimeType, buffer: item.buffer })
     await page.getByLabel('Câu hỏi học vụ').fill(item.query)
-    const responsePromise = page.waitForResponse(r => r.url().endsWith('/assistant/ask-with-files'), { timeout: 65000 })
+    const responsePromise = page.waitForResponse(r => r.url().endsWith('/assistant/stream'), { timeout: 65000 })
     await page.getByRole('button', { name: 'Gửi', exact: true }).click()
     const response = await responsePromise
-    const result = await response.json()
+    const result = await readAssistantStreamResult(response, page)
     results.push({ file: item.name, status: response.status(), answer: result.answer, type: result.answerType, runId: result.runId })
     if (!response.ok() || result.answerType !== 'ATTACHMENT' || !item.expected.test(result.answer)) throw new Error(`Unexpected upload response: ${item.name}`)
     await page.getByText(result.answer, { exact: true }).waitFor()

@@ -1,3 +1,4 @@
+import { readAssistantStreamResult } from './assistant-stream-result.mjs'
 import { chromium } from '@playwright/test'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -26,10 +27,10 @@ try {
   await page.waitForURL('**/project/overview')
   for (const item of cases) {
     await page.getByLabel('Câu hỏi học vụ').fill(item.query)
-    const responsePromise = page.waitForResponse(r => r.url().endsWith('/academic/assistant/ask'), { timeout: 65000 })
+    const responsePromise = page.waitForResponse(r => r.url().endsWith('/academic/assistant/stream'), { timeout: 65000 })
     await page.getByRole('button', { name: 'Gửi', exact: true }).click()
     const response = await responsePromise
-    const result = await response.json()
+    const result = await readAssistantStreamResult(response, page)
     results.push({ query: item.query, status: response.status(), answer: result.answer, answerType: result.answerType, generationStatus: result.generationStatus, citationCount: result.citations?.length, runId: result.runId })
     if (!response.ok() || !result.runId || (item.type && result.answerType !== item.type)) throw new Error(`Unexpected response for ${item.query}`)
     if (item.type === 'GENERAL' && (result.citations.length || result.generationStatus !== 'COMPLETED')) throw new Error('General answer must complete without document citations.')

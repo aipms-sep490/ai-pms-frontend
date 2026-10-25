@@ -6,8 +6,8 @@ import { useProjectDisciplineScope } from '../hooks/useProjectDisciplineScope'
 import '../pages/collaboration-workspace.css'
 import './workspace-task-form.css'
 
-export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCreated }: {
-  project: ProjectDto; milestones: Pick<MilestoneDto, 'id' | 'title'>[]; members: TeamMemberDto[]; onCancel: () => void; onCreated: () => void
+export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCreated, initialDraft }: {
+  initialDraft?: { title: string; description: string }; project: ProjectDto; milestones: Pick<MilestoneDto, 'id' | 'title'>[]; members: TeamMemberDto[]; onCancel: () => void; onCreated: () => void
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -55,7 +55,7 @@ export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCr
       {scope.loading && <p role="status">Đang tải phạm vi ngành…</p>}
       {scope.error && <p role="alert" className="cw-form-error">{scope.error} <button type="button" className="cw-button" onClick={scope.retry}>Tải lại phạm vi ngành</button></p>}
       <fieldset disabled={busy || !scope.ready} className="cw-form-fields">
-        <label className="cw-full-width">Tên công việc<input autoFocus name="title" required maxLength={255} placeholder="Ví dụ: Hoàn thiện màn hình đăng nhập" /></label>
+        <label className="cw-full-width">Tên công việc<input autoFocus name="title" defaultValue={initialDraft?.title} required maxLength={255} placeholder="Ví dụ: Hoàn thiện màn hình đăng nhập" /></label>
         <label>Mốc đồ án<select name="milestoneId" required defaultValue=""><option value="" disabled>Chọn mốc</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
         <label><span>Hạn hoàn thành <span className="cw-optional">(không bắt buộc)</span></span><input name="dueAt" type="datetime-local" /><span className="cw-field-hint">Giờ Việt Nam (UTC+7)</span></label>
         <label>Mức ưu tiên<select name="priority" defaultValue="MEDIUM"><option value="LOW">Thấp</option><option value="MEDIUM">Bình thường</option><option value="HIGH">Cao</option><option value="CRITICAL">Khẩn cấp</option></select></label>
@@ -63,7 +63,7 @@ export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCr
           <label>Ngành chính<select name="primaryMajor" value={primary} required={scope.interdisciplinary} onChange={event => setPrimary(event.target.value)}><option value="">{scope.interdisciplinary ? 'Chọn ngành chính' : 'Chưa phân loại'}</option>{scope.majors.map(item => <option key={item.majorId} value={item.majorId}>{item.majorName}</option>)}</select></label>
           <fieldset className="cw-full-width cw-assignees"><legend>Ngành hỗ trợ</legend><p className="cw-field-hint">Công việc liên ngành cần đúng một ngành chính. Chỉ chọn ngành thuộc phạm vi đồ án.</p><div>{scope.majors.filter(item => String(item.majorId) !== primary).map(item => <label key={item.majorId}><input type="checkbox" name="supportingMajor" value={item.majorId} />{item.majorName}</label>)}</div></fieldset>
         </>}
-        <label className="cw-full-width"><span>Mô tả <span className="cw-optional">(không bắt buộc)</span></span><textarea name="description" rows={2} maxLength={10000} placeholder="Kết quả cần đạt và thông tin để bắt đầu công việc" /></label>
+        <label className="cw-full-width"><span>Mô tả <span className="cw-optional">(không bắt buộc)</span></span><textarea name="description" defaultValue={initialDraft?.description} rows={2} maxLength={10000} placeholder="Kết quả cần đạt và thông tin để bắt đầu công việc" /></label>
         <fieldset className="cw-full-width cw-assignees"><legend>Người phụ trách</legend><p className="cw-field-hint">Có thể chọn nhiều người hoặc phân công sau.</p>
           <div>{members.map(member => <label key={member.userId}><input type="checkbox" name="assignee" value={member.userId} />{member.fullName}</label>)}</div>
         </fieldset>

@@ -1,6 +1,8 @@
 import { useContext, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import type { AssistantDraft } from './academic-ai-api'
+import type { EvidenceReference } from './ai-api'
 import { env } from '../../app/config/env'
 import { StudentJourneyContext } from '../../app/context/StudentJourneyContext'
 import { useAuthSession } from '../auth/context/useAuthSession'
@@ -16,11 +18,15 @@ export function AssistantDock() {
   const routeProject = pathname.match(/^\/(?:supervisor|mentor|department)\/projects\/(\d+)(?:\/|$)/)?.[1]
   const studentProject = /^\/project(?:\/|$)/.test(pathname) && !journey?.isLoading && !journey?.error ? journey?.project?.id : undefined
   const projectId = routeProject ? Number(routeProject) : studentProject
-  const scopeKey = `${session.user.id}:${journey?.semester?.id ?? 'none'}:${projectId ?? 'general'}`
-  return createPortal(<SessionAssistantDock key={session.user.id} scopeKey={scopeKey} projectId={projectId} autoOpen={state?.openAssistant === true} />, document.body)
+  const scopeKey = `${session.user.id}:${projectId ? journey?.semester?.id ?? 'none' : 'general'}:${projectId ?? 'general'}`
+  const pageLabels: Record<string, string> = { tasks: 'Công việc', meetings: 'Cuộc họp', deliverables: 'Minh chứng bàn giao', overview: 'Tổng quan', milestones: 'Mốc tiến độ', evaluations: 'Chấm điểm', results: 'Kết quả', team: 'Nhóm', ai: 'Trợ lý và phân tích', workspace: 'Không gian làm việc' }
+  const pageContext = pathname.split('/').map(part => pageLabels[part]).filter(Boolean).join(' / ') || 'Hỏi đáp chung'
+  const routeBase = pathname.startsWith('/project/') ? '/project' : pathname.match(/^\/supervisor\/projects\/\d+/)?.[0]
+  return createPortal(<SessionAssistantDock key={session.user.id} scopeKey={scopeKey} projectId={projectId} pageContext={pageContext} routeBase={routeBase} autoOpen={state?.openAssistant === true} />, document.body)
 }
 
-function SessionAssistantDock({ scopeKey, projectId, autoOpen }: { scopeKey: string; projectId?: number; autoOpen: boolean }) {
+function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, routeBase }: { scopeKey: string; projectId?: number; autoOpen: boolean; pageContext: string; routeBase?: string }) {
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [reset, setReset] = useState(0)
@@ -28,6 +34,17 @@ function SessionAssistantDock({ scopeKey, projectId, autoOpen }: { scopeKey: str
   const launcher = useRef<HTMLButtonElement>(null)
   const show = () => { setMounted(true); setOpen(true); window.dispatchEvent(new CustomEvent(floatingPanelEvent, { detail: 'assistant' })) }
   const hide = () => { setOpen(false); launcher.current?.focus() }
+  const useDraft = (draft: AssistantDraft) => {
+    if (!routeBase || !projectId) return
+    hide()
+    navigate(`${routeBase}/${draft.kind === 'TASK' ? 'tasks' : 'meetings/new'}`, { state: { assistantDraft: { ...draft, projectId } } })
+  }
+  const openEvidence = (evidence: EvidenceReference) => {
+    const match = evidence.referenceUrl?.match(/^\/api\/v1\/(tasks|milestones|meetings|progress-reports)\/(\d+)$/)
+    if (!routeBase || !match) return
+    hide()
+    navigate(`${routeBase}/${match[1] === 'progress-reports' ? 'reports' : match[1]}/${match[2]}`)
+  }
   useEffect(() => { if (autoOpen) show() }, [autoOpen])
   useEffect(() => {
     const openChat = () => show()
@@ -72,7 +89,7 @@ function SessionAssistantDock({ scopeKey, projectId, autoOpen }: { scopeKey: str
         <button type="button" aria-label="Thu nhỏ trợ lý AI" onClick={hide}><span className="material-symbols-outlined" aria-hidden="true">remove</span></button>
         <button type="button" aria-label="Đóng trợ lý AI" onClick={hide}><span className="material-symbols-outlined" aria-hidden="true">close</span></button>
       </header>
-      {mounted && <AcademicAssistantPanel key={`${scopeKey}:${reset}`} projectId={projectId} dock />}
+      {mounted && <AcademicAssistantPanel key={`${scopeKey}:${reset}`} projectId={projectId} pageContext={pageContext} onUseDraft={routeBase && projectId ? useDraft : undefined} onOpenEvidence={routeBase && projectId ? openEvidence : undefined} dock />}
     </dialog>
     <button ref={launcher} type="button" className="assistant-launcher" aria-label={open ? 'Thu nhỏ trợ lý AI' : 'Mở trợ lý AI'} aria-expanded={open} aria-controls="assistant-dock-dialog" title="Trợ lý AI" onClick={open ? hide : show}>
       <span className="material-symbols-outlined" aria-hidden="true">{open ? 'expand_more' : 'smart_toy'}</span><span className="assistant-launcher-badge" aria-hidden="true">AI</span>

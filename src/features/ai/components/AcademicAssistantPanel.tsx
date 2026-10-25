@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { askAcademicAssistant, askAcademicAssistantWithFiles, downloadAssistantAnswer, type AcademicAssistantResponse } from '../academic-ai-api'
+import { askAcademicAssistant, askAcademicAssistantWithFiles, downloadAssistantAnswer, createAssistantConversation, listAssistantConversations, getAssistantConversation, deleteAssistantConversation, getAssistantCitation, streamAssistant, type AssistantConversation, type AssistantDraft, type KnowledgeCitation, type AcademicAssistantResponse } from '../academic-ai-api'
+import { AssistantDraftCard } from './AssistantDraftCard'
+import type { EvidenceReference } from '../ai-api'
 import { HttpError } from '../../../services/http/http-client'
 
 const quickQuestions = ['Tôi cần làm gì ở giai đoạn hiện tại?', 'Hạn nộp và biểu mẫu cần dùng là gì?', 'Rubric của ngành tôi gồm những tiêu chí nào?', 'Điều kiện để công bố điểm là gì?']
@@ -14,9 +16,20 @@ function ImagePreview({ file }: { file: File }) {
   return url ? <img src={url} alt={`Xem trước ${file.name}`} className="h-14 w-14 shrink-0 rounded-md object-cover" /> : null
 }
 
-type ChatTurn = { id: number; query: string; fileNames: string[]; response?: AcademicAssistantResponse; error?: string }
+type ChatTurn = { id: number; query: string; fileNames: string[]; response?: AcademicAssistantResponse; error?: string; preview?: string }
 
-export function AcademicAssistantPanel({ projectId, dock = false }: { projectId?: number; dock?: boolean }) {
+export function AcademicAssistantPanel({ projectId, dock = false, pageContext = '', onUseDraft, onOpenEvidence }: { projectId?: number; dock?: boolean; pageContext?: string; onUseDraft?: (draft: AssistantDraft) => void; onOpenEvidence?: (evidence: EvidenceReference) => void }) {
+  const [conversation, setConversation] = useState<AssistantConversation | null>(null)
+  const [conversations, setConversations] = useState<AssistantConversation[]>([])
+  const [showHistory, setShowHistory] = useState(false)
+  const [historyBusy, setHistoryBusy] = useState(false)
+  const [moreHistory, setMoreHistory] = useState(false)
+  const [moreTurns, setMoreTurns] = useState(false)
+  const [source, setSource] = useState<KnowledgeCitation | null>(null)
+  const [draftKind, setDraftKind] = useState<AssistantDraft['kind'] | undefined>()
+  const historyRequest = useRef<AbortController | null>(null)
+  const sourceRequest = useRef<AbortController | null>(null)
+  const sending = useRef(false)
   const [query, setQuery] = useState('')
   const [turns, setTurns] = useState<ChatTurn[]>([])
   const sequence = useRef(0)
@@ -31,10 +44,53 @@ export function AcademicAssistantPanel({ projectId, dock = false }: { projectId?
   const fileInput = useRef<HTMLInputElement | null>(null)
   useEffect(() => { history.current?.scrollTo?.({ top: history.current.scrollHeight, behavior: 'smooth' }) }, [turns])
   useEffect(() => {
-    request.current?.abort(); download.current?.abort()
+    request.current?.abort(); download.current?.abort(); historyRequest.current?.abort(); sourceRequest.current?.abort()
+    sending.current = false; setConversation(null); setConversations([]); setShowHistory(false); setSource(null)
     setAnswer(null); setTurns([]); setQuery(''); setError(null); setFiles([]); setBusy(false); setDownloading(false)
-    return () => { request.current?.abort(); download.current?.abort() }
+    return () => { request.current?.abort(); download.current?.abort(); historyRequest.current?.abort(); sourceRequest.current?.abort() }
   }, [projectId])
+
+  const loadHistory = async (more = false) => {
+    historyRequest.current?.abort()
+    const controller = new AbortController(); historyRequest.current = controller
+    setHistoryBusy(true); setShowHistory(true); setError(null)
+    try {
+      const items = await listAssistantConversations(projectId, more ? conversations.at(-1)?.id : undefined, controller.signal)
+      if (!controller.signal.aborted) { setConversations(current => more ? [...current, ...items] : items); setMoreHistory(items.length === 20) }
+    } catch { if (!controller.signal.aborted) setError('Chưa tải được lịch sử hội thoại.') }
+    finally { if (!controller.signal.aborted) setHistoryBusy(false) }
+  }
+  const openConversation = async (id: number, older = false) => {
+    if (sending.current) return
+    historyRequest.current?.abort(); sourceRequest.current?.abort()
+    const controller = new AbortController(); historyRequest.current = controller
+    setHistoryBusy(true); setError(null); setSource(null)
+    try {
+      const detail = await getAssistantConversation(id, older ? turns[0]?.id : undefined, controller.signal)
+      if (!controller.signal.aborted) {
+        setConversation(detail.conversation); setMoreTurns(detail.hasMore)
+        const loaded = detail.turns.map(turn => ({ ...turn, fileNames: turn.response.attachments?.map(file => file.fileName) ?? [] }))
+        setTurns(current => older ? [...loaded, ...current] : loaded); setShowHistory(false); setFiles([])
+      }
+    } catch { if (!controller.signal.aborted) setError('Không mở được hội thoại. Có thể quyền truy cập đã thay đổi.') }
+    finally { if (!controller.signal.aborted) setHistoryBusy(false) }
+  }
+  const removeConversation = async (id: number) => {
+    if (!window.confirm('Xóa hội thoại khỏi lịch sử? Nhật ký kiểm toán hệ thống được giữ lại.')) return
+    const controller = new AbortController(); historyRequest.current?.abort(); historyRequest.current = controller
+    setHistoryBusy(true)
+    try {
+      await deleteAssistantConversation(id, controller.signal)
+      if (!controller.signal.aborted) { setConversations(items => items.filter(item => item.id !== id)); if (conversation?.id === id) { setConversation(null); setTurns([]) } }
+    } catch { if (!controller.signal.aborted) setError('Chưa xóa được hội thoại.') }
+    finally { if (!controller.signal.aborted) setHistoryBusy(false) }
+  }
+  const openSource = async (runId: number, index: number) => {
+    sourceRequest.current?.abort(); const controller = new AbortController(); sourceRequest.current = controller
+    setError(null)
+    try { const citation = await getAssistantCitation(runId, index, controller.signal); if (!controller.signal.aborted) setSource(citation) }
+    catch { if (!controller.signal.aborted) setError('Không mở được nguồn. Kiểm tra lại quyền truy cập.') }
+  }
 
   const chooseFiles = (incoming: File[]) => {
     const next = [...files, ...incoming]
@@ -50,27 +106,44 @@ export function AcademicAssistantPanel({ projectId, dock = false }: { projectId?
   const ask = async (event?: FormEvent, explicitQuery?: string) => {
     event?.preventDefault()
     const value = (explicitQuery ?? query).trim()
-    if (!value || busy) return
+    if (!value || sending.current || historyBusy) return
+    sending.current = true
     request.current?.abort(); download.current?.abort()
     const controller = new AbortController(); request.current = controller
-    const turnId = ++sequence.current
-    if (dock) setTurns(current => [...current.slice(-19), { id: turnId, query: value, fileNames: files.map(file => file.name) }])
+    const turnId = --sequence.current
+    if (dock) setTurns(current => [...current, { id: turnId, query: value, fileNames: files.map(file => file.name) }])
     setQuery(dock ? '' : value); setBusy(true); setError(null); setAnswer(null); setDownloading(false)
     try {
-      const result = files.length
+      let active = conversation
+      if (dock && !active) {
+        active = await createAssistantConversation(projectId, controller.signal)
+        if (controller.signal.aborted) return
+        setConversation(active)
+      }
+      const result = dock && active
+        ? await streamAssistant(value, files, active, pageContext, draftKind, text => {
+          if (!controller.signal.aborted) setTurns(current => current.map(turn => turn.id === turnId ? { ...turn, preview: text } : turn))
+        }, controller.signal)
+        : files.length
         ? await askAcademicAssistantWithFiles(value, files, projectId, controller.signal)
         : await askAcademicAssistant(value, projectId, controller.signal)
       if (!controller.signal.aborted) {
         setAnswer(result)
+        if (active) setConversation({ ...active, revision: result.revision ?? active.revision, title: active.revision === 0 ? value.slice(0, 120) : active.title })
         if (dock) { setTurns(current => current.map(turn => turn.id === turnId ? { ...turn, response: result } : turn)); setFiles([]) }
       }
     } catch (err) {
       if (!controller.signal.aborted) {
-        const message = err instanceof HttpError && [400, 409, 413].includes(err.status) ? err.message : 'Chưa nhận được phản hồi từ trợ lý. Hãy thử lại sau.'
+        const message = err instanceof HttpError && [400, 409, 413].includes(err.status) ? err.message : 'Chưa nhận được phản hồi đầy đủ. Mở lại lịch sử để kiểm tra trước khi gửi lại.'
         setError(message)
         if (dock) { setTurns(current => current.map(turn => turn.id === turnId ? { ...turn, error: message } : turn)); setQuery(value) }
       }
-    } finally { if (!controller.signal.aborted) setBusy(false) }
+    } finally { if (!controller.signal.aborted) { setBusy(false); sending.current = false } }
+  }
+
+  const stop = () => {
+    request.current?.abort(); sending.current = false; setBusy(false)
+    setTurns(current => current.map(turn => !turn.response && !turn.error ? { ...turn, preview: undefined, error: 'Đã dừng. Mở lại lịch sử nếu câu trả lời vừa kịp lưu.' } : turn))
   }
 
   const saveAnswer = async (format: 'txt' | 'md', selectedAnswer: AcademicAssistantResponse) => {
@@ -97,13 +170,22 @@ export function AcademicAssistantPanel({ projectId, dock = false }: { projectId?
       {answer.insufficientEvidence && <p className="mt-3 text-sm text-status-warning-text">Chưa đủ căn cứ chính thức để kết luận.</p>}
       {answer.limitationNote && <p className="mt-3 text-xs text-ink-muted">{answer.limitationNote}</p>}
       {!!answer.attachments?.length && <p className="mt-3 break-words text-xs text-ink-muted">Tệp tham chiếu: {answer.attachments.map(file => file.fileName).join(', ')}</p>}
+      {answer.draft && <AssistantDraftCard draft={answer.draft} onUse={onUseDraft} />}
       {!!answer.runId && <div className="mt-4 flex flex-wrap gap-3"><button type="button" disabled={downloading} onClick={() => void saveAnswer('txt', answer)} className="rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-semibold text-primary disabled:opacity-50">Tải TXT</button><button type="button" disabled={downloading} onClick={() => void saveAnswer('md', answer)} className="rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-semibold text-primary disabled:opacity-50">Tải Markdown</button></div>}
-      {answer.citations.length > 0 && <><h3 className="mt-4 text-sm font-semibold text-ink">Tài liệu tham chiếu</h3><ul className="mt-2 space-y-2">{answer.citations.map((item, index) => <li key={`${item.versionId}-${index}`} className="rounded-lg border border-hairline bg-card p-3"><p className="text-sm font-semibold text-ink">{item.title} · v{item.version}</p><p className="mt-1 text-xs text-ink-muted">{item.documentType}{item.section ? ` · ${item.section}` : ''}{item.page ? ` · trang ${item.page}` : ''}</p><p className="mt-2 text-sm leading-6 text-ink-soft">{item.excerpt}</p></li>)}</ul></>}
-      {answer.projectEvidence.length > 0 && <><h3 className="mt-4 text-sm font-semibold text-ink">Dữ liệu project</h3><ul className="mt-2 space-y-2">{answer.projectEvidence.map((item, index) => <li key={index} className="rounded-lg border border-hairline bg-card p-3 text-sm"><p className="font-semibold">{item.title}</p><p className="mt-1 text-ink-soft">{item.excerpt}</p></li>)}</ul></>}
+      {answer.citations.length > 0 && <><h3 className="mt-4 text-sm font-semibold text-ink">Tài liệu tham chiếu</h3><ul className="mt-2 space-y-2">{answer.citations.map((item, index) => <li key={`${item.versionId}-${index}`} className="rounded-lg border border-hairline bg-card p-3"><p className="text-sm font-semibold text-ink">{answer.runId ? <button type="button" className="underline underline-offset-4" onClick={() => void openSource(answer.runId!, index)}>{item.title} · v{item.version}</button> : <>{item.title} · v{item.version}</>}</p><p className="mt-1 text-xs text-ink-muted">{item.documentType}{item.section ? ` · ${item.section}` : ''}{item.page ? ` · trang ${item.page}` : ''}</p><p className="mt-2 text-sm leading-6 text-ink-soft">{item.excerpt}</p></li>)}</ul></>}
+      {answer.projectEvidence.length > 0 && <><h3 className="mt-4 text-sm font-semibold text-ink">Dữ liệu project</h3><ul className="mt-2 space-y-2">{answer.projectEvidence.map((item, index) => <li key={index} className="rounded-lg border border-hairline bg-card p-3 text-sm"><p className="font-semibold">{onOpenEvidence && /^\/api\/v1\/(tasks|milestones|meetings|progress-reports)\/\d+$/.test(item.referenceUrl ?? '') ? <button type="button" className="underline underline-offset-4" onClick={() => onOpenEvidence(item)}>{item.title}</button> : item.title}</p><p className="mt-1 text-ink-soft">{item.excerpt}</p></li>)}</ul></>}
     </div>)
 
   return <section className={dock ? 'assistant-conversation' : 'rounded-xl border border-hairline bg-card p-5 shadow-xs'} aria-label="Trợ lý AI học vụ">
-    {(!dock || turns.length === 0) && <div className={dock ? 'assistant-welcome' : undefined}>
+    {dock && <div className="assistant-toolbar"><button type="button" disabled={busy || historyBusy} onClick={() => showHistory ? setShowHistory(false) : void loadHistory()}>{showHistory ? 'Trở lại chat' : 'Lịch sử hội thoại'}</button><span>{pageContext || 'Hỏi đáp chung'}</span></div>}
+    {showHistory && <div className="assistant-saved-history" aria-label="Lịch sử đã lưu">
+      {historyBusy && <p role="status">Đang tải…</p>}
+      {!historyBusy && conversations.length === 0 && <p>Chưa có hội thoại trong phạm vi này.</p>}
+      {conversations.map(item => <div key={item.id}><button type="button" disabled={historyBusy} onClick={() => void openConversation(item.id)}><strong>{item.title}</strong><small>{new Date(item.updatedAt).toLocaleString('vi-VN')}</small></button><button type="button" disabled={historyBusy} aria-label={`Xóa hội thoại ${item.title}`} onClick={() => void removeConversation(item.id)}>Xóa</button></div>)}
+      {moreHistory && <button type="button" disabled={historyBusy} onClick={() => void loadHistory(true)}>Xem thêm hội thoại</button>}
+    </div>}
+    {source && <aside className="assistant-source" aria-label="Nguồn trích dẫn"><button type="button" onClick={() => setSource(null)}>Đóng nguồn</button><h3>{source.title} · {source.version}</h3><p>{source.section}{source.page ? ` · Trang ${source.page}` : ''}</p><p className="whitespace-pre-wrap">{source.excerpt}</p><small>Trích đoạn được lưu tại thời điểm trả lời; không phải toàn bộ tệp gốc.</small></aside>}
+    {!showHistory && (!dock || turns.length === 0) && <div className={dock ? 'assistant-welcome' : undefined}>
     <div>
       <p className="font-mono text-xs font-semibold uppercase tracking-wide text-primary">Học vụ và hỏi đáp</p>
       <h2 className="mt-1 font-heading text-lg font-semibold text-ink">Bạn muốn hỏi gì hôm nay?</h2>
@@ -111,11 +193,11 @@ export function AcademicAssistantPanel({ projectId, dock = false }: { projectId?
     </div>
     <div className="mt-3 flex flex-wrap gap-2">{quickQuestions.map(item => <button key={item} type="button" disabled={busy} className="rounded-full border border-hairline px-3 py-2 text-xs text-ink-soft hover:border-primary hover:text-primary disabled:opacity-50" onClick={() => void ask(undefined, item)}>{item}</button>)}</div>
     </div>}
-    {dock && <div ref={history} className="assistant-history" role="log" aria-label="Cuộc trò chuyện với trợ lý" aria-live="polite">{turns.map(turn => <div key={turn.id} className="assistant-turn">
+    {dock && !showHistory && <div ref={history} className="assistant-history" role="log" aria-label="Cuộc trò chuyện với trợ lý" aria-live="polite">{moreTurns && conversation && <button type="button" disabled={busy || historyBusy} onClick={() => void openConversation(conversation.id, true)}>Xem tin nhắn trước</button>}{turns.map(turn => <div key={turn.id} className="assistant-turn">
       <div className="assistant-user-bubble"><p>{turn.query}</p>{turn.fileNames.map((name, index) => <small key={index}>{name}</small>)}</div>
-      {turn.response ? renderAnswer(turn.response) : turn.error ? <p className="assistant-turn-error">{turn.error}</p> : <p className="assistant-thinking" role="status">Trợ lý đang trả lời<span aria-hidden="true">…</span></p>}
+      {turn.response ? renderAnswer(turn.response) : turn.error ? <p className="assistant-turn-error">{turn.error}</p> : <div className="assistant-thinking" role="status"><small>Đang viết · nội dung tạm, chưa xác minh nguồn</small><p className="whitespace-pre-wrap">{turn.preview || 'Trợ lý đang trả lời…'}</p></div>}
     </div>)}</div>}
-    <form className={dock ? 'assistant-composer' : 'mt-4 flex flex-col gap-3'} onSubmit={event => void ask(event)}>
+    <form hidden={showHistory} className={dock ? 'assistant-composer' : 'mt-4 flex flex-col gap-3'} onSubmit={event => void ask(event)}>
       <textarea aria-label="Câu hỏi học vụ" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (dock && event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void ask() } }} onPaste={event => { if (!busy && event.clipboardData.files.length) { event.preventDefault(); chooseFiles(Array.from(event.clipboardData.files)) } }} rows={dock ? 2 : 3} maxLength={2000} className="rounded-lg border border-hairline bg-card p-3 text-sm text-ink" placeholder="Gửi ảnh và hỏi: Lỗi trong ảnh này là gì? Hoặc gửi tài liệu để nhờ tóm tắt…" />
       <input ref={fileInput} type="file" multiple accept={acceptedFiles} aria-label="Đính kèm ảnh hoặc tài liệu" className="sr-only" disabled={busy} onChange={event => { chooseFiles(Array.from(event.target.files ?? [])); event.target.value = '' }} />
       {files.length > 0 && <ul aria-label="Tệp đã chọn" className="space-y-2">{files.map((file, index) => <li key={`${file.name}-${index}`} className="flex min-w-0 items-center gap-3 rounded-lg border border-hairline bg-card p-3 text-sm">
@@ -124,11 +206,13 @@ export function AcademicAssistantPanel({ projectId, dock = false }: { projectId?
         <button type="button" disabled={busy} aria-label={`Bỏ ${file.name}`} className="shrink-0 text-primary" onClick={() => setFiles(current => current.filter((_, i) => i !== index))}>Bỏ</button>
       </li>)}</ul>}
       <div className="flex flex-wrap items-center gap-3">
+        {dock && <label className="text-xs">Chế độ<select aria-label="Chế độ trợ lý" disabled={busy} value={draftKind ?? ''} onChange={event => setDraftKind((event.target.value || undefined) as AssistantDraft['kind'] | undefined)}><option value="">Hỏi đáp</option><option value="TASK">Soạn công việc</option><option value="MEETING">Soạn lịch họp</option></select></label>}
+        {busy && <button type="button" onClick={stop}>Dừng trả lời</button>}
         <button type="button" disabled={busy || files.length >= 4} className="min-h-11 rounded-lg border border-hairline px-4 text-sm font-semibold text-ink-soft disabled:opacity-50" onClick={() => fileInput.current?.click()}>+ Ảnh / tài liệu</button>
         <button type="submit" disabled={busy || !query.trim()} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Đang trả lời…' : dock ? 'Gửi' : 'Hỏi trợ lý học vụ'}</button>
       </div>
       <details className="assistant-file-help"><summary className="text-xs text-ink-muted">Định dạng tệp và lưu ý</summary><p className="text-xs leading-5 text-ink-muted">PNG, JPG, WebP, PDF có văn bản, DOCX, TXT, MD, CSV, JSON · Tối đa 4 tệp, 4 MB/tệp, tổng 8 MB. Nội dung được gửi tới model AI; văn bản trích xuất được lưu cùng lượt hỏi, không lưu tệp gốc. Gỡ tệp sau khi hỏi nếu không muốn gửi lại.</p>
-      <p className="text-xs text-ink-muted">Tạo ảnh chưa khả dụng. Mỗi câu hỏi được xử lý độc lập; đoạn hội thoại chỉ giữ trong phiên đang mở.</p></details>
+      <p className="text-xs text-ink-muted">Tạo ảnh chưa khả dụng. Hội thoại được lưu theo tài khoản và đồ án. Trợ lý nhớ tối đa 8 lượt gần nhất; cần gửi lại ảnh/tệp để phân tích tiếp nội dung gốc.</p></details>
     </form>
     {error && <p role="alert" className="mt-3 text-sm text-status-error-text">{error}</p>}
     {!dock && answer && renderAnswer(answer)}

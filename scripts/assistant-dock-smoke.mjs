@@ -1,3 +1,4 @@
+import { readAssistantStreamResult } from './assistant-stream-result.mjs'
 import { chromium } from '@playwright/test'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -23,10 +24,10 @@ try {
   await launcher.click()
   const dialog = page.getByRole('dialog', { name: 'Trợ lý AI', exact: true })
   await dialog.getByLabel('Câu hỏi học vụ').fill('Xin chào, bạn giúp được gì?')
-  const responsePromise = page.waitForResponse(r => r.url().endsWith('/academic/assistant/ask'), { timeout: 65000 })
+  const responsePromise = page.waitForResponse(r => r.url().endsWith('/academic/assistant/stream'), { timeout: 65000 })
   await dialog.getByRole('button', { name: 'Gửi', exact: true }).click()
   const response = await responsePromise
-  const answer = await response.json()
+  const answer = await readAssistantStreamResult(response, page)
   if (!response.ok() || !answer.runId) throw new Error('Real assistant request failed')
   await dialog.getByText(answer.answer, { exact: true }).waitFor()
   if (page.url() !== initialUrl) throw new Error('Assistant changed route')
@@ -48,10 +49,10 @@ try {
   await (await downloading).saveAs(join(output, 'answer.txt'))
   await dialog.getByLabel('Đính kèm ảnh hoặc tài liệu').setInputFiles({ name: 'dock-note.txt', mimeType: 'text/plain', buffer: Buffer.from('The project code is DOCK-251.') })
   await dialog.getByLabel('Câu hỏi học vụ').fill('Mã dự án trong tệp là gì?')
-  const uploadPromise = page.waitForResponse(r => r.url().endsWith('/assistant/ask-with-files'), { timeout: 65000 })
+  const uploadPromise = page.waitForResponse(r => r.url().endsWith('/assistant/stream'), { timeout: 65000 })
   await dialog.getByRole('button', { name: 'Gửi', exact: true }).click()
   const upload = await uploadPromise
-  const uploadAnswer = await upload.json()
+  const uploadAnswer = await readAssistantStreamResult(upload, page)
   if (!upload.ok() || !uploadAnswer.answer.includes('DOCK-251')) throw new Error('Dock file submission failed')
   await dialog.getByText(uploadAnswer.answer, { exact: true }).waitFor()
   if (await dialog.getByLabel('Tệp đã chọn').count()) throw new Error('Sent attachment was not cleared')

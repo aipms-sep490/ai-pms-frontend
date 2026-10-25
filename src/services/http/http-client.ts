@@ -103,6 +103,35 @@ export async function httpPostForm<TResponse>(
   return send<TResponse>('POST', path, body, options)
 }
 
+/** Read an authenticated NDJSON stream without retrying a partially received mutation. */
+export async function httpPostStream<T>(path: string, body: FormData, onEvent: (event: T) => void, options?: HttpRequestOptions): Promise<void> {
+  const init = createRequestInit(options)
+  const response = await fetch(resolveUrl(path), { ...init, method: 'POST', body, headers: { ...init.headers, Accept: 'application/x-ndjson' } })
+  if (response.status === 401 && !options?.skipAuthRefresh) {
+    const token = await refreshAccessToken()
+    if (token) return httpPostStream(path, body, onEvent, { ...options, accessToken: token, skipAuthRefresh: true })
+  }
+  if (!response.ok) {
+    const problem = await readProblem(response)
+    throw new HttpError(problem.detail || problem.title || 'Không kết nối được trợ lý.', response.status, problem)
+  }
+  if (!response.body) throw new Error('Missing response stream')
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let pending = ''
+  let ended = false
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      pending += decoder.decode(value, { stream: !done })
+      if (pending.length > 256000) throw new Error('Stream frame too large')
+      const lines = pending.split('\n'); pending = lines.pop() ?? ''
+      for (const line of lines) if (line.trim()) onEvent(JSON.parse(line) as T)
+      if (done) { if (pending.trim()) onEvent(JSON.parse(pending) as T); ended = true; break }
+    }
+  } finally { if (!ended) await reader.cancel().catch(() => undefined); reader.releaseLock() }
+}
+
 export async function httpPut<TResponse, TBody = unknown>(
   path: string,
   body?: TBody,
