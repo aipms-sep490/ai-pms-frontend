@@ -5,14 +5,17 @@ import { useAuthSession } from '../../auth/context/useAuthSession'
 import { ExecutionAccessProvider } from '../../execution/context/ExecutionAccessProvider'
 import { HttpError } from '../../../services/http/http-client'
 import { services } from '../../../services/service-gateway'
-import type { ProjectDto, SupervisorAssignmentDto } from '../../../types/backend'
+import type { ProjectDto, SupervisorAssignmentDto, TeamDto } from '../../../types/backend'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { ExState } from '../../execution/execution-ui'
 import { loadOwnSupervisorAssignments } from '../utils/loadOwnSupervisorAssignments'
 import { useProjectExecutionCapabilities } from '../../execution/hooks/useProjectExecutionCapabilities'
 
-type AccessLoad = { project: ProjectDto; assignment: SupervisorAssignmentDto } | null
-const isActive = (status: string) => status.replaceAll('_', '').toUpperCase() === 'ACTIVE'
+type AccessLoad = { project: ProjectDto; team: TeamDto | null; assignment: SupervisorAssignmentDto } | null
+const isExecutionStatus = (status: string) => {
+  const s = status.replaceAll('_', '').toUpperCase()
+  return s === 'ACTIVE' || s === 'FINALSUBMISSION' || s === 'COMPLETED'
+}
 
 /** Verifies the current, unended primary assignment before exposing supervisor execution routes. */
 export function SupervisorExecutionRoute() {
@@ -33,7 +36,19 @@ export function SupervisorExecutionRoute() {
         loadOwnSupervisorAssignments({ status: 'ACTIVE' }),
       ])
       const assignment = assignments.find((item) => item.projectId === id && item.isPrimary && !item.endedAt)
-      setData(assignment && isActive(project.status) ? { project, assignment } : null)
+      if (assignment && isExecutionStatus(project.status)) {
+        let team: TeamDto | null = null
+        if (project.teamId && services.team?.getTeam) {
+          try {
+            team = await services.team.getTeam(project.teamId)
+          } catch {
+            team = null
+          }
+        }
+        setData({ project, team, assignment })
+      } else {
+        setData(null)
+      }
     } catch (reason) {
       if (reason instanceof HttpError && reason.status === 401) setError('Phiên đăng nhập đã hết hạn.')
       else if (reason instanceof HttpError && reason.status === 403) setError('Bạn không có quyền truy cập đồ án này.')
@@ -45,5 +60,21 @@ export function SupervisorExecutionRoute() {
   if (loading) return <PageLoading />
   if (error) return <ExState message={error} retry={() => void load()} />
   if (!data) return <Navigate to="/supervisor/workspace" replace />
-  return <ExecutionAccessProvider value={{ project: data.project, supervisor: data.assignment, currentUserId: session?.user.id, actor: 'supervisor', canManageStructure: false, executionCapabilities, routeBase: `/supervisor/projects/${id}` }}><ProjectSectionNavigation /><Outlet /></ExecutionAccessProvider>
+  return (
+    <ExecutionAccessProvider
+      value={{
+        project: data.project,
+        team: data.team,
+        supervisor: data.assignment,
+        currentUserId: session?.user.id,
+        actor: 'supervisor',
+        canManageStructure: false,
+        executionCapabilities,
+        routeBase: `/supervisor/projects/${id}`,
+      }}
+    >
+      <ProjectSectionNavigation />
+      <Outlet />
+    </ExecutionAccessProvider>
+  )
 }

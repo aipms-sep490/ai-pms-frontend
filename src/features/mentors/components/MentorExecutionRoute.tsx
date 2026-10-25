@@ -7,11 +7,14 @@ import { ExState } from '../../execution/execution-ui'
 import { ExecutionAccessProvider } from '../../execution/context/ExecutionAccessProvider'
 import { HttpError } from '../../../services/http/http-client'
 import { services } from '../../../services/service-gateway'
-import type { ProjectDto, SupervisorAssignmentDto } from '../../../types/backend'
+import type { ProjectDto, SupervisorAssignmentDto, TeamDto } from '../../../types/backend'
 import { loadOwnSupervisorAssignments } from '../../supervisors/utils/loadOwnSupervisorAssignments'
 
-type MentorAccess = { project: ProjectDto; assignment: SupervisorAssignmentDto } | null
-const isActive = (status: string) => status.replaceAll('_', '').toUpperCase() === 'ACTIVE'
+type MentorAccess = { project: ProjectDto; team: TeamDto | null; assignment: SupervisorAssignmentDto } | null
+const isExecutionStatus = (status: string) => {
+  const s = status.replaceAll('_', '').toUpperCase()
+  return s === 'ACTIVE' || s === 'FINALSUBMISSION' || s === 'COMPLETED'
+}
 
 /** A URL is insufficient: every direct Mentor route proves the exact active persisted assignment. */
 export function MentorExecutionRoute() {
@@ -34,7 +37,19 @@ export function MentorExecutionRoute() {
         loadOwnSupervisorAssignments({ status: 'ACTIVE' }),
       ])
       const assignment = assignments.find(item => item.projectId === project && item.assignmentType === 'DISCIPLINE_MENTOR' && item.majorId === major && !item.endedAt)
-      setData(assignment && isActive(projectData.status) ? { project: projectData, assignment } : null)
+      if (assignment && isExecutionStatus(projectData.status)) {
+        let team: TeamDto | null = null
+        if (projectData.teamId && services.team?.getTeam) {
+          try {
+            team = await services.team.getTeam(projectData.teamId)
+          } catch {
+            team = null
+          }
+        }
+        setData({ project: projectData, team, assignment })
+      } else {
+        setData(null)
+      }
     } catch (reason) {
       if (reason instanceof HttpError && reason.status === 401) setError('Phiên đăng nhập đã hết hạn.')
       else if (reason instanceof HttpError && reason.status === 403) setError('Bạn không có quyền truy cập mentor cho đồ án này.')
@@ -46,5 +61,20 @@ export function MentorExecutionRoute() {
   if (loading) return <PageLoading />
   if (error) return <ExState message={error} retry={() => void load()} />
   if (!data) return <Navigate to="/mentor/workspace" replace />
-  return <ExecutionAccessProvider value={{ project: data.project, supervisor: data.assignment, currentUserId: session?.user.id, actor: 'mentor', canManageStructure: false, routeBase: `/mentor/projects/${project}/majors/${major}` }}><ProjectSectionNavigation /><Outlet /></ExecutionAccessProvider>
+  return (
+    <ExecutionAccessProvider
+      value={{
+        project: data.project,
+        team: data.team,
+        supervisor: data.assignment,
+        currentUserId: session?.user.id,
+        actor: 'mentor',
+        canManageStructure: false,
+        routeBase: `/mentor/projects/${project}/majors/${major}`,
+      }}
+    >
+      <ProjectSectionNavigation />
+      <Outlet />
+    </ExecutionAccessProvider>
+  )
 }
