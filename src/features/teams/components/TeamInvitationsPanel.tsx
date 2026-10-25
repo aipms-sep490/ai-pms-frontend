@@ -192,12 +192,17 @@ export function TeamInvitationsPanel({
                       </div>
                       <div>
                         <div className="text-xs font-bold text-ink">
-                          {personName(inv.invitedUserId) || 'Sinh viên được mời'}
+                          {inv.invitedUserName || personName(inv.invitedUserId) || 'Sinh viên được mời'}
                         </div>
                         <div className="text-xs text-slate-400">
-                          {personName(inv.invitedBy) ? `Người mời: ${personName(inv.invitedBy)} · ` : ''}Gửi lúc: {dateTimeLabel(inv.createdAt)}
-                          {inv.expiresAt && ` • Hết hạn: ${new Date(inv.expiresAt).toLocaleDateString('vi-VN')}`}
+                          {inv.invitedByName || personName(inv.invitedBy) ? `Người mời: ${inv.invitedByName || personName(inv.invitedBy)} · ` : ''}Gửi lúc: {dateTimeLabel(inv.createdAt)}
+                          {inv.expiresAt && ` • Hết hạn: ${dateTimeLabel(inv.expiresAt)}`}
                         </div>
+                        {inv.message && (
+                          <div className="mt-1 text-xs text-ink-muted italic">
+                            &ldquo;{inv.message}&rdquo;
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -249,12 +254,17 @@ export function TeamInvitationsPanel({
                     </div>
                     <div>
                       <div className="text-xs font-bold text-ink">
-                        Lời mời từ nhóm #{inv.teamId}
+                        {inv.teamName ? `Lời mời từ nhóm ${inv.teamName}` : `Lời mời từ nhóm #${inv.teamId}`}
                       </div>
                       <div className="text-xs text-slate-400">
-                        {personName(inv.invitedBy) ? `Người mời: ${personName(inv.invitedBy)} · ` : ''}Nhận lúc: {dateTimeLabel(inv.createdAt)}
-                        {inv.expiresAt && ` • Hết hạn: ${new Date(inv.expiresAt).toLocaleDateString('vi-VN')}`}
+                        {inv.invitedByName || personName(inv.invitedBy) ? `Người mời: ${inv.invitedByName || personName(inv.invitedBy)} · ` : ''}Nhận lúc: {dateTimeLabel(inv.createdAt)}
+                        {inv.expiresAt && ` • Hết hạn: ${dateTimeLabel(inv.expiresAt)}`}
                       </div>
+                      {inv.message && (
+                        <div className="mt-1 text-xs text-ink-muted italic">
+                          &ldquo;{inv.message}&rdquo;
+                        </div>
+                      )}
                     </div>
                   </div>
 
