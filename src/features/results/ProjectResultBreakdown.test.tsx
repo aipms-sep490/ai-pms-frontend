@@ -49,4 +49,28 @@ describe('ProjectResultBreakdown', () => {
     // The scored (non-advisory) contribution is not listed in the advisory section.
     expect(screen.queryByText(/người chấm #6/)).toBeNull()
   })
+  it('renders structured formula description when formula.components is provided (FUNC-07 / Q5)', () => {
+    render(
+      <ProjectResultBreakdown
+        breakdown={breakdown({
+          formula: {
+            components: [
+              { type: 'COMMON', weightPercent: 40 },
+              { type: 'MAJOR', weightPercent: 40 },
+              { type: 'INDIVIDUAL', weightPercent: 20 },
+            ],
+          },
+        })}
+      />,
+    )
+    expect(
+      screen.getByText((content) => content.includes('40% điểm chung + 40% tổng hợp theo ngành + 20% đánh giá cá nhân')),
+    ).toBeTruthy()
+  })
+
+  it('renders fallback without hardcoded numbers when formula is absent (FUNC-07 / Q5)', () => {
+    render(<ProjectResultBreakdown breakdown={breakdown({ formula: null, components: [] })} />)
+    expect(screen.getByText(/Cách tính điểm theo phương án đánh giá đã công bố/)).toBeTruthy()
+    expect(screen.queryByText(/50% điểm chung + 50% tổng hợp/)).toBeNull()
+  })
 })

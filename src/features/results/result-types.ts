@@ -37,6 +37,15 @@ export interface ResultComponentScore {
 /** `isDemo`/`approvalStatus` distinguish an academically-approved scheme from a demo/proposed one
  * (e.g. an unapproved Marketing rubric template) — never present a non-approved breakdown as an
  * official academic result without surfacing this. */
+export interface ResultFormulaComponent {
+  type: 'COMMON' | 'MAJOR' | 'INDIVIDUAL' | string
+  weightPercent: number
+}
+
+export interface ResultFormula {
+  components: ResultFormulaComponent[]
+}
+
 export interface ResultBreakdown {
   schemeName?: string | null
   schemeVersion?: number | null
@@ -50,6 +59,7 @@ export interface ResultBreakdown {
   majorAggregate?: number | null
   majorBreakdown: ResultMajorScore[]
   components: ResultComponentScore[]
+  formula?: ResultFormula | null
 }
 
 export interface ResultPreview {

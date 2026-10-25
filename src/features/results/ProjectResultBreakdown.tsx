@@ -11,12 +11,44 @@ interface ProjectResultBreakdownProps {
 }
 
 /**
- * Project-level composition for v5 `ProjectResult = 50% COMMON + 50% MajorAggregate`.
+ * Project-level composition for v5 `ProjectResult` rendered from structured formula components.
  * Renders nothing when the backend hasn't shipped a breakdown yet, so the caller still shows the
  * numeric total on its own. Advisory contributions (industry ADVISORY) are listed apart and never
  * summed. A non-approved scheme (demo/proposed — e.g. an unapproved Marketing rubric template) is
  * flagged; never present it as an official academic breakdown without that signal.
  */
+const scopeLabels: Record<string, string> = {
+  COMMON: 'điểm chung',
+  MAJOR: 'tổng hợp theo ngành',
+  INDIVIDUAL: 'đánh giá cá nhân',
+}
+
+export function formatFormula(breakdown: ResultBreakdown): string {
+  const formulaComponents = breakdown.formula?.components
+  if (Array.isArray(formulaComponents) && formulaComponents.length > 0) {
+    const parts = formulaComponents.map((c) => {
+      const label = scopeLabels[c.type] ?? c.type
+      return `${c.weightPercent}% ${label}`
+    })
+    return `Điểm đồ án = ${parts.join(' + ')}.`
+  }
+
+  if (Array.isArray(breakdown.components) && breakdown.components.length > 0) {
+    const projectComponents = breakdown.components.filter(
+      (c) => c.weightPercent > 0 && c.scope !== 'INDIVIDUAL',
+    )
+    if (projectComponents.length > 0) {
+      const parts = projectComponents.map((c) => {
+        const label = scopeLabels[c.scope] ?? c.name ?? c.scope
+        return `${c.weightPercent}% ${label}`
+      })
+      return `Điểm đồ án = ${parts.join(' + ')}.`
+    }
+  }
+
+  return 'Cách tính điểm theo phương án đánh giá đã công bố.'
+}
+
 export function ProjectResultBreakdown({ breakdown, contributions, majorNames = {} }: ProjectResultBreakdownProps) {
   const advisory = (contributions ?? []).filter(item => item.advisory)
   if (!breakdown && advisory.length === 0) return null
@@ -32,7 +64,7 @@ export function ProjectResultBreakdown({ breakdown, contributions, majorNames = 
             )}
           </div>
           <p className="text-sm text-ink-muted">
-            Điểm đồ án = 50% điểm chung + 50% tổng hợp theo ngành. Không cộng điểm cá nhân vào điểm đồ án.
+            {formatFormula(breakdown)}
             {breakdown.schemeName && ` Theo phương án "${breakdown.schemeName}"${breakdown.schemeVersion ? ` (v${breakdown.schemeVersion})` : ''}.`}
           </p>
           <dl className="grid gap-4 sm:grid-cols-2">

@@ -22,3 +22,9 @@ it('clears the preview when another student is selected', async () => {
   expect(screen.queryByRole('button', { name: 'Công bố kết quả sinh viên' })).toBeNull()
   expect(api.publishStudentResult).not.toHaveBeenCalled()
 })
+
+it('disambiguates students with ID fallback when names are missing (UX-06)', async () => {
+  render(<StudentResultPublicationPanel projectId={2} studentNames={{}} />)
+  expect(await screen.findByRole('option', { name: 'Sinh viên #9' })).toBeTruthy()
+  expect(await screen.findByRole('option', { name: 'Sinh viên #10' })).toBeTruthy()
+})
