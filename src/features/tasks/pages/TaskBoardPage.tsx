@@ -18,7 +18,7 @@ const disciplineRoleLabels: Record<string, string> = { PRIMARY: 'Ngành chính',
 const positiveId = (value: string | null) => { const id = Number(value); return Number.isSafeInteger(id) && id > 0 ? id : undefined }
 
 export function TaskBoardPage() {
-  const { project, team, currentUserId, routeBase } = useExecutionAccess()
+  const { project, team, teamLoadError, retryTeam, currentUserId, routeBase } = useExecutionAccess()
   const location = useLocation()
   const navigate = useNavigate()
   const [assistantDraft, setAssistantDraft] = useState<{ title: string; description: string } | undefined>()
@@ -133,6 +133,7 @@ export function TaskBoardPage() {
     action={<><button className="ex-button" onClick={refresh} disabled={loading}><ExIcon name="refresh" />Cập nhật</button>{canCreate && <button ref={createRef} className="ex-button ex-button-primary" onClick={() => { setCreating(true); setCreated(false) }} disabled={creating}><ExIcon name="add" />Tạo công việc</button>}</>}>
     {created && <p className="ex-notice" role="status">Đã tạo công việc.</p>}
     {dragNotice && <p className="ex-notice" role="status">{dragNotice}</p>}
+    {!team && <ExState message={teamLoadError ?? 'Chưa tải được danh sách thành viên nhóm. Bạn vẫn xem được công việc nhưng chưa giao được người phụ trách.'} retry={retryTeam} />}
     {creating && (milestoneLoading ? <ExState loading /> : milestoneError ? <ExState message={milestoneError} retry={refresh} /> : eligibleMilestones.length ? <div className="mb-6"><WorkspaceTaskForm initialDraft={assistantDraft} project={project} members={members} milestones={eligibleMilestones} onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); refresh() }} /></div>
       : <section className="ex-panel"><ExState title="Cần có mốc đồ án đang thực hiện" message="Tạo một mốc trước khi thêm công việc cho nhóm." action={<Link className="ex-button" to={`${routeBase}/milestones`}>Quản lý mốc đồ án</Link>} /><div className="ex-padding"><button className="ex-text-button" onClick={closeCreate}>Đóng</button></div></section>)}
     <section className="ex-panel task-board-panel" aria-label="Danh sách công việc">

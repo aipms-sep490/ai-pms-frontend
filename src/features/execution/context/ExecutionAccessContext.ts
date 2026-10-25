@@ -5,6 +5,8 @@ import type { ProjectExecutionCapabilities } from '../hooks/useProjectExecutionC
 export interface ExecutionAccess {
   project: ProjectDto
   team?: TeamDto | null
+  teamLoadError?: string | null
+  retryTeam?: () => void
   supervisor?: SupervisorAssignmentDto | null
   currentUserId?: number
   actor: 'student' | 'supervisor' | 'mentor'
