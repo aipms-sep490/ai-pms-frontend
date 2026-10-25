@@ -88,7 +88,7 @@ export const workspaceRouteRegistry: readonly WorkspaceRouteMeta[] = [
 
   // Review Gates Governance & Assignments
   { id: 'governance-review-gates', path: '/academic/review-gates', title: 'Chính sách Review Gates', breadcrumb: 'Chính sách Review Gates', icon: 'rule_settings', section: 'governance', identityRoles: ['DEPARTMENT_STAFF', 'ADMIN'], navigationVisibility: 'always' },
-  { id: 'governance-progress-matrix', path: '/department/projects/progress-matrix', title: 'Ma trận Tiến độ Gates', breadcrumb: 'Ma trận Tiến độ Gates', icon: 'view_timeline', section: 'governance', identityRoles: ['DEPARTMENT_STAFF', 'ADMIN'], navigationVisibility: 'always' },
+  { id: 'governance-progress-matrix', path: '/department/projects/progress-matrix', title: 'Ma trận Tiến độ Gates', breadcrumb: 'Ma trận Tiến độ Gates', icon: 'view_timeline', section: 'governance', identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
   { id: 'reviewer-gate-assignments', path: '/review/gate-assignments', title: 'Thẩm định Review Gates', breadcrumb: 'Thẩm định Review Gates', icon: 'verified_user', section: 'lecturer', identityRoles: ['LECTURER', 'DEPARTMENT_STAFF'], navigationVisibility: 'always' },
 ]
 

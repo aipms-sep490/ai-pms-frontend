@@ -38,6 +38,8 @@ describe('workspace route registry', () => {
     expect(admin.map((route) => route.id)).not.toContain('governance-review')
     expect(admin.map((route) => route.id)).not.toContain('governance-qualifications')
     expect(admin.map((route) => route.id)).not.toContain('governance-archives')
+    expect(admin.map((route) => route.id)).not.toContain('governance-progress-matrix')
+    expect(department.map((route) => route.id)).toContain('governance-progress-matrix')
   })
 
   it('does not reveal contextual links while context is loading or unavailable', () => {
