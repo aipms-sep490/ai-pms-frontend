@@ -160,7 +160,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
   const updateProfile = useCallback(async (profile: { fullName: string; phone: string | null; title: string | null }) => {
     if (!session) throw new HttpError('Authentication is required.', 401)
     const updated = await requestProfileUpdate(profile)
-    persistSession({ ...session, user: { ...session.user, fullName: updated.fullName } })
+    persistSession({ ...session, user: { ...session.user, fullName: updated.fullName, phone: updated.phone ?? null, title: updated.title ?? null } })
   }, [persistSession, session])
 
   const value = useMemo(
