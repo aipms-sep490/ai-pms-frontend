@@ -5,14 +5,36 @@ import { MentorExecutionRoute } from './MentorExecutionRoute'
 import { useExecutionAccess } from '../../execution/context/ExecutionAccessContext'
 
 const auth = vi.hoisted(() => ({ useAuthSession: vi.fn() }))
-const api = vi.hoisted(() => ({ getProject: vi.fn(), getOwnAssignments: vi.fn() }))
+const api = vi.hoisted(() => ({ getProject: vi.fn(), getOwnAssignments: vi.fn(), getTeam: vi.fn() }))
 vi.mock('../../auth/context/useAuthSession', () => auth)
-vi.mock('../../../services/service-gateway', () => ({ services: { project: { getProject: api.getProject }, supervisor: { getOwnAssignments: api.getOwnAssignments } } }))
+vi.mock('../../../services/service-gateway', () => ({
+  services: {
+    project: { getProject: api.getProject },
+    supervisor: { getOwnAssignments: api.getOwnAssignments },
+    team: { getTeam: api.getTeam },
+  },
+}))
 
 function renderRoute(path = '/mentor/projects/9/majors/7/workspace') {
-  return render(<MemoryRouter initialEntries={[path]}><Routes><Route element={<MentorExecutionRoute />}><Route path="/mentor/projects/:projectId/majors/:majorId/workspace" element={<Probe />} /></Route><Route path="/mentor/workspace" element={<p>Mentor home</p>} /></Routes></MemoryRouter>)
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <Route element={<MentorExecutionRoute />}>
+          <Route path="/mentor/projects/:projectId/majors/:majorId/workspace" element={<Probe />} />
+        </Route>
+        <Route path="/mentor/workspace" element={<p>Mentor home</p>} />
+      </Routes>
+    </MemoryRouter>,
+  )
 }
-function Probe() { const access = useExecutionAccess(); return <p>Mentor scope {access.project.id} / {access.supervisor?.majorId} / {access.actor} / {String(access.canManageStructure)}</p> }
+function Probe() {
+  const access = useExecutionAccess()
+  return (
+    <p>
+      Mentor scope {access.project.id} / {access.supervisor?.majorId} / {access.actor} / {String(access.canManageStructure)} · Team: {access.team?.name ?? 'none'}
+    </p>
+  )
+}
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
 describe('MentorExecutionRoute', () => {
@@ -21,7 +43,25 @@ describe('MentorExecutionRoute', () => {
     api.getProject.mockResolvedValue({ id: 9, status: 'ACTIVE' })
     api.getOwnAssignments.mockResolvedValue({ items: [{ id: 3, projectId: 9, assignmentType: 'DISCIPLINE_MENTOR', majorId: 7, isPrimary: false, endedAt: null }] })
     renderRoute()
-    expect(await screen.findByText('Mentor scope 9 / 7 / mentor / false')).toBeTruthy()
+    expect(await screen.findByText('Mentor scope 9 / 7 / mentor / false · Team: none')).toBeTruthy()
+  })
+
+  it('passes team roster to ExecutionAccess when project has teamId', async () => {
+    auth.useAuthSession.mockReturnValue({ session: { user: { id: 5 } } })
+    api.getProject.mockResolvedValue({ id: 9, status: 'ACTIVE', teamId: 28 })
+    api.getOwnAssignments.mockResolvedValue({ items: [{ id: 3, projectId: 9, assignmentType: 'DISCIPLINE_MENTOR', majorId: 7, isPrimary: false, endedAt: null }] })
+    api.getTeam.mockResolvedValue({ id: 28, name: 'Team Alpha', members: [{ userId: 101, fullName: 'Student A' }] })
+    renderRoute()
+    expect(await screen.findByText('Mentor scope 9 / 7 / mentor / false · Team: Team Alpha')).toBeTruthy()
+    expect(api.getTeam).toHaveBeenCalledWith(28)
+  })
+
+  it('allows mentor access for FINAL_SUBMISSION status', async () => {
+    auth.useAuthSession.mockReturnValue({ session: { user: { id: 5 } } })
+    api.getProject.mockResolvedValue({ id: 9, status: 'FINAL_SUBMISSION' })
+    api.getOwnAssignments.mockResolvedValue({ items: [{ id: 3, projectId: 9, assignmentType: 'DISCIPLINE_MENTOR', majorId: 7, isPrimary: false, endedAt: null }] })
+    renderRoute()
+    expect(await screen.findByText('Mentor scope 9 / 7 / mentor / false · Team: none')).toBeTruthy()
   })
 
   it.each([
