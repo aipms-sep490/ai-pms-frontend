@@ -38,6 +38,7 @@ describe('TeamInvitationsPanel', () => {
     expect(screen.queryByText('Đã từ chối')).toBeNull()
     expect(screen.queryByText(/User ID|API BACKEND/)).toBeNull()
   })
+
   it('renders backend candidates, sends search and paging to the feature hook', () => {
     const { props } = panel()
 
@@ -92,5 +93,73 @@ describe('TeamInvitationsPanel', () => {
     panel({ unfilledMajors: [{ majorId: 99, majorName: 'Thiết kế', remaining: 1 }] })
     fireEvent.click(screen.getByText('Thiết kế (còn thiếu 1)'))
     expect(screen.getByText('Không có ứng viên ngành này trong trang hiện tại.')).toBeTruthy()
+  })
+
+  it('displays team name, inviter name, message and formatted expiry in received invitations (FE1-F6 UX-02)', () => {
+    panel({
+      receivedInvitations: [
+        {
+          id: 101,
+          teamId: 55,
+          teamName: 'EcoFlow Green Tech',
+          invitedUserId: 20,
+          invitedBy: 15,
+          invitedByName: 'Trần Minh Quang',
+          status: 'PENDING',
+          message: 'Chào bạn, nhóm đang cần vị trí frontend, mời bạn tham gia cùng nhé!',
+          createdAt: '2026-10-20T08:30:00Z',
+          expiresAt: '2026-10-27T17:00:00Z',
+        },
+      ],
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Lời mời đã nhận/ }))
+
+    expect(screen.getByText('Lời mời từ nhóm EcoFlow Green Tech')).toBeTruthy()
+    expect(screen.getByText(/Người mời: Trần Minh Quang/)).toBeTruthy()
+    expect(screen.getByText(/Chào bạn, nhóm đang cần vị trí frontend, mời bạn tham gia cùng nhé!/)).toBeTruthy()
+    expect(screen.getByText(/Hết hạn:/)).toBeTruthy()
+  })
+
+  it('falls back to team ID when teamName is null in received invitations', () => {
+    panel({
+      receivedInvitations: [
+        {
+          id: 102,
+          teamId: 99,
+          teamName: null,
+          invitedUserId: 20,
+          invitedBy: 16,
+          status: 'PENDING',
+          createdAt: '2026-10-20T08:30:00Z',
+        },
+      ],
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Lời mời đã nhận/ }))
+
+    expect(screen.getByText('Lời mời từ nhóm #99')).toBeTruthy()
+  })
+
+  it('displays invitedUserName and message in sent invitations', () => {
+    panel({
+      sentInvitations: [
+        {
+          id: 201,
+          teamId: 55,
+          invitedUserId: 33,
+          invitedUserName: 'Phạm Hồng Nhung',
+          invitedBy: 15,
+          invitedByName: 'Trần Minh Quang',
+          status: 'PENDING',
+          message: 'Mời bạn gia nhập nhóm nghiên cứu AI',
+          createdAt: '2026-10-21T09:00:00Z',
+        },
+      ],
+    })
+
+    expect(screen.getByText('Phạm Hồng Nhung')).toBeTruthy()
+    expect(screen.getByText(/Người mời: Trần Minh Quang/)).toBeTruthy()
+    expect(screen.getByText(/Mời bạn gia nhập nhóm nghiên cứu AI/)).toBeTruthy()
   })
 })
