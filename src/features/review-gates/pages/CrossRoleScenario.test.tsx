@@ -1,5 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { reviewGatesMockAdapter } from '../api/review-gates-mock-adapter'
+
+vi.mock('../../../app/config/env', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../app/config/env')>()
+  return {
+    ...actual,
+    env: {
+      ...actual.env,
+      reviewGatesMockEnabled: true,
+    },
+  }
+})
+
 import {
   getStudentReviewTimeline,
   submitRevision,

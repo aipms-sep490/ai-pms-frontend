@@ -19,6 +19,7 @@ import { ReviewGateBuilder } from '../components/ReviewGateBuilder'
 import { ProjectProgressMatrix } from '../components/ProjectProgressMatrix'
 import { InterdisciplinaryGatePanel } from '../components/InterdisciplinaryGatePanel'
 import { DefenseReadinessChecker } from '../components/DefenseReadinessChecker'
+import { ReviewGatesMockNotice } from '../components/ReviewGatesMockNotice'
 import { env } from '../../../app/config/env'
 import { HttpError } from '../../../services/http/http-client'
 import { gateWeightTotal, validateGateWeights } from '../api/review-gates-contract'
@@ -194,6 +195,7 @@ export function ReviewGateGovernancePage() {
       eyebrow="Quản lý Học vụ · Review Gate Governance"
       description="Thiết kế các đợt thẩm định học thuật (Review Gates R1..Rn), kiểm tra điều kiện minh chứng và ma trận theo dõi tiến độ các nhóm."
     >
+      <ReviewGatesMockNotice />
       {/* Alert Notices */}
       {notice && (
         <div

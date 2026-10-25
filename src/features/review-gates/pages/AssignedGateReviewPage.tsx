@@ -5,6 +5,7 @@ import { getAssignedReviewPage, submitGateDecision, verifyEvidence } from '../ap
 import { Pagination } from '../../../components/ui/Pagination'
 import type { AssignedReviewItem } from '../types/review-gates.types'
 import { AssignedReviewQueue } from '../components/AssignedReviewQueue'
+import { ReviewGatesMockNotice } from '../components/ReviewGatesMockNotice'
 import { HttpError } from '../../../services/http/http-client'
 
 export function AssignedGateReviewPage() {
@@ -83,6 +84,7 @@ export function AssignedGateReviewPage() {
       title="Thẩm định Tiến trình Đồ án (Review Gates)"
       description="Xem xét minh chứng học thuật theo phiên bản được nộp, đối chiếu tiêu chí và đưa ra quyết định thẩm định chính thức."
     >
+      <ReviewGatesMockNotice />
       {loading && !hasLoaded ? (
         <div className="py-12">
           <PageLoading label="Đang tải các đợt thẩm định được phân công..." />

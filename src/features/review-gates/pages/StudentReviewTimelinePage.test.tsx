@@ -3,6 +3,18 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter } from 'react-router-dom'
 import { StudentReviewTimelinePage } from './StudentReviewTimelinePage'
 import { reviewGatesMockAdapter } from '../api/review-gates-mock-adapter'
+
+vi.mock('../../../app/config/env', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../app/config/env')>()
+  return {
+    ...actual,
+    env: {
+      ...actual.env,
+      reviewGatesMockEnabled: true,
+    },
+  }
+})
+
 import { AuthSessionContext } from '../../auth/context/auth-session-context'
 
 const mockLeaderContext = {
