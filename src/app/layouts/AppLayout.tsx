@@ -4,6 +4,7 @@ import { useEntranceMotion } from '../../components/ui/useEntranceMotion'
 import { Sidebar } from './Sidebar'
 import { TopHeader } from './TopHeader'
 import { ChatDock } from '../../features/chat/ChatDock'
+import { AssistantDock } from '../../features/ai/AssistantDock'
 import '../../features/projects/pages/collaboration-workspace.css'
 import '../../components/ui/workspace-page.css'
 import '../../components/ui/workspace-polish.css'
@@ -55,6 +56,7 @@ export function AppLayout() {
         </main>
       </div>
       <ChatDock />
+      <AssistantDock />
     </div>
     </TourProvider>
   )

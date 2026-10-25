@@ -16,10 +16,10 @@ try {
   await page.getByLabel('Email', { exact: true }).fill(process.env.ACADEMIC_TEST_EMAIL)
   await page.getByLabel('Mật khẩu', { exact: true }).fill(process.env.ACADEMIC_TEST_PASSWORD)
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
-  await page.waitForURL('**/academic/assistant', { timeout: 30000 })
+  await page.waitForURL('**/project/overview', { timeout: 30000 })
   await page.getByLabel('Câu hỏi học vụ').fill('Rubric và scheme khác nhau như thế nào?')
   const responsePromise = page.waitForResponse(response => response.url().endsWith('/academic/assistant/ask'), { timeout: 65000 })
-  await page.getByRole('button', { name: 'Hỏi trợ lý học vụ', exact: true }).click()
+  await page.getByRole('button', { name: 'Gửi', exact: true }).click()
   const response = await responsePromise
   const result = await response.json()
   if (!response.ok() || !result.runId || !result.citations?.length) throw new Error(`Academic response failed: ${response.status()}`)

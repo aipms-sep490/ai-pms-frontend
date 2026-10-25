@@ -23,17 +23,17 @@ try {
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Mật khẩu', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
-  await page.waitForURL('**/academic/assistant')
+  await page.waitForURL('**/project/overview')
   for (const item of cases) {
     await page.getByLabel('Câu hỏi học vụ').fill(item.query)
     const responsePromise = page.waitForResponse(r => r.url().endsWith('/academic/assistant/ask'), { timeout: 65000 })
-    await page.getByRole('button', { name: 'Hỏi trợ lý học vụ', exact: true }).click()
+    await page.getByRole('button', { name: 'Gửi', exact: true }).click()
     const response = await responsePromise
     const result = await response.json()
     results.push({ query: item.query, status: response.status(), answer: result.answer, answerType: result.answerType, generationStatus: result.generationStatus, citationCount: result.citations?.length, runId: result.runId })
     if (!response.ok() || !result.runId || (item.type && result.answerType !== item.type)) throw new Error(`Unexpected response for ${item.query}`)
     if (item.type === 'GENERAL' && (result.citations.length || result.generationStatus !== 'COMPLETED')) throw new Error('General answer must complete without document citations.')
-    await page.getByRole('button', { name: 'Hỏi trợ lý học vụ', exact: true }).waitFor({ state: 'visible' })
+    await page.getByRole('button', { name: 'Gửi', exact: true }).waitFor({ state: 'visible' })
     await page.getByText(result.answer, { exact: true }).waitFor()
     if (item === cases[0]) {
       await page.screenshot({ path: join(output, 'conversation-date.png'), fullPage: true })

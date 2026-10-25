@@ -23,7 +23,7 @@ try {
   const login = page.waitForResponse(r => r.url().endsWith('/auth/login'))
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
   const session = await (await login).json()
-  await page.waitForURL('**/academic/assistant')
+  await page.waitForURL('**/project/overview')
   const cases = [
     { name: 'red.png', mimeType: 'image/png', buffer: image, query: 'Ảnh đính kèm có màu chủ đạo gì?', expected: /đỏ/i },
     { name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('Project code: AURORA-731. Next action: prototype review.'), query: 'Mã dự án trong tệp này là gì?', expected: /AURORA-731/ },
@@ -34,14 +34,14 @@ try {
     await page.getByLabel('Đính kèm ảnh hoặc tài liệu').setInputFiles({ name: item.name, mimeType: item.mimeType, buffer: item.buffer })
     await page.getByLabel('Câu hỏi học vụ').fill(item.query)
     const responsePromise = page.waitForResponse(r => r.url().endsWith('/assistant/ask-with-files'), { timeout: 65000 })
-    await page.getByRole('button', { name: 'Hỏi trợ lý học vụ', exact: true }).click()
+    await page.getByRole('button', { name: 'Gửi', exact: true }).click()
     const response = await responsePromise
     const result = await response.json()
     results.push({ file: item.name, status: response.status(), answer: result.answer, type: result.answerType, runId: result.runId })
     if (!response.ok() || result.answerType !== 'ATTACHMENT' || !item.expected.test(result.answer)) throw new Error(`Unexpected upload response: ${item.name}`)
     await page.getByText(result.answer, { exact: true }).waitFor()
     const downloading = page.waitForEvent('download')
-    await page.getByRole('button', { name: 'Tải TXT', exact: true }).click()
+    await page.getByRole('button', { name: 'Tải TXT', exact: true }).last().click()
     const download = await downloading
     const target = join(output, `${item.name}.answer.txt`)
     await download.saveAs(target)
@@ -53,7 +53,7 @@ try {
       if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)) throw new Error('Mobile overflow')
       await page.setViewportSize({ width: 1365, height: 900 })
     }
-    await page.getByRole('button', { name: `Bỏ ${item.name}`, exact: true }).click()
+
   }
   const invalid = await page.request.post('http://localhost:5175/api/v1/academic/assistant/ask-with-files', {
     headers: { Authorization: `Bearer ${session.accessToken}` },
