@@ -11,14 +11,20 @@ export interface ProgressReport {
   periodEnd: string
   summary: string
   completedWork: string | null
+  inProgressWork?: string | null
+  blockers?: string | null
+  risks?: string | null
+  nextActions?: string | null
   plannedWork: string | null
-  issuesAndRisks: string | null
+  issuesAndRisks?: string | null
   status: ReportStatus
   submittedAt: string | null
   isLate: boolean | null
   createdAt: string
   updatedAt: string
   concurrencyToken?: string
+  progressReportPeriodId?: number | null
+  dueAt?: string | null
 }
 
 export interface ReportFeedback {
@@ -33,32 +39,62 @@ export interface ReportFeedback {
   updatedAt: string
 }
 
-export interface ReportDetail extends ProgressReport { feedbacks: ReportFeedback[] }
+export interface ReportDetail extends ProgressReport {
+  feedbacks: ReportFeedback[]
+}
+
 export interface ReportContent {
   summary: string
-  completedWork: string | null
-  plannedWork: string | null
-  issuesAndRisks: string | null
+  completedWork?: string | null
+  inProgressWork?: string | null
+  blockers?: string | null
+  risks?: string | null
+  nextActions?: string | null
+  plannedWork?: string | null
+  issuesAndRisks?: string | null
+  progressReportPeriodId?: number | null
 }
+
 export interface CreateReport extends ReportContent {
   reportType: ReportType
   periodStart: string
   periodEnd: string
+  progressReportPeriodId?: number | null
 }
 
 export const reportStatusLabels: Record<ReportStatus, string> = {
-  DRAFT: 'Bản nháp', SUBMITTED: 'Đã nộp', REVIEWED: 'Đã nhận xét',
+  DRAFT: 'Bản nháp',
+  SUBMITTED: 'Đã nộp',
+  REVIEWED: 'Đã nhận xét',
 }
-export const reportTypeLabels: Record<ReportType, string> = { WEEKLY: 'Báo cáo tuần', MONTHLY: 'Báo cáo tháng' }
-export const contentFields = [
-  { key: 'summary', label: 'Tóm tắt tiến độ', hint: 'Mục tiêu chính và tình hình thực hiện trong kỳ.' },
+
+export const reportTypeLabels: Record<ReportType, string> = {
+  WEEKLY: 'Báo cáo tuần',
+  MONTHLY: 'Báo cáo tháng',
+}
+
+export interface ContentFieldConfig {
+  key: 'summary' | 'completedWork' | 'inProgressWork' | 'blockers' | 'risks' | 'nextActions' | 'plannedWork'
+  label: string
+  hint: string
+  required?: boolean
+}
+
+export const contentFields: readonly ContentFieldConfig[] = [
+  { key: 'summary', label: 'Tóm tắt tiến độ', hint: 'Mục tiêu chính và tình hình thực hiện trong kỳ.', required: true },
   { key: 'completedWork', label: 'Công việc đã hoàn thành', hint: 'Nêu kết quả cụ thể, sản phẩm hoặc hạng mục đã hoàn tất.' },
+  { key: 'inProgressWork', label: 'Công việc đang thực hiện', hint: 'Các công việc đang tiến hành trong kỳ này.' },
+  { key: 'blockers', label: 'Vướng mắc (Blockers)', hint: 'Việc đang bị chặn, cần người khác xử lý ngay.' },
+  { key: 'risks', label: 'Rủi ro tiềm ẩn', hint: 'Nguy cơ có thể xảy ra, cần theo dõi.' },
+  { key: 'nextActions', label: 'Hành động tiếp theo', hint: 'Các việc cần ưu tiên thực hiện kế tiếp.' },
   { key: 'plannedWork', label: 'Kế hoạch kỳ tiếp theo', hint: 'Các đầu việc tiếp theo và kết quả dự kiến.' },
-  { key: 'issuesAndRisks', label: 'Khó khăn & rủi ro', hint: 'Điểm cần hỗ trợ từ GVHD. Ghi “Không có” nếu chưa phát sinh.' },
-] as const
+]
 
 export function missingSubmissionFields(report: ReportContent): string[] {
-  return contentFields.filter(({ key }) => !report[key]?.trim()).map(({ label }) => label)
+  const missing: string[] = []
+  if (!report.summary?.trim()) missing.push('Tóm tắt tiến độ')
+  if (!report.progressReportPeriodId) missing.push('Kỳ báo cáo')
+  return missing
 }
 
 export function formatReportDate(value: string): string {
