@@ -18,8 +18,8 @@ const draft: ReportDetail = {
   status: 'DRAFT', submittedAt: null, isLate: null, createdAt: '2026-09-20T08:00:00Z', updatedAt: '2026-09-20T08:00:00Z', concurrencyToken: 'report-token', feedbacks: [],
 }
 const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
-function mount({ actor = 'student', leader = true, path = '/project/reports/17', createAllowed = actor === 'student' }: { actor?: 'student' | 'supervisor'; leader?: boolean; path?: string; createAllowed?: boolean } = {}) {
-  const access: ExecutionAccess = { project: { id: 9, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'], actor, canManageStructure: leader, executionCapabilities: actor === 'student' ? capabilities(createAllowed) : undefined, currentUserId: actor === 'student' ? 2 : 5, routeBase: '/project' }
+function mount({ actor = 'student', leader = true, path = '/project/reports/17', createAllowed = actor === 'student', readOnly = false }: { actor?: 'student' | 'supervisor'; leader?: boolean; path?: string; createAllowed?: boolean; readOnly?: boolean } = {}) {
+  const access: ExecutionAccess = { project: { id: 9, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'], actor, canManageStructure: leader, readOnly, executionCapabilities: actor === 'student' ? capabilities(createAllowed) : undefined, currentUserId: actor === 'student' ? 2 : 5, routeBase: '/project' }
   const router = createMemoryRouter([{ element: <ExecutionAccessProvider value={access}><Outlet /></ExecutionAccessProvider>, children: [
     { path: '/project/reports', element: <ProgressReportsPage /> },
     { path: '/project/reports/new', element: <ProgressReportDetailPage create /> },
@@ -163,6 +163,14 @@ describe('Progress reports workflow', () => {
     expect(screen.queryByRole('textbox')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Nộp cho GVHD' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Gửi phản hồi' })).toBeNull()
+  })
+  it('keeps submitted report feedback visible without a write form in supervisor read-only mode', async () => {
+    api.getProgressReport.mockResolvedValue({ ...draft, status: 'REVIEWED', feedbacks: [{ id: 44, supervisorName: 'ThS. Trần Mai', feedbackText: 'Cần bổ sung minh chứng.', createdAt: '2026-09-21T08:30:00Z' }] })
+    mount({ actor: 'supervisor', readOnly: true })
+    expect(await screen.findByText('Cần bổ sung minh chứng.')).toBeTruthy()
+    expect(screen.queryByLabelText('Phản hồi mới')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Gửi phản hồi' })).toBeNull()
+    expect(api.addProgressReportFeedback).not.toHaveBeenCalled()
   })
   it('posts supervisor feedback and reloads authoritative REVIEWED detail', async () => {
     const feedback = { id: 44, supervisorName: 'ThS. Trần Mai', feedbackText: 'Bổ sung kiểm thử phân quyền.', createdAt: '2026-09-21T08:30:00Z' }

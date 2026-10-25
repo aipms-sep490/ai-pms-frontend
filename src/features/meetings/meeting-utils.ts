@@ -31,10 +31,9 @@ export function safeMeetingUrl(value: string | null): string | null {
   } catch { return null }
 }
 export function canManageMeeting(access: ExecutionAccess, meeting: MeetingDetail): boolean {
-  // `actor: supervisor` exists only inside SupervisorExecutionRoute, which
-  // verifies a current primary assignment and ACTIVE project. The meeting
-  // endpoint still rechecks the resource, state, assignment and token.
-  return access.actor === 'supervisor' || access.canManageStructure || access.currentUserId === meeting.createdBy
+  // SupervisorExecutionRoute verifies the current primary assignment and marks
+  // completed projects read-only. The endpoint rechecks state and authority.
+  return !access.readOnly && (access.actor === 'supervisor' || access.canManageStructure || access.currentUserId === meeting.createdBy)
 }
 export function meetingError(reason: unknown): string {
   if (reason instanceof HttpError) {

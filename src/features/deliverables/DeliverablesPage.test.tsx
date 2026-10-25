@@ -12,7 +12,7 @@ const api = vi.hoisted(() => ({
 vi.mock('../../services/api/deliverables.api', () => api)
 afterEach(cleanup)
 const item = { id: 4, projectId: 9, milestoneId: null, title: 'Báo cáo thiết kế', description: null, deliverableType: 'REPORT', dueAt: null, status: 'OPEN', createdBy: 2, latestVersion: 1 }
-function page(actor: 'student' | 'supervisor' = 'student') { return render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, teamId: 1, teamName: 'Demo team', code: 'P9', title: 'Demo', status: 'ACTIVE', registeredAt: '2026-09-01', createdBy: 1, createdByName: 'Demo', createdAt: '2026-09-01', updatedAt: '2026-09-01', concurrencyToken: 'token', majors: [], tags: [] }, actor, canManageStructure: actor === 'supervisor', routeBase: actor === 'student' ? '/project' : '/supervisor/projects/9' }}><DeliverablesPage /></ExecutionAccessProvider></MemoryRouter>) }
+function page(actor: 'student' | 'supervisor' = 'student', readOnly = false) { return render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, teamId: 1, teamName: 'Demo team', code: 'P9', title: 'Demo', status: 'ACTIVE', registeredAt: '2026-09-01', createdBy: 1, createdByName: 'Demo', createdAt: '2026-09-01', updatedAt: '2026-09-01', concurrencyToken: 'token', majors: [], tags: [] }, actor, canManageStructure: actor === 'supervisor', readOnly, routeBase: actor === 'student' ? '/project' : '/supervisor/projects/9' }}><DeliverablesPage /></ExecutionAccessProvider></MemoryRouter>) }
 beforeEach(() => {
   vi.clearAllMocks()
   api.getDeliverables.mockResolvedValue({ items: [item], page: 1, pageSize: 10, totalCount: 1, totalPages: 1 })
@@ -47,6 +47,15 @@ describe('DeliverablesPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Xem phiên bản' }))
     expect(await screen.findByLabelText('Nhận xét V1')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Nộp phiên bản' })).toBeNull()
+  })
+
+  it('keeps submitted versions visible but hides review writes in supervisor read-only mode', async () => {
+    api.getDeliverableVersions.mockResolvedValue({ items: [{ id: 7, deliverableId: 4, versionNumber: 1, submittedBy: 3, note: null, status: 'SUBMITTED', submittedAt: '2026-09-22T00:00:00Z', files: [] }], page: 1, pageSize: 10, totalCount: 1, totalPages: 1 })
+    page('supervisor', true); await screen.findByText('Báo cáo thiết kế')
+    fireEvent.click(screen.getByRole('button', { name: 'Xem phiên bản' }))
+    expect(await screen.findByText('Phiên bản 1')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Gửi đánh giá' })).toBeNull()
+    expect(api.reviewDeliverableVersion).not.toHaveBeenCalled()
   })
 
   it('loads persisted feedback for the selected immutable version', async () => {
