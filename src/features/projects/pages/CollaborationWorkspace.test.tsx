@@ -30,6 +30,7 @@ function mockTransport(handler?: Handler) {
     const custom = handler?.(url, init)
     if (custom !== undefined) return custom
     if (url.pathname.endsWith('/major-requirements')) return json({ requirements: [{ majorId: 3 }], concurrencyToken: 'test' })
+    if (url.pathname.includes('/review-gates/timeline')) return json({ projectId: 9, currentGateCode: 'R1', gates: [] })
     if (url.pathname.endsWith('/timeline')) return json({ projectId: 9, milestones: [milestone] })
     if (url.pathname.endsWith('/progress-summary')) return json({ projectId: 9, totalTasks: 3, doneTasks: 1, blockedTasks: 1, overdueTasks: 1, totalMilestones: 1, completedMilestones: 0, progressPercentage: 100 / 3 })
     if (/\/projects\/9\/(deliverables|progress-reports|meetings)$/.test(url.pathname)) return json(page())
@@ -149,13 +150,13 @@ describe('collaboration workspace API integration', () => {
     fireEvent.click(within(form).getByRole('button', { name: 'Tạo công việc' }))
     expect(await screen.findByText('Đã tạo công việc.')).toBeTruthy()
     expect(screen.queryByRole('region', { name: 'Tạo công việc' })).toBeNull()
-    await waitFor(() => expect(calls.filter(call => call.url.pathname.endsWith('/timeline'))).toHaveLength(2))
+    await waitFor(() => expect(calls.filter(call => call.url.pathname.endsWith('/tasks/project/9/timeline'))).toHaveLength(2))
   })
 
   it('aborts pending reads when the workspace unmounts', () => {
     mockTransport(() => new Promise<Response>(() => {}))
     const view = renderWorkspace()
-    expect(calls).toHaveLength(5)
+    expect(calls).toHaveLength(6)
     view.unmount()
     expect(calls.every(call => call.init?.signal?.aborted)).toBe(true)
   })

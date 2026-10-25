@@ -55,7 +55,7 @@ describe('TaskDetailPage', () => {
   it('keeps current details usable when history fails without claiming an empty history', async () => {
     api.getTaskHistory.mockRejectedValue(new Error('network')); renderPage(false)
     expect(await screen.findByRole('button', { name: 'Cập nhật trạng thái' })).toBeTruthy()
-    expect(await screen.findByText('Chưa thể tải lịch sử. Hãy thử lại.')).toBeTruthy()
+    expect(await screen.findByText(/Chưa thể tải lịch sử/)).toBeTruthy()
     expect(screen.queryByText('Chưa có thay đổi trạng thái.')).toBeNull()
   })
   it('blocks changes to a task outside the selected project', async () => {
@@ -69,7 +69,7 @@ describe('TaskDetailPage', () => {
     const reason = await screen.findByRole('textbox', { name:'Ghi chú thay đổi' })
     fireEvent.change(reason, {target:{value:'Chờ bộ dữ liệu'}})
     fireEvent.click(screen.getByRole('button', {name:'Cập nhật trạng thái'}))
-    await screen.findByText('Chưa thể lưu thay đổi. Hãy thử lại.')
+    await screen.findByText(/Chưa thể lưu thay đổi/)
     expect(api.updateTaskStatus).toHaveBeenCalledWith(8,{newStatus:'IN_PROGRESS',reason:'Chờ bộ dữ liệu',concurrencyToken:'task-token'})
     expect((reason as HTMLTextAreaElement).value).toBe('Chờ bộ dữ liệu')
   })
@@ -86,7 +86,7 @@ describe('TaskDetailPage', () => {
     renderPage(true); fireEvent.click(await screen.findByRole('button', {name:'Xóa công việc'}))
     expect(api.deleteTask).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', {name:'Xác nhận xóa'}))
-    await screen.findByText('Chưa thể lưu thay đổi. Hãy thử lại.'); expect(api.deleteTask).toHaveBeenCalledWith(8, 'task-token')
+    await screen.findByText(/Chưa thể lưu thay đổi/); expect(api.deleteTask).toHaveBeenCalledWith(8, 'task-token')
     expect(screen.getByRole('heading', {name:'Phân tích yêu cầu'})).toBeTruthy()
   })
 })
