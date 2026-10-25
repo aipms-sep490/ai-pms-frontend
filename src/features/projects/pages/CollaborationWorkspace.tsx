@@ -51,20 +51,20 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
   const [reviewTimeline, setReviewTimeline] = useState<StudentReviewTimelineDto | null>(null)
 
   useEffect(() => {
-    let active = true
-    getStudentReviewTimeline(String(project.id))
+    const controller = new AbortController()
+    getStudentReviewTimeline(String(project.id), controller.signal)
       .then((res) => {
-        if (active) setReviewTimeline(res)
+        setReviewTimeline(res)
       })
       .catch(() => {
         // Silently skip if gates are unconfigured
       })
     return () => {
-      active = false
+      controller.abort()
     }
   }, [project.id])
 
-  const activeGate = reviewTimeline?.gates.find((g) => g.code === reviewTimeline.currentGateCode) || reviewTimeline?.gates[0]
+  const activeGate = reviewTimeline?.gates?.find((g) => g.code === reviewTimeline.currentGateCode) || reviewTimeline?.gates?.[0]
 
   const handleSubmitRevision = async (
     gateCode: string,
@@ -79,8 +79,8 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
         requirementId,
         ...payload,
         file: payload.file ?? undefined,
-        expectedVersion: reviewTimeline.gates.find(g => g.code === gateCode)?.requirements.find(r => r.id === requirementId)?.latestArtifact?.version ?? 0,
-        concurrencyToken: reviewTimeline.gates.find(g => g.code === gateCode)?.concurrencyToken,
+        expectedVersion: reviewTimeline.gates?.find(g => g.code === gateCode)?.requirements?.find(r => r.id === requirementId)?.latestArtifact?.version ?? 0,
+        concurrencyToken: reviewTimeline.gates?.find(g => g.code === gateCode)?.concurrencyToken,
       },
       isTeamLeader,
     )

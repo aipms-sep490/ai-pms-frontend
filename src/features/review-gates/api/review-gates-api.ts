@@ -70,10 +70,10 @@ export async function getDefenseReadiness(projectId: string): Promise<DefenseRea
   return httpGet<DefenseReadinessSummary>(`/projects/${projectId}/defense-readiness`)
 }
 
-export async function getStudentReviewTimeline(projectId?: string): Promise<StudentReviewTimelineDto> {
+export async function getStudentReviewTimeline(projectId?: string, signal?: AbortSignal): Promise<StudentReviewTimelineDto> {
   if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.getStudentReviewTimeline(projectId)
   const path = projectId ? `/projects/${projectId}/review-gates/timeline` : '/students/me/review-gates/timeline'
-  return httpGet<StudentReviewTimelineDto>(path)
+  return httpGet<StudentReviewTimelineDto>(path, { signal })
 }
 
 export async function submitRevision(
