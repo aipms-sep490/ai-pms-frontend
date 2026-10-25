@@ -31,6 +31,7 @@ function journeyState() {
     team, profile: { id: 1, fullName: 'Leader' }, semester: { id: 7, name: 'FA26' }, period: null,
     workflowContext: { actions: [] }, teamActions: { actions: [
       { code: 'invite_member', allowed: true, reasons: [] },
+      { code: 'view_team_invitations', allowed: true, reasons: [] },
       { code: 'remove_member', allowed: true, reasons: [] },
       { code: 'edit_team', allowed: true, reasons: [] },
     ] },
@@ -55,6 +56,73 @@ describe('useTeamManagement', () => {
 
     await waitFor(() => expect(result.current.receivedInvitations).toEqual([invitation]))
     expect(result.current.receivedInvitations[0]?.invitedUserId).toBe(99)
+  })
+
+  it('does not request leader invitations for a member and keeps the received list', async () => {
+    const member = journeyState()
+    member.profile.id = 2
+    member.team.members.push({ userId: 2, fullName: 'Member', isEligibleStudent: true, isLeader: false })
+    member.teamActions.actions = [{ code: 'view_team_invitations', allowed: false, reasons: [] }]
+    mocked.journey.useStudentJourney.mockReturnValue(member)
+    mocked.team.getInvitations.mockImplementation((teamId?: number) => teamId
+      ? Promise.reject(new HttpError('Leader only', 403)) : Promise.resolve(page([invitation])))
+    const { result } = renderHook(() => useTeamManagement())
+    await waitFor(() => expect(result.current.receivedInvitations).toEqual([invitation]))
+    expect(mocked.team.getInvitations).toHaveBeenCalledWith()
+    expect(mocked.team.getInvitations).not.toHaveBeenCalledWith(28)
+    expect(result.current.error).toBeNull()
+  })
+
+  it('loads both lists for a leader even when invitations can no longer be sent', async () => {
+    const leader = journeyState()
+    leader.teamActions.actions = [{ code: 'view_team_invitations', allowed: true, reasons: [] }]
+    mocked.journey.useStudentJourney.mockReturnValue(leader)
+    const { result } = renderHook(() => useTeamManagement())
+    await waitFor(() => expect(result.current.sentInvitations).toEqual([invitation]))
+    expect(mocked.team.getInvitations).toHaveBeenCalledWith(28)
+    expect(mocked.team.getInvitations).toHaveBeenCalledWith()
+  })
+
+  it('keeps received invitations when the sent request fails and records that failure separately', async () => {
+    mocked.team.getInvitations.mockImplementation((teamId?: number) => teamId
+      ? Promise.reject(new HttpError('Leader list denied', 403)) : Promise.resolve(page([invitation])))
+    const { result } = renderHook(() => useTeamManagement())
+    await waitFor(() => expect(result.current.sentInvitationError).toMatchObject({ kind: 'forbidden' }))
+    expect(result.current.receivedInvitations).toEqual([invitation])
+    expect(result.current.error).toBeNull()
+  })
+
+  it('reports a received-list failure with a retry even when the sent request succeeds', async () => {
+    mocked.team.getInvitations.mockImplementation((teamId?: number) => teamId
+      ? Promise.resolve(page([invitation])) : Promise.reject(new HttpError('Received list unavailable', 500)))
+    const { result } = renderHook(() => useTeamManagement())
+    await waitFor(() => expect(result.current.error).toMatchObject({ kind: 'system' }))
+    expect(result.current.receivedInvitations).toEqual([])
+    expect(result.current.sentInvitations).toEqual([invitation])
+    expect(typeof result.current.retry).toBe('function')
+  })
+
+  it('reports the received-list failure when both invitation requests fail', async () => {
+    mocked.team.getInvitations.mockRejectedValue(new HttpError('Unavailable invitations', 500))
+    const { result } = renderHook(() => useTeamManagement())
+    await waitFor(() => expect(result.current.error).toMatchObject({ kind: 'system' }))
+    expect(result.current.sentInvitationError).toMatchObject({ kind: 'system' })
+    expect(result.current.receivedInvitations).toEqual([])
+    expect(result.current.sentInvitations).toEqual([])
+  })
+
+  it('accepts an invitation without requesting sent invitations as a member', async () => {
+    const member = journeyState()
+    member.profile.id = 2
+    member.team.members.push({ userId: 2, fullName: 'Member', isEligibleStudent: true, isLeader: false })
+    member.teamActions.actions = [{ code: 'view_team_invitations', allowed: false, reasons: [] }]
+    mocked.journey.useStudentJourney.mockReturnValue(member)
+    mocked.team.acceptInvitation.mockResolvedValue(team)
+    const { result } = renderHook(() => useTeamManagement())
+    await result.current.acceptInvitation(12)
+    await waitFor(() => expect(result.current.receivedInvitations).toEqual([invitation]))
+    expect(result.current.error).toBeNull()
+    expect(mocked.team.getInvitations).not.toHaveBeenCalledWith(28)
   })
 
   it('refreshes authoritative context and invitations after a successful 204 mutation', async () => {
