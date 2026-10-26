@@ -4,7 +4,8 @@ import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
-import { HttpError } from '../../../services/http/http-client'
+import { academicError, type AcademicError } from '../academic-error'
+import { AcademicField } from '../components/AcademicField'
 import { useAcademicGovernance } from '../hooks/useAcademicGovernance'
 import { dateTimeLabel, localDateTime, toUtcDateTime } from '../../execution/execution-utils'
 import { projectPeriodTypes, type GovernanceStatus, type ProjectPeriod, type ProjectPeriodDraft, type Semester, type SemesterDraft } from '../types/governance.types'
@@ -16,7 +17,6 @@ const labels: Record<string, string> = { REGISTRATION: 'Đăng ký', PROJECT_REV
 const statusLabels: Record<GovernanceStatus, string> = { DRAFT: 'Bản nháp', UPCOMING: 'Sắp diễn ra', ACTIVE: 'Đang hoạt động', CLOSED: 'Đã đóng', ARCHIVED: 'Đã lưu trữ' }
 type Editor = { kind: 'semester'; record?: Semester } | { kind: 'period'; record?: ProjectPeriod }
 
-function errorText(error: Error) { return error instanceof HttpError && error.status === 403 ? 'Bạn chưa có quyền quản trị cấu hình này.' : 'Không thể đồng bộ cấu hình học vụ. Hãy thử lại.' }
 function toDate(value: string) { return value.slice(0, 10) }
 function formatDate(value: string) { return toDate(value).split('-').reverse().join('/') }
 
@@ -25,23 +25,26 @@ export function AcademicGovernancePage() {
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState({ search: '' })
   const [editor, setEditor] = useState<Editor | null>(null)
-  const [operationError, setOperationError] = useState<string | null>(null)
+  const [operationError, setOperationError] = useState<AcademicError | null>(null)
   const [operationSuccess, setOperationSuccess] = useState<string | null>(null)
   const governance = useAcademicGovernance(filters)
   const openEditor = (next: Editor) => { setOperationError(null); setOperationSuccess(null); setEditor(next) }
-  const saveSemester = async (draft: SemesterDraft) => { setOperationError(null); setOperationSuccess(null); try { await governance.saveSemester(draft); setEditor(null); setOperationSuccess('Đã lưu học kỳ và cập nhật danh sách.') } catch (reason: unknown) { setOperationError(errorText(reason instanceof Error ? reason : new Error('Save failed'))) } }
-  const savePeriod = async (draft: ProjectPeriodDraft) => { setOperationError(null); setOperationSuccess(null); try { await governance.saveProjectPeriod(draft); setEditor(null); setOperationSuccess('Đã lưu cấu trúc giai đoạn. Chính sách áp dụng được quản lý ở màn hình riêng.') } catch (reason: unknown) { setOperationError(errorText(reason instanceof Error ? reason : new Error('Save failed'))) } }
-  const changeStatus = async (kind: 'semester' | 'period', id: number, status: GovernanceStatus, expectedStatus: GovernanceStatus) => { if (await requestConfirmation({ title: 'Thay đổi trạng thái?', description: `Chuyển ${kind === 'semester' ? 'học kỳ' : 'giai đoạn'} sang ${statusLabels[status].toLowerCase()}.`, confirmLabel: 'Xác nhận thay đổi' }) === null) return; setOperationError(null); setOperationSuccess(null); try { await governance.setStatus(kind, id, status, expectedStatus); setOperationSuccess(`Đã chuyển trạng thái sang ${statusLabels[status].toLowerCase()}.`) } catch (reason: unknown) { setOperationError(errorText(reason instanceof Error ? reason : new Error('Status change failed'))) } }
+  const saveSemester = async (draft: SemesterDraft) => { setOperationError(null); setOperationSuccess(null); try { await governance.saveSemester(draft); setEditor(null); setOperationSuccess('Đã lưu học kỳ và cập nhật danh sách.') } catch (reason: unknown) { setOperationError(academicError(reason, 'governance')) } }
+  const savePeriod = async (draft: ProjectPeriodDraft) => { setOperationError(null); setOperationSuccess(null); try { await governance.saveProjectPeriod(draft); setEditor(null); setOperationSuccess('Đã lưu cấu trúc giai đoạn. Chính sách áp dụng được quản lý ở màn hình riêng.') } catch (reason: unknown) { setOperationError(academicError(reason, 'governance')) } }
+  const changeStatus = async (kind: 'semester' | 'period', id: number, status: GovernanceStatus, expectedStatus: GovernanceStatus) => { if (await requestConfirmation({ title: 'Thay đổi trạng thái?', description: `Chuyển ${kind === 'semester' ? 'học kỳ' : 'giai đoạn'} sang ${statusLabels[status].toLowerCase()}.`, confirmLabel: 'Xác nhận thay đổi' }) === null) return; setOperationError(null); setOperationSuccess(null); try { await governance.setStatus(kind, id, status, expectedStatus); setOperationSuccess(`Đã chuyển trạng thái sang ${statusLabels[status].toLowerCase()}.`) } catch (reason: unknown) { setOperationError(academicError(reason, 'governance')) } }
 
   if (governance.isUnauthorized) return <section className="governance-state" role="alert"><strong>Cần đăng nhập để xem cấu hình học vụ.</strong><Link to="/login">Đăng nhập</Link></section>
   if (governance.loading) return <section className="governance-state" role="status">Đang tải học kỳ và các giai đoạn đồ án…</section>
   if (governance.isForbidden) return <section className="governance-state" role="alert">Bạn không có quyền truy cập cấu hình học vụ.</section>
-  if (governance.error) return <section className="governance-state" role="alert">{errorText(governance.error)} <Button onClick={governance.retry}>Thử lại</Button></section>
+  if (governance.error) {
+    const issue = academicError(governance.error, 'governance')
+    return <section className="governance-state" role="alert">{issue.message} {issue.action && <Button onClick={governance.retry}>{issue.action === 'reload' ? 'Tải lại dữ liệu' : 'Thử lại'}</Button>}</section>
+  }
   return <WorkspacePage className="governance-page" title="Học kỳ và giai đoạn đồ án" eyebrow="Quản lý học vụ" description="Thiết lập thời gian đăng ký, thực hiện và đánh giá cho từng học kỳ." action={governance.canManage ? <div className="governance-actions"><Button onClick={() => openEditor({ kind: 'semester' })}>Thêm học kỳ</Button><Button variant="secondary" onClick={() => openEditor({ kind: 'period' })}>Thêm giai đoạn</Button></div> : null}>
     
     <p className="text-sm text-ink-muted">Điều kiện về thành viên và ngành tham gia được quản lý trong chính sách của từng giai đoạn.</p>
     <form className="governance-filter" onSubmit={(event) => { event.preventDefault(); setFilters({ search }) }}><input aria-label="Tìm học kỳ hoặc giai đoạn" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm theo mã hoặc tên"/><Button type="submit" variant="secondary">Lọc</Button></form>
-    {!governance.canManage ? <p className="governance-note">Bạn đang ở chế độ chỉ xem.</p> : null}{operationError && !editor ? <p className="governance-error" role="alert">{operationError}</p> : null}{operationSuccess ? <p className="governance-message" role="status">{operationSuccess}</p> : null}
+    {!governance.canManage ? <p className="governance-note">Bạn đang ở chế độ chỉ xem.</p> : null}{operationError && !editor ? <div className="governance-error col-span-full" role="alert">{operationError.message}{operationError.action && <Button onClick={governance.retry}>Tải lại dữ liệu</Button>}</div> : null}{operationSuccess ? <p className="governance-message" role="status">{operationSuccess}</p> : null}
     {!governance.canManage && <p role="status" className="rounded-lg border border-hairline bg-card p-4 text-sm text-ink-muted">Cấu trúc học kỳ và kỳ đồ án do quản trị viên cấu hình. Bộ môn có thể xem và mở chính sách của kỳ thuộc phạm vi được cấp.</p>}
     <section aria-labelledby="governance-semesters-title">
       <div className="governance-section-title"><h2 id="governance-semesters-title">Học kỳ</h2><span>{governance.semesters.length} học kỳ</span></div>
@@ -82,7 +85,7 @@ function Status({ label, status, busy, canManage, onChange }: { label: string; s
 function Modal({ title, children, busy, onClose }: { title: string; children: ReactNode; busy: boolean; onClose: () => void }) {
   return <AppModal open title={title} busy={busy} onClose={onClose}><div className="governance-editor">{children}</div></AppModal>
 }
-function SemesterForm({ record, organizations = [], error, submitting, onCancel, onSubmit }: { record?: Semester; organizations?: Array<{ id: number; code: string; name: string }>; error: string | null; submitting: boolean; onCancel: () => void; onSubmit: (draft: SemesterDraft) => Promise<void> }) {
+function SemesterForm({ record, organizations = [], error, submitting, onCancel, onSubmit }: { record?: Semester; organizations?: Array<{ id: number; code: string; name: string }>; error: AcademicError | null; submitting: boolean; onCancel: () => void; onSubmit: (draft: SemesterDraft) => Promise<void> }) {
   const [validationError, setValidationError] = useState('')
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -92,16 +95,16 @@ function SemesterForm({ record, organizations = [], error, submitting, onCancel,
     void onSubmit({ id: record?.id, organizationId: record?.organizationId ?? Number(form.get('organizationId')), code: String(form.get('code')).trim(), name: String(form.get('name')).trim(), startDate, endDate })
   }
   return <Modal title={record ? 'Chỉnh sửa học kỳ' : 'Tạo học kỳ'} busy={submitting} onClose={onCancel}><form onSubmit={submit}>
-    {(validationError || error) && <p role="alert" className="governance-error">{validationError || error}</p>}
-    {!record && <label>Đơn vị tổ chức{organizations.length > 0 ? <select name="organizationId" required disabled={submitting} defaultValue=""><option value="" disabled>-- Chọn đơn vị tổ chức --</option>{organizations.map(org => <option key={org.id} value={org.id}>{org.name} ({org.code})</option>)}</select> : <input name="organizationId" type="number" min="1" required disabled={submitting} placeholder="Mã đơn vị" />}</label>}
-    <label>Mã học kỳ<input name="code" required defaultValue={record?.code} disabled={submitting} /></label>
-    <label>Tên học kỳ<input name="name" required defaultValue={record?.name} disabled={submitting} /></label>
-    <label>Bắt đầu<input name="startDate" type="date" required defaultValue={record ? toDate(record.startDate) : undefined} disabled={submitting} /></label>
-    <label>Kết thúc<input name="endDate" type="date" required defaultValue={record ? toDate(record.endDate) : undefined} disabled={submitting} /></label>
+    {(validationError || error) && <div role="alert" className="governance-error col-span-full">{validationError || error?.message}{!validationError && error?.action === 'retry' && <Button type="submit" disabled={submitting}>Thử lại</Button>}</div>}
+    {!record && <AcademicField label="Đơn vị tổ chức" field="organizationId" error={error}>{organizations.length > 0 ? <select name="organizationId" required disabled={submitting} defaultValue=""><option value="" disabled>-- Chọn đơn vị tổ chức --</option>{organizations.map(org => <option key={org.id} value={org.id}>{org.name} ({org.code})</option>)}</select> : <input name="organizationId" type="number" min="1" required disabled={submitting} placeholder="Mã đơn vị" />}</AcademicField>}
+    <AcademicField label="Mã học kỳ" field="code" error={error}><input name="code" required defaultValue={record?.code} disabled={submitting} /></AcademicField>
+    <AcademicField label="Tên học kỳ" field="name" error={error}><input name="name" required defaultValue={record?.name} disabled={submitting} /></AcademicField>
+    <AcademicField label="Bắt đầu" field="startDate" error={error}><input name="startDate" type="date" required defaultValue={record ? toDate(record.startDate) : undefined} disabled={submitting} /></AcademicField>
+    <AcademicField label="Kết thúc" field="endDate" error={error}><input name="endDate" type="date" required defaultValue={record ? toDate(record.endDate) : undefined} disabled={submitting} /></AcademicField>
     <div className="governance-editor-actions"><Button variant="secondary" onClick={onCancel} disabled={submitting}>Hủy</Button><Button type="submit" disabled={submitting}>{submitting ? 'Đang lưu…' : record ? 'Lưu thay đổi' : 'Lưu học kỳ'}</Button></div>
   </form></Modal>
 }
-function ProjectPeriodForm({ record, semesters, error, submitting, onCancel, onSubmit }: { record?: ProjectPeriod; semesters: Semester[]; error: string | null; submitting: boolean; onCancel: () => void; onSubmit: (draft: ProjectPeriodDraft) => Promise<void> }) {
+function ProjectPeriodForm({ record, semesters, error, submitting, onCancel, onSubmit }: { record?: ProjectPeriod; semesters: Semester[]; error: AcademicError | null; submitting: boolean; onCancel: () => void; onSubmit: (draft: ProjectPeriodDraft) => Promise<void> }) {
   const [validationError, setValidationError] = useState('')
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -114,18 +117,19 @@ function ProjectPeriodForm({ record, semesters, error, submitting, onCancel, onS
     void onSubmit({ id: record?.id, academicSemesterId: record?.academicSemesterId ?? Number(form.get('semesterId')), code: String(form.get('code')).trim(), name: String(form.get('name')).trim(), periodType: String(form.get('periodType')) as ProjectPeriodDraft['periodType'], startAt, endAt, minTeamSize, maxTeamSize, minDistinctMajors, maxProjectsPerSupervisor, rubricId: record?.rubricId ?? null })
   }
   return <Modal title={record ? 'Chỉnh sửa cấu trúc giai đoạn' : 'Tạo giai đoạn đồ án'} busy={submitting} onClose={onCancel}><form onSubmit={submit}>
-    {(validationError || error) && <p role="alert" className="governance-error">{validationError || error}</p>}
-    {!record && <label>Học kỳ<select name="semesterId" required defaultValue="" disabled={submitting}><option value="" disabled>Chọn học kỳ</option>{semesters.map(semester => <option key={semester.id} value={semester.id}>{semester.code} · {semester.name}</option>)}</select></label>}
-    <label>Mã giai đoạn<input name="code" required defaultValue={record?.code} disabled={submitting} /></label>
-    <label>Tên giai đoạn<input name="name" required defaultValue={record?.name} disabled={submitting} /></label>
-    <label>Loại giai đoạn<select name="periodType" defaultValue={record?.periodType} disabled={submitting}>{projectPeriodTypes.map(type => <option key={type} value={type}>{labels[type]}</option>)}</select></label>
-    <label>Bắt đầu (giờ Việt Nam)<input name="startAt" type="datetime-local" required defaultValue={record ? localDateTime(record.startAt) : undefined} disabled={submitting} /></label>
-    <label>Kết thúc (giờ Việt Nam)<input name="endAt" type="datetime-local" required defaultValue={record ? localDateTime(record.endAt) : undefined} disabled={submitting} /></label>
+    {(validationError || error) && <div role="alert" className="governance-error col-span-full">{validationError || error?.message}{!validationError && error?.action === 'retry' && <Button type="submit" disabled={submitting}>Thử lại</Button>}</div>}
+    {!record && <AcademicField label="Học kỳ" field="semesterId" error={error}><select name="semesterId" required defaultValue="" disabled={submitting}><option value="" disabled>Chọn học kỳ</option>{semesters.map(semester => <option key={semester.id} value={semester.id}>{semester.code} · {semester.name}</option>)}</select></AcademicField>}
+    <AcademicField label="Mã giai đoạn" field="code" error={error}><input name="code" required defaultValue={record?.code} disabled={submitting} /></AcademicField>
+    <AcademicField label="Tên giai đoạn" field="name" error={error}><input name="name" required defaultValue={record?.name} disabled={submitting} /></AcademicField>
+    <AcademicField label="Loại giai đoạn" field="periodType" error={error}><select name="periodType" defaultValue={record?.periodType} disabled={submitting}>{projectPeriodTypes.map(type => <option key={type} value={type}>{labels[type]}</option>)}</select></AcademicField>
+    <p className="text-xs text-ink-muted">Nhập thời gian theo giờ Việt Nam.</p>
+    <AcademicField label="Bắt đầu" field="startAt" error={error}><input aria-label="Bắt đầu (giờ Việt Nam)" name="startAt" type="datetime-local" required defaultValue={record ? localDateTime(record.startAt) : undefined} disabled={submitting} /></AcademicField>
+    <AcademicField label="Kết thúc" field="endAt" error={error}><input aria-label="Kết thúc (giờ Việt Nam)" name="endAt" type="datetime-local" required defaultValue={record ? localDateTime(record.endAt) : undefined} disabled={submitting} /></AcademicField>
     <p className="text-xs text-ink-muted">{record ? 'Các điều kiện hiện tại được hiển thị để đối chiếu. Mở phiên bản chính sách để thay đổi điều kiện áp dụng.' : 'Các điều kiện dưới đây sẽ được dùng cho chính sách ban đầu của giai đoạn.'}</p>
-    <label>Thành viên tối thiểu<input name="minTeamSize" type="number" min="1" required disabled={Boolean(record) || submitting} defaultValue={record?.minTeamSize ?? 3} /></label>
-    <label>Thành viên tối đa<input name="maxTeamSize" type="number" min="1" required disabled={Boolean(record) || submitting} defaultValue={record?.maxTeamSize ?? 5} /></label>
-    <label>Số ngành tối thiểu<input name="minDistinctMajors" type="number" min="1" required disabled={Boolean(record) || submitting} defaultValue={record?.minDistinctMajors ?? 1} /></label>
-    <label>Đồ án tối đa mỗi GVHD<input name="maxProjectsPerSupervisor" type="number" min="1" required disabled={Boolean(record) || submitting} defaultValue={record?.maxProjectsPerSupervisor ?? 5} /></label>
+    <AcademicField label="Thành viên tối thiểu" field="minTeamSize" error={error}><input name="minTeamSize" type="number" min="1" required disabled={Boolean(record) || submitting} defaultValue={record?.minTeamSize ?? 3} /></AcademicField>
+    <AcademicField label="Thành viên tối đa" field="maxTeamSize" error={error}><input name="maxTeamSize" type="number" min="1" required disabled={Boolean(record) || submitting} defaultValue={record?.maxTeamSize ?? 5} /></AcademicField>
+    <AcademicField label="Số ngành tối thiểu" field="minDistinctMajors" error={error}><input name="minDistinctMajors" type="number" min="1" required disabled={Boolean(record) || submitting} defaultValue={record?.minDistinctMajors ?? 1} /></AcademicField>
+    <AcademicField label="Đồ án tối đa mỗi GVHD" field="maxProjectsPerSupervisor" error={error}><input name="maxProjectsPerSupervisor" type="number" min="1" required disabled={Boolean(record) || submitting} defaultValue={record?.maxProjectsPerSupervisor ?? 5} /></AcademicField>
     <div className="governance-editor-actions"><Button variant="secondary" onClick={onCancel} disabled={submitting}>Hủy</Button><Button type="submit" disabled={submitting}>{submitting ? 'Đang lưu…' : record ? 'Lưu cấu trúc giai đoạn' : 'Tạo giai đoạn'}</Button></div>
   </form></Modal>
 }

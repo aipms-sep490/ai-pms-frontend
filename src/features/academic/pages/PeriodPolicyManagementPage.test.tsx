@@ -35,9 +35,27 @@ it('leaves the preserved draft locked and removes stale history when conflict re
   api.savePeriodPolicy.mockRejectedValue(new HttpError('Conflict', 409))
   api.getPeriodPolicyHistory.mockRejectedValue(new HttpError('Forbidden', 403))
   submit(); await screen.findByRole('alert')
+  await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Bạn chưa có quyền quản lý chính sách'))
+  expect(screen.queryByRole('button', { name: 'Tải lại dữ liệu' })).toBeNull()
   expect(screen.queryByRole('button', { name: /Phiên bản 2/ })).toBeNull()
   expect((screen.getByLabelText('Thành viên tối đa') as HTMLInputElement).disabled).toBe(true)
   submit(); expect(api.savePeriodPolicy).toHaveBeenCalledTimes(1)
+})
+
+it('translates field validation beside the control without exposing server prose or trace ID', async () => {
+  page(); fireEvent.click(await screen.findByRole('button', { name: /Phiên bản 2/ }))
+  fireEvent.change(screen.getByLabelText('Thành viên tối đa'), { target: { value: '6' } })
+  api.savePeriodPolicy.mockRejectedValue(new HttpError('PRIVATE_ERROR', 422, {
+    detail: 'PRIVATE_DETAIL', traceId: 'PRIVATE_TRACE', errors: { 'Policy.MaxTeamSize': ['PRIVATE_FIELD'] },
+  }))
+  submit(); await screen.findByRole('alert')
+  const input = screen.getByLabelText('Thành viên tối đa') as HTMLInputElement
+  expect(input.value).toBe('6')
+  expect(input.disabled).toBe(false)
+  expect(input.getAttribute('aria-invalid')).toBe('true')
+  expect(document.getElementById(input.getAttribute('aria-describedby')!)?.textContent).toContain('số thành viên tối đa')
+  expect(screen.queryByRole('button', { name: 'Thử lại' })).toBeNull()
+  expect(document.body.textContent).not.toContain('PRIVATE')
 })
 it('keeps published history immutable and creates a separate successor using the latest BE version', async () => {
   api.getPeriodPolicyHistory.mockResolvedValue([published])
