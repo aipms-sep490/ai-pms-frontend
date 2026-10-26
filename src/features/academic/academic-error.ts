@@ -56,4 +56,3 @@ export function academicError(reason: unknown, context: 'governance' | 'policy')
   }
   return { message: context === 'policy' ? 'Không thể đồng bộ phiên bản chính sách. Hãy thử tải lại.' : 'Không thể đồng bộ cấu hình học vụ. Hãy thử lại.', action: 'retry' }
 }
-
