@@ -874,14 +874,14 @@ Cách phân biệt: theo dõi field nào người dùng **đã chạm vào** (di
 ## Tiêu chí nghiệm thu
 
 **Phần 1:**
-- [x] Lưu hồ sơ mà **không** sửa chức danh → chức danh trong DB **không đổi**. Kiểm bằng API, không chỉ bằng UI.
-- [x] Người dùng xóa chức danh tường minh → chức danh bị xóa (ý định được tôn trọng).
-- [x] Lặp lại lưu 3 lần liên tiếp không sửa gì → dữ liệu không suy giảm.
+- [ ] Lưu hồ sơ mà **không** sửa chức danh → chức danh trong DB **không đổi**. Kiểm bằng API, không chỉ bằng UI. (Đã phủ payload bằng test; chờ kiểm chứng DB/API thật.)
+- [ ] Người dùng xóa chức danh tường minh → chức danh bị xóa (ý định được tôn trọng). (Đã phủ payload bằng test; chờ kiểm chứng DB/API thật.)
+- [ ] Lặp lại lưu 3 lần liên tiếp không sửa gì → dữ liệu không suy giảm. (Chưa kiểm chứng live.)
 
 **Phần 2 (sau BE-05):**
-- [x] Tải lại trang → form hiện đúng chức danh và số điện thoại đã lưu.
-- [x] Lưu xong → form phản ánh giá trị mới ngay, không cần F5.
-- [x] `session.user` có `title`/`phone`; client cũ không vỡ.
+- [ ] Tải lại trang → form hiện đúng chức danh và số điện thoại đã lưu. (Chờ BE-05; `AuthUserDto` hiện thiếu hai field.)
+- [ ] Lưu xong → form phản ánh giá trị mới ngay, không cần F5. (Chưa kiểm chứng live.)
+- [ ] `session.user` có `title`/`phone`; client cũ không vỡ. (Chờ BE-05.)
 
 **Chung:**
 - [x] Lỗi lưu → **giữ nguyên** nội dung đã nhập, không reset form.
@@ -890,7 +890,7 @@ Cách phân biệt: theo dõi field nào người dùng **đã chạm vào** (di
 ## Kiểm chứng
 
 - [ ] **Trước khi code:** gọi thật `PUT /users/me/profile` với body chỉ có `fullName`, đọc lại hồ sơ, xác định BE là partial hay full-replace. Ghi vào PR.
-- [x] Test: không sửa title → payload **không** có key `title`.
+- [x] Test: không sửa title → FE đọc hồ sơ hiện lưu và gửi nguyên giá trị `title` trong PUT full-replace. (Đính chính sau khi xác nhận code BE.)
 - [x] Test: xóa title tường minh → payload có `title: null`.
 - [x] Test: prefill từ session.
 - [ ] **Chạy thật trên staging:** lưu → reload → lưu lại → kiểm chức danh còn nguyên.

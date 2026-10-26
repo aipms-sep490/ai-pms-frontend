@@ -76,4 +76,36 @@ describe('auth API', () => {
       ['/api/v1/users/me/profile', 'PUT', JSON.stringify({ fullName: 'Student Updated', phone: null, title: 'Student' })],
     ])
   })
+
+  it('preserves stored fields omitted from the auth session during full-replace profile updates', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ phone: '0912345678', title: 'Giảng viên' }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ fullName: 'Tên mới', phone: '0912345678', title: 'Giảng viên' }) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await updateMyProfile({ fullName: 'Tên mới' })
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/users/me/profile', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/users/me/profile', expect.objectContaining({
+      method: 'PUT',
+      body: JSON.stringify({ fullName: 'Tên mới', phone: '0912345678', title: 'Giảng viên' }),
+    }))
+  })
+
+  it('does not replace a profile when the authoritative read fails', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 403, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(updateMyProfile({ fullName: 'Tên mới' })).rejects.toThrow()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0][1].method).toBe('GET')
+  })
+
+  it('does not replace a profile when the authoritative response omits a stored field', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ title: 'Giảng viên' }) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(updateMyProfile({ fullName: 'Tên mới' })).rejects.toThrow('incomplete')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
 })
