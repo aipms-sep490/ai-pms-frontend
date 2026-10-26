@@ -8,6 +8,7 @@ import type { ProjectExecutionCapabilities } from '../../execution/hooks/useProj
 import './collaboration-workspace.css'
 import { TeamReflectionPanel } from '../../student-collaboration/TeamReflectionPanel'
 import { getStudentReviewTimeline, submitRevision } from '../../review-gates/api/review-gates-api'
+import { ReviewGatesMockNotice } from '../../review-gates/components/ReviewGatesMockNotice'
 import type { StudentReviewTimelineDto } from '../../review-gates/types/review-gates.types'
 import { NextActionBanner } from '../components/NextActionBanner'
 import type { ReviewSubmissionPayload } from '../../review-gates/components/ReviewSubmissionModal'
@@ -88,6 +89,7 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
   }
 
   return <div className="collaboration-workspace">
+    <ReviewGatesMockNotice />
     <header className="cw-page-heading">
       <div><p className="cw-eyebrow">{team?.name || project.teamName || 'Nhóm đồ án'} <span> / </span> {project.code}</p>
         <h1>{isTeamLeader ? 'Điều phối đồ án' : 'Công việc của tôi'}</h1><p className="cw-page-description">{isTeamLeader ? 'Theo dõi tiến độ, phân công công việc và hỗ trợ nhóm xử lý vướng mắc.' : 'Ưu tiên việc được giao, hạn gần, vướng mắc và các mốc cần phối hợp.'}</p>
