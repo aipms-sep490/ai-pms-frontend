@@ -33,3 +33,7 @@ The real assignment page permits the existing COMMON component to be selected an
 Staff result preview, Staff COMMON assignment and Admin label-with-denial states have390/768/1280/1440px screenshots and page-width measurements:12 probes without horizontal overflow. Native option lists and raw response metadata are recorded in JSON; no DOM was altered for a screenshot. The old50/50 wording still appears in this identity-only branch and is corrected by the separate G3 formula PR.
 
 Evidence outside Git: `E:/DOANTOTNGHIEP/output/fe2-feedback-2026-10-26/g3-labels/`. The before capture uses the G2 checkout, whose result/evaluator files are identical to develop4d2b90c; the after captures use this branch. Browser probes use normal login and real staging, without auth bypass, response interception, DB changes or write requests.
+
+## CI follow-up
+
+CI at6454da5 passed the G3 tests but exposed an existing race in SupervisorDashboardPage.test.tsx: it awaited the API spy being called, then synchronously queried a link while the dashboard was still loading. The failure log shows the loading state, not a missing destination. The test now explicitly holds the first response, verifies the link is absent while pending, resolves the response and awaits the exact link and the later pagination control. All filter/page expectations remain. No dashboard product code, test timeout or assertion was removed. The final head's CI and the refreshed combined preview verify this deterministic fixture.
