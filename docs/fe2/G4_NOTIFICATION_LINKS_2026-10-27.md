@@ -46,7 +46,24 @@ Destination authorization is retained: identity guards plus existing task/report
 
 - Independent grouped fixtures cover all56 names ×4 identities, plus invalid IDs/entities, inherited/unknown keys, feature holds, feedback parent IDs and primary-role precedence. Every produced URL is matched against the actual appRouter and every RoleRoute on that match; registry-only checks cannot cover every detail route.
 - Row tests cover awaiting read before navigation, duplicate prevention, read failure without private diagnostics, already-read behavior and the separate read action. Inbox integration checks a link activation queued behind a bulk read.
-- Targeted notification/Gate scenario run:6 files/94 tests PASS. Full technical and browser results are recorded in the final local handoff; no claim is made that all56 event types were generated on staging.
+- Targeted notification/Gate scenario run:6 files/94 tests PASS. Standalone full suite:269 files/1551 tests PASS; typecheck, lint, build and diff checks PASS. Lint has209 existing warnings; the bundle-size warning and jsdom navigation informational line remain. Checks use process-only `VITE_API_BASE_URL=/api/v1`, without changing user environment files.
+
+## Combined preview and real role checks
+
+A local-only integration checkout at `fe2-checkpoint-b-preview`, commit `18039443738496c0d5d9f012f158014de1acce4c`, combines G7/G9 feedback and G1/G6/G5/G4 on develop4d2b90c. Its upstream is unset and it is not pushed. This is an explicit review preview, not a GitHub PR merge. G6 Vietnamese assertions and G4 router fixtures merge automatically after sharing the test render wrapper; neither assertion set is dropped.
+
+The combined acceptance run passes **272 files /1671 tests**, typecheck, lint and build. Real UI checks use this combined source, normal sign-in and staging API, with Review Gates mock off and the committed safe acceptance flags. No DB changes, auth bypass or intercepted responses were used.
+
+| Recipient | Actual inbox and clicks | Result / limit |
+|---|---|---|
+| Student `p1.se4` | Both existing rows: invitation70033 and proposal approval70037 | PATCH read204 precedes each SPA navigation; destinations `/team` and `/projects/lifecycle`. Subsequent GET confirms both read. Team renders the current roster and invitation list; an existing permission alert for an auxiliary team read remains, so this is not full team-workflow acceptance. |
+| Lecturer `lecturer.it1` | All6 existing rows:4 supervisor requests,1 submitted deliverable,1 meeting | Own supervision workspace or calendar, with their actual headings and scoped data; no notification link interpolates request/version IDs as project IDs. |
+| Department `staff.it` | Both existing rows: finalized evaluation and locked final submission | Own portfolio and `/department/projects/50003/final-submission`; the locked package is visible. No proposal-review event is present in this inbox. |
+| Admin | Empty real inbox | Empty state only; no fabricated policy event. Admin policy destination is verified by the router/role regression suite. |
+
+All10 available notification rows were clicked, covering7 actual event types. Inbox screenshots for all4 identities and the Student header popup record390/768/1280/1440px. Header activation via Enter opens the current proposal and closes the popup; an already-read item issues no additional read mutation. Header bounds stay within each viewport. The separate `authorization-negative.json` is a **direct destination probe**, not a generated notification: Student50006/current project50005 opening task20004 from project50004 receives403 with an explanatory UI, not a blank page.
+
+Read/navigation ordering is in `student-live-links.json`; its first immediate invitation main-text sample still contains the outgoing lazy page and must not be used as the destination-heading proof. The separately settled `student-team-link-destination-1440.png` and destination follow-up metadata verify the team page. Mark-read failure, queued concurrent reads and every event/role combination are controlled tests, not claimed as reproduced staging failures. Fresh notification generation retains the G6 verification/locked-roster fixture gap; existing historical events are explicitly identified above.
 
 The old Gate scenario now calls the validated resolver with explicit entity metadata; its Admin policy destination is corrected from the forbidden department matrix to academic policy. Existing Gate workflow assertions are retained. Translation and safe fallback tests in PR #108 are separate and must be integrated for final Vietnamese UI acceptance.
 
