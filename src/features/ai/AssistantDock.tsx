@@ -81,7 +81,7 @@ function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, rout
   }, [])
   return <div className="assistant-dock">
     <dialog ref={dialog} id="assistant-dock-dialog" aria-labelledby="assistant-dock-title" className="assistant-dock-dialog"
-      onCancel={event => { event.preventDefault(); hide() }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); hide() } }}>
+      onCancel={event => { if (event.target === event.currentTarget) { event.preventDefault(); hide() } }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); hide() } }}>
       <header className="assistant-dock-header">
         <span className="assistant-avatar material-symbols-outlined" aria-hidden="true">auto_awesome</span>
         <div className="assistant-dock-heading"><h2 id="assistant-dock-title">Trợ lý AI</h2><p>{projectId ? 'Đồng hành cùng đồ án của bạn' : 'Cùng bạn học tập và làm đồ án'}</p></div>
