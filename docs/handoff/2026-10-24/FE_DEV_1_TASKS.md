@@ -745,17 +745,17 @@ Tạo báo cáo mới: **không gửi** `issuesAndRisks` (để `undefined`, kh�
 - [ ] Nộp sau hạn với `latePolicy = BLOCK` → thông báo đúng về hạn nộp, không nói về version.
 - [ ] Nộp sau hạn với `latePolicy = FLAG` → nộp được, UI hiện nhãn "nộp muộn" theo `isLate` **BE trả về** (không FE tự tính).
 - [x] Member sửa được draft (hành vi cũ không đổi).
-- [x] Nút tạo/nộp vẫn theo capability BE.
+- [ ] Nút tạo/nộp vẫn theo capability BE. (BE hiện chỉ trả `create_progress_report`; quyền nộp cần hợp đồng capability riêng hoặc xác nhận luồng UX.)
 - [x] Lỗi → **giữ nguyên nội dung người dùng đã nhập**.
-- [x] Hiển thị ở 390 px không tràn ngang; form 8 field vẫn dùng được trên mobile.
+- [ ] Hiển thị ở 390 px không tràn ngang; form 7 ô hiện hành vẫn dùng được trên mobile. (Chưa có kiểm tra trình duyệt ở viewport này.)
 
 ## Kiểm chứng
 
-- [x] Test: chọn cycle → payload `POST` chứa đúng `progressReportPeriodId` + 8 field.
+- [x] Test: chọn cycle → payload `POST` chứa đúng `progressReportPeriodId` + 7 field nội dung hiện hành.
 - [x] Test: cycle đã có report → không chọn được.
-- [x] Test: 4 lỗi BE → 4 câu tiếng Việt khác nhau, không trùng.
+- [ ] Test: 4 lỗi BE → 4 câu tiếng Việt khác nhau, không trùng. (Mới phủ xung đột cycle bằng test.)
 - [x] Test: không có cycle → trạng thái rỗng.
-- [ ] Test: `isLate` từ BE → hiện nhãn; FE không tự tính.
+- [x] Test: `isLate` từ BE → hiện nhãn; FE không tự tính.
 - [ ] **Chạy thật trên staging:** tạo draft → nộp → `SUBMITTED`. Lưu request/response vào PR. **Không** coi test đơn vị là đủ cho task này.
 - [x] 4 lệnh kiểm chứng xanh (typecheck, lint, test 263 files / 1464 tests, build).
 

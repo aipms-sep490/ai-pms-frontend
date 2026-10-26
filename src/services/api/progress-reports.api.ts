@@ -2,20 +2,8 @@ import { httpGet, httpPost, httpPut } from '../http/http-client'
 import type { PagedResult } from '../../types/backend'
 import type { CreateReport, ProgressReport, ReportContent, ReportDetail, ReportFeedback, ReportStatus, ReportType } from '../../features/reports/report-types'
 
-export interface ReportingCycle {
-  id: number
-  projectId: number
-  projectPeriodId: number
-  reportType: 'WEEKLY' | 'MONTHLY' | string
-  periodStart: string
-  periodEnd: string
-  deadline: string
-  latePolicy: 'BLOCK' | 'FLAG' | string
-  createdBy: number
-  createdAt: string
-  updatedAt: string
-  concurrencyToken: string
-}
+export { getReportingCycles } from '../../features/projects/api/project-governance-api'
+export type { ReportingCycle } from '../../features/projects/api/project-governance-api'
 
 export interface ReportFilters {
   reportType?: ReportType
@@ -39,5 +27,3 @@ export const updateProgressReport = (id: number, body: ReportContent & { concurr
 const reportTokenQuery = (concurrencyToken?: string) => concurrencyToken ? `?${new URLSearchParams({ concurrencyToken })}` : ''
 export const submitProgressReport = (id: number, concurrencyToken?: string) => httpPost<ProgressReport>(`/progress-reports/${id}/submit${reportTokenQuery(concurrencyToken)}`)
 export const addProgressReportFeedback = (id: number, feedbackText: string, concurrencyToken?: string) => httpPost<ReportFeedback>(`/progress-reports/${id}/feedback${reportTokenQuery(concurrencyToken)}`, { feedbackText })
-export const getReportingCycles = (projectId: number, signal?: AbortSignal, page = 1) =>
-  httpGet<PagedResult<ReportingCycle>>(`/projects/${projectId}/reporting-cycles?page=${page}&pageSize=50`, signal)

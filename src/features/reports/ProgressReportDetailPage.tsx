@@ -16,7 +16,16 @@ import {
 import { ReportBadge, ReportError, ReportLoading, ReportShell } from './report-ui'
 import { ReportAiSummary } from '../ai/components/ReportAiSummary'
 import { env } from '../../app/config/env'
-import { HttpError } from '../../services/http/http-client'
+import type { PagedResult } from '../../types/backend'
+
+async function loadAllPages<T>(loadPage: (page: number) => Promise<PagedResult<T>>): Promise<T[]> {
+  const first = await loadPage(1)
+  const remaining = await Promise.all(Array.from(
+    { length: Math.max(0, first.totalPages - 1) },
+    (_, index) => loadPage(index + 2),
+  ))
+  return [first, ...remaining].flatMap((page) => page.items)
+}
 
 export function ProgressReportDetailPage({ create = false }: { create?: boolean }) {
   const access = useExecutionAccess()
@@ -64,20 +73,16 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
 
     if (create) {
       Promise.all([
-        api.getReportingCycles(project.id, controller.signal),
-        api.getProgressReports(project.id, { page: 1, pageSize: 50 }, controller.signal),
-      ]).then(([cyclesData, reportsData]) => {
+        loadAllPages((page) => api.getReportingCycles(project.id, controller.signal, page)),
+        loadAllPages((page) => api.getProgressReports(project.id, { page, pageSize: 50 }, controller.signal)),
+      ]).then(([cycleItems, reportItems]) => {
         if (controller.signal.aborted) return
-        setCycles(cyclesData.items)
-        setExistingReports(reportsData.items)
+        setCycles(cycleItems)
+        setExistingReports(reportItems)
       }).catch((reason: unknown) => {
         if (controller.signal.aborted) return
-        if (reason instanceof HttpError && reason.status === 404) {
-          setCycles([])
-        } else {
-          // If cycles API is not available or rejected in legacy tests, fallback to undefined
-          setCycles(undefined)
-        }
+        setCycles(undefined)
+        setLoadError(reportError(reason))
       }).finally(() => {
         if (!controller.signal.aborted) setLoading(false)
       })

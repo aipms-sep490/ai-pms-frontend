@@ -135,23 +135,8 @@ export const canonicalSubmissionFields = [
   { key: 'nextActions' as const, label: 'Hành động tiếp theo' },
 ] as const
 
-export const legacySubmissionFields = [
-  { key: 'summary' as const, label: 'Tóm tắt tiến độ' },
-  { key: 'completedWork' as const, label: 'Công việc đã hoàn thành' },
-  { key: 'plannedWork' as const, label: 'Kế hoạch kỳ tiếp theo' },
-  { key: 'issuesAndRisks' as const, label: 'Khó khăn & rủi ro' },
-] as const
-
 export function missingSubmissionFields(report: Partial<ReportContent>): string[] {
-  const isLegacy = Boolean(
-    report.issuesAndRisks &&
-    !report.inProgressWork &&
-    !report.blockers &&
-    !report.risks &&
-    !report.nextActions
-  )
-  const fields = isLegacy ? legacySubmissionFields : canonicalSubmissionFields
-  return fields.filter(({ key }) => !report[key]?.trim()).map(({ label }) => label)
+  return report.summary?.trim() ? [] : ['Tóm tắt tiến độ']
 }
 
 export function formatReportDate(value: string): string {

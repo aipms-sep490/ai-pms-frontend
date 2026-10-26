@@ -250,12 +250,12 @@ describe('Progress reports workflow', () => {
     })
   })
 
-  it('blocks submit for incomplete persisted drafts and unsaved changes', async () => {
-    api.getProgressReport.mockResolvedValue({ ...draft, issuesAndRisks: ' ' })
+  it('blocks submit for a blank summary and unsaved changes', async () => {
+    api.getProgressReport.mockResolvedValue({ ...draft, summary: ' ' })
     mount()
     const submit = (await screen.findByRole('button', { name: 'Nộp cho GVHD' })) as HTMLButtonElement
     expect(submit.disabled).toBe(true)
-    input('Khó khăn & rủi ro', 'Không có')
+    input('Tóm tắt tiến độ', 'Đã hoàn thành')
     expect(submit.disabled).toBe(true)
     expect(screen.getByText('Lưu thay đổi trước khi nộp.')).toBeTruthy()
     expect(api.submitProgressReport).not.toHaveBeenCalled()
@@ -396,6 +396,27 @@ describe('Progress reports workflow', () => {
     expect(option2.disabled).toBe(false)
   })
 
+  it('loads every cycle and report page before offering a cycle for a new draft', async () => {
+    const laterCycle: ReportingCycle = {
+      ...sampleCycle,
+      id: 102,
+      periodStart: '2026-09-21',
+      periodEnd: '2026-09-27',
+    }
+    api.getReportingCycles
+      .mockResolvedValueOnce({ items: [sampleCycle], page: 1, pageSize: 20, totalCount: 2, totalPages: 2 })
+      .mockResolvedValueOnce({ items: [laterCycle], page: 2, pageSize: 20, totalCount: 2, totalPages: 2 })
+    api.getProgressReports
+      .mockResolvedValueOnce({ items: [], page: 1, pageSize: 50, totalCount: 1, totalPages: 2 })
+      .mockResolvedValueOnce({ items: [{ ...draft, progressReportPeriodId: 102 }], page: 2, pageSize: 50, totalCount: 1, totalPages: 2 })
+    mount({ path: '/project/reports/new' })
+
+    const cycleSelect = await screen.findByLabelText(/Chọn kỳ báo cáo/) as HTMLSelectElement
+    expect(api.getReportingCycles).toHaveBeenCalledWith(9, expect.any(AbortSignal), 2)
+    expect(api.getProgressReports).toHaveBeenCalledWith(9, { page: 2, pageSize: 50 }, expect.any(AbortSignal))
+    expect((cycleSelect.querySelector('option[value="102"]') as HTMLOptionElement).disabled).toBe(true)
+  })
+
   it('shows empty state when project has 0 reporting cycles', async () => {
     api.getReportingCycles.mockResolvedValueOnce({ items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 })
     mount({ path: '/project/reports/new' })
@@ -436,12 +457,12 @@ describe('Progress reports workflow', () => {
     expect(await screen.findByText(/Báo cáo nộp sau hạn sẽ được ghi nhận là nộp muộn/)).toBeTruthy()
   })
 
-  it('blocks submit for canonical reports when any of the 6 canonical fields is missing', async () => {
+  it('allows submission with only a summary because other content fields are optional', async () => {
     const canonicalDraft: ReportDetail = {
       ...draft,
       issuesAndRisks: null,
       inProgressWork: 'Đang dựng giao diện',
-      blockers: '', // missing
+      blockers: '',
       risks: 'Rủi ro trễ tiến độ',
       nextActions: 'Viết test',
     }
@@ -449,8 +470,26 @@ describe('Progress reports workflow', () => {
     mount()
 
     const submit = (await screen.findByRole('button', { name: 'Nộp cho GVHD' })) as HTMLButtonElement
-    expect(submit.disabled).toBe(true)
-    expect(screen.getByText(/Còn thiếu: Vướng mắc/)).toBeTruthy()
+    expect(submit.disabled).toBe(false)
+    expect(screen.queryByText(/Còn thiếu: Vướng mắc/)).toBeNull()
+  })
+
+  it('shows legacy issues as read only while keeping them in the update payload', async () => {
+    mount()
+    const legacy = await screen.findByLabelText(/Khó khăn & rủi ro/) as HTMLTextAreaElement
+    expect(legacy.readOnly).toBe(true)
+    input('Tóm tắt tiến độ', 'Bản nháp mới')
+    click('Lưu thay đổi')
+    await screen.findByText(/Đã lưu thay đổi/)
+    expect(api.updateProgressReport).toHaveBeenCalledWith(17, expect.objectContaining({ issuesAndRisks: draft.issuesAndRisks }))
+  })
+
+  it('fails closed when reporting cycles cannot be loaded', async () => {
+    api.getReportingCycles.mockRejectedValueOnce(new HttpError('forbidden', 403))
+    mount({ path: '/project/reports/new' })
+    expect(await screen.findByRole('alert')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Lưu bản nháp' })).toBeNull()
+    expect(api.createProgressReport).not.toHaveBeenCalled()
   })
 
   it('enables submit for canonical reports when all 6 canonical fields are completed', async () => {

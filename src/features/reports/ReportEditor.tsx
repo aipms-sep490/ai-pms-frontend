@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import type { ReportingCycle } from '../../services/api/progress-reports.api'
+import { utcTimestamp } from '../execution/execution-utils'
 import {
   formatReportDate,
   formSections,
@@ -42,6 +43,7 @@ export function ReportEditor({
   }))
   const [dirty, setDirty] = useState(false)
   const [validation, setValidation] = useState('')
+  const [renderedAt] = useState(Date.now)
 
   function update(key: keyof CreateReport, value: string) {
     setValues((current) => ({ ...current, [key]: value }))
@@ -107,7 +109,7 @@ export function ReportEditor({
   }
 
   const selectedCycle = cycles?.find((c) => c.id === Number(selectedCycleId))
-  const isSelectedCycleOverdue = selectedCycle ? new Date() > new Date(selectedCycle.deadline) : false
+  const isSelectedCycleOverdue = selectedCycle ? renderedAt > utcTimestamp(selectedCycle.deadline) : false
   const missing = missingSubmissionFields(values)
 
   // Empty state when there are explicitly no cycles available for new report creation
@@ -244,8 +246,8 @@ export function ReportEditor({
           </div>
         ))}
 
-        {/* Legacy issuesAndRisks field for backward compatibility when editing existing records */}
-        {report?.issuesAndRisks !== undefined && (
+        {/* Preserve legacy content while editing the seven current fields. */}
+        {report?.issuesAndRisks && (
           <label className="report-content-field" htmlFor="report-issuesAndRisks">
             <span>
               <b>Khó khăn & rủi ro</b> (Trường cũ, đã thay bằng Vướng mắc và Rủi ro)
@@ -256,7 +258,7 @@ export function ReportEditor({
               rows={3}
               aria-describedby="hint-issuesAndRisks"
               value={values.issuesAndRisks ?? ''}
-              onChange={(event) => update('issuesAndRisks', event.target.value)}
+              readOnly
             />
           </label>
         )}
