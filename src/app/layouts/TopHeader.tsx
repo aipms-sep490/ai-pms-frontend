@@ -36,7 +36,7 @@ export function TopHeader({
   const [previewFilter, setPreviewFilter] = useState<'all' | 'unread'>('unread')
   const [previewBusy, setPreviewBusy] = useState(false)
   const previewRequest = useRef(0)
-  const previewMutation = useRef(false)
+  const previewMutation = useRef<Promise<void>>(Promise.resolve())
   const notificationRef = useRef<HTMLDivElement | null>(null)
   const notificationTriggerRef = useRef<HTMLButtonElement | null>(null)
   useEffect(() => {
@@ -73,16 +73,18 @@ export function TopHeader({
     if (!notificationOpen) void loadPreview()
     setNotificationOpen(!notificationOpen)
   }
-  const readPreview = async (item: NotificationItem) => {
-    if (previewMutation.current) return
-    previewMutation.current = true
-    setPreviewBusy(true)
-    try {
-      await markNotificationRead(item.id)
-      await loadPreview()
-      window.dispatchEvent(new Event('ai-pms:notifications-changed'))
-    } catch { setPreviewError('Chưa đánh dấu được thông báo. Hãy thử lại.'); }
-    finally { previewMutation.current = false; setPreviewBusy(false) }
+  const readPreview = (item: NotificationItem) => {
+    const pending = previewMutation.current.catch(() => {}).then(async () => {
+      setPreviewBusy(true)
+      try {
+        await markNotificationRead(item.id)
+        await loadPreview()
+        window.dispatchEvent(new Event('ai-pms:notifications-changed'))
+      } catch (reason) { setPreviewError('Chưa đánh dấu được thông báo. Hãy thử lại.'); throw reason }
+      finally { setPreviewBusy(false) }
+    })
+    previewMutation.current = pending
+    return pending
   }
   const role = getWorkspaceRole(session?.user)
   const pendingStudent = role === 'student' && workspaceAccess.contextStatus === 'loading'
@@ -167,7 +169,7 @@ export function TopHeader({
             <div className="notification-popover-header"><div><h2>Thông báo</h2><p>{unreadCount === null ? 'Cập nhật dành cho bạn' : unreadCount > 0 ? unreadCount + ' thông báo chưa đọc' : 'Bạn đã đọc hết thông báo mới'}</p></div><button type="button" className="notification-close" aria-label="Đóng bảng thông báo" onClick={() => { setNotificationOpen(false); notificationTriggerRef.current?.focus() }}><span className="material-symbols-outlined" aria-hidden="true">close</span></button></div>
             <div className="notification-toolbar"><div className="notification-tabs" role="group" aria-label="Lọc thông báo nhanh">{(['unread', 'all'] as const).map(value => <button key={value} type="button" aria-pressed={previewFilter === value} disabled={previewBusy} onClick={() => { setPreviewFilter(value); void loadPreview(value) }}>{value === 'unread' ? 'Chưa đọc' : 'Tất cả'}</button>)}</div><button type="button" className="notification-action" disabled={previewLoading || previewBusy} onClick={() => void loadPreview()}>Làm mới</button></div>
             {previewError && <p role="alert" className="notification-error">{previewError}<button type="button" disabled={previewLoading || previewBusy} onClick={() => void loadPreview()}>Tải lại</button></p>}
-            <div className="notification-popover-scroll">{previewLoading ? <NotificationLoading /> : preview.length ? <ul className="notification-list">{preview.map(item => <NotificationRow key={item.id} item={item} busy={previewBusy} compact onRead={() => void readPreview(item)} />)}</ul> : !previewError ? <NotificationEmpty unread={previewFilter === 'unread'} /> : null}</div>
+            <div className="notification-popover-scroll">{previewLoading ? <NotificationLoading /> : preview.length ? <ul className="notification-list">{preview.map(item => <NotificationRow key={item.id} item={item} busy={previewBusy} compact onRead={() => readPreview(item)} onNavigate={() => setNotificationOpen(false)} />)}</ul> : !previewError ? <NotificationEmpty unread={previewFilter === 'unread'} /> : null}</div>
             <Link to="/notifications" onClick={() => setNotificationOpen(false)} className="notification-popover-footer">Xem tất cả<span aria-hidden="true">→</span></Link>
           </section>}
         </div>

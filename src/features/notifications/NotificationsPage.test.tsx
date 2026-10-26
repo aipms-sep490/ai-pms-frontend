@@ -2,6 +2,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { HttpError } from '../../services/http/http-client'
 import { NotificationsPage } from './NotificationsPage'
+import { MemoryRouter, useLocation } from 'react-router-dom'
+import { AuthSessionContext, type AuthSessionContextValue } from '../auth/context/auth-session-context'
 
 const api = vi.hoisted(() => ({ getNotifications: vi.fn(), getUnreadCount: vi.fn(), markNotificationRead: vi.fn(), markAllNotificationsRead: vi.fn() }))
 vi.mock('./notifications-api', () => api)
@@ -9,6 +11,7 @@ vi.mock('./notifications-api', () => api)
 const unread = { id: 5, notificationType: 'PROJECT_UPDATED', title: 'Project status updated', content: 'Check the project.', relatedEntityType: 'PROJECT', relatedEntityId: 9, createdAt: '2026-09-27T10:00:00Z', isRead: false, readAt: null }
 const translatedTitle = 'Hồ sơ đồ án vừa được cập nhật'
 const page = { items: [unread], page: 1, pageSize: 20, totalCount: 1, totalPages: 1 }
+function Location() { return <output aria-label="Đường dẫn hiện tại">{useLocation().pathname}</output> }
 
 describe('NotificationsPage', () => {
   beforeEach(() => {
@@ -20,7 +23,7 @@ describe('NotificationsPage', () => {
   afterEach(() => { cleanup(); vi.clearAllMocks() })
 
   it('renders backend notifications and refreshes after reading one', async () => {
-    render(<NotificationsPage />)
+    render(<NotificationsPage />, { wrapper: MemoryRouter })
     expect(await screen.findByRole('heading', { name: translatedTitle })).toBeTruthy()
     expect(screen.queryByText(unread.title)).toBeNull()
     expect(screen.queryByText(unread.content)).toBeNull()
@@ -30,7 +33,7 @@ describe('NotificationsPage', () => {
   })
 
   it('uses the unread filter contract', async () => {
-    render(<NotificationsPage />)
+    render(<NotificationsPage />, { wrapper: MemoryRouter })
     await screen.findByRole('heading', { name: translatedTitle })
     fireEvent.click(screen.getByRole('button', { name: 'Chưa đọc' }))
     await waitFor(() => expect(api.getNotifications).toHaveBeenCalledWith(1, false))
@@ -38,13 +41,13 @@ describe('NotificationsPage', () => {
 
   it('announces access failures from the backend', async () => {
     api.getNotifications.mockRejectedValue(new HttpError('forbidden', 403))
-    render(<NotificationsPage />)
+    render(<NotificationsPage />, { wrapper: MemoryRouter })
     expect((await screen.findByRole('alert')).textContent).toContain('Bạn không có quyền xem hộp thông báo này.')
   })
 
   it('keeps the unread item visible when marking it fails', async () => {
     api.markNotificationRead.mockRejectedValueOnce(new Error('network'))
-    render(<NotificationsPage />)
+    render(<NotificationsPage />, { wrapper: MemoryRouter })
     await screen.findByRole('heading', { name: translatedTitle })
     fireEvent.click(screen.getByRole('button', { name: 'Đánh dấu đã đọc' }))
     expect((await screen.findByRole('alert')).textContent).toContain('Không thể cập nhật thông báo')
@@ -53,18 +56,35 @@ describe('NotificationsPage', () => {
 
   it('does not show an empty state when loading fails', async () => {
     api.getNotifications.mockRejectedValueOnce(new Error('network'))
-    render(<NotificationsPage />)
+    render(<NotificationsPage />, { wrapper: MemoryRouter })
     await screen.findByRole('alert')
     expect(screen.queryByRole('heading', { name: 'Chưa có thông báo' })).toBeNull()
   })
 
   it('does not display results from the previous filter when the new filter fails', async () => {
     api.getNotifications.mockResolvedValueOnce(page).mockRejectedValueOnce(new Error('network'))
-    render(<NotificationsPage />)
+    render(<NotificationsPage />, { wrapper: MemoryRouter })
     await screen.findByRole('heading', { name: translatedTitle })
     fireEvent.click(screen.getByRole('button', { name: 'Chưa đọc' }))
     await screen.findByRole('alert')
     expect(screen.queryByRole('heading', { name: translatedTitle })).toBeNull()
     expect(screen.queryByRole('heading', { name: 'Chưa có thông báo' })).toBeNull()
+  })
+
+  it('does not drop a destination read while a bulk read is pending', async () => {
+    let finish!: () => void
+    api.markAllNotificationsRead.mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve }))
+    const auth = { session: { user: { id: 1, roles: ['STUDENT'] } } } as unknown as AuthSessionContextValue
+    render(<MemoryRouter initialEntries={['/notifications']}><AuthSessionContext.Provider value={auth}>
+      <NotificationsPage /><Location />
+    </AuthSessionContext.Provider></MemoryRouter>)
+    const link = await screen.findByRole('link', { name: 'Xem hồ sơ đồ án hiện tại' })
+    fireEvent.click(screen.getByRole('button', { name: 'Đánh dấu tất cả đã đọc' }))
+    await waitFor(() => expect(api.markAllNotificationsRead).toHaveBeenCalledTimes(1))
+    fireEvent.click(link)
+    expect(api.markNotificationRead).not.toHaveBeenCalled()
+    finish()
+    await waitFor(() => expect(api.markNotificationRead).toHaveBeenCalledWith(5))
+    await waitFor(() => expect(screen.getByLabelText('Đường dẫn hiện tại').textContent).toBe('/projects/lifecycle'))
   })
 })

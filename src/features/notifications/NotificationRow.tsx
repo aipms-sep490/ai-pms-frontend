@@ -1,50 +1,35 @@
-import { useContext } from 'react'
-import { Link } from 'react-router-dom'
+import { useContext, useRef, type MouseEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { AuthSessionContext } from '../auth/context/auth-session-context'
-import { env } from '../../app/config/env'
 import type { NotificationItem } from './notifications-api'
 import { notificationCopy, notificationTime } from './notification-copy'
+import { resolveNotificationLink } from './notification-link-resolver'
 import './notifications.css'
 
-export function resolveReviewGateNotificationLink(
-  notificationType: string,
-  roles: readonly string[],
-): { url: string; label: string } | null {
-  if (
-    notificationType.startsWith('GATE_') ||
-    notificationType.startsWith('REVIEW_') ||
-    notificationType.startsWith('DISCIPLINE_') ||
-    notificationType === 'EVIDENCE_VERIFIED' ||
-    notificationType === 'DEFENSE_READINESS_CHANGED'
-  ) {
-    if (roles.includes('STUDENT')) {
-      return { url: '/project/timeline', label: 'Mở tiến trình Review Gate' }
-    } else if (
-      roles.includes('LECTURER') &&
-      (notificationType.includes('ASSIGNED') || notificationType.includes('SUBMITTED'))
-    ) {
-      return { url: '/review/gate-assignments', label: 'Mở hàng đợi thẩm định' }
-    } else if (roles.includes('LECTURER')) {
-      return { url: '/supervision/my-projects', label: 'Mở đồ án theo dõi' }
-    } else if (roles.includes('DEPARTMENT_STAFF') || roles.includes('ADMIN')) {
-      return { url: '/department/projects/progress-matrix', label: 'Mở ma trận tiến trình' }
-    }
-  }
-  return null
-}
-
-export function NotificationRow({ item, busy, onRead, compact = false }: { item: NotificationItem; busy: boolean; onRead: () => void; compact?: boolean }) {
+export function NotificationRow({ item, busy, onRead, onNavigate, compact = false }: { item: NotificationItem; busy: boolean; onRead: () => void | Promise<void>; onNavigate?: () => void; compact?: boolean }) {
   const copy = notificationCopy(item)
   const auth = useContext(AuthSessionContext)
   const roles = auth?.session?.user.roles ?? []
-  const appealProject = env.resultCorrectionEnabled && item.notificationType.startsWith('APPEAL_') && item.relatedEntityType === 'PROJECT' && Number.isSafeInteger(item.relatedEntityId) && (item.relatedEntityId ?? 0) > 0
-  const appealLink = appealProject ? roles.includes('STUDENT') ? '/project/result' : roles.some(role => role === 'DEPARTMENT_STAFF' || role === 'LECTURER') ? '/review/projects/' + item.relatedEntityId + '/corrections' : null : null
-
-  let actionLink: { url: string; label: string } | null = null
-  if (appealLink) {
-    actionLink = { url: appealLink, label: 'Xem yêu cầu phúc khảo' }
-  } else {
-    actionLink = resolveReviewGateNotificationLink(item.notificationType, roles)
+  const actionLink = resolveNotificationLink(item, roles)
+  const navigate = useNavigate()
+  const opening = useRef(false)
+  const read = async () => {
+    try { await onRead() }
+    catch { console.warn('[notifications] Could not mark notification as read.') }
+  }
+  const open = async (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!actionLink) return
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      if (!item.isRead) void read()
+      return
+    }
+    event.preventDefault()
+    if (opening.current) return
+    opening.current = true
+    if (!item.isRead) await read()
+    onNavigate?.()
+    navigate(actionLink.url)
+    opening.current = false
   }
 
   return <li className={`notification-row ${item.isRead ? '' : 'notification-row--unread'} ${compact ? 'notification-row--compact' : ''}`}>
@@ -54,9 +39,9 @@ export function NotificationRow({ item, busy, onRead, compact = false }: { item:
       <h2>{copy.title}</h2>
       {copy.content && copy.content.trim() !== copy.title.trim() && <p className="notification-content">{copy.content}</p>}
       <div className="notification-bottom">
-        {actionLink && <Link className="notification-read" to={actionLink.url}>{actionLink.label}</Link>}
+        {actionLink && <Link className="notification-read" to={actionLink.url} onClick={open}>{actionLink.label}</Link>}
         <time dateTime={item.createdAt}>{notificationTime(item.createdAt)}</time>
-        {!item.isRead && <button type="button" className="notification-read" disabled={busy} onClick={onRead}>Đánh dấu đã đọc</button>}
+        {!item.isRead && <button type="button" className="notification-read" disabled={busy} onClick={() => void read()}>Đánh dấu đã đọc</button>}
       </div>
     </div>
   </li>
