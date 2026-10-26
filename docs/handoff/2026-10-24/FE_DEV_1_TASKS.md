@@ -961,14 +961,14 @@ Gia nhập nhóm **khóa điều kiện học vụ** của sinh viên trong kỳ
 
 ## Tiêu chí nghiệm thu
 
-- [x] Tab "Lời mời đã nhận" hiện tên nhóm thật, tên người mời thật.
+- [ ] Tab "Lời mời đã nhận" hiện tên nhóm thật, tên người mời thật. (Chờ BE-22 trả tên trong DTO thật.)
 - [x] Lời nhắn hiện ra nếu có; không có thì không hiện ô rỗng.
 - [x] Hạn trả lời hiện đúng giờ Việt Nam.
 - [x] Thiếu `teamName` → fallback `Nhóm #{id}`, không `undefined`, không trắng.
-- [x] Danh sách "đã gửi" của Leader hiện tên người được mời.
+- [ ] Danh sách "đã gửi" của Leader hiện tên người được mời. (Chờ BE-22 trả tên trong DTO thật.)
 - [x] **Không** hiện roster/đề cương/điều kiện của nhóm chưa gia nhập.
 - [x] Lời nhắn chứa HTML/script → hiện dưới dạng text, không thực thi.
-- [x] 390 px không tràn ngang; tên dài tiếng Việt không vỡ layout.
+- [ ] 390 px không tràn ngang; tên dài tiếng Việt không vỡ layout. (Chưa kiểm tra bằng trình duyệt.)
 
 ## Kiểm chứng
 
