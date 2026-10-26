@@ -1,6 +1,20 @@
-import { describe, expect, it } from 'vitest'
+import { isValidElement } from 'react'
+import { matchRoutes } from 'react-router-dom'
+import { describe, expect, it, vi } from 'vitest'
+// Include conditional destinations so the consistency scan does not silently skip disabled rollouts.
+vi.mock('../config/env', async importOriginal => {
+  const { env } = await importOriginal<typeof import('../config/env')>()
+  return { env: { ...env, academicAiAssistantEnabled: true, aiAdvisoryEnabled: true, coldReportEnabled: true,
+    defenseScheduleEnabled: true, gatesEnabled: true, industryEnabled: true, peerEvaluationEnabled: true,
+    resultCorrectionEnabled: true, weeklyAssessmentEnabled: true, workflowPreviewEnabled: true, workingAgreementEnabled: true } }
+})
+import { appRouter } from './index'
 import { getWorkspaceNavigation, workspaceRouteRegistry } from './workspace-route-registry'
 import type { WorkspaceAccess } from '../context/workspace-access'
+import { RoleRoute } from '../../features/auth/components/RoleRoute'
+import type { WorkspaceRole } from '../../features/auth/utils/role-access'
+
+const identityRole: Record<string, WorkspaceRole> = { STUDENT: 'student', LECTURER: 'lecturer', DEPARTMENT_STAFF: 'department', ADMIN: 'admin' }
 
 const access = (overrides: Partial<WorkspaceAccess>): WorkspaceAccess => ({
   identityRole: 'unknown', identityRoles: [], permissions: [], departmentIds: [], departments: [], majorIds: [], selectedSemesterId: null,
@@ -10,6 +24,23 @@ const access = (overrides: Partial<WorkspaceAccess>): WorkspaceAccess => ({
 })
 
 describe('workspace route registry', () => {
+  it.each(workspaceRouteRegistry.filter(route => route.navigationVisibility === 'always' && route.featureEnabled !== false))(
+    'keeps $id visible only to identities accepted by its actual route', route => {
+      const matches = matchRoutes(appRouter.routes, route.path)
+      expect(matches, `${route.id} must resolve to a registered route`).not.toBeNull()
+      expect(matches?.at(-1)?.route.path, `${route.id} must not resolve to the not-found fallback`).not.toBe('*')
+      for (const role of route.identityRoles) {
+        expect(identityRole[role], `${route.id} has an unmapped identity ${role}`).toBeDefined()
+        for (const match of matches ?? []) {
+          const element = match.route.element
+          if (isValidElement<{ allowed: readonly WorkspaceRole[] }>(element) && element.type === RoleRoute) {
+            expect(element.props.allowed, `${route.id} exposes ${role} outside its route guard`).toContain(identityRole[role])
+          }
+        }
+      }
+    },
+  )
+
   it('has unique IDs and paths for migrated app-shell routes', () => {
     expect(new Set(workspaceRouteRegistry.map((route) => route.id)).size).toBe(workspaceRouteRegistry.length)
     expect(new Set(workspaceRouteRegistry.map((route) => route.path)).size).toBe(workspaceRouteRegistry.length)
@@ -38,6 +69,20 @@ describe('workspace route registry', () => {
     expect(admin.map((route) => route.id)).not.toContain('governance-review')
     expect(admin.map((route) => route.id)).not.toContain('governance-qualifications')
     expect(admin.map((route) => route.id)).not.toContain('governance-archives')
+  })
+
+  it('shows the department progress matrix to staff without promising Admin access', () => {
+    const department = getWorkspaceNavigation(access({ identityRole: 'department', identityRoles: ['DEPARTMENT_STAFF'] }))
+    const admin = getWorkspaceNavigation(access({ identityRole: 'admin', identityRoles: ['ADMIN'] }))
+    expect(department.map(route => route.id)).toContain('governance-progress-matrix')
+    expect(admin.map(route => route.id)).not.toContain('governance-progress-matrix')
+  })
+
+  it('shows the reviewer queue to lecturers without promising Department Staff access', () => {
+    const department = getWorkspaceNavigation(access({ identityRole: 'department', identityRoles: ['DEPARTMENT_STAFF'] }))
+    const lecturer = getWorkspaceNavigation(access({ identityRole: 'lecturer', identityRoles: ['LECTURER'] }))
+    expect(lecturer.map(route => route.id)).toContain('reviewer-gate-assignments')
+    expect(department.map(route => route.id)).not.toContain('reviewer-gate-assignments')
   })
 
   it('does not reveal contextual links while context is loading or unavailable', () => {
