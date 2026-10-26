@@ -4,6 +4,7 @@ import { AssistantDraftCard } from './AssistantDraftCard'
 import { AssistantAnswerText } from './AssistantAnswerText'
 import type { EvidenceReference } from '../ai-api'
 import { HttpError } from '../../../services/http/http-client'
+import { Modal } from '../../../components/ui/Modal'
 
 const quickQuestions = ['Tôi cần làm gì ở giai đoạn hiện tại?', 'Hạn nộp và biểu mẫu cần dùng là gì?', 'Rubric của ngành tôi gồm những tiêu chí nào?', 'Điều kiện để công bố điểm là gì?']
 const quickCards = [
@@ -30,6 +31,9 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
   const [conversations, setConversations] = useState<AssistantConversation[]>([])
   const [showHistory, setShowHistory] = useState(false)
   const [historyBusy, setHistoryBusy] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<AssistantConversation | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const cancelDelete = useRef<HTMLButtonElement>(null)
   const [moreHistory, setMoreHistory] = useState(false)
   const [moreTurns, setMoreTurns] = useState(false)
   const [source, setSource] = useState<KnowledgeCitation | null>(null)
@@ -53,6 +57,7 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
   useEffect(() => {
     request.current?.abort(); download.current?.abort(); historyRequest.current?.abort(); sourceRequest.current?.abort()
     sending.current = false; setConversation(null); setConversations([]); setShowHistory(false); setSource(null)
+    setPendingDelete(null); setDeleteError(null); setHistoryBusy(false)
     setAnswer(null); setTurns([]); setQuery(''); setError(null); setFiles([]); setBusy(false); setDownloading(false)
     return () => { request.current?.abort(); download.current?.abort(); historyRequest.current?.abort(); sourceRequest.current?.abort() }
   }, [projectId])
@@ -83,13 +88,13 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
     finally { if (!controller.signal.aborted) setHistoryBusy(false) }
   }
   const removeConversation = async (id: number) => {
-    if (!window.confirm('Xóa hội thoại khỏi lịch sử? Nhật ký kiểm toán hệ thống được giữ lại.')) return
+    if (historyBusy) return
     const controller = new AbortController(); historyRequest.current?.abort(); historyRequest.current = controller
-    setHistoryBusy(true)
+    setHistoryBusy(true); setDeleteError(null); setError(null)
     try {
       await deleteAssistantConversation(id, controller.signal)
-      if (!controller.signal.aborted) { setConversations(items => items.filter(item => item.id !== id)); if (conversation?.id === id) { setConversation(null); setTurns([]) } }
-    } catch { if (!controller.signal.aborted) setError('Chưa xóa được hội thoại.') }
+      if (!controller.signal.aborted) { setPendingDelete(null); setConversations(items => items.filter(item => item.id !== id)); if (conversation?.id === id) { setConversation(null); setTurns([]) } }
+    } catch { if (!controller.signal.aborted) setDeleteError('Chưa xóa được hội thoại. Bạn có thể thử lại.') }
     finally { if (!controller.signal.aborted) setHistoryBusy(false) }
   }
   const openSource = async (runId: number, index: number) => {
@@ -184,11 +189,21 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
     </div>)
 
   return <section className={dock ? 'assistant-conversation' : 'rounded-xl border border-hairline bg-card p-5 shadow-xs'} aria-label="Trợ lý AI học vụ">
+    {pendingDelete && <div onKeyDown={event => { if (event.key === 'Escape') event.stopPropagation() }}>
+      <Modal open title="Xóa hội thoại?" description="Hội thoại sẽ được xóa khỏi lịch sử của bạn." busy={historyBusy} initialFocusRef={cancelDelete} onClose={() => setPendingDelete(null)}>
+        <p className="break-words rounded-xl border border-hairline bg-primary-subtle p-4 text-sm font-semibold text-ink">{pendingDelete.title}</p>
+        {deleteError && <p role="alert" className="mt-3 text-sm text-status-error-text">{deleteError}</p>}
+        <div className="app-modal__actions">
+          <button ref={cancelDelete} type="button" className="app-modal__button" disabled={historyBusy} onClick={() => setPendingDelete(null)}>Hủy</button>
+          <button type="button" className="app-modal__button app-modal__button--danger" disabled={historyBusy} onClick={() => void removeConversation(pendingDelete.id)}>{historyBusy ? 'Đang xóa…' : 'Xóa hội thoại'}</button>
+        </div>
+      </Modal>
+    </div>}
     {dock && <div className="assistant-toolbar"><button type="button" disabled={busy || historyBusy} onClick={() => showHistory ? setShowHistory(false) : void loadHistory()}><span className="material-symbols-outlined" aria-hidden="true">{showHistory ? 'arrow_back' : 'history'}</span>{showHistory ? 'Trở lại chat' : 'Lịch sử hội thoại'}</button><span className="assistant-context"><span className="material-symbols-outlined" aria-hidden="true">{projectId ? 'folder_open' : 'chat_bubble_outline'}</span>{pageContext || 'Hỏi đáp chung'}</span></div>}
     {showHistory && <div className="assistant-saved-history" aria-label="Lịch sử đã lưu">
       {historyBusy && <p role="status">Đang tải…</p>}
       {!historyBusy && conversations.length === 0 && <div className="assistant-history-empty"><span className="material-symbols-outlined" aria-hidden="true">forum</span><strong>Câu chuyện bắt đầu từ đây</strong><p>Chưa có hội thoại trong phạm vi này.</p></div>}
-      {conversations.map(item => <div key={item.id}><button type="button" disabled={historyBusy} onClick={() => void openConversation(item.id)}><strong>{item.title}</strong><small>{new Date(item.updatedAt).toLocaleString('vi-VN')}</small></button><button type="button" disabled={historyBusy} aria-label={`Xóa hội thoại ${item.title}`} onClick={() => void removeConversation(item.id)}>Xóa</button></div>)}
+      {conversations.map(item => <div key={item.id}><button type="button" disabled={historyBusy} onClick={() => void openConversation(item.id)}><strong>{item.title}</strong><small>{new Date(item.updatedAt).toLocaleString('vi-VN')}</small></button><button type="button" disabled={historyBusy} aria-label={`Xóa hội thoại ${item.title}`} onClick={() => { setDeleteError(null); setPendingDelete(item) }}>Xóa</button></div>)}
       {moreHistory && <button type="button" disabled={historyBusy} onClick={() => void loadHistory(true)}>Xem thêm hội thoại</button>}
     </div>}
     {source && <aside className="assistant-source" aria-label="Nguồn trích dẫn"><button type="button" onClick={() => setSource(null)}>Đóng nguồn</button><h3>{source.title} · {source.version}</h3><p>{source.section}{source.page ? ` · Trang ${source.page}` : ''}</p><p className="whitespace-pre-wrap">{source.excerpt}</p><small>Trích đoạn được lưu tại thời điểm trả lời; không phải toàn bộ tệp gốc.</small></aside>}

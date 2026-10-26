@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { AcademicAssistantPanel } from './AcademicAssistantPanel'
 
@@ -38,6 +38,36 @@ it('restores saved conversations and uses their revision for the next turn', asy
   expect(await screen.findByText('Tiếp tục')).toBeTruthy()
   expect(conversationApi.createAssistantConversation).not.toHaveBeenCalled()
   expect(conversationApi.streamAssistant.mock.calls[0][2].revision).toBe(3)
+})
+it('requires in-app confirmation and lets cancellation preserve the conversation', async () => {
+  conversationApi.listAssistantConversations.mockResolvedValue([{ id: 77, title: 'Lịch sử riêng', updatedAt: '2026-10-25' }])
+  conversationApi.deleteAssistantConversation.mockResolvedValue(undefined)
+  render(<AcademicAssistantPanel dock />)
+  fireEvent.click(screen.getByRole('button', { name: 'Lịch sử hội thoại' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Xóa hội thoại Lịch sử riêng' }))
+  const dialog = screen.getByRole('dialog', { name: 'Xóa hội thoại?' })
+  expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Hủy' }))
+  expect(conversationApi.deleteAssistantConversation).not.toHaveBeenCalled()
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Hủy' }))
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(screen.getByText('Lịch sử riêng')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Xóa hội thoại Lịch sử riêng' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Xóa hội thoại' }))
+  await waitFor(() => expect(screen.queryByText('Lịch sử riêng')).toBeNull())
+  expect(conversationApi.deleteAssistantConversation).toHaveBeenCalledExactlyOnceWith(77, expect.any(AbortSignal))
+})
+it('keeps failed deletion visible in the confirmation and allows retry', async () => {
+  conversationApi.listAssistantConversations.mockResolvedValue([{ id: 78, title: 'Câu hỏi của tôi', updatedAt: '2026-10-25' }])
+  conversationApi.deleteAssistantConversation.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(undefined)
+  render(<AcademicAssistantPanel dock />)
+  fireEvent.click(screen.getByRole('button', { name: 'Lịch sử hội thoại' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Xóa hội thoại Câu hỏi của tôi' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Xóa hội thoại' }))
+  expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'Chưa xóa được hội thoại. Bạn có thể thử lại.')
+  expect(screen.getByRole('dialog')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Xóa hội thoại' }))
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  expect(screen.queryByText('Câu hỏi của tôi')).toBeNull()
 })
 it('opens protected citation snapshots and only hands off drafts after confirmation', async () => {
   const source = { title: 'Quy trình', versionId: 1, version: 'v1', excerpt: 'Nguồn gốc' }
