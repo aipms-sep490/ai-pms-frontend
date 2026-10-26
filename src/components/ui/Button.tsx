@@ -28,18 +28,22 @@ export function Button({
   shortcut,
   className = '',
   type = 'button',
+  title,
   ...props
 }: ButtonProps) {
-  const styles = buttonClassName({ size, variant, className })
+  const iconOnly = Boolean(icon && !children)
+  const styles = buttonClassName({ size, variant, className, iconOnly })
+  const resolvedTitle = title ?? (iconOnly ? props['aria-label'] : undefined)
 
   return (
     <button
       type={type}
       className={styles}
+      title={resolvedTitle}
       {...props}
     >
       {icon && (
-        <span className="material-symbols-outlined text-[16px] leading-none" aria-hidden="true">
+        <span className={`material-symbols-outlined leading-none ${iconOnly ? 'text-[18px]' : 'text-[16px]'}`} aria-hidden="true">
           {icon}
         </span>
       )}
@@ -58,4 +62,3 @@ export function Button({
     </button>
   )
 }
-
