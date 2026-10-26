@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import './pagination.css'
 
 export interface PaginationProps {
@@ -34,12 +35,13 @@ export function Pagination({
   pages,
   total,
   pageSize,
-  pageSizeOptions = [10, 20, 50],
+  pageSizeOptions = [10, 12, 20, 50],
   busy = false,
   onPage,
   onPageSizeChange,
   className = '',
 }: PaginationProps) {
+  const selectId = useId()
   const totalPages = Math.max(1, pages)
   const pageNumbers = generatePageNumbers(page, totalPages)
 
@@ -60,9 +62,9 @@ export function Pagination({
 
         {pageSize != null && onPageSizeChange && (
           <div className="ui-pagination-size ml-3">
-            <label htmlFor="ui-pagination-select" className="text-xs text-ink-muted">Số dòng:</label>
+            <label htmlFor={selectId} className="text-xs text-ink-muted">Số dòng:</label>
             <select
-              id="ui-pagination-select"
+              id={selectId}
               value={pageSize}
               disabled={busy}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
