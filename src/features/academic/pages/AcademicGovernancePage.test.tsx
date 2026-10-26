@@ -13,8 +13,8 @@ function fillPeriod() {
   fireEvent.change(within(dialog).getByLabelText('Học kỳ'), { target: { value: '1' } })
   fireEvent.change(within(dialog).getByLabelText('Mã giai đoạn'), { target: { value: 'OVERLAP-TEST' } })
   fireEvent.change(within(dialog).getByLabelText('Tên giai đoạn'), { target: { value: 'Giai đoạn kiểm thử' } })
-  fireEvent.change(within(dialog).getByLabelText('Bắt đầu'), { target: { value: '2026-09-02T08:00' } })
-  fireEvent.change(within(dialog).getByLabelText('Kết thúc'), { target: { value: '2026-09-03T17:00' } })
+  fireEvent.change(within(dialog).getByLabelText(/^Bắt đầu/), { target: { value: '2026-09-02T08:00' } })
+  fireEvent.change(within(dialog).getByLabelText(/^Kết thúc/), { target: { value: '2026-09-03T17:00' } })
   fireEvent.submit(within(dialog).getByLabelText('Mã giai đoạn').closest('form')!)
   return dialog
 }
@@ -41,7 +41,7 @@ it('shows an accessible field correction after 422 while retaining input', async
   render(<AcademicGovernancePage />, { wrapper: MemoryRouter })
   const dialog = fillPeriod()
   await within(dialog).findByRole('alert')
-  const end = within(dialog).getByLabelText('Kết thúc')
+  const end = within(dialog).getByLabelText(/^Kết thúc/)
   expect(end.getAttribute('aria-invalid')).toBe('true')
   expect(document.getElementById(end.getAttribute('aria-describedby')!)?.textContent).toContain('Kiểm tra thời gian kết thúc')
   expect((end as HTMLInputElement).value).toBe('2026-09-03T17:00')
