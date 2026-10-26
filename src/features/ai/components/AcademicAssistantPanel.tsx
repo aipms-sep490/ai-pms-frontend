@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { askAcademicAssistant, askAcademicAssistantWithFiles, downloadAssistantAnswer, createAssistantConversation, listAssistantConversations, getAssistantConversation, deleteAssistantConversation, getAssistantCitation, streamAssistant, type AssistantConversation, type AssistantDraft, type KnowledgeCitation, type AcademicAssistantResponse } from '../academic-ai-api'
 import { AssistantDraftCard } from './AssistantDraftCard'
+import { AssistantAnswerText } from './AssistantAnswerText'
 import type { EvidenceReference } from '../ai-api'
 import { HttpError } from '../../../services/http/http-client'
 
 const quickQuestions = ['Tôi cần làm gì ở giai đoạn hiện tại?', 'Hạn nộp và biểu mẫu cần dùng là gì?', 'Rubric của ngành tôi gồm những tiêu chí nào?', 'Điều kiện để công bố điểm là gì?']
+const quickCards = [
+  { icon: 'explore', title: 'Bước tiếp theo', detail: 'Định hướng công việc cần làm' },
+  { icon: 'event_note', title: 'Hạn nộp & biểu mẫu', detail: 'Chuẩn bị đúng và đủ' },
+  { icon: 'fact_check', title: 'Tiêu chí đánh giá', detail: 'Hiểu cách đồ án được chấm' },
+  { icon: 'school', title: 'Công bố kết quả', detail: 'Kiểm tra các điều kiện' },
+]
 const acceptedFiles = '.png,.jpg,.jpeg,.webp,.pdf,.docx,.txt,.md,.csv,.json'
 
 function ImagePreview({ file }: { file: File }) {
@@ -164,53 +171,54 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
     } finally { if (!controller.signal.aborted) setDownloading(false) }
   }
 
-  const renderAnswer = (answer: AcademicAssistantResponse) => (<div className="mt-5 rounded-lg border border-primary-subtle bg-primary-subtle p-4">
-      <p className="mb-2 text-xs font-semibold text-primary">{answer.generationStatus === 'FALLBACK' ? (answer.citations.length || answer.projectEvidence.length ? 'Trích đoạn nguồn · fallback' : 'AI tạm thời không khả dụng') : answer.insufficientEvidence ? 'Chưa đủ thông tin xác nhận' : answer.answerType === 'GENERAL' ? 'Hỏi đáp chung' : answer.answerType === 'ATTACHMENT' ? 'Dựa trên tệp bạn gửi' : 'Câu trả lời có nguồn'}</p>
-      <p className="whitespace-pre-wrap break-words text-sm leading-6 text-ink-soft">{answer.answer}</p>
+  const renderAnswer = (answer: AcademicAssistantResponse) => (<div className="assistant-answer mt-5 rounded-lg border border-primary-subtle bg-primary-subtle p-4">
+      <p className="assistant-answer-label mb-2 text-xs font-semibold text-primary"><span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>{answer.generationStatus === 'FALLBACK' ? (answer.citations.length || answer.projectEvidence.length ? 'Trích đoạn nguồn · fallback' : 'AI tạm thời không khả dụng') : answer.insufficientEvidence ? 'Chưa đủ thông tin xác nhận' : answer.answerType === 'GENERAL' ? 'Hỏi đáp chung' : answer.answerType === 'ATTACHMENT' ? 'Dựa trên tệp bạn gửi' : 'Câu trả lời có nguồn'}</p>
+      <AssistantAnswerText text={answer.answer} />
       {answer.insufficientEvidence && <p className="mt-3 text-sm text-status-warning-text">Chưa đủ căn cứ chính thức để kết luận.</p>}
       {answer.limitationNote && <p className="mt-3 text-xs text-ink-muted">{answer.limitationNote}</p>}
       {!!answer.attachments?.length && <p className="mt-3 break-words text-xs text-ink-muted">Tệp tham chiếu: {answer.attachments.map(file => file.fileName).join(', ')}</p>}
       {answer.draft && <AssistantDraftCard draft={answer.draft} onUse={onUseDraft} />}
-      {!!answer.runId && <div className="mt-4 flex flex-wrap gap-3"><button type="button" disabled={downloading} onClick={() => void saveAnswer('txt', answer)} className="rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-semibold text-primary disabled:opacity-50">Tải TXT</button><button type="button" disabled={downloading} onClick={() => void saveAnswer('md', answer)} className="rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-semibold text-primary disabled:opacity-50">Tải Markdown</button></div>}
-      {answer.citations.length > 0 && <><h3 className="mt-4 text-sm font-semibold text-ink">Tài liệu tham chiếu</h3><ul className="mt-2 space-y-2">{answer.citations.map((item, index) => <li key={`${item.versionId}-${index}`} className="rounded-lg border border-hairline bg-card p-3"><p className="text-sm font-semibold text-ink">{answer.runId ? <button type="button" className="underline underline-offset-4" onClick={() => void openSource(answer.runId!, index)}>{item.title} · v{item.version}</button> : <>{item.title} · v{item.version}</>}</p><p className="mt-1 text-xs text-ink-muted">{item.documentType}{item.section ? ` · ${item.section}` : ''}{item.page ? ` · trang ${item.page}` : ''}</p><p className="mt-2 text-sm leading-6 text-ink-soft">{item.excerpt}</p></li>)}</ul></>}
+      {!!answer.runId && <div className="assistant-answer-actions mt-4 flex flex-wrap gap-3"><button type="button" disabled={downloading} onClick={() => void saveAnswer('txt', answer)} className="rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-semibold text-primary disabled:opacity-50">Tải TXT</button><button type="button" disabled={downloading} onClick={() => void saveAnswer('md', answer)} className="rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-semibold text-primary disabled:opacity-50">Tải Markdown</button></div>}
+      {answer.citations.length > 0 && <details className="assistant-citations" open={!dock}><summary>Tài liệu tham chiếu ({answer.citations.length})</summary><ul className="mt-2 space-y-2">{answer.citations.map((item, index) => <li key={`${item.versionId}-${index}`} className="rounded-lg border border-hairline bg-card p-3"><p className="text-sm font-semibold text-ink">{answer.runId ? <button type="button" className="underline underline-offset-4" onClick={() => void openSource(answer.runId!, index)}>{item.title} · v{item.version}</button> : <>{item.title} · v{item.version}</>}</p><p className="mt-1 text-xs text-ink-muted">{item.documentType}{item.section ? ` · ${item.section}` : ''}{item.page ? ` · trang ${item.page}` : ''}</p><p className="mt-2 text-sm leading-6 text-ink-soft">{item.excerpt}</p></li>)}</ul></details>}
       {answer.projectEvidence.length > 0 && <><h3 className="mt-4 text-sm font-semibold text-ink">Dữ liệu project</h3><ul className="mt-2 space-y-2">{answer.projectEvidence.map((item, index) => <li key={index} className="rounded-lg border border-hairline bg-card p-3 text-sm"><p className="font-semibold">{onOpenEvidence && /^\/api\/v1\/(tasks|milestones|meetings|progress-reports)\/\d+$/.test(item.referenceUrl ?? '') ? <button type="button" className="underline underline-offset-4" onClick={() => onOpenEvidence(item)}>{item.title}</button> : item.title}</p><p className="mt-1 text-ink-soft">{item.excerpt}</p></li>)}</ul></>}
     </div>)
 
   return <section className={dock ? 'assistant-conversation' : 'rounded-xl border border-hairline bg-card p-5 shadow-xs'} aria-label="Trợ lý AI học vụ">
-    {dock && <div className="assistant-toolbar"><button type="button" disabled={busy || historyBusy} onClick={() => showHistory ? setShowHistory(false) : void loadHistory()}>{showHistory ? 'Trở lại chat' : 'Lịch sử hội thoại'}</button><span>{pageContext || 'Hỏi đáp chung'}</span></div>}
+    {dock && <div className="assistant-toolbar"><button type="button" disabled={busy || historyBusy} onClick={() => showHistory ? setShowHistory(false) : void loadHistory()}><span className="material-symbols-outlined" aria-hidden="true">{showHistory ? 'arrow_back' : 'history'}</span>{showHistory ? 'Trở lại chat' : 'Lịch sử hội thoại'}</button><span className="assistant-context"><span className="material-symbols-outlined" aria-hidden="true">{projectId ? 'folder_open' : 'chat_bubble_outline'}</span>{pageContext || 'Hỏi đáp chung'}</span></div>}
     {showHistory && <div className="assistant-saved-history" aria-label="Lịch sử đã lưu">
       {historyBusy && <p role="status">Đang tải…</p>}
-      {!historyBusy && conversations.length === 0 && <p>Chưa có hội thoại trong phạm vi này.</p>}
+      {!historyBusy && conversations.length === 0 && <div className="assistant-history-empty"><span className="material-symbols-outlined" aria-hidden="true">forum</span><strong>Câu chuyện bắt đầu từ đây</strong><p>Chưa có hội thoại trong phạm vi này.</p></div>}
       {conversations.map(item => <div key={item.id}><button type="button" disabled={historyBusy} onClick={() => void openConversation(item.id)}><strong>{item.title}</strong><small>{new Date(item.updatedAt).toLocaleString('vi-VN')}</small></button><button type="button" disabled={historyBusy} aria-label={`Xóa hội thoại ${item.title}`} onClick={() => void removeConversation(item.id)}>Xóa</button></div>)}
       {moreHistory && <button type="button" disabled={historyBusy} onClick={() => void loadHistory(true)}>Xem thêm hội thoại</button>}
     </div>}
     {source && <aside className="assistant-source" aria-label="Nguồn trích dẫn"><button type="button" onClick={() => setSource(null)}>Đóng nguồn</button><h3>{source.title} · {source.version}</h3><p>{source.section}{source.page ? ` · Trang ${source.page}` : ''}</p><p className="whitespace-pre-wrap">{source.excerpt}</p><small>Trích đoạn được lưu tại thời điểm trả lời; không phải toàn bộ tệp gốc.</small></aside>}
     {!showHistory && (!dock || turns.length === 0) && <div className={dock ? 'assistant-welcome' : undefined}>
     <div>
-      <p className="font-mono text-xs font-semibold uppercase tracking-wide text-primary">Học vụ và hỏi đáp</p>
+      {dock && <div className="assistant-welcome-mark" aria-hidden="true"><span className="material-symbols-outlined">auto_awesome</span></div>}
+      <p className="assistant-eyebrow font-mono text-xs font-semibold uppercase tracking-wide text-primary">Một chút gợi ý, thêm tự tin</p>
       <h2 className="mt-1 font-heading text-lg font-semibold text-ink">Bạn muốn hỏi gì hôm nay?</h2>
-      <p className="mt-1 text-sm leading-6 text-ink-muted">Hỏi kiến thức chung, gửi ảnh hoặc tài liệu để cùng phân tích. Quy định học vụ được đối chiếu với tài liệu đã công bố; AI chỉ tư vấn.</p>
+      <p className="mt-1 text-sm leading-6 text-ink-muted">Cùng gỡ rối đồ án, tìm hiểu học vụ hoặc phân tích ảnh và tài liệu bạn gửi.</p>
     </div>
-    <div className="mt-3 flex flex-wrap gap-2">{quickQuestions.map(item => <button key={item} type="button" disabled={busy} className="rounded-full border border-hairline px-3 py-2 text-xs text-ink-soft hover:border-primary hover:text-primary disabled:opacity-50" onClick={() => void ask(undefined, item)}>{item}</button>)}</div>
+    <div className={dock ? 'assistant-quick-grid' : 'mt-3 flex flex-wrap gap-2'}>{quickQuestions.map((item, index) => <button key={item} type="button" aria-label={item} disabled={busy} className="assistant-quick-card rounded-full border border-hairline px-3 py-2 text-xs text-ink-soft hover:border-primary hover:text-primary disabled:opacity-50" onClick={() => void ask(undefined, item)}>{dock ? <><span className="material-symbols-outlined" aria-hidden="true">{quickCards[index].icon}</span><strong>{quickCards[index].title}</strong><small>{quickCards[index].detail}</small></> : item}</button>)}</div>
     </div>}
     {dock && !showHistory && <div ref={history} className="assistant-history" role="log" aria-label="Cuộc trò chuyện với trợ lý" aria-live="polite">{moreTurns && conversation && <button type="button" disabled={busy || historyBusy} onClick={() => void openConversation(conversation.id, true)}>Xem tin nhắn trước</button>}{turns.map(turn => <div key={turn.id} className="assistant-turn">
       <div className="assistant-user-bubble"><p>{turn.query}</p>{turn.fileNames.map((name, index) => <small key={index}>{name}</small>)}</div>
       {turn.response ? renderAnswer(turn.response) : turn.error ? <p className="assistant-turn-error">{turn.error}</p> : <div className="assistant-thinking" role="status"><small>Đang viết · nội dung tạm, chưa xác minh nguồn</small><p className="whitespace-pre-wrap">{turn.preview || 'Trợ lý đang trả lời…'}</p></div>}
     </div>)}</div>}
     <form hidden={showHistory} className={dock ? 'assistant-composer' : 'mt-4 flex flex-col gap-3'} onSubmit={event => void ask(event)}>
-      <textarea aria-label="Câu hỏi học vụ" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (dock && event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void ask() } }} onPaste={event => { if (!busy && event.clipboardData.files.length) { event.preventDefault(); chooseFiles(Array.from(event.clipboardData.files)) } }} rows={dock ? 2 : 3} maxLength={2000} className="rounded-lg border border-hairline bg-card p-3 text-sm text-ink" placeholder="Gửi ảnh và hỏi: Lỗi trong ảnh này là gì? Hoặc gửi tài liệu để nhờ tóm tắt…" />
+      <textarea aria-label="Câu hỏi học vụ" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (dock && event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void ask() } }} onPaste={event => { if (!busy && event.clipboardData.files.length) { event.preventDefault(); chooseFiles(Array.from(event.clipboardData.files)) } }} rows={dock ? 2 : 3} maxLength={2000} className="rounded-lg border border-hairline bg-card p-3 text-sm text-ink" placeholder="Hỏi bất cứ điều gì bạn đang băn khoăn…" />
       <input ref={fileInput} type="file" multiple accept={acceptedFiles} aria-label="Đính kèm ảnh hoặc tài liệu" className="sr-only" disabled={busy} onChange={event => { chooseFiles(Array.from(event.target.files ?? [])); event.target.value = '' }} />
       {files.length > 0 && <ul aria-label="Tệp đã chọn" className="space-y-2">{files.map((file, index) => <li key={`${file.name}-${index}`} className="flex min-w-0 items-center gap-3 rounded-lg border border-hairline bg-card p-3 text-sm">
         {/\.(png|jpe?g|webp)$/i.test(file.name) && <ImagePreview file={file} />}
         <span className="min-w-0 flex-1 break-all">{file.name} <span className="text-ink-muted">({Math.ceil(file.size / 1024)} KB)</span></span>
         <button type="button" disabled={busy} aria-label={`Bỏ ${file.name}`} className="shrink-0 text-primary" onClick={() => setFiles(current => current.filter((_, i) => i !== index))}>Bỏ</button>
       </li>)}</ul>}
-      <div className="flex flex-wrap items-center gap-3">
-        {dock && <label className="text-xs">Chế độ<select aria-label="Chế độ trợ lý" disabled={busy} value={draftKind ?? ''} onChange={event => setDraftKind((event.target.value || undefined) as AssistantDraft['kind'] | undefined)}><option value="">Hỏi đáp</option><option value="TASK">Soạn công việc</option><option value="MEETING">Soạn lịch họp</option></select></label>}
-        {busy && <button type="button" onClick={stop}>Dừng trả lời</button>}
-        <button type="button" disabled={busy || files.length >= 4} className="min-h-11 rounded-lg border border-hairline px-4 text-sm font-semibold text-ink-soft disabled:opacity-50" onClick={() => fileInput.current?.click()}>+ Ảnh / tài liệu</button>
-        <button type="submit" disabled={busy || !query.trim()} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Đang trả lời…' : dock ? 'Gửi' : 'Hỏi trợ lý học vụ'}</button>
+      <div className="assistant-composer-actions flex flex-wrap items-center gap-3">
+        <button type="button" aria-label="+ Ảnh / tài liệu" title="Đính kèm ảnh hoặc tài liệu" disabled={busy || files.length >= 4} className="assistant-attach" onClick={() => fileInput.current?.click()}><span className="material-symbols-outlined" aria-hidden="true">attach_file</span>{!dock && 'Ảnh / tài liệu'}</button>
+        {dock && <label className="assistant-mode"><select aria-label="Chế độ trợ lý" disabled={busy} value={draftKind ?? ''} onChange={event => setDraftKind((event.target.value || undefined) as AssistantDraft['kind'] | undefined)}><option value="">Hỏi đáp</option><option value="TASK">Soạn công việc</option><option value="MEETING">Soạn lịch họp</option></select></label>}
+        {busy ? <button type="button" className="assistant-send" aria-label="Dừng trả lời" title="Dừng trả lời" onClick={stop}><span className="material-symbols-outlined" aria-hidden="true">stop</span></button> : <button type="submit" aria-label={dock ? 'Gửi' : 'Hỏi trợ lý học vụ'} title="Gửi tin nhắn" disabled={!query.trim()} className="assistant-send"><span className="material-symbols-outlined" aria-hidden="true">arrow_upward</span>{!dock && 'Hỏi trợ lý học vụ'}</button>}
       </div>
+      <p className="assistant-advisory">AI chỉ tư vấn · Kiểm tra nguồn trước khi sử dụng</p>
       <details className="assistant-file-help"><summary className="text-xs text-ink-muted">Định dạng tệp và lưu ý</summary><p className="text-xs leading-5 text-ink-muted">PNG, JPG, WebP, PDF có văn bản, DOCX, TXT, MD, CSV, JSON · Tối đa 4 tệp, 4 MB/tệp, tổng 8 MB. Nội dung được gửi tới model AI; văn bản trích xuất được lưu cùng lượt hỏi, không lưu tệp gốc. Gỡ tệp sau khi hỏi nếu không muốn gửi lại.</p>
       <p className="text-xs text-ink-muted">Tạo ảnh chưa khả dụng. Hội thoại được lưu theo tài khoản và đồ án. Trợ lý nhớ tối đa 8 lượt gần nhất; cần gửi lại ảnh/tệp để phân tích tiếp nội dung gốc.</p></details>
     </form>

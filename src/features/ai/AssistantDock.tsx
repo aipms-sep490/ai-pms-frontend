@@ -83,8 +83,8 @@ function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, rout
     <dialog ref={dialog} id="assistant-dock-dialog" aria-labelledby="assistant-dock-title" className="assistant-dock-dialog"
       onCancel={event => { event.preventDefault(); hide() }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); hide() } }}>
       <header className="assistant-dock-header">
-        <span className="assistant-avatar material-symbols-outlined" aria-hidden="true">smart_toy</span>
-        <div className="assistant-dock-heading"><h2 id="assistant-dock-title">Trợ lý AI</h2><p>{projectId ? 'Đang hỗ trợ đồ án trên trang này' : 'Học vụ & hỏi đáp thường ngày'}</p></div>
+        <span className="assistant-avatar material-symbols-outlined" aria-hidden="true">auto_awesome</span>
+        <div className="assistant-dock-heading"><h2 id="assistant-dock-title">Trợ lý AI</h2><p>{projectId ? 'Đồng hành cùng đồ án của bạn' : 'Cùng bạn học tập và làm đồ án'}</p></div>
         <button type="button" aria-label="Cuộc trò chuyện mới" title="Cuộc trò chuyện mới" onClick={() => setReset(value => value + 1)}><span className="material-symbols-outlined" aria-hidden="true">edit_square</span></button>
         <button type="button" aria-label="Thu nhỏ trợ lý AI" onClick={hide}><span className="material-symbols-outlined" aria-hidden="true">remove</span></button>
         <button type="button" aria-label="Đóng trợ lý AI" onClick={hide}><span className="material-symbols-outlined" aria-hidden="true">close</span></button>
@@ -92,7 +92,7 @@ function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, rout
       {mounted && <AcademicAssistantPanel key={`${scopeKey}:${reset}`} projectId={projectId} pageContext={pageContext} onUseDraft={routeBase && projectId ? useDraft : undefined} onOpenEvidence={routeBase && projectId ? openEvidence : undefined} dock />}
     </dialog>
     <button ref={launcher} type="button" className="assistant-launcher" aria-label={open ? 'Thu nhỏ trợ lý AI' : 'Mở trợ lý AI'} aria-expanded={open} aria-controls="assistant-dock-dialog" title="Trợ lý AI" onClick={open ? hide : show}>
-      <span className="material-symbols-outlined" aria-hidden="true">{open ? 'expand_more' : 'smart_toy'}</span><span className="assistant-launcher-badge" aria-hidden="true">AI</span>
+      <span className="material-symbols-outlined" aria-hidden="true">{open ? 'expand_more' : 'auto_awesome'}</span><span className="assistant-launcher-badge" aria-hidden="true">AI</span>
     </button>
   </div>
 }
