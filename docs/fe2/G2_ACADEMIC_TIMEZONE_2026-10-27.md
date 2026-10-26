@@ -17,11 +17,11 @@ Existing stored periods are not migrated or shifted. A legacy bare timestamp rep
 | Check | Result |
 |---|---|
 | Regression before product changes, UTC | 7 failing /2 passing cases demonstrate the old form/display behavior |
-| Academic timezone/governance/policy tests | 3 files /19 tests PASS in each of UTC, Asia/Ho_Chi_Minh and Asia/Tokyo |
-| Full suite | 268 files /1488 tests PASS |
+| Academic timezone/governance/policy tests | 3 files /20 tests PASS in each of UTC, Asia/Ho_Chi_Minh and Asia/Tokyo |
+| Full suite | 268 files /1489 tests PASS |
 | Typecheck / lint / build / diff | PASS; lint210 existing warnings; existing large-chunk and jsdom-navigation notices |
 
-The nine new cases exercise real components and submitted payloads, UTC/bare/explicit-offset input, three successive governance and policy round trips, DateOnly preservation, server-effective successor availability and immediate-publication UTC serialization. Publishing is a controlled test, not a staging publication.
+The ten new cases exercise real components and submitted payloads, UTC/bare/explicit-offset input, three successive governance and policy round trips, DateOnly preservation, server-effective successor availability, immediate-publication UTC serialization and invalid-end rejection before publication confirmation. Publishing is a controlled test, not a staging publication.
 
 The normalized lint set matches the baseline: the one additional warning relative to the G4 branch is the pre-existing NotificationRow mixed-export warning that G4 removes. No G2 warning was added. No dependency or API contract was changed.
 
@@ -39,3 +39,9 @@ Three period updates and three policy-draft updates were performed via the norma
 Admin governance, period editor and policy editor are recorded at390/768/1280/1440px, with measured page widths. Department Staff has no structure-add/edit controls; attempting to read this fixture's policy returns403 with an explanatory UI. That is a denial probe, not successful policy access or a reason to relax scope. No DB/auth bypass, API-created fixture, intercepted response, live result publication or existing academic-record mutation was used.
 
 The labeled DRAFT fixtures are retained for audit/replay. Evidence is outside Git at `E:/DOANTOTNGHIEP/output/fe2-feedback-2026-10-26/g2/`: creation request/responses, period/policy three-zone round trips, before snapshots, viewport JSON, screenshots and technical logs. The accompanying Phase C report distinguishes these actual writes from controlled tests. This branch does not copy unmerged G5 error handling; both tasks touch the two academic pages, so integration must preserve both concerns and the updated accessible field labels.
+
+## G5 integration notes for the reviewer
+
+Local-only `test/fe2-checkpoint-c-preview` combines the earlier preview and G2. Manual resolution keeps G5 AcademicField wrappers, inline corrections and error objects while applying G2 conversions and Vietnam labels. The new publication validation must call `setError({ message: issue })` when merged with G5, whose state type changed from string to AcademicError; standalone G2 still correctly uses the original string state.
+
+The first combined run exposed3 G5 tests querying the old exact date-label text. G5 head `b60028d` changes only those3 queries to semantic label prefixes, retaining every error/input/ARIA assertion. It passes the standalone22-test suite and CI. Combined academic tests pass4 files /32 tests and typecheck after preserving both concerns. No GitHub merge was performed; Phase C's final integration snapshot will identify the combined source head.

@@ -117,4 +117,14 @@ describe('Vietnam academic time at the form boundary', () => {
     expect(Date.parse(input.effectiveFrom)).toBeGreaterThanOrEqual(before)
     expect(Date.parse(input.effectiveFrom)).toBeLessThanOrEqual(Date.now())
   })
+
+  it('rejects an empty policy end before publication confirmation without losing input', async () => {
+    policyPage(); fireEvent.click(await screen.findByRole('button', { name: /Phiên bản 2/ }))
+    fireEvent.change(screen.getByLabelText(/Kết thúc hiệu lực/), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Công bố ngay' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('Khoảng hiệu lực')
+    expect((screen.getByLabelText(/Bắt đầu hiệu lực/) as HTMLInputElement).value).toBe(start)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(api.savePeriodPolicy).not.toHaveBeenCalled()
+  })
 })
