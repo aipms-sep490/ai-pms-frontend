@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import { ProjectResultBreakdown } from './ProjectResultBreakdown'
 import type { ResultBreakdown, ResultContribution } from './result-types'
 
@@ -48,5 +48,69 @@ describe('ProjectResultBreakdown', () => {
     expect(screen.getByText(/người chấm #5/)).toBeTruthy()
     // The scored (non-advisory) contribution is not listed in the advisory section.
     expect(screen.queryByText(/người chấm #6/)).toBeNull()
+  })
+
+  it('renders an authoritative COMMON100 formula without the old50/50 claim', () => {
+    const { container } = render(<ProjectResultBreakdown breakdown={breakdown({ formula: { components: [{ type: 'COMMON', weightPercent: 100 }] } })} />)
+    expect(screen.getByText('Điểm đồ án = 100% điểm chung.')).toBeDefined()
+    expect(container.textContent).not.toContain('50%')
+    expect(container.textContent).not.toContain('Không cộng điểm cá nhân')
+  })
+
+  it('uses the server40/40/20 metadata and keeps the frozen version visible', () => {
+    render(<ProjectResultBreakdown breakdown={breakdown({ schemeName: 'Frozen rubric', schemeVersion: 3, formula: { components: [{ type: 'COMMON', weightPercent: 40 }, { type: 'MAJOR', weightPercent: 40 }, { type: 'INDIVIDUAL', weightPercent: 20 }] } })} />)
+    expect(screen.getByText('Điểm đồ án = 40% điểm chung + 40% tổng hợp theo ngành + 20% điểm cá nhân.')).toBeDefined()
+    expect(screen.getByText(/Frozen rubric.*Phiên bản 3/)).toBeDefined()
+  })
+
+  it('uses neutral text without asserting percentages when formula metadata is absent', () => {
+    const { container } = render(<ProjectResultBreakdown breakdown={breakdown()} />)
+    expect(screen.getByText('Cách tính điểm theo phương án đánh giá đã công bố.')).toBeDefined()
+    expect(container.textContent).not.toContain('%')
+  })
+
+  it.each([
+    { components: [] },
+    { components: [{ type: 'UNKNOWN_PRIVATE', weightPercent: 100 }] },
+    { components: [{ type: '__proto__', weightPercent: 100 }] },
+    { components: [{ type: 'COMMON', weightPercent: -1 }] },
+    { components: [{ type: 'COMMON', weightPercent: Infinity }] },
+    { components: [{ type: 'COMMON', weightPercent: 80 }] },
+    { components: [{ type: 'COMMON', weightPercent: 99.5 }, { type: 'MAJOR', weightPercent: 0.5 }] },
+    { components: [{ type: 'COMMON', weightPercent: 50 }, { type: 'COMMON', weightPercent: 50 }] },
+    { components: null },
+  ])('rejects malformed or unagreed formula metadata %#', formula => {
+    const { container } = render(<ProjectResultBreakdown breakdown={breakdown({ formula: formula as unknown as ResultBreakdown['formula'] })} />)
+    expect(screen.getByText('Cách tính điểm theo phương án đánh giá đã công bố.')).toBeDefined()
+    expect(container.textContent).not.toMatch(/%|PRIVATE|Infinity|NaN/)
+  })
+
+  it('does not expose server description prose or include zero-weight clauses', () => {
+    const formula = { description: 'PRIVATE_ENGLISH_DESCRIPTION', components: [{ type: 'COMMON', weightPercent: 100 }, { type: 'MAJOR', weightPercent: 0 }] }
+    const { container } = render(<ProjectResultBreakdown breakdown={breakdown({ formula })} />)
+    expect(screen.getByText('Điểm đồ án = 100% điểm chung.')).toBeDefined()
+    expect(container.textContent).not.toMatch(/PRIVATE|\b0%/)
+  })
+
+  it('keeps pending and zero-weight rows from becoming a zero score, while retaining genuine grade zero', () => {
+    const component = { componentId: 1, name: 'Chờ chấm', scope: 'COMMON', weightPercent: 100, score: null, requiredEvaluators: 1, finalizedEvaluators: 0 }
+    render(<ProjectResultBreakdown breakdown={breakdown({ components: [component, { ...component, componentId: 2, name: 'Không có trọng số', weightPercent: 0, score: 0 }, { ...component, componentId: 3, name: 'Điểm 0 thật', score: 0, finalizedEvaluators: 1 }] })} />)
+    const table = screen.getByRole('table', { name: 'Điểm thành phần do hệ thống cung cấp' })
+    const pending = within(table).getByRole('row', { name: /Chờ chấm/ })
+    const inactive = within(table).getByRole('row', { name: /Không có trọng số/ })
+    const scored = within(table).getByRole('row', { name: /Điểm 0 thật/ })
+    expect(pending.textContent).toContain('Chưa có điểm')
+    expect(within(pending).queryByText('0')).toBeNull()
+    expect(inactive.textContent).toContain('Không áp dụng')
+    expect(within(inactive).queryByText('0')).toBeNull()
+    expect(within(scored).getByText('0')).toBeDefined()
+    expect(scored.textContent).toContain('Đã chấm')
+  })
+
+  it('labels student history as an individual formula rather than a project formula', () => {
+    const { container } = render(<ProjectResultBreakdown target="student" breakdown={breakdown({ formula: { components: [{ type: 'COMMON', weightPercent: 100 }] } })} />)
+    expect(screen.getByRole('heading', { name: 'Cấu thành điểm cá nhân' })).toBeDefined()
+    expect(screen.getByText('Điểm cá nhân = 100% điểm chung.')).toBeDefined()
+    expect(container.textContent).not.toContain('Điểm đồ án =')
   })
 })

@@ -38,6 +38,8 @@ export interface ResultComponentScore {
  * (e.g. an unapproved Marketing rubric template) — never present a non-approved breakdown as an
  * official academic result without surfacing this. */
 export interface ResultBreakdown {
+  /** BE-15 structured weights; absent on older/current deployments and snapshots. */
+  formula?: { components: Array<{ type: 'COMMON' | 'MAJOR' | 'INDIVIDUAL' | (string & {}); weightPercent: number }> } | null
   schemeName?: string | null
   schemeVersion?: number | null
   calculationVersion: string
