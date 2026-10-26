@@ -208,6 +208,7 @@ describe('Progress reports workflow', () => {
     cleanup()
     mount({ path: '/project/reports/new', createAllowed: false })
     expect(await screen.findByText(/Bạn chưa thể tạo báo cáo/)).toBeTruthy()
+    expect(api.getReportingCycles).not.toHaveBeenCalled()
     expect(api.createProgressReport).not.toHaveBeenCalled()
   })
 

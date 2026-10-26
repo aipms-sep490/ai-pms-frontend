@@ -71,6 +71,11 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
     setLoading(true)
     setLoadError('')
 
+    if (create && !canCreate) {
+      setLoading(false)
+      return
+    }
+
     if (create) {
       Promise.all([
         loadAllPages((page) => api.getReportingCycles(project.id, controller.signal, page)),
@@ -112,7 +117,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
     })
 
     return () => controller.abort()
-  }, [create, id, project.id, revision])
+  }, [canCreate, create, id, project.id, revision])
 
   async function mutate(action: () => Promise<void>) {
     if (locked.current) return
