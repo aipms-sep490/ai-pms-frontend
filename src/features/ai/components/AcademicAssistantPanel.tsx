@@ -5,6 +5,7 @@ import { AssistantAnswerText } from './AssistantAnswerText'
 import type { EvidenceReference } from '../ai-api'
 import { HttpError } from '../../../services/http/http-client'
 import { Modal } from '../../../components/ui/Modal'
+import { listAssistantRubrics, type AssistantToolMode, type AssistantExportFormat, type AssistantRubricOption } from '../academic-ai-api'
 
 const quickQuestions = ['Tôi cần làm gì ở giai đoạn hiện tại?', 'Hạn nộp và biểu mẫu cần dùng là gì?', 'Rubric của ngành tôi gồm những tiêu chí nào?', 'Điều kiện để công bố điểm là gì?']
 const quickCards = [
@@ -38,6 +39,12 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
   const [moreTurns, setMoreTurns] = useState(false)
   const [source, setSource] = useState<KnowledgeCitation | null>(null)
   const [draftKind, setDraftKind] = useState<AssistantDraft['kind'] | undefined>()
+  const [toolMode, setToolMode] = useState<AssistantToolMode | undefined>()
+  const [rubrics, setRubrics] = useState<AssistantRubricOption[]>([])
+  const [rubricId, setRubricId] = useState<number | undefined>()
+  const [rubricLoading, setRubricLoading] = useState(false)
+  const [rubricError, setRubricError] = useState(false)
+  const [rubricRetry, setRubricRetry] = useState(0)
   const historyRequest = useRef<AbortController | null>(null)
   const sourceRequest = useRef<AbortController | null>(null)
   const sending = useRef(false)
@@ -53,11 +60,23 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
   const request = useRef<AbortController | null>(null)
   const download = useRef<AbortController | null>(null)
   const fileInput = useRef<HTMLInputElement | null>(null)
+  useEffect(() => {
+    setRubricId(undefined); setRubrics([]); setRubricError(false); setRubricLoading(false)
+    if (toolMode !== 'REPORT_REVIEW' || !projectId) return
+    const controller = new AbortController()
+    setRubricLoading(true)
+    listAssistantRubrics(projectId, controller.signal).then(items => {
+      if (!controller.signal.aborted) setRubrics(items)
+    }).catch(() => { if (!controller.signal.aborted) setRubricError(true) })
+      .finally(() => { if (!controller.signal.aborted) setRubricLoading(false) })
+    return () => controller.abort()
+  }, [projectId, toolMode, rubricRetry])
   useEffect(() => { history.current?.scrollTo?.({ top: history.current.scrollHeight, behavior: 'smooth' }) }, [turns])
   useEffect(() => {
     request.current?.abort(); download.current?.abort(); historyRequest.current?.abort(); sourceRequest.current?.abort()
     sending.current = false; setConversation(null); setConversations([]); setShowHistory(false); setSource(null)
     setPendingDelete(null); setDeleteError(null); setHistoryBusy(false)
+    setToolMode(undefined); setDraftKind(undefined)
     setAnswer(null); setTurns([]); setQuery(''); setError(null); setFiles([]); setBusy(false); setDownloading(false)
     return () => { request.current?.abort(); download.current?.abort(); historyRequest.current?.abort(); sourceRequest.current?.abort() }
   }, [projectId])
@@ -119,6 +138,8 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
     event?.preventDefault()
     const value = (explicitQuery ?? query).trim()
     if (!value || sending.current || historyBusy) return
+    if (toolMode === 'REPORT_REVIEW' && (!rubricId || !files.length)) { setError('Chọn bộ tiêu chí và đính kèm báo cáo trước khi gửi.'); return }
+    if (toolMode === 'PROGRESS' && files.length) { setError('Bỏ tệp đính kèm để xem tiến độ từ dữ liệu hệ thống.'); return }
     sending.current = true
     request.current?.abort(); download.current?.abort()
     const controller = new AbortController(); request.current = controller
@@ -135,7 +156,7 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
       const result = dock && active
         ? await streamAssistant(value, files, active, pageContext, draftKind, text => {
           if (!controller.signal.aborted) setTurns(current => current.map(turn => turn.id === turnId ? { ...turn, preview: text } : turn))
-        }, controller.signal)
+        }, controller.signal, ...(toolMode ? [{ mode: toolMode, rubricId: toolMode === 'REPORT_REVIEW' ? rubricId : undefined }] : []))
         : files.length
         ? await askAcademicAssistantWithFiles(value, files, projectId, controller.signal)
         : await askAcademicAssistant(value, projectId, controller.signal)
@@ -158,7 +179,7 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
     setTurns(current => current.map(turn => !turn.response && !turn.error ? { ...turn, preview: undefined, error: 'Đã dừng. Mở lại lịch sử nếu câu trả lời vừa kịp lưu.' } : turn))
   }
 
-  const saveAnswer = async (format: 'txt' | 'md', selectedAnswer: AcademicAssistantResponse) => {
+  const saveAnswer = async (format: AssistantExportFormat, selectedAnswer: AcademicAssistantResponse) => {
     if (!selectedAnswer.runId || downloading) return
     const id = selectedAnswer.runId
     const controller = new AbortController(); download.current = controller
@@ -183,7 +204,7 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
       {answer.limitationNote && <p className="mt-3 text-xs text-ink-muted">{answer.limitationNote}</p>}
       {!!answer.attachments?.length && <p className="mt-3 break-words text-xs text-ink-muted">Tệp tham chiếu: {answer.attachments.map(file => file.fileName).join(', ')}</p>}
       {answer.draft && <AssistantDraftCard draft={answer.draft} onUse={onUseDraft} />}
-      {!!answer.runId && <div className="assistant-answer-actions mt-4 flex flex-wrap gap-3"><button type="button" disabled={downloading} onClick={() => void saveAnswer('txt', answer)} className="rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-semibold text-primary disabled:opacity-50">Tải TXT</button><button type="button" disabled={downloading} onClick={() => void saveAnswer('md', answer)} className="rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-semibold text-primary disabled:opacity-50">Tải Markdown</button></div>}
+      {!!answer.runId && <details className="assistant-export"><summary><span className="material-symbols-outlined" aria-hidden="true">download</span>{downloading ? 'Đang chuẩn bị tệp…' : 'Tải câu trả lời'}</summary><div className="assistant-export-options">{([['docx', 'Word'], ['xlsx', 'Excel'], ['pdf', 'PDF'], ['txt', 'TXT'], ['md', 'Markdown']] as const).map(([format, label]) => <button key={format} type="button" disabled={downloading} onClick={() => void saveAnswer(format, answer)}>Tải {label}</button>)}</div></details>}
       {answer.citations.length > 0 && <details className="assistant-citations" open={!dock}><summary>Tài liệu tham chiếu ({answer.citations.length})</summary><ul className="mt-2 space-y-2">{answer.citations.map((item, index) => <li key={`${item.versionId}-${index}`} className="rounded-lg border border-hairline bg-card p-3"><p className="text-sm font-semibold text-ink">{answer.runId ? <button type="button" className="underline underline-offset-4" onClick={() => void openSource(answer.runId!, index)}>{item.title} · v{item.version}</button> : <>{item.title} · v{item.version}</>}</p><p className="mt-1 text-xs text-ink-muted">{item.documentType}{item.section ? ` · ${item.section}` : ''}{item.page ? ` · trang ${item.page}` : ''}</p><p className="mt-2 text-sm leading-6 text-ink-soft">{item.excerpt}</p></li>)}</ul></details>}
       {answer.projectEvidence.length > 0 && <><h3 className="mt-4 text-sm font-semibold text-ink">Dữ liệu project</h3><ul className="mt-2 space-y-2">{answer.projectEvidence.map((item, index) => <li key={index} className="rounded-lg border border-hairline bg-card p-3 text-sm"><p className="font-semibold">{onOpenEvidence && /^\/api\/v1\/(tasks|milestones|meetings|progress-reports)\/\d+$/.test(item.referenceUrl ?? '') ? <button type="button" className="underline underline-offset-4" onClick={() => onOpenEvidence(item)}>{item.title}</button> : item.title}</p><p className="mt-1 text-ink-soft">{item.excerpt}</p></li>)}</ul></>}
     </div>)
@@ -207,7 +228,7 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
       {moreHistory && <button type="button" disabled={historyBusy} onClick={() => void loadHistory(true)}>Xem thêm hội thoại</button>}
     </div>}
     {source && <aside className="assistant-source" aria-label="Nguồn trích dẫn"><button type="button" onClick={() => setSource(null)}>Đóng nguồn</button><h3>{source.title} · {source.version}</h3><p>{source.section}{source.page ? ` · Trang ${source.page}` : ''}</p><p className="whitespace-pre-wrap">{source.excerpt}</p><small>Trích đoạn được lưu tại thời điểm trả lời; không phải toàn bộ tệp gốc.</small></aside>}
-    {!showHistory && (!dock || turns.length === 0) && <div className={dock ? 'assistant-welcome' : undefined}>
+    {!showHistory && !toolMode && (!dock || turns.length === 0) && <div className={dock ? 'assistant-welcome' : undefined}>
     <div>
       {dock && <div className="assistant-welcome-mark" aria-hidden="true"><span className="material-symbols-outlined">auto_awesome</span></div>}
       <p className="assistant-eyebrow font-mono text-xs font-semibold uppercase tracking-wide text-primary">Một chút gợi ý, thêm tự tin</p>
@@ -216,11 +237,21 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
     </div>
     <div className={dock ? 'assistant-quick-grid' : 'mt-3 flex flex-wrap gap-2'}>{quickQuestions.map((item, index) => <button key={item} type="button" aria-label={item} disabled={busy} className="assistant-quick-card rounded-full border border-hairline px-3 py-2 text-xs text-ink-soft hover:border-primary hover:text-primary disabled:opacity-50" onClick={() => void ask(undefined, item)}>{dock ? <><span className="material-symbols-outlined" aria-hidden="true">{quickCards[index].icon}</span><strong>{quickCards[index].title}</strong><small>{quickCards[index].detail}</small></> : item}</button>)}</div>
     </div>}
-    {dock && !showHistory && <div ref={history} className="assistant-history" role="log" aria-label="Cuộc trò chuyện với trợ lý" aria-live="polite">{moreTurns && conversation && <button type="button" disabled={busy || historyBusy} onClick={() => void openConversation(conversation.id, true)}>Xem tin nhắn trước</button>}{turns.map(turn => <div key={turn.id} className="assistant-turn">
+    {dock && !showHistory && <div ref={history} className="assistant-history" role="log" aria-label="Cuộc trò chuyện với trợ lý" aria-live="polite">{toolMode && turns.length === 0 && <div className="assistant-tool-intro"><span className="material-symbols-outlined" aria-hidden="true">{toolMode === 'PROGRESS' ? 'event_note' : toolMode === 'REPORT_REVIEW' ? 'fact_check' : 'description'}</span><h3>{toolMode === 'PROGRESS' ? 'Nắm rõ bước tiếp theo' : toolMode === 'REPORT_REVIEW' ? 'Hoàn thiện báo cáo của bạn' : 'Từ ý tưởng đến bản nháp'}</h3><p>{toolMode === 'PROGRESS' ? 'Xem các công việc và mốc tiến độ cần chú ý trong đồ án.' : toolMode === 'REPORT_REVIEW' ? 'Đối chiếu nội dung với bộ tiêu chí đã công bố, kèm góp ý và nguồn tham chiếu.' : 'Bổ sung nội dung thực tế vào câu hỏi. Trợ lý giúp sắp xếp thành tài liệu để bạn chỉnh sửa và tải về.'}</p></div>}{moreTurns && conversation && <button type="button" disabled={busy || historyBusy} onClick={() => void openConversation(conversation.id, true)}>Xem tin nhắn trước</button>}{turns.map(turn => <div key={turn.id} className="assistant-turn">
       <div className="assistant-user-bubble"><p>{turn.query}</p>{turn.fileNames.map((name, index) => <small key={index}>{name}</small>)}</div>
       {turn.response ? renderAnswer(turn.response) : turn.error ? <p className="assistant-turn-error">{turn.error}</p> : <div className="assistant-thinking" role="status"><small>Đang viết · nội dung tạm, chưa xác minh nguồn</small><p className="whitespace-pre-wrap">{turn.preview || 'Trợ lý đang trả lời…'}</p></div>}
     </div>)}</div>}
     <form hidden={showHistory} className={dock ? 'assistant-composer' : 'mt-4 flex flex-col gap-3'} onSubmit={event => void ask(event)}>
+      {toolMode && <div className="assistant-tool-help">
+        <p>{toolMode === 'PROGRESS' ? 'Tổng hợp dữ liệu đồ án hiện tại, nêu rõ phạm vi đã truy hồi. Không cần đính kèm tệp.' : toolMode === 'REPORT_REVIEW' ? 'Chọn rubric và gửi báo cáo. Góp ý có dẫn nguồn, không phải điểm chấm chính thức.' : 'Soạn bản nháp để bạn kiểm tra, sau đó tải Word, Excel hoặc PDF từ câu trả lời.'}</p>
+        {toolMode === 'REPORT_REVIEW' && <>
+          <select aria-label="Bộ tiêu chí nhận xét" value={rubricId ?? ''} disabled={busy || rubricLoading} onChange={event => setRubricId(event.target.value ? Number(event.target.value) : undefined)}>
+            <option value="">{rubricLoading ? 'Đang tải tiêu chí…' : 'Chọn bộ tiêu chí'}</option>
+            {rubrics.map(item => <option key={item.id} value={item.id}>{item.title} · v{item.version}{item.assignedToProject ? ' · Đã gắn đồ án' : ' · Tham khảo'}</option>)}
+          </select>
+          {rubricError ? <p role="alert">Chưa tải được tiêu chí. <button type="button" onClick={() => setRubricRetry(value => value + 1)}>Thử lại</button></p> : !rubricLoading && !rubrics.length && <p>Chưa có rubric đã công bố thuộc khoa và kỳ của bạn. Liên hệ Khoa để bổ sung.</p>}
+        </>}
+      </div>}
       <textarea aria-label="Câu hỏi học vụ" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (dock && event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void ask() } }} onPaste={event => { if (!busy && event.clipboardData.files.length) { event.preventDefault(); chooseFiles(Array.from(event.clipboardData.files)) } }} rows={dock ? 2 : 3} maxLength={2000} className="rounded-lg border border-hairline bg-card p-3 text-sm text-ink" placeholder="Hỏi bất cứ điều gì bạn đang băn khoăn…" />
       <input ref={fileInput} type="file" multiple accept={acceptedFiles} aria-label="Đính kèm ảnh hoặc tài liệu" className="sr-only" disabled={busy} onChange={event => { chooseFiles(Array.from(event.target.files ?? [])); event.target.value = '' }} />
       {files.length > 0 && <ul aria-label="Tệp đã chọn" className="space-y-2">{files.map((file, index) => <li key={`${file.name}-${index}`} className="flex min-w-0 items-center gap-3 rounded-lg border border-hairline bg-card p-3 text-sm">
@@ -230,7 +261,14 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
       </li>)}</ul>}
       <div className="assistant-composer-actions flex flex-wrap items-center gap-3">
         <button type="button" aria-label="+ Ảnh / tài liệu" title="Đính kèm ảnh hoặc tài liệu" disabled={busy || files.length >= 4} className="assistant-attach" onClick={() => fileInput.current?.click()}><span className="material-symbols-outlined" aria-hidden="true">attach_file</span>{!dock && 'Ảnh / tài liệu'}</button>
-        {dock && <label className="assistant-mode"><select aria-label="Chế độ trợ lý" disabled={busy} value={draftKind ?? ''} onChange={event => setDraftKind((event.target.value || undefined) as AssistantDraft['kind'] | undefined)}><option value="">Hỏi đáp</option><option value="TASK">Soạn công việc</option><option value="MEETING">Soạn lịch họp</option></select></label>}
+        {dock && <label className="assistant-mode"><select aria-label="Chế độ trợ lý" disabled={busy} value={toolMode ?? draftKind ?? ''} onChange={event => {
+          const value = event.target.value
+          setError(null)
+          setDraftKind(value === 'TASK' || value === 'MEETING' ? value : undefined)
+          setToolMode(value && value !== 'TASK' && value !== 'MEETING' ? value as AssistantToolMode : undefined)
+          const prompts: Record<string, string> = { PROGRESS: 'Tóm tắt tiến độ, công việc quá hạn và các mốc cần chú ý của đồ án.', REPORT_REVIEW: 'Nhận xét báo cáo đính kèm theo bộ tiêu chí đã chọn: điểm tốt, minh chứng còn thiếu và cách cải thiện.', WEEKLY_REPORT: 'Soạn báo cáo tuần gồm việc đã làm, đang làm, vướng mắc và kế hoạch tuần tới. Nội dung tuần này: ', MEETING_MINUTES: 'Soạn biên bản họp từ ghi chú sau, gồm nội dung, quyết định và việc cần làm: ', WORK_PLAN: 'Lập kế hoạch công việc và sản phẩm bàn giao cho mục tiêu sau: ' }
+          if (prompts[value]) setQuery(prompts[value])
+        }}><option value="">Hỏi đáp</option><option value="PROGRESS" disabled={!projectId}>Tiến độ & deadline</option><option value="REPORT_REVIEW" disabled={!projectId}>Nhận xét báo cáo</option><option value="WEEKLY_REPORT">Soạn báo cáo tuần</option><option value="MEETING_MINUTES">Soạn biên bản họp</option><option value="WORK_PLAN">Soạn kế hoạch</option><option value="TASK">Soạn công việc</option><option value="MEETING">Soạn lịch họp</option></select></label>}
         {busy ? <button type="button" className="assistant-send" aria-label="Dừng trả lời" title="Dừng trả lời" onClick={stop}><span className="material-symbols-outlined" aria-hidden="true">stop</span></button> : <button type="submit" aria-label={dock ? 'Gửi' : 'Hỏi trợ lý học vụ'} title="Gửi tin nhắn" disabled={!query.trim()} className="assistant-send"><span className="material-symbols-outlined" aria-hidden="true">arrow_upward</span>{!dock && 'Hỏi trợ lý học vụ'}</button>}
       </div>
       <p className="assistant-advisory">AI chỉ tư vấn · Kiểm tra nguồn trước khi sử dụng</p>
