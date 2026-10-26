@@ -6,7 +6,11 @@ Bàn giao **25/10/2026, Asia/Saigon**; dữ liệu browser/network quan sát ng�
 
 ## Cấu hình và cách chạy lại
 
-`.env.acceptance` dùng API thật qua proxy staging, `VITE_DATA_MODE=api`, `VITE_USE_MOCK_REVIEW_GATES=false`. Có16 flag mục tiêu true và3 hold false theo DECISIONS Q6. `VIDEO_MEETING=true` giữ baseline ngoài mẫu số19; `AI_ACADEMIC_ASSISTANT=false` thuộc G8 riêng, `WORKFLOW_PREVIEW=false` giữ dữ liệu thật. `AI_ADVISORY` được khai báo rõ dù `.env.example` hiện thiếu biến này, vì thuộc phạm vi13UC đã duyệt.
+`.env.acceptance` dùng API thật qua proxy staging, `VITE_DATA_MODE=api`, `VITE_USE_MOCK_REVIEW_GATES=false`. **Sau feedback 26/10**, profile lưu trong Git có14 flag mục tiêu true và5 false: giữ3 hold Q6, thêm `RBAC_WRITE=false` và `CHAT_ATTACHMENTS=false`. Bảng19flag bên dưới giữ nguyên **giá trị đã probe 24–25/10** (16true/3false), không phải cấu hình khuyến nghị hiện tại. Không sửa ngược bằng chứng cũ thành “đã probe false”.
+
+`VIDEO_MEETING=true` nằm ngoài mẫu số19; `AI_ACADEMIC_ASSISTANT=false` thuộc G8 riêng, `WORKFLOW_PREVIEW=false` giữ dữ liệu thật. `AI_ADVISORY` có trong profile; PR #101 bổ sung entry opt-in `false` vào `.env.example`.
+
+Khối cảnh báo đứng đầu profile liệt kê mọi flag còn bật có thể mở thao tác ghi: AI ask/lưu analysis (cả summary GET có thể lưu run), checkpoints, working agreement, defense, COLD, weekly assessment, meeting/video, chat và sprint. Profile này **không phải sandbox chỉ đọc**. Đợt đọc UI không submit/save/send/upload/start/end/grade/publish/delete, đổi quyền hoặc quyết định học vụ trên dữ liệu staging có sẵn. Một flag bật hoặc GET200 không chứng minh đã nghiệm thu thao tác ghi.
 
 ```powershell
 pnpm dev --mode acceptance --host localhost --port 5176
@@ -16,13 +20,17 @@ pnpm test --mode acceptance --maxWorkers 4
 pnpm build --mode acceptance
 ```
 
-Profile đã commit thể hiện cấu hình cuối. Lần probe dùng override tiến trình: bật từng flag, restart Vite sau mỗi lần và giữ các flag đã bật; không phải16 flag cô lập. Khi lặp lại vòng phân loại, bắt đầu16 flag false rồi bật lần lượt AI_ADVISORY → AI_RUN_HISTORY → SUPERVISOR_RECOMMENDATION → các flag còn lại trong bảng. Kiểm tra override tiến trình/`.env.acceptance.local` trước khi diễn giải kết quả; không ghi credential vào profile hay log.
+Lần probe dùng override tiến trình: bật từng flag, restart Vite sau mỗi lần và giữ các flag đã bật; không phải16 flag cô lập. Khi lặp lại vòng phân loại lịch sử, bắt đầu16 flag false rồi bật lần lượt AI_ADVISORY → AI_RUN_HISTORY → SUPERVISOR_RECOMMENDATION → các flag còn lại trong bảng. Kiểm tra override tiến trình/`.env.acceptance.local` trước khi diễn giải kết quả; không ghi credential vào profile hay log.
+
+Muốn lặp lại riêng probe RBAC/chat attachment đã bật trước đây: mở một terminal dành riêng cho ca, đặt **một** biến `$env:VITE_ENABLE_RBAC_WRITE='true'` hoặc `$env:VITE_ENABLE_CHAT_ATTACHMENTS='true'`, rồi khởi động lại Vite. Chỉ xem UI/GET; không bấm lưu quyền hoặc chọn/upload/gửi file. Sau ca, dừng server, `Remove-Item Env:VITE_ENABLE_RBAC_WRITE` hoặc biến attachment tương ứng và restart để trở về profile đã commit. `.env.acceptance.local` cũng có thể override: phải đọc và loại bỏ override cũ trước khi gọi profile “chỉ đọc”. Không bật quyền ghi BE để làm một ca đọc chạy được.
+
+RBAC read model là GET `/security/permissions/matrix`; writer hiện tại thật sự là **PUT `/security/roles/{roleId}/permissions`** (`src/features/users/api/admin-api.ts`), được gọi từ `AdminRbacPage.saveMapping`. Việc tắt flag đóng CTA đó; không thay đổi phân quyền BE. Attachment probe trước chỉ đọc hội thoại rỗng, chưa chứng minh upload/download.
 
 ## Kết quả đủ19 flag
 
 Endpoint dưới đây có prefix `/api/v1`; phương thức GET nếu không ghi khác. **B** = endpoint đã xử lý request, **partial** = chưa nghiệm thu hết tính năng. `INERT` = biến env chưa có consumer production; không suy ra flag điều khiển UI từ việc endpoint trả lời.
 
-| Flag `VITE_ENABLE_…` | Giá trị | Role · route | Endpoint / HTTP | Kết luận thật |
+| Flag `VITE_ENABLE_…` | Giá trị đã probe24–25/10 | Role · route | Endpoint / HTTP | Kết luận thật |
 |---|---|---|---|---|
 | AI_ADVISORY | true | Leader · `/project/ai`, report40003 | POST `/projects/50004/ai/assistant/ask`200 COMPLETED; POST `/projects/50004/ai/progress-analysis`200; ask50005 insufficient200; summary report40003 fallback200 | B, partial; không chứng minh ML |
 | AI_RUN_HISTORY | true | Leader · `/project/ai` | `/projects/50004/ai/runs?page=1&pageSize=20`200; `/projects/50004/ai/runs/2`200 | B, list/detail persisted; chưa phủ paging/quyền mọi role |
@@ -45,6 +53,8 @@ Endpoint dưới đây có prefix `/api/v1`; phương thức GET nếu không gh
 | INDUSTRY | false | Không probe | Hold theo Q6 | Chờ điều kiện CORS/Google client/InvitationUrl, không gán A |
 
 Hai flag inert được kiểm source: `unifiedCapabilitiesEnabled` chỉ khai báo/export env; `leadDepartmentPublishEnabled` chỉ khai báo/export env và test stub, không có consumer production. Không sửa authority hoặc capability để tạo hiệu ứng cho flag.
+
+Phát hiện này được nhập vào mục BE-18 của `plandev2/todo.md` ngày26/10 cùng [handoff FE→BE](BE18_INERT_FLAG_HANDOFF_2026-10-26.md). Không có consumer FE nghĩa là toggle chưa điều khiển một surface; không đồng nghĩa endpoint/authority BE bị tắt hay chưa deploy.
 
 ## Kết luận13 UC
 
@@ -85,6 +95,14 @@ Các fixture mới được thao tác qua UI thật; GET bổ sung chỉ đọc 
 Department start-review có một response Cloudflare502; đã đọc lại trạng thái SUBMITTED, chờ rồi retry UI200. Không gọi lần đầu thành công hoặc quy transient502 thành lỗi FE. Giữ fixture prefixDST để tái hiện; chưa khẳng định cleanup khi chưa xóa. Không thay đổi DB, role authority, điểm chính thức, RBAC hoặc gửi chat.
 
 ## Validation và phụ thuộc G7
+
+### Follow-up feedback26/10
+
+- Effective Vite `loadEnv('acceptance')`: `RBAC_WRITE=false`, `CHAT_ATTACHMENTS=false`. UI Admin thật chọn vai trò ADMIN: fieldset disabled, không có nút “Lưu phân quyền”; matrix/roles/permissions GET200, không có security write. Browser cũng đọc được hai flag false. Bằng chứng mới: `output/fe2-feedback-2026-10-26/g9/profile-browser.json` và `rbac-readonly.png`.
+- `pnpm typecheck`, `pnpm lint` (0error/206warning), `pnpm build --mode acceptance` và `git diff --check` PASS.
+- Plain `pnpm test --maxWorkers 4` trên máy này ban đầu có86fail/38file vì `.env.local` hiện đặt API base tuyệt đối `https://api-staging.khaidz.com/api/v1`, trong khi contract tests chờ relative `/api/v1`. Không sửa file local của người dùng. Chạy lại với override **chỉ trong tiến trình test** `$env:VITE_API_BASE_URL='/api/v1'` → **263file/1457test PASS**, exit0. Log lần fail và rerun đều giữ tại `output/fe2-feedback-2026-10-26/g9/`.
+- Bộ default trên không thay thế bộ acceptance mock-off: cùng profile đã được kiểm trên G7 sau bổ sung workspace notice, **264file/1470test PASS**. Giữ dependency #101 và các kết quả baseline lịch sử bên dưới; không gọi G9 mock-off standalone xanh khi chưa tích hợp G7.
+- G9 chỉ đổi cấu hình/tài liệu. Không thêm fixture bằng API, không lưu quyền hoặc upload file để chứng minh flag đã tắt.
 
 | Check | G9 baseline/profile acceptance | G7 worktree riêng, cùng b49b3ac |
 |---|---|---|
