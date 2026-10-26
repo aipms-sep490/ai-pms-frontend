@@ -757,7 +757,7 @@ Tạo báo cáo mới: **không gửi** `issuesAndRisks` (để `undefined`, kh�
 - [x] Test: không có cycle → trạng thái rỗng.
 - [x] Test: `isLate` từ BE → hiện nhãn; FE không tự tính.
 - [ ] **Chạy thật trên staging:** tạo draft → nộp → `SUBMITTED`. Lưu request/response vào PR. **Không** coi test đơn vị là đủ cho task này.
-- [x] 4 lệnh kiểm chứng xanh (typecheck, lint, test 263 files / 1464 tests, build).
+- [x] 4 lệnh kiểm chứng xanh trên `origin/develop` 14d9981 (typecheck, lint 209 cảnh báo nền, test 266 files / 1484 tests, build).
 
 ## File dự kiến
 
