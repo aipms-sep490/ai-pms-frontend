@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useExecutionAccess } from '../../execution/context/ExecutionAccessContext'
 import { ExecutionPage, ExConfirm, ExIcon, ExState } from '../../execution/execution-ui'
@@ -20,7 +20,7 @@ export function TaskDetailPage() {
 }
 function TaskDetail({ id }: { id: number }) {
   const access = useExecutionAccess()
-  const { project, routeBase, team } = access
+  const { project, routeBase, team, teamLoadError, retryTeam } = access
   const navigate = useNavigate()
   const location = useLocation()
   const listSearch = typeof location.state?.taskListSearch === 'string' ? location.state.taskListSearch : ''
@@ -92,7 +92,7 @@ function TaskDetail({ id }: { id: number }) {
       <section className="ex-panel"><div className="ex-panel-heading"><h2>Nội dung công việc</h2></div><div className="ex-padding ex-stack"><p className="ex-prose">{task.description?.trim() || 'Chưa có mô tả cho công việc này.'}</p><dl className="ex-facts"><div><dt>Bắt đầu dự kiến</dt><dd>{dateTimeLabel(task.startAt)}</dd></div><div><dt>Hạn hoàn thành</dt><dd>{dateTimeLabel(task.dueAt)}</dd></div>{task.parentTaskId && <div><dt>Thuộc công việc</dt><dd><Link className="ex-link" to={`${routeBase}/tasks/${task.parentTaskId}`}>{allTasks.find(item => item.id === task.parentTaskId)?.title ?? 'Xem công việc cha'}</Link></dd></div>}<div><dt>Mốc đồ án</dt><dd>{milestone ? (access.actor === 'mentor' ? milestone.title : <Link className="ex-link" to={`${routeBase}/milestones/${milestone.id}`}>{milestone.title}</Link>) : 'Đang tải thông tin mốc…'}</dd></div></dl></div></section>
       <section className="ex-panel"><div className="ex-panel-heading"><h2>Người phụ trách</h2>{canAssign && <button className="ex-text-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('assignees') }}>Phân công</button>}</div>
         <div className="ex-padding">{editing === 'assignees' ? <AssigneeEditor key={task.updatedAt} task={task} candidates={candidates} busy={mutation.busy} onCancel={() => setEditing(null)} onSubmit={ids => mutation.run(() => services.task.setTaskAssignees(task.id, ids, task.concurrencyToken), saved)} />
-          : <p className="ex-prose">{task.assignees.map(person => person.userFullName).join(', ') || 'Chưa phân công người phụ trách.'}</p>}{!team && editing === 'assignees' && <p className="ex-muted mt-3">Danh sách gồm những người đã được giao công việc trong đồ án. Trưởng nhóm có thể phân công thêm thành viên từ danh sách nhóm.</p>}</div>
+          : <p className="ex-prose">{task.assignees.map(person => person.userFullName).join(', ') || 'Chưa phân công người phụ trách.'}</p>}{!team && editing === 'assignees' && <ExState message={teamLoadError ?? 'Chưa tải được danh sách thành viên nhóm. Bạn vẫn xem được công việc nhưng chưa giao được người phụ trách.'} retry={retryTeam} />}</div>
       </section>
       <section className="ex-panel"><div className="ex-panel-heading"><div><h2>Công việc liên quan</h2><p>Các việc cần bắt đầu hoặc hoàn thành trước công việc này.</p></div>{canManageDependencies && <button className="ex-text-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('dependency') }}>Thêm liên kết</button>}</div>
         <div className="ex-padding">{task.dependencies.length ? <ul className="ex-dependencies">{task.dependencies.map(dependency => <li key={dependency.id}><div><Link className="ex-link" to={`${routeBase}/tasks/${dependency.dependsOnTaskId}`}>{allTasks.find(item => item.id === dependency.dependsOnTaskId)?.title ?? 'Xem công việc liên quan'}</Link><small>{dependencyLabels[dependency.dependencyType] ?? 'Liên kết công việc'}</small></div>{canManageDependencies && <button className="ex-text-button" disabled={mutation.busy} onClick={() => void mutation.run(() => services.task.removeTaskDependency(task.id, dependency.dependsOnTaskId, task.concurrencyToken), reload)}>Bỏ liên kết</button>}</li>)}</ul> : <p className="ex-muted">Chưa có liên kết với công việc khác.</p>}
@@ -131,5 +131,20 @@ function DependencyEditor({ tasks, busy, onCancel, onSubmit }: { tasks: { id: nu
 }
 function StatusEditor({ task, busy, onSubmit }: { task: TaskDto; busy: boolean; onSubmit: (status: string, reason: string) => Promise<boolean> }) {
   const next = taskTransitions[task.status] ?? []
-  return <form onSubmit={event => { event.preventDefault(); const form = new FormData(event.currentTarget); void onSubmit(String(form.get('status')), String(form.get('reason') ?? '')) }}><fieldset disabled={busy}><label className="ex-field">Trạng thái tiếp theo<select name="status" defaultValue={next[0] ?? ''} required>{next.map(value => <option key={value} value={value}>{taskStatusLabel(value)}</option>)}</select></label><label className="ex-field mt-4">Ghi chú thay đổi<textarea name="reason" rows={2} maxLength={2000} placeholder="Vướng mắc hoặc lý do cập nhật (nếu có)" /></label><button className="ex-button ex-button-primary mt-4 w-full" disabled={!next.length}>{busy ? 'Đang lưu…' : 'Cập nhật trạng thái'}</button></fieldset></form>
+  const reasonRef = useRef<HTMLTextAreaElement>(null)
+  const [fieldError, setFieldError] = useState('')
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    const status = String(form.get('status'))
+    const reason = String(form.get('reason') ?? '')
+    if (status === 'BLOCKED' && !reason.trim()) {
+      setFieldError('Cần nhập lý do vướng mắc trước khi chuyển sang trạng thái Vướng mắc.')
+      reasonRef.current?.focus()
+      return
+    }
+    setFieldError('')
+    void onSubmit(status, reason)
+  }
+  return <form onSubmit={submit}><fieldset disabled={busy}><label className="ex-field">Trạng thái tiếp theo<select name="status" defaultValue={next[0] ?? ''} required>{next.map(value => <option key={value} value={value}>{taskStatusLabel(value)}</option>)}</select></label><label className="ex-field mt-4">Ghi chú thay đổi<textarea ref={reasonRef} name="reason" rows={2} maxLength={1000} aria-invalid={Boolean(fieldError)} aria-describedby={fieldError ? 'task-status-reason-error' : undefined} onChange={() => { if (fieldError) setFieldError('') }} placeholder="Vướng mắc hoặc lý do cập nhật (nếu có)" /></label>{fieldError && <p id="task-status-reason-error" className="ex-notice ex-notice-error" role="alert">{fieldError}</p>}<button className="ex-button ex-button-primary mt-4 w-full" disabled={!next.length}>{busy ? 'Đang lưu…' : 'Cập nhật trạng thái'}</button></fieldset></form>
 }

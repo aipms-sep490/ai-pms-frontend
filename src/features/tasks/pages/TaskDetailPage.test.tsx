@@ -73,6 +73,23 @@ describe('TaskDetailPage', () => {
     expect(api.updateTaskStatus).toHaveBeenCalledWith(8,{newStatus:'IN_PROGRESS',reason:'Chờ bộ dữ liệu',concurrencyToken:'task-token'})
     expect((reason as HTMLTextAreaElement).value).toBe('Chờ bộ dữ liệu')
   })
+  it('focuses the reason and retains the selected BLOCKED status when its required reason is blank', async () => {
+    renderPage(false)
+    const status = await screen.findByRole('combobox', { name: 'Trạng thái tiếp theo' })
+    const reason = screen.getByRole('textbox', { name: 'Ghi chú thay đổi' }) as HTMLTextAreaElement
+    expect(reason.maxLength).toBe(1000)
+    fireEvent.change(status, { target: { value: 'BLOCKED' } })
+    fireEvent.change(reason, { target: { value: '   ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cập nhật trạng thái' }))
+    expect(screen.getByText(/Cần nhập lý do vướng mắc/).getAttribute('role')).toBe('alert')
+    expect(document.activeElement).toBe(reason)
+    expect(reason.value).toBe('   ')
+    expect((status as HTMLSelectElement).value).toBe('BLOCKED')
+    expect(api.updateTaskStatus).not.toHaveBeenCalled()
+    fireEvent.change(reason, { target: { value: 'Chờ dữ liệu' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cập nhật trạng thái' }))
+    await vi.waitFor(() => expect(api.updateTaskStatus).toHaveBeenCalledWith(8, { newStatus: 'BLOCKED', reason: 'Chờ dữ liệu', concurrencyToken: 'task-token' }))
+  })
   it('refreshes task and capability observations after a 403 without replaying the mutation', async () => {
     api.updateTaskStatus.mockRejectedValue(new HttpError('denied', 403)); renderPage(false)
     await screen.findByRole('button', { name: 'Cập nhật trạng thái' })

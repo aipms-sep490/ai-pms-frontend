@@ -8,12 +8,36 @@ vi.mock('../../../services/service-gateway', () => ({ services: { task: api, mil
 const empty = { items: [], totalCount: 0, totalPages: 0, page: 1, pageSize: 20 }
 const item = { id: 1, milestoneId: 3, title: 'Phân tích yêu cầu', status: 'TODO', priority: 'MEDIUM', assignees: [] }
 const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
-function renderBoard(manage: boolean, url = '/project/tasks', allowed = manage) {
-  return render(<MemoryRouter initialEntries={[url]}><ExecutionAccessProvider value={{ project: { id: 9, majors: [] } as never, team: { members: [{ userId: 2, fullName: 'Khang' }, { userId: 5, fullName: 'Duy' }] } as never, actor: 'student', currentUserId: 2, canManageStructure: manage, executionCapabilities: capabilities(allowed), routeBase: '/project' }}><TaskBoardPage /></ExecutionAccessProvider></MemoryRouter>)
+function renderBoard(manage: boolean, url = '/project/tasks', allowed = manage, hasTeam = true, retryTeam = vi.fn(), readOnly = false) {
+  return render(<MemoryRouter initialEntries={[url]}><ExecutionAccessProvider value={{ project: { id: 9, majors: [] } as never, team: hasTeam ? { members: [{ userId: 2, fullName: 'Khang' }, { userId: 5, fullName: 'Duy' }] } as never : undefined, teamLoadError: hasTeam ? undefined : 'Chưa tải được danh sách thành viên nhóm.', retryTeam, actor: 'student', currentUserId: 2, canManageStructure: manage, readOnly, executionCapabilities: capabilities(allowed), routeBase: '/project' }}><TaskBoardPage /></ExecutionAccessProvider></MemoryRouter>)
 }
 beforeEach(() => { api.getProjectTasks.mockResolvedValue(empty); api.getProjectMilestones.mockResolvedValue([{ id: 3, title: 'Khởi động', status: 'PLANNED' }]) })
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 describe('TaskBoardPage', () => {
+  it('offers the full roster as an assignee filter', async () => {
+    renderBoard(false); await screen.findByText('Không có công việc phù hợp')
+    const filter = screen.getByRole('combobox', { name: 'Người phụ trách' })
+    expect(filter.querySelectorAll('option')).toHaveLength(3)
+    expect(screen.getByRole('option', { name: 'Duy' })).toBeTruthy()
+  })
+  it('explains a missing roster and lets the user retry without hiding tasks', async () => {
+    const retry = vi.fn()
+    renderBoard(false, '/project/tasks', false, false, retry)
+    await screen.findByText('Không có công việc phù hợp')
+    expect(screen.getByText(/Chưa tải được danh sách thành viên nhóm/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
+    expect(retry).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('combobox', { name: 'Người phụ trách' })).toBeNull()
+  })
+  it('keeps Kanban cards readable but not draggable in read-only mode', async () => {
+    api.getProjectTasks.mockResolvedValue({ ...empty, items: [item], totalCount: 1, totalPages: 1 })
+    renderBoard(true, '/project/tasks', true, true, vi.fn(), true)
+    await screen.findByText('Phân tích yêu cầu')
+    fireEvent.click(screen.getByRole('button', { name: 'Bảng Kanban' }))
+    expect(screen.getByText(/Bảng công việc chỉ xem/)).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Phân tích yêu cầu/ }).closest('li')?.draggable).toBe(false)
+    expect(screen.queryByRole('button', { name: 'Tạo công việc' })).toBeNull()
+  })
   it('shows a paged board using backend statuses without hiding blocked or cancelled tasks', async () => {
     api.getProjectTasks.mockResolvedValue({ ...empty, items: [item, { ...item, id: 2, title: 'Đang bị chặn', status: 'BLOCKED' }, { ...item, id: 3, title: 'Đã hủy công việc', status: 'CANCELLED' }], totalCount: 23, totalPages: 2 })
     renderBoard(false)

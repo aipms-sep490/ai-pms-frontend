@@ -20,7 +20,7 @@ export function TeamManagementPage() {
   const management = useTeamManagement()
   const {
     team, profile, semester, period, workflowContext, isLoading: contextLoading,
-    currentUserId, rosterLocked, permissions, sentInvitations, receivedInvitations,
+    currentUserId, rosterLocked, permissions, sentInvitations, sentInvitationError, receivedInvitations,
     candidates, leaderChangeRequests, requiresMentorApproval, activeMentor,
     candidateSearch, candidateError, isRefreshing, isLoadingCandidates,
     setCandidateSearch, setCandidatePage, retryCandidates, isMutationPending, error, retry,
@@ -148,7 +148,7 @@ export function TeamManagementPage() {
       )}
 
       {error && (
-        <div className={`flex items-center justify-between gap-3 rounded-md border p-4 text-xs ${
+        <div role="alert" className={`flex items-center justify-between gap-3 rounded-md border p-4 text-xs ${
           error.kind === 'conflict' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-rose-200 bg-rose-50 text-rose-800'
         }`}>
           <p>{error.message}</p>
@@ -339,6 +339,7 @@ export function TeamManagementPage() {
           />
 
           {/* Invitations Panel */}
+          {sentInvitationError && <div role="alert" className="rounded-md border border-hairline bg-card p-4 text-sm text-status-error-text">Chưa tải được lời mời đã gửi. {sentInvitationError.message} <button type="button" onClick={() => void retry()} disabled={isRefreshing} className="underline disabled:opacity-50">Tải lại</button></div>}
           {(!rosterLocked || sentInvitations.length > 0 || receivedInvitations.length > 0) && <TeamInvitationsPanel
             sentInvitations={sentInvitations}
             memberNames={Object.fromEntries(team.members.map(member => [member.userId, member.fullName]))}
