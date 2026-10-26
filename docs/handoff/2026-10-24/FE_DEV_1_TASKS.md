@@ -894,7 +894,7 @@ Cách phân biệt: theo dõi field nào người dùng **đã chạm vào** (di
 - [x] Test: xóa title tường minh → payload có `title: null`.
 - [x] Test: prefill từ session.
 - [ ] **Chạy thật trên staging:** lưu → reload → lưu lại → kiểm chức danh còn nguyên.
-- [x] 4 lệnh kiểm chứng xanh (typecheck, lint, test 263 files / 1463 tests, build).
+- [x] 4 lệnh kiểm chứng xanh trên `origin/develop` 14d9981 (typecheck, lint 209 cảnh báo nền, test 266 files / 1483 tests, build; suite test xanh sau khi chạy lại một test FE2 không ổn định).
 
 ## File dự kiến
 
