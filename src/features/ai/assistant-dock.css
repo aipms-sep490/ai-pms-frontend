@@ -83,6 +83,9 @@
 .assistant-tool-help{padding:10px 12px;border:1px solid #dce8df;border-radius:12px;background:#f2f7f1;color:#496455;font-size:12px;line-height:1.6}
 .assistant-tool-help select{display:block;width:100%;min-width:0;margin-top:8px;padding:8px;border:1px solid #c8d8cc;border-radius:8px;background:white;color:#173e32;font-size:12px}
 .assistant-tool-help button{text-decoration:underline}
+.assistant-tool-intro{max-width:320px;margin:32px auto;text-align:center;color:#5b7466;font-size:13px;line-height:1.7}
+.assistant-tool-intro>.material-symbols-outlined{font-size:32px;color:#367457;background:#eaf2e8;padding:16px;border-radius:20px}
+.assistant-tool-intro h3{margin:14px 0 6px;font-size:18px;font-weight:700;color:#204a38}
 .assistant-composer .assistant-tool-help select{max-width:100%;margin-left:0}
 .assistant-export{margin-top:14px;font-size:12px;color:#315c4b}
 .assistant-export summary{display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:600;list-style:none}
