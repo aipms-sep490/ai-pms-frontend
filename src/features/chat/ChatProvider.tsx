@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { HubConnectionBuilder, HubConnectionState, LogLevel, type HubConnection } from '@microsoft/signalr'
 import { env } from '../../app/config/env'
 import { useAuthSession } from '../auth/context/useAuthSession'
-import { refreshAccessToken } from '../../services/http/http-client'
+import { HttpError, refreshAccessToken } from '../../services/http/http-client'
 import { chatApi, type ChatConversation, type ChatPage } from './chat-api'
 import { createChatEventFilter } from './chat-events'
 import { totalUnread } from './chat-view'
@@ -31,16 +31,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [inboxLoading, setInboxLoading] = useState(false)
   const userId = session?.user.id
   const [inboxOwner, setInboxOwner] = useState<number | undefined>()
+  const deniedInboxOwner = useRef<number | undefined>(undefined)
+  const [deniedHubOwner, setDeniedHubOwner] = useState<number | undefined>()
   const reloadInbox = useRef<() => void>(() => {})
   const previousRevision = useRef(revision)
   const acknowledgeRead = useCallback((id: string, sequence: string) => {
     setInbox(old => ({ ...old, items: old.items.map(room => room.id === id && BigInt(sequence) >= BigInt(room.sequence) ? { ...room, unreadCount: 0 } : room) }))
   }, [])
   const [changedConversations, setChangedConversations] = useState<ReadonlySet<string> | null>(null)
-  const refresh = useCallback((conversationId?: string) => { setChangedConversations(conversationId ? new Set([conversationId]) : null); setRevision(value => value + 1) }, [])
+  const refresh = useCallback((conversationId?: string) => { deniedInboxOwner.current = undefined; setChangedConversations(conversationId ? new Set([conversationId]) : null); setRevision(value => value + 1) }, [])
 
   useEffect(() => {
-    if (!env.chatEnabled || env.isMockMode || !userId) return
+    if (!env.chatEnabled || env.isMockMode || !userId || deniedHubOwner === userId) return
     let disposed = false
     let timer: ReturnType<typeof setTimeout> | undefined
     let retry: ReturnType<typeof setTimeout> | undefined
@@ -89,15 +91,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     return () => {
       disposed = true; clearInterval(heartbeat); clearInterval(catchUpTimer); clearTimeout(timer); clearTimeout(retry)
       document.removeEventListener('visibilitychange', catchUp)
-      void hub.stop(); setConnection(null); setState('offline'); setInbox(emptyInbox); setInboxError(''); setInboxLoading(false)
+      void hub.stop(); setConnection(null); setState('offline')
     }
-  }, [userId])
+  }, [userId, deniedHubOwner])
 
   useEffect(() => {
     if (!env.chatEnabled || env.isMockMode || !userId) return
     const abort = new AbortController()
     let running = false, queued = false
     const load = async () => {
+      if (deniedInboxOwner.current === userId) return
       if (running) { queued = true; return }
       running = true
       do {
@@ -120,15 +123,23 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           if (abort.signal.aborted) return
           setInbox({ items: [...rooms.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), nextCursor: null, hasMore: false })
           setInboxOwner(userId); setInboxError('')
-        } catch {
-          if (!abort.signal.aborted) { setInbox(emptyInbox); setInboxOwner(undefined); setInboxError('Chưa tải được hộp thư. Chat có thể chưa được bật.') }
+          setDeniedHubOwner(undefined)
+        } catch (error) {
+          if (!abort.signal.aborted) {
+            setInbox(emptyInbox); setInboxOwner(undefined)
+            if (error instanceof HttpError && error.status === 403) {
+              // A denied account needs an explicit retry, not background catch-up requests.
+              deniedInboxOwner.current = userId; queued = false; setDeniedHubOwner(userId)
+              setInboxError('Tài khoản chưa được phép sử dụng chat. Hãy tải lại sau khi quyền hoặc hồ sơ được cập nhật.')
+            } else setInboxError('Chưa tải được hộp thư. Chat có thể chưa được bật.')
+          }
         } finally { if (!abort.signal.aborted) setInboxLoading(false) }
       } while (queued && !abort.signal.aborted)
       running = false
     }
     reloadInbox.current = () => { void load() }
     void load()
-    return () => { abort.abort(); reloadInbox.current = () => {}; setInboxOwner(undefined) }
+    return () => { abort.abort(); reloadInbox.current = () => {}; deniedInboxOwner.current = undefined; setInboxOwner(undefined); setInboxError(''); setInboxLoading(false) }
   }, [userId])
   useEffect(() => {
     if (previousRevision.current === revision) return

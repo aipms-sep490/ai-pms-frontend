@@ -1,6 +1,7 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ChatProvider, useChat } from './ChatProvider'
+import { HttpError } from '../../services/http/http-client'
 
 const mocks = vi.hoisted(() => ({
   mockMode: false,
@@ -20,8 +21,8 @@ vi.mock('@microsoft/signalr', () => ({
   },
 }))
 function Probe() {
-  const { inbox, state, unreadCount, unreadKnown } = useChat()
-  return <><p>{state} / {inbox.items.map(item => item.title).join(',')}</p><output>{unreadKnown ? unreadCount : 'unknown'}</output></>
+  const { inbox, state, unreadCount, unreadKnown, inboxError, refresh } = useChat()
+  return <><p>{state} / {inbox.items.map(item => item.title).join(',')}</p><output>{unreadKnown ? unreadCount : 'unknown'}</output><p>{inboxError}</p><button onClick={() => refresh()}>Retry inbox</button></>
 }
 beforeEach(() => {
   vi.clearAllMocks()
@@ -32,6 +33,27 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 describe('chat session boundaries', () => {
+  it('stops background catch-up after a denial and restores chat after an explicit successful retry', async () => {
+    mocks.inbox.mockRejectedValue(new HttpError('Account cannot use chat', 403))
+    render(<ChatProvider><Probe /></ChatProvider>)
+    await screen.findByText(/Tài khoản chưa được phép sử dụng chat/)
+    await waitFor(() => expect(mocks.stop).toHaveBeenCalledTimes(1))
+    const previous = mocks.inbox.mock.calls.length
+    fireEvent(document, new Event('visibilitychange'))
+    mocks.reconnected()
+    await new Promise(resolve => setTimeout(resolve, 200))
+    expect(mocks.inbox).toHaveBeenCalledTimes(previous)
+    expect(screen.getByRole('status').textContent).toBe('unknown')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry inbox' }))
+    await waitFor(() => expect(mocks.inbox).toHaveBeenCalledTimes(previous + 1))
+    expect(mocks.start).toHaveBeenCalledTimes(1)
+    mocks.inbox.mockResolvedValue({ items: [], nextCursor: null, hasMore: false })
+    fireEvent.click(screen.getByRole('button', { name: 'Retry inbox' }))
+    await waitFor(() => expect(mocks.start).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('0'))
+    expect(screen.queryByText(/Tài khoản chưa được phép sử dụng chat/)).toBeNull()
+  })
   it('reconciles authoritative unread summaries after a hub reconnect', async () => {
     render(<ChatProvider><Probe /></ChatProvider>)
     await screen.findByText('connected / Private fixture room')
