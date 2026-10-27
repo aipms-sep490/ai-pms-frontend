@@ -100,11 +100,22 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
       return
     }
 
-    api.getProgressReport(id, controller.signal).then((data) => {
+    api.getProgressReport(id, controller.signal).then(async (data) => {
       if (controller.signal.aborted) return
       if (data.projectId !== project.id) {
         setLoadError('Báo cáo không thuộc đồ án đang mở.')
         return
+      }
+      if (actor === 'student' && data.status === 'DRAFT' && !data.progressReportPeriodId) {
+        const [cycleItems, reportItems] = await Promise.all([
+          loadAllPages((page) => api.getReportingCycles(project.id, controller.signal, page)),
+          loadAllPages((page) => api.getProgressReports(project.id, { page, pageSize: 50 }, controller.signal)),
+        ])
+        if (controller.signal.aborted) return
+        setCycles(cycleItems.filter(cycle => cycle.reportType === data.reportType
+          && cycle.periodStart.slice(0, 10) === data.periodStart.slice(0, 10)
+          && cycle.periodEnd.slice(0, 10) === data.periodEnd.slice(0, 10)))
+        setExistingReports(reportItems.filter(item => item.id !== data.id))
       }
       setReport(data)
       setDirty(false)
@@ -117,7 +128,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
     })
 
     return () => controller.abort()
-  }, [canCreate, create, id, project.id, revision])
+  }, [actor, canCreate, create, id, project.id, revision])
 
   async function mutate(action: () => Promise<void>) {
     if (locked.current) return
@@ -177,7 +188,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
   }
 
   async function submit() {
-    if (!report || actor !== 'student' || !canManageStructure || report.status !== 'DRAFT' || dirty || missingSubmissionFields(report).length) return
+    if (!report || !report.progressReportPeriodId || actor !== 'student' || !canManageStructure || report.status !== 'DRAFT' || dirty || missingSubmissionFields(report).length) return
     await mutate(async () => {
       const updated = await api.submitProgressReport(id, report.concurrencyToken)
       if (!mounted.current) return
@@ -338,6 +349,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
                     </ul>
                     {actor === 'student' && canManageStructure && (
                       <>
+                        {!report.progressReportPeriodId && <p className="report-validation">Bản nháp chưa gắn kỳ báo cáo. Chọn kỳ phù hợp trong biểu mẫu rồi lưu thay đổi trước khi nộp.</p>}
                         {dirty && <p className="report-validation">Lưu thay đổi trước khi nộp.</p>}
                         {!dirty && missing.length > 0 && <p className="report-help">Còn thiếu: {missing.join(', ')}.</p>}
                         {confirmSubmit ? (
@@ -357,7 +369,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
                         ) : (
                           <button
                             className="report-button"
-                            disabled={busy || dirty || missing.length > 0}
+                            disabled={busy || dirty || missing.length > 0 || !report.progressReportPeriodId}
                             onClick={() => setConfirmSubmit(true)}
                           >
                             Nộp cho GVHD

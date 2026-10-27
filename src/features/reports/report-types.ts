@@ -136,7 +136,7 @@ export const canonicalSubmissionFields = [
 ] as const
 
 export function missingSubmissionFields(report: Partial<ReportContent>): string[] {
-  return report.summary?.trim() ? [] : ['Tóm tắt tiến độ']
+  return canonicalSubmissionFields.filter(({ key }) => !report[key]?.trim()).map(({ label }) => label)
 }
 
 export function formatReportDate(value: string): string {

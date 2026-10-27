@@ -8,6 +8,7 @@ import { ProgressReportDetailPage } from './ProgressReportDetailPage'
 import { ProgressReportsPage } from './ProgressReportsPage'
 import type { ReportDetail } from './report-types'
 import type { ReportingCycle } from '../../services/api/progress-reports.api'
+import { reportError } from './report-errors'
 
 const api = vi.hoisted(() => ({
   getProgressReports: vi.fn(),
@@ -47,6 +48,10 @@ const draft: ReportDetail = {
   periodEnd: '2026-09-20',
   summary: 'Hoàn thành chức năng đăng ký',
   completedWork: 'Tích hợp API đề tài',
+  inProgressWork: 'Kiểm thử giao diện',
+  blockers: 'Không có',
+  risks: 'Không có',
+  nextActions: 'Kiểm tra phản hồi',
   plannedWork: 'Kiểm thử với giảng viên',
   issuesAndRisks: 'Không có',
   status: 'DRAFT',
@@ -240,10 +245,10 @@ describe('Progress reports workflow', () => {
     expect(api.updateProgressReport).toHaveBeenCalledWith(17, {
       summary: 'Đã cập nhật',
       completedWork: draft.completedWork,
-      inProgressWork: null,
-      blockers: null,
-      risks: null,
-      nextActions: null,
+      inProgressWork: draft.inProgressWork,
+      blockers: draft.blockers,
+      risks: draft.risks,
+      nextActions: draft.nextActions,
       plannedWork: draft.plannedWork,
       issuesAndRisks: draft.issuesAndRisks,
       progressReportPeriodId: 101,
@@ -339,12 +344,12 @@ describe('Progress reports workflow', () => {
 
   it('refreshes authoritative detail and retains feedback on a concurrency conflict', async () => {
     api.getProgressReport.mockResolvedValue({ ...draft, status: 'SUBMITTED' })
-    api.addProgressReportFeedback.mockRejectedValue(new HttpError('conflict', 409))
+    api.addProgressReportFeedback.mockRejectedValue(new HttpError('conflict', 409, { code: 'STALE_CONCURRENCY_TOKEN' }))
     mount({ actor: 'supervisor' })
     await screen.findByLabelText('Phản hồi mới')
     input('Phản hồi mới', 'Giữ lại phản hồi này')
     click('Gửi phản hồi')
-    expect((await screen.findByRole('alert')).textContent).toContain('Dữ liệu đã thay đổi')
+    expect((await screen.findByRole('alert')).textContent).toContain('Báo cáo đã thay đổi')
     await waitFor(() => expect(api.getProgressReport.mock.calls.length).toBeGreaterThanOrEqual(2))
     expect((screen.getByLabelText('Phản hồi mới') as HTMLTextAreaElement).value).toBe('Giữ lại phản hồi này')
     expect(api.addProgressReportFeedback).toHaveBeenCalledTimes(1)
@@ -458,7 +463,7 @@ describe('Progress reports workflow', () => {
     expect(await screen.findByText(/Báo cáo nộp sau hạn sẽ được ghi nhận là nộp muộn/)).toBeTruthy()
   })
 
-  it('allows submission with only a summary because other content fields are optional', async () => {
+  it('requires all six canonical sections before submission while preserving partial drafts', async () => {
     const canonicalDraft: ReportDetail = {
       ...draft,
       issuesAndRisks: null,
@@ -471,8 +476,33 @@ describe('Progress reports workflow', () => {
     mount()
 
     const submit = (await screen.findByRole('button', { name: 'Nộp cho GVHD' })) as HTMLButtonElement
-    expect(submit.disabled).toBe(false)
-    expect(screen.queryByText(/Còn thiếu: Vướng mắc/)).toBeNull()
+    expect(submit.disabled).toBe(true)
+    expect(screen.getByText(/Còn thiếu: Vướng mắc/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Lưu thay đổi' })).toBeTruthy()
+    expect(api.submitProgressReport).not.toHaveBeenCalled()
+  })
+
+  it('does not submit a complete legacy draft without its reporting cycle', async () => {
+    api.getProgressReport.mockResolvedValue({ ...draft, progressReportPeriodId: null })
+    mount()
+    const submit = await screen.findByRole('button', { name: 'Nộp cho GVHD' }) as HTMLButtonElement
+    expect(submit.disabled).toBe(true)
+    expect(screen.getByText(/Bản nháp chưa gắn kỳ báo cáo/)).toBeTruthy()
+    expect(api.submitProgressReport).not.toHaveBeenCalled()
+  })
+
+  it('links an existing draft only to a cycle matching its frozen type and dates', async () => {
+    api.getProgressReport.mockResolvedValue({ ...draft, progressReportPeriodId: null })
+    api.getReportingCycles.mockResolvedValue({ items: [sampleCycle, { ...sampleCycle, id: 102, periodStart: '2026-10-01' }], page: 1, pageSize: 50, totalCount: 2, totalPages: 1 })
+    mount()
+    const picker = await screen.findByLabelText(/Chọn kỳ báo cáo/)
+    expect(picker.querySelector('option[value="102"]')).toBeNull()
+    fireEvent.change(picker, { target: { value: '101' } })
+    click('Lưu thay đổi')
+    await screen.findByText(/Đã lưu thay đổi/)
+    expect(api.updateProgressReport).toHaveBeenCalledWith(17, expect.objectContaining({ progressReportPeriodId: 101, issuesAndRisks: draft.issuesAndRisks, summary: draft.summary }))
+    expect(api.createProgressReport).not.toHaveBeenCalled()
+    expect(api.submitProgressReport).not.toHaveBeenCalled()
   })
 
   it('shows legacy issues as read only while keeping them in the update payload', async () => {
@@ -511,7 +541,7 @@ describe('Progress reports workflow', () => {
     expect(submit.disabled).toBe(false)
   })
 
-  it('maps backend cycle and deadline conflict errors accurately', async () => {
+  it('gives general conflict guidance when the server supplies no stable business code', async () => {
     api.createProgressReport.mockRejectedValueOnce(
       new HttpError('conflict', 409, { detail: 'A progress report has already been created for this reporting cycle.' })
     )
@@ -523,7 +553,15 @@ describe('Progress reports workflow', () => {
     input('Tóm tắt tiến độ', 'Nội dung hợp lệ')
     click('Lưu bản nháp')
 
-    expect(await screen.findByText('Kỳ báo cáo này đã có báo cáo. Hãy chọn kỳ khác hoặc mở báo cáo đã có.')).toBeTruthy()
+    expect(await screen.findByText('Chưa hoàn tất thao tác. Kiểm tra kỳ báo cáo, báo cáo đã có và hạn nộp; tải lại trạng thái trước khi thử lại.')).toBeTruthy()
+    expect(screen.queryByText(/already been created/)).toBeNull()
+  })
+
+  it('uses a stable stale-token code and only allowlisted validation field labels', () => {
+    expect(reportError(new HttpError('conflict', 409, { code: 'STALE_CONCURRENCY_TOKEN', detail: 'private sentinel' }))).toBe('Báo cáo đã thay đổi. Tải lại trạng thái và đối chiếu trước khi lưu tiếp.')
+    expect(reportError(new HttpError('validation', 400, { errors: { inProgressWork: ['private sentinel'], unknownPrivateField: ['internal'] }, traceId: 'private trace' }))).toBe('Kiểm tra các mục nội dung: Công việc đang thực hiện.')
+    const noCode = reportError(new HttpError('conflict', 409, { detail: 'Submission deadline has passed for this reporting cycle. private sentinel' }))
+    expect(noCode).toBe('Chưa hoàn tất thao tác. Kiểm tra kỳ báo cáo, báo cáo đã có và hạn nộp; tải lại trạng thái trước khi thử lại.')
   })
 
   it('displays "Nộp trễ hạn" badge only when isLate is true from BE', async () => {

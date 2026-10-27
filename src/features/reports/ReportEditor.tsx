@@ -111,6 +111,7 @@ export function ReportEditor({
   const selectedCycle = cycles?.find((c) => c.id === Number(selectedCycleId))
   const isSelectedCycleOverdue = selectedCycle ? renderedAt > utcTimestamp(selectedCycle.deadline) : false
   const missing = missingSubmissionFields(values)
+  const canChooseCycle = !report || !report.progressReportPeriodId
 
   // Empty state when there are explicitly no cycles available for new report creation
   if (!report && cycles && cycles.length === 0) {
@@ -132,7 +133,7 @@ export function ReportEditor({
 
       <fieldset disabled={busy}>
         {/* Cycle selection when creating a new report */}
-        {!report && cycles && cycles.length > 0 ? (
+        {canChooseCycle && cycles && cycles.length > 0 ? (
           <div className="report-cycle-selection">
             <label htmlFor="report-cycle-select" className="report-cycle-label">
               <span><b>Chọn kỳ báo cáo</b> *</span>
@@ -221,6 +222,7 @@ export function ReportEditor({
         )}
 
         {report && <p className="report-help">Loại và kỳ báo cáo được cố định sau khi tạo.</p>}
+        {report && !report.progressReportPeriodId && cycles?.length === 0 && <p role="status" className="report-help">Chưa có kỳ báo cáo khớp loại và thời gian của bản nháp. Bộ môn cần bổ sung lịch tương ứng trước khi bạn có thể gắn kỳ và nộp.</p>}
 
         {/* 7 form input fields organized in 4 progressive disclosure groups (DECISIONS.md Q4) */}
         {formSections.map((section) => (

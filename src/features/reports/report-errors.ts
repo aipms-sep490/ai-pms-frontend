@@ -1,28 +1,16 @@
 import { HttpError } from '../../services/http/http-client'
+import { canonicalSubmissionFields } from './report-types'
 
 export function reportError(reason: unknown): string {
   if (reason instanceof HttpError) {
-    const detail = reason.problem?.detail || ''
-    const title = reason.problem?.title || ''
-    const code = reason.problem?.code || ''
-    const combined = `${code} ${title} ${detail}`.toLowerCase()
-
     if (reason.status === 409) {
-      if (combined.includes('already been created') || combined.includes('already exists')) {
-        return 'Kỳ báo cáo này đã có báo cáo. Hãy chọn kỳ khác hoặc mở báo cáo đã có.'
-      }
-      if (combined.includes('must be linked to a reporting cycle')) {
-        return 'Báo cáo tiến độ cần được gắn với một kỳ báo cáo trước khi nộp.'
-      }
-      if (combined.includes('deadline has passed')) {
-        return 'Đã quá hạn nộp cho kỳ báo cáo này. Kỳ báo cáo áp dụng chính sách chặn nộp muộn.'
-      }
-      return 'Dữ liệu đã thay đổi hoặc đã có báo cáo cùng loại và kỳ. Tải lại để kiểm tra trước khi tiếp tục.'
+      if (reason.problem?.code === 'STALE_CONCURRENCY_TOKEN') return 'Báo cáo đã thay đổi. Tải lại trạng thái và đối chiếu trước khi lưu tiếp.'
+      return 'Chưa hoàn tất thao tác. Kiểm tra kỳ báo cáo, báo cáo đã có và hạn nộp; tải lại trạng thái trước khi thử lại.'
     }
     if (reason.status === 400 || reason.status === 422) {
-      if (combined.includes('does not match the cycle')) {
-        return 'Thông tin loại hoặc thời gian báo cáo không khớp với kỳ báo cáo đã chọn.'
-      }
+      const errors = reason.problem?.errors ?? {}
+      const fields = canonicalSubmissionFields.filter(({ key }) => Object.keys(errors).some(field => field.replace(/^request\./i, '').toLowerCase() === key.toLowerCase()))
+      if (fields.length) return `Kiểm tra các mục nội dung: ${fields.map(({ label }) => label).join(', ')}.`
       return 'Dữ liệu chưa hợp lệ. Kiểm tra các mục nội dung bắt buộc; đồ án phải đang trong giai đoạn thực hiện.'
     }
     if (reason.status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
