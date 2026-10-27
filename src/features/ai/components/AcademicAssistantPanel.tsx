@@ -209,7 +209,7 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
       {answer.projectEvidence.length > 0 && <><h3 className="mt-4 text-sm font-semibold text-ink">Dữ liệu project</h3><ul className="mt-2 space-y-2">{answer.projectEvidence.map((item, index) => <li key={index} className="rounded-lg border border-hairline bg-card p-3 text-sm"><p className="font-semibold">{onOpenEvidence && /^\/api\/v1\/(tasks|milestones|meetings|progress-reports)\/\d+$/.test(item.referenceUrl ?? '') ? <button type="button" className="underline underline-offset-4" onClick={() => onOpenEvidence(item)}>{item.title}</button> : item.title}</p><p className="mt-1 text-ink-soft">{item.excerpt}</p></li>)}</ul></>}
     </div>)
 
-  return <section className={dock ? 'assistant-conversation' : 'rounded-xl border border-hairline bg-card p-5 shadow-xs'} aria-label="Trợ lý AI học vụ">
+  return <section className={dock ? 'assistant-conversation' : 'relative rounded-xl border border-hairline bg-card p-5 shadow-xs'} aria-label="Trợ lý AI học vụ">
     {pendingDelete && <div onKeyDown={event => { if (event.key === 'Escape') event.stopPropagation() }}>
       <Modal open title="Xóa hội thoại?" description="Hội thoại sẽ được xóa khỏi lịch sử của bạn." busy={historyBusy} initialFocusRef={cancelDelete} onClose={() => setPendingDelete(null)}>
         <p className="break-words rounded-xl border border-hairline bg-primary-subtle p-4 text-sm font-semibold text-ink">{pendingDelete.title}</p>
@@ -227,7 +227,18 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
       {conversations.map(item => <div key={item.id}><button type="button" disabled={historyBusy} onClick={() => void openConversation(item.id)}><strong>{item.title}</strong><small>{new Date(item.updatedAt).toLocaleString('vi-VN')}</small></button><button type="button" disabled={historyBusy} aria-label={`Xóa hội thoại ${item.title}`} onClick={() => { setDeleteError(null); setPendingDelete(item) }}>Xóa</button></div>)}
       {moreHistory && <button type="button" disabled={historyBusy} onClick={() => void loadHistory(true)}>Xem thêm hội thoại</button>}
     </div>}
-    {source && <aside className="assistant-source" aria-label="Nguồn trích dẫn"><button type="button" onClick={() => setSource(null)}>Đóng nguồn</button><h3>{source.title} · {source.version}</h3><p>{source.section}{source.page ? ` · Trang ${source.page}` : ''}</p><p className="whitespace-pre-wrap">{source.excerpt}</p><small>Trích đoạn được lưu tại thời điểm trả lời; không phải toàn bộ tệp gốc.</small></aside>}
+    {source && <aside className="assistant-source" aria-label="Nguồn trích dẫn" role="dialog" aria-modal="true">
+      <div className="assistant-source-header">
+        <div>
+          <span className="assistant-source-kicker"><span className="material-symbols-outlined" aria-hidden="true">verified</span>Nguồn đã lưu</span>
+          <h3>{source.title}</h3>
+        </div>
+        <button type="button" aria-label="Đóng nguồn" onClick={() => setSource(null)}><span className="material-symbols-outlined" aria-hidden="true">close</span>Đóng</button>
+      </div>
+      <div className="assistant-source-meta"><span>{source.documentType || 'Tài liệu học vụ'}</span><span>Phiên bản {source.version}</span>{source.section && <span>{source.section}</span>}{source.page ? <span>Trang {source.page}</span> : null}</div>
+      <div className="assistant-source-body"><p className="whitespace-pre-wrap">{source.excerpt}</p></div>
+      <p className="assistant-source-note"><span className="material-symbols-outlined" aria-hidden="true">info</span>Trích đoạn được lưu tại thời điểm trả lời; đây không phải toàn bộ tệp gốc.</p>
+    </aside>}
     {!showHistory && !toolMode && (!dock || turns.length === 0) && <div className={dock ? 'assistant-welcome' : undefined}>
     <div>
       {dock && <div className="assistant-welcome-mark" aria-hidden="true"><span className="material-symbols-outlined">auto_awesome</span></div>}
