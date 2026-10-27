@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { HttpError } from '../../../services/http/http-client'
 import { useAcademicGovernance } from '../hooks/useAcademicGovernance'
+import { dateTimeLabel, localDateTime, toUtcDateTime } from '../../execution/execution-utils'
 import { projectPeriodTypes, type GovernanceStatus, type ProjectPeriod, type ProjectPeriodDraft, type Semester, type SemesterDraft } from '../types/governance.types'
 import './academic-governance.css'
 import './academic-governance-polish.css'
@@ -17,8 +18,7 @@ type Editor = { kind: 'semester'; record?: Semester } | { kind: 'period'; record
 
 function errorText(error: Error) { return error instanceof HttpError && error.status === 403 ? 'Bạn chưa có quyền quản trị cấu hình này.' : 'Không thể đồng bộ cấu hình học vụ. Hãy thử lại.' }
 function toDate(value: string) { return value.slice(0, 10) }
-function toDateTime(value: string) { return value.slice(0, 16) }
-function formatDateTime(value: string) { const date = new Date(value); return Number.isNaN(date.valueOf()) ? value : date.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) }
+function formatDate(value: string) { return toDate(value).split('-').reverse().join('/') }
 
 export function AcademicGovernancePage() {
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
@@ -48,7 +48,7 @@ export function AcademicGovernancePage() {
       <div className="governance-grid">{governance.semesters.map(semester => <article key={semester.id} className="governance-card">
         <div className="governance-record-heading"><div><p className="governance-record-code">{semester.code}</p><h3>{semester.name}</h3></div><span className="governance-record-kind">Học kỳ</span></div>
         <p className="governance-record-meta">{semester.organizationName || semester.organizationCode}</p>
-        <dl className="governance-dates"><div><dt>Bắt đầu</dt><dd>{new Date(semester.startDate).toLocaleDateString('vi-VN')}</dd></div><div><dt>Kết thúc</dt><dd>{new Date(semester.endDate).toLocaleDateString('vi-VN')}</dd></div></dl>
+        <dl className="governance-dates"><div><dt>Bắt đầu</dt><dd>{formatDate(semester.startDate)}</dd></div><div><dt>Kết thúc</dt><dd>{formatDate(semester.endDate)}</dd></div></dl>
         <div className="governance-record-footer">{governance.canManage && !['CLOSED', 'ARCHIVED'].includes(semester.status) && <Button size="sm" variant="secondary" onClick={() => openEditor({ kind: 'semester', record: semester })}>Chỉnh sửa</Button>}
           <Status label={`học kỳ ${semester.code}`} status={semester.status} busy={governance.submitting} canManage={governance.canManage} onChange={status => changeStatus('semester', semester.id, status, semester.status)} />
         </div>
@@ -59,7 +59,7 @@ export function AcademicGovernancePage() {
       <div className="governance-section-title"><h2 id="governance-periods-title">Giai đoạn đồ án</h2><span>{governance.periods.length} giai đoạn</span></div>
       <div className="governance-periods">{governance.periods.map(period => <article key={period.id} className="governance-period">
         <div className="governance-record-heading"><div><p className="governance-record-code">{period.semesterCode} · {labels[period.periodType]}</p><h3>{period.name}</h3></div></div>
-        <dl className="governance-dates"><div><dt>Bắt đầu</dt><dd>{formatDateTime(period.startAt)}</dd></div><div><dt>Kết thúc</dt><dd>{formatDateTime(period.endAt)}</dd></div></dl>
+        <dl className="governance-dates"><div><dt>Bắt đầu (giờ Việt Nam)</dt><dd>{dateTimeLabel(period.startAt)}</dd></div><div><dt>Kết thúc (giờ Việt Nam)</dt><dd>{dateTimeLabel(period.endAt)}</dd></div></dl>
         <dl className="governance-period-facts"><div><dt>Số thành viên</dt><dd>{period.minTeamSize}–{period.maxTeamSize}</dd></div><div><dt>Số ngành tối thiểu</dt><dd>{period.minDistinctMajors}</dd></div><div><dt>Đồ án tối đa mỗi GVHD</dt><dd>{period.maxProjectsPerSupervisor}</dd></div></dl>
         <div className="governance-record-footer"><div className="governance-record-actions">
           <Link to={`/academic/project-periods/${period.id}/policy`} className="workspace-action-link">Các phiên bản chính sách<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>
@@ -105,10 +105,10 @@ function ProjectPeriodForm({ record, semesters, error, submitting, onCancel, onS
   const [validationError, setValidationError] = useState('')
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const form = new FormData(event.currentTarget), startAt = String(form.get('startAt')), endAt = String(form.get('endAt'))
+    const form = new FormData(event.currentTarget), startAt = toUtcDateTime(String(form.get('startAt'))), endAt = toUtcDateTime(String(form.get('endAt')))
     const minTeamSize = record?.minTeamSize ?? Number(form.get('minTeamSize')), maxTeamSize = record?.maxTeamSize ?? Number(form.get('maxTeamSize'))
     const minDistinctMajors = record?.minDistinctMajors ?? Number(form.get('minDistinctMajors')), maxProjectsPerSupervisor = record?.maxProjectsPerSupervisor ?? Number(form.get('maxProjectsPerSupervisor'))
-    if (startAt >= endAt) { setValidationError('Thời gian kết thúc phải sau thời gian bắt đầu.'); return }
+    if (!startAt || !endAt || startAt >= endAt) { setValidationError('Thời gian kết thúc phải sau thời gian bắt đầu.'); return }
     if (maxTeamSize < minTeamSize || minDistinctMajors > maxTeamSize) { setValidationError('Kiểm tra số thành viên tối thiểu, tối đa và số ngành tham gia.'); return }
     setValidationError('')
     void onSubmit({ id: record?.id, academicSemesterId: record?.academicSemesterId ?? Number(form.get('semesterId')), code: String(form.get('code')).trim(), name: String(form.get('name')).trim(), periodType: String(form.get('periodType')) as ProjectPeriodDraft['periodType'], startAt, endAt, minTeamSize, maxTeamSize, minDistinctMajors, maxProjectsPerSupervisor, rubricId: record?.rubricId ?? null })
@@ -119,8 +119,8 @@ function ProjectPeriodForm({ record, semesters, error, submitting, onCancel, onS
     <label>Mã giai đoạn<input name="code" required defaultValue={record?.code} disabled={submitting} /></label>
     <label>Tên giai đoạn<input name="name" required defaultValue={record?.name} disabled={submitting} /></label>
     <label>Loại giai đoạn<select name="periodType" defaultValue={record?.periodType} disabled={submitting}>{projectPeriodTypes.map(type => <option key={type} value={type}>{labels[type]}</option>)}</select></label>
-    <label>Bắt đầu<input name="startAt" type="datetime-local" required defaultValue={record ? toDateTime(record.startAt) : undefined} disabled={submitting} /></label>
-    <label>Kết thúc<input name="endAt" type="datetime-local" required defaultValue={record ? toDateTime(record.endAt) : undefined} disabled={submitting} /></label>
+    <label>Bắt đầu (giờ Việt Nam)<input name="startAt" type="datetime-local" required defaultValue={record ? localDateTime(record.startAt) : undefined} disabled={submitting} /></label>
+    <label>Kết thúc (giờ Việt Nam)<input name="endAt" type="datetime-local" required defaultValue={record ? localDateTime(record.endAt) : undefined} disabled={submitting} /></label>
     <p className="text-xs text-ink-muted">{record ? 'Các điều kiện hiện tại được hiển thị để đối chiếu. Mở phiên bản chính sách để thay đổi điều kiện áp dụng.' : 'Các điều kiện dưới đây sẽ được dùng cho chính sách ban đầu của giai đoạn.'}</p>
     <label>Thành viên tối thiểu<input name="minTeamSize" type="number" min="1" required disabled={Boolean(record) || submitting} defaultValue={record?.minTeamSize ?? 3} /></label>
     <label>Thành viên tối đa<input name="maxTeamSize" type="number" min="1" required disabled={Boolean(record) || submitting} defaultValue={record?.maxTeamSize ?? 5} /></label>
