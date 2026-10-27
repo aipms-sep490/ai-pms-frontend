@@ -13,6 +13,8 @@ const api = vi.hoisted(() => ({
   getProject: vi.fn(), getProjectPeriods: vi.fn(), getProjectEvaluationAssignments: vi.fn(), getTeam: vi.fn(),
   assignEvaluator: vi.fn(), revokeEvaluator: vi.fn(), getEligibleEvaluators: vi.fn(), getEvaluationSchemes: vi.fn(),
 }))
+const namesApi = vi.hoisted(() => ({ getReviewDetail: vi.fn() }))
+vi.mock('../projects/api/project-review-api', () => namesApi)
 vi.mock('../../services/api/projects.api', () => ({ getProject: api.getProject }))
 vi.mock('../academic/api/governance-api', () => ({ getProjectPeriods: api.getProjectPeriods }))
 vi.mock('../../services/api/evaluations.api', () => ({
@@ -46,8 +48,63 @@ beforeEach(() => {
   api.getProjectEvaluationAssignments.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
   api.getEligibleEvaluators.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
   api.getEvaluationSchemes.mockResolvedValue([])
+  namesApi.getReviewDetail.mockResolvedValue({ latestSubmission: { evidence: { members: [] } } })
 })
 afterEach(cleanup)
+
+function individualFixture() {
+  api.getProjectPeriods.mockResolvedValue({ items: [{ id: 7, name: 'Đợt bảo vệ', periodType: 'EVALUATION', status: 'ACTIVE' }], page: 1, pageSize: 100, totalCount: 1 })
+  api.getEvaluationSchemes.mockResolvedValue([{ id: 31, projectPeriodId: 7, status: 'PUBLISHED', name: 'Scheme', version: 1, students: [{ studentId: 9, majorId: 101, departmentId: 1 }, { studentId: 10, majorId: 101, departmentId: 1 }], components: [{ id: 42, name: 'Cá nhân', scope: 'INDIVIDUAL', majorId: 101, rubricId: 4, projectWeightPercent: 0, studentWeightPercent: 100, requiredEvaluators: 1 }] }])
+}
+
+async function selectIndividual() {
+  fireEvent.change(await screen.findByLabelText('Đợt đánh giá'), { target: { value: '7' } })
+  fireEvent.change(screen.getByLabelText('Thành phần đánh giá'), { target: { value: '42' } })
+  return screen.getByLabelText('Sinh viên (giữ Ctrl để chọn nhiều)') as HTMLSelectElement
+}
+
+it('blocks individual choice while names load and distinguishes duplicate names and missing major names', async () => {
+  individualFixture()
+  let finish!: (value: unknown) => void
+  namesApi.getReviewDetail.mockReturnValue(new Promise(resolve => { finish = resolve }))
+  renderPage(); const select = await selectIndividual()
+  expect(select.disabled).toBe(true)
+  expect(screen.getByText(/Đang tải tên sinh viên/)).toBeDefined()
+  finish({ latestSubmission: { evidence: { members: [{ userId: 9, fullName: 'Tên giống nhau' }, { userId: 10, fullName: 'Tên giống nhau' }] } } })
+  await waitFor(() => expect(select.disabled).toBe(false))
+  expect(screen.getByRole('option', { name: 'Sinh viên #9 · Tên giống nhau · Ngành #101' })).toBeDefined()
+  expect(screen.getByRole('option', { name: 'Sinh viên #10 · Tên giống nhau · Ngành #101' })).toBeDefined()
+  expect(api.assignEvaluator).not.toHaveBeenCalled()
+})
+
+it('keeps scoped unique IDs usable after a name read fails, then retries that read', async () => {
+  individualFixture()
+  namesApi.getReviewDetail.mockRejectedValueOnce(new HttpError('PRIVATE', 403)).mockResolvedValueOnce({ latestSubmission: { evidence: { members: [{ userId: 9, fullName: 'Đã tải lại' }] } } })
+  renderPage(); const select = await selectIndividual()
+  await screen.findByRole('alert')
+  expect(select.disabled).toBe(false)
+  expect(screen.getByRole('option', { name: 'Sinh viên #9 · Ngành #101' })).toBeDefined()
+  expect(screen.getByRole('option', { name: 'Sinh viên #10 · Ngành #101' })).toBeDefined()
+  fireEvent.click(screen.getByRole('button', { name: 'Thử tải lại tên sinh viên' }))
+  await screen.findByRole('option', { name: 'Sinh viên #9 · Đã tải lại · Ngành #101' })
+  expect(namesApi.getReviewDetail).toHaveBeenCalledTimes(2)
+  expect(api.assignEvaluator).not.toHaveBeenCalled()
+})
+
+it('keeps each individual roster in its frozen major while distinguishing unnamed majors', async () => {
+  individualFixture()
+  const scheme = (await api.getEvaluationSchemes())[0]
+  scheme.students.push({ studentId: 11, majorId: 102, departmentId: 1 })
+  scheme.components.push({ ...scheme.components[0], id: 43, majorId: 102 })
+  renderPage(); await selectIndividual()
+  expect(screen.getByRole('option', { name: /Cá nhân.*Ngành #101/ })).toBeDefined()
+  expect(screen.getByRole('option', { name: /Cá nhân.*Ngành #102/ })).toBeDefined()
+  expect(screen.queryByRole('option', { name: 'Sinh viên #11 · Ngành #102' })).toBeNull()
+  fireEvent.change(screen.getByLabelText('Thành phần đánh giá'), { target: { value: '43' } })
+  expect(screen.getByRole('option', { name: 'Sinh viên #11 · Ngành #102' })).toBeDefined()
+  expect(screen.queryByRole('option', { name: 'Sinh viên #9 · Ngành #101' })).toBeNull()
+  expect(api.assignEvaluator).not.toHaveBeenCalled()
+})
 
 describe('EvaluatorAssignmentManagementPage', () => {
   it.each(['denied', 'unavailable'])('reads assignments without write or candidate access when capabilities are %s', async state => {

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { SupervisorDashboardPage } from './SupervisorDashboardPage'
@@ -18,13 +18,17 @@ afterEach(cleanup)
 
 describe('SupervisorDashboardPage', () => {
   it('uses the backend filter contract for status and pagination', async () => {
+    let finish!: (value: typeof dashboard) => void
+    api.getSupervisorDashboard.mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
     render(<MemoryRouter><SupervisorDashboardPage /></MemoryRouter>)
     await waitFor(() => expect(api.getSupervisorDashboard).toHaveBeenCalledWith({ page: 1, pageSize: 20 }))
-    expect(screen.getByRole('link', { name: 'Mở không gian đồ án' })).toBeTruthy()
+    expect(screen.queryByRole('link', { name: 'Mở không gian đồ án' })).toBeNull()
+    await act(async () => finish(dashboard))
+    expect(await screen.findByRole('link', { name: 'Mở không gian đồ án' })).toBeTruthy()
 
     fireEvent.change(screen.getByLabelText('Trạng thái'), { target: { value: 'ACTIVE' } })
     await waitFor(() => expect(api.getSupervisorDashboard).toHaveBeenLastCalledWith({ page: 1, pageSize: 20, status: 'ACTIVE' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Trang sau' }))
     await waitFor(() => expect(api.getSupervisorDashboard).toHaveBeenLastCalledWith({ page: 2, pageSize: 20, status: 'ACTIVE' }))
   })
   it('hides outdated project data when refresh fails', async () => {
