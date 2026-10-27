@@ -9,6 +9,12 @@ function access(overrides: Partial<ExecutionAccess>): ExecutionAccess {
 }
 
 describe('execution authority compatibility gates', () => {
+  it('keeps every execution write hidden in a read-only project despite an allowed capability', () => {
+    const frozen = access({ actor: 'supervisor', readOnly: true, supervisor: { isPrimary: true, assignmentType: 'PRIMARY', endedAt: null } as never })
+    expect(canUseProjectExecutionAction(frozen, 'create_task')).toBe(false)
+    expect(canUseTaskExecutionAction(frozen, 'assign_task', allowed)).toBe(false)
+    expect(canUseTaskExecutionAction(frozen, 'change_task_status', allowed)).toBe(false)
+  })
   it('only exposes structural project actions to a student leader or active primary supervisor', () => {
     expect(canUseProjectExecutionAction(access({ canManageStructure: true }), 'create_task')).toBe(true)
     expect(canUseProjectExecutionAction(access({}), 'create_task')).toBe(false)

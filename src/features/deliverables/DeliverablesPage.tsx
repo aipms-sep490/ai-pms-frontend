@@ -25,7 +25,7 @@ export function DeliverablesPage() {
 }
 
 function DeliverablesView() {
-  const { project, actor, canManageStructure, routeBase } = useExecutionAccess()
+  const { project, actor, canManageStructure, readOnly, routeBase } = useExecutionAccess()
   const [params, setParams] = useSearchParams()
   const page = positivePage(params.get('page'))
   const status = statuses.includes(params.get('status') as DeliverableStatus) ? params.get('status') as DeliverableStatus : undefined
@@ -148,7 +148,7 @@ function DeliverablesView() {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
     const feedbackText = String(form.get('feedback') ?? '').trim()
-    if (!feedbackText) return
+    if (readOnly || !feedbackText) return
     void mutate(
       () => api.reviewDeliverableVersion(version.id, String(form.get('decision')) as 'ACCEPTED' | 'REJECTED', feedbackText),
       'Đã lưu quyết định và nhận xét cho phiên bản.', true,
@@ -203,7 +203,7 @@ function DeliverablesView() {
       {error && <p role="alert" className="ex-notice ex-notice-error">{error}</p>}
       {detailLoading && !versions ? <ExState loading /> : versions && versions.items.length === 0 ? <ExState title="Chưa có phiên bản" message="Thành viên nhóm có thể nộp phiên bản đầu tiên khi đồ án đang ở giai đoạn thực hiện." /> : versions && <>
         <div className="deliverable-history">{versions.items.map((version) => <article key={version.id} className="deliverable-history-row"><div><h3>Phiên bản {version.versionNumber}</h3><p>{version.note || 'Không có ghi chú.'}</p><small>Nộp {formatDate(version.submittedAt)}</small></div><span className={`ex-badge ex-badge-${version.status}`}>{statusLabel[version.status] ?? version.status}</span><div className="deliverable-file-list">{version.files.map((file) => <div key={file.id} className="flex items-center gap-1.5"><button className="ex-text-button flex items-center gap-1" type="button" disabled={busy} onClick={() => setPreviewTarget(file)}><span className="material-symbols-outlined text-[16px]">visibility</span><span>{file.fileName}</span> <small>({formatBytes(file.sizeBytes)})</small></button><button className="ex-text-button" type="button" disabled={busy} title="Tải xuống tệp" onClick={() => void download(file)}><ExIcon name="download" /></button></div>)}</div><button className="ex-text-button" type="button" onClick={() => void loadFeedback(version)}>Xem phản hồi</button>
-          {actor === 'supervisor' && version.status === 'SUBMITTED' && version.versionNumber === selected.latestVersion && <form className="deliverable-review" onSubmit={(event) => reviewVersion(event, version)}><label>Quyết định<select name="decision"><option value="ACCEPTED">Chấp nhận</option><option value="REJECTED">Yêu cầu chỉnh sửa</option></select></label><label>Nhận xét bắt buộc<input aria-label={`Nhận xét V${version.versionNumber}`} name="feedback" required maxLength={10000} /></label><button className="ex-button ex-button-primary" disabled={busy}>Gửi đánh giá</button></form>}
+          {!readOnly && actor === 'supervisor' && version.status === 'SUBMITTED' && version.versionNumber === selected.latestVersion && <form className="deliverable-review" onSubmit={(event) => reviewVersion(event, version)}><label>Quyết định<select name="decision"><option value="ACCEPTED">Chấp nhận</option><option value="REJECTED">Yêu cầu chỉnh sửa</option></select></label><label>Nhận xét bắt buộc<input aria-label={`Nhận xét V${version.versionNumber}`} name="feedback" required maxLength={10000} /></label><button className="ex-button ex-button-primary" disabled={busy}>Gửi đánh giá</button></form>}
         </article>)}</div>
         <ExPagination page={versions.page} pages={versions.totalPages} total={versions.totalCount} busy={detailLoading} onPage={(next) => void loadVersions(selected, next)} />
       </>}

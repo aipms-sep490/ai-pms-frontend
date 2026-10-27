@@ -51,6 +51,7 @@ export function useTeamManagement() {
   const journey = useStudentJourney()
   const { team, project, assignments, profile, semester, workflowContext, teamActions, refreshAll, refreshAllSilently } = journey
   const [sentInvitations, setSentInvitations] = useState<TeamInvitationDto[]>([])
+  const [sentInvitationError, setSentInvitationError] = useState<TeamManagementError | null>(null)
   const [receivedInvitations, setReceivedInvitations] = useState<TeamInvitationDto[]>([])
   const [candidates, setCandidates] = useState<PagedResult<TeamInvitationCandidateDto>>(emptyPage())
   const [leaderChangeRequests, setLeaderChangeRequests] = useState<TeamLeaderChangeRequestDto[]>([])
@@ -75,6 +76,7 @@ export function useTeamManagement() {
     canCreateTeam: actionAllowed('create_team', !team),
     canEditTeam: actionAllowed('edit_team', isLeader && !rosterLocked),
     canInvite: actionAllowed('invite_member', isLeader && !rosterLocked),
+    canViewSentInvitations: actionAllowed('view_team_invitations', isLeader),
     canManageRoster: actionAllowed('remove_member', isLeader && !rosterLocked),
     canConfigureScope: actionAllowed('configure_academic_scope', isLeader && !rosterLocked),
     canRefreshEligibility: actionAllowed('refresh_eligibility', isLeader && !rosterLocked),
@@ -88,20 +90,17 @@ export function useTeamManagement() {
 
   const refreshInvitations = useCallback(async () => {
     setIsLoadingInvitations(true)
-    try {
-      const [sent, received] = await Promise.all([
-        team ? services.team.getInvitations(team.id) : Promise.resolve(emptyPage<TeamInvitationDto>()),
-        services.team.getInvitations(),
-      ])
-      setSentInvitations(sent.items)
-      // The backend scopes this collection to the authenticated recipient. Do not re-authorize it in the browser.
-      setReceivedInvitations(received.items)
-    } catch (reason) {
-      setError(classifyError(reason))
-    } finally {
-      setIsLoadingInvitations(false)
-    }
-  }, [team])
+    const [sent, received] = await Promise.allSettled([
+      team && permissions.canViewSentInvitations ? services.team.getInvitations(team.id) : Promise.resolve(emptyPage<TeamInvitationDto>()),
+      services.team.getInvitations(),
+    ])
+    setSentInvitations(sent.status === 'fulfilled' ? sent.value.items : [])
+    setSentInvitationError(sent.status === 'rejected' ? classifyError(sent.reason) : null)
+    // The backend scopes this collection to the authenticated recipient. Do not re-authorize it in the browser.
+    setReceivedInvitations(received.status === 'fulfilled' ? received.value.items : [])
+    if (received.status === 'rejected') setError(classifyError(received.reason))
+    setIsLoadingInvitations(false)
+  }, [permissions.canViewSentInvitations, team])
 
   const refreshLeaderChanges = useCallback(async () => {
     if (!team) {
@@ -265,6 +264,7 @@ export function useTeamManagement() {
     rosterLocked,
     permissions,
     sentInvitations,
+    sentInvitationError,
     receivedInvitations,
     candidates,
     leaderChangeRequests,

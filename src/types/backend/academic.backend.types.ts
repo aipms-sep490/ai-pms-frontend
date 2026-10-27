@@ -52,6 +52,8 @@ export interface AuthUserDto {
   email: string
   fullName: string
   roles: string[]
+  title?: string | null
+  phone?: string | null
 }
 
 export interface LoginRequest {

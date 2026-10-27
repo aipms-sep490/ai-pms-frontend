@@ -1,50 +1,68 @@
 import { ProjectSectionNavigation } from '../../execution/ProjectSectionNavigation'
 import { useCallback, useEffect, useState } from 'react'
-import { Navigate, Outlet, useParams } from 'react-router-dom'
+import { Link, Outlet, useParams } from 'react-router-dom'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { ExState } from '../../execution/execution-ui'
 import { ExecutionAccessProvider } from '../../execution/context/ExecutionAccessProvider'
 import { HttpError } from '../../../services/http/http-client'
 import { services } from '../../../services/service-gateway'
-import type { ProjectDto, SupervisorAssignmentDto } from '../../../types/backend'
+import type { BackendProjectStatus, ProjectDto, SupervisorAssignmentDto, TeamDto } from '../../../types/backend'
 import { loadOwnSupervisorAssignments } from '../../supervisors/utils/loadOwnSupervisorAssignments'
 
 type MentorAccess = { project: ProjectDto; assignment: SupervisorAssignmentDto } | null
 const isActive = (status: string) => status.replaceAll('_', '').toUpperCase() === 'ACTIVE'
+const readableStatuses: ReadonlySet<BackendProjectStatus> = new Set(['Active', 'FinalSubmission', 'Completed', 'Archived'])
+const isReadable = (status: string) => [...readableStatuses].some(value => value.toUpperCase() === status.replaceAll('_', '').toUpperCase())
 
-/** A URL is insufficient: every direct Mentor route proves the exact active persisted assignment. */
+/** A URL is insufficient: every direct Mentor route proves the exact current persisted assignment. */
 export function MentorExecutionRoute() {
   const { projectId, majorId } = useParams()
   const { session } = useAuthSession()
   const project = Number(projectId)
   const major = Number(majorId)
   const [data, setData] = useState<MentorAccess>(null)
+  const [team, setTeam] = useState<TeamDto | undefined>()
+  const [teamLoadError, setTeamLoadError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [accessProblem, setAccessProblem] = useState<string | null>(null)
+
+  const loadTeam = useCallback(async (teamId: number) => {
+    setTeamLoadError(null)
+    try { setTeam(await services.team.getTeam(teamId)) }
+    catch { setTeam(undefined); setTeamLoadError('Chưa tải được danh sách thành viên nhóm. Bạn vẫn xem được công việc nhưng chưa giao được người phụ trách.') }
+  }, [])
 
   const load = useCallback(async () => {
     if (!Number.isSafeInteger(project) || project < 1 || !Number.isSafeInteger(major) || major < 1) {
       setLoading(false); setError('Đường dẫn mentor không hợp lệ.'); return
     }
-    setLoading(true); setError(null)
+    setLoading(true); setError(null); setAccessProblem(null); setData(null); setTeam(undefined); setTeamLoadError(null)
     try {
       const [projectData, assignments] = await Promise.all([
         services.project.getProject(project),
         loadOwnSupervisorAssignments({ status: 'ACTIVE' }),
       ])
-      const assignment = assignments.find(item => item.projectId === project && item.assignmentType === 'DISCIPLINE_MENTOR' && item.majorId === major && !item.endedAt)
-      setData(assignment && isActive(projectData.status) ? { project: projectData, assignment } : null)
+      if (projectData.id !== project) { setAccessProblem('Dữ liệu đồ án không khớp đường dẫn đang mở.'); return }
+      const projectAssignments = assignments.filter(item => item.projectId === project && item.assignmentType === 'DISCIPLINE_MENTOR' && !item.endedAt)
+      if (!projectAssignments.length) { setAccessProblem('Không có phân công mentor đang hiệu lực cho đồ án này.'); return }
+      const assignment = projectAssignments.find(item => item.majorId === major)
+      if (!assignment) { setAccessProblem('Mã ngành trong đường dẫn không khớp phân công mentor hiện tại.'); return }
+      if (!isReadable(projectData.status)) { setAccessProblem('Đồ án chưa ở giai đoạn cho phép truy cập khu vực thực hiện.'); return }
+      setData({ project: projectData, assignment })
+      await loadTeam(projectData.teamId)
     } catch (reason) {
       if (reason instanceof HttpError && reason.status === 401) setError('Phiên đăng nhập đã hết hạn.')
       else if (reason instanceof HttpError && reason.status === 403) setError('Bạn không có quyền truy cập mentor cho đồ án này.')
       else setError('Chưa tải được phạm vi mentor. Hãy thử lại.')
     } finally { setLoading(false) }
-  }, [major, project])
+  }, [major, project, loadTeam])
 
   useEffect(() => { void load() }, [load])
   if (loading) return <PageLoading />
   if (error) return <ExState message={error} retry={() => void load()} />
-  if (!data) return <Navigate to="/mentor/workspace" replace />
-  return <ExecutionAccessProvider value={{ project: data.project, supervisor: data.assignment, currentUserId: session?.user.id, actor: 'mentor', canManageStructure: false, routeBase: `/mentor/projects/${project}/majors/${major}` }}><ProjectSectionNavigation /><Outlet /></ExecutionAccessProvider>
+  if (!data) return <ExState title="Không thể mở khu vực thực hiện" message={accessProblem ?? 'Không xác nhận được quyền truy cập đồ án này.'} action={<Link className="ex-button" to="/mentor/workspace">Về danh sách đồ án</Link>} />
+  // Historical project states remain readable; BE still gates every mutation.
+  return <ExecutionAccessProvider value={{ project: data.project, team, teamLoadError, retryTeam: () => void loadTeam(data.project.teamId), supervisor: data.assignment, currentUserId: session?.user.id, actor: 'mentor', canManageStructure: false, readOnly: !isActive(data.project.status), routeBase: `/mentor/projects/${project}/majors/${major}` }}><ProjectSectionNavigation /><Outlet /></ExecutionAccessProvider>
 }

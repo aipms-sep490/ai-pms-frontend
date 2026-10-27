@@ -7,26 +7,102 @@ import { HttpError } from '../../services/http/http-client'
 import { ProgressReportDetailPage } from './ProgressReportDetailPage'
 import { ProgressReportsPage } from './ProgressReportsPage'
 import type { ReportDetail } from './report-types'
+import type { ReportingCycle } from '../../services/api/progress-reports.api'
+import { reportError } from './report-errors'
 
-const api = vi.hoisted(() => ({ getProgressReports: vi.fn(), getProgressReport: vi.fn(), createProgressReport: vi.fn(), updateProgressReport: vi.fn(), submitProgressReport: vi.fn(), addProgressReportFeedback: vi.fn() }))
+const api = vi.hoisted(() => ({
+  getProgressReports: vi.fn(),
+  getProgressReport: vi.fn(),
+  createProgressReport: vi.fn(),
+  updateProgressReport: vi.fn(),
+  submitProgressReport: vi.fn(),
+  addProgressReportFeedback: vi.fn(),
+  getReportingCycles: vi.fn(),
+}))
 const ai = vi.hoisted(() => ({ getReportAiSummary: vi.fn() }))
 vi.mock('../../services/api/progress-reports.api', () => api)
 vi.mock('../ai/ai-api', () => ai)
-const draft: ReportDetail = {
-  id: 17, projectId: 9, submittedBy: 2, submittedByName: 'Nguyễn Minh Anh', reportType: 'WEEKLY', periodStart: '2026-09-14', periodEnd: '2026-09-20',
-  summary: 'Hoàn thành chức năng đăng ký', completedWork: 'Tích hợp API đề tài', plannedWork: 'Kiểm thử với giảng viên', issuesAndRisks: 'Không có',
-  status: 'DRAFT', submittedAt: null, isLate: null, createdAt: '2026-09-20T08:00:00Z', updatedAt: '2026-09-20T08:00:00Z', concurrencyToken: 'report-token', feedbacks: [],
+
+const sampleCycle: ReportingCycle = {
+  id: 101,
+  projectId: 9,
+  projectPeriodId: 1,
+  reportType: 'WEEKLY',
+  periodStart: '2026-09-14',
+  periodEnd: '2026-09-20',
+  deadline: '2099-09-25T23:59:59Z',
+  latePolicy: 'BLOCK',
+  createdBy: 1,
+  createdAt: '2026-09-10T00:00:00Z',
+  updatedAt: '2026-09-10T00:00:00Z',
+  concurrencyToken: 'cycle-token',
 }
-const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
-function mount({ actor = 'student', leader = true, path = '/project/reports/17', createAllowed = actor === 'student' }: { actor?: 'student' | 'supervisor'; leader?: boolean; path?: string; createAllowed?: boolean } = {}) {
-  const access: ExecutionAccess = { project: { id: 9, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'], actor, canManageStructure: leader, executionCapabilities: actor === 'student' ? capabilities(createAllowed) : undefined, currentUserId: actor === 'student' ? 2 : 5, routeBase: '/project' }
-  const router = createMemoryRouter([{ element: <ExecutionAccessProvider value={access}><Outlet /></ExecutionAccessProvider>, children: [
-    { path: '/project/reports', element: <ProgressReportsPage /> },
-    { path: '/project/reports/new', element: <ProgressReportDetailPage create /> },
-    { path: '/project/reports/:reportId', element: <ProgressReportDetailPage /> },
-  ] }], { initialEntries: [path] })
+
+const draft: ReportDetail = {
+  id: 17,
+  projectId: 9,
+  submittedBy: 2,
+  submittedByName: 'Nguyễn Minh Anh',
+  reportType: 'WEEKLY',
+  periodStart: '2026-09-14',
+  periodEnd: '2026-09-20',
+  summary: 'Hoàn thành chức năng đăng ký',
+  completedWork: 'Tích hợp API đề tài',
+  inProgressWork: 'Kiểm thử giao diện',
+  blockers: 'Không có',
+  risks: 'Không có',
+  nextActions: 'Kiểm tra phản hồi',
+  plannedWork: 'Kiểm thử với giảng viên',
+  issuesAndRisks: 'Không có',
+  status: 'DRAFT',
+  submittedAt: null,
+  isLate: null,
+  createdAt: '2026-09-20T08:00:00Z',
+  updatedAt: '2026-09-20T08:00:00Z',
+  concurrencyToken: 'report-token',
+  feedbacks: [],
+  progressReportPeriodId: 101,
+}
+
+const capabilities = (allowed: boolean) => ({
+  status: 'ready' as const,
+  get: () => ({ state: allowed ? ('allowed' as const) : ('denied' as const), allowed, reasons: [] }),
+})
+
+function mount({
+  actor = 'student',
+  leader = true,
+  path = '/project/reports/17',
+  createAllowed = actor === 'student',
+}: { actor?: 'student' | 'supervisor'; leader?: boolean; path?: string; createAllowed?: boolean } = {}) {
+  const access: ExecutionAccess = {
+    project: { id: 9, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'],
+    actor,
+    canManageStructure: leader,
+    executionCapabilities: actor === 'student' ? capabilities(createAllowed) : undefined,
+    currentUserId: actor === 'student' ? 2 : 5,
+    routeBase: '/project',
+  }
+  const router = createMemoryRouter(
+    [
+      {
+        element: (
+          <ExecutionAccessProvider value={access}>
+            <Outlet />
+          </ExecutionAccessProvider>
+        ),
+        children: [
+          { path: '/project/reports', element: <ProgressReportsPage /> },
+          { path: '/project/reports/new', element: <ProgressReportDetailPage create /> },
+          { path: '/project/reports/:reportId', element: <ProgressReportDetailPage /> },
+        ],
+      },
+    ],
+    { initialEntries: [path] }
+  )
   return render(<RouterProvider router={router} />)
 }
+
 const input = (name: string, value: string) => fireEvent.change(screen.getByLabelText(name, { exact: false }), { target: { value } })
 const click = (name: string) => fireEvent.click(screen.getByRole('button', { name }))
 
@@ -34,7 +110,19 @@ beforeEach(() => {
   vi.resetAllMocks()
   api.getProgressReport.mockResolvedValue(draft)
   api.getProgressReports.mockResolvedValue({ items: [draft], page: 1, pageSize: 10, totalCount: 1, totalPages: 1 })
-  ai.getReportAiSummary.mockResolvedValue({ projectId: 9, reportId: 17, reportType: 'WEEKLY', periodStart: '2026-09-14', periodEnd: '2026-09-20', summary: { completed: '', inProgress: '', blockers: '', risks: '', nextActions: '' }, contextScope: 'PROJECT', evidence: [], limitationNote: null, generatedAt: '2026-09-20T08:00:00Z' })
+  api.getReportingCycles.mockResolvedValue({ items: [sampleCycle], page: 1, pageSize: 50, totalCount: 1, totalPages: 1 })
+  ai.getReportAiSummary.mockResolvedValue({
+    projectId: 9,
+    reportId: 17,
+    reportType: 'WEEKLY',
+    periodStart: '2026-09-14',
+    periodEnd: '2026-09-20',
+    summary: { completed: '', inProgress: '', blockers: '', risks: '', nextActions: '' },
+    contextScope: 'PROJECT',
+    evidence: [],
+    limitationNote: null,
+    generatedAt: '2026-09-20T08:00:00Z',
+  })
 })
 afterEach(cleanup)
 
@@ -49,7 +137,8 @@ describe('Progress reports workflow', () => {
   })
 
   it('keeps the unsaved edit guard when using Back from a direct report link', async () => {
-    mount(); await screen.findByLabelText(/Tóm tắt tiến độ/)
+    mount()
+    await screen.findByLabelText(/Tóm tắt tiến độ/)
     input('Tóm tắt tiến độ', 'Nội dung chưa lưu')
     fireEvent.click(screen.getByRole('link', { name: 'Quay lại' }))
     expect(await screen.findByText('Bạn có nội dung chưa lưu. Rời trang sẽ bỏ những thay đổi này.')).toBeTruthy()
@@ -62,7 +151,8 @@ describe('Progress reports workflow', () => {
   })
 
   it('protects unsaved edits when navigating away and allows an explicit discard', async () => {
-    mount(); await screen.findByLabelText(/Tóm tắt tiến độ/)
+    mount()
+    await screen.findByLabelText(/Tóm tắt tiến độ/)
     input('Tóm tắt tiến độ', 'Nội dung chưa lưu')
     fireEvent.click(screen.getByRole('link', { name: 'Danh sách báo cáo' }))
     await screen.findByText(/Bạn có nội dung chưa lưu/)
@@ -73,64 +163,117 @@ describe('Progress reports workflow', () => {
     await screen.findByRole('heading', { name: 'Lịch sử báo cáo' })
     expect(api.updateProgressReport).not.toHaveBeenCalled()
   })
-  it('creates a trimmed draft then opens its persisted detail', async () => {
+
+  it('creates a trimmed draft with cycle selection then opens its persisted detail', async () => {
     api.createProgressReport.mockResolvedValue(draft)
+    api.getProgressReports.mockResolvedValueOnce({ items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 })
     mount({ path: '/project/reports/new' })
-    input('Từ ngày', '2026-09-14'); input('Đến ngày', '2026-09-20'); input('Tóm tắt tiến độ', '  Hoàn thành chức năng đăng ký  ')
+
+    const cycleSelect = await screen.findByLabelText(/Chọn kỳ báo cáo/)
+    fireEvent.change(cycleSelect, { target: { value: '101' } })
+
+    input('Tóm tắt tiến độ', '  Hoàn thành chức năng đăng ký  ')
     click('Lưu bản nháp')
+
     await screen.findByText('Người tạo: Nguyễn Minh Anh')
-    expect(api.createProgressReport).toHaveBeenCalledWith(9, { reportType: 'WEEKLY', periodStart: '2026-09-14', periodEnd: '2026-09-20', summary: draft.summary, completedWork: null, plannedWork: null, issuesAndRisks: null })
+    expect(api.createProgressReport).toHaveBeenCalledWith(9, {
+      reportType: 'WEEKLY',
+      periodStart: '2026-09-14',
+      periodEnd: '2026-09-20',
+      progressReportPeriodId: 101,
+      summary: draft.summary,
+      completedWork: null,
+      inProgressWork: null,
+      blockers: null,
+      risks: null,
+      nextActions: null,
+      plannedWork: null,
+    })
   })
+
   it('lets a member create a report when the backend action allows it', async () => {
     api.createProgressReport.mockResolvedValue(draft)
+    api.getProgressReports.mockResolvedValueOnce({ items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 })
     mount({ leader: false, path: '/project/reports/new', createAllowed: true })
-    input('Từ ngày', '2026-09-14'); input('Đến ngày', '2026-09-20'); input('Tóm tắt tiến độ', 'Tiến độ của tôi')
+
+    const cycleSelect = await screen.findByLabelText(/Chọn kỳ báo cáo/)
+    fireEvent.change(cycleSelect, { target: { value: '101' } })
+
+    input('Tóm tắt tiến độ', 'Tiến độ của tôi')
     click('Lưu bản nháp')
+
     await screen.findByText('Người tạo: Nguyễn Minh Anh')
     expect(api.createProgressReport).toHaveBeenCalledTimes(1)
   })
+
   it('hides and blocks report creation when capability is unavailable or denied', async () => {
     mount({ path: '/project/reports', createAllowed: false })
     await screen.findByText(draft.summary)
     expect(screen.queryByRole('link', { name: /Tạo báo cáo/ })).toBeNull()
-    cleanup(); mount({ path: '/project/reports/new', createAllowed: false })
+    cleanup()
+    mount({ path: '/project/reports/new', createAllowed: false })
     expect(await screen.findByText(/Bạn chưa thể tạo báo cáo/)).toBeTruthy()
+    expect(api.getReportingCycles).not.toHaveBeenCalled()
     expect(api.createProgressReport).not.toHaveBeenCalled()
   })
-  it('validates blank summary and reversed dates without sending requests', () => {
+
+  it('validates blank summary and cycle selection before submitting', async () => {
+    api.getProgressReports.mockResolvedValueOnce({ items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 })
     mount({ path: '/project/reports/new' })
+
+    await screen.findByLabelText(/Chọn kỳ báo cáo/)
+    input('Tóm tắt tiến độ', 'Tiến độ hợp lệ')
+    fireEvent.submit(screen.getByRole('button', { name: 'Lưu bản nháp' }).closest('form')!)
+    expect(screen.getByText('Vui lòng chọn kỳ báo cáo trước khi lưu.')).toBeTruthy()
+
+    const cycleSelect = screen.getByLabelText(/Chọn kỳ báo cáo/)
+    fireEvent.change(cycleSelect, { target: { value: '101' } })
     input('Tóm tắt tiến độ', '   ')
     fireEvent.submit(screen.getByRole('button', { name: 'Lưu bản nháp' }).closest('form')!)
-    expect(screen.getByRole('alert').textContent).toContain('Vui lòng nhập')
-    input('Tóm tắt tiến độ', 'Kết quả'); input('Từ ngày', '2026-09-20'); input('Đến ngày', '2026-09-14')
-    fireEvent.submit(screen.getByRole('button', { name: 'Lưu bản nháp' }).closest('form')!)
-    expect(screen.getByRole('alert').textContent).toContain('Ngày kết thúc')
+    expect(screen.getByText('Vui lòng nhập tóm tắt tiến độ.')).toBeTruthy()
     expect(api.createProgressReport).not.toHaveBeenCalled()
   })
+
   it('allows members to edit drafts but never to submit', async () => {
     api.updateProgressReport.mockResolvedValue({ ...draft, summary: 'Đã cập nhật' })
     mount({ leader: false })
     await screen.findByLabelText(/Tóm tắt tiến độ/)
     expect(screen.queryByRole('button', { name: 'Nộp cho GVHD' })).toBeNull()
-    input('Tóm tắt tiến độ', 'Đã cập nhật'); click('Lưu thay đổi')
+    input('Tóm tắt tiến độ', 'Đã cập nhật')
+    click('Lưu thay đổi')
     await screen.findByText(/Đã lưu thay đổi/)
-    expect(api.updateProgressReport).toHaveBeenCalledWith(17, { summary: 'Đã cập nhật', completedWork: draft.completedWork, plannedWork: draft.plannedWork, issuesAndRisks: draft.issuesAndRisks, concurrencyToken: 'report-token' })
+    expect(api.updateProgressReport).toHaveBeenCalledWith(17, {
+      summary: 'Đã cập nhật',
+      completedWork: draft.completedWork,
+      inProgressWork: draft.inProgressWork,
+      blockers: draft.blockers,
+      risks: draft.risks,
+      nextActions: draft.nextActions,
+      plannedWork: draft.plannedWork,
+      issuesAndRisks: draft.issuesAndRisks,
+      progressReportPeriodId: 101,
+      concurrencyToken: 'report-token',
+    })
   })
-  it('blocks submit for incomplete persisted drafts and unsaved changes', async () => {
-    api.getProgressReport.mockResolvedValue({ ...draft, issuesAndRisks: ' ' })
+
+  it('blocks submit for a blank summary and unsaved changes', async () => {
+    api.getProgressReport.mockResolvedValue({ ...draft, summary: ' ' })
     mount()
-    const submit = await screen.findByRole('button', { name: 'Nộp cho GVHD' }) as HTMLButtonElement
+    const submit = (await screen.findByRole('button', { name: 'Nộp cho GVHD' })) as HTMLButtonElement
     expect(submit.disabled).toBe(true)
-    input('Khó khăn & rủi ro', 'Không có')
+    input('Tóm tắt tiến độ', 'Đã hoàn thành')
     expect(submit.disabled).toBe(true)
     expect(screen.getByText('Lưu thay đổi trước khi nộp.')).toBeTruthy()
     expect(api.submitProgressReport).not.toHaveBeenCalled()
   })
+
   it('requires confirmation, submits once and locks the report', async () => {
     let resolve!: (value: ReportDetail) => void
     api.submitProgressReport.mockReturnValue(new Promise((done) => { resolve = done }))
-    mount(); await screen.findByRole('button', { name: 'Nộp cho GVHD' })
-    click('Nộp cho GVHD'); expect(api.submitProgressReport).not.toHaveBeenCalled()
+    mount()
+    await screen.findByRole('button', { name: 'Nộp cho GVHD' })
+    click('Nộp cho GVHD')
+    expect(api.submitProgressReport).not.toHaveBeenCalled()
     click('Xác nhận nộp')
     fireEvent.click(screen.getByRole('button', { name: 'Đang nộp…' }))
     expect(api.submitProgressReport).toHaveBeenCalledTimes(1)
@@ -139,99 +282,338 @@ describe('Progress reports workflow', () => {
     expect(screen.queryByRole('button', { name: 'Lưu thay đổi' })).toBeNull()
     expect(screen.queryByRole('textbox')).toBeNull()
   })
+
   it('preserves unsaved content when saving fails', async () => {
     api.updateProgressReport.mockRejectedValue(new HttpError('conflict', 409))
-    mount(); await screen.findByLabelText(/Tóm tắt tiến độ/)
-    input('Tóm tắt tiến độ', 'Nội dung cần giữ lại'); click('Lưu thay đổi')
+    mount()
+    await screen.findByLabelText(/Tóm tắt tiến độ/)
+    input('Tóm tắt tiến độ', 'Nội dung cần giữ lại')
+    click('Lưu thay đổi')
     await screen.findByRole('alert')
     expect((screen.getByLabelText(/Tóm tắt tiến độ/) as HTMLTextAreaElement).value).toBe('Nội dung cần giữ lại')
     expect(screen.getByText('Lưu thay đổi trước khi nộp.')).toBeTruthy()
   })
+
   it('does not reveal a report from another project', async () => {
     api.getProgressReport.mockResolvedValue({ ...draft, projectId: 999 })
-    mount(); await screen.findByText('Báo cáo không thuộc đồ án đang mở.')
+    mount()
+    await screen.findByText('Báo cáo không thuộc đồ án đang mở.')
     expect(screen.queryByText(draft.summary)).toBeNull()
     expect(screen.queryByRole('button', { name: 'Nộp cho GVHD' })).toBeNull()
   })
+
   it('rejects an invalid detail ID without calling the API', async () => {
     mount({ path: '/project/reports/invalid' })
     await screen.findByText('Đường dẫn báo cáo không hợp lệ.')
     expect(api.getProgressReport).not.toHaveBeenCalled()
   })
+
   it('lets supervisors read drafts but not edit or comment', async () => {
-    mount({ actor: 'supervisor' }); await screen.findByText(draft.summary)
+    mount({ actor: 'supervisor' })
+    await screen.findByText(draft.summary)
     expect(screen.queryByRole('textbox')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Nộp cho GVHD' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Gửi phản hồi' })).toBeNull()
   })
+
   it('posts supervisor feedback and reloads authoritative REVIEWED detail', async () => {
     const feedback = { id: 44, supervisorName: 'ThS. Trần Mai', feedbackText: 'Bổ sung kiểm thử phân quyền.', createdAt: '2026-09-21T08:30:00Z' }
     api.getProgressReport.mockResolvedValueOnce({ ...draft, status: 'SUBMITTED' }).mockResolvedValue({ ...draft, status: 'REVIEWED', feedbacks: [feedback] })
     api.addProgressReportFeedback.mockResolvedValue(feedback)
     mount({ actor: 'supervisor' })
     await screen.findByLabelText('Phản hồi mới')
-    input('Phản hồi mới', `  ${feedback.feedbackText}  `); click('Gửi phản hồi')
+    input('Phản hồi mới', `  ${feedback.feedbackText}  `)
+    click('Gửi phản hồi')
     await screen.findByText('Đã nhận xét')
     expect(screen.getByText(feedback.feedbackText)).toBeTruthy()
     expect(api.addProgressReportFeedback).toHaveBeenCalledWith(17, feedback.feedbackText, 'report-token')
-    expect(screen.getByText('Đã nhận xét')).toBeTruthy()
     expect((screen.getByLabelText('Phản hồi mới') as HTMLTextAreaElement).value).toBe('')
   })
+
   it('retains feedback on forbidden POST without fabricating success', async () => {
     api.getProgressReport.mockResolvedValue({ ...draft, status: 'SUBMITTED' })
     api.addProgressReportFeedback.mockRejectedValue(new HttpError('forbidden', 403))
-    mount({ actor: 'supervisor' }); await screen.findByLabelText('Phản hồi mới')
-    input('Phản hồi mới', 'Cần thêm kiểm thử'); click('Gửi phản hồi')
+    mount({ actor: 'supervisor' })
+    await screen.findByLabelText('Phản hồi mới')
+    input('Phản hồi mới', 'Cần thêm kiểm thử')
+    click('Gửi phản hồi')
     expect((await screen.findByRole('alert')).textContent).toContain('không có quyền')
     expect((screen.getByLabelText('Phản hồi mới') as HTMLTextAreaElement).value).toBe('Cần thêm kiểm thử')
     expect(screen.queryByText('Đã nhận xét')).toBeNull()
   })
+
   it('refreshes authoritative detail and retains feedback on a concurrency conflict', async () => {
     api.getProgressReport.mockResolvedValue({ ...draft, status: 'SUBMITTED' })
-    api.addProgressReportFeedback.mockRejectedValue(new HttpError('conflict', 409))
-    mount({ actor: 'supervisor' }); await screen.findByLabelText('Phản hồi mới')
-    input('Phản hồi mới', 'Giữ lại phản hồi này'); click('Gửi phản hồi')
-    expect((await screen.findByRole('alert')).textContent).toContain('Dữ liệu đã thay đổi')
+    api.addProgressReportFeedback.mockRejectedValue(new HttpError('conflict', 409, { code: 'STALE_CONCURRENCY_TOKEN' }))
+    mount({ actor: 'supervisor' })
+    await screen.findByLabelText('Phản hồi mới')
+    input('Phản hồi mới', 'Giữ lại phản hồi này')
+    click('Gửi phản hồi')
+    expect((await screen.findByRole('alert')).textContent).toContain('Báo cáo đã thay đổi')
     await waitFor(() => expect(api.getProgressReport.mock.calls.length).toBeGreaterThanOrEqual(2))
     expect((screen.getByLabelText('Phản hồi mới') as HTMLTextAreaElement).value).toBe('Giữ lại phản hồi này')
     expect(api.addProgressReportFeedback).toHaveBeenCalledTimes(1)
   })
+
   it('does not re-post feedback when the refresh after success fails', async () => {
     api.getProgressReport.mockResolvedValueOnce({ ...draft, status: 'SUBMITTED' }).mockRejectedValueOnce(new TypeError('offline')).mockResolvedValue({ ...draft, status: 'REVIEWED' })
     api.addProgressReportFeedback.mockResolvedValue({ id: 44 })
-    mount({ actor: 'supervisor' }); await screen.findByLabelText('Phản hồi mới')
-    input('Phản hồi mới', 'Đã xem'); click('Gửi phản hồi')
+    mount({ actor: 'supervisor' })
+    await screen.findByLabelText('Phản hồi mới')
+    input('Phản hồi mới', 'Đã xem')
+    click('Gửi phản hồi')
     await screen.findByRole('alert')
     expect(screen.getByText('Đã gửi phản hồi cho nhóm.')).toBeTruthy()
-    click('Tải lại'); await screen.findByText('Đã nhận xét')
+    click('Tải lại')
+    await screen.findByText('Đã nhận xét')
     expect(api.addProgressReportFeedback).toHaveBeenCalledTimes(1)
   })
+
   it('shows reviewed feedback read-only for students after a reload', async () => {
-    api.getProgressReport.mockResolvedValue({ ...draft, status: 'REVIEWED', feedbacks: [{ id: 1, supervisorName: 'ThS. Mai', createdAt: '2026-09-21', feedbackText: 'Hoàn thiện tài liệu kiểm thử.' }] })
-    mount(); await screen.findByText('Hoàn thiện tài liệu kiểm thử.')
+    api.getProgressReport.mockResolvedValue({
+      ...draft,
+      status: 'REVIEWED',
+      feedbacks: [{ id: 1, supervisorName: 'ThS. Mai', createdAt: '2026-09-21', feedbackText: 'Hoàn thiện tài liệu kiểm thử.' }],
+    })
+    mount()
+    await screen.findByText('Hoàn thiện tài liệu kiểm thử.')
     expect(screen.queryByRole('textbox')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Gửi phản hồi' })).toBeNull()
+  })
+
+  it('disables cycles that already have an existing progress report', async () => {
+    const cycle2: ReportingCycle = {
+      ...sampleCycle,
+      id: 102,
+      periodStart: '2026-09-21',
+      periodEnd: '2026-09-27',
+      deadline: '2026-09-28T23:59:59Z',
+    }
+    api.getReportingCycles.mockResolvedValueOnce({ items: [sampleCycle, cycle2], page: 1, pageSize: 50, totalCount: 2, totalPages: 1 })
+    api.getProgressReports.mockResolvedValueOnce({ items: [draft], page: 1, pageSize: 50, totalCount: 1, totalPages: 1 })
+    mount({ path: '/project/reports/new' })
+
+    const cycleSelect = (await screen.findByLabelText(/Chọn kỳ báo cáo/)) as HTMLSelectElement
+    const option1 = cycleSelect.querySelector('option[value="101"]') as HTMLOptionElement
+    const option2 = cycleSelect.querySelector('option[value="102"]') as HTMLOptionElement
+
+    expect(option1.disabled).toBe(true)
+    expect(option1.textContent).toContain('Đã có báo cáo')
+    expect(option2.disabled).toBe(false)
+  })
+
+  it('loads every cycle and report page before offering a cycle for a new draft', async () => {
+    const laterCycle: ReportingCycle = {
+      ...sampleCycle,
+      id: 102,
+      periodStart: '2026-09-21',
+      periodEnd: '2026-09-27',
+    }
+    api.getReportingCycles
+      .mockResolvedValueOnce({ items: [sampleCycle], page: 1, pageSize: 20, totalCount: 2, totalPages: 2 })
+      .mockResolvedValueOnce({ items: [laterCycle], page: 2, pageSize: 20, totalCount: 2, totalPages: 2 })
+    api.getProgressReports
+      .mockResolvedValueOnce({ items: [], page: 1, pageSize: 50, totalCount: 1, totalPages: 2 })
+      .mockResolvedValueOnce({ items: [{ ...draft, progressReportPeriodId: 102 }], page: 2, pageSize: 50, totalCount: 1, totalPages: 2 })
+    mount({ path: '/project/reports/new' })
+
+    const cycleSelect = await screen.findByLabelText(/Chọn kỳ báo cáo/) as HTMLSelectElement
+    expect(api.getReportingCycles).toHaveBeenCalledWith(9, expect.any(AbortSignal), 2)
+    expect(api.getProgressReports).toHaveBeenCalledWith(9, { page: 2, pageSize: 50 }, expect.any(AbortSignal))
+    expect((cycleSelect.querySelector('option[value="102"]') as HTMLOptionElement).disabled).toBe(true)
+  })
+
+  it('shows empty state when project has 0 reporting cycles', async () => {
+    api.getReportingCycles.mockResolvedValueOnce({ items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 })
+    mount({ path: '/project/reports/new' })
+
+    expect(await screen.findByText('Chưa có kỳ báo cáo')).toBeTruthy()
+    expect(screen.getByText(/Đồ án chưa có kỳ báo cáo/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Lưu bản nháp' })).toBeNull()
+  })
+
+  it('warns when selected cycle deadline has passed with BLOCK vs FLAG policy', async () => {
+    const overdueBlockCycle: ReportingCycle = {
+      ...sampleCycle,
+      id: 103,
+      deadline: '2020-01-01T00:00:00Z',
+      latePolicy: 'BLOCK',
+    }
+    api.getReportingCycles.mockResolvedValueOnce({ items: [overdueBlockCycle], page: 1, pageSize: 50, totalCount: 1, totalPages: 1 })
+    api.getProgressReports.mockResolvedValueOnce({ items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 })
+    mount({ path: '/project/reports/new' })
+
+    const cycleSelect = await screen.findByLabelText(/Chọn kỳ báo cáo/)
+    fireEvent.change(cycleSelect, { target: { value: '103' } })
+    expect(await screen.findByText(/áp dụng chính sách chặn nộp muộn/)).toBeTruthy()
+
+    cleanup()
+    const overdueFlagCycle: ReportingCycle = {
+      ...sampleCycle,
+      id: 104,
+      deadline: '2020-01-01T00:00:00Z',
+      latePolicy: 'FLAG',
+    }
+    api.getReportingCycles.mockResolvedValueOnce({ items: [overdueFlagCycle], page: 1, pageSize: 50, totalCount: 1, totalPages: 1 })
+    api.getProgressReports.mockResolvedValueOnce({ items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 })
+    mount({ path: '/project/reports/new' })
+
+    const cycleSelectFlag = await screen.findByLabelText(/Chọn kỳ báo cáo/)
+    fireEvent.change(cycleSelectFlag, { target: { value: '104' } })
+    expect(await screen.findByText(/Báo cáo nộp sau hạn sẽ được ghi nhận là nộp muộn/)).toBeTruthy()
+  })
+
+  it('requires all six canonical sections before submission while preserving partial drafts', async () => {
+    const canonicalDraft: ReportDetail = {
+      ...draft,
+      issuesAndRisks: null,
+      inProgressWork: 'Đang dựng giao diện',
+      blockers: '',
+      risks: 'Rủi ro trễ tiến độ',
+      nextActions: 'Viết test',
+    }
+    api.getProgressReport.mockResolvedValue(canonicalDraft)
+    mount()
+
+    const submit = (await screen.findByRole('button', { name: 'Nộp cho GVHD' })) as HTMLButtonElement
+    expect(submit.disabled).toBe(true)
+    expect(screen.getByText(/Còn thiếu: Vướng mắc/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Lưu thay đổi' })).toBeTruthy()
+    expect(api.submitProgressReport).not.toHaveBeenCalled()
+  })
+
+  it('does not submit a complete legacy draft without its reporting cycle', async () => {
+    api.getProgressReport.mockResolvedValue({ ...draft, progressReportPeriodId: null })
+    mount()
+    const submit = await screen.findByRole('button', { name: 'Nộp cho GVHD' }) as HTMLButtonElement
+    expect(submit.disabled).toBe(true)
+    expect(screen.getByText(/Bản nháp chưa gắn kỳ báo cáo/)).toBeTruthy()
+    expect(api.submitProgressReport).not.toHaveBeenCalled()
+  })
+
+  it('links an existing draft only to a cycle matching its frozen type and dates', async () => {
+    api.getProgressReport.mockResolvedValue({ ...draft, progressReportPeriodId: null })
+    api.getReportingCycles.mockResolvedValue({ items: [sampleCycle, { ...sampleCycle, id: 102, periodStart: '2026-10-01' }], page: 1, pageSize: 50, totalCount: 2, totalPages: 1 })
+    mount()
+    const picker = await screen.findByLabelText(/Chọn kỳ báo cáo/)
+    expect(picker.querySelector('option[value="102"]')).toBeNull()
+    fireEvent.change(picker, { target: { value: '101' } })
+    click('Lưu thay đổi')
+    await screen.findByText(/Đã lưu thay đổi/)
+    expect(api.updateProgressReport).toHaveBeenCalledWith(17, expect.objectContaining({ progressReportPeriodId: 101, issuesAndRisks: draft.issuesAndRisks, summary: draft.summary }))
+    expect(api.createProgressReport).not.toHaveBeenCalled()
+    expect(api.submitProgressReport).not.toHaveBeenCalled()
+  })
+
+  it('keeps a cycle-less draft readable when the cycle lookup fails', async () => {
+    api.getProgressReport.mockResolvedValue({ ...draft, progressReportPeriodId: null })
+    api.getReportingCycles.mockRejectedValueOnce(new HttpError('unavailable', 500))
+    mount()
+    const summary = await screen.findByLabelText(/Tóm tắt tiến độ/) as HTMLTextAreaElement
+    expect(summary.value).toBe(draft.summary)
+    expect(screen.queryByLabelText(/Chọn kỳ báo cáo/)).toBeNull()
+  })
+
+  it('shows legacy issues as read only while keeping them in the update payload', async () => {
+    mount()
+    const legacy = await screen.findByLabelText(/Khó khăn & rủi ro/) as HTMLTextAreaElement
+    expect(legacy.readOnly).toBe(true)
+    input('Tóm tắt tiến độ', 'Bản nháp mới')
+    click('Lưu thay đổi')
+    await screen.findByText(/Đã lưu thay đổi/)
+    expect(api.updateProgressReport).toHaveBeenCalledWith(17, expect.objectContaining({ issuesAndRisks: draft.issuesAndRisks }))
+  })
+
+  it('fails closed when reporting cycles cannot be loaded', async () => {
+    api.getReportingCycles.mockRejectedValueOnce(new HttpError('forbidden', 403))
+    mount({ path: '/project/reports/new' })
+    expect(await screen.findByRole('alert')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Lưu bản nháp' })).toBeNull()
+    expect(api.createProgressReport).not.toHaveBeenCalled()
+  })
+
+  it('enables submit for canonical reports when all 6 canonical fields are completed', async () => {
+    const completeCanonicalDraft: ReportDetail = {
+      ...draft,
+      issuesAndRisks: null,
+      summary: 'Tóm tắt tuần',
+      completedWork: 'Đã xong backend',
+      inProgressWork: 'Đang làm frontend',
+      blockers: 'Không có',
+      risks: 'Không có',
+      nextActions: 'Test tích hợp',
+    }
+    api.getProgressReport.mockResolvedValue(completeCanonicalDraft)
+    mount()
+
+    const submit = (await screen.findByRole('button', { name: 'Nộp cho GVHD' })) as HTMLButtonElement
+    expect(submit.disabled).toBe(false)
+  })
+
+  it('gives general conflict guidance when the server supplies no stable business code', async () => {
+    api.createProgressReport.mockRejectedValueOnce(
+      new HttpError('conflict', 409, { detail: 'A progress report has already been created for this reporting cycle.' })
+    )
+    api.getProgressReports.mockResolvedValueOnce({ items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 })
+    mount({ path: '/project/reports/new' })
+
+    const cycleSelect = await screen.findByLabelText(/Chọn kỳ báo cáo/)
+    fireEvent.change(cycleSelect, { target: { value: '101' } })
+    input('Tóm tắt tiến độ', 'Nội dung hợp lệ')
+    click('Lưu bản nháp')
+
+    expect(await screen.findByText('Chưa hoàn tất thao tác. Kiểm tra kỳ báo cáo, báo cáo đã có và hạn nộp; tải lại trạng thái trước khi thử lại.')).toBeTruthy()
+    expect(screen.queryByText(/already been created/)).toBeNull()
+  })
+
+  it('uses a stable stale-token code and only allowlisted validation field labels', () => {
+    expect(reportError(new HttpError('conflict', 409, { code: 'STALE_CONCURRENCY_TOKEN', detail: 'private sentinel' }))).toBe('Báo cáo đã thay đổi. Tải lại trạng thái và đối chiếu trước khi lưu tiếp.')
+    expect(reportError(new HttpError('validation', 400, { errors: { inProgressWork: ['private sentinel'], unknownPrivateField: ['internal'] }, traceId: 'private trace' }))).toBe('Kiểm tra các mục nội dung: Công việc đang thực hiện.')
+    const noCode = reportError(new HttpError('conflict', 409, { detail: 'Submission deadline has passed for this reporting cycle. private sentinel' }))
+    expect(noCode).toBe('Chưa hoàn tất thao tác. Kiểm tra kỳ báo cáo, báo cáo đã có và hạn nộp; tải lại trạng thái trước khi thử lại.')
+  })
+
+  it('displays "Nộp trễ hạn" badge only when isLate is true from BE', async () => {
+    api.getProgressReport.mockResolvedValueOnce({
+      ...draft,
+      status: 'SUBMITTED',
+      isLate: true,
+    })
+    mount({ path: '/project/reports/17' })
+    expect(await screen.findByText('Nộp trễ hạn')).toBeTruthy()
   })
 })
 
 describe('Report list', () => {
   it('filters using the API, resets pagination, and preserves project context', async () => {
-    mount({ path: '/project/reports?page=3' }); await screen.findByText(draft.summary)
+    mount({ path: '/project/reports?page=3' })
+    await screen.findByText(draft.summary)
     input('Trạng thái', 'SUBMITTED')
-    await waitFor(() => expect(api.getProgressReports).toHaveBeenLastCalledWith(9, { status: 'SUBMITTED', reportType: undefined, page: 1, pageSize: 10 }, expect.any(AbortSignal)))
+    await waitFor(() =>
+      expect(api.getProgressReports).toHaveBeenLastCalledWith(
+        9,
+        { status: 'SUBMITTED', reportType: undefined, page: 1, pageSize: 10 },
+        expect.any(AbortSignal)
+      )
+    )
     expect(screen.getByRole('link', { name: /14\/09\/2026/ }).getAttribute('href')).toBe('/project/reports/17')
   })
+
   it('recovers from a load error and shows a useful empty state', async () => {
     api.getProgressReports.mockRejectedValueOnce(new TypeError('offline')).mockResolvedValue({ items: [], totalCount: 0, totalPages: 0 })
-    mount({ path: '/project/reports', actor: 'supervisor' }); await screen.findByRole('alert')
-    click('Tải lại'); await screen.findByText('Bắt đầu kỳ báo cáo đầu tiên')
+    mount({ path: '/project/reports', actor: 'supervisor' })
+    await screen.findByRole('alert')
+    click('Tải lại')
+    await screen.findByText('Bắt đầu kỳ báo cáo đầu tiên')
     expect(screen.queryByRole('link', { name: /Tạo báo cáo/ })).toBeNull()
   })
+
   it('ignores late responses from a previous filter', async () => {
     let resolve!: (value: unknown) => void
     api.getProgressReports.mockReturnValueOnce(new Promise((done) => { resolve = done })).mockResolvedValue({ items: [], totalCount: 0, totalPages: 0 })
     mount({ path: '/project/reports' })
-    input('Trạng thái', 'REVIEWED'); await screen.findByText('Chưa có báo cáo phù hợp')
+    input('Trạng thái', 'REVIEWED')
+    await screen.findByText('Chưa có báo cáo phù hợp')
     await act(async () => resolve({ items: [draft], totalCount: 1, totalPages: 1 }))
     expect(screen.queryByText(draft.summary)).toBeNull()
   })

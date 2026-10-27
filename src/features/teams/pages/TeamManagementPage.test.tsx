@@ -16,6 +16,13 @@ const locked = {
   sentInvitations: [], receivedInvitations: [], leaderChangeRequests: [], isMutationPending: () => false,
 }
 describe('Team workspace cleanup', () => {
+  it('shows a sent-invitation failure without replacing the member workspace error state', async () => {
+    mocks.getMajors.mockResolvedValue([{ id: 3, name: 'Kỹ thuật phần mềm' }])
+    mocks.useTeamManagement.mockReturnValue({ ...locked, sentInvitationError: { kind: 'forbidden', message: 'Bạn không có quyền thực hiện thao tác này trong phạm vi nhóm hiện tại.' }, retry: vi.fn() })
+    render(<MemoryRouter><TeamManagementPage /></MemoryRouter>)
+    expect(await screen.findByRole('alert')).toHaveProperty('textContent', expect.stringContaining('Chưa tải được lời mời đã gửi'))
+    expect(screen.getByText('Danh sách thành viên đã được chốt theo hồ sơ đồ án.')).toBeTruthy()
+  })
   it('shows a finalized roster without a failed registration banner or empty invitation panels', async () => {
     mocks.getMajors.mockResolvedValue([{ id: 3, name: 'Kỹ thuật phần mềm' }])
     mocks.useTeamManagement.mockReturnValue(locked)

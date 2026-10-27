@@ -44,12 +44,41 @@ export function changePassword(currentPassword: string, newPassword: string): Pr
 
 export interface EditableProfile {
   fullName: string
+  phone?: string | null
+  title?: string | null
+}
+
+export interface StoredProfile {
   phone: string | null
   title: string | null
 }
 
-export function updateMyProfile(profile: EditableProfile): Promise<AuthUser> {
-  return httpPut('/v1/users/me/profile', profile)
+export async function getMyProfile(signal?: AbortSignal): Promise<StoredProfile> {
+  const stored = await httpGet<StoredProfile>('/v1/users/me/profile', { signal })
+  if (!stored ||
+    (stored.phone !== null && typeof stored.phone !== 'string') ||
+    (stored.title !== null && typeof stored.title !== 'string')
+  ) {
+    throw new Error('The current profile response is incomplete.')
+  }
+  return stored
+}
+
+export async function updateMyProfile(profile: EditableProfile): Promise<AuthUser> {
+  // The backend PUT replaces both fields, including keys omitted by older /auth/me deployments.
+  // Read the authoritative profile before preserving any untouched field.
+  const stored = profile.phone === undefined || profile.title === undefined
+    ? await getMyProfile()
+    : null
+  const updated = await httpPut<AuthUser>('/v1/users/me/profile', {
+    fullName: profile.fullName,
+    phone: profile.phone === undefined ? stored!.phone : profile.phone,
+    title: profile.title === undefined ? stored!.title : profile.title,
+  })
+  if (updated.phone === undefined || updated.title === undefined) {
+    throw new Error('The saved profile response is incomplete.')
+  }
+  return updated
 }
 
 export interface GoogleChallenge { challengeId: string; clientId: string; nonce: string; expiresAtUtc: string }

@@ -1,5 +1,6 @@
 import { HttpError } from '../../services/http/http-client'
 import { utcTimestamp } from '../projects/utils/collaboration-workspace'
+export { utcTimestamp } from '../projects/utils/collaboration-workspace'
 import type { BackendTaskStatus } from '../../types/backend'
 
 export const milestoneLabels: Record<string, string> = { PLANNED: 'Chưa bắt đầu', IN_PROGRESS: 'Đang thực hiện', COMPLETED: 'Hoàn thành', CANCELLED: 'Đã hủy' }
@@ -16,10 +17,11 @@ export const taskTransitions: Record<string, BackendTaskStatus[]> = {
 }
 export function executionError(reason: unknown, action = 'tải dữ liệu'): string {
   if (reason instanceof HttpError) {
+    if (reason.status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
     if (reason.status === 403) return 'Bạn chưa có quyền thực hiện thao tác này.'
     if (reason.status === 404) return 'Không tìm thấy thông tin này. Có thể dữ liệu đã được xóa.'
     if (reason.status === 409) return 'Thông tin đã thay đổi hoặc thao tác không còn phù hợp. Cập nhật dữ liệu rồi thử lại.'
-    if (reason.status === 400) return 'Thông tin chưa hợp lệ. Kiểm tra các trường đã nhập rồi thử lại.'
+    if (reason.status === 400 || reason.status === 422) return 'Thông tin chưa hợp lệ. Kiểm tra các trường đã nhập rồi thử lại.'
   }
   return `Chưa thể ${action}. Hãy thử lại.`
 }

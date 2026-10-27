@@ -6,9 +6,11 @@ import { SupervisorProjectWorkspacePage } from './SupervisorProjectWorkspacePage
 const access = vi.hoisted(() => ({ useExecutionAccess: vi.fn() }))
 const operational = vi.hoisted(() => ({ useSupervisorOperationalSummary: vi.fn() }))
 const review = vi.hoisted(() => ({ useSupervisorProgressReview: vi.fn() }))
+const peer = vi.hoisted(() => ({ panel: vi.fn(() => null) }))
 vi.mock('../../execution/context/ExecutionAccessContext', () => access)
 vi.mock('../hooks/useSupervisorOperationalSummary', () => operational)
 vi.mock('../hooks/useSupervisorProgressReview', () => review)
+vi.mock('../../student-collaboration/TeamReflectionPanel', () => ({ TeamReflectionPanel: peer.panel }))
 
 const ready = <T,>(data: T) => ({ state: 'ready' as const, data })
 const state = (overrides: Record<string, unknown> = {}) => ({
@@ -24,6 +26,24 @@ const state = (overrides: Record<string, unknown> = {}) => ({
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
 describe('SupervisorProjectWorkspacePage', () => {
+  it.each([
+    { status: 'ACTIVE', primary: true, endedAt: null, allowed: true },
+    { status: 'FINAL_SUBMISSION', primary: true, endedAt: null, allowed: true },
+    { status: 'FinalSubmission', primary: true, endedAt: null, allowed: true },
+    { status: 'FINAL_SUBMISSION', primary: true, endedAt: '2026-10-01', allowed: false },
+    { status: 'FINAL_SUBMISSION', primary: false, endedAt: null, allowed: false },
+    { status: 'COMPLETED', primary: true, endedAt: null, allowed: false },
+  ])('peer evaluation write is $allowed for $status with primary=$primary and endedAt=$endedAt', ({ status, primary, endedAt, allowed }) => {
+    access.useExecutionAccess.mockReturnValue({
+      project: { id: 9, code: 'SE-09', title: 'AI-PMS', status },
+      supervisor: { assignmentType: primary ? 'PRIMARY' : 'DISCIPLINE_MENTOR', isPrimary: primary, endedAt },
+      readOnly: status !== 'ACTIVE', routeBase: '/supervisor/projects/9',
+    })
+    operational.useSupervisorOperationalSummary.mockReturnValue(state())
+    review.useSupervisorProgressReview.mockReturnValue({ attention: ready({ overdueTasks: [], blockedTasks: [] }), reload: vi.fn() })
+    render(<MemoryRouter><SupervisorProjectWorkspacePage /></MemoryRouter>)
+    expect(peer.panel).toHaveBeenCalledWith(expect.objectContaining({ canManagePeer: allowed }), undefined)
+  })
   it('renders a read-oriented supervision workspace without student-leader controls', () => {
     access.useExecutionAccess.mockReturnValue({ project: { id: 9, code: 'SE-09', title: 'AI-PMS', status: 'ACTIVE', teamName: 'Team Alpha' }, supervisor: { supervisorName: 'Dr. Lan' }, routeBase: '/supervisor/projects/9' })
     operational.useSupervisorOperationalSummary.mockReturnValue(state())
