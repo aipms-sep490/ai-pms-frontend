@@ -103,6 +103,10 @@ export async function httpPostForm<TResponse>(
   return send<TResponse>('POST', path, body, options)
 }
 
+// Bound decoded characters per NDJSON event, independently of network chunk size.
+// Provisional client ceiling until BE documents a maximum serialized response size.
+const STREAM_FRAME_LIMIT = 1024 * 1024
+
 /** Read an authenticated NDJSON stream without retrying a partially received mutation. */
 export async function httpPostStream<T>(path: string, body: FormData, onEvent: (event: T) => void, options?: HttpRequestOptions): Promise<void> {
   const init = createRequestInit(options)
@@ -124,9 +128,12 @@ export async function httpPostStream<T>(path: string, body: FormData, onEvent: (
     while (true) {
       const { done, value } = await reader.read()
       pending += decoder.decode(value, { stream: !done })
-      if (pending.length > 256000) throw new Error('Stream frame too large')
       const lines = pending.split('\n'); pending = lines.pop() ?? ''
-      for (const line of lines) if (line.trim()) onEvent(JSON.parse(line) as T)
+      for (const line of lines) {
+        if (line.length > STREAM_FRAME_LIMIT) throw new Error('Stream frame too large')
+        if (line.trim()) onEvent(JSON.parse(line) as T)
+      }
+      if (pending.length > STREAM_FRAME_LIMIT) throw new Error('Stream frame too large')
       if (done) { if (pending.trim()) onEvent(JSON.parse(pending) as T); ended = true; break }
     }
   } finally { if (!ended) await reader.cancel().catch(() => undefined); reader.releaseLock() }
