@@ -15,6 +15,11 @@ import {
 import { resolveReviewGateNotificationLink } from '../../notifications/NotificationRow'
 import type { ReviewGateTemplate } from '../types/review-gates.types'
 
+vi.mock('../../../app/config/env', async importOriginal => {
+  const { env } = await importOriginal<typeof import('../../../app/config/env')>()
+  return { env: { ...env, reviewGatesMockEnabled: true } }
+})
+
 describe('Cross-Role QA & Contract Reconciliation (PROMPT 3 E2E Scenario)', () => {
   beforeEach(() => {
     vi.clearAllMocks()

@@ -4,6 +4,11 @@ import { MemoryRouter } from 'react-router-dom'
 import { ReviewGateGovernancePage } from './ReviewGateGovernancePage'
 import { reviewGatesMockAdapter } from '../api/review-gates-mock-adapter'
 
+vi.mock('../../../app/config/env', async importOriginal => {
+  const { env } = await importOriginal<typeof import('../../../app/config/env')>()
+  return { env: { ...env, reviewGatesMockEnabled: true } }
+})
+
 describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () => {
   beforeEach(() => {
     vi.clearAllMocks()

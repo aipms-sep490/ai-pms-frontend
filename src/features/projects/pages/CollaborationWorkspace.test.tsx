@@ -2,7 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { ProjectDto, TeamDto, TimelineTaskDto } from '../../../types/backend'
+import type { StudentReviewTimelineDto } from '../../review-gates/types/review-gates.types'
 import { CollaborationWorkspace } from './CollaborationWorkspace'
+
+// Gate fixtures opt in explicitly; the five workspace resources keep their real HTTP assertions.
+const gateRuntime = vi.hoisted(() => ({ mockEnabled: true }))
+vi.mock('../../../app/config/env', async importOriginal => {
+  const { env } = await importOriginal<typeof import('../../../app/config/env')>()
+  return { env: { ...env, get reviewGatesMockEnabled() { return gateRuntime.mockEnabled } } }
+})
 
 // Transport fixtures exist only in tests. Production uses the shared authenticated HTTP client.
 const project: ProjectDto = { id: 9, teamId: 2, teamName: 'Nhóm đồ án', code: 'PRJ-9', title: 'Hệ thống quản lý đồ án',
@@ -40,10 +48,37 @@ function mockTransport(handler?: Handler) {
 const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
 const renderWorkspace = (currentUserId = 1, createAllowed = currentUserId === 1) => render(<MemoryRouter><CollaborationWorkspace project={project} team={team} currentUserId={currentUserId} executionCapabilities={capabilities(createAllowed)} /></MemoryRouter>)
 
-beforeEach(() => { calls.length = 0; localStorage.setItem('token', 'test-session-token'); mockTransport() })
-afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
+beforeEach(() => { gateRuntime.mockEnabled = true; vi.stubEnv('DEV', true); calls.length = 0; localStorage.setItem('token', 'test-session-token'); mockTransport() })
+afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks() })
 
 describe('collaboration workspace API integration', () => {
+  it('labels development sample gates without requesting a real timeline', async () => {
+    renderWorkspace()
+    expect(screen.getByText('DỮ LIỆU MẪU · Review Gates.', { exact: true })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'System Design & Prototype' })).toBeTruthy()
+    expect(calls.some(call => call.url.pathname.includes('/review-gates/timeline'))).toBe(false)
+  })
+
+  it('hides the sample notice and reads authenticated real gate data when mocks are off', async () => {
+    gateRuntime.mockEnabled = false
+    const timeline: StudentReviewTimelineDto = {
+      projectId: '9', projectCode: 'PRJ-9', projectName: project.title, projectMode: 'SINGLE_MAJOR', major: 'SE',
+      effectivePolicyVersion: 'server-v1', currentGateCode: 'R1',
+      gates: [{ gateInstanceId: 'server-gate-1', code: 'R1', title: 'Tiến trình từ API thật', objective: 'Đối chiếu dữ liệu server',
+        status: 'PLANNED', reviewEligibility: 'NOT_READY', isRequired: true, windowStart: null, windowEnd: null,
+        blockingReasons: [], requirements: [] }],
+      capabilities: { canSubmitPackage: false, canSubmitRevision: false, blockingReasons: [] },
+    }
+    mockTransport(url => url.pathname === '/api/v1/projects/9/review-gates/timeline' ? json(timeline) : undefined)
+    renderWorkspace()
+    expect(await screen.findByRole('heading', { name: 'Tiến trình từ API thật' })).toBeTruthy()
+    expect(screen.queryByText('DỮ LIỆU MẪU · Review Gates.', { exact: true })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'System Design & Prototype' })).toBeNull()
+    const request = calls.find(call => call.url.pathname === '/api/v1/projects/9/review-gates/timeline')
+    expect(request?.init?.method).toBe('GET')
+    expect(new Headers(request?.init?.headers).get('Authorization')).toBe('Bearer test-session-token')
+  })
+
   it('uses the real HTTP contracts and authentication, renders five member rows, and filters linked tasks', async () => {
     renderWorkspace()
     const progress = await screen.findByRole('progressbar', { name: `Tiến độ công việc của ${names[0]}` })

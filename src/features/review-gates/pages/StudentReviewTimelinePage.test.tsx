@@ -5,6 +5,11 @@ import { StudentReviewTimelinePage } from './StudentReviewTimelinePage'
 import { reviewGatesMockAdapter } from '../api/review-gates-mock-adapter'
 import { AuthSessionContext } from '../../auth/context/auth-session-context'
 
+vi.mock('../../../app/config/env', async importOriginal => {
+  const { env } = await importOriginal<typeof import('../../../app/config/env')>()
+  return { env: { ...env, reviewGatesMockEnabled: true } }
+})
+
 const mockLeaderContext = {
   session: {
     user: {
