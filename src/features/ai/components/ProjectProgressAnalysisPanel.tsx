@@ -10,17 +10,17 @@ const unavailableMetricLabels: Record<string, string> = {
   PROJECT_RISK: 'Rủi ro toàn đồ án', MILESTONES: 'Mốc tiến độ', REPORTS: 'Báo cáo tiến độ', MEETINGS: 'Cuộc họp', CONTRIBUTIONS: 'Đóng góp cá nhân',
 }
 
-export function ProjectProgressAnalysisPanel({ projectId, compact = false }: { projectId: number; compact?: boolean }) {
+export function ProjectProgressAnalysisPanel({ projectId, compact = false, onSaved }: { projectId: number; compact?: boolean; onSaved?: () => void }) {
   const [analysis, setAnalysis] = useState<ProjectProgressAnalysis | null>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false); const [saveNotice, setSaveNotice] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false); const [saveNotice, setSaveNotice] = useState<{ message: string; error: boolean } | null>(null)
   // Transient read by default — this must never persist a run on its own. Saving into
   // history is only ever the explicit "Lưu vào lịch sử phân tích" action below.
   const load = useCallback(async () => { setLoading(true); setSaveNotice(null); try { setAnalysis(await getProjectProgressAnalysis(projectId)); setError(null) } catch (reason) { setError(errorMessage(reason)) } finally { setLoading(false) } }, [projectId])
   useEffect(() => { void load() }, [load])
   const save = async () => {
     setSaving(true); setSaveNotice(null)
-    try { const recorded = await recordProjectProgressAnalysis(projectId); setAnalysis(recorded); setSaveNotice(`Đã lưu vào lịch sử phân tích${recorded.runId ? ` · mã #${recorded.runId}` : ''}.`) }
-    catch (reason) { setSaveNotice(errorMessage(reason)) }
+    try { const recorded = await recordProjectProgressAnalysis(projectId); setAnalysis(recorded); setSaveNotice({ message: `Đã lưu vào lịch sử phân tích${recorded.runId ? ` · mã #${recorded.runId}` : ''}.`, error: false }); onSaved?.() }
+    catch (reason) { setSaveNotice({ message: errorMessage(reason), error: true }) }
     finally { setSaving(false) }
   }
   if (loading) return <section aria-label="Phân tích tiến độ" className="rounded-xl border border-hairline bg-card p-5 shadow-xs"><p role="status" className="text-sm text-ink-muted">Đang tải phân tích tiến độ từ hệ thống…</p></section>
@@ -40,7 +40,7 @@ export function ProjectProgressAnalysisPanel({ projectId, compact = false }: { p
       : <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Metric label="Tiến độ" value={`${analysis.progressSummary.progressPercentage}%`} /><Metric label="công việc quá hạn" value={analysis.progressSummary.overdueTasks} /><Metric label="công việc vướng mắc" value={analysis.progressSummary.blockedTasks} /><Metric label="Độ tin cậy" value={analysis.confidence === null ? 'Chưa có' : `${Math.round(analysis.confidence * 100)}%`} /></div>}
     {!compact && <><InfoList title="Cơ sở phân tích" items={analysis.factors.map(factor => `${factor.severity}: ${factor.explanation}`)} empty="Hệ thống chưa trả tín hiệu rủi ro cụ thể." /><InfoList title="Gợi ý tư vấn" items={analysis.recommendations} empty="Hệ thống chưa trả gợi ý tư vấn." /><p className="mt-4 text-sm text-ink-muted">Gợi ý là văn bản tham khảo; không có nút thực thi hay quyền được suy ra từ gợi ý.</p></>}
     {analysis.limitations && <p className="mt-4 rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-soft"><span className="font-semibold">Giới hạn:</span> {analysis.limitations}</p>}
-    {env.aiRunHistoryEnabled && <div className="mt-4 flex flex-wrap items-center gap-3"><button type="button" disabled={saving} className="min-h-11 rounded-lg border border-hairline px-4 text-sm font-semibold text-primary hover:bg-primary-subtle disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void save()}>{saving ? 'Đang lưu…' : 'Lưu vào lịch sử phân tích'}</button>{saveNotice && <p role="status" className="text-sm text-ink-muted">{saveNotice}</p>}</div>}
+    {env.aiRunHistoryEnabled && <div className="mt-4 flex flex-wrap items-center gap-3"><button type="button" disabled={saving} className="min-h-11 rounded-lg border border-hairline px-4 text-sm font-semibold text-primary hover:bg-primary-subtle disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void save()}>{saving ? 'Đang lưu…' : 'Lưu vào lịch sử phân tích'}</button>{saveNotice && <p role={saveNotice.error ? "alert" : "status"} className="text-sm text-ink-muted">{saveNotice.message}</p>}</div>}
     <p className="mt-4 text-xs text-ink-muted">dataStatus: {displayLabel(analysis.dataStatus)} · trend: {analysis.trendStatus} · rule {analysis.ruleVersion} · feature {analysis.featureVersion} · model {analysis.modelVersion} · phân tích lúc {formatDate(analysis.analysisTimeUtc)}{analysis.runId ? ` · mã lần phân tích #${analysis.runId}` : ''}</p>
   </section>
 }

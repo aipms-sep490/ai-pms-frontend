@@ -7,8 +7,9 @@ import { ProjectAiPage } from './ProjectAiPage'
 import { ProjectProgressAnalysisPanel } from './components/ProjectProgressAnalysisPanel'
 import { ReportAiSummary } from './components/ReportAiSummary'
 
-const api = vi.hoisted(() => ({ getProjectProgressAnalysis: vi.fn(), getReportAiSummary: vi.fn(), askProjectAssistant: vi.fn(), getProjectAiRuns: vi.fn().mockResolvedValue({ items: [], totalCount: 0, page: 1, pageSize: 20 }) }))
+const api = vi.hoisted(() => ({ getProjectProgressAnalysis: vi.fn(), recordProjectProgressAnalysis: vi.fn(), getReportAiSummary: vi.fn(), askProjectAssistant: vi.fn(), getProjectAiRuns: vi.fn().mockResolvedValue({ items: [], totalCount: 0, page: 1, pageSize: 20 }) }))
 vi.mock('./ai-api', () => api)
+vi.mock('../../app/config/env', () => ({ env: { aiRunHistoryEnabled: true, academicAiAssistantEnabled: false } }))
 
 const analysis = {
   projectId: 9, generatedAtUtc: '2026-10-03T08:00:00Z', analysisTimeUtc: '2026-10-03T08:00:00Z', dataStatus: 'SUFFICIENT', riskLevel: 'MEDIUM', riskScore: 32, confidence: 0.73, trendStatus: 'INSUFFICIENT_DATA',
@@ -22,6 +23,27 @@ beforeEach(() => { vi.resetAllMocks(); api.getProjectProgressAnalysis.mockResolv
 afterEach(cleanup)
 
 describe('AI advisory components', () => {
+  it('announces a denied save as an error without announcing a saved run or refreshing history', async () => {
+    api.recordProjectProgressAnalysis.mockRejectedValue(new HttpError('denied', 403))
+    const saved = vi.fn()
+    render(<ProjectProgressAnalysisPanel projectId={9} onSaved={saved} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Lưu vào lịch sử phân tích' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('không cấp quyền')
+    expect(saved).not.toHaveBeenCalled()
+    expect(api.recordProjectProgressAnalysis).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText(/Đã lưu vào lịch sử phân tích/)).toBeNull()
+  })
+  it('shows the newly saved analysis in history without reloading the page or replaying its write', async () => {
+    api.recordProjectProgressAnalysis.mockResolvedValue({ ...analysis, runId: 77 })
+    api.getProjectAiRuns.mockResolvedValueOnce({ items: [], totalPages: 1 }).mockResolvedValue({ items: [{ id: 77, kind: 'PROGRESS_ANALYSIS', status: 'COMPLETED', modelVersion: 'fresh-model', configVersion: 'v1', startedAt: '2026-10-27T08:00:00Z' }], totalPages: 1 })
+    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage /></ExecutionAccessProvider></MemoryRouter>)
+    await screen.findByText('Chưa có lần phân tích nào được lưu.')
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu vào lịch sử phân tích' }))
+    await screen.findByRole('button', { name: /Phân tích tiến độfresh-model/ })
+    expect(api.recordProjectProgressAnalysis).toHaveBeenCalledTimes(1)
+    expect(api.getProjectAiRuns).toHaveBeenCalledTimes(2)
+    expect(api.getProjectAiRuns).toHaveBeenLastCalledWith(9, 1, 20, expect.any(AbortSignal))
+  })
   it('requests a report summary only after the user explicitly asks and shows returned evidence', async () => {
     render(<ReportAiSummary projectId={9} reportId={17} />)
     expect(api.getReportAiSummary).not.toHaveBeenCalled()
