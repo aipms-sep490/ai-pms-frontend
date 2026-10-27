@@ -4,7 +4,7 @@ import { getAiRun, getProjectAiRuns, type AiRunDto, type AiRunKind } from '../ai
 import { EvidenceReferences } from './EvidenceReferences'
 
 const kindLabel: Record<string, string> = { PROJECT_ASK: 'Hỏi trợ lý', REPORT_SUMMARY: 'Tóm tắt báo cáo', PROGRESS_ANALYSIS: 'Phân tích tiến độ' }
-const statusLabel: Record<string, string> = { RUNNING: 'Đang xử lý', COMPLETED: 'Hoàn tất', FAILED: 'Lỗi', INSUFFICIENT_EVIDENCE: 'Chưa đủ chứng cứ' }
+const statusLabel: Record<string, string> = { RUNNING: 'Đang xử lý', COMPLETED: 'Hoàn tất', FAILED: 'Lỗi', INSUFFICIENT_EVIDENCE: 'Chưa đủ chứng cứ', FALLBACK: 'Phản hồi dự phòng' }
 const describeKind = (kind: AiRunKind) => kindLabel[kind] ?? kind
 const describeStatus = (status: string) => statusLabel[status] ?? status
 const formatDateTime = (value: string) => {
