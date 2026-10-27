@@ -9,7 +9,8 @@ function inline(text: string) {
 }
 
 export function AssistantAnswerText({ text }: { text: string }) {
-  return <div className="assistant-answer-body">{text.split(/\n\s*\n/).map((block, index) => {
+  const blocks = text.replace(/\r\n?/g, '\n').replace(/^(#{1,6} .+)$/gm, '\n\n$1\n\n').split(/\n\s*\n/).filter(block => block.trim())
+  return <div className="assistant-answer-body">{blocks.map((block, index) => {
     const lines = block.split('\n')
     if (lines.every(line => /^\s*[-*] /.test(line))) return <ul key={index}>{lines.map((line, i) => <li key={i}>{inline(line.replace(/^\s*[-*] /, ''))}</li>)}</ul>
     if (lines.every(line => /^\s*\d+[.)] /.test(line))) return <ol key={index} start={Number.parseInt(lines[0], 10)}>{lines.map((line, i) => <li key={i}>{inline(line.replace(/^\s*\d+[.)] /, ''))}</li>)}</ol>
