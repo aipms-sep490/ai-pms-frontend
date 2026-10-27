@@ -76,7 +76,7 @@ export function DepartmentWorkspacePage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Sub-block A: Hồ sơ thẩm định đề cương gần nhất */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
