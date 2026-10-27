@@ -35,7 +35,7 @@ export function ProgressReportDetailPage({ create = false }: { create?: boolean 
 
 function ReportDetailView({ access, create, id }: { access: ExecutionAccess; create: boolean; id: number }) {
   const { project, actor, canManageStructure, executionCapabilities, routeBase } = access
-  const readOnly = Boolean((access as ExecutionAccess & { readOnly?: boolean }).readOnly)
+  const readOnly = Boolean(access.readOnly)
   const canCreate = actor === 'student' && executionCapabilities?.get('create_progress_report').allowed === true
   const navigate = useNavigate()
   const [report, setReport] = useState<ReportDetail | null>(null)
@@ -77,17 +77,20 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
     }
 
     if (create) {
-      Promise.all([
+      // Cycles are required to create a valid report, so their failure is fatal here.
+      // The existing-report list only greys out cycles already used, so it is best effort.
+      Promise.allSettled([
         loadAllPages((page) => api.getReportingCycles(project.id, controller.signal, page)),
         loadAllPages((page) => api.getProgressReports(project.id, { page, pageSize: 50 }, controller.signal)),
-      ]).then(([cycleItems, reportItems]) => {
+      ]).then(([cycleResult, reportResult]) => {
         if (controller.signal.aborted) return
-        setCycles(cycleItems)
-        setExistingReports(reportItems)
-      }).catch((reason: unknown) => {
-        if (controller.signal.aborted) return
-        setCycles(undefined)
-        setLoadError(reportError(reason))
+        if (cycleResult.status === 'rejected') {
+          setCycles(undefined)
+          setLoadError(reportError(cycleResult.reason))
+          return
+        }
+        setCycles(cycleResult.value)
+        setExistingReports(reportResult.status === 'fulfilled' ? reportResult.value : [])
       }).finally(() => {
         if (!controller.signal.aborted) setLoading(false)
       })
@@ -106,21 +109,29 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
         setLoadError('Báo cáo không thuộc đồ án đang mở.')
         return
       }
-      if (actor === 'student' && data.status === 'DRAFT' && !data.progressReportPeriodId) {
-        const [cycleItems, reportItems] = await Promise.all([
-          loadAllPages((page) => api.getReportingCycles(project.id, controller.signal, page)),
-          loadAllPages((page) => api.getProgressReports(project.id, { page, pageSize: 50 }, controller.signal)),
-        ])
-        if (controller.signal.aborted) return
-        setCycles(cycleItems.filter(cycle => cycle.reportType === data.reportType
-          && cycle.periodStart.slice(0, 10) === data.periodStart.slice(0, 10)
-          && cycle.periodEnd.slice(0, 10) === data.periodEnd.slice(0, 10)))
-        setExistingReports(reportItems.filter(item => item.id !== data.id))
-      }
+      // The report itself is the primary read. The cycle lookup below only feeds the
+      // picker offered to a legacy draft, so its failure must not discard the report.
       setReport(data)
       setDirty(false)
       setConfirmSubmit(false)
       setEditorVersion((value) => value + 1)
+      if (actor === 'student' && data.status === 'DRAFT' && !data.progressReportPeriodId) {
+        try {
+          const [cycleItems, reportItems] = await Promise.all([
+            loadAllPages((page) => api.getReportingCycles(project.id, controller.signal, page)),
+            loadAllPages((page) => api.getProgressReports(project.id, { page, pageSize: 50 }, controller.signal)),
+          ])
+          if (controller.signal.aborted) return
+          setCycles(cycleItems.filter(cycle => cycle.reportType === data.reportType
+            && cycle.periodStart.slice(0, 10) === data.periodStart.slice(0, 10)
+            && cycle.periodEnd.slice(0, 10) === data.periodEnd.slice(0, 10)))
+          setExistingReports(reportItems.filter(item => item.id !== data.id))
+        } catch {
+          // Leave `cycles` undefined: the draft stays readable and editable, and the
+          // editor keeps its period fields instead of offering an empty picker.
+          if (!controller.signal.aborted) setCycles(undefined)
+        }
+      }
     }).catch((reason: unknown) => {
       if (!controller.signal.aborted) setLoadError(reportError(reason))
     }).finally(() => {

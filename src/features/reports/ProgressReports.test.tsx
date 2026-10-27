@@ -505,6 +505,15 @@ describe('Progress reports workflow', () => {
     expect(api.submitProgressReport).not.toHaveBeenCalled()
   })
 
+  it('keeps a cycle-less draft readable when the cycle lookup fails', async () => {
+    api.getProgressReport.mockResolvedValue({ ...draft, progressReportPeriodId: null })
+    api.getReportingCycles.mockRejectedValueOnce(new HttpError('unavailable', 500))
+    mount()
+    const summary = await screen.findByLabelText(/Tóm tắt tiến độ/) as HTMLTextAreaElement
+    expect(summary.value).toBe(draft.summary)
+    expect(screen.queryByLabelText(/Chọn kỳ báo cáo/)).toBeNull()
+  })
+
   it('shows legacy issues as read only while keeping them in the update payload', async () => {
     mount()
     const legacy = await screen.findByLabelText(/Khó khăn & rủi ro/) as HTMLTextAreaElement
