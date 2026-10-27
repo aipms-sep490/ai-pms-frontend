@@ -44,6 +44,15 @@ describe('AI advisory components', () => {
     expect(api.getProjectAiRuns).toHaveBeenCalledTimes(2)
     expect(api.getProjectAiRuns).toHaveBeenLastCalledWith(9, 1, 20, expect.any(AbortSignal))
   })
+  it('clearly labels a project assistant fallback without inventing an insufficient-evidence state', async () => {
+    api.askProjectAssistant.mockResolvedValue({ projectId: 9, answer: 'Provider unavailable', contextScope: 'Project #9', evidence: summary.evidence, limitationNote: 'Fallback', insufficientEvidence: false, generationStatus: 'FALLBACK', generatedAt: '2026-10-03T08:00:00Z' })
+    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage /></ExecutionAccessProvider></MemoryRouter>)
+    fireEvent.change(screen.getByLabelText('Câu hỏi'), { target: { value: 'Tóm tắt giúp tôi' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi câu hỏi' }))
+    await screen.findByText(/Phản hồi dự phòng: hệ thống chưa tạo được câu trả lời/)
+    expect(screen.getByText('Weekly report')).toBeTruthy()
+    expect(screen.queryByText(/Chưa đủ chứng cứ cho một kết luận/)).toBeNull()
+  })
   it('requests a report summary only after the user explicitly asks and shows returned evidence', async () => {
     render(<ReportAiSummary projectId={9} reportId={17} />)
     expect(api.getReportAiSummary).not.toHaveBeenCalled()
