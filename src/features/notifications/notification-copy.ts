@@ -1,4 +1,5 @@
 import type { NotificationItem } from './notifications-api'
+import { dateTimeLabel } from '../execution/execution-utils'
 
 const copyByType: Record<string, { title: string; content: string; label: string; icon: string }> = {
   TEAM_INVITATION_SENT: {
@@ -354,7 +355,6 @@ export function notificationCopy(item: NotificationItem) {
 }
 
 export function notificationTime(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Thời gian chưa xác định'
-  return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(date)
+  const label = dateTimeLabel(value)
+  return label === 'Chưa xác định' ? 'Thời gian chưa xác định' : label
 }
