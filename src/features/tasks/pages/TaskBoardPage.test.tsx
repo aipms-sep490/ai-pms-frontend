@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { ExecutionAccessProvider } from '../../execution/context/ExecutionAccessProvider'
 import { TaskBoardPage } from './TaskBoardPage'
-const api = vi.hoisted(() => ({ getProjectTasks: vi.fn(), getProjectMilestones: vi.fn(), createTask: vi.fn() }))
+const api = vi.hoisted(() => ({ getProjectTasks: vi.fn(), getProjectMilestones: vi.fn(), createTask: vi.fn(), updateTaskStatus: vi.fn() }))
 vi.mock('../../../services/service-gateway', () => ({ services: { task: api, milestone: api } }))
 const empty = { items: [], totalCount: 0, totalPages: 0, page: 1, pageSize: 20 }
 const item = { id: 1, milestoneId: 3, title: 'Phân tích yêu cầu', status: 'TODO', priority: 'MEDIUM', assignees: [] }
@@ -14,6 +14,41 @@ function renderBoard(manage: boolean, url = '/project/tasks', allowed = manage) 
 beforeEach(() => { api.getProjectTasks.mockResolvedValue(empty); api.getProjectMilestones.mockResolvedValue([{ id: 3, title: 'Khởi động', status: 'PLANNED' }]) })
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 describe('TaskBoardPage', () => {
+  it('waits for persistence, prevents duplicate drops and reloads tokens before the next transition', async () => {
+    let current = { ...item, concurrencyToken: 'first-token' }
+    api.getProjectTasks.mockImplementation(async () => ({ ...empty, items: [current], totalCount: 1, totalPages: 1 }))
+    let finish!: () => void
+    api.updateTaskStatus.mockImplementationOnce(() => new Promise(resolve => { finish = () => { current = { ...current, status: 'IN_PROGRESS', concurrencyToken: 'next-token' }; resolve(current) } }))
+      .mockImplementationOnce(async () => { current = { ...current, status: 'IN_REVIEW', concurrencyToken: 'final-token' }; return current })
+    renderBoard(true)
+    await screen.findByText(item.title)
+    fireEvent.click(screen.getByRole('button', { name: 'Bảng Kanban' }))
+    const drag = (destination: string) => {
+      fireEvent.dragStart(screen.getByRole('link', { name: new RegExp(item.title) }).closest('li')!, { dataTransfer: { setData: vi.fn() } })
+      fireEvent.drop(screen.getByRole('region', { name: destination }), { dataTransfer: {} })
+    }
+    drag('Đang làm'); drag('Đang làm')
+    expect(api.updateTaskStatus).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('Đang cập nhật trạng thái công việc…')).toBeTruthy()
+    expect(within(screen.getByRole('region', { name: 'Chưa bắt đầu' })).getByText(item.title)).toBeTruthy()
+    finish()
+    await waitFor(() => expect(within(screen.getByRole('region', { name: 'Đang làm' })).getByText(item.title)).toBeTruthy())
+    drag('Chờ kiểm tra')
+    await waitFor(() => expect(api.updateTaskStatus).toHaveBeenLastCalledWith(1, expect.objectContaining({ newStatus: 'IN_REVIEW', concurrencyToken: 'next-token' })))
+    await waitFor(() => expect(within(screen.getByRole('region', { name: 'Chờ kiểm tra' })).getByText(item.title)).toBeTruthy())
+  })
+  it('keeps the saved card in its original column when a drop fails', async () => {
+    api.getProjectTasks.mockResolvedValue({ ...empty, items: [item], totalCount: 1, totalPages: 1 })
+    api.updateTaskStatus.mockRejectedValue(new Error('Network unavailable'))
+    renderBoard(true)
+    await screen.findByText(item.title)
+    fireEvent.click(screen.getByRole('button', { name: 'Bảng Kanban' }))
+    fireEvent.dragStart(screen.getByRole('link', { name: new RegExp(item.title) }).closest('li')!, { dataTransfer: { setData: vi.fn() } })
+    fireEvent.drop(screen.getByRole('region', { name: 'Đang làm' }))
+    await screen.findByText('Chưa thể cập nhật trạng thái. Hãy thử lại.')
+    expect(within(screen.getByRole('region', { name: 'Chưa bắt đầu' })).getByText(item.title)).toBeTruthy()
+    expect(screen.queryByText(/Đã chuyển công việc/)).toBeNull()
+  })
   it('shows a paged board using backend statuses without hiding blocked or cancelled tasks', async () => {
     api.getProjectTasks.mockResolvedValue({ ...empty, items: [item, { ...item, id: 2, title: 'Đang bị chặn', status: 'BLOCKED' }, { ...item, id: 3, title: 'Đã hủy công việc', status: 'CANCELLED' }], totalCount: 23, totalPages: 2 })
     renderBoard(false)
