@@ -22,9 +22,9 @@ const meeting: MeetingDetail = {
   participants: [{ id: 101, meetingId: 42, userId: 9, fullName: 'Khang', email: 'khang@example.com', attendanceStatus: 'ACCEPTED', createdAt: '2026-09-22T08:00:00', updatedAt: '2026-09-22T08:00:00' }], feedbacks: [],
 }
 const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
-function mount({ actor = 'student', leader = true, userId = 9, path, scheduleAllowed = leader }: { actor?: 'student' | 'supervisor'; leader?: boolean; userId?: number; path?: string; scheduleAllowed?: boolean } = {}) {
+function mount({ actor = 'student', leader = true, userId = 9, path, scheduleAllowed = leader, readOnly = false }: { actor?: 'student' | 'supervisor'; leader?: boolean; userId?: number; path?: string; scheduleAllowed?: boolean; readOnly?: boolean } = {}) {
   const routeBase = actor === 'student' ? '/project' : '/supervisor/projects/2'
-  const access: ExecutionAccess = { project: { id: 2, teamId: 3, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'], actor, canManageStructure: leader, supervisor: actor === 'supervisor' ? { isPrimary: true, assignmentType: 'PRIMARY', endedAt: null } as never : undefined, executionCapabilities: capabilities(scheduleAllowed), currentUserId: userId, routeBase }
+  const access: ExecutionAccess = { project: { id: 2, teamId: 3, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'], actor, canManageStructure: leader, readOnly, supervisor: actor === 'supervisor' ? { isPrimary: true, assignmentType: 'PRIMARY', endedAt: null } as never : undefined, executionCapabilities: capabilities(scheduleAllowed), currentUserId: userId, routeBase }
   const router = createMemoryRouter([{ element: <ExecutionAccessProvider value={access}><Outlet /></ExecutionAccessProvider>, children: [
     { path: `${routeBase}/workspace`, element: <h1>Workspace</h1> },
     { path: `${routeBase}/meetings`, element: <MeetingsPage /> },
@@ -49,6 +49,13 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Meetings end-user workflow', () => {
+  it('shows meeting history without supervisor write controls in read-only mode', async () => {
+    mount({ actor: 'supervisor', userId: 6, readOnly: true })
+    await ready()
+    expect(screen.getByText('Rà soát tiến độ tuần')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Viết nhận xét' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Chỉnh sửa' })).toBeNull()
+  })
   it('keeps supervisor scheduling available when BE denies the student roster', async () => {
     api.getMeetingCandidates.mockResolvedValue({ candidates: [{ userId: 6, fullName: 'GVHD', role: 'Giảng viên hướng dẫn' }], notice: 'Trưởng nhóm có thể thêm sinh viên sau.' })
     api.createMeeting.mockResolvedValue(meeting)

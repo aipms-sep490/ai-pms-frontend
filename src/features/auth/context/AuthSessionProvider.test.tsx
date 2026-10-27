@@ -1,16 +1,23 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthSessionProvider } from './AuthSessionProvider'
 import { useAuthSession } from './useAuthSession'
 import * as authApi from '../api/auth-api'
 import { HttpError } from '../../../services/http/http-client'
+import type { AuthUser } from '../types/auth.types'
 
 vi.mock('../api/auth-api', () => ({
   getCurrentUser: vi.fn(),
   login: vi.fn(),
   refresh: vi.fn(),
   logout: vi.fn(),
+  updateMyProfile: vi.fn(),
 }))
+
+function ProfileUpdateProbe({ onUpdated }: { onUpdated: (user: AuthUser) => void }) {
+  const { updateProfile } = useAuthSession()
+  return <button type="button" onClick={() => { void updateProfile?.({ fullName: 'Tên mới' }).then(onUpdated) }}>save profile</button>
+}
 
 function SessionProbe() {
   const { status, session, logout } = useAuthSession()
@@ -100,5 +107,20 @@ describe('AuthSessionProvider', () => {
     await waitFor(() => expect(screen.getByTestId('status').textContent).toBe('unauthenticated'))
     expect(authApi.logout).toHaveBeenCalledWith('refresh-token')
     expect(localStorage.getItem('ai-pms.auth-session')).toBeNull()
+  })
+
+  it('returns saved server fields while retaining the session roles', async () => {
+    localStorage.setItem('ai-pms.auth-session', JSON.stringify(storedSession))
+    vi.mocked(authApi.getCurrentUser).mockResolvedValue({ id: 1, email: 'user@example.edu.vn', fullName: 'Old', roles: ['LECTURER'] })
+    vi.mocked(authApi.updateMyProfile).mockResolvedValue({ id: 1, email: 'user@example.edu.vn', fullName: 'Tên mới', roles: [], phone: '0912345678', title: 'Tiến sĩ' })
+    const onUpdated = vi.fn()
+
+    render(<AuthSessionProvider><SessionProbe /><ProfileUpdateProbe onUpdated={onUpdated} /></AuthSessionProvider>)
+    await waitFor(() => expect(screen.getByTestId('status').textContent).toBe('authenticated'))
+    fireEvent.click(screen.getByRole('button', { name: 'save profile' }))
+
+    await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ phone: '0912345678', title: 'Tiến sĩ' })))
+    const saved = JSON.parse(localStorage.getItem('ai-pms.auth-session')!)
+    expect(saved.user).toMatchObject({ fullName: 'Tên mới', roles: ['LECTURER'], phone: '0912345678', title: 'Tiến sĩ' })
   })
 })

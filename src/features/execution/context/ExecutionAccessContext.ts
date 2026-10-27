@@ -5,11 +5,15 @@ import type { ProjectExecutionCapabilities } from '../hooks/useProjectExecutionC
 export interface ExecutionAccess {
   project: ProjectDto
   team?: TeamDto | null
+  teamLoadError?: string | null
+  retryTeam?: () => void
   supervisor?: SupervisorAssignmentDto | null
   currentUserId?: number
   actor: 'student' | 'supervisor' | 'mentor'
   /** Advisory UX only. Backend remains the authorization authority. */
   canManageStructure: boolean
+  /** Explains a frozen project in the UI; backend capabilities still authorize every write. */
+  readOnly?: boolean
   /** Student execution CTAs use the backend action contract and fail closed when absent. */
   executionCapabilities?: ProjectExecutionCapabilities
   routeBase: string

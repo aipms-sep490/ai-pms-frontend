@@ -5,7 +5,7 @@ export function deliverableError(reason: unknown): string {
     if (reason.status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
     if (reason.status === 403) return 'Bạn không có quyền thực hiện thao tác này trong đồ án hiện tại.'
     if (reason.status === 404) return 'hạng mục hoặc phiên bản không còn tồn tại trong phạm vi được cấp.'
-    if (reason.status === 409) return 'Dữ liệu đã thay đổi hoặc phiên bản không còn mới nhất. Dữ liệu máy chủ đã được tải lại; hãy kiểm tra rồi thực hiện một thao tác mới.'
+    if (reason.status === 409) return 'Dữ liệu đã thay đổi hoặc điều kiện hiện tại chưa cho phép thao tác. Dữ liệu máy chủ đã được tải lại; hãy kiểm tra trước khi thực hiện thao tác mới.'
     if (reason.status === 400 || reason.status === 422) return 'Dữ liệu không hợp lệ hoặc đồ án chưa ở trạng thái cho phép.'
   }
   return 'Không thể xác nhận kết quả từ máy chủ. Tải lại dữ liệu trước khi thực hiện thêm thao tác.'

@@ -14,7 +14,8 @@ export function ProjectSectionNavigation() {
     : [['workspace', 'Tổng quan'], ['tasks', 'Công việc'], ['milestones', 'Mốc đồ án'], ['gantt', 'Lịch thực hiện'], ['reports', 'Báo cáo'], ['meetings', 'Lịch họp'], ['deliverables', 'Hạng mục cần nộp'], ['files', 'Tệp'], ['contributions', 'Đóng góp'], ['evidence', 'Minh chứng'], ['final-submission', 'Bàn giao']]
   return <section className="project-section-navigation">
     <div className="project-section-context"><Link to={access.actor === 'mentor' ? '/mentor/workspace' : '/supervisor/workspace'}>Danh sách đồ án</Link><span title={access.project.title}>{access.project.code || access.project.title}{access.actor === 'mentor' ? ` · Chuyên ngành #${access.supervisor?.majorId}` : ''}</span></div>
-    <select className="project-section-mobile" aria-label="Khu vực đồ án" value={sections.find(([path]) => pathname === `${access.routeBase}/${path}` || pathname.startsWith(`${access.routeBase}/${path}/`))?.[0] ?? 'workspace'} onChange={event => navigate(`${access.routeBase}/${event.target.value}`)}>{sections.map(([path, label]) => <option key={path} value={path}>{label}</option>)}</select>
-    <nav aria-label="Chuyển khu vực trong đồ án">{sections.map(([path, label]) => <NavLink key={path} to={`${access.routeBase}/${path}`}>{label}</NavLink>)}</nav>
+    {access.readOnly && <p role="status" className="ex-notice">Đồ án đã nộp bản cuối, chỉ xem. Các thao tác chỉnh sửa không còn khả dụng.</p>}
+    <select className="project-section-mobile" aria-label="Khu vực đồ án" value={sections.find(([path]) => pathname === `${access.routeBase}/${path}` || pathname.startsWith(`${access.routeBase}/${path}/`))?.[0] ?? 'workspace'} onChange={event => navigate(`${access.routeBase}/${event.target.value}`)}>{sections.map(([path, label]) => <option key={path} value={path}>{label}{access.readOnly ? ' · Chỉ xem' : ''}</option>)}</select>
+    <nav aria-label="Chuyển khu vực trong đồ án">{sections.map(([path, label]) => <NavLink key={path} to={`${access.routeBase}/${path}`}>{label}{access.readOnly ? ' · Chỉ xem' : ''}</NavLink>)}</nav>
   </section>
 }

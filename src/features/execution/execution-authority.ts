@@ -20,12 +20,14 @@ function studentLeader(access: ExecutionAccess): boolean {
  * overreach; the mutation endpoint remains the final authorization authority.
  */
 export function canUseProjectExecutionAction(access: ExecutionAccess, action: string): boolean {
+  if (access.readOnly) return false
   if (!structuralProjectActions.has(action) || access.executionCapabilities?.get(action as never).allowed !== true) return false
   return studentLeader(access) || activePrimarySupervisor(access)
 }
 
 /** Keep task structural controls out of a discipline mentor route even if a broad backend manager predicate returns Allowed. */
 export function canUseTaskExecutionAction(access: ExecutionAccess, action: string, capability: ExecutionActionCapability, mentorScopeProven = false): boolean {
+  if (access.readOnly) return false
   if (!capability.allowed) return false
   if (structuralTaskActions.has(action)) return studentLeader(access) || activePrimarySupervisor(access)
   if (access.actor === 'mentor') return mentorScopeProven && mentorTaskActions.has(action) && access.supervisor?.assignmentType === 'DISCIPLINE_MENTOR' && Boolean(access.supervisor.majorId) && !access.supervisor.endedAt

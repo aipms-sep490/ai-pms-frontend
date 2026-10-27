@@ -72,6 +72,9 @@ export interface TeamInvitationDto {
   expiresAt?: string | null
   respondedAt?: string | null
   createdAt: string
+  teamName?: string | null
+  invitedByName?: string | null
+  invitedUserName?: string | null
 }
 
 export interface TeamLeaderChangeRequestDto {

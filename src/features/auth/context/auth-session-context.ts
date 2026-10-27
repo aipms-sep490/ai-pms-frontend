@@ -1,9 +1,11 @@
 import { createContext } from 'react'
 import type {
   AuthSessionStatus,
+  AuthUser,
   LoginCredentials,
   LoginSession,
 } from '../types/auth.types'
+import type { EditableProfile } from '../api/auth-api'
 
 export interface AuthSessionContextValue {
   session: LoginSession | null
@@ -12,7 +14,7 @@ export interface AuthSessionContextValue {
   login: (credentials: LoginCredentials) => Promise<LoginSession>
   acceptExternalLogin?: (session: LoginSession) => Promise<LoginSession>
   refreshProfile: () => Promise<void>
-  updateProfile?: (profile: { fullName: string; phone: string | null; title: string | null }) => Promise<void>
+  updateProfile?: (profile: EditableProfile) => Promise<AuthUser>
   logout: () => void | Promise<void>
   restoreSession: () => Promise<void>
 }
