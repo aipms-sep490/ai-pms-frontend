@@ -87,7 +87,8 @@ export function SupervisorProjectWorkspacePage() {
       {env.aiAdvisoryEnabled && <ProjectProgressAnalysisPanel projectId={access.project.id} compact />}
 
       <p className="text-sm leading-6 text-ink-muted">Phản hồi, người tham gia, biên bản, kết luận và công việc sau họp được quản lý trong chi tiết từng cuộc họp.</p>
-      <TeamReflectionPanel projectId={access.project.id} audience="primary" canManagePeer={!access.readOnly && access.supervisor?.assignmentType === 'PRIMARY' && access.supervisor.isPrimary && !access.supervisor.endedAt && access.project.status.toUpperCase() === 'ACTIVE'} />
+      {/* PeerEvaluationService permits writes in ACTIVE and FINAL_SUBMISSION for the current primary assignment. */}
+      <TeamReflectionPanel projectId={access.project.id} audience="primary" canManagePeer={access.supervisor?.assignmentType === 'PRIMARY' && access.supervisor.isPrimary && !access.supervisor.endedAt && ['ACTIVE', 'FINALSUBMISSION'].includes(access.project.status.replaceAll('_', '').toUpperCase())} />
     </main>
   )
 }

@@ -5,8 +5,11 @@ export function reportError(reason: unknown): string {
     const detail = reason.problem?.detail || ''
     const title = reason.problem?.title || ''
     const code = reason.problem?.code || ''
-    const combined = `${code} ${title} ${detail}`.toLowerCase()
+    const fieldErrors = Object.values(reason.problem?.errors ?? {}).flat().join(' ')
+    const combined = `${code} ${title} ${detail} ${fieldErrors}`.toLowerCase()
 
+    // TODO(BE): these prose matches are brittle until progress-report failures have stable problem.code values.
+    // See BE_FOLLOWUP_2026-10-27.md; do not infer a new business cause from an unknown message.
     if (reason.status === 409) {
       if (combined.includes('already been created') || combined.includes('already exists')) {
         return 'Kỳ báo cáo này đã có báo cáo. Hãy chọn kỳ khác hoặc mở báo cáo đã có.'

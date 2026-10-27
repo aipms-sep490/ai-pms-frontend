@@ -95,7 +95,7 @@ describe('ProfilePage', () => {
     expect(titleInput.value).toBe('Giảng viên chính')
   })
 
-  it('preserves unedited title and phone when user only updates fullName', async () => {
+  it('omits cached title and phone when user only updates fullName', async () => {
     authSession.session = {
       user: {
         id: 42,
@@ -119,8 +119,6 @@ describe('ProfilePage', () => {
 
     expect(authSession.updateProfile).toHaveBeenCalledWith({
       fullName: 'New Name',
-      title: 'Giảng viên',
-      phone: '0912345678',
     })
   })
 

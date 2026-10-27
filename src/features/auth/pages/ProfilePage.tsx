@@ -54,19 +54,17 @@ export function ProfilePage() {
     setFormError(null)
     setFormSuccess(null)
 
-    // Build payload:
-    // If touched/dirty: send trimmed string, or null if cleared by user.
-    // If not touched: preserve server session value, or omit key if undefined.
+    // Untouched fields are omitted so updateMyProfile reads their current server values.
     const phoneRaw = form.get('phone')
     const titleRaw = form.get('title')
 
     const phone = dirty.phone
       ? (String(phoneRaw ?? '').trim() || null)
-      : (session.user.phone !== undefined ? session.user.phone : undefined)
+      : undefined
 
     const title = dirty.title
       ? (String(titleRaw ?? '').trim() || null)
-      : (session.user.title !== undefined ? session.user.title : undefined)
+      : undefined
 
     const payload: EditableProfile = {
       fullName,

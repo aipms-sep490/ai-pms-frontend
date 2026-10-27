@@ -77,10 +77,10 @@ describe('auth API', () => {
     ])
   })
 
-  it('preserves stored fields omitted from the auth session during full-replace profile updates', async () => {
+  it('preserves fresh server fields when cached profile fields are omitted from a full-replace update', async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ phone: '0912345678', title: 'Giảng viên' }) })
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ fullName: 'Tên mới', phone: '0912345678', title: 'Giảng viên' }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ phone: '0912345678', title: 'Trưởng bộ môn' }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ fullName: 'Tên mới', phone: '0912345678', title: 'Trưởng bộ môn' }) })
     vi.stubGlobal('fetch', fetchMock)
 
     await updateMyProfile({ fullName: 'Tên mới' })
@@ -88,7 +88,7 @@ describe('auth API', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/users/me/profile', expect.objectContaining({ method: 'GET' }))
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/users/me/profile', expect.objectContaining({
       method: 'PUT',
-      body: JSON.stringify({ fullName: 'Tên mới', phone: '0912345678', title: 'Giảng viên' }),
+      body: JSON.stringify({ fullName: 'Tên mới', phone: '0912345678', title: 'Trưởng bộ môn' }),
     }))
   })
 
