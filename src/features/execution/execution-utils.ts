@@ -1,5 +1,6 @@
 import { HttpError } from '../../services/http/http-client'
 import { utcTimestamp } from '../projects/utils/collaboration-workspace'
+export { utcTimestamp } from '../projects/utils/collaboration-workspace'
 import type { BackendTaskStatus } from '../../types/backend'
 
 export const milestoneLabels: Record<string, string> = { PLANNED: 'Chưa bắt đầu', IN_PROGRESS: 'Đang thực hiện', COMPLETED: 'Hoàn thành', CANCELLED: 'Đã hủy' }

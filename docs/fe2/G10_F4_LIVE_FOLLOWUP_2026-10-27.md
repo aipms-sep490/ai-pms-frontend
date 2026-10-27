@@ -1,0 +1,11 @@
+# F4 live follow-up from local integrated self-test
+
+Reused the existing remote `fix/fe-progress-report-cycle` branch atfa97f13 and preserved its author commits. The old develop form created an unlinked report50006 and submission returned409. After importing F4, normal Staff UI created reporting cycle5 in the existing owned DST project50004; normal Student UI created report50007 with the cycle and seven current fields, submitted200 SUBMITTED, then primary Lecturer feedback returned201 and authoritative reads showedREVIEWED. Student readback recovered from one transient502 using GET retry only. No auth/DB bypass or BE source change.
+
+A second live case exposed an incorrect preflight assumption in F4: report50008 saved with only a summary had an enabled Submit action. Its actual400 response named completedWork, inProgressWork, blockers, risks and nextActions as required. Submission now requires all six canonical sections and a linked cycle; partial drafts can still be saved. `plannedWork` stays optional, and legacy issuesAndRisks is never copied into the new fields.
+
+Existing unlinked drafts can explicitly select a server cycle matching their fixed report type/date range and save that link through the existing update API. Matching cycles and report occupancy are read across all pages; the current report is excluded from occupancy. Missing matching schedules have guidance and keep the draft editable. The existing six-section contract is a server requirement, not a new FE grading/academic policy.
+
+Removed parsing of English error detail. A known STALE_CONCURRENCY_TOKEN code receives targeted guidance;400/422 display only allowlisted canonical field labels. Unknown409 has general Vietnamese prerequisites, retaining input and requiring a readback before retry. Runtime cycle/deadline conflicts still lack distinct stable codes; exact per-cause copy remains a BE contract follow-up.
+
+Validation:35report tests pass, including legacy relinking, canonical required fields, no-cycle denial, preserving draft content and safe errors. Typecheck, lint and build pass (existing warnings remain). Broader integrated/full-suite and before/after screenshots are recorded in `output/g10-local-2026-10-27`, outside Git. Live scope is explicit; no checkpoint is automatically approved.
