@@ -1,6 +1,7 @@
 import { createContext } from 'react'
 import type {
   AuthSessionStatus,
+  AuthUser,
   LoginCredentials,
   LoginSession,
 } from '../types/auth.types'
@@ -13,7 +14,7 @@ export interface AuthSessionContextValue {
   login: (credentials: LoginCredentials) => Promise<LoginSession>
   acceptExternalLogin?: (session: LoginSession) => Promise<LoginSession>
   refreshProfile: () => Promise<void>
-  updateProfile?: (profile: EditableProfile) => Promise<void>
+  updateProfile?: (profile: EditableProfile) => Promise<AuthUser>
   logout: () => void | Promise<void>
   restoreSession: () => Promise<void>
 }

@@ -170,6 +170,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
         title: updated.title ?? null,
       },
     })
+    return updated
   }, [persistSession, session])
 
   const value = useMemo(

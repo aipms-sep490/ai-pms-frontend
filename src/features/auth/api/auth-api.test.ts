@@ -1,11 +1,26 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { changePassword, getCurrentUser, login, logout, refresh, requestPasswordReset, resetPassword, updateMyProfile } from './auth-api'
+import { changePassword, getCurrentUser, getMyProfile, login, logout, refresh, requestPasswordReset, resetPassword, updateMyProfile } from './auth-api'
 
 afterEach(() => {
   vi.unstubAllGlobals()
 })
 
 describe('auth API', () => {
+  it('reads phone and title from the authoritative self profile endpoint', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: async () => ({ phone: '0912345678', title: 'Tiến sĩ' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(getMyProfile()).resolves.toEqual({ phone: '0912345678', title: 'Tiến sĩ' })
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/users/me/profile', expect.objectContaining({ method: 'GET' }))
+  })
+
+  it('rejects an incomplete profile read rather than showing missing fields as empty', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ phone: null }) }))
+    await expect(getMyProfile()).rejects.toThrow('incomplete')
+  })
+
   it('posts the documented login payload to the backend contract', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -61,7 +76,7 @@ describe('auth API', () => {
   })
 
   it('uses only the documented self-service payloads', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 204, json: async () => ({}) })
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ phone: null, title: 'Student' }) })
     vi.stubGlobal('fetch', fetchMock)
 
     await requestPasswordReset('student@example.edu.vn')
@@ -107,5 +122,10 @@ describe('auth API', () => {
 
     await expect(updateMyProfile({ fullName: 'Tên mới' })).rejects.toThrow('incomplete')
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects an incomplete update response before it can replace session fields', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ fullName: 'Tên mới' }) }))
+    await expect(updateMyProfile({ fullName: 'Tên mới', phone: null, title: null })).rejects.toThrow('incomplete')
   })
 })
