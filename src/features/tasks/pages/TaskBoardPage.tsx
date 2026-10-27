@@ -61,8 +61,11 @@ export function TaskBoardPage() {
   const [draggingTaskId, setDraggingTaskId] = useState<number | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<BackendTaskStatus | null>(null)
   const [dragNotice, setDragNotice] = useState<string | null>(null)
+  const statusPending = useRef(false)
+  const [savingStatus, setSavingStatus] = useState(false)
 
   const handleDropOnColumn = async (targetStatus: BackendTaskStatus) => {
+    if (statusPending.current) return
     setDragOverColumn(null)
     if (!draggingTaskId || !data) return
     const currentTask = data.items.find(t => t.id === draggingTaskId)
@@ -76,11 +79,8 @@ export function TaskBoardPage() {
       return
     }
 
-    const previousItems = data.items
-    const updatedItems = data.items.map(t => t.id === currentTask.id ? { ...t, status: targetStatus } : t)
-    setData({ ...data, items: updatedItems })
-    setDragNotice(`Đã chuyển công việc #${currentTask.id} sang "${taskStatusLabel(targetStatus)}".`)
-    setTimeout(() => setDragNotice(null), 3000)
+    statusPending.current = true; setSavingStatus(true)
+    setDragNotice('Đang cập nhật trạng thái công việc…')
 
     try {
       await services.task.updateTaskStatus(currentTask.id, {
@@ -88,10 +88,15 @@ export function TaskBoardPage() {
         reason: null,
         concurrencyToken: currentTask.concurrencyToken,
       })
+      // Reload the authoritative page, including new tokens, filters and totals.
+      refresh()
+      setDragNotice(`Đã chuyển công việc #${currentTask.id} sang "${taskStatusLabel(targetStatus)}".`)
+      setTimeout(() => setDragNotice(null), 3000)
     } catch (err) {
-      setData({ ...data, items: previousItems })
       setDragNotice(executionError(err, 'cập nhật trạng thái'))
       setTimeout(() => setDragNotice(null), 5000)
+    } finally {
+      statusPending.current = false; setSavingStatus(false)
     }
   }
   useEffect(() => { setDraft({ search, status, priority, milestone: String(milestoneId ?? ''), assignee: String(assigneeUserId ?? ''), overdue, major: String(majorId ?? ''), role: disciplineRole ?? '' }) }, [search, status, priority, milestoneId, assigneeUserId, overdue, majorId, disciplineRole])
@@ -155,7 +160,7 @@ export function TaskBoardPage() {
             onDragLeave={e => { if (e.currentTarget.contains(e.relatedTarget as Node)) return; if (dragOverColumn === value) setDragOverColumn(null) }}
             onDrop={e => { e.preventDefault(); void handleDropOnColumn(value) }}>
             <h2>{taskStatusLabel(value)} <span>· {data.items.filter(task => task.status === value).length}</span></h2>
-            <ul>{data.items.filter(task => task.status === value).map(task => <li key={task.id} draggable onDragStart={e => { e.dataTransfer.setData('text/plain', String(task.id)); e.dataTransfer.effectAllowed = 'move'; setDraggingTaskId(task.id) }} onDragEnd={() => { setDraggingTaskId(null); setDragOverColumn(null) }} className={draggingTaskId === task.id ? 'is-card-dragging' : ''}><Link className="task-board-card" to={`${routeBase}/tasks/${task.id}`} state={{ taskListSearch: params.toString() }}><small>#{task.id} · {priorityLabels[task.priority ?? ''] ?? 'Chưa có ưu tiên'}</small><strong>{task.title}</strong>{(task.storyPoints != null || (task.labels?.length ?? 0) > 0) && <span className="task-card-chips">{task.storyPoints != null && <span className="sprint-point-badge" aria-label={`${task.storyPoints} điểm`}>{task.storyPoints}</span>}{(task.labels ?? []).map(label => <span key={label} className="sprint-label-chip">{label}</span>)}</span>}<span>{task.assignees.map(person => person.userFullName).join(', ') || 'Chưa phân công'}</span><span className={isOverdue({ ...task, assignees: [] }, observedAt) ? 'text-status-error-text' : ''}>{dateLabel(task.dueAt)}</span></Link></li>)}</ul>{!data.items.some(task => task.status === value) && <p className="ex-muted">Không có việc trên trang này.</p>}</section>)}</section></> : <><div className="ex-task-list-heading" aria-hidden="true"><span>Công việc / mốc đồ án</span><span>Người phụ trách</span><span>Trạng thái</span><span>Hạn hoàn thành</span></div>
+            <ul>{data.items.filter(task => task.status === value).map(task => <li key={task.id} draggable={!savingStatus} onDragStart={e => { e.dataTransfer.setData('text/plain', String(task.id)); e.dataTransfer.effectAllowed = 'move'; setDraggingTaskId(task.id) }} onDragEnd={() => { setDraggingTaskId(null); setDragOverColumn(null) }} className={draggingTaskId === task.id ? 'is-card-dragging' : ''}><Link className="task-board-card" to={`${routeBase}/tasks/${task.id}`} state={{ taskListSearch: params.toString() }}><small>#{task.id} · {priorityLabels[task.priority ?? ''] ?? 'Chưa có ưu tiên'}</small><strong>{task.title}</strong>{(task.storyPoints != null || (task.labels?.length ?? 0) > 0) && <span className="task-card-chips">{task.storyPoints != null && <span className="sprint-point-badge" aria-label={`${task.storyPoints} điểm`}>{task.storyPoints}</span>}{(task.labels ?? []).map(label => <span key={label} className="sprint-label-chip">{label}</span>)}</span>}<span>{task.assignees.map(person => person.userFullName).join(', ') || 'Chưa phân công'}</span><span className={isOverdue({ ...task, assignees: [] }, observedAt) ? 'text-status-error-text' : ''}>{dateLabel(task.dueAt)}</span></Link></li>)}</ul>{!data.items.some(task => task.status === value) && <p className="ex-muted">Không có việc trên trang này.</p>}</section>)}</section></> : <><div className="ex-task-list-heading" aria-hidden="true"><span>Công việc / mốc đồ án</span><span>Người phụ trách</span><span>Trạng thái</span><span>Hạn hoàn thành</span></div>
           {view === 'list' ? <ul>{data.items.map(task => <TaskRow key={task.id} task={task} routeBase={routeBase} milestones={milestones} listSearch={params.toString()} />)}</ul>
             : statuses.filter(value => data.items.some(task => task.status === value)).map(value => <div key={value}><h2 className="ex-group-heading">{taskStatusLabel(value)} <span className="ex-muted">· {data.items.filter(task => task.status === value).length} việc trên trang này</span></h2><ul>{data.items.filter(task => task.status === value).map(task => <TaskRow key={task.id} task={task} routeBase={routeBase} milestones={milestones} listSearch={params.toString()} />)}</ul></div>)}</>}
         </>}
