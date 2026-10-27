@@ -1,12 +1,15 @@
 import { env } from '../../app/config/env'
-import { getWorkspaceRole, type WorkspaceRole } from '../auth/utils/role-access'
 import type { NotificationItem } from './notifications-api'
 
 export interface NotificationLink { url: string; label: string }
 type Target = NotificationLink | ((id: number) => NotificationLink)
+const identities = { student: 'STUDENT', lecturer: 'LECTURER', department: 'DEPARTMENT_STAFF', admin: 'ADMIN' } as const
+type RecipientRole = keyof typeof identities
+const defaultPriority: readonly RecipientRole[] = ['student', 'lecturer', 'department', 'admin']
 interface Rule {
   entities: readonly string[]
-  targets: Partial<Record<WorkspaceRole, Target>>
+  targets: Partial<Record<RecipientRole, Target>>
+  rolePriority?: readonly RecipientRole[]
   feature?: 'resultCorrectionEnabled' | 'defenseScheduleEnabled'
 }
 
@@ -63,7 +66,7 @@ const gates: Rule = { entities: ['PROJECT_GATE', 'PROJECT', 'REVIEW_GATE', 'GATE
 const gateQueue: Rule = { ...gates, targets: { ...gates.targets,
   lecturer: { url: '/review/gate-assignments', label: 'Mở hàng đợi thẩm định' },
 } }
-const gatePolicy: Rule = { ...gates, entities: ['PROJECT_PERIOD', 'REVIEW_POLICY', 'PROJECT', 'PROJECT_GATE'], targets: { ...gates.targets,
+const gatePolicy: Rule = { ...gates, rolePriority: ['admin', 'department', 'lecturer', 'student'], entities: ['PROJECT_PERIOD', 'REVIEW_POLICY', 'PROJECT', 'PROJECT_GATE'], targets: { ...gates.targets,
   admin: { url: '/academic/review-gates', label: 'Xem chính sách thẩm định' },
 } }
 
@@ -107,6 +110,11 @@ export function resolveNotificationLink(
     ? ({ PROGRESS_REPORT: report, DELIVERABLE_VERSION: deliverable, DELIVERABLE: deliverable, MEETING: meeting, TASK: task, PROJECT: risk } as Record<string, Rule>)[entity]
     : Object.hasOwn(rules, item.notificationType) ? rules[item.notificationType] : null
   if (!rule || !rule.entities.includes(entity) || (rule.feature && !env[rule.feature])) return null
-  const target = rule.targets[getWorkspaceRole({ roles: [...roles] })]
-  return typeof target === 'function' ? target(id!) : target ?? null
+  const mine = new Set(roles.map(role => role.toUpperCase()))
+  for (const role of rule.rolePriority ?? defaultPriority) {
+    if (!mine.has(identities[role])) continue
+    const target = rule.targets[role]
+    if (target) return typeof target === 'function' ? target(id!) : target
+  }
+  return null
 }

@@ -78,9 +78,32 @@ describe('recipient notification destinations', () => {
     expect(resolveNotificationLink(item('DEFENSE_SCHEDULED', 'DEFENSE_SESSION'), ['LECTURER'])).toBeNull()
     expect(resolveNotificationLink(item('REVIEW_GATE_UPDATED', 'PROJECT_GATE'), ['STUDENT'])?.url).toBe('/project/timeline')
   })
-  it('uses the same primary-identity precedence as RoleRoute and fails closed without one', () => {
-    expect(resolveNotificationLink(item('TEAM_INVITATION_SENT', 'TEAM_INVITATION'), ['ADMIN', 'STUDENT'])).toBeNull()
-    expect(resolveNotificationLink(item('GATE_REVIEW_ASSIGNED', 'PROJECT_GATE'), ['DEPARTMENT_STAFF', 'LECTURER'])?.url).toBe('/department/projects/progress-matrix')
+  it.each([
+    ['GATE_REVIEW_ASSIGNED', 'PROJECT_GATE', ['ADMIN', 'LECTURER'], '/review/gate-assignments'],
+    ['GATE_REVIEW_ASSIGNED', 'PROJECT_GATE', ['DEPARTMENT_STAFF', 'LECTURER'], '/review/gate-assignments'],
+    ['GATE_REVIEW_ASSIGNED', 'PROJECT_GATE', ['LECTURER', 'DEPARTMENT_STAFF'], '/review/gate-assignments'],
+    ['REVIEW_POLICY_PUBLISHED', 'PROJECT_PERIOD', ['DEPARTMENT_STAFF', 'LECTURER'], '/department/projects/progress-matrix'],
+    ['REVIEW_POLICY_PUBLISHED', 'PROJECT_PERIOD', ['LECTURER', 'ADMIN'], '/academic/review-gates'],
+    ['TEAM_INVITATION_SENT', 'TEAM_INVITATION', ['ADMIN', 'STUDENT'], '/team'],
+    ['PROJECT_APPROVED', 'PROJECT', ['ADMIN'], null],
+    ['GATE_REVIEW_ASSIGNED', 'PROJECT_GATE', ['admin', 'lecturer'], '/review/gate-assignments'],
+  ])('resolves %s by the recipient roles and event priority', (type, entity, identities, url) => {
+    const link = resolveNotificationLink(item(type, entity), identities as string[])
+    expect(link?.url ?? null).toBe(url)
+    if (link) {
+      const matches = matchRoutes(appRouter.routes, link.url)
+      expect(matches?.at(-1)?.route.path).not.toBe('*')
+      expect(matches).not.toBeNull()
+      for (const match of matches ?? []) {
+        const element = match.route.element
+        if (isValidElement<{ allowed: readonly string[] }>(element) && element.type === RoleRoute) {
+          expect(element.props.allowed.some(role => (identities as string[]).some(identity => getWorkspaceRole({ roles: [identity] }) === role))).toBe(true)
+        }
+      }
+    }
+  })
+  it('fails closed when none of the recipient identities has an event destination', () => {
     expect(resolveNotificationLink(item('PROJECT_APPROVED', 'PROJECT'), [] )).toBeNull()
+    expect(resolveNotificationLink(item('PROJECT_APPROVED', 'PROJECT'), ['UNKNOWN'])).toBeNull()
   })
 })
