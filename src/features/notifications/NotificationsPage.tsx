@@ -14,7 +14,7 @@ export function NotificationsPage() {
   const [error, setError] = useState<string | null>(null)
   const [unreadCount, setUnreadCount] = useState<number | null>(null)
   const request = useRef(0)
-  const mutation = useRef(false)
+  const mutation = useRef<Promise<void>>(Promise.resolve())
   useEffect(() => {
     let active = true
     const refresh = () => { void getUnreadCount().then(count => { if (active) setUnreadCount(count) }).catch(() => { if (active) setUnreadCount(null) }) }
@@ -44,24 +44,27 @@ export function NotificationsPage() {
     window.addEventListener('ai-pms:notifications-changed', refresh)
     return () => { pending.current++; window.removeEventListener('ai-pms:notifications-changed', refresh) }
   }, [load])
-  const mutate = async (operation: () => Promise<void>) => {
-    if (mutation.current) return
-    mutation.current = true
-    setBusy(true)
-    try {
-      await operation()
-      window.dispatchEvent(new Event('ai-pms:notifications-changed'))
-    } catch { setError('Không thể cập nhật thông báo. Hãy thử lại sau.') }
-    finally { mutation.current = false; setBusy(false) }
+  const mutate = (operation: () => Promise<void>) => {
+    // A destination click during another read must wait, not silently drop its own mark.
+    const pending = mutation.current.catch(() => {}).then(async () => {
+      setBusy(true)
+      try {
+        await operation()
+        window.dispatchEvent(new Event('ai-pms:notifications-changed'))
+      } catch (reason) { setError('Không thể cập nhật thông báo. Hãy thử lại sau.'); throw reason }
+      finally { setBusy(false) }
+    })
+    mutation.current = pending
+    return pending
   }
   return <WorkspacePage title="Thông báo" eyebrow="Trung tâm cập nhật" description="Lịch họp, nhận xét và những thay đổi cần theo dõi — tập trung ở một nơi.">
     <section className="notification-panel" aria-label="Danh sách thông báo" aria-busy={loading}>
       <div className="notification-toolbar">
         <SegmentedControl label="Lọc thông báo" value={filter} options={[{value:'all',label:'Tất cả'},{value:'unread',label:'Chưa đọc'}]} disabled={busy} onChange={value=>{setFilter(value);setPage(1)}} />
-        <div className="flex flex-wrap items-center gap-2"><button type="button" className="notification-action" disabled={busy || loading} onClick={() => void load()}>Làm mới</button><button type="button" className="notification-action" disabled={busy || loading || (unreadCount === null ? !data?.items.some(item => !item.isRead) : unreadCount === 0)} onClick={() => void mutate(markAllNotificationsRead)}>Đánh dấu tất cả đã đọc</button></div>
+        <div className="flex flex-wrap items-center gap-2"><button type="button" className="notification-action" disabled={busy || loading} onClick={() => void load()}>Làm mới</button><button type="button" className="notification-action" disabled={busy || loading || (unreadCount === null ? !data?.items.some(item => !item.isRead) : unreadCount === 0)} onClick={() => void mutate(markAllNotificationsRead).catch(() => {})}>Đánh dấu tất cả đã đọc</button></div>
       </div>
       {error && <p role="alert" className="notification-error">{error} <button type="button" disabled={loading || busy} onClick={() => void load()}>Tải lại</button></p>}
-      {loading ? <NotificationLoading /> : data?.items.length ? <ul className="notification-list">{data.items.map(item => <NotificationRow key={item.id} item={item} busy={busy} onRead={() => void mutate(() => markNotificationRead(item.id))} />)}</ul> : !error ? <NotificationEmpty unread={filter === 'unread'} /> : null}
+      {loading ? <NotificationLoading /> : data?.items.length ? <ul className="notification-list">{data.items.map(item => <NotificationRow key={item.id} item={item} busy={busy} onRead={() => mutate(() => markNotificationRead(item.id))} />)}</ul> : !error ? <NotificationEmpty unread={filter === 'unread'} /> : null}
       {!loading && data && data.totalCount > data.pageSize && <nav aria-label="Trang thông báo" className="notification-pagination"><button type="button" className="notification-action" disabled={busy || page <= 1} onClick={() => setPage(value => value - 1)}>Trang trước</button><span>Trang {page} / {data.totalPages}</span><button type="button" className="notification-action" disabled={busy || page >= data.totalPages} onClick={() => setPage(value => value + 1)}>Trang sau</button></nav>}
     </section>
   </WorkspacePage>

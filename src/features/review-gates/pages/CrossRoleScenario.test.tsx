@@ -12,7 +12,12 @@ import {
   getDefenseReadiness,
   updateHybridScopeDecision,
 } from '../api/review-gates-api'
-import { resolveReviewGateNotificationLink } from '../../notifications/NotificationRow'
+import { resolveNotificationLink } from '../../notifications/notification-link-resolver'
+
+const resolveReviewGateNotificationLink = (notificationType: string, roles: string[]) => resolveNotificationLink({
+  notificationType, relatedEntityId: 9,
+  relatedEntityType: notificationType === 'REVIEW_POLICY_PUBLISHED' ? 'PROJECT_PERIOD' : 'PROJECT_GATE',
+}, roles)
 import type { ReviewGateTemplate } from '../types/review-gates.types'
 
 vi.mock('../../../app/config/env', async importOriginal => {
@@ -266,7 +271,7 @@ describe('Cross-Role QA & Contract Reconciliation (PROMPT 3 E2E Scenario)', () =
 
       expect(
         resolveReviewGateNotificationLink('REVIEW_POLICY_PUBLISHED', ['ADMIN'])?.url,
-      ).toBe('/department/projects/progress-matrix')
+      ).toBe('/academic/review-gates')
 
       expect(
         resolveReviewGateNotificationLink('GATE_DECISION_RECORDED', ['STUDENT'])?.url,
