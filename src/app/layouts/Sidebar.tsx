@@ -1,5 +1,5 @@
 import { Fragment, useContext, useEffect, useRef, useCallback, useState, useMemo, type RefObject } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { matchPath, NavLink, useLocation } from 'react-router-dom'
 import { getWorkspaceNavigation } from '../router/workspace-route-registry'
 import { StudentJourneyContext } from '../context'
 import { useAcademicWorkflow } from '../context/useAcademicWorkflow'
@@ -70,9 +70,13 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
     }
     return Array.from(groupsMap.values()).sort((a, b) => a.order - b.order)
   }, [navigationItems, role])
+  const activeStudentGroup = studentGroups?.find(({ items }) =>
+    items.some(item => matchPath({ path: item.path, end: item.path === '/academic' }, location.pathname)),
+  )?.group
 
   // Accordion collapsed state for student groups (default expanded, auto-expand active)
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
+  const groupReveal = useRef({ pathname: location.pathname, done: false })
 
   const toggleGroup = useCallback((groupName: string) => {
     setCollapsedGroups((prev) => ({
@@ -81,15 +85,16 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
     }))
   }, [])
 
-  // Auto-expand group containing current route when location changes
+  // Navigation reveals its group; manual toggles on the same route stay respected.
   useEffect(() => {
-    if (studentGroups) {
-      const activeGroup = studentGroups.find((g) => g.items.some((i) => i.path === location.pathname))
-      if (activeGroup && collapsedGroups[activeGroup.group]) {
-        setCollapsedGroups((prev) => ({ ...prev, [activeGroup.group]: false }))
-      }
+    if (groupReveal.current.pathname !== location.pathname) {
+      groupReveal.current = { pathname: location.pathname, done: false }
     }
-  }, [location.pathname, studentGroups, collapsedGroups])
+    if (activeStudentGroup && !groupReveal.current.done) {
+      groupReveal.current.done = true
+      setCollapsedGroups(prev => prev[activeStudentGroup] ? { ...prev, [activeStudentGroup]: false } : prev)
+    }
+  }, [location.pathname, activeStudentGroup])
 
   const handleClose = useCallback(() => {
     onClose()
@@ -246,7 +251,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
               <div className="flex flex-col gap-2">
                 {studentGroups.map(({ group, items }, groupIndex) => {
                   const isCollapsed = Boolean(collapsedGroups[group])
-                  const hasActive = items.some((i) => i.path === location.pathname)
+                  const hasActive = activeStudentGroup === group
                   const groupId = `student-nav-group-${groupIndex}`
 
                   return (
