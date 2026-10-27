@@ -17,6 +17,8 @@ Branch `fix/fe-knowledge-admin-hardening`, from fresh `origin/develop` `4d2b90cd
 
 Full suite: 268 files / 1,501 tests pass (`VITE_API_BASE_URL=/api/v1`, `--maxWorkers=4`). Typecheck, lint, build and diff check pass; lint retains209 existing warnings. No dependencies added. Product/API/types/test concern stays in five files plus this handoff.
 
+First CI at48d273b failed an existing weekly-assessment fixture: it changed the week as soon as the rubric picker appeared, while the parent still considered the editor busy and correctly ignored navigation. The test now awaits the week control becoming enabled, preserving its future-week guard assertion and adding an explicit no-save assertion. No weekly-assessment product code or timeouts change. The bounded failure log is retained in the external evidence bundle. This test-only CI follow-up adds one file beyond the six-file G8 implementation.
+
 ## Staging evidence and cleanup
 
 Admin and Department Staff visited `/academic/knowledge` at actual innerWidth390/768/1280/1440, no horizontal overflow. Publish confirmation at all four widths: Escape cancels without a write and restores opener focus. Retire cancellation/focus checked at390 and1440. History has four viewport screenshots.

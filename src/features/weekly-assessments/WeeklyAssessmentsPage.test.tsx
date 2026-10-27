@@ -176,8 +176,12 @@ describe('Weekly assessments page', () => {
     api.getWeeklyAssessmentHistory.mockResolvedValue({ items: [], page: 1, pageSize: 1, totalCount: 0, totalPages: 0 })
     mount()
     await screen.findByLabelText('Rubric áp dụng')
-    fireEvent.change(await screen.findByLabelText('Tuần'), { target: { value: '3' } })
+    const week = await screen.findByLabelText('Tuần') as HTMLSelectElement
+    // The editor can be rendered before its busy=false effect reaches the parent.
+    await waitFor(() => expect(week.disabled).toBe(false))
+    fireEvent.change(week, { target: { value: '3' } })
     expect(await screen.findByText('Tuần này chưa tới, chưa thể chấm.')).toBeTruthy()
+    expect(api.saveWeeklyAssessment).not.toHaveBeenCalled()
   })
 
   it('reloads history instead of replaying the mutation on a 409 conflict', async () => {
