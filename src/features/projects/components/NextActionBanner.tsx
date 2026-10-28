@@ -100,19 +100,27 @@ export function NextActionBanner({
   const submittedReqs = activeGate.requirements.filter((r) => r.verificationStatus === 'SUBMITTED')
   const acceptedReqs = activeGate.requirements.filter((r) => r.verificationStatus === 'ACCEPTED')
 
-  // Theme styling based on gate status
+  // Disciplined 90/8/2 warm brand styling: clean card surface + 4px left semantic accent stripe
   const cardBorderClass = isRevisionRequired
-    ? 'border-status-warning-border bg-status-warning-bg text-status-warning-text border-l-4 border-l-[var(--color-accent-amber)]'
+    ? 'border-hairline border-l-4 border-l-[var(--color-accent-amber)] bg-card text-ink'
     : isInReview
-    ? 'border-primary/20 bg-primary-subtle text-primary'
+    ? 'border-hairline border-l-4 border-l-primary bg-card text-ink'
     : isPassed
-    ? 'border-status-success-border bg-status-success-bg text-status-success-text'
-    : 'border-hairline bg-card text-ink'
+    ? 'border-hairline border-l-4 border-l-status-success-text bg-card text-ink'
+    : 'border-hairline border-l-4 border-l-line-strong bg-card text-ink'
+
+  const headerAccentClass = isRevisionRequired
+    ? 'text-status-warning-text'
+    : isInReview
+    ? 'text-primary'
+    : isPassed
+    ? 'text-status-success-text'
+    : 'text-ink-muted'
 
   const badgeClass = isRevisionRequired
-    ? 'border-status-warning-border bg-status-warning-bg text-status-warning-text border-l-2 border-l-[var(--color-accent-amber)]'
+    ? 'border-status-warning-border bg-status-warning-bg text-status-warning-text'
     : isInReview
-    ? 'border-primary/20 bg-primary-subtle text-primary'
+    ? 'border-primary/25 bg-primary-subtle text-primary'
     : isPassed
     ? 'border-status-success-border bg-status-success-bg text-status-success-text'
     : 'border-hairline bg-canvas text-ink-soft'
@@ -153,8 +161,8 @@ export function NextActionBanner({
         {/* Header: Eyebrow, Gate Info, Status Badge */}
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-lg" aria-hidden="true">
+            <div className={`flex items-center gap-1.5 ${headerAccentClass}`}>
+              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
                 {iconName}
               </span>
               <span className="text-xs font-bold uppercase tracking-wider">
@@ -197,124 +205,134 @@ export function NextActionBanner({
           </div>
         </div>
 
-        {/* Content Grid: Requirements Status & Action Context */}
-        <div className="mt-3 grid grid-cols-1 gap-3 border-t border-hairline pt-3 lg:grid-cols-12">
+        {/* Content Grid: Equal-height Requirements Status & Action Context */}
+        <div className="mt-3 grid grid-cols-1 items-stretch gap-3 border-t border-hairline pt-3 lg:grid-cols-12">
           {/* Left: Requirements Detail */}
-          <div className="space-y-2 lg:col-span-7">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-ink-soft">
-              {isRevisionRequired
-                ? 'Minh chứng cần chỉnh sửa & nộp lại'
-                : 'Trạng thái minh chứng học thuật'}
-            </h3>
+          <div className="flex h-full flex-col justify-between gap-2.5 rounded-lg border border-hairline bg-canvas/60 p-3.5 lg:col-span-7">
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-ink-muted">
+                {isRevisionRequired
+                  ? 'Minh chứng cần chỉnh sửa & nộp lại'
+                  : 'Trạng thái minh chứng học thuật'}
+              </h3>
 
-            {isRevisionRequired && rejectedReqs.length > 0 ? (
-              <div className="space-y-2">
-                {rejectedReqs.map((req) => (
-                  <div
-                    key={req.id}
-                    className="rounded-lg border border-status-error-border bg-card p-3 shadow-2xs space-y-1.5"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-md bg-status-error-bg px-2 py-0.5 text-xs font-bold text-status-error-text">
-                          {req.code}
-                        </span>
-                        <strong className="text-xs font-bold text-ink">
-                          {req.title}
-                        </strong>
-                      </div>
-                      {isLeader && onSubmitRevision && (
-                        <button
-                          type="button"
-                          onClick={() => setSubmissionReq(req)}
-                          className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-primary-hover focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
-                        >
-                          <span className="material-symbols-outlined text-sm" aria-hidden="true">
-                            upload_file
+              {isRevisionRequired && rejectedReqs.length > 0 ? (
+                <div className="space-y-2">
+                  {rejectedReqs.map((req) => (
+                    <div
+                      key={req.id}
+                      className="rounded-lg border border-status-error-border bg-card p-3 shadow-2xs space-y-1.5"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-md bg-status-error-bg px-2 py-0.5 text-xs font-bold text-status-error-text">
+                            {req.code}
                           </span>
-                          Nộp bản sửa đổi v{(req.latestArtifact?.version ?? 0) + 1}
-                        </button>
+                          <strong className="text-xs font-bold text-ink">
+                            {req.title}
+                          </strong>
+                        </div>
+                        {isLeader && onSubmitRevision && (
+                          <button
+                            type="button"
+                            onClick={() => setSubmissionReq(req)}
+                            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-primary-hover focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                          >
+                            <span className="material-symbols-outlined text-sm" aria-hidden="true">
+                              upload_file
+                            </span>
+                            Nộp bản sửa đổi v{(req.latestArtifact?.version ?? 0) + 1}
+                          </button>
+                        )}
+                      </div>
+                      {req.reviewerFeedback && (
+                        <p className="rounded-md bg-status-error-bg p-2 text-xs text-status-error-text border border-status-error-border">
+                          <strong>Nhận xét từ Hội đồng:</strong> "{req.reviewerFeedback}"
+                        </p>
                       )}
                     </div>
-                    {req.reviewerFeedback && (
-                      <p className="rounded-md bg-status-error-bg p-2 text-xs text-status-error-text border border-status-error-border">
-                        <strong>Nhận xét từ Hội đồng:</strong> "{req.reviewerFeedback}"
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : isRevisionRequired ? (
-              <p className="text-xs text-ink-muted">
-                Hội đồng yêu cầu nhóm rà soát lại hồ sơ trước khi chốt kết quả đợt thẩm định.
-              </p>
-            ) : isInReview ? (
-              <div className="rounded-lg border border-primary/20 bg-card p-3 text-xs text-primary shadow-2xs space-y-1">
-                <p>
-                  <strong>{submittedReqs.length + acceptedReqs.length}/{activeGate.requirements.length} minh chứng</strong> đã được gửi lên hệ thống.
+                  ))}
+                </div>
+              ) : isRevisionRequired ? (
+                <p className="text-xs leading-relaxed text-ink-soft">
+                  Hội đồng yêu cầu nhóm rà soát lại hồ sơ trước khi chốt kết quả đợt thẩm định.
                 </p>
-                <p className="text-ink-muted">
-                  Hội đồng đang thẩm định và sẽ phản hồi khi có kết luận chính thức.
-                </p>
-              </div>
-            ) : isPassed ? (
-              <div className="rounded-lg border border-status-success-border bg-card p-3 text-xs text-status-success-text shadow-2xs">
-                ✓ Nhóm đã hoàn thành toàn bộ yêu cầu chất lượng của cổng {activeGate.code}. Điểm số và nhận xét đã được lưu vào hồ sơ đồ án.
-              </div>
-            ) : (
-              <div className="rounded-lg border border-hairline bg-card p-3 text-xs text-ink-soft shadow-2xs space-y-1">
-                <p>
-                  Còn <strong>{pendingMandatoryReqs.length} minh chứng bắt buộc</strong> cần hoàn thiện trước ngày {activeGate.windowEnd}.
-                </p>
-                <p className="text-ink-muted">
-                  Tổng số yêu cầu: {activeGate.requirements.length} mục (Bắt buộc: {activeGate.requirements.filter((r) => r.isMandatory).length}).
-                </p>
-              </div>
-            )}
+              ) : isInReview ? (
+                <div className="space-y-1 text-xs leading-relaxed text-ink-soft">
+                  <p className="font-medium text-ink">
+                    <strong>{submittedReqs.length + acceptedReqs.length}/{activeGate.requirements.length} minh chứng</strong> đã được gửi lên hệ thống.
+                  </p>
+                  <p className="text-ink-muted">
+                    Hội đồng đang thẩm định và sẽ phản hồi khi có kết luận chính thức.
+                  </p>
+                </div>
+              ) : isPassed ? (
+                <div className="flex items-start gap-2 text-xs leading-relaxed text-ink-soft">
+                  <span className="material-symbols-outlined mt-0.5 text-[16px] shrink-0 text-status-success-text" aria-hidden="true">
+                    check_circle
+                  </span>
+                  <p>
+                    Nhóm đã hoàn thành toàn bộ yêu cầu chất lượng của cổng <strong className="text-ink">{activeGate.code}</strong>. Điểm số và nhận xét đã được lưu vào hồ sơ đồ án.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1 text-xs leading-relaxed text-ink-soft">
+                  <p className="text-ink">
+                    Còn <strong>{pendingMandatoryReqs.length} minh chứng bắt buộc</strong> cần hoàn thiện trước ngày {activeGate.windowEnd}.
+                  </p>
+                  <p className="text-ink-muted">
+                    Tổng số yêu cầu: {activeGate.requirements.length} mục (Bắt buộc: {activeGate.requirements.filter((r) => r.isMandatory).length}).
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right: Coordination, Actor, Blockers */}
-          <div className="space-y-3 rounded-lg border border-hairline bg-card p-3.5 shadow-2xs lg:col-span-5">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-ink-muted">
-                Bên chịu trách nhiệm xử lý
-              </span>
-              <p className="mt-1 text-xs font-medium text-ink">
-                {responsibleActorText}
-              </p>
+          <div className="flex h-full flex-col justify-between gap-2.5 rounded-lg border border-hairline bg-canvas/60 p-3.5 lg:col-span-5">
+            <div className="space-y-2.5">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-ink-muted">
+                  Bên chịu trách nhiệm xử lý
+                </h3>
+                <p className="mt-1.5 text-xs font-medium leading-relaxed text-ink">
+                  {responsibleActorText}
+                </p>
+              </div>
+
+              {/* Blocking reasons */}
+              {activeGate.blockingReasons.length > 0 && (
+                <div className="rounded-md border border-status-error-border bg-status-error-bg p-2.5 text-xs text-status-error-text">
+                  <strong className="block font-bold">Rào cản học thuật (Blocking):</strong>
+                  <ul className="mt-1 list-disc pl-4 space-y-0.5">
+                    {activeGate.blockingReasons.map((br, idx) => (
+                      <li key={idx}>
+                        {br.requirementCode ? `[${br.requirementCode}] ` : ''}
+                        {br.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Technical task attention */}
+              {taskAttentionCount && (taskAttentionCount.blocked > 0 || taskAttentionCount.overdue > 0) && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-muted">
+                  {taskAttentionCount.blocked > 0 && (
+                    <span className="inline-flex items-center gap-1 font-semibold text-status-warning-text">
+                      <span className="material-symbols-outlined text-[15px]" aria-hidden="true">warning</span>
+                      {taskAttentionCount.blocked} việc đang vướng mắc
+                    </span>
+                  )}
+                  {taskAttentionCount.overdue > 0 && (
+                    <span className="inline-flex items-center gap-1 font-semibold text-status-error-text">
+                      <span className="material-symbols-outlined text-[15px]" aria-hidden="true">schedule</span>
+                      {taskAttentionCount.overdue} công việc đã quá hạn
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
-
-            {/* Blocking reasons */}
-            {activeGate.blockingReasons.length > 0 && (
-              <div className="rounded-md border border-status-error-border bg-status-error-bg p-2.5 text-xs text-status-error-text">
-                <strong className="block font-bold">Rào cản học thuật (Blocking):</strong>
-                <ul className="mt-1 list-disc pl-4 space-y-0.5">
-                  {activeGate.blockingReasons.map((br, idx) => (
-                    <li key={idx}>
-                      {br.requirementCode ? `[${br.requirementCode}] ` : ''}
-                      {br.message}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Technical task attention */}
-            {taskAttentionCount && (taskAttentionCount.blocked > 0 || taskAttentionCount.overdue > 0) && (
-              <div className="text-xs text-ink-muted">
-                {taskAttentionCount.blocked > 0 && (
-                  <span className="flex items-center gap-1 font-semibold text-status-warning-text">
-                    <span className="material-symbols-outlined text-[15px]" aria-hidden="true">warning</span>
-                    Có {taskAttentionCount.blocked} công việc bị vướng mắc trên bảng công việc.
-                  </span>
-                )}
-                {taskAttentionCount.overdue > 0 && (
-                  <span className="block text-ink-muted">
-                    Có {taskAttentionCount.overdue} công việc đã quá hạn.
-                  </span>
-                )}
-              </div>
-            )}
 
             {/* Non-leader role clarity */}
             {!isLeader && isRevisionRequired && (
@@ -326,20 +344,20 @@ export function NextActionBanner({
         </div>
 
         {/* Footer Actions */}
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-3">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-3">
           <div className="text-xs text-ink-muted">
             {timeline?.projectMode === 'INTERDISCIPLINARY'
               ? 'Đồ án Liên ngành · Cần sự phối hợp đồng bộ giữa các chuyên ngành.'
               : 'Đồ án Đơn ngành · Theo dõi tiến độ theo chuẩn quy chế học vụ.'}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               to="/project/timeline"
-              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-bold text-ink-soft shadow-2xs transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+              className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-semibold text-ink-soft shadow-2xs transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
             >
               <span>Xem Dòng thời gian Cổng</span>
-              <span className="material-symbols-outlined text-base" aria-hidden="true">
+              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
                 open_in_new
               </span>
             </Link>
@@ -348,9 +366,9 @@ export function NextActionBanner({
               <button
                 type="button"
                 onClick={() => setSubmissionReq(rejectedReqs[0])}
-                className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-primary-hover focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-primary-hover focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
-                <span className="material-symbols-outlined text-base" aria-hidden="true">
+                <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
                   upload_file
                 </span>
                 <span>Nộp lại minh chứng ({rejectedReqs[0].code})</span>
@@ -362,7 +380,7 @@ export function NextActionBanner({
                 tabIndex={0}
                 role="note"
                 aria-label="Thông báo phân quyền"
-                className="inline-flex min-h-11 items-center rounded-lg border border-hairline bg-canvas px-3.5 py-2 text-xs font-semibold text-ink-muted"
+                className="inline-flex min-h-9 items-center rounded-lg border border-hairline bg-canvas px-3 py-1.5 text-xs font-semibold text-ink-muted"
               >
                 Trưởng nhóm nộp bản sửa đổi
               </div>
