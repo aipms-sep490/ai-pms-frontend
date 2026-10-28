@@ -119,7 +119,7 @@ function TaskDetail({ id }: { id: number }) {
   const mayDelete = contextValid && canUseTaskExecutionAction(access, 'delete_task', allowed('delete_task'), mentorScopeProven)
   const saved = () => { setEditing(null); reload() }
   return <ExecutionPage title={task.title} eyebrow={milestone?.title ?? project.code} backTo={taskListUrl}
-    action={<><button className="ex-button" disabled={loading || mutation.busy} onClick={reload}><ExIcon name="refresh" />Cập nhật</button>{canUpdate && <button className="ex-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('content') }}><ExIcon name="edit" />Chỉnh sửa</button>}</>}>
+    action={<><button type="button" className="ex-button ex-button-icon" aria-label="Cập nhật" title="Cập nhật" disabled={loading || mutation.busy} onClick={reload}><ExIcon name="refresh" /></button>{canUpdate && <button type="button" className="ex-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('content') }}><ExIcon name="edit" />Chỉnh sửa</button>}</>}>
     <div className="ex-actions mb-6 flex flex-wrap items-center gap-2">
       <StatusBadge status={task.status} label={taskStatusLabel(task.status)} tone={taskStatusTone(task.status)} />
       <StatusBadge tone={taskPriorityTone(task.priority)} label={`Ưu tiên ${priorityLabels[task.priority ?? '']?.toLowerCase() ?? 'chưa chọn'}`} />
