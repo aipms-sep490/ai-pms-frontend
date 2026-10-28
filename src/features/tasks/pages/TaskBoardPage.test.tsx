@@ -24,7 +24,7 @@ const workflow = vi.hoisted(() => ({ getTaskExecutionActions: vi.fn() }))
 vi.mock('../../../services/service-gateway', () => ({ services: { task: api, milestone: api } }))
 vi.mock('../../../services/api/workflow.api', () => workflow)
 
-const empty = { items: [], totalCount: 0, totalPages: 0, page: 1, pageSize: 20 }
+const empty = { items: [], totalCount: 0, totalPages: 0, page: 1, pageSize: 12 }
 const item = { id: 1, milestoneId: 3, title: 'Phân tích yêu cầu', status: 'TODO', priority: 'MEDIUM', assignees: [], concurrencyToken: 'task-token', dependencies: [] }
 const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
 
@@ -159,9 +159,9 @@ describe('TaskBoardPage', () => {
   it('applies status immediately and debounces search to BE without manual Apply button', async () => {
     renderBoard(false); await screen.findByText('Không có công việc phù hợp')
     fireEvent.change(screen.getByRole('combobox', { name: 'Trạng thái' }), { target: { value: 'BLOCKED' } })
-    await vi.waitFor(() => expect(api.getProjectTasks).toHaveBeenLastCalledWith(9, expect.objectContaining({ status: 'BLOCKED', page: 1, pageSize: 20 }), expect.any(AbortSignal)))
+    await vi.waitFor(() => expect(api.getProjectTasks).toHaveBeenLastCalledWith(9, expect.objectContaining({ status: 'BLOCKED', page: 1, pageSize: 12 }), expect.any(AbortSignal)))
     fireEvent.change(screen.getByRole('searchbox', { name: 'Tìm công việc' }), { target: { value: 'architecture' } })
-    await vi.waitFor(() => expect(api.getProjectTasks).toHaveBeenLastCalledWith(9, expect.objectContaining({ search: 'architecture', status: 'BLOCKED', page: 1, pageSize: 20 }), expect.any(AbortSignal)))
+    await vi.waitFor(() => expect(api.getProjectTasks).toHaveBeenLastCalledWith(9, expect.objectContaining({ search: 'architecture', status: 'BLOCKED', page: 1, pageSize: 12 }), expect.any(AbortSignal)))
   })
   it('preserves member and milestone filters through actual server pagination', async () => {
     api.getProjectTasks.mockResolvedValueOnce({ ...empty, items: [item], totalCount: 21, totalPages: 2 })
@@ -171,7 +171,7 @@ describe('TaskBoardPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sau' }))
     await screen.findByText('Công việc trang hai')
     expect(screen.queryByText('Phân tích yêu cầu')).toBeNull()
-    expect(api.getProjectTasks).toHaveBeenLastCalledWith(9, expect.objectContaining({ assigneeUserId: 5, milestoneId: 3, page: 2, pageSize: 20 }), expect.any(AbortSignal))
+    expect(api.getProjectTasks).toHaveBeenLastCalledWith(9, expect.objectContaining({ assigneeUserId: 5, milestoneId: 3, page: 2, pageSize: 12 }), expect.any(AbortSignal))
   })
   it('resets page when selecting the signed in member scope', async () => {
     renderBoard(false, '/project/tasks?page=3'); await screen.findByText('Không có công việc phù hợp')

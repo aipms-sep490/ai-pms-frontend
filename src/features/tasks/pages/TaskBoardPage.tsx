@@ -147,7 +147,7 @@ export function TaskBoardPage() {
     setError('')
     services.task.getProjectTasks(project.id, {
       page,
-      pageSize: 20,
+      pageSize: 12,
       search: search.trim() || undefined,
       assigneeUserId,
       milestoneId,
@@ -243,7 +243,16 @@ export function TaskBoardPage() {
       description="Xem ai đang phụ trách, việc nào cần xử lý và hạn hoàn thành."
       action={
         <>
-          <button className="ex-button" onClick={refresh} disabled={loading}><ExIcon name="refresh" />Cập nhật</button>
+          <button
+            type="button"
+            className="ex-button ex-button-icon"
+            onClick={refresh}
+            disabled={loading}
+            aria-label="Cập nhật danh sách công việc"
+            title="Cập nhật"
+          >
+            <ExIcon name="refresh" />
+          </button>
           {canCreate && (
             <button ref={createRef} className="ex-button ex-button-primary" onClick={() => { setCreating(true); setCreated(false) }}>
               <ExIcon name="add" />Tạo công việc
@@ -288,66 +297,47 @@ export function TaskBoardPage() {
       )}
 
       <section className="ex-panel task-board-panel" aria-label="Danh sách công việc">
-        <div className="ex-toolbar ex-toolbar--two-rows flex flex-col gap-3 p-4">
-          {view !== 'sprint' && data && data.items.length > 0 && (
-            <div className="w-full rounded-xl border border-hairline bg-canvas/60 p-3 mb-1" aria-label="Tổng quan tiến trình công việc">
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-ink">Tiến độ trang này:</span>
-                  <span className="rounded-full bg-primary-subtle px-2 py-0.5 font-bold text-primary">
-                    {Math.round((data.items.filter(t => t.status === 'DONE').length / data.items.length) * 100)}% hoàn thành
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-ink-muted">
-                  <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-line-strong" aria-hidden="true" /><span>Chưa bắt đầu: <strong className="text-ink">{data.items.filter(t => t.status === 'TODO').length}</strong></span></span>
-                  <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-status-warning-text" aria-hidden="true" /><span>Đang làm: <strong className="text-ink">{data.items.filter(t => t.status === 'IN_PROGRESS').length}</strong></span></span>
-                  <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-status-error-text" aria-hidden="true" /><span>Vướng mắc: <strong className="text-ink">{data.items.filter(t => t.status === 'BLOCKED').length}</strong></span></span>
-                  <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary" aria-hidden="true" /><span>Chờ nghiệm thu: <strong className="text-ink">{data.items.filter(t => t.status === 'IN_REVIEW').length}</strong></span></span>
-                  <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-status-success-text" aria-hidden="true" /><span>Hoàn thành: <strong className="text-ink">{data.items.filter(t => t.status === 'DONE').length}</strong></span></span>
-                </div>
-              </div>
-              <div className="mt-2 flex h-2 w-full overflow-hidden rounded-full bg-canvas border border-hairline">
-                <div style={{ width: `${(data.items.filter(t => t.status === 'DONE').length / data.items.length) * 100}%` }} className="bg-status-success-text transition-all" />
-                <div style={{ width: `${(data.items.filter(t => t.status === 'IN_REVIEW').length / data.items.length) * 100}%` }} className="bg-primary transition-all" />
-                <div style={{ width: `${(data.items.filter(t => t.status === 'IN_PROGRESS').length / data.items.length) * 100}%` }} className="bg-status-warning-text transition-all" />
-                <div style={{ width: `${(data.items.filter(t => t.status === 'BLOCKED').length / data.items.length) * 100}%` }} className="bg-status-error-text transition-all" />
-                <div style={{ width: `${(data.items.filter(t => t.status === 'TODO').length / data.items.length) * 100}%` }} className="bg-line-strong transition-all" />
-              </div>
+        <div className="ex-toolbar task-board-top-strip">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="ex-tabs" role="group" aria-label="Cách hiển thị">
+              <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}><ExIcon name="format_list_bulleted" />Danh sách</button>
+              <button type="button" aria-pressed={view === 'status'} onClick={() => setView('status')}><ExIcon name="view_agenda" />Theo trạng thái</button>
+              <button type="button" aria-pressed={view === 'board'} onClick={() => setView('board')}><ExIcon name="view_kanban" />Bảng Kanban</button>
+              {env.jiraSprintEnabled && <button type="button" aria-pressed={view === 'sprint'} onClick={() => setView('sprint')}><ExIcon name="sprint" />Kế hoạch Sprint</button>}
             </div>
-          )}
-          <div className="flex w-full flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Hiển thị:</span>
-                <div className="ex-tabs" role="group" aria-label="Cách hiển thị">
-                  <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}><ExIcon name="format_list_bulleted" /> Danh sách</button>
-                  <button type="button" aria-pressed={view === 'status'} onClick={() => setView('status')}>Theo trạng thái</button>
-                  <button type="button" aria-pressed={view === 'board'} onClick={() => setView('board')}>Bảng Kanban</button>
-                  {env.jiraSprintEnabled && <button type="button" aria-pressed={view === 'sprint'} onClick={() => setView('sprint')}>Kế hoạch Sprint</button>}
-                </div>
+            {view !== 'sprint' && access.actor === 'student' && currentUserId && (
+              <div className="ex-tabs" role="group" aria-label="Phạm vi công việc">
+                <button type="button" aria-pressed={!assigneeUserId} onClick={() => updateParam('assignee', '')}>Cả nhóm</button>
+                <button type="button" aria-pressed={assigneeUserId === currentUserId} onClick={() => updateParam('assignee', String(currentUserId))}>Của tôi</button>
               </div>
-              {view !== 'sprint' && access.actor === 'student' && currentUserId && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Phạm vi:</span>
-                  <div className="ex-tabs" role="group" aria-label="Phạm vi công việc">
-                    <button type="button" aria-pressed={!assigneeUserId} onClick={() => updateParam('assignee', '')}>Cả nhóm</button>
-                    <button type="button" aria-pressed={assigneeUserId === currentUserId} onClick={() => updateParam('assignee', String(currentUserId))}>Của tôi</button>
-                  </div>
-                </div>
-              )}
-              {view !== 'sprint' && assigneeUserId && assigneeUserId !== currentUserId && (
-                <span className="text-xs font-medium text-ink-soft inline-flex items-center gap-1.5">
-                  <span>{activeMember?.fullName ?? 'Thành viên đã chọn'}</span>
-                  <button type="button" className="ex-text-button text-xs underline" onClick={() => updateParam('assignee', '')}>Bỏ lọc</button>
-                </span>
-              )}
-            </div>
-            {view !== 'sprint' && data && (
-              <span className="text-xs text-ink-muted tabular-nums">
-                Tổng số công việc: <strong className="text-ink">{data.totalCount}</strong>
+            )}
+            {view !== 'sprint' && assigneeUserId && assigneeUserId !== currentUserId && (
+              <span className="text-xs font-medium text-ink-soft inline-flex items-center gap-1.5">
+                <span>{activeMember?.fullName ?? 'Thành viên đã chọn'}</span>
+                <button type="button" className="ex-text-button text-xs underline" onClick={() => updateParam('assignee', '')}>Bỏ lọc</button>
               </span>
             )}
           </div>
+          {view !== 'sprint' && data && (
+            <div className="flex flex-wrap items-center gap-3 text-xs text-ink-muted tabular-nums">
+              {data.items.length > 0 && (
+                <div className="inline-flex items-center gap-2" aria-label="Tổng quan tiến trình công việc">
+                  <span>Tiến độ trang:</span>
+                  <div className="flex h-1.5 w-20 overflow-hidden rounded-full bg-hairline">
+                    <div style={{ width: `${(data.items.filter(t => t.status === 'DONE').length / data.items.length) * 100}%` }} className="bg-primary transition-all" />
+                    <div style={{ width: `${(data.items.filter(t => t.status === 'IN_REVIEW').length / data.items.length) * 100}%` }} className="bg-status-warning-text transition-all" />
+                    <div style={{ width: `${(data.items.filter(t => t.status === 'BLOCKED').length / data.items.length) * 100}%` }} className="bg-status-error-text transition-all" />
+                  </div>
+                  <span className="rounded-full bg-primary-subtle px-2 py-0.5 font-bold text-primary">
+                    {Math.round((data.items.filter(t => t.status === 'DONE').length / data.items.length) * 100)}%
+                  </span>
+                </div>
+              )}
+              <span>
+                Tổng số công việc: <strong className="text-ink">{data.totalCount}</strong>
+              </span>
+            </div>
+          )}
         </div>
 
         {view !== 'sprint' && (
