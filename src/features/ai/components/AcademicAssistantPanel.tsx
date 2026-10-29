@@ -27,6 +27,16 @@ function ImagePreview({ file }: { file: File }) {
 
 type ChatTurn = { id: number; query: string; fileNames: string[]; response?: AcademicAssistantResponse; error?: string; preview?: string }
 
+function AssistantTyping({ preview }: { preview?: string }) {
+  return <div className="assistant-thinking" aria-busy="true">
+    <div className="assistant-typing-status" role="status">
+      <span className="assistant-typing-dots" aria-hidden="true"><i /><i /><i /></span>
+      <span>Đang trả lời…</span>
+    </div>
+    {preview && <><p className="assistant-stream-preview whitespace-pre-wrap">{preview}</p><small>Nội dung đang được hoàn thiện, chưa xác minh nguồn.</small></>}
+  </div>
+}
+
 export function AcademicAssistantPanel({ projectId, dock = false, pageContext = '', onUseDraft, onOpenEvidence }: { projectId?: number; dock?: boolean; pageContext?: string; onUseDraft?: (draft: AssistantDraft) => void; onOpenEvidence?: (evidence: EvidenceReference) => void }) {
   const [conversation, setConversation] = useState<AssistantConversation | null>(null)
   const [conversations, setConversations] = useState<AssistantConversation[]>([])
@@ -205,8 +215,8 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
       {!!answer.attachments?.length && <p className="mt-3 break-words text-xs text-ink-muted">Tệp tham chiếu: {answer.attachments.map(file => file.fileName).join(', ')}</p>}
       {answer.draft && <AssistantDraftCard draft={answer.draft} onUse={onUseDraft} />}
       {!!answer.runId && <details className="assistant-export"><summary><span className="material-symbols-outlined" aria-hidden="true">download</span>{downloading ? 'Đang chuẩn bị tệp…' : 'Tải câu trả lời'}</summary><div className="assistant-export-options">{([['docx', 'Word'], ['xlsx', 'Excel'], ['pdf', 'PDF'], ['txt', 'TXT'], ['md', 'Markdown']] as const).map(([format, label]) => <button key={format} type="button" disabled={downloading} onClick={() => void saveAnswer(format, answer)}>Tải {label}</button>)}</div></details>}
-      {answer.citations.length > 0 && <details className="assistant-citations" open={!dock}><summary>Tài liệu tham chiếu ({answer.citations.length})</summary><ul className="mt-2 space-y-2">{answer.citations.map((item, index) => <li key={`${item.versionId}-${index}`} className="rounded-lg border border-hairline bg-card p-3"><p className="text-sm font-semibold text-ink">{answer.runId ? <button type="button" className="underline underline-offset-4" onClick={() => void openSource(answer.runId!, index)}>{item.title} · v{item.version}</button> : <>{item.title} · v{item.version}</>}</p><p className="mt-1 text-xs text-ink-muted">{item.documentType}{item.section ? ` · ${item.section}` : ''}{item.page ? ` · trang ${item.page}` : ''}</p><p className="mt-2 text-sm leading-6 text-ink-soft">{item.excerpt}</p></li>)}</ul></details>}
-      {answer.projectEvidence.length > 0 && <><h3 className="mt-4 text-sm font-semibold text-ink">Dữ liệu project</h3><ul className="mt-2 space-y-2">{answer.projectEvidence.map((item, index) => <li key={index} className="rounded-lg border border-hairline bg-card p-3 text-sm"><p className="font-semibold">{onOpenEvidence && /^\/api\/v1\/(tasks|milestones|meetings|progress-reports)\/\d+$/.test(item.referenceUrl ?? '') ? <button type="button" className="underline underline-offset-4" onClick={() => onOpenEvidence(item)}>{item.title}</button> : item.title}</p><p className="mt-1 text-ink-soft">{item.excerpt}</p></li>)}</ul></>}
+      {!['GENERAL', 'ATTACHMENT', 'INSUFFICIENT_EVIDENCE'].includes(answer.answerType) && !answer.insufficientEvidence && answer.citations.length > 0 && <details className="assistant-citations"><summary>Tài liệu tham chiếu ({answer.citations.length})</summary><ul className="mt-2 space-y-2">{answer.citations.map((item, index) => <li key={`${item.versionId}-${index}`} className="rounded-lg border border-hairline bg-card p-3"><p className="text-sm font-semibold text-ink">{answer.runId ? <button type="button" className="underline underline-offset-4" onClick={() => void openSource(answer.runId!, index)}>{item.title} · v{item.version}</button> : <>{item.title} · v{item.version}</>}</p><p className="mt-1 text-xs text-ink-muted">{item.documentType}{item.section ? ` · ${item.section}` : ''}{item.page ? ` · trang ${item.page}` : ''}</p><p className="mt-2 text-sm leading-6 text-ink-soft">{item.excerpt}</p></li>)}</ul></details>}
+      {answer.answerType === 'GROUNDED' && answer.generationStatus === 'COMPLETED' && !answer.insufficientEvidence && answer.projectEvidence.length > 0 && <details className="assistant-citations assistant-project-sources"><summary>Nguồn từ đồ án ({answer.projectEvidence.length})</summary><ul className="mt-2 space-y-2">{answer.projectEvidence.map((item, index) => <li key={index} className="rounded-lg border border-hairline bg-card p-3 text-sm"><p className="font-semibold">{onOpenEvidence && /^\/api\/v1\/(tasks|milestones|meetings|progress-reports)\/\d+$/.test(item.referenceUrl ?? '') ? <button type="button" className="underline underline-offset-4" onClick={() => onOpenEvidence(item)}>{item.title}</button> : item.title}</p><p className="mt-1 text-ink-soft">{item.excerpt}</p></li>)}</ul></details>}
     </div>)
 
   return <section className={dock ? 'assistant-conversation' : 'relative rounded-xl border border-hairline bg-card p-5 shadow-xs'} aria-label="Trợ lý AI học vụ">
@@ -250,7 +260,7 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
     </div>}
     {dock && !showHistory && <div ref={history} className="assistant-history" role="log" aria-label="Cuộc trò chuyện với trợ lý" aria-live="polite">{toolMode && turns.length === 0 && <div className="assistant-tool-intro"><span className="material-symbols-outlined" aria-hidden="true">{toolMode === 'PROGRESS' ? 'event_note' : toolMode === 'REPORT_REVIEW' ? 'fact_check' : 'description'}</span><h3>{toolMode === 'PROGRESS' ? 'Nắm rõ bước tiếp theo' : toolMode === 'REPORT_REVIEW' ? 'Hoàn thiện báo cáo của bạn' : 'Từ ý tưởng đến bản nháp'}</h3><p>{toolMode === 'PROGRESS' ? 'Xem các công việc và mốc tiến độ cần chú ý trong đồ án.' : toolMode === 'REPORT_REVIEW' ? 'Đối chiếu nội dung với bộ tiêu chí đã công bố, kèm góp ý và nguồn tham chiếu.' : 'Bổ sung nội dung thực tế vào câu hỏi. Trợ lý giúp sắp xếp thành tài liệu để bạn chỉnh sửa và tải về.'}</p></div>}{moreTurns && conversation && <button type="button" disabled={busy || historyBusy} onClick={() => void openConversation(conversation.id, true)}>Xem tin nhắn trước</button>}{turns.map(turn => <div key={turn.id} className="assistant-turn">
       <div className="assistant-user-bubble"><p>{turn.query}</p>{turn.fileNames.map((name, index) => <small key={index}>{name}</small>)}</div>
-      {turn.response ? renderAnswer(turn.response) : turn.error ? <p className="assistant-turn-error">{turn.error}</p> : <div className="assistant-thinking" role="status"><small>Đang viết · nội dung tạm, chưa xác minh nguồn</small><p className="whitespace-pre-wrap">{turn.preview || 'Trợ lý đang trả lời…'}</p></div>}
+      {turn.response ? renderAnswer(turn.response) : turn.error ? <p className="assistant-turn-error">{turn.error}</p> : <AssistantTyping preview={turn.preview} />}
     </div>)}</div>}
     <form hidden={showHistory} className={dock ? 'assistant-composer' : 'mt-4 flex flex-col gap-3'} onSubmit={event => void ask(event)}>
       {toolMode && <div className="assistant-tool-help">
@@ -287,6 +297,7 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
       <p className="text-xs text-ink-muted">Tạo ảnh chưa khả dụng. Hội thoại được lưu theo tài khoản và đồ án. Trợ lý nhớ tối đa 8 lượt gần nhất; cần gửi lại ảnh/tệp để phân tích tiếp nội dung gốc.</p></details>
     </form>
     {error && <p role="alert" className="mt-3 text-sm text-status-error-text">{error}</p>}
+    {!dock && busy && <AssistantTyping />}
     {!dock && answer && renderAnswer(answer)}
   </section>
 }
