@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { AcademicAssistantPanel } from './AcademicAssistantPanel'
 
@@ -106,6 +106,7 @@ it('opens protected citation snapshots and only hands off drafts after confirmat
   fireEvent.change(screen.getByLabelText('Chế độ trợ lý'), { target: { value: 'TASK' } })
   fireEvent.change(screen.getByLabelText('Câu hỏi học vụ'), { target: { value: 'Soạn công việc' } })
   fireEvent.click(screen.getByRole('button', { name: 'Gửi' }))
+  fireEvent.click(await screen.findByText('Tài liệu tham chiếu (1)'))
   fireEvent.click(await screen.findByRole('button', { name: 'Quy trình · vv1' }))
   expect(await screen.findByLabelText('Nguồn trích dẫn')).toBeTruthy()
   expect(conversationApi.getAssistantCitation).toHaveBeenCalledWith(3, 0, expect.any(AbortSignal))
@@ -154,15 +155,67 @@ it('labels general conversation without suggesting it is an official sourced ans
   expect(screen.queryByText('Tài liệu tham chiếu')).toBeNull()
   expect(screen.queryByText('Câu trả lời có nguồn')).toBeNull()
 })
-it('labels fallback and displays exact document and project evidence', async () => {
+it('keeps fallback documents collapsed and hides unselected project context', async () => {
   ask.mockResolvedValue({ answer: 'Nội dung nguồn', generationStatus: 'FALLBACK', insufficientEvidence: false, citations: [{ documentId: 1, versionId: 1, title: 'Quy trình IT', version: 'v1', excerpt: 'Hướng dẫn nộp', documentType: 'PROCESS' }], projectEvidence: [{ title: 'Task kiểm thử', excerpt: 'Đã hoàn thành' }], limitationNote: null })
   render(<AcademicAssistantPanel projectId={5} />)
   fireEvent.change(screen.getByLabelText('Câu hỏi học vụ'), { target: { value: 'Nộp gì?' } })
   fireEvent.click(screen.getByRole('button', { name: 'Hỏi trợ lý học vụ' }))
   expect(await screen.findByText('Trích đoạn nguồn · fallback')).toBeTruthy()
-  expect(screen.getByText('Task kiểm thử')).toBeTruthy()
+  expect(screen.queryByText('Task kiểm thử')).toBeNull()
+  expect(screen.getByText('Tài liệu tham chiếu (1)').closest('details')?.open).toBe(false)
   expect(ask).toHaveBeenCalledWith('Nộp gì?', 5, expect.any(AbortSignal))
 })
+it('shows typing before and during streaming, then removes it after completion', async () => {
+  let preview!: (text: string) => void
+  let complete!: (value: unknown) => void
+  conversationApi.streamAssistant.mockImplementation((_query, _files, _conversation, _page, _draft, onPreview) => {
+    preview = onPreview
+    return new Promise(resolve => { complete = resolve })
+  })
+  render(<AcademicAssistantPanel dock projectId={5} />)
+  fireEvent.change(screen.getByLabelText('Câu hỏi học vụ'), { target: { value: 'Xin chào' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Gửi' }))
+  expect(screen.getByRole('status').textContent).toContain('Đang trả lời')
+  await waitFor(() => expect(conversationApi.streamAssistant).toHaveBeenCalled())
+  act(() => preview('Chào bạn'))
+  expect(screen.getByText('Chào bạn')).toBeTruthy()
+  expect(screen.getByRole('status').textContent).toContain('Đang trả lời')
+  await act(async () => complete({ answer: 'Chào bạn!', answerType: 'GENERAL', generationStatus: 'COMPLETED', citations: [], projectEvidence: [] }))
+  expect(screen.getByText('Chào bạn!')).toBeTruthy()
+  expect(screen.queryByRole('status')).toBeNull()
+})
+
+it('removes the typing effect when stopped', async () => {
+  conversationApi.streamAssistant.mockImplementation(() => new Promise(() => {}))
+  render(<AcademicAssistantPanel dock />)
+  fireEvent.change(screen.getByLabelText('Câu hỏi học vụ'), { target: { value: 'Xin chào' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Gửi' }))
+  await waitFor(() => expect(conversationApi.streamAssistant).toHaveBeenCalled())
+  fireEvent.click(screen.getByRole('button', { name: 'Dừng trả lời' }))
+  expect(screen.queryByRole('status')).toBeNull()
+  expect(screen.getByText(/Đã dừng/)).toBeTruthy()
+})
+
+it('hides legacy unrelated sources on general answers and keeps grounded sources collapsible', async () => {
+  const evidence = { title: 'Kiểm thử đăng nhập', excerpt: 'Đang thực hiện', referenceUrl: '/api/v1/tasks/12' }
+  ask.mockResolvedValue({ answer: 'Xin chào!', answerType: 'GENERAL', generationStatus: 'COMPLETED', citations: [{ title: 'Tài liệu cũ', versionId: 1 }], projectEvidence: [evidence] })
+  const onOpen = vi.fn()
+  render(<AcademicAssistantPanel dock projectId={5} onOpenEvidence={onOpen} />)
+  fireEvent.change(screen.getByLabelText('Câu hỏi học vụ'), { target: { value: 'Xin chào' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Gửi' }))
+  await screen.findByText('Xin chào!')
+  expect(screen.queryByText('Tài liệu cũ')).toBeNull()
+  expect(screen.queryByText('Kiểm thử đăng nhập')).toBeNull()
+  ask.mockResolvedValue({ answer: 'Có công việc đang làm.', answerType: 'GROUNDED', generationStatus: 'COMPLETED', citations: [], projectEvidence: [evidence] })
+  fireEvent.change(screen.getByLabelText('Câu hỏi học vụ'), { target: { value: 'Tiến độ của tôi?' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Gửi' }))
+  const summary = await screen.findByText('Nguồn từ đồ án (1)')
+  expect(summary.closest('details')?.open).toBe(false)
+  fireEvent.click(summary)
+  fireEvent.click(screen.getByRole('button', { name: 'Kiểm thử đăng nhập' }))
+  expect(onOpen).toHaveBeenCalledWith(evidence)
+})
+
 it('discards a pending answer when the project changes', async () => {
   let resolve!: (value: unknown) => void
   ask.mockImplementation(() => new Promise(done => { resolve = done }))

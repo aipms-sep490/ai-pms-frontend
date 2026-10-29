@@ -110,3 +110,11 @@
 .assistant-answer-body ul,.assistant-answer-body ol{padding-left:22px;white-space:normal}
 .assistant-answer-body ul{list-style:disc}.assistant-answer-body ol{list-style:decimal}
 .assistant-answer-body li+li{margin-top:6px}.assistant-answer-body h4{font-weight:700}
+.assistant-typing-status{display:flex;align-items:center;gap:10px;color:var(--color-primary);font-size:13px;font-weight:600;min-height:28px}
+.assistant-typing-dots{display:inline-flex;align-items:center;gap:4px;padding:9px 12px;border-radius:14px;background:#e6f0eb}
+.assistant-typing-dots i{width:5px;height:5px;border-radius:50%;background:currentColor;animation:assistant-typing 1.2s ease-in-out infinite}
+.assistant-typing-dots i:nth-child(2){animation-delay:.15s}.assistant-typing-dots i:nth-child(3){animation-delay:.3s}
+.assistant-stream-preview{margin-top:12px;overflow-wrap:anywhere}
+.assistant-project-sources>ul{max-height:240px;overflow-y:auto;overscroll-behavior:contain}
+@keyframes assistant-typing{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
+@media(prefers-reduced-motion:reduce){.assistant-typing-dots i{animation:none;opacity:.7}}
