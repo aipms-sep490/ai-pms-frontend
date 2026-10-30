@@ -1,4 +1,3 @@
-import { SpotlightLink } from '../../../components/ui/SpotlightLink'
 import { displayLabel } from '../../../components/ui/display-label'
 import { DepartmentWorkflowGuide } from '../components/DepartmentWorkflowGuide'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
@@ -254,22 +253,22 @@ export function DepartmentWorkspacePage() {
 
       {/* Quick Monitoring Navigation Links */}
       <nav aria-label="Lối tắt giám sát bộ môn" className="grid overflow-hidden rounded-xl border border-hairline bg-card sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-hairline">
-        <SpotlightLink className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/portfolio">
+        <Link className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/portfolio">
           <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">folder_managed</span>
           Danh mục đồ án
-        </SpotlightLink>
-        <SpotlightLink className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/supervisors">
+        </Link>
+        <Link className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/supervisors">
           <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">supervisor_account</span>
           Giảng viên hướng dẫn
-        </SpotlightLink>
-        <SpotlightLink className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/topics">
+        </Link>
+        <Link className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/topics">
           <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">lightbulb</span>
           Quản lý đề tài
-        </SpotlightLink>
-        <SpotlightLink className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/student-qualifications">
+        </Link>
+        <Link className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/student-qualifications">
           <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">verified</span>
           Xác minh điều kiện sinh viên
-        </SpotlightLink>
+        </Link>
       </nav>
     </section>
 
