@@ -21,6 +21,15 @@ describe('deliverableError', () => {
     expect(needsAuthoritativeRefresh(error)).toBe(true)
   })
 
+  it('refreshes server state after a status-changing or unknown 409 without offering a mutation retry', () => {
+    for (const code of ['DELIVERABLE_LOCKED', 'DELIVERABLE_HAS_SUBMITTED_HISTORY', 'PROJECT_NOT_ACTIVE', 'DELIVERABLE_DEADLINE_PASSED', 'UNRECOGNIZED_CODE']) {
+      const error = new HttpError('private', 409, { code })
+      expect(deliverableError(error).retryable).toBe(false)
+      expect(needsAuthoritativeRefresh(error)).toBe(true)
+    }
+    expect(needsAuthoritativeRefresh(new HttpError('private', 409, { code: 'MILESTONE_NOT_IN_PROJECT' }))).toBe(false)
+  })
+
   it('keeps unknown codes and missing problem bodies generic without leaking them', () => {
     for (const error of [
       new HttpError('English', 409, { code: 'UNRECOGNIZED_CODE', detail: 'English', traceId: 'secret' }),

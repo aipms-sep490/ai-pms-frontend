@@ -46,7 +46,5 @@ export function reportError(reason: unknown): string {
 }
 
 export function reportNeedsAuthoritativeRefresh(reason: unknown): boolean {
-  if (!(reason instanceof HttpError) || reason.status !== 409) return false
-  const known = workflowErrorFromCode(reason.problem?.code)
-  return !known || known.nextAction === 'reload'
+  return reason instanceof HttpError && reason.status === 409
 }

@@ -8,7 +8,7 @@ import { ProgressReportDetailPage } from './ProgressReportDetailPage'
 import { ProgressReportsPage } from './ProgressReportsPage'
 import type { ReportDetail } from './report-types'
 import type { ReportingCycle } from '../../services/api/progress-reports.api'
-import { reportError, reportFieldErrors } from './report-errors'
+import { reportError, reportFieldErrors, reportNeedsAuthoritativeRefresh } from './report-errors'
 
 const api = vi.hoisted(() => ({
   getProgressReports: vi.fn(),
@@ -292,6 +292,28 @@ describe('Progress reports workflow', () => {
     await screen.findByRole('alert')
     expect((screen.getByLabelText(/Tóm tắt tiến độ/) as HTMLTextAreaElement).value).toBe('Nội dung cần giữ lại')
     expect(screen.getByText('Lưu thay đổi trước khi nộp.')).toBeTruthy()
+  })
+
+  it('refreshes a report locked by another session and switches the editor to read-only', async () => {
+    api.getProgressReport
+      .mockResolvedValueOnce(draft)
+      .mockResolvedValueOnce({ ...draft, status: 'SUBMITTED', submittedAt: '2026-09-21T08:00:00Z' })
+    api.updateProgressReport.mockRejectedValueOnce(new HttpError('private', 409, { code: 'REPORT_NOT_EDITABLE' }))
+    mount({ leader: false })
+    await screen.findByLabelText(/Tóm tắt tiến độ/)
+    input('Tóm tắt tiến độ', 'Nội dung từ phiên cũ')
+    click('Lưu thay đổi')
+    expect(await screen.findByText('Đã nộp')).toBeTruthy()
+    expect(api.getProgressReport).toHaveBeenCalledTimes(2)
+    expect(screen.queryByRole('button', { name: 'Lưu thay đổi' })).toBeNull()
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(api.updateProgressReport).toHaveBeenCalledOnce()
+  })
+
+  it('refreshes every report 409 independently of the display action', () => {
+    expect(reportNeedsAuthoritativeRefresh(new HttpError('private', 409, { code: 'REPORT_NOT_EDITABLE' }))).toBe(true)
+    expect(reportNeedsAuthoritativeRefresh(new HttpError('private', 409, { code: 'STALE_CONCURRENCY_TOKEN' }))).toBe(true)
+    expect(reportNeedsAuthoritativeRefresh(new HttpError('private', 409, { code: 'UNKNOWN' }))).toBe(true)
   })
 
   it('does not reveal a report from another project', async () => {

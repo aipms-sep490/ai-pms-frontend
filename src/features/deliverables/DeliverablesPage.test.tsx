@@ -62,6 +62,21 @@ describe('DeliverablesPage', () => {
     expect(api.getDeliverables).toHaveBeenCalledTimes(1)
   })
 
+  it('refreshes a locked deliverable and removes the stale upload form', async () => {
+    api.getDeliverables
+      .mockResolvedValueOnce({ items: [item], page: 1, pageSize: 10, totalCount: 1, totalPages: 1 })
+      .mockResolvedValueOnce({ items: [{ ...item, status: 'ACCEPTED' }], page: 1, pageSize: 10, totalCount: 1, totalPages: 1 })
+    api.submitDeliverableVersion.mockRejectedValueOnce(new HttpError('private', 409, { code: 'DELIVERABLE_LOCKED' }))
+    page(); await screen.findByText('Báo cáo thiết kế')
+    fireEvent.change(screen.getByLabelText('Tệp Báo cáo thiết kế'), { target: { files: [new File(['a'], 'report.pdf', { type: 'application/pdf' })] } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Nộp phiên bản' }).closest('form')!)
+    expect(await screen.findByText('Đã chấp nhận', { selector: 'span.ex-badge' })).toBeTruthy()
+    expect(api.getDeliverables).toHaveBeenCalledTimes(2)
+    expect(screen.queryByRole('button', { name: 'Nộp phiên bản' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Thử lại|Tải lại dữ liệu/ })).toBeNull()
+    expect(api.submitDeliverableVersion).toHaveBeenCalledOnce()
+  })
+
   it('offers read retry after 503 without automatically resubmitting the upload', async () => {
     api.submitDeliverableVersion.mockRejectedValue(new HttpError('private server error', 503, { traceId: 'private' }))
     page(); await screen.findByText('Báo cáo thiết kế')

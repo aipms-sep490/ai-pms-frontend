@@ -44,6 +44,8 @@ export function deliverableError(reason: unknown): WorkflowErrorFeedback {
 
 export function needsAuthoritativeRefresh(reason: unknown): boolean {
   if (!(reason instanceof HttpError) || reason.status !== 409) return false
-  const known = workflowErrorFromCode(reason.problem?.code)
-  return !known || known.nextAction === 'reload'
+  // A 409 can make the current list stale even when the user must not retry the write.
+  // These two codes do not change the deliverable state shown on this page.
+  return reason.problem?.code !== 'EXECUTION_WINDOW_REQUIRED'
+    && reason.problem?.code !== 'MILESTONE_NOT_IN_PROJECT'
 }
