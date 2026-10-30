@@ -18,7 +18,7 @@ export function StudentJourneyHero() {
         badge: 'Chưa đồng bộ dữ liệu',
         badgeClass: 'bg-rose-100 text-rose-800 border-rose-200',
         title: 'Không thể tải trạng thái đồ án',
-        desc: `${error}. Hãy kiểm tra kết nối rồi thử lại.`,
+        desc: error,
         icon: 'cloud_off',
         iconBg: 'bg-rose-600 text-white',
         ctaText: 'Thử tải lại',
