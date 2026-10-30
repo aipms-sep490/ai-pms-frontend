@@ -35,6 +35,8 @@ export function useSupervisorSelection({
   const [error, setError] = useState<SupervisionError | null>(null)
   const [query, setQuery] = useState({ search: '', expertise: '' })
   const appliedQuery = useRef({ search: '', expertise: '' })
+  const readVersion = useRef(0)
+  const [selectedSlotKey, setSlotKey] = useState<string | null>(null)
 
   const isLeader = Boolean(team?.members.some((member) => member.userId === profile?.id && member.isLeader))
   const canSendAction = isActionAllowed(actions?.actions ?? [], 'send_supervisor_request')
@@ -49,31 +51,43 @@ export function useSupervisorSelection({
       .map((reason) => Number(reason.split(':')[1]))
   }, [actions, project])
   const canSendMentor = canSendAction && isLeader && missingMentorMajorIds.length > 0
+  const missingMentorKey = missingMentorMajorIds.join(',')
+  const resolveSlotKey = useCallback((needsPrimary: boolean) => {
+    const slots = [...(needsPrimary ? ['PRIMARY'] : []), ...missingMentorKey.split(',').filter(Boolean).map(id => `MENTOR-${id}`)]
+    return selectedSlotKey && slots.includes(selectedSlotKey) ? selectedSlotKey : slots[0] ?? null
+  }, [missingMentorKey, selectedSlotKey])
+  const slotKey = resolveSlotKey(!activeAssignment)
 
   const refresh = useCallback(async (refreshCandidates = true, filters = appliedQuery.current) => {
+    const version = ++readVersion.current
     if (!project) { setCandidates([]); setRequests([]); setAssignments([]); setLoading(false); return }
-    setLoading(true); setError(null)
+    setLoading(true); setError(null); setCandidates([])
     try {
       const [requestResult, assignmentResult] = await Promise.all([
         services.supervisor.getRequests(project.id),
         services.supervisor.getAssignments(project.id),
       ])
+      if (version !== readVersion.current) return
       setRequests(requestResult.items)
       setAssignments(assignmentResult.items)
       const stillNeedsPrimary = !getActivePrimaryAssignment(assignmentResult.items)
-      if (refreshCandidates && canSendAction && isLeader && (stillNeedsPrimary || missingMentorMajorIds.length > 0)) {
+      const requestedSlot = resolveSlotKey(stillNeedsPrimary)
+      if (refreshCandidates && canSendAction && isLeader && requestedSlot) {
         setCandidateLoading(true)
         const candidateResult = await services.supervisor.getCandidates(project.id, {
           search: filters.search.trim() || undefined,
           expertise: filters.expertise.trim() || undefined,
+          assignmentType: requestedSlot === 'PRIMARY' ? 'PRIMARY' : 'DISCIPLINE_MENTOR',
+          majorId: requestedSlot === 'PRIMARY' ? undefined : Number(requestedSlot.slice('MENTOR-'.length)),
         })
+        if (version !== readVersion.current) return
         setCandidates(candidateResult.items)
       } else setCandidates([])
-    } catch (nextError) { setError(classify(nextError)) }
-    finally { setLoading(false); setCandidateLoading(false) }
-  }, [canSendAction, isLeader, missingMentorMajorIds.length, project])
+    } catch (nextError) { if (version === readVersion.current) setError(classify(nextError)) }
+    finally { if (version === readVersion.current) { setLoading(false); setCandidateLoading(false) } }
+  }, [canSendAction, isLeader, resolveSlotKey, project])
 
-  useEffect(() => { void refresh() }, [refresh])
+  useEffect(() => { void refresh(); return () => { readVersion.current++ } }, [refresh])
 
   const applyFilters = useCallback(async () => {
     const filters = { search: query.search, expertise: query.expertise }
@@ -120,6 +134,7 @@ export function useSupervisorSelection({
   return {
     candidates, requests, assignments, activeAssignment, loading, candidateLoading, sendRequestPending, cancelPending,
     error, query, setQuery, applyFilters, refresh, send, cancel, isLeader, missingMentorMajorIds,
+    slotKey, setSlotKey,
     canSend: canSendAction && isLeader && !activeAssignment,
     canSendMentor,
   }

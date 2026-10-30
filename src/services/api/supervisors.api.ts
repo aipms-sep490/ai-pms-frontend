@@ -94,6 +94,8 @@ export async function getCandidates(
   params?: {
     search?: string
     expertise?: string
+    assignmentType?: 'PRIMARY' | 'DISCIPLINE_MENTOR'
+    majorId?: number
     page?: number
     pageSize?: number
   },
@@ -103,6 +105,8 @@ export async function getCandidates(
   const searchParams = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
   if (params?.search) searchParams.append('search', params.search)
   if (params?.expertise) searchParams.append('expertise', params.expertise)
+  if (params?.assignmentType) searchParams.append('assignmentType', params.assignmentType)
+  if (params?.majorId != null) searchParams.append('majorId', String(params.majorId))
 
   if (env.isMockMode) {
     let filtered = [...mockCandidates]

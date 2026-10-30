@@ -5,6 +5,12 @@ const ok = (value: unknown) => ({ ok: true, json: async () => value })
 afterEach(() => vi.unstubAllGlobals())
 
 describe('supervision API contracts', () => {
+  it('scopes candidates to the requested mentor major', async () => {
+    const fetch = vi.fn().mockResolvedValue(ok({ items: [] }))
+    vi.stubGlobal('fetch', fetch)
+    await getCandidates(9, { assignmentType: 'DISCIPLINE_MENTOR', majorId: 7 })
+    expect(fetch).toHaveBeenCalledWith('/api/v1/projects/9/supervisor-candidates?page=1&pageSize=20&assignmentType=DISCIPLINE_MENTOR&majorId=7', expect.anything())
+  })
   it('uses the project-specific candidate route, never the generic supervisor directory', async () => {
     const fetch = vi.fn().mockResolvedValue(ok({ items: [] }))
     vi.stubGlobal('fetch', fetch)
