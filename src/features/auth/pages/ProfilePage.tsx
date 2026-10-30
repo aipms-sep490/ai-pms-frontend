@@ -58,13 +58,9 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
 
   useEffect(() => {
     const controller = new AbortController()
-    const request = ++requestId.current
-    void getMyProfile(controller.signal).then(
-      latest => { if (!controller.signal.aborted && request === requestId.current) setProfile(latest) },
-      reason => { if (!controller.signal.aborted && request === requestId.current) setProfileError(reason instanceof Error ? reason : new Error('Profile read failed.')) },
-    ).finally(() => { if (!controller.signal.aborted && request === requestId.current) setProfileLoading(false) })
+    void Promise.resolve().then(() => loadProfile(controller.signal))
     return () => controller.abort()
-  }, [])
+  }, [loadProfile])
 
   const retryProfile = () => {
     setProfileLoading(true)

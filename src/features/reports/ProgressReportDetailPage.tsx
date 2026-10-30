@@ -1,4 +1,4 @@
-import { reportError, reportNeedsAuthoritativeRefresh } from './report-errors'
+import { reportError, reportFieldErrors, reportNeedsAuthoritativeRefresh } from './report-errors'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom'
 import { useExecutionAccess, type ExecutionAccess } from '../execution/context/ExecutionAccessContext'
@@ -44,6 +44,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [error, setError] = useState('')
+  const [serverFieldErrors, setServerFieldErrors] = useState<Record<string, string>>({})
   const [success, setSuccess] = useState('')
   const [busy, setBusy] = useState(false)
   const locked = useRef(false)
@@ -146,12 +147,14 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
     locked.current = true
     setBusy(true)
     setError('')
+    setServerFieldErrors({})
     setSuccess('')
     try {
       await action()
     } catch (reason) {
       if (mounted.current) {
         setError(reportError(reason))
+        setServerFieldErrors(reportFieldErrors(reason))
         if (!create && reportNeedsAuthoritativeRefresh(reason)) {
           try {
             const latest = await api.getProgressReport(id)
@@ -294,11 +297,13 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
                   report={report ?? undefined}
                   cycles={cycles}
                   existingReports={existingReports}
+                  fieldErrors={serverFieldErrors}
                   busy={busy}
                   onSave={save}
                   onDirtyChange={(value) => {
                     setDirty(value)
                     setConfirmSubmit(false)
+                    if (value) setServerFieldErrors({})
                   }}
                 />
               ) : (

@@ -8,7 +8,7 @@ import { ProgressReportDetailPage } from './ProgressReportDetailPage'
 import { ProgressReportsPage } from './ProgressReportsPage'
 import type { ReportDetail } from './report-types'
 import type { ReportingCycle } from '../../services/api/progress-reports.api'
-import { reportError } from './report-errors'
+import { reportError, reportFieldErrors, reportNeedsAuthoritativeRefresh } from './report-errors'
 
 const api = vi.hoisted(() => ({
   getProgressReports: vi.fn(),
@@ -294,6 +294,28 @@ describe('Progress reports workflow', () => {
     expect(screen.getByText('Lưu thay đổi trước khi nộp.')).toBeTruthy()
   })
 
+  it('refreshes a report locked by another session and switches the editor to read-only', async () => {
+    api.getProgressReport
+      .mockResolvedValueOnce(draft)
+      .mockResolvedValueOnce({ ...draft, status: 'SUBMITTED', submittedAt: '2026-09-21T08:00:00Z' })
+    api.updateProgressReport.mockRejectedValueOnce(new HttpError('private', 409, { code: 'REPORT_NOT_EDITABLE' }))
+    mount({ leader: false })
+    await screen.findByLabelText(/Tóm tắt tiến độ/)
+    input('Tóm tắt tiến độ', 'Nội dung từ phiên cũ')
+    click('Lưu thay đổi')
+    expect(await screen.findByText('Đã nộp')).toBeTruthy()
+    expect(api.getProgressReport).toHaveBeenCalledTimes(2)
+    expect(screen.queryByRole('button', { name: 'Lưu thay đổi' })).toBeNull()
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(api.updateProgressReport).toHaveBeenCalledOnce()
+  })
+
+  it('refreshes every report 409 independently of the display action', () => {
+    expect(reportNeedsAuthoritativeRefresh(new HttpError('private', 409, { code: 'REPORT_NOT_EDITABLE' }))).toBe(true)
+    expect(reportNeedsAuthoritativeRefresh(new HttpError('private', 409, { code: 'STALE_CONCURRENCY_TOKEN' }))).toBe(true)
+    expect(reportNeedsAuthoritativeRefresh(new HttpError('private', 409, { code: 'UNKNOWN' }))).toBe(true)
+  })
+
   it('does not reveal a report from another project', async () => {
     api.getProgressReport.mockResolvedValue({ ...draft, projectId: 999 })
     mount()
@@ -571,6 +593,41 @@ describe('Progress reports workflow', () => {
     expect(reportError(new HttpError('validation', 400, { errors: { inProgressWork: ['private sentinel'], unknownPrivateField: ['internal'] }, traceId: 'private trace' }))).toBe('Kiểm tra các mục nội dung: Công việc đang thực hiện.')
     const noCode = reportError(new HttpError('conflict', 409, { detail: 'Submission deadline has passed for this reporting cycle. private sentinel' }))
     expect(noCode).toBe('Chưa hoàn tất thao tác. Kiểm tra kỳ báo cáo, báo cáo đã có và hạn nộp; tải lại trạng thái trước khi thử lại.')
+  })
+
+  it.each([
+    ['REPORT_NOT_EDITABLE', 'không thể sửa'],
+    ['REPORT_ALREADY_SUBMITTED', 'đã được nộp'],
+  ])('renders verified report code %s in Vietnamese', (code, phrase) => {
+    const message = reportError(new HttpError('private English detail', 409, { code, detail: 'private English detail', traceId: 'private trace' }))
+    expect(message).toContain(phrase)
+    expect(message).not.toMatch(/private English detail|private trace|REPORT_/)
+  })
+
+  it.each([
+    'REPORT_CYCLE_REQUIRED', 'REPORT_DEADLINE_PASSED', 'REPORT_ALREADY_EXISTS_FOR_CYCLE',
+    'REPORT_ALREADY_EXISTS_FOR_PERIOD', 'REPORT_FEEDBACK_ON_DRAFT_NOT_ALLOWED',
+  ])('keeps unverified response code %s on the generic path', code => {
+    const message = reportError(new HttpError('private English detail', 409, { code, detail: 'private English detail' }))
+    expect(message).toBe('Chưa hoàn tất thao tác. Kiểm tra kỳ báo cáo, báo cáo đã có và hạn nộp; tải lại trạng thái trước khi thử lại.')
+  })
+
+  it('maps safe field labels for inline errors without exposing backend text', async () => {
+    const serverError = new HttpError('English validation', 422, {
+      errors: { inProgressWork: ['private sentinel'], unknownPrivateField: ['internal'] }, traceId: 'private trace',
+    })
+    expect(reportFieldErrors(serverError)).toEqual({ inProgressWork: 'Kiểm tra mục Công việc đang thực hiện.' })
+    api.createProgressReport.mockRejectedValueOnce(serverError)
+    api.getProgressReports.mockResolvedValueOnce({ items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 })
+    mount({ path: '/project/reports/new' })
+    fireEvent.change(await screen.findByLabelText(/Chọn kỳ báo cáo/), { target: { value: '101' } })
+    input('Tóm tắt tiến độ', 'Nội dung chưa lưu')
+    click('Lưu bản nháp')
+    const field = await screen.findByLabelText(/Công việc đang thực hiện/)
+    await waitFor(() => expect(field.getAttribute('aria-invalid')).toBe('true'))
+    expect(screen.getByText('Kiểm tra mục Công việc đang thực hiện.')).toBeTruthy()
+    expect((screen.getByLabelText(/Tóm tắt tiến độ/) as HTMLTextAreaElement).value).toBe('Nội dung chưa lưu')
+    expect(screen.getAllByRole('alert').map(alert => alert.textContent).join(' ')).not.toMatch(/private sentinel|internal|private trace/)
   })
 
   it('displays "Nộp trễ hạn" badge only when isLate is true from BE', async () => {
