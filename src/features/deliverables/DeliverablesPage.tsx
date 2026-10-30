@@ -9,6 +9,7 @@ import type { PagedResult } from '../../types/backend'
 import { ExIcon, ExPagination, ExState, ExecutionPage } from '../execution/execution-ui'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { deliverableError, needsAuthoritativeRefresh } from './deliverable-errors'
+import type { WorkflowErrorFeedback } from '../execution/execution-error-codes'
 import type { Deliverable, DeliverableFeedback, DeliverableStatus, DeliverableVersion, SaveDeliverable } from './deliverable-types'
 import './deliverables.css'
 
@@ -18,6 +19,8 @@ const statusLabel: Record<DeliverableStatus, string> = {
 const statuses = Object.keys(statusLabel) as DeliverableStatus[]
 type VersionState = PagedResult<DeliverableVersion> & { deliverableId: number }
 type FeedbackState = PagedResult<DeliverableFeedback> & { versionId: number }
+type ErrorTarget = { kind: 'upload' | 'definition' | 'review'; id: number | null }
+type PageError = WorkflowErrorFeedback & { target?: ErrorTarget }
 
 export function DeliverablesPage() {
   const access = useExecutionAccess()
@@ -40,7 +43,7 @@ function DeliverablesView() {
   const [loading, setLoading] = useState(true)
   const [detailLoading, setDetailLoading] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState<PageError | null>(null)
   const [success, setSuccess] = useState('')
   const [revision, setRevision] = useState(0)
   const [showCreate, setShowCreate] = useState(false)
@@ -53,7 +56,7 @@ function DeliverablesView() {
   useEffect(() => setFilterDraft({ search: search ?? '', status: status ?? '', deliverableType: deliverableType ?? '' }), [search, status, deliverableType])
 
   const load = useCallback(async (signal?: AbortSignal) => {
-    setLoading(true); setError('')
+    setLoading(true); setError(null)
     try {
       const result = await api.getDeliverables(project.id, { search, status, deliverableType, page, pageSize: 10 }, signal)
       if (!signal?.aborted) {
@@ -68,7 +71,7 @@ function DeliverablesView() {
 
   const loadVersions = useCallback(async (item: Deliverable, versionPage = 1, signal?: AbortSignal) => {
     const request = ++detailRequest.current
-    setSelected(item); setVersions(null); setSelectedVersion(null); setFeedback(null); setDetailLoading(true); setError('')
+    setSelected(item); setVersions(null); setSelectedVersion(null); setFeedback(null); setDetailLoading(true); setError(null)
     try {
       const result = await api.getDeliverableVersions(item.id, versionPage, 10, signal)
       if (!signal?.aborted && request === detailRequest.current) setVersions({ ...result, deliverableId: item.id })
@@ -78,7 +81,7 @@ function DeliverablesView() {
 
   const loadFeedback = useCallback(async (version: DeliverableVersion, feedbackPage = 1, signal?: AbortSignal) => {
     const request = ++detailRequest.current
-    setSelectedVersion(version); setFeedback(null); setDetailLoading(true); setError('')
+    setSelectedVersion(version); setFeedback(null); setDetailLoading(true); setError(null)
     try {
       const result = await api.getDeliverableFeedback(version.id, feedbackPage, 10, signal)
       if (!signal?.aborted && request === detailRequest.current) setFeedback({ ...result, versionId: version.id })
@@ -88,9 +91,9 @@ function DeliverablesView() {
 
   useEffect(() => { const controller = new AbortController(); void load(controller.signal); return () => controller.abort() }, [load, revision])
 
-  async function mutate(action: () => Promise<unknown>, message: string, refreshDetail = false) {
+  async function mutate(action: () => Promise<unknown>, message: string, refreshDetail = false, target?: ErrorTarget) {
     if (mutationLock.current) return
-    mutationLock.current = true; setBusy(true); setError(''); setSuccess('')
+    mutationLock.current = true; setBusy(true); setError(null); setSuccess('')
     try {
       await action(); setSuccess(message); setShowCreate(false); setEditing(null); setDeleteTarget(null)
       const refreshed = await load()
@@ -106,7 +109,7 @@ function DeliverablesView() {
           if (current) await loadVersions(current)
         }
       }
-      setError(deliverableError(reason))
+      setError({ ...deliverableError(reason), target })
     } finally { mutationLock.current = false; setBusy(false) }
   }
 
@@ -127,6 +130,7 @@ function DeliverablesView() {
       () => item ? api.updateDeliverable(item.id, body) : api.createDeliverable(project.id, body),
       item ? 'Đã cập nhật định nghĩa hạng mục.' : 'Đã tạo hạng mục cần nộp.',
       Boolean(item && selected?.id === item.id),
+      { kind: 'definition', id: item?.id ?? null },
     )
   }
 
@@ -136,11 +140,12 @@ function DeliverablesView() {
     const input = event.currentTarget.elements.namedItem('file')
     const files = input instanceof HTMLInputElement ? input.files : null
     const file = files ? (typeof files.item === 'function' ? files.item(0) : files[0] ?? null) : null
-    if (!isUploadFile(file)) { setError('Hãy chọn một tệp trước khi nộp phiên bản.'); return }
+    if (!isUploadFile(file)) { setError({ message: 'Hãy chọn một tệp trước khi nộp phiên bản.', retryable: false, target: { kind: 'upload', id: item.id } }); return }
     void mutate(
       () => api.submitDeliverableVersion(item.id, item.latestVersion, file, String(form.get('note') ?? '')),
       'Đã nộp phiên bản mới. Phiên bản cũ vẫn được giữ nguyên.',
       selected?.id === item.id,
+      { kind: 'upload', id: item.id },
     )
   }
 
@@ -151,13 +156,13 @@ function DeliverablesView() {
     if (readOnly || !feedbackText) return
     void mutate(
       () => api.reviewDeliverableVersion(version.id, String(form.get('decision')) as 'ACCEPTED' | 'REJECTED', feedbackText),
-      'Đã lưu quyết định và nhận xét cho phiên bản.', true,
+      'Đã lưu quyết định và nhận xét cho phiên bản.', true, { kind: 'review', id: version.id },
     )
   }
 
   async function download(file: DeliverableVersion['files'][number]) {
     if (mutationLock.current) return
-    mutationLock.current = true; setBusy(true); setError('')
+    mutationLock.current = true; setBusy(true); setError(null)
     try {
       const blob = await api.downloadDeliverableFile(file.id)
       const url = URL.createObjectURL(blob)
@@ -173,8 +178,8 @@ function DeliverablesView() {
     description="Theo dõi yêu cầu đầu ra, các phiên bản đã nộp và phản hồi của giảng viên."
     action={<><Link className="ex-button" to={`${routeBase}/workspace`}><ExIcon name="dashboard" />Không gian đồ án</Link>{canManageStructure && <button className="ex-button ex-button-primary" type="button" onClick={() => { setShowCreate((value) => !value); setEditing(null) }}><ExIcon name="add" />Tạo hạng mục</button>}</>}>
     {success && <p className="ex-notice" role="status">{success}</p>}
-    {error && !selected && <div className="ex-notice ex-notice-error" role="alert"><p>{error}</p><button className="ex-text-button" disabled={loading || busy} onClick={() => setRevision((value) => value + 1)}>Tải lại dữ liệu</button></div>}
-    {showCreate && canManageStructure && <DefinitionForm title="Tạo hạng mục cần nộp" item={null} busy={busy} onSubmit={saveDefinition} onCancel={() => setShowCreate(false)} />}
+    {error && !selected && <div className="ex-notice ex-notice-error" role="alert"><p>{error.message}</p>{error.retryable && <button className="ex-text-button" type="button" disabled={loading || busy} onClick={() => setRevision((value) => value + 1)}>{error.nextAction === 'reload' ? 'Tải lại dữ liệu' : 'Thử lại'}</button>}</div>}
+    {showCreate && canManageStructure && <DefinitionForm title="Tạo hạng mục cần nộp" item={null} busy={busy} fieldErrors={error?.target?.kind === 'definition' && error.target.id === null ? error.fieldErrors : undefined} onSubmit={saveDefinition} onCancel={() => setShowCreate(false)} />}
 
     <section className="ex-panel" aria-label="Danh sách hạng mục cần nộp">
       <form className="ex-filters" onSubmit={applyFilters}>
@@ -191,8 +196,8 @@ function DeliverablesView() {
           <span className={`ex-badge ex-badge-${item.status}`}>{statusLabel[item.status] ?? 'Trạng thái chưa xác định'}</span>
           <span className="deliverable-version">V{item.latestVersion}</span>
           <div className="deliverable-actions"><button className="ex-text-button" type="button" onClick={() => void loadVersions(item)}>Xem phiên bản</button>{canManageStructure && <button className="ex-text-button" type="button" onClick={() => { setEditing(item); setShowCreate(false) }}>Sửa</button>}{canManageStructure && ['DRAFT', 'OPEN'].includes(item.status) && item.latestVersion === 0 && <button className="ex-text-button ex-danger-text" type="button" onClick={() => setDeleteTarget(item)}>Xóa</button>}</div>
-          {actor === 'student' && !['ACCEPTED', 'CLOSED'].includes(item.status) && <form className="deliverable-upload" onSubmit={(event) => submitVersion(event, item)}><DeliverableFileInput title={item.title} disabled={busy} /><label>Ghi chú phiên bản<input aria-label={`Ghi chú ${item.title}`} name="note" maxLength={2000} disabled={busy} /></label><button className="ex-button ex-button-primary" disabled={busy}>Nộp phiên bản</button></form>}
-          {editing?.id === item.id && <div className="deliverable-inline-form"><DefinitionForm title={`Sửa ${item.title}`} item={item} busy={busy} onSubmit={saveDefinition} onCancel={() => setEditing(null)} /></div>}
+          {actor === 'student' && !['ACCEPTED', 'CLOSED'].includes(item.status) && <form className="deliverable-upload" onSubmit={(event) => submitVersion(event, item)}><DeliverableFileInput title={item.title} id={item.id} disabled={busy} error={error?.target?.kind === 'upload' && error.target.id === item.id ? error.fieldErrors?.file : undefined} /><label>Ghi chú phiên bản<input aria-label={`Ghi chú ${item.title}`} name="note" maxLength={2000} disabled={busy} aria-invalid={error?.target?.kind === 'upload' && error.target.id === item.id && error.fieldErrors?.note ? true : undefined} aria-describedby={error?.target?.kind === 'upload' && error.target.id === item.id && error.fieldErrors?.note ? `deliverable-note-error-${item.id}` : undefined} />{error?.target?.kind === 'upload' && error.target.id === item.id && error.fieldErrors?.note && <small id={`deliverable-note-error-${item.id}`} role="alert">{error.fieldErrors.note}</small>}</label><button className="ex-button ex-button-primary" disabled={busy}>Nộp phiên bản</button></form>}
+          {editing?.id === item.id && <div className="deliverable-inline-form"><DefinitionForm title={`Sửa ${item.title}`} item={item} busy={busy} fieldErrors={error?.target?.kind === 'definition' && error.target.id === item.id ? error.fieldErrors : undefined} onSubmit={saveDefinition} onCancel={() => setEditing(null)} /></div>}
           {deleteTarget?.id === item.id && <div className="deliverable-delete"><h3>Xóa hạng mục chưa có phiên bản?</h3><p>Hạng mục chỉ có thể xóa khi vẫn đang mở và chưa từng nhận phiên bản nào.</p><div className="ex-actions"><button className="ex-button" disabled={busy} onClick={() => setDeleteTarget(null)}>Giữ lại</button><button className="ex-button ex-button-danger" disabled={busy} onClick={() => void mutate(() => api.deleteDeliverable(item.id), 'Đã xóa hạng mục.')}>Xác nhận xóa</button></div></div>}
         </article>)}</div>
         <ExPagination page={page} pages={data.totalPages} total={data.totalCount} busy={loading} onPage={(next) => { const query = new URLSearchParams(params); query.set('page', String(next)); setParams(query) }} />
@@ -200,7 +205,7 @@ function DeliverablesView() {
     </section>
 
     {selected && <Modal open drawer busy={busy} title="Lịch sử phiên bản" description={selected.title} onClose={closeHistory}><div className="deliverable-history-detail">
-      {error && <p role="alert" className="ex-notice ex-notice-error">{error}</p>}
+      {error && <div role="alert" className="ex-notice ex-notice-error"><p>{error.message}</p>{error.retryable && <button className="ex-text-button" type="button" disabled={detailLoading || busy} onClick={() => selectedVersion ? void loadFeedback(selectedVersion) : void loadVersions(selected)}>{error.nextAction === 'reload' ? 'Tải lại dữ liệu' : 'Thử lại'}</button>}</div>}
       {detailLoading && !versions ? <ExState loading /> : versions && versions.items.length === 0 ? <ExState title="Chưa có phiên bản" message="Thành viên nhóm có thể nộp phiên bản đầu tiên khi đồ án đang ở giai đoạn thực hiện." /> : versions && <>
         <div className="deliverable-history">{versions.items.map((version) => <article key={version.id} className="deliverable-history-row"><div><h3>Phiên bản {version.versionNumber}</h3><p>{version.note || 'Không có ghi chú.'}</p><small>Nộp {formatDate(version.submittedAt)}</small></div><span className={`ex-badge ex-badge-${version.status}`}>{statusLabel[version.status] ?? version.status}</span><div className="deliverable-file-list">{version.files.map((file) => <div key={file.id} className="flex items-center gap-1.5"><button className="ex-text-button flex items-center gap-1" type="button" disabled={busy} onClick={() => setPreviewTarget(file)}><span className="material-symbols-outlined text-[16px]">visibility</span><span>{file.fileName}</span> <small>({formatBytes(file.sizeBytes)})</small></button><button className="ex-text-button" type="button" disabled={busy} title="Tải xuống tệp" onClick={() => void download(file)}><ExIcon name="download" /></button></div>)}</div><button className="ex-text-button" type="button" onClick={() => void loadFeedback(version)}>Xem phản hồi</button>
           {!readOnly && actor === 'supervisor' && version.status === 'SUBMITTED' && version.versionNumber === selected.latestVersion && <form className="deliverable-review" onSubmit={(event) => reviewVersion(event, version)}><label>Quyết định<select name="decision"><option value="ACCEPTED">Chấp nhận</option><option value="REJECTED">Yêu cầu chỉnh sửa</option></select></label><label>Nhận xét bắt buộc<input aria-label={`Nhận xét V${version.versionNumber}`} name="feedback" required maxLength={10000} /></label><button className="ex-button ex-button-primary" disabled={busy}>Gửi đánh giá</button></form>}
@@ -213,13 +218,14 @@ function DeliverablesView() {
   </ExecutionPage>
 }
 
-function DefinitionForm({ title, item, busy, onSubmit, onCancel }: { title: string; item: Deliverable | null; busy: boolean; onSubmit: (event: FormEvent<HTMLFormElement>, item?: Deliverable) => void; onCancel: () => void }) {
-  return <section className={item ? 'deliverable-definition deliverable-definition-inline' : 'ex-panel deliverable-definition'}><div className="ex-panel-heading"><div><h2>{title}</h2><p>Loại hạng mục và hạn nộp sẽ được kiểm tra khi lưu.</p></div></div><form className="ex-form" onSubmit={(event) => onSubmit(event, item ?? undefined)}><fieldset disabled={busy}><div className="ex-fields"><label>Tên hạng mục *<input name="title" required maxLength={255} defaultValue={item?.title ?? ''} /></label><label>Loại hạng mục<input name="deliverableType" maxLength={50} defaultValue={item?.deliverableType ?? ''} /></label><label className="ex-full">Mô tả<textarea name="description" maxLength={10000} rows={4} defaultValue={item?.description ?? ''} /></label><label>Hạn nộp theo giờ Việt Nam<input name="dueAt" type="datetime-local" defaultValue={toDateTimeInput(item?.dueAt ?? null)} /></label></div><div className="ex-form-footer"><button className="ex-button" type="button" onClick={onCancel}>Hủy</button><button className="ex-button ex-button-primary">{busy ? 'Đang lưu…' : 'Lưu hạng mục'}</button></div></fieldset></form></section>
+function DefinitionForm({ title, item, busy, fieldErrors, onSubmit, onCancel }: { title: string; item: Deliverable | null; busy: boolean; fieldErrors?: Record<string, string>; onSubmit: (event: FormEvent<HTMLFormElement>, item?: Deliverable) => void; onCancel: () => void }) {
+  const field = (name: 'title' | 'deliverableType' | 'description' | 'dueAt') => fieldErrors?.[name] && <small role="alert">{fieldErrors[name]}</small>
+  return <section className={item ? 'deliverable-definition deliverable-definition-inline' : 'ex-panel deliverable-definition'}><div className="ex-panel-heading"><div><h2>{title}</h2><p>Loại hạng mục và hạn nộp sẽ được kiểm tra khi lưu.</p></div></div><form className="ex-form" onSubmit={(event) => onSubmit(event, item ?? undefined)}><fieldset disabled={busy}><div className="ex-fields"><label>Tên hạng mục *<input name="title" required maxLength={255} defaultValue={item?.title ?? ''} aria-invalid={fieldErrors?.title ? true : undefined} />{field('title')}</label><label>Loại hạng mục<input name="deliverableType" maxLength={50} defaultValue={item?.deliverableType ?? ''} aria-invalid={fieldErrors?.deliverableType ? true : undefined} />{field('deliverableType')}</label><label className="ex-full">Mô tả<textarea name="description" maxLength={10000} rows={4} defaultValue={item?.description ?? ''} aria-invalid={fieldErrors?.description ? true : undefined} />{field('description')}</label><label>Hạn nộp theo giờ Việt Nam<input name="dueAt" type="datetime-local" defaultValue={toDateTimeInput(item?.dueAt ?? null)} aria-invalid={fieldErrors?.dueAt ? true : undefined} />{field('dueAt')}</label></div><div className="ex-form-footer"><button className="ex-button" type="button" onClick={onCancel}>Hủy</button><button className="ex-button ex-button-primary">{busy ? 'Đang lưu…' : 'Lưu hạng mục'}</button></div></fieldset></form></section>
 }
 
-function DeliverableFileInput({ title, disabled }: { title: string; disabled: boolean }) {
+function DeliverableFileInput({ title, id, disabled, error }: { title: string; id: number; disabled: boolean; error?: string }) {
   const [fileName, setFileName] = useState('Chưa chọn tệp')
-  return <label>Chọn tệp<span className="deliverable-file-picker"><span>Chọn tệp</span><small>{fileName}</small><input aria-label={`Tệp ${title}`} name="file" type="file" required disabled={disabled} onChange={(event) => setFileName(event.target.files?.[0]?.name || 'Chưa chọn tệp')} /></span></label>
+  return <label>Chọn tệp<span className="deliverable-file-picker"><span>Chọn tệp</span><small>{fileName}</small><input aria-label={`Tệp ${title}`} name="file" type="file" required disabled={disabled} aria-invalid={error ? true : undefined} aria-describedby={error ? `deliverable-file-error-${id}` : undefined} onChange={(event) => setFileName(event.target.files?.[0]?.name || 'Chưa chọn tệp')} /></span>{error && <small id={`deliverable-file-error-${id}`} role="alert">{error}</small>}</label>
 }
 
 function definitionFromForm(form: HTMLFormElement): SaveDeliverable | null {

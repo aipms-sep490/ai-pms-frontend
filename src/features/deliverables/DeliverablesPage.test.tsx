@@ -29,17 +29,88 @@ describe('DeliverablesPage', () => {
     await waitFor(() => expect(api.updateDeliverable).toHaveBeenCalledWith(4, expect.objectContaining({ dueAt: '2026-10-30T11:00:00.000Z' })))
   })
 
-  it('uses server latestVersion for an upload and refreshes after a 409 instead of retrying', async () => {
-    api.submitDeliverableVersion.mockRejectedValue(new HttpError('stale', 409))
+  it('uses server latestVersion for an upload and refreshes after a verified stale version instead of retrying', async () => {
+    api.submitDeliverableVersion.mockRejectedValue(new HttpError('stale', 409, { code: 'STALE_LATEST_VERSION' }))
     page(); await screen.findByText('Báo cáo thiết kế')
     const input = screen.getByLabelText('Tệp Báo cáo thiết kế')
     fireEvent.change(input, { target: { files: [new File(['a'], 'report.pdf', { type: 'application/pdf' })] } })
     fireEvent.submit(screen.getByRole('button', { name: 'Nộp phiên bản' }).closest('form')!)
     await waitFor(() => expect(api.submitDeliverableVersion).toHaveBeenCalledWith(4, 1, expect.any(File), ''))
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/Dữ liệu đã thay đổi/))
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/phiên bản mới hơn/))
     expect(screen.getByRole('alert').textContent).not.toContain('phiên bản không còn mới nhất')
     expect(api.submitDeliverableVersion).toHaveBeenCalledOnce()
     expect(api.getDeliverables.mock.calls.length).toBeGreaterThan(1)
+    expect(screen.getByRole('button', { name: 'Tải lại dữ liệu' })).toBeTruthy()
+  })
+
+  it('keeps the file and note and hides retry for the verified missing execution window', async () => {
+    api.submitDeliverableVersion.mockRejectedValue(new HttpError('English detail', 409, {
+      code: 'EXECUTION_WINDOW_REQUIRED', detail: 'English detail', traceId: 'secret trace',
+    }))
+    page(); await screen.findByText('Báo cáo thiết kế')
+    const fileInput = screen.getByLabelText('Tệp Báo cáo thiết kế') as HTMLInputElement
+    const noteInput = screen.getByLabelText('Ghi chú Báo cáo thiết kế') as HTMLInputElement
+    fireEvent.change(fileInput, { target: { files: [new File(['a'], 'report.pdf', { type: 'application/pdf' })] } })
+    fireEvent.change(noteInput, { target: { value: 'Giữ ghi chú chưa nộp' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Nộp phiên bản' }).closest('form')!)
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain('chưa có kỳ thực hiện đang mở')
+    expect(alert.textContent).not.toMatch(/phiên bản|English detail|secret trace/)
+    expect(screen.queryByRole('button', { name: /Thử lại|Tải lại dữ liệu/ })).toBeNull()
+    expect(noteInput.value).toBe('Giữ ghi chú chưa nộp')
+    expect(fileInput.files?.[0]?.name).toBe('report.pdf')
+    expect(api.getDeliverables).toHaveBeenCalledTimes(1)
+  })
+
+  it('offers read retry after 503 without automatically resubmitting the upload', async () => {
+    api.submitDeliverableVersion.mockRejectedValue(new HttpError('private server error', 503, { traceId: 'private' }))
+    page(); await screen.findByText('Báo cáo thiết kế')
+    fireEvent.change(screen.getByLabelText('Tệp Báo cáo thiết kế'), { target: { files: [new File(['a'], 'report.pdf', { type: 'application/pdf' })] } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Nộp phiên bản' }).closest('form')!)
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).not.toMatch(/private server error|private/)
+    fireEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
+    await waitFor(() => expect(api.getDeliverables).toHaveBeenCalledTimes(2))
+    expect(api.submitDeliverableVersion).toHaveBeenCalledOnce()
+  })
+
+  it('shows backend field keys inline without leaking their English validation text', async () => {
+    api.submitDeliverableVersion.mockRejectedValue(new HttpError('private', 422, {
+      errors: { file: ['English file detail'], note: ['English note detail'] }, traceId: 'private trace',
+    }))
+    page(); await screen.findByText('Báo cáo thiết kế')
+    const fileInput = screen.getByLabelText('Tệp Báo cáo thiết kế') as HTMLInputElement
+    const noteInput = screen.getByLabelText('Ghi chú Báo cáo thiết kế') as HTMLInputElement
+    fireEvent.change(fileInput, { target: { files: [new File(['a'], 'report.pdf', { type: 'application/pdf' })] } })
+    fireEvent.change(noteInput, { target: { value: 'Bản nháp ghi chú' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Nộp phiên bản' }).closest('form')!)
+    await waitFor(() => expect(fileInput.getAttribute('aria-invalid')).toBe('true'))
+    expect(noteInput.getAttribute('aria-invalid')).toBe('true')
+    expect(screen.getByText('Kiểm tra tệp đã chọn.')).toBeTruthy()
+    expect(screen.getByText('Kiểm tra ghi chú phiên bản.')).toBeTruthy()
+    expect(noteInput.value).toBe('Bản nháp ghi chú')
+    expect(screen.getAllByRole('alert').map(alert => alert.textContent).join(' ')).not.toMatch(/English|private trace/)
+  })
+
+  it('keeps a server permission denial visible without offering a retry', async () => {
+    api.submitDeliverableVersion.mockRejectedValue(new HttpError('private permission detail', 403, { detail: 'private permission detail' }))
+    page(); await screen.findByText('Báo cáo thiết kế')
+    fireEvent.change(screen.getByLabelText('Tệp Báo cáo thiết kế'), { target: { files: [new File(['a'], 'report.pdf', { type: 'application/pdf' })] } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Nộp phiên bản' }).closest('form')!)
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain('không có quyền')
+    expect(alert.textContent).not.toContain('private permission detail')
+    expect(screen.queryByRole('button', { name: /Thử lại|Tải lại dữ liệu/ })).toBeNull()
+    expect(api.getDeliverables).toHaveBeenCalledTimes(1)
+  })
+
+  it('announces a confirmed upload as status rather than an error alert', async () => {
+    api.submitDeliverableVersion.mockResolvedValue({ id: 31, deliverableId: 4, versionNumber: 2, status: 'SUBMITTED' })
+    page(); await screen.findByText('Báo cáo thiết kế')
+    fireEvent.change(screen.getByLabelText('Tệp Báo cáo thiết kế'), { target: { files: [new File(['a'], 'report.pdf', { type: 'application/pdf' })] } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Nộp phiên bản' }).closest('form')!)
+    expect((await screen.findByRole('status')).textContent).toContain('Đã nộp phiên bản mới')
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('offers a reload after a server read error without displaying raw backend detail or trace ID', async () => {
@@ -47,7 +118,7 @@ describe('DeliverablesPage', () => {
     page()
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).not.toMatch(/Internal English detail|secret-trace/)
-    fireEvent.click(screen.getByRole('button', { name: 'Tải lại dữ liệu' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
     expect(await screen.findByText('Báo cáo thiết kế')).toBeTruthy()
     expect(api.getDeliverables).toHaveBeenCalledTimes(2)
   })

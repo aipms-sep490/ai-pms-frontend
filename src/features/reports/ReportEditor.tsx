@@ -15,6 +15,7 @@ export function ReportEditor({
   report,
   cycles,
   existingReports = [],
+  fieldErrors,
   busy,
   onSave,
   onDirtyChange,
@@ -22,6 +23,7 @@ export function ReportEditor({
   report?: ReportDetail
   cycles?: ReportingCycle[]
   existingReports?: ProgressReport[]
+  fieldErrors?: Record<string, string>
   busy: boolean
   onSave: (value: CreateReport) => Promise<void>
   onDirtyChange: (dirty: boolean) => void
@@ -142,6 +144,8 @@ export function ReportEditor({
                 id="report-cycle-select"
                 required
                 value={selectedCycleId}
+                aria-invalid={fieldErrors?.progressReportPeriodId ? true : undefined}
+                aria-describedby={fieldErrors?.progressReportPeriodId ? 'report-cycle-error' : undefined}
                 onChange={(event) => handleSelectCycle(event.target.value ? Number(event.target.value) : '')}
               >
                 <option value="">-- Chọn một kỳ báo cáo --</option>
@@ -161,6 +165,7 @@ export function ReportEditor({
                   )
                 })}
               </select>
+              {fieldErrors?.progressReportPeriodId && <small id="report-cycle-error" role="alert" className="report-validation">{fieldErrors.progressReportPeriodId}</small>}
             </label>
 
             {selectedCycle && (
@@ -203,9 +208,12 @@ export function ReportEditor({
                 type="date"
                 required
                 value={values.periodStart}
+                aria-invalid={fieldErrors?.periodStart ? true : undefined}
+                aria-describedby={fieldErrors?.periodStart ? 'report-period-start-error' : undefined}
                 disabled={Boolean(report)}
                 onChange={(event) => update('periodStart', event.target.value)}
               />
+              {fieldErrors?.periodStart && <small id="report-period-start-error" role="alert" className="report-validation">{fieldErrors.periodStart}</small>}
             </label>
             <label>
               Đến ngày
@@ -214,9 +222,12 @@ export function ReportEditor({
                 required
                 min={values.periodStart || undefined}
                 value={values.periodEnd}
+                aria-invalid={fieldErrors?.periodEnd ? true : undefined}
+                aria-describedby={fieldErrors?.periodEnd ? 'report-period-end-error' : undefined}
                 disabled={Boolean(report)}
                 onChange={(event) => update('periodEnd', event.target.value)}
               />
+              {fieldErrors?.periodEnd && <small id="report-period-end-error" role="alert" className="report-validation">{fieldErrors.periodEnd}</small>}
             </label>
           </div>
         )}
@@ -239,10 +250,12 @@ export function ReportEditor({
                   id={`report-${key}`}
                   required={required}
                   rows={rows}
-                  aria-describedby={`hint-${key}`}
+                  aria-invalid={fieldErrors?.[key] ? true : undefined}
+                  aria-describedby={`hint-${key}${fieldErrors?.[key] ? ` error-${key}` : ''}`}
                   value={values[key] ?? ''}
                   onChange={(event) => update(key, event.target.value)}
                 />
+                {fieldErrors?.[key] && <small id={`error-${key}`} role="alert" className="report-validation">{fieldErrors[key]}</small>}
               </label>
             ))}
           </div>
