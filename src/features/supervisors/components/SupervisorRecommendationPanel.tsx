@@ -18,6 +18,15 @@ const EXPERTISE_STATUS_LABEL: Record<string, string> = {
   NO_MATCH: 'Chuyên môn hiện khai báo không khớp ngành yêu cầu.',
 }
 
+function recommendationFailure(reason: unknown): string {
+  if (reason instanceof HttpError) {
+    if (reason.problem?.code === 'ACADEMIC_SCOPE_UNKNOWN') return 'Chưa thể xem gợi ý vì đồ án chưa có bản chốt phạm vi học thuật. Bạn vẫn có thể chọn giảng viên ở danh sách bên dưới.'
+    if (reason.status === 401) return 'Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục.'
+    if (reason.status === 403) return 'Bạn chưa có quyền xem gợi ý giảng viên cho vị trí này.'
+  }
+  return 'Chưa tải được gợi ý giảng viên. Thử tải lại để kiểm tra.'
+}
+
 /**
  * BE-18: advisory ranking of supervisors for a project, scoped to the assignment slot the leader
  * is currently filling (PRIMARY or a specific DISCIPLINE_MENTOR major). Read-only, unpersisted
@@ -42,6 +51,8 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
   const [historyOpen, setHistoryOpen] = useState(false)
   const [historyRuns, setHistoryRuns] = useState<SupervisorRecommendationRunSummary[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [historyError, setHistoryError] = useState('')
+  const [runError, setRunError] = useState('')
   const [selectedRun, setSelectedRun] = useState<SupervisorRecommendationRun | null>(null)
   const [savingRun, setSavingRun] = useState(false)
   const [saveRunSuccess, setSaveRunSuccess] = useState('')
@@ -55,9 +66,7 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
       .catch(reason => {
         if (controller.signal.aborted) return
         setItems([])
-        setErrorMessage(reason instanceof HttpError && reason.status === 403
-          ? 'Bạn chưa có quyền xem gợi ý giảng viên cho vị trí này.'
-          : 'Chưa tải được gợi ý giảng viên.')
+        setErrorMessage(recommendationFailure(reason))
       })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
@@ -68,22 +77,25 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
   async function openHistory() {
     setHistoryOpen(true)
     setLoadingHistory(true)
+    setHistoryRuns([])
+    setHistoryError('')
     try {
       const res = await getSupervisorRecommendationHistory(projectId, 1, 20)
       setHistoryRuns(res.items)
-    } catch {
-      setHistoryRuns([])
+    } catch (reason) {
+      setHistoryError(recommendationFailure(reason))
     } finally {
       setLoadingHistory(false)
     }
   }
 
   async function loadRunDetail(runId: number) {
+    setRunError('')
     try {
       const run = await getSupervisorRecommendationRun(projectId, runId)
       setSelectedRun(run)
-    } catch {
-      // Keep current
+    } catch (reason) {
+      setRunError(recommendationFailure(reason))
     }
   }
 
@@ -96,7 +108,7 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
       setSaveRunSuccess(`Đã lưu phiên gợi ý #${run.id} (${run.items.length} giảng viên).`)
       setSelectedRun(run)
     } catch (err) {
-      setSaveRunError(err instanceof HttpError ? err.message : 'Không thể lưu phiên gợi ý.')
+      setSaveRunError(recommendationFailure(err))
     } finally {
       setSavingRun(false)
     }
@@ -131,6 +143,7 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
 
     {saveRunSuccess && <p role="status" className="mt-2 text-xs text-status-success-text">{saveRunSuccess}</p>}
     {saveRunError && <p role="alert" className="mt-2 text-xs text-status-error-text">{saveRunError}</p>}
+    {runError && <p role="alert" className="mt-2 text-xs text-status-error-text">{runError}</p>}
 
     {selectedRun && (
       <div className="mt-3 flex items-center justify-between rounded-lg bg-subtle p-3 border border-hairline">
@@ -160,7 +173,8 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
           </button>
         </div>
         {loadingHistory && <p className="text-xs text-ink-muted">Đang tải lịch sử…</p>}
-        {!loadingHistory && historyRuns.length === 0 && (
+        {historyError && <p role="alert" className="text-xs text-status-error-text">{historyError}</p>}
+        {!loadingHistory && !historyError && historyRuns.length === 0 && (
           <p className="text-xs text-ink-muted">Chưa có phiên gợi ý nào được lưu cho đồ án này.</p>
         )}
         {historyRuns.length > 0 && (
