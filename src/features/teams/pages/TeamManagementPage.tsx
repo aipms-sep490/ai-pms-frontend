@@ -305,7 +305,7 @@ export function TeamManagementPage() {
             fallbackOrganizationId={team.members.find((member) => member.userId === currentUserId)?.organizationId}
             fallbackMajorId={profile?.majorId}
           />}
-          {!rosterLocked && team.academicScope && <StructuredResponsibilitiesPanel teamId={team.id} scope={team.academicScope} majorNames={majorNames} onSaved={retry} />}
+          {!rosterLocked && team.academicScope && <StructuredResponsibilitiesPanel teamId={team.id} scope={team.academicScope} majorNames={majorNames} canEdit={permissions.canConfigureScope} onSaved={retry} />}
 
           {rosterLocked && <p className="text-sm text-ink-muted">Danh sách thành viên đã được chốt theo hồ sơ đồ án.</p>}
 
