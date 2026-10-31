@@ -163,7 +163,7 @@ export function TopHeader({
             className="relative flex min-h-11 min-w-11 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <span className="material-symbols-outlined text-[20px] shrink-0" aria-hidden="true">notifications</span>
-            {unreadCount !== null && unreadCount > 0 && <span aria-hidden="true" className="absolute right-0 top-0 rounded-full bg-rose-600 px-1.5 text-xs font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+            {unreadCount !== null && unreadCount > 0 && <span aria-hidden="true" className="absolute right-0 top-0 rounded-full bg-danger-strong px-1.5 text-xs font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
           </button>
           {notificationOpen && <section id="notification-preview" aria-label="Thông báo mới" className="notification-popover">
             <div className="notification-popover-header"><div><h2>Thông báo</h2><p>{unreadCount === null ? 'Cập nhật dành cho bạn' : unreadCount > 0 ? unreadCount + ' thông báo chưa đọc' : 'Bạn đã đọc hết thông báo mới'}</p></div><button type="button" className="notification-close" aria-label="Đóng bảng thông báo" onClick={() => { setNotificationOpen(false); notificationTriggerRef.current?.focus() }}><span className="material-symbols-outlined" aria-hidden="true">close</span></button></div>

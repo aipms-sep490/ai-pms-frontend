@@ -12,14 +12,14 @@ export function ContributionPreview({ contributions }: ContributionPreviewProps)
       <CardHeader className="py-3 px-4">
         <div className="flex items-center justify-between w-full flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-blue-600" aria-hidden="true">
+            <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">
               pie_chart
             </span>
             <CardTitle className="text-xs uppercase tracking-wider font-mono">
               Tỷ lệ Đóng góp Thành viên (Mô phỏng)
             </CardTitle>
           </div>
-          <span className="font-mono text-xs text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+          <span className="font-mono text-xs text-status-success-text font-bold bg-status-success-bg px-2 py-0.5 rounded border border-status-success-border">
             Mô phỏng CDIO
           </span>
         </div>
@@ -58,7 +58,7 @@ export function ContributionPreview({ contributions }: ContributionPreviewProps)
         </div>
 
         <div className="p-2.5 rounded bg-canvas border border-hairline/80 text-xs text-ink-muted flex items-center gap-2 mt-1">
-          <span className="material-symbols-outlined text-[15px] text-emerald-600 shrink-0" aria-hidden="true">
+          <span className="material-symbols-outlined text-[15px] text-primary shrink-0" aria-hidden="true">
             verified
           </span>
           <span>Dữ liệu minh họa phân bổ đóng góp nhóm đồ án theo chuẩn CDIO.</span>

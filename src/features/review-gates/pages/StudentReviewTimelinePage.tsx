@@ -145,7 +145,7 @@ export function StudentReviewTimelinePage() {
       description="Theo dõi các đợt Review Gates (R1..R4), kiểm tra trạng thái minh chứng và nộp bản cập nhật theo phản hồi của hội đồng thẩm định."
     >
       <ReviewGatesMockNotice />
-      {feedbackRefreshWarning && <div role="alert" className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+      {feedbackRefreshWarning && <div role="alert" className="mb-4 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">
         <p>{feedbackRefreshWarning}</p>
         <Button variant="outline" className="mt-2 min-h-11" disabled={feedbackRefreshing} onClick={() => void refreshFeedback()}>
           {feedbackRefreshing ? 'Đang tải lại nhận xét...' : 'Tải lại nhận xét'}
@@ -156,12 +156,12 @@ export function StudentReviewTimelinePage() {
           <PageLoading label="Đang tải tiến trình Review Gates của nhóm..." />
         </div>
       ) : error ? (
-        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-700">
+        <div role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-6 text-center text-danger-text">
           <p className="font-semibold">{error}</p>
           <button
             type="button"
             onClick={() => void loadTimeline()}
-            className="mt-3 rounded-lg bg-rose-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-rose-700"
+            className="mt-3 rounded-lg bg-danger-strong px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-danger-strong-hover"
           >
             Thử lại
           </button>

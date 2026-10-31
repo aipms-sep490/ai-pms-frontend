@@ -25,7 +25,7 @@ export function MilestoneHeader({
           <div
             role="tablist"
             aria-label="Chọn cột mốc xem trước"
-            className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg overflow-x-auto no-scrollbar"
+            className="flex items-center gap-1 bg-canvas p-1 rounded-lg overflow-x-auto no-scrollbar"
           >
             {milestoneKeys.map((key) => {
               const isSelected = key === activeMilestoneId

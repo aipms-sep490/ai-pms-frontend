@@ -39,7 +39,7 @@ export function ProjectModeSelector({
               <span className="material-symbols-outlined text-[22px] text-primary">apartment</span>
               <div>
                 <h4 className="text-sm font-bold text-ink">Một ngành</h4>
-                <span className="inline-block mt-0.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+                <span className="inline-block mt-0.5 text-xs font-bold text-status-success-text bg-status-success-bg border border-status-success-border px-1.5 py-0.2 rounded">
                   MỘT CHUYÊN NGÀNH
                 </span>
               </div>

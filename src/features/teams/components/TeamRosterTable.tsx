@@ -122,12 +122,12 @@ export function TeamRosterTable({
                       <div>
                         {confirmKickId === member.userId ? (
                           <div className="inline-flex items-center gap-1.5">
-                            <span className="text-xs font-medium text-rose-600">Xác nhận xóa?</span>
+                            <span className="text-xs font-medium text-danger-text">Xác nhận xóa?</span>
                             <button
                               type="button"
                               onClick={() => handleKick(member.userId)}
                               disabled={removingId === member.userId}
-                              className="rounded bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+                              className="rounded bg-danger-strong px-2 py-1 text-xs font-semibold text-white hover:bg-danger-strong-hover disabled:opacity-50"
                             >
                               {removingId === member.userId ? '...' : 'Xóa'}
                             </button>
@@ -143,7 +143,7 @@ export function TeamRosterTable({
                           <button
                             type="button"
                             onClick={() => setConfirmKickId(member.userId)}
-                            className="rounded-md px-2.5 py-1 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50"
+                            className="rounded-md px-2.5 py-1 text-xs font-semibold text-danger-text transition-colors hover:bg-status-error-bg"
                           >
                             Xóa khỏi nhóm
                           </button>

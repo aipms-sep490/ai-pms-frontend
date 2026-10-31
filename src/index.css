@@ -2,58 +2,86 @@
 @import "./motion/motion.css";
 
 @theme {
-  --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-heading: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: "Inter", "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-heading: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-  --color-canvas: #f8fafc;
-  --color-card: #ffffff;
-  --color-hairline: #e2e8f0;
+  /* AI-PMS Academic Command Center Canonical Color Scale */
+  --color-canvas: #F6F8FB;
+  --color-card: #FFFFFF;
+  --color-hairline: #D9E1EC;
+  --color-skeleton: #D9E1EC;
 
-  --color-primary: #0f5b4e;
-  --color-primary-hover: #0a493f;
-  --color-primary-subtle: #edf3f0;
+  --color-primary: #087D77;
+  --color-primary-hover: #06665F;
+  --color-primary-subtle: #DDF7F4;
+
+  --color-brand-navy: #0F2747;
+  --color-brand-teal: #12B3A8;
+  --color-brand-teal-soft: #DDF7F4;
+  --color-accent-amber: #F6B94C;
+  --color-danger: #E35D6A;
+  --color-danger-text: #B42318;
+
+  /* Foregrounds for the navy authority panel (login hero). Light surfaces use
+     the ink scale; anything sitting on --color-brand-navy uses these instead,
+     so one dark panel never grows three competing greys. */
+  --color-brand-navy-raised: #172D4C;
+  --color-on-navy: #FFFFFF;
+  --color-on-navy-muted: #ACBDCF;
 
   /* Neutral ink and line scale shared by every workspace page. */
-  --color-ink: #14201d;
-  --color-ink-soft: #3d4a46;
-  --color-ink-muted: #596863;
-  --color-line: #e5ece8;
-  --color-line-strong: #d7e0dc;
+  --color-ink: #162033;
+  --color-ink-soft: #334155;
+  --color-ink-muted: #64748B;
+  --color-line: #D9E1EC;
+  --color-line-strong: #CBD5E1;
 
-  --color-academic-emerald: #047857;
-  --color-academic-amber: #a16207;
-  --color-academic-coral: #dc2626;
+  --color-academic-emerald: #0A766F;
+  --color-academic-amber: #B45309;
+  --color-academic-coral: #E35D6A;
 
   /* Status Tokens */
-  --color-status-success-text: #047857;
-  --color-status-success-bg: #ecfdf5;
-  --color-status-success-border: #a7f3d0;
+  --color-status-success-text: #0A766F;
+  --color-status-success-bg: #DDF7F4;
+  --color-status-success-border: #99E2DC;
 
-  --color-status-warning-text: #a16207;
-  --color-status-warning-bg: #fffbeb;
-  --color-status-warning-border: #fde68a;
+  --color-status-warning-text: #B45309;
+  --color-status-warning-bg: #FFFBEB;
+  --color-status-warning-border: #FDE68A;
 
-  --color-status-error-text: #dc2626;
-  --color-status-error-bg: #fef2f2;
-  --color-status-error-border: #fecaca;
+  --color-status-error-text: #B42318;
+  --color-status-error-bg: #FEF2F2;
+  --color-status-error-border: #FECACA;
 
   /* Multidisciplinary Major Tags */
-  --color-tag-se: #1d4ed8;
-  --color-tag-se-bg: #eff6ff;
-  --color-tag-uiux: #7e22ce;
-  --color-tag-uiux-bg: #faf5ff;
-  --color-tag-ai: #b45309;
-  --color-tag-ai-bg: #fffbeb;
-  --color-tag-qa: #0f766e;
-  --color-tag-qa-bg: #f0fdfa;
+  --color-tag-se: #1D4ED8;
+  --color-tag-se-bg: #EFF6FF;
+  --color-tag-uiux: #7E22CE;
+  --color-tag-uiux-bg: #FAF5FF;
+  --color-tag-ai: #B45309;
+  --color-tag-ai-bg: #FFFBEB;
+  --color-tag-qa: #0A766F;
+  --color-tag-qa-bg: #DDF7F4;
   --color-tag-is: #475569;
-  --color-tag-is-bg: #f1f5f9;
+  --color-tag-is-bg: #F1F5F9;
 
-  /* Z-index scale — one ordered map for every global overlay surface, per
-     docs/uiux/01-DESIGN-SYSTEM.md. Local/internal stacking (a sticky column
-     label inside a scrolling chart, a decorative pseudo-element) is not part
-     of this map and stays as a small literal at its own site. */
+  /* Solid status surfaces, for white text on a filled control or badge. The
+     `-bg` tokens above are near-white tints for text to sit ON; these are the
+     inverse case. Kept separate because the tint and the fill can never be the
+     same colour and still both reach AA. White on each of these is >= 5:1. */
+  --color-danger-strong: #B42318;
+  --color-danger-strong-hover: #8F1C13;
+  --color-warning-strong: #B45309;
+  --color-warning-strong-hover: #92400E;
+
+  /* Primary-action elevation. Lives here rather than as a repeated
+     `shadow-[0_2px_8px_-2px_rgba(...)]` arbitrary value at nine call sites, so
+     the teal follows --color-primary instead of a frozen rgb triplet. */
+  --shadow-primary: 0 2px 8px -2px color-mix(in oklab, var(--color-primary) 25%, transparent);
+  --shadow-primary-hover: 0 4px 12px -3px color-mix(in oklab, var(--color-primary) 30%, transparent);
+
+  /* Z-index scale — one ordered map for every global overlay surface */
   --z-index-chat: 40;
   --z-index-drawer: 50;
   --z-index-modal: 60;
@@ -63,7 +91,7 @@
 
 :root {
   font-family: var(--font-sans);
-  color: #0f172a;
+  color: var(--color-ink);
   background-color: var(--color-canvas);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -74,9 +102,9 @@ body {
   min-height: 100vh;
   background-color: var(--color-canvas);
   background-image:
-    radial-gradient(at 0% 0%, rgba(15, 91, 78, 0.035) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(15, 91, 78, 0.025) 0px, transparent 50%),
-    radial-gradient(at 50% 0%, rgba(4, 120, 87, 0.02) 0px, transparent 60%);
+    radial-gradient(at 0% 0%, rgba(15, 39, 71, 0.035) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(18, 179, 168, 0.03) 0px, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(8, 125, 119, 0.02) 0px, transparent 60%);
   background-attachment: fixed;
 }
 
@@ -91,20 +119,20 @@ select:not([multiple]) {
 }
 
 select:not([multiple]):hover:not(:disabled) {
-  border-color: #97b5a9;
-  background-color: #f4f8f6;
+  border-color: var(--color-primary-hover);
+  background-color: #F4F8F6;
 }
 
 select:not([multiple]):focus-visible {
   border-color: var(--color-primary);
   outline: none;
-  box-shadow: 0 0 0 3px rgb(15 91 78 / .12);
+  box-shadow: 0 0 0 3px rgb(8 125 119 / .15);
 }
 
 select:disabled {
   cursor: not-allowed;
-  background-color: #f1f5f9;
-  color: #94a3b8;
+  background-color: #F1F5F9;
+  color: #94A3B8;
 }
 
 /* Material Symbols Outlined */
@@ -159,7 +187,7 @@ select:disabled {
 
 .page-heading h1 {
   margin: 8px 0 10px;
-  color: #0f172a;
+  color: var(--color-brand-navy);
   font-family: var(--font-heading);
   font-size: clamp(24px, 4vw, 32px);
   font-weight: 700;
@@ -169,7 +197,7 @@ select:disabled {
 .page-heading p:not(.eyebrow) {
   max-width: 680px;
   margin: 0;
-  color: #64748b;
+  color: var(--color-ink-muted);
   line-height: 1.5;
   font-size: 14px;
 }
@@ -177,7 +205,7 @@ select:disabled {
 .text-link {
   display: inline-block;
   margin-top: 16px;
-  color: var(--color-primary);
+  color: var(--color-academic-emerald);
   font-weight: 600;
   text-decoration: underline;
 }
@@ -191,11 +219,11 @@ select:disabled {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #CBD5E1;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #94A3B8;
 }
 
 /* Hide scrollbar utility */
@@ -230,12 +258,11 @@ select:disabled {
   }
 }
 
-
 /* Review Gates forms and timeline: preserve long labels and keyboard affordances. */
 .review-gates-surface { overflow-wrap: anywhere; }
 .review-gates-surface :is(button, input, select, textarea):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
 .review-gates-surface :is(input, select, textarea) { min-width: 0; max-width: 100%; }
-.review-gates-surface .text-slate-400 { color: var(--color-slate-600); }
+.review-gates-surface .text-slate-400 { color: var(--color-ink-muted); }
 .review-gates-surface button { min-height: 44px; }
 .review-gates-surface fieldset:disabled { opacity: .85; }
 .app-modal:has(.review-submission-form) .app-modal__close { min-width: 44px; min-height: 44px; }

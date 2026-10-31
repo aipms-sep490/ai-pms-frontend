@@ -51,7 +51,7 @@ export function UpdateTeamModal({ isOpen, team, onClose, onSubmit, isPending }: 
             Mô tả
             <textarea disabled={isPending} value={description} onChange={(event) => setDescription(event.target.value)} rows={3} className="mt-1.5 w-full rounded-md border border-line-strong px-3.5 py-2.5 text-sm font-normal normal-case tracking-normal" />
           </label>
-          {error && <p className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs font-medium text-rose-700">{error}</p>}
+          {error && <p className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs font-medium text-danger-text">{error}</p>}
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={onClose} disabled={isPending} className="app-modal__button">Hủy</button>
             <button type="submit" disabled={isPending} className="app-modal__button app-modal__button--primary">{isPending ? 'Đang lưu...' : 'Lưu thay đổi'}</button>

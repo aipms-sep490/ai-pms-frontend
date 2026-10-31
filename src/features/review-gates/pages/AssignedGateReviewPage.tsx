@@ -91,13 +91,13 @@ export function AssignedGateReviewPage() {
         </div>
       ) : <>
       {error && (
-        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-700">
+        <div role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-6 text-center text-danger-text">
           <p className="font-semibold">{error}</p>
           <button
             type="button"
             disabled={loading}
             onClick={() => void loadAssignments()}
-            className="mt-3 rounded-lg bg-rose-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-rose-700"
+            className="mt-3 rounded-lg bg-danger-strong px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-danger-strong-hover"
           >
             Thử lại
           </button>

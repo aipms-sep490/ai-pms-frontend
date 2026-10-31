@@ -108,8 +108,8 @@ export function ReviewGateBuilder({
             <span
               className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
                 template.status === 'PUBLISHED'
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+                  ? 'bg-status-success-bg text-status-success-text border border-status-success-border'
+                  : 'bg-status-warning-bg text-status-warning-text border border-status-warning-border'
               }`}
             >
               {template.status === 'PUBLISHED' ? 'ĐÃ CÔNG BỐ' : 'BẢN NHÁP'}
@@ -158,7 +158,7 @@ export function ReviewGateBuilder({
       </div>
 
       {template.status === 'PUBLISHED' && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-800 flex items-center justify-between">
+        <div className="rounded-xl border border-status-success-border bg-status-success-bg p-3.5 text-xs text-status-success-text flex items-center justify-between">
           <span>
             🔒 <strong>Mẫu tiến trình đã công bố chính thức:</strong> Cấu trúc các Review Gate đã được khóa bất biến. Để thay đổi yêu cầu hoặc bổ sung Gate cho đợt thẩm định tiếp theo, vui lòng chọn <strong>Nhân bản bản nháp mới</strong>.
           </span>
@@ -220,9 +220,9 @@ export function ReviewGateBuilder({
             </div>
           </div>
 
-          <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-xs text-amber-900">
+          <div className="rounded-xl border border-status-warning-border bg-status-warning-bg/70 p-4 text-xs text-status-warning-text">
             <strong>Nguyên tắc ràng buộc học thuật:</strong>
-            <p className="mt-1 leading-relaxed text-amber-800">
+            <p className="mt-1 leading-relaxed text-status-warning-text">
               Mỗi Gate có thể chặn các Gate kế tiếp nếu nhóm sinh viên nhận kết luận <code>REVISION_REQUIRED</code>.
               Sinh viên vẫn được quyền xem workspace và nộp minh chứng mới; chỉ bị chặn các hành động bảo vệ/chuyển giai đoạn.
             </p>
@@ -384,7 +384,7 @@ export function ReviewGateBuilder({
                           <span
                             className={`rounded-full px-2 py-0.5 text-xs font-bold ${
                               req.required
-                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                ? 'bg-status-error-bg text-danger-text border border-status-error-border'
                                 : 'bg-slate-100 text-slate-600'
                             }`}
                           >
@@ -403,7 +403,7 @@ export function ReviewGateBuilder({
                           <button
                             type="button"
                             onClick={() => handleDeleteRequirement(rIdx)}
-                            className="rounded px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                            className="rounded px-2 py-1 text-xs font-semibold text-danger-text hover:bg-status-error-bg"
                           >
                             Xóa
                           </button>

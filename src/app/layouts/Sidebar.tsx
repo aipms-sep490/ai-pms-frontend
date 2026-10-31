@@ -8,6 +8,7 @@ import { useAuthSession } from '../../features/auth/context/useAuthSession'
 import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 import '../../components/ui/page-loading.css'
 import { useChat } from '../../features/chat/ChatProvider'
+import appIcon from '../../assets/ai-pms-app-icon.svg'
 
 interface SidebarProps {
   isOpen: boolean
@@ -193,10 +194,8 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
           <div className="p-4 pb-3 border-b border-hairline flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white shadow-xs">
-                  <span className="material-symbols-outlined text-[19px] shrink-0" aria-hidden="true">
-                    school
-                  </span>
+                <div className="w-8 h-8 shrink-0 flex items-center justify-center">
+                  <img src={appIcon} alt="" aria-hidden="true" className="w-full h-full object-contain" />
                 </div>
                 <div className="flex flex-col">
                   <span className="font-heading font-bold text-[14px] text-ink tracking-tight leading-tight">
@@ -262,7 +261,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                         aria-expanded={!isCollapsed}
                         aria-controls={groupId}
                         className={`flex items-center justify-between px-2.5 py-1.5 min-h-[38px] rounded-lg text-xs font-bold transition-colors cursor-pointer select-none ${
-                          hasActive ? 'text-primary bg-primary/10' : 'text-slate-600 hover:text-ink hover:bg-slate-100'
+                          hasActive ? 'text-primary bg-primary-subtle/70' : 'text-slate-600 hover:text-ink hover:bg-slate-100'
                         }`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
@@ -295,7 +294,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                               className={({ isActive }) =>
                                 `flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-xs font-medium transition-all duration-150 motion-reduce:transition-none ${
                                   isActive
-                                    ? 'bg-primary-subtle text-primary font-semibold'
+                                    ? 'bg-primary-subtle text-primary font-semibold shadow-xs'
                                     : 'text-ink-muted hover:text-ink hover:bg-slate-100'
                                 }`
                               }
@@ -336,7 +335,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                         className={({ isActive }) =>
                           `flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-xs font-medium transition-all duration-150 ${
                             isActive
-                              ? 'bg-primary-subtle text-primary font-semibold'
+                              ? 'bg-primary-subtle text-primary font-semibold shadow-xs'
                               : 'text-ink-muted hover:text-ink hover:bg-slate-100'
                           }`
                         }
@@ -367,7 +366,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                   className={({ isActive }) =>
                     `flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-[13px] font-medium transition-all duration-150 ${
                       isActive
-                        ? 'bg-primary-subtle text-primary font-semibold'
+                        ? 'bg-primary-subtle text-primary font-semibold shadow-xs'
                         : 'text-ink-muted hover:text-ink hover:bg-slate-100'
                     }`
                   }

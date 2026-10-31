@@ -17,7 +17,7 @@ export function EvidenceDownloadButton({ projectId, gateCode, requirement }: {
       aria-label={`Mở minh chứng ngoài hệ thống: ${link}`}
       className="mt-2 inline-flex min-h-11 max-w-full items-center break-all text-xs font-semibold text-primary underline">
       Mở minh chứng ngoài hệ thống · {evidenceLinkLabel(link)}
-    </a> : <p role="alert" className="mt-2 text-xs text-rose-700">Liên kết minh chứng không hợp lệ; chỉ mở URL HTTPS an toàn.</p>
+    </a> : <p role="alert" className="mt-2 text-xs text-danger-text">Liên kết minh chứng không hợp lệ; chỉ mở URL HTTPS an toàn.</p>
   }
 
   async function download() {
@@ -49,6 +49,6 @@ export function EvidenceDownloadButton({ projectId, gateCode, requirement }: {
     </button>
     {env.reviewGatesMockEnabled && <p className="text-xs text-slate-500">Mô phỏng: chưa có nội dung tệp thực tế.</p>}
     {!env.reviewGatesMockEnabled && !artifact.downloadUrl && <p className="text-xs text-slate-500">Chưa có tệp được lưu để tải.</p>}
-    {error && <p role="alert" className="text-xs text-rose-700">{error}</p>}
+    {error && <p role="alert" className="text-xs text-danger-text">{error}</p>}
   </div>
 }

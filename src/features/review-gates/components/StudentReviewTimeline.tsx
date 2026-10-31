@@ -60,63 +60,63 @@ export function StudentReviewTimeline({
   const getStatusBadge = (status: GateStatus) => {
     switch (status) {
       case 'PASSED':
-        return <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">✓ ĐÃ ĐẠT</span>
+        return <span className="rounded-full bg-status-success-bg px-2.5 py-0.5 text-xs font-bold text-status-success-text border border-status-success-border">✓ ĐÃ ĐẠT</span>
       case 'REVISION_REQUIRED':
-        return <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-700 border border-rose-200">! CẦN CHỈNH SỬA</span>
+        return <span className="rounded-full bg-status-error-bg px-2.5 py-0.5 text-xs font-bold text-danger-text border border-status-error-border">! CẦN CHỈNH SỬA</span>
       case 'IN_REVIEW':
-        return <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">◷ ĐANG THẨM ĐỊNH</span>
+        return <span className="rounded-full bg-status-info-bg px-2.5 py-0.5 text-xs font-bold text-status-info-text border border-status-info-border">◷ ĐANG THẨM ĐỊNH</span>
       case 'PLANNED':
-        return <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600 border border-slate-200">KẾ HOẠCH</span>
+        return <span className="rounded-full bg-canvas px-2.5 py-0.5 text-xs font-semibold text-ink-muted border border-hairline">KẾ HOẠCH</span>
       default:
-        return <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">{gateStatusLabels[status] ?? 'Chưa xác định'}</span>
+        return <span className="rounded-full bg-canvas px-2.5 py-0.5 text-xs font-semibold text-ink-muted">{gateStatusLabels[status] ?? 'Chưa xác định'}</span>
     }
   }
 
   const getVerificationBadge = (status: string) => {
     switch (status) {
       case 'ACCEPTED':
-        return <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">✓ Chấp thuận</span>
+        return <span className="rounded-md bg-status-success-bg px-2 py-0.5 text-xs font-semibold text-status-success-text border border-status-success-border">✓ Chấp thuận</span>
       case 'REJECTED':
-        return <span className="rounded-md bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700 border border-rose-200">✕ Cần nộp lại</span>
+        return <span className="rounded-md bg-status-error-bg px-2 py-0.5 text-xs font-semibold text-danger-text border border-status-error-border">✕ Cần nộp lại</span>
       case 'SUBMITTED':
-        return <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 border border-blue-200">◷ Đã nộp (chờ duyệt)</span>
+        return <span className="rounded-md bg-status-info-bg px-2 py-0.5 text-xs font-semibold text-status-info-text border border-status-info-border">◷ Đã nộp (chờ duyệt)</span>
       default:
-        return <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">Chưa nộp</span>
+        return <span className="rounded-md bg-canvas px-2 py-0.5 text-xs font-medium text-ink-muted">Chưa nộp</span>
     }
   }
 
   return (
     <div className="review-gates-surface min-w-0 space-y-6">
       {/* Project & Policy Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-hairline bg-card p-5 shadow-xs">
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
-            <h2 className="text-lg font-bold text-slate-900">{timeline.projectName}</h2>
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600 border border-slate-200">
+            <h2 className="text-lg font-bold text-ink">{timeline.projectName}</h2>
+            <span className="rounded-full bg-canvas px-2.5 py-0.5 text-xs font-semibold text-ink-muted border border-hairline">
               {timeline.projectCode}
             </span>
-            <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
+            <span className="rounded-full bg-status-success-bg px-2.5 py-0.5 text-xs font-bold text-status-success-text border border-status-success-border">
               {env.reviewGatesMockEnabled ? `Chính sách: v${timeline.effectivePolicyVersion} (Đã ban hành)` : `Phiên bản cấu hình: ${timeline.effectivePolicyVersion}`}
             </span>
           </div>
-          <p className="mt-1 text-xs text-slate-600">
-            Chế độ: <strong className="text-slate-700">{timeline.projectMode === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành'}</strong> · Ngành: {timeline.major} · Đang xét duyệt: <strong className="text-primary">{selectedGate?.code}</strong>
+          <p className="mt-1 text-xs text-ink-muted">
+            Chế độ: <strong className="text-ink-soft">{timeline.projectMode === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành'}</strong> · Ngành: {timeline.major} · Đang xét duyệt: <strong className="text-primary">{selectedGate?.code}</strong>
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700">
-            Vai trò hiện tại: <strong className={isLeader ? 'text-primary' : 'text-slate-800'}>{isLeader ? 'Trưởng nhóm (Leader)' : isAuthenticated ? 'Thành viên (Member)' : 'Chưa xác thực (Guest)'}</strong>
+          <div className="rounded-lg border border-hairline bg-canvas px-3 py-1.5 text-xs text-ink-soft">
+            Vai trò hiện tại: <strong className={isLeader ? 'text-primary' : 'text-ink'}>{isLeader ? 'Trưởng nhóm (Leader)' : isAuthenticated ? 'Thành viên (Member)' : 'Chưa xác thực (Guest)'}</strong>
           </div>
           {onToggleRole && (
             <div className="flex items-center gap-1.5">
-              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-bold text-amber-800 uppercase tracking-wider">
+              <span className="rounded bg-status-warning-bg px-1.5 py-0.5 text-xs font-bold text-status-warning-text uppercase tracking-wider">
                 Mô phỏng
               </span>
               <button
                 type="button"
                 onClick={onToggleRole}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-2xs hover:bg-slate-50 cursor-pointer"
+                className="rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-semibold text-ink-muted shadow-2xs hover:bg-canvas cursor-pointer"
                 title="Đổi vai trò để kiểm thử quyền Leader vs Member (Chế độ mô phỏng)"
               >
                 ⇄ Đổi vai trò kiểm thử
@@ -128,11 +128,11 @@ export function StudentReviewTimeline({
 
       {/* Role Notice */}
       {!isAuthenticated ? (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
+        <div className="rounded-xl border border-hairline bg-canvas p-4 text-xs text-ink-soft">
           <strong>Thông báo phân quyền:</strong> Chưa phát hiện phiên làm việc sinh viên hợp lệ. Quyền nộp hồ sơ, sửa đổi minh chứng và các thao tác thẩm định chỉ dành cho sinh viên thuộc nhóm đồ án.
         </div>
       ) : !isLeader ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
+        <div className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-xs text-status-warning-text">
           <strong>Thông báo quyền hạn:</strong> Bạn đang xem với vai trò Thành viên (Student Member). Bạn có thể xem toàn bộ tiến trình, lịch sử nhận xét và minh chứng. Quyền nộp hồ sơ thẩm định chính thức và bản sửa đổi Gate thuộc về Trưởng nhóm.
         </div>
       ) : null}
@@ -140,37 +140,37 @@ export function StudentReviewTimeline({
       {/* 4 KPI Summary Cards */}
       <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {/* KPI 1: Academic Execution Progress */}
-        <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-slate-600">Tiến độ thực hiện học vụ</span>
+        <div className="min-w-0 rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+          <span className="text-xs font-semibold text-ink-muted">Tiến độ thực hiện học vụ</span>
           <div className="mt-1 flex min-h-16 flex-col justify-between gap-1">
-            <span className={academicProgress != null ? 'text-2xl font-black text-emerald-700' : 'text-base font-semibold leading-6 text-emerald-700'}>
+            <span className={academicProgress != null ? 'text-2xl font-black text-status-success-text' : 'text-base font-semibold leading-6 text-status-success-text'}>
               {academicProgress != null ? `${academicProgress}%` : timeline.academicProgressSource === 'NOT_CONFIGURED' ? 'Chưa áp dụng quy chế Cổng thẩm định' : 'Chưa có dữ liệu'}
             </span>
-            <span className="text-xs text-slate-600">({completedGatesCount}/{totalGatesCount} Cổng đạt)</span>
+            <span className="text-xs text-ink-muted">({completedGatesCount}/{totalGatesCount} Cổng đạt)</span>
           </div>
-          {academicProgress != null && <div role="progressbar" aria-label="Tiến độ học vụ" aria-valuenow={academicProgress} aria-valuemin={0} aria-valuemax={100} className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          {academicProgress != null && <div role="progressbar" aria-label="Tiến độ học vụ" aria-valuenow={academicProgress} aria-valuemin={0} aria-valuemax={100} className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
             <div
-              className="h-full rounded-full bg-emerald-600 transition-all duration-300"
+              className="h-full rounded-full bg-primary transition-all duration-300"
               style={{ width: `${academicProgress}%` }}
             />
           </div>}
-          <p className="mt-1.5 text-xs text-slate-600">
+          <p className="mt-1.5 text-xs text-ink-muted">
             {academicProgressSourceLabel(timeline.academicProgressSource)}
           </p>
         </div>
 
         {/* KPI 2: Task Progress */}
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-slate-600">Tiến độ công việc (Task Board)</span>
+        <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+          <span className="text-xs font-semibold text-ink-muted">Tiến độ công việc (Task Board)</span>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-blue-700">
+            <span className="text-2xl font-black text-status-info-text">
               {timeline.taskProgress != null ? `${timeline.taskProgress}%` : 'Chưa đồng bộ'}
             </span>
-            <span className="text-xs text-blue-600 font-medium">Khác với tiến độ học vụ</span>
+            <span className="text-xs text-status-info-text font-medium">Khác với tiến độ học vụ</span>
           </div>
-          {timeline.taskProgress != null && <div role="progressbar" aria-label="Tiến độ công việc" aria-valuenow={timeline.taskProgress} aria-valuemin={0} aria-valuemax={100} className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          {timeline.taskProgress != null && <div role="progressbar" aria-label="Tiến độ công việc" aria-valuenow={timeline.taskProgress} aria-valuemin={0} aria-valuemax={100} className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
             <div
-              className="h-full rounded-full bg-blue-600 transition-all duration-300"
+              className="h-full rounded-full bg-primary transition-all duration-300"
               style={{ width: `${timeline.taskProgress}%` }}
             />
           </div>}
@@ -182,23 +182,23 @@ export function StudentReviewTimeline({
         </div>
 
         {/* KPI 3: Current Review Gate */}
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-slate-600">Cổng thẩm định hiện tại</span>
+        <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+          <span className="text-xs font-semibold text-ink-muted">Cổng thẩm định hiện tại</span>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-xl font-black text-slate-900">{selectedGate?.code}</span>
-            <span className="text-xs font-semibold text-slate-600 truncate">{selectedGate?.title}</span>
+            <span className="text-xl font-black text-ink">{selectedGate?.code}</span>
+            <span className="text-xs font-semibold text-ink-muted truncate">{selectedGate?.title}</span>
           </div>
           <div className="mt-2 flex items-center justify-between text-xs">
-            <span className="text-slate-600">Hạn chót thẩm định:</span>
-            <span className="font-semibold text-slate-700">{selectedGate?.windowEnd || 'Theo kỳ'}</span>
+            <span className="text-ink-muted">Hạn chót thẩm định:</span>
+            <span className="font-semibold text-ink-soft">{selectedGate?.windowEnd || 'Theo kỳ'}</span>
           </div>
-          <p className="mt-1.5 text-xs text-slate-600">Trạng thái: {selectedGate ? gateStatusLabels[selectedGate.status] ?? 'Chưa xác định' : 'Chưa xác định'}</p>
+          <p className="mt-1.5 text-xs text-ink-muted">Trạng thái: {selectedGate ? gateStatusLabels[selectedGate.status] ?? 'Chưa xác định' : 'Chưa xác định'}</p>
         </div>
 
         {/* KPI 4: Defense Readiness Advisory */}
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
+        <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-600">Đủ điều kiện bảo vệ (Advisory)</span>
+            <span className="text-xs font-semibold text-ink-muted">Đủ điều kiện bảo vệ (Advisory)</span>
             <button
               type="button"
               onClick={() => setShowDefenseModal(true)}
@@ -211,10 +211,10 @@ export function StudentReviewTimeline({
             <span
               className={`text-base font-black ${
                 isDefenseReady === true
-                  ? 'text-emerald-700'
+                  ? 'text-status-success-text'
                   : isDefenseReady === false
-                  ? 'text-amber-700'
-                  : 'text-slate-600'
+                  ? 'text-status-warning-text'
+                  : 'text-ink-muted'
               }`}
             >
               {timeline.defenseReadinessStatus ||
@@ -225,7 +225,7 @@ export function StudentReviewTimeline({
                   : 'CHƯA ĐƯỢC ĐÁNH GIÁ')}
             </span>
           </div>
-          <p className="mt-2 text-xs text-slate-600">
+          <p className="mt-2 text-xs text-ink-muted">
             {readiness && !readiness.isReady
               ? `Chưa đạt: ${readiness.conditions.filter(condition => condition.isMandatory && condition.satisfied !== true).map(condition => condition.title).join(', ') || 'Xem chi tiết điều kiện từ hệ thống.'}`
               : isDefenseReady === true
@@ -240,13 +240,13 @@ export function StudentReviewTimeline({
 
       {/* Interdisciplinary Multi-branch Progress (F5) */}
       {timeline.projectMode === 'INTERDISCIPLINARY' && (
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-2xs space-y-3">
+        <div className="rounded-xl border border-hairline bg-card p-5 shadow-2xs space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Tiến độ Các Phân nhánh Chuyên môn (Liên ngành)</h3>
-              <p className="text-xs text-slate-600">Mỗi chuyên ngành có trọng số và cổng thẩm định độc lập theo quy chế.</p>
+              <h3 className="text-sm font-bold text-ink">Tiến độ Các Phân nhánh Chuyên môn (Liên ngành)</h3>
+              <p className="text-xs text-ink-muted">Mỗi chuyên ngành có trọng số và cổng thẩm định độc lập theo quy chế.</p>
             </div>
-            <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">
+            <span className="rounded-full bg-status-info-bg px-2.5 py-0.5 text-xs font-bold text-status-info-text border border-status-info-border">
               Mô hình Tích hợp Đa ngành
             </span>
           </div>
@@ -255,13 +255,13 @@ export function StudentReviewTimeline({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {timeline.disciplineProgress.map((branch) => (
                 <div key={branch.scope}>
-                  <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
+                  <div className="flex justify-between text-xs font-semibold text-ink-soft mb-1">
                     <span>{branch.name}</span>
                     <span>{branch.progress != null ? `${branch.progress}%` : 'Chưa có dữ liệu'}</span>
                   </div>
-                  {branch.progress != null && <div role="progressbar" aria-label={`Tiến độ ${branch.name}`} aria-valuenow={branch.progress} aria-valuemin={0} aria-valuemax={100} className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                  {branch.progress != null && <div role="progressbar" aria-label={`Tiến độ ${branch.name}`} aria-valuenow={branch.progress} aria-valuemin={0} aria-valuemax={100} className="h-2 w-full overflow-hidden rounded-full bg-canvas">
                     <div
-                      className="h-full bg-emerald-600 rounded-full transition-all duration-300"
+                      className="h-full bg-primary rounded-full transition-all duration-300"
                       style={{ width: `${branch.progress}%` }}
                     />
                   </div>}
@@ -272,12 +272,12 @@ export function StudentReviewTimeline({
               ))}
             </div>
           ) : (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
+            <div className="rounded-lg border border-hairline bg-canvas p-4 text-xs text-ink-muted">
               ℹ️ Đồ án liên ngành đang chờ Hội đồng công bố cấu trúc phân nhánh và trọng số chuyên môn theo snapshot kỳ học.
             </div>
           )}
 
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+          <div className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-xs text-status-warning-text">
             ⚠️ <strong>Quy tắc Cổng Tích hợp:</strong> Cổng đánh giá tích hợp liên ngành chỉ được thông qua khi toàn bộ các ngành thành viên bắt buộc đều được phê duyệt ĐẠT.
           </div>
         </div>
@@ -295,18 +295,18 @@ export function StudentReviewTimeline({
               className={`rounded-xl border p-4 text-left transition-all duration-200 motion-reduce:transition-none ${
                 isSelected
                   ? 'border-primary bg-primary-subtle/50 shadow-xs ring-1 ring-primary'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
+                  : 'border-hairline bg-card hover:border-hairline'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-600">{gate.code}</span>
+                <span className="text-xs font-bold text-ink-muted">{gate.code}</span>
                 {getStatusBadge(gate.status)}
               </div>
-              <h3 className="mt-2 text-sm font-bold text-slate-900">{gate.title}</h3>
-              <p className="mt-1 text-xs text-slate-600 line-clamp-1">{gate.objective}</p>
+              <h3 className="mt-2 text-sm font-bold text-ink">{gate.title}</h3>
+              <p className="mt-1 text-xs text-ink-muted line-clamp-1">{gate.objective}</p>
               <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-xs text-slate-400">
                 <span>{gate.windowStart || 'Chưa xác định'} → {gate.windowEnd || 'Chưa xác định'}</span>
-                {gate.reviewEligibility === 'BLOCKED' && <span className="font-bold text-rose-500">{gate.status === 'REVISION_REQUIRED' ? 'Chờ bản sửa' : '🔒 Bị chặn'}</span>}
+                {gate.reviewEligibility === 'BLOCKED' && <span className="font-bold text-danger-text">{gate.status === 'REVISION_REQUIRED' ? 'Chờ bản sửa' : '🔒 Bị chặn'}</span>}
               </div>
             </button>
           )
@@ -315,27 +315,27 @@ export function StudentReviewTimeline({
 
       {/* Selected Gate Details */}
       {selectedGate && (
-        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+        <div className="space-y-4 rounded-xl border border-hairline bg-card p-5 shadow-xs">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div>
               <div className="flex items-center gap-2">
                 <span className="rounded-md bg-slate-900 px-2 py-0.5 text-xs font-bold text-white">
                   {selectedGate.code}
                 </span>
-                <h3 className="text-base font-bold text-slate-900">{selectedGate.title}</h3>
+                <h3 className="text-base font-bold text-ink">{selectedGate.title}</h3>
                 {getStatusBadge(selectedGate.status)}
               </div>
-              <p className="mt-1 text-xs text-slate-600">{selectedGate.objective}</p>
+              <p className="mt-1 text-xs text-ink-muted">{selectedGate.objective}</p>
             </div>
-            <div className="text-right text-xs text-slate-600">
+            <div className="text-right text-xs text-ink-muted">
               <div>Thời gian nộp: <strong>{selectedGate.windowStart || 'Chưa xác định'}</strong> đến <strong>{selectedGate.windowEnd || 'Chưa xác định'}</strong></div>
-              <div>Điều kiện tham gia: <strong className={canSubmitSelectedGate ? 'text-emerald-700' : 'text-rose-600'}>{selectedGate.status === 'REVISION_REQUIRED' && canSubmitSelectedGate ? 'Được nộp bản sửa' : selectedGate.reviewEligibility === 'BLOCKED' ? 'Đang bị chặn' : 'Sẵn sàng'}</strong></div>
+              <div>Điều kiện tham gia: <strong className={canSubmitSelectedGate ? 'text-status-success-text' : 'text-status-error-text'}>{selectedGate.status === 'REVISION_REQUIRED' && canSubmitSelectedGate ? 'Được nộp bản sửa' : selectedGate.reviewEligibility === 'BLOCKED' ? 'Đang bị chặn' : 'Sẵn sàng'}</strong></div>
             </div>
           </div>
 
           {/* Blocker alert if any */}
           {selectedGate.blockingReasons.length > 0 && (
-            <div className="rounded-lg border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-800">
+            <div className="rounded-lg border border-status-error-border bg-status-error-bg p-3.5 text-xs text-danger-text">
               <h4 className="font-bold">Lý do bị chặn / Yêu cầu khắc phục:</h4>
               <ul className="mt-1.5 list-disc pl-5 space-y-1">
                 {selectedGate.blockingReasons.map((br, idx) => (
@@ -350,13 +350,13 @@ export function StudentReviewTimeline({
 
           {/* Requirements Checklist */}
           <div>
-            <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+            <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-ink-muted">
               Danh mục Minh chứng Học thuật ({selectedGate.requirements.length} yêu cầu)
             </h4>
-            <p className="mb-2 text-xs text-slate-600 sm:hidden">Cuộn ngang để xem tệp và thao tác.</p>
-            <div role="region" aria-label="Danh mục minh chứng, có thể cuộn ngang" tabIndex={0} className="overflow-x-auto rounded-lg border border-slate-200">
+            <p className="mb-2 text-xs text-ink-muted sm:hidden">Cuộn ngang để xem tệp và thao tác.</p>
+            <div role="region" aria-label="Danh mục minh chứng, có thể cuộn ngang" tabIndex={0} className="overflow-x-auto rounded-lg border border-hairline">
               <table className="w-full min-w-[720px] text-left text-xs">
-                <thead className="border-b border-slate-200 bg-slate-50 font-semibold text-slate-600">
+                <thead className="border-b border-hairline bg-canvas font-semibold text-ink-muted">
                   <tr>
                     <th className="px-3.5 py-2.5">Yêu cầu minh chứng</th>
                     <th className="px-3 py-2.5">Loại & Phạm vi</th>
@@ -369,24 +369,24 @@ export function StudentReviewTimeline({
                 <tbody className="divide-y divide-slate-100">
                   {selectedGate.requirements.map((req) => {
                     return (
-                      <tr key={req.id} className="hover:bg-slate-50/70">
+                      <tr key={req.id} className="hover:bg-canvas/70">
                         <td className="px-3.5 py-3">
-                          <strong className="block font-semibold text-slate-900">{req.title}</strong>
+                          <strong className="block font-semibold text-ink">{req.title}</strong>
                           <span className="text-slate-400">{req.code}</span>
                           {req.reviewerFeedback && (
-                            <p className="mt-1 text-rose-700 bg-rose-50/70 p-1.5 rounded-sm border border-rose-100">
+                            <p className="mt-1 text-danger-text bg-status-error-bg/70 p-1.5 rounded-sm border border-status-error-border">
                               <strong>Nhận xét:</strong> {req.reviewerFeedback}
                             </p>
                           )}
                         </td>
                         <td className="px-3 py-3">
-                          <span className="rounded-md bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
+                          <span className="rounded-md bg-canvas px-2 py-0.5 font-medium text-ink-soft">
                             {requirementTypeLabel(req.type)}
                           </span>
                           <span className="ml-1 text-slate-400">({displayLabel(req.scope)})</span>
                         </td>
-                        <td className="px-3 py-3 font-semibold text-slate-700">
-                          {req.isMandatory ? <span className="text-rose-600 font-bold">Bắt buộc</span> : 'Tùy chọn'}
+                        <td className="px-3 py-3 font-semibold text-ink-soft">
+                          {req.isMandatory ? <span className="text-danger-text font-bold">Bắt buộc</span> : 'Tùy chọn'}
                         </td>
                         <td className="px-3 py-3">
                           {getVerificationBadge(req.verificationStatus)}
@@ -394,9 +394,9 @@ export function StudentReviewTimeline({
                         <td className="px-3.5 py-3">
                           {req.latestArtifact ? (
                             <div>
-                              <strong className="break-all text-slate-800" title={req.latestArtifact.linkUrl ?? req.latestArtifact.filename}>v{req.latestArtifact.version}: {evidenceArtifactLabel(req.latestArtifact)}</strong>
+                              <strong className="break-all text-ink" title={req.latestArtifact.linkUrl ?? req.latestArtifact.filename}>v{req.latestArtifact.version}: {evidenceArtifactLabel(req.latestArtifact)}</strong>
                               <div className="text-slate-400">{req.latestArtifact.submittedAt} · {req.latestArtifact.submittedBy}</div>
-                              {req.latestArtifact.notes && <div className="text-slate-600 italic mt-0.5">"{req.latestArtifact.notes}"</div>}
+                              {req.latestArtifact.notes && <div className="text-ink-muted italic mt-0.5">"{req.latestArtifact.notes}"</div>}
                               <EvidenceDownloadButton projectId={timeline.projectId} gateCode={selectedGate.code} requirement={req} />
                             </div>
                           ) : (
@@ -405,7 +405,7 @@ export function StudentReviewTimeline({
                         </td>
                         <td className="px-3.5 py-3 text-right">
                           {req.verificationStatus === 'ACCEPTED' && selectedGate.status !== 'REVISION_REQUIRED' ? (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-status-success-bg px-2.5 py-1 text-xs font-semibold text-status-success-text border border-status-success-border">
                               <span className="material-symbols-outlined text-sm" aria-hidden="true">check</span>
                               Đã chấp thuận
                             </span>
@@ -423,11 +423,11 @@ export function StudentReviewTimeline({
                                       disabled
                                       aria-disabled="true"
                                       title={blockingReason || 'Hồ sơ hiện bị khóa nộp'}
-                                      className="cursor-not-allowed rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-400"
+                                      className="cursor-not-allowed rounded-lg bg-canvas px-3 py-1.5 text-xs font-semibold text-slate-400"
                                     >
                                       {isRevision ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
                                     </button>
-                                    <span className="max-w-[180px] truncate text-right text-xs text-rose-500 italic" title={blockingReason}>
+                                    <span className="max-w-[180px] truncate text-right text-xs text-danger-text italic" title={blockingReason}>
                                       {blockingReason || 'Bị chặn nộp'}
                                     </span>
                                   </div>
@@ -440,7 +440,7 @@ export function StudentReviewTimeline({
                                   onClick={() => setActiveReqForSubmission(req)}
                                   className={`min-h-11 rounded-lg px-3 py-1.5 text-xs font-bold transition-all focus:outline-hidden focus:ring-2 focus:ring-offset-1 ${
                                     isRevision
-                                      ? 'bg-rose-600 text-white shadow-xs hover:bg-rose-700 focus:ring-rose-500'
+                                      ? 'bg-danger-strong text-white shadow-xs hover:bg-danger-strong-hover focus:ring-danger-strong'
                                       : 'bg-primary text-white shadow-xs hover:bg-primary-hover focus:ring-primary'
                                   }`}
                                 >
@@ -455,7 +455,7 @@ export function StudentReviewTimeline({
                                 disabled
                                 aria-disabled="true"
                                 aria-describedby={`member-only-notice-${req.id}`}
-                                className="cursor-not-allowed rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-400"
+                                className="cursor-not-allowed rounded-lg bg-canvas px-3 py-1.5 text-xs font-semibold text-slate-400"
                               >
                                 {req.verificationStatus === 'REJECTED' ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
                               </button>
@@ -475,7 +475,7 @@ export function StudentReviewTimeline({
           {onSubmitForReview && (
             <div className="space-y-2 border-t border-slate-100 pt-3">
               <button type="button" disabled={!canSubmitSelectedGate || submittingGate || selectedGate.requirements.some(req => req.isMandatory && !req.latestArtifact)}
-                className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white disabled:bg-slate-200 disabled:text-slate-600"
+                className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white disabled:bg-slate-200 disabled:text-ink-muted"
                 onClick={async () => {
                   setSubmittingGate(true); setSubmitError(null)
                   try { await onSubmitForReview(selectedGate.code) }
@@ -484,21 +484,21 @@ export function StudentReviewTimeline({
                 }}>
                 {submittingGate ? 'Đang gửi...' : 'Gửi hồ sơ thẩm định'}
               </button>
-              {submitError && <p role="alert" className="text-xs text-rose-700">{submitError}</p>}
+              {submitError && <p role="alert" className="text-xs text-danger-text">{submitError}</p>}
             </div>
           )}
         </div>
       )}
 
       {/* Submission Modal */}
-      {selectedGate && <section className="rounded-xl border border-slate-200 bg-white p-5" aria-label={`Nhận xét hướng dẫn · ${selectedGate.code}`}>
-        <h3 className="font-bold text-slate-900">Nhận xét hướng dẫn · {selectedGate.code}</h3>
-        <p className="mt-1 text-xs text-slate-600">Nhận xét tư vấn, không thay đổi kết luận thẩm định của reviewer.</p>
+      {selectedGate && <section className="rounded-xl border border-hairline bg-card p-5" aria-label={`Nhận xét hướng dẫn · ${selectedGate.code}`}>
+        <h3 className="font-bold text-ink">Nhận xét hướng dẫn · {selectedGate.code}</h3>
+        <p className="mt-1 text-xs text-ink-muted">Nhận xét tư vấn, không thay đổi kết luận thẩm định của reviewer.</p>
         {(timeline.supervisorFeedbacks ?? []).filter(item => item.gateCode === selectedGate.code).length > 0
           ? <ul className="mt-3 space-y-3">{timeline.supervisorFeedbacks?.filter(item => item.gateCode === selectedGate.code).map((item, index) => <li key={`${item.submittedAt}-${index}`} className="break-words text-sm">
-            <p className="whitespace-pre-wrap">{item.feedback}</p><p className="text-xs text-slate-600">{item.supervisorName ?? 'Giảng viên hướng dẫn'} · <time dateTime={item.submittedAt}>{item.submittedAt}</time></p>
+            <p className="whitespace-pre-wrap">{item.feedback}</p><p className="text-xs text-ink-muted">{item.supervisorName ?? 'Giảng viên hướng dẫn'} · <time dateTime={item.submittedAt}>{item.submittedAt}</time></p>
           </li>)}</ul>
-          : <p className="mt-3 text-sm text-slate-600">Chưa có nhận xét cho cổng này. Theo dõi phản hồi của giảng viên hướng dẫn tại đây.</p>}
+          : <p className="mt-3 text-sm text-ink-muted">Chưa có nhận xét cho cổng này. Theo dõi phản hồi của giảng viên hướng dẫn tại đây.</p>}
       </section>}
       <ReviewSubmissionModal
         key={activeReqForSubmission?.id || 'closed'}
@@ -524,7 +524,7 @@ export function StudentReviewTimeline({
         </Modal>
       ) : showDefenseModal && (
         <Modal open onClose={() => setShowDefenseModal(false)} title="Điều kiện bảo vệ từ hệ thống">
-          <p className="text-sm text-slate-600">Chưa tải được kết luận điều kiện bảo vệ từ hệ thống. Vui lòng tải lại tiến trình.</p>
+          <p className="text-sm text-ink-muted">Chưa tải được kết luận điều kiện bảo vệ từ hệ thống. Vui lòng tải lại tiến trình.</p>
         </Modal>
       )}
     </div>

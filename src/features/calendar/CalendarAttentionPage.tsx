@@ -100,7 +100,7 @@ export function CalendarAttentionPage() {
         </section>
         <aside className="attention-panel" aria-labelledby="attention-heading">
           <div className="attention-panel__heading"><div><h2 id="attention-heading">Điểm cần chú ý</h2><p>Những việc ưu tiên cao và mốc đồ án quá hạn.</p></div><span className="attention-panel__count" role="status" aria-atomic="true" aria-label={attentionKnown ? `${data.attention.length} điểm cần chú ý` : 'Chưa xác định số việc cần làm'}><span aria-hidden="true">{attentionKnown ? data.attention.length : '—'}</span><span className="sr-only">{attentionKnown ? `${data.attention.length} điểm cần chú ý` : 'Chưa xác định số việc cần làm'}</span></span></div>
-          {attentionErrors.length > 0 && <div role="alert" className="mx-4 mb-3 space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          {attentionErrors.length > 0 && <div role="alert" className="mx-4 mb-3 space-y-2 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">
             <p>Một số nguồn chưa tải được; danh sách có thể chưa đầy đủ.</p>
             {attentionErrors.map(source => <p key={source.id}>{source.message}</p>)}
             <Button variant="outline" size="sm" className="min-h-11" icon="refresh" onClick={() => void refresh()} disabled={loading}>Tải lại danh sách</Button>

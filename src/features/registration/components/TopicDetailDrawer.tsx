@@ -15,7 +15,7 @@ export function TopicDetailDrawer({ topic, isLoading, error, onClose, canSelect,
   if (!isLoading && !error && !topic) return null
   return <Modal open drawer title={topic?.title ?? 'Chi tiết đề tài'} description={topic?.code} busy={selecting} onClose={onClose}>
     {isLoading && <p className="text-sm text-ink-muted" role="status">Đang tải chi tiết đề tài…</p>}
-    {error && <p role="alert" className="text-sm text-rose-700">Chưa tải được chi tiết đề tài. Hãy thử lại.</p>}
+    {error && <p role="alert" className="text-sm text-danger-text">Chưa tải được chi tiết đề tài. Hãy thử lại.</p>}
     {topic && <><TopicDetail topic={topic} /><footer className="app-modal__actions"><button type="button" disabled={selecting} onClick={onClose} className="app-modal__button">Đóng</button>{canSelect ? <button type="button" disabled={selecting} onClick={() => onSelectTopic(topic)} className="app-modal__button app-modal__button--primary">{selecting ? 'Đang chọn…' : 'Chọn đề tài này'}</button> : <p className="text-xs text-ink-muted">Cần bản nháp có thể chỉnh sửa và quyền trưởng nhóm để chọn đề tài.</p>}</footer></>}
   </Modal>
 }

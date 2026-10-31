@@ -9,14 +9,14 @@ interface AiPreviewProps {
 
 export function AiPreview({ insight }: AiPreviewProps) {
   return (
-    <Card className="border-blue-200 bg-linear-to-b from-blue-50/50 to-white shadow-xs">
-      <CardHeader className="py-3 px-4 border-b border-blue-100 flex-wrap gap-2">
+    <Card className="border-status-info-border bg-card shadow-xs">
+      <CardHeader className="py-3 px-4 border-b border-hairline flex-wrap gap-2">
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-blue-600" aria-hidden="true">
+            <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">
               neurology
             </span>
-            <CardTitle className="text-xs uppercase tracking-wider font-mono text-blue-900">
+            <CardTitle className="text-xs uppercase tracking-wider font-mono text-ink">
               Trợ lý AI Học thuật (Lab Copilot)
             </CardTitle>
           </div>
@@ -26,9 +26,9 @@ export function AiPreview({ insight }: AiPreviewProps) {
         </div>
       </CardHeader>
       <CardContent className="p-4 flex flex-col gap-3">
-        <div className="p-3 rounded-lg bg-card border border-blue-100 text-xs text-ink-soft space-y-2 leading-relaxed">
+        <div className="p-3 rounded-lg bg-card border border-hairline text-xs text-ink-soft space-y-2 leading-relaxed">
           <p className="font-semibold text-ink flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[15px] text-amber-600" aria-hidden="true">
+            <span className="material-symbols-outlined text-[15px] text-status-warning-text" aria-hidden="true">
               tips_and_updates
             </span>
             {insight.title}:

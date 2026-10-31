@@ -78,16 +78,18 @@
   display: inline-block;
   padding: 1px 7px;
   border-radius: 999px;
-  background: #e2e8f0;
-  color: #334155;
-  font-size: 11px;
+  background: var(--color-hairline);
+  color: var(--color-ink-soft);
+  font-size: 12px;
   font-weight: 600;
 }
 
-.doc-preview-tag--pdf { background: #fee2e2; color: #991b1b; }
-.doc-preview-tag--image { background: #eff6ff; color: #1d4ed8; }
-.doc-preview-tag--code { background: #f3e8ff; color: #7e22ce; }
-.doc-preview-tag--office { background: #ecfdf5; color: #065f46; }
+/* File type is categorical metadata, not status: a PDF is not an error and a
+   spreadsheet is not a success. The four per-type colours were also four hues
+   from outside the palette. The type is already named in the chip's own label,
+   so one neutral chip carries it without colour doing semantic work it should
+   not do. The --pdf/--image/--code/--office classes stay on the element as a
+   DOM hook; they intentionally carry no styling. */
 
 .doc-preview-actions {
   display: flex;
@@ -114,15 +116,15 @@
 }
 
 .doc-preview-btn:hover:not(:disabled) {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
+  background: var(--color-canvas);
+  border-color: var(--color-line-strong);
 }
 
 .doc-preview-btn--primary {
   background: var(--color-primary);
   color: white;
   border-color: var(--color-primary);
-  box-shadow: 0 2px 6px -1px rgba(15, 91, 78, 0.3);
+  box-shadow: 0 2px 6px -1px color-mix(in oklab, var(--color-primary) 35%, transparent);
 }
 
 .doc-preview-btn--primary:hover:not(:disabled) {
@@ -139,8 +141,8 @@
 }
 
 .doc-preview-btn--close:hover {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--color-status-error-bg);
+  color: var(--color-danger-text);
   border-color: #fca5a5;
 }
 
@@ -184,8 +186,8 @@
 .doc-preview-code-stage {
   flex: 1;
   padding: 20px;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--color-ink);
+  color: var(--color-hairline);
   overflow: auto;
   font-family: var(--font-mono);
   font-size: 13px;

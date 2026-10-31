@@ -33,7 +33,7 @@ export function LecturerWorkspacePage() {
   return (
     <WorkspacePage className="lecturer-workspace space-y-6" title="Hướng dẫn đồ án" eyebrow="Giảng viên hướng dẫn" description="Theo dõi tiến độ, góp ý cho nhóm và xử lý các đề nghị hướng dẫn." action={<Button variant="secondary" icon="refresh" disabled={inbox.loading} onClick={() => void inbox.refresh()}>Tải lại</Button>}>
 
-      {inbox.error ? <section role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{inbox.error.message}</section> : null}
+      {inbox.error ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-danger-text">{inbox.error.message}</section> : null}
 
       <section className="lecturer-projects" aria-labelledby="assigned-projects">
         <div className="flex flex-wrap items-end justify-between gap-2"><div><h2 id="assigned-projects" className="mt-1 text-lg font-bold">Đồ án đang hướng dẫn</h2><p className="mt-1 text-sm text-ink-muted">Chọn công việc, báo cáo hoặc cuộc họp để tiếp tục hướng dẫn nhóm.</p></div></div>
@@ -51,7 +51,7 @@ export function LecturerWorkspacePage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="mb-1 flex items-center gap-2">
-                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${assignment.isPrimary ? 'bg-primary/15 text-primary' : 'bg-blue-100 text-blue-800'}`}>
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${assignment.isPrimary ? 'bg-primary/15 text-primary' : 'bg-status-info-bg text-status-info-text'}`}>
                     {assignment.isPrimary ? 'Hướng dẫn chính' : isMentor ? 'Hướng dẫn chuyên ngành' : 'Đồng hướng dẫn'}
                   </span>
                   <span className="text-xs text-ink-muted">· {project?.code ?? `#${assignment.projectId}`}</span>
@@ -97,14 +97,14 @@ export function LecturerWorkspacePage() {
                     <span className="material-symbols-outlined text-primary text-sm" aria-hidden="true">mail</span>
                     <strong>{project?.title ?? `Đồ án #${request.projectId}`}{project?.code ? ` · ${project.code}` : ''}</strong>
                   </div>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isPending ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isPending ? 'bg-status-warning-bg text-status-warning-text' : 'bg-canvas text-ink-soft'}`}>
                     {displayLabel(request.status)}
                   </span>
                 </div>
               </summary>
               <p className="mt-3 text-xs text-ink-muted">Ngày gửi: {new Date(request.requestedAt).toLocaleDateString('vi-VN')}</p>
               {team ? (
-                <div className="mt-4 lecturer-team rounded-r-md bg-slate-50/60 p-3">
+                <div className="mt-4 lecturer-team rounded-r-md bg-canvas/60 p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <strong>{team.name} · {team.code}</strong>
                     <span className="text-xs text-ink-muted">{team.members.length} thành viên</span>
@@ -120,7 +120,7 @@ export function LecturerWorkspacePage() {
                 </div>
               ) : null}
               {request.requestMessage ? <p className="mt-3 leading-relaxed text-ink-muted text-xs bg-card border border-hairline rounded-md p-2.5">Lời nhắn của nhóm: {request.requestMessage}</p> : null}
-              {request.responseMessage ? <p className="mt-3 leading-relaxed text-ink-muted text-xs bg-emerald-50/50 border border-emerald-100 rounded-md p-2.5">Phản hồi: {request.responseMessage}</p> : null}
+              {request.responseMessage ? <p className="mt-3 leading-relaxed text-ink-muted text-xs bg-status-success-bg border border-status-success-border rounded-md p-2.5">Phản hồi: {request.responseMessage}</p> : null}
               {request.status === 'PENDING' ? (
                 <div className="mt-3 space-y-2">
                   <label className="block text-xs font-medium text-ink-soft">
@@ -151,7 +151,7 @@ export function LecturerWorkspacePage() {
               <li key={request.id} className="border-b border-hairline py-4 text-sm last:border-b-0">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <strong>{team?.name ?? 'Nhóm #' + request.teamId}</strong>
-                  <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">{displayLabel(request.status)}</span>
+                  <span className="rounded-full bg-status-warning-bg px-2 py-1 text-xs font-semibold text-status-warning-text">{displayLabel(request.status)}</span>
                 </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
                   <p><span className="text-xs text-ink-muted">Trưởng nhóm hiện tại</span><br/><b>{current?.fullName ?? '#' + request.currentLeaderUserId}</b></p>

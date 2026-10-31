@@ -329,7 +329,7 @@ export function ColdTemplateManagementPage() {
                         <li key={report.code} className="flex items-center gap-2">
                           <code className="rounded bg-subtle px-1.5 py-0.5 font-semibold text-ink">{report.code}</code>
                           <span>— {report.name}</span>
-                          {report.required && <span className="text-amber-700 font-medium">· Bắt buộc</span>}
+                          {report.required && <span className="text-status-warning-text font-medium">· Bắt buộc</span>}
                         </li>
                       ))}
                     </ul>
@@ -459,7 +459,7 @@ export function ColdTemplateManagementPage() {
           </p>
         </div>
 
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3.5 text-xs text-amber-800 leading-relaxed">
+        <div className="rounded-lg border border-warning-strong bg-status-warning-bg p-3.5 text-xs text-status-warning-text leading-relaxed">
           <strong>⚠️ Lưu ý kiểm soát ngành:</strong> Tuyệt đối không tự ý áp dụng checklist IT cho sinh viên/đồ án thuộc ngành Marketing, Design hoặc các chuyên ngành khác. Mỗi ngành phải sử dụng đúng template của ngành mình.
         </div>
 

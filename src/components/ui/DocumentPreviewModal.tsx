@@ -295,10 +295,10 @@ export function DocumentPreviewModal({
 
         {error && (
           <div className="doc-preview-error" role="alert">
-            <span className="material-symbols-outlined text-4xl text-rose-600 mb-3">
+            <span className="material-symbols-outlined text-4xl text-danger-text mb-3">
               error_outline
             </span>
-            <p className="text-sm font-semibold text-rose-800">{error}</p>
+            <p className="text-sm font-semibold text-danger-text">{error}</p>
             <button
               type="button"
               className="doc-preview-btn doc-preview-btn--primary mt-4"

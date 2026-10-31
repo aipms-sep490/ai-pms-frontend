@@ -88,20 +88,20 @@ export function GateRequirementDrawer({
       aria-modal="true"
       aria-labelledby="requirement-drawer-title"
     >
-      <div className="flex h-full w-full max-w-lg flex-col bg-white p-6 shadow-2xl sm:border-l sm:border-slate-200">
+      <div className="flex h-full w-full max-w-lg flex-col bg-card p-6 shadow-2xl sm:border-l sm:border-hairline">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-primary">
               Cấu hình điều kiện học thuật
             </p>
-            <h2 id="requirement-drawer-title" className="text-lg font-bold text-slate-800">
+            <h2 id="requirement-drawer-title" className="text-lg font-bold text-ink">
               {requirement ? 'Chỉnh sửa yêu cầu' : 'Thêm yêu cầu mới'}
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-canvas hover:text-ink-muted"
             aria-label="Đóng"
           >
             ✕
@@ -111,12 +111,12 @@ export function GateRequirementDrawer({
         <form onSubmit={handleSubmit} className="flex flex-1 flex-col justify-between overflow-y-auto py-5">
           <div className="space-y-4">
             <div>
-              <label htmlFor="req-code" className="block text-xs font-semibold text-slate-700">Mã yêu cầu *</label>
-              <input id="req-code" required={!env.reviewGatesMockEnabled} value={code} onChange={e => setCode(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm" />
+              <label htmlFor="req-code" className="block text-xs font-semibold text-ink-soft">Mã yêu cầu *</label>
+              <input id="req-code" required={!env.reviewGatesMockEnabled} value={code} onChange={e => setCode(e.target.value)} className="mt-1 w-full rounded-lg border border-hairline p-2 text-sm" />
             </div>
-            {error && <p role="alert" className="text-xs text-rose-700">{error}</p>}
+            {error && <p role="alert" className="text-xs text-danger-text">{error}</p>}
             <div>
-              <label htmlFor="req-title" className="block text-xs font-semibold text-slate-700">
+              <label htmlFor="req-title" className="block text-xs font-semibold text-ink-soft">
                 Tên yêu cầu / Tiêu chuẩn đầu ra *
               </label>
               <input
@@ -125,20 +125,20 @@ export function GateRequirementDrawer({
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="Ví dụ: Software Requirement Specification (SRS v1.0)"
-                className="mt-1.5 w-full rounded-lg border border-slate-200 p-2.5 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="mt-1.5 w-full rounded-lg border border-hairline p-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="req-type" className="block text-xs font-semibold text-slate-700">
+                <label htmlFor="req-type" className="block text-xs font-semibold text-ink-soft">
                   Loại minh chứng *
                 </label>
                 <select
                   id="req-type"
                   value={type}
                   onChange={e => setType(e.target.value as RequirementType)}
-                  className="mt-1.5 w-full rounded-lg border border-slate-200 p-2.5 text-sm text-slate-900 focus:border-primary focus:outline-none"
+                  className="mt-1.5 w-full rounded-lg border border-hairline p-2.5 text-sm text-ink focus:border-primary focus:outline-none"
                 >
                   {requirementTypes.map(t => (
                     <option key={t} value={t}>
@@ -149,14 +149,14 @@ export function GateRequirementDrawer({
               </div>
 
               <div>
-                <label htmlFor="req-scope" className="block text-xs font-semibold text-slate-700">
+                <label htmlFor="req-scope" className="block text-xs font-semibold text-ink-soft">
                   Phạm vi chuyên ngành *
                 </label>
                 <select
                   id="req-scope"
                   value={scope}
                   onChange={e => setScope(e.target.value as RequirementScope)}
-                  className="mt-1.5 w-full rounded-lg border border-slate-200 p-2.5 text-sm text-slate-900 focus:border-primary focus:outline-none"
+                  className="mt-1.5 w-full rounded-lg border border-hairline p-2.5 text-sm text-ink focus:border-primary focus:outline-none"
                 >
                   {requirementScopes.map(s => (
                     <option key={s} value={s}>
@@ -168,23 +168,23 @@ export function GateRequirementDrawer({
             </div>
 
             {(scope === 'MAJOR_SPECIFIC' || scope === 'INDIVIDUAL') && <div>
-              <label htmlFor="req-major" className="block text-xs font-semibold text-slate-700">Mã ngành đích *</label>
-              <input id="req-major" inputMode="numeric" value={majorId} onChange={e => setMajorId(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm" />
+              <label htmlFor="req-major" className="block text-xs font-semibold text-ink-soft">Mã ngành đích *</label>
+              <input id="req-major" inputMode="numeric" value={majorId} onChange={e => setMajorId(e.target.value)} className="mt-1 w-full rounded-lg border border-hairline p-2 text-sm" />
             </div>}
             {scope === 'INDIVIDUAL' && <div>
-              <label htmlFor="req-student" className="block text-xs font-semibold text-slate-700">Mã sinh viên đích *</label>
-              <input id="req-student" inputMode="numeric" value={studentId} onChange={e => setStudentId(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm" />
+              <label htmlFor="req-student" className="block text-xs font-semibold text-ink-soft">Mã sinh viên đích *</label>
+              <input id="req-student" inputMode="numeric" value={studentId} onChange={e => setStudentId(e.target.value)} className="mt-1 w-full rounded-lg border border-hairline p-2 text-sm" />
             </div>}
 
             <div>
-              <label htmlFor="req-verification" className="block text-xs font-semibold text-slate-700">
+              <label htmlFor="req-verification" className="block text-xs font-semibold text-ink-soft">
                 Phương thức xác thực (Verification Mode) *
               </label>
               <select
                 id="req-verification"
                 value={verification}
                 onChange={e => setVerification(e.target.value as VerificationMode)}
-                className="mt-1.5 w-full rounded-lg border border-slate-200 p-2.5 text-sm text-slate-900 focus:border-primary focus:outline-none"
+                className="mt-1.5 w-full rounded-lg border border-hairline p-2.5 text-sm text-ink focus:border-primary focus:outline-none"
               >
                 {verificationModes.map(m => (
                   <option key={m} value={m}>
@@ -192,13 +192,13 @@ export function GateRequirementDrawer({
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-ink-muted">
                 HUMAN: Phải do Reviewer được phân công xác nhận; SYSTEM: Kiểm tra tự động từ hệ thống.
               </p>
             </div>
 
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5">
-              <label className="flex items-center gap-2.5 text-sm font-medium text-slate-700 cursor-pointer">
+            <div className="rounded-lg border border-hairline bg-canvas p-3.5">
+              <label className="flex items-center gap-2.5 text-sm font-medium text-ink-soft cursor-pointer">
                 <input
                   type="checkbox"
                   checked={required}
@@ -207,7 +207,7 @@ export function GateRequirementDrawer({
                 />
                 Yêu cầu bắt buộc (Mandatory)
               </label>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-ink-muted">
                 Nếu không đạt yêu cầu này, nhóm không đủ điều kiện (Not Eligible) để được Reviewer xét PASS.
               </p>
             </div>
@@ -217,7 +217,7 @@ export function GateRequirementDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              className="rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink-muted hover:bg-canvas"
             >
               Hủy
             </button>

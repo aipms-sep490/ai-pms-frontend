@@ -86,10 +86,10 @@ export function EvaluatorWorkspacePage() {
           return <article key={assignment.id} className="grid min-w-0 gap-4 rounded-xl border border-hairline bg-card p-5 transition-all hover:border-primary/40 hover:shadow-xs md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
             <div className="min-w-0">
               <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-purple-700">
+                <span className="inline-flex items-center rounded-md bg-tag-ai-bg px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-tag-ai">
                   {assignment.evaluationType === 'LECTURER' ? 'Hội đồng chấm' : assignment.evaluationType}
                 </span>
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${isFinalized ? 'bg-status-success-bg text-status-success-text' : isDraft ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${isFinalized ? 'bg-status-success-bg text-status-success-text' : isDraft ? 'bg-status-warning-bg text-status-warning-text' : 'bg-canvas text-ink-soft'}`}>
                   {row?.status === 'unavailable' ? 'Chưa tải được trạng thái' : draftLabel(row?.draft ?? null)}
                 </span>
               </div>
@@ -101,7 +101,7 @@ export function EvaluatorWorkspacePage() {
                 <div><dt className="inline font-semibold text-ink-soft">Ngày phân công: </dt><dd className="inline">{dateTimeLabel(assignment.assignedAt)}</dd></div>
               </dl>
             </div>
-            <Link className={`inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-xs font-bold transition-colors ${isFinalized ? 'border border-hairline bg-slate-50 text-ink hover:bg-slate-100' : isDraft ? 'bg-primary text-white hover:bg-primary-hover shadow-xs' : 'border border-primary bg-card text-primary hover:bg-primary-subtle'}`} to={`/evaluator/assignments/${assignment.id}`}>{row?.status === 'unavailable' ? 'Xem phân công' : row?.draft?.status === 'FINALIZED' ? 'Xem đánh giá' : row?.draft ? 'Tiếp tục chấm' : 'Bắt đầu chấm'}</Link>
+            <Link className={`inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-xs font-bold transition-colors ${isFinalized ? 'border border-hairline bg-canvas text-ink hover:bg-canvas' : isDraft ? 'bg-primary text-white hover:bg-primary-hover shadow-xs' : 'border border-primary bg-card text-primary hover:bg-primary-subtle'}`} to={`/evaluator/assignments/${assignment.id}`}>{row?.status === 'unavailable' ? 'Xem phân công' : row?.draft?.status === 'FINALIZED' ? 'Xem đánh giá' : row?.draft ? 'Tiếp tục chấm' : 'Bắt đầu chấm'}</Link>
           </article>
         })}
       </section>

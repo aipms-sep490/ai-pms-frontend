@@ -11,7 +11,7 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
       <CardHeader className="bg-canvas/60 py-2.5 px-4">
         <div className="flex items-center justify-between w-full flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-blue-600" aria-hidden="true">
+            <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">
               route
             </span>
             <CardTitle className="text-xs uppercase tracking-wider font-mono">
@@ -34,9 +34,9 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
                 key={m.id}
                 className={`p-3 rounded-lg border transition-all flex flex-col justify-between gap-2 ${
                   isCompleted
-                    ? 'bg-emerald-50/40 border-emerald-200'
+                    ? 'bg-status-success-bg border-status-success-border'
                     : isActive
-                    ? 'bg-blue-50/50 border-blue-300 ring-2 ring-blue-500/20 shadow-xs'
+                    ? 'bg-status-info-bg border-status-info-border ring-2 ring-primary/20 shadow-xs'
                     : 'bg-canvas/60 border-hairline opacity-80'
                 }`}
               >
@@ -44,9 +44,9 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
                   <span
                     className={`font-mono text-xs font-bold px-1.5 py-0.5 rounded ${
                       isCompleted
-                        ? 'bg-emerald-100 text-emerald-800'
+                        ? 'bg-status-success-bg text-status-success-text'
                         : isActive
-                        ? 'bg-blue-600 text-white shadow-2xs'
+                        ? 'bg-primary text-white shadow-2xs'
                         : 'bg-slate-200 text-ink-muted'
                     }`}
                   >
@@ -69,9 +69,9 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
                     <span
                       className={`font-bold ${
                         isCompleted
-                          ? 'text-emerald-700'
+                          ? 'text-status-success-text'
                           : isActive
-                          ? 'text-blue-700'
+                          ? 'text-status-info-text'
                           : 'text-ink-muted'
                       }`}
                     >
@@ -89,9 +89,9 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
                     <div
                       className={`h-full rounded-full transition-all ${
                         isCompleted
-                          ? 'bg-emerald-600'
+                          ? 'bg-primary'
                           : isActive
-                          ? 'bg-blue-600'
+                          ? 'bg-primary'
                           : 'bg-slate-400'
                       }`}
                       style={{ width: `${m.progress}%` }}

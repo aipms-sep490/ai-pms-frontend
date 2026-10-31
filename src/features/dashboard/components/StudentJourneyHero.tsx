@@ -16,11 +16,11 @@ export function StudentJourneyHero() {
     if (error) {
       return {
         badge: 'Chưa đồng bộ dữ liệu',
-        badgeClass: 'bg-rose-100 text-rose-800 border-rose-200',
+        badgeClass: 'bg-status-error-bg text-danger-text border-status-error-border',
         title: 'Không thể tải trạng thái đồ án',
         desc: error,
         icon: 'cloud_off',
-        iconBg: 'bg-rose-600 text-white',
+        iconBg: 'bg-danger-strong text-white',
         ctaText: 'Thử tải lại',
         ctaRoute: '/project/workspace',
         ctaIcon: 'refresh',
@@ -30,7 +30,7 @@ export function StudentJourneyHero() {
       case 'NO_TEAM':
         return {
           badge: 'Giai đoạn 1: Tuyển quân',
-          badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+          badgeClass: 'bg-status-success-bg text-status-success-text border-status-success-border',
           title: 'Bạn chưa tham gia nhóm đồ án nào trong học kỳ này',
           desc: `Học kỳ ${semester?.name ?? 'hiện tại'} đang mở đợt đăng ký đồ án tốt nghiệp (${period?.name ?? 'đợt đăng ký hiện tại'}). Hãy khởi tạo nhóm mới hoặc kiểm tra hộp thư lời mời từ các nhóm khác.`,
           icon: 'group_add',
@@ -42,11 +42,11 @@ export function StudentJourneyHero() {
       case 'TEAM_FORMING':
         return {
           badge: 'Giai đoạn 2: Hoàn thiện nhóm',
-          badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
+          badgeClass: 'bg-status-warning-bg text-status-warning-text border-status-warning-border',
           title: `Nhóm ${teamDisplayName} đang kiện toàn nhân sự`,
           desc: `Hiện có ${team?.members.length ?? 0}/${maxTeamSize} thành viên. Quy chế yêu cầu từ ${minTeamSize} đến ${maxTeamSize} thành viên ${projectModeLabel}. Hãy hoàn thiện đội hình và kiểm tra điều kiện để mở cổng đăng ký đề tài.`,
           icon: 'diversity_3',
-          iconBg: 'bg-amber-500 text-white',
+          iconBg: 'bg-warning-strong text-white',
           ctaText: 'Kiểm tra điều kiện nhóm',
           ctaRoute: '/team',
           ctaIcon: 'checklist',
@@ -54,11 +54,11 @@ export function StudentJourneyHero() {
       case 'TEAM_ELIGIBLE':
         return {
           badge: 'Giai đoạn 3: Soạn thảo Đề cương',
-          badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+          badgeClass: 'bg-status-success-bg text-status-success-text border-status-success-border',
           title: 'Nhóm đã đủ điều kiện để đăng ký đề cương',
           desc: `Nhóm ${teamDisplayName} đã đạt chuẩn nhân sự ${projectModeLabel}. Bạn có thể tham khảo danh mục đề tài gợi ý từ Khoa hoặc trực tiếp soạn thảo đề cương mới.`,
           icon: 'assignment_turned_in',
-          iconBg: 'bg-emerald-600 text-white',
+          iconBg: 'bg-primary text-white',
           ctaText: 'Đăng ký đề cương',
           ctaRoute: '/project/register',
           ctaIcon: 'edit_document',
@@ -68,11 +68,11 @@ export function StudentJourneyHero() {
       case 'PROJECT_PENDING':
         return {
           badge: 'Giai đoạn 4: Khoa thẩm định',
-          badgeClass: 'bg-amber-50 text-amber-800 border-amber-200',
+          badgeClass: 'bg-status-warning-bg text-status-warning-text border-status-warning-border',
           title: 'Đề cương đang được khoa xét duyệt',
           desc: `Đề tài "${project?.title ?? 'Đang tải...'}" (Mã: ${project?.code ?? 'CP...'}) đã được nộp thành công lên Bộ môn. Vui lòng theo dõi thông báo và trạng thái thẩm định.`,
           icon: 'hourglass_top',
-          iconBg: 'bg-amber-600 text-white',
+          iconBg: 'bg-warning-strong text-white',
           ctaText: 'Xem tiến trình thẩm định',
           ctaRoute: '/project/status',
           ctaIcon: 'visibility',
@@ -80,11 +80,11 @@ export function StudentJourneyHero() {
       case 'REVISION_REQUIRED':
         return {
           badge: 'Cần xử lý: Yêu cầu Chỉnh sửa',
-          badgeClass: 'bg-rose-100 text-rose-800 border-rose-200 animate-pulse',
+          badgeClass: 'bg-status-error-bg text-danger-text border-status-error-border animate-pulse',
           title: 'Bộ môn yêu cầu nhóm chỉnh sửa lại đề cương đồ án',
           desc: 'Đề cương của bạn đã có phản hồi từ Hội đồng thẩm định. Vui lòng đọc kỹ ý kiến nhận xét của Bộ môn, cập nhật nội dung và nộp lại trước thời hạn.',
           icon: 'warning',
-          iconBg: 'bg-rose-600 text-white',
+          iconBg: 'bg-danger-strong text-white',
           ctaText: 'Xem Ý kiến & Chỉnh sửa Ngay',
           ctaRoute: '/project/status',
           ctaIcon: 'edit_note',
@@ -92,11 +92,11 @@ export function StudentJourneyHero() {
       case 'PROJECT_REJECTED':
         return {
           badge: 'Kết quả thẩm định',
-          badgeClass: 'bg-rose-100 text-rose-800 border-rose-200',
+          badgeClass: 'bg-status-error-bg text-danger-text border-status-error-border',
           title: 'Đề cương chưa được Bộ môn chấp thuận',
           desc: 'Xem kết quả và toàn bộ lịch sử thẩm định của đề cương. Bạn có thể theo dõi nhận xét tại đây.',
           icon: 'assignment_late',
-          iconBg: 'bg-rose-600 text-white',
+          iconBg: 'bg-danger-strong text-white',
           ctaText: 'Xem kết quả thẩm định',
           ctaRoute: '/project/status',
           ctaIcon: 'visibility',
@@ -104,7 +104,7 @@ export function StudentJourneyHero() {
       case 'SUPERVISOR_PENDING':
         return {
           badge: 'Giai đoạn 5: Ghép cặp GVHD',
-          badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+          badgeClass: 'bg-status-success-bg text-status-success-text border-status-success-border',
           title: 'Đề cương đã được duyệt! Hãy chọn Giảng viên Hướng dẫn',
           desc: `Đề tài của nhóm ${teamDisplayName} đã thông qua vòng thẩm định của Bộ môn. Bước tiếp theo là gửi yêu cầu tới giảng viên có chuyên môn phù hợp.`,
           icon: 'school',
@@ -117,7 +117,7 @@ export function StudentJourneyHero() {
       default:
         return {
           badge: 'Giai đoạn Thực hiện: Đang hoạt động',
-          badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+          badgeClass: 'bg-status-success-bg text-status-success-text border-status-success-border',
           title: `Đồ án: ${project?.title ?? 'Đang cập nhật thông tin'}`,
           desc: `GVHD: ${activeSupervisor?.supervisorName ?? 'Chưa phân công'} • Học kỳ: ${semester?.name ?? 'Chưa xác định'} • Thành viên: ${team?.members.length ?? 0} bạn • Nhóm: ${team?.code || teamDisplayName}`,
           icon: 'rocket_launch',
