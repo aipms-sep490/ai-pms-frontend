@@ -1,4 +1,4 @@
-.mtg-livekit-room { display: grid; gap: 0; min-width: 0; overflow: hidden; border: 1px solid var(--color-hairline); border-radius: 12px; background: #fff; animation: mk-fade-in-up 420ms var(--mk-ease) both; }
+.mtg-livekit-room { display: grid; gap: 0; min-width: 0; overflow: hidden; border: 1px solid var(--color-hairline); border-radius: 12px; background: var(--color-card); animation: mk-fade-in-up 420ms var(--mk-ease) both; }
 .mtg-livekit-header, .mtg-livekit-footer { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 18px 20px; }
 .mtg-livekit-header { border-bottom: 1px solid var(--color-hairline); }
 .mtg-livekit-header > div:first-child { min-width: 0; flex: 1; }
