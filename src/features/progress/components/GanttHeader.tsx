@@ -103,7 +103,7 @@ export function GanttHeader({
           <span className="material-symbols-outlined text-sm text-danger-text">priority_high</span>
           <span className="font-semibold">Đường găng:</span>
           <span className="font-bold font-mono text-danger-text">{telemetry.criticalPathDays} ngày</span>
-          <span className="text-danger-text/80 font-medium">({telemetry.criticalTasksCount} tác vụ găng)</span>
+          <span className="text-danger-text font-medium">({telemetry.criticalTasksCount} tác vụ găng)</span>
         </div>
 
         <div className="hidden lg:block h-4 w-px bg-slate-200" />

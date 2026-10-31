@@ -29,7 +29,7 @@ export function RevisionAlert({
             <h4 className="text-sm font-bold text-status-warning-text flex items-center gap-2">
               Hội đồng Bộ môn yêu cầu chỉnh sửa đề cương (Revision Required)
             </h4>
-            <p className="text-xs text-status-warning-text/90 mt-0.5">
+            <p className="text-xs text-status-warning-text mt-0.5">
               Đề cương sơ bộ chưa đạt phê duyệt hoàn toàn. Vui lòng đọc kỹ ý kiến thẩm định bên dưới và tiến hành cập nhật.
             </p>
           </div>

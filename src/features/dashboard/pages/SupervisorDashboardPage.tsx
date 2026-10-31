@@ -139,7 +139,7 @@ export function SupervisorDashboardPage() {
               ))}
             </div>
 
-            <p className="mt-3 text-xs text-status-warning-text/90 italic">
+            <p className="mt-3 text-xs text-status-warning-text italic">
               * Nhận xét và xác nhận báo cáo của Giảng viên hướng dẫn ghi nhận sự đồng hành chuyên môn; thẩm định đạt cổng chính thức do Thẩm định viên (Reviewer) độc lập phê duyệt.
             </p>
           </section>

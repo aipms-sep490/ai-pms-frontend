@@ -132,7 +132,7 @@ export function EligibilityBanner({ eligibility, onRefresh }: EligibilityBannerP
               </span>
               <div>
                 <p className="text-xs font-semibold text-status-warning-text">{info.title}</p>
-                <p className="text-xs text-status-warning-text/90 leading-relaxed">{info.hint}</p>
+                <p className="text-xs text-status-warning-text leading-relaxed">{info.hint}</p>
               </div>
             </div>
           )

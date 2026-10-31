@@ -97,7 +97,9 @@ describe('design tokens', () => {
   })
 
   it('never hard-codes a canonical token value as a hex literal', () => {
-    const asHex = new RegExp(`(?:${palette.map(hex => hex.slice(1)).join('|')})(?![0-9a-f])`, 'i')
+    // The leading `#` matters: without it the pattern matches any six hex
+    // digits, so an id, a timestamp or a fixture value could fail the build.
+    const asHex = new RegExp(`#(?:${palette.map(hex => hex.slice(1)).join('|')})(?![0-9a-f])`, 'i')
     expect(offenders(asHex)).toEqual([])
   })
 
@@ -114,6 +116,18 @@ describe('design tokens', () => {
 
   it('never nests var() inside var(), which no browser resolves', () => {
     expect(offenders(/var\(\s*var\(/)).toEqual([])
+  })
+
+  /**
+   * The contrast assertions below compare token against token. A Tailwind
+   * opacity modifier blends the text toward its background at build time, which
+   * those assertions cannot see: `text-status-warning-text/90` on
+   * `status-warning-bg` measures 4.06:1 even though the pair itself is 4.84:1.
+   * Dimming text is decorative, so it is simply not allowed on text tokens.
+   */
+  it('never dims a text colour token with an opacity modifier', () => {
+    const dimmed = /\btext-(?:ink|ink-soft|ink-muted|primary|primary-hover|danger-text|status-(?:success|warning|error)-text)\/\d/
+    expect(offenders(dimmed)).toEqual([])
   })
 
   it('guarantees WCAG 2.2 AA text contrast (>= 4.5:1) for every text token pair', () => {
@@ -136,6 +150,13 @@ describe('design tokens', () => {
       ['on-navy on brand-navy', readToken('--color-on-navy'), readToken('--color-brand-navy')],
       ['on-navy-muted on brand-navy', readToken('--color-on-navy-muted'), readToken('--color-brand-navy')],
       ['brand-teal on brand-navy', readToken('--color-brand-teal'), readToken('--color-brand-navy')],
+      // Filled surfaces carry white text, so the ratio runs the other way.
+      ['white on primary', white, readToken('--color-primary')],
+      ['white on primary-hover', white, readToken('--color-primary-hover')],
+      ['white on danger-strong', white, readToken('--color-danger-strong')],
+      ['white on danger-strong-hover', white, readToken('--color-danger-strong-hover')],
+      ['white on warning-strong', white, readToken('--color-warning-strong')],
+      ['white on warning-strong-hover', white, readToken('--color-warning-strong-hover')],
     ]
 
     const failing = pairs
