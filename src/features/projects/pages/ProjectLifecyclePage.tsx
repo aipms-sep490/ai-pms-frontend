@@ -41,11 +41,12 @@ export function ProjectLifecyclePage() {
     action={
       <button
         type="button"
-        className="ex-button ex-button-ghost"
+        className="ex-button ex-button-icon"
+        aria-label="Làm mới"
+        title="Làm mới"
         onClick={() => { void journey.refreshAll(); setRevision(value => value + 1) }}
       >
         <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
-        Làm mới
       </button>
     }
   >

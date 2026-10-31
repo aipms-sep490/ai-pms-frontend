@@ -1,4 +1,5 @@
 import { projectStatusLabel } from '../utils/project-status'
+import { Button } from '../../../components/ui/Button'
 import { HistoryTimeline } from '../../../components/ui/HistoryTimeline'
 import { useNavigate } from 'react-router-dom'
 import { useStudentJourney } from '../../../app/context'
@@ -26,7 +27,7 @@ const statusCopy: Record<string, { title: string; detail: string; surface: 'erro
 const surfaceClasses = {
   error: { box: 'border-status-error-border bg-status-error-bg', kicker: 'text-status-error-text' },
   warning: { box: 'border-status-warning-border bg-status-warning-bg', kicker: 'text-status-warning-text' },
-  success: { box: 'border-status-success-border bg-status-success-bg', kicker: 'text-status-success-text' },
+  success: { box: 'border-hairline border-l-4 border-l-status-success-text bg-card', kicker: 'text-status-success-text' },
   neutral: { box: 'border-hairline bg-card', kicker: 'text-ink-muted' },
 } as const
 
@@ -62,10 +63,13 @@ export function ProjectReviewStatusPage() {
       title="Trạng thái đề cương"
       description={`${project.code} · ${project.teamName}`}
       action={
-        <button type="button" onClick={() => void journey.refreshAll()} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary">
-          <span className="material-symbols-outlined text-[16px]" aria-hidden="true">refresh</span>
-          Tải lại thông tin
-        </button>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon="refresh"
+          aria-label="Tải lại thông tin"
+          onClick={() => void journey.refreshAll()}
+        />
       }
       className="pb-16"
     >
