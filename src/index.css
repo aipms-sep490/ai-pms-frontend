@@ -23,6 +23,13 @@
   --color-danger: #E35D6A;
   --color-danger-text: #B42318;
 
+  /* Foregrounds for the navy authority panel (login hero). Light surfaces use
+     the ink scale; anything sitting on --color-brand-navy uses these instead,
+     so one dark panel never grows three competing greys. */
+  --color-brand-navy-raised: #172D4C;
+  --color-on-navy: #FFFFFF;
+  --color-on-navy-muted: #ACBDCF;
+
   /* Neutral ink and line scale shared by every workspace page. */
   --color-ink: #162033;
   --color-ink-soft: #334155;
@@ -59,6 +66,21 @@
   --color-tag-is: #475569;
   --color-tag-is-bg: #F1F5F9;
 
+  /* Solid status surfaces, for white text on a filled control or badge. The
+     `-bg` tokens above are near-white tints for text to sit ON; these are the
+     inverse case. Kept separate because the tint and the fill can never be the
+     same colour and still both reach AA. White on each of these is >= 5:1. */
+  --color-danger-strong: #B42318;
+  --color-danger-strong-hover: #8F1C13;
+  --color-warning-strong: #B45309;
+  --color-warning-strong-hover: #92400E;
+
+  /* Primary-action elevation. Lives here rather than as a repeated
+     `shadow-[0_2px_8px_-2px_rgba(...)]` arbitrary value at nine call sites, so
+     the teal follows --color-primary instead of a frozen rgb triplet. */
+  --shadow-primary: 0 2px 8px -2px color-mix(in oklab, var(--color-primary) 25%, transparent);
+  --shadow-primary-hover: 0 4px 12px -3px color-mix(in oklab, var(--color-primary) 30%, transparent);
+
   /* Z-index scale — one ordered map for every global overlay surface */
   --z-index-chat: 40;
   --z-index-drawer: 50;
@@ -68,23 +90,6 @@
 }
 
 :root {
-  --radius-sm: 8px;
-  --radius-control: 10px;
-  --radius-card: 16px;
-  --radius-dialog: 18px;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --shadow-card: 0 4px 18px rgba(15, 39, 71, 0.04);
-  --shadow-overlay: 0 18px 48px rgba(15, 39, 71, 0.14);
-  --motion-fast: 160ms;
-  --motion-normal: 240ms;
-  --motion-overlay: 280ms;
-  --motion-ease: cubic-bezier(.2,.7,.2,1);
-
   font-family: var(--font-sans);
   color: var(--color-ink);
   background-color: var(--color-canvas);
