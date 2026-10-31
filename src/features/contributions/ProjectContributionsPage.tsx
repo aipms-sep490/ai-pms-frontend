@@ -81,7 +81,7 @@ export function ProjectContributionsPage() {
             <option value="live">Dữ liệu hiện tại</option><option value="snapshot">Bản tổng hợp đã lưu</option>
           </select>
         </label>
-        {canSnapshot && <button type="button" disabled={busy} className="min-h-11 rounded-md bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover shadow-[0_2px_8px_-2px_rgba(15,91,78,0.25)] disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void rebuild()}>{busy ? 'Đang tạo…' : 'Lưu bản tổng hợp'}</button>}
+        {canSnapshot && <button type="button" disabled={busy} className="min-h-11 rounded-md bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover shadow-[0_2px_8px_-2px_rgba(8,125,119,0.3)] disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void rebuild()}>{busy ? 'Đang tạo…' : 'Lưu bản tổng hợp'}</button>}
       </div>}
     </header>
 

@@ -178,7 +178,7 @@ export function TeamManagementPage() {
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-[0_2px_8px_-2px_rgba(15,91,78,0.25)]"
+            className="px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-[0_2px_8px_-2px_rgba(8,125,119,0.3)]"
           >
             <span className="material-symbols-outlined text-[18px]">add_circle</span>
             Thành lập Nhóm Mới
@@ -217,7 +217,7 @@ export function TeamManagementPage() {
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-[0_2px_8px_-2px_rgba(15,91,78,0.25)]"
+              className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-[0_2px_8px_-2px_rgba(8,125,119,0.3)]"
             >
               <span className="material-symbols-outlined text-[18px]">add</span>
               Bắt đầu tạo nhóm ngay

@@ -2,29 +2,29 @@
 .weekly-assessments * { box-sizing: border-box; }
 .weekly-assessments a, .weekly-assessments button, .weekly-assessments input, .weekly-assessments select, .weekly-assessments textarea { transition: border-color 160ms, background-color 160ms, box-shadow 160ms; }
 .weekly-assessments :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
-.weekly-toolbar { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; padding: 16px 24px; background: #fafbfc; border: 1px solid #dce5e1; border-radius: 10px; margin-bottom: 16px; }
-.weekly-assessments label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 650; color: #4a5853; text-transform: uppercase; letter-spacing: 0.04em; }
+.weekly-toolbar { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; padding: 16px 24px; background: #fafbfc; border: 1px solid var(--color-hairline); border-radius: 10px; margin-bottom: 16px; }
+.weekly-assessments label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 650; color: var(--color-ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
 .weekly-assessments select, .weekly-assessments input[type='number'], .weekly-assessments input[type='text'], .weekly-assessments textarea { border: 1px solid var(--color-line-strong); border-radius: 8px; padding: 8px 14px; background: white; color: var(--color-ink); font: inherit; font-size: 13px; }
 .weekly-assessments textarea { resize: vertical; min-height: 72px; line-height: 1.6; font-weight: 400; width: 100%; }
 .weekly-demo-notice { background: var(--color-primary-subtle); color: var(--color-primary); border: 1px solid var(--color-status-success-border); border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; font-size: 12.5px; }
-.weekly-panel { background: white; border: 1px solid #dce5e1; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+.weekly-panel { background: white; border: 1px solid var(--color-hairline); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
 .weekly-panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 24px; border-bottom: 1px solid #edf0f2; background: #fafbfc; flex-wrap: wrap; }
 .weekly-panel-heading h2 { font-size: 15.5px; font-weight: 700; margin: 0; color: var(--color-ink); }
 .weekly-criteria { width: 100%; border-collapse: collapse; }
 .weekly-criteria th, .weekly-criteria td { padding: 10px 24px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--color-line); }
-.weekly-criteria th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-ink-muted); background: #fafbfc; }
+.weekly-criteria th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-ink-muted); background: #fafbfc; }
 .weekly-criteria input[type='number'] { width: 90px; }
 .weekly-criteria-name { font-weight: 650; }
 .weekly-criteria-name small { display: block; font-weight: 400; color: var(--color-ink-muted); margin-top: 2px; }
 .weekly-badge { display: inline-flex; padding: 4px 10px; font-size: 12px; line-height: 1.3; font-weight: 600; border-radius: 6px; white-space: nowrap; }
-.weekly-badge--draft { background: #f0f3f2; color: #4d5c57; border: 1px solid var(--color-line-strong); }
+.weekly-badge--draft { background: var(--color-canvas); color: var(--color-ink-muted); border: 1px solid var(--color-hairline); }
 .weekly-badge--submitted { background: var(--color-primary-subtle); color: var(--color-primary); border: 1px solid var(--color-status-success-border); }
 .weekly-badge--superseded { background: var(--color-status-warning-bg); color: #854d0e; border: 1px solid var(--color-status-warning-border); }
 .weekly-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 24px; flex-wrap: wrap; }
 .weekly-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; padding: 8px 16px; background: var(--color-primary); border: 1px solid var(--color-primary); color: white; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .weekly-button:hover { background: var(--color-primary-hover); border-color: var(--color-primary-hover); }
 .weekly-button--secondary { background: white; color: var(--color-ink); border: 1px solid var(--color-line-strong); }
-.weekly-button--secondary:hover { background: var(--color-primary-subtle); border-color: rgba(15, 91, 78, 0.3); color: var(--color-primary); }
+.weekly-button--secondary:hover { background: var(--color-primary-subtle); border-color: rgba(8, 125, 119, 0.3); color: var(--color-primary); }
 .weekly-assessments button:disabled { opacity: .5; cursor: not-allowed; }
 .weekly-notice { border-radius: 8px; padding: 14px 18px; margin: 0 0 16px; font-size: 13px; line-height: 1.7; }
 .weekly-notice--error { background: var(--color-status-error-bg); color: #991b1b; border: 1px solid var(--color-status-error-border); }

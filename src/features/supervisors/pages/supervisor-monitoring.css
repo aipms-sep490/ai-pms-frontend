@@ -101,7 +101,7 @@
 .sup input:focus,
 .sup select:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(15, 91, 78, 0.15);
+  box-shadow: 0 0 0 3px rgba(8, 125, 119, 0.15);
   outline: none;
 }
 
@@ -131,7 +131,7 @@
   height: 56px;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid rgba(15, 91, 78, 0.2);
+  border: 1px solid rgba(8, 125, 119, 0.25);
   border-radius: 50%;
   background: var(--color-primary-subtle);
   color: var(--color-primary);
@@ -250,7 +250,7 @@
 }
 
 .sup__open:hover {
-  border-color: rgba(15, 91, 78, 0.3);
+  border-color: rgba(8, 125, 119, 0.3);
   background: var(--color-primary-subtle);
   color: var(--color-primary);
 }
@@ -358,7 +358,7 @@
   display: flex;
   gap: 10px;
   padding: 14px 16px;
-  border: 1px solid rgba(15, 91, 78, 0.2);
+  border: 1px solid rgba(8, 125, 119, 0.25);
   border-radius: 8px;
   background: var(--color-primary-subtle);
   color: var(--color-primary-hover);

@@ -1,11 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="a" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#62e6bf" />
-      <stop offset="1" stop-color="#72a7ff" />
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="16" fill="#0c1727" />
-  <rect x="8" y="8" width="48" height="48" rx="12" fill="url(#a)" />
-  <text x="32" y="39" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="800" fill="#0c1727">AI</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="AI-PMS symbol"><rect x="8" y="8" width="240" height="240" rx="60" fill="#1A7773"/><path d="M62 194V64h62c47 0 69 27 69 64s-24 66-67 66H62Z" fill="none" stroke="#E4F8F3" stroke-width="17" stroke-linejoin="round"/><path d="m78 165 39-38 33 24 54-69" fill="none" stroke="#F1C27D" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/><circle cx="78" cy="165" r="12" fill="#F1C27D"/><circle cx="204" cy="82" r="12" fill="#F1C27D"/></svg>

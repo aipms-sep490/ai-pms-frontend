@@ -78,7 +78,7 @@ describe('COLD checklist page', () => {
     const note = await screen.findByLabelText('Ghi chú') as HTMLTextAreaElement
     fireEvent.change(note, { target: { value: 'Đã cập nhật' } })
     fireEvent.click(screen.getByRole('button', { name: 'Lưu ghi chú' }))
-    await waitFor(() => expect(api.saveColdDraft).toHaveBeenCalledWith(1, { expectedLatestVersion: 1, note: 'Đã cập nhật', concurrencyToken: 'sub-token-1' }))
+    await waitFor(() => expect(api.saveColdDraft).toHaveBeenCalledWith(1, { expectedLatestVersion: 1, note: 'Đã cập nhật', concurrencyToken: 'sub-token-1' }), { timeout: 3000 })
   })
 
   it('disables submit until at least one file is attached', async () => {

@@ -1,6 +1,6 @@
 :root {
-  --mk-primary: var(--color-primary, #0f5b4e);
-  --mk-primary-hover: var(--color-primary-hover, #0a493f);
+  --mk-primary: var(--color-primary, #087D77);
+  --mk-primary-hover: var(--color-primary-hover, #0F2747);
   --mk-surface: var(--color-card, #ffffff);
   --mk-border: var(--color-hairline, var(--color-hairline));
   --mk-ease: cubic-bezier(.16, 1, .3, 1);

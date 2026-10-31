@@ -2,58 +2,62 @@
 @import "./motion/motion.css";
 
 @theme {
-  --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-heading: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: "Inter", "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-heading: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-  --color-canvas: #f8fafc;
-  --color-card: #ffffff;
-  --color-hairline: #e2e8f0;
+  /* AI-PMS Academic Command Center Canonical Color Scale */
+  --color-canvas: #F6F8FB;
+  --color-card: #FFFFFF;
+  --color-hairline: #D9E1EC;
 
-  --color-primary: #0f5b4e;
-  --color-primary-hover: #0a493f;
-  --color-primary-subtle: #edf3f0;
+  --color-primary: #087D77;
+  --color-primary-hover: #06665F;
+  --color-primary-subtle: #DDF7F4;
+
+  --color-brand-navy: #0F2747;
+  --color-brand-teal: #12B3A8;
+  --color-brand-teal-soft: #DDF7F4;
+  --color-accent-amber: #F6B94C;
+  --color-danger: #E35D6A;
 
   /* Neutral ink and line scale shared by every workspace page. */
-  --color-ink: #14201d;
-  --color-ink-soft: #3d4a46;
-  --color-ink-muted: #596863;
-  --color-line: #e5ece8;
-  --color-line-strong: #d7e0dc;
+  --color-ink: #162033;
+  --color-ink-soft: #334155;
+  --color-ink-muted: #64748B;
+  --color-line: #D9E1EC;
+  --color-line-strong: #CBD5E1;
 
-  --color-academic-emerald: #047857;
-  --color-academic-amber: #a16207;
-  --color-academic-coral: #dc2626;
+  --color-academic-emerald: #0A766F;
+  --color-academic-amber: #B45309;
+  --color-academic-coral: #E35D6A;
 
   /* Status Tokens */
-  --color-status-success-text: #047857;
-  --color-status-success-bg: #ecfdf5;
-  --color-status-success-border: #a7f3d0;
+  --color-status-success-text: #0A766F;
+  --color-status-success-bg: #DDF7F4;
+  --color-status-success-border: #99E2DC;
 
-  --color-status-warning-text: #a16207;
-  --color-status-warning-bg: #fffbeb;
-  --color-status-warning-border: #fde68a;
+  --color-status-warning-text: #B45309;
+  --color-status-warning-bg: #FFFBEB;
+  --color-status-warning-border: #FDE68A;
 
-  --color-status-error-text: #dc2626;
-  --color-status-error-bg: #fef2f2;
-  --color-status-error-border: #fecaca;
+  --color-status-error-text: #E35D6A;
+  --color-status-error-bg: #FEF2F2;
+  --color-status-error-border: #FECACA;
 
   /* Multidisciplinary Major Tags */
-  --color-tag-se: #1d4ed8;
-  --color-tag-se-bg: #eff6ff;
-  --color-tag-uiux: #7e22ce;
-  --color-tag-uiux-bg: #faf5ff;
-  --color-tag-ai: #b45309;
-  --color-tag-ai-bg: #fffbeb;
-  --color-tag-qa: #0f766e;
-  --color-tag-qa-bg: #f0fdfa;
+  --color-tag-se: #1D4ED8;
+  --color-tag-se-bg: #EFF6FF;
+  --color-tag-uiux: #7E22CE;
+  --color-tag-uiux-bg: #FAF5FF;
+  --color-tag-ai: #B45309;
+  --color-tag-ai-bg: #FFFBEB;
+  --color-tag-qa: #087D77;
+  --color-tag-qa-bg: #DDF7F4;
   --color-tag-is: #475569;
-  --color-tag-is-bg: #f1f5f9;
+  --color-tag-is-bg: #F1F5F9;
 
-  /* Z-index scale — one ordered map for every global overlay surface, per
-     docs/uiux/01-DESIGN-SYSTEM.md. Local/internal stacking (a sticky column
-     label inside a scrolling chart, a decorative pseudo-element) is not part
-     of this map and stays as a small literal at its own site. */
+  /* Z-index scale — one ordered map for every global overlay surface */
   --z-index-chat: 40;
   --z-index-drawer: 50;
   --z-index-modal: 60;
@@ -61,22 +65,90 @@
   --z-index-tour: 100;
 }
 
-:root {
+:root,
+[data-aipms-ui-theme="light"] {
+  --aipms-ui-brand-navy: #0F2747;
+  --aipms-ui-brand-teal: #12B3A8;
+  --aipms-ui-brand-teal-soft: #DDF7F4;
+  --aipms-ui-accent-amber: #F6B94C;
+  --aipms-ui-danger: #E35D6A;
+  --aipms-ui-canvas: #F6F8FB;
+  --aipms-ui-surface: #FFFFFF;
+  --aipms-ui-border: #D9E1EC;
+  --aipms-ui-text-primary: #162033;
+  --aipms-ui-text-secondary: #64748B;
+
+  /* Darker foreground variants for legible text on light surfaces. */
+  --aipms-ui-link: #0A766F;
+  --aipms-ui-primary-button-bg: #087D77;
+  --aipms-ui-primary-button-fg: #FFFFFF;
+  --aipms-ui-primary-hover-bg: #06665F;
+  --aipms-ui-focus-ring: #087D77;
+
+  --aipms-ui-radius-sm: 8px;
+  --aipms-ui-radius-control: 10px;
+  --aipms-ui-radius-card: 16px;
+  --aipms-ui-radius-dialog: 18px;
+  --aipms-ui-space-1: 4px;
+  --aipms-ui-space-2: 8px;
+  --aipms-ui-space-3: 12px;
+  --aipms-ui-space-4: 16px;
+  --aipms-ui-space-6: 24px;
+  --aipms-ui-space-8: 32px;
+  --aipms-ui-shadow-card: 0 4px 18px rgba(15, 39, 71, 0.04);
+  --aipms-ui-shadow-overlay: 0 18px 48px rgba(15, 39, 71, 0.14);
+  --aipms-ui-motion-fast: 160ms;
+  --aipms-ui-motion-normal: 240ms;
+  --aipms-ui-motion-overlay: 280ms;
+  --aipms-ui-ease: cubic-bezier(.2,.7,.2,1);
+
   font-family: var(--font-sans);
-  color: #0f172a;
+  color: var(--color-ink);
   background-color: var(--color-canvas);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Optional dark palette */
+[data-aipms-ui-theme="dark"] {
+  --aipms-ui-brand-navy: #0B1726;
+  --aipms-ui-brand-teal: #31C7BC;
+  --aipms-ui-brand-teal-soft: #123F42;
+  --aipms-ui-accent-amber: #F4BF6B;
+  --aipms-ui-danger: #F48187;
+  --aipms-ui-canvas: #0E1726;
+  --aipms-ui-surface: #172638;
+  --aipms-ui-border: #2B4155;
+  --aipms-ui-text-primary: #EAF1F8;
+  --aipms-ui-text-secondary: #ACBDCF;
+  --aipms-ui-link: #64DED4;
+  --aipms-ui-primary-button-bg: #21A79C;
+  --aipms-ui-primary-button-fg: #081B24;
+  --aipms-ui-primary-hover-bg: #42C8BE;
+  --aipms-ui-focus-ring: #7DE4DA;
+  --aipms-ui-shadow-card: 0 4px 18px rgba(0, 0, 0, .12);
+  --aipms-ui-shadow-overlay: 0 18px 48px rgba(0, 0, 0, .4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-aipms-ui-root] *,
+  [data-aipms-ui-root] *::before,
+  [data-aipms-ui-root] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 body {
   min-height: 100vh;
   background-color: var(--color-canvas);
   background-image:
-    radial-gradient(at 0% 0%, rgba(15, 91, 78, 0.035) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(15, 91, 78, 0.025) 0px, transparent 50%),
-    radial-gradient(at 50% 0%, rgba(4, 120, 87, 0.02) 0px, transparent 60%);
+    radial-gradient(at 0% 0%, rgba(15, 39, 71, 0.035) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(18, 179, 168, 0.03) 0px, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(8, 125, 119, 0.02) 0px, transparent 60%);
   background-attachment: fixed;
 }
 
@@ -91,20 +163,20 @@ select:not([multiple]) {
 }
 
 select:not([multiple]):hover:not(:disabled) {
-  border-color: #97b5a9;
-  background-color: #f4f8f6;
+  border-color: var(--color-primary-hover);
+  background-color: #F4F8F6;
 }
 
 select:not([multiple]):focus-visible {
   border-color: var(--color-primary);
   outline: none;
-  box-shadow: 0 0 0 3px rgb(15 91 78 / .12);
+  box-shadow: 0 0 0 3px rgb(8 125 119 / .15);
 }
 
 select:disabled {
   cursor: not-allowed;
-  background-color: #f1f5f9;
-  color: #94a3b8;
+  background-color: #F1F5F9;
+  color: #94A3B8;
 }
 
 /* Material Symbols Outlined */
@@ -159,7 +231,7 @@ select:disabled {
 
 .page-heading h1 {
   margin: 8px 0 10px;
-  color: #0f172a;
+  color: var(--color-brand-navy);
   font-family: var(--font-heading);
   font-size: clamp(24px, 4vw, 32px);
   font-weight: 700;
@@ -169,7 +241,7 @@ select:disabled {
 .page-heading p:not(.eyebrow) {
   max-width: 680px;
   margin: 0;
-  color: #64748b;
+  color: var(--color-ink-muted);
   line-height: 1.5;
   font-size: 14px;
 }
@@ -177,7 +249,7 @@ select:disabled {
 .text-link {
   display: inline-block;
   margin-top: 16px;
-  color: var(--color-primary);
+  color: var(--aipms-ui-link);
   font-weight: 600;
   text-decoration: underline;
 }
@@ -191,11 +263,11 @@ select:disabled {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #CBD5E1;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #94A3B8;
 }
 
 /* Hide scrollbar utility */
@@ -230,12 +302,11 @@ select:disabled {
   }
 }
 
-
 /* Review Gates forms and timeline: preserve long labels and keyboard affordances. */
 .review-gates-surface { overflow-wrap: anywhere; }
 .review-gates-surface :is(button, input, select, textarea):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
 .review-gates-surface :is(input, select, textarea) { min-width: 0; max-width: 100%; }
-.review-gates-surface .text-slate-400 { color: var(--color-slate-600); }
+.review-gates-surface .text-slate-400 { color: var(--color-ink-muted); }
 .review-gates-surface button { min-height: 44px; }
 .review-gates-surface fieldset:disabled { opacity: .85; }
 .app-modal:has(.review-submission-form) .app-modal__close { min-width: 44px; min-height: 44px; }

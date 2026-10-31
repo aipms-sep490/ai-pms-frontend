@@ -2,9 +2,9 @@
   margin-bottom: 24px;
   padding: 14px 18px;
   background: var(--color-card, #fff);
-  border: 1px solid var(--color-hairline, #dde5ed);
+  border: 1px solid var(--color-hairline, #D9E1EC);
   border-radius: 14px;
-  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 4px 0 rgba(15, 39, 71, 0.04);
 }
 
 .project-section-context {
@@ -14,12 +14,12 @@
   gap: 8px 16px;
   margin-bottom: 12px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--color-hairline, #f1f5f9);
+  border-bottom: 1px solid var(--color-hairline, #D9E1EC);
   font-size: 13px;
 }
 
 .project-section-context a {
-  color: var(--color-primary, #0f5c50);
+  color: var(--color-primary, #087D77);
   font-weight: 600;
   display: inline-flex;
   align-items: center;
@@ -32,7 +32,7 @@
 }
 
 .project-section-context span {
-  color: #64748b;
+  color: var(--color-ink-muted, #64748B);
   overflow-wrap: anywhere;
   font-weight: 500;
 }
@@ -51,7 +51,7 @@
   border-radius: 9999px;
   font-size: 13px;
   font-weight: 500;
-  color: #475569;
+  color: var(--color-ink-soft, #475569);
   text-decoration: none;
   background: transparent;
   border: 1px solid transparent;
@@ -59,20 +59,20 @@
 }
 
 .project-section-navigation nav a:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: var(--color-canvas, #F6F8FB);
+  color: var(--color-ink, #162033);
 }
 
 .project-section-navigation nav a[aria-current] {
-  background: var(--color-primary-subtle, #edf5f2);
-  color: var(--color-primary, #0f5c50);
+  background: var(--color-primary-subtle, #DDF7F4);
+  color: var(--color-primary, #087D77);
   font-weight: 700;
-  border-color: rgba(15, 92, 80, 0.2);
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  border-color: rgba(18, 179, 168, 0.25);
+  box-shadow: 0 1px 2px 0 rgba(15, 39, 71, 0.04);
 }
 
 .project-section-navigation a:focus-visible {
-  outline: 2px solid var(--color-primary, #0f5c50);
+  outline: 2px solid var(--color-primary, #087D77);
   outline-offset: 2px;
 }
 
@@ -88,17 +88,16 @@
     display: block;
     width: 100%;
     min-height: 44px;
-    border: 1px solid var(--color-hairline, #dde5ed);
+    border: 1px solid var(--color-hairline, #D9E1EC);
     border-radius: 8px;
     background: #fff;
     padding: 8px 12px;
-    color: #0f5c50;
+    color: var(--color-primary, #087D77);
     font: inherit;
     font-size: 14px;
   }
   .project-section-mobile:focus-visible {
-    outline: 2px solid #0f5c50;
+    outline: 2px solid var(--color-primary, #087D77);
     outline-offset: 2px;
   }
 }
-

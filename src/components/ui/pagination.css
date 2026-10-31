@@ -70,7 +70,7 @@
   background: var(--color-primary);
   color: #ffffff;
   font-weight: 700;
-  box-shadow: 0 2px 6px -1px rgba(15, 91, 78, 0.3);
+  box-shadow: 0 2px 6px -1px rgba(8, 125, 119, 0.35);
 }
 
 .ui-pagination-ellipsis {
@@ -117,7 +117,7 @@
   padding: 4px 10px;
   border-radius: 999px;
   background: var(--color-primary-subtle);
-  border: 1px solid rgba(15, 91, 78, 0.15);
+  border: 1px solid rgba(18, 179, 168, 0.3);
   font-size: 12px;
   font-weight: 500;
   color: var(--color-primary);
@@ -138,7 +138,7 @@
 }
 
 .ui-filter-chip-remove:hover {
-  background: rgba(15, 91, 78, 0.2);
+  background: rgba(18, 179, 168, 0.2);
 }
 
 .ui-filter-clear-all {
