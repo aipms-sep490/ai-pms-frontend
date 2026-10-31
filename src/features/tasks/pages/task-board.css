@@ -14,16 +14,16 @@
   flex: 0 0 280px;
   min-width: 0;
   padding: 14px;
-  border: 1px solid var(--color-hairline, #D9E1EC);
+  border: 1px solid var();
   border-radius: 12px;
-  background: var(--color-canvas, #F6F8FB);
+  background: var();
   box-shadow: inset 0 1px 2px 0 rgba(15, 39, 71, 0.03);
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 .task-board-column.is-drag-over {
-  border-color: var(--color-brand-teal, #12B3A8);
-  background: var(--color-primary-subtle, #DDF7F4);
-  box-shadow: 0 0 0 2px var(--color-primary, #087D77), inset 0 2px 4px rgba(8, 125, 119, 0.12);
+  border-color: var();
+  background: var();
+  box-shadow: 0 0 0 2px var(), inset 0 2px 4px rgba(8, 125, 119, 0.12);
 }
 .task-board-column ul li[draggable="true"] {
   cursor: grab;
@@ -42,15 +42,15 @@
   justify-content: space-between;
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-ink, #162033);
+  color: var();
   margin-bottom: 14px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--color-hairline, #D9E1EC);
+  border-bottom: 1px solid var();
 }
 .task-board-column h2 span {
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-ink-muted, #64748B);
+  color: var();
   background: rgba(15, 39, 71, 0.05);
   padding: 2px 8px;
   border-radius: 9999px;
@@ -66,10 +66,10 @@
   flex-direction: column;
   gap: 8px;
   padding: 14px 16px;
-  border: 1px solid var(--color-hairline, #D9E1EC);
+  border: 1px solid var();
   border-radius: 10px;
-  background: var(--color-card, #ffffff);
-  color: var(--color-ink, #162033);
+  background: var(--color-card);
+  color: var();
   overflow-wrap: anywhere;
   min-height: 44px;
   font-size: 14px;
@@ -78,13 +78,13 @@
   text-decoration: none;
 }
 .task-board-card:hover {
-  border-color: var(--color-brand-teal, #12B3A8);
+  border-color: var();
   transform: translateY(-2px);
   box-shadow: 0 4px 12px -2px rgba(15, 39, 71, 0.08);
 }
 .task-board-card small {
   font-size: 12px;
-  color: var(--color-ink-muted, #64748B);
+  color: var();
   font-weight: 500;
 }
 .task-board-card:focus-visible {
@@ -116,22 +116,22 @@
 .sprint-notice {
   padding: 12px 16px;
   border-radius: 10px;
-  background: var(--color-status-success-bg, #f0fdf4);
-  color: var(--color-status-success-text, #166534);
-  border: 1px solid var(--color-status-success-border, #bbf7d0);
+  background: var();
+  color: var();
+  border: 1px solid var();
   font-size: 14px;
 }
 .sprint-error {
   padding: 12px 16px;
   border-radius: 10px;
-  background: var(--color-status-error-bg, #fef2f2);
-  color: var(--color-status-error-text, #991b1b);
-  border: 1px solid var(--color-status-error-border, #fecaca);
+  background: var();
+  color: var();
+  border: 1px solid var();
   font-size: 14px;
 }
 .sprint-create {
   border-radius: 12px;
-  border: 1px solid var(--color-hairline, #D9E1EC);
+  border: 1px solid var();
 }
 .sprint-create-fields {
   display: flex;
@@ -145,18 +145,18 @@
   gap: 4px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-ink-soft, #475569);
+  color: var();
 }
 .sprint-create-fields input {
   min-height: 40px;
-  border: 1px solid var(--color-hairline, #D9E1EC);
+  border: 1px solid var();
   border-radius: 8px;
   padding: 6px 12px;
-  color: var(--color-ink, #162033);
+  color: var();
 }
 .sprint-card {
   border-radius: 12px;
-  border: 1px solid var(--color-hairline, #D9E1EC);
+  border: 1px solid var();
   box-shadow: 0 1px 3px 0 rgba(15, 39, 71, 0.04);
 }
 .sprint-card-head {
@@ -166,7 +166,7 @@
   gap: 12px;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--color-hairline, #D9E1EC);
+  border-bottom: 1px solid var();
 }
 .sprint-card-actions {
   display: flex;
@@ -180,19 +180,19 @@
   vertical-align: middle;
 }
 .sprint-badge--active {
-  background: var(--color-status-success-bg, #dcfce7);
-  color: var(--color-status-success-text, #15803d);
-  border: 1px solid var(--color-status-success-border, #86efac);
+  background: var();
+  color: var();
+  border: 1px solid var();
 }
 .sprint-badge--planning {
-  background: var(--color-canvas, #F6F8FB);
-  color: var(--color-ink-muted, #64748B);
-  border: 1px solid var(--color-hairline, #D9E1EC);
+  background: var();
+  color: var();
+  border: 1px solid var();
 }
 .sprint-points {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-ink-muted, #64748B);
+  color: var();
   font-variant-numeric: tabular-nums;
   margin-bottom: 12px;
 }
@@ -200,8 +200,8 @@
   padding: 10px 14px;
   margin-bottom: 14px;
   border-radius: 8px;
-  background: var(--color-canvas, #F6F8FB);
-  border: 1px solid var(--color-hairline, #D9E1EC);
+  background: var();
+  border: 1px solid var();
 }
 .sprint-task-rows {
   display: flex;
@@ -210,14 +210,14 @@
   list-style: none;
 }
 .sprint-task-row {
-  border: 1px solid var(--color-hairline, #D9E1EC);
+  border: 1px solid var();
   border-radius: 10px;
   padding: 12px 14px;
-  background: var(--color-card, #ffffff);
+  background: var(--color-card);
   transition: all 0.15s ease;
 }
 .sprint-task-row:hover {
-  border-color: var(--color-brand-teal, #12B3A8);
+  border-color: var();
   box-shadow: 0 2px 6px 0 rgba(15, 39, 71, 0.05);
 }
 .sprint-task-main {
@@ -238,8 +238,8 @@
   text-align: center;
   padding: 2px 7px;
   border-radius: 9999px;
-  background: var(--color-primary-subtle, #DDF7F4);
-  color: var(--color-primary, #087D77);
+  background: var();
+  color: var();
   font-weight: 700;
   font-size: 12px;
   border: 1px solid rgba(8, 125, 119, 0.25);
@@ -247,10 +247,10 @@
 .sprint-label-chip {
   padding: 1px 8px;
   border-radius: 9999px;
-  background: var(--color-canvas, #F6F8FB);
-  border: 1px solid var(--color-hairline, #D9E1EC);
+  background: var();
+  border: 1px solid var();
   font-size: 12px;
-  color: var(--color-ink-soft, #475569);
+  color: var();
 }
 .sprint-task-controls {
   display: flex;
@@ -261,13 +261,13 @@
 }
 .sprint-task-controls select {
   min-height: 38px;
-  border: 1px solid var(--color-hairline, #D9E1EC);
+  border: 1px solid var();
   border-radius: 6px;
   padding: 4px 8px;
 }
 .sprint-task-edit {
   margin-top: 10px;
-  border-top: 1px dashed var(--color-hairline, #D9E1EC);
+  border-top: 1px dashed var();
   padding-top: 10px;
 }
 .sprint-point-picker {
@@ -279,20 +279,20 @@
 .sprint-point-option {
   min-height: 36px;
   min-width: 36px;
-  border: 1px solid var(--color-hairline, #D9E1EC);
+  border: 1px solid var();
   border-radius: 8px;
-  background: var(--color-card, #ffffff);
+  background: var(--color-card);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .sprint-point-option:hover {
-  border-color: var(--color-brand-teal, #12B3A8);
+  border-color: var();
 }
 .sprint-point-option--on {
-  border-color: var(--color-primary, #087D77);
-  background: var(--color-primary-subtle, #DDF7F4);
-  color: var(--color-primary, #087D77);
+  border-color: var();
+  background: var();
+  color: var();
   font-weight: 700;
 }
 .sprint-task-edit label {
@@ -303,7 +303,7 @@
 }
 .sprint-task-edit input {
   min-height: 40px;
-  border: 1px solid var(--color-hairline, #D9E1EC);
+  border: 1px solid var();
   border-radius: 6px;
   padding: 6px 10px;
 }

@@ -98,7 +98,7 @@
 
 /* Messenger floating bubble & animations */
 .chat-launcher {
-  background: linear-gradient(135deg, #0F2747 0%, #087D77 100%) !important;
+  background: linear-gradient(135deg, var(--color-brand-navy) 0%, var(--color-primary) 100%) !important;
   color: #ffffff !important;
   box-shadow: 0 10px 25px -5px rgba(8, 125, 119, 0.4), 0 8px 10px -6px rgba(8, 125, 119, 0.2) !important;
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease !important;
@@ -335,7 +335,7 @@ button.chat-launcher {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background: linear-gradient(135deg, #0F2747 0%, #087D77 100%) !important;
+  background: linear-gradient(135deg, var(--color-brand-navy) 0%, var(--color-primary) 100%) !important;
   color: #ffffff !important;
   box-shadow: 0 10px 25px -5px rgba(8, 125, 119, 0.4), 0 8px 10px -6px rgba(8, 125, 119, 0.2) !important;
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease !important;
@@ -388,7 +388,7 @@ button.chat-launcher {
   background: rgba(15, 118, 110, 0.08);
 }
 .chat-status-pill.is-syncing {
-  color: #b45309;
+  color: var(--color-status-warning-text);
   border-color: rgba(180, 83, 9, 0.25);
   background: rgba(180, 83, 9, 0.08);
 }
@@ -408,7 +408,7 @@ button.chat-launcher {
   background: var(--color-canvas);
 }
 .chat-members summary {
-  color: #64748b;
+  color: var(--color-ink-muted);
   font-weight: 500;
   cursor: pointer;
   user-select: none;
@@ -436,7 +436,7 @@ button.chat-launcher {
   flex-direction: column;
 }
 .chat-compose textarea {
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--color-line-strong);
   border-radius: 12px;
   padding: 10px 14px;
   font-size: 13px;

@@ -4,7 +4,7 @@
 }
 
 .lifecycle-section {
-  border: 1px solid var(--color-hairline, #D9E1EC);
+  border: 1px solid var();
   border-radius: 10px;
   overflow: hidden;
   background: #fff;
@@ -33,7 +33,7 @@
 
 .lifecycle-facts dt {
   margin-bottom: 7px;
-  color: var(--color-ink-muted, #64748B);
+  color: var();
   font-size: 12px;
   font-weight: 700;
   letter-spacing: .07em;
@@ -90,16 +90,16 @@
   gap: 14px;
   min-width: 0;
   padding: 15px 20px;
-  border-bottom: 1px solid var(--color-hairline, #D9E1EC);
+  border-bottom: 1px solid var();
   transition: background-color 160ms ease;
 }
 
 .lifecycle-member:nth-child(odd) {
-  border-right: 1px solid var(--color-hairline, #D9E1EC);
+  border-right: 1px solid var();
 }
 
 .lifecycle-member:hover {
-  background: var(--color-canvas, #F6F8FB);
+  background: var();
 }
 
 .lifecycle-history .ex-timeline {
@@ -109,7 +109,7 @@
 .lifecycle-history-content {
   min-width: 0;
   padding: 14px 0 15px 10px;
-  border-bottom: 1px solid var(--color-hairline, #D9E1EC);
+  border-bottom: 1px solid var();
 }
 
 .lifecycle-history .ex-timeline-item:last-child .lifecycle-history-content {

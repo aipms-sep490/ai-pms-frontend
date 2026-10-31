@@ -90,7 +90,7 @@ function ColdChecklistBody({ projectId, projectTitle, actor, routeBase }: {
           <div>
             <h2>Danh sách báo cáo</h2>
             <span>Hạn nộp: {formatColdDateTime(checklist.deadline)}</span>
-            {checklist.lockedAt && <span style={{ marginLeft: 12, color: '#16a34a', fontWeight: 600 }}>• Đã khóa: {formatColdDateTime(checklist.lockedAt)}</span>}
+            {checklist.lockedAt && <span style={{ marginLeft: 12, color: 'var(--color-status-success-text)', fontWeight: 600 }}>• Đã khóa: {formatColdDateTime(checklist.lockedAt)}</span>}
           </div>
           {checklist.canLock && (
             <button
@@ -264,17 +264,17 @@ function ColdItemRow({ item, onChanged, onConflict }: {
     </div>
 
     {showHistory && (
-      <div style={{ marginTop: 10, padding: 12, border: '1px solid #cbd5e1', borderRadius: 8, background: '#f8fafc' }}>
-        <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: '#1e293b' }}>Lịch sử các phiên bản:</h4>
-        {loadingHistory && <p style={{ fontSize: 12, color: '#64748b' }}>Đang tải lịch sử…</p>}
-        {history && history.length === 0 && <p style={{ fontSize: 12, color: '#64748b' }}>Chưa có bản ghi lịch sử nào.</p>}
+      <div style={{ marginTop: 10, padding: 12, border: '1px solid var(--color-hairline)', borderRadius: 8, background: 'var(--color-canvas)' }}>
+        <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--color-ink)' }}>Lịch sử các phiên bản:</h4>
+        {loadingHistory && <p style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>Đang tải lịch sử…</p>}
+        {history && history.length === 0 && <p style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>Chưa có bản ghi lịch sử nào.</p>}
         {history && history.map((sub) => (
-          <div key={sub.id} style={{ padding: '8px 0', borderBottom: '1px solid #e2e8f0', fontSize: 12 }}>
+          <div key={sub.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--color-hairline)', fontSize: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: 600 }}>Phiên bản {sub.version} ({sub.status})</span>
-              <span style={{ color: '#64748b', fontSize: 11 }}>{sub.submittedAt ? formatColdDateTime(sub.submittedAt) : formatColdDateTime(sub.createdAt)}</span>
+              <span style={{ color: 'var(--color-ink-muted)', fontSize: 12 }}>{sub.submittedAt ? formatColdDateTime(sub.submittedAt) : formatColdDateTime(sub.createdAt)}</span>
             </div>
-            {sub.note && <p style={{ margin: '4px 0', color: '#334155' }}>Ghi chú: {sub.note}</p>}
+            {sub.note && <p style={{ margin: '4px 0', color: 'var(--color-ink-soft)' }}>Ghi chú: {sub.note}</p>}
             {sub.files.length > 0 && (
               <ul style={{ listStyle: 'none', paddingLeft: 0, marginTop: 4 }}>
                 {sub.files.map((file) => (

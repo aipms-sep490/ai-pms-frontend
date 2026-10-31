@@ -5,7 +5,7 @@
 .mtg-livekit-header h2 { margin: 4px 0; overflow-wrap: anywhere; }
 .mtg-livekit-header .mtg-help { margin: 0 !important; }
 .mtg-livekit-footer { border-top: 1px solid var(--color-hairline); }
-.mtg-livekit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 12px; min-height: clamp(280px, calc(100dvh - 560px), 540px); padding: 14px; background: #0F2747; }
+.mtg-livekit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 12px; min-height: clamp(280px, calc(100dvh - 560px), 540px); padding: 14px; background: var(--color-brand-navy); }
 .mtg-livekit-grid .lk-participant-tile { min-height: 190px; border-radius: 7px; overflow: hidden; }
 .mtg-livekit-empty { align-self: center; justify-self: center; max-width: 42ch; text-align: center; color: var(--color-hairline); }
 .mtg-livekit-controls { display: flex; gap: 8px; flex-wrap: wrap; }

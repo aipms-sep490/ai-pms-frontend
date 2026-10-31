@@ -30,7 +30,7 @@
 .sup__profile-copy > p:last-child {
   max-width: 680px;
   margin: 8px 0 0;
-  color: #64748b;
+  color: var(--color-ink-muted);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -58,7 +58,7 @@
 }
 
 .sup__count span {
-  color: #64748b;
+  color: var(--color-ink-muted);
   font-size: 12px;
 }
 
@@ -79,7 +79,7 @@
 }
 
 .sup__filters label > span {
-  color: #64748b;
+  color: var(--color-ink-muted);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: .04em;
@@ -159,7 +159,7 @@
 
 .sup__card-copy > p {
   margin: 3px 0 8px;
-  color: #64748b;
+  color: var(--color-ink-muted);
   font-size: 12px;
 }
 
@@ -265,7 +265,7 @@
 }
 
 .sup__paging > span {
-  color: #64748b;
+  color: var(--color-ink-muted);
   font-family: "JetBrains Mono", monospace;
   font-size: 12px;
 }
@@ -292,7 +292,7 @@
 .sup__empty p,
 .sup__state > p {
   margin: 0;
-  color: #64748b;
+  color: var(--color-ink-muted);
   font-size: 14px;
 }
 
