@@ -146,10 +146,10 @@ export function GanttChart({
                 {/* Group Header Row (44px height) */}
                 <div
                   onClick={() => onToggleGroup(group.id)}
-                  className="flex h-11 bg-slate-100/80 hover:bg-slate-100 text-xs font-semibold text-ink cursor-pointer select-none transition-colors"
+                  className="flex h-11 bg-canvas/80 hover:bg-canvas text-xs font-semibold text-ink cursor-pointer select-none transition-colors"
                 >
                   {/* Sticky Left Group Info */}
-                  <div className="sticky left-0 z-20 flex w-[320px] shrink-0 items-center border-r border-hairline bg-slate-100 px-2 py-1.5 xl:w-[460px] xl:px-3 2xl:w-[520px]">
+                  <div className="sticky left-0 z-20 flex w-[320px] shrink-0 items-center border-r border-hairline bg-canvas px-2 py-1.5 xl:w-[460px] xl:px-3 2xl:w-[520px]">
                     <div className="flex min-w-0 flex-1 items-center gap-1 truncate lg:gap-1.5">
                       <button
                         type="button"
@@ -329,7 +329,7 @@ export function GanttChart({
                               className="flex items-center gap-1.5 truncate"
                               title={`${task.assignee} (${task.assigneeRole})`}
                             >
-                              <span className="w-5 h-5 rounded-full bg-slate-100 border border-hairline text-xs font-bold text-ink-soft flex items-center justify-center shrink-0">
+                              <span className="w-5 h-5 rounded-full bg-canvas border border-hairline text-xs font-bold text-ink-soft flex items-center justify-center shrink-0">
                                 {initials}
                               </span>
                               <span className="truncate">{shortName}</span>
@@ -368,7 +368,7 @@ export function GanttChart({
                                 ? 'border-emerald-400 bg-emerald-50 text-emerald-950 font-semibold'
                                 : task.progress > 0
                                 ? 'border-blue-400 bg-blue-50 text-blue-950 font-semibold'
-                                : 'border-line-strong bg-slate-100 text-ink-muted'
+                                : 'border-line-strong bg-canvas text-ink-muted'
                             }`}
                             style={{
                               gridColumnStart: task.startWeek,

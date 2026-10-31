@@ -34,7 +34,7 @@ export function GanttHeader({
 
         {/* View Mode & Export Controls */}
         <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-lg border border-hairline bg-slate-100 p-0.5">
+          <div className="inline-flex rounded-lg border border-hairline bg-canvas p-0.5">
             <button
               type="button"
               onClick={() => onViewModeChange('weeks')}

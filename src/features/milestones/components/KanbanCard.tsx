@@ -50,7 +50,7 @@ export function KanbanCard({ task }: KanbanCardProps) {
 
         <div className="flex items-center justify-between gap-2 font-mono text-xs">
           <span className="text-slate-400">Hạn: {task.deadline}</span>
-          <span className="px-1.5 py-0.2 rounded bg-slate-100 text-ink-muted font-bold">
+          <span className="px-1.5 py-0.2 rounded bg-canvas text-ink-muted font-bold">
             {task.storyPoints} SP
           </span>
         </div>

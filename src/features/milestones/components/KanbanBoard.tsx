@@ -23,7 +23,7 @@ export function KanbanBoard({
           <section
             key={col.id}
             aria-label={`Cột Kanban: ${col.title}`}
-            className="flex flex-col rounded-xl bg-slate-100/70 border border-hairline p-3 min-h-[480px]"
+            className="flex flex-col rounded-xl bg-canvas/70 border border-hairline p-3 min-h-[480px]"
           >
             {/* Column Header */}
             <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-hairline">
