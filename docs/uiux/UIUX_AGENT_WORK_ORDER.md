@@ -44,10 +44,12 @@ Nếu một yêu cầu trong file này có vẻ xung đột với bất biến t
 Sau **mỗi** task, chạy đủ bộ:
 
 ```bash
-cd /f/AI-PMS/ai-pms-frontend && npm run typecheck && npm run lint && npm test
+cd /f/AI-PMS/ai-pms-frontend && npm run typecheck && npm run lint && npm test && npm run build
 ```
 
-Yêu cầu: typecheck 0 lỗi, lint không phát sinh warning mới (so với base `c67f42e`), **tất cả** test pass. Không báo "xong" khi chưa chạy. Nếu một lệnh không chạy được, nói rõ lệnh nào và vì sao — không im lặng bỏ qua.
+Yêu cầu: typecheck 0 lỗi, lint không phát sinh warning mới (so với base `c67f42e`), **tất cả** test pass, **build thành công**. Không báo "xong" khi chưa chạy. Nếu một lệnh không chạy được, nói rõ lệnh nào và vì sao — không im lặng bỏ qua.
+
+> **`npm run build` là bắt buộc, không phải tùy chọn.** Không có unit test nào parse CSS, nên typecheck + lint + 1898 test có thể xanh hết trong khi CSS không compile được. Việc này đã xảy ra thật: một chỗ `var(var(--color-brand-navy))` trong `login-design.css` làm `lightningcss` chết ở bước minify và làm mất nền panel đăng nhập (chữ trắng trên nền gần trắng, 1.04:1) — trong khi cả 3 lệnh kia báo xanh. Chỉ `npm run build` thấy được lớp lỗi này.
 
 **Không được dùng `npm run dev` để tự kiểm tra bằng mắt rồi kết luận.** Dev server của repo này proxy về `localhost:5080` và không có backend nào đang chạy, nên mọi trang có fetch sẽ ra trạng thái lỗi — đó không phải bug bạn vừa tạo.
 
