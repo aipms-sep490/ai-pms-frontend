@@ -56,9 +56,9 @@ export function AssignedReviewQueue({
 
   if (!selectedItem) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-12 text-center text-slate-500">
+      <div className="rounded-xl border border-hairline bg-card p-12 text-center text-ink-muted">
         <span className="material-symbols-outlined text-4xl text-slate-400">task_alt</span>
-        <h3 className="mt-2 text-base font-bold text-slate-800">Không có đợt thẩm định nào được phân công</h3>
+        <h3 className="mt-2 text-base font-bold text-ink">Không có đợt thẩm định nào được phân công</h3>
         <p className="mt-1 text-xs">Hiện tại bạn đã hoàn tất mọi nhiệm vụ review hoặc chưa có đợt phân công mới.</p>
       </div>
     )
@@ -110,8 +110,8 @@ export function AssignedReviewQueue({
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
       {/* Left Column: Assigned Queue */}
       <div className="space-y-3 lg:col-span-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-          <h3 className="border-b border-slate-100 pb-2.5 text-sm font-bold text-slate-800">
+        <div className="rounded-xl border border-hairline bg-card p-4 shadow-xs">
+          <h3 className="border-b border-slate-100 pb-2.5 text-sm font-bold text-ink">
             Hàng đợi Thẩm định ({assignments.length})
           </h3>
           <div className="mt-3 space-y-2.5">
@@ -129,17 +129,17 @@ export function AssignedReviewQueue({
                   className={`w-full rounded-lg p-3 text-left transition-all border ${
                     isSelected
                       ? 'border-primary bg-primary-subtle/60 shadow-2xs ring-1 ring-primary'
-                      : 'border-slate-200 bg-white hover:bg-slate-50'
+                      : 'border-hairline bg-card hover:bg-canvas'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="rounded-md bg-slate-900 px-2 py-0.5 text-xs font-bold text-white">
                       {item.gateCode}
                     </span>
-                    <span className="text-xs font-semibold text-slate-500">Scope: {item.scope}</span>
+                    <span className="text-xs font-semibold text-ink-muted">Scope: {item.scope}</span>
                   </div>
-                  <h4 className="mt-2 text-xs font-bold text-slate-900">{item.projectName}</h4>
-                  <p className="text-xs text-slate-500">{item.projectCode}</p>
+                  <h4 className="mt-2 text-xs font-bold text-ink">{item.projectName}</h4>
+                  <p className="text-xs text-ink-muted">{item.projectCode}</p>
                   <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2 text-xs">
                     <span className="text-slate-400">Hạn: {dateTimeLabel(item.dueAt)}</span>
                     <span
@@ -163,7 +163,7 @@ export function AssignedReviewQueue({
 
       {/* Right Column: Review Details & Decision */}
       <div className="space-y-4 lg:col-span-8">
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs space-y-5">
+        <div className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-5">
           {/* Header */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div>
@@ -171,18 +171,18 @@ export function AssignedReviewQueue({
                 <span className="rounded-md bg-primary px-2.5 py-0.5 text-xs font-bold text-white">
                   {selectedItem.gateCode}
                 </span>
-                <h3 className="text-base font-bold text-slate-900">{selectedItem.projectName}</h3>
-                <span className="max-w-full break-all rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600 border border-slate-200">
+                <h3 className="text-base font-bold text-ink">{selectedItem.projectName}</h3>
+                <span className="max-w-full break-all rounded-full bg-canvas px-2.5 py-0.5 text-xs font-semibold text-ink-muted border border-hairline">
                   {selectedItem.projectCode}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-slate-500">
-                Đợt thẩm định: <strong className="text-slate-700">{selectedItem.gateTitle}</strong> · Phạm vi chuyên môn: <strong className="text-primary">{selectedItem.scope}</strong>
+              <p className="mt-1 text-xs text-ink-muted">
+                Đợt thẩm định: <strong className="text-ink-soft">{selectedItem.gateTitle}</strong> · Phạm vi chuyên môn: <strong className="text-primary">{selectedItem.scope}</strong>
               </p>
             </div>
-            <div className="text-left text-xs text-slate-500 sm:text-right">
+            <div className="text-left text-xs text-ink-muted sm:text-right">
               <div>Thời hạn chấm: <strong>{dateTimeLabel(selectedItem.dueAt)}</strong></div>
-              <div>Trạng thái: <strong className="text-slate-800">{selectedItem.status}</strong></div>
+              <div>Trạng thái: <strong className="text-ink">{selectedItem.status}</strong></div>
             </div>
           </div>
 
@@ -226,10 +226,10 @@ export function AssignedReviewQueue({
           {/* Requirements Checklist */}
           <div>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-ink-soft">
                 Minh chứng cần xác minh ({selectedItem.requirements.length})
               </h4>
-              <span className="whitespace-nowrap text-xs font-semibold text-slate-500">
+              <span className="whitespace-nowrap text-xs font-semibold text-ink-muted">
                 Đã duyệt: <strong className="text-emerald-600">{acceptedMandatoryCount}</strong> / {mandatoryReqs.length} bắt buộc
               </span>
             </div>
@@ -246,13 +246,13 @@ export function AssignedReviewQueue({
                         ? 'border-emerald-200 bg-emerald-50/30'
                         : isRejected
                         ? 'border-rose-200 bg-rose-50/30'
-                        : 'border-slate-200 bg-slate-50/50'
+                        : 'border-hairline bg-canvas/50'
                     }`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <strong className="text-xs font-bold text-slate-900">{req.title}</strong>
-                        <span className="rounded bg-slate-200 px-1.5 py-0.5 text-xs text-slate-700 font-medium">{req.type}</span>
+                        <strong className="text-xs font-bold text-ink">{req.title}</strong>
+                        <span className="rounded bg-slate-200 px-1.5 py-0.5 text-xs text-ink-soft font-medium">{req.type}</span>
                         {req.isMandatory && (
                           <span className="rounded bg-rose-100 px-1.5 py-0.5 text-xs font-bold text-rose-700">Bắt buộc</span>
                         )}
@@ -276,9 +276,9 @@ export function AssignedReviewQueue({
 
                     {/* Submitted artifact details */}
                     {req.latestArtifact ? (
-                      <div className="mt-2.5 rounded-md border border-slate-200 bg-white p-2.5 text-slate-700">
+                      <div className="mt-2.5 rounded-md border border-hairline bg-card p-2.5 text-ink-soft">
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-slate-900 inline-flex items-center gap-1.5">
+                          <span className="font-semibold text-ink inline-flex items-center gap-1.5">
                             <span>{isLinkArtifact(req.latestArtifact) ? 'Liên kết minh chứng:' : 'Tệp minh chứng:'}</span>
                             <button
                               type="button"
@@ -292,7 +292,7 @@ export function AssignedReviewQueue({
                               <span className="break-all" title={req.latestArtifact.linkUrl ?? req.latestArtifact.filename}>{evidenceArtifactLabel(req.latestArtifact)}</span>
                             </button>
                           </span>
-                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                          <span className="rounded-full bg-canvas px-2 py-0.5 text-xs font-semibold text-ink-muted">
                             Phiên bản v{req.latestArtifact.version}
                           </span>
                         </div>
@@ -300,7 +300,7 @@ export function AssignedReviewQueue({
                           Nộp bởi {req.latestArtifact.submittedBy} lúc {dateTimeLabel(req.latestArtifact.submittedAt)}
                         </div>
                         {req.latestArtifact.notes && (
-                          <div className="mt-1 text-slate-600 italic">
+                          <div className="mt-1 text-ink-muted italic">
                             Giải trình: "{req.latestArtifact.notes}"
                           </div>
                         )}
@@ -311,7 +311,7 @@ export function AssignedReviewQueue({
                     <EvidenceDownloadButton projectId={selectedItem.projectId} gateCode={selectedItem.gateCode} requirement={req} />
 
                     {/* Reviewer Feedback & Actions */}
-                    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-200/70 pt-2.5">
+                    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-hairline/70 pt-2.5">
                       <input
                         type="text"
                         placeholder="Nhận xét cụ thể cho minh chứng này (tùy chọn)..."
@@ -319,7 +319,7 @@ export function AssignedReviewQueue({
                         onChange={(e) =>
                           setFeedbackInput((prev) => ({ ...prev, [`${selectedItem.id}:${req.id}`]: e.target.value }))
                         }
-                        className="flex-1 rounded-md border border-slate-300 px-2.5 py-1 text-xs text-slate-900 focus:border-primary focus:outline-hidden"
+                        className="flex-1 rounded-md border border-hairline px-2.5 py-1 text-xs text-ink focus:border-primary focus:outline-hidden"
                       />
                       <Button
                         size="sm"
@@ -345,8 +345,8 @@ export function AssignedReviewQueue({
           </div>
 
           {/* Decision Section */}
-          <div className="border-t border-slate-200 pt-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+          <div className="border-t border-hairline pt-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-ink-soft">
               Quyết định Thẩm định Review Gate (Toàn diện)
             </h4>
             {isDecided ? (
@@ -354,13 +354,13 @@ export function AssignedReviewQueue({
                 ✓ Đợt thẩm định này đã ghi nhận kết luận chính thức ({selectedItem.latestDecision || 'ĐÃ CHỐT'}). Quyền thẩm định đã đóng băng.
               </div>
             ) : (
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-ink-muted">
                 Quyết định Gate PASS chỉ được kích hoạt khi <strong>toàn bộ minh chứng bắt buộc</strong> đã được xác minh ĐẠT (ACCEPTED).
               </p>
             )}
 
             <div className="mt-3">
-              <label className="block text-xs font-bold text-slate-700">
+              <label className="block text-xs font-bold text-ink-soft">
                 Biên bản nhận xét & Đánh giá chung của Hội đồng / Giảng viên thẩm định *
               </label>
               <textarea
@@ -369,12 +369,12 @@ export function AssignedReviewQueue({
                 disabled={isDecided}
                 onChange={(e) => setReviewNotes(e.target.value)}
                 placeholder={isDecided ? 'Đợt thẩm định đã hoàn tất quyết định.' : 'Nhập chi tiết đánh giá, căn cứ quyết định, các điểm cần nhóm lưu ý...'}
-                className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-xs text-slate-900 focus:border-primary focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-500"
+                className="mt-1 w-full rounded-lg border border-hairline p-2.5 text-xs text-ink focus:border-primary focus:outline-hidden disabled:bg-canvas disabled:text-ink-muted"
               />
             </div>
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-ink-muted">
                 {isDecided ? (
                   <span className="font-semibold text-emerald-600">
                     ✓ Đã hoàn tất phiên thẩm định.
@@ -421,47 +421,47 @@ export function AssignedReviewQueue({
           aria-modal="true"
           aria-label="Chi tiết siêu dữ liệu minh chứng"
         >
-          <div className="max-h-[calc(100dvh-2rem)] w-full min-w-0 max-w-lg overflow-y-auto rounded-xl border border-slate-200 bg-white p-6 shadow-xl space-y-4">
+          <div className="max-h-[calc(100dvh-2rem)] w-full min-w-0 max-w-lg overflow-y-auto rounded-xl border border-hairline bg-card p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-xl text-primary">description</span>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">Chi tiết Siêu dữ liệu Minh chứng (Metadata Preview)</h3>
-                  <p className="text-xs text-slate-500">Xem trước thông tin siêu dữ liệu phiên bản (không phải trình đọc tệp nội dung)</p>
+                  <h3 className="text-sm font-bold text-ink">Chi tiết Siêu dữ liệu Minh chứng (Metadata Preview)</h3>
+                  <p className="text-xs text-ink-muted">Xem trước thông tin siêu dữ liệu phiên bản (không phải trình đọc tệp nội dung)</p>
                 </div>
               </div>
               <button
                 type="button"
                 aria-label="Đóng chi tiết minh chứng"
                 onClick={() => setPreviewingArtifact(null)}
-                className="min-h-11 min-w-11 shrink-0 text-slate-600 hover:text-slate-900 text-lg font-bold cursor-pointer"
+                className="min-h-11 min-w-11 shrink-0 text-ink-muted hover:text-ink text-lg font-bold cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="rounded-lg border border-slate-100 bg-slate-50 p-3 space-y-1.5">
+              <div className="rounded-lg border border-slate-100 bg-canvas p-3 space-y-1.5">
                 <div className="flex min-w-0 justify-between gap-3">
-                  <span className="shrink-0 text-slate-600">{isLinkArtifact(previewingArtifact) ? 'Liên kết ngoài:' : 'Tên tệp:'}</span>
-                  <span className="min-w-0 break-all font-bold text-slate-800" title={previewingArtifact.linkUrl ?? previewingArtifact.filename}>{evidenceArtifactLabel(previewingArtifact)}</span>
+                  <span className="shrink-0 text-ink-muted">{isLinkArtifact(previewingArtifact) ? 'Liên kết ngoài:' : 'Tên tệp:'}</span>
+                  <span className="min-w-0 break-all font-bold text-ink" title={previewingArtifact.linkUrl ?? previewingArtifact.filename}>{evidenceArtifactLabel(previewingArtifact)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Phiên bản thẩm định:</span>
+                  <span className="text-ink-muted">Phiên bản thẩm định:</span>
                   <span className="rounded-md bg-primary-subtle px-2 py-0.5 font-bold text-primary">v{previewingArtifact.version}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Người nộp:</span>
-                  <span className="font-semibold text-slate-700">{previewingArtifact.submittedBy}</span>
+                  <span className="text-ink-muted">Người nộp:</span>
+                  <span className="font-semibold text-ink-soft">{previewingArtifact.submittedBy}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Thời gian nộp:</span>
-                  <span className="font-semibold text-slate-700">{previewingArtifact.submittedAt}</span>
+                  <span className="text-ink-muted">Thời gian nộp:</span>
+                  <span className="font-semibold text-ink-soft">{previewingArtifact.submittedAt}</span>
                 </div>
                 {previewingArtifact.notes && (
-                  <div className="border-t border-slate-200/60 pt-1.5">
-                    <span className="text-slate-500 block mb-0.5">Ghi chú nộp bài:</span>
-                    <p className="italic text-slate-700">"{previewingArtifact.notes}"</p>
+                  <div className="border-t border-hairline/60 pt-1.5">
+                    <span className="text-ink-muted block mb-0.5">Ghi chú nộp bài:</span>
+                    <p className="italic text-ink-soft">"{previewingArtifact.notes}"</p>
                   </div>
                 )}
               </div>

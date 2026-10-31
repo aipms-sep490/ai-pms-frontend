@@ -74,12 +74,12 @@ export function InterdisciplinaryGatePanel({
 
   if (scopeKeys.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-xs">
+      <div className="rounded-xl border border-hairline bg-card p-8 text-center shadow-xs">
         <span className="material-symbols-outlined mx-auto text-4xl text-slate-300">hub</span>
-        <h3 className="mt-3 text-sm font-bold text-slate-800">
+        <h3 className="mt-3 text-sm font-bold text-ink">
           Chưa có phân nhánh chuyên môn liên ngành
         </h3>
-        <p className="mx-auto mt-1.5 max-w-md text-xs text-slate-500">
+        <p className="mx-auto mt-1.5 max-w-md text-xs text-ink-muted">
           {projectId
             ? `Đồ án ${projectId} chưa có cấu trúc phân nhánh liên ngành hoặc đang chờ Hội đồng thẩm định công bố snapshot các phân ban chuyên môn.`
             : 'Vui lòng chọn đồ án liên ngành để xem chi tiết các phân nhánh chuyên môn.'}
@@ -91,13 +91,13 @@ export function InterdisciplinaryGatePanel({
   return (
     <div className="space-y-6">
       {/* Header Context */}
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+      <div className="rounded-xl border border-hairline bg-card p-5 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-primary">
               Đồ án liên ngành · {projectId || 'Chưa chọn đồ án'}
             </span>
-            <h2 className="text-lg font-bold text-slate-800">
+            <h2 className="text-lg font-bold text-ink">
               G2 · Integrated Concept & Architecture Gate
             </h2>
           </div>
@@ -111,7 +111,7 @@ export function InterdisciplinaryGatePanel({
             {allPassed ? 'CÁC NHÁNH ĐÃ ĐẠT' : 'CHỜ THẨM ĐỊNH CÁC NGÀNH'}
           </span>
         </div>
-        <p className="mt-2 text-xs text-slate-500">
+        <p className="mt-2 text-xs text-ink-muted">
           Đồ án liên ngành được thẩm định độc lập theo từng phân ban chuyên môn trước khi xét duyệt Cổng tích hợp chung.
         </p>
       </div>
@@ -119,12 +119,12 @@ export function InterdisciplinaryGatePanel({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Scopes Table */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-x-auto">
+          <div className="rounded-xl border border-hairline bg-card shadow-xs overflow-x-auto">
             <div className="border-b border-slate-100 p-4">
-              <h3 className="text-sm font-bold text-slate-800">
+              <h3 className="text-sm font-bold text-ink">
                 Thẩm định phân theo từng Chuyên ngành (Scope Review)
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-ink-muted">
                 Mỗi bộ môn tham gia chỉ thẩm định và ra quyết định trong phạm vi chuyên môn của mình.
               </p>
             </div>
@@ -136,14 +136,14 @@ export function InterdisciplinaryGatePanel({
             )}
 
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-100">
+              <thead className="bg-canvas font-semibold uppercase tracking-wider text-ink-muted border-b border-slate-100">
                 <tr>
                   <th className="py-3 px-4">Phạm vi chuyên ngành</th>
                   <th className="py-3 px-3 text-center">Bắt buộc</th>
                   <th className="py-3 px-4">Quyết định Reviewer</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
+              <tbody className="divide-y divide-slate-100 text-ink-soft">
                 {scopeKeys.map(scopeKey => {
                   const item = {
                     scope: scopeKey,
@@ -151,10 +151,10 @@ export function InterdisciplinaryGatePanel({
                     desc: scopeMeta[scopeKey]?.desc || 'Thẩm định yêu cầu chuyên ngành',
                   }
                   return (
-                    <tr key={item.scope} className="hover:bg-slate-50">
+                    <tr key={item.scope} className="hover:bg-canvas">
                       <td className="py-3.5 px-4">
-                        <strong className="block font-semibold text-slate-900">{item.name}</strong>
-                        <span className="text-xs text-slate-500">{item.desc}</span>
+                        <strong className="block font-semibold text-ink">{item.name}</strong>
+                        <span className="text-xs text-ink-muted">{item.desc}</span>
                       </td>
                       <td className="py-3.5 px-3 text-center">
                         <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
@@ -194,13 +194,13 @@ export function InterdisciplinaryGatePanel({
             </table>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+          <div className="rounded-xl border border-hairline bg-card p-4 shadow-xs">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-2">
               Liên kết phụ thuộc giữa các chuyên ngành (Cross-discipline Traceability)
             </h4>
             <div className="space-y-2 text-xs">
               {scopeKeys.map(s => (
-                <div key={s} className="flex flex-wrap gap-2 items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-2.5">
+                <div key={s} className="flex flex-wrap gap-2 items-center justify-between rounded-lg border border-slate-100 bg-canvas p-2.5">
                   <span><strong>{scopeName(s)}</strong>: Yêu cầu chuẩn đầu ra chuyên ngành</span>
                   <span className="text-slate-400">→ Điều kiện tiên quyết xét duyệt <strong>Cổng tích hợp chung</strong></span>
                 </div>
@@ -229,8 +229,8 @@ export function InterdisciplinaryGatePanel({
             </p>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-600 space-y-2 shadow-xs">
-            <strong className="block font-bold text-slate-800">Phạm vi giám sát:</strong>
+          <div className="rounded-xl border border-hairline bg-card p-4 text-xs text-ink-muted space-y-2 shadow-xs">
+            <strong className="block font-bold text-ink">Phạm vi giám sát:</strong>
             <p className="leading-relaxed">
               Bảng này chỉ hiển thị tiến trình. Reviewer được phân công gửi quyết định tại hàng đợi thẩm định trong phạm vi được cấp.
             </p>
