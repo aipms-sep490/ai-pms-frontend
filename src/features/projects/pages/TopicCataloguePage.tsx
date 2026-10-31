@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAcademicWorkflow } from '../../../app/context/useAcademicWorkflow'
 import { useStudentJourney } from '../../../app/context/useStudentJourney'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
+import { Pagination } from '../../../components/ui/Pagination'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useAuthSession } from '../../../features/auth/context/useAuthSession'
 import { services } from '../../../services/service-gateway'
@@ -117,7 +118,20 @@ export function TopicCataloguePage() {
       </button>
     }
   >
-    <section className="rounded-xl border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text"><p className="text-xs leading-relaxed">Tham khảo các đề tài đã công bố. Trưởng nhóm có thể chọn đề tài khi hồ sơ còn ở dạng bản nháp.</p>{project?.proposalSource === 'PUBLISHED_TOPIC' && project.selectedTopic ? <p className="mt-2 text-xs font-semibold">Đề tài đã chọn: {project.selectedTopic.code} · {project.selectedTopic.title}</p> : null}</section>
+    <section className="rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-sm text-ink shadow-xs">
+      <div className="flex items-start gap-2.5">
+        <span className="material-symbols-outlined mt-0.5 shrink-0 text-[18px] text-status-success-text" aria-hidden="true">menu_book</span>
+        <div>
+          <p className="text-xs leading-relaxed text-ink-soft">Tham khảo các đề tài đã công bố. Trưởng nhóm có thể chọn đề tài khi hồ sơ còn ở dạng bản nháp.</p>
+          {project?.proposalSource === 'PUBLISHED_TOPIC' && project.selectedTopic ? (
+            <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-status-success-border bg-status-success-bg px-2.5 py-0.5 text-xs font-semibold text-status-success-text">
+              <span className="material-symbols-outlined text-[14px]" aria-hidden="true">check_circle</span>
+              Đề tài đã chọn: {project.selectedTopic.code} · {project.selectedTopic.title}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </section>
     <FilterToolbar
       tabs={[
         { value: '', label: 'Mọi chế độ' },
@@ -161,7 +175,22 @@ export function TopicCataloguePage() {
     {discovery.error ? <TopicError title={errorTitle} error={discovery.error} onRetry={discovery.retry} /> : null}
     {selectionError ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{selectionError}</section> : null}
     {!discovery.isLoading && !discovery.error && visibleTopics.length === 0 ? <TopicEmpty /> : null}
-    {!discovery.isLoading && !discovery.error && visibleTopics.length > 0 ? <><div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">{visibleTopics.map((topic) => <TopicCard key={topic.id} topic={topic} onDetail={openDetail} />)}</div><nav className="flex flex-wrap items-center justify-between gap-3 text-xs text-ink-muted"><span>{discovery.totalCount} đề tài</span><div className="flex items-center gap-2"><button type="button" disabled={page === 1} onClick={() => setPage((value) => value - 1)} className="min-h-11 rounded-lg border border-hairline bg-card px-3.5 py-2 font-semibold text-ink-soft transition-colors hover:bg-canvas disabled:opacity-50">Trước</button><span className="self-center px-1">{page}/{totalPages}</span><button type="button" disabled={page >= totalPages} onClick={() => setPage((value) => value + 1)} className="min-h-11 rounded-lg border border-hairline bg-card px-3.5 py-2 font-semibold text-ink-soft transition-colors hover:bg-canvas disabled:opacity-50">Sau</button></div></nav></> : null}
+    {!discovery.isLoading && !discovery.error && visibleTopics.length > 0 ? (
+      <>
+        <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {visibleTopics.map((topic) => <TopicCard key={topic.id} topic={topic} onDetail={openDetail} />)}
+        </div>
+        {discovery.totalCount > pageSize ? (
+          <Pagination
+            page={page}
+            pages={totalPages}
+            total={discovery.totalCount}
+            pageSize={pageSize}
+            onPage={setPage}
+          />
+        ) : null}
+      </>
+    ) : null}
     <TopicDetailDrawer topic={selectedTopic} isLoading={detailLoading} error={detailError} onClose={() => { setSelectedTopic(null); setDetailError(null) }} canSelect={canSelect} selecting={selecting} onSelectTopic={(topic) => void selectTopic(topic)} />
   </WorkspacePage>
 }
@@ -169,7 +198,7 @@ export function TopicCataloguePage() {
 function TopicCard({ topic, onDetail }: { topic: Topic; onDetail: (id: number) => Promise<void> }) {
   const isInterdisciplinary = topic.projectMode === 'INTERDISCIPLINARY'
   return (
-    <article className="flex flex-col justify-between gap-4 rounded-xl border border-hairline bg-card p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md">
+    <article className="flex h-full flex-col justify-between gap-4 rounded-xl border border-hairline bg-card p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md">
       <div>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="rounded-md border border-primary/20 bg-primary-subtle px-2 py-0.5 font-mono text-xs font-bold text-primary">{topic.code}</span>
@@ -203,6 +232,6 @@ function TopicCard({ topic, onDetail }: { topic: Topic; onDetail: (id: number) =
     </article>
   )
 }
-function TopicLoading() { return <div className="grid grid-cols-1 gap-4 md:grid-cols-2" aria-label="Đang tải đề tài"><div className="h-52 rounded-xl border border-hairline bg-canvas motion-safe:animate-pulse"/><div className="h-52 rounded-xl border border-hairline bg-canvas motion-safe:animate-pulse"/></div> }
+function TopicLoading() { return <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Đang tải đề tài"><div className="h-52 rounded-xl border border-hairline bg-canvas motion-safe:animate-pulse"/><div className="h-52 rounded-xl border border-hairline bg-canvas motion-safe:animate-pulse"/><div className="h-52 rounded-xl border border-hairline bg-canvas motion-safe:animate-pulse"/></div> }
 function TopicEmpty() { return <section className="rounded-xl border border-dashed border-hairline bg-card p-12 text-center"><h3 className="font-bold text-ink">Không có đề tài phù hợp</h3><p className="mt-1 text-xs text-ink-muted">Thay đổi bộ lọc hoặc kiểm tra lại bối cảnh học vụ.</p></section> }
 function TopicError({ title, error, onRetry }: { title: string; error: Error; onRetry: () => void }) { const isNotFound = error instanceof HttpError && error.status === 404; return <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-8 text-center"><h3 className="font-bold text-status-error-text">{isNotFound ? 'Không tìm thấy đề tài hoặc phạm vi học vụ' : title}</h3><p className="mt-1 text-xs text-status-error-text">{error.message}</p><button type="button" onClick={onRetry} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-hover">Thử lại</button></section> }
