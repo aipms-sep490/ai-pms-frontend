@@ -1,4 +1,6 @@
 /* Reports UI — Academic Command Center Navy & Teal Design */
+.report-badge--attention { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 9999px; background: var(--color-status-warning-bg); color: var(--color-status-warning-text); border: 1px solid var(--color-status-warning-border); border-left: 3px solid var(--color-accent-amber); font-size: 12px; font-weight: 700; }
+.report-row--attention { border-left: 3px solid var(--color-accent-amber); }
 .reports { max-width: 1360px; margin: 0 auto; padding: 0 0 48px; color: var(--color-ink); }
 .reports * { box-sizing: border-box; }
 .reports a, .reports button, .reports input, .reports select, .reports textarea { transition: border-color 160ms, background-color 160ms, box-shadow 160ms; }

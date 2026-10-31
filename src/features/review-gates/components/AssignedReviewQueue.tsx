@@ -148,7 +148,7 @@ export function AssignedReviewQueue({
                           ? 'text-emerald-600'
                           : item.status === 'IN_REVIEW'
                           ? 'text-blue-600'
-                          : 'text-amber-600'
+                          : 'text-[var(--color-status-warning-text)] font-bold'
                       }`}
                     >
                       {item.status === 'DECIDED' ? '✓ Đã quyết định' : 'Chờ xử lý'}
@@ -263,7 +263,7 @@ export function AssignedReviewQueue({
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : isRejected
                             ? 'bg-rose-50 text-rose-700 border-rose-200'
-                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                            : 'bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning-text)] border-[var(--color-status-warning-border)] border-l-2 border-l-[var(--color-accent-amber)]'
                         }`}
                       >
                         {req.verificationStatus === 'ACCEPTED'

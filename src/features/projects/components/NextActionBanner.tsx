@@ -101,7 +101,7 @@ export function NextActionBanner({
 
   // Theme styling based on gate status
   const cardBorderClass = isRevisionRequired
-    ? 'border-amber-300 bg-amber-50/90 text-amber-950'
+    ? 'border-[var(--color-status-warning-border)] bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning-text)] border-l-4 border-l-[var(--color-accent-amber)]'
     : isInReview
     ? 'border-blue-300 bg-blue-50/90 text-blue-950'
     : isPassed
@@ -109,7 +109,7 @@ export function NextActionBanner({
     : 'border-slate-200 bg-white text-slate-900'
 
   const badgeClass = isRevisionRequired
-    ? 'border-amber-300 bg-amber-100 text-amber-900'
+    ? 'border-[var(--color-status-warning-border)] bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning-text)] border-l-2 border-l-[var(--color-accent-amber)]'
     : isInReview
     ? 'border-blue-300 bg-blue-100 text-blue-900'
     : isPassed
