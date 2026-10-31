@@ -194,8 +194,8 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
           <div className="p-4 pb-3 border-b border-hairline flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-xs flex items-center justify-center bg-primary">
-                  <img src={appIcon} alt="AI-PMS" className="w-full h-full object-contain" />
+                <div className="w-8 h-8 shrink-0 flex items-center justify-center">
+                  <img src={appIcon} alt="" aria-hidden="true" className="w-full h-full object-contain" />
                 </div>
                 <div className="flex flex-col">
                   <span className="font-heading font-bold text-[14px] text-ink tracking-tight leading-tight">
