@@ -40,7 +40,7 @@
 .topic__message { margin: 0; padding: 12px 14px; border: 1px solid rgba(8, 125, 119, 0.25); border-radius: 8px; background: var(--color-primary-subtle); color: var(--color-primary-hover); }
 .topic__list { display: grid; gap: 10px; }
 .topic__list article { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 16px 20px; border: 1px solid var(--color-hairline); border-radius: 10px; background: white; transition: all 160ms ease; }
-.topic__list article:hover { border-color: var(); box-shadow: 0 4px 12px -2px rgba(15, 39, 71, 0.08); }
+.topic__list article:hover { border-color: var(--color-brand-teal); box-shadow: 0 4px 12px -2px rgba(15, 39, 71, 0.08); }
 .topic__list article a { display: block; margin-top: 4px; color: var(--color-ink); font-weight: 700; text-decoration: none; font-size: 15px; }
 .topic__list article a:hover { color: var(--color-primary); }
 .topic__list article p { margin: 4px 0 0; color: var(--color-ink-muted); font-size: 13px; line-height: 1.5; }

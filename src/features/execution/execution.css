@@ -19,7 +19,7 @@
 .ex-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ex-heading > .ex-actions { flex-shrink: 0; }
 .ex-button { min-height: 40px; padding: 8px 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--color-hairline); border-radius: 8px; font-size: 13px; font-weight: 600; line-height: 1.5; color: var(--color-ink); background: white; text-decoration: none; box-shadow: 0 1px 3px rgba(15,39,71,0.04); transition: all 180ms cubic-bezier(.16,1,.3,1); }
-.ex-button:hover:not(:disabled) { background: var(--color-primary-subtle); border-color: var(); color: var(--color-primary); }
+.ex-button:hover:not(:disabled) { background: var(--color-primary-subtle); border-color: var(--color-brand-teal); color: var(--color-primary); }
 .ex-button:active { transform: scale(0.98); }
 .ex-button-primary { background: var(--color-primary); border-color: var(--color-primary); color: white; box-shadow: 0 2px 8px -2px rgba(8, 125, 119, 0.3); }
 .ex-button-primary:hover:not(:disabled) { background: var(--color-primary-hover); border-color: var(--color-primary-hover); color: white; box-shadow: 0 4px 12px -2px rgba(8, 125, 119, 0.35); }

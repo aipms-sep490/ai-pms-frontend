@@ -2,7 +2,7 @@
   margin-bottom: 24px;
   padding: 14px 18px;
   background: var(--color-card);
-  border: 1px solid var();
+  border: 1px solid var(--color-hairline);
   border-radius: 14px;
   box-shadow: 0 1px 4px 0 rgba(15, 39, 71, 0.04);
 }
@@ -14,12 +14,12 @@
   gap: 8px 16px;
   margin-bottom: 12px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var();
+  border-bottom: 1px solid var(--color-hairline);
   font-size: 13px;
 }
 
 .project-section-context a {
-  color: var();
+  color: var(--color-primary);
   font-weight: 600;
   display: inline-flex;
   align-items: center;
@@ -32,7 +32,7 @@
 }
 
 .project-section-context span {
-  color: var();
+  color: var(--color-ink-muted);
   overflow-wrap: anywhere;
   font-weight: 500;
 }
@@ -51,7 +51,7 @@
   border-radius: 9999px;
   font-size: 13px;
   font-weight: 500;
-  color: var();
+  color: var(--color-ink-soft);
   text-decoration: none;
   background: transparent;
   border: 1px solid transparent;
@@ -59,20 +59,20 @@
 }
 
 .project-section-navigation nav a:hover {
-  background: var();
-  color: var();
+  background: var(--color-canvas);
+  color: var(--color-ink);
 }
 
 .project-section-navigation nav a[aria-current] {
-  background: var();
-  color: var();
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
   font-weight: 700;
   border-color: rgba(18, 179, 168, 0.25);
   box-shadow: 0 1px 2px 0 rgba(15, 39, 71, 0.04);
 }
 
 .project-section-navigation a:focus-visible {
-  outline: 2px solid var();
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
@@ -88,16 +88,16 @@
     display: block;
     width: 100%;
     min-height: 44px;
-    border: 1px solid var();
+    border: 1px solid var(--color-hairline);
     border-radius: 8px;
     background: #fff;
     padding: 8px 12px;
-    color: var();
+    color: var(--color-primary);
     font: inherit;
     font-size: 14px;
   }
   .project-section-mobile:focus-visible {
-    outline: 2px solid var();
+    outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
 }

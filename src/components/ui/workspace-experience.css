@@ -10,9 +10,9 @@
 [data-experience=enhanced] :is(.workspace-heading-copy>p,.admin-heading>div>p:last-child,.report-description,.mtg-description) { font-size:15px; line-height:1.75; max-width:70ch; color:var(--experience-muted); }
 [data-experience=enhanced] :is(.workspace-kicker,.admin-kicker,.report-eyebrow,.mtg-eyebrow) { font-family:var(--font-sans); font-size:12px; letter-spacing:.015em; color:var(--experience-muted); }
 [data-experience=enhanced] :is(.workspace-back,.report-back,.mtg-back,.admin-back) { display:inline-flex; align-items:center; gap:8px; min-height:40px; padding:7px 11px; border:1px solid var(--experience-line); border-radius:9px; background:#fff; font-size:13px; font-weight:550; text-decoration:none; color:var(--experience-ink); }
-[data-experience=enhanced] :is(.workspace-back,.report-back,.mtg-back,.admin-back):hover { background:var(); border-color:var(); color:var(); }
+[data-experience=enhanced] :is(.workspace-back,.report-back,.mtg-back,.admin-back):hover { background:var(--color-primary-subtle); border-color:var(--color-brand-teal); color:var(--color-primary-hover); }
 [data-experience=enhanced] :is(.workspace-back,.report-back,.mtg-back,.admin-back) .material-symbols-outlined { font-size:18px; }
-[data-experience=enhanced] :is(.report-toolbar,.mtg-filters,.admin-filter,.ex-filters) { background:var(); padding:20px 24px; gap:16px; border-radius:12px; border:1px solid var(--experience-line); }
+[data-experience=enhanced] :is(.report-toolbar,.mtg-filters,.admin-filter,.ex-filters) { background:var(--color-canvas); padding:20px 24px; gap:16px; border-radius:12px; border:1px solid var(--experience-line); }
 [data-experience=enhanced] form label { font-size:13px; letter-spacing:normal; line-height:1.6; text-transform:none; color:var(--experience-ink); }
 [data-experience=enhanced] form :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=file]),select) { min-height:44px; font-size:14px; border-radius:9px; }
 [data-experience=enhanced] form textarea { font-size:14px; line-height:1.7; border-radius:9px; }
@@ -26,21 +26,21 @@
 [data-experience=enhanced] :is(.report-steps,.mtg-process) { border:1px solid var(--experience-line); border-radius:12px; overflow:hidden; box-shadow:0 2px 8px -6px rgba(15,39,71,0.18); }
 [data-experience=enhanced] :is(.report-row-main h3,.mtg-row h3) { font-size:16px; line-height:1.5; color:var(--experience-ink); }
 [data-experience=enhanced] :is(.report-row-main small,.mtg-row small) { font-size:12px; color:var(--experience-muted); }
-[data-experience=enhanced] :is(.report-row,.mtg-row):hover { background:var(); }
+[data-experience=enhanced] :is(.report-row,.mtg-row):hover { background:var(--color-primary-subtle); }
 [data-experience=enhanced] .report-row-main p { -webkit-line-clamp:2; font-size:14px; line-height:1.6; }
 [data-experience=enhanced] table { font-size:14px; line-height:1.6; }
-[data-experience=enhanced] table th { padding-block:14px; background:var(); color:var(--experience-muted); font-size:12px; font-weight:600; }
+[data-experience=enhanced] table th { padding-block:14px; background:var(--color-canvas); color:var(--experience-muted); font-size:12px; font-weight:600; }
 [data-experience=enhanced] table td { padding-block:16px; }
 [data-experience=enhanced] table tbody tr { transition:background-color 160ms; }
-[data-experience=enhanced] table tbody tr:hover { background:var(); }
+[data-experience=enhanced] table tbody tr:hover { background:var(--color-primary-subtle); }
 [data-experience=enhanced] table td a { display:inline-flex; align-items:center; min-height:34px; font-weight:550; color:var(--color-primary); text-underline-offset:3px; }
 [data-experience=enhanced] :is(.report-reading,.mtg-prose,.ex-description) { font-size:15px; line-height:1.8; }
 [data-experience=enhanced] .report-reading p { font-size:15px; max-width:75ch; }
-[data-experience=enhanced] :is(.ex-empty,.mtg-empty,.report-empty) { padding:clamp(28px,4vw,48px) 24px; background:linear-gradient(135deg,#fff,var()); }
+[data-experience=enhanced] :is(.ex-empty,.mtg-empty,.report-empty) { padding:clamp(28px,4vw,48px) 24px; background:linear-gradient(135deg,#fff,var(--color-canvas)); }
 [data-experience=enhanced] :is(.ex-empty,.mtg-empty,.report-empty) p { max-width:55ch; margin-inline:auto; font-size:14px; line-height:1.75; color:var(--experience-muted); }
 [data-experience=enhanced] .admin-disclosure { margin-top:20px; border:1px solid var(--experience-line); border-radius:12px; overflow:hidden; background:#fff; }
 [data-experience=enhanced] .admin-disclosure>summary { padding:16px 20px; color:var(--color-primary); font-size:14px; font-weight:600; cursor:pointer; }
-[data-experience=enhanced] .admin-disclosure[open]>summary { background:var(); border-bottom:1px solid var(--experience-line); }
+[data-experience=enhanced] .admin-disclosure[open]>summary { background:var(--color-primary-subtle); border-bottom:1px solid var(--experience-line); }
 [data-experience=enhanced] .admin-disclosure>form { padding:20px; }
 @media(max-width:640px) {
  [data-experience=enhanced] .workspace-heading { align-items:stretch; gap:16px; }
