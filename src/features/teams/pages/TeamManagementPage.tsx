@@ -49,8 +49,10 @@ export function TeamManagementPage() {
     setTimeout(() => setToastMessage(null), 4000)
   }
 
-  const maxTeamSize = team?.academicScope?.requirements.reduce((sum, requirement) => sum + requirement.maxMembers, 0)
-    || period?.maxTeamSize || 5
+  const majorCapacity = team?.academicScope?.requirements.reduce((sum, requirement) => sum + requirement.maxMembers, 0)
+  const maxTeamSize = period?.maxTeamSize
+    ? Math.min(period.maxTeamSize, majorCapacity || period.maxTeamSize)
+    : null
 
   // Presentation-only grouping hint for the invite candidate list; the server's
   // eligibility reasons (MAJOR_MIN_MEMBERS:<majorId>) remain the authority on PASS/FAIL.
@@ -275,7 +277,7 @@ export function TeamManagementPage() {
               <div className="text-right">
                 <span className="text-xs text-slate-400 block">Sĩ số nhóm</span>
                 <span className="text-sm font-bold text-ink-soft">
-              {team.members.length} / {maxTeamSize} thành viên
+              {team.members.length} / {maxTeamSize ?? '—'} thành viên
                 </span>
               </div>
             </div>
@@ -303,7 +305,7 @@ export function TeamManagementPage() {
             fallbackOrganizationId={team.members.find((member) => member.userId === currentUserId)?.organizationId}
             fallbackMajorId={profile?.majorId}
           />}
-          {!rosterLocked && team.academicScope && <StructuredResponsibilitiesPanel teamId={team.id} scope={team.academicScope} majorNames={majorNames} onSaved={retry} />}
+          {!rosterLocked && team.academicScope && <StructuredResponsibilitiesPanel teamId={team.id} scope={team.academicScope} majorNames={majorNames} canEdit={permissions.canConfigureScope} onSaved={retry} />}
 
           {rosterLocked && <p className="text-sm text-ink-muted">Danh sách thành viên đã được chốt theo hồ sơ đồ án.</p>}
 

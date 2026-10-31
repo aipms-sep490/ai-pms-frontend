@@ -93,6 +93,29 @@ describe('SupervisorRecommendationPanel', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('chưa có quyền')
   })
 
+  it('explains a missing frozen scope without claiming an empty history after a failed read', async () => {
+    const denied = new HttpError('Frozen academic scope is required.', 409, { code: 'ACADEMIC_SCOPE_UNKNOWN' })
+    mocks.previewSupervisorRecommendations.mockRejectedValue(denied)
+    mocks.getSupervisorRecommendationHistory.mockRejectedValue(denied)
+    render(<SupervisorRecommendationPanel projectId={9} />)
+    expect((await screen.findByRole('alert')).textContent).toContain('chưa có bản chốt phạm vi học thuật')
+    fireEvent.click(screen.getByRole('button', { name: 'Lịch sử gợi ý' }))
+    await screen.findAllByText(/chưa có bản chốt phạm vi học thuật/)
+    const { waitFor } = await import('@testing-library/react')
+    await waitFor(() => expect(screen.getAllByRole('alert')).toHaveLength(2))
+    expect(screen.queryByText('Chưa có phiên gợi ý nào được lưu cho đồ án này.')).toBeNull()
+  })
+
+  it('keeps a failed history load distinct from a successfully empty history', async () => {
+    mocks.previewSupervisorRecommendations.mockResolvedValue(preview([]))
+    mocks.getSupervisorRecommendationHistory.mockRejectedValue(new Error('offline'))
+    render(<SupervisorRecommendationPanel projectId={9} />)
+    await screen.findByText('Chưa có gợi ý nào cho vị trí này.')
+    fireEvent.click(screen.getByRole('button', { name: 'Lịch sử gợi ý' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('Chưa tải được')
+    expect(screen.queryByText('Chưa có phiên gợi ý nào được lưu cho đồ án này.')).toBeNull()
+  })
+
   it('shows a generic error with retry on an unexpected failure (e.g. 404 feature disabled)', async () => {
     mocks.previewSupervisorRecommendations.mockRejectedValue(new HttpError('disabled', 404))
     render(<SupervisorRecommendationPanel projectId={9} />)

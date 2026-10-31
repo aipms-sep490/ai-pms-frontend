@@ -14,6 +14,7 @@ function getProfileErrorMessage(error: Error): string {
   if (error instanceof HttpError) {
     if (error.status === 401) return 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.'
     if (error.status === 403) return 'Tài khoản không có quyền xem hồ sơ hiện tại.'
+    if (error.status === 400 || error.status === 422) return 'Thông tin hồ sơ chưa hợp lệ. Kiểm tra họ tên, số điện thoại và chức danh rồi lưu lại.'
   }
 
   return 'Không thể kết nối dịch vụ hồ sơ. Hãy thử lại.'
@@ -98,6 +99,11 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
     const title = dirty.title
       ? (String(titleRaw ?? '').trim() || null)
       : undefined
+
+    const lengthError = fullName.length > 255 ? 'Họ và tên tối đa 255 ký tự.'
+      : phone && phone.length > 30 ? 'Số điện thoại tối đa 30 ký tự.'
+        : title && title.length > 100 ? 'Chức danh tối đa 100 ký tự.' : null
+    if (lengthError) { setFormError(lengthError); return }
 
     const payload: EditableProfile = {
       fullName,

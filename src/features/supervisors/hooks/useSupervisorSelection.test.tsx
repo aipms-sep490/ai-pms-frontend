@@ -23,7 +23,7 @@ describe('useSupervisorSelection', () => {
     const refreshAll = vi.fn().mockResolvedValue(undefined)
     const { result } = renderHook(() => useSupervisorSelection({ project: project as never, team: leaderTeam as never, profile: { id: 2 } as never, actions: actions as never, refreshAll }))
     await waitFor(() => expect(result.current.candidates).toHaveLength(1))
-    expect(supervisor.getCandidates).toHaveBeenCalledWith(9, { search: undefined, expertise: undefined })
+    expect(supervisor.getCandidates).toHaveBeenCalledWith(9, { search: undefined, expertise: undefined, assignmentType: 'PRIMARY', majorId: undefined })
     await act(async () => { expect(await result.current.send(candidate as never, 'Message')).toBe(true) })
     expect(supervisor.sendRequest).toHaveBeenCalledWith(9, 4, 'Message', 'PRIMARY', undefined)
   })
@@ -34,7 +34,7 @@ describe('useSupervisorSelection', () => {
     await act(async () => { result.current.setQuery({ search: ' Mai ', expertise: ' AI ' }) })
     expect(supervisor.getCandidates).toHaveBeenCalledTimes(1)
     await act(async () => { await result.current.applyFilters() })
-    expect(supervisor.getCandidates).toHaveBeenLastCalledWith(9, { search: 'Mai', expertise: 'AI' })
+    expect(supervisor.getCandidates).toHaveBeenLastCalledWith(9, { search: 'Mai', expertise: 'AI', assignmentType: 'PRIMARY', majorId: undefined })
   })
 
   it('does not expose a send operation to a student member even when an action payload is stale', async () => {
@@ -137,5 +137,23 @@ describe('useSupervisorSelection', () => {
     const { result } = renderHook(() => useSupervisorSelection({ project: project as never, team: leaderTeam as never, profile: { id: 2 } as never, actions: draftActions as never, refreshAll: vi.fn() }))
     await waitFor(() => expect(result.current.candidates).toHaveLength(1))
     expect(result.current.activeAssignment).toBeTruthy()
+    expect(supervisor.getCandidates).toHaveBeenLastCalledWith(9, expect.objectContaining({ assignmentType: 'DISCIPLINE_MENTOR', majorId: 7 }))
+  })
+
+  it('reloads candidates for the selected mentor major and ignores a late response from another slot', async () => {
+    const draftActions = { actions: [...actions.actions, { code: 'submit_project', allowed: false, reasons: ['MENTOR_NOT_CONFIRMED:7', 'MENTOR_NOT_CONFIRMED:9'] }] }
+    const { result } = renderHook(() => useSupervisorSelection({ project: project as never, team: leaderTeam as never, profile: { id: 2 } as never, actions: draftActions as never, refreshAll: vi.fn() }))
+    await waitFor(() => expect(result.current.candidates).toHaveLength(1))
+    let finishOldRead!: (value: unknown) => void
+    supervisor.getCandidates.mockImplementationOnce(() => new Promise(resolve => { finishOldRead = resolve }))
+    act(() => result.current.setSlotKey('MENTOR-7'))
+    await waitFor(() => expect(supervisor.getCandidates).toHaveBeenLastCalledWith(9, expect.objectContaining({ assignmentType: 'DISCIPLINE_MENTOR', majorId: 7 })))
+    const nextCandidate = { ...candidate, id: 8, fullName: 'Marketing Mentor' }
+    supervisor.getCandidates.mockResolvedValueOnce({ items: [nextCandidate] })
+    act(() => result.current.setSlotKey('MENTOR-9'))
+    await waitFor(() => expect(result.current.candidates[0]?.id).toBe(8))
+    await act(async () => { finishOldRead({ items: [candidate] }) })
+    expect(result.current.candidates[0]?.id).toBe(8)
+    expect(result.current.slotKey).toBe('MENTOR-9')
   })
 })

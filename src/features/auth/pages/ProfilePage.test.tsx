@@ -44,6 +44,27 @@ afterEach(() => {
 })
 
 describe('ProfilePage', () => {
+  it.each([['Họ và tên', 256, 'Họ và tên tối đa 255 ký tự.'], ['Số điện thoại', 31, 'Số điện thoại tối đa 30 ký tự.'], ['Chức danh', 101, 'Chức danh tối đa 100 ký tự.']])('rejects an oversized %s without saving or discarding the input', async (label, size, message) => {
+    authSession.session = { user: { id: 42, email: 'qa@example.edu.vn', fullName: 'QA Student', roles: ['STUDENT'] } }
+    render(<ProfilePage />, { wrapper: MemoryRouter })
+    fireEvent.click(await screen.findByRole('button', { name: 'Chỉnh sửa hồ sơ' }))
+    const input = screen.getByLabelText(String(label)) as HTMLInputElement
+    fireEvent.change(input, { target: { value: '1'.repeat(Number(size)) } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu hồ sơ' }))
+    expect(screen.getByRole('alert').textContent).toContain(message)
+    expect(input.value).toHaveLength(Number(size))
+    expect(authSession.updateProfile).not.toHaveBeenCalled()
+  })
+
+  it.each([400, 422])('explains a server validation response %s without blaming connectivity', async status => {
+    authSession.session = { user: { id: 42, email: 'qa@example.edu.vn', fullName: 'QA Student', roles: ['STUDENT'] } }
+    authSession.updateProfile.mockRejectedValueOnce(new HttpError('Validation failed', status))
+    render(<ProfilePage />, { wrapper: MemoryRouter })
+    fireEvent.click(await screen.findByRole('button', { name: 'Chỉnh sửa hồ sơ' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu hồ sơ' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('Thông tin hồ sơ chưa hợp lệ')
+    expect(screen.getByLabelText('Họ và tên')).toBeTruthy()
+  })
   it('loads stored phone and title when auth session omits both fields', async () => {
     authSession.session = { user: { id: 42, email: 'staff@example.edu.vn', fullName: 'Giảng viên', roles: ['LECTURER'] } }
     vi.mocked(authApi.getMyProfile).mockResolvedValue({ phone: '0912345678', title: 'Tiến sĩ' })

@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react'
 import { services } from '../../services/service-gateway'
+import { HttpError } from '../../services/http/http-client'
 import type {
   TeamDto,
   ProjectDto,
@@ -21,6 +22,18 @@ import { findCurrentTeamProject } from '../../features/projects/utils/project-re
 import { StudentJourneyContext } from './StudentJourneyContext'
 import { resolveStudentJourneyState } from './resolve-student-journey-state'
 import { useAcademicWorkflow } from './useAcademicWorkflow'
+
+function journeyErrorMessage(reason: unknown): string {
+  if (reason instanceof HttpError) {
+    if (reason.status === 401) return 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại để xem thông tin đồ án.'
+    if (reason.status === 403) return 'Bạn chưa được phép xem thông tin nhóm hoặc đồ án. Hãy kiểm tra hồ sơ học vụ hoặc liên hệ cán bộ bộ môn.'
+    if (reason.status === 404) return 'Không tìm thấy thông tin nhóm hoặc đồ án. Hãy tải lại dữ liệu.'
+    if (reason.status === 409) return 'Thông tin nhóm hoặc đồ án đã thay đổi. Hãy tải lại dữ liệu trước khi tiếp tục.'
+    if (reason.status === 429) return 'Bạn đã gửi quá nhiều yêu cầu. Hãy chờ một lúc rồi thử lại.'
+    return 'Dịch vụ hiện chưa tải được thông tin đồ án. Hãy thử lại sau.'
+  }
+  return 'Chưa tải được thông tin đồ án. Hãy kiểm tra kết nối rồi thử lại.'
+}
 
 function toJourneyProfile(workflow: ReturnType<typeof useAcademicWorkflow>['workflowContext']): UserAccountDto | null {
   if (!workflow) return null
@@ -115,7 +128,7 @@ export function StudentJourneyProvider({ children }: { children: ReactNode }) {
       setJourneyState(resolveStudentJourneyState(nextTeam, nextProject, nextAssignments, nextTeamActions))
     } catch (reason: unknown) {
       if (requestId !== refreshSequence.current) return
-      setError(reason instanceof Error ? reason.message : 'Không thể tải thông tin sinh viên')
+      setError(journeyErrorMessage(reason))
     } finally {
       if (requestId === refreshSequence.current) setIsLoading(false)
     }

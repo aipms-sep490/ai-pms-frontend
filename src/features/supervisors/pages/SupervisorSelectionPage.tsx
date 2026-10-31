@@ -44,8 +44,7 @@ export function SupervisorSelectionPage() {
     ...(!selection.activeAssignment && selection.canSend ? [{ key: 'PRIMARY', type: 'PRIMARY' as const, label: 'GVHD chính' }] : []),
     ...selection.missingMentorMajorIds.map((majorId) => ({ key: `MENTOR-${majorId}`, type: 'DISCIPLINE_MENTOR' as const, majorId, label: `Mentor — ${majorName(majorId)}` })),
   ]
-  const [slotKey, setSlotKey] = useState<string | null>(null)
-  const activeSlot = slotOptions.find((option) => option.key === slotKey) ?? slotOptions[0] ?? null
+  const activeSlot = slotOptions.find((option) => option.key === selection.slotKey) ?? slotOptions[0] ?? null
 
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
@@ -95,7 +94,8 @@ export function SupervisorSelectionPage() {
         </li>)}</ul> : <p className="mt-2 text-sm text-slate-600">Chưa có yêu cầu hướng dẫn.</p>}
       </section>
 
-      {env.supervisorRecommendationEnabled && selection.canSend && journey.project && activeSlot && <SupervisorRecommendationPanel
+      {env.supervisorRecommendationEnabled && (selection.canSend || selection.canSendMentor) && journey.project && activeSlot && <SupervisorRecommendationPanel
+        key={`${journey.project.id}:${activeSlot.key}`}
         projectId={journey.project.id}
         assignmentType={activeSlot.type}
         majorId={activeSlot.majorId}
@@ -108,7 +108,7 @@ export function SupervisorSelectionPage() {
             <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">Mời cho vị trí</p>
             {slotOptions.length > 1 ? <div className="flex flex-wrap items-center gap-2">
               {slotOptions.map((option) => <button key={option.key} type="button" aria-pressed={activeSlot?.key === option.key}
-                onClick={() => setSlotKey(option.key)}
+                onClick={() => { selection.setSlotKey(option.key); setSelectedId(null); setSelectedSlot(null) }}
                 className={`min-h-9 rounded-full border px-3 text-xs font-semibold ${activeSlot?.key === option.key ? 'border-primary bg-primary text-white' : 'border-hairline bg-card text-slate-700'}`}>
                 {option.label}
               </button>)}

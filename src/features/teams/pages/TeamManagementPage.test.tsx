@@ -16,6 +16,21 @@ const locked = {
   sentInvitations: [], receivedInvitations: [], leaderChangeRequests: [], isMutationPending: () => false,
 }
 describe('Team workspace cleanup', () => {
+  it.each([
+    [[5, 5], 5, '5'],
+    [[1, 1], 5, '2'],
+    [[], 5, '5'],
+    [[5, 5], null, '—'],
+  ])('bounds the displayed roster by policy and major quotas %j / %s', async (quotas, periodMaximum, expected) => {
+    mocks.getMajors.mockResolvedValue([])
+    mocks.useTeamManagement.mockReturnValue({
+      ...locked,
+      period: periodMaximum === null ? null : { maxTeamSize: periodMaximum },
+      team: { ...locked.team, academicScope: { requirements: (quotas as number[]).map(maxMembers => ({ maxMembers })) } },
+    })
+    render(<MemoryRouter><TeamManagementPage /></MemoryRouter>)
+    expect(await screen.findByText(`1 / ${expected} thành viên`)).toBeTruthy()
+  })
   it('shows a sent-invitation failure without replacing the member workspace error state', async () => {
     mocks.getMajors.mockResolvedValue([{ id: 3, name: 'Kỹ thuật phần mềm' }])
     mocks.useTeamManagement.mockReturnValue({ ...locked, sentInvitationError: { kind: 'forbidden', message: 'Bạn không có quyền thực hiện thao tác này trong phạm vi nhóm hiện tại.' }, retry: vi.fn() })

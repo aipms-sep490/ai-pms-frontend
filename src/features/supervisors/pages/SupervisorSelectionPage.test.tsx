@@ -12,7 +12,7 @@ afterEach(() => { cleanup(); vi.clearAllMocks() })
 const state = (overrides: Record<string, unknown> = {}) => ({
   candidates: [{ id: 4, fullName: 'Dr Nguyen', departmentName: 'SE', bio: null, expertise: [{ name: 'AI' }], activeProjects: 1, remainingSlots: 2, semesterLimit: 5 }],
   requests: [], assignments: [], activeAssignment: null, loading: false, candidateLoading: false, sendRequestPending: false, cancelPending: null, error: null,
-  query: { search: '', expertise: '' }, setQuery: vi.fn(), applyFilters: vi.fn(), refresh: vi.fn(), send: vi.fn().mockResolvedValue(true), cancel: vi.fn(), canSend: true, canSendMentor: false, missingMentorMajorIds: [], isLeader: true, ...overrides,
+  query: { search: '', expertise: '' }, setQuery: vi.fn(), slotKey: null, setSlotKey: vi.fn(), applyFilters: vi.fn(), refresh: vi.fn(), send: vi.fn().mockResolvedValue(true), cancel: vi.fn(), canSend: true, canSendMentor: false, missingMentorMajorIds: [], isLeader: true, ...overrides,
 })
 const currentJourney = { project: { id: 9, code: 'P-9', title: 'Project', status: 'Approved', majors: [] }, team: {}, profile: { id: 2 }, projectActions: {}, refreshAll: vi.fn(), isLoading: false }
 
