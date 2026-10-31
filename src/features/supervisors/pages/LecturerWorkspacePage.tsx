@@ -97,14 +97,14 @@ export function LecturerWorkspacePage() {
                     <span className="material-symbols-outlined text-primary text-sm" aria-hidden="true">mail</span>
                     <strong>{project?.title ?? `Đồ án #${request.projectId}`}{project?.code ? ` · ${project.code}` : ''}</strong>
                   </div>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isPending ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isPending ? 'bg-amber-100 text-amber-800' : 'bg-canvas text-ink-soft'}`}>
                     {displayLabel(request.status)}
                   </span>
                 </div>
               </summary>
               <p className="mt-3 text-xs text-ink-muted">Ngày gửi: {new Date(request.requestedAt).toLocaleDateString('vi-VN')}</p>
               {team ? (
-                <div className="mt-4 lecturer-team rounded-r-md bg-slate-50/60 p-3">
+                <div className="mt-4 lecturer-team rounded-r-md bg-canvas/60 p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <strong>{team.name} · {team.code}</strong>
                     <span className="text-xs text-ink-muted">{team.members.length} thành viên</span>

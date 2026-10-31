@@ -45,7 +45,7 @@ export function OverviewPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Lộ trình đăng ký đồ án</p>
             <h2 id="journey-next-step" className="mt-1 text-lg font-bold tracking-tight text-ink">Bước tiếp theo của nhóm</h2>
           </div>
-          <ol className="grid grid-cols-2 gap-px bg-slate-100 sm:grid-cols-5">
+          <ol className="grid grid-cols-2 gap-px bg-canvas sm:grid-cols-5">
             {journeySteps.map((step, index) => (
               <li key={step.label} className={`bg-card px-4 py-4 ${index <= stageIndex ? 'text-primary' : 'text-slate-400'}`}>
                 <div className="flex items-center gap-2">

@@ -97,7 +97,7 @@ export function DepartmentWorkspacePage() {
                       <p className="text-xs font-mono font-bold text-primary">{project.code}</p>
                       <h4 className="mt-1 break-words font-semibold text-ink text-sm">{project.title}</h4>
                     </div>
-                    <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-ink-muted">
+                    <span className="shrink-0 rounded-full bg-canvas px-2 py-0.5 text-xs font-semibold text-ink-muted">
                       {projectStatusLabel(project.status)}
                     </span>
                   </div>
@@ -356,28 +356,28 @@ export function DepartmentWorkspacePage() {
             Thiết lập chính sách
           </h3>
           <div className="rounded-xl border border-hairline bg-card p-4 flex flex-col gap-2">
-            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-slate-50 transition-colors" to="/academic/review-gates">
+            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-canvas transition-colors" to="/academic/review-gates">
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">rule_settings</span>
                 Chính sách Review Gates
               </span>
               <span className="material-symbols-outlined text-[16px] text-slate-400" aria-hidden="true">arrow_forward</span>
             </Link>
-            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-slate-50 transition-colors" to="/academic">
+            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-canvas transition-colors" to="/academic">
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">account_balance</span>
                 Cấu trúc đào tạo
               </span>
               <span className="material-symbols-outlined text-[16px] text-slate-400" aria-hidden="true">arrow_forward</span>
             </Link>
-            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-slate-50 transition-colors" to="/academic/governance">
+            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-canvas transition-colors" to="/academic/governance">
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">date_range</span>
                 Học kỳ và chính sách
               </span>
               <span className="material-symbols-outlined text-[16px] text-slate-400" aria-hidden="true">arrow_forward</span>
             </Link>
-            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-slate-50 transition-colors" to="/academic/rubrics">
+            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-canvas transition-colors" to="/academic/rubrics">
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">grading</span>
                 Bộ tiêu chí Rubric

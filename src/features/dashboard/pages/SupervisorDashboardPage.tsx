@@ -92,11 +92,11 @@ export function SupervisorDashboardPage() {
               {urgentProjects.map(proj => (
                 <div
                   key={proj.id}
-                  className="flex flex-col justify-between rounded-lg border border-amber-200 bg-white p-4 shadow-2xs"
+                  className="flex flex-col justify-between rounded-lg border border-amber-200 bg-card p-4 shadow-2xs"
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2">
-                      <strong className="text-sm font-bold text-slate-900">{proj.code}</strong>
+                      <strong className="text-sm font-bold text-ink">{proj.code}</strong>
                       {proj.pendingProgressReviews > 0 ? (
                         <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800 border border-amber-300">
                           {proj.pendingProgressReviews} báo cáo chờ duyệt
@@ -107,8 +107,8 @@ export function SupervisorDashboardPage() {
                         </span>
                       ) : null}
                     </div>
-                    <h3 className="mt-1 text-xs font-semibold text-slate-800 line-clamp-1">{proj.title}</h3>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <h3 className="mt-1 text-xs font-semibold text-ink line-clamp-1">{proj.title}</h3>
+                    <p className="mt-1 text-xs text-ink-muted">
                       Bộ môn: {proj.departmentName ?? 'Chưa có bộ môn'}
                       {(proj.analysis?.progressSummary?.overdueTasks ?? 0) > 0 && (
                         <span className="ml-2 text-rose-600 font-semibold">
@@ -130,7 +130,7 @@ export function SupervisorDashboardPage() {
                     </Link>
                     <Link
                       to={`/supervisor/projects/${proj.id}/workspace`}
-                      className="inline-flex min-h-9 items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      className="inline-flex min-h-9 items-center gap-1 rounded-md border border-hairline bg-card px-2.5 py-1 text-xs font-semibold text-ink-soft hover:bg-canvas"
                     >
                       Vào không gian
                     </Link>
@@ -165,11 +165,11 @@ function ProjectRow({ project }: { project: DashboardProject }) {
   const risk = project.analysis?.riskLevel
   const progressPct = project.analysis?.progressSummary?.progressPercentage
   const hasPending = project.pendingProgressReviews > 0
-  return <li className="flex flex-wrap items-center justify-between gap-4 py-4 text-sm transition-colors hover:bg-slate-50/50 rounded-lg px-3">
+  return <li className="flex flex-wrap items-center justify-between gap-4 py-4 text-sm transition-colors hover:bg-canvas/50 rounded-lg px-3">
     <div className="min-w-0 flex-1">
       <div className="flex flex-wrap items-center gap-2">
         <p className="font-semibold text-ink text-base">{project.code} · {project.title}</p>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-ink-soft">{displayLabel(project.status)}</span>
+        <span className="rounded-full bg-canvas px-2 py-0.5 text-xs font-medium text-ink-soft">{displayLabel(project.status)}</span>
         {env.aiAdvisoryEnabled && risk && <span className={risk === 'HIGH' ? 'rounded-full bg-status-error-bg px-2 py-0.5 text-xs font-semibold text-status-error-text' : 'rounded-full bg-status-warning-bg px-2 py-0.5 text-xs font-semibold text-status-warning-text'}>Rủi ro: {displayLabel(risk)}</span>}
       </div>
       <p className="mt-1.5 text-xs text-ink-muted">
