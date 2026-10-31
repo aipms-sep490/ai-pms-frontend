@@ -14,16 +14,16 @@
   flex: 0 0 280px;
   min-width: 0;
   padding: 14px;
-  border: 1px solid var(--color-hairline, #e2e8f0);
+  border: 1px solid var(--color-hairline);
   border-radius: 12px;
-  background: var(--color-canvas, #f8fafc);
-  box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  background: var(--color-canvas);
+  box-shadow: inset 0 1px 2px 0 color-mix(in oklab, var(--color-brand-navy) 3%, transparent);
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 .task-board-column.is-drag-over {
-  border-color: var(--color-primary, #0f5c50);
-  background: var(--color-primary-subtle, #f0fdfa);
-  box-shadow: 0 0 0 2px var(--color-primary, #0f5c50), inset 0 2px 4px rgba(15, 91, 78, 0.08);
+  border-color: var(--color-brand-teal);
+  background: var(--color-primary-subtle);
+  box-shadow: 0 0 0 2px var(--color-primary), inset 0 2px 4px color-mix(in oklab, var(--color-primary) 12%, transparent);
 }
 .task-board-column ul li[draggable="true"] {
   cursor: grab;
@@ -42,15 +42,31 @@
   justify-content: space-between;
   font-size: 14px;
   font-weight: 600;
+  color: var(--color-ink);
   margin-bottom: 14px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--color-hairline, #e2e8f0);
+  border-bottom: 1px solid var(--color-hairline);
+}
+.task-board-column[data-status="IN_PROGRESS"] h2,
+.task-board-column--in-progress h2 {
+  border-bottom: 2px solid var(--color-accent-amber);
+}
+.task-board-column[data-status="IN_PROGRESS"] h2::before,
+.task-board-column--in-progress h2::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent-amber);
+  margin-right: 8px;
+  flex-shrink: 0;
 }
 .task-board-column h2 span {
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-ink-muted, #64748b);
-  background: rgba(0, 0, 0, 0.04);
+  color: var(--color-ink-muted);
+  background: color-mix(in oklab, var(--color-brand-navy) 5%, transparent);
   padding: 2px 8px;
   border-radius: 9999px;
   font-variant-numeric: tabular-nums;
@@ -65,25 +81,25 @@
   flex-direction: column;
   gap: 8px;
   padding: 14px 16px;
-  border: 1px solid var(--color-hairline, #e2e8f0);
+  border: 1px solid var(--color-hairline);
   border-radius: 10px;
-  background: var(--color-card, #ffffff);
-  color: var(--color-ink, #0f172a);
+  background: var(--color-card);
+  color: var(--color-ink);
   overflow-wrap: anywhere;
   min-height: 44px;
   font-size: 14px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px 0 color-mix(in oklab, var(--color-brand-navy) 4%, transparent);
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   text-decoration: none;
 }
 .task-board-card:hover {
-  border-color: var(--color-primary, #0f5c50);
+  border-color: var(--color-brand-teal);
   transform: translateY(-2px);
-  box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px -2px color-mix(in oklab, var(--color-brand-navy) 8%, transparent);
 }
 .task-board-card small {
   font-size: 12px;
-  color: var(--color-ink-muted, #64748b);
+  color: var(--color-ink-muted);
   font-weight: 500;
 }
 .task-board-card:focus-visible {
@@ -115,22 +131,22 @@
 .sprint-notice {
   padding: 12px 16px;
   border-radius: 10px;
-  background: var(--color-status-success-bg, #f0fdf4);
-  color: var(--color-status-success-text, #166534);
-  border: 1px solid var(--color-status-success-border, #bbf7d0);
+  background: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+  border: 1px solid var(--color-status-success-border);
   font-size: 14px;
 }
 .sprint-error {
   padding: 12px 16px;
   border-radius: 10px;
-  background: var(--color-status-error-bg, #fef2f2);
-  color: var(--color-status-error-text, #991b1b);
-  border: 1px solid var(--color-status-error-border, #fecaca);
+  background: var(--color-status-error-bg);
+  color: var(--color-status-error-text);
+  border: 1px solid var(--color-status-error-border);
   font-size: 14px;
 }
 .sprint-create {
   border-radius: 12px;
-  border: 1px solid var(--color-hairline, #e2e8f0);
+  border: 1px solid var(--color-hairline);
 }
 .sprint-create-fields {
   display: flex;
@@ -144,17 +160,19 @@
   gap: 4px;
   font-size: 13px;
   font-weight: 500;
+  color: var(--color-ink-soft);
 }
 .sprint-create-fields input {
   min-height: 40px;
-  border: 1px solid var(--color-hairline, #e2e8f0);
+  border: 1px solid var(--color-hairline);
   border-radius: 8px;
   padding: 6px 12px;
+  color: var(--color-ink);
 }
 .sprint-card {
   border-radius: 12px;
-  border: 1px solid var(--color-hairline, #e2e8f0);
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--color-hairline);
+  box-shadow: 0 1px 3px 0 color-mix(in oklab, var(--color-brand-navy) 4%, transparent);
 }
 .sprint-card-head {
   display: flex;
@@ -163,7 +181,7 @@
   gap: 12px;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--color-hairline, #f1f5f9);
+  border-bottom: 1px solid var(--color-hairline);
 }
 .sprint-card-actions {
   display: flex;
@@ -177,19 +195,19 @@
   vertical-align: middle;
 }
 .sprint-badge--active {
-  background: var(--color-status-success-bg, #dcfce7);
-  color: var(--color-status-success-text, #15803d);
-  border: 1px solid var(--color-status-success-border, #86efac);
+  background: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+  border: 1px solid var(--color-status-success-border);
 }
 .sprint-badge--planning {
-  background: var(--color-canvas, #f1f5f9);
-  color: var(--color-ink-muted, #475569);
-  border: 1px solid var(--color-hairline, #cbd5e1);
+  background: var(--color-canvas);
+  color: var(--color-ink-muted);
+  border: 1px solid var(--color-hairline);
 }
 .sprint-points {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-ink-muted, #475569);
+  color: var(--color-ink-muted);
   font-variant-numeric: tabular-nums;
   margin-bottom: 12px;
 }
@@ -197,8 +215,8 @@
   padding: 10px 14px;
   margin-bottom: 14px;
   border-radius: 8px;
-  background: var(--color-canvas, #f8fafc);
-  border: 1px solid var(--color-hairline, #e2e8f0);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
 }
 .sprint-task-rows {
   display: flex;
@@ -207,15 +225,15 @@
   list-style: none;
 }
 .sprint-task-row {
-  border: 1px solid var(--color-hairline, #e2e8f0);
+  border: 1px solid var(--color-hairline);
   border-radius: 10px;
   padding: 12px 14px;
-  background: var(--color-card, #ffffff);
+  background: var(--color-card);
   transition: all 0.15s ease;
 }
 .sprint-task-row:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.04);
+  border-color: var(--color-brand-teal);
+  box-shadow: 0 2px 6px 0 color-mix(in oklab, var(--color-brand-navy) 5%, transparent);
 }
 .sprint-task-main {
   display: flex;
@@ -235,19 +253,19 @@
   text-align: center;
   padding: 2px 7px;
   border-radius: 9999px;
-  background: var(--color-primary-subtle, #edf5f2);
-  color: var(--color-primary, #0f5c50);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
   font-weight: 700;
   font-size: 12px;
-  border: 1px solid rgba(15, 92, 80, 0.2);
+  border: 1px solid color-mix(in oklab, var(--color-primary) 25%, transparent);
 }
 .sprint-label-chip {
   padding: 1px 8px;
   border-radius: 9999px;
-  background: var(--color-canvas, #f1f5f9);
-  border: 1px solid var(--color-hairline, #e2e8f0);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
   font-size: 12px;
-  color: #475569;
+  color: var(--color-ink-soft);
 }
 .sprint-task-controls {
   display: flex;
@@ -258,13 +276,13 @@
 }
 .sprint-task-controls select {
   min-height: 38px;
-  border: 1px solid var(--color-hairline, #e2e8f0);
+  border: 1px solid var(--color-hairline);
   border-radius: 6px;
   padding: 4px 8px;
 }
 .sprint-task-edit {
   margin-top: 10px;
-  border-top: 1px dashed var(--color-hairline, #e2e8f0);
+  border-top: 1px dashed var(--color-hairline);
   padding-top: 10px;
 }
 .sprint-point-picker {
@@ -276,20 +294,20 @@
 .sprint-point-option {
   min-height: 36px;
   min-width: 36px;
-  border: 1px solid var(--color-hairline, #e2e8f0);
+  border: 1px solid var(--color-hairline);
   border-radius: 8px;
-  background: var(--color-card, #ffffff);
+  background: var(--color-card);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .sprint-point-option:hover {
-  border-color: var(--color-primary, #0f5c50);
+  border-color: var(--color-brand-teal);
 }
 .sprint-point-option--on {
-  border-color: var(--color-primary, #0f5c50);
-  background: var(--color-primary-subtle, #edf5f2);
-  color: var(--color-primary, #0f5c50);
+  border-color: var(--color-primary);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
   font-weight: 700;
 }
 .sprint-task-edit label {
@@ -300,7 +318,7 @@
 }
 .sprint-task-edit input {
   min-height: 40px;
-  border: 1px solid var(--color-hairline, #e2e8f0);
+  border: 1px solid var(--color-hairline);
   border-radius: 6px;
   padding: 6px 10px;
 }
@@ -332,4 +350,3 @@
   white-space: nowrap;
   border: 0;
 }
-

@@ -89,7 +89,7 @@ export function ProjectLifecyclePage() {
             <span className={`shrink-0 text-xs px-2.5 py-0.5 rounded-full font-semibold ${
               member.isLeader
                 ? 'bg-primary-subtle text-primary border border-status-success-border'
-                : 'bg-slate-100 text-ink-muted border border-hairline'
+                : 'bg-canvas text-ink-muted border border-hairline'
             }`}>
               {member.isLeader ? 'Trưởng nhóm' : 'Thành viên'}
             </span>

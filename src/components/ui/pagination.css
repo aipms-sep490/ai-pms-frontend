@@ -70,7 +70,7 @@
   background: var(--color-primary);
   color: #ffffff;
   font-weight: 700;
-  box-shadow: 0 2px 6px -1px rgba(15, 91, 78, 0.3);
+  box-shadow: 0 2px 6px -1px color-mix(in oklab, var(--color-primary) 35%, transparent);
 }
 
 .ui-pagination-ellipsis {
@@ -117,7 +117,7 @@
   padding: 4px 10px;
   border-radius: 999px;
   background: var(--color-primary-subtle);
-  border: 1px solid rgba(15, 91, 78, 0.15);
+  border: 1px solid color-mix(in oklab, var(--color-brand-teal) 30%, transparent);
   font-size: 12px;
   font-weight: 500;
   color: var(--color-primary);
@@ -138,13 +138,13 @@
 }
 
 .ui-filter-chip-remove:hover {
-  background: rgba(15, 91, 78, 0.2);
+  background: color-mix(in oklab, var(--color-brand-teal) 20%, transparent);
 }
 
 .ui-filter-clear-all {
   font-size: 12px;
   font-weight: 600;
-  color: #dc2626;
+  color: var(--color-danger-text);
   background: transparent;
   border: 0;
   cursor: pointer;
@@ -154,7 +154,7 @@
 }
 
 .ui-filter-clear-all:hover {
-  color: #b91c1c;
+  color: var(--color-danger-text);
 }
 
 @media (max-width: 640px) {

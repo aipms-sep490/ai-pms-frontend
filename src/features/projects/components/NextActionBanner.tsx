@@ -42,7 +42,7 @@ export function NextActionBanner({
   if (!activeGate) {
     return (
       <section
-        className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-xs"
+        className="mb-6 rounded-xl border border-hairline bg-card p-5 shadow-xs"
         aria-label="Khối việc cần làm tiếp theo"
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -55,15 +55,15 @@ export function NextActionBanner({
                 Việc cần làm tiếp theo
               </span>
             </div>
-            <h2 className="text-base font-bold text-slate-900">
+            <h2 className="text-base font-bold text-ink">
               {closestMilestone ? `Mốc công việc: ${closestMilestone.title}` : 'Đồ án đang trong giai đoạn triển khai'}
             </h2>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-ink-muted">
               {closestMilestone?.dueDate
                 ? `Hạn hoàn thành mốc tiếp theo: ${closestMilestone.dueDate}.`
                 : 'Tiếp tục thực hiện các công việc kỹ thuật trên Task board.'}
               {taskAttentionCount && taskAttentionCount.overdue > 0 && (
-                <span className="ml-1 font-semibold text-rose-600">
+                <span className="ml-1 font-semibold text-danger-text">
                   (Có {taskAttentionCount.overdue} việc quá hạn cần xử lý)
                 </span>
               )}
@@ -101,20 +101,20 @@ export function NextActionBanner({
 
   // Theme styling based on gate status
   const cardBorderClass = isRevisionRequired
-    ? 'border-amber-300 bg-amber-50/90 text-amber-950'
+    ? 'border-[var(--color-status-warning-border)] bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning-text)] border-l-4 border-l-[var(--color-accent-amber)]'
     : isInReview
-    ? 'border-blue-300 bg-blue-50/90 text-blue-950'
+    ? 'border-status-info-border bg-status-info-bg text-status-info-text'
     : isPassed
-    ? 'border-emerald-300 bg-emerald-50/90 text-emerald-950'
-    : 'border-slate-200 bg-white text-slate-900'
+    ? 'border-status-success-border bg-status-success-bg text-status-success-text'
+    : 'border-hairline bg-card text-ink'
 
   const badgeClass = isRevisionRequired
-    ? 'border-amber-300 bg-amber-100 text-amber-900'
+    ? 'border-[var(--color-status-warning-border)] bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning-text)] border-l-2 border-l-[var(--color-accent-amber)]'
     : isInReview
-    ? 'border-blue-300 bg-blue-100 text-blue-900'
+    ? 'border-status-info-border bg-status-info-bg text-status-info-text'
     : isPassed
-    ? 'border-emerald-300 bg-emerald-100 text-emerald-900'
-    : 'border-slate-300 bg-slate-100 text-slate-700'
+    ? 'border-status-success-border bg-status-success-bg text-status-success-text'
+    : 'border-hairline bg-canvas text-ink-soft'
 
   const iconName = isRevisionRequired
     ? 'warning'
@@ -164,7 +164,7 @@ export function NextActionBanner({
               <span className="rounded-md bg-slate-900 px-2.5 py-0.5 text-xs font-bold text-white">
                 {activeGate.code}
               </span>
-              <h2 className="text-base font-bold text-slate-900 sm:text-lg">
+              <h2 className="text-base font-bold text-ink sm:text-lg">
                 {activeGate.title}
               </h2>
               <span
@@ -176,20 +176,20 @@ export function NextActionBanner({
                 {statusLabel}
               </span>
             </div>
-            <p className="text-xs leading-relaxed text-slate-700">
+            <p className="text-xs leading-relaxed text-ink-soft">
               {activeGate.objective}
             </p>
           </div>
 
-          <div className="text-right text-xs text-slate-600 sm:shrink-0">
+          <div className="text-right text-xs text-ink-muted sm:shrink-0">
             <div>
               Hạn cổng:{' '}
-              <strong className="text-slate-900">
+              <strong className="text-ink">
                 {activeGate.windowEnd || 'Đang cập nhật'}
               </strong>
             </div>
             {closestMilestone?.dueDate && (
-              <div className="mt-0.5 text-slate-500">
+              <div className="mt-0.5 text-ink-muted">
                 Mốc task: {closestMilestone.dueDate}
               </div>
             )}
@@ -197,10 +197,10 @@ export function NextActionBanner({
         </div>
 
         {/* Content Grid: Requirements Status & Action Context */}
-        <div className="mt-4 grid grid-cols-1 gap-4 border-t border-slate-200/80 pt-4 lg:grid-cols-12">
+        <div className="mt-4 grid grid-cols-1 gap-4 border-t border-hairline/80 pt-4 lg:grid-cols-12">
           {/* Left: Requirements Detail */}
           <div className="space-y-2 lg:col-span-7">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-ink-soft">
               {isRevisionRequired
                 ? 'Minh chứng cần chỉnh sửa & nộp lại'
                 : 'Trạng thái minh chứng học thuật'}
@@ -211,14 +211,14 @@ export function NextActionBanner({
                 {rejectedReqs.map((req) => (
                   <div
                     key={req.id}
-                    className="rounded-lg border border-rose-200 bg-white p-3 shadow-2xs space-y-1.5"
+                    className="rounded-lg border border-status-error-border bg-card p-3 shadow-2xs space-y-1.5"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="rounded-md bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-800">
+                        <span className="rounded-md bg-status-error-bg px-2 py-0.5 text-xs font-bold text-danger-text">
                           {req.code}
                         </span>
-                        <strong className="text-xs font-bold text-slate-900">
+                        <strong className="text-xs font-bold text-ink">
                           {req.title}
                         </strong>
                       </div>
@@ -226,7 +226,7 @@ export function NextActionBanner({
                         <button
                           type="button"
                           onClick={() => setSubmissionReq(req)}
-                          className="inline-flex min-h-9 items-center gap-1 rounded-md bg-rose-600 px-3 py-1 text-xs font-bold text-white shadow-2xs hover:bg-rose-700 focus:outline-hidden focus:ring-2 focus:ring-rose-500 focus:ring-offset-1"
+                          className="inline-flex min-h-9 items-center gap-1 rounded-md bg-danger-strong px-3 py-1 text-xs font-bold text-white shadow-2xs hover:bg-danger-strong-hover focus:outline-hidden focus:ring-2 focus:ring-danger-strong focus:ring-offset-1"
                         >
                           <span className="material-symbols-outlined text-sm" aria-hidden="true">
                             upload_file
@@ -236,7 +236,7 @@ export function NextActionBanner({
                       )}
                     </div>
                     {req.reviewerFeedback && (
-                      <p className="rounded-md bg-rose-50 p-2 text-xs text-rose-800 border border-rose-100">
+                      <p className="rounded-md bg-status-error-bg p-2 text-xs text-danger-text border border-status-error-border">
                         <strong>Nhận xét từ Hội đồng:</strong> "{req.reviewerFeedback}"
                       </p>
                     )}
@@ -244,28 +244,28 @@ export function NextActionBanner({
                 ))}
               </div>
             ) : isRevisionRequired ? (
-              <p className="text-xs text-slate-600">
+              <p className="text-xs text-ink-muted">
                 Hội đồng yêu cầu nhóm rà soát lại hồ sơ trước khi chốt kết quả đợt thẩm định.
               </p>
             ) : isInReview ? (
-              <div className="rounded-lg border border-blue-200 bg-white p-3 text-xs text-blue-900 shadow-2xs space-y-1">
+              <div className="rounded-lg border border-status-info-border bg-card p-3 text-xs text-status-info-text shadow-2xs space-y-1">
                 <p>
                   <strong>{submittedReqs.length + acceptedReqs.length}/{activeGate.requirements.length} minh chứng</strong> đã được gửi lên hệ thống.
                 </p>
-                <p className="text-slate-600">
+                <p className="text-ink-muted">
                   Hội đồng đang thẩm định và sẽ phản hồi khi có kết luận chính thức.
                 </p>
               </div>
             ) : isPassed ? (
-              <div className="rounded-lg border border-emerald-200 bg-white p-3 text-xs text-emerald-900 shadow-2xs">
+              <div className="rounded-lg border border-status-success-border bg-card p-3 text-xs text-status-success-text shadow-2xs">
                 ✓ Nhóm đã hoàn thành toàn bộ yêu cầu chất lượng của cổng {activeGate.code}. Điểm số và nhận xét đã được lưu vào hồ sơ đồ án.
               </div>
             ) : (
-              <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-700 shadow-2xs space-y-1">
+              <div className="rounded-lg border border-hairline bg-card p-3 text-xs text-ink-soft shadow-2xs space-y-1">
                 <p>
                   Còn <strong>{pendingMandatoryReqs.length} minh chứng bắt buộc</strong> cần hoàn thiện trước ngày {activeGate.windowEnd}.
                 </p>
-                <p className="text-slate-500">
+                <p className="text-ink-muted">
                   Tổng số yêu cầu: {activeGate.requirements.length} mục (Bắt buộc: {activeGate.requirements.filter((r) => r.isMandatory).length}).
                 </p>
               </div>
@@ -273,19 +273,19 @@ export function NextActionBanner({
           </div>
 
           {/* Right: Coordination, Actor, Blockers */}
-          <div className="space-y-3 rounded-lg border border-slate-200 bg-white/80 p-3.5 shadow-2xs lg:col-span-5">
+          <div className="space-y-3 rounded-lg border border-hairline bg-card/80 p-3.5 shadow-2xs lg:col-span-5">
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-xs font-bold uppercase tracking-wider text-ink-muted">
                 Bên chịu trách nhiệm xử lý
               </span>
-              <p className="mt-1 text-xs font-medium text-slate-900">
+              <p className="mt-1 text-xs font-medium text-ink">
                 {responsibleActorText}
               </p>
             </div>
 
             {/* Blocking reasons */}
             {activeGate.blockingReasons.length > 0 && (
-              <div className="rounded-md border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-800">
+              <div className="rounded-md border border-status-error-border bg-status-error-bg p-2.5 text-xs text-danger-text">
                 <strong className="block font-bold">Rào cản học thuật (Blocking):</strong>
                 <ul className="mt-1 list-disc pl-4 space-y-0.5">
                   {activeGate.blockingReasons.map((br, idx) => (
@@ -300,14 +300,14 @@ export function NextActionBanner({
 
             {/* Technical task attention */}
             {taskAttentionCount && (taskAttentionCount.blocked > 0 || taskAttentionCount.overdue > 0) && (
-              <div className="text-xs text-slate-600">
+              <div className="text-xs text-ink-muted">
                 {taskAttentionCount.blocked > 0 && (
-                  <span className="block font-semibold text-amber-700">
+                  <span className="block font-semibold text-status-warning-text">
                     ⚠️ Có {taskAttentionCount.blocked} công việc bị vướng mắc (Blocked) trên bảng task.
                   </span>
                 )}
                 {taskAttentionCount.overdue > 0 && (
-                  <span className="block text-slate-500">
+                  <span className="block text-ink-muted">
                     Có {taskAttentionCount.overdue} công việc đã quá hạn.
                   </span>
                 )}
@@ -316,7 +316,7 @@ export function NextActionBanner({
 
             {/* Non-leader role clarity */}
             {!isLeader && isRevisionRequired && (
-              <p className="text-xs text-slate-500 italic">
+              <p className="text-xs text-ink-muted italic">
                 * Bạn đang ở vai trò Thành viên (Member). Quyền nộp bản sửa đổi chính thức thuộc về Trưởng nhóm.
               </p>
             )}
@@ -324,8 +324,8 @@ export function NextActionBanner({
         </div>
 
         {/* Footer Actions */}
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/80 pt-3">
-          <div className="text-xs text-slate-600">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-hairline/80 pt-3">
+          <div className="text-xs text-ink-muted">
             {timeline?.projectMode === 'INTERDISCIPLINARY'
               ? 'Đồ án Liên ngành · Cần sự phối hợp đồng bộ giữa các chuyên ngành.'
               : 'Đồ án Đơn ngành · Theo dõi tiến độ theo chuẩn quy chế học vụ.'}
@@ -334,7 +334,7 @@ export function NextActionBanner({
           <div className="flex flex-wrap items-center gap-2.5">
             <Link
               to="/project/timeline"
-              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-bold text-ink-soft shadow-2xs hover:bg-canvas focus:outline-hidden focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
             >
               <span>Xem Dòng thời gian Cổng</span>
               <span className="material-symbols-outlined text-base" aria-hidden="true">
@@ -346,7 +346,7 @@ export function NextActionBanner({
               <button
                 type="button"
                 onClick={() => setSubmissionReq(rejectedReqs[0])}
-                className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-rose-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-rose-700 focus:outline-hidden focus:ring-2 focus:ring-rose-500 focus:ring-offset-2"
+                className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-danger-strong px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-danger-strong-hover focus:outline-hidden focus:ring-2 focus:ring-danger-strong focus:ring-offset-2"
               >
                 <span className="material-symbols-outlined text-base" aria-hidden="true">
                   upload_file
@@ -360,7 +360,7 @@ export function NextActionBanner({
                 tabIndex={0}
                 role="note"
                 aria-label="Thông báo phân quyền"
-                className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 border border-slate-200"
+                className="rounded-lg bg-canvas px-3 py-2 text-xs font-semibold text-ink-muted border border-hairline"
               >
                 Trưởng nhóm nộp bản sửa đổi
               </div>

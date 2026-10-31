@@ -7,12 +7,12 @@ export interface MultidisciplinaryTagProps {
 
 export function MultidisciplinaryTag({ major, className = '' }: MultidisciplinaryTagProps) {
   const styles: Record<MajorType, string> = {
-    SE: 'bg-blue-50 text-blue-700 border-blue-200',
-    'UI/UX': 'bg-purple-50 text-purple-700 border-purple-200',
-    UIUX: 'bg-purple-50 text-purple-700 border-purple-200',
-    AI: 'bg-amber-50 text-amber-800 border-amber-200',
-    QA: 'bg-teal-50 text-teal-700 border-teal-200',
-    IS: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    SE: 'bg-[var(--color-tag-se-bg)] text-[var(--color-tag-se)] border-[var(--color-tag-se)]/20',
+    'UI/UX': 'bg-[var(--color-tag-uiux-bg)] text-[var(--color-tag-uiux)] border-[var(--color-tag-uiux)]/20',
+    UIUX: 'bg-[var(--color-tag-uiux-bg)] text-[var(--color-tag-uiux)] border-[var(--color-tag-uiux)]/20',
+    AI: 'bg-[var(--color-tag-ai-bg)] text-[var(--color-tag-ai)] border-[var(--color-tag-ai)]/20',
+    QA: 'bg-[var(--color-tag-qa-bg)] text-[var(--color-tag-qa)] border-[var(--color-tag-qa)]/20',
+    IS: 'bg-[var(--color-tag-is-bg)] text-[var(--color-tag-is)] border-[var(--color-tag-is)]/20',
     ALL: 'bg-slate-100 text-slate-700 border-hairline',
   }
 

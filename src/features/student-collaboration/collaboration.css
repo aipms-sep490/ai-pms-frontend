@@ -1,5 +1,5 @@
 .collab { --collab-accent: var(--color-primary); display: grid; gap: 22px; }
-.collab-intro { display: flex; gap: 18px; align-items: flex-start; padding: 24px; border: 1px solid var(--color-hairline); border-radius: 16px; background: radial-gradient(ellipse at 100% 0, #dfeee4 0, transparent 65%), var(--color-primary-subtle); }
+.collab-intro { display: flex; gap: 18px; align-items: flex-start; padding: 24px; border: 1px solid var(--color-hairline); border-radius: 16px; background: radial-gradient(ellipse at 100% 0, var(--color-hairline) 0, transparent 65%), var(--color-primary-subtle); }
 .collab-intro-icon { display: grid; place-items: center; width: 46px; height: 46px; flex: 0 0 46px; background: var(--color-card); color: var(--color-primary); border: 1px solid var(--color-hairline); border-radius: 13px; }
 .collab-intro h2 { margin: 0 0 5px; font: 650 18px/1.4 var(--font-heading); color: var(--color-ink); }
 .collab-intro p { margin: 0; max-width: 75ch; font-size: 14px; line-height: 1.7; color: var(--color-ink-muted); }

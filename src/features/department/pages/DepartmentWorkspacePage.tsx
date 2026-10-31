@@ -59,11 +59,11 @@ export function DepartmentWorkspacePage() {
     {/* =========================================================================
         TIER 1: HÀNG ĐỢI TÁC VỤ CẦN XỬ LÝ NGAY (URGENT ACTION QUEUE)
         ========================================================================= */}
-    <section id="action-queue" aria-labelledby="urgent-actions-heading" className="space-y-4 rounded-2xl border border-amber-200/70 bg-gradient-to-b from-amber-50/40 to-transparent p-5 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-amber-200/50 pb-3">
+    <section id="action-queue" aria-labelledby="urgent-actions-heading" className="space-y-4 rounded-2xl border border-status-warning-border/70 bg-gradient-to-b from-status-warning-bg/40 to-transparent p-5 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-status-warning-border/50 pb-3">
         <div>
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900 uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-status-warning-bg px-2 py-0.5 text-xs font-bold text-status-warning-text uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-warning-strong animate-pulse" />
             Khu vực 1: Tác vụ khẩn cấp
           </span>
           <h2 id="urgent-actions-heading" className="mt-1 font-heading text-xl font-bold text-ink">
@@ -97,7 +97,7 @@ export function DepartmentWorkspacePage() {
                       <p className="text-xs font-mono font-bold text-primary">{project.code}</p>
                       <h4 className="mt-1 break-words font-semibold text-ink text-sm">{project.title}</h4>
                     </div>
-                    <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-ink-muted">
+                    <span className="shrink-0 rounded-full bg-canvas px-2 py-0.5 text-xs font-semibold text-ink-muted">
                       {projectStatusLabel(project.status)}
                     </span>
                   </div>
@@ -120,11 +120,11 @@ export function DepartmentWorkspacePage() {
         <div id="attention" className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-ink flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px] text-amber-700" aria-hidden="true">warning</span>
+              <span className="material-symbols-outlined text-[18px] text-status-warning-text" aria-hidden="true">warning</span>
               Đồ án có tín hiệu cần chú ý
             </h3>
             {attention.length > 0 && (
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800">
+              <span className="rounded-full border border-status-warning-border bg-status-warning-bg px-2 py-0.5 text-xs font-semibold text-status-warning-text">
                 {attention.length} đồ án
               </span>
             )}
@@ -134,7 +134,7 @@ export function DepartmentWorkspacePage() {
             {attention.length ? (
               <div className="space-y-2.5">
                 {attention.map((project) => (
-                  <article key={project.id} className="rounded-xl border border-hairline bg-card p-4 transition-all hover:border-amber-300 hover:shadow-2xs">
+                  <article key={project.id} className="rounded-xl border border-hairline bg-card p-4 transition-all hover:border-warning-strong hover:shadow-2xs">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h4 className="truncate font-semibold text-ink text-sm">{project.code} · {project.title}</h4>
@@ -155,8 +155,8 @@ export function DepartmentWorkspacePage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs font-medium text-emerald-800 flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px] text-emerald-600" aria-hidden="true">check_circle</span>
+              <div className="rounded-xl border border-status-success-border bg-status-success-bg p-4 text-xs font-medium text-status-success-text flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
                 Không có tín hiệu cần chú ý trong trang danh mục này.
               </div>
             )}
@@ -182,7 +182,7 @@ export function DepartmentWorkspacePage() {
         ========================================================================= */}
     <section id="monitoring" aria-labelledby="monitoring-heading" className="space-y-4">
       <div>
-        <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-900 uppercase tracking-wider">
+        <span className="inline-flex items-center gap-1.5 rounded-md bg-status-info-bg px-2 py-0.5 text-xs font-bold text-status-info-text uppercase tracking-wider">
           Khu vực 2: Vận hành & Giám sát
         </span>
         <h2 id="monitoring-heading" className="mt-1 font-heading text-xl font-bold text-ink">
@@ -278,7 +278,7 @@ export function DepartmentWorkspacePage() {
     <section id="configuration" aria-labelledby="academic-configuration-heading" className="space-y-4 pt-2">
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-6">
         <div>
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-purple-50 px-2 py-0.5 text-xs font-bold text-purple-900 uppercase tracking-wider">
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-tag-ai-bg px-2 py-0.5 text-xs font-bold text-tag-ai uppercase tracking-wider">
             Khu vực 3: Cấu hình & Quy chế
           </span>
           <h2 id="academic-configuration-heading" className="mt-1 font-heading text-xl font-bold text-ink">
@@ -322,10 +322,10 @@ export function DepartmentWorkspacePage() {
                       <span
                         className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
                           period.isOpen
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            ? 'border-status-success-border bg-status-success-bg text-status-success-text'
                             : period.status === 'ACTIVE'
                             ? 'border-hairline bg-canvas text-ink-muted'
-                            : 'border-blue-200 bg-blue-50 text-blue-700'
+                            : 'border-status-info-border bg-status-info-bg text-status-info-text'
                         }`}
                       >
                         {period.isOpen ? 'Đang mở' : period.status === 'ACTIVE' ? 'Ngoài thời gian mở' : displayLabel(period.status)}
@@ -356,28 +356,28 @@ export function DepartmentWorkspacePage() {
             Thiết lập chính sách
           </h3>
           <div className="rounded-xl border border-hairline bg-card p-4 flex flex-col gap-2">
-            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-slate-50 transition-colors" to="/academic/review-gates">
+            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-canvas transition-colors" to="/academic/review-gates">
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">rule_settings</span>
                 Chính sách Review Gates
               </span>
               <span className="material-symbols-outlined text-[16px] text-slate-400" aria-hidden="true">arrow_forward</span>
             </Link>
-            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-slate-50 transition-colors" to="/academic">
+            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-canvas transition-colors" to="/academic">
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">account_balance</span>
                 Cấu trúc đào tạo
               </span>
               <span className="material-symbols-outlined text-[16px] text-slate-400" aria-hidden="true">arrow_forward</span>
             </Link>
-            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-slate-50 transition-colors" to="/academic/governance">
+            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-canvas transition-colors" to="/academic/governance">
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">date_range</span>
                 Học kỳ và chính sách
               </span>
               <span className="material-symbols-outlined text-[16px] text-slate-400" aria-hidden="true">arrow_forward</span>
             </Link>
-            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-slate-50 transition-colors" to="/academic/rubrics">
+            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-canvas transition-colors" to="/academic/rubrics">
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">grading</span>
                 Bộ tiêu chí Rubric

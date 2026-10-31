@@ -14,10 +14,10 @@ interface ProjectProgressMatrixProps {
 }
 
 const statusPillClasses: Record<GateStatus, string> = {
-  PASSED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  REVISION_REQUIRED: 'bg-rose-50 text-rose-700 border-rose-200 font-bold',
-  IN_REVIEW: 'bg-blue-50 text-blue-700 border-blue-200',
-  PLANNED: 'bg-amber-50 text-amber-700 border-amber-200',
+  PASSED: 'bg-status-success-bg text-status-success-text border-status-success-border',
+  REVISION_REQUIRED: 'bg-status-error-bg text-danger-text border-status-error-border font-bold',
+  IN_REVIEW: 'bg-status-info-bg text-status-info-text border-status-info-border',
+  PLANNED: 'bg-status-warning-bg text-status-warning-text border-status-warning-border',
   LOCKED: 'bg-slate-100 text-slate-400 border-slate-200',
 }
 
@@ -57,15 +57,15 @@ export function ProjectProgressMatrix({
           <span className="text-xs font-semibold text-slate-500">Tổng số đồ án</span>
           <p className="mt-1 text-2xl font-black text-slate-900">{projects.length}</p>
         </div>
-        <div className="rounded-xl border border-rose-200 bg-rose-50/50 p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-rose-700">Cần chỉnh sửa Review</span>
-          <p className="mt-1 text-2xl font-black text-rose-700">
+        <div className="rounded-xl border border-status-error-border bg-status-error-bg/50 p-4 shadow-2xs">
+          <span className="text-xs font-semibold text-danger-text">Cần chỉnh sửa Review</span>
+          <p className="mt-1 text-2xl font-black text-danger-text">
             {projects.filter(p => Object.values(p.gateStatuses).includes('REVISION_REQUIRED')).length}
           </p>
         </div>
-        <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-blue-700">Đang thẩm định</span>
-          <p className="mt-1 text-2xl font-black text-blue-700">
+        <div className="rounded-xl border border-status-info-border bg-status-info-bg p-4 shadow-2xs">
+          <span className="text-xs font-semibold text-status-info-text">Đang thẩm định</span>
+          <p className="mt-1 text-2xl font-black text-status-info-text">
             {projects.filter(p => Object.values(p.gateStatuses).includes('IN_REVIEW')).length}
           </p>
         </div>
@@ -232,10 +232,10 @@ export function ProjectProgressMatrix({
 
               {/* Blockers Explanation */}
               {inspectingProject.blockingReasons && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3.5 text-amber-900">
+                <div className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3.5 text-status-warning-text">
                   <strong className="block font-bold">Lý do chưa đạt / Kiến nghị của Reviewer:</strong>
                   {Object.entries(inspectingProject.blockingReasons).map(([code, reasons]) => (
-                    <ul key={code} className="mt-1 list-disc pl-4 space-y-1 text-xs text-amber-800">
+                    <ul key={code} className="mt-1 list-disc pl-4 space-y-1 text-xs text-status-warning-text">
                       {reasons.map((r, i) => (
                         <li key={i}>{r}</li>
                       ))}
@@ -246,16 +246,16 @@ export function ProjectProgressMatrix({
 
               {/* Reviewer Action Simulation (Mock/Dev) or Read-Only Governance Notice */}
               {env.reviewGatesMockEnabled ? (
-                <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3.5 space-y-3">
+                <div className="rounded-lg border border-status-warning-border bg-status-warning-bg/50 p-3.5 space-y-3">
                   <div className="flex items-center gap-1.5">
-                    <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
+                    <span className="inline-flex items-center rounded-md bg-status-warning-bg px-2 py-0.5 text-xs font-bold text-status-warning-text">
                       Mô phỏng Sandbox
                     </span>
                     <strong className="block text-xs font-bold text-slate-800">
                       Ghi nhận kết luận thẩm định (Reviewer Scoped Decision)
                     </strong>
                   </div>
-                  <p className="text-xs text-amber-800">
+                  <p className="text-xs text-status-warning-text">
                     Chỉ dùng trong môi trường thử nghiệm Frontend (Sandbox / Mock). Không có giá trị phê duyệt học vụ chính thức.
                   </p>
 
@@ -289,11 +289,11 @@ export function ProjectProgressMatrix({
                   </div>
 
                   {decisionError && (
-                    <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-700">
+                    <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs text-danger-text">
                       <strong className="block font-bold">Lỗi cập nhật quyết định:</strong>
                       <span>{decisionError}</span>
                       {decisionError.includes('409') && (
-                        <p className="mt-1 text-xs text-rose-600 italic">
+                        <p className="mt-1 text-xs text-danger-text italic">
                           Dữ liệu đã có thay đổi mới từ người dùng khác. Vui lòng kiểm tra lại trước khi gửi.
                         </p>
                       )}

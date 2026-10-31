@@ -44,9 +44,9 @@ export function StudentQualificationCard({ onSubmitted }: { onSubmitted?: () => 
         </button>
       </div>
       {loading ? <p className="mt-4 text-sm text-ink-muted">Đang tải trạng thái xác minh…</p> : null}
-      {error ? <p role="alert" className="mt-4 rounded-lg bg-rose-50 p-3 text-xs text-rose-700">{error}</p> : null}
+      {error ? <p role="alert" className="mt-4 rounded-lg bg-status-error-bg p-3 text-xs text-danger-text">{error}</p> : null}
       {!loading && !error && !qualification ? (
-        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="mt-4 rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text">
           Chưa có chứng nhận. Bạn có thể nộp hồ sơ bên dưới để bộ môn xác minh.
         </div>
       ) : null}

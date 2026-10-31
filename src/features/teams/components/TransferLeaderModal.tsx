@@ -54,11 +54,11 @@ export function TransferLeaderModal({
     <Modal open={isOpen} title={requiresMentorApproval ? 'Đề nghị thay đổi trưởng nhóm' : 'Bàn giao quyền trưởng nhóm'} description={requiresMentorApproval ? 'Yêu cầu cần giảng viên hướng dẫn phê duyệt trước khi có hiệu lực.' : 'Chọn thành viên kế nhiệm điều phối nhóm đồ án.'} busy={isLoading} onClose={onClose}>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="bg-amber-50 border border-amber-200 rounded-md p-3 flex items-start gap-2.5">
-            <span className="material-symbols-outlined text-amber-700 text-[18px] mt-0.5 shrink-0">
+          <div className="bg-status-warning-bg border border-status-warning-border rounded-md p-3 flex items-start gap-2.5">
+            <span className="material-symbols-outlined text-status-warning-text text-[18px] mt-0.5 shrink-0">
               warning
             </span>
-            <p className="text-xs text-amber-900 leading-relaxed">
+            <p className="text-xs text-status-warning-text leading-relaxed">
               {requiresMentorApproval
                 ? 'Trưởng nhóm hiện tại vẫn giữ quyền cho tới khi ' + (mentorName || 'Mentor') + ' phê duyệt yêu cầu. Hệ thống sẽ xác minh lại tư cách của Trưởng nhóm mới tại thời điểm phê duyệt.'
                 : 'Sau khi chuyển quyền, bạn sẽ trở thành thành viên thông thường và không thể tự thu hồi lại quyền Trưởng nhóm.'}
@@ -74,7 +74,7 @@ export function TransferLeaderModal({
                 <label
                   key={m.userId}
                   className={`flex items-center justify-between p-3 cursor-pointer hover:bg-canvas transition-colors ${
-                    selectedUserId === m.userId ? 'bg-blue-50/40' : ''
+                    selectedUserId === m.userId ? 'bg-primary-subtle' : ''
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
@@ -85,7 +85,7 @@ export function TransferLeaderModal({
                       value={m.userId}
                       checked={selectedUserId === m.userId}
                       onChange={() => setSelectedUserId(m.userId)}
-                      className="text-blue-600 focus:ring-blue-500"
+                      className="text-primary focus:ring-primary"
                     />
                     <div>
                       <p className="text-xs font-semibold text-ink">{m.fullName}</p>
@@ -109,7 +109,7 @@ export function TransferLeaderModal({
           )}
 
           {error && (
-            <div className="bg-rose-50 border border-rose-200 rounded-lg p-2.5 text-xs text-rose-700 font-medium">
+            <div className="bg-status-error-bg border border-status-error-border rounded-lg p-2.5 text-xs text-danger-text font-medium">
               {error}
             </div>
           )}

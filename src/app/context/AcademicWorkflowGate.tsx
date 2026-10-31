@@ -38,7 +38,7 @@ function ContextMessage({ title, detail, onRetry }: { title: string; detail: str
         <h1 className="text-base font-semibold text-ink-soft">{title}</h1>
         <p className="mt-2 text-sm text-ink-muted">{detail}</p>
         {onRetry ? (
-          <button type="button" className="mt-4 text-blue-700 underline" onClick={() => void onRetry()}>
+          <button type="button" className="mt-4 text-primary underline" onClick={() => void onRetry()}>
             Thử lại
           </button>
         ) : null}

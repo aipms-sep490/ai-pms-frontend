@@ -2,7 +2,7 @@ import { buttonClassName } from './button-styles'
 import './interaction-polish.css'
 import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react'
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonBaseProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   ref?: Ref<HTMLButtonElement>
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'
   size?: 'sm' | 'md' | 'lg'
@@ -10,6 +10,15 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   shortcut?: string
   children?: ReactNode
 }
+
+/**
+ * `icon` renders aria-hidden, so a button with no children has no accessible
+ * name at all. The union makes that unrepresentable: omit `children` and
+ * `aria-label` becomes required, which TypeScript checks at every call site.
+ */
+export type ButtonProps =
+  | (ButtonBaseProps & { children: ReactNode })
+  | (ButtonBaseProps & { children?: undefined; 'aria-label': string })
 
 export function Button({
   children,

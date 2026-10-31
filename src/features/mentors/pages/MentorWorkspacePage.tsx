@@ -60,7 +60,7 @@ export function MentorWorkspacePage() {
     {!loading && !error && !items.length && <section className="workspace-surface p-5 text-sm text-ink-soft"><h2 className="font-semibold text-ink">Chưa có phân công hướng dẫn chuyên ngành</h2><p className="mt-1 leading-6">Bạn sẽ thấy đồ án ở đây khi được phân công hướng dẫn chuyên ngành.</p></section>}
     {!loading && items.length ? (
       <>
-        <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-xs text-blue-900 shadow-2xs">
+        <div className="rounded-xl border border-status-info-border bg-status-info-bg p-4 text-xs text-status-info-text shadow-2xs">
           <strong>Thông tin điều phối Đồ án Liên ngành:</strong> Giảng viên hướng dẫn chuyên ngành (Discipline Mentor) theo dõi, đôn đốc và ký duyệt các nội dung công việc trong phạm vi chuyên môn được phân công. Tiến độ chung và đánh giá toàn diện do Giảng viên hướng dẫn chính (Primary Supervisor) và Hội đồng thẩm định quản trị.
         </div>
         <ul className="grid gap-4 md:grid-cols-2">
@@ -74,7 +74,7 @@ export function MentorWorkspacePage() {
                     Phân công: {majorName}
                   </p>
                   {isInterdisciplinary && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-800 border border-blue-200">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-status-info-bg px-2.5 py-0.5 text-xs font-bold text-status-info-text border border-status-info-border">
                       <span className="material-symbols-outlined text-sm" aria-hidden="true">hub</span>
                       Liên ngành
                     </span>

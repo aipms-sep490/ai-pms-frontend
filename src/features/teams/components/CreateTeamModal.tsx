@@ -62,7 +62,7 @@ export function CreateTeamModal({
               onChange={(e) => setCode(e.target.value)}
               placeholder="Ví dụ: SE28 hoặc AI05"
               required
-              className="w-full px-3.5 py-2.5 text-sm border border-line-strong rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-card uppercase font-mono"
+              className="w-full px-3.5 py-2.5 text-sm border border-line-strong rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary bg-card uppercase font-mono"
             />
             <p className="text-xs text-ink-muted mt-1">
               Mã định danh nhóm trong học kỳ (chữ và số viết hoa).
@@ -81,7 +81,7 @@ export function CreateTeamModal({
               onChange={(e) => setName(e.target.value)}
               placeholder="Ví dụ: Nhóm SE28 - Capstone đồ án"
               required
-              className="w-full px-3.5 py-2.5 text-sm border border-line-strong rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-card"
+              className="w-full px-3.5 py-2.5 text-sm border border-line-strong rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary bg-card"
             />
           </div>
 
@@ -96,12 +96,12 @@ export function CreateTeamModal({
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="Định hướng nghiên cứu, mục tiêu đề tài của nhóm..."
-              className="w-full px-3.5 py-2.5 text-sm border border-line-strong rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-card"
+              className="w-full px-3.5 py-2.5 text-sm border border-line-strong rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary bg-card"
             />
           </div>
 
           {error && (
-            <div className="bg-rose-50 border border-rose-200 rounded-lg p-2.5 flex items-center gap-2 text-xs text-rose-700 font-medium">
+            <div className="bg-status-error-bg border border-status-error-border rounded-lg p-2.5 flex items-center gap-2 text-xs text-status-error-text font-medium">
               <span className="material-symbols-outlined text-[18px]">error</span>
               {error}
             </div>

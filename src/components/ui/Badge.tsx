@@ -1,7 +1,7 @@
-﻿import type { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 export interface BadgeProps {
-  variant?: 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'se' | 'uiux' | 'ai' | 'qa'
+  variant?: 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'se' | 'uiux' | 'ai' | 'qa' | 'is'
   size?: 'sm' | 'md'
   dot?: boolean
   pulse?: boolean
@@ -27,10 +27,11 @@ export function Badge({
     error: 'bg-status-error-bg text-status-error-text border-status-error-border',
     info: 'bg-primary-subtle text-primary border-primary/20',
     neutral: 'bg-slate-100 text-slate-700 border-hairline',
-    se: 'bg-blue-50 text-blue-700 border-blue-200',
-    uiux: 'bg-purple-50 text-purple-700 border-purple-200',
-    ai: 'bg-amber-50 text-amber-800 border-amber-200',
-    qa: 'bg-teal-50 text-teal-800 border-teal-200',
+    se: 'bg-[var(--color-tag-se-bg)] text-[var(--color-tag-se)] border-[var(--color-tag-se)]/20',
+    uiux: 'bg-[var(--color-tag-uiux-bg)] text-[var(--color-tag-uiux)] border-[var(--color-tag-uiux)]/20',
+    ai: 'bg-[var(--color-tag-ai-bg)] text-[var(--color-tag-ai)] border-[var(--color-tag-ai)]/20',
+    qa: 'bg-[var(--color-tag-qa-bg)] text-[var(--color-tag-qa)] border-[var(--color-tag-qa)]/20',
+    is: 'bg-[var(--color-tag-is-bg)] text-[var(--color-tag-is)] border-[var(--color-tag-is)]/20',
   }[variant]
 
   const dotColor = {
@@ -39,10 +40,11 @@ export function Badge({
     error: 'bg-academic-coral',
     info: 'bg-primary',
     neutral: 'bg-slate-400',
-    se: 'bg-blue-600',
-    uiux: 'bg-purple-600',
-    ai: 'bg-amber-600',
-    qa: 'bg-teal-600',
+    se: 'bg-[var(--color-tag-se)]',
+    uiux: 'bg-[var(--color-tag-uiux)]',
+    ai: 'bg-[var(--color-tag-ai)]',
+    qa: 'bg-[var(--color-tag-qa)]',
+    is: 'bg-[var(--color-tag-is)]',
   }[variant]
 
   return (

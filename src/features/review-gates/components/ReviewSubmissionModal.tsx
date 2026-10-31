@@ -153,28 +153,28 @@ export function ReviewSubmissionModal({
           </div>
         )}
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-xs text-slate-700 space-y-1.5">
+        <div className="rounded-xl border border-hairline bg-canvas p-3.5 text-xs text-ink-soft space-y-1.5">
           <div className="flex justify-between">
-            <span className="font-semibold text-slate-600">Yêu cầu:</span>
-            <span className="font-bold text-slate-900">{requirement.title}</span>
+            <span className="font-semibold text-ink-muted">Yêu cầu:</span>
+            <span className="font-bold text-ink">{requirement.title}</span>
           </div>
           <div className="flex justify-between">
-            <span className="font-semibold text-slate-600">Loại minh chứng:</span>
-            <span className="font-medium text-slate-800">{requirementTypeLabel(requirement.type)} · {displayLabel(requirement.scope)}</span>
+            <span className="font-semibold text-ink-muted">Loại minh chứng:</span>
+            <span className="font-medium text-ink">{requirementTypeLabel(requirement.type)} · {displayLabel(requirement.scope)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="font-semibold text-slate-600">Phiên bản sẽ tạo:</span>
+            <span className="font-semibold text-ink-muted">Phiên bản sẽ tạo:</span>
             <span className="font-bold text-primary">v{nextVer} (Bản mới)</span>
           </div>
           {requirement.reviewerFeedback && (
-            <div className="mt-2 rounded-md border border-rose-200 bg-rose-50 p-2 text-rose-800">
+            <div className="mt-2 rounded-md border border-status-error-border bg-status-error-bg p-2 text-danger-text">
               <strong>Phản hồi của Reviewer:</strong> {requirement.reviewerFeedback}
             </div>
           )}
         </div>
 
         {/* Tab switcher: File upload vs Link */}
-        <div className="flex border-b border-slate-200 text-xs font-semibold">
+        <div className="flex border-b border-hairline text-xs font-semibold">
           {!externalLinkRequired && <button
             type="button"
             onClick={() => setSubmissionMode('file')}
@@ -182,7 +182,7 @@ export function ReviewSubmissionModal({
             className={`flex min-h-11 items-center gap-1.5 pb-2.5 px-3 border-b-2 transition-colors cursor-pointer ${
               submissionMode === 'file'
                 ? 'border-primary text-primary font-bold'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                : 'border-transparent text-ink-muted hover:text-ink'
             }`}
           >
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">upload_file</span>
@@ -195,7 +195,7 @@ export function ReviewSubmissionModal({
             className={`flex min-h-11 items-center gap-1.5 pb-2.5 px-3 border-b-2 transition-colors cursor-pointer ${
               submissionMode === 'link'
                 ? 'border-primary text-primary font-bold'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                : 'border-transparent text-ink-muted hover:text-ink'
             }`}
           >
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">link</span>
@@ -232,7 +232,7 @@ export function ReviewSubmissionModal({
                 className={`relative cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-all ${
                   isDragging
                     ? 'border-primary bg-primary/5 scale-[1.01]'
-                    : 'border-slate-300 hover:border-primary/60 hover:bg-slate-50'
+                    : 'border-hairline hover:border-primary/60 hover:bg-canvas'
                 } ${!isPermitted || busy ? 'cursor-not-allowed opacity-60' : ''}`}
               >
                 <input
@@ -250,26 +250,26 @@ export function ReviewSubmissionModal({
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-subtle text-primary mb-3">
                   <span className="material-symbols-outlined text-[28px]" aria-hidden="true">cloud_upload</span>
                 </div>
-                <p className="text-xs font-semibold text-slate-800">
+                <p className="text-xs font-semibold text-ink">
                   Kéo thả tệp minh chứng vào đây, hoặc <span className="text-primary underline">chọn từ thiết bị</span>
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-ink-muted">
                   Hỗ trợ định dạng PDF, DOCX, ZIP, PNG, JPG (Tối đa 20MB theo quy chuẩn hệ thống)
                 </p>
               </div>
             ) : (
               <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3.5">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white border border-primary/20 text-primary shadow-xs">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-card border border-primary/20 text-primary shadow-xs">
                     <span className="material-symbols-outlined text-[22px]" aria-hidden="true">{getFileIcon(selectedFile.name)}</span>
                   </div>
                   <div className="min-w-0">
-                    <strong className="block text-xs font-semibold text-slate-900 truncate" title={selectedFile.name}>
+                    <strong className="block text-xs font-semibold text-ink truncate" title={selectedFile.name}>
                       {selectedFile.name}
                     </strong>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-slate-500">{formatFileSize(selectedFile.size)}</span>
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200">
+                      <span className="text-xs text-ink-muted">{formatFileSize(selectedFile.size)}</span>
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-status-success-text bg-status-success-bg px-1.5 py-0.5 rounded-full border border-status-success-border">
                         <span className="material-symbols-outlined text-[12px]" aria-hidden="true">check</span> Sẵn sàng tải lên
                       </span>
                     </div>
@@ -289,7 +289,7 @@ export function ReviewSubmissionModal({
                     disabled={!isPermitted || busy}
                     onClick={() => { setSelectedFile(null); setArtifactName('') }}
                     aria-label="Hủy chọn tệp"
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-colors cursor-pointer"
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 hover:text-ink-soft transition-colors cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-[16px]" aria-hidden="true">close</span>
                   </button>
@@ -298,8 +298,8 @@ export function ReviewSubmissionModal({
             )}
 
             <div>
-              <label htmlFor="evidence-filename" className="block text-xs font-bold text-slate-700">
-                Tên hiển thị tài liệu minh chứng <span className="text-rose-600">*</span>
+              <label htmlFor="evidence-filename" className="block text-xs font-bold text-ink-soft">
+                Tên hiển thị tài liệu minh chứng <span className="text-danger-text">*</span>
               </label>
               <input
                 id="evidence-filename"
@@ -310,17 +310,17 @@ export function ReviewSubmissionModal({
                 value={artifactName}
                 onChange={(e) => setArtifactName(e.target.value)}
                 placeholder="Ví dụ: SDD_v3.pdf hoặc https://github.com/.../pull/42"
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-primary focus:outline-hidden disabled:bg-slate-100"
+                className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-xs text-ink focus:border-primary focus:outline-hidden disabled:bg-canvas"
               />
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-ink-muted">
                 {env.reviewGatesMockEnabled ? 'Mô phỏng: có thể nhập tên minh chứng để thử giao diện.' : 'Chọn tệp ở trên. Tên file tải lên được lưu theo tệp đã chọn.'}
               </p>
             </div>
           </div>
         ) : (
           <div>
-            <label htmlFor="external-evidence-url" className="block text-xs font-bold text-slate-700">
-              Liên kết minh chứng ngoài (URL / Git PR / Google Drive) <span className="text-rose-600">*</span>
+            <label htmlFor="external-evidence-url" className="block text-xs font-bold text-ink-soft">
+              Liên kết minh chứng ngoài (URL / Git PR / Google Drive) <span className="text-danger-text">*</span>
             </label>
             <input
               id="external-evidence-url"
@@ -333,18 +333,18 @@ export function ReviewSubmissionModal({
               value={artifactName}
               onChange={(e) => setArtifactName(e.target.value)}
               placeholder="Ví dụ: SDD_v3.pdf hoặc https://github.com/.../pull/42"
-              className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-primary focus-visible:ring-2 focus-visible:ring-primary disabled:bg-slate-100"
+              className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-3 py-2 text-xs text-ink focus:border-primary focus-visible:ring-2 focus-visible:ring-primary disabled:bg-canvas"
             />
-            {linkError && <p id="external-evidence-url-error" role="alert" className="mt-1 text-xs text-rose-700">{linkError}</p>}
-            <p id="external-evidence-url-help" className="mt-1 text-xs text-slate-500">
+            {linkError && <p id="external-evidence-url-error" role="alert" className="mt-1 text-xs text-danger-text">{linkError}</p>}
+            <p id="external-evidence-url-help" className="mt-1 text-xs text-ink-muted">
               Đảm bảo đường dẫn ở chế độ công khai hoặc đã cấp quyền truy cập cho Giảng viên / Hội đồng thẩm định.
             </p>
           </div>
         )}
 
         <div>
-          <label htmlFor="evidence-notes" className="block text-xs font-bold text-slate-700">
-            Giải trình nội dung thay đổi / Ghi chú <span className="text-rose-600">*</span>
+          <label htmlFor="evidence-notes" className="block text-xs font-bold text-ink-soft">
+            Giải trình nội dung thay đổi / Ghi chú <span className="text-danger-text">*</span>
           </label>
           <textarea
             id="evidence-notes"
@@ -355,15 +355,15 @@ export function ReviewSubmissionModal({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Mô tả cụ thể những điểm đã chỉnh sửa theo phản hồi của reviewer..."
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-primary focus:outline-hidden disabled:bg-slate-100"
+            className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-xs text-ink focus:border-primary focus:outline-hidden disabled:bg-canvas"
           />
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-ink-muted">
             Nêu rõ các nội dung hoặc tài liệu đã cập nhật để Hội đồng dễ dàng đối chiếu và thẩm định lại.
           </p>
         </div>
 
         {error && (
-          <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs font-semibold text-rose-700">
+          <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs font-semibold text-danger-text">
             {error}
             {conflict && onReload && <button type="button" disabled={busy} className="mt-2 block text-xs underline"
               onClick={async () => {
