@@ -1,73 +1,64 @@
-# AI-PMS Design System Master
+# AI-PMS Design System Master — Academic Command Center Canonical Specification
 
 ## Scope and precedence
 
-This is the source of truth for AI-PMS workspace UI. Before changing a page, read this file and then check `design-system/ai-pms/pages/<page-name>.md`; a page override takes precedence when present.
+This is the source of truth for the AI-PMS Academic Command Center workspace UI. Before changing a page, consult this document and relevant sub-page specifications.
 
-This system is for the authenticated academic-management product, not a marketing site. Preserve backend authority: colors communicate state and urgency, never grant permissions or imply a state transition.
+This design system governs the authenticated academic-management command center. Backend authority is preserved: visual indicators communicate authoritative state and urgency without granting unverified permissions or inventing client-side state transitions.
 
 ## Product model
 
-AI-PMS coordinates the student project lifecycle, supervisor workload, academic review, milestones, reporting, deliverables, meetings, and human evaluation. Use a dense, calm, evidence-first dashboard hierarchy:
+AI-PMS coordinates the student project lifecycle, supervisor workload, academic review, milestones, reporting, deliverables, meetings, and defense evaluations. The UI employs a dense, calm, evidence-first dashboard hierarchy:
 
 1. Academic context and current project state.
-2. Work that needs a human decision or attention.
-3. Authoritative data and next valid navigation.
+2. High-priority items requiring human decisions or attention.
+3. Authoritative data and valid next actions.
 
-## Semantic palette
+## Semantic Palette (Academic Command Center)
 
-| Role | Token | Value | Use |
+| Role | Token | Value | Contrast & Use |
 | --- | --- | --- | --- |
-| Institutional primary | `primary` | `#0F5B4E` | Navigation, primary actions, active focus, trusted context |
-| Primary hover | `primary-hover` | `#0A493F` | Hover and pressed primary controls |
-| Primary subtle | `primary-subtle` | `#EDF3F0` | Headers, selected context, low-emphasis primary surfaces |
-| Ink | `ink` | `#14201D` | Primary text and headings |
-| Ink soft | `ink-soft` | `#3D4A46` | Secondary emphasis text |
-| Ink muted | `ink-muted` | `#596863` | Supporting text, metadata, captions |
-| Line | `line` | `#E5ECE8` | Soft dividers inside cards |
-| Line strong | `line-strong` | `#D7E0DC` | Card and section borders |
-| Canvas | `canvas` | `#F8FAFC` | Application background |
-| Card | `card` | `#FFFFFF` | Readable data surfaces |
-| Hairline | `hairline` | `#E2E8F0` | Input boundaries and table rules |
-| Success | `status-success-*` | emerald family | Verified, completed, no attention required |
-| Warning | `status-warning-*` | amber family | Due, blocked, pending human attention |
-| Error | `status-error-*` | red family | Failed loading, validation, forbidden/error feedback |
+| Institutional primary | `primary` | `#087D77` | 5.12:1 on white. Primary actions, active focus, trusted context |
+| Primary hover | `primary-hover` | `#06665F` | 6.74:1 on white. Hover and pressed primary controls |
+| Primary subtle | `primary-subtle` | `#DDF7F4` | Selected context backgrounds, low-emphasis primary surfaces |
+| Brand navy | `brand-navy` | `#0F2747` | 13.5:1 on white. Section headers, app icon, authority surfaces |
+| Brand teal | `brand-teal` | `#12B3A8` | Active accent lines, decorative brand geometry |
+| Accent amber | `accent-amber` | `#F6B94C` | Visual accent only (1.76:1 on white). Never used as standalone text. Paired with warning text |
+| Status warning text | `status-warning-text` | `#B45309` | 4.84:1 on `#FFFBEB`. Warning labels, overdue notices, pending badges |
+| Danger | `danger` | `#E35D6A` | Destructive borders, error icons, critical highlight |
+| Danger text | `danger-text` | `#B42318` | 6.57:1 on white, 6.01:1 on `#FEF2F2`. Error messages, danger button text |
+| Ink | `ink` | `#162033` | 13.9:1 on white. Primary body text and headings |
+| Ink soft | `ink-soft` | `#334155` | 8.8:1 on white. Secondary text, form labels |
+| Ink muted | `ink-muted` | `#64748B` | 4.6:1 on white. Supporting metadata, timestamps, captions |
+| Line / Hairline | `hairline` | `#D9E1EC` | Hairline card boundaries and table borders |
+| Line strong | `line-strong` | `#CBD5E1` | Enhanced dividers, input borders, column separators |
+| Canvas | `canvas` | `#F6F8FB` | Academic command center application background |
+| Card | `card` | `#FFFFFF` | Elevated, readable content cards |
+| Status success text | `status-success-text` | `#0A766F` | 4.87:1 on `#DDF7F4`. Verified states, passed gates, completed tasks |
+| Tag SE | `tag-se` | `#1D4ED8` | Software Engineering major tag (on `#EFF6FF`) |
+| Tag UI/UX | `tag-uiux` | `#7E22CE` | UI/UX major tag (on `#FAF5FF`) |
+| Tag AI | `tag-ai` | `#B45309` | Artificial Intelligence major tag (on `#FFFBEB`) |
+| Tag QA | `tag-qa` | `#0A766F` | Quality Assurance major tag (4.87:1 on `#DDF7F4`, WCAG AA compliant) |
+| Tag IS | `tag-is` | `#475569` | Information Systems major tag (on `#F1F5F9`) |
 
-Rules:
+### Palette Usage Rules
 
-- Primary green is structural (navigation, primary action), not a success signal; success uses the `status-success-*` tokens.
-- Status (emerald) green means a confirmed positive state only.
-- Amber means attention or a pending decision, never a destructive outcome.
-- Red means error/destructive feedback only.
-- Status must include a visible label and, where helpful, a consistent icon; never rely on color alone.
+- Primary teal (`#087D77`) is structural (navigation, primary actions), not a success signal; positive status uses `status-success-*`.
+- Accent Amber (`#F6B94C`) is strictly a non-text visual accent (e.g. attention left-border, lane highlight, dot indicators) and MUST be accompanied by readable text using `--color-status-warning-text: #B45309`.
+- Danger text (`#B42318`) guarantees WCAG 2.1 AA text contrast across both white cards and `#FEF2F2` error banners.
+- No color alone conveys state: all status chips and alerts include a text label and consistent icon.
 
-## Existing type and component contract
+## Architecture & Token Consolidation Decisions
 
-- Keep `Geist` for body, `Plus Jakarta Sans` for headings, and `JetBrains Mono` for compact metadata. Do not introduce a serif or external font solely for the academic tone.
-- Reuse `Button`, `Badge`, `Card`, `AppLayout`, `Sidebar`, and `TopHeader`; update these primitives before adding page-local copies.
-- Use registered Tailwind semantic utilities such as `bg-primary`, `text-ink`, `text-ink-muted`, `border-line`, `border-hairline`, `bg-card`, and `bg-status-warning-bg`. In CSS use `var(--color-*)`. Do not repeat raw palette hex values in workspace components or page CSS.
-- Minimum text size is 12px (`text-xs`). Do not use `text-[10px]`/`text-[11px]` or `font-size` below 12px.
+1. **Eliminated `aipms-ui` namespace:** Redundant `--aipms-ui-*` duplicate tokens were fully removed. All styling consumes the canonical `--color-*`, `--radius-*`, `--shadow-*`, and `--motion-*` tokens.
+2. **Academic Light Canvas Standard (Direction A):** AI-PMS v1.0 standardizes on the clean Academic Light canvas (`#F6F8FB`). Incomplete experimental dark mode tokens were removed to maintain strict design system integrity.
+3. **Touch Targets (WCAG 2.2 Target Size):** Primary buttons and interactive controls maintain a minimum touch target of 44px (`min-h-[44px]`). An explicit 36px minimum exception is reserved for secondary inline controls and table row action items.
+4. **Font Family Standardization:** Body typography loads `Inter` via Google Fonts (`Inter:wght@400;500;600;700`), paired with `Plus Jakarta Sans` for headings and `JetBrains Mono` for code/metadata.
+5. **Brand Asset Integration:** SVG assets (`favicon.svg`, `ai-pms-app-icon.svg`, `ai-pms-logo.svg`) strictly utilize the Navy (`#0F2747`), Teal (`#12B3A8`, `#DDF7F4`), and Amber (`#F6B94C`) palette. Redundant background wrapper divs were removed to prevent double-bordered icons.
 
-## Interaction and accessibility
+## Interaction and Accessibility (WCAG 2.1 AA Standards)
 
-- Use visible `focus-visible` rings based on `primary`; do not remove focus outlines without a replacement.
-- Primary and icon-only controls require at least 44px targets. Preserve `motion-reduce` fallbacks.
-- Use `role=status`/`aria-live` for loading and `role=alert` for errors. Keep retry adjacent to the failed state when a safe retry exists.
-- Keep dense dashboards scannable with 8px spacing increments, plain language labels, tabular values where appropriate, and responsive grid collapse at 375, 768, 1024, and 1440 px.
-
-## Workspace layout pattern
-
-Each workspace should follow: context header -> authoritative state/metrics -> scoped work queue or form -> related navigation. Use white cards on the canvas, restrained `shadow-xs`, and border separation instead of decorative gradients or colour-only grouping.
-
-## Forbidden patterns
-
-- Do not add a page-local palette that conflicts with the semantic roles above.
-- Do not use a color change to represent a backend mutation that has not occurred.
-- Do not use layout-shifting hover effects, uncontrolled animation, or invented AI-approved states.
-- Do not add persistent data, routes, or permissions while applying visual consistency.
-
-## Delivery checklist
-
-- Verify keyboard focus, contrast, loading/empty/error states, and reduced motion.
-- Verify no horizontal page overflow at 375, 768, 1024, and 1440 px.
-- Run lint, typecheck, relevant tests, build, and `git diff --check`.
+- Minimum contrast ratio of $\ge 4.5:1$ is strictly enforced for all body text, status text, and major tags.
+- Visible `focus-visible` rings utilize `var(--color-primary)` with `outline-offset: 2px` or `3px`.
+- Minimum text size across all components is 12px (`text-xs`).
+- Reduced motion preferences (`prefers-reduced-motion: reduce`) disable non-essential animations.
