@@ -145,9 +145,9 @@ export function AssignedReviewQueue({
                     <span
                       className={`font-bold ${
                         item.status === 'DECIDED'
-                          ? 'text-emerald-600'
+                          ? 'text-status-success-text'
                           : item.status === 'IN_REVIEW'
-                          ? 'text-blue-600'
+                          ? 'text-status-info-text'
                           : 'text-[var(--color-status-warning-text)] font-bold'
                       }`}
                     >
@@ -218,7 +218,7 @@ export function AssignedReviewQueue({
             )
           )}
           {successMsg && (
-            <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-700">
+            <div role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-xs font-semibold text-status-success-text">
               ✓ {successMsg}
             </div>
           )}
@@ -230,7 +230,7 @@ export function AssignedReviewQueue({
                 Minh chứng cần xác minh ({selectedItem.requirements.length})
               </h4>
               <span className="whitespace-nowrap text-xs font-semibold text-ink-muted">
-                Đã duyệt: <strong className="text-emerald-600">{acceptedMandatoryCount}</strong> / {mandatoryReqs.length} bắt buộc
+                Đã duyệt: <strong className="text-status-success-text">{acceptedMandatoryCount}</strong> / {mandatoryReqs.length} bắt buộc
               </span>
             </div>
 
@@ -243,7 +243,7 @@ export function AssignedReviewQueue({
                     key={req.id}
                     className={`rounded-lg border p-4 text-xs transition-all ${
                       isAccepted
-                        ? 'border-emerald-200 bg-emerald-50/30'
+                        ? 'border-status-success-border bg-status-success-bg'
                         : isRejected
                         ? 'border-rose-200 bg-rose-50/30'
                         : 'border-hairline bg-canvas/50'
@@ -260,7 +260,7 @@ export function AssignedReviewQueue({
                       <span
                         className={`rounded-md px-2 py-0.5 text-xs font-bold border ${
                           isAccepted
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            ? 'bg-status-success-bg text-status-success-text border-status-success-border'
                             : isRejected
                             ? 'bg-rose-50 text-rose-700 border-rose-200'
                             : 'bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning-text)] border-[var(--color-status-warning-border)] border-l-2 border-l-[var(--color-accent-amber)]'
@@ -350,7 +350,7 @@ export function AssignedReviewQueue({
               Quyết định Thẩm định Review Gate (Toàn diện)
             </h4>
             {isDecided ? (
-              <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-800">
+              <div className="mt-2 rounded-lg border border-status-success-border bg-status-success-bg p-3 text-xs font-semibold text-status-success-text">
                 ✓ Đợt thẩm định này đã ghi nhận kết luận chính thức ({selectedItem.latestDecision || 'ĐÃ CHỐT'}). Quyền thẩm định đã đóng băng.
               </div>
             ) : (
@@ -376,7 +376,7 @@ export function AssignedReviewQueue({
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs text-ink-muted">
                 {isDecided ? (
-                  <span className="font-semibold text-emerald-600">
+                  <span className="font-semibold text-status-success-text">
                     ✓ Đã hoàn tất phiên thẩm định.
                   </span>
                 ) : !allMandatoryAccepted ? (
@@ -384,7 +384,7 @@ export function AssignedReviewQueue({
                     ⚠️ Chưa đủ điều kiện PASS: Còn {mandatoryReqs.length - acceptedMandatoryCount} minh chứng bắt buộc chưa duyệt đạt.
                   </span>
                 ) : (
-                  <span id="pass-eligibility-reason" className="font-semibold text-emerald-600">
+                  <span id="pass-eligibility-reason" className="font-semibold text-status-success-text">
                     ✓ Đủ điều kiện phê duyệt PASS đợt thẩm định này.
                   </span>
                 )}
@@ -466,11 +466,11 @@ export function AssignedReviewQueue({
                 )}
               </div>
 
-              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-blue-900">
+              <div className="rounded-lg border border-status-info-border bg-status-info-bg p-3 text-status-info-text">
                 <p className="font-semibold text-xs">
                   {isLinkArtifact(previewingArtifact) ? 'Minh chứng dạng liên kết:' : 'Chế độ bảo mật lưu trữ:'}
                 </p>
-                <p className="mt-1 text-xs text-blue-800">
+                <p className="mt-1 text-xs text-status-info-text">
                   {isLinkArtifact(previewingArtifact)
                     ? 'Minh chứng được mở ngoài hệ thống. Quyền truy cập nội dung do dịch vụ đích quản lý; không có tệp để tải từ hệ thống.'
                     : 'Tải tệp qua API có xác thực. Hệ thống kiểm tra quyền trên từng request và phục vụ đúng phiên bản được yêu cầu.'}

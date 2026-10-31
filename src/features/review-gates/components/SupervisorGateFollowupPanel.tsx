@@ -61,7 +61,7 @@ export function SupervisorGateFollowupPanel({
         <div className="flex items-center gap-2">
           <span className="rounded-md bg-slate-900 px-2 py-0.5 text-xs font-bold text-white">{currentGateCode}</span>
           <span className="text-xs font-semibold text-slate-700">{gateTitle}</span>
-          <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">{gateStatusLabels[gateStatus as GateStatus] ?? 'Chưa xác định'}</span>
+          <span className="rounded-full bg-status-info-bg px-2.5 py-0.5 text-xs font-bold text-status-info-text border border-status-info-border">{gateStatusLabels[gateStatus as GateStatus] ?? 'Chưa xác định'}</span>
         </div>
       </div>
 
@@ -78,7 +78,7 @@ export function SupervisorGateFollowupPanel({
       {!onSendFeedback ? (
         <p className="text-xs text-slate-600">Chế độ chỉ đọc. Mở tiến trình đồ án trong phạm vi hướng dẫn để gửi nhận xét.</p>
       ) : submitted ? (
-        <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-700 flex flex-wrap gap-2 items-center justify-between">
+        <div role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-xs font-semibold text-status-success-text flex flex-wrap gap-2 items-center justify-between">
           <span>✓ Đã gửi nhận xét hướng dẫn cho nhóm sinh viên thành công.</span>
           <button type="button" onClick={() => setSubmitted(false)} className="min-h-11 min-w-11 text-primary hover:underline">Gửi thêm</button>
         </div>

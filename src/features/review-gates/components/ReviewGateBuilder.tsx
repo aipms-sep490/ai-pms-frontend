@@ -108,7 +108,7 @@ export function ReviewGateBuilder({
             <span
               className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
                 template.status === 'PUBLISHED'
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  ? 'bg-status-success-bg text-status-success-text border border-status-success-border'
                   : 'bg-amber-50 text-amber-700 border border-amber-200'
               }`}
             >
@@ -158,7 +158,7 @@ export function ReviewGateBuilder({
       </div>
 
       {template.status === 'PUBLISHED' && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-800 flex items-center justify-between">
+        <div className="rounded-xl border border-status-success-border bg-status-success-bg p-3.5 text-xs text-status-success-text flex items-center justify-between">
           <span>
             🔒 <strong>Mẫu tiến trình đã công bố chính thức:</strong> Cấu trúc các Review Gate đã được khóa bất biến. Để thay đổi yêu cầu hoặc bổ sung Gate cho đợt thẩm định tiếp theo, vui lòng chọn <strong>Nhân bản bản nháp mới</strong>.
           </span>

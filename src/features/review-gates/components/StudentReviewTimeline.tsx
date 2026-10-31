@@ -60,11 +60,11 @@ export function StudentReviewTimeline({
   const getStatusBadge = (status: GateStatus) => {
     switch (status) {
       case 'PASSED':
-        return <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">✓ ĐÃ ĐẠT</span>
+        return <span className="rounded-full bg-status-success-bg px-2.5 py-0.5 text-xs font-bold text-status-success-text border border-status-success-border">✓ ĐÃ ĐẠT</span>
       case 'REVISION_REQUIRED':
         return <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-700 border border-rose-200">! CẦN CHỈNH SỬA</span>
       case 'IN_REVIEW':
-        return <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">◷ ĐANG THẨM ĐỊNH</span>
+        return <span className="rounded-full bg-status-info-bg px-2.5 py-0.5 text-xs font-bold text-status-info-text border border-status-info-border">◷ ĐANG THẨM ĐỊNH</span>
       case 'PLANNED':
         return <span className="rounded-full bg-canvas px-2.5 py-0.5 text-xs font-semibold text-ink-muted border border-hairline">KẾ HOẠCH</span>
       default:
@@ -75,11 +75,11 @@ export function StudentReviewTimeline({
   const getVerificationBadge = (status: string) => {
     switch (status) {
       case 'ACCEPTED':
-        return <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">✓ Chấp thuận</span>
+        return <span className="rounded-md bg-status-success-bg px-2 py-0.5 text-xs font-semibold text-status-success-text border border-status-success-border">✓ Chấp thuận</span>
       case 'REJECTED':
         return <span className="rounded-md bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700 border border-rose-200">✕ Cần nộp lại</span>
       case 'SUBMITTED':
-        return <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 border border-blue-200">◷ Đã nộp (chờ duyệt)</span>
+        return <span className="rounded-md bg-status-info-bg px-2 py-0.5 text-xs font-semibold text-status-info-text border border-status-info-border">◷ Đã nộp (chờ duyệt)</span>
       default:
         return <span className="rounded-md bg-canvas px-2 py-0.5 text-xs font-medium text-ink-muted">Chưa nộp</span>
     }
@@ -95,7 +95,7 @@ export function StudentReviewTimeline({
             <span className="rounded-full bg-canvas px-2.5 py-0.5 text-xs font-semibold text-ink-muted border border-hairline">
               {timeline.projectCode}
             </span>
-            <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
+            <span className="rounded-full bg-status-success-bg px-2.5 py-0.5 text-xs font-bold text-status-success-text border border-status-success-border">
               {env.reviewGatesMockEnabled ? `Chính sách: v${timeline.effectivePolicyVersion} (Đã ban hành)` : `Phiên bản cấu hình: ${timeline.effectivePolicyVersion}`}
             </span>
           </div>
@@ -143,14 +143,14 @@ export function StudentReviewTimeline({
         <div className="min-w-0 rounded-xl border border-hairline bg-card p-4 shadow-2xs">
           <span className="text-xs font-semibold text-ink-muted">Tiến độ thực hiện học vụ</span>
           <div className="mt-1 flex min-h-16 flex-col justify-between gap-1">
-            <span className={academicProgress != null ? 'text-2xl font-black text-emerald-700' : 'text-base font-semibold leading-6 text-emerald-700'}>
+            <span className={academicProgress != null ? 'text-2xl font-black text-status-success-text' : 'text-base font-semibold leading-6 text-status-success-text'}>
               {academicProgress != null ? `${academicProgress}%` : timeline.academicProgressSource === 'NOT_CONFIGURED' ? 'Chưa áp dụng quy chế Cổng thẩm định' : 'Chưa có dữ liệu'}
             </span>
             <span className="text-xs text-ink-muted">({completedGatesCount}/{totalGatesCount} Cổng đạt)</span>
           </div>
           {academicProgress != null && <div role="progressbar" aria-label="Tiến độ học vụ" aria-valuenow={academicProgress} aria-valuemin={0} aria-valuemax={100} className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
             <div
-              className="h-full rounded-full bg-emerald-600 transition-all duration-300"
+              className="h-full rounded-full bg-primary transition-all duration-300"
               style={{ width: `${academicProgress}%` }}
             />
           </div>}
@@ -163,14 +163,14 @@ export function StudentReviewTimeline({
         <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
           <span className="text-xs font-semibold text-ink-muted">Tiến độ công việc (Task Board)</span>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-blue-700">
+            <span className="text-2xl font-black text-status-info-text">
               {timeline.taskProgress != null ? `${timeline.taskProgress}%` : 'Chưa đồng bộ'}
             </span>
-            <span className="text-xs text-blue-600 font-medium">Khác với tiến độ học vụ</span>
+            <span className="text-xs text-status-info-text font-medium">Khác với tiến độ học vụ</span>
           </div>
           {timeline.taskProgress != null && <div role="progressbar" aria-label="Tiến độ công việc" aria-valuenow={timeline.taskProgress} aria-valuemin={0} aria-valuemax={100} className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
             <div
-              className="h-full rounded-full bg-blue-600 transition-all duration-300"
+              className="h-full rounded-full bg-primary transition-all duration-300"
               style={{ width: `${timeline.taskProgress}%` }}
             />
           </div>}
@@ -211,7 +211,7 @@ export function StudentReviewTimeline({
             <span
               className={`text-base font-black ${
                 isDefenseReady === true
-                  ? 'text-emerald-700'
+                  ? 'text-status-success-text'
                   : isDefenseReady === false
                   ? 'text-amber-700'
                   : 'text-ink-muted'
@@ -246,7 +246,7 @@ export function StudentReviewTimeline({
               <h3 className="text-sm font-bold text-ink">Tiến độ Các Phân nhánh Chuyên môn (Liên ngành)</h3>
               <p className="text-xs text-ink-muted">Mỗi chuyên ngành có trọng số và cổng thẩm định độc lập theo quy chế.</p>
             </div>
-            <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">
+            <span className="rounded-full bg-status-info-bg px-2.5 py-0.5 text-xs font-bold text-status-info-text border border-status-info-border">
               Mô hình Tích hợp Đa ngành
             </span>
           </div>
@@ -261,7 +261,7 @@ export function StudentReviewTimeline({
                   </div>
                   {branch.progress != null && <div role="progressbar" aria-label={`Tiến độ ${branch.name}`} aria-valuenow={branch.progress} aria-valuemin={0} aria-valuemax={100} className="h-2 w-full overflow-hidden rounded-full bg-canvas">
                     <div
-                      className="h-full bg-emerald-600 rounded-full transition-all duration-300"
+                      className="h-full bg-primary rounded-full transition-all duration-300"
                       style={{ width: `${branch.progress}%` }}
                     />
                   </div>}
@@ -329,7 +329,7 @@ export function StudentReviewTimeline({
             </div>
             <div className="text-right text-xs text-ink-muted">
               <div>Thời gian nộp: <strong>{selectedGate.windowStart || 'Chưa xác định'}</strong> đến <strong>{selectedGate.windowEnd || 'Chưa xác định'}</strong></div>
-              <div>Điều kiện tham gia: <strong className={canSubmitSelectedGate ? 'text-emerald-700' : 'text-rose-600'}>{selectedGate.status === 'REVISION_REQUIRED' && canSubmitSelectedGate ? 'Được nộp bản sửa' : selectedGate.reviewEligibility === 'BLOCKED' ? 'Đang bị chặn' : 'Sẵn sàng'}</strong></div>
+              <div>Điều kiện tham gia: <strong className={canSubmitSelectedGate ? 'text-status-success-text' : 'text-status-error-text'}>{selectedGate.status === 'REVISION_REQUIRED' && canSubmitSelectedGate ? 'Được nộp bản sửa' : selectedGate.reviewEligibility === 'BLOCKED' ? 'Đang bị chặn' : 'Sẵn sàng'}</strong></div>
             </div>
           </div>
 
@@ -405,7 +405,7 @@ export function StudentReviewTimeline({
                         </td>
                         <td className="px-3.5 py-3 text-right">
                           {req.verificationStatus === 'ACCEPTED' && selectedGate.status !== 'REVISION_REQUIRED' ? (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-status-success-bg px-2.5 py-1 text-xs font-semibold text-status-success-text border border-status-success-border">
                               <span className="material-symbols-outlined text-sm" aria-hidden="true">check</span>
                               Đã chấp thuận
                             </span>

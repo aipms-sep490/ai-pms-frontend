@@ -104,7 +104,7 @@ export function InterdisciplinaryGatePanel({
           <span
             className={`rounded-full px-3 py-1 text-xs font-bold border ${
               allPassed
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                ? 'bg-status-success-bg text-status-success-text border-status-success-border'
                 : 'bg-amber-50 text-amber-700 border-amber-200'
             }`}
           >
@@ -157,7 +157,7 @@ export function InterdisciplinaryGatePanel({
                         <span className="text-xs text-ink-muted">{item.desc}</span>
                       </td>
                       <td className="py-3.5 px-3 text-center">
-                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
+                        <span className="rounded-full bg-status-success-bg px-2 py-0.5 text-xs font-bold text-status-success-text border border-status-success-border">
                           BẮT BUỘC
                         </span>
                       </td>
@@ -174,10 +174,10 @@ export function InterdisciplinaryGatePanel({
                           }
                           className={`min-h-11 max-w-full rounded-lg border p-1.5 text-xs font-bold focus:ring-2 focus:ring-primary ${
                             scopes[item.scope] === 'PASSED'
-                              ? 'border-emerald-300 bg-emerald-50/50 text-emerald-800'
+                              ? 'border-status-success-border bg-status-success-bg text-status-success-text'
                               : scopes[item.scope] === 'REVISION_REQUIRED'
                               ? 'border-rose-300 bg-rose-50/50 text-rose-800'
-                              : 'border-blue-300 bg-blue-50/50 text-blue-800'
+                              : 'border-status-info-border bg-status-info-bg text-status-info-text'
                           } ${busyScope === item.scope ? 'opacity-50 cursor-wait' : ''}`}
                         >
                           <option value="PASSED">Đã đạt</option>
@@ -214,7 +214,7 @@ export function InterdisciplinaryGatePanel({
           <div
             className={`rounded-xl border p-5 shadow-xs ${
               allPassed
-                ? 'border-emerald-200 bg-emerald-50/70 text-emerald-950'
+                ? 'border-status-success-border bg-status-success-bg text-status-success-text'
                 : 'border-amber-200 bg-amber-50/70 text-amber-950'
             }`}
           >

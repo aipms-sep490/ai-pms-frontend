@@ -200,10 +200,10 @@ export function ReviewGateGovernancePage() {
       {notice && (
         <div
           role="status"
-          className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-semibold text-emerald-800"
+          className="flex items-center justify-between rounded-xl border border-status-success-border bg-status-success-bg p-4 text-xs font-semibold text-status-success-text"
         >
           <span>✓ {notice}</span>
-          <button type="button" aria-label="Đóng thông báo" onClick={() => setNotice(null)} className="text-emerald-700 hover:text-emerald-900">
+          <button type="button" aria-label="Đóng thông báo" onClick={() => setNotice(null)} className="text-status-success-text hover:text-ink">
             ✕
           </button>
         </div>
@@ -395,7 +395,7 @@ export function ReviewGateGovernancePage() {
                             <span
                               className={`rounded-full px-2.5 py-0.5 text-xs font-bold border ${
                                 tmpl.status === 'PUBLISHED'
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  ? 'bg-status-success-bg text-status-success-text border-status-success-border'
                                   : 'bg-amber-50 text-amber-700 border-amber-200'
                               }`}
                             >

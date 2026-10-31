@@ -269,7 +269,7 @@ export function ReviewSubmissionModal({
                     </strong>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-xs text-ink-muted">{formatFileSize(selectedFile.size)}</span>
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200">
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-status-success-text bg-status-success-bg px-1.5 py-0.5 rounded-full border border-status-success-border">
                         <span className="material-symbols-outlined text-[12px]" aria-hidden="true">check</span> Sẵn sàng tải lên
                       </span>
                     </div>

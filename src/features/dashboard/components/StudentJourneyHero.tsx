@@ -30,7 +30,7 @@ export function StudentJourneyHero() {
       case 'NO_TEAM':
         return {
           badge: 'Giai đoạn 1: Tuyển quân',
-          badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+          badgeClass: 'bg-status-success-bg text-status-success-text border-status-success-border',
           title: 'Bạn chưa tham gia nhóm đồ án nào trong học kỳ này',
           desc: `Học kỳ ${semester?.name ?? 'hiện tại'} đang mở đợt đăng ký đồ án tốt nghiệp (${period?.name ?? 'đợt đăng ký hiện tại'}). Hãy khởi tạo nhóm mới hoặc kiểm tra hộp thư lời mời từ các nhóm khác.`,
           icon: 'group_add',
@@ -54,11 +54,11 @@ export function StudentJourneyHero() {
       case 'TEAM_ELIGIBLE':
         return {
           badge: 'Giai đoạn 3: Soạn thảo Đề cương',
-          badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+          badgeClass: 'bg-status-success-bg text-status-success-text border-status-success-border',
           title: 'Nhóm đã đủ điều kiện để đăng ký đề cương',
           desc: `Nhóm ${teamDisplayName} đã đạt chuẩn nhân sự ${projectModeLabel}. Bạn có thể tham khảo danh mục đề tài gợi ý từ Khoa hoặc trực tiếp soạn thảo đề cương mới.`,
           icon: 'assignment_turned_in',
-          iconBg: 'bg-emerald-600 text-white',
+          iconBg: 'bg-primary text-white',
           ctaText: 'Đăng ký đề cương',
           ctaRoute: '/project/register',
           ctaIcon: 'edit_document',
@@ -104,7 +104,7 @@ export function StudentJourneyHero() {
       case 'SUPERVISOR_PENDING':
         return {
           badge: 'Giai đoạn 5: Ghép cặp GVHD',
-          badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+          badgeClass: 'bg-status-success-bg text-status-success-text border-status-success-border',
           title: 'Đề cương đã được duyệt! Hãy chọn Giảng viên Hướng dẫn',
           desc: `Đề tài của nhóm ${teamDisplayName} đã thông qua vòng thẩm định của Bộ môn. Bước tiếp theo là gửi yêu cầu tới giảng viên có chuyên môn phù hợp.`,
           icon: 'school',
@@ -117,7 +117,7 @@ export function StudentJourneyHero() {
       default:
         return {
           badge: 'Giai đoạn Thực hiện: Đang hoạt động',
-          badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+          badgeClass: 'bg-status-success-bg text-status-success-text border-status-success-border',
           title: `Đồ án: ${project?.title ?? 'Đang cập nhật thông tin'}`,
           desc: `GVHD: ${activeSupervisor?.supervisorName ?? 'Chưa phân công'} • Học kỳ: ${semester?.name ?? 'Chưa xác định'} • Thành viên: ${team?.members.length ?? 0} bạn • Nhóm: ${team?.code || teamDisplayName}`,
           icon: 'rocket_launch',

@@ -219,8 +219,8 @@ export function GanttChart({
                         <div
                           className={`h-full transition-all duration-300 ${
                             group.progress === 100
-                              ? 'bg-emerald-500'
-                              : 'bg-blue-600'
+                              ? 'bg-status-success-text'
+                              : 'bg-primary'
                           }`}
                           style={{ width: `${group.progress}%` }}
                         />
@@ -254,8 +254,8 @@ export function GanttChart({
                               group.isCritical
                                 ? 'border-rose-400 bg-rose-50 text-rose-900'
                                 : group.progress === 100
-                                ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
-                                : 'border-blue-300 bg-blue-50 text-blue-900'
+                                ? 'border-status-success-border bg-status-success-bg text-status-success-text'
+                                : 'border-status-info-border bg-status-info-bg text-status-info-text'
                             }`}
                             style={{
                               gridColumnStart: colStart,
@@ -266,10 +266,10 @@ export function GanttChart({
                             <div
                               className={`absolute top-0 left-0 bottom-0 opacity-20 pointer-events-none ${
                                 group.progress === 100
-                                  ? 'bg-emerald-600'
+                                  ? 'bg-status-success-text'
                                   : group.isCritical
                                   ? 'bg-rose-600'
-                                  : 'bg-blue-600'
+                                  : 'bg-primary'
                               }`}
                               style={{ width: `${group.progress}%` }}
                             />
@@ -365,9 +365,9 @@ export function GanttChart({
                               isCritical
                                 ? 'border-rose-500 bg-rose-50 text-rose-950 font-bold ring-1 ring-rose-300/50'
                                 : task.progress === 100
-                                ? 'border-emerald-400 bg-emerald-50 text-emerald-950 font-semibold'
+                                ? 'border-status-success-border bg-status-success-bg text-status-success-text font-semibold'
                                 : task.progress > 0
-                                ? 'border-blue-400 bg-blue-50 text-blue-950 font-semibold'
+                                ? 'border-status-info-border bg-status-info-bg text-status-info-text font-semibold'
                                 : 'border-line-strong bg-canvas text-ink-muted'
                             }`}
                             style={{
@@ -382,9 +382,9 @@ export function GanttChart({
                                 isCritical
                                   ? 'bg-rose-500/25'
                                   : task.progress === 100
-                                  ? 'bg-emerald-500/25'
+                                  ? 'bg-status-success-bg'
                                   : task.progress > 0
-                                  ? 'bg-blue-500/25'
+                                  ? 'bg-status-info-bg'
                                   : 'bg-slate-300/25'
                               }`}
                               style={{ width: `${task.progress}%` }}
@@ -417,11 +417,11 @@ export function GanttChart({
         <div className="flex flex-wrap items-center gap-4">
           <span className="font-semibold text-ink-soft">Chú thích:</span>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-blue-500 shrink-0" />
+            <span className="w-3 h-3 rounded bg-primary shrink-0" />
             <span>Đang thực hiện</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-emerald-500 shrink-0" />
+            <span className="w-3 h-3 rounded bg-status-success-text shrink-0" />
             <span>Đã hoàn thành</span>
           </div>
           <div className="flex items-center gap-1.5">

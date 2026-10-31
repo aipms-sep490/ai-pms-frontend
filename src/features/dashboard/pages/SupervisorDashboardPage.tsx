@@ -153,7 +153,7 @@ export function SupervisorDashboardPage() {
 }
 
 function Metric({ label, value, tone = 'neutral' }: { label: string; value: number | string; tone?: 'neutral' | 'success' | 'warning' | 'error' }) {
-  const tones = { neutral: 'border-hairline', success: 'border-status-success-border bg-emerald-50/30', warning: 'border-status-warning-border bg-amber-50/30', error: 'border-status-error-border bg-rose-50/30' }
+  const tones = { neutral: 'border-hairline', success: 'border-status-success-border bg-status-success-bg', warning: 'border-status-warning-border bg-status-warning-bg', error: 'border-status-error-border bg-status-error-bg' }
   return <div className={`workspace-metric rounded-xl border p-4 ${tones[tone]}`}><p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">{label}</p><p className="mt-2 text-2xl font-bold tabular-nums text-ink">{value}</p></div>
 }
 

@@ -14,9 +14,9 @@ interface ProjectProgressMatrixProps {
 }
 
 const statusPillClasses: Record<GateStatus, string> = {
-  PASSED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  PASSED: 'bg-status-success-bg text-status-success-text border-status-success-border',
   REVISION_REQUIRED: 'bg-rose-50 text-rose-700 border-rose-200 font-bold',
-  IN_REVIEW: 'bg-blue-50 text-blue-700 border-blue-200',
+  IN_REVIEW: 'bg-status-info-bg text-status-info-text border-status-info-border',
   PLANNED: 'bg-amber-50 text-amber-700 border-amber-200',
   LOCKED: 'bg-slate-100 text-slate-400 border-slate-200',
 }
@@ -63,9 +63,9 @@ export function ProjectProgressMatrix({
             {projects.filter(p => Object.values(p.gateStatuses).includes('REVISION_REQUIRED')).length}
           </p>
         </div>
-        <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-blue-700">Đang thẩm định</span>
-          <p className="mt-1 text-2xl font-black text-blue-700">
+        <div className="rounded-xl border border-status-info-border bg-status-info-bg p-4 shadow-2xs">
+          <span className="text-xs font-semibold text-status-info-text">Đang thẩm định</span>
+          <p className="mt-1 text-2xl font-black text-status-info-text">
             {projects.filter(p => Object.values(p.gateStatuses).includes('IN_REVIEW')).length}
           </p>
         </div>

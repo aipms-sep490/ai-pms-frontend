@@ -28,7 +28,7 @@ export function DefenseReadinessChecker({
           <span
             className={`rounded-full px-3 py-1 text-xs font-bold border ${
               summary.isReady
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                ? 'bg-status-success-bg text-status-success-text border-status-success-border'
                 : 'bg-rose-50 text-rose-700 border-rose-200'
             }`}
           >
@@ -91,7 +91,7 @@ export function DefenseReadinessChecker({
                       key={c.id}
                       className={`flex items-start justify-between gap-4 rounded-xl border p-4 transition-all ${
                         isPass
-                          ? 'border-emerald-100 bg-emerald-50/30'
+                          ? 'border-status-success-border bg-status-success-bg'
                           : isFail
                           ? 'border-rose-100 bg-rose-50/30'
                           : 'border-hairline bg-canvas/30'
@@ -101,7 +101,7 @@ export function DefenseReadinessChecker({
                         <span
                           className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-black ${
                             isPass
-                              ? 'bg-emerald-600 text-white'
+                              ? 'bg-primary text-white'
                               : isFail
                               ? 'bg-rose-600 text-white'
                               : 'bg-slate-300 text-ink-soft'
@@ -120,7 +120,7 @@ export function DefenseReadinessChecker({
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-xs font-bold border shrink-0 ${
                           isPass
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            ? 'bg-status-success-bg text-status-success-text border-status-success-border'
                             : isFail
                             ? 'bg-rose-50 text-rose-700 border-rose-200'
                             : 'bg-canvas text-ink-muted border-hairline'
@@ -149,7 +149,7 @@ export function DefenseReadinessChecker({
           <div
             className={`rounded-xl border p-5 shadow-xs ${
               summary.isReady
-                ? 'border-emerald-200 bg-emerald-50/70 text-emerald-950'
+                ? 'border-status-success-border bg-status-success-bg text-status-success-text'
                 : 'border-rose-200 bg-rose-50/70 text-rose-950'
             }`}
           >
