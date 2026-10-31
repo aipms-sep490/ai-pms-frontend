@@ -87,7 +87,7 @@ export function useSupervisorSelection({
     finally { if (version === readVersion.current) { setLoading(false); setCandidateLoading(false) } }
   }, [canSendAction, isLeader, resolveSlotKey, project])
 
-  useEffect(() => { void refresh(); return () => { readVersion.current++ } }, [refresh])
+  useEffect(() => { const versionRef = readVersion; void refresh(); return () => { versionRef.current++ } }, [refresh])
 
   const applyFilters = useCallback(async () => {
     const filters = { search: query.search, expertise: query.expertise }

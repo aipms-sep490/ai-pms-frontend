@@ -18,7 +18,7 @@ export function StructuredResponsibilitiesPanel({ teamId, scope, majorNames, can
       if (version === readVersion.current) setError(reason instanceof HttpError && reason.status === 403 ? 'Hệ thống không cấp quyền xem trách nhiệm này.' : 'Không thể tải trách nhiệm theo chuyên ngành.')
     }
   }, [teamId, majorId])
-  useEffect(() => { void load(); return () => { readVersion.current++ } }, [load])
+  useEffect(() => { const versionRef = readVersion; void load(); return () => { versionRef.current++ } }, [load])
   const save = async () => {
     if (!canEdit || !data?.concurrencyToken || data.isSnapshot || saveLock.current) return
     const version = readVersion.current
