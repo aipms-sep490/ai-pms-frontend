@@ -54,7 +54,7 @@ export function ProjectArchiveViewPage() {
       description="Trang này hiển thị hồ sơ lưu trữ ở chế độ chỉ đọc và không cung cấp thao tác chỉnh sửa."
       backTo="/department/projects/archived"
       backLabel="Kho lưu trữ"
-      action={<Button variant="secondary" icon="refresh" disabled={loading} onClick={() => void load()}>Tải lại</Button>}
+      action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading} onClick={() => void load()} />}
     >
       {loading && (
         <p role="status" className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-muted">
@@ -71,8 +71,11 @@ export function ProjectArchiveViewPage() {
       )}
       {data && (
         <>
-          <section className="rounded-xl border border-status-success-border bg-status-success-bg p-5 space-y-2">
-            <StatusBadge tone="neutral" label={projectStatusLabel(data.project.status)} />
+          <section className="rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-5 space-y-2 shadow-xs">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">inventory_2</span>
+              <StatusBadge tone="neutral" label={projectStatusLabel(data.project.status)} />
+            </div>
             <h2 className="font-heading text-xl font-bold text-ink">{data.project.code} · {data.project.title}</h2>
             <p className="whitespace-pre-wrap text-sm leading-6 text-ink-soft">{data.project.description || 'Hệ thống chưa có mô tả đồ án.'}</p>
           </section>
