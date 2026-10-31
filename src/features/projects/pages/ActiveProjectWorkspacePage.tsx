@@ -93,10 +93,15 @@ export function ProjectWorkspaceSummary({
 
   return (
     <div className="workspace-page mx-auto flex max-w-6xl flex-col gap-6 pb-12">
-      <header className="workspace-heading rounded-xl border border-status-success-border bg-status-success-bg p-5 sm:p-6">
+      <header className="workspace-heading rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-5 text-ink shadow-xs sm:p-6">
         <div className="workspace-heading-copy">
-          <span className="workspace-kicker">Đồ án đang thực hiện</span>
-          <h1 className="mt-1 font-heading text-2xl font-bold tracking-tight text-ink">Không gian đồ án</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-status-success-border bg-status-success-bg px-2.5 py-0.5 text-xs font-semibold text-status-success-text">
+              <span className="material-symbols-outlined text-[14px]" aria-hidden="true">check_circle</span>
+              Đồ án đang thực hiện
+            </span>
+          </div>
+          <h1 className="mt-2 font-heading text-2xl font-bold tracking-tight text-ink">Không gian đồ án</h1>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-soft">Theo dõi công việc, tiến độ và trao đổi với nhóm trong quá trình thực hiện đồ án.</p>
         </div>
         <div className="workspace-heading-actions flex flex-wrap gap-2 shrink-0">
@@ -146,8 +151,8 @@ export function ProjectWorkspaceSummary({
 
       {children}
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <section className="flex flex-col justify-between rounded-xl border border-hairline bg-card p-5 sm:p-6">
+      <div className="grid items-stretch gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <section className="flex h-full flex-col justify-between rounded-xl border border-hairline bg-card p-5 sm:p-6">
           <div>
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary" aria-hidden="true">calendar_month</span>
@@ -160,7 +165,7 @@ export function ProjectWorkspaceSummary({
           </div>
         </section>
 
-        <section className="flex flex-col justify-between rounded-xl border border-hairline bg-card p-5 sm:p-6">
+        <section className="flex h-full flex-col justify-between rounded-xl border border-hairline bg-card p-5 sm:p-6">
           <div>
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary" aria-hidden="true">assignment</span>
@@ -173,7 +178,7 @@ export function ProjectWorkspaceSummary({
           </div>
         </section>
 
-        <section className="flex flex-col justify-between rounded-xl border border-hairline bg-card p-5 sm:p-6">
+        <section className="flex h-full flex-col justify-between rounded-xl border border-hairline bg-card p-5 sm:p-6">
           <div>
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-tag-ai" aria-hidden="true">folder_open</span>
