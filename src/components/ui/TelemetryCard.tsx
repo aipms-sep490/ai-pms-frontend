@@ -1,4 +1,4 @@
-﻿import type { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 export interface TelemetryCardProps {
   label: string
@@ -16,7 +16,7 @@ export function TelemetryCard({
   value,
   unit,
   icon,
-  iconColor = 'text-blue-600',
+  iconColor = 'text-primary',
   statusBadge,
   subtitle,
   className = '',

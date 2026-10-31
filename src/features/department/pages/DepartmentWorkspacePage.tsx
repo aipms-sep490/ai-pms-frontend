@@ -155,8 +155,8 @@ export function DepartmentWorkspacePage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs font-medium text-emerald-800 flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px] text-emerald-600" aria-hidden="true">check_circle</span>
+              <div className="rounded-xl border border-status-success-border bg-status-success-bg p-4 text-xs font-medium text-status-success-text flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
                 Không có tín hiệu cần chú ý trong trang danh mục này.
               </div>
             )}
@@ -182,7 +182,7 @@ export function DepartmentWorkspacePage() {
         ========================================================================= */}
     <section id="monitoring" aria-labelledby="monitoring-heading" className="space-y-4">
       <div>
-        <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-900 uppercase tracking-wider">
+        <span className="inline-flex items-center gap-1.5 rounded-md bg-status-info-bg px-2 py-0.5 text-xs font-bold text-status-info-text uppercase tracking-wider">
           Khu vực 2: Vận hành & Giám sát
         </span>
         <h2 id="monitoring-heading" className="mt-1 font-heading text-xl font-bold text-ink">
@@ -278,7 +278,7 @@ export function DepartmentWorkspacePage() {
     <section id="configuration" aria-labelledby="academic-configuration-heading" className="space-y-4 pt-2">
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-6">
         <div>
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-purple-50 px-2 py-0.5 text-xs font-bold text-purple-900 uppercase tracking-wider">
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-tag-ai-bg px-2 py-0.5 text-xs font-bold text-tag-ai uppercase tracking-wider">
             Khu vực 3: Cấu hình & Quy chế
           </span>
           <h2 id="academic-configuration-heading" className="mt-1 font-heading text-xl font-bold text-ink">
@@ -322,10 +322,10 @@ export function DepartmentWorkspacePage() {
                       <span
                         className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
                           period.isOpen
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            ? 'border-status-success-border bg-status-success-bg text-status-success-text'
                             : period.status === 'ACTIVE'
                             ? 'border-hairline bg-canvas text-ink-muted'
-                            : 'border-blue-200 bg-blue-50 text-blue-700'
+                            : 'border-status-info-border bg-status-info-bg text-status-info-text'
                         }`}
                       >
                         {period.isOpen ? 'Đang mở' : period.status === 'ACTIVE' ? 'Ngoài thời gian mở' : displayLabel(period.status)}

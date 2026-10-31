@@ -51,7 +51,7 @@ export function LecturerWorkspacePage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="mb-1 flex items-center gap-2">
-                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${assignment.isPrimary ? 'bg-primary/15 text-primary' : 'bg-blue-100 text-blue-800'}`}>
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${assignment.isPrimary ? 'bg-primary/15 text-primary' : 'bg-status-info-bg text-status-info-text'}`}>
                     {assignment.isPrimary ? 'Hướng dẫn chính' : isMentor ? 'Hướng dẫn chuyên ngành' : 'Đồng hướng dẫn'}
                   </span>
                   <span className="text-xs text-ink-muted">· {project?.code ?? `#${assignment.projectId}`}</span>
@@ -120,7 +120,7 @@ export function LecturerWorkspacePage() {
                 </div>
               ) : null}
               {request.requestMessage ? <p className="mt-3 leading-relaxed text-ink-muted text-xs bg-card border border-hairline rounded-md p-2.5">Lời nhắn của nhóm: {request.requestMessage}</p> : null}
-              {request.responseMessage ? <p className="mt-3 leading-relaxed text-ink-muted text-xs bg-emerald-50/50 border border-emerald-100 rounded-md p-2.5">Phản hồi: {request.responseMessage}</p> : null}
+              {request.responseMessage ? <p className="mt-3 leading-relaxed text-ink-muted text-xs bg-status-success-bg border border-status-success-border rounded-md p-2.5">Phản hồi: {request.responseMessage}</p> : null}
               {request.status === 'PENDING' ? (
                 <div className="mt-3 space-y-2">
                   <label className="block text-xs font-medium text-ink-soft">
