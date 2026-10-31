@@ -21,7 +21,7 @@
 .mk-skeleton {
   position: relative;
   overflow: hidden;
-  background: var(--color-hairline);
+  background: var(--color-skeleton);
 }
 
 .mk-skeleton::after {
