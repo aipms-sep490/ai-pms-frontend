@@ -22,6 +22,24 @@ export function getProgressReports(projectId: number, filters: ReportFilters = {
   return httpGet<PagedResult<ProgressReport>>(`/projects/${projectId}/progress-reports?${query}`, signal)
 }
 export const getProgressReport = (id: number, signal?: AbortSignal) => httpGet<ReportDetail>(`/progress-reports/${id}`, signal)
+export interface ProgressReportPrefill {
+  progressReportPeriodId: number | null
+  reportType: ReportType
+  periodStart: string
+  periodEnd: string
+  suggested: {
+    completedWork: string | null
+    inProgressWork: string | null
+    blockers: string | null
+    risks: string | null
+    nextActions: string | null
+    summary: string | null
+  }
+  evidence: Array<{ type: string; id: number; title: string; status: string }>
+  insufficientData: boolean
+}
+export const getProgressReportPrefill = (projectId: number, progressReportPeriodId?: number, signal?: AbortSignal) =>
+  httpGet<ProgressReportPrefill>(`/projects/${projectId}/progress-reports/prefill${progressReportPeriodId ? `?progressReportPeriodId=${progressReportPeriodId}` : ''}`, signal)
 export const createProgressReport = (projectId: number, body: CreateReport) => httpPost<ProgressReport>(`/projects/${projectId}/progress-reports`, body)
 export const updateProgressReport = (id: number, body: ReportContent & { concurrencyToken?: string; progressReportPeriodId?: number | null }) => httpPut<ProgressReport>(`/progress-reports/${id}`, body)
 const reportTokenQuery = (concurrencyToken?: string) => concurrencyToken ? `?${new URLSearchParams({ concurrencyToken })}` : ''

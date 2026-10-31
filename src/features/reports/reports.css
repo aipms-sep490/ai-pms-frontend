@@ -81,6 +81,9 @@
 .report-content-field > span { display: flex; align-items: baseline; gap: 10px; font-size: 14px; color: var(--color-ink); }
 .report-content-field b, .report-reading h3 span { font-size: 12px; color: var(--color-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
 .report-content-field small { font-size: 12px; font-weight: 400; line-height: 1.6; color: var(--color-ink-muted); }
+.report-prefill-note { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 18px; padding: 12px 14px; border: 1px solid var(--color-status-success-border); border-radius: 8px; background: var(--color-primary-subtle); font-size: 12px; color: var(--color-ink-soft); }
+.report-prefill-note p { margin: 0; }
+.reports textarea.report-suggested-field { background: var(--color-primary-subtle); border-color: var(--color-status-success-border); }
 .report-editor-footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; border-top: 1px solid #edf0f2; padding-top: 20px; margin-top: 24px; }
 .report-editor-footer p { color: var(--color-ink-muted); font-size: 12px; line-height: 1.6; }
 .report-validation { color: #b45309; font-size: 12px; line-height: 1.6; margin: 12px 0; }

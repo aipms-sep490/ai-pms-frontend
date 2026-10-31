@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { getSeenTourVersion, markTourSeen } from './tour-persistence'
+import { getSeenTourVersion, getTourProgress, markTourSeen, saveTourProgress } from './tour-persistence'
 import { getTourScript } from './tour-scripts'
 import { TOUR_VERSION } from './tour-types'
 
@@ -24,6 +24,14 @@ describe('tour persistence', () => {
   it('treats malformed stored values as unseen', () => {
     window.localStorage.setItem('ai-pms:tour:9:student', 'not-a-number')
     expect(getSeenTourVersion(9, 'student')).toBe(0)
+  })
+
+  it('resets progress when the tour version changes and preserves legacy no-auto-open behavior', () => {
+    saveTourProgress(8, 'student', { version: TOUR_VERSION, status: 'DISMISSED', lastStepId: 'nav' })
+    expect(getTourProgress(8, 'student', TOUR_VERSION)).toMatchObject({ status: 'DISMISSED', lastStepId: 'nav' })
+    expect(getTourProgress(8, 'student', TOUR_VERSION + 1).status).toBe('NOT_STARTED')
+    window.localStorage.setItem('ai-pms:tour:9:student', String(TOUR_VERSION))
+    expect(getTourProgress(9, 'student', TOUR_VERSION).status).toBe('COMPLETED')
   })
 })
 

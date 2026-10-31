@@ -116,13 +116,15 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
     expect(designSelect).toBeTruthy()
 
     fireEvent.change(designSelect!, { target: { value: 'PASSED' } })
-
-    // Now all scopes are PASSED
+    // A local choice is a draft until the user explicitly sends the decision.
+    expect(screen.getByText('CHỜ THẨM ĐỊNH CÁC NGÀNH')).toBeTruthy()
+    fireEvent.click(designSelect!.closest('tr')!.querySelector('button')!)
+    // The mock adapter applies the same explicit user action as the API path.
     await waitFor(() => {
       expect(screen.getByText('CÁC NHÁNH ĐÃ ĐẠT')).toBeTruthy()
       expect(screen.getByText('Các nhánh đã đạt')).toBeTruthy()
       expect(screen.queryByText('READY FOR PASS')).toBeNull()
-    })
+    }, { timeout: 5000 })
   })
 
   it('evaluates defense readiness conditions and shows NOT READY when gates are incomplete', async () => {

@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { getProgressReportPrefill, type ProgressReportPrefill } from '../../services/api/progress-reports.api'
 import type { ReportingCycle } from '../../services/api/progress-reports.api'
 import { utcTimestamp } from '../execution/execution-utils'
 import {
@@ -12,6 +13,7 @@ import {
 } from './report-types'
 
 export function ReportEditor({
+  projectId,
   report,
   cycles,
   existingReports = [],
@@ -20,6 +22,7 @@ export function ReportEditor({
   onSave,
   onDirtyChange,
 }: {
+  projectId: number
   report?: ReportDetail
   cycles?: ReportingCycle[]
   existingReports?: ProgressReport[]
@@ -46,8 +49,72 @@ export function ReportEditor({
   const [dirty, setDirty] = useState(false)
   const [validation, setValidation] = useState('')
   const [renderedAt] = useState(Date.now)
+  const [prefillLoading, setPrefillLoading] = useState(false)
+  const [suggestedKeys, setSuggestedKeys] = useState<Array<keyof ProgressReportPrefill['suggested']>>([])
+  const suggestedKeysRef = useRef<Array<keyof ProgressReportPrefill['suggested']>>([])
+  const touchedKeys = useRef(new Set<keyof ProgressReportPrefill['suggested']>())
+  const prefillController = useRef<AbortController | null>(null)
+  const prefillTimer = useRef<number | null>(null)
+  const dismissedSuggestions = useRef(false)
+
+  const requestPrefill = useCallback((periodId?: number) => {
+    prefillController.current?.abort()
+    if (prefillTimer.current !== null) window.clearTimeout(prefillTimer.current)
+    if (dismissedSuggestions.current) return
+    if (suggestedKeysRef.current.length) {
+      const oldKeys = suggestedKeysRef.current
+      setValues(current => {
+        const next = { ...current }
+        oldKeys.forEach(key => { if (!touchedKeys.current.has(key)) next[key] = '' })
+        return next
+      })
+      suggestedKeysRef.current = []
+      setSuggestedKeys([])
+    }
+    const controller = new AbortController()
+    prefillController.current = controller
+    setPrefillLoading(true)
+    prefillTimer.current = window.setTimeout(() => {
+      controller.abort()
+      setPrefillLoading(false)
+    }, 2000)
+    void getProgressReportPrefill(projectId, periodId, controller.signal).then(prefill => {
+      if (controller.signal.aborted) return
+      const nextKeys = (['summary', 'completedWork', 'inProgressWork', 'blockers', 'risks', 'nextActions'] as const)
+        .filter(key => !touchedKeys.current.has(key) && Boolean(prefill.suggested[key]))
+      setValues(current => {
+        const next = { ...current }
+        nextKeys.forEach(key => { next[key] = prefill.suggested[key] ?? '' })
+        return next
+      })
+      setSuggestedKeys(nextKeys)
+      suggestedKeysRef.current = nextKeys
+      if (nextKeys.length) onDirtyChange(true)
+    }).catch(() => {
+      // Suggestions are optional. The editor remains available without an error banner.
+    }).finally(() => {
+      if (prefillController.current !== controller) return
+      if (prefillTimer.current !== null) window.clearTimeout(prefillTimer.current)
+      prefillTimer.current = null
+      if (!controller.signal.aborted) setPrefillLoading(false)
+    })
+  }, [projectId, onDirtyChange])
+
+  useEffect(() => {
+    if (!report) requestPrefill()
+    return () => {
+      prefillController.current?.abort()
+      if (prefillTimer.current !== null) window.clearTimeout(prefillTimer.current)
+    }
+  }, [report, requestPrefill])
 
   function update(key: keyof CreateReport, value: string) {
+    if (key in { summary: true, completedWork: true, inProgressWork: true, blockers: true, risks: true, nextActions: true }) {
+      const suggestedKey = key as keyof ProgressReportPrefill['suggested']
+      touchedKeys.current.add(suggestedKey)
+      setSuggestedKeys(current => current.filter(item => item !== suggestedKey))
+      suggestedKeysRef.current = suggestedKeysRef.current.filter(item => item !== suggestedKey)
+    }
     setValues((current) => ({ ...current, [key]: value }))
     setDirty(true)
     onDirtyChange(true)
@@ -66,6 +133,7 @@ export function ReportEditor({
     }
     const cycle = cycles?.find((c) => c.id === cycleId)
     if (cycle) {
+      if (!report) requestPrefill(cycle.id)
       setValues((current) => ({
         ...current,
         reportType: cycle.reportType as ReportType,
@@ -76,6 +144,20 @@ export function ReportEditor({
       setDirty(true)
       onDirtyChange(true)
     }
+  }
+
+  function clearSuggestions() {
+    dismissedSuggestions.current = true
+    prefillController.current?.abort()
+    if (prefillTimer.current !== null) window.clearTimeout(prefillTimer.current)
+    setPrefillLoading(false)
+    setValues(current => {
+      const next = { ...current }
+      suggestedKeys.forEach(key => { next[key] = '' })
+      return next
+    })
+    setSuggestedKeys([])
+    suggestedKeysRef.current = []
   }
 
   async function save(event: FormEvent) {
@@ -132,6 +214,9 @@ export function ReportEditor({
         <h2>{report ? 'Nội dung bản nháp' : 'Soạn báo cáo mới'}</h2>
         <span>{dirty ? 'Có thay đổi chưa lưu' : 'Bản nháp'}</span>
       </div>
+
+      {!report && prefillLoading && <p role="status" className="report-help">Đang lấy gợi ý từ dữ liệu dự án…</p>}
+      {!report && suggestedKeys.length > 0 && <div className="report-prefill-note" role="note"><p>Gợi ý từ dữ liệu dự án — hãy kiểm tra và sửa trước khi nộp.</p><button className="report-button report-button--secondary" type="button" onClick={clearSuggestions}>Bỏ gợi ý, nhập lại từ đầu</button></div>}
 
       <fieldset disabled={busy}>
         {/* Cycle selection when creating a new report */}
@@ -252,6 +337,8 @@ export function ReportEditor({
                   rows={rows}
                   aria-invalid={fieldErrors?.[key] ? true : undefined}
                   aria-describedby={`hint-${key}${fieldErrors?.[key] ? ` error-${key}` : ''}`}
+                  className={suggestedKeys.includes(key as keyof ProgressReportPrefill['suggested']) ? 'report-suggested-field' : undefined}
+                  disabled={prefillLoading}
                   value={values[key] ?? ''}
                   onChange={(event) => update(key, event.target.value)}
                 />

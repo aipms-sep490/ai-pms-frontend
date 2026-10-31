@@ -26,6 +26,16 @@ describe('Review Gates transport against BE a1f510b (mock disabled)', () => {
   })
   afterEach(() => { vi.unstubAllGlobals(); localStorage.clear() })
 
+  it('sends the scope token only when BE supplied one, preserving the numeric scope key', async () => {
+    await api.updateHybridScopeDecision('40008', '12', 'PASSED', token)
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/projects/40008/review-gates/scopes/12')
+    expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toEqual({ newStatus: 'PASSED', concurrencyToken: token })
+    fetchMock.mockClear()
+    fetchMock.mockResolvedValueOnce(new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    await api.updateHybridScopeDecision('40008', 'COMMON', 'IN_REVIEW')
+    expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toEqual({ newStatus: 'IN_REVIEW' })
+  })
+
   it('uploads actual bytes to evidence/file with expected version and gate token', async () => {
     const file = new File(['actual document bytes'], 'report.pdf', { type: 'application/pdf' })
     await api.submitRevision({ projectId: '9007199254740993', gateCode: 'R1', requirementId: '21', artifactName: file.name, notes: 'Updated', expectedVersion: 2, concurrencyToken: token, mode: 'file', file }, true)

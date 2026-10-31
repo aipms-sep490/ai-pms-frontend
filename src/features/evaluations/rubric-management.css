@@ -33,6 +33,6 @@
 .rubric-read-criterion h4 { font-size: 14px; line-height: 1.6; font-weight: 600; }
 .rubric-read-criterion p { margin-top: 6px; font-size: 13px; line-height: 1.7; color: #53695f; overflow-wrap: anywhere; }
 .rubric-criterion-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 12px; color: #677a72; margin-top: 8px; }
-.rubric-criterion-weight { font-size: 16px; color: #105d4e; font-variant-numeric: tabular-nums; }
+.rubric-criterion-weight { display: grid; gap: 4px; justify-items: end; max-width: 190px; text-align: right; font-size: 12px; font-weight: 650; color: var(--color-primary); font-variant-numeric: tabular-nums; }
 .rubric-read-criteria ol { margin-left: 20px; padding-left: 20px; border-left: 2px solid #e6ece8; }
-@media (max-width: 620px) { .rubric-read-criterion { gap: 8px; grid-template-columns: 20px minmax(0,1fr) auto; } .rubric-page > .grid > section { padding: 20px; } }
+@media (max-width: 620px) { .rubric-read-criterion { gap: 8px; grid-template-columns: 20px minmax(0,1fr); } .rubric-criterion-weight { grid-column: 2; justify-items: start; max-width: none; text-align: left; } .rubric-page > .grid > section { padding: 20px; } }

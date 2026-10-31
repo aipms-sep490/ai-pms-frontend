@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react'
 import type { GateStatus } from '../types/review-gates.types'
 import { env } from '../../../app/config/env'
+import { getProject } from '../../../services/api/projects.api'
+import { HttpError } from '../../../services/http/http-client'
+import { dateTimeLabel } from '../../execution/execution-utils'
 
 interface InterdisciplinaryGatePanelProps {
   projectId?: string
   hybridScopes?: Record<string, GateStatus>
   hybridScopeLabels?: Record<string, string>
+  hybridScopeDecisionDetails?: Record<string, { decidedByName?: string | null; decidedAt?: string | null }>
+  hybridScopeCapabilities?: Record<string, boolean>
   onUpdateScopeDecision: (
     projectId: string,
     scope: string,
@@ -36,11 +41,18 @@ export function InterdisciplinaryGatePanel({
   projectId,
   hybridScopes,
   hybridScopeLabels,
+  hybridScopeDecisionDetails,
+  hybridScopeCapabilities,
   onUpdateScopeDecision,
 }: InterdisciplinaryGatePanelProps) {
   const [scopes, setScopes] = useState<Record<string, GateStatus>>(hybridScopes || {})
   const [busyScope, setBusyScope] = useState<string | null>(null)
   const [scopeError, setScopeError] = useState<string | null>(null)
+  const [draftChoices, setDraftChoices] = useState<Record<string, 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW' | ''>>({})
+  const [conflictedScope, setConflictedScope] = useState<string | null>(null)
+  const [requiredScopes, setRequiredScopes] = useState<string[]>([])
+  const [projectScopeLabels, setProjectScopeLabels] = useState<Record<string, string>>({})
+  const [topologyState, setTopologyState] = useState<'loading' | 'ready' | 'unavailable'>('loading')
 
   useEffect(() => {
     if (hybridScopes) {
@@ -50,27 +62,49 @@ export function InterdisciplinaryGatePanel({
     }
   }, [hybridScopes])
 
-  async function handleScopeChange(scope: string, val: 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW') {
-    if (!projectId || !env.reviewGatesMockEnabled || busyScope) return
-    const prevVal = scopes[scope]
-    setScopes(prev => ({ ...prev, [scope]: val }))
+  useEffect(() => {
+    setDraftChoices({}); setConflictedScope(null); setScopeError(null)
+    if (!projectId) { setRequiredScopes([]); setTopologyState('unavailable'); return }
+    if (env.reviewGatesMockEnabled) { setRequiredScopes([]); setTopologyState('ready'); return }
+    if (!/^\d+$/.test(projectId)) { setRequiredScopes([]); setTopologyState('unavailable'); return }
+    let active = true
+    setTopologyState('loading')
+    void getProject(Number(projectId)).then(project => {
+      if (!active) return
+      const majorKeys = project.majors.map(item => String(item.majorId))
+      setRequiredScopes(['COMMON', ...majorKeys])
+      setProjectScopeLabels(Object.fromEntries(project.majors.map(item => [String(item.majorId), item.majorName])))
+      setTopologyState('ready')
+    }).catch(() => { if (active) { setRequiredScopes([]); setTopologyState('unavailable') } })
+    return () => { active = false }
+  }, [projectId])
+
+  async function handleScopeChange(scope: string) {
+    const val = draftChoices[scope]
+    if (!projectId || !val || busyScope || hybridScopeCapabilities?.[scope] === false) return
     setBusyScope(scope)
     setScopeError(null)
     try {
       await onUpdateScopeDecision(projectId, scope, val)
+      setDraftChoices(current => { const next = { ...current }; delete next[scope]; return next })
+      setConflictedScope(null)
     } catch (err: unknown) {
-      // Rollback on error
-      setScopes(prev => ({ ...prev, [scope]: prevVal }))
-      setScopeError(err instanceof Error ? err.message : 'Không thể cập nhật quyết định ngành.')
+      if (err instanceof HttpError && err.status === 409) {
+        setConflictedScope(scope)
+        setScopeError('Quyết định phạm vi đã thay đổi hoặc thiếu token phiên bản. Lựa chọn của bạn vẫn được giữ; hãy đối chiếu trạng thái mới trước khi gửi lại.')
+      } else if (err instanceof HttpError && err.status === 403) {
+        setScopeError(`Máy chủ không cấp quyền quyết định phạm vi này${err.problem?.code ? ` (${err.problem.code})` : ''}. Lựa chọn của bạn vẫn được giữ.`)
+      } else setScopeError('Không thể cập nhật quyết định phạm vi. Lựa chọn của bạn vẫn được giữ để thử lại.')
     } finally {
       setBusyScope(null)
     }
   }
 
-  const scopeKeys = Object.keys(scopes)
-  const allPassed = scopeKeys.length > 0 && Object.values(scopes).every(s => s === 'PASSED')
-  const hasRevision = Object.values(scopes).some(s => s === 'REVISION_REQUIRED')
-  const scopeName = (key: string) => hybridScopeLabels?.[key]?.trim() || scopeMeta[key]?.name || `Ngành ${key}`
+  const effectiveRequiredScopes = env.reviewGatesMockEnabled ? Object.keys(scopes) : requiredScopes
+  const scopeKeys = [...new Set([...effectiveRequiredScopes, ...Object.keys(scopes)])]
+  const allPassed = topologyState === 'ready' && effectiveRequiredScopes.length > 0 && effectiveRequiredScopes.every(key => scopes[key] === 'PASSED')
+  const hasRevision = scopeKeys.some(key => scopes[key] === 'REVISION_REQUIRED')
+  const scopeName = (key: string) => hybridScopeLabels?.[key]?.trim() || projectScopeLabels[key] || scopeMeta[key]?.name || `Ngành ${key}`
 
   if (scopeKeys.length === 0) {
     return (
@@ -80,7 +114,8 @@ export function InterdisciplinaryGatePanel({
           Chưa có phân nhánh chuyên môn liên ngành
         </h3>
         <p className="mx-auto mt-1.5 max-w-md text-xs text-slate-500">
-          {projectId
+          {topologyState === 'loading' ? 'Đang tải các ngành của đồ án từ hệ thống…' : topologyState === 'unavailable' && projectId
+            ? 'Chưa tải được cấu trúc ngành của đồ án. Hãy thử lại; hệ thống chưa thể xác nhận đủ các phạm vi bắt buộc.' : projectId
             ? `Đồ án ${projectId} chưa có cấu trúc phân nhánh liên ngành hoặc đang chờ Hội đồng thẩm định công bố snapshot các phân ban chuyên môn.`
             : 'Vui lòng chọn đồ án liên ngành để xem chi tiết các phân nhánh chuyên môn.'}
         </p>
@@ -90,6 +125,7 @@ export function InterdisciplinaryGatePanel({
 
   return (
     <div className="space-y-6">
+      {topologyState !== 'ready' && <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{topologyState === 'loading' ? 'Đang đối chiếu đủ phạm vi từ dữ liệu dự án…' : 'Chưa xác nhận được đầy đủ phạm vi bắt buộc; trạng thái sẵn sàng không được suy đoán.'}</p>}
       {/* Header Context */}
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
@@ -156,22 +192,13 @@ export function InterdisciplinaryGatePanel({
                         <strong className="block font-semibold text-slate-900">{item.name}</strong>
                         <span className="text-xs text-slate-500">{item.desc}</span>
                       </td>
-                      <td className="py-3.5 px-3 text-center">
-                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
-                          BẮT BUỘC
-                        </span>
-                      </td>
+                      <td className="py-3.5 px-3 text-center">{effectiveRequiredScopes.includes(item.scope) ? <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">BẮT BUỘC</span> : <span className="text-slate-500">Chưa xác nhận</span>}</td>
                       <td className="py-3.5 px-4">
                         <select
                           aria-label={`Trạng thái thẩm định · ${item.name}`}
-                          disabled={!env.reviewGatesMockEnabled || busyScope !== null}
-                          value={scopes[item.scope] || 'IN_REVIEW'}
-                          onChange={e =>
-                            handleScopeChange(
-                              item.scope,
-                              e.target.value as 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW',
-                            )
-                          }
+                          disabled={busyScope !== null || hybridScopeCapabilities?.[item.scope] === false}
+                          value={draftChoices[item.scope] ?? scopes[item.scope] ?? ''}
+                          onChange={e => setDraftChoices(current => ({ ...current, [item.scope]: e.target.value as 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW' | '' }))}
                           className={`min-h-11 max-w-full rounded-lg border p-1.5 text-xs font-bold focus:ring-2 focus:ring-primary ${
                             scopes[item.scope] === 'PASSED'
                               ? 'border-emerald-300 bg-emerald-50/50 text-emerald-800'
@@ -180,12 +207,16 @@ export function InterdisciplinaryGatePanel({
                               : 'border-blue-300 bg-blue-50/50 text-blue-800'
                           } ${busyScope === item.scope ? 'opacity-50 cursor-wait' : ''}`}
                         >
+                          <option value="">Chưa có quyết định</option>
                           <option value="PASSED">Đã đạt</option>
                           <option value="REVISION_REQUIRED">Cần chỉnh sửa</option>
                           <option value="IN_REVIEW">Đang thẩm định</option>
                           <option value="PLANNED" disabled>Chưa bắt đầu</option>
                           <option value="LOCKED" disabled>Chưa mở</option>
                         </select>
+                        <button type="button" className="mt-2 min-h-11 rounded-lg border border-primary px-3 text-xs font-semibold text-primary disabled:opacity-50" disabled={busyScope !== null || hybridScopeCapabilities?.[item.scope] === false || !draftChoices[item.scope] || (draftChoices[item.scope] === scopes[item.scope] && conflictedScope !== item.scope)} onClick={() => void handleScopeChange(item.scope)}>{busyScope === item.scope ? 'Đang gửi…' : 'Ghi quyết định'}</button>
+                        {hybridScopeCapabilities?.[item.scope] === false && <p className="mt-1 text-xs text-slate-500">Máy chủ không cấp quyền quyết định phạm vi này.</p>}
+                        {hybridScopeDecisionDetails?.[item.scope] && <p className="mt-1 text-xs text-slate-500">{hybridScopeDecisionDetails[item.scope].decidedByName ?? 'Người quyết định chưa được cung cấp'}{hybridScopeDecisionDetails[item.scope].decidedAt ? ` · ${dateTimeLabel(hybridScopeDecisionDetails[item.scope].decidedAt)}` : ''}</p>}
                       </td>
                     </tr>
                   )

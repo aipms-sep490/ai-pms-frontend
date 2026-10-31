@@ -179,12 +179,14 @@ export function ReviewGateGovernancePage() {
     newStatus: 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW',
   ) {
     try {
-      const updated = await updateHybridScopeDecision(projectId, scope, newStatus)
+      const token = matrixProjects.find(p => p.projectId === projectId)?.hybridScopeTokens?.[scope]
+      const updated = await updateHybridScopeDecision(projectId, scope, newStatus, token)
       setMatrixProjects(prev => prev.map(p => (p.projectId === updated.projectId ? updated : p)))
       setNotice(`Đã cập nhật quyết định ngành ${scope} của đồ án ${projectId}: ${newStatus}.`)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Không thể cập nhật quyết định ngành.'
-      setError(msg)
+      if (err instanceof HttpError && err.status === 409) {
+        try { setMatrixProjects(await getProjectReviewMatrix()) } catch { /* keep current matrix and selected choice */ }
+      }
       throw err
     }
   }
@@ -494,6 +496,8 @@ export function ReviewGateGovernancePage() {
                 projectId={selectedProjectId}
                 hybridScopes={matrixProjects.find(p => p.projectId === selectedProjectId)?.hybridScopes}
                 hybridScopeLabels={matrixProjects.find(p => p.projectId === selectedProjectId)?.hybridScopeLabels}
+                hybridScopeDecisionDetails={matrixProjects.find(p => p.projectId === selectedProjectId)?.hybridScopeDecisionDetails}
+                hybridScopeCapabilities={matrixProjects.find(p => p.projectId === selectedProjectId)?.hybridScopeCapabilities}
                 onUpdateScopeDecision={handleUpdateHybridScopeDecision}
               />
             </div>

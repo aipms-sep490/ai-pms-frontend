@@ -41,9 +41,10 @@ it('requires a new preview after reason changes and does not replay a stale deci
 })
 it('submits criterion amendments from the frozen review context, including zero', async () => {
   api.getCorrectionRequest.mockResolvedValue({ ...row, allowedActions: ['READ', 'REVIEW'] })
-  api.getAppealReviewContext.mockResolvedValue({ calculationVersion: 'frozen-v1', evaluations: [{ id: 31, rubricName: 'Rubric IT', rubricVersion: 2, scores: [{ rubricCriterionId: 12, name: 'Kiểm chứng', score: 8, maxScore: 10 }] }], amendments: [] })
+  api.getAppealReviewContext.mockResolvedValue({ calculationVersion: 'frozen-v1', evaluations: [{ id: 31, rubricName: 'Rubric IT', rubricVersion: 2, scores: [{ rubricCriterionId: 11, name: 'Nhóm sản phẩm', score: null, maxScore: null }, { rubricCriterionId: 12, name: 'Kiểm chứng', score: 8, maxScore: 10 }] }], amendments: [] })
   api.reviewAppeal.mockResolvedValue(row)
   open(); fireEvent.click(await screen.findByRole('button', { name: 'Đọc hồ sơ review đã khóa' })); const input = await screen.findByLabelText('Điểm đính chính Kiểm chứng')
+  expect(screen.queryByLabelText('Điểm đính chính Nhóm sản phẩm')).toBeNull()
   fireEvent.change(input, { target: { value: '0' } }); fireEvent.change(screen.getByLabelText('Lý do tiêu chí Kiểm chứng'), { target: { value: 'Không có minh chứng' } }); fireEvent.change(screen.getByLabelText('Lý do review / quyết định'), { target: { value: 'Đã đọc hồ sơ' } }); fireEvent.change(screen.getByLabelText('Đề nghị'), { target: { value: 'AMEND' } }); fireEvent.click(screen.getByRole('button', { name: 'Lưu đề nghị review' }))
   await waitFor(() => expect(api.reviewAppeal).toHaveBeenCalledWith(9, 7, { concurrencyToken: 'old', proposal: 'AMEND', reason: 'Đã đọc hồ sơ', amendments: [{ evaluationId: 31, criterionId: 12, score: 0, reason: 'Không có minh chứng' }] }))
 })

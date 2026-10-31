@@ -4,7 +4,7 @@ import { AuthSessionContext, type AuthSessionContextValue } from '../auth/contex
 import type { LoginSession } from '../auth/types/auth.types'
 import { TourProvider } from './TourProvider'
 import { TourLauncher } from './TourLauncher'
-import { getSeenTourVersion } from './tour-persistence'
+import { getSeenTourVersion, getTourProgress } from './tour-persistence'
 
 const makeSession = (roles: string[]): LoginSession => ({
   accessToken: 'a', tokenType: 'Bearer', expiresAtUtc: '2027-01-01T00:00:00Z',
@@ -46,9 +46,8 @@ describe('TourProvider', () => {
     const dialog = screen.getByRole('dialog')
     expect(dialog).toBeTruthy()
     expect(screen.getByText('Chào mừng đến AI-PMS')).toBeTruthy()
-    // Steps resolve against the DOM: welcome (centred) + the present sidebar
-    // and Help anchors, so the shown count is stable at 3 here.
-    expect(screen.getByText('1/3')).toBeTruthy()
+    // Missing anchors remain visible as centred fallback steps.
+    expect(screen.getByText('1/8')).toBeTruthy()
 
     act(() => { screen.getByRole('button', { name: 'Tiếp theo' }).click() })
     expect(screen.getByText('Thanh điều hướng đồ án')).toBeTruthy()
@@ -60,6 +59,7 @@ describe('TourProvider', () => {
     act(() => { screen.getByRole('button', { name: 'Xong' }).click() })
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(getSeenTourVersion(101, 'student')).toBeGreaterThan(0)
+    expect(getTourProgress(101, 'student', 1).status).toBe('COMPLETED')
   })
 
   it('does not auto-start again once the student has seen it', async () => {
@@ -82,6 +82,26 @@ describe('TourProvider', () => {
 
     act(() => { screen.getByRole('button', { name: /hướng dẫn/i }).click() })
     expect(screen.getByRole('dialog')).toBeTruthy()
+  })
+
+  it('resumes from the dismissed step without auto-opening and keeps fallback content visible', async () => {
+    renderShell(makeSession(['STUDENT']))
+    await act(async () => { await vi.advanceTimersByTimeAsync(800) })
+    act(() => { screen.getByRole('button', { name: 'Tiếp theo' }).click() })
+    act(() => { screen.getByRole('button', { name: 'Tiếp theo' }).click() })
+    expect(screen.getByText('Bắt đầu từ Tổng quan lộ trình')).toBeTruthy()
+    act(() => { screen.getByRole('button', { name: 'Bỏ qua' }).click() })
+    expect(getTourProgress(101, 'student', 1)).toMatchObject({ status: 'DISMISSED', lastStepId: 'primary' })
+    cleanup()
+
+    renderShell(makeSession(['STUDENT']))
+    await act(async () => { await vi.advanceTimersByTimeAsync(800) })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    act(() => { screen.getByRole('button', { name: /hướng dẫn/i }).click() })
+    expect(screen.getByText('Bắt đầu từ Tổng quan lộ trình')).toBeTruthy()
+    act(() => { screen.getByRole('button', { name: 'Tiếp theo' }).click() })
+    expect(screen.getByText('Tìm nhanh mọi chức năng')).toBeTruthy()
+    expect(screen.getByText('Nút tìm nhanh không hiển thị tại đây. Dùng Ctrl + K để tìm chức năng.')).toBeTruthy()
   })
 
   it('offers no tour and no Help button for an unknown role', async () => {

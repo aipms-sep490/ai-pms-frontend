@@ -7,13 +7,12 @@ export type TourPlacement = 'top' | 'bottom' | 'left' | 'right' | 'center'
 export interface TourStep {
   /** Stable id used for keys and tests. */
   id: string
-  /** Value of the `data-tour` attribute the step highlights. When the target
-   * is absent from the DOM the engine skips the step rather than failing, so a
-   * role that hides a control (e.g. department has no quick search) still gets
-   * a coherent tour. A step with no `target` is shown centred as a message. */
+  /** Value of the `data-tour` attribute the step highlights. Missing targets
+   * are shown as a centred message instead of silently skipping a step. */
   target?: string
   title: string
   body: string
+  fallbackBody?: string
   placement?: TourPlacement
 }
 
@@ -28,3 +27,5 @@ export interface TourScript {
 export const TOUR_VERSION = 1
 
 export type TourStartReason = 'auto' | 'manual'
+export type TourStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'DISMISSED'
+export interface TourProgress { version: number; status: TourStatus; lastStepId: string | null }

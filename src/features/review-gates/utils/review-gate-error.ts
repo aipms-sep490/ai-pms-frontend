@@ -7,6 +7,7 @@ export function reviewGateError(error: unknown): string {
       case 403: return `Bạn không có quyền thực hiện thao tác này. ${error.message} Nội dung đang nhập được giữ lại.`
       case 404: return 'Không tìm thấy cổng hoặc minh chứng trong phạm vi của bạn.'
       case 409: return 'Dữ liệu đã thay đổi. Vui lòng tải lại trước khi gửi; nội dung đang nhập được giữ lại.'
+      case 413: return `Tệp vượt giới hạn máy chủ${error.problem?.maxBytesLabel ? ` (${error.problem.maxBytesLabel})` : typeof error.problem?.maxBytes === 'number' && Number.isFinite(error.problem.maxBytes) ? ` (${error.problem.maxBytes} byte)` : ''}. Hãy chọn tệp khác; nội dung đang nhập được giữ lại.`
       case 422: return `Dữ liệu chưa hợp lệ. ${error.message}`
       case 429: return 'Quá nhiều yêu cầu. Vui lòng chờ rồi thử lại.'
       default: if (error.status >= 500) return 'Máy chủ chưa xử lý được yêu cầu. Nội dung đang nhập được giữ lại để bạn thử lại sau.'

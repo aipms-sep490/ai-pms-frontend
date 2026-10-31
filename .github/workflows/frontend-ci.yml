@@ -6,6 +6,22 @@ on:
     branches: [main, develop]
 
 jobs:
+  contract-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: aipms-sep490/ai-pms-backend
+          ref: develop
+          path: backend-contracts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/sync-contracts.mjs check
+        env:
+          AI_PMS_BACKEND_DIR: backend-contracts
+          AI_PMS_BACKEND_REF: HEAD
   quality:
     runs-on: ubuntu-latest
     steps:

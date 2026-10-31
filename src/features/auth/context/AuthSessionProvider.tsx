@@ -15,6 +15,7 @@ import type {
   LoginSession,
 } from '../types/auth.types'
 import { HttpError, configureHttpAuthentication } from '../../../services/http/http-client'
+import { clearUploadPolicyCache } from '../../../services/api/upload-policies.api'
 
 const SESSION_STORAGE_KEY = 'ai-pms.auth-session'
 
@@ -47,6 +48,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const clearSession = useCallback((nextStatus: AuthSessionStatus = 'unauthenticated') => {
+    clearUploadPolicyCache()
     sessionRef.current = null
     setSession(null)
     if (typeof window !== 'undefined') {

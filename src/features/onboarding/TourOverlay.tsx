@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { TourPlacement, TourStep } from './tour-types'
 import './onboarding.css'
 
@@ -6,7 +6,9 @@ interface TourOverlayProps {
   steps: readonly TourStep[]
   label: string
   /** completed = reached the end; false = skipped or dismissed. */
-  onClose: (completed: boolean) => void
+  onClose: (completed: boolean, lastStepId: string) => void
+  initialStepId?: string | null
+  onStepChange?: (stepId: string) => void
 }
 
 const GAP = 12
@@ -22,17 +24,6 @@ interface Position {
 function resolveTarget(step: TourStep): HTMLElement | null {
   if (!step.target) return null
   return document.querySelector<HTMLElement>(`[data-tour="${step.target}"]`)
-}
-
-/** Keeps only steps the current DOM can actually show: a centred message, or a
- * step whose target is present and visible. Roles that hide a control simply
- * get a shorter, still-coherent tour. */
-function visibleSteps(steps: readonly TourStep[]): TourStep[] {
-  return steps.filter((step) => {
-    if (!step.target) return true
-    const el = resolveTarget(step)
-    return Boolean(el && el.getClientRects().length > 0)
-  })
 }
 
 function computePosition(rect: DOMRect | null, preferred: TourPlacement, popWidth: number, popHeight: number): Position {
@@ -65,28 +56,34 @@ function computePosition(rect: DOMRect | null, preferred: TourPlacement, popWidt
   return { top: Math.max(MARGIN, clampTop), left: Math.max(MARGIN, clampLeft), placement: 'bottom' }
 }
 
-export function TourOverlay({ steps, label, onClose }: TourOverlayProps) {
-  const shown = useMemo(() => visibleSteps(steps), [steps])
-  const [index, setIndex] = useState(0)
+export function TourOverlay({ steps, label, onClose, initialStepId, onStepChange }: TourOverlayProps) {
+  const [index, setIndex] = useState(() => Math.max(0, steps.findIndex(step => step.id === initialStepId)))
   const [rect, setRect] = useState<DOMRect | null>(null)
   const [position, setPosition] = useState<Position>({ top: MARGIN, left: MARGIN, placement: 'center' })
   const popoverRef = useRef<HTMLDivElement>(null)
 
-  const step = shown[index]
-  const total = shown.length
+  const step = steps[index]
+  const total = steps.length
   const isLast = index === total - 1
   const popWidth = Math.min(POPOVER_WIDTH, window.innerWidth - MARGIN * 2)
 
-  const finish = useCallback((completed: boolean) => onClose(completed), [onClose])
+  const finish = useCallback((completed: boolean) => { if (step) onClose(completed, step.id) }, [onClose, step])
   const next = useCallback(() => setIndex((i) => (i < total - 1 ? i + 1 : i)), [total])
   const back = useCallback(() => setIndex((i) => (i > 0 ? i - 1 : i)), [])
+
+  useEffect(() => { if (step) onStepChange?.(step.id) }, [step, onStepChange])
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    const missing = steps.filter(item => item.target && !resolveTarget(item)).map(item => item.target)
+    if (missing.length) console.warn('Tour targets missing from the current page:', [...new Set(missing)])
+  }, [steps])
 
   // Track the current target's rectangle and keep it fresh on scroll/resize.
   useLayoutEffect(() => {
     if (!step) return
     const measure = () => {
       const el = resolveTarget(step)
-      setRect(el ? el.getBoundingClientRect() : null)
+      setRect(el && el.getClientRects().length > 0 ? el.getBoundingClientRect() : null)
     }
     measure()
     window.addEventListener('resize', measure)
@@ -100,7 +97,7 @@ export function TourOverlay({ steps, label, onClose }: TourOverlayProps) {
   // Place the popover once its real height is known.
   useLayoutEffect(() => {
     const height = popoverRef.current?.offsetHeight ?? 220
-    setPosition(computePosition(rect, step?.placement ?? 'center', popWidth, height))
+    setPosition(computePosition(rect, rect ? step?.placement ?? 'center' : 'center', popWidth, height))
   }, [rect, step, popWidth])
 
   // Move focus into the popover on each step and trap Tab inside it.
@@ -153,9 +150,9 @@ export function TourOverlay({ steps, label, onClose }: TourOverlayProps) {
           <span className="tour-progress" aria-label={`Bước ${index + 1} trên ${total}`}>{index + 1}/{total}</span>
         </div>
         <h2 id="tour-title" className="tour-title">{step.title}</h2>
-        <p id="tour-body" className="tour-body">{step.body}</p>
+        <p id="tour-body" className="tour-body">{step.target && !rect ? step.fallbackBody ?? step.body : step.body}</p>
         <div className="tour-dots" aria-hidden="true">
-          {shown.map((dot, dotIndex) => (
+          {steps.map((dot, dotIndex) => (
             <span key={dot.id} className={dotIndex === index ? 'tour-dot tour-dot-active' : 'tour-dot'} />
           ))}
         </div>

@@ -1,13 +1,20 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { BackLink } from './BackLink'
+import { useTour } from '../../features/onboarding/tour-context'
 import './workspace-page.css'
 import './workspace-flat.css'
 
-export function WorkspacePage({ title, description, eyebrow, backTo, action, children, className = '' }: {
-  title: string; description?: string; eyebrow?: string; backTo?: string; action?: ReactNode; children: ReactNode; className?: string
+export function WorkspacePage({ title, description, eyebrow, backTo, action, children, className = '', guideId }: {
+  title: string; description?: string; eyebrow?: string; backTo?: string; action?: ReactNode; children: ReactNode; className?: string; guideId?: string
 }) {
+  const { setGuideId } = useTour()
+  useEffect(() => {
+    if (!guideId) return
+    setGuideId(guideId)
+    return () => setGuideId(null)
+  }, [guideId, setGuideId])
   const parts = eyebrow?.split(/[•·]/)
-  return <div className={`workspace-page workspace-flat ${className}`}>
+  return <div className={`workspace-page workspace-flat ${className}`} data-guide-id={guideId}>
     {backTo && <BackLink className="workspace-back" fallback={backTo}><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Quay lại</BackLink>}
     <header className="workspace-heading">
       <div className="workspace-heading-copy">

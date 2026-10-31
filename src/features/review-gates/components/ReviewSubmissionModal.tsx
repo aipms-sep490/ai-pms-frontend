@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Modal } from '../../../components/ui/Modal'
 import { Button } from '../../../components/ui/Button'
 import { env } from '../../../app/config/env'
@@ -8,6 +8,7 @@ import { safeEvidenceLink } from '../utils/evidence-link'
 import { requirementTypeLabel } from '../utils/review-gate-labels'
 import { displayLabel } from '../../../components/ui/display-label'
 import { reviewGateError } from '../utils/review-gate-error'
+import { getUploadPolicy, uploadPolicyLabel, validateUploadFile, type UploadPolicy } from '../../../services/api/upload-policies.api'
 
 export interface ReviewSubmissionPayload {
   artifactName: string
@@ -55,6 +56,21 @@ export function ReviewSubmissionModal({
   const [conflict, setConflict] = useState(false)
   const [linkError, setLinkError] = useState<string | null>(null)
   const sending = useRef(false)
+  const [uploadPolicy, setUploadPolicy] = useState<UploadPolicy | null>(null)
+  const [policyState, setPolicyState] = useState<'loading' | 'ready' | 'unavailable'>('loading')
+
+  useEffect(() => {
+    if (!open || externalLinkRequired) return
+    if (env.reviewGatesMockEnabled) { setPolicyState('unavailable'); return }
+    let active = true
+    setPolicyState('loading')
+    void getUploadPolicy('REVIEW_GATE_EVIDENCE').then(policy => {
+      if (!active) return
+      setUploadPolicy(policy)
+      setPolicyState(policy ? 'ready' : 'unavailable')
+    }).catch(() => { if (active) { setUploadPolicy(null); setPolicyState('unavailable') } })
+    return () => { active = false }
+  }, [open, externalLinkRequired])
 
   if (!requirement) return null
 
@@ -79,11 +95,8 @@ export function ReviewSubmissionModal({
   }
 
   const handleFileSelect = (file: File) => {
-    const maxBytes = 20 * 1024 * 1024 // 20MB aligned with backend UploadValidator
-    if (file.size > maxBytes) {
-      setError(`Tệp vượt quá dung lượng tối đa cho phép (20MB). Dung lượng tệp hiện tại: ${formatFileSize(file.size)}`)
-      return
-    }
+    const policyError = validateUploadFile(file, policyState === 'ready' ? uploadPolicy : null)
+    if (policyError) { setSelectedFile(null); setError(policyError); return }
     setSelectedFile(file)
     setArtifactName(file.name)
     setError(null)
@@ -108,6 +121,10 @@ export function ReviewSubmissionModal({
     if (!env.reviewGatesMockEnabled && submissionMode === 'file' && !selectedFile) {
       setError('Vui lòng chọn tệp minh chứng thực tế.')
       return
+    }
+    if (submissionMode === 'file' && selectedFile) {
+      const policyError = validateUploadFile(selectedFile, policyState === 'ready' ? uploadPolicy : null)
+      if (policyError) { setError(policyError); return }
     }
     if (!notes.trim()) {
       setError('Vui lòng nhập ghi chú hoặc giải trình nội dung nộp.')
@@ -186,7 +203,7 @@ export function ReviewSubmissionModal({
             }`}
           >
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">upload_file</span>
-            Tải tệp lên (PDF, DOCX, ZIP)
+            Tải tệp lên
           </button>}
           {externalLinkRequired && <button
             type="button"
@@ -205,6 +222,7 @@ export function ReviewSubmissionModal({
 
         {submissionMode === 'file' ? (
           <div className="space-y-3">
+            <p role="status" className="text-xs text-slate-600">{policyState === 'ready' && uploadPolicy ? uploadPolicyLabel(uploadPolicy) : policyState === 'loading' ? 'Đang tải giới hạn tệp từ máy chủ…' : 'Chưa tải được chính sách tệp. Bạn vẫn có thể chọn tệp; máy chủ sẽ kiểm tra khi gửi.'}</p>
             {!selectedFile ? (
               <div
                 role="button"
@@ -241,7 +259,7 @@ export function ReviewSubmissionModal({
                   aria-label="Tệp minh chứng"
                   className="hidden"
                   disabled={!isPermitted || busy}
-                  accept=".pdf,.docx,.zip,.png,.jpg,.jpeg,.xlsx,.pptx"
+                  accept={uploadPolicy?.allowedExtensions.join(',') || undefined}
                   onChange={(e) => {
                     const picked = e.target.files?.[0]
                     if (picked) handleFileSelect(picked)
@@ -254,7 +272,7 @@ export function ReviewSubmissionModal({
                   Kéo thả tệp minh chứng vào đây, hoặc <span className="text-primary underline">chọn từ thiết bị</span>
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Hỗ trợ định dạng PDF, DOCX, ZIP, PNG, JPG (Tối đa 20MB theo quy chuẩn hệ thống)
+                  {policyState === 'ready' && uploadPolicy ? uploadPolicyLabel(uploadPolicy) : 'Giới hạn và định dạng sẽ do máy chủ xác nhận khi gửi.'}
                 </p>
               </div>
             ) : (

@@ -72,6 +72,7 @@ async function fixture(page: Page, options: { dashboardError?: boolean; actionsE
       hybridScopes: { COMMON: 'IN_REVIEW', '12': 'REVISION_REQUIRED', '13': 'IN_REVIEW' },
       hybridScopeLabels: { COMMON: 'Phần tích hợp chung', '12': 'Kỹ thuật phần mềm', '13': 'Thiết kế đồ họa' },
     }])
+    if (path === '/api/v1/projects/40008') return json({ id: 40008, majors: [{ majorId: 12, majorName: 'Kỹ thuật phần mềm' }, { majorId: 13, majorName: 'Thiết kế đồ họa' }] })
     if (path.endsWith('/calendar')) return json({ items: [], complete: true, hasMore: false })
     if (path.endsWith('/dashboards/student')) return options.dashboardError
       ? route.fulfill({ status: 500, json: { detail: 'Dashboard tạm lỗi' } })
@@ -198,10 +199,29 @@ test('200% rendered CSS zoom at physical 1440x900 across real calendar, timeline
   await page.getByRole('button', { name: /Gate Liên ngành/ }).click()
   await expect(page.getByText('Kỹ thuật phần mềm', { exact: true }).first()).toBeVisible()
   await expect(page.getByText('Thiết kế đồ họa', { exact: true }).first()).toBeVisible()
-  await expect(page.locator('table select:not([disabled])')).toHaveCount(0)
+  await expect(page.locator('table select:not([disabled])')).toHaveCount(3)
   await checkZoomLayout(); await screenshot(page, info, 'hybrid-css-zoom-200')
   expect(state.calls.filter(call => call.method === 'POST')).toEqual([])
   expect(state.unexpected).toEqual([]); expect(state.errors).toEqual([])
+})
+
+test('F5 real-mode scope decision keeps the selected draft and action after a server 403', async ({ page }) => {
+  await fixture(page)
+  let attempts = 0
+  await page.route('**/projects/40008/review-gates/scopes/12', route => {
+    attempts += 1
+    return route.fulfill({ status: 403, json: { code: 'REVIEW_SCOPE_FORBIDDEN' } })
+  })
+  await page.goto('/e2e/batch1.html?view=builder&actor=department')
+  await page.getByRole('button', { name: /Gate Liên ngành/ }).click()
+  const choice = page.getByRole('combobox', { name: 'Trạng thái thẩm định · Kỹ thuật phần mềm' })
+  await choice.selectOption('PASSED')
+  const row = page.getByRole('row').filter({ has: choice })
+  await row.getByRole('button', { name: 'Ghi quyết định' }).click()
+  await expect.poll(() => attempts).toBe(1)
+  await expect(choice).toHaveValue('PASSED')
+  await expect(page.getByText(/Máy chủ không cấp quyền quyết định phạm vi này/)).toBeVisible()
+  await expect(row.getByRole('button', { name: 'Ghi quyết định' })).toBeVisible()
 })
 
 test('R3-02 reports N received including HIGH and NORMAL against backend total', async ({ page }, info) => {
@@ -359,7 +379,7 @@ for (const width of [390, 768, 1280, 1440, 720]) test(`R3-06..08 real governance
   await expect(page.getByText('Thiết kế đồ họa', { exact: true }).first()).toBeVisible()
   await expect(page.getByText('Chuyên ngành 12', { exact: true })).toHaveCount(0)
   await expect(page.getByText('READY FOR PASS', { exact: true })).toHaveCount(0)
-  await expect(page.locator('table select:not([disabled])')).toHaveCount(0)
+  await expect(page.locator('table select:not([disabled])')).toHaveCount(3)
   await noOverflow(page)
   await screenshot(page, info, 'hybrid-backend-labels')
   expect(state.calls.filter(call => call.method === 'POST')).toEqual([])

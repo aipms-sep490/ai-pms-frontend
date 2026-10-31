@@ -38,6 +38,12 @@ window.fetch = async (input, init) => {
   if (url.pathname.endsWith('/tasks/project/9')) return json(paged([task]))
   if (url.pathname.endsWith('/milestones/project/9')) return json([{ id: 3, title: 'Kiểm thử', status: 'PLANNED' }])
   if (url.pathname.includes('reporting-cycles')) return json(paged([cycle]))
+  if (url.pathname.endsWith('/progress-reports/prefill')) return json({
+    progressReportPeriodId: url.searchParams.get('progressReportPeriodId') ? Number(url.searchParams.get('progressReportPeriodId')) : null,
+    reportType: 'WEEKLY', periodStart: cycle.periodStart, periodEnd: cycle.periodEnd,
+    suggested: { summary: 'Tiến độ từ dữ liệu dự án', completedWork: 'Đã hoàn tất tác vụ', inProgressWork: null,
+      blockers: null, risks: null, nextActions: null }, evidence: [], insufficientData: false,
+  })
   if (url.pathname.endsWith('/progress-reports') && method === 'GET') return json(paged([]))
   if (url.pathname.endsWith('/progress-reports') && method === 'POST') { report = { ...report, ...JSON.parse(String(init?.body)) }; return json(report) }
   if (url.pathname.endsWith('/submit')) { report = { ...report, status: 'SUBMITTED' }; return json(report) }

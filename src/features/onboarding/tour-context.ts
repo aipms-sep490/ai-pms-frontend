@@ -8,6 +8,8 @@ export interface TourContextValue {
   isActive: boolean
   /** Short label of the active/available script, e.g. "Hướng dẫn sinh viên". */
   label: string | null
+  guideId: string | null
+  setGuideId: (guideId: string | null) => void
   startTour: (reason?: TourStartReason) => void
 }
 
@@ -15,6 +17,6 @@ export const TourContext = createContext<TourContextValue | null>(null)
 
 export function useTour(): TourContextValue {
   const value = useContext(TourContext)
-  if (!value) return { hasTour: false, isActive: false, label: null, startTour: () => {} }
+  if (!value) return { hasTour: false, isActive: false, label: null, guideId: null, setGuideId: () => {}, startTour: () => {} }
   return value
 }

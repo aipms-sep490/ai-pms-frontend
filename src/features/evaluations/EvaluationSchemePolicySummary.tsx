@@ -1,12 +1,11 @@
 import { Badge } from '../../components/ui/Badge'
-import type { EvaluationScheme } from './evaluation-types'
+import { evaluationStageLabel, type EvaluationScheme } from './evaluation-types'
 
 const labels: Record<string, string> = {
   COMPONENT_WEIGHTS: 'Theo trọng số thành phần',
   DEMO_50_30_20: 'Tỷ lệ 50/30/20 — chỉ minh họa',
   DECIMAL_V2: 'Decimal v2', LEGACY_V1: 'Legacy v1 — giữ cách tính đã ghi nhận',
   AWAY_FROM_ZERO: 'Điểm giữa làm tròn ra xa 0', TO_EVEN: 'Điểm giữa làm tròn đến số chẵn',
-  ON_GOING: 'Trong quá trình thực hiện', COLD: 'Đánh giá COLD', DEFENSE: 'Bảo vệ',
   APPROVED: 'Đã chấp thuận', DEMO: 'Minh họa',
 }
 const label = (value: string | null | undefined) => value ? labels[value] ?? value : 'Chưa xác định'
@@ -41,7 +40,7 @@ export function EvaluationSchemePolicySummary({ scheme }: { scheme: EvaluationSc
     <div className="space-y-2 border-t border-hairline pt-3">
       <h4 className="font-semibold text-ink">Giai đoạn và trọng số người chấm đã lưu</h4>
       <ul className="space-y-3">{scheme.components.map(item => <li key={item.id} className="min-w-0 break-words">
-        <strong>{item.name}</strong><p className="mt-1">Giai đoạn: {label(item.stage)}</p>
+        <strong>{item.name}</strong><p className="mt-1">Giai đoạn: {evaluationStageLabel(item.stage)}</p>
         {item.evaluatorWeights == null ? <p>Trung bình đều theo hệ thống · {item.requiredEvaluators} người chấm bắt buộc.</p> : item.evaluatorWeights.length === 0 ? <p>Danh sách trọng số rỗng — cần kiểm tra cấu hình trên hệ thống.</p> : <>
           <p>{item.requiredEvaluators} người chấm bắt buộc; thiếu điểm không tự chia lại trọng số.</p>
           <ul className="mt-1 space-y-1">{item.evaluatorWeights.map((weight, index) => <li key={`${weight.evaluatorId}-${index}`}>Người chấm #{weight.evaluatorId}: {weight.weightPercent}%</li>)}</ul>

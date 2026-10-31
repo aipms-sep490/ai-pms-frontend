@@ -137,7 +137,7 @@ test('controlled HTTP: exact download handles authorization revocation', async (
 
 test('controlled HTTP: empty governance does not request a hardcoded project', async ({ page }) => {
   const projectRequests: string[] = []
-  page.on('request', request => { if (request.url().includes('/projects/')) projectRequests.push(request.url()) })
+  page.on('request', request => { if (new URL(request.url()).pathname.startsWith('/api/v1/projects/')) projectRequests.push(request.url()) })
   await page.route('**/gate-templates', route => route.fulfill({ json: [] }))
   await page.route('**/review-gates/matrix', route => route.fulfill({ json: [] }))
   await login(page, 'governance')

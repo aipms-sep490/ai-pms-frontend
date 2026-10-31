@@ -26,7 +26,7 @@ const scheme: EvaluationScheme = {
   id: 31, rootId: 31, version: 1, projectId: 2, projectPeriodId: 7, name: 'Phương án ban đầu',
   status: 'DRAFT', passThreshold: 5, concurrencyToken: 'old-token', policyVersionId: null,
   calculationRule: 'CURRENT_RULE', students: [],
-  components: [{ id: 42, name: 'Chất lượng đồ án', scope: 'COMMON', majorId: null, rubricId: 4, projectWeightPercent: 100, studentWeightPercent: 100, requiredEvaluators: 1 }],
+  components: [{ id: 42, name: 'Chất lượng đồ án', scope: 'COMMON', majorId: null, rubricId: 4, projectWeightPercent: 100, studentWeightPercent: 100, requiredEvaluators: 1, stage: 'DEFENSE' }],
 }
 const latest: EvaluationScheme = { ...scheme, name: 'Phương án trên server', passThreshold: 6, concurrencyToken: 'new-token' }
 const conflictError = () => new HttpError('Server changed', 409)

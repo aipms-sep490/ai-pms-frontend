@@ -14,6 +14,14 @@ export interface EvaluationAssignment {
 }
 export type EvaluationScope = Exclude<EvaluationAssignment['scope'], 'UNKNOWN'>
 export type EvaluationStage = 'ON_GOING' | 'COLD' | 'DEFENSE' | (string & {})
+export const evaluationStageLabels = {
+  COLD: 'Chấm hồ sơ đã khóa',
+  DEFENSE: 'Bảo vệ',
+  ON_GOING: 'Đánh giá quá trình',
+} as const
+export const evaluationStageLabel = (stage: EvaluationStage | null | undefined) =>
+  stage ? evaluationStageLabels[stage as keyof typeof evaluationStageLabels] ?? stage : 'Chưa xác định'
+export interface CriterionLevel { levelOrder: number; label: string; descriptor: string; scoreFrom: number | null; scoreTo: number | null }
 export interface SchemeEvaluatorWeight { evaluatorId: number; weightPercent: number }
 export interface SchemePolicy {
   isDemo: boolean; approvalStatus: string; approvalReference: string | null
@@ -27,7 +35,7 @@ export interface EvaluationSchemeComponent {
 }
 export interface EvaluationSchemeStudent { studentId: number; majorId: number; departmentId: number }
 export interface EvaluationScheme { id: number; rootId: number; version: number; projectId: number; projectPeriodId: number; name: string; status: 'DRAFT' | 'PROPOSED' | 'PUBLISHED' | 'FROZEN' | string; passThreshold: number; concurrencyToken: string; policyVersionId: number | null; components: EvaluationSchemeComponent[]; students: EvaluationSchemeStudent[]; calculationRule: string; policy?: SchemePolicy | null; lockedAt?: string | null }
-export interface EvaluationScore { rubricCriterionId: number; name: string; description: string | null; weightPercent: number; maxScore: number; sortOrder: number; isRequired: boolean; score: number | null; comments: string | null }
+export interface EvaluationScore { rubricCriterionId: number; name: string; description: string | null; weightPercent: number; maxScore: number | null; sortOrder: number; isRequired: boolean; score: number | null; comments: string | null; criterionCode?: string | null; parentId?: number | null; effectiveWeightPercent?: number | null; learningOutcome?: string | null; evidenceGuidance?: string | null; levels?: CriterionLevel[] | null }
 export interface EvaluationDraft {
   id: number; assignmentId: number; projectId: number; evaluatorId: number; rubricId: number; rubricName: string; rootRubricId: number; rubricVersion: number
   evaluationType: string; status: 'DRAFT' | 'FINALIZED' | string; comments: string | null; totalScore: number | null; scoreScale: number; calculationRule: string

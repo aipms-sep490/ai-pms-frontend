@@ -27,6 +27,61 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Evaluator Workspace Phase 5', () => {
+  it('keeps approval state visible on the scoring page and fails closed when BE omits it', async () => {
+    page()
+    const unknown = await screen.findByText(/Chưa xác định trạng thái phê duyệt của bộ tiêu chí/)
+    expect(unknown.closest('header')).toBeTruthy()
+    expect(screen.queryByText(/Đây là phiếu chấm chính thức/)).toBeNull()
+  })
+
+  it('shows the approved label only with a BE reference, including on a finalized draft', async () => {
+    api.getEvaluationAssignmentDetail.mockResolvedValue({ assignment, canScore: true, legacyReadOnly: false, denialReason: null,
+      schemeIsDemo: false, schemeApprovalStatus: 'APPROVED', schemeApprovalReference: 'QĐ-123' })
+    api.getProjectEvaluations.mockResolvedValue({ items: [{ ...draft, status: 'FINALIZED' }], page: 1, pageSize: 100, totalCount: 1 })
+    page()
+    expect((await screen.findByText(/Đây là phiếu chấm chính thức/)).closest('header')).toBeTruthy()
+    expect(await screen.findByText(/Đánh giá đã chốt/)).toBeTruthy()
+  })
+
+  it('shows BE stage, both distinct weights and collapsible guidance without enforcing suggested bands', async () => {
+    api.getEvaluationAssignmentDetail.mockResolvedValue({ assignment, canScore: true, legacyReadOnly: false, denialReason: null, stage: 'COLD', componentStudentWeightPercent: 35, completedEvaluators: 2, requiredEvaluators: 3 })
+    api.getProjectEvaluations.mockResolvedValue({ items: [{ ...draft, scores: [{ ...draft.scores[0], effectiveWeightPercent: 70, evidenceGuidance: 'Báo cáo đã khóa', levels: [{ levelOrder: 1, label: 'Khá', descriptor: 'Phân tích rõ', scoreFrom: 7, scoreTo: 8.9 }] }] }] })
+    page()
+    const score = await screen.findByLabelText('Điểm Phân tích') as HTMLInputElement
+    expect(screen.getByText('Chấm hồ sơ đã khóa')).toBeTruthy()
+    expect(screen.getByText(/Trọng số trong bộ tiêu chí: 70%/)).toBeTruthy()
+    expect(screen.getByText(/tỷ trọng phiếu trong điểm sinh viên: 35%/)).toBeTruthy()
+    expect(screen.getByText(/Người chấm đã hoàn tất: 2\/3/)).toBeTruthy()
+    expect((screen.getByText('Mức chất lượng và dải điểm gợi ý').closest('details') as HTMLDetailsElement).open).toBe(false)
+    fireEvent.click(screen.getByText('Mức chất lượng và dải điểm gợi ý'))
+    expect((screen.getByText('Mức chất lượng và dải điểm gợi ý').closest('details') as HTMLDetailsElement).open).toBe(true)
+    expect(screen.getByText('Phân tích rõ')).toBeTruthy()
+    fireEvent.change(score, { target: { value: '9' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
+    await waitFor(() => expect(api.saveEvaluationDraft).toHaveBeenCalled())
+    expect(api.saveEvaluationDraft.mock.calls.at(-1)?.[1].scores[0].score).toBe(9)
+  })
+  it('keeps legacy assignments scoreable with no stage or quality levels', async () => {
+    page()
+    expect(await screen.findByLabelText('Điểm Phân tích')).toBeTruthy()
+    expect(screen.getByText('Chưa xác định')).toBeTruthy()
+    expect(screen.queryByText('Mức chất lượng và dải điểm gợi ý')).toBeNull()
+  })
+  it('renders a parent group without a score input and sends only its scorable child', async () => {
+    const parent = { ...draft.scores[0], rubricCriterionId: 11, name: 'Nhóm sản phẩm', maxScore: null, isRequired: false, levels: [{ levelOrder: 1, label: 'Không áp dụng', descriptor: 'Không chấm cha', scoreFrom: null, scoreTo: null }] }
+    const child = { ...draft.scores[0], parentId: 11, sortOrder: 2 }
+    api.getProjectEvaluations.mockResolvedValue({ items: [{ ...draft, scores: [parent, child] }] })
+    api.saveEvaluationDraft.mockResolvedValue(draft)
+    page()
+    await screen.findByLabelText('Điểm Phân tích')
+    expect(screen.getByText(/Nhóm tiêu chí \(không chấm trực tiếp\)/)).toBeTruthy()
+    expect(screen.queryByLabelText('Điểm Nhóm sản phẩm')).toBeNull()
+    expect(screen.queryByText('Không chấm cha')).toBeNull()
+    fireEvent.change(screen.getByLabelText('Điểm Phân tích'), { target: { value: '8' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
+    await waitFor(() => expect(api.saveEvaluationDraft).toHaveBeenCalled())
+    expect(api.saveEvaluationDraft.mock.calls.at(-1)?.[1].scores).toEqual([{ rubricCriterionId: 12, score: 8, comments: null }])
+  })
   it('does not classify an unavailable draft as a new or pending evaluation', async () => {
     api.getProjectEvaluations.mockRejectedValue(new Error('offline'))
     page('/evaluator/workspace')
@@ -129,6 +184,15 @@ describe('Evaluator Workspace Phase 5', () => {
     api.saveEvaluationDraft.mockResolvedValue({ ...draft, totalScore: 8.5, missingCriterionIds: [], missingRequiredCriterionIds: [] })
     fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
     await waitFor(() => expect(api.saveEvaluationDraft).toHaveBeenCalledWith(51, { concurrencyToken: 'draft-token', comments: null, scores: [{ rubricCriterionId: 12, score: 8.5, comments: null }] }))
+  })
+  it('omits an empty score from the save payload instead of converting it to zero', async () => {
+    page()
+    await screen.findByLabelText('Điểm Phân tích')
+    fireEvent.change(screen.getByLabelText('Nhận xét tổng thể'), { target: { value: 'Chưa đủ minh chứng' } })
+    api.saveEvaluationDraft.mockResolvedValue(draft)
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
+    await waitFor(() => expect(api.saveEvaluationDraft).toHaveBeenCalled())
+    expect(api.saveEvaluationDraft.mock.calls.at(-1)?.[1].scores).toEqual([])
   })
 
   it('keeps typed draft values when a stale save reloads authoritative data', async () => {
