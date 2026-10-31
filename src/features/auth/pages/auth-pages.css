@@ -95,10 +95,10 @@
 
 .auth-status { margin: 8px 0 0; color: var(--color-status-success-text); font-size: 13px; }
 .auth-form-hint { margin: 0; color: var(--color-ink-muted); font-size: 12px; line-height: 1.5; }
-.auth-return-link { display: inline-block; margin-top: 20px; color: var(--aipms-ui-link); font-size: 13px; font-weight: 700; }
+.auth-return-link { display: inline-block; margin-top: 20px; color: var(--color-academic-emerald); font-size: 13px; font-weight: 700; }
 .auth-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 20px 0 0; }
 .auth-actions > :is(button, a) { min-height: 36px; margin: 0; padding-inline: 14px; font-size: 13px; }
-.auth-recovery-link { display: block; margin-top: 20px; color: var(--aipms-ui-link); font-size: 13px; font-weight: 700; text-align: center; }
+.auth-recovery-link { display: block; margin-top: 20px; color: var(--color-academic-emerald); font-size: 13px; font-weight: 700; text-align: center; }
 .auth-divider { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin: 24px 0 16px; color: var(--color-ink-muted); font-size: 12px; }
 .auth-divider::before, .auth-divider::after { height: 1px; background: var(--color-hairline); content: ''; }
 .auth-google { display: grid; min-height: 44px; place-items: center; }
@@ -174,7 +174,7 @@
 .profile-workspace .auth-profile-grid > div + div { padding-left: 24px; border-left: 1px solid var(--color-line); }
 .profile-workspace .auth-form { max-width: 640px; }
 .profile-workspace .auth-actions { padding-top: 20px; border-top: 1px solid var(--color-line); }
-.profile-security-link { display: inline-flex; align-items: center; gap: 8px; color: var(--aipms-ui-link); font-weight: 600; text-decoration: none; }
+.profile-security-link { display: inline-flex; align-items: center; gap: 8px; color: var(--color-academic-emerald); font-weight: 600; text-decoration: none; }
 .profile-security-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .profile-security-link .material-symbols-outlined { font-size: 17px; }
 @media(max-width: 640px) {

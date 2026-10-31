@@ -1,16 +1,20 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+// @ts-ignore
+import fs from 'node:fs'
+// @ts-ignore
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const indexCss = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
+// @ts-ignore
+const currentDir: string = typeof __dirname !== 'undefined' ? __dirname : import.meta.dirname
+const indexCss: string = fs.readFileSync(path.resolve(currentDir, '../index.css'), 'utf8')
 
 const modules = {
   ...import.meta.glob(['../**/*.{ts,tsx,css}', '!../**/*.test.{ts,tsx}', '!../index.css'], { query: '?raw', import: 'default', eager: true }),
 } as Record<string, string>
 
-for (const [path, content] of Object.entries(modules)) {
+for (const [relPath, content] of Object.entries(modules)) {
   if (!content) {
-    modules[path] = readFileSync(resolve(__dirname, path), 'utf8')
+    modules[relPath] = fs.readFileSync(path.resolve(currentDir, relPath), 'utf8')
   }
 }
 
@@ -56,17 +60,17 @@ describe('design tokens', () => {
 
   it('never uses retired moss palette hex codes', () => {
     const retiredPaletteHex = /#(0f5b4e|0a493f|edf3f0|14201d|3d4a46|596863|e5ece8|d7e0dc)(?![0-9a-f])/i
-    expect(sources.filter(([, text]) => retiredPaletteHex.test(text)).map(([path]) => path)).toEqual([])
+    expect(sources.filter(([, text]) => retiredPaletteHex.test(text)).map(([relPath]) => relPath)).toEqual([])
   })
 
   it('never hard-codes a colour that already has a canonical semantic token', () => {
     const tokenHex = /#(087d77|06665f|ddf7f4|0f2747|12b3a8|f6b94c|e35d6a|b42318|162033|64748b|d9e1ec|cbd5e1|f6f8fb|0a766f|b45309)(?![0-9a-f])/i
-    expect(sources.filter(([, text]) => tokenHex.test(text)).map(([path]) => path)).toEqual([])
+    expect(sources.filter(([, text]) => tokenHex.test(text)).map(([relPath]) => relPath)).toEqual([])
   })
 
   it('keeps every text size at or above 12px', () => {
     const tiny = /text-\[(?:9|10|10\.5|11|11\.5)px\]|font-size:\s*(?:9|10|10\.5|11|11\.5)px/
-    expect(sources.filter(([, text]) => tiny.test(text)).map(([path]) => path)).toEqual([])
+    expect(sources.filter(([, text]) => tiny.test(text)).map(([relPath]) => relPath)).toEqual([])
   })
 
   it('guarantees WCAG 2.1 AA text contrast (>= 4.5:1) for primary and status tokens', () => {

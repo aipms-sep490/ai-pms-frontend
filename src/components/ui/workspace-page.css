@@ -1,6 +1,6 @@
 .workspace-page { --page-gutter: 24px; width: 100%; max-width: 1200px; min-width: 0; margin-inline: auto; padding-bottom: 32px; color: var(--color-ink); font-size: 14px; line-height: 1.6; }
 .workspace-back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 20px; color: var(--color-ink-muted); font-size: 13px; text-decoration: none; font-weight: 500; }
-.workspace-back:hover { color: var(--aipms-ui-link); text-decoration: underline; }
+.workspace-back:hover { color: var(--color-academic-emerald); text-decoration: underline; }
 .workspace-back .material-symbols-outlined { font-size: 18px; }
 .workspace-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .workspace-heading-copy { min-width: 0; flex: 1; }
