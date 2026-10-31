@@ -93,38 +93,6 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Optional dark palette */
-[data-aipms-ui-theme="dark"] {
-  --aipms-ui-brand-navy: #0B1726;
-  --aipms-ui-brand-teal: #31C7BC;
-  --aipms-ui-brand-teal-soft: #123F42;
-  --aipms-ui-accent-amber: #F4BF6B;
-  --aipms-ui-danger: #F48187;
-  --aipms-ui-canvas: #0E1726;
-  --aipms-ui-surface: #172638;
-  --aipms-ui-border: #2B4155;
-  --aipms-ui-text-primary: #EAF1F8;
-  --aipms-ui-text-secondary: #ACBDCF;
-  --aipms-ui-link: #64DED4;
-  --aipms-ui-primary-button-bg: #21A79C;
-  --aipms-ui-primary-button-fg: #081B24;
-  --aipms-ui-primary-hover-bg: #42C8BE;
-  --aipms-ui-focus-ring: #7DE4DA;
-  --aipms-ui-shadow-card: 0 4px 18px rgba(0, 0, 0, .12);
-  --aipms-ui-shadow-overlay: 0 18px 48px rgba(0, 0, 0, .4);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-aipms-ui-root] *,
-  [data-aipms-ui-root] *::before,
-  [data-aipms-ui-root] *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
 body {
   min-height: 100vh;
   background-color: var(--color-canvas);
