@@ -1,7 +1,7 @@
 # AI-PMS — KẾ HOẠCH NÂNG CẤP ĐỒNG BỘ UI/UX (UIUX CHANGE PLAN)
 
-**Phiên bản:** 1.0 — 31/10/2026  
-**Định vị:** Academic Command Center (Navy `#0F2747` · Teal `#12B3A8` · Amber `#F6B94C` · Canvas `#F6F8FB`)  
+**Phiên bản:** 1.0 — 31/10/2026
+**Định vị:** Academic Command Center (Navy `#0F2747` · Teal `#12B3A8` · Amber `#F6B94C` · Canvas `#F6F8FB`)
 **Mục tiêu:** Áp dụng toàn diện bộ nhận diện mới, nâng cao độ hoàn thiện visual, tương tác, accessibility và tính thống nhất cho toàn bộ hệ thống mà KHÔNG gây regression logic.
 
 ---

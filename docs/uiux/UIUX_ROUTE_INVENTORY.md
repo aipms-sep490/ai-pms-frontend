@@ -1,8 +1,8 @@
 # AI-PMS — BẢNG ĐIỀU TRA ROUTE, WORKSPACE & HÀNH VI HIỆN TẠI (ROUTE INVENTORY)
 
-**Ngày lập:** 31/10/2026  
-**Nhánh công tác:** `feat/uiux-academic-command-center` (tạo từ `develop` mới nhất — SHA: `c67f42e`)  
-**Mục tiêu:** Kiểm toán toàn bộ routes, components, vai trò, quyền, state/mode dependencies, form, bảng, mức độ rủi ro theo tiêu chuẩn Giai đoạn A trong Master Prompt.  
+**Ngày lập:** 31/10/2026
+**Nhánh công tác:** `feat/uiux-academic-command-center` (tạo từ `develop` mới nhất — SHA: `c67f42e`)
+**Mục tiêu:** Kiểm toán toàn bộ routes, components, vai trò, quyền, state/mode dependencies, form, bảng, mức độ rủi ro theo tiêu chuẩn Giai đoạn A trong Master Prompt.
 **Nguyên tắc bất biến:** Không đổi route, không đổi API contracts, không đổi logic nghiệp vụ, giữ nguyên ngôn ngữ tiếng Việt.
 
 ---
