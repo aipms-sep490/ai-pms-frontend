@@ -12,7 +12,7 @@
   border: 1px solid var(--color-hairline);
   border-radius: 14px;
   background: #ffffff;
-  box-shadow: 0 1px 3px rgba(15, 39, 71, 0.04);
+  box-shadow: 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 4%, transparent);
 }
 
 .review-page h1 {
@@ -80,7 +80,7 @@
 .review-page textarea:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(8, 125, 119, 0.18);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 18%, transparent);
 }
 
 .review-page__actions {
@@ -136,7 +136,7 @@
 }
 
 .review-page .btn-approve {
-  background-color: #16a34a !important;
+  background-color: var(--color-status-success-text) !important;
   color: #ffffff !important;
   border-color: transparent !important;
 }
@@ -145,8 +145,8 @@
 }
 
 .review-page .btn-revision {
-  background-color: #fef3c7 !important;
-  color: #92400e !important;
+  background-color: var(--color-status-warning-bg) !important;
+  color: var(--color-status-warning-text) !important;
   border-color: var(--color-status-warning-border) !important;
 }
 .review-page .btn-revision:hover {
@@ -159,7 +159,7 @@
   border-color: transparent !important;
 }
 .review-page .btn-reject:hover {
-  background-color: #b91c1c !important;
+  background-color: var(--color-danger-text) !important;
 }
 
 .review-page__back-link {

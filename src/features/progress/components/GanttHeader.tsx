@@ -99,11 +99,11 @@ export function GanttHeader({
         <div className="hidden lg:block h-4 w-px bg-slate-200" />
 
         {/* Metric 3: Critical Path Length */}
-        <div className="flex items-center gap-1.5 text-rose-700">
-          <span className="material-symbols-outlined text-sm text-rose-600">priority_high</span>
+        <div className="flex items-center gap-1.5 text-danger-text">
+          <span className="material-symbols-outlined text-sm text-danger-text">priority_high</span>
           <span className="font-semibold">Đường găng:</span>
-          <span className="font-bold font-mono text-rose-800">{telemetry.criticalPathDays} ngày</span>
-          <span className="text-rose-600/80 font-medium">({telemetry.criticalTasksCount} tác vụ găng)</span>
+          <span className="font-bold font-mono text-danger-text">{telemetry.criticalPathDays} ngày</span>
+          <span className="text-danger-text/80 font-medium">({telemetry.criticalTasksCount} tác vụ găng)</span>
         </div>
 
         <div className="hidden lg:block h-4 w-px bg-slate-200" />
@@ -122,14 +122,14 @@ export function GanttHeader({
       </div>
 
       {/* Critical Path Warning Callout (Single non-duplicated alert) */}
-      <div className="px-3.5 py-2 rounded-lg border border-amber-300 bg-amber-50/90 text-amber-900 flex items-center gap-2 text-xs">
-        <span className="material-symbols-outlined text-amber-600 text-base shrink-0">
+      <div className="px-3.5 py-2 rounded-lg border border-warning-strong bg-status-warning-bg/90 text-status-warning-text flex items-center gap-2 text-xs">
+        <span className="material-symbols-outlined text-status-warning-text text-base shrink-0">
           warning
         </span>
         <div className="min-w-0 text-xs leading-relaxed break-words">
           <strong>Cảnh báo đường găng:</strong> Nhiệm vụ{' '}
-          <span className="font-mono font-bold text-amber-950">SEP-108</span> đang chậm 2 ngày trên chuỗi{' '}
-          <span className="font-mono font-bold text-amber-950">{telemetry.bottleneckChain.join(' → ')}</span>, có nguy cơ làm lùi hạn nộp Cột mốc M3 (18/09/2026).
+          <span className="font-mono font-bold text-status-warning-text">SEP-108</span> đang chậm 2 ngày trên chuỗi{' '}
+          <span className="font-mono font-bold text-status-warning-text">{telemetry.bottleneckChain.join(' → ')}</span>, có nguy cơ làm lùi hạn nộp Cột mốc M3 (18/09/2026).
         </div>
       </div>
     </div>

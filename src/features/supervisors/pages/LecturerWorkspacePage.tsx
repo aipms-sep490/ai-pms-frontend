@@ -33,7 +33,7 @@ export function LecturerWorkspacePage() {
   return (
     <WorkspacePage className="lecturer-workspace space-y-6" title="Hướng dẫn đồ án" eyebrow="Giảng viên hướng dẫn" description="Theo dõi tiến độ, góp ý cho nhóm và xử lý các đề nghị hướng dẫn." action={<Button variant="secondary" icon="refresh" disabled={inbox.loading} onClick={() => void inbox.refresh()}>Tải lại</Button>}>
 
-      {inbox.error ? <section role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{inbox.error.message}</section> : null}
+      {inbox.error ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-danger-text">{inbox.error.message}</section> : null}
 
       <section className="lecturer-projects" aria-labelledby="assigned-projects">
         <div className="flex flex-wrap items-end justify-between gap-2"><div><h2 id="assigned-projects" className="mt-1 text-lg font-bold">Đồ án đang hướng dẫn</h2><p className="mt-1 text-sm text-ink-muted">Chọn công việc, báo cáo hoặc cuộc họp để tiếp tục hướng dẫn nhóm.</p></div></div>
@@ -97,7 +97,7 @@ export function LecturerWorkspacePage() {
                     <span className="material-symbols-outlined text-primary text-sm" aria-hidden="true">mail</span>
                     <strong>{project?.title ?? `Đồ án #${request.projectId}`}{project?.code ? ` · ${project.code}` : ''}</strong>
                   </div>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isPending ? 'bg-amber-100 text-amber-800' : 'bg-canvas text-ink-soft'}`}>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isPending ? 'bg-status-warning-bg text-status-warning-text' : 'bg-canvas text-ink-soft'}`}>
                     {displayLabel(request.status)}
                   </span>
                 </div>
@@ -151,7 +151,7 @@ export function LecturerWorkspacePage() {
               <li key={request.id} className="border-b border-hairline py-4 text-sm last:border-b-0">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <strong>{team?.name ?? 'Nhóm #' + request.teamId}</strong>
-                  <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">{displayLabel(request.status)}</span>
+                  <span className="rounded-full bg-status-warning-bg px-2 py-1 text-xs font-semibold text-status-warning-text">{displayLabel(request.status)}</span>
                 </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
                   <p><span className="text-xs text-ink-muted">Trưởng nhóm hiện tại</span><br/><b>{current?.fullName ?? '#' + request.currentLeaderUserId}</b></p>

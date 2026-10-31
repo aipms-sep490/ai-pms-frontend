@@ -29,7 +29,7 @@ export function DefenseReadinessChecker({
             className={`rounded-full px-3 py-1 text-xs font-bold border ${
               summary.isReady
                 ? 'bg-status-success-bg text-status-success-text border-status-success-border'
-                : 'bg-rose-50 text-rose-700 border-rose-200'
+                : 'bg-status-error-bg text-danger-text border-status-error-border'
             }`}
           >
             {summary.isReady ? 'ĐỦ ĐIỀU KIỆN BẢO VỆ' : 'CHƯA ĐỦ ĐIỀU KIỆN'}
@@ -93,7 +93,7 @@ export function DefenseReadinessChecker({
                         isPass
                           ? 'border-status-success-border bg-status-success-bg'
                           : isFail
-                          ? 'border-rose-100 bg-rose-50/30'
+                          ? 'border-status-error-border bg-status-error-bg/30'
                           : 'border-hairline bg-canvas/30'
                       }`}
                     >
@@ -103,7 +103,7 @@ export function DefenseReadinessChecker({
                             isPass
                               ? 'bg-primary text-white'
                               : isFail
-                              ? 'bg-rose-600 text-white'
+                              ? 'bg-danger-strong text-white'
                               : 'bg-slate-300 text-ink-soft'
                           }`}
                         >
@@ -122,7 +122,7 @@ export function DefenseReadinessChecker({
                           isPass
                             ? 'bg-status-success-bg text-status-success-text border-status-success-border'
                             : isFail
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            ? 'bg-status-error-bg text-danger-text border-status-error-border'
                             : 'bg-canvas text-ink-muted border-hairline'
                         }`}
                       >
@@ -150,7 +150,7 @@ export function DefenseReadinessChecker({
             className={`rounded-xl border p-5 shadow-xs ${
               summary.isReady
                 ? 'border-status-success-border bg-status-success-bg text-status-success-text'
-                : 'border-rose-200 bg-rose-50/70 text-rose-950'
+                : 'border-status-error-border bg-status-error-bg/70 text-danger-text'
             }`}
           >
             <span className="text-xs font-bold uppercase tracking-wider">

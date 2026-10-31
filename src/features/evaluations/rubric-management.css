@@ -1,5 +1,5 @@
 .rubric-page > .grid { align-items:start; }
-.rubric-page > .grid > section { min-width:0; border:1px solid var(--color-hairline); border-radius:14px; background:#fff; padding:24px; box-shadow:0 2px 6px -1px rgba(15, 39, 71, 0.08); }
+.rubric-page > .grid > section { min-width:0; border:1px solid var(--color-hairline); border-radius:14px; background:#fff; padding:24px; box-shadow:0 2px 6px -1px color-mix(in oklab, var(--color-brand-navy) 8%, transparent); }
 .rubric-page > .grid > section:first-child { padding:20px; }
 .rubric-page > .grid > section:first-child h2 { font-size:16px; color: var(--color-ink); }
 .rubric-page > .grid > section:first-child li button { border:0; border-radius:8px; padding:12px; background:transparent; }

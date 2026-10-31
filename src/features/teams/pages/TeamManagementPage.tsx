@@ -151,7 +151,7 @@ export function TeamManagementPage() {
 
       {error && (
         <div role="alert" className={`flex items-center justify-between gap-3 rounded-md border p-4 text-xs ${
-          error.kind === 'conflict' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-rose-200 bg-rose-50 text-rose-800'
+          error.kind === 'conflict' ? 'border-status-warning-border bg-status-warning-bg text-status-warning-text' : 'border-status-error-border bg-status-error-bg text-danger-text'
         }`}>
           <p>{error.message}</p>
           {error.kind !== 'authentication' && (
@@ -178,7 +178,7 @@ export function TeamManagementPage() {
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-[0_2px_8px_-2px_rgba(8,125,119,0.3)]"
+            className="px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-primary"
           >
             <span className="material-symbols-outlined text-[18px]">add_circle</span>
             Thành lập Nhóm Mới
@@ -191,7 +191,7 @@ export function TeamManagementPage() {
               <button
                 type="button"
                 onClick={() => setIsLeaveConfirmOpen(true)}
-                className="px-3.5 py-2 border border-hairline hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 text-ink-muted rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5"
+                className="px-3.5 py-2 border border-hairline hover:bg-status-error-bg hover:text-danger-text hover:border-status-error-border text-ink-muted rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[16px]">logout</span>
                 Rời nhóm
@@ -217,7 +217,7 @@ export function TeamManagementPage() {
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-[0_2px_8px_-2px_rgba(8,125,119,0.3)]"
+              className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-primary"
             >
               <span className="material-symbols-outlined text-[18px]">add</span>
               Bắt đầu tạo nhóm ngay
@@ -310,7 +310,7 @@ export function TeamManagementPage() {
           {rosterLocked && <p className="text-sm text-ink-muted">Danh sách thành viên đã được chốt theo hồ sơ đồ án.</p>}
 
           {leaderChangeRequests.some((request) => request.status === 'PENDING') && (
-            <section className="rounded-md border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
+            <section className="rounded-md border border-status-warning-border bg-status-warning-bg p-4 text-xs text-status-warning-text">
               <div className="flex items-center gap-2 font-bold">
                 <span className="material-symbols-outlined text-[18px]">hourglass_top</span>
                 Yêu cầu đổi trưởng nhóm đang chờ người phụ trách duyệt

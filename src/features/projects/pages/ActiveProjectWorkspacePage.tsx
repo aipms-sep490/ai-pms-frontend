@@ -195,7 +195,7 @@ export function ProjectWorkspaceSummary({
 }
 
 function WorkspaceState({ message, retry, error = false }: { message: string; retry?: () => Promise<void>; error?: boolean }) {
-  return <section role={error ? 'alert' : 'status'} className={`mx-auto max-w-3xl rounded-md border p-5 text-sm ${error ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-hairline bg-card text-ink-muted'}`}><p>{message}</p>{retry ? <button type="button" onClick={() => void retry()} className="ex-button mt-3">Thử lại</button> : null}</section>
+  return <section role={error ? 'alert' : 'status'} className={`mx-auto max-w-3xl rounded-md border p-5 text-sm ${error ? 'border-status-error-border bg-status-error-bg text-danger-text' : 'border-hairline bg-card text-ink-muted'}`}><p>{message}</p>{retry ? <button type="button" onClick={() => void retry()} className="ex-button mt-3">Thử lại</button> : null}</section>
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

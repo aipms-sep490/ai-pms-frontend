@@ -7,7 +7,7 @@
 .governance-section-title > span { color:var(--color-ink-muted); font-size:13px; }
 .governance-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
 .governance-periods { grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
-.governance-card,.governance-period { display:flex; flex-direction:column; gap:18px; min-width:0; padding:24px; border:1px solid var(--color-hairline); border-radius:14px; background:#fff; box-shadow:0 2px 6px -1px rgba(15, 39, 71, 0.08); }
+.governance-card,.governance-period { display:flex; flex-direction:column; gap:18px; min-width:0; padding:24px; border:1px solid var(--color-hairline); border-radius:14px; background:#fff; box-shadow:0 2px 6px -1px color-mix(in oklab, var(--color-brand-navy) 8%, transparent); }
 .governance-record-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; width:100%; }
 .governance-record-heading > div { min-width:0; }
 .governance-record-heading h3 { margin:5px 0 0; font-size:16px; line-height:1.5; color: var(--color-ink); }
@@ -25,7 +25,7 @@
 .governance-status { gap:10px; }
 .governance-status > .governance-badge { border:0; border-radius:6px; padding:4px 8px; font-weight:600; color:var(--color-ink-muted); background:var(--color-canvas); }
 .governance-status > .governance-badge--active { color:var(--color-primary); background:var(--color-primary-subtle); }
-.governance-status > .governance-badge--upcoming { color:#854d0e; background:#fef3c7; }
+.governance-status > .governance-badge--upcoming { color:var(--color-status-warning-text); background:var(--color-status-warning-bg); }
 .governance-status select { min-height:36px; max-width:100%; padding:6px 10px; border:1px solid var(--color-hairline); border-radius:8px; background:#fff; color:var(--color-primary); font-size:12px; }
 .governance-editor form { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
 .governance-editor label { display:flex; flex-direction:column; gap:8px; min-width:0; font-size:13px; color: var(--color-ink-soft); }

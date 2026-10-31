@@ -68,22 +68,22 @@ export function SupervisorDashboardPage() {
         )
         if (!urgentProjects.length) return null
         return (
-          <section aria-label="Hộp thư duyệt nhanh" className="rounded-xl border border-amber-300 bg-amber-50/70 p-5 shadow-xs">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-amber-200/80 pb-3">
+          <section aria-label="Hộp thư duyệt nhanh" className="rounded-xl border border-warning-strong bg-status-warning-bg/70 p-5 shadow-xs">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-status-warning-border/80 pb-3">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-amber-700 text-xl" aria-hidden="true">
+                <span className="material-symbols-outlined text-status-warning-text text-xl" aria-hidden="true">
                   mark_email_unread
                 </span>
                 <div>
-                  <h2 className="text-base font-bold text-amber-950">
+                  <h2 className="text-base font-bold text-status-warning-text">
                     Hộp thư duyệt nhanh & Việc khẩn cấp (Action Inbox)
                   </h2>
-                  <p className="text-xs text-amber-800">
+                  <p className="text-xs text-status-warning-text">
                     Có {urgentProjects.length} đồ án đang có báo cáo tiến độ chờ xác nhận hoặc công việc quá hạn/vướng mắc.
                   </p>
                 </div>
               </div>
-              <span className="inline-flex items-center rounded-full bg-amber-200 px-3 py-1 text-xs font-bold text-amber-900">
+              <span className="inline-flex items-center rounded-full bg-status-warning-bg px-3 py-1 text-xs font-bold text-status-warning-text">
                 {data.pendingProgressReviews} báo cáo chờ phản hồi
               </span>
             </div>
@@ -92,17 +92,17 @@ export function SupervisorDashboardPage() {
               {urgentProjects.map(proj => (
                 <div
                   key={proj.id}
-                  className="flex flex-col justify-between rounded-lg border border-amber-200 bg-card p-4 shadow-2xs"
+                  className="flex flex-col justify-between rounded-lg border border-status-warning-border bg-card p-4 shadow-2xs"
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2">
                       <strong className="text-sm font-bold text-ink">{proj.code}</strong>
                       {proj.pendingProgressReviews > 0 ? (
-                        <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800 border border-amber-300">
+                        <span className="rounded-md bg-status-warning-bg px-2 py-0.5 text-xs font-bold text-status-warning-text border border-warning-strong">
                           {proj.pendingProgressReviews} báo cáo chờ duyệt
                         </span>
                       ) : proj.analysis?.riskLevel === 'HIGH' ? (
-                        <span className="rounded-md bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-800 border border-rose-200">
+                        <span className="rounded-md bg-status-error-bg px-2 py-0.5 text-xs font-bold text-danger-text border border-status-error-border">
                           Rủi ro cao
                         </span>
                       ) : null}
@@ -111,7 +111,7 @@ export function SupervisorDashboardPage() {
                     <p className="mt-1 text-xs text-ink-muted">
                       Bộ môn: {proj.departmentName ?? 'Chưa có bộ môn'}
                       {(proj.analysis?.progressSummary?.overdueTasks ?? 0) > 0 && (
-                        <span className="ml-2 text-rose-600 font-semibold">
+                        <span className="ml-2 text-danger-text font-semibold">
                           · {proj.analysis?.progressSummary?.overdueTasks} việc quá hạn
                         </span>
                       )}
@@ -139,7 +139,7 @@ export function SupervisorDashboardPage() {
               ))}
             </div>
 
-            <p className="mt-3 text-xs text-amber-800/90 italic">
+            <p className="mt-3 text-xs text-status-warning-text/90 italic">
               * Nhận xét và xác nhận báo cáo của Giảng viên hướng dẫn ghi nhận sự đồng hành chuyên môn; thẩm định đạt cổng chính thức do Thẩm định viên (Reviewer) độc lập phê duyệt.
             </p>
           </section>
@@ -174,7 +174,7 @@ function ProjectRow({ project }: { project: DashboardProject }) {
       </div>
       <p className="mt-1.5 text-xs text-ink-muted">
         Bộ môn: <strong className="text-ink-soft">{project.departmentName ?? 'Chưa có bộ môn'}</strong>
-        {hasPending ? <span className="ml-3 inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 font-bold text-amber-800">⚠️ {project.pendingProgressReviews} báo cáo chờ duyệt</span> : <span className="ml-3 text-ink-muted">0 báo cáo chờ duyệt</span>}
+        {hasPending ? <span className="ml-3 inline-flex items-center rounded-md bg-status-warning-bg px-2 py-0.5 font-bold text-status-warning-text">⚠️ {project.pendingProgressReviews} báo cáo chờ duyệt</span> : <span className="ml-3 text-ink-muted">0 báo cáo chờ duyệt</span>}
       </p>
       {progressPct != null && (
         <div className="mt-2.5 flex items-center gap-3 max-w-xs">

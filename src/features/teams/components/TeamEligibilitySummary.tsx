@@ -48,7 +48,7 @@ export function TeamEligibilitySummary({
       </div>
 
       {!canRefresh && !pass && (
-        <p className="mt-3 text-xs text-amber-900">
+        <p className="mt-3 text-xs text-status-warning-text">
           Bạn có thể xem kết quả kiểm tra hiện tại. Liên hệ trưởng nhóm nếu cần cập nhật thông tin.
         </p>
       )}
@@ -92,10 +92,10 @@ export function TeamEligibilitySummary({
           <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted">Điều kiện cần xử lý</h4>
           <div className="mt-2 grid gap-2 md:grid-cols-2">
             {eligibility.issues.map((issue) => (
-              <div key={issue.code} className="border-b border-amber-200 py-3">
-                <p className="text-xs font-bold text-amber-950">{issue.title}</p>
+              <div key={issue.code} className="border-b border-status-warning-border py-3">
+                <p className="text-xs font-bold text-status-warning-text">{issue.title}</p>
                 <p className="mt-1 text-xs text-ink-soft">{issue.detail}</p>
-                <p className="mt-1.5 text-xs font-medium text-amber-900">Tiếp theo: {issue.recovery}</p>
+                <p className="mt-1.5 text-xs font-medium text-status-warning-text">Tiếp theo: {issue.recovery}</p>
               </div>
             ))}
           </div>

@@ -4,7 +4,7 @@
   background: var(--color-card);
   border: 1px solid var(--color-hairline);
   border-radius: 14px;
-  box-shadow: 0 1px 4px 0 rgba(15, 39, 71, 0.04);
+  box-shadow: 0 1px 4px 0 color-mix(in oklab, var(--color-brand-navy) 4%, transparent);
 }
 
 .project-section-context {
@@ -67,8 +67,8 @@
   background: var(--color-primary-subtle);
   color: var(--color-primary);
   font-weight: 700;
-  border-color: rgba(18, 179, 168, 0.25);
-  box-shadow: 0 1px 2px 0 rgba(15, 39, 71, 0.04);
+  border-color: color-mix(in oklab, var(--color-brand-teal) 25%, transparent);
+  box-shadow: 0 1px 2px 0 color-mix(in oklab, var(--color-brand-navy) 4%, transparent);
 }
 
 .project-section-navigation a:focus-visible {

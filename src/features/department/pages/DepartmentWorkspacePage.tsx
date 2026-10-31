@@ -59,11 +59,11 @@ export function DepartmentWorkspacePage() {
     {/* =========================================================================
         TIER 1: HÀNG ĐỢI TÁC VỤ CẦN XỬ LÝ NGAY (URGENT ACTION QUEUE)
         ========================================================================= */}
-    <section id="action-queue" aria-labelledby="urgent-actions-heading" className="space-y-4 rounded-2xl border border-amber-200/70 bg-gradient-to-b from-amber-50/40 to-transparent p-5 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-amber-200/50 pb-3">
+    <section id="action-queue" aria-labelledby="urgent-actions-heading" className="space-y-4 rounded-2xl border border-status-warning-border/70 bg-gradient-to-b from-status-warning-bg/40 to-transparent p-5 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-status-warning-border/50 pb-3">
         <div>
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900 uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-status-warning-bg px-2 py-0.5 text-xs font-bold text-status-warning-text uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-warning-strong animate-pulse" />
             Khu vực 1: Tác vụ khẩn cấp
           </span>
           <h2 id="urgent-actions-heading" className="mt-1 font-heading text-xl font-bold text-ink">
@@ -120,11 +120,11 @@ export function DepartmentWorkspacePage() {
         <div id="attention" className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-ink flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px] text-amber-700" aria-hidden="true">warning</span>
+              <span className="material-symbols-outlined text-[18px] text-status-warning-text" aria-hidden="true">warning</span>
               Đồ án có tín hiệu cần chú ý
             </h3>
             {attention.length > 0 && (
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800">
+              <span className="rounded-full border border-status-warning-border bg-status-warning-bg px-2 py-0.5 text-xs font-semibold text-status-warning-text">
                 {attention.length} đồ án
               </span>
             )}
@@ -134,7 +134,7 @@ export function DepartmentWorkspacePage() {
             {attention.length ? (
               <div className="space-y-2.5">
                 {attention.map((project) => (
-                  <article key={project.id} className="rounded-xl border border-hairline bg-card p-4 transition-all hover:border-amber-300 hover:shadow-2xs">
+                  <article key={project.id} className="rounded-xl border border-hairline bg-card p-4 transition-all hover:border-warning-strong hover:shadow-2xs">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h4 className="truncate font-semibold text-ink text-sm">{project.code} · {project.title}</h4>

@@ -12,7 +12,7 @@ export function KanbanCard({ task }: KanbanCardProps) {
       title="Kéo thả Kanban sẽ hoạt động khi tích hợp state management & hệ thống"
       className={`p-3.5 rounded-lg bg-card border transition-all duration-150 shadow-2xs select-none ${
         task.isCritical
-          ? 'border-red-300 border-l-4 border-l-red-500 bg-red-50/20'
+          ? 'border-danger border-l-4 border-l-red-500 bg-status-error-bg/20'
           : 'border-hairline hover:border-line-strong hover:shadow-xs'
       }`}
     >
@@ -26,7 +26,7 @@ export function KanbanCard({ task }: KanbanCardProps) {
         </div>
 
         {task.isCritical && (
-          <span className="font-mono text-xs font-bold text-red-700 bg-red-100 border border-red-200 px-1.5 py-0.5 rounded whitespace-nowrap">
+          <span className="font-mono text-xs font-bold text-danger-text bg-status-error-bg border border-status-error-border px-1.5 py-0.5 rounded whitespace-nowrap">
             ! Đường găng
           </span>
         )}

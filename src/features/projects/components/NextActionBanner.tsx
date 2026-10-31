@@ -63,7 +63,7 @@ export function NextActionBanner({
                 ? `Hạn hoàn thành mốc tiếp theo: ${closestMilestone.dueDate}.`
                 : 'Tiếp tục thực hiện các công việc kỹ thuật trên Task board.'}
               {taskAttentionCount && taskAttentionCount.overdue > 0 && (
-                <span className="ml-1 font-semibold text-rose-600">
+                <span className="ml-1 font-semibold text-danger-text">
                   (Có {taskAttentionCount.overdue} việc quá hạn cần xử lý)
                 </span>
               )}
@@ -211,11 +211,11 @@ export function NextActionBanner({
                 {rejectedReqs.map((req) => (
                   <div
                     key={req.id}
-                    className="rounded-lg border border-rose-200 bg-card p-3 shadow-2xs space-y-1.5"
+                    className="rounded-lg border border-status-error-border bg-card p-3 shadow-2xs space-y-1.5"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="rounded-md bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-800">
+                        <span className="rounded-md bg-status-error-bg px-2 py-0.5 text-xs font-bold text-danger-text">
                           {req.code}
                         </span>
                         <strong className="text-xs font-bold text-ink">
@@ -226,7 +226,7 @@ export function NextActionBanner({
                         <button
                           type="button"
                           onClick={() => setSubmissionReq(req)}
-                          className="inline-flex min-h-9 items-center gap-1 rounded-md bg-rose-600 px-3 py-1 text-xs font-bold text-white shadow-2xs hover:bg-rose-700 focus:outline-hidden focus:ring-2 focus:ring-rose-500 focus:ring-offset-1"
+                          className="inline-flex min-h-9 items-center gap-1 rounded-md bg-danger-strong px-3 py-1 text-xs font-bold text-white shadow-2xs hover:bg-danger-strong-hover focus:outline-hidden focus:ring-2 focus:ring-danger-strong focus:ring-offset-1"
                         >
                           <span className="material-symbols-outlined text-sm" aria-hidden="true">
                             upload_file
@@ -236,7 +236,7 @@ export function NextActionBanner({
                       )}
                     </div>
                     {req.reviewerFeedback && (
-                      <p className="rounded-md bg-rose-50 p-2 text-xs text-rose-800 border border-rose-100">
+                      <p className="rounded-md bg-status-error-bg p-2 text-xs text-danger-text border border-status-error-border">
                         <strong>Nhận xét từ Hội đồng:</strong> "{req.reviewerFeedback}"
                       </p>
                     )}
@@ -285,7 +285,7 @@ export function NextActionBanner({
 
             {/* Blocking reasons */}
             {activeGate.blockingReasons.length > 0 && (
-              <div className="rounded-md border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-800">
+              <div className="rounded-md border border-status-error-border bg-status-error-bg p-2.5 text-xs text-danger-text">
                 <strong className="block font-bold">Rào cản học thuật (Blocking):</strong>
                 <ul className="mt-1 list-disc pl-4 space-y-0.5">
                   {activeGate.blockingReasons.map((br, idx) => (
@@ -302,7 +302,7 @@ export function NextActionBanner({
             {taskAttentionCount && (taskAttentionCount.blocked > 0 || taskAttentionCount.overdue > 0) && (
               <div className="text-xs text-ink-muted">
                 {taskAttentionCount.blocked > 0 && (
-                  <span className="block font-semibold text-amber-700">
+                  <span className="block font-semibold text-status-warning-text">
                     ⚠️ Có {taskAttentionCount.blocked} công việc bị vướng mắc (Blocked) trên bảng task.
                   </span>
                 )}
@@ -346,7 +346,7 @@ export function NextActionBanner({
               <button
                 type="button"
                 onClick={() => setSubmissionReq(rejectedReqs[0])}
-                className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-rose-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-rose-700 focus:outline-hidden focus:ring-2 focus:ring-rose-500 focus:ring-offset-2"
+                className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-danger-strong px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-danger-strong-hover focus:outline-hidden focus:ring-2 focus:ring-danger-strong focus:ring-offset-2"
               >
                 <span className="material-symbols-outlined text-base" aria-hidden="true">
                   upload_file

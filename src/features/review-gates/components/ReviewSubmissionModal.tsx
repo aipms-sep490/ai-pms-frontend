@@ -167,7 +167,7 @@ export function ReviewSubmissionModal({
             <span className="font-bold text-primary">v{nextVer} (Bản mới)</span>
           </div>
           {requirement.reviewerFeedback && (
-            <div className="mt-2 rounded-md border border-rose-200 bg-rose-50 p-2 text-rose-800">
+            <div className="mt-2 rounded-md border border-status-error-border bg-status-error-bg p-2 text-danger-text">
               <strong>Phản hồi của Reviewer:</strong> {requirement.reviewerFeedback}
             </div>
           )}
@@ -299,7 +299,7 @@ export function ReviewSubmissionModal({
 
             <div>
               <label htmlFor="evidence-filename" className="block text-xs font-bold text-ink-soft">
-                Tên hiển thị tài liệu minh chứng <span className="text-rose-600">*</span>
+                Tên hiển thị tài liệu minh chứng <span className="text-danger-text">*</span>
               </label>
               <input
                 id="evidence-filename"
@@ -320,7 +320,7 @@ export function ReviewSubmissionModal({
         ) : (
           <div>
             <label htmlFor="external-evidence-url" className="block text-xs font-bold text-ink-soft">
-              Liên kết minh chứng ngoài (URL / Git PR / Google Drive) <span className="text-rose-600">*</span>
+              Liên kết minh chứng ngoài (URL / Git PR / Google Drive) <span className="text-danger-text">*</span>
             </label>
             <input
               id="external-evidence-url"
@@ -335,7 +335,7 @@ export function ReviewSubmissionModal({
               placeholder="Ví dụ: SDD_v3.pdf hoặc https://github.com/.../pull/42"
               className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-3 py-2 text-xs text-ink focus:border-primary focus-visible:ring-2 focus-visible:ring-primary disabled:bg-canvas"
             />
-            {linkError && <p id="external-evidence-url-error" role="alert" className="mt-1 text-xs text-rose-700">{linkError}</p>}
+            {linkError && <p id="external-evidence-url-error" role="alert" className="mt-1 text-xs text-danger-text">{linkError}</p>}
             <p id="external-evidence-url-help" className="mt-1 text-xs text-ink-muted">
               Đảm bảo đường dẫn ở chế độ công khai hoặc đã cấp quyền truy cập cho Giảng viên / Hội đồng thẩm định.
             </p>
@@ -344,7 +344,7 @@ export function ReviewSubmissionModal({
 
         <div>
           <label htmlFor="evidence-notes" className="block text-xs font-bold text-ink-soft">
-            Giải trình nội dung thay đổi / Ghi chú <span className="text-rose-600">*</span>
+            Giải trình nội dung thay đổi / Ghi chú <span className="text-danger-text">*</span>
           </label>
           <textarea
             id="evidence-notes"
@@ -363,7 +363,7 @@ export function ReviewSubmissionModal({
         </div>
 
         {error && (
-          <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs font-semibold text-rose-700">
+          <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs font-semibold text-danger-text">
             {error}
             {conflict && onReload && <button type="button" disabled={busy} className="mt-2 block text-xs underline"
               onClick={async () => {

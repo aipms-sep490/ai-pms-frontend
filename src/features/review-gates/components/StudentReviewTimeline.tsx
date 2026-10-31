@@ -62,7 +62,7 @@ export function StudentReviewTimeline({
       case 'PASSED':
         return <span className="rounded-full bg-status-success-bg px-2.5 py-0.5 text-xs font-bold text-status-success-text border border-status-success-border">✓ ĐÃ ĐẠT</span>
       case 'REVISION_REQUIRED':
-        return <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-700 border border-rose-200">! CẦN CHỈNH SỬA</span>
+        return <span className="rounded-full bg-status-error-bg px-2.5 py-0.5 text-xs font-bold text-danger-text border border-status-error-border">! CẦN CHỈNH SỬA</span>
       case 'IN_REVIEW':
         return <span className="rounded-full bg-status-info-bg px-2.5 py-0.5 text-xs font-bold text-status-info-text border border-status-info-border">◷ ĐANG THẨM ĐỊNH</span>
       case 'PLANNED':
@@ -77,7 +77,7 @@ export function StudentReviewTimeline({
       case 'ACCEPTED':
         return <span className="rounded-md bg-status-success-bg px-2 py-0.5 text-xs font-semibold text-status-success-text border border-status-success-border">✓ Chấp thuận</span>
       case 'REJECTED':
-        return <span className="rounded-md bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700 border border-rose-200">✕ Cần nộp lại</span>
+        return <span className="rounded-md bg-status-error-bg px-2 py-0.5 text-xs font-semibold text-danger-text border border-status-error-border">✕ Cần nộp lại</span>
       case 'SUBMITTED':
         return <span className="rounded-md bg-status-info-bg px-2 py-0.5 text-xs font-semibold text-status-info-text border border-status-info-border">◷ Đã nộp (chờ duyệt)</span>
       default:
@@ -110,7 +110,7 @@ export function StudentReviewTimeline({
           </div>
           {onToggleRole && (
             <div className="flex items-center gap-1.5">
-              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-bold text-amber-800 uppercase tracking-wider">
+              <span className="rounded bg-status-warning-bg px-1.5 py-0.5 text-xs font-bold text-status-warning-text uppercase tracking-wider">
                 Mô phỏng
               </span>
               <button
@@ -132,7 +132,7 @@ export function StudentReviewTimeline({
           <strong>Thông báo phân quyền:</strong> Chưa phát hiện phiên làm việc sinh viên hợp lệ. Quyền nộp hồ sơ, sửa đổi minh chứng và các thao tác thẩm định chỉ dành cho sinh viên thuộc nhóm đồ án.
         </div>
       ) : !isLeader ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
+        <div className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-xs text-status-warning-text">
           <strong>Thông báo quyền hạn:</strong> Bạn đang xem với vai trò Thành viên (Student Member). Bạn có thể xem toàn bộ tiến trình, lịch sử nhận xét và minh chứng. Quyền nộp hồ sơ thẩm định chính thức và bản sửa đổi Gate thuộc về Trưởng nhóm.
         </div>
       ) : null}
@@ -213,7 +213,7 @@ export function StudentReviewTimeline({
                 isDefenseReady === true
                   ? 'text-status-success-text'
                   : isDefenseReady === false
-                  ? 'text-amber-700'
+                  ? 'text-status-warning-text'
                   : 'text-ink-muted'
               }`}
             >
@@ -277,7 +277,7 @@ export function StudentReviewTimeline({
             </div>
           )}
 
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+          <div className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-xs text-status-warning-text">
             ⚠️ <strong>Quy tắc Cổng Tích hợp:</strong> Cổng đánh giá tích hợp liên ngành chỉ được thông qua khi toàn bộ các ngành thành viên bắt buộc đều được phê duyệt ĐẠT.
           </div>
         </div>
@@ -306,7 +306,7 @@ export function StudentReviewTimeline({
               <p className="mt-1 text-xs text-ink-muted line-clamp-1">{gate.objective}</p>
               <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-xs text-slate-400">
                 <span>{gate.windowStart || 'Chưa xác định'} → {gate.windowEnd || 'Chưa xác định'}</span>
-                {gate.reviewEligibility === 'BLOCKED' && <span className="font-bold text-rose-500">{gate.status === 'REVISION_REQUIRED' ? 'Chờ bản sửa' : '🔒 Bị chặn'}</span>}
+                {gate.reviewEligibility === 'BLOCKED' && <span className="font-bold text-danger-text">{gate.status === 'REVISION_REQUIRED' ? 'Chờ bản sửa' : '🔒 Bị chặn'}</span>}
               </div>
             </button>
           )
@@ -335,7 +335,7 @@ export function StudentReviewTimeline({
 
           {/* Blocker alert if any */}
           {selectedGate.blockingReasons.length > 0 && (
-            <div className="rounded-lg border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-800">
+            <div className="rounded-lg border border-status-error-border bg-status-error-bg p-3.5 text-xs text-danger-text">
               <h4 className="font-bold">Lý do bị chặn / Yêu cầu khắc phục:</h4>
               <ul className="mt-1.5 list-disc pl-5 space-y-1">
                 {selectedGate.blockingReasons.map((br, idx) => (
@@ -374,7 +374,7 @@ export function StudentReviewTimeline({
                           <strong className="block font-semibold text-ink">{req.title}</strong>
                           <span className="text-slate-400">{req.code}</span>
                           {req.reviewerFeedback && (
-                            <p className="mt-1 text-rose-700 bg-rose-50/70 p-1.5 rounded-sm border border-rose-100">
+                            <p className="mt-1 text-danger-text bg-status-error-bg/70 p-1.5 rounded-sm border border-status-error-border">
                               <strong>Nhận xét:</strong> {req.reviewerFeedback}
                             </p>
                           )}
@@ -386,7 +386,7 @@ export function StudentReviewTimeline({
                           <span className="ml-1 text-slate-400">({displayLabel(req.scope)})</span>
                         </td>
                         <td className="px-3 py-3 font-semibold text-ink-soft">
-                          {req.isMandatory ? <span className="text-rose-600 font-bold">Bắt buộc</span> : 'Tùy chọn'}
+                          {req.isMandatory ? <span className="text-danger-text font-bold">Bắt buộc</span> : 'Tùy chọn'}
                         </td>
                         <td className="px-3 py-3">
                           {getVerificationBadge(req.verificationStatus)}
@@ -427,7 +427,7 @@ export function StudentReviewTimeline({
                                     >
                                       {isRevision ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
                                     </button>
-                                    <span className="max-w-[180px] truncate text-right text-xs text-rose-500 italic" title={blockingReason}>
+                                    <span className="max-w-[180px] truncate text-right text-xs text-danger-text italic" title={blockingReason}>
                                       {blockingReason || 'Bị chặn nộp'}
                                     </span>
                                   </div>
@@ -440,7 +440,7 @@ export function StudentReviewTimeline({
                                   onClick={() => setActiveReqForSubmission(req)}
                                   className={`min-h-11 rounded-lg px-3 py-1.5 text-xs font-bold transition-all focus:outline-hidden focus:ring-2 focus:ring-offset-1 ${
                                     isRevision
-                                      ? 'bg-rose-600 text-white shadow-xs hover:bg-rose-700 focus:ring-rose-500'
+                                      ? 'bg-danger-strong text-white shadow-xs hover:bg-danger-strong-hover focus:ring-danger-strong'
                                       : 'bg-primary text-white shadow-xs hover:bg-primary-hover focus:ring-primary'
                                   }`}
                                 >
@@ -484,7 +484,7 @@ export function StudentReviewTimeline({
                 }}>
                 {submittingGate ? 'Đang gửi...' : 'Gửi hồ sơ thẩm định'}
               </button>
-              {submitError && <p role="alert" className="text-xs text-rose-700">{submitError}</p>}
+              {submitError && <p role="alert" className="text-xs text-danger-text">{submitError}</p>}
             </div>
           )}
         </div>

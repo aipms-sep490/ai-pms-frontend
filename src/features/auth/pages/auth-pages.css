@@ -16,7 +16,7 @@
   border: 1px solid var(--color-hairline);
   border-radius: 16px;
   background: var(--color-card);
-  box-shadow: 0 8px 30px rgba(15, 39, 71, 0.05);
+  box-shadow: 0 8px 30px color-mix(in oklab, var(--color-brand-navy) 5%, transparent);
 }
 
 .auth-brand {
@@ -82,7 +82,7 @@
 }
 
 .auth-form input:focus {
-  outline: 2px solid rgba(8, 125, 119, 0.25);
+  outline: 2px solid color-mix(in oklab, var(--color-primary) 25%, transparent);
   outline-offset: 1px;
   border-color: var(--color-primary);
 }

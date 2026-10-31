@@ -189,8 +189,8 @@ export function AssignedReviewQueue({
           {/* Feedback & Error alerts */}
           {actionError && (
             conflict ? (
-              <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-xs text-amber-900 space-y-2">
-                <div className="flex items-center gap-2 font-bold text-amber-800">
+              <div role="alert" className="rounded-lg border border-warning-strong bg-status-warning-bg p-4 text-xs text-status-warning-text space-y-2">
+                <div className="flex items-center gap-2 font-bold text-status-warning-text">
                   <span className="material-symbols-outlined text-base">warning</span>
                   <span>Xung đột dữ liệu (HTTP 409 Conflict)</span>
                 </div>
@@ -205,14 +205,14 @@ export function AssignedReviewQueue({
                       setActionError(null)
                       await onReload()
                     }}
-                    className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-amber-700"
+                    className="rounded-lg bg-warning-strong px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-warning-strong"
                   >
                     Tải lại dữ liệu mới nhất
                   </button>
                 )}
               </div>
             ) : (
-              <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
+              <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-xs font-semibold text-danger-text">
                 ✕ {actionError}
               </div>
             )
@@ -245,7 +245,7 @@ export function AssignedReviewQueue({
                       isAccepted
                         ? 'border-status-success-border bg-status-success-bg'
                         : isRejected
-                        ? 'border-rose-200 bg-rose-50/30'
+                        ? 'border-status-error-border bg-status-error-bg/30'
                         : 'border-hairline bg-canvas/50'
                     }`}
                   >
@@ -254,7 +254,7 @@ export function AssignedReviewQueue({
                         <strong className="text-xs font-bold text-ink">{req.title}</strong>
                         <span className="rounded bg-slate-200 px-1.5 py-0.5 text-xs text-ink-soft font-medium">{req.type}</span>
                         {req.isMandatory && (
-                          <span className="rounded bg-rose-100 px-1.5 py-0.5 text-xs font-bold text-rose-700">Bắt buộc</span>
+                          <span className="rounded bg-status-error-bg px-1.5 py-0.5 text-xs font-bold text-danger-text">Bắt buộc</span>
                         )}
                       </div>
                       <span
@@ -262,7 +262,7 @@ export function AssignedReviewQueue({
                           isAccepted
                             ? 'bg-status-success-bg text-status-success-text border-status-success-border'
                             : isRejected
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            ? 'bg-status-error-bg text-danger-text border-status-error-border'
                             : 'bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning-text)] border-[var(--color-status-warning-border)] border-l-2 border-l-[var(--color-accent-amber)]'
                         }`}
                       >
@@ -380,7 +380,7 @@ export function AssignedReviewQueue({
                     ✓ Đã hoàn tất phiên thẩm định.
                   </span>
                 ) : !allMandatoryAccepted ? (
-                  <span id="pass-eligibility-reason" className="font-semibold text-rose-600">
+                  <span id="pass-eligibility-reason" className="font-semibold text-danger-text">
                     ⚠️ Chưa đủ điều kiện PASS: Còn {mandatoryReqs.length - acceptedMandatoryCount} minh chứng bắt buộc chưa duyệt đạt.
                   </span>
                 ) : (

@@ -26,7 +26,7 @@
 .topic select { min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid var(--color-hairline); border-radius: 8px; background: #fff; color: var(--color-ink); font-size: 14px; }
 .topic input:focus,
 .topic textarea:focus,
-.topic select:focus { border-color: var(--color-primary); outline: 3px solid rgba(8, 125, 119, .18); outline-offset: 0; }
+.topic select:focus { border-color: var(--color-primary); outline: 3px solid color-mix(in oklab, var(--color-primary) 18%, transparent); outline-offset: 0; }
 .topic__create,
 .topic__detail,
 .topic__edit,
@@ -37,14 +37,14 @@
 .topic__form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
 .topic__wide { grid-column: span 2; }
 .topic__create-action { display: flex; justify-content: flex-end; margin-top: 18px; }
-.topic__message { margin: 0; padding: 12px 14px; border: 1px solid rgba(8, 125, 119, 0.25); border-radius: 8px; background: var(--color-primary-subtle); color: var(--color-primary-hover); }
+.topic__message { margin: 0; padding: 12px 14px; border: 1px solid color-mix(in oklab, var(--color-primary) 25%, transparent); border-radius: 8px; background: var(--color-primary-subtle); color: var(--color-primary-hover); }
 .topic__list { display: grid; gap: 10px; }
 .topic__list article { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 16px 20px; border: 1px solid var(--color-hairline); border-radius: 10px; background: white; transition: all 160ms ease; }
-.topic__list article:hover { border-color: var(--color-brand-teal); box-shadow: 0 4px 12px -2px rgba(15, 39, 71, 0.08); }
+.topic__list article:hover { border-color: var(--color-brand-teal); box-shadow: 0 4px 12px -2px color-mix(in oklab, var(--color-brand-navy) 8%, transparent); }
 .topic__list article a { display: block; margin-top: 4px; color: var(--color-ink); font-weight: 700; text-decoration: none; font-size: 15px; }
 .topic__list article a:hover { color: var(--color-primary); }
 .topic__list article p { margin: 4px 0 0; color: var(--color-ink-muted); font-size: 13px; line-height: 1.5; }
-.topic__status { color: var(--color-primary); font-size: 12px; font-weight: 700; text-transform: uppercase; background: var(--color-primary-subtle); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(18, 179, 168, 0.25); }
+.topic__status { color: var(--color-primary); font-size: 12px; font-weight: 700; text-transform: uppercase; background: var(--color-primary-subtle); padding: 3px 8px; border-radius: 6px; border: 1px solid color-mix(in oklab, var(--color-brand-teal) 25%, transparent); }
 .topic__empty { margin: 16px 0 0; padding: 18px; border: 1px dashed var(--color-hairline); border-radius: 8px; color: var(--color-ink-muted); text-align: center; }
 .topic__pagination,
 .topic__actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }

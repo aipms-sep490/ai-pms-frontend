@@ -10,7 +10,7 @@ export function buttonClassName({ size = 'md', variant = 'primary', className = 
 
   const variantStyles = {
     primary:
-      'bg-primary hover:bg-primary-hover text-white hover:text-white font-medium shadow-[0_2px_8px_-2px_rgba(8,125,119,0.25)] hover:shadow-[0_4px_12px_-3px_rgba(8,125,119,0.30)] active:scale-[0.98] active:translate-y-[0.5px] border border-transparent',
+      'bg-primary hover:bg-primary-hover text-white hover:text-white font-medium shadow-primary hover:shadow-primary-hover active:scale-[0.98] active:translate-y-[0.5px] border border-transparent',
     secondary:
       'bg-white hover:bg-primary-subtle/80 text-ink border border-hairline hover:border-primary/40 shadow-xs active:scale-[0.98] active:translate-y-[0.5px]',
     outline:
@@ -18,7 +18,7 @@ export function buttonClassName({ size = 'md', variant = 'primary', className = 
     ghost:
       'bg-transparent hover:bg-slate-100 text-ink-muted hover:text-ink border border-transparent',
     danger:
-      'bg-white hover:bg-red-50 text-danger-text font-medium border border-red-200 active:scale-[0.99]',
+      'bg-white hover:bg-status-error-bg text-danger-text font-medium border border-status-error-border active:scale-[0.99]',
   }[variant]
 
   return `mk-press ui-button-${variant} inline-flex items-center justify-center rounded-lg select-none whitespace-nowrap transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:pointer-events-none font-sans font-medium ${sizeStyles} ${variantStyles} ${className}`.trim()

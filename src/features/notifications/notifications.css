@@ -2,7 +2,7 @@
 .notification-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--color-line); }
 .notification-tabs { display: inline-flex; gap: 4px; padding: 4px; background: #eff3f1; border-radius: 9px; }
 .notification-tabs button { min-height: 36px; padding: 0 14px; border-radius: 6px; color: var(--color-ink-muted); font-size: 13px; font-weight: 600; cursor: pointer; }
-.notification-tabs button[aria-pressed=true] { background: white; color: var(--color-primary); box-shadow: 0 1px 3px rgba(15, 39, 71, 0.08); }
+.notification-tabs button[aria-pressed=true] { background: white; color: var(--color-primary); box-shadow: 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 8%, transparent); }
 .notification-action, .notification-read { color: var(--color-primary); border-radius: 6px; font-size: 12px; font-weight: 600; min-height: 36px; padding: 6px 10px; cursor: pointer; }
 .notification-action:hover, .notification-read:hover { background: var(--color-primary-subtle); color: var(--color-primary-hover); }
 .notification-action:disabled, .notification-read:disabled { opacity: .45; cursor: default; }
@@ -10,7 +10,7 @@
 .notification-list { margin: 0; padding: 0; list-style: none; }
 .notification-row { position: relative; display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 16px; padding: 24px; border-bottom: 1px solid var(--color-line); }
 .notification-row:last-child { border-bottom: 0; }
-.notification-row--unread { background: rgba(221, 247, 244, 0.25); }
+.notification-row--unread { background: color-mix(in oklab, var(--color-primary-subtle) 25%, transparent); }
 .notification-row--unread::before { content: ''; position: absolute; left: 0; top: 24px; bottom: 24px; width: 3px; border-radius: 0 3px 3px 0; background: var(--color-primary); }
 .notification-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--color-primary-subtle); color: var(--color-primary); font-size: 21px; }
 .notification-icon--warning { background: #fff3db; color: #946019; }
@@ -30,7 +30,7 @@
 .notification-error { margin: 0; padding: 14px 20px; background: var(--color-status-error-bg); color: var(--color-status-error-text); font-size: 13px; line-height: 1.6; border: 1px solid var(--color-status-error-border); }
 .notification-error button { padding: 4px 8px; text-decoration: underline; font-weight: 600; cursor: pointer; }
 .notification-pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 20px; border-top: 1px solid var(--color-line); color: var(--color-ink-muted); font-size: 12px; }
-.notification-popover { position: absolute; right: 0; top: calc(100% + 8px); width: min(420px, calc(100vw - 24px)); overflow: hidden; border: 1px solid var(--color-hairline); border-radius: 14px; background: white; box-shadow: 0 16px 48px -12px rgba(15, 39, 71, 0.16); }
+.notification-popover { position: absolute; right: 0; top: calc(100% + 8px); width: min(420px, calc(100vw - 24px)); overflow: hidden; border: 1px solid var(--color-hairline); border-radius: 14px; background: white; box-shadow: 0 16px 48px -12px color-mix(in oklab, var(--color-brand-navy) 16%, transparent); }
 .notification-popover-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 20px 12px; }
 .notification-popover-header h2 { font-size: 17px; font-weight: 700; color: var(--color-brand-navy); font-family: var(--font-heading); }
 .notification-popover-header p { margin-top: 3px; font-size: 12px; color: var(--color-ink-muted); }

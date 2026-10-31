@@ -80,7 +80,7 @@ export function GanttChart({
                       key={w.weekNumber}
                       className={`py-2 px-1 text-center font-mono text-xs border-r border-hairline last:border-r-0 transition-colors ${
                         isCurrent
-                          ? 'bg-red-50/70 text-red-600 font-bold border-b-2 border-b-red-500'
+                          ? 'bg-status-error-bg/70 text-danger-text font-bold border-b-2 border-b-red-500'
                           : 'text-ink-muted'
                       }`}
                     >
@@ -89,7 +89,7 @@ export function GanttChart({
                       </div>
                       <div className="text-xs font-normal mt-0.5">
                         {isCurrent ? (
-                          <span className="px-1 py-0.2 rounded bg-red-100 text-red-700 font-bold text-xs">
+                          <span className="px-1 py-0.2 rounded bg-status-error-bg text-danger-text font-bold text-xs">
                             Hiện tại
                           </span>
                         ) : (
@@ -115,7 +115,7 @@ export function GanttChart({
                       key={m.id}
                       className={`py-2 px-2 text-center font-mono text-xs border-r border-hairline last:border-r-0 transition-colors ${
                         isCurrent
-                          ? 'bg-red-50/70 text-red-600 font-bold border-b-2 border-b-red-500'
+                          ? 'bg-status-error-bg/70 text-danger-text font-bold border-b-2 border-b-red-500'
                           : 'text-ink-muted'
                       }`}
                     >
@@ -125,7 +125,7 @@ export function GanttChart({
                       </div>
                       <div className="text-xs font-normal text-ink-muted mt-0.5">
                         {isCurrent ? (
-                          <span className="font-bold text-red-600">Hiện tại (67%)</span>
+                          <span className="font-bold text-danger-text">Hiện tại (67%)</span>
                         ) : (
                           m.dateRange
                         )}
@@ -199,7 +199,7 @@ export function GanttChart({
                     >
                       {/* Current week 2px vertical red guideline */}
                       <div
-                        className="absolute top-0 bottom-0 pointer-events-none z-20 border-r-2 border-red-500/80"
+                        className="absolute top-0 bottom-0 pointer-events-none z-20 border-r-2 border-danger-strong/80"
                         style={{
                           gridColumnStart: currentWeek,
                           gridColumnEnd: currentWeek + 1,
@@ -236,7 +236,7 @@ export function GanttChart({
                     >
                       {/* Current milestone M3 vertical guideline */}
                       <div
-                        className="absolute top-0 bottom-0 pointer-events-none z-20 border-r-2 border-red-500/80"
+                        className="absolute top-0 bottom-0 pointer-events-none z-20 border-r-2 border-danger-strong/80"
                         style={{
                           gridColumnStart: 3,
                           gridColumnEnd: 4,
@@ -252,7 +252,7 @@ export function GanttChart({
                           <div
                             className={`relative z-10 h-7 rounded-md px-2.5 flex items-center justify-between text-xs font-mono shadow-xs overflow-hidden mx-1.5 border transition-all ${
                               group.isCritical
-                                ? 'border-rose-400 bg-rose-50 text-rose-900'
+                                ? 'border-danger bg-status-error-bg text-danger-text'
                                 : group.progress === 100
                                 ? 'border-status-success-border bg-status-success-bg text-status-success-text'
                                 : 'border-status-info-border bg-status-info-bg text-status-info-text'
@@ -268,7 +268,7 @@ export function GanttChart({
                                 group.progress === 100
                                   ? 'bg-status-success-text'
                                   : group.isCritical
-                                  ? 'bg-rose-600'
+                                  ? 'bg-danger-strong'
                                   : 'bg-primary'
                               }`}
                               style={{ width: `${group.progress}%` }}
@@ -312,7 +312,7 @@ export function GanttChart({
                             </span>
                             {isCritical && (
                               <span
-                                className="px-1.5 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-700 shrink-0"
+                                className="px-1.5 py-0.5 rounded text-xs font-bold bg-status-error-bg text-danger-text shrink-0"
                                 title="Nhiệm vụ trên đường găng"
                               >
                                 ! Găng
@@ -351,7 +351,7 @@ export function GanttChart({
                         >
                           {/* Current week 2px vertical red guideline */}
                           <div
-                            className="absolute top-0 bottom-0 pointer-events-none z-20 border-r-2 border-red-500/80"
+                            className="absolute top-0 bottom-0 pointer-events-none z-20 border-r-2 border-danger-strong/80"
                             style={{
                               gridColumnStart: currentWeek,
                               gridColumnEnd: currentWeek + 1,
@@ -363,7 +363,7 @@ export function GanttChart({
                           <div
                             className={`relative z-10 h-6.5 rounded-md px-2 flex items-center justify-between text-xs font-mono shadow-xs overflow-hidden mx-1 border transition-all ${
                               isCritical
-                                ? 'border-rose-500 bg-rose-50 text-rose-950 font-bold ring-1 ring-rose-300/50'
+                                ? 'border-danger-strong bg-status-error-bg text-danger-text font-bold ring-1 ring-danger/50'
                                 : task.progress === 100
                                 ? 'border-status-success-border bg-status-success-bg text-status-success-text font-semibold'
                                 : task.progress > 0
@@ -380,7 +380,7 @@ export function GanttChart({
                             <div
                               className={`absolute top-0 left-0 bottom-0 pointer-events-none ${
                                 isCritical
-                                  ? 'bg-rose-500/25'
+                                  ? 'bg-danger/25'
                                   : task.progress === 100
                                   ? 'bg-status-success-bg'
                                   : task.progress > 0
@@ -429,12 +429,12 @@ export function GanttChart({
             <span>Sắp tới</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-rose-600 shrink-0" />
-            <span className="text-rose-600 font-semibold">Đường găng (Critical Path)</span>
+            <span className="w-3 h-3 rounded bg-danger-strong shrink-0" />
+            <span className="text-danger-text font-semibold">Đường găng (Critical Path)</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-3 border-r-2 border-red-500 shrink-0" />
-            <span className="text-red-600 font-semibold">
+            <span className="w-2.5 h-3 border-r-2 border-danger-strong shrink-0" />
+            <span className="text-danger-text font-semibold">
               {isMilestonesView ? 'Mốc hiện tại (M3)' : 'Tuần hiện tại (T6)'}
             </span>
           </div>

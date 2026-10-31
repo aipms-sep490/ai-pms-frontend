@@ -102,7 +102,7 @@ export function AcademicScopePanel({
               <button key={value} type="button" onClick={() => {
                 setMode(value)
                 if (value === 'SINGLE_MAJOR') setSelectedIds(myMajorId ? [myMajorId] : selectedIds.slice(0, 1))
-              }} className={`rounded-lg px-3 py-2 text-xs font-bold ${mode === value ? 'bg-primary text-white shadow-[0_2px_8px_-2px_rgba(8,125,119,0.3)]' : 'bg-slate-100 text-ink-muted'}`}>
+              }} className={`rounded-lg px-3 py-2 text-xs font-bold ${mode === value ? 'bg-primary text-white shadow-primary' : 'bg-slate-100 text-ink-muted'}`}>
                 {value === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành'}
               </button>
             ))}
@@ -116,9 +116,9 @@ export function AcademicScopePanel({
               </label>
             ))}
           </div>
-          {error && <p className="text-xs font-medium text-rose-700">{error}</p>}
+          {error && <p className="text-xs font-medium text-danger-text">{error}</p>}
           <button type="button" onClick={save} disabled={isSaving || majors.length === 0}
-            className="self-start rounded-lg bg-primary hover:bg-primary-hover px-4 py-2 text-xs font-bold text-white disabled:opacity-50 shadow-[0_2px_8px_-2px_rgba(8,125,119,0.3)]">
+            className="self-start rounded-lg bg-primary hover:bg-primary-hover px-4 py-2 text-xs font-bold text-white disabled:opacity-50 shadow-primary">
             {isSaving ? 'Đang lưu...' : 'Lưu phạm vi ngành'}
           </button>
         </div>

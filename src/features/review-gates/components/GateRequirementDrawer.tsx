@@ -114,7 +114,7 @@ export function GateRequirementDrawer({
               <label htmlFor="req-code" className="block text-xs font-semibold text-ink-soft">Mã yêu cầu *</label>
               <input id="req-code" required={!env.reviewGatesMockEnabled} value={code} onChange={e => setCode(e.target.value)} className="mt-1 w-full rounded-lg border border-hairline p-2 text-sm" />
             </div>
-            {error && <p role="alert" className="text-xs text-rose-700">{error}</p>}
+            {error && <p role="alert" className="text-xs text-danger-text">{error}</p>}
             <div>
               <label htmlFor="req-title" className="block text-xs font-semibold text-ink-soft">
                 Tên yêu cầu / Tiêu chuẩn đầu ra *

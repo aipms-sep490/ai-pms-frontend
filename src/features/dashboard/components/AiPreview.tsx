@@ -28,7 +28,7 @@ export function AiPreview({ insight }: AiPreviewProps) {
       <CardContent className="p-4 flex flex-col gap-3">
         <div className="p-3 rounded-lg bg-card border border-hairline text-xs text-ink-soft space-y-2 leading-relaxed">
           <p className="font-semibold text-ink flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[15px] text-amber-600" aria-hidden="true">
+            <span className="material-symbols-outlined text-[15px] text-status-warning-text" aria-hidden="true">
               tips_and_updates
             </span>
             {insight.title}:

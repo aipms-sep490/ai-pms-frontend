@@ -22,7 +22,7 @@
 .deliverable-inline-form, .deliverable-delete { grid-column: 1 / -1; }
 .deliverable-definition-inline { margin: 0; border-top: 1px solid var(--color-hairline); background: var(--color-canvas); }
 .deliverable-delete { padding: 16px; border: 1px solid var(--color-status-error-border); border-radius: 10px; background: var(--color-status-error-bg); }
-.deliverable-delete h3 { font-size: 14px; font-weight: 700; color: #991b1b; }
+.deliverable-delete h3 { font-size: 14px; font-weight: 700; color: var(--color-danger-text); }
 .deliverable-delete p { margin: 6px 0 14px; color: #7f1d1d; font-size: 12.5px; }
 .deliverable-history-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px 20px; padding: 18px 24px; border-bottom: 1px solid var(--color-hairline); }
 .deliverable-file-list { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }

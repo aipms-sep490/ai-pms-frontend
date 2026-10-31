@@ -1,7 +1,7 @@
 /* Product layout: one content surface, section spacing, and quiet dividers.
    Controls, status notices, dialogs, and video surfaces keep their own boundaries. */
 .workspace-flat :is(.workspace-surface,.ex-panel,.report-panel,.mtg-panel) {
-  border:1px solid var(--color-hairline); border-radius:16px; box-shadow:0 2px 5px rgba(15, 39, 71, 0.04);
+  border:1px solid var(--color-hairline); border-radius:16px; box-shadow:0 2px 5px color-mix(in oklab, var(--color-brand-navy) 4%, transparent);
 }
 .workspace-flat :is(.ex-panel-heading,.mtg-list-heading,.report-list-heading) { background:transparent; }
 .workspace-flat .ex-panel-heading { border-bottom:0; padding-bottom:12px; }

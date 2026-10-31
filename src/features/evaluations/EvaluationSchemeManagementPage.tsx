@@ -254,7 +254,7 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
     {confirmationDialog}
     <ResourcePermissionNotice loading={capabilities.loading} error={capabilities.error} allowed={canManage} reason={capabilities.reasonLabel('manage_evaluation_scheme')} onRetry={capabilities.retry} />
     {conflict && <SchemeConflictReview conflict={conflict} periods={periods} rubrics={rubrics} project={project} busy={busy || loading} canManage={canManage} onReload={() => void load()} onUseServer={useServer} onKeepDraft={keepDraft} />}
-    {error && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">{error} <button type="button" className="font-semibold underline" onClick={() => void load()}>Tải lại</button></div>}
+    {error && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-danger-text">{error} <button type="button" className="font-semibold underline" onClick={() => void load()}>Tải lại</button></div>}
     {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{notice}</p>}
     <p className="workspace-note p-4 text-sm">Bản nháp cần ngưỡng đạt và trọng số từ quy định đã được duyệt. Việc công bố kỹ thuật không thay cho phê duyệt học thuật; không dùng tỷ lệ minh họa của tài liệu làm quy định chính thức.</p>
     <div className="workspace-master-detail">

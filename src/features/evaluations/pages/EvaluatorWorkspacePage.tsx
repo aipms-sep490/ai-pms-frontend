@@ -89,7 +89,7 @@ export function EvaluatorWorkspacePage() {
                 <span className="inline-flex items-center rounded-md bg-tag-ai-bg px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-tag-ai">
                   {assignment.evaluationType === 'LECTURER' ? 'Hội đồng chấm' : assignment.evaluationType}
                 </span>
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${isFinalized ? 'bg-status-success-bg text-status-success-text' : isDraft ? 'bg-amber-100 text-amber-800' : 'bg-canvas text-ink-soft'}`}>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${isFinalized ? 'bg-status-success-bg text-status-success-text' : isDraft ? 'bg-status-warning-bg text-status-warning-text' : 'bg-canvas text-ink-soft'}`}>
                   {row?.status === 'unavailable' ? 'Chưa tải được trạng thái' : draftLabel(row?.draft ?? null)}
                 </span>
               </div>

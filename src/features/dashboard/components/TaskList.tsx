@@ -95,7 +95,7 @@ export function TaskList({ tasks }: TaskListProps) {
             <div
               key={task.id}
               className={`p-3.5 px-4 flex items-center justify-between gap-3 hover:bg-canvas/80 transition-colors ${
-                task.isCritical ? 'bg-red-50/40 border-l-4 border-l-red-500' : ''
+                task.isCritical ? 'bg-status-error-bg/40 border-l-4 border-l-red-500' : ''
               }`}
             >
               <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -115,7 +115,7 @@ export function TaskList({ tasks }: TaskListProps) {
                     </span>
                     <MultidisciplinaryTag major={task.major} />
                     {task.isCritical && (
-                      <span className="inline-flex items-center gap-1 font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-800 border border-red-200 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-status-error-bg text-danger-text border border-status-error-border whitespace-nowrap">
                         ! Đường găng nghẽn
                       </span>
                     )}

@@ -24,7 +24,7 @@
 .weekly-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; padding: 8px 16px; background: var(--color-primary); border: 1px solid var(--color-primary); color: white; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .weekly-button:hover { background: var(--color-primary-hover); border-color: var(--color-primary-hover); }
 .weekly-button--secondary { background: white; color: var(--color-ink); border: 1px solid var(--color-line-strong); }
-.weekly-button--secondary:hover { background: var(--color-primary-subtle); border-color: rgba(8, 125, 119, 0.3); color: var(--color-primary); }
+.weekly-button--secondary:hover { background: var(--color-primary-subtle); border-color: color-mix(in oklab, var(--color-primary) 30%, transparent); color: var(--color-primary); }
 .weekly-assessments button:disabled { opacity: .5; cursor: not-allowed; }
 .weekly-notice { border-radius: 8px; padding: 14px 18px; margin: 0 0 16px; font-size: 13px; line-height: 1.7; }
 .weekly-notice--error { background: var(--color-status-error-bg); color: var(--color-status-error-text); border: 1px solid var(--color-status-error-border); }

@@ -122,7 +122,7 @@ export function TeamInvitationsPanel({
                   className="rounded-md border border-line-strong bg-card px-3 py-2 text-xs" />
               </div>
               {candidateError && (
-                <div className="flex items-center justify-between gap-2 text-xs font-medium text-rose-700">
+                <div className="flex items-center justify-between gap-2 text-xs font-medium text-danger-text">
                   <p>{candidateError}</p>
                   <button type="button" onClick={onRetryCandidates} disabled={candidateLoading} className="shrink-0 rounded border border-current px-2 py-1 disabled:opacity-50">Thử lại</button>
                 </div>
@@ -228,7 +228,7 @@ export function TeamInvitationsPanel({
                             type="button"
                             disabled={isMutationPending('cancel', inv.id)}
                             onClick={() => handleCancel(inv.id)}
-                            className="px-2.5 py-1 text-xs text-rose-600 hover:bg-rose-50 rounded-md font-semibold transition-colors disabled:opacity-50"
+                            className="px-2.5 py-1 text-xs text-danger-text hover:bg-status-error-bg rounded-md font-semibold transition-colors disabled:opacity-50"
                           >
                             {isMutationPending('cancel', inv.id) ? 'Đang hủy...' : 'Hủy lời mời'}
                           </button>
@@ -295,7 +295,7 @@ export function TeamInvitationsPanel({
                             type="button"
                             disabled={isMutationPending('reject', inv.id)}
                             onClick={() => handleReject(inv.id)}
-                            className="px-3 py-1.5 border border-hairline hover:bg-rose-50 text-rose-600 rounded-md text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
+                            className="px-3 py-1.5 border border-hairline hover:bg-status-error-bg text-danger-text rounded-md text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
                           >
                             <span className="material-symbols-outlined text-[16px]">close</span>
                             {isMutationPending('reject', inv.id) ? 'Đang từ chối...' : 'Từ chối'}

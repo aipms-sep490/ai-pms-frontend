@@ -212,10 +212,10 @@ export function ReviewGateGovernancePage() {
       {error && (activeTab !== 'builder' || !currentTemplate) && (
         <div
           role="alert"
-          className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-semibold text-rose-800"
+          className="flex items-center justify-between rounded-xl border border-status-error-border bg-status-error-bg p-4 text-xs font-semibold text-danger-text"
         >
           <span>✕ {error}</span>
-          <button type="button" aria-label="Đóng lỗi" onClick={() => setError(null)} className="text-rose-700 hover:text-rose-900">
+          <button type="button" aria-label="Đóng lỗi" onClick={() => setError(null)} className="text-danger-text hover:text-danger-text">
             ✕
           </button>
         </div>
@@ -313,9 +313,9 @@ export function ReviewGateGovernancePage() {
                     {templates.length > 0 ? `${templates[0].gatesCount < 10 ? '0' : ''}${templates[0].gatesCount} Gates` : 'Chưa cấu hình'}
                   </p>
                 </div>
-                <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 shadow-2xs">
-                  <span className="text-xs font-semibold text-amber-800">Trạng thái phê duyệt</span>
-                  <p className="mt-1 text-lg font-bold text-amber-800">Bản nháp Bộ môn</p>
+                <div className="rounded-xl border border-status-warning-border bg-status-warning-bg/50 p-4 shadow-2xs">
+                  <span className="text-xs font-semibold text-status-warning-text">Trạng thái phê duyệt</span>
+                  <p className="mt-1 text-lg font-bold text-status-warning-text">Bản nháp Bộ môn</p>
                 </div>
               </div>
 
@@ -396,7 +396,7 @@ export function ReviewGateGovernancePage() {
                               className={`rounded-full px-2.5 py-0.5 text-xs font-bold border ${
                                 tmpl.status === 'PUBLISHED'
                                   ? 'bg-status-success-bg text-status-success-text border-status-success-border'
-                                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : 'bg-status-warning-bg text-status-warning-text border-status-warning-border'
                               }`}
                             >
                               {tmpl.status === 'PUBLISHED' ? 'ĐÃ CÔNG BỐ' : 'BẢN NHÁP'}
@@ -525,7 +525,7 @@ export function ReviewGateGovernancePage() {
                 </span>
               </div>
 
-              {defenseError && <p role="alert" className="text-xs text-rose-700">{defenseError}</p>}
+              {defenseError && <p role="alert" className="text-xs text-danger-text">{defenseError}</p>}
               {defenseSummary ? (
                 <DefenseReadinessChecker
                   summary={defenseSummary}

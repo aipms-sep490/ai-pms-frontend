@@ -81,11 +81,11 @@ export function ProjectContributionsPage() {
             <option value="live">Dữ liệu hiện tại</option><option value="snapshot">Bản tổng hợp đã lưu</option>
           </select>
         </label>
-        {canSnapshot && <button type="button" disabled={busy} className="min-h-11 rounded-md bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover shadow-[0_2px_8px_-2px_rgba(8,125,119,0.3)] disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void rebuild()}>{busy ? 'Đang tạo…' : 'Lưu bản tổng hợp'}</button>}
+        {canSnapshot && <button type="button" disabled={busy} className="min-h-11 rounded-md bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover shadow-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void rebuild()}>{busy ? 'Đang tạo…' : 'Lưu bản tổng hợp'}</button>}
       </div>}
     </header>
 
-    {error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"><span>{error}</span><button type="button" className="min-h-10 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại</button></div>}
+    {error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-danger-text"><span>{error}</span><button type="button" className="min-h-10 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại</button></div>}
     {loading && <div role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải dữ liệu đóng góp…</div>}
     {!loading && !projectId && <div className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Không tìm thấy đồ án để xem đóng góp.</div>}
 
@@ -97,7 +97,7 @@ export function ProjectContributionsPage() {
         <SummaryMetric label="Phiên bản quy tắc" value={summary.ruleVersion} helper={summary.snapshotAt ? formatDate(summary.snapshotAt) : ({ SUFFICIENT: 'Đủ dữ liệu', INSUFFICIENT_DATA: 'Chưa đủ dữ liệu' }[summary.dataStatus] ?? 'Chưa xác định')} compact />
       </section>
 
-      {summary.dataStatus === 'INSUFFICIENT_DATA' && <div role="status" className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"><span className="material-symbols-outlined mt-0.5 text-[19px]" aria-hidden="true">info</span><p>Chưa đủ chứng cứ để so sánh hoạt động giữa các thành viên. Đây không phải là đánh giá hoặc điểm học phần.</p></div>}
+      {summary.dataStatus === 'INSUFFICIENT_DATA' && <div role="status" className="flex gap-3 rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm leading-6 text-status-warning-text"><span className="material-symbols-outlined mt-0.5 text-[19px]" aria-hidden="true">info</span><p>Chưa đủ chứng cứ để so sánh hoạt động giữa các thành viên. Đây không phải là đánh giá hoặc điểm học phần.</p></div>}
 
       <section className="overflow-hidden rounded-lg border border-hairline bg-card" aria-labelledby="contribution-members-heading">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-4 sm:px-5">
@@ -113,7 +113,7 @@ export function ProjectContributionsPage() {
       </section>
 
       {selectedUserId && <Modal open drawer title="Minh chứng đóng góp" description={selectedMember?.displayName ?? `Thành viên #${selectedUserId}`} onClose={() => setSelectedUserId(null)}><div>
-        {error && <p role="alert" className="mb-4 text-sm text-rose-700">{error}</p>}
+        {error && <p role="alert" className="mb-4 text-sm text-danger-text">{error}</p>}
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-hairline pb-4"><p className="max-w-60 text-sm leading-6 text-ink-muted">Hoạt động được ghi nhận để đối chiếu đóng góp của thành viên.</p><label className="grid shrink-0 gap-1 text-xs font-semibold text-ink-muted">Nguồn chứng cứ<select aria-label="Nguồn chứng cứ" className="min-h-11 min-w-52 rounded-md border border-hairline bg-card px-3 text-sm font-medium text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" value={sourceType} onChange={event => { setSourceType(event.target.value); setEvidencePage(1) }}><option value="">Tất cả nguồn</option><option value="TASK">Công việc</option><option value="PROGRESS_REPORT">Báo cáo tiến độ</option><option value="MEETING">Cuộc họp</option><option value="DELIVERABLE_VERSION">Phiên bản hạng mục</option><option value="FILE">Tệp</option></select></label></div>
         {evidenceLoading && <div role="status" className="p-5 text-sm text-ink-muted">Đang tải chứng cứ…</div>}
         {!evidenceLoading && evidence.length === 0 && <div className="p-8 text-center text-sm text-ink-muted"><span className="material-symbols-outlined mb-2 block text-3xl text-slate-300" aria-hidden="true">inventory_2</span>Chưa có chứng cứ phù hợp.</div>}

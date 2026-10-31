@@ -105,7 +105,7 @@ export function InterdisciplinaryGatePanel({
             className={`rounded-full px-3 py-1 text-xs font-bold border ${
               allPassed
                 ? 'bg-status-success-bg text-status-success-text border-status-success-border'
-                : 'bg-amber-50 text-amber-700 border-amber-200'
+                : 'bg-status-warning-bg text-status-warning-text border-status-warning-border'
             }`}
           >
             {allPassed ? 'CÁC NHÁNH ĐÃ ĐẠT' : 'CHỜ THẨM ĐỊNH CÁC NGÀNH'}
@@ -130,7 +130,7 @@ export function InterdisciplinaryGatePanel({
             </div>
 
             {scopeError && (
-              <div role="alert" className="mx-4 mt-3 rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-700">
+              <div role="alert" className="mx-4 mt-3 rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs text-danger-text">
                 ✕ {scopeError}
               </div>
             )}
@@ -176,7 +176,7 @@ export function InterdisciplinaryGatePanel({
                             scopes[item.scope] === 'PASSED'
                               ? 'border-status-success-border bg-status-success-bg text-status-success-text'
                               : scopes[item.scope] === 'REVISION_REQUIRED'
-                              ? 'border-rose-300 bg-rose-50/50 text-rose-800'
+                              ? 'border-danger bg-status-error-bg/50 text-danger-text'
                               : 'border-status-info-border bg-status-info-bg text-status-info-text'
                           } ${busyScope === item.scope ? 'opacity-50 cursor-wait' : ''}`}
                         >
@@ -215,7 +215,7 @@ export function InterdisciplinaryGatePanel({
             className={`rounded-xl border p-5 shadow-xs ${
               allPassed
                 ? 'border-status-success-border bg-status-success-bg text-status-success-text'
-                : 'border-amber-200 bg-amber-50/70 text-amber-950'
+                : 'border-status-warning-border bg-status-warning-bg/70 text-status-warning-text'
             }`}
           >
             <span className="text-xs font-bold uppercase tracking-wider">

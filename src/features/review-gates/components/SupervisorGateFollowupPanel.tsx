@@ -66,7 +66,7 @@ export function SupervisorGateFollowupPanel({
       </div>
 
       {blockerMessage && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+        <div className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-xs text-danger-text">
           <strong>Trở ngại hiện tại của nhóm:</strong> {blockerMessage}
         </div>
       )}
@@ -98,7 +98,7 @@ export function SupervisorGateFollowupPanel({
             placeholder="Ví dụ: Cần rà soát tính nhất quán giữa cơ sở dữ liệu ERD và API contract theo nhận xét của reviewer..."
             className="w-full rounded-lg border border-slate-300 p-2.5 text-xs text-slate-900 focus:border-primary focus:outline-hidden"
           />
-          {error && <p id={`${fieldId}-error`} role="alert" className="text-xs text-rose-800">{error}</p>}
+          {error && <p id={`${fieldId}-error`} role="alert" className="text-xs text-danger-text">{error}</p>}
           <div className="flex justify-end">
             <Button type="submit" className="min-h-11" disabled={busy || !feedback.trim()}>
               {busy ? 'Đang gửi...' : 'Gửi nhận xét hướng dẫn'}

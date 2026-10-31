@@ -88,17 +88,17 @@ export function EligibilityBanner({ eligibility, onRefresh }: EligibilityBannerP
   }
 
   return (
-    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col gap-3">
+    <div className="bg-status-warning-bg border border-status-warning-border rounded-xl p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-status-warning-bg text-status-warning-text flex items-center justify-center shrink-0">
             <span className="material-symbols-outlined text-[20px]">warning</span>
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-amber-900">
+            <h4 className="text-sm font-semibold text-status-warning-text">
               Nhóm chưa đủ điều kiện đăng ký đề tài ({reasons.length} tiêu chí chưa đạt)
             </h4>
-            <p className="text-xs text-amber-700">
+            <p className="text-xs text-status-warning-text">
               Cần khắc phục các vấn đề bên dưới trước khi Trưởng nhóm có thể nộp đề cương sơ bộ.
             </p>
           </div>
@@ -107,7 +107,7 @@ export function EligibilityBanner({ eligibility, onRefresh }: EligibilityBannerP
           type="button"
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="px-3 py-1.5 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50 shrink-0"
+          className="px-3 py-1.5 bg-warning-strong hover:bg-warning-strong-hover text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50 shrink-0"
         >
           <span className={`material-symbols-outlined text-[16px] ${isRefreshing ? 'animate-spin' : ''}`}>
             refresh
@@ -125,14 +125,14 @@ export function EligibilityBanner({ eligibility, onRefresh }: EligibilityBannerP
           return (
             <div
               key={reason}
-              className="bg-white/70 border border-amber-200/80 rounded-lg p-2.5 flex items-start gap-2"
+              className="bg-white/70 border border-status-warning-border/80 rounded-lg p-2.5 flex items-start gap-2"
             >
-              <span className="material-symbols-outlined text-amber-600 text-[18px] mt-0.5 shrink-0">
+              <span className="material-symbols-outlined text-status-warning-text text-[18px] mt-0.5 shrink-0">
                 error_outline
               </span>
               <div>
-                <p className="text-xs font-semibold text-amber-950">{info.title}</p>
-                <p className="text-xs text-amber-800/90 leading-relaxed">{info.hint}</p>
+                <p className="text-xs font-semibold text-status-warning-text">{info.title}</p>
+                <p className="text-xs text-status-warning-text/90 leading-relaxed">{info.hint}</p>
               </div>
             </div>
           )
