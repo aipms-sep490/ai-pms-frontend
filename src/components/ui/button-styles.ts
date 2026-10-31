@@ -17,7 +17,7 @@ export function buttonClassName({ size = 'md', variant = 'primary', className = 
     ghost:
       'bg-transparent hover:bg-slate-100 text-ink-muted hover:text-ink border border-transparent',
     danger:
-      'bg-white hover:bg-red-50 text-danger font-medium border border-red-200 active:scale-[0.99]',
+      'bg-white hover:bg-red-50 text-danger-text font-medium border border-red-200 active:scale-[0.99]',
   }[variant]
 
   return `mk-press ui-button-${variant} inline-flex items-center justify-center rounded-lg select-none whitespace-nowrap transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:pointer-events-none font-sans font-medium ${sizeStyles} ${variantStyles} ${className}`.trim()
