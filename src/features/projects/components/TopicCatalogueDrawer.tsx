@@ -23,11 +23,11 @@ export function TopicCatalogueDrawer({
         <div className="p-6 border-b border-line flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+              <span className="font-mono text-xs font-bold text-status-info-text bg-status-info-bg px-2 py-0.5 rounded border border-status-info-border">
                 {topic.code}
               </span>
               {topic.isInterdisciplinary ? (
-                <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                <span className="text-xs font-bold text-tag-ai bg-tag-ai-bg px-2 py-0.5 rounded border border-tag-ai/20">
                   Liên ngành
                 </span>
               ) : (
@@ -116,7 +116,7 @@ export function TopicCatalogueDrawer({
               onSelectTopic(topic)
               onClose()
             }}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-2"
+            className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-[18px]">assignment_turned_in</span>
             Chọn đề tài này cho nhóm

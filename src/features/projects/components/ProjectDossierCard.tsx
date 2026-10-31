@@ -22,7 +22,7 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
             <Badge variant="success" size="sm" dot>
               {dossier.statusLabel}
             </Badge>
-            <span className="font-mono text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded whitespace-nowrap">
+            <span className="font-mono text-xs font-semibold text-status-success-text bg-status-success-bg border border-status-success-border px-2 py-0.5 rounded whitespace-nowrap">
               Điểm CDIO: {dossier.cdioScore}/100
             </span>
           </div>
@@ -66,7 +66,7 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
               Giảng viên Hướng dẫn chính
             </span>
             {dossier.supervisor.hasDigitalSignature && (
-              <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded whitespace-nowrap">
+              <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-status-success-text bg-status-success-bg border border-status-success-border px-2 py-0.5 rounded whitespace-nowrap">
                 <span className="material-symbols-outlined text-[12px]">edit_note</span>
                 Chữ ký số mô phỏng (Demo)
               </span>

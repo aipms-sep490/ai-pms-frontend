@@ -103,17 +103,17 @@ export function NextActionBanner({
   const cardBorderClass = isRevisionRequired
     ? 'border-[var(--color-status-warning-border)] bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning-text)] border-l-4 border-l-[var(--color-accent-amber)]'
     : isInReview
-    ? 'border-blue-300 bg-blue-50/90 text-blue-950'
+    ? 'border-status-info-border bg-status-info-bg text-status-info-text'
     : isPassed
-    ? 'border-emerald-300 bg-emerald-50/90 text-emerald-950'
+    ? 'border-status-success-border bg-status-success-bg text-status-success-text'
     : 'border-hairline bg-card text-ink'
 
   const badgeClass = isRevisionRequired
     ? 'border-[var(--color-status-warning-border)] bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning-text)] border-l-2 border-l-[var(--color-accent-amber)]'
     : isInReview
-    ? 'border-blue-300 bg-blue-100 text-blue-900'
+    ? 'border-status-info-border bg-status-info-bg text-status-info-text'
     : isPassed
-    ? 'border-emerald-300 bg-emerald-100 text-emerald-900'
+    ? 'border-status-success-border bg-status-success-bg text-status-success-text'
     : 'border-hairline bg-canvas text-ink-soft'
 
   const iconName = isRevisionRequired
@@ -248,7 +248,7 @@ export function NextActionBanner({
                 Hội đồng yêu cầu nhóm rà soát lại hồ sơ trước khi chốt kết quả đợt thẩm định.
               </p>
             ) : isInReview ? (
-              <div className="rounded-lg border border-blue-200 bg-card p-3 text-xs text-blue-900 shadow-2xs space-y-1">
+              <div className="rounded-lg border border-status-info-border bg-card p-3 text-xs text-status-info-text shadow-2xs space-y-1">
                 <p>
                   <strong>{submittedReqs.length + acceptedReqs.length}/{activeGate.requirements.length} minh chứng</strong> đã được gửi lên hệ thống.
                 </p>
@@ -257,7 +257,7 @@ export function NextActionBanner({
                 </p>
               </div>
             ) : isPassed ? (
-              <div className="rounded-lg border border-emerald-200 bg-card p-3 text-xs text-emerald-900 shadow-2xs">
+              <div className="rounded-lg border border-status-success-border bg-card p-3 text-xs text-status-success-text shadow-2xs">
                 ✓ Nhóm đã hoàn thành toàn bộ yêu cầu chất lượng của cổng {activeGate.code}. Điểm số và nhận xét đã được lưu vào hồ sơ đồ án.
               </div>
             ) : (

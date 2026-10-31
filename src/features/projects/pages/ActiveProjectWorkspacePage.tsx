@@ -93,7 +93,7 @@ export function ProjectWorkspaceSummary({
 
   return (
     <main className="workspace-page mx-auto flex max-w-6xl flex-col gap-6 pb-12">
-      <header className="rounded-md border border-emerald-200 bg-emerald-50 p-5  sm:p-6">
+      <header className="rounded-md border border-status-success-border bg-status-success-bg p-5  sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-medium text-ink-muted">Đồ án đang thực hiện</p>
@@ -165,7 +165,7 @@ export function ProjectWorkspaceSummary({
         <section className="flex flex-col justify-between rounded-md border border-hairline bg-card p-5  sm:p-6">
           <div>
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-emerald-600">assignment</span>
+              <span className="material-symbols-outlined text-primary">assignment</span>
               <h2 className="text-base font-bold text-ink">Báo cáo tiến độ và phản hồi</h2>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-ink-muted">{audience === 'student' ? 'Tổng hợp kết quả theo tuần hoặc tháng. Cả nhóm cùng soạn bản nháp, trưởng nhóm nộp và theo dõi nhận xét từ giảng viên hướng dẫn.' : 'Đọc báo cáo theo từng kỳ, kiểm tra kết quả và gửi nhận xét để nhóm hoàn thiện các bước tiếp theo.'}</p>
@@ -178,7 +178,7 @@ export function ProjectWorkspaceSummary({
         <section className="flex flex-col justify-between rounded-md border border-hairline bg-card p-5  sm:p-6">
           <div>
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-violet-600">folder_open</span>
+              <span className="material-symbols-outlined text-tag-ai">folder_open</span>
               <h2 className="text-base font-bold text-ink">Deliverables & phiên bản</h2>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-ink-muted">Theo dõi các sản phẩm cần nộp, phiên bản đã gửi và nhận xét của giảng viên.</p>

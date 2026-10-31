@@ -138,8 +138,8 @@ export function TeamManagementPage() {
           role="status"
           className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-md border flex items-center gap-2.5 text-xs font-semibold ${
             toastMessage.type === 'success'
-              ? 'bg-emerald-600 text-white border-emerald-700'
-              : 'bg-rose-600 text-white border-rose-700'
+              ? 'bg-primary text-white border-primary-hover'
+              : 'bg-status-error-text text-white border-status-error-text'
           }`}
         >
           <span className="material-symbols-outlined text-[18px]">
@@ -255,7 +255,7 @@ export function TeamManagementPage() {
                   {team.code}
                 </span>
                 <h2 className="text-lg font-bold text-ink">{team.name}</h2>
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-ink-soft">
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-canvas text-ink-soft">
                   {team.status === 'ELIGIBLE'
                     ? 'Đủ điều kiện đăng ký'
                     : team.status === 'LOCKED'

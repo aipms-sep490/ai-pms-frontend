@@ -214,10 +214,10 @@ export function TeamInvitationsPanel({
                         <span
                           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                             inv.status === 'PENDING'
-                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              ? 'bg-status-warning-bg text-status-warning-text border border-status-warning-border'
                               : inv.status === 'ACCEPTED'
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                ? 'bg-status-success-bg text-status-success-text border border-status-success-border'
+                                : 'bg-status-error-bg text-status-error-text border border-status-error-border'
                           }`}
                         >
                           {statusLabel(inv.status)}
@@ -286,7 +286,7 @@ export function TeamInvitationsPanel({
                             type="button"
                             disabled={isMutationPending('accept', inv.id)}
                             onClick={() => handleAccept(inv.id)}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
+                            className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-md text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
                           >
                             <span className="material-symbols-outlined text-[16px]">check</span>
                             {isMutationPending('accept', inv.id) ? 'Đang chấp nhận...' : 'Chấp nhận'}

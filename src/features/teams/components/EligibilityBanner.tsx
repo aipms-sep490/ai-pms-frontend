@@ -58,16 +58,16 @@ export function EligibilityBanner({ eligibility, onRefresh }: EligibilityBannerP
 
   if (canRegister) {
     return (
-      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between gap-4">
+      <div className="bg-status-success-bg border border-status-success-border rounded-xl p-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-status-success-bg text-status-success-text flex items-center justify-center shrink-0">
             <span className="material-symbols-outlined text-[20px]">verified</span>
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-emerald-900">
+            <h4 className="text-sm font-semibold text-status-success-text">
               Nhóm đã đủ điều kiện đăng ký đồ án
             </h4>
-            <p className="text-xs text-emerald-700">
+            <p className="text-xs text-status-success-text">
               Các tiêu chuẩn về sĩ số, cơ cấu chuyên ngành và tư cách thành viên đều đạt yêu cầu.
             </p>
           </div>
@@ -76,7 +76,7 @@ export function EligibilityBanner({ eligibility, onRefresh }: EligibilityBannerP
           type="button"
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+          className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
         >
           <span className={`material-symbols-outlined text-[16px] ${isRefreshing ? 'animate-spin' : ''}`}>
             refresh

@@ -60,12 +60,12 @@ export function ApprovalTimelineCard({ timeline }: ApprovalTimelineCardProps) {
                         {stage.step}. {stage.title}
                       </span>
                       {isCompleted && (
-                        <span className="font-mono text-xs font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                        <span className="font-mono text-xs font-semibold text-status-success-text bg-status-success-bg px-1.5 py-0.5 rounded">
                           Hoàn tất
                         </span>
                       )}
                       {isCurrent && (
-                        <span className="font-mono text-xs font-semibold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">
+                        <span className="font-mono text-xs font-semibold text-status-info-text bg-status-info-bg px-1.5 py-0.5 rounded">
                           Đang diễn ra
                         </span>
                       )}

@@ -68,7 +68,7 @@ export function ProjectRegistrationFormPage() {
   if (hasProject && !editable && !revision) {
     return (
     <section className="mx-auto max-w-3xl rounded-md border border-slate-200 bg-white p-6 text-center">
-        <span className="material-symbols-outlined text-4xl text-blue-600" aria-hidden="true">task_alt</span>
+        <span className="material-symbols-outlined text-4xl text-primary" aria-hidden="true">task_alt</span>
         <h1 className="mt-3 text-xl font-bold text-slate-900">Đề cương đang ở chế độ chỉ xem</h1>
         <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-600">Hồ sơ đang ở trạng thái <strong>{projectStatusLabel(journey.project?.status ?? '')}</strong> và hiện chưa thể chỉnh sửa.</p>
         <button type="button" onClick={() => navigate('/project/status')} className="mt-5 rounded-md bg-primary px-5 py-2.5 text-xs font-bold text-white hover:bg-primary/90">Xem trạng thái đề cương</button>

@@ -74,7 +74,7 @@ export function TransferLeaderModal({
                 <label
                   key={m.userId}
                   className={`flex items-center justify-between p-3 cursor-pointer hover:bg-canvas transition-colors ${
-                    selectedUserId === m.userId ? 'bg-blue-50/40' : ''
+                    selectedUserId === m.userId ? 'bg-primary-subtle' : ''
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
@@ -85,7 +85,7 @@ export function TransferLeaderModal({
                       value={m.userId}
                       checked={selectedUserId === m.userId}
                       onChange={() => setSelectedUserId(m.userId)}
-                      className="text-blue-600 focus:ring-blue-500"
+                      className="text-primary focus:ring-primary"
                     />
                     <div>
                       <p className="text-xs font-semibold text-ink">{m.fullName}</p>

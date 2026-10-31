@@ -22,15 +22,15 @@ export function TeamEligibilitySummary({
   }
 
   return (
-    <section className={`rounded-md border p-5 ${pass ? 'border-emerald-200 bg-emerald-50/50' : 'border-amber-200 bg-amber-50/50'}`}>
+    <section className={`rounded-md border p-5 ${pass ? 'border-status-success-border bg-status-success-bg' : 'border-status-warning-border bg-status-warning-bg'}`}>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div className="flex gap-3">
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${pass ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}`}>
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${pass ? 'bg-status-success-bg text-status-success-text' : 'bg-status-warning-bg text-status-warning-text'}`}>
             <span className="material-symbols-outlined">{pass ? 'verified' : 'warning'}</span>
           </div>
           <div>
             <p className="text-xs font-medium text-ink-muted">Điều kiện đăng ký</p>
-            <h3 className={`mt-0.5 text-base font-bold ${pass ? 'text-emerald-950' : 'text-amber-950'}`}>
+            <h3 className={`mt-0.5 text-base font-bold ${pass ? 'text-status-success-text' : 'text-status-warning-text'}`}>
               {pass ? 'Nhóm đủ điều kiện đăng ký' : 'Nhóm cần hoàn thiện điều kiện đăng ký'}
             </h3>
             <p className="mt-1 text-xs text-ink-muted">
@@ -78,7 +78,7 @@ export function TeamEligibilitySummary({
                 <p className="font-medium text-ink">{majorNames[requirement.majorId] ?? 'Chưa có thông tin ngành'}</p>
                 <p className="mt-1 text-ink-muted">{requirement.minMembers}–{requirement.maxMembers} thành viên</p>
                 <p className="mt-1 text-ink-muted">Vai trò: {requirement.responsibility}</p>
-                <p className={`mt-2 font-semibold ${requirement.status === 'FAIL' ? 'text-rose-700' : 'text-emerald-700'}`}>
+                <p className={`mt-2 font-semibold ${requirement.status === 'FAIL' ? 'text-status-error-text' : 'text-status-success-text'}`}>
                   {requirement.status === 'FAIL' ? 'Chưa đạt yêu cầu về sĩ số' : 'Không có vi phạm về sĩ số'}
                 </p>
               </div>
@@ -104,7 +104,7 @@ export function TeamEligibilitySummary({
 
       <div className="mt-4 flex flex-col gap-2 border-t border-hairline pt-4 sm:flex-row sm:items-center sm:justify-between">
         {pass && canContinueToRegistration && (
-          <button type="button" onClick={onContinueToRegistration} className="shrink-0 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-700">
+          <button type="button" onClick={onContinueToRegistration} className="shrink-0 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-white hover:bg-primary-hover">
             Tiếp tục đăng ký đề tài
           </button>
         )}
