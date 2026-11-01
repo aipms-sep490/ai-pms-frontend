@@ -355,7 +355,8 @@ Không đổi màu theo cảm tính. Dùng đúng bảng ánh xạ này cho mọ
 | 3 | `src/components/ui/list-loading.css` | dùng chung | P1 |
 | 4 | `src/features/onboarding/onboarding.css` | tour onboarding | P2 |
 | 1 | `src/features/student-collaboration/collaboration.css` | workspace sinh viên | P2 |
-| 24 | `src/ui-review/effects-showcase.css` | nội bộ review, **không ship** | P3 — làm cuối hoặc bỏ qua, nói rõ lựa chọn |
+
+> Bảng là ảnh chụp kiểm toán tại thời điểm lập tài liệu. Showcase nội bộ không ship đã được gỡ khỏi repo ngày 01/11/2026; các số liệu lịch sử ở trên không phải danh sách file hiện hành.
 
 `lecturer-workspace.css` là lỗ hổng nhìn thấy rõ nhất: `/supervisor/workspace` là trang chủ của giảng viên (P0) và vẫn đang xanh `#105b50` trong khi sidebar, header và mọi mặt khác đã sang teal.
 
