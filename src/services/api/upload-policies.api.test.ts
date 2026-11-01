@@ -18,8 +18,9 @@ describe('upload policy from BE', () => {
     expect(uploadPolicyLabel(policy)).toBe('PDF, PNG · tối đa 22 MiB')
   })
 
-  it('does not block when policy is unavailable', () => {
-    expect(validateUploadFile(file('unknown.bin', 100_000_000), null)).toBeNull()
+  it('uses the current 20 MiB BE validator limit when policy is unavailable', () => {
+    expect(validateUploadFile(file('report.pdf', 21 * 1_048_576), null)).toContain('20 MiB')
+    expect(validateUploadFile(file('report.pdf', 2 * 1_048_576), null)).toBeNull()
   })
 
   it('fetches once per page session and retries after failure', async () => {
@@ -29,6 +30,7 @@ describe('upload policy from BE', () => {
     expect(await getUploadPolicy(policy.parentType)).toEqual(policy)
     expect(await getUploadPolicy(policy.parentType)).toEqual(policy)
     expect(fetch).toHaveBeenCalledTimes(1)
+    expect(fetch.mock.calls[0][0]).toBe('/api/v1/upload-policies')
     clearUploadPolicyCache()
     fetch.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(Response.json([policy]))
     await expect(getUploadPolicy(policy.parentType)).rejects.toThrow('offline')

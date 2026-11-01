@@ -1,0 +1,32 @@
+{
+  "provenance": "FE-local example constructed from BE RubricDtos.cs at 14eecc7; not a staging response",
+  "response": {
+    "body": {
+      "id": 1,
+      "criterionId": 1,
+      "name": "Group",
+      "description": null,
+      "weightPercent": 100,
+      "maxScore": null,
+      "sortOrder": 0,
+      "isRequired": false,
+      "parentId": null,
+      "effectiveWeightPercent": 100,
+      "children": [
+        {
+          "id": 2,
+          "criterionId": 2,
+          "name": "Leaf",
+          "description": null,
+          "weightPercent": 100,
+          "maxScore": 10,
+          "sortOrder": 0,
+          "isRequired": true,
+          "parentId": 1,
+          "effectiveWeightPercent": 100,
+          "children": []
+        }
+      ]
+    }
+  }
+}

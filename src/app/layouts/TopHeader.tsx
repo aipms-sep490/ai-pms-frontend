@@ -1,3 +1,4 @@
+import { TOUR_ANCHOR } from '../../features/onboarding/tour-anchors'
 import { useContext, useEffect, useRef, useState, type RefObject } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { getBreadcrumbForPath } from '../router/routes.config'
@@ -126,7 +127,7 @@ export function TopHeader({
 
         <nav
           aria-label="Đường dẫn điều hướng breadcrumb"
-          data-tour="breadcrumb"
+          data-tour={TOUR_ANCHOR.breadcrumb}
           className="flex items-center gap-1.5 sm:gap-2 text-xs text-ink-muted font-sans truncate"
         >
           <span className="font-semibold text-ink-soft shrink-0">{selectedSemester?.code ?? 'AI-PMS'}</span>
@@ -155,7 +156,7 @@ export function TopHeader({
           <button
             ref={notificationTriggerRef}
             type="button"
-            data-tour="notifications"
+            data-tour={TOUR_ANCHOR.notifications}
             onClick={toggleNotifications}
             aria-expanded={notificationOpen}
             aria-controls="notification-preview"

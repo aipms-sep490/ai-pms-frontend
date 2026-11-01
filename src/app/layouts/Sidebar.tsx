@@ -1,3 +1,4 @@
+import { TOUR_ANCHOR } from '../../features/onboarding/tour-anchors'
 import { Fragment, useContext, useEffect, useRef, useCallback, useState, useMemo, type RefObject } from 'react'
 import { matchPath, NavLink, useLocation } from 'react-router-dom'
 import { getWorkspaceNavigation } from '../router/workspace-route-registry'
@@ -184,7 +185,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
         role={isOpen ? 'dialog' : undefined}
         aria-modal={isOpen ? true : undefined}
         aria-label="Menu điều hướng chính"
-        data-tour="sidebar"
+        data-tour={TOUR_ANCHOR.sidebar}
         className={`fixed left-0 top-0 bottom-0 w-60 bg-card border-r border-hairline z-50 flex flex-col justify-between select-none sidebar-rail ${
           isOpen ? 'drawer-open' : ''
         }`}
@@ -286,7 +287,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                             <NavLink
                               key={item.id}
                               to={item.path}
-                              data-tour={groupIndex === 0 && itemIndex === 0 ? 'sidebar-primary' : undefined}
+                              data-tour={groupIndex === 0 && itemIndex === 0 ? TOUR_ANCHOR.sidebarPrimary : undefined}
                               end={item.path === '/academic'}
                               onClick={() => {
                                 if (window.innerWidth < 1024) handleClose()
@@ -358,7 +359,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                 <NavLink
                   key={item.id}
                   to={item.path}
-                  data-tour={index === 0 ? 'sidebar-primary' : undefined}
+                  data-tour={index === 0 ? TOUR_ANCHOR.sidebarPrimary : undefined}
                   end={item.path === '/academic'}
                   onClick={() => {
                     if (window.innerWidth < 1024) handleClose()
@@ -390,7 +391,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
         </div>
 
         {/* Bottom Profile Footer (Student Baseline for Batch 0-2) */}
-        <div data-tour="profile" className="p-3 border-t border-hairline bg-canvas/70 flex items-center justify-between gap-2">
+        <div data-tour={TOUR_ANCHOR.profile} className="p-3 border-t border-hairline bg-canvas/70 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className="w-8 h-8 rounded-full bg-slate-200 border border-line-strong flex items-center justify-center font-heading font-bold text-xs text-ink-soft relative shrink-0">
               {profileInitials}

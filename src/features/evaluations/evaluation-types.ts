@@ -8,6 +8,8 @@ export interface EvaluationAssignment {
   id: number; projectId: number; evaluatorId: number; rubricId: number; projectPeriodId: number; departmentId: number
   evaluationType: EvaluatorRole; status: 'ACTIVE' | 'REVOKED'; assignedBy: number; assignedAt: string; revokedAt: string | null; concurrencyToken: string
   scope: 'COMMON' | 'MAJOR_SPECIFIC' | 'INDIVIDUAL' | 'UNKNOWN'; majorId: number | null; studentId: number | null; componentId: number | null; policyVersionId: number | null
+  /** Current BE EvaluationAssignmentDto includes the stage frozen on this assignment. */
+  stage?: EvaluationStage | null
   /** v5 D6/BRX-EVAL-05: industry input is advisory unless the scheme grants a weighted scope.
    * Optional until the backend ships it; absent is treated as non-advisory (scored). */
   industryScoringMode?: 'ADVISORY' | 'WEIGHTED'; advisory?: boolean

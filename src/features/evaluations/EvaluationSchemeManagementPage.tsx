@@ -141,14 +141,14 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
     major,
     total: components.filter(item => item.scope === 'COMMON' || item.majorId === major.majorId).reduce((sum, item) => sum + item.studentWeightPercent, 0),
   })), [components, project])
-  const stageWeights = useMemo(() => {
+  const stageWeights = useMemo(() => (project?.majors ?? []).map(major => {
     const totals = new Map<string, number>()
-    components.forEach(item => {
+    components.filter(item => item.scope === 'COMMON' || item.majorId === major.majorId).forEach(item => {
       const stage = item.stage ?? ''
       totals.set(stage, (totals.get(stage) ?? 0) + item.studentWeightPercent)
     })
-    return [...totals].map(([stage, total]) => ({ stage, total }))
-  }, [components])
+    return { major, stages: [...totals].map(([stage, total]) => ({ stage, total })) }
+  }), [components, project])
 
   const choose = (scheme: EvaluationScheme) => {
     if (busy || loading) return
@@ -281,7 +281,7 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
           <p className="mt-2 text-xs text-ink-muted">Thành phần chung áp dụng cho cả đồ án. Thành phần theo ngành hoặc sinh viên chỉ áp dụng cho ngành tham gia; điểm cá nhân không đóng góp vào điểm đồ án.</p>
           <div aria-label="Tỷ trọng cấu hình theo giai đoạn" className="mt-3 border-t border-hairline pt-3">
             <p className="text-xs font-semibold text-ink">Tổng trọng số điểm sinh viên theo giai đoạn</p>
-            <ul className="mt-2 flex flex-wrap gap-2">{stageWeights.map(item => <li key={item.stage || 'unknown'}><StatusBadge label={`${evaluationStageLabel(item.stage)}: ${formatPercent(item.total)}`} /></li>)}</ul>
+            <ul className="mt-2 space-y-2">{stageWeights.map(({ major, stages }) => <li key={major.majorId} className="flex flex-wrap items-center gap-2"><span className="text-xs font-semibold text-ink">{major.majorCode}</span>{stages.map(item => <StatusBadge key={item.stage || 'unknown'} label={`${evaluationStageLabel(item.stage)}: ${formatPercent(item.total)}`} />)}</li>)}</ul>
             <p className="mt-2 text-xs text-ink-muted">Chỉ để rà soát cấu hình; tỷ trọng áp dụng và kết quả do hệ thống kiểm tra.</p>
           </div>
         </div>

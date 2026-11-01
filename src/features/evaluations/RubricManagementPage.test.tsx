@@ -37,44 +37,42 @@ describe('RubricManagementPage deep interactions', () => {
     expect(screen.getByRole('group', { name: 'Tiêu chí 1: Tích hợp' }).className).toContain('border-status-error-border')
   })
 
-  it('allows draft saving with missing levels while withholding submission for BE configured five levels', async () => {
-    const fiveLevelDraft = { ...draft, requiredLevelCount: 5, criteria: [{ ...criterion, effectiveWeightPercent: 95, levels: [] }] }
-    mocks.listRubrics.mockResolvedValue({ items: [fiveLevelDraft], totalCount: 1 })
-    mocks.getRubric.mockResolvedValue(fiveLevelDraft)
-    mocks.updateRubric.mockResolvedValue(fiveLevelDraft)
-    page(); await screen.findByLabelText('Tên tiêu chí')
-    expect((screen.getByRole('button', { name: 'Gửi duyệt' }) as HTMLButtonElement).disabled).toBe(true)
-    expect(screen.getByText(/Tiêu chí còn thiếu mức/)).toBeTruthy()
-    fireEvent.change(screen.getByLabelText('Tên bộ tiêu chí'), { target: { value: 'Bản soạn dở' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
-    await waitFor(() => expect(mocks.updateRubric).toHaveBeenCalled())
-    expect(mocks.updateRubric.mock.calls[0][1].criteria[0]).not.toHaveProperty('effectiveWeightPercent')
+  it('keeps the current publish action when BE-08 capability is absent', async () => {
+    mocks.publishRubric.mockResolvedValue({ ...draft, status: 'PUBLISHED', canEdit: false })
+    page(); await screen.findByRole('heading', { name: 'Bộ đã công bố' })
+    fireEvent.click(screen.getByRole('button', { name: /DRAFT · v1/ }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Công bố' }))
+    fireEvent.click(screen.getByRole('dialog').querySelector('button[type="submit"]')!)
+    await waitFor(() => expect(mocks.publishRubric).toHaveBeenCalledWith(1, 'token'))
     expect(mocks.submitRubricForApproval).not.toHaveBeenCalled()
   })
-  it('renders five editable levels from BE count and enables submission only after a complete saved draft', async () => {
-    let server = { ...draft, requiredLevelCount: 5, criteria: [{ ...criterion, levels: [] as Array<{ levelOrder: number; label: string; descriptor: string; scoreFrom: number | null; scoreTo: number | null }> }] }
-    mocks.listRubrics.mockResolvedValue({ items: [server], totalCount: 1 })
-    mocks.getRubric.mockImplementation(async () => server)
-    mocks.updateRubric.mockImplementation(async (_id, body) => { server = { ...server, criteria: body.criteria }; return server })
-    mocks.submitRubricForApproval.mockImplementation(async () => ({ ...server, status: 'PENDING_APPROVAL', canEdit: false }))
-    page(); await screen.findByLabelText('Tên tiêu chí')
-    for (let index = 0; index < 5; index++) fireEvent.click(screen.getByRole('button', { name: 'Thêm mức vào bản nháp' }))
-    expect(screen.getAllByLabelText('Mô tả')).toHaveLength(7)
-    screen.getAllByLabelText('Mô tả').slice(-5).forEach((field, index) => fireEvent.change(field, { target: { value: `Mức ${index + 1}` } }))
-    fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
-    await waitFor(() => expect((screen.getByRole('button', { name: 'Gửi duyệt' }) as HTMLButtonElement).disabled).toBe(false))
-    fireEvent.click(screen.getByRole('button', { name: 'Gửi duyệt' }))
+  it('shows submit only with BE capability and blocks incomplete server levels', async () => {
+    const incomplete = { ...draft, canSubmitForApproval: true, requiredLevelCount: 5, criteria: [{ ...criterion, levels: [] }] }
+    mocks.getRubric.mockImplementation(async (id: number) => id === 1 ? incomplete : published)
+    page(); await screen.findByRole('heading', { name: 'Bộ đã công bố' })
+    fireEvent.click(screen.getByRole('button', { name: /DRAFT · v1/ }))
+    expect((await screen.findByRole('button', { name: 'Gửi duyệt' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByText(/Tiêu chí còn thiếu mức/).textContent).toContain('Chất lượng')
+    expect(screen.queryByRole('button', { name: 'Công bố' })).toBeNull()
+  })
+  it('submits only a complete BE-approved draft', async () => {
+    const levels = Array.from({ length: 5 }, (_, index) => ({ levelOrder: index + 1, label: `Mức ${index + 1}`, descriptor: `Mô tả ${index + 1}`, scoreFrom: null, scoreTo: null }))
+    const ready = { ...draft, canSubmitForApproval: true, requiredLevelCount: 5, criteria: [{ ...criterion, levels }] }
+    mocks.getRubric.mockImplementation(async (id: number) => id === 1 ? ready : published)
+    mocks.submitRubricForApproval.mockResolvedValue({ ...ready, status: 'PENDING_APPROVAL', canEdit: false })
+    page(); await screen.findByRole('heading', { name: 'Bộ đã công bố' })
+    fireEvent.click(screen.getByRole('button', { name: /DRAFT · v1/ }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Gửi duyệt' }))
     fireEvent.click(screen.getByRole('dialog').querySelector('button[type="submit"]')!)
     await waitFor(() => expect(mocks.submitRubricForApproval).toHaveBeenCalledWith(1, 'token'))
   })
-  it('hides major for common scope and requires it for major specific scope', async () => {
+  it('does not offer FE-only scope or level inputs before BE can persist them', async () => {
     page(); await screen.findByRole('heading', { name: 'Bộ đã công bố' })
     fireEvent.click(screen.getByRole('button', { name: /DRAFT · v1/ }))
-    await screen.findByLabelText('Phạm vi')
-    fireEvent.change(screen.getByLabelText('Phạm vi'), { target: { value: 'COMMON' } })
-    expect(screen.queryByLabelText('Ngành')).toBeNull()
-    fireEvent.change(screen.getByLabelText('Phạm vi'), { target: { value: 'MAJOR_SPECIFIC' } })
-    expect((screen.getByLabelText('Ngành') as HTMLSelectElement).required).toBe(true)
+    await screen.findByLabelText('Tên tiêu chí')
+    expect(screen.queryByLabelText('Phạm vi')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Thêm mức vào bản nháp' })).toBeNull()
+    expect(screen.queryByLabelText('Chuẩn đầu ra')).toBeNull()
   })
   it('keeps pending approval readonly and only shows approval actions on server capability', async () => {
     const pending = { ...draft, status: 'PENDING_APPROVAL', canEdit: false, canApprove: false, canReject: false }

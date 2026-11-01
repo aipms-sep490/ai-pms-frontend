@@ -27,14 +27,17 @@ if (mode === 'sync') {
     mkdirSync(resolve(target, '..'), { recursive: true })
     writeFileSync(target, value.content)
   }
-  for (const path of walk(destination)) if (!(relative(destination, path).replaceAll('\\', '/') in files)) rmSync(path)
+  for (const path of walk(destination)) {
+    const name = relative(destination, path).replaceAll('\\', '/')
+    if (!name.startsWith('_local/') && !(name in files)) rmSync(path)
+  }
   writeFileSync(lockPath, JSON.stringify(lock, null, 2) + '\n')
   console.log(`Synced ${paths.length} BE examples from ${ref}`)
 } else {
   if (!existsSync(lockPath)) throw new Error('contract-lock.json missing; run sync-contracts')
   const saved = JSON.parse(readFileSync(lockPath, 'utf8'))
   if (JSON.stringify(saved) !== JSON.stringify(lock)) throw new Error('BE examples differ from contract-lock.json')
-  const vendored = walk(destination).map(path => relative(destination, path).replaceAll('\\', '/')).sort()
+  const vendored = walk(destination).map(path => relative(destination, path).replaceAll('\\', '/')).filter(path => !path.startsWith('_local/')).sort()
   if (JSON.stringify(vendored) !== JSON.stringify(Object.keys(files).sort())) throw new Error('Vendored contract file set differs from BE')
   for (const [path, value] of Object.entries(files)) {
     if (createHash('sha256').update(readFileSync(join(destination, path))).digest('hex') !== value.sha256) throw new Error(`Vendored contract changed: ${path}`)

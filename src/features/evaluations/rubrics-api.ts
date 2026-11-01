@@ -2,7 +2,7 @@ import { httpDelete, httpGet, httpPost, httpPut } from '../../services/http/http
 import type { PagedResult } from '../../types/backend'
 
 export interface RubricCriterion {
-  id: number; name: string; description: string | null; weightPercent: number; maxScore: number | null
+  id: number; criterionId?: number; name: string; description: string | null; weightPercent: number; maxScore: number | null
   sortOrder: number; isRequired: boolean; children: RubricCriterion[]
   criterionCode?: string | null; learningOutcome?: string | null; evidenceGuidance?: string | null
   /** Historical responses may omit the tree parent. */
@@ -26,6 +26,8 @@ export interface Rubric {
   criteria: RubricCriterion[]
   /** Server configuration is required before FE can claim a draft is submittable. */
   requiredLevelCount?: number | null
+  /** BE-08 advertises the approval workflow; absent keeps the current publish path. */
+  canSubmitForApproval?: boolean
   approvalReference?: string | null
   canApprove?: boolean
   canReject?: boolean

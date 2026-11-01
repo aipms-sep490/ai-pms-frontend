@@ -114,7 +114,7 @@ describe('EvaluationSchemeManagementPage concurrency reconciliation', () => {
 
   it('keeps edits only after explicit choice and uses the refreshed token for the next save', async () => {
     await saveConflict()
-    fireEvent.click(screen.getByRole('button', { name: 'Giữ nội dung để tiếp tục sửa' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Giữ nội dung để tiếp tục sửa' }))
     expect(api.updateEvaluationScheme).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
     await waitFor(() => expect(api.updateEvaluationScheme).toHaveBeenCalledTimes(2))

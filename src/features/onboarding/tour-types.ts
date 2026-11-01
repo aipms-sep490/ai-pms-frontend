@@ -1,4 +1,5 @@
 import type { WorkspaceRole } from '../auth/utils/role-access'
+import type { TourAnchor } from './tour-anchors'
 
 /** Where the step popover prefers to sit relative to its target. The engine
  * falls back to another side when there is not enough room. */
@@ -9,7 +10,7 @@ export interface TourStep {
   id: string
   /** Value of the `data-tour` attribute the step highlights. Missing targets
    * are shown as a centred message instead of silently skipping a step. */
-  target?: string
+  target?: TourAnchor
   title: string
   body: string
   fallbackBody?: string

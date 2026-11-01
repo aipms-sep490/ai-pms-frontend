@@ -26,6 +26,29 @@ beforeEach(() => {
 })
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 function page() { render(<MemoryRouter initialEntries={['/admin/projects/9/evaluation-schemes']}><Routes><Route path="/admin/projects/:projectId/evaluation-schemes" element={<EvaluationSchemeManagementPage />} /></Routes></MemoryRouter>) }
+it('totals stage weights separately for each major, including shared components', async () => {
+  const majors = [{ majorId: 3, majorCode: 'SE' }, { majorId: 4, majorCode: 'IS' }, { majorId: 5, majorCode: 'CS' }]
+  api.getProject.mockResolvedValue({ id: 9, majors })
+  const common = [
+    { ...scheme.components[0], id: 1, stage: 'COLD', studentWeightPercent: 15 },
+    { ...scheme.components[0], id: 2, stage: 'DEFENSE', studentWeightPercent: 35 },
+  ]
+  const specific = majors.flatMap(({ majorId }, index) => [
+    { ...scheme.components[0], id: 3 + index * 3, scope: 'MAJOR_SPECIFIC', majorId, stage: 'COLD', studentWeightPercent: 15 },
+    { ...scheme.components[0], id: 4 + index * 3, scope: 'MAJOR_SPECIFIC', majorId, stage: 'DEFENSE', studentWeightPercent: 15 },
+    { ...scheme.components[0], id: 5 + index * 3, scope: 'INDIVIDUAL', majorId, stage: 'DEFENSE', studentWeightPercent: 20 },
+  ])
+  api.getEvaluationSchemes.mockResolvedValue([{ ...scheme, components: [...common, ...specific] }])
+  page(); fireEvent.click(await screen.findByRole('button', { name: /Scheme server/ }))
+  expect(screen.getAllByText('Chấm hồ sơ đã khóa: 30%')).toHaveLength(3)
+  expect(screen.getAllByText('Bảo vệ: 70%')).toHaveLength(3)
+  expect(screen.queryByText('Chấm hồ sơ đã khóa: 60%')).toBeNull()
+})
+it('keeps an unknown stage visible in its major total', async () => {
+  api.getEvaluationSchemes.mockResolvedValue([{ ...scheme, components: [{ ...scheme.components[0], stage: null, studentWeightPercent: 30 }] }])
+  page(); fireEvent.click(await screen.findByRole('button', { name: /Scheme server/ }))
+  expect(screen.getByText('Chưa xác định: 30%')).toBeTruthy()
+})
 it('requires explicit draft threshold and weights rather than proposed academic defaults', async () => {
   page(); await screen.findByRole('button', { name: /Scheme server/ })
   fireEvent.click(screen.getAllByRole('button', { name: 'Tạo bản nháp' })[0])

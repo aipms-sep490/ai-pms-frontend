@@ -3,6 +3,8 @@ import ts from 'typescript'
 import assignmentExample from '../__contracts__/evaluation-assignments/get-assignment-detail-200.json'
 import assignmentTypes from '../features/evaluations/evaluation-types.ts?raw'
 import assignmentApi from '../services/api/evaluations.api.ts?raw'
+import rubricExample from '../__contracts__/_local/rubric-criterion-200.json'
+import rubricTypes from '../features/evaluations/rubrics-api.ts?raw'
 
 function interfaceKeys(source: string, name: string): string[] {
   const file = ts.createSourceFile('contract.ts', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
@@ -18,7 +20,11 @@ describe('contract-shape: BE vendored examples against FE interfaces', () => {
     expect(Object.keys(body.assignment).filter(key => !interfaceKeys(assignmentTypes, 'EvaluationAssignment').includes(key))).toEqual([])
   })
 
-  it.skip('requires every rubric key once BE-06/07 deliver a rubric-with-levels example', () => {
-    // BE origin/develop currently has no rubric JSON example. This becomes active with BE Contract Card.
+  it('requires every current BE rubric criterion key in the FE interface', () => {
+    const body = rubricExample.response.body
+    const keys = interfaceKeys(rubricTypes, 'RubricCriterion')
+    for (const criterion of [body, ...body.children]) {
+      expect(Object.keys(criterion).filter(key => !keys.includes(key))).toEqual([])
+    }
   })
 })
