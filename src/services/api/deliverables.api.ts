@@ -1,6 +1,7 @@
 import { httpDelete, httpGet, httpGetBlob, httpPost, httpPostForm, httpPut } from '../http/http-client'
 import type { PagedResult } from '../../types/backend'
 import type { Deliverable, DeliverableFeedback, DeliverableVersion, SaveDeliverable } from '../../features/deliverables/deliverable-types'
+import type { DeliverableReviewOptions, DeliverableReviewResponse } from '../../features/deliverables/deliverable-types'
 
 export interface DeliverableFilters { status?: string; search?: string; milestoneId?: number; deliverableType?: string; page?: number; pageSize?: number }
 
@@ -31,3 +32,9 @@ export const getDeliverableFeedback = (id: number, page = 1, pageSize = 20, sign
   httpGet<PagedResult<DeliverableFeedback>>(`/deliverable-versions/${id}/feedback?${queryOf({ page, pageSize })}`, signal)
 export const downloadDeliverableFile = (id: number, signal?: AbortSignal) =>
   httpGetBlob(`/files/${id}/download`, { signal })
+export const getDeliverableReviewOptions = (projectId: number, versionId: number, signal?: AbortSignal) =>
+  httpGet<DeliverableReviewOptions>(`/projects/${projectId}/ai/deliverables/${versionId}/review-options`, signal)
+export const reviewDeliverableVersionWithAi = (projectId: number, versionId: number, body: { rubricId: number; checklistId?: number | null; scope: string }) =>
+  httpPost<DeliverableReviewResponse>(`/projects/${projectId}/ai/deliverables/${versionId}/review`, body)
+export const getDeliverableAiReviews = (projectId: number, versionId: number, signal?: AbortSignal) =>
+  httpGet<PagedResult<DeliverableReviewResponse>>(`/projects/${projectId}/ai/deliverable-reviews?deliverableVersionId=${versionId}&page=1&pageSize=20`, signal)
