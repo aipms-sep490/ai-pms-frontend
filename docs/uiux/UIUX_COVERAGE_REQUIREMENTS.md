@@ -187,7 +187,8 @@ Hiện tại chưa vỡ hình vì `src/index.css` không nằm trong `@layer` n�
 | 4 | `src/components/ui/segmented-control.css` | dùng chung | P1 |
 | 3 | `src/components/ui/list-loading.css` | dùng chung | P1 |
 | 1 | `src/features/student-collaboration/collaboration.css` | workspace sinh viên | P2 |
-| 24 | `src/ui-review/effects-showcase.css` | nội bộ review, không ship | P3 |
+
+> Bảng là ảnh chụp kiểm toán tại thời điểm lập tài liệu. Showcase nội bộ không ship đã được gỡ khỏi repo ngày 01/11/2026; các số liệu lịch sử ở trên không phải danh sách file hiện hành.
 
 > `lecturer-workspace.css` là lỗ hổng nhìn thấy rõ nhất: `/supervisor/workspace` là trang chủ của giảng viên (P0) và vẫn đang xanh `#105b50` trong khi cả hệ thống đã sang teal.
 
