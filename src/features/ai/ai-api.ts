@@ -25,6 +25,10 @@ export interface ProjectProgressAnalysis {
   majorIds: number[]
   /** Metric groups this scope cannot compute — render as explicitly unavailable, never as zero or absent. */
   unavailableMetrics: string[]
+  summary?: string | null
+  generationStatus?: string
+  signals?: Array<{ code: string; severity: string; count: number; description: string }>
+  projectEvidence?: EvidenceReference[]
 }
 export interface ReportAiSummary { projectId: number; reportId: number; reportType: string; periodStart: string; periodEnd: string; summary: { completed: string; inProgress: string; blockers: string; risks: string; nextActions: string }; contextScope: string; evidence: EvidenceReference[]; limitationNote: string | null; generatedAt: string; generationStatus: string; runId: number | null }
 export interface ProjectAssistantResponse { projectId: number; answer: string; contextScope: string; evidence: EvidenceReference[]; limitationNote: string | null; insufficientEvidence: boolean; generatedAt: string; generationStatus: string; runId: number | null }
