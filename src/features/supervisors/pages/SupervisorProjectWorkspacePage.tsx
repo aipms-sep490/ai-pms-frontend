@@ -33,7 +33,7 @@ export function SupervisorProjectWorkspacePage() {
     ...areas,
     ...(env.weeklyAssessmentEnabled ? [{ key: 'weekly', title: 'Điểm cá nhân theo tuần', description: 'Chấm tham khảo theo tuần, không vào kết quả chính thức.', path: 'weekly-assessments' }] : []),
     ...(env.gatesEnabled ? [{ key: 'checkpoints', title: 'Checkpoint theo dõi', description: 'Kế hoạch theo dõi và kết luận từng giai đoạn.', path: 'checkpoints' }] : []),
-    ...(env.aiAdvisoryEnabled ? [{ key: 'ai', title: 'Rủi ro và AI', description: 'Phân tích tham khảo từ dữ liệu tiến độ.', path: 'ai' }] : []),
+    ...(env.aiAdvisoryEnabled || env.aiProgressRiskEnabled ? [{ key: 'ai', title: 'Rủi ro và AI', description: 'Phân tích tham khảo từ dữ liệu tiến độ.', path: 'ai' }] : []),
   ]
 
   return (
@@ -84,7 +84,7 @@ export function SupervisorProjectWorkspacePage() {
         {operational.evaluator.state === 'error' && <p role="alert" className="border-t border-hairline px-5 py-3 text-sm text-status-error-text">{operational.evaluator.message} Chức năng chấm điểm xuất hiện khi bạn được phân công đánh giá.</p>}
       </section>
 
-      {env.aiAdvisoryEnabled && <ProjectProgressAnalysisPanel projectId={access.project.id} compact />}
+      {(env.aiAdvisoryEnabled || env.aiProgressRiskEnabled) && <ProjectProgressAnalysisPanel projectId={access.project.id} compact />}
 
       <p className="text-sm leading-6 text-ink-muted">Phản hồi, người tham gia, biên bản, kết luận và công việc sau họp được quản lý trong chi tiết từng cuộc họp.</p>
       {/* PeerEvaluationService permits writes in ACTIVE and FINAL_SUBMISSION for the current primary assignment. */}

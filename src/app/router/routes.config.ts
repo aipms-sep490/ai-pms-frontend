@@ -172,7 +172,7 @@ export const mvpRoutes: readonly AppRouteMeta[] = [
 export function getStudentNavItems() {
   const workspaceItems = mvpRoutes.filter(
     (r) => r.section === 'workspace' && (r.role === 'student' || r.role === 'all')
-  ).filter((route) => env.aiAdvisoryEnabled || route.path !== '/project/ai')
+  ).filter((route) => env.aiAdvisoryEnabled || env.aiProgressRiskEnabled || route.path !== '/project/ai')
   const managementItems = mvpRoutes.filter(
     (r) => r.section === 'management'
   )
@@ -189,7 +189,7 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (/^\/industry\/assignments\/\d+(?:\/|$)/.test(pathname)) return env.industryEnabled ? 'Chi tiết phân công tư vấn' : 'Trang không tồn tại'
   const registryBreadcrumb = getWorkspaceBreadcrumb(pathname)
   if (/^\/(?:review|department)\/projects\/\d+\/corrections(?:\/|$)/.test(pathname)) return 'Phúc khảo và đính chính'
-  if (registryBreadcrumb && (pathname !== '/project/ai' || env.aiAdvisoryEnabled)) return registryBreadcrumb
+  if (registryBreadcrumb && (pathname !== '/project/ai' || env.aiAdvisoryEnabled || env.aiProgressRiskEnabled)) return registryBreadcrumb
   if (/^\/project\/meetings\/new(?:\/|$)/.test(pathname) || /^\/supervisor\/projects\/\d+\/meetings\/new(?:\/|$)/.test(pathname)) {
     return 'Lên lịch họp'
   }
@@ -222,8 +222,8 @@ export function getBreadcrumbForPath(pathname: string): string {
     return 'Tổng quan lộ trình'
   }
   if (pathname === '/project/workspace') return 'Phối hợp nhóm'
-  if (pathname === '/project/ai' || /^\/supervisor\/projects\/\d+\/ai(?:\/|$)/.test(pathname)) return env.aiAdvisoryEnabled ? 'Trợ lý AI và phân tích' : 'Trang không tồn tại'
-  if (/^\/department\/projects\/\d+\/risk(?:\/|$)/.test(pathname)) return env.aiAdvisoryEnabled ? 'Phân tích rủi ro đồ án' : 'Trang không tồn tại'
+  if (pathname === '/project/ai' || /^\/supervisor\/projects\/\d+\/ai(?:\/|$)/.test(pathname)) return env.aiAdvisoryEnabled || env.aiProgressRiskEnabled ? 'Trợ lý AI và phân tích' : 'Trang không tồn tại'
+  if (/^\/department\/projects\/\d+\/risk(?:\/|$)/.test(pathname)) return env.aiAdvisoryEnabled || env.aiProgressRiskEnabled ? 'Phân tích rủi ro đồ án' : 'Trang không tồn tại'
   if (pathname === '/department/projects/archived') return 'Kho lưu trữ đồ án'
   if (/^\/department\/projects\/\d+\/archive-view(?:\/|$)/.test(pathname)) return 'Hồ sơ đồ án lưu trữ'
   if (/^\/supervisor\/projects\/\d+\/workspace(?:\/|$)/.test(pathname)) {
