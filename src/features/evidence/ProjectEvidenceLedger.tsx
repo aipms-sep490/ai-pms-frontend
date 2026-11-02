@@ -72,33 +72,35 @@ function EvidenceLedger({ projectId, routeBase, majors = [], lockedMajorId, acto
   }
   const totalPages = result?.totalPages ?? 1
 
-  return <main className="mx-auto max-w-6xl space-y-6 pb-12">
-    <header className="border-b border-hairline pb-5">
-      <p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-primary">Đồ án #{projectId} · Sổ minh chứng</p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight text-ink sm:text-3xl">Sổ minh chứng</h1>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">Tra cứu minh chứng theo công việc, báo cáo và cuộc họp; đối chiếu trạng thái từ hệ thống.</p>
+  return <div className="workspace-page space-y-6 pb-12">
+    <header className="workspace-heading border-b border-hairline pb-5">
+      <div className="min-w-0">
+        <p className="workspace-kicker font-mono text-xs font-semibold uppercase tracking-[0.14em] text-primary">Đồ án #{projectId} · Sổ minh chứng</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-ink sm:text-3xl">Sổ minh chứng</h1>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">Tra cứu minh chứng theo công việc, báo cáo và cuộc họp; đối chiếu trạng thái từ hệ thống.</p>
+      </div>
     </header>
 
     <section className="rounded-xl border border-hairline bg-card p-4 shadow-xs sm:p-5" aria-label="Lọc minh chứng">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="text-sm font-medium text-ink-soft">Nguồn
-          <select value={filters.sourceType ?? ''} onChange={event => changeFilter('sourceType', event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+          <select value={filters.sourceType ?? ''} onChange={event => changeFilter('sourceType', event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
             <option value="">Tất cả nguồn</option>{sourceTypes.map(value => <option key={value} value={value}>{sourceLabels[value]}</option>)}
           </select>
         </label>
         <label className="text-sm font-medium text-ink-soft">Trạng thái xác minh
-          <select value={filters.verificationStatus ?? ''} onChange={event => changeFilter('verificationStatus', event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+          <select value={filters.verificationStatus ?? ''} onChange={event => changeFilter('verificationStatus', event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
             <option value="">Tất cả trạng thái</option>{verificationStatuses.map(value => <option key={value} value={value}>{verificationLabels[value]}</option>)}
           </select>
         </label>
         <label className="text-sm font-medium text-ink-soft">Ngành
-          <select value={majorInput} disabled={!!lockedMajorId || !majors.length} onChange={event => setMajorInput(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+          <select value={majorInput} disabled={!!lockedMajorId || !majors.length} onChange={event => setMajorInput(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
             {!lockedMajorId && <option value="">Tất cả ngành</option>}
             {lockedMajorId && !majors.some(item => item.majorId === lockedMajorId) && <option value={lockedMajorId}>Ngành hướng dẫn #{lockedMajorId}</option>}
             {majors.map(item => <option key={item.majorId} value={item.majorId}>{item.majorName}</option>)}
           </select>
         </label>
-        <div className="flex items-end gap-2"><button type="button" onClick={applyMajor} className="min-h-11 flex-1 rounded-lg border border-primary bg-card px-4 text-sm font-semibold text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Áp dụng</button><button type="button" onClick={() => { setFilters({ majorId: lockedMajorId }); setMajorInput(String(lockedMajorId ?? '')); setPage(1) }} className="min-h-11 rounded-lg px-3 text-sm font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Xóa lọc</button></div>
+        <div className="flex items-end gap-2"><button type="button" onClick={applyMajor} className="min-h-11 flex-1 whitespace-nowrap rounded-lg border border-primary bg-card px-4 text-sm font-semibold text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Áp dụng</button><button type="button" onClick={() => { setFilters({ majorId: lockedMajorId }); setMajorInput(String(lockedMajorId ?? '')); setPage(1) }} className="min-h-11 whitespace-nowrap rounded-lg px-3 text-sm font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Xóa lọc</button></div>
       </div>
     </section>
 
@@ -106,8 +108,8 @@ function EvidenceLedger({ projectId, routeBase, majors = [], lockedMajorId, acto
     {loading && <p role="status" aria-live="polite" className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-soft">Đang tải minh chứng…</p>}
     {!loading && !error && result?.items.length === 0 && <section className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-soft"><h2 className="font-semibold text-ink">Chưa có minh chứng phù hợp</h2><p className="mt-1 leading-6">Hãy thử điều chỉnh bộ lọc. Trạng thái xác minh được lấy trực tiếp từ hệ thống.</p></section>}
     {!loading && !error && result?.items.length ? <EvidenceList items={result.items} routeBase={routeBase} actor={actor} onReviewed={() => void load()} /> : null}
-    {!loading && !error && result && result.totalPages > 1 && <nav aria-label="Phân trang minh chứng" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-card p-4 text-sm"><button type="button" disabled={page <= 1} onClick={() => setPage(current => current - 1)} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Trang trước</button><span aria-live="polite">Trang {page} / {totalPages} · {result.totalCount} minh chứng</span><button type="button" disabled={page >= totalPages} onClick={() => setPage(current => current + 1)} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Trang sau</button></nav>}
-  </main>
+    {!loading && !error && result && result.totalPages > 1 && <nav aria-label="Phân trang minh chứng" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-card p-4 text-sm"><button type="button" disabled={page <= 1} onClick={() => setPage(current => current - 1)} className="min-h-11 whitespace-nowrap rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Trang trước</button><span aria-live="polite">Trang {page} / {totalPages} · {result.totalCount} minh chứng</span><button type="button" disabled={page >= totalPages} onClick={() => setPage(current => current + 1)} className="min-h-11 whitespace-nowrap rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Trang sau</button></nav>}
+  </div>
 }
 
 function EvidenceList({ items, routeBase, actor, onReviewed }: { items: ProjectEvidence[]; routeBase: string; actor?: 'student' | 'supervisor' | 'mentor'; onReviewed: () => void }) {
@@ -174,13 +176,13 @@ function EvidenceReviewSection({ evidenceId, onReviewed }: { evidenceId: number;
       </ul>}
       {!loading && target && !target.canReview && <p className="text-sm text-ink-muted">{target.denialReason ?? 'Chưa thể duyệt minh chứng này.'}</p>}
       {!loading && target?.canReview && <div className="flex flex-wrap items-end gap-2">
-        <label className="text-sm text-ink-soft">Kết quả<select className="mt-1 block min-h-10 rounded-lg border border-hairline p-2 text-sm" value={decision} disabled={busy} onChange={(event) => setDecision(event.target.value as EvidenceReviewDecision)}>
+        <label className="text-sm text-ink-soft">Kết quả<select className="mt-1 block min-h-10 rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink" value={decision} disabled={busy} onChange={(event) => setDecision(event.target.value as EvidenceReviewDecision)}>
           <option value="ACCEPTED">Đã chấp nhận</option>
           <option value="CHANGES_REQUESTED">Cần bổ sung</option>
           <option value="REJECTED">Từ chối</option>
         </select></label>
-        <label className="flex-1 min-w-48 text-sm text-ink-soft">Lý do<input className="mt-1 w-full min-h-10 rounded-lg border border-hairline p-2 text-sm" value={reason} disabled={busy} onChange={(event) => setReason(event.target.value)} /></label>
-        <button type="button" className="min-h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={busy || !reason.trim()} onClick={() => void submit()}>Ghi kết quả duyệt</button>
+        <label className="flex-1 min-w-48 text-sm text-ink-soft">Lý do<input className="mt-1 w-full min-h-10 rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink" value={reason} disabled={busy} onChange={(event) => setReason(event.target.value)} /></label>
+        <button type="button" className="min-h-10 whitespace-nowrap rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50" disabled={busy || !reason.trim()} onClick={() => void submit()}>Ghi kết quả duyệt</button>
       </div>}
     </div>}
   </div>
