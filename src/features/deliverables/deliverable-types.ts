@@ -42,3 +42,6 @@ export interface SaveDeliverable {
   deliverableType: string | null
   dueAt: string | null
 }
+export interface DeliverableReviewCriterion { criterionId: number; criterionName: string; status: 'PASS' | 'PARTIAL' | 'MISSING' | string; findings: string[]; missingEvidence: string[]; suggestions: string[] }
+export interface DeliverableReviewResponse { runId: number; projectId: number; deliverableVersionId: number; status: string; readiness: string; readinessPercent: number; summary: string; criteria: DeliverableReviewCriterion[]; citations: Array<{ title: string; version: string; section: string }>; insufficientEvidence: boolean; limitationNote: string | null; generationStatus: string }
+export interface DeliverableReviewOptions { scope: string; rubrics: Array<{ id: number; title: string; version: number; assignedToProject: boolean }>; checklists: Array<{ id: number; title: string; version: number }> }
