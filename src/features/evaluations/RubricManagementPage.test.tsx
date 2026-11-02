@@ -46,14 +46,19 @@ describe('RubricManagementPage deep interactions', () => {
     await waitFor(() => expect(mocks.publishRubric).toHaveBeenCalledWith(1, 'token'))
     expect(mocks.submitRubricForApproval).not.toHaveBeenCalled()
   })
-  it('shows submit only with BE capability and blocks incomplete server levels', async () => {
+  it('lets BE validate missing levels when the approval capability is present', async () => {
     const incomplete = { ...draft, canSubmitForApproval: true, requiredLevelCount: 5, criteria: [{ ...criterion, levels: [] }] }
     mocks.getRubric.mockImplementation(async (id: number) => id === 1 ? incomplete : published)
+    mocks.submitRubricForApproval.mockRejectedValue(new HttpError('Invalid', 422, { errors: { criteria: ['Tiêu chí Chất lượng còn thiếu mức chất lượng.'] } }))
     page(); await screen.findByRole('heading', { name: 'Bộ đã công bố' })
     fireEvent.click(screen.getByRole('button', { name: /DRAFT · v1/ }))
-    expect((await screen.findByRole('button', { name: 'Gửi duyệt' }) as HTMLButtonElement).disabled).toBe(true)
-    expect(screen.getByText(/Tiêu chí còn thiếu mức/).textContent).toContain('Chất lượng')
+    const submit = await screen.findByRole('button', { name: 'Gửi duyệt' }) as HTMLButtonElement
+    expect(submit.disabled).toBe(false)
     expect(screen.queryByRole('button', { name: 'Công bố' })).toBeNull()
+    fireEvent.click(submit)
+    fireEvent.click(screen.getByRole('dialog').querySelector('button[type="submit"]')!)
+    await waitFor(() => expect(mocks.submitRubricForApproval).toHaveBeenCalledWith(1, 'token'))
+    expect((await screen.findByRole('alert')).textContent).toContain('Tiêu chí Chất lượng còn thiếu mức chất lượng.')
   })
   it('submits only a complete BE-approved draft', async () => {
     const levels = Array.from({ length: 5 }, (_, index) => ({ levelOrder: index + 1, label: `Mức ${index + 1}`, descriptor: `Mô tả ${index + 1}`, scoreFrom: null, scoreTo: null }))

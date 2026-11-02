@@ -30,4 +30,12 @@ describe('tour targets', () => {
       expect(steps.find(step => step.id === 'primary')?.fallbackBody).toBeTruthy()
     }
   })
+  it('gives every targeted step a useful fallback when its anchor is absent', () => {
+    for (const role of ['student', 'lecturer', 'department', 'admin'] as const) {
+      const missing = (getTourScript(role)?.steps ?? [])
+        .filter(step => step.target && !step.fallbackBody?.trim())
+        .map(step => `${role}:${step.id}`)
+      expect(missing).toEqual([])
+    }
+  })
 })

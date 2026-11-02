@@ -6,13 +6,15 @@ describe('evaluator approval label', () => {
     expect(evaluatorApprovalLabel({}).tone).toBe('neutral')
   })
   it('describes a demo as not official', () => {
-    expect(evaluatorApprovalLabel({ schemeIsDemo: true, schemeApprovalStatus: 'DEMO' }).text).toContain('chưa phải điểm chính thức')
+    expect(evaluatorApprovalLabel({ isDemo: true, approvalStatus: 'DEMO' }).text).toContain('chưa phải điểm chính thức')
   })
-  it('requires a BE reference as well as approved status before showing official', () => {
-    expect(evaluatorApprovalLabel({ schemeIsDemo: false, schemeApprovalStatus: 'APPROVED' }).tone).toBe('warning')
-    expect(evaluatorApprovalLabel({ schemeIsDemo: false, schemeApprovalStatus: 'APPROVED', schemeApprovalReference: 'QĐ-123' }).tone).toBe('success')
+  it('uses validated non-demo approval without requiring a field absent from BE-09', () => {
+    expect(evaluatorApprovalLabel({ isDemo: false, approvalStatus: 'APPROVED' }).tone).toBe('success')
   })
   it('does not trust a contradictory demo and approved payload', () => {
-    expect(evaluatorApprovalLabel({ schemeIsDemo: true, schemeApprovalStatus: 'APPROVED', schemeApprovalReference: 'QĐ-123' }).tone).toBe('warning')
+    expect(evaluatorApprovalLabel({ isDemo: true, approvalStatus: 'APPROVED' }).tone).toBe('warning')
+  })
+  it('does not call a non-demo scheme official without approved status', () => {
+    expect(evaluatorApprovalLabel({ isDemo: false, approvalStatus: 'DEMO' }).tone).toBe('neutral')
   })
 })

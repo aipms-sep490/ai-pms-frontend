@@ -3,6 +3,14 @@ import { expect, test } from '@playwright/test'
 const open = (role = 'student') => `/e2e/onboarding.html?role=${role}`
 
 test.describe('guided onboarding tour', () => {
+  test('uses notification guidance when the notification anchor is missing', async ({ page }) => {
+    await page.goto(open('student'))
+    await page.locator('[data-tour="notifications"]').evaluate(node => node.remove())
+    for (let step = 0; step < 4; step += 1) await page.getByRole('button', { name: 'Tiếp theo' }).click()
+    await expect(page.getByRole('heading', { name: 'Thông báo học vụ' })).toBeVisible()
+    await expect(page.getByText('Thông báo học vụ nằm ở biểu tượng chuông trên thanh tiêu đề. Số đỏ là số mục chưa đọc.')).toBeVisible()
+    await expect(page.getByText(/sẽ hiện ở đây/)).toHaveCount(0)
+  })
   test('highlights the sidebar then its first link, and retains fallback when the link is absent', async ({ page }, info) => {
     await page.goto(open('student'))
     await page.getByRole('button', { name: 'Tiếp theo' }).click()
