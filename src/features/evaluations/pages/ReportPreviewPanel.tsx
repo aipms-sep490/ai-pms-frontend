@@ -49,7 +49,7 @@ export function ReportPreviewPanel({ assignmentId, files }: { assignmentId: numb
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-ink-muted hover:text-ink px-2 py-1 rounded border border-hairline hover:bg-canvas transition-colors"
+              className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-hairline bg-card px-2.5 py-1.5 text-xs font-semibold text-ink-muted transition-colors hover:bg-canvas hover:text-ink"
               onClick={() => setFullscreen(true)}
               aria-label="Phóng to"
               title="Phóng to toàn màn hình để đọc"
@@ -59,7 +59,7 @@ export function ReportPreviewPanel({ assignmentId, files }: { assignmentId: numb
             </button>
             <button
               type="button"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover px-2.5 py-1 rounded bg-primary-subtle border border-primary/20 transition-colors"
+              className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-primary/20 bg-primary-subtle px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:text-primary-hover"
               onClick={() => void download(selected)}
             >
               <span className="material-symbols-outlined text-[16px]" aria-hidden="true">download</span>
@@ -173,20 +173,20 @@ function PreviewStage({
     <div className={`report-preview-stage ${isFullscreen ? 'h-full m-0 border-0 rounded-none' : ''}`}>
       {status === 'loading' && kind !== 'other' ? (
         <div className="flex flex-col items-center justify-center p-8 text-center text-ink-muted">
-          <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mb-3" />
+          <div className="mb-3 h-8 w-8 rounded-full border-2 border-primary border-t-transparent motion-safe:animate-spin" />
           <p role="status" className="report-preview-note">Đang tải và chuẩn bị tài liệu xem trước…</p>
         </div>
       ) : null}
 
       {status === 'error' ? (
-        <div className="p-6 text-center text-status-error-text bg-status-error-bg/30 m-3 rounded-lg border border-status-error-border">
-          <span className="material-symbols-outlined text-[32px] mb-2" aria-hidden="true">error</span>
+        <div className="m-3 rounded-lg border border-status-error-border bg-status-error-bg/30 p-6 text-center text-status-error-text">
+          <span className="material-symbols-outlined mb-2 text-[32px]" aria-hidden="true">error</span>
           <p role="alert" className="report-preview-note">
             Chưa tải được bản xem trước trực tuyến.
           </p>
           <button
             type="button"
-            className="mt-2 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary-hover shadow-xs"
+            className="mt-2 inline-flex min-h-11 items-center gap-1 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-primary-hover"
             onClick={() => void download(file)}
           >
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">download</span>
@@ -205,7 +205,7 @@ function PreviewStage({
       ) : null}
 
       {status === 'ready' && kind === 'image' && url ? (
-        <div className={`flex items-center justify-center p-4 bg-slate-900/5 ${isFullscreen ? 'h-full' : ''}`}>
+        <div className={`flex items-center justify-center bg-canvas p-4 ${isFullscreen ? 'h-full' : ''}`}>
           <img
             src={url}
             alt={`Báo cáo ${fileLabel(file)}`}
@@ -223,7 +223,7 @@ function PreviewStage({
           </div>}
           {office.kind === 'XLSX_GRID' && office.sheets.map((sheet, index) => <section key={`${sheet.name}-${index}`} className="mb-4">
             <h3 className="mb-2 font-semibold">{sheet.name}</h3>
-            <div className="rounded-lg border border-hairline"><Table aria-label={`Bảng tính ${sheet.name}`} className="text-xs"><TableBody>
+            <div className="overflow-x-auto rounded-lg border border-hairline"><Table aria-label={`Bảng tính ${sheet.name}`} className="text-xs"><TableBody>
               {sheet.rows.map((row, rowIndex) => <TableRow key={rowIndex}>{row.map((value, colIndex) => <TableCell key={colIndex} className="min-w-20 border border-hairline p-2 align-top whitespace-pre-wrap break-words">{value}</TableCell>)}</TableRow>)}
             </TableBody></Table></div>
           </section>)}
@@ -231,16 +231,16 @@ function PreviewStage({
       ) : null}
 
       {kind === 'other' ? (
-        <div className="p-8 text-center text-ink-soft bg-canvas rounded-lg m-3 border border-hairline">
-          <span className="material-symbols-outlined text-[36px] text-ink-muted mb-2" aria-hidden="true">
+        <div className="m-3 rounded-lg border border-hairline bg-canvas p-8 text-center text-ink-soft">
+          <span className="material-symbols-outlined mb-2 text-[36px] text-ink-muted" aria-hidden="true">
             folder_zip
           </span>
-          <p className="report-preview-note max-w-md mx-auto text-sm">
+          <p className="report-preview-note mx-auto max-w-md text-sm">
             Tệp <strong>{file.fileName}</strong> không xem trực tiếp trên trình duyệt được. Tải tệp về máy để đối chiếu khi chấm.
           </p>
           <button
             type="button"
-            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary-hover shadow-xs"
+            className="mt-3 inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-primary-hover"
             onClick={() => void download(file)}
           >
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">download</span>
