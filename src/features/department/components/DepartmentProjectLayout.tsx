@@ -46,19 +46,22 @@ export function DepartmentProjectLayout() {
   return (
     <>
       {projectId && (
-        <nav aria-label="Các nghiệp vụ của đồ án" className="mb-5 space-y-2 rounded-lg border border-hairline bg-card p-3">
+        <nav aria-label="Các nghiệp vụ của đồ án" className="mb-5 space-y-2.5 rounded-xl border border-hairline bg-card p-3.5 shadow-2xs">
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-            <span className="font-semibold text-ink-soft">Đồ án #{projectId}</span>
-            <Link to="/department/portfolio" className="inline-flex min-h-11 items-center font-semibold text-primary underline">
+            <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
+              <span className="rounded-md bg-primary-subtle px-2 py-0.5 font-mono text-xs font-bold text-primary">#{projectId}</span>
+              Đồ án #{projectId}
+            </span>
+            <Link to="/department/portfolio" className="inline-flex min-h-11 items-center rounded-lg px-2.5 font-semibold text-primary underline-offset-4 transition-colors hover:bg-primary-subtle hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
               Danh mục đồ án
             </Link>
           </div>
 
           {/* Mobile compact select */}
-          <label className="block space-y-2 md:hidden">
+          <label className="block space-y-1.5 md:hidden">
             <span className="text-sm font-semibold text-ink-soft">Chọn nghiệp vụ của đồ án</span>
             <select
-              className="min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+              className="min-h-11 w-full rounded-lg border border-hairline bg-canvas px-3 text-sm font-normal text-ink transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               value={selected}
               onChange={event => navigate(event.target.value)}
             >
@@ -76,8 +79,8 @@ export function DepartmentProjectLayout() {
                 to={to}
                 end
                 className={({ isActive }) =>
-                  `inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-lg px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${
-                    isActive ? 'bg-primary-subtle text-primary' : 'text-ink-muted hover:bg-primary-subtle hover:text-ink'
+                  `inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-lg border px-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                    isActive ? 'border-primary/20 bg-primary-subtle text-primary' : 'border-transparent text-ink-soft hover:bg-primary-subtle hover:text-primary'
                   }`
                 }
               >
@@ -97,10 +100,10 @@ export function DepartmentProjectLayout() {
                 aria-expanded={moreOpen}
                 aria-haspopup="menu"
                 onClick={() => setMoreOpen(prev => !prev)}
-                className={`inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${
-                  activeSecondary
-                    ? 'bg-primary-subtle text-primary'
-                    : 'text-ink-muted hover:bg-primary-subtle hover:text-ink'
+                className={`inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  activeSecondary || moreOpen
+                    ? 'border-primary/20 bg-primary-subtle text-primary'
+                    : 'border-transparent text-ink-soft hover:bg-primary-subtle hover:text-primary'
                 }`}
               >
                 <span>{activeSecondary ? activeSecondary[0] : 'Thao tác khác'}</span>
@@ -113,7 +116,7 @@ export function DepartmentProjectLayout() {
                 <div
                   role="menu"
                   aria-label="Thao tác khác của đồ án"
-                  className="absolute right-0 top-full z-30 mt-1 min-w-[14rem] rounded-lg border border-hairline bg-card p-1.5 shadow-lg"
+                  className="absolute right-0 top-full z-30 mt-1 min-w-[14rem] rounded-xl border border-hairline bg-card p-1.5 shadow-lg"
                 >
                   {secondaryLinks.map(([title, to]) => (
                     <NavLink
@@ -123,10 +126,10 @@ export function DepartmentProjectLayout() {
                       role="menuitem"
                       onClick={() => setMoreOpen(false)}
                       className={({ isActive }) =>
-                        `flex min-h-10 items-center rounded-md px-3 text-sm font-semibold transition-colors ${
+                        `flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary ${
                           isActive
                             ? 'bg-primary-subtle text-primary'
-                            : 'text-ink-soft hover:bg-primary-subtle hover:text-ink'
+                            : 'text-ink-soft hover:bg-primary-subtle hover:text-primary'
                         }`
                       }
                     >
