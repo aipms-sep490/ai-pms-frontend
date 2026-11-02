@@ -42,13 +42,78 @@
   to { transform: translateX(100%); }
 }
 
+@keyframes mk-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.2); }
+}
+
+/* Ergonomic card lift on hover and focus-within */
+.card-hover-lift {
+  transition: transform 180ms var(--mk-ease), box-shadow 180ms ease, border-color 180ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px -10px color-mix(in oklab, var(--color-brand-navy) 14%, transparent);
+    border-color: var(--color-line-strong);
+  }
+}
+
+.card-hover-lift:focus-within {
+  border-color: var(--color-primary);
+}
+
+/* Subtle breathing status dot for urgent blockers or live feedback */
+.pulse-indicator {
+  display: inline-block;
+  border-radius: 9999px;
+  animation: mk-pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Progress bar shimmer effect */
+.shimmer-progress {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-progress::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / .35), transparent);
+  animation: mk-shimmer 2.2s ease-in-out infinite;
+}
+
+/* Staggered entrance helpers */
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+
+/* Frosted glass sticky surface for action toolbars and headers */
+.glass-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background-color: rgb(255 255 255 / .85);
+  border-bottom: 1px solid var(--color-hairline);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mk-page-enter,
-  .mk-skeleton::after {
+  .mk-skeleton::after,
+  .shimmer-progress::after,
+  .pulse-indicator {
     animation: none !important;
   }
 
-  .mk-press {
+  .mk-press,
+  .card-hover-lift {
     transition-duration: 0.01ms !important;
+    transform: none !important;
   }
 }
