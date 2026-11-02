@@ -53,15 +53,15 @@ function ReviewContent({ projectId, versionId, versionNumber, onClose }: { proje
       {error && <p role="alert" className="ex-notice ex-notice-error">{error}</p>}
       {!loading && !options && <button className="ex-button" onClick={() => setRevision(v => v + 1)}>Tải lại</button>}
       {options && <fieldset disabled={busy} className="space-y-3">
-        <label className="block text-sm font-semibold">Rubric đối chiếu
-          <select className="mt-1 block w-full rounded-lg border border-hairline bg-card p-2" value={rubricId} onChange={e => setRubricId(e.target.value)}>
+        <label className="block text-sm font-semibold text-ink-soft">Rubric đối chiếu
+          <select className="mt-1 block min-h-10 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink" value={rubricId} onChange={e => setRubricId(e.target.value)}>
             <option value="">Chọn rubric đã công bố</option>
             {options.rubrics.map(r => <option key={r.id} value={r.id}>{r.title} · v{r.version}{r.assignedToProject ? ' · thuộc phương án đồ án' : ' · tham khảo'}</option>)}
           </select>
         </label>
-        {options.rubrics.length === 0 && <p role="status">Chưa có rubric đã công bố đúng khoa và kỳ học. Liên hệ khoa để bổ sung.</p>}
-        <label className="block text-sm font-semibold">Checklist COLD
-          <select className="mt-1 block w-full rounded-lg border border-hairline bg-card p-2" value={checklistId} onChange={e => setChecklistId(e.target.value)}>
+        {options.rubrics.length === 0 && <p role="status" className="text-sm text-ink-muted">Chưa có rubric đã công bố đúng khoa và kỳ học. Liên hệ khoa để bổ sung.</p>}
+        <label className="block text-sm font-semibold text-ink-soft">Checklist COLD
+          <select className="mt-1 block min-h-10 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink" value={checklistId} onChange={e => setChecklistId(e.target.value)}>
             <option value="">Không chọn thêm checklist</option>
             {options.checklists.map(c => <option key={c.id} value={c.id}>{c.title} · v{c.version}</option>)}
           </select>
