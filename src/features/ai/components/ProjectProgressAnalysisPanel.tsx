@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { HttpError } from '../../../services/http/http-client'
 import { env } from '../../../app/config/env'
 import { getProjectProgressAnalysis, recordProjectProgressAnalysis, type ProjectProgressAnalysis } from '../ai-api'
@@ -9,19 +9,19 @@ const unavailableMetricLabels: Record<string, string> = {
   PROJECT_RISK: 'Rủi ro toàn đồ án', MILESTONES: 'Mốc tiến độ', REPORTS: 'Báo cáo tiến độ', MEETINGS: 'Cuộc họp', CONTRIBUTIONS: 'Đóng góp cá nhân',
 }
 
-export function ProjectProgressAnalysisPanel(props: { projectId: number; compact?: boolean; onSaved?: () => void }) {
+export function ProjectProgressAnalysisPanel(props: { projectId: number; compact?: boolean; dock?: boolean; onSaved?: () => void }) {
   return <ProgressContent key={props.projectId} {...props} />
 }
 
-function ProgressContent({ projectId, compact = false, onSaved }: { projectId: number; compact?: boolean; onSaved?: () => void }) {
+function ProgressContent({ projectId, compact = false, dock = false, onSaved }: { projectId: number; compact?: boolean; dock?: boolean; onSaved?: () => void }) {
+  const headingId = useId()
   const request = useRef(0)
   const saveLock = useRef(false)
   const alive = useRef(false)
   useEffect(() => { alive.current = true; return () => { alive.current = false; request.current++ } }, [])
   const [analysis, setAnalysis] = useState<ProjectProgressAnalysis | null>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false); const [saveNotice, setSaveNotice] = useState<{ message: string; error: boolean } | null>(null)
-  // Transient read by default — this must never persist a run on its own. Saving into
-  // history is only ever the explicit "Lưu vào lịch sử phân tích" action below.
+  // Opening the panel only reads data; an explicit analysis/save action records a run.
   const load = useCallback(async () => {
     const id = ++request.current
     setLoading(true); setSaveNotice(null)
@@ -46,12 +46,12 @@ function ProgressContent({ projectId, compact = false, onSaved }: { projectId: n
   const majorScoped = analysis.contextScope === 'MAJOR'
   const riskClass = insufficient || !isKnownStatus || !isKnownRisk ? 'border-status-warning-border bg-status-warning-bg text-status-warning-text' : analysis.riskLevel === 'CRITICAL' || analysis.riskLevel === 'HIGH' ? 'border-status-error-border bg-status-error-bg text-status-error-text' : analysis.riskLevel === 'MEDIUM' ? 'border-status-warning-border bg-status-warning-bg text-status-warning-text' : 'border-status-success-border bg-status-success-bg text-status-success-text'
   const riskLabel = insufficient ? 'Chưa đủ dữ liệu' : !isKnownStatus || !isKnownRisk ? 'Trạng thái chưa hỗ trợ' : `Rủi ro: ${analysis.riskLevel}`
-  return <section aria-labelledby={`progress-analysis-${projectId}`} className="rounded-xl border border-hairline bg-card p-5 shadow-xs"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-primary">Phân tích tư vấn</p><h2 id={`progress-analysis-${projectId}`} className="mt-1 font-heading text-lg font-semibold text-ink">Rủi ro và tiến độ đồ án</h2><p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">Phân tích giúp nhận biết điểm cần chú ý trong tiến độ. Kết quả mang tính tham khảo và không thay thế đánh giá của giảng viên.</p></div><div className="flex items-center gap-2"><button type="button" className="min-h-10 rounded-lg border border-hairline px-3 text-xs font-semibold text-primary hover:bg-primary-subtle" disabled={loading || saving} onClick={() => void (env.aiProgressRiskEnabled ? save() : load())}>{saving ? 'Đang phân tích…' : 'Phân tích lại'}</button><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${riskClass}`}>{riskLabel}</span></div></div>
+  return <section aria-labelledby={headingId} className="rounded-xl border border-hairline bg-card p-5 shadow-xs"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-primary">Phân tích tư vấn</p><h2 id={headingId} className="mt-1 font-heading text-lg font-semibold text-ink">Rủi ro và tiến độ đồ án</h2><p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">Phân tích giúp nhận biết điểm cần chú ý trong tiến độ. Kết quả mang tính tham khảo và không thay thế đánh giá của giảng viên.</p></div><div className="flex items-center gap-2"><button type="button" className="min-h-10 rounded-lg border border-hairline px-3 text-xs font-semibold text-primary hover:bg-primary-subtle" disabled={loading || saving} onClick={() => void (env.aiProgressRiskEnabled ? save() : load())}>{saving ? 'Đang phân tích…' : 'Phân tích lại'}</button><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${riskClass}`}>{riskLabel}</span></div></div>
     {majorScoped && <p role="status" className="mt-4 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">Bạn chỉ xem được phạm vi ngành được phân công. Không khả dụng: {analysis.unavailableMetrics.map(code => unavailableMetricLabels[code] ?? code).join(', ') || 'không có'}. Các số liệu dưới đây chỉ tính trên công việc bạn thấy được, không phải toàn đồ án.</p>}
     {insufficient ? <p role="status" className="mt-4 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">Chưa đủ dữ liệu để đánh giá rủi ro. Hãy bổ sung công việc, minh chứng và báo cáo tiến độ.</p>
       : !isKnownStatus || !isKnownRisk ? <p role="status" className="mt-4 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">Chưa thể xác định mức rủi ro từ kết quả hiện tại. Hãy kiểm tra dữ liệu tiến độ và thử lại.</p>
-      : majorScoped ? <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Metric label="Tiến độ (phạm vi ngành)" value={`${analysis.progressSummary.progressPercentage}%`} /><Metric label="công việc quá hạn" value={analysis.progressSummary.overdueTasks} /><Metric label="công việc vướng mắc" value={analysis.progressSummary.blockedTasks} /><Metric label="Mốc tiến độ" value="Không khả dụng" /></div>
-      : <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Metric label="Tiến độ" value={`${analysis.progressSummary.progressPercentage}%`} /><Metric label="công việc quá hạn" value={analysis.progressSummary.overdueTasks} /><Metric label="công việc vướng mắc" value={analysis.progressSummary.blockedTasks} /><Metric label="Độ tin cậy" value={analysis.confidence === null ? 'Chưa có' : `${Math.round(analysis.confidence * 100)}%`} /></div>}
+      : majorScoped ? <div className={dock ? "mt-4 grid grid-cols-2 gap-3" : "mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"}><Metric label="Tiến độ (phạm vi ngành)" value={`${analysis.progressSummary.progressPercentage}%`} /><Metric label="công việc quá hạn" value={analysis.progressSummary.overdueTasks} /><Metric label="công việc vướng mắc" value={analysis.progressSummary.blockedTasks} /><Metric label="Mốc tiến độ" value="Không khả dụng" /></div>
+      : <div className={dock ? "mt-4 grid grid-cols-2 gap-3" : "mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"}><Metric label="Tiến độ" value={`${analysis.progressSummary.progressPercentage}%`} /><Metric label="công việc quá hạn" value={analysis.progressSummary.overdueTasks} /><Metric label="công việc vướng mắc" value={analysis.progressSummary.blockedTasks} /><Metric label="Độ tin cậy" value={analysis.confidence === null ? 'Chưa có' : `${Math.round(analysis.confidence * 100)}%`} /></div>}
     {!compact && <><InfoList title="Tóm tắt" items={analysis.summary ? [analysis.summary] : []} empty="Chưa có tóm tắt." /><InfoList title="Tín hiệu rủi ro" items={analysis.signals?.length ? analysis.signals.map(signal => `${signal.severity}: ${signal.description}`) : analysis.factors.map(factor => `${factor.severity}: ${factor.explanation}`)} empty="Hệ thống chưa trả tín hiệu rủi ro cụ thể." /><InfoList title="Gợi ý tư vấn" items={analysis.recommendations} empty="Hệ thống chưa trả gợi ý tư vấn." /><p className="mt-4 text-sm text-ink-muted">Gợi ý là văn bản tham khảo; không có nút thực thi hay quyền được suy ra từ gợi ý.</p></>}
     {analysis.riskScore !== null && <p className="mt-4 font-semibold">Chỉ số nguy cơ: {analysis.riskScore}/100</p>}
     {analysis.projectEvidence?.length ? <InfoList title="Công việc và hạng mục liên quan" items={analysis.projectEvidence.map(e => e.title + (e.excerpt ? ' · ' + e.excerpt : ''))} empty="" /> : null}
