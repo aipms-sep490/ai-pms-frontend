@@ -7,6 +7,7 @@ import { env } from '../../app/config/env'
 import { StudentJourneyContext } from '../../app/context/StudentJourneyContext'
 import { useAuthSession } from '../auth/context/useAuthSession'
 import { AcademicAssistantPanel } from './components/AcademicAssistantPanel'
+import { ProjectProgressAnalysisPanel } from './components/ProjectProgressAnalysisPanel'
 import { assistantOpenEvent, floatingPanelEvent } from './assistant-dock-events'
 import './assistant-dock.css'
 
@@ -89,10 +90,34 @@ function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, rout
         <button type="button" aria-label="Thu nhỏ trợ lý AI" onClick={hide}><span className="material-symbols-outlined" aria-hidden="true">remove</span></button>
         <button type="button" aria-label="Đóng trợ lý AI" onClick={hide}><span className="material-symbols-outlined" aria-hidden="true">close</span></button>
       </header>
-      {mounted && <AcademicAssistantPanel key={`${scopeKey}:${reset}`} projectId={projectId} pageContext={pageContext} onUseDraft={routeBase && projectId ? useDraft : undefined} onOpenEvidence={routeBase && projectId ? openEvidence : undefined} dock />}
+      {mounted && <AssistantDockContent key={scopeKey} projectId={projectId} reset={reset} pageContext={pageContext} onUseDraft={routeBase && projectId ? useDraft : undefined} onOpenEvidence={routeBase && projectId ? openEvidence : undefined} />}
     </dialog>
     <button ref={launcher} type="button" className="assistant-launcher" aria-label={open ? 'Thu nhỏ trợ lý AI' : 'Mở trợ lý AI'} aria-expanded={open} aria-controls="assistant-dock-dialog" title="Trợ lý AI" onClick={open ? hide : show}>
       <span className="material-symbols-outlined" aria-hidden="true">{open ? 'expand_more' : 'auto_awesome'}</span><span className="assistant-launcher-badge" aria-hidden="true">AI</span>
     </button>
   </div>
+}
+
+function AssistantDockContent({ projectId, reset, pageContext, onUseDraft, onOpenEvidence }: {
+  projectId?: number; reset: number; pageContext: string
+  onUseDraft?: (draft: AssistantDraft) => void
+  onOpenEvidence?: (evidence: EvidenceReference) => void
+}) {
+  const [view, setView] = useState<'chat' | 'risk'>('chat')
+  const [riskOpened, setRiskOpened] = useState(false)
+  const hasRisk = env.aiProgressRiskEnabled && !!projectId
+  const showRisk = hasRisk && view === 'risk'
+  useEffect(() => { setView('chat') }, [reset])
+  return <>
+    {hasRisk && <nav className="assistant-view-switch" aria-label="Chức năng trợ lý">
+      <button type="button" aria-pressed={!showRisk} onClick={() => setView('chat')}><span className="material-symbols-outlined" aria-hidden="true">chat_bubble</span>Trò chuyện</button>
+      <button type="button" aria-pressed={showRisk} onClick={() => { setRiskOpened(true); setView('risk') }}><span className="material-symbols-outlined" aria-hidden="true">monitoring</span>Rủi ro & tiến độ</button>
+    </nav>}
+    <div className="assistant-chat-view" hidden={showRisk}>
+      <AcademicAssistantPanel key={reset} projectId={projectId} pageContext={pageContext} onUseDraft={onUseDraft} onOpenEvidence={onOpenEvidence} dock />
+    </div>
+    {hasRisk && riskOpened && <div className="assistant-risk-view" hidden={!showRisk}>
+      <ProjectProgressAnalysisPanel projectId={projectId!} dock />
+    </div>}
+  </>
 }
