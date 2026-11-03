@@ -8,6 +8,7 @@ import { ActionVerdict } from '../../../components/ui/ActionVerdict'
 import { ChangeDiff } from '../../../components/ui/ChangeDiff'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
 import { HistoryTimeline } from '../../../components/ui/HistoryTimeline'
+import { Pagination } from '../../../components/ui/Pagination'
 import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { useAcademicStructure } from '../../academic/hooks/useAcademicStructure'
@@ -175,7 +176,7 @@ export function ProjectReviewPage() {
             <h1>Danh sách đề cương chờ xử lý</h1>
             <p className="mt-1 text-sm text-ink-muted">Tìm và mở hồ sơ đề cương thuộc phạm vi bộ môn của bạn.</p>
           </div>
-          <Button variant="secondary" icon="refresh" onClick={() => void review.refresh()}>Tải lại</Button>
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" onClick={() => void review.refresh()} />
         </header>
 
         <StatTileRow
@@ -230,9 +231,9 @@ export function ProjectReviewPage() {
           resultSummary={activeChips.length > 0 ? `Hiển thị ${visibleQueueItems.length} / ${queueItems.length} đề cương` : undefined}
         />
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid items-stretch gap-4 md:grid-cols-2">
           {visibleQueueItems.map((project) => (
-            <article key={project.id} className="flex flex-col justify-between gap-3 rounded-xl border border-hairline bg-card p-5 shadow-xs transition-all hover:border-primary/40">
+            <article key={project.id} className="flex h-full flex-col justify-between gap-3 rounded-xl border border-hairline bg-card p-5 shadow-xs transition-all hover:border-primary/40">
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-mono text-xs font-bold text-primary">{project.code}</span>
@@ -258,11 +259,16 @@ export function ProjectReviewPage() {
             <Button variant="secondary" onClick={clearQueueFilters}>Xóa bộ lọc</Button>
           </div>
         ) : null}
-        {queue && queue.totalPages && queue.totalPages > 1 ? <nav className="review-page__actions" aria-label="Phân trang danh sách đề cương">
-          <Button variant="secondary" className="min-h-11" disabled={queue.page <= 1} onClick={() => review.goToPage(queue.page - 1)}>Trang trước</Button>
-          <span className="self-center text-sm text-ink-muted">Trang {queue.page} / {queue.totalPages}</span>
-          <Button variant="secondary" className="min-h-11" disabled={queue.page >= queue.totalPages} onClick={() => review.goToPage(queue.page + 1)}>Trang sau</Button>
-        </nav> : null}
+        {queue && (queue.totalCount > queue.pageSize || (queue.totalPages ?? 1) > 1) ? (
+          <Pagination
+            page={queue.page}
+            pages={queue.totalPages ?? Math.max(1, Math.ceil(queue.totalCount / Math.max(1, queue.pageSize)))}
+            total={queue.totalCount}
+            pageSize={queue.pageSize}
+            onPage={review.goToPage}
+            onPageSizeChange={typeof review.setPageSize === 'function' ? review.setPageSize : undefined}
+          />
+        ) : null}
       </div>
     )
   }
