@@ -8,6 +8,7 @@ vi.mock('../../app/config/env', () => ({ env: { get academicAiAssistantEnabled()
 vi.mock('../auth/context/useAuthSession', () => ({ useAuthSession: () => ({ session: state.session }) }))
 vi.mock('./components/AcademicAssistantPanel', () => ({ AcademicAssistantPanel: ({ projectId }: { projectId?: number }) => <label>Draft {projectId ?? 'general'}<textarea /></label> }))
 vi.mock('./components/ProjectProgressAnalysisPanel', () => ({ ProjectProgressAnalysisPanel: ({ projectId }: { projectId: number }) => <section aria-label={`Risk ${projectId}`}>Project risk {projectId}</section> }))
+vi.mock('./components/WorkflowAssistancePanel', () => ({ WorkflowAssistancePanel: ({ projectId }: { projectId: number }) => <section aria-label={`Workflow ${projectId}`}>Workflow support</section> }))
 beforeEach(() => {
   state.enabled = true; state.riskEnabled = true; state.session = { user: { id: 1, roles: ['STUDENT'] } }
   vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }))
@@ -79,4 +80,15 @@ it('hides risk without project context or when its feature flag is off', () => {
   render(<MemoryRouter initialEntries={['/department/projects/9/risk']}><AssistantDock /></MemoryRouter>)
   fireEvent.click(screen.getByRole('button', { name: 'Mở trợ lý AI' }))
   expect(screen.queryByRole('button', { name: 'Rủi ro & tiến độ' })).toBeNull()
+})
+
+it('opens workflow support inside the dock while keeping the chat draft', () => {
+  render(<MemoryRouter initialEntries={['/supervisor/projects/9/ai']}><AssistantDock /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button', { name: 'Mở trợ lý AI' }))
+  fireEvent.change(screen.getByLabelText('Draft 9'), { target: { value: 'Keep this' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Hỗ trợ nghiệp vụ' }))
+  expect(screen.getByLabelText('Workflow 9')).toBeTruthy()
+  expect(screen.queryByRole('textbox')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Trò chuyện' }))
+  expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe('Keep this')
 })
