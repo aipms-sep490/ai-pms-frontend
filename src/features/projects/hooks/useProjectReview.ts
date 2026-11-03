@@ -34,7 +34,7 @@ export interface ReviewError {
   cause: unknown
 }
 
-const initialQuery: QueueQuery = { page: 1, pageSize: 20 }
+const initialQuery: QueueQuery = { page: 1, pageSize: 10 }
 
 function classifyError(error: unknown): ReviewError {
   if (error instanceof HttpError || (typeof error === 'object' && error !== null && 'status' in error)) {
@@ -186,6 +186,7 @@ export function useProjectReview(id?: number) {
     refresh,
     setSearch: (search: string) => setQuery((current) => ({ ...current, page: 1, search })),
     goToPage: (page: number) => setQuery((current) => ({ ...current, page: Math.max(1, page) })),
+    setPageSize: (pageSize: number) => setQuery((current) => ({ ...current, page: 1, pageSize })),
     goToReviewSnapshotPage: (page: number) => setReviewSnapshotPage(Math.max(1, page)),
     beginReview,
     decide,
