@@ -38,7 +38,8 @@ function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, rout
   const useDraft = (draft: AssistantDraft) => {
     if (!routeBase || !projectId) return
     hide()
-    navigate(`${routeBase}/${draft.kind === 'TASK' ? 'tasks' : 'meetings/new'}`, { state: { assistantDraft: { ...draft, projectId } } })
+    const target = draft.kind === 'TASK' ? 'tasks' : draft.kind === 'WEEKLY_REPORT' ? 'reports/new' : draft.kind === 'MEETING_MINUTES' ? 'meetings' : 'meetings/new'
+    navigate(`${routeBase}/${target}`, { state: { assistantDraft: { ...draft, projectId } } })
   }
   const openEvidence = (evidence: EvidenceReference) => {
     const match = evidence.referenceUrl?.match(/^\/api\/v1\/(tasks|milestones|meetings|progress-reports)\/(\d+)$/)
@@ -90,7 +91,7 @@ function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, rout
         <button type="button" aria-label="Thu nhỏ trợ lý AI" onClick={hide}><span className="material-symbols-outlined" aria-hidden="true">remove</span></button>
         <button type="button" aria-label="Đóng trợ lý AI" onClick={hide}><span className="material-symbols-outlined" aria-hidden="true">close</span></button>
       </header>
-      {mounted && <AssistantDockContent key={scopeKey} projectId={projectId} reset={reset} pageContext={pageContext} onUseDraft={routeBase && projectId ? useDraft : undefined} onOpenEvidence={routeBase && projectId ? openEvidence : undefined} />}
+      {mounted && <AssistantDockContent key={scopeKey} projectId={projectId} reset={reset} allowReportForm={routeBase === '/project'} pageContext={pageContext} onUseDraft={routeBase && projectId ? useDraft : undefined} onOpenEvidence={routeBase && projectId ? openEvidence : undefined} />}
     </dialog>
     <button ref={launcher} type="button" className="assistant-launcher" aria-label={open ? 'Thu nhỏ trợ lý AI' : 'Mở trợ lý AI'} aria-expanded={open} aria-controls="assistant-dock-dialog" title="Trợ lý AI" onClick={open ? hide : show}>
       <span className="material-symbols-outlined" aria-hidden="true">{open ? 'expand_more' : 'auto_awesome'}</span><span className="assistant-launcher-badge" aria-hidden="true">AI</span>
@@ -98,8 +99,8 @@ function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, rout
   </div>
 }
 
-function AssistantDockContent({ projectId, reset, pageContext, onUseDraft, onOpenEvidence }: {
-  projectId?: number; reset: number; pageContext: string
+function AssistantDockContent({ projectId, reset, pageContext, allowReportForm, onUseDraft, onOpenEvidence }: {
+  projectId?: number; reset: number; pageContext: string; allowReportForm: boolean
   onUseDraft?: (draft: AssistantDraft) => void
   onOpenEvidence?: (evidence: EvidenceReference) => void
 }) {
@@ -114,7 +115,7 @@ function AssistantDockContent({ projectId, reset, pageContext, onUseDraft, onOpe
       <button type="button" aria-pressed={showRisk} onClick={() => { setRiskOpened(true); setView('risk') }}><span className="material-symbols-outlined" aria-hidden="true">monitoring</span>Rủi ro & tiến độ</button>
     </nav>}
     <div className="assistant-chat-view" hidden={showRisk}>
-      <AcademicAssistantPanel key={reset} projectId={projectId} pageContext={pageContext} onUseDraft={onUseDraft} onOpenEvidence={onOpenEvidence} dock />
+      <AcademicAssistantPanel allowReportForm={allowReportForm} key={reset} projectId={projectId} pageContext={pageContext} onUseDraft={onUseDraft} onOpenEvidence={onOpenEvidence} dock />
     </div>
     {hasRisk && riskOpened && <div className="assistant-risk-view" hidden={!showRisk}>
       <ProjectProgressAnalysisPanel projectId={projectId!} dock />

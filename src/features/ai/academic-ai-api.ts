@@ -8,7 +8,9 @@ export interface AssistantMeetingDraft {
   videoChannel?: 'NONE' | 'IN_APP_VIDEO' | 'EXTERNAL_LINK' | null
   location?: string | null; onlineUrl?: string | null; inviteAll?: boolean
 }
-export interface AssistantDraft { kind: 'TASK' | 'MEETING'; title: string; description: string; meeting?: AssistantMeetingDraft | null }
+export interface AssistantTaskDraft { dueAt?: string | null; priority?: string | null; milestoneTitle?: string | null; assigneeNames?: string[]; primaryMajorName?: string | null }
+export interface AssistantReportDraft { periodStart?: string | null; periodEnd?: string | null; completedWork?: string | null; inProgressWork?: string | null; blockers?: string | null; risks?: string | null; nextActions?: string | null; plannedWork?: string | null }
+export interface AssistantDraft { kind: 'TASK' | 'MEETING' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN'; title: string; description: string; meeting?: AssistantMeetingDraft | null; task?: AssistantTaskDraft | null; report?: AssistantReportDraft | null; tasks?: AssistantDraft[] | null }
 export type AssistantToolMode = 'PROGRESS' | 'REPORT_REVIEW' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN'
 export type AssistantExportFormat = 'txt' | 'md' | 'docx' | 'xlsx' | 'pdf'
 export interface AssistantRubricOption { id: number; title: string; version: number; assignedToProject: boolean }

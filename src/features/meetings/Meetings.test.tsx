@@ -49,6 +49,28 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Meetings end-user workflow', () => {
+  it('carries minutes from the meeting picker into the authorized notes form without sending attendance', async () => {
+    const router = mount({ path: '/project/meetings' })
+    await act(() => router.navigate('/project/meetings', { state: { assistantDraft: { kind: 'MEETING_MINUTES', projectId: 2, title: 'Review notes', description: 'Draft conclusion' } } }))
+    await screen.findByText(/Bản nháp biên bản đã sẵn sàng/)
+    fireEvent.click(await screen.findByRole('link', { name: /Rà soát tiến độ tuần/ }))
+    await ready()
+    expect(api.updateMeetingNotes).not.toHaveBeenCalled()
+    click('Điền bản nháp vào biên bản')
+    expect((screen.getByLabelText('Biên bản & kết luận') as HTMLTextAreaElement).value).toBe('Draft conclusion')
+    click('Lưu biên bản & điểm danh')
+    await screen.findByText('Đã lưu biên bản và điểm danh.')
+    expect(api.updateMeetingNotes).toHaveBeenCalledWith(42, { meetingNotes: 'Draft conclusion', attendances: [], concurrencyToken: 'meeting-token' })
+  })
+
+  it('does not offer to apply AI minutes to a read-only meeting', async () => {
+    const router = mount({ readOnly: true })
+    await act(() => router.navigate('/project/meetings/42', { state: { assistantDraft: { kind: 'MEETING_MINUTES', projectId: 2, title: 'Notes', description: 'Draft' } } }))
+    await ready()
+    expect(screen.queryByRole('button', { name: 'Điền bản nháp vào biên bản' })).toBeNull()
+    expect(api.updateMeetingNotes).not.toHaveBeenCalled()
+  })
+
   it('applies each assistant draft on the same create route and waits for authorized invitees', async () => {
     let resolve!: (value: unknown) => void
     api.getMeetingCandidates.mockReturnValue(new Promise(done => { resolve = done }))

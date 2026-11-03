@@ -6,6 +6,7 @@ import type { PagedResult } from '../../types/backend'
 import { meetingStatuses, type Meeting, type MeetingStatus } from './meeting-types'
 import { formatMeetingTime, meetingVenue, meetingError } from './meeting-utils'
 import { MeetingError, MeetingLoading, MeetingShell, MeetingStatusBadge } from './meeting-ui'
+import { useAssistantActionDraft } from '../ai/useAssistantActionDraft'
 import { canUseProjectExecutionAction } from '../execution/execution-authority'
 
 export function MeetingsPage() {
@@ -15,6 +16,7 @@ export function MeetingsPage() {
 function MeetingList() {
   const access = useExecutionAccess()
   const { project, routeBase } = access
+  const assistant = useAssistantActionDraft(project.id, 'MEETING_MINUTES')
   const canSchedule = canUseProjectExecutionAction(access, 'schedule_meeting')
   const [params, setParams] = useSearchParams()
   const status = Object.hasOwn(meetingStatuses, params.get('status') ?? '') ? params.get('status') as MeetingStatus : ''
@@ -56,6 +58,7 @@ function MeetingList() {
   }
   return <MeetingShell title="Lịch họp và biên bản" projectTitle={project.title} backTo={`${routeBase}/workspace`}
     action={canSchedule && <Link className="mtg-button" to={`${routeBase}/meetings/new`}>+ Lên lịch họp</Link>}>
+    {assistant.draft && <p role="status" className="mtg-notice">Bản nháp biên bản đã sẵn sàng. Chọn cuộc họp để kiểm tra và đưa nội dung vào biểu mẫu; chưa lưu biên bản hoặc điểm danh.</p>}
     <div className="mtg-process"><span><b>01</b>Thống nhất lịch</span><span><b>02</b>Ghi nhận cuộc họp</span><span><b>03</b>Theo dõi phản hồi</span><small>Giờ Việt Nam · UTC+7</small></div>
     <section className="mtg-panel" aria-label="Danh sách cuộc họp">
       <form className="mtg-filters" onSubmit={applyFilters}>
@@ -68,7 +71,7 @@ function MeetingList() {
       {validation && <p role="alert" className="mtg-notice mtg-notice--error">{validation}</p>}
       <div className="mtg-list-heading"><h2>Các cuộc họp</h2><button className="mtg-text-button" disabled={loading} onClick={() => setRevision((value) => value + 1)}>Làm mới</button></div>
       {loading ? <MeetingLoading /> : error ? <MeetingError message={error} retry={() => setRevision((value) => value + 1)} /> : data && <>
-        {data.items.length === 0 ? <div className="mtg-empty"><span className="material-symbols-outlined" aria-hidden="true">event_note</span><h3>{status || from || to || page > 1 ? 'Không có cuộc họp phù hợp' : 'Chưa có lịch họp'}</h3><p>{canSchedule ? 'Lên lịch để cả nhóm thống nhất thời gian và nội dung trao đổi.' : 'Cuộc họp do người được hệ thống cho phép lên lịch sẽ xuất hiện tại đây.'}</p>{page > 1 && <button className="mtg-button mtg-button--secondary" onClick={() => goToPage(1)}>Về trang đầu</button>}</div> : <ul className="mtg-list">{data.items.map((meeting) => <li key={meeting.id}><Link className="mtg-row" to={`${routeBase}/meetings/${meeting.id}`}>
+        {data.items.length === 0 ? <div className="mtg-empty"><span className="material-symbols-outlined" aria-hidden="true">event_note</span><h3>{status || from || to || page > 1 ? 'Không có cuộc họp phù hợp' : 'Chưa có lịch họp'}</h3><p>{canSchedule ? 'Lên lịch để cả nhóm thống nhất thời gian và nội dung trao đổi.' : 'Cuộc họp do người được hệ thống cho phép lên lịch sẽ xuất hiện tại đây.'}</p>{page > 1 && <button className="mtg-button mtg-button--secondary" onClick={() => goToPage(1)}>Về trang đầu</button>}</div> : <ul className="mtg-list">{data.items.map((meeting) => <li key={meeting.id}><Link className="mtg-row" to={`${routeBase}/meetings/${meeting.id}`} state={assistant.draft ? { assistantDraft: { ...assistant.draft, projectId: project.id } } : undefined}>
           <span className="mtg-row-icon material-symbols-outlined" aria-hidden="true">calendar_month</span>
           <div className="mtg-row-main"><p className="mtg-eyebrow">{formatMeetingTime(meeting.startAt)} · UTC+7</p><h3>{meeting.title}</h3><p>{meetingVenue(meeting)}</p><small>{meeting.participantCount} người tham gia · Tổ chức bởi {meeting.createdByName}</small></div>
           <div className="mtg-row-state"><MeetingStatusBadge status={meeting.status} /><span className="mtg-row-open workspace-action-link">Xem chi tiết<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></span></div>

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom'
 import { useExecutionAccess, type ExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import * as api from '../../services/api/progress-reports.api'
+import { useAssistantActionDraft } from '../ai/useAssistantActionDraft'
 import { ReportEditor } from './ReportEditor'
 import {
   canonicalSubmissionFields,
@@ -38,6 +39,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
   const readOnly = Boolean(access.readOnly)
   const canCreate = actor === 'student' && executionCapabilities?.get('create_progress_report').allowed === true
   const navigate = useNavigate()
+  const assistant = useAssistantActionDraft(project.id, 'WEEKLY_REPORT')
   const [report, setReport] = useState<ReportDetail | null>(null)
   const [cycles, setCycles] = useState<api.ReportingCycle[] | undefined>(undefined)
   const [existingReports, setExistingReports] = useState<ProgressReport[]>([])
@@ -293,7 +295,8 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
             <div className="report-main">
               {editable ? (
                 <ReportEditor
-                  key={editorVersion}
+                  key={`${editorVersion}:${create ? assistant.key : 'existing'}`}
+                  initialDraft={create ? assistant.draft : undefined}
                   report={report ?? undefined}
                   cycles={cycles}
                   existingReports={existingReports}
