@@ -49,6 +49,25 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Meetings end-user workflow', () => {
+  it('applies each assistant draft on the same create route and waits for authorized invitees', async () => {
+    let resolve!: (value: unknown) => void
+    api.getMeetingCandidates.mockReturnValue(new Promise(done => { resolve = done }))
+    const router = mount({ path: '/project/meetings/new' })
+    const draft = { kind: 'MEETING', projectId: 2, title: 'First draft', description: 'Agenda', meeting: { startAt: '2026-11-04T05:00:00Z', inviteAll: true } }
+    await act(() => router.navigate('/project/meetings/new', { state: { assistantDraft: draft } }))
+    expect((screen.getByLabelText('Tiêu đề cuộc họp') as HTMLInputElement).value).toBe('First draft')
+    expect(screen.getByRole('button', { name: 'Cần kiểm tra lại trạng thái' }).closest('fieldset')?.disabled).toBe(true)
+    await act(async () => resolve({ candidates: [{ userId: 9, fullName: 'Khang', role: 'Leader' }, { userId: 6, fullName: 'GVHD', role: 'Lecturer' }] }))
+    expect((screen.getByRole('checkbox', { name: /GVHD/ }) as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByLabelText(/Bắt đầu/) as HTMLInputElement).value).toBe('2026-11-04T12:00')
+    expect(api.createMeeting).not.toHaveBeenCalled()
+    await act(() => router.navigate('/project/meetings/new', { state: { assistantDraft: { ...draft, title: 'Second draft', meeting: { ...draft.meeting, startAt: '2026-11-05T07:00:00Z', inviteAll: false } } } }))
+    expect((screen.getByLabelText('Tiêu đề cuộc họp') as HTMLInputElement).value).toBe('Second draft')
+    expect((screen.getByLabelText(/Bắt đầu/) as HTMLInputElement).value).toBe('2026-11-05T14:00')
+    expect((screen.getByRole('checkbox', { name: /GVHD/ }) as HTMLInputElement).checked).toBe(false)
+    expect(router.state.location.state).toBeNull()
+  })
+
   it('shows meeting history without supervisor write controls in read-only mode', async () => {
     mount({ actor: 'supervisor', userId: 6, readOnly: true })
     await ready()

@@ -4,9 +4,10 @@ import type { CreateMeeting, MeetingCandidate, MeetingDetail, MeetingRecurrence 
 import { recurrenceLabels } from './meeting-types'
 import type { MeetingDeliveryMode, MeetingVideoChannel } from './video/meeting-video.types'
 import { safeMeetingUrl, toMeetingInput, toMeetingUtc } from './meeting-utils'
+import type { AssistantDraft } from '../ai/academic-ai-api'
 
 export function MeetingScheduleForm({ meeting, initialDraft, busy, locked = false, candidates = [], currentUserId, onSave, onDirty, onCancel }: {
-  initialDraft?: { title: string; description: string }; meeting?: MeetingDetail; busy: boolean; locked?: boolean; candidates?: MeetingCandidate[]; currentUserId?: number
+  initialDraft?: Pick<AssistantDraft, 'title' | 'description' | 'meeting'>; meeting?: MeetingDetail; busy: boolean; locked?: boolean; candidates?: MeetingCandidate[]; currentUserId?: number
   onSave: (body: CreateMeeting) => Promise<void>; onDirty: () => void; onCancel?: () => void
 }) {
   // Do not infer a legacy meeting's delivery state from location or onlineUrl. It remains a
@@ -14,11 +15,13 @@ export function MeetingScheduleForm({ meeting, initialDraft, busy, locked = fals
   const legacyMeeting = Boolean(meeting && (!meeting.meetingDeliveryMode || !meeting.videoChannel))
   const showVideoControls = env.videoMeetingEnabled && !legacyMeeting
   const [values, setValues] = useState(() => ({
-    title: meeting?.title ?? initialDraft?.title ?? '', agenda: meeting?.agenda ?? initialDraft?.description ?? '', startAt: toMeetingInput(meeting?.startAt ?? null), endAt: toMeetingInput(meeting?.endAt ?? null), location: meeting?.location ?? '', onlineUrl: meeting?.onlineUrl ?? '',
-    meetingDeliveryMode: meeting?.meetingDeliveryMode ?? 'ONSITE' as MeetingDeliveryMode,
-    videoChannel: meeting?.videoChannel ?? 'NONE' as MeetingVideoChannel,
+    title: meeting?.title ?? initialDraft?.title ?? '', agenda: meeting?.agenda ?? initialDraft?.description ?? '', startAt: toMeetingInput(meeting?.startAt ?? initialDraft?.meeting?.startAt ?? null), endAt: toMeetingInput(meeting?.endAt ?? initialDraft?.meeting?.endAt ?? null), location: meeting?.location ?? initialDraft?.meeting?.location ?? '', onlineUrl: meeting?.onlineUrl ?? initialDraft?.meeting?.onlineUrl ?? '',
+    meetingDeliveryMode: meeting?.meetingDeliveryMode ?? initialDraft?.meeting?.meetingDeliveryMode ?? 'ONSITE' as MeetingDeliveryMode,
+    videoChannel: meeting?.videoChannel ?? initialDraft?.meeting?.videoChannel ?? (initialDraft?.meeting?.meetingDeliveryMode === 'REMOTE' || initialDraft?.meeting?.meetingDeliveryMode === 'HYBRID' ? 'EXTERNAL_LINK' : 'NONE') as MeetingVideoChannel,
   }))
-  const [participants, setParticipants] = useState<number[]>([])
+  // Derive the initial selection from authorized candidates, even when they load after the form.
+  const [participantChoices, setParticipantChoices] = useState<Record<number, boolean>>({})
+  const participants = candidates.filter(candidate => participantChoices[candidate.userId] ?? initialDraft?.meeting?.inviteAll === true).map(candidate => candidate.userId)
   const [recurrence, setRecurrence] = useState<MeetingRecurrence>('NONE')
   const [occurrenceCount, setOccurrenceCount] = useState('1')
   const seriesEnabled = env.meetingCollaborationEnabled && !meeting
@@ -86,7 +89,7 @@ export function MeetingScheduleForm({ meeting, initialDraft, busy, locked = fals
       </select></label>
       {recurrence !== 'NONE' && <label>Số lần họp<input type="number" min={1} max={12} value={occurrenceCount} onChange={(event) => { setOccurrenceCount(event.target.value); setError(''); onDirty() }} /></label>}
     </div>{recurrence !== 'NONE' && <p className="mtg-help">Hệ thống sẽ tạo {occurrenceCount || '…'} cuộc họp cách nhau {recurrence === 'WEEKLY' ? '7 ngày' : '14 ngày'}, bắt đầu từ thời gian đã chọn.</p>}</fieldset>}
-    {!meeting && <fieldset className="mtg-candidate-list"><legend>Mời người tham gia</legend><p className="mtg-help">Người tạo được tự động thêm vào cuộc họp. Bạn có thể mời thêm sau khi lưu lịch.</p>{candidates.map((candidate) => <label className="mtg-checkbox" key={candidate.userId}><input type="checkbox" checked={candidate.userId === currentUserId || participants.includes(candidate.userId)} disabled={candidate.userId === currentUserId} onChange={(event) => { setParticipants(event.target.checked ? [...participants, candidate.userId] : participants.filter((id) => id !== candidate.userId)); onDirty() }} /><span>{candidate.fullName}<small>{candidate.role}{candidate.userId === currentUserId ? ' · Bạn' : ''}</small></span></label>)}</fieldset>}
+    {!meeting && <fieldset className="mtg-candidate-list"><legend>Mời người tham gia</legend><p className="mtg-help">Người tạo được tự động thêm vào cuộc họp. Bạn có thể mời thêm sau khi lưu lịch.</p>{candidates.map((candidate) => <label className="mtg-checkbox" key={candidate.userId}><input type="checkbox" checked={candidate.userId === currentUserId || participants.includes(candidate.userId)} disabled={candidate.userId === currentUserId} onChange={(event) => { setParticipantChoices(current => ({ ...current, [candidate.userId]: event.target.checked })); onDirty() }} /><span>{candidate.fullName}<small>{candidate.role}{candidate.userId === currentUserId ? ' · Bạn' : ''}</small></span></label>)}</fieldset>}
     {error && <p role="alert" className="mtg-validation">{error}</p>}
     <div className="mtg-form-actions">{onCancel && <button type="button" className="mtg-button mtg-button--secondary" onClick={onCancel}>Đóng chỉnh sửa</button>}<button className="mtg-button" type="submit">{locked ? 'Cần kiểm tra lại trạng thái' : busy ? 'Đang lưu…' : meeting ? 'Lưu lịch họp' : 'Tạo cuộc họp'}</button></div>
   </fieldset></form>

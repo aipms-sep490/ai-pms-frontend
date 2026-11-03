@@ -2,7 +2,13 @@ import { httpDelete, httpGet, httpGetBlob, httpPost, httpPostForm, httpPostStrea
 import type { EvidenceReference } from './ai-api'
 
 export interface KnowledgeCitation { documentId: number; versionId: number; title: string; version: string; documentType: string; section: string | null; page: number | null; effectiveFrom: string | null; excerpt: string }
-export interface AssistantDraft { kind: 'TASK' | 'MEETING'; title: string; description: string }
+export interface AssistantMeetingDraft {
+  startAt?: string | null; endAt?: string | null
+  meetingDeliveryMode?: 'ONSITE' | 'REMOTE' | 'HYBRID' | null
+  videoChannel?: 'NONE' | 'IN_APP_VIDEO' | 'EXTERNAL_LINK' | null
+  location?: string | null; onlineUrl?: string | null; inviteAll?: boolean
+}
+export interface AssistantDraft { kind: 'TASK' | 'MEETING'; title: string; description: string; meeting?: AssistantMeetingDraft | null }
 export type AssistantToolMode = 'PROGRESS' | 'REPORT_REVIEW' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN'
 export type AssistantExportFormat = 'txt' | 'md' | 'docx' | 'xlsx' | 'pdf'
 export interface AssistantRubricOption { id: number; title: string; version: number; assignedToProject: boolean }
