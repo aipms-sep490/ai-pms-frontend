@@ -19,7 +19,7 @@ export interface AcademicAssistantResponse { answer: string; answerType: string;
 export interface AssistantConversation { id: number; title: string; projectId: number | null; scope: string; revision: number; updatedAt: string }
 export interface AssistantTurn { id: number; query: string; response: AcademicAssistantResponse }
 export interface ConversationDetail { conversation: AssistantConversation; turns: AssistantTurn[]; hasMore: boolean }
-export interface AssistantStreamEvent { type: 'preview' | 'completed' | 'error'; text?: string; response?: AcademicAssistantResponse }
+export interface AssistantStreamEvent { type: 'status' | 'preview' | 'completed' | 'error'; text?: string; response?: AcademicAssistantResponse }
 export const createAssistantConversation = (projectId?: number, signal?: AbortSignal) => httpPost<AssistantConversation>('/academic/assistant/conversations', { projectId, scope: projectId ? 'COMBINED' : 'ACADEMIC' }, { signal })
 export const listAssistantConversations = (projectId?: number, beforeId?: number, signal?: AbortSignal) => httpGet<AssistantConversation[]>(`/academic/assistant/conversations?${new URLSearchParams({ ...(projectId ? { projectId: String(projectId) } : {}), ...(beforeId ? { beforeId: String(beforeId) } : {}) })}`, { signal })
 export const getAssistantConversation = (id: number, beforeTurnId?: number, signal?: AbortSignal) => httpGet<ConversationDetail>(`/academic/assistant/conversations/${id}${beforeTurnId ? `?beforeTurnId=${beforeTurnId}` : ''}`, { signal })
@@ -38,7 +38,7 @@ export async function streamAssistant(query: string, files: File[], conversation
   files.forEach(file => form.append('files', file))
   let result: AcademicAssistantResponse | undefined
   await httpPostStream<AssistantStreamEvent>('/academic/assistant/stream', form, event => {
-    if (event.type === 'preview') onPreview(event.text ?? '')
+    if (event.type === 'status' || event.type === 'preview') onPreview(event.text ?? '')
     if (event.type === 'completed') result = event.response
     if (event.type === 'error') throw new Error(event.text)
   }, { signal })
