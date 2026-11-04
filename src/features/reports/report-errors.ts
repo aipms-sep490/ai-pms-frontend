@@ -3,6 +3,12 @@ import { canonicalSubmissionFields } from './report-types'
 
 export function reportError(reason: unknown): string {
   if (reason instanceof HttpError) {
+    const code = reason.problem?.code
+    if (code === 'REPORT_CYCLE_REQUIRED') return 'Báo cáo tiến độ yêu cầu chọn chu kỳ báo cáo hợp lệ.'
+    if (code === 'REPORT_DEADLINE_PASSED') return 'Đã quá hạn nộp báo cáo tiến độ cho chu kỳ này.'
+    if (code === 'REPORT_ALREADY_EXISTS_FOR_CYCLE') return 'Báo cáo tiến độ cho chu kỳ này đã tồn tại.'
+    if (code === 'REPORT_ALREADY_EXISTS_FOR_PERIOD') return 'Báo cáo tiến độ cho giai đoạn này đã tồn tại.'
+    if (code === 'REPORT_FEEDBACK_ON_DRAFT_NOT_ALLOWED') return 'Không thể gửi góp ý cho bản nháp báo cáo chưa nộp chính thức.'
     if (reason.status === 409) {
       if (reason.problem?.code === 'STALE_CONCURRENCY_TOKEN') return 'Báo cáo đã thay đổi. Tải lại trạng thái và đối chiếu trước khi lưu tiếp.'
       return 'Chưa hoàn tất thao tác. Kiểm tra kỳ báo cáo, báo cáo đã có và hạn nộp; tải lại trạng thái trước khi thử lại.'

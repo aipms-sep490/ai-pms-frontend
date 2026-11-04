@@ -10,6 +10,7 @@ import { services } from '../../services/service-gateway'
 import { getMeetings } from '../../services/api/meetings.api'
 import { getDeliverables, getDeliverableVersions } from '../../services/api/deliverables.api'
 import { getProgressReports } from '../../services/api/progress-reports.api'
+import { getUploadPolicies, type UploadPolicy } from '../../services/api/upload-policies.api'
 import { HttpError } from '../../services/http/http-client'
 import { useAuthSession } from '../auth/context/useAuthSession'
 import { getWorkspaceRole } from '../auth/utils/role-access'
@@ -79,6 +80,21 @@ export function ProjectFilesPage() {
   const [uploadType, setUploadType] = useState<FileParentType>('TASK')
   const [uploadParentId, setUploadParentId] = useState('')
   const [uploadFileName, setUploadFileName] = useState('Chưa chọn tệp')
+  const [policies, setPolicies] = useState<UploadPolicy[]>([])
+
+  useEffect(() => {
+    let active = true
+    void getUploadPolicies()
+      .then(result => { if (active) setPolicies(result) })
+      .catch(() => { /* Fallback to standard 20MB if policy endpoint is unavailable */ })
+    return () => { active = false }
+  }, [])
+
+  const activePolicy = useMemo(() => {
+    return policies.find(p => p.parentType === uploadType) ?? null
+  }, [policies, uploadType])
+  const maxBytes = activePolicy?.maxBytes ?? (20 * 1024 * 1024)
+  const maxBytesLabel = activePolicy?.maxBytesLabel ?? '20 MB'
 
   const load = useCallback(async () => {
     if (!projectId) { setLoading(false); setData(null); return }
@@ -165,9 +181,11 @@ export function ProjectFilesPage() {
     event.preventDefault()
     const formElement = event.currentTarget
     const form = new FormData(formElement)
-    const file = form.get('file')
+    const fileInput = formElement.querySelector<HTMLInputElement>('input[type="file"][name="file"]')
+    const file = fileInput?.files?.[0] ?? form.get('file')
     const parentId = Number(uploadParentId)
     if (!(file instanceof File) || !file.size) { setError('Hãy chọn một tệp để đính kèm.'); return }
+    if (file.size > maxBytes) { setError(`Tệp vượt quá dung lượng tối đa cho phép (${maxBytesLabel}).`); return }
     if (!currentParents.some(parent => parent.id === parentId)) { setError('Chọn hạng mục hiện còn được phép đính kèm.'); return }
     setBusy(true); setError(null); setNotice(null)
     void api.uploadProjectFile(uploadType, parentId, file).then(async () => {
@@ -198,7 +216,7 @@ export function ProjectFilesPage() {
     </form>
 
     {canUpload && <section className="workspace-surface workspace-surface-padding" aria-labelledby="upload-file-title">
-      <div className="flex gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-md bg-primary-subtle text-primary"><span className="material-symbols-outlined text-[20px]" aria-hidden="true">upload_file</span></span><div><h2 id="upload-file-title" className="font-semibold text-ink">Đính kèm tệp</h2><p className="mt-1 text-sm leading-6 text-ink-muted">Chọn công việc, báo cáo hoặc cuộc họp để đính kèm tài liệu.</p></div></div>
+      <div className="flex gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-md bg-primary-subtle text-primary"><span className="material-symbols-outlined text-[20px]" aria-hidden="true">upload_file</span></span><div><h2 id="upload-file-title" className="font-semibold text-ink">Đính kèm tệp</h2><p className="mt-1 text-sm leading-6 text-ink-muted">Chọn công việc, báo cáo hoặc cuộc họp để đính kèm tài liệu. Giới hạn tối đa: <strong className="text-ink">{maxBytesLabel}</strong>.</p></div></div>
       {parentLoading ? <p role="status" className="mt-4 text-sm text-ink-muted">Đang xác nhận hạng mục có thể đính kèm…</p> : parentError ? <p role="alert" className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{parentError} <button type="button" className="font-semibold underline" onClick={() => setParentRevision(value => value + 1)}>Tải lại hạng mục</button></p> : <form className="mt-4 grid min-w-0 gap-3 md:grid-cols-[160px_minmax(0,1.3fr)_minmax(0,1fr)_auto] md:items-end" onSubmit={upload}>
         <label className="flex min-w-0 flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-muted">Gắn với<select value={uploadType} disabled={busy} onChange={event => { setUploadType(event.target.value as FileParentType); setUploadParentId('') }} className={inputClass}><option value="TASK">Công việc</option><option value="REPORT">Báo cáo tiến độ</option><option value="MEETING">Cuộc họp</option></select></label>
         <label className="flex min-w-0 flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-muted">Hạng mục<select required value={uploadParentId} disabled={busy || !currentParents.length} onChange={event => setUploadParentId(event.target.value)} className={inputClass}><option value="">{currentParents.length ? 'Chọn hạng mục' : 'Không có hạng mục phù hợp'}</option>{currentParents.map(parent => <option key={`${parent.type}-${parent.id}`} value={parent.id}>{parent.label}</option>)}</select></label>
@@ -241,6 +259,7 @@ function fileError(reason: unknown, action: string) {
   if (reason.status === 403) return 'Bạn không có quyền thao tác với tệp hoặc hạng mục này.'
   if (reason.status === 404) return 'Không tìm thấy tệp hoặc hạng mục liên quan.'
   if (reason.status === 409) return 'Dữ liệu hoặc trạng thái hạng mục đã thay đổi. Hãy tải lại trước khi thử tiếp.'
+  if (reason.status === 413) return 'Tệp vượt quá dung lượng tối đa cho phép (20 MB).'
   return `Không thể ${action}. Hãy thử lại.`
 }
 

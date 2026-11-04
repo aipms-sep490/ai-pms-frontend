@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { readFileSync, writeFileSync } from 'node:fs'
 
-const root = process.env.BATCH1_EVIDENCE_DIR || 'F:/AI-PMS/artifacts/fe-batch1-20261022'
+const root = process.env.BATCH1_EVIDENCE_DIR || 'test-results/batch1'
 const longTitle = 'Đồ án liên ngành nghiên cứu hệ thống quản lý tiến trình thẩm định và phân tích dữ liệu học thuật có tên rất dài'
 const template = { id: '1', code: 'TEST', name: longTitle, projectPeriodId: 1, mode: 'INTERDISCIPLINARY', major: 'Công nghệ thông tin, Marketing và Thiết kế', gatesCount: 4, status: 'DRAFT', version: '1', concurrencyToken: 'template-token', gates: [20, 20, 35, 25].map((weight, i) => ({ id: String(i + 1), code: `R${i + 1}`, title: `Đợt thẩm định ${i + 1} · ${longTitle}`, objective: longTitle, required: true, blockNextGate: false, start: null, end: null, reviewerPolicy: 'Assigned Reviewer', reviewScope: 'COMMON', requirements: [], weight })) }
 const timeline = { projectId: '1', projectCode: 'P1', projectName: longTitle, projectMode: 'INTERDISCIPLINARY', major: 'Công nghệ thông tin', effectivePolicyVersion: '1', currentGateCode: 'R2', taskProgress: 75, academicProgress: 20, academicProgressSource: 'WEIGHTED_GATES', isDefenseReady: false, defenseReadinessStatus: 'NOT_READY', disciplineProgress: [{ scope: 'COMMON', name: 'Phần chung', progress: 20, weight: 40 }, { scope: 'MAJOR:1', name: 'Công nghệ thông tin', progress: null, weight: 60 }], gates: template.gates.map((g, i) => ({ gateInstanceId: g.id, code: g.code, title: g.title, objective: g.objective, status: i === 0 ? 'PASSED' : i === 1 ? 'IN_REVIEW' : 'PLANNED', reviewEligibility: 'READY', isRequired: true, windowStart: null, windowEnd: null, concurrencyToken: 'gate-token', blockingReasons: [], requirements: [], weight: g.weight })), capabilities: { canSubmitPackage: true, canSubmitRevision: true, blockingReasons: [] } }
@@ -43,7 +43,7 @@ for (const width of [390, 768, 1280, 1440]) for (const view of views) test(`cont
     await expect(page.getByRole('progressbar', { name: 'Tiến độ học vụ' })).toHaveCount(0)
   } else await expect(page.getByRole('progressbar', { name: 'Tiến độ học vụ' })).toHaveAttribute('aria-valuenow', '20')
   expect(await page.evaluate(() => ({ innerWidth, width: document.documentElement.scrollWidth }))).toEqual({ innerWidth: width, width })
-  if (width === 390) {
+  if (width === 390 && process.env.BATCH1_AXE_PATH) {
     await page.addScriptTag({ content: readFileSync(process.env.BATCH1_AXE_PATH!, 'utf8') })
     const audit = await page.evaluate(async () => (window as any).axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'] } }))
     writeFileSync(`${root}/axe-${view}.json`, JSON.stringify(audit.violations, null, 2))
@@ -86,8 +86,8 @@ for (const status of [401, 403, 404, 409, 422, 429, 500]) test(`controlled sourc
   await page.route('**/supervisors/me/triage-queue', route => route.fulfill({ status, json: { detail: `HTTP ${status}` } }))
   await page.goto('/e2e/batch1.html?view=calendar&actor=lecturer')
   await expect(page.getByRole('heading', { name: 'Lịch của bạn' })).toBeVisible()
-  await expect(page.getByText('Chưa tải được danh sách việc cần làm. Xem trạng thái nguồn và thử tải lại.')).toBeVisible()
-  await expect(page.getByText(`HTTP ${status}`, { exact: true })).toBeVisible()
+  await expect(page.getByText('Một số nguồn chưa tải được; danh sách có thể chưa đầy đủ.')).toBeVisible()
+  await expect(page.getByRole('alert').getByText(`HTTP ${status}`, { exact: true })).toBeVisible()
   await expect(page.getByText('Không có việc cần làm.', { exact: true })).toHaveCount(0)
 })
 

@@ -189,4 +189,63 @@ describe('Evaluator Workspace Phase 5', () => {
     expect(await screen.findByText(/không xem trực tiếp trên trình duyệt được/)).toBeTruthy()
     vi.unstubAllGlobals()
   })
+
+  it('renders projected fields: demo badge, approval status, stage, weight percent, completed evaluators, and hierarchy indentation (F9)', async () => {
+    api.getEvaluationAssignmentDetail.mockResolvedValue({
+      assignment: { ...assignment, stage: 'DEFENSE' },
+      canScore: true,
+      legacyReadOnly: false,
+      denialReason: null,
+      stage: 'DEFENSE',
+      schemeIsDemo: true,
+      schemeApprovalStatus: 'APPROVED',
+      componentStudentWeightPercent: 40,
+      completedEvaluators: 1,
+      requiredEvaluators: 2,
+    })
+    const childDraft = {
+      ...draft,
+      scores: [
+        { rubricCriterionId: 10, name: 'Phần cứng', description: 'Thiết kế', weightPercent: 50, maxScore: 5, sortOrder: 1, isRequired: true, score: null, comments: null, parentId: null },
+        { rubricCriterionId: 11, name: 'Mạch in', description: 'PCB routing', weightPercent: 50, maxScore: 5, sortOrder: 2, isRequired: true, score: null, comments: null, parentId: 10 },
+      ],
+    }
+    api.getProjectEvaluations.mockResolvedValue({ items: [childDraft], page: 1, pageSize: 100, totalCount: 1 })
+    page()
+
+    expect(await screen.findByTestId('badge-scheme-mode')).toBeTruthy()
+    expect(screen.getByText('BẢN THỬ NGHIỆM (DEMO)')).toBeTruthy()
+    expect(screen.getByText('Đề cương: APPROVED')).toBeTruthy()
+    expect(screen.getAllByText('Bảo vệ').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('40%')).toBeTruthy()
+    expect(screen.getByText('1/2 người chấm')).toBeTruthy()
+
+    // Hierarchy indentation for child criterion
+    expect(screen.getByText('↳ Thuộc tiêu chí cha: Phần cứng')).toBeTruthy()
+    const childCard = screen.getByTestId('criterion-card-11')
+    expect(childCard.className).toContain('ml-6')
+  })
+
+  it('renders official badge when schemeIsDemo is false and preserves null total score as incomplete without null=0 artifacts', async () => {
+    api.getEvaluationAssignmentDetail.mockResolvedValue({
+      assignment,
+      canScore: true,
+      legacyReadOnly: false,
+      denialReason: null,
+      schemeIsDemo: false,
+      schemeApprovalStatus: 'PUBLISHED',
+      stage: 'COLD',
+      componentStudentWeightPercent: 100,
+      completedEvaluators: 2,
+      requiredEvaluators: 2,
+    })
+    page()
+
+    expect(await screen.findByText('CHÍNH THỨC')).toBeTruthy()
+    expect(screen.getByText('2/2 người chấm')).toBeTruthy()
+    // Null score verification (not displayed as 0)
+    expect(screen.getByText('Chưa đủ điểm')).toBeTruthy()
+    const scoreInput = screen.getByLabelText('Điểm Phân tích') as HTMLInputElement
+    expect(scoreInput.value).toBe('')
+  })
 })
