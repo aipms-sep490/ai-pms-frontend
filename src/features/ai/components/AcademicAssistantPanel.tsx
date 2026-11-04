@@ -37,7 +37,7 @@ function AssistantTyping({ preview }: { preview?: string }) {
   </div>
 }
 
-export function AcademicAssistantPanel({ projectId, dock = false, pageContext = '', onUseDraft, onOpenEvidence }: { projectId?: number; dock?: boolean; pageContext?: string; onUseDraft?: (draft: AssistantDraft) => void; onOpenEvidence?: (evidence: EvidenceReference) => void }) {
+export function AcademicAssistantPanel({ projectId, dock = false, pageContext = '', allowReportForm = true, onUseDraft, onOpenEvidence }: { projectId?: number; allowReportForm?: boolean; dock?: boolean; pageContext?: string; onUseDraft?: (draft: AssistantDraft) => void; onOpenEvidence?: (evidence: EvidenceReference) => void }) {
   const [conversation, setConversation] = useState<AssistantConversation | null>(null)
   const [conversations, setConversations] = useState<AssistantConversation[]>([])
   const [showHistory, setShowHistory] = useState(false)
@@ -62,6 +62,9 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
   const [turns, setTurns] = useState<ChatTurn[]>([])
   const sequence = useRef(0)
   const history = useRef<HTMLDivElement>(null)
+  const scrollFrame = useRef<number | null>(null)
+  const previewFrame = useRef<number | null>(null)
+  const pendingPreview = useRef<{ turnId: number; text: string } | null>(null)
   const [answer, setAnswer] = useState<AcademicAssistantResponse | null>(null)
   const [files, setFiles] = useState<File[]>([])
   const [busy, setBusy] = useState(false)
@@ -81,7 +84,25 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
       .finally(() => { if (!controller.signal.aborted) setRubricLoading(false) })
     return () => controller.abort()
   }, [projectId, toolMode, rubricRetry])
-  useEffect(() => { history.current?.scrollTo?.({ top: history.current.scrollHeight, behavior: 'smooth' }) }, [turns])
+  useEffect(() => {
+    // Streaming previews update `turns` frequently; coalesce scroll work into one frame.
+    if (scrollFrame.current !== null) cancelAnimationFrame(scrollFrame.current)
+    scrollFrame.current = requestAnimationFrame(() => {
+      scrollFrame.current = null
+      history.current?.scrollTo?.({ top: history.current.scrollHeight, behavior: 'auto' })
+    })
+    return () => {
+      if (scrollFrame.current !== null) {
+        cancelAnimationFrame(scrollFrame.current)
+        scrollFrame.current = null
+      }
+    }
+  }, [turns])
+  useEffect(() => () => {
+    if (previewFrame.current !== null) cancelAnimationFrame(previewFrame.current)
+    previewFrame.current = null
+    pendingPreview.current = null
+  }, [])
   useEffect(() => {
     request.current?.abort(); download.current?.abort(); historyRequest.current?.abort(); sourceRequest.current?.abort()
     sending.current = false; setConversation(null); setConversations([]); setShowHistory(false); setSource(null)
@@ -165,12 +186,27 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
       }
       const result = dock && active
         ? await streamAssistant(value, files, active, pageContext, draftKind, text => {
-          if (!controller.signal.aborted) setTurns(current => current.map(turn => turn.id === turnId ? { ...turn, preview: text } : turn))
+          if (controller.signal.aborted) return
+          pendingPreview.current = { turnId, text }
+          if (previewFrame.current !== null) return
+          // Show the first status immediately; coalesce only subsequent deltas.
+          setTurns(current => current.map(turn => turn.id === turnId ? { ...turn, preview: text } : turn))
+          pendingPreview.current = null
+          previewFrame.current = requestAnimationFrame(() => {
+            previewFrame.current = null
+            const pending = pendingPreview.current
+            pendingPreview.current = null
+            if (!pending || controller.signal.aborted) return
+            setTurns(current => current.map(turn => turn.id === pending.turnId ? { ...turn, preview: pending.text } : turn))
+          })
         }, controller.signal, ...(toolMode ? [{ mode: toolMode, rubricId: toolMode === 'REPORT_REVIEW' ? rubricId : undefined }] : []))
         : files.length
         ? await askAcademicAssistantWithFiles(value, files, projectId, controller.signal)
         : await askAcademicAssistant(value, projectId, controller.signal)
       if (!controller.signal.aborted) {
+        if (previewFrame.current !== null) cancelAnimationFrame(previewFrame.current)
+        previewFrame.current = null
+        pendingPreview.current = null
         setAnswer(result)
         if (active) setConversation({ ...active, revision: result.revision ?? active.revision, title: active.revision === 0 ? value.slice(0, 120) : active.title })
         if (dock) { setTurns(current => current.map(turn => turn.id === turnId ? { ...turn, response: result } : turn)); setFiles([]) }
@@ -186,6 +222,9 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
 
   const stop = () => {
     request.current?.abort(); sending.current = false; setBusy(false)
+    if (previewFrame.current !== null) cancelAnimationFrame(previewFrame.current)
+    previewFrame.current = null
+    pendingPreview.current = null
     setTurns(current => current.map(turn => !turn.response && !turn.error ? { ...turn, preview: undefined, error: 'Đã dừng. Mở lại lịch sử nếu câu trả lời vừa kịp lưu.' } : turn))
   }
 
@@ -208,12 +247,12 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
   }
 
   const renderAnswer = (answer: AcademicAssistantResponse) => (<div className="assistant-answer mt-5 rounded-lg border border-primary-subtle bg-primary-subtle p-4">
-      <p className="assistant-answer-label mb-2 text-xs font-semibold text-primary"><span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>{answer.generationStatus === 'FALLBACK' ? (answer.citations.length || answer.projectEvidence.length ? 'Trích đoạn nguồn · fallback' : 'AI tạm thời không khả dụng') : answer.insufficientEvidence ? 'Chưa đủ thông tin xác nhận' : answer.answerType === 'GENERAL' ? 'Hỏi đáp chung' : answer.answerType === 'ATTACHMENT' ? 'Dựa trên tệp bạn gửi' : 'Câu trả lời có nguồn'}</p>
+      <p className="assistant-answer-label mb-2 text-xs font-semibold text-primary"><span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>{answer.generationStatus === 'FALLBACK' ? (answer.citations.length || answer.projectEvidence.length ? 'Trích đoạn nguồn · fallback' : 'AI tạm thời không khả dụng') : answer.draft ? 'Bản nháp cần kiểm tra' : answer.insufficientEvidence ? 'Chưa đủ thông tin xác nhận' : answer.answerType === 'GENERAL' ? 'Hỏi đáp chung' : answer.answerType === 'ATTACHMENT' ? 'Dựa trên tệp bạn gửi' : 'Câu trả lời có nguồn'}</p>
       <AssistantAnswerText text={answer.answer} />
       {answer.insufficientEvidence && <p className="mt-3 text-sm text-status-warning-text">Chưa đủ căn cứ chính thức để kết luận.</p>}
       {answer.limitationNote && <p className="mt-3 text-xs text-ink-muted">{answer.limitationNote}</p>}
       {!!answer.attachments?.length && <p className="mt-3 break-words text-xs text-ink-muted">Tệp tham chiếu: {answer.attachments.map(file => file.fileName).join(', ')}</p>}
-      {answer.draft && <AssistantDraftCard draft={answer.draft} onUse={onUseDraft} />}
+      {answer.draft && <AssistantDraftCard draft={answer.draft} onUse={answer.draft.kind === 'WEEKLY_REPORT' && !allowReportForm ? undefined : onUseDraft} />}
       {!!answer.runId && <details className="assistant-export"><summary><span className="material-symbols-outlined" aria-hidden="true">download</span>{downloading ? 'Đang chuẩn bị tệp…' : 'Tải câu trả lời'}</summary><div className="assistant-export-options">{([['docx', 'Word'], ['xlsx', 'Excel'], ['pdf', 'PDF'], ['txt', 'TXT'], ['md', 'Markdown']] as const).map(([format, label]) => <button key={format} type="button" disabled={downloading} onClick={() => void saveAnswer(format, answer)}>Tải {label}</button>)}</div></details>}
       {!['GENERAL', 'ATTACHMENT', 'INSUFFICIENT_EVIDENCE'].includes(answer.answerType) && !answer.insufficientEvidence && answer.citations.length > 0 && <details className="assistant-citations"><summary>Tài liệu tham chiếu ({answer.citations.length})</summary><ul className="mt-2 space-y-2">{answer.citations.map((item, index) => <li key={`${item.versionId}-${index}`} className="rounded-lg border border-hairline bg-card p-3"><p className="text-sm font-semibold text-ink">{answer.runId ? <button type="button" className="underline underline-offset-4" onClick={() => void openSource(answer.runId!, index)}>{item.title} · v{item.version}</button> : <>{item.title} · v{item.version}</>}</p><p className="mt-1 text-xs text-ink-muted">{item.documentType}{item.section ? ` · ${item.section}` : ''}{item.page ? ` · trang ${item.page}` : ''}</p><p className="mt-2 text-sm leading-6 text-ink-soft">{item.excerpt}</p></li>)}</ul></details>}
       {answer.answerType === 'GROUNDED' && answer.generationStatus === 'COMPLETED' && !answer.insufficientEvidence && answer.projectEvidence.length > 0 && <details className="assistant-citations assistant-project-sources"><summary>Nguồn từ đồ án ({answer.projectEvidence.length})</summary><ul className="mt-2 space-y-2">{answer.projectEvidence.map((item, index) => <li key={index} className="rounded-lg border border-hairline bg-card p-3 text-sm"><p className="font-semibold">{onOpenEvidence && /^\/api\/v1\/(tasks|milestones|meetings|progress-reports)\/\d+$/.test(item.referenceUrl ?? '') ? <button type="button" className="underline underline-offset-4" onClick={() => onOpenEvidence(item)}>{item.title}</button> : item.title}</p><p className="mt-1 text-ink-soft">{item.excerpt}</p></li>)}</ul></details>}

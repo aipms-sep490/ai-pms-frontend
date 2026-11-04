@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
+import { useAssistantActionDraft } from '../ai/useAssistantActionDraft'
 import { env } from '../../app/config/env'
 import * as api from '../../services/api/meetings.api'
 import type { MeetingCollaboration, MeetingDetail } from './meeting-types'
@@ -25,6 +26,8 @@ export function MeetingDetailPage() {
 function MeetingDetailView({ id }: { id: number }) {
   const access = useExecutionAccess()
   const { project, routeBase } = access
+  const assistant = useAssistantActionDraft(project.id, 'MEETING_MINUTES')
+  const [appliedDraft, setAppliedDraft] = useState<{key: string; notes: string} | null>(null)
   const [meeting, setMeeting] = useState<MeetingDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -81,7 +84,7 @@ function MeetingDetailView({ id }: { id: number }) {
     try {
       await operation()
       if (!alive.current) return
-      setSuccess(message); setDirty(false); setEditor(null); setFeedback(''); setConfirmation(null)
+      setSuccess(message); setDirty(false); setEditor(null); setAppliedDraft(null); setFeedback(''); setConfirmation(null)
       // The next GET owns detail/status. If it fails, expose retry GET only, never repeat a successful mutation.
       setLoading(true); setRevision((value) => value + 1)
     } catch (reason) {
@@ -152,9 +155,10 @@ function MeetingDetailView({ id }: { id: number }) {
             await mutate(() => api.updateMeeting(id, { ...schedule, concurrencyToken: meeting.concurrencyToken }), 'Đã lưu thay đổi lịch họp.')
           }} /> : <><p className="mtg-prose">{meeting.agenda || 'Chưa có nội dung dự kiến.'}</p><dl className="mtg-facts"><div><dt>Địa điểm</dt><dd>{meetingVenue(meeting)}</dd></div><div><dt>Người tổ chức</dt><dd>{meeting.createdByName}</dd></div></dl>{onlineUrl ? <a className="mtg-button mtg-button--secondary" href={onlineUrl} target="_blank" rel="noopener noreferrer">Mở phòng họp ↗</a> : meeting.onlineUrl && <p className="mtg-help">Liên kết họp không hợp lệ. Liên hệ người tổ chức để cập nhật.</p>}</>}
         </section>
-        <section className="mtg-panel mtg-padded"><div className="mtg-section-heading"><h2>Biên bản và điểm danh</h2><div className="mtg-actions">{env.meetingCollaborationEnabled && collaboration?.canLockNotes && <button className="mtg-text-button" disabled={disabled || dirty || lockBusy} onClick={() => void lockNotes()}>{lockBusy ? 'Đang khóa…' : 'Khóa biên bản'}</button>}{manage && notesEditable && editor !== 'notes' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('notes')}>Cập nhật biên bản</button>}</div></div>
+        <section className="mtg-panel mtg-padded"><div className="mtg-section-heading"><h2>Biên bản và điểm danh</h2><div className="mtg-actions">{env.meetingCollaborationEnabled && collaboration?.canLockNotes && <button className="mtg-text-button" disabled={disabled || dirty || lockBusy} onClick={() => void lockNotes()}>{lockBusy ? 'Đang khóa…' : 'Khóa biên bản'}</button>}{manage && notesEditable && editor !== 'notes' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => { setAppliedDraft(null); setEditor('notes') }}>Cập nhật biên bản</button>}</div></div>
           {notesLocked && <p className="mtg-help">Biên bản đã được khóa{formatMeetingTime(collaboration?.notesLockedAt ?? '') !== 'Chưa rõ thời gian' ? ` lúc ${formatMeetingTime(collaboration?.notesLockedAt ?? '')}` : ''}, không thể chỉnh sửa thêm.</p>}
-          {editor === 'notes' ? <MeetingNotesForm meeting={meeting} busy={busy} locked={needsRefresh || notesLocked} onDirty={() => setDirty(true)} onCancel={closeEditor} onSave={async (body) => { if (manage && notesEditable) await mutate(() => api.updateMeetingNotes(id, { ...body, concurrencyToken: meeting.concurrencyToken }), 'Đã lưu biên bản và điểm danh.') }} /> : <p className="mtg-prose">{meeting.meetingNotes || 'Chưa có biên bản. Ghi lại kết luận sau buổi trao đổi để cả nhóm cùng theo dõi.'}</p>}
+          {assistant.draft && <div className="mtg-notice"><p>Bản nháp AI: {assistant.draft.title}. Kiểm tra nội dung trước khi lưu. Điểm danh được giữ nguyên.</p>{manage && notesEditable && (!env.meetingCollaborationEnabled || !!collaboration) ? <button type="button" className="mtg-button mtg-button--secondary" disabled={disabled || dirty} onClick={() => { setAppliedDraft({key: assistant.key, notes: assistant.draft!.description}); setEditor('notes'); setDirty(true) }}>Điền bản nháp vào biên bản</button> : <p>Chưa thể áp dụng bản nháp: cần quyền sửa và biên bản chưa khóa.</p>}</div>}
+          {editor === 'notes' ? <MeetingNotesForm key={appliedDraft?.key ?? 'manual'} initialNotes={appliedDraft?.notes} meeting={meeting} busy={busy} locked={needsRefresh || notesLocked} onDirty={() => setDirty(true)} onCancel={closeEditor} onSave={async (body) => { if (manage && notesEditable) await mutate(() => api.updateMeetingNotes(id, { ...body, concurrencyToken: meeting.concurrencyToken }), 'Đã lưu biên bản và điểm danh.') }} /> : <p className="mtg-prose">{meeting.meetingNotes || 'Chưa có biên bản. Ghi lại kết luận sau buổi trao đổi để cả nhóm cùng theo dõi.'}</p>}
           {editor !== 'notes' && <section aria-label="Điểm danh chính thức">
             <h3 className="mtg-subheading">Điểm danh người tham gia</h3>
             {meeting.participants.length === 0 ? <p className="mtg-help">Chưa có người tham gia để điểm danh.</p> : <ul className="mtg-participants">

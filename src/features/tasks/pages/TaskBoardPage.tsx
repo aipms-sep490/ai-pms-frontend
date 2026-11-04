@@ -10,6 +10,8 @@ import { WorkspaceTaskForm } from '../../projects/components/WorkspaceTaskForm'
 import { canUseProjectExecutionAction } from '../../execution/execution-authority'
 import { env } from '../../../app/config/env'
 import { SprintBacklogPanel } from '../components/SprintBacklogPanel'
+import type { AssistantDraft } from '../../ai/academic-ai-api'
+import { readActionDraft } from '../../ai/assistant-action-draft'
 import './task-board.css'
 
 const statuses: BackendTaskStatus[] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'IN_REVIEW', 'DONE', 'CANCELLED']
@@ -22,7 +24,7 @@ export function TaskBoardPage() {
   const { project, team, teamLoadError, retryTeam, currentUserId, routeBase } = access
   const location = useLocation()
   const navigate = useNavigate()
-  const [assistantDraft, setAssistantDraft] = useState<{ title: string; description: string } | undefined>()
+  const [assistantDraft, setAssistantDraft] = useState<(AssistantDraft & { draftKey: string; projectId: number }) | undefined>()
   const canCreate = canUseProjectExecutionAction(access, 'create_task')
   const [params, setParams] = useSearchParams()
   const page = positiveId(params.get('page')) ?? 1
@@ -41,9 +43,9 @@ export function TaskBoardPage() {
   const [view, setView] = useState<'list' | 'status' | 'board' | 'sprint'>('list')
   const [creating, setCreating] = useState(false)
   useEffect(() => {
-    const incoming = location.state?.assistantDraft
-    if (canCreate && incoming?.kind === 'TASK' && incoming.projectId === project.id && typeof incoming.title === 'string' && typeof incoming.description === 'string') {
-      setAssistantDraft({ title: incoming.title.slice(0, 255), description: incoming.description.slice(0, 4000) }); setCreating(true)
+    const incoming = readActionDraft(location.state?.assistantDraft, project.id, 'TASK')
+    if (canCreate && incoming) {
+      setAssistantDraft({ ...incoming, draftKey: location.key, projectId: project.id }); setCreating(true)
       navigate(location.pathname + location.search, { replace: true, state: null })
     }
   }, [location, navigate, project.id, canCreate])
@@ -139,7 +141,7 @@ export function TaskBoardPage() {
     {created && <p className="ex-notice" role="status">Đã tạo công việc.</p>}
     {dragNotice && <p className="ex-notice" role="status">{dragNotice}</p>}
     {!team && <ExState message={teamLoadError ?? 'Chưa tải được danh sách thành viên nhóm. Bạn vẫn xem được công việc nhưng chưa giao được người phụ trách.'} retry={retryTeam} />}
-    {creating && (milestoneLoading ? <ExState loading /> : milestoneError ? <ExState message={milestoneError} retry={refresh} /> : eligibleMilestones.length ? <div className="mb-6"><WorkspaceTaskForm initialDraft={assistantDraft} project={project} members={members} milestones={eligibleMilestones} onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); refresh() }} /></div>
+    {creating && (milestoneLoading ? <ExState loading /> : milestoneError ? <ExState message={milestoneError} retry={refresh} /> : eligibleMilestones.length ? <div className="mb-6"><WorkspaceTaskForm key={`${project.id}:${assistantDraft?.draftKey ?? 'manual'}`} initialDraft={assistantDraft?.projectId === project.id ? assistantDraft : undefined} project={project} members={members} milestones={eligibleMilestones} onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); refresh() }} /></div>
       : <section className="ex-panel"><ExState title="Cần có mốc đồ án đang thực hiện" message="Tạo một mốc trước khi thêm công việc cho nhóm." action={<Link className="ex-button" to={`${routeBase}/milestones`}>Quản lý mốc đồ án</Link>} /><div className="ex-padding"><button className="ex-text-button" onClick={closeCreate}>Đóng</button></div></section>)}
     <section className="ex-panel task-board-panel" aria-label="Danh sách công việc">
       <div className="ex-toolbar"><div className="ex-tabs" role="group" aria-label="Phạm vi công việc"><button aria-pressed={!assigneeUserId} onClick={() => updateParams('assignee', '')}>Cả nhóm</button>{currentUserId && <button aria-pressed={assigneeUserId === currentUserId} onClick={() => updateParams('assignee', String(currentUserId))}>Của tôi</button>}

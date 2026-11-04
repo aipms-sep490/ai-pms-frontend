@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import type { ReportingCycle } from '../../services/api/progress-reports.api'
+import type { AssistantDraft } from '../ai/academic-ai-api'
 import { utcTimestamp } from '../execution/execution-utils'
 import {
   formatReportDate,
@@ -13,6 +14,7 @@ import {
 
 export function ReportEditor({
   report,
+  initialDraft,
   cycles,
   existingReports = [],
   fieldErrors,
@@ -20,6 +22,7 @@ export function ReportEditor({
   onSave,
   onDirtyChange,
 }: {
+  initialDraft?: AssistantDraft
   report?: ReportDetail
   cycles?: ReportingCycle[]
   existingReports?: ProgressReport[]
@@ -28,19 +31,21 @@ export function ReportEditor({
   onSave: (value: CreateReport) => Promise<void>
   onDirtyChange: (dirty: boolean) => void
 }) {
-  const [selectedCycleId, setSelectedCycleId] = useState<number | ''>(report?.progressReportPeriodId ?? '')
+  const matches = !report && initialDraft?.report?.periodStart && initialDraft.report.periodEnd ? cycles?.filter(c => c.reportType === 'WEEKLY' && c.periodStart.slice(0, 10) === initialDraft.report!.periodStart && c.periodEnd.slice(0, 10) === initialDraft.report!.periodEnd && !existingReports.some(r => r.progressReportPeriodId === c.id || (r.reportType === c.reportType && r.periodStart.slice(0, 10) === c.periodStart.slice(0, 10) && r.periodEnd.slice(0, 10) === c.periodEnd.slice(0, 10)))) ?? [] : []
+  const initialCycle = matches.length === 1 ? matches[0] : undefined
+  const [selectedCycleId, setSelectedCycleId] = useState<number | ''>(report?.progressReportPeriodId ?? initialCycle?.id ?? '')
   const [values, setValues] = useState<CreateReport>(() => ({
     reportType: report?.reportType ?? 'WEEKLY',
-    periodStart: report?.periodStart ?? '',
-    periodEnd: report?.periodEnd ?? '',
-    progressReportPeriodId: report?.progressReportPeriodId ?? null,
-    summary: report?.summary ?? '',
-    completedWork: report?.completedWork ?? '',
-    inProgressWork: report?.inProgressWork ?? '',
-    blockers: report?.blockers ?? '',
-    risks: report?.risks ?? '',
-    nextActions: report?.nextActions ?? '',
-    plannedWork: report?.plannedWork ?? '',
+    periodStart: report?.periodStart ?? initialCycle?.periodStart.slice(0, 10) ?? initialDraft?.report?.periodStart ?? '',
+    periodEnd: report?.periodEnd ?? initialCycle?.periodEnd.slice(0, 10) ?? initialDraft?.report?.periodEnd ?? '',
+    progressReportPeriodId: report?.progressReportPeriodId ?? initialCycle?.id ?? null,
+    summary: report?.summary ?? initialDraft?.description ?? '',
+    completedWork: report?.completedWork ?? initialDraft?.report?.completedWork ?? '',
+    inProgressWork: report?.inProgressWork ?? initialDraft?.report?.inProgressWork ?? '',
+    blockers: report?.blockers ?? initialDraft?.report?.blockers ?? '',
+    risks: report?.risks ?? initialDraft?.report?.risks ?? '',
+    nextActions: report?.nextActions ?? initialDraft?.report?.nextActions ?? '',
+    plannedWork: report?.plannedWork ?? initialDraft?.report?.plannedWork ?? '',
     issuesAndRisks: report?.issuesAndRisks ?? '',
   }))
   const [dirty, setDirty] = useState(false)
@@ -133,6 +138,7 @@ export function ReportEditor({
         <span>{dirty ? 'Có thay đổi chưa lưu' : 'Bản nháp'}</span>
       </div>
 
+      {initialDraft && !report && <p role="status" className="report-help">Đã điền bản nháp AI. Kiểm tra nội dung và kỳ báo cáo trước khi lưu; báo cáo chưa được nộp.</p>}
       <fieldset disabled={busy}>
         {/* Cycle selection when creating a new report */}
         {canChooseCycle && cycles && cycles.length > 0 ? (

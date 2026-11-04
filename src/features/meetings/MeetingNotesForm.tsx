@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { attendanceStatuses, type AttendanceStatus, type MeetingDetail, type MeetingNotes } from './meeting-types'
 
-export function MeetingNotesForm({ meeting, busy, locked = false, onSave, onDirty, onCancel }: {
-  meeting: MeetingDetail; busy: boolean; locked?: boolean; onSave: (body: MeetingNotes) => Promise<void>; onDirty: () => void; onCancel: () => void
+export function MeetingNotesForm({ meeting, initialNotes, busy, locked = false, onSave, onDirty, onCancel }: {
+  initialNotes?: string; meeting: MeetingDetail; busy: boolean; locked?: boolean; onSave: (body: MeetingNotes) => Promise<void>; onDirty: () => void; onCancel: () => void
 }) {
-  const [notes, setNotes] = useState(meeting.meetingNotes ?? '')
+  const [notes, setNotes] = useState(initialNotes ?? meeting.meetingNotes ?? '')
   const [attendances, setAttendances] = useState<Record<number, AttendanceStatus>>({})
   function submit(event: FormEvent) {
     event.preventDefault()

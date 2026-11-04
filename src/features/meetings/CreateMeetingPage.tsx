@@ -9,6 +9,7 @@ import { MeetingScheduleForm } from './MeetingScheduleForm'
 import { MeetingUnsavedNotice } from './MeetingUnsavedNotice'
 import { useMeetingCandidates } from './useMeetingCandidates'
 import { canUseProjectExecutionAction } from '../execution/execution-authority'
+import { readAssistantMeetingDraft } from './assistant-meeting-draft'
 
 export function CreateMeetingPage() {
   const access = useExecutionAccess()
@@ -20,12 +21,13 @@ function CreateMeetingView() {
   const canSchedule = canUseProjectExecutionAction(access, 'schedule_meeting')
   const navigate = useNavigate()
   const location = useLocation()
-  const [assistantDraft] = useState(() => {
-    const draft = location.state?.assistantDraft
-    return draft?.kind === 'MEETING' && draft.projectId === project.id && typeof draft.title === 'string' && typeof draft.description === 'string'
-      ? { title: draft.title.slice(0, 255), description: draft.description.slice(0, 4000) } : undefined
-  })
-  useEffect(() => { if (location.state?.assistantDraft) navigate(location.pathname, { replace: true, state: null }) }, [location, navigate])
+  const [draftState, setDraftState] = useState(() => ({ key: location.key, draft: readAssistantMeetingDraft(location.state?.assistantDraft, project.id) }))
+  useEffect(() => {
+    if (!location.state?.assistantDraft) return
+    const draft = readAssistantMeetingDraft(location.state.assistantDraft, project.id)
+    if (draft) setDraftState({ key: location.key, draft })
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location, navigate, project.id])
   const candidates = useMeetingCandidates(project.id, project.teamId, canSchedule)
   const [busy, setBusy] = useState(false)
   const locked = useRef(false)
@@ -59,7 +61,7 @@ function CreateMeetingView() {
         {candidates.loading && <p role="status" className="mtg-help">Đang tải thành viên và GVHD…</p>}
         {candidates.error && <MeetingError message={`Chưa tải được danh sách mời. ${candidates.error}`} retry={candidates.retry} />}
         {candidates.notice && <p className="mtg-notice">{candidates.notice}</p>}
-        <MeetingScheduleForm initialDraft={assistantDraft} busy={busy} locked={uncertain} currentUserId={currentUserId} candidates={candidates.data} onSave={save} onDirty={() => setDirty(true)} />
+        <MeetingScheduleForm key={draftState.key} initialDraft={draftState.draft} busy={busy} locked={uncertain || (!!draftState.draft?.meeting?.inviteAll && (candidates.loading || !!candidates.error))} currentUserId={currentUserId} candidates={candidates.data} onSave={save} onDirty={() => setDirty(true)} />
       </section>
     </>}
   </MeetingShell>

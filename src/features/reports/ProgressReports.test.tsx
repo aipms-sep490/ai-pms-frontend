@@ -100,7 +100,7 @@ function mount({
     ],
     { initialEntries: [path] }
   )
-  return render(<RouterProvider router={router} />)
+  return { ...render(<RouterProvider router={router} />), router }
 }
 
 const input = (name: string, value: string) => fireEvent.change(screen.getByLabelText(name, { exact: false }), { target: { value } })
@@ -127,6 +127,24 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Progress reports workflow', () => {
+  it('receives successive AI drafts on the create route without saving a report', async () => {
+    api.getProgressReports.mockResolvedValue({ items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 })
+    const { router } = mount({ path: '/project/reports/new' })
+    await screen.findByRole('combobox')
+    const assistantDraft = {
+      kind: 'WEEKLY_REPORT', projectId: 9, title: 'Weekly report', description: 'First AI summary',
+      report: { periodStart: sampleCycle.periodStart, periodEnd: sampleCycle.periodEnd, completedWork: 'API completed' },
+    }
+    await act(async () => { await router.navigate('/project/reports/new', { state: { assistantDraft } }) })
+    expect(await screen.findByDisplayValue('First AI summary')).toBeTruthy()
+    expect(screen.getByDisplayValue('API completed')).toBeTruthy()
+    expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('101')
+    await act(async () => { await router.navigate('/project/reports/new', { state: { assistantDraft: { ...assistantDraft, description: 'Revised AI summary' } } }) })
+    expect(await screen.findByDisplayValue('Revised AI summary')).toBeTruthy()
+    expect(api.createProgressReport).not.toHaveBeenCalled()
+    expect(api.submitProgressReport).not.toHaveBeenCalled()
+  })
+
   it('opens a report through its row without a duplicate view action', async () => {
     mount({ path: '/project/reports' })
     const row = await screen.findByRole('link', { name: /Hoàn thành chức năng đăng ký/ })

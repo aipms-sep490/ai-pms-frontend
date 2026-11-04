@@ -36,3 +36,18 @@ it('blocks creation when the frozen scope is unknown', async () => {
   expect((screen.getByRole('button', { name: 'Tạo công việc' }) as HTMLButtonElement).disabled).toBe(true)
   expect(api.createTask).not.toHaveBeenCalled()
 })
+
+it('prefills only uniquely matched project options and sends nothing until save', async () => {
+  api.getProjectMajorRequirements.mockResolvedValue({ requirements: [{ majorId: 3 }, { majorId: 12 }] })
+  api.createTask.mockResolvedValue({ id: 1 })
+  render(<WorkspaceTaskForm project={project} initialDraft={{ title: 'Test API', description: 'Check scope', task: { dueAt: '2026-11-06T05:00:00Z', priority: 'HIGH', milestoneTitle: 'Mốc 1', primaryMajorName: 'Phần mềm', assigneeNames: ['Hung', 'Duplicate', 'Outsider'] } }} milestones={[{ id: 2, title: 'Mốc 1' }]} members={[{ userId: 1, fullName: 'Hung' }, { userId: 2, fullName: 'Duplicate' }, { userId: 3, fullName: 'Duplicate' }] as never} onCancel={vi.fn()} onCreated={vi.fn()} />)
+  await screen.findByRole('combobox', { name: 'Ngành chính' })
+  expect((screen.getByLabelText('Mốc đồ án') as HTMLSelectElement).value).toBe('2')
+  expect((screen.getByLabelText('Ngành chính') as HTMLSelectElement).value).toBe('3')
+  expect((screen.getByLabelText(/Hạn hoàn thành/) as HTMLInputElement).value).toBe('2026-11-06T12:00')
+  expect((screen.getByRole('checkbox', { name: 'Hung' }) as HTMLInputElement).checked).toBe(true)
+  expect(screen.getAllByRole('checkbox', { name: 'Duplicate' }).every(box => !(box as HTMLInputElement).checked)).toBe(true)
+  expect(api.createTask).not.toHaveBeenCalled()
+  fireEvent.submit(screen.getByRole('button', { name: 'Tạo công việc' }).closest('form')!)
+  await vi.waitFor(() => expect(api.createTask).toHaveBeenCalledWith(expect.objectContaining({ milestoneId: 2, priority: 'HIGH', dueAt: '2026-11-06T05:00:00.000Z', assigneeUserIds: [1], disciplines: [{ majorId: 3, role: 'PRIMARY' }] })))
+})
