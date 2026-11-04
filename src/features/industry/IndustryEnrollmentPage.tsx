@@ -92,36 +92,39 @@ export function IndustryEnrollmentPage() {
 
   return (
     <div className="flex min-h-[80vh] items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6 rounded-2xl border border-hairline bg-card p-6 shadow-sm">
-        <div className="space-y-1 text-center">
-          <h1 className="font-heading text-xl font-bold text-ink">Kích hoạt tài khoản Cố vấn Doanh nghiệp</h1>
-          <p className="text-xs text-ink-muted">
+      <div className="w-full max-w-md space-y-6 rounded-2xl border border-hairline bg-card p-6 shadow-xs sm:p-7">
+        <header className="space-y-2 text-center">
+          <div className="flex justify-center">
+            <span className="workspace-kicker">Cố vấn doanh nghiệp</span>
+          </div>
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-ink">Kích hoạt tài khoản Cố vấn Doanh nghiệp</h1>
+          <p className="text-sm leading-6 text-ink-muted">
             Xác thực tài khoản chuyên gia thông qua Google để bắt đầu tham gia cố vấn đồ án.
           </p>
-        </div>
+        </header>
 
         {!hasToken && (
-          <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-xs text-status-error-text">
+          <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-xs leading-relaxed text-status-error-text">
             <strong>Không tìm thấy mã thư mời:</strong> Vui lòng truy cập lại liên kết từ email thư mời mà bạn đã nhận được (đường dẫn chứa mã thư mời).
           </div>
         )}
 
         {hasToken && (
           <div className="space-y-4">
-            <div className="rounded-lg border border-primary/20 bg-primary-subtle p-3 text-xs text-primary">
+            <div className="rounded-lg border border-primary/20 bg-primary-subtle p-3 text-xs leading-relaxed text-primary">
               ✓ Đã nhận diện mã thư mời bảo mật. Hãy đăng nhập tài khoản Google của bạn để hoàn tất kích hoạt.
             </div>
 
             {loadingChallenge && (
-              <p className="text-xs text-ink-muted text-center">Đang khởi tạo kết nối an toàn…</p>
+              <p className="text-center text-xs text-ink-muted">Đang khởi tạo kết nối an toàn…</p>
             )}
 
             {!loadingChallenge && challenge && (
               <div className="space-y-3">
-                <label className="block text-xs text-ink-soft">
+                <label className="block text-xs font-medium text-ink-soft">
                   Mã xác thực Google (Google ID Token)
                   <textarea
-                    className="mt-1 block w-full rounded-lg border border-hairline p-2 text-xs font-mono"
+                    className="mt-1.5 block w-full rounded-lg border border-hairline bg-card p-3 font-mono text-xs text-ink focus:border-primary focus:outline-none"
                     rows={4}
                     placeholder="Dán Google ID Token tại đây hoặc đăng nhập qua Google button…"
                     value={googleIdToken}
@@ -135,7 +138,7 @@ export function IndustryEnrollmentPage() {
 
                 <button
                   type="button"
-                  className="w-full rounded-lg bg-primary py-2.5 text-xs font-semibold text-white disabled:opacity-50"
+                  className="min-h-11 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   disabled={enrolling || !googleIdToken.trim()}
                   onClick={() => void handleEnroll()}
                 >
