@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
-  testDir: './e2e/review-gates', workers: 1,
+  testDir: './e2e', workers: 1,
   outputDir: process.env.REVIEW_GATES_OUTPUT_DIR || 'test-results/review-gates',
   reporter: [['list'], ['json', { outputFile: process.env.REVIEW_GATES_E2E_REPORT || 'test-results/review-gates/e2e.json' }]],
   use: {

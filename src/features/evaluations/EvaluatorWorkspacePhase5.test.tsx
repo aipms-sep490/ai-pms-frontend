@@ -244,8 +244,8 @@ describe('Evaluator Workspace Phase 5', () => {
     expect(await screen.findByText('CHÍNH THỨC')).toBeTruthy()
     expect(screen.getByText('2/2 người chấm')).toBeTruthy()
     // Null score verification (not displayed as 0)
-    expect(screen.getByText('Chưa đủ điểm')).toBeTruthy()
-    const scoreInput = screen.getByLabelText('Điểm Phân tích') as HTMLInputElement
+    expect(await screen.findByText('Chưa đủ điểm')).toBeTruthy()
+    const scoreInput = (await screen.findByLabelText('Điểm Phân tích')) as HTMLInputElement
     expect(scoreInput.value).toBe('')
   })
 })
