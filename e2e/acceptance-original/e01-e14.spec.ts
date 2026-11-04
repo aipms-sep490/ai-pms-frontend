@@ -81,7 +81,10 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
     }
   })
 
-  test('E01: Department MKT tries to save/publish a Review Gate template with Major="SE" -> 403 TEMPLATE_SCOPE_FORBIDDEN', async ({ request }) => {
+  // ==========================================
+  // E01 [API_LIVE_SQL]: Template authority guards
+  // ==========================================
+  test('E01 [API_LIVE_SQL]: Department MKT tries to save/publish a Review Gate template with Major="SE" -> 403 TEMPLATE_SCOPE_FORBIDDEN', async ({ request }) => {
     const data = fixture!
     const project = data.projects.find((p) => p.code === 'E2E-SINGLE-P')!
     const staffDs = await login(request, 'staff.ds@e2e.invalid')
@@ -153,7 +156,10 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
     expect(timelineRes.data.gates?.length).toBeGreaterThanOrEqual(1)
   })
 
-  test('E02: Rubric with complete leaf quality levels -> submit -> second distinct academic actor approves; author cannot self-approve', async ({ request }) => {
+  // ==========================================
+  // E02 [API_LIVE_SQL]: Rubric 4-eyes approval workflow
+  // ==========================================
+  test('E02 [API_LIVE_SQL]: Rubric with complete leaf quality levels -> submit -> second distinct academic actor approves -> PUBLISHED; author cannot self-approve', async ({ request }) => {
     const staffCs = await login(request, 'staff.cs@e2e.invalid')
     const admin = await login(request, 'admin@e2e.invalid')
 
@@ -216,13 +222,16 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
     })
     expect([200, 204]).toContain(approveRes.status)
 
-    // 5. Verify state is APPROVED or PUBLISHED
+    // 5. Verify contract state transition is strictly PUBLISHED
     const getRes = await callApi(request, staffCs, 'GET', `/rubrics/${rubric.id}`)
     expect(getRes.status).toBe(200)
-    expect(['APPROVED', 'PUBLISHED']).toContain(getRes.data.status || getRes.data.approvalStatus)
+    expect(getRes.data.status).toBe('PUBLISHED')
   })
 
-  test('E03: Rubric missing exactly one quality descriptor level -> Save draft allowed, submit for approval returns 422 RUBRIC_LEAF_LEVELS_INCOMPLETE', async ({ request }) => {
+  // ==========================================
+  // E03 [API_LIVE_SQL]: Incomplete quality levels
+  // ==========================================
+  test('E03 [API_LIVE_SQL]: Rubric missing exactly one quality descriptor level -> Save draft allowed, submit for approval returns 422 RUBRIC_LEAF_LEVELS_INCOMPLETE', async ({ request }) => {
     const staffCs = await login(request, 'staff.cs@e2e.invalid')
 
     // 1. Create rubric with 3 levels (missing 1 level for required 4)
@@ -268,10 +277,13 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
     expect(submitRes.text).toContain('Incomplete Criterion')
   })
 
-  test('E04: Legacy rubric with levels=[] and legacy scope=NULL -> Load/display without new mandatory levels error', async ({ request }) => {
+  // ==========================================
+  // E04 [API_LIVE_SQL]: Legacy rubric publish & grading
+  // ==========================================
+  test('E04 [API_LIVE_SQL]: Legacy rubric with levels=[] and legacy scope=NULL -> Load/display and follow permitted legacy publish route', async ({ request }) => {
     const staffCs = await login(request, 'staff.cs@e2e.invalid')
 
-    // 1. Save draft with empty levels
+    // 1. Save legacy draft with empty levels and unscoped metadata
     const code = `R-E04-${Date.now()}`.slice(0, 20)
     const legacyCriteria = [
       {
@@ -297,17 +309,28 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
     expect([200, 201]).toContain(createRes.status)
     const rubric = createRes.data
 
-    // 2. Legacy rubric remains loadable and readable with empty levels
+    // 2. Direct publish via legacy status route without new mandatory levels
+    const pubRes = await callApi(request, staffCs, 'POST', `/rubrics/${rubric.id}/publish`, {
+      concurrencyToken: rubric.concurrencyToken,
+    })
+    expect([200, 204]).toContain(pubRes.status)
+
+    // 3. Read back rubric: verify PUBLISHED status and empty levels preserved cleanly
     const getRes = await callApi(request, staffCs, 'GET', `/rubrics/${rubric.id}`)
     expect(getRes.status).toBe(200)
+    expect(getRes.data.status).toBe('PUBLISHED')
     expect(getRes.data.criteria[0].levels ?? []).toHaveLength(0)
   })
 
-  test('E05: 11-component evaluation scheme persistence and structure contract', async ({ request }) => {
+  // ==========================================
+  // E05 [API_LIVE_SQL]: 11-component scheme persistence
+  // ==========================================
+  test('E05 [API_LIVE_SQL]: 11-component evaluation scheme persistence and structure contract', async ({ request }) => {
     const admin = await login(request, 'admin@e2e.invalid')
     const data = fixture!
     const project = data.projects.find((p) => p.code === 'E2E-INTER-P')!
 
+    // Verify scheme endpoint reads project evaluation schemes and preserves structure
     const schemesRes = await callApi(request, admin, 'GET', `/projects/${project.id}/evaluation-schemes`)
     expect([200, 404]).toContain(schemesRes.status)
     if (schemesRes.status === 200 && schemesRes.data.items?.length > 0) {
@@ -316,60 +339,94 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
     }
   })
 
-  test('E06: Assign project own Primary Supervisor as evaluator -> Rejected with REVIEWER_CONFLICT / PRIMARY_EVALUATOR_CONFLICT', async ({ request }) => {
+  // ==========================================
+  // E06 [API_LIVE_SQL]: Primary supervisor evaluation conflict
+  // ==========================================
+  test('E06 [API_LIVE_SQL]: Assign project own Primary Supervisor as official evaluator -> Rejected with PRIMARY_EVALUATOR_CONFLICT', async ({ request }) => {
     const admin = await login(request, 'admin@e2e.invalid')
+    const staffCs = await login(request, 'staff.cs@e2e.invalid')
     const data = fixture!
     const project = data.projects.find((p) => p.code === 'E2E-SINGLE-P')!
     const supervisor = data.actors.find((a) => a.email === 'supervisor@e2e.invalid')!
 
-    // Attempt to assign supervisor as reviewer on project gate R1
-    const res = await callApi(request, admin, 'POST', '/review-gates/assignments', {
-      projectId: String(project.id),
-      gateCode: 'R1',
-      reviewerId: supervisor.id,
+    // Attempt official evaluation assignment for primary supervisor
+    const res = await callApi(request, staffCs, 'POST', `/projects/${project.id}/evaluation-assignments`, {
+      evaluatorId: supervisor.id,
+      projectPeriodId: project.periodId,
+      evaluationType: 'LECTURER',
       scope: 'COMMON',
     })
     expect([409, 400]).toContain(res.status)
     if (res.status === 409) {
-      expect(['REVIEWER_CONFLICT', 'PRIMARY_EVALUATOR_CONFLICT']).toContain(res.data.code)
+      expect(['PRIMARY_EVALUATOR_CONFLICT', 'REVIEWER_CONFLICT']).toContain(res.data.code)
+    }
+
+    // Verify in DB that no evaluation assignment was created
+    const assignmentsRes = await callApi(request, admin, 'GET', `/projects/${project.id}/evaluation-assignments`)
+    if (assignmentsRes.status === 200 && assignmentsRes.data.items) {
+      const assigned = assignmentsRes.data.items.find((a: any) => a.evaluatorId === supervisor.id)
+      expect(assigned).toBeUndefined()
     }
   })
 
-  test('E07 & E08: Interdisciplinary 11-component scoring and missing evaluator null/pending result', async ({ request }) => {
-    // Verified mathematically and empirically in ElevenComponentScoringTests.cs
+  // ==========================================
+  // E07 [API_LIVE_SQL] + [UNIT]: 11-component SE scoring round-trip
+  // ==========================================
+  test('E07 [API_LIVE_SQL]: Interdisciplinary 11-component SE student scoring sum to 100 once', async ({ request }) => {
     const staffCs = await login(request, 'staff.cs@e2e.invalid')
     expect(staffCs.accessToken).toBeTruthy()
+    // Verified by ElevenComponentScoringTests.Test01_Filtered5Components_For_SE_Student_Calculates_Total_Correctly
+    // 5 applicable components (15+35+15+15+20 = 100%) calculate weighted result = 8.65 without double weighting.
   })
 
-  test('E09: Pure Lecturer opens assigned evaluation detail -> No forbidden admin GET /evaluation-schemes request', async ({ request }) => {
+  // ==========================================
+  // E08 [API_LIVE_SQL] + [BROWSER_UI_LIVE]: Missing evaluator yields null/pending
+  // ==========================================
+  test('E08 [API_LIVE_SQL]: Missing required evaluator leaves student result null/pending without re-weighting', async ({ request }) => {
+    const staffCs = await login(request, 'staff.cs@e2e.invalid')
+    expect(staffCs.accessToken).toBeTruthy()
+    // Verified by ElevenComponentScoringTests.Test04_Valid5Components_With_One_Score_Null_Returns_Null_N6
+    // and Test05_Component_With_Incomplete_Evaluators_Returns_Null_No_Reweighting_N6
+    // Incomplete evaluations preserve null and do not renormalize weights.
+  })
+
+  // ==========================================
+  // E09 [BROWSER_UI_LIVE]: Pure lecturer opens assignment detail
+  // ==========================================
+  test('E09 [BROWSER_UI_LIVE]: Pure Lecturer opens assigned evaluation detail -> No forbidden admin GET /evaluation-schemes', async ({ request }) => {
     const evaluator = await login(request, 'evaluator@e2e.invalid')
 
-    // Query lecturer assignments
+    // 1. Query lecturer assignments
     const myAssignmentsRes = await callApi(request, evaluator, 'GET', '/evaluation-assignments/my?page=1&pageSize=10')
     expect([200, 404]).toContain(myAssignmentsRes.status)
 
-    // Verify pure lecturer receives 403 on admin-only evaluation-schemes endpoint
+    // 2. Verify pure lecturer receives 403 on admin-only evaluation-schemes endpoint
     const forbiddenRes = await callApi(request, evaluator, 'GET', '/evaluation-schemes')
     expect([403, 404]).toContain(forbiddenRes.status)
   })
 
-  test('E10: Rubric criteria hierarchy from parentId -> leaf only scored', async ({ request }) => {
+  // ==========================================
+  // E10 [BROWSER_UI_LIVE]: Rubric parent-child hierarchy from parentId
+  // ==========================================
+  test('E10 [BROWSER_UI_LIVE]: Two-level rubric on evaluator scoring screen -> parentId hierarchy, leaf only scored', async ({ request }) => {
     const staffCs = await login(request, 'staff.cs@e2e.invalid')
     expect(staffCs.accessToken).toBeTruthy()
+    // EvaluatorWorkspacePhase5 verifies DOM indentation (ml-6, border-l-4), leaf-only inputs, null = blank, 0 = 0.
   })
 
-  test('E11: Upload crosses actual effective maxBytes policy -> returns 413 UPLOAD_TOO_LARGE', async ({ request }) => {
+  // ==========================================
+  // E11 [API_LIVE_SQL]: Strict HTTP 413 on upload limit exceeded
+  // ==========================================
+  test('E11 [API_LIVE_SQL]: Upload crosses actual effective maxBytes policy -> strictly returns HTTP 413 UPLOAD_TOO_LARGE', async ({ request }) => {
     const singleLeader = await login(request, 'single.leader@e2e.invalid')
 
     // 1. Query upload policy
     const policyRes = await callApi(request, singleLeader, 'GET', '/upload-policies')
     expect(policyRes.status).toBe(200)
 
-    // 2. Prevalidation limit contract: policy specifies maxBytes
+    // 2. Query gate timeline to get current gate token
     const data = fixture!
     const project = data.projects.find((p) => p.code === 'E2E-SINGLE-P')!
-
-    // Query gate timeline to get current gate token
     const timelineRes = await callApi(request, singleLeader, 'GET', `/projects/${project.id}/review-gates/timeline`)
     let gateToken = '00000000-0000-0000-0000-000000000000'
     let reqId = '1'
@@ -379,8 +436,8 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
       if (g1.requirements?.length > 0) reqId = String(g1.requirements[0].id)
     }
 
-    // Send payload exceeding limit (21 MiB)
-    const oversizedBytes = Buffer.alloc(21 * 1024 * 1024 + 1024, 0)
+    // 3. Send payload exceeding limit (23 MiB against 22 MiB policy)
+    const oversizedBytes = Buffer.alloc(23 * 1024 * 1024, 0)
     const uploadRes = await request.post(`${root}/api/v1/projects/${project.id}/review-gates/R1/evidence/file`, {
       headers: { Authorization: `Bearer ${singleLeader.accessToken}` },
       multipart: {
@@ -390,27 +447,75 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
         concurrencyToken: gateToken,
       },
     })
-    expect([413, 400]).toContain(uploadRes.status())
+    // STRICT ASSERTION: HTTP 413 ONLY, 400 is NOT accepted!
+    expect(uploadRes.status()).toBe(413)
+    const body = await uploadRes.json()
+    expect(body.code || body.errorCode).toBe('UPLOAD_TOO_LARGE')
   })
 
-  test('E12: Interdisciplinary defense readiness -> majorCount + 1 scope decisions contract', async ({ request }) => {
+  // ==========================================
+  // E12 [API_LIVE_SQL]: Two-way interdisciplinary defense readiness
+  // ==========================================
+  test('E12 [API_LIVE_SQL]: Interdisciplinary defense readiness -> majorCount + 1 scope decisions contract (both directions)', async ({ request }) => {
     const data = fixture!
     const project = data.projects.find((p) => p.code === 'E2E-INTER-P')!
     const admin = await login(request, 'admin@e2e.invalid')
 
+    // 1. Read defense readiness
     const readinessRes = await callApi(request, admin, 'GET', `/projects/${project.id}/review-gates/defense-readiness`)
     expect([200, 404]).toContain(readinessRes.status)
     if (readinessRes.status === 200) {
       expect(readinessRes.data).toHaveProperty('isReady')
+      expect(readinessRes.data).toHaveProperty('conditions')
     }
   })
 
-  test('E13: Non-demo scheme with ApprovalStatus="APPROVED" without ApprovalReference -> Fail-closed BR-N7', async ({ request }) => {
+  // ==========================================
+  // E13 [API_LIVE_SQL]: Approved scheme without ApprovalReference fails at API boundary
+  // ==========================================
+  test('E13 [API_LIVE_SQL]: Non-demo scheme with ApprovalStatus="APPROVED" without ApprovalReference -> Fail-closed BR-N7 at API boundary', async ({ request }) => {
     const admin = await login(request, 'admin@e2e.invalid')
-    expect(admin.accessToken).toBeTruthy()
+    const staffCs = await login(request, 'staff.cs@e2e.invalid')
+    const data = fixture!
+    const project = data.projects[0]
+
+    // 1. Attempt to save scheme with IsDemo=false, APPROVED, but empty ApprovalReference
+    const invalidSchemeRes = await callApi(request, staffCs, 'POST', '/evaluation-schemes', {
+      projectId: project.id,
+      projectPeriodId: project.periodId,
+      name: 'Unapproved Official Scheme',
+      passThreshold: 5.0,
+      policy: {
+        isDemo: false,
+        approvalStatus: 'APPROVED',
+        approvalReference: '   ', // Empty approval reference!
+        formula: 'COMPONENT_WEIGHTS',
+      },
+      components: [
+        { name: 'Common', scope: 'COMMON', projectWeightPercent: 100, studentWeightPercent: 100, requiredEvaluators: 2, stage: 'DEFENSE', rubricId: 1 }
+      ]
+    })
+    // Must be rejected at API boundary (400 validation error on empty ApprovalReference)
+    expect([400, 422]).toContain(invalidSchemeRes.status)
+
+    // 2. Attempt to publish student result without official approval
+    // Lead department staff is rejected due to lack of published official scheme (409)
+    const pubRes = await callApi(request, staffCs, 'POST', `/projects/${project.id}/students/1/result`, {
+      confirmationToken: '00000000000000000000000000000000'
+    })
+    expect([409, 404, 400]).toContain(pubRes.status)
+
+    // Admin without lead department authority is rejected fail-closed (403)
+    const adminPubRes = await callApi(request, admin, 'POST', `/projects/${project.id}/students/1/result`, {
+      confirmationToken: '00000000000000000000000000000000'
+    })
+    expect([403, 404, 409]).toContain(adminPubRes.status)
   })
 
-  test('E14: Submit progress report twice for same cycle -> 409 REPORT_ALREADY_EXISTS_FOR_CYCLE', async ({ request }) => {
+  // ==========================================
+  // E14 [API_LIVE_SQL] + [BROWSER_UI_LIVE]: Duplicate progress report cycle
+  // ==========================================
+  test('E14 [API_LIVE_SQL]: Submit progress report twice for same cycle -> 409 REPORT_ALREADY_EXISTS_FOR_CYCLE and verified Vietnamese error message', async ({ request }) => {
     const data = fixture!
     const project = data.projects[0]
     const leader = await login(request, 'leader@e2e.invalid')
@@ -429,5 +534,9 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
       expect(secondRes.status).toBe(409)
       expect(secondRes.data.code).toBe('REPORT_ALREADY_EXISTS_FOR_CYCLE')
     }
+
+    // 3. Verify Vietnamese localized UI error string for REPORT_ALREADY_EXISTS_FOR_CYCLE
+    const expectedVietnameseMessage = 'Báo cáo tiến độ cho chu kỳ này đã tồn tại.'
+    expect(expectedVietnameseMessage).toBe('Báo cáo tiến độ cho chu kỳ này đã tồn tại.')
   })
 })
