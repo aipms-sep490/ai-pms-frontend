@@ -165,29 +165,29 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
   ] : []
 
   return <WorkspacePage className="space-y-5" title="Bàn giao cuối đồ án" eyebrow="Hoàn tất đồ án" description="Chuẩn bị các phiên bản sản phẩm và gửi gói bàn giao của nhóm.">
-    {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-danger-text">{error} <button type="button" className="font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
-    {loading && <p role="status" className="rounded-lg border bg-card p-5 text-sm">Đang tải hồ sơ bàn giao…</p>}
+    {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" className="min-h-11 font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
+    {loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải hồ sơ bàn giao…</p>}
     {!loading && loaded && locked && <LockedPackageView projectId={projectId} packageData={locked} />}
     {!loading && loaded && !locked && <>
       {(draft?.editBlockers.includes('LEADER_REQUIRED') || checklist?.blockers.includes('LEADER_REQUIRED')) && (
-        <div className="rounded-xl border border-status-info-border bg-status-info-bg p-4 text-xs text-status-info-text shadow-2xs">
+        <div className="rounded-xl border border-primary/20 bg-primary-subtle p-4 text-xs text-primary shadow-2xs">
           <strong>Thông báo quyền hạn:</strong> Bạn đang đăng nhập với vai trò Thành viên (Student Member). Quyền chuẩn bị bản nháp và nộp gói bàn giao cuối cùng thuộc về Trưởng nhóm (Student Leader). Thành viên có quyền rà soát danh mục và kiểm tra các tệp đính kèm.
         </div>
       )}
       <section className="workspace-surface workspace-surface-padding"><h2 className="font-semibold text-ink">Bản nháp bàn giao</h2><p className="mt-1 text-sm text-ink-muted">Chọn rõ phiên bản của từng hạng mục. Bản nháp không tự chọn phiên bản mới nhất.</p>
         <form className="mt-4 space-y-4" onSubmit={saveDraft}>
-          <label className="block text-sm font-medium text-ink-soft">Đợt bàn giao<select className="mt-1 min-h-11 w-full rounded-lg border border-line-strong px-3 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none" value={periodId ?? ''} disabled={busy || !canPrepareDraft} onChange={event => setPeriodId(Number(event.target.value) || null)}><option value="">Chọn đợt</option>{periods.map(period => <option key={period.id} value={period.id} disabled={!period.canPrepareDraft && period.id !== draft?.projectPeriodId}>{period.name} · {displayLabel(period.status)}</option>)}</select></label>
-          <label className="block text-sm font-medium text-ink-soft">Ghi chú<textarea className="mt-1 w-full rounded-lg border border-line-strong p-3 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none" rows={3} maxLength={10000} value={notes} disabled={busy || !canPrepareDraft} onChange={event => setNotes(event.target.value)} /></label>
-          <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm font-medium text-ink-soft">Hạng mục<select className="mt-1 min-h-11 w-full rounded-lg border border-line-strong px-3 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none" value={selectedDeliverableId ?? ''} disabled={busy || !canPrepareDraft} onChange={event => void chooseDeliverable(Number(event.target.value))}><option value="">Chọn hạng mục</option>{deliverables.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label className="text-sm font-medium text-ink-soft">Phiên bản<select className="mt-1 min-h-11 w-full rounded-lg border border-line-strong px-3 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none" value={selectedDeliverableId ? selectedVersionIds[selectedDeliverableId] ?? '' : ''} disabled={!selectedDeliverableId || busy || !canPrepareDraft} onChange={event => { if (selectedDeliverableId) setSelectedVersionIds(current => ({ ...current, [selectedDeliverableId]: Number(event.target.value) })) }}><option value="">Chọn phiên bản hợp lệ</option>{versions.map(item => <option key={item.id} value={item.id}>v{item.versionNumber} · {item.status === 'ACCEPTED' ? 'Đã chấp nhận' : displayLabel(item.status)}</option>)}</select></label></div>
+          <label className="block text-sm font-medium text-ink-soft">Đợt bàn giao<select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:bg-canvas disabled:text-ink-muted" value={periodId ?? ''} disabled={busy || !canPrepareDraft} onChange={event => setPeriodId(Number(event.target.value) || null)}><option value="">Chọn đợt</option>{periods.map(period => <option key={period.id} value={period.id} disabled={!period.canPrepareDraft && period.id !== draft?.projectPeriodId}>{period.name} · {displayLabel(period.status)}</option>)}</select></label>
+          <label className="block text-sm font-medium text-ink-soft">Ghi chú<textarea className="mt-1 w-full rounded-lg border border-hairline bg-card p-3 font-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:bg-canvas disabled:text-ink-muted" rows={3} maxLength={10000} value={notes} disabled={busy || !canPrepareDraft} onChange={event => setNotes(event.target.value)} /></label>
+          <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm font-medium text-ink-soft">Hạng mục<select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:bg-canvas disabled:text-ink-muted" value={selectedDeliverableId ?? ''} disabled={busy || !canPrepareDraft} onChange={event => void chooseDeliverable(Number(event.target.value))}><option value="">Chọn hạng mục</option>{deliverables.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label className="text-sm font-medium text-ink-soft">Phiên bản<select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:bg-canvas disabled:text-ink-muted" value={selectedDeliverableId ? selectedVersionIds[selectedDeliverableId] ?? '' : ''} disabled={!selectedDeliverableId || busy || !canPrepareDraft} onChange={event => { if (selectedDeliverableId) setSelectedVersionIds(current => ({ ...current, [selectedDeliverableId]: Number(event.target.value) })) }}><option value="">Chọn phiên bản hợp lệ</option>{versions.map(item => <option key={item.id} value={item.id}>v{item.versionNumber} · {item.status === 'ACCEPTED' ? 'Đã chấp nhận' : displayLabel(item.status)}</option>)}</select></label></div>
           <ul className="space-y-2 text-sm">{Object.entries(selectedVersionIds).map(([deliverableId, versionId]) => <li key={deliverableId} className="workspace-record-row flex flex-wrap items-center justify-between gap-3"><span>{deliverables.find(item => item.id === Number(deliverableId))?.title ?? `Hạng mục #${deliverableId}`} · phiên bản #{versionId}</span><Button variant="danger" size="sm" disabled={busy || !canPrepareDraft} onClick={() => setSelectedVersionIds(current => { const next = { ...current }; delete next[Number(deliverableId)]; return next })}>Bỏ</Button></li>)}</ul>
           {draft?.editBlockers.length ? <p className="text-sm text-status-warning-text">Không thể sửa: {draft.editBlockers.map(describeBlocker).join(', ')}</p> : null}
           <div><Button type="submit" disabled={busy || !periodId || !canPrepareDraft}>{draft ? 'Lưu bản nháp' : 'Tạo bản nháp'}</Button></div>
         </form>
       </section>
-      {checklist && <section className="workspace-surface workspace-surface-padding"><h2 className="font-semibold text-ink">Kiểm tra trước khi bàn giao</h2><p className="mt-1 text-sm text-ink-muted">Hạn: {checklist.deadline ? new Date(checklist.deadline).toLocaleString('vi-VN') : 'Chưa có'}</p><ul className="mt-3 space-y-2 text-sm">{checklist.items.map(item => <li key={item.deliverableId} className="workspace-record-row">{item.isComplete ? '✓' : '○'} {item.title} · {item.selectedVersionId ? `version #${item.selectedVersionId}` : 'chưa chọn'}</li>)}</ul><div id="final-submission-blockers" className="mt-4"><ActionVerdict actions={[{ code: 'SUBMIT_FINAL_PACKAGE', allowed: canSubmit && Boolean(checklist.draftConcurrencyToken) && Boolean(checklist.requirementsConcurrencyToken), reasons: submissionReasons }]} actionCode="SUBMIT_FINAL_PACKAGE" status="ready" okLabel="Đủ điều kiện nộp bản cuối" blockedLabel="Chưa đủ điều kiện nộp bản cuối" /></div><label className="mt-4 flex items-start gap-2 text-sm"><input type="checkbox" checked={confirmed} disabled={!canSubmit || busy} onChange={event => setConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-line-strong text-primary focus:ring-primary" /><span>Tôi xác nhận khóa gói và nộp bản cuối theo checklist hiện tại.</span></label><div className="mt-4"><Button type="button" aria-describedby={!canSubmit && checklist.blockers.length > 0 ? "final-submission-blockers" : undefined} disabled={!canSubmit || !confirmed || busy || !checklist.draftConcurrencyToken || !checklist.requirementsConcurrencyToken} onClick={() => { if (canSubmit) void run(() => api.submitFinalSubmission(projectId, checklist.draftConcurrencyToken!, checklist.requirementsConcurrencyToken!), true) }}>{busy ? 'Đang nộp…' : 'Nộp và khóa gói'}</Button></div></section>}
+      {checklist && <section className="workspace-surface workspace-surface-padding"><h2 className="font-semibold text-ink">Kiểm tra trước khi bàn giao</h2><p className="mt-1 text-sm text-ink-muted">Hạn: {checklist.deadline ? new Date(checklist.deadline).toLocaleString('vi-VN') : 'Chưa có'}</p><ul className="mt-3 space-y-2 text-sm">{checklist.items.map(item => <li key={item.deliverableId} className="workspace-record-row">{item.isComplete ? '✓' : '○'} {item.title} · {item.selectedVersionId ? `version #${item.selectedVersionId}` : 'chưa chọn'}</li>)}</ul><div id="final-submission-blockers" className="mt-4"><ActionVerdict actions={[{ code: 'SUBMIT_FINAL_PACKAGE', allowed: canSubmit && Boolean(checklist.draftConcurrencyToken) && Boolean(checklist.requirementsConcurrencyToken), reasons: submissionReasons }]} actionCode="SUBMIT_FINAL_PACKAGE" status="ready" okLabel="Đủ điều kiện nộp bản cuối" blockedLabel="Chưa đủ điều kiện nộp bản cuối" /></div><label className="mt-4 flex items-start gap-2 text-sm"><input type="checkbox" checked={confirmed} disabled={!canSubmit || busy} onChange={event => setConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-hairline text-primary focus:ring-primary" /><span>Tôi xác nhận khóa gói và nộp bản cuối theo checklist hiện tại.</span></label><div className="mt-4"><Button type="button" aria-describedby={!canSubmit && checklist.blockers.length > 0 ? "final-submission-blockers" : undefined} disabled={!canSubmit || !confirmed || busy || !checklist.draftConcurrencyToken || !checklist.requirementsConcurrencyToken} onClick={() => { if (canSubmit) void run(() => api.submitFinalSubmission(projectId, checklist.draftConcurrencyToken!, checklist.requirementsConcurrencyToken!), true) }}>{busy ? 'Đang nộp…' : 'Nộp và khóa gói'}</Button></div></section>}
     </>}
     <div>
-      <Link to="/projects/lifecycle" className="inline-flex items-center gap-2 rounded-lg border border-hairline bg-card px-3.5 py-2 text-sm font-semibold text-ink-soft hover:bg-canvas transition-all">
+      <Link to="/projects/lifecycle" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-hairline bg-card px-3.5 py-2 text-sm font-semibold text-ink-soft transition-all hover:bg-canvas">
         <span className="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span>
         <span>Về hồ sơ đồ án</span>
       </Link>
@@ -209,7 +209,7 @@ export function LockedPackageView({ projectId, packageData }: { projectId: numbe
     } catch { setError('Không thể tải tệp trong bản tổng hợp đã khóa.') }
     finally { setDownloadingId(null) }
   }
-  return <section className="rounded-xl border border-status-success-border bg-status-success-bg p-5"><h2 className="font-semibold text-status-success-text">Gói đã khóa và nộp</h2><p className="mt-1 text-sm">Nộp lúc {formatDate(packageData.submittedAt)} · hạn {formatDate(packageData.deadline)} · {packageData.items.length} phiên bản sản phẩm</p><p className="mt-1 text-xs text-status-success-text">Bản bàn giao đã chốt #{packageData.id}; không có thao tác sửa, xóa hoặc nộp lại.</p>{packageData.notes && <p className="mt-3 whitespace-pre-wrap rounded-lg bg-card/70 p-3 text-sm text-ink-soft"><strong>Ghi chú:</strong> {packageData.notes}</p>}{error && <p role="alert" className="mt-3 text-sm text-danger-text">{error}</p>}<ul className="mt-3 space-y-3 text-sm">{packageData.items.map(item => <li key={item.deliverableVersionId} className="rounded-lg bg-card p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{item.title} · phiên bản {item.versionNumber}</strong><span className="rounded-full bg-slate-100 px-2 py-1 text-xs">{item.wasRequired ? 'Bắt buộc' : 'Tùy chọn'} · {item.statusAtSubmission === 'ACCEPTED' ? 'Đã chấp nhận' : displayLabel(item.statusAtSubmission)}</span></div>{item.files.length === 0 ? <p className="mt-2 text-xs text-ink-muted">Bản bàn giao này không có tệp để tải xuống.</p> : <ul className="mt-2 space-y-1">{item.files.map(file => <li key={file.id}><button type="button" disabled={downloadingId !== null} className="min-h-11 text-left font-semibold text-primary hover:underline disabled:opacity-50" onClick={() => void download(file.id, file.fileName)}>{downloadingId === file.id ? 'Đang tải…' : `${file.fileName}${file.sizeBytes ? ` · ${formatBytes(file.sizeBytes)}` : ''}`}</button></li>)}</ul>}</li>)}</ul></section>
+  return <section className="rounded-xl border border-status-success-border bg-status-success-bg p-5"><h2 className="font-semibold text-status-success-text">Gói đã khóa và nộp</h2><p className="mt-1 text-sm">Nộp lúc {formatDate(packageData.submittedAt)} · hạn {formatDate(packageData.deadline)} · {packageData.items.length} phiên bản sản phẩm</p><p className="mt-1 text-xs text-status-success-text">Bản bàn giao đã chốt #{packageData.id}; không có thao tác sửa, xóa hoặc nộp lại.</p>{packageData.notes && <p className="mt-3 whitespace-pre-wrap rounded-lg bg-card/70 p-3 text-sm text-ink-soft"><strong>Ghi chú:</strong> {packageData.notes}</p>}{error && <p role="alert" className="mt-3 text-sm text-status-error-text">{error}</p>}<ul className="mt-3 space-y-3 text-sm">{packageData.items.map(item => <li key={item.deliverableVersionId} className="rounded-lg bg-card p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{item.title} · phiên bản {item.versionNumber}</strong><span className="rounded-full border border-hairline bg-canvas px-2.5 py-1 text-xs text-ink-soft">{item.wasRequired ? 'Bắt buộc' : 'Tùy chọn'} · {item.statusAtSubmission === 'ACCEPTED' ? 'Đã chấp nhận' : displayLabel(item.statusAtSubmission)}</span></div>{item.files.length === 0 ? <p className="mt-2 text-xs text-ink-muted">Bản bàn giao này không có tệp để tải xuống.</p> : <ul className="mt-2 space-y-1">{item.files.map(file => <li key={file.id}><button type="button" disabled={downloadingId !== null} className="min-h-11 text-left font-semibold text-primary hover:underline disabled:opacity-50" onClick={() => void download(file.id, file.fileName)}>{downloadingId === file.id ? 'Đang tải…' : `${file.fileName}${file.sizeBytes ? ` · ${formatBytes(file.sizeBytes)}` : ''}`}</button></li>)}</ul>}</li>)}</ul></section>
 }
 
 /** Uses the locked-package endpoint only; Backend authorizes each reader's current scope. */
@@ -231,28 +231,28 @@ export function FinalSubmissionViewerPage({ backTo = '/projects/lifecycle', back
   }, [projectId])
   useEffect(() => { void load() }, [load])
   return (
-    <main className="workspace-page mx-auto max-w-5xl space-y-5 pb-12">
+    <div className="workspace-page mx-auto max-w-5xl space-y-5 pb-12">
       <header>
         <h1 className="text-2xl font-bold text-ink">Gói bàn giao cuối</h1>
         <p className="mt-1 text-sm text-ink-muted">Đồ án #{Number.isInteger(projectId) ? projectId : '—'} · Nội dung và tệp trong bản bàn giao đã chốt.</p>
       </header>
       {loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải gói bàn giao đã khóa…</p>}
-      {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-danger-text">{error} <button type="button" className="font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
+      {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" className="min-h-11 font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
       {!loading && !error && !packageData && (
         <section className="rounded-2xl border border-hairline bg-card p-8 text-center shadow-xs">
-          <span className="material-symbols-outlined text-4xl text-slate-400">inventory_2</span>
+          <span className="material-symbols-outlined text-4xl text-ink-muted">inventory_2</span>
           <h3 className="mt-3 font-semibold text-ink">Chưa có gói bàn giao cuối đã khóa</h3>
           <p className="mt-1 text-sm text-ink-muted">Đồ án chưa chốt gói bàn giao cuối kỳ.</p>
         </section>
       )}
       {!loading && packageData && <LockedPackageView projectId={projectId} packageData={packageData} />}
       <div>
-        <Link to={assignmentReturn ?? backTo} className="inline-flex items-center gap-2 rounded-lg border border-hairline bg-card px-3.5 py-2 text-sm font-semibold text-ink-soft hover:bg-canvas transition-all">
+        <Link to={assignmentReturn ?? backTo} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-hairline bg-card px-3.5 py-2 text-sm font-semibold text-ink-soft transition-all hover:bg-canvas">
           <span className="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span>
           <span>{assignmentReturn ? 'Quay lại chấm điểm' : backLabel}</span>
         </Link>
       </div>
-    </main>
+    </div>
   )
 }
 
@@ -282,31 +282,31 @@ export function FinalRequirementsPage() {
     finally { setBusy(false) }
   }
   return (
-    <main className="workspace-page mx-auto max-w-4xl space-y-5 pb-12">
+    <div className="workspace-page mx-auto max-w-4xl space-y-5 pb-12">
       <header>
         <h1 className="text-2xl font-bold text-ink">Yêu cầu bàn giao</h1>
         <p className="mt-1 text-sm text-ink-muted">Đồ án #{projectId} · Chọn các hạng mục nhóm cần nộp trước khi chốt bàn giao.</p>
       </header>
-      {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-danger-text">{error} <button type="button" className="font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
+      {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" className="min-h-11 font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
       {success && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{success}</p>}
       {loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải yêu cầu…</p>}
       {!loading && requirements && (
         <>
           <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs">
-            <h2 className="font-semibold text-ink">hạng mục bắt buộc</h2>
+            <h2 className="font-semibold text-ink">Hạng mục bắt buộc</h2>
             {deliverables.length === 0 ? (
               <p className="mt-3 text-sm text-ink-muted">Đồ án chưa có hạng mục cần nộp.</p>
             ) : (
               <ul className="mt-3 space-y-2">
                 {deliverables.map(item => (
                   <li key={item.id}>
-                    <label className="flex min-h-11 items-center gap-3 rounded-lg border border-hairline p-3 text-sm hover:bg-canvas transition-colors cursor-pointer">
+                    <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-hairline p-3 text-sm transition-colors hover:bg-canvas">
                       <input
                         type="checkbox"
                         checked={selectedIds.includes(item.id)}
                         disabled={busy}
                         onChange={event => setSelectedIds(current => event.target.checked ? [...current, item.id] : current.filter(id => id !== item.id))}
-                        className="h-4 w-4 rounded border-line-strong text-primary focus:ring-primary"
+                        className="h-4 w-4 rounded border-hairline text-primary focus:ring-primary"
                       />
                       <span className="font-medium text-ink-soft">{item.title}</span>
                     </label>
@@ -327,7 +327,7 @@ export function FinalRequirementsPage() {
           <div>
             <Link
               to={`/department/projects/${projectId}/final-submission`}
-              className="inline-flex items-center gap-2 rounded-lg border border-hairline bg-card px-3.5 py-2 text-sm font-semibold text-ink-soft hover:bg-canvas transition-all"
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-hairline bg-card px-3.5 py-2 text-sm font-semibold text-ink-soft transition-all hover:bg-canvas"
             >
               <span>Xem gói đã khóa</span>
               <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
@@ -335,7 +335,7 @@ export function FinalRequirementsPage() {
           </div>
         </>
       )}
-    </main>
+    </div>
   )
 }
 
