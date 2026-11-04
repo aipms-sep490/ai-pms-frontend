@@ -37,6 +37,7 @@ for (const mode of ['SINGLE_MAJOR', 'INTERDISCIPLINARY'] as const) {
     const project = data.projects.find(p => p.code === (mode === 'SINGLE_MAJOR' ? 'E2E-SINGLE-P' : 'E2E-INTER-P'))!
     const projectId = String(project.id)
     const admin = await login(request, 'admin@e2e.invalid')
+    const staffCs = await login(request, 'staff.cs@e2e.invalid')
     const leader = await login(request, mode === 'SINGLE_MAJOR' ? 'single.leader@e2e.invalid' : 'leader@e2e.invalid')
     const evaluator = await login(request, 'evaluator@e2e.invalid')
     const apiEvidence: { method: string; path: string; status: number }[] = []
@@ -50,10 +51,10 @@ for (const mode of ['SINGLE_MAJOR', 'INTERDISCIPLINARY'] as const) {
     const read = () => call<StudentReviewTimelineDto>(leader, `/projects/${projectId}/review-gates/timeline`)
     const extraRequirements = mode === 'INTERDISCIPLINARY' ? data.majors.map(m => ({ code: m.code, title: `${m.code} evidence`, type: 'FILE', scope: 'MAJOR_SPECIFIC', majorId: m.id, required: true, verification: 'HUMAN' })) : []
     const baseGate = { code: 'R1', sequence: 1, title: 'Acceptance review', objective: 'Synthetic isolated lifecycle', required: true, blockNextGate: true, blocksDefense: false, start: null, end: null, reviewerPolicy: 'Assigned Reviewer', reviewScope: 'COMMON', requirements: [{ code: 'COMMON', title: 'Common report', type: 'FILE', scope: 'COMMON', required: true, verification: 'HUMAN' }, ...extraRequirements] }
-    const template = await call<ReviewGateTemplate>(admin, '/academic/gate-templates', {
-      projectPeriodId: project.periodId, code: `ACCEPT-${mode}`, name: `Acceptance ${mode}`, mode, major: mode === 'INTERDISCIPLINARY' ? 'INTERDISCIPLINARY' : '', version: '1.0', gates: [baseGate, { ...baseGate, code: 'R2', sequence: 2, title: 'Next review', requirements: [baseGate.requirements[0], { code: 'PRIVATE', title: 'Individual evidence', type: 'FILE', scope: 'INDIVIDUAL', majorId: data.majors.find(m => m.code === 'E2E-SE')!.id, targetStudentId: leader.user.id, required: false, verification: 'HUMAN' }] }],
+    const template = await call<ReviewGateTemplate>(staffCs, '/academic/gate-templates', {
+      projectPeriodId: project.periodId, code: `ACCEPT-${mode}`, name: `Acceptance ${mode}`, mode, major: mode === 'INTERDISCIPLINARY' ? 'INTERDISCIPLINARY' : 'E2E-SE', version: '1.0', gates: [baseGate, { ...baseGate, code: 'R2', sequence: 2, title: 'Next review', requirements: [baseGate.requirements[0], { code: 'PRIVATE', title: 'Individual evidence', type: 'FILE', scope: 'INDIVIDUAL', majorId: data.majors.find(m => m.code === 'E2E-SE')!.id, targetStudentId: leader.user.id, required: false, verification: 'HUMAN' }] }],
     })
-    await call(admin, `/academic/gate-templates/${template.id}/publish`, { concurrencyToken: template.concurrencyToken })
+    await call(staffCs, `/academic/gate-templates/${template.id}/publish`, { concurrencyToken: template.concurrencyToken })
     let timeline = await read()
     const commonRequirementId = timeline.gates[0].requirements.find(r => r.scope === 'COMMON')!.id
     const actors: { session: LoginSession; item: AssignedReviewItem }[] = []
