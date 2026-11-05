@@ -4,6 +4,10 @@ import { QualificationCertificateForm } from './QualificationCertificateForm'
 import { HttpError } from '../../../services/http/http-client'
 const api = vi.hoisted(() => ({ uploadCertificate: vi.fn() }))
 vi.mock('../../../services/service-gateway', () => ({ services: { qualification: api } }))
+vi.mock('../../../services/api/upload-policies.api', async importOriginal => ({
+  ...await importOriginal<typeof import('../../../services/api/upload-policies.api')>(),
+  getUploadPolicy: async () => ({ allowedExtensions: ['.pdf'], allowedMimeTypes: [], maxBytes: 20971520, maxBytesLabel: '20 MiB' }),
+}))
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 function fill(file = new File(['%PDF-1.4'], 'certificate.pdf', { type: 'application/pdf' })) {
   fireEvent.change(screen.getByLabelText('Tệp chứng nhận'), { target: { files: [file] } })
@@ -17,7 +21,7 @@ it('submits once, waits for BE and exposes the returned pending qualification', 
   render(<QualificationCertificateForm onSubmitted={submitted} />); fill()
   fireEvent.click(screen.getByRole('button', { name: 'Nộp chứng nhận' }))
   fireEvent.submit(screen.getByRole('button', { name: 'Đang nộp…' }).closest('form')!)
-  expect(api.uploadCertificate).toHaveBeenCalledTimes(1); expect(submitted).not.toHaveBeenCalled()
+  await vi.waitFor(() => expect(api.uploadCertificate).toHaveBeenCalledTimes(1)); expect(submitted).not.toHaveBeenCalled()
   const pending = { verificationStatus: 'PENDING_VERIFICATION' }
   finish(pending)
   await vi.waitFor(() => expect(submitted).toHaveBeenCalledWith(pending))
@@ -26,7 +30,7 @@ it('rejects unsupported files without sending and preserves the file after a ser
   render(<QualificationCertificateForm onSubmitted={vi.fn()} />)
   fill(new File(['script'], 'bad.svg', { type: 'image/svg+xml' }))
   fireEvent.click(screen.getByRole('button', { name: 'Nộp chứng nhận' }))
-  expect(screen.getByRole('alert').textContent).toContain('PDF, PNG hoặc JPEG'); expect(api.uploadCertificate).not.toHaveBeenCalled()
+  expect((await screen.findByRole('alert')).textContent).toContain('Loại tệp không được chấp nhận'); expect(api.uploadCertificate).not.toHaveBeenCalled()
   fill(); api.uploadCertificate.mockRejectedValue(new HttpError('Invalid', 422))
   fireEvent.click(screen.getByRole('button', { name: 'Nộp chứng nhận' }))
   await vi.waitFor(() => expect(screen.getByRole('alert').textContent).toContain('chấp nhận'))

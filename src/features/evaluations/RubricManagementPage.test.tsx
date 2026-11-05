@@ -46,19 +46,15 @@ describe('RubricManagementPage deep interactions', () => {
     await waitFor(() => expect(mocks.publishRubric).toHaveBeenCalledWith(1, 'token'))
     expect(mocks.submitRubricForApproval).not.toHaveBeenCalled()
   })
-  it('lets BE validate missing levels until it exposes requiredLevelCount', async () => {
+  it('blocks an empty leaf even without requiredLevelCount', async () => {
     const incomplete = { ...draft, canSubmitForApproval: true, criteria: [{ ...criterion, levels: [] }] }
     mocks.getRubric.mockImplementation(async (id: number) => id === 1 ? incomplete : published)
     mocks.submitRubricForApproval.mockRejectedValue(new HttpError('Invalid', 422, { errors: { criteria: ['Tiêu chí Chất lượng còn thiếu mức chất lượng.'] } }))
     page(); await screen.findByRole('heading', { name: 'Bộ đã công bố' })
     fireEvent.click(screen.getByRole('button', { name: /DRAFT · v1/ }))
     const submit = await screen.findByRole('button', { name: 'Gửi duyệt' }) as HTMLButtonElement
-    expect(submit.disabled).toBe(false)
-    expect(screen.queryByRole('button', { name: 'Công bố' })).toBeNull()
-    fireEvent.click(submit)
-    fireEvent.click(screen.getByRole('dialog').querySelector('button[type="submit"]')!)
-    await waitFor(() => expect(mocks.submitRubricForApproval).toHaveBeenCalledWith(1, 'token'))
-    expect((await screen.findByRole('alert')).textContent).toContain('Tiêu chí Chất lượng còn thiếu mức chất lượng.')
+    expect(submit.disabled).toBe(true)
+    expect(mocks.submitRubricForApproval).not.toHaveBeenCalled()
   })
   it('blocks submission when the server provides a required level count and leaves are incomplete', async () => {
     const incomplete = { ...draft, evaluationScope: 'COMMON', canSubmitForApproval: true, requiredLevelCount: 5, criteria: [{ ...criterion, levels: [] }] }
@@ -172,6 +168,6 @@ it('keeps a draft on 409 and displays BE validation on 422', async () => {
   await screen.findByText(/Bản nhập của bạn vẫn được giữ/)
   expect((screen.getByLabelText('Tên bộ tiêu chí') as HTMLInputElement).value).toBe('Nội dung đang sửa')
   fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
-  await screen.findByText(/Nhóm con chưa đủ trọng số/)
+  await screen.findByText(/Kiểm tra dữ liệu, trọng số/)
   expect((screen.getByLabelText('Tên bộ tiêu chí') as HTMLInputElement).value).toBe('Nội dung đang sửa')
 })

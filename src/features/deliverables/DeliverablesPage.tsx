@@ -1,3 +1,4 @@
+import { getUploadPolicy, validateUploadFile } from '../../services/api/upload-policies.api'
 import { Modal } from '../../components/ui/Modal'
 import { utcTimestamp } from '../projects/utils/collaboration-workspace'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
@@ -137,13 +138,15 @@ function DeliverablesView() {
     )
   }
 
-  function submitVersion(event: FormEvent<HTMLFormElement>, item: Deliverable) {
+  async function submitVersion(event: FormEvent<HTMLFormElement>, item: Deliverable) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
     const input = event.currentTarget.elements.namedItem('file')
     const files = input instanceof HTMLInputElement ? input.files : null
     const file = files ? (typeof files.item === 'function' ? files.item(0) : files[0] ?? null) : null
     if (!isUploadFile(file)) { setError({ message: 'Hãy chọn một tệp trước khi nộp phiên bản.', retryable: false, target: { kind: 'upload', id: item.id } }); return }
+    const problem = validateUploadFile(file, await getUploadPolicy('DELIVERABLE_VERSION').catch(() => null))
+    if (problem) { setError({ message: problem, retryable: false, target: { kind: 'upload', id: item.id } }); return }
     void mutate(
       () => api.submitDeliverableVersion(item.id, item.latestVersion, file, String(form.get('note') ?? '')),
       'Đã nộp phiên bản mới. Phiên bản cũ vẫn được giữ nguyên.',
