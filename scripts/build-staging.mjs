@@ -25,6 +25,7 @@ const buildEnv = {
   VITE_API_BASE_URL: apiUrl.toString().replace(/\/$/, ''),
   VITE_DATA_MODE: 'api',
   VITE_USE_MOCK_REVIEW_GATES: 'false',
+  VITE_ENABLE_AI_PROGRESS_RISK: 'true',
 }
 
 for (const [script, args] of [
