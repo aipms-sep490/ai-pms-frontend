@@ -30,6 +30,13 @@ function scopeDescription(scope: string, majorName: string | null | undefined, s
   return 'Phạm vi phân công chưa hợp lệ; không có thao tác chấm điểm.'
 }
 
+function stageLabel(stage: string | null | undefined): string {
+  if (stage === 'DEFENSE') return 'Bảo vệ'
+  if (stage === 'COLD') return 'Chấm báo cáo'
+  if (stage === 'ON_GOING') return 'Đánh giá quá trình'
+  return stage ?? 'Chưa xác định'
+}
+
 export function EvaluatorAssignmentDetailPage() {
   const { assignment, detail } = useEvaluatorAssignment()
   const [draft, setDraft] = useState<EvaluationDraft | null>(null)
@@ -153,7 +160,22 @@ export function EvaluatorAssignmentDetailPage() {
   const rubricSummary = useMemo(() => draft ? `${draft.rubricName} · phiên bản ${draft.rubricVersion}` : (assignment.rubricName ?? 'Chưa tải được tên bộ tiêu chí'), [assignment.rubricName, draft])
   return <WorkspacePage title="Chấm điểm theo phạm vi được phân công" eyebrow={assignment.componentName ?? 'Bài chấm được phân công'} description="Đối chiếu minh chứng, ghi điểm và nhận xét cho từng tiêu chí." backTo="/evaluator/workspace" className="evaluation-workspace evaluator-detail space-y-6 pb-12">
     <header className="rounded-xl border border-hairline bg-card p-5 sm:p-6">
-      <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm text-ink-muted sm:grid-cols-2"><div><dt className="inline font-semibold text-ink-soft">Đồ án: </dt><dd className="inline">{assignment.projectTitle ?? 'Chưa tải được tên đồ án'}</dd></div><div><dt className="inline font-semibold text-ink-soft">Bộ tiêu chí: </dt><dd className="inline">{rubricSummary}</dd></div><div className="sm:col-span-2"><dt className="inline font-semibold text-ink-soft">Phạm vi: </dt><dd className="inline">{scopeDescription(assignment.scope, assignment.majorName, assignment.studentName)}</dd></div></dl>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-3">
+        <div className="flex items-center gap-2">
+          {detail.schemeIsDemo === true && <span data-testid="badge-scheme-mode" className="inline-flex items-center rounded-md border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-900">BẢN THỬ NGHIỆM (DEMO)</span>}
+          {detail.schemeIsDemo === false && <span data-testid="badge-scheme-mode" className="inline-flex items-center rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-900">CHÍNH THỨC</span>}
+          {detail.schemeApprovalStatus && <span className="inline-flex items-center rounded-md border border-hairline bg-canvas px-2.5 py-0.5 text-xs font-medium text-ink-muted">Đề cương: {detail.schemeApprovalStatus}</span>}
+        </div>
+        {(detail.stage ?? evidence?.stage) && <span className="text-xs font-medium text-ink-muted">Giai đoạn: <strong className="text-ink">{stageLabel(detail.stage ?? evidence?.stage)}</strong></span>}
+      </div>
+      <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm text-ink-muted sm:grid-cols-2">
+        <div><dt className="inline font-semibold text-ink-soft">Đồ án: </dt><dd className="inline">{assignment.projectTitle ?? 'Chưa tải được tên đồ án'}</dd></div>
+        <div><dt className="inline font-semibold text-ink-soft">Bộ tiêu chí: </dt><dd className="inline">{rubricSummary}</dd></div>
+        <div><dt className="inline font-semibold text-ink-soft">Giai đoạn đánh giá: </dt><dd className="inline">{stageLabel(detail.stage ?? evidence?.stage)}</dd></div>
+        <div><dt className="inline font-semibold text-ink-soft">Trọng số sinh viên: </dt><dd className="inline">{detail.componentStudentWeightPercent != null ? formatPercent(detail.componentStudentWeightPercent) : 'Không áp dụng'}</dd></div>
+        <div><dt className="inline font-semibold text-ink-soft">Tiến độ chấm hội đồng: </dt><dd className="inline">{detail.completedEvaluators != null && detail.requiredEvaluators != null ? `${detail.completedEvaluators}/${detail.requiredEvaluators} người chấm` : 'Chưa xác định'}</dd></div>
+        <div className="sm:col-span-2"><dt className="inline font-semibold text-ink-soft">Phạm vi: </dt><dd className="inline">{scopeDescription(assignment.scope, assignment.majorName, assignment.studentName)}</dd></div>
+      </dl>
     </header>
 
     {message ? <section role="alert" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text">{message}</section> : null}
@@ -170,11 +192,27 @@ export function EvaluatorAssignmentDetailPage() {
     {state === 'ready' && draft ? <>
       <section className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-semibold text-ink">Bộ tiêu chí áp dụng</h2><p className="mt-1 text-sm leading-6 text-ink-muted">Nhập điểm và nhận xét cho từng tiêu chí trong bộ đánh giá đã được công bố.</p></section>
       <form className="evaluator-scoring-form" onSubmit={(event) => void save(event)} noValidate>
-        {[...draft.scores].sort((a, b) => a.sortOrder - b.sortOrder).map((criterion) => <section key={criterion.rubricCriterionId} className="rounded-xl border border-hairline bg-card p-5">
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]"><div className="min-w-0"><h2 className="break-words font-semibold text-ink">{criterion.name}{criterion.isRequired ? <span aria-label="bắt buộc" className="ml-1 text-status-error-text">*</span> : null}</h2><p className="mt-1 break-words text-sm leading-6 text-ink-muted">{criterion.description || 'Không có mô tả.'} · trọng số {formatPercent(criterion.weightPercent)} · tối đa {formatScore(criterion.maxScore)}</p></div><label className="text-sm font-semibold text-ink-soft">Điểm<input aria-label={`Điểm ${criterion.name}`} aria-describedby={fieldErrors[criterion.rubricCriterionId] ? `score-error-${criterion.rubricCriterionId}` : undefined} value={values[criterion.rubricCriterionId]?.score ?? ''} onChange={(event) => updateCriterion(criterion, { score: event.target.value })} disabled={!scoringAllowed || !editable || busy} inputMode="decimal" type="number" min="0" max={criterion.maxScore} step="0.01" className="mt-1 block w-full rounded-lg border border-hairline bg-card px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50" /></label></div>
+        {[...draft.scores].sort((a, b) => a.sortOrder - b.sortOrder).map((criterion) => {
+          const parentName = criterion.parentName ?? (criterion.parentId ? draft.scores.find(s => s.rubricCriterionId === criterion.parentId)?.name : null)
+          const isChild = criterion.parentId != null
+          const isParent = draft.scores.some(s => s.parentId === criterion.rubricCriterionId) || criterion.maxScore == null
+          return (
+            <section
+              key={criterion.rubricCriterionId}
+              data-testid={`criterion-card-${criterion.rubricCriterionId}`}
+              className={`rounded-xl border bg-card p-5 transition-all ${isChild ? 'ml-6 sm:ml-8 border-l-4 border-l-primary/50 border-hairline' : 'border-hairline'}`}
+            >
+              {isChild && (
+                <div className="mb-2 text-xs font-semibold text-primary">
+                  {parentName ? `↳ Thuộc tiêu chí cha: ${parentName}` : `↳ Tiêu chí thành phần (Mục #${criterion.parentId})`}
+                </div>
+              )}
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]"><div className="min-w-0"><h2 className="break-words font-semibold text-ink">{criterion.name}{criterion.isRequired ? <span aria-label="bắt buộc" className="ml-1 text-status-error-text">*</span> : null}</h2><p className="mt-1 break-words text-sm leading-6 text-ink-muted">{criterion.description || 'Không có mô tả.'} · trọng số {formatPercent(criterion.weightPercent)}{criterion.maxScore != null ? ` · tối đa ${formatScore(criterion.maxScore)}` : ''}</p></div>{isParent ? <div className="flex items-center justify-end text-xs italic text-ink-muted">Tiêu chí phân nhóm</div> : <label className="text-sm font-semibold text-ink-soft">Điểm<input aria-label={`Điểm ${criterion.name}`} aria-describedby={fieldErrors[criterion.rubricCriterionId] ? `score-error-${criterion.rubricCriterionId}` : undefined} value={values[criterion.rubricCriterionId]?.score ?? ''} onChange={(event) => updateCriterion(criterion, { score: event.target.value })} disabled={!scoringAllowed || !editable || busy} inputMode="decimal" type="number" min="0" max={criterion.maxScore} step="0.01" className="mt-1 block w-full rounded-lg border border-hairline bg-card px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50" /></label>}</div>
           {fieldErrors[criterion.rubricCriterionId] ? <p id={`score-error-${criterion.rubricCriterionId}`} className="mt-2 text-sm text-status-error-text">{fieldErrors[criterion.rubricCriterionId]}</p> : null}
-          <label className="mt-3 block text-sm font-semibold text-ink-soft">Nhận xét tiêu chí<textarea aria-label={`Nhận xét ${criterion.name}`} value={values[criterion.rubricCriterionId]?.comments ?? ''} onChange={(event) => updateCriterion(criterion, { comments: event.target.value })} disabled={!scoringAllowed || !editable || busy} maxLength={2000} className="mt-1 block min-h-24 w-full rounded-lg border border-hairline bg-card px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50" /></label>
-        </section>)}
+          {!isParent && <label className="mt-3 block text-sm font-semibold text-ink-soft">Nhận xét tiêu chí<textarea aria-label={`Nhận xét ${criterion.name}`} value={values[criterion.rubricCriterionId]?.comments ?? ''} onChange={(event) => updateCriterion(criterion, { comments: event.target.value })} disabled={!scoringAllowed || !editable || busy} maxLength={2000} className="mt-1 block min-h-24 w-full rounded-lg border border-hairline bg-card px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50" /></label>}
+            </section>
+          )
+        })}
         <section className="rounded-xl border border-hairline bg-card p-5"><label className="block text-sm font-semibold text-ink-soft">Nhận xét tổng thể<textarea aria-label="Nhận xét tổng thể" value={overallComment} onChange={(event) => setOverallComment(event.target.value)} disabled={!scoringAllowed || !editable || busy} maxLength={10000} className="mt-1 block min-h-28 w-full rounded-lg border border-hairline bg-card px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50" /></label>{scoringAllowed && editable ? <button type="submit" disabled={busy || conflicted} className="mt-4 min-h-11 rounded-lg border border-primary px-4 text-sm font-semibold text-primary disabled:opacity-50">{busy ? 'Đang lưu…' : 'Lưu bản nháp'}</button> : <p className="mt-4 text-sm font-semibold text-academic-emerald">{draft.status === 'FINALIZED' ? `Đánh giá đã chốt${draft.finalization ? ` lúc ${dateTimeLabel(draft.finalization.finalizedAt)}` : ''}; chỉ đọc.` : 'Bạn có quyền xem đánh giá này.'}</p>}</section>
       </form>
       {scoringAllowed && editable ? <section className="rounded-xl border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text"><h2 className="font-semibold">Chốt đánh giá</h2><dl className="evaluator-score-summary"><div><dt>Điểm đã lưu</dt><dd>{draft.totalScore === null ? 'Chưa đủ điểm' : `${formatScore(draft.totalScore)}/${formatScore(draft.scoreScale)}`}</dd></div><div><dt>Tiêu chí còn thiếu</dt><dd>{formatCount(draft.missingCriterionIds.length)}</dd></div><div><dt>Bản nháp</dt><dd>{dirty ? 'Có thay đổi chưa lưu' : 'Đã đồng bộ'}</dd></div></dl>{dirty ? <p role="status" className="mt-3 font-semibold">Lưu bản nháp trước khi chốt để áp dụng điểm và nhận xét vừa sửa.</p> : null}<p className="mt-1 leading-6">Kiểm tra điểm và nhận xét trước khi chốt. Hệ thống sẽ xác nhận các điều kiện để hoàn tất đánh giá.</p><button type="button" disabled={busy || !canFinalize} onClick={() => void finalize()} className="mt-4 min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">Yêu cầu chốt đánh giá</button></section> : null}

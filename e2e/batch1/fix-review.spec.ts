@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const root = process.env.BATCH1_EVIDENCE_DIR || 'F:/AI-PMS/artifacts/fe-fix-batch1-20261022'
+const root = process.env.BATCH1_EVIDENCE_DIR || 'test-results/batch1'
 const milestone = { id: 12, title: 'Mốc đồ án quá hạn', status: 'OPEN', dueDate: '2026-10-01', isOverdue: true }
 const task = { id: 11, title: 'Task quá hạn duy nhất', status: 'TODO', dueAtUtc: '2026-10-01T08:00:00Z', isOverdue: true }
 const timeline = { projectId: '1', projectCode: 'P1', projectName: 'Đồ án kiểm chứng bố cục KPI', projectMode: 'SINGLE_MAJOR', major: 'Công nghệ thông tin', effectivePolicyVersion: '1', currentGateCode: '', academicProgress: null, academicProgressSource: 'NOT_CONFIGURED', taskProgress: 75, isDefenseReady: false, gates: [], capabilities: { canSubmitPackage: false, canSubmitRevision: false, blockingReasons: [] } }
@@ -61,7 +61,7 @@ test('FIX-01/02/04: fallback preserves real resources, milestones and source dis
   await expect(page.getByRole('link', { name: /Hạng mục dự phòng/ })).toBeVisible()
   await expect(page.getByRole('link', { name: /Hạn bàn giao cuối/ })).toBeVisible()
   const panel = page.getByRole('complementary')
-  await expect(panel.getByText(milestone.title, { exact: true })).toHaveCount(1)
+  await expect(page.getByText(milestone.title, { exact: true })).toHaveCount(1)
   await expect(panel.getByText(task.title, { exact: true })).toHaveCount(1)
   await expect(page.getByText('Lịch chính tạm lỗi', { exact: true })).toBeVisible()
   await expect(page.getByText('API hiện trả kỳ báo cáo, không trả hạn nộp báo cáo.')).toBeVisible()
@@ -82,7 +82,7 @@ for (const failedDepartment of [false, true]) test(`FIX-05: authorized departmen
   const reads = await fixture(page, { failedDepartment })
   await page.goto('/e2e/batch1.html?view=calendar&actor=department&departments=multiple')
   await expect(page.getByText('Việc của bộ môn 1', { exact: true })).toBeVisible()
-  if (failedDepartment) await expect(page.getByText('Bộ môn 2 không tải được', { exact: true })).toBeVisible()
+  if (failedDepartment) await expect(page.getByRole('alert').getByText('Bộ môn 2 không tải được', { exact: true })).toBeVisible()
   else await expect(page.getByText('Việc của bộ môn 2', { exact: true })).toBeVisible()
   expect(reads.filter(path => path.endsWith('/urgent-actions')).sort()).toEqual(['/api/v1/departments/1/urgent-actions', '/api/v1/departments/2/urgent-actions'])
 })

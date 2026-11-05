@@ -12,11 +12,12 @@ export interface ColdReportInput {
 /** Immutable once created: a new version is a new template row, never an edit. */
 export interface ColdTemplate {
   id: number
-  majorId: number
+  majorId: number | null
   projectPeriodId: number
   name: string
   version: number
   reports: ColdReportInput[]
+  scope?: 'COMMON' | 'MAJOR_SPECIFIC' | 'INDIVIDUAL' | null
 }
 
 /** The seven IT SEP490 reports are an explicit worked example only — no automatic
@@ -24,8 +25,11 @@ export interface ColdTemplate {
 export const getColdTemplateItExample = (signal?: AbortSignal) =>
   httpGet<ColdReportInput[]>('/cold-report-templates/examples/it', signal)
 
-export const getColdTemplates = (majorId: number, projectPeriodId: number, page = 1, pageSize = 20, signal?: AbortSignal) =>
-  httpGet<PagedResult<ColdTemplate>>(`/cold-report-templates?majorId=${majorId}&projectPeriodId=${projectPeriodId}&page=${page}&pageSize=${pageSize}`, signal)
+export const getColdTemplates = (majorId: number | null | undefined, projectPeriodId: number, page = 1, pageSize = 20, signal?: AbortSignal) => {
+  const query = new URLSearchParams({ projectPeriodId: String(projectPeriodId), page: String(page), pageSize: String(pageSize) })
+  if (majorId !== null && majorId !== undefined) query.set('majorId', String(majorId))
+  return httpGet<PagedResult<ColdTemplate>>(`/cold-report-templates?${query}`, signal)
+}
 
-export const createColdTemplate = (body: { majorId: number; projectPeriodId: number; name: string; reports: ColdReportInput[] }) =>
+export const createColdTemplate = (body: { majorId?: number | null; projectPeriodId: number; name: string; reports: ColdReportInput[]; scope?: string | null }) =>
   httpPost<ColdTemplate>('/cold-report-templates', body)

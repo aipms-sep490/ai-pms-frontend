@@ -8,6 +8,12 @@ export interface EvaluationAssignmentDetail {
   canScore: boolean
   legacyReadOnly: boolean
   denialReason: string | null
+  stage?: EvaluationStage | null
+  componentStudentWeightPercent?: number | null
+  schemeApprovalStatus?: string | null
+  schemeIsDemo?: boolean | null
+  completedEvaluators?: number | null
+  requiredEvaluators?: number | null
 }
 
 /** Deliberately metadata-only evidence projection, scoped by the Backend to the assignment. */

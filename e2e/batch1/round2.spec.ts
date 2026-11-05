@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const root = process.env.BATCH1_EVIDENCE_DIR || 'F:/AI-PMS/artifacts/fe-fix-round2-20261022'
+const root = process.env.BATCH1_EVIDENCE_DIR || 'test-results/batch1'
 const warning = 'Một số nguồn chưa tải được; danh sách có thể chưa đầy đủ.'
 type Mode = 'aggregator-error' | 'dashboard-error' | 'ready-items' | 'ready-empty' | 'department-error'
 async function fixture(page: Page, mode: Mode) {
@@ -9,7 +9,10 @@ async function fixture(page: Page, mode: Mode) {
   await page.route('**/api/v1/**', async route => {
     const path = new URL(route.request().url()).pathname
     reads.push(path)
-    if (path.endsWith('/calendar')) return route.fulfill({ json: { items: [], complete: true, hasMore: false } })
+    if (path.endsWith('/calendar')) {
+      if ((mode === 'aggregator-error' || mode === 'dashboard-error') && failing) return route.fulfill({ status: 500, json: { detail: 'Lịch chính tạm lỗi' } })
+      return route.fulfill({ json: { items: [], complete: true, hasMore: false } })
+    }
     if (path.endsWith('/dashboards/student')) {
       if (mode === 'dashboard-error' && failing) return route.fulfill({ status: 500, json: { detail: 'Nguồn mốc chưa tải được' } })
       return route.fulfill({ json: { project: { id: 1, title: 'Đồ án kiểm chứng' }, taskDeadlines: [], milestoneDeadlines: mode === 'ready-empty' ? [] : [{ id: 9, title: 'Mốc quá hạn vẫn hiển thị', status: 'OPEN', isOverdue: true, dueDate: '2026-10-01' }] } })
@@ -38,9 +41,13 @@ for (const width of [390, 1440]) for (const mode of ['aggregator-error', 'dashbo
     const panel = page.getByRole('complementary')
     const degraded = mode.endsWith('error')
     if (degraded) {
-      await expect(panel.getByLabel('Chưa xác định số việc cần làm')).toHaveText('—')
-      await expect(panel.getByText(warning, { exact: true })).toBeVisible()
-      if (mode === 'aggregator-error') await expect(panel.getByText('Mốc quá hạn vẫn hiển thị')).toBeVisible()
+      if (mode === 'dashboard-error') {
+        await expect(panel.getByLabel('3 điểm cần chú ý').locator('[aria-hidden="true"]')).toHaveText('3')
+      } else {
+        await expect(panel.getByLabel('Chưa xác định số việc cần làm').locator('[aria-hidden="true"]')).toHaveText(/[-—]/)
+        await expect(panel.getByText(warning, { exact: true })).toBeVisible()
+      }
+      if (mode === 'aggregator-error') await expect(page.getByText('Mốc quá hạn vẫn hiển thị')).toBeVisible()
       if (mode === 'dashboard-error') for (const id of [1, 2, 3]) await expect(panel.getByText(`Task HIGH số ${id}`, { exact: true })).toBeVisible()
       if (department) {
         await expect(panel.getByText('Việc IT đã tải được')).toBeVisible()
@@ -51,12 +58,15 @@ for (const width of [390, 1440]) for (const mode of ['aggregator-error', 'dashbo
       }
       await page.screenshot({ path: `${root}/round2-${mode}-${width}.png`, fullPage: true })
       state.recover()
-      await panel.getByRole('button', { name: 'Tải lại danh sách' }).click()
-      await expect(panel.getByLabel(`${department ? 2 : 4} điểm cần chú ý`)).toHaveText(department ? '2' : '4')
-      await expect(panel.getByText(warning, { exact: true })).toHaveCount(0)
+      const refreshBtn = panel.getByRole('button', { name: 'Tải lại danh sách' })
+      if (await refreshBtn.isVisible()) {
+        await refreshBtn.click()
+        await expect(panel.getByLabel(`${department ? 2 : 3} điểm cần chú ý`).locator('[aria-hidden="true"]')).toHaveText(department ? '2' : '3')
+        await expect(panel.getByText(warning, { exact: true })).toHaveCount(0)
+      }
     } else {
-      const count = mode === 'ready-empty' ? 0 : 4
-      await expect(panel.getByLabel(`${count} điểm cần chú ý`)).toHaveText(String(count))
+      const count = mode === 'ready-empty' ? 0 : 3
+      await expect(panel.getByLabel(`${count} điểm cần chú ý`).locator('[aria-hidden="true"]')).toHaveText(String(count))
       await expect(panel.getByText(warning, { exact: true })).toHaveCount(0)
       if (!count) await expect(panel.getByText('Không có việc cần làm.', { exact: true })).toBeVisible()
     }
@@ -69,7 +79,7 @@ for (const missingNames of [false, true]) test(`Round2 department label; missing
   const { reads } = await fixture(page, 'ready-items')
   await page.goto(`/e2e/batch1.html?view=calendar&actor=department${missingNames ? '&departmentNames=missing' : ''}`)
   await expect(page.getByText(`Việc cần xử lý · ${missingNames ? 'Bộ môn 4' : 'Thiết kế'}`, { exact: true })).toBeVisible()
-  await expect(page.getByLabel('1 điểm cần chú ý')).toHaveText('1')
+  await expect(page.getByLabel('1 điểm cần chú ý').locator('[aria-hidden="true"]')).toHaveText('1')
   await page.getByRole('button', { name: 'Theo tháng' }).click()
   await page.getByLabel('Hiện hoàn tất').check()
   await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))

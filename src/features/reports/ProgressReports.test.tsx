@@ -607,6 +607,7 @@ describe('Progress reports workflow', () => {
   })
 
   it('uses a stable stale-token code and only allowlisted validation field labels', () => {
+    expect(reportError(new HttpError('conflict', 409, { code: 'REPORT_ALREADY_EXISTS_FOR_CYCLE' }))).toBe('Báo cáo tiến độ cho chu kỳ này đã tồn tại.')
     expect(reportError(new HttpError('conflict', 409, { code: 'STALE_CONCURRENCY_TOKEN', detail: 'private sentinel' }))).toBe('Báo cáo đã thay đổi. Tải lại trạng thái và đối chiếu trước khi lưu tiếp.')
     expect(reportError(new HttpError('validation', 400, { errors: { inProgressWork: ['private sentinel'], unknownPrivateField: ['internal'] }, traceId: 'private trace' }))).toBe('Kiểm tra các mục nội dung: Công việc đang thực hiện.')
     const noCode = reportError(new HttpError('conflict', 409, { detail: 'Submission deadline has passed for this reporting cycle. private sentinel' }))
