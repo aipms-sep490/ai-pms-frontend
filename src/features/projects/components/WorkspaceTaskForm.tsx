@@ -3,17 +3,25 @@ import { services } from '../../../services/service-gateway'
 import { HttpError } from '../../../services/http/http-client'
 import type { TeamMemberDto, MilestoneDto, ProjectDto } from '../../../types/backend'
 import { useProjectDisciplineScope } from '../hooks/useProjectDisciplineScope'
+import type { AssistantDraft } from '../../ai/academic-ai-api'
+import { uniqueNameMatch } from '../../ai/assistant-action-draft'
+import { toMeetingInput } from '../../meetings/meeting-utils'
 import '../pages/collaboration-workspace.css'
 import './workspace-task-form.css'
 
 export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCreated, initialDraft }: {
-  initialDraft?: { title: string; description: string }; project: ProjectDto; milestones: Pick<MilestoneDto, 'id' | 'title'>[]; members: TeamMemberDto[]; onCancel: () => void; onCreated: () => void
+  initialDraft?: Pick<AssistantDraft, 'title' | 'description' | 'task'>; project: ProjectDto; milestones: Pick<MilestoneDto, 'id' | 'title'>[]; members: TeamMemberDto[]; onCancel: () => void; onCreated: () => void
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const pending = useRef(false)
   const scope = useProjectDisciplineScope(project)
-  const [primary, setPrimary] = useState('')
+  const [primaryChoice, setPrimary] = useState<string | null>(null)
+  const primary = primaryChoice ?? String(uniqueNameMatch(scope.majors, initialDraft?.task?.primaryMajorName, m => m.majorName)?.majorId ?? '')
+  const [milestoneChoice, setMilestoneChoice] = useState<string | null>(null)
+  const milestone = milestoneChoice ?? String(uniqueNameMatch(milestones, initialDraft?.task?.milestoneTitle, m => m.title)?.id ?? '')
+  const matchedAssignees = (initialDraft?.task?.assigneeNames ?? []).map(name => uniqueNameMatch(members, name, m => m.fullName)).filter(m => !!m)
+  const unresolved = !!initialDraft?.task && ((!!initialDraft.task.milestoneTitle && !uniqueNameMatch(milestones, initialDraft.task.milestoneTitle, m => m.title)) || matchedAssignees.length !== (initialDraft.task.assigneeNames?.length ?? 0) || (!!initialDraft.task.primaryMajorName && !uniqueNameMatch(scope.majors, initialDraft.task.primaryMajorName, m => m.majorName)))
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (pending.current || !scope.ready) return
@@ -37,7 +45,7 @@ export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCr
         milestoneId, title, description: String(data.get('description') ?? '').trim() || null,
         priority: String(data.get('priority') ?? 'MEDIUM'),
         dueAt: dueAt ? new Date(`${dueAt}+07:00`).toISOString() : null,
-        assigneeUserIds: data.getAll('assignee').map(Number),
+        assigneeUserIds: data.getAll('assignee').map(Number).filter(id => members.some(m => m.userId === id)),
         disciplines: [...(primary ? [{ majorId: primaryId, role: 'PRIMARY' as const }] : []), ...supporting.map(majorId => ({ majorId, role: 'SUPPORTING' as const }))],
       })
       onCreated()
@@ -54,18 +62,20 @@ export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCr
     <form onSubmit={event => void submit(event)}>
       {scope.loading && <p role="status">Đang tải phạm vi ngành…</p>}
       {scope.error && <p role="alert" className="cw-form-error">{scope.error} <button type="button" className="cw-button" onClick={scope.retry}>Tải lại phạm vi ngành</button></p>}
+      {initialDraft && <p role="status">Đã điền bản nháp AI. Kiểm tra thông tin trước khi tạo công việc.</p>}
+      {unresolved && scope.ready && <p role="status">Một số tên trong bản nháp chưa khớp duy nhất với đồ án. Vui lòng chọn lại mốc, ngành hoặc người phụ trách.</p>}
       <fieldset disabled={busy || !scope.ready} className="cw-form-fields">
         <label className="cw-full-width">Tên công việc<input autoFocus name="title" defaultValue={initialDraft?.title} required maxLength={255} placeholder="Ví dụ: Hoàn thiện màn hình đăng nhập" /></label>
-        <label>Mốc đồ án<select name="milestoneId" required defaultValue=""><option value="" disabled>Chọn mốc</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
-        <label><span>Hạn hoàn thành <span className="cw-optional">(không bắt buộc)</span></span><input name="dueAt" type="datetime-local" /><span className="cw-field-hint">Giờ Việt Nam (UTC+7)</span></label>
-        <label>Mức ưu tiên<select name="priority" defaultValue="MEDIUM"><option value="LOW">Thấp</option><option value="MEDIUM">Bình thường</option><option value="HIGH">Cao</option><option value="CRITICAL">Khẩn cấp</option></select></label>
+        <label>Mốc đồ án<select name="milestoneId" required value={milestone} onChange={event => setMilestoneChoice(event.target.value)}><option value="" disabled>Chọn mốc</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
+        <label><span>Hạn hoàn thành <span className="cw-optional">(không bắt buộc)</span></span><input name="dueAt" type="datetime-local" defaultValue={toMeetingInput(initialDraft?.task?.dueAt ?? null)} /><span className="cw-field-hint">Giờ Việt Nam (UTC+7)</span></label>
+        <label>Mức ưu tiên<select name="priority" defaultValue={initialDraft?.task?.priority ?? 'MEDIUM'}><option value="LOW">Thấp</option><option value="MEDIUM">Bình thường</option><option value="HIGH">Cao</option><option value="CRITICAL">Khẩn cấp</option></select></label>
         {scope.ready && <>
           <label>Ngành chính<select name="primaryMajor" value={primary} required={scope.interdisciplinary} onChange={event => setPrimary(event.target.value)}><option value="">{scope.interdisciplinary ? 'Chọn ngành chính' : 'Chưa phân loại'}</option>{scope.majors.map(item => <option key={item.majorId} value={item.majorId}>{item.majorName}</option>)}</select></label>
           <fieldset className="cw-full-width cw-assignees"><legend>Ngành hỗ trợ</legend><p className="cw-field-hint">Công việc liên ngành cần đúng một ngành chính. Chỉ chọn ngành thuộc phạm vi đồ án.</p><div>{scope.majors.filter(item => String(item.majorId) !== primary).map(item => <label key={item.majorId}><input type="checkbox" name="supportingMajor" value={item.majorId} />{item.majorName}</label>)}</div></fieldset>
         </>}
         <label className="cw-full-width"><span>Mô tả <span className="cw-optional">(không bắt buộc)</span></span><textarea name="description" defaultValue={initialDraft?.description} rows={2} maxLength={10000} placeholder="Kết quả cần đạt và thông tin để bắt đầu công việc" /></label>
         <fieldset className="cw-full-width cw-assignees"><legend>Người phụ trách</legend><p className="cw-field-hint">Có thể chọn nhiều người hoặc phân công sau.</p>
-          <div>{members.map(member => <label key={member.userId}><input type="checkbox" name="assignee" value={member.userId} />{member.fullName}</label>)}</div>
+          <div>{members.map(member => <label key={member.userId}><input type="checkbox" name="assignee" value={member.userId} defaultChecked={matchedAssignees.some(m => m.userId === member.userId)} />{member.fullName}</label>)}</div>
         </fieldset>
       </fieldset>
       {error && <p className="cw-form-error" role="alert">{error}</p>}

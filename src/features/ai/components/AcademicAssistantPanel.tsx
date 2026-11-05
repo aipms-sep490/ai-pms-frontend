@@ -25,7 +25,16 @@ function ImagePreview({ file }: { file: File }) {
   return url ? <img src={url} alt={`Xem trước ${file.name}`} className="h-14 w-14 shrink-0 rounded-md object-cover" /> : null
 }
 
-type ChatTurn = { id: number; query: string; fileNames: string[]; response?: AcademicAssistantResponse; error?: string; preview?: string }
+type ChatTurn = { id: number; query: string; fileNames: string[]; sentAt?: string; response?: AcademicAssistantResponse; error?: string; preview?: string }
+
+const formatMessageTime = (value?: string) => {
+  if (!value) return null
+  const normalized = value.endsWith('Z') || /[+-]\d\d:\d\d$/.test(value) ? value : `${value}Z`
+  const date = new Date(normalized)
+  return Number.isNaN(date.getTime()) ? null : date.toLocaleTimeString('vi-VN', {
+    hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh'
+  })
+}
 
 function AssistantTyping({ preview }: { preview?: string }) {
   return <div className="assistant-thinking" aria-busy="true">
@@ -37,7 +46,7 @@ function AssistantTyping({ preview }: { preview?: string }) {
   </div>
 }
 
-export function AcademicAssistantPanel({ projectId, dock = false, pageContext = '', onUseDraft, onOpenEvidence }: { projectId?: number; dock?: boolean; pageContext?: string; onUseDraft?: (draft: AssistantDraft) => void; onOpenEvidence?: (evidence: EvidenceReference) => void }) {
+export function AcademicAssistantPanel({ projectId, dock = false, pageContext = '', allowReportForm = true, onUseDraft, onOpenEvidence }: { projectId?: number; allowReportForm?: boolean; dock?: boolean; pageContext?: string; onUseDraft?: (draft: AssistantDraft) => void; onOpenEvidence?: (evidence: EvidenceReference) => void }) {
   const [conversation, setConversation] = useState<AssistantConversation | null>(null)
   const [conversations, setConversations] = useState<AssistantConversation[]>([])
   const [showHistory, setShowHistory] = useState(false)
@@ -62,6 +71,9 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
   const [turns, setTurns] = useState<ChatTurn[]>([])
   const sequence = useRef(0)
   const history = useRef<HTMLDivElement>(null)
+  const scrollFrame = useRef<number | null>(null)
+  const previewFrame = useRef<number | null>(null)
+  const pendingPreview = useRef<{ turnId: number; text: string } | null>(null)
   const [answer, setAnswer] = useState<AcademicAssistantResponse | null>(null)
   const [files, setFiles] = useState<File[]>([])
   const [busy, setBusy] = useState(false)
@@ -81,7 +93,25 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
       .finally(() => { if (!controller.signal.aborted) setRubricLoading(false) })
     return () => controller.abort()
   }, [projectId, toolMode, rubricRetry])
-  useEffect(() => { history.current?.scrollTo?.({ top: history.current.scrollHeight, behavior: 'smooth' }) }, [turns])
+  useEffect(() => {
+    // Streaming previews update `turns` frequently; coalesce scroll work into one frame.
+    if (scrollFrame.current !== null) cancelAnimationFrame(scrollFrame.current)
+    scrollFrame.current = requestAnimationFrame(() => {
+      scrollFrame.current = null
+      history.current?.scrollTo?.({ top: history.current.scrollHeight, behavior: 'auto' })
+    })
+    return () => {
+      if (scrollFrame.current !== null) {
+        cancelAnimationFrame(scrollFrame.current)
+        scrollFrame.current = null
+      }
+    }
+  }, [turns])
+  useEffect(() => () => {
+    if (previewFrame.current !== null) cancelAnimationFrame(previewFrame.current)
+    previewFrame.current = null
+    pendingPreview.current = null
+  }, [])
   useEffect(() => {
     request.current?.abort(); download.current?.abort(); historyRequest.current?.abort(); sourceRequest.current?.abort()
     sending.current = false; setConversation(null); setConversations([]); setShowHistory(false); setSource(null)
@@ -154,7 +184,8 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
     request.current?.abort(); download.current?.abort()
     const controller = new AbortController(); request.current = controller
     const turnId = --sequence.current
-    if (dock) setTurns(current => [...current, { id: turnId, query: value, fileNames: files.map(file => file.name) }])
+    const sentAt = new Date().toISOString()
+    if (dock) setTurns(current => [...current, { id: turnId, query: value, sentAt, fileNames: files.map(file => file.name) }])
     setQuery(dock ? '' : value); setBusy(true); setError(null); setAnswer(null); setDownloading(false)
     try {
       let active = conversation
@@ -165,12 +196,27 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
       }
       const result = dock && active
         ? await streamAssistant(value, files, active, pageContext, draftKind, text => {
-          if (!controller.signal.aborted) setTurns(current => current.map(turn => turn.id === turnId ? { ...turn, preview: text } : turn))
+          if (controller.signal.aborted) return
+          pendingPreview.current = { turnId, text }
+          if (previewFrame.current !== null) return
+          // Show the first status immediately; coalesce only subsequent deltas.
+          setTurns(current => current.map(turn => turn.id === turnId ? { ...turn, preview: text } : turn))
+          pendingPreview.current = null
+          previewFrame.current = requestAnimationFrame(() => {
+            previewFrame.current = null
+            const pending = pendingPreview.current
+            pendingPreview.current = null
+            if (!pending || controller.signal.aborted) return
+            setTurns(current => current.map(turn => turn.id === pending.turnId ? { ...turn, preview: pending.text } : turn))
+          })
         }, controller.signal, ...(toolMode ? [{ mode: toolMode, rubricId: toolMode === 'REPORT_REVIEW' ? rubricId : undefined }] : []))
         : files.length
         ? await askAcademicAssistantWithFiles(value, files, projectId, controller.signal)
         : await askAcademicAssistant(value, projectId, controller.signal)
       if (!controller.signal.aborted) {
+        if (previewFrame.current !== null) cancelAnimationFrame(previewFrame.current)
+        previewFrame.current = null
+        pendingPreview.current = null
         setAnswer(result)
         if (active) setConversation({ ...active, revision: result.revision ?? active.revision, title: active.revision === 0 ? value.slice(0, 120) : active.title })
         if (dock) { setTurns(current => current.map(turn => turn.id === turnId ? { ...turn, response: result } : turn)); setFiles([]) }
@@ -186,6 +232,9 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
 
   const stop = () => {
     request.current?.abort(); sending.current = false; setBusy(false)
+    if (previewFrame.current !== null) cancelAnimationFrame(previewFrame.current)
+    previewFrame.current = null
+    pendingPreview.current = null
     setTurns(current => current.map(turn => !turn.response && !turn.error ? { ...turn, preview: undefined, error: 'Đã dừng. Mở lại lịch sử nếu câu trả lời vừa kịp lưu.' } : turn))
   }
 
@@ -208,12 +257,12 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
   }
 
   const renderAnswer = (answer: AcademicAssistantResponse) => (<div className="assistant-answer mt-5 rounded-lg border border-primary-subtle bg-primary-subtle p-4">
-      <p className="assistant-answer-label mb-2 text-xs font-semibold text-primary"><span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>{answer.generationStatus === 'FALLBACK' ? (answer.citations.length || answer.projectEvidence.length ? 'Trích đoạn nguồn · fallback' : 'AI tạm thời không khả dụng') : answer.insufficientEvidence ? 'Chưa đủ thông tin xác nhận' : answer.answerType === 'GENERAL' ? 'Hỏi đáp chung' : answer.answerType === 'ATTACHMENT' ? 'Dựa trên tệp bạn gửi' : 'Câu trả lời có nguồn'}</p>
+      <p className="assistant-answer-label mb-2 text-xs font-semibold text-primary"><span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>{answer.generationStatus === 'FALLBACK' ? (answer.citations.length || answer.projectEvidence.length ? 'Trích đoạn nguồn · fallback' : 'AI tạm thời không khả dụng') : answer.draft ? 'Bản nháp cần kiểm tra' : answer.insufficientEvidence ? 'Chưa đủ thông tin xác nhận' : answer.answerType === 'GENERAL' ? 'Hỏi đáp chung' : answer.answerType === 'ATTACHMENT' ? 'Dựa trên tệp bạn gửi' : 'Câu trả lời có nguồn'}{formatMessageTime(answer.generatedAt) && <time className="ml-2 font-normal text-ink-muted" dateTime={answer.generatedAt}>Trả lời lúc {formatMessageTime(answer.generatedAt)}</time>}</p>
       <AssistantAnswerText text={answer.answer} />
       {answer.insufficientEvidence && <p className="mt-3 text-sm text-status-warning-text">Chưa đủ căn cứ chính thức để kết luận.</p>}
       {answer.limitationNote && <p className="mt-3 text-xs text-ink-muted">{answer.limitationNote}</p>}
       {!!answer.attachments?.length && <p className="mt-3 break-words text-xs text-ink-muted">Tệp tham chiếu: {answer.attachments.map(file => file.fileName).join(', ')}</p>}
-      {answer.draft && <AssistantDraftCard draft={answer.draft} onUse={onUseDraft} />}
+      {answer.draft && <AssistantDraftCard draft={answer.draft} onUse={answer.draft.kind === 'WEEKLY_REPORT' && !allowReportForm ? undefined : onUseDraft} />}
       {!!answer.runId && <details className="assistant-export"><summary><span className="material-symbols-outlined" aria-hidden="true">download</span>{downloading ? 'Đang chuẩn bị tệp…' : 'Tải câu trả lời'}</summary><div className="assistant-export-options">{([['docx', 'Word'], ['xlsx', 'Excel'], ['pdf', 'PDF'], ['txt', 'TXT'], ['md', 'Markdown']] as const).map(([format, label]) => <button key={format} type="button" disabled={downloading} onClick={() => void saveAnswer(format, answer)}>Tải {label}</button>)}</div></details>}
       {!['GENERAL', 'ATTACHMENT', 'INSUFFICIENT_EVIDENCE'].includes(answer.answerType) && !answer.insufficientEvidence && answer.citations.length > 0 && <details className="assistant-citations"><summary>Tài liệu tham chiếu ({answer.citations.length})</summary><ul className="mt-2 space-y-2">{answer.citations.map((item, index) => <li key={`${item.versionId}-${index}`} className="rounded-lg border border-hairline bg-card p-3"><p className="text-sm font-semibold text-ink">{answer.runId ? <button type="button" className="underline underline-offset-4" onClick={() => void openSource(answer.runId!, index)}>{item.title} · v{item.version}</button> : <>{item.title} · v{item.version}</>}</p><p className="mt-1 text-xs text-ink-muted">{item.documentType}{item.section ? ` · ${item.section}` : ''}{item.page ? ` · trang ${item.page}` : ''}</p><p className="mt-2 text-sm leading-6 text-ink-soft">{item.excerpt}</p></li>)}</ul></details>}
       {answer.answerType === 'GROUNDED' && answer.generationStatus === 'COMPLETED' && !answer.insufficientEvidence && answer.projectEvidence.length > 0 && <details className="assistant-citations assistant-project-sources"><summary>Nguồn từ đồ án ({answer.projectEvidence.length})</summary><ul className="mt-2 space-y-2">{answer.projectEvidence.map((item, index) => <li key={index} className="rounded-lg border border-hairline bg-card p-3 text-sm"><p className="font-semibold">{onOpenEvidence && /^\/api\/v1\/(tasks|milestones|meetings|progress-reports)\/\d+$/.test(item.referenceUrl ?? '') ? <button type="button" className="underline underline-offset-4" onClick={() => onOpenEvidence(item)}>{item.title}</button> : item.title}</p><p className="mt-1 text-ink-soft">{item.excerpt}</p></li>)}</ul></details>}
@@ -259,7 +308,7 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
     <div className={dock ? 'assistant-quick-grid' : 'mt-3 flex flex-wrap gap-2'}>{quickQuestions.map((item, index) => <button key={item} type="button" aria-label={item} disabled={busy} className="assistant-quick-card rounded-full border border-hairline px-3 py-2 text-xs text-ink-soft hover:border-primary hover:text-primary disabled:opacity-50" onClick={() => void ask(undefined, item)}>{dock ? <><span className="material-symbols-outlined" aria-hidden="true">{quickCards[index].icon}</span><strong>{quickCards[index].title}</strong><small>{quickCards[index].detail}</small></> : item}</button>)}</div>
     </div>}
     {dock && !showHistory && <div ref={history} className="assistant-history" role="log" aria-label="Cuộc trò chuyện với trợ lý" aria-live="polite">{toolMode && turns.length === 0 && <div className="assistant-tool-intro"><span className="material-symbols-outlined" aria-hidden="true">{toolMode === 'PROGRESS' ? 'event_note' : toolMode === 'REPORT_REVIEW' ? 'fact_check' : 'description'}</span><h3>{toolMode === 'PROGRESS' ? 'Nắm rõ bước tiếp theo' : toolMode === 'REPORT_REVIEW' ? 'Hoàn thiện báo cáo của bạn' : 'Từ ý tưởng đến bản nháp'}</h3><p>{toolMode === 'PROGRESS' ? 'Xem các công việc và mốc tiến độ cần chú ý trong đồ án.' : toolMode === 'REPORT_REVIEW' ? 'Đối chiếu nội dung với bộ tiêu chí đã công bố, kèm góp ý và nguồn tham chiếu.' : 'Bổ sung nội dung thực tế vào câu hỏi. Trợ lý giúp sắp xếp thành tài liệu để bạn chỉnh sửa và tải về.'}</p></div>}{moreTurns && conversation && <button type="button" disabled={busy || historyBusy} onClick={() => void openConversation(conversation.id, true)}>Xem tin nhắn trước</button>}{turns.map(turn => <div key={turn.id} className="assistant-turn">
-      <div className="assistant-user-bubble"><p>{turn.query}</p>{turn.fileNames.map((name, index) => <small key={index}>{name}</small>)}</div>
+      <div className="assistant-user-bubble"><p>{turn.query}</p>{turn.fileNames.map((name, index) => <small key={index}>{name}</small>)}{formatMessageTime(turn.sentAt) && <time dateTime={turn.sentAt}>Gửi lúc {formatMessageTime(turn.sentAt)}</time>}</div>
       {turn.response ? renderAnswer(turn.response) : turn.error ? <p className="assistant-turn-error">{turn.error}</p> : <AssistantTyping preview={turn.preview} />}
     </div>)}</div>}
     <form hidden={showHistory} className={dock ? 'assistant-composer' : 'mt-4 flex flex-col gap-3'} onSubmit={event => void ask(event)}>

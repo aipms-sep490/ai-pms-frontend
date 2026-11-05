@@ -101,7 +101,7 @@ function mount({
     ],
     { initialEntries: [path] }
   )
-  return render(<RouterProvider router={router} />)
+  return { ...render(<RouterProvider router={router} />), router }
 }
 
 const input = (name: string, value: string) => fireEvent.change(screen.getByLabelText(name, { exact: false }), { target: { value } })
@@ -183,6 +183,31 @@ describe('Progress reports workflow', () => {
     expect(screen.queryByRole('alert')).toBeNull()
     input('Tóm tắt tiến độ', 'Tự nhập báo cáo')
     expect(summary.value).toBe('Tự nhập báo cáo')
+  })
+
+  it('receives successive AI drafts on the create route without saving a report', async () => {
+    api.getProgressReports.mockResolvedValue({ items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 })
+    api.getProgressReportPrefill.mockImplementation(async (_projectId: number, periodId?: number) => ({
+      progressReportPeriodId: 101, reportType: 'WEEKLY', periodStart: sampleCycle.periodStart, periodEnd: sampleCycle.periodEnd,
+      suggested: { summary: periodId ? 'Server suggestion' : null, completedWork: periodId ? 'Server task' : null, inProgressWork: null, blockers: null, risks: null, nextActions: null },
+      evidence: [], insufficientData: false,
+    }))
+    const { router } = mount({ path: '/project/reports/new' })
+    await screen.findByRole('combobox')
+    const assistantDraft = {
+      kind: 'WEEKLY_REPORT', projectId: 9, title: 'Weekly report', description: 'First AI summary',
+      report: { periodStart: sampleCycle.periodStart, periodEnd: sampleCycle.periodEnd, completedWork: 'API completed' },
+    }
+    await act(async () => { await router.navigate('/project/reports/new', { state: { assistantDraft } }) })
+    expect(await screen.findByDisplayValue('First AI summary')).toBeTruthy()
+    expect(screen.getByDisplayValue('API completed')).toBeTruthy()
+    await waitFor(() => expect(api.getProgressReportPrefill).toHaveBeenCalledWith(9, 101, expect.any(AbortSignal)))
+    expect(screen.queryByDisplayValue('Server suggestion')).toBeNull()
+    expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('101')
+    await act(async () => { await router.navigate('/project/reports/new', { state: { assistantDraft: { ...assistantDraft, description: 'Revised AI summary' } } }) })
+    expect(await screen.findByDisplayValue('Revised AI summary')).toBeTruthy()
+    expect(api.createProgressReport).not.toHaveBeenCalled()
+    expect(api.submitProgressReport).not.toHaveBeenCalled()
   })
 
   it('opens a report through its row without a duplicate view action', async () => {

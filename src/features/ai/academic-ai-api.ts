@@ -2,16 +2,25 @@ import { httpDelete, httpGet, httpGetBlob, httpPost, httpPostForm, httpPostStrea
 import type { EvidenceReference } from './ai-api'
 
 export interface KnowledgeCitation { documentId: number; versionId: number; title: string; version: string; documentType: string; section: string | null; page: number | null; effectiveFrom: string | null; excerpt: string }
-export interface AssistantDraft { kind: 'TASK' | 'MEETING'; title: string; description: string }
+export interface AssistantMeetingDraft {
+  startAt?: string | null; endAt?: string | null
+  meetingDeliveryMode?: 'ONSITE' | 'REMOTE' | 'HYBRID' | null
+  videoChannel?: 'NONE' | 'IN_APP_VIDEO' | 'EXTERNAL_LINK' | null
+  location?: string | null; onlineUrl?: string | null; inviteAll?: boolean
+}
+export interface AssistantTaskDraft { dueAt?: string | null; priority?: string | null; milestoneTitle?: string | null; assigneeNames?: string[]; primaryMajorName?: string | null }
+export interface AssistantReportDraft { periodStart?: string | null; periodEnd?: string | null; completedWork?: string | null; inProgressWork?: string | null; blockers?: string | null; risks?: string | null; nextActions?: string | null; plannedWork?: string | null }
+export interface AssistantDraft { kind: 'TASK' | 'MEETING' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN'; title: string; description: string; meeting?: AssistantMeetingDraft | null; task?: AssistantTaskDraft | null; report?: AssistantReportDraft | null; tasks?: AssistantDraft[] | null }
 export type AssistantToolMode = 'PROGRESS' | 'REPORT_REVIEW' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN'
 export type AssistantExportFormat = 'txt' | 'md' | 'docx' | 'xlsx' | 'pdf'
 export interface AssistantRubricOption { id: number; title: string; version: number; assignedToProject: boolean }
 export const listAssistantRubrics = (projectId: number, signal?: AbortSignal) => httpGet<AssistantRubricOption[]>(`/academic/assistant/review-rubrics?projectId=${projectId}`, { signal })
 export interface AcademicAssistantResponse { answer: string; answerType: string; citations: KnowledgeCitation[]; projectEvidence: EvidenceReference[]; insufficientEvidence: boolean; limitationNote: string | null; generationStatus: string; generatedAt: string; runId: number | null; attachments?: { fileName: string; mediaType: string }[]; conversationId?: number; revision?: number; draft?: AssistantDraft }
 export interface AssistantConversation { id: number; title: string; projectId: number | null; scope: string; revision: number; updatedAt: string }
-export interface AssistantTurn { id: number; query: string; response: AcademicAssistantResponse }
+/** A persisted turn includes the server-side start time so history shows when the user sent it. */
+export interface AssistantTurn { id: number; query: string; sentAt?: string; response: AcademicAssistantResponse }
 export interface ConversationDetail { conversation: AssistantConversation; turns: AssistantTurn[]; hasMore: boolean }
-export interface AssistantStreamEvent { type: 'preview' | 'completed' | 'error'; text?: string; response?: AcademicAssistantResponse }
+export interface AssistantStreamEvent { type: 'status' | 'preview' | 'completed' | 'error'; text?: string; response?: AcademicAssistantResponse }
 export const createAssistantConversation = (projectId?: number, signal?: AbortSignal) => httpPost<AssistantConversation>('/academic/assistant/conversations', { projectId, scope: projectId ? 'COMBINED' : 'ACADEMIC' }, { signal })
 export const listAssistantConversations = (projectId?: number, beforeId?: number, signal?: AbortSignal) => httpGet<AssistantConversation[]>(`/academic/assistant/conversations?${new URLSearchParams({ ...(projectId ? { projectId: String(projectId) } : {}), ...(beforeId ? { beforeId: String(beforeId) } : {}) })}`, { signal })
 export const getAssistantConversation = (id: number, beforeTurnId?: number, signal?: AbortSignal) => httpGet<ConversationDetail>(`/academic/assistant/conversations/${id}${beforeTurnId ? `?beforeTurnId=${beforeTurnId}` : ''}`, { signal })
@@ -30,7 +39,7 @@ export async function streamAssistant(query: string, files: File[], conversation
   files.forEach(file => form.append('files', file))
   let result: AcademicAssistantResponse | undefined
   await httpPostStream<AssistantStreamEvent>('/academic/assistant/stream', form, event => {
-    if (event.type === 'preview') onPreview(event.text ?? '')
+    if (event.type === 'status' || event.type === 'preview') onPreview(event.text ?? '')
     if (event.type === 'completed') result = event.response
     if (event.type === 'error') throw new Error(event.text)
   }, { signal })

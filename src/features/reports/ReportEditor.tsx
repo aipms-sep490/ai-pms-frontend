@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { getProgressReportPrefill, type ProgressReportPrefill } from '../../services/api/progress-reports.api'
 import type { ReportingCycle } from '../../services/api/progress-reports.api'
+import type { AssistantDraft } from '../ai/academic-ai-api'
 import { utcTimestamp } from '../execution/execution-utils'
 import {
   formatReportDate,
@@ -15,6 +16,7 @@ import {
 export function ReportEditor({
   projectId,
   report,
+  initialDraft,
   cycles,
   existingReports = [],
   fieldErrors,
@@ -23,6 +25,7 @@ export function ReportEditor({
   onDirtyChange,
 }: {
   projectId: number
+  initialDraft?: AssistantDraft
   report?: ReportDetail
   cycles?: ReportingCycle[]
   existingReports?: ProgressReport[]
@@ -31,19 +34,22 @@ export function ReportEditor({
   onSave: (value: CreateReport) => Promise<void>
   onDirtyChange: (dirty: boolean) => void
 }) {
-  const [selectedCycleId, setSelectedCycleId] = useState<number | ''>(report?.progressReportPeriodId ?? '')
+  const matches = !report && initialDraft?.report?.periodStart && initialDraft.report.periodEnd ? cycles?.filter(c => c.reportType === 'WEEKLY' && c.periodStart.slice(0, 10) === initialDraft.report!.periodStart && c.periodEnd.slice(0, 10) === initialDraft.report!.periodEnd && !existingReports.some(r => r.progressReportPeriodId === c.id || (r.reportType === c.reportType && r.periodStart.slice(0, 10) === c.periodStart.slice(0, 10) && r.periodEnd.slice(0, 10) === c.periodEnd.slice(0, 10)))) ?? [] : []
+  const initialCycle = matches.length === 1 ? matches[0] : undefined
+  const initialCycleId = initialCycle?.id
+  const [selectedCycleId, setSelectedCycleId] = useState<number | ''>(report?.progressReportPeriodId ?? initialCycle?.id ?? '')
   const [values, setValues] = useState<CreateReport>(() => ({
     reportType: report?.reportType ?? 'WEEKLY',
-    periodStart: report?.periodStart ?? '',
-    periodEnd: report?.periodEnd ?? '',
-    progressReportPeriodId: report?.progressReportPeriodId ?? null,
-    summary: report?.summary ?? '',
-    completedWork: report?.completedWork ?? '',
-    inProgressWork: report?.inProgressWork ?? '',
-    blockers: report?.blockers ?? '',
-    risks: report?.risks ?? '',
-    nextActions: report?.nextActions ?? '',
-    plannedWork: report?.plannedWork ?? '',
+    periodStart: report?.periodStart ?? initialCycle?.periodStart.slice(0, 10) ?? initialDraft?.report?.periodStart ?? '',
+    periodEnd: report?.periodEnd ?? initialCycle?.periodEnd.slice(0, 10) ?? initialDraft?.report?.periodEnd ?? '',
+    progressReportPeriodId: report?.progressReportPeriodId ?? initialCycle?.id ?? null,
+    summary: report?.summary ?? initialDraft?.description ?? '',
+    completedWork: report?.completedWork ?? initialDraft?.report?.completedWork ?? '',
+    inProgressWork: report?.inProgressWork ?? initialDraft?.report?.inProgressWork ?? '',
+    blockers: report?.blockers ?? initialDraft?.report?.blockers ?? '',
+    risks: report?.risks ?? initialDraft?.report?.risks ?? '',
+    nextActions: report?.nextActions ?? initialDraft?.report?.nextActions ?? '',
+    plannedWork: report?.plannedWork ?? initialDraft?.report?.plannedWork ?? '',
     issuesAndRisks: report?.issuesAndRisks ?? '',
   }))
   const [dirty, setDirty] = useState(false)
@@ -52,7 +58,10 @@ export function ReportEditor({
   const [prefillLoading, setPrefillLoading] = useState(false)
   const [suggestedKeys, setSuggestedKeys] = useState<Array<keyof ProgressReportPrefill['suggested']>>([])
   const suggestedKeysRef = useRef<Array<keyof ProgressReportPrefill['suggested']>>([])
-  const touchedKeys = useRef(new Set<keyof ProgressReportPrefill['suggested']>())
+  const touchedKeys = useRef(new Set<keyof ProgressReportPrefill['suggested']>(
+    (['summary', 'completedWork', 'inProgressWork', 'blockers', 'risks', 'nextActions'] as const)
+      .filter(key => Boolean(key === 'summary' ? initialDraft?.description : initialDraft?.report?.[key])),
+  ))
   const prefillController = useRef<AbortController | null>(null)
   const prefillTimer = useRef<number | null>(null)
   const dismissedSuggestions = useRef(false)
@@ -101,12 +110,12 @@ export function ReportEditor({
   }, [projectId, onDirtyChange])
 
   useEffect(() => {
-    if (!report) requestPrefill()
+    if (!report) requestPrefill(initialCycleId)
     return () => {
       prefillController.current?.abort()
       if (prefillTimer.current !== null) window.clearTimeout(prefillTimer.current)
     }
-  }, [report, requestPrefill])
+  }, [report, requestPrefill, initialCycleId])
 
   function update(key: keyof CreateReport, value: string) {
     if (key in { summary: true, completedWork: true, inProgressWork: true, blockers: true, risks: true, nextActions: true }) {
@@ -217,7 +226,7 @@ export function ReportEditor({
 
       {!report && prefillLoading && <p role="status" className="report-help">Đang lấy gợi ý từ dữ liệu dự án…</p>}
       {!report && suggestedKeys.length > 0 && <div className="report-prefill-note" role="note"><p>Gợi ý từ dữ liệu dự án — hãy kiểm tra và sửa trước khi nộp.</p><button className="report-button report-button--secondary" type="button" onClick={clearSuggestions}>Bỏ gợi ý, nhập lại từ đầu</button></div>}
-
+      {initialDraft && !report && <p role="status" className="report-help">Đã điền bản nháp AI. Kiểm tra nội dung và kỳ báo cáo trước khi lưu; báo cáo chưa được nộp.</p>}
       <fieldset disabled={busy}>
         {/* Cycle selection when creating a new report */}
         {canChooseCycle && cycles && cycles.length > 0 ? (

@@ -49,6 +49,47 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Meetings end-user workflow', () => {
+  it('carries minutes from the meeting picker into the authorized notes form without sending attendance', async () => {
+    const router = mount({ path: '/project/meetings' })
+    await act(() => router.navigate('/project/meetings', { state: { assistantDraft: { kind: 'MEETING_MINUTES', projectId: 2, title: 'Review notes', description: 'Draft conclusion' } } }))
+    await screen.findByText(/Bản nháp biên bản đã sẵn sàng/)
+    fireEvent.click(await screen.findByRole('link', { name: /Rà soát tiến độ tuần/ }))
+    await ready()
+    expect(api.updateMeetingNotes).not.toHaveBeenCalled()
+    click('Điền bản nháp vào biên bản')
+    expect((screen.getByLabelText('Biên bản & kết luận') as HTMLTextAreaElement).value).toBe('Draft conclusion')
+    click('Lưu biên bản & điểm danh')
+    await screen.findByText('Đã lưu biên bản và điểm danh.')
+    expect(api.updateMeetingNotes).toHaveBeenCalledWith(42, { meetingNotes: 'Draft conclusion', attendances: [], concurrencyToken: 'meeting-token' })
+  })
+
+  it('does not offer to apply AI minutes to a read-only meeting', async () => {
+    const router = mount({ readOnly: true })
+    await act(() => router.navigate('/project/meetings/42', { state: { assistantDraft: { kind: 'MEETING_MINUTES', projectId: 2, title: 'Notes', description: 'Draft' } } }))
+    await ready()
+    expect(screen.queryByRole('button', { name: 'Điền bản nháp vào biên bản' })).toBeNull()
+    expect(api.updateMeetingNotes).not.toHaveBeenCalled()
+  })
+
+  it('applies each assistant draft on the same create route and waits for authorized invitees', async () => {
+    let resolve!: (value: unknown) => void
+    api.getMeetingCandidates.mockReturnValue(new Promise(done => { resolve = done }))
+    const router = mount({ path: '/project/meetings/new' })
+    const draft = { kind: 'MEETING', projectId: 2, title: 'First draft', description: 'Agenda', meeting: { startAt: '2026-11-04T05:00:00Z', inviteAll: true } }
+    await act(() => router.navigate('/project/meetings/new', { state: { assistantDraft: draft } }))
+    expect((screen.getByLabelText('Tiêu đề cuộc họp') as HTMLInputElement).value).toBe('First draft')
+    expect(screen.getByRole('button', { name: 'Cần kiểm tra lại trạng thái' }).closest('fieldset')?.disabled).toBe(true)
+    await act(async () => resolve({ candidates: [{ userId: 9, fullName: 'Khang', role: 'Leader' }, { userId: 6, fullName: 'GVHD', role: 'Lecturer' }] }))
+    expect((screen.getByRole('checkbox', { name: /GVHD/ }) as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByLabelText(/Bắt đầu/) as HTMLInputElement).value).toBe('2026-11-04T12:00')
+    expect(api.createMeeting).not.toHaveBeenCalled()
+    await act(() => router.navigate('/project/meetings/new', { state: { assistantDraft: { ...draft, title: 'Second draft', meeting: { ...draft.meeting, startAt: '2026-11-05T07:00:00Z', inviteAll: false } } } }))
+    expect((screen.getByLabelText('Tiêu đề cuộc họp') as HTMLInputElement).value).toBe('Second draft')
+    expect((screen.getByLabelText(/Bắt đầu/) as HTMLInputElement).value).toBe('2026-11-05T14:00')
+    expect((screen.getByRole('checkbox', { name: /GVHD/ }) as HTMLInputElement).checked).toBe(false)
+    expect(router.state.location.state).toBeNull()
+  })
+
   it('shows meeting history without supervisor write controls in read-only mode', async () => {
     mount({ actor: 'supervisor', userId: 6, readOnly: true })
     await ready()
