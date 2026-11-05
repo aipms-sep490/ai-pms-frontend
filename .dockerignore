@@ -1,0 +1,15 @@
+node_modules
+.git
+.github
+*.log
+*.md
+src
+public
+tests
+e2e
+docs
+scripts
+package.json
+pnpm-lock.yaml
+tsconfig*.json
+vite.config.ts

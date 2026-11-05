@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "build:staging": "node scripts/build-staging.mjs",
     "dev:review-gates:staging": "node scripts/dev-review-gates-staging.mjs",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
