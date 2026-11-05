@@ -28,6 +28,25 @@ function valuesFor(draft: EvaluationDraft): FieldValues {
   }]))
 }
 
+function scoreGroups(scores: EvaluationScore[]) {
+  const groups: Array<{ key: string; parentId: number | null; parentName: string | null; scores: EvaluationScore[] }> = []
+  const byParent = new Map<number, (typeof groups)[number]>()
+  for (const score of [...scores].sort((a, b) => a.sortOrder - b.sortOrder)) {
+    if (score.parentId == null) {
+      groups.push({ key: `leaf-${score.rubricCriterionId}`, parentId: null, parentName: null, scores: [score] })
+      continue
+    }
+    let group = byParent.get(score.parentId)
+    if (!group) {
+      group = { key: `parent-${score.parentId}`, parentId: score.parentId, parentName: score.parentName ?? null, scores: [] }
+      byParent.set(score.parentId, group)
+      groups.push(group)
+    }
+    group.scores.push(score)
+  }
+  return groups
+}
+
 function scopeDescription(scope: string, majorName: string | null | undefined, studentName: string | null | undefined): string {
   if (scope === 'COMMON') return 'Thành phần chung của đồ án; không thể chuyển sang ngành hoặc sinh viên khác.'
   if (scope === 'MAJOR_SPECIFIC') return `Ngành: ${majorName ?? 'Chưa tải được tên ngành'}; không thể đổi ngành trong giao diện.`
@@ -184,7 +203,9 @@ export function EvaluatorAssignmentDetailPage() {
     {state === 'ready' && draft ? <>
       <section className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-semibold text-ink">Bộ tiêu chí áp dụng</h2><p className="mt-1 text-sm leading-6 text-ink-muted">Nhập điểm và nhận xét cho từng tiêu chí trong bộ đánh giá đã được công bố.</p></section>
       <form className="evaluator-scoring-form" onSubmit={(event) => void save(event)} noValidate>
-        {[...draft.scores].sort((a, b) => a.sortOrder - b.sortOrder).map((criterion) => <section key={criterion.rubricCriterionId} className="rounded-xl border border-hairline bg-card p-5">
+        {scoreGroups(draft.scores).map(group => <div key={group.key} role={group.parentId == null ? undefined : 'group'} aria-label={group.parentId == null ? undefined : `Nhóm ${group.parentName ?? `#${group.parentId}`}`} className={group.parentId == null ? '' : 'space-y-3 border-l-2 border-primary/30 pl-4'}>
+          {group.parentId != null && <h3 className="font-semibold text-ink">{group.parentName ?? `Nhóm tiêu chí #${group.parentId}`}</h3>}
+          {group.scores.map(criterion => <section key={criterion.rubricCriterionId} className="rounded-xl border border-hairline bg-card p-5">
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]"><div className="min-w-0"><h2 className="break-words font-semibold text-ink">{criterion.criterionCode ? `${criterion.criterionCode} · ` : ""}{criterion.name}{criterion.isRequired ? <span aria-label="bắt buộc" className="ml-1 text-status-error-text">*</span> : null}</h2><p className="mt-1 break-words text-sm leading-6 text-ink-muted">{criterion.description || 'Không có mô tả.'} · Trọng số hiệu lực trong bộ tiêu chí: {formatPercent(criterion.effectiveWeightPercent ?? criterion.weightPercent)} · tối đa {formatScore(criterion.maxScore)}</p></div><label className="text-sm font-semibold text-ink-soft">Điểm<input aria-label={`Điểm ${criterion.name}`} aria-describedby={fieldErrors[criterion.rubricCriterionId] ? `score-error-${criterion.rubricCriterionId}` : undefined} value={values[criterion.rubricCriterionId]?.score ?? ''} onChange={(event) => updateCriterion(criterion, { score: event.target.value })} disabled={!scoringAllowed || !editable || busy} inputMode="decimal" type="number" min="0" max={criterion.maxScore} step="0.01" className="mt-1 block w-full rounded-lg border border-hairline bg-card px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50" /></label></div>
 
           {criterion.evidenceGuidance ? <p className="mt-2 text-sm text-ink-muted">Minh chứng dùng để chấm: {criterion.evidenceGuidance}</p> : null}
@@ -192,7 +213,8 @@ export function EvaluatorAssignmentDetailPage() {
           <CriterionLevelPanel levels={criterion.levels} />
           {fieldErrors[criterion.rubricCriterionId] ? <p id={`score-error-${criterion.rubricCriterionId}`} className="mt-2 text-sm text-status-error-text">{fieldErrors[criterion.rubricCriterionId]}</p> : null}
           <label className="mt-3 block text-sm font-semibold text-ink-soft">Nhận xét tiêu chí<textarea aria-label={`Nhận xét ${criterion.name}`} value={values[criterion.rubricCriterionId]?.comments ?? ''} onChange={(event) => updateCriterion(criterion, { comments: event.target.value })} disabled={!scoringAllowed || !editable || busy} maxLength={2000} className="mt-1 block min-h-24 w-full rounded-lg border border-hairline bg-card px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50" /></label>
-        </section>)}
+          </section>)}
+        </div>)}
         <section className="rounded-xl border border-hairline bg-card p-5"><label className="block text-sm font-semibold text-ink-soft">Nhận xét tổng thể<textarea aria-label="Nhận xét tổng thể" value={overallComment} onChange={(event) => setOverallComment(event.target.value)} disabled={!scoringAllowed || !editable || busy} maxLength={10000} className="mt-1 block min-h-28 w-full rounded-lg border border-hairline bg-card px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50" /></label>{scoringAllowed && editable ? <button type="submit" disabled={busy || conflicted} className="mt-4 min-h-11 rounded-lg border border-primary px-4 text-sm font-semibold text-primary disabled:opacity-50">{busy ? 'Đang lưu…' : 'Lưu bản nháp'}</button> : <p className="mt-4 text-sm font-semibold text-academic-emerald">{draft.status === 'FINALIZED' ? `Đánh giá đã chốt${draft.finalization ? ` lúc ${dateTimeLabel(draft.finalization.finalizedAt)}` : ''}; chỉ đọc.` : 'Bạn có quyền xem đánh giá này.'}</p>}</section>
       </form>
       {scoringAllowed && editable ? <section className="rounded-xl border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text"><h2 className="font-semibold">Chốt đánh giá</h2><dl className="evaluator-score-summary"><div><dt>Điểm đã lưu</dt><dd>{draft.totalScore === null ? 'Chưa đủ điểm' : `${formatScore(draft.totalScore)}/${formatScore(draft.scoreScale)}`}</dd></div><div><dt>Tiêu chí còn thiếu</dt><dd>{formatCount(draft.missingCriterionIds.length)}</dd></div><div><dt>Bản nháp</dt><dd>{dirty ? 'Có thay đổi chưa lưu' : 'Đã đồng bộ'}</dd></div></dl>{dirty ? <p role="status" className="mt-3 font-semibold">Lưu bản nháp trước khi chốt để áp dụng điểm và nhận xét vừa sửa.</p> : null}<p className="mt-1 leading-6">Kiểm tra điểm và nhận xét trước khi chốt. Hệ thống sẽ xác nhận các điều kiện để hoàn tất đánh giá.</p><button type="button" disabled={busy || !canFinalize} onClick={() => void finalize()} className="mt-4 min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">Yêu cầu chốt đánh giá</button></section> : null}

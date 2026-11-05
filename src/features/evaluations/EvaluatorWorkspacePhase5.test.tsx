@@ -47,6 +47,16 @@ describe('Evaluator Workspace Phase 5', () => {
     expect(api.getEvaluationSchemes).not.toHaveBeenCalled()
   })
 
+  it('reads BE approval and component weight for a lecturer without a scheme request', async () => {
+    auth.roles = ['LECTURER']
+    api.getEvaluationAssignmentDetail.mockResolvedValue({ assignment, canScore: true, legacyReadOnly: false, denialReason: null,
+      schemeIsDemo: false, schemeApprovalStatus: 'APPROVED', componentStudentWeightPercent: 35 })
+    page()
+    expect(await screen.findByText(/Đây là phiếu chấm chính thức/)).toBeTruthy()
+    expect(screen.getByText('35%')).toBeTruthy()
+    expect(api.getEvaluationSchemes).not.toHaveBeenCalled()
+  })
+
   it('uses the exact assigned component when the academic actor may read the scheme', async () => {
     api.getEvaluationSchemes.mockResolvedValue([
       { id: 2, components: [{ id: 99, studentWeightPercent: 99 }], policy: { isDemo: true, approvalStatus: 'DEMO' } },
@@ -136,6 +146,19 @@ describe('Evaluator Workspace Phase 5', () => {
       { rubricCriterionId: 12, score: 8, comments: null },
       { rubricCriterionId: 13, score: 7, comments: null },
     ])
+  })
+  it('groups scored leaves under the BE parent without adding a parent score', async () => {
+    const first = { ...draft.scores[0], rubricCriterionId: 12, name: 'Phân tích', parentId: 90, parentName: 'Chất lượng', sortOrder: 0 }
+    const second = { ...first, rubricCriterionId: 13, name: 'Kiểm chứng', sortOrder: 1 }
+    const root = { ...first, rubricCriterionId: 14, name: 'Trình bày', parentId: null, parentName: null, sortOrder: 0 }
+    api.getProjectEvaluations.mockResolvedValue({ items: [{ ...draft, scores: [first, root, second] }] })
+    page()
+    const group = await screen.findByRole('group', { name: 'Nhóm Chất lượng' })
+    expect(group.querySelectorAll('section').length).toBe(2)
+    expect(group.textContent).toContain('Phân tích')
+    expect(group.textContent).toContain('Kiểm chứng')
+    expect(group.textContent).not.toContain('Trình bày')
+    expect(screen.queryByLabelText('Điểm Chất lượng')).toBeNull()
   })
   it('does not classify an unavailable draft as a new or pending evaluation', async () => {
     api.getProjectEvaluations.mockRejectedValue(new Error('offline'))
