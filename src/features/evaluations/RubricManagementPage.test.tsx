@@ -46,8 +46,8 @@ describe('RubricManagementPage deep interactions', () => {
     await waitFor(() => expect(mocks.publishRubric).toHaveBeenCalledWith(1, 'token'))
     expect(mocks.submitRubricForApproval).not.toHaveBeenCalled()
   })
-  it('lets BE validate missing levels when the approval capability is present', async () => {
-    const incomplete = { ...draft, canSubmitForApproval: true, requiredLevelCount: 5, criteria: [{ ...criterion, levels: [] }] }
+  it('lets BE validate missing levels until it exposes requiredLevelCount', async () => {
+    const incomplete = { ...draft, canSubmitForApproval: true, criteria: [{ ...criterion, levels: [] }] }
     mocks.getRubric.mockImplementation(async (id: number) => id === 1 ? incomplete : published)
     mocks.submitRubricForApproval.mockRejectedValue(new HttpError('Invalid', 422, { errors: { criteria: ['Tiêu chí Chất lượng còn thiếu mức chất lượng.'] } }))
     page(); await screen.findByRole('heading', { name: 'Bộ đã công bố' })
@@ -60,6 +60,16 @@ describe('RubricManagementPage deep interactions', () => {
     await waitFor(() => expect(mocks.submitRubricForApproval).toHaveBeenCalledWith(1, 'token'))
     expect((await screen.findByRole('alert')).textContent).toContain('Tiêu chí Chất lượng còn thiếu mức chất lượng.')
   })
+  it('blocks submission when the server provides a required level count and leaves are incomplete', async () => {
+    const incomplete = { ...draft, evaluationScope: 'COMMON', canSubmitForApproval: true, requiredLevelCount: 5, criteria: [{ ...criterion, levels: [] }] }
+    mocks.getRubric.mockImplementation(async (id: number) => id === 1 ? incomplete : published)
+    page(); await screen.findByRole('heading', { name: 'Bộ đã công bố' })
+    fireEvent.click(screen.getByRole('button', { name: /DRAFT · v1/ }))
+    const submit = await screen.findByRole('button', { name: 'Gửi duyệt' }) as HTMLButtonElement
+    expect(submit.disabled).toBe(true)
+    expect(screen.getByText(/1 tiêu chí lá chưa đủ 5 mức chất lượng/)).toBeTruthy()
+    expect(mocks.submitRubricForApproval).not.toHaveBeenCalled()
+  })
   it('submits only a complete BE-approved draft', async () => {
     const levels = Array.from({ length: 5 }, (_, index) => ({ levelOrder: index + 1, label: `Mức ${index + 1}`, descriptor: `Mô tả ${index + 1}`, scoreFrom: null, scoreTo: null }))
     const ready = { ...draft, canSubmitForApproval: true, requiredLevelCount: 5, criteria: [{ ...criterion, levels }] }
@@ -71,13 +81,30 @@ describe('RubricManagementPage deep interactions', () => {
     fireEvent.click(screen.getByRole('dialog').querySelector('button[type="submit"]')!)
     await waitFor(() => expect(mocks.submitRubricForApproval).toHaveBeenCalledWith(1, 'token'))
   })
-  it('does not offer FE-only scope or level inputs before BE can persist them', async () => {
+  it('persists scoped rubric guidance and quality levels from the editor', async () => {
+    mocks.updateRubric.mockResolvedValue(draft)
     page(); await screen.findByRole('heading', { name: 'Bộ đã công bố' })
     fireEvent.click(screen.getByRole('button', { name: /DRAFT · v1/ }))
     await screen.findByLabelText('Tên tiêu chí')
-    expect(screen.queryByLabelText('Phạm vi')).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Thêm mức vào bản nháp' })).toBeNull()
-    expect(screen.queryByLabelText('Chuẩn đầu ra')).toBeNull()
+    fireEvent.change(screen.getByLabelText('Phạm vi'), { target: { value: 'COMMON' } })
+    fireEvent.change(screen.getByLabelText('Chuẩn đầu ra'), { target: { value: 'PLO-1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm mức vào bản nháp' }))
+    fireEvent.change(screen.getByLabelText('Nhãn mức'), { target: { value: 'Đạt' } })
+    fireEvent.change(screen.getByLabelText('Mô tả mức'), { target: { value: 'Đáp ứng yêu cầu' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
+    await waitFor(() => expect(mocks.updateRubric).toHaveBeenCalled())
+    expect(mocks.updateRubric.mock.calls[0][1]).toMatchObject({
+      evaluationScope: 'COMMON', majorId: null,
+      criteria: [{ learningOutcome: 'PLO-1', levels: [{ levelOrder: 1, label: 'Đạt', descriptor: 'Đáp ứng yêu cầu' }] }],
+    })
+    expect(mocks.updateRubric.mock.calls[0][1].criteria[0]).not.toHaveProperty('effectiveWeightPercent')
+  })
+  it('does not offer direct publish for a scoped draft without submit authority', async () => {
+    mocks.getRubric.mockImplementation(async (id: number) => id === 1 ? { ...draft, evaluationScope: 'COMMON', canSubmitForApproval: false } : published)
+    page(); await screen.findByRole('heading', { name: 'Bộ đã công bố' })
+    fireEvent.click(screen.getByRole('button', { name: /DRAFT · v1/ }))
+    await screen.findByLabelText('Phạm vi')
+    expect(screen.queryByRole('button', { name: 'Công bố' })).toBeNull()
   })
   it('keeps pending approval readonly and only shows approval actions on server capability', async () => {
     const pending = { ...draft, status: 'PENDING_APPROVAL', canEdit: false, canApprove: false, canReject: false }
