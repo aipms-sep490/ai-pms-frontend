@@ -3,8 +3,6 @@ import type { ChatAttachment, ChatMessage, ChatReaction } from './chat-api'
 /** Quick emoji set, Messenger-style — kept short so reacting stays one tap. */
 export const CHAT_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const
 
-/** 10 MiB, matching the limit used consistently elsewhere in the app (COLD reports). */
-export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 /** BE caps uploads at 10 files per message. */
 export const MAX_ATTACHMENTS_PER_MESSAGE = 10
 
@@ -12,7 +10,6 @@ export const isImageAttachment = (file: Pick<ChatAttachment, 'contentType'>) => 
 
 export function attachmentError(file: Pick<File, 'size'>): string | null {
   if (file.size <= 0) return 'Tệp rỗng, không thể gửi.'
-  if (file.size > MAX_ATTACHMENT_BYTES) return 'Tệp vượt quá 10 MiB.'
   return null
 }
 

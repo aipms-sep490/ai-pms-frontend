@@ -12,7 +12,8 @@ export interface ColdReportInput {
 /** Immutable once created: a new version is a new template row, never an edit. */
 export interface ColdTemplate {
   id: number
-  majorId: number
+  majorId: number | null
+  scope?: 'COMMON' | 'MAJOR_SPECIFIC' | null
   projectPeriodId: number
   name: string
   version: number
@@ -24,8 +25,8 @@ export interface ColdTemplate {
 export const getColdTemplateItExample = (signal?: AbortSignal) =>
   httpGet<ColdReportInput[]>('/cold-report-templates/examples/it', signal)
 
-export const getColdTemplates = (majorId: number, projectPeriodId: number, page = 1, pageSize = 20, signal?: AbortSignal) =>
-  httpGet<PagedResult<ColdTemplate>>(`/cold-report-templates?majorId=${majorId}&projectPeriodId=${projectPeriodId}&page=${page}&pageSize=${pageSize}`, signal)
+export const getColdTemplates = (majorId: number | null, projectPeriodId: number, page = 1, pageSize = 20, signal?: AbortSignal) =>
+  httpGet<PagedResult<ColdTemplate>>(`/cold-report-templates?${new URLSearchParams({ ...(majorId == null ? {} : { majorId: String(majorId) }), projectPeriodId: String(projectPeriodId), page: String(page), pageSize: String(pageSize) })}`, signal)
 
-export const createColdTemplate = (body: { majorId: number; projectPeriodId: number; name: string; reports: ColdReportInput[] }) =>
+export const createColdTemplate = (body: { majorId: number | null; scope: 'COMMON' | 'MAJOR_SPECIFIC'; projectPeriodId: number; name: string; reports: ColdReportInput[] }) =>
   httpPost<ColdTemplate>('/cold-report-templates', body)

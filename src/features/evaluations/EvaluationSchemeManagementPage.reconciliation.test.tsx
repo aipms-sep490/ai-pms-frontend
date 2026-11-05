@@ -26,7 +26,7 @@ const scheme: EvaluationScheme = {
   id: 31, rootId: 31, version: 1, projectId: 2, projectPeriodId: 7, name: 'Phương án ban đầu',
   status: 'DRAFT', passThreshold: 5, concurrencyToken: 'old-token', policyVersionId: null,
   calculationRule: 'CURRENT_RULE', students: [],
-  components: [{ id: 42, name: 'Chất lượng đồ án', scope: 'COMMON', majorId: null, rubricId: 4, projectWeightPercent: 100, studentWeightPercent: 100, requiredEvaluators: 1 }],
+  components: [{ id: 42, name: 'Chất lượng đồ án', scope: 'COMMON', majorId: null, rubricId: 4, projectWeightPercent: 100, studentWeightPercent: 100, requiredEvaluators: 1, stage: 'DEFENSE' }],
 }
 const latest: EvaluationScheme = { ...scheme, name: 'Phương án trên server', passThreshold: 6, concurrencyToken: 'new-token' }
 const conflictError = () => new HttpError('Server changed', 409)
@@ -114,7 +114,7 @@ describe('EvaluationSchemeManagementPage concurrency reconciliation', () => {
 
   it('keeps edits only after explicit choice and uses the refreshed token for the next save', async () => {
     await saveConflict()
-    fireEvent.click(screen.getByRole('button', { name: 'Giữ nội dung để tiếp tục sửa' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Giữ nội dung để tiếp tục sửa' }))
     expect(api.updateEvaluationScheme).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
     await waitFor(() => expect(api.updateEvaluationScheme).toHaveBeenCalledTimes(2))

@@ -13,6 +13,8 @@ import type { ProjectReviewMatrixRow, StudentGateRequirement, StudentReviewTimel
 
 const config = vi.hoisted(() => ({ reviewGatesMockEnabled: false, apiBaseUrl: '/api/v1' }))
 vi.mock('../../../app/config/env', () => ({ env: config }))
+const projectsApi = vi.hoisted(() => ({ getProject: vi.fn() }))
+vi.mock('../../../services/api/projects.api', () => ({ getProject: projectsApi.getProject }))
 
 const requirement: StudentGateRequirement = {
   id: '21', code: 'LINK', title: 'Kho mã nguồn', type: 'EXTERNAL_LINK', scope: 'COMMON',
@@ -34,7 +36,7 @@ const project: ProjectReviewMatrixRow = {
   blockingReasons: { R1: ['Cần bổ sung minh chứng thiết kế.'], R2: ['Chờ kết luận cổng R1.'] },
 }
 
-beforeEach(() => { config.reviewGatesMockEnabled = false })
+beforeEach(() => { config.reviewGatesMockEnabled = false; projectsApi.getProject.mockResolvedValue({ majors: [{ majorId: 12, majorName: 'Thiết kế đồ họa' }, { majorId: 13, majorName: 'Marketing' }] }) })
 afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
 function renderSubmission(req = requirement) {
@@ -192,7 +194,7 @@ describe('R3-06 backend scope labels and governance', () => {
   const scopeProps = { projectId: '40008', hybridScopes: { '12': 'IN_REVIEW' as const, IT: 'PASSED' as const },
     hybridScopeLabels: { '12': 'Thiết kế đồ họa', IT: 'Kỹ thuật phần mềm do BE trả' } }
 
-  it('prefers backend labels, including numeric major keys, on a live read-only panel', () => {
+  it('prefers backend labels, including numeric major keys, while preparing live decisions', async () => {
     const onUpdate = vi.fn()
     render(<InterdisciplinaryGatePanel {...scopeProps} onUpdateScopeDecision={onUpdate} />)
     expect(screen.getAllByText('Thiết kế đồ họa').length).toBeGreaterThan(0)
@@ -200,7 +202,9 @@ describe('R3-06 backend scope labels and governance', () => {
     expect(screen.queryByText('Chuyên ngành 12')).toBeNull()
     expect(screen.queryByText(/KHÔNG THỂ PASS/)).toBeNull()
     expect(screen.queryByText('READY FOR PASS')).toBeNull()
-    screen.queryAllByRole('combobox').forEach(select => expect((select as HTMLSelectElement).disabled).toBe(true))
+    await screen.findByRole('combobox', { name: /Trạng thái thẩm định · Marketing/ })
+    screen.queryAllByRole('combobox').forEach(select => expect((select as HTMLSelectElement).disabled).toBe(false))
+    expect(screen.getByText('Chờ thẩm định')).toBeTruthy()
     expect(onUpdate).not.toHaveBeenCalled()
   })
 
@@ -210,7 +214,23 @@ describe('R3-06 backend scope labels and governance', () => {
     render(<InterdisciplinaryGatePanel {...scopeProps} onUpdateScopeDecision={onUpdate} />)
     const row = screen.getAllByText('Thiết kế đồ họa')[0].closest('tr')!
     fireEvent.change(within(row).getByRole('combobox'), { target: { value: 'PASSED' } })
+    fireEvent.click(within(row).getByRole('button', { name: 'Ghi quyết định' }))
     await waitFor(() => expect(onUpdate).toHaveBeenCalledWith('40008', '12', 'PASSED'))
+  })
+
+  it('keeps a choice on 409 and shows a BE 403 without hiding the action', async () => {
+    const onUpdate = vi.fn().mockRejectedValueOnce(new HttpError('conflict', 409)).mockRejectedValueOnce(new HttpError('forbidden', 403, { code: 'SCOPE_FORBIDDEN' }))
+    render(<InterdisciplinaryGatePanel {...scopeProps} onUpdateScopeDecision={onUpdate} />)
+    const row = screen.getAllByText('Thiết kế đồ họa')[0].closest('tr')!
+    const select = within(row).getByRole('combobox') as HTMLSelectElement
+    fireEvent.change(select, { target: { value: 'PASSED' } })
+    fireEvent.click(within(row).getByRole('button', { name: 'Ghi quyết định' }))
+    await screen.findByText(/thiếu token phiên bản/)
+    expect(select.value).toBe('PASSED')
+    fireEvent.click(within(row).getByRole('button', { name: 'Ghi quyết định' }))
+    await screen.findByText(/SCOPE_FORBIDDEN/)
+    expect(select.value).toBe('PASSED')
+    expect(within(row).getByRole('button', { name: 'Ghi quyết định' })).toBeTruthy()
   })
 })
 

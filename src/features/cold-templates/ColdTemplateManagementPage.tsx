@@ -21,12 +21,12 @@ function emptyRow(): ReportRow {
 
 interface TargetRow {
   templateId: string
-  scope: 'COMMON' | 'MAJOR_SPECIFIC' | 'INDIVIDUAL'
+  scope: 'MAJOR_SPECIFIC' | 'INDIVIDUAL'
   studentId: string
 }
 
 function emptyTargetRow(templateId = ''): TargetRow {
-  return { templateId, scope: 'COMMON', studentId: '' }
+  return { templateId, scope: 'MAJOR_SPECIFIC', studentId: '' }
 }
 
 function errorMessage(reason: unknown): string {
@@ -58,6 +58,7 @@ export function ColdTemplateManagementPage() {
   }, [session, currentDepartment])
 
   const [majorId, setMajorId] = useState('')
+  const [templateScope, setTemplateScope] = useState<'COMMON' | 'MAJOR_SPECIFIC'>('MAJOR_SPECIFIC')
   const [projectPeriodId, setProjectPeriodId] = useState('')
   const [templates, setTemplates] = useState<ColdTemplate[] | null>(null)
   const [loading, setLoading] = useState(false)
@@ -89,9 +90,9 @@ export function ColdTemplateManagementPage() {
   const [applySuccess, setApplySuccess] = useState('')
 
   async function search() {
-    const major = Number(majorId)
+    const major = templateScope === 'COMMON' ? null : Number(majorId)
     const period = Number(projectPeriodId)
-    if (!major || !period) return
+    if ((templateScope === 'MAJOR_SPECIFIC' && !major) || !period) return
     setLoading(true)
     setListError('')
     setTemplates(null)
@@ -125,15 +126,15 @@ export function ColdTemplateManagementPage() {
   }
 
   async function submitCreate() {
-    const major = Number(majorId)
+    const major = templateScope === 'COMMON' ? null : Number(majorId)
     const period = Number(projectPeriodId)
     const cleanRows = rows.filter((row) => row.code.trim() && row.name.trim())
-    if (!major || !period || !name.trim() || cleanRows.length === 0) return
+    if ((templateScope === 'MAJOR_SPECIFIC' && !major) || !period || !name.trim() || cleanRows.length === 0) return
     setCreating(true)
     setCreateError('')
     setCreateSuccess('')
     try {
-      const created = await createColdTemplate({ majorId: major, projectPeriodId: period, name: name.trim(), reports: cleanRows })
+      const created = await createColdTemplate({ majorId: major, scope: templateScope, projectPeriodId: period, name: name.trim(), reports: cleanRows })
       setTemplates((current) => [created, ...(current ?? [])])
       setName('')
       setRows([emptyRow()])
@@ -172,6 +173,10 @@ export function ColdTemplateManagementPage() {
       setApplyError('Vui lòng chọn ít nhất một template ID hợp lệ.')
       return
     }
+    if (validTargets.some(target => !templates?.some(template => template.id === target.templateId && template.majorId != null && template.projectPeriodId === period))) {
+      setApplyError('Chỉ chọn template theo ngành đã tải cho kỳ này. Template chung chưa được máy chủ hỗ trợ áp dụng checklist.')
+      return
+    }
 
     setApplying(true)
     setApplyError('')
@@ -199,9 +204,9 @@ export function ColdTemplateManagementPage() {
   return (
     <WorkspacePage
       className="space-y-6"
-      title="Bộ report chấm nguội theo ngành"
-      eyebrow="COLD · QUẢN LÝ THEO NGÀNH VÀ KỲ ĐỒ ÁN"
-      description="Mỗi ngành tự định nghĩa bộ report của mình theo từng kỳ đồ án (loại EVALUATION hoặc FINAL_SUBMISSION). Mỗi lần tạo là một phiên bản mới, bất biến."
+      title="Bộ report chấm nguội"
+      eyebrow="COLD · QUẢN LÝ THEO PHẠM VI VÀ KỲ ĐỒ ÁN"
+      description="Tạo bộ report chung hoặc theo ngành cho từng kỳ đồ án EVALUATION hoặc FINAL_SUBMISSION. Mỗi lần tạo là một phiên bản mới, bất biến."
     >
       {/* Thông tin ngữ cảnh khoa */}
       <section className="rounded-xl border border-hairline bg-card p-4 shadow-xs">
@@ -235,6 +240,7 @@ export function ColdTemplateManagementPage() {
                 <select
                   className="mt-1 block w-full rounded-lg border border-hairline bg-canvas p-2 text-xs font-medium text-ink"
                   value={majorId}
+                  disabled={templateScope === 'COMMON'}
                   onChange={(e) => setMajorId(e.target.value)}
                 >
                   <option value="">-- Chọn ngành trực thuộc khoa --</option>
@@ -278,14 +284,17 @@ export function ColdTemplateManagementPage() {
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-3">
           <div>
             <h2 className="text-base font-bold text-ink">Khuôn 1: Tra cứu template đã có</h2>
-            <p className="text-xs text-ink-muted">Chọn ngành và kỳ đồ án để xem các bộ template đã được tạo.</p>
+            <p className="text-xs text-ink-muted">Chọn phạm vi và kỳ đồ án để xem các bộ template đã được tạo.</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-4">
+          <label className="text-sm font-semibold text-ink-soft">Phạm vi template
+            <select className="mt-1 block w-full rounded-lg border border-hairline bg-card p-2 text-sm" value={templateScope} onChange={event => { setTemplateScope(event.target.value as 'COMMON' | 'MAJOR_SPECIFIC'); setTemplates(null); setTargetRows([emptyTargetRow()]) }}><option value="MAJOR_SPECIFIC">Theo ngành</option><option value="COMMON">Chung</option></select>
+          </label>
           <label className="text-sm font-semibold text-ink-soft">
             Ngành áp dụng
-            <select className="mt-1 block w-full rounded-lg border border-hairline bg-card p-2 text-sm" value={majorId} onChange={(event) => setMajorId(event.target.value)}><option value="">-- Chọn ngành --</option>{availableMajors.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.code})</option> )}</select>
+            <select className="mt-1 block w-full rounded-lg border border-hairline bg-card p-2 text-sm" value={majorId} disabled={templateScope === 'COMMON'} onChange={(event) => setMajorId(event.target.value)}><option value="">-- Chọn ngành --</option>{availableMajors.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.code})</option> )}</select>
           </label>
 
           <label className="text-sm font-semibold text-ink-soft">
@@ -296,7 +305,7 @@ export function ColdTemplateManagementPage() {
           <button
             type="button"
             className="min-h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
-            disabled={loading || !majorId || !projectPeriodId}
+            disabled={loading || (templateScope === 'MAJOR_SPECIFIC' && !majorId) || !projectPeriodId}
             onClick={() => void search()}
           >
             {loading ? 'Đang tải…' : 'Tìm'}
@@ -307,7 +316,7 @@ export function ColdTemplateManagementPage() {
         {listError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{listError}</p>}
         {templates && templates.length === 0 && (
           <p className="rounded-lg border border-hairline bg-subtle p-3 text-sm text-ink-muted">
-            Chưa có template cho ngành/kỳ này.
+            Chưa có template cho phạm vi/kỳ này.
           </p>
         )}
         {templates && templates.length > 0 && (
@@ -323,6 +332,7 @@ export function ColdTemplateManagementPage() {
                       <p className="font-semibold text-ink">{template.name} (v{template.version})</p>
                       <span className="rounded-md bg-subtle px-2 py-0.5 font-mono text-xs text-ink-muted">ID: #{template.id}</span>
                       <span className="rounded-md bg-primary-subtle px-2 py-0.5 text-xs font-semibold text-primary">v{template.version}</span>
+                      <span className="rounded-md bg-subtle px-2 py-0.5 text-xs font-semibold text-ink-muted">{template.scope === 'COMMON' ? 'Chung' : 'Theo ngành'}</span>
                     </div>
                     <ul className="space-y-1 text-xs text-ink-soft">
                       {template.reports.map((report) => (
@@ -334,7 +344,7 @@ export function ColdTemplateManagementPage() {
                       ))}
                     </ul>
                   </div>
-                  <button
+                  {template.majorId == null ? <p className="text-xs text-status-warning-text">Chưa thể áp dụng checklist: BE chưa nhận target COMMON.</p> : <button
                     type="button"
                     className="inline-flex items-center gap-1 rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary-subtle"
                     onClick={() => {
@@ -343,7 +353,7 @@ export function ColdTemplateManagementPage() {
                     }}
                   >
                     + Chọn để áp dụng
-                  </button>
+                  </button>}
                 </li>
               ))}
             </ul>
@@ -357,7 +367,7 @@ export function ColdTemplateManagementPage() {
           <div>
             <h2 className="text-base font-bold text-ink">Khuôn 2: Tạo template mới (phiên bản mới)</h2>
             <p className="text-xs text-ink-muted">
-              Mỗi lần lưu sẽ tạo ra một phiên bản template mới bất biến cho Ngành & Kỳ đồ án đang chọn ở Khuôn 1.
+              Mỗi lần lưu tạo một phiên bản bất biến cho phạm vi và kỳ đồ án đang chọn ở Khuôn 1.
             </p>
           </div>
           <button
@@ -438,7 +448,7 @@ export function ColdTemplateManagementPage() {
             <button
               type="button"
               className="min-h-10 rounded-lg bg-primary px-5 text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
-              disabled={creating || !majorId || !projectPeriodId || !name.trim() || !rows.some((row) => row.code.trim() && row.name.trim())}
+              disabled={creating || (templateScope === 'MAJOR_SPECIFIC' && !majorId) || !projectPeriodId || !name.trim() || !rows.some((row) => row.code.trim() && row.name.trim())}
               onClick={() => void submitCreate()}
             >
               {creating ? 'Đang tạo…' : 'Tạo template'}
@@ -455,7 +465,7 @@ export function ColdTemplateManagementPage() {
         <div className="border-b border-hairline pb-3">
           <h2 className="text-base font-bold text-ink">Khuôn 3: Áp dụng template vào đồ án (Khoa phân bổ checklist)</h2>
           <p className="mt-1 text-xs text-ink-muted">
-            Gán bộ checklist COLD vào đồ án cụ thể với phạm vi (Cả nhóm, Theo ngành hoặc Cá nhân) kèm thời hạn nộp báo cáo.
+            Gán template theo ngành vào đồ án cụ thể, theo ngành hoặc cá nhân, kèm thời hạn nộp báo cáo.
           </p>
         </div>
 
@@ -487,13 +497,12 @@ export function ColdTemplateManagementPage() {
           <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Danh sách target templates</h3>
           {targetRows.map((target, idx) => (
             <div key={idx} className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-canvas p-2.5">
-              <select className="min-w-56 rounded-md border border-hairline bg-card p-1.5 text-sm" value={target.templateId} onChange={(e) => updateTargetRow(idx, { templateId: e.target.value })}><option value="">-- Chọn template --</option>{(templates ?? []).map(t => <option key={t.id} value={t.id}>{t.name} (v{t.version})</option>)}</select>
+              <select className="min-w-56 rounded-md border border-hairline bg-card p-1.5 text-sm" value={target.templateId} onChange={(e) => updateTargetRow(idx, { templateId: e.target.value })}><option value="">-- Chọn template --</option>{(templates ?? []).filter(t => t.majorId != null).map(t => <option key={t.id} value={t.id}>{t.name} (v{t.version})</option>)}</select>
               <select
                 className="rounded-md border border-hairline bg-canvas p-1.5 text-sm"
                 value={target.scope}
                 onChange={(e) => updateTargetRow(idx, { scope: e.target.value as TargetRow['scope'] })}
               >
-                <option value="COMMON">COMMON (Cả nhóm)</option>
                 <option value="MAJOR_SPECIFIC">MAJOR_SPECIFIC (Theo ngành)</option>
                 <option value="INDIVIDUAL">INDIVIDUAL (Cá nhân)</option>
               </select>

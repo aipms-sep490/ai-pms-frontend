@@ -11,6 +11,8 @@
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "sync-contracts": "node scripts/sync-contracts.mjs sync",
+    "check-contracts": "node scripts/sync-contracts.mjs check",
     "test:chat": "vitest run src/features/chat",
     "test:chat:e2e": "playwright test --config playwright.chat.config.ts",
     "preview": "vite preview"

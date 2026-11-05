@@ -60,9 +60,10 @@ export async function updateHybridScopeDecision(
   projectId: string,
   scope: string,
   newStatus: 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW',
+  concurrencyToken?: string | null,
 ): Promise<ProjectReviewMatrixRow> {
   if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.updateHybridScopeDecision(projectId, scope, newStatus)
-  return httpPost<ProjectReviewMatrixRow>(`/projects/${projectId}/review-gates/scopes/${scope}`, { newStatus })
+  return httpPost<ProjectReviewMatrixRow>(`/projects/${projectId}/review-gates/scopes/${encodeURIComponent(scope)}`, { newStatus, ...(concurrencyToken ? { concurrencyToken } : {}) })
 }
 
 export async function getDefenseReadiness(projectId: string): Promise<DefenseReadinessSummary> {
@@ -92,7 +93,6 @@ export async function submitRevision(
     })
   }
   if (!req.file) throw new Error('Vui lòng chọn tệp minh chứng thực tế.')
-  if (req.file.size > 20 * 1024 * 1024) throw new Error('Tệp vượt quá giới hạn 20 MiB.')
   const body = new FormData()
   body.append('file', req.file)
   body.append('requirementId', req.requirementId)

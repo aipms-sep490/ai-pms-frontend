@@ -12,7 +12,7 @@ const cycles = [{ id: 7, reportType: 'WEEKLY', periodStart: '2026-11-02', period
 
 it('prefills report sections and an exact unused cycle, but does not save or submit', () => {
   const save = vi.fn()
-  render(<ReportEditor initialDraft={report} cycles={cycles} busy={false} onSave={save} onDirtyChange={vi.fn()} />)
+  render(<ReportEditor projectId={9} initialDraft={report} cycles={cycles} busy={false} onSave={save} onDirtyChange={vi.fn()} />)
   expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('7')
   expect(screen.getByDisplayValue('Summary')).toBeTruthy()
   for (const value of ['API done', 'Tests', 'Review', 'Delay', 'Fix tests', 'Deploy']) expect(screen.getByDisplayValue(value)).toBeTruthy()
@@ -22,7 +22,7 @@ it('prefills report sections and an exact unused cycle, but does not save or sub
 })
 
 it('does not select a period that already has a report', () => {
-  render(<ReportEditor initialDraft={report} cycles={cycles} existingReports={[{ progressReportPeriodId: 7 }] as never} busy={false} onSave={vi.fn()} onDirtyChange={vi.fn()} />)
+  render(<ReportEditor projectId={9} initialDraft={report} cycles={cycles} existingReports={[{ progressReportPeriodId: 7 }] as never} busy={false} onSave={vi.fn()} onDirtyChange={vi.fn()} />)
   expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('')
 })
 

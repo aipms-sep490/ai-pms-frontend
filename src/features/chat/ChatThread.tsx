@@ -1,3 +1,4 @@
+import { getUploadPolicy, validateUploadFile } from '../../services/api/upload-policies.api'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { HttpError } from '../../services/http/http-client'
@@ -191,10 +192,13 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
       .then(canonical => { if (!live.current || revoked.current) return; setMessages(old => mergeMessages(old, [canonical]).slice(-500)) })
       .catch(e => { if (!live.current) return; if (denied(e)) { clear(); return } flip(); setError(chatError(e)) })
   }
-  const addFiles = (incoming: FileList | null) => {
+  const addFiles = async (incoming: FileList | null) => {
     if (!incoming) return
     const accepted: File[] = []
-    for (const file of Array.from(incoming)) { const problem = attachmentError(file); if (problem) { setFileError(`${file.name}: ${problem}`); continue } accepted.push(file) }
+    const picked = Array.from(incoming)
+    const policy = await getUploadPolicy('CHAT_ATTACHMENT').catch(() => null)
+    if (!live.current || revoked.current) return
+    for (const file of picked) { const problem = attachmentError(file) ?? validateUploadFile(file, policy); if (problem) { setFileError(`${file.name}: ${problem}`); continue } accepted.push(file) }
     if (accepted.length) { setFiles(old => [...old, ...accepted].slice(0, MAX_ATTACHMENTS_PER_MESSAGE)); setFileError('') }
     if (fileInput.current) fileInput.current.value = ''
   }

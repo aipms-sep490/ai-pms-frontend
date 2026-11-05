@@ -1,4 +1,5 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { getUploadPolicy, uploadPolicyLabel, validateUploadFile, type UploadPolicy } from '../../../services/api/upload-policies.api'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { env } from '../../../app/config/env'
 import { services } from '../../../services/service-gateway'
 import { HttpError } from '../../../services/http/http-client'
@@ -9,6 +10,8 @@ const inputClass = 'mt-1 min-h-11 w-full rounded-lg border border-hairline bg-ca
 export function QualificationCertificateForm({ onSubmitted, onBusyChange }: { onSubmitted: (value: StudentQualificationDto) => void; onBusyChange?: (busy: boolean) => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [policy, setPolicy] = useState<UploadPolicy | null>(null)
+  useEffect(() => { if (!env.isMockMode) void getUploadPolicy('STUDENT_QUALIFICATION').then(setPolicy).catch(() => {}) }, [])
   const pending = useRef(false)
   const errorRef = useRef<HTMLParagraphElement>(null)
   function fail(message: string) { setError(message); requestAnimationFrame(() => errorRef.current?.focus()) }
@@ -19,14 +22,14 @@ export function QualificationCertificateForm({ onSubmitted, onBusyChange }: { on
     const data = new FormData(form)
     const file = (form.elements.namedItem('file') as HTMLInputElement).files?.[0]
     if (!file || file.size === 0) return fail('Chọn tệp chứng nhận có nội dung.')
-    if (!['application/pdf', 'image/png', 'image/jpeg'].includes(file.type)) return fail('Chỉ hỗ trợ PDF, PNG hoặc JPEG. Hệ thống sẽ kiểm tra nội dung tệp khi nhận hồ sơ.')
-    if (file.size > 20 * 1024 * 1024) return fail('Tệp chứng nhận không được vượt quá 20 MiB.')
     if (!data.has('completed')) return fail('Xác nhận đã hoàn thành đào tạo trước khi nộp chứng nhận.')
     const issued = String(data.get('issuedAt') ?? '')
     const expires = String(data.get('expiresAt') ?? '')
     if (issued && expires && expires <= issued) return fail('Ngày hết hạn phải sau ngày cấp.')
     pending.current = true; setBusy(true); onBusyChange?.(true); setError('')
     try {
+      const problem = validateUploadFile(file, policy ?? await getUploadPolicy('STUDENT_QUALIFICATION').catch(() => null))
+      if (problem) return fail(problem)
       const value = await services.qualification.uploadCertificate({ file,
         certificateNumber: String(data.get('certificateNumber') ?? '').trim() || undefined,
         issuedAt: issued ? new Date(`${issued}T00:00:00+07:00`).toISOString() : undefined,
@@ -39,7 +42,7 @@ export function QualificationCertificateForm({ onSubmitted, onBusyChange }: { on
   }
   return <form className="mt-5 border-t border-hairline pt-4" onSubmit={event => void submit(event)} aria-label="Nộp chứng nhận đào tạo">
     <h3 className="font-semibold text-ink">Nộp hoặc nộp lại chứng nhận</h3>
-    <p id="certificate-help" className="mt-1 text-sm leading-6 text-ink-muted">PDF, PNG hoặc JPEG, tối đa 20 MiB. Hồ sơ sẽ chờ bộ môn xác minh; nộp tệp chưa xác nhận đủ điều kiện đăng ký.</p>
+    <p id="certificate-help" className="mt-1 text-sm leading-6 text-ink-muted">{policy ? uploadPolicyLabel(policy) : 'Giới hạn tệp theo chính sách máy chủ.'} Hồ sơ sẽ chờ bộ môn xác minh; nộp tệp chưa xác nhận đủ điều kiện đăng ký.</p>
     {env.isMockMode && <p role="status" className="mt-2 text-sm text-ink-muted">Nộp chứng nhận cần kết nối API. Chế độ dữ liệu mẫu chỉ hỗ trợ xem.</p>}
     <fieldset disabled={busy || env.isMockMode} className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2">
       <label className="min-w-0 text-sm font-medium sm:col-span-2">Tệp chứng nhận<input name="file" type="file" accept="application/pdf,image/png,image/jpeg" aria-describedby="certificate-help certificate-error" className={`${inputClass} min-w-0 max-w-full`} /></label>
@@ -58,7 +61,7 @@ function uploadError(reason: unknown) {
     if (reason.status === 401) return 'Phiên đăng nhập đã hết hạn. Đăng nhập lại trước khi nộp.'
     if (reason.status === 403) return 'Bạn chưa có quyền nộp chứng nhận cho hồ sơ này.'
     if (reason.status === 409) return 'Hồ sơ đã thay đổi hoặc ngày chứng nhận chưa hợp lệ. Tải lại trạng thái và kiểm tra trước khi nộp lại.'
-    if (reason.status === 413) return 'Tệp vượt giới hạn tải lên. Chọn tệp tối đa 20 MiB.'
+    if (reason.status === 413) return 'Tệp vượt giới hạn tải lên. Chọn tệp nhỏ hơn.'
     if (reason.status === 400 || reason.status === 422) return 'Hệ thống không chấp nhận tệp hoặc thông tin chứng nhận. Kiểm tra nội dung, định dạng và ngày cấp.'
   }
   return 'Chưa xác nhận được việc nộp hồ sơ. Tải lại trạng thái trước khi quyết định nộp lại.'

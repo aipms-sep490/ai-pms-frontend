@@ -26,6 +26,16 @@ describe('Review Gates transport against BE a1f510b (mock disabled)', () => {
   })
   afterEach(() => { vi.unstubAllGlobals(); localStorage.clear() })
 
+  it('sends the scope token only when BE supplied one, preserving the numeric scope key', async () => {
+    await api.updateHybridScopeDecision('40008', '12', 'PASSED', token)
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/projects/40008/review-gates/scopes/12')
+    expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toEqual({ newStatus: 'PASSED', concurrencyToken: token })
+    fetchMock.mockClear()
+    fetchMock.mockResolvedValueOnce(new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    await api.updateHybridScopeDecision('40008', 'COMMON', 'IN_REVIEW')
+    expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toEqual({ newStatus: 'IN_REVIEW' })
+  })
+
   it('uploads actual bytes to evidence/file with expected version and gate token', async () => {
     const file = new File(['actual document bytes'], 'report.pdf', { type: 'application/pdf' })
     await api.submitRevision({ projectId: '9007199254740993', gateCode: 'R1', requirementId: '21', artifactName: file.name, notes: 'Updated', expectedVersion: 2, concurrencyToken: token, mode: 'file', file }, true)
@@ -38,6 +48,13 @@ describe('Review Gates transport against BE a1f510b (mock disabled)', () => {
     expect(body.get('requirementId')).toBe('21')
     expect(body.get('expectedVersion')).toBe('2')
     expect(body.get('concurrencyToken')).toBe(token)
+  })
+
+  it('delegates file size validation to the current server policy', async () => {
+    const file = new File(['x'], 'report.pdf', { type: 'application/pdf' })
+    Object.defineProperty(file, 'size', { value: 21 * 1_048_576 })
+    await api.submitRevision({ projectId: '9', gateCode: 'R1', requirementId: '21', artifactName: file.name, notes: '', expectedVersion: 0, concurrencyToken: token, mode: 'file', file }, true)
+    expect(fetchMock).toHaveBeenCalledOnce()
   })
 
   it('rejects metadata-only FILE submissions before sending a request', async () => {

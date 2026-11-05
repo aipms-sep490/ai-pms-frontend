@@ -45,11 +45,14 @@ export function StudentReviewTimeline({
   const [showDefenseModal, setShowDefenseModal] = useState(false)
   const [submittingGate, setSubmittingGate] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'requirements' | 'feedback' | 'questions' | 'revisions'>('requirements')
 
   const selectedGate = timeline.gates.find((g) => g.code === selectedGateCode) || timeline.gates[0]
   const submissionRequirement = selectedGate?.requirements.find(req => req.id === activeReqForSubmission?.id) ?? null
   const completedGatesCount = timeline.gates.filter((g) => g.status === 'PASSED').length
   const totalGatesCount = timeline.gates.length
+  const gateFeedbacks = (timeline.supervisorFeedbacks ?? []).filter(item => item.gateCode === selectedGate?.code)
+  const revisionItems = (selectedGate?.requirements ?? []).filter(req => req.verificationStatus === 'REJECTED' || Boolean(req.reviewerFeedback))
   // Server-authoritative values (no client calculation or fallback heuristics)
   const academicProgress = timeline.academicProgress
   const isDefenseReady = readiness?.isReady ?? timeline.isDefenseReady
@@ -348,158 +351,316 @@ export function StudentReviewTimeline({
             </div>
           )}
 
-          {/* Requirements Checklist */}
-          <div>
-            <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-ink-muted">
-              Danh mục Minh chứng Học thuật ({selectedGate.requirements.length} yêu cầu)
-            </h4>
-            <p className="mb-2 text-xs text-ink-muted sm:hidden">Cuộn ngang để xem tệp và thao tác.</p>
-            <div role="region" aria-label="Danh mục minh chứng, có thể cuộn ngang" tabIndex={0} className="overflow-x-auto rounded-lg border border-hairline">
-              <table className="w-full min-w-[720px] text-left text-xs">
-                <thead className="border-b border-hairline bg-canvas font-semibold text-ink-muted">
-                  <tr>
-                    <th className="px-3.5 py-2.5">Yêu cầu minh chứng</th>
-                    <th className="px-3 py-2.5">Loại & Phạm vi</th>
-                    <th className="px-3 py-2.5">Bắt buộc</th>
-                    <th className="px-3 py-2.5">Trạng thái thẩm định</th>
-                    <th className="px-3.5 py-2.5">Phiên bản đã nộp</th>
-                    <th className="px-3.5 py-2.5 text-right">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {selectedGate.requirements.map((req) => {
-                    return (
-                      <tr key={req.id} className="hover:bg-canvas/70">
-                        <td className="px-3.5 py-3">
-                          <strong className="block font-semibold text-ink">{req.title}</strong>
-                          <span className="text-slate-400">{req.code}</span>
-                          {req.reviewerFeedback && (
-                            <p className="mt-1 text-danger-text bg-status-error-bg/70 p-1.5 rounded-sm border border-status-error-border">
-                              <strong>Nhận xét:</strong> {req.reviewerFeedback}
-                            </p>
-                          )}
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className="rounded-md bg-canvas px-2 py-0.5 font-medium text-ink-soft">
-                            {requirementTypeLabel(req.type)}
-                          </span>
-                          <span className="ml-1 text-slate-400">({displayLabel(req.scope)})</span>
-                        </td>
-                        <td className="px-3 py-3 font-semibold text-ink-soft">
-                          {req.isMandatory ? <span className="text-danger-text font-bold">Bắt buộc</span> : 'Tùy chọn'}
-                        </td>
-                        <td className="px-3 py-3">
-                          {getVerificationBadge(req.verificationStatus)}
-                        </td>
-                        <td className="px-3.5 py-3">
-                          {req.latestArtifact ? (
-                            <div>
-                              <strong className="break-all text-ink" title={req.latestArtifact.linkUrl ?? req.latestArtifact.filename}>v{req.latestArtifact.version}: {evidenceArtifactLabel(req.latestArtifact)}</strong>
-                              <div className="text-slate-400">{req.latestArtifact.submittedAt} · {req.latestArtifact.submittedBy}</div>
-                              {req.latestArtifact.notes && <div className="text-ink-muted italic mt-0.5">"{req.latestArtifact.notes}"</div>}
-                              <EvidenceDownloadButton projectId={timeline.projectId} gateCode={selectedGate.code} requirement={req} />
-                            </div>
-                          ) : (
-                            <span className="text-slate-400">Chưa có tệp</span>
-                          )}
-                        </td>
-                        <td className="px-3.5 py-3 text-right">
-                          {req.verificationStatus === 'ACCEPTED' && selectedGate.status !== 'REVISION_REQUIRED' ? (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-status-success-bg px-2.5 py-1 text-xs font-semibold text-status-success-text border border-status-success-border">
-                              <span className="material-symbols-outlined text-sm" aria-hidden="true">check</span>
-                              Đã chấp thuận
+          {/* 4 Tabs Navigation (FE-17 & BP-02) */}
+          <div role="tablist" aria-label="Nội dung Cổng thẩm định" className="flex flex-wrap border-b border-hairline gap-1 pt-2">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'requirements'}
+              onClick={() => setActiveTab('requirements')}
+              className={`min-h-11 px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                activeTab === 'requirements'
+                  ? 'border-primary text-primary bg-primary-subtle/30 rounded-t-lg'
+                  : 'border-transparent text-ink-muted hover:text-ink'
+              }`}
+            >
+              Yêu cầu & Minh chứng ({selectedGate.requirements.length})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'feedback'}
+              onClick={() => setActiveTab('feedback')}
+              className={`min-h-11 px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                activeTab === 'feedback'
+                  ? 'border-primary text-primary bg-primary-subtle/30 rounded-t-lg'
+                  : 'border-transparent text-ink-muted hover:text-ink'
+              }`}
+            >
+              Phản hồi đã nhận ({gateFeedbacks.length})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'questions'}
+              onClick={() => setActiveTab('questions')}
+              className={`min-h-11 px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                activeTab === 'questions'
+                  ? 'border-primary text-primary bg-primary-subtle/30 rounded-t-lg'
+                  : 'border-transparent text-ink-muted hover:text-ink'
+              }`}
+            >
+              Câu hỏi (Q&A)
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'revisions'}
+              onClick={() => setActiveTab('revisions')}
+              className={`min-h-11 px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                activeTab === 'revisions'
+                  ? 'border-primary text-primary bg-primary-subtle/30 rounded-t-lg'
+                  : 'border-transparent text-ink-muted hover:text-ink'
+              }`}
+            >
+              Yêu cầu chỉnh sửa {revisionItems.length > 0 && <span className="ml-1 rounded-full bg-status-error-bg px-1.5 py-0.5 text-xs text-status-error-text border border-status-error-border">{revisionItems.length}</span>}
+            </button>
+          </div>
+
+          {/* TAB 1: YÊU CẦU & MINH CHỨNG */}
+          {activeTab === 'requirements' && (
+            <div className="space-y-4 pt-1">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted">
+                Danh mục Minh chứng Học thuật ({selectedGate.requirements.length} yêu cầu)
+              </h4>
+              <p className="text-xs text-ink-muted sm:hidden">Cuộn ngang để xem tệp và thao tác.</p>
+              <div role="region" aria-label="Danh mục minh chứng, có thể cuộn ngang" tabIndex={0} className="overflow-x-auto rounded-lg border border-hairline">
+                <table className="w-full min-w-[720px] text-left text-xs">
+                  <thead className="border-b border-hairline bg-canvas font-semibold text-ink-muted">
+                    <tr>
+                      <th className="px-3.5 py-2.5">Yêu cầu minh chứng</th>
+                      <th className="px-3 py-2.5">Loại & Phạm vi</th>
+                      <th className="px-3 py-2.5">Bắt buộc</th>
+                      <th className="px-3 py-2.5">Trạng thái thẩm định</th>
+                      <th className="px-3.5 py-2.5">Phiên bản đã nộp</th>
+                      <th className="px-3.5 py-2.5 text-right">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {selectedGate.requirements.map((req) => {
+                      return (
+                        <tr key={req.id} className="hover:bg-canvas/70">
+                          <td className="px-3.5 py-3">
+                            <strong className="block font-semibold text-ink">{req.title}</strong>
+                            <span className="text-slate-400">{req.code}</span>
+                            {req.reviewerFeedback && (
+                              <p className="mt-1 text-danger-text bg-status-error-bg/70 p-1.5 rounded-sm border border-status-error-border">
+                                <strong>Nhận xét:</strong> {req.reviewerFeedback}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-3 py-3">
+                            <span className="rounded-md bg-canvas px-2 py-0.5 font-medium text-ink-soft">
+                              {requirementTypeLabel(req.type)}
                             </span>
-                          ) : isLeader ? (
-                            (() => {
-                              const isRevision = selectedGate.status === 'REVISION_REQUIRED' || req.verificationStatus === 'REJECTED'
-                              const canSubmitThis = canSubmitSelectedGate
-                              const blockingReason = timeline.capabilities?.blockingReasons?.[0]
+                            <span className="ml-1 text-slate-400">({displayLabel(req.scope)})</span>
+                          </td>
+                          <td className="px-3 py-3 font-semibold text-ink-soft">
+                            {req.isMandatory ? <span className="text-danger-text font-bold">Bắt buộc</span> : 'Tùy chọn'}
+                          </td>
+                          <td className="px-3 py-3">
+                            {getVerificationBadge(req.verificationStatus)}
+                          </td>
+                          <td className="px-3.5 py-3">
+                            {req.latestArtifact ? (
+                              <div>
+                                <strong className="break-all text-ink" title={req.latestArtifact.linkUrl ?? req.latestArtifact.filename}>v{req.latestArtifact.version}: {evidenceArtifactLabel(req.latestArtifact)}</strong>
+                                <div className="text-slate-400">{req.latestArtifact.submittedAt} · {req.latestArtifact.submittedBy}</div>
+                                {req.latestArtifact.notes && <div className="text-ink-muted italic mt-0.5">"{req.latestArtifact.notes}"</div>}
+                                <EvidenceDownloadButton projectId={timeline.projectId} gateCode={selectedGate.code} requirement={req} />
+                              </div>
+                            ) : (
+                              <span className="text-slate-400">Chưa có tệp</span>
+                            )}
+                          </td>
+                          <td className="px-3.5 py-3 text-right">
+                            {req.verificationStatus === 'ACCEPTED' && selectedGate.status !== 'REVISION_REQUIRED' ? (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-status-success-bg px-2.5 py-1 text-xs font-semibold text-status-success-text border border-status-success-border">
+                                <span className="material-symbols-outlined text-sm" aria-hidden="true">check</span>
+                                Đã chấp thuận
+                              </span>
+                            ) : isLeader ? (
+                              (() => {
+                                const isRevision = selectedGate.status === 'REVISION_REQUIRED' || req.verificationStatus === 'REJECTED'
+                                const canSubmitThis = canSubmitSelectedGate
+                                const blockingReason = timeline.capabilities?.blockingReasons?.[0]
 
-                              if (!canSubmitThis) {
+                                if (!canSubmitThis) {
+                                  return (
+                                    <div className="flex flex-col items-end gap-0.5">
+                                      <button
+                                        type="button"
+                                        disabled
+                                        aria-disabled="true"
+                                        title={blockingReason || 'Hồ sơ hiện bị khóa nộp'}
+                                        className="cursor-not-allowed rounded-lg bg-canvas px-3 py-1.5 text-xs font-semibold text-slate-400"
+                                      >
+                                        {isRevision ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
+                                      </button>
+                                      <span className="max-w-[180px] truncate text-right text-xs text-danger-text italic" title={blockingReason}>
+                                        {blockingReason || 'Bị chặn nộp'}
+                                      </span>
+                                    </div>
+                                  )
+                                }
+
                                 return (
-                                  <div className="flex flex-col items-end gap-0.5">
-                                    <button
-                                      type="button"
-                                      disabled
-                                      aria-disabled="true"
-                                      title={blockingReason || 'Hồ sơ hiện bị khóa nộp'}
-                                      className="cursor-not-allowed rounded-lg bg-canvas px-3 py-1.5 text-xs font-semibold text-slate-400"
-                                    >
-                                      {isRevision ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
-                                    </button>
-                                    <span className="max-w-[180px] truncate text-right text-xs text-danger-text italic" title={blockingReason}>
-                                      {blockingReason || 'Bị chặn nộp'}
-                                    </span>
-                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setActiveReqForSubmission(req)}
+                                    className={`min-h-11 rounded-lg px-3 py-1.5 text-xs font-bold transition-all focus:outline-hidden focus:ring-2 focus:ring-offset-1 ${
+                                      isRevision
+                                        ? 'bg-danger-strong text-white shadow-xs hover:bg-danger-strong-hover focus:ring-danger-strong'
+                                        : 'bg-primary text-white shadow-xs hover:bg-primary-hover focus:ring-primary'
+                                    }`}
+                                  >
+                                    {isRevision ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
+                                  </button>
                                 )
-                              }
-
-                              return (
+                              })()
+                            ) : (
+                              <div className="flex flex-col items-end gap-0.5">
                                 <button
                                   type="button"
-                                  onClick={() => setActiveReqForSubmission(req)}
-                                  className={`min-h-11 rounded-lg px-3 py-1.5 text-xs font-bold transition-all focus:outline-hidden focus:ring-2 focus:ring-offset-1 ${
-                                    isRevision
-                                      ? 'bg-danger-strong text-white shadow-xs hover:bg-danger-strong-hover focus:ring-danger-strong'
-                                      : 'bg-primary text-white shadow-xs hover:bg-primary-hover focus:ring-primary'
-                                  }`}
+                                  disabled
+                                  aria-disabled="true"
+                                  aria-describedby={`member-only-notice-${req.id}`}
+                                  className="cursor-not-allowed rounded-lg bg-canvas px-3 py-1.5 text-xs font-semibold text-slate-400"
                                 >
-                                  {isRevision ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
+                                  {req.verificationStatus === 'REJECTED' ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
                                 </button>
-                              )
-                            })()
-                          ) : (
-                            <div className="flex flex-col items-end gap-0.5">
-                              <button
-                                type="button"
-                                disabled
-                                aria-disabled="true"
-                                aria-describedby={`member-only-notice-${req.id}`}
-                                className="cursor-not-allowed rounded-lg bg-canvas px-3 py-1.5 text-xs font-semibold text-slate-400"
-                              >
-                                {req.verificationStatus === 'REJECTED' ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
-                              </button>
-                              <span id={`member-only-notice-${req.id}`} className="text-xs text-slate-400 italic">
-                                {isAuthenticated ? 'Chỉ Trưởng nhóm' : 'Chưa đăng nhập'}
-                              </span>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                                <span id={`member-only-notice-${req.id}`} className="text-xs text-slate-400 italic">
+                                  {isAuthenticated ? 'Chỉ Trưởng nhóm' : 'Chưa đăng nhập'}
+                                </span>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {onSubmitForReview && (
+                <div className="space-y-2 border-t border-slate-100 pt-3">
+                  <button type="button" disabled={!canSubmitSelectedGate || submittingGate || selectedGate.requirements.some(req => req.isMandatory && !req.latestArtifact)}
+                    className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white disabled:bg-slate-200 disabled:text-ink-muted cursor-pointer"
+                    onClick={async () => {
+                      setSubmittingGate(true); setSubmitError(null)
+                      try { await onSubmitForReview(selectedGate.code) }
+                      catch (err) { setSubmitError(err instanceof Error ? err.message : 'Không thể gửi hồ sơ thẩm định.') }
+                      finally { setSubmittingGate(false) }
+                    }}>
+                    {submittingGate ? 'Đang gửi...' : 'Gửi hồ sơ thẩm định'}
+                  </button>
+                  {submitError && <p role="alert" className="text-xs text-danger-text">{submitError}</p>}
+                </div>
+              )}
             </div>
-          </div>
-          {onSubmitForReview && (
-            <div className="space-y-2 border-t border-slate-100 pt-3">
-              <button type="button" disabled={!canSubmitSelectedGate || submittingGate || selectedGate.requirements.some(req => req.isMandatory && !req.latestArtifact)}
-                className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white disabled:bg-slate-200 disabled:text-ink-muted"
-                onClick={async () => {
-                  setSubmittingGate(true); setSubmitError(null)
-                  try { await onSubmitForReview(selectedGate.code) }
-                  catch (err) { setSubmitError(err instanceof Error ? err.message : 'Không thể gửi hồ sơ thẩm định.') }
-                  finally { setSubmittingGate(false) }
-                }}>
-                {submittingGate ? 'Đang gửi...' : 'Gửi hồ sơ thẩm định'}
-              </button>
-              {submitError && <p role="alert" className="text-xs text-danger-text">{submitError}</p>}
+          )}
+
+          {/* TAB 2: PHẢN HỒI ĐÃ NHẬN */}
+          {activeTab === 'feedback' && (
+            <div className="space-y-4 pt-1">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted">
+                Nhật ký nhận xét & Hướng dẫn · {selectedGate.code}
+              </h4>
+              {gateFeedbacks.length > 0 ? (
+                <ul className="space-y-3">
+                  {gateFeedbacks.map((item, index) => (
+                    <li key={`${item.submittedAt}-${index}`} className="rounded-xl border border-hairline bg-canvas/60 p-4 text-xs">
+                      <div className="flex items-center justify-between text-ink-muted mb-1.5">
+                        <span className="font-semibold text-primary">{item.supervisorName ?? 'Giảng viên hướng dẫn'}</span>
+                        <time dateTime={item.submittedAt}>{item.submittedAt}</time>
+                      </div>
+                      <p className="whitespace-pre-wrap text-sm text-ink">{item.feedback}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="rounded-xl border border-hairline bg-canvas p-6 text-center text-xs text-ink-muted">
+                  <span className="material-symbols-outlined text-3xl text-slate-400" aria-hidden="true">chat_bubble_outline</span>
+                  <p className="mt-1 font-semibold text-ink">Chưa có nhận xét cho cổng này.</p>
+                  <p className="text-ink-muted">Theo dõi phản hồi của giảng viên hướng dẫn hoặc reviewer tại đây.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: CÂU HỎI HỘI ĐỒNG (Q&A) */}
+          {activeTab === 'questions' && (
+            <div className="rounded-xl border border-hairline bg-canvas p-6 text-center text-xs text-ink-muted">
+              <span className="material-symbols-outlined text-3xl text-slate-400" aria-hidden="true">help_outline</span>
+              <h4 className="mt-2 font-bold text-ink">Chưa có luồng câu hỏi học thuật độc lập</h4>
+              <p className="mt-1 max-w-md mx-auto text-ink-muted leading-relaxed">
+                Chức năng phân loại câu hỏi/phiếu yêu cầu sửa đang chờ chuẩn hóa theo API học vụ từ Hội đồng. Hiện tại mọi trao đổi và lưu ý từ cán bộ hướng dẫn được ghi nhận trực tiếp tại thẻ Phản hồi đã nhận.
+              </p>
+            </div>
+          )}
+
+          {/* TAB 4: YÊU CẦU CHỈNH SỬA */}
+          {activeTab === 'revisions' && (
+            <div className="space-y-4 pt-1">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted">
+                Danh sách Minh chứng Cần Sửa đổi · {selectedGate.code}
+              </h4>
+              {revisionItems.length > 0 ? (
+                <ul className="space-y-3">
+                  {revisionItems.map((req) => (
+                    <li key={req.id} className="rounded-xl border border-status-error-border bg-status-error-bg/30 p-4 text-xs">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-status-error-border/40 pb-2">
+                        <div>
+                          <strong className="text-sm font-bold text-danger-text">{req.title}</strong>
+                          <span className="ml-2 text-ink-muted font-mono">({req.code})</span>
+                        </div>
+                        <span className="rounded-md bg-status-error-bg px-2 py-0.5 font-bold text-danger-text border border-status-error-border">
+                          {req.verificationStatus === 'REJECTED' ? 'Cần nộp lại' : 'Cần chỉnh sửa'}
+                        </span>
+                      </div>
+                      {req.reviewerFeedback && (
+                        <p className="mt-2 text-ink leading-relaxed">
+                          <strong>Góp ý của Reviewer:</strong> {req.reviewerFeedback}
+                        </p>
+                      )}
+                      <div className="mt-3 flex justify-end">
+                        {isLeader ? (
+                          <button
+                            type="button"
+                            onClick={() => setActiveReqForSubmission(req)}
+                            className="min-h-10 rounded-lg bg-danger-strong px-4 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-danger-strong-hover cursor-pointer"
+                          >
+                            Nộp bản sửa đổi ngay
+                          </button>
+                        ) : (
+                          <span className="text-slate-400 italic">Trưởng nhóm phụ trách nộp bản sửa</span>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="rounded-xl border border-hairline bg-canvas p-6 text-center text-xs text-ink-muted">
+                  <span className="material-symbols-outlined text-3xl text-emerald-500" aria-hidden="true">check_circle</span>
+                  <h4 className="mt-1 font-bold text-ink">Không có yêu cầu chỉnh sửa tồn đọng</h4>
+                  <p className="text-ink-muted">Cổng thẩm định này hiện không có minh chứng nào bị yêu cầu làm lại.</p>
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
 
-      {/* Submission Modal */}
-      {selectedGate && <section className="rounded-xl border border-hairline bg-card p-5" aria-label={`Nhận xét hướng dẫn · ${selectedGate.code}`}>
-        <h3 className="font-bold text-ink">Nhận xét hướng dẫn · {selectedGate.code}</h3>
-        <p className="mt-1 text-xs text-ink-muted">Nhận xét tư vấn, không thay đổi kết luận thẩm định của reviewer.</p>
-        {(timeline.supervisorFeedbacks ?? []).filter(item => item.gateCode === selectedGate.code).length > 0
-          ? <ul className="mt-3 space-y-3">{timeline.supervisorFeedbacks?.filter(item => item.gateCode === selectedGate.code).map((item, index) => <li key={`${item.submittedAt}-${index}`} className="break-words text-sm">
-            <p className="whitespace-pre-wrap">{item.feedback}</p><p className="text-xs text-ink-muted">{item.supervisorName ?? 'Giảng viên hướng dẫn'} · <time dateTime={item.submittedAt}>{item.submittedAt}</time></p>
-          </li>)}</ul>
-          : <p className="mt-3 text-sm text-ink-muted">Chưa có nhận xét cho cổng này. Theo dõi phản hồi của giảng viên hướng dẫn tại đây.</p>}
-      </section>}
+      {/* Supervisor Guidance Feedback Section */}
+      {selectedGate && (
+        <section className="card-hover-lift rounded-xl border border-hairline bg-card p-5" aria-label={`Nhận xét hướng dẫn · ${selectedGate.code}`}>
+          <h3 className="font-bold text-ink">Nhận xét hướng dẫn · {selectedGate.code}</h3>
+          <p className="mt-1 text-xs text-ink-muted">Nhận xét tư vấn từ giảng viên hướng dẫn, không thay đổi kết luận thẩm định chính thức của reviewer.</p>
+          {(timeline.supervisorFeedbacks ?? []).filter(item => item.gateCode === selectedGate.code).length > 0 ? (
+            <ul className="mt-3 space-y-3">
+              {timeline.supervisorFeedbacks?.filter(item => item.gateCode === selectedGate.code).map((item, index) => (
+                <li key={`${item.submittedAt}-${index}`} className="break-words text-sm">
+                  <p className="whitespace-pre-wrap">{item.feedback}</p>
+                  <p className="text-xs text-ink-muted">{item.supervisorName ?? 'Giảng viên hướng dẫn'} · <time dateTime={item.submittedAt}>{item.submittedAt}</time></p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-ink-muted">Chưa có nhận xét cho cổng này. Theo dõi phản hồi của giảng viên hướng dẫn tại đây.</p>
+          )}
+        </section>
+      )}
+
       <ReviewSubmissionModal
         key={activeReqForSubmission?.id || 'closed'}
         open={Boolean(activeReqForSubmission)}

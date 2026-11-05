@@ -1,0 +1,18 @@
+export const rubricErrors: Record<string, string> = {
+  RUBRIC_LEAF_LEVELS_INCOMPLETE: 'Có tiêu chí lá chưa đủ số mức chất lượng. Mở từng tiêu chí lá và nhập đủ mức trước khi gửi duyệt.',
+  RUBRIC_PARENT_HAS_LEVELS: 'Tiêu chí cha không được có mức chất lượng. Chỉ tiêu chí lá mới nhập mức.',
+  RUBRIC_LEVEL_ORDER_INVALID: 'Thứ tự mức phải liên tục từ 1. Dùng nút thêm/bỏ mức để đánh lại số.',
+  RUBRIC_LEVEL_SCORE_RANGE_INVALID: 'Dải điểm gợi ý không hợp lệ: cần từ ≤ đến, và nằm trong điểm tối đa.',
+  RUBRIC_SCOPE_REQUIRED: 'Bộ tiêu chí có hình thức hoặc giai đoạn thì phải chọn phạm vi.',
+  RUBRIC_MAJOR_REQUIRED: 'Phạm vi theo ngành phải chọn ngành.',
+  RUBRIC_COMMON_HAS_MAJOR: 'Phạm vi chung không được gán ngành. Bỏ chọn ngành hoặc đổi phạm vi.',
+  RUBRIC_INVALID_STAGE: 'Giai đoạn không hợp lệ. Chọn Trong quá trình, Chấm nguội hoặc Bảo vệ.',
+  RUBRIC_INVALID_SCOPE: 'Phạm vi không hợp lệ. Chọn Chung, Theo ngành hoặc Cá nhân.',
+  RUBRIC_INVALID_PROJECT_MODE: 'Hình thức đồ án không hợp lệ.',
+  RUBRIC_EFFECTIVE_RANGE_INVALID: 'Hiệu lực từ phải trước hiệu lực đến.',
+  RUBRIC_REJECTION_REASON_REQUIRED: 'Phải nhập lý do khi từ chối.',
+  RUBRIC_REQUIRES_APPROVAL_FLOW: 'Bộ tiêu chí có phạm vi phải đi qua gửi duyệt, không công bố trực tiếp.',
+  RUBRIC_SELF_APPROVAL_FORBIDDEN: 'Người gửi không được tự phê duyệt bộ tiêu chí này.',
+  RUBRIC_SCOPE_NOT_LEAD_DEPARTMENT: 'Chỉ bộ môn chủ trì được phê duyệt tiêu chí chung của đồ án liên ngành.',
+  RUBRIC_APPROVAL_ADMIN_NOT_ACADEMIC: 'Tài khoản quản trị không có thẩm quyền học vụ để phê duyệt.',
+}

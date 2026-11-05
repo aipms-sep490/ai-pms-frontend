@@ -1,5 +1,5 @@
 import { reportError, reportFieldErrors, reportNeedsAuthoritativeRefresh } from './report-errors'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom'
 import { useExecutionAccess, type ExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import * as api from '../../services/api/progress-reports.api'
@@ -56,6 +56,11 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
   const [dirty, setDirty] = useState(false)
   const [confirmSubmit, setConfirmSubmit] = useState(false)
   const [feedback, setFeedback] = useState('')
+  const handleEditorDirty = useCallback((value: boolean) => {
+    setDirty(value)
+    setConfirmSubmit(false)
+    if (value) setServerFieldErrors({})
+  }, [])
   const hasUnsavedChanges = dirty || Boolean(feedback.trim())
   const blocker = useBlocker(hasUnsavedChanges && !busy)
 
@@ -296,6 +301,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
               {editable ? (
                 <ReportEditor
                   key={`${editorVersion}:${create ? assistant.key : 'existing'}`}
+                  projectId={project.id}
                   initialDraft={create ? assistant.draft : undefined}
                   report={report ?? undefined}
                   cycles={cycles}
@@ -303,11 +309,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
                   fieldErrors={serverFieldErrors}
                   busy={busy}
                   onSave={save}
-                  onDirtyChange={(value) => {
-                    setDirty(value)
-                    setConfirmSubmit(false)
-                    if (value) setServerFieldErrors({})
-                  }}
+                  onDirtyChange={handleEditorDirty}
                 />
               ) : (
                 report && (

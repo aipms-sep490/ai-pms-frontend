@@ -15,7 +15,7 @@ vi.mock('../../services/api/projects.api', () => ({ getProject: api.getProject }
 vi.mock('../academic/api/governance-api', () => ({ getProjectPeriods: api.getProjectPeriods }))
 vi.mock('./rubrics-api', () => ({ listRubrics: api.listRubrics }))
 vi.mock('../../services/api/evaluations.api', () => api)
-const scheme = { id: 2, projectId: 9, projectPeriodId: 4, name: 'Scheme server', status: 'DRAFT', passThreshold: 6.5, concurrencyToken: 'old-token', components: [{ id: 1, name: 'Common', scope: 'COMMON', majorId: null, rubricId: 8, projectWeightPercent: 100, studentWeightPercent: 100, requiredEvaluators: 1 }] }
+const scheme = { id: 2, projectId: 9, projectPeriodId: 4, name: 'Scheme server', status: 'DRAFT', passThreshold: 6.5, concurrencyToken: 'old-token', components: [{ id: 1, name: 'Common', scope: 'COMMON', majorId: null, rubricId: 8, projectWeightPercent: 100, studentWeightPercent: 100, requiredEvaluators: 1, stage: 'DEFENSE' }] }
 beforeEach(() => {
   auth.session = { accessToken: 'fixture', user: { roles: ['ADMIN', 'DEPARTMENT_STAFF'] } }
   capabilitiesApi.getMyCapabilities.mockResolvedValue(projectCapabilities(9))
@@ -26,6 +26,29 @@ beforeEach(() => {
 })
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 function page() { render(<MemoryRouter initialEntries={['/admin/projects/9/evaluation-schemes']}><Routes><Route path="/admin/projects/:projectId/evaluation-schemes" element={<EvaluationSchemeManagementPage />} /></Routes></MemoryRouter>) }
+it('totals stage weights separately for each major, including shared components', async () => {
+  const majors = [{ majorId: 3, majorCode: 'SE' }, { majorId: 4, majorCode: 'IS' }, { majorId: 5, majorCode: 'CS' }]
+  api.getProject.mockResolvedValue({ id: 9, majors })
+  const common = [
+    { ...scheme.components[0], id: 1, stage: 'COLD', studentWeightPercent: 15 },
+    { ...scheme.components[0], id: 2, stage: 'DEFENSE', studentWeightPercent: 35 },
+  ]
+  const specific = majors.flatMap(({ majorId }, index) => [
+    { ...scheme.components[0], id: 3 + index * 3, scope: 'MAJOR_SPECIFIC', majorId, stage: 'COLD', studentWeightPercent: 15 },
+    { ...scheme.components[0], id: 4 + index * 3, scope: 'MAJOR_SPECIFIC', majorId, stage: 'DEFENSE', studentWeightPercent: 15 },
+    { ...scheme.components[0], id: 5 + index * 3, scope: 'INDIVIDUAL', majorId, stage: 'DEFENSE', studentWeightPercent: 20 },
+  ])
+  api.getEvaluationSchemes.mockResolvedValue([{ ...scheme, components: [...common, ...specific] }])
+  page(); fireEvent.click(await screen.findByRole('button', { name: /Scheme server/ }))
+  expect(screen.getAllByText('Chấm hồ sơ đã khóa: 30%')).toHaveLength(3)
+  expect(screen.getAllByText('Bảo vệ: 70%')).toHaveLength(3)
+  expect(screen.queryByText('Chấm hồ sơ đã khóa: 60%')).toBeNull()
+})
+it('keeps an unknown stage visible in its major total', async () => {
+  api.getEvaluationSchemes.mockResolvedValue([{ ...scheme, components: [{ ...scheme.components[0], stage: null, studentWeightPercent: 30 }] }])
+  page(); fireEvent.click(await screen.findByRole('button', { name: /Scheme server/ }))
+  expect(screen.getByText('Chưa xác định: 30%')).toBeTruthy()
+})
 it('requires explicit draft threshold and weights rather than proposed academic defaults', async () => {
   page(); await screen.findByRole('button', { name: /Scheme server/ })
   fireEvent.click(screen.getAllByRole('button', { name: 'Tạo bản nháp' })[0])
@@ -69,6 +92,45 @@ it('loads published values without making the frozen scheme editable', async () 
   expect((screen.getByLabelText('Ngưỡng đạt (0–10)') as HTMLInputElement).value).toBe('6.5')
   expect((screen.getByLabelText('Ngưỡng đạt (0–10)') as HTMLInputElement).disabled).toBe(true)
   expect(screen.queryByRole('button', { name: 'Lưu bản nháp' })).toBeNull()
+  expect((screen.getByLabelText('Giai đoạn thành phần 1').closest('fieldset') as HTMLFieldSetElement).disabled).toBe(true)
+})
+
+it('lets a draft select COLD and submits the selected stage', async () => {
+  const source = { ...scheme, components: [{ ...scheme.components[0], stage: null }] }
+  api.getEvaluationSchemes.mockResolvedValue([source])
+  api.updateEvaluationScheme.mockResolvedValue({ ...source, components: [{ ...source.components[0], stage: 'COLD' }] })
+  page(); fireEvent.click(await screen.findByRole('button', { name: /Scheme server/ }))
+  const stage = screen.getByLabelText('Giai đoạn thành phần 1') as HTMLSelectElement
+  expect(stage.value).toBe('')
+  fireEvent.change(stage, { target: { value: 'COLD' } })
+  expect(screen.getByText('Chấm hồ sơ đã khóa: 100%')).toBeTruthy()
+  fireEvent.submit(screen.getByLabelText('Tên phương án đánh giá').closest('form')!)
+  await waitFor(() => expect(api.updateEvaluationScheme).toHaveBeenCalledTimes(1))
+  expect(api.updateEvaluationScheme.mock.calls[0][1].components[0].stage).toBe('COLD')
+})
+
+it('keeps historical null stage visible and requires an explicit choice before saving', async () => {
+  const source = { ...scheme, components: [{ ...scheme.components[0], stage: null }] }
+  api.getEvaluationSchemes.mockResolvedValue([source])
+  api.updateEvaluationScheme.mockResolvedValue(source)
+  page(); fireEvent.click(await screen.findByRole('button', { name: /Scheme server/ }))
+  fireEvent.change(screen.getByLabelText('Tên phương án đánh giá'), { target: { value: 'Đổi tên' } })
+  fireEvent.submit(screen.getByLabelText('Tên phương án đánh giá').closest('form')!)
+  expect((screen.getByLabelText('Giai đoạn thành phần 1') as HTMLSelectElement).value).toBe('')
+  expect(screen.getByRole('alert').textContent).toContain('Thành phần 1 chưa có giai đoạn')
+  expect(api.updateEvaluationScheme).not.toHaveBeenCalled()
+})
+
+it('renders an unknown BE stage without changing its value', async () => {
+  const source = { ...scheme, components: [{ ...scheme.components[0], stage: 'NEW_STAGE' }] }
+  api.getEvaluationSchemes.mockResolvedValue([source])
+  page(); fireEvent.click(await screen.findByRole('button', { name: /Scheme server/ }))
+  const stage = screen.getByLabelText('Giai đoạn thành phần 1') as HTMLSelectElement
+  expect(stage.value).toBe('NEW_STAGE')
+  expect(screen.getByText('NEW_STAGE: 100%')).toBeTruthy()
+  fireEvent.submit(screen.getByLabelText('Tên phương án đánh giá').closest('form')!)
+  expect(screen.getByRole('alert').textContent).toContain('giai đoạn chưa được hệ thống hiện tại hỗ trợ')
+  expect(api.updateEvaluationScheme).not.toHaveBeenCalled()
 })
 
 it('flags a PROPOSED scheme as not-yet-approved so it is not mistaken for official grading', async () => {

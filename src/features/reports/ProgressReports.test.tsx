@@ -13,6 +13,7 @@ import { reportError, reportFieldErrors, reportNeedsAuthoritativeRefresh } from 
 const api = vi.hoisted(() => ({
   getProgressReports: vi.fn(),
   getProgressReport: vi.fn(),
+  getProgressReportPrefill: vi.fn(),
   createProgressReport: vi.fn(),
   updateProgressReport: vi.fn(),
   submitProgressReport: vi.fn(),
@@ -109,6 +110,11 @@ const click = (name: string) => fireEvent.click(screen.getByRole('button', { nam
 beforeEach(() => {
   vi.resetAllMocks()
   api.getProgressReport.mockResolvedValue(draft)
+  api.getProgressReportPrefill.mockResolvedValue({
+    progressReportPeriodId: null, reportType: 'WEEKLY', periodStart: '2026-09-14', periodEnd: '2026-09-20',
+    suggested: { summary: null, completedWork: null, inProgressWork: null, blockers: null, risks: null, nextActions: null },
+    evidence: [], insufficientData: true,
+  })
   api.getProgressReports.mockResolvedValue({ items: [draft], page: 1, pageSize: 10, totalCount: 1, totalPages: 1 })
   api.getReportingCycles.mockResolvedValue({ items: [sampleCycle], page: 1, pageSize: 50, totalCount: 1, totalPages: 1 })
   ai.getReportAiSummary.mockResolvedValue({
@@ -127,8 +133,65 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Progress reports workflow', () => {
+  it('loads optional prefill only for a new report and marks suggested fields', async () => {
+    api.getProgressReportPrefill.mockResolvedValue({
+      progressReportPeriodId: null, reportType: 'WEEKLY', periodStart: '2026-09-14', periodEnd: '2026-09-20',
+      suggested: { summary: 'Tiến độ từ dự án', completedWork: 'Đã xong task', inProgressWork: null, blockers: null, risks: null, nextActions: null },
+      evidence: [], insufficientData: false,
+    })
+    mount({ path: '/project/reports/new' })
+    const summary = await screen.findByLabelText(/Tóm tắt tiến độ/) as HTMLTextAreaElement
+    await waitFor(() => expect(summary.value).toBe('Tiến độ từ dự án'))
+    expect(api.getProgressReportPrefill).toHaveBeenCalledWith(9, undefined, expect.any(AbortSignal))
+    expect(summary.className).toContain('report-suggested-field')
+    expect((screen.getByLabelText(/Vướng mắc/) as HTMLTextAreaElement).value).toBe('')
+    expect(screen.getByRole('note').textContent).toContain('hãy kiểm tra và sửa')
+    cleanup()
+    mount()
+    await screen.findByLabelText(/Tóm tắt tiến độ/)
+    expect(api.getProgressReportPrefill).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps manual input when a selected cycle fetches fresh suggestions', async () => {
+    api.getProgressReportPrefill.mockResolvedValueOnce({
+      progressReportPeriodId: null, reportType: 'WEEKLY', periodStart: '2026-09-14', periodEnd: '2026-09-20',
+      suggested: { summary: 'Gợi ý cũ', completedWork: null, inProgressWork: null, blockers: null, risks: null, nextActions: null }, evidence: [], insufficientData: false,
+    }).mockResolvedValueOnce({
+      progressReportPeriodId: 101, reportType: 'WEEKLY', periodStart: '2026-09-14', periodEnd: '2026-09-20',
+      suggested: { summary: 'Gợi ý kỳ', completedWork: 'Xong API', inProgressWork: null, blockers: null, risks: null, nextActions: null }, evidence: [], insufficientData: false,
+    })
+    mount({ path: '/project/reports/new' })
+    const summary = await screen.findByLabelText(/Tóm tắt tiến độ/) as HTMLTextAreaElement
+    await waitFor(() => expect(summary.value).toBe('Gợi ý cũ'))
+    input('Tóm tắt tiến độ', 'Tôi đã sửa')
+    expect(summary.className).not.toContain('report-suggested-field')
+    fireEvent.change(screen.getByLabelText(/Chọn kỳ báo cáo/), { target: { value: '101' } })
+    await waitFor(() => expect((screen.getByLabelText(/Công việc đã hoàn thành/) as HTMLTextAreaElement).value).toBe('Xong API'))
+    expect(summary.value).toBe('Tôi đã sửa')
+    expect(api.getProgressReportPrefill).toHaveBeenLastCalledWith(9, 101, expect.any(AbortSignal))
+    click('Bỏ gợi ý, nhập lại từ đầu')
+    expect(summary.value).toBe('Tôi đã sửa')
+    expect((screen.getByLabelText(/Công việc đã hoàn thành/) as HTMLTextAreaElement).value).toBe('')
+  })
+
+  it('keeps the new report usable when prefill fails', async () => {
+    api.getProgressReportPrefill.mockRejectedValue(new HttpError('Unavailable', 500))
+    mount({ path: '/project/reports/new' })
+    const summary = await screen.findByLabelText(/Tóm tắt tiến độ/) as HTMLTextAreaElement
+    await waitFor(() => expect(api.getProgressReportPrefill).toHaveBeenCalledTimes(1))
+    expect(summary.value).toBe('')
+    expect(screen.queryByRole('alert')).toBeNull()
+    input('Tóm tắt tiến độ', 'Tự nhập báo cáo')
+    expect(summary.value).toBe('Tự nhập báo cáo')
+  })
+
   it('receives successive AI drafts on the create route without saving a report', async () => {
     api.getProgressReports.mockResolvedValue({ items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 })
+    api.getProgressReportPrefill.mockImplementation(async (_projectId: number, periodId?: number) => ({
+      progressReportPeriodId: 101, reportType: 'WEEKLY', periodStart: sampleCycle.periodStart, periodEnd: sampleCycle.periodEnd,
+      suggested: { summary: periodId ? 'Server suggestion' : null, completedWork: periodId ? 'Server task' : null, inProgressWork: null, blockers: null, risks: null, nextActions: null },
+      evidence: [], insufficientData: false,
+    }))
     const { router } = mount({ path: '/project/reports/new' })
     await screen.findByRole('combobox')
     const assistantDraft = {
@@ -138,6 +201,8 @@ describe('Progress reports workflow', () => {
     await act(async () => { await router.navigate('/project/reports/new', { state: { assistantDraft } }) })
     expect(await screen.findByDisplayValue('First AI summary')).toBeTruthy()
     expect(screen.getByDisplayValue('API completed')).toBeTruthy()
+    await waitFor(() => expect(api.getProgressReportPrefill).toHaveBeenCalledWith(9, 101, expect.any(AbortSignal)))
+    expect(screen.queryByDisplayValue('Server suggestion')).toBeNull()
     expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('101')
     await act(async () => { await router.navigate('/project/reports/new', { state: { assistantDraft: { ...assistantDraft, description: 'Revised AI summary' } } }) })
     expect(await screen.findByDisplayValue('Revised AI summary')).toBeTruthy()
@@ -623,11 +688,15 @@ describe('Progress reports workflow', () => {
   })
 
   it.each([
-    'REPORT_CYCLE_REQUIRED', 'REPORT_DEADLINE_PASSED', 'REPORT_ALREADY_EXISTS_FOR_CYCLE',
-    'REPORT_ALREADY_EXISTS_FOR_PERIOD', 'REPORT_FEEDBACK_ON_DRAFT_NOT_ALLOWED',
-  ])('keeps unverified response code %s on the generic path', code => {
+    ['REPORT_CYCLE_REQUIRED', 'phải gắn với chu kỳ báo cáo'],
+    ['REPORT_DEADLINE_PASSED', 'Đã qua hạn nộp của chu kỳ này'],
+    ['REPORT_ALREADY_EXISTS_FOR_CYCLE', 'đã có báo cáo cho chu kỳ này'],
+    ['REPORT_ALREADY_EXISTS_FOR_PERIOD', 'đã có báo cáo trong khoảng thời gian này'],
+    ['REPORT_FEEDBACK_ON_DRAFT_NOT_ALLOWED', 'Báo cáo vẫn là bản nháp'],
+  ])('shows safe guidance for report code %s', (code, phrase) => {
     const message = reportError(new HttpError('private English detail', 409, { code, detail: 'private English detail' }))
-    expect(message).toBe('Chưa hoàn tất thao tác. Kiểm tra kỳ báo cáo, báo cáo đã có và hạn nộp; tải lại trạng thái trước khi thử lại.')
+    expect(message).toContain(phrase)
+    expect(message).not.toMatch(/private English detail|REPORT_/)
   })
 
   it('maps safe field labels for inline errors without exposing backend text', async () => {

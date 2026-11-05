@@ -1,14 +1,16 @@
+import { TOUR_ANCHOR } from './tour-anchors'
 import { useTour } from './tour-context'
 
 /** Header control that (re)opens the guided tour. Anchors the tour's own
- * "replay" step via data-tour="help". Renders nothing for roles without a script. */
+ * "replay" step via data-tour={TOUR_ANCHOR.help}. Renders nothing for roles without a script. */
 export function TourLauncher() {
-  const { hasTour, startTour, isActive, label } = useTour()
+  const { hasTour, startTour, isActive, label, guideId } = useTour()
   if (!hasTour) return null
   return (
     <button
       type="button"
-      data-tour="help"
+      data-tour={TOUR_ANCHOR.help}
+      data-guide-id={guideId ?? undefined}
       onClick={() => startTour('manual')}
       aria-haspopup="dialog"
       aria-expanded={isActive}

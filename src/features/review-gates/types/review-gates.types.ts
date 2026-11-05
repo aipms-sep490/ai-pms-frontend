@@ -78,6 +78,10 @@ export interface ProjectReviewMatrixRow {
   blockingReasons?: Record<string, string[]>
   hybridScopes?: Record<string, GateStatus>
   hybridScopeLabels?: Record<string, string>
+  /** Optional BE projection for existing decisions. Until BE supplies it, retries may return 409. */
+  hybridScopeTokens?: Record<string, string | null>
+  hybridScopeDecisionDetails?: Record<string, { decidedByName?: string | null; decidedAt?: string | null }>
+  hybridScopeCapabilities?: Record<string, boolean>
 }
 
 export interface DefenseCondition {

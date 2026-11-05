@@ -8,6 +8,16 @@ export interface EvaluationAssignmentDetail {
   canScore: boolean
   legacyReadOnly: boolean
   denialReason: string | null
+  /** BE-09 projection, nullable while the contract is pending or for legacy assignments. */
+  schemeIsDemo?: boolean | null
+  schemeApprovalStatus?: string | null
+  /** Required before FE may describe a rubric as officially approved. BE-09 plan must add this field. */
+  schemeApprovalReference?: string | null
+  /** Nullable until BE-09; never infer a legacy stage or component weight. */
+  stage?: EvaluationStage | null
+  componentStudentWeightPercent?: number | null
+  completedEvaluators?: number | null
+  requiredEvaluators?: number | null
 }
 
 /** Deliberately metadata-only evidence projection, scoped by the Backend to the assignment. */

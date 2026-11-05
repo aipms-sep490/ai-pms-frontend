@@ -3,6 +3,31 @@ import { expect, test } from '@playwright/test'
 const open = (role = 'student') => `/e2e/onboarding.html?role=${role}`
 
 test.describe('guided onboarding tour', () => {
+  test('uses notification guidance when the notification anchor is missing', async ({ page }) => {
+    await page.goto(open('student'))
+    await page.locator('[data-tour="notifications"]').evaluate(node => node.remove())
+    for (let step = 0; step < 4; step += 1) await page.getByRole('button', { name: 'Tiếp theo' }).click()
+    await expect(page.getByRole('heading', { name: 'Thông báo học vụ' })).toBeVisible()
+    await expect(page.getByText('Thông báo học vụ nằm ở biểu tượng chuông trên thanh tiêu đề. Số đỏ là số mục chưa đọc.')).toBeVisible()
+    await expect(page.getByText(/sẽ hiện ở đây/)).toHaveCount(0)
+  })
+  test('highlights the sidebar then its first link, and retains fallback when the link is absent', async ({ page }, info) => {
+    await page.goto(open('student'))
+    await page.getByRole('button', { name: 'Tiếp theo' }).click()
+    const navBox = await page.locator('.tour-spotlight').boundingBox()
+    await page.screenshot({ path: info.outputPath('nav-step.png') })
+    await page.getByRole('button', { name: 'Tiếp theo' }).click()
+    await expect.poll(async () => (await page.locator('.tour-spotlight').boundingBox())?.height ?? Infinity).toBeLessThan(80)
+    const primaryBox = await page.locator('.tour-spotlight').boundingBox()
+    await page.screenshot({ path: info.outputPath('primary-step.png') })
+    expect(primaryBox).not.toEqual(navBox)
+    expect(primaryBox!.height).toBeLessThan(navBox!.height)
+    await page.locator('[data-tour="sidebar-primary"]').evaluate(node => node.remove())
+    await page.getByRole('button', { name: 'Quay lại' }).click()
+    await page.getByRole('button', { name: 'Tiếp theo' }).click()
+    await expect(page.getByText(/Mục đầu tiên nằm trong thanh điều hướng/)).toBeVisible()
+    await expect(page.getByText('3/8')).toBeVisible()
+  })
   test('auto-starts for a new student, walks forward and back, and finishes', async ({ page }) => {
     await page.goto(open('student'))
     const dialog = page.getByRole('dialog')

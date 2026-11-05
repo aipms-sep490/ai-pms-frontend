@@ -100,9 +100,9 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
       </div>
     </header>
 
-    <section className="cw-project-line" aria-label="Tiến độ chung">
+    <section className="cw-project-line card-hover-lift" aria-label="Tiến độ chung">
       <div className="cw-project-title"><Icon name="folder_open" /><div><strong>{project.title}</strong><span>{supervisor?.supervisorName ? `Giảng viên hướng dẫn: ${supervisor.supervisorName}` : 'Chưa có thông tin giảng viên hướng dẫn'}</span></div></div>
-      <div className="cw-project-progress">{summary ? <><div><span>{summary.doneTasks}/{summary.totalTasks} việc hoàn thành</span><strong>{new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(progress!)}%</strong></div><Progress value={progress!} label="Tiến độ chung của đồ án" /></>
+      <div className="cw-project-progress">{summary ? <><div><span>{summary.doneTasks}/{summary.totalTasks} việc hoàn thành</span><strong>{new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(progress!)}%</strong></div><Progress value={progress!} label="Tiến độ chung của đồ án" /><p className="mt-1 text-xs text-ink-muted">* Tiến độ công việc nội bộ; tiến độ học thuật được tính riêng theo các Cổng thẩm định đã đạt.</p></>
         : <ResourceState resource={data.summary} retry={data.reload} />}</div>
     </section>
 

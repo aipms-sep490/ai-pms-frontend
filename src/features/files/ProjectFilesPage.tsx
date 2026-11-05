@@ -17,6 +17,7 @@ import * as api from './project-files-api'
 import type { FileParentType, ProjectFile, ProjectFileFilters } from './project-files-api'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { ListLoading } from '../../components/ui/ListLoading'
+import { getUploadPolicy, uploadPolicyLabel, validateUploadFile, type UploadPolicy } from '../../services/api/upload-policies.api'
 
 type ParentOption = { type: FileParentType; id: number; label: string }
 type FilterDraft = { search: string; contentType: string; uploadedBy: string; from: string; to: string; parentType: string }
@@ -77,6 +78,15 @@ export function ProjectFilesPage() {
   const [parentError, setParentError] = useState<string | null>(null)
   const [parentRevision, setParentRevision] = useState(0)
   const [uploadType, setUploadType] = useState<FileParentType>('TASK')
+  const [uploadPolicy, setUploadPolicy] = useState<UploadPolicy | null>(null)
+  const [policyLoaded, setPolicyLoaded] = useState(false)
+  useEffect(() => {
+    let active = true
+    setUploadPolicy(null); setPolicyLoaded(false)
+    void getUploadPolicy(uploadType).then(policy => { if (active) { setUploadPolicy(policy); setPolicyLoaded(true) } })
+      .catch(() => { if (active) setPolicyLoaded(true) })
+    return () => { active = false }
+  }, [uploadType])
   const [uploadParentId, setUploadParentId] = useState('')
   const [uploadFileName, setUploadFileName] = useState('Chưa chọn tệp')
 
@@ -168,6 +178,8 @@ export function ProjectFilesPage() {
     const file = form.get('file')
     const parentId = Number(uploadParentId)
     if (!(file instanceof File) || !file.size) { setError('Hãy chọn một tệp để đính kèm.'); return }
+    const policyError = validateUploadFile(file, uploadPolicy)
+    if (policyError) { setError(policyError); return }
     if (!currentParents.some(parent => parent.id === parentId)) { setError('Chọn hạng mục hiện còn được phép đính kèm.'); return }
     setBusy(true); setError(null); setNotice(null)
     void api.uploadProjectFile(uploadType, parentId, file).then(async () => {
@@ -198,11 +210,11 @@ export function ProjectFilesPage() {
     </form>
 
     {canUpload && <section className="workspace-surface workspace-surface-padding" aria-labelledby="upload-file-title">
-      <div className="flex gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-md bg-primary-subtle text-primary"><span className="material-symbols-outlined text-[20px]" aria-hidden="true">upload_file</span></span><div><h2 id="upload-file-title" className="font-semibold text-ink">Đính kèm tệp</h2><p className="mt-1 text-sm leading-6 text-ink-muted">Chọn công việc, báo cáo hoặc cuộc họp để đính kèm tài liệu.</p></div></div>
+      <div className="flex gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-md bg-primary-subtle text-primary"><span className="material-symbols-outlined text-[20px]" aria-hidden="true">upload_file</span></span><div><h2 id="upload-file-title" className="font-semibold text-ink">Đính kèm tệp</h2><p className="mt-1 text-sm leading-6 text-ink-muted">Chọn công việc, báo cáo hoặc cuộc họp để đính kèm tài liệu.</p><p role="status" className="mt-1 text-sm text-ink-muted">{uploadPolicy ? uploadPolicyLabel(uploadPolicy) : policyLoaded ? 'Chưa tải được chính sách tệp. Máy chủ sẽ kiểm tra khi tải lên.' : 'Đang tải chính sách tệp…'}</p></div></div>
       {parentLoading ? <p role="status" className="mt-4 text-sm text-ink-muted">Đang xác nhận hạng mục có thể đính kèm…</p> : parentError ? <p role="alert" className="mt-4 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-danger-text">{parentError} <button type="button" className="font-semibold underline" onClick={() => setParentRevision(value => value + 1)}>Tải lại hạng mục</button></p> : <form className="mt-4 grid min-w-0 gap-3 md:grid-cols-[160px_minmax(0,1.3fr)_minmax(0,1fr)_auto] md:items-end" onSubmit={upload}>
         <label className="flex min-w-0 flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-muted">Gắn với<select value={uploadType} disabled={busy} onChange={event => { setUploadType(event.target.value as FileParentType); setUploadParentId('') }} className={inputClass}><option value="TASK">Công việc</option><option value="REPORT">Báo cáo tiến độ</option><option value="MEETING">Cuộc họp</option></select></label>
         <label className="flex min-w-0 flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-muted">Hạng mục<select required value={uploadParentId} disabled={busy || !currentParents.length} onChange={event => setUploadParentId(event.target.value)} className={inputClass}><option value="">{currentParents.length ? 'Chọn hạng mục' : 'Không có hạng mục phù hợp'}</option>{currentParents.map(parent => <option key={`${parent.type}-${parent.id}`} value={parent.id}>{parent.label}</option>)}</select></label>
-        <label className="flex min-w-0 flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-muted">Tệp<span className="relative grid min-h-11 min-w-0 grid-cols-[auto_minmax(0,1fr)] overflow-hidden rounded-md border border-hairline bg-card normal-case tracking-normal"><span className="flex items-center border-r border-hairline bg-primary-subtle px-3 text-xs font-semibold text-primary">Chọn tệp</span><span className="truncate px-3 py-3 text-xs font-medium text-ink-muted">{uploadFileName}</span><input required type="file" name="file" disabled={busy || !currentParents.length} className="absolute inset-0 cursor-pointer opacity-0" onChange={event => setUploadFileName(event.target.files?.[0]?.name || 'Chưa chọn tệp')} /></span></label>
+        <label className="flex min-w-0 flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-muted">Tệp<span className="relative grid min-h-11 min-w-0 grid-cols-[auto_minmax(0,1fr)] overflow-hidden rounded-md border border-hairline bg-card normal-case tracking-normal"><span className="flex items-center border-r border-hairline bg-primary-subtle px-3 text-xs font-semibold text-primary">Chọn tệp</span><span className="truncate px-3 py-3 text-xs font-medium text-ink-muted">{uploadFileName}</span><input required type="file" name="file" accept={uploadPolicy?.allowedExtensions.join(",")} disabled={busy || !currentParents.length} className="absolute inset-0 cursor-pointer opacity-0" onChange={event => setUploadFileName(event.target.files?.[0]?.name || 'Chưa chọn tệp')} /></span></label>
         <button disabled={busy || !uploadParentId || !currentParents.length} className="min-h-11 rounded-md bg-primary px-5 text-sm font-semibold text-white shadow-primary transition-all hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50">{busy ? 'Đang tải…' : 'Tải lên'}</button>
       </form>}
     </section>}
@@ -241,6 +253,7 @@ function fileError(reason: unknown, action: string) {
   if (reason.status === 403) return 'Bạn không có quyền thao tác với tệp hoặc hạng mục này.'
   if (reason.status === 404) return 'Không tìm thấy tệp hoặc hạng mục liên quan.'
   if (reason.status === 409) return 'Dữ liệu hoặc trạng thái hạng mục đã thay đổi. Hãy tải lại trước khi thử tiếp.'
+  if (reason.status === 413) return reason.problem?.maxBytesLabel ? `Tệp vượt giới hạn ${reason.problem.maxBytesLabel} do máy chủ công bố.` : 'Tệp vượt giới hạn do máy chủ công bố.'
   return `Không thể ${action}. Hãy thử lại.`
 }
 

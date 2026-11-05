@@ -47,7 +47,7 @@ describe('ColdTemplateManagementPage', () => {
     fireEvent.change(screen.getByLabelText('Ngành áp dụng'), { target: { value: '99' } })
     fireEvent.change(screen.getByLabelText('Kỳ đồ án áp dụng'), { target: { value: '1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Tìm' }))
-    expect(await screen.findByText('Chưa có template cho ngành/kỳ này.')).toBeTruthy()
+    expect(await screen.findByText('Chưa có template cho phạm vi/kỳ này.')).toBeTruthy()
   })
 
   it('surfaces a department-scope message on 403', async () => {
@@ -80,7 +80,7 @@ describe('ColdTemplateManagementPage', () => {
     fireEvent.change(screen.getByPlaceholderText('Tên report'), { target: { value: 'Market research' } })
     fireEvent.click(screen.getByRole('button', { name: '+ Thêm report' }))
     fireEvent.click(screen.getByRole('button', { name: 'Tạo template' }))
-    await waitFor(() => expect(api.createColdTemplate).toHaveBeenCalledWith({ majorId: 12, projectPeriodId: 34, name: 'Marketing research reports', reports: [{ code: 'MARKET_RESEARCH', name: 'Market research', required: true }] }))
+    await waitFor(() => expect(api.createColdTemplate).toHaveBeenCalledWith({ majorId: 12, scope: 'MAJOR_SPECIFIC', projectPeriodId: 34, name: 'Marketing research reports', reports: [{ code: 'MARKET_RESEARCH', name: 'Market research', required: true }] }))
     expect(await screen.findByText('Marketing research reports (v1)', { selector: 'p' })).toBeTruthy()
   })
 
@@ -118,10 +118,28 @@ describe('ColdTemplateManagementPage', () => {
     await waitFor(() => {
       expect(coldApi.applyColdChecklist).toHaveBeenCalledWith(101, expect.objectContaining({
         projectPeriodId: 34,
-        targets: [{ templateId: 1, scope: 'COMMON', studentId: null }],
+        targets: [{ templateId: 1, scope: 'MAJOR_SPECIFIC', studentId: null }],
       }))
     })
 
     expect(await screen.findByText(/Đã áp dụng checklist cho đồ án. Tổng số hạng mục: 1./)).toBeTruthy()
+  })
+
+  it('creates and lists COMMON templates without a major, but does not offer unsupported checklist application', async () => {
+    const common = { ...template, id: 7, majorId: null, scope: 'COMMON' }
+    api.getColdTemplates.mockResolvedValue({ items: [common], page: 1, pageSize: 50, totalCount: 1, totalPages: 1 })
+    api.createColdTemplate.mockResolvedValue({ ...common, id: 8 })
+    await renderCold()
+    fireEvent.change(screen.getByLabelText('Phạm vi template'), { target: { value: 'COMMON' } })
+    fireEvent.change(screen.getByLabelText('Kỳ đồ án áp dụng'), { target: { value: '34' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Tìm' }))
+    await waitFor(() => expect(api.getColdTemplates).toHaveBeenCalledWith(null, 34, 1, 50))
+    expect(screen.getByText('Marketing research reports (v1)', { selector: 'p' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '+ Chọn để áp dụng' })).toBeNull()
+    fireEvent.change(screen.getByLabelText('Tên template'), { target: { value: 'Bộ chung' } })
+    fireEvent.change(screen.getByPlaceholderText('Mã report'), { target: { value: 'OVERVIEW' } })
+    fireEvent.change(screen.getByPlaceholderText('Tên report'), { target: { value: 'Tổng quan' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo template' }))
+    await waitFor(() => expect(api.createColdTemplate).toHaveBeenCalledWith({ majorId: null, scope: 'COMMON', projectPeriodId: 34, name: 'Bộ chung', reports: [{ code: 'OVERVIEW', name: 'Tổng quan', required: true }] }))
   })
 })

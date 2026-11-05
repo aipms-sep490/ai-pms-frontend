@@ -11,7 +11,7 @@ const baseMessage = (reactions?: ChatMessage['reactions']): ChatMessage => ({
 describe('chat attachment + reaction helpers', () => {
   it('rejects empty and oversized files, accepts normal ones', () => {
     expect(attachmentError({ size: 0 })).toBeTruthy()
-    expect(attachmentError({ size: 11 * 1024 * 1024 })).toContain('10 MiB')
+    expect(attachmentError({ size: 11 * 1024 * 1024 })).toBeNull()
     expect(attachmentError({ size: 2048 })).toBeNull()
   })
 
