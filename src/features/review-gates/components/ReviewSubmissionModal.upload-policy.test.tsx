@@ -25,7 +25,7 @@ it('shows the BE limit before selection and rejects an oversized file locally', 
   expect(onSubmit).not.toHaveBeenCalled()
 })
 
-it('keeps valid file selection available and blocks files over the current BE limit when policy cannot be loaded', async () => {
+it('keeps file selection available for server validation when policy cannot be loaded', async () => {
   policyApi.getUploadPolicy.mockResolvedValue(null)
   show()
   await waitFor(() => expect(screen.getByText(/Chưa tải được chính sách tệp/)).toBeTruthy())
@@ -33,5 +33,6 @@ it('keeps valid file selection available and blocks files over the current BE li
   expect(screen.getByText('report.pdf')).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: 'Đổi tệp' }))
   fireEvent.change(screen.getByLabelText('Tệp minh chứng'), { target: { files: [largeFile(21 * 1_048_576)] } })
-  expect(screen.getByText(/Tạm giới hạn 20 MiB/)).toBeTruthy()
+  expect(screen.getByText('report.pdf')).toBeTruthy()
+  expect(screen.getByText(/Máy chủ sẽ kiểm tra giới hạn/)).toBeTruthy()
 })

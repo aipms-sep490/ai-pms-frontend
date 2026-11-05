@@ -93,8 +93,6 @@ export async function submitRevision(
     })
   }
   if (!req.file) throw new Error('Vui lòng chọn tệp minh chứng thực tế.')
-  // Defense in depth for direct API callers while BE upload policy is unavailable.
-  if (req.file.size > 20 * 1024 * 1024) throw new Error('Tệp vượt quá giới hạn 20 MiB của luồng minh chứng Review Gate.')
   const body = new FormData()
   body.append('file', req.file)
   body.append('requirementId', req.requirementId)

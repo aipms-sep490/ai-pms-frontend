@@ -222,7 +222,7 @@ export function ReviewSubmissionModal({
 
         {submissionMode === 'file' ? (
           <div className="space-y-3">
-            <p role="status" className="text-xs text-slate-600">{policyState === 'ready' && uploadPolicy ? uploadPolicyLabel(uploadPolicy) : policyState === 'loading' ? 'Đang tải giới hạn tệp từ máy chủ…' : 'Chưa tải được chính sách tệp. Tạm áp dụng giới hạn 20 MiB của luồng hiện tại; máy chủ vẫn kiểm tra khi gửi.'}</p>
+            <p role="status" className="text-xs text-slate-600">{policyState === 'ready' && uploadPolicy ? uploadPolicyLabel(uploadPolicy) : policyState === 'loading' ? 'Đang tải giới hạn tệp từ máy chủ…' : 'Chưa tải được chính sách tệp. Máy chủ sẽ kiểm tra giới hạn và định dạng khi gửi.'}</p>
             {!selectedFile ? (
               <div
                 role="button"

@@ -50,6 +50,13 @@ describe('Review Gates transport against BE a1f510b (mock disabled)', () => {
     expect(body.get('concurrencyToken')).toBe(token)
   })
 
+  it('delegates file size validation to the current server policy', async () => {
+    const file = new File(['x'], 'report.pdf', { type: 'application/pdf' })
+    Object.defineProperty(file, 'size', { value: 21 * 1_048_576 })
+    await api.submitRevision({ projectId: '9', gateCode: 'R1', requirementId: '21', artifactName: file.name, notes: '', expectedVersion: 0, concurrencyToken: token, mode: 'file', file }, true)
+    expect(fetchMock).toHaveBeenCalledOnce()
+  })
+
   it('rejects metadata-only FILE submissions before sending a request', async () => {
     await expect(api.submitRevision({ projectId: '1', gateCode: 'R1', requirementId: '21', artifactName: 'name-only.pdf', notes: '', expectedVersion: 0, concurrencyToken: token, mode: 'file' }, true)).rejects.toThrow(/tệp/i)
     expect(fetchMock).not.toHaveBeenCalled()

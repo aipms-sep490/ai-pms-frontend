@@ -1,6 +1,6 @@
-import { httpGet } from '../http/http-client'
+import { HttpError, httpGet } from '../http/http-client'
 
-/** BE-05 draft contract. All values are server-owned; absence must not block upload. */
+/** BE-05 contract. All values are server-owned; absence must not block upload. */
 export interface UploadPolicy {
   parentType: string
   maxBytes: number
@@ -11,19 +11,22 @@ export interface UploadPolicy {
   requiresVersionAnchor: boolean
 }
 
-let pending: Promise<UploadPolicy[]> | null = null
+const pending = new Map<string, Promise<UploadPolicy | null>>()
 
-export function clearUploadPolicyCache(): void { pending = null }
+export function clearUploadPolicyCache(): void { pending.clear() }
 
-export function getUploadPolicies(): Promise<UploadPolicy[]> {
-  if (!pending) {
-    pending = httpGet<UploadPolicy[]>('/v1/upload-policies').catch(error => { pending = null; throw error })
-  }
-  return pending
-}
-
-export async function getUploadPolicy(parentType: string): Promise<UploadPolicy | null> {
-  return (await getUploadPolicies()).find(policy => policy.parentType === parentType) ?? null
+export function getUploadPolicy(parentType: string): Promise<UploadPolicy | null> {
+  const key = parentType.trim().toUpperCase()
+  const existing = pending.get(key)
+  if (existing) return existing
+  // The single-policy endpoint resolves BE-owned aliases such as TASK -> PROJECT_FILE.
+  const request = httpGet<UploadPolicy>(`/v1/upload-policies/${encodeURIComponent(key)}`).catch(error => {
+    pending.delete(key)
+    if (error instanceof HttpError && error.status === 404) return null
+    throw error
+  })
+  pending.set(key, request)
+  return request
 }
 
 export function uploadPolicyLabel(policy: UploadPolicy): string {
@@ -31,14 +34,8 @@ export function uploadPolicyLabel(policy: UploadPolicy): string {
   return [formats || 'Loại tệp theo chính sách máy chủ', policy.maxBytesLabel ? `tối đa ${policy.maxBytesLabel}` : 'Giới hạn do máy chủ xác nhận'].join(' · ')
 }
 
-/** Current Review Gate and project-file uploads use BE UploadValidator.MaxBytes (20 MiB).
- * Once BE-05 returns a policy, its limit takes precedence. */
-const FALLBACK_MAX_BYTES = 20 * 1024 * 1024
-
 export function validateUploadFile(file: File, policy: UploadPolicy | null): string | null {
-  if (!policy) return file.size > FALLBACK_MAX_BYTES
-    ? 'Chưa tải được chính sách tệp từ máy chủ. Tạm giới hạn 20 MiB theo giới hạn upload hiện tại; hãy chọn tệp nhỏ hơn.'
-    : null
+  if (!policy) return null
   if (Number.isFinite(policy.maxBytes) && file.size > policy.maxBytes) return `Tệp vượt giới hạn ${policy.maxBytesLabel} do máy chủ công bố.`
   const allowed = policy.allowedExtensions.map(ext => ext.toLowerCase())
   if (allowed.length && !allowed.some(ext => file.name.toLowerCase().endsWith(ext))) return `Loại tệp không được chấp nhận. ${uploadPolicyLabel(policy)}.`

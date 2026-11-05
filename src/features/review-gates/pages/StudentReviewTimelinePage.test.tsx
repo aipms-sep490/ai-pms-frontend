@@ -202,7 +202,7 @@ describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
     expect(await screen.findByText(/Đã gửi nhận xét hướng dẫn cho nhóm sinh viên thành công/)).toBeTruthy()
   })
 
-  it('uses the current 20 MiB Review Gate limit when no BE upload policy is available', async () => {
+  it('defers file limit validation to BE when no upload policy is available', async () => {
     render(
       <AuthSessionContext.Provider value={mockLeaderContext as any}>
         <MemoryRouter>
@@ -222,7 +222,7 @@ describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
 
     fireEvent.drop(dropArea, { dataTransfer: { files: [oversizedFile] } })
 
-    expect(await screen.findByText(/Tạm giới hạn 20 MiB/)).toBeTruthy()
-    expect(screen.queryByText('huge-file.pdf')).toBeNull()
+    expect(await screen.findByText('huge-file.pdf')).toBeTruthy()
+    expect(screen.getByText(/Máy chủ sẽ kiểm tra giới hạn/)).toBeTruthy()
   })
 })
