@@ -17,7 +17,8 @@ export interface AssistantRubricOption { id: number; title: string; version: num
 export const listAssistantRubrics = (projectId: number, signal?: AbortSignal) => httpGet<AssistantRubricOption[]>(`/academic/assistant/review-rubrics?projectId=${projectId}`, { signal })
 export interface AcademicAssistantResponse { answer: string; answerType: string; citations: KnowledgeCitation[]; projectEvidence: EvidenceReference[]; insufficientEvidence: boolean; limitationNote: string | null; generationStatus: string; generatedAt: string; runId: number | null; attachments?: { fileName: string; mediaType: string }[]; conversationId?: number; revision?: number; draft?: AssistantDraft }
 export interface AssistantConversation { id: number; title: string; projectId: number | null; scope: string; revision: number; updatedAt: string }
-export interface AssistantTurn { id: number; query: string; response: AcademicAssistantResponse }
+/** A persisted turn includes the server-side start time so history shows when the user sent it. */
+export interface AssistantTurn { id: number; query: string; sentAt?: string; response: AcademicAssistantResponse }
 export interface ConversationDetail { conversation: AssistantConversation; turns: AssistantTurn[]; hasMore: boolean }
 export interface AssistantStreamEvent { type: 'status' | 'preview' | 'completed' | 'error'; text?: string; response?: AcademicAssistantResponse }
 export const createAssistantConversation = (projectId?: number, signal?: AbortSignal) => httpPost<AssistantConversation>('/academic/assistant/conversations', { projectId, scope: projectId ? 'COMBINED' : 'ACADEMIC' }, { signal })

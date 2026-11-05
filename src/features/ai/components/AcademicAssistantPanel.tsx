@@ -25,7 +25,16 @@ function ImagePreview({ file }: { file: File }) {
   return url ? <img src={url} alt={`Xem trước ${file.name}`} className="h-14 w-14 shrink-0 rounded-md object-cover" /> : null
 }
 
-type ChatTurn = { id: number; query: string; fileNames: string[]; response?: AcademicAssistantResponse; error?: string; preview?: string }
+type ChatTurn = { id: number; query: string; fileNames: string[]; sentAt?: string; response?: AcademicAssistantResponse; error?: string; preview?: string }
+
+const formatMessageTime = (value?: string) => {
+  if (!value) return null
+  const normalized = value.endsWith('Z') || /[+-]\d\d:\d\d$/.test(value) ? value : `${value}Z`
+  const date = new Date(normalized)
+  return Number.isNaN(date.getTime()) ? null : date.toLocaleTimeString('vi-VN', {
+    hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh'
+  })
+}
 
 function AssistantTyping({ preview }: { preview?: string }) {
   return <div className="assistant-thinking" aria-busy="true">
@@ -175,7 +184,8 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
     request.current?.abort(); download.current?.abort()
     const controller = new AbortController(); request.current = controller
     const turnId = --sequence.current
-    if (dock) setTurns(current => [...current, { id: turnId, query: value, fileNames: files.map(file => file.name) }])
+    const sentAt = new Date().toISOString()
+    if (dock) setTurns(current => [...current, { id: turnId, query: value, sentAt, fileNames: files.map(file => file.name) }])
     setQuery(dock ? '' : value); setBusy(true); setError(null); setAnswer(null); setDownloading(false)
     try {
       let active = conversation
@@ -247,7 +257,7 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
   }
 
   const renderAnswer = (answer: AcademicAssistantResponse) => (<div className="assistant-answer mt-5 rounded-lg border border-primary-subtle bg-primary-subtle p-4">
-      <p className="assistant-answer-label mb-2 text-xs font-semibold text-primary"><span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>{answer.generationStatus === 'FALLBACK' ? (answer.citations.length || answer.projectEvidence.length ? 'Trích đoạn nguồn · fallback' : 'AI tạm thời không khả dụng') : answer.draft ? 'Bản nháp cần kiểm tra' : answer.insufficientEvidence ? 'Chưa đủ thông tin xác nhận' : answer.answerType === 'GENERAL' ? 'Hỏi đáp chung' : answer.answerType === 'ATTACHMENT' ? 'Dựa trên tệp bạn gửi' : 'Câu trả lời có nguồn'}</p>
+      <p className="assistant-answer-label mb-2 text-xs font-semibold text-primary"><span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>{answer.generationStatus === 'FALLBACK' ? (answer.citations.length || answer.projectEvidence.length ? 'Trích đoạn nguồn · fallback' : 'AI tạm thời không khả dụng') : answer.draft ? 'Bản nháp cần kiểm tra' : answer.insufficientEvidence ? 'Chưa đủ thông tin xác nhận' : answer.answerType === 'GENERAL' ? 'Hỏi đáp chung' : answer.answerType === 'ATTACHMENT' ? 'Dựa trên tệp bạn gửi' : 'Câu trả lời có nguồn'}{formatMessageTime(answer.generatedAt) && <time className="ml-2 font-normal text-ink-muted" dateTime={answer.generatedAt}>Trả lời lúc {formatMessageTime(answer.generatedAt)}</time>}</p>
       <AssistantAnswerText text={answer.answer} />
       {answer.insufficientEvidence && <p className="mt-3 text-sm text-status-warning-text">Chưa đủ căn cứ chính thức để kết luận.</p>}
       {answer.limitationNote && <p className="mt-3 text-xs text-ink-muted">{answer.limitationNote}</p>}
@@ -298,7 +308,7 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
     <div className={dock ? 'assistant-quick-grid' : 'mt-3 flex flex-wrap gap-2'}>{quickQuestions.map((item, index) => <button key={item} type="button" aria-label={item} disabled={busy} className="assistant-quick-card rounded-full border border-hairline px-3 py-2 text-xs text-ink-soft hover:border-primary hover:text-primary disabled:opacity-50" onClick={() => void ask(undefined, item)}>{dock ? <><span className="material-symbols-outlined" aria-hidden="true">{quickCards[index].icon}</span><strong>{quickCards[index].title}</strong><small>{quickCards[index].detail}</small></> : item}</button>)}</div>
     </div>}
     {dock && !showHistory && <div ref={history} className="assistant-history" role="log" aria-label="Cuộc trò chuyện với trợ lý" aria-live="polite">{toolMode && turns.length === 0 && <div className="assistant-tool-intro"><span className="material-symbols-outlined" aria-hidden="true">{toolMode === 'PROGRESS' ? 'event_note' : toolMode === 'REPORT_REVIEW' ? 'fact_check' : 'description'}</span><h3>{toolMode === 'PROGRESS' ? 'Nắm rõ bước tiếp theo' : toolMode === 'REPORT_REVIEW' ? 'Hoàn thiện báo cáo của bạn' : 'Từ ý tưởng đến bản nháp'}</h3><p>{toolMode === 'PROGRESS' ? 'Xem các công việc và mốc tiến độ cần chú ý trong đồ án.' : toolMode === 'REPORT_REVIEW' ? 'Đối chiếu nội dung với bộ tiêu chí đã công bố, kèm góp ý và nguồn tham chiếu.' : 'Bổ sung nội dung thực tế vào câu hỏi. Trợ lý giúp sắp xếp thành tài liệu để bạn chỉnh sửa và tải về.'}</p></div>}{moreTurns && conversation && <button type="button" disabled={busy || historyBusy} onClick={() => void openConversation(conversation.id, true)}>Xem tin nhắn trước</button>}{turns.map(turn => <div key={turn.id} className="assistant-turn">
-      <div className="assistant-user-bubble"><p>{turn.query}</p>{turn.fileNames.map((name, index) => <small key={index}>{name}</small>)}</div>
+      <div className="assistant-user-bubble"><p>{turn.query}</p>{turn.fileNames.map((name, index) => <small key={index}>{name}</small>)}{formatMessageTime(turn.sentAt) && <time dateTime={turn.sentAt}>Gửi lúc {formatMessageTime(turn.sentAt)}</time>}</div>
       {turn.response ? renderAnswer(turn.response) : turn.error ? <p className="assistant-turn-error">{turn.error}</p> : <AssistantTyping preview={turn.preview} />}
     </div>)}</div>}
     <form hidden={showHistory} className={dock ? 'assistant-composer' : 'mt-4 flex flex-col gap-3'} onSubmit={event => void ask(event)}>
