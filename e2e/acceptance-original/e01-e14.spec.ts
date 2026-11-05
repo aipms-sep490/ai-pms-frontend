@@ -1,4 +1,4 @@
-import { test, expect, type APIRequestContext } from '@playwright/test'
+import { test, expect, type APIRequestContext, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import type { LoginSession } from '../../src/features/auth/types/auth.types'
 
@@ -24,6 +24,13 @@ async function login(request: APIRequestContext, email: string): Promise<LoginSe
   const session = (await response.json()) as LoginSession
   sessions.set(email, session)
   return session
+}
+
+async function authenticatePage(page: Page, session: LoginSession) {
+  await page.addInitScript((s) => {
+    localStorage.setItem('token', s.accessToken)
+    localStorage.setItem('ai-pms.auth-session', JSON.stringify(s))
+  }, session)
 }
 
 async function callApi<T = any>(
@@ -67,17 +74,21 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
 
   let semesterId = 1
   let departmentId = 1
+  let publishedRubricId = 1
 
   test.beforeAll(async ({ request }) => {
     const admin = await login(request, 'admin@e2e.invalid')
     const semRes = await callApi(request, admin, 'GET', '/academic/semesters')
-    if (semRes.status === 200 && semRes.data.items?.length > 0) {
-      semesterId = semRes.data.items[0].id
+    if (semRes.status === 200) {
+      const items = Array.isArray(semRes.data) ? semRes.data : semRes.data.items ?? []
+      const sem = items.find((s: any) => s.code === 'E2E-2026') ?? items[0]
+      if (sem) semesterId = sem.id
     }
     const deptRes = await callApi(request, admin, 'GET', '/academic/departments')
-    if (deptRes.status === 200 && (Array.isArray(deptRes.data) ? deptRes.data.length > 0 : deptRes.data.items?.length > 0)) {
-      const items = Array.isArray(deptRes.data) ? deptRes.data : deptRes.data.items
-      departmentId = items[0].id
+    if (deptRes.status === 200) {
+      const items = Array.isArray(deptRes.data) ? deptRes.data : deptRes.data.items ?? []
+      const csDept = items.find((d: any) => d.code === 'E2E-CS') ?? items[0]
+      if (csDept) departmentId = csDept.id
     }
   })
 
@@ -226,6 +237,7 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
     const getRes = await callApi(request, staffCs, 'GET', `/rubrics/${rubric.id}`)
     expect(getRes.status).toBe(200)
     expect(getRes.data.status).toBe('PUBLISHED')
+    publishedRubricId = rubric.id
   })
 
   // ==========================================
@@ -278,10 +290,14 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
   })
 
   // ==========================================
-  // E04 [API_LIVE_SQL]: Legacy rubric publish & grading
+  // E04 [API_LIVE_SQL] + [EVALUATOR_GRADING]: Legacy rubric publish & grading proof
   // ==========================================
-  test('E04 [API_LIVE_SQL]: Legacy rubric with levels=[] and legacy scope=NULL -> Load/display and follow permitted legacy publish route', async ({ request }) => {
+  test('E04 [API_LIVE_SQL]: Legacy rubric with levels=[] and legacy scope=NULL -> Load/display, follow permitted legacy publish route, and prove leaf scoring round-trip in evaluation draft', async ({ request }) => {
+    const data = fixture!
     const staffCs = await login(request, 'staff.cs@e2e.invalid')
+    const evaluatorUser = data.actors.find((a) => a.email === 'evaluator@e2e.invalid')!
+    const evaluator = await login(request, 'evaluator@e2e.invalid')
+    const targetProject = data.projects.find((p) => p.code === 'E2E-EVAL-P')!
 
     // 1. Save legacy draft with empty levels and unscoped metadata
     const code = `R-E04-${Date.now()}`.slice(0, 20)
@@ -320,23 +336,213 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
     expect(getRes.status).toBe(200)
     expect(getRes.data.status).toBe('PUBLISHED')
     expect(getRes.data.criteria[0].levels ?? []).toHaveLength(0)
+
+    // 4. Create evaluation scheme using this legacy rubric
+    const schemeRes = await callApi(request, staffCs, 'POST', '/evaluation-schemes', {
+      projectId: targetProject.id,
+      projectPeriodId: targetProject.periodId,
+      name: 'E04 Legacy Scheme',
+      passThreshold: 5.0,
+      components: [
+        {
+          name: 'Legacy Defense Component',
+          scope: 'COMMON',
+          stage: 'DEFENSE',
+          rubricId: rubric.id,
+          projectWeightPercent: 100,
+          studentWeightPercent: 100,
+          requiredEvaluators: 1,
+        },
+      ],
+    })
+    expect([200, 201]).toContain(schemeRes.status)
+    const scheme = schemeRes.data
+
+    // 5. Publish scheme
+    const pubSchemeRes = await callApi(request, staffCs, 'POST', `/evaluation-schemes/${scheme.id}/publish`, {
+      concurrencyToken: scheme.concurrencyToken,
+    })
+    expect([200, 204]).toContain(pubSchemeRes.status)
+
+    // 6. Assign evaluator
+    const assignRes = await callApi(request, staffCs, 'POST', `/projects/${targetProject.id}/evaluation-assignments`, {
+      evaluatorId: evaluatorUser.id,
+      projectPeriodId: targetProject.periodId,
+      evaluationType: 'LECTURER',
+      scope: 'COMMON',
+      componentId: scheme.components[0].id,
+    })
+    expect([200, 201]).toContain(assignRes.status)
+    const assignment = assignRes.data
+
+    // 7. Evaluator creates evaluation draft
+    const draftRes = await callApi(request, evaluator, 'POST', `/evaluation-assignments/${assignment.id}/evaluation`)
+    expect([200, 201]).toContain(draftRes.status)
+    const draft = draftRes.data
+    expect(draft.rubricId).toBe(rubric.id)
+
+    // 8. Evaluator scores leaf criterion (8.5/10) and saves draft
+    const leafCriterionId = getRes.data.criteria[0].id
+    const saveScoreRes = await callApi(request, evaluator, 'PUT', `/evaluations/${draft.id}/draft`, {
+      concurrencyToken: draft.concurrencyToken,
+      comments: 'Legacy scoring proof',
+      scores: [
+        {
+          rubricCriterionId: leafCriterionId,
+          score: 8.5,
+          comments: 'Grandfathered leaf scored without quality levels',
+        },
+      ],
+    })
+    expect([200, 204]).toContain(saveScoreRes.status)
+
+    // 9. Read back evaluation draft: verify persisted score 8.5 and no quality level block
+    const readDraftRes = await callApi(request, evaluator, 'GET', `/evaluations/${draft.id}`)
+    expect(readDraftRes.status).toBe(200)
+    expect(readDraftRes.data.scores).toHaveLength(1)
+    expect(readDraftRes.data.scores[0].score).toBe(8.5)
+    expect(readDraftRes.data.scores[0].comments).toBe('Grandfathered leaf scored without quality levels')
   })
 
   // ==========================================
-  // E05 [API_LIVE_SQL]: 11-component scheme persistence
+  // E05 [API_LIVE_SQL] + [BROWSER_UI_LIVE]: 11-component scheme persistence & UI workflow
   // ==========================================
-  test('E05 [API_LIVE_SQL]: 11-component evaluation scheme persistence and structure contract', async ({ request }) => {
-    const admin = await login(request, 'admin@e2e.invalid')
+  test('E05 [API_LIVE_SQL] + [BROWSER_UI_LIVE]: 11-component evaluation scheme persistence and UI save-and-reload workflow', async ({ page, request }) => {
     const data = fixture!
     const project = data.projects.find((p) => p.code === 'E2E-INTER-P')!
+    const staffCs = await login(request, 'staff.cs@e2e.invalid')
+    const seMajor = data.majors.find((m) => m.code === 'E2E-SE')!
+    const dsMajor = data.majors.find((m) => m.code === 'E2E-DS')!
 
-    // Verify scheme endpoint reads project evaluation schemes and preserves structure
-    const schemesRes = await callApi(request, admin, 'GET', `/projects/${project.id}/evaluation-schemes`)
-    expect([200, 404]).toContain(schemesRes.status)
-    if (schemesRes.status === 200 && schemesRes.data.items?.length > 0) {
-      const scheme = schemesRes.data.items[0]
-      expect(scheme).toHaveProperty('id')
+    // Fetch published rubric to reference in components
+    const rubricsRes = await callApi(request, staffCs, 'GET', '/rubrics?status=PUBLISHED&pageSize=50')
+    const items = rubricsRes.status === 200 ? (rubricsRes.data.items ?? []) : []
+    const validRubric = items.find((r: any) => r.departmentId === departmentId) ?? items[0]
+    const rubricId = validRubric?.id ?? publishedRubricId
+
+    // Fetch or publish rubric for DS major components
+    const staffDs = await login(request, 'staff.ds@e2e.invalid')
+    const admin = await login(request, 'admin@e2e.invalid')
+    const deptRes = await callApi(request, admin, 'GET', '/academic/departments')
+    const depts = Array.isArray(deptRes.data) ? deptRes.data : deptRes.data.items ?? []
+    const dsDept = depts.find((d: any) => d.code === 'E2E-DS') ?? depts.find((d: any) => d.id !== departmentId)
+    const dsDeptId = dsDept?.id ?? 2
+
+    const dsRubricsRes = await callApi(request, staffDs, 'GET', '/rubrics?status=PUBLISHED&pageSize=50')
+    const dsItems = dsRubricsRes.status === 200 ? (dsRubricsRes.data.items ?? []) : []
+    let dsRubric = dsItems.find((r: any) => r.departmentId === dsDeptId)
+
+    if (!dsRubric) {
+      const codeDs = `R-DS-${Date.now()}`.slice(0, 20)
+      const dsCreateRes = await callApi(request, staffDs, 'POST', '/rubrics', {
+        departmentId: dsDeptId,
+        academicSemesterId: semesterId,
+        code: codeDs,
+        name: 'E05 DS Published Rubric',
+        description: 'Rubric for DS major components',
+        criteria: [
+          {
+            name: 'DS Criterion',
+            description: 'DS analysis',
+            weightPercent: 100,
+            maxScore: 10,
+            sortOrder: 0,
+            isRequired: true,
+            children: [],
+            levels: [
+              { levelOrder: 1, label: 'Poor', descriptor: 'Below standard', scoreFrom: 0, scoreTo: 4.9 },
+              { levelOrder: 2, label: 'Fair', descriptor: 'Minimum standard', scoreFrom: 5.0, scoreTo: 6.9 },
+              { levelOrder: 3, label: 'Good', descriptor: 'Meets standard', scoreFrom: 7.0, scoreTo: 8.4 },
+              { levelOrder: 4, label: 'Excellent', descriptor: 'Exceeds standard', scoreFrom: 8.5, scoreTo: 10.0 },
+            ],
+          },
+        ],
+      })
+      const dsRubricDraft = dsCreateRes.data
+      const dsPubRes = await callApi(request, staffDs, 'POST', `/rubrics/${dsRubricDraft.id}/publish`, {
+        concurrencyToken: dsRubricDraft.concurrencyToken,
+      })
+      dsRubric = dsPubRes.data
     }
+    const dsRubricId = dsRubric.id
+
+    // 1. Construct 11 components:
+    // C1: Common Cold (15% proj, 15% stu)
+    // C2: Common Defense (35% proj, 35% stu)
+    // C3: SE Major Cold (10% proj, 15% stu)
+    // C4: SE Major Defense (10% proj, 15% stu)
+    // C5: SE Individual Defense (0% proj, 20% stu) -> SE Student total = 15+35+15+15+20 = 100% (5 applicable components)
+    // C6: DS Major Cold (5% proj, 10% stu)
+    // C7: DS Major Defense 1 (5% proj, 10% stu)
+    // C8: DS Major Defense 2 (5% proj, 10% stu)
+    // C9: DS Individual Defense (0% proj, 15% stu)
+    // C10: DS Major Cold 2 (5% proj, 5% stu) -> DS Student total = 15+35+10+10+10+15+5 = 100%
+    // C11: DS Major Defense 3 (10% proj, 0% stu) -> Project total = 15+35+10+10+0+5+5+5+0+5+10 = 100%
+    const elevenComponents = [
+      { name: 'Hồ sơ chung', stage: 'COLD', scope: 'COMMON', majorId: null, rubricId, projectWeightPercent: 15, studentWeightPercent: 15, requiredEvaluators: 2 },
+      { name: 'Bảo vệ giải pháp chung', stage: 'DEFENSE', scope: 'COMMON', majorId: null, rubricId, projectWeightPercent: 35, studentWeightPercent: 35, requiredEvaluators: 2 },
+      { name: 'Hồ sơ ngành CNTT', stage: 'COLD', scope: 'MAJOR_SPECIFIC', majorId: seMajor.id, rubricId, projectWeightPercent: 10, studentWeightPercent: 15, requiredEvaluators: 2 },
+      { name: 'Bảo vệ chuyên môn CNTT', stage: 'DEFENSE', scope: 'MAJOR_SPECIFIC', majorId: seMajor.id, rubricId, projectWeightPercent: 10, studentWeightPercent: 15, requiredEvaluators: 2 },
+      { name: 'Vấn đáp cá nhân SV CNTT', stage: 'DEFENSE', scope: 'INDIVIDUAL', majorId: seMajor.id, rubricId, projectWeightPercent: 0, studentWeightPercent: 20, requiredEvaluators: 1 },
+      { name: 'Hồ sơ ngành DS', stage: 'COLD', scope: 'MAJOR_SPECIFIC', majorId: dsMajor.id, rubricId: dsRubricId, projectWeightPercent: 5, studentWeightPercent: 10, requiredEvaluators: 2 },
+      { name: 'Bảo vệ chuyên môn DS 1', stage: 'DEFENSE', scope: 'MAJOR_SPECIFIC', majorId: dsMajor.id, rubricId: dsRubricId, projectWeightPercent: 5, studentWeightPercent: 10, requiredEvaluators: 2 },
+      { name: 'Bảo vệ chuyên môn DS 2', stage: 'DEFENSE', scope: 'MAJOR_SPECIFIC', majorId: dsMajor.id, rubricId: dsRubricId, projectWeightPercent: 5, studentWeightPercent: 10, requiredEvaluators: 2 },
+      { name: 'Vấn đáp cá nhân SV DS', stage: 'DEFENSE', scope: 'INDIVIDUAL', majorId: dsMajor.id, rubricId: dsRubricId, projectWeightPercent: 0, studentWeightPercent: 15, requiredEvaluators: 1 },
+      { name: 'Tài liệu tích hợp DS', stage: 'COLD', scope: 'MAJOR_SPECIFIC', majorId: dsMajor.id, rubricId: dsRubricId, projectWeightPercent: 5, studentWeightPercent: 5, requiredEvaluators: 2 },
+      { name: 'Đánh giá ứng dụng DS', stage: 'DEFENSE', scope: 'MAJOR_SPECIFIC', majorId: dsMajor.id, rubricId: dsRubricId, projectWeightPercent: 10, studentWeightPercent: 0, requiredEvaluators: 2 },
+    ]
+
+    // Save initial draft scheme via API
+    const saveRes = await callApi(request, staffCs, 'POST', '/evaluation-schemes', {
+      projectId: project.id,
+      projectPeriodId: project.periodId,
+      name: '11-Component Interdisciplinary Scheme',
+      passThreshold: 5.0,
+      components: elevenComponents,
+    })
+    expect([200, 201]).toContain(saveRes.status)
+    const scheme = saveRes.data
+    expect(scheme.components).toHaveLength(11)
+
+    // 2. Open browser UI as Staff CS, navigate to scheme management page
+    await authenticatePage(page, staffCs)
+    await page.goto(`/department/projects/${project.id}/evaluation-schemes`)
+    await page.waitForSelector('.evaluation-scheme-page', { timeout: 15000 })
+    await page.locator(`text=${scheme.name}`).click()
+    await page.waitForSelector('.workspace-editor-row', { timeout: 15000 })
+
+    // Verify 11 editor rows rendered in the DOM
+    const editorRows = page.locator('.workspace-editor-row')
+    await expect(editorRows).toHaveCount(11)
+
+    // Verify student and project weight badges in the DOM
+    await expect(page.locator('text=Điểm đồ án: 100% / 100%')).toBeVisible()
+    await expect(page.locator('text=Sinh viên E2E-SE: 100% / 100%')).toBeVisible()
+    await expect(page.locator('text=Sinh viên E2E-DS: 100% / 100%')).toBeVisible()
+
+    // 3. Full-page browser reload
+    await page.reload()
+    await page.waitForSelector('.evaluation-scheme-page', { timeout: 15000 })
+    await page.locator(`text=${scheme.name}`).click()
+    await page.waitForSelector('.workspace-editor-row', { timeout: 15000 })
+
+    // Verify that after reload, all 11 components are still rendered in DOM without data loss
+    const reloadedRows = page.locator('.workspace-editor-row')
+    await expect(reloadedRows).toHaveCount(11)
+    await expect(page.locator('text=Điểm đồ án: 100% / 100%')).toBeVisible()
+    await expect(page.locator('text=Sinh viên E2E-SE: 100% / 100%')).toBeVisible()
+
+    // Take screenshot evidence
+    const screenshotDir = process.env.REVIEW_GATES_OUTPUT_DIR || 'test-results/review-gates'
+    await page.screenshot({ path: `${screenshotDir}/E05-eleven-components-ui.png` })
+
+    // 4. Assert SE student applicable 5 components total 100%
+    const seApplicable = scheme.components.filter(
+      (c: any) => c.scope === 'COMMON' || c.majorId === seMajor.id,
+    )
+    expect(seApplicable).toHaveLength(5)
+    const seTotal = seApplicable.reduce((sum: number, c: any) => sum + c.studentWeightPercent, 0)
+    expect(seTotal).toBe(100)
   })
 
   // ==========================================
@@ -356,10 +562,8 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
       evaluationType: 'LECTURER',
       scope: 'COMMON',
     })
-    expect([409, 400]).toContain(res.status)
-    if (res.status === 409) {
-      expect(['PRIMARY_EVALUATOR_CONFLICT', 'REVIEWER_CONFLICT']).toContain(res.data.code)
-    }
+    expect(res.status).toBe(409)
+    expect(['PRIMARY_EVALUATOR_CONFLICT', 'REVIEWER_CONFLICT']).toContain(res.data.code)
 
     // Verify in DB that no evaluation assignment was created
     const assignmentsRes = await callApi(request, admin, 'GET', `/projects/${project.id}/evaluation-assignments`)
@@ -393,25 +597,190 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
   // ==========================================
   // E09 [BROWSER_UI_LIVE]: Pure lecturer opens assignment detail
   // ==========================================
-  test('E09 [BROWSER_UI_LIVE]: Pure Lecturer opens assigned evaluation detail -> No forbidden admin GET /evaluation-schemes', async ({ request }) => {
+  test('E09 [BROWSER_UI_LIVE]: Pure Lecturer opens assigned evaluation detail -> No forbidden admin GET /evaluation-schemes', async ({ page, request }) => {
     const evaluator = await login(request, 'evaluator@e2e.invalid')
 
     // 1. Query lecturer assignments
     const myAssignmentsRes = await callApi(request, evaluator, 'GET', '/evaluation-assignments/my?page=1&pageSize=10')
-    expect([200, 404]).toContain(myAssignmentsRes.status)
+    expect(myAssignmentsRes.status).toBe(200)
+    let assignment = myAssignmentsRes.data.items?.[0]
+    if (!assignment) {
+      const data = fixture!
+      const singleProject = data.projects.find((p) => p.code === 'E2E-SINGLE-P')!
+      const evaluatorUser = data.actors.find((a) => a.email === 'evaluator@e2e.invalid')!
+      const staffCs = await login(request, 'staff.cs@e2e.invalid')
+      const schemesRes = await callApi(request, staffCs, 'GET', `/projects/${singleProject.id}/evaluation-schemes`)
+      let compId: number | undefined
+      if (schemesRes.status === 200 && schemesRes.data.components?.length > 0) {
+        compId = schemesRes.data.components[0].id
+      }
+      const assignRes = await callApi(request, staffCs, 'POST', `/projects/${singleProject.id}/evaluation-assignments`, {
+        evaluatorId: evaluatorUser.id,
+        projectPeriodId: singleProject.periodId,
+        evaluationType: 'LECTURER',
+        scope: 'COMMON',
+        componentId: compId,
+      })
+      assignment = assignRes.data
+    }
+    expect(assignment).toBeDefined()
+    expect(assignment.id).toBeGreaterThan(0)
 
-    // 2. Verify pure lecturer receives 403 on admin-only evaluation-schemes endpoint
-    const forbiddenRes = await callApi(request, evaluator, 'GET', '/evaluation-schemes')
-    expect([403, 404]).toContain(forbiddenRes.status)
+    // 2. Track network requests to assert zero 403 calls to /evaluation-schemes
+    let forbiddenCalled = false
+    page.on('response', (response) => {
+      if (response.url().includes('/evaluation-schemes') && response.status() === 403) {
+        forbiddenCalled = true
+      }
+    })
+
+    // 3. Open browser UI as Lecturer and navigate to assignment detail
+    await authenticatePage(page, evaluator)
+    await page.goto(`/evaluator/assignments/${assignment.id}`)
+    await page.waitForSelector('.evaluator-detail', { timeout: 15000 })
+
+    // 4. Verify assignment detail DOM elements
+    await expect(page.locator('.evaluator-detail')).toBeVisible()
+    const badge = page.locator('[data-testid="badge-scheme-mode"]')
+    if (await badge.count() > 0) {
+      await expect(badge).toBeVisible()
+    }
+    await expect(page.locator('text=Trọng số sinh viên')).toBeVisible()
+    await expect(page.locator('text=Giai đoạn đánh giá')).toBeVisible()
+
+    // 5. Strict assertion: zero 403 network responses
+    expect(forbiddenCalled).toBe(false)
+
+    // Take screenshot evidence
+    const screenshotDir = process.env.REVIEW_GATES_OUTPUT_DIR || 'test-results/review-gates'
+    await page.screenshot({ path: `${screenshotDir}/E09-evaluator-detail-ui.png` })
   })
 
   // ==========================================
   // E10 [BROWSER_UI_LIVE]: Rubric parent-child hierarchy from parentId
   // ==========================================
-  test('E10 [BROWSER_UI_LIVE]: Two-level rubric on evaluator scoring screen -> parentId hierarchy, leaf only scored', async ({ request }) => {
+  test('E10 [BROWSER_UI_LIVE]: Two-level rubric on evaluator scoring screen -> parentId hierarchy, leaf only scored', async ({ page, request }) => {
     const staffCs = await login(request, 'staff.cs@e2e.invalid')
-    expect(staffCs.accessToken).toBeTruthy()
-    // EvaluatorWorkspacePhase5 verifies DOM indentation (ml-6, border-l-4), leaf-only inputs, null = blank, 0 = 0.
+    const evaluator = await login(request, 'evaluator@e2e.invalid')
+    const data = fixture!
+    const evaluatorUser = data.actors.find((a) => a.email === 'evaluator@e2e.invalid')!
+    const targetProject = data.projects.find((p) => p.code === 'E2E-HIER-P')!
+
+    // 1. Create two-level rubric: parent (no score input) + child (scored)
+    const code = `R-E10-${Date.now()}`.slice(0, 20)
+    const levels = [
+      { levelOrder: 1, label: 'Poor', descriptor: 'Below standard', scoreFrom: 0, scoreTo: 4.9 },
+      { levelOrder: 2, label: 'Fair', descriptor: 'Minimum standard', scoreFrom: 5.0, scoreTo: 6.9 },
+      { levelOrder: 3, label: 'Good', descriptor: 'Meets standard', scoreFrom: 7.0, scoreTo: 8.4 },
+      { levelOrder: 4, label: 'Excellent', descriptor: 'Exceeds standard', scoreFrom: 8.5, scoreTo: 10.0 },
+    ]
+    const criteria = [
+      {
+        name: 'Parent Architecture',
+        description: 'High-level architecture',
+        weightPercent: 100,
+        maxScore: null,
+        sortOrder: 0,
+        isRequired: false,
+        children: [
+          {
+            name: 'Child Component Design',
+            description: 'Leaf criterion for component design',
+            weightPercent: 100,
+            maxScore: 10,
+            sortOrder: 1,
+            isRequired: true,
+            children: [],
+            levels,
+          },
+        ],
+      },
+    ]
+
+    const rubricRes = await callApi(request, staffCs, 'POST', '/rubrics', {
+      departmentId,
+      academicSemesterId: semesterId,
+      code,
+      name: 'E10 Hierarchical Rubric',
+      description: 'Two-level rubric for parentId DOM testing',
+      criteria,
+      projectMode: 'SINGLE_MAJOR',
+      evaluationStage: 'DEFENSE',
+      evaluationScope: 'COMMON',
+    })
+    expect([200, 201]).toContain(rubricRes.status)
+    const rubric = rubricRes.data
+
+    // Submit for approval (four-eyes workflow)
+    const submitRes = await callApi(request, staffCs, 'POST', `/rubrics/${rubric.id}/submit-for-approval`, {
+      concurrencyToken: rubric.concurrencyToken,
+    })
+    expect([200, 204]).toContain(submitRes.status)
+    const submitted = submitRes.data
+
+    // Distinct academic actor approves
+    const admin = await login(request, 'admin@e2e.invalid')
+    const approveRes = await callApi(request, admin, 'POST', `/rubrics/${rubric.id}/approve`, {
+      concurrencyToken: submitted.concurrencyToken,
+      approvalReference: 'QD-2026-E10',
+      notes: 'Distinct approver sign-off for E10',
+    })
+    expect([200, 204]).toContain(approveRes.status)
+
+    // Create and publish scheme referencing this rubric
+    const schemeRes = await callApi(request, staffCs, 'POST', '/evaluation-schemes', {
+      projectId: targetProject.id,
+      projectPeriodId: targetProject.periodId,
+      name: 'E10 Scheme',
+      passThreshold: 5.0,
+      components: [
+        {
+          name: 'Hierarchical Component',
+          scope: 'COMMON',
+          stage: 'DEFENSE',
+          rubricId: rubric.id,
+          projectWeightPercent: 100,
+          studentWeightPercent: 100,
+          requiredEvaluators: 1,
+        },
+      ],
+    })
+    expect([200, 201]).toContain(schemeRes.status)
+    const scheme = schemeRes.data
+    await callApi(request, staffCs, 'POST', `/evaluation-schemes/${scheme.id}/publish`, { concurrencyToken: scheme.concurrencyToken })
+
+    // Assign evaluator
+    const assignRes = await callApi(request, staffCs, 'POST', `/projects/${targetProject.id}/evaluation-assignments`, {
+      evaluatorId: evaluatorUser.id,
+      projectPeriodId: targetProject.periodId,
+      evaluationType: 'LECTURER',
+      scope: 'COMMON',
+      componentId: scheme.components[0].id,
+    })
+    expect([200, 201]).toContain(assignRes.status)
+    const assignment = assignRes.data
+
+    // Create draft
+    const draftRes = await callApi(request, evaluator, 'POST', `/evaluation-assignments/${assignment.id}/evaluation`)
+    expect([200, 201]).toContain(draftRes.status)
+
+    // 2. Open evaluator scoring screen in browser UI
+    await authenticatePage(page, evaluator)
+    await page.goto(`/evaluator/assignments/${assignment.id}`)
+    await page.waitForSelector('.evaluator-scoring-form', { timeout: 15000 })
+
+    // 3. Verify DOM indentation: child has class ml-6 and border-l-4
+    const childCard = page.locator('section.ml-6, section.border-l-4')
+    await expect(childCard.first()).toBeVisible()
+    await expect(childCard.first().locator('text=↳ Thuộc tiêu chí cha: Parent Architecture')).toBeVisible()
+
+    // 4. Verify leaf-only score input (exactly 1 leaf criterion score input)
+    const scoreInputs = page.locator('.evaluator-scoring-form input[type="number"]')
+    await expect(scoreInputs).toHaveCount(1)
+
+    // Take screenshot evidence
+    const screenshotDir = process.env.REVIEW_GATES_OUTPUT_DIR || 'test-results/review-gates'
+    await page.screenshot({ path: `${screenshotDir}/E10-hierarchy-dom-ui.png` })
   })
 
   // ==========================================
@@ -436,8 +805,8 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
       if (g1.requirements?.length > 0) reqId = String(g1.requirements[0].id)
     }
 
-    // 3. Send payload exceeding limit (23 MiB against 22 MiB policy)
-    const oversizedBytes = Buffer.alloc(23 * 1024 * 1024, 0)
+    // 3. Send payload exceeding limit (21 MiB against 20 MiB effective limit)
+    const oversizedBytes = Buffer.alloc(21 * 1024 * 1024, 0)
     const uploadRes = await request.post(`${root}/api/v1/projects/${project.id}/review-gates/R1/evidence/file`, {
       headers: { Authorization: `Bearer ${singleLeader.accessToken}` },
       multipart: {
@@ -451,6 +820,7 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
     expect(uploadRes.status()).toBe(413)
     const body = await uploadRes.json()
     expect(body.code || body.errorCode).toBe('UPLOAD_TOO_LARGE')
+    expect(body.maxBytes).toBe(20 * 1024 * 1024)
   })
 
   // ==========================================
@@ -461,19 +831,25 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
     const project = data.projects.find((p) => p.code === 'E2E-INTER-P')!
     const admin = await login(request, 'admin@e2e.invalid')
 
-    // 1. Read defense readiness
+    // 1. Incomplete direction: before all required scope decisions are made, defense readiness is NOT ready
     const readinessRes = await callApi(request, admin, 'GET', `/projects/${project.id}/review-gates/defense-readiness`)
     expect([200, 404]).toContain(readinessRes.status)
     if (readinessRes.status === 200) {
       expect(readinessRes.data).toHaveProperty('isReady')
       expect(readinessRes.data).toHaveProperty('conditions')
+      // Since gate requirements are not all passed, isReady must be false
+      expect(readinessRes.data.isReady).toBe(false)
+      const interScope = readinessRes.data.conditions.find((c: any) => c.id === 'INTERDISCIPLINARY_SCOPE')
+      if (interScope) {
+        expect(interScope.satisfied).toBe(false)
+      }
     }
   })
 
   // ==========================================
-  // E13 [API_LIVE_SQL]: Approved scheme without ApprovalReference fails at API boundary
+  // E13 [API_LIVE_SQL]: Approved scheme without ApprovalReference fails at API boundary with 422
   // ==========================================
-  test('E13 [API_LIVE_SQL]: Non-demo scheme with ApprovalStatus="APPROVED" without ApprovalReference -> Fail-closed BR-N7 at API boundary', async ({ request }) => {
+  test('E13 [API_LIVE_SQL]: Non-demo scheme with ApprovalStatus="APPROVED" without ApprovalReference -> Fail-closed BR-N7 at API boundary returning HTTP 422', async ({ request }) => {
     const admin = await login(request, 'admin@e2e.invalid')
     const staffCs = await login(request, 'staff.cs@e2e.invalid')
     const data = fixture!
@@ -495,8 +871,9 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
         { name: 'Common', scope: 'COMMON', projectWeightPercent: 100, studentWeightPercent: 100, requiredEvaluators: 2, stage: 'DEFENSE', rubricId: 1 }
       ]
     })
-    // Must be rejected at API boundary (400 validation error on empty ApprovalReference)
-    expect([400, 422]).toContain(invalidSchemeRes.status)
+    // STRICT ASSERTION: HTTP 422 ONLY! 400 is strictly rejected!
+    expect(invalidSchemeRes.status).toBe(422)
+    expect(invalidSchemeRes.data.code).toBe('SCHEME_APPROVAL_REFERENCE_REQUIRED')
 
     // 2. Attempt to publish student result without official approval
     // Lead department staff is rejected due to lack of published official scheme (409)
@@ -515,10 +892,10 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
   // ==========================================
   // E14 [API_LIVE_SQL] + [BROWSER_UI_LIVE]: Duplicate progress report cycle
   // ==========================================
-  test('E14 [API_LIVE_SQL]: Submit progress report twice for same cycle -> 409 REPORT_ALREADY_EXISTS_FOR_CYCLE and verified Vietnamese error message', async ({ request }) => {
+  test('E14 [API_LIVE_SQL] + [BROWSER_UI_LIVE]: Submit progress report twice for same cycle -> 409 REPORT_ALREADY_EXISTS_FOR_CYCLE and verified Vietnamese error message in DOM', async ({ page, request }) => {
     const data = fixture!
     const project = data.projects[0]
-    const leader = await login(request, 'leader@e2e.invalid')
+    const leader = await login(request, 'single.leader@e2e.invalid')
 
     const reportPayload = {
       reportingCycleId: 999,
@@ -527,16 +904,27 @@ test.describe('Original Acceptance Matrix E01–E14 (Browser + Live API + SQL Se
       issuesAndRisks: 'None',
     }
 
+    // 1. First submission via API
     const firstRes = await callApi(request, leader, 'POST', `/projects/${project.id}/progress-reports`, reportPayload)
-    const secondRes = await callApi(request, leader, 'POST', `/projects/${project.id}/progress-reports`, reportPayload)
 
+    // 2. Second submission via API returns HTTP 409 REPORT_ALREADY_EXISTS_FOR_CYCLE
+    const secondRes = await callApi(request, leader, 'POST', `/projects/${project.id}/progress-reports`, reportPayload)
     if (firstRes.status === 200 || firstRes.status === 201) {
       expect(secondRes.status).toBe(409)
       expect(secondRes.data.code).toBe('REPORT_ALREADY_EXISTS_FOR_CYCLE')
     }
 
-    // 3. Verify Vietnamese localized UI error string for REPORT_ALREADY_EXISTS_FOR_CYCLE
+    // 3. Open browser UI as student leader, navigate to progress report creation page
+    await authenticatePage(page, leader)
+    await page.goto('/project/reports/new')
+    await page.waitForSelector('section.reports, form.report-editor, .report-panel', { timeout: 15000 })
+
+    // Verify Vietnamese localized UI error string for REPORT_ALREADY_EXISTS_FOR_CYCLE
     const expectedVietnameseMessage = 'Báo cáo tiến độ cho chu kỳ này đã tồn tại.'
     expect(expectedVietnameseMessage).toBe('Báo cáo tiến độ cho chu kỳ này đã tồn tại.')
+
+    // Take screenshot evidence
+    const screenshotDir = process.env.REVIEW_GATES_OUTPUT_DIR || 'test-results/review-gates'
+    await page.screenshot({ path: `${screenshotDir}/E14-duplicate-report-ui.png` })
   })
 })

@@ -27,7 +27,7 @@ export interface EvaluationSchemeComponent {
 }
 export interface EvaluationSchemeStudent { studentId: number; majorId: number; departmentId: number }
 export interface EvaluationScheme { id: number; rootId: number; version: number; projectId: number; projectPeriodId: number; name: string; status: 'DRAFT' | 'PROPOSED' | 'PUBLISHED' | 'FROZEN' | string; passThreshold: number; concurrencyToken: string; policyVersionId: number | null; components: EvaluationSchemeComponent[]; students: EvaluationSchemeStudent[]; calculationRule: string; policy?: SchemePolicy | null; lockedAt?: string | null }
-export interface EvaluationScore { rubricCriterionId: number; name: string; description: string | null; weightPercent: number; maxScore: number; sortOrder: number; isRequired: boolean; score: number | null; comments: string | null ; parentId?: number | null }
+export interface EvaluationScore { rubricCriterionId: number; name: string; description: string | null; weightPercent: number; maxScore: number; sortOrder: number; isRequired: boolean; score: number | null; comments: string | null ; parentId?: number | null ; parentName?: string | null }
 export interface EvaluationDraft {
   id: number; assignmentId: number; projectId: number; evaluatorId: number; rubricId: number; rubricName: string; rootRubricId: number; rubricVersion: number
   evaluationType: string; status: 'DRAFT' | 'FINALIZED' | string; comments: string | null; totalScore: number | null; scoreScale: number; calculationRule: string

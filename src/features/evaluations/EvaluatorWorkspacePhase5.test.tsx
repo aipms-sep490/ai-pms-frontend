@@ -221,7 +221,7 @@ describe('Evaluator Workspace Phase 5', () => {
     expect(screen.getByText('1/2 người chấm')).toBeTruthy()
 
     // Hierarchy indentation for child criterion
-    expect(screen.getByText('↳ Thuộc tiêu chí cha: Phần cứng')).toBeTruthy()
+    expect(await screen.findByText('↳ Thuộc tiêu chí cha: Phần cứng')).toBeTruthy()
     const childCard = screen.getByTestId('criterion-card-11')
     expect(childCard.className).toContain('ml-6')
   })
