@@ -1,4 +1,3 @@
-/** The five report codes without response evidence remain on the generic path. */
 export interface WorkflowErrorFeedback {
   message: string
   retryable: boolean
@@ -47,6 +46,26 @@ const verifiedErrors: Record<string, WorkflowErrorFeedback> = {
   },
   REPORT_ALREADY_SUBMITTED: {
     message: 'Báo cáo đã được nộp. Xem bản đã khóa trước khi thực hiện thao tác khác.',
+    retryable: false,
+  },
+  REPORT_CYCLE_REQUIRED: {
+    message: 'Báo cáo phải gắn với chu kỳ báo cáo. Chọn chu kỳ trước khi nộp.',
+    retryable: false,
+  },
+  REPORT_DEADLINE_PASSED: {
+    message: 'Đã qua hạn nộp của chu kỳ này và kỳ học không cho phép nộp muộn. Liên hệ bộ môn để được hướng dẫn.',
+    retryable: false,
+  },
+  REPORT_ALREADY_EXISTS_FOR_CYCLE: {
+    message: 'Nhóm đã có báo cáo cho chu kỳ này. Mở báo cáo đã có thay vì tạo bản trùng.',
+    retryable: false,
+  },
+  REPORT_ALREADY_EXISTS_FOR_PERIOD: {
+    message: 'Đồ án đã có báo cáo trong khoảng thời gian này. Mở báo cáo đã có hoặc chọn khoảng khác.',
+    retryable: false,
+  },
+  REPORT_FEEDBACK_ON_DRAFT_NOT_ALLOWED: {
+    message: 'Báo cáo vẫn là bản nháp. Nhóm cần nộp báo cáo trước khi giảng viên gửi nhận xét.',
     retryable: false,
   },
   STALE_CONCURRENCY_TOKEN: {

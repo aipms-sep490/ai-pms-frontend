@@ -663,11 +663,15 @@ describe('Progress reports workflow', () => {
   })
 
   it.each([
-    'REPORT_CYCLE_REQUIRED', 'REPORT_DEADLINE_PASSED', 'REPORT_ALREADY_EXISTS_FOR_CYCLE',
-    'REPORT_ALREADY_EXISTS_FOR_PERIOD', 'REPORT_FEEDBACK_ON_DRAFT_NOT_ALLOWED',
-  ])('keeps unverified response code %s on the generic path', code => {
+    ['REPORT_CYCLE_REQUIRED', 'phải gắn với chu kỳ báo cáo'],
+    ['REPORT_DEADLINE_PASSED', 'Đã qua hạn nộp của chu kỳ này'],
+    ['REPORT_ALREADY_EXISTS_FOR_CYCLE', 'đã có báo cáo cho chu kỳ này'],
+    ['REPORT_ALREADY_EXISTS_FOR_PERIOD', 'đã có báo cáo trong khoảng thời gian này'],
+    ['REPORT_FEEDBACK_ON_DRAFT_NOT_ALLOWED', 'Báo cáo vẫn là bản nháp'],
+  ])('shows safe guidance for report code %s', (code, phrase) => {
     const message = reportError(new HttpError('private English detail', 409, { code, detail: 'private English detail' }))
-    expect(message).toBe('Chưa hoàn tất thao tác. Kiểm tra kỳ báo cáo, báo cáo đã có và hạn nộp; tải lại trạng thái trước khi thử lại.')
+    expect(message).toContain(phrase)
+    expect(message).not.toMatch(/private English detail|REPORT_/)
   })
 
   it('maps safe field labels for inline errors without exposing backend text', async () => {

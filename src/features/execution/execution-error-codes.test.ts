@@ -13,6 +13,11 @@ describe('workflowErrorFromCode', () => {
     ['DELIVERABLE_HAS_SUBMITTED_HISTORY', 'Hạng mục đã có lịch sử nộp, không thể xóa.', false, undefined],
     ['REPORT_NOT_EDITABLE', 'Báo cáo đã nộp hoặc được nhận xét, không thể sửa.', false, undefined],
     ['REPORT_ALREADY_SUBMITTED', 'Báo cáo đã được nộp.', false, undefined],
+    ['REPORT_CYCLE_REQUIRED', 'phải gắn với chu kỳ báo cáo', false, undefined],
+    ['REPORT_DEADLINE_PASSED', 'Đã qua hạn nộp của chu kỳ này', false, undefined],
+    ['REPORT_ALREADY_EXISTS_FOR_CYCLE', 'đã có báo cáo cho chu kỳ này', false, undefined],
+    ['REPORT_ALREADY_EXISTS_FOR_PERIOD', 'đã có báo cáo trong khoảng thời gian này', false, undefined],
+    ['REPORT_FEEDBACK_ON_DRAFT_NOT_ALLOWED', 'Báo cáo vẫn là bản nháp', false, undefined],
     ['STALE_CONCURRENCY_TOKEN', 'Báo cáo đã thay đổi. Tải lại trạng thái và đối chiếu trước khi lưu tiếp.', true, 'reload'],
   ] as const)('maps verified code %s without exposing backend detail', (code, phrase, retryable, nextAction) => {
     const result = workflowErrorFromCode(code)
@@ -22,13 +27,8 @@ describe('workflowErrorFromCode', () => {
   })
 
   it.each([
-    'REPORT_CYCLE_REQUIRED',
-    'REPORT_DEADLINE_PASSED',
-    'REPORT_ALREADY_EXISTS_FOR_CYCLE',
-    'REPORT_ALREADY_EXISTS_FOR_PERIOD',
-    'REPORT_FEEDBACK_ON_DRAFT_NOT_ALLOWED',
     'UNRECOGNIZED_CODE',
-  ])('keeps code %s on the safe generic path until its response is verified', code => {
+  ])('keeps unknown code %s on the safe generic path', code => {
     expect(workflowErrorFromCode(code)).toBeUndefined()
   })
 })
