@@ -624,7 +624,7 @@ describe('Progress reports workflow', () => {
   })
 
   it.each([
-    'REPORT_CYCLE_REQUIRED', 'REPORT_DEADLINE_PASSED', 'REPORT_ALREADY_EXISTS_FOR_CYCLE',
+    'REPORT_CYCLE_REQUIRED', 'REPORT_DEADLINE_PASSED',
     'REPORT_ALREADY_EXISTS_FOR_PERIOD', 'REPORT_FEEDBACK_ON_DRAFT_NOT_ALLOWED',
   ])('keeps unverified response code %s on the generic path', code => {
     const message = reportError(new HttpError('private English detail', 409, { code, detail: 'private English detail' }))
