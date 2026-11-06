@@ -11,7 +11,7 @@ import { dirname, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /** `file:///F:/x` -> `F:/x`, so resolve() works on Windows as well as POSIX. */
-const testDir = dirname(new URL(import.meta.url).pathname.replace(/^\/(?=[A-Za-z]:)/, ''))
+const testDir = dirname(decodeURIComponent(new URL(import.meta.url).pathname).replace(/^\/(?=[A-Za-z]:)/, ''))
 
 const modules = {
   ...import.meta.glob(['../**/*.{ts,tsx,css}', '!../**/*.test.{ts,tsx}', '!../index.css'], { query: '?raw', import: 'default', eager: true }),
