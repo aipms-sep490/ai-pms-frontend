@@ -16,10 +16,10 @@ export function ProjectLifecycle({ states }: ProjectLifecycleProps) {
         >
           <div className="lifecycle-card-header">
             <span>{String(index + 1).padStart(2, '0')}</span>
-            {isTerminalProjectState(state.name) && <small>Terminal</small>}
+            {isTerminalProjectState(state.name) && <small>Kết thúc</small>}
           </div>
           <h2>{formatLabel(state.name)}</h2>
-          <p>Trạng thái tiếp theo{state.allowedNextStates.length === 1 ? '' : 's'}</p>
+          <p>Trạng thái tiếp theo</p>
           <div className="next-states">
             {state.allowedNextStates.length > 0 ? (
               state.allowedNextStates.map((nextState) => (
