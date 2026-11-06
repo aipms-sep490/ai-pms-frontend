@@ -9,13 +9,13 @@ export type HistoryTimelineItem = {
   tone?: BadgeTone
 }
 
-export function HistoryTimeline({ items, emptyLabel = 'Chưa có lịch sử xử lý.' }: { items: readonly HistoryTimelineItem[]; emptyLabel?: string }) {
+export function HistoryTimeline({ items, emptyLabel = 'Chưa có lịch sử xử lý.', label = 'Lịch sử xử lý' }: { items: readonly HistoryTimelineItem[]; emptyLabel?: string; label?: string }) {
   if (items.length === 0) return <p role="status" className="rounded-lg border border-hairline bg-card p-4 text-sm text-ink-muted">{emptyLabel}</p>
 
   const newestFirst = [...items].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
 
   return (
-    <ol className="border-l border-hairline pl-5">
+    <ol className="border-l border-hairline pl-5" aria-label={label}>
       {newestFirst.map((item, index) => {
         const date = new Date(item.at)
         const dateTime = item.at instanceof Date ? item.at.toISOString() : item.at

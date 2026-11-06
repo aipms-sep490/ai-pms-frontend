@@ -16,6 +16,7 @@ import {
 } from './report-types'
 import { ReportBadge, ReportError, ReportLoading, ReportShell } from './report-ui'
 import { ReportAiSummary } from '../ai/components/ReportAiSummary'
+import { HistoryTimeline } from '../../components/ui/HistoryTimeline'
 import { env } from '../../app/config/env'
 import type { PagedResult } from '../../types/backend'
 
@@ -432,19 +433,9 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
                 <h2 id="feedback-title">Phản hồi của GVHD</h2>
                 <span>{report.feedbacks.length}</span>
               </div>
-              {report.feedbacks.length === 0 ? (
-                <p className="report-help">Chưa có phản hồi. Phản hồi của GVHD sẽ xuất hiện tại đây.</p>
-              ) : (
-                <ol>
-                  {report.feedbacks.map((item) => (
-                    <li key={item.id}>
-                      <strong>{item.supervisorName}</strong>
-                      <time dateTime={item.createdAt}>{formatReportDate(item.createdAt)}</time>
-                      <p>{item.feedbackText}</p>
-                    </li>
-                  ))}
-                </ol>
-              )}
+              <HistoryTimeline label="Lịch sử phản hồi" emptyLabel="Chưa có phản hồi. Phản hồi của GVHD sẽ xuất hiện tại đây."
+                items={report.feedbacks.map(item => ({ at: item.createdAt, actor: item.supervisorName,
+                  action: 'Phản hồi của GVHD', note: item.feedbackText }))} />
               {!readOnly && actor === 'supervisor' && ['SUBMITTED', 'REVIEWED'].includes(report.status) && (
                 <form onSubmit={(event) => void sendFeedback(event)}>
                   <label htmlFor="report-feedback">Phản hồi mới</label>

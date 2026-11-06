@@ -486,6 +486,18 @@ describe('Progress reports workflow', () => {
     expect(screen.queryByRole('button', { name: 'Gửi phản hồi' })).toBeNull()
   })
 
+  it('shows supervisor feedback as a newest-first history with actor and time', async () => {
+    api.getProgressReport.mockResolvedValue({ ...draft, status: 'REVIEWED', feedbacks: [
+      { id: 1, supervisorName: 'ThS. Mai', createdAt: '2026-09-20T08:00:00Z', feedbackText: 'Rà soát lần đầu.' },
+      { id: 2, supervisorName: 'ThS. An', createdAt: '2026-09-21T08:00:00Z', feedbackText: 'Đã đối chiếu lần hai.' },
+    ] })
+    mount()
+    await screen.findByText('Đã đối chiếu lần hai.')
+    const history = screen.getByRole('list', { name: 'Lịch sử phản hồi' })
+    expect(history.querySelectorAll('li')[0].textContent).toContain('ThS. An')
+    expect(history.querySelector('time')?.getAttribute('dateTime')).toBe('2026-09-21T08:00:00Z')
+  })
+
   it('disables cycles that already have an existing progress report', async () => {
     const cycle2: ReportingCycle = {
       ...sampleCycle,
