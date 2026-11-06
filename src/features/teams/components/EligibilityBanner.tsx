@@ -58,16 +58,16 @@ export function EligibilityBanner({ eligibility, onRefresh }: EligibilityBannerP
 
   if (canRegister) {
     return (
-      <div className="bg-status-success-bg border border-status-success-border rounded-xl p-4 flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-ink shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-status-success-bg text-status-success-text flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-[20px]">verified</span>
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-status-success-border bg-status-success-bg text-status-success-text">
+            <span className="material-symbols-outlined text-[20px]" aria-hidden="true">verified</span>
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-status-success-text">
+            <h4 className="text-sm font-semibold text-ink">
               Nhóm đã đủ điều kiện đăng ký đồ án
             </h4>
-            <p className="text-xs text-status-success-text">
+            <p className="text-xs text-ink-soft">
               Các tiêu chuẩn về sĩ số, cơ cấu chuyên ngành và tư cách thành viên đều đạt yêu cầu.
             </p>
           </div>
@@ -116,7 +116,7 @@ export function EligibilityBanner({ eligibility, onRefresh }: EligibilityBannerP
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-1">
+      <div className="mt-1 grid grid-cols-1 items-stretch gap-2 md:grid-cols-2">
         {reasons.map((reason) => {
           const info = REASON_MESSAGES[reason] ?? {
             title: reason,
@@ -125,7 +125,7 @@ export function EligibilityBanner({ eligibility, onRefresh }: EligibilityBannerP
           return (
             <div
               key={reason}
-              className="bg-card border border-status-warning-border rounded-lg p-2.5 flex items-start gap-2"
+              className="flex h-full items-start gap-2 rounded-lg border border-status-warning-border bg-card p-2.5"
             >
               <span className="material-symbols-outlined text-status-warning-text text-[18px] mt-0.5 shrink-0">
                 error_outline

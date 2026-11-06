@@ -22,15 +22,15 @@ export function TeamEligibilitySummary({
   }
 
   return (
-    <section className={`rounded-md border p-5 ${pass ? 'border-status-success-border bg-status-success-bg' : 'border-status-warning-border bg-status-warning-bg'}`}>
+    <section className={`rounded-xl border p-5 ${pass ? 'border-hairline border-l-4 border-l-status-success-text bg-card shadow-xs' : 'border-status-warning-border bg-status-warning-bg'}`}>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div className="flex gap-3">
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${pass ? 'bg-status-success-bg text-status-success-text' : 'bg-status-warning-bg text-status-warning-text'}`}>
-            <span className="material-symbols-outlined">{pass ? 'verified' : 'warning'}</span>
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${pass ? 'border-status-success-border bg-status-success-bg text-status-success-text' : 'border-status-warning-border bg-status-warning-bg text-status-warning-text'}`}>
+            <span className="material-symbols-outlined" aria-hidden="true">{pass ? 'verified' : 'warning'}</span>
           </div>
           <div>
             <p className="text-xs font-medium text-ink-muted">Điều kiện đăng ký</p>
-            <h3 className={`mt-0.5 text-base font-bold ${pass ? 'text-status-success-text' : 'text-status-warning-text'}`}>
+            <h3 className={`mt-0.5 text-base font-bold ${pass ? 'text-ink' : 'text-status-warning-text'}`}>
               {pass ? 'Nhóm đủ điều kiện đăng ký' : 'Nhóm cần hoàn thiện điều kiện đăng ký'}
             </h3>
             <p className="mt-1 text-xs text-ink-muted">
@@ -72,12 +72,14 @@ export function TeamEligibilitySummary({
       {eligibility.requirements.length > 0 && (
         <div className="mt-4">
           <h4 className="text-xs font-medium text-ink-muted">Yêu cầu thành viên theo ngành</h4>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-2 grid items-stretch gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {eligibility.requirements.map((requirement) => (
-              <div key={requirement.majorId} className="border-b border-hairline py-3 text-xs">
-                <p className="font-medium text-ink">{majorNames[requirement.majorId] ?? 'Chưa có thông tin ngành'}</p>
-                <p className="mt-1 text-ink-muted">{requirement.minMembers}–{requirement.maxMembers} thành viên</p>
-                <p className="mt-1 text-ink-muted">Vai trò: {requirement.responsibility}</p>
+              <div key={requirement.majorId} className="flex h-full flex-col justify-between border-b border-hairline py-3 text-xs">
+                <div>
+                  <p className="font-medium text-ink">{majorNames[requirement.majorId] ?? 'Chưa có thông tin ngành'}</p>
+                  <p className="mt-1 text-ink-muted">{requirement.minMembers}–{requirement.maxMembers} thành viên</p>
+                  <p className="mt-1 text-ink-muted">Vai trò: {requirement.responsibility}</p>
+                </div>
                 <p className={`mt-2 font-semibold ${requirement.status === 'FAIL' ? 'text-status-error-text' : 'text-status-success-text'}`}>
                   {requirement.status === 'FAIL' ? 'Chưa đạt yêu cầu về sĩ số' : 'Không có vi phạm về sĩ số'}
                 </p>
@@ -90,11 +92,13 @@ export function TeamEligibilitySummary({
       {!pass && (
         <div className="mt-4">
           <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted">Điều kiện cần xử lý</h4>
-          <div className="mt-2 grid gap-2 md:grid-cols-2">
+          <div className="mt-2 grid items-stretch gap-2 md:grid-cols-2">
             {eligibility.issues.map((issue) => (
-              <div key={issue.code} className="border-b border-status-warning-border py-3">
-                <p className="text-xs font-bold text-status-warning-text">{issue.title}</p>
-                <p className="mt-1 text-xs text-ink-soft">{issue.detail}</p>
+              <div key={issue.code} className="flex h-full flex-col justify-between border-b border-status-warning-border py-3">
+                <div>
+                  <p className="text-xs font-bold text-status-warning-text">{issue.title}</p>
+                  <p className="mt-1 text-xs text-ink-soft">{issue.detail}</p>
+                </div>
                 <p className="mt-1.5 text-xs font-medium text-status-warning-text">Tiếp theo: {issue.recovery}</p>
               </div>
             ))}
