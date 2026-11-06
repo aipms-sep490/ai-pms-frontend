@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import {
@@ -23,6 +23,8 @@ import { DefenseReadinessChecker } from '../components/DefenseReadinessChecker'
 import { env } from '../../../app/config/env'
 import { HttpError } from '../../../services/http/http-client'
 import { gateWeightTotal, validateGateWeights } from '../api/review-gates-contract'
+import { AcademicWorkflowContext } from '../../../app/context/academic-workflow-context'
+import { getDepartmentUrgentActions } from '../../calendar/action-aggregators-api'
 
 function templateError(error: unknown, template: ReviewGateTemplate): string {
   if (error instanceof HttpError && error.status === 409) return 'Mẫu đã công bố không thể sửa hoặc phiên bản đã thay đổi. Giữ lại nội dung đang nhập; tải lại để đối chiếu hoặc nhân bản thành phiên bản nháp mới.'
@@ -36,6 +38,8 @@ function templateError(error: unknown, template: ReviewGateTemplate): string {
 }
 
 export function ReviewGateGovernancePage() {
+  const academicContext = useContext(AcademicWorkflowContext)
+  const departmentKey = (academicContext?.academic?.departments ?? []).map(item => item.id).filter(id => Number.isSafeInteger(id) && id > 0).join(',')
   const { periodId } = useParams<{ periodId?: string }>()
   const [activeTab, setActiveTab] = useState<'overview' | 'builder' | 'matrix' | 'hybrid' | 'defense'>('overview')
   const [templates, setTemplates] = useState<ReviewGateTemplate[]>([])
@@ -49,10 +53,24 @@ export function ReviewGateGovernancePage() {
   const [error, setError] = useState<string | null>(null)
   const [defenseError, setDefenseError] = useState<string | null>(null)
   const [readinessRefresh, setReadinessRefresh] = useState(0)
+  const [reviewerGaps, setReviewerGaps] = useState<{ key: string; state: 'ready' | 'unavailable'; count: number } | null>(null)
+  const scopedReviewerGaps = reviewerGaps?.key === departmentKey ? reviewerGaps : null
 
   useEffect(() => {
     loadAllData()
   }, [periodId])
+
+  useEffect(() => {
+    if (activeTab !== 'matrix' || !departmentKey) return
+    let active = true
+    const ids = departmentKey.split(',').map(Number)
+    void Promise.all(ids.map(id => getDepartmentUrgentActions(id))).then(results => {
+      if (!active) return
+      const projectIds = new Set(results.flatMap(result => result.items).filter(item => item.kind === 'REVIEWER_ASSIGNMENT' && item.projectId !== null).map(item => item.projectId))
+      setReviewerGaps({ key: departmentKey, state: 'ready', count: projectIds.size })
+    }).catch(() => { if (active) setReviewerGaps({ key: departmentKey, state: 'unavailable', count: 0 }) })
+    return () => { active = false }
+  }, [activeTab, departmentKey])
 
   useEffect(() => {
     let active = true
@@ -249,7 +267,7 @@ export function ReviewGateGovernancePage() {
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('matrix')}
+          onClick={() => { setReviewerGaps(null); setActiveTab('matrix') }}
           className={`rounded-lg px-4 py-2 text-xs font-bold transition-all ${
             activeTab === 'matrix'
               ? 'bg-primary text-white shadow-2xs'
@@ -453,6 +471,9 @@ export function ReviewGateGovernancePage() {
 
           {/* TAB 3: MATRIX */}
           {activeTab === 'matrix' && (
+            <>
+            {scopedReviewerGaps?.state === 'ready' && scopedReviewerGaps.count > 0 ? <p role="alert" className="mb-4 rounded-lg border border-l-4 border-status-warning-border border-l-attention-border bg-attention-bg p-4 text-sm text-ink">Có ít nhất {scopedReviewerGaps.count} đồ án thiếu reviewer trong phạm vi bộ môn. Mở hồ sơ để kiểm tra và phân công.</p> : null}
+            {scopedReviewerGaps?.state === 'unavailable' ? <p role="status" className="mb-4 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">Chưa kiểm tra được tình trạng phân công reviewer. Ma trận trạng thái vẫn có thể xem.</p> : null}
             <ProjectProgressMatrix
               projects={matrixProjects}
               onUpdateDecision={handleUpdateDecision}
@@ -462,6 +483,7 @@ export function ReviewGateGovernancePage() {
                 setActiveTab('hybrid')
               }}
             />
+            </>
           )}
 
           {/* TAB 4: HYBRID */}
