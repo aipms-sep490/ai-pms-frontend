@@ -35,6 +35,15 @@ it('replaces legacy writes with scoped scheme navigation', async () => {
   expect(screen.queryByRole('button', { name: 'Lưu cách tính điểm' })).toBeNull()
   expect(api.configureResultPolicy).not.toHaveBeenCalled()
 })
+it('shows the two publication steps and explains preview blockers before enabling publication', async () => {
+  api.getResultPreview.mockResolvedValue({ ...preview(), canPublish: false, blockers: ['MISSING_FINAL_EVALUATION'] })
+  page()
+  await screen.findByRole('region', { name: 'Bản xem trước kết quả' })
+  expect(screen.getByText(/Bước 1.*Đã chốt điểm/)).toBeTruthy()
+  expect(screen.getByText(/Bước 2.*Xem trước/)).toBeTruthy()
+  expect(screen.getByText('MISSING_FINAL_EVALUATION')).toBeTruthy()
+  expect((screen.getByRole('button', { name: 'Công bố kết quả đồ án' }) as HTMLButtonElement).disabled).toBe(true)
+})
 it('preserves the backend-scoped roster for a lead department across participating departments', async () => {
   page()
   await screen.findByRole('region', { name: 'Bản xem trước kết quả' })
@@ -45,6 +54,8 @@ it('requires review and confirmation, and cancellation never publishes', async (
   const button = screen.getByRole('button', { name: 'Công bố kết quả đồ án' }) as HTMLButtonElement
   expect(button.disabled).toBe(true)
   fireEvent.click(screen.getByRole('checkbox')); fireEvent.click(button)
+  expect(within(screen.getByRole('dialog')).getByText(/không thể hoàn tác trực tiếp/)).toBeTruthy()
+  expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Xác nhận công bố' }).className).toContain('app-modal__button--danger')
   fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Hủy' }))
   expect(api.publishProjectResult).not.toHaveBeenCalled()
 })
