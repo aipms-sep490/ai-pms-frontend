@@ -6,11 +6,11 @@ import type {
   ProjectHealthPulse,
 } from '../api/project-hub-api'
 
-const PULSE_BADGE: Record<ProjectHealthPulse['status'], { label: string; cls: string }> = {
-  GREEN: { label: 'Ổn định (GREEN)', cls: 'border-status-success-border bg-status-success-bg text-status-success-text' },
-  YELLOW: { label: 'Cần theo dõi (YELLOW)', cls: 'border-status-warning-border bg-status-warning-bg text-status-warning-text' },
-  RED: { label: 'Rủi ro cao (RED)', cls: 'border-status-error-border bg-status-error-bg text-status-error-text' },
-  INSUFFICIENT_DATA: { label: 'Chưa đủ dữ liệu', cls: 'border-hairline bg-canvas text-ink-muted' },
+const PULSE_BADGE: Record<ProjectHealthPulse['status'], { label: string; cls: string; pill: string }> = {
+  GREEN: { label: 'Ổn định (GREEN)', cls: 'border-hairline border-l-4 border-l-status-success-text bg-card text-ink', pill: 'border-status-success-border bg-status-success-bg text-status-success-text' },
+  YELLOW: { label: 'Cần theo dõi (YELLOW)', cls: 'border-status-warning-border bg-status-warning-bg text-status-warning-text', pill: 'border-status-warning-border bg-card text-status-warning-text' },
+  RED: { label: 'Rủi ro cao (RED)', cls: 'border-status-error-border bg-status-error-bg text-status-error-text', pill: 'border-status-error-border bg-card text-status-error-text' },
+  INSUFFICIENT_DATA: { label: 'Chưa đủ dữ liệu', cls: 'border-hairline bg-canvas text-ink-muted', pill: 'border-hairline bg-card text-ink-muted' },
 }
 
 export function ProjectHubPanel({
@@ -51,8 +51,11 @@ export function ProjectHubPanel({
       {healthPulse && pulseStyle && (
         <div className={`rounded-lg border p-3 ${pulseStyle.cls}`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <strong className="text-sm">Health Pulse: {pulseStyle.label}</strong>
-            <span className="text-xs">
+            <strong className="inline-flex items-center gap-2 text-sm">
+              <span>Health Pulse:</span>
+              <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${pulseStyle.pill}`}>{pulseStyle.label}</span>
+            </strong>
+            <span className="text-xs text-ink-soft">
               Evidence READY: {healthPulse.signals.evidenceReadyPercent ?? 'N/A'}% · Blocked &gt; 48h: {healthPulse.signals.blockedOver48hCount} · Báo cáo 14d: {healthPulse.signals.weeklyReportsLast14Days}
             </span>
           </div>
