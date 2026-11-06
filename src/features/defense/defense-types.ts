@@ -48,3 +48,8 @@ export interface CancelDefenseRequest {
   concurrencyToken: string
   reason: string
 }
+
+export interface DefenseSessionConflict {
+  sessionA: DefenseSession
+  sessionB: DefenseSession
+}
