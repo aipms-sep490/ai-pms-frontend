@@ -3,6 +3,8 @@ import { Button } from '../../../components/ui/Button'
 import { dateTimeLabel } from '../../execution/execution-utils'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { ListLoading } from '../../../components/ui/ListLoading'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
+import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as api from '../../../services/api/evaluations.api'
@@ -68,15 +70,17 @@ export function EvaluatorWorkspacePage() {
     {state === 'unavailable' ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{evaluationError(null)} <button type="button" className="ml-2 min-h-11 font-semibold underline" onClick={() => void load()}>Tải lại</button></section> : null}
 
     {state === 'ready' ? <>
-      <section aria-label="Tóm tắt phân công" className="workspace-metrics">
-        <Summary label="Phân công đang hiệu lực" value={summary.active} />
-        <Summary label="Bản nháp đang chấm" value={summary.drafts} />
-        <Summary label="Đã chốt" value={summary.finalized} />
+      <section aria-label="Tóm tắt phân công">
+        <StatTileRow tiles={[
+          { icon: 'assignment_ind', label: 'Phân công đang hiệu lực', value: summary.active, hero: true },
+          { icon: 'edit_note', label: 'Bản nháp đang chấm', value: summary.drafts },
+          { icon: 'verified', label: 'Đã chốt', value: summary.finalized },
+        ]} />
       </section>
       {Object.values(drafts).some(row => row.status === 'unavailable') ? <p role="status" className="text-sm text-status-warning-text">Một số phân công chưa tải được trạng thái. Các số liệu bản nháp và đã chốt chỉ tính phần tải thành công.</p> : null}
       <div className="flex flex-wrap items-end justify-between gap-3"><p className="text-sm text-ink-muted">Mở từng phân công để đối chiếu bàn giao, nhập điểm và lưu nhận xét.</p><label className="text-sm font-semibold text-ink-soft">Trạng thái đánh giá<select className="mt-1 block min-h-10 rounded-lg border border-hairline bg-card px-3" value={filter} onChange={event => setFilter(event.target.value as typeof filter)}><option value="all">Tất cả phân công</option><option value="pending">Chưa chốt</option><option value="finalized">Đã chốt</option><option value="unavailable">Chưa tải được trạng thái</option></select></label></div>
-      {!assignments.length ? <section className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-soft"><h2 className="font-semibold text-ink">Chưa có phân công đánh giá đang hiệu lực</h2><p className="mt-1">Bạn sẽ thấy đồ án ở đây khi được phân công chấm.</p></section> : null}
-      {assignments.length > 0 && !visibleAssignments.length ? <p role="status" className="workspace-surface p-5 text-sm text-ink-muted">Không có phân công phù hợp với bộ lọc. Chọn tất cả để xem lại danh sách.</p> : null}
+      {!assignments.length ? <WorkspaceEmptyState title="Chưa có phân công đánh giá đang hiệu lực" message="Bạn sẽ thấy đồ án ở đây khi được phân công chấm." /> : null}
+      {assignments.length > 0 && !visibleAssignments.length ? <WorkspaceEmptyState title={filter === 'pending' && !Object.values(drafts).some(row => row.status === 'unavailable') ? 'Đã chấm hết các phân công' : 'Không có phân công phù hợp'} message={filter === 'pending' && !Object.values(drafts).some(row => row.status === 'unavailable') ? 'Tất cả phiếu chấm trong phạm vi hiện tại đã được chốt.' : 'Chọn tất cả để xem lại danh sách hoặc kiểm tra các phân công chưa tải được trạng thái.'} /> : null}
       <section className="space-y-3" aria-label="Danh sách phân công đánh giá">
         {visibleAssignments.map((assignment) => {
           const row = drafts[assignment.id]
@@ -107,8 +111,4 @@ export function EvaluatorWorkspacePage() {
       </section>
     </> : null}
   </WorkspacePage>
-}
-
-function Summary({ label, value }: { label: string; value: number }) {
-  return <section className="workspace-metric"><p className="text-sm text-ink-muted">{label}</p><p className="mt-1 text-2xl font-bold text-ink">{value}</p></section>
 }
