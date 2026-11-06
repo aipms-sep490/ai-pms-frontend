@@ -1,6 +1,6 @@
-import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { MemoryRouter } from 'react-router-dom'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { HttpError } from '../../../services/http/http-client'
 import { DepartmentWorkspacePage } from './DepartmentWorkspacePage'
 
@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   reviews: vi.fn(),
   supervisors: vi.fn(),
   academic: vi.fn(),
+  urgent: vi.fn(),
 }))
 
 vi.mock('../../auth/context/useAuthSession', () => ({ useAuthSession: () => ({ session: { accessToken: 'department-token' } }) }))
@@ -16,7 +17,9 @@ vi.mock('../../../app/context/useAcademicWorkflow', () => ({ useAcademicWorkflow
 vi.mock('../../dashboard/api/dashboard-api', () => ({ getPortfolioDashboard: mocks.portfolio }))
 vi.mock('../../projects/api/project-review-api', () => ({ getReviewQueue: mocks.reviews }))
 vi.mock('../../supervisors/api/supervisor-api', () => ({ list: mocks.supervisors }))
+vi.mock('../../calendar/action-aggregators-api', () => ({ getDepartmentUrgentActions: mocks.urgent }))
 
+beforeEach(() => { mocks.urgent.mockResolvedValue({ departmentId: 2, totalCount: 0, hasMore: false, items: [], asOfUtc: '' }) })
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
 const academic = { status: 'ready', academic: { selectedSemester: { id: 3 }, departments: [{ id: 2, code: 'SE', name: 'Software Engineering', isActive: true }], periods: [{ id: 4, code: 'REVIEW', name: 'Project review', periodType: 'PROJECT_REVIEW', status: 'ACTIVE', startAtUtc: '2026-10-01T00:00:00Z', endAtUtc: '2026-10-31T00:00:00Z', isOpen: true }] } }
@@ -24,9 +27,47 @@ const reviewPage = { items: [{ id: 9, teamId: 1, teamName: 'Team One', code: 'P-
 const portfolio = { asOfUtc: '', departmentId: 2, summary: { totalProjects: 1, projectStates: [], majors: [], supervisors: [], riskLevels: [] }, projects: { ...reviewPage, items: [{ id: 9, code: 'P-09', title: 'Scoped project', status: 'ACTIVE', teamId: 1, semesterId: 3, pendingProgressReviews: 1, analysis: { dataStatus: 'READY', riskLevel: 'MEDIUM', trendStatus: 'AT_RISK', progressSummary: { progressPercentage: 50, overdueTasks: 1, blockedTasks: 1 } }, departmentId: 2, departmentName: 'Software Engineering', majors: [], supervisor: null }] } }
 const supervisors = { items: [{ id: 4, userId: 11, fullName: 'Lecturer One', departmentId: 2, departmentName: 'Software Engineering', bio: null, isAvailable: true, expertise: [] }], page: 1, pageSize: 5, totalCount: 1 }
 
-function renderPage() { return render(<MemoryRouter><DepartmentWorkspacePage /></MemoryRouter>) }
+function LocationProbe() { const location = useLocation(); return <output data-testid="location-search">{location.search}</output> }
+function renderPage(entry = '/') { return render(<MemoryRouter initialEntries={[entry]}><DepartmentWorkspacePage /><LocationProbe /></MemoryRouter>) }
 
 describe('DepartmentWorkspacePage', () => {
+  it('reads the urgent count from the scoped department endpoint', async () => {
+    mocks.academic.mockReturnValue(academic)
+    mocks.reviews.mockResolvedValue(reviewPage); mocks.portfolio.mockResolvedValue(portfolio); mocks.supervisors.mockResolvedValue(supervisors)
+    mocks.urgent.mockResolvedValue({ departmentId: 2, totalCount: 7, hasMore: true, items: [], asOfUtc: '' })
+    renderPage()
+    await waitFor(() => expect(mocks.urgent).toHaveBeenCalledWith(2))
+    expect(within(screen.getByRole('list', { name: 'Chỉ số tổng quan' })).getByText('7')).toBeTruthy()
+  })
+
+  it('does not guess a department scope when none is available', async () => {
+    mocks.academic.mockReturnValue({ ...academic, academic: { ...academic.academic, departments: [] } })
+    mocks.reviews.mockResolvedValue(reviewPage); mocks.portfolio.mockResolvedValue(portfolio); mocks.supervisors.mockResolvedValue(supervisors)
+    renderPage()
+    expect(await screen.findByText('Chưa xác định được bộ môn từ phiên đăng nhập. Không truy vấn phạm vi khác.')).toBeTruthy()
+    expect(mocks.urgent).not.toHaveBeenCalled()
+  })
+
+  it('restores portfolio filters from the URL and updates it when filters change', async () => {
+    mocks.academic.mockReturnValue(academic)
+    mocks.reviews.mockResolvedValue(reviewPage); mocks.portfolio.mockResolvedValue(portfolio); mocks.supervisors.mockResolvedValue(supervisors)
+    mocks.urgent.mockResolvedValue({ departmentId: 2, totalCount: 0, hasMore: false, items: [], asOfUtc: '' })
+    renderPage('/?q=Scoped&status=ARCHIVED')
+    await waitFor(() => expect(mocks.portfolio).toHaveBeenCalledWith('department', expect.objectContaining({ search: 'Scoped', status: 'ARCHIVED' })))
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Tìm đồ án' }), { target: { value: 'Team' } })
+    expect(screen.getByTestId('location-search').textContent).toContain('q=Team')
+  })
+
+  it('explains why archived projects block the selection bar', async () => {
+    mocks.academic.mockReturnValue(academic)
+    mocks.reviews.mockResolvedValue(reviewPage); mocks.portfolio.mockResolvedValue({ ...portfolio, projects: { ...portfolio.projects, items: [{ ...portfolio.projects.items[0], status: 'ARCHIVED' }] } }); mocks.supervisors.mockResolvedValue(supervisors)
+    mocks.urgent.mockResolvedValue({ departmentId: 2, totalCount: 0, hasMore: false, items: [], asOfUtc: '' })
+    renderPage()
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Chọn P-09' }))
+    const bar = screen.getByRole('region', { name: 'Các mục đang chọn' })
+    expect(bar.getAttribute('data-tone')).toBe('attention')
+    expect(bar.textContent).toContain('Đã lưu trữ')
+  })
   it('does not present upcoming periods as closed and labels academic period types', async () => {
     mocks.academic.mockReturnValue({ ...academic, academic: { ...academic.academic, periods: [{ ...academic.academic.periods[0], periodType: 'FINAL_SUBMISSION', status: 'UPCOMING', isOpen: false }] } })
     mocks.reviews.mockResolvedValue(reviewPage); mocks.portfolio.mockResolvedValue(portfolio); mocks.supervisors.mockResolvedValue(supervisors)

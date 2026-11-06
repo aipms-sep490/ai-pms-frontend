@@ -2,9 +2,12 @@ import { displayLabel } from '../../../components/ui/display-label'
 import { DepartmentWorkflowGuide } from '../components/DepartmentWorkflowGuide'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAcademicWorkflow } from '../../../app/context/useAcademicWorkflow'
 import { Button } from '../../../components/ui/Button'
+import { BulkActionBar } from '../../../components/ui/BulkActionBar'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
+import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../../components/ui/Table'
 import { useDepartmentSection as useSection, type Section } from '../hooks/useDepartmentSection'
 import { projectStatusLabel } from '../../projects/utils/project-status'
 import { HttpError } from '../../../services/http/http-client'
@@ -12,10 +15,12 @@ import { getPortfolioDashboard, type PortfolioDashboard } from '../../dashboard/
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import { getReviewQueue, type ReviewQueuePage, type ReviewProjectSummary } from '../../projects/api/project-review-api'
 import { list as listSupervisors, type Page as SupervisorPage, type Supervisor } from '../../supervisors/api/supervisor-api'
+import { getDepartmentUrgentActions, type ActionAggregatorResponse } from '../../calendar/action-aggregators-api'
 
 const emptyReviews = (data: ReviewQueuePage<ReviewProjectSummary>) => data.items.length === 0
 const emptyPortfolio = (data: PortfolioDashboard) => data.projects.items.length === 0
 const emptySupervisors = (data: SupervisorPage<Supervisor>) => data.items.length === 0
+const emptyUrgent = (data: ActionAggregatorResponse) => data.totalCount === 0
 
 function SectionState({ section, onRetry, children }: { section: Section<unknown>; onRetry: () => void; children: ReactNode }) {
   if (section.state === 'loading') return <p role="status" className="py-3 text-sm text-ink-muted">Đang tải dữ liệu…</p>
@@ -28,19 +33,40 @@ function SectionState({ section, onRetry, children }: { section: Section<unknown
 export function DepartmentWorkspacePage() {
   const { session } = useAuthSession()
   const academic = useAcademicWorkflow()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const search = searchParams.get('q') ?? ''
+  const status = searchParams.get('status') ?? ''
   const token = session?.accessToken
   const [portfolioPage, setPortfolioPage] = useState(1)
   const semesterId = academic.academic?.selectedSemester?.id
+  const departmentIds = (academic.academic?.departments ?? []).map(department => department.id).filter(id => Number.isSafeInteger(id) && id > 0).join(',')
   useEffect(() => { setPortfolioPage(1) }, [semesterId])
+  const urgentRead = useCallback(async (): Promise<ActionAggregatorResponse> => {
+    const ids = departmentIds.split(',').map(Number).filter(id => id > 0)
+    if (!ids.length) throw new Error('Department scope unavailable')
+    const results = await Promise.all(ids.map(id => getDepartmentUrgentActions(id)))
+    return { asOfUtc: results[0].asOfUtc, totalCount: results.reduce((sum, result) => sum + result.totalCount, 0), hasMore: results.some(result => result.hasMore), items: results.flatMap(result => result.items) }
+  }, [departmentIds])
   const reviewRead = useCallback(() => token ? getReviewQueue({ page: 1, pageSize: 5 }, token) : Promise.reject(new HttpError('Unauthenticated', 401)), [token])
-  const portfolioRead = useCallback(() => getPortfolioDashboard('department', { page: portfolioPage, pageSize: 5, semesterId }), [portfolioPage, semesterId])
+  const portfolioRead = useCallback(() => getPortfolioDashboard('department', { page: portfolioPage, pageSize: 5, semesterId, search: search || undefined, status: status || undefined }), [portfolioPage, semesterId, search, status])
   const supervisorRead = useCallback(() => token ? listSupervisors(token, { page: 1, pageSize: 5 }) : Promise.reject(new HttpError('Unauthenticated', 401)), [token])
   const reviews = useSection<ReviewQueuePage<ReviewProjectSummary>>(reviewRead, emptyReviews)
+  const urgent = useSection<ActionAggregatorResponse>(urgentRead, emptyUrgent)
   const portfolio = useSection<PortfolioDashboard>(portfolioRead, emptyPortfolio)
   const supervisors = useSection<SupervisorPage<Supervisor>>(supervisorRead, emptySupervisors)
   const periods = academic.academic?.periods ?? []
   const departmentName = academic.academic?.departments.map(department => department.name).join(', ') || 'Bộ môn hiện tại'
   const attention = useMemo(() => portfolio.data?.projects.items.filter((project) => project.pendingProgressReviews > 0 || (project.analysis?.progressSummary.blockedTasks ?? 0) > 0 || (project.analysis?.progressSummary.overdueTasks ?? 0) > 0) ?? [], [portfolio.data])
+  const visibleSelected = portfolio.data?.projects.items.filter(project => selectedIds.includes(project.id)) ?? []
+  const statusOptions = portfolio.data?.summary.projectStates.map(item => item.status) ?? []
+  if (status && !statusOptions.includes(status)) statusOptions.push(status)
+  function updateFilter(key: 'q' | 'status', value: string) {
+    setSearchParams(previous => { const next = new URLSearchParams(previous); if (value) next.set(key, value); else next.delete(key); return next }, { replace: true })
+    setPortfolioPage(1)
+    setSelectedIds([])
+  }
+  function toggleProject(id: number) { setSelectedIds(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id]) }
 
   return <WorkspacePage className="space-y-8" title="Quản lý đồ án bộ môn" eyebrow="Không gian bộ môn" description={`${departmentName}. Theo dõi danh mục đồ án, hồ sơ chờ thẩm định và nguồn lực hướng dẫn.`} action={
     <div className="flex flex-wrap items-center gap-2">
@@ -55,6 +81,15 @@ export function DepartmentWorkspacePage() {
   }>
 
     <DepartmentWorkflowGuide />
+
+    <StatTileRow tiles={[
+      { icon: 'priority_high', label: 'Việc cần xử lý', value: urgent.data?.totalCount ?? null, caption: urgent.data?.hasMore ? 'Danh sách việc khẩn còn trang tiếp theo.' : 'Theo bộ môn trong phiên hiện tại.', hero: true },
+      { icon: 'fact_check', label: 'Chờ thẩm định', value: reviews.data?.totalCount ?? null },
+      { icon: 'folder_managed', label: 'Đồ án quản lý', value: portfolio.data?.summary.totalProjects ?? null },
+      { icon: 'supervisor_account', label: 'Giảng viên', value: supervisors.data?.totalCount ?? null },
+    ]} />
+    {!departmentIds ? <p role="alert" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">Chưa xác định được bộ môn từ phiên đăng nhập. Không truy vấn phạm vi khác.</p> : !['success', 'empty', 'loading'].includes(urgent.state) && <SectionState section={urgent} onRetry={urgent.refresh}><span /></SectionState>}
+    {!['success', 'empty', 'loading'].includes(supervisors.state) && <SectionState section={supervisors} onRetry={supervisors.refresh}><span /></SectionState>}
 
     {/* =========================================================================
         TIER 1: HÀNG ĐỢI TÁC VỤ CẦN XỬ LÝ NGAY (URGENT ACTION QUEUE)
@@ -164,11 +199,11 @@ export function DepartmentWorkspacePage() {
 
           {portfolio.data && portfolio.data.projects.totalPages > 1 && (
             <nav aria-label="Phân trang tín hiệu đồ án" className="flex items-center justify-between text-xs pt-2">
-              <Button size="sm" variant="secondary" disabled={portfolioPage <= 1} onClick={() => setPortfolioPage(portfolioPage - 1)}>
+              <Button size="sm" variant="secondary" disabled={portfolioPage <= 1} onClick={() => { setSelectedIds([]); setPortfolioPage(portfolioPage - 1) }}>
                 Trang trước
               </Button>
               <span className="text-ink-muted font-medium">Trang {portfolio.data.projects.page} / {portfolio.data.projects.totalPages}</span>
-              <Button size="sm" variant="secondary" disabled={portfolioPage >= portfolio.data.projects.totalPages} onClick={() => setPortfolioPage(portfolioPage + 1)}>
+              <Button size="sm" variant="secondary" disabled={portfolioPage >= portfolio.data.projects.totalPages} onClick={() => { setSelectedIds([]); setPortfolioPage(portfolioPage + 1) }}>
                 Trang sau
               </Button>
             </nav>
@@ -217,39 +252,26 @@ export function DepartmentWorkspacePage() {
         </div>
       </div>
 
-      {/* Core Operational Metrics */}
-      <div className="workspace-metrics">
-        <DepartmentMetric
-          title="Chờ thẩm định"
-          icon="fact_check"
-          section={reviews}
-          onRetry={reviews.refresh}
-          value={reviews.data?.totalCount ?? 0}
-          detail="Đề cương chờ bộ môn phê duyệt"
-          href="/department/projects/review"
-          action="Xem hồ sơ"
-        />
-        <DepartmentMetric
-          title="Đồ án quản lý"
-          icon="folder_managed"
-          section={portfolio}
-          onRetry={portfolio.refresh}
-          value={portfolio.data?.summary.totalProjects ?? 0}
-          detail="Trong danh mục bộ môn"
-          href="/department/portfolio"
-          action="Xem danh mục"
-        />
-        <DepartmentMetric
-          title="Giảng viên"
-          icon="supervisor_account"
-          section={supervisors}
-          onRetry={supervisors.refresh}
-          value={supervisors.data?.totalCount ?? 0}
-          detail="Hồ sơ trong danh bạ"
-          href="/department/supervisors"
-          action="Xem giảng viên"
-        />
-      </div>
+      <section aria-labelledby="portfolio-heading" className="rounded-xl border border-hairline bg-card p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
+          <div><h3 id="portfolio-heading" className="font-heading text-base font-semibold text-ink">Danh mục đồ án gần đây</h3><p className="text-sm text-ink-muted">{departmentName} · {academic.academic?.selectedSemester?.name ?? 'Kỳ đang chọn'}</p></div>
+          <Link to="/department/portfolio" className="workspace-action-link">Mở danh mục đầy đủ</Link>
+        </div>
+        <div className="flex flex-wrap items-end gap-3 py-4">
+          <label className="min-w-48 flex-1 text-sm font-semibold text-ink-soft">Tìm đồ án<input type="search" value={search} onChange={event => updateFilter('q', event.target.value)} className="mt-1 block min-h-10 w-full rounded-lg border border-hairline bg-card px-3 text-sm text-ink" /></label>
+          <label className="min-w-40 text-sm font-semibold text-ink-soft">Trạng thái<select value={status} onChange={event => updateFilter('status', event.target.value)} className="mt-1 block min-h-10 w-full rounded-lg border border-hairline bg-card px-3 text-sm text-ink"><option value="">Tất cả trạng thái</option>{statusOptions.map(value => <option key={value} value={value}>{projectStatusLabel(value)}</option>)}</select></label>
+        </div>
+        {portfolio.state === 'empty' ? <p className="rounded-lg bg-canvas p-4 text-sm text-ink-muted">{search || status ? 'Không có đồ án khớp bộ lọc hiện tại.' : 'Chưa có đồ án trong phạm vi bộ môn hiện tại.'}</p> : portfolio.state === 'success' && portfolio.data ? <>
+          <BulkActionBar count={visibleSelected.length} noun="đồ án" blocked={visibleSelected.filter(project => project.status === 'ARCHIVED').map(project => ({ id: project.id, label: project.code, reason: 'Đã lưu trữ; chỉ có thể xem hồ sơ.' }))} onClear={() => setSelectedIds([])}>
+            {visibleSelected.length === 1 ? <Link to={`/department/projects/${visibleSelected[0].id}/governance`} className="workspace-action-link">Mở hồ sơ đã chọn</Link> : <span className="text-xs text-ink-muted">Quyết định được xử lý trong từng hồ sơ.</span>}
+          </BulkActionBar>
+          <Table stack aria-label="Danh mục đồ án">
+            <TableHead><TableRow head><TableHeaderCell>Chọn</TableHeaderCell><TableHeaderCell>Đồ án</TableHeaderCell><TableHeaderCell>Trạng thái</TableHeaderCell><TableHeaderCell>Mở hồ sơ</TableHeaderCell></TableRow></TableHead>
+            <TableBody>{portfolio.data.projects.items.map(project => <TableRow key={project.id}><TableCell label="Chọn"><input type="checkbox" aria-label={`Chọn ${project.code}`} checked={selectedIds.includes(project.id)} onChange={() => toggleProject(project.id)} /></TableCell><TableCell label="Đồ án"><strong className="block text-ink">{project.title}</strong><span className="font-mono text-xs text-ink-muted">{project.code} · {project.departmentName ?? departmentName}</span></TableCell><TableCell label="Trạng thái">{projectStatusLabel(project.status)}</TableCell><TableCell label="Mở hồ sơ"><Link to={`/department/projects/${project.id}/governance`} className="workspace-action-link">Xem hồ sơ</Link></TableCell></TableRow>)}</TableBody>
+          </Table>
+          <p className="mt-3 text-xs text-ink-muted">Hiển thị {portfolio.data.projects.items.length} trong {portfolio.data.projects.totalCount} đồ án</p>
+        </> : <SectionState section={portfolio} onRetry={portfolio.refresh}><span /></SectionState>}
+      </section>
 
       {/* Quick Monitoring Navigation Links */}
       <nav aria-label="Lối tắt giám sát bộ môn" className="grid overflow-hidden rounded-xl border border-hairline bg-card sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-hairline">
@@ -401,11 +423,6 @@ export function DepartmentWorkspacePage() {
       </div>
     </section>
   </WorkspacePage>
-}
-
-function DepartmentMetric({ title, icon, section, onRetry, value, detail, href, action }: { title: string; icon: string; section: Section<unknown>; onRetry: () => void; value: number; detail: string; href: string; action: string }) {
-  const hasCount = section.state === 'success' || section.state === 'empty'
-  return <section className="workspace-metric"><div className="flex items-center justify-between gap-3"><h3 className="text-sm font-semibold text-ink-soft">{title}</h3><span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">{icon}</span></div>{hasCount ? <><p className="mt-4 font-mono text-3xl font-semibold text-ink">{value}</p><p className="mt-1 text-xs text-ink-muted">{detail}</p><Link className="workspace-action-link mt-3" to={href}>{action}<span className="material-symbols-outlined text-[17px]" aria-hidden="true">arrow_forward</span></Link></> : <SectionState section={section} onRetry={onRetry}><span /></SectionState>}</section>
 }
 
 function Signal({ label, value }: { label: string; value: number }) {
