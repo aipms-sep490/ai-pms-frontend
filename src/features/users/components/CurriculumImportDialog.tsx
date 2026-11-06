@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Button } from '../../../components/ui/Button'
-import { Modal } from '../../../components/ui/Modal'
+import { ImportDialog } from '../../../components/ui/ImportDialog'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../../components/ui/status-badge-tone'
-import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from '../../../components/ui/Table'
+import { TableCell } from '../../../components/ui/Table'
 import { HttpError } from '../../../services/http/http-client'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import { getWorkspaceRole } from '../../auth/utils/role-access'
@@ -47,17 +46,13 @@ export function CurriculumImportDialog({ onClose, onImported }: { onClose: () =>
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState<'preview' | 'commit' | null>(null)
   const [confirmed, setConfirmed] = useState(false)
-  const [onlyErrors, setOnlyErrors] = useState(false)
-  const [page, setPage] = useState(1)
   const request = useRef<AbortController | null>(null)
   useEffect(() => () => { request.current?.abort() }, [])
   const rows = preview ? curriculumCommitRows(preview) : null
-  const filtered = preview?.rows.filter(row => !onlyErrors || row.status === 'ERROR' || row.errors.length > 0) ?? []
-  const pages = Math.max(1, Math.ceil(filtered.length / 25))
   const counts = (status: string) => preview?.rows.filter(row => row.status === status).length ?? 0
 
   function chooseFile(next: File | null) {
-    setFile(null); setPreview(null); setResult(null); setError(null); setConfirmed(false); setPage(1); setOnlyErrors(false)
+    setFile(null); setPreview(null); setResult(null); setError(null); setConfirmed(false)
     if (!next) return
     if (!/\.(csv|xlsx)$/i.test(next.name)) { setError('Chỉ hỗ trợ tệp CSV hoặc XLSX.'); return }
     if (!next.size || next.size > 5 * 1024 * 1024) { setError('Tệp phải có dữ liệu và không quá 5 MB.'); return }
@@ -69,7 +64,7 @@ export function CurriculumImportDialog({ onClose, onImported }: { onClose: () =>
     const controller = new AbortController()
     request.current = controller
     setPending(action); setError(null); setResult(null); setConfirmed(false)
-    if (action === 'preview') { setPreview(null); setPage(1); setOnlyErrors(false) }
+    if (action === 'preview') setPreview(null)
     try {
       if (action === 'preview') {
         const data = await previewCurriculum(file, session.accessToken, controller.signal)
@@ -89,51 +84,26 @@ export function CurriculumImportDialog({ onClose, onImported }: { onClose: () =>
     }
   }
 
-  return <Modal open drawer title="Nhập Khung sinh viên" description="Chọn tệp MSSV + Khung, kiểm tra từng dòng rồi xác nhận cập nhật." busy={!!pending} onClose={onClose}>
-    <div className="curriculum-import" aria-busy={!!pending}>
-      <p className="curriculum-import__guide">Cập nhật Khung cho sinh viên đã có tài khoản theo MSSV. Khung để trống sẽ được bỏ qua; các thông tin tài khoản và thành viên nhóm được giữ nguyên.</p>
-      <p className="curriculum-import__guide">CSV UTF-8 hoặc XLSX một trang tính, tối đa 500 dòng và 5 MB. Dòng đầu gồm <strong>MSSV</strong> và <strong>Khung</strong>. <a href="/templates/student-curriculum-import.csv" download>Tải mẫu CSV</a></p>
-      {!isAdmin || !session ? <p role="alert">Chỉ Admin mới được nhập Khung sinh viên.</p> : <>
-        <label className="curriculum-import__file">Tệp MSSV + Khung<input type="file" accept=".csv,.xlsx" disabled={!!pending} onChange={event => chooseFile(event.target.files?.[0] ?? null)} /></label>
-        {file && <p className="curriculum-import__filename">{file.name} · {Math.max(1, Math.ceil(file.size / 1024))} KB</p>}
-        <Button variant="outline" icon="preview" disabled={!file || !!pending} onClick={() => void run('preview')}>{pending === 'preview' ? 'Đang kiểm tra…' : 'Xem trước'}</Button>
-        {error && <p className="curriculum-import__error" role="alert">{error}</p>}
-        {result && <p className="curriculum-import__success" role="status">Đã cập nhật {result.updated} sinh viên; {result.unchanged} sinh viên không đổi.</p>}
-        {preview && <section aria-label="Kết quả xem trước">
-          <p role="status">{preview.rows.length} dòng: {counts('UPDATE')} cập nhật · {counts('UNCHANGED')} không đổi · {counts('SKIPPED')} bỏ qua · {counts('ERROR')} lỗi</p>
-          <label className="curriculum-import__check"><input type="checkbox" checked={onlyErrors} onChange={event => { setOnlyErrors(event.target.checked); setPage(1) }} />Chỉ hiện dòng lỗi</label>
-          <div role="region" tabIndex={0} aria-label="Chi tiết từng dòng nhập">
-            <Table stack>
-              <TableHead>
-                <TableRow head>
-                  <TableHeaderCell>Dòng</TableHeaderCell>
-                  <TableHeaderCell>Sinh viên</TableHeaderCell>
-                  <TableHeaderCell>Khung hiện tại</TableHeaderCell>
-                  <TableHeaderCell>Khung trong tệp</TableHeaderCell>
-                  <TableHeaderCell>Kết quả</TableHeaderCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filtered.slice((page - 1) * 25, page * 25).map(row => <TableRow key={row.rowNumber}>
-                  <TableCell label="Dòng">{row.rowNumber}</TableCell>
-                  <TableCell label="Sinh viên"><strong>{row.studentCode || 'Thiếu MSSV'}</strong><br />{row.fullName ?? 'Chưa xác định'}</TableCell>
-                  <TableCell label="Khung hiện tại">{row.currentCurriculumCode || '—'}</TableCell>
-                  <TableCell label="Khung trong tệp">{row.curriculumCode || 'Trống'}</TableCell>
-                  <TableCell label="Kết quả">
-                    <StatusBadge tone={rowTone[row.status] ?? 'neutral'} label={labels[row.status] ?? 'Chưa hỗ trợ'} />
-                    {row.errors.map((code, index) => <p key={`${code}-${index}`} className="mt-1 text-status-error-text">{errorLabels[code] ?? code}</p>)}
-                  </TableCell>
-                </TableRow>)}
-              </TableBody>
-            </Table>
-          </div>
-          {!filtered.length && <p>Không có dòng phù hợp bộ lọc.</p>}
-          {pages > 1 && <div className="curriculum-import__pagination"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Trang trước</Button><span>Trang {page}/{pages}</span><Button size="sm" variant="outline" disabled={page >= pages} onClick={() => setPage(value => value + 1)}>Trang sau</Button></div>}
-          {!rows && <p className="curriculum-import__error">Chưa thể cập nhật. Hãy sửa các dòng lỗi và chọn lại tệp; lô cần có ít nhất một dòng Khung hợp lệ.</p>}
-          {rows && <label className="curriculum-import__check"><input type="checkbox" checked={confirmed} disabled={!!pending} onChange={event => setConfirmed(event.target.checked)} />Tôi đã kiểm tra và xác nhận cập nhật {counts('UPDATE')} sinh viên; giữ nguyên {counts('UNCHANGED')} sinh viên.</label>}
-        </section>}
-      </>}
-      <div className="app-modal__actions"><Button variant="outline" disabled={!!pending} onClick={onClose}>Đóng</Button><Button icon="upload" disabled={!isAdmin || !session || !rows || !confirmed || !!pending} onClick={() => void run('commit')}>{pending === 'commit' ? 'Đang lưu…' : 'Xác nhận cập nhật'}</Button></div>
-    </div>
-  </Modal>
+  return <ImportDialog<CurriculumPreview['rows'][number]> title="Nhập Khung sinh viên" description="Chọn tệp MSSV + Khung, kiểm tra từng dòng rồi xác nhận cập nhật."
+    onClose={onClose} authorized={isAdmin && !!session} unauthorizedMessage="Chỉ Admin mới được nhập Khung sinh viên."
+    busy={!!pending} notice={<><p>Cập nhật Khung cho sinh viên đã có tài khoản theo MSSV. Khung để trống sẽ được bỏ qua; các thông tin tài khoản và thành viên nhóm được giữ nguyên.</p><p>CSV UTF-8 hoặc XLSX một trang tính, tối đa 500 dòng và 5 MB. Dòng đầu gồm <strong>MSSV</strong> và <strong>Khung</strong>.</p></>}
+    templateHref="/templates/student-curriculum-import.csv" fileLabel="Tệp MSSV + Khung" file={file}
+    accept=".csv,.xlsx" limits="5 MB · 500 dòng" onFileChange={chooseFile}
+    previewDisabled={!file} onPreview={() => void run('preview')} error={error}
+    success={result && `Đã cập nhật ${result.updated} sinh viên; ${result.unchanged} sinh viên không đổi.`}
+    preview={preview && { rows: preview.rows, label: 'Kết quả xem trước', regionLabel: 'Chi tiết từng dòng nhập',
+      columns: ['Dòng', 'Sinh viên', 'Khung hiện tại', 'Khung trong tệp', 'Kết quả'],
+      getKey: row => row.rowNumber,
+      getStatus: row => row.errors.length || row.status === 'ERROR' ? 'error' : row.status === 'UPDATE' ? 'warning' : row.status === 'SKIPPED' ? 'skipped' : 'valid',
+      renderRow: row => <>
+        <TableCell label="Dòng">{row.rowNumber}</TableCell>
+        <TableCell label="Sinh viên"><strong>{row.studentCode || 'Thiếu MSSV'}</strong><br />{row.fullName ?? 'Chưa xác định'}</TableCell>
+        <TableCell label="Khung hiện tại">{row.currentCurriculumCode || '—'}</TableCell>
+        <TableCell label="Khung trong tệp">{row.curriculumCode || 'Trống'}</TableCell>
+        <TableCell label="Kết quả"><StatusBadge tone={rowTone[row.status] ?? 'neutral'} label={labels[row.status] ?? 'Chưa hỗ trợ'} />{row.errors.map((code, index) => <p key={`${code}-${index}`} className="mt-1 text-status-error-text">{errorLabels[code] ?? code}</p>)}</TableCell>
+      </>, validLabel: 'không đổi', warningLabel: 'sẽ cập nhật', canCommit: !!rows,
+      commitCount: rows?.length ?? 0, confirmationLabel: `Tôi đã kiểm tra và xác nhận cập nhật ${counts('UPDATE')} sinh viên; giữ nguyên ${counts('UNCHANGED')} sinh viên.`,
+      invalidMessage: 'Chưa thể cập nhật. Hãy sửa các dòng lỗi và chọn lại tệp; lô cần có ít nhất một dòng Khung hợp lệ.' }}
+    confirmed={confirmed} onConfirmedChange={setConfirmed} onCommit={() => void run('commit')}
+    commitLabel="Xác nhận cập nhật" commitAccessibleName="Xác nhận cập nhật" />
 }
