@@ -110,6 +110,16 @@ describe('RubricManagementPage deep interactions', () => {
     expect(screen.queryByRole('button', { name: 'Phê duyệt' })).toBeNull()
     expect(screen.queryByLabelText('Tên tiêu chí')).toBeNull()
   })
+  it('shows the server approval verdict and identifies the version in confirmation', async () => {
+    const pending = { ...draft, version: 2, status: 'PENDING_APPROVAL', canEdit: false, canApprove: true, canReject: true, previousVersion: published }
+    mocks.listRubrics.mockResolvedValue({ items: [pending], totalCount: 1 })
+    mocks.getRubric.mockResolvedValue(pending)
+    page()
+    expect(await screen.findByText('Điều kiện phê duyệt hợp lệ')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Phê duyệt' }))
+    expect(screen.getByRole('dialog').textContent).toContain('v2')
+    expect(screen.getByRole('dialog').textContent).toContain('v1')
+  })
   it('opens the published rubric as readable content, without disabled editing controls', async () => {
     page(); await screen.findByRole('heading', { name: 'Bộ đã công bố' })
     expect(mocks.getRubric).toHaveBeenCalledWith(2)
