@@ -58,9 +58,9 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <CardContent className="pt-4 grid grid-cols-1 items-stretch md:grid-cols-2 gap-4">
         {/* Supervisor Box */}
-        <div className="p-3.5 rounded-lg bg-canvas border border-hairline flex flex-col gap-2">
+        <div className="flex h-full flex-col justify-between gap-2 rounded-lg border border-hairline bg-canvas p-3.5">
           <div className="flex items-center justify-between">
             <span className="font-mono text-xs font-semibold uppercase tracking-wider text-ink-muted">
               Giảng viên Hướng dẫn chính
@@ -91,7 +91,7 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
         </div>
 
         {/* Reviewer Box */}
-        <div className="p-3.5 rounded-lg bg-canvas border border-hairline flex flex-col gap-2">
+        <div className="flex h-full flex-col justify-between gap-2 rounded-lg border border-hairline bg-canvas p-3.5">
           <div className="flex items-center justify-between">
             <span className="font-mono text-xs font-semibold uppercase tracking-wider text-ink-muted">
               Cán bộ / Giảng viên Phản biện
