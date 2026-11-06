@@ -1,3 +1,10 @@
+
+function isNotificationToday(iso: string): boolean {
+  const d = new Date(iso)
+  const now = new Date()
+  return !Number.isNaN(d.getTime()) && d.toDateString() === now.toDateString()
+}
+
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { HttpError } from '../../services/http/http-client'
 import { getNotifications, getUnreadCount, markAllNotificationsRead, markNotificationRead, type NotificationPage } from './notifications-api'
@@ -64,7 +71,25 @@ export function NotificationsPage() {
         <div className="flex flex-wrap items-center gap-2"><button type="button" className="notification-action" disabled={busy || loading} onClick={() => void load()}>Làm mới</button><button type="button" className="notification-action" disabled={busy || loading || (unreadCount === null ? !data?.items.some(item => !item.isRead) : unreadCount === 0)} onClick={() => void mutate(markAllNotificationsRead).catch(() => {})}>Đánh dấu tất cả đã đọc</button></div>
       </div>
       {error && <p role="alert" className="notification-error">{error} <button type="button" disabled={loading || busy} onClick={() => void load()}>Tải lại</button></p>}
-      {loading ? <NotificationLoading /> : data?.items.length ? <ul className="notification-list">{data.items.map(item => <NotificationRow key={item.id} item={item} busy={busy} onRead={() => mutate(() => markNotificationRead(item.id))} />)}</ul> : !error ? <NotificationEmpty unread={filter === 'unread'} /> : null}
+      {loading ? <NotificationLoading /> : data?.items.length ? (() => {
+        const todayItems = data.items.filter(item => isNotificationToday(item.createdAt))
+        const olderItems = data.items.filter(item => !isNotificationToday(item.createdAt))
+        if (todayItems.length > 0 && olderItems.length > 0) {
+          return (
+            <div className="space-y-6">
+              <section aria-labelledby="notif-today-heading">
+                <h2 id="notif-today-heading" className="mb-2 text-xs font-bold uppercase tracking-wider text-ink-muted">Hôm nay</h2>
+                <ul className="notification-list">{todayItems.map(item => <NotificationRow key={item.id} item={item} busy={busy} onRead={() => mutate(() => markNotificationRead(item.id))} />)}</ul>
+              </section>
+              <section aria-labelledby="notif-older-heading">
+                <h2 id="notif-older-heading" className="mb-2 text-xs font-bold uppercase tracking-wider text-ink-muted">Trước đó</h2>
+                <ul className="notification-list">{olderItems.map(item => <NotificationRow key={item.id} item={item} busy={busy} onRead={() => mutate(() => markNotificationRead(item.id))} />)}</ul>
+              </section>
+            </div>
+          )
+        }
+        return <ul className="notification-list">{data.items.map(item => <NotificationRow key={item.id} item={item} busy={busy} onRead={() => mutate(() => markNotificationRead(item.id))} />)}</ul>
+      })() : !error ? <NotificationEmpty unread={filter === 'unread'} /> : null}
       {!loading && data && data.totalCount > data.pageSize && <nav aria-label="Trang thông báo" className="notification-pagination"><button type="button" className="notification-action" disabled={busy || page <= 1} onClick={() => setPage(value => value - 1)}>Trang trước</button><span>Trang {page} / {data.totalPages}</span><button type="button" className="notification-action" disabled={busy || page >= data.totalPages} onClick={() => setPage(value => value + 1)}>Trang sau</button></nav>}
     </section>
   </WorkspacePage>

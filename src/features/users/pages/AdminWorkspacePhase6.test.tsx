@@ -90,4 +90,18 @@ describe('Admin form state', () => {
     await waitFor(() => expect((screen.getByLabelText('Họ tên') as HTMLInputElement).disabled).toBe(false))
     expect((screen.getByLabelText('Họ tên') as HTMLInputElement).value).toBe('Nguyễn An')
   })
-})
+  it('sends entityType, outcome and the date range to getAudit', () => {
+    workspace.useAdminWorkspace.mockReturnValue(ready())
+    render(<MemoryRouter initialEntries={['/admin/access?tab=audit&auditAction=ACCOUNT_&auditEntityType=USER&auditOutcome=SUCCESS&auditFrom=2026-01-01&auditTo=2026-01-31']}><AdminWorkspacePage /></MemoryRouter>)
+    expect(workspace.useAdminWorkspace).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: 'ACCOUNT_',
+        entityType: 'USER',
+        outcome: 'SUCCESS',
+        fromUtc: '2026-01-01',
+        toUtc: '2026-01-31',
+      })
+    )
+  })
+});
