@@ -6,6 +6,9 @@ import { coldScopeLabel, formatColdDateTime, formatFileSize } from './cold-types
 import { coldError, coldNeedsAuthoritativeRefresh } from './cold-errors'
 import { ColdBadge, ColdError, ColdLoading, ColdShell } from './cold-ui'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
+import { ActionVerdict } from '../../components/ui/ActionVerdict'
+import { EntityIdentityStrip } from '../../components/ui/EntityIdentityStrip'
+import { WorkspaceEmptyState } from '../../components/ui/WorkspaceState'
 
 export function ColdChecklistPage() {
   const { project, actor, routeBase } = useExecutionAccess()
@@ -68,8 +71,9 @@ function ColdChecklistBody({ projectId, projectTitle, actor, routeBase }: {
 
   return <ColdShell title="Chấm nguội theo ngành" projectTitle={projectTitle} backTo={`${routeBase}/workspace`}
     description={actor === 'student' ? 'Nộp từng báo cáo theo ngành/cá nhân được giao trước hạn. Hội đồng chấm sau khi khóa gói.' : 'Theo dõi báo cáo chấm nguội của nhóm theo từng ngành và cá nhân.'}>
-    {loading ? <ColdLoading /> : error ? <ColdError message={error} retry={reload} /> : checklist && <>
-      {allBlockers.length > 0 && <div className="cold-notice cold-notice--warning"><p>Chưa đủ điều kiện khóa gói:</p><ul>{allBlockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul></div>}
+    <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: projectTitle }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
+    {loading ? <ColdLoading /> : error ? <ColdError message={error} retry={reload} /> : !checklist ? <WorkspaceEmptyState title="Chưa có checklist báo cáo" message="Hệ thống chưa trả về checklist chấm nguội cho đồ án này." /> : <>
+      <ActionVerdict actions={[{ code: 'LOCK_COLD_PACKAGE', allowed: checklist.canLock, reasons: allBlockers }]} actionCode="LOCK_COLD_PACKAGE" status="ready" okLabel="Đủ điều kiện khóa gói" blockedLabel="Chưa đủ điều kiện khóa gói" />
       {lockError && <ColdError message={lockError} />}
       
       {progress && <div className="cold-panel" style={{ marginBottom: 16 }}>
@@ -103,7 +107,7 @@ function ColdChecklistBody({ projectId, projectTitle, actor, routeBase }: {
             </button>
           )}
         </div>
-        {checklist.items.length === 0 ? <div className="cold-empty">Chưa có checklist báo cáo nào được áp dụng cho đồ án này.</div> : <ul className="cold-list">
+        {checklist.items.length === 0 ? <WorkspaceEmptyState title="Chưa có checklist báo cáo" message="Chưa có checklist báo cáo nào được áp dụng cho đồ án này." /> : <ul className="cold-list">
           {checklist.items.map((item) => <ColdItemRow key={item.id} item={item} onChanged={replaceItem} onConflict={reload} />)}
         </ul>}
       </div>

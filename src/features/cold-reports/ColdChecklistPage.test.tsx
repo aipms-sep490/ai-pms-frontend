@@ -56,6 +56,13 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('COLD checklist page', () => {
+  it('shows project identity, lock blockers and an explicit empty checklist state', async () => {
+    mount(checklistWith([], ['WINDOW_CLOSED']))
+    expect(await screen.findByText('Chưa đủ điều kiện khóa gói')).toBeTruthy()
+    expect(screen.getByText('WINDOW_CLOSED')).toBeTruthy()
+    expect(screen.getByText('Chưa có checklist báo cáo')).toBeTruthy()
+    expect(screen.getByRole('list', { name: 'Thông tin định danh' })).toBeTruthy()
+  })
   it('renders required items with their latest status and the package deadline', async () => {
     mount(checklistWith([{ id: 1, templateId: 5, templateVersion: 1, reportType: 'SOFTWARE_REQUIREMENT', name: 'Software Requirement', required: true, scope: 'MAJOR_SPECIFIC', majorId: 12, studentId: null, latest: draftSubmission, canWrite: true }]))
     expect(await screen.findByText('Software Requirement')).toBeTruthy()

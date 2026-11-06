@@ -10,6 +10,9 @@ import { formatScore } from '../../components/ui/format'
 import { getTeam } from '../../services/api/teams.api'
 import { WeeklyAssessmentHistory } from './WeeklyAssessmentHistory'
 import { Button } from '../../components/ui/Button'
+import { ActionVerdict } from '../../components/ui/ActionVerdict'
+import { EntityIdentityStrip } from '../../components/ui/EntityIdentityStrip'
+import { WorkspaceEmptyState } from '../../components/ui/WorkspaceState'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
 import { CollaborationIntro } from '../student-collaboration/collaboration-ui'
 
@@ -71,8 +74,9 @@ function WeeklyAssessmentsBody({ projectId, projectTitle, routeBase, members }: 
   return <WeeklyShell title="Điểm cá nhân theo tuần" projectTitle={projectTitle} backTo={`${routeBase}/workspace`}
     description="Chấm tham khảo hằng tuần cho từng sinh viên. Không tự cộng vào kết quả học phần chính thức.">
     {confirmationDialog}
+    <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: projectTitle }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
     <CollaborationIntro icon="insights" title="Phản hồi nhỏ, tiến bộ mỗi tuần">Điểm theo dõi chỉ để tham khảo. Giữ lại từng phiên bản nhận xét để sinh viên nhìn thấy tiến bộ của mình, không cộng vào kết quả chính thức.</CollaborationIntro>
-    {weeksError ? <WeeklyError message={weeksError} /> : !weeks ? <WeeklyLoading /> : <>
+    {weeksError ? <WeeklyError message={weeksError} /> : !weeks ? <WeeklyLoading /> : weeks.length === 0 ? <WorkspaceEmptyState title="Chưa có tuần đánh giá" message="Hệ thống chưa tạo lịch tuần đánh giá cho đồ án này." /> : <>
       <div className="weekly-toolbar">
         <label>Tuần<select value={selectedWeek ?? ''} disabled={editorState.busy} onChange={(event) => { const value = Number(event.target.value); void changeSelection(() => setSelectedWeek(value)) }}>
           {weeks.map((week) => <option key={week.weekNumber} value={week.weekNumber}>
@@ -243,6 +247,7 @@ function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, 
       <h2>{assessment ? `${assessment.rubricName} (v${assessment.version})` : 'Chưa có bản chấm cho tuần này'}</h2>
       {assessment && <WeeklyBadge status={assessment.status} />}
     </div>
+    {assessment && <div style={{ padding: '0 24px', marginTop: 12 }}><ActionVerdict actions={[{ code: 'SUBMIT_WEEKLY_ASSESSMENT', allowed: assessment.canSubmit, reasons: !assessment.canSubmit ? (isSubmitted ? ['Bản chấm tuần này đã nộp.'] : !assessment.canEdit ? ['Bản chấm bị khóa hoặc không được phép chỉnh sửa.'] : ['Chưa đủ điều kiện nộp điểm tuần này.']) : [] }]} actionCode="SUBMIT_WEEKLY_ASSESSMENT" status="ready" okLabel="Đủ điều kiện nộp điểm đánh giá tuần" blockedLabel="Chưa thể nộp điểm đánh giá tuần" /></div>}
     {error && <div style={{ padding: '0 24px', marginTop: 12 }}><WeeklyError message={error} /></div>}
     {recovery && <div className="collab collab-card"><p className="collab-note">Bản mới nhất đã được tải lại. Nội dung chưa lưu của bạn được giữ riêng, chưa ghi đè dữ liệu.</p><details><summary>Xem nội dung chưa lưu</summary>{Object.entries(recovery.edits).map(([id, value]) => <p key={id}>Tiêu chí #{id}: {value.score || 'Chưa chấm'} · {value.comments}</p>)}<p>{recovery.comments}</p></details><div className="collab-actions">{assessment?.canEdit && <Button onClick={() => { setEdits(Object.fromEntries(assessment.scores.map(score => [score.rubricCriterionId, recovery.edits[score.rubricCriterionId] ?? { score: score.score == null ? '' : String(score.score), comments: score.comments ?? '' }]))); setComments(recovery.comments); setRecovery(null) }}>Khôi phục vào bản nháp mới nhất</Button>}<Button variant="outline" onClick={() => setRecovery(null)}>Giữ dữ liệu máy chủ</Button></div></div>}
 
