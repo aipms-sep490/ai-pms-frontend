@@ -58,4 +58,12 @@ describe('chat API contract (BE-N09)', () => {
       '/api/v1/chat/conversations/9/messages', expect.objectContaining({ method: 'POST', body: JSON.stringify({ clientMessageId: 'c1', body: null, attachmentIds: ['1', '2'] }) }),
     ])
   })
+
+  it('requests an AI conversation summary with the scoped route', async () => {
+    localStorage.setItem('token', 'chat-token')
+    const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ summary: 'Tóm tắt', decisions: [], openQuestions: [], actionItems: [], generatedAt: '2026-11-06T10:00:00Z' }) })
+    vi.stubGlobal('fetch', fetch)
+    await chatApi.aiSummary('9')
+    expect(fetch.mock.calls[0]).toEqual(['/api/v1/chat/conversations/9/ai/summary', expect.objectContaining({ method: 'POST', body: '{}' })])
+  })
 })
