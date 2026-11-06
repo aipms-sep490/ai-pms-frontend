@@ -32,6 +32,7 @@ export interface ProjectProgressAnalysis {
 }
 export interface ReportAiSummary { projectId: number; reportId: number; reportType: string; periodStart: string; periodEnd: string; summary: { completed: string; inProgress: string; blockers: string; risks: string; nextActions: string }; contextScope: string; evidence: EvidenceReference[]; limitationNote: string | null; generatedAt: string; generationStatus: string; runId: number | null }
 export interface ProjectAssistantResponse { projectId: number; answer: string; contextScope: string; evidence: EvidenceReference[]; limitationNote: string | null; insufficientEvidence: boolean; generatedAt: string; generationStatus: string; runId: number | null }
+export interface ProjectAiDigest { projectId: number; generatedAtUtc: string; dataStatus: string; riskLevel: string; riskScore: number | null; progressSummary: Pick<ProgressSummary, 'totalMilestones' | 'completedMilestones' | 'totalTasks' | 'doneTasks' | 'blockedTasks' | 'overdueTasks' | 'progressPercentage'>; signals: Array<{ code: string; severity: string; count: number; description: string }>; nextActions: string[]; evidence: EvidenceReference[]; limitations: string | null }
 
 // BE-15 · Saved AI run history (AiAssistantController + AiRunDtos). Runs are actor- and
 // scope-hash-scoped server-side: a run whose evidence is no longer visible in the current
@@ -57,3 +58,4 @@ export const getProjectProgressAnalysis = (projectId: number, signal?: AbortSign
 export const recordProjectProgressAnalysis = (projectId: number, signal?: AbortSignal) => httpPost<ProjectProgressAnalysis>(`/projects/${projectId}/ai/progress-analysis`, undefined, signal)
 export const getReportAiSummary = (projectId: number, reportId: number, signal?: AbortSignal) => httpGet<ReportAiSummary>(`/projects/${projectId}/reports/${reportId}/summary`, signal)
 export const askProjectAssistant = (projectId: number, query: string) => httpPost<ProjectAssistantResponse>(`/projects/${projectId}/ai/assistant/ask`, { query })
+export const getProjectAiDigest = (projectId: number, signal?: AbortSignal) => httpGet<ProjectAiDigest>(`/projects/${projectId}/ai/digest`, signal)

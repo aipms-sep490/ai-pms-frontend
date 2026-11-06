@@ -5,7 +5,7 @@ import { ChatThread } from './ChatThread'
 import { HttpError } from '../../services/http/http-client'
 
 const mocks = vi.hoisted(() => ({
-  detail: vi.fn(), messages: vi.fn(), members: vi.fn(), send: vi.fn(), read: vi.fn(),
+  detail: vi.fn(), messages: vi.fn(), members: vi.fn(), send: vi.fn(), read: vi.fn(), aiSummary: vi.fn(),
   revision: 0, changedConversations: null as Set<string> | null, refresh: vi.fn(), on: vi.fn(), off: vi.fn(), invoke: vi.fn(),
 }))
 vi.mock('./chat-api', async importOriginal => ({ ...(await importOriginal<object>()), chatApi: mocks }))
@@ -22,10 +22,30 @@ beforeEach(() => {
   mocks.members.mockResolvedValue({ items: [], nextCursor: null, hasMore: false })
   mocks.invoke.mockResolvedValue(undefined)
   mocks.read.mockResolvedValue(undefined)
+  mocks.aiSummary.mockResolvedValue({ summary: 'Nhóm thống nhất hoàn thành API.', decisions: ['Dùng endpoint staging'], openQuestions: [], actionItems: [{ title: 'Hoàn thành API', ownerName: 'Nam', dueAt: '2026-11-07T00:00:00Z' }], generatedAt: '2026-11-06T10:00:00Z', generationStatus: 'COMPLETED' })
 })
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 const mount = () => render(<MemoryRouter><ChatThread id="9" userId="3" /></MemoryRouter>)
 describe('chat business and failure boundaries', () => {
+  it('asks AI for a summary and renders decisions and action items', async () => {
+    mount()
+    await screen.findByText(message.body)
+    fireEvent.click(screen.getByRole('button', { name: 'Hỏi AI' }))
+    await screen.findByText('Nhóm thống nhất hoàn thành API.')
+    expect(mocks.aiSummary).toHaveBeenCalledWith('9')
+    expect(screen.getByText('Dùng endpoint staging')).toBeTruthy()
+    expect(screen.getByText('Hoàn thành API').parentElement?.textContent).toContain('Nam')
+    expect(screen.getByText(/Hoàn tất/)).toBeTruthy()
+  })
+
+  it('shows a recoverable error when AI summary fails', async () => {
+    mocks.aiSummary.mockRejectedValueOnce(new Error('unavailable'))
+    mount()
+    await screen.findByText(message.body)
+    fireEvent.click(screen.getByRole('button', { name: 'Hỏi AI' }))
+    await screen.findByRole('alert')
+    expect(screen.getByRole('alert').textContent).toContain('Chưa thể phân tích')
+  })
   it('bounds long history to 500 messages and returns to the newest page after sliding the window', async () => {
     mocks.messages.mockImplementation((_id: string, before?: string) => {
       const page = before ? Number(before) : 0
