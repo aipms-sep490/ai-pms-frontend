@@ -23,8 +23,8 @@ export function HistoryTimeline({ items, emptyLabel = 'Chưa có lịch sử x�
           <li key={`${dateTime}-${index}`} className="relative pb-5 last:pb-0">
             <span aria-hidden="true" className={`absolute -left-[1.7rem] top-1.5 h-3 w-3 rounded-full border ${badgeToneClass[item.tone ?? 'neutral']}`} />
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">
-              <strong className="text-ink">{item.action}</strong>
-              <span className="text-ink-soft">{item.actor}</span>
+              <div className="font-semibold text-ink">{item.action}</div>
+              {item.actor && <span className="text-ink-soft">{item.actor}</span>}
               <time dateTime={dateTime} className="text-xs tabular-nums text-ink-muted">{Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('vi-VN')}</time>
             </div>
             {item.note && <p data-history-note className="mt-2 whitespace-pre-wrap text-sm text-ink-soft">{item.note}</p>}
