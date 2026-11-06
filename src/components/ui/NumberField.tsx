@@ -1,6 +1,6 @@
 import { useId } from 'react'
 
-export function NumberField({ label, description, value, unit, min, step = 1, onChange, disabled = false }: {
+export function NumberField({ label, description, value, unit, min, step = 1, onChange, disabled = false, error }: {
   label: string
   description?: string
   value: number | ''
@@ -9,8 +9,10 @@ export function NumberField({ label, description, value, unit, min, step = 1, on
   step?: number
   onChange: (value: number | '') => void
   disabled?: boolean
+  error?: string
 }) {
   const descriptionId = useId()
+  const errorId = useId()
   const cannotStep = disabled || value === ''
 
   return (
@@ -24,7 +26,8 @@ export function NumberField({ label, description, value, unit, min, step = 1, on
         <input
           type="number"
           aria-label={label}
-          aria-describedby={description ? descriptionId : undefined}
+          aria-invalid={Boolean(error)}
+          aria-describedby={[description ? descriptionId : null, error ? errorId : null].filter(Boolean).join(' ') || undefined}
           value={value}
           min={min}
           step={step}
@@ -35,6 +38,7 @@ export function NumberField({ label, description, value, unit, min, step = 1, on
         <button type="button" aria-label={`Tăng ${label}`} disabled={cannotStep} onClick={() => onChange((value as number) + step)} className="min-h-10 min-w-10 rounded-lg border border-hairline bg-card text-lg text-ink hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50">+</button>
         <span className="rounded-lg border border-hairline bg-canvas px-2 py-2 text-xs font-semibold text-ink-soft">{unit}</span>
       </div>
+      {error && <p id={errorId} className="w-full text-xs text-status-error-text">{error}</p>}
     </div>
   )
 }

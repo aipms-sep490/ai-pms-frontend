@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { UnsavedChangesNotice } from './UnsavedChangesNotice'
 import { useActionConfirmation } from './useActionConfirmation'
 
-export function ConfigModeFrame({ mode, dirty, busy, onEdit, onCancel, onSave, blastRadius, saveLabel = 'Lưu cấu hình', breadcrumb, children }: {
+export function ConfigModeFrame({ mode, dirty, busy, onEdit, onCancel, onSave, blastRadius, saveLabel = 'Lưu cấu hình', breadcrumb, navigationGuard = true, editDisabled = false, allowSaveUnchanged = false, saveDisabled = false, children }: {
   mode: 'view' | 'edit'
   dirty: boolean
   busy: boolean
@@ -12,6 +12,10 @@ export function ConfigModeFrame({ mode, dirty, busy, onEdit, onCancel, onSave, b
   blastRadius: ReactNode
   saveLabel?: string
   breadcrumb?: ReactNode
+  navigationGuard?: boolean
+  editDisabled?: boolean
+  allowSaveUnchanged?: boolean
+  saveDisabled?: boolean
   children: ReactNode
 }) {
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
@@ -40,16 +44,16 @@ export function ConfigModeFrame({ mode, dirty, busy, onEdit, onCancel, onSave, b
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {mode === 'view' ? (
-            <button type="button" onClick={onEdit} disabled={busy} className="min-h-10 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50">Chỉnh sửa</button>
+            <button type="button" onClick={onEdit} disabled={busy || editDisabled} className="min-h-10 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50">Chỉnh sửa</button>
           ) : (
             <>
               <button type="button" onClick={() => { void handleCancel() }} disabled={busy} className="min-h-10 rounded-lg border border-hairline bg-card px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50">Hủy thay đổi</button>
-              <button type="button" onClick={onSave} disabled={busy || !dirty} className="min-h-10 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50">{saveLabel}</button>
+              <button type="button" onClick={onSave} disabled={busy || saveDisabled || (!dirty && !allowSaveUnchanged)} className="min-h-10 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50">{saveLabel}</button>
             </>
           )}
         </div>
       </div>
-      {mode === 'edit' && <UnsavedChangesNotice dirty={dirty} busy={busy} />}
+      {mode === 'edit' && navigationGuard && <UnsavedChangesNotice dirty={dirty} busy={busy} />}
       <fieldset disabled={mode === 'view'} className="min-w-0 border-0 p-0">
         {children}
       </fieldset>
