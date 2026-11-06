@@ -1,3 +1,11 @@
+.ai-table__head--band {
+  background: var(--color-table-header-bg);
+  border-bottom: 2px solid var(--color-primary);
+}
+.ai-table__head--band th {
+  white-space: nowrap;
+}
+
 /* Stack-to-card layout for <Table stack>, opt-in below 640px: each row becomes a bordered
    card with its columns laid out as "label: value" lines, powered by TableCell's data-label. */
 @media (max-width: 640px) {

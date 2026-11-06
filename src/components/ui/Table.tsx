@@ -23,8 +23,8 @@ export function Table({ children, className = '', stack = false, ...props }: Tab
   )
 }
 
-export function TableHead({ children, className = '', ...props }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={className} {...props}>{children}</thead>
+export function TableHead({ children, className = '', band = true, ...props }: HTMLAttributes<HTMLTableSectionElement> & { band?: boolean }) {
+  return <thead className={`${band ? 'ai-table__head--band' : ''} ${className}`.trim()} {...props}>{children}</thead>
 }
 
 export function TableBody({ children, className = '', ...props }: HTMLAttributes<HTMLTableSectionElement>) {
@@ -36,9 +36,9 @@ export function TableRow({ children, className = '', head = false, ...props }: H
   return <tr className={`${head ? 'border-b border-hairline text-left' : 'border-b border-hairline/70'} ${className}`.trim()} {...props}>{children}</tr>
 }
 
-export function TableHeaderCell({ children, className = '', align = 'left', numeric = false, ...props }: ThHTMLAttributes<HTMLTableCellElement> & { align?: Align; numeric?: boolean }) {
+export function TableHeaderCell({ children, className = '', align = 'left', numeric = false, title, ...props }: ThHTMLAttributes<HTMLTableCellElement> & { align?: Align; numeric?: boolean }) {
   return (
-    <th scope="col" className={`py-2 pr-4 last:pr-0 ${alignClass[numeric ? 'right' : align]} text-xs font-semibold uppercase tracking-wide text-ink-muted ${className}`.trim()} {...props}>
+    <th scope="col" title={title ?? (typeof children === 'string' ? children : undefined)} className={`py-2 pr-4 last:pr-0 ${alignClass[numeric ? 'right' : align]} text-xs font-semibold uppercase tracking-[0.06em] text-ink ${className}`.trim()} {...props}>
       {children}
     </th>
   )
