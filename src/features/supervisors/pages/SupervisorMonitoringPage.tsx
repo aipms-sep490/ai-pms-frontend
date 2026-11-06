@@ -2,6 +2,7 @@ import { displayLabel } from '../../../components/ui/display-label'
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
+import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
 import { useSupervisors } from '../hooks/useSupervisors'
 import './supervisor-monitoring.css'
 
@@ -53,7 +54,7 @@ export function SupervisorMonitoringPage() {
       <Status available={supervisor.isAvailable} />
       <Link className="sup__open" aria-label={`Mở hồ sơ ${supervisor.fullName}`} to={`/department/supervisors/${supervisor.id}`}><span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>
     </article>)}</section>
-    {!supervisors.items.length ? <div className="sup__empty"><span className="material-symbols-outlined" aria-hidden="true">person_search</span><strong>Không tìm thấy giảng viên</strong><p>Thử thay đổi từ khóa hoặc bộ lọc đang chọn.</p></div> : null}
+    {!supervisors.items.length ? <WorkspaceEmptyState title="Không tìm thấy giảng viên" message={supervisors.filters.search || supervisors.filters.departmentId || supervisors.filters.expertise || supervisors.filters.isAvailable !== undefined ? 'Không có giảng viên khớp bộ lọc hiện tại. Thử thay đổi từ khóa hoặc điều kiện lọc.' : 'Chưa có giảng viên trong phạm vi bộ môn hiện tại.'} /> : null}
     {supervisors.totalCount > supervisors.pageSize ? <nav className="sup__paging" aria-label="Phân trang giảng viên">
       <Button variant="secondary" disabled={supervisors.page <= 1} onClick={() => supervisors.setFilters({ ...supervisors.filters, page: supervisors.page - 1 })}>Trang trước</Button>
       <span>Trang {supervisors.page} / {Math.ceil(supervisors.totalCount / supervisors.pageSize)}</span>

@@ -79,6 +79,7 @@ describe('SupervisorMonitoringPage', () => {
     hook.useSupervisors.mockReturnValue(state({ items: [] }))
     page()
     expect(screen.getByText('Không tìm thấy giảng viên')).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Không tìm thấy giảng viên' }).textContent).toContain('Chưa có giảng viên trong phạm vi')
     cleanup()
 
     hook.useSupervisors.mockReturnValue(state({ isUnauthorized: true }))
