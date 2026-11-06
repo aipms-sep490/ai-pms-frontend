@@ -8,16 +8,21 @@ import * as knowledge from './academic-knowledge-api'
 import type { Department } from '../academic/types/academic.types'
 import { useAuthSession } from '../auth/context/useAuthSession'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
+import { ConfigModeFrame } from '../../components/ui/ConfigModeFrame'
 import { dateTimeLabel, toUtcDateTime } from '../execution/execution-utils'
 
 const statusLabel: Record<string, string> = { DRAFT: 'Bản nháp', PUBLISHED: 'Đã công bố', RETIRED: 'Đã ngừng sử dụng' }
 const field = 'mt-1 w-full rounded-lg border border-hairline bg-card p-3 text-sm text-ink'
 const button = 'min-h-10 rounded-lg border border-hairline px-3 py-2 text-sm font-semibold text-ink disabled:opacity-50'
+type DraftSnapshot = { title: string; type: string; version: string; content: string; from: string; to: string; departmentId: string; semesterId: string; periodId: string; selected: Doc | null }
 
 export function AcademicKnowledgeManagementPage() {
   const { session } = useAuthSession()
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const inFlight = useRef(false)
+  const formRef = useRef<HTMLFormElement>(null)
+  const [mode, setMode] = useState<'view' | 'edit'>('view')
+  const [draftSnapshot, setDraftSnapshot] = useState<DraftSnapshot | null>(null)
   const admin = session?.user.roles.includes('ADMIN') ?? false
   const [docs, setDocs] = useState<Doc[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
@@ -75,7 +80,7 @@ export function AcademicKnowledgeManagementPage() {
     const data = { version, content, sourceFileName: null, effectiveFrom, effectiveTo, chunks: null }
     if (selected) await knowledge.createKnowledgeVersion(selected.id, data)
     else await knowledge.createKnowledgeDocument({ ...data, title, documentType: type, departmentId: departmentId ? Number(departmentId) : null, academicSemesterId: semesterId ? Number(semesterId) : null, projectPeriodId: periodId ? Number(periodId) : null })
-    setTitle(''); setContent(''); setSelected(null); setHistory(null)
+    setTitle(''); setContent(''); setSelected(null); setHistory(null); setMode('view'); setDraftSnapshot(null)
     }, 'Đã lưu bản nháp. Kiểm tra nội dung rồi chọn Công bố bản nháp mới nhất.')
   }
   const transition = async (doc: Doc, action: 'publish' | 'retire') => {
@@ -93,12 +98,27 @@ export function AcademicKnowledgeManagementPage() {
   const invalid = (name: keyof NonNullable<knowledge.KnowledgeFailure['fields']>) => ({ 'aria-invalid': error?.fields?.[name] ? true : undefined, 'aria-describedby': error?.fields?.[name] ? `knowledge-${name}-error` : undefined })
   const fieldError = (name: keyof NonNullable<knowledge.KnowledgeFailure['fields']>) => error?.fields?.[name] && <span id={`knowledge-${name}-error`} className="mt-1 block text-sm text-status-error-text">{error.fields[name]}</span>
   const dep = departments.find(item => item.id === Number(departmentId))
+  const snapshot = (): DraftSnapshot => ({ title, type, version, content, from, to, departmentId, semesterId, periodId, selected })
+  const draftDirty = draftSnapshot !== null && (
+    title !== draftSnapshot.title || type !== draftSnapshot.type || version !== draftSnapshot.version || content !== draftSnapshot.content ||
+    from !== draftSnapshot.from || to !== draftSnapshot.to || departmentId !== draftSnapshot.departmentId ||
+    semesterId !== draftSnapshot.semesterId || periodId !== draftSnapshot.periodId || selected?.id !== draftSnapshot.selected?.id
+  )
+  const cancelDraft = () => {
+    if (draftSnapshot) {
+      setTitle(draftSnapshot.title); setType(draftSnapshot.type); setVersion(draftSnapshot.version); setContent(draftSnapshot.content)
+      setFrom(draftSnapshot.from); setTo(draftSnapshot.to); setDepartmentId(draftSnapshot.departmentId)
+      setSemesterId(draftSnapshot.semesterId); setPeriodId(draftSnapshot.periodId); setSelected(draftSnapshot.selected)
+    }
+    setMode('view'); setDraftSnapshot(null); setMessage('Đã hủy các thay đổi.')
+  }
   return <main className="workspace-page mx-auto max-w-5xl space-y-5 pb-12">
     <header><p className="font-mono text-xs font-semibold uppercase tracking-wide text-primary">Quản trị học vụ</p><h1 className="mt-1 font-heading text-2xl font-bold text-ink">Kho tài liệu cho trợ lý AI</h1><p className="mt-2 text-sm leading-6 text-ink-muted">Nhập nội dung text, lưu nháp rồi công bố. Chỉ phiên bản còn hiệu lực, đúng khoa và kỳ mới được dùng để trả lời. Tài liệu DEMO chỉ dùng kiểm thử.</p></header>
     {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><p>{error.message}</p>{error.retryable && <button type="button" disabled={busy} className={button} onClick={() => setReload(value => value + 1)}>Thử tải lại danh sách</button>}</div>}
     {message && <p role="status" className="rounded-lg border border-primary-subtle bg-primary-subtle p-3 text-sm text-ink">{message}</p>}
+    <ConfigModeFrame mode={mode} dirty={draftDirty} busy={busy} onEdit={() => { setDraftSnapshot(snapshot()); setMode('edit') }} onCancel={cancelDraft} onSave={() => formRef.current?.requestSubmit()} saveLabel={busy ? 'Đang xử lý…' : 'Lưu bản nháp'} editDisabled={!ready} saveDisabled={!ready || (!selected && !admin && !departmentId)} allowSaveUnchanged navigationGuard={false} blastRadius="Bản nháp mới chỉ nằm trong kho quản lý. Trợ lý AI chỉ dùng tài liệu sau khi công bố; phạm vi khoa, kỳ và thời gian hiệu lực quyết định tài liệu nào được dùng. Phiên bản đang công bố có thể bị thu hồi khi công bố bản mới.">
     <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs"><h2 className="font-heading text-lg font-semibold text-ink">{selected ? `Phiên bản mới: ${selected.title}` : 'Tạo tài liệu'}</h2>
-      <form onSubmit={event => { event.preventDefault(); void save() }} className="mt-4 space-y-3">
+      <form ref={formRef} onSubmit={event => { event.preventDefault(); void save() }} className="mt-4 space-y-3">
         <fieldset disabled={busy || !ready} className="min-w-0 space-y-3">
         {!selected && <div className="grid gap-3 md:grid-cols-2">
           <label className="text-sm text-ink">Tên tài liệu<input aria-label="Tên tài liệu" {...invalid('title')} required maxLength={255} value={title} onChange={e => setTitle(e.target.value)} className={field} />{fieldError('title')}</label>
@@ -109,12 +129,13 @@ export function AcademicKnowledgeManagementPage() {
         </div>}
         <div className="grid gap-3 md:grid-cols-3"><label className="text-sm text-ink">Phiên bản<input aria-label="Phiên bản" {...invalid('version')} required maxLength={64} value={version} onChange={e => setVersion(e.target.value)} className={field} />{fieldError('version')}</label><label className="text-sm text-ink">Hiệu lực từ (giờ Việt Nam)<input aria-label="Hiệu lực từ (giờ Việt Nam)" {...invalid('effectiveFrom')} type="datetime-local" value={from} onChange={e => setFrom(e.target.value)} className={field} />{fieldError('effectiveFrom')}</label><label className="text-sm text-ink">Hết hiệu lực (giờ Việt Nam)<input aria-label="Hết hiệu lực (giờ Việt Nam)" {...invalid('effectiveTo')} type="datetime-local" value={to} onChange={e => setTo(e.target.value)} className={field} />{fieldError('effectiveTo')}</label></div>
         <label className="block text-sm text-ink">Nội dung tài liệu<textarea aria-label="Nội dung tài liệu" {...invalid('content')} required maxLength={100000} value={content} onChange={e => setContent(e.target.value)} rows={8} className={field} />{fieldError('content')}</label>
-        <div className="flex gap-2"><button disabled={busy || !ready || (!selected && !admin && !departmentId)} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Đang xử lý…' : 'Lưu bản nháp'}</button>{selected && <button type="button" className={button} onClick={() => { setSelected(null); setContent('') }}>Hủy tạo phiên bản</button>}</div>
+        {selected && <button type="button" className={button} onClick={() => { setSelected(null); setContent('') }}>Hủy tạo phiên bản</button>}
         </fieldset>
       </form></section>
+    </ConfigModeFrame>
     <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-heading text-lg font-semibold text-ink">Tài liệu trong phạm vi quản lý</h2><button type="button" disabled={busy} className={button} onClick={() => setReload(value => value + 1)}>Tải lại danh sách</button></div>{!ready ? <p role="status" className="mt-4 text-sm text-ink-muted">{error ? 'Chưa tải được dữ liệu quản lý.' : 'Đang tải dữ liệu quản lý…'}</p> : docs.length === 0 ? <p className="mt-4 text-sm text-ink-muted">Chưa có tài liệu.</p> : <ul className="mt-3 divide-y divide-hairline">{docs.map(doc => <li key={doc.id} className="space-y-3 py-4"><div><p className="break-words font-semibold text-ink">{doc.title}</p><p className="mt-1 text-xs text-ink-muted">{statusLabel[doc.status] ?? 'Trạng thái chưa xác định'} · v{doc.currentVersion} · {departments.find(d => d.id === doc.departmentId)?.name ?? 'Dùng chung theo kỳ'}</p></div><div className="flex flex-wrap gap-2">
       <button disabled={busy} className={button} onClick={() => void act(async () => { const rows = await knowledge.getKnowledgeHistory(doc.id); setHistory({ title: doc.title, rows }) }, 'Đã tải lịch sử phiên bản.', 'history')}>Lịch sử</button>
-      {['DRAFT', 'PUBLISHED'].includes(doc.status) && <><button disabled={busy} className={button} onClick={() => { setSelected(doc); setVersion(''); setContent(''); setFrom(''); setTo(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>Tạo phiên bản</button><button disabled={busy} className={button} onClick={() => void transition(doc, 'publish')}>Công bố bản nháp mới nhất</button><button disabled={busy} className={button} onClick={() => void transition(doc, 'retire')}>Ngừng sử dụng</button></>}
+      {['DRAFT', 'PUBLISHED'].includes(doc.status) && <><button disabled={busy} className={button} onClick={() => { if (mode === 'view') setDraftSnapshot(snapshot()); setSelected(doc); setMode('edit'); setVersion(''); setContent(''); setFrom(''); setTo(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>Tạo phiên bản</button><button disabled={busy} className={button} onClick={() => void transition(doc, 'publish')}>Công bố bản nháp mới nhất</button><button disabled={busy} className={button} onClick={() => void transition(doc, 'retire')}>Ngừng sử dụng</button></>}
       {doc.status === 'PUBLISHED' && <button disabled={busy} className={button} onClick={() => void act(() => knowledge.reindexKnowledgeDocument(doc.id), 'Đã kiểm tra lại chỉ mục tài liệu.', 'reindex')}>Lập chỉ mục lại</button>}
     </div></li>)}</ul>}</section>
     {history && <section className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-heading font-semibold text-ink">Lịch sử · {history.title}</h2><ul className="mt-3 space-y-2">{history.rows.map(row => <li key={row.id} className="text-sm text-ink-soft">v{row.version} · {statusLabel[row.status] ?? 'Trạng thái chưa xác định'} · {row.chunkCount} đoạn nguồn{row.publishedAt ? ` · Công bố ${dateTimeLabel(row.publishedAt)} (giờ Việt Nam)` : ''}</li>)}</ul></section>}

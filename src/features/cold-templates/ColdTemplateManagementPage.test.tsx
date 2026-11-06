@@ -19,6 +19,7 @@ vi.mock('../projects/api/project-review-api', () => ({ getReviewDetail: () => Pr
 async function renderCold() {
   render(<ColdTemplateManagementPage />)
   await screen.findAllByRole('option', { name: 'Marketing (MKT)' })
+  fireEvent.click(screen.getByRole('button', { name: 'Chỉnh sửa' }))
 }
 
 const template: ColdTemplate = {
@@ -30,6 +31,18 @@ beforeEach(() => vi.resetAllMocks())
 afterEach(cleanup)
 
 describe('ColdTemplateManagementPage', () => {
+  it('loads the creation form in view mode while keeping search available', async () => {
+    render(<ColdTemplateManagementPage />)
+    await screen.findAllByRole('option', { name: 'Marketing (MKT)' })
+    expect(screen.getByText('Chế độ xem')).toBeTruthy()
+    expect(screen.getByLabelText('Tên template').matches(':disabled')).toBe(true)
+    fireEvent.change(screen.getByLabelText('Ngành áp dụng'), { target: { value: '12' } })
+    fireEvent.change(screen.getByLabelText('Kỳ đồ án áp dụng'), { target: { value: '34' } })
+    expect((screen.getByRole('button', { name: 'Tìm' }) as HTMLButtonElement).disabled).toBe(false)
+    expect(screen.getByText(/Mẫu mới tạo là một phiên bản bất biến/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Chỉnh sửa' }))
+    expect((screen.getByLabelText('Tên template') as HTMLInputElement).disabled).toBe(false)
+  })
   it('searches templates by major and period and lists them', async () => {
     api.getColdTemplates.mockResolvedValue({ items: [template], page: 1, pageSize: 50, totalCount: 1, totalPages: 1 })
     await renderCold()

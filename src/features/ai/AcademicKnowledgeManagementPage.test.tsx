@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { AcademicKnowledgeManagementPage } from './AcademicKnowledgeManagementPage'
 import { HttpError } from '../../services/http/http-client'
@@ -17,8 +17,29 @@ beforeEach(() => {
 const doc = (status = 'DRAFT') => ({ id: 10, title: 'Tài liệu kiểm thử', status, currentVersion: '1', departmentId: 7 })
 async function ready() {
   render(<AcademicKnowledgeManagementPage />)
+  await waitFor(() => expect((screen.getByRole('button', { name: 'Chỉnh sửa' }) as HTMLButtonElement).disabled).toBe(false))
+  fireEvent.click(screen.getByRole('button', { name: 'Chỉnh sửa' }))
   await waitFor(() => expect((screen.getByRole('button', { name: 'Lưu bản nháp' }) as HTMLButtonElement).disabled).toBe(false))
 }
+it('loads in view mode and explains the publication scope', async () => {
+  render(<AcademicKnowledgeManagementPage />)
+  expect(screen.getByText('Chế độ xem')).toBeTruthy()
+  expect(screen.getByLabelText('Tên tài liệu').matches(':disabled')).toBe(true)
+  expect(screen.getByText(/Trợ lý AI chỉ dùng tài liệu sau khi công bố/)).toBeTruthy()
+  await waitFor(() => expect((screen.getByRole('button', { name: 'Chỉnh sửa' }) as HTMLButtonElement).disabled).toBe(false))
+})
+it('confirms cancellation and restores the unsaved document draft', async () => {
+  await ready()
+  fireEvent.change(screen.getByLabelText('Tên tài liệu'), { target: { value: 'Bản chưa lưu' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Hủy thay đổi' }))
+  expect(screen.getByRole('dialog').textContent).toContain('Hủy các thay đổi chưa lưu?')
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Hủy' }))
+  expect(screen.getByText('ĐANG CHỈNH SỬA')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Hủy thay đổi' }))
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Hủy thay đổi' }))
+  await waitFor(() => expect((screen.getByLabelText('Tên tài liệu') as HTMLInputElement).value).toBe(''))
+  expect(screen.getByText('Chế độ xem')).toBeTruthy()
+})
 function fillDraft() {
   fireEvent.change(screen.getByLabelText('Tên tài liệu'), { target: { value: 'Quy trình kiểm thử' } })
   fireEvent.change(screen.getByLabelText('Nội dung tài liệu'), { target: { value: 'Nội dung kiểm thử' } })
@@ -149,7 +170,7 @@ it('keeps a denied initial read closed and does not display a false empty state'
   api.get.mockRejectedValue(new HttpError('Department staff may manage only their own department.', 403))
   render(<AcademicKnowledgeManagementPage />)
   expect((await screen.findByRole('alert')).textContent).toContain('phạm vi bộ môn')
-  expect((screen.getByRole('button', { name: 'Lưu bản nháp' }) as HTMLButtonElement).disabled).toBe(true)
+  expect((screen.getByRole('button', { name: 'Chỉnh sửa' }) as HTMLButtonElement).disabled).toBe(true)
   expect(screen.queryByText('Chưa có tài liệu.')).toBeNull()
   expect(api.post).not.toHaveBeenCalled()
 })
@@ -163,6 +184,8 @@ it.each(['RETIRED', 'FUTURE_STATUS'])('does not offer publication/version mutati
 })
 it('sends the staff department and saves a draft without publishing automatically', async () => {
   render(<AcademicKnowledgeManagementPage />)
+  await waitFor(() => expect((screen.getByRole('button', { name: 'Chỉnh sửa' }) as HTMLButtonElement).disabled).toBe(false))
+  fireEvent.click(screen.getByRole('button', { name: 'Chỉnh sửa' }))
   await waitFor(() => expect((screen.getByRole('button', { name: 'Lưu bản nháp' }) as HTMLButtonElement).disabled).toBe(false))
   fireEvent.change(screen.getByLabelText('Tên tài liệu'), { target: { value: 'Quy trình IT' } })
   fireEvent.change(screen.getByLabelText('Nội dung tài liệu'), { target: { value: 'Nội dung đã kiểm tra' } })
