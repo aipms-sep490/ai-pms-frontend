@@ -13,6 +13,8 @@ import { SupervisorGateFollowupPanel } from '../components/SupervisorGateFollowu
 import { HttpError } from '../../../services/http/http-client'
 import { Button } from '../../../components/ui/Button'
 import { ReviewGatesMockNotice } from '../components/ReviewGatesMockNotice'
+import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
+import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
 
 function timelineError(error: unknown): string {
   if (error instanceof HttpError) {
@@ -143,6 +145,12 @@ export function StudentReviewTimelinePage() {
       }
       title="Tiến trình & Hồ sơ Thẩm định Đồ án"
       description="Theo dõi các đợt Review Gates (R1..R4), kiểm tra trạng thái minh chứng và nộp bản cập nhật theo phản hồi của hội đồng thẩm định."
+      identity={timeline ? <EntityIdentityStrip chips={[
+        { icon: 'folder_open', label: 'Đồ án', value: `${timeline.projectCode} · ${timeline.projectName}` },
+        { icon: 'account_tree', label: 'Ngành', value: timeline.major },
+        { icon: 'verified', label: 'Phiên bản chính sách', value: timeline.effectivePolicyVersion },
+        { icon: 'flag', label: 'Mốc hiện tại', value: timeline.currentGateCode || 'Chưa có mốc' },
+      ]} /> : undefined}
     >
       <ReviewGatesMockNotice />
       {feedbackRefreshWarning && <div role="alert" className="mb-4 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">
@@ -191,7 +199,7 @@ export function StudentReviewTimelinePage() {
             />
           )}
 
-          <StudentReviewTimeline
+          {timeline.gates.length === 0 ? <WorkspaceEmptyState title="Mốc đánh giá chưa được công bố" message="Đồ án này chưa có cổng thẩm định trong tiến trình do máy chủ trả về. Theo dõi lại sau khi khoa công bố cấu hình phù hợp." /> : <StudentReviewTimeline
             timeline={timeline}
             isLeader={isLeader}
             isAuthenticated={Boolean(auth?.session)}
@@ -205,7 +213,7 @@ export function StudentReviewTimelinePage() {
               const updated = await submitGateForReview({ projectId: timeline.projectId, gateCode, concurrencyToken: gate?.concurrencyToken })
               if (generation === routeGeneration.current) applyTimeline(updated)
             }}
-          />
+          />}
         </div>
       ) : null}
     </WorkspacePage>

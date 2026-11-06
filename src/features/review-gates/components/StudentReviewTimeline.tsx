@@ -305,6 +305,7 @@ export function StudentReviewTimeline({
                 <span className="text-xs font-bold text-ink-muted">{gate.code}</span>
                 {getStatusBadge(gate.status)}
               </div>
+              {gate.code === timeline.currentGateCode && <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-primary"><span aria-hidden="true">●</span><span>Mốc hiện tại</span></p>}
               <h3 className="mt-2 text-sm font-bold text-ink">{gate.title}</h3>
               <p className="mt-1 text-xs text-ink-muted line-clamp-1">{gate.objective}</p>
               <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-xs text-slate-400">
