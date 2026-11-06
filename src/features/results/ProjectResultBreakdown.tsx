@@ -42,7 +42,7 @@ export function ProjectResultBreakdown({ breakdown, contributions, majorNames = 
             <div><dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Điểm chung (COMMON)</dt><dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-ink">{formatScore(breakdown.commonScore)}</dd></div>
             <div><dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Tổng hợp theo ngành (MajorAggregate)</dt><dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-ink">{formatScore(breakdown.majorAggregate)}</dd></div>
           </dl>
-          {breakdown.components.length > 0 && <Table stack aria-label="Điểm thành phần do hệ thống cung cấp">
+          {breakdown.components.length > 0 && <><Table stack aria-label="Điểm thành phần do hệ thống cung cấp">
             <TableHead><TableRow head><TableHeaderCell>Thành phần</TableHeaderCell><TableHeaderCell numeric>Điểm</TableHeaderCell><TableHeaderCell>Trạng thái</TableHeaderCell></TableRow></TableHead>
             <TableBody>{breakdown.components.map(component => {
               const inactive = component.weightPercent === 0
@@ -53,7 +53,7 @@ export function ProjectResultBreakdown({ breakdown, contributions, majorNames = 
                 <TableCell label="Trạng thái"><StatusBadge tone={inactive || pending ? 'warning' : 'success'} label={inactive ? 'Không tính vào tổng này' : pending ? 'Chưa có điểm' : 'Đã chấm'} /></TableCell>
               </TableRow>
             })}</TableBody>
-          </Table>}
+          </Table><p className="text-sm text-ink-muted">{breakdown.components.length} thành phần</p></>}
           {breakdown.majorBreakdown.length > 0 && (
             <div>
               <p className="mb-1 text-xs text-ink-muted">Ngành chưa có điểm được đánh dấu "Chưa có điểm", không tính là 0.</p>

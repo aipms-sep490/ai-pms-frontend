@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../components/ui/Table'
 import { StatusBadge } from '../../components/ui/StatusBadge'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { formatPercent, formatScore } from '../../components/ui/format'
 import { useStudentJourney } from '../../app/context'
 import { getStudentResult } from '../../services/api/project-results.api'
@@ -45,8 +46,17 @@ function PublishedStudentResult({ project, studentId }: { project: ProjectDto; s
   const major = project.majors.find(item => item.majorId === result.majorId)?.majorName || `Ngành #${result.majorId}`
   const schemeLabel = result.breakdown?.schemeName ? `${result.breakdown.schemeName}${result.breakdown.schemeVersion ? ` · v${result.breakdown.schemeVersion}` : ''}` : `Quy định #${result.schemeId}`
   const components = result.breakdown?.components ?? []
-  return <><section className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs" aria-label="Kết quả cá nhân đã công bố">
-    <dl className="grid gap-5 p-5 sm:p-6 md:grid-cols-3"><ResultFact label="Kết luận" value={{ PASS: 'Đạt', PASSED: 'Đạt', FAIL: 'Không đạt', FAILED: 'Không đạt' }[result.outcome.toUpperCase()] ?? result.outcome} /><ResultFact label="Điểm cá nhân" value={String(result.totalScore)} prominent /><ResultFact label="Ngưỡng đạt" value={String(result.passThreshold)} prominent /></dl>
+  const gradedCount = result.breakdown ? components.filter(component => component.score !== null).length : null
+  const pendingCount = result.breakdown ? components.filter(component => component.score === null).length : null
+  const outcome = ({ PASS: 'Đạt', PASSED: 'Đạt', FAIL: 'Không đạt', FAILED: 'Không đạt' } as Record<string, string>)[result.outcome.toUpperCase()] ?? result.outcome
+  return <><StatTileRow tiles={[
+    { icon: 'score', label: 'Điểm cá nhân', value: result.totalScore, hero: true, caption: 'Kết quả chính thức đã công bố' },
+    { icon: 'rule', label: 'Ngưỡng đạt', value: result.passThreshold },
+    { icon: 'task_alt', label: 'Thành phần đã chấm', value: gradedCount, caption: result.breakdown ? undefined : 'Chưa có chi tiết từ hệ thống.' },
+    { icon: 'pending', label: 'Thành phần chờ điểm', value: pendingCount, caption: result.breakdown ? undefined : 'Chưa có chi tiết từ hệ thống.' },
+  ]} />
+  <section className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs" aria-label="Kết quả cá nhân đã công bố">
+    <dl className="p-5 sm:p-6"><ResultFact label="Kết luận" value={outcome} prominent /></dl>
     <dl className="grid gap-4 border-t border-hairline p-5 sm:grid-cols-3"><ResultFact label="Quy định đánh giá" value={schemeLabel} /><ResultFact label="Ngành" value={major} /><ResultFact label="Công bố lúc" value={new Date(result.publishedAt).toLocaleString('vi-VN')} /></dl>
     {result.version > 1 && <p className="border-t border-hairline bg-status-warning-bg p-3 text-sm text-status-warning-text">Đây là kết quả đã đính chính — phiên bản {result.version}{result.supersedesVersion != null ? `, thay thế phiên bản ${result.supersedesVersion}` : ''}.</p>}
     {result.breakdown && (result.breakdown.isDemo || result.breakdown.approvalStatus !== 'APPROVED') && <p className="border-t border-hairline bg-status-warning-bg p-3 text-sm text-status-warning-text">{result.breakdown.isLegacy ? 'Quy định đánh giá cũ, chỉ để tra cứu.' : 'Phương án đánh giá còn ở dạng demo / chưa được duyệt chính thức.'}</p>}
@@ -65,13 +75,14 @@ function PublishedStudentResult({ project, studentId }: { project: ProjectDto; s
         <TableBody>{components.map((component, index) => {
           const pending = component.score === null
           return <TableRow key={`${component.componentId}-${index}`}>
-            <TableCell label="Thành phần" className="font-medium text-ink">{scopeLabel(component.scope)}{component.majorId != null && ` · ${project.majors.find(major => major.majorId === component.majorId)?.majorName || `Ngành #${component.majorId}`}`}</TableCell>
+            <TableCell label="Thành phần" className="font-medium text-ink"><span className="block">{component.name}</span><span className="block text-xs font-normal text-ink-muted">{scopeLabel(component.scope)}{component.majorId != null && ` · ${project.majors.find(major => major.majorId === component.majorId)?.majorName || `Ngành #${component.majorId}`}`}</span></TableCell>
             <TableCell label="Trọng số" numeric>{formatPercent(component.weightPercent)}</TableCell>
             <TableCell label="Điểm" numeric className="font-semibold">{formatScore(component.score)}</TableCell>
             <TableCell label="Trạng thái"><StatusBadge tone={pending ? 'warning' : 'success'} label={pending ? `Chưa có điểm (${component.finalizedEvaluators}/${component.requiredEvaluators} người chấm)` : 'Đã chấm'} /></TableCell>
           </TableRow>
         })}</TableBody>
       </Table>
+      <p className="mt-3 text-sm text-ink-muted">{components.length} thành phần</p>
     </div>}
     <p className="border-t border-hairline bg-canvas p-5 text-sm leading-6 text-ink-muted">Điểm và kết luận lấy từ kết quả cá nhân đã công bố. {components.length === 0 && 'Chi tiết thành phần chỉ hiển thị khi hệ thống cung cấp dữ liệu được phép xem.'}</p>
   </section>
