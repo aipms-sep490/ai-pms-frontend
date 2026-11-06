@@ -56,7 +56,7 @@ function ActionVerdictPanel({ actions, actionCode, status, okLabel = 'Điều ki
 type DecisionAction = { label: string; onClick: () => void; disabled?: boolean }
 type DecisionNote = { value: string; onChange: (value: string) => void; label?: string; disabled?: boolean }
 
-function Decision({ primary, secondary, note }: { primary: DecisionAction; secondary: Omit<DecisionAction, 'disabled'>; note?: DecisionNote }) {
+function Decision({ primary, secondary, note }: { primary: DecisionAction; secondary?: DecisionAction; note?: DecisionNote }) {
   const verdict = useContext(VerdictContext)
   if (!verdict) throw new Error('ActionVerdict.Decision must be inside ActionVerdict')
 
@@ -74,9 +74,9 @@ function Decision({ primary, secondary, note }: { primary: DecisionAction; secon
         </label>
       )}
       <div className="flex flex-wrap justify-end gap-2">
-        <button type="button" className="min-h-10 rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={secondary.onClick}>
+        {secondary && <button type="button" className="min-h-10 rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={secondary.onClick} disabled={secondary.disabled}>
           {secondary.label}
-        </button>
+        </button>}
         <button type="button" className="min-h-10 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={primary.onClick} disabled={verdict.state !== 'allowed' || primary.disabled} aria-describedby={verdict.state === 'allowed' ? undefined : verdict.explanationId}>
           {primary.label}
         </button>

@@ -1,9 +1,10 @@
+import type { ReactNode } from 'react'
 import { badgeToneClass, type BadgeTone } from './status-badge-tone'
 
 export type HistoryTimelineItem = {
   at: string | Date
   actor: string
-  action: string
+  action: ReactNode
   note?: string | null
   tone?: BadgeTone
 }
@@ -19,7 +20,7 @@ export function HistoryTimeline({ items, emptyLabel = 'Chưa có lịch sử x�
         const date = new Date(item.at)
         const dateTime = item.at instanceof Date ? item.at.toISOString() : item.at
         return (
-          <li key={`${dateTime}-${item.action}-${index}`} className="relative pb-5 last:pb-0">
+          <li key={`${dateTime}-${index}`} className="relative pb-5 last:pb-0">
             <span aria-hidden="true" className={`absolute -left-[1.7rem] top-1.5 h-3 w-3 rounded-full border ${badgeToneClass[item.tone ?? 'neutral']}`} />
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">
               <strong className="text-ink">{item.action}</strong>
