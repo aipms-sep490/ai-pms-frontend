@@ -25,7 +25,7 @@
 | **BE-16-04** | Sinh viên / GV rút yêu cầu đính chính kết quả (`Withdraw Correction`) | **P2** | `GAP_CONFIRMED` | Nút "Thu hồi yêu cầu" trên bảng đơn đính chính |
 | **BE-16-05** | Tải file nén ZIP toàn bộ minh chứng của Cổng (`Download Gate ZIP`) | **P3** | `GAP_CONFIRMED` | Nút "Tải toàn bộ tài liệu cổng" cho giảng viên phản biện |
 | **BE-16-06** | Thống kê số lượng task theo cột Kanban (`Task Board Summary`) | **P3** | `GAP_CONFIRMED` | Hiển thị tổng số task thật theo từng trạng thái trên board |
-| **BE-16-07** | Quy chế tổ chức bảo vệ Review 3–4 Offline | **Chờ chính sách** | `POLICY_PENDING` | Chờ văn bản chốt quy tắc điểm danh và thành phần hội đồng |
+| **BE-16-07** | Cấu hình Gate Online (LiveKit) vs Offline (Phòng trường) & Script | **P2** | `SPEC_CONFIRMED` | Chọn Online/Offline từng Gate, lưu log LiveKit & Biên bản Script |
 | **BE-16-08** | Tự động chia phòng & ca bảo vệ trong giờ hành chính (`Auto-Schedule Defense`) | **P2** | `SPEC_PROPOSED` | Thuật toán xếp lịch tự động, preview phân bổ & báo cáo xung đột |
 | **BE-16-09** | Quản lý yêu cầu đổi phòng / đổi lịch bảo vệ (`Schedule Change Requests`) | **P2** | `SPEC_PROPOSED` | Quy trình tạo đơn, kiểm tra phòng trống, thu hồi và duyệt đổi phòng |
 
@@ -161,16 +161,49 @@
 
 ---
 
-### 7. Hạng mục Chờ Chính sách Học thuật: Review 3–4 Offline (`BE-16-07`)
+### 7. BE-16-07: Cấu hình Gate Online (LiveKit) vs Offline (Phòng trường) & Lưu trữ Script phiên thẩm định
 
-* **Trạng thái:** `POLICY_PENDING` (Chưa triển khai code cho tới khi có văn bản quy chế chính thức).
-* **Các câu hỏi nghiệp vụ cần Ban Đào tạo / Trưởng khoa chốt trước khi BE thiết kế:**
-  1. Bốn đợt Review có áp dụng bắt buộc cho tất cả các kỳ học và tất cả hình thức đề tài không?
-  2. Review 1 và Review 2 tổ chức Online hay Offline?
-  3. Cơ cấu hội đồng: Cần tối thiểu bao nhiêu thành viên (Quorum)? Có bắt buộc Chủ tịch và Thư ký hội đồng không?
-  4. Thời lượng tối đa cho mỗi phiên Review là bao nhiêu phút?
-  5. Danh sách hội đồng được công bố công khai cho sinh viên trước bao nhiêu ngày?
-  6. Cơ chế điểm danh và xác nhận mặt sinh viên tại phòng xử lý ra sao?
+* **Trạng thái:** `SPEC_CONFIRMED` (Nghiệp vụ đã được chốt chính thức).
+* **Bối cảnh nghiệp vụ:** Mỗi đợt Review Gate (R1 đến R4) có thể lựa chọn hình thức tổ chức linh hoạt:
+  - **ONLINE (Trực tuyến):** Tổ chức trên nền tảng LiveKit tích hợp của hệ thống AI-PMS. Hệ thống tự động ghi nhận thời gian bắt đầu, thời gian kết thúc, thời lượng phiên làm việc và lịch sử có mặt (Presence Log) của từng người tham gia.
+  - **OFFLINE (Trực tiếp):** Tự động phân chia phòng họp tại trường (dùng thuật toán `BE-16-08` và bảng `Rooms` trong giờ hành chính). Thư ký điểm danh trực tiếp tại phòng.
+  - **Script (Kịch bản & Biên bản phiên làm việc):** Cả hai hình thức đều lưu trữ một tài liệu điện tử chuẩn hóa gồm 5 phần: Tiến trình kịch bản (Agenda Stages), Điểm danh, Sổ ghi chép vấn đáp (Q&A Log), Danh mục yêu cầu chỉnh sửa bắt buộc (Remediation Items - hạn 5 ngày làm việc), và Phán quyết kèm chữ ký điện tử của Thư ký và Chủ tịch hội đồng.
+* **Đặc tả Database:**
+  Tạo bảng `GateSessionScripts`:
+  ```sql
+  CREATE TABLE GateSessionScripts (
+      Id BIGINT IDENTITY(1,1) PRIMARY KEY,
+      ProjectGateInstanceId BIGINT NOT NULL UNIQUE,
+      Mode NVARCHAR(20) NOT NULL, -- 'ONLINE' | 'OFFLINE'
+      RoomId BIGINT NULL,         -- FK sang Rooms (khi OFFLINE)
+      LiveKitRoomName NVARCHAR(100) NULL, -- Mã phòng LiveKit (khi ONLINE)
+      ScheduledStartAt DATETIMEOFFSET NOT NULL,
+      ScheduledEndAt DATETIMEOFFSET NOT NULL,
+      ActualStartAt DATETIMEOFFSET NULL,
+      ActualEndAt DATETIMEOFFSET NULL,
+      TotalDurationMinutes INT NULL,
+      PresencesJson NVARCHAR(MAX) NOT NULL,       -- JSON: [{userId, name, role, isPresent, joinedAt, leftAt, durationMinutes}]
+      AgendaStagesJson NVARCHAR(MAX) NOT NULL,    -- JSON: [{stage, durationMinutes, status}]
+      QaLogJson NVARCHAR(MAX) NOT NULL,           -- JSON: [{id, askerName, askerRole, question, answeredBy, evaluation}]
+      RemediationItemsJson NVARCHAR(MAX) NOT NULL,-- JSON: [{id, title, assignee, dueDate, required}]
+      GeneralNotes NVARCHAR(MAX) NULL,
+      Verdict NVARCHAR(30) NOT NULL DEFAULT 'PENDING', -- 'PASSED' | 'REVISION_REQUIRED' | 'FAILED' | 'PENDING'
+      SignedBySecretary NVARCHAR(100) NULL,
+      SignedByChair NVARCHAR(100) NULL,
+      ConcurrencyToken NVARCHAR(64) NOT NULL,
+      CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+      UpdatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+      CONSTRAINT FK_GateScript_GateInstance FOREIGN KEY (ProjectGateInstanceId) REFERENCES ProjectGateInstances(Id),
+      CONSTRAINT FK_GateScript_Room FOREIGN KEY (RoomId) REFERENCES Rooms(Id)
+  );
+  ```
+* **API Endpoints:**
+  - `GET /api/v1/review-gates/{id}/session-script`  
+    *Lấy toàn bộ dữ liệu kịch bản, biên bản, presence và kết quả của Cổng.*
+  - `PUT /api/v1/review-gates/{id}/session-script`  
+    *Cập nhật kịch bản, lưu câu hỏi Q&A, đầu việc sửa đổi và phán quyết (yêu cầu `concurrencyToken`).*
+  - `POST /api/v1/review-gates/{id}/livekit-presence/sync`  
+    *Đồng bộ tự động thời gian có mặt và thời lượng tham gia từ webhook/server LiveKit vào trường `PresencesJson`.*
 
 
 ---
