@@ -271,49 +271,47 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
 
       {/* 3. Timetable Grid Matrix */}
       <div className="overflow-x-auto rounded-2xl border border-hairline bg-surface shadow-xs">
-        <table className="w-full min-w-[900px] border-collapse text-left text-xs">
+        <div role="table" aria-label="Ma trận lịch bảo vệ theo phòng và ca" className="w-full min-w-[900px] text-left text-xs">
           {/* Table Header: Slots */}
-          <thead>
-            <tr className="border-b border-hairline bg-canvas/80 text-ink-muted">
-              <th className="w-48 p-3.5 font-bold uppercase tracking-wider text-[11px] text-ink">
+          <div role="rowgroup" className="border-b border-hairline bg-canvas/80 text-ink-muted">
+            <div role="row" className="flex">
+              <div role="columnheader" className="w-48 p-3.5 font-bold uppercase tracking-wider text-xs text-ink shrink-0">
                 Phòng bảo vệ
-              </th>
+              </div>
               {visibleSlots.map((slot) => (
-                <th key={slot.slotNumber} className="p-3.5 font-bold text-center border-l border-hairline min-w-[160px]">
+                <div role="columnheader" key={slot.slotNumber} className="flex-1 p-3.5 font-bold text-center border-l border-hairline min-w-[160px]">
                   <div className="text-ink font-semibold text-xs">SLOT {slot.slotNumber}</div>
-                  <div className="text-[10px] text-ink-muted font-normal mt-0.5">{slot.timeRange}</div>
-                </th>
+                  <div className="text-xs text-ink-muted font-normal mt-0.5">{slot.timeRange}</div>
+                </div>
               ))}
-            </tr>
-          </thead>
+            </div>
+          </div>
 
           {/* Table Body: Rooms & Assigned Sessions */}
-          <tbody className="divide-y divide-hairline">
+          <div role="rowgroup" className="divide-y divide-hairline">
             {filteredRooms.length === 0 ? (
-              <tr>
-                <td colSpan={visibleSlots.length + 1} className="p-8 text-center text-ink-muted">
-                  Không tìm thấy phòng bảo vệ nào phù hợp với bộ lọc.
-                </td>
-              </tr>
+              <div role="row" className="p-8 text-center text-ink-muted">
+                Không tìm thấy phòng bảo vệ nào phù hợp với bộ lọc.
+              </div>
             ) : (
               filteredRooms.map((room) => {
                 return (
-                  <tr key={room.id} className="hover:bg-canvas/30 transition-colors">
+                  <div role="row" key={room.id} className="flex hover:bg-canvas/30 transition-colors">
                     {/* Room Specs Column */}
-                    <td className="p-3.5 align-top">
+                    <div role="cell" className="w-48 p-3.5 align-top shrink-0">
                       <div className="font-bold text-ink text-sm flex items-center gap-1.5">
                         <span>{room.code}</span>
                         {room.status === 'MAINTENANCE' && (
-                          <span className="rounded bg-amber-100 text-amber-800 text-[9px] px-1.5 py-0.2">Bảo trì</span>
+                          <span className="rounded bg-amber-100 text-amber-800 text-xs px-1.5 py-0.2">Bảo trì</span>
                         )}
                       </div>
-                      <div className="text-[11px] text-ink-muted mt-0.5">
+                      <div className="text-xs text-ink-muted mt-0.5">
                         {room.building} · Tầng {room.floor}
                       </div>
-                      <div className="text-[10px] text-teal-700 font-medium mt-1">
+                      <div className="text-xs text-teal-700 font-medium mt-1">
                         Sức chứa: {room.capacity} chỗ
                       </div>
-                    </td>
+                    </div>
 
                     {/* Slot Cells */}
                     {visibleSlots.map((slot) => {
@@ -323,7 +321,7 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
                       )
 
                       return (
-                        <td key={slot.slotNumber} className="p-2 border-l border-hairline align-top h-24">
+                        <div role="cell" key={slot.slotNumber} className="flex-1 p-2 border-l border-hairline align-top min-h-24 min-w-[160px]">
                           {session ? (
                             /* Occupied Slot Card (FAMS style with Teal / Emerald tone) */
                             <div
@@ -341,17 +339,17 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
                                   {session.projectCode || `Đồ án #${session.projectId}`}
                                 </span>
                                 {session.hasChangeRequest && (
-                                  <span className="text-[10px] text-amber-600 font-bold" title="Đang có yêu cầu đổi phòng">
+                                  <span className="text-xs text-amber-600 font-bold" title="Đang có yêu cầu đổi phòng">
                                     ⚠️
                                   </span>
                                 )}
                               </div>
-                              <p className="mt-1 text-[11px] font-medium text-ink line-clamp-2 leading-tight">
+                              <p className="mt-1 text-xs font-medium text-ink line-clamp-2 leading-tight">
                                 {session.projectTitle || 'Bảo vệ Đồ án Tốt nghiệp'}
                               </p>
-                              <div className="mt-2 flex items-center justify-between text-[10px] text-ink-muted">
+                              <div className="mt-2 flex items-center justify-between text-xs text-ink-muted">
                                 <span className="truncate max-w-[90px]">{session.committeeName || 'HĐ Thẩm định'}</span>
-                                <span className="rounded bg-surface px-1.5 py-0.2 font-semibold border border-hairline text-[9px]">
+                                <span className="rounded bg-surface px-1.5 py-0.2 font-semibold border border-hairline text-xs">
                                   {session.status === 'SCHEDULED' ? 'Đã xếp' : session.status}
                                 </span>
                               </div>
@@ -362,20 +360,20 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
                               onClick={() => onEmptySlotClick?.(room.id, slot.slotNumber)}
                               className="group h-full min-h-[70px] rounded-xl border border-dashed border-hairline flex flex-col items-center justify-center p-2 text-center hover:border-primary/50 hover:bg-primary-subtle/10 cursor-pointer transition-colors"
                             >
-                              <span className="text-[11px] text-ink-muted group-hover:text-primary transition-colors font-medium">
+                              <span className="text-xs text-ink-muted group-hover:text-primary transition-colors font-medium">
                                 + Xếp lịch
                               </span>
                             </div>
                           )}
-                        </td>
+                        </div>
                       )
                     })}
-                  </tr>
+                  </div>
                 )
               })
             )}
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
     </div>
   )

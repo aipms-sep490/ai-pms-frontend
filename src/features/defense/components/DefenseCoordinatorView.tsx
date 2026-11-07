@@ -274,12 +274,12 @@ export const DefenseCoordinatorView: React.FC = () => {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-ink text-sm">PRJ-2026-031</span>
-                  <span className="rounded bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5">
+                  <span className="rounded bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5">
                     CHỜ DUYỆT (PENDING)
                   </span>
                 </div>
                 <p className="text-ink-soft">Hệ thống Xe tự hành nhận diện biển báo giao thông Việt Nam</p>
-                <div className="flex flex-wrap gap-4 text-[11px] text-ink-muted pt-1">
+                <div className="flex flex-wrap gap-4 text-xs text-ink-muted pt-1">
                   <span>Phòng cũ: <strong>A-202 (Slot 2, 20/11)</strong></span>
                   <span>➜ Mong muốn đổi sang: <strong className="text-primary">A-305 (Slot 4, 21/11)</strong></span>
                   <span>Lý do: <em>Cần không gian lớn hơn để demo mô hình xe chạy thực tế</em></span>

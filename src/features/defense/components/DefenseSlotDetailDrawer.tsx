@@ -60,7 +60,7 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
                 <h3 className="text-base font-bold text-ink">
                   {session.projectCode || `Đồ án #${session.projectId}`}
                 </h3>
-                <span className="rounded-full bg-primary-subtle text-primary border border-primary/20 px-2 py-0.5 text-[10px] font-bold">
+                <span className="rounded-full bg-primary-subtle text-primary border border-primary/20 px-2 py-0.5 text-xs font-bold">
                   {session.status === 'SCHEDULED' ? 'Đã lên lịch' : session.status}
                 </span>
               </div>
@@ -122,7 +122,7 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
             <div className="space-y-6">
               {/* Project Title Card */}
               <div className="rounded-xl border border-hairline bg-canvas/50 p-4">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Tên đề tài đồ án</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">Tên đề tài đồ án</span>
                 <h4 className="text-sm font-bold text-ink mt-1">
                   {session.projectTitle || 'Hệ thống Quản lý Tiến độ Đồ án Tốt nghiệp Thông minh'}
                 </h4>
@@ -142,7 +142,7 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
                   <h5 className="text-xs font-bold uppercase tracking-wider text-ink">
                     Hội đồng Thẩm định & Đánh giá ({committeeMock.length} thành viên)
                   </h5>
-                  <span className="text-[11px] text-teal-700 font-medium">HĐ #{session.committeeId}</span>
+                  <span className="text-xs text-teal-700 font-medium">HĐ #{session.committeeId}</span>
                 </div>
                 <div className="divide-y divide-hairline rounded-xl border border-hairline bg-surface overflow-hidden">
                   {committeeMock.map((m) => (
@@ -153,10 +153,10 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
                         </div>
                         <div>
                           <div className="font-bold text-ink">{m.name}</div>
-                          <div className="text-[11px] text-ink-muted">{m.title}</div>
+                          <div className="text-xs text-ink-muted">{m.title}</div>
                         </div>
                       </div>
-                      <span className="rounded bg-canvas px-2 py-0.5 text-[10px] font-semibold text-ink-soft">
+                      <span className="rounded bg-canvas px-2 py-0.5 text-xs font-semibold text-ink-soft">
                         {m.major}
                       </span>
                     </div>
@@ -178,10 +178,10 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
                         </div>
                         <div>
                           <div className="font-bold text-ink">{s.name}</div>
-                          <div className="text-[11px] text-ink-muted">{s.role === 'STUDENT_LEADER' ? 'Trưởng nhóm' : 'Thành viên'}</div>
+                          <div className="text-xs text-ink-muted">{s.role === 'STUDENT_LEADER' ? 'Trưởng nhóm' : 'Thành viên'}</div>
                         </div>
                       </div>
-                      <span className="text-ink-muted font-mono text-[11px]">MSSV: SE150{s.id}</span>
+                      <span className="text-ink-muted font-mono text-xs">MSSV: SE150{s.id}</span>
                     </div>
                   ))}
                 </div>
@@ -190,11 +190,11 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
               {/* Supervisor Observing */}
               <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/40 p-3.5 flex items-center justify-between text-xs">
                 <div>
-                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Giảng viên hướng dẫn</span>
+                  <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">Giảng viên hướng dẫn</span>
                   <p className="font-bold text-ink">{supervisorMock.name}</p>
-                  <p className="text-[11px] text-ink-muted">{supervisorMock.title} · (Dự thính, không tham gia chấm điểm)</p>
+                  <p className="text-xs text-ink-muted">{supervisorMock.title} · (Dự thính, không tham gia chấm điểm)</p>
                 </div>
-                <span className="rounded-full bg-amber-100 text-amber-800 px-2.5 py-1 text-[10px] font-semibold">
+                <span className="rounded-full bg-amber-100 text-amber-800 px-2.5 py-1 text-xs font-semibold">
                   Tham dự
                 </span>
               </div>
@@ -228,7 +228,7 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
                 {session.hasChangeRequest ? (
                   <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 space-y-1">
                     <p className="font-bold">⚠️ Có yêu cầu đổi phòng đang chờ Trưởng bộ môn phê duyệt</p>
-                    <p className="text-[11px] text-amber-700">Lý do: Phòng A-201 gặp sự cố máy chiếu, nhóm cần đổi sang phòng A-204.</p>
+                    <p className="text-xs text-amber-700">Lý do: Phòng A-201 gặp sự cố máy chiếu, nhóm cần đổi sang phòng A-204.</p>
                   </div>
                 ) : (
                   <p className="mt-2 text-xs text-ink-muted">

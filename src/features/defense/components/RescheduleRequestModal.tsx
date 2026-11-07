@@ -70,7 +70,7 @@ export const RescheduleRequestModal: React.FC<RescheduleRequestModalProps> = ({
         {/* Notice Banner (FAMS style) */}
         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-xs text-amber-900 flex items-start gap-2.5">
           <span className="text-base">ℹ️</span>
-          <p className="text-[11px] leading-relaxed">
+          <p className="text-xs leading-relaxed">
             Vui lòng kiểm tra kỹ thông tin trước khi gửi. Yêu cầu của bạn sẽ được xem xét và xử lý trong vòng <strong>24h làm việc</strong>.
           </p>
         </div>
@@ -78,7 +78,7 @@ export const RescheduleRequestModal: React.FC<RescheduleRequestModalProps> = ({
         <form onSubmit={handleSubmit} className="mt-4 space-y-4 text-xs">
           {/* 1. Current Schedule Info */}
           <div className="rounded-xl border border-hairline bg-canvas/50 p-3.5 space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">Lịch bảo vệ hiện tại</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-ink-muted">Lịch bảo vệ hiện tại</span>
             <div className="font-bold text-ink text-sm">
               {session.projectCode || `Đồ án #${session.projectId}`} — {session.projectTitle || 'Bảo vệ ĐATN'}
             </div>
@@ -119,11 +119,11 @@ export const RescheduleRequestModal: React.FC<RescheduleRequestModalProps> = ({
 
           {/* Conflict Checker Banner */}
           {isSlotConflicted ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-800 text-[11px]">
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-800 text-xs">
               <strong>❌ Xung đột lịch:</strong> Giảng viên phản biện của nhóm đã có lịch chấm hội đồng khác trong khung giờ này. Vui lòng chọn ca khác.
             </div>
           ) : (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2.5 text-emerald-800 text-[11px] flex items-center gap-2">
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2.5 text-emerald-800 text-xs flex items-center gap-2">
               <span>✓ Khung giờ hợp lệ: Hội đồng và nhóm sinh viên đều rảnh trong ca này.</span>
             </div>
           )}

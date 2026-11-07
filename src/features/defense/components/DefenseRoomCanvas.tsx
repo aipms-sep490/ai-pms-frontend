@@ -72,7 +72,7 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h4 className="text-sm font-bold text-ink">Phòng {roomCode} — Sơ đồ bảo vệ trực quan</h4>
-              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
                 status === 'ONGOING'
                   ? 'bg-emerald-100 text-emerald-800 animate-pulse'
                   : status === 'SCHEDULED'
@@ -130,7 +130,7 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
             {/* Top Area: Stage / Projector / Whiteboards / Presentation */}
             <div className="relative border-b-2 border-dashed border-slate-200 pb-8 mb-8">
               <div className="text-center mb-4">
-                <span className="inline-block rounded-md bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-600 tracking-wider uppercase">
+                <span className="inline-block rounded-md bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 tracking-wider uppercase">
                   Khu vực Thuyết trình & Trình chiếu Demo
                 </span>
               </div>
@@ -145,10 +145,10 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
                 <div className="col-span-6 h-28 rounded-xl bg-slate-900 border-4 border-slate-800 shadow-md flex flex-col items-center justify-center p-3 text-center text-white relative overflow-hidden group">
                   <div className="absolute top-2 left-3 flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-red-500 animate-ping" />
-                    <span className="text-[10px] text-slate-400 font-mono">PROJECTOR ON</span>
+                    <span className="text-xs text-slate-400 font-mono">PROJECTOR ON</span>
                   </div>
                   <p className="text-xs font-bold text-teal-300 line-clamp-1">{projectCode ? `[${projectCode}]` : ''} {sessionTitle}</p>
-                  <p className="text-[11px] text-slate-300 mt-1">Trình chiếu Slide & Demo trực tiếp</p>
+                  <p className="text-xs text-slate-300 mt-1">Trình chiếu Slide & Demo trực tiếp</p>
                 </div>
 
                 {/* Right Presentation Podium & Student Presenters */}
@@ -173,7 +173,7 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
                       </button>
                     ))}
                   </div>
-                  <span className="text-[10px] text-slate-500 mt-1 font-medium">Nhóm sinh viên ({students.length})</span>
+                  <span className="text-xs text-slate-500 mt-1 font-medium">Nhóm sinh viên ({students.length})</span>
                 </div>
               </div>
             </div>
@@ -181,7 +181,7 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
             {/* Middle Area: Committee Desk (Hội đồng chấm điểm) */}
             <div className="mb-8">
               <div className="text-center mb-3">
-                <span className="inline-block rounded-md bg-teal-50 border border-teal-200 px-3 py-1 text-[11px] font-bold text-teal-800 tracking-wider uppercase">
+                <span className="inline-block rounded-md bg-teal-50 border border-teal-200 px-3 py-1 text-xs font-bold text-teal-800 tracking-wider uppercase">
                   Bàn Hội đồng Thẩm định & Đánh giá
                 </span>
               </div>
@@ -206,8 +206,8 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
                         <span className="mt-2 text-xs font-bold text-slate-800 line-clamp-1 max-w-[120px] text-center">
                           {member.name}
                         </span>
-                        <span className="text-[10px] text-slate-500 line-clamp-1">{badge.label}</span>
-                        {member.major && <span className="text-[9px] text-teal-700 font-medium">[{member.major}]</span>}
+                        <span className="text-xs text-slate-500 line-clamp-1">{badge.label}</span>
+                        {member.major && <span className="text-xs text-teal-700 font-medium">[{member.major}]</span>}
                       </div>
                     )
                   })}
@@ -226,8 +226,8 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
                       <span className="mt-2 text-xs font-bold text-slate-800 line-clamp-1 max-w-[120px] text-center">
                         {supervisor.name}
                       </span>
-                      <span className="text-[10px] text-amber-700 font-medium">GV Hướng dẫn</span>
-                      <span className="text-[9px] text-slate-400">(Dự thính)</span>
+                      <span className="text-xs text-amber-700 font-medium">GV Hướng dẫn</span>
+                      <span className="text-xs text-slate-400">(Dự thính)</span>
                     </div>
                   )}
                 </div>
@@ -237,10 +237,10 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
             {/* Bottom Area: Audience / Guest Seating Rows */}
             <div>
               <div className="flex items-center justify-between mb-3 px-2">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Khu vực Khán giả & Sinh viên dự thính ({capacity - committee.length - students.length - (supervisor ? 1 : 0)} ghế trống)
                 </span>
-                <span className="text-[11px] text-slate-400">Dãy ghế A – D</span>
+                <span className="text-xs text-slate-400">Dãy ghế A – D</span>
               </div>
 
               {/* Grid of Seats */}
@@ -249,7 +249,7 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
                   <div
                     key={i}
                     title={`Ghế #${i + 1}`}
-                    className="h-8 rounded-md bg-white border border-slate-200 flex items-center justify-center text-[10px] font-medium text-slate-400 hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                    className="h-8 rounded-md bg-white border border-slate-200 flex items-center justify-center text-xs font-medium text-slate-400 hover:border-primary hover:text-primary transition-colors cursor-pointer"
                   >
                     G{i + 1}
                   </div>
@@ -268,7 +268,7 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
                 <div>
                   <div className="flex items-center gap-2">
                     <h5 className="text-sm font-bold text-ink">{selectedPerson.name}</h5>
-                    <span className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-bold text-ink-muted border border-hairline">
+                    <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-bold text-ink-muted border border-hairline">
                       {roleBadgeColor[selectedPerson.role]?.label || 'Thành viên'}
                     </span>
                   </div>
@@ -296,7 +296,7 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
               {committee.map((member) => (
                 <div key={member.id} className="flex items-center justify-between p-3 text-xs">
                   <div className="flex items-center gap-3">
-                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${roleBadgeColor[member.role]?.bg || 'bg-slate-700 text-white'}`}>
+                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${roleBadgeColor[member.role]?.bg || 'bg-slate-700 text-white'}`}>
                       {roleBadgeColor[member.role]?.label}
                     </span>
                     <span className="font-bold text-ink">{member.name}</span>
@@ -314,7 +314,7 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
               {students.map((student) => (
                 <div key={student.id} className="flex items-center justify-between p-3 text-xs">
                   <div className="flex items-center gap-3">
-                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${roleBadgeColor[student.role]?.bg || 'bg-slate-700 text-white'}`}>
+                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${roleBadgeColor[student.role]?.bg || 'bg-slate-700 text-white'}`}>
                       {roleBadgeColor[student.role]?.label}
                     </span>
                     <span className="font-bold text-ink">{student.name}</span>

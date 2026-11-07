@@ -98,7 +98,7 @@ export const AutoScheduleModal: React.FC<AutoScheduleModalProps> = ({
             {/* Office Hours Note */}
             <div className="rounded-xl border border-primary/20 bg-primary-subtle/30 p-3 text-xs text-primary leading-relaxed">
               <span className="font-bold">⏰ Ràng buộc giờ hành chính:</span>
-              <ul className="list-disc pl-4 mt-1 space-y-0.5 text-[11px] text-ink-soft">
+              <ul className="list-disc pl-4 mt-1 space-y-0.5 text-xs text-ink-soft">
                 <li>Ca Sáng: Slot 1 (08:00–09:15), Slot 2 (09:30–10:45), Slot 3 (11:00–12:15)</li>
                 <li>Ca Chiều: Slot 4 (13:30–14:45), Slot 5 (15:00–16:15), Slot 6 (16:30–17:45)</li>
                 <li>Tự động bỏ qua các ngày nghỉ lễ đã cấu hình theo <code>ProjectPeriodCalendar</code></li>
@@ -120,7 +120,7 @@ export const AutoScheduleModal: React.FC<AutoScheduleModalProps> = ({
                       className="rounded border-hairline text-primary focus:ring-primary"
                     />
                     <span className="font-bold text-ink">{r.code}</span>
-                    <span className="text-[10px] text-ink-muted">({r.capacity}chỗ)</span>
+                    <span className="text-xs text-ink-muted">({r.capacity}chỗ)</span>
                   </label>
                 ))}
               </div>
@@ -166,7 +166,7 @@ export const AutoScheduleModal: React.FC<AutoScheduleModalProps> = ({
               <span className="text-xl">✅</span>
               <div>
                 <h4 className="font-bold text-sm">Xếp lịch hoàn tất: 45/48 đồ án được phân bổ</h4>
-                <p className="text-[11px] text-emerald-700 mt-0.5">
+                <p className="text-xs text-emerald-700 mt-0.5">
                   Tất cả các ca đều nằm gọn trong khung giờ hành chính và không có giảng viên nào bị trùng lịch.
                 </p>
               </div>
@@ -177,7 +177,7 @@ export const AutoScheduleModal: React.FC<AutoScheduleModalProps> = ({
               <span className="text-base">⚠️</span>
               <div>
                 <p className="font-bold">Có 3 đồ án chưa xếp được ca phù hợp:</p>
-                <ul className="list-disc pl-4 mt-1 text-[11px] text-amber-800 space-y-0.5">
+                <ul className="list-disc pl-4 mt-1 text-xs text-amber-800 space-y-0.5">
                   <li><strong>PRJ-033:</strong> Thiếu giảng viên chuyên môn Trí tuệ nhân tạo (AI) vào chiều 21/11.</li>
                   <li><strong>PRJ-041 & PRJ-042:</strong> Vượt quá số phòng trống ngày 22/11 (Cần mở thêm 1 phòng).</li>
                 </ul>
