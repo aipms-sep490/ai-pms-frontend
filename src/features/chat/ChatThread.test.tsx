@@ -154,4 +154,20 @@ describe('chat business and failure boundaries', () => {
     expect(screen.queryByText(message.body)).toBeNull()
     expect(mocks.read).not.toHaveBeenCalled()
   })
+  it('renders advisory notice inside the AI summary panel', async () => {
+    mocks.aiSummary = vi.fn().mockResolvedValue({
+      summary: 'Tóm tắt nội dung họp',
+      decisions: ['Chốt thời hạn'],
+      openQuestions: [],
+      actionItems: [],
+      generationStatus: 'COMPLETED',
+      generatedAt: new Date().toISOString(),
+    })
+    mount()
+    await screen.findByText(message.body)
+    const askButton = screen.getByRole('button', { name: /Hỏi AI/ })
+    fireEvent.click(askButton)
+    await screen.findByText('Tóm tắt AI')
+    expect(screen.getByRole('note').textContent).toContain('Phản hồi chỉ có giá trị tham khảo/tư vấn')
+  })
 })
