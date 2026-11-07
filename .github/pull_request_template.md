@@ -2,7 +2,7 @@
 <!-- Tóm tắt ngắn gọn các thay đổi và mục tiêu nghiệp vụ của PR -->
 
 ## Checklist chuẩn hoá UI/UX (Rule 08 §16)
-- [ ] **Màu sắc & Token:** Không thêm họ accent thứ 2, giữ chuẩn teal `#087D77`, không hardcode mã màu ngoài `@theme`.
+- [ ] **Màu sắc & Token:** Tuân thủ hệ màu chuẩn FAMS Orange (`--color-primary: #C2410C`, `--color-primary-subtle: #FFF7ED`, `--color-attention-border: #F97316`), không hardcode mã màu ngoài `@theme`.
 - [ ] **Bảng & Danh sách:** Dùng component `Table` / `TableHead` có `band`, không tự viết thẻ `<table>` thô.
 - [ ] **Chỉ số & Thẻ trạng thái:** `StatTileRow` có ≤4 ô, tối đa 1 ô hero tô đặc; `PENDING` render `—`, điểm 0 render `0`.
 - [ ] **Dải danh tính:** Mọi trang chi tiết/detail mở đầu bằng `EntityIdentityStrip` (back-link + 3-5 chip định danh).
