@@ -4,6 +4,7 @@ import type { PagedResult } from '../../../types/backend/common.backend.types'
 import { requireGateToken, toTemplateRequest } from './review-gates-contract'
 import { reviewGatesMockAdapter } from './review-gates-mock-adapter'
 import { safeEvidenceLink } from '../utils/evidence-link'
+import type { GateSessionScript } from '../types/gate-session-script.types'
 import type {
   AssignedReviewItem,
   DefenseReadinessSummary,
@@ -144,4 +145,59 @@ export async function submitSupervisorFeedback(
 ): Promise<void> {
   if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.submitSupervisorFeedback(req)
   await httpPost(`/projects/${req.projectId}/review-gates/${encodeURIComponent(req.gateCode)}/feedback`, { feedback: req.feedback })
+}
+
+// Gate Evidence Archive (BE-16-05)
+export async function downloadReviewGateEvidenceArchive(projectId: string | number, gateCode: string): Promise<Blob> {
+  if (env.reviewGatesMockEnabled) throw new Error('Bản mô phỏng không chứa tệp nén minh chứng thực tế.')
+  return httpGetBlob(`/projects/${encodeURIComponent(projectId)}/review-gates/${encodeURIComponent(gateCode)}/evidence/archive`)
+}
+
+// Gate Override (BE-16-03)
+export interface OverrideReviewGateRequest {
+  decision: 'PASSED' | 'REVISION_REQUIRED' | 'FAILED'
+  reason: string
+  concurrencyToken: string
+}
+
+export interface OverrideReviewGateDto {
+  projectId: number
+  gateCode: string
+  status: string
+  decisionSource: 'OVERRIDE' | string
+  overriddenBy: string
+  overriddenAt: string
+  reason: string
+  concurrencyToken: string
+}
+
+export async function overrideReviewGate(
+  projectId: string | number,
+  gateCode: string,
+  body: OverrideReviewGateRequest,
+): Promise<OverrideReviewGateDto> {
+  return httpPost<OverrideReviewGateDto>(`/projects/${encodeURIComponent(projectId)}/review-gates/${encodeURIComponent(gateCode)}/override`, body)
+}
+
+export async function getReviewGateOverrideCapability(projectId: string | number): Promise<{ canOverrideGate: boolean }> {
+  return httpGet<{ canOverrideGate: boolean }>(`/users/me/capabilities?projectId=${encodeURIComponent(projectId)}`)
+}
+
+// Gate Session Scripts (BE-16-07)
+export async function getGateSessionScript(gateId: string | number): Promise<GateSessionScript> {
+  return httpGet<GateSessionScript>(`/review-gates/${gateId}/session-script`)
+}
+
+export async function saveGateSessionScript(
+  gateId: string | number,
+  body: Partial<GateSessionScript> & { concurrencyToken?: string | null },
+): Promise<GateSessionScript> {
+  return httpPut<GateSessionScript>(`/review-gates/${gateId}/session-script`, body)
+}
+
+export async function syncGatePresence(
+  gateId: string | number,
+  body: { sessionId: string; participants: Array<{ userId: number | string; joinedAt?: string; leftAt?: string; durationMinutes?: number }>; concurrencyToken: string },
+): Promise<GateSessionScript> {
+  return httpPost<GateSessionScript>(`/review-gates/${gateId}/livekit-presence/sync`, body)
 }
