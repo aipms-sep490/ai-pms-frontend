@@ -17,6 +17,9 @@ import { summarizeParticipatingDecisions } from '../components/participating-dec
 import { useProjectReview } from '../hooks/useProjectReview'
 import './project-review.css'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
+import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { schemeStatusTone } from '../../../components/ui/status-badge-tone'
 
 function ScopeSummary({ review, names }: { review: ReturnType<typeof useProjectReview>; names: AcademicNameResolver }) {
   const scope = review.detail?.academicScope ?? review.detail?.latestSubmission?.evidence.scope
@@ -153,10 +156,36 @@ export function ProjectReviewPage() {
     <div className="review-page mk-page-enter">
       <Link className="review-page__back-link" to="/department/projects/review">← Danh sách thẩm định</Link>
       <h1>Thẩm định đề cương</h1>
-      <section>
-        <h2>{review.project?.code ?? `Đồ án #${id}`} · {review.project?.title ?? 'Chưa có tên đề cương'}</h2>
-        <p>Nhóm: {review.project?.teamName ?? '—'} · Trạng thái: {projectStatusLabel(review.workflow?.status ?? review.project?.status ?? '')}</p>
-        <Link className="review-page__open-link" to={`/department/projects/${id}/result`}>Theo dõi đánh giá và công bố kết quả</Link>
+      <section className="space-y-4">
+        <h2>{review.project?.title ?? (review.project?.code ? `${review.project.code} — Chưa có tên đề cương` : `Đồ án #${id}`)}</h2>
+        <EntityIdentityStrip
+          chips={[
+            { icon: 'tag', label: 'Mã đồ án', value: review.project?.code ?? `PRJ-${id}` },
+            { icon: 'groups', label: 'Nhóm', value: review.project?.teamName ?? '—' },
+            {
+              icon: 'verified',
+              label: 'Trạng thái',
+              value: projectStatusLabel(review.workflow?.status ?? review.project?.status ?? ''),
+              tone: schemeStatusTone(review.workflow?.status ?? review.project?.status),
+            },
+            ...(review.project?.majors?.length ? [{
+              icon: 'school',
+              label: 'Ngành',
+              value: review.project.majors.map((m) => m.majorCode).join(', '),
+            }] : []),
+          ]}
+        />
+        <div className="flex flex-wrap items-center gap-3">
+          <StatusBadge
+            status={review.workflow?.status ?? review.project?.status}
+            label={projectStatusLabel(review.workflow?.status ?? review.project?.status ?? '')}
+            tone={schemeStatusTone(review.workflow?.status ?? review.project?.status)}
+          />
+          <Link className="review-page__open-link inline-flex items-center text-sm font-semibold text-primary underline" to={`/department/projects/${id}/result`}>
+            Theo dõi đánh giá và công bố kết quả →
+          </Link>
+        </div>
+
       </section>
       <ProjectProposalDetails review={review} />
       <ScopeSummary review={review} names={names} />
@@ -191,7 +220,7 @@ export function ProjectReviewPage() {
         pending={review.pending !== null}
         onDecide={(decision) => void submitDepartment(decision)}
       />
-      <section>
+      <section className="space-y-4">
         <h2>Phản hồi thẩm định</h2>
         <label className="sr-only" htmlFor="review-reason">Lý do thẩm định</label>
         {(review.canStart || review.canRequestRevision || review.canApprove || review.canReject || review.canApproveDepartment || review.canRejectDepartment) ? <textarea id="review-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Nhập lý do khi yêu cầu chỉnh sửa hoặc từ chối" /> : <p>Hồ sơ hiện không có bước thẩm định cần xử lý.</p>}
@@ -209,7 +238,7 @@ export function ProjectReviewPage() {
         {review.pending ? <p role="status">Đang xử lý {review.pending}…</p> : null}
         {message ? <p role="status">{message}</p> : null}
       </section>
-      <section>
+      <section className="space-y-4">
         <h2>Lịch sử xử lý</h2>
         <HistoryTimeline items={review.history.map(item => ({ at: item.changedAt, actor: item.changedByName,
           action: <p>{item.oldStatus ? projectStatusLabel(item.oldStatus) : 'Khởi tạo'} → {projectStatusLabel(item.newStatus)}</p>, note: item.reason }))}

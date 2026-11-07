@@ -12,6 +12,32 @@ import { TaskDisciplinePanel } from '../components/TaskDisciplinePanel'
 import { useTaskExecutionCapabilities } from '../../execution/hooks/useTaskExecutionCapabilities'
 import { canUseTaskExecutionAction } from '../../execution/execution-authority'
 import * as disciplineApi from '../../projects/api/discipline-governance-api'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import type { BadgeTone } from '../../../components/ui/status-badge-tone'
+
+function taskStatusTone(status?: string | null): BadgeTone {
+  switch ((status ?? '').toUpperCase()) {
+    case 'COMPLETED':
+    case 'DONE': return 'success'
+    case 'IN_PROGRESS':
+    case 'DOING': return 'info'
+    case 'BLOCKED': return 'danger'
+    case 'CANCELLED': return 'neutral'
+    case 'TODO':
+    case 'NOT_STARTED':
+    default: return 'neutral'
+  }
+}
+
+function taskPriorityTone(priority?: string | null): BadgeTone {
+  switch ((priority ?? '').toUpperCase()) {
+    case 'URGENT':
+    case 'HIGH': return 'danger'
+    case 'MEDIUM': return 'warning'
+    case 'LOW': return 'neutral'
+    default: return 'neutral'
+  }
+}
 
 export function TaskDetailPage() {
   const { taskId } = useParams()
@@ -83,7 +109,10 @@ function TaskDetail({ id }: { id: number }) {
   const saved = () => { setEditing(null); reload() }
   return <ExecutionPage title={task.title} eyebrow={milestone?.title ?? project.code} backTo={taskListUrl}
     action={<><button className="ex-button" disabled={loading || mutation.busy} onClick={reload}><ExIcon name="refresh" />Cập nhật</button>{canUpdate && <button className="ex-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('content') }}><ExIcon name="edit" />Chỉnh sửa</button>}</>}>
-    <div className="ex-actions mb-6"><span className={`ex-badge ex-badge-${task.status}`}>{taskStatusLabel(task.status)}</span><span className="ex-muted">Ưu tiên {priorityLabels[task.priority ?? '']?.toLowerCase() ?? 'chưa chọn'}</span></div>
+    <div className="ex-actions mb-6 flex flex-wrap items-center gap-2">
+      <StatusBadge status={task.status} label={taskStatusLabel(task.status)} tone={taskStatusTone(task.status)} />
+      <StatusBadge tone={taskPriorityTone(task.priority)} label={`Ưu tiên ${priorityLabels[task.priority ?? '']?.toLowerCase() ?? 'chưa chọn'}`} />
+    </div>
     {error && <ExState message={error} retry={reload} />}{contextError && <ExState message={contextError} retry={reload} />}
     {timeline && !contextValid && <p className="ex-notice ex-notice-error" role="alert">Công việc này không thuộc đồ án đang xem. <Link className="ex-link" to={`${routeBase}/tasks`}>Về danh sách công việc</Link></p>}
     {mutation.error && <p className="ex-notice ex-notice-error" role="alert">{mutation.error}</p>}{mutation.notice && <p className="ex-notice" role="status">{mutation.notice}</p>}
