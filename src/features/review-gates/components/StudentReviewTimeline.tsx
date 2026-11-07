@@ -1,3 +1,4 @@
+import { Table, TableHead } from '../../../components/ui/Table'
 import { useState } from 'react'
 import type { DefenseReadinessSummary, GateStatus, StudentGateRequirement, StudentReviewTimelineDto } from '../types/review-gates.types'
 import { ReviewSubmissionModal, type ReviewSubmissionPayload } from './ReviewSubmissionModal'
@@ -416,8 +417,8 @@ export function StudentReviewTimeline({
               </h4>
               <p className="text-xs text-ink-muted sm:hidden">Cuộn ngang để xem tệp và thao tác.</p>
               <div role="region" aria-label="Danh mục minh chứng, có thể cuộn ngang" tabIndex={0} className="overflow-x-auto rounded-lg border border-hairline">
-                <table className="w-full min-w-[720px] text-left text-xs">
-                  <thead className="ai-table__head--band font-semibold text-ink-muted">
+                <Table className="w-full min-w-[720px] text-left text-xs">
+                  <TableHead className="font-semibold text-ink-muted">
                     <tr>
                       <th className="px-3.5 py-2.5">Yêu cầu minh chứng</th>
                       <th className="px-3 py-2.5">Loại & Phạm vi</th>
@@ -426,7 +427,7 @@ export function StudentReviewTimeline({
                       <th className="px-3.5 py-2.5">Phiên bản đã nộp</th>
                       <th className="px-3.5 py-2.5 text-right">Thao tác</th>
                     </tr>
-                  </thead>
+                  </TableHead>
                   <tbody className="divide-y divide-slate-100">
                     {selectedGate.requirements.map((req) => {
                       return (
@@ -530,7 +531,7 @@ export function StudentReviewTimeline({
                       )
                     })}
                   </tbody>
-                </table>
+                </Table>
               </div>
 
               {onSubmitForReview && (

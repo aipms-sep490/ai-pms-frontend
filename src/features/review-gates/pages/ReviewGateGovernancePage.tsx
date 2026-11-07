@@ -1,3 +1,4 @@
+import { Table, TableHead } from '../../../components/ui/Table'
 import { useContext, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
@@ -385,8 +386,8 @@ export function ReviewGateGovernancePage() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[640px] text-left text-xs">
-                    <thead className="ai-table__head--band font-semibold uppercase tracking-wider text-ink-muted">
+                  <Table className="w-full min-w-[640px] text-left text-xs">
+                    <TableHead className="font-semibold uppercase tracking-wider text-ink-muted">
                       <tr>
                         <th className="py-3 px-4">Tên Mẫu Tiến trình</th>
                         <th className="py-3 px-4">Chế độ / Ngành</th>
@@ -395,7 +396,7 @@ export function ReviewGateGovernancePage() {
                         <th className="py-3 px-3 text-center">Trạng thái</th>
                         <th className="py-3 px-4 text-right">Thao tác</th>
                       </tr>
-                    </thead>
+                    </TableHead>
                     <tbody className="divide-y divide-slate-100 text-ink-soft">
                       {templates.map(tmpl => (
                         <tr key={tmpl.id} className="hover:bg-canvas">
@@ -447,7 +448,7 @@ export function ReviewGateGovernancePage() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </Table>
                 </div>
               </div>
             </div>

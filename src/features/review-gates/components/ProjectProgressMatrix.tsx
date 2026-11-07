@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { env } from '../../../app/config/env'
 import type { GateStatus, ProjectReviewMatrixRow } from '../types/review-gates.types'
-import { TableHead } from '../../../components/ui/Table'
+import { Table, TableHead } from '../../../components/ui/Table'
 
 interface ProjectProgressMatrixProps {
   projects: ProjectReviewMatrixRow[]
@@ -106,7 +106,7 @@ export function ProjectProgressMatrix({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-xs">
+          <Table className="w-full min-w-[720px] text-left text-xs">
             <TableHead className="font-semibold uppercase tracking-wider text-ink">
               <tr>
                 <th className="py-3 px-4">Mã / Tên đồ án</th>
@@ -176,7 +176,7 @@ export function ProjectProgressMatrix({
                 )
               })}
             </tbody>
-          </table>
+          </Table>
         </div>
         <p className="p-3 text-xs text-slate-400 border-t border-slate-100">
           * Tiến độ Task % là số liệu quản lý nội bộ; không thay thế quyết định thẩm định chính thức của Reviewer.

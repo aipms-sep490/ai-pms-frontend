@@ -1,3 +1,4 @@
+import { Table, TableHead } from '../../components/ui/Table'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import * as api from '../../services/api/weekly.api'
@@ -258,8 +259,8 @@ function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, 
       </select></label>
     </div>}
 
-    {draftCriteria.length > 0 && <table className="weekly-criteria">
-      <thead><tr><th>Tiêu chí</th><th>Điểm (tối đa)</th><th>Nhận xét</th></tr></thead>
+    {draftCriteria.length > 0 && <Table className="weekly-criteria">
+      <TableHead><tr><th>Tiêu chí</th><th>Điểm (tối đa)</th><th>Nhận xét</th></tr></TableHead>
       <tbody>
         {draftCriteria.map((criterion) => <tr key={criterion.rubricCriterionId}>
           <td className="weekly-criteria-name">{criterion.name}{criterion.description && <small>{criterion.description}</small>}</td>
@@ -271,7 +272,7 @@ function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, 
             onChange={(event) => updateEdit(criterion.rubricCriterionId, { comments: event.target.value })} /> : (edits[criterion.rubricCriterionId]?.comments || '')}</td>
         </tr>)}
       </tbody>
-    </table>}
+    </Table>}
 
     {draftCriteria.length > 0 && <div style={{ padding: '12px 24px' }}>
       <label>Nhận xét chung<textarea maxLength={2000} value={comments} disabled={!canEditNow || busy} onChange={(event) => setComments(event.target.value)} /></label>
