@@ -62,7 +62,7 @@ export function DataSourceStatus({
                 {source.message ?? defaultMessages[source.state]}
               </span>
               {source.asOfUtc && (
-                <span className="block text-[11px] text-ink-muted/80">
+                <span className="block text-xs text-ink-muted">
                   Cập nhật: {new Date(source.asOfUtc).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                 </span>
               )}
