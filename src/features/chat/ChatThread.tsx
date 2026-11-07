@@ -1,9 +1,9 @@
 import { getUploadPolicy, validateUploadFile } from '../../services/api/upload-policies.api'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { HttpError } from '../../services/http/http-client'
 import { useChat } from './ChatProvider'
-import { chatApi, mergeMessages, type ChatConversation, type ChatMessage, type ChatPerson, type SendMessage } from './chat-api'
+import { chatApi, mergeMessages, type ChatAiSummary, type ChatConversation, type ChatMessage, type ChatPerson, type SendMessage } from './chat-api'
 import { chatDay, chatTime, utcDate } from './chat-view'
 import { ChatMessageContent } from './ChatMessageContent'
 import { ChatAttachments } from './ChatAttachments'
@@ -24,6 +24,8 @@ export function chatError(e: unknown) {
 const denied = (e: unknown) => e instanceof HttpError && [401, 403, 404].includes(e.status)
 interface Pending { request: SendMessage; sending: boolean; error?: string }
 export function ChatThread({ id, userId, active = true }: { id: string; userId: string; active?: boolean }) {
+  const navigate = useNavigate()
+  const location = useLocation()
   const { connection, state, revision, refresh, acknowledgeRead, changedConversations } = useChat()
   const [room, setRoom] = useState<ChatConversation | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -55,8 +57,11 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
   const restoreScroll = useRef<{ height: number; top: number; anchorId?: string; anchorTop?: number } | null>(null)
   const typingStop = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const [newMessages, setNewMessages] = useState(0)
+  const [aiSummary, setAiSummary] = useState<ChatAiSummary | null>(null)
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiError, setAiError] = useState('')
   const clear = () => {
-    revoked.current = true; setReady(false); setRoom(null); setMessages([]); setMembers([]); setPending([]); setDraft(''); setReply(null); setEdit(null); setRecall(null); setOnline([]); setTyping({})
+    revoked.current = true; setReady(false); setRoom(null); setMessages([]); setMembers([]); setPending([]); setDraft(''); setReply(null); setEdit(null); setRecall(null); setOnline([]); setTyping({}); setAiSummary(null); setAiError('')
     setError('Bạn không còn quyền truy cập cuộc trò chuyện này.')
   }
   useEffect(() => { live.current = true; return () => { live.current = false } }, [])
@@ -234,8 +239,33 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
     const item: Pending = { request: { clientMessageId: crypto.randomUUID(), body: draft, ...(reply ? { replyToMessageId: reply.id } : {}) }, sending: true }
     following.current = true; setNewMessages(0); if (historyWindows.current[0]) { historyWindows.current = [undefined]; setReload(n => n + 1) } setPending(old => [...old, item]); clearTimeout(typingStop.current); if (connection && state === 'connected') void connection.invoke('SetTyping', id, false).catch(() => {}); setDraft(''); setReply(null); void send(item)
   }
+  const summarizeChat = async () => {
+    if (aiBusy || !ready) return
+    setAiBusy(true); setAiError('')
+    try { setAiSummary(await chatApi.aiSummary(id)) }
+    catch { setAiError('Chưa thể phân tích cuộc trò chuyện. Hãy thử lại sau.') }
+    finally { setAiBusy(false) }
+  }
+  const handleActionItem = (item: ChatAiSummary['actionItems'][number]) => {
+    const projectId = Number(room?.projectId)
+    if (!Number.isSafeInteger(projectId) || projectId <= 0) return
+    const supervisor = location.pathname.match(/^\/supervisor\/projects\/\d+/)
+    const mentor = location.pathname.match(/^\/mentor\/projects\/\d+\/majors\/\d+/)
+    const taskRoute = supervisor ? `${supervisor[0]}/tasks` : mentor ? `${mentor[0]}/tasks` : '/project/tasks'
+    navigate(taskRoute, { state: { assistantDraft: {
+      projectId, kind: 'TASK', title: item.title,
+      description: 'Bản nháp được trích từ cuộc trò chuyện. Kiểm tra lại trước khi lưu.',
+      task: { dueAt: item.dueAt ?? null, priority: null, milestoneTitle: '', assigneeNames: item.ownerName ? [item.ownerName] : [], primaryMajorName: '' },
+    } } })
+  }
+  const canCreateTaskDraft = !!room?.projectId && !location.pathname.startsWith('/department/')
+  const openSourceMessage = (messageId: string) => {
+    const target = [...(view.current?.querySelectorAll<HTMLElement>('[data-message-id]') ?? [])].find(element => element.dataset.messageId === messageId)
+    if (target) { target.scrollIntoView({ block: 'center', behavior: 'smooth' }); target.focus() }
+  }
   return <section className="chat-main" aria-label="Nội dung trò chuyện" hidden={!active}>
     <header className="chat-header"><Link to="/messages">Quay lại</Link><div><h2>{room?.title || 'Cuộc trò chuyện'}{isMuted && <span className="chat-muted-badge" aria-label="Đã tắt thông báo"> 🔇</span>}</h2><p>{!ready ? 'Đang xác minh quyền và kết nối' : canSend ? room?.kind === 'DIRECT' ? 'Trao đổi riêng trong phạm vi được phép' : room?.kind === 'TEAM' ? `Nhóm sinh viên · ${members.length} thành viên` : `Sinh viên và người hướng dẫn đồ án · ${members.length} thành viên` : 'Chỉ đọc · không thể gửi, sửa hoặc thu hồi'}</p><p className="chat-mobile-connection" role="status">{chatConnectionLabel(state)}</p></div>
+      <button type="button" className="chat-ai-summary-button" disabled={!ready || aiBusy} onClick={() => void summarizeChat()} title="Tóm tắt và trích việc cần làm">{aiBusy ? 'Đang phân tích…' : 'Hỏi AI'}</button>
       {ready && room && <label className="chat-mute-control">Thông báo
         <select value={isMuted ? 'muted' : 'on'} disabled={mutePending} onChange={e => { if (e.target.value === 'muted') return; setMute(e.target.value === 'on' ? null : new Date(Date.now() + Number(e.target.value) * 3_600_000).toISOString()) }}>
           <option value="on">Đang nhận</option>
@@ -247,6 +277,15 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
         </select>
       </label>}
     </header>
+    {aiError && <p role="alert" className="chat-error">{aiError}</p>}
+    {aiSummary && <aside className="chat-ai-summary" aria-label="Tóm tắt cuộc trò chuyện">
+      <div className="chat-ai-summary-heading"><strong>Tóm tắt AI</strong><button type="button" onClick={() => setAiSummary(null)} aria-label="Đóng tóm tắt">×</button></div>
+      <p>{aiSummary.summary}</p>
+      {!!aiSummary.decisions.length && <><h3>Quyết định</h3><ul>{aiSummary.decisions.map((item, i) => <li key={i}>{item}</li>)}</ul></>}
+      {!!aiSummary.openQuestions.length && <><h3>Cần làm rõ</h3><ul>{aiSummary.openQuestions.map((item, i) => <li key={i}>{item}</li>)}</ul></>}
+      {!!aiSummary.actionItems.length && <><h3>Việc cần làm</h3><ul>{aiSummary.actionItems.map((item, i) => <li key={i}><strong>{item.title}</strong>{item.ownerName ? ` · ${item.ownerName}` : ''}{item.dueAt ? ` · hạn ${new Intl.DateTimeFormat('vi-VN').format(new Date(item.dueAt))}` : ''}<span className="chat-ai-action-links">{item.sourceMessageId && <button type="button" className="chat-ai-action-button" onClick={() => openSourceMessage(item.sourceMessageId!)}>Xem tin gốc</button>}{canCreateTaskDraft && <button type="button" className="chat-ai-action-button" onClick={() => handleActionItem(item)}>Dùng làm bản nháp</button>}</span></li>)}</ul></>}
+      <small>Kết quả chỉ mang tính gợi ý. {aiSummary.generationStatus ? `Trạng thái: ${aiSummary.generationStatus === 'COMPLETED' ? 'Hoàn tất' : aiSummary.generationStatus}. ` : ''} {aiSummary.generatedAt ? `Phân tích lúc ${new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(aiSummary.generatedAt))}. ` : ''}Kiểm tra lại trước khi tạo công việc chính thức.</small>
+    </aside>}
     {error && <p role="alert" className="chat-error">{error} <button onClick={() => { revoked.current = false; setReload(n => n + 1) }}>Tải lại</button></p>}
     <details className="chat-members"><summary>Thành viên và trạng thái đã đọc ({members.length})</summary><ul>{members.map(person => <li key={person.userId}>{person.fullName}{online.includes(person.userId) ? ' · Đang kết nối' : ''}{person.userId !== userId && person.lastReadSequence && messages.some(m => m.senderId === userId && BigInt(m.sequence) <= BigInt(person.lastReadSequence!)) ? ' · Đã đọc tin của bạn' : ''}</li>)}</ul>
       {memberCursor && <button disabled={busy} onClick={() => void mutate(async () => { const page = await chatApi.members(id, memberCursor); if (!live.current || revoked.current) return; setMembers(old => [...old, ...page.items]); setMemberCursor(page.nextCursor) })}>Xem thêm thành viên</button>}</details>
