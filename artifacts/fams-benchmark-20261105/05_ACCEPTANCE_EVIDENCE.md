@@ -93,6 +93,40 @@
 
 ---
 
-## 5. Kết luận nghiệm thu
+## 5. Kết quả nghiệm thu thực thi Plan v2 (Pha A đến Pha E)
 
-Toàn bộ các yêu cầu của kế hoạch chuẩn hoá giao diện người dùng theo chuẩn FAMS (`docs/superpowers/plans/2026-11-06-ui-ux-standardisation.md`) đã được hiện thực hóa đầy đủ, chính xác, không gây hồi quy bất kỳ logic nghiệp vụ hay test case có sẵn nào. Toàn bộ test suite (>2040 tests) cùng quy trình kiểm tra kiểu và định dạng tĩnh (`tsc`, `oxlint`, `vite build`) đều đạt 100%.
+Tiếp nối kế hoạch bổ sung `01_FE_PLAN_V2.md`, toàn bộ các Pha A đến Pha E đã được triển khai, kiểm thử và nghiệm thu đầy đủ:
+
+| Pha | Mã Task | Hạng mục thực hiện | Trạng thái | Bằng chứng mã nguồn & kiểm thử |
+|---|---|---|---|---|
+| **Pha A** | `FE2-A0` | Sửa 5 lỗi đo được khi nghiệm thu lại (contrast `--color-ink-muted` -> `#626F82`, chân sidebar contrast, skip-link tới `#main-content`, token header bảng `--color-table-header-bg`, đo kiểm 1280px) | **ĐẠT** | Commit `7498db6`, `src/index.css`, `AppLayout.tsx`, `Table.tsx` |
+| **Pha A** | `FE2-A1` | Hợp nhất `origin/develop` vào nhánh `feat/fe-uiux-standardisation-20261106` | **ĐẠT** | Commit `fe20336`, clean merge không xung đột |
+| **Pha A** | `FE2-A3` | Tạo công cụ tự động quét và kiểm kê route toàn hệ thống (`scripts/route-inventory.mjs`) | **ĐẠT** | Commit `be121db`, sinh `docs/uiux/ROUTE_INVENTORY.generated.md` |
+| **Pha A** | `FE2-A4` | Xây dựng hàng rào kiểm thử chống drift giao diện (`presentation-contract.test.tsx`) & PR template | **ĐẠT** | Commit `091e3ee`, chặn hardcode `<table>` tự chế và thiếu empty states |
+| **Pha A** | `FE2-A5` | Chuẩn hoá bề mặt chat AI của PR #130 (nhãn advisory, fix lint warnings) | **ĐẠT** | Commit `5289c79`, `ChatThread.tsx`, `ChatThread.test.tsx` (13/13 tests pass) |
+| **Pha B** | `FE2-B1` | Phân tích kiến trúc thông tin 10 tab chi tiết đồ án theo Job-To-Be-Done | **ĐẠT** | Artifact `06_PROJECT_DETAIL_IA_ANALYSIS.md` |
+| **Pha B** | `FE2-B2` | Tái cấu trúc navigation: 5 tab chính + dropdown "Thao tác khác" (zero wrap ở 1280px / 1440px) | **ĐẠT** | Commit `4d5c2b5`, `DepartmentProjectLayout.tsx`, `DepartmentProjectLayout.test.tsx` |
+| **Pha B** | `FE2-B3` | Dọn trùng lặp danh tính trên trang chi tiết đồ án & chuẩn hóa badge trạng thái | **ĐẠT** | Commit `4d5c2b5`, `ProjectReviewPage.tsx`, `TaskDetailPage.tsx` |
+| **Pha C** | `FE2-C1` | Quyết định kiến trúc URL-backed modal cho chi tiết công việc | **ĐẠT** | Artifact `07_TASK_DETAIL_MODAL_ADR.md` |
+| **Pha C** | `FE2-C2` | Dựng `TaskDetailModal.tsx` mở giữa viewport, giữ nguyên ngữ cảnh Kanban board phía sau | **ĐẠT** | Commit `85385db`, `TaskDetailModal.tsx`, `TaskDetailModal.test.tsx` (3/3 tests pass) |
+| **Pha C** | `FE2-C3` | Chuẩn hóa số đếm cột Kanban thành `· {count} trên trang này` tránh ngộ nhận tổng dự án | **ĐẠT** | Commit `85385db`, `TaskBoardPage.tsx`, `TaskBoardPage.test.tsx` |
+| **Pha D** | `FE2-D1` | Bảng kiểm kê và đánh giá biểu mẫu toàn hệ thống, xếp hạng 5 form ưu tiên | **ĐẠT** | Commit `8f7e12b`, artifact `08_FORM_AUDIT_AND_PRIORITY_SELECTION.md` |
+| **Pha D** | `FE2-D2` | Chuẩn hóa biểu mẫu ưu tiên: label luôn hiện, phân nhóm logic, validation summary có anchor | **ĐẠT** | `ProjectRegistrationFormPage.tsx`, `WorkspaceTaskForm.tsx`, `TopicContentForm.tsx` |
+| **Pha D** | `FE2-D3` | Đồng bộ hiển thị mốc thời gian rõ giờ Việt Nam (UTC+7) trên các biểu mẫu | **ĐẠT** | `WorkspaceTaskForm.tsx`, `MeetingScheduleForm.tsx`, `TaskDetailPage.tsx` |
+| **Pha D** | `FE2-D4` | Combobox tìm kiếm tức thì cho danh sách dài (người chấm/evaluators khi > 5 người) | **ĐẠT** | Commit `625be24`, `EvaluatorAssignmentManagementPage.tsx`, unit test pass |
+| **Pha E** | `FE2-E1` | Trích xuất primitive `DataSourceStatus.tsx` minh bạch nguồn dữ liệu và độ tươi | **ĐẠT** | Commit `8f7e12b`, `9da8497`, `DataSourceStatus.tsx`, `DataSourceStatus.test.tsx` |
+| **Pha E** | `FE2-E2` | Chuẩn hóa Stat Tile tại Review Gate Governance: đưa trạng thái về header, đồng bộ nền tile | **ĐẠT** | Commit `8f7e12b`, `ReviewGateGovernancePage.tsx` |
+| **Pha E** | `FE2-E3` | Tách toolbar thành 2 hàng chuẩn R2 (Hàng 1 Scope, Hàng 2 View/Filter) & toast tự đóng | **ĐẠT** | Commit `625be24`, `TaskBoardPage.tsx`, `TaskBoardPage.test.tsx` |
+| **Pha F** | `FE2-F1..3`| Giữ nguyên ranh giới học thuật, bảo toàn `POLICY_PENDING` / `BLOCKED by BE-16-02` | **ĐẠT** | Không tự ý can thiệp logic bảo vệ offline hay thêm enum ngoài hợp đồng BE |
+
+---
+
+## 6. Kết luận nghiệm thu tổng thể
+
+- **Tình trạng nhánh:** `feat/fe-uiux-standardisation-20261106` sạch sẽ, không có file untracked hay thay đổi chưa commit.
+- **Tiến độ test suite:** **305 test files, 2072 test cases PASS 100%** (tăng 14 test files và 90 test cases so với gốc develop `83860c9`, tăng 3 files / 16 tests so với đầu ngày 07/11).
+- **Kiểm định chất lượng mã nguồn:**
+  - `pnpm run typecheck`: **0 errors** (tsc sạch 100%).
+  - `pnpm run lint`: **0 errors**, 227 compiler warnings cố hữu của codebase.
+  - `pnpm test src/test/design-tokens.test.ts`: **10/10 tests PASS** (tuân thủ tuyệt đối quy chuẩn màu teal `#087D77`, không du nhập màu cam FAMS, không text < 12px, không opacity modifier trên text token).
+  - `pnpm run build`: **Bản build production Vite hoàn tất thành công 100% trong ~1 giây**.
