@@ -233,9 +233,9 @@
 }
 
 .sup__status--unavailable {
-  border-color: #fed7aa;
-  background: #fff7ed;
-  color: #c2410c;
+  border-color: var(--color-status-warning-border);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
 }
 
 .sup__open {
