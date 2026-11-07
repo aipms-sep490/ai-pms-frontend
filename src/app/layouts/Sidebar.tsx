@@ -391,7 +391,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
         </div>
 
         {/* Bottom Profile Footer (Student Baseline for Batch 0-2) */}
-        <div data-tour={TOUR_ANCHOR.profile} className="p-3 border-t border-hairline bg-canvas/70 flex items-center justify-between gap-2">
+        <div data-tour={TOUR_ANCHOR.profile} className="p-3 border-t border-hairline bg-card flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className="w-8 h-8 rounded-full bg-slate-200 border border-line-strong flex items-center justify-center font-heading font-bold text-xs text-ink-soft relative shrink-0">
               {profileInitials}
@@ -411,7 +411,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
             onClick={() => void logout()}
             aria-label="Đăng xuất"
             title="Đăng xuất / Chuyển tài khoản"
-            className="min-h-[44px] min-w-[44px] p-1.5 text-slate-400 hover:text-ink-soft hover:bg-slate-200/60 rounded-md transition-colors shrink-0 flex items-center justify-center"
+            className="min-h-[44px] min-w-[44px] p-1.5 text-ink-soft hover:text-ink hover:bg-slate-100 rounded-md transition-colors shrink-0 flex items-center justify-center"
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden="true">logout</span>
           </button>

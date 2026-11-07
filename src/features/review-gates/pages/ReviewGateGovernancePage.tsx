@@ -386,7 +386,7 @@ export function ReviewGateGovernancePage() {
 
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[640px] text-left text-xs">
-                    <thead className="bg-canvas font-semibold uppercase tracking-wider text-ink-muted border-b border-slate-100">
+                    <thead className="ai-table__head--band font-semibold uppercase tracking-wider text-ink-muted">
                       <tr>
                         <th className="py-3 px-4">Tên Mẫu Tiến trình</th>
                         <th className="py-3 px-4">Chế độ / Ngành</th>

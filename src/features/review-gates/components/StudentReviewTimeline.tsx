@@ -417,7 +417,7 @@ export function StudentReviewTimeline({
               <p className="text-xs text-ink-muted sm:hidden">Cuộn ngang để xem tệp và thao tác.</p>
               <div role="region" aria-label="Danh mục minh chứng, có thể cuộn ngang" tabIndex={0} className="overflow-x-auto rounded-lg border border-hairline">
                 <table className="w-full min-w-[720px] text-left text-xs">
-                  <thead className="border-b border-hairline bg-canvas font-semibold text-ink-muted">
+                  <thead className="ai-table__head--band font-semibold text-ink-muted">
                     <tr>
                       <th className="px-3.5 py-2.5">Yêu cầu minh chứng</th>
                       <th className="px-3 py-2.5">Loại & Phạm vi</th>

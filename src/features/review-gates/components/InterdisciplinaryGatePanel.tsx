@@ -172,7 +172,7 @@ export function InterdisciplinaryGatePanel({
             )}
 
             <table className="w-full text-left text-xs">
-              <thead className="bg-canvas font-semibold uppercase tracking-wider text-ink-muted border-b border-slate-100">
+              <thead className="ai-table__head--band font-semibold uppercase tracking-wider text-ink-muted">
                 <tr>
                   <th className="py-3 px-4">Phạm vi chuyên ngành</th>
                   <th className="py-3 px-3 text-center">Bắt buộc</th>
