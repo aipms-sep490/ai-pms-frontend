@@ -216,4 +216,19 @@ describe('TaskBoardPage', () => {
     const heading = screen.getByRole('heading', { name: /Chưa bắt đầu/ })
     expect(heading.textContent).toContain('trên trang này')
   })
+
+  it('structures the toolbar into two dedicated rows separating scope and view controls (FE2-E3)', async () => {
+    api.getProjectTasks.mockResolvedValue({ ...empty, items: [item], totalCount: 25, totalPages: 2 })
+    renderBoard(false)
+    await screen.findByText('Phân tích yêu cầu')
+
+    // Two distinct tab groups exist for scope and view mode
+    const scopeGroup = screen.getByRole('group', { name: 'Phạm vi công việc' })
+    const viewGroup = screen.getByRole('group', { name: 'Cách hiển thị' })
+    expect(scopeGroup).toBeDefined()
+    expect(viewGroup).toBeDefined()
+
+    // Row 1 also displays total project task count indicator
+    expect(screen.getByText(/Tổng số công việc:/)).toBeDefined()
+  })
 })

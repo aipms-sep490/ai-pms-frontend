@@ -66,6 +66,12 @@ export function TaskBoardPage() {
     }
   }, [location, navigate, project.id, canCreate])
   const [created, setCreated] = useState(false)
+  useEffect(() => {
+    if (created) {
+      const timer = window.setTimeout(() => setCreated(false), 4000)
+      return () => window.clearTimeout(timer)
+    }
+  }, [created])
   const createRef = useRef<HTMLButtonElement>(null)
   const restoreCreateFocus = useRef(false)
   const [revision, setRevision] = useState(0)
@@ -154,15 +160,56 @@ export function TaskBoardPage() {
   const activeMember = members.find(member => member.userId === assigneeUserId)
   return <ExecutionPage title="Công việc" eyebrow={project.code} description="Xem ai đang phụ trách, việc nào cần xử lý và hạn hoàn thành."
     action={<><button className="ex-button" onClick={refresh} disabled={loading}><ExIcon name="refresh" />Cập nhật</button>{canCreate && <button ref={createRef} className="ex-button ex-button-primary" onClick={() => { setCreating(true); setCreated(false) }} disabled={creating}><ExIcon name="add" />Tạo công việc</button>}</>}>
-    {created && <p className="ex-notice" role="status">Đã tạo công việc.</p>}
+    {created && (
+      <div className="ex-notice flex items-center justify-between" role="status">
+        <span>Đã tạo công việc.</span>
+        <button
+          type="button"
+          className="text-xs font-semibold underline ml-3"
+          onClick={() => setCreated(false)}
+          aria-label="Đóng thông báo"
+        >
+          Đóng
+        </button>
+      </div>
+    )}
     {dragNotice && <p className="ex-notice" role="status">{dragNotice}</p>}
     {!team && <ExState message={teamLoadError ?? 'Chưa tải được danh sách thành viên nhóm. Bạn vẫn xem được công việc nhưng chưa giao được người phụ trách.'} retry={retryTeam} />}
     {creating && (milestoneLoading ? <ExState loading /> : milestoneError ? <ExState message={milestoneError} retry={refresh} /> : eligibleMilestones.length ? <div className="mb-6"><WorkspaceTaskForm key={`${project.id}:${assistantDraft?.draftKey ?? 'manual'}`} initialDraft={assistantDraft?.projectId === project.id ? assistantDraft : undefined} project={project} members={members} milestones={eligibleMilestones} onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); refresh() }} /></div>
       : <section className="ex-panel"><ExState title="Cần có mốc đồ án đang thực hiện" message="Tạo một mốc trước khi thêm công việc cho nhóm." action={<Link className="ex-button" to={`${routeBase}/milestones`}>Quản lý mốc đồ án</Link>} /><div className="ex-padding"><button className="ex-text-button" onClick={closeCreate}>Đóng</button></div></section>)}
     <section className="ex-panel task-board-panel" aria-label="Danh sách công việc">
-      <div className="ex-toolbar"><div className="ex-tabs" role="group" aria-label="Phạm vi công việc"><button aria-pressed={!assigneeUserId} onClick={() => updateParams('assignee', '')}>Cả nhóm</button>{currentUserId && <button aria-pressed={assigneeUserId === currentUserId} onClick={() => updateParams('assignee', String(currentUserId))}>Của tôi</button>}
-        {assigneeUserId && assigneeUserId !== currentUserId && <span className="ex-muted">{activeMember?.fullName ?? 'Thành viên đã chọn'} <button className="ex-text-button" onClick={() => updateParams('assignee', '')}>Bỏ lọc</button></span>}</div>
-        <div className="ex-tabs" role="group" aria-label="Cách hiển thị"><button aria-pressed={view === 'list'} onClick={() => setView('list')}><ExIcon name="format_list_bulleted" /> Danh sách</button><button aria-pressed={view === 'status'} onClick={() => setView('status')}>Theo trạng thái</button><button aria-pressed={view === 'board'} onClick={() => setView('board')}>Bảng Kanban</button>{env.jiraSprintEnabled && <button aria-pressed={view === 'sprint'} onClick={() => setView('sprint')}>Sprint &amp; Backlog</button>}</div>
+      <div className="ex-toolbar ex-toolbar--two-rows flex flex-col gap-3 p-4">
+        <div className="flex w-full flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Phạm vi:</span>
+            <div className="ex-tabs" role="group" aria-label="Phạm vi công việc">
+              <button type="button" aria-pressed={!assigneeUserId} onClick={() => updateParams('assignee', '')}>Cả nhóm</button>
+              {currentUserId && <button type="button" aria-pressed={assigneeUserId === currentUserId} onClick={() => updateParams('assignee', String(currentUserId))}>Của tôi</button>}
+            </div>
+            {assigneeUserId && assigneeUserId !== currentUserId && (
+              <span className="text-xs font-medium text-ink-soft inline-flex items-center gap-1.5 ml-2">
+                <span>{activeMember?.fullName ?? 'Thành viên đã chọn'}</span>
+                <button type="button" className="ex-text-button text-xs underline" onClick={() => updateParams('assignee', '')}>Bỏ lọc</button>
+              </span>
+            )}
+          </div>
+          {data && (
+            <span className="text-xs text-ink-muted tabular-nums">
+              Tổng số công việc: <strong className="text-ink">{data.totalCount}</strong>
+            </span>
+          )}
+        </div>
+        <div className="flex w-full flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Hiển thị:</span>
+            <div className="ex-tabs" role="group" aria-label="Cách hiển thị">
+              <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}><ExIcon name="format_list_bulleted" /> Danh sách</button>
+              <button type="button" aria-pressed={view === 'status'} onClick={() => setView('status')}>Theo trạng thái</button>
+              <button type="button" aria-pressed={view === 'board'} onClick={() => setView('board')}>Bảng Kanban</button>
+              {env.jiraSprintEnabled && <button type="button" aria-pressed={view === 'sprint'} onClick={() => setView('sprint')}>Sprint &amp; Backlog</button>}
+            </div>
+          </div>
+        </div>
       </div>
       <form onSubmit={apply}>
         <div className="ex-filters"><label className="ex-filter-search">Tìm công việc<input value={draft.search} onChange={event => setDraft({ ...draft, search: event.target.value })} placeholder="Tên công việc…" /></label>

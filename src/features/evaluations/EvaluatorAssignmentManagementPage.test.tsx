@@ -165,4 +165,26 @@ describe('EvaluatorAssignmentManagementPage', () => {
     expect(await screen.findByText('Độ phủ người chấm theo thành phần')).toBeTruthy()
     expect(screen.getByText('1/2 người chấm')).toBeTruthy()
   })
+
+  it('provides a search filter when there are more than 5 eligible evaluators (FE2-D4)', async () => {
+    api.getProjectPeriods.mockResolvedValue({ items: [{ id: 7, name: 'Đợt bảo vệ', periodType: 'EVALUATION', status: 'ACTIVE' }], page: 1, pageSize: 100, totalCount: 1 })
+    api.getEvaluationSchemes.mockResolvedValue([{ id: 31, projectPeriodId: 7, status: 'PUBLISHED', name: 'Scheme', version: 1, students: [], components: [{ id: 42, name: 'Chung', scope: 'COMMON', majorId: null, rubricId: 4, projectWeightPercent: 100, studentWeightPercent: 0, requiredEvaluators: 1 }] }])
+    const manyCandidates = Array.from({ length: 6 }, (_, i) => ({
+      userId: 10 + i,
+      displayName: `Giảng viên ${i + 1}`,
+      departmentName: i % 2 === 0 ? 'Bộ môn Phần mềm' : 'Bộ môn Hệ thống',
+      evaluationTypes: ['LECTURER'],
+    }))
+    api.getEligibleEvaluators.mockResolvedValue({ items: manyCandidates, page: 1, pageSize: 100, totalCount: 6 })
+    renderPage()
+    fireEvent.change(await screen.findByLabelText('Đợt đánh giá'), { target: { value: '7' } })
+    fireEvent.change(screen.getByLabelText('Thành phần đánh giá'), { target: { value: '42' } })
+
+    const searchInput = await screen.findByLabelText('Lọc người chấm')
+    expect(searchInput).toBeDefined()
+
+    fireEvent.change(searchInput, { target: { value: 'Phần mềm' } })
+    const select = screen.getByLabelText('Người chấm') as HTMLSelectElement
+    expect(select.querySelectorAll('option')).toHaveLength(4)
+  })
 })
