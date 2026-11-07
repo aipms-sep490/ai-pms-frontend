@@ -26,6 +26,8 @@
 | **BE-16-05** | Tải file nén ZIP toàn bộ minh chứng của Cổng (`Download Gate ZIP`) | **P3** | `GAP_CONFIRMED` | Nút "Tải toàn bộ tài liệu cổng" cho giảng viên phản biện |
 | **BE-16-06** | Thống kê số lượng task theo cột Kanban (`Task Board Summary`) | **P3** | `GAP_CONFIRMED` | Hiển thị tổng số task thật theo từng trạng thái trên board |
 | **BE-16-07** | Quy chế tổ chức bảo vệ Review 3–4 Offline | **Chờ chính sách** | `POLICY_PENDING` | Chờ văn bản chốt quy tắc điểm danh và thành phần hội đồng |
+| **BE-16-08** | Tự động chia phòng & ca bảo vệ trong giờ hành chính (`Auto-Schedule Defense`) | **P2** | `SPEC_PROPOSED` | Thuật toán xếp lịch tự động, preview phân bổ & báo cáo xung đột |
+| **BE-16-09** | Quản lý yêu cầu đổi phòng / đổi lịch bảo vệ (`Schedule Change Requests`) | **P2** | `SPEC_PROPOSED` | Quy trình tạo đơn, kiểm tra phòng trống, thu hồi và duyệt đổi phòng |
 
 ---
 
@@ -169,3 +171,76 @@
   4. Thời lượng tối đa cho mỗi phiên Review là bao nhiêu phút?
   5. Danh sách hội đồng được công bố công khai cho sinh viên trước bao nhiêu ngày?
   6. Cơ chế điểm danh và xác nhận mặt sinh viên tại phòng xử lý ra sao?
+
+
+---
+
+### 8. BE-16-08: Thuật toán & API Tự động phân chia phòng và thời gian bảo vệ (`Auto-Schedule Defense Sessions`)
+
+* **Bối cảnh nghiệp vụ:** (Học hỏi từ FAMS §3.13.1 - Auto Timetable Generation). Một đợt bảo vệ tốt nghiệp có hàng chục đồ án và nhiều hội đồng chuyên môn. Xếp lịch thủ công từng nhóm vào từng phòng rất dễ gây trùng lịch giảng viên và tốn nhiều công sức. Cần thuật toán xếp lịch tự động tuân thủ nghiêm ngặt giờ hành chính và các ràng buộc học thuật.
+* **Quy chuẩn phân bổ (Scheduling Engine Constraints):**
+  1. **Khung giờ hành chính & Ngày làm việc:**
+     - Ca Sáng: Khung 08:00 - 11:30 (tối đa 3 ca: Slot 1: 08:00–09:15, Slot 2: 09:30–10:45, Slot 3: 11:00–12:15).
+     - Ca Chiều: Khung 13:30 - 17:00 (tối đa 3 ca: Slot 4: 13:30–14:45, Slot 5: 15:00–16:15, Slot 6: 16:30–17:45).
+     - Chỉ xếp vào các ngày làm việc hợp lệ trong tuần, tự động loại trừ các ngày nghỉ lễ đã cấu hình tại `ProjectPeriodCalendar` (Ticket `BE-16-01`).
+  2. **Ràng buộc cứng (Hard Constraints - Không được vi phạm):**
+     - Phòng không trùng lịch: 1 phòng chỉ chứa 1 buổi bảo vệ tại 1 thời điểm.
+     - Hội đồng không trùng lịch: 1 giảng viên (Chủ tịch, Thư ký, Ủy viên) không có mặt ở 2 phòng trong cùng 1 ca.
+     - Tránh xung đột lợi ích: Giảng viên hướng dẫn (Supervisor) của nhóm không được làm thành viên chấm điểm của chính nhóm đó.
+     - Sức chứa phòng: `Room.Capacity >= (Số SV trong nhóm + Số thành viên HĐ + 5 khách dự)`.
+     - Bao quát chuyên ngành: Hội đồng phải có thành viên bao quát đúng chuyên ngành của đề tài.
+  3. **Ràng buộc mềm (Soft Constraints - Ưu tiên tối ưu):**
+     - Giữ nguyên hội đồng tại 1 phòng cố định trong một buổi (sáng hoặc chiều) để hạn chế giảng viên phải di chuyển giữa các tòa nhà.
+     - Gom các nhóm cùng chuyên ngành vào cùng một hội đồng liên tục.
+* **Đặc tả Backend API:**
+  - `POST /api/v1/project-periods/{id}/defense-sessions/auto-schedule/preview`  
+    *Chạy thuật toán mô phỏng trong bộ nhớ, trả về kết quả phân bổ dự kiến và danh sách xung đột chưa xếp được (không ghi DB).*
+  - `POST /api/v1/project-periods/{id}/defense-sessions/auto-schedule/apply`  
+    *Nhận danh sách phân bổ đã phê duyệt từ FE và lưu transactionally vào bảng `DefenseSessions`.*
+
+---
+
+### 9. BE-16-09: Quy trình Yêu cầu Đổi phòng / Đổi lịch bảo vệ (`Defense Schedule Change Requests`)
+
+* **Bối cảnh nghiệp vụ:** (Học hỏi từ FAMS §3.14.1 - §3.14.5). Sinh viên, giảng viên hướng dẫn hoặc chủ tịch hội đồng cần đề xuất đổi phòng (do sự cố thiết bị, cần máy chiếu demo) hoặc đổi lịch (do giảng viên có lịch công tác đột xuất). Cần quy trình xin đổi minh bạch, có kiểm tra xung đột tự động và phê duyệt từ Trưởng bộ môn.
+* **Đặc tả Database:**
+  Tạo bảng `DefenseScheduleChangeRequests`:
+  ```sql
+  CREATE TABLE DefenseScheduleChangeRequests (
+      Id BIGINT IDENTITY(1,1) PRIMARY KEY,
+      DefenseSessionId BIGINT NOT NULL,
+      RequesterId BIGINT NOT NULL,
+      CurrentRoomId BIGINT NOT NULL,
+      CurrentStartAt DATETIMEOFFSET NOT NULL,
+      CurrentEndAt DATETIMEOFFSET NOT NULL,
+      DesiredRoomId BIGINT NOT NULL,
+      DesiredStartAt DATETIMEOFFSET NOT NULL,
+      DesiredEndAt DATETIMEOFFSET NOT NULL,
+      ReasonCategory NVARCHAR(50) NOT NULL, -- ROOM_FACILITY_ISSUE, SCHEDULE_CLASH, SPECIAL_REQUIREMENT, OTHER
+      ReasonDetails NVARCHAR(MAX) NOT NULL,
+      EvidenceFileUrl NVARCHAR(500) NULL,
+      Status NVARCHAR(30) NOT NULL DEFAULT 'PENDING', -- PENDING, APPROVED, REJECTED, WITHDRAWN
+      ReviewerId BIGINT NULL,
+      ReviewNote NVARCHAR(MAX) NULL,
+      ReviewedAt DATETIMEOFFSET NULL,
+      ConcurrencyToken NVARCHAR(64) NOT NULL,
+      CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+      CONSTRAINT FK_ChangeReq_Session FOREIGN KEY (DefenseSessionId) REFERENCES DefenseSessions(Id),
+      CONSTRAINT FK_ChangeReq_Room FOREIGN KEY (DesiredRoomId) REFERENCES Rooms(Id)
+  );
+  ```
+* **API Endpoints:**
+  - `POST /api/v1/defense-sessions/{sessionId}/change-requests` — Tạo yêu cầu đổi phòng/lịch (tự động check conflict trước khi lưu).
+  - `POST /api/v1/defense-sessions/change-requests/{id}/withdraw` — Người gửi rút đơn khi còn `PENDING`.
+  - `POST /api/v1/defense-sessions/change-requests/{id}/decision` — Trưởng bộ môn duyệt (`APPROVED`) hoặc từ chối (`REJECTED`). Khi duyệt, tự động swap `RoomId`, `StartAt`, `EndAt` của `DefenseSession` và ghi `AuditRecord`.
+  - `GET /api/v1/project-periods/{id}/defense-sessions/change-requests` — Lấy danh sách đơn đổi phòng (lọc theo `status`, `departmentId`).
+
+
+---
+
+## IV. TIÊU CHÍ HOÀN THÀNH (DEFINITION OF DONE - DoD)
+
+1. Mọi code mới đều có Unit Test / Integration Test tương ứng chạy xanh (`dotnet test`).
+2. Migration script chạy thành công cả chiều nâng cấp (`Up`) và chiều hạ cấp (`Rollback`) trên SQL Server.
+3. Cập nhật file JSON response mẫu vào thư mục `docs/contracts/cib-v4/examples/` trên repo Backend.
+4. Báo lại cho Frontend sau khi deploy lên môi trường staging để FE thực hiện kiểm thử tích hợp (Integration Test) E2E.
