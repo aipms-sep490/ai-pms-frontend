@@ -1,4 +1,6 @@
 .app-modal { width: min(480px, calc(100% - 32px)); max-height: calc(100dvh - 32px); margin: auto; padding: 0; border: 1px solid var(--color-line-strong); border-radius: 18px; background: #fff; color: var(--color-ink); box-shadow: 0 24px 48px -12px color-mix(in oklab, var(--color-brand-navy) 18%, transparent), 0 0 0 1px color-mix(in oklab, var(--color-primary) 8%, transparent); }
+.app-modal--large { width: min(840px, calc(100% - 32px)); }
+.app-modal--xl { width: min(1040px, calc(100% - 32px)); }
 .app-modal::backdrop { background: color-mix(in oklab, var(--color-brand-navy) 45%, transparent); backdrop-filter: blur(4px); }
 .app-modal__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 22px 24px; border-bottom: 1px solid var(--color-line); }
 .app-modal__header h2 { font-size: 17.5px; line-height: 1.4; font-weight: 700; margin: 0; overflow-wrap: anywhere; color: var(--color-brand-navy); font-family: var(--font-heading); }

@@ -3,8 +3,8 @@ import { useEntranceMotion } from './useEntranceMotion'
 import './modal.css'
 
 /** Native dialog supplies focus containment and restores focus to its opener. */
-export function Modal({ open, title, description, busy = false, onClose, children, drawer = false, initialFocusRef }: {
-  open: boolean; title: string; description?: string; busy?: boolean; onClose: () => void; children: ReactNode; drawer?: boolean; initialFocusRef?: RefObject<HTMLElement | null>
+export function Modal({ open, title, description, busy = false, onClose, children, drawer = false, initialFocusRef, className }: {
+  open: boolean; title: string; description?: string; busy?: boolean; onClose: () => void; children: ReactNode; drawer?: boolean; initialFocusRef?: RefObject<HTMLElement | null>; className?: string
 }) {
   const ref = useEntranceMotion<HTMLDialogElement>(open, drawer ? 'drawer' : 'dialog')
   const heading = useId()
@@ -19,7 +19,7 @@ export function Modal({ open, title, description, busy = false, onClose, childre
     document.body.style.overflow = 'hidden'
     return () => { dialog.close(); document.body.style.overflow = originalOverflow; if (opener?.isConnected) opener.focus() }
   }, [open, ref, initialFocusRef])
-  return <dialog ref={ref} className={`app-modal ${drawer ? 'app-modal--drawer' : ''}`} aria-labelledby={heading} aria-describedby={description ? detail : undefined}
+  return <dialog ref={ref} className={`app-modal ${drawer ? 'app-modal--drawer' : ''} ${className ?? ''}`.trim()} aria-labelledby={heading} aria-describedby={description ? detail : undefined}
     onCancel={event => { event.preventDefault(); if (!busy) onClose() }}>
     <header className="app-modal__header"><div><h2 id={heading}>{title}</h2>{description && <p id={detail}>{description}</p>}</div><button type="button" className="app-modal__close" aria-label="Đóng hộp thoại" disabled={busy} onClick={onClose}><span className="material-symbols-outlined" aria-hidden="true">close</span></button></header>
     <div className="app-modal__body">{children}</div>
