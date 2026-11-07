@@ -1,4 +1,5 @@
 import { Table, TableHead } from '../../../components/ui/Table'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { useContext, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
@@ -334,9 +335,9 @@ export function ReviewGateGovernancePage() {
                     {templates.length > 0 ? `${templates[0].gatesCount < 10 ? '0' : ''}${templates[0].gatesCount} Gates` : 'Chưa cấu hình'}
                   </p>
                 </div>
-                <div className="rounded-xl border border-status-warning-border bg-status-warning-bg/50 p-4 shadow-2xs">
-                  <span className="text-xs font-semibold text-status-warning-text">Trạng thái phê duyệt</span>
-                  <p className="mt-1 text-lg font-bold text-status-warning-text">Bản nháp Bộ môn</p>
+                <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+                  <span className="text-xs font-semibold text-ink-muted">Trạng thái phê duyệt</span>
+                  <div className="mt-2"><StatusBadge tone="warning" label="Bản nháp Bộ môn" /></div>
                 </div>
               </div>
 

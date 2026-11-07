@@ -1,4 +1,5 @@
 import { StatusBadge } from '../../components/ui/StatusBadge'
+import { DataSourceStatus } from '../../components/ui/DataSourceStatus'
 import { displayLabel } from '../../components/ui/display-label'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -118,7 +119,7 @@ export function CalendarAttentionPage() {
 
         </aside>
       </div>
-      <section className="calendar-sources" aria-labelledby="calendar-sources-heading"><h2 id="calendar-sources-heading">Trạng thái nguồn dữ liệu</h2><ul>{data.sources.map((source) => <li key={source.id}><span className={`calendar-source-dot calendar-source-dot--${source.state}`} aria-hidden="true" /><div><strong>{source.label}</strong><span>{source.message ?? (source.state === 'ready' ? 'Đã tải dữ liệu nguồn.' : 'Không có dữ liệu để hiển thị.')}</span></div></li>)}</ul></section>
+      <DataSourceStatus sources={data.sources} asOfUtc={data.attentionAsOfUtc} />
     </>}
   </section>
 }
