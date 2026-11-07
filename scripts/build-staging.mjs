@@ -10,7 +10,11 @@ const buildEnv = {
   ...process.env, ...defaults, ...loadEnv('production', process.cwd(), 'VITE_'),
   VITE_API_BASE_URL: 'https://api-staging.khaidz.com/api/v1',
   VITE_DATA_MODE: 'api', VITE_USE_MOCK_REVIEW_GATES: 'false',
-  VITE_ENABLE_AI_ACADEMIC_ASSISTANT: 'true', VITE_ENABLE_WORKFLOW_PREVIEW: 'false',
+  VITE_ENABLE_AI_ACADEMIC_ASSISTANT: 'true',
+  // Keep the deployed assistant's progress/risk tab available. This must be
+  // explicit because .env.example intentionally keeps advisory AI opt-in.
+  VITE_ENABLE_AI_PROGRESS_RISK: 'true',
+  VITE_ENABLE_WORKFLOW_PREVIEW: 'false',
 }
 for (const script of ['node_modules/typescript/bin/tsc', 'node_modules/vite/bin/vite.js']) {
   const args = script.includes('typescript') ? ['-b'] : ['build']
