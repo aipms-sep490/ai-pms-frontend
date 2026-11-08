@@ -1,1 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="AI-PMS symbol"><rect x="8" y="8" width="240" height="240" rx="60" fill="#0F2747"/><path d="M62 194V64h62c47 0 69 27 69 64s-24 66-67 66H62Z" fill="none" stroke="#DDF7F4" stroke-width="17" stroke-linejoin="round"/><path d="m78 165 39-38 33 24 54-69" fill="none" stroke="#F6B94C" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/><circle cx="78" cy="165" r="12" fill="#F6B94C"/><circle cx="204" cy="82" r="12" fill="#F6B94C"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="PMS Favicon">
+  <defs>
+    <linearGradient id="pmsFavGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EA580C" />
+      <stop offset="100%" stop-color="#C2410C" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#pmsFavGrad)" />
+  <path d="M50 72 L102 56 L154 68 L206 48" fill="none" stroke="#FED7AA" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="50" cy="72" r="6" fill="#FEF08A" />
+  <circle cx="102" cy="56" r="6" fill="#FEF08A" />
+  <circle cx="154" cy="68" r="6" fill="#FEF08A" />
+  <circle cx="206" cy="48" r="9" fill="#FEF08A" stroke="#FFFFFF" stroke-width="3" />
+  <text x="128" y="156" font-family="'Plus Jakarta Sans', Inter, -apple-system, sans-serif" font-weight="900" font-size="80" letter-spacing="-3" text-anchor="middle" fill="#FFFFFF">PMS</text>
+  <text x="128" y="196" font-family="'JetBrains Mono', monospace" font-weight="700" font-size="15" letter-spacing="4" text-anchor="middle" fill="#FFEDD5">FPT UNIVERSITY</text>
+</svg>

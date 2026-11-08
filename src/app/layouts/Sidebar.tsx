@@ -31,7 +31,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
   const unavailableStudent = role === 'student' && access.contextStatus === 'unavailable'
   const workspaceCode = role === 'student'
     ? project?.code?.trim() || academic?.selectedSemester?.code || (unavailableStudent ? 'Không tải được ngữ cảnh' : 'Ngữ cảnh chưa xác định')
-    : 'AI-PMS'
+    : 'PMS'
   const teamLabel = role === 'student'
     ? team?.code?.trim() || team?.name?.trim() || (unavailableStudent ? 'Không tải được ngữ cảnh' : 'Chưa có nhóm')
     : role === 'lecturer' ? 'Giảng viên' : role === 'department' ? 'Bộ môn' : role === 'admin' ? 'Quản trị' : 'Tài khoản'
@@ -200,7 +200,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                 </div>
                 <div className="flex flex-col">
                   <span className="font-heading font-bold text-[14px] text-ink tracking-tight leading-tight">
-                    AI-PMS • FPTU
+                    PMS • FPTU
                   </span>
                   <span className="font-mono text-xs text-ink-muted leading-tight">
                     {pendingStudent ? <span className="app-context-skeleton" aria-hidden="true" /> : role === 'student' ? semester?.name || 'Học kỳ chưa xác định' : teamLabel}

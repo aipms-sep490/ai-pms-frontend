@@ -49,7 +49,7 @@ describe('AppLayout & Navigation Shell', () => {
   })
   it('renders student navigation and notification access without unfinished controls', () => {
     renderAppLayout()
-    expect(screen.getByText('AI-PMS • FPTU')).toBeDefined()
+    expect(screen.getByText('PMS • FPTU')).toBeDefined()
     expect(screen.getByText('Học kỳ chưa xác định')).toBeDefined()
     expect(screen.getAllByText('Tổng quan lộ trình').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Hồ sơ đồ án')).toBeDefined()
