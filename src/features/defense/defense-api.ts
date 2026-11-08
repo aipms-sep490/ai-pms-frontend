@@ -88,12 +88,19 @@ export const getAvailableRooms = (periodId: number, date: string, startAt: strin
   return httpGet<RoomDto[]>(`/project-periods/${periodId}/rooms/availability${query}`, signal)
 }
 
+export interface RoomSchedulingExclusion {
+  roomId: number
+  date: string | null
+  slotNumber: number | null
+}
+
 // Auto Schedule (BE-16-08)
 export interface AutoSchedulePreviewRequest {
   startDate: string
   endDate: string
   roomIds: number[]
   maxSlotsPerDay?: number
+  exclusions?: RoomSchedulingExclusion[]
 }
 
 export interface AutoScheduleAllocation {
@@ -124,6 +131,7 @@ export interface AutoSchedulePreviewDto {
 export interface AutoScheduleApplyRequest {
   allocations: AutoScheduleAllocation[]
   concurrencyToken: string
+  exclusions?: RoomSchedulingExclusion[]
 }
 
 export interface AutoScheduleApplyDto {

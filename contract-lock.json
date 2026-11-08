@@ -1,8 +1,8 @@
 {
   "source": "docs/contracts/cib-v4/examples/",
   "files": {
-    "defense/auto-schedule-apply.json": "bb588d3aba17e7bb9c6ba293fd226c4b2f5015cd74a95256bd42d74c1fbfaf68",
-    "defense/auto-schedule-preview.json": "d7b8e09abbdbbc8506363f2991667329f2f7eeb15900778ddf9eb9afe055d49c",
+    "defense/auto-schedule-apply.json": "a73706a917a08f5aa319c1ad4e0a4dfaf725753ff21c1500e21d54de1bab16ba",
+    "defense/auto-schedule-preview.json": "fadab20465e0928cc8523c0fa934c8444616b394592daf7d40cf671b6edcd293",
     "defense/change-request.json": "7f31dc91774734516bc6fc94ab2d02f065f2b68d94aeeabf2b9ef673e3636bbe",
     "defense/period-sessions.json": "9046c51c479f1dfa27c2c3bb2a608de7d96c9136a9301863ec84759875c9e4f6",
     "defense/room-availability.json": "701ba2f1e131766b2dcb37d90f3d84ca1c682c431727b35f2f2b752e07ca1139",
@@ -34,6 +34,9 @@
     "qualification/upload-certificate-too-large-413.json": "9704c3611cf182a7650f1dff74d3895d18c2e617466b995aeaa1547d0b6b41f0",
     "qualification/upload-certificate-validation-400.json": "74b8d8a310e3c55d287e2ea9070f17afe28d565756b0066a2489e274b7f65e50",
     "review-gates/evidence-archive.json": "f6b3d0536542b78e2652ac7e9c63d18bf276fc16839b3812baa9cd866121a83d",
+    "review-gates/gate3-auto-schedule-apply.json": "d22f1f36c5e9dbbb5265a0c089a09812dae56873cedd5e5cf59bfdadfc80cded",
+    "review-gates/gate3-auto-schedule-preview.json": "588e540679681c5c66d5ed7aeaf3fcc5eb8453dc9a70b5c3371b83ef13b1ce87",
+    "review-gates/gate3-schedule-change.json": "d0b496b0ecbf6a4e15fe78a42aa3378a71e2fc5e9b25d2e92967027ae0c2623c",
     "review-gates/override.json": "fb5fba570bf78cc419e8f063d21ed6bd38cddb66369a26f3d49bf62f77546ee6",
     "review-gates/session-script.json": "b18289d7da59baed3cf87807c1afcb515b2cb6f96832218a3627e34db8f0e3b7",
     "student-results/get-student-result-owner-student-200.json": "dbbf0e9ce5d146fff82d3842e950fc9e01e6c9b41777dc8e8ced44f4e69ace5c",

@@ -201,3 +201,13 @@ export async function syncGatePresence(
 ): Promise<GateSessionScript> {
   return httpPost<GateSessionScript>(`/review-gates/${gateId}/livekit-presence/sync`, body)
 }
+
+export {
+  previewGate3Schedule,
+  applyGate3Schedule,
+  getGate3Schedules,
+  changeGate3Schedule,
+} from '../../defense/room-planner-api'
+export type {
+  ReviewGate3ScheduleDto,
+} from '../../defense/room-planner-api'
