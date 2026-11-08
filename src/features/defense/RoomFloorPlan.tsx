@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../components/ui/Table'
 import type { RoomDto, RoomSchedulingExclusion } from './room-planner-api'
 
 const SLOTS = [
@@ -71,11 +72,9 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
     }
   }
 
-  // Get allocations for a specific room on selectedDate
   const getRoomAllocationsForDate = (roomId: number) =>
     allocations.filter((a) => a.roomId === roomId && a.date === selectedDate)
 
-  // Split rooms for the FAMS perimeter ring corridor layout
   const halfCount = Math.ceil(visibleRooms.length / 2)
   const topRowRooms = visibleRooms.slice(0, halfCount)
   const bottomRowRooms = visibleRooms.slice(halfCount)
@@ -105,25 +104,25 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
         }`}
         className={`group relative flex min-h-[5.5rem] flex-col justify-between rounded-xl border p-3 text-left transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
           isSelected
-            ? 'border-blue-500 bg-[#DBEAFE] shadow-sm ring-2 ring-blue-400/50'
+            ? 'border-primary bg-primary-subtle shadow-xs ring-2 ring-primary/40'
             : room.status !== 'ACTIVE'
               ? 'border-hairline bg-slate-100 text-slate-400 opacity-60'
               : isLockedWhole
                 ? 'border-amber-300 bg-amber-50/90 text-amber-950'
                 : lockedSlotCount > 0
                   ? 'border-amber-200 bg-amber-50/70 hover:border-primary'
-                  : 'border-[#FDE68A] bg-[#FFFBEB] hover:border-primary hover:shadow-xs'
+                  : 'border-amber-200 bg-amber-50/50 hover:border-primary hover:shadow-xs'
         }`}
       >
         <div className="flex items-start justify-between gap-1">
           <span className="font-bold text-sm text-ink group-hover:text-primary">{room.code}</span>
           {room.status === 'ACTIVE' && (
             <span
-              className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+              className={`rounded px-1.5 py-0.5 text-xs font-bold ${
                 isLockedWhole
                   ? 'bg-amber-200 text-amber-900'
                   : isSelected
-                    ? 'bg-blue-200 text-blue-900'
+                    ? 'bg-primary/20 text-primary'
                     : 'bg-emerald-100 text-emerald-800'
               }`}
             >
@@ -135,7 +134,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
           <span className="block font-medium">
             {room.capacity} chỗ · 35 m²
           </span>
-          <span className="block text-[11px]">
+          <span className="block text-xs">
             {room.status !== 'ACTIVE'
               ? 'Đang bảo trì'
               : isLockedWhole
@@ -171,7 +170,6 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Building Selector */}
           <label className="flex items-center gap-2 text-sm font-semibold text-ink">
             <span>Tòa:</span>
             <select
@@ -190,7 +188,6 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
             </select>
           </label>
 
-          {/* Floor selector tabs */}
           <div role="group" aria-label="Chọn tầng" className="flex rounded-lg border border-hairline p-0.5">
             {[2, 3, 4].map((number) => (
               <button
@@ -212,7 +209,6 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
             ))}
           </div>
 
-          {/* View mode toggle */}
           <div className="flex rounded-lg border border-hairline bg-canvas p-0.5">
             <button
               type="button"
@@ -236,12 +232,9 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
         </div>
       </div>
 
-      {/* Main Content Area */}
       <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,2.3fr)_minmax(19rem,1fr)]">
-        {/* Left Column: Sơ đồ mặt bằng hoặc Lưới thời khóa biểu */}
         {viewMode === 'canvas' ? (
-          <div className="flex flex-col justify-between rounded-2xl border border-hairline bg-[#FAFAFA] p-4">
-            {/* Top Row: Dãy phòng phía Bắc */}
+          <div className="flex flex-col justify-between rounded-2xl border border-hairline bg-canvas/40 p-4">
             <div className="mb-4">
               <div className="mb-2 flex items-center justify-between text-xs font-semibold text-ink-muted">
                 <span>DÃY PHÒNG HỌC PHÍA BẮC</span>
@@ -252,56 +245,45 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
               </div>
             </div>
 
-            {/* Middle Section: Ring corridor around FPT Central Courtyard */}
             <div className="my-2 grid grid-cols-[minmax(6.5rem,1fr)_minmax(12rem,2fr)_minmax(6.5rem,1fr)] gap-3 items-stretch min-h-[14rem]">
-              {/* West Side: Cầu thang bộ + Lối thoát hiểm */}
               <div className="flex flex-col justify-between gap-3 text-center text-xs font-semibold text-ink-muted">
-                <div
-                  className="flex flex-1 flex-col items-center justify-center rounded-xl border border-slate-300 p-3"
-                  style={{
-                    backgroundImage:
-                      'repeating-linear-gradient(45deg, #f1f5f9, #f1f5f9 10px, #e2e8f0 10px, #e2e8f0 20px)',
-                  }}
-                >
+                <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-slate-300 bg-slate-100 p-3">
                   <span className="font-bold text-slate-700">Cầu thang A</span>
-                  <span className="text-[10px] text-slate-500">Thoát hiểm</span>
+                  <span className="text-xs text-slate-500">Thoát hiểm</span>
                 </div>
-                <div className="rounded-xl border border-dashed border-slate-300 bg-white/70 p-2.5 text-[11px]">
+                <div className="rounded-xl border border-dashed border-slate-300 bg-surface/70 p-2.5 text-xs">
                   Hành lang Tây
                 </div>
               </div>
 
-              {/* Center Courtyard: Signature FAMS FPT Education Orange Courtyard */}
-              <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-orange-500 bg-gradient-to-br from-[#EA580C] to-[#C2410C] p-6 text-center text-white shadow-sm">
-                <div className="text-xl sm:text-2xl font-black tracking-wide drop-shadow-sm">
+              <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-primary bg-gradient-to-br from-primary to-primary-hover p-6 text-center text-white shadow-xs">
+                <div className="text-xl sm:text-2xl font-black tracking-wide drop-shadow-xs">
                   FPT <span className="font-light">Education</span>
                 </div>
                 <div className="mt-1 text-sm sm:text-base font-extrabold uppercase tracking-wider text-orange-100">
                   TRƯỜNG ĐẠI HỌC FPT
                 </div>
-                <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-[11px] font-medium backdrop-blur-xs">
+                <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-medium backdrop-blur-xs">
                   <span>Thông tầng & Giếng trời trung tâm · Tòa {building}</span>
                 </div>
               </div>
 
-              {/* East Side: WC Nam, WC Nữ, Thang máy */}
               <div className="flex flex-col justify-between gap-2 text-center text-xs font-semibold">
                 <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-2 text-emerald-800">
                   <span className="block font-bold">WC Nữ</span>
-                  <span className="text-[10px] text-emerald-600">Vệ sinh</span>
+                  <span className="text-xs text-emerald-600">Vệ sinh</span>
                 </div>
                 <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50/80 p-2 text-indigo-900">
                   <span className="font-bold">Thang máy</span>
-                  <span className="text-[10px] text-indigo-600">Trục 1–2</span>
+                  <span className="text-xs text-indigo-600">Trục 1–2</span>
                 </div>
                 <div className="rounded-xl border border-blue-300 bg-blue-50 p-2 text-blue-800">
                   <span className="block font-bold">WC Nam</span>
-                  <span className="text-[10px] text-blue-600">Vệ sinh</span>
+                  <span className="text-xs text-blue-600">Vệ sinh</span>
                 </div>
               </div>
             </div>
 
-            {/* Bottom Row: Dãy phòng phía Nam */}
             <div className="mt-4">
               <div className="mb-2 flex items-center justify-between text-xs font-semibold text-ink-muted">
                 <span>DÃY PHÒNG HỌC PHÍA NAM</span>
@@ -319,7 +301,6 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
             )}
           </div>
         ) : (
-          /* Grid View Mode: FAMS Timetable Matrix (image171.webp) */
           <div className="overflow-x-auto rounded-2xl border border-hairline bg-surface p-3">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="font-bold text-sm text-ink">
@@ -327,37 +308,37 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
               </h3>
               <span className="text-xs text-ink-muted">6 ca hành chính (75 phút/ca)</span>
             </div>
-            <table className="w-full min-w-[48rem] border-collapse text-left text-xs">
-              <thead>
-                <tr className="border-b border-hairline bg-[#FFF7ED] text-primary">
-                  <th className="p-2.5 font-bold uppercase sticky left-0 bg-[#FFF7ED]">Phòng</th>
+            <Table aria-label={`Lưới thời khóa biểu tầng ${floor}`}>
+              <TableHead>
+                <TableRow head>
+                  <TableHeaderCell className="sticky left-0 bg-table-header-bg">Phòng</TableHeaderCell>
                   {SLOTS.map((time, idx) => (
-                    <th key={time} className="p-2.5 font-bold border-l border-hairline">
+                    <TableHeaderCell key={time} className="border-l border-hairline">
                       Ca {idx + 1}
-                      <span className="block text-[10px] font-normal text-ink-muted">{time}</span>
-                    </th>
+                      <span className="block text-xs font-normal text-ink-muted">{time}</span>
+                    </TableHeaderCell>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
+                </TableRow>
+              </TableHead>
+              <TableBody>
                 {visibleRooms.map((room) => {
                   const isWholeLocked = roomLocked(room.id)
                   const dayAllocs = getRoomAllocationsForDate(room.id)
 
                   return (
-                    <tr key={room.id} className="border-b border-hairline hover:bg-canvas/50">
-                      <td className="p-2.5 font-bold sticky left-0 bg-surface border-r border-hairline">
+                    <TableRow key={room.id}>
+                      <TableCell className="font-bold sticky left-0 bg-surface border-r border-hairline">
                         <button
                           type="button"
                           onClick={() => setSelectedRoomId(room.id)}
                           className="text-left hover:text-primary"
                         >
                           {room.code}
-                          <span className="block text-[10px] font-normal text-ink-muted">
+                          <span className="block text-xs font-normal text-ink-muted">
                             {room.capacity} chỗ
                           </span>
                         </button>
-                      </td>
+                      </TableCell>
                       {SLOTS.map((_, slotIdx) => {
                         const slotNum = slotIdx + 1
                         const isSlotLocked = slotLocked(room.id, slotNum)
@@ -365,66 +346,65 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
 
                         if (isWholeLocked) {
                           return (
-                            <td key={slotNum} className="p-2 border-l border-hairline bg-slate-100 text-slate-400 text-center">
+                            <TableCell key={slotNum} className="p-2 border-l border-hairline bg-slate-100 text-slate-400 text-center">
                               Khóa cả đợt
-                            </td>
+                            </TableCell>
                           )
                         }
 
                         if (alloc) {
                           return (
-                            <td key={slotNum} className="p-2 border-l border-hairline bg-orange-50/70">
-                              <div className="rounded border-l-4 border-orange-500 bg-white p-1.5 shadow-2xs">
-                                <span className="font-bold text-orange-900 block">Đồ án #{alloc.projectId}</span>
-                                <span className="text-[10px] text-ink-muted block">
+                            <TableCell key={slotNum} className="p-2 border-l border-hairline bg-primary-subtle">
+                              <div className="rounded border-l-4 border-primary bg-surface p-1.5 shadow-2xs">
+                                <span className="font-bold text-primary block">Đồ án #{alloc.projectId}</span>
+                                <span className="text-xs text-ink-muted block">
                                   {alloc.startAt.slice(11, 16)}–{alloc.endAt.slice(11, 16)}
                                 </span>
                               </div>
-                            </td>
+                            </TableCell>
                           )
                         }
 
                         if (isSlotLocked) {
                           return (
-                            <td key={slotNum} className="p-2 border-l border-hairline bg-amber-50">
-                              <div className="flex flex-col items-center gap-1 text-[11px] text-amber-900 font-semibold">
+                            <TableCell key={slotNum} className="p-2 border-l border-hairline bg-amber-50">
+                              <div className="flex flex-col items-center gap-1 text-xs text-amber-900 font-semibold">
                                 <span>🔒 Đã khóa</span>
                                 <button
                                   type="button"
                                   onClick={() => toggleSlot(room.id, slotNum)}
-                                  className="text-[10px] text-amber-700 underline hover:text-amber-900"
+                                  className="text-xs text-amber-700 underline hover:text-amber-900"
                                 >
                                   Mở ca
                                 </button>
                               </div>
-                            </td>
+                            </TableCell>
                           )
                         }
 
                         return (
-                          <td key={slotNum} className="p-2 border-l border-hairline text-center group">
-                            <span className="text-[11px] text-emerald-700 font-medium group-hover:hidden">
+                          <TableCell key={slotNum} className="p-2 border-l border-hairline text-center group">
+                            <span className="text-xs text-emerald-700 font-medium group-hover:hidden">
                               Trống
                             </span>
                             <button
                               type="button"
                               onClick={() => toggleSlot(room.id, slotNum)}
-                              className="hidden group-hover:inline-block rounded border border-hairline bg-white px-2 py-0.5 text-[10px] font-semibold text-ink shadow-2xs hover:border-primary"
+                              className="hidden group-hover:inline-block rounded border border-hairline bg-surface px-2 py-0.5 text-xs font-semibold text-ink shadow-2xs hover:border-primary"
                             >
                               Khóa ca
                             </button>
-                          </td>
+                          </TableCell>
                         )
                       })}
-                    </tr>
+                    </TableRow>
                   )
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
 
-        {/* Right Sidebar: Room Details & 6-Slot Defenses (FAMS Panel Style) */}
         <aside className="rounded-2xl border border-hairline bg-surface p-4 shadow-xs">
           <div className="border-b border-hairline pb-3">
             <h3 className="font-bold text-base text-ink">Danh sách phòng · Tầng {floor}</h3>
@@ -442,15 +422,15 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                   onClick={() => setSelectedRoomId(room.id)}
                   className={`flex min-h-10 w-full items-center justify-between rounded-lg border px-3 text-left text-xs transition-colors ${
                     isSelected
-                      ? 'border-blue-400 bg-blue-50/70 font-semibold text-blue-900'
+                      ? 'border-primary bg-primary-subtle font-semibold text-primary'
                       : 'border-hairline bg-surface hover:bg-canvas text-ink'
                   }`}
                 >
                   <div className="flex items-center gap-2">
                     <span className="font-bold">{room.code}</span>
-                    <span className="text-[10px] text-ink-muted">CLASSROOM</span>
+                    <span className="text-xs text-ink-muted">CLASSROOM</span>
                   </div>
-                  <span className="text-[11px] text-ink-muted">
+                  <span className="text-xs text-ink-muted">
                     {isLocked ? 'Khóa đợt' : `${room.capacity} chỗ`}
                   </span>
                 </button>
@@ -501,7 +481,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                   <div className="mt-4">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-ink">Lịch 6 ca ngày {selectedDate}</span>
-                      <span className="text-[10px] text-ink-muted">Chi tiết nhóm & khóa ca</span>
+                      <span className="text-xs text-ink-muted">Chi tiết nhóm & khóa ca</span>
                     </div>
 
                     <div className="mt-2 space-y-2">
@@ -519,25 +499,25 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                               isLocked
                                 ? 'border-amber-300 bg-amber-50/80 text-amber-950'
                                 : alloc
-                                  ? 'border-orange-300 bg-orange-50/70 text-orange-950'
+                                  ? 'border-primary/30 bg-primary-subtle text-ink'
                                   : 'border-hairline bg-surface'
                             }`}
                           >
                             <div>
                               <div className="font-bold flex items-center gap-1.5">
                                 <span>Ca {slotNum}</span>
-                                <span className="font-normal text-[11px] text-ink-muted">({time})</span>
+                                <span className="font-normal text-xs text-ink-muted">({time})</span>
                               </div>
                               {alloc ? (
                                 <span className="mt-0.5 block font-semibold text-primary">
                                   🛡️ Đồ án #{alloc.projectId}
                                 </span>
                               ) : isLocked ? (
-                                <span className="mt-0.5 block text-[11px] text-amber-800">
+                                <span className="mt-0.5 block text-xs text-amber-800">
                                   🔒 Đã khóa không xếp
                                 </span>
                               ) : (
-                                <span className="mt-0.5 block text-[11px] text-emerald-700">
+                                <span className="mt-0.5 block text-xs text-emerald-700">
                                   🟢 Trống · Sẵn sàng
                                 </span>
                               )}
@@ -550,7 +530,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                               aria-pressed={isLocked}
                               className={`min-h-8 rounded-md px-2.5 py-1 text-xs font-bold disabled:opacity-50 transition-colors ${
                                 isLocked
-                                  ? 'border border-amber-400 bg-white text-amber-900 hover:bg-amber-100'
+                                  ? 'border border-amber-400 bg-surface text-amber-900 hover:bg-amber-100'
                                   : 'border border-hairline bg-canvas text-ink hover:border-primary'
                               }`}
                             >

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
+import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../components/ui/Table'
 import { RoomFloorPlan } from './RoomFloorPlan'
 import {
   applyDefenseSchedule,
@@ -246,30 +247,30 @@ export function RoomPlannerPage() {
               </div>
             )}
             <div className="mt-4 max-h-64 overflow-auto rounded-lg border border-hairline">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-[#FFF7ED] text-primary">
-                  <tr>
-                    <th className="p-2.5 font-bold">Đồ án</th>
-                    <th className="p-2.5 font-bold">Ngày</th>
-                    <th className="p-2.5 font-bold">Ca</th>
-                    <th className="p-2.5 font-bold">Thời gian</th>
-                    <th className="p-2.5 font-bold">Phòng</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table aria-label="Danh sách phân bổ lịch">
+                <TableHead>
+                  <TableRow head>
+                    <TableHeaderCell>Đồ án</TableHeaderCell>
+                    <TableHeaderCell>Ngày</TableHeaderCell>
+                    <TableHeaderCell>Ca</TableHeaderCell>
+                    <TableHeaderCell>Thời gian</TableHeaderCell>
+                    <TableHeaderCell>Phòng</TableHeaderCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
                   {preview.allocations.map((item) => (
-                    <tr key={item.projectId} className="border-t border-hairline hover:bg-surface-subtle">
-                      <td className="p-2.5 font-semibold">#{item.projectId}</td>
-                      <td className="p-2.5">{item.date}</td>
-                      <td className="p-2.5">Ca {item.slotNumber}</td>
-                      <td className="p-2.5 text-xs text-ink-muted">
+                    <TableRow key={item.projectId}>
+                      <TableCell className="font-semibold">#{item.projectId}</TableCell>
+                      <TableCell>{item.date}</TableCell>
+                      <TableCell>Ca {item.slotNumber}</TableCell>
+                      <TableCell className="text-xs text-ink-muted">
                         {item.startAt.slice(11, 16)} – {item.endAt.slice(11, 16)}
-                      </td>
-                      <td className="p-2.5 font-medium">{item.roomCode}</td>
-                    </tr>
+                      </TableCell>
+                      <TableCell className="font-medium">{item.roomCode}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
             <div className="mt-4 flex items-center gap-3">
               <button
