@@ -559,7 +559,7 @@ export function ProjectDefenseManagementPage() {
   return (
     <WorkspacePage title="Quản lý hội đồng & lịch bảo vệ" eyebrow={`Đồ án #${projectId}`} description="Khoa hoặc Primary quản lý hội đồng và lịch bảo vệ trong phạm vi được backend cấp.">
       <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
-      
+
       <div className="flex rounded-lg border border-hairline bg-canvas p-1 text-xs w-fit">
         <button
           type="button"
