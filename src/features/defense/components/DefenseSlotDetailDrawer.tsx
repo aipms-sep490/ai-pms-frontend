@@ -24,8 +24,9 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
   // Mock / Default Committee data for canvas preview
   const committeeMock: RoomPerson[] = [
     { id: 1, name: 'TS. Phạm Quốc Dũng', role: 'CHAIR', title: 'Chủ tịch Hội đồng', major: 'KTPM' },
-    { id: 2, name: 'ThS. Nguyễn Mai Phương', role: 'SECRETARY', title: 'Thư ký Hội đồng', major: 'KTPM' },
-    { id: 3, name: 'TS. Lê Văn Tuấn', role: 'REVIEWER', title: 'Giảng viên Phản biện', major: 'HTTT' },
+    { id: 2, name: 'ThS. Nguyễn Mai Phương', role: 'SECRETARY', title: 'Thư ký Hội đồng (Kế thừa Gate 1-3)', major: 'KTPM' },
+    { id: 3, name: 'TS. Lê Văn Tuấn', role: 'REVIEWER', title: 'Giảng viên Phản biện 1', major: 'HTTT' },
+    { id: 4, name: 'TS. Trần Đình Nam', role: 'REVIEWER', title: 'Giảng viên Phản biện 2', major: 'KTPM' },
   ]
 
   const studentsMock: RoomPerson[] = [
@@ -134,6 +135,43 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
                     Ngành: Kỹ thuật phần mềm (SE)
                   </span>
                 </div>
+              </div>
+
+              {/* Evaluator & Rubrics Workflow Section */}
+              <div className="rounded-xl border border-primary/20 bg-primary-subtle/30 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-[20px]" aria-hidden="true">fact_check</span>
+                    <h5 className="text-xs font-bold uppercase tracking-wider text-primary">Quy trình & Bộ Rubrics áp dụng</h5>
+                  </div>
+                  <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-bold text-primary border border-primary/20">
+                    4 Evaluators
+                  </span>
+                </div>
+                <p className="text-xs text-ink-muted">
+                  Thành viên hội đồng đóng vai trò là <strong>Evaluator</strong>, thực hiện đánh giá độc lập dựa trên quy trình bảo vệ Gate 4 và bộ Rubrics chuẩn được phê duyệt cho nhóm.
+                </p>
+                <div className="rounded-lg bg-surface border border-hairline p-2.5 text-xs space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-ink-muted">Bộ Rubric:</span>
+                    <span className="font-semibold text-ink">RUBRIC-DEFENSE-FA26 (100% trọng số)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-ink-muted">Phạm vi chấm:</span>
+                    <span className="font-semibold text-ink">COMMON + MAJOR-SPECIFIC</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-ink-muted">Tính kế thừa:</span>
+                    <span className="font-semibold text-emerald-700">✓ 1 thành viên kế thừa từ Gate 1-3</span>
+                  </div>
+                </div>
+                <a
+                  href="/evaluator/workspace"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-hover underline pt-1"
+                >
+                  <span>Mở không gian chấm điểm Rubric (Evaluator Workspace)</span>
+                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">open_in_new</span>
+                </a>
               </div>
 
               {/* Committee Section */}

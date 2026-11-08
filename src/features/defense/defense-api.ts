@@ -76,6 +76,9 @@ export interface PeriodDefenseSessionDto {
   status: string
   concurrencyToken: string
   canCancel: boolean
+  evaluatorRole?: string
+  processStage?: string
+  rubricStandard?: string
 }
 
 export const getPeriodDefenseSessions = (periodId: number, date?: string, signal?: AbortSignal) => {

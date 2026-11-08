@@ -126,8 +126,9 @@ export const DefenseCoordinatorView: React.FC = () => {
 
   const committeeMembers: RoomPerson[] = [
     { id: 1, name: 'TS. Phạm Quốc Dũng', role: 'CHAIR', title: 'Chủ tịch Hội đồng', major: 'KTPM' },
-    { id: 2, name: 'ThS. Nguyễn Mai Phương', role: 'SECRETARY', title: 'Thư ký Hội đồng', major: 'KTPM' },
-    { id: 3, name: 'TS. Lê Văn Tuấn', role: 'REVIEWER', title: 'Giảng viên Phản biện', major: 'HTTT' },
+    { id: 2, name: 'ThS. Nguyễn Mai Phương', role: 'SECRETARY', title: 'Thư ký Hội đồng (Kế thừa Gate 1-3)', major: 'KTPM' },
+    { id: 3, name: 'TS. Lê Văn Tuấn', role: 'REVIEWER', title: 'Giảng viên Phản biện 1', major: 'HTTT' },
+    { id: 4, name: 'TS. Trần Đình Nam', role: 'REVIEWER', title: 'Giảng viên Phản biện 2', major: 'KTPM' },
   ]
 
   const studentsMembers: RoomPerson[] = [
