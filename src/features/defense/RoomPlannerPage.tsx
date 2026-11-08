@@ -223,6 +223,7 @@ export function RoomPlannerPage() {
             selectedDate={selectedDate}
             exclusions={exclusions}
             onChange={changeExclusions}
+            allocations={preview?.allocations}
           />
         )}
 
