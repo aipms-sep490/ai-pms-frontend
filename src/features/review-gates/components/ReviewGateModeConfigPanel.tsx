@@ -333,7 +333,7 @@ export const ReviewGateModeConfigPanel: React.FC<ReviewGateModeConfigPanelProps>
                         <button
                           type="button"
                           onClick={() => onOpenRoomCanvas(gate.roomCode || 'A-201')}
-                          className="font-bold text-teal-700 hover:text-teal-900 underline"
+                          className="font-bold text-primary hover:text-primary-hover underline"
                         >
                           Sơ đồ phòng 2D ↗
                         </button>

@@ -127,7 +127,7 @@ export function StudentDashboardSummary() {
           <div className="card-hover-lift rounded-xl border border-hairline bg-card p-4.5 shadow-2xs">
             <div className="flex items-center justify-between text-xs text-ink-muted">
               <span className="font-semibold">Tiến độ học vụ (Gates)</span>
-              <span className="material-symbols-outlined text-[18px] text-teal-600" aria-hidden="true">verified</span>
+              <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">verified</span>
             </div>
             <div className="mt-2 flex items-baseline gap-2">
               <span className="text-2xl font-black tracking-tight text-ink tabular-nums">
@@ -139,7 +139,7 @@ export function StudentDashboardSummary() {
             </div>
             <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
               <div
-                className="h-full rounded-full bg-teal-600 transition-all duration-500"
+                className="h-full rounded-full bg-primary transition-all duration-500"
                 style={{ width: `${Math.min(100, Math.max(0, academicProgress ?? 0))}%` }}
               />
             </div>

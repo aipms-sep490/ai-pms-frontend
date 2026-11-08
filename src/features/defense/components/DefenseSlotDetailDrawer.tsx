@@ -142,7 +142,7 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
                   <h5 className="text-xs font-bold uppercase tracking-wider text-ink">
                     Hội đồng Thẩm định & Đánh giá ({committeeMock.length} thành viên)
                   </h5>
-                  <span className="text-xs text-teal-700 font-medium">HĐ #{session.committeeId}</span>
+                  <span className="text-xs text-primary font-medium">HĐ #{session.committeeId}</span>
                 </div>
                 <div className="divide-y divide-hairline rounded-xl border border-hairline bg-surface overflow-hidden">
                   {committeeMock.map((m) => (

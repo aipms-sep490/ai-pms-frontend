@@ -308,7 +308,7 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
                       <div className="text-xs text-ink-muted mt-0.5">
                         {room.building} · Tầng {room.floor}
                       </div>
-                      <div className="text-xs text-teal-700 font-medium mt-1">
+                      <div className="text-xs text-primary font-medium mt-1">
                         Sức chứa: {room.capacity} chỗ
                       </div>
                     </div>
@@ -323,7 +323,7 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
                       return (
                         <div role="cell" key={slot.slotNumber} className="flex-1 p-2 border-l border-hairline align-top min-h-24 min-w-[160px]">
                           {session ? (
-                            /* Occupied Slot Card (FAMS style with Teal / Emerald tone) */
+                            /* Occupied Slot Card (FAMS style with Primary Orange tone) */
                             <div
                               onClick={() => onSelectSession?.(session)}
                               className={`cursor-pointer rounded-xl border p-2.5 shadow-xs transition-all hover:scale-[1.02] hover:shadow-md ${
