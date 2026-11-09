@@ -17,7 +17,7 @@ export interface TopicPage { items: Topic[]; page: number; pageSize: number; tot
 export interface TopicFilters { academicSemesterId?: number; projectPeriodId?: number; departmentId?: number; majorId?: number; projectMode?: ProjectMode; status?: TopicStatus; search?: string; compatibleOnly?: boolean; mineOnly?: boolean; page?: number; pageSize?: number }
 export interface CreateTopic { projectPeriodId: number; code: string; leadDepartmentId: number; content: TopicContent }
 
-function query(filters: TopicFilters) { const params = new URLSearchParams(); Object.entries({ ...filters, page: filters.page ?? 1, pageSize: filters.pageSize ?? 20 }).forEach(([key, value]) => { if (value !== undefined && value !== '') params.set(key, String(value)) }); return params }
+function query(filters: TopicFilters) { const params = new URLSearchParams(); Object.entries({ ...filters, page: filters.page ?? 1, pageSize: filters.pageSize ?? 12 }).forEach(([key, value]) => { if (value !== undefined && value !== '') params.set(key, String(value)) }); return params }
 export const listTopics = (token: string, filters: TopicFilters = {}) => httpGet<TopicPage>(`${endpoints.topics}?${query(filters)}`, { accessToken: token })
 export const getTopic = (id: number, token: string) => httpGet<Topic>(`${endpoints.topics}/${id}`, { accessToken: token })
 export const createTopic = (input: CreateTopic, token: string) => httpPost<Topic>(endpoints.topics, input, { accessToken: token })
