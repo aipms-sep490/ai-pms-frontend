@@ -9,6 +9,8 @@ import type { ProjectTimelineDataDto, TaskDto, TaskStatusHistoryDto } from '../.
 import { taskStatusLabel, utcTimestamp } from '../../projects/utils/collaboration-workspace'
 import { TaskEvidenceAndComments } from '../components/TaskEvidenceAndComments'
 import { TaskDisciplinePanel } from '../components/TaskDisciplinePanel'
+import { TaskLifecycleStepper } from '../components/TaskLifecycleStepper'
+import { TaskReviewCallout } from '../components/TaskReviewCallout'
 import { useTaskExecutionCapabilities } from '../../execution/hooks/useTaskExecutionCapabilities'
 import { canUseTaskExecutionAction } from '../../execution/execution-authority'
 import * as disciplineApi from '../../projects/api/discipline-governance-api'
@@ -113,6 +115,15 @@ function TaskDetail({ id }: { id: number }) {
       <StatusBadge status={task.status} label={taskStatusLabel(task.status)} tone={taskStatusTone(task.status)} />
       <StatusBadge tone={taskPriorityTone(task.priority)} label={`Ưu tiên ${priorityLabels[task.priority ?? '']?.toLowerCase() ?? 'chưa chọn'}`} />
     </div>
+    <TaskLifecycleStepper status={task.status} />
+    <TaskReviewCallout
+      task={task}
+      canUpdateStatus={canUpdateStatus}
+      busy={mutation.busy}
+      onAccept={(reason) => mutation.run(() => services.task.updateTaskStatus(task.id, { newStatus: 'DONE', reason: reason ?? null, concurrencyToken: task.concurrencyToken }), reload, 'Đã nghiệm thu công việc đạt yêu cầu.')}
+      onRequestChanges={(reason) => mutation.run(() => services.task.updateTaskStatus(task.id, { newStatus: 'IN_PROGRESS', reason: reason.trim() || null, concurrencyToken: task.concurrencyToken }), reload, 'Đã chuyển trạng thái và yêu cầu chỉnh sửa.')}
+    />
+
     {error && <ExState message={error} retry={reload} />}{contextError && <ExState message={contextError} retry={reload} />}
     {timeline && !contextValid && <p className="ex-notice ex-notice-error" role="alert">Công việc này không thuộc đồ án đang xem. <Link className="ex-link" to={`${routeBase}/tasks`}>Về danh sách công việc</Link></p>}
     {mutation.error && <p className="ex-notice ex-notice-error" role="alert">{mutation.error}</p>}{mutation.notice && <p className="ex-notice" role="status">{mutation.notice}</p>}

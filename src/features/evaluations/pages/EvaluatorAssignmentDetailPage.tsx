@@ -105,7 +105,6 @@ export function EvaluatorAssignmentDetailPage() {
   })))
   const canFinalize = Boolean(scoringAllowed && !conflicted && draft?.status === 'DRAFT' && !dirty && draft.totalScore !== null && draft.missingCriterionIds.length === 0)
 
-
   const updateCriterion = (criterion: EvaluationScore, patch: Partial<FieldValues[number]>) => {
     setValues((current) => ({ ...current, [criterion.rubricCriterionId]: { ...(current[criterion.rubricCriterionId] ?? { score: '', comments: '' }), ...patch } }))
     setFieldErrors((current) => { const next = { ...current }; delete next[criterion.rubricCriterionId]; return next })
@@ -207,16 +206,59 @@ export function EvaluatorAssignmentDetailPage() {
     {state === 'empty' ? <section className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-semibold text-ink">Chưa có bản nháp đánh giá</h2><p className="mt-1 text-sm leading-6 text-ink-muted">Bạn có thể yêu cầu máy chủ tạo bản nháp cho đúng phân công này. Máy chủ sẽ kiểm tra cửa sổ đánh giá, gói bàn giao đã khóa và phạm vi hiện tại.</p>{scoringAllowed ? <button type="button" disabled={busy} onClick={() => void startDraft()} className="mt-4 min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Đang tạo…' : 'Tạo bản nháp đánh giá'}</button> : null}</section> : null}
 
     {state === 'ready' && draft ? <>
-      <section className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-semibold text-ink">Bộ tiêu chí áp dụng</h2><p className="mt-1 text-sm leading-6 text-ink-muted">Nhập điểm và nhận xét cho từng tiêu chí trong bộ đánh giá đã được công bố.</p></section>
-      <form className="evaluator-scoring-form" onSubmit={(event) => void save(event)} noValidate>
+      <div className="evaluator-sticky-scorebar">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Tiến trình chấm Rubrics:</span>
+          <span className="rounded-full bg-canvas px-2.5 py-0.5 text-xs font-bold text-ink">
+            {draft.scores.filter(c => (values[c.rubricCriterionId]?.score ?? '').trim() !== '').length} / {draft.scores.length} tiêu chí
+          </span>
+          {draft.scores.every(c => (values[c.rubricCriterionId]?.score ?? '').trim() !== '') ? (
+            <span className="rounded-full bg-status-success-bg px-2 py-0.5 text-xs font-semibold text-status-success-text">✓ Đã chấm đủ</span>
+          ) : (
+            <span className="rounded-full bg-status-warning-bg px-2 py-0.5 text-xs font-semibold text-status-warning-text">
+              Còn {draft.scores.filter(c => (values[c.rubricCriterionId]?.score ?? '').trim() === '').length} tiêu chí
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {scoringAllowed && editable ? (
+            <button
+              type="submit"
+              form="evaluator-scoring-form"
+              disabled={busy || conflicted}
+              aria-label="Lưu nhanh tiến trình"
+              className="inline-flex min-h-9 items-center justify-center rounded-lg bg-primary px-3.5 text-xs font-semibold text-white shadow-xs hover:bg-primary-hover disabled:opacity-50"
+            >
+              {busy ? 'Đang lưu…' : 'Lưu nhanh'}
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <section className="rounded-xl border border-hairline bg-card p-5">
+        <h2 className="font-semibold text-ink">Bộ tiêu chí áp dụng</h2>
+        <p className="mt-1 text-sm leading-6 text-ink-muted">Nhập điểm hoặc bấm chọn nhanh mức chất lượng gợi ý từ Rubric. Đối chiếu tài liệu ở khung bên trái khi chấm.</p>
+      </section>
+
+      <form id="evaluator-scoring-form" className="evaluator-scoring-form" onSubmit={(event) => void save(event)} noValidate>
         {scoreGroups(draft.scores).map(group => <div key={group.key} role={group.parentId == null ? undefined : 'group'} aria-label={group.parentId == null ? undefined : `Nhóm ${group.parentName ?? `#${group.parentId}`}`} className={group.parentId == null ? '' : 'space-y-3 border-l-2 border-primary/30 pl-4'}>
           {group.parentId != null && <h3 className="font-semibold text-ink">{group.parentName ?? `Nhóm tiêu chí #${group.parentId}`}</h3>}
           {group.scores.map(criterion => <section key={criterion.rubricCriterionId} className="rounded-xl border border-hairline bg-card p-5">
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]"><div className="min-w-0"><h2 className="break-words font-semibold text-ink">{criterion.criterionCode ? `${criterion.criterionCode} · ` : ""}{criterion.name}{criterion.isRequired ? <span aria-label="bắt buộc" className="ml-1 text-status-error-text">*</span> : null}</h2><p className="mt-1 break-words text-sm leading-6 text-ink-muted">{criterion.description || 'Không có mô tả.'} · Trọng số hiệu lực trong bộ tiêu chí: {formatPercent(criterion.effectiveWeightPercent ?? criterion.weightPercent)} · tối đa {formatScore(criterion.maxScore)}</p></div><label className="text-sm font-semibold text-ink-soft">Điểm<input aria-label={`Điểm ${criterion.name}`} aria-describedby={fieldErrors[criterion.rubricCriterionId] ? `score-error-${criterion.rubricCriterionId}` : undefined} value={values[criterion.rubricCriterionId]?.score ?? ''} onChange={(event) => updateCriterion(criterion, { score: event.target.value })} disabled={!scoringAllowed || !editable || busy} inputMode="decimal" type="number" min="0" max={criterion.maxScore} step="0.01" className="mt-1 block w-full rounded-lg border border-hairline bg-card px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50" />{(values[criterion.rubricCriterionId]?.score ?? '') === '' && <span className="mt-1 block text-xs font-normal text-ink-muted">— Chưa chấm</span>}</label></div>
 
-          {criterion.evidenceGuidance ? <p className="mt-2 text-sm text-ink-muted">Minh chứng dùng để chấm: {criterion.evidenceGuidance}</p> : null}
+          {criterion.evidenceGuidance ? (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary-subtle/50 p-2.5 text-xs text-ink-soft">
+              <span className="inline-flex shrink-0 rounded bg-primary px-1.5 py-0.5 font-bold uppercase tracking-wide text-white text-xs">Minh chứng gợi ý</span>
+              <span className="leading-relaxed">{criterion.evidenceGuidance}</span>
+            </div>
+          ) : null}
           {criterion.learningOutcome ? <p className="mt-1 text-sm text-ink-muted">Chuẩn đầu ra: {criterion.learningOutcome}</p> : null}
-          <CriterionLevelPanel levels={criterion.levels} />
+          <CriterionLevelPanel
+            levels={criterion.levels}
+            currentScore={values[criterion.rubricCriterionId]?.score}
+            onSelectScore={scoringAllowed && editable && !busy ? (score) => updateCriterion(criterion, { score: String(score) }) : undefined}
+            disabled={!scoringAllowed || !editable || busy}
+          />
           {fieldErrors[criterion.rubricCriterionId] ? <p id={`score-error-${criterion.rubricCriterionId}`} className="mt-2 text-sm text-status-error-text">{fieldErrors[criterion.rubricCriterionId]}</p> : null}
           <label className="mt-3 block text-sm font-semibold text-ink-soft">Nhận xét tiêu chí<textarea aria-label={`Nhận xét ${criterion.name}`} value={values[criterion.rubricCriterionId]?.comments ?? ''} onChange={(event) => updateCriterion(criterion, { comments: event.target.value })} disabled={!scoringAllowed || !editable || busy} maxLength={2000} className="mt-1 block min-h-24 w-full rounded-lg border border-hairline bg-card px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50" /></label>
           </section>)}

@@ -11,6 +11,8 @@ import type { ProjectTimelineDataDto, TaskDto, TaskStatusHistoryDto } from '../.
 import { taskStatusLabel, utcTimestamp } from '../../projects/utils/collaboration-workspace'
 import { TaskEvidenceAndComments } from './TaskEvidenceAndComments'
 import { TaskDisciplinePanel } from './TaskDisciplinePanel'
+import { TaskLifecycleStepper } from './TaskLifecycleStepper'
+import { TaskReviewCallout } from './TaskReviewCallout'
 import { useTaskExecutionCapabilities } from '../../execution/hooks/useTaskExecutionCapabilities'
 import { canUseTaskExecutionAction } from '../../execution/execution-authority'
 import * as disciplineApi from '../../projects/api/discipline-governance-api'
@@ -196,6 +198,14 @@ export function TaskDetailModal({
           <ExState loading message="Đang tải thông tin công việc…" />
         ) : task ? (
           <>
+            <TaskLifecycleStepper status={task.status} />
+            <TaskReviewCallout
+              task={task}
+              canUpdateStatus={canUpdateStatus}
+              busy={mutation.busy}
+              onAccept={(reason) => mutation.run(() => services.task.updateTaskStatus(task.id, { newStatus: 'DONE', reason: reason ?? null, concurrencyToken: task.concurrencyToken }), reload, 'Đã nghiệm thu công việc đạt yêu cầu.')}
+              onRequestChanges={(reason) => mutation.run(() => services.task.updateTaskStatus(task.id, { newStatus: 'IN_PROGRESS', reason: reason.trim() || null, concurrencyToken: task.concurrencyToken }), reload, 'Đã chuyển trạng thái và yêu cầu chỉnh sửa.')}
+            />
             {editing === 'content' && (
               <TaskContentEditor
                 task={task}
