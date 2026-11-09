@@ -23,7 +23,7 @@ export class TeamManagementOperationError extends Error {
   }
 }
 
-const emptyPage = <T,>(page = 1, pageSize = 20): PagedResult<T> => ({
+const emptyPage = <T,>(page = 1, pageSize = 12): PagedResult<T> => ({
   items: [], page, pageSize, totalCount: 0, totalPages: 0,
 })
 
@@ -126,7 +126,7 @@ export function useTeamManagement() {
       const result = await services.team.getInvitationCandidates(team.id, {
         search: candidateSearch.trim() || undefined,
         page: candidatePage,
-        pageSize: 20,
+        pageSize: 12,
       })
       setCandidates(result)
       setCandidateError(null)

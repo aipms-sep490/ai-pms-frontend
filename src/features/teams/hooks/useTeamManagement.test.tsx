@@ -24,7 +24,7 @@ const team = {
   ], eligibility: { canRegister: false, rosterLocked: false, reasons: [] },
 }
 
-const page = (items = [invitation]) => ({ items, page: 1, pageSize: 20, totalCount: items.length, totalPages: 1 })
+const page = (items = [invitation]) => ({ items, page: 1, pageSize: 12, totalCount: items.length, totalPages: 1 })
 
 function journeyState() {
   return {
