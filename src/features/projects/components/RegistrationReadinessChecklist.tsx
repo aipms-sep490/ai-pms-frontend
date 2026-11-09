@@ -27,7 +27,7 @@ export function RegistrationReadinessChecklist({ reasons, resolveMajorName, titl
       </ul>
       {needsSupervision && <>
         <p className="mt-3 text-xs text-status-warning-text">Lưu thay đổi đề cương trước khi chuyển sang mời giảng viên.</p>
-        <Link to="/project/supervisor" className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white hover:bg-primary/90">
+        <Link to="/project/supervisor" className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-hover">
           <span className="material-symbols-outlined text-[16px]" aria-hidden="true">person_add</span>
           Mời giảng viên hướng dẫn / Mentor
         </Link>
