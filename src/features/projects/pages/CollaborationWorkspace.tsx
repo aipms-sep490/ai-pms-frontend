@@ -22,7 +22,8 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
   const [created, setCreated] = useState(false)
   const createRef = useRef<HTMLButtonElement>(null)
   const closeCreate = () => { setCreating(false); createRef.current?.focus() }
-  const now = Date.now()
+  const [mountNow] = useState(Date.now)
+  const now = data.updatedAt?.getTime() ?? mountNow
   const members = team?.members ?? []
   // Persisted membership personalizes the read model only; every mutation is
   // still authorized by its Backend endpoint and project execution state.
@@ -90,8 +91,8 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
 
   return <div className="collaboration-workspace">
     <ReviewGatesMockNotice />
-    <header className="cw-page-heading">
-      <div><p className="cw-eyebrow">{team?.name || project.teamName || 'Nhóm đồ án'} <span> / </span> {project.code}</p>
+    <header className="workspace-heading cw-page-heading">
+      <div className="workspace-heading-copy"><span className="workspace-kicker cw-eyebrow">{team?.name || project.teamName || 'Nhóm đồ án'} <span> / </span> {project.code}</span>
         <h1>{isTeamLeader ? 'Điều phối đồ án' : 'Công việc của tôi'}</h1><p className="cw-page-description">{isTeamLeader ? 'Theo dõi tiến độ, phân công công việc và hỗ trợ nhóm xử lý vướng mắc.' : 'Ưu tiên việc được giao, hạn gần, vướng mắc và các mốc cần phối hợp.'}</p>
       </div>
       <div className="cw-heading-actions"><button type="button" className="cw-button" onClick={data.reload} disabled={isLoading} aria-label="Cập nhật dữ liệu nhóm">
