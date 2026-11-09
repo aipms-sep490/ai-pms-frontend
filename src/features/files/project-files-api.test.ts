@@ -49,7 +49,7 @@ describe('project file repository contract', () => {
     await downloadProjectFile(11)
     await deleteProjectFile(11)
 
-    expect(fetch.mock.calls[0][0]).toBe('/api/v1/projects/9/files?page=2&pageSize=20&search=minutes&contentType=application%2Fpdf&uploadedBy=4&from=2026-09-01T00%3A00%3A00.000Z&to=2026-10-01T00%3A00%3A00.000Z&parentType=MEETING')
+    expect(fetch.mock.calls[0][0]).toBe('/api/v1/projects/9/files?page=2&pageSize=12&search=minutes&contentType=application%2Fpdf&uploadedBy=4&from=2026-09-01T00%3A00%3A00.000Z&to=2026-10-01T00%3A00%3A00.000Z&parentType=MEETING')
     expect(fetch.mock.calls[1][0]).toBe('/api/v1/files')
     expect(fetch.mock.calls[1][1].body.get('parentType')).toBe('TASK')
     expect(fetch.mock.calls[1][1].body.get('parentId')).toBe('42')
