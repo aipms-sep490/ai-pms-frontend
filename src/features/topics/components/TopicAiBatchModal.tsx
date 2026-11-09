@@ -441,9 +441,10 @@ export function TopicAiBatchPreview({
       )}
 
       {applied ? (
-        <div role="status" className="space-y-2 rounded-lg border border-status-success-border bg-status-success-bg p-3 text-xs text-status-success-text">
-          <p className="font-semibold">
-            ✓ Đã tạo {applied.createdCount} bản nháp đề tài (DRAFT){applied.skippedCount > 0 ? `, bỏ qua ${applied.skippedCount} dòng không hợp lệ` : ''}.
+        <div role="status" className="space-y-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-3 text-xs text-ink shadow-2xs">
+          <p className="flex items-center gap-1.5 font-semibold text-ink">
+            <span className="material-symbols-outlined text-[16px] text-status-success-text" aria-hidden="true">check_circle</span>
+            <span>Đã tạo {applied.createdCount} bản nháp đề tài (DRAFT){applied.skippedCount > 0 ? `, bỏ qua ${applied.skippedCount} dòng không hợp lệ` : ''}.</span>
           </p>
           {applied.skipped.length > 0 && (
             <ul className="space-y-1 text-status-warning-text">

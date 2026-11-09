@@ -75,7 +75,12 @@ export function TopicContentForm({ initial = emptyTopicContent, catalog, busy, o
         </div>
       )}
       {message && <div ref={summary} role="alert" tabIndex={-1} className="rounded-xl border border-status-error-border bg-status-error-bg p-3.5 text-sm text-status-error-text">{message}</div>}
-      {success && <p role="status" className="rounded-xl border border-status-success-border bg-status-success-bg px-3.5 py-2.5 text-sm font-medium text-status-success-text">{success}</p>}
+      {success && (
+        <p role="status" className="flex items-center gap-2 rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card px-3.5 py-2.5 text-sm font-medium text-ink shadow-2xs">
+          <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+          <span>{success}</span>
+        </p>
+      )}
       {catalog.loading && <p role="status" className="text-sm text-ink-muted">Đang tải kỳ đăng ký và danh mục ngành…</p>}
       {catalog.error && (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">
