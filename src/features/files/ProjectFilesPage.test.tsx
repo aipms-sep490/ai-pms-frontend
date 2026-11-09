@@ -19,7 +19,7 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); api.uploadProjectFile.mockReset
 describe('ProjectFilesPage', () => {
   it('shows acknowledged progress, retains the selected parent and file after pause, and refreshes only after completion', async () => {
     auth.roles = ['LECTURER']
-    api.getProjectFiles.mockResolvedValue({ items: [], page: 1, pageSize: 20, totalCount: 0 })
+    api.getProjectFiles.mockResolvedValue({ items: [], page: 1, pageSize: 12, totalCount: 0 })
     const session = { sessionId: 'a'.repeat(32), parentType: 'TASK', parentId: 42, fileName: 'large.pdf', totalBytes: 6, nextOffset: 2, chunkSizeBytes: 2, expiresAt: '2099-01-01T00:00:00Z', state: 'UPLOADING', file: null, error: null }
     api.uploadProjectFile.mockImplementationOnce((_type, _id, _file, options) => {
       options.onProgress(session)
@@ -48,7 +48,7 @@ describe('ProjectFilesPage', () => {
 
   it('keeps the draft when background processing fails and does not announce success', async () => {
     auth.roles = ['LECTURER']
-    api.getProjectFiles.mockResolvedValue({ items: [], page: 1, pageSize: 20, totalCount: 0 })
+    api.getProjectFiles.mockResolvedValue({ items: [], page: 1, pageSize: 12, totalCount: 0 })
     api.uploadProjectFile.mockRejectedValueOnce(new Error('Không đủ dung lượng lưu trữ.'))
     render(<MemoryRouter initialEntries={['/lecturer/projects/9/files']}><Routes><Route path="/lecturer/projects/:projectId/files" element={<ProjectFilesPage />} /></Routes></MemoryRouter>)
     fireEvent.click((await screen.findAllByRole('button', { name: /Đính kèm tệp/ }))[0])
@@ -63,15 +63,15 @@ describe('ProjectFilesPage', () => {
     expect(api.getProjectFiles).toHaveBeenCalledTimes(1)
   })
   it.each([false, undefined])('does not offer deletion to the uploader when server capability is %s', async canDelete => {
-    api.getProjectFiles.mockResolvedValue({ items: [{ id: 4, parentType: 'TASK', parentId: 8, fileName: 'accepted.pdf', contentType: 'application/pdf', sizeBytes: 2048, uploadedBy: 2, createdAt: '2026-09-27T00:00:00Z', canDelete }], page: 1, pageSize: 20, totalCount: 1 })
+    api.getProjectFiles.mockResolvedValue({ items: [{ id: 4, parentType: 'TASK', parentId: 8, fileName: 'accepted.pdf', contentType: 'application/pdf', sizeBytes: 2048, uploadedBy: 2, createdAt: '2026-09-27T00:00:00Z', canDelete }], page: 1, pageSize: 12, totalCount: 1 })
     render(<MemoryRouter initialEntries={['/department/projects/9/files']}><Routes><Route path="/department/projects/:projectId/files" element={<ProjectFilesPage />} /></Routes></MemoryRouter>)
     await screen.findByText('accepted.pdf')
     expect(screen.queryByRole('button', { name: 'Xóa' })).toBeNull()
   })
 
   it('uses the server delete capability and confirms before deleting and refreshing the list', async () => {
-    api.getProjectFiles.mockResolvedValueOnce({ items: [{ id: 4, parentType: 'TASK', parentId: 8, fileName: 'editable.pdf', contentType: 'application/pdf', sizeBytes: 2048, uploadedBy: 7, createdAt: '2026-09-27T00:00:00Z', canDelete: true }], page: 1, pageSize: 20, totalCount: 1 })
-      .mockResolvedValue({ items: [], page: 1, pageSize: 20, totalCount: 0 })
+    api.getProjectFiles.mockResolvedValueOnce({ items: [{ id: 4, parentType: 'TASK', parentId: 8, fileName: 'editable.pdf', contentType: 'application/pdf', sizeBytes: 2048, uploadedBy: 7, createdAt: '2026-09-27T00:00:00Z', canDelete: true }], page: 1, pageSize: 12, totalCount: 1 })
+      .mockResolvedValue({ items: [], page: 1, pageSize: 12, totalCount: 0 })
     api.deleteProjectFile.mockResolvedValue(undefined)
     render(<MemoryRouter initialEntries={['/department/projects/9/files']}><Routes><Route path="/department/projects/:projectId/files" element={<ProjectFilesPage />} /></Routes></MemoryRouter>)
     fireEvent.click(await screen.findByRole('button', { name: 'Xóa' }))
@@ -84,12 +84,12 @@ describe('ProjectFilesPage', () => {
   })
 
   it('loads a scoped department repository and applies file filters without exposing upload controls', async () => {
-    api.getProjectFiles.mockResolvedValue({ items: [{ id: 4, parentType: 'TASK', parentId: 8, fileName: 'minutes.pdf', contentType: 'application/pdf', sizeBytes: 2048, uploadedBy: 7, createdAt: '2026-09-27T00:00:00Z' }], page: 1, pageSize: 20, totalCount: 1 })
+    api.getProjectFiles.mockResolvedValue({ items: [{ id: 4, parentType: 'TASK', parentId: 8, fileName: 'minutes.pdf', contentType: 'application/pdf', sizeBytes: 2048, uploadedBy: 7, createdAt: '2026-09-27T00:00:00Z' }], page: 1, pageSize: 12, totalCount: 1 })
     render(<MemoryRouter initialEntries={['/department/projects/9/files']}><Routes><Route path="/department/projects/:projectId/files" element={<ProjectFilesPage />} /></Routes></MemoryRouter>)
 
     expect(await screen.findByText('minutes.pdf')).toBeTruthy()
     expect(screen.queryByRole('button', { name: /Đính kèm tệp/ })).toBeNull()
     fireEvent.click(screen.getByRole('tab', { name: 'Công việc' }))
-    await waitFor(() => expect(api.getProjectFiles).toHaveBeenLastCalledWith(9, expect.objectContaining({ parentType: 'TASK', page: 1, pageSize: 20 })))
+    await waitFor(() => expect(api.getProjectFiles).toHaveBeenLastCalledWith(9, expect.objectContaining({ parentType: 'TASK', page: 1, pageSize: 12 })))
   })
 })

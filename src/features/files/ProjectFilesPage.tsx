@@ -44,7 +44,7 @@ export function ProjectFilesPage() {
   const activeStudentProject = role === 'student' && journey.journeyState === 'ACTIVE' && journey.project?.id === projectId
   const canUpload = activeStudentProject || (role === 'lecturer' && Number.isInteger(routeId) && routeId > 0)
 
-  const [filters, setFilters] = useState<ProjectFileFilters>({ page: 1, pageSize: 20 })
+  const [filters, setFilters] = useState<ProjectFileFilters>({ page: 1, pageSize: 12 })
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
   const [sortBy, setSortBy] = useState<FileSort>('newest')
@@ -195,7 +195,7 @@ export function ProjectFilesPage() {
     setToDate('')
     setSortBy('newest')
     setError(null)
-    setFilters({ page: 1, pageSize: filters.pageSize ?? 20 })
+    setFilters({ page: 1, pageSize: filters.pageSize ?? 12 })
   }
 
   const activeFilterChips = useMemo<FilterChipItem[]>(() => {
@@ -297,9 +297,8 @@ export function ProjectFilesPage() {
       description="Tìm và quản lý tài liệu theo công việc, báo cáo và cuộc họp của nhóm."
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" className="ex-button" disabled={loading} onClick={() => void load()}>
+          <button type="button" className="ex-button ex-button-icon" aria-label="Làm mới" title="Làm mới" disabled={loading} onClick={() => void load()}>
             <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
-            Làm mới
           </button>
           {canUpload && (
             <button type="button" className="ex-button ex-button-primary" onClick={() => { setError(null); setUploadOpen(true) }}>
@@ -317,8 +316,9 @@ export function ProjectFilesPage() {
         </div>
       )}
       {notice && (
-        <div role="status" className="flex items-center gap-2 rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">
-          <span className="material-symbols-outlined text-[19px]" aria-hidden="true">check_circle</span>{notice}
+        <div role="status" className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-sm text-ink shadow-xs">
+          <span className="material-symbols-outlined text-[19px] text-status-success-text" aria-hidden="true">check_circle</span>
+          <span>{notice}</span>
         </div>
       )}
 
