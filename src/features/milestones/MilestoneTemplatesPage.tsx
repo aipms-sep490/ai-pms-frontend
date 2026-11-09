@@ -3,8 +3,10 @@ import { Button } from '../../components/ui/Button'
 import { ConfigModeFrame } from '../../components/ui/ConfigModeFrame'
 import { FilterToolbar, type ActiveFilterChip } from '../../components/ui/FilterToolbar'
 import { Modal } from '../../components/ui/Modal'
+import { Pagination } from '../../components/ui/Pagination'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import { WorkspaceEmptyState } from '../../components/ui/WorkspaceState'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { HttpError, httpGet } from '../../services/http/http-client'
@@ -64,6 +66,8 @@ export function MilestoneTemplatesPage() {
       return true
     })
   }, [search, statusFilter, templates])
+
+  const templatePagination = useClientPagination(filteredTemplates, 10)
 
   const activeChips = useMemo<ActiveFilterChip[]>(() => {
     const chips: ActiveFilterChip[] = []
@@ -141,8 +145,8 @@ export function MilestoneTemplatesPage() {
       eyebrow="Quản trị học vụ"
       description="Chuẩn bị bộ mốc dùng chung, quản lý phiên bản và áp dụng cho từng kỳ đồ án."
       action={
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" icon="refresh" disabled={busy || loading} onClick={() => void load()}>Tải lại</Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={busy || loading} onClick={() => void load()} />
           <Button variant="secondary" icon="auto_awesome" disabled={busy} onClick={() => { setAiError(''); setAiDraftOpen(true) }}>Soạn nháp bằng AI</Button>
           <Button disabled={busy} icon="add" onClick={() => { setEditor({ name: '', description: '' }); setMode('edit') }}>Tạo mẫu</Button>
         </div>
@@ -197,8 +201,8 @@ export function MilestoneTemplatesPage() {
         )}
       </ConfigModeFrame>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 items-start">
-        <section className="ex-panel lg:col-span-5">
+      <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-12">
+        <section className="ex-panel flex flex-col lg:col-span-5">
           <div className="ex-panel-heading">
             <div>
               <h2>Các mẫu hiện có</h2>
@@ -250,62 +254,76 @@ export function MilestoneTemplatesPage() {
               />
             </div>
           ) : (
-            <ul>
-              {filteredTemplates.map(item => {
-                const latest = item.versions.at(-1)
-                const isSelected = selectedId === item.id
-                return (
-                  <li
-                    key={item.id}
-                    className={`flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-5 py-4 last:border-b-0 transition-colors ${
-                      isSelected ? 'bg-primary-subtle/40' : 'hover:bg-canvas'
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      className="min-w-0 flex-1 text-left"
-                      aria-pressed={isSelected}
-                      onClick={() => { setSelectedId(item.id); setVersionId(null); setItemEditor(null) }}
+            <>
+              <ul className="flex-1">
+                {templatePagination.paginatedItems.map(item => {
+                  const latest = item.versions.at(-1)
+                  const isSelected = selectedId === item.id
+                  return (
+                    <li
+                      key={item.id}
+                      className={`flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-5 py-4 last:border-b-0 transition-colors ${
+                        isSelected ? 'bg-primary-subtle/40' : 'hover:bg-canvas'
+                      }`}
                     >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <strong className="text-primary">{item.name}</strong>
-                        {latest && (
-                          <StatusBadge
-                            tone={latest.status === 'PUBLISHED' ? 'success' : 'warning'}
-                            label={latest.status === 'PUBLISHED' ? 'Đã công bố' : 'Bản nháp'}
-                          />
-                        )}
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 text-left"
+                        aria-pressed={isSelected}
+                        onClick={() => { setSelectedId(item.id); setVersionId(null); setItemEditor(null) }}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <strong className="text-primary">{item.name}</strong>
+                          {latest && (
+                            <StatusBadge
+                              tone={latest.status === 'PUBLISHED' ? 'success' : 'warning'}
+                              label={latest.status === 'PUBLISHED' ? 'Đã công bố' : 'Bản nháp'}
+                            />
+                          )}
+                        </div>
+                        <span className="mt-1 block ex-muted">
+                          {item.description || 'Chưa có mô tả'} · {item.versions.length} phiên bản
+                        </span>
+                      </button>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          className="ex-text-button"
+                          disabled={busy}
+                          onClick={() => { setEditor({ id: item.id, name: item.name, description: item.description || '' }); setMode('edit') }}
+                        >
+                          Sửa
+                        </button>
+                        <button
+                          type="button"
+                          className="ex-text-button ex-danger-text"
+                          disabled={busy}
+                          onClick={() => void remove(`mẫu “${item.name}”`, () => api.deleteMilestoneTemplate(item.id))}
+                        >
+                          Xóa
+                        </button>
                       </div>
-                      <span className="mt-1 block ex-muted">
-                        {item.description || 'Chưa có mô tả'} · {item.versions.length} phiên bản
-                      </span>
-                    </button>
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        className="ex-text-button"
-                        disabled={busy}
-                        onClick={() => { setEditor({ id: item.id, name: item.name, description: item.description || '' }); setMode('edit') }}
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        type="button"
-                        className="ex-text-button ex-danger-text"
-                        disabled={busy}
-                        onClick={() => void remove(`mẫu “${item.name}”`, () => api.deleteMilestoneTemplate(item.id))}
-                      >
-                        Xóa
-                      </button>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
+                    </li>
+                  )
+                })}
+              </ul>
+              {templatePagination.showPagination && (
+                <div className="border-t border-hairline px-5 py-3">
+                  <Pagination
+                    page={templatePagination.page}
+                    pages={templatePagination.pages}
+                    total={templatePagination.total}
+                    pageSize={templatePagination.pageSize}
+                    onPage={templatePagination.setPage}
+                    onPageSizeChange={templatePagination.setPageSize}
+                  />
+                </div>
+              )}
+            </>
           )}
         </section>
 
-        <section className="ex-panel lg:col-span-7">
+        <section className="ex-panel flex flex-col lg:col-span-7">
           {selected ? (
             <>
               <div className="ex-panel-heading">
