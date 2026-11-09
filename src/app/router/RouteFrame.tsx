@@ -5,6 +5,6 @@ import { PageLoading } from '../../components/ui/PageLoading'
 
 export function RouteFrame() {
   const { pathname } = useLocation()
-  useLayoutEffect(() => { document.title = `${getBreadcrumbForPath(pathname)} · AI-PMS` }, [pathname])
+  useLayoutEffect(() => { document.title = `${getBreadcrumbForPath(pathname)} · PMS` }, [pathname])
   return <Suspense fallback={<PageLoading fullPage label="Đang tải trang…" />}><Outlet /></Suspense>
 }

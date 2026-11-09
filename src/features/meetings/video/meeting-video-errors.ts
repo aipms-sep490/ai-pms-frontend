@@ -1,7 +1,7 @@
 import { HttpError } from '../../../services/http/http-client'
 
 const videoErrorMessages: Record<string, string> = {
-  VIDEO_NOT_ENABLED: 'Cuộc họp này chưa bật Video trong AI-PMS.',
+  VIDEO_NOT_ENABLED: 'Cuộc họp này chưa bật Video trong PMS.',
   VIDEO_SESSION_NOT_STARTED: 'Người tổ chức chưa mở phòng họp.',
   VIDEO_SESSION_ALREADY_ACTIVE: 'Phòng họp đang hoạt động.',
   VIDEO_SESSION_ENDED: 'Phòng họp đã kết thúc.',

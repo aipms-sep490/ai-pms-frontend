@@ -26,7 +26,7 @@ export function AssistantDraftCard({ draft, onUse }: { draft: AssistantDraft; on
       {draft.meeting.startAt && <p>Bắt đầu: {formatMeetingTime(draft.meeting.startAt)} (giờ Việt Nam)</p>}
       {draft.meeting.endAt && <p>Kết thúc: {formatMeetingTime(draft.meeting.endAt)}</p>}
       {draft.meeting.meetingDeliveryMode && <p>Hình thức: {({ ONSITE: 'Tại chỗ', REMOTE: 'Từ xa', HYBRID: 'Kết hợp' })[draft.meeting.meetingDeliveryMode]}</p>}
-      {draft.meeting.videoChannel === 'IN_APP_VIDEO' && <p>Kênh đề xuất: Video trong AI-PMS (có thể đổi tại biểu mẫu).</p>}
+      {draft.meeting.videoChannel === 'IN_APP_VIDEO' && <p>Kênh đề xuất: Video trong PMS (có thể đổi tại biểu mẫu).</p>}
       {draft.meeting.inviteAll && <p>Chọn sẵn tất cả thành viên và giảng viên trong danh sách được phép mời của đồ án.</p>}
     </div>}
     <p>Chưa lưu hoặc gửi dữ liệu. Thông tin đã xác định sẽ được điền sẵn; kiểm tra và bổ sung mục còn thiếu trước khi lưu.</p>

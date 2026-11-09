@@ -26,7 +26,7 @@ it('prefills noon Vietnam time, in-app video and late-loading authorized partici
   expect((screen.getByLabelText('Bắt đầu (giờ Việt Nam)') as HTMLInputElement).value).toBe('2026-11-04T12:00')
   expect((screen.getByLabelText('Kết thúc (không bắt buộc)') as HTMLInputElement).value).toBe('')
   expect((screen.getByLabelText('Từ xa') as HTMLInputElement).checked).toBe(true)
-  expect((screen.getByLabelText('Video trong AI-PMS') as HTMLInputElement).checked).toBe(true)
+  expect((screen.getByLabelText('Video trong PMS') as HTMLInputElement).checked).toBe(true)
   expect(screen.queryByLabelText('Liên kết họp trực tuyến')).toBeNull()
   view.rerender(<MeetingScheduleForm {...props} candidates={candidates} />)
   expect((screen.getByRole('checkbox', { name: /Member/ }) as HTMLInputElement).checked).toBe(true)
