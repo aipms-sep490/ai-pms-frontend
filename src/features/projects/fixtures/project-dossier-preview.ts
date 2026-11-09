@@ -94,7 +94,7 @@ export const projectDossierPreview: ProjectDossier = {
       date: '15/08/2026',
       status: 'completed',
       decision: 'Chấp thuận đề cương sơ bộ',
-      reviewer: 'Hệ thống AI-PMS (Tự động hợp thức hóa số lượng thành viên)',
+      reviewer: 'Hệ thống PMS (Tự động hợp thức hóa số lượng thành viên)',
       note: 'Nhóm đủ 5 thành viên đa ngành (SE + UI/UX + AI + QA), đạt điều kiện mở đề tài.',
     },
     {

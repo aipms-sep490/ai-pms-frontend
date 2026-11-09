@@ -141,7 +141,7 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
                   <span>Bảng viết 01</span>
                 </div>
 
-                {/* Center Projector Screen (FAMS / AI-PMS Presentation) */}
+                {/* Center Projector Screen (FAMS / PMS Presentation) */}
                 <div className="col-span-6 h-28 rounded-xl bg-slate-900 border-4 border-slate-800 shadow-md flex flex-col items-center justify-center p-3 text-center text-white relative overflow-hidden group">
                   <div className="absolute top-2 left-3 flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-red-500 animate-ping" />

@@ -15,7 +15,7 @@ const studentScript: TourScript = {
   role: 'student',
   label: 'Hướng dẫn sinh viên',
   steps: [
-    { id: 'welcome', title: 'Chào mừng đến AI-PMS', body: 'Đây là không gian theo dõi đồ án của nhóm bạn: từ lập nhóm, đăng ký đề tài, thực hiện cho tới nghiệm thu. Hãy đi qua vài bước ngắn để làm quen.', placement: 'center' },
+    { id: 'welcome', title: 'Chào mừng đến PMS', body: 'Đây là không gian theo dõi đồ án của nhóm bạn: từ lập nhóm, đăng ký đề tài, thực hiện cho tới nghiệm thu. Hãy đi qua vài bước ngắn để làm quen.', placement: 'center' },
     { id: 'nav', target: TOUR_ANCHOR.sidebar, title: 'Thanh điều hướng đồ án', body: 'Mọi màn hình của nhóm nằm ở đây. Một số mục chỉ hiện khi đồ án đã bắt đầu, nên danh sách sẽ đầy dần theo tiến độ.', fallbackBody: 'Menu bên trái sẽ hiện các màn hình của nhóm khi thông tin đồ án đã tải xong; một số mục chỉ có khi đồ án bắt đầu.', placement: 'right' },
     { id: 'primary', target: TOUR_ANCHOR.sidebarPrimary, title: 'Bắt đầu từ Tổng quan lộ trình', body: 'Màn hình này tóm tắt bạn đang ở bước nào và cần làm gì tiếp theo. Khi chưa rõ nên vào đâu, hãy quay lại đây.', fallbackBody: 'Mục đầu tiên nằm trong thanh điều hướng. Mở rộng thanh bên hoặc chờ menu tải xong để thấy mục này.', placement: 'right' },
     ...commonTail,

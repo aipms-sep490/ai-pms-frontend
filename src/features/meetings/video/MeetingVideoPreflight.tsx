@@ -114,7 +114,7 @@ export function MeetingVideoPreflight({ onBack, onConnectRequested }: {
   return <section className="mtg-panel mtg-padded mtg-video-preflight" aria-labelledby="video-preflight-title">
     <p className="mtg-eyebrow">KIỂM TRA THIẾT BỊ</p>
     <h2 id="video-preflight-title">Sẵn sàng trước khi tham gia</h2>
-    <p className="mtg-help">Quyền dùng camera và micrô chỉ được yêu cầu khi bạn chọn xem trước. AI-PMS chưa kết nối vào phòng họp ở bước này.</p>
+    <p className="mtg-help">Quyền dùng camera và micrô chỉ được yêu cầu khi bạn chọn xem trước. PMS chưa kết nối vào phòng họp ở bước này.</p>
     {error && <div className="mtg-notice mtg-notice--error" role="alert"><p>{error}</p></div>}
     <div className="mtg-video-toggle-row" aria-label="Tùy chọn thiết bị">
       <button type="button" className="mtg-button mtg-button--secondary" aria-pressed={selection.audioEnabled} onClick={() => updateSelection({ audioEnabled: !selection.audioEnabled })}>Micrô: {selection.audioEnabled ? 'Bật' : 'Tắt'}</button>

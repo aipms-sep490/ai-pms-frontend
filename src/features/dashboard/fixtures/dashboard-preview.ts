@@ -80,7 +80,7 @@ export const dashboardPreviewData: DashboardPreviewData = {
   projectCode: 'CP_SEP490',
   groupCode: 'Nhóm SE28',
   semester: 'Fall 2026',
-  projectName: 'AI-PMS (Hệ thống Quản lý Đồ án Đa ngành Tích hợp AI)',
+  projectName: 'PMS (Hệ thống Quản lý Đồ án Đa ngành Tích hợp AI)',
   teamLeader: 'Nguyễn Văn A (SE)',
   supervisor: 'TS. Nguyễn H.A. Vũ',
   currentMilestone: 'M3 (Alpha Prototype • Hạn 18/09)',

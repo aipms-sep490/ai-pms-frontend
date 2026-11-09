@@ -21,7 +21,7 @@ export const INITIAL_SESSIONS: DefenseSessionExtended[] = [
     id: 101,
     projectId: 12,
     projectCode: 'PRJ-2026-012',
-    projectTitle: 'Hệ thống Quản lý Tiến độ Đồ án Tốt nghiệp Thông minh AI-PMS',
+    projectTitle: 'Hệ thống Quản lý Tiến độ Đồ án Tốt nghiệp Thông minh PMS',
     committeeId: 1,
     committeeName: 'HĐ KTPM-01',
     room: 'A-201',

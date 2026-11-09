@@ -45,7 +45,7 @@ describe('TourProvider', () => {
 
     const dialog = screen.getByRole('dialog')
     expect(dialog).toBeTruthy()
-    expect(screen.getByText('Chào mừng đến AI-PMS')).toBeTruthy()
+    expect(screen.getByText('Chào mừng đến PMS')).toBeTruthy()
     // Missing anchors remain visible as centred fallback steps.
     expect(screen.getByText('1/8')).toBeTruthy()
 
