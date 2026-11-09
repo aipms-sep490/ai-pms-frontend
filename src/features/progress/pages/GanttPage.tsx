@@ -157,7 +157,7 @@ export function GanttPage() {
       action={
         <>
           <Link className="ex-button" to={`${routeBase}/milestones`}><ExIcon name="flag" />Quản lý mốc</Link>
-          <button className="ex-button" disabled={loading} onClick={reload}><ExIcon name="refresh" />Cập nhật</button>
+          <button type="button" className="ex-button ex-button-icon" aria-label="Cập nhật" title="Cập nhật" disabled={loading} onClick={reload}><ExIcon name="refresh" /></button>
         </>
       }
     >
