@@ -92,53 +92,51 @@ export function ProjectWorkspaceSummary({
   const teamName = team?.name ?? project.teamName ?? 'Chưa có thông tin nhóm'
 
   return (
-    <main className="workspace-page mx-auto flex max-w-6xl flex-col gap-6 pb-12">
-      <header className="rounded-md border border-status-success-border bg-status-success-bg p-5  sm:p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-medium text-ink-muted">Đồ án đang thực hiện</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink">Không gian đồ án</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-soft">Theo dõi công việc, tiến độ và trao đổi với nhóm trong quá trình thực hiện đồ án.</p>
-          </div>
-          <div className="flex flex-wrap gap-2 shrink-0">
-            <Link
-              to={audience === 'student' ? '/project/meetings' : `/supervisor/projects/${project.id}/meetings`}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-white hover:bg-primary-hover"
-            >
-              <span className="material-symbols-outlined text-[16px]">calendar_month</span>
-              Lịch họp và biên bản
-            </Link>
-            <Link
-              to={audience === 'student' ? '/project/reports' : `/supervisor/projects/${project.id}/reports`}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-card px-3.5 py-2 text-xs font-bold text-ink-soft  hover:bg-canvas"
-            >
-              <span className="material-symbols-outlined text-[16px]">assignment</span>
-              Báo cáo tiến độ
-            </Link>
-            <Link
-              to={audience === 'student' ? '/project/deliverables' : `/supervisor/projects/${project.id}/deliverables`}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-card px-3.5 py-2 text-xs font-bold text-ink-soft  hover:bg-canvas"
-            >
-              <span className="material-symbols-outlined text-[16px]">folder_open</span>
-              Hạng mục cần nộp
-            </Link>
-          </div>
+    <div className="workspace-page mx-auto flex max-w-6xl flex-col gap-6 pb-12">
+      <header className="workspace-heading rounded-xl border border-status-success-border bg-status-success-bg p-5 sm:p-6">
+        <div className="workspace-heading-copy">
+          <span className="workspace-kicker">Đồ án đang thực hiện</span>
+          <h1 className="mt-1 font-heading text-2xl font-bold tracking-tight text-ink">Không gian đồ án</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-soft">Theo dõi công việc, tiến độ và trao đổi với nhóm trong quá trình thực hiện đồ án.</p>
+        </div>
+        <div className="workspace-heading-actions flex flex-wrap gap-2 shrink-0">
+          <Link
+            to={audience === 'student' ? '/project/meetings' : `/supervisor/projects/${project.id}/meetings`}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-hover"
+          >
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">calendar_month</span>
+            Lịch họp và biên bản
+          </Link>
+          <Link
+            to={audience === 'student' ? '/project/reports' : `/supervisor/projects/${project.id}/reports`}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-line-strong bg-card px-3.5 py-2 text-xs font-bold text-ink-soft transition-colors hover:bg-canvas"
+          >
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">assignment</span>
+            Báo cáo tiến độ
+          </Link>
+          <Link
+            to={audience === 'student' ? '/project/deliverables' : `/supervisor/projects/${project.id}/deliverables`}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-line-strong bg-card px-3.5 py-2 text-xs font-bold text-ink-soft transition-colors hover:bg-canvas"
+          >
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">folder_open</span>
+            Hạng mục cần nộp
+          </Link>
         </div>
       </header>
 
-      <section className="overflow-hidden rounded-md border border-hairline bg-card " aria-labelledby="active-project-summary">
-        <div className="border-b border-line px-5 py-5 sm:px-6">
+      <section className="overflow-hidden rounded-xl border border-hairline bg-card" aria-labelledby="active-project-summary">
+        <div className="border-b border-hairline px-5 py-5 sm:px-6">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">{audience === 'student' ? 'Không gian sinh viên' : 'Không gian GVHD được phân công'}</p>
           <h2 id="active-project-summary" className="mt-1 text-xl font-bold tracking-tight text-ink">{project.title}</h2>
           <p className="mt-1 text-xs text-ink-muted">{project.code} • {teamName}</p>
         </div>
-        <dl className="grid gap-px bg-slate-100 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="grid gap-px bg-hairline sm:grid-cols-2 lg:grid-cols-4">
           <Metric label="Trạng thái" value={projectStatusLabel(project.status)} />
           <Metric label="Nhóm" value={teamName} />
           <Metric label="Hình thức đồ án" value={projectMode} />
           <Metric label="Giảng viên hướng dẫn" value={supervisor?.supervisorName || 'Chưa có thông tin'} />
         </dl>
-        <div className="grid gap-5 border-t border-line px-5 py-5 sm:px-6 lg:grid-cols-2">
+        <div className="grid gap-5 border-t border-hairline px-5 py-5 sm:px-6 lg:grid-cols-2">
           <TextBlock title="Mô tả" value={project.description} />
           <TextBlock title="Mục tiêu" value={project.objectives} />
           <TextBlock title="Vấn đề cần giải quyết" value={project.problemStatement} />
@@ -149,53 +147,53 @@ export function ProjectWorkspaceSummary({
       {children}
 
       <div className="grid gap-6 md:grid-cols-2">
-        <section className="flex flex-col justify-between rounded-md border border-hairline bg-card p-5  sm:p-6">
+        <section className="flex flex-col justify-between rounded-xl border border-hairline bg-card p-5 sm:p-6">
           <div>
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">calendar_month</span>
+              <span className="material-symbols-outlined text-primary" aria-hidden="true">calendar_month</span>
               <h2 className="text-base font-bold text-ink">Lịch họp và biên bản</h2>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-ink-muted">Thống nhất lịch trao đổi với GVHD, mời thành viên và lưu kết luận, điểm danh, nhận xét sau mỗi buổi họp.</p>
           </div>
-          <div className="mt-5 pt-3 border-t border-line">
+          <div className="mt-5 border-t border-hairline pt-3">
             <ButtonLink variant="primary" icon="calendar_month" to={audience === 'student' ? '/project/meetings' : `/supervisor/projects/${project.id}/meetings`}>Mở lịch họp</ButtonLink>
           </div>
         </section>
 
-        <section className="flex flex-col justify-between rounded-md border border-hairline bg-card p-5  sm:p-6">
+        <section className="flex flex-col justify-between rounded-xl border border-hairline bg-card p-5 sm:p-6">
           <div>
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">assignment</span>
+              <span className="material-symbols-outlined text-primary" aria-hidden="true">assignment</span>
               <h2 className="text-base font-bold text-ink">Báo cáo tiến độ và phản hồi</h2>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-ink-muted">{audience === 'student' ? 'Tổng hợp kết quả theo tuần hoặc tháng. Cả nhóm cùng soạn bản nháp, trưởng nhóm nộp và theo dõi nhận xét từ giảng viên hướng dẫn.' : 'Đọc báo cáo theo từng kỳ, kiểm tra kết quả và gửi nhận xét để nhóm hoàn thiện các bước tiếp theo.'}</p>
           </div>
-          <div className="mt-5 pt-3 border-t border-line">
+          <div className="mt-5 border-t border-hairline pt-3">
             <ButtonLink variant="outline" icon="assignment" to={audience === 'student' ? '/project/reports' : `/supervisor/projects/${project.id}/reports`}>Mở báo cáo tiến độ</ButtonLink>
           </div>
         </section>
 
-        <section className="flex flex-col justify-between rounded-md border border-hairline bg-card p-5  sm:p-6">
+        <section className="flex flex-col justify-between rounded-xl border border-hairline bg-card p-5 sm:p-6">
           <div>
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-tag-ai">folder_open</span>
-              <h2 className="text-base font-bold text-ink">Deliverables & phiên bản</h2>
+              <span className="material-symbols-outlined text-tag-ai" aria-hidden="true">folder_open</span>
+              <h2 className="text-base font-bold text-ink">Sản phẩm bàn giao & phiên bản</h2>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-ink-muted">Theo dõi các sản phẩm cần nộp, phiên bản đã gửi và nhận xét của giảng viên.</p>
           </div>
-          <div className="mt-5 pt-3 border-t border-line">
-            <Link className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-card px-4 py-2 text-xs font-semibold text-ink-soft  hover:bg-canvas" to={audience === 'student' ? '/project/deliverables' : `/supervisor/projects/${project.id}/deliverables`}>
+          <div className="mt-5 border-t border-hairline pt-3">
+            <Link className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-line-strong bg-card px-4 py-2 text-xs font-semibold text-ink-soft transition-colors hover:bg-canvas" to={audience === 'student' ? '/project/deliverables' : `/supervisor/projects/${project.id}/deliverables`}>
               Xem hạng mục cần nộp →
             </Link>
           </div>
         </section>
       </div>
-    </main>
+    </div>
   )
 }
 
 function WorkspaceState({ message, retry, error = false }: { message: string; retry?: () => Promise<void>; error?: boolean }) {
-  return <section role={error ? 'alert' : 'status'} className={`mx-auto max-w-3xl rounded-md border p-5 text-sm ${error ? 'border-status-error-border bg-status-error-bg text-danger-text' : 'border-hairline bg-card text-ink-muted'}`}><p>{message}</p>{retry ? <button type="button" onClick={() => void retry()} className="ex-button mt-3">Thử lại</button> : null}</section>
+  return <section role={error ? 'alert' : 'status'} className={`mx-auto max-w-3xl rounded-xl border p-5 text-sm ${error ? 'border-status-error-border bg-status-error-bg text-status-error-text' : 'border-hairline bg-card text-ink-muted'}`}><p>{message}</p>{retry ? <button type="button" onClick={() => void retry()} className="ex-button mt-3 min-h-11">Thử lại</button> : null}</section>
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
