@@ -8,6 +8,7 @@ import { StatusBadge } from '../../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
+import { Pagination } from '../../../components/ui/Pagination'
 import { useTopics } from '../hooks/useTopics'
 import { TopicContentForm } from '../components/TopicContentForm'
 import { useTopicCatalog } from '../hooks/useTopicCatalog'
@@ -51,6 +52,7 @@ export function TopicManagementPage() {
   const [aiBatchOpen, setAiBatchOpen] = useState(false)
   const [modeFilter, setModeFilter] = useState<'ALL' | 'SINGLE_MAJOR' | 'INTERDISCIPLINARY'>('ALL')
   const [majorFilter, setMajorFilter] = useState<string>('ALL')
+  const [domainFilter, setDomainFilter] = useState<string>('ALL')
   const [sortBy, setSortBy] = useState<TopicSort>('default')
   const [selectedDraftIds, setSelectedDraftIds] = useState<Set<number>>(() => new Set())
   const decisionVersion = useRef(0)
@@ -58,6 +60,14 @@ export function TopicManagementPage() {
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const [message, setMessage] = useState<string | null>(null)
   const [batchErrors, setBatchErrors] = useState<Array<{ code: string; title: string; reason: string }>>([])
+
+  const domainOptions = useMemo(() => {
+    const names = new Set<string>()
+    for (const item of topics.items) {
+      if (item.domain?.trim()) names.add(item.domain.trim())
+    }
+    return [...names].sort((a, b) => a.localeCompare(b, 'vi'))
+  }, [topics.items])
 
   const visibleTopics = useMemo(() => {
     const list = topics.items.filter(topic => {
@@ -68,12 +78,13 @@ export function TopicManagementPage() {
         const matchesReq = topic.requirements.some(req => req.majorId === majorId)
         if (!matchesPrimary && !matchesReq) return false
       }
+      if (domainFilter !== 'ALL' && (topic.domain?.trim() ?? '') !== domainFilter) return false
       return true
     })
     if (sortBy === 'title_asc') return [...list].sort((a, b) => a.title.localeCompare(b.title, 'vi'))
     if (sortBy === 'code_asc') return [...list].sort((a, b) => a.code.localeCompare(b.code, 'vi'))
     return list
-  }, [topics.items, modeFilter, majorFilter, sortBy])
+  }, [topics.items, modeFilter, majorFilter, domainFilter, sortBy])
 
   const publishableVisibleDrafts = useMemo(
     () => visibleTopics.filter(t => t.status === 'DRAFT' && catalog.department?.id === t.leadDepartmentId),
@@ -242,15 +253,15 @@ export function TopicManagementPage() {
               <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{topic.description || 'Chưa có mô tả.'}</p>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-xl border border-hairline bg-canvas/50 p-4">
+            <div className="grid items-stretch gap-3 md:grid-cols-2">
+              <div className="flex h-full flex-col rounded-xl border border-hairline bg-canvas/50 p-4">
                 <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-ink-muted">
                   <span className="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">psychology_alt</span>
                   Bối cảnh và vấn đề
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink-soft">{topic.problemStatement || 'Chưa có nội dung.'}</p>
               </div>
-              <div className="rounded-xl border border-hairline bg-canvas/50 p-4">
+              <div className="flex h-full flex-col rounded-xl border border-hairline bg-canvas/50 p-4">
                 <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-ink-muted">
                   <span className="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">flag</span>
                   Mục tiêu
@@ -395,8 +406,8 @@ export function TopicManagementPage() {
     )
   }
 
-  const totalPages = Math.max(1, Math.ceil(topics.totalCount / topics.pageSize))
-  const hasActiveFilters = Boolean(topics.filters.search || topics.filters.status || modeFilter !== 'ALL' || majorFilter !== 'ALL')
+  const totalPages = Math.max(1, Math.ceil(topics.totalCount / Math.max(1, topics.pageSize)))
+  const hasActiveFilters = Boolean(topics.filters.search || topics.filters.status || modeFilter !== 'ALL' || majorFilter !== 'ALL' || domainFilter !== 'ALL')
   const activeChips: ActiveFilterChip[] = []
   if (topics.filters.status) activeChips.push({ id: 'status', label: 'Trạng thái', value: statusLabels[topics.filters.status] })
   if (modeFilter !== 'ALL') activeChips.push({ id: 'mode', label: 'Chế độ', value: modeLabels[modeFilter] })
@@ -404,6 +415,7 @@ export function TopicManagementPage() {
     const majorName = catalog.majors.find(m => String(m.id) === majorFilter)?.name ?? 'Ngành đã chọn'
     activeChips.push({ id: 'major', label: 'Ngành', value: majorName })
   }
+  if (domainFilter !== 'ALL') activeChips.push({ id: 'domain', label: 'Lĩnh vực', value: domainFilter })
   const allVisibleDraftsSelected = publishableVisibleDrafts.length > 0 && selectedPublishTargets.length === publishableVisibleDrafts.length
 
   return (
@@ -415,6 +427,7 @@ export function TopicManagementPage() {
       description="Tạo, kiểm duyệt, công bố và theo dõi các đề tài dùng cho kỳ đồ án."
       action={
         <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={topics.loading} onClick={() => void topics.refresh()} />
           <Button variant="secondary" icon="auto_awesome" onClick={() => setAiBatchOpen(true)}>
             Nhập / Soạn hàng loạt bằng AI
           </Button>
@@ -478,6 +491,22 @@ export function TopicManagementPage() {
                 </select>
               </label>
             )}
+            {domainOptions.length > 1 && (
+              <label className="ft-select-wrap">
+                <span className="sr-only">Lĩnh vực</span>
+                <select
+                  className="ft-select"
+                  aria-label="Lọc theo lĩnh vực"
+                  value={domainFilter}
+                  onChange={event => setDomainFilter(event.target.value)}
+                >
+                  <option value="ALL">Tất cả lĩnh vực</option>
+                  {domainOptions.map(domain => (
+                    <option key={domain} value={domain}>{domain}</option>
+                  ))}
+                </select>
+              </label>
+            )}
           </>
         }
         sort={{
@@ -494,11 +523,13 @@ export function TopicManagementPage() {
           if (chipId === 'status') topics.setFilters({ ...topics.filters, status: undefined, page: 1 })
           if (chipId === 'mode') setModeFilter('ALL')
           if (chipId === 'major') setMajorFilter('ALL')
+          if (chipId === 'domain') setDomainFilter('ALL')
         }}
         onClearAll={() => {
           topics.setFilters({ ...topics.filters, search: undefined, status: undefined, page: 1 })
           setModeFilter('ALL')
           setMajorFilter('ALL')
+          setDomainFilter('ALL')
         }}
         hasActiveFilters={hasActiveFilters}
         resultSummary={`${visibleTopics.length} / ${topics.totalCount} đề tài`}
@@ -600,85 +631,97 @@ export function TopicManagementPage() {
 
         {topics.loading ? <ListLoading label="Đang tải danh mục đề tài…" /> : (
           <>
-            {visibleTopics.map(topic => {
-              const canQuickPublish = topic.status === 'DRAFT' && catalog.department?.id === topic.leadDepartmentId && typeof topics.publishById === 'function'
-              const isSelected = selectedDraftIds.has(topic.id)
-              return (
-                <article key={topic.id} className="topic__row">
-                  <div className="flex min-w-0 flex-1 items-start gap-3">
-                    {canQuickPublish && typeof topics.publishMany === 'function' && (
-                      <input
-                        type="checkbox"
-                        className="mt-1.5"
-                        aria-label={`Chọn bản nháp ${topic.title}`}
-                        checked={isSelected}
-                        disabled={topics.saving}
-                        onChange={() => {
-                          setSelectedDraftIds(prev => {
-                            const next = new Set(prev)
-                            if (next.has(topic.id)) next.delete(topic.id)
-                            else next.add(topic.id)
-                            return next
-                          })
-                        }}
-                      />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <StatusBadge tone={statusTone[topic.status]} label={statusLabels[topic.status]} />
-                        <span className="rounded bg-canvas px-1.5 py-0.5 font-mono text-xs font-semibold text-ink-muted">{topic.code}</span>
-                        <span className="rounded-full border border-hairline bg-canvas px-2 py-0.5 text-xs font-medium text-ink-soft">
-                          {modeLabels[topic.projectMode]}
-                        </span>
-                      </div>
-                      <Link className="topic__row-title" to={`/department/topics/${topic.id}`}>{topic.title}</Link>
-                      <p className="mt-1 text-xs text-ink-muted">
-                        {topic.leadDepartmentName}
-                        {topic.requirements.length > 0 && ` · ${topic.requirements.map(r => r.majorName || resolveMajorName(r.majorId)).join(', ')}`}
-                      </p>
-                      {topic.technologies.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          {topic.technologies.slice(0, 5).map((tech, idx) => (
-                            <span key={`${tech}-${idx}`} className="rounded-full border border-hairline bg-canvas px-2 py-0.5 text-xs text-ink-soft">
-                              {tech}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 flex-wrap items-center gap-2">
-                    {canQuickPublish && (
-                      <Button
-                        icon="publish"
-                        className="min-h-9"
-                        disabled={topics.saving}
-                        onClick={() => void quickPublishRow(topic)}
-                      >
-                        Công bố
-                      </Button>
-                    )}
-                    <Link
-                      to={`/department/topics/${topic.id}`}
-                      className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-hairline bg-canvas px-3 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
+            {visibleTopics.length > 0 ? (
+              <div className="grid grid-cols-1 items-stretch gap-3.5 md:grid-cols-2">
+                {visibleTopics.map(topic => {
+                  const canQuickPublish = topic.status === 'DRAFT' && catalog.department?.id === topic.leadDepartmentId && typeof topics.publishById === 'function'
+                  const isSelected = selectedDraftIds.has(topic.id)
+                  return (
+                    <article
+                      key={topic.id}
+                      className="flex h-full flex-col justify-between gap-4 rounded-xl border border-hairline bg-card p-4 shadow-xs transition-all hover:border-primary/40 hover:shadow-sm"
                     >
-                      {topic.status === 'DRAFT' ? 'Xem & Sửa' : 'Chi tiết'}
-                    </Link>
-                  </div>
-                </article>
-              )
-            })}
-            {!visibleTopics.length && <p className="topic__empty">Không có đề tài trong trạng thái đã chọn.</p>}
+                      <div className="flex min-w-0 items-start gap-3">
+                        {canQuickPublish && typeof topics.publishMany === 'function' && (
+                          <input
+                            type="checkbox"
+                            className="mt-1.5"
+                            aria-label={`Chọn bản nháp ${topic.title}`}
+                            checked={isSelected}
+                            disabled={topics.saving}
+                            onChange={() => {
+                              setSelectedDraftIds(prev => {
+                                const next = new Set(prev)
+                                if (next.has(topic.id)) next.delete(topic.id)
+                                else next.add(topic.id)
+                                return next
+                              })
+                            }}
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <StatusBadge tone={statusTone[topic.status]} label={statusLabels[topic.status]} />
+                            <span className="rounded bg-canvas px-1.5 py-0.5 font-mono text-xs font-semibold text-ink-muted">{topic.code}</span>
+                            <span className="rounded-full border border-hairline bg-canvas px-2 py-0.5 text-xs font-medium text-ink-soft">
+                              {modeLabels[topic.projectMode]}
+                            </span>
+                          </div>
+                          <Link className="topic__row-title" to={`/department/topics/${topic.id}`}>{topic.title}</Link>
+                          <p className="mt-1 text-xs text-ink-muted">
+                            {topic.leadDepartmentName}
+                            {topic.requirements.length > 0 && ` · ${topic.requirements.map(r => r.majorName || resolveMajorName(r.majorId)).join(', ')}`}
+                          </p>
+                          {topic.technologies.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {topic.technologies.slice(0, 5).map((tech, idx) => (
+                                <span key={`${tech}-${idx}`} className="rounded-full border border-hairline bg-canvas px-2 py-0.5 text-xs text-ink-soft">
+                                  {tech}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-auto flex flex-wrap items-center justify-end gap-2 border-t border-hairline pt-3">
+                        {canQuickPublish && (
+                          <Button
+                            icon="publish"
+                            className="min-h-9"
+                            disabled={topics.saving}
+                            onClick={() => void quickPublishRow(topic)}
+                          >
+                            Công bố
+                          </Button>
+                        )}
+                        <Link
+                          to={`/department/topics/${topic.id}`}
+                          className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-hairline bg-canvas px-3 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
+                        >
+                          {topic.status === 'DRAFT' ? 'Xem & Sửa' : 'Chi tiết'}
+                        </Link>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="topic__empty">Không có đề tài trong trạng thái đã chọn.</p>
+            )}
           </>
         )}
       </section>
 
       {!topics.loading && totalPages > 1 && (
-        <nav className="topic__pagination" aria-label="Phân trang danh mục đề tài">
-          <Button variant="secondary" className="min-h-11" disabled={topics.page <= 1} onClick={() => topics.setFilters({ ...topics.filters, page: topics.page - 1 })}>Trang trước</Button>
-          <span className="text-xs text-ink-muted">Trang {topics.page} / {totalPages}</span>
-          <Button variant="secondary" className="min-h-11" disabled={topics.page >= totalPages} onClick={() => topics.setFilters({ ...topics.filters, page: topics.page + 1 })}>Trang sau</Button>
-        </nav>
+        <Pagination
+          page={topics.page}
+          pages={totalPages}
+          total={topics.totalCount}
+          pageSize={topics.pageSize}
+          pageSizeOptions={[12, 24, 36]}
+          onPage={nextPage => topics.setFilters({ ...topics.filters, page: nextPage })}
+          onPageSizeChange={nextSize => topics.setFilters({ ...topics.filters, page: 1, pageSize: nextSize })}
+        />
       )}
     </WorkspacePage>
   )
