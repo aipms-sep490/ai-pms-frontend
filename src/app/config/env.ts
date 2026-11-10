@@ -34,6 +34,9 @@ const supervisorRecommendationEnabled = import.meta.env.VITE_ENABLE_SUPERVISOR_R
 /** Defense schedule / committee screen (BE-14). Enable only after the
  * defense-session endpoints ship; the screen is read-only for students. */
 const defenseScheduleEnabled = import.meta.env.VITE_ENABLE_DEFENSE?.trim().toLowerCase() === 'true'
+/** Room planning requires the separately deployed room catalog and Gate 3/4
+ * scheduling APIs. Keep off until those endpoints and DB migrations ship. */
+const roomPlannerEnabled = import.meta.env.VITE_ENABLE_ROOM_PLANNER?.trim().toLowerCase() === 'true'
 /** COLD report templates/checklist/draft/upload/submit (BE-N01). Shared by the
  * student submission screen and this department template-management screen.
  * Enable only after the cold-submissions endpoints ship. */
@@ -81,6 +84,7 @@ export const env = {
   aiProgressRiskEnabled,
   supervisorRecommendationEnabled,
   defenseScheduleEnabled,
+  roomPlannerEnabled,
   coldReportEnabled,
   weeklyAssessmentEnabled,
   peerEvaluationEnabled,

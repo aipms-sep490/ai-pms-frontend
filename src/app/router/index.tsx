@@ -181,7 +181,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'academic/governance', element: <AcademicGovernancePage /> },
           { path: 'academic/project-periods/:periodId/policy', element: <PeriodPolicyManagementPage /> },
           { path: 'academic/project-periods/:periodId/review-gates', element: <ReviewGateGovernancePage /> },
-          ...(env.defenseScheduleEnabled ? [{ path: 'academic/project-periods/:periodId/room-planner', element: <RoomPlannerPage /> }] : []),
+          ...(env.defenseScheduleEnabled && env.roomPlannerEnabled ? [{ path: 'academic/project-periods/:periodId/room-planner', element: <RoomPlannerPage /> }] : []),
           { path: 'academic/review-gates', element: <ReviewGateGovernancePage /> },
           { path: 'academic/profile-verifications', element: <ProfileVerificationsPage /> },
           { path: 'academic/rubrics', element: <RubricManagementPage /> },

@@ -99,9 +99,13 @@ describe('Admin form state', () => {
         action: 'ACCOUNT_',
         entityType: 'USER',
         outcome: 'SUCCESS',
-        fromUtc: '2026-01-01',
-        toUtc: '2026-01-31',
+        fromUtc: '2025-12-31T17:00:00.000Z',
+        toUtc: '2026-01-31T16:59:59.999Z',
       })
     )
+    fireEvent.click(screen.getByRole('button', { name: 'Đặt lại' }))
+    expect((screen.getByLabelText('Từ ngày (giờ Việt Nam)') as HTMLInputElement).value).toBe('')
+    expect((screen.getByLabelText('Đến ngày (giờ Việt Nam)') as HTMLInputElement).value).toBe('')
+    expect((screen.getByLabelText('Đối tượng') as HTMLInputElement).value).toBe('')
   })
 });

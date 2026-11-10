@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { AppealRequestDetail } from './AppealRequestDetail'
 import { HttpError } from '../../services/http/http-client'
 const api = vi.hoisted(() => ({ getCorrectionRequest: vi.fn(), getAppealHistory: vi.fn(), assignAppealReviewer: vi.fn(), getAppealReviewContext: vi.fn(), getAppealEvidence: vi.fn(), previewAppeal: vi.fn(), decideAppeal: vi.fn(), reviewAppeal: vi.fn() }))
@@ -68,4 +68,21 @@ it('shows backend blockers and keeps rejection usable when acceptance is denied'
   expect(screen.getByText('Phiên bản kết quả đã đổi')).toBeTruthy()
   expect((screen.getByRole('button', { name: 'Chấp nhận và công bố revision' }) as HTMLButtonElement).disabled).toBe(true)
   expect((screen.getByRole('button', { name: 'Từ chối yêu cầu' }) as HTMLButtonElement).disabled).toBe(false)
+})
+
+it('discards a preview whose version lookup finishes after changing requests', async () => {
+  api.getCorrectionRequest.mockImplementation(async (_projectId, requestId) => ({ ...row, id: requestId, allowedActions: ['READ', 'PREVIEW', 'ACCEPT'] }))
+  api.previewAppeal.mockResolvedValue({ confirmationToken: 'previous-request', affectedResults: [{ studentId: 88, supersedesVersion: 2, version: 3, totalScore: 8, outcome: 'PASS' }] })
+  let finishVersion!: (result: unknown) => void
+  versions.getStudentResultVersion.mockImplementation(() => new Promise(resolve => { finishVersion = resolve }))
+  const view = open()
+  fireEvent.change(await screen.findByLabelText('Lý do review / quyết định'), { target: { value: 'Đã kiểm tra' } })
+  fireEvent.click(await screen.findByRole('button', { name: 'Xem trước kết quả ảnh hưởng' }))
+  await waitFor(() => expect(versions.getStudentResultVersion).toHaveBeenCalled())
+  view.rerender(<AppealRequestDetail projectId={9} requestId={8} />)
+  await screen.findByRole('region', { name: 'Yêu cầu #8' })
+  await screen.findByLabelText('Lý do review / quyết định')
+  await act(async () => { finishVersion({ projectId: 9, studentId: 88, version: 2, totalScore: 7, outcome: 'FAIL' }) })
+  expect(screen.queryByText('Kết quả ảnh hưởng theo máy chủ')).toBeNull()
+  expect((screen.getByRole('button', { name: 'Chấp nhận và công bố revision' }) as HTMLButtonElement).disabled).toBe(true)
 })

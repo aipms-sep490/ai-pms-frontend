@@ -65,6 +65,15 @@ describe('ProjectDefensePage', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('chưa có quyền')
   })
 
+  it('does not expose the sample coordinator or management actions after a backend denial', async () => {
+    mocks.getProjectDefenseSessions.mockRejectedValue(new HttpError('forbidden', 403))
+    renderManagement()
+    expect((await screen.findByRole('alert')).textContent).toContain('không có quyền quản lý')
+    expect(screen.queryByRole('button', { name: /Sơ đồ phòng|Lưới bảo vệ/ })).toBeNull()
+    expect(screen.queryByText(/PRJ-2026-012|K18 Fall 2026/)).toBeNull()
+    expect(mocks.getDefenseCommittees).not.toHaveBeenCalled()
+  })
+
   it('handles no active project', async () => {
     mocks.journey.project = null
     render_()

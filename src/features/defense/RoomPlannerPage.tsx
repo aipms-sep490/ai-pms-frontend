@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../components/ui/Table'
@@ -17,6 +17,10 @@ const nextDayVietnam = () => new Date(Date.now() + 86400000).toLocaleDateString(
 
 export function RoomPlannerPage() {
   const periodId = Number(useParams().periodId)
+  return <RoomPlannerWorkspace key={periodId} periodId={periodId} />
+}
+
+function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
   const [targetGate, setTargetGate] = useState<'R3' | 'R4'>('R4')
   const [rooms, setRooms] = useState<RoomDto[]>([])
   const [loading, setLoading] = useState(true)
@@ -28,6 +32,9 @@ export function RoomPlannerPage() {
   const [preview, setPreview] = useState<AutoSchedulePreview | null>(null)
   const [busy, setBusy] = useState(false)
   const [success, setSuccess] = useState('')
+  const requestVersion = useRef(0)
+
+  useEffect(() => () => { requestVersion.current += 1 }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -58,6 +65,7 @@ export function RoomPlannerPage() {
   const runPreview = async () => {
     if (!Number.isSafeInteger(periodId) || periodId < 1 || !validRange || activeRooms.length === 0) return
     setBusy(true); setError(''); setSuccess(''); setPreview(null)
+    const request = ++requestVersion.current
     try {
       const payload = {
         startDate,
@@ -66,21 +74,21 @@ export function RoomPlannerPage() {
         maxSlotsPerDay: 6,
         exclusions,
       }
-      if (targetGate === 'R3') {
-        setPreview(await previewGate3Schedule(periodId, payload))
-      } else {
-        setPreview(await previewDefenseSchedule(periodId, payload))
-      }
+      const result = targetGate === 'R3'
+        ? await previewGate3Schedule(periodId, payload)
+        : await previewDefenseSchedule(periodId, payload)
+      if (request === requestVersion.current) setPreview(result)
     } catch {
-      setError(`Không tạo được bản xem trước lịch ${targetGate === 'R3' ? 'Gate 3' : 'Gate 4'}. Kiểm tra cửa sổ ngày, quyền truy cập và dữ liệu người chấm.`)
+      if (request === requestVersion.current) setError(`Không tạo được bản xem trước lịch ${targetGate === 'R3' ? 'Gate 3' : 'Gate 4'}. Kiểm tra cửa sổ ngày, quyền truy cập và dữ liệu người chấm.`)
     } finally {
-      setBusy(false)
+      if (request === requestVersion.current) setBusy(false)
     }
   }
 
   const applyPreview = async () => {
     if (!preview || preview.unscheduledCount > 0 || preview.allocations.length === 0) return
     setBusy(true); setError('')
+    const request = ++requestVersion.current
     try {
       if (targetGate === 'R3') {
         const result = await applyGate3Schedule(periodId, {
@@ -88,6 +96,7 @@ export function RoomPlannerPage() {
           concurrencyToken: preview.concurrencyToken,
           exclusions,
         })
+        if (request !== requestVersion.current) return
         setSuccess(`Đã duyệt và công bố ${result.length} phiên đánh giá Gate 3 vào lịch chính thức.`)
       } else {
         const result = await applyDefenseSchedule(periodId, {
@@ -95,13 +104,14 @@ export function RoomPlannerPage() {
           concurrencyToken: preview.concurrencyToken,
           exclusions,
         })
+        if (request !== requestVersion.current) return
         setSuccess(`Đã duyệt và công bố ${result.createdSessionsCount} phiên bảo vệ Gate 4 vào lịch chính thức.`)
       }
       setPreview(null)
     } catch {
-      setError('Lịch hoặc điều kiện phân phòng đã thay đổi. Hãy chạy xem trước lại trước khi áp dụng.')
+      if (request === requestVersion.current) setError('Lịch hoặc điều kiện phân phòng đã thay đổi. Hãy chạy xem trước lại trước khi áp dụng.')
     } finally {
-      setBusy(false)
+      if (request === requestVersion.current) setBusy(false)
     }
   }
 
@@ -115,7 +125,7 @@ export function RoomPlannerPage() {
       eyebrow={`Kỳ đồ án #${periodId}`}
       description="Chọn tầng 2–4, loại phòng hoặc ca khỏi lần tự xếp này, rồi xem trước và duyệt công bố lịch chính thức."
     >
-      <div className="space-y-5">
+      <fieldset disabled={busy} className="min-w-0 space-y-5">
         {/* Gate Selection Tabs */}
         <div className="flex gap-2 border-b border-hairline pb-2">
           <button
@@ -289,7 +299,7 @@ export function RoomPlannerPage() {
             </div>
           </section>
         )}
-      </div>
+      </fieldset>
     </WorkspacePage>
   )
 }

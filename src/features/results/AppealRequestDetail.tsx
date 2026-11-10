@@ -59,9 +59,11 @@ export function AppealRequestDetail({ projectId, requestId, onChanged }: { proje
   const disabled = loading || busy || stale
   async function loadPreview() {
     if (!row) return
+    const current = generation.current
     await run(async () => {
       setCurrentVersions({})
       const next = await api.previewAppeal(projectId, requestId)
+      if (current !== generation.current) return
       const published = await Promise.allSettled(next.affectedResults.map(async item => {
         const version = item.supersedesVersion ?? row.resultVersion
         const result = item.studentId == null
@@ -70,6 +72,7 @@ export function AppealRequestDetail({ projectId, requestId, onChanged }: { proje
         if (result.projectId !== projectId || result.version !== version || (item.studentId != null && (!('studentId' in result) || result.studentId !== item.studentId))) return null
         return { key: `${item.studentId ?? 'project'}:${version}`, totalScore: result.totalScore, outcome: result.outcome }
       }))
+      if (current !== generation.current) return
       setCurrentVersions(Object.fromEntries(published.flatMap(item => item.status === 'fulfilled' && item.value ? [[item.value.key, { totalScore: item.value.totalScore, outcome: item.value.outcome }]] : [])))
       setPreview(next)
     })

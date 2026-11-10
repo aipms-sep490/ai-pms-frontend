@@ -24,6 +24,12 @@ const blankAccount: UserDraft = { departmentId: null, majorId: null, email: '', 
 const messageFor = (reason: unknown) => reason instanceof HttpError ? reason.message : 'Chưa thể hoàn tất thao tác. Hãy thử lại.'
 const integer = (value: FormDataEntryValue | null) => { const result = Number(value); return Number.isInteger(result) && result > 0 ? result : null }
 
+function auditDateBoundary(day: string, end = false): string | undefined {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return undefined
+  const date = new Date(`${day}T${end ? '23:59:59.999' : '00:00:00.000'}+07:00`)
+  return Number.isFinite(date.getTime()) ? date.toISOString() : undefined
+}
+
 export function AdminWorkspacePage() {
   const { session } = useAuthSession()
   const [academicNames, setAcademicNames] = useState<{ departments: Record<number, string>; majors: Record<number, string> }>({ departments: {}, majors: {} })
@@ -54,8 +60,8 @@ export function AdminWorkspacePage() {
     action: auditAction || undefined,
     entityType: auditEntityType || undefined,
     outcome: auditOutcome || undefined,
-    fromUtc: auditFrom || undefined,
-    toUtc: auditTo || undefined,
+    fromUtc: auditDateBoundary(auditFrom),
+    toUtc: auditDateBoundary(auditTo, true),
   })
   const [notice, setNotice] = useState<string | null>(null)
   const [importText, setImportText] = useState('')
@@ -153,7 +159,7 @@ export function AdminWorkspacePage() {
 
     <section id="audit" className="admin-panel" aria-labelledby="audit-title" hidden={activeTab !== 'audit'}>
       <div className="admin-panel-heading"><div><h2 id="audit-title">Nhật ký bảo mật</h2><p>Theo dõi thời gian, người thực hiện và nội dung hoạt động quản trị.</p></div></div>
-      <form className="admin-filter" onSubmit={(event) => {
+      <form key={[auditAction, auditEntityType, auditOutcome, auditFrom, auditTo].join('|')} className="admin-filter" onSubmit={(event) => {
         event.preventDefault()
         const data = new FormData(event.currentTarget)
         setFilter({
@@ -173,8 +179,8 @@ export function AdminWorkspacePage() {
             <option value="FAILURE">Thất bại</option>
           </select>
         </label>
-        <label>Từ ngày<input type="date" name="fromUtc" defaultValue={auditFrom} /></label>
-        <label>Đến ngày<input type="date" name="toUtc" defaultValue={auditTo} /></label>
+        <label>Từ ngày (giờ Việt Nam)<input type="date" name="fromUtc" defaultValue={auditFrom} /></label>
+        <label>Đến ngày (giờ Việt Nam)<input type="date" name="toUtc" defaultValue={auditTo} /></label>
         <Button type="submit" variant="secondary">Lọc</Button>
         {(auditAction || auditEntityType || auditOutcome || auditFrom || auditTo) ? (
           <Button type="button" variant="outline" onClick={() => setFilter({ auditAction: '', auditEntityType: '', auditOutcome: '', auditFrom: '', auditTo: '' })}>Đặt lại</Button>
