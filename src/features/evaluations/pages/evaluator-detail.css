@@ -130,6 +130,19 @@
   line-height: 1.6;
   color: var(--color-ink-soft);
 }
+.report-preview-fullscreen-modal {
+  width: calc(100% - 32px);
+  height: calc(100dvh - 32px);
+}
+.report-preview-fullscreen-modal .app-modal__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+.report-preview-fullscreen-modal .report-preview-stage {
+  flex: 1;
+  min-height: 0;
+}
 @media (max-width: 1023px) {
   .evaluator-detail .report-preview-frame {
     height: 56vh;

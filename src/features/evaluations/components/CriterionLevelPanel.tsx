@@ -30,9 +30,9 @@ export function CriterionLevelPanel({
       {onSelectScore && (
         <div className="flex flex-wrap items-center gap-1.5" aria-label="Chọn nhanh mức chất lượng">
           <span className="text-xs font-semibold text-ink-muted mr-1">Gợi ý mức:</span>
-          {sortedLevels.map((level) => {
+          {sortedLevels.filter(level => level.scoreTo != null || level.scoreFrom != null).map((level) => {
             const active = isLevelActive(level)
-            const suggestedScore = level.scoreTo ?? level.scoreFrom ?? 0
+            const suggestedScore = (level.scoreTo ?? level.scoreFrom)!
             return (
               <button
                 key={level.levelOrder}
@@ -79,7 +79,7 @@ export function CriterionLevelPanel({
             <tbody>
               {sortedLevels.map((level) => {
                 const active = isLevelActive(level)
-                const suggestedScore = level.scoreTo ?? level.scoreFrom ?? 0
+                const suggestedScore = level.scoreTo ?? level.scoreFrom
                 return (
                   <tr
                     key={level.levelOrder}
@@ -103,14 +103,14 @@ export function CriterionLevelPanel({
                     </td>
                     {onSelectScore && (
                       <td className="p-2 align-top text-right">
-                        <button
+                        {suggestedScore != null ? <button
                           type="button"
                           disabled={disabled}
                           onClick={() => onSelectScore(suggestedScore)}
                           className="px-2 py-0.5 rounded text-xs font-semibold text-primary hover:bg-primary-subtle border border-primary/30 disabled:opacity-40"
                         >
                           {active ? 'Đang chọn' : `Chọn ${suggestedScore}đ`}
-                        </button>
+                        </button> : <span className="text-xs text-ink-muted">Chưa có điểm gợi ý</span>}
                       </td>
                     )}
                   </tr>

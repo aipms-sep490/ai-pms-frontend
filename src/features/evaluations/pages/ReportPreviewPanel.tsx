@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Modal } from '../../../components/ui/Modal'
 import { downloadEvaluationEvidenceFile, type EvidenceFile } from '../../../services/api/evaluations.api'
 import { fileLabel, formatBytes, previewKind } from '../report-preview'
 
@@ -48,6 +49,7 @@ export function ReportPreviewPanel({ assignmentId, files }: { assignmentId: numb
               type="button"
               className="inline-flex items-center gap-1 text-xs font-semibold text-ink-muted hover:text-ink px-2 py-1 rounded border border-hairline hover:bg-canvas transition-colors"
               onClick={() => setFullscreen(true)}
+              aria-label="Phóng to"
               title="Phóng to toàn màn hình để đọc"
             >
               <span className="material-symbols-outlined text-[16px]" aria-hidden="true">open_in_full</span>
@@ -104,53 +106,26 @@ export function ReportPreviewPanel({ assignmentId, files }: { assignmentId: numb
         />
       </section>
 
-      {/* Fullscreen Modal Viewer for deep reading while grading */}
       {fullscreen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Xem tài liệu ${selected.fileName} toàn màn hình`}
-          className="fixed inset-0 z-50 flex flex-col bg-slate-900/80 backdrop-blur-xs p-4 sm:p-6"
+        <Modal
+          open
+          title={`Xem tài liệu ${selected.fileName} toàn màn hình`}
+          description={`${formatBytes(selected.sizeBytes)} · Phiên bản ${selected.versionNumber ?? 'Chưa có'}`}
+          onClose={() => setFullscreen(false)}
+          className="report-preview-fullscreen-modal"
         >
-          <div className="relative flex flex-col w-full h-full max-w-7xl mx-auto rounded-2xl bg-card border border-hairline shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-hairline bg-canvas">
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="material-symbols-outlined text-primary text-[22px]" aria-hidden="true">description</span>
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-ink text-sm sm:text-base truncate">{selected.fileName}</h3>
-                  <p className="text-xs text-ink-muted">{formatBytes(selected.sizeBytes)} · Phiên bản {selected.versionNumber ?? '1.0'}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary bg-primary-subtle border border-primary/30 hover:bg-primary hover:text-white transition-colors"
-                  onClick={() => void download(selected)}
-                >
-                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">download</span>
-                  <span>Tải tệp</span>
-                </button>
-                <button
-                  type="button"
-                  aria-label="Đóng chế độ phóng to"
-                  className="min-h-10 min-w-10 rounded-lg flex items-center justify-center text-ink-muted hover:text-ink hover:bg-slate-200 transition-colors"
-                  onClick={() => setFullscreen(false)}
-                >
-                  <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 bg-slate-100 overflow-hidden">
-              <PreviewStage
-                key={`fs-${assignmentId}:${selected.id}`}
-                assignmentId={assignmentId}
-                file={selected}
-                download={download}
-                isFullscreen
-              />
-            </div>
+          <div className="mb-3 flex justify-end">
+            <button type="button" className="app-modal__button" onClick={() => void download(selected)}>Tải tệp</button>
           </div>
-        </div>
+          {downloadError && <p role="alert" className="mb-3 text-sm text-status-error-text">{downloadError}</p>}
+          <PreviewStage
+            key={`fs-${assignmentId}:${selected.id}`}
+            assignmentId={assignmentId}
+            file={selected}
+            download={download}
+            isFullscreen
+          />
+        </Modal>
       )}
     </>
   )
