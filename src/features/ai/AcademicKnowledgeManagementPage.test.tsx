@@ -40,6 +40,28 @@ it('confirms cancellation and restores the unsaved document draft', async () => 
   await waitFor(() => expect((screen.getByLabelText('Tên tài liệu') as HTMLInputElement).value).toBe(''))
   expect(screen.getByText('Chế độ xem')).toBeTruthy()
 })
+it('restores the period scope when cancelling a semester change', async () => {
+  const get = api.get.getMockImplementation()!
+  api.get.mockImplementation((url: string) => {
+    if (url.startsWith('/v1/academic/semesters?')) return Promise.resolve({ items: [{ id: 1, name: 'Kỳ A', organizationId: 1 }, { id: 2, name: 'Kỳ B', organizationId: 1 }], totalCount: 2 })
+    if (url.startsWith('/v1/academic/project-periods?')) return Promise.resolve({ items: [{ id: 11, name: 'Đợt A', academicSemesterId: 1 }], totalCount: 1 })
+    return get(url)
+  })
+  await ready(); fillDraft()
+  fireEvent.change(screen.getByLabelText('Kỳ áp dụng'), { target: { value: '1' } })
+  await screen.findByRole('option', { name: 'Đợt A' })
+  fireEvent.change(screen.getByLabelText('Đợt đồ án'), { target: { value: '11' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
+  await screen.findByText('Chế độ xem')
+  fireEvent.click(screen.getByRole('button', { name: 'Chỉnh sửa' }))
+  fireEvent.change(screen.getByLabelText('Kỳ áp dụng'), { target: { value: '2' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Hủy thay đổi' }))
+  fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Hủy thay đổi' }))
+  await screen.findByText('Chế độ xem')
+  await screen.findByRole('option', { name: 'Đợt A' })
+  expect((screen.getByLabelText('Kỳ áp dụng') as HTMLSelectElement).value).toBe('1')
+  expect((screen.getByLabelText('Đợt đồ án') as HTMLSelectElement).value).toBe('11')
+})
 function fillDraft() {
   fireEvent.change(screen.getByLabelText('Tên tài liệu'), { target: { value: 'Quy trình kiểm thử' } })
   fireEvent.change(screen.getByLabelText('Nội dung tài liệu'), { target: { value: 'Nội dung kiểm thử' } })

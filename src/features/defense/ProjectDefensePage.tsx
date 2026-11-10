@@ -12,7 +12,6 @@ import {
   getProjectDefenseSessions,
   scheduleDefense,
 } from './defense-api'
-import { DefenseCoordinatorView } from './components/DefenseCoordinatorView'
 import type {
   CommitteeMember,
   DefenseCommittee,
@@ -541,7 +540,6 @@ export function ProjectDefenseManagementPage() {
   const [sessions, setSessions] = useState<DefenseSession[] | null>(null)
   const [error, setError] = useState('')
   const [revision, setRevision] = useState(0)
-  const [viewMode, setViewMode] = useState<'PROJECT' | 'COORDINATOR'>('PROJECT')
 
   useEffect(() => {
     if (!Number.isSafeInteger(projectId) || projectId < 1) return
@@ -560,36 +558,9 @@ export function ProjectDefenseManagementPage() {
     <WorkspacePage title="Quản lý hội đồng & lịch bảo vệ" eyebrow={`Đồ án #${projectId}`} description="Khoa hoặc Primary quản lý hội đồng và lịch bảo vệ trong phạm vi được backend cấp.">
       <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
 
-      <div className="flex rounded-lg border border-hairline bg-canvas p-1 text-xs w-fit">
-        <button
-          type="button"
-          onClick={() => setViewMode('PROJECT')}
-          className={`rounded-md px-3 py-1.5 font-bold transition-all ${
-            viewMode === 'PROJECT' ? 'bg-surface text-primary shadow-xs' : 'text-ink-muted hover:text-ink'
-          }`}
-        >
-          📋 Đồ án #${projectId}
-        </button>
-        <button
-          type="button"
-          onClick={() => setViewMode('COORDINATOR')}
-          className={`rounded-md px-3 py-1.5 font-bold transition-all ${
-            viewMode === 'COORDINATOR' ? 'bg-surface text-primary shadow-xs' : 'text-ink-muted hover:text-ink'
-          }`}
-        >
-          🏛️ Sơ đồ phòng & Lưới bảo vệ toàn đợt
-        </button>
-      </div>
-
-      {viewMode === 'COORDINATOR' ? (
-        <DefenseCoordinatorView />
-      ) : (
-        <>
-          {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error}</p>}
-          {!error && sessions && <DefenseManagementPanel projectId={projectId} hasScheduledSession={sessions.some((session) => session.status === 'SCHEDULED')} onSessionScheduled={() => setRevision((value) => value + 1)} />}
-          {!error && !sessions && <p role="status">Đang tải lịch bảo vệ…</p>}
-        </>
-      )}
+      {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error}</p>}
+      {!error && sessions && <DefenseManagementPanel projectId={projectId} hasScheduledSession={sessions.some((session) => session.status === 'SCHEDULED')} onSessionScheduled={() => setRevision((value) => value + 1)} />}
+      {!error && !sessions && <p role="status">Đang tải lịch bảo vệ…</p>}
     </WorkspacePage>
   )
 }

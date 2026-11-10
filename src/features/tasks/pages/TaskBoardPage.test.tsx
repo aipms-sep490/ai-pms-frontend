@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { ExecutionAccessProvider } from '../../execution/context/ExecutionAccessProvider'
 import { TaskBoardPage } from './TaskBoardPage'
 
@@ -29,8 +29,7 @@ const item = { id: 1, milestoneId: 3, title: 'Phân tích yêu cầu', status: '
 const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
 
 function renderBoard(manage: boolean, url = '/project/tasks', allowed = manage, hasTeam = true, retryTeam = vi.fn(), readOnly = false) {
-  return render(
-    <MemoryRouter initialEntries={[url]}>
+  const router = createMemoryRouter([{ path: '*', element:
       <ExecutionAccessProvider
         value={{
           project: { id: 9, majors: [] } as never,
@@ -46,9 +45,9 @@ function renderBoard(manage: boolean, url = '/project/tasks', allowed = manage, 
         }}
       >
         <TaskBoardPage />
-      </ExecutionAccessProvider>
-    </MemoryRouter>
-  )
+      </ExecutionAccessProvider>,
+  }], { initialEntries: [url] })
+  return { ...render(<RouterProvider router={router} />), router }
 }
 
 beforeEach(() => {
@@ -181,6 +180,18 @@ describe('TaskBoardPage', () => {
   })
 
   // Phase C tests (FE2-C1, C2, C3)
+  it('clears the previous modal task when navigation selects another task', async () => {
+    api.getTask.mockImplementation((id: number) => id === 1 ? Promise.resolve(item) : new Promise(() => {}))
+    const { router } = renderBoard(true, '/project/tasks?taskDetail=1')
+    expect(await screen.findByRole('heading', { name: /#1 · Phân tích yêu cầu/ })).toBeTruthy()
+    await act(async () => { await router.navigate('/project/tasks?taskDetail=2') })
+    expect(screen.queryByRole('heading', { name: /#1 · Phân tích yêu cầu/ })).toBeNull()
+    expect(screen.getByRole('heading', { name: 'Công việc #2' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Mở trang chi tiết đầy đủ/ }).getAttribute('href')).toBe('/project/tasks/2')
+    expect(api.updateTask).not.toHaveBeenCalled()
+    expect(api.updateTaskStatus).not.toHaveBeenCalled()
+  })
+
   it('opens task detail modal on card click while keeping the board rendered underneath', async () => {
     api.getProjectTasks.mockResolvedValue({ ...empty, items: [item], totalCount: 1, totalPages: 1 })
     renderBoard(true)

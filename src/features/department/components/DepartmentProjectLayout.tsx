@@ -69,8 +69,7 @@ export function DepartmentProjectLayout() {
             </select>
           </label>
 
-          {/* Desktop primary tabs + secondary dropdown - zero wrap at 1280px / 1440px */}
-          <div className="hidden flex-nowrap items-center gap-1.5 overflow-x-auto md:flex">
+          <div className="hidden flex-wrap items-center gap-1.5 md:flex">
             {primaryLinks.map(([title, to]) => (
               <NavLink
                 key={to}
@@ -87,7 +86,12 @@ export function DepartmentProjectLayout() {
             ))}
 
             {/* Secondary dropdown */}
-            <div className="relative shrink-0" ref={dropdownRef}>
+            <div className="relative shrink-0" ref={dropdownRef} onKeyDown={event => {
+              if (event.key === 'Escape') {
+                setMoreOpen(false)
+                dropdownRef.current?.querySelector('button')?.focus()
+              }
+            }}>
               <button
                 type="button"
                 aria-expanded={moreOpen}

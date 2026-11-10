@@ -280,6 +280,7 @@ export function TaskBoardPage() {
     {/* Task Detail Modal - opens centered over Kanban board without leaving board context */}
     {modalTaskId && (
       <TaskDetailModal
+        key={`${project.id}:${modalTaskId}`}
         taskId={modalTaskId}
         onClose={closeTaskDetail}
         onTaskUpdated={refresh}
