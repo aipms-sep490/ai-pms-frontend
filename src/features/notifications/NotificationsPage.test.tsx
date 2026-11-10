@@ -89,4 +89,20 @@ describe('NotificationsPage', () => {
     await waitFor(() => expect(api.markNotificationRead).toHaveBeenCalledWith(5))
     await waitFor(() => expect(screen.getByLabelText('Đường dẫn hiện tại').textContent).toBe('/projects/lifecycle'))
   })
-})
+  it('groups notifications into Hôm nay and Trước đó', async () => {
+    const todayItem = { ...unread, id: 10, createdAt: new Date().toISOString() }
+    const olderItem = { ...unread, id: 11, createdAt: '2026-01-01T00:00:00Z' }
+    api.getNotifications.mockResolvedValue({ items: [todayItem, olderItem], page: 1, pageSize: 20, totalCount: 2, totalPages: 1 })
+    render(<NotificationsPage />)
+    expect(await screen.findByText('Hôm nay')).toBeTruthy()
+    expect(screen.getByText('Trước đó')).toBeTruthy()
+  })
+
+  it('shows a type badge with both an icon and text', async () => {
+    render(<NotificationsPage />)
+    expect(await screen.findByRole('heading', { name: translatedTitle })).toBeTruthy()
+    const badge = screen.getByLabelText(/Loại thông báo:/i)
+    expect(badge).toBeTruthy()
+    expect(badge.textContent).toContain('Cập nhật đồ án')
+  })
+});

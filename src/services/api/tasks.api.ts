@@ -105,3 +105,11 @@ export const getTaskBoard = (projectId: number, filters: TaskBoardFilters = {}, 
   return httpGet<PagedResult<TaskDto>>(`/projects/${projectId}/task-board?${params}`, signal)
 }
 export const saveTaskBoard = (taskId: number, payload: SaveTaskBoardPayload) => httpPut<TaskDto, SaveTaskBoardPayload>(`/tasks/${taskId}/board`, payload)
+export interface TaskBoardStatusCount { status: string; count: number }
+export const getTaskBoardSummary = (projectId: number, options?: { milestoneId?: number; sprintId?: number }, signal?: AbortSignal) => {
+  const params = new URLSearchParams()
+  if (options?.milestoneId) params.set('milestoneId', String(options.milestoneId))
+  if (options?.sprintId) params.set('sprintId', String(options.sprintId))
+  const qs = params.toString() ? `?${params.toString()}` : ''
+  return httpGet<TaskBoardStatusCount[]>(`/projects/${projectId}/task-board/summary${qs}`, signal)
+}

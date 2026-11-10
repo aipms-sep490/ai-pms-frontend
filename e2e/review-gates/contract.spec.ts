@@ -186,7 +186,7 @@ test('controlled HTTP: governance saves a new numeric ID before publishing the l
 
 test('controlled HTTP: student view fits 320/375/768/1024/1440 widths', async ({ page }, testInfo) => {
   await login(page)
-  await expect(page.getByText(timeline.projectName)).toBeVisible()
+  await expect(page.getByRole('heading', { name: timeline.projectName, exact: true })).toBeVisible()
   for (const width of [320, 375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `overflow at ${width}`).toBe(true)

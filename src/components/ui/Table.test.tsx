@@ -52,4 +52,22 @@ describe('Table', () => {
     sample()
     expect(screen.getByRole('table').className).not.toContain('ai-table--stack')
   })
+
+  it('bands the header by default and lets a caller opt out', () => {
+    const { container, rerender } = render(
+      <Table><TableHead><TableRow head><TableHeaderCell>Mã</TableHeaderCell></TableRow></TableHead></Table>,
+    )
+    expect(container.querySelector('.ai-table__head--band')).toBeTruthy()
+
+    rerender(
+      <Table><TableHead band={false}><TableRow head><TableHeaderCell>Mã</TableHeaderCell></TableRow></TableHead></Table>,
+    )
+    expect(container.querySelector('.ai-table__head--band')).toBeNull()
+  })
+
+  it('keeps a long Vietnamese header available through its title', () => {
+    const label = 'Chuyên ngành hẹp và định hướng tốt nghiệp'
+    render(<Table><TableHead><TableRow head><TableHeaderCell>{label}</TableHeaderCell></TableRow></TableHead></Table>)
+    expect(screen.getByRole('columnheader', { name: label }).getAttribute('title')).toBe(label)
+  })
 })

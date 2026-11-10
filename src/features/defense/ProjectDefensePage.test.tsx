@@ -65,6 +65,15 @@ describe('ProjectDefensePage', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('chưa có quyền')
   })
 
+  it('does not expose the sample coordinator or management actions after a backend denial', async () => {
+    mocks.getProjectDefenseSessions.mockRejectedValue(new HttpError('forbidden', 403))
+    renderManagement()
+    expect((await screen.findByRole('alert')).textContent).toContain('không có quyền quản lý')
+    expect(screen.queryByRole('button', { name: /Sơ đồ phòng|Lưới bảo vệ/ })).toBeNull()
+    expect(screen.queryByText(/PRJ-2026-012|K18 Fall 2026/)).toBeNull()
+    expect(mocks.getDefenseCommittees).not.toHaveBeenCalled()
+  })
+
   it('handles no active project', async () => {
     mocks.journey.project = null
     render_()
@@ -142,4 +151,39 @@ describe('ProjectDefensePage', () => {
     })
     expect(await screen.findByText('Xếp lịch bảo vệ thành công.')).toBeTruthy()
   })
-})
+  it('displays a conflict warning and identity strip when sessions overlap in time', async () => {
+    const session1 = { ...scheduled, id: 1, startAt: '2026-12-20T08:00:00Z', endAt: '2026-12-20T10:00:00Z' }
+    const session2 = { ...scheduled, id: 2, startAt: '2026-12-20T09:00:00Z', endAt: '2026-12-20T11:00:00Z' }
+    mocks.getProjectDefenseSessions.mockResolvedValue(paged([session1, session2]))
+    render_()
+    expect(await screen.findByText(/Trùng khoảng thời gian/i)).toBeTruthy()
+    expect(screen.getByRole('list', { name: 'Thông tin định danh' })).toBeTruthy()
+    expect(screen.getByText('Đủ điều kiện hủy lịch bảo vệ')).toBeTruthy()
+  })
+
+  it('normalizes room code spaces and format when scheduling (e.g. a - 201 to A-201)', async () => {
+    const { fireEvent, waitFor } = await import('@testing-library/react')
+    mocks.getProjectDefenseSessions.mockResolvedValue(paged([]))
+    mocks.getDefenseCommittees.mockResolvedValue({
+      items: [{ id: 5, projectId: 9, name: 'Hội đồng KTPM 01', members: [{ userId: 10, majorId: 1 }] }],
+      page: 1, pageSize: 50, totalCount: 1, totalPages: 1,
+    })
+    mocks.scheduleDefense.mockResolvedValue({ ...scheduled, id: 2, committeeId: 5 })
+
+    renderManagement()
+    expect(await screen.findByText('Quản lý hội đồng & Lịch bảo vệ (Khoa / Quản trị)')).toBeTruthy()
+    expect((await screen.findAllByText(/Hội đồng KTPM 01/)).length).toBeGreaterThan(0)
+
+    fireEvent.change(screen.getByLabelText(/Chọn hội đồng/), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText(/Phòng bảo vệ/), { target: { value: ' a - 201 ' } })
+    fireEvent.change(screen.getByLabelText(/Thời gian bắt đầu/), { target: { value: '2026-12-25T08:00' } })
+    fireEvent.change(screen.getByLabelText(/Thời gian kết thúc/), { target: { value: '2026-12-25T10:00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận xếp lịch bảo vệ' }))
+
+    await waitFor(() => {
+      expect(mocks.scheduleDefense).toHaveBeenCalledWith(9, expect.objectContaining({
+        room: 'A-201',
+      }))
+    })
+  })
+});

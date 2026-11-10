@@ -95,3 +95,13 @@ it('toggles requireWorkingAgreement and includes it in save payload', async () =
     policy: expect.objectContaining({ requireWorkingAgreement: true })
   })))
 })
+
+it('opens policy in view mode and explains the impact of publication', async () => {
+  page()
+  expect(await screen.findByText('Chế độ xem')).toBeTruthy()
+  expect(screen.getByText('Phiên bản mới áp dụng ngay khi công bố và kết thúc hiệu lực phiên bản trước.')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: /Phiên bản 2/ }))
+  expect(screen.getByText('ĐANG CHỈNH SỬA')).toBeTruthy()
+  expect(screen.getByRole('switch', { name: /Bắt buộc có Thỏa thuận làm việc nhóm/ })).toBeTruthy()
+  expect(screen.getAllByText('NGƯỜI').length).toBeGreaterThan(0)
+})

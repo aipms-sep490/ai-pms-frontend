@@ -15,7 +15,8 @@
     "check-contracts": "node scripts/sync-contracts.mjs check",
     "test:chat": "vitest run src/features/chat",
     "test:chat:e2e": "playwright test --config playwright.chat.config.ts",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "route-inventory": "node scripts/route-inventory.mjs"
   },
   "dependencies": {
     "@livekit/components-react": "^2.9.24",

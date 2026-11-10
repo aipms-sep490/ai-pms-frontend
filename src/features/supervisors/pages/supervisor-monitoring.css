@@ -233,9 +233,9 @@
 }
 
 .sup__status--unavailable {
-  border-color: #fed7aa;
-  background: #fff7ed;
-  color: #c2410c;
+  border-color: var(--color-status-warning-border);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
 }
 
 .sup__open {
@@ -270,7 +270,6 @@
   font-size: 12px;
 }
 
-.sup__empty,
 .sup__state {
   place-items: center;
   min-height: 280px;
@@ -281,15 +280,11 @@
   text-align: center;
 }
 
-.sup__empty .material-symbols-outlined,
 .sup__state > .material-symbols-outlined {
   color: #94a3b8;
   font-size: 36px;
 }
 
-.sup__empty strong { margin-top: 4px; }
-
-.sup__empty p,
 .sup__state > p {
   margin: 0;
   color: var(--color-ink-muted);

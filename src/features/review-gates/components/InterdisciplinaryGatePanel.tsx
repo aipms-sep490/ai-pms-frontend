@@ -1,3 +1,4 @@
+import { Table, TableHead } from '../../../components/ui/Table'
 import { useEffect, useState } from 'react'
 import type { GateStatus } from '../types/review-gates.types'
 import { env } from '../../../app/config/env'
@@ -171,14 +172,14 @@ export function InterdisciplinaryGatePanel({
               </div>
             )}
 
-            <table className="w-full text-left text-xs">
-              <thead className="bg-canvas font-semibold uppercase tracking-wider text-ink-muted border-b border-slate-100">
+            <Table className="w-full text-left text-xs">
+              <TableHead className="font-semibold uppercase tracking-wider text-ink-muted">
                 <tr>
                   <th className="py-3 px-4">Phạm vi chuyên ngành</th>
                   <th className="py-3 px-3 text-center">Bắt buộc</th>
                   <th className="py-3 px-4">Quyết định Reviewer</th>
                 </tr>
-              </thead>
+              </TableHead>
               <tbody className="divide-y divide-slate-100 text-ink-soft">
                 {scopeKeys.map(scopeKey => {
                   const item = {
@@ -222,7 +223,7 @@ export function InterdisciplinaryGatePanel({
                   )
                 })}
               </tbody>
-            </table>
+            </Table>
           </div>
 
           <div className="rounded-xl border border-hairline bg-card p-4 shadow-xs">

@@ -10,7 +10,7 @@
 [data-experience=enhanced] :is(.workspace-heading-copy>p,.admin-heading>div>p:last-child,.report-description,.mtg-description) { font-size:15px; line-height:1.75; max-width:70ch; color:var(--experience-muted); }
 [data-experience=enhanced] :is(.workspace-kicker,.admin-kicker,.report-eyebrow,.mtg-eyebrow) { font-family:var(--font-sans); font-size:12px; letter-spacing:.015em; color:var(--experience-muted); }
 [data-experience=enhanced] :is(.workspace-back,.report-back,.mtg-back,.admin-back) { display:inline-flex; align-items:center; gap:8px; min-height:40px; padding:7px 11px; border:1px solid var(--experience-line); border-radius:9px; background:#fff; font-size:13px; font-weight:550; text-decoration:none; color:var(--experience-ink); }
-[data-experience=enhanced] :is(.workspace-back,.report-back,.mtg-back,.admin-back):hover { background:var(--color-primary-subtle); border-color:var(--color-brand-teal); color:var(--color-primary-hover); }
+[data-experience=enhanced] :is(.workspace-back,.report-back,.mtg-back,.admin-back):hover { background:var(--color-primary-subtle); border-color:var(--color-primary); color:var(--color-primary-hover); }
 [data-experience=enhanced] :is(.workspace-back,.report-back,.mtg-back,.admin-back) .material-symbols-outlined { font-size:18px; }
 [data-experience=enhanced] :is(.report-toolbar,.mtg-filters,.admin-filter,.ex-filters) { background:var(--color-canvas); padding:20px 24px; gap:16px; border-radius:12px; border:1px solid var(--experience-line); }
 [data-experience=enhanced] form label { font-size:13px; letter-spacing:normal; line-height:1.6; text-transform:none; color:var(--experience-ink); }

@@ -3,6 +3,7 @@ import { useActionConfirmation } from '../../../components/ui/useActionConfirmat
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { env } from '../../../app/config/env'
 import { Button } from '../../../components/ui/Button'
 import { academicError, type AcademicError } from '../academic-error'
 import { AcademicField } from '../components/AcademicField'
@@ -67,6 +68,7 @@ export function AcademicGovernancePage() {
         <div className="governance-record-footer"><div className="governance-record-actions">
           <Link to={`/academic/project-periods/${period.id}/policy`} className="workspace-action-link">Các phiên bản chính sách<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>
           <Link to={`/academic/project-periods/${period.id}/review-gates`} className="workspace-action-link">Cấu hình Review Gates<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>
+          {env.defenseScheduleEnabled && env.roomPlannerEnabled && <Link to={`/academic/project-periods/${period.id}/room-planner`} className="workspace-action-link">Sơ đồ phòng & lập lịch Gate 4<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>}
           {governance.canManage && !['CLOSED', 'ARCHIVED'].includes(period.status) && <Button size="sm" variant="secondary" onClick={() => openEditor({ kind: 'period', record: period })}>Chỉnh sửa cấu trúc</Button>}
         </div><Status label={`giai đoạn ${period.name}`} status={period.status} busy={governance.submitting} canManage={governance.canManage} onChange={status => changeStatus('period', period.id, status, period.status)} /></div>
 

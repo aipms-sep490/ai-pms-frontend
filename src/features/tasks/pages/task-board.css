@@ -21,7 +21,7 @@
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 .task-board-column.is-drag-over {
-  border-color: var(--color-brand-teal);
+  border-color: var(--color-primary);
   background: var(--color-primary-subtle);
   box-shadow: 0 0 0 2px var(--color-primary), inset 0 2px 4px color-mix(in oklab, var(--color-primary) 12%, transparent);
 }
@@ -93,7 +93,7 @@
   text-decoration: none;
 }
 .task-board-card:hover {
-  border-color: var(--color-brand-teal);
+  border-color: var(--color-primary);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px -2px color-mix(in oklab, var(--color-brand-navy) 8%, transparent);
 }
@@ -232,7 +232,7 @@
   transition: all 0.15s ease;
 }
 .sprint-task-row:hover {
-  border-color: var(--color-brand-teal);
+  border-color: var(--color-primary);
   box-shadow: 0 2px 6px 0 color-mix(in oklab, var(--color-brand-navy) 5%, transparent);
 }
 .sprint-task-main {
@@ -302,7 +302,7 @@
   transition: all 0.15s ease;
 }
 .sprint-point-option:hover {
-  border-color: var(--color-brand-teal);
+  border-color: var(--color-primary);
 }
 .sprint-point-option--on {
   border-color: var(--color-primary);

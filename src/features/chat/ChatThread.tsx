@@ -57,6 +57,7 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
   const restoreScroll = useRef<{ height: number; top: number; anchorId?: string; anchorTop?: number } | null>(null)
   const typingStop = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const [newMessages, setNewMessages] = useState(0)
+  const [isFollowing, setIsFollowing] = useState(true)
   const [aiSummary, setAiSummary] = useState<ChatAiSummary | null>(null)
   const [aiBusy, setAiBusy] = useState(false)
   const [aiError, setAiError] = useState('')
@@ -222,7 +223,7 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
       setError(chatError(e)); setDraft(text); setFiles(chosen); setReply(replyTo)
     } finally { if (live.current) setBusy(false) }
   }
-  const isMuted = !!room?.mutedUntil && Date.parse(room.mutedUntil) > Date.now()
+  const isMuted = !!room?.mutedUntil && Date.parse(room.mutedUntil) > (room ? Date.now() : 0)
   const [mutePending, setMutePending] = useState(false)
   const setMute = (mutedUntil: string | null) => {
     setMutePending(true)
@@ -280,6 +281,7 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
     {aiError && <p role="alert" className="chat-error">{aiError}</p>}
     {aiSummary && <aside className="chat-ai-summary" aria-label="Tóm tắt cuộc trò chuyện">
       <div className="chat-ai-summary-heading"><strong>Tóm tắt AI</strong><button type="button" onClick={() => setAiSummary(null)} aria-label="Đóng tóm tắt">×</button></div>
+      <p role="note" className="rounded border border-primary-subtle bg-primary-subtle px-2 py-1 text-xs font-semibold text-primary">Phản hồi chỉ có giá trị tham khảo/tư vấn, không thay thế quyết định học vụ</p>
       <p>{aiSummary.summary}</p>
       {!!aiSummary.decisions.length && <><h3>Quyết định</h3><ul>{aiSummary.decisions.map((item, i) => <li key={i}>{item}</li>)}</ul></>}
       {!!aiSummary.openQuestions.length && <><h3>Cần làm rõ</h3><ul>{aiSummary.openQuestions.map((item, i) => <li key={i}>{item}</li>)}</ul></>}
@@ -289,7 +291,7 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
     {error && <p role="alert" className="chat-error">{error} <button onClick={() => { revoked.current = false; setReload(n => n + 1) }}>Tải lại</button></p>}
     <details className="chat-members"><summary>Thành viên và trạng thái đã đọc ({members.length})</summary><ul>{members.map(person => <li key={person.userId}>{person.fullName}{online.includes(person.userId) ? ' · Đang kết nối' : ''}{person.userId !== userId && person.lastReadSequence && messages.some(m => m.senderId === userId && BigInt(m.sequence) <= BigInt(person.lastReadSequence!)) ? ' · Đã đọc tin của bạn' : ''}</li>)}</ul>
       {memberCursor && <button disabled={busy} onClick={() => void mutate(async () => { const page = await chatApi.members(id, memberCursor); if (!live.current || revoked.current) return; setMembers(old => [...old, ...page.items]); setMemberCursor(page.nextCursor) })}>Xem thêm thành viên</button>}</details>
-    <div className="chat-history" ref={view} onScroll={() => { const history = view.current; if (history) { following.current = history.scrollHeight - history.scrollTop - history.clientHeight < 64; if (following.current) setNewMessages(0) } }} tabIndex={0} aria-label="Lịch sử tin nhắn" aria-busy={!ready}>
+    <div className="chat-history" ref={view} onScroll={() => { const history = view.current; if (history) { following.current = history.scrollHeight - history.scrollTop - history.clientHeight < 64; if (following.current) { setNewMessages(0); setIsFollowing(true); } else { setIsFollowing(false); } } }} tabIndex={0} aria-label="Lịch sử tin nhắn" aria-busy={!ready}>
       {!ready && !error && <p role="status">Đang tải cuộc trò chuyện…</p>}
       {cursor && <button disabled={!ready || busy} onClick={() => void mutate(async () => { const history = view.current; const page = await chatApi.messages(id, cursor); if (!revoked.current && live.current) { historyWindows.current = [...historyWindows.current, cursor].slice(-10); following.current = false; if (history) { const anchor = [...history.querySelectorAll<HTMLElement>('[data-message-id]')].find(element => element.getBoundingClientRect().bottom > history.getBoundingClientRect().top); restoreScroll.current = { height: history.scrollHeight, top: history.scrollTop, anchorId: anchor?.dataset.messageId, anchorTop: anchor?.getBoundingClientRect().top } } setMessages(old => mergeMessages(old, page.items).slice(0, 500)); setCursor(page.nextCursor) } })}>Xem tin trước</button>}
       {ready && !messages.length && <p>Chưa có tin nhắn. Bắt đầu cuộc trao đổi.</p>}
@@ -304,7 +306,7 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
       {pending.map(item => <article className="own chat-pending" key={item.request.clientMessageId}><p>{item.request.body}</p><small>{item.sending ? 'Đang gửi...' : item.error}</small>{!item.sending && <button disabled={!canSend} onClick={() => void send(item)}>Gửi lại</button>}</article>)}
       <div ref={bottom} style={{ height: 2 }} />
     </div>
-    <button className={`chat-jump ${following.current && !newMessages ? 'is-hidden' : ''}`} onClick={() => { following.current = true; setNewMessages(0); if (historyWindows.current.length > 1 || historyWindows.current[0]) { historyWindows.current = [undefined]; setReload(n => n + 1) } if (view.current) view.current.scrollTop = view.current.scrollHeight }}>{newMessages ? `${newMessages} tin mới ↓` : 'Tin mới nhất'}</button>
+    <button className={`chat-jump ${isFollowing && !newMessages ? 'is-hidden' : ''}`} onClick={() => { following.current = true; setIsFollowing(true); setNewMessages(0); if (historyWindows.current.length > 1 || historyWindows.current[0]) { historyWindows.current = [undefined]; setReload(n => n + 1) } if (view.current) view.current.scrollTop = view.current.scrollHeight }}>{newMessages ? `${newMessages} tin mới ↓` : 'Tin mới nhất'}</button>
     <div role="status" className="chat-typing">{Object.keys(typing).length ? `${members.find(person => person.userId === Object.keys(typing)[0])?.fullName || 'Có người'}${Object.keys(typing).length > 1 ? ` và ${Object.keys(typing).length - 1} người khác` : ''} đang nhập…` : ''}</div>
     {ready && !canSend && <p className="chat-readonly" role="status">Cuộc trò chuyện chỉ đọc theo trạng thái và quyền do hệ thống xác nhận.</p>}
     {recall && <div className="chat-confirm" role="group" aria-label="Xác nhận thu hồi"><p>Thu hồi tin nhắn này?</p><button disabled={!canSend || busy} onClick={() => void mutate(async () => { await chatApi.recall(id, recall); setRecall(null); refresh(id) })}>Xác nhận thu hồi</button><button onClick={() => setRecall(null)}>Hủy</button></div>}

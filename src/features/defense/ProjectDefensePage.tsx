@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
+import { ActionVerdict } from '../../components/ui/ActionVerdict'
+import { EntityIdentityStrip } from '../../components/ui/EntityIdentityStrip'
 import { useStudentJourney } from '../../app/context'
 import { HttpError } from '../../services/http/http-client'
 import {
@@ -49,6 +51,31 @@ function mapConflictReason(reason: unknown, fallback: string): string {
   return fallback
 }
 
+
+export function normalizeDefenseRoom(room: string): string {
+  return room.trim().replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ').toUpperCase()
+}
+
+export function findSessionConflicts(sessions: DefenseSession[] | null): Array<[DefenseSession, DefenseSession]> {
+  if (!sessions || sessions.length < 2) return []
+  const scheduled = sessions.filter((s) => s.status === 'SCHEDULED')
+  const conflicts: Array<[DefenseSession, DefenseSession]> = []
+  for (let i = 0; i < scheduled.length; i++) {
+    for (let j = i + 1; j < scheduled.length; j++) {
+      const a = scheduled[i]
+      const b = scheduled[j]
+      const aStart = new Date(a.startAt).getTime()
+      const aEnd = new Date(a.endAt).getTime()
+      const bStart = new Date(b.startAt).getTime()
+      const bEnd = new Date(b.endAt).getTime()
+      if (aStart < bEnd && aEnd > bStart) {
+        conflicts.push([a, b])
+      }
+    }
+  }
+  return conflicts
+}
+
 export function DefenseScheduleView({
   projectId: _projectId,
   sessions,
@@ -59,6 +86,7 @@ export function DefenseScheduleView({
   onCancelled?: () => void
 }) {
   const scheduled = sessions?.find((session) => session.status === 'SCHEDULED')
+  const conflicts = findSessionConflicts(sessions)
   const mostRecentCancelled = sessions?.filter((session) => session.status === 'CANCELLED').at(-1)
   const highlighted = scheduled ?? mostRecentCancelled ?? null
 
@@ -89,9 +117,18 @@ export function DefenseScheduleView({
   if (!highlighted) {
     return <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đồ án chưa được xếp lịch bảo vệ. Bạn sẽ được thông báo khi có lịch.</p>
   }
-
   return (
-    <section className="space-y-3 rounded-xl border border-hairline bg-card p-5 shadow-xs">
+    <div className="space-y-4">
+      {conflicts.length > 0 && (
+        <div role="alert" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm font-medium text-status-warning-text">
+          <div className="flex items-center gap-2 font-bold">
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">warning</span>
+            <span>Cảnh báo trùng lịch bảo vệ</span>
+          </div>
+          <p className="mt-1">Trùng khoảng thời gian giữa các phiên bảo vệ trong cùng đồ án. Hãy kiểm tra hoặc hủy phiên trùng.</p>
+        </div>
+      )}
+      <section className="space-y-3 rounded-xl border border-hairline bg-card p-5 shadow-xs">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-primary">Thời gian</p>
@@ -151,7 +188,23 @@ export function DefenseScheduleView({
           </div>
         </div>
       )}
+      {scheduled && (
+        <div className="mt-3">
+          <ActionVerdict
+            actions={[{
+              code: 'CANCEL_DEFENSE_SESSION',
+              allowed: Boolean(scheduled.canCancel),
+              reasons: !scheduled.canCancel ? ['Phiên bảo vệ không ở trạng thái cho phép hủy.'] : [],
+            }]}
+            actionCode="CANCEL_DEFENSE_SESSION"
+            status="ready"
+            okLabel="Đủ điều kiện hủy lịch bảo vệ"
+            blockedLabel="Không thể hủy lịch bảo vệ"
+          />
+        </div>
+      )}
     </section>
+  </div>
   )
 }
 
@@ -249,7 +302,7 @@ export function DefenseManagementPanel({
         committeeId: cId,
         startAt: new Date(startAt).toISOString(),
         endAt: new Date(endAt).toISOString(),
-        room: room.trim().toUpperCase(),
+        room: normalizeDefenseRoom(room),
       })
       setScheduleSuccess('Xếp lịch bảo vệ thành công.')
       onSessionScheduled?.()
@@ -462,6 +515,7 @@ export function ProjectDefensePage() {
       eyebrow="Hội đồng đánh giá"
       description="Thời gian và phòng bảo vệ của đồ án. Thành phần hội đồng không hiển thị ở đây."
     >
+      {projectId && <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: (journey.project as { title?: string } | undefined)?.title || `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />}
       {!projectId && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Không tìm thấy đồ án đang hoạt động để xem lịch bảo vệ.</p>}
       {projectId && loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải lịch bảo vệ…</p>}
       {projectId && !loading && error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><span>{error}</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
@@ -502,6 +556,8 @@ export function ProjectDefenseManagementPage() {
   if (!Number.isSafeInteger(projectId) || projectId < 1) return <WorkspacePage title="Quản lý bảo vệ"><p role="alert">Mã đồ án không hợp lệ.</p></WorkspacePage>
   return (
     <WorkspacePage title="Quản lý hội đồng & lịch bảo vệ" eyebrow={`Đồ án #${projectId}`} description="Khoa hoặc Primary quản lý hội đồng và lịch bảo vệ trong phạm vi được backend cấp.">
+      <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
+
       {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error}</p>}
       {!error && sessions && <DefenseManagementPanel projectId={projectId} hasScheduledSession={sessions.some((session) => session.status === 'SCHEDULED')} onSessionScheduled={() => setRevision((value) => value + 1)} />}
       {!error && !sessions && <p role="status">Đang tải lịch bảo vệ…</p>}

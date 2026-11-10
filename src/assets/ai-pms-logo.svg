@@ -1,1 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 140" role="img" aria-labelledby="title desc"><title id="title">AI-PMS brand mark</title><desc id="desc">A rounded project symbol with an ascending milestone path</desc><rect x="8" y="8" width="124" height="124" rx="31" fill="#0F2747"/><path d="M36 100V41h31c22 0 32 12 32 30s-11 29-31 29H36Z" fill="none" stroke="#DDF7F4" stroke-width="9" stroke-linecap="round"/><path d="m46 85 21-20 17 12 28-36" fill="none" stroke="#F6B94C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="46" cy="85" r="6" fill="#F6B94C"/><circle cx="112" cy="41" r="6" fill="#F6B94C"/><text x="156" y="77" font-size="59" font-family="Inter,Arial,sans-serif" font-weight="800" letter-spacing="-2" fill="#0F2747">AI-PMS</text><text x="159" y="105" font-size="15" font-family="Inter,Arial,sans-serif" font-weight="700" letter-spacing="4" fill="#12B3A8">ACADEMIC PROJECT OS</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 140" role="img" aria-labelledby="title desc">
+  <title id="title">PMS - Project Management System</title>
+  <desc id="desc">Hệ thống quản lý tiến trình thực hiện đồ án học phần - FPT University</desc>
+  <defs>
+    <linearGradient id="pmsLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EA580C" />
+      <stop offset="100%" stop-color="#C2410C" />
+    </linearGradient>
+    <filter id="pmsLogoShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#7C2D12" flood-opacity="0.25" />
+    </filter>
+  </defs>
+  <!-- Brand Squircle -->
+  <rect x="8" y="8" width="124" height="124" rx="28" fill="url(#pmsLogoGrad)" filter="url(#pmsLogoShadow)" />
+  <path d="M30 46 L58 36 L86 44 L114 30" fill="none" stroke="#FED7AA" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="30" cy="46" r="4" fill="#FEF08A" />
+  <circle cx="58" cy="36" r="4" fill="#FEF08A" />
+  <circle cx="86" cy="44" r="4" fill="#FEF08A" />
+  <circle cx="114" cy="30" r="5" fill="#FEF08A" stroke="#FFFFFF" stroke-width="2" />
+  <text x="70" y="96" font-family="'Plus Jakarta Sans', Inter, -apple-system, sans-serif" font-weight="900" font-size="44" letter-spacing="-1" text-anchor="middle" fill="#FFFFFF">PMS</text>
+  <!-- Wordmark typography -->
+  <text x="156" y="80" font-size="64" font-family="'Plus Jakarta Sans', Inter, -apple-system, sans-serif" font-weight="900" letter-spacing="-2" fill="#0F172A">PMS</text>
+  <text x="158" y="108" font-size="13" font-family="'Plus Jakarta Sans', Inter, -apple-system, sans-serif" font-weight="800" letter-spacing="3" fill="#C2410C">PROJECT MANAGEMENT SYSTEM</text>
+</svg>

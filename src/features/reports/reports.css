@@ -15,13 +15,13 @@
 .report-button:hover { background: var(--color-primary-hover); border-color: var(--color-primary-hover); box-shadow: 0 4px 12px -2px color-mix(in oklab, var(--color-primary) 35%, transparent); }
 .report-button:active { transform: scale(0.98); }
 .report-button--secondary { background: white; color: var(--color-ink); border: 1px solid var(--color-hairline); box-shadow: 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 4%, transparent); }
-.report-button--secondary:hover { background: var(--color-primary-subtle); border-color: var(--color-brand-teal); color: var(--color-primary); }
+.report-button--secondary:hover { background: var(--color-primary-subtle); border-color: var(--color-primary); color: var(--color-primary); }
 .reports button:disabled { opacity: .5; cursor: not-allowed; }
 .report-text-button { display: block; min-height: 36px; margin-top: 18px; color: var(--color-primary); font-size: 12px; font-weight: 600; cursor: pointer; }
 .report-steps { display: grid; grid-template-columns: repeat(3, 1fr); padding: 0; margin: 0 0 28px; list-style: none; background: #ffffff; border-block: 1px solid var(--color-hairline); }
 .report-steps li { display: flex; align-items: center; gap: 14px; padding: 16px 18px; background: #fff; border-right: 1px solid var(--color-line); }
 .report-steps li:last-child { border-right: 0; }
-.report-steps li > span { font-size: 13px; font-weight: 700; color: var(--color-primary); font-family: var(--font-mono); width: 34px; height: 34px; border-radius: 8px; background: var(--color-primary-subtle); display: grid; place-items: center; border: 1px solid color-mix(in oklab, var(--color-brand-teal) 25%, transparent); flex-shrink: 0; }
+.report-steps li > span { font-size: 13px; font-weight: 700; color: var(--color-primary); font-family: var(--font-mono); width: 34px; height: 34px; border-radius: 8px; background: var(--color-primary-subtle); display: grid; place-items: center; border: 1px solid color-mix(in oklab, var(--color-primary) 25%, transparent); flex-shrink: 0; }
 .report-steps strong { display: block; font-size: 13.5px; font-weight: 650; color: var(--color-ink); }
 .report-steps small { display: block; margin-top: 2px; color: var(--color-ink-muted); font-size: 12px; line-height: 1.4; }
 .report-panel { background: white; border: 1px solid var(--color-hairline); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 4%, transparent); }
@@ -43,7 +43,7 @@
 .reports .report-row:hover, .reports .report-row:focus-visible { background: var(--color-primary-subtle); }
 .reports .report-row:focus-visible { outline-offset: -2px; }
 .reports .report-row:hover .report-row-main h3, .reports .report-row:focus-visible .report-row-main h3 { color: var(--color-primary); text-decoration: underline; text-underline-offset: 3px; }
-.report-row-icon { height: 44px; width: 44px; flex-shrink: 0; display: grid; place-items: center; color: var(--color-primary); background: var(--color-primary-subtle); border: 1px solid color-mix(in oklab, var(--color-brand-teal) 25%, transparent); border-radius: 10px; }
+.report-row-icon { height: 44px; width: 44px; flex-shrink: 0; display: grid; place-items: center; color: var(--color-primary); background: var(--color-primary-subtle); border: 1px solid color-mix(in oklab, var(--color-primary) 25%, transparent); border-radius: 10px; }
 .report-row-main { min-width: 0; }
 .report-row-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; margin-bottom: 4px; }
 .report-row-meta span:first-child { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; background: var(--color-primary-subtle); color: var(--color-primary); font-size: 12px; letter-spacing: 0.02em; }

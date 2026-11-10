@@ -52,6 +52,16 @@ describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
     expect(screen.getAllByText(/System Design & Prototype/)[0]).toBeTruthy()
     expect(screen.getByText('Architecture & Database ERD')).toBeTruthy()
     expect(screen.getByText('Software Design Document (SDD)')).toBeTruthy()
+    expect(screen.getAllByText('Mốc hiện tại').length).toBe(2)
+    expect(screen.getByRole('list', { name: 'Thông tin định danh' })).toBeTruthy()
+  })
+
+  it('explains when no gate has been published for the project', async () => {
+    const data = await reviewGatesMockAdapter.getStudentReviewTimeline()
+    vi.spyOn(reviewGatesMockAdapter, 'getStudentReviewTimeline').mockResolvedValueOnce({ ...data, gates: [], currentGateCode: '' })
+    render(<MemoryRouter><StudentReviewTimelinePage /></MemoryRouter>)
+    expect(await screen.findByRole('region', { name: 'Mốc đánh giá chưa được công bố' })).toBeTruthy()
+    expect(screen.queryByText('0/0 Cổng đạt')).toBeNull()
   })
 
   it('denies submission capability by default when unauthenticated (deny-by-default)', async () => {

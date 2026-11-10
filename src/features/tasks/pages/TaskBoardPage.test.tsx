@@ -1,18 +1,66 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { ExecutionAccessProvider } from '../../execution/context/ExecutionAccessProvider'
 import { TaskBoardPage } from './TaskBoardPage'
-const api = vi.hoisted(() => ({ getProjectTasks: vi.fn(), getProjectMilestones: vi.fn(), createTask: vi.fn(), updateTaskStatus: vi.fn() }))
+
+const api = vi.hoisted(() => ({
+  getProjectTasks: vi.fn(),
+  getProjectMilestones: vi.fn(),
+  createTask: vi.fn(),
+  updateTaskStatus: vi.fn(),
+  getTask: vi.fn(),
+  getTaskHistory: vi.fn(),
+  getProjectTimeline: vi.fn(),
+  setTaskAssignees: vi.fn(),
+  addTaskDependency: vi.fn(),
+  removeTaskDependency: vi.fn(),
+  deleteTask: vi.fn(),
+  updateTask: vi.fn(),
+}))
+
+const workflow = vi.hoisted(() => ({ getTaskExecutionActions: vi.fn() }))
+
 vi.mock('../../../services/service-gateway', () => ({ services: { task: api, milestone: api } }))
+vi.mock('../../../services/api/workflow.api', () => workflow)
+
 const empty = { items: [], totalCount: 0, totalPages: 0, page: 1, pageSize: 20 }
-const item = { id: 1, milestoneId: 3, title: 'Phân tích yêu cầu', status: 'TODO', priority: 'MEDIUM', assignees: [] }
+const item = { id: 1, milestoneId: 3, title: 'Phân tích yêu cầu', status: 'TODO', priority: 'MEDIUM', assignees: [], concurrencyToken: 'task-token', dependencies: [] }
 const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
+
 function renderBoard(manage: boolean, url = '/project/tasks', allowed = manage, hasTeam = true, retryTeam = vi.fn(), readOnly = false) {
-  return render(<MemoryRouter initialEntries={[url]}><ExecutionAccessProvider value={{ project: { id: 9, majors: [] } as never, team: hasTeam ? { members: [{ userId: 2, fullName: 'Khang' }, { userId: 5, fullName: 'Duy' }] } as never : undefined, teamLoadError: hasTeam ? undefined : 'Chưa tải được danh sách thành viên nhóm.', retryTeam, actor: 'student', currentUserId: 2, canManageStructure: manage, readOnly, executionCapabilities: capabilities(allowed), routeBase: '/project' }}><TaskBoardPage /></ExecutionAccessProvider></MemoryRouter>)
+  const router = createMemoryRouter([{ path: '*', element:
+      <ExecutionAccessProvider
+        value={{
+          project: { id: 9, majors: [] } as never,
+          team: hasTeam ? { members: [{ userId: 2, fullName: 'Khang' }, { userId: 5, fullName: 'Duy' }] } as never : undefined,
+          teamLoadError: hasTeam ? undefined : 'Chưa tải được danh sách thành viên nhóm.',
+          retryTeam,
+          actor: 'student',
+          currentUserId: 2,
+          canManageStructure: manage,
+          readOnly,
+          executionCapabilities: capabilities(allowed),
+          routeBase: '/project',
+        }}
+      >
+        <TaskBoardPage />
+      </ExecutionAccessProvider>,
+  }], { initialEntries: [url] })
+  return { ...render(<RouterProvider router={router} />), router }
 }
-beforeEach(() => { api.getProjectTasks.mockResolvedValue(empty); api.getProjectMilestones.mockResolvedValue([{ id: 3, title: 'Khởi động', status: 'PLANNED' }]) })
+
+beforeEach(() => {
+  api.getProjectTasks.mockResolvedValue(empty)
+  api.getProjectMilestones.mockResolvedValue([{ id: 3, title: 'Khởi động', status: 'PLANNED' }])
+  api.getTask.mockResolvedValue(item)
+  api.getTaskHistory.mockResolvedValue([])
+  api.getProjectTimeline.mockResolvedValue({ projectId: 9, milestones: [{ id: 3, title: 'Khởi động', tasks: [item] }] })
+  workflow.getTaskExecutionActions.mockResolvedValue({ taskId: 1, projectId: 9, status: 'TODO', concurrencyToken: 'task-token', actions: [] })
+})
+
 afterEach(() => { cleanup(); vi.resetAllMocks() })
+
 describe('TaskBoardPage', () => {
   it('waits for persistence, prevents duplicate drops and reloads tokens before the next transition', async () => {
     let current = { ...item, concurrencyToken: 'first-token' }
@@ -129,5 +177,69 @@ describe('TaskBoardPage', () => {
     renderBoard(false, '/project/tasks?page=3'); await screen.findByText('Không có công việc phù hợp')
     fireEvent.click(screen.getByRole('button', { name: 'Của tôi' }))
     await vi.waitFor(() => expect(api.getProjectTasks).toHaveBeenLastCalledWith(9, expect.objectContaining({ page: 1, assigneeUserId: 2 }), expect.any(AbortSignal)))
+  })
+
+  // Phase C tests (FE2-C1, C2, C3)
+  it('clears the previous modal task when navigation selects another task', async () => {
+    api.getTask.mockImplementation((id: number) => id === 1 ? Promise.resolve(item) : new Promise(() => {}))
+    const { router } = renderBoard(true, '/project/tasks?taskDetail=1')
+    expect(await screen.findByRole('heading', { name: /#1 · Phân tích yêu cầu/ })).toBeTruthy()
+    await act(async () => { await router.navigate('/project/tasks?taskDetail=2') })
+    expect(screen.queryByRole('heading', { name: /#1 · Phân tích yêu cầu/ })).toBeNull()
+    expect(screen.getByRole('heading', { name: 'Công việc #2' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Mở trang chi tiết đầy đủ/ }).getAttribute('href')).toBe('/project/tasks/2')
+    expect(api.updateTask).not.toHaveBeenCalled()
+    expect(api.updateTaskStatus).not.toHaveBeenCalled()
+  })
+
+  it('opens task detail modal on card click while keeping the board rendered underneath', async () => {
+    api.getProjectTasks.mockResolvedValue({ ...empty, items: [item], totalCount: 1, totalPages: 1 })
+    renderBoard(true)
+    await screen.findByText('Phân tích yêu cầu')
+    fireEvent.click(screen.getByRole('button', { name: 'Bảng Kanban' }))
+
+    // Click on the task card on the board
+    const cardLink = screen.getByRole('link', { name: new RegExp(item.title) })
+    fireEvent.click(cardLink)
+
+    // Modal opens centered over the board
+    expect(await screen.findByRole('dialog')).toBeDefined()
+    expect(screen.getByRole('heading', { name: /#1 · Phân tích yêu cầu/ })).toBeDefined()
+
+    // Board context is still fully present in the DOM
+    expect(screen.getByRole('region', { name: 'Bảng công việc theo trang' })).toBeDefined()
+
+    // Close the modal
+    const closeButton = screen.getByRole('button', { name: 'Đóng hộp thoại' })
+    fireEvent.click(closeButton)
+
+    // Modal closes
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('clarifies page-level count in Kanban columns avoiding confusion with project totals', async () => {
+    api.getProjectTasks.mockResolvedValue({ ...empty, items: [item], totalCount: 20, totalPages: 1 })
+    renderBoard(false)
+    await screen.findByText('Phân tích yêu cầu')
+    fireEvent.click(screen.getByRole('button', { name: 'Bảng Kanban' }))
+
+    // Column header explicitly specifies "trên trang này"
+    const heading = screen.getByRole('heading', { name: /Chưa bắt đầu/ })
+    expect(heading.textContent).toContain('trên trang này')
+  })
+
+  it('structures the toolbar into two dedicated rows separating scope and view controls (FE2-E3)', async () => {
+    api.getProjectTasks.mockResolvedValue({ ...empty, items: [item], totalCount: 25, totalPages: 2 })
+    renderBoard(false)
+    await screen.findByText('Phân tích yêu cầu')
+
+    // Two distinct tab groups exist for scope and view mode
+    const scopeGroup = screen.getByRole('group', { name: 'Phạm vi công việc' })
+    const viewGroup = screen.getByRole('group', { name: 'Cách hiển thị' })
+    expect(scopeGroup).toBeDefined()
+    expect(viewGroup).toBeDefined()
+
+    // Row 1 also displays total project task count indicator
+    expect(screen.getByText(/Tổng số công việc:/)).toBeDefined()
   })
 })

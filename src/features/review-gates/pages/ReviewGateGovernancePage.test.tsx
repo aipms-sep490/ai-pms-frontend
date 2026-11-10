@@ -3,6 +3,10 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom'
 import { ReviewGateGovernancePage } from './ReviewGateGovernancePage'
 import { reviewGatesMockAdapter } from '../api/review-gates-mock-adapter'
+import { AcademicWorkflowContext, type AcademicWorkflowContextValue } from '../../../app/context/academic-workflow-context'
+
+const urgent = vi.hoisted(() => ({ getDepartmentUrgentActions: vi.fn() }))
+vi.mock('../../calendar/action-aggregators-api', () => urgent)
 
 vi.mock('../../../app/config/env', async importOriginal => {
   const { env } = await importOriginal<typeof import('../../../app/config/env')>()
@@ -16,6 +20,18 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
 
   afterEach(() => {
     cleanup()
+  })
+
+  it('shows empty matrix cells as a dash and flags scoped reviewer gaps', async () => {
+    urgent.getDepartmentUrgentActions.mockResolvedValue({ departmentId: 2, totalCount: 1, hasMore: false, asOfUtc: '', items: [{ kind: 'REVIEWER_ASSIGNMENT', id: 5, projectId: 9, title: 'Chưa phân reviewer', status: 'PLANNED', severity: 'HIGH', dueAt: null, deepLink: '/department/projects/9/review-gates' }] })
+    const value = { academic: { departments: [{ id: 2, name: 'IT' }] } } as unknown as AcademicWorkflowContextValue
+    render(<MemoryRouter><AcademicWorkflowContext.Provider value={value}><ReviewGateGovernancePage /></AcademicWorkflowContext.Provider></MemoryRouter>)
+    await screen.findByText('IT Capstone – Review 1–4')
+    fireEvent.click(screen.getByRole('button', { name: 'Ma trận Giám sát Tiến trình (Matrix)' }))
+    expect(await screen.findByText(/đồ án thiếu reviewer/)).toBeTruthy()
+    expect(urgent.getDepartmentUrgentActions).toHaveBeenCalledWith(2)
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+    expect(screen.getByRole('columnheader', { name: 'R1' }).closest('thead')?.className).toContain('ai-table__head--band')
   })
 
   it('renders Progress Template library with single and interdisciplinary templates', async () => {

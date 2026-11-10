@@ -3,7 +3,7 @@ import type { PagedResult } from '../../types/backend'
 import type { EvaluationScore } from '../evaluations/evaluation-types'
 import type { ResultRevisionSummary } from './result-types'
 
-export type CorrectionStatus = 'PENDING' | 'UNDER_REVIEW' | 'ACCEPTED' | 'REJECTED' | (string & {})
+export type CorrectionStatus = 'PENDING' | 'UNDER_REVIEW' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN' | (string & {})
 export interface AppealTarget { targetType: 'PROJECT' | 'STUDENT'; studentId: number | null; resultVersion: number }
 export interface AppealPolicy { id: number; projectId: number; version: number; approvalReference: string; recordedBy: number; recordedAt: string }
 export interface AppealWindow { id: number; policyId: number; status: string; opensAt: string; closesAt: string; concurrencyToken: string; targets: AppealTarget[] }
@@ -38,6 +38,7 @@ export const getAppealReviewContext = (p: number, id: number, signal?: AbortSign
 export const reviewAppeal = (p: number, id: number, body: { concurrencyToken: string; proposal: 'KEEP' | 'AMEND'; reason: string; amendments: ScoreAmendment[] }) => httpPut<ResultCorrectionRequest>(`${request(p, id)}/review`, body)
 export const previewAppeal = (p: number, id: number) => httpGet<AppealPreview>(`${request(p, id)}/preview`)
 export const decideAppeal = (p: number, id: number, body: { concurrencyToken: string; decision: 'ACCEPTED' | 'REJECTED'; reason: string; confirmationToken: string | null }) => httpPost<ResultCorrectionRequest>(`${request(p, id)}/decision`, body)
+export const withdrawCorrectionRequest = (p: number, id: number, body: { concurrencyToken: string; reason?: string }) => httpPost<ResultCorrectionRequest>(`${request(p, id)}/withdraw`, body)
 export const getAppealHistory = (p: number, id: number, page = 1, signal?: AbortSignal) => httpGet<PagedResult<AppealEvent>>(`${request(p, id)}/history?page=${page}&pageSize=20`, signal)
 export const getAppealEvidence = (p: number, id: number, signal?: AbortSignal) => httpGet<AppealFile[]>(`${request(p, id)}/evidence`, signal)
 export const downloadAppealFile = (p: number, id: number, fileId: number, frozenEvidence = false) => httpGetBlob(`${request(p, id)}/${frozenEvidence ? 'evidence' : 'files'}/${fileId}`)

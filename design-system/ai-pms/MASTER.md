@@ -23,9 +23,9 @@ let the test tell you the number.
 
 | Role | Token | Value | Contrast & Use |
 | --- | --- | --- | --- |
-| Institutional primary | `primary` | `#087D77` | 4.99:1 on white. Primary actions, active focus, trusted context |
-| Primary hover | `primary-hover` | `#06665F` | 6.83:1 on white. Hover and pressed primary controls |
-| Primary subtle | `primary-subtle` | `#DDF7F4` | Selected context backgrounds, low-emphasis primary surfaces |
+| Institutional primary | `primary` | `#C2410C` | 5.18:1 on white (WCAG AA). FAMS rich orange primary actions, active focus, trusted context |
+| Primary hover | `primary-hover` | `#9A3412` | 7.31:1 on white. Hover and pressed primary controls |
+| Primary subtle | `primary-subtle` | `#FFF7ED` | FAMS subtle background tint |
 | Brand navy | `brand-navy` | `#0F2747` | 14.98:1 on white. Section headers, app icon, authority surfaces |
 | Brand navy raised | `brand-navy-raised` | `#172D4C` | Raised surface *on* navy (1.08:1 against it, so it always carries a border) |
 | Brand teal | `brand-teal` | `#12B3A8` | 5.74:1 on navy. Accent lines, brand geometry, label text on the navy panel |
@@ -55,7 +55,7 @@ let the test tell you the number.
 
 ### Palette Usage Rules
 
-- Primary teal (`#087D77`) is structural (navigation, primary actions), not a success signal; positive status uses `status-success-*`.
+- Primary orange (`#C2410C`) is structural (navigation, primary actions), not a success signal; positive status uses `status-success-*`.
 - Accent Amber (`#F6B94C`) is strictly a non-text visual accent (e.g. attention left-border, lane highlight, dot indicators) and MUST be accompanied by readable text using `--color-status-warning-text: #B45309`.
 - Danger text (`#B42318`) guarantees WCAG 2.1 AA text contrast across both white cards and `#FEF2F2` error banners.
 - No color alone conveys state: all status chips and alerts include a text label and consistent icon.

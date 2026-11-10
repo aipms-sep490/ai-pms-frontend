@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Button } from '../../../components/ui/Button'
-import { Modal } from '../../../components/ui/Modal'
+import { ImportDialog } from '../../../components/ui/ImportDialog'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
-import { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from '../../../components/ui/Table'
+import { TableCell } from '../../../components/ui/Table'
 import { HttpError } from '../../../services/http/http-client'
 import { AcademicScopeFields } from '../../academic/components/AcademicScopeFields'
 import { useAuthSession } from '../../auth/context/useAuthSession'
@@ -46,11 +45,9 @@ export function StudentImportDialog({ onClose, onImported }: { onClose: () => vo
   const [pending, setPending] = useState<'preview' | 'commit' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [created, setCreated] = useState<number | null>(null)
-  const [page, setPage] = useState(1)
-  const [onlyErrors, setOnlyErrors] = useState(false)
   const request = useRef<AbortController | null>(null)
   useEffect(() => () => { request.current?.abort() }, [])
-  function resetPreview() { setPreview(null); setConfirmed(false); setError(null); setCreated(null); setPage(1); setOnlyErrors(false) }
+  function resetPreview() { setPreview(null); setConfirmed(false); setError(null); setCreated(null) }
   function chooseFile(next: File | null) {
     resetPreview(); setFile(null)
     if (!next) return
@@ -60,14 +57,12 @@ export function StudentImportDialog({ onClose, onImported }: { onClose: () => vo
   }
   const canCommit = !!preview?.canCommit && preview.majorId === Number(scope.majorId)
     && preview.rows.length > 0 && preview.rows.length <= 500 && preview.rows.every(row => row.errors.length === 0)
-  const visibleRows = preview?.rows.filter(row => !onlyErrors || row.errors.length > 0) ?? []
-  const pages = Math.max(1, Math.ceil(visibleRows.length / 25))
 
   async function run(action: 'preview' | 'commit') {
     if (request.current || !session || !isAdmin || !file || !scope.majorId || (action === 'commit' && (!canCommit || !confirmed))) return
     const controller = new AbortController(); request.current = controller
     setPending(action); setError(null); setCreated(null); setConfirmed(false)
-    if (action === 'preview') { setPreview(null); setPage(1); setOnlyErrors(false) }
+    if (action === 'preview') setPreview(null)
     try {
       if (action === 'preview') {
         const data = await previewStudentImport(file, Number(scope.majorId), session.accessToken, controller.signal)
@@ -83,47 +78,28 @@ export function StudentImportDialog({ onClose, onImported }: { onClose: () => vo
     }
   }
 
-  return <Modal open drawer title="Nhập tài khoản sinh viên từ Excel" description="Tạo tài khoản hàng loạt. Sinh viên đăng nhập bằng Google với đúng email trong file." busy={!!pending} onClose={onClose}>
-    <div className="curriculum-import" aria-busy={!!pending}>
-      <p className="curriculum-import__guide">Bắt buộc: <strong>MSSV, Họ tên, Email</strong>. Tùy chọn: SĐT, Khung. Tối đa 500 sinh viên, 5 MB; CSV UTF-8 hoặc XLSX một trang tính. <a href="/templates/student-accounts-import.csv" download>Tải mẫu CSV</a></p>
-      <p className="curriculum-import__guide">Dùng email Gmail hoặc email trường do Google Workspace quản lý. Mỗi lô thuộc một chuyên ngành. Tài khoản mới có vai trò Sinh viên, hồ sơ học vụ chờ xác minh và chưa được xếp nhóm.</p>
-      {!isAdmin || !session ? <p role="alert">Chỉ Admin được nhập tài khoản sinh viên.</p> : <>
-        <AcademicScopeFields {...scope} disabled={!!pending} onChange={next => { setScope(next); resetPreview() }} />
-        <label className="curriculum-import__file">File danh sách sinh viên<input type="file" accept=".csv,.xlsx" disabled={!!pending} onChange={event => chooseFile(event.target.files?.[0] ?? null)} /></label>
-        {file && <p className="curriculum-import__filename">{file.name} · {Math.max(1, Math.ceil(file.size / 1024))} KB</p>}
-        <Button variant="outline" icon="preview" disabled={!file || !scope.majorId || !!pending} onClick={() => void run('preview')}>{pending === 'preview' ? 'Đang kiểm tra…' : 'Xem trước danh sách'}</Button>
-        {error && <p role="alert" className="curriculum-import__error">{error}</p>}
-        {created !== null && <p role="status" className="curriculum-import__success">Đã tạo {created} tài khoản sinh viên. Sinh viên có thể chọn Đăng nhập với Google bằng email đã nhập.</p>}
-        {preview && <section aria-label="Danh sách tài khoản sẽ tạo">
-          <p><strong>{preview.departmentName} · {preview.majorName}</strong></p>
-          <p role="status">{preview.rows.length} sinh viên · {preview.rows.filter(row => row.errors.length > 0).length} dòng lỗi</p>
-          <label className="curriculum-import__check"><input type="checkbox" checked={onlyErrors} onChange={event => { setOnlyErrors(event.target.checked); setPage(1) }} />Chỉ hiện dòng lỗi</label>
-          <div role="region" tabIndex={0} aria-label="Chi tiết sinh viên nhập">
-            <Table stack>
-              <TableHead>
-                <TableRow head>
-                  <TableHeaderCell>Dòng / MSSV</TableHeaderCell>
-                  <TableHeaderCell>Họ tên / Email</TableHeaderCell>
-                  <TableHeaderCell>SĐT / Khung</TableHeaderCell>
-                  <TableHeaderCell>Kết quả</TableHeaderCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {visibleRows.slice((page - 1) * 25, page * 25).map(({ account, errors: rowErrors }) => <TableRow key={account.rowNumber}>
-                  <TableCell label="Dòng / MSSV">{account.rowNumber}<br /><strong>{account.studentCode || 'Thiếu MSSV'}</strong></TableCell>
-                  <TableCell label="Họ tên / Email">{account.fullName}<br />{account.email}</TableCell>
-                  <TableCell label="SĐT / Khung">{account.phone || '—'}<br />{account.curriculumCode || '—'}</TableCell>
-                  <TableCell label="Kết quả">{rowErrors.length ? rowErrors.map((code, index) => <p key={index} className="text-status-error-text">{errors[code] ?? code}</p>) : <StatusBadge tone="success" label="Sẽ tạo mới" />}</TableCell>
-                </TableRow>)}
-              </TableBody>
-            </Table>
-          </div>
-          {!visibleRows.length && <p>Không có dòng phù hợp bộ lọc.</p>}
-          {pages > 1 && <div className="curriculum-import__pagination"><Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Trang trước</Button><span>Trang {page}/{pages}</span><Button variant="outline" size="sm" disabled={page >= pages} onClick={() => setPage(value => value + 1)}>Trang sau</Button></div>}
-          {!canCommit ? <p className="curriculum-import__error">Chưa thể tạo tài khoản. Sửa các dòng lỗi rồi chọn lại file; tài khoản đã tồn tại sẽ không bị ghi đè.</p> : <label className="curriculum-import__check"><input type="checkbox" checked={confirmed} disabled={!!pending} onChange={event => setConfirmed(event.target.checked)} />Tôi đã kiểm tra và xác nhận tạo {preview.rows.length} tài khoản sinh viên đăng nhập Google.</label>}
-        </section>}
-      </>}
-      <div className="app-modal__actions"><Button variant="outline" disabled={!!pending} onClick={onClose}>Đóng</Button><Button icon="person_add" disabled={!isAdmin || !session || !canCommit || !confirmed || !!pending} onClick={() => void run('commit')}>{pending === 'commit' ? 'Đang tạo…' : 'Tạo tài khoản sinh viên'}</Button></div>
-    </div>
-  </Modal>
+  return <ImportDialog<StudentImportPreview['rows'][number]> title="Nhập tài khoản sinh viên từ Excel"
+    description="Tạo tài khoản hàng loạt. Sinh viên đăng nhập bằng Google với đúng email trong file."
+    onClose={onClose} authorized={isAdmin && !!session} unauthorizedMessage="Chỉ Admin được nhập tài khoản sinh viên."
+    busy={!!pending} notice={<><p>Bắt buộc: <strong>MSSV, Họ tên, Email</strong>. Tùy chọn: SĐT, Khung. Tối đa 500 sinh viên, 5 MB; CSV UTF-8 hoặc XLSX một trang tính.</p><p>Dùng email Gmail hoặc email trường do Google Workspace quản lý. Mỗi lô thuộc một chuyên ngành. Tài khoản mới có vai trò Sinh viên, hồ sơ học vụ chờ xác minh và chưa được xếp nhóm.</p></>}
+    templateHref="/templates/student-accounts-import.csv" fileLabel="File danh sách sinh viên" file={file}
+    accept=".csv,.xlsx" limits="5 MB · 500 dòng" onFileChange={chooseFile}
+    beforeFile={<AcademicScopeFields {...scope} disabled={!!pending} onChange={next => { setScope(next); resetPreview() }} />}
+    previewButtonLabel="Xem trước danh sách" previewDisabled={!file || !scope.majorId}
+    onPreview={() => void run('preview')} error={error}
+    success={created === null ? null : `Đã tạo ${created} tài khoản sinh viên. Sinh viên có thể chọn Đăng nhập với Google bằng email đã nhập.`}
+    preview={preview && { rows: preview.rows, label: 'Danh sách tài khoản sẽ tạo', regionLabel: 'Chi tiết sinh viên nhập',
+      columns: ['Dòng / MSSV', 'Họ tên / Email', 'SĐT / Khung', 'Kết quả'],
+      getKey: row => row.account.rowNumber, getStatus: row => row.errors.length ? 'error' : 'valid',
+      renderRow: ({ account, errors: rowErrors }) => <>
+        <TableCell label="Dòng / MSSV">{account.rowNumber}<br /><strong>{account.studentCode || 'Thiếu MSSV'}</strong></TableCell>
+        <TableCell label="Họ tên / Email">{account.fullName}<br />{account.email}</TableCell>
+        <TableCell label="SĐT / Khung">{account.phone || '—'}<br />{account.curriculumCode || '—'}</TableCell>
+        <TableCell label="Kết quả">{rowErrors.length ? rowErrors.map((code, index) => <p key={index} className="text-status-error-text">{errors[code] ?? code}</p>) : <StatusBadge tone="success" label="Sẽ tạo mới" />}</TableCell>
+      </>, validLabel: 'sẽ tạo mới', warningLabel: 'sẽ cập nhật', canCommit, commitCount: preview.rows.length,
+      confirmationLabel: `Tôi đã kiểm tra và xác nhận tạo ${preview.rows.length} tài khoản sinh viên đăng nhập Google.`,
+      invalidMessage: 'Chưa thể tạo tài khoản. Sửa các dòng lỗi rồi chọn lại file; tài khoản đã tồn tại sẽ không bị ghi đè.',
+      extra: <p><strong>{preview.departmentName} · {preview.majorName}</strong></p> }}
+    confirmed={confirmed} onConfirmedChange={setConfirmed} onCommit={() => void run('commit')}
+    commitLabel="Tạo tài khoản sinh viên" commitAccessibleName="Tạo tài khoản sinh viên" commitBusyLabel="Đang tạo…" commitIcon="person_add" />
 }

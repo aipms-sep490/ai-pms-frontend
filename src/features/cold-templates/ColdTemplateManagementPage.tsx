@@ -6,6 +6,7 @@ import { readAllPages } from '../../services/api/paged-read'
 import { getProjects } from '../../services/api/projects.api'
 import { useContext, useEffect, useState } from 'react'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
+import { ConfigModeFrame } from '../../components/ui/ConfigModeFrame'
 import { HttpError } from '../../services/http/http-client'
 import { createColdTemplate, getColdTemplateItExample, getColdTemplates } from '../../services/api/cold-templates.api'
 import type { ColdReportInput, ColdTemplate } from '../../services/api/cold-templates.api'
@@ -69,6 +70,7 @@ export function ColdTemplateManagementPage() {
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
   const [createSuccess, setCreateSuccess] = useState('')
+  const [createMode, setCreateMode] = useState<'view' | 'edit'>('view')
 
   // Apply template to project state
   const [applyProjectId, setApplyProjectId] = useState('')
@@ -138,6 +140,7 @@ export function ColdTemplateManagementPage() {
       setTemplates((current) => [created, ...(current ?? [])])
       setName('')
       setRows([emptyRow()])
+      setCreateMode('view')
       setCreateSuccess(`Đã tạo thành công template "${created.name}" (phiên bản v${created.version}).`)
     } catch (reason) {
       setCreateError(errorMessage(reason))
@@ -203,7 +206,7 @@ export function ColdTemplateManagementPage() {
 
   return (
     <WorkspacePage
-      className="space-y-6"
+      className="space-y-6 cold-template-page"
       title="Bộ report chấm nguội"
       eyebrow="COLD · QUẢN LÝ THEO PHẠM VI VÀ KỲ ĐỒ ÁN"
       description="Tạo bộ report chung hoặc theo ngành cho từng kỳ đồ án EVALUATION hoặc FINAL_SUBMISSION. Mỗi lần tạo là một phiên bản mới, bất biến."
@@ -362,6 +365,7 @@ export function ColdTemplateManagementPage() {
       </section>
 
       {/* KHUÔN 2: Tạo Template mới */}
+      <ConfigModeFrame mode={createMode} dirty={Boolean(name || rows.length !== 1 || rows[0].code || rows[0].name || !rows[0].required)} busy={creating} onEdit={() => setCreateMode('edit')} onCancel={() => { setName(''); setRows([emptyRow()]); setCreateMode('view'); setCreateSuccess('Đã hủy các thay đổi.') }} onSave={() => void submitCreate()} saveLabel="Tạo template" saveDisabled={(templateScope === 'MAJOR_SPECIFIC' && !majorId) || !projectPeriodId || !name.trim() || !rows.some(row => row.code.trim() && row.name.trim())} navigationGuard={false} blastRadius="Mẫu mới tạo là một phiên bản bất biến trong phạm vi ngành và kỳ đồ án đang chọn. Checklist chỉ được áp dụng cho đồ án sau thao tác riêng ở Khuôn 3.">
       <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-3">
           <div>
@@ -445,20 +449,13 @@ export function ColdTemplateManagementPage() {
             >
               + Thêm report
             </button>
-            <button
-              type="button"
-              className="min-h-10 rounded-lg bg-primary px-5 text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
-              disabled={creating || (templateScope === 'MAJOR_SPECIFIC' && !majorId) || !projectPeriodId || !name.trim() || !rows.some((row) => row.code.trim() && row.name.trim())}
-              onClick={() => void submitCreate()}
-            >
-              {creating ? 'Đang tạo…' : 'Tạo template'}
-            </button>
           </div>
         </div>
 
         {createError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{createError}</p>}
         {createSuccess && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{createSuccess}</p>}
       </section>
+      </ConfigModeFrame>
 
       {/* KHUÔN 3: Áp dụng template vào đồ án */}
       <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">

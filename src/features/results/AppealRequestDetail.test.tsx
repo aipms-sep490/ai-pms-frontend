@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { AppealRequestDetail } from './AppealRequestDetail'
 import { HttpError } from '../../services/http/http-client'
 const api = vi.hoisted(() => ({ getCorrectionRequest: vi.fn(), getAppealHistory: vi.fn(), assignAppealReviewer: vi.fn(), getAppealReviewContext: vi.fn(), getAppealEvidence: vi.fn(), previewAppeal: vi.fn(), decideAppeal: vi.fn(), reviewAppeal: vi.fn() }))
+const versions = vi.hoisted(() => ({ getProjectResultVersion: vi.fn(), getStudentResultVersion: vi.fn() }))
 vi.mock('./result-correction-api', () => api)
+vi.mock('../../services/api/project-results.api', () => versions)
 const row = { id: 7, projectId: 9, source: 'STUDENT_APPEAL', targetType: 'STUDENT', studentId: 88, resultVersion: 2, componentId: 6, scope: 'MAJOR_SPECIFIC', majorId: 3, status: 'PENDING', requestedBy: 88, reviewerId: null, reason: 'Yêu cầu xem lại', proposal: null, reviewReason: null, decisionReason: null, concurrencyToken: 'old', allowedActions: ['READ'], blockers: [], files: [] }
-beforeEach(() => { vi.clearAllMocks(); api.getCorrectionRequest.mockResolvedValue(row); api.getAppealHistory.mockResolvedValue({ items: [], totalCount: 0 }); api.getAppealEvidence.mockResolvedValue([]) })
+beforeEach(() => { vi.clearAllMocks(); api.getCorrectionRequest.mockResolvedValue(row); api.getAppealHistory.mockResolvedValue({ items: [], totalCount: 0 }); api.getAppealEvidence.mockResolvedValue([]); versions.getStudentResultVersion.mockResolvedValue({ projectId: 9, studentId: 88, version: 2, totalScore: 7, outcome: 'FAIL' }) })
 afterEach(cleanup)
 const open = () => render(<AppealRequestDetail projectId={9} requestId={7} />)
 it('renders mutations only when granted by server allowedActions', async () => {
@@ -47,4 +49,40 @@ it('submits criterion amendments from the frozen review context, including zero'
   expect(screen.queryByLabelText('Điểm đính chính Nhóm sản phẩm')).toBeNull()
   fireEvent.change(input, { target: { value: '0' } }); fireEvent.change(screen.getByLabelText('Lý do tiêu chí Kiểm chứng'), { target: { value: 'Không có minh chứng' } }); fireEvent.change(screen.getByLabelText('Lý do review / quyết định'), { target: { value: 'Đã đọc hồ sơ' } }); fireEvent.change(screen.getByLabelText('Đề nghị'), { target: { value: 'AMEND' } }); fireEvent.click(screen.getByRole('button', { name: 'Lưu đề nghị review' }))
   await waitFor(() => expect(api.reviewAppeal).toHaveBeenCalledWith(9, 7, { concurrencyToken: 'old', proposal: 'AMEND', reason: 'Đã đọc hồ sơ', amendments: [{ evaluationId: 31, criterionId: 12, score: 0, reason: 'Không có minh chứng' }] }))
+})
+
+it('compares the published result with the server preview and shows request history', async () => {
+  api.getCorrectionRequest.mockResolvedValue({ ...row, allowedActions: ['READ', 'PREVIEW', 'ACCEPT', 'REJECT'] })
+  api.getAppealHistory.mockResolvedValue({ items: [{ id: 3, at: '2026-10-15T00:00:00Z', action: 'REVIEWED', actorId: 42, reason: 'Đã xem bằng chứng', bundleId: null, amendments: [] }], totalCount: 1 })
+  api.previewAppeal.mockResolvedValue({ confirmationToken: 'token', affectedResults: [{ studentId: 88, supersedesVersion: 2, version: 3, totalScore: 8, outcome: 'PASS' }] })
+  open(); fireEvent.click(await screen.findByRole('button', { name: 'Xem trước kết quả ảnh hưởng' }))
+  expect(await screen.findByLabelText('So sánh thay đổi')).toBeTruthy()
+  expect(versions.getStudentResultVersion).toHaveBeenCalledWith(9, 88, 2)
+  expect(screen.getByText('Đã xem bằng chứng')).toBeTruthy()
+  expect(screen.getByText('#42')).toBeTruthy()
+})
+
+it('shows backend blockers and keeps rejection usable when acceptance is denied', async () => {
+  api.getCorrectionRequest.mockResolvedValue({ ...row, allowedActions: ['READ', 'REJECT'], blockers: ['Phiên bản kết quả đã đổi'] })
+  open(); fireEvent.change(await screen.findByLabelText('Lý do review / quyết định'), { target: { value: 'Không đủ cơ sở' } })
+  expect(screen.getByText('Phiên bản kết quả đã đổi')).toBeTruthy()
+  expect((screen.getByRole('button', { name: 'Chấp nhận và công bố revision' }) as HTMLButtonElement).disabled).toBe(true)
+  expect((screen.getByRole('button', { name: 'Từ chối yêu cầu' }) as HTMLButtonElement).disabled).toBe(false)
+})
+
+it('discards a preview whose version lookup finishes after changing requests', async () => {
+  api.getCorrectionRequest.mockImplementation(async (_projectId, requestId) => ({ ...row, id: requestId, allowedActions: ['READ', 'PREVIEW', 'ACCEPT'] }))
+  api.previewAppeal.mockResolvedValue({ confirmationToken: 'previous-request', affectedResults: [{ studentId: 88, supersedesVersion: 2, version: 3, totalScore: 8, outcome: 'PASS' }] })
+  let finishVersion!: (result: unknown) => void
+  versions.getStudentResultVersion.mockImplementation(() => new Promise(resolve => { finishVersion = resolve }))
+  const view = open()
+  fireEvent.change(await screen.findByLabelText('Lý do review / quyết định'), { target: { value: 'Đã kiểm tra' } })
+  fireEvent.click(await screen.findByRole('button', { name: 'Xem trước kết quả ảnh hưởng' }))
+  await waitFor(() => expect(versions.getStudentResultVersion).toHaveBeenCalled())
+  view.rerender(<AppealRequestDetail projectId={9} requestId={8} />)
+  await screen.findByRole('region', { name: 'Yêu cầu #8' })
+  await screen.findByLabelText('Lý do review / quyết định')
+  await act(async () => { finishVersion({ projectId: 9, studentId: 88, version: 2, totalScore: 7, outcome: 'FAIL' }) })
+  expect(screen.queryByText('Kết quả ảnh hưởng theo máy chủ')).toBeNull()
+  expect((screen.getByRole('button', { name: 'Chấp nhận và công bố revision' }) as HTMLButtonElement).disabled).toBe(true)
 })

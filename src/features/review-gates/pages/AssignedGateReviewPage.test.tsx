@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { AssignedGateReviewPage } from './AssignedGateReviewPage'
 import { reviewGatesMockAdapter } from '../api/review-gates-mock-adapter'
@@ -31,6 +31,9 @@ describe('AssignedGateReviewPage (Cross-Role RV-01)', () => {
     expect(screen.getByText('Smart Library System')).toBeTruthy()
     expect(screen.getByText('Architecture & Database ERD')).toBeTruthy()
     expect(screen.getByText('Software Design Document (SDD)')).toBeTruthy()
+    const identity = screen.getByRole('list', { name: 'Thông tin định danh' })
+    expect(within(identity).getByText('Đồ án')).toBeTruthy()
+    expect(within(identity).getByText('Hạn thẩm định')).toBeTruthy()
   })
 
   it('allows reviewer to verify an evidence item and update status', async () => {

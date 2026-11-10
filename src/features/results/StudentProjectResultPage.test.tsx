@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { StudentProjectResultPage } from './StudentProjectResultPage'
 import { HttpError } from '../../services/http/http-client'
@@ -12,11 +12,11 @@ afterEach(() => { cleanup(); vi.resetAllMocks(); mocks.journey.project = { id: 1
 it('does not show the previous own result when the project context disappears', async () => {
   mocks.getStudentResult.mockResolvedValue(result)
   const ui = <MemoryRouter><StudentProjectResultPage /></MemoryRouter>
-  const view = render(ui); await screen.findByText('8.25')
+  const view = render(ui); await screen.findByText('8,25')
   view.rerender(<MemoryRouter><StudentProjectResultPage /></MemoryRouter>)
   expect(screen.getByText('Phần mềm')).toBeTruthy()
   mocks.journey.project = null; view.rerender(<MemoryRouter><StudentProjectResultPage /></MemoryRouter>)
-  expect(screen.queryByText('8.25')).toBeNull()
+  expect(screen.queryByText('8,25')).toBeNull()
   expect(screen.queryByText('Kết quả chưa được công bố')).toBeNull()
 })
 it('ignores an old request completing after switching project', async () => {
@@ -26,7 +26,7 @@ it('ignores an old request completing after switching project', async () => {
   mocks.journey.project = { id: 2, majors: [] }; view.rerender(<MemoryRouter><StudentProjectResultPage /></MemoryRouter>)
   await screen.findByText('Kết quả chưa được công bố')
   await act(async () => old(result))
-  expect(screen.queryByText('8.25')).toBeNull()
+  expect(screen.queryByText('8,25')).toBeNull()
   expect(screen.getByText('Kết quả chưa được công bố')).toBeTruthy()
 })
 it('distinguishes access denied from unpublished and retries the own student endpoint', async () => {
@@ -35,14 +35,14 @@ it('distinguishes access denied from unpublished and retries the own student end
   expect((await screen.findByRole('alert')).textContent).toContain('chưa có quyền')
   expect(screen.queryByText('Kết quả chưa được công bố')).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'Tải lại' }))
-  await screen.findByText('8.25')
+  await screen.findByText('8,25')
   expect(mocks.getStudentResult).toHaveBeenLastCalledWith(1, 7, expect.any(AbortSignal))
 })
 it('rejects a returned result belonging to another student', async () => {
   mocks.getStudentResult.mockResolvedValue({ ...result, studentId: 8 })
   render(<MemoryRouter><StudentProjectResultPage /></MemoryRouter>)
   await screen.findByRole('alert')
-  expect(screen.queryByText('8.25')).toBeNull()
+  expect(screen.queryByText('8,25')).toBeNull()
 })
 it('renders the BE-09 component breakdown, marking a null score as pending not zero', async () => {
   mocks.getStudentResult.mockResolvedValue({ ...result, breakdown: {
@@ -54,7 +54,7 @@ it('renders the BE-09 component breakdown, marking a null score as pending not z
     ],
   } })
   render(<MemoryRouter><StudentProjectResultPage /></MemoryRouter>)
-  await screen.findByText('8.25')
+  await screen.findByText('8,25')
   expect(screen.getByText('Khung đánh giá liên ngành · v2')).toBeTruthy()
   expect(screen.getByText('Chi tiết thành phần điểm')).toBeTruthy()
   expect(screen.getByText('Điểm chung')).toBeTruthy()
@@ -65,13 +65,32 @@ it('renders the BE-09 component breakdown, marking a null score as pending not z
 it('flags a corrected (v2+) result instead of presenting it as the original publication', async () => {
   mocks.getStudentResult.mockResolvedValue({ ...result, version: 2, supersedesVersion: 1 })
   render(<MemoryRouter><StudentProjectResultPage /></MemoryRouter>)
-  await screen.findByText('8.25')
+  await screen.findByText('8,25')
   expect(screen.getByText(/đã đính chính.*phiên bản 2.*thay thế phiên bản 1/)).toBeTruthy()
 })
 it('shows only the summary when BE-09 breakdown fields are absent', async () => {
   mocks.getStudentResult.mockResolvedValue(result)
   render(<MemoryRouter><StudentProjectResultPage /></MemoryRouter>)
-  await screen.findByText('8.25')
+  await screen.findByText('8,25')
   expect(screen.queryByText('Chi tiết thành phần điểm')).toBeNull()
   expect(screen.getByText('Quy định #2')).toBeTruthy()
+})
+it('shows four backend-sourced tiles and distinguishes a pending component from score zero', async () => {
+  mocks.getStudentResult.mockResolvedValue({ ...result, breakdown: {
+    schemeName: 'Khung đánh giá', schemeVersion: 1, calculationVersion: 'DECIMAL_V2', isLegacy: false,
+    approvalStatus: 'APPROVED', readiness: 'READY', majorBreakdown: [],
+    components: [
+      { componentId: 1, name: 'Thành phần chờ', scope: 'COMMON', majorId: null, weightPercent: 50, score: null, requiredEvaluators: 2, finalizedEvaluators: 1 },
+      { componentId: 2, name: 'Thành phần điểm không', scope: 'INDIVIDUAL', majorId: null, weightPercent: 50, score: 0, requiredEvaluators: 1, finalizedEvaluators: 1 },
+    ],
+  } })
+  render(<MemoryRouter><StudentProjectResultPage /></MemoryRouter>)
+  const tiles = await screen.findByRole('list', { name: 'Chỉ số tổng quan' })
+  expect(within(tiles).getAllByRole('listitem')).toHaveLength(4)
+  const table = screen.getByRole('table', { name: 'Chi tiết thành phần điểm' })
+  const pending = within(table).getByText('Thành phần chờ').closest('tr')!
+  const zero = within(table).getByText('Thành phần điểm không').closest('tr')!
+  expect(within(pending).getByText('—')).toBeTruthy()
+  expect(within(zero).getByText('0')).toBeTruthy()
+  expect(screen.getByText('2 thành phần')).toBeTruthy()
 })

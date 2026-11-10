@@ -61,6 +61,7 @@ describe('ProjectPeerEvaluationPage', () => {
     mocks.getMyPeerEvaluation.mockResolvedValue({ roundId: null, status: 'NO_OPEN_ROUND', submission: null })
     render_()
     expect(await screen.findByText('Hiện không có đợt đánh giá đồng đội nào đang mở.')).toBeTruthy()
+    expect(screen.getByRole('list', { name: 'Thông tin định danh' })).toBeTruthy()
     expect(mocks.getPeerRounds).not.toHaveBeenCalled()
   })
 
@@ -128,6 +129,7 @@ describe('ProjectPeerEvaluationPage', () => {
     mocks.getPeerRounds.mockResolvedValue(roundsPage([round({ canSubmit: false, reasons: ['PEER_ROSTER_CHANGED'] })]))
     render_()
     expect(await screen.findByText(/Danh sách nhóm vừa thay đổi/)).toBeTruthy()
+    expect(screen.getByText('Chưa thể gửi đánh giá')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Gửi đánh giá' })).toBeNull()
   })
 

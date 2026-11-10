@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { env } from '../../../app/config/env'
 import type { GateStatus, ProjectReviewMatrixRow } from '../types/review-gates.types'
+import { Table, TableHead } from '../../../components/ui/Table'
 
 interface ProjectProgressMatrixProps {
   projects: ProjectReviewMatrixRow[]
@@ -105,8 +106,8 @@ export function ProjectProgressMatrix({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-xs">
-            <thead className="border-b border-slate-100 bg-slate-50/60 font-semibold uppercase tracking-wider text-slate-500">
+          <Table className="w-full min-w-[720px] text-left text-xs">
+            <TableHead className="font-semibold uppercase tracking-wider text-ink">
               <tr>
                 <th className="py-3 px-4">Mã / Tên đồ án</th>
                 <th className="py-3 px-4">Chuyên ngành / Mode</th>
@@ -115,7 +116,7 @@ export function ProjectProgressMatrix({
                 ))}
                 <th className="py-3 px-4">Tiến độ Task*</th>
               </tr>
-            </thead>
+            </TableHead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {filteredProjects.map(proj => {
                 const keys = Object.keys(proj.gateStatuses)
@@ -131,8 +132,10 @@ export function ProjectProgressMatrix({
                     className="cursor-pointer transition-colors hover:bg-slate-50"
                   >
                     <td className="py-3.5 px-4">
-                      <strong className="block font-bold text-primary">{proj.projectId}</strong>
-                      <span className="text-xs text-slate-600 font-medium">{proj.projectName}</span>
+                      <button type="button" aria-label={`Xem ma trận đồ án ${proj.projectName}`} className="block min-h-10 text-left focus-visible:rounded focus-visible:outline-2 focus-visible:outline-primary">
+                        <strong className="block font-bold text-primary">{proj.projectId}</strong>
+                        <span className="text-xs text-slate-600 font-medium">{proj.projectName}</span>
+                      </button>
                     </td>
                     <td className="py-3.5 px-4">
                       <span className="block font-semibold text-slate-800">{proj.major}</span>
@@ -146,14 +149,14 @@ export function ProjectProgressMatrix({
                         <td key={code} className="py-3.5 px-3 text-center">
                           {st ? (
                             <span
-                              className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-bold ${
+                              className={`inline-block rounded-full border border-l-4 px-2.5 py-0.5 text-xs font-bold ${
                                 statusPillClasses[st] || 'bg-slate-100 text-slate-500'
                               }`}
                             >
                               {statusLabels[st] ?? 'Chưa xác định'}
                             </span>
                           ) : (
-                            <span className="text-slate-300">-</span>
+                            <span className="text-ink-muted" title="Không có gate trong bản ghi ma trận">—</span>
                           )}
                         </td>
                       )
@@ -173,7 +176,7 @@ export function ProjectProgressMatrix({
                 )
               })}
             </tbody>
-          </table>
+          </Table>
         </div>
         <p className="p-3 text-xs text-slate-400 border-t border-slate-100">
           * Tiến độ Task % là số liệu quản lý nội bộ; không thay thế quyết định thẩm định chính thức của Reviewer.

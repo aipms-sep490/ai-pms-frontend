@@ -82,7 +82,7 @@
 
 /* Compact navigation actions share one treatment across role workspaces. */
 .workspace-action-link { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:36px; max-width:100%; padding:6px 10px; border:1px solid var(--color-hairline); border-radius:8px; background:var(--color-primary-subtle); color:var(--color-primary); font-size:13px; font-weight:600; line-height:1.5; text-decoration:none; }
-.workspace-action-link:hover, .group:hover .workspace-action-link { background:var(--color-primary-subtle); border-color:var(--color-brand-teal); color:var(--color-primary-hover); text-decoration:none; }
+.workspace-action-link:hover, .group:hover .workspace-action-link { background:var(--color-primary-subtle); border-color:var(--color-primary); color:var(--color-primary-hover); text-decoration:none; }
 .workspace-action-link .material-symbols-outlined { flex:0 0 18px; width:18px; font-size:18px; }
 .workspace-empty-detail { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 300px; padding: 32px 20px; text-align: center; }
 .workspace-empty-detail > .material-symbols-outlined { padding: 14px; border-radius: 14px; background: var(--color-primary-subtle); color: var(--color-primary); font-size: 32px; }

@@ -4,6 +4,9 @@ import { displayLabel } from '../../../components/ui/display-label'
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
+import { ActionVerdict } from '../../../components/ui/ActionVerdict'
+import { ChangeDiff } from '../../../components/ui/ChangeDiff'
+import { HistoryTimeline } from '../../../components/ui/HistoryTimeline'
 import { useAcademicStructure } from '../../academic/hooks/useAcademicStructure'
 import { createAcademicNameResolver, type AcademicNameResolver } from '../components/academic-name-resolver'
 import { DepartmentDecisionHistory } from '../components/DepartmentDecisionHistory'
@@ -14,6 +17,9 @@ import { summarizeParticipatingDecisions } from '../components/participating-dec
 import { useProjectReview } from '../hooks/useProjectReview'
 import './project-review.css'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
+import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { schemeStatusTone } from '../../../components/ui/status-badge-tone'
 
 function ScopeSummary({ review, names }: { review: ReturnType<typeof useProjectReview>; names: AcademicNameResolver }) {
   const scope = review.detail?.academicScope ?? review.detail?.latestSubmission?.evidence.scope
@@ -143,17 +149,58 @@ export function ProjectReviewPage() {
   const departmentIds = review.detail?.latestSubmission?.evidence.departmentIds ?? []
   const participatingSummary = summarizeParticipatingDecisions(departmentIds, decisions)
   const mayPresentFinalApproval = review.canApprove && (!isInterdisciplinary || participatingSummary === 'ALL_APPROVED')
+  const snapshots = [...(review.reviewSnapshots?.items ?? [])].sort((a, b) => b.submissionNumber - a.submissionNumber)
+  const [currentSnapshot, previousSnapshot] = snapshots
+  const hasBackendApproval = review.workflow?.actions?.some(action => action.code === 'approve_project') ?? false
   return (
     <div className="review-page mk-page-enter">
       <Link className="review-page__back-link" to="/department/projects/review">← Danh sách thẩm định</Link>
       <h1>Thẩm định đề cương</h1>
-      <section>
-        <h2>{review.project?.code ?? `Đồ án #${id}`} · {review.project?.title ?? 'Chưa có tên đề cương'}</h2>
-        <p>Nhóm: {review.project?.teamName ?? '—'} · Trạng thái: {projectStatusLabel(review.workflow?.status ?? review.project?.status ?? '')}</p>
-        <Link className="review-page__open-link" to={`/department/projects/${id}/result`}>Theo dõi đánh giá và công bố kết quả</Link>
+      <section className="space-y-4">
+        <h2>{review.project?.title ?? (review.project?.code ? `${review.project.code} — Chưa có tên đề cương` : `Đồ án #${id}`)}</h2>
+        <EntityIdentityStrip
+          chips={[
+            { icon: 'tag', label: 'Mã đồ án', value: review.project?.code ?? `PRJ-${id}` },
+            { icon: 'groups', label: 'Nhóm', value: review.project?.teamName ?? '—' },
+            {
+              icon: 'verified',
+              label: 'Trạng thái',
+              value: projectStatusLabel(review.workflow?.status ?? review.project?.status ?? ''),
+              tone: schemeStatusTone(review.workflow?.status ?? review.project?.status),
+            },
+            ...(review.project?.majors?.length ? [{
+              icon: 'school',
+              label: 'Ngành',
+              value: review.project.majors.map((m) => m.majorCode).join(', '),
+            }] : []),
+          ]}
+        />
+        <div className="flex flex-wrap items-center gap-3">
+          <StatusBadge
+            status={review.workflow?.status ?? review.project?.status}
+            label={projectStatusLabel(review.workflow?.status ?? review.project?.status ?? '')}
+            tone={schemeStatusTone(review.workflow?.status ?? review.project?.status)}
+          />
+          <Link className="review-page__open-link inline-flex items-center text-sm font-semibold text-primary underline" to={`/department/projects/${id}/result`}>
+            Theo dõi đánh giá và công bố kết quả →
+          </Link>
+        </div>
+
       </section>
       <ProjectProposalDetails review={review} />
       <ScopeSummary review={review} names={names} />
+      {currentSnapshot?.evidence && previousSnapshot?.evidence && <section aria-label="So sánh hai lần nộp" className="space-y-3">
+        <h2>Thay đổi ở lần nộp #{currentSnapshot.submissionNumber}</h2>
+        <ChangeDiff beforeLabel={`LẦN NỘP #${previousSnapshot.submissionNumber}`} afterLabel={`LẦN NỘP #${currentSnapshot.submissionNumber}`} rows={[
+          { label: 'Chế độ đồ án', before: previousSnapshot.evidence.scope.projectMode, after: currentSnapshot.evidence.scope.projectMode },
+          { label: 'Ngành chính', before: previousSnapshot.evidence.scope.primaryMajorId, after: currentSnapshot.evidence.scope.primaryMajorId },
+          { label: 'Số thành viên tối đa', before: previousSnapshot.evidence.policy.maxMembers, after: currentSnapshot.evidence.policy.maxMembers },
+          { label: 'Số ngành tối thiểu', before: previousSnapshot.evidence.policy.minDistinctMajors, after: currentSnapshot.evidence.policy.minDistinctMajors },
+          { label: 'Số thành viên', before: previousSnapshot.evidence.members.length, after: currentSnapshot.evidence.members.length },
+          { label: 'Số bộ môn', before: previousSnapshot.evidence.departmentIds.length, after: currentSnapshot.evidence.departmentIds.length },
+        ]} />
+        <p className="text-sm text-ink-muted">So sánh dữ liệu snapshot đăng ký; nội dung đề cương không có trong bản tổng hợp này.</p>
+      </section>}
       <MajorRequirementEditor
         requirements={review.requirements?.requirements ?? scope?.requirements ?? []}
         projectMode={scope?.projectMode ?? ''}
@@ -173,25 +220,29 @@ export function ProjectReviewPage() {
         pending={review.pending !== null}
         onDecide={(decision) => void submitDepartment(decision)}
       />
-      <section>
+      <section className="space-y-4">
         <h2>Phản hồi thẩm định</h2>
         <label className="sr-only" htmlFor="review-reason">Lý do thẩm định</label>
         {(review.canStart || review.canRequestRevision || review.canApprove || review.canReject || review.canApproveDepartment || review.canRejectDepartment) ? <textarea id="review-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Nhập lý do khi yêu cầu chỉnh sửa hoặc từ chối" /> : <p>Hồ sơ hiện không có bước thẩm định cần xử lý.</p>}
         <div className="review-page__actions">
           {review.canStart ? <Button disabled={review.pending !== null} onClick={() => void review.beginReview()}>Bắt đầu thẩm định</Button> : null}
           {review.canRequestRevision ? <Button className="btn-revision" variant="secondary" disabled={review.pending !== null} onClick={() => void submit('revision')}>Yêu cầu chỉnh sửa</Button> : null}
-          {mayPresentFinalApproval ? <Button className="btn-approve" variant="primary" disabled={review.pending !== null} onClick={() => void submit('approve')}>Phê duyệt đề cương</Button> : null}
-          {review.canReject ? <Button className="btn-reject" variant="danger" disabled={review.pending !== null} onClick={() => void submit('reject')}>Từ chối đề cương</Button> : null}
+          {!hasBackendApproval && mayPresentFinalApproval ? <Button className="btn-approve" variant="primary" disabled={review.pending !== null} onClick={() => void submit('approve')}>Phê duyệt đề cương</Button> : null}
+          {!hasBackendApproval && review.canReject ? <Button className="btn-reject" variant="danger" disabled={review.pending !== null} onClick={() => void submit('reject')}>Từ chối đề cương</Button> : null}
         </div>
+        {hasBackendApproval && <ActionVerdict actions={review.workflow!.actions} actionCode="approve_project" status="ready" okLabel="Điều kiện phê duyệt hợp lệ" blockedLabel="Chưa thể phê duyệt đề cương">
+          <ActionVerdict.Decision primary={{ label: 'Phê duyệt đề cương', onClick: () => void submit('approve'), disabled: review.pending !== null || !mayPresentFinalApproval }}
+            secondary={review.canReject ? { label: 'Từ chối đề cương', onClick: () => void submit('reject'), disabled: review.pending !== null } : undefined} />
+        </ActionVerdict>}
         {isInterdisciplinary && review.canApprove && participatingSummary !== 'ALL_APPROVED' ? <p className="mt-2 text-sm text-ink-muted">Chỉ có thể phê duyệt cuối khi tất cả bộ môn tham gia đã đồng ý với phiên bản hiện tại.</p> : null}
         {review.pending ? <p role="status">Đang xử lý {review.pending}…</p> : null}
         {message ? <p role="status">{message}</p> : null}
       </section>
-      <section>
+      <section className="space-y-4">
         <h2>Lịch sử xử lý</h2>
-        <div className="review-history-list">
-        {review.history.length ? review.history.map((item, index) => <p key={`${item.changedAt}-${index}`}>{item.oldStatus ? projectStatusLabel(item.oldStatus) : 'Khởi tạo'} → {projectStatusLabel(item.newStatus)} · {item.changedByName} · {item.reason ?? '—'}</p>) : <p>Chưa có lịch sử trạng thái.</p>}
-        </div>
+        <HistoryTimeline items={review.history.map(item => ({ at: item.changedAt, actor: item.changedByName,
+          action: <p>{item.oldStatus ? projectStatusLabel(item.oldStatus) : 'Khởi tạo'} → {projectStatusLabel(item.newStatus)}</p>, note: item.reason }))}
+          emptyLabel="Chưa có lịch sử trạng thái." />
       </section>
       <DepartmentDecisionHistory
         snapshots={review.reviewSnapshots}

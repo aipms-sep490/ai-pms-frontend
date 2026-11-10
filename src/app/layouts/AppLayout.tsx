@@ -33,6 +33,12 @@ export function AppLayout() {
 
   return (
     <TourProvider>
+    <a
+      href="#main-content"
+      className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-white focus:font-semibold focus:rounded-lg focus:shadow-md focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+    >
+      Bỏ qua tới nội dung chính
+    </a>
     <div className="min-h-screen bg-canvas text-ink flex font-sans antialiased collaboration-shell">
       {/* 1. Sidebar Rail & Mobile Drawer */}
       <Sidebar
@@ -51,7 +57,7 @@ export function AppLayout() {
         />
 
         {/* Page Content Outlet */}
-        <main ref={entrance} data-experience={enhanced?'enhanced':undefined} className="app-page-content flex-1 p-4 md:p-6 max-w-[1400px] w-full mx-auto">
+        <main id="main-content" tabIndex={-1} ref={entrance} data-experience={enhanced?'enhanced':undefined} className="app-page-content flex-1 p-4 md:p-6 max-w-[1400px] w-full mx-auto">
           <Outlet />
         </main>
       </div>

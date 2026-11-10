@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { HttpError } from '../../services/http/http-client'
 
@@ -31,6 +31,22 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Evaluator Workspace Phase 5', () => {
+  it('identifies the assigned rubric version, stage and scope before scoring', async () => {
+    page()
+    const strip = await screen.findByRole('list', { name: 'Thông tin định danh' })
+    expect(await within(strip).findByText('Rubric hệ thống · phiên bản 2')).toBeTruthy()
+    expect(within(strip).getByText(/Công nghệ thông tin/)).toBeTruthy()
+    expect(within(strip).getByText('Chưa xác định')).toBeTruthy()
+  })
+
+  it('shows an unscored criterion as a dash while preserving an intentional zero', async () => {
+    page()
+    const score = await screen.findByLabelText('Điểm Phân tích') as HTMLInputElement
+    expect(screen.getByText('— Chưa chấm')).toBeTruthy()
+    fireEvent.change(score, { target: { value: '0' } })
+    expect(score.value).toBe('0')
+    expect(screen.queryByText('— Chưa chấm')).toBeNull()
+  })
   it('keeps approval state visible on the scoring page and fails closed when BE omits it', async () => {
     page()
     const unknown = await screen.findByText(/Chưa xác định trạng thái phê duyệt của phương án đánh giá/)
@@ -179,6 +195,14 @@ describe('Evaluator Workspace Phase 5', () => {
     fireEvent.change(screen.getByLabelText('Trạng thái đánh giá'), { target: { value: 'all' } })
     expect(screen.getByRole('link', { name: 'Tiếp tục chấm' })).toBeTruthy()
   })
+  it('says all assigned sheets are finished when the pending filter is empty', async () => {
+    api.getProjectEvaluations.mockResolvedValue({ items: [{ ...draft, status: 'FINALIZED' }], page: 1, pageSize: 100, totalCount: 1 })
+    page('/evaluator/workspace')
+    await screen.findByRole('link', { name: 'Xem đánh giá' })
+    fireEvent.change(screen.getByLabelText('Trạng thái đánh giá'), { target: { value: 'pending' } })
+    expect(screen.getByRole('region', { name: 'Đã chấm hết các phân công' })).toBeTruthy()
+    expect(screen.queryByText('Chưa có phân công đánh giá đang hiệu lực')).toBeNull()
+  })
   it('requires saving changed scores before finalization and protects the return link', async () => {
     const complete = { ...draft, totalScore: 8, missingCriterionIds: [], missingRequiredCriterionIds: [], scores: [{ ...draft.scores[0], score: 8 }] }
     api.getProjectEvaluations.mockResolvedValue({ items: [complete] })
@@ -229,6 +253,7 @@ describe('Evaluator Workspace Phase 5', () => {
     api.getAllMyEvaluationAssignments.mockResolvedValue([])
     page('/evaluator/workspace')
     expect(await screen.findByText('Chưa có phân công đánh giá đang hiệu lực')).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Chưa có phân công đánh giá đang hiệu lực' })).toBeTruthy()
     expect(screen.getByText(/khi được phân công chấm/)).toBeTruthy()
   })
 

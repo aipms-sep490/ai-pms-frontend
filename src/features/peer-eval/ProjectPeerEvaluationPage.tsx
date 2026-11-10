@@ -8,6 +8,9 @@ import { getMyPeerEvaluation, getPeerRounds, savePeerEvaluationDraft, submitPeer
 import type { MyPeerEvaluation, PeerRosterMember, PeerRound } from './peer-eval-types'
 
 import { Button } from '../../components/ui/Button'
+import { ActionVerdict } from '../../components/ui/ActionVerdict'
+import { EntityIdentityStrip } from '../../components/ui/EntityIdentityStrip'
+import { WorkspaceEmptyState } from '../../components/ui/WorkspaceState'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
 import { PeerRoundPicker } from './PeerRoundPicker'
 import { CollaborationIntro, collaborationDate } from '../student-collaboration/collaboration-ui'
@@ -132,12 +135,13 @@ export function ProjectPeerEvaluationPage() {
   }
 
   const submitted = myEval?.status === 'SUBMITTED'
-  const blockedReason = round?.reasons.map(code => ROUND_BLOCKED_MESSAGES[code]).find(Boolean)
+
 
   return <WorkspacePage className="space-y-5 collab" title="Đánh giá đồng đội" eyebrow="Peer evaluation"
     description="Đánh giá đóng góp của các thành viên trong nhóm. Đây là minh chứng tham khảo cho giảng viên, không phải là điểm số.">
     {confirmationDialog}
     <CollaborationIntro icon="diversity_3" title="Ghi nhận đóng góp, cùng tiến bộ">Chia sẻ nhận xét cụ thể và công bằng. Bạn chỉ đọc được bài mình gửi; phản hồi không được tự cộng vào điểm chính thức.</CollaborationIntro>
+    {projectId && <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: (journey.project as { title?: string } | undefined)?.title || `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />}
     {projectId && <div className="collab-actions"><Button variant="outline" icon="history" disabled={loading || savingDraft || submitting || !!recovery} onClick={() => setHistoryOpen(value => !value)} aria-expanded={historyOpen}>Xem các đợt trước</Button>{selectedRound && <Button variant="ghost" disabled={loading || savingDraft || submitting || !!recovery} onClick={() => void selectRound(null)}>Về đợt đang mở</Button>}</div>}
     {historyOpen && projectId && !loading && !savingDraft && !submitting && !recovery && <PeerRoundPicker projectId={projectId} userId={myId} onPick={value => void selectRound(value)} />}
     {!loading && round && <div className="collab-card"><div className="collab-row"><h2>{round.title}</h2><span className="collab-muted">Hạn gửi: {collaborationDate(round.closesAt)}</span></div><p className="collab-muted">{roster.filter(member => form[member.userId]?.rating).length}/{roster.length} thành viên đã được đánh giá.</p></div>}
@@ -145,7 +149,7 @@ export function ProjectPeerEvaluationPage() {
     {!projectId && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-slate-600">Không tìm thấy đồ án đang hoạt động để đánh giá đồng đội.</p>}
     {projectId && loading && <PageLoading label="Đang tải đánh giá đồng đội…" />}
     {projectId && !loading && error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><span>{error}</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
-    {projectId && !loading && !error && myEval?.status === 'NO_OPEN_ROUND' && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-slate-600">Hiện không có đợt đánh giá đồng đội nào đang mở.</p>}
+    {projectId && !loading && !error && myEval?.status === 'NO_OPEN_ROUND' && <WorkspaceEmptyState title="Hiện không có đợt đánh giá đồng đội nào đang mở." message="Module đánh giá đồng đội chưa có đợt nào đang mở cho đồ án này." />}
     {projectId && !loading && !error && round && roster.length === 0 && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-slate-600">Nhóm chưa có thành viên khác để đánh giá.</p>}
 
     {projectId && !loading && !error && round && roster.length > 0 && submitted && <>
@@ -159,7 +163,19 @@ export function ProjectPeerEvaluationPage() {
     </>}
 
     {projectId && !loading && !error && round && roster.length > 0 && !submitted && <>
-      {!round.canSubmit && blockedReason && <div role="status" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text">{blockedReason}</div>}
+      <div className="mb-4">
+        <ActionVerdict
+          actions={[{
+            code: 'SUBMIT_PEER_EVALUATION',
+            allowed: round.canSubmit,
+            reasons: round.reasons.map(code => ROUND_BLOCKED_MESSAGES[code] || code),
+          }]}
+          actionCode="SUBMIT_PEER_EVALUATION"
+          status="ready"
+          okLabel="Đủ điều kiện gửi đánh giá"
+          blockedLabel="Chưa thể gửi đánh giá"
+        />
+      </div>
       <ul className="space-y-3">
         {roster.map(mate => <li key={mate.userId} className="space-y-2 rounded-xl border border-hairline bg-card p-4 shadow-xs">
           <h2 className="text-base font-bold text-slate-950">{mate.fullName}</h2>

@@ -4,8 +4,8 @@ import { useTour } from '../../features/onboarding/tour-context'
 import './workspace-page.css'
 import './workspace-flat.css'
 
-export function WorkspacePage({ title, description, eyebrow, backTo, action, children, className = '', guideId }: {
-  title: string; description?: string; eyebrow?: string; backTo?: string; action?: ReactNode; children: ReactNode; className?: string; guideId?: string
+export function WorkspacePage({ title, description, eyebrow, backTo, action, identity, children, className = '', guideId }: {
+  title: string; description?: string; eyebrow?: string; backTo?: string; action?: ReactNode; identity?: ReactNode; children: ReactNode; className?: string; guideId?: string
 }) {
   const { setGuideId } = useTour()
   useEffect(() => {
@@ -24,6 +24,7 @@ export function WorkspacePage({ title, description, eyebrow, backTo, action, chi
       </div>
       {action && <div className="workspace-heading-actions">{action}</div>}
     </header>
+    {identity}
     {children}
   </div>
 }

@@ -12,6 +12,32 @@ import { TaskDisciplinePanel } from '../components/TaskDisciplinePanel'
 import { useTaskExecutionCapabilities } from '../../execution/hooks/useTaskExecutionCapabilities'
 import { canUseTaskExecutionAction } from '../../execution/execution-authority'
 import * as disciplineApi from '../../projects/api/discipline-governance-api'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import type { BadgeTone } from '../../../components/ui/status-badge-tone'
+
+export function taskStatusTone(status?: string | null): BadgeTone {
+  switch ((status ?? '').toUpperCase()) {
+    case 'COMPLETED':
+    case 'DONE': return 'success'
+    case 'IN_PROGRESS':
+    case 'DOING': return 'info'
+    case 'BLOCKED': return 'danger'
+    case 'CANCELLED': return 'neutral'
+    case 'TODO':
+    case 'NOT_STARTED':
+    default: return 'neutral'
+  }
+}
+
+export function taskPriorityTone(priority?: string | null): BadgeTone {
+  switch ((priority ?? '').toUpperCase()) {
+    case 'URGENT':
+    case 'HIGH': return 'danger'
+    case 'MEDIUM': return 'warning'
+    case 'LOW': return 'neutral'
+    default: return 'neutral'
+  }
+}
 
 export function TaskDetailPage() {
   const { taskId } = useParams()
@@ -83,7 +109,10 @@ function TaskDetail({ id }: { id: number }) {
   const saved = () => { setEditing(null); reload() }
   return <ExecutionPage title={task.title} eyebrow={milestone?.title ?? project.code} backTo={taskListUrl}
     action={<><button className="ex-button" disabled={loading || mutation.busy} onClick={reload}><ExIcon name="refresh" />Cập nhật</button>{canUpdate && <button className="ex-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('content') }}><ExIcon name="edit" />Chỉnh sửa</button>}</>}>
-    <div className="ex-actions mb-6"><span className={`ex-badge ex-badge-${task.status}`}>{taskStatusLabel(task.status)}</span><span className="ex-muted">Ưu tiên {priorityLabels[task.priority ?? '']?.toLowerCase() ?? 'chưa chọn'}</span></div>
+    <div className="ex-actions mb-6 flex flex-wrap items-center gap-2">
+      <StatusBadge status={task.status} label={taskStatusLabel(task.status)} tone={taskStatusTone(task.status)} />
+      <StatusBadge tone={taskPriorityTone(task.priority)} label={`Ưu tiên ${priorityLabels[task.priority ?? '']?.toLowerCase() ?? 'chưa chọn'}`} />
+    </div>
     {error && <ExState message={error} retry={reload} />}{contextError && <ExState message={contextError} retry={reload} />}
     {timeline && !contextValid && <p className="ex-notice ex-notice-error" role="alert">Công việc này không thuộc đồ án đang xem. <Link className="ex-link" to={`${routeBase}/tasks`}>Về danh sách công việc</Link></p>}
     {mutation.error && <p className="ex-notice ex-notice-error" role="alert">{mutation.error}</p>}{mutation.notice && <p className="ex-notice" role="status">{mutation.notice}</p>}
@@ -108,7 +137,7 @@ function TaskDetail({ id }: { id: number }) {
   </ExecutionPage>
 }
 
-function TaskContentEditor({ task, timeline, busy, onCancel, onSubmit }: { task: TaskDto; timeline: ProjectTimelineDataDto | null; busy: boolean; onCancel: () => void; onSubmit: (payload: import('../../../services/api/tasks.api').UpdateTaskPayload) => Promise<boolean> }) {
+export function TaskContentEditor({ task, timeline, busy, onCancel, onSubmit }: { task: TaskDto; timeline: ProjectTimelineDataDto | null; busy: boolean; onCancel: () => void; onSubmit: (payload: import('../../../services/api/tasks.api').UpdateTaskPayload) => Promise<boolean> }) {
   const [validation, setValidation] = useState('')
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = new FormData(event.currentTarget)
@@ -123,13 +152,13 @@ function TaskContentEditor({ task, timeline, busy, onCancel, onSubmit }: { task:
     <label>Bắt đầu dự kiến<input type="datetime-local" name="startAt" defaultValue={localDateTime(task.startAt)} /></label><label>Hạn hoàn thành<input type="datetime-local" name="dueAt" defaultValue={localDateTime(task.dueAt)} /></label>
   </div><p className="ex-muted mt-3">Thời gian tính theo giờ Việt Nam (UTC+7).</p>{validation && <p role="alert" className="ex-notice ex-notice-error mt-3">{validation}</p>}<div className="ex-form-footer"><button className="ex-button" type="button" onClick={onCancel}>Hủy</button><button className="ex-button ex-button-primary">{busy ? 'Đang lưu…' : 'Lưu nội dung'}</button></div></fieldset></form></section>
 }
-function AssigneeEditor({ task, candidates, busy, onCancel, onSubmit }: { task: TaskDto; candidates: { userId: number; fullName: string }[]; busy: boolean; onCancel: () => void; onSubmit: (ids: number[]) => Promise<boolean> }) {
+export function AssigneeEditor({ task, candidates, busy, onCancel, onSubmit }: { task: TaskDto; candidates: { userId: number; fullName: string }[]; busy: boolean; onCancel: () => void; onSubmit: (ids: number[]) => Promise<boolean> }) {
   return <form onSubmit={event => { event.preventDefault(); void onSubmit(new FormData(event.currentTarget).getAll('assignee').map(Number)) }}><fieldset disabled={busy}><legend className="ex-muted">Chọn người cùng phụ trách công việc</legend><div className="ex-checks">{candidates.map(person => <label key={person.userId}><input name="assignee" type="checkbox" value={person.userId} defaultChecked={task.assignees.some(item => item.userId === person.userId)} />{person.fullName}</label>)}</div><div className="ex-form-footer"><button className="ex-button" type="button" onClick={onCancel}>Hủy</button><button className="ex-button ex-button-primary">Lưu phân công</button></div></fieldset></form>
 }
-function DependencyEditor({ tasks, busy, onCancel, onSubmit }: { tasks: { id: number; title: string }[]; busy: boolean; onCancel: () => void; onSubmit: (id: number, type: string) => Promise<boolean> }) {
+export function DependencyEditor({ tasks, busy, onCancel, onSubmit }: { tasks: { id: number; title: string }[]; busy: boolean; onCancel: () => void; onSubmit: (id: number, type: string) => Promise<boolean> }) {
   return <form className="mt-4" onSubmit={event => { event.preventDefault(); const form = new FormData(event.currentTarget); void onSubmit(Number(form.get('dependency')), String(form.get('type'))) }}><fieldset disabled={busy}><div className="ex-fields"><label className="ex-full">Công việc liên quan<select name="dependency" required defaultValue=""><option value="" disabled>Chọn công việc</option>{tasks.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label className="ex-full">Mối liên hệ<select name="type" defaultValue="FINISH_TO_START">{Object.entries(dependencyLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label></div><div className="ex-form-footer"><button className="ex-button" type="button" onClick={onCancel}>Hủy</button><button className="ex-button ex-button-primary" disabled={!tasks.length}>Lưu liên kết</button></div></fieldset></form>
 }
-function StatusEditor({ task, busy, onSubmit }: { task: TaskDto; busy: boolean; onSubmit: (status: string, reason: string) => Promise<boolean> }) {
+export function StatusEditor({ task, busy, onSubmit }: { task: TaskDto; busy: boolean; onSubmit: (status: string, reason: string) => Promise<boolean> }) {
   const next = taskTransitions[task.status] ?? []
   const reasonRef = useRef<HTMLTextAreaElement>(null)
   const [fieldError, setFieldError] = useState('')

@@ -9,6 +9,7 @@ import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { Button } from '../../../components/ui/Button'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { ActorDashboardCard } from '../components/ActorDashboardCard'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 
 const statuses = ['DRAFT', 'UNDER_REVIEW', 'APPROVED', 'ACTIVE', 'FINAL_SUBMISSION', 'COMPLETED', 'ARCHIVED']
 
@@ -56,7 +57,14 @@ export function SupervisorDashboardPage() {
     {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><p className="font-semibold">Chưa tải được tổng quan</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại</button></div>}
     {loading && <PageLoading label="Đang tải tổng quan hướng dẫn…" />}
     {!loading && !error && data && <>
-      <section aria-label="Chỉ số khối lượng" className="workspace-metrics"><Metric label="Đồ án được phân công" value={data.workload.assignedProjects} /><Metric label="Báo cáo chờ duyệt" value={data.pendingProgressReviews} tone={data.pendingProgressReviews > 0 ? 'warning' : 'neutral'} /><Metric label="Công việc quá hạn" value={data.overdueTasks} tone={data.overdueTasks > 0 ? 'error' : 'neutral'} /><Metric label="Đồ án / hạn mức" value={data.workload.profileMaxActiveProjects === null ? 'Chưa cấu hình' : `${data.workload.assignedProjects}/${data.workload.profileMaxActiveProjects}`} tone={!data.workload.hasProfile || !data.workload.isAvailable ? 'warning' : 'success'} /></section>
+      <section aria-label="Chỉ số khối lượng" className="space-y-3">
+        <StatTileRow tiles={[
+          { icon: 'folder_managed', label: 'Đồ án được phân công', value: data.workload.assignedProjects, hero: true, caption: 'Khối lượng hướng dẫn hiện tại.' },
+          { icon: 'fact_check', label: 'Báo cáo chờ duyệt', value: data.pendingProgressReviews, tone: data.pendingProgressReviews > 0 ? 'warning' : 'neutral' },
+          { icon: 'event_busy', label: 'Công việc quá hạn', value: data.overdueTasks, tone: data.overdueTasks > 0 ? 'danger' : 'neutral' },
+        ]} />
+        <p className="rounded-lg border border-hairline bg-card px-4 py-3 text-sm text-ink-soft">Đồ án / hạn mức: <strong className="tabular-nums text-ink">{data.workload.profileMaxActiveProjects === null ? 'Chưa cấu hình' : `${data.workload.assignedProjects}/${data.workload.profileMaxActiveProjects}`}</strong>{!data.workload.hasProfile || !data.workload.isAvailable ? ' · Hồ sơ hướng dẫn hiện chưa sẵn sàng nhận thêm.' : ''}</p>
+      </section>
 
       {/* Quick Action Inbox (P1.1) */}
       {(() => {
@@ -150,11 +158,6 @@ export function SupervisorDashboardPage() {
       <Pagination page={filter.page ?? 1} totalPages={data.projects.totalPages} disabled={loading} onChange={page => setFilter(current => ({ ...current, page }))} />
     </>}
   </WorkspacePage>
-}
-
-function Metric({ label, value, tone = 'neutral' }: { label: string; value: number | string; tone?: 'neutral' | 'success' | 'warning' | 'error' }) {
-  const tones = { neutral: 'border-hairline', success: 'border-status-success-border bg-status-success-bg', warning: 'border-status-warning-border bg-status-warning-bg', error: 'border-status-error-border bg-status-error-bg' }
-  return <div className={`workspace-metric rounded-xl border p-4 ${tones[tone]}`}><p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">{label}</p><p className="mt-2 text-2xl font-bold tabular-nums text-ink">{value}</p></div>
 }
 
 function StatusCounts({ counts }: { counts: SupervisorDashboard['projectStates'] }) {

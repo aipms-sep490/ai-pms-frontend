@@ -8,6 +8,15 @@ vi.mock('../../services/http/http-client', async importOriginal => ({ ...await i
 const template = { id: 1, name: 'Mẫu chuẩn', description: null, versions: [{ id: 5, versionNumber: 1, status: 'DRAFT', items: [{ id: 8, title: 'Nộp đề cương', sortOrder: 1, startOffsetDays: 0, dueOffsetDays: 7 }] }] }
 beforeEach(() => { api.getMilestoneTemplates.mockResolvedValue([template]); api.publishTemplateVersion.mockResolvedValue(undefined); api.createMilestoneTemplate.mockResolvedValue({ id: 2 }) })
 afterEach(() => { cleanup(); vi.clearAllMocks() })
+it('loads in view mode and explains published version impact', async () => {
+  render(<MemoryRouter><MilestoneTemplatesPage /></MemoryRouter>)
+  expect(screen.getByText('Chế độ xem')).toBeTruthy()
+  expect(screen.queryByLabelText('Tên mẫu')).toBeNull()
+  expect(screen.getByText(/Phiên bản đã công bố được giữ nguyên/)).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Tạo mẫu' }))
+  expect(screen.getByText('ĐANG CHỈNH SỬA')).toBeTruthy()
+  expect(screen.getByLabelText('Tên mẫu')).toBeTruthy()
+})
 it('requires confirmation before locking a template version', async () => {
   render(<MemoryRouter><MilestoneTemplatesPage /></MemoryRouter>)
   fireEvent.click(await screen.findByRole('button', { name: /Mẫu chuẩn/ }))

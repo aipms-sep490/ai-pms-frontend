@@ -230,3 +230,26 @@ it('discards a pending answer when the project changes', async () => {
   expect((screen.getByRole('button', { name: 'Hỏi trợ lý học vụ' }) as HTMLButtonElement).disabled).toBe(false)
   expect(screen.queryByText('Private old project')).toBeNull()
 })
+
+it('renders assistant citations with title, version and effective date', async () => {
+  const source = {
+    documentId: 1, versionId: 1, title: 'Quy trình IT', version: '1',
+    documentType: 'PROCESS', section: 'Mục 2', page: 5,
+    effectiveFrom: '2026-09-01T00:00:00Z', excerpt: 'Hướng dẫn nộp đồ án',
+  }
+  ask.mockResolvedValue({
+    answer: 'Xem quy trình', runId: 10,
+    citations: [source], projectEvidence: [],
+  })
+  conversationApi.getAssistantCitation.mockResolvedValue(source)
+  render(<AcademicAssistantPanel />)
+  fireEvent.change(screen.getByLabelText('Câu hỏi học vụ'), { target: { value: 'Quy trình?' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Hỏi trợ lý học vụ' }))
+  await screen.findByText('Quy trình IT · v1')
+  expect(screen.getByText(/1\/9\/2026/)).toBeTruthy()
+})
+
+it('labels every AI panel as advisory', () => {
+  render(<AcademicAssistantPanel />)
+  expect(screen.getByText(/tư vấn/i)).toBeTruthy()
+})

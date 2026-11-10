@@ -26,6 +26,11 @@ beforeEach(() => {
 })
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 function page() { render(<MemoryRouter initialEntries={['/admin/projects/9/evaluation-schemes']}><Routes><Route path="/admin/projects/:projectId/evaluation-schemes" element={<EvaluationSchemeManagementPage />} /></Routes></MemoryRouter>) }
+it('starts with a visible view-mode badge before a scheme is selected', async () => {
+  page()
+  await screen.findByRole('button', { name: /Scheme server/ })
+  expect(screen.getByText('Chế độ xem')).toBeTruthy()
+})
 it('totals stage weights separately for each major, including shared components', async () => {
   const majors = [{ majorId: 3, majorCode: 'SE' }, { majorId: 4, majorCode: 'IS' }, { majorId: 5, majorCode: 'CS' }]
   api.getProject.mockResolvedValue({ id: 9, majors })

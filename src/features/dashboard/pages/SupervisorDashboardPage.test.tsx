@@ -17,6 +17,14 @@ beforeEach(() => { vi.clearAllMocks(); api.getSupervisorDashboard.mockResolvedVa
 afterEach(cleanup)
 
 describe('SupervisorDashboardPage', () => {
+  it('shows exactly one hero tile from the backend workload figures', async () => {
+    render(<MemoryRouter><SupervisorDashboardPage /></MemoryRouter>)
+    await screen.findByText('Đồ án được phân công')
+    const tiles = screen.getByRole('list', { name: 'Chỉ số tổng quan' })
+    expect(tiles.querySelectorAll('[data-hero="true"]')).toHaveLength(1)
+    expect(tiles.querySelector('[data-hero="true"]')?.textContent).toContain('2')
+    expect(screen.getByText(/2\/4/)).toBeTruthy()
+  })
   it('uses the backend filter contract for status and pagination', async () => {
     let finish!: (value: typeof dashboard) => void
     api.getSupervisorDashboard.mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))

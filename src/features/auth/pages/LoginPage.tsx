@@ -53,11 +53,11 @@ export function LoginPage() {
 
   return (
     <main className="login-page">
-      <aside className="login-story" aria-label="Giới thiệu AI-PMS">
+      <aside className="login-story" aria-label="Giới thiệu PMS">
         <div className="login-brand">
           <img src={appIcon} alt="" className="login-brand-icon" aria-hidden="true" />
           <div>
-            <strong>AI-PMS</strong>
+            <strong>PMS</strong>
             <span>Không gian đồ án · FPT University</span>
           </div>
         </div>
@@ -96,7 +96,7 @@ export function LoginPage() {
         <section className="login-form-panel" aria-labelledby="login-title">
           <div className="login-mobile-brand">
             <img src={appIcon} alt="" className="w-8 h-8 rounded-lg object-contain shadow-xs" aria-hidden="true" />
-            <strong>AI-PMS · FPTU</strong>
+            <strong>PMS · FPTU</strong>
           </div>
           <p className="login-welcome">Chào mừng trở lại</p>
           <h1 className="auth-login-title" id="login-title">Đăng nhập tài khoản</h1>
@@ -164,7 +164,7 @@ export function LoginPage() {
             Chưa có tài khoản? Liên hệ cán bộ phụ trách bộ môn để được hỗ trợ.
           </p>
         </section>
-        <p className="login-form-footer">AI-PMS · Quản lý và theo dõi đồ án học thuật</p>
+        <p className="login-form-footer">PMS · Quản lý và theo dõi đồ án học thuật</p>
       </div>
     </main>
   )

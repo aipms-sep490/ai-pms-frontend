@@ -165,4 +165,26 @@ describe('ProjectReviewPage', () => {
     expect(screen.queryByText('Phê duyệt đề cương')).toBeNull()
     expect(screen.getByText(/Chỉ có thể phê duyệt cuối/)).toBeTruthy()
   })
+
+  it('shows the backend approval denial beside a disabled decision', () => {
+    hook.useProjectReview.mockReturnValue(reviewState({ canReject: true, workflow: { status: 'UNDER_REVIEW', actions: [
+      { code: 'approve_project', allowed: false, reasons: ['Thiếu ý kiến bộ môn tham gia'] },
+      { code: 'reject_project', allowed: true, reasons: [] },
+    ] } }))
+    detailPage()
+    expect(screen.getByText('Thiếu ý kiến bộ môn tham gia')).toBeTruthy()
+    expect((screen.getByRole('button', { name: 'Phê duyệt đề cương' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Từ chối đề cương' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('compares two actual registration snapshots when a revision exists', () => {
+    const evidence = (count: number) => ({ scope: { projectMode: 'SINGLE_MAJOR', leadDepartmentId: 5, primaryMajorId: 7, requirements: [] }, policy: { minMembers: 2, maxMembers: count, minDistinctMajors: 1 }, members: [], departmentIds: [5] })
+    hook.useProjectReview.mockReturnValue(reviewState({ reviewSnapshots: { page: 1, pageSize: 20, totalCount: 2, items: [
+      { id: 2, submissionNumber: 2, submittedAt: '2026-10-16', evidence: evidence(5), decisions: [] },
+      { id: 1, submissionNumber: 1, submittedAt: '2026-10-15', evidence: evidence(4), decisions: [] },
+    ] } }))
+    detailPage()
+    expect(screen.getByLabelText('So sánh thay đổi')).toBeTruthy()
+    expect(screen.getByText('Lần nộp #1')).toBeTruthy()
+  })
 })

@@ -24,6 +24,12 @@ const blankAccount: UserDraft = { departmentId: null, majorId: null, email: '', 
 const messageFor = (reason: unknown) => reason instanceof HttpError ? reason.message : 'Chưa thể hoàn tất thao tác. Hãy thử lại.'
 const integer = (value: FormDataEntryValue | null) => { const result = Number(value); return Number.isInteger(result) && result > 0 ? result : null }
 
+function auditDateBoundary(day: string, end = false): string | undefined {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return undefined
+  const date = new Date(`${day}T${end ? '23:59:59.999' : '00:00:00.000'}+07:00`)
+  return Number.isFinite(date.getTime()) ? date.toISOString() : undefined
+}
+
 export function AdminWorkspacePage() {
   const { session } = useAuthSession()
   const [academicNames, setAcademicNames] = useState<{ departments: Record<number, string>; majors: Record<number, string> }>({ departments: {}, majors: {} })
@@ -46,7 +52,17 @@ export function AdminWorkspacePage() {
   const search = params.get('search') ?? ''
   const status = params.get('status') ?? ''
   const auditAction = params.get('auditAction') ?? ''
-  const admin = useAdminWorkspace({ search, status: status || undefined, page }, { action: auditAction || undefined })
+  const auditEntityType = params.get('auditEntityType') ?? ''
+  const auditOutcome = params.get('auditOutcome') ?? ''
+  const auditFrom = params.get('auditFrom') ?? ''
+  const auditTo = params.get('auditTo') ?? ''
+  const admin = useAdminWorkspace({ search, status: status || undefined, page }, {
+    action: auditAction || undefined,
+    entityType: auditEntityType || undefined,
+    outcome: auditOutcome || undefined,
+    fromUtc: auditDateBoundary(auditFrom),
+    toUtc: auditDateBoundary(auditTo, true),
+  })
   const [notice, setNotice] = useState<string | null>(null)
   const [importText, setImportText] = useState('')
   const [accountScope, setAccountScope] = useState({ departmentId: '', majorId: '' })
@@ -141,7 +157,66 @@ export function AdminWorkspacePage() {
       <p className="admin-gap">Mở hồ sơ từng tài khoản để cập nhật bộ môn và chuyên ngành. Phân công đồ án được quản lý riêng.</p>
     </section>
 
-    <section id="audit" className="admin-panel" aria-labelledby="audit-title" hidden={activeTab !== 'audit'}><div className="admin-panel-heading"><div><h2 id="audit-title">Nhật ký bảo mật</h2><p>Theo dõi thời gian, người thực hiện và nội dung hoạt động quản trị.</p></div></div><form className="admin-filter" onSubmit={(event) => { event.preventDefault(); setFilter({ auditAction: String(new FormData(event.currentTarget).get('action') ?? '') }) }}><label>Hành động<input name="action" defaultValue={auditAction} placeholder="Ví dụ: ACCOUNT_, AUTH_" /></label><Button type="submit" variant="secondary">Lọc</Button>{auditAction ? <Button type="button" variant="outline" onClick={() => setFilter({ auditAction: '' })}>Đặt lại</Button> : null}</form>{admin.audit.state === 'loading' ? <ListLoading label="Đang tải nhật ký…" /> : null}{admin.audit.state === 'error' ? <Failure message={admin.isForbidden(admin.audit) ? 'Bạn không có quyền xem nhật ký bảo mật.' : 'Chưa tải được nhật ký bảo mật.'} retry={admin.refresh} /> : null}{admin.audit.state === 'ready' ? <ul className="admin-audit-list">{admin.audit.value.items.map((record) => <li key={record.id}><strong title={record.action}>{auditActionLabel(record.action)}</strong><span>{record.entityType === 'USER' ? 'Tài khoản' : record.entityType} #{record.entityId ?? '—'} · {record.outcome === 'SUCCESS' ? 'Thành công' : record.outcome === 'FAILURE' ? 'Thất bại' : record.outcome}</span><time>{new Date(utcTimestamp(record.occurredAt)).toLocaleString('vi-VN')}</time></li>)}</ul> : null}{admin.audit.state === 'ready' && admin.audit.value.totalCount === 0 ? <p role="status">Không có hoạt động phù hợp với bộ lọc hiện tại.</p> : null}{admin.audit.state === 'ready' && admin.audit.value.totalCount > 0 && <Pagination page={admin.audit.value.page} pageSize={admin.audit.value.pageSize} total={admin.audit.value.totalCount} onPage={(next) => setFilter({ page: String(next) })} />}</section>
+    <section id="audit" className="admin-panel" aria-labelledby="audit-title" hidden={activeTab !== 'audit'}>
+      <div className="admin-panel-heading"><div><h2 id="audit-title">Nhật ký bảo mật</h2><p>Theo dõi thời gian, người thực hiện và nội dung hoạt động quản trị.</p></div></div>
+      <form key={[auditAction, auditEntityType, auditOutcome, auditFrom, auditTo].join('|')} className="admin-filter" onSubmit={(event) => {
+        event.preventDefault()
+        const data = new FormData(event.currentTarget)
+        setFilter({
+          auditAction: String(data.get('action') ?? ''),
+          auditEntityType: String(data.get('entityType') ?? ''),
+          auditOutcome: String(data.get('outcome') ?? ''),
+          auditFrom: String(data.get('fromUtc') ?? ''),
+          auditTo: String(data.get('toUtc') ?? ''),
+        })
+      }}>
+        <label>Hành động<input name="action" defaultValue={auditAction} placeholder="Ví dụ: ACCOUNT_, AUTH_" /></label>
+        <label>Đối tượng<input name="entityType" defaultValue={auditEntityType} placeholder="Ví dụ: USER, PROJECT" /></label>
+        <label>Kết quả
+          <select name="outcome" defaultValue={auditOutcome}>
+            <option value="">Tất cả</option>
+            <option value="SUCCESS">Thành công</option>
+            <option value="FAILURE">Thất bại</option>
+          </select>
+        </label>
+        <label>Từ ngày (giờ Việt Nam)<input type="date" name="fromUtc" defaultValue={auditFrom} /></label>
+        <label>Đến ngày (giờ Việt Nam)<input type="date" name="toUtc" defaultValue={auditTo} /></label>
+        <Button type="submit" variant="secondary">Lọc</Button>
+        {(auditAction || auditEntityType || auditOutcome || auditFrom || auditTo) ? (
+          <Button type="button" variant="outline" onClick={() => setFilter({ auditAction: '', auditEntityType: '', auditOutcome: '', auditFrom: '', auditTo: '' })}>Đặt lại</Button>
+        ) : null}
+      </form>
+      {admin.audit.state === 'loading' ? <ListLoading label="Đang tải nhật ký…" /> : null}
+      {admin.audit.state === 'error' ? <Failure message={admin.isForbidden(admin.audit) ? 'Bạn không có quyền xem nhật ký bảo mật.' : 'Chưa tải được nhật ký bảo mật.'} retry={admin.refresh} /> : null}
+      {admin.audit.state === 'ready' && admin.audit.value.items.length > 0 ? (
+        <Table className="mt-3">
+          <TableHead>
+            <TableRow>
+              <TableHeaderCell>Hành động</TableHeaderCell>
+              <TableHeaderCell>Đối tượng</TableHeaderCell>
+              <TableHeaderCell>Kết quả</TableHeaderCell>
+              <TableHeaderCell>Thời gian</TableHeaderCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {admin.audit.value.items.map((record) => (
+              <TableRow key={record.id}>
+                <TableCell label="Hành động"><strong title={record.action}>{auditActionLabel(record.action)}</strong></TableCell>
+                <TableCell label="Đối tượng">{record.entityType === 'USER' ? 'Tài khoản' : record.entityType} #{record.entityId ?? '—'}</TableCell>
+                <TableCell label="Kết quả">
+                  <span className={`inline-block rounded px-2 py-0.5 text-xs font-semibold ${record.outcome === 'SUCCESS' ? 'bg-status-success-bg text-status-success-text' : 'bg-status-error-bg text-status-error-text'}`}>
+                    {record.outcome === 'SUCCESS' ? 'Thành công' : record.outcome === 'FAILURE' ? 'Thất bại' : record.outcome}
+                  </span>
+                </TableCell>
+                <TableCell label="Thời gian"><time>{new Date(utcTimestamp(record.occurredAt)).toLocaleString('vi-VN')}</time></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      ) : null}
+      {admin.audit.state === 'ready' && admin.audit.value.totalCount === 0 ? <p role="status">Không có hoạt động phù hợp với bộ lọc hiện tại.</p> : null}
+      {admin.audit.state === 'ready' && admin.audit.value.totalCount > 0 && <Pagination page={admin.audit.value.page} pageSize={admin.audit.value.pageSize} total={admin.audit.value.totalCount} onPage={(next) => setFilter({ page: String(next) })} />}
+    </section>
   </main>
 }
 

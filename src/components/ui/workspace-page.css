@@ -2,7 +2,9 @@
 .workspace-back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 20px; color: var(--color-ink-muted); font-size: 13px; text-decoration: none; font-weight: 500; }
 .workspace-back:hover { color: var(--color-academic-emerald); text-decoration: underline; }
 .workspace-back .material-symbols-outlined { font-size: 18px; }
-.workspace-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.workspace-heading { display: flex; position: sticky; top: 0; z-index: 1; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; background: var(--color-canvas); }
+.milestone-templates-page > .workspace-heading, .cold-template-page > .workspace-heading { position: static; }
+.workspace-page :is(a, button, input, select, textarea, [tabindex]):focus-visible { scroll-margin-top: 12rem; }
 .workspace-heading-copy { min-width: 0; flex: 1; }
 .workspace-context { display: flex; align-items: center; gap: 10px; min-width: 0; margin-bottom: 10px; }
 .workspace-kicker { flex-shrink: 0; padding: 4px 9px; border-radius: 6px; background: var(--color-primary-subtle); color: var(--color-primary); font-family: var(--font-sans); font-size: 12px; font-weight: 600; line-height: 1.5; }

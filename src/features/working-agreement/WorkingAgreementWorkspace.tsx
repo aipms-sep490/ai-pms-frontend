@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { Button } from '../../components/ui/Button'
+import { ActionVerdict } from '../../components/ui/ActionVerdict'
+import { EntityIdentityStrip } from '../../components/ui/EntityIdentityStrip'
+import { WorkspaceEmptyState } from '../../components/ui/WorkspaceState'
 import { PageLoading } from '../../components/ui/PageLoading'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
 import { HttpError } from '../../services/http/http-client'
@@ -89,11 +92,12 @@ export function WorkingAgreementWorkspace({ projectId, readOnly = false }: { pro
   }
   return <div className="collab">{confirmationDialog}
     <CollaborationIntro icon="handshake" title="Thống nhất cách làm việc">Khi thay đổi nguyên tắc hoặc thành viên, nhóm cùng xác nhận một phiên bản mới. Nội dung đã công bố được giữ nguyên.</CollaborationIntro>
+    <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
     {loading && <PageLoading label="Đang tải cam kết nhóm…" />}
     {error && <div role="alert" className="collab-error">{error} <Button variant="ghost" onClick={() => setRevision(value => value + 1)}>Tải lại</Button></div>}
     {notice && <p role="status" className="collab-note">{notice}</p>}
     {conflict && <div role="alert" className="collab-note">Bản trên máy chủ đã thay đổi. Nội dung bạn soạn vẫn được giữ bên dưới. Hãy đối chiếu rồi <Button variant="outline" disabled={loading || !manage} onClick={() => setConflict(false)}>Dùng phiên bản mới làm nền</Button></div>}
-    {!loading && !error && !latest && <p className="collab-empty">Nhóm chưa có bản cam kết làm việc nào.</p>}
+    {!loading && !error && !latest && <WorkspaceEmptyState title="Chưa có bản cam kết làm việc" message="Nhóm chưa có bản cam kết làm việc nào." />}
     {!loading && latest && <div className="collab-grid"><article className="collab-card">
       <div className="collab-row"><h2>Phiên bản {latest.version}</h2><span className="collab-muted">{statusLabel[latest.status]}</span></div>
       <AgreementContents agreement={latest} />
@@ -103,7 +107,7 @@ export function WorkingAgreementWorkspace({ projectId, readOnly = false }: { pro
       <progress className="collab-progress" value={latest.acceptances.length} max={Math.max(1, latest.memberCount)} aria-label="Tiến độ xác nhận" />
       <p className="collab-muted">Đã xác nhận {latest.acceptances.length}/{latest.memberCount} thành viên.</p>
       <p className="collab-muted">{latest.required ? 'Kỳ này yêu cầu đủ xác nhận trước khi đồ án được kích hoạt.' : 'Cam kết hỗ trợ nhóm phối hợp, theo chính sách của kỳ.'}</p>
-      {(latest.readiness.reasons ?? []).map(code => <p className="collab-note" key={code}>{reasonLabel[code] ?? 'Chưa đủ điều kiện theo chính sách hiện tại.'}</p>)}
+      <ActionVerdict actions={[{ code: 'WORKING_AGREEMENT_READINESS', allowed: (latest.readiness.reasons ?? []).length === 0, reasons: (latest.readiness.reasons ?? []).map(code => reasonLabel[code] ?? 'Chưa đủ điều kiện theo chính sách hiện tại.') }]} actionCode="WORKING_AGREEMENT_READINESS" status="ready" okLabel="Đủ điều kiện cam kết làm việc" blockedLabel="Chưa đủ điều kiện cam kết" />
       {latest.acceptances.map(item => <div key={item.userId}><strong>{memberNames[item.userId] ?? 'Thành viên chưa tải được tên'}</strong><p className="collab-muted">{collaborationDate(item.acceptedAt)}</p></div>)}
     </aside></div>}
     {!loading && active?.status === 'ACTIVE' && <section className="collab-card">

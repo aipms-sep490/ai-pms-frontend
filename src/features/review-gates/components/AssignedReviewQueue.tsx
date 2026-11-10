@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { AssignedReviewItem } from '../types/review-gates.types'
 import { Button } from '../../../components/ui/Button'
+import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
 import { HttpError } from '../../../services/http/http-client'
 import { env } from '../../../app/config/env'
 import { EvidenceDownloadButton } from './EvidenceDownloadButton'
@@ -165,26 +166,13 @@ export function AssignedReviewQueue({
       <div className="space-y-4 lg:col-span-8">
         <div className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-5">
           {/* Header */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-md bg-primary px-2.5 py-0.5 text-xs font-bold text-white">
-                  {selectedItem.gateCode}
-                </span>
-                <h3 className="text-base font-bold text-ink">{selectedItem.projectName}</h3>
-                <span className="max-w-full break-all rounded-full bg-canvas px-2.5 py-0.5 text-xs font-semibold text-ink-muted border border-hairline">
-                  {selectedItem.projectCode}
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-ink-muted">
-                Đợt thẩm định: <strong className="text-ink-soft">{selectedItem.gateTitle}</strong> · Phạm vi chuyên môn: <strong className="text-primary">{selectedItem.scope}</strong>
-              </p>
-            </div>
-            <div className="text-left text-xs text-ink-muted sm:text-right">
-              <div>Thời hạn chấm: <strong>{dateTimeLabel(selectedItem.dueAt)}</strong></div>
-              <div>Trạng thái: <strong className="text-ink">{selectedItem.status}</strong></div>
-            </div>
-          </div>
+          <EntityIdentityStrip chips={[
+            { icon: 'verified', label: 'Mốc thẩm định', value: `${selectedItem.gateCode} · ${selectedItem.gateTitle}` },
+            { icon: 'topic', label: 'Đồ án', value: `${selectedItem.projectCode} · ${selectedItem.projectName}` },
+            { icon: 'category', label: 'Phạm vi', value: selectedItem.scope },
+            { icon: 'event', label: 'Hạn thẩm định', value: dateTimeLabel(selectedItem.dueAt) },
+            { icon: 'fact_check', label: 'Trạng thái', value: selectedItem.status },
+          ]} />
 
           {/* Feedback & Error alerts */}
           {actionError && (
