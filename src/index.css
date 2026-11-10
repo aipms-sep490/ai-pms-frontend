@@ -6,7 +6,7 @@
   --font-heading: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-  /* AI-PMS Academic Command Center Canonical Color Scale */
+  /* PMS Academic Command Center Canonical Color Scale */
   --color-canvas: #F6F8FB;
   --color-card: #FFFFFF;
   --color-hairline: #D9E1EC;
@@ -80,7 +80,7 @@
 
   /* Primary-action elevation. Lives here rather than as a repeated
      `shadow-[0_2px_8px_-2px_rgba(...)]` arbitrary value at nine call sites, so
-     the teal follows --color-primary instead of a frozen rgb triplet. */
+     the shadow follows --color-primary instead of a frozen rgb triplet. */
   --shadow-primary: 0 2px 8px -2px color-mix(in oklab, var(--color-primary) 25%, transparent);
   --shadow-primary-hover: 0 4px 12px -3px color-mix(in oklab, var(--color-primary) 30%, transparent);
 

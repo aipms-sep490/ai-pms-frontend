@@ -39,8 +39,8 @@ function MeetingVideoRoomView({ id }: { id: number }) {
       .then((result) => {
         if (controller.signal.aborted) return
         if (result.projectId !== project.id) { setError('Cuộc họp không thuộc đồ án đang mở.'); return }
-        if (!env.videoMeetingEnabled) { setError('Phòng họp trực tuyến trong AI-PMS hiện chưa được bật.'); return }
-        if (result.videoChannel !== 'IN_APP_VIDEO') { setError('Cuộc họp này không sử dụng phòng họp trực tuyến trong AI-PMS.'); return }
+        if (!env.videoMeetingEnabled) { setError('Phòng họp trực tuyến trong PMS hiện chưa được bật.'); return }
+        if (result.videoChannel !== 'IN_APP_VIDEO') { setError('Cuộc họp này không sử dụng phòng họp trực tuyến trong PMS.'); return }
         setMeeting(result)
       })
       .catch((reason: unknown) => { if (!controller.signal.aborted) setError(meetingError(reason)) })

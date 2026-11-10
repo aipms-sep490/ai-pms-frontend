@@ -179,6 +179,42 @@ export function TaskBoardPage() {
       : <section className="ex-panel"><ExState title="Cần có mốc đồ án đang thực hiện" message="Tạo một mốc trước khi thêm công việc cho nhóm." action={<Link className="ex-button" to={`${routeBase}/milestones`}>Quản lý mốc đồ án</Link>} /><div className="ex-padding"><button className="ex-text-button" onClick={closeCreate}>Đóng</button></div></section>)}
     <section className="ex-panel task-board-panel" aria-label="Danh sách công việc">
       <div className="ex-toolbar ex-toolbar--two-rows flex flex-col gap-3 p-4">
+        {data && data.items.length > 0 && (
+          <div className="w-full rounded-xl border border-hairline bg-canvas/60 p-3 mb-1" aria-label="Tổng quan tiến trình công việc">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-ink">Tiến độ trang này:</span>
+                <span className="rounded-full bg-primary-subtle px-2 py-0.5 font-bold text-primary">
+                  {Math.round((data.items.filter(t => t.status === 'DONE').length / data.items.length) * 100)}% hoàn thành
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 text-xs text-ink-muted">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-slate-400" aria-hidden="true" />
+                  <span>Chưa bắt đầu: <strong className="text-ink">{data.items.filter(t => t.status === 'TODO').length}</strong></span>
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />
+                  <span>Đang làm: <strong className="text-ink">{data.items.filter(t => t.status === 'IN_PROGRESS').length}</strong></span>
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-indigo-600" aria-hidden="true" />
+                  <span>Chờ nghiệm thu: <strong className="text-ink">{data.items.filter(t => t.status === 'IN_REVIEW').length}</strong></span>
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-600" aria-hidden="true" />
+                  <span>Hoàn thành: <strong className="text-ink">{data.items.filter(t => t.status === 'DONE').length}</strong></span>
+                </span>
+              </div>
+            </div>
+            <div className="mt-2 flex h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+              <div style={{ width: `${(data.items.filter(t => t.status === 'DONE').length / data.items.length) * 100}%` }} className="bg-emerald-600 transition-all" />
+              <div style={{ width: `${(data.items.filter(t => t.status === 'IN_REVIEW').length / data.items.length) * 100}%` }} className="bg-indigo-600 transition-all" />
+              <div style={{ width: `${(data.items.filter(t => t.status === 'IN_PROGRESS').length / data.items.length) * 100}%` }} className="bg-amber-500 transition-all" />
+              <div style={{ width: `${(data.items.filter(t => t.status === 'TODO').length / data.items.length) * 100}%` }} className="bg-slate-400 transition-all" />
+            </div>
+          </div>
+        )}
         <div className="flex w-full flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Phạm vi:</span>
@@ -265,8 +301,27 @@ export function TaskBoardPage() {
                       ))}
                     </span>
                   )}
-                  <span>{task.assignees.map(person => person.userFullName).join(', ') || 'Chưa phân công'}</span>
-                  <span className={isOverdue({ ...task, assignees: [] }, observedAt) ? 'text-status-error-text' : ''}>{dateLabel(task.dueAt)}</span>
+                  <div className="flex items-center justify-between gap-2 mt-1">
+                    <span className="task-card-assignees flex items-center -space-x-1">
+                      {task.assignees.length > 0 ? (
+                        task.assignees.map(person => (
+                          <span
+                            key={person.userId}
+                            className="task-assignee-avatar"
+                            title={person.userFullName}
+                          >
+                            {person.userFullName.trim().split(' ').pop()?.slice(0, 2).toUpperCase() || 'U'}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-ink-muted italic">Chưa phân công</span>
+                      )}
+                    </span>
+                    <span className={`text-xs ${isOverdue({ ...task, assignees: [] }, observedAt) ? 'font-bold text-status-error-text' : 'text-ink-muted'}`}>
+                      {dateLabel(task.dueAt)}
+                    </span>
+                  </div>
+                  <span className="sr-only">{task.assignees.map(person => person.userFullName).join(', ') || 'Chưa phân công'}</span>
                 </Link>
               </li>
             ))}</ul>{!data.items.some(task => task.status === value) && <p className="ex-muted">Không có việc trên trang này.</p>}</section>)}</section></> : <><div className="ex-task-list-heading" aria-hidden="true"><span>Công việc / mốc đồ án</span><span>Người phụ trách</span><span>Trạng thái</span><span>Hạn hoàn thành</span></div>

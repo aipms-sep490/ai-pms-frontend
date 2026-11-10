@@ -40,9 +40,9 @@ describe('MeetingScheduleForm Video Meeting rollout', () => {
   it.each([
     { mode: 'Tại chỗ', channel: undefined, location: 'Phòng 302', url: undefined, expectedMode: 'ONSITE', expectedChannel: 'NONE' },
     { mode: 'Từ xa', channel: 'Liên kết ngoài', location: undefined, url: 'https://meet.example/remote', expectedMode: 'REMOTE', expectedChannel: 'EXTERNAL_LINK' },
-    { mode: 'Từ xa', channel: 'Video trong AI-PMS', location: undefined, url: undefined, expectedMode: 'REMOTE', expectedChannel: 'IN_APP_VIDEO' },
+    { mode: 'Từ xa', channel: 'Video trong PMS', location: undefined, url: undefined, expectedMode: 'REMOTE', expectedChannel: 'IN_APP_VIDEO' },
     { mode: 'Kết hợp', channel: 'Liên kết ngoài', location: 'Phòng 302', url: 'https://meet.example/hybrid', expectedMode: 'HYBRID', expectedChannel: 'EXTERNAL_LINK' },
-    { mode: 'Kết hợp', channel: 'Video trong AI-PMS', location: 'Phòng 302', url: undefined, expectedMode: 'HYBRID', expectedChannel: 'IN_APP_VIDEO' },
+    { mode: 'Kết hợp', channel: 'Video trong PMS', location: 'Phòng 302', url: undefined, expectedMode: 'HYBRID', expectedChannel: 'IN_APP_VIDEO' },
   ])('saves $mode + $channel with only compatible legacy fields', async ({ mode, channel, location, url, expectedMode, expectedChannel }) => {
     runtime.env.videoMeetingEnabled = true
     const onSave = renderForm()

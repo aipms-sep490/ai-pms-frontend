@@ -1,4 +1,4 @@
-/* Execution UI — Academic Command Center Navy & Teal Design */
+/* Execution UI — PMS FAMS Palette Design */
 .execution-page { max-width: 1360px; margin: 0 auto; color: var(--cw-ink, var(--color-ink)); font-size: 14px; line-height: 1.6; padding-bottom: 32px; }
 .execution-page * { box-sizing: border-box; }
 .execution-page :where(h1,h2,h3,p,ul,ol,dl) { margin: 0; }

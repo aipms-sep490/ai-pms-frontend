@@ -171,7 +171,7 @@ export function mapProjectDossier(
         date: new Date(project.registeredAt || project.createdAt).toLocaleDateString('vi-VN'),
         status: 'completed',
         decision: 'Chấp thuận đề cương sơ bộ',
-        reviewer: project.createdByName || 'Hệ thống AI-PMS',
+        reviewer: project.createdByName || 'Hệ thống PMS',
         note: 'Đề tài đã hoàn tất đăng ký với đầy đủ thông tin.',
       },
       {

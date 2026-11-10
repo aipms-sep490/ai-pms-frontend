@@ -1,2 +1,2 @@
-export const APP_NAME = 'AI-PMS'
-export const APP_DESCRIPTION = 'Academic project lifecycle and AI decision support'
+export const APP_NAME = 'PMS'
+export const APP_DESCRIPTION = 'Project Management System for Capstone Projects'

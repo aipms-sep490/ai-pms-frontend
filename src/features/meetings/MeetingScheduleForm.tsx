@@ -72,7 +72,7 @@ export function MeetingScheduleForm({ meeting, initialDraft, busy, locked = fals
       <fieldset className="mtg-choice-group"><legend>Kênh trực tuyến</legend><div className="mtg-choice-list">
         {values.meetingDeliveryMode === 'ONSITE'
           ? <label className="mtg-choice"><input type="radio" name="videoChannel" checked readOnly /><span>Không có kênh trực tuyến</span></label>
-          : ([['EXTERNAL_LINK', 'Liên kết ngoài'], ['IN_APP_VIDEO', 'Video trong AI-PMS']] as const).map(([channel, label]) => <label className="mtg-choice" key={channel}><input type="radio" name="videoChannel" checked={values.videoChannel === channel} onChange={() => updateVideoChannel(channel)} /><span>{label}</span></label>)}
+          : ([['EXTERNAL_LINK', 'Liên kết ngoài'], ['IN_APP_VIDEO', 'Video trong PMS']] as const).map(([channel, label]) => <label className="mtg-choice" key={channel}><input type="radio" name="videoChannel" checked={values.videoChannel === channel} onChange={() => updateVideoChannel(channel)} /><span>{label}</span></label>)}
       </div>{values.videoChannel === 'IN_APP_VIDEO' && <p className="mtg-help">Phòng họp sẽ được tạo khi người tổ chức bắt đầu phiên video. Lưu lịch ở bước này chưa mở kết nối hoặc cấp quyền truy cập.</p>}</fieldset>
       <div className="mtg-field-grid">
         {(values.meetingDeliveryMode === 'ONSITE' || values.meetingDeliveryMode === 'HYBRID') && <label>Địa điểm<input required value={values.location} onChange={(event) => update('location', event.target.value)} placeholder="Phòng họp hoặc địa điểm gặp mặt" /></label>}

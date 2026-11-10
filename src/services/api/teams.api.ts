@@ -42,7 +42,7 @@ async function qualificationMock() {
 let mockTeamStore: TeamDto | null = env.isMockMode ? {
   id: 28,
   code: 'SE28',
-  name: 'Đội ngũ Phát triển AI-PMS',
+  name: 'Đội ngũ Phát triển PMS',
   description: 'Nhóm nghiên cứu và xây dựng hệ thống quản lý đồ án tốt nghiệp thông minh',
   academicSemesterId: 1,
   status: 'FORMING',
