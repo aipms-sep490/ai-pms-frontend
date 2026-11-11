@@ -73,6 +73,11 @@ const verifiedErrors: Record<string, WorkflowErrorFeedback> = {
     retryable: true,
     nextAction: 'reload',
   },
+  TASK_DEPENDENCY_BLOCKED: {
+    message: 'Công việc chưa thể chuyển trạng thái vì công việc tiền đề vẫn chưa hoàn thành. Mở danh sách công việc liên quan và cập nhật sau khi tiền đề hoàn tất.',
+    retryable: false,
+    nextAction: 'reload',
+  },
 }
 
 export function workflowErrorFromCode(code?: string): WorkflowErrorFeedback | undefined {
