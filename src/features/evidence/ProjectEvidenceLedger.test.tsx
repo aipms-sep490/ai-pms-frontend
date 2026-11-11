@@ -126,7 +126,7 @@ describe('ProjectEvidenceLedger', () => {
     fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Đủ' } })
     fireEvent.click(screen.getByRole('button', { name: 'Ghi kết quả duyệt' }))
     await waitFor(() => expect(api.getProjectEvidence).toHaveBeenCalledTimes(2))
-    expect(await screen.findByText('Đã xác minh')).toBeTruthy()
+    expect((await screen.findAllByText('Đã xác minh')).length).toBeGreaterThan(1)
   })
 
   it('reloads the review target instead of replaying the mutation on a 409 conflict', async () => {
