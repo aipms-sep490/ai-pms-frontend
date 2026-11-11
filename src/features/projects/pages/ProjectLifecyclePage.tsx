@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { useStudentJourney } from '../../../app/context'
 import { services } from '../../../services/service-gateway'
 import type { ProjectStatusHistoryDto } from '../../../types/backend'
-import { getActivePrimaryAssignment } from '../utils/project-resolution.utils'
 import { projectStatusLabel } from '../utils/project-status'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { ExecutionPage, ExState } from '../../execution/execution-ui'
@@ -18,7 +17,9 @@ export function ProjectLifecyclePage() {
   const [historyLoading, setHistoryLoading] = useState(true)
   const [historyError, setHistoryError] = useState('')
   const [revision, setRevision] = useState(0)
-  const supervisor = getActivePrimaryAssignment(assignments)
+  const activeAssignments = assignments.filter((item) => !item.endedAt)
+  const supervisor = activeAssignments.find((item) => item.isPrimary) ?? activeAssignments[0]
+  const disciplineMentors = activeAssignments.filter((item) => !item.isPrimary)
   useEffect(() => {
     if (!project?.id) { setHistory([]); setHistoryLoading(false); return }
     let cancelled = false
@@ -50,7 +51,15 @@ export function ProjectLifecyclePage() {
         </div>
         <div>
           <dt>Giảng viên hướng dẫn</dt>
-          <dd>{supervisor?.supervisorName || 'Chưa phân công'}</dd>
+          <dd>
+            <span>{supervisor?.supervisorName || 'Chưa phân công'}</span>
+            {disciplineMentors.length > 0 && <span className="mt-1 block text-xs font-normal text-ink-muted">
+              {disciplineMentors.map((item) => {
+                const major = item.majorId == null ? null : project.majors.find((candidate) => candidate.majorId === item.majorId)
+                return <span key={item.id} className="block">{item.supervisorName}{major ? ` · ${major.majorName || major.majorCode}` : ''}</span>
+              })}
+            </span>}
+          </dd>
         </div>
       </dl>
       <div className="lifecycle-brief">
