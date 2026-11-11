@@ -211,7 +211,11 @@ function ProtectedSourceButton({ path }: { path: string }) {
     try {
       const blob = await httpGetBlob(path.startsWith('/api/v1/') ? path.slice('/api/v1'.length) : path)
       const url = URL.createObjectURL(blob)
-      window.open(url, '_blank', 'noopener,noreferrer')
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.target = '_blank'
+      anchor.rel = 'noreferrer'
+      anchor.click()
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
     } catch {
       setError(true)
