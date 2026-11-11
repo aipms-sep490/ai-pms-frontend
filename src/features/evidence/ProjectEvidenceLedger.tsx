@@ -8,7 +8,7 @@ import { getEvidenceReviewTarget, getEvidenceReviews, reviewEvidence } from './e
 import type { EvidenceReview, EvidenceReviewDecision, EvidenceReviewTarget } from './evidence-review-types'
 
 const sourceTypes = ['TASK', 'DELIVERABLE', 'MEETING', 'PROGRESS_REPORT', 'FILE'] as const
-const verificationStatuses = ['PENDING', 'UNKNOWN'] as const
+const verificationStatuses = ['PENDING', 'UNKNOWN', 'VERIFIED', 'REJECTED'] as const
 const sourceLabels: Record<(typeof sourceTypes)[number], string> = { TASK: 'Công việc', DELIVERABLE: 'Hạng mục bàn giao', MEETING: 'Cuộc họp', PROGRESS_REPORT: 'Báo cáo tiến độ', FILE: 'Tệp' }
 const verificationLabels: Record<string, string> = { PENDING: 'Chờ xác minh', UNKNOWN: 'Chưa xác định', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối' }
 const pageSize = 20
