@@ -35,9 +35,7 @@ describe('ProjectEvidenceLedger', () => {
     api.getProjectEvidence.mockResolvedValue({ ...page, items: [{ ...page.items[0], sourceType: 'FILE', sourceId: 44, sourceUrl: '/api/v1/files/44/download' }] })
     renderLedger()
     await screen.findByText('Tệp #44')
-    const link = screen.getByRole('link', { name: 'Mở nguồn' })
-    expect(link.getAttribute('href')).toBe('/api/v1/files/44/download')
-    expect(link.getAttribute('target')).toBe('_blank')
+    expect(screen.getByRole('button', { name: 'Mở nguồn' })).toBeTruthy()
   })
 
   it('passes source, status, major and pagination filters to the real evidence query', async () => {

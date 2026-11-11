@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { HttpError } from '../../services/http/http-client'
+import { httpGetBlob, HttpError } from '../../services/http/http-client'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { getProjectEvidence, type ProjectEvidence, type ProjectEvidenceQuery } from '../projects/api/project-governance-api'
 import { useProjectDisciplineScope } from '../projects/hooks/useProjectDisciplineScope'
@@ -116,7 +116,7 @@ function EvidenceList({ items, routeBase, actor, onReviewed }: { items: ProjectE
       <div className="min-w-0"><p className="font-semibold text-ink">{sourceLabels[item.sourceType as keyof typeof sourceLabels] ?? item.sourceType} #{item.sourceId}</p><p className="mt-1 text-sm text-ink-muted">{item.majorId ? `Ngành #${item.majorId}` : 'Chưa phân loại ngành'} · {item.classification}</p>{item.notes ? <p className="mt-2 break-words text-sm leading-6 text-ink-soft">{item.notes}</p> : <p className="mt-2 text-sm text-ink-muted">Không có ghi chú.</p>}</div>
       <div className="text-sm"><p className="font-medium text-ink">{verificationLabels[item.verificationStatus as keyof typeof verificationLabels] ?? item.verificationStatus}</p><p className="mt-1 text-ink-muted">Người gửi #{item.submittedBy}</p></div>
       <p className="text-sm leading-6 text-ink-muted">{formatDate(item.submittedAt)}</p>
-       <div>{sourcePath(routeBase, item) ? (isAbsoluteSource(sourcePath(routeBase, item)!) ? <a href={sourcePath(routeBase, item)!} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở nguồn</a> : <Link to={sourcePath(routeBase, item)!} className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở nguồn</Link>) : <span className="inline-flex min-h-11 items-center text-sm text-ink-muted">Chưa có đường dẫn nguồn</span>}</div>
+       <div>{sourcePath(routeBase, item) ? (isProtectedSource(sourcePath(routeBase, item)!) ? <ProtectedSourceButton path={sourcePath(routeBase, item)!} /> : <Link to={sourcePath(routeBase, item)!} className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở nguồn</Link>) : <span className="inline-flex min-h-11 items-center text-sm text-ink-muted">Chưa có đường dẫn nguồn</span>}</div>
     </div>
     {actor && actor !== 'student' && <EvidenceReviewSection evidenceId={item.id} onReviewed={onReviewed} />}
   </li>)}</ul></section>
@@ -199,8 +199,27 @@ function sourcePath(routeBase: string, item: ProjectEvidence): string | null {
   }
 }
 
-function isAbsoluteSource(path: string) {
-  return /^https?:\/\//i.test(path) || path.startsWith('/api/')
+function isProtectedSource(path: string) {
+  return path.startsWith('/api/')
+}
+
+function ProtectedSourceButton({ path }: { path: string }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(false)
+  const open = async () => {
+    setBusy(true); setError(false)
+    try {
+      const blob = await httpGetBlob(path.startsWith('/api/v1/') ? path.slice('/api/v1'.length) : path)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank', 'noopener,noreferrer')
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch {
+      setError(true)
+    } finally {
+      setBusy(false)
+    }
+  }
+  return <button type="button" disabled={busy} onClick={() => void open()} className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">{busy ? 'Đang mở…' : error ? 'Mở lại nguồn' : 'Mở nguồn'}</button>
 }
 
 function messageFor(reason: unknown): string {
