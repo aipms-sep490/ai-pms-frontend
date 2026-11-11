@@ -40,7 +40,7 @@ export function CreateTeamModal({
     try {
       const selected = selectedMajorIds.length ? selectedMajorIds : (defaultMajorId ? [defaultMajorId] : [])
       const leadDepartmentId = majors.find((major) => selected.includes(major.id))?.departmentId
-      if (!leadDepartmentId || selected.length < (projectMode === 'INTERDISCIPLINARY' ? 2 : 1)) {
+      if (majors.length > 0 && (!leadDepartmentId || selected.length < (projectMode === 'INTERDISCIPLINARY' ? 2 : 1))) {
         setError('Vui lòng chọn ngành hợp lệ trước khi tạo nhóm.')
         return
       }
@@ -48,12 +48,12 @@ export function CreateTeamModal({
         code: code.trim().toUpperCase(),
         name: name.trim(),
         description: description.trim() || undefined,
-        academicScope: {
+        ...(majors.length > 0 ? { academicScope: {
           projectMode,
           primaryMajorId: projectMode === 'SINGLE_MAJOR' ? selected[0] : null,
-          leadDepartmentId,
+          leadDepartmentId: leadDepartmentId ?? 0,
           requirements: selected.map((majorId, index) => ({ majorId, minMembers: 1, maxMembers: 5, responsibility: index === 0 ? 'Chủ trì' : 'Phối hợp' })),
-        },
+        } } : {}),
       })
       onClose()
     } catch (err) {
