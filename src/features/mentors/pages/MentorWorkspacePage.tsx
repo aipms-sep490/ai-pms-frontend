@@ -4,6 +4,8 @@ import { projectStatusLabel } from '../../projects/utils/project-status'
 import { Avatar } from '../../../components/ui/Avatar'
 import { Button } from '../../../components/ui/Button'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
+import { Pagination } from '../../../components/ui/Pagination'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
@@ -117,6 +119,8 @@ export function MentorWorkspacePage() {
     return list
   }, [items, majorFilter, resolveMajorName, search, sortBy, statusFilter])
 
+  const pager = useClientPagination(filteredItems, 10)
+
   const activeChips = [
     ...(search.trim() ? [{ id: 'search', label: 'Từ khóa', value: search.trim() }] : []),
     ...(statusFilter !== 'ALL' ? [{ id: 'status', label: 'Giai đoạn', value: ({ ACTIVE: 'Đang thực hiện', READONLY: 'Bàn giao / Lưu trữ', OTHER: 'Giai đoạn khác' })[statusFilter] }] : []),
@@ -137,7 +141,7 @@ export function MentorWorkspacePage() {
       title="Hướng dẫn chuyên ngành"
       eyebrow="Phân công chuyên ngành"
       description="Theo dõi công việc, báo cáo và tiến độ của các chuyên ngành bạn được phân công hướng dẫn."
-      action={<Button variant="secondary" icon="refresh" disabled={loading} onClick={() => void load()}>Tải lại</Button>}
+      action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading} onClick={() => void load()} />}
     >
       {error && <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" onClick={() => void load()} className="ml-2 min-h-11 font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Thử lại</button></section>}
       {loading && <ListLoading label="Đang tải phân công hướng dẫn…" />}
@@ -208,68 +212,80 @@ export function MentorWorkspacePage() {
               action={<Button variant="secondary" onClick={clearFilters}>Xóa bộ lọc</Button>}
             />
           ) : (
-            <ul className="grid gap-4 md:grid-cols-2">
-              {filteredItems.map(({ assignment, project, error: projectError }) => {
-                const majorName = resolveMajorName(assignment, project)
-                const isInterdisciplinary = project?.academicScope?.projectMode === 'INTERDISCIPLINARY'
-                const normalized = normalizeStatus(project?.status)
-                const readable = isReadableStage(project?.status)
-                const isActiveStage = normalized === 'ACTIVE'
-                const base = `/mentor/projects/${assignment.projectId}/majors/${assignment.majorId}`
-                return (
-                  <li key={assignment.id} className="min-w-0 workspace-surface p-5 flex flex-col justify-between gap-4">
-                    <div>
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">
-                          Phân công: {majorName}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {isInterdisciplinary && (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-tag-se/25 bg-tag-se-bg px-2.5 py-0.5 text-xs font-bold text-tag-se">
-                              <span className="material-symbols-outlined text-sm" aria-hidden="true">hub</span>
-                              Liên ngành
-                            </span>
-                          )}
-                          {project?.status && (
-                            <StatusBadge
-                              tone={isActiveStage ? 'success' : readable ? 'neutral' : 'warning'}
-                              label={projectStatusLabel(project.status)}
-                            />
-                          )}
+            <>
+              <ul className="grid items-stretch gap-4 md:grid-cols-2">
+                {pager.paginatedItems.map(({ assignment, project, error: projectError }) => {
+                  const majorName = resolveMajorName(assignment, project)
+                  const isInterdisciplinary = project?.academicScope?.projectMode === 'INTERDISCIPLINARY'
+                  const normalized = normalizeStatus(project?.status)
+                  const readable = isReadableStage(project?.status)
+                  const isActiveStage = normalized === 'ACTIVE'
+                  const base = `/mentor/projects/${assignment.projectId}/majors/${assignment.majorId}`
+                  return (
+                    <li key={assignment.id} className="flex h-full min-w-0 flex-col justify-between gap-4 workspace-surface p-5">
+                      <div>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">
+                            Phân công: {majorName}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {isInterdisciplinary && (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-tag-se/25 bg-tag-se-bg px-2.5 py-0.5 text-xs font-bold text-tag-se">
+                                <span className="material-symbols-outlined text-sm" aria-hidden="true">hub</span>
+                                Liên ngành
+                              </span>
+                            )}
+                            {project?.status && (
+                              <StatusBadge
+                                tone={isActiveStage ? 'success' : readable ? 'neutral' : 'warning'}
+                                label={projectStatusLabel(project.status)}
+                              />
+                            )}
+                          </div>
                         </div>
+                        <h2 className="mt-2 break-words font-heading text-lg font-bold text-ink">
+                          {project?.title ?? 'Đồ án được phân công'}
+                        </h2>
+                        <p className="mt-1 font-mono text-xs text-ink-muted">
+                          {[project?.code, project?.teamName].filter(Boolean).join(' · ') || 'Đồ án chuyên ngành'}
+                        </p>
                       </div>
-                      <h2 className="mt-2 break-words font-heading text-lg font-bold text-ink">
-                        {project?.title ?? 'Đồ án được phân công'}
-                      </h2>
-                      <p className="mt-1 font-mono text-xs text-ink-muted">
-                        {[project?.code, project?.teamName].filter(Boolean).join(' · ') || 'Đồ án chuyên ngành'}
-                      </p>
-                    </div>
 
-                    {projectError ? (
-                      <p role="alert" className="text-sm text-status-error-text">{projectError}</p>
-                    ) : !readable ? (
-                      <p className="text-sm text-ink-muted">Đồ án hiện chưa bước vào giai đoạn thực hiện. Không gian theo dõi sẽ mở khi đồ án được kích hoạt.</p>
-                    ) : (
-                      <div className="space-y-2 border-t border-hairline pt-3">
-                        {!isActiveStage && (
-                          <p className="text-xs text-ink-muted">Đồ án đã chuyển qua giai đoạn bàn giao/hoàn thành — có thể mở ở chế độ chỉ xem.</p>
-                        )}
-                        <nav className="flex flex-wrap gap-2" aria-label="Chức năng hướng dẫn chuyên ngành">
-                          <ButtonLink variant={isActiveStage ? 'primary' : 'secondary'} to={`${base}/workspace`}>
-                            {isActiveStage ? 'Mở phạm vi theo dõi' : 'Xem phạm vi (Chỉ xem)'}
-                          </ButtonLink>
-                          <ButtonLink to={`${base}/tasks`}>Công việc</ButtonLink>
-                          <ButtonLink to={`${base}/reports`}>Báo cáo tiến độ</ButtonLink>
-                          <ButtonLink to={`${base}/meetings`}>Lịch họp</ButtonLink>
-                          {env.gatesEnabled && <ButtonLink to={`${base}/checkpoints`}>Mốc kiểm soát</ButtonLink>}
-                        </nav>
-                      </div>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
+                      {projectError ? (
+                        <p role="alert" className="text-sm text-status-error-text">{projectError}</p>
+                      ) : !readable ? (
+                        <p className="text-sm text-ink-muted">Đồ án hiện chưa bước vào giai đoạn thực hiện. Không gian theo dõi sẽ mở khi đồ án được kích hoạt.</p>
+                      ) : (
+                        <div className="space-y-2 border-t border-hairline pt-3">
+                          {!isActiveStage && (
+                            <p className="text-xs text-ink-muted">Đồ án đã chuyển qua giai đoạn bàn giao/hoàn thành — có thể mở ở chế độ chỉ xem.</p>
+                          )}
+                          <nav className="flex flex-wrap gap-2" aria-label="Chức năng hướng dẫn chuyên ngành">
+                            <ButtonLink variant={isActiveStage ? 'primary' : 'secondary'} to={`${base}/workspace`}>
+                              {isActiveStage ? 'Mở phạm vi theo dõi' : 'Xem phạm vi (Chỉ xem)'}
+                            </ButtonLink>
+                            <ButtonLink to={`${base}/tasks`}>Công việc</ButtonLink>
+                            <ButtonLink to={`${base}/reports`}>Báo cáo tiến độ</ButtonLink>
+                            <ButtonLink to={`${base}/meetings`}>Lịch họp</ButtonLink>
+                            {env.gatesEnabled && <ButtonLink to={`${base}/checkpoints`}>Mốc kiểm soát</ButtonLink>}
+                          </nav>
+                        </div>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+              {pager.showPagination && (
+                <Pagination
+                  page={pager.page}
+                  pages={pager.pages}
+                  total={pager.total}
+                  pageSize={pager.pageSize}
+                  onPage={pager.setPage}
+                  onPageSizeChange={pager.setPageSize}
+                />
+              )}
+            </>
           )}
         </>
       ) : null}
@@ -311,7 +327,7 @@ export function MentorProjectWorkspacePage() {
       title={access.project.title}
       eyebrow={`Theo dõi theo chuyên ngành · ${mentorMajorName}`}
       description="Theo dõi tiến độ, công việc, báo cáo và minh chứng trong phạm vi chuyên ngành được phân công."
-      action={<Button variant="secondary" icon="refresh" onClick={progress.reload}>Làm mới dữ liệu</Button>}
+      action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới dữ liệu" onClick={progress.reload} />}
     >
       <StatTileRow
         tiles={[
@@ -344,56 +360,62 @@ export function MentorProjectWorkspacePage() {
         ]}
       />
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-heading text-base font-bold text-ink">Thành viên phụ trách ({mentorMajorName})</h2>
-            <StatusBadge tone={access.readOnly ? 'neutral' : 'success'} label={access.readOnly ? 'Chế độ chỉ xem' : 'Đang hoạt động'} />
+      <section className="grid items-stretch gap-4 lg:grid-cols-2">
+        <div className="flex h-full flex-col justify-between gap-3 rounded-xl border border-hairline bg-card p-5 shadow-xs">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-heading text-base font-bold text-ink">Thành viên phụ trách ({mentorMajorName})</h2>
+              <StatusBadge tone={access.readOnly ? 'neutral' : 'success'} label={access.readOnly ? 'Chế độ chỉ xem' : 'Đang hoạt động'} />
+            </div>
+            {majorMembers.length > 0 ? (
+              <ul className="divide-y divide-hairline">
+                {majorMembers.map((member) => (
+                  <li key={member.userId} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Avatar name={member.fullName} toneSeed={member.userId} size="sm" shape="circle" />
+                      <span className="truncate font-semibold text-ink">{member.fullName}</span>
+                    </div>
+                    {member.isLeader && <StatusBadge tone="info" label="Trưởng nhóm" />}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-ink-muted">Chưa có danh sách thành viên trong phạm vi chuyên ngành này.</p>
+            )}
           </div>
-          {majorMembers.length > 0 ? (
-            <ul className="divide-y divide-hairline">
-              {majorMembers.map((member) => (
-                <li key={member.userId} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <Avatar name={member.fullName} toneSeed={member.userId} size="sm" shape="circle" />
-                    <span className="truncate font-semibold text-ink">{member.fullName}</span>
-                  </div>
-                  {member.isLeader && <StatusBadge tone="info" label="Trưởng nhóm" />}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-ink-muted">Chưa có danh sách thành viên trong phạm vi chuyên ngành này.</p>
-          )}
         </div>
 
-        <div className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-3">
-          <h2 className="font-heading text-base font-bold text-ink">Phạm vi hướng dẫn chuyên ngành</h2>
-          <p className="text-sm leading-6 text-ink-muted">
-            Bạn theo dõi phần việc, báo cáo tiến độ, lịch họp và minh chứng thuộc chuyên ngành <strong className="text-ink-soft">{mentorMajorName}</strong>.
-            Kế hoạch tổng thể và quyết định đánh giá cuối cùng do Giảng viên hướng dẫn chính và Hội đồng thẩm định quản trị.
-          </p>
+        <div className="flex h-full flex-col justify-between gap-3 rounded-xl border border-hairline bg-card p-5 shadow-xs">
+          <div className="space-y-3">
+            <h2 className="font-heading text-base font-bold text-ink">Phạm vi hướng dẫn chuyên ngành</h2>
+            <p className="text-sm leading-6 text-ink-muted">
+              Bạn theo dõi phần việc, báo cáo tiến độ, lịch họp và minh chứng thuộc chuyên ngành <strong className="text-ink-soft">{mentorMajorName}</strong>.
+              Kế hoạch tổng thể và quyết định đánh giá cuối cùng do Giảng viên hướng dẫn chính và Hội đồng thẩm định quản trị.
+            </p>
+          </div>
           {attention && (attention.overdueTasks.length > 0 || attention.blockedTasks.length > 0) && (
-            <div className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-xs text-status-warning-text">
-              <p className="font-semibold">Đồ án hiện có {attention.overdueTasks.length} việc quá hạn và {attention.blockedTasks.length} việc vướng mắc.</p>
-              <Link to={`${access.routeBase}/tasks?overdue=true`} className="mt-1 inline-block font-bold underline">Kiểm tra danh sách công việc →</Link>
+            <div className="rounded-lg border border-hairline border-l-4 border-l-[var(--color-accent-amber)] bg-card p-3 text-xs text-ink-soft">
+              <p className="font-semibold text-status-warning-text">Đồ án hiện có {attention.overdueTasks.length} việc quá hạn và {attention.blockedTasks.length} việc vướng mắc.</p>
+              <Link to={`${access.routeBase}/tasks?overdue=true`} className="mt-1 inline-block font-bold text-primary underline">Kiểm tra danh sách công việc →</Link>
             </div>
           )}
         </div>
       </section>
 
-      <nav className="workspace-launchpad grid overflow-hidden workspace-surface sm:grid-cols-2 lg:grid-cols-3" aria-label="Khu vực hướng dẫn chuyên ngành">
+      <nav className="workspace-launchpad grid items-stretch overflow-hidden workspace-surface sm:grid-cols-2 lg:grid-cols-3" aria-label="Khu vực hướng dẫn chuyên ngành">
         {areas.map(([path, icon, title, description]) => (
           <SpotlightLink
             key={path}
             to={`${access.routeBase}/${path}`}
-            className="flex flex-col gap-2 min-w-0 border-b border-hairline p-5 hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary sm:border-r"
+            className="flex h-full min-w-0 flex-col justify-between gap-2 border-b border-hairline p-5 hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary sm:border-r"
           >
-            <span className="inline-flex items-center gap-2 font-semibold text-ink">
-              <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">{icon}</span>
-              <span className="break-words">{title}</span>
-            </span>
-            <span className="block break-words text-sm leading-6 text-ink-muted">{description}</span>
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-2 font-semibold text-ink">
+                <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">{icon}</span>
+                <span className="break-words">{title}</span>
+              </span>
+              <span className="block break-words text-sm leading-6 text-ink-muted">{description}</span>
+            </div>
             <span className="workspace-action-link mt-2">Xem chi tiết<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></span>
           </SpotlightLink>
         ))}
