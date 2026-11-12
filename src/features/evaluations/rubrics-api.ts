@@ -76,8 +76,8 @@ export const previewRubricWorkbook = (id: number, file: File) => {
 export const cloneRubricCriterion = (id: number, criterionId: number, concurrencyToken: string) =>
   httpPost<Rubric>(`/v1/rubrics/${id}/criteria/${criterionId}/clone`, { concurrencyToken })
 
-export const listRubrics = (page = 1, status?: string) => {
-  const query = new URLSearchParams({ page: String(page), pageSize: '20' })
+export const listRubrics = (page = 1, status?: string, pageSize = 10) => {
+  const query = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
   if (status) query.set('status', status)
   return httpGet<PagedResult<Rubric>>(`/v1/rubrics?${query}`)
 }
