@@ -5,6 +5,8 @@ import { Avatar } from '../../components/ui/Avatar'
 import { ButtonLink } from '../../components/ui/ButtonLink'
 import { FilterToolbar, type ActiveFilterChip } from '../../components/ui/FilterToolbar'
 import { Modal } from '../../components/ui/Modal'
+import { Pagination } from '../../components/ui/Pagination'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { displayLabel } from '../../components/ui/display-label'
@@ -246,6 +248,8 @@ export function EvaluatorAssignmentManagementPage() {
     })
   }, [assignments, componentById, stageFilter, roleFilter, listSearch, evaluatorNames, studentNames, periods])
 
+  const assignmentPager = useClientPagination(visibleAssignments, 10)
+
   const hasListFilters = Boolean(listSearch.trim() || assignmentStatus !== 'ALL' || stageFilter || roleFilter)
   const listChips: ActiveFilterChip[] = []
   if (assignmentStatus !== 'ALL') listChips.push({ id: 'status', label: 'Trạng thái', value: assignmentStatus === 'ACTIVE' ? 'Đang hiệu lực' : 'Đã thu hồi' })
@@ -258,18 +262,36 @@ export function EvaluatorAssignmentManagementPage() {
     <ResourcePermissionNotice loading={capabilities.loading} error={capabilities.error} allowed={canManage} reason={capabilities.reasonLabel('manage_evaluators')} onRetry={capabilities.retry} />
 
     {error && <div ref={errorSummary} tabIndex={-1} role="alert" aria-labelledby="assignment-error-title" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><p id="assignment-error-title" className="font-semibold">Chưa thể hoàn tất thao tác</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại dữ liệu</button></div>}
-    {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{notice}</p>}
+    {notice && (
+      <div role="status" className="flex items-center gap-2.5 rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-sm text-ink shadow-xs">
+        <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+        <span>{notice}</span>
+      </div>
+    )}
     {loading && <ListLoading label="Đang tải phân công…" />}
     {!loading && loaded && (
       <div className={canManage ? 'grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_420px]' : 'space-y-6'}>
         <div className="min-w-0 space-y-5">
-          {periodId && publishedComponents.length > 0 && <section aria-labelledby="coverage-title" className={`rounded-xl border p-5 shadow-xs ${coverageGaps.length > 0 ? 'border-status-warning-border bg-status-warning-bg' : 'border-status-success-border bg-status-success-bg'}`}>
-            <h2 id="coverage-title" className="font-heading font-semibold text-ink">Độ phủ người chấm theo thành phần</h2>
-            {coverageGaps.length === 0
-              ? <p className="mt-1 text-sm text-status-success-text">Mọi thành phần đã công bố của đợt này đã đủ số người chấm theo yêu cầu.</p>
-              : <><p className="mt-1 text-sm text-status-warning-text">Các thành phần sau chưa đủ người chấm — không thể chốt kết quả cho tới khi đủ số lượng theo yêu cầu.</p>
-                <ul className="mt-3 space-y-1 text-sm">{coverageGaps.map(({ scheme, component, assigned, required }) => <li key={component.id} className="flex flex-wrap items-center gap-2"><span className="font-medium text-ink">{scheme.name} v{scheme.version} · {component.name}</span><span className="text-ink-muted">({displayLabel(component.scope)}{component.majorId ? ` · ${majorChoiceLabel(component.majorId, majorNames[component.majorId])}` : ''})</span><span className="font-mono font-semibold text-status-warning-text">{assigned}/{required} người chấm</span></li>)}</ul></>}
-          </section>}
+          {periodId && publishedComponents.length > 0 && (
+            <section
+              aria-labelledby="coverage-title"
+              className={`rounded-xl border border-hairline border-l-4 bg-card p-5 text-ink shadow-xs ${coverageGaps.length > 0 ? 'border-l-[var(--color-accent-amber)]' : 'border-l-status-success-text'}`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className={`material-symbols-outlined text-[20px] ${coverageGaps.length > 0 ? 'text-status-warning-text' : 'text-status-success-text'}`} aria-hidden="true">
+                    {coverageGaps.length > 0 ? 'warning' : 'check_circle'}
+                  </span>
+                  <h2 id="coverage-title" className="font-heading font-semibold text-ink">Độ phủ người chấm theo thành phần</h2>
+                </div>
+                <StatusBadge tone={coverageGaps.length > 0 ? 'warning' : 'success'} label={coverageGaps.length > 0 ? `Thiếu ${coverageGaps.length} thành phần` : 'Đủ người chấm'} />
+              </div>
+              {coverageGaps.length === 0
+                ? <p className="mt-2 text-sm text-ink-soft">Mọi thành phần đã công bố của đợt này đã đủ số người chấm theo yêu cầu.</p>
+                : <><p className="mt-2 text-sm text-status-warning-text">Các thành phần sau chưa đủ người chấm — không thể chốt kết quả cho tới khi đủ số lượng theo yêu cầu.</p>
+                  <ul className="mt-3 space-y-1 text-sm">{coverageGaps.map(({ scheme, component, assigned, required }) => <li key={component.id} className="flex flex-wrap items-center gap-2"><span className="font-medium text-ink">{scheme.name} v{scheme.version} · {component.name}</span><span className="text-ink-muted">({displayLabel(component.scope)}{component.majorId ? ` · ${majorChoiceLabel(component.majorId, majorNames[component.majorId])}` : ''})</span><span className="font-mono font-semibold text-status-warning-text">{assigned}/{required} người chấm</span></li>)}</ul></>}
+            </section>
+          )}
 
           <section aria-labelledby="assignment-list-title" className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
             <div>
@@ -323,38 +345,54 @@ export function EvaluatorAssignmentManagementPage() {
               resultSummary={`${visibleAssignments.length} / ${assignments.length} phân công`}
             />
 
-            {visibleAssignments.length === 0 ? <p className="mt-4 text-sm text-ink-muted">Chưa có người chấm phù hợp với bộ lọc này.</p> : <ul className="divide-y divide-hairline">{visibleAssignments.map(item => {
-              const displayName = evaluatorNames[item.evaluatorId] ?? 'Giảng viên được phân công'
-              const comp = item.componentId ? componentById.get(item.componentId) : undefined
-              return (
-                <li key={item.id} className="py-4 text-sm">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="flex min-w-0 items-start gap-3">
-                      <Avatar name={displayName} size="sm" />
-                      <div className="min-w-0">
-                        <p className="font-semibold text-ink">{displayName} · {comp?.name ?? displayLabel(item.scope)}{item.studentId ? ` · ${studentChoiceLabel(item.studentId, studentNames[item.studentId])}` : ''}</p>
-                        <p className="mt-1 text-ink-muted">{displayLabel(item.evaluationType)}{comp?.stage ? ` · ${evaluationStageLabel(comp.stage)}` : ''} · {periods.find(p => p.id === item.projectPeriodId)?.name ?? 'Đợt đánh giá'}</p>
-                        <p className="mt-1 font-mono text-xs text-ink-muted">Phân công {assignedAt(item.assignedAt)}</p>
+            {visibleAssignments.length === 0 ? <p className="mt-4 text-sm text-ink-muted">Chưa có người chấm phù hợp với bộ lọc này.</p> : (
+              <>
+                <ul className="divide-y divide-hairline">{assignmentPager.paginatedItems.map(item => {
+                  const displayName = evaluatorNames[item.evaluatorId] ?? 'Giảng viên được phân công'
+                  const comp = item.componentId ? componentById.get(item.componentId) : undefined
+                  return (
+                    <li key={item.id} className="py-4 text-sm">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <Avatar name={displayName} size="sm" />
+                          <div className="min-w-0">
+                            <p className="font-semibold text-ink">{displayName} · {comp?.name ?? displayLabel(item.scope)}{item.studentId ? ` · ${studentChoiceLabel(item.studentId, studentNames[item.studentId])}` : ''}</p>
+                            <p className="mt-1 text-ink-muted">{displayLabel(item.evaluationType)}{comp?.stage ? ` · ${evaluationStageLabel(comp.stage)}` : ''} · {periods.find(p => p.id === item.projectPeriodId)?.name ?? 'Đợt đánh giá'}</p>
+                            <p className="mt-1 font-mono text-xs text-ink-muted">Phân công {assignedAt(item.assignedAt)}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <StatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'neutral'} label={item.status === 'ACTIVE' ? 'Đang hiệu lực' : 'Đã thu hồi'} />
+                          {canManage && item.status === 'ACTIVE' && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={busy}
+                              className="text-status-error-text hover:bg-status-error-bg"
+                              onClick={() => { setRevokeTarget(item); setRevokeReason(''); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }}
+                            >
+                              Thu hồi
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <StatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'neutral'} label={item.status === 'ACTIVE' ? 'Đang hiệu lực' : 'Đã thu hồi'} />
-                      {canManage && item.status === 'ACTIVE' && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={busy}
-                          className="text-status-error-text hover:bg-status-error-bg"
-                          onClick={() => { setRevokeTarget(item); setRevokeReason(''); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }}
-                        >
-                          Thu hồi
-                        </Button>
-                      )}
-                    </div>
+                    </li>
+                  )
+                })}</ul>
+                {assignmentPager.showPagination && (
+                  <div className="border-t border-hairline pt-3">
+                    <Pagination
+                      page={assignmentPager.page}
+                      pages={assignmentPager.pages}
+                      total={assignmentPager.total}
+                      pageSize={assignmentPager.pageSize}
+                      onPage={assignmentPager.setPage}
+                      onPageSizeChange={assignmentPager.setPageSize}
+                    />
                   </div>
-                </li>
-              )
-            })}</ul>}
+                )}
+              </>
+            )}
           </section>
         </div>
 

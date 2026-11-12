@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
+import { Pagination } from '../../components/ui/Pagination'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { ListLoading } from '../../components/ui/ListLoading'
 import { WorkspaceEmptyState } from '../../components/ui/WorkspaceState'
@@ -37,6 +39,8 @@ export function EvaluatorAssignmentsPage() {
     })
   }, [items, search, stageFilter])
 
+  const pager = useClientPagination(filtered, 10)
+
   async function openWorkspace(assignment: EvaluationAssignment) {
     setBusyId(assignment.id); setError(null)
     try {
@@ -50,7 +54,7 @@ export function EvaluatorAssignmentsPage() {
   }
 
   return (
-    <WorkspacePage size="wide" title="Đánh giá được phân công" eyebrow="Đánh giá đồ án" description="Xem các đồ án được phân công, lưu bản nháp và chốt kết quả sau khi hoàn tất chấm điểm." backTo="/supervisor/workspace" className="space-y-6" action={<Button variant="outline" icon="refresh" disabled={loading} onClick={() => void load()}>Tải lại</Button>}>
+    <WorkspacePage size="wide" title="Đánh giá được phân công" eyebrow="Đánh giá đồ án" description="Xem các đồ án được phân công, lưu bản nháp và chốt kết quả sau khi hoàn tất chấm điểm." backTo="/supervisor/workspace" className="space-y-6" action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading} onClick={() => void load()} />}>
 
       {error ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error}</section> : null}
       {loading ? <ListLoading label="Đang tải danh sách phân công đánh giá…" /> : null}
@@ -80,7 +84,7 @@ export function EvaluatorAssignmentsPage() {
       )}
 
       <section className="space-y-3" aria-label="Các phân công đánh giá">
-        {!loading && filtered.map((assignment) => (
+        {!loading && pager.paginatedItems.map((assignment) => (
           <article key={assignment.id} className="workspace-surface flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <h2 className="font-bold text-ink">{assignment.projectTitle ?? 'Đồ án được phân công'} · {displayLabel(assignment.evaluationType)}</h2>
@@ -92,6 +96,16 @@ export function EvaluatorAssignmentsPage() {
           </article>
         ))}
       </section>
+      {!loading && pager.showPagination && (
+        <Pagination
+          page={pager.page}
+          pages={pager.pages}
+          total={pager.total}
+          pageSize={pager.pageSize}
+          onPage={pager.setPage}
+          onPageSizeChange={pager.setPageSize}
+        />
+      )}
 
     </WorkspacePage>
   )
