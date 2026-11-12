@@ -328,10 +328,13 @@
 .sup__detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: stretch;
   gap: 16px;
 }
 
 .sup__panel {
+  display: flex;
+  flex-direction: column;
   min-height: 180px;
   padding: 20px;
   border: 1px solid var(--color-hairline);
