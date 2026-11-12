@@ -39,7 +39,7 @@ export function AppealManagementPanel({ projectId, onCreated }: { projectId: num
   const components = result?.breakdown?.components.filter(item => item.weightPercent > 0) ?? []
   const disabled = busy || loading || stale
   return <section className="workspace-surface space-y-4 p-5" aria-label="Quản lý phúc khảo">{confirmationDialog}<h2 className="font-semibold">Chính sách, đợt phúc khảo và đính chính</h2>
-    {error && <p role="alert">{error}</p>}{loading && <p role="status">Đang tải cấu hình phúc khảo…</p>}
+    {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}{loading && <p role="status" className="text-sm text-ink-muted">Đang tải cấu hình phúc khảo…</p>}
     <Button variant="secondary" disabled={busy || loading} onClick={() => { setStale(true); void load() }}>Tải lại cấu hình</Button>
     {stale && <Button disabled={busy || loading || !windows} onClick={() => { setStale(false); setError('') }}>Tôi đã đối chiếu cấu hình mới</Button>}
     {!loading && windows && <><p className="text-sm">{policy ? `Chính sách v${policy.version} · ${policy.approvalReference}` : 'Chưa ghi nhận nguồn phê duyệt học thuật.'}</p>
