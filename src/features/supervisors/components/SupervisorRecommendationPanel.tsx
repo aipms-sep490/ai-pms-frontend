@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Avatar } from '../../../components/ui/Avatar'
 import { displayLabel } from '../../../components/ui/display-label'
+import { Pagination } from '../../../components/ui/Pagination'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { HttpError } from '../../../services/http/http-client'
 import {
   createSupervisorRecommendationRun,
@@ -83,7 +85,7 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
     setHistoryRuns([])
     setHistoryError('')
     try {
-      const res = await getSupervisorRecommendationHistory(projectId, 1, 20)
+      const res = await getSupervisorRecommendationHistory(projectId, 1, 10)
       setHistoryRuns(res.items)
     } catch (reason) {
       setHistoryError(recommendationFailure(reason))
@@ -118,6 +120,7 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
   }
 
   const activeItems = selectedRun ? selectedRun.items : items
+  const recPager = useClientPagination(activeItems, 10)
 
   return <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs">
     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -204,10 +207,26 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
     {loading && !selectedRun && <p role="status" className="mt-4 text-sm text-ink-muted">Đang tải gợi ý…</p>}
     {!loading && errorMessage && !selectedRun && <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><span>{errorMessage}</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
     {!loading && !errorMessage && activeItems.length === 0 && <p className="mt-4 text-sm text-ink-muted">Chưa có gợi ý nào cho vị trí này.</p>}
-    {!loading && !errorMessage && activeItems.length > 0 && <ol className="mt-4 space-y-3">
-      {activeItems.map((item, index) => <RecommendationRow key={item.candidate.id} item={item} rank={index + 1}
-        selectable={!candidateIds || candidateIds.has(item.candidate.id)} onPick={onPick} />)}
-    </ol>}
+    {!loading && !errorMessage && activeItems.length > 0 && (
+      <>
+        <ol className="mt-4 space-y-3">
+          {recPager.paginatedItems.map((item, index) => <RecommendationRow key={item.candidate.id} item={item} rank={(recPager.page - 1) * recPager.pageSize + index + 1}
+            selectable={!candidateIds || candidateIds.has(item.candidate.id)} onPick={onPick} />)}
+        </ol>
+        {recPager.showPagination && (
+          <div className="mt-4 border-t border-hairline pt-3">
+            <Pagination
+              page={recPager.page}
+              pages={recPager.pages}
+              total={recPager.total}
+              pageSize={recPager.pageSize}
+              onPage={recPager.setPage}
+              onPageSizeChange={recPager.setPageSize}
+            />
+          </div>
+        )}
+      </>
+    )}
   </section>
 }
 

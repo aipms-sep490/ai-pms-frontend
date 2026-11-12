@@ -162,7 +162,7 @@ describe('SupervisorRecommendationPanel', () => {
     // Click "Lịch sử gợi ý"
     fireEvent.click(screen.getByRole('button', { name: 'Lịch sử gợi ý' }))
     await waitFor(() => {
-      expect(mocks.getSupervisorRecommendationHistory).toHaveBeenCalledWith(9, 1, 20)
+      expect(mocks.getSupervisorRecommendationHistory).toHaveBeenCalledWith(9, 1, 10)
     })
     expect(await screen.findByText(/Lịch sử các phiên gợi ý đã lưu/)).toBeTruthy()
 
