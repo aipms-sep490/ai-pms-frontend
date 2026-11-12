@@ -39,10 +39,10 @@ export function QualificationCertificateViewer({ qualificationId }: { qualificat
   }
   return <><Button className="mt-3 min-h-11" variant="secondary" onClick={() => { setOpen(true); void read() }}>Xem chứng chỉ</Button>
     {open && <Modal open title="Chứng chỉ của sinh viên" onClose={close} busy={busy}>
-      {busy && <p role="status">Đang xử lý chứng chỉ…</p>}
-      {error && <div role="alert" className="text-sm text-status-error-text"><p>{error}</p><Button variant="secondary" disabled={busy} onClick={() => void read()}>Tải lại chứng chỉ</Button></div>}
-      {notice && <p role="status">{notice}</p>}
-      {data && <div className="space-y-3 text-sm"><p className="break-all font-semibold">{data.fileName}</p><p>{data.contentType} · {Math.ceil(data.sizeBytes / 1024)} KB</p>{data.checksumSha256 && <p className="break-all">SHA-256: {data.checksumSha256}</p>}<Button className="min-h-11" disabled={busy} onClick={() => void download()}>Tải chứng chỉ</Button></div>}
+      {busy && <p role="status" className="text-sm text-ink-muted">Đang xử lý chứng chỉ…</p>}
+      {error && <div role="alert" className="space-y-2 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><p>{error}</p><Button variant="secondary" disabled={busy} onClick={() => void read()}>Tải lại chứng chỉ</Button></div>}
+      {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{notice}</p>}
+      {data && <div className="space-y-3 text-sm text-ink"><p className="break-all font-semibold">{data.fileName}</p><p className="text-ink-muted">{data.contentType} · {Math.ceil(data.sizeBytes / 1024)} KB</p>{data.checksumSha256 && <p className="break-all font-mono text-xs text-ink-muted">SHA-256: {data.checksumSha256}</p>}<Button className="min-h-11" disabled={busy} onClick={() => void download()}>Tải chứng chỉ</Button></div>}
     </Modal>}
   </>
 }
