@@ -291,7 +291,12 @@ export function EvaluatorAssignmentDetailPage() {
       <InlineAlert tone={approval.tone}>{approval.text}</InlineAlert>
     </header>
 
-    {notice ? <section role="status" className="rounded-xl border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{notice}</section> : null}
+    {notice ? (
+      <section role="status" className="flex items-center gap-2.5 rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-sm text-ink shadow-xs">
+        <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+        <span>{notice}</span>
+      </section>
+    ) : null}
     {errorMessage ? <section role="alert" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text">{errorMessage}</section> : null}
     {conflicted && <section role="alert" className="workspace-surface p-4"><p>Điểm nháp được giữ để đối chiếu. Hãy kiểm tra dữ liệu máy chủ vừa tải trước khi lưu/chốt lại.</p><button type="button" disabled={busy || state !== 'ready'} className="min-h-11 text-primary underline" onClick={() => setConflicted(false)}>Tôi đã đối chiếu bản điểm mới</button></section>}
     <div className="evaluator-cold-layout">
