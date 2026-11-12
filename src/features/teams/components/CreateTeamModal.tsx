@@ -5,7 +5,9 @@ interface CreateTeamModalProps {
   isOpen: boolean
   semesterName: string
   onClose: () => void
-  onSubmit: (data: { code: string; name: string; description?: string }) => Promise<void>
+  majors?: Array<{ id: number; name: string; departmentId?: number | null }>
+  defaultMajorId?: number | null
+  onSubmit: (data: { code: string; name: string; description?: string; academicScope?: { projectMode: 'SINGLE_MAJOR' | 'INTERDISCIPLINARY'; primaryMajorId: number | null; leadDepartmentId: number; requirements: Array<{ majorId: number; minMembers: number; maxMembers: number; responsibility: string }> } }) => Promise<void>
 }
 
 export function CreateTeamModal({
@@ -13,12 +15,16 @@ export function CreateTeamModal({
   semesterName,
   onClose,
   onSubmit,
+  majors = [],
+  defaultMajorId = null,
 }: CreateTeamModalProps) {
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [projectMode, setProjectMode] = useState<'SINGLE_MAJOR' | 'INTERDISCIPLINARY'>('SINGLE_MAJOR')
+  const [selectedMajorIds, setSelectedMajorIds] = useState<number[]>(defaultMajorId ? [defaultMajorId] : [])
 
   if (!isOpen) return null
 
@@ -32,10 +38,22 @@ export function CreateTeamModal({
     setError(null)
     setIsLoading(true)
     try {
+      const selected = selectedMajorIds.length ? selectedMajorIds : (defaultMajorId ? [defaultMajorId] : [])
+      const leadDepartmentId = majors.find((major) => selected.includes(major.id))?.departmentId
+      if (majors.length > 0 && (!leadDepartmentId || selected.length < (projectMode === 'INTERDISCIPLINARY' ? 2 : 1))) {
+        setError('Vui lòng chọn ngành hợp lệ trước khi tạo nhóm.')
+        return
+      }
       await onSubmit({
         code: code.trim().toUpperCase(),
         name: name.trim(),
         description: description.trim() || undefined,
+        ...(majors.length > 0 ? { academicScope: {
+          projectMode,
+          primaryMajorId: projectMode === 'SINGLE_MAJOR' ? selected[0] : null,
+          leadDepartmentId: leadDepartmentId ?? 0,
+          requirements: selected.map((majorId, index) => ({ majorId, minMembers: 1, maxMembers: 5, responsibility: index === 0 ? 'Chủ trì' : 'Phối hợp' })),
+        } } : {}),
       })
       onClose()
     } catch (err) {
@@ -68,6 +86,17 @@ export function CreateTeamModal({
               Mã định danh nhóm trong học kỳ (chữ và số viết hoa).
             </p>
           </div>
+
+          {majors.length > 0 && <div>
+            <label className="block text-xs font-medium text-ink-soft mb-1.5">Phạm vi đồ án *</label>
+            <select value={projectMode} onChange={(event) => { const next = event.target.value as 'SINGLE_MAJOR' | 'INTERDISCIPLINARY'; setProjectMode(next); if (next === 'SINGLE_MAJOR' && selectedMajorIds.length > 1) setSelectedMajorIds(selectedMajorIds.slice(0, 1)) }} className="w-full px-3.5 py-2.5 text-sm border border-line-strong rounded-md" disabled={isLoading}>
+              <option value="SINGLE_MAJOR">Đơn ngành</option>
+              <option value="INTERDISCIPLINARY">Liên ngành</option>
+            </select>
+            <div className="mt-2 grid gap-1 text-sm">
+              {majors.map((major) => <label key={major.id} className="flex items-center gap-2"><input type={projectMode === 'SINGLE_MAJOR' ? 'radio' : 'checkbox'} name="create-team-major" checked={selectedMajorIds.includes(major.id)} onChange={() => setSelectedMajorIds((current) => projectMode === 'SINGLE_MAJOR' ? [major.id] : current.includes(major.id) ? current.filter((id) => id !== major.id) : [...current, major.id])} disabled={isLoading} />{major.name}</label>)}
+            </div>
+          </div>}
 
           <div>
             <label htmlFor="create-team-name" className="block text-xs font-medium text-ink-soft mb-1.5">

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { HttpError } from '../../services/http/http-client'
+import { httpGetBlob, HttpError } from '../../services/http/http-client'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { getProjectEvidence, type ProjectEvidence, type ProjectEvidenceQuery } from '../projects/api/project-governance-api'
 import { useProjectDisciplineScope } from '../projects/hooks/useProjectDisciplineScope'
@@ -8,7 +8,7 @@ import { getEvidenceReviewTarget, getEvidenceReviews, reviewEvidence } from './e
 import type { EvidenceReview, EvidenceReviewDecision, EvidenceReviewTarget } from './evidence-review-types'
 
 const sourceTypes = ['TASK', 'DELIVERABLE', 'MEETING', 'PROGRESS_REPORT', 'FILE'] as const
-const verificationStatuses = ['PENDING', 'UNKNOWN'] as const
+const verificationStatuses = ['PENDING', 'UNKNOWN', 'VERIFIED', 'REJECTED'] as const
 const sourceLabels: Record<(typeof sourceTypes)[number], string> = { TASK: 'Công việc', DELIVERABLE: 'Hạng mục bàn giao', MEETING: 'Cuộc họp', PROGRESS_REPORT: 'Báo cáo tiến độ', FILE: 'Tệp' }
 const verificationLabels: Record<string, string> = { PENDING: 'Chờ xác minh', UNKNOWN: 'Chưa xác định', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối' }
 const pageSize = 20
@@ -105,26 +105,26 @@ function EvidenceLedger({ projectId, routeBase, majors = [], lockedMajorId, acto
     {error && <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" onClick={() => void load()} className="ml-2 min-h-11 font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Thử lại</button></section>}
     {loading && <p role="status" aria-live="polite" className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-soft">Đang tải minh chứng…</p>}
     {!loading && !error && result?.items.length === 0 && <section className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-soft"><h2 className="font-semibold text-ink">Chưa có minh chứng phù hợp</h2><p className="mt-1 leading-6">Hãy thử điều chỉnh bộ lọc. Trạng thái xác minh được lấy trực tiếp từ hệ thống.</p></section>}
-    {!loading && !error && result?.items.length ? <EvidenceList items={result.items} routeBase={routeBase} actor={actor} /> : null}
+    {!loading && !error && result?.items.length ? <EvidenceList items={result.items} routeBase={routeBase} actor={actor} onReviewed={() => void load()} /> : null}
     {!loading && !error && result && result.totalPages > 1 && <nav aria-label="Phân trang minh chứng" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-card p-4 text-sm"><button type="button" disabled={page <= 1} onClick={() => setPage(current => current - 1)} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Trang trước</button><span aria-live="polite">Trang {page} / {totalPages} · {result.totalCount} minh chứng</span><button type="button" disabled={page >= totalPages} onClick={() => setPage(current => current + 1)} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Trang sau</button></nav>}
   </main>
 }
 
-function EvidenceList({ items, routeBase, actor }: { items: ProjectEvidence[]; routeBase: string; actor?: 'student' | 'supervisor' | 'mentor' }) {
+function EvidenceList({ items, routeBase, actor, onReviewed }: { items: ProjectEvidence[]; routeBase: string; actor?: 'student' | 'supervisor' | 'mentor'; onReviewed: () => void }) {
   return <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-label="Danh sách minh chứng"><ul className="divide-y divide-hairline">{items.map(item => <li key={item.id} className="grid gap-3 p-4 sm:p-5">
     <div className="grid gap-3 lg:grid-cols-[minmax(12rem,1fr)_minmax(9rem,.7fr)_minmax(10rem,.7fr)_auto] lg:items-start">
       <div className="min-w-0"><p className="font-semibold text-ink">{sourceLabels[item.sourceType as keyof typeof sourceLabels] ?? item.sourceType} #{item.sourceId}</p><p className="mt-1 text-sm text-ink-muted">{item.majorId ? `Ngành #${item.majorId}` : 'Chưa phân loại ngành'} · {item.classification}</p>{item.notes ? <p className="mt-2 break-words text-sm leading-6 text-ink-soft">{item.notes}</p> : <p className="mt-2 text-sm text-ink-muted">Không có ghi chú.</p>}</div>
       <div className="text-sm"><p className="font-medium text-ink">{verificationLabels[item.verificationStatus as keyof typeof verificationLabels] ?? item.verificationStatus}</p><p className="mt-1 text-ink-muted">Người gửi #{item.submittedBy}</p></div>
       <p className="text-sm leading-6 text-ink-muted">{formatDate(item.submittedAt)}</p>
-      <div>{sourcePath(routeBase, item) ? <Link to={sourcePath(routeBase, item)!} className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở nguồn</Link> : <span className="inline-flex min-h-11 items-center text-sm text-ink-muted">Chưa có đường dẫn nguồn</span>}</div>
+       <div>{sourcePath(routeBase, item) ? (isProtectedSource(sourcePath(routeBase, item)!) ? <ProtectedSourceButton path={sourcePath(routeBase, item)!} /> : <Link to={sourcePath(routeBase, item)!} className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở nguồn</Link>) : <span className="inline-flex min-h-11 items-center text-sm text-ink-muted">Chưa có đường dẫn nguồn</span>}</div>
     </div>
-    {actor && actor !== 'student' && <EvidenceReviewSection evidenceId={item.id} />}
+    {actor && actor !== 'student' && <EvidenceReviewSection evidenceId={item.id} onReviewed={onReviewed} />}
   </li>)}</ul></section>
 }
 
 const reviewDecisionLabels: Record<string, string> = { ACCEPTED: 'Đã chấp nhận', CHANGES_REQUESTED: 'Cần bổ sung', REJECTED: 'Từ chối' }
 
-function EvidenceReviewSection({ evidenceId }: { evidenceId: number }) {
+function EvidenceReviewSection({ evidenceId, onReviewed }: { evidenceId: number; onReviewed: () => void }) {
   const [open, setOpen] = useState(false)
   const [target, setTarget] = useState<EvidenceReviewTarget | null>(null)
   const [history, setHistory] = useState<EvidenceReview[] | null>(null)
@@ -154,7 +154,8 @@ function EvidenceReviewSection({ evidenceId }: { evidenceId: number }) {
     try {
       await reviewEvidence(evidenceId, { sourceVersionId: target.sourceVersionId, expectedSourceVersion: target.sourceVersion, expectedLatestReviewId: target.latestReviewId, decision, reason: reason.trim() })
       setReason('')
-      load()
+      await load()
+      onReviewed()
     } catch (reason_) {
       if (reason_ instanceof HttpError && reason_.status === 409) { load(); return }
       setError(reason_ instanceof HttpError && reason_.status === 403 ? 'Bạn không có quyền duyệt minh chứng này.' : 'Không ghi được kết quả duyệt. Hãy thử lại.')
@@ -186,6 +187,8 @@ function EvidenceReviewSection({ evidenceId }: { evidenceId: number }) {
 }
 
 function sourcePath(routeBase: string, item: ProjectEvidence): string | null {
+  const sourceUrl = (item as ProjectEvidence & { sourceUrl?: string | null }).sourceUrl
+  if (sourceUrl) return sourceUrl
   switch (item.sourceType) {
     case 'TASK': return `${routeBase}/tasks/${item.sourceId}`
     case 'MEETING': return `${routeBase}/meetings/${item.sourceId}`
@@ -194,6 +197,33 @@ function sourcePath(routeBase: string, item: ProjectEvidence): string | null {
     case 'FILE': return `${routeBase}/files`
     default: return null
   }
+}
+
+function isProtectedSource(path: string) {
+  return path.startsWith('/api/')
+}
+
+function ProtectedSourceButton({ path }: { path: string }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(false)
+  const open = async () => {
+    setBusy(true); setError(false)
+    try {
+      const blob = await httpGetBlob(path.startsWith('/api/v1/') ? path.slice('/api/v1'.length) : path)
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.target = '_blank'
+      anchor.rel = 'noreferrer'
+      anchor.click()
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch {
+      setError(true)
+    } finally {
+      setBusy(false)
+    }
+  }
+  return <button type="button" disabled={busy} onClick={() => void open()} className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">{busy ? 'Đang mở…' : error ? 'Mở lại nguồn' : 'Mở nguồn'}</button>
 }
 
 function messageFor(reason: unknown): string {

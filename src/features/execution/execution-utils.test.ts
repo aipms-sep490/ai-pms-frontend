@@ -16,4 +16,10 @@ describe('executionError', () => {
     expect(executionError(new HttpError('invalid', 422))).toContain('Thông tin chưa hợp lệ')
     expect(executionError(new Error('network'), 'lưu thay đổi')).toBe('Chưa thể lưu thay đổi. Hãy thử lại.')
   })
+
+  it('explains a blocked task dependency without exposing backend internals', () => {
+    const error = new HttpError('blocked', 409, { code: 'TASK_DEPENDENCY_BLOCKED', detail: 'Task is blocked by unfinished predecessor task(s).' })
+    expect(executionError(error)).toContain('công việc tiền đề')
+    expect(executionError(error)).not.toContain('TASK_DEPENDENCY_BLOCKED')
+  })
 })

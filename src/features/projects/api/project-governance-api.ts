@@ -3,7 +3,7 @@ import type { PagedResult } from '../../../types/backend'
 
 export interface ReportingCycle { id: number; projectId: number; projectPeriodId: number; reportType: 'WEEKLY' | 'MONTHLY' | string; periodStart: string; periodEnd: string; deadline: string; latePolicy: 'BLOCK' | 'FLAG' | string; createdBy: number; createdAt: string; updatedAt: string; concurrencyToken: string }
 export interface ProjectActionItem { id: number; projectId: number; sourceType: 'MEETING' | 'PROGRESS_REPORT' | string; meetingId: number | null; progressReportId: number | null; title: string; description: string | null; ownerId: number | null; ownerName: string | null; taskId: number | null; taskTitle: string | null; milestoneId: number | null; milestoneTitle: string | null; dueAt: string | null; status: 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE' | 'CANCELLED' | string; createdBy: number; createdAt: string; updatedAt: string; concurrencyToken: string }
-export interface ProjectEvidence { id: number; projectId: number; sourceType: string; sourceId: number; majorId: number | null; classification: string; verificationStatus: string; submittedBy: number; submittedAt: string; notes: string | null }
+export interface ProjectEvidence { id: number; projectId: number; sourceType: string; sourceId: number; majorId: number | null; classification: string; verificationStatus: string; submittedBy: number; submittedAt: string; notes: string | null; sourceUrl?: string | null }
 
 const root = (projectId: number) => `/projects/${projectId}`
 export interface GovernanceDepartment { departmentId: number; name: string; code?: string; isLead?: boolean; majorIds?: number[] }

@@ -31,6 +31,13 @@ describe('ProjectEvidenceLedger', () => {
     expect(screen.queryByRole('button', { name: /ghi nhận evidence|tạo evidence/i })).toBeNull()
   })
 
+  it('opens a FILE evidence at the authorized backend download target', async () => {
+    api.getProjectEvidence.mockResolvedValue({ ...page, items: [{ ...page.items[0], sourceType: 'FILE', sourceId: 44, sourceUrl: '/api/v1/files/44/download' }] })
+    renderLedger()
+    await screen.findByText('Tệp #44')
+    expect(screen.getByRole('button', { name: 'Mở nguồn' })).toBeTruthy()
+  })
+
   it('passes source, status, major and pagination filters to the real evidence query', async () => {
     api.getProjectEvidence.mockResolvedValue(page)
     renderLedger()
@@ -102,6 +109,22 @@ describe('ProjectEvidenceLedger', () => {
     fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Thiếu minh chứng kiểm thử' } })
     fireEvent.click(screen.getByRole('button', { name: 'Ghi kết quả duyệt' }))
     await waitFor(() => expect(reviewApi.reviewEvidence).toHaveBeenCalledWith(11, { sourceVersionId: null, expectedSourceVersion: 'hash-v1', expectedLatestReviewId: 0, decision: 'CHANGES_REQUESTED', reason: 'Thiếu minh chứng kiểm thử' }))
+  })
+
+  it('reloads the ledger after a successful review so the status projection is visible', async () => {
+    const updated = { ...page, items: [{ ...page.items[0], verificationStatus: 'VERIFIED' }] }
+    api.getProjectEvidence.mockResolvedValueOnce(page).mockResolvedValueOnce(updated)
+    reviewApi.getEvidenceReviewTarget.mockResolvedValue({ evidenceId: 11, sourceVersionId: null, sourceVersion: 'hash-v1', latestReviewId: 0, canReview: true, denialReason: null })
+    reviewApi.getEvidenceReviews.mockResolvedValue({ items: [], page: 1, pageSize: 20, totalCount: 0, totalPages: 0 })
+    reviewApi.reviewEvidence.mockResolvedValue({ id: 1, evidenceId: 11, sourceVersionId: null, sourceVersion: 'hash-v1', reviewerId: 5, decision: 'ACCEPTED', reason: 'Đủ', reviewedAt: '2026-10-12T00:00:00Z' })
+    render(<MemoryRouter><ProjectEvidenceLedger projectId={9} routeBase="/supervisor/projects/9" majors={[]} actor="supervisor" /></MemoryRouter>)
+    await screen.findByText('Công việc #7')
+    fireEvent.click(screen.getByRole('button', { name: 'Duyệt minh chứng' }))
+    await screen.findByRole('button', { name: 'Ghi kết quả duyệt' })
+    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Đủ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Ghi kết quả duyệt' }))
+    await waitFor(() => expect(api.getProjectEvidence).toHaveBeenCalledTimes(2))
+    expect((await screen.findAllByText('Đã xác minh')).length).toBeGreaterThan(1)
   })
 
   it('reloads the review target instead of replaying the mutation on a 409 conflict', async () => {

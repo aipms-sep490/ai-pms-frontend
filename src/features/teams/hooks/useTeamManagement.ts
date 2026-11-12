@@ -202,7 +202,7 @@ export function useTeamManagement() {
     }
   }, [refreshAuthoritativeState])
 
-  const createTeam = useCallback(async (payload: Pick<CreateTeamPayload, 'code' | 'name' | 'description'>) => {
+  const createTeam = useCallback(async (payload: Pick<CreateTeamPayload, 'code' | 'name' | 'description' | 'academicScope'>) => {
     if (!semester) throw new TeamManagementOperationError({ kind: 'system', message: 'Chưa xác định được học kỳ hiện tại.' })
     await runMutation(mutationKey('create'), () => services.team.createTeam({ ...payload, academicSemesterId: semester.id }))
   }, [runMutation, semester])

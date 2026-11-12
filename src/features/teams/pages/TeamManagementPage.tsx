@@ -31,10 +31,11 @@ export function TeamManagementPage() {
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
   const organizationId = workflowContext?.academic.organization?.id ?? team?.members.find(member => member.organizationId)?.organizationId
   const [majorNames, setMajorNames] = useState<Record<number, string>>({})
+  const [academicMajors, setAcademicMajors] = useState<Array<{ id: number; name: string; departmentId?: number | null }>>([])
   useEffect(() => {
     let current = true
     setMajorNames({})
-    if (organizationId) services.academic.getMajors(organizationId).then(majors => { if (current) setMajorNames(Object.fromEntries(majors.map(major => [major.id, major.name]))) }).catch(() => {})
+    if (organizationId) services.academic.getMajors(organizationId).then(majors => { if (current) { setAcademicMajors(majors); setMajorNames(Object.fromEntries(majors.map(major => [major.id, major.name]))) } }).catch(() => {})
     return () => { current = false }
   }, [organizationId])
 
@@ -67,7 +68,7 @@ export function TeamManagementPage() {
     : []
 
   // Actions
-  const handleCreateTeam = async (data: { code: string; name: string; description?: string }) => {
+  const handleCreateTeam = async (data: Parameters<typeof createTeam>[0]) => {
     await createTeam(data)
     showToast('Tạo nhóm đồ án thành công!')
   }
@@ -369,6 +370,8 @@ export function TeamManagementPage() {
       <CreateTeamModal
         isOpen={isCreateModalOpen}
         semesterName={semester?.name ?? 'Học kỳ hiện tại'}
+        majors={academicMajors}
+        defaultMajorId={profile?.majorId}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateTeam}
       />
