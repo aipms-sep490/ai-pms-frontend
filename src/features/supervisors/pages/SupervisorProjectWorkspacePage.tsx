@@ -1,6 +1,7 @@
 import { TeamReflectionPanel } from '../../student-collaboration/TeamReflectionPanel'
 import { Link } from 'react-router-dom'
 import { env } from '../../../app/config/env'
+import { Button } from '../../../components/ui/Button'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { ProjectProgressAnalysisPanel } from '../../ai/components/ProjectProgressAnalysisPanel'
@@ -53,16 +54,15 @@ export function SupervisorProjectWorkspacePage() {
       description="Theo dõi tiến độ, nội dung cần phản hồi và các điểm cần lưu ý của nhóm được phân công."
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-primary bg-card px-3.5 text-xs font-semibold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          <Button
+            variant="secondary"
+            size="sm"
+            icon="refresh"
+            aria-label="Làm mới dữ liệu"
             onClick={() => { progress.reload(); void operational.reload() }}
-          >
-            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">refresh</span>
-            Làm mới dữ liệu
-          </button>
+          />
           <Link
-            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-hairline bg-card px-3.5 text-xs font-semibold text-ink-soft hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="inline-flex min-h-9 items-center justify-center rounded-lg border border-hairline bg-card px-3.5 text-xs font-semibold text-ink-soft hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             to="/supervisor/workspace"
           >
             Đổi đồ án
@@ -174,7 +174,7 @@ export function SupervisorProjectWorkspacePage() {
           </nav>
         </section>
 
-        <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
+        <div className="grid gap-6 xl:grid-cols-2 xl:items-stretch">
           {(env.aiAdvisoryEnabled || env.aiProgressRiskEnabled) && <ProjectProgressAnalysisPanel projectId={access.project.id} compact />}
           <TeamReflectionPanel
             projectId={access.project.id}
