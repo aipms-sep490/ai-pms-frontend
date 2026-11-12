@@ -102,10 +102,15 @@ export function SupervisorProfilePage() {
       eyebrow="Hồ sơ giảng viên"
       title={session.user.fullName}
       description="Cập nhật chuyên môn, giới thiệu và khả năng nhận hướng dẫn đồ án."
-      action={<Button variant="secondary" icon="refresh" disabled={loading || saving} onClick={() => void load()}>Tải lại</Button>}
+      action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading || saving} onClick={() => void load()} />}
     >
       {error ? <div ref={summaryRef} role="alert" tabIndex={-1} className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><strong>Không thể lưu hồ sơ.</strong><p className="mt-1">{error}</p><Button className="mt-3" size="sm" variant="outline" onClick={() => void load()}>Tải lại</Button></div> : null}
-      {message ? <p role="status" className="rounded-xl border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{message}</p> : null}
+      {message ? (
+        <div role="status" className="flex items-center gap-2.5 rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-sm text-ink shadow-xs">
+          <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+          <span>{message}</span>
+        </div>
+      ) : null}
       {loading ? <section role="status" className="rounded-2xl border border-hairline bg-card p-6 text-sm text-ink-muted">Đang tải hồ sơ giảng viên từ hệ thống…</section> : null}
       {!loading ? (
         <form className="space-y-6 rounded-2xl border border-hairline bg-card p-6 shadow-xs" onSubmit={save} noValidate>
