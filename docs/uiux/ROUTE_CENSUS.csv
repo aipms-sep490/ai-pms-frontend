@@ -1,140 +1,141 @@
-Index,RouteId,Path,Component,AllowedRoles,Guard,FeatureFlag
-1,"login","/login","LoginPage","Public / Authenticated","None","None"
-2,"forgot-password","/forgot-password","ForgotPasswordPage","Public / Authenticated","None","None"
-3,"reset-password","/reset-password","ResetPasswordPage","Public / Authenticated","None","None"
-4,"industry-enroll","/industry/enroll","IndustryEnrollmentRoute","Public / Authenticated","None","env.industryEnabled"
-5,"industry","/industry","ProtectedRoute","Public / Authenticated","None","env.industryEnabled"
-6,"workspace","/workspace","IndustryExpertPortalPage","Public / Authenticated","None","env.industryEnabled"
-7,"assignments--assignmentId","/assignments/:assignmentId","IndustryExpertPortalPage","Public / Authenticated","None","env.industryEnabled"
-8,"profile","/profile","ProfilePage","Public / Authenticated","None","None"
-9,"profile-security","/profile/security","ProfileSecurityPage","Public / Authenticated","None","None"
-10,"notifications","/notifications","NotificationsPage","Public / Authenticated","None","None"
-11,"calendar","/calendar","CalendarAttentionPage","Public / Authenticated","None","None"
-12,"messages--conversationId","/messages/:conversationId?","ChatPage","Public / Authenticated","None","None"
-13,"project-overview","/project/overview","OverviewPage","student","None","None"
-14,"project-workspace","/project/workspace","ActiveProjectWorkspacePage","student","ActiveStudentProjectRoute","None"
-15,"project-milestones--milestoneId","/project/milestones/:milestoneId?","MilestoneDetailPage","student","ActiveStudentProjectRoute","None"
-16,"project-tasks","/project/tasks","TaskBoardPage","student","ActiveStudentProjectRoute","None"
-17,"project-tasks--taskId","/project/tasks/:taskId","TaskDetailPage","student","ActiveStudentProjectRoute","None"
-18,"project-gantt","/project/gantt","GanttPage","student","ActiveStudentProjectRoute","None"
-19,"project-reports","/project/reports","ProgressReportsPage","student","ActiveStudentProjectRoute","None"
-20,"project-reports-new","/project/reports/new","ProgressReportDetailPage","student","ActiveStudentProjectRoute","None"
-21,"project-reports--reportId","/project/reports/:reportId","ProgressReportDetailPage","student","ActiveStudentProjectRoute","None"
-22,"project-meetings","/project/meetings","MeetingsPage","student","ActiveStudentProjectRoute","None"
-23,"project-meetings-new","/project/meetings/new","CreateMeetingPage","student","ActiveStudentProjectRoute","None"
-24,"project-meetings--meetingId-video","/project/meetings/:meetingId/video","MeetingVideoRoomPage","student","ActiveStudentProjectRoute","None"
-25,"project-meetings--meetingId","/project/meetings/:meetingId","MeetingDetailPage","student","ActiveStudentProjectRoute","None"
-26,"project-deliverables","/project/deliverables","DeliverablesPage","student","ActiveStudentProjectRoute","None"
-27,"project-files","/project/files","ProjectFilesPage","student","ActiveStudentProjectRoute","None"
-28,"project-evidence","/project/evidence","ProjectEvidenceLedgerPage","student","ActiveStudentProjectRoute","None"
-29,"project-contributions","/project/contributions","ProjectContributionsPage","student","ActiveStudentProjectRoute","None"
-30,"project-gates","/project/gates","ProjectGatesPage","student","ActiveStudentProjectRoute","env.gatesEnabled"
-31,"project-defense","/project/defense","ProjectDefensePage","student","ActiveStudentProjectRoute","env.defenseScheduleEnabled"
-32,"project-cold-reports","/project/cold-reports","ColdChecklistPage","student","ActiveStudentProjectRoute","env.coldReportEnabled"
-33,"project-peer-evaluation","/project/peer-evaluation","ProjectPeerEvaluationPage","student","ActiveStudentProjectRoute","env.peerEvaluationEnabled"
-34,"project-ai","/project/ai","ProjectAiPage","student","ActiveStudentProjectRoute","env.aiProgressRiskEnabled"
-35,"project-agreement","/project/agreement","ProjectWorkingAgreementPage","student","None","env.workingAgreementEnabled"
-36,"projects-lifecycle","/projects/lifecycle","ProjectLifecyclePage","student","None","env.workingAgreementEnabled"
-37,"team","/team","TeamManagementPage","student","None","env.workingAgreementEnabled"
-38,"project-periods","/project/periods","ProjectPeriodCatalogPage","student","None","env.workingAgreementEnabled"
-39,"team-create","/team/create","TeamManagementPage","student","None","env.workingAgreementEnabled"
-40,"topics","/topics","TopicCataloguePage","student","None","env.workingAgreementEnabled"
-41,"project-source","/project/source","RegistrationSourcePage","student","None","env.workingAgreementEnabled"
-42,"project-register","/project/register","ProjectRegistrationFormPage","student","None","env.workingAgreementEnabled"
-43,"project-edit","/project/edit","ProjectRegistrationFormPage","student","None","env.workingAgreementEnabled"
-44,"project-status","/project/status","ProjectReviewStatusPage","student","None","env.workingAgreementEnabled"
-45,"project-supervisor","/project/supervisor","SupervisorSelectionPage","student","None","env.workingAgreementEnabled"
-46,"project-final-submission","/project/final-submission","StudentFinalSubmissionPage","student","None","env.workingAgreementEnabled"
-47,"project-result","/project/result","StudentProjectResultPage","student","None","env.workingAgreementEnabled"
-48,"project-timeline","/project/timeline","StudentReviewTimelinePage","student","None","env.workingAgreementEnabled"
-49,"project-review-gates","/project/review-gates","StudentReviewTimelinePage","student","None","env.workingAgreementEnabled"
-50,"academic-assistant","/academic/assistant","AcademicAssistantPage","student","None","env.academicAiAssistantEnabled"
-51,"supervisor-workspace","/supervisor/workspace","LecturerWorkspacePage","lecturer","None","env.academicAiAssistantEnabled"
-52,"supervisor-profile","/supervisor/profile","SupervisorProfilePage","lecturer","None","env.academicAiAssistantEnabled"
-53,"supervisor-dashboard","/supervisor/dashboard","SupervisorDashboardPage","lecturer","None","env.academicAiAssistantEnabled"
-54,"mentor-workspace","/mentor/workspace","MentorWorkspacePage","lecturer","None","env.academicAiAssistantEnabled"
-55,"supervisor-projects--projectId-workspace","/supervisor/projects/:projectId/workspace","SupervisorProjectWorkspacePage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-56,"supervisor-projects--projectId-progress","/supervisor/projects/:projectId/progress","SupervisorProgressReviewPage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-57,"supervisor-projects--projectId-milestones--milestoneId","/supervisor/projects/:projectId/milestones/:milestoneId?","MilestoneDetailPage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-58,"supervisor-projects--projectId-tasks","/supervisor/projects/:projectId/tasks","TaskBoardPage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-59,"supervisor-projects--projectId-tasks--taskId","/supervisor/projects/:projectId/tasks/:taskId","TaskDetailPage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-60,"supervisor-projects--projectId-gantt","/supervisor/projects/:projectId/gantt","GanttPage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-61,"supervisor-projects--projectId-reports","/supervisor/projects/:projectId/reports","ProgressReportsPage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-62,"supervisor-projects--projectId-reports--reportId","/supervisor/projects/:projectId/reports/:reportId","ProgressReportDetailPage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-63,"supervisor-projects--projectId-meetings","/supervisor/projects/:projectId/meetings","MeetingsPage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-64,"supervisor-projects--projectId-meetings-new","/supervisor/projects/:projectId/meetings/new","CreateMeetingPage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-65,"supervisor-projects--projectId-meetings--meetingId-video","/supervisor/projects/:projectId/meetings/:meetingId/video","MeetingVideoRoomPage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-66,"supervisor-projects--projectId-meetings--meetingId","/supervisor/projects/:projectId/meetings/:meetingId","MeetingDetailPage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-67,"supervisor-projects--projectId-deliverables","/supervisor/projects/:projectId/deliverables","DeliverablesPage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-68,"supervisor-projects--projectId-files","/supervisor/projects/:projectId/files","ProjectFilesPage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-69,"supervisor-projects--projectId-evidence","/supervisor/projects/:projectId/evidence","ProjectEvidenceLedgerPage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-70,"supervisor-projects--projectId-contributions","/supervisor/projects/:projectId/contributions","ProjectContributionsPage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-71,"supervisor-projects--projectId-final-submission","/supervisor/projects/:projectId/final-submission","SupervisorFinalSubmissionPage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-72,"supervisor-projects--projectId-review-gates","/supervisor/projects/:projectId/review-gates","StudentReviewTimelinePage","lecturer","SupervisorExecutionRoute","env.academicAiAssistantEnabled"
-73,"supervisor-projects--projectId-weekly-assessments","/supervisor/projects/:projectId/weekly-assessments","WeeklyAssessmentsPage","lecturer","SupervisorExecutionRoute","env.weeklyAssessmentEnabled"
-74,"supervisor-projects--projectId-ai","/supervisor/projects/:projectId/ai","ProjectAiPage","lecturer","SupervisorExecutionRoute","env.aiProgressRiskEnabled"
-75,"supervisor-projects--projectId-checkpoints","/supervisor/projects/:projectId/checkpoints","ProjectGatesPage","lecturer","SupervisorExecutionRoute","env.gatesEnabled"
-76,"supervisor-projects--projectId-defense","/supervisor/projects/:projectId/defense","ProjectDefenseManagementPage","lecturer","SupervisorExecutionRoute","env.defenseScheduleEnabled"
-77,"mentor-projects--projectId-majors--majorId-workspace","/mentor/projects/:projectId/majors/:majorId/workspace","MentorProjectWorkspacePage","lecturer","MentorExecutionRoute","env.defenseScheduleEnabled"
-78,"mentor-projects--projectId-majors--majorId-tasks","/mentor/projects/:projectId/majors/:majorId/tasks","TaskBoardPage","lecturer","MentorExecutionRoute","env.defenseScheduleEnabled"
-79,"mentor-projects--projectId-majors--majorId-tasks--taskId","/mentor/projects/:projectId/majors/:majorId/tasks/:taskId","TaskDetailPage","lecturer","MentorExecutionRoute","env.defenseScheduleEnabled"
-80,"mentor-projects--projectId-majors--majorId-reports","/mentor/projects/:projectId/majors/:majorId/reports","ProgressReportsPage","lecturer","MentorExecutionRoute","env.defenseScheduleEnabled"
-81,"mentor-projects--projectId-majors--majorId-reports--reportId","/mentor/projects/:projectId/majors/:majorId/reports/:reportId","ProgressReportDetailPage","lecturer","MentorExecutionRoute","env.defenseScheduleEnabled"
-82,"mentor-projects--projectId-majors--majorId-meetings","/mentor/projects/:projectId/majors/:majorId/meetings","MeetingsPage","lecturer","MentorExecutionRoute","env.defenseScheduleEnabled"
-83,"mentor-projects--projectId-majors--majorId-meetings--meetingId","/mentor/projects/:projectId/majors/:majorId/meetings/:meetingId","MeetingDetailPage","lecturer","MentorExecutionRoute","env.defenseScheduleEnabled"
-84,"mentor-projects--projectId-majors--majorId-evidence","/mentor/projects/:projectId/majors/:majorId/evidence","ProjectEvidenceLedgerPage","lecturer","MentorExecutionRoute","env.defenseScheduleEnabled"
-85,"mentor-projects--projectId-majors--majorId-checkpoints","/mentor/projects/:projectId/majors/:majorId/checkpoints","ProjectGatesPage","lecturer","MentorExecutionRoute","env.gatesEnabled"
-86,"evaluator-evaluations","/evaluator/evaluations","EvaluatorAssignmentsPage","lecturer","None","env.gatesEnabled"
-87,"evaluator-evaluations--evaluationId","/evaluator/evaluations/:evaluationId","EvaluationWorkspacePage","lecturer","None","env.gatesEnabled"
-88,"evaluator-projects--projectId-final-submission","/evaluator/projects/:projectId/final-submission","FinalSubmissionViewerPage","lecturer","None","env.gatesEnabled"
-89,"evaluator-workspace","/evaluator/workspace","EvaluatorWorkspacePage","lecturer","None","env.gatesEnabled"
-90,"evaluator-assignments--assignmentId","/evaluator/assignments/:assignmentId","EvaluatorAssignmentDetailPage","lecturer","EvaluatorAssignmentRoute","env.gatesEnabled"
-91,"review-gate-assignments","/review/gate-assignments","AssignedGateReviewPage","lecturer","None","env.gatesEnabled"
-92,"department-workspace","/department/workspace","DepartmentWorkspacePage","department","DepartmentAcademicScopeRoute","env.gatesEnabled"
-93,"department-projects-progress-matrix","/department/projects/progress-matrix","ReviewGateGovernancePage","department","DepartmentAcademicScopeRoute","env.gatesEnabled"
-94,"academic","/academic","AcademicStructurePage","department,admin","None","env.gatesEnabled"
-95,"academic-governance","/academic/governance","AcademicGovernancePage","department,admin","None","env.gatesEnabled"
-96,"academic-project-periods--periodId-policy","/academic/project-periods/:periodId/policy","PeriodPolicyManagementPage","department,admin","None","env.gatesEnabled"
-97,"academic-project-periods--periodId-review-gates","/academic/project-periods/:periodId/review-gates","ReviewGateGovernancePage","department,admin","None","env.gatesEnabled"
-98,"academic-project-periods--periodId-room-planner","/academic/project-periods/:periodId/room-planner","RoomPlannerPage","department,admin","None","env.roomPlannerEnabled"
-99,"academic-review-gates","/academic/review-gates","ReviewGateGovernancePage","department,admin","None","env.roomPlannerEnabled"
-100,"academic-profile-verifications","/academic/profile-verifications","ProfileVerificationsPage","department,admin","None","env.roomPlannerEnabled"
-101,"academic-rubrics","/academic/rubrics","RubricManagementPage","department,admin","None","env.roomPlannerEnabled"
-102,"academic-knowledge","/academic/knowledge","AcademicKnowledgeManagementPage","department,admin","None","env.academicAiAssistantEnabled"
-103,"review-projects--projectId-corrections","/review/projects/:projectId/corrections","ResultCorrectionsPage","department,lecturer","None","env.resultCorrectionEnabled"
-104,"department-portfolio","/department/portfolio","PortfolioDashboardPage","department","DepartmentAcademicScopeRoute","None"
-105,"department-projects-archived","/department/projects/archived","ArchivedProjectsPage","department","DepartmentAcademicScopeRoute","None"
-106,"department-projects-review","/department/projects/review","ProjectReviewPage","department","DepartmentAcademicScopeRoute","None"
-107,"department-projects-review--id","/department/projects/review/:id","ProjectReviewPage","department","DepartmentAcademicScopeRoute","None"
-108,"department-projects--projectId-result","/department/projects/:projectId/result","ResultPublicationPage","department","DepartmentAcademicScopeRoute","None"
-109,"department-projects--projectId-corrections","/department/projects/:projectId/corrections","ResultCorrectionsPage","department","DepartmentAcademicScopeRoute","env.resultCorrectionEnabled"
-110,"department-projects--projectId-evaluations","/department/projects/:projectId/evaluations","EvaluatorAssignmentManagementPage","department","DepartmentAcademicScopeRoute","env.resultCorrectionEnabled"
-111,"department-projects--projectId-evaluators","/department/projects/:projectId/evaluators","EvaluatorAssignmentManagementPage","department","DepartmentAcademicScopeRoute","env.resultCorrectionEnabled"
-112,"department-projects--projectId-evaluation-schemes","/department/projects/:projectId/evaluation-schemes","EvaluationSchemeManagementPage","department","DepartmentAcademicScopeRoute","env.resultCorrectionEnabled"
-113,"department-projects--projectId-governance","/department/projects/:projectId/governance","ProjectGovernancePage","department","DepartmentAcademicScopeRoute","env.resultCorrectionEnabled"
-114,"department-projects--projectId-defense","/department/projects/:projectId/defense","ProjectDefenseManagementPage","department","DepartmentAcademicScopeRoute","env.defenseScheduleEnabled"
-115,"department-projects--projectId-final-requirements","/department/projects/:projectId/final-requirements","FinalRequirementsPage","department","DepartmentAcademicScopeRoute","env.defenseScheduleEnabled"
-116,"department-projects--projectId-final-submission","/department/projects/:projectId/final-submission","FinalSubmissionViewerPage","department","DepartmentAcademicScopeRoute","env.defenseScheduleEnabled"
-117,"department-projects--projectId-files","/department/projects/:projectId/files","ProjectFilesPage","department","DepartmentAcademicScopeRoute","env.defenseScheduleEnabled"
-118,"department-projects--projectId-contributions","/department/projects/:projectId/contributions","ProjectContributionsPage","department","DepartmentAcademicScopeRoute","env.defenseScheduleEnabled"
-119,"department-projects--projectId-risk","/department/projects/:projectId/risk","DepartmentProjectRiskPage","department","DepartmentAcademicScopeRoute","env.aiProgressRiskEnabled"
-120,"department-projects--projectId-archive-view","/department/projects/:projectId/archive-view","ProjectArchiveViewPage","department","DepartmentAcademicScopeRoute","env.aiProgressRiskEnabled"
-121,"department-supervisors","/department/supervisors","SupervisorMonitoringPage","department","DepartmentAcademicScopeRoute","env.aiProgressRiskEnabled"
-122,"department-supervisors--id","/department/supervisors/:id","SupervisorMonitoringPage","department","DepartmentAcademicScopeRoute","env.aiProgressRiskEnabled"
-123,"department-student-qualifications","/department/student-qualifications","QualificationVerificationPage","department","DepartmentAcademicScopeRoute","env.aiProgressRiskEnabled"
-124,"department-topics","/department/topics","TopicManagementPage","department","DepartmentAcademicScopeRoute","env.aiProgressRiskEnabled"
-125,"department-topics--id","/department/topics/:id","TopicManagementPage","department","DepartmentAcademicScopeRoute","env.aiProgressRiskEnabled"
-126,"department-cold-templates","/department/cold-templates","ColdTemplateManagementPage","department","DepartmentAcademicScopeRoute","env.coldReportEnabled"
-127,"admin-access","/admin/access","AdminWorkspacePage","admin","None","env.coldReportEnabled"
-128,"admin-portfolio","/admin/portfolio","PortfolioDashboardPage","admin","None","env.coldReportEnabled"
-129,"admin-projects--projectId","/admin/projects/:projectId","AdminEvaluationLayout","admin","AdminEvaluationLayout","env.coldReportEnabled"
-130,"evaluation-schemes","/evaluation-schemes","EvaluationSchemeManagementPage","admin","AdminEvaluationLayout","env.coldReportEnabled"
-131,"evaluators","/evaluators","EvaluatorAssignmentManagementPage","admin","AdminEvaluationLayout","env.coldReportEnabled"
-132,"final-submission","/final-submission","FinalSubmissionViewerPage","admin","AdminEvaluationLayout","env.coldReportEnabled"
-133,"result","/result","ResultPublicationPage","admin","AdminEvaluationLayout","env.coldReportEnabled"
-134,"admin-milestone-templates","/admin/milestone-templates","MilestoneTemplatesPage","admin","None","env.coldReportEnabled"
-135,"admin-access-rbac","/admin/access/rbac","AdminRbacPage","admin","None","env.coldReportEnabled"
-136,"admin-access-users--userId","/admin/access/users/:userId","AdminUserDetailPage","admin","None","env.coldReportEnabled"
-137,"admin-industry","/admin/industry","AdminIndustryInvitationsPage","admin","None","env.industryEnabled"
-138,"preview-workflows","/preview/workflows","WorkflowPreviewPage","admin","None","env.workflowPreviewEnabled"
-139,"root","/*","NotFoundPage","admin","None","env.workflowPreviewEnabled"
+Index,ResolvedPath,RawPath,Component,AllowedRoles,Guard,FeatureFlag,SourceLine
+1,"/login","login","LoginPage","Public / Authenticated","None","None",43
+2,"/forgot-password","forgot-password","ForgotPasswordPage","Public / Authenticated","None","None",44
+3,"/reset-password","reset-password","ResetPasswordPage","Public / Authenticated","None","None",45
+4,"/industry/enroll","industry/enroll","IndustryEnrollmentRoute","Public / Authenticated","IndustryEnrollmentRoute","env.industryEnabled",46
+5,"/industry","(index)","IndustryExpertPortalPage","Public / Authenticated","IndustryLayout","env.industryEnabled",50
+6,"/industry/workspace","workspace","IndustryExpertPortalPage","Public / Authenticated","IndustryLayout","env.industryEnabled",51
+7,"/industry/assignments/:assignmentId","assignments/:assignmentId","IndustryExpertPortalPage","Public / Authenticated","IndustryLayout","env.industryEnabled",52
+8,"/","(index)","HomeRedirect","Public / Authenticated","None","None",66
+9,"/profile","profile","ProfilePage","Public / Authenticated","None","None",67
+10,"/profile/security","profile/security","ProfileSecurityPage","Public / Authenticated","None","None",68
+11,"/notifications","notifications","NotificationsPage","Public / Authenticated","None","None",69
+12,"/calendar","calendar","CalendarAttentionPage","Public / Authenticated","None","None",70
+13,"/messages/:conversationId?","messages/:conversationId?","ChatPage","Public / Authenticated","None","None",71
+14,"/project/overview","project/overview","OverviewPage","student","None","None",75
+15,"/project/workspace","project/workspace","ActiveProjectWorkspacePage","student","ActiveStudentProjectRoute","None",77
+16,"/project/milestones/:milestoneId?","project/milestones/:milestoneId?","MilestoneDetailPage","student","ActiveStudentProjectRoute","None",78
+17,"/project/tasks","project/tasks","TaskBoardPage","student","ActiveStudentProjectRoute","None",79
+18,"/project/tasks/:taskId","project/tasks/:taskId","TaskDetailPage","student","ActiveStudentProjectRoute","None",80
+19,"/project/gantt","project/gantt","GanttPage","student","ActiveStudentProjectRoute","None",81
+20,"/project/reports","project/reports","ProgressReportsPage","student","ActiveStudentProjectRoute","None",82
+21,"/project/reports/new","project/reports/new","ProgressReportDetailPage","student","ActiveStudentProjectRoute","None",83
+22,"/project/reports/:reportId","project/reports/:reportId","ProgressReportDetailPage","student","ActiveStudentProjectRoute","None",84
+23,"/project/meetings","project/meetings","MeetingsPage","student","ActiveStudentProjectRoute","None",85
+24,"/project/meetings/new","project/meetings/new","CreateMeetingPage","student","ActiveStudentProjectRoute","None",86
+25,"/project/meetings/:meetingId/video","project/meetings/:meetingId/video","MeetingVideoRoomPage","student","ActiveStudentProjectRoute","None",87
+26,"/project/meetings/:meetingId","project/meetings/:meetingId","MeetingDetailPage","student","ActiveStudentProjectRoute","None",88
+27,"/project/deliverables","project/deliverables","DeliverablesPage","student","ActiveStudentProjectRoute","None",89
+28,"/project/files","project/files","ProjectFilesPage","student","ActiveStudentProjectRoute","None",90
+29,"/project/evidence","project/evidence","ProjectEvidenceLedgerPage","student","ActiveStudentProjectRoute","None",91
+30,"/project/contributions","project/contributions","ProjectContributionsPage","student","ActiveStudentProjectRoute","None",92
+31,"/project/gates","project/gates","ProjectGatesPage","student","ActiveStudentProjectRoute","env.gatesEnabled",93
+32,"/project/defense","project/defense","ProjectDefensePage","student","ActiveStudentProjectRoute","env.defenseScheduleEnabled",94
+33,"/project/cold-reports","project/cold-reports","ColdChecklistPage","student","ActiveStudentProjectRoute","env.coldReportEnabled",95
+34,"/project/peer-evaluation","project/peer-evaluation","ProjectPeerEvaluationPage","student","ActiveStudentProjectRoute","env.peerEvaluationEnabled",96
+35,"/project/ai","project/ai","ProjectAiPage","student","ActiveStudentProjectRoute","env.aiAdvisoryEnabled || env.aiProgressRiskEnabled",97
+36,"/project/agreement","project/agreement","ProjectWorkingAgreementPage","student","None","env.workingAgreementEnabled",99
+37,"/projects/lifecycle","projects/lifecycle","ProjectLifecyclePage","student","None","None",100
+38,"/team","team","TeamManagementPage","student","None","None",101
+39,"/project/periods","project/periods","ProjectPeriodCatalogPage","student","None","None",102
+40,"/team/create","team/create","TeamManagementPage","student","None","None",103
+41,"/topics","topics","TopicCataloguePage","student","None","None",104
+42,"/project/source","project/source","RegistrationSourcePage","student","None","None",105
+43,"/project/register","project/register","ProjectRegistrationFormPage","student","None","None",106
+44,"/project/edit","project/edit","ProjectRegistrationFormPage","student","None","None",107
+45,"/project/status","project/status","ProjectReviewStatusPage","student","None","None",108
+46,"/project/supervisor","project/supervisor","SupervisorSelectionPage","student","None","None",109
+47,"/project/final-submission","project/final-submission","StudentFinalSubmissionPage","student","None","None",110
+48,"/project/result","project/result","StudentProjectResultPage","student","None","None",111
+49,"/project/timeline","project/timeline","StudentReviewTimelinePage","student","None","None",112
+50,"/project/review-gates","project/review-gates","StudentReviewTimelinePage","student","None","None",113
+51,"/academic/assistant","academic/assistant","AcademicAssistantPage","student","None","env.academicAiAssistantEnabled",114
+52,"/supervisor/workspace","supervisor/workspace","LecturerWorkspacePage","lecturer","None","None",120
+53,"/supervisor/profile","supervisor/profile","SupervisorProfilePage","lecturer","None","None",121
+54,"/supervisor/dashboard","supervisor/dashboard","SupervisorDashboardPage","lecturer","None","None",122
+55,"/mentor/workspace","mentor/workspace","MentorWorkspacePage","lecturer","None","None",123
+56,"/supervisor/projects/:projectId/workspace","supervisor/projects/:projectId/workspace","SupervisorProjectWorkspacePage","lecturer","SupervisorExecutionRoute","None",125
+57,"/supervisor/projects/:projectId/progress","supervisor/projects/:projectId/progress","SupervisorProgressReviewPage","lecturer","SupervisorExecutionRoute","None",126
+58,"/supervisor/projects/:projectId/milestones/:milestoneId?","supervisor/projects/:projectId/milestones/:milestoneId?","MilestoneDetailPage","lecturer","SupervisorExecutionRoute","None",127
+59,"/supervisor/projects/:projectId/tasks","supervisor/projects/:projectId/tasks","TaskBoardPage","lecturer","SupervisorExecutionRoute","None",128
+60,"/supervisor/projects/:projectId/tasks/:taskId","supervisor/projects/:projectId/tasks/:taskId","TaskDetailPage","lecturer","SupervisorExecutionRoute","None",129
+61,"/supervisor/projects/:projectId/gantt","supervisor/projects/:projectId/gantt","GanttPage","lecturer","SupervisorExecutionRoute","None",130
+62,"/supervisor/projects/:projectId/reports","supervisor/projects/:projectId/reports","ProgressReportsPage","lecturer","SupervisorExecutionRoute","None",131
+63,"/supervisor/projects/:projectId/reports/:reportId","supervisor/projects/:projectId/reports/:reportId","ProgressReportDetailPage","lecturer","SupervisorExecutionRoute","None",132
+64,"/supervisor/projects/:projectId/meetings","supervisor/projects/:projectId/meetings","MeetingsPage","lecturer","SupervisorExecutionRoute","None",133
+65,"/supervisor/projects/:projectId/meetings/new","supervisor/projects/:projectId/meetings/new","CreateMeetingPage","lecturer","SupervisorExecutionRoute","None",134
+66,"/supervisor/projects/:projectId/meetings/:meetingId/video","supervisor/projects/:projectId/meetings/:meetingId/video","MeetingVideoRoomPage","lecturer","SupervisorExecutionRoute","None",135
+67,"/supervisor/projects/:projectId/meetings/:meetingId","supervisor/projects/:projectId/meetings/:meetingId","MeetingDetailPage","lecturer","SupervisorExecutionRoute","None",136
+68,"/supervisor/projects/:projectId/deliverables","supervisor/projects/:projectId/deliverables","DeliverablesPage","lecturer","SupervisorExecutionRoute","None",137
+69,"/supervisor/projects/:projectId/files","supervisor/projects/:projectId/files","ProjectFilesPage","lecturer","SupervisorExecutionRoute","None",138
+70,"/supervisor/projects/:projectId/evidence","supervisor/projects/:projectId/evidence","ProjectEvidenceLedgerPage","lecturer","SupervisorExecutionRoute","None",139
+71,"/supervisor/projects/:projectId/contributions","supervisor/projects/:projectId/contributions","ProjectContributionsPage","lecturer","SupervisorExecutionRoute","None",140
+72,"/supervisor/projects/:projectId/final-submission","supervisor/projects/:projectId/final-submission","SupervisorFinalSubmissionPage","lecturer","SupervisorExecutionRoute","None",141
+73,"/supervisor/projects/:projectId/review-gates","supervisor/projects/:projectId/review-gates","StudentReviewTimelinePage","lecturer","SupervisorExecutionRoute","None",142
+74,"/supervisor/projects/:projectId/weekly-assessments","supervisor/projects/:projectId/weekly-assessments","WeeklyAssessmentsPage","lecturer","SupervisorExecutionRoute","env.weeklyAssessmentEnabled",143
+75,"/supervisor/projects/:projectId/ai","supervisor/projects/:projectId/ai","ProjectAiPage","lecturer","SupervisorExecutionRoute","env.aiAdvisoryEnabled || env.aiProgressRiskEnabled",144
+76,"/supervisor/projects/:projectId/checkpoints","supervisor/projects/:projectId/checkpoints","ProjectGatesPage","lecturer","SupervisorExecutionRoute","env.gatesEnabled",145
+77,"/supervisor/projects/:projectId/defense","supervisor/projects/:projectId/defense","ProjectDefenseManagementPage","lecturer","SupervisorExecutionRoute","env.defenseScheduleEnabled",146
+78,"/mentor/projects/:projectId/majors/:majorId/workspace","mentor/projects/:projectId/majors/:majorId/workspace","MentorProjectWorkspacePage","lecturer","MentorExecutionRoute","None",149
+79,"/mentor/projects/:projectId/majors/:majorId/tasks","mentor/projects/:projectId/majors/:majorId/tasks","TaskBoardPage","lecturer","MentorExecutionRoute","None",150
+80,"/mentor/projects/:projectId/majors/:majorId/tasks/:taskId","mentor/projects/:projectId/majors/:majorId/tasks/:taskId","TaskDetailPage","lecturer","MentorExecutionRoute","None",151
+81,"/mentor/projects/:projectId/majors/:majorId/reports","mentor/projects/:projectId/majors/:majorId/reports","ProgressReportsPage","lecturer","MentorExecutionRoute","None",152
+82,"/mentor/projects/:projectId/majors/:majorId/reports/:reportId","mentor/projects/:projectId/majors/:majorId/reports/:reportId","ProgressReportDetailPage","lecturer","MentorExecutionRoute","None",153
+83,"/mentor/projects/:projectId/majors/:majorId/meetings","mentor/projects/:projectId/majors/:majorId/meetings","MeetingsPage","lecturer","MentorExecutionRoute","None",154
+84,"/mentor/projects/:projectId/majors/:majorId/meetings/:meetingId","mentor/projects/:projectId/majors/:majorId/meetings/:meetingId","MeetingDetailPage","lecturer","MentorExecutionRoute","None",155
+85,"/mentor/projects/:projectId/majors/:majorId/evidence","mentor/projects/:projectId/majors/:majorId/evidence","ProjectEvidenceLedgerPage","lecturer","MentorExecutionRoute","None",156
+86,"/mentor/projects/:projectId/majors/:majorId/checkpoints","mentor/projects/:projectId/majors/:majorId/checkpoints","ProjectGatesPage","lecturer","MentorExecutionRoute","env.gatesEnabled",157
+87,"/evaluator/evaluations","evaluator/evaluations","EvaluatorAssignmentsPage","lecturer","None","None",159
+88,"/evaluator/evaluations/:evaluationId","evaluator/evaluations/:evaluationId","EvaluationWorkspacePage","lecturer","None","None",160
+89,"/evaluator/projects/:projectId/final-submission","evaluator/projects/:projectId/final-submission","FinalSubmissionViewerPage","lecturer","None","None",161
+90,"/evaluator/workspace","evaluator/workspace","EvaluatorWorkspacePage","lecturer","None","None",162
+91,"/evaluator/assignments/:assignmentId","evaluator/assignments/:assignmentId","EvaluatorAssignmentDetailPage","lecturer","EvaluatorAssignmentRoute","None",164
+92,"/review/gate-assignments","review/gate-assignments","AssignedGateReviewPage","lecturer","None","None",166
+93,"/department/workspace","department/workspace","DepartmentWorkspacePage","department","DepartmentAcademicScopeRoute","None",173
+94,"/department/projects/progress-matrix","department/projects/progress-matrix","ReviewGateGovernancePage","department","DepartmentAcademicScopeRoute","None",174
+95,"/academic","academic","AcademicStructurePage","department,admin","None","None",181
+96,"/academic/governance","academic/governance","AcademicGovernancePage","department,admin","None","None",182
+97,"/academic/project-periods/:periodId/policy","academic/project-periods/:periodId/policy","PeriodPolicyManagementPage","department,admin","None","None",183
+98,"/academic/project-periods/:periodId/review-gates","academic/project-periods/:periodId/review-gates","ReviewGateGovernancePage","department,admin","None","None",184
+99,"/academic/project-periods/:periodId/room-planner","academic/project-periods/:periodId/room-planner","RoomPlannerPage","department,admin","None","env.defenseScheduleEnabled && env.roomPlannerEnabled",185
+100,"/academic/review-gates","academic/review-gates","ReviewGateGovernancePage","department,admin","None","None",186
+101,"/academic/profile-verifications","academic/profile-verifications","ProfileVerificationsPage","department,admin","None","None",187
+102,"/academic/rubrics","academic/rubrics","RubricManagementPage","department,admin","None","None",188
+103,"/academic/knowledge","academic/knowledge","AcademicKnowledgeManagementPage","department,admin","None","env.academicAiAssistantEnabled",189
+104,"/review/projects/:projectId/corrections","review/projects/:projectId/corrections","ResultCorrectionsPage","department,lecturer","None","env.resultCorrectionEnabled",194
+105,"/department/portfolio","department/portfolio","PortfolioDashboardPage","department","DepartmentAcademicScopeRoute","None",200
+106,"/department/projects/archived","department/projects/archived","ArchivedProjectsPage","department","DepartmentAcademicScopeRoute","None",201
+107,"/department/projects/review","department/projects/review","ProjectReviewPage","department","DepartmentAcademicScopeRoute","None",202
+108,"/department/projects/review/:id","department/projects/review/:id","ProjectReviewPage","department","DepartmentAcademicScopeRoute","None",203
+109,"/department/projects/:projectId/result","department/projects/:projectId/result","ResultPublicationPage","department","DepartmentAcademicScopeRoute","None",204
+110,"/department/projects/:projectId/corrections","department/projects/:projectId/corrections","ResultCorrectionsPage","department","DepartmentAcademicScopeRoute","env.resultCorrectionEnabled",205
+111,"/department/projects/:projectId/evaluations","department/projects/:projectId/evaluations","EvaluatorAssignmentManagementPage","department","DepartmentAcademicScopeRoute","None",206
+112,"/department/projects/:projectId/evaluators","department/projects/:projectId/evaluators","EvaluatorAssignmentManagementPage","department","DepartmentAcademicScopeRoute","None",207
+113,"/department/projects/:projectId/evaluation-schemes","department/projects/:projectId/evaluation-schemes","EvaluationSchemeManagementPage","department","DepartmentAcademicScopeRoute","None",208
+114,"/department/projects/:projectId/governance","department/projects/:projectId/governance","ProjectGovernancePage","department","DepartmentAcademicScopeRoute","None",209
+115,"/department/projects/:projectId/defense","department/projects/:projectId/defense","ProjectDefenseManagementPage","department","DepartmentAcademicScopeRoute","env.defenseScheduleEnabled",210
+116,"/department/projects/:projectId/final-requirements","department/projects/:projectId/final-requirements","FinalRequirementsPage","department","DepartmentAcademicScopeRoute","None",211
+117,"/department/projects/:projectId/final-submission","department/projects/:projectId/final-submission","FinalSubmissionViewerPage","department","DepartmentAcademicScopeRoute","None",212
+118,"/department/projects/:projectId/files","department/projects/:projectId/files","ProjectFilesPage","department","DepartmentAcademicScopeRoute","None",213
+119,"/department/projects/:projectId/contributions","department/projects/:projectId/contributions","ProjectContributionsPage","department","DepartmentAcademicScopeRoute","None",214
+120,"/department/projects/:projectId/risk","department/projects/:projectId/risk","DepartmentProjectRiskPage","department","DepartmentAcademicScopeRoute","env.aiAdvisoryEnabled || env.aiProgressRiskEnabled",215
+121,"/department/projects/:projectId/archive-view","department/projects/:projectId/archive-view","ProjectArchiveViewPage","department","DepartmentAcademicScopeRoute","None",216
+122,"/department/supervisors","department/supervisors","SupervisorMonitoringPage","department","DepartmentAcademicScopeRoute","None",217
+123,"/department/supervisors/:id","department/supervisors/:id","SupervisorMonitoringPage","department","DepartmentAcademicScopeRoute","None",218
+124,"/department/student-qualifications","department/student-qualifications","QualificationVerificationPage","department","DepartmentAcademicScopeRoute","None",219
+125,"/department/topics","department/topics","TopicManagementPage","department","DepartmentAcademicScopeRoute","None",220
+126,"/department/topics/:id","department/topics/:id","TopicManagementPage","department","DepartmentAcademicScopeRoute","None",221
+127,"/department/cold-templates","department/cold-templates","ColdTemplateManagementPage","department","DepartmentAcademicScopeRoute","env.coldReportEnabled",222
+128,"/admin/access","admin/access","AdminWorkspacePage","admin","None","None",229
+129,"/admin/portfolio","admin/portfolio","PortfolioDashboardPage","admin","None","None",230
+130,"/admin/projects/:projectId","admin/projects/:projectId","AdminEvaluationLayout","admin","AdminEvaluationLayout","None",231
+131,"/admin/projects/:projectId/evaluation-schemes","evaluation-schemes","EvaluationSchemeManagementPage","admin","AdminEvaluationLayout","None",232
+132,"/admin/projects/:projectId/evaluators","evaluators","EvaluatorAssignmentManagementPage","admin","AdminEvaluationLayout","None",233
+133,"/admin/projects/:projectId/final-submission","final-submission","FinalSubmissionViewerPage","admin","AdminEvaluationLayout","None",234
+134,"/admin/projects/:projectId/result","result","ResultPublicationPage","admin","AdminEvaluationLayout","None",235
+135,"/admin/milestone-templates","admin/milestone-templates","MilestoneTemplatesPage","admin","None","None",237
+136,"/admin/access/rbac","admin/access/rbac","AdminRbacPage","admin","None","None",238
+137,"/admin/access/users/:userId","admin/access/users/:userId","AdminUserDetailPage","admin","None","None",239
+138,"/admin/industry","admin/industry","AdminIndustryInvitationsPage","admin","None","env.industryEnabled",240
+139,"/preview/workflows","preview/workflows","WorkflowPreviewPage","Public / Authenticated","None","env.workflowPreviewEnabled",244
+140,"/*","*","NotFoundPage","Public / Authenticated","None","None",245
