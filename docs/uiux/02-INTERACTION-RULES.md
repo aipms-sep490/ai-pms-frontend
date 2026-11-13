@@ -69,3 +69,17 @@ Use application message IDs if the API exposes them (SRS examples MSG-TEAM-03, M
 ## 6. Internationalization and copywriting
 
 Use user-facing Vietnamese terminology consistently if Vietnamese is the app locale. Do not mix 'Đề tài', 'Project', 'Capstone' arbitrarily within a workflow. Buttons use verbs (Tạo nhóm, Gửi đăng ký, Nộp báo cáo). Badges use explicit nouns/status (Chờ duyệt, Yêu cầu chỉnh sửa, Đã khóa). Do not display raw enum without mapping. Dates display local timezone and range, with ISO storage preserved. Field helper copy says exactly what to provide and why.
+
+## 7. Workspace, role handoff and data scope
+
+- Mỗi workspace trả lời ba câu hỏi ở vùng đầu: **việc cần làm**, **phạm vi đang xem**, **điều gì đã hoàn thành/chưa có dữ liệu**. Ưu tiên hàng đợi có hành động trước card thống kê; số chưa tải dùng “—/Chưa có dữ liệu”, không biến thành `0`.
+- Chỉ số, bảng và link drill-down phải dùng cùng phạm vi BE và cùng định nghĩa thời gian. FE được dùng workflow context để chọn bộ lọc hợp lệ, nhưng quyền đọc/ghi thực thi ở BE. Không mở phạm vi bằng ID tự nhập, URL hoặc tổng toàn trường trên màn bộ môn.
+- Cùng một đối tượng chuyển giữa SV → GVHD/mentor → bộ môn/reviewer/evaluator → công bố phải giữ mã, trạng thái, version và diễn giải nhất quán; mỗi vai trò chỉ thấy hành động trong assignment/scope hiện tại. Deep link phải kiểm tra quyền và trạng thái ở điểm đến.
+- Trang nhiều danh sách phân trang hiển thị tổng từ server, nút tải trang tiếp và lỗi riêng của từng vùng. Sau mutation cần đọc lại token/version/allowedActions trước lần ghi kế tiếp; 409 giữ draft và yêu cầu đối chiếu phiên bản mới.
+
+## 8. Bản đồ hoạt động truy cập và motion
+
+- Bản đồ truy cập là **vị trí địa lý ước lượng từ nguồn BE được duyệt**, không phải GPS và không đồng nghĩa với vị trí chính xác của cá nhân. Nếu chỉ có IP/`LastLoginAt`, không dựng marker giả hoặc gắn nhãn “đang online”. Không gửi IP thô tới tile provider từ FE.
+- Admin xem phạm vi hệ thống; nhân sự khoa/bộ môn chỉ xem phạm vi mà BE xác định. Map, danh sách và chỉ số cùng snapshot/thời gian, cùng bộ lọc và cùng quyền. Trạng thái `unknown`/không xác định phải hiện bằng chữ. Bảng vẫn dùng được khi tile/map không tải; marker không thay thế keyboard list.
+- Chỉ tải thư viện bản đồ khi mở panel có dữ liệu và quyền; provider tile/attribution, retention, thời gian làm mới và độ chính xác phải chốt trước release. Xem RFC trong [kế hoạch workspace và geo](WORKSPACE_ROLE_GEO_ACCESS_DEEP_AUDIT_PLAN_2026-11-13.md).
+- Motion phục vụ thay đổi trạng thái: hover/focus 120–200 ms, loading có thông báo tiến trình và skeleton phù hợp, tránh chớp khi refetch. Không pulse liên tục cho người dùng trên bản đồ hoặc tự bay/zoom khi dữ liệu mới. `prefers-reduced-motion` tắt chuyển động không thiết yếu; mọi trạng thái vẫn nhận biết được bằng chữ/viền, không dựa riêng vào màu.
