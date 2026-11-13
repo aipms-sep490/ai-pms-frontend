@@ -85,7 +85,7 @@ export function AdminWorkspacePage() {
     try { const accounts = JSON.parse(importText) as UserDraft[]; if (!Array.isArray(accounts) || !accounts.length) throw new Error('invalid'); void run(() => admin.importUsers(accounts), 'Máy chủ đã nhập toàn bộ lô tài khoản.').then(ok => { if (ok) setImportText('') }) } catch { setNotice('Tệp JSON phải là mảng tài khoản theo cấu trúc yêu cầu. Lô không được gửi khi dữ liệu chưa hợp lệ.') }
   }
 
-  const activeTab = (params.get('tab') as 'accounts' | 'audit' | null) ?? 'accounts'
+  const activeTab = params.get('tab') === 'audit' ? 'audit' : 'accounts'
 
   return <main className="workspace-page admin-workspace" aria-labelledby="admin-title">
     <header className="admin-heading">
@@ -100,9 +100,9 @@ export function AdminWorkspacePage() {
       </div>
     </header>
     <nav className="admin-tabs" aria-label="Khu vực quản trị">
-      <button type="button" className={`admin-tab-btn ${activeTab === 'accounts' ? 'is-active' : ''}`} onClick={() => setFilter({ tab: 'accounts' })}>Tài khoản người dùng</button>
+      <button type="button" className={`admin-tab-btn ${activeTab === 'accounts' ? 'is-active' : ''}`} aria-controls="accounts" aria-pressed={activeTab === 'accounts'} onClick={() => setFilter({ tab: 'accounts' })}>Tài khoản người dùng</button>
       <Link to="/admin/access/rbac">Phân quyền</Link>
-      <button type="button" className={`admin-tab-btn ${activeTab === 'audit' ? 'is-active' : ''}`} onClick={() => setFilter({ tab: 'audit' })}>Nhật ký bảo mật</button>
+      <button type="button" className={`admin-tab-btn ${activeTab === 'audit' ? 'is-active' : ''}`} aria-controls="audit" aria-pressed={activeTab === 'audit'} onClick={() => setFilter({ tab: 'audit' })}>Nhật ký bảo mật</button>
       <Link to="/academic/governance">Học kỳ & Kỳ đồ án</Link>
       {env.industryEnabled && <Link to="/admin/industry">Chuyên gia doanh nghiệp</Link>}
     </nav>
@@ -132,6 +132,7 @@ export function AdminWorkspacePage() {
             <TableHeaderCell>Người dùng</TableHeaderCell>
             <TableHeaderCell>Vai trò hệ thống</TableHeaderCell>
             <TableHeaderCell>Trạng thái</TableHeaderCell>
+            <TableHeaderCell>Đăng nhập gần nhất</TableHeaderCell>
             <TableHeaderCell>Phạm vi học thuật</TableHeaderCell>
             <TableHeaderCell aria-label="Thao tác" />
           </TableRow>
@@ -141,6 +142,7 @@ export function AdminWorkspacePage() {
             <TableCell label="Người dùng"><div className="flex flex-col"><strong>{user.fullName}</strong><span>{user.email}</span><small className="text-ink-muted">{user.studentCode ?? user.employeeCode ?? 'Không có mã'}</small></div></TableCell>
             <TableCell label="Vai trò hệ thống">{user.roles.filter((role) => globalRoles.some((globalRole) => globalRole.code === role)).map(role => role === 'LECTURER' ? 'Giảng viên' : role === 'EVALUATOR' ? 'Người chấm' : displayLabel(role)).join(', ') || 'Chưa gán'}</TableCell>
             <TableCell label="Trạng thái"><Status status={user.status} /></TableCell>
+            <TableCell label="Đăng nhập gần nhất">{user.lastLoginAt ? <time dateTime={user.lastLoginAt}>{new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(utcTimestamp(user.lastLoginAt))}</time> : 'Chưa ghi nhận'}</TableCell>
             <TableCell label="Phạm vi học thuật">
               {user.departmentId ? academicNames.departments[user.departmentId] ?? 'Chưa tải được tên bộ môn' : 'Chưa liên kết bộ môn'}
               {user.majorId ? ` · ${academicNames.majors[user.majorId] ?? 'Chưa tải được tên ngành'}` : ''}

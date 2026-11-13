@@ -1,7 +1,7 @@
 import { endpoints } from '../../../services/api/endpoints'
 import { httpDelete, httpGet, httpPatch, httpPost, httpPut } from '../../../services/http/http-client'
 export interface Page<T>{items:T[];page:number;pageSize:number;totalCount:number}
-export interface UserAccount{id:number;departmentId:number|null;majorId:number|null;email:string;fullName:string;phone:string|null;studentCode:string|null;employeeCode:string|null;title:string|null;status:'ACTIVE'|'INACTIVE'|'SUSPENDED';accessFailedCount:number;lockoutEndAt:string|null;roles:string[];concurrencyToken?:string|null}
+export interface UserAccount{id:number;departmentId:number|null;majorId:number|null;email:string;fullName:string;phone:string|null;studentCode:string|null;employeeCode:string|null;title:string|null;status:'ACTIVE'|'INACTIVE'|'SUSPENDED';accessFailedCount:number;lockoutEndAt:string|null;lastLoginAt?:string|null;roles:string[];concurrencyToken?:string|null}
 export interface Permission{id:number;code:string;name:string;description:string|null;isSystemPermission:boolean}
 export interface Role{id:number;code:string;name:string;description:string|null;isSystemRole:boolean;permissions:Permission[];isAssignableGlobalRole:boolean;assignmentKind:string}
 export interface AcademicProfile { userId:number; fullName:string; email:string|null; studentCode:string|null; departmentId:number|null; departmentName:string|null; majorId:number|null; majorName:string|null; status:string; reviewedBy:number|null; reviewedAt:string|null; rejectionReason:string|null; concurrencyToken:string|null }

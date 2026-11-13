@@ -41,6 +41,21 @@ describe('Admin workspace Phase 6', () => {
     expect(screen.queryByRole('checkbox', { name: 'EVALUATOR' })).toBeNull()
   })
 
+  it('keeps the account workspace visible when a shared link has an unknown tab value', () => {
+    workspace.useAdminWorkspace.mockReturnValue(ready())
+    render(<MemoryRouter initialEntries={['/admin/access?tab=unknown']}><AdminWorkspacePage /></MemoryRouter>)
+    expect(screen.getByText('Nguyễn Minh').closest('#accounts')?.hasAttribute('hidden')).toBe(false)
+  })
+
+  it('shows the server recorded last login without presenting it as online presence', () => {
+    const account = ready()
+    workspace.useAdminWorkspace.mockReturnValue({ ...account, users: { ...account.users, value: { ...account.users.value, items: [{ ...account.users.value.items[0], lastLoginAt: '2026-11-13T08:30:00Z' }] } } })
+    render(<MemoryRouter><AdminWorkspacePage /></MemoryRouter>)
+    expect(screen.getByText('Đăng nhập gần nhất')).toBeTruthy()
+    expect(screen.getByText(/13\/11\/2026/)).toBeTruthy()
+    expect(screen.queryByText(/đang online/i)).toBeNull()
+  })
+
   it('keeps accounts usable when audit is forbidden and states the delivered profile-update boundary', () => {
     workspace.useAdminWorkspace.mockReturnValue(ready({ audit: { state: 'error', value: { items: [], page: 1, pageSize: 20, totalCount: 0 }, error: new Error('forbidden') }, isForbidden: vi.fn((resource: { error?: Error | null }) => resource.error?.message === 'forbidden') }))
     render(<MemoryRouter><AdminWorkspacePage /></MemoryRouter>)

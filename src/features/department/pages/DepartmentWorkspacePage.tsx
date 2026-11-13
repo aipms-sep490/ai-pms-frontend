@@ -50,7 +50,18 @@ export function DepartmentWorkspacePage() {
   }, [departmentIds])
   const reviewRead = useCallback(() => token ? getReviewQueue({ page: 1, pageSize: 5 }, token) : Promise.reject(new HttpError('Unauthenticated', 401)), [token])
   const portfolioRead = useCallback(() => getPortfolioDashboard('department', { page: portfolioPage, pageSize: 5, semesterId, search: search || undefined, status: status || undefined }), [portfolioPage, semesterId, search, status])
-  const supervisorRead = useCallback(() => token ? listSupervisors(token, { page: 1, pageSize: 5 }) : Promise.reject(new HttpError('Unauthenticated', 401)), [token])
+  const supervisorRead = useCallback(async (): Promise<SupervisorPage<Supervisor>> => {
+    if (!token) throw new HttpError('Unauthenticated', 401)
+    const ids = departmentIds.split(',').map(Number).filter(id => id > 0)
+    if (!ids.length) throw new Error('Department scope unavailable')
+    const results = await Promise.all(ids.map(departmentId => listSupervisors(token, { departmentId, page: 1, pageSize: 5 })))
+    return {
+      items: results.flatMap(result => result.items).slice(0, 5),
+      page: 1,
+      pageSize: 5,
+      totalCount: results.reduce((total, result) => total + result.totalCount, 0),
+    }
+  }, [departmentIds, token])
   const reviews = useSection<ReviewQueuePage<ReviewProjectSummary>>(reviewRead, emptyReviews)
   const urgent = useSection<ActionAggregatorResponse>(urgentRead, emptyUrgent)
   const portfolio = useSection<PortfolioDashboard>(portfolioRead, emptyPortfolio)
@@ -86,7 +97,7 @@ export function DepartmentWorkspacePage() {
       { icon: 'priority_high', label: 'Việc cần xử lý', value: urgent.data?.totalCount ?? null, caption: urgent.data?.hasMore ? 'Danh sách việc khẩn còn trang tiếp theo.' : 'Theo bộ môn trong phiên hiện tại.', hero: true },
       { icon: 'fact_check', label: 'Chờ thẩm định', value: reviews.data?.totalCount ?? null },
       { icon: 'folder_managed', label: 'Đồ án quản lý', value: portfolio.data?.summary.totalProjects ?? null },
-      { icon: 'supervisor_account', label: 'Giảng viên', value: supervisors.data?.totalCount ?? null },
+      { icon: 'supervisor_account', label: 'Giảng viên trong bộ môn', value: supervisors.data?.totalCount ?? null },
     ]} />
     {!departmentIds ? <p role="alert" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">Chưa xác định được bộ môn từ phiên đăng nhập. Không truy vấn phạm vi khác.</p> : !['success', 'empty', 'loading'].includes(urgent.state) && <SectionState section={urgent} onRetry={urgent.refresh}><span /></SectionState>}
     {!['success', 'empty', 'loading'].includes(supervisors.state) && <SectionState section={supervisors} onRetry={supervisors.refresh}><span /></SectionState>}
@@ -98,7 +109,7 @@ export function DepartmentWorkspacePage() {
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-status-warning-border/50 pb-3">
         <div>
           <span className="inline-flex items-center gap-1.5 rounded-md bg-status-warning-bg px-2 py-0.5 text-xs font-bold text-status-warning-text uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-warning-strong animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-warning-strong motion-safe:animate-pulse" />
             Khu vực 1: Tác vụ khẩn cấp
           </span>
           <h2 id="urgent-actions-heading" className="mt-1 font-heading text-xl font-bold text-ink">
@@ -119,7 +130,7 @@ export function DepartmentWorkspacePage() {
               Đề cương chờ thẩm định
             </h3>
             <span className="text-xs font-semibold text-ink-muted">
-              {reviews.data?.totalCount ?? 0} hồ sơ
+              {reviews.data?.totalCount ?? '—'} hồ sơ
             </span>
           </div>
 
