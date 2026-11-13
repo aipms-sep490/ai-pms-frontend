@@ -42,6 +42,7 @@ export const ResetPasswordPage = lazy(() => import('../../features/auth/pages/Se
 export const ProfilePage = lazy(() => import('../../features/auth/pages/ProfilePage').then(m => ({ default: m.ProfilePage })))
 export const AcademicStructurePage = lazy(() => import('../../features/academic/pages/AcademicStructurePage').then(m => ({ default: m.AcademicStructurePage })))
 export const AcademicGovernancePage = lazy(() => import('../../features/academic/pages/AcademicGovernancePage').then(m => ({ default: m.AcademicGovernancePage })))
+export const ProjectPeriodCatalogPage = lazy(() => import('../../features/academic/pages/ProjectPeriodCatalogPage').then(m => ({ default: m.ProjectPeriodCatalogPage })))
 export const PeriodPolicyManagementPage = lazy(() => import('../../features/academic/pages/PeriodPolicyManagementPage').then(m => ({ default: m.PeriodPolicyManagementPage })))
 export const AdminWorkspacePage = lazy(() => import('../../features/users/pages/AdminWorkspacePage').then(m => ({ default: m.AdminWorkspacePage })))
 export const AdminRbacPage = lazy(() => import('../../features/users/pages/AdminRbacPage').then(m => ({ default: m.AdminRbacPage })))

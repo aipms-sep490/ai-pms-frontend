@@ -52,6 +52,7 @@ export const workspaceRouteRegistry: readonly WorkspaceRouteMeta[] = [
   { id: 'student-overview', path: '/project/overview', title: 'Tổng quan lộ trình', breadcrumb: 'Tổng quan lộ trình', icon: 'dashboard', section: 'student', group: '5. Hồ sơ & Đề tài', groupOrder: 5, identityRoles: ['STUDENT'], navigationVisibility: 'always' },
   { id: 'student-lifecycle', path: '/projects/lifecycle', title: 'Hồ sơ đồ án', breadcrumb: 'Hồ sơ đồ án', icon: 'badge', section: 'student', group: '5. Hồ sơ & Đề tài', groupOrder: 5, identityRoles: ['STUDENT'], navigationVisibility: 'always' },
   { id: 'student-team', path: '/team', title: 'Thành viên nhóm', breadcrumb: 'Thành viên nhóm', icon: 'group', section: 'student', group: '5. Hồ sơ & Đề tài', groupOrder: 5, identityRoles: ['STUDENT'], navigationVisibility: 'always' },
+  { id: 'student-periods', path: '/project/periods', title: 'Kỳ đăng ký đồ án', breadcrumb: 'Kỳ đăng ký đồ án', icon: 'date_range', section: 'student', group: '5. Hồ sơ & Đề tài', groupOrder: 5, identityRoles: ['STUDENT'], navigationVisibility: 'always' },
   { id: 'student-gates', path: '/project/gates', title: 'Cổng kiểm soát', breadcrumb: 'Cổng kiểm soát tiến độ', icon: 'verified_user', section: 'student', group: '5. Hồ sơ & Đề tài', groupOrder: 5, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.gatesEnabled },
 
   // Lecturer & Supervision
