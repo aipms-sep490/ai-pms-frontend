@@ -6,7 +6,7 @@ import { useAuthSession } from '../context/useAuthSession'
 import { getHomePath } from '../utils/role-access'
 import { resolveIntendedDestination } from '../utils/intended-destination'
 import { GoogleLoginButton } from '../components/GoogleLoginButton'
-import appIcon from '../../../assets/ai-pms-app-icon.svg'
+import { BrandLogo } from '../../../components/ui/BrandLogo'
 import './auth-pages.css'
 import './login-design.css'
 
@@ -53,11 +53,10 @@ export function LoginPage() {
 
   return (
     <main className="login-page">
-      <aside className="login-story" aria-label="Giới thiệu PMS">
+      <aside className="login-story" aria-label="Giới thiệu AIPMS">
         <div className="login-brand">
-          <img src={appIcon} alt="" className="login-brand-icon" aria-hidden="true" />
+          <BrandLogo />
           <div>
-            <strong>PMS</strong>
             <span>Không gian đồ án · FPT University</span>
           </div>
         </div>
@@ -95,8 +94,7 @@ export function LoginPage() {
       <div className="login-form-side">
         <section className="login-form-panel" aria-labelledby="login-title">
           <div className="login-mobile-brand">
-            <img src={appIcon} alt="" className="w-8 h-8 rounded-lg object-contain shadow-xs" aria-hidden="true" />
-            <strong>PMS · FPTU</strong>
+            <BrandLogo />
           </div>
           <p className="login-welcome">Chào mừng trở lại</p>
           <h1 className="auth-login-title" id="login-title">Đăng nhập tài khoản</h1>
@@ -164,7 +162,7 @@ export function LoginPage() {
             Chưa có tài khoản? Liên hệ cán bộ phụ trách bộ môn để được hỗ trợ.
           </p>
         </section>
-        <p className="login-form-footer">PMS · Quản lý và theo dõi đồ án học thuật</p>
+        <p className="login-form-footer">AIPMS · Quản lý và theo dõi đồ án học thuật</p>
       </div>
     </main>
   )

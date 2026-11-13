@@ -9,7 +9,7 @@ import { useAuthSession } from '../../features/auth/context/useAuthSession'
 import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 import '../../components/ui/page-loading.css'
 import { useChat } from '../../features/chat/ChatProvider'
-import appIcon from '../../assets/ai-pms-app-icon.svg'
+import { BrandLogo } from '../../components/ui/BrandLogo'
 
 interface SidebarProps {
   isOpen: boolean
@@ -31,7 +31,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
   const unavailableStudent = role === 'student' && access.contextStatus === 'unavailable'
   const workspaceCode = role === 'student'
     ? project?.code?.trim() || academic?.selectedSemester?.code || (unavailableStudent ? 'Không tải được ngữ cảnh' : 'Ngữ cảnh chưa xác định')
-    : 'PMS'
+    : 'AIPMS'
   const teamLabel = role === 'student'
     ? team?.code?.trim() || team?.name?.trim() || (unavailableStudent ? 'Không tải được ngữ cảnh' : 'Chưa có nhóm')
     : role === 'lecturer' ? 'Giảng viên' : role === 'department' ? 'Bộ môn' : role === 'admin' ? 'Quản trị' : 'Tài khoản'
@@ -194,14 +194,9 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
           {/* Top Brand & Academic Header */}
           <div className="p-4 pb-3 border-b border-hairline flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 shrink-0 flex items-center justify-center">
-                  <img src={appIcon} alt="" aria-hidden="true" className="w-full h-full object-contain" />
-                </div>
+              <div className="flex min-w-0 items-center gap-2.5">
                 <div className="flex flex-col">
-                  <span className="font-heading font-bold text-[14px] text-ink tracking-tight leading-tight">
-                    PMS • FPTU
-                  </span>
+                  <BrandLogo />
                   <span className="font-mono text-xs text-ink-muted leading-tight">
                     {pendingStudent ? <span className="app-context-skeleton" aria-hidden="true" /> : role === 'student' ? semester?.name || 'Học kỳ chưa xác định' : teamLabel}
                   </span>

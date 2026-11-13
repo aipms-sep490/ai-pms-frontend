@@ -130,7 +130,7 @@ export function TopHeader({
           data-tour={TOUR_ANCHOR.breadcrumb}
           className="flex items-center gap-1.5 sm:gap-2 text-xs text-ink-muted font-sans truncate"
         >
-          <span className="font-semibold text-ink-soft shrink-0">{selectedSemester?.code ?? 'PMS'}</span>
+          <span className="font-semibold text-ink-soft shrink-0">{selectedSemester?.code ?? 'AIPMS'}</span>
           <span aria-hidden="true" className="text-slate-300 shrink-0">/</span>
           <span className="text-ink-muted font-medium hidden sm:inline shrink-0">{pendingStudent ? <span className="app-context-skeleton" aria-hidden="true" /> : teamLabel}</span>
           <span aria-hidden="true" className="hidden sm:inline text-slate-300 shrink-0">/</span>

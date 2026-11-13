@@ -70,7 +70,7 @@ export function ForgotPasswordPage() {
 
   return <main className="auth-page-shell"><section className="auth-card" aria-labelledby="forgot-title">
     <h1 id="forgot-title">Quên mật khẩu</h1>
-    <p className="auth-description">Nhập email tài khoản PMS để yêu cầu liên kết đặt lại mật khẩu.</p>
+    <p className="auth-description">Nhập email tài khoản AIPMS để yêu cầu liên kết đặt lại mật khẩu.</p>
     {accepted ? <p className="auth-status" role="status">Yêu cầu đã được tiếp nhận. Nếu email thuộc tài khoản đang hoạt động, hãy kiểm tra hộp thư và thư rác để tìm liên kết đặt lại.</p>
       : <form className="auth-form" onSubmit={submit} noValidate>
         <label htmlFor="reset-email">Email</label>

@@ -11,7 +11,7 @@ import { getHomePath } from '../utils/role-access'
 export function IndustryLayout() {
   const { session, logout } = useAuthSession()
   if (session?.user.roles.length) return <main className="p-6"><p role="alert">Cổng tư vấn sử dụng tài khoản chuyên gia độc lập, không dùng vai trò học thuật.</p><Link className="inline-flex min-h-11 items-center text-primary underline" to={getHomePath(session.user)}>Về không gian tài khoản</Link></main>
-  return <main className="min-h-screen bg-canvas p-4 text-ink sm:p-8"><div className="mx-auto max-w-6xl space-y-6"><header className="flex flex-wrap items-center justify-between gap-3"><Link className="min-h-11 text-lg font-semibold" to="/industry/workspace">PMS · Tư vấn doanh nghiệp</Link><span>{session?.user.fullName}</span><Button variant="secondary" onClick={() => void logout()}>Đăng xuất</Button></header><Outlet context={{ userId: session?.user.id }} /></div></main>
+  return <main className="min-h-screen bg-canvas p-4 text-ink sm:p-8"><div className="mx-auto max-w-6xl space-y-6"><header className="flex flex-wrap items-center justify-between gap-3"><Link className="min-h-11 text-lg font-semibold" to="/industry/workspace">AIPMS · Tư vấn doanh nghiệp</Link><span>{session?.user.fullName}</span><Button variant="secondary" onClick={() => void logout()}>Đăng xuất</Button></header><Outlet context={{ userId: session?.user.id }} /></div></main>
 }
 export function IndustryWorkspaceRoute() {
   const { userId } = useOutletContext<{ userId: number }>()
