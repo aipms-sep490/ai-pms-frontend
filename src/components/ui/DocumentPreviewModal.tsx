@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import './document-preview-modal.css'
 
 export interface DocumentPreviewModalProps {
+  fileId?: string | number
   open: boolean
   onClose: () => void
   fileName: string
@@ -47,6 +48,7 @@ function formatBytes(bytes?: number): string {
 }
 
 export function DocumentPreviewModal({
+  fileId,
   open,
   onClose,
   fileName,
@@ -109,6 +111,13 @@ export function DocumentPreviewModal({
     let active = true
     setLoading(true)
     setError(null)
+    setBlob(null)
+    setUrl(null)
+    setTextContent(null)
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current)
+      objectUrlRef.current = null
+    }
 
     loadBlobRef.current(controller.signal)
       .then(async (resultBlob) => {
@@ -143,7 +152,7 @@ export function DocumentPreviewModal({
         objectUrlRef.current = null
       }
     }
-  }, [open, fileName, contentType, category])
+  }, [open, fileId, fileName, contentType, category])
 
   // Handle direct download
   const handleDownload = async () => {

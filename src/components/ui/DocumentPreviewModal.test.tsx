@@ -92,4 +92,45 @@ describe('DocumentPreviewModal', () => {
     fireEvent.click(downloadButtons[0])
     expect(onDownload).toHaveBeenCalled()
   })
+
+  it('revokes previous objectUrl and refetches when fileId changes with same fileName (fixes F-DOC-01)', async () => {
+    const blob1 = new Blob(['version 1 content'], { type: 'application/pdf' })
+    const blob2 = new Blob(['version 2 content'], { type: 'application/pdf' })
+    const loadBlob1 = vi.fn().mockResolvedValue(blob1)
+    const loadBlob2 = vi.fn().mockResolvedValue(blob2)
+
+    const { rerender } = render(
+      <DocumentPreviewModal
+        fileId={101}
+        open={true}
+        onClose={vi.fn()}
+        fileName="report.pdf"
+        contentType="application/pdf"
+        loadBlob={loadBlob1}
+      />
+    )
+
+    await waitFor(() => {
+      expect(loadBlob1).toHaveBeenCalled()
+    })
+    expect(URL.createObjectURL).toHaveBeenCalledWith(blob1)
+
+    // Now switch to another file with identical name and content type but different fileId
+    rerender(
+      <DocumentPreviewModal
+        fileId={102}
+        open={true}
+        onClose={vi.fn()}
+        fileName="report.pdf"
+        contentType="application/pdf"
+        loadBlob={loadBlob2}
+      />
+    )
+
+    await waitFor(() => {
+      expect(loadBlob2).toHaveBeenCalled()
+    })
+    expect(URL.revokeObjectURL).toHaveBeenCalled()
+    expect(URL.createObjectURL).toHaveBeenCalledWith(blob2)
+  })
 })
