@@ -98,7 +98,7 @@ export function PageLoading({
           </div>
         )}
 
-        <h2 className="aipms-loading-title">{resolvedTitle}</h2>
+        <div className="aipms-loading-title">{resolvedTitle}</div>
         <p className="aipms-loading-desc">{resolvedDescription}</p>
 
         {/* 3 Animated Energy Dots & Progress Line */}
