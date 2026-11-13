@@ -54,6 +54,59 @@ export function ProjectPeriodCatalogPage() {
   const totalPages = Math.max(1, Math.ceil((result?.totalCount ?? 0) / pageSize))
 
   return <WorkspacePage title="Kỳ đăng ký đồ án" eyebrow="Khám phá học kỳ" description="Tìm kỳ đăng ký đang hoạt động và xem bước tiếp theo trong lộ trình đồ án.">
+    {/* F-Research inspired Guidance Panel (P09) */}
+    <section className="mb-6 rounded-xl border border-hairline bg-gradient-to-r from-primary-subtle/50 via-card to-card p-5" aria-label="Hướng dẫn tham gia kỳ đồ án">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="max-w-2xl">
+          <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+            <span className="material-symbols-outlined text-sm">info</span>
+            Quy trình tham gia đợt đồ án
+          </div>
+          <h2 className="mt-1 font-heading text-base font-bold text-ink">3 bước chuẩn bị trước khi nộp hồ sơ</h2>
+          <p className="mt-1 text-xs text-ink-muted leading-relaxed">
+            Sinh viên cần bảo đảm điều kiện học vụ, thành lập nhóm hợp lệ và chọn đề tài phù hợp trước khi thời hạn đăng ký của đợt kết thúc.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <Link to="/team" className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-2 text-xs font-semibold text-ink-soft hover:bg-canvas">
+            <span className="material-symbols-outlined text-sm text-primary">groups</span>
+            Quản lý nhóm
+          </Link>
+          <Link to="/projects/lifecycle" className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-2 text-xs font-semibold text-ink-soft hover:bg-canvas">
+            <span className="material-symbols-outlined text-sm text-primary">timeline</span>
+            Lộ trình đồ án
+          </Link>
+          <Link to="/topics" className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-2 text-xs font-semibold text-ink-soft hover:bg-canvas">
+            <span className="material-symbols-outlined text-sm text-primary">explore</span>
+            Khám phá đề tài
+          </Link>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3 border-t border-hairline/60 pt-4 text-xs">
+        <div className="flex items-start gap-2.5">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-white text-xs">1</span>
+          <div>
+            <strong className="block font-semibold text-ink">Kiểm tra điều kiện</strong>
+            <span className="text-ink-muted">Tín chỉ tích lũy &amp; không nợ môn tiên quyết</span>
+          </div>
+        </div>
+        <div className="flex items-start gap-2.5">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-white text-xs">2</span>
+          <div>
+            <strong className="block font-semibold text-ink">Lập nhóm đồ án</strong>
+            <span className="text-ink-muted">3–5 sinh viên theo quy chế của ngành</span>
+          </div>
+        </div>
+        <div className="flex items-start gap-2.5">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-white text-xs">3</span>
+          <div>
+            <strong className="block font-semibold text-ink">Đăng ký đề tài</strong>
+            <span className="text-ink-muted">Chọn đề tài từ giảng viên hoặc tự đề xuất</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section className="rounded-xl border border-hairline bg-card p-4 sm:p-5" aria-label="Tìm kỳ đăng ký">
       <form onSubmit={submitSearch} className="flex flex-col gap-3 lg:flex-row">
         <label className="min-w-0 flex-1 text-sm font-semibold text-ink-soft">Tìm theo mã hoặc tên kỳ
