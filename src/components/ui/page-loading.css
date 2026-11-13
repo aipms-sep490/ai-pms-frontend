@@ -1,13 +1,270 @@
-.page-loading { width: 100%; padding: 24px 0; }
-.page-loading--full { min-height: 100dvh; background: #f7f9fa; padding: clamp(32px, 9vh, 96px) 24px; }
-.page-loading__content { width: 100%; max-width: 1120px; margin: 0 auto; }
-.page-loading__line { display: block; width: min(72%, 520px); height: 12px; background: #e8edf0; border-radius: 6px; margin-bottom: 16px; }
-.page-loading__line--short { width: 100px; height: 10px; }
-.page-loading__line--title { width: min(60%, 300px); height: 28px; margin-bottom: 20px; }
-.page-loading__rows { margin-top: 32px; border-top: 1px solid #e4e9ed; }
-.page-loading__rows > div { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px 0; border-bottom: 1px solid #e4e9ed; }
-.page-loading__rows span { width: min(55%, 400px); height: 12px; background: #e8edf0; border-radius: 6px; }
-.page-loading__rows span:last-child { width: 72px; }
-.app-nav-skeleton { display: grid; gap: 24px; padding: 16px 10px; }
-.app-nav-skeleton span { height: 14px; width: 78%; background: #e8edf0; border-radius: 6px; }
-.app-context-skeleton { display: inline-block; height: 12px; width: 140px; background: #e8edf0; border-radius: 6px; }
+/* AIPMS Energetic Mascot Loading System (P11)
+ * Combines AIPMS Academic Fox Mascot with F-Research orbital energy motion.
+ * Conforms to WCAG 2.1 AA, prefers-reduced-motion, and Academic Light palette.
+ */
+
+.aipms-loading-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  padding: 32px 16px;
+  box-sizing: border-box;
+}
+
+.aipms-loading-wrapper--full {
+  min-height: 100dvh;
+  min-height: 100vh;
+  background-color: var(--color-canvas);
+  padding: clamp(32px, 8vh, 80px) 24px;
+}
+
+.aipms-loading-wrapper--route {
+  min-height: clamp(340px, 50vh, 560px);
+}
+
+.aipms-loading-wrapper--inline {
+  padding: 24px 12px;
+}
+
+/* Mascot & Orbit Stage */
+.aipms-loading-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  height: 160px;
+  margin-bottom: 20px;
+  user-select: none;
+}
+
+.aipms-loading-wrapper--inline .aipms-loading-stage {
+  width: 100px;
+  height: 100px;
+  margin-bottom: 12px;
+}
+
+/* Soft radiant ambient aura behind mascot */
+.aipms-loading-halo {
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in oklab, var(--color-primary) 18%, transparent) 0%, color-mix(in oklab, var(--color-attention-border) 12%, transparent) 45%, color-mix(in oklab, var(--color-status-success-text) 8%, transparent) 70%, transparent 85%);
+  filter: blur(10px);
+  pointer-events: none;
+  animation: aipms-halo-pulse 3.5s ease-in-out infinite alternate;
+}
+
+/* Outer dashed spinning energy orbit */
+.aipms-loading-orbit-outer {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 2px dashed color-mix(in oklab, var(--color-primary) 45%, transparent);
+  animation: aipms-spin 12s linear infinite;
+  pointer-events: none;
+}
+
+/* Inner orbital ring rotating counter-clockwise */
+.aipms-loading-orbit-inner {
+  position: absolute;
+  inset: 14px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  border-top-color: var(--color-primary);
+  border-right-color: var(--color-attention-border);
+  border-bottom-color: var(--color-status-success-text);
+  animation: aipms-spin-reverse 7s linear infinite;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+/* Sparkling orbital particle dots */
+.aipms-loading-particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.aipms-loading-particle--blue {
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.aipms-loading-particle--orange {
+  bottom: 12px;
+  right: 12px;
+  background-color: var(--color-attention-border);
+  color: var(--color-attention-border);
+}
+
+.aipms-loading-particle--green {
+  bottom: 12px;
+  left: 12px;
+  background-color: var(--color-status-success-text);
+  color: var(--color-status-success-text);
+}
+
+/* Animated floating mascot */
+.aipms-loading-mascot {
+  position: relative;
+  z-index: 2;
+  width: 108px;
+  height: 108px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 12px color-mix(in oklab, var(--color-brand-navy) 14%, transparent));
+  animation: aipms-float 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.aipms-loading-wrapper--inline .aipms-loading-mascot {
+  width: 68px;
+  height: 68px;
+}
+
+/* Content & Typography */
+.aipms-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+.aipms-loading-brand {
+  margin-bottom: 8px;
+  transform: scale(0.92);
+}
+
+.aipms-loading-title {
+  margin: 0;
+  font-family: var(--font-heading, 'Plus Jakarta Sans', system-ui, sans-serif);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--color-ink);
+  letter-spacing: -0.01em;
+}
+
+.aipms-loading-desc {
+  margin: 6px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-ink-muted);
+}
+
+/* Three Animated Energy Dots & Progress Line */
+.aipms-loading-progress {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+  width: 140px;
+  height: 24px;
+}
+
+.aipms-loading-progress-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent 0%, color-mix(in oklab, var(--color-line-strong) 70%, transparent) 20%, color-mix(in oklab, var(--color-line-strong) 70%, transparent) 80%, transparent 100%);
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.aipms-loading-dot {
+  position: relative;
+  z-index: 2;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  animation: aipms-dot-pulse 1.3s ease-in-out infinite;
+}
+
+.aipms-loading-dot--blue {
+  background-color: var(--color-primary);
+  box-shadow: 0 0 8px color-mix(in oklab, var(--color-primary) 40%, transparent);
+  animation-delay: 0s;
+}
+
+.aipms-loading-dot--orange {
+  background-color: var(--color-attention-border);
+  box-shadow: 0 0 8px color-mix(in oklab, var(--color-attention-border) 40%, transparent);
+  animation-delay: 0.22s;
+}
+
+.aipms-loading-dot--green {
+  background-color: var(--color-status-success-text);
+  box-shadow: 0 0 8px color-mix(in oklab, var(--color-status-success-text) 40%, transparent);
+  animation-delay: 0.44s;
+}
+
+/* Keyframe Animations */
+@keyframes aipms-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes aipms-spin-reverse {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes aipms-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes aipms-halo-pulse {
+  0% {
+    opacity: 0.65;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes aipms-dot-pulse {
+  0%, 100% {
+    transform: scale(0.75);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+}
+
+/* Accessibility: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .aipms-loading-orbit-outer,
+  .aipms-loading-orbit-inner,
+  .aipms-loading-mascot,
+  .aipms-loading-halo,
+  .aipms-loading-dot {
+    animation: none !important;
+  }
+
+  .aipms-loading-dot {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+}
