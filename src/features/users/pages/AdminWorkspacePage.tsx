@@ -19,6 +19,7 @@ import { RosterExportDialog } from '../components/RosterExportDialog'
 import { CurriculumImportDialog } from '../components/CurriculumImportDialog'
 import { StudentImportDialog } from '../components/StudentImportDialog'
 import { getAcademicHierarchy } from '../../academic/api/academic-api'
+import { AccessEventsPanel } from '../components/AccessEventsPanel'
 
 const blankAccount: UserDraft = { departmentId: null, majorId: null, email: '', password: '', fullName: '', phone: null, studentCode: null, employeeCode: null, title: null, roleIds: [] }
 const messageFor = (reason: unknown) => reason instanceof HttpError ? reason.message : 'Chưa thể hoàn tất thao tác. Hãy thử lại.'
@@ -85,7 +86,7 @@ export function AdminWorkspacePage() {
     try { const accounts = JSON.parse(importText) as UserDraft[]; if (!Array.isArray(accounts) || !accounts.length) throw new Error('invalid'); void run(() => admin.importUsers(accounts), 'Máy chủ đã nhập toàn bộ lô tài khoản.').then(ok => { if (ok) setImportText('') }) } catch { setNotice('Tệp JSON phải là mảng tài khoản theo cấu trúc yêu cầu. Lô không được gửi khi dữ liệu chưa hợp lệ.') }
   }
 
-  const activeTab = params.get('tab') === 'audit' ? 'audit' : 'accounts'
+  const activeTab = params.get('tab') === 'audit' ? 'audit' : params.get('tab') === 'access' ? 'access' : 'accounts'
 
   return <main className="workspace-page admin-workspace" aria-labelledby="admin-title">
     <header className="admin-heading">
@@ -102,6 +103,7 @@ export function AdminWorkspacePage() {
     <nav className="admin-tabs" aria-label="Khu vực quản trị">
       <button type="button" className={`admin-tab-btn ${activeTab === 'accounts' ? 'is-active' : ''}`} aria-controls="accounts" aria-pressed={activeTab === 'accounts'} onClick={() => setFilter({ tab: 'accounts' })}>Tài khoản người dùng</button>
       <Link to="/admin/access/rbac">Phân quyền</Link>
+      <button type="button" className={`admin-tab-btn ${activeTab === 'access' ? 'is-active' : ''}`} aria-controls="access-events" aria-pressed={activeTab === 'access'} onClick={() => setFilter({ tab: 'access' })}>Nhật ký truy cập</button>
       <button type="button" className={`admin-tab-btn ${activeTab === 'audit' ? 'is-active' : ''}`} aria-controls="audit" aria-pressed={activeTab === 'audit'} onClick={() => setFilter({ tab: 'audit' })}>Nhật ký bảo mật</button>
       <Link to="/academic/governance">Học kỳ & Kỳ đồ án</Link>
       {env.industryEnabled && <Link to="/admin/industry">Chuyên gia doanh nghiệp</Link>}
@@ -159,6 +161,7 @@ export function AdminWorkspacePage() {
       <p className="admin-gap">Mở hồ sơ từng tài khoản để cập nhật bộ môn và chuyên ngành. Phân công đồ án được quản lý riêng.</p>
     </section>
 
+    {activeTab === 'access' && <AccessEventsPanel />}
     <section id="audit" className="admin-panel" aria-labelledby="audit-title" hidden={activeTab !== 'audit'}>
       <div className="admin-panel-heading"><div><h2 id="audit-title">Nhật ký bảo mật</h2><p>Theo dõi thời gian, người thực hiện và nội dung hoạt động quản trị.</p></div></div>
       <form key={[auditAction, auditEntityType, auditOutcome, auditFrom, auditTo].join('|')} className="admin-filter" onSubmit={(event) => {

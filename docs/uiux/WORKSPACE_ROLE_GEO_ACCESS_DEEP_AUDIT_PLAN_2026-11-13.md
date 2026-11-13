@@ -138,3 +138,11 @@ type AccessOverview = {
 ## 8. Kiểm thử và giới hạn hiện tại
 
 Các sửa F01–F08/F11–F12 có test tập trung (`DepartmentWorkspacePage`, `SupervisorMonitoringPage`/hook, `AdminWorkspacePhase6`, `IndustryExpertPortalPage`), TypeScript, lint **exit 0 nhưng còn warnings nền**, production build. Chưa chạy tài khoản thật cho các vai trò hoặc bản đồ; không gọi đó là UAT. Trước khi giao bản đồ cần BE integration test với scope và browser check đối chiếu snapshot. Mọi màn có mutation phải thử 401/403/409/422, loading→readback, cùng dữ liệu ở mobile/desktop và `prefers-reduced-motion`.
+
+## 9. Slice triển khai ngay: nhật ký truy cập dạng bảng
+
+Theo quyết định sau audit, ưu tiên **bảng truy cập cho Admin** trước bản đồ. Nhánh BE `feat/be-access-audit-20261113` xuất phát từ `origin/develop` tại `210e9eb`; nhánh FE tiếp tục `feat/fe-fresearch-reference-20261113`. Chỉ commit/push từng nhánh, không PR/merge.
+
+`GET /api/v1/security/access-events` dùng audit đã có (`AUTH_LOGIN`, `AUTH_GOOGLE_LOGIN`, `AUTH_LOGOUT`), phân trang/lọc tại BE theo tên hoặc email **hiện tại** của tài khoản, user ID tùy chọn, loại sự kiện, kết quả và khoảng UTC. Response gồm user ID, tên/email hiện tại nếu có, loại/phương thức, kết quả, IP và thời điểm. Actor không xác định được hiển thị “Không xác định”. Endpoint/Admin tab không trả tọa độ, không tính số online, không đưa user-agent hay details JSON. Quyền Admin được kiểm ở controller và handler; `DEPARTMENT_STAFF` không được đọc endpoint này.
+
+FE thêm tab “Nhật ký truy cập” riêng với lọc theo giờ Việt Nam, trạng thái tải/rỗng/lỗi, phân trang, link đến tài khoản và giải thích IP không phải vị trí. Cổng xác minh còn lại: authenticated BE+FE readback trên môi trường có audit thật, kiểm quyền 403 và số lượng trang; riêng bản đồ giữ ở G01–G04, chỉ triển khai sau contract dữ liệu và quyết định nghiệp vụ.
