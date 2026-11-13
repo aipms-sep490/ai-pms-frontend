@@ -83,3 +83,33 @@ let the test tell you the number.
 - Visible `focus-visible` rings utilize `var(--color-primary)` with `outline-offset: 2px` or `3px`.
 - Minimum text size across all components is 12px (`text-xs`).
 - Reduced motion preferences (`prefers-reduced-motion: reduce`) disable non-essential animations.
+
+## Rule v2: FAMS × F-Research Integration Patterns
+
+AI-PMS harmonizes the authoritative density of FAMS with the discovery clarity and responsive warmth of F-Research:
+
+1. **P01 — Discovery Cards & Item CTAs (F-Research):** Used in `/project/periods` and `/topics` for entity discovery. Highlights code badges, deadlines, criteria, and provides single-click contextual navigation (`/team`, `/project/source`).
+2. **P02 — Entity Identity Strip (FAMS):** Persistent identity ribbon (`EntityIdentityStrip`) rendered on workspace pages (`/team`, `/projects/lifecycle`, `/project/workspace`, `/review-gates`). Summarizes project/team code, period, mode (Single/Interdisciplinary), supervisor, and authoritative status so users never lose context.
+3. **P03 — Actionable Metrics & StatTiles (FAMS):** Metric tiles in `StatTileRow` support interactive filtering (`onClick`, `active`, `aria-pressed`). Clicking a metric immediately filters tables/lists (e.g., overdue tasks, blocked items, pending progress reviews).
+4. **P04 — Filter & Bulk Action Bars (FAMS):** Search inputs with debounce, faceted dropdowns, active chip tags, and bulk selection toolbars that preserve backend permission boundaries.
+5. **P05 & P06 — Safe Configuration & Before/After Comparison (FAMS):** View/Edit toggles with impact scope warnings for rubrics, schemes, and policies; version-to-version diffs for topic revisions and grade appeals.
+6. **P07 & P08 — Contextual Feedback & Document Preview (F-Research):** Comments linked directly to specific document versions. `DocumentPreviewModal` delivers in-browser PDF, image, and code viewing with zoom and download without relying on external popups.
+7. **P09 — Participation Prerequisites Guidance (F-Research):** Dedicated 3-step guidance cards explaining academic eligibility, team formation, and topic registration requirements prior to deadline expiration.
+8. **P10 — Time-Grouped Notifications (FAMS × F-Research):** Notifications grouped by urgency (Today, This Week, Earlier) featuring deep-link action buttons leading straight to the pending task.
+
+## AIPMS Energetic Mascot Loading Specification (P11)
+
+The loading experience reflects the institutional identity of AIPMS with energetic, friendly motion:
+
+- **Asset (`public/aipms-mascot.png`):** Transparent PNG of the AIPMS Academic Fox Mascot with mortarboard, eyeglasses, graduation cape with AI badge, and laptop featuring an illuminated AI chip.
+- **Orbital Energy Dynamics:**
+  - Outer dashed ring rotating clockwise (`12s` linear infinite) in `var(--color-primary)`.
+  - Inner multi-color gradient ring rotating counter-clockwise (`7s` linear infinite) featuring Blue, Orange (`var(--color-attention-border)`), and Green (`var(--color-status-success-text)`) energy dots.
+  - Soft ambient radiant aura (`aipms-halo-pulse`) emitting a subtle backlight behind the mascot.
+  - Gentle levitation floating motion (`aipms-float`, 3s ease-in-out) on the mascot.
+- **Progress Signal:** Three animated dots (Blue, Orange, Green) pulsing sequentially (`aipms-dot-pulse`) along a horizontal energy line.
+- **Contextual Copy:**
+  - Bootstrap / App initialization: *"Đang khởi tạo hệ thống AIPMS"* / *"Chuẩn bị môi trường quản lý đồ án học thuật…"*.
+  - Route / Suspense transition: *"Đợi AIPMS một xíu nhé!"* / *"Trang mới đang được chuẩn bị cho bạn…"*.
+- **Accessibility:** Built with `role="status"`, `aria-live="polite"`, screen reader announcements (`.sr-only`), and `@media (prefers-reduced-motion: reduce)` which automatically silences continuous rotations and oscillations for vestibular safety.
+
