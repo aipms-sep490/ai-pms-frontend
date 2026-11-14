@@ -20,7 +20,8 @@ describe('ProjectPeriodCatalogPage', () => {
     render(<MemoryRouter><ProjectPeriodCatalogPage /></MemoryRouter>)
     expect(await screen.findByText('Đăng ký đồ án')).toBeTruthy()
     expect(screen.getByRole('link', { name: /Xem nhóm và điều kiện/ }).getAttribute('href')).toBe('/team')
-    expect(screen.getByText(/SCOPE-01: Enforced by Organization/)).toBeTruthy()
+    expect(screen.getByText(/Phạm vi tài khoản/)).toBeTruthy()
+    expect(screen.getByText(/Số thành viên theo quy định của đợt đăng ký/)).toBeTruthy()
     expect(getProjectPeriods).toHaveBeenCalledWith('test-token', { search: '', semesterId: undefined, status: 'ACTIVE', periodType: 'REGISTRATION' }, expect.any(AbortSignal), 1, 6)
   })
 
@@ -49,13 +50,13 @@ describe('ProjectPeriodCatalogPage', () => {
     expect(screen.getByText('Chưa mở nhận hồ sơ')).toBeTruthy()
   })
 
-  it('handles 403 Forbidden with SCOPE-01 warning message', async () => {
+  it('explains a 403 without exposing an internal policy code', async () => {
     vi.mocked(getSemesters).mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
     vi.mocked(getProjectPeriods).mockRejectedValue(new HttpError('Forbidden', 403))
 
     render(<MemoryRouter><ProjectPeriodCatalogPage /></MemoryRouter>)
     expect(await screen.findByRole('alert')).toBeTruthy()
-    expect(screen.getByText(/Không có quyền truy cập phạm vi:/)).toBeTruthy()
-    expect(screen.getByText(/theo chính sách SCOPE-01/)).toBeTruthy()
+    expect(screen.getByText(/Không thể xem danh sách kỳ đăng ký:/)).toBeTruthy()
+    expect(screen.getByText(/Liên hệ quản trị viên/)).toBeTruthy()
   })
 })

@@ -1,5 +1,9 @@
 # AI-PMS — phân tích sâu Workspace, tương tác vai trò và bản đồ truy cập
 
+> **Cập nhật 14/11/2026:** Người dùng đã bỏ hạng mục bản đồ/vị trí địa lý. Các mục GEO bên dưới là ghi chép phân tích lịch sử, không còn là backlog hoặc contract đang triển khai. Tiếp tục cải thiện danh sách truy cập, phạm vi quyền và luồng workspace mà không suy vị trí hay trạng thái online từ IP/đăng nhập.
+
+> **Kiểm chứng cùng ngày:** Trang danh mục Project Period đã bỏ mã chính sách kỹ thuật khỏi nội dung hiển thị và bỏ giới hạn 3–5 thành viên ghi cứng, vì chính sách nhóm được cấu hình theo đợt. Vitest 4/4, TypeScript, build, oxlint của trang và Playwright bảng truy cập 2/2 đạt. Playwright dùng dữ liệu chặn có kiểm soát, không phải UAT tài khoản thật.
+
 **Ngày:** 13/11/2026 · **FE:** `feat/fe-fresearch-reference-20261113` tại `4b31ff2` trước các sửa trong tài liệu này · **BE đối chiếu chỉ đọc:** `F:\AI-PMS\ai-pms-backend-audit-20261113` tại `210e9eb` (`origin/develop`). **Bàn giao:** cùng nhánh FE đã push, commit nhỏ; không PR/merge/deploy.
 
 ## 1. Kết luận điều tra và giới hạn bằng chứng

@@ -103,14 +103,14 @@ export function ProjectPeriodCatalogPage() {
   const totalPages = Math.max(1, Math.ceil((result?.totalCount ?? 0) / pageSize))
 
   return <WorkspacePage title="Kỳ đăng ký đồ án" eyebrow="Khám phá học kỳ" description="Tìm kỳ đăng ký đang hoạt động và xem bước tiếp theo trong lộ trình đồ án.">
-    {/* Scope & Policy Notice (SCOPE-01) */}
+    {/* Academic directory scope notice */}
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-hairline bg-card/60 px-4 py-2.5 text-xs text-ink-muted">
       <div className="flex items-center gap-2">
         <span className="material-symbols-outlined text-sm text-primary">policy</span>
-        <span>Phạm vi hiển thị: <strong>Theo cơ sở đào tạo của tài khoản</strong> (Admin xem toàn hệ thống). Phân quyền tự động áp dụng từ máy chủ.</span>
+        <span>Danh sách được giới hạn theo <strong>cơ sở đào tạo của tài khoản</strong>; quản trị viên có thể xem toàn hệ thống.</span>
       </div>
       <span className="rounded-full bg-canvas px-2.5 py-0.5 font-medium text-ink-muted border border-hairline/60">
-        SCOPE-01: Enforced by Organization
+        Phạm vi tài khoản
       </span>
     </div>
 
@@ -147,14 +147,14 @@ export function ProjectPeriodCatalogPage() {
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-white text-xs">1</span>
           <div>
             <strong className="block font-semibold text-ink">Kiểm tra điều kiện</strong>
-            <span className="text-ink-muted">Tín chỉ tích lũy &amp; không nợ môn tiên quyết</span>
+            <span className="text-ink-muted">Xem điều kiện học vụ của đợt đăng ký trong hồ sơ</span>
           </div>
         </div>
         <div className="flex items-start gap-2.5">
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-white text-xs">2</span>
           <div>
             <strong className="block font-semibold text-ink">Lập nhóm đồ án</strong>
-            <span className="text-ink-muted">3–5 sinh viên theo quy chế của ngành</span>
+            <span className="text-ink-muted">Số thành viên theo quy định của đợt đăng ký</span>
           </div>
         </div>
         <div className="flex items-start gap-2.5">
@@ -188,7 +188,7 @@ export function ProjectPeriodCatalogPage() {
     {loading && <p role="status" className="mt-4 rounded-xl border border-hairline bg-card p-6 text-ink-muted">Đang tải các kỳ đăng ký…</p>}
     {isForbidden && (
       <div role="alert" className="mt-4 rounded-xl border border-status-warning-border bg-status-warning-bg p-5 text-status-warning-text">
-        <strong>Không có quyền truy cập phạm vi:</strong> Tài khoản hiện tại chưa được gán cơ sở đào tạo hoạt động hoặc không thuộc phạm vi được phép xem đợt đăng ký này (theo chính sách SCOPE-01).
+        <strong>Không thể xem danh sách kỳ đăng ký:</strong> Tài khoản chưa được gán cơ sở đào tạo đang hoạt động hoặc không có quyền xem dữ liệu này. Liên hệ quản trị viên nếu bạn cần hỗ trợ.
       </div>
     )}
     {!isForbidden && error && (
