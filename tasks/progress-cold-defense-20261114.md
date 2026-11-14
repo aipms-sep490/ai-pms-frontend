@@ -5,6 +5,7 @@ Source plan: `docs/uiux/AIPMS_PROGRESS_COLD_DEFENSE_INTEGRATED_PLAN_20261114.md`
 - [x] Source-level audit of the reference guide, BE/FE authority, route census, preview, chat and notifications.
 - [x] Consolidated state/role/screen/Excel/preview implementation plan.
 - [x] Updated interaction rules for progress, committee-scoped Cold, notification/chat, document preview, and business-specific dates.
+- [x] Source-level audit report with evidence and maturity per capability: `docs/uiux/AIPMS_FULL_FLOW_CODE_AUDIT_20261114.md`.
 - [ ] T0: Reconcile effective academic policy, current DB schema and isolated role fixtures.
 - [ ] T1: Close the Gate 1–3 direct-PASS path and align Final Package prerequisites.
   - [x] BE regular Gate 1–3 PASS bypass closed; integration test added and compiled (commit `f756221`).
@@ -20,6 +21,7 @@ Source plan: `docs/uiux/AIPMS_PROGRESS_COLD_DEFENSE_INTEGRATED_PLAN_20261114.md`
 - [ ] T8: Standardize alerts, forms, dates, unread counts and compact chat dock.
   - [x] FE notification count retains last known value on transient error and refreshes on retry/visibility/poll.
   - [x] FE chat retains count on transient inbox error, clears on 403, and uses a smaller desktop dock without perpetual bounce.
+  - [x] FE create-meeting form rejects past starts and equal end/start; existing-meeting edits remain available (13 focused tests).
   - [ ] Unified alert/form patterns and business-specific date rules across role screens.
 - [ ] T9: Isolated DB and authenticated browser lifecycle acceptance for single and interdisciplinary projects.
 - [ ] Final branch verification: BE/FE builds, focused tests, contract parity, status, and push both designated branches only.

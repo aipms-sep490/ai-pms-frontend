@@ -26,6 +26,7 @@ export function MeetingScheduleForm({ meeting, initialDraft, busy, locked = fals
   const [occurrenceCount, setOccurrenceCount] = useState('1')
   const seriesEnabled = env.meetingCollaborationEnabled && !meeting
   const [error, setError] = useState('')
+  const [earliestStart] = useState(() => toMeetingInput(new Date().toISOString()))
   function update(key: keyof typeof values, value: string) { setValues((current) => ({ ...current, [key]: value })); setError(''); onDirty() }
   function updateDeliveryMode(meetingDeliveryMode: MeetingDeliveryMode) {
     setValues((current) => ({ ...current, meetingDeliveryMode, videoChannel: meetingDeliveryMode === 'ONSITE' ? 'NONE' : current.videoChannel === 'NONE' ? 'EXTERNAL_LINK' : current.videoChannel }))
@@ -37,7 +38,8 @@ export function MeetingScheduleForm({ meeting, initialDraft, busy, locked = fals
     if (busy || locked) return
     if (!values.title.trim() || values.title.trim().length > 255) { setError('Nhập tiêu đề từ 1 đến 255 ký tự.'); return }
     if (!values.startAt || Number.isNaN(Date.parse(`${values.startAt}+07:00`))) { setError('Chọn thời gian bắt đầu hợp lệ.'); return }
-    if (values.endAt && (Number.isNaN(Date.parse(`${values.endAt}+07:00`)) || values.endAt < values.startAt)) { setError('Giờ kết thúc phải bằng hoặc sau giờ bắt đầu.'); return }
+    if (!meeting && Date.parse(`${values.startAt}+07:00`) <= Date.now()) { setError('Cuộc họp mới phải bắt đầu trong tương lai.'); return }
+    if (values.endAt && (Number.isNaN(Date.parse(`${values.endAt}+07:00`)) || values.endAt <= values.startAt)) { setError('Giờ kết thúc phải sau giờ bắt đầu.'); return }
     let location = values.location.trim() || null
     let onlineUrl = values.onlineUrl.trim() || null
     if (showVideoControls) {
@@ -64,7 +66,7 @@ export function MeetingScheduleForm({ meeting, initialDraft, busy, locked = fals
   }
   return <form className="mtg-form" onSubmit={(event) => void save(event)}><fieldset disabled={busy || locked}>
     <label>Tiêu đề cuộc họp<input required maxLength={255} value={values.title} onChange={(event) => update('title', event.target.value)} placeholder="Ví dụ: Rà soát tiến độ và kế hoạch tuần" /></label>
-    <div className="mtg-field-grid"><label>Bắt đầu (giờ Việt Nam)<input type="datetime-local" required value={values.startAt} onChange={(event) => update('startAt', event.target.value)} /></label><label>Kết thúc (không bắt buộc)<input type="datetime-local" min={values.startAt || undefined} value={values.endAt} onChange={(event) => update('endAt', event.target.value)} /></label></div>
+    <div className="mtg-field-grid"><label>Bắt đầu (giờ Việt Nam)<input type="datetime-local" required min={meeting ? undefined : earliestStart} value={values.startAt} onChange={(event) => update('startAt', event.target.value)} /></label><label>Kết thúc (không bắt buộc)<input type="datetime-local" min={values.startAt || undefined} value={values.endAt} onChange={(event) => update('endAt', event.target.value)} /></label></div>
     {showVideoControls ? <>
       <fieldset className="mtg-choice-group"><legend>Hình thức tham gia</legend><div className="mtg-choice-list">
         {([['ONSITE', 'Tại chỗ'], ['REMOTE', 'Từ xa'], ['HYBRID', 'Kết hợp']] as const).map(([mode, label]) => <label className="mtg-choice" key={mode}><input type="radio" name="meetingDeliveryMode" checked={values.meetingDeliveryMode === mode} onChange={() => updateDeliveryMode(mode)} /><span>{label}</span></label>)}
