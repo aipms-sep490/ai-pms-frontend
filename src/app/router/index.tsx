@@ -90,6 +90,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'project/files', element: <ProjectFilesPage /> },
             { path: 'project/evidence', element: <ProjectEvidenceLedgerPage /> },
             { path: 'project/contributions', element: <ProjectContributionsPage /> },
+            ...(env.weeklyAssessmentEnabled ? [{ path: 'project/weekly-assessments', element: <WeeklyAssessmentsPage /> }] : []),
             ...(env.gatesEnabled ? [{ path: 'project/gates', element: <ProjectGatesPage /> }] : []),
             ...(env.defenseScheduleEnabled ? [{ path: 'project/defense', element: <ProjectDefensePage /> }] : []),
             ...(env.coldReportEnabled ? [{ path: 'project/cold-reports', element: <ColdChecklistPage /> }] : []),

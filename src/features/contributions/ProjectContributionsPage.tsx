@@ -58,6 +58,42 @@ export function ProjectContributionsPage() {
     finally { setBusy(false) }
   }
 
+  const exportCsv = () => {
+    if (!summary?.members.length) return
+    const headers = [
+      'Mã thành viên',
+      'Họ và tên',
+      'Công việc hoàn tất',
+      'Công việc được giao',
+      'Báo cáo đã nộp',
+      'Cuộc họp tham gia',
+      'Bản nộp hoàn tất',
+      'Tệp tải lên',
+      'Tổng minh chứng',
+      'Điểm hoạt động',
+    ]
+    const rows = summary.members.map((m) => [
+      m.userId,
+      `"${m.displayName.replace(/"/g, '""')}"`,
+      m.completedTasks,
+      m.assignedTasks,
+      m.submittedReports,
+      m.attendedMeetings,
+      m.submittedDeliverableVersions,
+      m.uploadedFiles,
+      m.evidenceCount,
+      m.activityScore,
+    ])
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `bao-cao-dong-gop-do-an-${projectId ?? 'summary'}.csv`
+    anchor.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 60000)
+  }
+
   const selectedMember = summary?.members.find(member => member.userId === selectedUserId)
   const totalEvidence = summary?.members.reduce((total, member) => total + member.evidenceCount, 0) ?? 0
   const completedTasks = summary?.members.reduce((total, member) => total + member.completedTasks, 0) ?? 0
@@ -81,6 +117,10 @@ export function ProjectContributionsPage() {
             <option value="live">Dữ liệu hiện tại</option><option value="snapshot">Bản tổng hợp đã lưu</option>
           </select>
         </label>
+        <button type="button" onClick={exportCsv} className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-hairline bg-card px-3 text-sm font-semibold text-ink-soft hover:bg-canvas hover:text-ink transition-colors shadow-2xs">
+          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>
+          Xuất báo cáo (CSV)
+        </button>
         {canSnapshot && <button type="button" disabled={busy} className="min-h-11 rounded-md bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover shadow-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void rebuild()}>{busy ? 'Đang tạo…' : 'Lưu bản tổng hợp'}</button>}
       </div>}
     </header>

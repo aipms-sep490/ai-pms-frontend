@@ -26,7 +26,7 @@ function leafCriteria(criteria: RubricCriterion[]): RubricCriterion[] {
 }
 
 export function WeeklyAssessmentsPage() {
-  const { project, team, routeBase } = useExecutionAccess()
+  const { project, team, routeBase, actor, currentUserId } = useExecutionAccess()
   const [members, setMembers] = useState(team?.members ?? [])
   const [error, setError] = useState(''), [loading, setLoading] = useState(!team), [retry, setRetry] = useState(0)
   useEffect(() => {
@@ -39,17 +39,21 @@ export function WeeklyAssessmentsPage() {
   }, [project.id, project.teamId, team, retry])
   if (loading) return <WeeklyLoading />
   if (error) return <WeeklyError message={error} retry={() => setRetry(value => value + 1)} />
-  return <WeeklyAssessmentsBody key={project.id} projectId={project.id} projectTitle={project.title} routeBase={routeBase} members={members} />
+  return <WeeklyAssessmentsBody key={project.id} projectId={project.id} projectTitle={project.title} routeBase={routeBase} members={members} actor={actor} currentUserId={currentUserId} />
 }
 
-function WeeklyAssessmentsBody({ projectId, projectTitle, routeBase, members }: {
+function WeeklyAssessmentsBody({ projectId, projectTitle, routeBase, members, actor, currentUserId }: {
   projectId: number; projectTitle: string; routeBase: string
   members: { userId: number; fullName: string }[]
+  actor?: 'student' | 'supervisor' | 'mentor'
+  currentUserId?: number
 }) {
   const [weeks, setWeeks] = useState<WeeklyAssessmentWeek[] | null>(null)
   const [weeksError, setWeeksError] = useState('')
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null)
-  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(members[0]?.userId ?? null)
+  const isStudent = actor === 'student'
+  const studentSelfId = isStudent && currentUserId && members.some(m => m.userId === currentUserId) ? currentUserId : null
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(studentSelfId ?? members[0]?.userId ?? null)
   const [editorState, setEditorState] = useState({ dirty: false, busy: false })
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   async function changeSelection(change: () => void) {
@@ -72,8 +76,8 @@ function WeeklyAssessmentsBody({ projectId, projectTitle, routeBase, members }: 
     return () => controller.abort()
   }, [projectId])
 
-  return <WeeklyShell title="Điểm cá nhân theo tuần" projectTitle={projectTitle} backTo={`${routeBase}/workspace`}
-    description="Chấm tham khảo hằng tuần cho từng sinh viên. Không tự cộng vào kết quả học phần chính thức.">
+  return <WeeklyShell title={isStudent ? "Đánh giá cá nhân theo tuần" : "Điểm cá nhân theo tuần"} projectTitle={projectTitle} backTo={`${routeBase}/workspace`}
+    description={isStudent ? "Theo dõi nhận xét và điểm tham khảo định kỳ từ Giảng viên hướng dẫn." : "Chấm tham khảo hằng tuần cho từng sinh viên. Không tự cộng vào kết quả học phần chính thức."}>
     {confirmationDialog}
     <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: projectTitle }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
     <CollaborationIntro icon="insights" title="Phản hồi nhỏ, tiến bộ mỗi tuần">Điểm theo dõi chỉ để tham khảo. Giữ lại từng phiên bản nhận xét để sinh viên nhìn thấy tiến bộ của mình, không cộng vào kết quả chính thức.</CollaborationIntro>
@@ -84,11 +88,20 @@ function WeeklyAssessmentsBody({ projectId, projectTitle, routeBase, members }: 
             Tuần {week.weekNumber} ({formatCalendarDate(week.startDate)}–{formatCalendarDate(week.endDate)}){!week.hasStarted ? ' • Chưa tới' : ''}
           </option>)}
         </select></label>
-        <label>Sinh viên<select value={selectedStudentId ?? ''} disabled={editorState.busy} onChange={(event) => { const value = Number(event.target.value); void changeSelection(() => setSelectedStudentId(value)) }}>
-          {members.map((member) => <option key={member.userId} value={member.userId}>{member.fullName}</option>)}
-        </select></label>
+        {isStudent ? (
+          <div className="flex items-center gap-2 text-sm text-ink-soft">
+            <span className="font-medium text-ink">Sinh viên:</span>
+            <span className="rounded-md border border-hairline bg-card px-2.5 py-1 text-xs font-semibold text-ink">
+              {members.find(m => m.userId === selectedStudentId)?.fullName ?? 'Sinh viên'}
+            </span>
+          </div>
+        ) : (
+          <label>Sinh viên<select value={selectedStudentId ?? ''} disabled={editorState.busy} onChange={(event) => { const value = Number(event.target.value); void changeSelection(() => setSelectedStudentId(value)) }}>
+            {members.map((member) => <option key={member.userId} value={member.userId}>{member.fullName}</option>)}
+          </select></label>
+        )}
       </div>
-      <div className="weekly-members-strip mt-3 flex flex-wrap gap-2" aria-label="Chọn nhanh sinh viên">
+      {!isStudent && <div className="weekly-members-strip mt-3 flex flex-wrap gap-2" aria-label="Chọn nhanh sinh viên">
         {members.map((member) => (
           <button
             key={member.userId}
@@ -107,17 +120,17 @@ function WeeklyAssessmentsBody({ projectId, projectTitle, routeBase, members }: 
             {member.fullName}
           </button>
         ))}
-      </div>
+      </div>}
       {selectedWeek != null && selectedStudentId != null && (() => {
         const week = weeks.find((w) => w.weekNumber === selectedWeek)
-        return <WeeklyAssessmentEditor key={`${selectedStudentId}:${selectedWeek}`} projectId={projectId} weekNumber={selectedWeek} studentId={selectedStudentId} hasStarted={week?.hasStarted ?? false} onEditorState={setEditorState} />
+        return <WeeklyAssessmentEditor key={`${selectedStudentId}:${selectedWeek}`} projectId={projectId} weekNumber={selectedWeek} studentId={selectedStudentId} hasStarted={week?.hasStarted ?? false} isStudent={isStudent} onEditorState={setEditorState} />
       })()}
     </>}
   </WeeklyShell>
 }
 
-function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, onEditorState }: {
-  projectId: number; weekNumber: number; studentId: number; hasStarted: boolean; onEditorState: (state: { dirty: boolean; busy: boolean }) => void
+function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, isStudent, onEditorState }: {
+  projectId: number; weekNumber: number; studentId: number; hasStarted: boolean; isStudent?: boolean; onEditorState: (state: { dirty: boolean; busy: boolean }) => void
 }) {
   const [assessment, setAssessment] = useState<WeeklyAssessment | null>(null)
   const [loading, setLoading] = useState(true)
@@ -236,12 +249,12 @@ function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, 
 
   if (loading) return <WeeklyLoading />
   if (historyFailed) return <WeeklyError message={error} retry={() => setRevision(value => value + 1)} />
-  if (!hasStarted) return <div className="weekly-notice weekly-notice--error">Tuần này chưa tới, chưa thể chấm.</div>
+  if (!hasStarted) return <div className="weekly-notice weekly-notice--error">{isStudent ? "Tuần này chưa bắt đầu. Đánh giá sẽ được cập nhật khi kết thúc tuần học." : "Tuần này chưa tới, chưa thể chấm."}</div>
 
   const isDraft = assessment?.status === 'DRAFT'
   const isSubmitted = assessment?.status === 'SUBMITTED'
-  const canRevise = Boolean(assessment && (isSubmitted || isDraft && !assessment.canEdit))
-  const canEditNow = !recovery && ((!assessment && selectedRubricId != null) || (isDraft && assessment?.canEdit))
+  const canRevise = !isStudent && Boolean(assessment && (isSubmitted || isDraft && !assessment.canEdit))
+  const canEditNow = !isStudent && !recovery && ((!assessment && selectedRubricId != null) || (isDraft && assessment?.canEdit))
 
   return <div className="weekly-panel">
     <div className="weekly-panel-heading">
@@ -252,13 +265,14 @@ function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, 
     {error && <div style={{ padding: '0 24px', marginTop: 12 }}><WeeklyError message={error} /></div>}
     {recovery && <div className="collab collab-card"><p className="collab-note">Bản mới nhất đã được tải lại. Nội dung chưa lưu của bạn được giữ riêng, chưa ghi đè dữ liệu.</p><details><summary>Xem nội dung chưa lưu</summary>{Object.entries(recovery.edits).map(([id, value]) => <p key={id}>Tiêu chí #{id}: {value.score || 'Chưa chấm'} · {value.comments}</p>)}<p>{recovery.comments}</p></details><div className="collab-actions">{assessment?.canEdit && <Button onClick={() => { setEdits(Object.fromEntries(assessment.scores.map(score => [score.rubricCriterionId, recovery.edits[score.rubricCriterionId] ?? { score: score.score == null ? '' : String(score.score), comments: score.comments ?? '' }]))); setComments(recovery.comments); setRecovery(null) }}>Khôi phục vào bản nháp mới nhất</Button>}<Button variant="outline" onClick={() => setRecovery(null)}>Giữ dữ liệu máy chủ</Button></div></div>}
 
-    {!assessment && <div style={{ padding: '16px 24px' }}>
+    {!assessment && !isStudent && <div style={{ padding: '16px 24px' }}>
       <label>Rubric áp dụng<select value={selectedRubricId ?? ''} onChange={(event) => setSelectedRubricId(Number(event.target.value) || null)} disabled={!rubrics}>
         <option value="">— Chọn rubric —</option>
         {rubrics?.map((rubric) => <option key={rubric.id} value={rubric.id}>{rubric.name} (v{rubric.version})</option>)}
       </select></label>
     </div>}
 
+    {!assessment && isStudent && <div style={{ padding: '16px 24px' }} className="text-sm text-ink-muted flex items-center gap-2"><span className="material-symbols-outlined text-slate-400" aria-hidden="true">info</span>Giảng viên hướng dẫn chưa nộp bản đánh giá cho tuần này. Nhận xét sẽ hiển thị ngay khi được công bố.</div>}
     {draftCriteria.length > 0 && <Table className="weekly-criteria">
       <TableHead><tr><th>Tiêu chí</th><th>Điểm (tối đa)</th><th>Nhận xét</th></tr></TableHead>
       <tbody>
@@ -281,7 +295,7 @@ function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, 
     {assessment?.totalScore != null && <div style={{ padding: '0 24px 12px' }}><strong>Tổng điểm tham khảo: {formatScore(assessment.totalScore)}</strong></div>}
     {assessment?.submittedAt && <div style={{ padding: '0 24px 12px' }}><small>Đã nộp: {formatWeeklyDateTime(assessment.submittedAt)}</small></div>}
 
-    <div className="weekly-actions">
+    {!isStudent && <div className="weekly-actions">
       <span />
       <div style={{ display: 'flex', gap: 8 }}>
         {!assessment && <button className="weekly-button" type="button" disabled={busy || !!recovery || !selectedRubricId} onClick={createDraft}>Tạo bản chấm</button>}
@@ -294,7 +308,7 @@ function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, 
           <button className="weekly-button weekly-button--secondary" type="button" disabled={busy || !!recovery || !revisionReason.trim()} onClick={createCorrection}>Tạo chỉnh sửa (phiên bản mới)</button>
         </>}
       </div>
-    </div>
+    </div>}
     <div className="collab-card"><Button variant="ghost" icon="history" aria-expanded={historyOpen} onClick={() => setHistoryOpen(value => !value)}>Xem lịch sử phiên bản</Button>{historyOpen && <WeeklyAssessmentHistory key={`${revision}:${assessment?.concurrencyToken}`} projectId={projectId} studentId={studentId} weekNumber={weekNumber} />}</div>
   </div>
 }

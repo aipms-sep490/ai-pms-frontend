@@ -23,4 +23,47 @@ describe('ProjectContributionsPage', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Nguồn chứng cứ' }), { target: { value: 'MEETING' } })
     await waitFor(() => expect(api.getContributionEvidence).toHaveBeenLastCalledWith(9, 4, 1, 'MEETING'))
   })
+
+  it('exports contribution metrics as UTF-8 CSV when download button is clicked', async () => {
+    api.getContributions.mockResolvedValue({
+      dataStatus: 'CURRENT',
+      activityVariance: 0.12,
+      page: 1,
+      pageSize: 20,
+      totalCount: 1,
+      ruleVersion: 'activity-v2',
+      snapshotHash: null,
+      snapshotAt: null,
+      members: [{
+        userId: 4,
+        displayName: 'Khang Le',
+        assignedTasks: 5,
+        completedTasks: 4,
+        submittedReports: 2,
+        attendedMeetings: 3,
+        submittedDeliverableVersions: 1,
+        activityScore: 85,
+        evidenceCount: 10,
+        uploadedFiles: 6,
+      }],
+    })
+
+    const createObjectURL = vi.fn().mockReturnValue('blob:mock-url')
+    const revokeObjectURL = vi.fn()
+    window.URL.createObjectURL = createObjectURL
+    window.URL.revokeObjectURL = revokeObjectURL
+
+    render(
+      <MemoryRouter initialEntries={['/department/projects/9/contributions']}>
+        <Routes>
+          <Route path="/department/projects/:projectId/contributions" element={<ProjectContributionsPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    const exportBtn = await screen.findByRole('button', { name: /Xuất báo cáo \(CSV\)/ })
+    expect(exportBtn).toBeTruthy()
+    fireEvent.click(exportBtn)
+    expect(createObjectURL).toHaveBeenCalled()
+  })
 })

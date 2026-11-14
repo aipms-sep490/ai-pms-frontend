@@ -36,16 +36,16 @@ const draft: WeeklyAssessment = {
   createdAt: '2026-09-15T00:00:00Z', submittedAt: null, canEdit: true, canSubmit: true, isDemo: true, affectsOfficialResult: false,
 }
 
-function mount(withTeam = true) {
+function mount(withTeam = true, actor: ExecutionAccess['actor'] = 'supervisor', currentUserId = 5) {
   const access: ExecutionAccess = {
     project: { id: 9, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'],
     team: { id: 1, academicSemesterId: 3, code: 'T1', name: 'Nhóm 1', status: 'ACTIVE', members: [{ userId: 12, fullName: 'Nguyễn Văn A', isEligibleStudent: true, isLeader: true }], eligibility: { canRegister: true, rosterLocked: true } } as ExecutionAccess['team'],
-    actor: 'supervisor', canManageStructure: false, currentUserId: 5, routeBase: '/supervisor/projects/9',
+    actor, canManageStructure: false, currentUserId, routeBase: `/${actor}/projects/9`,
   }
   if (!withTeam) { access.team = undefined; access.project.teamId = 1 }
   const router = createMemoryRouter([{ element: <ExecutionAccessProvider value={access}><Outlet /></ExecutionAccessProvider>, children: [
-    { path: '/supervisor/projects/:projectId/weekly-assessments', element: <WeeklyAssessmentsPage /> },
-  ] }], { initialEntries: ['/supervisor/projects/9/weekly-assessments'] })
+    { path: `/${actor}/projects/:projectId/weekly-assessments`, element: <WeeklyAssessmentsPage /> },
+  ] }], { initialEntries: [`/${actor}/projects/9/weekly-assessments`] })
   return render(<RouterProvider router={router} />)
 }
 
@@ -192,5 +192,14 @@ describe('Weekly assessments page', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lưu nháp' }))
     await screen.findByRole('alert')
     await waitFor(() => expect(api.getWeeklyAssessmentHistory).toHaveBeenCalledTimes(2))
+  })
+
+  it('renders student read-only view without edit/submit actions or member dropdown', async () => {
+    api.getWeeklyAssessmentHistory.mockResolvedValue({ items: [draft], page: 1, pageSize: 1, totalCount: 1, totalPages: 1 })
+    mount(true, 'student', 12)
+    expect(await screen.findByText('Đánh giá cá nhân theo tuần')).toBeTruthy()
+    expect(screen.queryByLabelText('Sinh viên')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Nộp điểm' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Lưu nháp' })).toBeNull()
   })
 })
