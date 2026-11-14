@@ -8,6 +8,7 @@ import { HttpError } from '../../services/http/http-client'
 import {
   cancelDefense,
   createDefenseCommittee,
+  getDefenseCommitteeCandidates,
   getDefenseCommittees,
   getProjectDefenseSessions,
   scheduleDefense,
@@ -15,6 +16,7 @@ import {
 import type {
   CommitteeMember,
   DefenseCommittee,
+  DefenseCommitteeCandidate,
   DefenseSession,
   DefenseSessionStatus,
 } from './defense-types'
@@ -44,6 +46,7 @@ function mapConflictReason(reason: unknown, fallback: string): string {
     if (code.includes('DEFENSE_ALREADY_SCHEDULED')) return 'Đồ án đã có lịch bảo vệ đang hoạt động. Cần hủy lịch trước khi xếp lịch mới.'
     if (code.includes('DEFENSE_MAJOR_COVERAGE_REQUIRED')) return 'Hội đồng phải bao quát đầy đủ tất cả các chuyên ngành trong phạm vi đồ án.'
     if (code.includes('DEFENSE_MEMBER_NOT_QUALIFIED')) return 'Giảng viên chưa đủ điều kiện chuyên môn hoặc không thuộc khoa phụ trách ngành.'
+    if (code.includes('DEFENSE_SUPERVISOR_CONFLICT')) return 'Giảng viên đang hướng dẫn nhóm này nên không thể tham gia hội đồng chấm bảo vệ.'
     if (code.includes('DEFENSE_SCHEDULE_BUSY')) return 'Hệ thống đang xử lý lịch bảo vệ khác; vui lòng thử lại sau giây lát.'
     if (reason.status === 403) return 'Bạn không có quyền quản lý lịch bảo vệ hoặc hội đồng của đồ án này.'
     if (reason.status === 409) return reason.message || 'Xung đột phiên làm việc hoặc xung đột lịch bảo vệ. Hãy thử lại.'
@@ -220,10 +223,13 @@ export function DefenseManagementPanel({
   const [committees, setCommittees] = useState<DefenseCommittee[]>([])
   const [loadingCommittees, setLoadingCommittees] = useState(false)
   const [committeeError, setCommitteeError] = useState('')
+  const [candidates, setCandidates] = useState<DefenseCommitteeCandidate[]>([])
+  const [candidateState, setCandidateState] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [candidateRevision, setCandidateRevision] = useState(0)
 
   // Create committee state
   const [committeeName, setCommitteeName] = useState('')
-  const [memberRows, setMemberRows] = useState<{ userId: string; majorId: string }[]>([{ userId: '', majorId: '' }])
+  const [memberRows, setMemberRows] = useState<{ userId: string; majorId: string; role: 'MEMBER' | 'CHAIR' | 'SECRETARY' }[]>([{ userId: '', majorId: '', role: 'MEMBER' }])
   const [creatingCommittee, setCreatingCommittee] = useState(false)
   const [createCommitteeError, setCreateCommitteeError] = useState('')
 
@@ -252,10 +258,25 @@ export function DefenseManagementPanel({
     return () => { active = false }
   }, [projectId])
 
+  useEffect(() => {
+    const controller = new AbortController()
+    setCandidateState('loading'); setCandidates([])
+    void (async () => {
+      const rows: DefenseCommitteeCandidate[] = []
+      for (let page = 1; ; page++) {
+        const result = await getDefenseCommitteeCandidates(projectId, page, 100, controller.signal)
+        rows.push(...result.items)
+        if (rows.length >= result.totalCount || result.items.length === 0) break
+      }
+      if (!controller.signal.aborted) { setCandidates(rows); setCandidateState('ready') }
+    })().catch(() => { if (!controller.signal.aborted) setCandidateState('error') })
+    return () => controller.abort()
+  }, [projectId, candidateRevision])
+
   function addMemberRow() {
-    setMemberRows((curr) => [...curr, { userId: '', majorId: '' }])
+    setMemberRows((curr) => [...curr, { userId: '', majorId: '', role: 'MEMBER' }])
   }
-  function updateMemberRow(idx: number, patch: { userId?: string; majorId?: string }) {
+  function updateMemberRow(idx: number, patch: { userId?: string; majorId?: string; role?: 'MEMBER' | 'CHAIR' | 'SECRETARY' }) {
     setMemberRows((curr) => curr.map((r, i) => (i === idx ? { ...r, ...patch } : r)))
   }
   function removeMemberRow(idx: number) {
@@ -264,12 +285,16 @@ export function DefenseManagementPanel({
 
   async function handleCreateCommittee() {
     if (!committeeName.trim()) return
-    const members: CommitteeMember[] = memberRows
-      .map((r) => ({ userId: Number(r.userId), majorId: Number(r.majorId) }))
-      .filter((m) => m.userId > 0 && m.majorId > 0)
+    const members: CommitteeMember[] = memberRows.map((r) => ({ userId: Number(r.userId), majorId: Number(r.majorId), role: r.role }))
 
-    if (members.length === 0) {
-      setCreateCommitteeError('Hội đồng phải có ít nhất 1 thành viên hợp lệ (User ID và Major ID).')
+    if (candidateState !== 'ready' || members.some(m => !candidates.some(c => c.userId === m.userId && c.majorId === m.majorId && c.canAssign))
+      || new Set(members.map(m => `${m.userId}:${m.majorId}`)).size !== members.length) {
+      setCreateCommitteeError('Chọn từng giảng viên đủ điều kiện từ danh sách của máy chủ; không chọn trùng người và ngành.')
+      return
+    }
+    if (members.filter(m => m.role === 'CHAIR').length > 1 || members.filter(m => m.role === 'SECRETARY').length > 1
+      || members.some(m => m.role === 'CHAIR' && members.some(s => s.role === 'SECRETARY' && s.userId === m.userId))) {
+      setCreateCommitteeError('Hội đồng có tối đa một chủ tịch và một thư ký; hai vai trò phải thuộc hai người khác nhau.')
       return
     }
 
@@ -282,7 +307,7 @@ export function DefenseManagementPanel({
       })
       setCommittees((curr) => [...curr, created])
       setCommitteeName('')
-      setMemberRows([{ userId: '', majorId: '' }])
+      setMemberRows([{ userId: '', majorId: '', role: 'MEMBER' }])
     } catch (err) {
       setCreateCommitteeError(mapConflictReason(err, 'Không thể tạo hội đồng bảo vệ.'))
     } finally {
@@ -360,24 +385,28 @@ export function DefenseManagementPanel({
           </label>
           <div className="space-y-2">
             <span className="text-xs text-ink-soft font-semibold">Danh sách thành viên hội đồng</span>
+            {candidateState === 'loading' && <p role="status" className="text-xs text-ink-muted">Đang kiểm tra giảng viên đủ điều kiện…</p>}
+            {candidateState === 'error' && <p role="alert" className="text-xs text-status-error-text">Chưa tải được ứng viên từ máy chủ. <button type="button" className="underline" onClick={() => setCandidateRevision(v => v + 1)}>Thử lại</button></p>}
+            {candidateState === 'ready' && candidates.length === 0 && <p role="status" className="text-xs text-ink-muted">Chưa có giảng viên đủ chuyên môn trong phạm vi bộ môn phụ trách.</p>}
+            {candidateState === 'ready' && candidates.some(c => c.blockReason === 'SUPERVISOR_CONFLICT') && <p className="text-xs text-status-warning-text">Giảng viên đang hướng dẫn đồ án này được hiển thị để đối chiếu nhưng bị khóa chọn.</p>}
             {memberRows.map((row, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <input
-                  type="number"
-                  placeholder="User ID (Giảng viên)"
-                  className="w-36 rounded-md border border-hairline p-1.5 text-xs"
-                  value={row.userId}
-                  disabled={creatingCommittee}
-                  onChange={(e) => updateMemberRow(idx, { userId: e.target.value })}
-                />
-                <input
-                  type="number"
-                  placeholder="Major ID (Ngành)"
-                  className="w-36 rounded-md border border-hairline p-1.5 text-xs"
-                  value={row.majorId}
-                  disabled={creatingCommittee}
-                  onChange={(e) => updateMemberRow(idx, { majorId: e.target.value })}
-                />
+              <div key={idx} className="flex flex-wrap items-end gap-2">
+                <label className="min-w-64 flex-1 text-xs text-ink-soft">Giảng viên và chuyên ngành {idx + 1}
+                  <select className="mt-1 min-h-11 w-full rounded-md border border-hairline bg-card p-2 text-sm" value={row.userId && row.majorId ? `${row.userId}:${row.majorId}` : ''}
+                    disabled={creatingCommittee || candidateState !== 'ready'}
+                    onChange={event => { const [userId = '', majorId = ''] = event.target.value.split(':'); updateMemberRow(idx, { userId, majorId }) }}>
+                    <option value="">Chọn người chấm đủ điều kiện</option>
+                    {candidates.map(candidate => <option key={`${candidate.userId}:${candidate.majorId}`} value={`${candidate.userId}:${candidate.majorId}`} disabled={!candidate.canAssign}>
+                      {candidate.fullName} · {candidate.majorName}{candidate.blockReason === 'SUPERVISOR_CONFLICT' ? ' · Đang hướng dẫn nhóm, không được chấm' : candidate.blockReason ? ' · Hồ sơ chưa khả dụng' : ''}
+                    </option>)}
+                  </select>
+                </label>
+                <label className="text-xs text-ink-soft">Vai trò trong hội đồng
+                  <select className="mt-1 min-h-11 rounded-md border border-hairline bg-card p-2 text-sm" value={row.role} disabled={creatingCommittee}
+                    onChange={event => updateMemberRow(idx, { role: event.target.value as 'MEMBER' | 'CHAIR' | 'SECRETARY' })}>
+                    <option value="MEMBER">Thành viên</option><option value="CHAIR">Chủ tịch</option><option value="SECRETARY">Thư ký</option>
+                  </select>
+                </label>
                 <button
                   type="button"
                   className="text-xs text-status-error-text hover:underline"
@@ -401,11 +430,12 @@ export function DefenseManagementPanel({
           <button
             type="button"
             className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
-            disabled={creatingCommittee || !committeeName.trim()}
+            disabled={creatingCommittee || candidateState !== 'ready' || !committeeName.trim()}
             onClick={() => void handleCreateCommittee()}
           >
             {creatingCommittee ? 'Đang tạo…' : 'Tạo hội đồng'}
           </button>
+          <p className="text-xs text-ink-muted">Thành viên hội đồng và lịch bảo vệ chưa tự cấp quyền nhập điểm rubric. Phân công chấm điểm được quản lý trong phần đánh giá.</p>
         </div>
       </section>
 
@@ -536,6 +566,7 @@ export function ProjectDefensePage() {
 export function ProjectDefenseManagementPage() {
   const routeProjectId = useParams().projectId
   const pathname = useLocation().pathname
+  const isDepartmentRoute = pathname.startsWith('/department/')
   const projectId = Number(routeProjectId ?? pathname.match(/projects\/(\d+)\/defense/)?.[1])
   const [sessions, setSessions] = useState<DefenseSession[] | null>(null)
   const [error, setError] = useState('')
@@ -555,11 +586,13 @@ export function ProjectDefenseManagementPage() {
 
   if (!Number.isSafeInteger(projectId) || projectId < 1) return <WorkspacePage title="Quản lý bảo vệ"><p role="alert">Mã đồ án không hợp lệ.</p></WorkspacePage>
   return (
-    <WorkspacePage title="Quản lý hội đồng & lịch bảo vệ" eyebrow={`Đồ án #${projectId}`} description="Khoa hoặc Primary quản lý hội đồng và lịch bảo vệ trong phạm vi được backend cấp.">
+    <WorkspacePage title={isDepartmentRoute ? 'Quản lý hội đồng & lịch bảo vệ' : 'Lịch bảo vệ đồ án'} eyebrow={`Đồ án #${projectId}`} description={isDepartmentRoute ? 'Bộ môn phụ trách thành lập hội đồng và xếp lịch trong phạm vi BE cấp.' : 'Giảng viên hướng dẫn theo dõi lịch bảo vệ; bộ môn phụ trách phân hội đồng.'}>
       <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
 
       {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error}</p>}
-      {!error && sessions && <DefenseManagementPanel projectId={projectId} hasScheduledSession={sessions.some((session) => session.status === 'SCHEDULED')} onSessionScheduled={() => setRevision((value) => value + 1)} />}
+      {!error && sessions && (isDepartmentRoute
+        ? <DefenseManagementPanel projectId={projectId} hasScheduledSession={sessions.some((session) => session.status === 'SCHEDULED')} onSessionScheduled={() => setRevision((value) => value + 1)} />
+        : <DefenseScheduleView projectId={projectId} sessions={sessions} />)}
       {!error && !sessions && <p role="status">Đang tải lịch bảo vệ…</p>}
     </WorkspacePage>
   )

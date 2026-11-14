@@ -4,6 +4,7 @@ import type {
   CancelDefenseRequest,
   CreateCommitteeRequest,
   DefenseCommittee,
+  DefenseCommitteeCandidate,
   DefenseSession,
   ScheduleDefenseRequest,
 } from './defense-types'
@@ -22,6 +23,9 @@ export const cancelDefense = (id: number, body: CancelDefenseRequest) =>
 
 export const getDefenseCommittees = (projectId: number, page = 1, pageSize = 50, signal?: AbortSignal) =>
   httpGet<PagedResult<DefenseCommittee>>(`/projects/${projectId}/defense-committees?page=${page}&pageSize=${pageSize}`, signal)
+
+export const getDefenseCommitteeCandidates = (projectId: number, page = 1, pageSize = 100, signal?: AbortSignal) =>
+  httpGet<PagedResult<DefenseCommitteeCandidate>>(`/projects/${projectId}/defense-committee-candidates?page=${page}&pageSize=${pageSize}`, signal)
 
 export const createDefenseCommittee = (projectId: number, body: CreateCommitteeRequest) =>
   httpPost<DefenseCommittee>(`/projects/${projectId}/defense-committees`, body)

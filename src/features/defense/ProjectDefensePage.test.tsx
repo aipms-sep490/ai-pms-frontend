@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   journey: { project: { id: 9 } as { id: number } | null },
   getProjectDefenseSessions: vi.fn(),
   getDefenseCommittees: vi.fn(),
+  getDefenseCommitteeCandidates: vi.fn(),
   createDefenseCommittee: vi.fn(),
   scheduleDefense: vi.fn(),
   cancelDefense: vi.fn(),
@@ -17,6 +18,7 @@ vi.mock('../../app/context', () => ({ useStudentJourney: () => mocks.journey }))
 vi.mock('./defense-api', () => ({
   getProjectDefenseSessions: mocks.getProjectDefenseSessions,
   getDefenseCommittees: mocks.getDefenseCommittees,
+  getDefenseCommitteeCandidates: mocks.getDefenseCommitteeCandidates,
   createDefenseCommittee: mocks.createDefenseCommittee,
   scheduleDefense: mocks.scheduleDefense,
   cancelDefense: mocks.cancelDefense,
@@ -28,12 +30,17 @@ const scheduled: DefenseSession = {
 }
 
 const render_ = () => render(<MemoryRouter><ProjectDefensePage /></MemoryRouter>)
-const renderManagement = () => render(<MemoryRouter initialEntries={['/supervisor/projects/9/defense']}><ProjectDefenseManagementPage /></MemoryRouter>)
+const renderManagement = () => render(<MemoryRouter initialEntries={['/department/projects/9/defense']}><ProjectDefenseManagementPage /></MemoryRouter>)
+const renderSupervisor = () => render(<MemoryRouter initialEntries={['/supervisor/projects/9/defense']}><ProjectDefenseManagementPage /></MemoryRouter>)
 const paged = (items: DefenseSession[]) => ({ items, page: 1, pageSize: 20, totalCount: items.length, totalPages: 1 })
 
 beforeEach(() => {
   mocks.journey.project = { id: 9 }
   mocks.getDefenseCommittees.mockResolvedValue({ items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 })
+  mocks.getDefenseCommitteeCandidates.mockResolvedValue({ items: [
+    { userId: 11, fullName: 'Giảng viên độc lập', majorId: 1, majorName: 'KTPM', canAssign: true, blockReason: null },
+    { userId: 12, fullName: 'Giảng viên hướng dẫn', majorId: 1, majorName: 'KTPM', canAssign: false, blockReason: 'SUPERVISOR_CONFLICT' },
+  ], page: 1, pageSize: 100, totalCount: 2 })
 })
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 
@@ -123,14 +130,15 @@ describe('ProjectDefensePage', () => {
 
     // Create committee
     fireEvent.change(screen.getByPlaceholderText(/Hội đồng bảo vệ/), { target: { value: 'Hội đồng mới' } })
-    fireEvent.change(screen.getByPlaceholderText(/User ID/), { target: { value: '11' } })
-    fireEvent.change(screen.getByPlaceholderText(/Major ID/), { target: { value: '1' } })
+    const candidate = await screen.findByLabelText('Giảng viên và chuyên ngành 1') as HTMLSelectElement
+    expect((candidate.querySelector('option[value="12:1"]') as HTMLOptionElement).disabled).toBe(true)
+    fireEvent.change(candidate, { target: { value: '11:1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Tạo hội đồng' }))
 
     await waitFor(() => {
       expect(mocks.createDefenseCommittee).toHaveBeenCalledWith(9, {
         name: 'Hội đồng mới',
-        members: [{ userId: 11, majorId: 1 }],
+        members: [{ userId: 11, majorId: 1, role: 'MEMBER' }],
       })
     })
 
@@ -150,6 +158,14 @@ describe('ProjectDefensePage', () => {
       })
     })
     expect(await screen.findByText('Xếp lịch bảo vệ thành công.')).toBeTruthy()
+  })
+
+  it('keeps the supervisor route read-only and does not load committee candidates', async () => {
+    mocks.getProjectDefenseSessions.mockResolvedValue(paged([scheduled]))
+    renderSupervisor()
+    expect(await screen.findByText('Lịch bảo vệ đồ án')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Tạo hội đồng' })).toBeNull()
+    expect(mocks.getDefenseCommitteeCandidates).not.toHaveBeenCalled()
   })
   it('displays a conflict warning and identity strip when sessions overlap in time', async () => {
     const session1 = { ...scheduled, id: 1, startAt: '2026-12-20T08:00:00Z', endAt: '2026-12-20T10:00:00Z' }
