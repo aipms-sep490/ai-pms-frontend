@@ -1,6 +1,8 @@
 import { Table, TableHead } from '../../../components/ui/Table'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
+import { Pagination } from '../../../components/ui/Pagination'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
@@ -318,6 +320,8 @@ export function ReviewGateGovernancePage() {
     })
   }, [templates, templateSearch, templateStatusFilter, templateModeFilter])
 
+  const templatePager = useClientPagination(filteredTemplates, 10)
+
   const templateChips: ActiveFilterChip[] = []
   if (templateStatusFilter !== 'ALL') {
     templateChips.push({ id: 'status', label: 'Trạng thái', value: templateStatusFilter === 'PUBLISHED' ? 'Đã công bố' : 'Bản nháp' })
@@ -350,10 +354,13 @@ export function ReviewGateGovernancePage() {
       {notice && (
         <div
           role="status"
-          className="flex items-center justify-between rounded-xl border border-status-success-border bg-status-success-bg p-4 text-xs font-semibold text-status-success-text"
+          className="flex items-center justify-between gap-3 rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-xs font-semibold text-ink shadow-xs"
         >
-          <span>✓ {notice}</span>
-          <button type="button" aria-label="Đóng thông báo" onClick={() => setNotice(null)} className="text-status-success-text hover:text-ink">
+          <span className="inline-flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+            <span>{notice}</span>
+          </span>
+          <button type="button" aria-label="Đóng thông báo" onClick={() => setNotice(null)} className="text-ink-muted hover:text-ink">
             ✕
           </button>
         </div>
@@ -595,7 +602,7 @@ export function ReviewGateGovernancePage() {
                       </tr>
                     </TableHead>
                     <tbody className="divide-y divide-hairline text-ink-soft">
-                      {filteredTemplates.map(tmpl => (
+                      {templatePager.paginatedItems.map(tmpl => (
                         <tr key={tmpl.id} className="hover:bg-canvas">
                           <td className="py-3.5 px-4">
                             <strong className="block font-bold text-ink">{tmpl.name}</strong>
@@ -660,6 +667,18 @@ export function ReviewGateGovernancePage() {
                     </tbody>
                   </Table>
                 </div>
+                )}
+                {templatePager.showPagination && (
+                  <div className="border-t border-hairline px-4 py-3">
+                    <Pagination
+                      page={templatePager.page}
+                      pages={templatePager.pages}
+                      total={templatePager.total}
+                      pageSize={templatePager.pageSize}
+                      onPage={templatePager.setPage}
+                      onPageSizeChange={templatePager.setPageSize}
+                    />
+                  </div>
                 )}
               </div>
             </div>
