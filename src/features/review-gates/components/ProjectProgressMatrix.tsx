@@ -4,6 +4,8 @@ import type { GateStatus, ProjectReviewMatrixRow } from '../types/review-gates.t
 import { Table, TableHead } from '../../../components/ui/Table'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { Modal } from '../../../components/ui/Modal'
+import { Pagination } from '../../../components/ui/Pagination'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
 
 interface ProjectProgressMatrixProps {
@@ -81,6 +83,8 @@ export function ProjectProgressMatrix({
     })
   }, [projects, filterMode, statusFilter, search])
 
+  const matrixPager = useClientPagination(filteredProjects, 10)
+
   const hasActiveFilters = Boolean(search.trim() || statusFilter !== 'ALL' || filterMode !== 'ALL')
   const activeChips: ActiveFilterChip[] = []
   if (statusFilter !== 'ALL') {
@@ -103,20 +107,20 @@ export function ProjectProgressMatrix({
   return (
     <div className="space-y-5">
       {/* KPI Cards Bar */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+      <div className="grid grid-cols-2 items-stretch gap-4 sm:grid-cols-4">
+        <div className="flex h-full flex-col justify-between rounded-xl border border-hairline bg-card p-4 shadow-2xs">
           <span className="text-xs font-semibold text-ink-muted">Tổng số đồ án</span>
           <p className="mt-1 text-2xl font-black text-ink">{projects.length}</p>
         </div>
-        <div className="rounded-xl border border-status-error-border bg-status-error-bg/50 p-4 shadow-2xs">
+        <div className="flex h-full flex-col justify-between rounded-xl border border-hairline border-l-4 border-l-status-error-text bg-card p-4 shadow-2xs">
           <span className="text-xs font-semibold text-status-error-text">Cần chỉnh sửa thẩm định</span>
           <p className="mt-1 text-2xl font-black text-status-error-text">{revisionCount}</p>
         </div>
-        <div className="rounded-xl border border-primary/20 bg-primary-subtle p-4 shadow-2xs">
+        <div className="flex h-full flex-col justify-between rounded-xl border border-hairline border-l-4 border-l-primary bg-card p-4 shadow-2xs">
           <span className="text-xs font-semibold text-primary">Đang thẩm định</span>
           <p className="mt-1 text-2xl font-black text-primary">{inReviewCount}</p>
         </div>
-        <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+        <div className="flex h-full flex-col justify-between rounded-xl border border-hairline bg-card p-4 shadow-2xs">
           <span className="text-xs font-semibold text-ink-muted">Đồ án liên ngành</span>
           <p className="mt-1 text-2xl font-black text-primary">
             {projects.filter(p => p.mode === 'INTERDISCIPLINARY').length}
@@ -200,7 +204,7 @@ export function ProjectProgressMatrix({
               </tr>
             </TableHead>
             <tbody className="divide-y divide-hairline text-ink-soft">
-              {filteredProjects.map(proj => {
+              {matrixPager.paginatedItems.map(proj => {
                 const keys = Object.keys(proj.gateStatuses)
                 const projectDisplayCode = proj.projectCode ?? proj.projectId
                 return (
@@ -261,6 +265,18 @@ export function ProjectProgressMatrix({
             </tbody>
           </Table>
         </div>
+        )}
+        {matrixPager.showPagination && (
+          <div className="border-t border-hairline px-4 py-3">
+            <Pagination
+              page={matrixPager.page}
+              pages={matrixPager.pages}
+              total={matrixPager.total}
+              pageSize={matrixPager.pageSize}
+              onPage={matrixPager.setPage}
+              onPageSizeChange={matrixPager.setPageSize}
+            />
+          </div>
         )}
         <p className="border-t border-hairline p-3 text-xs text-ink-muted">
           * Tiến độ công việc (%) là số liệu quản lý nội bộ; không thay thế quyết định thẩm định chính thức của người chấm.
