@@ -30,6 +30,9 @@ export const getDefenseCommitteeCandidates = (projectId: number, page = 1, pageS
 export const createDefenseCommittee = (projectId: number, body: CreateCommitteeRequest) =>
   httpPost<DefenseCommittee>(`/projects/${projectId}/defense-committees`, body)
 
+export const confirmDefenseCommittee = (id: number, concurrencyToken: string) =>
+  httpPost<DefenseCommittee>(`/defense-committees/${id}/confirm`, { concurrencyToken })
+
 // Room catalog (BE-16-02)
 export interface RoomDto {
   id: number

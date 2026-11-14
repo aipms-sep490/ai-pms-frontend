@@ -8,6 +8,7 @@ import { HttpError } from '../../services/http/http-client'
 import {
   cancelDefense,
   createDefenseCommittee,
+  confirmDefenseCommittee,
   getDefenseCommitteeCandidates,
   getDefenseCommittees,
   getProjectDefenseSessions,
@@ -232,6 +233,8 @@ export function DefenseManagementPanel({
   const [memberRows, setMemberRows] = useState<{ userId: string; majorId: string; role: 'MEMBER' | 'CHAIR' | 'SECRETARY' }[]>([{ userId: '', majorId: '', role: 'MEMBER' }])
   const [creatingCommittee, setCreatingCommittee] = useState(false)
   const [createCommitteeError, setCreateCommitteeError] = useState('')
+  const [confirmingCommitteeId, setConfirmingCommitteeId] = useState<number | null>(null)
+  const [confirmCommitteeError, setConfirmCommitteeError] = useState('')
 
   // Schedule defense state
   const [selectedCommitteeId, setSelectedCommitteeId] = useState('')
@@ -315,6 +318,21 @@ export function DefenseManagementPanel({
     }
   }
 
+  async function handleConfirmCommittee(committee: DefenseCommittee) {
+    setConfirmingCommitteeId(committee.id)
+    setConfirmCommitteeError('')
+    try {
+      const confirmed = await confirmDefenseCommittee(committee.id, committee.concurrencyToken)
+      setCommittees(current => current.map(item => item.id === confirmed.id ? confirmed
+        : item.status === 'CONFIRMED' ? { ...item, status: 'SUPERSEDED', grantsEvaluatorAuthority: false } : item))
+      setSelectedCommitteeId(String(confirmed.id))
+    } catch (error) {
+      setConfirmCommitteeError(mapConflictReason(error, 'Không thể xác nhận hội đồng.'))
+    } finally {
+      setConfirmingCommitteeId(null)
+    }
+  }
+
   async function handleScheduleDefense() {
     const cId = Number(selectedCommitteeId)
     if (!cId || !startAt || !endAt || !room.trim()) return
@@ -350,13 +368,14 @@ export function DefenseManagementPanel({
         {!loadingCommittees && committees.length === 0 && (
           <p className="text-xs text-ink-muted">Chưa có hội đồng nào được tạo cho đồ án này.</p>
         )}
+        {confirmCommitteeError && <p role="alert" className="text-xs text-status-error-text">{confirmCommitteeError}</p>}
         {committees.length > 0 && (
           <ul className="space-y-2">
             {committees.map((c) => (
               <li key={c.id} className="rounded-lg border border-hairline p-3 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-ink">{c.name} (#{c.id})</span>
-                  <span className="text-ink-muted">{c.members.length} thành viên</span>
+                  <span className="font-semibold text-ink">{c.name} (#{c.id}) · v{c.version ?? 1}</span>
+                  <span className="text-ink-muted">{c.members.length} thành viên · {c.status === 'CONFIRMED' ? 'Đang có hiệu lực' : c.status === 'SUPERSEDED' ? 'Đã thay thế' : 'Bản nháp'}</span>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {c.members.map((m, idx) => (
@@ -365,6 +384,12 @@ export function DefenseManagementPanel({
                     </span>
                   ))}
                 </div>
+                {c.status === 'DRAFT' && c.concurrencyToken && <button type="button"
+                  className="mt-2 min-h-11 rounded-lg border border-primary px-3 text-xs font-semibold text-primary disabled:opacity-50"
+                  disabled={confirmingCommitteeId !== null || hasScheduledSession}
+                  onClick={() => void handleConfirmCommittee(c)}>
+                  {confirmingCommitteeId === c.id ? 'Đang xác nhận…' : 'Xác nhận hội đồng để phân chấm Cold'}
+                </button>}
               </li>
             ))}
           </ul>
@@ -435,7 +460,7 @@ export function DefenseManagementPanel({
           >
             {creatingCommittee ? 'Đang tạo…' : 'Tạo hội đồng'}
           </button>
-          <p className="text-xs text-ink-muted">Thành viên hội đồng và lịch bảo vệ chưa tự cấp quyền nhập điểm rubric. Phân công chấm điểm được quản lý trong phần đánh giá.</p>
+          <p className="text-xs text-ink-muted">Sau khi khóa Final Package, xác nhận hội đồng rồi phân công thành viên chấm Cold theo ngành. Hội đồng không tự cấp điểm nếu chưa có assignment rubric.</p>
         </div>
       </section>
 
@@ -454,11 +479,11 @@ export function DefenseManagementPanel({
                 <select
                   className="mt-1 block w-full rounded-md border border-hairline p-2 text-sm"
                   value={selectedCommitteeId}
-                  disabled={scheduling || committees.length === 0}
+                  disabled={scheduling || !committees.some(c => c.status === 'CONFIRMED')}
                   onChange={(e) => setSelectedCommitteeId(e.target.value)}
                 >
                   <option value="">-- Chọn hội đồng --</option>
-                  {committees.map((c) => (
+                  {committees.filter(c => c.status === 'CONFIRMED').map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name} (#{c.id})
                     </option>

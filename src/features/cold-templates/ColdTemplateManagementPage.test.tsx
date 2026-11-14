@@ -121,7 +121,7 @@ describe('ColdTemplateManagementPage', () => {
     fireEvent.change(screen.getByLabelText('Ngành áp dụng'), { target: { value: '12' } })
     fireEvent.change(screen.getByLabelText('Kỳ đồ án áp dụng'), { target: { value: '34' } })
     fireEvent.click(screen.getByRole('button', { name: 'Tìm' }))
-    await screen.findByRole('option', { name: 'Marketing research reports (v1)' })
+    await screen.findByRole('option', { name: 'Ngành · Marketing research reports (v1)' })
     fireEvent.change(screen.getByRole('option', { name: '-- Chọn template --' }).parentElement!, { target: { value: '1' } })
 
     const applyBtn = screen.getByRole('button', { name: 'Áp dụng checklist vào đồ án' })
@@ -138,7 +138,7 @@ describe('ColdTemplateManagementPage', () => {
     expect(await screen.findByText(/Đã áp dụng checklist cho đồ án. Tổng số hạng mục: 1./)).toBeTruthy()
   })
 
-  it('creates and lists COMMON templates without a major, but does not offer unsupported checklist application', async () => {
+  it('creates and applies COMMON templates to a project without a major target', async () => {
     const common = { ...template, id: 7, majorId: null, scope: 'COMMON' }
     api.getColdTemplates.mockResolvedValue({ items: [common], page: 1, pageSize: 50, totalCount: 1, totalPages: 1 })
     api.createColdTemplate.mockResolvedValue({ ...common, id: 8 })
@@ -148,7 +148,16 @@ describe('ColdTemplateManagementPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tìm' }))
     await waitFor(() => expect(api.getColdTemplates).toHaveBeenCalledWith(null, 34, 1, 50))
     expect(screen.getByText('Marketing research reports (v1)', { selector: 'p' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: '+ Chọn để áp dụng' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '+ Chọn để áp dụng' }))
+    expect(screen.getAllByRole('option', { name: 'Chung · Marketing research reports (v1)' })).toHaveLength(2)
+    fireEvent.change(screen.getByLabelText('Đồ án áp dụng'), { target: { value: '101' } })
+    fireEvent.change(screen.getByLabelText('Kỳ áp dụng'), { target: { value: '34' } })
+    fireEvent.change(screen.getByLabelText('Hạn nộp báo cáo (Deadline)'), { target: { value: '2026-12-31T23:59' } })
+    coldApi.applyColdChecklist.mockResolvedValue({ id: 10, items: [{ id: 1 }] })
+    fireEvent.click(screen.getByRole('button', { name: 'Áp dụng checklist vào đồ án' }))
+    await waitFor(() => expect(coldApi.applyColdChecklist).toHaveBeenCalledWith(101, expect.objectContaining({
+      targets: [{ templateId: 7, scope: 'COMMON', studentId: null }],
+    })))
     fireEvent.change(screen.getByLabelText('Tên template'), { target: { value: 'Bộ chung' } })
     fireEvent.change(screen.getByPlaceholderText('Mã report'), { target: { value: 'OVERVIEW' } })
     fireEvent.change(screen.getByPlaceholderText('Tên report'), { target: { value: 'Tổng quan' } })

@@ -40,6 +40,9 @@ export interface DefenseCommittee {
   name: string
   members: CommitteeMember[]
   grantsEvaluatorAuthority?: boolean
+  status: 'DRAFT' | 'CONFIRMED' | 'SUPERSEDED'
+  version: number
+  concurrencyToken: string
 }
 
 export interface CreateCommitteeRequest {

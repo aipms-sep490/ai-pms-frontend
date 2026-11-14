@@ -96,6 +96,9 @@ const rules: Record<string, Rule | null> = {
   EVALUATOR_ASSIGNED: { entities: ['EVALUATION_ASSIGNMENT'], targets: {
     lecturer: id => ({ url: `/evaluator/assignments/${id}`, label: 'Xem phân công đánh giá' }),
   } },
+  COLD_EVALUATOR_ASSIGNED: { entities: ['EVALUATION_ASSIGNMENT'], targets: {
+    lecturer: id => ({ url: `/evaluator/assignments/${id}`, label: 'Chấm Cold được phân công' }),
+  } },
   EVALUATION_FINALIZED: { entities: ['EVALUATION'], targets: { department: risk.targets.department } },
   APPEAL_REQUESTED: appeal, APPEAL_REVIEWER_ASSIGNED: appeal, APPEAL_REVIEWED: appeal, APPEAL_DECIDED: appeal,
   REVIEW_GATE_UPDATED: gates, REVIEW_POLICY_PUBLISHED: gatePolicy, REVIEW_DEADLINE_APPROACHING: gates,

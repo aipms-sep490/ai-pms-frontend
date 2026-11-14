@@ -27,7 +27,7 @@ const cases: Array<[string[], string, Partial<Record<string, string>>]> = [
   [['PROJECT_RISK_MEDIUM', 'PROJECT_RISK_HIGH', 'PROJECT_RISK_CRITICAL'], 'PROJECT', { STUDENT: '/project/overview', LECTURER: '/supervisor/workspace', DEPARTMENT_STAFF: '/department/portfolio' }],
   [['DEFENSE_SCHEDULED', 'DEFENSE_CANCELLED', 'DEFENSE_SCHEDULE_CHANGED'], 'DEFENSE_SESSION', { STUDENT: '/project/defense', LECTURER: '/lecturer/defense-sessions/17' }],
   [['REVIEW_GATE_3_SCHEDULED', 'REVIEW_GATE_3_SCHEDULE_CHANGED'], 'GATE_SESSION_SCRIPT', { STUDENT: '/project/timeline', LECTURER: '/review/gate-assignments', DEPARTMENT_STAFF: '/department/projects/progress-matrix', ADMIN: '/academic/review-gates' }],
-  [['EVALUATOR_ASSIGNED'], 'EVALUATION_ASSIGNMENT', { LECTURER: '/evaluator/assignments/17' }],
+  [['EVALUATOR_ASSIGNED', 'COLD_EVALUATOR_ASSIGNED'], 'EVALUATION_ASSIGNMENT', { LECTURER: '/evaluator/assignments/17' }],
   [['EVALUATION_FINALIZED'], 'EVALUATION', { DEPARTMENT_STAFF: '/department/portfolio' }],
   [['APPEAL_REQUESTED', 'APPEAL_REVIEWER_ASSIGNED', 'APPEAL_REVIEWED', 'APPEAL_DECIDED'], 'PROJECT', { STUDENT: '/project/result', LECTURER: '/review/projects/17/corrections', DEPARTMENT_STAFF: '/review/projects/17/corrections' }],
   [['REVIEW_GATE_UPDATED', 'REVIEW_DEADLINE_APPROACHING', 'GATE_REVISION_REQUIRED', 'EVIDENCE_VERIFIED', 'GATE_DECISION_RECORDED', 'DISCIPLINE_REVIEW_PENDING', 'DISCIPLINE_DECISION_RECORDED', 'DEFENSE_READINESS_CHANGED'], 'PROJECT_GATE', { STUDENT: '/project/timeline', LECTURER: '/supervisor/workspace', DEPARTMENT_STAFF: '/department/projects/progress-matrix' }],

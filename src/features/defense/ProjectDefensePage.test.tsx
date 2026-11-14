@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   getDefenseCommittees: vi.fn(),
   getDefenseCommitteeCandidates: vi.fn(),
   createDefenseCommittee: vi.fn(),
+  confirmDefenseCommittee: vi.fn(),
   scheduleDefense: vi.fn(),
   cancelDefense: vi.fn(),
 }))
@@ -20,6 +21,7 @@ vi.mock('./defense-api', () => ({
   getDefenseCommittees: mocks.getDefenseCommittees,
   getDefenseCommitteeCandidates: mocks.getDefenseCommitteeCandidates,
   createDefenseCommittee: mocks.createDefenseCommittee,
+  confirmDefenseCommittee: mocks.confirmDefenseCommittee,
   scheduleDefense: mocks.scheduleDefense,
   cancelDefense: mocks.cancelDefense,
 }))
@@ -114,11 +116,11 @@ describe('ProjectDefensePage', () => {
     const { fireEvent, waitFor } = await import('@testing-library/react')
     mocks.getProjectDefenseSessions.mockResolvedValue(paged([]))
     mocks.getDefenseCommittees.mockResolvedValue({
-      items: [{ id: 5, projectId: 9, name: 'Hội đồng KTPM 01', members: [{ userId: 10, majorId: 1 }] }],
+      items: [{ id: 5, projectId: 9, name: 'Hội đồng KTPM 01', members: [{ userId: 10, majorId: 1 }], status: 'CONFIRMED', version: 1, concurrencyToken: 'v1' }],
       page: 1, pageSize: 50, totalCount: 1, totalPages: 1,
     })
     mocks.createDefenseCommittee.mockResolvedValue({
-      id: 6, projectId: 9, name: 'Hội đồng mới', members: [{ userId: 11, majorId: 1 }],
+      id: 6, projectId: 9, name: 'Hội đồng mới', members: [{ userId: 11, majorId: 1 }], status: 'DRAFT', version: 2, concurrencyToken: 'v2',
     })
     mocks.scheduleDefense.mockResolvedValue({ ...scheduled, id: 2, committeeId: 5 })
 
@@ -167,6 +169,20 @@ describe('ProjectDefensePage', () => {
     expect(screen.queryByRole('button', { name: 'Tạo hội đồng' })).toBeNull()
     expect(mocks.getDefenseCommitteeCandidates).not.toHaveBeenCalled()
   })
+  it('keeps a draft committee out of scheduling until the lead confirms it', async () => {
+    const { fireEvent, waitFor } = await import('@testing-library/react')
+    mocks.getProjectDefenseSessions.mockResolvedValue(paged([]))
+    const draft = { id: 5, projectId: 9, name: 'Hội đồng nháp', members: [{ userId: 11, majorId: 1 }], status: 'DRAFT', version: 1, concurrencyToken: 'draft-token' }
+    mocks.getDefenseCommittees.mockResolvedValue({ items: [draft], page: 1, pageSize: 50, totalCount: 1, totalPages: 1 })
+    mocks.confirmDefenseCommittee.mockResolvedValue({ ...draft, status: 'CONFIRMED', concurrencyToken: 'confirmed-token' })
+    renderManagement()
+    expect(await screen.findByText(/Hội đồng nháp/)).toBeTruthy()
+    expect((screen.getByLabelText(/Chọn hội đồng/) as HTMLSelectElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận hội đồng để phân chấm Cold' }))
+    await waitFor(() => expect(mocks.confirmDefenseCommittee).toHaveBeenCalledWith(5, 'draft-token'))
+    expect((screen.getByLabelText(/Chọn hội đồng/) as HTMLSelectElement).disabled).toBe(false)
+    expect(screen.getByRole('option', { name: /Hội đồng nháp/ })).toBeTruthy()
+  })
   it('displays a conflict warning and identity strip when sessions overlap in time', async () => {
     const session1 = { ...scheduled, id: 1, startAt: '2026-12-20T08:00:00Z', endAt: '2026-12-20T10:00:00Z' }
     const session2 = { ...scheduled, id: 2, startAt: '2026-12-20T09:00:00Z', endAt: '2026-12-20T11:00:00Z' }
@@ -181,7 +197,7 @@ describe('ProjectDefensePage', () => {
     const { fireEvent, waitFor } = await import('@testing-library/react')
     mocks.getProjectDefenseSessions.mockResolvedValue(paged([]))
     mocks.getDefenseCommittees.mockResolvedValue({
-      items: [{ id: 5, projectId: 9, name: 'Hội đồng KTPM 01', members: [{ userId: 10, majorId: 1 }] }],
+      items: [{ id: 5, projectId: 9, name: 'Hội đồng KTPM 01', members: [{ userId: 10, majorId: 1 }], status: 'CONFIRMED', version: 1, concurrencyToken: 'v1' }],
       page: 1, pageSize: 50, totalCount: 1, totalPages: 1,
     })
     mocks.scheduleDefense.mockResolvedValue({ ...scheduled, id: 2, committeeId: 5 })
