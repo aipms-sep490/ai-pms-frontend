@@ -4,6 +4,7 @@ Source plan: `docs/uiux/AIPMS_PROGRESS_COLD_DEFENSE_INTEGRATED_PLAN_20261114.md`
 
 - [x] Source-level audit of the reference guide, BE/FE authority, route census, preview, chat and notifications.
 - [x] Consolidated state/role/screen/Excel/preview implementation plan.
+- [x] Updated interaction rules for progress, committee-scoped Cold, notification/chat, document preview, and business-specific dates.
 - [ ] T0: Reconcile effective academic policy, current DB schema and isolated role fixtures.
 - [ ] T1: Close the Gate 1–3 direct-PASS path and align Final Package prerequisites.
   - [x] BE regular Gate 1–3 PASS bypass closed; integration test added and compiled (commit `f756221`).
@@ -14,6 +15,7 @@ Source plan: `docs/uiux/AIPMS_PROGRESS_COLD_DEFENSE_INTEGRATED_PLAN_20261114.md`
 - [ ] T5: Publish downloadable department templates and versioned rubric/Gate Excel import/export.
 - [ ] T6: Authorized PDF, image, DOCX and XLSX preview with safe failure states.
 - [ ] T7: Review all 140 routes and consolidate role journeys while preserving deep links.
+  - [x] Route-to-hub navigation proposal covers census indices 1–140; no route migration claimed.
   - [x] Keep student Cold and Defense navigation visible after `FINAL_SUBMISSION` (route tests and production build).
 - [ ] T8: Standardize alerts, forms, dates, unread counts and compact chat dock.
   - [x] FE notification count retains last known value on transient error and refreshes on retry/visibility/poll.

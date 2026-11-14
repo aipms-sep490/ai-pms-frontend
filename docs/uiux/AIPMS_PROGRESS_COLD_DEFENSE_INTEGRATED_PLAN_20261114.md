@@ -15,7 +15,7 @@ Yêu cầu hiện tại của chủ hệ thống > quy tắc học vụ/DB/BE đ
 | P0-03 | Cold hiện do cán bộ chủ trì khóa; user yêu cầu thành viên hội đồng Defense chấm Cold trước Defense | Sai thứ tự/quyền trong tài liệu | Leader nộp/khóa theo chính sách đã chốt, cán bộ xác nhận; hội đồng xác lập trước Cold, xếp lịch sau Cold |
 | P0-04 | `EvaluationDraftWorkflow`/`EvaluationSchemeService` chưa ràng buộc COLD evaluator với `DefenseCommitteeMember`; chỉ chặn primary supervisor | Người ngoài hội đồng có thể được phân chấm Cold | Cả candidate, assign, read, write, finalize đều kiểm tra membership và scope, chặn mọi supervisor/mentor của chính nhóm |
 | P0-05 | `AutoScheduleService` và lịch thủ công chỉ xét Gate 3/cửa sổ, chưa xét Cold; `ReviewGateService.DefenseReadiness` cũng chưa xét Cold | Nhóm chưa chấm xong có thể được xếp lịch | Một service readiness duy nhất dùng cho preview/apply/manual/CTA; COLD_READY là điều kiện, có blocker rõ |
-| P0-06 | Defense committee chấp nhận 1–20; helper khác nói đúng 4; nhiều committee có thể tồn tại, scheduler lấy bản đầu | Mơ hồ hội đồng có hiệu lực | Chính sách min 3 + chair/secretary và đại diện ngành theo kỳ; định danh active committee/version; đổi thành viên phải tính lại Cold |
+| P0-06 | Defense committee chấp nhận 1–20; helper khác nói đúng 4; nhiều committee có thể tồn tại, scheduler lấy bản đầu | Mơ hồ hội đồng có hiệu lực | Cấu hình số lượng/vai trò theo Project Period sau khi quy chế được xác nhận; định danh một committee CONFIRMED có hiệu lực/version, không suy theo ID mới nhất; đổi thành viên phải tính lại Cold |
 | P0-07 | FE route registry chỉ hiện Cold/Defense ở `ACTIVE`; sau Final Submission là `FINAL_SUBMISSION` | Sinh viên mất menu khi cần nhất | Hiện route theo quyền đọc ở cả `ACTIVE`, `FINAL_SUBMISSION`, `COMPLETED` tương ứng; mutation theo BE |
 | P1-01 | `AcademicKnowledgeManagementPage` chỉ nhập text; chưa có file mẫu cho sinh viên | Không tải/xem DOCX/PDF mẫu | Kho tài liệu mẫu theo bộ môn/ngành/kỳ, file version, publish/retire, quyền tải |
 | P1-02 | `DocumentPreviewModal` chỉ render PDF/ảnh/text; Office là fallback download | DOCX/XLSX chưa xem trước | Readonly preview qua endpoint BE; không đưa tệp riêng lên viewer công cộng |
@@ -42,6 +42,8 @@ Hội đồng: chấm Defense theo assignment riêng nhưng cùng active committ
 ```
 
 Luồng này tránh vòng phụ thuộc: **lập hội đồng trước Cold, xếp lịch sau Cold**. Phân biệt `COMMITTEE_CONFIRMED`, `COLD_PACKAGE_LOCKED`, `COLD_REVIEW_COMPLETE`, `DEFENSE_SCHEDULED` bằng capability/derived status; không cần biến tất cả thành trạng thái `Project` mới. Chính sách hiện hành có thể cho Cold là tùy chọn theo kỳ/ngành; khi bắt buộc, readiness phải fail closed. Nếu đổi hội đồng sau phân công Cold: lưu phiên bản/audit, thu hồi assignment chưa bắt đầu; điểm đã chốt phải có quyết định xử lý có thẩm quyền, không xóa âm thầm; readiness quay về BLOCKED tới khi hoàn tất phân công hợp lệ.
+
+**Chốt contract hội đồng trước khi mở chấm Cold:** DB hiện chỉ lưu `DefenseCommittee` và `DefenseCommitteeMember` không có trạng thái hiệu lực; lịch Defense gắn committee ID nhưng được lập *sau* Cold. Bổ sung trạng thái/version `DRAFT → CONFIRMED → SUPERSEDED` và ràng buộc duy nhất một `CONFIRMED` cho một project; xác nhận phải khóa theo project và kiểm tra tất cả supervisor/mentor, ngành, cơ cấu theo policy của kỳ. `COLD` assignment ghim committee ID/version; candidate, assign, evidence read, draft create/update, finalize và kết quả đều kiểm tra committee CONFIRMED khớp version. Lịch Defense chỉ nhận đúng ID đó. Không chọn committee có ID lớn nhất hoặc một hội đồng bất kỳ. Khi thay người: workflow có lý do/audit, xử lý bản chấm đã khóa theo quyết định học vụ trước khi chuyển version; cảnh báo và thông báo lại người mới. DB migration, contract và test đồng thời; không thêm dữ liệu giả trên DB dùng chung.
 
 ### Quyền và trách nhiệm
 
@@ -79,6 +81,8 @@ Preview: PDF/ảnh giữ `DocumentPreviewModal` hiện có; DOCX chuyển thành
 ## 5. Giao diện và gom màn hình
 
 Giữ 140 URL/deep link hiện có để không phá bookmark và thông báo. Hợp nhất **khung điều hướng**, không xóa nghiệp vụ:
+
+Ma trận bao phủ từng route theo chỉ số 1–140: `docs/uiux/AIPMS_SCREEN_CONSOLIDATION_MATRIX_20261114.md`. Đây là đích sắp xếp; chưa có nghĩa 140 màn đã được chuyển đổi.
 
 | Vai trò | Một khu vực chính | Tab/subview gợi ý | URL cũ |
 |---|---|---|---|

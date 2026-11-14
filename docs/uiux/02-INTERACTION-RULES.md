@@ -79,7 +79,38 @@ Use user-facing Vietnamese terminology consistently if Vietnamese is the app loc
 
 ## 8. Bản đồ hoạt động truy cập và motion
 
+Phần bản đồ được **hoãn theo yêu cầu chủ hệ thống**; không tạo marker, thu thập vị trí hay thêm UI bản đồ trong đợt tiến trình/Cold/Defense này.
+
 - Bản đồ truy cập là **vị trí địa lý ước lượng từ nguồn BE được duyệt**, không phải GPS và không đồng nghĩa với vị trí chính xác của cá nhân. Nếu chỉ có IP/`LastLoginAt`, không dựng marker giả hoặc gắn nhãn “đang online”. Không gửi IP thô tới tile provider từ FE.
 - Admin xem phạm vi hệ thống; nhân sự khoa/bộ môn chỉ xem phạm vi mà BE xác định. Map, danh sách và chỉ số cùng snapshot/thời gian, cùng bộ lọc và cùng quyền. Trạng thái `unknown`/không xác định phải hiện bằng chữ. Bảng vẫn dùng được khi tile/map không tải; marker không thay thế keyboard list.
 - Chỉ tải thư viện bản đồ khi mở panel có dữ liệu và quyền; provider tile/attribution, retention, thời gian làm mới và độ chính xác phải chốt trước release. Xem RFC trong [kế hoạch workspace và geo](WORKSPACE_ROLE_GEO_ACCESS_DEEP_AUDIT_PLAN_2026-11-13.md).
 - Motion phục vụ thay đổi trạng thái: hover/focus 120–200 ms, loading có thông báo tiến trình và skeleton phù hợp, tránh chớp khi refetch. Không pulse liên tục cho người dùng trên bản đồ hoặc tự bay/zoom khi dữ liệu mới. `prefers-reduced-motion` tắt chuyển động không thiết yếu; mọi trạng thái vẫn nhận biết được bằng chữ/viền, không dựa riêng vào màu.
+
+## 9. Tiến trình, Gate, Cold và Defense
+
+- Một project hiển thị cùng mã, kỳ, nhóm, ngành, trạng thái, phiên bản và người chịu trách nhiệm trên mọi workspace. Timeline học vụ là Gate 1–3 → Final Package → Cold → Defense → kết quả; chỉ hiển thị checkpoint đã cấu hình bởi BE. Task/mốc gắn Gate requirement để hỗ trợ lập kế hoạch, không tự xác nhận minh chứng đạt.
+- Cặp hai evaluator Gate 1–3 của một đồ án là cùng hai người. Quyết định PASS thường chỉ sau cả hai review hợp lệ; đường override có lý do/audit riêng. FE không tự tính Gate PASS.
+- Chỉ thành viên hội đồng Defense `CONFIRMED` của đúng project, đúng ngành/phạm vi, có assignment còn hiệu lực mới thấy thao tác chấm Cold. Họ chấm Cold trước khi xếp lịch/chấm Defense theo readiness của BE; thông báo dẫn tới đúng assignment, không đưa tài liệu riêng vào preview công khai.
+- Checklist và tiêu chí đã công bố phải có mục tiêu, phạm vi/ngành, minh chứng cần nộp, hạn, trọng số, blocker và phiên bản; leader nhìn thấy chúng trước khi chia Sprint/task/milestone. Bản nháp tiêu chí không được trình bày như quy định có hiệu lực.
+- Màn kết quả tách `ON_GOING`, `COLD`, `DEFENSE`, tổng hợp/cá nhân và trạng thái bản nháp/đã công bố. Trống điểm là `Chưa chấm`, không phải `0`. Đổi hội đồng/phiên bản sau chấm phải cho biết hệ quả và bắt người có thẩm quyền xử lý.
+
+## 10. Alert, thông báo, chat và tài liệu
+
+- Dùng một cấu trúc Alert cho info/success/warning/error: tiêu đề, lý do ngắn, việc tiếp theo, mã lỗi BE nếu có. Validation inline và summary chỉ dùng một nguồn lỗi; 409 giữ bản nháp. Toast không thay thế blocker hay xác nhận thao tác nhạy cảm.
+- Số chưa đọc thông báo/chat gắn đúng tài khoản, giữ `lastKnown` khi lỗi mạng tạm thời và ghi `Đang chờ đồng bộ`; 403 hoặc đổi tài khoản xóa dữ liệu cũ. Có retry, refresh khi tab hiện lại và từ sự kiện realtime. Badge có chỗ cho `99+` và nhãn đọc được bằng screen reader.
+- Chat dock desktop gọn khoảng 356×512px và mobile toàn màn hình, header chỉ giữ tiêu đề/trạng thái/thu nhỏ/đóng; chức năng phụ đặt theo ngữ cảnh. Không dùng animation lặp vô hạn trên nút bấm; focus và vùng chạm tối thiểu 44px.
+- Template do bộ môn/ngành xuất bản có phiên bản, phạm vi và hạn hiệu lực. PDF/ảnh, DOCX, XLSX chỉ preview bằng tệp được BE cấp quyền theo project/version; lỗi converter hoặc định dạng phải hiện rõ và vẫn cho tải bản gốc nếu có quyền. Preview là chỉ đọc, không chạy công thức/macro.
+
+## 11. Ngày và giờ theo nghiệp vụ
+
+| Ngữ cảnh | FE hỗ trợ nhập | Điều kiện BE quyết định |
+|---|---|---|
+| Bộ lọc, bản ghi lịch sử | Cho phép ngày quá khứ | Chỉ lọc trong phạm vi quyền và dữ liệu có thật |
+| Kỳ/Project Period đã tồn tại | Cho phép xem/chỉnh khi trạng thái cho phép | Thứ tự `start < end`, không đổi quá khứ đã đóng nếu policy cấm; concurrency token |
+| Họp mới | `min` theo thời điểm hiện tại, end sau start | Project còn hiệu lực, người tham gia, timezone và lịch xung đột |
+| Task/milestone | Hạn có thể quá khứ khi sửa hồ sơ cũ; tạo mới báo trễ rõ | Trong cửa sổ thực hiện theo chính sách kỳ; dependency và trạng thái frozen |
+| Gate/Cold deadline mới | `min/max` theo cửa sổ kỳ được BE trả | Không trước mốc mở, không sau mốc khóa; requirement version có hiệu lực |
+| Defense slot | Chỉ cho tương lai, end > start và trong khung Defense | Cold readiness, Gate, phòng, hội đồng, xung đột, UTC/local và token |
+| Phúc khảo | Hiện hạn công bố, không chọn ngoài khoảng | Quyền và thời hạn nộp/giải quyết do BE kiểm lại |
+
+Không áp một `min=today` cho mọi trường. FE hiển thị giờ Việt Nam nhưng gửi ISO/UTC đúng contract, cho biết múi giờ cạnh input; BE tái kiểm tra tại thời điểm ghi.
