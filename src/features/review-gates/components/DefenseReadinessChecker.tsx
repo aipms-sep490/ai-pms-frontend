@@ -55,7 +55,7 @@ export function DefenseReadinessChecker({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
         {/* Left Column: Conditions Checklist */}
         <div className="lg:col-span-8 space-y-4">
           <div className="rounded-xl border border-hairline bg-card shadow-xs p-5 space-y-4">
@@ -106,9 +106,9 @@ export function DefenseReadinessChecker({
                       key={c.id}
                       className={`flex items-start justify-between gap-4 rounded-xl border p-4 transition-all ${
                         isPass
-                          ? 'border-status-success-border bg-status-success-bg'
+                          ? 'border-hairline border-l-4 border-l-status-success-text bg-card'
                           : isFail
-                          ? 'border-status-error-border bg-status-error-bg/30'
+                          ? 'border-hairline border-l-4 border-l-status-error-text bg-card'
                           : 'border-hairline bg-canvas/30'
                       }`}
                     >
@@ -160,21 +160,24 @@ export function DefenseReadinessChecker({
         </div>
 
         {/* Right Column: Readiness Evaluation Summary */}
-        <div className="lg:col-span-4 space-y-4">
+        <div className="space-y-4 lg:sticky lg:top-6 lg:col-span-4">
           <div
-            className={`rounded-xl border p-5 shadow-xs ${
+            className={`rounded-xl border border-hairline border-l-4 bg-card p-5 text-ink shadow-xs ${
               summary.isReady
-                ? 'border-status-success-border bg-status-success-bg text-status-success-text'
-                : 'border-status-error-border bg-status-error-bg/70 text-status-error-text'
+                ? 'border-l-status-success-text'
+                : 'border-l-status-error-text'
             }`}
           >
-            <span className="text-xs font-bold uppercase tracking-wider">
-              Kết luận xét điều kiện bảo vệ
-            </span>
-            <div className="mt-2 text-2xl font-black">
+            <div className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider ${summary.isReady ? 'text-status-success-text' : 'text-status-error-text'}`}>
+              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+                {summary.isReady ? 'verified' : 'error_outline'}
+              </span>
+              <span>Kết luận xét điều kiện bảo vệ</span>
+            </div>
+            <div className={`mt-2 text-2xl font-black ${summary.isReady ? 'text-ink' : 'text-status-error-text'}`}>
               {summary.isReady ? 'Đủ điều kiện bảo vệ' : 'Chưa đủ điều kiện bảo vệ'}
             </div>
-            <p className="mt-2 text-xs leading-relaxed">
+            <p className="mt-2 text-xs leading-relaxed text-ink-soft">
               {summary.isReady
                 ? 'Đồ án đã đáp ứng đầy đủ tất cả các điều kiện tiên quyết học thuật. Nhóm sinh viên chính thức được phép phân hội đồng và xếp lịch bảo vệ.'
                 : `Có ${summary.blockedCount} điều kiện bắt buộc chưa hoàn tất. Nhóm chưa được phép xếp lịch bảo vệ chính thức.`}
