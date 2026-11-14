@@ -7,13 +7,47 @@ import {
   applyDefenseSchedule,
   applyGate3Schedule,
   formatScheduleConflictReason,
+  getGate3Schedules,
+  getPeriodDefenseSessions,
   getPlannerRooms,
   previewDefenseSchedule,
   previewGate3Schedule,
 } from './room-planner-api'
-import type { AutoSchedulePreview, RoomDto, RoomSchedulingExclusion } from './room-planner-api'
+import type { AutoSchedulePreview, DefenseAllocation, RoomDto, RoomSchedulingExclusion } from './room-planner-api'
 
 const nextDayVietnam = () => new Date(Date.now() + 86400000).toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' })
+
+interface PublishedSession {
+  key: string
+  projectId: number
+  roomId: number | null
+  roomCode: string | null
+  startAt: string
+  endAt: string
+  status: string
+}
+
+async function readPublished(periodId: number, gate: 'R3' | 'R4', signal?: AbortSignal): Promise<PublishedSession[]> {
+  if (gate === 'R3') {
+    const sessions = await getGate3Schedules(periodId, signal)
+    return sessions.filter(item => Boolean(item.publishedAt)).map(item => ({
+      key: `R3-${item.gateInstanceId}`, projectId: item.projectId, roomId: item.roomId,
+      roomCode: item.roomCode, startAt: item.startAt, endAt: item.endAt, status: 'Đã công bố',
+    }))
+  }
+  const sessions = await getPeriodDefenseSessions(periodId, undefined, signal)
+  return sessions.map(item => ({
+    key: `R4-${item.id}`, projectId: item.projectId, roomId: item.roomId,
+    roomCode: item.roomCode, startAt: item.startAt, endAt: item.endAt, status: item.status,
+  }))
+}
+
+function matchesAllocation(session: PublishedSession, allocation: DefenseAllocation, gate: 'R3' | 'R4') {
+  return session.projectId === allocation.projectId && session.roomId === allocation.roomId
+    && Date.parse(session.startAt) === Date.parse(allocation.startAt)
+    && Date.parse(session.endAt) === Date.parse(allocation.endAt)
+    && (gate === 'R3' ? session.status === 'Đã công bố' : session.status === 'SCHEDULED')
+}
 
 export function RoomPlannerPage() {
   const periodId = Number(useParams().periodId)
@@ -33,6 +67,11 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
   const [busy, setBusy] = useState(false)
   const [success, setSuccess] = useState('')
   const requestVersion = useRef(0)
+  const publishedRequestVersion = useRef(0)
+  const [published, setPublished] = useState<PublishedSession[]>([])
+  const [publishedLoading, setPublishedLoading] = useState(true)
+  const [publishedError, setPublishedError] = useState('')
+  const [publishedRevision, setPublishedRevision] = useState(0)
 
   useEffect(() => () => { requestVersion.current += 1 }, [])
 
@@ -46,14 +85,37 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
     return () => controller.abort()
   }, [])
 
+  useEffect(() => {
+    if (!Number.isSafeInteger(periodId) || periodId < 1) return
+    const controller = new AbortController()
+    const request = ++publishedRequestVersion.current
+    readPublished(periodId, targetGate, controller.signal).then(rows => {
+      if (!controller.signal.aborted && request === publishedRequestVersion.current) setPublished(rows)
+    }).catch(() => {
+      if (!controller.signal.aborted && request === publishedRequestVersion.current)
+        setPublishedError('Chưa tải được lịch đã công bố. Hãy thử tải lại.')
+    }).finally(() => {
+      if (!controller.signal.aborted && request === publishedRequestVersion.current) setPublishedLoading(false)
+    })
+    return () => controller.abort()
+  }, [periodId, targetGate, publishedRevision])
+
   const changeGate = (gate: 'R3' | 'R4') => {
     setTargetGate(gate)
+    setPublished([])
+    setPublishedLoading(true)
+    setPublishedError('')
     setPreview(null)
     setSuccess('')
     setError('')
   }
 
   const changeExclusions = (next: RoomSchedulingExclusion[]) => { setExclusions(next); setPreview(null); setSuccess('') }
+  const refreshPublished = () => {
+    setPublishedLoading(true)
+    setPublishedError('')
+    setPublishedRevision(value => value + 1)
+  }
   const changeRange = (start: string, end: string) => {
     setStartDate(start); setEndDate(end); setSelectedDate(start)
     setExclusions((current) => current.filter((item) => item.date === null || (item.date >= start && item.date <= end)))
@@ -89,39 +151,56 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
     if (!preview || preview.unscheduledCount > 0 || preview.allocations.length === 0) return
     setBusy(true); setError('')
     const request = ++requestVersion.current
+    let applied = false
     try {
       if (targetGate === 'R3') {
-        const result = await applyGate3Schedule(periodId, {
+        await applyGate3Schedule(periodId, {
           allocations: preview.allocations,
           concurrencyToken: preview.concurrencyToken,
           exclusions,
         })
-        if (request !== requestVersion.current) return
-        setSuccess(`Đã duyệt và công bố ${result.length} phiên đánh giá Gate 3 vào lịch chính thức.`)
       } else {
-        const result = await applyDefenseSchedule(periodId, {
+        await applyDefenseSchedule(periodId, {
           allocations: preview.allocations,
           concurrencyToken: preview.concurrencyToken,
           exclusions,
         })
-        if (request !== requestVersion.current) return
-        setSuccess(`Đã duyệt và công bố ${result.createdSessionsCount} phiên bảo vệ Gate 4 vào lịch chính thức.`)
       }
+      applied = true
+      if (request !== requestVersion.current) return
+      ++publishedRequestVersion.current
       setPreview(null)
+      const rows = await readPublished(periodId, targetGate)
+      if (request !== requestVersion.current) return
+      setPublished(rows)
+      setPublishedLoading(false)
+      if (!preview.allocations.every(allocation => rows.some(row => matchesAllocation(row, allocation, targetGate))))
+        throw new Error('Published schedule readback did not match the applied allocations.')
+      setPublishedError('')
+      setSuccess(`Đã xác minh ${preview.allocations.length} phiên ${targetGate === 'R3' ? 'đánh giá Gate 3' : 'bảo vệ Gate 4'} trong lịch đã công bố.`)
     } catch {
-      if (request === requestVersion.current) setError('Lịch hoặc điều kiện phân phòng đã thay đổi. Hãy chạy xem trước lại trước khi áp dụng.')
+      if (request === requestVersion.current) {
+        if (applied) {
+          setPreview(null)
+          setPublishedLoading(false)
+          setPublishedError('Chưa xác minh được lịch sau khi công bố. Hãy tải lại lịch đã công bố.')
+          setError('Đã gửi yêu cầu công bố nhưng chưa xác minh được lịch. Hãy tải lại lịch trước khi thao tác tiếp.')
+        } else {
+          setError('Lịch hoặc điều kiện phân phòng đã thay đổi. Hãy chạy xem trước lại trước khi áp dụng.')
+        }
+      }
     } finally {
       if (request === requestVersion.current) setBusy(false)
     }
   }
 
   if (!Number.isSafeInteger(periodId) || periodId < 1) {
-    return <WorkspacePage title="Sơ đồ phòng & lập lịch"><p role="alert">Mã kỳ đồ án không hợp lệ.</p></WorkspacePage>
+    return <WorkspacePage title="Phòng & lập lịch"><p role="alert">Mã kỳ đồ án không hợp lệ.</p></WorkspacePage>
   }
 
   return (
     <WorkspacePage
-      title={`Sơ đồ phòng & lập lịch ${targetGate === 'R3' ? 'Gate 3 (Review chuyên môn)' : 'Gate 4 (Hội đồng bảo vệ)'}`}
+      title={`Phòng & lập lịch ${targetGate === 'R3' ? 'Gate 3 (Review chuyên môn)' : 'Gate 4 (Hội đồng bảo vệ)'}`}
       eyebrow={`Kỳ đồ án #${periodId}`}
       description="Chọn tầng 2–4, loại phòng hoặc ca khỏi lần tự xếp này, rồi xem trước và duyệt công bố lịch chính thức."
     >
@@ -299,6 +378,35 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
             </div>
           </section>
         )}
+        <section aria-label={`Lịch đã công bố ${targetGate}`} className="rounded-2xl border border-hairline bg-surface p-4 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-bold">Lịch đã công bố · {targetGate}</h2>
+            <button type="button" onClick={refreshPublished}
+              className="min-h-11 rounded-lg border border-hairline px-3 text-sm font-semibold text-primary">
+              Tải lại lịch
+            </button>
+          </div>
+          {publishedLoading && <p role="status" className="mt-3 text-sm text-ink-muted">Đang tải lịch đã công bố…</p>}
+          {publishedError && <p role="alert" className="mt-3 text-sm text-status-error-text">{publishedError}</p>}
+          {!publishedLoading && !publishedError && published.length === 0 &&
+            <p className="mt-3 text-sm text-ink-muted">Chưa có phiên nào được công bố trong phạm vi của bạn.</p>}
+          {!publishedLoading && published.length > 0 && <div className="mt-3 max-h-72 overflow-auto rounded-lg border border-hairline">
+            <Table aria-label={`Danh sách lịch đã công bố ${targetGate}`}>
+              <TableHead><TableRow head>
+                <TableHeaderCell>Đồ án</TableHeaderCell>
+                <TableHeaderCell>Thời gian</TableHeaderCell>
+                <TableHeaderCell>Phòng</TableHeaderCell>
+                <TableHeaderCell>Trạng thái</TableHeaderCell>
+              </TableRow></TableHead>
+              <TableBody>{published.map(item => <TableRow key={item.key}>
+                <TableCell>#{item.projectId}</TableCell>
+                <TableCell>{new Date(item.startAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</TableCell>
+                <TableCell>{item.roomCode ?? 'Chưa có phòng'}</TableCell>
+                <TableCell>{item.status}</TableCell>
+              </TableRow>)}</TableBody>
+            </Table>
+          </div>}
+        </section>
       </fieldset>
     </WorkspacePage>
   )

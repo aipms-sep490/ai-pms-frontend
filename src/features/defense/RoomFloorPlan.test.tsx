@@ -18,6 +18,8 @@ describe('RoomFloorPlan', () => {
     expect(screen.getByRole('button', { name: 'Tầng 2' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Tầng 3' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Tầng 4' })).toBeTruthy()
+    expect(screen.getByText(/Vị trí các thẻ không thể hiện mặt bằng vật lý/)).toBeTruthy()
+    expect(screen.queryByText(/35 m²|TRƯỜNG ĐẠI HỌC FPT|Chuẩn FAMS/)).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: /Phòng A-201/ }))
     fireEvent.click(screen.getByRole('button', { name: /Khóa cả phòng/ }))
     expect(onChange).toHaveBeenCalledWith([{ roomId: 1, date: null, slotNumber: null }])
