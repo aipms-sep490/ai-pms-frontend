@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useStudentJourney } from '../../../app/context'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useAuthSession } from '../../auth/context/useAuthSession'
+import { HttpError } from '../../../services/http/http-client'
 import { getProjectPeriods, getSemesters } from '../api/governance-api'
 import type { PagedResult, ProjectPeriod, Semester } from '../types/governance.types'
 
@@ -38,13 +39,15 @@ export function ProjectPeriodCatalogPage() {
   const [semesters, setSemesters] = useState<Semester[]>([])
   const [response, setResponse] = useState<{ key: string; data: PagedResult<ProjectPeriod> } | null>(null)
   const [failedKey, setFailedKey] = useState<string | null>(null)
+  const [forbiddenKey, setForbiddenKey] = useState<string | null>(null)
   const [revision, setRevision] = useState(0)
 
   const token = session?.accessToken
   const requestKey = `${token ?? ''}:${urlSearch}:${urlSemesterId ?? ''}:${urlPage}:${revision}`
   const result = response?.key === requestKey ? response.data : null
   const error = failedKey === requestKey
-  const loading = !result && !error
+  const isForbidden = forbiddenKey === requestKey
+  const loading = !result && !error && !isForbidden
 
   useEffect(() => {
     if (!token) return
@@ -60,7 +63,15 @@ export function ProjectPeriodCatalogPage() {
     const controller = new AbortController()
     getProjectPeriods(token, { search: urlSearch, semesterId: urlSemesterId, status: 'ACTIVE', periodType: 'REGISTRATION' }, controller.signal, urlPage, pageSize)
       .then(data => { if (!controller.signal.aborted) setResponse({ key: requestKey, data }) })
-      .catch(() => { if (!controller.signal.aborted) setFailedKey(requestKey) })
+      .catch((err: unknown) => {
+        if (!controller.signal.aborted) {
+          if (err instanceof HttpError && err.status === 403) {
+            setForbiddenKey(requestKey)
+          } else {
+            setFailedKey(requestKey)
+          }
+        }
+      })
     return () => controller.abort()
   }, [token, urlSearch, urlSemesterId, urlPage, revision, requestKey])
 
@@ -96,10 +107,10 @@ export function ProjectPeriodCatalogPage() {
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-hairline bg-card/60 px-4 py-2.5 text-xs text-ink-muted">
       <div className="flex items-center gap-2">
         <span className="material-symbols-outlined text-sm text-primary">policy</span>
-        <span>Phạm vi hiển thị: <strong>Danh mục toàn cơ sở đào tạo</strong> (Áp dụng theo quy chế đào tạo hiện hành)</span>
+        <span>Phạm vi hiển thị: <strong>Theo cơ sở đào tạo của tài khoản</strong> (Admin xem toàn hệ thống). Phân quyền tự động áp dụng từ máy chủ.</span>
       </div>
       <span className="rounded-full bg-canvas px-2.5 py-0.5 font-medium text-ink-muted border border-hairline/60">
-        SCOPE-01: Public Directory
+        SCOPE-01: Enforced by Organization
       </span>
     </div>
 
@@ -175,9 +186,18 @@ export function ProjectPeriodCatalogPage() {
       {result && <span className="rounded-full bg-primary-subtle px-3 py-1 text-sm font-semibold text-primary">{result.totalCount} kỳ phù hợp</span>}
     </div>
     {loading && <p role="status" className="mt-4 rounded-xl border border-hairline bg-card p-6 text-ink-muted">Đang tải các kỳ đăng ký…</p>}
-    {error && <div role="alert" className="mt-4 rounded-xl border border-status-error-border bg-status-error-bg p-5 text-status-error-text">Không tải được danh sách kỳ đăng ký. <button type="button" onClick={() => setRevision(value => value + 1)} className="font-semibold underline">Thử lại</button></div>}
-    {!loading && !error && result?.items.length === 0 && <p className="mt-4 rounded-xl border border-hairline bg-card p-6 text-ink-muted">Chưa có kỳ đăng ký đang hoạt động phù hợp bộ lọc. Hãy thử từ khóa hoặc học kỳ khác.</p>}
-    {!loading && !error && result && result.items.length > 0 && <>
+    {isForbidden && (
+      <div role="alert" className="mt-4 rounded-xl border border-status-warning-border bg-status-warning-bg p-5 text-status-warning-text">
+        <strong>Không có quyền truy cập phạm vi:</strong> Tài khoản hiện tại chưa được gán cơ sở đào tạo hoạt động hoặc không thuộc phạm vi được phép xem đợt đăng ký này (theo chính sách SCOPE-01).
+      </div>
+    )}
+    {!isForbidden && error && (
+      <div role="alert" className="mt-4 rounded-xl border border-status-error-border bg-status-error-bg p-5 text-status-error-text">
+        Không tải được danh sách kỳ đăng ký. <button type="button" onClick={() => setRevision(value => value + 1)} className="font-semibold underline">Thử lại</button>
+      </div>
+    )}
+    {!loading && !error && !isForbidden && result?.items.length === 0 && <p className="mt-4 rounded-xl border border-hairline bg-card p-6 text-ink-muted">Chưa có kỳ đăng ký đang hoạt động phù hợp bộ lọc. Hãy thử từ khóa hoặc học kỳ khác.</p>}
+    {!loading && !error && !isForbidden && result && result.items.length > 0 && <>
       <ul className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{result.items.map(period => {
         const isCurrentSemester = period.academicSemesterId === semester?.id
         const windowStatus = getPeriodWindowStatus(period.startAt, period.endAt)

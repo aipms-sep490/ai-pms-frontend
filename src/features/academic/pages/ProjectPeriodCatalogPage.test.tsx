@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom'
 import { ProjectPeriodCatalogPage } from './ProjectPeriodCatalogPage'
 import { getProjectPeriods, getSemesters } from '../api/governance-api'
+import { HttpError } from '../../../services/http/http-client'
 
 vi.mock('../api/governance-api', () => ({ getProjectPeriods: vi.fn(), getSemesters: vi.fn() }))
 vi.mock('../../../app/context', () => ({ useStudentJourney: () => ({ semester: { id: 1 } }) }))
@@ -19,7 +20,7 @@ describe('ProjectPeriodCatalogPage', () => {
     render(<MemoryRouter><ProjectPeriodCatalogPage /></MemoryRouter>)
     expect(await screen.findByText('Đăng ký đồ án')).toBeTruthy()
     expect(screen.getByRole('link', { name: /Xem nhóm và điều kiện/ }).getAttribute('href')).toBe('/team')
-    expect(screen.getByText(/SCOPE-01: Public Directory/)).toBeTruthy()
+    expect(screen.getByText(/SCOPE-01: Enforced by Organization/)).toBeTruthy()
     expect(getProjectPeriods).toHaveBeenCalledWith('test-token', { search: '', semesterId: undefined, status: 'ACTIVE', periodType: 'REGISTRATION' }, expect.any(AbortSignal), 1, 6)
   })
 
@@ -46,5 +47,15 @@ describe('ProjectPeriodCatalogPage', () => {
     expect(screen.getByText('Đã hết hạn nhận hồ sơ')).toBeTruthy()
     expect(screen.getByText('Kỳ tương lai')).toBeTruthy()
     expect(screen.getByText('Chưa mở nhận hồ sơ')).toBeTruthy()
+  })
+
+  it('handles 403 Forbidden with SCOPE-01 warning message', async () => {
+    vi.mocked(getSemesters).mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
+    vi.mocked(getProjectPeriods).mockRejectedValue(new HttpError('Forbidden', 403))
+
+    render(<MemoryRouter><ProjectPeriodCatalogPage /></MemoryRouter>)
+    expect(await screen.findByRole('alert')).toBeTruthy()
+    expect(screen.getByText(/Không có quyền truy cập phạm vi:/)).toBeTruthy()
+    expect(screen.getByText(/theo chính sách SCOPE-01/)).toBeTruthy()
   })
 })
