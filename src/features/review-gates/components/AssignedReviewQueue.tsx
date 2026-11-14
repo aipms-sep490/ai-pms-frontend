@@ -4,6 +4,8 @@ import { Button } from '../../../components/ui/Button'
 import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
 import { Modal } from '../../../components/ui/Modal'
+import { Pagination } from '../../../components/ui/Pagination'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { HttpError } from '../../../services/http/http-client'
 import { humanizeHttpError } from '../../../services/http/humanize-http-error'
@@ -129,6 +131,8 @@ export function AssignedReviewQueue({
       return (Date.parse(a.dueAt ?? '') || Number.MAX_SAFE_INTEGER) - (Date.parse(b.dueAt ?? '') || Number.MAX_SAFE_INTEGER)
     })
   }, [assignments, gateFilter, search, sortBy, statusFilter])
+
+  const queuePager = useClientPagination(filteredAssignments, 10)
 
   const activeChips = [
     ...(search.trim() ? [{ id: 'search', label: 'Từ khóa', value: search.trim() }] : []),
@@ -258,15 +262,15 @@ export function AssignedReviewQueue({
           <Button variant="secondary" className="mt-3" onClick={clearFilters}>Xóa bộ lọc</Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
           {/* Left Column: Assigned Queue */}
-          <div className="space-y-3 lg:col-span-4">
+          <div className="space-y-3 lg:sticky lg:top-6 lg:col-span-4">
             <div className="rounded-xl border border-hairline bg-card p-4 shadow-xs">
               <h3 className="border-b border-hairline pb-2.5 text-sm font-bold text-ink">
                 Hàng đợi Thẩm định ({filteredAssignments.length})
               </h3>
               <div className="mt-3 space-y-2.5">
-                {filteredAssignments.map((item) => {
+                {queuePager.paginatedItems.map((item) => {
                   const isSelected = item.id === selectedItem.id
                   return (
                     <button
@@ -302,6 +306,18 @@ export function AssignedReviewQueue({
                   )
                 })}
               </div>
+              {queuePager.showPagination && (
+                <div className="mt-3 border-t border-hairline pt-3">
+                  <Pagination
+                    page={queuePager.page}
+                    pages={queuePager.pages}
+                    total={queuePager.total}
+                    pageSize={queuePager.pageSize}
+                    onPage={queuePager.setPage}
+                    onPageSizeChange={queuePager.setPageSize}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -349,8 +365,9 @@ export function AssignedReviewQueue({
                 )
               )}
               {successMsg && (
-                <div role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-xs font-semibold text-status-success-text">
-                  {successMsg}
+                <div role="status" className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-3 text-xs font-semibold text-ink shadow-2xs">
+                  <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+                  <span>{successMsg}</span>
                 </div>
               )}
 
@@ -374,9 +391,9 @@ export function AssignedReviewQueue({
                         key={req.id}
                         className={`rounded-lg border p-4 text-xs transition-all ${
                           isAccepted
-                            ? 'border-status-success-border bg-status-success-bg'
+                            ? 'border-hairline border-l-4 border-l-status-success-text bg-card'
                             : isRejected
-                            ? 'border-status-error-border bg-status-error-bg/30'
+                            ? 'border-hairline border-l-4 border-l-status-error-text bg-card'
                             : 'border-hairline bg-canvas/50'
                         }`}
                       >
@@ -469,10 +486,15 @@ export function AssignedReviewQueue({
                   Quyết định thẩm định cổng kiểm duyệt
                 </h4>
                 {isDecided ? (
-                  <div className={`mt-2 rounded-lg border p-3 text-xs font-semibold ${selectedItem.status === 'REVOKED' ? 'border-status-error-border bg-status-error-bg text-status-error-text' : 'border-status-success-border bg-status-success-bg text-status-success-text'}`}>
-                    {selectedItem.status === 'REVOKED'
-                      ? 'Phân công thẩm định này đã bị thu hồi. Quyền cập nhật đã đóng.'
-                      : `Đợt thẩm định này đã ghi nhận kết luận chính thức (${selectedItem.latestDecision ? displayLabel(selectedItem.latestDecision) : 'Đã chốt'}). Quyền thẩm định đã đóng băng.`}
+                  <div className={`mt-2 flex items-center gap-2 rounded-lg border p-3 text-xs font-semibold ${selectedItem.status === 'REVOKED' ? 'border-status-error-border bg-status-error-bg text-status-error-text' : 'border-hairline border-l-4 border-l-status-success-text bg-card text-ink'}`}>
+                    {selectedItem.status !== 'REVOKED' && (
+                      <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">verified</span>
+                    )}
+                    <span>
+                      {selectedItem.status === 'REVOKED'
+                        ? 'Phân công thẩm định này đã bị thu hồi. Quyền cập nhật đã đóng.'
+                        : `Đợt thẩm định này đã ghi nhận kết luận chính thức (${selectedItem.latestDecision ? displayLabel(selectedItem.latestDecision) : 'Đã chốt'}). Quyền thẩm định đã đóng băng.`}
+                    </span>
                   </div>
                 ) : (
                   <p className="mt-1 text-xs text-ink-muted">
