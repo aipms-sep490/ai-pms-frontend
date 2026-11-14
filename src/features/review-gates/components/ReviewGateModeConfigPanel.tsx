@@ -235,16 +235,16 @@ export const ReviewGateModeConfigPanel: React.FC<ReviewGateModeConfigPanelProps>
       </div>
 
       {/* Grid of Gates (R1 to R4) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
         {gates.map((gate) => {
           const isOnline = gate.mode === 'ONLINE'
           return (
             <div
               key={gate.gateCode}
-              className={`rounded-2xl border p-5 shadow-xs transition-all space-y-4 ${
+              className={`flex h-full flex-col justify-between gap-4 rounded-2xl border border-hairline border-l-4 bg-card p-5 shadow-xs transition-all ${
                 isOnline
-                  ? 'border-primary/20 bg-primary-subtle/30 hover:border-primary/40'
-                  : 'border-status-success-border bg-status-success-bg/30 hover:border-status-success-border'
+                  ? 'border-l-primary hover:border-primary/40'
+                  : 'border-l-status-success-text hover:border-line-strong'
               }`}
             >
               {/* Gate Header & Mode Switcher */}

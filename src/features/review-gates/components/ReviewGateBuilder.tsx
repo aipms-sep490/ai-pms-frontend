@@ -245,17 +245,18 @@ export function ReviewGateBuilder({
       )}
 
       {template.status === 'PUBLISHED' && (
-        <div className="rounded-xl border border-status-success-border bg-status-success-bg p-3.5 text-xs text-status-success-text flex items-center justify-between">
+        <div className="flex items-start gap-2.5 rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-3.5 text-xs text-ink-soft shadow-xs">
+          <span className="material-symbols-outlined mt-0.5 text-[18px] text-status-success-text" aria-hidden="true">lock</span>
           <span>
-            🔒 <strong>Mẫu tiến trình đã công bố chính thức:</strong> Cấu trúc các Review Gate đã được khóa bất biến. Để thay đổi yêu cầu hoặc bổ sung Gate cho đợt thẩm định tiếp theo, vui lòng chọn <strong>Nhân bản bản nháp mới</strong>.
+            <strong className="text-ink">Mẫu tiến trình đã công bố chính thức:</strong> Cấu trúc các Review Gate đã được khóa bất biến. Để thay đổi yêu cầu hoặc bổ sung Gate cho đợt thẩm định tiếp theo, vui lòng chọn <strong className="text-ink">Nhân bản bản nháp mới</strong>.
           </span>
         </div>
       )}
 
       {/* Main Builder Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
         {/* Left Column: Gates Sequence List */}
-        <div className="lg:col-span-4 space-y-4">
+        <div className="space-y-4 lg:sticky lg:top-6 lg:col-span-4">
           <div className="rounded-xl border border-hairline bg-card p-4 shadow-xs">
             <div className="mb-3 flex items-center justify-between border-b border-hairline pb-3">
               <h3 className="text-sm font-bold text-ink">Trình tự Review Gates</h3>
