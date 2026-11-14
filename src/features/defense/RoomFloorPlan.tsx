@@ -34,12 +34,13 @@ interface Props {
 export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, allocations = [] }: Props) {
   const buildings = [...new Set(rooms.map((room) => room.building))].sort()
   const [building, setBuilding] = useState(buildings[0] ?? '')
+  const selectedBuilding = buildings.includes(building) ? building : buildings[0] ?? ''
   const [floor, setFloor] = useState(2)
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null)
   const [viewMode, setViewMode] = useState<'canvas' | 'grid'>('canvas')
 
   const visibleRooms = rooms
-    .filter((room) => room.building === building && room.floor === floor)
+    .filter((room) => room.building === selectedBuilding && room.floor === floor)
     .sort((a, b) => a.code.localeCompare(b.code, 'vi'))
 
   const selectedRoom = visibleRooms.find((room) => room.id === selectedRoomId)
@@ -163,7 +164,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
           <label className="flex items-center gap-2 text-sm font-semibold text-ink">
             <span>Tòa:</span>
             <select
-              value={building}
+              value={selectedBuilding}
               onChange={(e) => {
                 setBuilding(e.target.value)
                 setSelectedRoomId(null)
@@ -225,14 +226,14 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
       <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,2.3fr)_minmax(19rem,1fr)]">
         {viewMode === 'canvas' ? (
           <div className="rounded-2xl border border-hairline bg-canvas/40 p-4">
-            <p className="mb-3 text-xs font-semibold text-ink-muted">Tòa {building} · Tầng {floor} · {visibleRooms.length} phòng trong danh mục</p>
+            <p className="mb-3 text-xs font-semibold text-ink-muted">Tòa {selectedBuilding} · Tầng {floor} · {visibleRooms.length} phòng trong danh mục</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {visibleRooms.map(renderRoomCard)}
             </div>
 
             {visibleRooms.length === 0 && (
               <p role="status" className="mt-3 rounded-lg bg-surface p-4 text-center text-sm text-ink-muted">
-                Chưa có phòng tầng {floor} của tòa {building} trong danh mục.
+                Chưa có phòng tầng {floor} của tòa {selectedBuilding} trong danh mục.
               </p>
             )}
           </div>
@@ -320,13 +321,13 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
 
                         return (
                           <TableCell key={slotNum} className="p-2 border-l border-hairline text-center group">
-                            <span className="text-xs text-emerald-700 font-medium group-hover:hidden">
+                            <span className="block text-xs text-emerald-700 font-medium">
                               Trống
                             </span>
                             <button
                               type="button"
                               onClick={() => toggleSlot(room.id, slotNum)}
-                              className="hidden group-hover:inline-block rounded border border-hairline bg-surface px-2 py-0.5 text-xs font-semibold text-ink shadow-2xs hover:border-primary"
+                              className="mt-1 min-h-11 rounded border border-hairline bg-surface px-2 text-xs font-semibold text-ink shadow-2xs hover:border-primary"
                             >
                               Khóa ca
                             </button>
@@ -344,7 +345,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
         <aside className="rounded-2xl border border-hairline bg-surface p-4 shadow-xs">
           <div className="border-b border-hairline pb-3">
             <h3 className="font-bold text-base text-ink">Danh sách phòng · Tầng {floor}</h3>
-            <p className="text-xs text-ink-muted">{visibleRooms.length} phòng khả dụng trong danh mục</p>
+            <p className="text-xs text-ink-muted">{visibleRooms.length} phòng trong danh mục</p>
           </div>
 
           <div className="mt-3 max-h-48 space-y-1.5 overflow-y-auto pr-1">
@@ -364,7 +365,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                 >
                   <div className="flex items-center gap-2">
                     <span className="font-bold">{room.code}</span>
-                    <span className="text-xs text-ink-muted">CLASSROOM</span>
+                    <span className="text-xs text-ink-muted">{room.status === 'ACTIVE' ? 'Hoạt động' : room.status === 'MAINTENANCE' ? 'Bảo trì' : 'Ngừng dùng'}</span>
                   </div>
                   <span className="text-xs text-ink-muted">
                     {isLocked ? 'Khóa đợt' : `${room.capacity} chỗ`}
@@ -380,7 +381,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                 <div>
                   <h4 className="font-bold text-base text-ink">Phòng {selectedRoom.code}</h4>
                   <p className="text-xs text-ink-muted">
-                    {selectedRoom.building} · Tầng {floor} · {selectedRoom.capacity} chỗ · 35 m²
+                    {selectedRoom.building} · Tầng {floor} · {selectedRoom.capacity} chỗ
                   </p>
                 </div>
                 <span
@@ -390,7 +391,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                       : 'bg-slate-200 text-slate-700'
                   }`}
                 >
-                  {selectedRoom.status === 'ACTIVE' ? 'Sẵn sàng' : 'Bảo trì'}
+                  {selectedRoom.status === 'ACTIVE' ? 'Sẵn sàng' : selectedRoom.status === 'MAINTENANCE' ? 'Bảo trì' : 'Ngừng dùng'}
                 </span>
               </div>
 

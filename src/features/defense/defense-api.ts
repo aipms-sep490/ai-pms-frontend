@@ -161,15 +161,22 @@ export interface CreateDefenseChangeRequest {
 export interface DefenseChangeRequestDto {
   id: number
   defenseSessionId: number
+  requesterId: number
+  currentRoomId: number
+  currentStartAt: string
+  currentEndAt: string
   desiredRoomId: number
   desiredStartAt: string
   desiredEndAt: string
   reasonCategory: string
   reasonDetails: string
+  evidenceFileUrl: string | null
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN' | string
+  reviewerId: number | null
   reviewNote?: string | null
   reviewedAt?: string | null
   concurrencyToken: string
+  createdAt: string
 }
 
 export interface DecideDefenseChangeRequest {
@@ -186,6 +193,12 @@ export const decideDefenseChangeRequest = (id: number, body: DecideDefenseChange
 
 export const withdrawDefenseChangeRequest = (id: number, concurrencyToken: string) =>
   httpPost<DefenseChangeRequestDto>(`/defense-sessions/change-requests/${id}/withdraw`, { concurrencyToken })
+
+export const getSessionDefenseChangeRequests = (sessionId: number, signal?: AbortSignal) =>
+  httpGet<DefenseChangeRequestDto[]>(`/defense-sessions/${sessionId}/change-requests`, signal)
+
+export const getSessionChangeRooms = (sessionId: number, signal?: AbortSignal) =>
+  httpGet<RoomDto[]>(`/defense-sessions/${sessionId}/change-rooms`, signal)
 
 export const getPeriodDefenseChangeRequests = (periodId: number, status?: string, signal?: AbortSignal) => {
   const query = status ? `?status=${encodeURIComponent(status)}` : ''

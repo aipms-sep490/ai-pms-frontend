@@ -14,6 +14,9 @@ vi.mock('./room-planner-api', () => ({
   getPeriodDefenseSessions: vi.fn(),
   formatScheduleConflictReason: vi.fn((reason: string) => `Formatted: ${reason}`),
 }))
+vi.mock('./DefenseChangeRequestsPanel', () => ({ DefenseChangeRequestsPanel: () => null }))
+vi.mock('./RoomCatalogPanel', () => ({ RoomCatalogPanel: () => null }))
+vi.mock('./PeriodCalendarPanel', () => ({ PeriodCalendarPanel: () => null }))
 
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 beforeEach(() => {
@@ -138,5 +141,35 @@ describe('RoomPlannerPage', () => {
     expect(await screen.findByText(/Đã gửi yêu cầu công bố nhưng chưa xác minh được lịch/)).toBeTruthy()
     expect(screen.queryByText(/Đã xác minh/)).toBeNull()
     expect(screen.queryByRole('button', { name: 'Duyệt và áp dụng lịch' })).toBeNull()
+  })
+
+  it('requires explicit confirmation before publishing only the eligible allocations', async () => {
+    vi.mocked(api.getPlannerRooms).mockResolvedValue([
+      { id: 7, code: 'A-201', building: 'A', floor: 2, capacity: 40, status: 'ACTIVE', concurrencyToken: 'room' },
+    ])
+    vi.mocked(api.previewDefenseSchedule).mockResolvedValue({
+      scheduledCount: 1, unscheduledCount: 1, conflicts: [{ projectId: 13, reason: 'REVIEW_GATE_3_NOT_PASSED' }],
+      concurrencyToken: 'preview', allocations: [{ projectId: 12, committeeId: 5, roomId: 7, roomCode: 'A-201',
+        date: '2026-12-01', slotNumber: 1, startAt: '2026-12-01T08:00:00+07:00', endAt: '2026-12-01T09:15:00+07:00' }],
+    })
+    vi.mocked(api.applyDefenseSchedule).mockResolvedValue({ success: true, createdSessionsCount: 1 })
+    vi.mocked(api.getPeriodDefenseSessions).mockResolvedValueOnce([]).mockResolvedValueOnce([{
+      id: 40, projectId: 12, projectCode: 'P12', projectTitle: 'Đồ án', committeeId: 5,
+      committeeName: 'Hội đồng', roomId: 7, roomCode: 'A-201', slotNumber: 1,
+      startAt: '2026-12-01T08:00:00+07:00', endAt: '2026-12-01T09:15:00+07:00',
+      status: 'SCHEDULED', concurrencyToken: 'session', canCancel: true,
+    }])
+    render(<MemoryRouter initialEntries={['/academic/project-periods/5/room-planner']}><Routes>
+      <Route path="/academic/project-periods/:periodId/room-planner" element={<RoomPlannerPage />} />
+    </Routes></MemoryRouter>)
+    await screen.findByRole('button', { name: /Phòng A-201/ })
+    fireEvent.click(screen.getByRole('button', { name: /Tự động xếp lịch R4/ }))
+    const apply = await screen.findByRole('button', { name: 'Duyệt và áp dụng lịch' })
+    expect(apply.matches(':disabled')).toBe(true)
+    fireEvent.click(screen.getByLabelText(/Tôi xác nhận chỉ công bố 1 phiên/))
+    expect(apply.matches(':disabled')).toBe(false)
+    fireEvent.click(apply)
+    expect(await screen.findByText(/1 nhóm chưa được xếp lịch/)).toBeTruthy()
+    expect(api.applyDefenseSchedule).toHaveBeenCalledOnce()
   })
 })

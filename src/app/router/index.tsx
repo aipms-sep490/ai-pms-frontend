@@ -30,7 +30,7 @@ import {
   ResultPublicationPage, ResultCorrectionsPage, NotificationsPage, PortfolioDashboardPage, SupervisorDashboardPage, FinalRequirementsPage,
   FinalSubmissionViewerPage, StudentFinalSubmissionPage, RubricManagementPage, EvaluatorAssignmentManagementPage,
   EvaluationSchemeManagementPage, StudentProjectResultPage, ProjectContributionsPage, ProjectFilesPage,
-  ProjectEvidenceLedgerPage, ProjectAiPage, ProjectGatesPage, ProjectWorkingAgreementPage, ProjectDefensePage, ProjectDefenseManagementPage, RoomPlannerPage,
+  ProjectEvidenceLedgerPage, ProjectAiPage, ProjectGatesPage, ProjectWorkingAgreementPage, ProjectDefensePage, ProjectDefenseManagementPage, RoomPlannerPage, DefenseSessionChangePage,
   ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, ArchivedProjectsPage,
   ProjectArchiveViewPage, CalendarAttentionPage, AdminIndustryInvitationsPage, ReviewGateGovernancePage,
   StudentReviewTimelinePage, AssignedGateReviewPage,
@@ -121,6 +121,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'supervisor/profile', element: <SupervisorProfilePage /> },
           { path: 'supervisor/dashboard', element: <SupervisorDashboardPage /> },
           { path: 'mentor/workspace', element: <MentorWorkspacePage /> },
+          ...(env.defenseScheduleEnabled ? [{ path: 'lecturer/defense-sessions/:sessionId', element: <DefenseSessionChangePage /> }] : []),
           { element: <SupervisorExecutionRoute />, children: [
             { path: 'supervisor/projects/:projectId/workspace', element: <SupervisorProjectWorkspacePage /> },
             { path: 'supervisor/projects/:projectId/progress', element: <SupervisorProgressReviewPage /> },

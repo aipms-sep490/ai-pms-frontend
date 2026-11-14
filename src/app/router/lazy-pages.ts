@@ -82,6 +82,7 @@ export const ProjectWorkingAgreementPage = lazy(() => import('../../features/wor
 export const ProjectDefensePage = lazy(() => import('../../features/defense/ProjectDefensePage').then(m => ({ default: m.ProjectDefensePage })))
 export const ProjectDefenseManagementPage = lazy(() => import('../../features/defense/ProjectDefensePage').then(m => ({ default: m.ProjectDefenseManagementPage })))
 export const RoomPlannerPage = lazy(() => import('../../features/defense/RoomPlannerPage').then(m => ({ default: m.RoomPlannerPage })))
+export const DefenseSessionChangePage = lazy(() => import('../../features/defense/DefenseSessionChangePage').then(m => ({ default: m.DefenseSessionChangePage })))
 export const ProjectPeerEvaluationPage = lazy(() => import('../../features/peer-eval/ProjectPeerEvaluationPage').then(m => ({ default: m.ProjectPeerEvaluationPage })))
 export const ColdChecklistPage = lazy(() => import('../../features/cold-reports/ColdChecklistPage').then(m => ({ default: m.ColdChecklistPage })))
 export const DepartmentProjectRiskPage = lazy(() => import('../../features/ai/DepartmentProjectRiskPage').then(m => ({ default: m.DepartmentProjectRiskPage })))

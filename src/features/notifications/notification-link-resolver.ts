@@ -51,7 +51,14 @@ const risk: Rule = { entities: ['PROJECT'], targets: {
   department: { url: '/department/portfolio', label: 'Xem danh mục đồ án của bộ môn' },
 } }
 const defense: Rule = { entities: ['DEFENSE_SESSION'], feature: 'defenseScheduleEnabled', targets: {
-  student: { url: '/project/defense', label: 'Xem lịch bảo vệ đồ án hiện tại' }, lecturer: meeting.targets.lecturer,
+  student: { url: '/project/defense', label: 'Xem lịch bảo vệ đồ án hiện tại' },
+  lecturer: id => ({ url: `/lecturer/defense-sessions/${id}`, label: 'Xem phiên bảo vệ được phân công' }),
+} }
+const gate3Schedule: Rule = { entities: ['GATE_SESSION_SCRIPT'], targets: {
+  student: { url: '/project/timeline', label: 'Xem lịch Review Gate 3 của đồ án' },
+  lecturer: { url: '/review/gate-assignments', label: 'Xem lịch Review Gate 3 được phân công' },
+  department: { url: '/department/projects/progress-matrix', label: 'Xem tiến trình Review Gate 3' },
+  admin: { url: '/academic/review-gates', label: 'Xem lịch Review Gate 3' },
 } }
 const appeal: Rule = { entities: ['PROJECT'], feature: 'resultCorrectionEnabled', targets: {
   student: { url: '/project/result', label: 'Xem yêu cầu phúc khảo' },
@@ -84,7 +91,8 @@ const rules: Record<string, Rule | null> = {
   FINAL_SUBMISSION_LOCKED: finalSubmission, FINAL_SUBMISSION_DEADLINE_REMINDER: finalSubmission, FINAL_SUBMISSION_OVERDUE: finalSubmission,
   PROJECT_RESULT_PUBLISHED: result, STUDENT_RESULT_PUBLISHED: result,
   PROJECT_RISK_MEDIUM: risk, PROJECT_RISK_HIGH: risk, PROJECT_RISK_CRITICAL: risk,
-  DEFENSE_SCHEDULED: defense, DEFENSE_CANCELLED: defense,
+  DEFENSE_SCHEDULED: defense, DEFENSE_CANCELLED: defense, DEFENSE_SCHEDULE_CHANGED: defense,
+  REVIEW_GATE_3_SCHEDULED: gate3Schedule, REVIEW_GATE_3_SCHEDULE_CHANGED: gate3Schedule,
   EVALUATOR_ASSIGNED: { entities: ['EVALUATION_ASSIGNMENT'], targets: {
     lecturer: id => ({ url: `/evaluator/assignments/${id}`, label: 'Xem phân công đánh giá' }),
   } },
