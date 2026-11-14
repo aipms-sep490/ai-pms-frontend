@@ -9,7 +9,7 @@ import type {
   ScheduleDefenseRequest,
 } from './defense-types'
 
-export const getProjectDefenseSessions = (projectId: number, page = 1, pageSize = 20, signal?: AbortSignal) =>
+export const getProjectDefenseSessions = (projectId: number, page = 1, pageSize = 10, signal?: AbortSignal) =>
   httpGet<PagedResult<DefenseSession>>(`/projects/${projectId}/defense-sessions?page=${page}&pageSize=${pageSize}`, signal)
 
 export const getDefenseSession = (id: number, signal?: AbortSignal) =>
