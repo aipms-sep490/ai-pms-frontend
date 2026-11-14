@@ -38,7 +38,7 @@
 .chat-dock{position:relative;z-index:var(--z-index-chat)}
 .chat-launcher{position:fixed;right:24px;bottom:calc(24px + env(safe-area-inset-bottom));width:56px;height:56px!important;border-radius:50%!important;padding:0!important;box-shadow:var(--shadow-md);z-index:var(--z-index-chat)}
 .chat-launcher>.material-symbols-outlined{font-size:24px}.chat-launcher-badge{position:absolute;top:-4px;right:-4px;min-width:24px;padding:2px 5px;border-radius:999px;background:var(--color-status-error-text);color:var(--color-card);font-size:12px;border:2px solid var(--color-card)}
-.chat-dock-panel{position:fixed;inset:auto 24px calc(92px + env(safe-area-inset-bottom)) auto;margin:0;width:min(400px,calc(100vw - 48px));height:min(640px,calc(var(--chat-viewport-height,100dvh) - 120px));max-width:none;max-height:none;min-height:0;padding:0;border:1px solid var(--color-hairline);border-radius:16px;background:var(--color-card);color:var(--color-slate-900);box-shadow:var(--shadow-lg);overflow:hidden;z-index:var(--z-index-chat)}
+.chat-dock-panel{position:fixed;inset:auto 24px calc(92px + env(safe-area-inset-bottom)) auto;margin:0;width:min(356px,calc(100vw - 48px));height:min(512px,calc(var(--chat-viewport-height,100dvh) - 120px));max-width:none;max-height:none;min-height:0;padding:0;border:1px solid var(--color-hairline);border-radius:16px;background:var(--color-card);color:var(--color-slate-900);box-shadow:var(--shadow-lg);overflow:hidden;z-index:var(--z-index-chat)}
 .chat-dock-panel[open]{display:flex;flex-direction:column}.chat-dock-panel::backdrop{background:var(--color-canvas)}
 .chat-dock-toolbar{display:flex;flex:none;align-items:center;gap:4px;padding:8px;border-bottom:1px solid var(--color-hairline)}
 .chat-dock-toolbar>div{flex:1;min-width:0}.chat-dock-toolbar h2{font-size:16px;font-weight:700}.chat-dock-toolbar p{font-size:12px;line-height:1.4;color:var(--color-slate-600)}
@@ -107,14 +107,7 @@
   transform: scale(1.08) !important;
   box-shadow: 0 14px 28px -4px color-mix(in oklab, var(--color-primary) 45%, transparent), 0 10px 10px -5px color-mix(in oklab, var(--color-primary) 25%, transparent) !important;
 }
-.chat-launcher--has-unread {
-  animation: chat-bounce 2s infinite ease-in-out;
-}
-@keyframes chat-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-@media(prefers-reduced-motion:reduce){.chat-launcher--has-unread{animation:none}}
+.chat-launcher--has-unread{box-shadow:0 0 0 3px var(--color-card),0 0 0 5px var(--color-primary)!important}
 
 /* Incoming message notification toast (Messenger style popup) */
 .chat-incoming-toast {

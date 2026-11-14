@@ -30,6 +30,7 @@ export function TopHeader({
   const selectedSemester = academic?.selectedSemester
   const { session } = useAuthSession()
   const [unreadCount, setUnreadCount] = useState<number | null>(null)
+  const [unreadStale, setUnreadStale] = useState(false)
   const [notificationOpen, setNotificationOpen] = useState(false)
   const [preview, setPreview] = useState<NotificationItem[]>([])
   const [previewLoading, setPreviewLoading] = useState(false)
@@ -40,18 +41,22 @@ export function TopHeader({
   const previewMutation = useRef<Promise<void>>(Promise.resolve())
   const notificationRef = useRef<HTMLDivElement | null>(null)
   const notificationTriggerRef = useRef<HTMLButtonElement | null>(null)
+  const userId = session?.user.id
   useEffect(() => {
-    if (!session) return
+    if (!userId) return
     let active = true
     const refresh = () => {
       void getUnreadCount()
-        .then(count => { if (active) setUnreadCount(count) })
-        .catch(() => { if (active) setUnreadCount(null) })
+        .then(count => { if (active) { setUnreadCount(count); setUnreadStale(false) } })
+        .catch(() => { if (active) setUnreadStale(true) })
     }
     refresh()
+    const refreshWhenVisible = () => { if (document.visibilityState === 'visible') refresh() }
+    const timer = window.setInterval(refreshWhenVisible, 60_000)
     window.addEventListener('ai-pms:notifications-changed', refresh)
-    return () => { active = false; window.removeEventListener('ai-pms:notifications-changed', refresh) }
-  }, [session])
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener('ai-pms:notifications-changed', refresh); document.removeEventListener('visibilitychange', refreshWhenVisible) }
+  }, [userId])
   useEffect(() => {
     if (!notificationOpen) return
     const closeOutside = (event: MouseEvent) => {
@@ -160,15 +165,15 @@ export function TopHeader({
             onClick={toggleNotifications}
             aria-expanded={notificationOpen}
             aria-controls="notification-preview"
-            aria-label={unreadCount === null ? 'Mở thông báo học vụ' : `Mở thông báo học vụ, ${unreadCount} chưa đọc`}
+            aria-label={unreadCount === null ? 'Mở thông báo học vụ' : `Mở thông báo học vụ, ${unreadCount} chưa đọc${unreadStale ? ', đang chờ đồng bộ' : ''}`}
             className="relative flex min-h-11 min-w-11 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <span className="material-symbols-outlined text-[20px] shrink-0" aria-hidden="true">notifications</span>
-            {unreadCount !== null && unreadCount > 0 && <span aria-hidden="true" className="absolute right-0 top-0 rounded-full bg-danger-strong px-1.5 text-xs font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+            {unreadCount !== null && unreadCount > 0 && <span aria-hidden="true" className="absolute right-0 top-0 min-w-5 rounded-full bg-danger-strong px-1.5 text-center text-xs font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
           </button>
           {notificationOpen && <section id="notification-preview" aria-label="Thông báo mới" className="notification-popover">
-            <div className="notification-popover-header"><div><h2>Thông báo</h2><p>{unreadCount === null ? 'Cập nhật dành cho bạn' : unreadCount > 0 ? unreadCount + ' thông báo chưa đọc' : 'Bạn đã đọc hết thông báo mới'}</p></div><button type="button" className="notification-close" aria-label="Đóng bảng thông báo" onClick={() => { setNotificationOpen(false); notificationTriggerRef.current?.focus() }}><span className="material-symbols-outlined" aria-hidden="true">close</span></button></div>
-            <div className="notification-toolbar"><div className="notification-tabs" role="group" aria-label="Lọc thông báo nhanh">{(['unread', 'all'] as const).map(value => <button key={value} type="button" aria-pressed={previewFilter === value} disabled={previewBusy} onClick={() => { setPreviewFilter(value); void loadPreview(value) }}>{value === 'unread' ? 'Chưa đọc' : 'Tất cả'}</button>)}</div><button type="button" className="notification-action" disabled={previewLoading || previewBusy} onClick={() => void loadPreview()}>Làm mới</button></div>
+            <div className="notification-popover-header"><div><h2>Thông báo</h2><p>{unreadCount === null ? 'Cập nhật dành cho bạn' : unreadCount > 0 ? unreadCount + ' thông báo chưa đọc' : 'Bạn đã đọc hết thông báo mới'}{unreadStale ? ' · Đang chờ đồng bộ' : ''}</p></div><button type="button" className="notification-close" aria-label="Đóng bảng thông báo" onClick={() => { setNotificationOpen(false); notificationTriggerRef.current?.focus() }}><span className="material-symbols-outlined" aria-hidden="true">close</span></button></div>
+            <div className="notification-toolbar"><div className="notification-tabs" role="group" aria-label="Lọc thông báo nhanh">{(['unread', 'all'] as const).map(value => <button key={value} type="button" aria-pressed={previewFilter === value} disabled={previewBusy} onClick={() => { setPreviewFilter(value); void loadPreview(value) }}>{value === 'unread' ? 'Chưa đọc' : 'Tất cả'}</button>)}</div><button type="button" className="notification-action" disabled={previewLoading || previewBusy} onClick={() => { window.dispatchEvent(new Event('ai-pms:notifications-changed')); void loadPreview() }}>Làm mới</button></div>
             {previewError && <p role="alert" className="notification-error">{previewError}<button type="button" disabled={previewLoading || previewBusy} onClick={() => void loadPreview()}>Tải lại</button></p>}
             <div className="notification-popover-scroll">{previewLoading ? <NotificationLoading /> : preview.length ? <ul className="notification-list">{preview.map(item => <NotificationRow key={item.id} item={item} busy={previewBusy} compact onRead={() => readPreview(item)} onNavigate={() => setNotificationOpen(false)} />)}</ul> : !previewError ? <NotificationEmpty unread={previewFilter === 'unread'} /> : null}</div>
             <Link to="/notifications" onClick={() => setNotificationOpen(false)} className="notification-popover-footer">Xem tất cả<span aria-hidden="true">→</span></Link>

@@ -2,6 +2,8 @@
 
 Ngày đối chiếu: 2026-11-14. Phạm vi mã: BE `feat/be-access-audit-20261113` @ `51300c0`; FE `feat/fe-fresearch-reference-20261113` @ `40863af`. Đây là kế hoạch thực thi, **không phải xác nhận nghiệm thu runtime**. Chỉ commit/push đúng hai nhánh này; không PR, merge hoặc tác động hệ thống tham khảo.
 
+Tiến độ sau đối chiếu: FE giữ lối vào Cold/Defense sau Final Package (`802d0f8`); BE chặn Gate 1–3 PASS trực tiếp (`f756221`); FE giữ số thông báo/chat khi lỗi tạm thời và thu gọn dock (commit FE kế tiếp). Các hạng mục T0–T9 còn mở theo `tasks/progress-cold-defense-20261114.md`; không suy nghiệm thu toàn luồng từ các sửa cục bộ.
+
 ## 1. Nguồn thẩm quyền và phát hiện
 
 Yêu cầu hiện tại của chủ hệ thống > quy tắc học vụ/DB/BE được phê duyệt > FE > tài liệu tham khảo và ảnh. Tài liệu `AIPMS_INTERDISCIPLINARY_COLD_DEFENSE_COMPREHENSIVE_GUIDE.md` chứa cả mô tả đúng, ví dụ và khẳng định chưa khớp mã. Không lấy tỷ trọng mẫu, số người chấm mẫu hoặc tên trạng thái trong tài liệu làm chính sách chính thức nếu chưa có nguồn học vụ.

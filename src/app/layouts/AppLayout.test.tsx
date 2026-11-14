@@ -1,11 +1,18 @@
-import { describe, it, expect, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { AuthSessionContext, type AuthSessionContextValue } from '../../features/auth/context/auth-session-context'
 import { AcademicWorkflowContext } from '../context/academic-workflow-context'
 import { AppLayout } from './AppLayout'
 import { StudentJourneyContext, type StudentJourneyContextValue } from '../context/StudentJourneyContext'
 
+const notificationMocks = vi.hoisted(() => ({ unread: vi.fn() }))
+vi.mock('../../features/notifications/notifications-api', () => ({
+  getUnreadCount: notificationMocks.unread,
+  getNotifications: vi.fn().mockResolvedValue({ items: [] }),
+  markNotificationRead: vi.fn(),
+}))
+beforeEach(() => { notificationMocks.unread.mockReset().mockResolvedValue(0) })
 afterEach(cleanup)
 
 function renderAppLayout(initialEntries = ['/project/overview'], roles: string[] = ['STUDENT'], journey: StudentJourneyContextValue | null = null) {
@@ -27,6 +34,17 @@ function renderAppLayout(initialEntries = ['/project/overview'], roles: string[]
 }
 
 describe('AppLayout & Navigation Shell', () => {
+  it('keeps the last unread badge on a transient failure and refreshes it on retry', async () => {
+    notificationMocks.unread.mockResolvedValueOnce(7).mockRejectedValueOnce(new Error('offline')).mockResolvedValue(3)
+    renderAppLayout()
+    await waitFor(() => expect(screen.getByRole('button', { name: /7 chưa đọc/ })).toBeDefined())
+    window.dispatchEvent(new Event('ai-pms:notifications-changed'))
+    await waitFor(() => expect(screen.getByRole('button', { name: /7 chưa đọc, đang chờ đồng bộ/ })).toBeDefined())
+    fireEvent.click(screen.getByRole('button', { name: /7 chưa đọc/ }))
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Làm mới' }) as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(screen.getByRole('button', { name: 'Làm mới' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /3 chưa đọc/ })).toBeDefined())
+  })
   it('opens notifications in a popover and returns focus to the bell on Escape', () => {
     renderAppLayout()
     const bell = screen.getByRole('button', { name: /Mở thông báo học vụ/ })

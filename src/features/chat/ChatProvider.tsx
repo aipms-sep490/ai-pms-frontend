@@ -126,8 +126,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           setDeniedHubOwner(undefined)
         } catch (error) {
           if (!abort.signal.aborted) {
-            setInbox(emptyInbox); setInboxOwner(undefined)
             if (error instanceof HttpError && error.status === 403) {
+              setInbox(emptyInbox); setInboxOwner(undefined)
               // A denied account needs an explicit retry, not background catch-up requests.
               deniedInboxOwner.current = userId; queued = false; setDeniedHubOwner(userId)
               setInboxError('Tài khoản chưa được phép sử dụng chat. Hãy tải lại sau khi quyền hoặc hồ sơ được cập nhật.')

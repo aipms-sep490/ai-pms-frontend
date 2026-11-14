@@ -33,6 +33,15 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 describe('chat session boundaries', () => {
+  it('keeps the last known unread count after a temporary inbox error', async () => {
+    mocks.inbox.mockResolvedValueOnce({ items: [{ id: '9', title: 'Room', version: '1', sequence: '1', unreadCount: 5, updatedAt: '2026-10-07T00:00:00Z' }], nextCursor: null, hasMore: false })
+    render(<ChatProvider><Probe /></ChatProvider>)
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('5'))
+    mocks.inbox.mockRejectedValueOnce(new Error('offline'))
+    fireEvent.click(screen.getByRole('button', { name: 'Retry inbox' }))
+    await screen.findByText(/Chưa tải được hộp thư/)
+    expect(screen.getByRole('status').textContent).toBe('5')
+  })
   it('stops background catch-up after a denial and restores chat after an explicit successful retry', async () => {
     mocks.inbox.mockRejectedValue(new HttpError('Account cannot use chat', 403))
     render(<ChatProvider><Probe /></ChatProvider>)
