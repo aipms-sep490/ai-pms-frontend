@@ -15,7 +15,7 @@ import { ResultHistoryPanel } from './ResultHistoryPanel'
 export function ResultCorrectionPanel({ projectId }: { projectId: number }) {
   const { session } = useAuthSession()
   const studentId = session?.user.id
-  return studentId ? <StudentAppealPanel key={projectId + ':' + studentId} projectId={projectId} studentId={studentId} /> : <p role="alert">Cần đăng nhập để xem phúc khảo.</p>
+  return studentId ? <StudentAppealPanel key={projectId + ':' + studentId} projectId={projectId} studentId={studentId} /> : <p role="alert" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text">Cần đăng nhập để xem phúc khảo.</p>
 }
 
 export function StudentAppealPanel({ projectId, studentId }: { projectId: number; studentId: number }) {
@@ -49,7 +49,7 @@ export function StudentAppealPanel({ projectId, studentId }: { projectId: number
     } finally { lock.current = false; setBusy(false) }
   }
   return <section className="space-y-4" aria-label="Phúc khảo cá nhân"><div className="workspace-surface space-y-4 p-5"><h2 className="font-semibold">Phúc khảo / đính chính kết quả</h2><p className="text-sm text-ink-muted">Yêu cầu gắn với đúng sinh viên, thành phần và phiên bản đã công bố. Điểm chính thức do hệ thống quyết định.</p>
-    {error && <p role="alert">{error}</p>}{loading && <p role="status">Đang tải phúc khảo…</p>}
+    {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}{loading && <p role="status" className="text-sm text-ink-muted">Đang tải phúc khảo…</p>}
     <Button variant="secondary" disabled={busy || loading} onClick={() => { setError(''); setRevision(value => value + 1) }}>Tải lại phúc khảo</Button>
     {stale && <Button disabled={loading || busy || !requests} onClick={() => { setStale(false); setError('') }}>Tôi đã đối chiếu dữ liệu mới</Button>}
     {!loading && requests && <><form onSubmit={event => { event.preventDefault(); void submit() }} className="space-y-3"><fieldset disabled={busy || stale} className="space-y-3"><label className="block text-sm">Đợt phúc khảo<select required value={windowId} onChange={event => setWindowId(event.target.value)} className={appealInputClass}><option value="">Chọn đợt đúng phiên bản</option>{available.map(item => <option key={item.id} value={item.id}>Đợt #{item.id} · đến {new Date(item.closesAt).toLocaleString('vi-VN')}</option>)}</select></label><label className="block text-sm">Thành phần kết quả<select required value={componentId} onChange={event => setComponentId(event.target.value)} className={appealInputClass}><option value="">Chọn thành phần</option>{components.map(item => <option key={item.componentId} value={item.componentId}>{item.name} · {item.scope} · {item.stage ?? 'Chưa có giai đoạn'}</option>)}</select></label><label className="block text-sm">Lý do phúc khảo<textarea required maxLength={2000} value={reason} onChange={event => setReason(event.target.value)} className={appealInputClass} /></label><Button type="submit" disabled={!window || !component || !reason.trim()}>Gửi yêu cầu phúc khảo</Button></fieldset></form>
