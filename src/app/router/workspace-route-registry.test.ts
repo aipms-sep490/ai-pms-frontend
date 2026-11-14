@@ -53,6 +53,11 @@ describe('workspace route registry', () => {
     expect(leader.map((route) => route.path)).toEqual(member.map((route) => route.path))
   })
 
+  it('keeps Cold and defense visible after the final package changes the project state', () => {
+    const finalizing = getWorkspaceNavigation(access({ identityRole: 'student', identityRoles: ['STUDENT'], projectId: 4, projectState: 'FINAL_SUBMISSION' }))
+    expect(finalizing.map(route => route.path)).toEqual(expect.arrayContaining(['/project/cold-reports', '/project/defense']))
+  })
+
   it('does not expose evaluator navigation to a lecturer without a persisted evaluator capability', () => {
     const lecturer = getWorkspaceNavigation(access({ identityRole: 'lecturer', identityRoles: ['LECTURER'] }))
     const evaluator = getWorkspaceNavigation(access({ identityRole: 'lecturer', identityRoles: ['LECTURER'], assignments: ['EVALUATOR'] }))

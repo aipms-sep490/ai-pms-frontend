@@ -44,9 +44,9 @@ export const workspaceRouteRegistry: readonly WorkspaceRouteMeta[] = [
 
   // 4. Nghiệm thu & Bảo vệ (Finalization & Defense)
   { id: 'student-final-submission', path: '/project/final-submission', title: 'Bàn giao cuối kỳ', breadcrumb: 'Gói bàn giao cuối', icon: 'inventory_2', section: 'student', group: '4. Nghiệm thu & Bảo vệ', groupOrder: 4, identityRoles: ['STUDENT'], navigationVisibility: 'contextual' },
-  { id: 'student-defense', path: '/project/defense', title: 'Lịch bảo vệ', breadcrumb: 'Lịch bảo vệ', icon: 'gavel', section: 'student', group: '4. Nghiệm thu & Bảo vệ', groupOrder: 4, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.defenseScheduleEnabled },
+  { id: 'student-defense', path: '/project/defense', title: 'Lịch bảo vệ', breadcrumb: 'Lịch bảo vệ', icon: 'gavel', section: 'student', group: '4. Nghiệm thu & Bảo vệ', groupOrder: 4, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE', 'FINAL_SUBMISSION'], featureEnabled: env.defenseScheduleEnabled },
   { id: 'student-result', path: '/project/result', title: 'Kết quả đồ án', breadcrumb: 'Kết quả', icon: 'workspace_premium', section: 'student', group: '4. Nghiệm thu & Bảo vệ', groupOrder: 4, identityRoles: ['STUDENT'], navigationVisibility: 'contextual' },
-  { id: 'student-cold-reports', path: '/project/cold-reports', title: 'Chấm nguội', breadcrumb: 'Chấm nguội theo ngành', icon: 'fact_check', section: 'student', group: '4. Nghiệm thu & Bảo vệ', groupOrder: 4, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE'], featureEnabled: env.coldReportEnabled },
+  { id: 'student-cold-reports', path: '/project/cold-reports', title: 'Chấm nguội', breadcrumb: 'Chấm nguội theo ngành', icon: 'fact_check', section: 'student', group: '4. Nghiệm thu & Bảo vệ', groupOrder: 4, identityRoles: ['STUDENT'], navigationVisibility: 'contextual', projectStates: ['ACTIVE', 'FINAL_SUBMISSION'], featureEnabled: env.coldReportEnabled },
 
   // 5. Hồ sơ & Đề tài (Profile, Lifecycle & Team)
   { id: 'student-overview', path: '/project/overview', title: 'Tổng quan lộ trình', breadcrumb: 'Tổng quan lộ trình', icon: 'dashboard', section: 'student', group: '5. Hồ sơ & Đề tài', groupOrder: 5, identityRoles: ['STUDENT'], navigationVisibility: 'always' },

@@ -12,6 +12,7 @@ Source plan: `docs/uiux/AIPMS_PROGRESS_COLD_DEFENSE_INTEGRATED_PLAN_20261114.md`
 - [ ] T5: Publish downloadable department templates and versioned rubric/Gate Excel import/export.
 - [ ] T6: Authorized PDF, image, DOCX and XLSX preview with safe failure states.
 - [ ] T7: Review all 140 routes and consolidate role journeys while preserving deep links.
+  - [x] Keep student Cold and Defense navigation visible after `FINAL_SUBMISSION` (route tests and production build).
 - [ ] T8: Standardize alerts, forms, dates, unread counts and compact chat dock.
 - [ ] T9: Isolated DB and authenticated browser lifecycle acceptance for single and interdisciplinary projects.
 - [ ] Final branch verification: BE/FE builds, focused tests, contract parity, status, and push both designated branches only.
