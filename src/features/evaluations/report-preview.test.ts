@@ -8,7 +8,8 @@ describe('report preview helpers', () => {
     expect(previewKind({ contentType: 'image/png', fileName: 'b' })).toBe('image')
     expect(previewKind({ contentType: '', fileName: 'shot.jpeg' })).toBe('image')
     expect(previewKind({ contentType: 'application/zip', fileName: 'pack.zip' })).toBe('other')
-    expect(previewKind({ contentType: '', fileName: 'doc.docx' })).toBe('other')
+    expect(previewKind({ contentType: '', fileName: 'doc.docx' })).toBe('office')
+    expect(previewKind({ contentType: '', fileName: 'criteria.xlsx' })).toBe('office')
   })
 
   it('labels a file by report type when present, else the file name', () => {

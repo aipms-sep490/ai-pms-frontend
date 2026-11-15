@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Modal } from '../../../components/ui/Modal'
+import { Table, TableBody, TableCell, TableRow } from '../../../components/ui/Table'
 import { downloadEvaluationEvidenceFile, type EvidenceFile } from '../../../services/api/evaluations.api'
 import { fileLabel, formatBytes, previewKind } from '../report-preview'
+import { previewOfficeFile, type OfficePreview } from '../../../services/api/office-preview.api'
 
 const fileKey = (file: EvidenceFile) => String(file.evidenceItemId ?? file.id) + ':' + String(file.deliverableVersionId ?? '') + ':' + String(file.coldSubmissionId ?? '')
 
@@ -14,7 +16,7 @@ async function downloadFile(assignmentId: number, file: EvidenceFile) {
 
 /**
  * Report viewer shown beside the scoring form so the committee reads and scores in one place.
- * PDFs and images render inline; other formats offer a download. All files are fetched through the
+ * PDFs, images and bounded DOCX/XLSX extracts render inline; other formats offer a download. All files are fetched through the
  * assignment-scoped endpoint, so the backend remains the authority on what this evaluator may open.
  */
 export function ReportPreviewPanel({ assignmentId, files }: { assignmentId: number; files: EvidenceFile[] }) {
@@ -145,6 +147,7 @@ function PreviewStage({
 }) {
   const kind = previewKind(file)
   const [url, setUrl] = useState<string | null>(null)
+  const [office, setOffice] = useState<OfficePreview | null>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(kind === 'other' ? 'ready' : 'loading')
   const objectUrl = useRef<string | null>(null)
 
@@ -153,7 +156,15 @@ function PreviewStage({
     const abort = new AbortController()
     let alive = true
     downloadEvaluationEvidenceFile(assignmentId, file.id, abort.signal)
-      .then(blob => { if (!alive) return; const next = URL.createObjectURL(blob); objectUrl.current = next; setUrl(next); setStatus('ready') })
+      .then(async blob => {
+        if (!alive) return
+        if (kind === 'office') {
+          const result = await previewOfficeFile(blob, file.fileName, abort.signal)
+          if (alive) { setOffice(result); setStatus('ready') }
+          return
+        }
+        const next = URL.createObjectURL(blob); objectUrl.current = next; setUrl(next); setStatus('ready')
+      })
       .catch(() => { if (alive) setStatus('error') })
     return () => { alive = false; abort.abort(); if (objectUrl.current) { URL.revokeObjectURL(objectUrl.current); objectUrl.current = null } }
   }, [assignmentId, file.id, kind])
@@ -200,6 +211,22 @@ function PreviewStage({
             alt={`Báo cáo ${fileLabel(file)}`}
             className={`report-preview-image rounded-lg shadow-sm ${isFullscreen ? '!max-h-full' : ''}`}
           />
+        </div>
+      ) : null}
+
+      {status === 'ready' && kind === 'office' && office ? (
+        <div className="max-h-[520px] overflow-auto p-4 text-sm text-ink">
+          <p className="mb-3 text-xs text-ink-muted">Bản xem nhanh chỉ đọc; bố cục và công thức có thể khác bản gốc.</p>
+          {office.truncated && <p role="status" className="mb-3 text-xs text-ink-muted">Chỉ hiển thị phần đầu tài liệu.</p>}
+          {office.kind === 'DOCX_TEXT' && <div className="space-y-2 whitespace-pre-wrap">
+            {office.paragraphs.length ? office.paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>) : <p>Không có đoạn văn bản để hiển thị.</p>}
+          </div>}
+          {office.kind === 'XLSX_GRID' && office.sheets.map((sheet, index) => <section key={`${sheet.name}-${index}`} className="mb-4">
+            <h3 className="mb-2 font-semibold">{sheet.name}</h3>
+            <div className="rounded-lg border border-hairline"><Table aria-label={`Bảng tính ${sheet.name}`} className="text-xs"><TableBody>
+              {sheet.rows.map((row, rowIndex) => <TableRow key={rowIndex}>{row.map((value, colIndex) => <TableCell key={colIndex} className="min-w-20 border border-hairline p-2 align-top whitespace-pre-wrap break-words">{value}</TableCell>)}</TableRow>)}
+            </TableBody></Table></div>
+          </section>)}
         </div>
       ) : null}
 

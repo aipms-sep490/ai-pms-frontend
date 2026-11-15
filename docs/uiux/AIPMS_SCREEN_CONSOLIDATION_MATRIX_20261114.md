@@ -1,6 +1,6 @@
 # AI-PMS — ma trận sắp xếp màn hình theo vai trò
 
-Nguồn: `ROUTE_CENSUS.csv` (140 route, chỉ số 1–140). Đây là **đề xuất điều hướng**, chưa phải xác nhận đã đổi các màn hình. Giữ URL và quyền BE; hợp nhất khung/trang tổng hợp trước, chuyển URL cũ sang tab tương ứng chỉ sau khi kiểm chứng deep link, breadcrumb, quyền và lịch sử trình duyệt. `:projectId`, `:majorId`, `:taskId` và query hiện có phải được giữ nguyên.
+Nguồn: `ROUTE_CENSUS.csv` (baseline 140 route, cộng 2 route tài liệu mẫu ở chỉ số 141–142). Đây là **đề xuất điều hướng**, chưa phải xác nhận đã đổi các màn hình. Giữ URL và quyền BE; hợp nhất khung/trang tổng hợp trước, chuyển URL cũ sang tab tương ứng chỉ sau khi kiểm chứng deep link, breadcrumb, quyền và lịch sử trình duyệt. `:projectId`, `:majorId`, `:taskId` và query hiện có phải được giữ nguyên.
 
 | Chỉ số route | Màn hình hiện có | Nhóm hiển thị đích | Quyết định và lý do |
 |---|---|---|---|
@@ -24,6 +24,8 @@ Nguồn: `ROUTE_CENSUS.csv` (140 route, chỉ số 1–140). Đây là **đề x
 | 122–127 | Supervisor, qualification, topic, Cold template | Danh mục bộ môn | Card/list kết hợp tab; chi tiết giảng viên/đề tài giữ URL; Cold template gắn ngành và kỳ. |
 | 128–138 | Admin access, portfolio/project, milestone templates, RBAC, user, industry | Quản trị hệ thống | Shell tài khoản/quyền, portfolio hệ thống, cấu hình kỹ thuật; admin không tự nhận quyền quyết định học vụ. |
 | 139–140 | Workflow preview, fallback | Công cụ kiểm chứng/404 | Preview chỉ theo flag/môi trường; 404 có đường trở lại đúng workspace. |
+| 141 | Sinh viên / tài liệu mẫu ngành | Tiến trình / Minh chứng | Xem bản đã công bố theo ngành và kỳ được BE cho phép; giữ URL riêng để dùng từ Gate/Cold. |
+| 142 | Bộ môn / tài liệu mẫu ngành | Cấu hình học vụ / Tài liệu mẫu | Tải bản nháp, công bố/thu hồi và truy vết phiên bản; không gộp vào kho text lập chỉ mục AI. |
 
 ## Quy tắc chung cho từng screen
 

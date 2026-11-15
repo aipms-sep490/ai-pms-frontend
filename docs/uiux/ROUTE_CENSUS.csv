@@ -139,3 +139,5 @@ Index,ResolvedPath,RawPath,Component,AllowedRoles,Guard,FeatureFlag,SourceLine
 138,"/admin/industry","admin/industry","AdminIndustryInvitationsPage","admin","None","env.industryEnabled",240
 139,"/preview/workflows","preview/workflows","WorkflowPreviewPage","Public / Authenticated","None","env.workflowPreviewEnabled",244
 140,"/*","*","NotFoundPage","Public / Authenticated","None","None",245
+141,"/project/templates","project/templates","DepartmentDocumentsPage","student","RoleRoute","None",77
+142,"/department/documents","department/documents","DepartmentDocumentsPage","department","DepartmentAcademicScopeRoute","None",226

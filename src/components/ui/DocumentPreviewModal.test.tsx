@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { DocumentPreviewModal, getFileCategory } from './DocumentPreviewModal'
 
+const office = vi.hoisted(() => ({ previewOfficeFile: vi.fn() }))
+vi.mock('../../services/api/office-preview.api', () => office)
+
 describe('getFileCategory', () => {
   it('identifies PDF, images, code, and office documents', () => {
     expect(getFileCategory('report.pdf', 'application/pdf')).toBe('pdf')
@@ -15,6 +18,7 @@ describe('getFileCategory', () => {
 
 describe('DocumentPreviewModal', () => {
   beforeEach(() => {
+    office.previewOfficeFile.mockReset()
     vi.stubGlobal('URL', {
       ...URL,
       createObjectURL: vi.fn(() => 'blob:mock-url'),
@@ -67,6 +71,7 @@ describe('DocumentPreviewModal', () => {
   })
 
   it('renders fallback card and triggers download for office files', async () => {
+    office.previewOfficeFile.mockRejectedValue(new Error('preview unavailable'))
     const loadBlob = vi.fn().mockResolvedValue(new Blob(['word content'], { type: 'application/msword' }))
     const onDownload = vi.fn()
 
@@ -91,6 +96,19 @@ describe('DocumentPreviewModal', () => {
 
     fireEvent.click(downloadButtons[0])
     expect(onDownload).toHaveBeenCalled()
+  })
+
+  it('shows extracted DOCX text safely and a bounded XLSX grid', async () => {
+    office.previewOfficeFile.mockResolvedValueOnce({ kind: 'DOCX_TEXT', paragraphs: ['Đề cương <script>alert(1)</script>'], sheets: [], truncated: false })
+      .mockResolvedValueOnce({ kind: 'XLSX_GRID', paragraphs: [], sheets: [{ name: 'Tiêu chí', rows: [['Gate 1', '50']] }], truncated: true })
+    const loadBlob = vi.fn().mockResolvedValue(new Blob(['office content']))
+    const { rerender } = render(<DocumentPreviewModal open fileId={1} onClose={vi.fn()} fileName="template.docx" loadBlob={loadBlob} />)
+    expect(await screen.findByText('Đề cương <script>alert(1)</script>')).toBeTruthy()
+    expect(document.querySelector('script')).toBeNull()
+    rerender(<DocumentPreviewModal open fileId={2} onClose={vi.fn()} fileName="criteria.xlsx" loadBlob={loadBlob} />)
+    expect(await screen.findByRole('table', { name: 'Bảng tính Tiêu chí' })).toBeTruthy()
+    expect(screen.getByText('Gate 1')).toBeTruthy()
+    expect(screen.getByText(/chỉ hiển thị phần đầu/)).toBeTruthy()
   })
 
   it('revokes previous objectUrl and refetches when fileId changes with same fileName (fixes F-DOC-01)', async () => {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { previewOfficeFile, type OfficePreview } from '../../services/api/office-preview.api'
 import './document-preview-modal.css'
 
 export interface DocumentPreviewModalProps {
@@ -61,6 +62,8 @@ export function DocumentPreviewModal({
   const [blob, setBlob] = useState<Blob | null>(null)
   const [url, setUrl] = useState<string | null>(null)
   const [textContent, setTextContent] = useState<string | null>(null)
+  const [officePreview, setOfficePreview] = useState<OfficePreview | null>(null)
+  const [officeError, setOfficeError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [scale, setScale] = useState(1)
@@ -97,6 +100,8 @@ export function DocumentPreviewModal({
       setBlob(null)
       setUrl(null)
       setTextContent(null)
+      setOfficePreview(null)
+      setOfficeError(null)
       setError(null)
       setScale(1)
       setRotation(0)
@@ -114,6 +119,8 @@ export function DocumentPreviewModal({
     setBlob(null)
     setUrl(null)
     setTextContent(null)
+    setOfficePreview(null)
+    setOfficeError(null)
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current)
       objectUrlRef.current = null
@@ -133,6 +140,14 @@ export function DocumentPreviewModal({
             if (active) setTextContent(text)
           } catch {
             if (active) setTextContent('Không thể giải mã văn bản dưới dạng UTF-8.')
+          }
+        }
+        if (category === 'office' && /\.(docx|xlsx)$/i.test(fileName)) {
+          try {
+            const preview = await previewOfficeFile(resultBlob, fileName, controller.signal)
+            if (active) setOfficePreview(preview)
+          } catch {
+            if (active && !controller.signal.aborted) setOfficeError('Chưa tạo được bản xem trước an toàn cho tệp này. Bạn có thể tải bản gốc về máy.')
           }
         }
       })
@@ -350,7 +365,24 @@ export function DocumentPreviewModal({
               </div>
             )}
 
-            {(category === 'office' || category === 'archive' || category === 'other') && (
+            {category === 'office' && officePreview && (
+              <div className="doc-preview-office-stage">
+                <p className="doc-preview-office-note">Nội dung xem nhanh chỉ đọc; bố cục và công thức có thể khác bản gốc. Tải về để kiểm tra chính xác.</p>
+                {officePreview.truncated && <p role="status" className="doc-preview-office-note">Bản xem nhanh chỉ hiển thị phần đầu tài liệu.</p>}
+                {officePreview.kind === 'DOCX_TEXT' && <div className="doc-preview-office-text">
+                  {officePreview.paragraphs.length ? officePreview.paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)
+                    : <p>Không tìm thấy đoạn văn bản nào trong tệp.</p>}
+                </div>}
+                {officePreview.kind === 'XLSX_GRID' && officePreview.sheets.map((sheet, index) => <section key={`${sheet.name}-${index}`} className="doc-preview-office-sheet">
+                  <h3>{sheet.name}</h3>
+                  <div className="doc-preview-office-scroll"><table aria-label={`Bảng tính ${sheet.name}`}><tbody>
+                    {sheet.rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((value, colIndex) => <td key={colIndex}>{value}</td>)}</tr>)}
+                  </tbody></table></div>
+                </section>)}
+              </div>
+            )}
+
+            {((category === 'office' && !officePreview) || category === 'archive' || category === 'other') && (
               <div className="doc-preview-fallback">
                 <div className="doc-preview-fallback-icon">
                   <span className="material-symbols-outlined">
@@ -359,6 +391,7 @@ export function DocumentPreviewModal({
                 </div>
                 <h3>{fileName}</h3>
                 <p>
+                  {officeError && <span role="alert">{officeError}<br /></span>}
                   Định dạng <strong>{categoryLabel(category)}</strong> ({formatBytes(fileSize)}) yêu cầu ứng dụng chuyên dụng tương thích để đọc chính xác bố cục và dữ liệu. Hãy tải về để mở trên máy của bạn.
                 </p>
                 <button

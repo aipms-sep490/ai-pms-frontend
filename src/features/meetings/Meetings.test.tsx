@@ -39,6 +39,9 @@ const click = (name: string) => fireEvent.click(screen.getByRole('button', { nam
 const ready = () => screen.findByRole('heading', { name: 'Nội dung và địa điểm' })
 const listResult = (items: unknown[] = [{ ...meeting, participantCount: 1 }]) => ({ items, page: 1, pageSize: 10, totalCount: items.length, totalPages: items.length ? 1 : 0 })
 beforeEach(() => {
+  // Keep the historical September fixture ahead of the create-meeting validation clock.
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-09-22T00:00:00Z'))
   vi.resetAllMocks()
   api.getMeeting.mockResolvedValue(meeting)
   api.getMeetings.mockResolvedValue(listResult())
@@ -46,7 +49,7 @@ beforeEach(() => {
   api.getMeetingDecisions.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
   api.getMeetingActionItems.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
 })
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.useRealTimers() })
 
 describe('Meetings end-user workflow', () => {
   it('carries minutes from the meeting picker into the authorized notes form without sending attendance', async () => {
@@ -122,7 +125,7 @@ describe('Meetings end-user workflow', () => {
     submit(); expect(screen.getByRole('alert').textContent).toContain('tiêu đề')
     input('Tiêu đề', 'Họp'); input('Bắt đầu', '2026-09-23T10:00'); input('Kết thúc', '2026-09-23T09:00')
     submit(); expect(screen.getByRole('alert').textContent).toContain('Giờ kết thúc')
-    input('Kết thúc', '2026-09-23T10:00'); input('Liên kết', 'javascript:alert(1)')
+    input('Kết thúc', '2026-09-23T11:00'); input('Liên kết', 'javascript:alert(1)')
     submit(); expect(screen.getByRole('alert').textContent).toContain('http://')
     expect(api.createMeeting).not.toHaveBeenCalled()
   })

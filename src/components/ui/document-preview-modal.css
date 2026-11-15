@@ -252,6 +252,16 @@
   text-align: center;
 }
 
+.doc-preview-office-stage { flex: 1; overflow: auto; padding: 24px; background: var(--color-card); color: var(--color-ink); }
+.doc-preview-office-note { color: var(--color-ink-muted); font-size: 13px; margin-bottom: 16px; }
+.doc-preview-office-text { max-width: 850px; margin: 0 auto; line-height: 1.7; white-space: pre-wrap; }
+.doc-preview-office-text p { margin: 0 0 12px; }
+.doc-preview-office-sheet { margin-bottom: 24px; }
+.doc-preview-office-sheet h3 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+.doc-preview-office-scroll { overflow: auto; border: 1px solid var(--color-hairline); border-radius: 8px; }
+.doc-preview-office-scroll table { border-collapse: collapse; min-width: 100%; font-size: 13px; }
+.doc-preview-office-scroll td { border: 1px solid var(--color-hairline); padding: 7px 10px; min-width: 80px; white-space: pre-wrap; overflow-wrap: anywhere; }
+
 @media (max-width: 640px) {
   .doc-preview-dialog {
     width: 100vw;

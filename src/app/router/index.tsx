@@ -14,6 +14,7 @@ import { DepartmentProjectLayout } from '../../features/department/components/De
 import { DepartmentAcademicScopeRoute } from '../../features/department/components/DepartmentAcademicScopeRoute'
 import { AdminEvaluationLayout } from '../../features/evaluations/AdminEvaluationLayout'
 import { ChatPage } from '../../features/chat/ChatPage'
+import { DepartmentDocumentsPage } from '../../features/department-documents/DepartmentDocumentsPage'
 import { IndustryLayout } from '../../features/auth/components/IndustryRoutes'
 import { IndustryEnrollmentRoute } from '../../features/auth/components/IndustryEnrollmentRoute'
 import {
@@ -73,6 +74,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
         element: <RoleRoute allowed={['student']} />,
         children: [
           { path: 'project/overview', element: <OverviewPage /> },
+          { path: 'project/templates', element: <DepartmentDocumentsPage /> },
           { element: <ActiveStudentProjectRoute />, children: [
             { path: 'project/workspace', element: <ActiveProjectWorkspacePage /> },
             { path: 'project/milestones/:milestoneId?', element: <MilestoneDetailPage /> },
@@ -221,6 +223,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'department/student-qualifications', element: <QualificationVerificationPage /> },
           { path: 'department/topics', element: <TopicManagementPage /> },
           { path: 'department/topics/:id', element: <TopicManagementPage /> },
+          { path: 'department/documents', element: <DepartmentDocumentsPage manager /> },
           ...(env.coldReportEnabled ? [{ path: 'department/cold-templates', element: <ColdTemplateManagementPage /> }] : []),
           ] }] },
         ],
