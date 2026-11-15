@@ -4,6 +4,8 @@
 
 - Nguồn: `src/app/router/index.tsx`, `workspace-route-registry.ts`, các thành phần dùng chung, mã chat/defense và ảnh người dùng cung cấp. `ROUTE_CENSUS.csv` được tạo lại bằng `pnpm run route-inventory` và liệt kê **144 route**. Hai route có trong mã nhưng thiếu ở bản kiểm kê cũ là `/project/weekly-assessments` và `/lecturer/defense-sessions/:sessionId`.
 - Đây là **kiểm kê mã nguồn và kiểm tra một lát cắt UI**, không phải kết quả đăng nhập chạy thực tế cho 144 route. Test chat dùng fixture mạng được kiểm soát; không chứng minh SignalR hoặc dữ liệu staging.
+- `SCREEN_SOURCE_CUES.generated.csv` nối từng route với file màn hình và quét dấu hiệu **trực tiếp trong chính file đó**: WorkspacePage, loading, empty, feedback, form, ngày, preview. Tạo lại bằng `pnpm run screen-ui-audit`. `NO` nghĩa là bộ quét không tìm thấy từ khóa trong file trực tiếp; màn hình vẫn có thể dùng thành phần con hoặc cách viết khác. Không dùng cột này như kết quả pass/fail.
+- Quét 144 route/89 file màn hình khác nhau: 72 route có `WorkspacePage` trực tiếp, 133 có dấu loading, 11 có `EmptyState` được nhận diện, 120 có dấu feedback, 66 có form, 27 có ô ngày, 8 có dấu preview. Các số **đếm route trùng file** và là dấu mã nguồn, không phải số màn đã đạt quy chuẩn.
 - Thứ tự thẩm quyền: nghiệp vụ, DB/BE, hợp đồng FE, rồi ảnh tham khảo. Ảnh Messenger gợi ý mật độ, phân cấp và tương tác; không sao chép chức năng gọi video, chuyển tiếp, ghim, báo cáo khi BE chưa cấp hợp đồng và quyền.
 
 ## Bản đồ màn hình theo vai trò
