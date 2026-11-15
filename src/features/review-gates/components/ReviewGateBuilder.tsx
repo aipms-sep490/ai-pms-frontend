@@ -31,6 +31,12 @@ export function ReviewGateBuilder({
   const [editingRequirementIndex, setEditingRequirementIndex] = useState<number | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
+  useEffect(() => {
+    setSelectedGateIndex(index => Math.min(index, Math.max(0, template.gates.length - 1)))
+    setEditingRequirementIndex(null)
+    setIsDrawerOpen(false)
+  }, [template.concurrencyToken, template.gates.length])
+
   const currentGate = template.gates[selectedGateIndex] || template.gates[0]
   const weightsError = validateGateWeights(template.gates)
   const readOnly = busy || template.status === 'PUBLISHED'
@@ -52,7 +58,7 @@ export function ReviewGateBuilder({
 
   function handleAddGate() {
     if (template.status === 'PUBLISHED') return
-    if (template.gates.length >= 8) return
+    if (template.gates.length >= 20) return
     const nextIndex = template.gates.length + 1
     const prefix = template.mode === 'INTERDISCIPLINARY' ? 'G' : 'R'
     const newGate: ReviewGate = {
@@ -175,7 +181,7 @@ export function ReviewGateBuilder({
               <button
                 type="button"
                 onClick={handleAddGate}
-                disabled={readOnly || template.gates.length >= 8}
+                disabled={readOnly || template.gates.length >= 20}
                 className="inline-flex items-center gap-1 rounded-md bg-primary-subtle px-2.5 py-1 text-xs font-bold text-primary hover:bg-primary/20"
               >
                 ＋ Thêm Gate
