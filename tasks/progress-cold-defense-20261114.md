@@ -12,7 +12,7 @@ Source plan: `docs/uiux/AIPMS_PROGRESS_COLD_DEFENSE_INTEGRATED_PLAN_20261114.md`
   - [x] Ran Gate/Cold/Defense integration cases against a uniquely named, automatically removed local SQL Server test database; not a shared UAT database.
 - [x] T2: COMMON Cold target and leader lock authority through DB migration, BE contract, FE and isolated SQL tests (`20b864e`).
 - [x] T3: Only confirmed Defense committee members receive Cold assignment/score authority and assignment notification; supervisor/mentor conflict and pinned committee checks (`20b864e`).
-- [ ] T4: Common Cold-inclusive readiness in manual/auto scheduling and Defense scoring (`20b864e`); add explicit auto-apply race and full browser lifecycle acceptance.
+- [ ] T4: Common Cold-inclusive readiness in manual/auto scheduling and Defense scoring (`20b864e`); isolated SQL now verifies manual pre-Cold denial and auto-apply rejection after committee supersession, but full authenticated browser lifecycle acceptance remains open.
 - [x] T5: Department document upload/publish/retire/download version flow and Gate/rubric workbook roundtrip (`71ae672`, `23b98c4`); document flow verified with isolated SQL, component tests and a controlled mobile browser fixture.
 - [ ] T6: Authorized existing download paths plus bounded DOCX text/XLSX grid preview and safe fallback; browser acceptance and full DOCX layout conversion remain open.
 - [ ] T7: Review the 140 baseline routes plus two document routes and consolidate role journeys while preserving deep links.
@@ -22,6 +22,7 @@ Source plan: `docs/uiux/AIPMS_PROGRESS_COLD_DEFENSE_INTEGRATED_PLAN_20261114.md`
   - [x] FE notification count retains last known value on transient error and refreshes on retry/visibility/poll.
   - [x] FE chat retains count on transient inbox error, clears on 403, and uses a smaller desktop dock without perpetual bounce.
   - [x] FE create-meeting form rejects past starts and equal end/start; existing-meeting edits remain available (13 focused tests).
+  - [x] FE Defense manual form converts Vietnam time explicitly, rejects past/non-increasing times; room planner blocks past ranges before preview. BE independently rechecks schedule time and readiness.
   - [ ] Unified alert/form patterns and business-specific date rules across role screens.
 - [ ] T9: Isolated DB and authenticated browser lifecycle acceptance for single and interdisciplinary projects.
 - [ ] Final branch verification: BE/FE builds, focused tests, contract parity, status, and push both designated branches only.

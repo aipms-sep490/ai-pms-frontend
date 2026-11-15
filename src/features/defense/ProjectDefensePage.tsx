@@ -4,6 +4,7 @@ import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
 import { EntityIdentityStrip } from '../../components/ui/EntityIdentityStrip'
 import { useStudentJourney } from '../../app/context'
+import { localDateTime, toUtcDateTime } from '../execution/execution-utils'
 import { HttpError } from '../../services/http/http-client'
 import {
   cancelDefense,
@@ -337,14 +338,25 @@ export function DefenseManagementPanel({
     const cId = Number(selectedCommitteeId)
     if (!cId || !startAt || !endAt || !room.trim()) return
 
+    const starts = Date.parse(`${startAt}+07:00`)
+    const ends = Date.parse(`${endAt}+07:00`)
+    if (!Number.isFinite(starts) || !Number.isFinite(ends) || starts <= Date.now()) {
+      setScheduleError('Thời gian bắt đầu phải là thời điểm hợp lệ trong tương lai (giờ Việt Nam).')
+      return
+    }
+    if (ends <= starts) {
+      setScheduleError('Thời gian kết thúc phải sau thời gian bắt đầu.')
+      return
+    }
+
     setScheduling(true)
     setScheduleError('')
     setScheduleSuccess('')
     try {
       await scheduleDefense(projectId, {
         committeeId: cId,
-        startAt: new Date(startAt).toISOString(),
-        endAt: new Date(endAt).toISOString(),
+        startAt: toUtcDateTime(startAt)!,
+        endAt: toUtcDateTime(endAt)!,
         room: normalizeDefenseRoom(room),
       })
       setScheduleSuccess('Xếp lịch bảo vệ thành công.')
@@ -504,6 +516,7 @@ export function DefenseManagementPanel({
                 Thời gian bắt đầu
                 <input
                   type="datetime-local"
+                  min={localDateTime(new Date().toISOString())}
                   className="mt-1 block w-full rounded-md border border-hairline p-2 text-sm"
                   value={startAt}
                   disabled={scheduling}
@@ -514,6 +527,7 @@ export function DefenseManagementPanel({
                 Thời gian kết thúc
                 <input
                   type="datetime-local"
+                  min={startAt || localDateTime(new Date().toISOString())}
                   className="mt-1 block w-full rounded-md border border-hairline p-2 text-sm"
                   value={endAt}
                   disabled={scheduling}

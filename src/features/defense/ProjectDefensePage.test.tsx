@@ -154,8 +154,8 @@ describe('ProjectDefensePage', () => {
     await waitFor(() => {
       expect(mocks.scheduleDefense).toHaveBeenCalledWith(9, {
         committeeId: 5,
-        startAt: new Date('2026-12-25T08:00').toISOString(),
-        endAt: new Date('2026-12-25T10:00').toISOString(),
+        startAt: '2026-12-25T01:00:00.000Z',
+        endAt: '2026-12-25T03:00:00.000Z',
         room: 'B2.02',
       })
     })
@@ -168,6 +168,28 @@ describe('ProjectDefensePage', () => {
     expect(await screen.findByText('Lịch bảo vệ đồ án')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Tạo hội đồng' })).toBeNull()
     expect(mocks.getDefenseCommitteeCandidates).not.toHaveBeenCalled()
+  })
+  it('rejects past and non-increasing defense times before calling the API', async () => {
+    const { fireEvent } = await import('@testing-library/react')
+    mocks.getProjectDefenseSessions.mockResolvedValue(paged([]))
+    mocks.getDefenseCommittees.mockResolvedValue({
+      items: [{ id: 5, projectId: 9, name: 'Hội đồng', members: [{ userId: 10, majorId: 1 }], status: 'CONFIRMED', version: 1, concurrencyToken: 'v1' }],
+      page: 1, pageSize: 50, totalCount: 1, totalPages: 1,
+    })
+    renderManagement()
+    await screen.findByText('Quản lý hội đồng & Lịch bảo vệ (Khoa / Quản trị)')
+    await screen.findByRole('option', { name: /Hội đồng \(#5\)/ })
+    fireEvent.change(screen.getByLabelText(/Chọn hội đồng/), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText(/Phòng bảo vệ/), { target: { value: 'A1.01' } })
+    fireEvent.change(screen.getByLabelText(/Thời gian bắt đầu/), { target: { value: '2000-01-01T08:00' } })
+    fireEvent.change(screen.getByLabelText(/Thời gian kết thúc/), { target: { value: '2000-01-01T10:00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận xếp lịch bảo vệ' }))
+    expect(await screen.findByText(/thời điểm hợp lệ trong tương lai/)).toBeTruthy()
+    fireEvent.change(screen.getByLabelText(/Thời gian bắt đầu/), { target: { value: '2099-01-01T08:00' } })
+    fireEvent.change(screen.getByLabelText(/Thời gian kết thúc/), { target: { value: '2099-01-01T08:00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận xếp lịch bảo vệ' }))
+    expect(await screen.findByText('Thời gian kết thúc phải sau thời gian bắt đầu.')).toBeTruthy()
+    expect(mocks.scheduleDefense).not.toHaveBeenCalled()
   })
   it('keeps a draft committee out of scheduling until the lead confirms it', async () => {
     const { fireEvent, waitFor } = await import('@testing-library/react')

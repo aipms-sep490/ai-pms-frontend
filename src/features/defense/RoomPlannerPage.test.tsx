@@ -25,6 +25,20 @@ beforeEach(() => {
 })
 
 describe('RoomPlannerPage', () => {
+  it('blocks a past defense range before calling preview', async () => {
+    vi.mocked(api.getPlannerRooms).mockResolvedValue([
+      { id: 7, code: 'A-201', building: 'Alpha', floor: 2, capacity: 40, status: 'ACTIVE', concurrencyToken: 'token' },
+    ])
+    render(<MemoryRouter initialEntries={['/academic/project-periods/5/room-planner']}><Routes>
+      <Route path="/academic/project-periods/:periodId/room-planner" element={<RoomPlannerPage />} />
+    </Routes></MemoryRouter>)
+    await screen.findByRole('button', { name: /Phòng A-201/ })
+    fireEvent.change(screen.getByLabelText('Từ ngày'), { target: { value: '2000-01-01' } })
+    fireEvent.change(screen.getByLabelText('Đến ngày'), { target: { value: '2000-01-02' } })
+    expect(screen.getByRole('button', { name: /Tự động xếp lịch R4/ }).matches(':disabled')).toBe(true)
+    expect(screen.getByRole('alert').textContent).toContain('từ ngày mai')
+    expect(api.previewDefenseSchedule).not.toHaveBeenCalled()
+  })
   it('keeps preview inputs fixed while pending and discards a response from a previous period', async () => {
     vi.mocked(api.getPlannerRooms).mockResolvedValue([
       { id: 7, code: 'A-201', building: 'Alpha', floor: 2, capacity: 40, status: 'ACTIVE', concurrencyToken: 'token' },

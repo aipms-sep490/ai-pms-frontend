@@ -153,7 +153,9 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
     setPreview(null); setConfirmPartial(false); setSuccess('')
   }
   const activeRooms = rooms.filter((room) => room.status === 'ACTIVE' && [2, 3, 4].includes(room.floor))
-  const validRange = startDate <= endDate && Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`) <= 31 * 86400000
+  const earliestDate = nextDayVietnam()
+  const validRange = startDate >= earliestDate && startDate <= endDate
+    && Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`) <= 31 * 86400000
 
   const runPreview = async () => {
     if (!Number.isSafeInteger(periodId) || periodId < 1 || !validRange || activeRooms.length === 0) return
@@ -284,6 +286,7 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
               Từ ngày
               <input
                 type="date"
+                min={earliestDate}
                 value={startDate}
                 onChange={(event) => changeRange(event.target.value, endDate)}
                 className="min-h-11 rounded-lg border border-hairline px-3"
@@ -293,6 +296,7 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
               Đến ngày
               <input
                 type="date"
+                min={startDate >= earliestDate ? startDate : earliestDate}
                 value={endDate}
                 onChange={(event) => changeRange(startDate, event.target.value)}
                 className="min-h-11 rounded-lg border border-hairline px-3"
@@ -320,7 +324,7 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
           </div>
           {!validRange && (
             <p role="alert" className="mt-3 text-sm text-status-error-text">
-              Khoảng ngày phải theo thứ tự và tối đa 32 ngày.
+              Ngày bắt đầu phải từ ngày mai (giờ Việt Nam); ngày kết thúc không trước ngày bắt đầu và khoảng ngày tối đa 32 ngày.
             </p>
           )}
           <p className="mt-3 text-sm text-ink-muted">
