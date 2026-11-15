@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { DepartmentDocumentsPage } from './DepartmentDocumentsPage'
 import type { DepartmentDocument } from './department-documents-api'
+import { HttpError } from '../../services/http/http-client'
 
 const api = vi.hoisted(() => ({ listDepartmentDocuments: vi.fn(), uploadDepartmentDocument: vi.fn(),
   publishDepartmentDocument: vi.fn(), retireDepartmentDocument: vi.fn(), downloadDepartmentDocument: vi.fn() }))
@@ -26,6 +27,8 @@ describe('DepartmentDocumentsPage', () => {
   it('lets department staff upload a draft then publish its server version', async () => {
     api.uploadDepartmentDocument.mockResolvedValue(row)
     api.publishDepartmentDocument.mockResolvedValue({ ...row, status: 'PUBLISHED' })
+    api.listDepartmentDocuments.mockResolvedValueOnce([row]).mockResolvedValueOnce([row])
+      .mockResolvedValueOnce([{ ...row, status: 'PUBLISHED' }])
     render(<DepartmentDocumentsPage manager />)
     await screen.findByText('Mẫu báo cáo')
     fireEvent.change(screen.getByLabelText('Mã tài liệu'), { target: { value: 'REPORT' } })
@@ -36,8 +39,10 @@ describe('DepartmentDocumentsPage', () => {
     await waitFor(() => expect(api.uploadDepartmentDocument).toHaveBeenCalledWith(expect.objectContaining({
       majorId: 12, code: 'REPORT', title: 'Mẫu báo cáo', file,
     })))
+    await screen.findByText(/Đã tải lên bản nháp/)
     fireEvent.click(screen.getByRole('button', { name: 'Công bố' }))
     await waitFor(() => expect(api.publishDepartmentDocument).toHaveBeenCalledWith(row))
+    await screen.findByText('Tài liệu đã được công bố.')
   })
 
   it('shows students published documents without management controls', async () => {
@@ -48,5 +53,57 @@ describe('DepartmentDocumentsPage', () => {
     expect(screen.queryByRole('button', { name: 'Tải lên bản nháp' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Xem trước' }))
     expect(screen.getByRole('dialog')).toBeTruthy()
+  })
+
+  it('does not show stale documents or an empty-state claim after a filtered list fails', async () => {
+    api.listDepartmentDocuments.mockResolvedValueOnce([row]).mockRejectedValueOnce(new HttpError('Unavailable', 500))
+    render(<DepartmentDocumentsPage manager />)
+    await screen.findByText('Mẫu báo cáo')
+
+    fireEvent.change(screen.getByLabelText('Kỳ đồ án'), { target: { value: '34' } })
+
+    await screen.findByText('Chưa kết nối được kho tài liệu. Hãy thử lại.')
+    expect(screen.queryByText('Mẫu báo cáo')).toBeNull()
+    expect(screen.queryByText(/Chưa có tài liệu phù hợp/)).toBeNull()
+  })
+
+  it('does not confirm an upload until list readback succeeds and prevents duplicate submission', async () => {
+    api.uploadDepartmentDocument.mockResolvedValue(row)
+    api.listDepartmentDocuments.mockResolvedValueOnce([])
+      .mockRejectedValueOnce(new HttpError('Unavailable', 500))
+      .mockResolvedValueOnce([row])
+    render(<DepartmentDocumentsPage manager />)
+    await screen.findByText('Chưa có tài liệu phù hợp với ngành và kỳ đã chọn.')
+    fireEvent.change(screen.getByLabelText('Mã tài liệu'), { target: { value: 'REPORT' } })
+    fireEvent.change(screen.getByLabelText('Tên tài liệu'), { target: { value: 'Mẫu báo cáo' } })
+    fireEvent.change(screen.getByLabelText('Tệp mẫu'), { target: { files: [new File(['%PDF-1.4'], 'report.pdf', { type: 'application/pdf' })] } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Tải lên bản nháp' }).closest('form')!)
+
+    await screen.findByText(/Máy chủ đã nhận bản nháp nhưng chưa xác nhận được trong danh sách/)
+    expect((screen.getByRole('button', { name: 'Tải lên bản nháp' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.queryByText(/Đã tải lên bản nháp/)).toBeNull()
+    expect(api.uploadDepartmentDocument).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tải lại' }))
+    await screen.findByText(/Đã xác nhận bản nháp trong danh sách/)
+    expect(screen.getByText('Mẫu báo cáo')).toBeDefined()
+    expect(api.uploadDepartmentDocument).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the upload pending when a successful list still omits its server id', async () => {
+    api.uploadDepartmentDocument.mockResolvedValue({ ...row, id: 6 })
+    api.listDepartmentDocuments.mockResolvedValueOnce([]).mockResolvedValueOnce([row]).mockResolvedValueOnce([row])
+    render(<DepartmentDocumentsPage manager />)
+    await screen.findByText('Chưa có tài liệu phù hợp với ngành và kỳ đã chọn.')
+    fireEvent.change(screen.getByLabelText('Mã tài liệu'), { target: { value: 'REPORT' } })
+    fireEvent.change(screen.getByLabelText('Tên tài liệu'), { target: { value: 'Mẫu báo cáo' } })
+    fireEvent.change(screen.getByLabelText('Tệp mẫu'), { target: { files: [new File(['%PDF-1.4'], 'report.pdf', { type: 'application/pdf' })] } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Tải lên bản nháp' }).closest('form')!)
+
+    await screen.findByText(/Máy chủ đã nhận bản nháp nhưng chưa xác nhận được trong danh sách/)
+    fireEvent.click(screen.getByRole('button', { name: 'Tải lại' }))
+    await screen.findByText(/Chưa thấy bản nháp vừa tải lên trong danh sách/)
+    expect((screen.getByRole('button', { name: 'Tải lên bản nháp' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(api.uploadDepartmentDocument).toHaveBeenCalledTimes(1)
   })
 })

@@ -38,6 +38,7 @@ export function EvaluatorAssignmentManagementPage() {
   const { session } = useAuthSession()
   const capabilities = useProjectCapabilities(projectId)
   const canManage = capabilities.can('manage_evaluators')
+  const readOnly = paths.admin && !canManage
   const mutationLock = useRef(false)
   const errorSummary = useRef<HTMLDivElement>(null)
   const identities = useProjectStudentNames(projectId, session?.accessToken)
@@ -202,7 +203,8 @@ export function EvaluatorAssignmentManagementPage() {
   )
 
   return (
-    <WorkspacePage className="space-y-6 academic-capability-page" title="Phân công người chấm" eyebrow="Đánh giá đồ án" description="Chọn đợt đánh giá, thành phần chấm và giảng viên phù hợp cho đồ án." action={<ButtonLink to={paths.scheme} icon="schema">Phương án đánh giá</ButtonLink>}>
+    <WorkspacePage className="space-y-6 academic-capability-page" title={readOnly ? 'Xem phân công người chấm' : 'Phân công người chấm'} eyebrow="Đánh giá đồ án" description={readOnly ? 'Theo dõi phân công theo dữ liệu học vụ đã ghi nhận.' : 'Chọn đợt đánh giá, thành phần chấm và giảng viên phù hợp cho đồ án.'} action={<ButtonLink to={paths.scheme} icon="schema">Phương án đánh giá</ButtonLink>}>
+    {readOnly && !capabilities.loading && <p role="status" className="rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-muted">Chế độ theo dõi: bộ môn phụ trách thực hiện phân công và thu hồi người chấm.</p>}
     <ResourcePermissionNotice loading={capabilities.loading} error={capabilities.error} allowed={canManage} reason={capabilities.reasonLabel('manage_evaluators')} onRetry={capabilities.retry} />
 
     {error && <div ref={errorSummary} tabIndex={-1} role="alert" aria-labelledby="assignment-error-title" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><p id="assignment-error-title" className="font-semibold">Chưa thể hoàn tất thao tác</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại dữ liệu</button></div>}
@@ -246,8 +248,8 @@ export function EvaluatorAssignmentManagementPage() {
         to={paths.result}
         className="inline-flex items-center gap-2 rounded-lg border border-hairline bg-card px-4 py-2.5 text-sm font-semibold text-ink-soft hover:bg-canvas transition-all"
       >
-        <span>Công bố kết quả</span>
-        <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+        <span>{capabilities.can('publish_project_result') ? 'Công bố kết quả' : 'Xem kết quả'}</span>
+        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
       </Link>
     </div>
   </WorkspacePage>

@@ -259,7 +259,7 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
   }
 
   const editable = canManage && !conflicted && project !== null && (creating || selected?.status === 'DRAFT')
-  return <WorkspacePage className="space-y-5 evaluation-scheme-page academic-capability-page" title="Phương án đánh giá" eyebrow="Đánh giá đồ án" description="Thiết lập các thành phần, trọng số và ngưỡng đạt trước khi phân công người chấm." action={<><ButtonLink to={paths.evaluators}>Phân công người chấm</ButtonLink>{displayCanManage && <Button disabled={busy || loading || conflicted || !project || !canManage} onClick={startDraft} icon="add">Tạo bản nháp</Button>}</>}>
+  return <WorkspacePage className="space-y-5 evaluation-scheme-page academic-capability-page" title="Phương án đánh giá" eyebrow="Đánh giá đồ án" description={displayCanManage ? 'Thiết lập các thành phần, trọng số và ngưỡng đạt trước khi phân công người chấm.' : 'Theo dõi các thành phần, trọng số và ngưỡng đạt đã ghi nhận.'} action={<><ButtonLink to={paths.evaluators}>{capabilities.can('manage_evaluators') ? 'Phân công người chấm' : 'Xem phân công người chấm'}</ButtonLink>{displayCanManage && <Button disabled={busy || loading || conflicted || !project || !canManage} onClick={startDraft} icon="add">Tạo bản nháp</Button>}</>}>
     
     {confirmationDialog}
     <ResourcePermissionNotice loading={capabilities.loading} error={capabilities.error} allowed={canManage} reason={capabilities.reasonLabel('manage_evaluation_scheme')} onRetry={capabilities.retry} />

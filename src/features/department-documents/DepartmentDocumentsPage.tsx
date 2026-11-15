@@ -53,6 +53,8 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
   const [title, setTitle] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [pendingUploadId, setPendingUploadId] = useState<number | null>(null)
+  const uploadedNeedsReload = pendingUploadId !== null
 
   useEffect(() => {
     if (!session) return
@@ -90,10 +92,14 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
   }, [session, manager])
 
   const refresh = useCallback(async (id: string, period: string, signal?: AbortSignal) => {
-    if (!id) { setRows([]); return }
-    setLoading(true); setError('')
-    try { setRows(await listDepartmentDocuments(Number(id), period ? Number(period) : undefined, signal)) }
-    catch (reason) { if (!signal?.aborted) setError(errorText(reason)) }
+    if (!id) { setRows(null); return null }
+    setRows(null); setLoading(true); setError('')
+    try {
+      const loaded = await listDepartmentDocuments(Number(id), period ? Number(period) : undefined, signal)
+      if (signal?.aborted) return null
+      setRows(loaded)
+      return loaded
+    } catch (reason) { if (!signal?.aborted) setError(errorText(reason)); return null }
     finally { if (!signal?.aborted) setLoading(false) }
   }, [])
 
@@ -105,15 +111,21 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
 
   async function submitUpload(event: FormEvent) {
     event.preventDefault()
-    if (!majorId || !file) return
+    if (!majorId || !file || uploadedNeedsReload) return
     setUploading(true); setError(''); setSuccess('')
     try {
-      await uploadDepartmentDocument({ majorId: Number(majorId), projectPeriodId: periodId ? Number(periodId) : undefined,
+      const uploaded = await uploadDepartmentDocument({ majorId: Number(majorId), projectPeriodId: periodId ? Number(periodId) : undefined,
         code: code.trim(), title: title.trim(), file })
+      setPendingUploadId(uploaded.id)
+      const loaded = await refresh(majorId, periodId)
+      if (!loaded?.some(row => row.id === uploaded.id && row.status === 'DRAFT')) {
+        setError('Máy chủ đã nhận bản nháp nhưng chưa xác nhận được trong danh sách. Hãy chọn Tải lại; không gửi tệp lần nữa.')
+        return
+      }
+      setPendingUploadId(null)
       setCode(''); setTitle(''); setFile(null)
       const input = document.getElementById('department-document-file') as HTMLInputElement | null
       if (input) input.value = ''
-      await refresh(majorId, periodId)
       setSuccess('Đã tải lên bản nháp. Hãy kiểm tra và công bố để sinh viên xem được.')
     } catch (reason) { setError(errorText(reason)) }
     finally { setUploading(false) }
@@ -124,7 +136,11 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
     try {
       if (target === 'PUBLISHED') await publishDepartmentDocument(row)
       else await retireDepartmentDocument(row)
-      await refresh(majorId, periodId)
+      const loaded = await refresh(majorId, periodId)
+      if (!loaded?.some(item => item.id === row.id && item.status === target)) {
+        setError('Máy chủ đã nhận thay đổi nhưng chưa xác nhận được trạng thái mới. Hãy chọn Tải lại trước khi thao tác tiếp.')
+        return
+      }
       setSuccess(target === 'PUBLISHED' ? 'Tài liệu đã được công bố.' : 'Tài liệu đã được thu hồi.')
     } catch (reason) { setError(errorText(reason)) }
     finally { setBusyId(null) }
@@ -136,6 +152,21 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
     catch (reason) { setError(errorText(reason)) }
   }
 
+  async function retryList() {
+    const loaded = await refresh(majorId, periodId)
+    if (!uploadedNeedsReload || !loaded) return
+    const pending = loaded.some(row => row.id === pendingUploadId && row.status === 'DRAFT')
+    if (!pending) {
+      setError('Chưa thấy bản nháp vừa tải lên trong danh sách. Hãy thử Tải lại, không gửi tệp lần nữa.')
+      return
+    }
+    setPendingUploadId(null)
+    setCode(''); setTitle(''); setFile(null)
+    const input = document.getElementById('department-document-file') as HTMLInputElement | null
+    if (input) input.value = ''
+    setSuccess('Đã xác nhận bản nháp trong danh sách. Hãy kiểm tra và công bố để sinh viên xem được.')
+  }
+
   return <WorkspacePage title={manager ? 'Tài liệu mẫu của bộ môn' : 'Tài liệu mẫu theo ngành'}
     eyebrow={manager ? 'Điều hành học vụ' : 'Tiến trình đồ án'}
     description={manager ? 'Tải lên theo ngành/kỳ, kiểm tra bản nháp rồi công bố phiên bản. Bản cũ được lưu để truy vết.'
@@ -143,20 +174,20 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
     <section className="workspace-surface space-y-4 p-5" aria-label="Bộ lọc tài liệu">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-1 text-sm font-medium">Ngành
-          <select className="block w-full rounded-lg border border-hairline bg-card p-2" value={majorId} onChange={event => setMajorId(event.target.value)}>
+          <select className="block w-full rounded-lg border border-hairline bg-card p-2" value={majorId} disabled={uploadedNeedsReload || uploading || busyId !== null} onChange={event => setMajorId(event.target.value)}>
             {majors.length === 0 && <option value="">Chưa có ngành khả dụng</option>}
             {majors.map(major => <option key={major.id} value={major.id}>{major.name}{major.code ? ` (${major.code})` : ''}</option>)}
           </select>
         </label>
         {manager && <label className="space-y-1 text-sm font-medium">Kỳ đồ án
-          <select className="block w-full rounded-lg border border-hairline bg-card p-2" value={periodId} onChange={event => setPeriodId(event.target.value)}>
+          <select className="block w-full rounded-lg border border-hairline bg-card p-2" value={periodId} disabled={uploadedNeedsReload || uploading || busyId !== null} onChange={event => setPeriodId(event.target.value)}>
             <option value="">Tất cả kỳ và tài liệu dùng chung</option>
             {periods.map(period => <option key={period.id} value={period.id}>{period.name} ({period.code})</option>)}
           </select>
         </label>}
       </div>
       {catalogError && <p role="alert" className="text-danger">{catalogError}</p>}
-      <button type="button" className="rounded-lg border border-hairline px-3 py-2 text-sm" onClick={() => void refresh(majorId, periodId)} disabled={loading || !majorId}>Tải lại</button>
+      <button type="button" className="rounded-lg border border-hairline px-3 py-2 text-sm" onClick={() => void retryList()} disabled={loading || !majorId}>Tải lại</button>
     </section>
 
     {manager && <form className="workspace-surface mt-4 space-y-3 p-5" onSubmit={event => void submitUpload(event)}>
@@ -174,7 +205,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
         <input id="department-document-file" type="file" className="mt-1 block w-full text-sm" accept=".pdf,.docx,.xlsx" required
           onChange={event => setFile(event.target.files?.[0] ?? null)} />
       </label>
-      <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-white disabled:opacity-50" disabled={uploading || !majorId || !file || file.size > 20 * 1024 * 1024}>
+      <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-white disabled:opacity-50" disabled={uploading || uploadedNeedsReload || !majorId || !file || file.size > 20 * 1024 * 1024}>
         {uploading ? 'Đang tải lên…' : 'Tải lên bản nháp'}
       </button>
     </form>}
@@ -184,7 +215,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
       {error && <p role="alert" className="text-danger">{error}</p>}
       {success && <p role="status" className="text-success">{success}</p>}
       {loading && <p role="status">Đang tải tài liệu…</p>}
-      {!loading && rows?.length === 0 && <p className="text-muted">Chưa có tài liệu phù hợp với ngành và kỳ đã chọn.</p>}
+      {!loading && !error && rows?.length === 0 && <p className="text-muted">Chưa có tài liệu phù hợp với ngành và kỳ đã chọn.</p>}
       {rows?.map(row => <article key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-card p-4">
         <div className="min-w-0">
           <h3 className="font-semibold">{row.title}</h3>

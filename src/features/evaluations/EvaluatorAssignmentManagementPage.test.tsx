@@ -32,10 +32,10 @@ const auth: AuthSessionContextValue = {
   login: async () => { throw new Error('unused') }, logout: async () => {}, refreshProfile: async () => {}, restoreSession: async () => {},
 }
 
-function renderPage(path = '/department/projects/2/evaluators') {
-  return render(<AuthSessionContext.Provider value={auth}>
+function renderPage(path = '/department/projects/2/evaluators', identity = auth) {
+  return render(<AuthSessionContext.Provider value={identity}>
     <MemoryRouter initialEntries={[path]}>
-      <Routes><Route path="/department/projects/:projectId/evaluators" element={<EvaluatorAssignmentManagementPage />} /><Route path="/department/projects/:projectId/evaluations" element={<EvaluatorAssignmentManagementPage />} /></Routes>
+      <Routes><Route path="/department/projects/:projectId/evaluators" element={<EvaluatorAssignmentManagementPage />} /><Route path="/department/projects/:projectId/evaluations" element={<EvaluatorAssignmentManagementPage />} /><Route path="/admin/projects/:projectId/evaluators" element={<EvaluatorAssignmentManagementPage />} /></Routes>
     </MemoryRouter>
   </AuthSessionContext.Provider>)
 }
@@ -107,6 +107,28 @@ it('keeps each individual roster in its frozen major while distinguishing unname
 })
 
 describe('EvaluatorAssignmentManagementPage', () => {
+  it('gives admin an explicit read-only assignment view without academic write controls', async () => {
+    capabilitiesApi.getMyCapabilities.mockResolvedValue(projectCapabilities(2, false))
+    api.getProjectEvaluationAssignments.mockResolvedValue({ items: [{ id: 8, projectId: 2, evaluatorId: 6, projectPeriodId: 7, rubricId: 4, departmentId: 1, evaluationType: 'LECTURER', status: 'ACTIVE', assignedAt: '2026-10-09', concurrencyToken: 't' }], page: 1, totalCount: 1 })
+    const admin: AuthSessionContextValue = { ...auth, session: { ...auth.session!, user: { ...auth.session!.user, roles: ['ADMIN'] } } }
+
+    renderPage('/admin/projects/2/evaluators', admin)
+
+    expect(await screen.findByRole('heading', { name: 'Xem phân công người chấm' })).toBeDefined()
+    expect(screen.getByText(/Chế độ theo dõi/)).toBeDefined()
+    expect(screen.getByRole('link', { name: 'Xem kết quả' }).getAttribute('href')).toBe('/admin/projects/2/result')
+    expect(screen.queryByRole('heading', { name: 'Phân công mới' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Thu hồi' })).toBeNull()
+    expect(api.getEligibleEvaluators).not.toHaveBeenCalled()
+  })
+  it('preserves department assignment controls for an authorized dual-role admin', async () => {
+    const dualRole: AuthSessionContextValue = { ...auth, session: { ...auth.session!, user: { ...auth.session!.user, roles: ['ADMIN', 'DEPARTMENT_STAFF'] } } }
+    renderPage('/admin/projects/2/evaluators', dualRole)
+
+    expect(await screen.findByRole('heading', { name: 'Phân công mới' })).toBeDefined()
+    expect(screen.getByRole('heading', { name: 'Phân công người chấm', level: 1 })).toBeDefined()
+    expect(screen.queryByText(/Chế độ theo dõi/)).toBeNull()
+  })
   it.each(['denied', 'unavailable'])('reads assignments without write or candidate access when capabilities are %s', async state => {
     if (state === 'denied') capabilitiesApi.getMyCapabilities.mockResolvedValue(projectCapabilities(2, false))
     else capabilitiesApi.getMyCapabilities.mockRejectedValue(new HttpError('Unavailable', 503))
