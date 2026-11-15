@@ -44,3 +44,12 @@ Ngày rà soát 2026-11-14. BE `feat/be-access-audit-20261113` (`f756221`); FE `
 - Docker SQL Server không chạy (`dockerDesktopLinuxEngine` không tồn tại); test integration BE và DB migration chưa thể chạy. Không tạo dữ liệu học vụ giả trên shared DB. Chưa có authenticated runtime proof cho các vai trò/giai đoạn.
 - Thứ tự bắt buộc: (1) chốt policy và schema hội đồng/COMMON, (2) DB additive + contract + BE guard Cold, (3) readiness lịch và Final, (4) kho file mẫu + Excel + Office preview, (5) FE role journeys/alerts/dates, (6) UAT đơn/liên ngành, 4 role và toàn bộ 140 route. Chi tiết acceptance ở `AIPMS_PROGRESS_COLD_DEFENSE_INTEGRATED_PLAN_20261114.md`.
 - **Kết luận:** Không thể báo “đã hoàn thiện toàn bộ”. Các mục GAP trong bảng là điều kiện bắt buộc trước khi đạt đúng luồng người dùng mô tả.
+
+## 4. Cập nhật sau bản chụp 14/11 — 15/11/2026
+
+Bảng trên là trạng thái **tại thời điểm 14/11** và không còn là kết luận hiện hành cho Cold COMMON, hội đồng, lịch, workbook hoặc tài liệu mẫu. Đối chiếu trạng thái hiện hành theo `tasks/progress-cold-defense-20261114.md` và các commit BE `20b864e`, `71ae672`, `bef921d`, `8aec4db`; FE `03d319b`, `23b98c4`, `46331d9`, `b5fbba0`, `90e6c1f`.
+
+- Cold COMMON, leader lock, hội đồng CONFIRMED gắn phân công Cold, chặn supervisor/mentor, thông báo assignment và readiness trước lịch đã có mã và test SQL cô lập. Test thêm xác nhận lịch thủ công bị chặn trước Cold, và auto-apply bị chặn khi hội đồng thay đổi sau preview.
+- Workbook Gate/rubric có export, preview/commit import và re-export từ trạng thái BE; bộ môn quản lý file mẫu theo ngành/kỳ với draft/publish/retire; FE xem nhanh PDF/ảnh và trích nội dung DOCX/XLSX có giới hạn. DOCX chưa có bản dựng giữ nguyên bố cục Word.
+- FE có chặn ngày quá khứ và thứ tự giờ cho tạo lịch Defense thủ công/bộ xếp phòng; bộ form/ngày của tất cả route vẫn chưa đồng nhất. Ma trận 142 route mới là phương án sắp xếp, chưa phải bằng chứng mỗi route đã được làm lại.
+- Bằng chứng hiện có là build, unit/integration trên SQL cô lập, test FE và một fixture trình duyệt di động. Chưa có nghiệm thu đăng nhập thật xuyên chuỗi đơn ngành/liên ngành, kiểm tra 142 route theo 4 vai trò hoặc xác nhận chính sách học vụ Final Package từ nguồn có thẩm quyền.
