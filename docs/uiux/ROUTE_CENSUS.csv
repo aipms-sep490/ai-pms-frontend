@@ -2,16 +2,16 @@ Index,ResolvedPath,RawPath,Component,AllowedRoles,Guard,FeatureFlag,SourceLine
 1,"/login","login","LoginPage","Public / Authenticated","None","None",44
 2,"/forgot-password","forgot-password","ForgotPasswordPage","Public / Authenticated","None","None",45
 3,"/reset-password","reset-password","ResetPasswordPage","Public / Authenticated","None","None",46
-4,"/industry/enroll","industry/enroll","IndustryEnrollmentRoute","Public / Authenticated","IndustryEnrollmentRoute","env.industryEnabled",47
-5,"/industry","(index)","IndustryExpertPortalPage","Public / Authenticated","IndustryLayout","env.industryEnabled",51
-6,"/industry/workspace","workspace","IndustryExpertPortalPage","Public / Authenticated","IndustryLayout","env.industryEnabled",52
-7,"/industry/assignments/:assignmentId","assignments/:assignmentId","IndustryExpertPortalPage","Public / Authenticated","IndustryLayout","env.industryEnabled",53
-8,"/","(index)","HomeRedirect","Public / Authenticated","None","None",67
-9,"/profile","profile","ProfilePage","Public / Authenticated","None","None",68
-10,"/profile/security","profile/security","ProfileSecurityPage","Public / Authenticated","None","None",69
-11,"/notifications","notifications","NotificationsPage","Public / Authenticated","None","None",70
-12,"/calendar","calendar","CalendarAttentionPage","Public / Authenticated","None","None",71
-13,"/messages/:conversationId?","messages/:conversationId?","ChatPage","Public / Authenticated","None","None",72
+4,"/industry/enroll","industry/enroll","IndustryEnrollmentRoute","Public invitation","IndustryEnrollmentRoute","env.industryEnabled",47
+5,"/industry","(index)","IndustryExpertPortalPage","Authenticated industry","ProtectedRoute + IndustryLayout","env.industryEnabled",51
+6,"/industry/workspace","workspace","IndustryExpertPortalPage","Authenticated industry","ProtectedRoute + IndustryLayout","env.industryEnabled",52
+7,"/industry/assignments/:assignmentId","assignments/:assignmentId","IndustryExpertPortalPage","Authenticated industry","ProtectedRoute + IndustryLayout","env.industryEnabled",53
+8,"/","(index)","HomeRedirect","Authenticated","ProtectedRoute","None",67
+9,"/profile","profile","ProfilePage","Authenticated","ProtectedRoute","None",68
+10,"/profile/security","profile/security","ProfileSecurityPage","Authenticated","ProtectedRoute","None",69
+11,"/notifications","notifications","NotificationsPage","Authenticated","ProtectedRoute","None",70
+12,"/calendar","calendar","CalendarAttentionPage","Authenticated","ProtectedRoute","None",71
+13,"/messages/:conversationId?","messages/:conversationId?","ChatPage","Authenticated","ProtectedRoute","None",72
 14,"/project/overview","project/overview","OverviewPage","student","None","None",76
 15,"/project/templates","project/templates","DepartmentDocumentsPage","student","None","None",77
 16,"/project/workspace","project/workspace","ActiveProjectWorkspacePage","student","ActiveStudentProjectRoute","None",79
@@ -141,5 +141,5 @@ Index,ResolvedPath,RawPath,Component,AllowedRoles,Guard,FeatureFlag,SourceLine
 140,"/admin/access/rbac","admin/access/rbac","AdminRbacPage","admin","None","None",243
 141,"/admin/access/users/:userId","admin/access/users/:userId","AdminUserDetailPage","admin","None","None",244
 142,"/admin/industry","admin/industry","AdminIndustryInvitationsPage","admin","None","env.industryEnabled",245
-143,"/preview/workflows","preview/workflows","WorkflowPreviewPage","Public / Authenticated","None","env.workflowPreviewEnabled",249
-144,"/*","*","NotFoundPage","Public / Authenticated","None","None",250
+143,"/preview/workflows","preview/workflows","WorkflowPreviewPage","Authenticated","ProtectedRoute","env.workflowPreviewEnabled",249
+144,"/*","*","NotFoundPage","Authenticated","ProtectedRoute","None",250

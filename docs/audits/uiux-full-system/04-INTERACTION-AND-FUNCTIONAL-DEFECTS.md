@@ -16,3 +16,9 @@
 | SRC-001 | P2 code hygiene | `IMPLEMENTED_NOT_E2E_VERIFIED` | `ReviewGateModeConfigPanel.tsx` embeds `INITIAL_GATE_MODES`, invented participants/rooms and success toasts from local state; repository search finds no production import of the component. BE `GateSessionScriptsController.cs` and FE API functions exist separately. | Treat as an unused demonstration component, not as a deployed false-success defect. Before connecting any session UI, use the existing API and real assignment/schedule DTO; do not surface the sample as academic data. |
 
 No dead button, bad permission, lost draft, failed persistence or P0 runtime defect is claimed without a reproducible authenticated action. The route scan is read-only; every untested interaction remains `NOT_TESTED`.
+
+## Documentation correction after implementation authorization
+
+`AUD-002` is corrected on this FE branch: `docs/uiux/ROUTE_CENSUS.csv` and `docs/uiux/ROUTE_TEST_MATRIX.md` now mark `/industry` as authenticated behind `ProtectedRoute`, distinguish invitation enrollment, and mark the shared app routes as protected. The test matrix explicitly labels generic states and API names as untriaged candidates, not route-specific acceptance. This updates audit metadata only; no router guard changed.
+
+`AUD-001` originated in the separate `F:\AI-PMS\c` benchmark material, outside the two authorized Git branches. Current implementation authority remains `design-system/ai-pms/MASTER.md` and `src/index.css` with the blue AIPMS primary. The old benchmark document is not a source for new color changes.
