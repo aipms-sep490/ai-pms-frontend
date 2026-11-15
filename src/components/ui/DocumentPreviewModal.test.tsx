@@ -111,6 +111,15 @@ describe('DocumentPreviewModal', () => {
     expect(screen.getByText(/chỉ hiển thị phần đầu/)).toBeTruthy()
   })
 
+  it('shows a recoverable error when an authorized download fails', async () => {
+    render(<DocumentPreviewModal open onClose={vi.fn()} fileName="report.pdf"
+      loadBlob={vi.fn().mockResolvedValue(new Blob(['%PDF']))}
+      onDownload={vi.fn().mockRejectedValue(new Error('network'))} />)
+    await screen.findByTitle('Mở trong tab mới')
+    fireEvent.click(screen.getByRole('button', { name: 'Tải về' }))
+    expect(await screen.findByText(/Không thể tải tệp về máy/)).toBeTruthy()
+  })
+
   it('revokes previous objectUrl and refetches when fileId changes with same fileName (fixes F-DOC-01)', async () => {
     const blob1 = new Blob(['version 1 content'], { type: 'application/pdf' })
     const blob2 = new Blob(['version 2 content'], { type: 'application/pdf' })

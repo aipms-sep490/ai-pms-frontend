@@ -184,6 +184,8 @@ export function DocumentPreviewModal({
         anchor.click()
         if (!url && blob) URL.revokeObjectURL(downloadUrl)
       }
+    } catch {
+      setError('Không thể tải tệp về máy. Hãy kiểm tra quyền truy cập và thử lại.')
     } finally {
       setDownloading(false)
     }
@@ -290,7 +292,7 @@ export function DocumentPreviewModal({
             onClick={() => void handleDownload()}
             title="Tải tệp về máy"
           >
-            <span className="material-symbols-outlined text-[18px]">download</span>
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>
             <span>{downloading ? 'Đang tải…' : 'Tải về'}</span>
           </button>
 

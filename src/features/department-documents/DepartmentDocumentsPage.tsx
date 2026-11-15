@@ -130,6 +130,12 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
     finally { setBusyId(null) }
   }
 
+  async function download(row: DepartmentDocument) {
+    setError('')
+    try { await saveDownload(row) }
+    catch (reason) { setError(errorText(reason)) }
+  }
+
   return <WorkspacePage title={manager ? 'Tài liệu mẫu của bộ môn' : 'Tài liệu mẫu theo ngành'}
     eyebrow={manager ? 'Điều hành học vụ' : 'Tiến trình đồ án'}
     description={manager ? 'Tải lên theo ngành/kỳ, kiểm tra bản nháp rồi công bố phiên bản. Bản cũ được lưu để truy vết.'
@@ -186,7 +192,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" className="rounded-lg border border-hairline px-3 py-2 text-sm" onClick={() => setPreview(row)}>Xem trước</button>
-          <button type="button" className="rounded-lg border border-hairline px-3 py-2 text-sm" onClick={() => void saveDownload(row)}>Tải về</button>
+          <button type="button" className="rounded-lg border border-hairline px-3 py-2 text-sm" onClick={() => void download(row)}>Tải về</button>
           {manager && row.status === 'DRAFT' && <button type="button" className="rounded-lg bg-primary px-3 py-2 text-sm text-white disabled:opacity-50" disabled={busyId !== null}
             onClick={() => void changeStatus(row, 'PUBLISHED')}>Công bố</button>}
           {manager && row.status === 'PUBLISHED' && <button type="button" className="rounded-lg border border-hairline px-3 py-2 text-sm disabled:opacity-50" disabled={busyId !== null}
