@@ -304,7 +304,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                                 </span>
                                 <span className="truncate">{item.title}</span>
                                 {item.id === 'chat' && chatUnread > 0 && (
-                                  <span className="rounded-full bg-primary px-2 text-xs text-white" aria-label="Có tin nhắn chưa đọc">
+                                  <span className="shrink-0 rounded-full bg-primary px-2 text-xs text-white" aria-label={`${chatUnread} tin nhắn chưa đọc`}>
                                     {chatUnread > 99 ? '99+' : chatUnread}
                                   </span>
                                 )}
@@ -375,7 +375,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                       {item.icon}
                     </span>
                     <span className="truncate">{item.title}</span>
-                    {item.id === 'chat' && chatUnread > 0 && <span className="rounded-full bg-primary px-2 text-xs text-white" aria-label="Có tin nhắn chưa đọc">{chatUnread > 99 ? '99+' : chatUnread}</span>}
+                    {item.id === 'chat' && chatUnread > 0 && <span className="shrink-0 rounded-full bg-primary px-2 text-xs text-white" aria-label={`${chatUnread} tin nhắn chưa đọc`}>{chatUnread > 99 ? '99+' : chatUnread}</span>}
                   </div>
                 </NavLink>
               </Fragment>

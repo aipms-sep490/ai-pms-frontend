@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { HttpError } from '../../services/http/http-client'
 import { changeGate3Schedule, getGate3Schedules } from './room-planner-api'
 import type { ReviewGate3ScheduleDto, RoomDto } from './room-planner-api'
+import { isFutureOfficeSlot, todayVietnam } from './future-office-slot'
+import { InlineAlert } from '../../components/ui/InlineAlert'
 
 const slots = [
   ['08:00', '09:15'], ['09:30', '10:45'], ['11:00', '12:15'],
@@ -23,10 +25,11 @@ export function Gate3ScheduleChangePanel({ periodId, schedule, rooms, onChanged,
   const [error, setError] = useState('')
   const [unverified, setUnverified] = useState(false)
   const chosenSlot = slots[Number(slot) - 1]
-  const valid = Number(roomId) > 0 && /^\d{4}-\d{2}-\d{2}$/.test(date) && chosenSlot && reason.trim() && reason.length <= 2000
+  const valid = Number(roomId) > 0 && chosenSlot && isFutureOfficeSlot(date, chosenSlot[0]) && reason.trim() && reason.length <= 2000
 
   const save = async () => {
     if (!valid || !chosenSlot) return
+    if (!isFutureOfficeSlot(date, chosenSlot[0])) { setError('Ca đã qua. Hãy chọn ngày và ca khác.'); return }
     setBusy(true); setError('')
     let sent = false
     try {
@@ -68,7 +71,7 @@ export function Gate3ScheduleChangePanel({ periodId, schedule, rooms, onChanged,
         </select>
       </label>
       <label className="text-sm font-semibold">Ngày mới
-        <input type="date" value={date} onChange={event => setDate(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-2" />
+        <input type="date" min={todayVietnam()} value={date} onChange={event => setDate(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-2" />
       </label>
       <label className="text-sm font-semibold">Ca mới
         <select value={slot} onChange={event => setSlot(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-2">
@@ -79,7 +82,7 @@ export function Gate3ScheduleChangePanel({ periodId, schedule, rooms, onChanged,
         <textarea value={reason} maxLength={2000} onChange={event => setReason(event.target.value)} disabled={busy} className="mt-1 min-h-20 w-full rounded-lg border border-hairline p-2" />
       </label>
     </div>
-    {error && <p role="alert" className="mt-3 text-sm text-status-error-text">{error}</p>}
+    {error && <InlineAlert tone="error" className="mt-3">{error}</InlineAlert>}
     <div className="mt-3 flex flex-wrap gap-2">
       <button type="button" disabled={busy || unverified || !valid} onClick={() => void save()} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">Xác nhận đổi lịch</button>
       {unverified && <button type="button" onClick={() => { onChanged(); onClose() }} className="min-h-11 rounded-lg border border-hairline px-4 text-sm font-semibold">Tải lại lịch</button>}

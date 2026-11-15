@@ -9,6 +9,8 @@ import {
 } from './defense-api'
 import type { DefenseChangeRequestDto, RoomDto } from './defense-api'
 import type { DefenseSession } from './defense-types'
+import { isFutureOfficeSlot, todayVietnam } from './future-office-slot'
+import { InlineAlert } from '../../components/ui/InlineAlert'
 
 const slots = [
   ['08:00', '09:15'], ['09:30', '10:45'], ['11:00', '12:15'],
@@ -89,11 +91,12 @@ export function DefenseSessionChangePage() {
   const pending = requests.find(row => row.status === 'PENDING')
   const mayRequest = officer && defense?.status === 'SCHEDULED' && Date.parse(defense.endAt) > now
   const chosenSlot = slots[Number(slot) - 1]
-  const valid = mayRequest && !pending && roomId && date && chosenSlot && details.trim()
+  const valid = mayRequest && !pending && roomId && date && chosenSlot && isFutureOfficeSlot(date, chosenSlot[0], now) && details.trim()
     && details.length <= 2000 && (!evidenceUrl || evidenceUrl.startsWith('/api/v1/files/') || /^https:\/\//i.test(evidenceUrl))
 
   const submit = async () => {
     if (!valid || !chosenSlot) return
+    if (!isFutureOfficeSlot(date, chosenSlot[0])) { setError('Ca đã qua. Hãy chọn ngày và ca khác.'); return }
     setBusy(true); setError(''); setSuccess('')
     try {
       const created = await createDefenseChangeRequest(sessionId, {
@@ -130,7 +133,7 @@ export function DefenseSessionChangePage() {
     description="Lịch chính thức được đọc từ hệ thống. Chủ tọa và thư ký có thể đề xuất đổi phòng hoặc ca trước khi phiên kết thúc.">
     <div className="space-y-5">
       {loading && <p role="status" className="text-sm">Đang tải phiên bảo vệ…</p>}
-      {error && <div role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" onClick={reload} className="min-h-11 font-semibold underline">Tải lại</button></div>}
+      {error && <InlineAlert tone="error">{error} <button type="button" onClick={reload} className="min-h-11 font-semibold underline">Tải lại</button></InlineAlert>}
       {defense && <section className="rounded-2xl border border-hairline bg-surface p-4 shadow-xs">
         <h2 className="font-bold">Lịch hiện tại · {defense.status === 'SCHEDULED' ? 'Đã lên lịch' : 'Đã hủy'}</h2>
         <p className="mt-2 text-sm">Đồ án #{defense.projectId} · {localTime(defense.startAt)} – {localTime(defense.endAt)}</p>
@@ -154,7 +157,7 @@ export function DefenseSessionChangePage() {
             </select>
           </label>
           <label className="text-sm font-semibold">Ngày đề xuất
-            <input type="date" value={date} onChange={event => setDate(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-2" />
+            <input type="date" min={todayVietnam(now)} value={date} onChange={event => setDate(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-2" />
           </label>
           <label className="text-sm font-semibold">Ca đề xuất
             <select value={slot} onChange={event => setSlot(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-2">
@@ -180,7 +183,7 @@ export function DefenseSessionChangePage() {
           <ul className="mt-1 space-y-1">{requests.filter(row => row.status !== 'PENDING').map(row => <li key={row.id}>#{row.id} · {requestStatus[row.status] ?? row.status} · {localTime(row.createdAt)}</li>)}</ul>
         </div>}
       </section>}
-      {success && <p role="status" className="rounded-xl border border-hairline bg-canvas p-3 text-sm text-status-success-text">{success}</p>}
+      {success && <InlineAlert tone="success">{success}</InlineAlert>}
     </div>
   </WorkspacePage>
 }

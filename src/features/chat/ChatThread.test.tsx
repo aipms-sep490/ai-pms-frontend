@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ChatThread } from './ChatThread'
@@ -27,6 +27,23 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 const mount = () => render(<MemoryRouter><ChatThread id="9" userId="3" /></MemoryRouter>)
 describe('chat business and failure boundaries', () => {
+  it('shows only server-recorded readers and keeps message actions in a compact menu', async () => {
+    mocks.messages.mockResolvedValue({ items: [{ ...message, senderId: '3', senderName: 'Tôi' }], nextCursor: null, hasMore: false })
+    mocks.members.mockResolvedValue({ items: [
+      { userId: '2', fullName: 'Người đã đọc', lastReadSequence: '1' },
+      { userId: '4', fullName: 'Người chưa đọc', lastReadSequence: '0' },
+    ], nextCursor: null, hasMore: false })
+    mount()
+    const seen = await screen.findByRole('button', { name: /Xem người đã đọc tin nhắn/ })
+    fireEvent.click(seen)
+    const dialog = screen.getByRole('dialog', { name: 'Người đã xem tin nhắn' })
+    expect(within(dialog).getByText('Người đã đọc')).toBeTruthy()
+    expect(within(dialog).queryByText('Người chưa đọc')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Đóng hộp thoại' }))
+    fireEvent.click(screen.getByLabelText('Thêm thao tác với tin nhắn'))
+    expect(screen.getByRole('button', { name: 'Sửa tin nhắn' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Thu hồi tin nhắn' })).toBeTruthy()
+  })
   it('asks AI for a summary and renders decisions and action items', async () => {
     mount()
     await screen.findByText(message.body)
