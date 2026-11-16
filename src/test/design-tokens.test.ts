@@ -81,6 +81,14 @@ function offenders(pattern: RegExp): string[] {
 
 /** Guards the design-system contract in design-system/ai-pms/MASTER.md against regressions. */
 describe('design tokens', () => {
+  it('uses the FAMS inspired orange palette for global actions and light surfaces', () => {
+    expect(readToken('--color-primary')).toBe('#c2410c')
+    expect(readToken('--color-primary-hover')).toBe('#9a3412')
+    expect(readToken('--color-primary-subtle')).toBe('#fff3eb')
+    expect(readToken('--color-canvas')).toBe('#f8f9fb')
+    expect(readToken('--color-attention-border')).toBe('#f37021')
+  })
+
   it('scans the application sources', () => {
     expect(sources.length).toBeGreaterThan(100)
     expect(tokensCss.length).toBeGreaterThan(1000)
@@ -168,7 +176,7 @@ describe('design tokens', () => {
   })
 
   it('keeps accent-amber out of text roles, where it can never reach AA', () => {
-    // #F6B94C is 1.76:1 on white. MASTER.md allows it as a non-text accent only,
+    // The FAMS-inspired light amber is below 3:1 on white. MASTER.md reserves it for non-text accents,
     // always paired with --color-status-warning-text for the readable label.
     expect(contrastRatio(readToken('--color-accent-amber'), '#ffffff')).toBeLessThan(3)
   })

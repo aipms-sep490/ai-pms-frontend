@@ -10,13 +10,13 @@
 @media(hover:hover) and (pointer:fine) { .ui-button-primary:hover:not(:disabled)::before { transform:translateX(110%); transition:transform 550ms ease; } }
 .ui-button-primary:focus-visible::before { transform:translateX(110%); transition:transform 550ms ease; }
 .workspace-page .workspace-launchpad { gap:16px; padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; overflow:visible; }
-.workspace-page .workspace-launchpad > .workspace-spotlight { padding:24px; border:1px solid var(--color-hairline); border-radius:16px; background:linear-gradient(145deg,var(--color-card) 50%,var(--color-primary-subtle)); box-shadow:0 3px 12px -6px rgb(15 91 78 / 15%); overflow:hidden; transition:transform 220ms ease,border-color 220ms ease,box-shadow 220ms ease; }
+.workspace-page .workspace-launchpad > .workspace-spotlight { padding:24px; border:1px solid var(--color-hairline); border-radius:16px; background:linear-gradient(145deg,var(--color-card) 50%,var(--color-primary-subtle)); box-shadow:0 3px 12px -6px color-mix(in oklab, var(--color-primary) 15%, transparent); overflow:hidden; transition:transform 220ms ease,border-color 220ms ease,box-shadow 220ms ease; }
 .workspace-spotlight > .workspace-feature-icon { width:44px; height:44px; display:grid; place-items:center; border-radius:12px; background:linear-gradient(145deg,var(--color-primary-subtle),var(--color-primary-subtle)); color:var(--color-primary); font-size:23px; box-shadow:inset 0 1px 0 rgb(255 255 255 / 80%); margin-bottom:4px; }
 .workspace-navigation-section > div:first-child { padding:0 0 18px; border:0; }
 .workspace-spotlight .workspace-action-link { display:inline-flex; align-items:center; gap:9px; padding:7px 11px; border-radius:8px; background:var(--color-primary-subtle); color:var(--color-primary); font-size:12px; font-weight:600; text-decoration:none; }
-@media(hover:hover) and (pointer:fine) { .workspace-page .workspace-launchpad > .workspace-spotlight:hover { transform:translateY(-3px); border-color:var(--color-hairline); box-shadow:0 12px 26px -14px rgb(15 91 78 / 28%); }.workspace-spotlight:hover .workspace-feature-icon { background:linear-gradient(145deg,var(--color-primary-subtle),var(--color-primary-subtle)); } }
+@media(hover:hover) and (pointer:fine) { .workspace-page .workspace-launchpad > .workspace-spotlight:hover { transform:translateY(-3px); border-color:var(--color-hairline); box-shadow:0 12px 26px -14px color-mix(in oklab, var(--color-primary) 28%, transparent); }.workspace-spotlight:hover .workspace-feature-icon { background:linear-gradient(145deg,var(--color-primary-subtle),var(--color-primary-subtle)); } }
 .workspace-spotlight { position: relative; isolation: isolate; --mouse-x: 50%; --mouse-y: 50%; }
-.workspace-spotlight::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(260px circle at var(--mouse-x) var(--mouse-y), rgb(15 91 78 / 9%), transparent 80%); opacity: 0; transition: opacity 220ms ease; pointer-events: none; z-index: -1; }
+.workspace-spotlight::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(260px circle at var(--mouse-x) var(--mouse-y), color-mix(in oklab, var(--color-primary) 9%, transparent), transparent 80%); opacity: 0; transition: opacity 220ms ease; pointer-events: none; z-index: -1; }
 .workspace-spotlight:focus-visible::before { opacity: 1; }
 .workspace-spotlight > .workspace-action-link { margin-top: auto; align-self: flex-start; }
 @media (min-width:640px) { .workspace-launchpad > :last-child:nth-child(odd) { grid-column:1 / -1; border-right:0; } }
@@ -25,7 +25,7 @@
 .workspace-action-link { transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }
 .workspace-action-link .material-symbols-outlined { transition: transform 180ms ease; }
 .workspace-action-link:hover .material-symbols-outlined, .workspace-action-link:focus-visible .material-symbols-outlined, .workspace-spotlight:hover .workspace-action-link .material-symbols-outlined, .workspace-spotlight:focus-visible .workspace-action-link .material-symbols-outlined { transform: translateX(3px); }
-.workspace-action-link:active { box-shadow: inset 0 1px 3px rgb(15 91 78 / 12%); }
+.workspace-action-link:active { box-shadow: inset 0 1px 3px color-mix(in oklab, var(--color-primary) 12%, transparent); }
 @media (prefers-reduced-motion: reduce) {
  .workspace-launchpad .workspace-feature-watermark { transition:none; transform:none!important; }
  .ui-button-primary::before { display:none; }

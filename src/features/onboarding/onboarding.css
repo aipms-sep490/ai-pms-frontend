@@ -18,13 +18,13 @@
 }
 
 .tour-backdrop-dim {
-  background: rgb(15 32 29 / 0.55);
+  background: color-mix(in oklab, var(--color-brand-navy) 55%, transparent);
 }
 
 .tour-spotlight {
   position: fixed;
   border-radius: 12px;
-  box-shadow: 0 0 0 9999px rgb(15 32 29 / 0.55);
+  box-shadow: 0 0 0 9999px color-mix(in oklab, var(--color-brand-navy) 55%, transparent);
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
   pointer-events: none;
@@ -37,7 +37,7 @@
   background: var(--color-card);
   border: 1px solid var(--color-line-strong);
   border-radius: 14px;
-  box-shadow: 0 18px 48px rgb(15 32 29 / 0.22);
+  box-shadow: 0 18px 48px color-mix(in oklab, var(--color-brand-navy) 22%, transparent);
   padding: 18px;
   outline: none;
   animation: tour-pop-in 180ms ease;

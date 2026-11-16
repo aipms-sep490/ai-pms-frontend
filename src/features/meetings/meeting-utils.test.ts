@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { HttpError } from '../../services/http/http-client'
-import { formatMeetingTime, meetingDate, mustRefreshAfterError, safeMeetingUrl, toMeetingInput, toMeetingUtc } from './meeting-utils'
+import { formatMeetingTime, meetingDate, mustRefreshAfterError, safeMeetingUrl, toMeetingInput, toMeetingUtc, validCalendarDate } from './meeting-utils'
 
 describe('Meeting time and link boundaries', () => {
   it('round trips Vietnam wall time through UTC and zone-less SQL datetime2', () => {
@@ -14,6 +14,13 @@ describe('Meeting time and link boundaries', () => {
     expect(toMeetingInput(null)).toBe('')
     expect(toMeetingInput('invalid')).toBe('')
     expect(formatMeetingTime('invalid')).toBe('Chưa rõ thời gian')
+  })
+  it('rejects impossible calendar filter dates without blocking valid history dates', () => {
+    expect(validCalendarDate('2024-02-29')).toBe(true)
+    expect(validCalendarDate('2020-01-01')).toBe(true)
+    expect(validCalendarDate('2026-02-30')).toBe(false)
+    expect(validCalendarDate('2026-13-01')).toBe(false)
+    expect(validCalendarDate(null)).toBe(false)
   })
   it.each(['javascript:alert(1)', 'data:text/html,hello', 'file:///tmp/test', 'https://user:secret@example.com', 'bad url', null])('rejects unsafe URL %s', (url) => {
     expect(safeMeetingUrl(url)).toBeNull()

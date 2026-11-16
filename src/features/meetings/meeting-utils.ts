@@ -6,6 +6,11 @@ import type { MeetingDetail } from './meeting-types'
 export function meetingDate(value: string): Date {
   return new Date(/[zZ]$|[+-]\d{2}:\d{2}$/.test(value) ? value : `${value}Z`)
 }
+export function validCalendarDate(value: string | null): value is string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const date = new Date(`${value}T00:00:00Z`)
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
+}
 export function formatMeetingTime(value: string): string {
   const date = meetingDate(value)
   return Number.isNaN(date.getTime()) ? 'Chưa rõ thời gian' : new Intl.DateTimeFormat('vi-VN', {

@@ -1,6 +1,6 @@
 .notification-panel { overflow: hidden; border: 1px solid var(--color-hairline); border-radius: 14px; background: #fff; }
 .notification-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--color-line); }
-.notification-tabs { display: inline-flex; gap: 4px; padding: 4px; background: #eff3f1; border-radius: 9px; }
+.notification-tabs { display: inline-flex; gap: 4px; padding: 4px; background: var(--color-canvas); border-radius: 9px; }
 .notification-tabs button { min-height: 36px; padding: 0 14px; border-radius: 6px; color: var(--color-ink-muted); font-size: 13px; font-weight: 600; cursor: pointer; }
 .notification-tabs button[aria-pressed=true] { background: white; color: var(--color-primary); box-shadow: 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 8%, transparent); }
 .notification-action, .notification-read { color: var(--color-primary); border-radius: 6px; font-size: 12px; font-weight: 600; min-height: 36px; padding: 6px 10px; cursor: pointer; }
@@ -13,7 +13,7 @@
 .notification-row--unread { background: color-mix(in oklab, var(--color-primary-subtle) 25%, transparent); }
 .notification-row--unread::before { content: ''; position: absolute; left: 0; top: 24px; bottom: 24px; width: 3px; border-radius: 0 3px 3px 0; background: var(--color-primary); }
 .notification-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--color-primary-subtle); color: var(--color-primary); font-size: 21px; }
-.notification-icon--warning { background: #fff3db; color: #946019; }
+.notification-icon--warning { background: var(--color-status-warning-bg); color: var(--color-status-warning-text); }
 .notification-body { min-width: 0; }
 .notification-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--color-ink-muted); }
 .notification-unread { display: inline-flex; align-items: center; gap: 5px; color: var(--color-primary); font-weight: 600; }

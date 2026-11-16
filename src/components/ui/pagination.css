@@ -79,7 +79,7 @@
   justify-content: center;
   min-width: 28px;
   height: 34px;
-  color: #94a3b8;
+  color: var(--color-ink-muted);
   font-weight: 700;
 }
 

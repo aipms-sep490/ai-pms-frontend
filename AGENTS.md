@@ -10,7 +10,7 @@ Toàn bộ kỹ sư và agent khi làm việc trên Frontend bắt buộc phải
 3. **Liêm chính dữ liệu:** Tuyệt đối không tự tạo endpoint, trạng thái, quyền, điểm số, mock data thành production, “online” hay vị trí địa lý.
 4. **Ma trận trạng thái:** Mỗi màn hình bắt buộc có Loading, Empty, Filtered-Empty, Blocked, 401/403/404, 409, Lỗi mạng/5xx, Retry, Read-only và Success.
 5. **Bảo toàn dữ liệu & Mutation:** Bảo toàn draft khi gặp lỗi 400/409/mạng; mutation chỉ báo thành công sau khi BE xác nhận; đọc lại (readback) dữ liệu/token sau ghi.
-6. **Thương hiệu & A11y:** Dùng logo, mascot, palette sáng (`#F6FAFE`, `#0868B8`) và token AIPMS; cấm hardcode hex/rgba; WCAG 2.1 AA, keyboard/focus, `prefers-reduced-motion`.
+6. **Thương hiệu & A11y:** Dùng logo, mascot, palette FAMS-inspired sáng (`#F8F9FB` canvas, `#C2410C` action, `#F37021` accent) và token AIPMS; cấm hardcode hex/rgba; WCAG 2.1 AA, keyboard/focus, `prefers-reduced-motion`.
 7. **Phân định hoàn thiện:** Phân biệt minh bạch IMPLEMENTED, TESTED, RUNTIME VERIFIED, PROPOSED, BLOCKED.
 8. **Truy vết kỹ thuật:** Mỗi thay đổi có Source → Vấn đề → Giải pháp → Test → Giới hạn; không hạ chuẩn test hoặc che lỗi bằng mock.
 

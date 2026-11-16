@@ -8,9 +8,11 @@ export interface AcademicError {
 
 // Field names are contract data; backend prose, details and trace IDs are never display text.
 const fieldCopy: Record<string, { field: string; message: string }> = {
-  code: { field: 'code', message: 'Kiểm tra mã: dùng chữ, số, dấu chấm, gạch dưới hoặc gạch nối, tối đa 50 ký tự.' },
+  code: { field: 'code', message: 'Mã bắt đầu bằng chữ hoặc số; chỉ dùng chữ, số, _ hoặc -, tối đa 50 ký tự.' },
   name: { field: 'name', message: 'Nhập tên hợp lệ, tối đa 255 ký tự.' },
+  description: { field: 'description', message: 'Mô tả tối đa 1000 ký tự.' },
   organizationid: { field: 'organizationId', message: 'Chọn đơn vị tổ chức hợp lệ.' },
+  departmentid: { field: 'departmentId', message: 'Chọn bộ môn hợp lệ.' },
   academicsemesterid: { field: 'semesterId', message: 'Chọn học kỳ hợp lệ.' },
   semesterid: { field: 'semesterId', message: 'Chọn học kỳ hợp lệ.' },
   periodtype: { field: 'periodType', message: 'Chọn loại giai đoạn được hỗ trợ.' },

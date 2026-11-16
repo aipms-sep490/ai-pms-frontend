@@ -1,6 +1,6 @@
-# AI-PMS Enterprise UI Design System — Proposed UX Standard v1.0
+# AI-PMS Enterprise UI Design System — FAMS-inspired UX Standard v1.1
 
-**Status:** PROPOSED design/engineering guidance; not an approved academic policy, not evidence the current repository implements it. Inspect actual UI framework, tokens and authorized brand assets before adoption.
+**Status:** UI guidance, not an academic policy or proof that every screen has been accepted. The canonical color values are implemented in `src/index.css` and documented in `design-system/ai-pms/MASTER.md`. FAMS is a visual reference only; AIPMS keeps its own logo, workflow and role permissions.
 
 ## 1. Product identity and visual direction
 
@@ -10,25 +10,25 @@ Visual attributes: quiet surfaces, clear typography, measured color, generous bu
 
 **Do not use:** giant marketing hero in authenticated workspace; random full-page gradients; 8 different button shapes; emoji navigation; noisy shadows; blurry glassmorphism over data; charts with no source/legend; duplicated icons and labels; low contrast; walls of similarly weighted cards; fake live status or fictitious AI prediction; a new visual framework for each route.
 
-## 2. Semantic design tokens (initial candidate values, verify contrast before use)
+## 2. Semantic design tokens
 
-Implement in current theme mechanism (CSS variables / Tailwind theme / existing CSS-in-JS), **not** as parallel frameworks. Example for light theme, adjust to verified existing branding:
+Use the existing Tailwind `@theme` map in `src/index.css`; do not create parallel color systems. The brighter FAMS orange is decorative, while action orange meets text contrast:
 
-| Group | Token | Example |
+| Group | Token | Value |
 |---|---|---|
-| Surface | `--surface-canvas` | `#F8FAFC` |
-| Surface | `--surface-default` | `#FFFFFF` |
-| Surface | `--surface-muted` | `#F1F5F9` |
-| Text | `--text-primary` | `#0F172A` |
-| Text | `--text-secondary` | `#475569` |
-| Text | `--text-on-accent` | `#FFFFFF` |
-| Border | `--border-default` | `#CBD5E1` |
-| Accent | `--action-primary` | `#1D4ED8` |
-| Focus | `--focus-ring` | `#2563EB` |
-| Semantic | `--state-success` | `#166534` |
-| Semantic | `--state-warning` | `#92400E` |
-| Semantic | `--state-danger` | `#B91C1C` |
-| Semantic | `--state-info` | `#1D4ED8` |
+| Surface | `--color-canvas` | `#F8F9FB` |
+| Surface | `--color-card` | `#FFFFFF` |
+| Surface | `--color-primary-subtle` | `#FFF3EB` |
+| Text | `--color-ink` | `#222836` |
+| Text | `--color-ink-muted` | `#647083` |
+| Text on action | white | `#FFFFFF` |
+| Border | `--color-line-strong` | `#CED3DC` |
+| Action/focus | `--color-primary` | `#C2410C` |
+| Decorative orange | `--color-attention-border` | `#F37021` |
+| Semantic success text | `--color-status-success-text` | `#0B7B52` |
+| Semantic warning text | `--color-status-warning-text` | `#A94808` |
+| Semantic danger text | `--color-status-error-text` | `#BE2638` |
+| Categorical blue | `--color-tag-se` | `#1D4ED8` |
 
 Status surface tints shall be distinct from status text colors; contrast must be tested for each combination. Do NOT equate danger(red) with REJECTED always, nor green with VERIFIED without text labels. Dark theme optional only after coherent light theme and exhaustive state coverage.
 

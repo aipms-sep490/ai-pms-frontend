@@ -23,7 +23,7 @@
 .ex-button:active { transform: scale(0.98); }
 .ex-button-primary { background: var(--color-primary); border-color: var(--color-primary); color: white; box-shadow: 0 2px 8px -2px color-mix(in oklab, var(--color-primary) 30%, transparent); }
 .ex-button-primary:hover:not(:disabled) { background: var(--color-primary-hover); border-color: var(--color-primary-hover); color: white; box-shadow: 0 4px 12px -2px color-mix(in oklab, var(--color-primary) 35%, transparent); }
-.ex-button-primary:disabled { background: #94a3b8; border-color: #94a3b8; color: var(--color-canvas); box-shadow: none; opacity: 1; }
+.ex-button-primary:disabled { background: var(--color-ink-muted); border-color: var(--color-ink-muted); color: var(--color-canvas); box-shadow: none; opacity: 1; }
 .ex-button-danger { color: var(--color-danger-text); border-color: var(--color-status-error-border); background: var(--color-status-error-bg); }
 .ex-button-danger:hover { background: var(--color-status-error-bg); }
 .ex-text-button, .ex-link { font-size: 13px; color: var(--color-primary); font-weight: 600; background: none; border: 0; padding: 4px 0; text-decoration: none; transition: color 140ms ease; }

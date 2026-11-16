@@ -28,6 +28,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
   const isSubmitting = status === 'authenticating' || status === 'refreshing'
 
   if (status === 'authenticated' && session) return <Navigate to={resolveIntendedDestination(location.state, getHomePath(session.user))} replace />
@@ -35,12 +36,13 @@ export function LoginPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setFormError(null)
+    setFieldErrors({})
     if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) {
-      setFormError('Nhập địa chỉ email hợp lệ.')
+      setFieldErrors({ email: 'Nhập địa chỉ email hợp lệ.' })
       return
     }
     if (!password) {
-      setFormError('Nhập mật khẩu để tiếp tục.')
+      setFieldErrors({ password: 'Nhập mật khẩu để tiếp tục.' })
       return
     }
     try {
@@ -112,11 +114,12 @@ export function LoginPage() {
               spellCheck={false}
               autoCapitalize="none"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              aria-invalid={Boolean(formError)}
-              aria-describedby={formError ? 'login-error' : undefined}
+              onChange={(event) => { setEmail(event.target.value); setFieldErrors(current => ({ ...current, email: undefined })); setFormError(null) }}
+              aria-invalid={Boolean(fieldErrors.email)}
+              aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
               disabled={isSubmitting}
             />
+            {fieldErrors.email && <p id="login-email-error" className="auth-field-error" role="alert">{fieldErrors.email}</p>}
             <div className="login-password-label">
               <label htmlFor="login-password">Mật khẩu</label>
               <Link to="/forgot-password">Quên mật khẩu?</Link>
@@ -128,9 +131,9 @@ export function LoginPage() {
                 autoComplete="current-password"
                 placeholder="Nhập mật khẩu"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                aria-invalid={Boolean(formError)}
-                aria-describedby={formError ? 'login-error' : undefined}
+                onChange={(event) => { setPassword(event.target.value); setFieldErrors(current => ({ ...current, password: undefined })); setFormError(null) }}
+                aria-invalid={Boolean(fieldErrors.password)}
+                aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
                 disabled={isSubmitting}
               />
               <button
@@ -145,6 +148,7 @@ export function LoginPage() {
                 </span>
               </button>
             </div>
+            {fieldErrors.password && <p id="login-password-error" className="auth-field-error" role="alert">{fieldErrors.password}</p>}
             {formError && <p id="login-error" className="auth-error" role="alert">{formError}</p>}
             <Button
               className="auth-submit"

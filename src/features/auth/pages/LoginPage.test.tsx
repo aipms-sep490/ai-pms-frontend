@@ -47,7 +47,19 @@ describe('LoginPage', () => {
     fireEvent.submit(screen.getByRole('button', { name: 'Đăng nhập' }))
 
     expect(screen.getByRole('alert').textContent).toContain('Nhập địa chỉ email hợp lệ')
+    expect(screen.getByLabelText('Email').getAttribute('aria-invalid')).toBe('true')
+    expect(screen.getByLabelText('Mật khẩu').getAttribute('aria-invalid')).toBe('false')
     expect(authSession.login).not.toHaveBeenCalled()
+  })
+
+  it('shows the password requirement beside the password and clears it on edit', () => {
+    render(<LoginPage />, { wrapper: MemoryRouter })
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'staff@example.edu.vn' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Đăng nhập' }))
+    expect(screen.getByLabelText('Mật khẩu').getAttribute('aria-invalid')).toBe('true')
+    expect(screen.getByText('Nhập mật khẩu để tiếp tục.')).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'secret' } })
+    expect(screen.getByLabelText('Mật khẩu').getAttribute('aria-invalid')).toBe('false')
   })
 
   it('submits valid credentials through the session adapter', async () => {
