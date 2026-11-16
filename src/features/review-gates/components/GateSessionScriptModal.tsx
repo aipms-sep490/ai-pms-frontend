@@ -126,28 +126,28 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs overflow-y-auto">
-      <div className="w-full max-w-4xl rounded-2xl border border-hairline bg-surface shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4 backdrop-blur-xs overflow-y-auto">
+      <div className="w-full max-w-4xl rounded-2xl border border-hairline bg-card shadow-2xl flex flex-col max-h-[90vh] overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas/60 px-6 py-4">
           <div className="flex items-center gap-3">
             <div className={`flex h-12 w-12 items-center justify-center rounded-xl text-lg font-bold shadow-xs ${
-              isOnline ? 'bg-sky-600 text-white' : 'bg-primary text-white'
+              isOnline ? 'bg-tag-se text-white' : 'bg-primary text-white'
             }`}>
               {script.gateCode}
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-base font-bold text-ink">
                   Kịch bản & Biên bản thẩm định {script.gateCode} — {script.gateTitle}
                 </h3>
                 {isOnline ? (
-                  <span className="rounded-full bg-sky-100 text-sky-800 border border-sky-300 px-2.5 py-0.5 text-xs font-bold flex items-center gap-1">
+                  <span className="rounded-full bg-tag-se-bg text-tag-se border border-tag-se/25 px-2.5 py-0.5 text-xs font-bold flex items-center gap-1">
                     <span>🌐</span>
                     <span>ONLINE (LiveKit)</span>
                   </span>
                 ) : (
-                  <span className="rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 text-xs font-bold flex items-center gap-1">
+                  <span className="rounded-full bg-status-success-bg text-status-success-text border border-status-success-border px-2.5 py-0.5 text-xs font-bold flex items-center gap-1">
                     <span>🏛️</span>
                     <span>OFFLINE (Tại trường)</span>
                   </span>
@@ -164,7 +164,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
               <button
                 type="button"
                 onClick={() => onJoinLiveKit(script.liveKitRoomName || `livekit-gate-${script.gateCode}`)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-sky-700 transition-colors"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-primary-hover transition-colors"
               >
                 <span>🎥</span>
                 <span>Vào phòng LiveKit</span>
@@ -175,7 +175,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
               <button
                 type="button"
                 onClick={() => onViewRoomCanvas(script.roomCode!)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs font-bold text-ink hover:bg-canvas transition-colors"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-bold text-ink hover:bg-canvas transition-colors"
               >
                 <span>🗺️</span>
                 <span>Sơ đồ phòng {script.roomCode}</span>
@@ -185,6 +185,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
             <button
               type="button"
               onClick={onClose}
+              aria-label="Đóng kịch bản phiên"
               className="rounded-lg p-1.5 text-ink-muted hover:bg-canvas hover:text-ink text-sm ml-2"
             >
               ✕
@@ -193,21 +194,21 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
         </div>
 
         {/* Mode & Timing Sub-bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-surface px-6 py-2.5 text-xs">
-          <div className="flex items-center gap-4 text-ink-soft">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-card px-6 py-2.5 text-xs">
+          <div className="flex flex-wrap items-center gap-4 text-ink-soft">
             {isOnline ? (
               <>
-                <span>Phòng LiveKit: <strong className="text-sky-700 font-mono">{script.liveKitRoomName || 'livekit-pms-room-01'}</strong></span>
+                <span>Phòng LiveKit: <strong className="text-primary font-mono">{script.liveKitRoomName || 'livekit-pms-room-01'}</strong></span>
                 <span>Thời lượng ghi nhận: <strong className="text-ink">{script.totalElapsedMinutes || 52} phút</strong></span>
-                <span className="flex items-center gap-1 text-emerald-700 font-medium">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Presence tracking active
+                <span className="flex items-center gap-1 text-status-success-text font-medium">
+                  <span className="h-2 w-2 rounded-full bg-status-success-text motion-safe:animate-pulse" />
+                  Đang theo dõi hiện diện
                 </span>
               </>
             ) : (
               <>
                 <span>Phòng họp tại trường: <strong className="text-primary font-bold">{script.roomCode || 'A-201'}</strong> ({script.building || 'Tòa Alpha'} · Tầng {script.floor || 2})</span>
-                <span className="text-emerald-700 font-medium">✓ Đã tự động phân chia phòng chống trùng</span>
+                <span className="text-status-success-text font-medium">✓ Đã tự động phân chia phòng chống trùng</span>
               </>
             )}
           </div>
@@ -218,11 +219,11 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-hairline px-6 bg-surface text-xs font-bold">
+        <div className="flex overflow-x-auto border-b border-hairline px-6 bg-card text-xs font-bold">
           <button
             type="button"
             onClick={() => setActiveTab('AGENDA')}
-            className={`py-3 px-3 border-b-2 transition-colors ${
+            className={`py-3 px-3 border-b-2 whitespace-nowrap transition-colors ${
               activeTab === 'AGENDA' ? 'border-primary text-primary' : 'border-transparent text-ink-muted hover:text-ink'
             }`}
           >
@@ -231,7 +232,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('ATTENDANCE')}
-            className={`py-3 px-3 border-b-2 transition-colors ${
+            className={`py-3 px-3 border-b-2 whitespace-nowrap transition-colors ${
               activeTab === 'ATTENDANCE' ? 'border-primary text-primary' : 'border-transparent text-ink-muted hover:text-ink'
             }`}
           >
@@ -240,7 +241,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('QA_LOG')}
-            className={`py-3 px-3 border-b-2 transition-colors ${
+            className={`py-3 px-3 border-b-2 whitespace-nowrap transition-colors ${
               activeTab === 'QA_LOG' ? 'border-primary text-primary' : 'border-transparent text-ink-muted hover:text-ink'
             }`}
           >
@@ -249,7 +250,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('REMEDIATION')}
-            className={`py-3 px-3 border-b-2 transition-colors ${
+            className={`py-3 px-3 border-b-2 whitespace-nowrap transition-colors ${
               activeTab === 'REMEDIATION' ? 'border-primary text-primary' : 'border-transparent text-ink-muted hover:text-ink'
             }`}
           >
@@ -258,7 +259,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('VERDICT')}
-            className={`py-3 px-3 border-b-2 transition-colors ${
+            className={`py-3 px-3 border-b-2 whitespace-nowrap transition-colors ${
               activeTab === 'VERDICT' ? 'border-primary text-primary' : 'border-transparent text-ink-muted hover:text-ink'
             }`}
           >
@@ -280,7 +281,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                     key={idx}
                     className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${
                       stage.status === 'COMPLETED'
-                        ? 'border-emerald-200 bg-emerald-50/50'
+                        ? 'border-status-success-border bg-status-success-bg/60'
                         : stage.status === 'IN_PROGRESS'
                         ? 'border-primary bg-primary-subtle/30 shadow-xs ring-1 ring-primary'
                         : 'border-hairline bg-canvas/40'
@@ -289,10 +290,10 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                     <div className="flex items-center gap-3">
                       <span className={`h-6 w-6 rounded-full flex items-center justify-center font-bold text-xs ${
                         stage.status === 'COMPLETED'
-                          ? 'bg-emerald-600 text-white'
+                          ? 'bg-status-success-text text-white'
                           : stage.status === 'IN_PROGRESS'
-                          ? 'bg-primary text-white animate-pulse'
-                          : 'bg-slate-300 text-slate-700'
+                          ? 'bg-primary text-white motion-safe:animate-pulse'
+                          : 'border border-hairline bg-canvas text-ink-soft'
                       }`}>
                         {idx + 1}
                       </span>
@@ -305,7 +306,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                     <div className="flex items-center gap-2">
                       <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
                         stage.status === 'COMPLETED'
-                          ? 'bg-emerald-100 text-emerald-800'
+                          ? 'border border-status-success-border bg-status-success-bg text-status-success-text'
                           : stage.status === 'IN_PROGRESS'
                           ? 'bg-primary-subtle text-primary font-bold'
                           : 'bg-canvas text-ink-muted'
@@ -335,7 +336,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                 </div>
               </div>
 
-              <div className="divide-y divide-hairline rounded-xl border border-hairline bg-surface overflow-hidden">
+              <div className="divide-y divide-hairline rounded-xl border border-hairline bg-card overflow-hidden">
                 {script.presences.map((p) => (
                   <div key={p.userId} className="flex items-center justify-between p-3 text-xs">
                     <div className="flex items-center gap-3">
@@ -347,7 +348,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                           className="rounded border-hairline text-primary focus:ring-primary h-4 w-4"
                         />
                       ) : (
-                        <span className={`h-2.5 w-2.5 rounded-full ${p.isPresent ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                        <span className={`h-2.5 w-2.5 rounded-full ${p.isPresent ? 'bg-status-success-text' : 'bg-hairline'}`} />
                       )}
                       <div>
                         <span className="font-bold text-ink mr-2">{p.name}</span>
@@ -360,14 +361,14 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                     <div className="text-xs text-ink-muted">
                       {isOnline ? (
                         p.isPresent ? (
-                          <span className="text-emerald-700 font-medium">
+                          <span className="text-status-success-text font-medium">
                             Đã tham gia: {p.durationMinutes || 48} phút ({p.joinedAt || '08:02'} – {p.leftAt || '08:50'})
                           </span>
                         ) : (
-                          <span className="text-slate-400">Chưa vào phòng</span>
+                          <span className="text-ink-muted">Chưa vào phòng</span>
                         )
                       ) : (
-                        <span className={p.isPresent ? 'text-emerald-700 font-bold' : 'text-slate-400'}>
+                        <span className={p.isPresent ? 'text-status-success-text font-bold' : 'text-ink-muted'}>
                           {p.isPresent ? 'Có mặt tại phòng' : 'Vắng mặt'}
                         </span>
                       )}
@@ -389,19 +390,19 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                     value={newAsker}
                     onChange={(e) => setNewAsker(e.target.value)}
                     placeholder="Giảng viên đặt câu hỏi"
-                    className="rounded-lg border border-hairline bg-surface p-2 text-xs text-ink"
+                    className="min-h-10 rounded-lg border border-hairline bg-card p-2 text-xs text-ink"
                   />
                   <input
                     type="text"
                     value={newAnswerer}
                     onChange={(e) => setNewAnswerer(e.target.value)}
                     placeholder="Sinh viên trả lời"
-                    className="rounded-lg border border-hairline bg-surface p-2 text-xs text-ink"
+                    className="min-h-10 rounded-lg border border-hairline bg-card p-2 text-xs text-ink"
                   />
                   <select
                     value={newEval}
-                    onChange={(e) => setNewEval(e.target.value as any)}
-                    className="rounded-lg border border-hairline bg-surface p-2 text-xs text-ink"
+                    onChange={(e) => setNewEval(e.target.value as 'SATISFACTORY' | 'ACCEPTABLE' | 'NEEDS_REVISION')}
+                    className="min-h-10 rounded-lg border border-hairline bg-card p-2 text-xs text-ink"
                   >
                     <option value="SATISFACTORY">Đạt (Thỏa đáng)</option>
                     <option value="ACCEPTABLE">Chấp nhận được</option>
@@ -413,13 +414,13 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                   value={newQuestion}
                   onChange={(e) => setNewQuestion(e.target.value)}
                   placeholder="Nội dung câu hỏi và ghi chú câu trả lời..."
-                  className="w-full rounded-lg border border-hairline bg-surface p-2.5 text-xs text-ink"
+                  className="w-full rounded-lg border border-hairline bg-card p-2.5 text-xs text-ink"
                 />
                 <div className="flex justify-end">
                   <button
                     type="button"
                     onClick={handleAddQa}
-                    className="rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-white hover:bg-primary/90"
+                    className="rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-white hover:bg-primary-hover"
                   >
                     Lưu câu hỏi vào biên bản
                   </button>
@@ -432,7 +433,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                   <p className="text-center text-ink-muted py-4">Chưa có câu hỏi vấn đáp nào được ghi nhận.</p>
                 ) : (
                   script.qaLog.map((qa, i) => (
-                    <div key={qa.id} className="rounded-xl border border-hairline bg-surface p-3.5 shadow-xs space-y-1.5">
+                    <div key={qa.id} className="rounded-xl border border-hairline bg-card p-3.5 shadow-xs space-y-1.5">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-primary">#{i + 1}</span>
@@ -441,12 +442,12 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                           <span className="font-semibold text-ink">{qa.answeredBy}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
+                          <span className={`rounded-md border px-2 py-0.5 text-xs font-semibold ${
                             qa.evaluation === 'SATISFACTORY'
-                              ? 'bg-emerald-100 text-emerald-800'
+                              ? 'border-status-success-border bg-status-success-bg text-status-success-text'
                               : qa.evaluation === 'ACCEPTABLE'
-                              ? 'bg-sky-100 text-sky-800'
-                              : 'bg-amber-100 text-amber-800'
+                              ? 'border-primary/20 bg-primary-subtle text-primary'
+                              : 'border-status-warning-border bg-status-warning-bg text-status-warning-text'
                           }`}>
                             {qa.evaluation === 'SATISFACTORY' ? 'Thỏa đáng' : qa.evaluation === 'ACCEPTABLE' ? 'Chấp nhận được' : 'Cần sửa đổi'}
                           </span>
@@ -480,14 +481,14 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                     value={newRemediationTitle}
                     onChange={(e) => setNewRemediationTitle(e.target.value)}
                     placeholder="Tên đầu việc cần sửa (ví dụ: Bổ sung sơ đồ Database ERD)..."
-                    className="rounded-lg border border-hairline bg-surface p-2 text-xs text-ink"
+                    className="min-h-10 rounded-lg border border-hairline bg-card p-2 text-xs text-ink"
                   />
                   <input
                     type="text"
                     value={newRemediationAssignee}
                     onChange={(e) => setNewRemediationAssignee(e.target.value)}
                     placeholder="Sinh viên phụ trách"
-                    className="rounded-lg border border-hairline bg-surface p-2 text-xs text-ink"
+                    className="min-h-10 rounded-lg border border-hairline bg-card p-2 text-xs text-ink"
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -495,7 +496,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                   <button
                     type="button"
                     onClick={handleAddRemediation}
-                    className="rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-white hover:bg-primary/90"
+                    className="rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-white hover:bg-primary-hover"
                   >
                     Thêm yêu cầu sửa đổi
                   </button>
@@ -508,9 +509,9 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                   <p className="text-center text-ink-muted py-4">Không có yêu cầu chỉnh sửa bắt buộc nào.</p>
                 ) : (
                   script.remediationItems.map((item, idx) => (
-                    <div key={item.id} className="flex items-center justify-between p-3 rounded-xl border border-hairline bg-surface shadow-xs text-xs">
+                    <div key={item.id} className="flex items-center justify-between p-3 rounded-xl border border-hairline bg-card shadow-xs text-xs">
                       <div className="flex items-center gap-3">
-                        <span className="h-6 w-6 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs">
+                        <span className="h-6 w-6 rounded-full border border-status-warning-border bg-status-warning-bg text-status-warning-text flex items-center justify-center font-bold text-xs">
                           {idx + 1}
                         </span>
                         <div>
@@ -539,14 +540,14 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                 <label className="font-bold text-ink text-xs uppercase tracking-wider block mb-2">
                   Phán quyết của Hội đồng thẩm định Cổng {script.gateCode}
                 </label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <button
                     type="button"
                     onClick={() => setScript((prev) => ({ ...prev, verdict: 'PASSED' }))}
                     className={`rounded-xl border p-3 text-center transition-all ${
                       script.verdict === 'PASSED'
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-900 font-bold ring-2 ring-emerald-500'
-                        : 'border-hairline bg-surface text-ink hover:bg-canvas'
+                        ? 'border-status-success-border bg-status-success-bg text-status-success-text font-bold ring-2 ring-status-success-border'
+                        : 'border-hairline bg-card text-ink hover:bg-canvas'
                     }`}
                   >
                     <div className="text-base">✅</div>
@@ -559,8 +560,8 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                     onClick={() => setScript((prev) => ({ ...prev, verdict: 'REVISION_REQUIRED' }))}
                     className={`rounded-xl border p-3 text-center transition-all ${
                       script.verdict === 'REVISION_REQUIRED'
-                        ? 'border-amber-500 bg-amber-50 text-amber-900 font-bold ring-2 ring-amber-500'
-                        : 'border-hairline bg-surface text-ink hover:bg-canvas'
+                        ? 'border-status-warning-border bg-status-warning-bg text-status-warning-text font-bold ring-2 ring-status-warning-border'
+                        : 'border-hairline bg-card text-ink hover:bg-canvas'
                     }`}
                   >
                     <div className="text-base">⚠️</div>
@@ -573,8 +574,8 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                     onClick={() => setScript((prev) => ({ ...prev, verdict: 'FAILED' }))}
                     className={`rounded-xl border p-3 text-center transition-all ${
                       script.verdict === 'FAILED'
-                        ? 'border-red-500 bg-red-50 text-red-900 font-bold ring-2 ring-red-500'
-                        : 'border-hairline bg-surface text-ink hover:bg-canvas'
+                        ? 'border-status-error-border bg-status-error-bg text-status-error-text font-bold ring-2 ring-status-error-border'
+                        : 'border-hairline bg-card text-ink hover:bg-canvas'
                     }`}
                   >
                     <div className="text-base">❌</div>
@@ -587,16 +588,16 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
               {/* Digital Sign-off Confirmation */}
               <div className="rounded-xl border border-hairline bg-canvas/40 p-4 space-y-3">
                 <span className="font-bold text-ink text-xs uppercase tracking-wider">Xác nhận chữ ký điện tử</span>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-lg border border-hairline bg-surface p-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="rounded-lg border border-hairline bg-card p-3">
                     <span className="text-xs text-ink-muted">Thư ký hội đồng ghi biên bản:</span>
                     <p className="font-bold text-ink mt-0.5">{script.signedBySecretary || 'ThS. Nguyễn Mai Phương'}</p>
-                    <span className="text-xs text-emerald-700 font-medium">✓ Đã ký điện tử</span>
+                    <span className="text-xs text-status-success-text font-medium">✓ Đã ký điện tử</span>
                   </div>
-                  <div className="rounded-lg border border-hairline bg-surface p-3">
+                  <div className="rounded-lg border border-hairline bg-card p-3">
                     <span className="text-xs text-ink-muted">Chủ tịch hội đồng phê duyệt:</span>
                     <p className="font-bold text-ink mt-0.5">{script.signedByChair || 'TS. Phạm Quốc Dũng'}</p>
-                    <span className="text-xs text-emerald-700 font-medium">✓ Đã ký điện tử</span>
+                    <span className="text-xs text-status-success-text font-medium">✓ Đã ký điện tử</span>
                   </div>
                 </div>
               </div>
@@ -605,17 +606,17 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between border-t border-hairline bg-canvas/60 px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline bg-canvas/60 px-6 py-4">
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleExportText}
-              className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs font-bold text-ink hover:bg-canvas transition-colors"
+              className="min-h-10 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-bold text-ink hover:bg-canvas transition-colors"
             >
               📄 Xuất biên bản (.TXT / PDF)
             </button>
             {isSaved && (
-              <span className="text-xs font-bold text-emerald-700">✓ Đã lưu biên bản thành công!</span>
+              <span className="text-xs font-bold text-status-success-text">✓ Đã lưu biên bản thành công!</span>
             )}
           </div>
 
@@ -623,14 +624,14 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-hairline bg-surface px-4 py-1.5 text-xs font-semibold text-ink hover:bg-canvas"
+              className="min-h-10 rounded-lg border border-hairline bg-card px-4 py-1.5 text-xs font-semibold text-ink hover:bg-canvas"
             >
               Đóng
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="rounded-lg bg-primary px-4 py-1.5 text-xs font-bold text-white hover:bg-primary/90 shadow-xs"
+              className="min-h-10 rounded-lg bg-primary px-4 py-1.5 text-xs font-bold text-white hover:bg-primary-hover shadow-xs"
             >
               Lưu biên bản & Phán quyết
             </button>
