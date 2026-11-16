@@ -1,0 +1,9 @@
+# The staging image copies only the built site and its nginx configuration.
+# Keep source tests, dependencies, local secrets, and audit material out of the build context.
+**
+!dist/
+!dist/**
+!deploy/
+!deploy/staging/
+!deploy/staging/nginx.conf
+!deploy/staging/Dockerfile
