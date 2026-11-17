@@ -17,6 +17,7 @@ Do not render success before server confirms. Avoid uncontrolled async request r
 | Keyboard | Tab/Shift+Tab and Enter/Space; Esc closes dismissible overlay | visible focus, no keyboard traps outside dialogs |
 | Disabled/blocked | reason + prerequisites + permitted next action | do not expose disallowed resource data |
 | Navigation | route, breadcrumb, preserved return context | authorization/refetch on context change |
+| Return link | visible in full-page views, with a role-safe fallback for direct entry | never rely on browser history alone or nest buttons inside links |
 | Filter/search | debounced text where appropriate, resettable, URL-synced for major views | empty filter result distinct from truly empty |
 | Form | dirty state, inline validation, form error summary, submit progress | preserve field values on 409/422, safe leave confirmation |
 | Server mutation | pending -> confirmed -> invalidate/refetch affected queries | no stale badge/result; audit sensitive actions |
@@ -27,6 +28,8 @@ Do not render success before server confirms. Avoid uncontrolled async request r
 | File upload | policy constraints, upload progress, retry, version | type/size/security rejection explained |
 | Table | sort/filter/page/selection and fixed header where helpful | mobile access to all important actions |
 | Chart/AI | provenance, period, confidence/insufficient data | fallback to authoritative facts if AI unavailable |
+
+Action links and buttons use color, weight and a visible focus outline as their affordance. Touch and hover must not add a text underline or hide the focus indicator. Keep semantic links for navigation and buttons for actions; every visible control needs an accessible name and a working outcome or an explicit disabled reason.
 
 ## 3. HTTP / API feedback states
 
@@ -99,6 +102,8 @@ Phần bản đồ được **hoãn theo yêu cầu chủ hệ thống**; không
 - Dùng một cấu trúc Alert cho info/success/warning/error: tiêu đề, lý do ngắn, việc tiếp theo, mã lỗi BE nếu có. Validation inline và summary chỉ dùng một nguồn lỗi; 409 giữ bản nháp. Toast không thay thế blocker hay xác nhận thao tác nhạy cảm.
 - Số chưa đọc thông báo/chat gắn đúng tài khoản, giữ `lastKnown` khi lỗi mạng tạm thời và ghi `Đang chờ đồng bộ`; 403 hoặc đổi tài khoản xóa dữ liệu cũ. Có retry, refresh khi tab hiện lại và từ sự kiện realtime. Badge có chỗ cho `99+` và nhãn đọc được bằng screen reader.
 - Chat dock desktop gọn khoảng 356×512px và mobile toàn màn hình, header chỉ giữ tiêu đề/trạng thái/thu nhỏ/đóng; chức năng phụ đặt theo ngữ cảnh. Không dùng animation lặp vô hạn trên nút bấm; focus và vùng chạm tối thiểu 44px.
+- Khi chat API trả 403, ẩn nút mở dock và hiện trạng thái không có quyền ở URL tin nhắn truy cập trực tiếp, với đường quay lại và kiểm tra lại. Không trình bày hộp chat trống như thể người dùng chưa có hội thoại.
+- Khi API tài liệu bộ môn chưa khả dụng, hiển thị lý do và ẩn form tải lên đến khi lần đọc danh sách thành công; không cho gửi một thao tác chắc chắn sẽ thất bại.
 - Template do bộ môn/ngành xuất bản có phiên bản, phạm vi và hạn hiệu lực. PDF/ảnh, DOCX, XLSX chỉ preview bằng tệp được BE cấp quyền theo project/version; lỗi converter hoặc định dạng phải hiện rõ và vẫn cho tải bản gốc nếu có quyền. Preview là chỉ đọc, không chạy công thức/macro.
 
 ## 11. Ngày và giờ theo nghiệp vụ

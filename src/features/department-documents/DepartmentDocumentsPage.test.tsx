@@ -24,6 +24,14 @@ beforeEach(() => { vi.resetAllMocks(); api.listDepartmentDocuments.mockResolvedV
 afterEach(cleanup)
 
 describe('DepartmentDocumentsPage', () => {
+  it('explains a document 404 and does not offer an upload that cannot work', async () => {
+    api.listDepartmentDocuments.mockRejectedValue(new HttpError('Not found', 404))
+    render(<DepartmentDocumentsPage manager />)
+    await screen.findByText(/Không truy cập được kho tài liệu cho ngành đã chọn \(404\)/)
+    expect(screen.queryByRole('button', { name: 'Tải lên bản nháp' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Tải lại' })).toBeTruthy()
+  })
+
   it('lets department staff upload a draft then publish its server version', async () => {
     api.uploadDepartmentDocument.mockResolvedValue(row)
     api.publishDepartmentDocument.mockResolvedValue({ ...row, status: 'PUBLISHED' })

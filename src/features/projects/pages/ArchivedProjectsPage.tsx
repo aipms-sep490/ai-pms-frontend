@@ -5,7 +5,8 @@ import { getWorkspaceRole } from '../../auth/utils/role-access'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import { getPortfolioDashboard, type PortfolioDashboard } from '../../dashboard/api/dashboard-api'
 import { HttpError } from '../../../services/http/http-client'
-import { Button } from '../../../components/ui/Button'
+import { BackLink } from '../../../components/ui/BackLink'
+import { buttonClassName } from '../../../components/ui/button-styles'
 
 export function ArchivedProjectsPage() {
   const { session } = useAuthSession()
@@ -46,9 +47,9 @@ export function ArchivedProjectsPage() {
             Tra cứu các đồ án đã đưa vào kho. Nội dung chỉ được xem và hiển thị theo quyền của tài khoản hiện tại.
           </p>
         </div>
-        <Link to="/department/portfolio">
-          <Button variant="secondary" icon="arrow_back">Quay lại danh mục</Button>
-        </Link>
+        <BackLink fallback={scope === 'admin' ? '/admin/portfolio' : '/department/portfolio'} className={buttonClassName({ variant: 'secondary' })}>
+          <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_back</span>Quay lại danh mục
+        </BackLink>
       </header>
 
       {loading && (
@@ -79,8 +80,8 @@ export function ArchivedProjectsPage() {
                     <p className="font-semibold text-ink">{project.code} · {project.title}</p>
                     <p className="mt-1 text-sm text-ink-muted">Trạng thái: {displayLabel(project.status)}</p>
                   </div>
-                  <Link to={`/department/projects/${project.id}/archive-view`}>
-                    <Button variant="secondary" size="sm" icon="visibility">Xem chi tiết</Button>
+                  <Link to={`/department/projects/${project.id}/archive-view`} className={buttonClassName({ variant: 'secondary', size: 'sm' })}>
+                    <span className="material-symbols-outlined text-[16px]" aria-hidden="true">visibility</span>Xem chi tiết
                   </Link>
                 </li>
               ))}

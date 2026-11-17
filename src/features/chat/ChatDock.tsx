@@ -14,7 +14,8 @@ import { floatingPanelEvent } from '../ai/assistant-dock-events'
 export type ChatDockView = { type: 'closed' } | { type: 'list' } | { type: 'conversation'; conversationId: string } | { type: 'minimized'; conversationId?: string }
 export function ChatDock() {
   const { session } = useAuthSession()
-  if (!session || !env.chatEnabled || env.isMockMode) return null
+  const { chatDenied } = useChat()
+  if (!session || !env.chatEnabled || env.isMockMode || chatDenied) return null
   return <SessionChatDock key={session.user.id} userId={String(session.user.id)} />
 }
 function SessionChatDock({ userId }: { userId: string }) {

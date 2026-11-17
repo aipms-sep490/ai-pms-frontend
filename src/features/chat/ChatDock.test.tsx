@@ -2,20 +2,25 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ChatDock } from './ChatDock'
-const mocks = vi.hoisted(() => ({ count: 0, session: {user:{id:1}} as {user:{id:number}} | null }))
+const mocks = vi.hoisted(() => ({ count: 0, denied: false, session: {user:{id:1}} as {user:{id:number}} | null }))
 vi.mock('../../app/config/env', () => ({ env: {chatEnabled:true,isMockMode:false} }))
 vi.mock('../auth/context/useAuthSession', () => ({useAuthSession: () => ({session:mocks.session})}))
-vi.mock('./ChatProvider', () => ({useChat: () => ({unreadCount:mocks.count,unreadKnown:true,state:'connected'})}))
+vi.mock('./ChatProvider', () => ({useChat: () => ({unreadCount:mocks.count,unreadKnown:true,state:'connected',chatDenied:mocks.denied})}))
 vi.mock('./ChatPage', () => ({ChatConversations: ({onOpen}: {onOpen:(room:{id:string})=>void}) => <button onClick={()=>onOpen({id:'9'})}>Phòng được phép</button>}))
 vi.mock('./ChatThread', () => ({ChatThread: ({active,userId}: {active:boolean;userId:string}) => <label hidden={!active}>Bản nháp {userId}<input /></label>}))
 beforeEach(() => {
-  mocks.count=0; mocks.session={user:{id:1}}
+  mocks.count=0; mocks.denied=false; mocks.session={user:{id:1}}
   vi.stubGlobal('matchMedia', () => ({matches:false,addEventListener(){},removeEventListener(){}}))
   Object.defineProperty(HTMLDialogElement.prototype, 'show', {configurable:true,value(){this.setAttribute('open','')}})
 })
 afterEach(() => {cleanup();vi.unstubAllGlobals()})
 const tree = () => <MemoryRouter initialEntries={['/profile']}><ChatDock /></MemoryRouter>
 describe('floating chat session and UI state', () => {
+  it('does not offer a launcher after the server denies chat access', () => {
+    mocks.denied = true
+    render(tree())
+    expect(screen.queryByRole('button', { name: 'Mở tin nhắn' })).toBeNull()
+  })
   it.each([0,1,99,100])('uses independent authoritative unread count %s', count => {
     mocks.count=count;render(tree())
     const launcher=screen.getByRole('button',{name: count ? `Mở tin nhắn, ${count} tin chưa đọc` : 'Mở tin nhắn'})

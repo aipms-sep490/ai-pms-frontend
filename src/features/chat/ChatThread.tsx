@@ -1,6 +1,7 @@
 import { getUploadPolicy, validateUploadFile } from '../../services/api/upload-policies.api'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { BackLink } from '../../components/ui/BackLink'
 import { HttpError } from '../../services/http/http-client'
 import { useChat } from './ChatProvider'
 import { chatApi, mergeMessages, type ChatAiSummary, type ChatConversation, type ChatMessage, type ChatPerson, type SendMessage } from './chat-api'
@@ -270,7 +271,7 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
   }
   const readers = (message: ChatMessage) => members.filter(person => person.userId !== userId && person.lastReadSequence && BigInt(person.lastReadSequence) >= BigInt(message.sequence))
   return <section className="chat-main" aria-label="Nội dung trò chuyện" hidden={!active}>
-    <header className="chat-header"><Link to="/messages">Quay lại</Link><div><h2>{room?.title || 'Cuộc trò chuyện'}{isMuted && <span className="chat-muted-badge" aria-label="Đã tắt thông báo"> 🔇</span>}</h2><p>{!ready ? 'Đang xác minh quyền và kết nối' : canSend ? room?.kind === 'DIRECT' ? 'Trao đổi riêng trong phạm vi được phép' : room?.kind === 'TEAM' ? `Nhóm sinh viên · ${members.length} thành viên` : `Sinh viên và người hướng dẫn đồ án · ${members.length} thành viên` : 'Chỉ đọc · không thể gửi, sửa hoặc thu hồi'}</p><p className="chat-mobile-connection" role="status">{chatConnectionLabel(state)}</p></div>
+    <header className="chat-header"><BackLink fallback="/messages" className="chat-thread-back"><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Quay lại</BackLink><div><h2>{room?.title || 'Cuộc trò chuyện'}{isMuted && <span className="chat-muted-badge" aria-label="Đã tắt thông báo"> 🔇</span>}</h2><p>{!ready ? 'Đang xác minh quyền và kết nối' : canSend ? room?.kind === 'DIRECT' ? 'Trao đổi riêng trong phạm vi được phép' : room?.kind === 'TEAM' ? `Nhóm sinh viên · ${members.length} thành viên` : `Sinh viên và người hướng dẫn đồ án · ${members.length} thành viên` : 'Chỉ đọc · không thể gửi, sửa hoặc thu hồi'}</p><p className="chat-mobile-connection" role="status">{chatConnectionLabel(state)}</p></div>
       <button type="button" className="chat-ai-summary-button" disabled={!ready || aiBusy} onClick={() => void summarizeChat()} title="Tóm tắt và trích việc cần làm">{aiBusy ? 'Đang phân tích…' : 'Hỏi AI'}</button>
       {ready && room && <label className="chat-mute-control">Thông báo
         <select value={isMuted ? 'muted' : 'on'} disabled={mutePending} onChange={e => { if (e.target.value === 'muted') return; setMute(e.target.value === 'on' ? null : new Date(Date.now() + Number(e.target.value) * 3_600_000).toISOString()) }}>

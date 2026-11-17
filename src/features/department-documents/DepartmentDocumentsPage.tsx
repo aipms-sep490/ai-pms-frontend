@@ -19,6 +19,7 @@ type PeriodOption = { id: number; name: string; code: string }
 
 function errorText(error: unknown) {
   if (error instanceof HttpError) {
+    if (error.status === 404) return 'Không truy cập được kho tài liệu cho ngành đã chọn (404). Hãy kiểm tra phạm vi ngành hoặc liên hệ quản trị hệ thống để kiểm tra dịch vụ.'
     if (error.status === 403) return 'Tài khoản không thuộc phạm vi ngành hoặc bộ môn này.'
     if (error.status === 409) return 'Dữ liệu đã thay đổi. Hãy tải lại danh sách trước khi thao tác.'
     if (error.status === 400 || error.status === 422) return 'Thông tin hoặc định dạng tệp chưa hợp lệ. Hãy kiểm tra mã, tên và tệp PDF/DOCX/XLSX tối đa 20 MB.'
@@ -46,6 +47,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
   const [rows, setRows] = useState<DepartmentDocument[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [unsupported, setUnsupported] = useState(false)
   const [success, setSuccess] = useState('')
   const [busyId, setBusyId] = useState<number | null>(null)
   const [preview, setPreview] = useState<DepartmentDocument | null>(null)
@@ -97,9 +99,16 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
     try {
       const loaded = await listDepartmentDocuments(Number(id), period ? Number(period) : undefined, signal)
       if (signal?.aborted) return null
+      setUnsupported(false)
       setRows(loaded)
       return loaded
-    } catch (reason) { if (!signal?.aborted) setError(errorText(reason)); return null }
+    } catch (reason) {
+      if (!signal?.aborted) {
+        setUnsupported(reason instanceof HttpError && reason.status === 404)
+        setError(errorText(reason))
+      }
+      return null
+    }
     finally { if (!signal?.aborted) setLoading(false) }
   }, [])
 
@@ -111,7 +120,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
 
   async function submitUpload(event: FormEvent) {
     event.preventDefault()
-    if (!majorId || !file || uploadedNeedsReload) return
+    if (!majorId || !file || uploadedNeedsReload || unsupported) return
     setUploading(true); setError(''); setSuccess('')
     try {
       const uploaded = await uploadDepartmentDocument({ majorId: Number(majorId), projectPeriodId: periodId ? Number(periodId) : undefined,
@@ -190,7 +199,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
       <button type="button" className="rounded-lg border border-hairline px-3 py-2 text-sm" onClick={() => void retryList()} disabled={loading || !majorId}>Tải lại</button>
     </section>
 
-    {manager && <form className="workspace-surface mt-4 space-y-3 p-5" onSubmit={event => void submitUpload(event)}>
+    {manager && !unsupported && <form className="workspace-surface mt-4 space-y-3 p-5" onSubmit={event => void submitUpload(event)}>
       <h2 className="text-lg font-semibold">Tải lên phiên bản mới</h2>
       <p className="text-sm text-muted">PDF, DOCX hoặc XLSX; tối đa 20 MB. Cùng mã tài liệu sẽ tạo phiên bản kế tiếp trong ngành và kỳ đã chọn.</p>
       <div className="grid gap-3 sm:grid-cols-2">

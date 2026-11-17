@@ -486,3 +486,16 @@ button.chat-launcher {
 .chat-dock-panel .chat-header .chat-ai-summary-button{grid-column:2;grid-row:1;margin:0;min-height:36px;padding:5px 8px;border-radius:8px}
 .chat-dock-panel .chat-mute-control{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;font-size:12px}
 .chat-dock-panel .chat-mute-control select{min-width:0;max-width:72%;min-height:36px}
+
+/* Full-page chat has a visible return path; the floating dock uses its own back control. */
+.chat-page-back,.chat-shell .chat-header>.chat-thread-back{display:inline-flex;align-items:center;gap:5px;min-height:36px;color:var(--color-primary);font-size:12px;font-weight:700;text-decoration:none}
+.chat-page-back{margin-bottom:4px}
+.chat-page-back .material-symbols-outlined,.chat-thread-back .material-symbols-outlined{font-size:17px}
+.chat-shell .chat-header{flex-wrap:wrap}
+.chat-shell .chat-header>div{flex:1;min-width:160px}
+.chat-dock-panel .chat-header>.chat-thread-back{display:none}
+.chat-unavailable{max-width:680px;margin:24px auto;padding:24px;border:1px solid var(--color-status-warning-border);border-radius:16px;background:var(--color-card);color:var(--color-ink)}
+.chat-unavailable h1{margin:12px 0;font-size:22px;font-weight:700}
+.chat-unavailable p{margin-bottom:18px;color:var(--color-ink-soft);line-height:1.6}
+.chat-unavailable button{min-height:44px;padding:9px 14px;border:1px solid var(--color-primary);border-radius:8px;color:var(--color-primary);font-weight:700}
+.chat-unavailable button:hover{background:var(--color-primary-subtle)}
