@@ -66,7 +66,7 @@ function ReviewContent({ projectId, versionId, versionNumber, onClose }: { proje
             {options.checklists.map(c => <option key={c.id} value={c.id}>{c.title} · v{c.version}</option>)}
           </select>
         </label>
-        <p className="text-xs text-ink-muted">Hỗ trợ PDF có lớp văn bản, DOCX, TXT và Markdown; tối đa 4 MB/tệp và 20.000 ký tự/tệp. PDF scan chưa hỗ trợ OCR.</p>
+        <p className="text-xs text-ink-muted">Hỗ trợ PDF có lớp văn bản, DOCX, TXT và Markdown; tối đa 10 MB/tệp và 20.000 ký tự/tệp. PDF scan chưa hỗ trợ OCR.</p>
         <button className="ex-button ex-button-primary" type="button" disabled={!rubricId || busy} onClick={() => void run()}>
           {busy ? 'Đang phân tích…' : result ? 'Kiểm tra lại phiên bản này' : 'Bắt đầu kiểm tra'}
         </button>

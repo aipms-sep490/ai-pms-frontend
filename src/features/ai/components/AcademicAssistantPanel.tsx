@@ -164,9 +164,11 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
   }
 
   const chooseFiles = (incoming: File[]) => {
+    const maxFileBytes = 10 * 1024 * 1024
+    const maxTotalBytes = 20 * 1024 * 1024
     const next = [...files, ...incoming]
-    if (next.length > 4 || next.some(file => file.size === 0 || file.size > 4 * 1024 * 1024) || next.reduce((sum, file) => sum + file.size, 0) > 8 * 1024 * 1024) {
-      setError('Chọn tối đa 4 tệp, mỗi tệp từ 1 byte đến 4 MB, tổng không quá 8 MB.'); return
+    if (next.length > 4 || next.some(file => file.size === 0 || file.size > maxFileBytes) || next.reduce((sum, file) => sum + file.size, 0) > maxTotalBytes) {
+      setError('Chọn tối đa 4 tệp, mỗi tệp từ 1 byte đến 10 MB, tổng không quá 20 MB.'); return
     }
     if (next.some(file => !acceptedFiles.split(',').some(extension => file.name.toLowerCase().endsWith(extension)))) {
       setError('Định dạng chưa được hỗ trợ. Chọn PNG/JPG/WebP, PDF, DOCX, TXT, MD, CSV hoặc JSON.'); return
@@ -342,7 +344,7 @@ export function AcademicAssistantPanel({ projectId, dock = false, pageContext = 
         {busy ? <button type="button" className="assistant-send" aria-label="Dừng trả lời" title="Dừng trả lời" onClick={stop}><span className="material-symbols-outlined" aria-hidden="true">stop</span></button> : <button type="submit" aria-label={dock ? 'Gửi' : 'Hỏi trợ lý học vụ'} title="Gửi tin nhắn" disabled={!query.trim()} className="assistant-send"><span className="material-symbols-outlined" aria-hidden="true">arrow_upward</span>{!dock && 'Hỏi trợ lý học vụ'}</button>}
       </div>
       <p className="assistant-advisory">AI chỉ tư vấn · Kiểm tra nguồn trước khi sử dụng</p>
-      <details className="assistant-file-help"><summary className="text-xs text-ink-muted">Định dạng tệp và lưu ý</summary><p className="text-xs leading-5 text-ink-muted">PNG, JPG, WebP, PDF có văn bản, DOCX, TXT, MD, CSV, JSON · Tối đa 4 tệp, 4 MB/tệp, tổng 8 MB. Nội dung được gửi tới model AI; văn bản trích xuất được lưu cùng lượt hỏi, không lưu tệp gốc. Gỡ tệp sau khi hỏi nếu không muốn gửi lại.</p>
+      <details className="assistant-file-help"><summary className="text-xs text-ink-muted">Định dạng tệp và lưu ý</summary><p className="text-xs leading-5 text-ink-muted">PNG, JPG, WebP, PDF có văn bản, DOCX, TXT, MD, CSV, JSON · Tối đa 4 tệp, 10 MB/tệp, tổng 20 MB. Nội dung được gửi tới model AI; văn bản trích xuất được lưu cùng lượt hỏi, không lưu tệp gốc. Gỡ tệp sau khi hỏi nếu không muốn gửi lại.</p>
       <p className="text-xs text-ink-muted">Tạo ảnh chưa khả dụng. Hội thoại được lưu theo tài khoản và đồ án. Trợ lý nhớ tối đa 8 lượt gần nhất; cần gửi lại ảnh/tệp để phân tích tiếp nội dung gốc.</p></details>
     </form>
     {error && <p role="alert" className="mt-3 text-sm text-status-error-text">{error}</p>}
