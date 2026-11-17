@@ -13,6 +13,8 @@ export function LecturerWorkspacePage() {
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const inbox = useSupervisorInbox()
   const projectSummaries = useSupervisorProjectSummaries(inbox.assignments, inbox.projects ?? {})
+  const assignedProjects = [...new Set(inbox.assignments.map(item => item.projectId))]
+    .map(projectId => inbox.assignments.filter(item => item.projectId === projectId))
   const leaderChangeRequests = inbox.leaderChangeRequests ?? []
   const [responseByRequest, setResponseByRequest] = useState<Record<number, string>>({})
   const [leaderResponseByRequest, setLeaderResponseByRequest] = useState<Record<number, string>>({})
@@ -39,35 +41,42 @@ export function LecturerWorkspacePage() {
         <div className="flex flex-wrap items-end justify-between gap-2"><div><h2 id="assigned-projects" className="mt-1 text-lg font-bold">Đồ án đang hướng dẫn</h2><p className="mt-1 text-sm text-ink-muted">Chọn công việc, báo cáo hoặc cuộc họp để tiếp tục hướng dẫn nhóm.</p></div></div>
         {inbox.loading ? <p role="status" className="mt-4 text-sm text-ink-muted">Đang tải đồ án được phân công…</p> : null}
         {!inbox.loading && inbox.assignments.length === 0 ? <p className="mt-4 text-sm text-ink-muted">Chưa được phân công đồ án.</p> : null}
-        <ul className="lecturer-project-list">{inbox.assignments.map((assignment) => {
+        <ul className="lecturer-project-list">{assignedProjects.map((assignments) => {
+          const assignment = assignments.find(item => item.isPrimary && !item.endedAt) ?? assignments.find(item => !item.endedAt) ?? assignments[0]
           const project = inbox.projects?.[assignment.projectId]
+          const team = project ? inbox.teams?.[project.teamId] : null
           const isActive = project?.status?.replaceAll('_', '').toUpperCase() === 'ACTIVE'
-          const canOpen = assignment.isPrimary && !assignment.endedAt && isActive
-          const isMentor = assignment.assignmentType === 'DISCIPLINE_MENTOR'
-          const canOpenMentor = isMentor && !assignment.endedAt && isActive && Boolean(assignment.majorId)
+          const canOpen = assignments.some(item => item.isPrimary && !item.endedAt) && isActive
+          const mentorAssignments = assignments.filter(item => item.assignmentType === 'DISCIPLINE_MENTOR' && !item.endedAt && isActive && item.majorId)
           const assignedDateFormatted = assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString('vi-VN') : '—'
           const endedDateFormatted = assignment.endedAt ? new Date(assignment.endedAt).toLocaleDateString('vi-VN') : ''
-          return <li key={assignment.id} className="lecturer-project">
+          return <li key={assignment.projectId} className="lecturer-project">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="mb-1 flex items-center gap-2">
-                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${assignment.isPrimary ? 'bg-primary/15 text-primary' : 'bg-status-info-bg text-status-info-text'}`}>
-                    {assignment.isPrimary ? 'Hướng dẫn chính' : isMentor ? 'Hướng dẫn chuyên ngành' : 'Đồng hướng dẫn'}
-                  </span>
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  {assignments.map(item => <span key={item.id} className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${item.isPrimary ? 'bg-primary/15 text-primary' : 'bg-status-info-bg text-status-info-text'}`}>
+                    {item.isPrimary ? 'Hướng dẫn chính' : item.assignmentType === 'DISCIPLINE_MENTOR' ? 'Hướng dẫn chuyên ngành' : 'Đồng hướng dẫn'}{item.endedAt ? ' · Đã kết thúc' : ''}
+                  </span>)}
                   <span className="text-xs text-ink-muted">· {project?.code ?? `#${assignment.projectId}`}</span>
                 </div>
                 <h3 className="break-words font-semibold text-ink text-lg">{project?.title ?? `Đồ án #${assignment.projectId}`}</h3>
-                <p className="mt-1 text-xs text-ink-muted">Nhóm sinh viên: <strong className="text-ink-soft">{project?.teamName ?? 'Chưa tải được nhóm'}</strong></p>
+                <p className="mt-1 text-xs text-ink-muted">Nhóm sinh viên: <strong className="text-ink-soft">{team?.name ?? project?.teamName ?? 'Chưa tải được nhóm'}</strong>{team ? ` · ${team.members.length} thành viên` : ''}</p>
               </div>
               <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${project?.status === 'ACTIVE' ? 'border-status-success-border bg-status-success-bg text-status-success-text' : 'border-hairline bg-card text-ink-soft'}`}>
                 {project?.status === 'ACTIVE' ? 'Đang thực hiện' : displayLabel(project?.status)}
               </span>
             </div>
             <p className="mt-3 text-xs text-ink-muted">
-              Phân công: {assignedDateFormatted}{endedDateFormatted ? ` · Kết thúc: ${endedDateFormatted}` : ''}
+              {assignments.length > 1 ? `${assignments.length} phạm vi hướng dẫn · ` : 'Phân công: '}{assignedDateFormatted}{endedDateFormatted && assignments.every(item => item.endedAt) ? ` · Kết thúc: ${endedDateFormatted}` : ''}
             </p>
-            {canOpen ? <ProjectSignals summary={projectSummaries[assignment.projectId]} /> : <p className="mt-4 text-sm text-ink-muted">{canOpenMentor ? 'Phân công đang hoạt động trong phạm vi chuyên ngành.' : 'Phân công đã kết thúc hoặc đồ án không còn trong giai đoạn thực hiện.'}</p>}
-            {canOpenMentor ? <nav className="lecturer-project-actions" aria-label={`Hướng dẫn chuyên ngành đồ án ${project?.code ?? assignment.projectId}`}><Link className="lecturer-action lecturer-action-primary" to={`/mentor/projects/${assignment.projectId}/majors/${assignment.majorId}/workspace`}>Mở hướng dẫn chuyên ngành</Link></nav> : null}
+            {team && team.members.length > 0 ? <details className="lecturer-roster">
+              <summary>Thành viên nhóm được phân công</summary>
+              <ul>{team.members.map(member => <li key={member.userId}>
+                <span>{member.fullName}</span>{member.isLeader ? <span className="lecturer-roster-leader">Trưởng nhóm</span> : null}
+              </li>)}</ul>
+            </details> : null}
+            {canOpen ? <ProjectSignals summary={projectSummaries[assignment.projectId]} /> : <p className="mt-4 text-sm text-ink-muted">{mentorAssignments.length ? 'Phân công đang hoạt động trong phạm vi chuyên ngành.' : !project ? 'Chưa tải được trạng thái đồ án. Hãy tải lại để kiểm tra trước khi mở.' : assignments.every(item => item.endedAt) ? 'Phân công hướng dẫn đã kết thúc.' : 'Đồ án chưa ở giai đoạn thực hiện.'}</p>}
+            {mentorAssignments.length > 0 ? <nav className="lecturer-project-actions" aria-label={`Hướng dẫn chuyên ngành đồ án ${project?.code ?? assignment.projectId}`}>{mentorAssignments.map(item => <Link key={item.id} className="lecturer-action lecturer-action-primary" to={`/mentor/projects/${assignment.projectId}/majors/${item.majorId}/workspace`}>Mở hướng dẫn chuyên ngành{mentorAssignments.length > 1 ? ` · ${project?.majors?.find(major => major.majorId === item.majorId)?.majorName ?? 'Chưa tải được tên ngành'}` : ''}</Link>)}</nav> : null}
             {canOpen ? <nav className="lecturer-project-actions" aria-label={`Chức năng đồ án ${project?.code ?? assignment.projectId}`}>
               <Link className="lecturer-action lecturer-action-primary" to={`/supervisor/projects/${assignment.projectId}/workspace`}>Tổng quan đồ án <span aria-hidden="true">→</span></Link>
               <Link className="lecturer-action" to={`/supervisor/projects/${assignment.projectId}/tasks`}>Công việc</Link>

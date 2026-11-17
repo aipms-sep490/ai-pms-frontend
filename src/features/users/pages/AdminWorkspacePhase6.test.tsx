@@ -56,6 +56,16 @@ describe('Admin workspace Phase 6', () => {
     expect(screen.queryByText(/đang online/i)).toBeNull()
   })
 
+  it('previews recorded security activity without presenting location or online presence', () => {
+    workspace.useAdminWorkspace.mockReturnValue(ready({ audit: { state: 'ready', value: { items: [{ id: 13, actorUserId: 7, action: 'ACCOUNT_UPDATED', entityType: 'USER', entityId: '7', outcome: 'SUCCESS', occurredAt: '2026-11-13T08:30:00Z', detailsJson: null }], page: 1, pageSize: 20, totalCount: 1 }, error: null } }))
+    render(<MemoryRouter><AdminWorkspacePage /></MemoryRouter>)
+    const preview = screen.getByRole('region', { name: 'Hoạt động bảo mật được ghi nhận' })
+    expect(preview.textContent).toContain('Cập nhật tài khoản')
+    expect(preview.textContent).not.toMatch(/đang online|vị trí|địa điểm/i)
+    fireEvent.click(screen.getByRole('button', { name: 'Xem nhật ký' }))
+    expect(screen.getByRole('button', { name: 'Nhật ký bảo mật' }).getAttribute('aria-pressed')).toBe('true')
+  })
+
   it('keeps accounts usable when audit is forbidden and states the delivered profile-update boundary', () => {
     workspace.useAdminWorkspace.mockReturnValue(ready({ audit: { state: 'error', value: { items: [], page: 1, pageSize: 20, totalCount: 0 }, error: new Error('forbidden') }, isForbidden: vi.fn((resource: { error?: Error | null }) => resource.error?.message === 'forbidden') }))
     render(<MemoryRouter><AdminWorkspacePage /></MemoryRouter>)

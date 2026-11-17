@@ -399,6 +399,8 @@ describe('ProfilePage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lưu hồ sơ' }))
 
     expect(screen.getByRole('alert').textContent).toContain('Họ và tên không được để trống')
+    expect(nameInput.getAttribute('aria-invalid')).toBe('true')
+    expect(screen.getByText('Họ và tên không được để trống.', { selector: '#profile-name-error' })).toBeTruthy()
     expect(authSession.updateProfile).not.toHaveBeenCalled()
   })
 })

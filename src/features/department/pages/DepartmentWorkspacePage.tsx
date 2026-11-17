@@ -93,12 +93,17 @@ export function DepartmentWorkspacePage() {
 
     <DepartmentWorkflowGuide />
 
-    <StatTileRow tiles={[
+    <div className="role-metric-compact"><StatTileRow tiles={[
       { icon: 'priority_high', label: 'Việc cần xử lý', value: urgent.data?.totalCount ?? null, caption: urgent.data?.hasMore ? 'Danh sách việc khẩn còn trang tiếp theo.' : 'Theo bộ môn trong phiên hiện tại.', hero: true },
       { icon: 'fact_check', label: 'Chờ thẩm định', value: reviews.data?.totalCount ?? null },
       { icon: 'folder_managed', label: 'Đồ án quản lý', value: portfolio.data?.summary.totalProjects ?? null },
       { icon: 'supervisor_account', label: 'Giảng viên trong bộ môn', value: supervisors.data?.totalCount ?? null },
-    ]} />
+    ]} /></div>
+    <nav aria-label="Đi tới khu vực bộ môn" className="flex flex-wrap gap-2 text-xs font-semibold">
+      <a className="inline-flex min-h-10 items-center rounded-lg border border-status-warning-border bg-status-warning-bg px-3 text-status-warning-text transition-colors hover:bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href="#action-queue">Việc cần xử lý</a>
+      <a className="inline-flex min-h-10 items-center rounded-lg border border-hairline bg-card px-3 text-ink-soft transition-colors hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href="#monitoring">Theo dõi tiến độ</a>
+      <a className="inline-flex min-h-10 items-center rounded-lg border border-hairline bg-card px-3 text-ink-soft transition-colors hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href="#configuration">Cấu hình học vụ</a>
+    </nav>
     {!departmentIds ? <p role="alert" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">Chưa xác định được bộ môn từ phiên đăng nhập. Không truy vấn phạm vi khác.</p> : !['success', 'empty', 'loading'].includes(urgent.state) && <SectionState section={urgent} onRetry={urgent.refresh}><span /></SectionState>}
     {!['success', 'empty', 'loading'].includes(supervisors.state) && <SectionState section={supervisors} onRetry={supervisors.refresh}><span /></SectionState>}
 
@@ -113,7 +118,7 @@ export function DepartmentWorkspacePage() {
             Khu vực 1: Tác vụ khẩn cấp
           </span>
           <h2 id="urgent-actions-heading" className="mt-1 font-heading text-xl font-bold text-ink">
-            Hàng đợi tác vụ cần xử lý ngay (Urgent Action Queue)
+            Việc cần xử lý
           </h2>
           <p className="mt-1 text-xs text-ink-muted">
             Tập trung các đề cương chờ duyệt và đồ án có tín hiệu nguy cơ trễ hạn hoặc bị chặn.
@@ -232,7 +237,7 @@ export function DepartmentWorkspacePage() {
           Khu vực 2: Vận hành & Giám sát
         </span>
         <h2 id="monitoring-heading" className="mt-1 font-heading text-xl font-bold text-ink">
-          Giám sát tiến độ học vụ & Cổng Thẩm định (Progress Monitoring)
+          Giám sát tiến độ và cổng thẩm định
         </h2>
         <p className="mt-1 text-xs text-ink-muted">
           Theo dõi tổng thể các đợt Review Gates, khối lượng đồ án bộ môn quản lý và đội ngũ giảng viên.
@@ -247,9 +252,9 @@ export function DepartmentWorkspacePage() {
               <span className="material-symbols-outlined text-[26px]" aria-hidden="true">view_timeline</span>
             </div>
             <div>
-              <h3 className="text-base font-bold text-ink">Ma trận Tiến độ Review Gates Toàn khóa</h3>
+              <h3 className="text-base font-bold text-ink">Ma trận Tiến độ Review Gates của bộ môn</h3>
               <p className="mt-1 text-xs text-ink-muted max-w-xl">
-                Bảng theo dõi trực quan trạng thái từng Cổng thẩm định của 100% đồ án trong kỳ học. Nhận biết tức thời đồ án đạt chuẩn, chờ nộp bài hoặc bị yêu cầu sửa đổi.
+                Theo dõi các cổng thẩm định của đồ án trong phạm vi bộ môn và kỳ đang chọn. Xem hồ sơ để kiểm tra yêu cầu nộp, kết quả và phản hồi.
               </p>
             </div>
           </div>
@@ -315,7 +320,7 @@ export function DepartmentWorkspacePage() {
             Khu vực 3: Cấu hình & Quy chế
           </span>
           <h2 id="academic-configuration-heading" className="mt-1 font-heading text-xl font-bold text-ink">
-            Kế hoạch học vụ & Chính sách đào tạo (Academic Configuration)
+            Kế hoạch học vụ và chính sách đào tạo
           </h2>
           <p className="mt-1 text-xs text-ink-muted">
             Quản trị thời gian mở các kỳ đồ án, thiết lập mẫu Cổng thẩm định theo ngành và bộ tiêu chí Rubric.
@@ -331,7 +336,7 @@ export function DepartmentWorkspacePage() {
               <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">date_range</span>
               Kỳ đồ án trong học kỳ
             </h3>
-            <Link to="/academic/governance" className="text-xs font-semibold text-primary hover:underline">
+            <Link to="/academic/governance" className="text-xs font-semibold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
               Quản lý học vụ →
             </Link>
           </div>

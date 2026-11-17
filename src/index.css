@@ -262,6 +262,13 @@ select:disabled {
   }
 }
 
+/* Keep role dashboards scannable on a phone without shrinking labels below readable size. */
+@media (min-width: 360px) and (max-width: 639px) {
+  .role-metric-compact > ul[aria-label="Chỉ số tổng quan"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .role-metric-compact > ul[aria-label="Chỉ số tổng quan"] > li { padding: 12px; }
+  .role-metric-compact > ul[aria-label="Chỉ số tổng quan"] strong { font-size: 1.5rem; }
+}
+
 /* Review Gates forms and timeline: preserve long labels and keyboard affordances. */
 .review-gates-surface { overflow-wrap: anywhere; }
 .review-gates-surface :is(button, input, select, textarea):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }

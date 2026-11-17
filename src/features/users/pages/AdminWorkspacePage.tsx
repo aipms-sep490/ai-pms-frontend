@@ -118,6 +118,15 @@ export function AdminWorkspacePage() {
       <p className="admin-boundary">Theo dõi tài khoản, vai trò và hoạt động quản trị trên hệ thống.</p>
     </section>
 
+    {activeTab === 'accounts' && admin.audit.state === 'ready' && admin.audit.value.items.length > 0 ? <section className="admin-panel admin-activity-preview" aria-labelledby="admin-activity-title">
+      <div className="admin-panel-heading"><div><h2 id="admin-activity-title">Hoạt động bảo mật được ghi nhận</h2><p>Các bản ghi trong trang nhật ký hiện tại. Mở nhật ký để lọc và xem thêm.</p></div><Button type="button" variant="secondary" onClick={() => setFilter({ tab: 'audit' })}>Xem nhật ký</Button></div>
+      <ul className="admin-activity-list">{admin.audit.value.items.slice(0, 4).map(record => <li key={record.id}>
+        <span className={`admin-activity-indicator ${record.outcome === 'SUCCESS' ? 'is-success' : 'is-failure'}`} aria-hidden="true" />
+        <span><strong>{auditActionLabel(record.action)}</strong><small>{record.entityType === 'USER' ? 'Tài khoản' : record.entityType}{record.entityId ? ` #${record.entityId}` : ''} · {record.outcome === 'SUCCESS' ? 'Thành công' : record.outcome === 'FAILURE' ? 'Thất bại' : displayLabel(record.outcome)}</small></span>
+        <time dateTime={record.occurredAt}>{new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' }).format(utcTimestamp(record.occurredAt))}</time>
+      </li>)}</ul>
+    </section> : null}
+
     <section id="accounts" className="admin-panel" aria-labelledby="accounts-title" hidden={activeTab !== 'accounts'}><div className="admin-panel-heading admin-roster-heading"><div><h2 id="accounts-title">Tài khoản người dùng</h2><p>Tìm kiếm, lọc trạng thái và quản lý vòng đời tài khoản. Vai trò hệ thống được quản lý riêng với phân công trong đồ án.</p></div><div className="flex flex-wrap gap-2"><Button icon="upload" onClick={() => setStudentImportOpen(true)}>Nhập sinh viên từ Excel</Button><Button variant="outline" icon="download" onClick={() => setExportOpen(true)}>Xuất Excel danh sách nhóm</Button></div></div>
       {exportOpen && <RosterExportDialog onClose={() => setExportOpen(false)} />}
       {curriculumImportOpen && <CurriculumImportDialog onClose={() => setCurriculumImportOpen(false)} onImported={admin.refresh} />}

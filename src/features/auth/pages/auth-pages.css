@@ -177,6 +177,11 @@
 .profile-security-link { display: inline-flex; align-items: center; gap: 8px; color: var(--color-primary); font-weight: 600; text-decoration: none; }
 .profile-security-link:hover { color: var(--color-primary-hover); }
 .profile-security-link .material-symbols-outlined { font-size: 17px; }
+.profile-form-heading { margin-bottom: 14px; border-top: 1px solid var(--color-line); padding-top: 20px; }
+.profile-form-heading h3 { margin: 0; color: var(--color-ink); font-size: 17px; font-weight: 700; }
+.profile-form-heading p { margin: 5px 0 0; color: var(--color-ink-muted); font-size: 13px; }
+.profile-workspace .auth-form [aria-invalid="true"] { border-color: var(--color-status-error-text); }
+.profile-field-error { margin: -4px 0 4px; color: var(--color-status-error-text); font-size: 12px; }
 @media(max-width: 640px) {
   .profile-workspace { padding: 20px; }
   .profile-identity { align-items: flex-start; }

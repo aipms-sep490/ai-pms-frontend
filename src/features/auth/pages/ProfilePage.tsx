@@ -38,6 +38,7 @@ export function ProfilePage() {
 function AuthenticatedProfile({ session, status, error, refreshProfile, updateProfile }: AuthSessionContextValue & { session: LoginSession }) {
   const [isEditing, setIsEditing] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<'fullName' | 'phone' | 'title', string>>>({})
   const [formSuccess, setFormSuccess] = useState<string | null>(null)
   const [dirty, setDirty] = useState<Record<'phone' | 'title', boolean>>({ phone: false, title: false })
   const [profile, setProfile] = useState<StoredProfile | null>(null)
@@ -77,6 +78,7 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
     const fullName = String(form.get('fullName') ?? '').trim()
     if (!fullName) {
       setFormError('Họ và tên không được để trống.')
+      setFieldErrors({ fullName: 'Họ và tên không được để trống.' })
       setFormSuccess(null)
       return
     }
@@ -100,10 +102,17 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
       ? (String(titleRaw ?? '').trim() || null)
       : undefined
 
-    const lengthError = fullName.length > 255 ? 'Họ và tên tối đa 255 ký tự.'
-      : phone && phone.length > 30 ? 'Số điện thoại tối đa 30 ký tự.'
-        : title && title.length > 100 ? 'Chức danh tối đa 100 ký tự.' : null
-    if (lengthError) { setFormError(lengthError); return }
+    const lengthErrors = {
+      ...(fullName.length > 255 ? { fullName: 'Họ và tên tối đa 255 ký tự.' } : {}),
+      ...(phone && phone.length > 30 ? { phone: 'Số điện thoại tối đa 30 ký tự.' } : {}),
+      ...(title && title.length > 100 ? { title: 'Chức danh tối đa 100 ký tự.' } : {}),
+    }
+    if (Object.keys(lengthErrors).length) {
+      setFieldErrors(lengthErrors)
+      setFormError(Object.values(lengthErrors)[0])
+      return
+    }
+    setFieldErrors({})
 
     const payload: EditableProfile = {
       fullName,
@@ -129,6 +138,7 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
   const handleCancel = () => {
     setIsEditing(false)
     setFormError(null)
+    setFieldErrors({})
     setDirty({ phone: false, title: false })
   }
 
@@ -203,8 +213,10 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
 
         {isEditing && profile ? (
           <form className="auth-form" onSubmit={submit} noValidate>
+            <div className="profile-form-heading"><h3>Chỉnh sửa thông tin cá nhân</h3><p>Các thay đổi chỉ được lưu sau khi máy chủ xác nhận.</p></div>
             <label htmlFor="profile-name">Họ và tên</label>
-            <input id="profile-name" name="fullName" defaultValue={session.user.fullName} required />
+            <input id="profile-name" name="fullName" defaultValue={session.user.fullName} required aria-invalid={Boolean(fieldErrors.fullName)} aria-describedby={fieldErrors.fullName ? 'profile-name-error' : undefined} onChange={() => { setFieldErrors(current => ({ ...current, fullName: undefined })); setFormError(null) }} />
+            {fieldErrors.fullName && <p id="profile-name-error" className="profile-field-error">{fieldErrors.fullName}</p>}
 
             <label htmlFor="profile-phone">Số điện thoại</label>
             <input
@@ -213,8 +225,11 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
               type="tel"
               autoComplete="tel"
               defaultValue={profile.phone ?? ''}
-              onChange={() => setDirty((d) => ({ ...d, phone: true }))}
+              aria-invalid={Boolean(fieldErrors.phone)}
+              aria-describedby={fieldErrors.phone ? 'profile-phone-error' : undefined}
+              onChange={() => { setDirty((d) => ({ ...d, phone: true })); setFieldErrors(current => ({ ...current, phone: undefined })); setFormError(null) }}
             />
+            {fieldErrors.phone && <p id="profile-phone-error" className="profile-field-error">{fieldErrors.phone}</p>}
 
             <label htmlFor="profile-job-title">Chức danh</label>
             <input
@@ -222,8 +237,11 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
               name="title"
               autoComplete="organization-title"
               defaultValue={profile.title ?? ''}
-              onChange={() => setDirty((d) => ({ ...d, title: true }))}
+              aria-invalid={Boolean(fieldErrors.title)}
+              aria-describedby={fieldErrors.title ? 'profile-title-error' : undefined}
+              onChange={() => { setDirty((d) => ({ ...d, title: true })); setFieldErrors(current => ({ ...current, title: undefined })); setFormError(null) }}
             />
+            {fieldErrors.title && <p id="profile-title-error" className="profile-field-error">{fieldErrors.title}</p>}
 
             <div className="auth-actions">
               <Button type="submit">Lưu hồ sơ</Button>

@@ -195,6 +195,17 @@ describe('Evaluator Workspace Phase 5', () => {
     fireEvent.change(screen.getByLabelText('Trạng thái đánh giá'), { target: { value: 'all' } })
     expect(screen.getByRole('link', { name: 'Tiếp tục chấm' })).toBeTruthy()
   })
+  it('groups only returned assignments by project while preserving each scoring link', async () => {
+    api.getAllMyEvaluationAssignments.mockResolvedValue([assignment, { ...assignment, id: 42, componentName: 'Bảo vệ' }, { ...assignment, id: 43, projectId: 10, projectTitle: 'Đồ án khác', componentName: 'Cold' }])
+    api.getProjectEvaluations.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
+    page('/evaluator/workspace')
+    const list = await screen.findByRole('region', { name: 'Danh sách phân công đánh giá' })
+    const group = within(list).getByRole('region', { name: 'StudySpace SE28' })
+    expect(within(group).getByText('2 lượt chấm được giao')).toBeTruthy()
+    expect(within(group).getAllByRole('link', { name: 'Bắt đầu chấm' })).toHaveLength(2)
+    expect(within(list).getByRole('region', { name: 'Đồ án khác' })).toBeTruthy()
+    expect(api.getAllMyEvaluationAssignments).toHaveBeenCalledTimes(1)
+  })
   it('says all assigned sheets are finished when the pending filter is empty', async () => {
     api.getProjectEvaluations.mockResolvedValue({ items: [{ ...draft, status: 'FINALIZED' }], page: 1, pageSize: 100, totalCount: 1 })
     page('/evaluator/workspace')
