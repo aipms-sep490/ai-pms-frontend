@@ -1,13 +1,15 @@
 import { endpoints } from '../../../services/api/endpoints'
 import { httpDelete, httpGet, httpPatch, httpPost, httpPut } from '../../../services/http/http-client'
 export interface Page<T>{items:T[];page:number;pageSize:number;totalCount:number}
-export interface UserAccount{id:number;departmentId:number|null;majorId:number|null;email:string;fullName:string;phone:string|null;studentCode:string|null;employeeCode:string|null;title:string|null;status:'ACTIVE'|'INACTIVE'|'SUSPENDED';accessFailedCount:number;lockoutEndAt:string|null;roles:string[];concurrencyToken?:string|null}
+export interface UserAccount{id:number;departmentId:number|null;majorId:number|null;email:string;fullName:string;phone:string|null;studentCode:string|null;employeeCode:string|null;title:string|null;status:'ACTIVE'|'INACTIVE'|'SUSPENDED';accessFailedCount:number;lockoutEndAt:string|null;lastLoginAt?:string|null;roles:string[];concurrencyToken?:string|null}
 export interface Permission{id:number;code:string;name:string;description:string|null;isSystemPermission:boolean}
 export interface Role{id:number;code:string;name:string;description:string|null;isSystemRole:boolean;permissions:Permission[];isAssignableGlobalRole:boolean;assignmentKind:string}
 export interface AcademicProfile { userId:number; fullName:string; email:string|null; studentCode:string|null; departmentId:number|null; departmentName:string|null; majorId:number|null; majorName:string|null; status:string; reviewedBy:number|null; reviewedAt:string|null; rejectionReason:string|null; concurrencyToken:string|null }
 export interface SecurityCatalogDraft{code:string;name:string;description:string|null}
 export interface PermissionMatrix{roles:Role[];permissions:Permission[]}
 export interface Audit{id:number;actorUserId:number|null;action:string;entityType:string;entityId:string|null;outcome:string;occurredAt:string;detailsJson:string|null}
+export interface AccessEvent{id:number;userId:number|null;fullName:string|null;email:string|null;eventType:'LOGIN'|'LOGOUT';authenticationMethod:'PASSWORD'|'GOOGLE'|'UNKNOWN';outcome:'SUCCESS'|'FAILURE'|'DENIED';ipAddress:string|null;occurredAt:string}
+export interface AccessEventQuery{search?:string;userId?:number;eventType?:'LOGIN'|'LOGOUT';outcome?:'SUCCESS'|'FAILURE'|'DENIED';fromUtc?:string;toUtc?:string;page?:number;pageSize?:number}
 export interface UserDraft{departmentId:number|null;majorId:number|null;email:string;password:string;fullName:string;phone:string|null;studentCode:string|null;employeeCode:string|null;title:string|null;roleIds:number[]}
 export interface AdminListQuery { search?: string; status?: string; page?: number; pageSize?: number }
 export interface AuditListQuery extends AdminListQuery { actorUserId?: number; action?: string; entityType?: string; outcome?: string; fromUtc?: string; toUtc?: string }
@@ -19,6 +21,7 @@ export const getRoles=(token:string)=>httpGet<Page<Role>>(query(endpoints.securi
 export const getPermissions=(token:string)=>httpGet<Page<Permission>>(query(endpoints.securityPermissions,{page:1,pageSize:100}),{accessToken:token})
 export const getPermissionMatrix=(token:string)=>httpGet<PermissionMatrix>(`${endpoints.securityPermissions}/matrix`,{accessToken:token})
 export const getAudit=(token:string, filters:AuditListQuery={})=>httpGet<Page<Audit>>(query(endpoints.securityAuditLogs,{actorUserId:filters.actorUserId,action:filters.action,entityType:filters.entityType,outcome:filters.outcome,fromUtc:filters.fromUtc,toUtc:filters.toUtc,page:filters.page??1,pageSize:filters.pageSize??20}),{accessToken:token})
+export const getAccessEvents=(token:string, filters:AccessEventQuery={}, signal?:AbortSignal)=>httpGet<Page<AccessEvent>>(query(endpoints.securityAccessEvents,{search:filters.search,userId:filters.userId,eventType:filters.eventType,outcome:filters.outcome,fromUtc:filters.fromUtc,toUtc:filters.toUtc,page:filters.page??1,pageSize:filters.pageSize??20}),{accessToken:token,signal})
 export const createUser=(draft:UserDraft,token:string)=>httpPost<UserAccount>(endpoints.users,draft,{accessToken:token})
 export const importUsers=(accounts:UserDraft[],token:string)=>httpPost<UserAccount[]>(`${endpoints.users}/import`,{accounts},{accessToken:token})
 export const setUserStatus=(id:number,status:UserAccount['status'],token:string)=>httpPatch<UserAccount>(`${endpoints.users}/${id}/status`,{status},{accessToken:token})

@@ -19,7 +19,7 @@
 
 .sup h1 {
   margin: 4px 0 0;
-  color: #020617;
+  color: var(--color-ink);
   font-size: clamp(26px, 2.1vw, 32px);
   font-weight: 700;
   letter-spacing: -0.025em;
@@ -189,7 +189,7 @@
 }
 
 .sup__tags em {
-  color: #94a3b8;
+  color: var(--color-ink-muted);
   font-size: 12px;
 }
 
@@ -281,7 +281,7 @@
 }
 
 .sup__state > .material-symbols-outlined {
-  color: #94a3b8;
+  color: var(--color-ink-muted);
   font-size: 36px;
 }
 

@@ -20,7 +20,7 @@ export interface ColdSubmission {
   projectId: number
   reportType: string
   scope: ColdScope
-  majorId: number
+  majorId: number | null
   studentId: number | null
   version: number
   status: ColdSubmissionStatus
@@ -42,7 +42,7 @@ export interface ColdChecklistItem {
   name: string
   required: boolean
   scope: ColdScope
-  majorId: number
+  majorId: number | null
   studentId: number | null
   latest: ColdSubmission | null
   canWrite: boolean

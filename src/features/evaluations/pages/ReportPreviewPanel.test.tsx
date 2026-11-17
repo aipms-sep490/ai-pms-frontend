@@ -4,10 +4,25 @@ import { ReportPreviewPanel } from './ReportPreviewPanel'
 import { downloadEvaluationEvidenceFile } from '../../../services/api/evaluations.api'
 
 vi.mock('../../../services/api/evaluations.api', () => ({ downloadEvaluationEvidenceFile: vi.fn() }))
+const office = vi.hoisted(() => ({ previewOfficeFile: vi.fn() }))
+vi.mock('../../../services/api/office-preview.api', () => office)
 
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 
+it('shows assignment-authorized DOCX content beside the scoring form', async () => {
+  vi.mocked(downloadEvaluationEvidenceFile).mockResolvedValue(new Blob(['office']))
+  office.previewOfficeFile.mockResolvedValue({ kind: 'DOCX_TEXT', paragraphs: ['Yêu cầu Gate 1'], sheets: [], truncated: false })
+  render(<ReportPreviewPanel assignmentId={41} files={[
+    { id: 8, fileName: 'Bao-cao.docx', contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', sizeBytes: 500 },
+  ]} />)
+  expect(await screen.findByText('Yêu cầu Gate 1')).toBeTruthy()
+  expect(downloadEvaluationEvidenceFile).toHaveBeenCalledWith(41, 8, expect.any(AbortSignal))
+  expect(office.previewOfficeFile).toHaveBeenCalledWith(expect.any(Blob), 'Bao-cao.docx', expect.any(AbortSignal))
+})
+
 it('uses a native modal for fullscreen viewing and restores focus when cancelled', () => {
+  vi.mocked(downloadEvaluationEvidenceFile).mockResolvedValue(new Blob(['office']))
+  office.previewOfficeFile.mockResolvedValue({ kind: 'DOCX_TEXT', paragraphs: ['Report'], sheets: [], truncated: false })
   render(<ReportPreviewPanel assignmentId={41} files={[
     { id: 8, fileName: 'Bao-cao.docx', contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', sizeBytes: 500 },
   ]} />)
@@ -34,6 +49,6 @@ it('keeps the fullscreen download failure visible inside the active dialog', asy
   fireEvent.click(opener)
   const dialog = screen.getByRole('dialog')
   fireEvent.click(within(dialog).getByRole('button', { name: 'Tải tệp' }))
-  expect(await within(dialog).findByRole('alert')).toHaveProperty('textContent', expect.stringContaining('Không thể tải tệp.'))
+  expect(await within(dialog).findByText(/Không thể tải tệp\. Quyền phân công/)).toBeTruthy()
   expect(downloadEvaluationEvidenceFile).toHaveBeenCalledWith(41, 8)
 })

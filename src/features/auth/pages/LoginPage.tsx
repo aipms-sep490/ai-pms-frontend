@@ -6,7 +6,7 @@ import { useAuthSession } from '../context/useAuthSession'
 import { getHomePath } from '../utils/role-access'
 import { resolveIntendedDestination } from '../utils/intended-destination'
 import { GoogleLoginButton } from '../components/GoogleLoginButton'
-import appIcon from '../../../assets/ai-pms-app-icon.svg'
+import { BrandLogo } from '../../../components/ui/BrandLogo'
 import './auth-pages.css'
 import './login-design.css'
 
@@ -28,6 +28,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
   const isSubmitting = status === 'authenticating' || status === 'refreshing'
 
   if (status === 'authenticated' && session) return <Navigate to={resolveIntendedDestination(location.state, getHomePath(session.user))} replace />
@@ -35,12 +36,13 @@ export function LoginPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setFormError(null)
+    setFieldErrors({})
     if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) {
-      setFormError('Nhập địa chỉ email hợp lệ.')
+      setFieldErrors({ email: 'Nhập địa chỉ email hợp lệ.' })
       return
     }
     if (!password) {
-      setFormError('Nhập mật khẩu để tiếp tục.')
+      setFieldErrors({ password: 'Nhập mật khẩu để tiếp tục.' })
       return
     }
     try {
@@ -53,11 +55,10 @@ export function LoginPage() {
 
   return (
     <main className="login-page">
-      <aside className="login-story" aria-label="Giới thiệu PMS">
+      <aside className="login-story" aria-label="Giới thiệu AIPMS">
         <div className="login-brand">
-          <img src={appIcon} alt="" className="login-brand-icon" aria-hidden="true" />
+          <BrandLogo />
           <div>
-            <strong>PMS</strong>
             <span>Không gian đồ án · FPT University</span>
           </div>
         </div>
@@ -95,8 +96,7 @@ export function LoginPage() {
       <div className="login-form-side">
         <section className="login-form-panel" aria-labelledby="login-title">
           <div className="login-mobile-brand">
-            <img src={appIcon} alt="" className="w-8 h-8 rounded-lg object-contain shadow-xs" aria-hidden="true" />
-            <strong>PMS · FPTU</strong>
+            <BrandLogo />
           </div>
           <p className="login-welcome">Chào mừng trở lại</p>
           <h1 className="auth-login-title" id="login-title">Đăng nhập tài khoản</h1>
@@ -114,11 +114,12 @@ export function LoginPage() {
               spellCheck={false}
               autoCapitalize="none"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              aria-invalid={Boolean(formError)}
-              aria-describedby={formError ? 'login-error' : undefined}
+              onChange={(event) => { setEmail(event.target.value); setFieldErrors(current => ({ ...current, email: undefined })); setFormError(null) }}
+              aria-invalid={Boolean(fieldErrors.email)}
+              aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
               disabled={isSubmitting}
             />
+            {fieldErrors.email && <p id="login-email-error" className="auth-field-error" role="alert">{fieldErrors.email}</p>}
             <div className="login-password-label">
               <label htmlFor="login-password">Mật khẩu</label>
               <Link to="/forgot-password">Quên mật khẩu?</Link>
@@ -130,9 +131,9 @@ export function LoginPage() {
                 autoComplete="current-password"
                 placeholder="Nhập mật khẩu"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                aria-invalid={Boolean(formError)}
-                aria-describedby={formError ? 'login-error' : undefined}
+                onChange={(event) => { setPassword(event.target.value); setFieldErrors(current => ({ ...current, password: undefined })); setFormError(null) }}
+                aria-invalid={Boolean(fieldErrors.password)}
+                aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
                 disabled={isSubmitting}
               />
               <button
@@ -147,6 +148,7 @@ export function LoginPage() {
                 </span>
               </button>
             </div>
+            {fieldErrors.password && <p id="login-password-error" className="auth-field-error" role="alert">{fieldErrors.password}</p>}
             {formError && <p id="login-error" className="auth-error" role="alert">{formError}</p>}
             <Button
               className="auth-submit"
@@ -164,7 +166,7 @@ export function LoginPage() {
             Chưa có tài khoản? Liên hệ cán bộ phụ trách bộ môn để được hỗ trợ.
           </p>
         </section>
-        <p className="login-form-footer">PMS · Quản lý và theo dõi đồ án học thuật</p>
+        <p className="login-form-footer">AIPMS · Quản lý và theo dõi đồ án học thuật</p>
       </div>
     </main>
   )

@@ -21,8 +21,8 @@ vi.mock('@microsoft/signalr', () => ({
   },
 }))
 function Probe() {
-  const { inbox, state, unreadCount, unreadKnown, inboxError, refresh } = useChat()
-  return <><p>{state} / {inbox.items.map(item => item.title).join(',')}</p><output>{unreadKnown ? unreadCount : 'unknown'}</output><p>{inboxError}</p><button onClick={() => refresh()}>Retry inbox</button></>
+  const { inbox, state, unreadCount, unreadKnown, inboxError, chatDenied, refresh } = useChat()
+  return <><p>{state} / {inbox.items.map(item => item.title).join(',')}</p><output>{unreadKnown ? unreadCount : 'unknown'}</output><p>{inboxError}</p><p data-testid="chat-access">{chatDenied ? 'denied' : 'available'}</p><button onClick={() => refresh()}>Retry inbox</button></>
 }
 beforeEach(() => {
   vi.clearAllMocks()
@@ -33,10 +33,20 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 describe('chat session boundaries', () => {
+  it('keeps the last known unread count after a temporary inbox error', async () => {
+    mocks.inbox.mockResolvedValueOnce({ items: [{ id: '9', title: 'Room', version: '1', sequence: '1', unreadCount: 5, updatedAt: '2026-10-07T00:00:00Z' }], nextCursor: null, hasMore: false })
+    render(<ChatProvider><Probe /></ChatProvider>)
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('5'))
+    mocks.inbox.mockRejectedValueOnce(new Error('offline'))
+    fireEvent.click(screen.getByRole('button', { name: 'Retry inbox' }))
+    await screen.findByText(/Chưa tải được hộp thư/)
+    expect(screen.getByRole('status').textContent).toBe('5')
+  })
   it('stops background catch-up after a denial and restores chat after an explicit successful retry', async () => {
     mocks.inbox.mockRejectedValue(new HttpError('Account cannot use chat', 403))
     render(<ChatProvider><Probe /></ChatProvider>)
     await screen.findByText(/Tài khoản chưa được phép sử dụng chat/)
+    expect(screen.getByTestId('chat-access').textContent).toBe('denied')
     await waitFor(() => expect(mocks.stop).toHaveBeenCalledTimes(1))
     const previous = mocks.inbox.mock.calls.length
     fireEvent(document, new Event('visibilitychange'))
@@ -53,6 +63,7 @@ describe('chat session boundaries', () => {
     await waitFor(() => expect(mocks.start).toHaveBeenCalledTimes(2))
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('0'))
     expect(screen.queryByText(/Tài khoản chưa được phép sử dụng chat/)).toBeNull()
+    expect(screen.getByTestId('chat-access').textContent).toBe('available')
   })
   it('reconciles authoritative unread summaries after a hub reconnect', async () => {
     render(<ChatProvider><Probe /></ChatProvider>)

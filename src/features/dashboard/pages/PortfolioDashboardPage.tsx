@@ -56,7 +56,7 @@ export function PortfolioDashboardPage() {
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
       anchor.href = url
-      anchor.download = `pms-portfolio-${new Date().toISOString().slice(0, 10)}.${exportFormat}`
+      anchor.download = `aipms-portfolio-${new Date().toISOString().slice(0, 10)}.${exportFormat}`
       anchor.click()
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
       setError(null); setNotice(`Đã tạo tệp ${exportFormat.toUpperCase()} theo bộ lọc hiện tại.`)

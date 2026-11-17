@@ -41,6 +41,8 @@ const input = (name: string, value: string) => fireEvent.change(screen.getByLabe
 const click = (name: string) => fireEvent.click(screen.getByRole('button', { name }))
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-09-22T00:00:00Z'))
   vi.resetAllMocks()
   api.getMeeting.mockResolvedValue(meeting)
   api.getMeetingCandidates.mockResolvedValue({ candidates: [] })
@@ -53,7 +55,7 @@ beforeEach(() => {
     emailDeliveries: [], hasMoreEmailDeliveries: false,
   })
 })
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.useRealTimers() })
 
 describe('Meeting series creation (BE-N06)', () => {
   it('routes a weekly recurrence through createMeetingSeries instead of createMeeting', async () => {

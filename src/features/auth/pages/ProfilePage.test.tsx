@@ -7,6 +7,7 @@ import type { AuthUser } from '../types/auth.types'
 import * as authApi from '../api/auth-api'
 
 vi.mock('../api/auth-api', () => ({ getMyProfile: vi.fn() }))
+vi.mock('../components/ProfileAvatar', () => ({ ProfileAvatar: () => null }))
 
 const authSession = vi.hoisted(() => ({
   session: null as { user: AuthUser } | null,
@@ -399,6 +400,8 @@ describe('ProfilePage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lưu hồ sơ' }))
 
     expect(screen.getByRole('alert').textContent).toContain('Họ và tên không được để trống')
+    expect(nameInput.getAttribute('aria-invalid')).toBe('true')
+    expect(screen.getByText('Họ và tên không được để trống.', { selector: '#profile-name-error' })).toBeTruthy()
     expect(authSession.updateProfile).not.toHaveBeenCalled()
   })
 })

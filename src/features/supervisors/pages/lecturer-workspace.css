@@ -29,3 +29,9 @@
 .lecturer-project > div:first-child { margin: -28px -28px 0; padding: 24px 28px; background: var(--color-primary-subtle); border-radius: 13px 13px 0 0; border-bottom: 1px solid var(--color-hairline); }
 .lecturer-project > div:first-child > div { flex: 1 1 420px; }
 @media(max-width:720px) { .lecturer-project > div:first-child { margin:-20px -20px 0; padding:20px; } .lecturer-requests { padding:20px; } }
+.lecturer-roster { margin-top: 16px; border-top: 1px solid var(--color-hairline); padding-top: 14px; }
+.lecturer-roster summary { width: fit-content; cursor: pointer; color: var(--color-primary); font-size: 13px; font-weight: 700; }
+.lecturer-roster summary:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 4px; }
+.lecturer-roster ul { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.lecturer-roster li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: var(--color-ink-soft); }
+.lecturer-roster-leader { border-radius: 999px; background: var(--color-primary-subtle); padding: 2px 8px; color: var(--color-primary); font-size: 12px; font-weight: 700; }

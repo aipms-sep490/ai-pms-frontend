@@ -26,4 +26,13 @@ describe('StatTileRow', () => {
     render(<StatTileRow tiles={[{ icon: 'folder', label: 'Đồ án', value: 3, caption: 'Các đồ án bạn hướng dẫn trong kỳ SP26' }]} />)
     expect(screen.getByText('Các đồ án bạn hướng dẫn trong kỳ SP26')).toBeTruthy()
   })
+
+  it('supports interactive click handlers and active state', () => {
+    let clicked = false
+    render(<StatTileRow tiles={[{ icon: 'task', label: 'Quá hạn', value: 4, active: true, onClick: () => { clicked = true } }]} />)
+    const btn = screen.getByRole('button', { name: /quá hạn/i })
+    expect(btn.getAttribute('aria-pressed')).toBe('true')
+    btn.click()
+    expect(clicked).toBe(true)
+  })
 })

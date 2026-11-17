@@ -1,6 +1,7 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useId, useState, type FormEvent } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { HttpError } from '../../../services/http/http-client'
+import { academicError } from '../academic-error'
 import type {
   AcademicEntityKind,
   AcademicHierarchyOrganization,
@@ -29,7 +30,7 @@ const entityLabels = {
 
 function getSafeFormError(error: unknown): string {
   if (error instanceof HttpError) {
-    if (error.status === 400) return 'Thông tin chưa hợp lệ. Kiểm tra lại các trường bắt buộc.'
+    if (error.status === 400 || error.status === 422) return 'Thông tin chưa hợp lệ. Kiểm tra các ô được đánh dấu rồi lưu lại.'
     if (error.status === 403) return 'Bạn không có quyền thay đổi bản ghi này.'
     if (error.status === 409) return 'Dữ liệu trùng lặp hoặc không còn hợp lệ trong cấu trúc hiện tại.'
   }
@@ -61,6 +62,18 @@ export function AcademicRecordForm({
   const [organizationId, setOrganizationId] = useState(parentIds.organizationId?.toString() ?? '')
   const [departmentId, setDepartmentId] = useState(parentIds.departmentId?.toString() ?? '')
   const [formError, setFormError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const formId = useId()
+  const errorId = (field: string) => `${formId}-${field}-error`
+  const clearFieldError = (field: string) => {
+    setFieldErrors(current => {
+      if (!current[field]) return current
+      const next = { ...current }
+      delete next[field]
+      return next
+    })
+    setFormError(null)
+  }
 
   useEffect(() => {
     if (kind !== 'major' || departmentId) return
@@ -77,17 +90,21 @@ export function AcademicRecordForm({
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setFormError(null)
-
-    if (!code.trim() || !name.trim()) {
-      setFormError('Mã và tên là bắt buộc.')
-      return
+    const invalid: Record<string, string> = {}
+    if (!code.trim()) invalid.code = 'Nhập mã.'
+    else if (code.trim().length > 50 || !/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(code.trim())) {
+      invalid.code = 'Mã bắt đầu bằng chữ hoặc số; chỉ dùng chữ, số, _ hoặc -, tối đa 50 ký tự.'
     }
-    if (kind === 'department' && !isEditing && !organizationId) {
-      setFormError('Chọn tổ chức sở hữu bộ môn.')
-      return
-    }
-    if (kind === 'major' && !departmentId) {
-      setFormError('Chọn bộ môn sở hữu chuyên ngành.')
+    if (!name.trim()) invalid.name = 'Nhập tên.'
+    else if (name.trim().length > 255) invalid.name = 'Tên tối đa 255 ký tự.'
+    if (description.trim().length > 1000) invalid.description = 'Mô tả tối đa 1000 ký tự.'
+    if (kind === 'department' && !isEditing && !organizationId) invalid.organizationId = 'Chọn tổ chức sở hữu bộ môn.'
+    if (kind === 'major' && !departmentId) invalid.departmentId = 'Chọn bộ môn sở hữu chuyên ngành.'
+    setFieldErrors(invalid)
+    if (Object.keys(invalid).length) {
+      setFormError(invalid.code === 'Nhập mã.' && invalid.name === 'Nhập tên.'
+        ? 'Nhập mã và tên để lưu hồ sơ.'
+        : 'Kiểm tra các ô được đánh dấu trước khi lưu.')
       return
     }
 
@@ -103,6 +120,7 @@ export function AcademicRecordForm({
       })
     } catch (reason: unknown) {
       setFormError(getSafeFormError(reason))
+      setFieldErrors(academicError(reason, 'governance').fields ?? {})
     }
   }
 
@@ -120,34 +138,39 @@ export function AcademicRecordForm({
         {kind === 'department' && !isEditing && (
           <label>
             Tổ chức sở hữu
-            <select value={organizationId} onChange={(event) => setOrganizationId(event.target.value)} disabled={isSubmitting}>
+            <select aria-label="Tổ chức sở hữu" value={organizationId} onChange={(event) => { setOrganizationId(event.target.value); clearFieldError('organizationId') }} disabled={isSubmitting} required aria-invalid={Boolean(fieldErrors.organizationId)} aria-describedby={fieldErrors.organizationId ? errorId('organizationId') : undefined}>
               <option value="">Chọn tổ chức</option>
               {availableOrganizations.map(({ organization }) => <option key={organization.id} value={organization.id}>{organization.code} · {organization.name}</option>)}
             </select>
+            {fieldErrors.organizationId && <small id={errorId('organizationId')} className="text-status-error-text">{fieldErrors.organizationId}</small>}
           </label>
         )}
 
         {kind === 'major' && (
           <label>
             Bộ môn sở hữu
-            <select value={departmentId} onChange={(event) => setDepartmentId(event.target.value)} disabled={isSubmitting}>
+            <select aria-label="Bộ môn sở hữu" value={departmentId} onChange={(event) => { setDepartmentId(event.target.value); clearFieldError('departmentId') }} disabled={isSubmitting} required aria-invalid={Boolean(fieldErrors.departmentId)} aria-describedby={fieldErrors.departmentId ? errorId('departmentId') : undefined}>
               <option value="">Chọn bộ môn</option>
               {availableDepartments.map(({ department }) => <option key={department.id} value={department.id}>{department.code} · {department.name}</option>)}
             </select>
+            {fieldErrors.departmentId && <small id={errorId('departmentId')} className="text-status-error-text">{fieldErrors.departmentId}</small>}
           </label>
         )}
 
         <label>
           Mã
-          <input value={code} onChange={(event) => setCode(event.target.value)} disabled={isSubmitting} autoComplete="off" />
+          <input aria-label="Mã" value={code} onChange={(event) => { setCode(event.target.value); clearFieldError('code') }} disabled={isSubmitting} autoComplete="off" required maxLength={50} aria-invalid={Boolean(fieldErrors.code)} aria-describedby={fieldErrors.code ? errorId('code') : undefined} />
+          {fieldErrors.code && <small id={errorId('code')} className="text-status-error-text">{fieldErrors.code}</small>}
         </label>
         <label>
           Tên
-          <input value={name} onChange={(event) => setName(event.target.value)} disabled={isSubmitting} autoComplete="off" />
+          <input aria-label="Tên" value={name} onChange={(event) => { setName(event.target.value); clearFieldError('name') }} disabled={isSubmitting} autoComplete="off" required maxLength={255} aria-invalid={Boolean(fieldErrors.name)} aria-describedby={fieldErrors.name ? errorId('name') : undefined} />
+          {fieldErrors.name && <small id={errorId('name')} className="text-status-error-text">{fieldErrors.name}</small>}
         </label>
         <label>
           Mô tả <span>(không bắt buộc)</span>
-          <textarea value={description} onChange={(event) => setDescription(event.target.value)} disabled={isSubmitting} rows={3} />
+          <textarea aria-label="Mô tả" value={description} onChange={(event) => { setDescription(event.target.value); clearFieldError('description') }} disabled={isSubmitting} rows={3} maxLength={1000} aria-invalid={Boolean(fieldErrors.description)} aria-describedby={fieldErrors.description ? errorId('description') : undefined} />
+          {fieldErrors.description && <small id={errorId('description')} className="text-status-error-text">{fieldErrors.description}</small>}
         </label>
 
         {formError && <p role="alert" className="academic-error">{formError}</p>}

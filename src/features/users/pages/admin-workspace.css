@@ -68,3 +68,22 @@
 @media(max-width:767px) { .admin-overview { padding:6px 20px 16px; } }
 .admin-subsection { border-top: 1px solid var(--color-line); margin-top: 20px; padding-top: 18px; }
 .admin-subsection h3 { margin: 0 0 4px; font-size: 1rem; }
+.admin-user-heading { align-items: center; }
+.admin-user-identity { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.admin-user-identity > div { min-width: 0; }
+.admin-user-identity p { overflow-wrap: anywhere; }
+.admin-user-avatar { display: grid; flex: 0 0 56px; width: 56px; height: 56px; place-items: center; border-radius: 16px; background: var(--color-primary-subtle); color: var(--color-primary); font-size: 22px; font-weight: 750; }
+.admin-academic-profile .admin-panel-heading { align-items: start; flex-wrap: wrap; }
+.admin-detail-grid .admin-academic-profile { grid-column: 1 / -1; }
+.admin-academic-profile .admin-panel-heading button { margin-left: auto; }
+.admin-activity-preview { margin-top: 20px; }
+.admin-activity-preview .admin-panel-heading { align-items: center; flex-wrap: wrap; }
+.admin-activity-list { margin: 16px 0 0; padding: 0; list-style: none; }
+.admin-activity-list li { display: grid; grid-template-columns: 9px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--color-hairline); }
+.admin-activity-list strong,.admin-activity-list small { display: block; }
+.admin-activity-list strong { color: var(--color-ink); font-size: 13px; }
+.admin-activity-list small,.admin-activity-list time { color: var(--color-ink-muted); font-size: 12px; }
+.admin-activity-indicator { width: 8px; height: 8px; border-radius: 50%; background: var(--color-status-warning-text); }
+.admin-activity-indicator.is-success { background: var(--color-status-success-text); }
+.admin-activity-indicator.is-failure { background: var(--color-status-error-text); }
+@media(max-width:600px) { .admin-activity-list li { grid-template-columns: 9px minmax(0,1fr); }.admin-activity-list time { grid-column: 2; }.admin-academic-profile .admin-panel-heading button { width: 100%; margin: 0; } }

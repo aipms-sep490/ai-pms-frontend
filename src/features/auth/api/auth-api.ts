@@ -1,5 +1,5 @@
 import { endpoints } from '../../../services/api/endpoints'
-import { httpGet, httpPost, httpPut } from '../../../services/http/http-client'
+import { httpGet, httpGetBlob, httpPost, httpPostForm, httpPut } from '../../../services/http/http-client'
 import type { AuthUser, LoginCredentials, LoginSession } from '../types/auth.types'
 
 export function login(credentials: LoginCredentials): Promise<LoginSession> {
@@ -52,6 +52,27 @@ export interface StoredProfile {
   phone: string | null
   title: string | null
 }
+
+export interface UserAvatarMetadata {
+  hasAvatar: boolean
+  concurrencyToken: string | null
+  contentType: string | null
+  sizeBytes: number | null
+  updatedAt: string | null
+}
+
+export const getMyAvatarMetadata = (signal?: AbortSignal) =>
+  httpGet<UserAvatarMetadata>('/v1/users/me/avatar/metadata', { signal })
+export const getMyAvatarBlob = (signal?: AbortSignal) =>
+  httpGetBlob('/v1/users/me/avatar', { signal })
+export function uploadMyAvatar(file: File, concurrencyToken: string | null): Promise<UserAvatarMetadata> {
+  const form = new FormData()
+  form.append('File', file)
+  if (concurrencyToken) form.append('ConcurrencyToken', concurrencyToken)
+  return httpPostForm<UserAvatarMetadata>('/v1/users/me/avatar', form)
+}
+export const removeMyAvatar = (concurrencyToken: string | null) =>
+  httpPost<UserAvatarMetadata>('/v1/users/me/avatar/remove', { concurrencyToken })
 
 export async function getMyProfile(signal?: AbortSignal): Promise<StoredProfile> {
   const stored = await httpGet<StoredProfile>('/v1/users/me/profile', { signal })

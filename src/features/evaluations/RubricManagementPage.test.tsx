@@ -13,6 +13,15 @@ const page = () => render(<MemoryRouter><RubricManagementPage /></MemoryRouter>)
 afterEach(cleanup)
 beforeEach(() => { vi.clearAllMocks(); mocks.listRubrics.mockResolvedValue({ items: [draft, published], totalCount: 2 }); mocks.getRubric.mockImplementation(async (id: number) => id === 1 ? draft : published) })
 describe('RubricManagementPage deep interactions', () => {
+  it('distinguishes a failed rubric read from a genuinely empty catalogue', async () => {
+    mocks.listRubrics.mockRejectedValue(new HttpError('Unavailable', 500))
+    page()
+
+    await screen.findByText('Không thể tải bộ tiêu chí.')
+    expect(screen.queryByText('Chưa có bộ tiêu chí.')).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Chưa có bộ tiêu chí' })).toBeNull()
+    expect((screen.getByRole('button', { name: 'Tạo bộ tiêu chí' }) as HTMLButtonElement).disabled).toBe(true)
+  })
   it('shows BE effective weight separately for nested criteria and one value for flat data', async () => {
     const nested = { ...criterion, id: 11, name: 'Tích hợp', weightPercent: 50, effectiveWeightPercent: 25, parentId: 1, sortOrder: 0 }
     const sibling = { ...nested, id: 12, name: 'Kiểm thử', sortOrder: 1 }

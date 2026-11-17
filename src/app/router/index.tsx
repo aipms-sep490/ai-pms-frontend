@@ -14,6 +14,7 @@ import { DepartmentProjectLayout } from '../../features/department/components/De
 import { DepartmentAcademicScopeRoute } from '../../features/department/components/DepartmentAcademicScopeRoute'
 import { AdminEvaluationLayout } from '../../features/evaluations/AdminEvaluationLayout'
 import { ChatPage } from '../../features/chat/ChatPage'
+import { DepartmentDocumentsPage } from '../../features/department-documents/DepartmentDocumentsPage'
 import { IndustryLayout } from '../../features/auth/components/IndustryRoutes'
 import { IndustryEnrollmentRoute } from '../../features/auth/components/IndustryEnrollmentRoute'
 import {
@@ -23,14 +24,14 @@ import {
   ProgressReportsPage, MeetingsPage, CreateMeetingPage, MeetingDetailPage, MeetingVideoRoomPage, ProgressReportDetailPage,
   ProjectLifecyclePage, MilestoneDetailPage, GanttPage, TeamManagementPage, TopicCataloguePage, ProjectRegistrationFormPage,
   ProjectReviewStatusPage, SupervisorSelectionPage, LoginPage, ForgotPasswordPage, ProfileSecurityPage, ResetPasswordPage,
-  ProfilePage, AcademicStructurePage, AcademicGovernancePage, PeriodPolicyManagementPage, AdminWorkspacePage, AdminRbacPage,
+  ProfilePage, AcademicStructurePage, AcademicGovernancePage, ProjectPeriodCatalogPage, PeriodPolicyManagementPage, AdminWorkspacePage, AdminRbacPage,
   AdminUserDetailPage, IndustryExpertPortalPage, ProjectReviewPage, ProjectGovernancePage, SupervisorMonitoringPage, TopicManagementPage,
   ColdTemplateManagementPage, RegistrationSourcePage, QualificationVerificationPage, DeliverablesPage,
   EvaluatorAssignmentsPage, EvaluationWorkspacePage, EvaluatorAssignmentDetailPage, EvaluatorWorkspacePage,
   ResultPublicationPage, ResultCorrectionsPage, NotificationsPage, PortfolioDashboardPage, SupervisorDashboardPage, FinalRequirementsPage,
   FinalSubmissionViewerPage, StudentFinalSubmissionPage, RubricManagementPage, EvaluatorAssignmentManagementPage,
   EvaluationSchemeManagementPage, StudentProjectResultPage, ProjectContributionsPage, ProjectFilesPage,
-  ProjectEvidenceLedgerPage, ProjectAiPage, ProjectGatesPage, ProjectWorkingAgreementPage, ProjectDefensePage, ProjectDefenseManagementPage, RoomPlannerPage,
+  ProjectEvidenceLedgerPage, ProjectAiPage, ProjectGatesPage, ProjectWorkingAgreementPage, ProjectDefensePage, ProjectDefenseManagementPage, RoomPlannerPage, DefenseSessionChangePage,
   ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, ArchivedProjectsPage,
   ProjectArchiveViewPage, CalendarAttentionPage, AdminIndustryInvitationsPage, ReviewGateGovernancePage,
   StudentReviewTimelinePage, AssignedGateReviewPage,
@@ -73,6 +74,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
         element: <RoleRoute allowed={['student']} />,
         children: [
           { path: 'project/overview', element: <OverviewPage /> },
+          { path: 'project/templates', element: <DepartmentDocumentsPage /> },
           { element: <ActiveStudentProjectRoute />, children: [
             { path: 'project/workspace', element: <ActiveProjectWorkspacePage /> },
             { path: 'project/milestones/:milestoneId?', element: <MilestoneDetailPage /> },
@@ -90,6 +92,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'project/files', element: <ProjectFilesPage /> },
             { path: 'project/evidence', element: <ProjectEvidenceLedgerPage /> },
             { path: 'project/contributions', element: <ProjectContributionsPage /> },
+            ...(env.weeklyAssessmentEnabled ? [{ path: 'project/weekly-assessments', element: <WeeklyAssessmentsPage /> }] : []),
             ...(env.gatesEnabled ? [{ path: 'project/gates', element: <ProjectGatesPage /> }] : []),
             ...(env.defenseScheduleEnabled ? [{ path: 'project/defense', element: <ProjectDefensePage /> }] : []),
             ...(env.coldReportEnabled ? [{ path: 'project/cold-reports', element: <ColdChecklistPage /> }] : []),
@@ -99,6 +102,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           ...(env.workingAgreementEnabled ? [{ path: 'project/agreement', element: <ProjectWorkingAgreementPage /> }] : []),
           { path: 'projects/lifecycle', element: <ProjectLifecyclePage /> },
           { path: 'team', element: <TeamManagementPage /> },
+          { path: 'project/periods', element: <ProjectPeriodCatalogPage /> },
           { path: 'team/create', element: <TeamManagementPage /> },
           { path: 'topics', element: <TopicCataloguePage /> },
           { path: 'project/source', element: <RegistrationSourcePage /> },
@@ -120,6 +124,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'supervisor/profile', element: <SupervisorProfilePage /> },
           { path: 'supervisor/dashboard', element: <SupervisorDashboardPage /> },
           { path: 'mentor/workspace', element: <MentorWorkspacePage /> },
+          ...(env.defenseScheduleEnabled ? [{ path: 'lecturer/defense-sessions/:sessionId', element: <DefenseSessionChangePage /> }] : []),
           { element: <SupervisorExecutionRoute />, children: [
             { path: 'supervisor/projects/:projectId/workspace', element: <SupervisorProjectWorkspacePage /> },
             { path: 'supervisor/projects/:projectId/progress', element: <SupervisorProgressReviewPage /> },
@@ -218,6 +223,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'department/student-qualifications', element: <QualificationVerificationPage /> },
           { path: 'department/topics', element: <TopicManagementPage /> },
           { path: 'department/topics/:id', element: <TopicManagementPage /> },
+          { path: 'department/documents', element: <DepartmentDocumentsPage manager /> },
           ...(env.coldReportEnabled ? [{ path: 'department/cold-templates', element: <ColdTemplateManagementPage /> }] : []),
           ] }] },
         ],

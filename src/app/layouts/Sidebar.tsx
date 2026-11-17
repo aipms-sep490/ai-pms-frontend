@@ -9,7 +9,8 @@ import { useAuthSession } from '../../features/auth/context/useAuthSession'
 import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 import '../../components/ui/page-loading.css'
 import { useChat } from '../../features/chat/ChatProvider'
-import appIcon from '../../assets/ai-pms-app-icon.svg'
+import { BrandLogo } from '../../components/ui/BrandLogo'
+import { SelfAvatarImage } from '../../features/auth/components/SelfAvatarImage'
 
 interface SidebarProps {
   isOpen: boolean
@@ -31,7 +32,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
   const unavailableStudent = role === 'student' && access.contextStatus === 'unavailable'
   const workspaceCode = role === 'student'
     ? project?.code?.trim() || academic?.selectedSemester?.code || (unavailableStudent ? 'Không tải được ngữ cảnh' : 'Ngữ cảnh chưa xác định')
-    : 'PMS'
+    : 'AIPMS'
   const teamLabel = role === 'student'
     ? team?.code?.trim() || team?.name?.trim() || (unavailableStudent ? 'Không tải được ngữ cảnh' : 'Chưa có nhóm')
     : role === 'lecturer' ? 'Giảng viên' : role === 'department' ? 'Bộ môn' : role === 'admin' ? 'Quản trị' : 'Tài khoản'
@@ -194,14 +195,9 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
           {/* Top Brand & Academic Header */}
           <div className="p-4 pb-3 border-b border-hairline flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 shrink-0 flex items-center justify-center">
-                  <img src={appIcon} alt="" aria-hidden="true" className="w-full h-full object-contain" />
-                </div>
+              <div className="flex min-w-0 items-center gap-2.5">
                 <div className="flex flex-col">
-                  <span className="font-heading font-bold text-[14px] text-ink tracking-tight leading-tight">
-                    PMS • FPTU
-                  </span>
+                  <BrandLogo />
                   <span className="font-mono text-xs text-ink-muted leading-tight">
                     {pendingStudent ? <span className="app-context-skeleton" aria-hidden="true" /> : role === 'student' ? semester?.name || 'Học kỳ chưa xác định' : teamLabel}
                   </span>
@@ -309,7 +305,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                                 </span>
                                 <span className="truncate">{item.title}</span>
                                 {item.id === 'chat' && chatUnread > 0 && (
-                                  <span className="rounded-full bg-primary px-2 text-xs text-white" aria-label="Có tin nhắn chưa đọc">
+                                  <span className="shrink-0 rounded-full bg-primary px-2 text-xs text-white" aria-label={`${chatUnread} tin nhắn chưa đọc`}>
                                     {chatUnread > 99 ? '99+' : chatUnread}
                                   </span>
                                 )}
@@ -380,7 +376,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                       {item.icon}
                     </span>
                     <span className="truncate">{item.title}</span>
-                    {item.id === 'chat' && chatUnread > 0 && <span className="rounded-full bg-primary px-2 text-xs text-white" aria-label="Có tin nhắn chưa đọc">{chatUnread > 99 ? '99+' : chatUnread}</span>}
+                    {item.id === 'chat' && chatUnread > 0 && <span className="shrink-0 rounded-full bg-primary px-2 text-xs text-white" aria-label={`${chatUnread} tin nhắn chưa đọc`}>{chatUnread > 99 ? '99+' : chatUnread}</span>}
                   </div>
                 </NavLink>
               </Fragment>
@@ -394,7 +390,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
         <div data-tour={TOUR_ANCHOR.profile} className="p-3 border-t border-hairline bg-card flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className="w-8 h-8 rounded-full bg-slate-200 border border-line-strong flex items-center justify-center font-heading font-bold text-xs text-ink-soft relative shrink-0">
-              {profileInitials}
+              <SelfAvatarImage key={session?.user.id} userId={session?.user.id} initials={profileInitials} />
               <span className={`absolute bottom-0 right-0 w-2 h-2 rounded-full ring-2 ring-white ${session ? 'bg-academic-emerald' : 'bg-slate-300'}`} />
             </div>
             <div className="flex flex-col min-w-0 flex-1">

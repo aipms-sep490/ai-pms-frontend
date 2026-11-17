@@ -26,6 +26,7 @@ const state = (overrides = {}) => ({
   pageSize: 20,
   totalCount: 1,
   current: null,
+  allowedDepartments: [{ id: 2, name: 'Computer Science' }],
   filters: { page: 1, pageSize: 20 },
   setFilters: vi.fn(),
   loading: false,
@@ -51,7 +52,7 @@ describe('SupervisorMonitoringPage', () => {
   it('renders backend-scoped identity, department, expertise, and availability', () => {
     page()
     expect(screen.getByText('Dr. Lan Nguyen')).toBeTruthy()
-    expect(screen.getByText('Computer Science')).toBeTruthy()
+    expect(screen.getAllByText('Computer Science').length).toBeGreaterThan(0)
     expect(screen.getByText('Sẵn sàng')).toBeTruthy()
     expect(screen.getByText('AI')).toBeTruthy()
   })
@@ -61,7 +62,7 @@ describe('SupervisorMonitoringPage', () => {
     hook.useSupervisors.mockReturnValue(current)
     page()
     fireEvent.change(screen.getByPlaceholderText('Tên giảng viên'), { target: { value: 'Lan' } })
-    fireEvent.change(screen.getByLabelText('Mã bộ môn'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('Bộ môn'), { target: { value: '2' } })
     fireEvent.change(screen.getByLabelText('Chuyên môn'), { target: { value: 'AI' } })
     fireEvent.change(screen.getByLabelText('Trạng thái sẵn sàng'), { target: { value: 'true' } })
     expect(current.setFilters).toHaveBeenLastCalledWith(expect.objectContaining({ isAvailable: true, page: 1 }))
@@ -112,7 +113,7 @@ describe('SupervisorMonitoringPage', () => {
   it('renders unavailable from the directory contract without inventing capacity', () => {
     hook.useSupervisors.mockReturnValue(state({ items: [{ ...supervisor, isAvailable: false }] }))
     page()
-    expect(screen.getByText('Computer Science')).toBeTruthy()
+    expect(screen.getAllByText('Computer Science').length).toBeGreaterThan(0)
     expect(screen.getByText('Chưa sẵn sàng')).toBeTruthy()
     expect(screen.queryByText(/remaining of/)).toBeNull()
   })

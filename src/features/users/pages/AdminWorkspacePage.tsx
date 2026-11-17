@@ -19,6 +19,7 @@ import { RosterExportDialog } from '../components/RosterExportDialog'
 import { CurriculumImportDialog } from '../components/CurriculumImportDialog'
 import { StudentImportDialog } from '../components/StudentImportDialog'
 import { getAcademicHierarchy } from '../../academic/api/academic-api'
+import { AccessEventsPanel } from '../components/AccessEventsPanel'
 
 const blankAccount: UserDraft = { departmentId: null, majorId: null, email: '', password: '', fullName: '', phone: null, studentCode: null, employeeCode: null, title: null, roleIds: [] }
 const messageFor = (reason: unknown) => reason instanceof HttpError ? reason.message : 'Chưa thể hoàn tất thao tác. Hãy thử lại.'
@@ -85,7 +86,7 @@ export function AdminWorkspacePage() {
     try { const accounts = JSON.parse(importText) as UserDraft[]; if (!Array.isArray(accounts) || !accounts.length) throw new Error('invalid'); void run(() => admin.importUsers(accounts), 'Máy chủ đã nhập toàn bộ lô tài khoản.').then(ok => { if (ok) setImportText('') }) } catch { setNotice('Tệp JSON phải là mảng tài khoản theo cấu trúc yêu cầu. Lô không được gửi khi dữ liệu chưa hợp lệ.') }
   }
 
-  const activeTab = (params.get('tab') as 'accounts' | 'audit' | null) ?? 'accounts'
+  const activeTab = params.get('tab') === 'audit' ? 'audit' : params.get('tab') === 'access' ? 'access' : 'accounts'
 
   return <main className="workspace-page admin-workspace" aria-labelledby="admin-title">
     <header className="admin-heading">
@@ -100,9 +101,10 @@ export function AdminWorkspacePage() {
       </div>
     </header>
     <nav className="admin-tabs" aria-label="Khu vực quản trị">
-      <button type="button" className={`admin-tab-btn ${activeTab === 'accounts' ? 'is-active' : ''}`} onClick={() => setFilter({ tab: 'accounts' })}>Tài khoản người dùng</button>
+      <button type="button" className={`admin-tab-btn ${activeTab === 'accounts' ? 'is-active' : ''}`} aria-controls="accounts" aria-pressed={activeTab === 'accounts'} onClick={() => setFilter({ tab: 'accounts' })}>Tài khoản người dùng</button>
       <Link to="/admin/access/rbac">Phân quyền</Link>
-      <button type="button" className={`admin-tab-btn ${activeTab === 'audit' ? 'is-active' : ''}`} onClick={() => setFilter({ tab: 'audit' })}>Nhật ký bảo mật</button>
+      <button type="button" className={`admin-tab-btn ${activeTab === 'access' ? 'is-active' : ''}`} aria-controls="access-events" aria-pressed={activeTab === 'access'} onClick={() => setFilter({ tab: 'access' })}>Nhật ký truy cập</button>
+      <button type="button" className={`admin-tab-btn ${activeTab === 'audit' ? 'is-active' : ''}`} aria-controls="audit" aria-pressed={activeTab === 'audit'} onClick={() => setFilter({ tab: 'audit' })}>Nhật ký bảo mật</button>
       <Link to="/academic/governance">Học kỳ & Kỳ đồ án</Link>
       {env.industryEnabled && <Link to="/admin/industry">Chuyên gia doanh nghiệp</Link>}
     </nav>
@@ -115,6 +117,15 @@ export function AdminWorkspacePage() {
       <Fact label="Hoạt động đã ghi nhận" value={admin.audit.state === 'ready' ? String(admin.audit.value.totalCount) : admin.audit.state === 'error' ? 'Chưa tải được' : '—'} />
       <p className="admin-boundary">Theo dõi tài khoản, vai trò và hoạt động quản trị trên hệ thống.</p>
     </section>
+
+    {activeTab === 'accounts' && admin.audit.state === 'ready' && admin.audit.value.items.length > 0 ? <section className="admin-panel admin-activity-preview" aria-labelledby="admin-activity-title">
+      <div className="admin-panel-heading"><div><h2 id="admin-activity-title">Hoạt động bảo mật được ghi nhận</h2><p>Các bản ghi trong trang nhật ký hiện tại. Mở nhật ký để lọc và xem thêm.</p></div><Button type="button" variant="secondary" onClick={() => setFilter({ tab: 'audit' })}>Xem nhật ký</Button></div>
+      <ul className="admin-activity-list">{admin.audit.value.items.slice(0, 4).map(record => <li key={record.id}>
+        <span className={`admin-activity-indicator ${record.outcome === 'SUCCESS' ? 'is-success' : 'is-failure'}`} aria-hidden="true" />
+        <span><strong>{auditActionLabel(record.action)}</strong><small>{record.entityType === 'USER' ? 'Tài khoản' : record.entityType}{record.entityId ? ` #${record.entityId}` : ''} · {record.outcome === 'SUCCESS' ? 'Thành công' : record.outcome === 'FAILURE' ? 'Thất bại' : displayLabel(record.outcome)}</small></span>
+        <time dateTime={record.occurredAt}>{new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' }).format(utcTimestamp(record.occurredAt))}</time>
+      </li>)}</ul>
+    </section> : null}
 
     <section id="accounts" className="admin-panel" aria-labelledby="accounts-title" hidden={activeTab !== 'accounts'}><div className="admin-panel-heading admin-roster-heading"><div><h2 id="accounts-title">Tài khoản người dùng</h2><p>Tìm kiếm, lọc trạng thái và quản lý vòng đời tài khoản. Vai trò hệ thống được quản lý riêng với phân công trong đồ án.</p></div><div className="flex flex-wrap gap-2"><Button icon="upload" onClick={() => setStudentImportOpen(true)}>Nhập sinh viên từ Excel</Button><Button variant="outline" icon="download" onClick={() => setExportOpen(true)}>Xuất Excel danh sách nhóm</Button></div></div>
       {exportOpen && <RosterExportDialog onClose={() => setExportOpen(false)} />}
@@ -132,6 +143,7 @@ export function AdminWorkspacePage() {
             <TableHeaderCell>Người dùng</TableHeaderCell>
             <TableHeaderCell>Vai trò hệ thống</TableHeaderCell>
             <TableHeaderCell>Trạng thái</TableHeaderCell>
+            <TableHeaderCell>Đăng nhập gần nhất</TableHeaderCell>
             <TableHeaderCell>Phạm vi học thuật</TableHeaderCell>
             <TableHeaderCell aria-label="Thao tác" />
           </TableRow>
@@ -141,6 +153,7 @@ export function AdminWorkspacePage() {
             <TableCell label="Người dùng"><div className="flex flex-col"><strong>{user.fullName}</strong><span>{user.email}</span><small className="text-ink-muted">{user.studentCode ?? user.employeeCode ?? 'Không có mã'}</small></div></TableCell>
             <TableCell label="Vai trò hệ thống">{user.roles.filter((role) => globalRoles.some((globalRole) => globalRole.code === role)).map(role => role === 'LECTURER' ? 'Giảng viên' : role === 'EVALUATOR' ? 'Người chấm' : displayLabel(role)).join(', ') || 'Chưa gán'}</TableCell>
             <TableCell label="Trạng thái"><Status status={user.status} /></TableCell>
+            <TableCell label="Đăng nhập gần nhất">{user.lastLoginAt ? <time dateTime={user.lastLoginAt}>{new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(utcTimestamp(user.lastLoginAt))}</time> : 'Chưa ghi nhận'}</TableCell>
             <TableCell label="Phạm vi học thuật">
               {user.departmentId ? academicNames.departments[user.departmentId] ?? 'Chưa tải được tên bộ môn' : 'Chưa liên kết bộ môn'}
               {user.majorId ? ` · ${academicNames.majors[user.majorId] ?? 'Chưa tải được tên ngành'}` : ''}
@@ -157,6 +170,7 @@ export function AdminWorkspacePage() {
       <p className="admin-gap">Mở hồ sơ từng tài khoản để cập nhật bộ môn và chuyên ngành. Phân công đồ án được quản lý riêng.</p>
     </section>
 
+    {activeTab === 'access' && <AccessEventsPanel />}
     <section id="audit" className="admin-panel" aria-labelledby="audit-title" hidden={activeTab !== 'audit'}>
       <div className="admin-panel-heading"><div><h2 id="audit-title">Nhật ký bảo mật</h2><p>Theo dõi thời gian, người thực hiện và nội dung hoạt động quản trị.</p></div></div>
       <form key={[auditAction, auditEntityType, auditOutcome, auditFrom, auditTo].join('|')} className="admin-filter" onSubmit={(event) => {

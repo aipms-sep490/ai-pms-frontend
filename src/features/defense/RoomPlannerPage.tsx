@@ -3,17 +3,69 @@ import { useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../components/ui/Table'
 import { RoomFloorPlan } from './RoomFloorPlan'
+import { DefenseChangeRequestsPanel } from './DefenseChangeRequestsPanel'
+import { Gate3ScheduleChangePanel } from './Gate3ScheduleChangePanel'
+import { RoomCatalogPanel } from './RoomCatalogPanel'
+import { PeriodCalendarPanel } from './PeriodCalendarPanel'
+import { HttpError } from '../../services/http/http-client'
 import {
   applyDefenseSchedule,
   applyGate3Schedule,
   formatScheduleConflictReason,
+  getGate3Schedules,
+  getPeriodDefenseSessions,
   getPlannerRooms,
   previewDefenseSchedule,
   previewGate3Schedule,
 } from './room-planner-api'
-import type { AutoSchedulePreview, RoomDto, RoomSchedulingExclusion } from './room-planner-api'
+import type { AutoSchedulePreview, DefenseAllocation, ReviewGate3ScheduleDto, RoomDto, RoomSchedulingExclusion } from './room-planner-api'
 
 const nextDayVietnam = () => new Date(Date.now() + 86400000).toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' })
+
+function plannerError(reason: unknown, fallback: string): string {
+  if (reason instanceof HttpError) {
+    if (reason.status === 401) return 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.'
+    if (reason.status === 403) return 'Bạn không có quyền xem hoặc điều phối lịch trong kỳ đồ án này.'
+    if (reason.status === 404) return 'Không tìm thấy kỳ đồ án hoặc dữ liệu lịch được yêu cầu.'
+    if (reason.status === 409) return 'Lịch hoặc điều kiện xếp phòng vừa thay đổi. Tải lại lịch và xem trước lại.'
+    if (reason.status === 400 || reason.status === 422) return 'Dữ liệu phòng, ngày, ca hoặc cửa sổ Gate chưa hợp lệ. Hãy kiểm tra và thử lại.'
+  }
+  return fallback
+}
+
+interface PublishedSession {
+  key: string
+  projectId: number
+  roomId: number | null
+  roomCode: string | null
+  startAt: string
+  endAt: string
+  status: string
+  gate3?: ReviewGate3ScheduleDto
+}
+
+async function readPublished(periodId: number, gate: 'R3' | 'R4', signal?: AbortSignal): Promise<PublishedSession[]> {
+  if (gate === 'R3') {
+    const sessions = await getGate3Schedules(periodId, signal)
+    return sessions.filter(item => Boolean(item.publishedAt)).map(item => ({
+      key: `R3-${item.gateInstanceId}`, projectId: item.projectId, roomId: item.roomId,
+      roomCode: item.roomCode, startAt: item.startAt, endAt: item.endAt, status: 'Đã công bố',
+      gate3: item,
+    }))
+  }
+  const sessions = await getPeriodDefenseSessions(periodId, undefined, signal)
+  return sessions.filter(item => item.status === 'SCHEDULED').map(item => ({
+    key: `R4-${item.id}`, projectId: item.projectId, roomId: item.roomId,
+    roomCode: item.roomCode, startAt: item.startAt, endAt: item.endAt, status: item.status,
+  }))
+}
+
+function matchesAllocation(session: PublishedSession, allocation: DefenseAllocation, gate: 'R3' | 'R4') {
+  return session.projectId === allocation.projectId && session.roomId === allocation.roomId
+    && Date.parse(session.startAt) === Date.parse(allocation.startAt)
+    && Date.parse(session.endAt) === Date.parse(allocation.endAt)
+    && (gate === 'R3' ? session.status === 'Đã công bố' : session.status === 'SCHEDULED')
+}
 
 export function RoomPlannerPage() {
   const periodId = Number(useParams().periodId)
@@ -24,15 +76,23 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
   const [targetGate, setTargetGate] = useState<'R3' | 'R4'>('R4')
   const [rooms, setRooms] = useState<RoomDto[]>([])
   const [loading, setLoading] = useState(true)
+  const [roomsRevision, setRoomsRevision] = useState(0)
   const [error, setError] = useState('')
   const [startDate, setStartDate] = useState(nextDayVietnam)
   const [endDate, setEndDate] = useState(nextDayVietnam)
   const [selectedDate, setSelectedDate] = useState(nextDayVietnam)
   const [exclusions, setExclusions] = useState<RoomSchedulingExclusion[]>([])
   const [preview, setPreview] = useState<AutoSchedulePreview | null>(null)
+  const [confirmPartial, setConfirmPartial] = useState(false)
   const [busy, setBusy] = useState(false)
   const [success, setSuccess] = useState('')
   const requestVersion = useRef(0)
+  const publishedRequestVersion = useRef(0)
+  const [published, setPublished] = useState<PublishedSession[]>([])
+  const [publishedLoading, setPublishedLoading] = useState(true)
+  const [publishedError, setPublishedError] = useState('')
+  const [publishedRevision, setPublishedRevision] = useState(0)
+  const [editingGate3, setEditingGate3] = useState<ReviewGate3ScheduleDto | null>(null)
 
   useEffect(() => () => { requestVersion.current += 1 }, [])
 
@@ -40,31 +100,66 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
     const controller = new AbortController()
     getPlannerRooms(controller.signal).then((data) => {
       if (!controller.signal.aborted) setRooms(data)
-    }).catch(() => {
-      if (!controller.signal.aborted) setError('Chưa tải được danh mục phòng. Hãy kiểm tra kết nối BE và tải lại trang.')
+    }).catch(reason => {
+      if (!controller.signal.aborted) { setRooms([]); setError(plannerError(reason, 'Chưa tải được danh mục phòng. Hãy thử lại.')) }
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
-  }, [])
+  }, [roomsRevision])
+
+  useEffect(() => {
+    if (!Number.isSafeInteger(periodId) || periodId < 1) return
+    const controller = new AbortController()
+    const request = ++publishedRequestVersion.current
+    readPublished(periodId, targetGate, controller.signal).then(rows => {
+      if (!controller.signal.aborted && request === publishedRequestVersion.current) setPublished(rows)
+    }).catch(reason => {
+      if (!controller.signal.aborted && request === publishedRequestVersion.current) {
+        setPublished([])
+        setPublishedError(plannerError(reason, 'Chưa tải được lịch đã công bố. Hãy thử tải lại.'))
+      }
+    }).finally(() => {
+      if (!controller.signal.aborted && request === publishedRequestVersion.current) setPublishedLoading(false)
+    })
+    return () => controller.abort()
+  }, [periodId, targetGate, publishedRevision])
 
   const changeGate = (gate: 'R3' | 'R4') => {
     setTargetGate(gate)
+    setPublished([])
+    setPublishedLoading(true)
+    setPublishedError('')
+    setEditingGate3(null)
     setPreview(null)
+    setConfirmPartial(false)
     setSuccess('')
     setError('')
   }
 
-  const changeExclusions = (next: RoomSchedulingExclusion[]) => { setExclusions(next); setPreview(null); setSuccess('') }
+  const changeExclusions = (next: RoomSchedulingExclusion[]) => { setExclusions(next); setPreview(null); setConfirmPartial(false); setSuccess('') }
+  const refreshRooms = () => {
+    setRooms([]); setLoading(true); setPreview(null); setConfirmPartial(false); setSuccess(''); setExclusions([])
+    setRoomsRevision(value => value + 1)
+  }
+  const refreshPublished = () => {
+    setPublished([])
+    setEditingGate3(null)
+    setPublishedLoading(true)
+    setPublishedError('')
+    setPublishedRevision(value => value + 1)
+  }
   const changeRange = (start: string, end: string) => {
     setStartDate(start); setEndDate(end); setSelectedDate(start)
     setExclusions((current) => current.filter((item) => item.date === null || (item.date >= start && item.date <= end)))
-    setPreview(null); setSuccess('')
+    setPreview(null); setConfirmPartial(false); setSuccess('')
   }
   const activeRooms = rooms.filter((room) => room.status === 'ACTIVE' && [2, 3, 4].includes(room.floor))
-  const validRange = startDate <= endDate && Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`) <= 31 * 86400000
+  const earliestDate = nextDayVietnam()
+  const validRange = startDate >= earliestDate && startDate <= endDate
+    && Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`) <= 31 * 86400000
 
   const runPreview = async () => {
     if (!Number.isSafeInteger(periodId) || periodId < 1 || !validRange || activeRooms.length === 0) return
-    setBusy(true); setError(''); setSuccess(''); setPreview(null)
+    setBusy(true); setError(''); setSuccess(''); setPreview(null); setConfirmPartial(false)
     const request = ++requestVersion.current
     try {
       const payload = {
@@ -78,50 +173,67 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
         ? await previewGate3Schedule(periodId, payload)
         : await previewDefenseSchedule(periodId, payload)
       if (request === requestVersion.current) setPreview(result)
-    } catch {
-      if (request === requestVersion.current) setError(`Không tạo được bản xem trước lịch ${targetGate === 'R3' ? 'Gate 3' : 'Gate 4'}. Kiểm tra cửa sổ ngày, quyền truy cập và dữ liệu người chấm.`)
+    } catch (reason) {
+      if (request === requestVersion.current) setError(plannerError(reason, `Không tạo được bản xem trước lịch ${targetGate === 'R3' ? 'Gate 3' : 'Gate 4'}. Kiểm tra cửa sổ ngày và dữ liệu người chấm.`))
     } finally {
       if (request === requestVersion.current) setBusy(false)
     }
   }
 
   const applyPreview = async () => {
-    if (!preview || preview.unscheduledCount > 0 || preview.allocations.length === 0) return
+    if (!preview || preview.allocations.length === 0 || preview.unscheduledCount > 0 && !confirmPartial) return
     setBusy(true); setError('')
     const request = ++requestVersion.current
+    let applied = false
     try {
       if (targetGate === 'R3') {
-        const result = await applyGate3Schedule(periodId, {
+        await applyGate3Schedule(periodId, {
           allocations: preview.allocations,
           concurrencyToken: preview.concurrencyToken,
           exclusions,
         })
-        if (request !== requestVersion.current) return
-        setSuccess(`Đã duyệt và công bố ${result.length} phiên đánh giá Gate 3 vào lịch chính thức.`)
       } else {
-        const result = await applyDefenseSchedule(periodId, {
+        await applyDefenseSchedule(periodId, {
           allocations: preview.allocations,
           concurrencyToken: preview.concurrencyToken,
           exclusions,
         })
-        if (request !== requestVersion.current) return
-        setSuccess(`Đã duyệt và công bố ${result.createdSessionsCount} phiên bảo vệ Gate 4 vào lịch chính thức.`)
       }
+      applied = true
+      if (request !== requestVersion.current) return
+      ++publishedRequestVersion.current
       setPreview(null)
-    } catch {
-      if (request === requestVersion.current) setError('Lịch hoặc điều kiện phân phòng đã thay đổi. Hãy chạy xem trước lại trước khi áp dụng.')
+      const rows = await readPublished(periodId, targetGate)
+      if (request !== requestVersion.current) return
+      setPublished(rows)
+      setPublishedLoading(false)
+      if (!preview.allocations.every(allocation => rows.some(row => matchesAllocation(row, allocation, targetGate))))
+        throw new Error('Published schedule readback did not match the applied allocations.')
+      setPublishedError('')
+      setSuccess(`Đã xác minh ${preview.allocations.length} phiên ${targetGate === 'R3' ? 'đánh giá Gate 3' : 'bảo vệ Gate 4'} trong lịch đã công bố.${preview.unscheduledCount > 0 ? ` ${preview.unscheduledCount} nhóm chưa được xếp lịch.` : ''}`)
+    } catch (reason) {
+      if (request === requestVersion.current) {
+        if (applied) {
+          setPreview(null)
+          setPublishedLoading(false)
+          setPublishedError('Chưa xác minh được lịch sau khi công bố. Hãy tải lại lịch đã công bố.')
+          setError('Đã gửi yêu cầu công bố nhưng chưa xác minh được lịch. Hãy tải lại lịch trước khi thao tác tiếp.')
+        } else {
+          setError(plannerError(reason, 'Chưa áp dụng được lịch. Hãy kiểm tra điều kiện và thử lại.'))
+        }
+      }
     } finally {
       if (request === requestVersion.current) setBusy(false)
     }
   }
 
   if (!Number.isSafeInteger(periodId) || periodId < 1) {
-    return <WorkspacePage title="Sơ đồ phòng & lập lịch"><p role="alert">Mã kỳ đồ án không hợp lệ.</p></WorkspacePage>
+    return <WorkspacePage title="Phòng & lập lịch"><p role="alert">Mã kỳ đồ án không hợp lệ.</p></WorkspacePage>
   }
 
   return (
     <WorkspacePage
-      title={`Sơ đồ phòng & lập lịch ${targetGate === 'R3' ? 'Gate 3 (Review chuyên môn)' : 'Gate 4 (Hội đồng bảo vệ)'}`}
+      title={`Phòng & lập lịch ${targetGate === 'R3' ? 'Gate 3 (Review chuyên môn)' : 'Gate 4 (Hội đồng bảo vệ)'}`}
       eyebrow={`Kỳ đồ án #${periodId}`}
       description="Chọn tầng 2–4, loại phòng hoặc ca khỏi lần tự xếp này, rồi xem trước và duyệt công bố lịch chính thức."
     >
@@ -165,6 +277,8 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
           )}
         </div>
 
+        <PeriodCalendarPanel periodId={periodId} onChanged={() => { setPreview(null); setConfirmPartial(false); setSuccess('') }} />
+
         {/* Filters and Action Bar */}
         <div className="rounded-2xl border border-hairline bg-surface p-4 shadow-xs">
           <div className="flex flex-wrap items-end gap-4">
@@ -172,6 +286,7 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
               Từ ngày
               <input
                 type="date"
+                min={earliestDate}
                 value={startDate}
                 onChange={(event) => changeRange(event.target.value, endDate)}
                 className="min-h-11 rounded-lg border border-hairline px-3"
@@ -181,6 +296,7 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
               Đến ngày
               <input
                 type="date"
+                min={startDate >= earliestDate ? startDate : earliestDate}
                 value={endDate}
                 onChange={(event) => changeRange(startDate, event.target.value)}
                 className="min-h-11 rounded-lg border border-hairline px-3"
@@ -193,7 +309,7 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
                 min={startDate}
                 max={endDate}
                 value={selectedDate}
-                onChange={(event) => { setSelectedDate(event.target.value); setPreview(null) }}
+                onChange={(event) => { setSelectedDate(event.target.value); setPreview(null); setConfirmPartial(false) }}
                 className="min-h-11 rounded-lg border border-hairline px-3"
               />
             </label>
@@ -208,7 +324,7 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
           </div>
           {!validRange && (
             <p role="alert" className="mt-3 text-sm text-status-error-text">
-              Khoảng ngày phải theo thứ tự và tối đa 32 ngày.
+              Ngày bắt đầu phải từ ngày mai (giờ Việt Nam); ngày kết thúc không trước ngày bắt đầu và khoảng ngày tối đa 32 ngày.
             </p>
           )}
           <p className="mt-3 text-sm text-ink-muted">
@@ -217,16 +333,20 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
         </div>
 
         {loading && <p role="status" className="text-sm">Đang tải danh mục phòng…</p>}
+        {!loading && !error && rooms.length === 0 && <p className="rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-muted">Chưa có phòng trong danh mục. Cán bộ điều phối cần tạo phòng trước khi xếp lịch.</p>}
         {error && (
-          <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">
-            {error}
-          </p>
+          <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">
+            <span>{error}</span>
+            {!loading && rooms.length === 0 && <button type="button" className="min-h-11 font-semibold underline" onClick={() => { setLoading(true); setError(''); setRoomsRevision(value => value + 1) }}>Tải lại phòng</button>}
+          </div>
         )}
         {success && (
           <p role="status" className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">
             {success}
           </p>
         )}
+
+        {!loading && !error && <RoomCatalogPanel rooms={rooms} onChanged={refreshRooms} />}
 
         {!loading && rooms.length > 0 && (
           <RoomFloorPlan
@@ -286,19 +406,58 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
               <button
                 type="button"
                 onClick={applyPreview}
-                disabled={busy || preview.unscheduledCount > 0 || preview.allocations.length === 0}
+                disabled={busy || preview.allocations.length === 0 || preview.unscheduledCount > 0 && !confirmPartial}
                 className="min-h-11 rounded-lg bg-emerald-700 px-4 text-sm font-bold text-white shadow-xs transition-opacity hover:opacity-95 disabled:opacity-50"
               >
                 Duyệt và áp dụng lịch
               </button>
               {preview.unscheduledCount > 0 && (
-                <p className="text-sm text-amber-900">
-                  Cần xử lý các nhóm chưa xếp được hoặc mở thêm phòng/ca trước khi áp dụng.
-                </p>
+                <label className="flex min-h-11 items-center gap-2 text-sm text-amber-900">
+                  <input type="checkbox" checked={confirmPartial} onChange={event => setConfirmPartial(event.target.checked)} />
+                  Tôi xác nhận chỉ công bố {preview.allocations.length} phiên đã xếp; {preview.unscheduledCount} nhóm chưa có lịch.
+                </label>
               )}
             </div>
           </section>
         )}
+        <section aria-label={`Lịch đã công bố ${targetGate}`} className="rounded-2xl border border-hairline bg-surface p-4 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-bold">Lịch đã công bố · {targetGate}</h2>
+            <button type="button" onClick={refreshPublished}
+              className="min-h-11 rounded-lg border border-hairline px-3 text-sm font-semibold text-primary">
+              Tải lại lịch
+            </button>
+          </div>
+          {publishedLoading && <p role="status" className="mt-3 text-sm text-ink-muted">Đang tải lịch đã công bố…</p>}
+          {publishedError && <p role="alert" className="mt-3 text-sm text-status-error-text">{publishedError}</p>}
+          {!publishedLoading && !publishedError && published.length === 0 &&
+            <p className="mt-3 text-sm text-ink-muted">Chưa có phiên nào được công bố trong phạm vi của bạn.</p>}
+          {!publishedLoading && !publishedError && published.length > 0 && <div className="mt-3 max-h-72 overflow-auto rounded-lg border border-hairline">
+            <Table aria-label={`Danh sách lịch đã công bố ${targetGate}`}>
+              <TableHead><TableRow head>
+                <TableHeaderCell>Đồ án</TableHeaderCell>
+                <TableHeaderCell>Thời gian</TableHeaderCell>
+                <TableHeaderCell>Phòng</TableHeaderCell>
+                <TableHeaderCell>Trạng thái</TableHeaderCell>
+                {targetGate === 'R3' && <TableHeaderCell>Thao tác</TableHeaderCell>}
+              </TableRow></TableHead>
+              <TableBody>{published.map(item => <TableRow key={item.key}>
+                <TableCell>#{item.projectId}</TableCell>
+                <TableCell>{new Date(item.startAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</TableCell>
+                <TableCell>{item.roomCode ?? 'Chưa có phòng'}</TableCell>
+                <TableCell>{item.status === 'SCHEDULED' ? 'Đã lên lịch' : item.status}</TableCell>
+                {targetGate === 'R3' && <TableCell>{item.gate3 &&
+                  <button type="button" className="min-h-11 font-semibold text-primary underline" onClick={() => setEditingGate3(item.gate3!)}>Đổi phòng/ca</button>}</TableCell>}
+              </TableRow>)}</TableBody>
+            </Table>
+          </div>}
+          {targetGate === 'R3' && editingGate3 && <div className="mt-4"><Gate3ScheduleChangePanel
+            key={`${editingGate3.gateInstanceId}-${editingGate3.concurrencyToken}`}
+            periodId={periodId} schedule={editingGate3} rooms={rooms}
+            onChanged={refreshPublished} onClose={() => setEditingGate3(null)}
+          /></div>}
+        </section>
+        {targetGate === 'R4' && <DefenseChangeRequestsPanel periodId={periodId} rooms={rooms} onScheduleChanged={refreshPublished} />}
       </fieldset>
     </WorkspacePage>
   )

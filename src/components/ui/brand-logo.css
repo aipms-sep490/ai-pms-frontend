@@ -1,0 +1,7 @@
+.aipms-brand-logo {
+  display: inline-block;
+  width: 144px;
+  height: 36px;
+  flex: none;
+  background: url('/aipms-logo.png') center / 142% auto no-repeat;
+}

@@ -40,12 +40,21 @@ describe('DepartmentWorkspacePage', () => {
     expect(within(screen.getByRole('list', { name: 'Chỉ số tổng quan' })).getByText('7')).toBeTruthy()
   })
 
+  it('counts supervisors only within the departments assigned to the current staff member', async () => {
+    mocks.academic.mockReturnValue(academic)
+    mocks.reviews.mockResolvedValue(reviewPage); mocks.portfolio.mockResolvedValue(portfolio); mocks.supervisors.mockResolvedValue(supervisors)
+    renderPage()
+    await waitFor(() => expect(mocks.supervisors).toHaveBeenCalledWith('department-token', { departmentId: 2, page: 1, pageSize: 5 }))
+    expect(within(screen.getByText('Giảng viên trong bộ môn').closest('li')!).getByText('1')).toBeTruthy()
+  })
+
   it('does not guess a department scope when none is available', async () => {
     mocks.academic.mockReturnValue({ ...academic, academic: { ...academic.academic, departments: [] } })
     mocks.reviews.mockResolvedValue(reviewPage); mocks.portfolio.mockResolvedValue(portfolio); mocks.supervisors.mockResolvedValue(supervisors)
     renderPage()
     expect(await screen.findByText('Chưa xác định được bộ môn từ phiên đăng nhập. Không truy vấn phạm vi khác.')).toBeTruthy()
     expect(mocks.urgent).not.toHaveBeenCalled()
+    expect(mocks.supervisors).not.toHaveBeenCalled()
   })
 
   it('restores portfolio filters from the URL and updates it when filters change', async () => {

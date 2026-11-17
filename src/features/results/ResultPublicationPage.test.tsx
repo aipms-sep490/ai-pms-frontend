@@ -21,6 +21,7 @@ beforeEach(() => { auth.session = { accessToken: 'fixture', user: { roles: ['DEP
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 
 it('keeps admin navigation and all authorized student targets even with a linked department', async () => {
+  auth.session = { accessToken: 'fixture', user: { roles: ['ADMIN', 'DEPARTMENT_STAFF'] } }
   render(<MemoryRouter initialEntries={['/admin/projects/9/result']}><Routes><Route path="/admin/projects/:projectId/result" element={<ResultPublicationPage />} /></Routes></MemoryRouter>)
   await screen.findByRole('region', { name: 'Bản xem trước kết quả' })
   expect(screen.getByRole('link', { name: 'Quản lý phương án đánh giá' }).getAttribute('href')).toBe('/admin/projects/9/evaluation-schemes')

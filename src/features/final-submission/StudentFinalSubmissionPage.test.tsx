@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { HttpError } from '../../services/http/http-client'
 
 const finalApi = vi.hoisted(() => ({ getFinalPeriods: vi.fn(), getFinalDraft: vi.fn(), getFinalChecklist: vi.fn(), getLockedFinalSubmission: vi.fn(), createFinalDraft: vi.fn(), updateFinalDraft: vi.fn(), submitFinalSubmission: vi.fn(), getFinalRequirements: vi.fn(), configureFinalRequirements: vi.fn(), downloadLockedFile: vi.fn() }))
 const deliverablesApi = vi.hoisted(() => ({ getDeliverables: vi.fn(), getDeliverableVersions: vi.fn() }))
@@ -13,6 +14,17 @@ import { StudentFinalSubmissionPage } from './FinalSubmissionPage'
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
 describe('StudentFinalSubmissionPage', () => {
+  it('explains validation failures without displaying raw backend details', async () => {
+    finalApi.getFinalPeriods.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
+    finalApi.getFinalDraft.mockResolvedValue(null)
+    finalApi.getFinalChecklist.mockRejectedValue(new HttpError('internal', 422, { detail: 'SQL internal path and private identifier' }))
+    finalApi.getLockedFinalSubmission.mockResolvedValue(null)
+    deliverablesApi.getDeliverables.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
+    render(<MemoryRouter><StudentFinalSubmissionPage /></MemoryRouter>)
+    expect((await screen.findByRole('alert')).textContent).toContain('Thông tin bàn giao chưa hợp lệ')
+    expect(screen.queryByText(/SQL internal path/)).toBeNull()
+  })
+
   it('keeps draft and submit controls disabled outside the backend-derived ACTIVE state', async () => {
     finalApi.getFinalPeriods.mockResolvedValue({ items: [{ id: 3, name: 'Final', status: 'ACTIVE', startAt: '', endAt: '', canPrepareDraft: true, blockers: [] }], page: 1, pageSize: 100, totalCount: 1 })
     finalApi.getFinalDraft.mockResolvedValue(null)

@@ -111,6 +111,7 @@ test('two authorized clients synchronize, retry a lost reply and clear revoked a
   await expect(receiver.locator('.chat-history article')).toHaveCount(2)
   for (const [index, page] of pages.entries()) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    expect(await page.locator('.chat-dock-panel .chat-header').evaluate(header => header.scrollWidth <= header.clientWidth)).toBe(true)
     for (const action of await page.locator('.chat-message-actions button').all()) { const bounds = await action.boundingBox(); expect(bounds?.height).toBeGreaterThanOrEqual(44); expect(bounds?.width).toBeGreaterThanOrEqual(44) }
     await page.screenshot({ path: `test-results/chat-${index ? 'mobile' : 'desktop'}.png`, fullPage: true })
   }

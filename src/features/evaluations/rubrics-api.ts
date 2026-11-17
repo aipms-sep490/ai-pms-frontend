@@ -1,4 +1,4 @@
-import { httpDelete, httpGet, httpPost, httpPut } from '../../services/http/http-client'
+import { httpDelete, httpGet, httpGetBlob, httpPost, httpPostForm, httpPut } from '../../services/http/http-client'
 import type { PagedResult } from '../../types/backend'
 
 export interface RubricCriterion {
@@ -44,6 +44,16 @@ export interface CriterionInput {
   levels?: RubricCriterionLevel[]
 }
 export interface RubricDraft extends RubricScopeFields { name: string; description: string | null; criteria: CriterionInput[] }
+export interface RubricWorkbookPreview {
+  draft: (RubricDraft & { concurrencyToken: string }) | null
+  issues: Array<{ cell: string; message: string }>
+  changes: string[]
+}
+export const downloadRubricWorkbook = (id: number) => httpGetBlob(`/v1/rubrics/${id}/workbook`)
+export const previewRubricWorkbook = (id: number, file: File) => {
+  const body = new FormData(); body.append('file', file)
+  return httpPostForm<RubricWorkbookPreview>(`/v1/rubrics/${id}/workbook/preview`, body)
+}
 
 export const listRubrics = (page = 1, status?: string) => {
   const query = new URLSearchParams({ page: String(page), pageSize: '20' })

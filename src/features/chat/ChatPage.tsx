@@ -2,6 +2,8 @@ import { useContext, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { StudentJourneyContext } from '../../app/context/StudentJourneyContext'
 import { useAuthSession } from '../auth/context/useAuthSession'
+import { getHomePath } from '../auth/utils/role-access'
+import { BackLink } from '../../components/ui/BackLink'
 import { env } from '../../app/config/env'
 import { getOwnAssignments } from '../../services/api/supervisors.api'
 import { useChat } from './ChatProvider'
@@ -15,18 +17,25 @@ const emptyPeople: Page<ChatPerson> = { items: [], nextCursor: null, hasMore: fa
 export function ChatPage() {
   const { conversationId } = useParams()
   const { session } = useAuthSession()
+  const { chatDenied, refresh } = useChat()
   if (!env.chatEnabled) return <p role="status">Tính năng chat chưa được bật.</p>
   if (env.isMockMode) return <p role="status">Chat realtime cần phiên đăng nhập API thật. Chế độ mock không kết nối hoặc gửi tin đến BE.</p>
-  return <ChatWorkspace key={session?.user.id} id={conversationId} userId={String(session?.user.id)} />
+  if (chatDenied) return <section className="chat-unavailable" role="alert">
+    <BackLink fallback={session ? getHomePath(session.user) : '/profile'} className="chat-page-back"><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Quay lại không gian làm việc</BackLink>
+    <h1>Tin nhắn chưa khả dụng</h1>
+    <p>Tài khoản hiện chưa được máy chủ cấp quyền sử dụng chat. Hãy kiểm tra lại sau khi quyền hoặc hồ sơ được cập nhật.</p>
+    <button type="button" onClick={() => refresh()}>Kiểm tra lại quyền chat</button>
+  </section>
+  return <ChatWorkspace key={session?.user.id} id={conversationId} userId={String(session?.user.id)} homePath={session ? getHomePath(session.user) : '/profile'} />
 }
-function ChatWorkspace({ id, userId }: { id?: string; userId: string }) {
+function ChatWorkspace({ id, userId, homePath }: { id?: string; userId: string; homePath: string }) {
   const navigate = useNavigate()
   return <div className="chat-shell">
-    <ChatConversations id={id} onOpen={room => navigate(`/messages/${room.id}`)} />
+    <ChatConversations id={id} backTo={homePath} onOpen={room => navigate(`/messages/${room.id}`)} />
     {id ? <ChatThread key={id} id={id} userId={userId} /> : <section className="chat-empty"><span className="material-symbols-outlined" aria-hidden="true">forum</span><h2>Cùng nhau trao đổi</h2><p>Chat riêng và nhóm chính thức của team, đồ án.</p></section>}
   </div>
 }
-export function ChatConversations({ id, onOpen }: { id?: string; onOpen: (room: ChatConversation) => void }) {
+export function ChatConversations({ id, onOpen, backTo }: { id?: string; onOpen: (room: ChatConversation) => void; backTo?: string }) {
   const { session } = useAuthSession()
   const { state, inbox, refresh, inboxError, inboxLoading } = useChat()
   const journey = useContext(StudentJourneyContext)
@@ -76,6 +85,7 @@ export function ChatConversations({ id, onOpen }: { id?: string; onOpen: (room: 
   const rooms = inbox.items.filter(room => room.title.toLocaleLowerCase('vi-VN').includes(debouncedFilter.toLocaleLowerCase('vi-VN')))
   return <aside className="chat-sidebar" aria-label="Cuộc trò chuyện">
       <header className="chat-sidebar-header">
+        {backTo && <BackLink fallback={backTo} className="chat-page-back"><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Quay lại không gian làm việc</BackLink>}
         <div className="flex items-center justify-between">
           <h1>Tin nhắn</h1>
           <span className={`chat-status-pill ${state === 'connected' ? 'is-connected' : 'is-syncing'}`} title={chatConnectionLabel(state)}>

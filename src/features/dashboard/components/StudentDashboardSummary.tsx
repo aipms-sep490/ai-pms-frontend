@@ -4,12 +4,14 @@ import { HttpError } from '../../../services/http/http-client'
 import { getStudentDashboard, type StudentDashboard } from '../api/dashboard-api'
 import { getStudentReviewTimeline } from '../../review-gates/api/review-gates-api'
 import type { StudentReviewTimelineDto } from '../../review-gates/types/review-gates.types'
+import { getWeeklyAssessmentHistory, type WeeklyAssessment } from '../../../services/api/weekly.api'
 import { projectStatusLabel } from '../../projects/utils/project-status'
 import { PageLoading } from '../../../components/ui/PageLoading'
 
 export function StudentDashboardSummary() {
   const [data, setData] = useState<StudentDashboard | null>(null)
   const [timeline, setTimeline] = useState<StudentReviewTimelineDto | null>(null)
+  const [latestAssessment, setLatestAssessment] = useState<WeeklyAssessment | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -27,6 +29,13 @@ export function StudentDashboardSummary() {
         } catch {
           // Review timeline is optional or may be unconfigured; keep null gracefully
           setTimeline(null)
+        }
+
+        try {
+          const weekly = await getWeeklyAssessmentHistory(dashboard.project.id, {}, 1, 1)
+          setLatestAssessment(weekly.items[0] ?? null)
+        } catch {
+          setLatestAssessment(null)
         }
       }
     } catch (reason) {
@@ -74,9 +83,10 @@ export function StudentDashboardSummary() {
   const totalRequirements = allRequirements.length
 
   // Top urgent tasks for Flight Deck
+  const taskDeadlines = data.taskDeadlines ?? []
   const urgentTasks = [
-    ...data.taskDeadlines.filter(t => t.isOverdue || t.status === 'BLOCKED'),
-    ...data.taskDeadlines.filter(t => !t.isOverdue && t.status !== 'BLOCKED'),
+    ...taskDeadlines.filter(t => t.isOverdue || t.status === 'BLOCKED'),
+    ...taskDeadlines.filter(t => !t.isOverdue && t.status !== 'BLOCKED'),
   ].slice(0, 3)
 
   return (
@@ -194,7 +204,7 @@ export function StudentDashboardSummary() {
               </span>
             </div>
             <p className="mt-3 truncate text-xs text-ink-muted" title={timeline?.defenseReadinessStatus ?? 'Đang trong tiến trình học kỳ'}>
-              {timeline?.capabilities.blockingReasons.length
+              {timeline?.capabilities?.blockingReasons?.length
                 ? `Còn ${timeline.capabilities.blockingReasons.length} điều kiện cần hoàn thiện`
                 : 'Theo dõi theo tiến trình các cổng'}
             </p>
@@ -314,6 +324,88 @@ export function StudentDashboardSummary() {
       )}
 
       {/* =========================================================================
+          ĐÁNH GIÁ & NHẬN XÉT ĐỊNH KỲ TỪ GVHD
+          ========================================================================= */}
+      {project && (
+        <section className="rounded-2xl border border-hairline bg-card p-5 shadow-xs sm:p-6" aria-labelledby="weekly-feedback-heading">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-[22px]" aria-hidden="true">rate_review</span>
+              <div>
+                <h3 id="weekly-feedback-heading" className="font-heading text-base font-bold text-ink">
+                  Đánh giá & Nhận xét tuần từ GVHD
+                </h3>
+                <p className="text-xs text-ink-muted">
+                  Phản hồi định kỳ hằng tuần giúp theo dõi tiến độ và nhận xét học thuật từ giảng viên hướng dẫn.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/project/weekly-assessments"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary-hover"
+            >
+              Xem chi tiết các tuần →
+            </Link>
+          </div>
+
+          {latestAssessment ? (
+            <div className="mt-4 rounded-xl border border-hairline bg-canvas/60 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline/80 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-primary-subtle px-2.5 py-1 text-xs font-bold text-primary">
+                    Tuần {latestAssessment.weekNumber}
+                  </span>
+                  <span className="text-xs text-ink-muted">
+                    {formatDate(latestAssessment.startDate)} – {formatDate(latestAssessment.endDate)}
+                  </span>
+                </div>
+                {latestAssessment.totalScore != null && (
+                  <span className="rounded-full bg-status-success-bg px-3 py-1 font-mono text-xs font-bold text-status-success-text border border-status-success-border">
+                    Điểm tham khảo: {latestAssessment.totalScore.toFixed(2)}/10
+                  </span>
+                )}
+              </div>
+
+              {latestAssessment.comments ? (
+                <div className="mt-3">
+                  <p className="text-xs font-semibold text-ink-soft">Nhận xét của giảng viên hướng dẫn:</p>
+                  <p className="mt-1 whitespace-pre-wrap rounded-lg bg-card p-3 text-xs leading-relaxed text-ink border border-hairline">
+                    "{latestAssessment.comments}"
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-3 text-xs italic text-ink-muted">
+                  Bản chấm tuần {latestAssessment.weekNumber} chưa có ghi chú chung.
+                </p>
+              )}
+
+              {latestAssessment.scores.length > 0 && (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {latestAssessment.scores.map(s => (
+                    <div key={s.rubricCriterionId} className="rounded-lg border border-hairline bg-card p-2 text-xs">
+                      <div className="flex items-center justify-between gap-1 font-medium text-ink-soft">
+                        <span className="truncate" title={s.name}>{s.name}</span>
+                        <strong className="font-mono text-ink shrink-0">{s.score != null ? `${s.score}/${s.maxScore}` : '—'}</strong>
+                      </div>
+                      {s.comments && <p className="mt-1 text-xs text-ink-muted line-clamp-2">"{s.comments}"</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="mt-4 flex items-center gap-3 rounded-xl border border-hairline bg-canvas/40 p-4 text-xs text-ink-muted">
+              <span className="material-symbols-outlined text-2xl text-slate-400" aria-hidden="true">info</span>
+              <div>
+                <p className="font-semibold text-ink">Chưa có đánh giá tuần nào được công bố</p>
+                <p className="mt-0.5">Giảng viên hướng dẫn sẽ theo dõi và gửi phản hồi định kỳ mỗi tuần theo tiến độ đồ án.</p>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* =========================================================================
           HAI CỘT: CÔNG VIỆC & MỐC SẮP ĐẾN HẠN
           ========================================================================= */}
       <div className="grid gap-5 lg:grid-cols-2">
@@ -331,7 +423,7 @@ export function StudentDashboardSummary() {
         <DeadlineList
           title="Mốc sắp đến hạn (Milestones)"
           empty="Chưa có mốc nào sắp đến hạn cần chú ý."
-          items={data.milestoneDeadlines.map(item => ({
+          items={(data.milestoneDeadlines ?? []).map(item => ({
             id: item.id,
             title: item.title,
             date: item.dueDate,

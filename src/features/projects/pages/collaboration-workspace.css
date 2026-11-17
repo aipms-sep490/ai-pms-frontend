@@ -24,7 +24,7 @@
 .collaboration-workspace .material-symbols-outlined { font-size: 20px; flex-shrink: 0; }
 .cw-page-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .cw-eyebrow { margin: 0 0 8px; color: var(--cw-muted); font-size: 12px; font-weight: 600; font-family: var(--font-sans); }
-.cw-eyebrow > span { margin: 0 6px; color: #a6aeb8; font-weight: 400; }
+.cw-eyebrow > span { margin: 0 6px; color: var(--color-ink-muted); font-weight: 400; }
 .cw-page-heading h1 { font-family: var(--font-heading); font-size: clamp(26px, 2.1vw, 32px); line-height: 1.2; letter-spacing: -.8px; font-weight: 750; margin: 0; color: var(--color-ink); }
 .cw-page-description { margin: 8px 0 0; color: var(--cw-muted); font-size: 14px; line-height: 1.6; }
 .cw-heading-actions { display: flex; flex-shrink: 0; gap: 10px; }
@@ -51,8 +51,8 @@
 .cw-attention-links { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 10px; }
 .cw-attention-links a { display: inline-flex; align-items: center; gap: 6px; color: var(--color-status-warning-text); text-decoration: none; font-size: 12.5px; font-weight: 600; overflow-wrap: anywhere; }
 .cw-attention-links a > span:first-child { text-decoration: none; }
-.cw-attention-links a { min-height: 32px; padding: 4px 8px; border-radius: 6px; background: #fff5d8; }
-.cw-attention-links a:hover { background: #fce9b1; }
+.cw-attention-links a { min-height: 32px; padding: 4px 8px; border-radius: 6px; background: var(--color-status-warning-bg); }
+.cw-attention-links a:hover { background: var(--color-status-warning-border); }
 .cw-attention-links .material-symbols-outlined { font-size: 16px; }
 .cw-columns { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
 @media(min-width:901px) { .cw-side-column { position:sticky; top:84px; } }
@@ -152,7 +152,7 @@
 .cw-form-fields :is(input:not([type="checkbox"]), select, textarea) { min-width: 0; width: 100%; background: white; border: 1px solid var(--cw-line); border-radius: 8px; min-height: 40px; padding: 8px 14px; font-size: 13px; font-weight: 400; color: var(--color-ink); }
 .cw-form-fields :is(input:not([type="checkbox"]), select, textarea):focus { border-color: var(--cw-accent); outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 15%, transparent); }
 .cw-form-fields textarea { resize: vertical; }
-.cw-form-fields input::placeholder, .cw-form-fields textarea::placeholder { color: #85919f; }
+.cw-form-fields input::placeholder, .cw-form-fields textarea::placeholder { color: var(--color-ink-muted); }
 .cw-full-width { grid-column: 1 / -1; }
 .cw-optional, .cw-field-hint { color: var(--cw-muted); font-size: 12px; font-weight: 400; }
 .cw-field-hint { margin: 0; }

@@ -1,14 +1,14 @@
 import type { EvidenceFile } from '../../services/api/evaluations.api'
 
-export type PreviewKind = 'pdf' | 'image' | 'other'
+export type PreviewKind = 'pdf' | 'image' | 'office' | 'other'
 
-/** Decide how a report file renders inline. Only PDF and image are shown in-browser; anything else
- * (DOCX/ZIP/…) is offered as a download — we never pretend to preview a format the browser can't show. */
+/** Office files use the bounded read-only backend extraction; other formats offer a download. */
 export function previewKind(file: Pick<EvidenceFile, 'contentType' | 'fileName'>): PreviewKind {
   const type = (file.contentType || '').toLowerCase()
   const name = (file.fileName || '').toLowerCase()
   if (type === 'application/pdf' || name.endsWith('.pdf')) return 'pdf'
   if (type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|svg)$/.test(name)) return 'image'
+  if (/\.(docx|xlsx)$/.test(name)) return 'office'
   return 'other'
 }
 

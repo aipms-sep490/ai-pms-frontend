@@ -14,6 +14,7 @@ import { Modal } from '../../../components/ui/Modal'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { services } from '../../../services/service-gateway'
 import { EligibilityHistoryPanel } from '../components/EligibilityHistoryPanel'
+import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
 
 export function TeamManagementPage() {
   const navigate = useNavigate()
@@ -248,6 +249,14 @@ export function TeamManagementPage() {
       ) : (
         /* When Student HAS A TEAM */
         <div className="flex flex-col gap-6">
+          {/* FAMS Entity Identity Strip (P02) */}
+          <EntityIdentityStrip chips={[
+            { icon: 'group', label: 'Mã nhóm', value: team.code },
+            { icon: 'calendar_today', label: 'Học kỳ', value: semester?.name || 'Học kỳ hiện tại' },
+            { icon: 'school', label: 'Chế độ', value: team.academicScope?.projectMode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành' },
+            { icon: 'verified', label: 'Trạng thái', value: team.status === 'ELIGIBLE' ? 'Đủ điều kiện' : team.status === 'LOCKED' ? 'Đã khóa' : 'Đang kiện toàn', tone: team.status === 'ELIGIBLE' ? 'success' : team.status === 'LOCKED' ? 'neutral' : 'warning' },
+          ]} />
+
           {/* Team Overview Card */}
           <div className="bg-card border border-hairline rounded-md p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 ">
             <div>

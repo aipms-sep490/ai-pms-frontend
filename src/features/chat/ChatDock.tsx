@@ -14,7 +14,8 @@ import { floatingPanelEvent } from '../ai/assistant-dock-events'
 export type ChatDockView = { type: 'closed' } | { type: 'list' } | { type: 'conversation'; conversationId: string } | { type: 'minimized'; conversationId?: string }
 export function ChatDock() {
   const { session } = useAuthSession()
-  if (!session || !env.chatEnabled || env.isMockMode) return null
+  const { chatDenied } = useChat()
+  if (!session || !env.chatEnabled || env.isMockMode || chatDenied) return null
   return <SessionChatDock key={session.user.id} userId={String(session.user.id)} />
 }
 function SessionChatDock({ userId }: { userId: string }) {
@@ -104,30 +105,21 @@ function SessionChatDock({ userId }: { userId: string }) {
     </dialog>
 
     {incomingToast && !expanded && (
-      <aside
-        className="chat-incoming-toast"
-        role="status"
-        aria-label="Thông báo tin nhắn mới"
-        onClick={() => {
+      <aside className="chat-incoming-toast" role="status" aria-label="Thông báo tin nhắn mới">
+        <button type="button" className="chat-toast-open" aria-label={`Mở tin nhắn từ ${incomingToast.title}`} onClick={() => {
           setView({ type: 'conversation', conversationId: incomingToast.id })
           setIncomingToast(null)
-        }}
-      >
-        <div className="chat-toast-avatar" aria-hidden="true">
+        }}><span className="chat-toast-avatar" aria-hidden="true">
           <span className="material-symbols-outlined text-[18px]">chat</span>
-        </div>
-        <div className="chat-toast-content">
+        </span><span className="chat-toast-content">
           <strong className="chat-toast-title">{incomingToast.title}</strong>
           <span className="chat-toast-snippet">{incomingToast.snippet}</span>
-        </div>
+        </span></button>
         <button
           type="button"
           className="chat-toast-close"
           aria-label="Đóng thông báo tin nhắn"
-          onClick={e => {
-            e.stopPropagation()
-            setIncomingToast(null)
-          }}
+          onClick={() => setIncomingToast(null)}
         >
           ✕
         </button>

@@ -1,11 +1,24 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { changePassword, getCurrentUser, getMyProfile, login, logout, refresh, requestPasswordReset, resetPassword, updateMyProfile } from './auth-api'
+import { changePassword, getCurrentUser, getMyAvatarMetadata, getMyProfile, login, logout, refresh, requestPasswordReset, resetPassword, updateMyProfile, uploadMyAvatar } from './auth-api'
 
 afterEach(() => {
   vi.unstubAllGlobals()
 })
 
 describe('auth API', () => {
+  it('uses the private avatar endpoint and sends a versioned multipart image', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ hasAvatar: true, concurrencyToken: 'next' }) })
+    vi.stubGlobal('fetch', fetchMock)
+    await getMyAvatarMetadata()
+    await uploadMyAvatar(new File(['png'], 'portrait.png', { type: 'image/png' }), 'prior')
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/users/me/avatar/metadata')
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/users/me/avatar')
+    expect(fetchMock.mock.calls[1][1].method).toBe('POST')
+    expect(fetchMock.mock.calls[1][1].body).toBeInstanceOf(FormData)
+    expect(fetchMock.mock.calls[1][1].body.get('ConcurrencyToken')).toBe('prior')
+    expect(fetchMock.mock.calls[1][1].body.get('File')).toBeInstanceOf(File)
+    expect(fetchMock.mock.calls[1][1].headers['Content-Type']).toBeUndefined()
+  })
   it('reads phone and title from the authoritative self profile endpoint', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: async () => ({ phone: '0912345678', title: 'Tiến sĩ' }),

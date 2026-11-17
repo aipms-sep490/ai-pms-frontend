@@ -18,6 +18,7 @@ import type {
   ReviewGateTemplate,
 } from '../types/review-gates.types'
 import { ReviewGateBuilder } from '../components/ReviewGateBuilder'
+import { GateWorkbookPanel } from '../components/GateWorkbookPanel'
 import { ReviewGatesMockNotice } from '../components/ReviewGatesMockNotice'
 import { ProjectProgressMatrix } from '../components/ProjectProgressMatrix'
 import { InterdisciplinaryGatePanel } from '../components/InterdisciplinaryGatePanel'
@@ -46,6 +47,7 @@ export function ReviewGateGovernancePage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'builder' | 'matrix' | 'hybrid' | 'defense'>('overview')
   const [templates, setTemplates] = useState<ReviewGateTemplate[]>([])
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('')
+  const [dirtyTemplateIds, setDirtyTemplateIds] = useState<Set<string>>(() => new Set())
   const [selectedProjectId, setSelectedProjectId] = useState<string>('')
   const [matrixProjects, setMatrixProjects] = useState<ProjectReviewMatrixRow[]>([])
   const [defenseSummary, setDefenseSummary] = useState<DefenseReadinessSummary | null>(null)
@@ -109,6 +111,7 @@ export function ReviewGateGovernancePage() {
 
   function handleTemplateChange(updated: ReviewGateTemplate) {
     setError(null)
+    setDirtyTemplateIds(previous => new Set(previous).add(updated.id))
     setTemplates(prev => prev.map(t => (t.id === updated.id ? updated : t)))
   }
 
@@ -122,6 +125,7 @@ export function ReviewGateGovernancePage() {
     try {
       const saved = await saveReviewGateTemplate(currentTemplate)
       setTemplates(prev => prev.map(t => (t.id === currentTemplate.id ? saved : t)))
+      setDirtyTemplateIds(previous => { const next = new Set(previous); next.delete(currentTemplate.id); return next })
       setSelectedTemplateId(saved.id)
       setNotice('Đã lưu bản nháp tiến trình thành công.')
     } catch (err) {
@@ -141,6 +145,7 @@ export function ReviewGateGovernancePage() {
     try {
       const saved = await saveReviewGateTemplate(currentTemplate)
       setTemplates(prev => prev.map(t => (t.id === currentTemplate.id ? saved : t)))
+      setDirtyTemplateIds(previous => { const next = new Set(previous); next.delete(currentTemplate.id); return next })
       setSelectedTemplateId(saved.id)
       const published = await publishReviewGateTemplate(saved.id, saved.concurrencyToken)
       setTemplates(prev => prev.map(t => (t.id === saved.id ? published : t)))
@@ -457,6 +462,13 @@ export function ReviewGateGovernancePage() {
 
           {/* TAB 2: BUILDER */}
           {activeTab === 'builder' && currentTemplate && (
+            <>
+            {!env.reviewGatesMockEnabled && /^\d+$/.test(currentTemplate.id) &&
+              <GateWorkbookPanel template={currentTemplate} dirty={dirtyTemplateIds.has(currentTemplate.id)}
+                onSaved={updated => {
+                  setTemplates(previous => previous.map(item => item.id === updated.id ? updated : item))
+                  setNotice('Đã lưu mẫu Gate từ workbook. Tải lại workbook sẽ có dữ liệu mới nhất.')
+                }} />}
             <ReviewGateBuilder
               key={currentTemplate.id}
               template={currentTemplate}
@@ -467,6 +479,7 @@ export function ReviewGateGovernancePage() {
               busy={busy}
               formError={error}
             />
+            </>
           )}
 
           {activeTab === 'builder' && !currentTemplate && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-soft">Chưa có mẫu tiến trình để thiết kế. Hãy tạo mẫu từ thư viện Mẫu Tiến trình.</p>}

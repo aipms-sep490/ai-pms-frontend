@@ -18,7 +18,7 @@ function renderForm(meeting?: MeetingDetail) {
   const onSave = vi.fn().mockResolvedValue(undefined)
   render(<MeetingScheduleForm meeting={meeting} busy={false} onDirty={vi.fn()} onSave={onSave} />)
   fireEvent.change(screen.getByLabelText('Tiêu đề cuộc họp'), { target: { value: 'Họp Video' } })
-  fireEvent.change(screen.getByLabelText(/Bắt đầu/), { target: { value: '2026-10-03T09:00' } })
+  fireEvent.change(screen.getByLabelText(/Bắt đầu/), { target: { value: '2030-10-03T09:00' } })
   return onSave
 }
 

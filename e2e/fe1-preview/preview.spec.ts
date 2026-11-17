@@ -50,6 +50,23 @@ test('profile saves and reads back phone through the real FE API wrapper', async
   await page.getByRole('button', { name: 'Lưu hồ sơ' }).click()
   await expect(page.getByText('0912345678', { exact: true })).toBeVisible()
 })
+
+test('profile image previews, saves, reads back and removes in a controlled fixture', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/e2e/fe1-preview.html?view=profile')
+  await expect(page.getByLabel('Chữ đại diện của Leader thử nghiệm')).toBeVisible()
+  const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLttAAAAABJRU5ErkJggg==', 'base64')
+  await page.getByLabel('Chọn ảnh đại diện PNG hoặc JPEG').setInputFiles({ name: 'portrait.png', mimeType: 'image/png', buffer: pixel })
+  await expect(page.getByText('portrait.png · Chưa lưu')).toBeVisible()
+  await page.getByRole('button', { name: 'Lưu ảnh' }).click()
+  await expect(page.getByText('Ảnh đại diện đã được lưu và tải lại từ hệ thống.')).toBeVisible()
+  await expect(page.getByLabel('Ảnh đại diện của Leader thử nghiệm').locator('img')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.screenshot({ path: 'logs/profile-avatar-mobile.png', fullPage: true })
+  await page.getByRole('button', { name: 'Xóa ảnh' }).click()
+  await page.getByRole('button', { name: 'Xác nhận xóa' }).click()
+  await expect(page.getByText('Đã xóa ảnh đại diện.')).toBeVisible()
+})
 test('invitation context displays names and treats message as text', async ({ page }) => {
   await page.goto('/e2e/fe1-preview.html?view=invitations')
   await expect(page.getByText('Thành viên chưa có task', { exact: false }).first()).toBeVisible()

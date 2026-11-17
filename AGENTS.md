@@ -1,16 +1,34 @@
-# Quy tắc làm việc do người dùng yêu cầu
+# Quy tắc làm việc do người dùng yêu cầu (AI-PMS Frontend)
 
-## Nhánh cho từng task
+## Quy tắc Quản trị Kỹ thuật Chung (Bắt buộc cho cả FE & BE)
+Toàn bộ kỹ sư và agent khi làm việc trên Frontend bắt buộc phải tuân thủ nghiêm ngặt **8 Quy tắc Quản trị Kỹ thuật Chung** được đồng bộ tại:
+[AI_PMS_SHARED_GOVERNANCE_RULES.md](docs/rules/AI_PMS_SHARED_GOVERNANCE_RULES.md)
 
-- Mỗi task mới phải tạo một nhánh mới từ `develop` đã cập nhật với `origin/develop`. Không code hoặc commit trực tiếp trên `develop`.
-- Trước khi sửa file: kiểm tra `git status`, nhánh hiện tại và commit gốc; fetch remote. Chỉ cập nhật `develop` bằng fast-forward khi an toàn. Không reset, stash hoặc ghi đè thay đổi của người khác để ép checkout sạch.
-- Task trước chưa merge không phải lý do để dùng tiếp nhánh cũ cho task mới. Giữ nguyên nhánh cũ; task phụ thuộc chờ merge vào `develop`, hoặc báo rõ dependency. Không âm thầm cherry-pick việc chưa duyệt.
-- Một nhánh/PR cho một task có phạm vi review được. Sửa tiếp trong cùng task dùng nhánh của task đó; bắt đầu task khác tạo nhánh khác từ `develop`.
-- Ngoại lệ checkpoint 12/10/2026: người dùng yêu cầu gộp bốn task FE2 đã làm cùng UI fixes/roadmap vào một nhánh tích hợp mới từ develop, push và tạo PR để tự audit/merge. Chỉ gộp trong phạm vi này; không tự merge PR vào develop hoặc bật auto-merge.
-- Khi bắt đầu task, thông báo tên nhánh và baseline. Khi bàn giao, ghi validation và trạng thái commit/push/PR.
+### Tóm lược 8 quy tắc cốt lõi:
+1. **Thứ tự nguồn thẩm quyền:** Yêu cầu người dùng → Business rule/DB/BE contract → FE representation → Ảnh tham khảo.
+2. **Phân quyền đa chiều:** Role + Persisted state + Scope (Organization/Department/Major/Assignment); FE guard chỉ phục vụ UX.
+3. **Liêm chính dữ liệu:** Tuyệt đối không tự tạo endpoint, trạng thái, quyền, điểm số, mock data thành production, “online” hay vị trí địa lý.
+4. **Ma trận trạng thái:** Mỗi màn hình bắt buộc có Loading, Empty, Filtered-Empty, Blocked, 401/403/404, 409, Lỗi mạng/5xx, Retry, Read-only và Success.
+5. **Bảo toàn dữ liệu & Mutation:** Bảo toàn draft khi gặp lỗi 400/409/mạng; mutation chỉ báo thành công sau khi BE xác nhận; đọc lại (readback) dữ liệu/token sau ghi.
+6. **Thương hiệu & A11y:** Dùng logo, mascot, palette FAMS-inspired sáng (`#F8F9FB` canvas, `#C2410C` action, `#F37021` accent) và token AIPMS; cấm hardcode hex/rgba; WCAG 2.1 AA, keyboard/focus, `prefers-reduced-motion`.
+7. **Phân định hoàn thiện:** Phân biệt minh bạch IMPLEMENTED, TESTED, RUNTIME VERIFIED, PROPOSED, BLOCKED.
+8. **Truy vết kỹ thuật:** Mỗi thay đổi có Source → Vấn đề → Giải pháp → Test → Giới hạn; không hạ chuẩn test hoặc che lỗi bằng mock.
 
-## FE2
+Chi tiết giao diện và tương tác tuân theo:
+- Design system: [MASTER.md](design-system/ai-pms/MASTER.md)
+- Interaction rules: [02-INTERACTION-RULES.md](docs/uiux/02-INTERACTION-RULES.md)
 
-- Kế hoạch tại `docs/fe2/FE2_ROADMAP_2026-10-09.md` đã được người dùng duyệt và yêu cầu bắt đầu ngày 09/10/2026. Triển khai task core theo roadmap; các extension vẫn cần approval/contract liên quan.
-- FE2 sở hữu router/sidebar/shared guards và evaluation/result publication; FE1 sở hữu student/qualification/team/execution và StudentProjectResultPage. Phối hợp trước khi sửa bề mặt chung hoặc module của FE1, trừ khi người dùng đã yêu cầu trực tiếp.
-- Tái sử dụng contract hiện có; BE quyết định authority, scope, trạng thái, scoring và persistence. Không biến CIB v4 PROPOSED/OPEN thành chính sách chính thức bằng code FE.
+---
+
+## Quy trình nhánh và merge
+- Bắt đầu task mới từ `origin/develop` đã fetch, trừ khi người dùng chỉ định nhánh khác.
+- Kiểm tra trạng thái checkout, commit gốc, nhánh remote và CI trước khi push hoặc merge; giữ nguyên thay đổi chưa commit của người khác.
+- Chỉ merge khi người dùng yêu cầu. Xác minh đúng head, kiểm tra phụ thuộc BE/FE, đồng bộ hợp đồng và chạy test trên kết quả tích hợp trước khi cập nhật `develop`.
+- Không force push, reset hay stash để ép checkout sạch. FE chỉ gọi API có hợp đồng BE tương ứng trên nhánh đã tích hợp.
+
+---
+
+## Phân công FE2 & Ranh giới Thẩm quyền
+- FE2 phụ trách: Router, sidebar, shared guards, evaluation workspace, result publication.
+- FE1 phụ trách: Student registration, qualification, team management, project execution workspace, StudentProjectResultPage.
+- Tái sử dụng contract hiện có; Backend sở hữu quyền, trạng thái, công thức tính điểm và persistence.

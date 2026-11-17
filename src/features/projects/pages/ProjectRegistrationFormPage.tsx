@@ -7,6 +7,7 @@ import { RevisionAlert } from '../components/RevisionAlert'
 import { normalizeProjectStatus, splitProjectTags, useProjectRegistration, type ProjectRegistrationField } from '../hooks/useProjectRegistration'
 import { projectStatusLabel } from '../utils/project-status'
 import { PageLoading } from '../../../components/ui/PageLoading'
+import { BackLink } from '../../../components/ui/BackLink'
 import { services } from '../../../services/service-gateway'
 import type { TopicSimilarityResultDto } from '../../../types/backend'
 
@@ -80,9 +81,9 @@ export function ProjectRegistrationFormPage() {
     <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-16">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
-          <button type="button" onClick={() => navigate(-1)} className="mb-2 inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800">
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span> Quay lại
-          </button>
+          <BackLink fallback="/project/overview" className="mb-2 inline-flex min-h-10 items-center gap-1 text-xs font-semibold text-ink-muted hover:text-primary">
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_back</span> Quay lại
+          </BackLink>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">{revision ? 'Chỉnh sửa và nộp lại đề cương' : hasProject ? 'Chỉnh sửa đề cương đồ án' : 'Tạo bản nháp đề cương'}</h1>
           <p className="mt-1 text-xs text-slate-500">Nhóm: <strong className="text-slate-700">{journey.team?.name ?? 'Chưa có nhóm'}</strong>. Hình thức đồ án, ngành và bộ môn được quản lý theo thông tin học vụ.</p>
         </div>

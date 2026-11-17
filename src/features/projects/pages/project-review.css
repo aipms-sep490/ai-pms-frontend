@@ -141,7 +141,7 @@
   border-color: transparent !important;
 }
 .review-page .btn-approve:hover {
-  background-color: #15803d !important;
+  background-color: var(--color-status-success-text) !important;
 }
 
 .review-page .btn-revision {

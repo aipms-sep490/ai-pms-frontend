@@ -34,12 +34,13 @@ interface Props {
 export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, allocations = [] }: Props) {
   const buildings = [...new Set(rooms.map((room) => room.building))].sort()
   const [building, setBuilding] = useState(buildings[0] ?? '')
+  const selectedBuilding = buildings.includes(building) ? building : buildings[0] ?? ''
   const [floor, setFloor] = useState(2)
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null)
   const [viewMode, setViewMode] = useState<'canvas' | 'grid'>('canvas')
 
   const visibleRooms = rooms
-    .filter((room) => room.building === building && room.floor === floor)
+    .filter((room) => room.building === selectedBuilding && room.floor === floor)
     .sort((a, b) => a.code.localeCompare(b.code, 'vi'))
 
   const selectedRoom = visibleRooms.find((room) => room.id === selectedRoomId)
@@ -74,10 +75,6 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
 
   const getRoomAllocationsForDate = (roomId: number) =>
     allocations.filter((a) => a.roomId === roomId && a.date === selectedDate)
-
-  const halfCount = Math.ceil(visibleRooms.length / 2)
-  const topRowRooms = visibleRooms.slice(0, halfCount)
-  const bottomRowRooms = visibleRooms.slice(halfCount)
 
   const renderRoomCard = (room: RoomDto) => {
     const isLockedWhole = roomLocked(room.id)
@@ -131,9 +128,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
           )}
         </div>
         <div className="mt-1 space-y-0.5 text-xs text-ink-muted">
-          <span className="block font-medium">
-            {room.capacity} chỗ · 35 m²
-          </span>
+          <span className="block font-medium">{room.capacity} chỗ</span>
           <span className="block text-xs">
             {room.status !== 'ACTIVE'
               ? 'Đang bảo trì'
@@ -152,20 +147,16 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
 
   return (
     <section
-      aria-label="Sơ đồ phòng tầng 2 đến 4"
+      aria-label="Danh mục phòng tầng 2 đến 4"
       className="rounded-2xl border border-hairline bg-surface p-5 shadow-xs"
     >
-      {/* Header controls matching FAMS Top Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-ink">Quản lý sơ đồ & phân phòng</h2>
-            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-              Chuẩn FAMS
-            </span>
+            <h2 className="text-lg font-bold text-ink">Phòng theo tòa và tầng</h2>
           </div>
           <p className="mt-0.5 text-xs text-ink-muted">
-            Mô phỏng mặt bằng phòng học tầng 2–4 quanh giếng trời FPT & lưới thời khóa biểu 6 ca hành chính.
+            Chọn phòng từ danh mục thật để xem ca và loại trừ cho lần xếp lịch này. Vị trí các thẻ không thể hiện mặt bằng vật lý.
           </p>
         </div>
 
@@ -173,7 +164,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
           <label className="flex items-center gap-2 text-sm font-semibold text-ink">
             <span>Tòa:</span>
             <select
-              value={building}
+              value={selectedBuilding}
               onChange={(e) => {
                 setBuilding(e.target.value)
                 setSelectedRoomId(null)
@@ -217,7 +208,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                 viewMode === 'canvas' ? 'bg-surface text-primary shadow-xs' : 'text-ink-muted hover:text-ink'
               }`}
             >
-              🗺️ Sơ đồ mặt bằng
+              Thẻ phòng
             </button>
             <button
               type="button"
@@ -234,69 +225,15 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
 
       <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,2.3fr)_minmax(19rem,1fr)]">
         {viewMode === 'canvas' ? (
-          <div className="flex flex-col justify-between rounded-2xl border border-hairline bg-canvas/40 p-4">
-            <div className="mb-4">
-              <div className="mb-2 flex items-center justify-between text-xs font-semibold text-ink-muted">
-                <span>DÃY PHÒNG HỌC PHÍA BẮC</span>
-                <span>TẦNG {floor}</span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {topRowRooms.map(renderRoomCard)}
-              </div>
-            </div>
-
-            <div className="my-2 grid grid-cols-[minmax(6.5rem,1fr)_minmax(12rem,2fr)_minmax(6.5rem,1fr)] gap-3 items-stretch min-h-[14rem]">
-              <div className="flex flex-col justify-between gap-3 text-center text-xs font-semibold text-ink-muted">
-                <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-slate-300 bg-slate-100 p-3">
-                  <span className="font-bold text-slate-700">Cầu thang A</span>
-                  <span className="text-xs text-slate-500">Thoát hiểm</span>
-                </div>
-                <div className="rounded-xl border border-dashed border-slate-300 bg-surface/70 p-2.5 text-xs">
-                  Hành lang Tây
-                </div>
-              </div>
-
-              <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-primary bg-gradient-to-br from-primary to-primary-hover p-6 text-center text-white shadow-xs">
-                <div className="text-xl sm:text-2xl font-black tracking-wide drop-shadow-xs">
-                  FPT <span className="font-light">Education</span>
-                </div>
-                <div className="mt-1 text-sm sm:text-base font-extrabold uppercase tracking-wider text-orange-100">
-                  TRƯỜNG ĐẠI HỌC FPT
-                </div>
-                <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-medium backdrop-blur-xs">
-                  <span>Thông tầng & Giếng trời trung tâm · Tòa {building}</span>
-                </div>
-              </div>
-
-              <div className="flex flex-col justify-between gap-2 text-center text-xs font-semibold">
-                <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-2 text-emerald-800">
-                  <span className="block font-bold">WC Nữ</span>
-                  <span className="text-xs text-emerald-600">Vệ sinh</span>
-                </div>
-                <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50/80 p-2 text-indigo-900">
-                  <span className="font-bold">Thang máy</span>
-                  <span className="text-xs text-indigo-600">Trục 1–2</span>
-                </div>
-                <div className="rounded-xl border border-blue-300 bg-blue-50 p-2 text-blue-800">
-                  <span className="block font-bold">WC Nam</span>
-                  <span className="text-xs text-blue-600">Vệ sinh</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <div className="mb-2 flex items-center justify-between text-xs font-semibold text-ink-muted">
-                <span>DÃY PHÒNG HỌC PHÍA NAM</span>
-                <span>TẦNG {floor}</span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {bottomRowRooms.map(renderRoomCard)}
-              </div>
+          <div className="rounded-2xl border border-hairline bg-canvas/40 p-4">
+            <p className="mb-3 text-xs font-semibold text-ink-muted">Tòa {selectedBuilding} · Tầng {floor} · {visibleRooms.length} phòng trong danh mục</p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {visibleRooms.map(renderRoomCard)}
             </div>
 
             {visibleRooms.length === 0 && (
               <p role="status" className="mt-3 rounded-lg bg-surface p-4 text-center text-sm text-ink-muted">
-                Chưa có phòng tầng {floor} của tòa {building} trong danh mục.
+                Chưa có phòng tầng {floor} của tòa {selectedBuilding} trong danh mục.
               </p>
             )}
           </div>
@@ -384,13 +321,13 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
 
                         return (
                           <TableCell key={slotNum} className="p-2 border-l border-hairline text-center group">
-                            <span className="text-xs text-emerald-700 font-medium group-hover:hidden">
+                            <span className="block text-xs text-emerald-700 font-medium">
                               Trống
                             </span>
                             <button
                               type="button"
                               onClick={() => toggleSlot(room.id, slotNum)}
-                              className="hidden group-hover:inline-block rounded border border-hairline bg-surface px-2 py-0.5 text-xs font-semibold text-ink shadow-2xs hover:border-primary"
+                              className="mt-1 min-h-11 rounded border border-hairline bg-surface px-2 text-xs font-semibold text-ink shadow-2xs hover:border-primary"
                             >
                               Khóa ca
                             </button>
@@ -408,7 +345,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
         <aside className="rounded-2xl border border-hairline bg-surface p-4 shadow-xs">
           <div className="border-b border-hairline pb-3">
             <h3 className="font-bold text-base text-ink">Danh sách phòng · Tầng {floor}</h3>
-            <p className="text-xs text-ink-muted">{visibleRooms.length} phòng khả dụng trong danh mục</p>
+            <p className="text-xs text-ink-muted">{visibleRooms.length} phòng trong danh mục</p>
           </div>
 
           <div className="mt-3 max-h-48 space-y-1.5 overflow-y-auto pr-1">
@@ -428,7 +365,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                 >
                   <div className="flex items-center gap-2">
                     <span className="font-bold">{room.code}</span>
-                    <span className="text-xs text-ink-muted">CLASSROOM</span>
+                    <span className="text-xs text-ink-muted">{room.status === 'ACTIVE' ? 'Hoạt động' : room.status === 'MAINTENANCE' ? 'Bảo trì' : 'Ngừng dùng'}</span>
                   </div>
                   <span className="text-xs text-ink-muted">
                     {isLocked ? 'Khóa đợt' : `${room.capacity} chỗ`}
@@ -444,7 +381,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                 <div>
                   <h4 className="font-bold text-base text-ink">Phòng {selectedRoom.code}</h4>
                   <p className="text-xs text-ink-muted">
-                    {selectedRoom.building} · Tầng {floor} · {selectedRoom.capacity} chỗ · 35 m²
+                    {selectedRoom.building} · Tầng {floor} · {selectedRoom.capacity} chỗ
                   </p>
                 </div>
                 <span
@@ -454,7 +391,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                       : 'bg-slate-200 text-slate-700'
                   }`}
                 >
-                  {selectedRoom.status === 'ACTIVE' ? 'Sẵn sàng' : 'Bảo trì'}
+                  {selectedRoom.status === 'ACTIVE' ? 'Sẵn sàng' : selectedRoom.status === 'MAINTENANCE' ? 'Bảo trì' : 'Ngừng dùng'}
                 </span>
               </div>
 

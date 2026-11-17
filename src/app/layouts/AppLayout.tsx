@@ -51,6 +51,7 @@ export function AppLayout() {
       <div className="app-workspace flex-1 flex flex-col min-w-0 min-h-screen lg:pl-60 bg-canvas">
         {/* Sticky Top Header Bar */}
         <TopHeader
+          key={session?.user.id ?? 'anonymous'}
           isMobileMenuOpen={isMobileMenuOpen}
           onToggleMobileMenu={toggleMobileMenu}
           triggerRef={hamburgerTriggerRef}

@@ -29,6 +29,19 @@ export async function getReviewGateTemplate(id: string): Promise<ReviewGateTempl
   return httpGet<ReviewGateTemplate>(`/academic/gate-templates/${id}`)
 }
 
+export interface GateWorkbookPreview {
+  draft: Record<string, unknown> | null
+  issues: Array<{ cell: string; message: string }>
+  changes: string[]
+}
+export const downloadGateWorkbook = (id: string) => httpGetBlob(`/academic/gate-templates/${id}/workbook`)
+export const previewGateWorkbook = (id: string, file: File) => {
+  const body = new FormData(); body.append('file', file)
+  return httpPostForm<GateWorkbookPreview>(`/academic/gate-templates/${id}/workbook/preview`, body)
+}
+export const commitGateWorkbook = (id: string, draft: Record<string, unknown>) =>
+  httpPut<ReviewGateTemplate>(`/academic/gate-templates/${id}`, draft)
+
 export async function saveReviewGateTemplate(template: ReviewGateTemplate): Promise<ReviewGateTemplate> {
   if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.saveTemplate(template)
   if (template.id && !template.id.startsWith('tmpl-temp') && !template.id.startsWith('tmpl-draft')) {

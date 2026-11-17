@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom'
 import { RoomPlannerPage } from './RoomPlannerPage'
@@ -10,12 +10,35 @@ vi.mock('./room-planner-api', () => ({
   applyDefenseSchedule: vi.fn(),
   previewGate3Schedule: vi.fn(),
   applyGate3Schedule: vi.fn(),
+  getGate3Schedules: vi.fn(),
+  getPeriodDefenseSessions: vi.fn(),
   formatScheduleConflictReason: vi.fn((reason: string) => `Formatted: ${reason}`),
 }))
+vi.mock('./DefenseChangeRequestsPanel', () => ({ DefenseChangeRequestsPanel: () => null }))
+vi.mock('./RoomCatalogPanel', () => ({ RoomCatalogPanel: () => null }))
+vi.mock('./PeriodCalendarPanel', () => ({ PeriodCalendarPanel: () => null }))
 
 afterEach(() => { cleanup(); vi.clearAllMocks() })
+beforeEach(() => {
+  vi.mocked(api.getGate3Schedules).mockResolvedValue([])
+  vi.mocked(api.getPeriodDefenseSessions).mockResolvedValue([])
+})
 
 describe('RoomPlannerPage', () => {
+  it('blocks a past defense range before calling preview', async () => {
+    vi.mocked(api.getPlannerRooms).mockResolvedValue([
+      { id: 7, code: 'A-201', building: 'Alpha', floor: 2, capacity: 40, status: 'ACTIVE', concurrencyToken: 'token' },
+    ])
+    render(<MemoryRouter initialEntries={['/academic/project-periods/5/room-planner']}><Routes>
+      <Route path="/academic/project-periods/:periodId/room-planner" element={<RoomPlannerPage />} />
+    </Routes></MemoryRouter>)
+    await screen.findByRole('button', { name: /Phòng A-201/ })
+    fireEvent.change(screen.getByLabelText('Từ ngày'), { target: { value: '2000-01-01' } })
+    fireEvent.change(screen.getByLabelText('Đến ngày'), { target: { value: '2000-01-02' } })
+    expect(screen.getByRole('button', { name: /Tự động xếp lịch R4/ }).matches(':disabled')).toBe(true)
+    expect(screen.getByRole('alert').textContent).toContain('từ ngày mai')
+    expect(api.previewDefenseSchedule).not.toHaveBeenCalled()
+  })
   it('keeps preview inputs fixed while pending and discards a response from a previous period', async () => {
     vi.mocked(api.getPlannerRooms).mockResolvedValue([
       { id: 7, code: 'A-201', building: 'Alpha', floor: 2, capacity: 40, status: 'ACTIVE', concurrencyToken: 'token' },
@@ -55,6 +78,12 @@ describe('RoomPlannerPage', () => {
         slotNumber: 1, startAt: '2026-12-01T08:00:00+07:00', endAt: '2026-12-01T09:15:00+07:00' }],
     })
     vi.mocked(api.applyDefenseSchedule).mockResolvedValue({ success: true, createdSessionsCount: 1 })
+    vi.mocked(api.getPeriodDefenseSessions).mockResolvedValueOnce([]).mockResolvedValueOnce([{
+      id: 40, projectId: 12, projectCode: 'P-12', projectTitle: 'Đồ án', committeeId: 3,
+      committeeName: 'Hội đồng', roomId: 7, roomCode: 'A-201', slotNumber: 1,
+      startAt: '2026-12-01T08:00:00+07:00', endAt: '2026-12-01T09:15:00+07:00',
+      status: 'SCHEDULED', concurrencyToken: 'new', canCancel: true,
+    }])
     render(<MemoryRouter initialEntries={['/academic/project-periods/5/room-planner']}><Routes>
       <Route path="/academic/project-periods/:periodId/room-planner" element={<RoomPlannerPage />} />
     </Routes></MemoryRouter>)
@@ -73,6 +102,8 @@ describe('RoomPlannerPage', () => {
     await waitFor(() => expect(api.applyDefenseSchedule).toHaveBeenCalledWith(5, expect.objectContaining({
       concurrencyToken: 'revision', exclusions: [{ roomId: 7, date: '2026-12-01', slotNumber: 2 }],
     })))
+    expect(await screen.findByText(/Đã xác minh 1 phiên bảo vệ Gate 4/)).toBeTruthy()
+    expect(api.getPeriodDefenseSessions).toHaveBeenCalledTimes(2)
   })
 
   it('switches to Gate 3 and sends exclusions to Gate 3 preview and apply', async () => {
@@ -101,5 +132,58 @@ describe('RoomPlannerPage', () => {
 
     // Formatted conflict should appear
     expect(await screen.findByText(/Formatted: REVIEW_GATE_2_NOT_PASSED/)).toBeDefined()
+  })
+
+  it('does not claim publication when schedule readback fails after apply', async () => {
+    vi.mocked(api.getPlannerRooms).mockResolvedValue([
+      { id: 8, code: 'A-202', building: 'Alpha', floor: 2, capacity: 50, status: 'ACTIVE', concurrencyToken: 'room' },
+    ])
+    vi.mocked(api.previewGate3Schedule).mockResolvedValue({
+      scheduledCount: 1, unscheduledCount: 0, conflicts: [], concurrencyToken: 'preview',
+      allocations: [{ projectId: 14, gateInstanceId: 302, roomId: 8, roomCode: 'A-202', date: '2026-11-20',
+        slotNumber: 2, startAt: '2026-11-20T09:30:00+07:00', endAt: '2026-11-20T10:45:00+07:00' }],
+    })
+    vi.mocked(api.applyGate3Schedule).mockResolvedValue([])
+    vi.mocked(api.getGate3Schedules).mockResolvedValueOnce([]).mockRejectedValueOnce(new Error('readback failed'))
+    render(<MemoryRouter initialEntries={['/academic/project-periods/5/room-planner']}><Routes>
+      <Route path="/academic/project-periods/:periodId/room-planner" element={<RoomPlannerPage />} />
+    </Routes></MemoryRouter>)
+    await screen.findByRole('button', { name: /Phòng A-202/ })
+    fireEvent.click(screen.getByRole('button', { name: /Gate 3/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Tự động xếp lịch R3/ }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Duyệt và áp dụng lịch' }))
+    expect(await screen.findByText(/Đã gửi yêu cầu công bố nhưng chưa xác minh được lịch/)).toBeTruthy()
+    expect(screen.queryByText(/Đã xác minh/)).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Duyệt và áp dụng lịch' })).toBeNull()
+  })
+
+  it('requires explicit confirmation before publishing only the eligible allocations', async () => {
+    vi.mocked(api.getPlannerRooms).mockResolvedValue([
+      { id: 7, code: 'A-201', building: 'A', floor: 2, capacity: 40, status: 'ACTIVE', concurrencyToken: 'room' },
+    ])
+    vi.mocked(api.previewDefenseSchedule).mockResolvedValue({
+      scheduledCount: 1, unscheduledCount: 1, conflicts: [{ projectId: 13, reason: 'REVIEW_GATE_3_NOT_PASSED' }],
+      concurrencyToken: 'preview', allocations: [{ projectId: 12, committeeId: 5, roomId: 7, roomCode: 'A-201',
+        date: '2026-12-01', slotNumber: 1, startAt: '2026-12-01T08:00:00+07:00', endAt: '2026-12-01T09:15:00+07:00' }],
+    })
+    vi.mocked(api.applyDefenseSchedule).mockResolvedValue({ success: true, createdSessionsCount: 1 })
+    vi.mocked(api.getPeriodDefenseSessions).mockResolvedValueOnce([]).mockResolvedValueOnce([{
+      id: 40, projectId: 12, projectCode: 'P12', projectTitle: 'Đồ án', committeeId: 5,
+      committeeName: 'Hội đồng', roomId: 7, roomCode: 'A-201', slotNumber: 1,
+      startAt: '2026-12-01T08:00:00+07:00', endAt: '2026-12-01T09:15:00+07:00',
+      status: 'SCHEDULED', concurrencyToken: 'session', canCancel: true,
+    }])
+    render(<MemoryRouter initialEntries={['/academic/project-periods/5/room-planner']}><Routes>
+      <Route path="/academic/project-periods/:periodId/room-planner" element={<RoomPlannerPage />} />
+    </Routes></MemoryRouter>)
+    await screen.findByRole('button', { name: /Phòng A-201/ })
+    fireEvent.click(screen.getByRole('button', { name: /Tự động xếp lịch R4/ }))
+    const apply = await screen.findByRole('button', { name: 'Duyệt và áp dụng lịch' })
+    expect(apply.matches(':disabled')).toBe(true)
+    fireEvent.click(screen.getByLabelText(/Tôi xác nhận chỉ công bố 1 phiên/))
+    expect(apply.matches(':disabled')).toBe(false)
+    fireEvent.click(apply)
+    expect(await screen.findByText(/1 nhóm chưa được xếp lịch/)).toBeTruthy()
+    expect(api.applyDefenseSchedule).toHaveBeenCalledOnce()
   })
 })

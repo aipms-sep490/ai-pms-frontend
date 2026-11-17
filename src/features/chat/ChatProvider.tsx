@@ -8,11 +8,11 @@ import { createChatEventFilter } from './chat-events'
 import { totalUnread } from './chat-view'
 
 interface ChatContextValue {
-  connection: HubConnection | null; revision: number; state: string
+  connection: HubConnection | null; revision: number; state: string; chatDenied: boolean
   inbox: ChatPage<ChatConversation>; inboxError: string; inboxLoading: boolean; refresh: (conversationId?: string) => void; changedConversations: ReadonlySet<string> | null; unreadCount: number; unreadKnown: boolean; acknowledgeRead: (id: string, sequence: string) => void
 }
 const emptyInbox: ChatPage<ChatConversation> = { items: [], nextCursor: null, hasMore: false }
-const ChatContext = createContext<ChatContextValue>({ connection: null, revision: 0, state: 'offline', inbox: emptyInbox, inboxError: '', inboxLoading: false, refresh: () => {}, changedConversations: null, unreadCount: 0, unreadKnown: false, acknowledgeRead: () => {} })
+const ChatContext = createContext<ChatContextValue>({ connection: null, revision: 0, state: 'offline', chatDenied: false, inbox: emptyInbox, inboxError: '', inboxLoading: false, refresh: () => {}, changedConversations: null, unreadCount: 0, unreadKnown: false, acknowledgeRead: () => {} })
 export const useChat = () => useContext(ChatContext)
 
 export function chatHubUrl(base: string): string {
@@ -126,8 +126,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           setDeniedHubOwner(undefined)
         } catch (error) {
           if (!abort.signal.aborted) {
-            setInbox(emptyInbox); setInboxOwner(undefined)
             if (error instanceof HttpError && error.status === 403) {
+              setInbox(emptyInbox); setInboxOwner(undefined)
               // A denied account needs an explicit retry, not background catch-up requests.
               deniedInboxOwner.current = userId; queued = false; setDeniedHubOwner(userId)
               setInboxError('Tài khoản chưa được phép sử dụng chat. Hãy tải lại sau khi quyền hoặc hồ sơ được cập nhật.')
@@ -146,5 +146,5 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     previousRevision.current = revision; reloadInbox.current()
   }, [revision])
   const visibleInbox = inboxOwner === userId && userId ? inbox : emptyInbox
-  return <ChatContext.Provider value={{ connection, revision, state, inbox: visibleInbox, inboxError, inboxLoading, refresh, changedConversations, unreadCount: totalUnread(visibleInbox.items), unreadKnown: inboxOwner === userId && !!userId, acknowledgeRead }}>{children}</ChatContext.Provider>
+  return <ChatContext.Provider value={{ connection, revision, state, chatDenied: deniedHubOwner === userId && !!userId, inbox: visibleInbox, inboxError, inboxLoading, refresh, changedConversations, unreadCount: totalUnread(visibleInbox.items), unreadKnown: inboxOwner === userId && !!userId, acknowledgeRead }}>{children}</ChatContext.Provider>
 }

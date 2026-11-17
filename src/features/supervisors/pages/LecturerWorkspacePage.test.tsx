@@ -54,9 +54,38 @@ describe('LecturerWorkspacePage', () => {
     }
   })
 
+  it('shows the roster only for a project assigned to this supervisor', () => {
+    inbox.useSupervisorInbox.mockReturnValue(state({ requests: [], assignments: [{ id: 3, projectId: 9, isPrimary: true, assignedAt: '2026-09-15' }], projects: { 9: { id: 9, title: 'Project', teamId: 21, status: 'ACTIVE' } }, teams: { 21: { id: 21, name: 'Nhóm 1', members: [{ userId: 2, fullName: 'Nguyễn An', isLeader: true }] }, 22: { id: 22, name: 'Nhóm khác', members: [{ userId: 3, fullName: 'Nguyễn Bình', isLeader: false }] } } }))
+    render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)
+    expect(screen.getByText('Nhóm sinh viên:', { exact: false }).textContent).toContain('1 thành viên')
+    fireEvent.click(screen.getByText('Thành viên nhóm được phân công'))
+    expect(screen.getByText('Nguyễn An')).toBeTruthy()
+    expect(screen.queryByText('Nguyễn Bình')).toBeNull()
+  })
+
+  it('shows one project card for primary and discipline mentor assignments on the same project', () => {
+    inbox.useSupervisorInbox.mockReturnValue(state({ requests: [], assignments: [
+      { id: 3, projectId: 9, isPrimary: true, assignedAt: '2026-09-15' },
+      { id: 4, projectId: 9, isPrimary: false, assignmentType: 'DISCIPLINE_MENTOR', majorId: 3, assignedAt: '2026-09-16' },
+    ], projects: { 9: { id: 9, title: 'Project', code: 'PRJ-9', teamId: 21, status: 'ACTIVE', majors: [{ majorId: 3, majorName: 'Công nghệ thông tin' }] } } }))
+    render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)
+    expect(screen.getAllByRole('heading', { name: 'Project' })).toHaveLength(1)
+    expect(screen.getByText('2 phạm vi hướng dẫn', { exact: false })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Tổng quan đồ án' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Mở hướng dẫn chuyên ngành' }).getAttribute('href')).toBe('/mentor/projects/9/majors/3/workspace')
+  })
+
   it('does not synthesize an ACTIVE route from an assignment when the refreshed project is not ACTIVE', () => {
     inbox.useSupervisorInbox.mockReturnValue(state({ requests: [], projects: { 9: { id: 9, title: 'Project', status: 'SUPERVISOR_PENDING' } }, assignments: [{ id: 3, projectId: 9, isPrimary: true, assignedAt: '2026-09-15' }] }))
     render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)
+    expect(screen.queryByRole('link', { name: 'Tổng quan đồ án' })).toBeNull()
+  })
+
+  it('explains an unreadable project without falsely saying the assignment ended', () => {
+    inbox.useSupervisorInbox.mockReturnValue(state({ requests: [], projects: {}, assignments: [{ id: 3, projectId: 9, isPrimary: true, assignedAt: '2026-09-15', endedAt: null }] }))
+    render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)
+    expect(screen.getByText(/Chưa tải được trạng thái đồ án/)).toBeTruthy()
+    expect(screen.queryByText('Phân công hướng dẫn đã kết thúc.')).toBeNull()
     expect(screen.queryByRole('link', { name: 'Tổng quan đồ án' })).toBeNull()
   })
 

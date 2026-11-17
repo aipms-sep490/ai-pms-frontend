@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as api from '../../../services/api/evaluations.api'
 import { evaluationError } from '../evaluation-errors'
-import type { EvaluationAssignment, EvaluationDraft } from '../evaluation-types'
+import { evaluationStageLabel, type EvaluationAssignment, type EvaluationDraft } from '../evaluation-types'
 
 type DraftState = { status: 'loading' | 'ready' | 'unavailable'; draft: EvaluationDraft | null }
 
@@ -64,15 +64,22 @@ export function EvaluatorWorkspacePage() {
   }), [assignments, drafts])
 
   const visibleAssignments = assignments.filter(assignment => filter === 'all' || (filter === 'finalized' ? drafts[assignment.id]?.draft?.status === 'FINALIZED' : filter === 'unavailable' ? drafts[assignment.id]?.status === 'unavailable' : drafts[assignment.id]?.status === 'ready' && drafts[assignment.id]?.draft?.status !== 'FINALIZED'))
+  const groupedAssignments = Array.from(visibleAssignments.reduce((groups, assignment) => {
+    const projectAssignments = groups.get(assignment.projectId) ?? []
+    projectAssignments.push(assignment)
+    groups.set(assignment.projectId, projectAssignments)
+    return groups
+  }, new Map<number, EvaluationAssignment[]>()).values())
 
   return <WorkspacePage title="Đánh giá đồ án" eyebrow="Đánh giá theo phân công" description="Theo dõi các lượt chấm được giao, lưu nhận xét và hoàn thiện đánh giá." className="evaluation-workspace space-y-6 pb-12" action={<Button variant="secondary" icon="refresh" disabled={state === 'loading'} onClick={() => void load()}>Tải lại</Button>}>
     {state === 'loading' ? <ListLoading label="Đang tải phân công đánh giá…" /> : null}
-    {state === 'unavailable' ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{evaluationError(null)} <button type="button" className="ml-2 min-h-11 font-semibold underline" onClick={() => void load()}>Tải lại</button></section> : null}
+    {state === 'unavailable' ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{evaluationError(null)} <button type="button" className="ml-2 min-h-11 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => void load()}>Tải lại</button></section> : null}
 
     {state === 'ready' ? <>
-      <section aria-label="Tóm tắt phân công">
+      <section aria-label="Tóm tắt phân công" className="role-metric-compact">
         <StatTileRow tiles={[
           { icon: 'assignment_ind', label: 'Phân công đang hiệu lực', value: summary.active, hero: true },
+          { icon: 'groups', label: 'Đồ án được phân chấm', value: new Set(assignments.map(item => item.projectId)).size },
           { icon: 'edit_note', label: 'Bản nháp đang chấm', value: summary.drafts },
           { icon: 'verified', label: 'Đã chốt', value: summary.finalized },
         ]} />
@@ -81,8 +88,13 @@ export function EvaluatorWorkspacePage() {
       <div className="flex flex-wrap items-end justify-between gap-3"><p className="text-sm text-ink-muted">Mở từng phân công để đối chiếu bàn giao, nhập điểm và lưu nhận xét.</p><label className="text-sm font-semibold text-ink-soft">Trạng thái đánh giá<select className="mt-1 block min-h-10 rounded-lg border border-hairline bg-card px-3" value={filter} onChange={event => setFilter(event.target.value as typeof filter)}><option value="all">Tất cả phân công</option><option value="pending">Chưa chốt</option><option value="finalized">Đã chốt</option><option value="unavailable">Chưa tải được trạng thái</option></select></label></div>
       {!assignments.length ? <WorkspaceEmptyState title="Chưa có phân công đánh giá đang hiệu lực" message="Bạn sẽ thấy đồ án ở đây khi được phân công chấm." /> : null}
       {assignments.length > 0 && !visibleAssignments.length ? <WorkspaceEmptyState title={filter === 'pending' && !Object.values(drafts).some(row => row.status === 'unavailable') ? 'Đã chấm hết các phân công' : 'Không có phân công phù hợp'} message={filter === 'pending' && !Object.values(drafts).some(row => row.status === 'unavailable') ? 'Tất cả phiếu chấm trong phạm vi hiện tại đã được chốt.' : 'Chọn tất cả để xem lại danh sách hoặc kiểm tra các phân công chưa tải được trạng thái.'} /> : null}
-      <section className="space-y-3" aria-label="Danh sách phân công đánh giá">
-        {visibleAssignments.map((assignment) => {
+      <section className="space-y-5" aria-label="Danh sách phân công đánh giá">
+        {groupedAssignments.map((projectAssignments) => <section key={projectAssignments[0].projectId} className="space-y-3" aria-label={projectAssignments[0].projectTitle ?? `Đồ án #${projectAssignments[0].projectId}`}>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-2">
+            <h2 className="font-heading text-lg font-bold text-ink">{projectAssignments[0].projectTitle ?? `Đồ án #${projectAssignments[0].projectId}`}</h2>
+            <span className="rounded-full bg-primary-subtle px-2.5 py-1 text-xs font-semibold text-primary">{projectAssignments.length} lượt chấm được giao</span>
+          </div>
+        {projectAssignments.map((assignment) => {
           const row = drafts[assignment.id]
           const isFinalized = row?.draft?.status === 'FINALIZED'
           const isDraft = row?.draft?.status === 'DRAFT'
@@ -93,11 +105,12 @@ export function EvaluatorWorkspacePage() {
                 <span className="inline-flex items-center rounded-md bg-tag-ai-bg px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-tag-ai">
                   {assignment.evaluationType === 'LECTURER' ? 'Hội đồng chấm' : assignment.evaluationType}
                 </span>
+                <span className="inline-flex items-center rounded-md bg-status-info-bg px-2 py-0.5 text-xs font-semibold text-status-info-text">{evaluationStageLabel(assignment.stage)}</span>
                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${isFinalized ? 'bg-status-success-bg text-status-success-text' : isDraft ? 'bg-status-warning-bg text-status-warning-text' : 'bg-canvas text-ink-soft'}`}>
                   {row?.status === 'unavailable' ? 'Chưa tải được trạng thái' : draftLabel(row?.draft ?? null)}
                 </span>
               </div>
-              <h2 className="break-words font-semibold text-ink text-base">{assignment.projectTitle ?? 'Chưa tải được tên đồ án'} · {assignment.componentName ?? scopeLabel(assignment)}</h2>
+              <h3 className="break-words font-semibold text-ink text-base">{assignment.componentName ?? scopeLabel(assignment)}</h3>
               <dl className="mt-2 grid gap-x-6 gap-y-1.5 text-xs text-ink-muted sm:grid-cols-2">
                 <div><dt className="inline font-semibold text-ink-soft">Phạm vi chấm: </dt><dd className="inline">{scopeLabel(assignment)}</dd></div>
                 <div><dt className="inline font-semibold text-ink-soft">Bộ tiêu chí: </dt><dd className="inline">{rubricTitle}</dd></div>
@@ -107,7 +120,7 @@ export function EvaluatorWorkspacePage() {
             </div>
             <Link className={`inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-xs font-bold transition-colors ${isFinalized ? 'border border-hairline bg-canvas text-ink hover:bg-canvas' : isDraft ? 'bg-primary text-white hover:bg-primary-hover shadow-xs' : 'border border-primary bg-card text-primary hover:bg-primary-subtle'}`} to={`/evaluator/assignments/${assignment.id}`}>{row?.status === 'unavailable' ? 'Xem phân công' : row?.draft?.status === 'FINALIZED' ? 'Xem đánh giá' : row?.draft ? 'Tiếp tục chấm' : 'Bắt đầu chấm'}</Link>
           </article>
-        })}
+        })}</section>)}
       </section>
     </> : null}
   </WorkspacePage>

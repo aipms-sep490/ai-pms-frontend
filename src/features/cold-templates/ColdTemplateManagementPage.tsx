@@ -22,12 +22,12 @@ function emptyRow(): ReportRow {
 
 interface TargetRow {
   templateId: string
-  scope: 'MAJOR_SPECIFIC' | 'INDIVIDUAL'
+  scope: 'COMMON' | 'MAJOR_SPECIFIC' | 'INDIVIDUAL'
   studentId: string
 }
 
-function emptyTargetRow(templateId = ''): TargetRow {
-  return { templateId, scope: 'MAJOR_SPECIFIC', studentId: '' }
+function emptyTargetRow(template?: ColdTemplate): TargetRow {
+  return { templateId: template ? String(template.id) : '', scope: template && template.majorId == null ? 'COMMON' : 'MAJOR_SPECIFIC', studentId: '' }
 }
 
 function errorMessage(reason: unknown): string {
@@ -62,6 +62,7 @@ export function ColdTemplateManagementPage() {
   const [templateScope, setTemplateScope] = useState<'COMMON' | 'MAJOR_SPECIFIC'>('MAJOR_SPECIFIC')
   const [projectPeriodId, setProjectPeriodId] = useState('')
   const [templates, setTemplates] = useState<ColdTemplate[] | null>(null)
+  const [templateChoices, setTemplateChoices] = useState<ColdTemplate[]>([])
   const [loading, setLoading] = useState(false)
   const [listError, setListError] = useState('')
 
@@ -101,6 +102,7 @@ export function ColdTemplateManagementPage() {
     try {
       const result = await getColdTemplates(major, period, 1, 50)
       setTemplates(result.items)
+      setTemplateChoices(current => [...current.filter(item => item.projectPeriodId === period && !result.items.some(next => next.id === item.id)), ...result.items])
     } catch (reason) {
       setListError(errorMessage(reason))
     } finally {
@@ -138,6 +140,7 @@ export function ColdTemplateManagementPage() {
     try {
       const created = await createColdTemplate({ majorId: major, scope: templateScope, projectPeriodId: period, name: name.trim(), reports: cleanRows })
       setTemplates((current) => [created, ...(current ?? [])])
+      setTemplateChoices(current => [...current.filter(item => item.id !== created.id && item.projectPeriodId === period), created])
       setName('')
       setRows([emptyRow()])
       setCreateMode('view')
@@ -152,7 +155,7 @@ export function ColdTemplateManagementPage() {
   function updateTargetRow(index: number, patch: Partial<TargetRow>) {
     setTargetRows((current) => current.map((row, i) => i === index ? { ...row, ...patch } : row))
   }
-  function addTargetRow(templateId = '') { setTargetRows((current) => [...current, emptyTargetRow(templateId)]) }
+  function addTargetRow(template?: ColdTemplate) { setTargetRows((current) => [...current, emptyTargetRow(template)]) }
   function removeTargetRow(index: number) { setTargetRows((current) => current.filter((_, i) => i !== index)) }
 
   async function submitApply() {
@@ -176,8 +179,11 @@ export function ColdTemplateManagementPage() {
       setApplyError('Vui lòng chọn ít nhất một template ID hợp lệ.')
       return
     }
-    if (validTargets.some(target => !templates?.some(template => template.id === target.templateId && template.majorId != null && template.projectPeriodId === period))) {
-      setApplyError('Chỉ chọn template theo ngành đã tải cho kỳ này. Template chung chưa được máy chủ hỗ trợ áp dụng checklist.')
+    if (validTargets.some(target => !templateChoices.some(template => template.id === target.templateId
+      && template.projectPeriodId === period && (template.majorId == null
+        ? target.scope === 'COMMON' && target.studentId == null
+        : target.scope === 'MAJOR_SPECIFIC' || target.scope === 'INDIVIDUAL' && !!target.studentId)))) {
+      setApplyError('Chọn template đã tải đúng kỳ và đúng phạm vi chung, ngành hoặc cá nhân.')
       return
     }
 
@@ -293,7 +299,7 @@ export function ColdTemplateManagementPage() {
 
         <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-4">
           <label className="text-sm font-semibold text-ink-soft">Phạm vi template
-            <select className="mt-1 block w-full rounded-lg border border-hairline bg-card p-2 text-sm" value={templateScope} onChange={event => { setTemplateScope(event.target.value as 'COMMON' | 'MAJOR_SPECIFIC'); setTemplates(null); setTargetRows([emptyTargetRow()]) }}><option value="MAJOR_SPECIFIC">Theo ngành</option><option value="COMMON">Chung</option></select>
+            <select className="mt-1 block w-full rounded-lg border border-hairline bg-card p-2 text-sm" value={templateScope} onChange={event => { setTemplateScope(event.target.value as 'COMMON' | 'MAJOR_SPECIFIC'); setTemplates(null) }}><option value="MAJOR_SPECIFIC">Theo ngành</option><option value="COMMON">Chung</option></select>
           </label>
           <label className="text-sm font-semibold text-ink-soft">
             Ngành áp dụng
@@ -302,7 +308,7 @@ export function ColdTemplateManagementPage() {
 
           <label className="text-sm font-semibold text-ink-soft">
             Kỳ đồ án áp dụng
-            <select className="mt-1 block w-full rounded-lg border border-hairline bg-card p-2 text-sm" value={projectPeriodId} onChange={(event) => setProjectPeriodId(event.target.value)}><option value="">-- Chọn kỳ đồ án --</option>{availablePeriods.filter(p => p.periodType === 'EVALUATION' || p.periodType === 'FINAL_SUBMISSION').map(p => <option key={p.id} value={p.id}>{p.name} ({p.code})</option> )}</select>
+            <select className="mt-1 block w-full rounded-lg border border-hairline bg-card p-2 text-sm" value={projectPeriodId} onChange={(event) => { setProjectPeriodId(event.target.value); setTemplates(null); setTemplateChoices([]); setTargetRows([emptyTargetRow()]) }}><option value="">-- Chọn kỳ đồ án --</option>{availablePeriods.filter(p => p.periodType === 'EVALUATION' || p.periodType === 'FINAL_SUBMISSION').map(p => <option key={p.id} value={p.id}>{p.name} ({p.code})</option> )}</select>
           </label>
 
           <button
@@ -347,16 +353,16 @@ export function ColdTemplateManagementPage() {
                       ))}
                     </ul>
                   </div>
-                  {template.majorId == null ? <p className="text-xs text-status-warning-text">Chưa thể áp dụng checklist: BE chưa nhận target COMMON.</p> : <button
+                  <button
                     type="button"
                     className="inline-flex items-center gap-1 rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary-subtle"
                     onClick={() => {
-                      addTargetRow(String(template.id))
+                      addTargetRow(template)
                       if (!applyPeriodId && projectPeriodId) setApplyPeriodId(projectPeriodId)
                     }}
                   >
                     + Chọn để áp dụng
-                  </button>}
+                  </button>
                 </li>
               ))}
             </ul>
@@ -461,9 +467,7 @@ export function ColdTemplateManagementPage() {
       <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
         <div className="border-b border-hairline pb-3">
           <h2 className="text-base font-bold text-ink">Khuôn 3: Áp dụng template vào đồ án (Khoa phân bổ checklist)</h2>
-          <p className="mt-1 text-xs text-ink-muted">
-            Gán template theo ngành vào đồ án cụ thể, theo ngành hoặc cá nhân, kèm thời hạn nộp báo cáo.
-          </p>
+          <p className="mt-1 text-xs text-ink-muted">Gán mẫu chung và mẫu của từng ngành vào cùng đồ án; có thể chỉ định thêm phần cá nhân.</p>
         </div>
 
         <div className="rounded-lg border border-warning-strong bg-status-warning-bg p-3.5 text-xs text-status-warning-text leading-relaxed">
@@ -494,12 +498,14 @@ export function ColdTemplateManagementPage() {
           <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Danh sách target templates</h3>
           {targetRows.map((target, idx) => (
             <div key={idx} className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-canvas p-2.5">
-              <select className="min-w-56 rounded-md border border-hairline bg-card p-1.5 text-sm" value={target.templateId} onChange={(e) => updateTargetRow(idx, { templateId: e.target.value })}><option value="">-- Chọn template --</option>{(templates ?? []).filter(t => t.majorId != null).map(t => <option key={t.id} value={t.id}>{t.name} (v{t.version})</option>)}</select>
+              <select className="min-w-56 rounded-md border border-hairline bg-card p-1.5 text-sm" value={target.templateId} onChange={(e) => { const selected = templateChoices.find(t => String(t.id) === e.target.value); updateTargetRow(idx, selected ? emptyTargetRow(selected) : emptyTargetRow()) }}><option value="">-- Chọn template --</option>{templateChoices.filter(t => t.projectPeriodId === Number(applyPeriodId || projectPeriodId)).map(t => <option key={t.id} value={t.id}>{t.scope === 'COMMON' ? 'Chung · ' : 'Ngành · '}{t.name} (v{t.version})</option>)}</select>
               <select
                 className="rounded-md border border-hairline bg-canvas p-1.5 text-sm"
                 value={target.scope}
+                disabled={templateChoices.find(t => String(t.id) === target.templateId)?.majorId == null}
                 onChange={(e) => updateTargetRow(idx, { scope: e.target.value as TargetRow['scope'] })}
               >
+                {target.scope === 'COMMON' && <option value="COMMON">COMMON (Chung)</option>}
                 <option value="MAJOR_SPECIFIC">MAJOR_SPECIFIC (Theo ngành)</option>
                 <option value="INDIVIDUAL">INDIVIDUAL (Cá nhân)</option>
               </select>

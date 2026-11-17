@@ -50,7 +50,7 @@ function message(reason: unknown): string {
     if (reason.status === 403) return 'Hệ thống không cấp quyền thao tác với hồ sơ bàn giao này.'
     if (reason.status === 404) return 'Không tìm thấy hồ sơ hoặc gói bàn giao trong phạm vi hiện tại.'
     if (reason.status === 409) return 'Dữ liệu hoặc hạn nộp đã thay đổi. Dữ liệu mới đã được tải lại; hãy kiểm tra trước khi thao tác tiếp.'
-    if (reason.status === 422 || reason.status === 400) return reason.problem?.detail || 'Dữ liệu không hợp lệ hoặc chưa đáp ứng điều kiện bàn giao.'
+    if (reason.status === 422 || reason.status === 400) return 'Thông tin bàn giao chưa hợp lệ hoặc chưa đáp ứng điều kiện hiện tại. Kiểm tra checklist, phiên bản đã chọn và thời hạn rồi thử lại.'
   }
   return 'Không thể xử lý hồ sơ bàn giao. Vui lòng thử lại.'
 }
@@ -77,7 +77,7 @@ const describeBlocker = (code: string) => {
   if (kind === 'VERSION_INELIGIBLE') return `Phiên bản #${id} chưa hợp lệ để bàn giao`
   if (kind === 'FILE_CONTENT_INVALID') return `Nội dung tệp #${id} không còn hợp lệ`
   if (kind === 'REQUIRED_DELIVERABLE_MISSING') return `Thiếu phiên bản hợp lệ cho hạng mục bắt buộc #${id}`
-  return blockerLabels[code] ?? code
+  return blockerLabels[code] ?? 'Điều kiện bàn giao chưa được đáp ứng. Tải lại checklist để kiểm tra.'
 }
 
 export function StudentFinalSubmissionPage() {

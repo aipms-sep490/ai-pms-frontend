@@ -22,6 +22,16 @@ export interface DefenseSession {
 export interface CommitteeMember {
   userId: number
   majorId: number
+  role?: 'MEMBER' | 'CHAIR' | 'SECRETARY'
+}
+
+export interface DefenseCommitteeCandidate {
+  userId: number
+  fullName: string
+  majorId: number
+  majorName: string
+  canAssign: boolean
+  blockReason: 'SUPERVISOR_CONFLICT' | 'PROFILE_UNAVAILABLE' | null
 }
 
 export interface DefenseCommittee {
@@ -30,6 +40,9 @@ export interface DefenseCommittee {
   name: string
   members: CommitteeMember[]
   grantsEvaluatorAuthority?: boolean
+  status: 'DRAFT' | 'CONFIRMED' | 'SUPERSEDED'
+  version: number
+  concurrencyToken: string
 }
 
 export interface CreateCommitteeRequest {

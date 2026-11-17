@@ -17,6 +17,7 @@ export const endpoints = {
   securityRoles: '/v1/security/roles',
   securityPermissions: '/v1/security/permissions',
   securityAuditLogs: '/v1/security/audit-logs',
+  securityAccessEvents: '/v1/security/access-events',
   projectReviewQueue: '/v1/projects/review-queue',
   supervisors: '/v1/supervisors',
   topics: '/v1/topics',

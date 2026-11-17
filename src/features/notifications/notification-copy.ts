@@ -116,6 +116,12 @@ const copyByType: Record<string, { title: string; content: string; label: string
     label: 'Phân công đánh giá',
     icon: 'assignment_ind',
   },
+  COLD_EVALUATOR_ASSIGNED: {
+    title: 'Bạn được phân chấm Cold',
+    content: 'Hãy xem gói minh chứng đã khóa, chấm đúng phạm vi được giao và chốt điểm Cold trước khi xếp lịch bảo vệ.',
+    label: 'Chấm Cold',
+    icon: 'assignment_ind',
+  },
   SUPERVISOR_REPLACED: {
     title: 'Phân công giảng viên hướng dẫn đã thay đổi',
     content: 'Phân công giảng viên hướng dẫn của đồ án đã được cập nhật. Hãy kiểm tra thông tin phân công hiện tại.',
