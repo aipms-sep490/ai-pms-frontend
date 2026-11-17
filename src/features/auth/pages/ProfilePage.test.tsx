@@ -7,6 +7,7 @@ import type { AuthUser } from '../types/auth.types'
 import * as authApi from '../api/auth-api'
 
 vi.mock('../api/auth-api', () => ({ getMyProfile: vi.fn() }))
+vi.mock('../components/ProfileAvatar', () => ({ ProfileAvatar: () => null }))
 
 const authSession = vi.hoisted(() => ({
   session: null as { user: AuthUser } | null,

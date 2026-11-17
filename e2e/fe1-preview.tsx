@@ -24,6 +24,8 @@ const task = { id: 1, projectId: 9, milestoneId: 3, title: 'Kiểm thử luồng
 const cycle = { id: 101, projectId: 9, reportType: 'WEEKLY', periodStart: '2026-10-19', periodEnd: '2026-10-25', deadline: '2099-10-27T23:59:59', latePolicy: 'BLOCK', concurrencyToken: 'fixture-cycle' }
 let report = { id: 17, projectId: 9, submittedBy: 2, submittedByName: 'Leader thử nghiệm', reportType: 'WEEKLY', periodStart: cycle.periodStart, periodEnd: cycle.periodEnd, status: 'DRAFT', summary: 'Báo cáo thử nghiệm', feedbacks: [], concurrencyToken: 'fixture-report' }
 let profile = { id: 2, fullName: 'Leader thử nghiệm', email: 'leader@example.test', roles: ['STUDENT'], phone: '0901234567', title: 'Sinh viên' }
+let avatar: Blob | null = null
+let avatarToken: string | null = null
 const nativeFetch = window.fetch.bind(window)
 window.fetch = async (input, init) => {
   const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, location.origin)
@@ -34,6 +36,18 @@ window.fetch = async (input, init) => {
   const method = init?.method ?? 'GET'
   if (method !== 'GET' && denied) return json({ title: 'Forbidden', status: 403 }, 403)
   if (url.pathname.endsWith('/users/me/academic-profile')) return json({ status: 'VERIFIED', departmentName: 'Công nghệ thông tin', majorName: 'Kỹ thuật phần mềm' })
+  if (url.pathname.endsWith('/upload-policies/USER_AVATAR')) return json({ parentType: 'USER_AVATAR', maxBytes: 2 * 1024 * 1024, maxBytesLabel: '2 MiB', allowedMimeTypes: ['image/png', 'image/jpeg'], allowedExtensions: ['.png', '.jpg', '.jpeg'], maxFilesPerRequest: 1, requiresVersionAnchor: true })
+  if (url.pathname.endsWith('/users/me/avatar/metadata')) return json({ hasAvatar: !!avatar, concurrencyToken: avatarToken, contentType: avatar?.type ?? null, sizeBytes: avatar?.size ?? null, updatedAt: avatar ? new Date().toISOString() : null })
+  if (url.pathname.endsWith('/users/me/avatar/remove') && method === 'POST') { avatar = null; avatarToken = null; return json({ hasAvatar: false, concurrencyToken: null, contentType: null, sizeBytes: null, updatedAt: null }) }
+  if (url.pathname.endsWith('/users/me/avatar') && method === 'POST') {
+    if (!(init?.body instanceof FormData)) return json({ title: 'Missing form' }, 400)
+    const file = init.body.get('File')
+    if (!(file instanceof Blob)) return json({ title: 'Missing image' }, 400)
+    avatar = file; avatarToken = crypto.randomUUID()
+    return json({ hasAvatar: true, concurrencyToken: avatarToken, contentType: file.type, sizeBytes: file.size, updatedAt: new Date().toISOString() })
+  }
+  if (url.pathname.endsWith('/users/me/avatar') && method === 'GET') return avatar
+    ? Promise.resolve(new Response(avatar, { headers: { 'Content-Type': avatar.type } })) : json({ title: 'No avatar' }, 404)
   if (url.pathname.endsWith('/users/me/profile')) { if (method === 'PUT') profile = { ...profile, ...JSON.parse(String(init?.body)) }; return json(profile) }
   if (url.pathname.endsWith('/tasks/project/9')) return json(paged([task]))
   if (url.pathname.endsWith('/milestones/project/9')) return json([{ id: 3, title: 'Kiểm thử', status: 'PLANNED' }])

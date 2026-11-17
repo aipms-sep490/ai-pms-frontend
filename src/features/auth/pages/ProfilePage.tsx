@@ -9,6 +9,7 @@ import type { AuthSessionContextValue } from '../context/auth-session-context'
 import type { LoginSession } from '../types/auth.types'
 import './auth-pages.css'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import { ProfileAvatar } from '../components/ProfileAvatar'
 
 function getProfileErrorMessage(error: Error): string {
   if (error instanceof HttpError) {
@@ -155,9 +156,7 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
     >
       <section className="profile-workspace workspace-surface" aria-labelledby="profile-title">
         <div className="profile-identity">
-          <div className="w-16 h-16 rounded-full bg-primary text-white flex items-center justify-center font-bold text-2xl shadow-sm shrink-0">
-            {session.user.fullName.charAt(0)}
-          </div>
+          <ProfileAvatar key={session.user.id} fullName={session.user.fullName} userId={session.user.id} />
           <div>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-primary-subtle text-primary border border-primary/20 font-mono text-xs font-bold uppercase tracking-wider mb-1">
               Hồ sơ đã xác thực

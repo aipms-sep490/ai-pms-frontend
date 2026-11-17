@@ -182,9 +182,23 @@
 .profile-form-heading p { margin: 5px 0 0; color: var(--color-ink-muted); font-size: 13px; }
 .profile-workspace .auth-form [aria-invalid="true"] { border-color: var(--color-status-error-text); }
 .profile-field-error { margin: -4px 0 4px; color: var(--color-status-error-text); font-size: 12px; }
+.profile-avatar-control { flex: 0 0 188px; display: grid; justify-items: start; align-content: start; gap: 6px; min-width: 0; }
+.profile-avatar-image { display: grid; width: 72px; height: 72px; overflow: hidden; place-items: center; border-radius: 50%; background: var(--color-primary-subtle); color: var(--color-primary); font-size: 28px; font-weight: 750; }
+.profile-avatar-image img { width: 100%; height: 100%; object-fit: cover; }
+.profile-avatar-actions, .profile-avatar-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.profile-avatar-picker { position: relative; display: inline-flex; min-height: 44px; align-items: center; padding: 0 12px; border: 1px solid var(--color-hairline); border-radius: 8px; background: var(--color-card); color: var(--color-primary); font-size: 13px; font-weight: 700; cursor: pointer; }
+.profile-avatar-picker:focus-within { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.profile-avatar-picker input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.profile-avatar-picker:has(input:disabled) { opacity: .5; cursor: not-allowed; }
+.profile-avatar-actions button { min-height: 44px; }
+.profile-avatar-confirm span { color: var(--color-ink-soft); font-size: 12px; }
+.profile-avatar-hint { margin: 0; color: var(--color-ink-muted); font-size: 12px; line-height: 1.4; }
+.profile-avatar-control .profile-field-error { margin: 0; }
+.profile-avatar-control .profile-field-error button { color: var(--color-primary); font-weight: 700; }
 @media(max-width: 640px) {
   .profile-workspace { padding: 20px; }
-  .profile-identity { align-items: flex-start; }
+  .profile-identity { align-items: flex-start; flex-wrap: wrap; }
+  .profile-avatar-control { flex-basis: 100%; }
   .profile-workspace .auth-profile-grid { gap: 18px; }
   .profile-workspace .auth-profile-grid > div + div { padding-left: 0; border-left: 0; }
 }

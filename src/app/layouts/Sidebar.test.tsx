@@ -1,10 +1,12 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
 import { AuthSessionContext, type AuthSessionContextValue } from '../../features/auth/context/auth-session-context'
 import { AcademicWorkflowContext } from '../context/academic-workflow-context'
 import { StudentJourneyContext, type StudentJourneyContextValue } from '../context/StudentJourneyContext'
 import { Sidebar } from './Sidebar'
+
+vi.mock('../../features/auth/components/SelfAvatarImage', () => ({ SelfAvatarImage: ({ initials }: { initials: string }) => <span>{initials}</span> }))
 
 afterEach(cleanup)
 const coordination = () => screen.getByRole('button', { name: /^1\. Điều phối & Tiến độ/ })

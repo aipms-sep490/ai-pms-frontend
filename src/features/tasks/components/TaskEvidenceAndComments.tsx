@@ -4,6 +4,8 @@ import { HttpError } from '../../../services/http/http-client'
 import * as api from '../task-evidence-api'
 import type { TaskComment, TaskFile } from '../task-evidence-api'
 import { createProjectEvidence } from '../../projects/api/project-governance-api'
+import { DocumentPreviewModal, getFileCategory } from '../../../components/ui/DocumentPreviewModal'
+import { getUploadPolicy, uploadPolicyLabel, validateUploadFile, type UploadPolicy } from '../../../services/api/upload-policies.api'
 
 function getFileIcon(name: string): string {
   const ext = name.split('.').pop()?.toLowerCase() ?? ''
@@ -17,6 +19,9 @@ function getFileIcon(name: string): string {
 
 export function TaskEvidenceAndComments({ taskId, projectId, majors, mentorMajorId, canAddEvidence }: { taskId: number; projectId: number; majors: Array<{ majorId: number; majorCode: string; majorName: string }>; mentorMajorId: number | null; canAddEvidence: boolean }) {
   const [selectedFileName, setSelectedFileName] = useState('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploadPolicy, setUploadPolicy] = useState<UploadPolicy | null>(null)
+  const [preview, setPreview] = useState<{ kind: 'local'; file: File } | { kind: 'stored'; file: TaskFile } | null>(null)
   const [files, setFiles] = useState<TaskFile[]>([])
   const [comments, setComments] = useState<TaskComment[]>([])
   const [filePage, setFilePage] = useState(1)
@@ -32,6 +37,13 @@ export function TaskEvidenceAndComments({ taskId, projectId, majors, mentorMajor
   const [evidenceMajorId, setEvidenceMajorId] = useState<number | null>(mentorMajorId ?? null)
   const [evidenceBusy, setEvidenceBusy] = useState(false)
   const [evidenceNotice, setEvidenceNotice] = useState('')
+
+  useEffect(() => {
+    if (!canAddEvidence) return
+    let active = true
+    void getUploadPolicy('TASK').then(policy => { if (active) setUploadPolicy(policy) }).catch(() => undefined)
+    return () => { active = false }
+  }, [canAddEvidence])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -59,9 +71,14 @@ export function TaskEvidenceAndComments({ taskId, projectId, majors, mentorMajor
   const upload = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const input = event.currentTarget.elements.namedItem('file')
-    const file = input instanceof HTMLInputElement ? input.files?.item(0) : null
+    const file = selectedFile
     if (!file) { setError('Hãy chọn tệp minh chứng.'); return }
-    void mutate(() => api.uploadTaskEvidence(taskId, file), () => { if (input instanceof HTMLInputElement) input.value = ''; setSelectedFileName('') })
+    const problem = validateUploadFile(file, uploadPolicy)
+    if (problem) { setError(problem); return }
+    void mutate(() => api.uploadTaskEvidence(taskId, file), () => {
+      if (input instanceof HTMLInputElement) input.value = ''
+      setSelectedFile(null); setSelectedFileName('')
+    })
   }
   const submitEvidence = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -98,13 +115,13 @@ export function TaskEvidenceAndComments({ taskId, projectId, majors, mentorMajor
   return <section className="task-evidence-comments grid gap-5">
     {error && <p role="alert" className="lg:col-span-2 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm">{error} <button type="button" className="font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
     {loading && <p role="status" className="lg:col-span-2 text-sm">Đang tải minh chứng và bình luận…</p>}
-    <div className="rounded-xl border bg-card p-5"><h2 className="font-semibold">Minh chứng công việc</h2>{canAddEvidence ? <><form onSubmit={submitEvidence} className="mt-4 space-y-3"><p className="text-sm text-ink-muted">Đính kèm tài liệu hoặc kết quả để ghi nhận phần việc đã thực hiện.</p>{mentorMajorId ? <p className="text-sm text-ink-muted">Ngành được hướng dẫn: {majors.find(item => item.majorId === mentorMajorId)?.majorName ?? mentorMajorId}</p> : majors.length > 0 && <label className="block text-sm">Chuyên ngành (nếu áp dụng)<select value={evidenceMajorId ?? ''} onChange={event => setEvidenceMajorId(event.target.value ? Number(event.target.value) : null)} className="mt-1 block w-full rounded-lg border p-3" disabled={evidenceBusy}><option value="">Không gắn chuyên ngành</option>{majors.map(major => <option key={major.majorId} value={major.majorId}>{major.majorCode} · {major.majorName}</option>)}</select></label>}<label className="block text-sm">Ghi chú minh chứng<textarea value={evidenceNotes} maxLength={2000} onChange={event => setEvidenceNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-lg border p-3" disabled={evidenceBusy} /></label><button disabled={evidenceBusy} className="min-h-11 rounded-lg bg-primary hover:bg-primary-hover px-4 text-sm font-semibold text-white disabled:opacity-50">{evidenceBusy ? 'Đang ghi nhận…' : 'Ghi nhận minh chứng'}</button></form>{evidenceNotice && <p role="status" className="mt-3 text-sm text-status-success-text">{evidenceNotice}</p>}<form onSubmit={upload} className="mt-4 flex flex-wrap items-end gap-2 border-t pt-4"><label className="task-evidence-file text-sm">Đính kèm tệp công việc<input type="file" name="file" className="sr-only" disabled={busy} onChange={event => setSelectedFileName(event.target.files?.[0]?.name ?? '')} /><span className="task-evidence-file-choice"><span>Chọn tệp</span><span>{selectedFileName || 'Chưa chọn tệp'}</span></span></label><button disabled={busy} className="min-h-11 rounded-lg bg-primary hover:bg-primary-hover px-4 text-sm font-semibold text-white disabled:opacity-50">Tải lên</button></form></> : <p className="mt-3 text-sm leading-6 text-ink-muted">Bạn chưa được cấp quyền bổ sung minh chứng cho công việc này.</p>}{!loading && files.length === 0 && <p className="mt-4 text-sm text-ink-muted">Chưa có tệp đính kèm.</p>}<ul className="mt-4 space-y-2">{files.map(file => (
+    <div className="rounded-xl border bg-card p-5"><h2 className="font-semibold">Minh chứng công việc</h2>{canAddEvidence ? <><form onSubmit={submitEvidence} className="mt-4 space-y-3"><p className="text-sm text-ink-muted">Đính kèm tài liệu hoặc kết quả để ghi nhận phần việc đã thực hiện.</p>{mentorMajorId ? <p className="text-sm text-ink-muted">Ngành được hướng dẫn: {majors.find(item => item.majorId === mentorMajorId)?.majorName ?? mentorMajorId}</p> : majors.length > 0 && <label className="block text-sm">Chuyên ngành (nếu áp dụng)<select value={evidenceMajorId ?? ''} onChange={event => setEvidenceMajorId(event.target.value ? Number(event.target.value) : null)} className="mt-1 block w-full rounded-lg border p-3" disabled={evidenceBusy}><option value="">Không gắn chuyên ngành</option>{majors.map(major => <option key={major.majorId} value={major.majorId}>{major.majorCode} · {major.majorName}</option>)}</select></label>}<label className="block text-sm">Ghi chú minh chứng<textarea value={evidenceNotes} maxLength={2000} onChange={event => setEvidenceNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-lg border p-3" disabled={evidenceBusy} /></label><button disabled={evidenceBusy} className="min-h-11 rounded-lg bg-primary hover:bg-primary-hover px-4 text-sm font-semibold text-white disabled:opacity-50">{evidenceBusy ? 'Đang ghi nhận…' : 'Ghi nhận minh chứng'}</button></form>{evidenceNotice && <p role="status" className="mt-3 text-sm text-status-success-text">{evidenceNotice}</p>}<form onSubmit={upload} className="mt-4 flex flex-wrap items-end gap-2 border-t pt-4"><label className="task-evidence-file text-sm">Ảnh hoặc tệp minh chứng<input type="file" name="file" aria-label="Ảnh hoặc tệp minh chứng" className="sr-only" accept={uploadPolicy?.allowedExtensions.join(',')} disabled={busy} onChange={event => { const file = event.target.files?.[0] ?? null; setSelectedFile(file); setSelectedFileName(file?.name ?? ''); setError(null) }} /><span className="task-evidence-file-choice"><span>Chọn tệp</span><span>{selectedFileName || 'Chưa chọn tệp'}</span></span></label><button disabled={busy || !selectedFile} className="min-h-11 rounded-lg bg-primary hover:bg-primary-hover px-4 text-sm font-semibold text-white disabled:opacity-50">Tải lên</button>{selectedFile && getFileCategory(selectedFile.name, selectedFile.type) !== 'archive' && <button type="button" className="min-h-11 rounded-lg border border-hairline px-4 text-sm font-semibold text-primary" onClick={() => setPreview({ kind: 'local', file: selectedFile })}>Xem trước</button>}<p className="w-full text-xs text-ink-muted">{uploadPolicy ? uploadPolicyLabel(uploadPolicy) : 'Giới hạn và định dạng do máy chủ xác nhận khi tải lên.'}</p></form></> : <p className="mt-3 text-sm leading-6 text-ink-muted">Bạn chưa được cấp quyền bổ sung minh chứng cho công việc này.</p>}{!loading && files.length === 0 && <p className="mt-4 text-sm text-ink-muted">Chưa có tệp đính kèm.</p>}<ul className="mt-4 space-y-2">{files.map(file => (
       <li key={file.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hairline bg-canvas p-3 text-sm">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="material-symbols-outlined text-primary text-base" aria-hidden="true">{getFileIcon(file.fileName)}</span>
           <span className="truncate max-w-xs sm:max-w-md font-medium text-ink">{file.fileName} · {Math.ceil(file.sizeBytes / 1024)} KB</span>
         </div>
-        <span className="flex gap-3"><button type="button" className="min-h-11 font-semibold text-primary underline" onClick={() => void download(file)}>Tải xuống</button></span>
+        <span className="flex gap-3"><button type="button" className="min-h-11 font-semibold text-primary" onClick={() => setPreview({ kind: 'stored', file })}>Xem trước</button><button type="button" className="min-h-11 font-semibold text-primary" onClick={() => void download(file)}>Tải xuống</button></span>
       </li>
     ))}</ul>{fileTotal > 20 && <Pager page={filePage} total={fileTotal} onChange={setFilePage} />}</div>
     <div className="rounded-xl border bg-card p-5"><h2 className="font-semibold">Bình luận</h2><form onSubmit={comment} className="mt-4 space-y-2"><label className="block text-sm">Nội dung<textarea value={content} maxLength={5000} onChange={event => setContent(event.target.value)} rows={3} className="mt-1 w-full rounded-lg border p-3" disabled={busy} /></label><button disabled={busy || !content.trim()} className="min-h-11 rounded-lg bg-primary hover:bg-primary-hover px-4 text-sm font-semibold text-white disabled:opacity-50">Gửi bình luận</button></form>{!loading && comments.length === 0 && <p className="mt-4 text-sm text-ink-muted">Chưa có bình luận.</p>}<ul className="mt-4 space-y-3">{comments.map(item => (
@@ -121,6 +138,7 @@ export function TaskEvidenceAndComments({ taskId, projectId, majors, mentorMajor
         </div>
       </li>
     ))}</ul>{commentTotal > 20 && <Pager page={commentPage} total={commentTotal} onChange={setCommentPage} />}</div>
+    {preview && <DocumentPreviewModal key={preview.kind === 'stored' ? preview.file.id : preview.file.name} open fileName={preview.kind === 'local' ? preview.file.name : preview.file.fileName} fileSize={preview.kind === 'local' ? preview.file.size : preview.file.sizeBytes} contentType={preview.kind === 'local' ? preview.file.type : preview.file.contentType} loadBlob={signal => preview.kind === 'local' ? Promise.resolve(preview.file) : api.downloadTaskEvidence(preview.file.id, signal)} onClose={() => setPreview(null)} />}
   </section>
 }
 
