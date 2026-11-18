@@ -28,3 +28,16 @@ export const createMilestone = (payload: CreateMilestonePayload) => httpPost<Mil
 export const updateMilestone = (id: number, payload: UpdateMilestonePayload) => httpPut<MilestoneDto, UpdateMilestonePayload>(`/milestones/${id}`, payload)
 export const deleteMilestone = async (id: number, concurrencyToken?: string) => { await httpDelete(`/milestones/${id}${concurrencyToken ? `?${new URLSearchParams({ concurrencyToken })}` : ''}`) }
 export const reorderMilestones = async (projectId: number, items: MilestoneReorderItem[]) => { await httpPost(`/milestones/project/${projectId}/reorder`, items) }
+
+export interface AddMilestoneDependencyPayload {
+  milestoneId: number
+  dependsOnMilestoneId: number
+  dependencyType?: string
+  concurrencyToken?: string
+}
+
+export const addMilestoneDependency = (payload: AddMilestoneDependencyPayload) =>
+  httpPost<MilestoneDto, AddMilestoneDependencyPayload>('/milestones/dependency', payload)
+
+export const removeMilestoneDependency = (milestoneId: number, dependsOnMilestoneId: number, concurrencyToken?: string) =>
+  httpDelete<MilestoneDto>(`/milestones/${milestoneId}/dependency/${dependsOnMilestoneId}${concurrencyToken ? `?concurrencyToken=${encodeURIComponent(concurrencyToken)}` : ''}`)

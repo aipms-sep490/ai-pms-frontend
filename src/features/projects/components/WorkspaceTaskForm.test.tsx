@@ -51,3 +51,27 @@ it('prefills only uniquely matched project options and sends nothing until save'
   fireEvent.submit(screen.getByRole('button', { name: 'Tạo công việc' }).closest('form')!)
   await vi.waitFor(() => expect(api.createTask).toHaveBeenCalledWith(expect.objectContaining({ milestoneId: 2, priority: 'HIGH', dueAt: '2026-11-06T05:00:00.000Z', assigneeUserIds: [1], disciplines: [{ majorId: 3, role: 'PRIMARY' }] })))
 })
+
+it('blocks task creation when dueAt is after milestone dueDate', async () => {
+  api.getProjectMajorRequirements.mockResolvedValue({ requirements: [{ majorId: 3 }, { majorId: 12 }] })
+  render(
+    <WorkspaceTaskForm
+      project={project}
+      milestones={[{ id: 2, title: 'Mốc 1', startDate: '2026-11-10', dueDate: '2026-11-20' }]}
+      members={[]}
+      onCancel={vi.fn()}
+      onCreated={vi.fn()}
+    />
+  )
+  await screen.findByRole('combobox', { name: 'Ngành chính' })
+
+  fireEvent.change(screen.getByLabelText('Tên công việc'), { target: { value: 'Task ngoài hạn mốc' } })
+  fireEvent.change(screen.getByLabelText('Mốc đồ án'), { target: { value: '2' } })
+  fireEvent.change(screen.getByLabelText(/Hạn hoàn thành/), { target: { value: '2026-11-25T12:00' } }) // 25/11 > 20/11
+  fireEvent.change(screen.getByLabelText('Ngành chính'), { target: { value: '3' } })
+
+  fireEvent.submit(screen.getByRole('button', { name: 'Tạo công việc' }).closest('form')!)
+
+  expect(api.createTask).not.toHaveBeenCalled()
+  expect(screen.getByRole('alert').textContent).toContain('không được sau hạn của mốc')
+})
