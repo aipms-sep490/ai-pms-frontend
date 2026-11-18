@@ -248,6 +248,16 @@ export function TaskDetailModal({
                         </dd>
                       </div>
                     )}
+                    {task.description?.match(/Cuộc họp #(\d+)/i)?.[1] && (
+                      <div className="sm:col-span-2">
+                        <dt className="text-ink-muted">Nguồn phát sinh:</dt>
+                        <dd>
+                          <Link className="font-semibold text-primary underline" to={`${routeBase}/meetings/${task.description.match(/Cuộc họp #(\d+)/i)![1]}`}>
+                            Cuộc họp #{task.description.match(/Cuộc họp #(\d+)/i)![1]}
+                          </Link>
+                        </dd>
+                      </div>
+                    )}
                   </dl>
                 </section>
 

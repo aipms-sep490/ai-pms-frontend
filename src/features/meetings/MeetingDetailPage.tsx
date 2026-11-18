@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { Modal } from '../../components/ui/Modal'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { useAssistantActionDraft } from '../ai/useAssistantActionDraft'
 import { env } from '../../app/config/env'
@@ -41,7 +42,6 @@ function MeetingDetailView({ id }: { id: number }) {
   const [feedback, setFeedback] = useState('')
   const [participantId, setParticipantId] = useState('')
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
-  const confirmationRef = useRef<HTMLDivElement>(null)
   const [collaboration, setCollaboration] = useState<MeetingCollaboration | null>(null)
   const [rsvpBusy, setRsvpBusy] = useState(false)
   const [lockBusy, setLockBusy] = useState(false)
@@ -55,7 +55,6 @@ function MeetingDetailView({ id }: { id: number }) {
   const candidates = useMeetingCandidates(project.id, project.teamId, manage && meeting?.status !== 'CANCELLED')
   const disabled = busy || needsRefresh
   useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
-  useEffect(() => { if (confirmation) confirmationRef.current?.focus() }, [confirmation])
   useEffect(() => {
     if (!Number.isSafeInteger(id) || id < 1) { setLoadError('Đường dẫn cuộc họp không hợp lệ.'); setLoading(false); return }
     const controller = new AbortController()
@@ -133,18 +132,29 @@ function MeetingDetailView({ id }: { id: number }) {
     if (!meeting?.concurrencyToken) { setError('Không có token phiên bản của cuộc họp. Hãy tải lại trước khi gửi nhận xét.'); setNeedsRefresh(true); return }
     void mutate(() => api.addMeetingFeedback(id, feedback.trim(), meeting.concurrencyToken), 'Đã gửi nhận xét cho nhóm.')
   }
+  const confirmTitle = confirmation?.type === 'cancel' ? 'Hủy lịch cuộc họp'
+    : confirmation?.type === 'complete' ? 'Hoàn tất cuộc họp'
+    : confirmation?.type === 'remove' ? 'Bỏ người tham gia'
+    : confirmation?.type === 'refresh' ? 'Tải lại dữ liệu'
+    : 'Bỏ thay đổi chưa lưu'
   const confirmationText = confirmation?.type === 'cancel' ? 'Hủy cuộc họp này? Sau khi hủy, cuộc họp chỉ được xem và không thể mở lại.'
     : confirmation?.type === 'complete' ? 'Xác nhận cuộc họp đã diễn ra? Lịch và danh sách tham gia sẽ được khóa; bạn vẫn có thể bổ sung biên bản.'
     : confirmation?.type === 'remove' ? `Bỏ ${confirmation.name} khỏi cuộc họp?`
     : confirmation?.type === 'refresh' ? 'Tải lại dữ liệu mới nhất sẽ bỏ nội dung đang sửa. Tiếp tục?'
     : 'Bỏ các thay đổi chưa lưu trong biểu mẫu này?'
+  const isDangerConfirm = confirmation?.type === 'cancel' || confirmation?.type === 'remove' || confirmation?.type === 'discard'
   const onlineUrl = safeMeetingUrl(meeting?.onlineUrl ?? null)
   return <MeetingShell title={meeting && !loadError ? meeting.title : 'Chi tiết cuộc họp'} projectTitle={project.title} backTo={`${routeBase}/meetings`} description="Thông tin cuộc họp, biên bản và những việc cả nhóm đã thống nhất." action={<Link className="mtg-button mtg-button--secondary" to={`${routeBase}/meetings`}>Danh sách cuộc họp</Link>}>
     <MeetingUnsavedNotice dirty={dirty} busy={busy} />
     {success && <p role="status" className="mtg-notice mtg-notice--success">{success}</p>}
     {error && <MeetingError message={error} />}
     {needsRefresh && !loadError && <div className="mtg-notice"><p>Thao tác đang tạm khóa cho đến khi tải lại trạng thái mới nhất.</p><button className="mtg-button mtg-button--secondary" disabled={busy} onClick={() => dirty ? setConfirmation({ type: 'refresh' }) : reload()}>Tải lại trạng thái</button></div>}
-    {confirmation && <div ref={confirmationRef} tabIndex={-1} className="mtg-confirm" role="alertdialog" aria-label="Xác nhận thao tác"><p>{confirmationText}</p><div className="mtg-actions"><button className="mtg-button mtg-button--secondary" disabled={busy} onClick={() => setConfirmation(null)}>Quay lại</button><button className="mtg-button" disabled={busy} onClick={() => void confirm()}>{busy ? 'Đang xử lý…' : 'Xác nhận'}</button></div></div>}
+    {confirmation && <Modal open role="alertdialog" title={confirmTitle} description={confirmationText} busy={busy} onClose={() => setConfirmation(null)}>
+      <div className="app-modal__actions">
+        <button type="button" className="app-modal__button" disabled={busy} onClick={() => setConfirmation(null)}>Quay lại</button>
+        <button type="button" className={`app-modal__button ${isDangerConfirm ? 'app-modal__button--danger' : 'app-modal__button--primary'}`} disabled={busy} onClick={() => void confirm()}>{busy ? 'Đang xử lý…' : 'Xác nhận'}</button>
+      </div>
+    </Modal>}
     {loading ? <MeetingLoading /> : loadError ? <MeetingError message={loadError} retry={reload} /> : meeting && <>
       <div className="mtg-detail-banner"><div><p className="mtg-eyebrow">Thời gian · Giờ Việt Nam (UTC+7)</p><h2>{formatMeetingTime(meeting.startAt)}</h2><p>{meeting.endAt ? `Kết thúc: ${formatMeetingTime(meeting.endAt)}` : 'Chưa xác định giờ kết thúc'}</p>{collaboration?.seriesId && <p className="mtg-help">Thuộc chuỗi lặp {recurrenceLabels[collaboration.recurrence as keyof typeof recurrenceLabels] ?? collaboration.recurrence}{collaboration.occurrenceNumber ? ` · Lần thứ ${collaboration.occurrenceNumber}` : ''}</p>}</div><MeetingStatusBadge status={meeting.status} /></div>
       <div className="mtg-detail-grid"><div className="mtg-stack">

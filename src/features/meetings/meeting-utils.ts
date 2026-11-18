@@ -60,3 +60,22 @@ export function meetingVenue(meeting: Pick<MeetingDetail, 'location' | 'onlineUr
   if (meeting.meetingDeliveryMode === 'REMOTE' || meeting.onlineUrl) return 'Họp trực tuyến'
   return 'Chưa xác định địa điểm'
 }
+
+export function extractTaskId(description: string | null | undefined): number | null {
+  if (!description) return null
+  const match = description.match(/(?:\[Task\s*#|<!--taskId:)(\d+)(?:\]|-->)/i)
+  return match ? Number(match[1]) : null
+}
+
+export function displayDescription(description: string | null | undefined): string {
+  if (!description) return ''
+  return description.replace(/(?:\[Task\s*#|<!--taskId:)(\d+)(?:\]|-->)\s*/gi, '').trim()
+}
+
+export function isPastVietnamDateTime(value: string | null | undefined, nowEpoch = Date.now()): boolean {
+  if (!value) return false
+  const epoch = /[zZ]$|[+-]\d{2}:\d{2}$/.test(value)
+    ? Date.parse(value)
+    : Date.parse(`${value}:00+07:00`)
+  return !Number.isNaN(epoch) && epoch <= nowEpoch
+}
