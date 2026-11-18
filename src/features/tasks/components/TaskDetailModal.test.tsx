@@ -115,4 +115,36 @@ describe('TaskDetailModal', () => {
     fireEvent.click(closeButton)
     expect(handleClose).toHaveBeenCalledOnce()
   })
+
+  it.each(['IN_REVIEW', 'DONE'])('locks assignment for %s even when the backend capability observation is stale', async status => {
+    api.getTask.mockResolvedValue({ ...task, status })
+    workflow.getTaskExecutionActions.mockResolvedValue({ taskId: 42, projectId: 9, status: 'IN_PROGRESS', concurrencyToken: 'token-42', actions: [
+      { code: 'assign_task', allowed: true, reasons: [] },
+      { code: 'change_task_status', allowed: true, reasons: [] },
+    ] })
+    renderModal()
+    await screen.findByRole('button', { name: 'Cập nhật trạng thái' })
+    expect(screen.queryByRole('button', { name: 'Phân công' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Lưu phân công' })).toBeNull()
+    expect(screen.getByText(/Phân công đã khóa khi chờ nghiệm thu hoặc hoàn thành/)).toBeTruthy()
+    expect(api.setTaskAssignees).not.toHaveBeenCalled()
+  })
+
+  it('requires a reason before reopening a completed task from the modal', async () => {
+    api.getTask.mockResolvedValue({ ...task, status: 'DONE' })
+    workflow.getTaskExecutionActions.mockResolvedValue({ taskId: 42, projectId: 9, status: 'DONE', concurrencyToken: 'token-42', actions: [
+      { code: 'change_task_status', allowed: true, reasons: [] },
+    ] })
+    renderModal()
+    const reason = await screen.findByRole('textbox', { name: 'Ghi chú thay đổi' }) as HTMLTextAreaElement
+    fireEvent.change(reason, { target: { value: '   ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cập nhật trạng thái' }))
+    expect(screen.getByText(/Cần ghi lý do thay đổi công việc đã hoàn thành/)).toBeTruthy()
+    expect(document.activeElement).toBe(reason)
+    expect(reason.value).toBe('   ')
+    expect(api.updateTaskStatus).not.toHaveBeenCalled()
+    fireEvent.change(reason, { target: { value: '  Điều chỉnh giao diện theo thiết kế mới  ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cập nhật trạng thái' }))
+    await vi.waitFor(() => expect(api.updateTaskStatus).toHaveBeenCalledExactlyOnceWith(42, { newStatus: 'IN_PROGRESS', reason: 'Điều chỉnh giao diện theo thiết kế mới', concurrencyToken: 'token-42' }))
+  })
 })

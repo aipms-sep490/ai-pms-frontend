@@ -6,6 +6,18 @@ export interface WorkflowErrorFeedback {
 }
 
 const verifiedErrors: Record<string, WorkflowErrorFeedback> = {
+  TASK_ASSIGNEES_LOCKED: {
+    message: 'Phân công đã khóa khi công việc chờ nghiệm thu, hoàn thành hoặc đã hủy. Trưởng nhóm hoặc GVHD cần mở lại công việc trước khi điều chỉnh.',
+    retryable: false,
+  },
+  TASK_REOPEN_REASON_REQUIRED: {
+    message: 'Cần ghi lý do khi thay đổi công việc đã hoàn thành để lưu lịch sử và kiểm tra ảnh hưởng.',
+    retryable: false,
+  },
+  TASK_DEPENDENCY_IMPACT_PENDING: {
+    message: 'Còn ảnh hưởng từ công việc tiền nhiệm chưa được kết luận. Trưởng nhóm hoặc GVHD cần đối chiếu trước khi xác nhận hoàn thành.',
+    retryable: false,
+  },
   EXECUTION_WINDOW_REQUIRED: {
     message: 'Đồ án chưa có kỳ thực hiện đang mở nên chưa nộp được hạng mục. Liên hệ bộ môn để mở kỳ.',
     retryable: false,

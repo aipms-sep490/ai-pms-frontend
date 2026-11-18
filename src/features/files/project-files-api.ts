@@ -12,6 +12,7 @@ export interface ProjectFile {
   sizeBytes: number
   uploadedBy: number
   createdAt: string
+  canDelete?: boolean
 }
 
 export interface ProjectFileFilters {

@@ -4,6 +4,15 @@ import * as api from './task-evidence-api'
 afterEach(() => { vi.unstubAllGlobals(); localStorage.clear() })
 
 describe('task evidence and comments contract', () => {
+  it('deletes evidence through the existing file resource without a request body', async () => {
+    localStorage.setItem('token', 'task-token')
+    const fetch = vi.fn().mockResolvedValue({ ok: true, status: 204 })
+    vi.stubGlobal('fetch', fetch)
+    await api.deleteTaskEvidence(42)
+    expect(fetch.mock.calls[0][0]).toBe('/api/v1/files/42')
+    expect(fetch.mock.calls[0][1].method).toBe('DELETE')
+    expect(fetch.mock.calls[0][1].body).toBeUndefined()
+  })
   it('binds uploads to the TASK parent and sends comments to the task resource', async () => {
     localStorage.setItem('token', 'task-token')
     const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 1 }) })

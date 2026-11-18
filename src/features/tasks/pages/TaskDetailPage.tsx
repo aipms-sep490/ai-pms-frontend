@@ -11,6 +11,7 @@ import { TaskEvidenceAndComments } from '../components/TaskEvidenceAndComments'
 import { TaskDisciplinePanel } from '../components/TaskDisciplinePanel'
 import { TaskLifecycleStepper } from '../components/TaskLifecycleStepper'
 import { TaskReviewCallout } from '../components/TaskReviewCallout'
+import { TaskDependencyImpactPanel } from '../components/TaskDependencyImpactPanel'
 import { useTaskExecutionCapabilities } from '../../execution/hooks/useTaskExecutionCapabilities'
 import { canUseTaskExecutionAction } from '../../execution/execution-authority'
 import * as disciplineApi from '../../projects/api/discipline-governance-api'
@@ -99,12 +100,14 @@ function TaskDetail({ id }: { id: number }) {
   const mentorScopeProven = access.actor !== 'mentor' || (mentorDisciplineScope === 'ready' && Boolean(access.supervisor?.majorId) && mentorDisciplineItems.some(item => item.majorId === access.supervisor?.majorId))
   const canUpdate = contextValid && canUseTaskExecutionAction(access, 'update_task', allowed('update_task'), mentorScopeProven)
   const canUpdateStatus = contextValid && canUseTaskExecutionAction(access, 'change_task_status', allowed('change_task_status'), mentorScopeProven)
-  const canAssign = contextValid && canUseTaskExecutionAction(access, 'assign_task', allowed('assign_task'), mentorScopeProven)
+  const taskResultLocked = !['TODO', 'IN_PROGRESS', 'BLOCKED'].includes(task.status)
+  const canReviewImpacts = contextValid && canUseTaskExecutionAction(access, 'review_task_dependency_impact', allowed('review_task_dependency_impact'), mentorScopeProven)
+  const canAssign = contextValid && !taskResultLocked && canUseTaskExecutionAction(access, 'assign_task', allowed('assign_task'), mentorScopeProven)
   const canManageDependencies = contextValid && canUseTaskExecutionAction(access, 'manage_task_dependencies', allowed('manage_task_dependencies'), mentorScopeProven)
   // The current replace payload cannot prove a mentor-only discipline write scope, so this remains fail-closed.
   const canManageDisciplines = contextValid && access.actor !== 'mentor' && canUseTaskExecutionAction(access, 'manage_task_disciplines', allowed('manage_task_disciplines'), mentorScopeProven)
   // This is the exact code published by the task execution-capability contract.
-  const canAddEvidence = contextValid && canUseTaskExecutionAction(access, 'add_task_evidence', allowed('add_task_evidence'), mentorScopeProven)
+  const canAddEvidence = contextValid && ['TODO', 'IN_PROGRESS', 'BLOCKED'].includes(task.status) && canUseTaskExecutionAction(access, 'add_task_evidence', allowed('add_task_evidence'), mentorScopeProven)
   const candidates = team?.members.map(member => ({ userId: member.userId, fullName: member.fullName })) ??
     [...new Map(allTasks.flatMap(item => item.assignees).map(person => [person.userId, person])).values()]
   const mayDelete = contextValid && canUseTaskExecutionAction(access, 'delete_task', allowed('delete_task'), mentorScopeProven)
@@ -131,14 +134,16 @@ function TaskDetail({ id }: { id: number }) {
     <div className="ex-detail-grid"><div>
       <section className="ex-panel"><div className="ex-panel-heading"><h2>Nội dung công việc</h2></div><div className="ex-padding ex-stack"><p className="ex-prose">{task.description?.trim() || 'Chưa có mô tả cho công việc này.'}</p><dl className="ex-facts"><div><dt>Bắt đầu dự kiến</dt><dd>{dateTimeLabel(task.startAt)}</dd></div><div><dt>Hạn hoàn thành</dt><dd>{dateTimeLabel(task.dueAt)}</dd></div>{task.parentTaskId && <div><dt>Thuộc công việc</dt><dd><Link className="ex-link" to={`${routeBase}/tasks/${task.parentTaskId}`}>{allTasks.find(item => item.id === task.parentTaskId)?.title ?? 'Xem công việc cha'}</Link></dd></div>}<div><dt>Mốc đồ án</dt><dd>{milestone ? (access.actor === 'mentor' ? milestone.title : <Link className="ex-link" to={`${routeBase}/milestones/${milestone.id}`}>{milestone.title}</Link>) : 'Đang tải thông tin mốc…'}</dd></div></dl></div></section>
       <section className="ex-panel"><div className="ex-panel-heading"><h2>Người phụ trách</h2>{canAssign && <button className="ex-text-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('assignees') }}>Phân công</button>}</div>
-        <div className="ex-padding">{editing === 'assignees' ? <AssigneeEditor key={task.updatedAt} task={task} candidates={candidates} busy={mutation.busy} onCancel={() => setEditing(null)} onSubmit={ids => mutation.run(() => services.task.setTaskAssignees(task.id, ids, task.concurrencyToken), saved)} />
+        <div className="ex-padding">{editing === 'assignees' && canAssign ? <AssigneeEditor key={task.updatedAt} task={task} candidates={candidates} busy={mutation.busy} onCancel={() => setEditing(null)} onSubmit={ids => mutation.run(() => services.task.setTaskAssignees(task.id, ids, task.concurrencyToken), saved)} />
           : <p className="ex-prose">{task.assignees.map(person => person.userFullName).join(', ') || 'Chưa phân công người phụ trách.'}</p>}{!team && editing === 'assignees' && <ExState message={teamLoadError ?? 'Chưa tải được danh sách thành viên nhóm. Bạn vẫn xem được công việc nhưng chưa giao được người phụ trách.'} retry={retryTeam} />}</div>
+        {taskResultLocked && <p className="ex-padding ex-muted">Phân công đã khóa khi chờ nghiệm thu hoặc hoàn thành. Nếu cần chỉnh sửa, trưởng nhóm hoặc GVHD phải mở lại công việc và ghi lý do.</p>}
       </section>
       <section className="ex-panel"><div className="ex-panel-heading"><div><h2>Công việc liên quan</h2><p>Các việc cần bắt đầu hoặc hoàn thành trước công việc này.</p></div>{canManageDependencies && <button className="ex-text-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('dependency') }}>Thêm liên kết</button>}</div>
         <div className="ex-padding">{task.dependencies.length ? <ul className="ex-dependencies">{task.dependencies.map(dependency => <li key={dependency.id}><div><Link className="ex-link" to={`${routeBase}/tasks/${dependency.dependsOnTaskId}`}>{allTasks.find(item => item.id === dependency.dependsOnTaskId)?.title ?? 'Xem công việc liên quan'}</Link><small>{dependencyLabels[dependency.dependencyType] ?? 'Liên kết công việc'}</small></div>{canManageDependencies && <button className="ex-text-button" disabled={mutation.busy} onClick={() => void mutation.run(() => services.task.removeTaskDependency(task.id, dependency.dependsOnTaskId, task.concurrencyToken), reload)}>Bỏ liên kết</button>}</li>)}</ul> : <p className="ex-muted">Chưa có liên kết với công việc khác.</p>}
           {editing === 'dependency' && <DependencyEditor tasks={allTasks.filter(item => item.id !== task.id && !task.dependencies.some(dependency => dependency.dependsOnTaskId === item.id))} busy={mutation.busy} onCancel={() => setEditing(null)} onSubmit={(dependsOnTaskId, dependencyType) => mutation.run(() => services.task.addTaskDependency({ taskId: task.id, dependsOnTaskId, dependencyType, concurrencyToken: task.concurrencyToken }), saved)} />}
         </div>
       </section>
+      {contextValid && <TaskDependencyImpactPanel key={task.id} taskId={task.id} taskStatus={task.status} concurrencyToken={task.concurrencyToken} routeBase={routeBase} revision={revision} canReview={canReviewImpacts} onTaskUpdated={reload} />}
       <section className="ex-panel"><div className="ex-panel-heading"><h2>Lịch sử cập nhật</h2></div><div className="ex-padding">{historyLoading ? <ExState loading /> : historyError ? <ExState message={historyError} retry={reload} /> : history.length ? <ol className="ex-history">{[...history].sort((a,b) => utcTimestamp(b.changedAt) - utcTimestamp(a.changedAt) || b.id - a.id).map(item => <li key={item.id}><strong>{item.oldStatus ? taskStatusLabel(item.oldStatus) : 'Tạo công việc'} → {taskStatusLabel(item.newStatus)}</strong><time>{dateTimeLabel(item.changedAt)} · {item.changedByFullName}</time>{item.reason && <p>{item.reason}</p>}</li>)}</ol> : <p className="ex-muted">Chưa có thay đổi trạng thái.</p>}</div></section>
       <TaskEvidenceAndComments taskId={task.id} projectId={project.id} majors={project.majors ?? []} mentorMajorId={access.actor === 'mentor' ? access.supervisor?.majorId ?? null : null} canAddEvidence={canAddEvidence} />
       <TaskDisciplinePanel taskId={task.id} majors={project.majors} canManage={canManageDisciplines} />
@@ -180,6 +185,16 @@ export function StatusEditor({ task, busy, onSubmit }: { task: TaskDto; busy: bo
     const reason = String(form.get('reason') ?? '')
     if (status === 'BLOCKED' && !reason.trim()) {
       setFieldError('Cần nhập lý do vướng mắc trước khi chuyển sang trạng thái Vướng mắc.')
+      reasonRef.current?.focus()
+      return
+    }
+    if (task.status === 'DONE' && status !== 'DONE' && !reason.trim()) {
+      setFieldError('Cần ghi lý do thay đổi công việc đã hoàn thành để lưu lịch sử và kiểm tra ảnh hưởng.')
+      reasonRef.current?.focus()
+      return
+    }
+    if (task.status === 'CANCELLED' && status === 'TODO' && !reason.trim()) {
+      setFieldError('Cần ghi lý do khôi phục công việc đã hủy để lưu lịch sử và kiểm tra ảnh hưởng nếu công việc từng hoàn thành.')
       reasonRef.current?.focus()
       return
     }

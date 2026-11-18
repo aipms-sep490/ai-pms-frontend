@@ -18,7 +18,7 @@ const cases: Array<[string[], string, Partial<Record<string, string>>]> = [
   [['SUPERVISOR_REQUEST_SENT', 'SUPERVISOR_REQUEST_ACCEPTED', 'SUPERVISOR_REQUEST_REJECTED', 'SUPERVISOR_REQUEST_CANCELLED', 'SUPERVISOR_REPLACED'], 'SUPERVISOR_REQUEST', { STUDENT: '/project/supervisor', LECTURER: '/supervisor/workspace' }],
   [['PROJECT_APPROVED', 'PROJECT_REJECTED', 'PROJECT_REVISION_REQUESTED', 'PROJECT_UPDATED'], 'PROJECT', { STUDENT: '/projects/lifecycle', LECTURER: '/supervisor/workspace', DEPARTMENT_STAFF: '/department/projects/review/17' }],
   [['SUPERVISOR_FEEDBACK_ADDED', 'PROGRESS_REPORT_SUBMITTED'], 'PROGRESS_REPORT', { STUDENT: '/project/reports/17', LECTURER: '/supervisor/workspace' }],
-  [['TASK_DEADLINE_REMINDER', 'TASK_OVERDUE'], 'TASK', { STUDENT: '/project/tasks/17', LECTURER: '/supervisor/workspace' }],
+  [['TASK_DEADLINE_REMINDER', 'TASK_OVERDUE', 'TASK_DEPENDENCY_IMPACT'], 'TASK', { STUDENT: '/project/tasks/17', LECTURER: '/supervisor/workspace' }],
   [['DELIVERABLE_DEADLINE_REMINDER', 'DELIVERABLE_OVERDUE', 'DELIVERABLE_SUBMITTED', 'DELIVERABLE_FEEDBACK_ADDED'], 'DELIVERABLE_VERSION', { STUDENT: '/project/deliverables', LECTURER: '/supervisor/workspace' }],
   [['MEETING_SCHEDULED', 'MEETING_START_REMINDER'], 'MEETING', { STUDENT: '/project/meetings/17', LECTURER: '/calendar' }],
   [['MEETING_ACTION_ASSIGNED'], 'MEETING_ACTION_ITEM', { STUDENT: '/project/meetings', LECTURER: '/calendar' }],
@@ -65,6 +65,7 @@ describe('recipient notification destinations', () => {
   it('rejects absent/wrong entity types and unknown or inherited event names', () => {
     for (const type of ['FUTURE_EVENT', '__proto__', 'constructor', 'GATE_FUTURE']) expect(resolveNotificationLink(item(type, 'PROJECT'), ['STUDENT'])).toBeNull()
     expect(resolveNotificationLink(item('MEETING_SCHEDULED', 'PROJECT'), ['STUDENT'])).toBeNull()
+    expect(resolveNotificationLink(item('TASK_DEPENDENCY_IMPACT', 'PROJECT'), ['STUDENT'])).toBeNull()
     expect(resolveNotificationLink({ ...item('TEAM_INVITATION_SENT', 'TEAM_INVITATION'), relatedEntityType: null }, ['STUDENT'])).toBeNull()
   })
   it('uses parent IDs for report/meeting feedback without treating request IDs as project IDs', () => {
