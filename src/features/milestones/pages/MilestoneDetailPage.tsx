@@ -27,12 +27,14 @@ export function MilestoneDetailPage() {
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [addingDependency, setAddingDependency] = useState(false)
+  const [selectedPredecessorId, setSelectedPredecessorId] = useState<number>(0)
   const [order, setOrder] = useState<MilestoneDto[] | null>(null)
   const milestoneCapabilities = useMilestoneExecutionCapabilities(Number(milestoneId), revision)
   const reload = () => setRevision(value => value + 1)
   const mutation = useExecutionMutation({ onForbidden: reload })
   const clearMutation = mutation.clear
-  useEffect(() => { setCreating(false); setEditing(false); setDeleting(false); setOrder(null); clearMutation() }, [milestoneId, project.id, clearMutation])
+  useEffect(() => { setCreating(false); setEditing(false); setDeleting(false); setAddingDependency(false); setSelectedPredecessorId(0); setOrder(null); clearMutation() }, [milestoneId, project.id, clearMutation])
   useEffect(() => {
     const controller = new AbortController(); setLoading(true); setError(''); setProgressError(''); setProgressLoading(true); setProgress([])
     services.milestone.getProjectMilestones(project.id, controller.signal).then(items => {
@@ -46,11 +48,41 @@ export function MilestoneDetailPage() {
   }, [project.id, revision])
   const selected = milestoneId ? milestones.find(item => item.id === Number(milestoneId)) : null
   const stats = progress.find(item => item.milestoneId === selected?.id)
+  const currentDependencies = selected?.dependencies ?? []
+  const availablePredecessors = selected
+    ? milestones.filter(item => item.id !== selected.id && !currentDependencies.some(d => d.dependsOnMilestoneId === item.id))
+    : []
   const actionCapability = (code: string) => milestoneCapabilities.get(code)
   const canUpdate = Boolean(selected) && canUseTaskExecutionAction(access, 'update_task', actionCapability('update_milestone'))
   const canDelete = Boolean(selected) && canUseTaskExecutionAction(access, 'delete_task', actionCapability('delete_milestone'))
   const save = (payload: import('../../../services/api/milestones.api').UpdateMilestonePayload) => selected
     ? mutation.run(() => services.milestone.updateMilestone(selected.id, { ...payload, concurrencyToken: selected.concurrencyToken }), () => { setEditing(false); reload() }) : Promise.resolve(false)
+  const addDependency = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!selected || !selectedPredecessorId) return
+    void mutation.run(
+      () => services.milestone.addMilestoneDependency({
+        milestoneId: selected.id,
+        dependsOnMilestoneId: selectedPredecessorId,
+        dependencyType: 'FINISH_TO_START',
+        concurrencyToken: selected.concurrencyToken,
+      }),
+      () => {
+        setAddingDependency(false)
+        setSelectedPredecessorId(0)
+        reload()
+      },
+      'Đã thêm liên kết phụ thuộc mốc.'
+    )
+  }
+  const removeDependency = (dependsOnMilestoneId: number) => {
+    if (!selected) return
+    void mutation.run(
+      () => services.milestone.removeMilestoneDependency(selected.id, dependsOnMilestoneId, selected.concurrencyToken),
+      () => reload(),
+      'Đã xóa liên kết phụ thuộc mốc.'
+    )
+  }
   function move(index: number, direction: number) {
     if (!order || index + direction < 0 || index + direction >= order.length) return
     const next = [...order]; [next[index], next[index + direction]] = [next[index + direction], next[index]]; setOrder(next)
@@ -70,6 +102,101 @@ export function MilestoneDetailPage() {
           <div className="ex-actions"><Link className="ex-button ex-button-primary" to={`${routeBase}/tasks?milestone=${selected.id}`}><ExIcon name="checklist" />Xem công việc của mốc</Link><Link className="ex-button" to={`${routeBase}/gantt`}>Xem lịch thực hiện</Link></div>
         </div>
       </section>
+      <section className="ex-panel" aria-label="Mối quan hệ phụ thuộc">
+        <div className="ex-panel-heading">
+          <div>
+            <h2>Mối quan hệ phụ thuộc (Milestone Dependencies)</h2>
+            <p>Mốc tiền nhiệm phải hoàn thành trước khi bắt đầu mốc này (Finish-to-Start).</p>
+          </div>
+          {canUpdate && availablePredecessors.length > 0 && !addingDependency && (
+            <button
+              className="ex-button"
+              type="button"
+              onClick={() => { setAddingDependency(true); mutation.clear() }}
+            >
+              <ExIcon name="add" />
+              Thêm mốc tiền nhiệm
+            </button>
+          )}
+        </div>
+        <div className="ex-padding ex-stack">
+          {addingDependency && (
+            <form className="ex-form ex-panel" onSubmit={addDependency} aria-label="Thêm quan hệ phụ thuộc">
+              <fieldset disabled={mutation.busy}>
+                <div className="ex-fields">
+                  <label className="ex-full">
+                    Mốc tiền nhiệm
+                    <select
+                      aria-label="Chọn mốc tiền nhiệm"
+                      value={selectedPredecessorId}
+                      onChange={e => setSelectedPredecessorId(Number(e.target.value))}
+                      required
+                    >
+                      <option value="0">-- Chọn mốc tiền nhiệm trong đồ án --</option>
+                      {availablePredecessors.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.title} {p.dueDate ? `(Hạn: ${dateLabel(p.dueDate)})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="ex-full">
+                    Kiểu quan hệ
+                    <input type="text" readOnly value="Hoàn thành → Bắt đầu (Finish-to-Start)" disabled />
+                  </label>
+                </div>
+                <div className="ex-form-footer mt-3">
+                  <button type="button" className="ex-button" onClick={() => setAddingDependency(false)}>
+                    Hủy
+                  </button>
+                  <button type="submit" className="ex-button ex-button-primary" disabled={!selectedPredecessorId || mutation.busy}>
+                    {mutation.busy ? 'Đang lưu…' : 'Thêm liên kết'}
+                  </button>
+                </div>
+              </fieldset>
+            </form>
+          )}
+
+          {currentDependencies.length === 0 ? (
+            <p className="ex-muted">
+              Mốc này không phụ thuộc mốc nào khác, có thể thực hiện song song với các mốc khác.
+            </p>
+          ) : (
+            <ul className="ex-stack" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {currentDependencies.map(dep => {
+                const pred = milestones.find(m => m.id === dep.dependsOnMilestoneId)
+                const depTitle = dep.dependsOnTitle || pred?.title || `Mốc #${dep.dependsOnMilestoneId}`
+                const dueDate = pred?.dueDate
+                return (
+                  <li
+                    key={dep.dependsOnMilestoneId}
+                    className="ex-order-row"
+                    style={{ background: 'var(--color-canvas)', borderRadius: 8, padding: '12px 16px' }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <strong>{depTitle}</strong>
+                      <div className="ex-muted" style={{ fontSize: '12px', marginTop: 4 }}>
+                        Kiểu: Hoàn thành mốc tiền nhiệm → Bắt đầu mốc này (Finish-to-Start)
+                        {dueDate && <span> · Hạn mốc tiền nhiệm: {dateLabel(dueDate)}</span>}
+                      </div>
+                    </div>
+                    {canUpdate && (
+                      <button
+                        type="button"
+                        className="ex-text-button ex-danger-text"
+                        disabled={mutation.busy}
+                        onClick={() => removeDependency(dep.dependsOnMilestoneId)}
+                      >
+                        Xóa liên kết
+                      </button>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+      </section>
       {canDelete && stats?.totalTasks === 0 && <button className="ex-text-button ex-danger-text" onClick={() => setDeleting(true)}>Xóa mốc</button>}
       {canUpdate && stats && stats.totalTasks > 0 && <p className="ex-muted">Mốc đã có công việc. Nếu dừng thực hiện, bạn có thể chọn trạng thái Đã hủy trong phần chỉnh sửa.</p>}
       {deleting && <ExConfirm title="Xóa mốc đồ án này?" description="Mốc chưa có công việc sẽ được xóa khỏi kế hoạch. Bạn cần tạo lại nếu muốn sử dụng sau này." busy={mutation.busy} onCancel={() => setDeleting(false)} onConfirm={() => void mutation.run(() => services.milestone.deleteMilestone(selected.id, selected.concurrencyToken), () => { navigate(`${routeBase}/milestones`, { replace: true }); reload() }, 'Đã xóa mốc đồ án.')} />}
@@ -78,7 +205,7 @@ export function MilestoneDetailPage() {
         {!milestones.length ? <ExState title="Nhóm chưa có mốc đồ án" message="Thêm mốc để xác định mục tiêu, thời gian và công việc cần hoàn thành." /> : order ? <>
           <ol>{order.map((item,index) => <li className="ex-order-row" key={item.id}><span className="ex-milestone-number">{String(index + 1).padStart(2,'0')}</span><strong>{item.title}</strong><button className="ex-button" aria-label={`Đưa ${item.title} lên`} disabled={mutation.busy || index === 0} onClick={() => move(index,-1)}><ExIcon name="arrow_upward" /></button><button className="ex-button" aria-label={`Đưa ${item.title} xuống`} disabled={mutation.busy || index === order.length - 1} onClick={() => move(index,1)}><ExIcon name="arrow_downward" /></button></li>)}</ol>
           <div className="ex-form ex-form-footer"><button className="ex-button" disabled={mutation.busy} onClick={() => setOrder(null)}>Hủy</button><button className="ex-button ex-button-primary" disabled={mutation.busy} onClick={() => void mutation.run(() => services.milestone.reorderMilestones(project.id, order.map((item,sortOrder) => ({ milestoneId:item.id, sortOrder, concurrencyToken: item.concurrencyToken }))), () => { setOrder(null); reload() }, 'Đã lưu thứ tự các mốc.')}>Lưu thứ tự</button></div>
-        </> : <ol>{milestones.map((item,index) => { const itemProgress = progress.find(entry => entry.milestoneId === item.id); return <li key={item.id}><Link className="ex-milestone-row" to={`${routeBase}/milestones/${item.id}`}><span className="ex-milestone-number">{String(index + 1).padStart(2,'0')}</span><div><h2>{item.title}</h2><p>{itemProgress ? `${itemProgress.totalTasks} công việc` : progressLoading ? 'Đang tải công việc…' : 'Chưa có số liệu công việc'}</p></div><span className={`ex-badge ex-badge-${item.status}`}>{milestoneLabels[item.status] ?? 'Chưa xác định'}</span><span className="ex-milestone-progress">{itemProgress ? <>{itemProgress.doneTasks}/{itemProgress.totalTasks} việc · {Math.round(itemProgress.progressPercentage)}%<ExProgress value={itemProgress.progressPercentage} label={`Tiến độ mốc ${item.title}`} /></> : progressLoading ? 'Đang tải tiến độ…' : 'Chưa có số liệu tiến độ'}</span><span className="ex-milestone-date">Hạn: {dateLabel(item.dueDate)}</span></Link></li> })}</ol>}
+        </> : <ol>{milestones.map((item,index) => { const itemProgress = progress.find(entry => entry.milestoneId === item.id); const deps = item.dependencies ?? []; return <li key={item.id}><Link className="ex-milestone-row" to={`${routeBase}/milestones/${item.id}`}><span className="ex-milestone-number">{String(index + 1).padStart(2,'0')}</span><div><h2>{item.title}</h2><p>{itemProgress ? `${itemProgress.totalTasks} công việc` : progressLoading ? 'Đang tải công việc…' : 'Chưa có số liệu công việc'}{deps.length > 0 ? ` · Phụ thuộc: ${deps.length} mốc` : ' · Chạy song song'}</p></div><span className={`ex-badge ex-badge-${item.status}`}>{milestoneLabels[item.status] ?? 'Chưa xác định'}</span><span className="ex-milestone-progress">{itemProgress ? <>{itemProgress.doneTasks}/{itemProgress.totalTasks} việc · {Math.round(itemProgress.progressPercentage)}%<ExProgress value={itemProgress.progressPercentage} label={`Tiến độ mốc ${item.title}`} /></> : progressLoading ? 'Đang tải tiến độ…' : 'Chưa có số liệu tiến độ'}</span><span className="ex-milestone-date">Hạn: {dateLabel(item.dueDate)}</span></Link></li> })}</ol>}
       </section>}
   </ExecutionPage>
 }

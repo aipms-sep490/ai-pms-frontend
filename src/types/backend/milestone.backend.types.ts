@@ -1,5 +1,16 @@
 export type BackendMilestoneStatus = 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
 
+export interface MilestoneDependencyDto {
+  id?: number
+  milestoneId: number
+  dependsOnMilestoneId: number
+  dependencyType: string
+  createdAt?: string
+  dependsOnTitle?: string | null
+  dependsOnMilestoneTitle?: string
+  dependsOnMilestoneDueDate?: string | null
+}
+
 export interface MilestoneDto {
   id: number
   projectId: number
@@ -14,6 +25,7 @@ export interface MilestoneDto {
   createdAt: string
   updatedAt: string
   concurrencyToken?: string
+  dependencies?: MilestoneDependencyDto[]
 }
 
 export interface MilestoneProgressDto {

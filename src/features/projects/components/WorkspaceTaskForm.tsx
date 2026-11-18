@@ -10,7 +10,7 @@ import '../pages/collaboration-workspace.css'
 import './workspace-task-form.css'
 
 export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCreated, initialDraft }: {
-  initialDraft?: Pick<AssistantDraft, 'title' | 'description' | 'task'>; project: ProjectDto; milestones: Pick<MilestoneDto, 'id' | 'title'>[]; members: TeamMemberDto[]; onCancel: () => void; onCreated: () => void
+  initialDraft?: Pick<AssistantDraft, 'title' | 'description' | 'task'>; project: ProjectDto; milestones: (Pick<MilestoneDto, 'id' | 'title'> & Partial<Pick<MilestoneDto, 'startDate' | 'dueDate'>>)[]; members: TeamMemberDto[]; onCancel: () => void; onCreated: () => void
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -32,6 +32,18 @@ export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCr
     if (!title || !milestones.some(item => item.id === milestoneId)) {
       setError('Nhập tên công việc và chọn mốc đồ án.'); return
     }
+    const selectedMilestone = milestones.find(item => item.id === milestoneId)
+    if (selectedMilestone && dueAt) {
+      const dueDateStr = dueAt.slice(0, 10)
+      if (selectedMilestone.startDate && dueDateStr < selectedMilestone.startDate) {
+        setError(`Hạn hoàn thành (${dueDateStr}) không được trước ngày bắt đầu của mốc (${selectedMilestone.startDate}).`)
+        return
+      }
+      if (selectedMilestone.dueDate && dueDateStr > selectedMilestone.dueDate) {
+        setError(`Hạn hoàn thành (${dueDateStr}) không được sau hạn của mốc (${selectedMilestone.dueDate}).`)
+        return
+      }
+    }
     const primaryId = Number(primary)
     const supporting = data.getAll('supportingMajor').map(Number).filter(id => id !== primaryId)
     if ((scope.interdisciplinary && !scope.majors.some(item => item.majorId === primaryId))
@@ -50,9 +62,13 @@ export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCr
       })
       onCreated()
     } catch (reason) {
-      setError(reason instanceof HttpError && reason.status === 403 ? 'Bạn chưa có quyền tạo công việc cho nhóm.'
-        : reason instanceof HttpError && reason.status === 409 ? 'Thông tin đồ án đã thay đổi. Cập nhật trang rồi thử lại.'
-        : 'Chưa tạo được công việc. Kiểm tra thông tin rồi thử lại.')
+      if (reason instanceof HttpError && reason.problem?.detail) {
+        setError(reason.problem.detail)
+      } else {
+        setError(reason instanceof HttpError && reason.status === 403 ? 'Bạn chưa có quyền tạo công việc cho nhóm.'
+          : reason instanceof HttpError && reason.status === 409 ? 'Thông tin đồ án đã thay đổi hoặc xung đột thời gian. Cập nhật trang rồi thử lại.'
+          : 'Chưa tạo được công việc. Kiểm tra thông tin rồi thử lại.')
+      }
     } finally { pending.current = false; setBusy(false) }
   }
   return <section className="cw-panel cw-create" aria-labelledby="create-task-heading">
@@ -66,8 +82,8 @@ export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCr
       {unresolved && scope.ready && <p role="status">Một số tên trong bản nháp chưa khớp duy nhất với đồ án. Vui lòng chọn lại mốc, ngành hoặc người phụ trách.</p>}
       <fieldset disabled={busy || !scope.ready} className="cw-form-fields">
         <label className="cw-full-width">Tên công việc<input autoFocus name="title" defaultValue={initialDraft?.title} required maxLength={255} placeholder="Ví dụ: Hoàn thiện màn hình đăng nhập" /></label>
-        <label>Mốc đồ án<select name="milestoneId" required value={milestone} onChange={event => setMilestoneChoice(event.target.value)}><option value="" disabled>Chọn mốc</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
-        <label><span>Hạn hoàn thành <span className="cw-optional">(không bắt buộc)</span></span><input name="dueAt" type="datetime-local" defaultValue={toMeetingInput(initialDraft?.task?.dueAt ?? null)} /><span className="cw-field-hint">Giờ Việt Nam (UTC+7)</span></label>
+        <label>Mốc đồ án<select name="milestoneId" required value={milestone} onChange={event => setMilestoneChoice(event.target.value)}><option value="" disabled>Chọn mốc</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}{item.startDate && item.dueDate ? ` (${item.startDate} → ${item.dueDate})` : ''}</option>)}</select></label>
+        <label><span>Hạn hoàn thành <span className="cw-optional">(không bắt buộc)</span></span><input name="dueAt" type="datetime-local" defaultValue={toMeetingInput(initialDraft?.task?.dueAt ?? null)} /><span className="cw-field-hint">Giờ Việt Nam (UTC+7){(() => { const m = milestones.find(item => String(item.id) === milestone); return m?.startDate && m?.dueDate ? ` · Hạn mốc: ${m.startDate} → ${m.dueDate}` : '' })()}</span></label>
         <label>Mức ưu tiên<select name="priority" defaultValue={initialDraft?.task?.priority ?? 'MEDIUM'}><option value="LOW">Thấp</option><option value="MEDIUM">Bình thường</option><option value="HIGH">Cao</option><option value="CRITICAL">Khẩn cấp</option></select></label>
         {scope.ready && <>
           <label>Ngành chính<select name="primaryMajor" value={primary} required={scope.interdisciplinary} onChange={event => setPrimary(event.target.value)}><option value="">{scope.interdisciplinary ? 'Chọn ngành chính' : 'Chưa phân loại'}</option>{scope.majors.map(item => <option key={item.majorId} value={item.majorId}>{item.majorName}</option>)}</select></label>
