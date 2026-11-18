@@ -13,6 +13,7 @@ import { TaskEvidenceAndComments } from './TaskEvidenceAndComments'
 import { TaskDisciplinePanel } from './TaskDisciplinePanel'
 import { TaskLifecycleStepper } from './TaskLifecycleStepper'
 import { TaskReviewCallout } from './TaskReviewCallout'
+import { TaskDependencyImpactPanel } from './TaskDependencyImpactPanel'
 import { useTaskExecutionCapabilities } from '../../execution/hooks/useTaskExecutionCapabilities'
 import { canUseTaskExecutionAction } from '../../execution/execution-authority'
 import * as disciplineApi from '../../projects/api/discipline-governance-api'
@@ -120,10 +121,12 @@ export function TaskDetailModal({
 
   const canUpdate = contextValid && canUseTaskExecutionAction(access, 'update_task', allowed('update_task'), mentorScopeProven)
   const canUpdateStatus = contextValid && canUseTaskExecutionAction(access, 'change_task_status', allowed('change_task_status'), mentorScopeProven)
-  const canAssign = contextValid && canUseTaskExecutionAction(access, 'assign_task', allowed('assign_task'), mentorScopeProven)
+  const taskResultLocked = !task || !['TODO', 'IN_PROGRESS', 'BLOCKED'].includes(task.status)
+  const canReviewImpacts = contextValid && canUseTaskExecutionAction(access, 'review_task_dependency_impact', allowed('review_task_dependency_impact'), mentorScopeProven)
+  const canAssign = contextValid && !taskResultLocked && canUseTaskExecutionAction(access, 'assign_task', allowed('assign_task'), mentorScopeProven)
   const canManageDependencies = contextValid && canUseTaskExecutionAction(access, 'manage_task_dependencies', allowed('manage_task_dependencies'), mentorScopeProven)
   const canManageDisciplines = contextValid && access.actor !== 'mentor' && canUseTaskExecutionAction(access, 'manage_task_disciplines', allowed('manage_task_disciplines'), mentorScopeProven)
-  const canAddEvidence = contextValid && canUseTaskExecutionAction(access, 'add_task_evidence', allowed('add_task_evidence'), mentorScopeProven)
+  const canAddEvidence = contextValid && Boolean(task && ['TODO', 'IN_PROGRESS', 'BLOCKED'].includes(task.status)) && canUseTaskExecutionAction(access, 'add_task_evidence', allowed('add_task_evidence'), mentorScopeProven)
   const candidates = team?.members.map(member => ({ userId: member.userId, fullName: member.fullName })) ??
     [...new Map(allTasks.flatMap(item => item.assignees).map(person => [person.userId, person])).values()]
   const mayDelete = contextValid && canUseTaskExecutionAction(access, 'delete_task', allowed('delete_task'), mentorScopeProven)
@@ -266,7 +269,7 @@ export function TaskDetailModal({
                       </button>
                     )}
                   </div>
-                  {editing === 'assignees' ? (
+                  {editing === 'assignees' && canAssign ? (
                     <AssigneeEditor
                       key={task.updatedAt}
                       task={task}
@@ -280,6 +283,7 @@ export function TaskDetailModal({
                       {task.assignees.map(person => person.userFullName).join(', ') || 'Chưa phân công người phụ trách.'}
                     </p>
                   )}
+                  {taskResultLocked && <p className="mt-2 text-xs text-ink-muted">Phân công đã khóa khi chờ nghiệm thu hoặc hoàn thành. Nếu cần chỉnh sửa, trưởng nhóm hoặc GVHD phải mở lại công việc và ghi lý do.</p>}
                   {!team && editing === 'assignees' && (
                     <ExState message={teamLoadError ?? 'Chưa tải được danh sách thành viên nhóm.'} retry={retryTeam} />
                   )}
@@ -342,6 +346,8 @@ export function TaskDetailModal({
                     />
                   )}
                 </section>
+
+                {contextValid && <TaskDependencyImpactPanel key={task.id} taskId={task.id} taskStatus={task.status} concurrencyToken={task.concurrencyToken} routeBase={routeBase} revision={revision} canReview={canReviewImpacts} onTaskUpdated={reload} />}
 
                 {/* Status Update / Action Verdict */}
                 <section className="rounded-lg border border-hairline bg-card p-4">

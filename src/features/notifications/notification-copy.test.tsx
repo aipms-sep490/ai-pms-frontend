@@ -5,7 +5,7 @@ import { NotificationRow } from './NotificationRow'
 import { notificationCopy } from './notification-copy'
 import type { NotificationItem } from './notifications-api'
 
-// Independent inventory of merged BE producers at a4cb6b5; see the G6 handoff.
+// Independent inventory of merged BE producers plus task dependency impact notifications.
 const producerTypes = [
   'TEAM_INVITATION_SENT', 'TEAM_INVITATION_ACCEPTED', 'TEAM_INVITATION_REJECTED', 'TEAM_INVITATION_CANCELLED',
   'SUPERVISOR_REQUEST_SENT', 'SUPERVISOR_REQUEST_ACCEPTED', 'SUPERVISOR_REQUEST_REJECTED', 'SUPERVISOR_REQUEST_CANCELLED',
@@ -13,7 +13,7 @@ const producerTypes = [
   'FINAL_SUBMISSION_LOCKED', 'EVALUATION_FINALIZED', 'PROJECT_RESULT_PUBLISHED', 'STUDENT_RESULT_PUBLISHED',
   'PROJECT_APPROVED', 'PROJECT_REJECTED', 'PROJECT_REVISION_REQUESTED', 'SUPERVISOR_FEEDBACK_ADDED',
   'EVALUATOR_ASSIGNED', 'COLD_EVALUATOR_ASSIGNED', 'SUPERVISOR_REPLACED', 'MEETING_SCHEDULED', 'PROGRESS_REPORT_SUBMITTED',
-  'TASK_DEADLINE_REMINDER', 'TASK_OVERDUE', 'DELIVERABLE_DEADLINE_REMINDER', 'DELIVERABLE_OVERDUE',
+  'TASK_DEADLINE_REMINDER', 'TASK_OVERDUE', 'TASK_DEPENDENCY_IMPACT', 'DELIVERABLE_DEADLINE_REMINDER', 'DELIVERABLE_OVERDUE',
   'FINAL_SUBMISSION_DEADLINE_REMINDER', 'FINAL_SUBMISSION_OVERDUE',
   'PROJECT_RISK_MEDIUM', 'PROJECT_RISK_HIGH', 'PROJECT_RISK_CRITICAL',
   'DELIVERABLE_SUBMITTED', 'MEETING_START_REMINDER', 'DEFENSE_SCHEDULED', 'DEFENSE_CANCELLED',
@@ -69,6 +69,7 @@ describe('Vietnamese notification copy', () => {
     ['TEAM_INVITATION_SENT', 'Bạn nhận được lời mời tham gia nhóm'],
     ['TEAM_INVITATION_CANCELLED', 'Lời mời tham gia nhóm đã được hủy'],
     ['REVIEW_GATE_UPDATED', 'Hồ sơ thẩm định tiến trình có cập nhật'],
+    ['TASK_DEPENDENCY_IMPACT', 'Cần kiểm tra ảnh hưởng từ công việc tiền nhiệm'],
     ['FUTURE_NOTIFICATION', 'Có cập nhật mới trên hệ thống'],
   ])('keeps raw title and content out of the %s inbox row', (type, title) => {
     render(<MemoryRouter><ul><NotificationRow item={item(type)} busy={false} onRead={() => {}} /></ul></MemoryRouter>)

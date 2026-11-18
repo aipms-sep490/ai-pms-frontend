@@ -146,6 +146,12 @@ const copyByType: Record<string, { title: string; content: string; label: string
     label: 'Cảnh báo quá hạn',
     icon: 'warning',
   },
+  TASK_DEPENDENCY_IMPACT: {
+    title: 'Cần kiểm tra ảnh hưởng từ công việc tiền nhiệm',
+    content: 'Công việc tiền nhiệm đã được mở lại. Hãy mở công việc liên quan để đối chiếu ảnh hưởng tới kết quả đã hoàn thành và xem quyết định xử lý.',
+    label: 'Ảnh hưởng công việc phụ thuộc',
+    icon: 'rule',
+  },
   DELIVERABLE_DEADLINE_REMINDER: {
     title: 'Hạng mục sắp đến hạn nộp',
     content: 'Một hạng mục sắp đến hạn nộp. Hãy kiểm tra yêu cầu và chuẩn bị phiên bản cần bàn giao.',

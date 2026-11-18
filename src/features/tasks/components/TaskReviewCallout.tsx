@@ -25,7 +25,7 @@ export function TaskReviewCallout({
       <div className="rounded-xl border border-status-success-border bg-status-success-bg/30 p-4 text-status-success-text mb-6">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-lg" aria-hidden="true">verified</span>
-          <span className="text-sm font-semibold">Công việc đã được nghiệm thu và hoàn thành đạt yêu cầu.</span>
+          <span className="text-sm font-semibold">Công việc đang được ghi nhận hoàn thành. Kiểm tra thêm cảnh báo ảnh hưởng từ công việc tiền nhiệm, nếu có.</span>
         </div>
       </div>
     )

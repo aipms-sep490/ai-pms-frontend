@@ -2,7 +2,7 @@ import type { ExecutionAccess } from './context/ExecutionAccessContext'
 import type { ExecutionActionCapability } from './hooks/useExecutionActionCapabilities'
 
 const structuralProjectActions = new Set(['create_task', 'create_milestone', 'reorder_milestones', 'create_progress_report', 'schedule_meeting'])
-const structuralTaskActions = new Set(['update_task', 'delete_task', 'assign_task', 'manage_task_dependencies'])
+const structuralTaskActions = new Set(['update_task', 'delete_task', 'assign_task', 'manage_task_dependencies', 'review_task_dependency_impact'])
 const mentorTaskActions = new Set(['change_task_status', 'add_task_evidence'])
 
 function activePrimarySupervisor(access: ExecutionAccess): boolean {

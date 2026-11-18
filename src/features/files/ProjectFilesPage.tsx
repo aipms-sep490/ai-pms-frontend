@@ -32,7 +32,6 @@ export function ProjectFilesPage() {
   const role = getWorkspaceRole(session?.user)
   const projectId = Number.isInteger(routeId) && routeId > 0 ? routeId : journey.project?.id
   const activeStudentProject = role === 'student' && journey.journeyState === 'ACTIVE' && journey.project?.id === projectId
-  const isLeader = activeStudentProject && Boolean(journey.team?.members.some(member => member.userId === session?.user.id && member.isLeader))
   // Student routes have the ACTIVE journey guard and supervisor routes have the current-assignment guard.
   // This merely avoids suggesting an upload on a staff read-only route; the server remains the write authority.
   const canUpload = activeStudentProject || (role === 'lecturer' && Number.isInteger(routeId) && routeId > 0)
@@ -159,7 +158,7 @@ export function ProjectFilesPage() {
   }
 
   async function remove() {
-    if (!deleteTarget) return
+    if (!deleteTarget || busy || !data?.items.some(file => file.id === deleteTarget.id && file.canDelete === true)) return
     setBusy(true); setError(null); setNotice(null)
     try {
       await api.deleteProjectFile(deleteTarget.id)
@@ -190,7 +189,7 @@ export function ProjectFilesPage() {
     }).finally(() => setBusy(false))
   }
 
-  const canDelete = (file: ProjectFile) => file.uploadedBy === session?.user.id || isLeader || (canUpload && role === 'lecturer')
+  const canDelete = (file: ProjectFile) => file.canDelete === true
   const inputClass = 'min-h-11 min-w-0 w-full rounded-md border border-hairline bg-card px-3 text-sm text-ink outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/15'
   return <WorkspacePage className="project-files-page space-y-5" title="Kho tệp đồ án" eyebrow={`Tài liệu đồ án • Đồ án #${projectId ?? '—'}`} description="Tìm và quản lý tài liệu theo công việc, báo cáo và cuộc họp của nhóm." action={data && !loading && <span className="text-sm text-ink-muted"><strong className="font-mono text-xl text-primary">{data.totalCount}</strong> tệp phù hợp</span>}>
     {error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-danger-text"><span>{error}</span><button type="button" className="min-h-10 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại</button></div>}
