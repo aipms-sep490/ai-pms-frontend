@@ -1,7 +1,7 @@
 import { useLayoutEffect, type RefObject } from 'react'
 
 /** Keep a message popup inside the scrollable history, including near its top edge. */
-export function useChatPopover(open: boolean, anchor: RefObject<HTMLElement | null>, popup: RefObject<HTMLElement | null>) {
+export function useChatPopover(open: boolean, anchor: RefObject<HTMLElement | null>, popup: RefObject<HTMLElement | null>, contentExpanded = false) {
   useLayoutEffect(() => {
     const trigger = anchor.current, content = popup.current
     const history = trigger?.closest('.chat-history')
@@ -35,5 +35,5 @@ export function useChatPopover(open: boolean, anchor: RefObject<HTMLElement | nu
       window.removeEventListener('resize', position)
       window.visualViewport?.removeEventListener('resize', position)
     }
-  }, [open, anchor, popup])
+  }, [open, anchor, popup, contentExpanded])
 }
