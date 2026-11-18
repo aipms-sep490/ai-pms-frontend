@@ -9,6 +9,8 @@ export interface UploadPolicy {
   allowedExtensions: string[]
   maxFilesPerRequest: number
   requiresVersionAnchor: boolean
+  chunkSizeBytes?: number | null
+  singleRequestMaxBytes?: number | null
 }
 
 const pending = new Map<string, Promise<UploadPolicy | null>>()

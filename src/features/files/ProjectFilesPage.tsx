@@ -3,7 +3,7 @@ import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { Pagination } from '../../components/ui/Pagination'
 import { FilterChips, type FilterChipItem } from '../../components/ui/FilterChips'
 import { dateTimeLabel } from '../execution/execution-utils'
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { useStudentJourney } from '../../app/context'
 import { services } from '../../services/service-gateway'
@@ -18,6 +18,7 @@ import type { FileParentType, ProjectFile, ProjectFileFilters } from './project-
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { ListLoading } from '../../components/ui/ListLoading'
 import { getUploadPolicy, uploadPolicyLabel, validateUploadFile, type UploadPolicy } from '../../services/api/upload-policies.api'
+import { cancelProjectFileUpload, getSavedProjectFileUploads, type ProjectFileUploadSession, type SavedProjectFileUpload } from './project-file-uploads'
 
 type ParentOption = { type: FileParentType; id: number; label: string }
 type FilterDraft = { search: string; contentType: string; uploadedBy: string; from: string; to: string; parentType: string }
@@ -88,6 +89,17 @@ export function ProjectFilesPage() {
   }, [uploadType])
   const [uploadParentId, setUploadParentId] = useState('')
   const [uploadFileName, setUploadFileName] = useState('Chưa chọn tệp')
+  const [uploadProgress, setUploadProgress] = useState<ProjectFileUploadSession | null>(null)
+  const [savedUploads, setSavedUploads] = useState<SavedProjectFileUpload[]>([])
+  const uploadController = useRef<AbortController | null>(null)
+  const uploadForm = useRef<HTMLFormElement | null>(null)
+  const ownerId = session?.user.id
+  const refreshSavedUploads = useCallback(() => setSavedUploads(ownerId == null ? [] : getSavedProjectFileUploads(ownerId)), [ownerId])
+  useEffect(() => {
+    refreshSavedUploads(); setUploadProgress(null); setUploadFileName('Chưa chọn tệp'); setUploadParentId(''); setBusy(false)
+    uploadForm.current?.reset()
+    return () => { uploadController.current?.abort(); uploadController.current = null }
+  }, [ownerId, projectId, refreshSavedUploads])
 
   const load = useCallback(async () => {
     if (!projectId) { setLoading(false); setData(null); return }
@@ -149,11 +161,8 @@ export function ProjectFilesPage() {
   async function download(file: ProjectFile) {
     setBusy(true); setError(null)
     try {
-      const blob = await api.downloadProjectFile(file.id)
-      const url = URL.createObjectURL(blob)
-      const anchor = document.createElement('a'); anchor.href = url; anchor.download = file.fileName; anchor.click()
-      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
-    } catch (reason) { setError(fileError(reason, 'tải tệp')) }
+      await api.saveProjectFile(file)
+    } catch (reason) { if (!(reason instanceof Error && reason.name === 'AbortError')) setError(fileError(reason, 'tải tệp')) }
     finally { setBusy(false) }
   }
 
@@ -172,24 +181,42 @@ export function ProjectFilesPage() {
 
   function upload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (uploadController.current || busy) return
     const formElement = event.currentTarget
-    const form = new FormData(formElement)
-    const file = form.get('file')
+    const input = formElement.elements.namedItem('file')
+    const file = input instanceof HTMLInputElement ? input.files?.[0] : undefined
     const parentId = Number(uploadParentId)
     if (!(file instanceof File) || !file.size) { setError('Hãy chọn một tệp để đính kèm.'); return }
     const policyError = validateUploadFile(file, uploadPolicy)
     if (policyError) { setError(policyError); return }
     if (!currentParents.some(parent => parent.id === parentId)) { setError('Chọn hạng mục hiện còn được phép đính kèm.'); return }
+    const controller = new AbortController()
+    uploadController.current = controller
     setBusy(true); setError(null); setNotice(null)
-    void api.uploadProjectFile(uploadType, parentId, file).then(async () => {
-      setUploadParentId(''); setUploadFileName('Chưa chọn tệp'); formElement.reset(); setNotice('Đã tải tệp lên. Danh sách đang được cập nhật.'); await load()
+    void api.uploadProjectFile(uploadType, parentId, file, {
+      ownerId, signal: controller.signal, useSession: Boolean(uploadPolicy?.chunkSizeBytes),
+      onProgress: progress => { if (uploadController.current === controller) setUploadProgress(progress) },
+    }).then(async () => {
+      if (uploadController.current !== controller) return
+      setUploadProgress(null); setUploadParentId(''); setUploadFileName('Chưa chọn tệp'); formElement.reset(); setNotice('Đã tải tệp lên. Danh sách đang được cập nhật.'); await load()
     }).catch(async reason => {
+      if (uploadController.current !== controller) return
+      if (controller.signal.aborted) { setNotice('Đã tạm dừng. Chọn lại đúng tệp nếu bạn quay lại trang, rồi bấm Tiếp tục tải.'); return }
       if (reason instanceof HttpError && reason.status === 409) await load()
-      setError(reason instanceof HttpError && reason.status === 409 ? 'Trạng thái hạng mục đã thay đổi. Danh sách đã được tải lại; hãy chọn lại trước khi tải tệp.' : fileError(reason, 'tải tệp lên'))
-    }).finally(() => setBusy(false))
+      setError(reason instanceof HttpError && reason.status === 409 ? 'Trạng thái hạng mục hoặc phiên tải đã thay đổi. Nội dung đã chọn được giữ lại; hãy kiểm tra rồi tiếp tục.' : reason instanceof HttpError ? fileError(reason, 'tải tệp lên') : reason instanceof Error ? reason.message : fileError(reason, 'tải tệp lên'))
+    }).finally(() => { if (uploadController.current === controller) { uploadController.current = null; setBusy(false); refreshSavedUploads() } })
+  }
+
+  async function cancelUpload(sessionId: string) {
+    if (ownerId == null || busy) return
+    setBusy(true); setError(null)
+    try { await cancelProjectFileUpload(sessionId, ownerId); setUploadProgress(null); refreshSavedUploads(); setNotice('Đã hủy phiên tải. Tệp trên máy của bạn vẫn được giữ nguyên.') }
+    catch (reason) { setError(fileError(reason, 'hủy phiên tải')) }
+    finally { setBusy(false) }
   }
 
   const canDelete = (file: ProjectFile) => file.canDelete === true
+  const resumableUploads = savedUploads.filter(saved => parents.some(parent => parent.type === saved.parentType && parent.id === saved.parentId))
   const inputClass = 'min-h-11 min-w-0 w-full rounded-md border border-hairline bg-card px-3 text-sm text-ink outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/15'
   return <WorkspacePage className="project-files-page space-y-5" title="Kho tệp đồ án" eyebrow={`Tài liệu đồ án • Đồ án #${projectId ?? '—'}`} description="Tìm và quản lý tài liệu theo công việc, báo cáo và cuộc họp của nhóm." action={data && !loading && <span className="text-sm text-ink-muted"><strong className="font-mono text-xl text-primary">{data.totalCount}</strong> tệp phù hợp</span>}>
     {error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-danger-text"><span>{error}</span><button type="button" className="min-h-10 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại</button></div>}
@@ -210,12 +237,28 @@ export function ProjectFilesPage() {
 
     {canUpload && <section className="workspace-surface workspace-surface-padding" aria-labelledby="upload-file-title">
       <div className="flex gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-md bg-primary-subtle text-primary"><span className="material-symbols-outlined text-[20px]" aria-hidden="true">upload_file</span></span><div><h2 id="upload-file-title" className="font-semibold text-ink">Đính kèm tệp</h2><p className="mt-1 text-sm leading-6 text-ink-muted">Chọn công việc, báo cáo hoặc cuộc họp để đính kèm tài liệu.</p><p role="status" className="mt-1 text-sm text-ink-muted">{uploadPolicy ? uploadPolicyLabel(uploadPolicy) : policyLoaded ? 'Chưa tải được chính sách tệp. Máy chủ sẽ kiểm tra khi tải lên.' : 'Đang tải chính sách tệp…'}</p></div></div>
-      {parentLoading ? <p role="status" className="mt-4 text-sm text-ink-muted">Đang xác nhận hạng mục có thể đính kèm…</p> : parentError ? <p role="alert" className="mt-4 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-danger-text">{parentError} <button type="button" className="font-semibold underline" onClick={() => setParentRevision(value => value + 1)}>Tải lại hạng mục</button></p> : <form className="mt-4 grid min-w-0 gap-3 md:grid-cols-[160px_minmax(0,1.3fr)_minmax(0,1fr)_auto] md:items-end" onSubmit={upload}>
+      {parentLoading ? <p role="status" className="mt-4 text-sm text-ink-muted">Đang xác nhận hạng mục có thể đính kèm…</p> : parentError ? <p role="alert" className="mt-4 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-danger-text">{parentError} <button type="button" className="font-semibold underline" onClick={() => setParentRevision(value => value + 1)}>Tải lại hạng mục</button></p> : <form ref={uploadForm} className="mt-4 grid min-w-0 gap-3 md:grid-cols-[160px_minmax(0,1.3fr)_minmax(0,1fr)_auto] md:items-end" onSubmit={upload}>
         <label className="flex min-w-0 flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-muted">Gắn với<select value={uploadType} disabled={busy} onChange={event => { setUploadType(event.target.value as FileParentType); setUploadParentId('') }} className={inputClass}><option value="TASK">Công việc</option><option value="REPORT">Báo cáo tiến độ</option><option value="MEETING">Cuộc họp</option></select></label>
         <label className="flex min-w-0 flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-muted">Hạng mục<select required value={uploadParentId} disabled={busy || !currentParents.length} onChange={event => setUploadParentId(event.target.value)} className={inputClass}><option value="">{currentParents.length ? 'Chọn hạng mục' : 'Không có hạng mục phù hợp'}</option>{currentParents.map(parent => <option key={`${parent.type}-${parent.id}`} value={parent.id}>{parent.label}</option>)}</select></label>
         <label className="flex min-w-0 flex-col gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-muted">Tệp<span className="relative grid min-h-11 min-w-0 grid-cols-[auto_minmax(0,1fr)] overflow-hidden rounded-md border border-hairline bg-card normal-case tracking-normal"><span className="flex items-center border-r border-hairline bg-primary-subtle px-3 text-xs font-semibold text-primary">Chọn tệp</span><span className="truncate px-3 py-3 text-xs font-medium text-ink-muted">{uploadFileName}</span><input required type="file" name="file" accept={uploadPolicy?.allowedExtensions.join(",")} disabled={busy || !currentParents.length} className="absolute inset-0 cursor-pointer opacity-0" onChange={event => setUploadFileName(event.target.files?.[0]?.name || 'Chưa chọn tệp')} /></span></label>
-        <button disabled={busy || !uploadParentId || !currentParents.length} className="min-h-11 rounded-md bg-primary px-5 text-sm font-semibold text-white shadow-primary transition-all hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50">{busy ? 'Đang tải…' : 'Tải lên'}</button>
+        <button disabled={busy || !uploadParentId || !currentParents.length} className="min-h-11 rounded-md bg-primary px-5 text-sm font-semibold text-white shadow-primary transition-all hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50">{busy ? 'Đang tải…' : uploadProgress || resumableUploads.some(saved => saved.parentType === uploadType && String(saved.parentId) === uploadParentId && saved.fileName === uploadFileName) ? 'Tiếp tục tải' : 'Tải lên'}</button>
       </form>}
+      {uploadPolicy?.chunkSizeBytes && <p className="mt-3 text-sm text-ink-muted">Có thể tạm dừng và tiếp tục tải. Khi quay lại trang, chọn lại đúng tệp để tiếp tục phần còn lại.</p>}
+      {uploadProgress && <div className="mt-4 rounded-md border border-hairline bg-canvas p-4">
+        <div role="status" aria-live="polite" className="text-sm text-ink">
+          <p className="break-words font-semibold">{uploadProgress.fileName}</p>
+          <p className="mt-1">{uploadProgress.state === 'PROCESSING' ? 'Đã gửi đủ dữ liệu. Máy chủ đang kiểm tra và lưu tệp…' : uploadProgress.state === 'FAILED' ? 'Chưa lưu được tệp. Bấm Tiếp tục tải để thử lưu lại, hoặc hủy phiên nếu cần chọn tệp khác.' : `${busy ? 'Đang tải' : 'Đã tạm dừng'}: ${formatBytes(uploadProgress.nextOffset)} / ${formatBytes(uploadProgress.totalBytes)} (${Math.floor(uploadProgress.nextOffset * 100 / Math.max(1, uploadProgress.totalBytes))}%)`}</p>
+        </div>
+        <progress aria-label="Tiến độ gửi tệp" className="mt-3 h-2 w-full accent-primary" max={uploadProgress.totalBytes} value={uploadProgress.nextOffset} />
+        <div className="mt-2 flex flex-wrap gap-2">
+          {busy && <button type="button" className="min-h-11 rounded-md border border-hairline bg-card px-3 text-sm font-semibold text-primary" onClick={() => uploadController.current?.abort()}>{uploadProgress.state === 'PROCESSING' ? 'Tạm dừng theo dõi' : 'Tạm dừng tải'}</button>}
+          {!busy && uploadProgress.state !== 'PROCESSING' && <button type="button" className="min-h-11 rounded-md px-3 text-sm font-semibold text-danger-text" onClick={() => void cancelUpload(uploadProgress.sessionId)}>Hủy phiên tải</button>}
+        </div>
+      </div>}
+      {!busy && resumableUploads.filter(saved => saved.sessionId !== uploadProgress?.sessionId).map(saved => <div key={saved.sessionId} className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-hairline bg-canvas p-3 text-sm">
+        <p className="min-w-0 break-words">Phiên tải chưa xác nhận hoàn tất: <strong>{saved.fileName}</strong> · {formatBytes(saved.sizeBytes)}</p>
+        <div className="flex flex-wrap gap-2"><button type="button" className="min-h-11 rounded-md bg-primary-subtle px-3 font-semibold text-primary" onClick={() => { setUploadType(saved.parentType); setUploadParentId(String(saved.parentId)); setUploadProgress(null); setNotice(`Chọn lại tệp “${saved.fileName}” có cùng kích thước và thời gian sửa, rồi bấm Tiếp tục tải để kiểm tra trạng thái và tiếp tục.`) }}>Chọn để tiếp tục</button><button type="button" className="min-h-11 rounded-md px-3 font-semibold text-danger-text" onClick={() => void cancelUpload(saved.sessionId)}>Hủy phiên</button></div>
+      </div>)}
     </section>}
 
     <section className="workspace-surface" aria-labelledby="project-file-list"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-4 sm:px-6"><div><h2 id="project-file-list" className="font-semibold text-ink">Tệp trong phạm vi đồ án</h2><p className="mt-1 text-xs text-ink-muted">Sắp xếp theo thời điểm cập nhật từ hệ thống.</p></div>{data && !loading && <span className="rounded-full border border-status-success-border bg-primary-subtle px-2.5 py-1 text-xs font-bold text-primary">{data.totalCount} tệp</span>}</div>
