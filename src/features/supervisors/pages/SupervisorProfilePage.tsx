@@ -78,15 +78,17 @@ export function SupervisorProfilePage() {
     }
   }
 
-  if (!session) return <main className="workspace-page mx-auto max-w-3xl p-6"><Link to="/login">Đăng nhập để cập nhật hồ sơ giảng viên.</Link></main>
-  return <main className="workspace-page mx-auto max-w-3xl supervisor-profile-page space-y-5 pb-12" aria-labelledby="supervisor-profile-title">
-    <header className="rounded-2xl border border-hairline bg-card p-6 shadow-xs">
-      <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Hồ sơ giảng viên</p>
-      <h1 id="supervisor-profile-title" className="mt-1 text-2xl font-bold text-ink">{session.user.fullName}</h1>
-      <p className="mt-1 text-sm text-ink-muted">Cập nhật chuyên môn, giới thiệu và khả năng nhận hướng dẫn đồ án.</p>
+  if (!session) return <div className="workspace-page p-6"><Link to="/login">Đăng nhập để cập nhật hồ sơ giảng viên.</Link></div>
+  return <div className="workspace-page supervisor-profile-page space-y-5 pb-12" aria-labelledby="supervisor-profile-title">
+    <header className="workspace-heading">
+      <div className="workspace-heading-copy">
+        <div className="workspace-context"><span className="workspace-kicker">Hồ sơ giảng viên</span></div>
+        <h1 id="supervisor-profile-title">{session.user.fullName}</h1>
+        <p>Cập nhật chuyên môn, giới thiệu và khả năng nhận hướng dẫn đồ án.</p>
+      </div>
     </header>
 
-    {error ? <div ref={summaryRef} role="alert" tabIndex={-1} className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-danger-text"><strong>Không thể lưu hồ sơ.</strong><p className="mt-1">{error}</p><Button className="mt-3" size="sm" variant="outline" onClick={() => void load()}>Tải lại</Button></div> : null}
+    {error ? <div ref={summaryRef} role="alert" tabIndex={-1} className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><strong>Không thể lưu hồ sơ.</strong><p className="mt-1">{error}</p><Button className="mt-3" size="sm" variant="outline" onClick={() => void load()}>Tải lại</Button></div> : null}
     {message ? <p role="status" className="rounded-xl border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{message}</p> : null}
     {loading ? <section role="status" className="rounded-2xl border border-hairline bg-card p-6 text-sm text-ink-muted">Đang tải hồ sơ giảng viên từ hệ thống…</section> : null}
     {!loading ? <form className="space-y-5 rounded-2xl border border-hairline bg-card p-6 shadow-xs" onSubmit={save} noValidate>
@@ -101,5 +103,5 @@ export function SupervisorProfilePage() {
       </section>
       <div className="flex flex-wrap gap-3"><Button type="submit" disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu hồ sơ giảng viên'}</Button><Button type="button" variant="secondary" disabled={saving} onClick={() => void load()}>Hủy thay đổi</Button></div>
     </form> : null}
-  </main>
+  </div>
 }
