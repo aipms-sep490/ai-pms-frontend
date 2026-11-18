@@ -35,7 +35,7 @@ export function LecturerWorkspacePage() {
   return (
     <WorkspacePage className="lecturer-workspace space-y-6" title="Hướng dẫn đồ án" eyebrow="Giảng viên hướng dẫn" description="Theo dõi tiến độ, góp ý cho nhóm và xử lý các đề nghị hướng dẫn." action={<Button variant="secondary" icon="refresh" disabled={inbox.loading} onClick={() => void inbox.refresh()}>Tải lại</Button>}>
 
-      {inbox.error ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-danger-text">{inbox.error.message}</section> : null}
+      {inbox.error ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{inbox.error.message}</section> : null}
 
       <section className="lecturer-projects" aria-labelledby="assigned-projects">
         <div className="flex flex-wrap items-end justify-between gap-2"><div><h2 id="assigned-projects" className="mt-1 text-lg font-bold">Đồ án đang hướng dẫn</h2><p className="mt-1 text-sm text-ink-muted">Chọn công việc, báo cáo hoặc cuộc họp để tiếp tục hướng dẫn nhóm.</p></div></div>
@@ -54,7 +54,7 @@ export function LecturerWorkspacePage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
-                  {assignments.map(item => <span key={item.id} className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${item.isPrimary ? 'bg-primary/15 text-primary' : 'bg-status-info-bg text-status-info-text'}`}>
+                  {assignments.map(item => <span key={item.id} className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${item.isPrimary ? 'border-primary/20 bg-primary-subtle text-primary' : 'border-tag-se/25 bg-tag-se-bg text-tag-se'}`}>
                     {item.isPrimary ? 'Hướng dẫn chính' : item.assignmentType === 'DISCIPLINE_MENTOR' ? 'Hướng dẫn chuyên ngành' : 'Đồng hướng dẫn'}{item.endedAt ? ' · Đã kết thúc' : ''}
                   </span>)}
                   <span className="text-xs text-ink-muted">· {project?.code ?? `#${assignment.projectId}`}</span>
