@@ -15,7 +15,7 @@ export function ResultHistoryPanel({ projectId, studentId }: { projectId: number
   useEffect(() => {
     const abort = new AbortController(), current = ++generation.current
     setBusy(true); setHistory(null); setResult(null); setError('')
-    const read = studentId == null ? results.getProjectResultHistory(projectId, page, 20, abort.signal) : results.getStudentResultHistory(projectId, studentId, page, 20, abort.signal)
+    const read = studentId == null ? results.getProjectResultHistory(projectId, page, 10, abort.signal) : results.getStudentResultHistory(projectId, studentId, page, 10, abort.signal)
     read.then(value => { if (current === generation.current) setHistory(value) }).catch(cause => { if (current === generation.current) setError(appealError(cause)) }).finally(() => { if (current === generation.current) setBusy(false) })
     return () => { abort.abort(); generation.current++ }
   }, [projectId, studentId, page, revision])

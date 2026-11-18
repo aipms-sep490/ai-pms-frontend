@@ -1,5 +1,5 @@
 import { HttpError } from '../../services/http/http-client'
-import { Button } from '../../components/ui/Button'
+import { Pagination } from '../../components/ui/Pagination'
 
 export function appealError(error: unknown): string {
   if (error instanceof HttpError) {
@@ -12,8 +12,18 @@ export function appealError(error: unknown): string {
   return 'Chưa đồng bộ được dữ liệu. Hãy thử tải lại.'
 }
 
-export function AppealPaging({ page, totalCount, busy, onChange }: { page: number; totalCount: number; busy: boolean; onChange: (page: number) => void }) {
-  return <nav aria-label="Phân trang" className="flex flex-wrap items-center gap-3 text-sm"><Button variant="secondary" disabled={busy || page <= 1} onClick={() => onChange(page - 1)}>Trang trước</Button><span>Trang {page} · {totalCount} mục</span><Button variant="secondary" disabled={busy || page * 20 >= totalCount} onClick={() => onChange(page + 1)}>Trang sau</Button></nav>
+export function AppealPaging({ page, totalCount, pageSize = 10, busy, onChange }: { page: number; totalCount: number; pageSize?: number; busy: boolean; onChange: (page: number) => void }) {
+  if (totalCount <= pageSize) return null
+  return (
+    <Pagination
+      page={page}
+      pages={Math.max(1, Math.ceil(totalCount / pageSize))}
+      total={totalCount}
+      pageSize={pageSize}
+      busy={busy}
+      onPage={onChange}
+    />
+  )
 }
 
 export async function saveAppealDownload(read: () => Promise<Blob>, fileName: string) {

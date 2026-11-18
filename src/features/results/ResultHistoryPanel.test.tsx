@@ -12,7 +12,7 @@ it('loads the exact selected published version and paginates using the server co
   expect(await screen.findByText('Phiên bản đã chọn: v2 · 8 · Đạt')).toBeTruthy()
   expect(api.getProjectResultVersion).toHaveBeenCalledWith(9, 2)
   fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
-  await waitFor(() => expect(api.getProjectResultHistory).toHaveBeenCalledWith(9, 2, 20, expect.any(AbortSignal)))
+  await waitFor(() => expect(api.getProjectResultHistory).toHaveBeenCalledWith(9, 2, 10, expect.any(AbortSignal)))
 })
 it('does not show a result returned for a different student or version', async () => {
   api.getStudentResultHistory.mockResolvedValue({ items: [{ version: 2, totalScore: 8, outcome: 'PASS', publishedAt: '2026-10-15T00:00:00Z' }], totalCount: 1 })
