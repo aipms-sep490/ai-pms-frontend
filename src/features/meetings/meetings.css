@@ -118,8 +118,8 @@
 .mtg-participants small { display: block; color: var(--color-ink-muted); font-size: 12px; }
 .mtg-participants + .mtg-form button { margin-top: 12px; width: 100%; }
 .mtg-help { font-size: 13px; margin-bottom: 12px !important; color: var(--color-ink-muted); }
-.mtg-notice, .mtg-confirm { padding: 16px 20px; margin-bottom: 18px; background: var(--color-status-warning-bg); border: 1px solid var(--color-status-warning-border); border-radius: 8px; color: var(--color-status-warning-text); overflow-wrap: anywhere; }
-.mtg-notice button, .mtg-confirm .mtg-actions { margin-top: 12px; }
+.mtg-notice { padding: 16px 20px; margin-bottom: 18px; background: var(--color-status-warning-bg); border: 1px solid var(--color-status-warning-border); border-radius: 8px; color: var(--color-status-warning-text); overflow-wrap: anywhere; }
+.mtg-notice button { margin-top: 12px; }
 
 /* Unified product treatment and video meeting states */
 .meetings :is(button, a, input, select, textarea):focus-visible { outline-color: var(--color-primary); }
@@ -159,11 +159,6 @@
 .mtg-video-actions { justify-content: flex-end; padding-top: 18px; border-top: 1px solid var(--color-hairline); }
 .mtg-video-denials { margin: 12px 0 18px; padding-left: 20px; color: var(--color-danger-text); }
 .mtg-video-governance { position: fixed; top: 56px; right: 0; z-index: var(--z-index-drawer); width: min(520px, 100%); height: calc(100dvh - 56px); overflow: auto; padding: 20px; border-left: 1px solid var(--color-hairline); background: #fff; box-shadow: -12px 0 36px color-mix(in oklab, var(--color-brand-navy) 12%, transparent); animation: mtg-drawer-in 280ms cubic-bezier(.16, 1, .3, 1) both; }
-.mtg-confirm { position: fixed; inset: 0; z-index: var(--z-index-modal-confirm); display: grid; place-content: center; margin: 0; padding: 24px; background: color-mix(in oklab, var(--color-brand-navy) 50%, transparent); backdrop-filter: blur(4px); color: var(--color-ink); }
-.mtg-confirm > p,
-.mtg-confirm > .mtg-actions { width: min(460px, calc(100vw - 32px)); margin: 0; padding: 18px 20px; background: #fff; }
-.mtg-confirm > p { border: 1px solid var(--color-hairline); border-bottom: 0; border-radius: 12px 12px 0 0; }
-.mtg-confirm > .mtg-actions { justify-content: flex-end; border: 1px solid var(--color-hairline); border-top: 0; border-radius: 0 0 12px 12px; }
 
 @keyframes mtg-drawer-in { from { opacity: 0; transform: translate3d(28px, 0, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
 
@@ -229,3 +224,22 @@
     animation: none;
   }
 }
+
+/* Action item task linkage & validation */
+.mtg-validation { color: var(--color-danger-text, #dc2626); font-size: 12px; margin-top: 4px; display: block; font-weight: 500; }
+.mtg-task-creation-opts { padding: 12px; border: 1px dashed var(--color-hairline); border-radius: 8px; background: var(--color-canvas); margin-top: 8px; }
+.mtg-task-params { margin-top: 10px; }
+.mtg-linked-task { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 8px; padding: 8px 12px; border-radius: 6px; background: var(--color-primary-subtle); border: 1px solid var(--color-status-success-border); font-size: 12.5px; }
+.mtg-linked-task-badge { font-weight: 600; color: var(--color-primary); }
+.mtg-task-status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+.mtg-task-status--neutral { background: #f3f4f6; color: #4b5563; }
+.mtg-task-status--info { background: #dbeafe; color: #1e40af; }
+.mtg-task-status--warning { background: #fef3c7; color: #92400e; }
+.mtg-task-status--success { background: #d1fae5; color: #065f46; }
+.mtg-task-status--danger { background: #fee2e2; color: #991b1b; }
+.mtg-task-milestone, .mtg-task-assignee { color: var(--color-ink-muted); font-size: 12px; }
+.mtg-task-link { margin-left: auto; text-decoration: none; font-weight: 600; }
+.mtg-action-link-task { margin-top: 6px; }
+.mtg-inline-create-task { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; padding: 10px 14px; border: 1px solid var(--color-hairline); border-radius: 8px; background: var(--color-canvas); margin-top: 8px; }
+.mtg-inline-create-task label { flex: 1 1 140px; }
+.mtg-button--small { min-height: 32px; padding: 4px 12px; font-size: 12px; }
