@@ -114,5 +114,20 @@ describe('workspace route registry', () => {
     expect(studentRoutes.find((r) => r.path === '/project/final-submission')?.group).toBe('4. Nghiệm thu & Bảo vệ')
     expect(studentRoutes.find((r) => r.path === '/projects/lifecycle')?.group).toBe('5. Hồ sơ & Đề tài')
   })
+
+  it('organizes department navigation into four governance groups', () => {
+    const departmentRoutes = getWorkspaceNavigation(access({ identityRole: 'department', identityRoles: ['DEPARTMENT_STAFF'] }))
+      .filter((route) => route.section === 'governance' && route.group)
+    expect(Array.from(new Set(departmentRoutes.map((route) => route.group)))).toEqual([
+      '1. Tổng quan & hồ sơ',
+      '2. Đề tài & hướng dẫn',
+      '3. Cấu hình học vụ',
+      '4. Review Gates & kiểm soát',
+    ])
+    expect(departmentRoutes.find((route) => route.path === '/department/workspace')?.group).toBe('1. Tổng quan & hồ sơ')
+    expect(departmentRoutes.find((route) => route.path === '/department/projects/review')?.group).toBe('2. Đề tài & hướng dẫn')
+    expect(departmentRoutes.find((route) => route.path === '/academic/governance')?.group).toBe('3. Cấu hình học vụ')
+    expect(departmentRoutes.find((route) => route.path === '/department/projects/progress-matrix')?.group).toBe('4. Review Gates & kiểm soát')
+  })
 })
 
