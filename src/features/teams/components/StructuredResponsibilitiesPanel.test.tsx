@@ -16,7 +16,7 @@ it('performs one successful readback when saving also refreshes the scope token'
   function ScopeOwner() {
     const [currentScope, setScope] = useState(scope)
     return <StructuredResponsibilitiesPanel teamId={7} scope={currentScope} majorNames={{ 1: 'SE' }} canEdit
-      onSaved={async () => { setScope({ ...scope, concurrencyToken: 'saved-scope' }) }} />
+      onSaved={async () => { setScope({ ...scope, concurrencyToken: 'saved-token' }) }} />
   }
   render(<ScopeOwner />)
   await screen.findByDisplayValue('Original')
@@ -32,6 +32,21 @@ const scope: TeamAcademicScopeDto = {
   requirements: [1, 2].map(majorId => ({ majorId, minMembers: 1, maxMembers: 5, responsibility: 'QA' })),
 }
 const response = (majorId: number, content: string, token: string) => ({ concurrencyToken: token, isSnapshot: false, isAvailable: true, items: [{ id: majorId, majorId, content, sortOrder: 0, concurrencyToken: token }] })
+
+it('does not repeat readback when the saved scope commits after the save lock is released', async () => {
+  api.getTeamResponsibilities.mockResolvedValueOnce(response(1, 'Original', 'scope'))
+    .mockResolvedValue(response(1, 'Saved work', 'saved-token'))
+  api.replaceTeamResponsibilities.mockResolvedValue(response(1, 'Saved work', 'saved-token'))
+  const props = { teamId: 7, scope, majorNames: { 1: 'SE' }, canEdit: true, onSaved: async () => {} }
+  const view = render(<StructuredResponsibilitiesPanel {...props} />)
+  await screen.findByDisplayValue('Original')
+  fireEvent.change(screen.getByLabelText('Trách nhiệm 1'), { target: { value: 'Saved work' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Lưu' }))
+  await screen.findByText('Đã lưu phân công và cập nhật điều kiện của nhóm.')
+  view.rerender(<StructuredResponsibilitiesPanel {...props} scope={{ ...scope, concurrencyToken: 'saved-token' }} />)
+  expect(api.getTeamResponsibilities).toHaveBeenCalledTimes(2)
+  expect(screen.getByDisplayValue('Saved work')).toBeDefined()
+})
 
 it('keeps the selected major content and token when the previous read arrives late', async () => {
   let finishOld!: (value: ReturnType<typeof response>) => void
