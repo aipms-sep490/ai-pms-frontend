@@ -112,7 +112,7 @@ export function ChatConversations({ id, onOpen, backTo }: { id?: string; onOpen:
       {(error || inboxError) && <p className="chat-error" role="alert">{error || inboxError} <button onClick={() => refresh()}>Tải lại</button></p>}
       <div className="chat-search-wrap">
         <span className="material-symbols-outlined" aria-hidden="true">search</span>
-        <input data-chat-list-focus value={filter} maxLength={100} onChange={e => setFilter(e.target.value)} placeholder="Tìm cuộc trò chuyện…" />
+        <input data-chat-list-focus aria-label="Tìm cuộc trò chuyện" type="search" value={filter} maxLength={100} onChange={e => setFilter(e.target.value)} placeholder="Tìm cuộc trò chuyện…" />
       </div>
       <nav className="chat-list" aria-label="Hộp thư">{rooms.slice(0, visibleCount).map(room => <button type="button" key={room.id} onClick={() => onOpen(room)} className={id === room.id ? 'active' : ''} aria-current={id === room.id ? 'true' : undefined}>
         <span className="chat-avatar" aria-hidden="true">{room.kind === 'DIRECT' ? room.title.trim().split(/\s+/).slice(-2).map(part => part[0]).join('') : <span className="material-symbols-outlined">groups</span>}</span>
@@ -120,7 +120,7 @@ export function ChatConversations({ id, onOpen, backTo }: { id?: string; onOpen:
         {room.unreadCount > 0 && <b aria-label={`${room.unreadCount} tin chưa đọc`}>{room.unreadCount > 99 ? '99+' : room.unreadCount}</b>}
       </button>)}
         {inboxLoading && <p role="status">Đang đồng bộ hộp thư…</p>}
-        {!inboxLoading && !rooms.length && !inboxError && <p>Chọn “Cuộc trò chuyện mới” để bắt đầu.</p>}
+        {!inboxLoading && !rooms.length && !inboxError && <p>{debouncedFilter ? 'Không có cuộc trò chuyện phù hợp. Thử từ khóa khác.' : 'Chọn “Cuộc trò chuyện mới” để bắt đầu.'}</p>}
         {visibleCount < rooms.length && <button onClick={() => setVisibleCount(n => n + 30)}>Cuộc trò chuyện trước</button>}
       </nav>
     </aside>
