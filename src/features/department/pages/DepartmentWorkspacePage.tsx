@@ -8,9 +8,11 @@ import { Button } from '../../../components/ui/Button'
 import { BulkActionBar } from '../../../components/ui/BulkActionBar'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
+import { Pagination } from '../../../components/ui/Pagination'
 import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../../components/ui/Table'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { useDepartmentSection as useSection, type Section } from '../hooks/useDepartmentSection'
 import { projectStatusLabel } from '../../projects/utils/project-status'
 import { HttpError } from '../../../services/http/http-client'
@@ -50,6 +52,8 @@ export function DepartmentWorkspacePage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [preSemReadiness, setPreSemReadiness] = useState<PreSemesterReadiness | null>(null)
+  const [portfolioSort, setPortfolioSort] = useState<'default' | 'title_asc' | 'code_asc'>('default')
+  const [portfolioPageSize, setPortfolioPageSize] = useState(10)
   const search = searchParams.get('q') ?? ''
   const status = searchParams.get('status') ?? ''
 
@@ -86,9 +90,9 @@ export function DepartmentWorkspacePage() {
     const results = await Promise.all(ids.map(id => getDepartmentUrgentActions(id)))
     return { asOfUtc: results[0].asOfUtc, totalCount: results.reduce((sum, result) => sum + result.totalCount, 0), hasMore: results.some(result => result.hasMore), items: results.flatMap(result => result.items) }
   }, [departmentIds])
-  const reviewRead = useCallback(() => token ? getReviewQueue({ page: 1, pageSize: 5 }, token) : Promise.reject(new HttpError('Unauthenticated', 401)), [token])
-  const attentionRead = useCallback(() => getPortfolioDashboard('department', { page: 1, pageSize: 20, semesterId }), [semesterId])
-  const portfolioRead = useCallback(() => getPortfolioDashboard('department', { page: portfolioPage, pageSize: 5, semesterId, search: debouncedSearch.trim() || undefined, status: status || undefined }), [portfolioPage, semesterId, debouncedSearch, status])
+  const reviewRead = useCallback(() => token ? getReviewQueue({ page: 1, pageSize: 10 }, token) : Promise.reject(new HttpError('Unauthenticated', 401)), [token])
+  const attentionRead = useCallback(() => getPortfolioDashboard('department', { page: 1, pageSize: 10, semesterId }), [semesterId])
+  const portfolioRead = useCallback(() => getPortfolioDashboard('department', { page: portfolioPage, pageSize: portfolioPageSize, semesterId, search: debouncedSearch.trim() || undefined, status: status || undefined }), [portfolioPage, portfolioPageSize, semesterId, debouncedSearch, status])
   const supervisorRead = useCallback(async (): Promise<SupervisorPage<Supervisor>> => {
     if (!token) throw new HttpError('Unauthenticated', 401)
     const ids = departmentIds.split(',').map(Number).filter(id => id > 0)
@@ -108,8 +112,18 @@ export function DepartmentWorkspacePage() {
   const supervisors = useSection<SupervisorPage<Supervisor>>(supervisorRead, emptySupervisors)
   const periods = academic.academic?.periods ?? []
   const departmentName = academic.academic?.departments.map(department => department.name).join(', ') || 'Bộ môn hiện tại'
-  const attention = useMemo(() => attentionPortfolio.data?.projects.items.filter((project) => project.pendingProgressReviews > 0 || (project.analysis?.progressSummary.blockedTasks ?? 0) > 0 || (project.analysis?.progressSummary.overdueTasks ?? 0) > 0).slice(0, 5) ?? [], [attentionPortfolio.data])
-  const visibleSelected = portfolio.data?.projects.items.filter(project => selectedIds.includes(project.id)) ?? []
+  const attention = useMemo(() => attentionPortfolio.data?.projects.items.filter((project) => project.pendingProgressReviews > 0 || (project.analysis?.progressSummary.blockedTasks ?? 0) > 0 || (project.analysis?.progressSummary.overdueTasks ?? 0) > 0) ?? [], [attentionPortfolio.data])
+  const reviewPager = useClientPagination(reviews.data?.items ?? [], 5)
+  const attentionPager = useClientPagination(attention, 5)
+  const periodPager = useClientPagination(periods, 12)
+  const sortedPortfolioItems = useMemo(() => {
+    const items = portfolio.data?.projects.items ?? []
+    if (portfolioSort === 'title_asc') return [...items].sort((a, b) => a.title.localeCompare(b.title, 'vi'))
+    if (portfolioSort === 'code_asc') return [...items].sort((a, b) => a.code.localeCompare(b.code, 'vi'))
+    return items
+  }, [portfolio.data?.projects.items, portfolioSort])
+  const portfolioClientPager = useClientPagination(sortedPortfolioItems, portfolioPageSize)
+  const visibleSelected = portfolioClientPager.paginatedItems.filter(project => selectedIds.includes(project.id))
   const statusOptions = [...(portfolio.data?.summary?.projectStates?.map(item => item.status) ?? [])]
   if (status && !statusOptions.includes(status)) statusOptions.push(status)
 
@@ -120,6 +134,7 @@ export function DepartmentWorkspacePage() {
   }
   function clearMiniFilters() {
     setSearchParams(prev => { const next = new URLSearchParams(prev); next.delete('q'); next.delete('status'); return next }, { replace: true })
+    setPortfolioSort('default')
     setPortfolioPage(1)
     setSelectedIds([])
   }
@@ -213,8 +228,8 @@ export function DepartmentWorkspacePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="space-y-3">
+        <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
+          <div className="flex h-full flex-col space-y-3 rounded-xl border border-hairline bg-card/80 p-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-ink flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">fact_check</span>
@@ -225,33 +240,46 @@ export function DepartmentWorkspacePage() {
               </span>
             </div>
 
-            <SectionState section={reviews} onRetry={reviews.refresh}>
-              <div className="space-y-2.5">
-                {reviews.data?.items.map((project) => (
-                  <article key={project.id} className="rounded-xl border border-hairline bg-card p-4 transition-all hover:border-primary/40 hover:shadow-2xs">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-xs font-mono font-bold text-primary">{project.code}</p>
-                        <h4 className="mt-1 break-words font-semibold text-ink text-sm">{project.title}</h4>
+            <div className="flex-1">
+              <SectionState section={reviews} onRetry={reviews.refresh}>
+                <div className="space-y-2.5">
+                  {reviewPager.paginatedItems.map((project) => (
+                    <article key={project.id} className="rounded-xl border border-hairline bg-card p-4 transition-all hover:border-primary/40 hover:shadow-2xs">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-xs font-mono font-bold text-primary">{project.code}</p>
+                          <h4 className="mt-1 break-words font-semibold text-ink text-sm">{project.title}</h4>
+                        </div>
+                        <StatusBadge tone={statusTone(project.status)} label={projectStatusLabel(project.status)} />
                       </div>
-                      <StatusBadge tone={statusTone(project.status)} label={projectStatusLabel(project.status)} />
-                    </div>
-                    <p className="mt-2 text-xs text-ink-muted truncate">
-                      {project.teamName} · {project.majors.map((major) => major.majorCode).join(', ') || 'Chưa xác định ngành'}
-                    </p>
-                    <div className="mt-3 flex justify-end">
-                      <Link className="workspace-action-link text-xs font-semibold" to={`/department/projects/review/${project.id}`}>
-                        Xem thẩm định
-                        <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
-                      </Link>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </SectionState>
+                      <p className="mt-2 text-xs text-ink-muted truncate">
+                        {project.teamName} · {project.majors.map((major) => major.majorCode).join(', ') || 'Chưa xác định ngành'}
+                      </p>
+                      <div className="mt-3 flex justify-end">
+                        <Link className="workspace-action-link text-xs font-semibold" to={`/department/projects/review/${project.id}`}>
+                          Xem thẩm định
+                          <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
+                        </Link>
+                      </div>
+                    </article>
+                  ))}
+                  {reviewPager.showPagination && (
+                    <Pagination
+                      page={reviewPager.page}
+                      pages={reviewPager.pages}
+                      total={reviewPager.total}
+                      pageSize={reviewPager.pageSize}
+                      pageSizeOptions={[5, 10, 12]}
+                      onPage={reviewPager.setPage}
+                      onPageSizeChange={reviewPager.setPageSize}
+                    />
+                  )}
+                </div>
+              </SectionState>
+            </div>
           </div>
 
-          <div id="attention" className="space-y-3">
+          <div id="attention" className="flex h-full flex-col space-y-3 rounded-xl border border-hairline bg-card/80 p-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-ink flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-status-warning-text" aria-hidden="true">warning</span>
@@ -262,37 +290,50 @@ export function DepartmentWorkspacePage() {
               )}
             </div>
 
-            <SectionState section={attentionPortfolio} onRetry={attentionPortfolio.refresh}>
-              {attention.length ? (
-                <div className="space-y-2.5">
-                  {attention.map((project) => (
-                    <article key={project.id} className="rounded-xl border border-hairline bg-card p-4 transition-all hover:border-status-warning-border hover:shadow-2xs">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h4 className="truncate font-semibold text-ink text-sm">{project.code} · {project.title}</h4>
-                          <div className="mt-2 flex flex-wrap gap-3 text-xs text-ink-muted">
-                            <Signal label="Báo cáo chờ duyệt" value={project.pendingProgressReviews} />
-                            <Signal label="Bị chặn" value={project.analysis?.progressSummary.blockedTasks ?? 0} />
-                            <Signal label="Quá hạn" value={project.analysis?.progressSummary.overdueTasks ?? 0} />
+            <div className="flex-1">
+              <SectionState section={attentionPortfolio} onRetry={attentionPortfolio.refresh}>
+                {attention.length ? (
+                  <div className="space-y-2.5">
+                    {attentionPager.paginatedItems.map((project) => (
+                      <article key={project.id} className="rounded-xl border border-hairline bg-card p-4 transition-all hover:border-status-warning-border hover:shadow-2xs">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h4 className="truncate font-semibold text-ink text-sm">{project.code} · {project.title}</h4>
+                            <div className="mt-2 flex flex-wrap gap-3 text-xs text-ink-muted">
+                              <Signal label="Báo cáo chờ duyệt" value={project.pendingProgressReviews} />
+                              <Signal label="Bị chặn" value={project.analysis?.progressSummary.blockedTasks ?? 0} />
+                              <Signal label="Quá hạn" value={project.analysis?.progressSummary.overdueTasks ?? 0} />
+                            </div>
                           </div>
+                          <Link
+                            className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg border border-hairline px-3 text-xs font-semibold text-primary transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                            to={`/department/projects/${project.id}/governance`}
+                          >
+                            Mở hồ sơ
+                          </Link>
                         </div>
-                        <Link
-                          className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg border border-hairline px-3 text-xs font-semibold text-primary transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                          to={`/department/projects/${project.id}/governance`}
-                        >
-                          Mở hồ sơ
-                        </Link>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-status-success-border bg-status-success-bg p-4 text-xs font-medium text-status-success-text flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
-                  Không có đồ án nào có tín hiệu cần chú ý ở thời điểm hiện tại.
-                </div>
-              )}
-            </SectionState>
+                      </article>
+                    ))}
+                    {attentionPager.showPagination && (
+                      <Pagination
+                        page={attentionPager.page}
+                        pages={attentionPager.pages}
+                        total={attentionPager.total}
+                        pageSize={attentionPager.pageSize}
+                        pageSizeOptions={[5, 10, 12]}
+                        onPage={attentionPager.setPage}
+                        onPageSizeChange={attentionPager.setPageSize}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2.5 rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-xs font-medium text-ink">
+                    <span className="material-symbols-outlined shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+                    <span>Không có đồ án nào có tín hiệu cần chú ý ở thời điểm hiện tại.</span>
+                  </div>
+                )}
+              </SectionState>
+            </div>
           </div>
         </div>
       </section>
@@ -336,10 +377,30 @@ export function DepartmentWorkspacePage() {
                 </select>
               </label>
             }
+            sort={{
+              value: portfolioSort,
+              onChange: (val) => setPortfolioSort(val as 'default' | 'title_asc' | 'code_asc'),
+              options: [
+                { value: 'default', label: 'Mặc định' },
+                { value: 'title_asc', label: 'Tên đồ án A–Z' },
+                { value: 'code_asc', label: 'Mã đồ án A–Z' },
+              ],
+            }}
+            rightActions={
+              <Button
+                variant="secondary"
+                size="sm"
+                icon="refresh"
+                aria-label="Tải lại"
+                disabled={portfolio.state === 'loading'}
+                onClick={() => portfolio.refresh()}
+              />
+            }
             activeChips={miniActiveChips}
             onRemoveChip={(id) => updateFilter(id as 'q' | 'status', '')}
             onClearAll={clearMiniFilters}
-            hasActiveFilters={miniActiveChips.length > 0}
+            hasActiveFilters={miniActiveChips.length > 0 || portfolioSort !== 'default'}
+            resultSummary={portfolio.data ? `${portfolioClientPager.paginatedItems.length} / ${portfolio.data.projects.totalCount} đồ án` : undefined}
           />
 
           <div className="p-4 sm:p-5">
@@ -361,37 +422,50 @@ export function DepartmentWorkspacePage() {
               </BulkActionBar>
               <Table stack aria-label="Danh mục đồ án">
                 <TableHead><TableRow head><TableHeaderCell>Chọn</TableHeaderCell><TableHeaderCell>Đồ án</TableHeaderCell><TableHeaderCell>Trạng thái</TableHeaderCell><TableHeaderCell>Mở hồ sơ</TableHeaderCell></TableRow></TableHead>
-                <TableBody>{portfolio.data.projects.items.map(project => <TableRow key={project.id}><TableCell label="Chọn"><input type="checkbox" aria-label={`Chọn ${project.code}`} checked={selectedIds.includes(project.id)} onChange={() => toggleProject(project.id)} /></TableCell><TableCell label="Đồ án"><strong className="block text-ink">{project.title}</strong><span className="font-mono text-xs text-ink-muted">{project.code} · {project.departmentName ?? departmentName}</span></TableCell><TableCell label="Trạng thái"><StatusBadge tone={statusTone(project.status)} label={projectStatusLabel(project.status)} /></TableCell><TableCell label="Mở hồ sơ"><Link to={`/department/projects/${project.id}/governance`} className="workspace-action-link">Xem hồ sơ</Link></TableCell></TableRow>)}</TableBody>
+                <TableBody>{portfolioClientPager.paginatedItems.map(project => <TableRow key={project.id}><TableCell label="Chọn"><input type="checkbox" aria-label={`Chọn ${project.code}`} checked={selectedIds.includes(project.id)} onChange={() => toggleProject(project.id)} /></TableCell><TableCell label="Đồ án"><strong className="block text-ink">{project.title}</strong><span className="font-mono text-xs text-ink-muted">{project.code} · {project.departmentName ?? departmentName}</span></TableCell><TableCell label="Trạng thái"><StatusBadge tone={statusTone(project.status)} label={projectStatusLabel(project.status)} /></TableCell><TableCell label="Mở hồ sơ"><Link to={`/department/projects/${project.id}/governance`} className="workspace-action-link">Xem hồ sơ</Link></TableCell></TableRow>)}</TableBody>
               </Table>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs text-ink-muted">Hiển thị {portfolio.data.projects.items.length} trong {portfolio.data.projects.totalCount} đồ án</p>
-                {portfolio.data.projects.totalPages > 1 && (
-                  <nav aria-label="Phân trang danh mục đồ án" className="flex items-center gap-3 text-xs">
-                    <Button size="sm" variant="secondary" disabled={portfolioPage <= 1} onClick={() => { setSelectedIds([]); setPortfolioPage(portfolioPage - 1) }}>Trang trước</Button>
-                    <span className="font-medium text-ink-muted">Trang {portfolio.data.projects.page} / {portfolio.data.projects.totalPages}</span>
-                    <Button size="sm" variant="secondary" disabled={portfolioPage >= portfolio.data.projects.totalPages} onClick={() => { setSelectedIds([]); setPortfolioPage(portfolioPage + 1) }}>Trang sau</Button>
-                  </nav>
-                )}
-              </div>
+              {portfolio.data.projects.totalPages > 1 ? (
+                <div className="mt-4">
+                  <Pagination
+                    page={portfolio.data.projects.page}
+                    pages={portfolio.data.projects.totalPages}
+                    total={portfolio.data.projects.totalCount}
+                    pageSize={portfolioPageSize}
+                    onPage={(nextPage) => { setSelectedIds([]); setPortfolioPage(nextPage) }}
+                    onPageSizeChange={(nextSize) => { setSelectedIds([]); setPortfolioPageSize(nextSize); setPortfolioPage(1) }}
+                  />
+                </div>
+              ) : portfolioClientPager.showPagination ? (
+                <div className="mt-4">
+                  <Pagination
+                    page={portfolioClientPager.page}
+                    pages={portfolioClientPager.pages}
+                    total={portfolioClientPager.total}
+                    pageSize={portfolioClientPager.pageSize}
+                    onPage={(nextPage) => { setSelectedIds([]); portfolioClientPager.setPage(nextPage) }}
+                    onPageSizeChange={(nextSize) => { setSelectedIds([]); portfolioClientPager.setPageSize(nextSize) }}
+                  />
+                </div>
+              ) : null}
             </> : <SectionState section={portfolio} onRetry={portfolio.refresh}><span /></SectionState>}
           </div>
         </section>
 
-        <nav aria-label="Lối tắt giám sát bộ môn" className="grid overflow-hidden rounded-xl border border-hairline bg-card sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-hairline">
-          <Link className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary" to="/department/supervisors">
-            <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">supervisor_account</span>
+        <nav aria-label="Lối tắt giám sát bộ môn" className="grid items-stretch overflow-hidden rounded-xl border border-hairline bg-card sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-hairline">
+          <Link className="flex h-full min-h-14 items-center gap-3 px-4 py-3 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary" to="/department/supervisors">
+            <span className="material-symbols-outlined text-[20px] shrink-0 text-primary" aria-hidden="true">supervisor_account</span>
             Giảng viên hướng dẫn
           </Link>
-          <Link className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary" to="/department/topics">
-            <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">lightbulb</span>
+          <Link className="flex h-full min-h-14 items-center gap-3 px-4 py-3 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary" to="/department/topics">
+            <span className="material-symbols-outlined text-[20px] shrink-0 text-primary" aria-hidden="true">lightbulb</span>
             Quản lý đề tài
           </Link>
-          <Link className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary" to="/department/student-qualifications">
-            <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">verified</span>
+          <Link className="flex h-full min-h-14 items-center gap-3 px-4 py-3 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary" to="/department/student-qualifications">
+            <span className="material-symbols-outlined text-[20px] shrink-0 text-primary" aria-hidden="true">verified</span>
             Xác minh điều kiện sinh viên
           </Link>
-          <Link className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary" to="/department/projects/archived">
-            <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">inventory_2</span>
+          <Link className="flex h-full min-h-14 items-center gap-3 px-4 py-3 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary" to="/department/projects/archived">
+            <span className="material-symbols-outlined text-[20px] shrink-0 text-primary" aria-hidden="true">inventory_2</span>
             Kho lưu trữ đồ án
           </Link>
         </nav>
@@ -413,8 +487,8 @@ export function DepartmentWorkspacePage() {
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div id="periods" className="space-y-3 lg:col-span-2">
+        <div className="grid items-stretch gap-6 lg:grid-cols-3">
+          <div id="periods" className="flex h-full flex-col space-y-3 lg:col-span-2">
             <h3 className="text-sm font-bold text-ink flex items-center gap-2">
               <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">date_range</span>
               Kỳ đồ án trong học kỳ
@@ -426,26 +500,38 @@ export function DepartmentWorkspacePage() {
               </p>
             ) : academic.status === 'ready' ? (
               periods.length ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {periods.map((period) => (
-                    <article key={period.id} className="rounded-xl border border-hairline bg-card p-4 space-y-2">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <p className="font-mono text-xs font-semibold uppercase text-primary">
-                            {displayLabel(period.periodType)}
-                          </p>
-                          <h4 className="mt-0.5 font-bold text-ink text-sm">{period.name}</h4>
+                <div className="flex flex-1 flex-col gap-3">
+                  <div className="grid flex-1 items-stretch gap-3 sm:grid-cols-2">
+                    {periodPager.paginatedItems.map((period) => (
+                      <article key={period.id} className="flex h-full flex-col justify-between gap-2 rounded-xl border border-hairline bg-card p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-mono text-xs font-semibold uppercase text-primary">
+                              {displayLabel(period.periodType)}
+                            </p>
+                            <h4 className="mt-0.5 font-bold text-ink text-sm">{period.name}</h4>
+                          </div>
+                          <StatusBadge
+                            tone={period.isOpen ? 'success' : period.status === 'ACTIVE' ? 'neutral' : 'info'}
+                            label={period.isOpen ? 'Đang mở' : period.status === 'ACTIVE' ? 'Ngoài thời gian mở' : displayLabel(period.status)}
+                          />
                         </div>
-                        <StatusBadge
-                          tone={period.isOpen ? 'success' : period.status === 'ACTIVE' ? 'neutral' : 'info'}
-                          label={period.isOpen ? 'Đang mở' : period.status === 'ACTIVE' ? 'Ngoài thời gian mở' : displayLabel(period.status)}
-                        />
-                      </div>
-                      <p className="font-mono text-xs text-ink-muted">
-                        {formatPeriodDate(period.startAtUtc)} → {formatPeriodDate(period.endAtUtc)}
-                      </p>
-                    </article>
-                  ))}
+                        <p className="font-mono text-xs text-ink-muted">
+                          {formatPeriodDate(period.startAtUtc)} → {formatPeriodDate(period.endAtUtc)}
+                        </p>
+                      </article>
+                    ))}
+                  </div>
+                  {periodPager.showPagination && (
+                    <Pagination
+                      page={periodPager.page}
+                      pages={periodPager.pages}
+                      total={periodPager.total}
+                      pageSize={periodPager.pageSize}
+                      onPage={periodPager.setPage}
+                      onPageSizeChange={periodPager.setPageSize}
+                    />
+                  )}
                 </div>
               ) : (
                 <p className="rounded-xl border border-hairline bg-card p-4 text-xs text-ink-muted">
@@ -459,12 +545,12 @@ export function DepartmentWorkspacePage() {
             )}
           </div>
 
-          <div className="space-y-3">
+          <div className="flex h-full flex-col space-y-3">
             <h3 className="text-sm font-bold text-ink flex items-center gap-2">
               <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">rule_settings</span>
               Thiết lập chính sách
             </h3>
-            <div className="rounded-xl border border-hairline bg-card p-3 flex flex-col gap-1.5">
+            <div className="flex flex-1 flex-col justify-between gap-1.5 rounded-xl border border-hairline bg-card p-3">
               <Link className="flex min-h-11 items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to="/academic/review-gates">
                 <span className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">rule_settings</span>
