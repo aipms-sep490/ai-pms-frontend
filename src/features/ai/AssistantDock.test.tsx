@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, useNavigate } from 'react-router-dom'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { AssistantDock } from './AssistantDock'
-import { floatingPanelEvent } from './assistant-dock-events'
+import { assistantOpenEvent, chatDockExpandedEvent, chatDockStateRequestEvent, floatingPanelEvent } from './assistant-dock-events'
 const state = vi.hoisted(() => ({ session: { user: { id: 1, roles: ['STUDENT'] } } as { user: { id: number; roles: string[] } } | null, enabled: true, riskEnabled: true }))
 vi.mock('../../app/config/env', () => ({ env: { get academicAiAssistantEnabled() { return state.enabled }, get aiProgressRiskEnabled() { return state.riskEnabled }, isMockMode: false } }))
 vi.mock('../auth/context/useAuthSession', () => ({ useAuthSession: () => ({ session: state.session }) }))
@@ -17,6 +17,44 @@ beforeEach(() => {
 })
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 const tree = () => <MemoryRouter initialEntries={['/profile']}><AssistantDock /></MemoryRouter>
+function ChatPageNavigation() {
+  const navigate = useNavigate()
+  return <>
+    <button onClick={() => navigate('/profile')}>Profile</button>
+    <button onClick={() => navigate('/messages/9')}>Messages</button>
+  </>
+}
+it.each(['/messages', '/messages/9'])('keeps the composer clear on %s and restores the launcher after navigation', path => {
+  render(<MemoryRouter initialEntries={[path]}><ChatPageNavigation /><AssistantDock /></MemoryRouter>)
+  expect(screen.queryByRole('button', { name: 'Mở trợ lý AI' })).toBeNull()
+  fireEvent(window, new Event(assistantOpenEvent))
+  expect(screen.getByRole('dialog', { name: 'Trợ lý AI' })).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Đóng trợ lý AI' }))
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(screen.queryByRole('button', { name: 'Mở trợ lý AI' })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Profile' }))
+  expect(screen.getByRole('button', { name: 'Mở trợ lý AI' })).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Messages' }))
+  expect(screen.queryByRole('button', { name: 'Mở trợ lý AI' })).toBeNull()
+})
+it('hides the launcher during chat expansion and restores it when chat closes', () => {
+  render(tree())
+  fireEvent(window, new CustomEvent(chatDockExpandedEvent, { detail: true }))
+  expect(screen.queryByRole('button', { name: 'Mở trợ lý AI' })).toBeNull()
+  fireEvent(window, new CustomEvent(chatDockExpandedEvent, { detail: false }))
+  expect(screen.getByRole('button', { name: 'Mở trợ lý AI' })).toBeTruthy()
+})
+it('requests current chat state on late mount and supports direct assistant opening', () => {
+  const respond = () => window.dispatchEvent(new CustomEvent(chatDockExpandedEvent, { detail: true }))
+  window.addEventListener(chatDockStateRequestEvent, respond)
+  try {
+    render(tree())
+    expect(screen.queryByRole('button', { name: 'Mở trợ lý AI' })).toBeNull()
+    fireEvent(window, new Event(assistantOpenEvent))
+    expect(screen.getByRole('dialog', { name: 'Trợ lý AI' })).toBeTruthy()
+    expect(document.querySelector('.assistant-launcher')).toBeTruthy()
+  } finally { window.removeEventListener(chatDockStateRequestEvent, respond) }
+})
 it('opens in place, keeps draft when minimized, restores focus and resets on user switch', () => {
   const view = render(tree())
   fireEvent.click(screen.getByRole('button', { name: 'Mở trợ lý AI' }))

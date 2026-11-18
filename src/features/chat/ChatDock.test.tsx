@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ChatDock } from './ChatDock'
+import { chatDockExpandedEvent, chatDockStateRequestEvent, floatingPanelEvent } from '../ai/assistant-dock-events'
 const mocks = vi.hoisted(() => ({ count: 0, denied: false, session: {user:{id:1}} as {user:{id:number}} | null }))
 vi.mock('../../app/config/env', () => ({ env: {chatEnabled:true,isMockMode:false} }))
 vi.mock('../auth/context/useAuthSession', () => ({useAuthSession: () => ({session:mocks.session})}))
@@ -16,6 +17,35 @@ beforeEach(() => {
 afterEach(() => {cleanup();vi.unstubAllGlobals()})
 const tree = () => <MemoryRouter initialEntries={['/profile']}><ChatDock /></MemoryRouter>
 describe('floating chat session and UI state', () => {
+  it('publishes expansion and restores other launchers on minimize, navigation and unmount', () => {
+    const states: boolean[] = []
+    const record = (event: Event) => states.push((event as CustomEvent<boolean>).detail)
+    window.addEventListener(chatDockExpandedEvent, record)
+    try {
+      const view = render(tree())
+      expect(states.at(-1)).toBe(false)
+      fireEvent.click(screen.getByRole('button', { name: 'Mở tin nhắn' }))
+      expect(states.at(-1)).toBe(true)
+      fireEvent(window, new Event(chatDockStateRequestEvent))
+      expect(states.at(-1)).toBe(true)
+      fireEvent.click(screen.getByRole('button', { name: 'Thu nhỏ tin nhắn' }))
+      expect(states.at(-1)).toBe(false)
+      fireEvent.click(screen.getByRole('button', { name: 'Mở lại tin nhắn' }))
+      fireEvent.click(screen.getByRole('link', { name: 'Mở trang tin nhắn' }))
+      expect(states.at(-1)).toBe(false)
+      view.unmount()
+      const reopened = render(tree())
+      fireEvent.click(screen.getByRole('button', { name: 'Mở tin nhắn' }))
+      reopened.unmount()
+      expect(states.at(-1)).toBe(false)
+    } finally { window.removeEventListener(chatDockExpandedEvent, record) }
+  })
+  it('keeps closed chat closed when the assistant opens', () => {
+    render(tree())
+    fireEvent(window, new CustomEvent(floatingPanelEvent, { detail: 'assistant' }))
+    expect(screen.getByRole('button', { name: 'Mở tin nhắn' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Mở lại tin nhắn' })).toBeNull()
+  })
   it('does not offer a launcher after the server denies chat access', () => {
     mocks.denied = true
     render(tree())
