@@ -29,10 +29,10 @@ const root = (p: number) => `/projects/${p}/result`
 const request = (p: number, id: number) => `${root(p)}/correction-requests/${id}`
 export const getAppealPolicy = (p: number, signal?: AbortSignal) => httpGet<AppealPolicy | null>(`${root(p)}/appeal-policy`, signal)
 export const recordAppealPolicy = (p: number, expectedVersion: number, approvalReference: string) => httpPost<AppealPolicy>(`${root(p)}/appeal-policy`, { expectedVersion, approvalReference })
-export const getAppealWindows = (p: number, page = 1, signal?: AbortSignal) => httpGet<PagedResult<AppealWindow>>(`${root(p)}/appeal-windows?page=${page}&pageSize=20`, signal)
+export const getAppealWindows = (p: number, page = 1, signal?: AbortSignal) => httpGet<PagedResult<AppealWindow>>(`${root(p)}/appeal-windows?page=${page}&pageSize=10`, signal)
 export const openAppealWindow = (p: number, body: { policyId: number; opensAt: string; closesAt: string; targets: AppealTarget[] }) => httpPost<AppealWindow>(`${root(p)}/appeal-windows`, body)
 export const closeAppealWindow = (p: number, id: number, concurrencyToken: string) => httpPost<AppealWindow>(`${root(p)}/appeal-windows/${id}/close`, { concurrencyToken })
-export const getResultCorrectionRequests = (p: number, page = 1, signal?: AbortSignal) => httpGet<PagedResult<ResultCorrectionRequest>>(`${root(p)}/correction-requests?page=${page}&pageSize=20`, signal)
+export const getResultCorrectionRequests = (p: number, page = 1, signal?: AbortSignal) => httpGet<PagedResult<ResultCorrectionRequest>>(`${root(p)}/correction-requests?page=${page}&pageSize=10`, signal)
 export const submitResultCorrectionRequest = (p: number, body: CreateCorrectionRequest) => httpPost<ResultCorrectionRequest>(`${root(p)}/correction-requests`, body)
 export const getCorrectionRequest = (p: number, id: number, signal?: AbortSignal) => httpGet<ResultCorrectionRequest>(request(p, id), signal)
 export const assignAppealReviewer = (p: number, id: number, concurrencyToken: string, reviewerId: number) => httpPost<ResultCorrectionRequest>(`${request(p, id)}/reviewer`, { concurrencyToken, reviewerId })
@@ -41,7 +41,7 @@ export const reviewAppeal = (p: number, id: number, body: { concurrencyToken: st
 export const previewAppeal = (p: number, id: number) => httpGet<AppealPreview>(`${request(p, id)}/preview`)
 export const decideAppeal = (p: number, id: number, body: { concurrencyToken: string; decision: 'ACCEPTED' | 'REJECTED'; reason: string; confirmationToken: string | null }) => httpPost<ResultCorrectionRequest>(`${request(p, id)}/decision`, body)
 export const withdrawCorrectionRequest = (p: number, id: number, body: { concurrencyToken: string; reason?: string }) => httpPost<ResultCorrectionRequest>(`${request(p, id)}/withdraw`, body)
-export const getAppealHistory = (p: number, id: number, page = 1, signal?: AbortSignal) => httpGet<PagedResult<AppealEvent>>(`${request(p, id)}/history?page=${page}&pageSize=20`, signal)
+export const getAppealHistory = (p: number, id: number, page = 1, signal?: AbortSignal) => httpGet<PagedResult<AppealEvent>>(`${request(p, id)}/history?page=${page}&pageSize=10`, signal)
 export const getAppealEvidence = (p: number, id: number, signal?: AbortSignal) => httpGet<AppealFile[]>(`${request(p, id)}/evidence`, signal)
 export const downloadAppealFile = (p: number, id: number, fileId: number, frozenEvidence = false) => httpGetBlob(`${request(p, id)}/${frozenEvidence ? 'evidence' : 'files'}/${fileId}`)
 export const uploadAppealFile = (p: number, id: number, concurrencyToken: string, file: File) => {

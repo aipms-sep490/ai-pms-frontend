@@ -11,7 +11,7 @@ it('uses server paging, explicit result targets and independent revision confirm
   await api.previewAppeal(9, 7)
   await api.decideAppeal(9, 7, { concurrencyToken: 'decision-token', decision: 'ACCEPTED', reason: 'Đã xác minh', confirmationToken: 'preview-token' })
   expect(fetch.mock.calls.map(([url, init]) => [url, init.method])).toEqual([
-    ['/api/v1/projects/9/result/correction-requests?page=3&pageSize=20', 'GET'], ['/api/v1/projects/9/result/correction-requests', 'POST'],
+    ['/api/v1/projects/9/result/correction-requests?page=3&pageSize=10', 'GET'], ['/api/v1/projects/9/result/correction-requests', 'POST'],
     ['/api/v1/projects/9/result/correction-requests/7/review', 'PUT'], ['/api/v1/projects/9/result/correction-requests/7/preview', 'GET'], ['/api/v1/projects/9/result/correction-requests/7/decision', 'POST'],
   ])
   expect(JSON.parse(fetch.mock.calls[1][1].body)).toMatchObject({ studentId: 88, resultVersion: 2, componentId: 6, windowId: 5 })
