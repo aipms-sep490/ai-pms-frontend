@@ -9,7 +9,7 @@ import { useAuthSession } from '../auth/context/useAuthSession'
 import { AcademicAssistantPanel } from './components/AcademicAssistantPanel'
 import { ProjectProgressAnalysisPanel } from './components/ProjectProgressAnalysisPanel'
 import { WorkflowAssistancePanel } from './components/WorkflowAssistancePanel'
-import { assistantOpenEvent, floatingPanelEvent } from './assistant-dock-events'
+import { assistantOpenEvent, chatDockExpandedEvent, chatDockStateRequestEvent, floatingPanelEvent } from './assistant-dock-events'
 import './assistant-dock.css'
 
 export function AssistantDock() {
@@ -30,12 +30,15 @@ export function AssistantDock() {
 
 function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, routeBase, workflowBase }: { scopeKey: string; projectId?: number; autoOpen: boolean; pageContext: string; routeBase?: string; workflowBase?: string }) {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const fullPageChat = pathname === '/messages' || pathname.startsWith('/messages/')
   const [open, setOpen] = useState(false)
+  const [chatExpanded, setChatExpanded] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [reset, setReset] = useState(0)
   const dialog = useRef<HTMLDialogElement>(null)
   const launcher = useRef<HTMLButtonElement>(null)
-  const show = () => { setMounted(true); setOpen(true); window.dispatchEvent(new CustomEvent(floatingPanelEvent, { detail: 'assistant' })) }
+  const show = () => { setMounted(true); setOpen(true); setChatExpanded(false); window.dispatchEvent(new CustomEvent(floatingPanelEvent, { detail: 'assistant' })) }
   const hide = () => { setOpen(false); launcher.current?.focus() }
   const useDraft = (draft: AssistantDraft) => {
     if (!routeBase || !projectId) return
@@ -53,9 +56,17 @@ function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, rout
   useEffect(() => {
     const openChat = () => show()
     const otherPanel = (event: Event) => { if ((event as CustomEvent).detail !== 'assistant') setOpen(false) }
+    const chatState = (event: Event) => setChatExpanded((event as CustomEvent).detail === true)
     window.addEventListener(assistantOpenEvent, openChat)
     window.addEventListener(floatingPanelEvent, otherPanel)
-    return () => { window.removeEventListener(assistantOpenEvent, openChat); window.removeEventListener(floatingPanelEvent, otherPanel) }
+    window.addEventListener(chatDockExpandedEvent, chatState)
+    // Request the current state when the assistant mounts after the chat dock.
+    window.dispatchEvent(new Event(chatDockStateRequestEvent))
+    return () => {
+      window.removeEventListener(assistantOpenEvent, openChat)
+      window.removeEventListener(floatingPanelEvent, otherPanel)
+      window.removeEventListener(chatDockExpandedEvent, chatState)
+    }
   }, [])
   useEffect(() => {
     const panel = dialog.current
@@ -95,9 +106,9 @@ function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, rout
       </header>
       {mounted && <AssistantDockContent key={scopeKey} projectId={projectId} reset={reset} workflowBase={workflowBase} onNavigate={path => { hide(); navigate(path) }} allowReportForm={routeBase === '/project'} pageContext={pageContext} onUseDraft={routeBase && projectId ? useDraft : undefined} onOpenEvidence={routeBase && projectId ? openEvidence : undefined} />}
     </dialog>
-    <button ref={launcher} type="button" className="assistant-launcher" aria-label={open ? 'Thu nhỏ trợ lý AI' : 'Mở trợ lý AI'} aria-expanded={open} aria-controls="assistant-dock-dialog" title="Trợ lý AI" onClick={open ? hide : show}>
+    {!chatExpanded && (!fullPageChat || open) && <button ref={launcher} type="button" className="assistant-launcher" aria-label={open ? 'Thu nhỏ trợ lý AI' : 'Mở trợ lý AI'} aria-expanded={open} aria-controls="assistant-dock-dialog" title="Trợ lý AI" onClick={open ? hide : show}>
       <span className="material-symbols-outlined" aria-hidden="true">{open ? 'expand_more' : 'auto_awesome'}</span><span className="assistant-launcher-badge" aria-hidden="true">AI</span>
-    </button>
+    </button>}
   </div>
 }
 

@@ -9,7 +9,7 @@ import { ChatThread } from './ChatThread'
 import { ChatLauncher } from './ChatLauncher'
 import { chatConnectionLabel } from './chat-events'
 import './chat.css'
-import { floatingPanelEvent } from '../ai/assistant-dock-events'
+import { chatDockExpandedEvent, chatDockStateRequestEvent, floatingPanelEvent } from '../ai/assistant-dock-events'
 
 export type ChatDockView = { type: 'closed' } | { type: 'list' } | { type: 'conversation'; conversationId: string } | { type: 'minimized'; conversationId?: string }
 export function ChatDock() {
@@ -32,12 +32,21 @@ function SessionChatDock({ userId }: { userId: string }) {
 
   useEffect(() => {
     const closeOther = (event: Event) => {
-      if ((event as CustomEvent).detail !== 'messages') setView(current => current.type === 'conversation' ? { type: 'minimized', conversationId: current.conversationId } : { type: 'minimized' })
+      if ((event as CustomEvent).detail !== 'messages') setView(current => current.type === 'conversation' ? { type: 'minimized', conversationId: current.conversationId } : current.type === 'list' ? { type: 'minimized' } : current)
     }
     window.addEventListener(floatingPanelEvent, closeOther)
     return () => window.removeEventListener(floatingPanelEvent, closeOther)
   }, [])
   useEffect(() => { if (expanded) window.dispatchEvent(new CustomEvent(floatingPanelEvent, { detail: 'messages' })) }, [expanded])
+  useEffect(() => {
+    const publish = () => window.dispatchEvent(new CustomEvent(chatDockExpandedEvent, { detail: expanded }))
+    window.addEventListener(chatDockStateRequestEvent, publish)
+    publish()
+    return () => {
+      window.removeEventListener(chatDockStateRequestEvent, publish)
+      window.dispatchEvent(new CustomEvent(chatDockExpandedEvent, { detail: false }))
+    }
+  }, [expanded])
 
   useEffect(() => {
     if (unreadCount > prevUnreadRef.current && !expanded) {

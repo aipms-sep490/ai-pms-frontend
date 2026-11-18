@@ -27,6 +27,79 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 const mount = () => render(<MemoryRouter><ChatThread id="9" userId="3" /></MemoryRouter>)
 describe('chat business and failure boundaries', () => {
+  it('keeps conversation details collapsed and preserves a draft while viewing members', async () => {
+    mocks.members.mockResolvedValue({ items: [{ userId: '2', fullName: 'Giảng viên A', lastReadSequence: null }], nextCursor: null, hasMore: false })
+    const rendered = mount()
+    await screen.findByText(message.body)
+    const input = screen.getByRole('textbox', { name: 'Tin nhắn' })
+    fireEvent.change(input, { target: { value: 'Đang soạn nội dung' } })
+    const info = rendered.container.querySelector<HTMLDetailsElement>('.chat-info')!
+    expect(info.open).toBe(false)
+    fireEvent.click(within(info).getByText('Thông tin cuộc trò chuyện'))
+    expect(info.open).toBe(true)
+    expect(within(info).getByLabelText('Thông báo')).toBeTruthy()
+    expect(within(info).getByText('Giảng viên A')).toBeTruthy()
+    fireEvent.click(within(info).getByText('Thông tin cuộc trò chuyện'))
+    expect(info.open).toBe(false)
+    expect((input as HTMLTextAreaElement).value).toBe('Đang soạn nội dung')
+  })
+
+  it('keeps reply drafts when cancelled and focuses the composer', async () => {
+    const rendered = mount()
+    await screen.findByText(message.body)
+    const input = screen.getByRole('textbox', { name: 'Tin nhắn' })
+    fireEvent.change(input, { target: { value: 'Bản nháp đang viết' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Trả lời tin nhắn' }))
+    expect(document.activeElement).toBe(input)
+    fireEvent.click(within(rendered.container.querySelector('.chat-reply-draft')!).getByRole('button', { name: 'Hủy' }))
+    expect((input as HTMLTextAreaElement).value).toBe('Bản nháp đang viết')
+    expect(rendered.container.querySelector('.chat-reply-draft')).toBeNull()
+  })
+
+  it('dismisses message actions with Escape before the surrounding dock', async () => {
+    const closeDock = vi.fn()
+    render(<div onKeyDown={closeDock}><MemoryRouter><ChatThread id="9" userId="3" /></MemoryRouter></div>)
+    await screen.findByText(message.body)
+    const toggle = screen.getByLabelText('Thêm thao tác với tin nhắn')
+    fireEvent.click(toggle)
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Sửa tin nhắn' }), { key: 'Escape' })
+    expect((toggle.parentElement as HTMLDetailsElement).open).toBe(false)
+    expect(document.activeElement).toBe(toggle)
+    expect(closeDock).not.toHaveBeenCalled()
+  })
+
+  it('opens edit and recall from the compact menu without submitting prematurely', async () => {
+    const rendered = mount()
+    await screen.findByText(message.body)
+    const toggle = screen.getByLabelText('Thêm thao tác với tin nhắn')
+    fireEvent.click(toggle)
+    fireEvent.click(screen.getByRole('button', { name: 'Sửa tin nhắn' }))
+    const input = screen.getByRole('textbox', { name: 'Tin nhắn' }) as HTMLTextAreaElement
+    expect(input.value).toBe(message.body)
+    expect(document.activeElement).toBe(input)
+    expect((toggle.parentElement as HTMLDetailsElement).open).toBe(false)
+    fireEvent.click(within(rendered.container.querySelector('.chat-reply-draft')!).getByRole('button', { name: 'Hủy' }))
+    fireEvent.click(toggle)
+    fireEvent.click(screen.getByRole('button', { name: 'Thu hồi tin nhắn' }))
+    expect(screen.getByRole('group', { name: 'Xác nhận thu hồi' })).toBeTruthy()
+    expect((toggle.parentElement as HTMLDetailsElement).open).toBe(false)
+    expect(mocks.send).not.toHaveBeenCalled()
+  })
+
+  it('sends once on Enter while allowing Shift+Enter and IME composition', async () => {
+    mocks.send.mockResolvedValue({ ...message, id: '2', sequence: '2', body: 'Nội dung mới' })
+    mount()
+    await screen.findByText(message.body)
+    const input = screen.getByRole('textbox', { name: 'Tin nhắn' })
+    fireEvent.change(input, { target: { value: 'Nội dung mới' } })
+    fireEvent.keyDown(input, { key: 'Enter', shiftKey: true })
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: true })
+    expect(mocks.send).not.toHaveBeenCalled()
+    fireEvent.keyDown(input, { key: 'Enter' })
+    await screen.findByText('Nội dung mới')
+    expect(mocks.send).toHaveBeenCalledTimes(1)
+  })
+
   it('shows only server-recorded readers and keeps message actions in a compact menu', async () => {
     mocks.messages.mockResolvedValue({ items: [{ ...message, senderId: '3', senderName: 'Tôi' }], nextCursor: null, hasMore: false })
     mocks.members.mockResolvedValue({ items: [
@@ -150,8 +223,11 @@ describe('chat business and failure boundaries', () => {
     mount()
     await screen.findByText(message.body)
     expect((screen.getByLabelText('Tin nhắn') as HTMLTextAreaElement).disabled).toBe(true)
-    expect(screen.queryByRole('button', { name: 'Sửa' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Thu hồi' })).toBeNull()
+    expect(screen.queryByLabelText('Thêm thao tác với tin nhắn')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Trả lời tin nhắn' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Thả cảm xúc' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Sửa tin nhắn' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Thu hồi tin nhắn' })).toBeNull()
     expect(mocks.send).not.toHaveBeenCalled()
   })
   it('clears protected messages and drafts immediately on access revocation', async () => {

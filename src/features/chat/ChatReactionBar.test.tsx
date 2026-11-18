@@ -33,4 +33,24 @@ describe('ChatReactionBar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Thả ❤️' }))
     expect(onToggle).toHaveBeenCalledWith('❤️')
   })
+
+  it('dismisses the picker with Escape before the surrounding dock and restores focus', () => {
+    const closeDock = vi.fn()
+    render(<div onKeyDown={closeDock}><ChatReactionBar reactions={[]} canReact onToggle={() => {}} /></div>)
+    const trigger = screen.getByRole('button', { name: 'Thả cảm xúc' })
+    fireEvent.click(trigger)
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Thả ❤️' }), { key: 'Escape' })
+    expect(screen.queryByRole('group', { name: 'Chọn cảm xúc' })).toBeNull()
+    expect(closeDock).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(trigger)
+  })
+
+  it('closes the picker on an outside click without changing a reaction', () => {
+    const onToggle = vi.fn()
+    render(<><ChatReactionBar reactions={[]} canReact onToggle={onToggle} /><button>Ở ngoài</button></>)
+    fireEvent.click(screen.getByRole('button', { name: 'Thả cảm xúc' }))
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Ở ngoài' }))
+    expect(screen.queryByRole('group', { name: 'Chọn cảm xúc' })).toBeNull()
+    expect(onToggle).not.toHaveBeenCalled()
+  })
 })
