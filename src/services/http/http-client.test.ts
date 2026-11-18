@@ -3,6 +3,7 @@ import {
   HttpError,
   configureHttpAuthentication,
   httpGet,
+  httpPutBlob,
 } from './http-client'
 
 const response = (status: number, body: unknown = {}) => ({
@@ -90,5 +91,16 @@ describe('shared HTTP authentication pipeline', () => {
     await expect(httpGet('/protected')).rejects.toMatchObject({ status: 401 })
     expect(refresh).toHaveBeenCalledTimes(1)
     expect(fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('refreshes a chunk request once while preserving its raw body and content type', async () => {
+    const refresh = vi.fn().mockResolvedValue('fresh-token')
+    cleanupAuthentication = configureHttpAuthentication({ refresh, onSessionExpired: vi.fn() })
+    const fetch = vi.fn().mockResolvedValueOnce(response(401)).mockResolvedValueOnce(response(200, { nextOffset: 3 }))
+    vi.stubGlobal('fetch', fetch)
+    const body = new Blob(['abc'])
+    await expect(httpPutBlob('/files/upload-sessions/abc/chunks?offset=0', body)).resolves.toEqual({ nextOffset: 3 })
+    expect(refresh).toHaveBeenCalledTimes(1)
+    expect(fetch.mock.calls[1][1]).toMatchObject({ method: 'PUT', body, headers: { Authorization: 'Bearer fresh-token', 'Content-Type': 'application/octet-stream' } })
   })
 })
