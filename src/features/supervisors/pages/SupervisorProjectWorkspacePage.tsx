@@ -37,18 +37,16 @@ export function SupervisorProjectWorkspacePage() {
   ]
 
   return (
-    <main className="workspace-page mx-auto max-w-6xl space-y-6 pb-12">
-      <header className="border-b border-hairline pb-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Giảng viên hướng dẫn</p>
-        <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-ink">Tổng quan đồ án</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">Theo dõi tiến độ, nội dung cần phản hồi và toàn bộ tài liệu của đồ án được phân công.</p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button type="button" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary bg-card px-4 text-sm font-semibold text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => { progress.reload(); void operational.reload() }}>Làm mới dữ liệu</button>
-            <Link className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary bg-card px-4 text-sm font-semibold text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to="/supervisor/workspace">Đổi đồ án</Link>
-          </div>
+    <div className="workspace-page mx-auto max-w-6xl space-y-6 pb-12">
+      <header className="workspace-heading">
+        <div className="workspace-heading-copy">
+          <div className="workspace-context"><span className="workspace-kicker">Giảng viên hướng dẫn</span></div>
+          <h1>Tổng quan đồ án</h1>
+          <p>Theo dõi tiến độ, nội dung cần phản hồi và toàn bộ tài liệu của đồ án được phân công.</p>
+        </div>
+        <div className="workspace-heading-actions flex flex-wrap gap-3">
+          <button type="button" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary bg-card px-4 text-sm font-semibold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => { progress.reload(); void operational.reload() }}>Làm mới dữ liệu</button>
+          <Link className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary bg-card px-4 text-sm font-semibold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to="/supervisor/workspace">Đổi đồ án</Link>
         </div>
       </header>
 
@@ -89,7 +87,7 @@ export function SupervisorProjectWorkspacePage() {
       <p className="text-sm leading-6 text-ink-muted">Phản hồi, người tham gia, biên bản, kết luận và công việc sau họp được quản lý trong chi tiết từng cuộc họp.</p>
       {/* PeerEvaluationService permits writes in ACTIVE and FINAL_SUBMISSION for the current primary assignment. */}
       <TeamReflectionPanel projectId={access.project.id} audience="primary" canManagePeer={access.supervisor?.assignmentType === 'PRIMARY' && access.supervisor.isPrimary && !access.supervisor.endedAt && ['ACTIVE', 'FINALSUBMISSION'].includes(access.project.status.replaceAll('_', '').toUpperCase())} />
-    </main>
+    </div>
   )
 }
 
