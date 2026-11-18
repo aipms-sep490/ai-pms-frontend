@@ -7,6 +7,7 @@ import { createProjectEvidence } from '../../projects/api/project-governance-api
 import { DocumentPreviewModal, getFileCategory } from '../../../components/ui/DocumentPreviewModal'
 import { getUploadPolicy, uploadPolicyLabel, validateUploadFile, type UploadPolicy } from '../../../services/api/upload-policies.api'
 import { Modal } from '../../../components/ui/Modal'
+import { cancelProjectFileUpload, currentUploadOwner, type ProjectFileUploadSession } from '../../files/project-file-uploads'
 
 function getFileIcon(name: string): string {
   const ext = name.split('.').pop()?.toLowerCase() ?? ''
@@ -43,8 +44,14 @@ export function TaskEvidenceAndComments({ taskId, projectId, majors, mentorMajor
   const [deleteBusy, setDeleteBusy] = useState(false)
   const deletePending = useRef(false)
   const cancelDelete = useRef<HTMLButtonElement>(null)
+  const uploadController = useRef<AbortController | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<ProjectFileUploadSession | null>(null)
 
   useEffect(() => { setDeleteTarget(null); setDeleteError(null) }, [taskId])
+  useEffect(() => {
+    setUploadProgress(null); setBusy(false)
+    return () => { uploadController.current?.abort(); uploadController.current = null }
+  }, [taskId])
 
   useEffect(() => {
     if (!canAddEvidence) return
@@ -78,11 +85,28 @@ export function TaskEvidenceAndComments({ taskId, projectId, majors, mentorMajor
 
   const upload = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (busy || uploadController.current) return
     const input = event.currentTarget.elements.namedItem('file')
     const file = selectedFile
     if (!file) { setError('Hãy chọn tệp minh chứng.'); return }
     const problem = validateUploadFile(file, uploadPolicy)
     if (problem) { setError(problem); return }
+    if (file.size > (uploadPolicy?.singleRequestMaxBytes ?? 20 * 1024 * 1024)) {
+      const controller = new AbortController()
+      uploadController.current = controller
+      setBusy(true); setError(null); setEvidenceNotice('')
+      void api.uploadTaskEvidence(taskId, file, { signal: controller.signal, onProgress: value => { if (uploadController.current === controller) setUploadProgress(value) } })
+        .then(async () => {
+          if (uploadController.current !== controller) return
+          if (input instanceof HTMLInputElement) input.value = ''
+          setSelectedFile(null); setSelectedFileName(''); setUploadProgress(null); await load()
+        }).catch(reason => {
+          if (uploadController.current !== controller) return
+          if (controller.signal.aborted) setEvidenceNotice('Đã tạm dừng. Giữ hoặc chọn lại đúng tệp rồi bấm Tải lên để tiếp tục.')
+          else setError(reason instanceof Error ? reason.message : 'Chưa tải được tệp. Nội dung đã chọn được giữ lại để bạn tiếp tục.')
+        }).finally(() => { if (uploadController.current === controller) { uploadController.current = null; setBusy(false) } })
+      return
+    }
     void mutate(() => api.uploadTaskEvidence(taskId, file), () => {
       if (input instanceof HTMLInputElement) input.value = ''
       setSelectedFile(null); setSelectedFileName('')
@@ -111,11 +135,8 @@ export function TaskEvidenceAndComments({ taskId, projectId, majors, mentorMajor
   }
   const download = async (file: TaskFile) => {
     try {
-      const blob = await api.downloadTaskEvidence(file.id)
-      const url = URL.createObjectURL(blob)
-      const anchor = document.createElement('a'); anchor.href = url; anchor.download = file.fileName; anchor.click()
-      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
-    } catch { setError('Không thể tải tệp minh chứng.') }
+      await api.saveTaskEvidence(file)
+    } catch (reason) { if (!(reason instanceof Error && reason.name === 'AbortError')) setError('Không thể tải tệp minh chứng.') }
   }
   const removeFile = async () => {
     if (!deleteTarget || !files.some(file => file.id === deleteTarget.id && file.canDelete) || !canAddEvidence || deletePending.current) return
@@ -143,6 +164,17 @@ export function TaskEvidenceAndComments({ taskId, projectId, majors, mentorMajor
   return <section className="task-evidence-comments grid gap-5">
     {error && <p role="alert" className="lg:col-span-2 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm">{error} <button type="button" className="font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
     {loading && <p role="status" className="lg:col-span-2 text-sm">Đang tải minh chứng và bình luận…</p>}
+    {uploadProgress && <div className="rounded-lg border border-hairline bg-canvas p-4 text-sm">
+      <p role="status" aria-live="polite">{uploadProgress.state === 'PROCESSING' ? 'Đã gửi đủ dữ liệu. Máy chủ đang kiểm tra và lưu tệp…' : `${busy ? 'Đang tải' : 'Đã tạm dừng'} ${uploadProgress.fileName}: ${Math.floor(uploadProgress.nextOffset * 100 / Math.max(1, uploadProgress.totalBytes))}%`}</p>
+      <progress aria-label="Tiến độ tải minh chứng" className="mt-2 h-2 w-full accent-primary" max={uploadProgress.totalBytes} value={uploadProgress.nextOffset} />
+      {busy && <button type="button" className="mt-2 min-h-11 rounded-md border border-hairline px-3 font-semibold text-primary" onClick={() => uploadController.current?.abort()}>Tạm dừng</button>}
+      {!busy && uploadProgress.state !== 'PROCESSING' && <button type="button" className="mt-2 min-h-11 rounded-md px-3 font-semibold text-danger-text" onClick={() => {
+        const owner = currentUploadOwner()
+        if (!owner) { setError('Hãy đăng nhập lại để hủy phiên tải.'); return }
+        setBusy(true)
+        void cancelProjectFileUpload(uploadProgress.sessionId, owner).then(() => { setUploadProgress(null); setEvidenceNotice('Đã hủy phiên tải.') }).catch(() => setError('Chưa hủy được phiên tải. Hãy kiểm tra lại kết nối.')).finally(() => setBusy(false))
+      }}>Hủy phiên tải</button>}
+    </div>}
     <div className="rounded-xl border bg-card p-5"><h2 className="font-semibold">Minh chứng công việc</h2>{canAddEvidence ? <><form onSubmit={submitEvidence} className="mt-4 space-y-3"><p className="text-sm text-ink-muted">Đính kèm tài liệu hoặc kết quả để ghi nhận phần việc đã thực hiện.</p>{mentorMajorId ? <p className="text-sm text-ink-muted">Ngành được hướng dẫn: {majors.find(item => item.majorId === mentorMajorId)?.majorName ?? mentorMajorId}</p> : majors.length > 0 && <label className="block text-sm">Chuyên ngành (nếu áp dụng)<select value={evidenceMajorId ?? ''} onChange={event => setEvidenceMajorId(event.target.value ? Number(event.target.value) : null)} className="mt-1 block w-full rounded-lg border p-3" disabled={evidenceBusy}><option value="">Không gắn chuyên ngành</option>{majors.map(major => <option key={major.majorId} value={major.majorId}>{major.majorCode} · {major.majorName}</option>)}</select></label>}<label className="block text-sm">Ghi chú minh chứng<textarea value={evidenceNotes} maxLength={2000} onChange={event => setEvidenceNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-lg border p-3" disabled={evidenceBusy} /></label><button disabled={evidenceBusy} className="min-h-11 rounded-lg bg-primary hover:bg-primary-hover px-4 text-sm font-semibold text-white disabled:opacity-50">{evidenceBusy ? 'Đang ghi nhận…' : 'Ghi nhận minh chứng'}</button></form>{evidenceNotice && <p role="status" className="mt-3 text-sm text-status-success-text">{evidenceNotice}</p>}<form onSubmit={upload} className="mt-4 flex flex-wrap items-end gap-2 border-t pt-4"><label className="task-evidence-file text-sm">Ảnh hoặc tệp minh chứng<input type="file" name="file" aria-label="Ảnh hoặc tệp minh chứng" className="sr-only" accept={uploadPolicy?.allowedExtensions.join(',')} disabled={busy} onChange={event => { const file = event.target.files?.[0] ?? null; setSelectedFile(file); setSelectedFileName(file?.name ?? ''); setError(null) }} /><span className="task-evidence-file-choice"><span>Chọn tệp</span><span>{selectedFileName || 'Chưa chọn tệp'}</span></span></label><button disabled={busy || !selectedFile} className="min-h-11 rounded-lg bg-primary hover:bg-primary-hover px-4 text-sm font-semibold text-white disabled:opacity-50">Tải lên</button>{selectedFile && getFileCategory(selectedFile.name, selectedFile.type) !== 'archive' && <button type="button" className="min-h-11 rounded-lg border border-hairline px-4 text-sm font-semibold text-primary" onClick={() => setPreview({ kind: 'local', file: selectedFile })}>Xem trước</button>}<p className="w-full text-xs text-ink-muted">{uploadPolicy ? uploadPolicyLabel(uploadPolicy) : 'Giới hạn và định dạng do máy chủ xác nhận khi tải lên.'}</p></form></> : <p className="mt-3 text-sm leading-6 text-ink-muted">Bạn chưa được cấp quyền bổ sung minh chứng cho công việc này.</p>}{!loading && files.length === 0 && <p className="mt-4 text-sm text-ink-muted">Chưa có tệp đính kèm.</p>}<ul className="mt-4 space-y-2">{files.map(file => (
       <li key={file.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hairline bg-canvas p-3 text-sm">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -166,7 +198,7 @@ export function TaskEvidenceAndComments({ taskId, projectId, majors, mentorMajor
         </div>
       </li>
     ))}</ul>{commentTotal > 20 && <Pager page={commentPage} total={commentTotal} onChange={setCommentPage} />}</div>
-    {preview && <DocumentPreviewModal key={preview.kind === 'stored' ? preview.file.id : preview.file.name} open fileName={preview.kind === 'local' ? preview.file.name : preview.file.fileName} fileSize={preview.kind === 'local' ? preview.file.size : preview.file.sizeBytes} contentType={preview.kind === 'local' ? preview.file.type : preview.file.contentType} loadBlob={signal => preview.kind === 'local' ? Promise.resolve(preview.file) : api.downloadTaskEvidence(preview.file.id, signal)} onClose={() => setPreview(null)} />}
+    {preview && <DocumentPreviewModal key={preview.kind === 'stored' ? preview.file.id : preview.file.name} open fileName={preview.kind === 'local' ? preview.file.name : preview.file.fileName} fileSize={preview.kind === 'local' ? preview.file.size : preview.file.sizeBytes} contentType={preview.kind === 'local' ? preview.file.type : preview.file.contentType} loadBlob={signal => preview.kind === 'local' ? Promise.resolve(preview.file) : api.downloadTaskEvidence(preview.file.id, signal)} onDownload={preview.kind === 'stored' ? () => download(preview.file) : undefined} onClose={() => setPreview(null)} />}
     {deleteTarget && <Modal open title="Xóa tệp minh chứng" busy={deleteBusy} initialFocusRef={cancelDelete} onClose={() => { setDeleteTarget(null); setDeleteError(null) }}>
       <p className="text-sm leading-6">Xóa tệp <strong>{deleteTarget.fileName}</strong> khỏi công việc? Tệp sẽ không còn xem hoặc tải xuống được. Thao tác xóa được lưu trong lịch sử hệ thống.</p>
       {deleteError && <p role="alert" className="mt-3 text-sm text-danger-text">{deleteError}</p>}

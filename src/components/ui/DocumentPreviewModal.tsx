@@ -126,6 +126,12 @@ export function DocumentPreviewModal({
       objectUrlRef.current = null
     }
 
+    if (category === 'archive' || (category === 'office' && fileSize != null && fileSize > 5 * 1024 * 1024) || (fileSize != null && fileSize > 20 * 1024 * 1024)) {
+      setLoading(false)
+      setError(category === 'archive' ? 'Tệp nén không hỗ trợ xem trước. Hãy tải bản gốc về máy.' : category === 'office' ? 'Tệp Office lớn hơn 5 MiB. Hãy tải bản gốc về máy để xem.' : 'Tệp lớn hơn 20 MiB. Hãy tải bản gốc về máy để xem, tránh làm trình duyệt quá tải.')
+      return
+    }
+
     loadBlobRef.current(controller.signal)
       .then(async (resultBlob) => {
         if (!active) return
@@ -167,7 +173,7 @@ export function DocumentPreviewModal({
         objectUrlRef.current = null
       }
     }
-  }, [open, fileId, fileName, contentType, category])
+  }, [open, fileId, fileName, fileSize, contentType, category])
 
   // Handle direct download
   const handleDownload = async () => {
@@ -175,17 +181,18 @@ export function DocumentPreviewModal({
     try {
       if (onDownload) {
         await onDownload()
-      } else if (url || blob) {
-        const downloadUrl = url || (blob ? URL.createObjectURL(blob) : null)
-        if (!downloadUrl) return
+      } else {
+        const downloadBlob = blob ?? (url ? null : await loadBlobRef.current())
+        const downloadUrl = url || (downloadBlob ? URL.createObjectURL(downloadBlob) : null)
+        if (!downloadUrl) throw new Error('Missing file content')
         const anchor = document.createElement('a')
         anchor.href = downloadUrl
         anchor.download = fileName
         anchor.click()
-        if (!url && blob) URL.revokeObjectURL(downloadUrl)
+        if (!url && downloadBlob) window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000)
       }
-    } catch {
-      setError('Không thể tải tệp về máy. Hãy kiểm tra quyền truy cập và thử lại.')
+    } catch (reason) {
+      if (!(reason instanceof Error && reason.name === 'AbortError')) setError('Không thể tải tệp về máy. Hãy kiểm tra quyền truy cập và thử lại.')
     } finally {
       setDownloading(false)
     }

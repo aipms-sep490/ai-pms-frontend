@@ -70,6 +70,25 @@ describe('DocumentPreviewModal', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
+  it('does not fetch a large preview and still offers the authorized original download', async () => {
+    const loadBlob = vi.fn()
+    const download = vi.fn()
+    render(<DocumentPreviewModal open onClose={vi.fn()} fileName="large.pdf" fileSize={500 * 1024 * 1024} loadBlob={loadBlob} onDownload={download} />)
+    expect(await screen.findByText(/Tệp lớn hơn 20 MiB/)).toBeTruthy()
+    expect(loadBlob).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Tải về' }))
+    expect(download).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([['archive.zip', 1024], ['report.docx', 6 * 1024 * 1024]])('does not prefetch unsupported or oversized %s previews', async (fileName, fileSize) => {
+    const loadBlob = vi.fn().mockResolvedValue(new Blob(['content']))
+    render(<DocumentPreviewModal open onClose={vi.fn()} fileName={String(fileName)} fileSize={Number(fileSize)} loadBlob={loadBlob} />)
+    await screen.findByRole('alert')
+    expect(loadBlob).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Tải về' }))
+    await waitFor(() => expect(loadBlob).toHaveBeenCalledTimes(1))
+  })
+
   it('renders fallback card and triggers download for office files', async () => {
     office.previewOfficeFile.mockRejectedValue(new Error('preview unavailable'))
     const loadBlob = vi.fn().mockResolvedValue(new Blob(['word content'], { type: 'application/msword' }))

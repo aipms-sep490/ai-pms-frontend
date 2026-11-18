@@ -84,6 +84,32 @@ export async function httpGetBlob(
   return response.blob()
 }
 
+/** Keeps protected large downloads out of a single in-memory Blob where supported. */
+export async function httpGetStream(path: string, options?: HttpRequestOptions): Promise<ReadableStream<Uint8Array>> {
+  const init = createRequestInit(options)
+  const response = await fetch(resolveUrl(path), { ...init, method: 'GET', headers: { ...init.headers, Accept: '*/*' } })
+  if (response.status === 401 && !options?.skipAuthRefresh) {
+    const token = await refreshAccessToken()
+    if (token) return httpGetStream(path, { ...options, accessToken: token, skipAuthRefresh: true })
+  }
+  if (!response.ok) {
+    const problem = await readProblem(response)
+    throw new HttpError(problem.detail || problem.title || 'Không thể tải tệp.', response.status, problem)
+  }
+  if (!response.body) throw new Error('Máy chủ chưa trả nội dung tệp.')
+  return response.body
+}
+
+export async function httpPutBlob<T>(path: string, body: Blob, options?: HttpRequestOptions): Promise<T> {
+  const init = createRequestInit(options)
+  const response = await fetch(resolveUrl(path), { ...init, method: 'PUT', headers: { ...init.headers, 'Content-Type': 'application/octet-stream' }, body })
+  if (response.status === 401 && !options?.skipAuthRefresh) {
+    const token = await refreshAccessToken()
+    if (token) return httpPutBlob(path, body, { ...options, accessToken: token, skipAuthRefresh: true })
+  }
+  return readResponse<T>(response)
+}
+
 export async function httpPost<TResponse, TBody = unknown>(
   path: string,
   body?: TBody,
