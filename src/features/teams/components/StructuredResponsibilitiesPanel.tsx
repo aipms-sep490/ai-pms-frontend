@@ -32,6 +32,7 @@ function ResponsibilitiesEditor({ teamId, scope, majorNames, canEdit, onSaved, m
   const readVersion = useRef(0)
   const mounted = useRef(true)
   const saveLock = useRef(false)
+  const suppressScopeReload = useRef(false)
   const dirty = useRef(false)
 
   const load = useCallback(async (preserveDraft = dirty.current) => {
@@ -64,6 +65,10 @@ function ResponsibilitiesEditor({ teamId, scope, majorNames, canEdit, onSaved, m
   useEffect(() => {
     // Saving academic scope also changes the token used by responsibilities.
     // An active save performs its own readback after onSaved updates the scope.
+    if (suppressScopeReload.current) {
+      suppressScopeReload.current = false
+      return
+    }
     if (!saveLock.current) void load()
   }, [load, scope.concurrencyToken])
 
@@ -89,6 +94,7 @@ function ResponsibilitiesEditor({ teamId, scope, majorNames, canEdit, onSaved, m
       saved = true
       if (!mounted.current) return
       setData(next); setRows(next.items.map(item => item.content)); dirty.current = false; setHasDraft(false)
+      suppressScopeReload.current = true
       await onSaved()
       if (!mounted.current) return
       if (await load(false)) setNotice('Đã lưu phân công và cập nhật điều kiện của nhóm.')
