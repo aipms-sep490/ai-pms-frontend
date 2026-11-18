@@ -20,13 +20,15 @@ function NavigationControls() {
     <button onClick={() => navigate('/project/tasks/17')}>Đến chi tiết công việc</button>
     <button onClick={() => navigate('/project/tasks-other')}>Đến đường dẫn gần giống</button>
     <button onClick={() => navigate('/profile')}>Đến hồ sơ</button>
+    <button onClick={() => navigate('/academic/governance')}>Đến học kỳ</button>
+    <button onClick={() => navigate('/department/projects/review/17')}>Đến thẩm định</button>
     <button onClick={() => navigate(-1)}>Quay lại</button>
   </div>
 }
 
-function mount(path = '/project/timeline', loading = false) {
+function mount(path = '/project/timeline', loading = false, roles: string[] = ['STUDENT']) {
   const auth: AuthSessionContextValue = {
-    session: { accessToken: 'unit-test', tokenType: 'Bearer', expiresAtUtc: '', refreshToken: '', refreshTokenExpiresAtUtc: '', user: { id: 1, fullName: 'Sinh viên kiểm thử', email: 'student@example.test', roles: ['STUDENT'] } },
+    session: { accessToken: 'unit-test', tokenType: 'Bearer', expiresAtUtc: '', refreshToken: '', refreshTokenExpiresAtUtc: '', user: { id: 1, fullName: roles.includes('DEPARTMENT_STAFF') ? 'Cán bộ bộ môn' : 'Sinh viên kiểm thử', email: roles.includes('DEPARTMENT_STAFF') ? 'staff@example.test' : 'student@example.test', roles } },
     status: 'authenticated', error: null, login: async () => { throw new Error('unused') }, logout: async () => {}, refreshProfile: async () => {}, restoreSession: async () => {},
   }
   const journey: StudentJourneyContextValue = {
@@ -124,5 +126,68 @@ describe('student sidebar groups', () => {
     expect(coordination().getAttribute('aria-expanded')).toBe('false')
     fireEvent.click(screen.getByRole('button', { name: 'Quay lại' }))
     expect(coordination().getAttribute('aria-expanded')).toBe('true')
+  })
+})
+
+describe('department sidebar groups', () => {
+  const overview = () => screen.getByRole('button', { name: /^1\. Tổng quan & hồ sơ/ })
+  const topics = () => screen.getByRole('button', { name: /^2\. Đề tài & hướng dẫn/ })
+
+  it('organizes academic governance into role-specific groups and keeps account links separate', () => {
+    mount('/department/workspace', false, ['DEPARTMENT_STAFF'])
+    expect(overview().getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByRole('link', { name: 'Tổng quan bộ môn' })).toBeDefined()
+    expect(screen.getByRole('button', { name: /^3\. Cấu hình học vụ/ })).toBeDefined()
+    expect(screen.getByRole('button', { name: /^4\. Review Gates & kiểm soát/ })).toBeDefined()
+    expect(screen.getByRole('link', { name: 'Hồ sơ tài khoản' })).toBeDefined()
+    expect(screen.getByRole('link', { name: 'Lịch tổng hợp' })).toBeDefined()
+    expect(screen.queryByRole('link', { name: 'Phối hợp nhóm' })).toBeNull()
+  })
+
+  it('opens the active governance group and supports collapse without changing route', () => {
+    mount('/department/projects/review', false, ['DEPARTMENT_STAFF'])
+    expect(topics().getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByRole('link', { name: 'Thẩm định đề cương' }).getAttribute('aria-current')).toBe('page')
+    fireEvent.click(topics())
+    expect(topics().getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('link', { name: 'Thẩm định đề cương' })).toBeNull()
+    expect(screen.getByLabelText('Đường dẫn hiện tại').textContent).toBe('/department/projects/review')
+  })
+
+  it('reveals a collapsed group for a nested destination and restores the group on Back', () => {
+    mount('/department/workspace', false, ['DEPARTMENT_STAFF'])
+    fireEvent.click(overview()); fireEvent.click(topics())
+    fireEvent.click(screen.getByRole('button', { name: 'Đến thẩm định' }))
+    expect(topics().getAttribute('aria-expanded')).toBe('true')
+    expect(overview().getAttribute('aria-expanded')).toBe('false')
+    expect(screen.getByRole('link', { name: 'Thẩm định đề cương' }).getAttribute('aria-current')).toBe('page')
+    fireEvent.click(topics())
+    fireEvent.click(screen.getByRole('button', { name: 'Quay lại' }))
+    expect(overview().getAttribute('aria-expanded')).toBe('true')
+    expect(topics().getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('highlights the exact academic destination and keeps Admin and student routes out of staff navigation', () => {
+    mount('/academic/governance', false, ['DEPARTMENT_STAFF'])
+    expect(screen.getByRole('link', { name: 'Học kỳ và kỳ đồ án' }).getAttribute('aria-current')).toBe('page')
+    expect(screen.getByRole('link', { name: 'Cấu trúc đào tạo' }).getAttribute('aria-current')).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Quản trị nền tảng' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Công việc' })).toBeNull()
+  })
+
+  it('preserves every permitted destination for a department identity that also has a student role', () => {
+    mount('/department/workspace', false, ['DEPARTMENT_STAFF', 'STUDENT'])
+    expect(overview()).toBeDefined()
+    expect(screen.getByRole('link', { name: 'Phối hợp nhóm' })).toBeDefined()
+    expect(screen.getAllByRole('link', { name: 'Công việc' })).toHaveLength(1)
+    expect(screen.getAllByRole('link', { name: 'Hồ sơ tài khoản' })).toHaveLength(1)
+  })
+
+  it('preserves the Admin navigation layout and academic links', () => {
+    mount('/academic/governance', false, ['ADMIN'])
+    expect(screen.queryByRole('button', { name: /^3\. Cấu hình học vụ/ })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Quản trị nền tảng' })).toBeDefined()
+    expect(screen.getByRole('link', { name: 'Học kỳ và kỳ đồ án' }).getAttribute('aria-current')).toBe('page')
+    expect(screen.getByRole('link', { name: 'Cấu trúc đào tạo' }).getAttribute('aria-current')).toBeNull()
   })
 })

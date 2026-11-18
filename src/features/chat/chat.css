@@ -10,6 +10,10 @@
 .chat-compose button[type=submit]:hover:not(:disabled){background:var(--color-primary-hover);color:var(--color-card)}
 .chat-sidebar header{display:grid;gap:8px}
 .chat-scope-note{font-size:13px;line-height:1.5;color:var(--color-ink-soft)}
+.chat-search-wrap{position:relative;padding:12px;border-bottom:1px solid var(--color-hairline)}
+.chat-search-wrap>.material-symbols-outlined{position:absolute;left:24px;top:50%;z-index:1;transform:translateY(-50%);font-size:20px;color:var(--color-ink-muted);pointer-events:none}
+.chat-search-wrap input{width:100%;min-height:44px;margin:0;padding:9px 12px 9px 42px;border:1px solid var(--color-line-strong);border-radius:10px;background:var(--color-card);font-size:13px}
+.chat-search-wrap input:focus{border-color:var(--color-primary);box-shadow:0 0 0 3px color-mix(in oklab,var(--color-primary) 14%,transparent);outline:none}
 .chat-new label{display:block;margin-top:12px}
 .chat-search-results p,.chat-list>p{padding:12px;line-height:1.5}
 
@@ -403,10 +407,16 @@
 .chat-message-more{position:relative}.chat-message-more>summary::-webkit-details-marker{display:none}
 .chat-message-actions .material-symbols-outlined{font-size:20px}
 .chat-message-menu{position:absolute;z-index:5;left:0;bottom:calc(100% + 4px);display:grid;min-width:154px;padding:5px;border:1px solid var(--color-hairline);border-radius:12px;background:var(--color-card);box-shadow:var(--shadow-md)}
+.chat-message-menu:has(.chat-message-emoji-picker){min-width:min(298px,calc(100vw - 32px))}
 .chat-history article .chat-message-menu{display:grid;gap:0}
 .chat-history article.own .chat-message-menu{left:auto;right:0}
 .chat-message-menu button{width:100%;min-height:44px;padding:8px 10px;text-align:left;white-space:nowrap;border-radius:8px;background:transparent;color:var(--color-ink)}
 .chat-message-menu button:hover{background:var(--color-primary-subtle)}
+.chat-message-react-action{position:relative}
+.chat-message-react-action>button{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.chat-message-react-action>button .material-symbols-outlined{font-size:18px;color:var(--color-ink-muted)}
+.chat-message-emoji-picker{display:flex;flex-wrap:nowrap;gap:2px;padding:4px 5px 0;border-top:1px solid var(--color-hairline);background:var(--color-canvas);overflow-x:auto}
+.chat-message-emoji-picker button{display:grid;place-items:center;width:44px;min-width:44px;min-height:44px;flex:0 0 44px;padding:0;font-size:18px}
 .chat-action-label{font-size:12px}
 .chat-seen-button{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 2px;background:transparent;color:var(--color-ink-muted);font-size:12px}
 .chat-seen-avatars{display:inline-flex;align-items:center;padding-left:4px}.chat-seen-avatar{width:26px;height:26px;margin-left:-4px;border:2px solid var(--color-card);font-size:12px}.chat-seen-more{margin-left:3px}
