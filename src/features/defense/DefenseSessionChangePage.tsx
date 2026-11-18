@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { Button } from '../../components/ui/Button'
+import { Pagination } from '../../components/ui/Pagination'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useAuthSession } from '../auth/context/useAuthSession'
 import { HttpError } from '../../services/http/http-client'
@@ -91,6 +93,8 @@ export function DefenseSessionChangePage() {
 
   const reload = () => { setLoading(true); setError(''); setSuccess(''); setRevision(value => value + 1) }
   const pending = requests.find(row => row.status === 'PENDING')
+  const historyRequests = requests.filter(row => row.status !== 'PENDING')
+  const historyPager = useClientPagination(historyRequests, 10)
   const mayRequest = officer && defense?.status === 'SCHEDULED' && Date.parse(defense.endAt) > now
   const chosenSlot = slots[Number(slot) - 1]
   const valid = mayRequest && !pending && roomId && date && chosenSlot && isFutureOfficeSlot(date, chosenSlot[0], now) && details.trim()
@@ -136,7 +140,7 @@ export function DefenseSessionChangePage() {
     title="Phiên bảo vệ & yêu cầu đổi lịch"
     eyebrow={defense?.projectCode ?? 'Điều chỉnh lịch bảo vệ'}
     description="Lịch chính thức được đọc từ hệ thống. Chủ tọa và thư ký có thể đề xuất đổi phòng hoặc ca trước khi phiên kết thúc."
-    action={<Button variant="secondary" icon="refresh" disabled={loading || busy} onClick={reload}>Tải lại</Button>}
+    action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading || busy} onClick={reload} />}
   >
     <div className="space-y-5">
       {loading && <p role="status" className="text-sm text-ink-muted">Đang tải phiên bảo vệ…</p>}
@@ -206,10 +210,10 @@ export function DefenseSessionChangePage() {
             <Button type="button" disabled={busy || !valid} onClick={() => void submit()}>Gửi yêu cầu đổi lịch</Button>
           </div>
         </div>}
-        {requests.filter(row => row.status !== 'PENDING').length > 0 && <div className="border-t border-hairline pt-4 text-sm">
+        {historyRequests.length > 0 && <div className="border-t border-hairline pt-4 text-sm">
           <h3 className="font-semibold text-ink">Lịch sử yêu cầu</h3>
           <ul className="mt-2 divide-y divide-hairline">
-            {requests.filter(row => row.status !== 'PENDING').map(row => (
+            {historyPager.paginatedItems.map(row => (
               <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-xs">
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge
@@ -222,6 +226,18 @@ export function DefenseSessionChangePage() {
               </li>
             ))}
           </ul>
+          {historyPager.showPagination && (
+            <div className="mt-3 border-t border-hairline pt-3">
+              <Pagination
+                page={historyPager.page}
+                pages={historyPager.pages}
+                total={historyPager.total}
+                pageSize={historyPager.pageSize}
+                onPage={historyPager.setPage}
+                onPageSizeChange={historyPager.setPageSize}
+              />
+            </div>
+          )}
         </div>}
       </section>}
       {success && <InlineAlert tone="success">{success}</InlineAlert>}

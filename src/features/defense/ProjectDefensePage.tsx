@@ -617,7 +617,7 @@ export function ProjectDefensePage() {
     if (!projectId) return
     const controller = new AbortController()
     setLoading(true); setError(null)
-    getProjectDefenseSessions(projectId, 1, 20, controller.signal).then((result) => {
+    getProjectDefenseSessions(projectId, 1, 10, controller.signal).then((result) => {
       if (controller.signal.aborted) return
       setSessions(result.items)
     }).catch((reason: unknown) => {
@@ -686,7 +686,7 @@ export function ProjectDefenseManagementPage() {
     if (!Number.isSafeInteger(projectId) || projectId < 1) return
     const controller = new AbortController()
     setError('')
-    getProjectDefenseSessions(projectId, 1, 20, controller.signal)
+    getProjectDefenseSessions(projectId, 1, 10, controller.signal)
       .then((result) => { if (!controller.signal.aborted) setSessions(result.items) })
       .catch((reason: unknown) => {
         if (!controller.signal.aborted) setError(reason instanceof HttpError && reason.status === 403 ? 'Bạn không có quyền quản lý lịch bảo vệ của đồ án này.' : 'Chưa tải được lịch bảo vệ.')

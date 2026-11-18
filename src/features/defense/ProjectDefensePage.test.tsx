@@ -34,7 +34,7 @@ const scheduled: DefenseSession = {
 const render_ = () => render(<MemoryRouter><ProjectDefensePage /></MemoryRouter>)
 const renderManagement = () => render(<MemoryRouter initialEntries={['/department/projects/9/defense']}><ProjectDefenseManagementPage /></MemoryRouter>)
 const renderSupervisor = () => render(<MemoryRouter initialEntries={['/supervisor/projects/9/defense']}><ProjectDefenseManagementPage /></MemoryRouter>)
-const paged = (items: DefenseSession[]) => ({ items, page: 1, pageSize: 20, totalCount: items.length, totalPages: 1 })
+const paged = (items: DefenseSession[]) => ({ items, page: 1, pageSize: 10, totalCount: items.length, totalPages: 1 })
 
 beforeEach(() => {
   mocks.journey.project = { id: 9 }
