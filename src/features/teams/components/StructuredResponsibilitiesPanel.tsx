@@ -32,8 +32,8 @@ function ResponsibilitiesEditor({ teamId, scope, majorNames, canEdit, onSaved, m
   const readVersion = useRef(0)
   const mounted = useRef(true)
   const saveLock = useRef(false)
-  const suppressScopeReload = useRef(false)
   const dirty = useRef(false)
+  const coveredScopeToken = useRef<string | null>(null)
 
   const load = useCallback(async (preserveDraft = dirty.current) => {
     const version = ++readVersion.current
@@ -42,6 +42,7 @@ function ResponsibilitiesEditor({ teamId, scope, majorNames, canEdit, onSaved, m
     try {
       const next = await api.getTeamResponsibilities(teamId, majorId)
       if (!mounted.current || version !== readVersion.current) return false
+      coveredScopeToken.current = next.concurrencyToken
       setData(next)
       if (!preserveDraft) { setRows(next.items.map(item => item.content)); dirty.current = false; setHasDraft(false) }
       return true
@@ -63,13 +64,10 @@ function ResponsibilitiesEditor({ teamId, scope, majorNames, canEdit, onSaved, m
     return () => { lifecycle.current = false; version.current++ }
   }, [])
   useEffect(() => {
-    // Saving academic scope also changes the token used by responsibilities.
-    // An active save performs its own readback after onSaved updates the scope.
-    if (suppressScopeReload.current) {
-      suppressScopeReload.current = false
-      return
-    }
-    if (!saveLock.current) void load()
+    // Responsibilities and academic scope share the backend configuration token.
+    // A delayed parent commit for our own save is already covered by readback;
+    // external scope versions still refresh the token without losing the draft.
+    if (!saveLock.current && coveredScopeToken.current !== scope.concurrencyToken) void load()
   }, [load, scope.concurrencyToken])
 
   const editRows = (update: (current: string[]) => string[]) => {
@@ -93,8 +91,8 @@ function ResponsibilitiesEditor({ teamId, scope, majorNames, canEdit, onSaved, m
       const next = await api.replaceTeamResponsibilities(teamId, majorId, data.concurrencyToken, items)
       saved = true
       if (!mounted.current) return
+      coveredScopeToken.current = next.concurrencyToken
       setData(next); setRows(next.items.map(item => item.content)); dirty.current = false; setHasDraft(false)
-      suppressScopeReload.current = true
       await onSaved()
       if (!mounted.current) return
       if (await load(false)) setNotice('Đã lưu phân công và cập nhật điều kiện của nhóm.')

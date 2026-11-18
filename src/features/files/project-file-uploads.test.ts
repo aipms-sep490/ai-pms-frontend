@@ -75,6 +75,10 @@ describe('resumable project file uploads', () => {
   })
 
   it('waits for background processing and never treats sent bytes as a saved file', async () => {
+    // This case controls polling time only. Real FileReader/WebCrypto work can
+    // finish after the fake clock has advanced, leaving the first poll pending.
+    // The content-fingerprint test below exercises the real hash separately.
+    vi.stubGlobal('crypto', undefined)
     vi.useFakeTimers()
     const fetch = vi.fn().mockResolvedValueOnce(response(status({ nextOffset: 6 }))).mockResolvedValueOnce(response(status({ state: 'PROCESSING', nextOffset: 6 })))
       .mockResolvedValueOnce(response(status({ state: 'PROCESSING', nextOffset: 6 }))).mockResolvedValueOnce(response(completed()))
