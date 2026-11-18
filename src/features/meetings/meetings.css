@@ -229,3 +229,22 @@
     animation: none;
   }
 }
+
+/* Action item task linkage & validation */
+.mtg-validation { color: var(--color-danger-text, #dc2626); font-size: 12px; margin-top: 4px; display: block; font-weight: 500; }
+.mtg-task-creation-opts { padding: 12px; border: 1px dashed var(--color-hairline); border-radius: 8px; background: var(--color-canvas); margin-top: 8px; }
+.mtg-task-params { margin-top: 10px; }
+.mtg-linked-task { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 8px; padding: 8px 12px; border-radius: 6px; background: var(--color-primary-subtle); border: 1px solid var(--color-status-success-border); font-size: 12.5px; }
+.mtg-linked-task-badge { font-weight: 600; color: var(--color-primary); }
+.mtg-task-status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.mtg-task-status--neutral { background: #f3f4f6; color: #4b5563; }
+.mtg-task-status--info { background: #dbeafe; color: #1e40af; }
+.mtg-task-status--warning { background: #fef3c7; color: #92400e; }
+.mtg-task-status--success { background: #d1fae5; color: #065f46; }
+.mtg-task-status--danger { background: #fee2e2; color: #991b1b; }
+.mtg-task-milestone, .mtg-task-assignee { color: var(--color-ink-muted); font-size: 12px; }
+.mtg-task-link { margin-left: auto; text-decoration: none; font-weight: 600; }
+.mtg-action-link-task { margin-top: 6px; }
+.mtg-inline-create-task { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; padding: 10px 14px; border: 1px solid var(--color-hairline); border-radius: 8px; background: var(--color-canvas); margin-top: 8px; }
+.mtg-inline-create-task label { flex: 1 1 140px; }
+.mtg-button--small { min-height: 32px; padding: 4px 12px; font-size: 12px; }
