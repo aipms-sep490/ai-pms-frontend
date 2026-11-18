@@ -1,8 +1,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getTopicSimilarity } from './topics.api'
+import { checkTopicSimilarityWithAi, getTopicSimilarity } from './topics.api'
 
 const ok = (value: unknown) => ({ ok: true, json: async () => value })
 afterEach(() => vi.unstubAllGlobals())
+
+it('posts semantic proposal content and cancellation without client department scope', async () => {
+  const response = { generationStatus: 'COMPLETED', matches: [] }
+  const fetch = vi.fn().mockResolvedValue(ok(response))
+  vi.stubGlobal('fetch', fetch)
+  const input = { teamId: 1, projectId: 5, title: 'Đề tài', problemStatement: 'Vấn đề', objectives: 'Mục tiêu', expectedOutput: 'Sản phẩm', domain: 'E-commerce', keywords: ['shop'] }
+  const controller = new AbortController()
+  expect(await checkTopicSimilarityWithAi(input, controller.signal)).toEqual(response)
+  expect(fetch).toHaveBeenCalledWith('/api/v1/topics/ai-similarity-check', expect.objectContaining({ method: 'POST', body: JSON.stringify(input), signal: controller.signal }))
+})
 
 describe('getTopicSimilarity', () => {
   it('serializes the title, keywords, leadDepartmentId and periodWindow into the query string', async () => {

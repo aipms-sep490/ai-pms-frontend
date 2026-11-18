@@ -10,6 +10,7 @@ import { PageLoading } from '../../../components/ui/PageLoading'
 import { BackLink } from '../../../components/ui/BackLink'
 import { services } from '../../../services/service-gateway'
 import type { TopicSimilarityResultDto } from '../../../types/backend'
+import { AiTopicSimilarityCheck } from '../components/AiTopicSimilarityCheck'
 
 export function ProjectRegistrationFormPage() {
   const navigate = useNavigate()
@@ -101,9 +102,20 @@ export function ProjectRegistrationFormPage() {
         {registration.error?.kind === 'validation' && <ValidationSummary summaryRef={validationSummaryRef} fields={registration.error.fields} message={registration.error.message} />}
         <TextField id="project-title" label="Tên đề tài" value={registration.form.title} required disabled={!editable} error={registration.error?.fields?.title} onChange={(value) => registration.setField('title', value)} />
         {editable && <div>
-          <button type="button" onClick={() => void checkSimilarity()} disabled={!registration.form.title.trim() || similarityLoading} className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-            {similarityLoading ? 'Đang kiểm tra…' : 'Kiểm tra trùng đề tài'}
-          </button>
+          <AiTopicSimilarityCheck key={JSON.stringify([journey.profile?.id, journey.team?.id, registrationProject?.id, registration.academicScope, registration.form])} input={{
+            teamId: journey.team?.id ?? 0,
+            ...(registrationProject ? { projectId: registrationProject.id } : {}),
+            title: registration.form.title.trim(),
+            problemStatement: registration.form.problemStatement,
+            objectives: registration.form.objectives,
+            expectedOutput: registration.form.expectedOutput,
+            domain: registration.form.domain,
+            keywords: splitProjectTags(registration.form.keywords),
+          }}>
+            <button type="button" onClick={() => void checkSimilarity()} disabled={!registration.form.title.trim() || similarityLoading} className="min-h-11 rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50">
+              {similarityLoading ? 'Đang kiểm tra…' : 'Kiểm tra trùng đề tài'}
+            </button>
+          </AiTopicSimilarityCheck>
           <SimilarityResult result={currentSimilarity} />
         </div>}
         <TextArea id="project-description" label="Mô tả ngắn" value={registration.form.description} disabled={!editable} onChange={(value) => registration.setField('description', value)} />
