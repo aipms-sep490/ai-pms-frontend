@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   getHistory: vi.fn(),
   getTopicSimilarity: vi.fn(),
+  checkTopicSimilarityWithAi: vi.fn(),
 }))
 
 vi.mock('../../../app/context', () => ({
@@ -36,7 +37,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
 vi.mock('../../../services/service-gateway', () => ({
   services: {
     project: { getHistory: mocks.getHistory, updateDraft: vi.fn(), resubmit: vi.fn() },
-    topic: { getTopicById: vi.fn(), getTopicSimilarity: mocks.getTopicSimilarity },
+    topic: { getTopicById: vi.fn(), getTopicSimilarity: mocks.getTopicSimilarity, checkTopicSimilarityWithAi: mocks.checkTopicSimilarityWithAi },
   },
 }))
 
@@ -109,6 +110,25 @@ describe('ProjectRegistrationFormPage', () => {
       // Wait for useEffect to populate state from project
       const titleInput = await screen.findByDisplayValue('Prefilled Project Title')
       expect(titleInput).toBeDefined()
+      expect(mocks.checkTopicSimilarityWithAi).not.toHaveBeenCalled()
+    })
+
+    it('sends proposal content and hides AI results after non-title edits or actor changes', async () => {
+      mocks.checkTopicSimilarityWithAi.mockResolvedValue({ exactMatch: null, similar: [], matches: [], generationStatus: 'COMPLETED', summary: 'Kết quả riêng của người dùng', limitationNote: 'Phạm vi được phép', candidateCount: 1, reviewedCount: 1, generatedAt: '2026-11-19T00:00:00Z', modelVersion: 'test' })
+      const view = render(<ProjectRegistrationFormPage />, { wrapper: MemoryRouter })
+      await screen.findByDisplayValue('Prefilled Project Title')
+      fireEvent.click(screen.getByRole('button', { name: 'Kiểm tra ý tưởng bằng AI' }))
+      expect(await screen.findByText('Kết quả riêng của người dùng')).toBeTruthy()
+      expect(mocks.checkTopicSimilarityWithAi).toHaveBeenCalledWith(expect.objectContaining({ teamId: 1, projectId: 5, title: 'Prefilled Project Title', problemStatement: 'Prefilled problem.', objectives: 'Prefilled objectives.', expectedOutput: 'Prefilled output.' }), expect.any(AbortSignal))
+      fireEvent.change(screen.getByDisplayValue('Prefilled objectives.'), { target: { value: 'New objectives' } })
+      expect(screen.queryByText('Kết quả riêng của người dùng')).toBeNull()
+      fireEvent.click(screen.getByRole('button', { name: 'Kiểm tra ý tưởng bằng AI' }))
+      expect(await screen.findByText('Kết quả riêng của người dùng')).toBeTruthy()
+      const previous = mocks.useStudentJourney.mock.results.at(-1)?.value
+      mocks.useStudentJourney.mockReturnValue({ ...previous, profile: { ...previous.profile, id: 99 } })
+      view.rerender(<ProjectRegistrationFormPage />)
+      expect(screen.queryByText('Kết quả riêng của người dùng')).toBeNull()
+      expect(screen.getByDisplayValue('New objectives')).toBeTruthy()
     })
 
     it('renders student-proposal provenance from the Project record', async () => {

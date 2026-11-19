@@ -1,9 +1,9 @@
 import { env } from '../../app/config/env'
 import type { MajorType } from '../../components/ui/MultidisciplinaryTag'
-import type { PagedResult, TopicDto, TopicSimilarityResultDto } from '../../types/backend'
+import type { AiTopicSimilarityRequest, AiTopicSimilarityResultDto, PagedResult, TopicDto, TopicSimilarityResultDto } from '../../types/backend'
 import type { TopicItem, TopicCatalogueQuery } from '../../types/topic.types'
 import { REFERENCE_TOPICS } from '../fixtures/topic-catalogue.fixture'
-import { httpGet } from '../http/http-client'
+import { httpGet, httpPost } from '../http/http-client'
 
 const KNOWN_MAJORS = new Set<MajorType>(['SE', 'UI/UX', 'AI', 'QA', 'IS'])
 
@@ -82,4 +82,9 @@ export async function getTopicSimilarity(params: {
   if (params.keywords?.length) query.set('keywords', params.keywords.join(','))
   if (params.leadDepartmentId) query.set('leadDepartmentId', String(params.leadDepartmentId))
   return httpGet<TopicSimilarityResultDto>(`/topics/similarity-check?${query.toString()}`)
+}
+
+export function checkTopicSimilarityWithAi(input: AiTopicSimilarityRequest, signal?: AbortSignal): Promise<AiTopicSimilarityResultDto> {
+  if (env.isMockMode) return Promise.reject(new Error('AI similarity requires API mode.'))
+  return httpPost<AiTopicSimilarityResultDto>('/topics/ai-similarity-check', input, { signal })
 }
