@@ -76,9 +76,9 @@ export function EligibilityBanner({ eligibility, onRefresh }: EligibilityBannerP
           type="button"
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+          className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
         >
-          <span className={`material-symbols-outlined text-[16px] ${isRefreshing ? 'animate-spin' : ''}`}>
+          <span className={`material-symbols-outlined text-[16px] ${isRefreshing ? 'motion-safe:animate-spin' : ''}`} aria-hidden="true">
             refresh
           </span>
           {isRefreshing ? 'Đang kiểm tra...' : 'Kiểm tra lại'}
@@ -89,10 +89,10 @@ export function EligibilityBanner({ eligibility, onRefresh }: EligibilityBannerP
 
   return (
     <div className="bg-status-warning-bg border border-status-warning-border rounded-xl p-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 sm:flex-nowrap">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-status-warning-bg text-status-warning-text flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-[20px]">warning</span>
+            <span className="material-symbols-outlined text-[20px]" aria-hidden="true">warning</span>
           </div>
           <div>
             <h4 className="text-sm font-semibold text-status-warning-text">
@@ -107,9 +107,9 @@ export function EligibilityBanner({ eligibility, onRefresh }: EligibilityBannerP
           type="button"
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="px-3 py-1.5 bg-warning-strong hover:bg-warning-strong-hover text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50 shrink-0"
+          className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg border border-status-warning-border bg-card px-3.5 py-2 text-xs font-semibold text-status-warning-text transition-colors hover:bg-canvas disabled:opacity-50"
         >
-          <span className={`material-symbols-outlined text-[16px] ${isRefreshing ? 'animate-spin' : ''}`}>
+          <span className={`material-symbols-outlined text-[16px] ${isRefreshing ? 'motion-safe:animate-spin' : ''}`} aria-hidden="true">
             refresh
           </span>
           {isRefreshing ? 'Đang thẩm định...' : 'Thẩm định lại'}
@@ -125,7 +125,7 @@ export function EligibilityBanner({ eligibility, onRefresh }: EligibilityBannerP
           return (
             <div
               key={reason}
-              className="bg-white/70 border border-status-warning-border/80 rounded-lg p-2.5 flex items-start gap-2"
+              className="bg-card border border-status-warning-border rounded-lg p-2.5 flex items-start gap-2"
             >
               <span className="material-symbols-outlined text-status-warning-text text-[18px] mt-0.5 shrink-0">
                 error_outline
