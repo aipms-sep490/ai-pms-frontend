@@ -289,9 +289,7 @@ export function PreSemesterSetupHubPage() {
               )}
             </div>
           </div>
-          <Button variant="secondary" size="sm" icon="refresh" disabled={loading} onClick={() => void loadReadiness(targetSemesterId)}>
-            Tải lại
-          </Button>
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading} onClick={() => void loadReadiness(targetSemesterId)} />
         </div>
 
         <div className="space-y-1.5">
@@ -313,9 +311,19 @@ export function PreSemesterSetupHubPage() {
         </div>
       )}
       {notice && (
-        <div role="status" className="flex items-center justify-between gap-3 rounded-xl border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">
-          <span>✓ {notice}</span>
-          <button type="button" onClick={() => setNotice(null)} className="font-bold">✕</button>
+        <div role="status" className="flex items-center justify-between gap-3 rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-sm text-ink">
+          <span className="flex items-center gap-2">
+            <span className="material-symbols-outlined shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+            <span>{notice}</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setNotice(null)}
+            aria-label="Đóng thông báo"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-muted hover:bg-canvas hover:text-ink"
+          >
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">close</span>
+          </button>
         </div>
       )}
 
@@ -325,13 +333,13 @@ export function PreSemesterSetupHubPage() {
           Đang tổng hợp mức độ sẵn sàng của học kỳ…
         </p>
       ) : readiness && (
-        <section aria-label="Checklist hạng mục chuẩn bị đầu kỳ" className="grid gap-4 md:grid-cols-2">
+        <section aria-label="Checklist hạng mục chuẩn bị đầu kỳ" className="grid items-stretch gap-4 md:grid-cols-2">
           {readiness.items.map(item => {
             const meta = statusMeta[item.status] ?? statusMeta.MISSING
             return (
               <article
                 key={item.key}
-                className={`flex flex-col justify-between gap-4 rounded-xl border bg-card p-5 shadow-2xs transition-colors ${
+                className={`flex h-full flex-col justify-between gap-4 rounded-xl border bg-card p-5 shadow-2xs transition-colors ${
                   item.allowedByRole ? 'border-hairline hover:border-primary/40' : 'border-hairline/60 opacity-75'
                 }`}
               >
@@ -409,7 +417,7 @@ export function PreSemesterSetupHubPage() {
                     wizardStep === s.step
                       ? 'border-primary bg-primary-subtle text-primary'
                       : wizardStep > s.step
-                        ? 'border-status-success-border bg-status-success-bg text-status-success-text'
+                        ? 'border-hairline border-l-4 border-l-status-success-text bg-card text-ink'
                         : 'border-hairline bg-canvas text-ink-muted'
                   }`}
                 >
@@ -443,20 +451,20 @@ export function PreSemesterSetupHubPage() {
                   </select>
                 </label>
 
-                <div className="grid gap-2.5 sm:grid-cols-2">
-                  <label className="flex items-start gap-2.5 rounded-lg border border-hairline bg-canvas p-3 text-xs text-ink">
+                <div className="grid items-stretch gap-2.5 sm:grid-cols-2">
+                  <label className="flex h-full items-start gap-2.5 rounded-lg border border-hairline bg-canvas p-3 text-xs text-ink">
                     <input type="checkbox" checked={includeRubrics} onChange={e => setIncludeRubrics(e.target.checked)} />
                     <span><strong>Rubrics đánh giá</strong><br /><span className="text-ink-muted">Sao chép toàn bộ cây tiêu chí & 4 mức chất lượng thành DRAFT.</span></span>
                   </label>
-                  <label className={`flex items-start gap-2.5 rounded-lg border border-hairline bg-canvas p-3 text-xs text-ink ${!readiness.isDepartmentStaff ? 'opacity-50' : ''}`}>
+                  <label className={`flex h-full items-start gap-2.5 rounded-lg border border-hairline bg-canvas p-3 text-xs text-ink ${!readiness.isDepartmentStaff ? 'opacity-50' : ''}`}>
                     <input type="checkbox" disabled={!readiness.isDepartmentStaff} checked={includeReviewGates} onChange={e => setIncludeReviewGates(e.target.checked)} />
                     <span><strong>Khung cổng thẩm định (Review Gates)</strong><br /><span className="text-ink-muted">Sao chép G1..Gn thành DRAFT và tự dịch chuyển ngày theo kỳ mới.</span></span>
                   </label>
-                  <label className={`flex items-start gap-2.5 rounded-lg border border-hairline bg-canvas p-3 text-xs text-ink ${!readiness.isDepartmentStaff ? 'opacity-50' : ''}`}>
+                  <label className={`flex h-full items-start gap-2.5 rounded-lg border border-hairline bg-canvas p-3 text-xs text-ink ${!readiness.isDepartmentStaff ? 'opacity-50' : ''}`}>
                     <input type="checkbox" disabled={!readiness.isDepartmentStaff} checked={includeColdTemplates} onChange={e => setIncludeColdTemplates(e.target.checked)} />
                     <span><strong>Mẫu hồ sơ chấm nguội</strong><br /><span className="text-ink-muted">Sao chép bộ báo cáo chấm nguội sang kỳ Đánh giá/Bàn giao mới.</span></span>
                   </label>
-                  <label className="flex items-start gap-2.5 rounded-lg border border-hairline bg-canvas p-3 text-xs text-ink">
+                  <label className="flex h-full items-start gap-2.5 rounded-lg border border-hairline bg-canvas p-3 text-xs text-ink">
                     <input type="checkbox" checked={includePolicies} onChange={e => setIncludePolicies(e.target.checked)} />
                     <span><strong>Chính sách kỳ đồ án</strong><br /><span className="text-ink-muted">Tạo phiên bản kế tiếp (DRAFT) giữ nguyên giới hạn nhóm & GVHD.</span></span>
                   </label>
@@ -546,10 +554,13 @@ export function PreSemesterSetupHubPage() {
 
             {wizardStep === 3 && applyResult && (
               <div className="space-y-4">
-                <div role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">
-                  <strong>✓ Đã tạo {applyResult.createdCount} bản nháp (DRAFT)</strong>
-                  {applyResult.holidaysLoadedCount > 0 && ` và nạp lịch nghỉ lễ VN cho ${applyResult.holidaysLoadedCount} kỳ đồ án.`}
-                  {applyResult.skippedCount > 0 && ` (${applyResult.skippedCount} hạng mục được bỏ qua.)`}
+                <div role="status" className="flex items-start gap-2.5 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-sm text-ink">
+                  <span className="material-symbols-outlined mt-0.5 shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+                  <div>
+                    <strong>Đã tạo {applyResult.createdCount} bản nháp (DRAFT)</strong>
+                    {applyResult.holidaysLoadedCount > 0 && ` và nạp lịch nghỉ lễ VN cho ${applyResult.holidaysLoadedCount} kỳ đồ án.`}
+                    {applyResult.skippedCount > 0 && ` (${applyResult.skippedCount} hạng mục được bỏ qua.)`}
+                  </div>
                 </div>
                 {applyResult.created.length > 0 && (
                   <ul className="max-h-56 space-y-1.5 overflow-y-auto text-xs">
