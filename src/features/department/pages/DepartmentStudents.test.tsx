@@ -112,7 +112,7 @@ beforeEach(() => {
   mocks.listDepartmentStudents.mockResolvedValue({
     items: [sampleStudent],
     page: 1,
-    pageSize: 20,
+    pageSize: 12,
     totalCount: 1,
     totalPages: 1,
     stats: {
@@ -290,6 +290,7 @@ describe('AcademicProfileSummary student self-update and lock', () => {
     render(<AcademicProfileSummary />)
     await screen.findByText('SE180042')
     fireEvent.click(screen.getByRole('button', { name: 'Cập nhật lớp & chuyên ngành hẹp' }))
+    await screen.findByRole('option', { name: /SE-WEB/ })
     fireEvent.change(screen.getByLabelText(/Lớp hành chính/), { target: { value: 'SE1809' } })
     fireEvent.change(screen.getByLabelText('Chuyên ngành hẹp'), { target: { value: '11' } })
     fireEvent.click(screen.getByRole('button', { name: 'Lưu lớp & chuyên ngành hẹp' }))
