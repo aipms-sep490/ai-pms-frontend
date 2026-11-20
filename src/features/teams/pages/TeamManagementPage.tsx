@@ -152,12 +152,12 @@ export function TeamManagementPage() {
       )}
 
       {error && (
-        <div role="alert" className={`flex items-center justify-between gap-3 rounded-md border p-4 text-xs ${
-          error.kind === 'conflict' ? 'border-status-warning-border bg-status-warning-bg text-status-warning-text' : 'border-status-error-border bg-status-error-bg text-danger-text'
+        <div role="alert" className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 text-xs ${
+          error.kind === 'conflict' ? 'border-status-warning-border bg-status-warning-bg text-status-warning-text' : 'border-status-error-border bg-status-error-bg text-status-error-text'
         }`}>
           <p>{error.message}</p>
           {error.kind !== 'authentication' && (
-            <button type="button" onClick={() => void retry()} disabled={isRefreshing} className="shrink-0 rounded-lg border border-current px-3 py-1.5 font-semibold disabled:opacity-50">
+            <button type="button" onClick={() => void retry()} disabled={isRefreshing} className="min-h-11 shrink-0 rounded-lg border border-current px-3.5 py-2 font-semibold disabled:opacity-50">
               {isRefreshing ? 'Đang tải lại...' : 'Tải lại'}
             </button>
           )}
@@ -167,10 +167,11 @@ export function TeamManagementPage() {
       {!rosterLocked && <StudentQualificationCard key={currentUserId} onSubmitted={management.refreshAll} />}
 
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
+      <header className="workspace-heading">
+        <div className="workspace-heading-copy">
+          <span className="workspace-kicker">Khởi tạo và quản trị nhóm</span>
           <h1 className="font-heading text-[clamp(26px,2.1vw,32px)] font-bold leading-tight tracking-tight text-ink">Thành viên nhóm</h1>
-          <p className="text-sm text-ink-muted mt-1">
+          <p className="text-sm text-ink-muted">
             Học kỳ: <span className="font-semibold text-ink-soft">{semester?.name ?? 'Chưa xác định'}</span> • Sinh viên:{' '}
             <span className="font-semibold text-ink-soft">{profile?.fullName ?? 'Sinh viên'}</span>{profile?.studentCode ? ` (${profile.studentCode})` : ''}
           </p>
@@ -180,48 +181,46 @@ export function TeamManagementPage() {
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-primary"
+            className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-primary transition-colors hover:bg-primary-hover"
           >
-            <span className="material-symbols-outlined text-[18px]">add_circle</span>
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">add_circle</span>
             Thành lập Nhóm Mới
           </button>
         )}
 
-        {team && (
+        {team && permissions.canLeave && (
           <div className="flex items-center gap-2">
-            {permissions.canLeave && (
-              <button
-                type="button"
-                onClick={() => setIsLeaveConfirmOpen(true)}
-                className="px-3.5 py-2 border border-hairline hover:bg-status-error-bg hover:text-danger-text hover:border-status-error-border text-ink-muted rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5"
-              >
-                <span className="material-symbols-outlined text-[16px]">logout</span>
-                Rời nhóm
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setIsLeaveConfirmOpen(true)}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-ink-muted transition-colors hover:border-status-error-border hover:bg-status-error-bg hover:text-status-error-text"
+            >
+              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">logout</span>
+              Rời nhóm
+            </button>
           </div>
         )}
-      </div>
+      </header>
 
       {/* When Student Has NO TEAM */}
       {!team ? (
         <div className="flex flex-col gap-6">
-          <div className="bg-card border border-hairline rounded-md p-8 text-center flex flex-col items-center gap-4 ">
-            <div className="w-16 h-16 rounded-md bg-primary-subtle text-primary flex items-center justify-center">
-              <span className="material-symbols-outlined text-[36px]">group_add</span>
+          <div className="flex flex-col items-center gap-4 rounded-xl border border-hairline bg-card p-8 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary-subtle text-primary">
+              <span className="material-symbols-outlined text-[36px]" aria-hidden="true">group_add</span>
             </div>
             <div className="max-w-md">
               <h3 className="text-lg font-bold text-ink">Bạn chưa tham gia nhóm đồ án nào</h3>
-              <p className="text-xs text-ink-muted mt-1.5 leading-relaxed">
+              <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
                 Để đăng ký đề tài đồ án tốt nghiệp, bạn cần thành lập một nhóm mới hoặc chấp nhận lời mời tham gia từ các nhóm khác.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-md text-xs font-bold flex items-center gap-2 transition-colors shadow-primary"
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-primary transition-colors hover:bg-primary-hover"
             >
-              <span className="material-symbols-outlined text-[18px]">add</span>
+              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">add</span>
               Bắt đầu tạo nhóm ngay
             </button>
           </div>
@@ -258,14 +257,14 @@ export function TeamManagementPage() {
           ]} />
 
           {/* Team Overview Card */}
-          <div className="bg-card border border-hairline rounded-md p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 ">
+          <div className="flex flex-col justify-between gap-4 rounded-xl border border-hairline bg-card p-6 md:flex-row md:items-center">
             <div>
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-sm font-bold bg-primary-subtle text-primary border border-status-success-border px-2.5 py-0.5 rounded-lg">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="rounded-lg border border-primary/20 bg-primary-subtle px-2.5 py-0.5 font-mono text-sm font-bold text-primary">
                   {team.code}
                 </span>
                 <h2 className="text-lg font-bold text-ink">{team.name}</h2>
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-canvas text-ink-soft">
+                <span className="rounded-full border border-hairline bg-canvas px-2.5 py-0.5 text-xs font-semibold text-ink-soft">
                   {team.status === 'ELIGIBLE'
                     ? 'Đủ điều kiện đăng ký'
                     : team.status === 'LOCKED'
@@ -274,20 +273,20 @@ export function TeamManagementPage() {
                 </span>
               </div>
               {team.description && (
-                <p className="text-xs text-ink-muted mt-1.5 max-w-2xl">{team.description}</p>
+                <p className="mt-1.5 max-w-2xl text-xs text-ink-muted">{team.description}</p>
               )}
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
               {permissions.canEditTeam && (
-                <button type="button" onClick={() => setIsUpdateModalOpen(true)} className="rounded-md border border-hairline px-3.5 py-2 text-xs font-semibold text-ink-muted hover:bg-canvas">
+                <button type="button" onClick={() => setIsUpdateModalOpen(true)} className="inline-flex min-h-11 items-center rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary">
                   Chỉnh sửa nhóm
                 </button>
               )}
               <div className="text-right">
-                <span className="text-xs text-slate-400 block">Sĩ số nhóm</span>
+                <span className="block text-xs text-ink-muted">Sĩ số nhóm</span>
                 <span className="text-sm font-bold text-ink-soft">
-              {team.members.length} / {maxTeamSize ?? '—'} thành viên
+                  {team.members.length} / {maxTeamSize ?? '—'} thành viên
                 </span>
               </div>
             </div>
