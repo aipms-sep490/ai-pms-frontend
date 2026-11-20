@@ -57,9 +57,9 @@ export function AccountRoleAssignments({ user, roles, rolesState, accessToken, o
   return <section className="admin-panel" aria-label="Quản lý vai trò toàn hệ thống">
     <h2>Gán vai trò hệ thống</h2>
     <p className="admin-boundary">Một tài khoản có thể có nhiều vai trò hệ thống. Giảng viên hướng dẫn và người chấm được phân công theo từng đồ án; cùng một người có thể hướng dẫn nhóm này và chấm nhóm khác.</p>
-    {rolesState === 'loading' && <p role="status">Đang tải danh mục vai trò…</p>}
-    {rolesState === 'error' && <p role="alert">Chưa tải được danh mục vai trò. Hãy tải lại trang trước khi gán.</p>}
-    {rolesState === 'ready' && globalRoles.length === 0 && <p role="status">Chưa có vai trò hệ thống có thể gán.</p>}
+    {rolesState === 'loading' && <p role="status" className="text-sm text-ink-muted">Đang tải danh mục vai trò…</p>}
+    {rolesState === 'error' && <p role="alert" className="admin-error">Chưa tải được danh mục vai trò. Hãy tải lại trang trước khi gán.</p>}
+    {rolesState === 'ready' && globalRoles.length === 0 && <p role="status" className="text-sm text-ink-muted">Chưa có vai trò hệ thống có thể gán.</p>}
     {rolesState === 'ready' && globalRoles.length > 0 && <ul className="space-y-2">{globalRoles.map(role => {
       const assigned = user.roles.includes(role.code)
       return <li key={role.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hairline p-2">
