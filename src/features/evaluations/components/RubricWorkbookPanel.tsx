@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../../components/ui/Table'
 import { HttpError } from '../../../services/http/http-client'
 import * as api from '../rubrics-api'
 import type { CriterionInput, Rubric, RubricWorkbookStagedRow } from '../rubrics-api'
@@ -246,35 +247,35 @@ export function RubricWorkbookPanel({ rubric, dirty, onCommitted }: {
           <span className="text-xs font-semibold text-ink">Staging Preview Grid ({stagedRows.length} dòng)</span>
           <button type="button" className="rounded border border-hairline px-2 py-1 text-xs font-semibold text-ink" onClick={addStagedRow}>+ Thêm dòng</button>
         </div>
-        <table className="w-full border-collapse text-left text-xs">
-          <thead>
-            <tr className="border-b border-hairline text-ink-muted">
-              <th className="p-1.5">Mã</th>
-              <th className="p-1.5">Tên tiêu chí</th>
-              <th className="p-1.5">Trọng số %</th>
-              <th className="p-1.5">Điểm tối đa</th>
-              <th className="p-1.5">Phạm vi</th>
-              <th className="p-1.5">INT</th>
-              <th className="p-1.5">Xóa</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table className="text-xs">
+          <TableHead>
+            <TableRow head>
+              <TableHeaderCell>Mã</TableHeaderCell>
+              <TableHeaderCell>Tên tiêu chí</TableHeaderCell>
+              <TableHeaderCell>Trọng số %</TableHeaderCell>
+              <TableHeaderCell>Điểm tối đa</TableHeaderCell>
+              <TableHeaderCell>Phạm vi</TableHeaderCell>
+              <TableHeaderCell>INT</TableHeaderCell>
+              <TableHeaderCell>Xóa</TableHeaderCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {stagedRows.map((row, index) => {
               const rowError = editedLocally ? Boolean(localValidation?.errorRowIndices.has(index)) : row.hasError
-              return <tr key={`${row.code}-${index}`} className={rowError ? 'border-b border-status-error-border bg-status-error-bg' : 'border-b border-hairline'}>
-                <td className="p-1"><input aria-label={`Mã dòng ${index + 1}`} className="w-20 rounded border border-hairline bg-card px-1.5 py-1 text-xs" value={row.code} onChange={e => updateStagedRow(index, { code: e.target.value })} /></td>
-                <td className="p-1"><input aria-label={`Tên tiêu chí dòng ${index + 1}`} className="w-44 rounded border border-hairline bg-card px-1.5 py-1 text-xs" value={row.name} onChange={e => updateStagedRow(index, { name: e.target.value })} /></td>
-                <td className="p-1"><input aria-label={`Trọng số dòng ${index + 1}`} type="number" step="0.001" className="w-24 rounded border border-hairline bg-card px-1.5 py-1 text-xs" value={row.weightPercent} onChange={e => updateStagedRow(index, { weightPercent: Number(e.target.value) })} /></td>
-                <td className="p-1"><input aria-label={`Điểm tối đa dòng ${index + 1}`} type="number" step="0.01" className="w-20 rounded border border-hairline bg-card px-1.5 py-1 text-xs" value={row.maxScore ?? ''} onChange={e => updateStagedRow(index, { maxScore: e.target.value ? Number(e.target.value) : null })} /></td>
-                <td className="p-1"><select aria-label={`Phạm vi dòng ${index + 1}`} className="rounded border border-hairline bg-card px-1.5 py-1 text-xs" value={row.targetScope ?? ''} onChange={e => updateStagedRow(index, { targetScope: (e.target.value || null) as RubricWorkbookStagedRow['targetScope'] })}>
+              return <TableRow key={`${row.code}-${index}`} className={rowError ? 'border-status-error-border bg-status-error-bg' : ''}>
+                <TableCell className="p-1"><input aria-label={`Mã dòng ${index + 1}`} className="w-20 rounded border border-hairline bg-card px-1.5 py-1 text-xs" value={row.code} onChange={e => updateStagedRow(index, { code: e.target.value })} /></TableCell>
+                <TableCell className="p-1"><input aria-label={`Tên tiêu chí dòng ${index + 1}`} className="w-44 rounded border border-hairline bg-card px-1.5 py-1 text-xs" value={row.name} onChange={e => updateStagedRow(index, { name: e.target.value })} /></TableCell>
+                <TableCell className="p-1"><input aria-label={`Trọng số dòng ${index + 1}`} type="number" step="0.001" className="w-24 rounded border border-hairline bg-card px-1.5 py-1 text-xs" value={row.weightPercent} onChange={e => updateStagedRow(index, { weightPercent: Number(e.target.value) })} /></TableCell>
+                <TableCell className="p-1"><input aria-label={`Điểm tối đa dòng ${index + 1}`} type="number" step="0.01" className="w-20 rounded border border-hairline bg-card px-1.5 py-1 text-xs" value={row.maxScore ?? ''} onChange={e => updateStagedRow(index, { maxScore: e.target.value ? Number(e.target.value) : null })} /></TableCell>
+                <TableCell className="p-1"><select aria-label={`Phạm vi dòng ${index + 1}`} className="rounded border border-hairline bg-card px-1.5 py-1 text-xs" value={row.targetScope ?? ''} onChange={e => updateStagedRow(index, { targetScope: (e.target.value || null) as RubricWorkbookStagedRow['targetScope'] })}>
                   <option value="">Mặc định</option><option value="PROJECT">PROJECT</option><option value="MAJOR">MAJOR</option><option value="STUDENT">STUDENT</option>
-                </select></td>
-                <td className="p-1"><input aria-label={`Tích hợp INT dòng ${index + 1}`} type="checkbox" checked={row.isIntegration} onChange={e => updateStagedRow(index, { isIntegration: e.target.checked })} /></td>
-                <td className="p-1"><button type="button" className="rounded border border-danger px-2 py-1 text-xs text-danger-text" onClick={() => removeStagedRow(index)}>Bỏ</button></td>
-              </tr>
+                </select></TableCell>
+                <TableCell className="p-1"><input aria-label={`Tích hợp INT dòng ${index + 1}`} type="checkbox" checked={row.isIntegration} onChange={e => updateStagedRow(index, { isIntegration: e.target.checked })} /></TableCell>
+                <TableCell className="p-1"><button type="button" className="rounded border border-danger px-2 py-1 text-xs text-danger-text" onClick={() => removeStagedRow(index)}>Bỏ</button></TableCell>
+              </TableRow>
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>}
 
       {canCommit && <button type="button" className="mt-3 min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50"

@@ -20,6 +20,7 @@ import { InlineAlert } from '../../../components/ui/InlineAlert'
 import { evaluatorApprovalLabel } from '../evaluator-approval'
 import { useAssignmentSchemeContext } from '../hooks/useAssignmentSchemeContext'
 import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
+import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../../components/ui/Table'
 
 type FieldValues = Record<number, { score: string; comments: string }>
 
@@ -395,34 +396,32 @@ export function EvaluatorAssignmentDetailPage() {
             </div>
           </div>
           {workbenchTab === 'process20' ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-hairline text-ink-muted">
-                    <th className="py-2 pr-3">MSSV / Thành viên</th>
-                    <th className="py-2 pr-3">Chuyên ngành</th>
-                    <th className="py-2 pr-3">Đóng góp</th>
-                    <th className="py-2 pr-3">20% GVHD (G1–G3)</th>
-                    <th className="py-2">Trạng thái phiếu</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-hairline">
-                  {workbench.roster.map(member => (
-                    <tr key={member.studentId}>
-                      <td className="py-2 pr-3 font-medium text-ink">{member.studentCode ? `${member.studentCode} · ` : ''}{member.fullName}{member.isLeader ? ' (Nhóm trưởng)' : ''}</td>
-                      <td className="py-2 pr-3 text-ink-soft">{member.majorName ?? member.majorCode ?? '—'}</td>
-                      <td className="py-2 pr-3 text-ink-soft">{formatPercent(member.contributionPercent)}</td>
-                      <td className="py-2 pr-3 font-semibold text-ink">
-                        {member.individualProcessScore != null ? `${formatScore(member.individualProcessScore)}/10${member.individualProcessComplete ? '' : ' (Chưa đủ 3 Gate)'}` : 'Chưa chốt'}
-                      </td>
-                      <td className="py-2 text-ink-muted">
-                        {member.assignments.length === 0 ? 'Theo phiếu chung' : member.assignments.map(a => `${a.componentName ?? a.scope}: ${a.status}`).join(' · ')}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table className="text-xs">
+              <TableHead>
+                <TableRow head>
+                  <TableHeaderCell>MSSV / Thành viên</TableHeaderCell>
+                  <TableHeaderCell>Chuyên ngành</TableHeaderCell>
+                  <TableHeaderCell>Đóng góp</TableHeaderCell>
+                  <TableHeaderCell>20% GVHD (G1–G3)</TableHeaderCell>
+                  <TableHeaderCell>Trạng thái phiếu</TableHeaderCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {workbench.roster.map(member => (
+                  <TableRow key={member.studentId}>
+                    <TableCell className="font-medium text-ink">{member.studentCode ? `${member.studentCode} · ` : ''}{member.fullName}{member.isLeader ? ' (Nhóm trưởng)' : ''}</TableCell>
+                    <TableCell>{member.majorName ?? member.majorCode ?? '—'}</TableCell>
+                    <TableCell>{formatPercent(member.contributionPercent)}</TableCell>
+                    <TableCell className="font-semibold text-ink">
+                      {member.individualProcessScore != null ? `${formatScore(member.individualProcessScore)}/10${member.individualProcessComplete ? '' : ' (Chưa đủ 3 Gate)'}` : 'Chưa chốt'}
+                    </TableCell>
+                    <TableCell className="text-ink-muted">
+                      {member.assignments.length === 0 ? 'Theo phiếu chung' : member.assignments.map(a => `${a.componentName ?? a.scope}: ${a.status}`).join(' · ')}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           ) : null}
         </section>
       ) : null}
