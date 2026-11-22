@@ -5,12 +5,12 @@
 .roster-export__format p { margin: 6px 0 0; color: var(--color-ink-muted); font-size: 12px; line-height: 1.7; }
 .roster-export fieldset { display: grid; gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
 .roster-export label { display: flex; flex-wrap: wrap; gap: 6px; color: var(--color-ink-soft); font-size: 14px; font-weight: 600; }
-.roster-export select { width: 100%; min-width: 0; min-height: 44px; padding: 10px; border: 1px solid var(--color-line-strong); border-radius: 6px; background: #fff; color: var(--color-ink); font: inherit; }
+.roster-export select { width: 100%; min-width: 0; min-height: 44px; padding: 10px; border: 1px solid var(--color-line-strong); border-radius: 6px; background: var(--color-card); color: var(--color-ink); font: inherit; font-weight: 400; }
 .roster-export select:disabled { background: var(--color-canvas); color: var(--color-ink-muted); }
 .roster-export__hint { margin: 0; font-size: 12px; line-height: 1.65; color: var(--color-ink-muted); }
 .roster-export__error,.roster-export__success { margin: 0; padding: 12px; border-radius: 6px; font-size: 14px; line-height: 1.6; }
-.roster-export__error { background: var(--color-status-error-bg); color: var(--color-danger-text); }
-.roster-export__success { background: var(--color-status-success-bg); color: var(--color-status-success-text); }
+.roster-export__error { border: 1px solid var(--color-status-error-border); background: var(--color-status-error-bg); color: var(--color-status-error-text); }
+.roster-export__success { border: 1px solid var(--color-status-success-border); background: var(--color-status-success-bg); color: var(--color-status-success-text); }
 .roster-export .app-modal__actions { margin-top: 0; }
 .admin-roster-heading { flex-wrap: wrap; align-items: flex-start; }
 .admin-roster-heading > div { flex: 1 1 300px; }
