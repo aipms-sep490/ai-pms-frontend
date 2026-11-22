@@ -12,6 +12,7 @@ import { getProjectResultVersion, getStudentResultVersion } from '../../services
 import type { PagedResult } from '../../types/backend'
 import * as api from './result-correction-api'
 import { appealError, appealInputClass, AppealPaging, saveAppealDownload } from './appeal-ui'
+import { AppealAssistPanel } from '../ai-suite/EvaluationAiPanels'
 
 export function AppealRequestDetail({ projectId, requestId, onChanged }: { projectId: number; requestId: number; onChanged?: () => void }) {
   const [row, setRow] = useState<api.ResultCorrectionRequest | null>(null)
@@ -142,6 +143,15 @@ export function AppealRequestDetail({ projectId, requestId, onChanged }: { proje
       {(allowed('REVIEW') || allowed('PREVIEW')) && <Button variant="secondary" disabled={disabled} onClick={() => void run(async () => { const [next, files] = await Promise.all([api.getAppealReviewContext(projectId, requestId), api.getAppealEvidence(projectId, requestId)]); setContext(next); setEvidence(files) })}>Đọc hồ sơ thẩm định đã khóa</Button>}
       {evidence && <div className="space-y-2"><h3>Minh chứng nguồn đã khóa</h3>{evidence.length === 0 && <p className="text-sm text-ink-muted">Không có tệp nguồn được cấp trong hồ sơ này.</p>}{evidence.map(item => <Button key={item.fileId} disabled={busy} variant="secondary" onClick={() => void run(() => saveAppealDownload(() => api.downloadAppealFile(projectId, requestId, item.fileId, true), item.fileName))}>{item.fileName}</Button>)}</div>}
       {context && <div className="space-y-3"><p className="text-sm text-ink-muted">Phiên bản công thức tính: {context.calculationVersion}</p>{context.evaluations.map(evaluation => <fieldset key={evaluation.id} className="space-y-2 rounded-lg border border-hairline p-3" disabled={disabled || !allowed('REVIEW')}><legend className="px-1 text-sm font-medium">{evaluation.rubricName} · v{evaluation.rubricVersion}{evaluation.evaluatorName ? ` · ${evaluation.evaluatorName}` : ''}</legend>{evaluation.scores.map(criterion => { const key = `${evaluation.id}:${criterion.rubricCriterionId}`, input = amendments[key] ?? { score: '', reason: '' }; return <div key={key} className="grid gap-2 sm:grid-cols-3">{criterion.maxScore == null ? <span className="text-sm">{criterion.name}: Nhóm tiêu chí, không đính chính điểm trực tiếp.</span> : <><span className="text-sm">{criterion.name}: {criterion.score ?? '—'} / {criterion.maxScore}</span><label className="text-sm">Điểm đính chính {criterion.name}<input type="number" min="0" max={criterion.maxScore} step="any" value={input.score} onChange={event => setAmendments(values => ({ ...values, [key]: { ...input, score: event.target.value } }))} className={appealInputClass} /></label><label className="text-sm">Lý do tiêu chí {criterion.name}<input maxLength={2000} value={input.reason} onChange={event => setAmendments(values => ({ ...values, [key]: { ...input, reason: event.target.value } }))} className={appealInputClass} /></label></>}</div> })}</fieldset>)}{context.amendments.length > 0 && <ul className="list-disc pl-5 text-sm">{context.amendments.map(item => <li key={`${item.evaluationId}:${item.criterionId}`}>Đã đề nghị điều chỉnh {item.criterionName ?? 'tiêu chí'}: {item.score} điểm · {item.reason}</li>)}</ul>}</div>}
+      {(allowed('REVIEW') || allowed('REJECT') || allowed('ACCEPT') || allowed('ASSIGN_REVIEWER')) && (
+        <AppealAssistPanel
+          appealId={requestId}
+          onUseDraftResponse={(draftText) => {
+            setReason(draftText)
+            setPreview(null)
+          }}
+        />
+      )}
       {(allowed('REVIEW') || allowed('REJECT') || allowed('ACCEPT')) && <label className="block text-sm">Lý do thẩm định / quyết định<textarea maxLength={2000} value={reason} disabled={disabled} onChange={event => { setReason(event.target.value); setPreview(null) }} className={appealInputClass} /></label>}
       {allowed('REVIEW') && <div className="flex flex-wrap gap-3"><label className="text-sm">Đề nghị<select value={proposal} disabled={disabled} onChange={event => setProposal(event.target.value as 'KEEP' | 'AMEND')} className={appealInputClass}><option value="KEEP">Giữ nguyên</option><option value="AMEND">Đính chính tiêu chí</option></select></label><Button disabled={disabled || !context || !reason.trim()} onClick={() => void submitReview()}>Lưu đề nghị thẩm định</Button></div>}
       {allowed('PREVIEW') && <Button disabled={disabled} onClick={() => void loadPreview()}>Xem trước kết quả ảnh hưởng</Button>}

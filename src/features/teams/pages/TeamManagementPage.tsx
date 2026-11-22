@@ -16,6 +16,7 @@ import { services } from '../../../services/service-gateway'
 import { EligibilityHistoryPanel } from '../components/EligibilityHistoryPanel'
 import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
 import { humanizeHttpError } from '../../../services/http/humanize-http-error'
+import { TeamSkillGapPanel } from '../../ai-suite/TeamAgreementAiPanels'
 
 export function TeamManagementPage() {
   const navigate = useNavigate()
@@ -337,6 +338,9 @@ export function TeamManagementPage() {
               })}
             </section>
           )}
+
+          {/* AI Interdisciplinary Skill-Gap Analysis */}
+          <TeamSkillGapPanel teamId={team.id} />
 
           {/* Roster Table */}
           <TeamRosterTable

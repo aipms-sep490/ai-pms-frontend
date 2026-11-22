@@ -13,6 +13,7 @@ import { services } from '../../services/service-gateway'
 import type { Deliverable, DeliverableVersion } from '../deliverables/deliverable-types'
 import * as api from './final-submission-api'
 import type { FinalChecklist, FinalDraft, FinalPeriod, FinalRequirements, LockedFinalSubmission } from './final-submission-api'
+import { SubmissionPreflightPanel } from '../ai-suite/SubmissionPreflightPanel'
 
 async function allDeliverables(projectId: number): Promise<Deliverable[]> {
   const result: Deliverable[] = []
@@ -205,6 +206,7 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
         </form>
       </section>
       {checklist && <section className="workspace-surface workspace-surface-padding"><h2 className="font-semibold text-ink">Kiểm tra trước khi bàn giao</h2><p className="mt-1 text-sm text-ink-muted">Hạn: {checklist.deadline ? new Date(checklist.deadline).toLocaleString('vi-VN') : 'Chưa có'}</p><ul className="mt-3 space-y-2 text-sm">{checklist.items.map(item => <li key={item.deliverableId} className="workspace-record-row">{item.isComplete ? '✓' : '○'} {item.title} · {formatVersionBadge(item.selectedVersionId, item.selectedVersionNumber)}</li>)}</ul><div id="final-submission-blockers" className="mt-4"><ActionVerdict actions={[{ code: 'SUBMIT_FINAL_PACKAGE', allowed: canSubmit && Boolean(checklist.draftConcurrencyToken) && Boolean(checklist.requirementsConcurrencyToken), reasons: submissionReasons }]} actionCode="SUBMIT_FINAL_PACKAGE" status="ready" okLabel="Đủ điều kiện nộp bản cuối" blockedLabel="Chưa đủ điều kiện nộp bản cuối" /></div><label className="mt-4 flex items-start gap-2 text-sm"><input type="checkbox" checked={confirmed} disabled={!canSubmit || busy} onChange={event => setConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-line-strong text-primary focus:ring-primary" /><span>Tôi xác nhận khóa gói và nộp bản cuối theo danh mục kiểm tra hiện tại.</span></label><div className="mt-4"><Button type="button" aria-describedby={!canSubmit && checklist.blockers.length > 0 ? "final-submission-blockers" : undefined} disabled={!canSubmit || !confirmed || busy || !checklist.draftConcurrencyToken || !checklist.requirementsConcurrencyToken} onClick={() => { if (canSubmit) void run(() => api.submitFinalSubmission(projectId, checklist.draftConcurrencyToken!, checklist.requirementsConcurrencyToken!), true) }}>{busy ? 'Đang nộp…' : 'Nộp và khóa gói'}</Button></div></section>}
+      <SubmissionPreflightPanel projectId={projectId} target="FINAL_SUBMISSION" />
     </>}
     <div>
       <Link to="/projects/lifecycle" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-hairline bg-card px-3.5 py-2 text-sm font-semibold text-ink-soft transition-all hover:bg-canvas">

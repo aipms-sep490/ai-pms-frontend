@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { getProgressReportPrefill, type ProgressReportPrefill } from '../../services/api/progress-reports.api'
 import type { ReportingCycle } from '../../services/api/progress-reports.api'
 import type { AssistantDraft } from '../ai/academic-ai-api'
+import { ProgressReportAiDraftBar } from '../ai-suite/ProgressReportAiDraftBar'
 import { utcTimestamp } from '../execution/execution-utils'
 import {
   formatReportDate,
@@ -227,6 +228,34 @@ export function ReportEditor({
       {!report && prefillLoading && <p role="status" className="report-help">Đang lấy gợi ý từ dữ liệu dự án…</p>}
       {!report && suggestedKeys.length > 0 && <div className="report-prefill-note" role="note"><p>Gợi ý từ dữ liệu dự án — hãy kiểm tra và sửa trước khi nộp.</p><button className="report-button report-button--secondary" type="button" onClick={clearSuggestions}>Bỏ gợi ý, nhập lại từ đầu</button></div>}
       {initialDraft && !report && <p role="status" className="report-help">Đã điền bản nháp AI. Kiểm tra nội dung và kỳ báo cáo trước khi lưu; báo cáo chưa được nộp.</p>}
+      <ProgressReportAiDraftBar
+        projectId={projectId}
+        reportType={values.reportType}
+        periodStart={values.periodStart}
+        periodEnd={values.periodEnd}
+        disabled={busy}
+        onApplyDraft={(aiDraft) => {
+          dismissedSuggestions.current = true
+          prefillController.current?.abort()
+          setSuggestedKeys([])
+          suggestedKeysRef.current = []
+          setValues((current) => ({
+            ...current,
+            periodStart: current.periodStart || aiDraft.periodStart,
+            periodEnd: current.periodEnd || aiDraft.periodEnd,
+            summary: aiDraft.summary || current.summary,
+            completedWork: aiDraft.completedWork || current.completedWork,
+            inProgressWork: aiDraft.inProgressWork || current.inProgressWork,
+            plannedWork: aiDraft.plannedWork || current.plannedWork,
+            nextActions: aiDraft.plannedWork || current.nextActions,
+            blockers: aiDraft.issuesAndRisks || current.blockers,
+            risks: aiDraft.issuesAndRisks || current.risks,
+          }))
+          setDirty(true)
+          onDirtyChange(true)
+          setValidation('')
+        }}
+      />
       <fieldset disabled={busy}>
         {/* Cycle selection when creating a new report */}
         {canChooseCycle && cycles && cycles.length > 0 ? (
