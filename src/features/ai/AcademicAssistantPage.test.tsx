@@ -93,7 +93,7 @@ it('renders 3-column workspace, opens inline citation in side-panel inspector, s
   await waitFor(() => expect(api.updateAssistantConversation).toHaveBeenCalledWith(2, { isPinned: true }))
 })
 
-it('opens slash command palette when typing / in the composer', async () => {
+it('opens slash command palette when typing / and closes it on Escape or close button', async () => {
   render(
     <MemoryRouter initialEntries={['/academic/assistant']}>
       <AcademicAssistantPage />
@@ -103,6 +103,22 @@ it('opens slash command palette when typing / in the composer', async () => {
   const textarea = screen.getByLabelText('Câu hỏi học vụ')
   fireEvent.change(textarea, { target: { value: '/' } })
   const listbox = await screen.findByRole('listbox', { name: 'Lệnh nhanh trợ lý AI' })
-  fireEvent.click(within(listbox).getByRole('option', { name: /Soạn báo cáo tuần/ }))
+
+  // Pressing Escape closes the palette while keeping `/` in the textarea
+  fireEvent.keyDown(textarea, { key: 'Escape' })
+  expect(screen.queryByRole('listbox', { name: 'Lệnh nhanh trợ lý AI' })).toBeNull()
+  expect((textarea as HTMLTextAreaElement).value).toBe('/')
+
+  // Typing again reopens the palette; close button dismisses it too
+  fireEvent.change(textarea, { target: { value: '/b' } })
+  expect(await screen.findByRole('listbox', { name: 'Lệnh nhanh trợ lý AI' })).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Đóng lệnh nhanh' }))
+  expect(screen.queryByRole('listbox', { name: 'Lệnh nhanh trợ lý AI' })).toBeNull()
+
+  // Selecting a command applies the mode and populates prompt
+  fireEvent.change(textarea, { target: { value: '/' } })
+  const reopened = await screen.findByRole('listbox', { name: 'Lệnh nhanh trợ lý AI' })
+  fireEvent.click(within(reopened).getByRole('option', { name: /Soạn báo cáo tuần/ }))
+  expect(listbox).toBeTruthy()
   expect((textarea as HTMLTextAreaElement).value).toContain('Soạn báo cáo tuần')
 })

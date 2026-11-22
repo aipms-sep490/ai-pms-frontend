@@ -278,11 +278,13 @@ export function AcademicAssistantPage() {
             <div className="min-w-0">
               <div className="assistant-workspace-title-row">
                 <h1>{activeConversationObj?.title || 'Trợ lý AI-PMS'}</h1>
-                <span className="assistant-scope-badge">
+                <span className="assistant-scope-badge" title={selectedProject ? `${selectedProject.code} · ${selectedProject.title}` : 'Hỏi đáp học vụ chung'}>
                   <span className="material-symbols-outlined" aria-hidden="true">
                     {selectedProjectId ? 'folder_open' : 'school'}
                   </span>
-                  {selectedProject ? `${selectedProject.code} · ${selectedProject.title}` : 'Hỏi đáp học vụ chung'}
+                  <span className="assistant-scope-badge-text">
+                    {selectedProject ? `${selectedProject.code} · ${selectedProject.title}` : 'Hỏi đáp học vụ chung'}
+                  </span>
                 </span>
               </div>
             </div>

@@ -995,7 +995,7 @@ export function AcademicAssistantPanel({
               Trợ lý AI-PMS{projectId ? ' · Ngữ cảnh đồ án' : ''}
             </p>
             <h2 className="mt-1 font-heading text-lg font-semibold text-ink">
-              {userDisplayName ? `Xin chào ${userDisplayName.split(' ').slice(-2).join(' ')}, mình hỗ trợ gì cho bạn?` : 'Mình có thể hỗ trợ gì cho bạn?'}
+              {userDisplayName ? `Xin chào ${userDisplayName.trim().slice(0, 36)}, mình hỗ trợ gì cho bạn?` : 'Mình có thể hỗ trợ gì cho bạn?'}
             </h2>
             <p className="mt-1 text-sm leading-6 text-ink-muted">
               Tra cứu quy định học vụ, theo dõi tiến độ đồ án, đọc biên bản họp AI, phân tích ảnh/PDF/DOCX và tự động setup tiêu chí, công việc. Gõ <code>/</code> để chọn nhanh công cụ.
@@ -1024,7 +1024,7 @@ export function AcademicAssistantPanel({
         </div>
       )}
 
-      {useStreamLayout && !showHistory && (
+      {useStreamLayout && !showHistory && !showWelcome && (
         <div
           ref={historyRef}
           onScroll={handleHistoryScroll}

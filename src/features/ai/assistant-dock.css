@@ -195,8 +195,8 @@
 /* ---------- 2. Full-Screen 3-Column Workspace (/academic/assistant) ---------- */
 .assistant-workspace {
   display: flex;
-  height: calc(100dvh - 80px);
-  min-height: 540px;
+  height: calc(100dvh - 106px);
+  min-height: 520px;
   border: 1px solid var(--color-hairline);
   border-radius: 18px;
   background: var(--color-card);
@@ -212,6 +212,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
   transition: width 0.2s ease, opacity 0.2s ease;
 }
 .assistant-workspace.is-sidebar-collapsed .assistant-workspace-rail {
@@ -233,7 +234,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 18px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--color-hairline);
   background: var(--color-card);
 }
@@ -244,6 +245,10 @@
   min-width: 0;
   flex: 1;
 }
+.assistant-workspace-topbar-left > div {
+  flex: 1;
+  min-width: 0;
+}
 .assistant-workspace-topbar-right {
   display: flex;
   align-items: center;
@@ -252,34 +257,45 @@
 }
 .assistant-workspace-title-row {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+  max-width: 100%;
 }
-.assistant-workspace-title-row h1 {
+.assistant-workspace .assistant-workspace-title-row h1 {
   margin: 0;
-  font: 700 16px/1.35 var(--font-heading);
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
   color: var(--color-ink);
-  max-width: 420px;
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  overflow-wrap: normal;
 }
 .assistant-scope-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 10px;
+  padding: 2px 9px;
   border-radius: 999px;
   border: 1px solid var(--color-hairline);
   background: var(--color-primary-subtle);
   color: var(--color-primary);
   font-size: 12px;
   font-weight: 600;
-  max-width: 280px;
-  white-space: nowrap;
+  max-width: 100%;
+  min-width: 0;
+}
+.assistant-scope-badge-text {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 .assistant-scope-badge .material-symbols-outlined { font-size: 15px; flex-shrink: 0; }
 .assistant-topbar-icon-btn {
@@ -373,6 +389,8 @@
   flex-direction: column;
   gap: 10px;
   border-bottom: 1px solid var(--color-hairline);
+  min-width: 0;
+  overflow: hidden;
 }
 .assistant-new-chat-btn {
   display: flex;
@@ -395,7 +413,13 @@
 .assistant-new-chat-btn:hover:not(:disabled) { opacity: 0.94; transform: translateY(-1px); }
 .assistant-new-chat-btn .material-symbols-outlined { font-size: 18px; }
 
-.assistant-scope-picker { display: flex; flex-direction: column; gap: 4px; }
+.assistant-scope-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
 .assistant-scope-label {
   display: inline-flex;
   align-items: center;
@@ -407,16 +431,22 @@
   color: var(--color-ink-muted);
 }
 .assistant-scope-label .material-symbols-outlined { font-size: 14px; color: var(--color-primary); }
-.assistant-scope-picker select {
+.assistant-sidebar .assistant-scope-picker select {
+  box-sizing: border-box;
   width: 100%;
-  min-height: 36px;
-  padding: 6px 10px;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 6px 32px 6px 10px;
   border: 1px solid var(--color-hairline);
   border-radius: 10px;
-  background: var(--color-card);
+  background-color: var(--color-card);
   color: var(--color-ink);
   font-size: 12px;
   font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .assistant-search-box,
@@ -652,11 +682,12 @@
 }
 .assistant-conversation.is-fullscreen .assistant-welcome {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 32px 24px;
+  padding: 24px 24px;
 }
 .assistant-welcome-inner { max-width: 720px; width: 100%; margin: 0 auto; }
+.assistant-conversation.is-fullscreen .assistant-welcome-inner { margin: auto; }
 .assistant-welcome-mark {
   width: 48px;
   height: 48px;
@@ -1448,7 +1479,7 @@
 }
 .assistant-file-remove:hover { background: var(--color-status-error-bg); color: var(--color-status-error-text); }
 
-.assistant-textarea {
+.assistant-composer .assistant-textarea {
   width: 100%;
   min-height: 44px;
   max-height: 160px;
@@ -1461,8 +1492,8 @@
   line-height: 1.55;
   resize: none;
 }
-.assistant-textarea:focus,
-.assistant-textarea:focus-visible { border: 0; outline: none; box-shadow: none; }
+.assistant-composer .assistant-textarea:focus,
+.assistant-composer .assistant-textarea:focus-visible { border: 0; outline: none; box-shadow: none; }
 
 .assistant-composer-actions {
   display: flex;
@@ -1509,14 +1540,15 @@
 .assistant-voice-btn .material-symbols-outlined { font-size: 18px; }
 
 .assistant-mode { flex: 1; min-width: 0; }
-.assistant-mode select {
+.assistant-composer .assistant-mode select {
   width: auto;
   max-width: 100%;
   min-height: 34px;
-  padding: 4px 10px;
+  height: 34px;
+  padding: 4px 32px 4px 10px;
   border: 1px solid var(--color-hairline);
   border-radius: 10px;
-  background: var(--color-card);
+  background-color: var(--color-card);
   color: var(--color-ink-soft);
   font-size: 12px;
   font-weight: 600;
@@ -1911,6 +1943,17 @@
   .assistant-quick-card { transition: none; }
 }
 
+@media (max-width: 1520px) {
+  .assistant-workspace-inspector {
+    position: absolute;
+    inset: 0 0 0 auto;
+    z-index: 30;
+    width: min(390px, 90vw);
+    background: var(--color-card);
+    box-shadow: -12px 0 36px color-mix(in oklab, var(--color-brand-navy) 20%, transparent);
+  }
+}
+
 @media (max-width: 1024px) {
   .assistant-workspace-rail {
     position: absolute;
@@ -1932,11 +1975,7 @@
   .assistant-topbar-icon-btn.is-desktop-toggle { display: none; }
   .assistant-topbar-icon-btn.is-mobile-toggle { display: grid; }
   .assistant-workspace-inspector {
-    position: absolute;
-    inset: 0 0 0 auto;
-    z-index: 30;
     width: min(360px, 92vw);
-    box-shadow: -12px 0 32px color-mix(in oklab, var(--color-brand-navy) 20%, transparent);
   }
 }
 

@@ -118,6 +118,7 @@ export function AssistantComposer({
 }) {
   const [dragging, setDragging] = useState(false)
   const [slashManualOpen, setSlashManualOpen] = useState(false)
+  const [slashDismissedFor, setSlashDismissedFor] = useState<string | null>(null)
   const [slashIndex, setSlashIndex] = useState(0)
   const [recording, setRecording] = useState(false)
   const fileInput = useRef<HTMLInputElement | null>(null)
@@ -144,7 +145,12 @@ export function AssistantComposer({
     )
   }, [availableCommands, slashFilter])
 
-  const slashOpen = !busy && (slashManualOpen || slashTypedMatch) && filteredCommands.length > 0
+  const slashOpen = !busy && (slashManualOpen || (slashTypedMatch && slashDismissedFor !== query)) && filteredCommands.length > 0
+
+  const dismissSlash = () => {
+    setSlashManualOpen(false)
+    if (slashTypedMatch) setSlashDismissedFor(query)
+  }
 
   useEffect(() => {
     setSlashIndex(0)
@@ -290,7 +296,7 @@ export function AssistantComposer({
           <div className="assistant-slash-popover" role="listbox" aria-label="Lệnh nhanh trợ lý AI">
             <div className="assistant-slash-head">
               <span>Lệnh nhanh (gõ / để lọc · ↑↓ chọn · Enter áp dụng)</span>
-              <button type="button" onClick={() => setSlashManualOpen(false)} aria-label="Đóng lệnh nhanh">×</button>
+              <button type="button" onClick={dismissSlash} aria-label="Đóng lệnh nhanh">×</button>
             </div>
             <ul>
               {filteredCommands.map((cmd, idx) => (
@@ -350,7 +356,10 @@ export function AssistantComposer({
           ref={textareaRef}
           aria-label="Câu hỏi học vụ"
           value={query}
-          onChange={event => onQueryChange(event.target.value)}
+          onChange={event => {
+            if (slashDismissedFor !== null) setSlashDismissedFor(null)
+            onQueryChange(event.target.value)
+          }}
           onKeyDown={event => {
             if (slashOpen) {
               if (event.key === 'ArrowDown') {
@@ -370,7 +379,7 @@ export function AssistantComposer({
               }
               if (event.key === 'Escape') {
                 event.preventDefault()
-                setSlashManualOpen(false)
+                dismissSlash()
                 return
               }
             }
@@ -413,11 +422,14 @@ export function AssistantComposer({
           {dock && (
             <button
               type="button"
-              className={`assistant-slash-trigger${slashManualOpen ? ' is-active' : ''}`}
+              className={`assistant-slash-trigger${slashOpen ? ' is-active' : ''}`}
               disabled={busy}
               aria-label="Mở danh sách lệnh nhanh"
               title="Lệnh nhanh (/)"
-              onClick={() => setSlashManualOpen(v => !v)}
+              onClick={() => {
+                if (slashOpen) dismissSlash()
+                else setSlashManualOpen(true)
+              }}
             >
               <span className="material-symbols-outlined" aria-hidden="true">bolt</span>
             </button>
