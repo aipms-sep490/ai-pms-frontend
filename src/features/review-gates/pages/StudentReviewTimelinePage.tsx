@@ -16,6 +16,7 @@ import { Button } from '../../../components/ui/Button'
 import { ReviewGatesMockNotice } from '../components/ReviewGatesMockNotice'
 import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
+import { SubmissionPreflightPanel } from '../../ai-suite/SubmissionPreflightPanel'
 
 function timelineError(error: unknown): string {
   if (error instanceof HttpError) {
@@ -211,6 +212,13 @@ export function StudentReviewTimelinePage() {
               if (generation === routeGeneration.current) applyTimeline(updated)
             }}
           />}
+          {Number(timeline.projectId) > 0 && (
+            <SubmissionPreflightPanel
+              projectId={Number(timeline.projectId)}
+              target="REVIEW_GATE"
+              targetId={currentGate && Number(currentGate.gateInstanceId) > 0 ? Number(currentGate.gateInstanceId) : null}
+            />
+          )}
         </div>
       ) : null}
     </WorkspacePage>

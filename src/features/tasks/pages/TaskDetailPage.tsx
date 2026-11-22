@@ -13,6 +13,7 @@ import { TaskLifecycleStepper } from '../components/TaskLifecycleStepper'
 import { TaskReviewCallout } from '../components/TaskReviewCallout'
 import { TaskDependencyImpactPanel } from '../components/TaskDependencyImpactPanel'
 import { TaskCriteriaPanel } from '../components/TaskCriteriaPanel'
+import { TaskBreakdownAiPanel } from '../../ai-suite/TaskSprintAiPanels'
 import { useTaskExecutionCapabilities } from '../../execution/hooks/useTaskExecutionCapabilities'
 import { canUseTaskExecutionAction } from '../../execution/execution-authority'
 import * as disciplineApi from '../../projects/api/discipline-governance-api'
@@ -135,6 +136,7 @@ function TaskDetail({ id }: { id: number }) {
     <div className="ex-detail-grid"><div>
       <section className="ex-panel"><div className="ex-panel-heading"><h2>Nội dung công việc</h2></div><div className="ex-padding ex-stack"><p className="ex-prose">{task.description?.trim() || 'Chưa có mô tả cho công việc này.'}</p><dl className="ex-facts"><div><dt>Bắt đầu dự kiến</dt><dd>{dateTimeLabel(task.startAt)}</dd></div><div><dt>Hạn hoàn thành</dt><dd>{dateTimeLabel(task.dueAt)}</dd></div>{task.parentTaskId && <div><dt>Thuộc công việc</dt><dd><Link className="ex-link" to={`${routeBase}/tasks/${task.parentTaskId}`}>{allTasks.find(item => item.id === task.parentTaskId)?.title ?? 'Xem công việc cha'}</Link></dd></div>}<div><dt>Mốc đồ án</dt><dd>{milestone ? (access.actor === 'mentor' ? milestone.title : <Link className="ex-link" to={`${routeBase}/milestones/${milestone.id}`}>{milestone.title}</Link>) : 'Đang tải thông tin mốc…'}</dd></div>{task.description?.match(/Cuộc họp #(\d+)/i)?.[1] && <div><dt>Nguồn phát sinh</dt><dd><Link className="ex-link" to={`${routeBase}/meetings/${task.description.match(/Cuộc họp #(\d+)/i)![1]}`}>Xem cuộc họp nguồn</Link></dd></div>}</dl></div></section>
       {contextValid && <TaskCriteriaPanel key={task.id} taskId={task.id} revision={revision} />}
+      {contextValid && <div className="mb-4"><TaskBreakdownAiPanel key={`ai-bd-${task.id}`} projectId={project.id} taskId={task.id} taskTitle={task.title} taskDescription={task.description} onCriteriaApplied={reload} /></div>}
       <section className="ex-panel"><div className="ex-panel-heading"><h2>Người phụ trách</h2>{canAssign && <button className="ex-text-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('assignees') }}>Phân công</button>}</div>
         <div className="ex-padding">{editing === 'assignees' && canAssign ? <AssigneeEditor key={task.updatedAt} task={task} candidates={candidates} busy={mutation.busy} onCancel={() => setEditing(null)} onSubmit={ids => mutation.run(() => services.task.setTaskAssignees(task.id, ids, task.concurrencyToken), saved)} />
           : <p className="ex-prose">{task.assignees.map(person => person.userFullName).join(', ') || 'Chưa phân công người phụ trách.'}</p>}{!team && editing === 'assignees' && <ExState message={teamLoadError ?? 'Chưa tải được danh sách thành viên nhóm. Bạn vẫn xem được công việc nhưng chưa giao được người phụ trách.'} retry={retryTeam} />}</div>

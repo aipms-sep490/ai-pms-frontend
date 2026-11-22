@@ -14,6 +14,7 @@ import { CollaborationIntro, CollaborationPager, collaborationDate, collaboratio
 import * as api from './working-agreement-api'
 import { services } from '../../services/service-gateway'
 import { WORKING_AGREEMENT_ACTIONS as actions, type AgreementSection, type WorkingAgreement } from './working-agreement-types'
+import { WorkingAgreementAiDraftBar } from '../ai-suite/TeamAgreementAiPanels'
 
 const statusLabel = { DRAFT: 'Bản nháp', ACTIVE: 'Đang áp dụng', SUPERSEDED: 'Đã thay thế' }
 const blank = (): AgreementSection[] => [{ title: '', body: '' }]
@@ -121,6 +122,17 @@ export function WorkingAgreementWorkspace({ projectId, readOnly = false }: { pro
         : <p className="collab-muted">Hiện chưa thể xác nhận cam kết này. Quyền và danh sách thành viên được kiểm tra theo phiên bản hiện tại.</p>}
     </section>}
     {manage && !editing && <div><Button variant="outline" icon="edit_note" disabled={busy || conflict} onClick={edit}>{!latest ? 'Soạn cam kết đầu tiên' : latest.status === 'DRAFT' ? 'Sửa bản nháp' : 'Tạo phiên bản kế tiếp'}</Button></div>}
+    {manage && (
+      <WorkingAgreementAiDraftBar
+        projectId={projectId}
+        disabled={busy || conflict}
+        onApplySections={(aiSections) => {
+          setSections(aiSections.length ? aiSections : blank())
+          setEditing(true)
+          setConflict(false)
+        }}
+      />
+    )}
     {editing && <form className="collab-card collab-form" onSubmit={event => { event.preventDefault(); save() }}><h2>Soạn thỏa thuận của nhóm</h2><p className="collab-muted">Gợi ý: lịch họp, kênh liên lạc, tiêu chuẩn bàn giao và cách giải quyết bất đồng.</p>
       {sections.map((section, index) => <fieldset className="collab-stack collab-section" key={index} disabled={busy || loading || !manage || conflict}><legend className="collab-section-number">MỤC {String(index + 1).padStart(2, '0')}</legend>
         <label>Tiêu đề mục {index + 1}<input required maxLength={200} value={section.title} onChange={event => setSections(rows => rows.map((row, i) => i === index ? { ...row, title: event.target.value } : row))} /></label>

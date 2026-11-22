@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { displayLabel } from '../../../components/ui/display-label'
+import { GateScriptAiPanel } from '../../ai-suite/DefenseMockPanel'
 import type {
   GateSessionScript,
   ScriptQaEntry,
@@ -17,6 +18,7 @@ function formatSessionTime(value?: string | null): string {
 export interface GateSessionScriptModalProps {
   isOpen: boolean
   script: GateSessionScript
+  gateInstanceId?: number
   onClose: () => void
   onSaveScript: (updatedScript: GateSessionScript) => void
   onViewRoomCanvas?: (roomCode: string) => void
@@ -26,6 +28,7 @@ export interface GateSessionScriptModalProps {
 export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
   isOpen,
   script: initialScript,
+  gateInstanceId,
   onClose,
   onSaveScript,
   onViewRoomCanvas,
@@ -226,6 +229,45 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
             Khung giờ: <strong>{script.scheduledStartAt} – {script.scheduledEndAt}</strong>
           </div>
         </div>
+
+        {gateInstanceId && gateInstanceId > 0 && (
+          <div className="border-b border-hairline bg-canvas/40 px-6 py-3">
+            <GateScriptAiPanel
+              gateInstanceId={gateInstanceId}
+              onApplyToScript={(draft) => {
+                setScript((prev) => ({
+                  ...prev,
+                  agendaStages: draft.agendaStages.length > 0
+                    ? draft.agendaStages.map((s) => ({ stage: s.stage, durationMinutes: s.durationMinutes, status: 'PENDING' }))
+                    : prev.agendaStages,
+                  qaLog: [
+                    ...prev.qaLog,
+                    ...draft.suggestedQuestions.map((q, idx) => ({
+                      id: `ai-qa-${Date.now()}-${idx}`,
+                      askerName: q.askerRole === 'CHAIR' ? 'Chủ tịch Hội đồng' : q.askerRole === 'SECRETARY' ? 'Thư ký' : 'Phản biện',
+                      askerRole: (q.askerRole === 'CHAIR' ? 'CHAIR' : 'REVIEWER') as 'CHAIR' | 'REVIEWER' | 'MEMBER',
+                      question: q.question,
+                      answeredBy: q.targetMemberName || newAnswerer,
+                      evaluation: 'ACCEPTABLE' as const,
+                      notes: q.verificationGoal,
+                    })),
+                  ],
+                  remediationItems: [
+                    ...prev.remediationItems,
+                    ...draft.remediationWatchlist.map((title, idx) => ({
+                      id: `ai-rem-${Date.now()}-${idx}`,
+                      title,
+                      assignee: newRemediationAssignee,
+                      dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+                      required: true,
+                    })),
+                  ],
+                  generalNotes: draft.generalNotesDraft || prev.generalNotes,
+                }))
+              }}
+            />
+          </div>
+        )}
 
         {/* Tab Navigation */}
         <div className="flex overflow-x-auto border-b border-hairline px-6 bg-card text-xs font-bold">

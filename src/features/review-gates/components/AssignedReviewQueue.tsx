@@ -10,6 +10,7 @@ import { evidenceArtifactLabel, isLinkArtifact } from '../utils/evidence-link'
 import { requirementTypeLabel } from '../utils/review-gate-labels'
 import { displayLabel } from '../../../components/ui/display-label'
 import { dateTimeLabel } from '../../execution/execution-utils'
+import { GateScriptAiPanel } from '../../ai-suite/DefenseMockPanel'
 
 function formatSubmitter(name?: string | null, fallback?: string | number | null): string {
   const named = String(name ?? '').trim()
@@ -417,6 +418,11 @@ export function AssignedReviewQueue({
               </div>
             </div>
           </div>
+          {Number.isInteger(Number(selectedItem.id)) && Number(selectedItem.id) > 0 && (
+            <div className="mt-4">
+              <GateScriptAiPanel key={selectedItem.id} gateInstanceId={Number(selectedItem.id)} />
+            </div>
+          )}
         </div>
       </div>
 

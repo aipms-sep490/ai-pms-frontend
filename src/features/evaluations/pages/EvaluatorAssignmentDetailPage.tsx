@@ -19,6 +19,7 @@ import { InlineAlert } from '../../../components/ui/InlineAlert'
 import { evaluatorApprovalLabel } from '../evaluator-approval'
 import { useAssignmentSchemeContext } from '../hooks/useAssignmentSchemeContext'
 import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
+import { RubricGradingCopilotPanel } from '../../ai-suite/EvaluationAiPanels'
 
 type FieldValues = Record<number, { score: string; comments: string }>
 
@@ -240,6 +241,32 @@ export function EvaluatorAssignmentDetailPage() {
         <h2 className="font-semibold text-ink">Bộ tiêu chí áp dụng</h2>
         <p className="mt-1 text-sm leading-6 text-ink-muted">Nhập điểm hoặc bấm chọn nhanh mức chất lượng gợi ý từ bộ tiêu chí. Đối chiếu tài liệu ở khung bên trái khi chấm.</p>
       </section>
+
+      {scoringAllowed && editable ? (
+        <RubricGradingCopilotPanel
+          assignmentId={assignment.id}
+          disabled={busy || conflicted}
+          onApplyCriterionComment={(rubricCriterionId, suggestedComment) => {
+            const target = draft.scores.find((s) => s.rubricCriterionId === rubricCriterionId)
+            if (target) updateCriterion(target, { comments: suggestedComment })
+          }}
+          onApplyAllComments={(suggestions, overallSummary) => {
+            setValues((current) => {
+              const next = { ...current }
+              for (const s of suggestions) {
+                if (draft.scores.some((c) => c.rubricCriterionId === s.rubricCriterionId)) {
+                  next[s.rubricCriterionId] = {
+                    score: next[s.rubricCriterionId]?.score ?? '',
+                    comments: s.suggestedComment,
+                  }
+                }
+              }
+              return next
+            })
+            if (!overallComment.trim() && overallSummary) setOverallComment(overallSummary)
+          }}
+        />
+      ) : null}
 
       <form id="evaluator-scoring-form" className="evaluator-scoring-form" onSubmit={(event) => void save(event)} noValidate>
         {scoreGroups(draft.scores).map(group => <div key={group.key} role={group.parentId == null ? undefined : 'group'} aria-label={group.parentId == null ? undefined : `Nhóm ${group.parentName ?? 'tiêu chí'}`} className={group.parentId == null ? '' : 'space-y-3 border-l-2 border-primary/30 pl-4'}>

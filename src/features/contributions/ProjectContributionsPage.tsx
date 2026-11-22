@@ -11,6 +11,7 @@ import { getWorkspaceRole } from '../auth/utils/role-access'
 import { HttpError } from '../../services/http/http-client'
 import * as api from './contributions-api'
 import type { ContributionEvidence, ContributionSummary } from './contributions-api'
+import { ContributionFairnessPanel } from '../ai-suite/ContributionFairnessPanel'
 
 export function ProjectContributionsPage() {
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
@@ -147,6 +148,8 @@ export function ProjectContributionsPage() {
         </li>)}</ul>}
         {summary.totalCount > 20 && <Pager page={page} total={summary.totalCount} onChange={setPage} />}
       </section>
+
+      {projectId && <ContributionFairnessPanel projectId={projectId} />}
 
       {selectedUserId && <Modal open drawer title="Minh chứng đóng góp" description={selectedMember?.displayName ?? 'Thành viên nhóm'} onClose={() => setSelectedUserId(null)}><div>
         {error && <p role="alert" className="mb-4 text-sm text-status-error-text">{error}</p>}

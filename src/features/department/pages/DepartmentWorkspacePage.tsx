@@ -17,6 +17,7 @@ import { useAuthSession } from '../../auth/context/useAuthSession'
 import { getReviewQueue, type ReviewQueuePage, type ReviewProjectSummary } from '../../projects/api/project-review-api'
 import { list as listSupervisors, type Page as SupervisorPage, type Supervisor } from '../../supervisors/api/supervisor-api'
 import { getDepartmentUrgentActions, type ActionAggregatorResponse } from '../../calendar/action-aggregators-api'
+import { DepartmentExecutiveBriefPanel } from '../../ai-suite/DepartmentExecutiveBriefPanel'
 
 const emptyReviews = (data: ReviewQueuePage<ReviewProjectSummary>) => data.items.length === 0
 const emptyPortfolio = (data: PortfolioDashboard) => data.projects.items.length === 0
@@ -110,6 +111,12 @@ export function DepartmentWorkspacePage() {
     </nav>
     {!departmentIds ? <p role="alert" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">Chưa xác định được bộ môn từ phiên đăng nhập. Không truy vấn phạm vi khác.</p> : !['success', 'empty', 'loading'].includes(urgent.state) && <SectionState section={urgent} onRetry={urgent.refresh}><span /></SectionState>}
     {!['success', 'empty', 'loading'].includes(supervisors.state) && <SectionState section={supervisors} onRetry={supervisors.refresh}><span /></SectionState>}
+
+    <DepartmentExecutiveBriefPanel
+      departmentId={academic.academic?.departments?.[0]?.id}
+      semesterId={semesterId}
+      routePrefix="/department"
+    />
 
     {/* =========================================================================
         TIER 1: HÀNG ĐỢI TÁC VỤ CẦN XỬ LÝ NGAY (URGENT ACTION QUEUE)

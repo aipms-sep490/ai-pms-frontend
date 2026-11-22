@@ -10,6 +10,7 @@ import { ActionVerdict } from '../../components/ui/ActionVerdict'
 import { EntityIdentityStrip } from '../../components/ui/EntityIdentityStrip'
 import { WorkspaceEmptyState } from '../../components/ui/WorkspaceState'
 import { displayLabel } from '../../components/ui/display-label'
+import { SubmissionPreflightPanel } from '../ai-suite/SubmissionPreflightPanel'
 
 export function ColdChecklistPage() {
   const { project, actor, routeBase } = useExecutionAccess()
@@ -113,6 +114,9 @@ function ColdChecklistBody({ projectId, projectCode, projectTitle, actor, routeB
         {checklist.items.length === 0 ? <WorkspaceEmptyState title="Chưa có checklist báo cáo" message="Chưa có checklist báo cáo nào được áp dụng cho đồ án này." /> : <ul className="cold-list">
           {checklist.items.map((item) => <ColdItemRow key={item.id} item={item} onChanged={replaceItem} onConflict={reload} />)}
         </ul>}
+      </div>
+      <div className="mt-4">
+        <SubmissionPreflightPanel projectId={projectId} target="COLD" />
       </div>
     </>}
   </ColdShell>

@@ -6,6 +6,7 @@ import type { SprintBurndownDto, SprintCarryover, SprintDto, TaskDto } from '../
 import { backlogTasks, collectLabels, parseLabels, pendingTasksInSprint, sprintPoints, STORY_POINTS, tasksInSprint } from '../sprint-model'
 import { loadSprintBoard } from '../sprint-board-data'
 import { HttpError } from '../../../services/http/http-client'
+import { SprintRetroAiButton } from '../../ai-suite/TaskSprintAiPanels'
 
 /**
  * Jira-style sprint + backlog view. Self-contained: fetches its own sprints and task board page.
@@ -85,7 +86,7 @@ export function SprintBacklogPanel({ projectId, routeBase, canManage = false }: 
       </div>
     </section>
 
-    {completed.length > 0 && <section className="ex-panel"><div className="ex-panel-heading"><h2>Sprint đã hoàn tất</h2></div><ul className="ex-padding sprint-completed">{completed.map(sprint => { const points = sprintPoints(tasks, sprint.id); return <li key={sprint.id}>{sprint.name} · {points.done}/{points.total} điểm · {points.count} công việc</li> })}</ul></section>}
+    {completed.length > 0 && <section className="ex-panel"><div className="ex-panel-heading"><h2>Sprint đã hoàn tất</h2></div><ul className="ex-padding sprint-completed">{completed.map(sprint => { const points = sprintPoints(tasks, sprint.id); return <li key={sprint.id}><div>{sprint.name} · {points.done}/{points.total} điểm · {points.count} công việc</div><SprintRetroAiButton projectId={projectId} sprintId={sprint.id} sprintName={sprint.name} /></li> })}</ul></section>}
 
     {completingSprint && <CompleteSprintDialog
       sprint={completingSprint} openTasks={pendingTasksInSprint(tasks, completingSprint.id)}
@@ -123,6 +124,7 @@ function SprintCard({ sprint, tasks, sprints, routeBase, busy, labelOptions, run
     <div className="ex-padding">
       <p className="sprint-points">{points.done}/{points.total} điểm hoàn thành · {points.count} công việc.</p>
       <BurndownSummary burndown={burndown} />
+      <SprintRetroAiButton projectId={sprint.projectId} sprintId={sprint.id} sprintName={sprint.name} />
       <TaskRows tasks={tasksInSprint(tasks, sprint.id)} sprints={sprints} routeBase={routeBase} busy={busy} labelOptions={labelOptions} run={run} />
     </div>
   </section>

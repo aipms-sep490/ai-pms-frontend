@@ -14,6 +14,7 @@ import { env } from '../../../app/config/env'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { departmentError } from '../../department/hooks/useDepartmentSection'
 import { PageLoading } from '../../../components/ui/PageLoading'
+import { DepartmentExecutiveBriefPanel } from '../../ai-suite/DepartmentExecutiveBriefPanel'
 
 const statuses = ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'REVISION_REQUIRED', 'REJECTED', 'APPROVED', 'SUPERVISOR_PENDING', 'ACTIVE', 'FINAL_SUBMISSION', 'COMPLETED', 'ARCHIVED']
 
@@ -104,6 +105,9 @@ export function PortfolioDashboardPage() {
     {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{notice}</p>}
     {loading && <PageLoading label="Đang tải danh mục đồ án…" />}
     {!loading && data && <>
+      <div className="mb-4">
+        <DepartmentExecutiveBriefPanel routePrefix={scope === 'admin' ? '/admin' : '/department'} />
+      </div>
       <section aria-label="Tóm tắt danh mục đồ án">
         <dl className={`grid gap-3 ${env.aiAdvisoryEnabled ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'}`}>
           <Metric label="Tổng đồ án" value={data.summary.totalProjects} />

@@ -6,6 +6,7 @@ import { EntityIdentityStrip } from '../../components/ui/EntityIdentityStrip'
 import { useStudentJourney } from '../../app/context'
 import { localDateTime, toUtcDateTime } from '../execution/execution-utils'
 import { HttpError } from '../../services/http/http-client'
+import { DefenseMockPanel } from '../ai-suite/DefenseMockPanel'
 import {
   cancelDefense,
   createDefenseCommittee,
@@ -600,11 +601,14 @@ export function ProjectDefensePage() {
       {projectId && !loading && error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><span>{error}</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
 
       {projectId && !loading && !error && (
-        <DefenseScheduleView
-          projectId={projectId}
-          sessions={sessions}
-          onCancelled={() => setRevision((v) => v + 1)}
-        />
+        <>
+          <DefenseScheduleView
+            projectId={projectId}
+            sessions={sessions}
+            onCancelled={() => setRevision((v) => v + 1)}
+          />
+          <DefenseMockPanel projectId={projectId} />
+        </>
       )}
 
     </WorkspacePage>
@@ -647,7 +651,7 @@ export function ProjectDefenseManagementPage() {
       {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error}</p>}
       {!error && sessions && (isDepartmentRoute
         ? <DefenseManagementPanel projectId={projectId} hasScheduledSession={sessions.some((session) => session.status === 'SCHEDULED')} onSessionScheduled={() => setRevision((value) => value + 1)} />
-        : <DefenseScheduleView projectId={projectId} sessions={sessions} />)}
+        : <><DefenseScheduleView projectId={projectId} sessions={sessions} /><div className="mt-5"><DefenseMockPanel projectId={projectId} /></div></>)}
       {!error && !sessions && <p role="status" className="workspace-surface p-5 text-sm text-ink-muted">Đang tải lịch bảo vệ…</p>}
     </WorkspacePage>
   )
