@@ -350,10 +350,12 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
     const target = [...(view.current?.querySelectorAll<HTMLElement>('[data-message-id]') ?? [])].find(element => element.dataset.messageId === messageId)
     if (target) { target.scrollIntoView({ block: 'center', behavior: 'smooth' }); target.focus() }
   }
+  const closeAiStudio = () => { setAiSummary(null); setAiPanelOpen(false); setAiAssist(null) }
+  const aiStudioOpen = aiPanelOpen || !!aiSummary
   const readers = (message: ChatMessage) => members.filter(person => person.userId !== userId && person.lastReadSequence && BigInt(person.lastReadSequence) >= BigInt(message.sequence))
   return <section className="chat-main" aria-label="Nội dung trò chuyện" hidden={!active}>
     <header className="chat-header"><BackLink fallback="/messages" className="chat-thread-back"><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Quay lại</BackLink><div><h2 title={room?.title}>{room?.title || 'Cuộc trò chuyện'}{isMuted && <span className="chat-muted-badge" aria-label="Đã tắt thông báo"> 🔇</span>}</h2><p>{!ready ? 'Đang xác minh quyền và kết nối' : canSend ? room?.kind === 'DIRECT' ? 'Trao đổi riêng' : room?.kind === 'TEAM' ? `Nhóm sinh viên · ${members.length} thành viên` : `Nhóm đồ án · ${members.length} thành viên` : 'Chỉ đọc · không thể gửi, sửa hoặc thu hồi'}</p><p className="chat-mobile-connection" role="status">{chatConnectionLabel(state)}</p></div>
-      <button type="button" className="chat-ai-summary-button" disabled={!ready || aiBusy} onClick={() => void summarizeChat()} title="Tóm tắt, hỏi đáp đoạn chat và trích việc cần làm"><span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>{aiBusy ? 'Đang phân tích…' : 'Hỏi AI'}</button>
+      <button type="button" className={`chat-ai-summary-button${aiStudioOpen && !aiBusy ? ' is-open' : ''}`} disabled={!ready || aiBusy} onClick={() => aiStudioOpen ? closeAiStudio() : void summarizeChat()} title={aiStudioOpen ? 'Đóng bảng phân tích AI' : 'Tóm tắt, hỏi đáp đoạn chat và trích việc cần làm'}><span className="material-symbols-outlined" aria-hidden="true">{aiStudioOpen && !aiBusy ? 'close' : 'auto_awesome'}</span>{aiBusy ? 'Đang phân tích…' : aiStudioOpen ? 'Đóng AI' : 'Hỏi AI'}</button>
     </header>
     <details className="chat-info">
       <summary>
@@ -410,80 +412,85 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
       </div>
     </details>
     {aiError && <p role="alert" className="chat-error">{aiError}</p>}
-    {(aiPanelOpen || aiSummary) && <aside className="chat-ai-summary" aria-label="Tóm tắt cuộc trò chuyện">
-      <div className="chat-ai-summary-heading">
-        <span className="chat-ai-studio-title"><span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span><strong>{aiTab === 'SUMMARY' ? 'Tóm tắt AI' : aiTab === 'ASK' ? 'Hỏi đáp đoạn chat' : 'Gợi ý & Viết lại AI'}</strong></span>
-        <div className="chat-ai-summary-controls">
-          <select aria-label="Số tin nhắn phân tích" value={aiMessageCount} disabled={aiBusy} onChange={e => setAiMessageCount(Number(e.target.value))}>
-            <option value={20}>20 tin</option>
-            <option value={40}>40 tin</option>
-            <option value={80}>80 tin</option>
-          </select>
-          <button type="button" onClick={() => { setAiSummary(null); setAiPanelOpen(false); setAiAssist(null) }} aria-label="Đóng tóm tắt">×</button>
+    {aiStudioOpen && <aside className="chat-ai-summary" aria-label="Tóm tắt cuộc trò chuyện">
+      <div className="chat-ai-studio-head">
+        <div className="chat-ai-summary-heading">
+          <span className="chat-ai-studio-title"><span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span><strong>{aiTab === 'SUMMARY' ? 'Tóm tắt AI' : aiTab === 'ASK' ? 'Hỏi đáp đoạn chat' : 'Gợi ý & Viết lại AI'}</strong></span>
+          <div className="chat-ai-summary-controls">
+            <select aria-label="Số tin nhắn phân tích" value={aiMessageCount} disabled={aiBusy} onChange={e => setAiMessageCount(Number(e.target.value))}>
+              <option value={20}>20 tin</option>
+              <option value={40}>40 tin</option>
+              <option value={80}>80 tin</option>
+            </select>
+            <button type="button" className="chat-ai-close-btn" onClick={closeAiStudio} aria-label="Đóng tóm tắt" title="Đóng bảng AI">×</button>
+          </div>
+        </div>
+        <div className="chat-ai-tabs" role="tablist" aria-label="Công cụ AI trong phòng chat">
+          <button type="button" role="tab" aria-selected={aiTab === 'SUMMARY'} onClick={() => setAiTab('SUMMARY')}>Tóm tắt & Việc</button>
+          <button type="button" role="tab" aria-selected={aiTab === 'ASK'} onClick={() => setAiTab('ASK')}>Hỏi đoạn chat</button>
+          <button type="button" role="tab" aria-selected={aiTab === 'REPLY'} onClick={() => setAiTab('REPLY')}>Gợi ý & Viết lại</button>
         </div>
       </div>
-      <div className="chat-ai-tabs" role="tablist" aria-label="Công cụ AI trong phòng chat">
-        <button type="button" role="tab" aria-selected={aiTab === 'SUMMARY'} onClick={() => setAiTab('SUMMARY')}>Tóm tắt & Việc</button>
-        <button type="button" role="tab" aria-selected={aiTab === 'ASK'} onClick={() => setAiTab('ASK')}>Hỏi đoạn chat</button>
-        <button type="button" role="tab" aria-selected={aiTab === 'REPLY'} onClick={() => setAiTab('REPLY')}>Gợi ý & Viết lại</button>
-      </div>
-      <p role="note" className="chat-ai-note">Phản hồi chỉ có giá trị tham khảo/tư vấn, không thay thế quyết định học vụ</p>
-      {aiTab === 'SUMMARY' && (
-        <div className="chat-ai-tab-body">
-          {aiBusy && !aiSummary && <p role="status" className="chat-ai-loading">Đang phân tích {aiMessageCount} tin nhắn gần nhất…</p>}
-          {aiSummary && <>
-            <p className="chat-ai-summary-text">{aiSummary.summary}</p>
-            {!!aiSummary.decisions.length && <div className="chat-ai-block"><h3>Quyết định đã chốt</h3><ul>{aiSummary.decisions.map((item, i) => <li key={i}>{item}</li>)}</ul></div>}
-            {!!aiSummary.blockers?.length && <div className="chat-ai-block is-warning"><h3>Vướng mắc cần gỡ</h3><ul>{aiSummary.blockers.map((item, i) => <li key={i}>{item}</li>)}</ul></div>}
-            {!!aiSummary.openQuestions.length && <div className="chat-ai-block"><h3>Cần làm rõ</h3><ul>{aiSummary.openQuestions.map((item, i) => <li key={i}>{item}</li>)}</ul></div>}
-            {!!aiSummary.actionItems.length && <div className="chat-ai-block"><h3>Việc cần làm</h3><ul>{aiSummary.actionItems.map((item, i) => <li key={i}><strong>{item.title}</strong>{item.ownerName ? ` · ${item.ownerName}` : ''}{item.dueAt ? ` · hạn ${new Intl.DateTimeFormat('vi-VN').format(new Date(item.dueAt))}` : ''}<span className="chat-ai-action-links">{item.sourceMessageId && <button type="button" className="chat-ai-action-button" onClick={() => openSourceMessage(item.sourceMessageId!)}>Xem tin gốc</button>}{canCreateTaskDraft && <button type="button" className="chat-ai-action-button" onClick={() => handleActionItem(item)}>Dùng làm bản nháp</button>}</span></li>)}</ul></div>}
-            {aiSummary.suggestedMeeting && <div className="chat-ai-meeting-card">
-              <div><strong>Gợi ý lịch họp: {aiSummary.suggestedMeeting.title}</strong>{aiSummary.suggestedMeeting.suggestedTimeNote && <small>{aiSummary.suggestedMeeting.suggestedTimeNote}</small>}{aiSummary.suggestedMeeting.description && <p>{aiSummary.suggestedMeeting.description}</p>}</div>
-              <span className="chat-ai-action-links">{aiSummary.suggestedMeeting.sourceMessageId && <button type="button" className="chat-ai-action-button" onClick={() => openSourceMessage(aiSummary.suggestedMeeting!.sourceMessageId!)}>Xem tin gốc</button>}{canCreateTaskDraft && <button type="button" className="chat-ai-action-button" onClick={() => handleSuggestedMeeting(aiSummary.suggestedMeeting!)}>Mở tạo lịch họp</button>}</span>
-            </div>}
-            <div className="chat-ai-footer-bar">
-              <button type="button" className="chat-ai-mini-btn" disabled={aiBusy} onClick={() => void summarizeChat(aiMessageCount)}>Phân tích lại</button>
-              <button type="button" className="chat-ai-mini-btn" onClick={() => void copySummaryText()}>{copiedSummary ? 'Đã sao chép' : 'Sao chép biên bản'}</button>
+      <div className="chat-ai-studio-body">
+        <p role="note" className="chat-ai-note">Phản hồi chỉ có giá trị tham khảo/tư vấn, không thay thế quyết định học vụ</p>
+        {aiTab === 'SUMMARY' && (
+          <div className="chat-ai-tab-body">
+            {aiBusy && !aiSummary && <p role="status" className="chat-ai-loading">Đang phân tích {aiMessageCount} tin nhắn gần nhất…</p>}
+            {aiSummary && <>
+              <p className="chat-ai-summary-text">{aiSummary.summary}</p>
+              {!!aiSummary.decisions.length && <div className="chat-ai-block"><h3>Quyết định đã chốt</h3><ul>{aiSummary.decisions.map((item, i) => <li key={i}>{item}</li>)}</ul></div>}
+              {!!aiSummary.blockers?.length && <div className="chat-ai-block is-warning"><h3>Vướng mắc cần gỡ</h3><ul>{aiSummary.blockers.map((item, i) => <li key={i}>{item}</li>)}</ul></div>}
+              {!!aiSummary.openQuestions.length && <div className="chat-ai-block"><h3>Cần làm rõ</h3><ul>{aiSummary.openQuestions.map((item, i) => <li key={i}>{item}</li>)}</ul></div>}
+              {!!aiSummary.actionItems.length && <div className="chat-ai-block"><h3>Việc cần làm</h3><ul>{aiSummary.actionItems.map((item, i) => <li key={i}><strong>{item.title}</strong>{item.ownerName ? ` · ${item.ownerName}` : ''}{item.dueAt ? ` · hạn ${new Intl.DateTimeFormat('vi-VN').format(new Date(item.dueAt))}` : ''}<span className="chat-ai-action-links">{item.sourceMessageId && <button type="button" className="chat-ai-action-button" onClick={() => openSourceMessage(item.sourceMessageId!)}>Xem tin gốc</button>}{canCreateTaskDraft && <button type="button" className="chat-ai-action-button" onClick={() => handleActionItem(item)}>Dùng làm bản nháp</button>}</span></li>)}</ul></div>}
+              {aiSummary.suggestedMeeting && <div className="chat-ai-meeting-card">
+                <div><strong>Gợi ý lịch họp: {aiSummary.suggestedMeeting.title}</strong>{aiSummary.suggestedMeeting.suggestedTimeNote && <small>{aiSummary.suggestedMeeting.suggestedTimeNote}</small>}{aiSummary.suggestedMeeting.description && <p>{aiSummary.suggestedMeeting.description}</p>}</div>
+                <span className="chat-ai-action-links">{aiSummary.suggestedMeeting.sourceMessageId && <button type="button" className="chat-ai-action-button" onClick={() => openSourceMessage(aiSummary.suggestedMeeting!.sourceMessageId!)}>Xem tin gốc</button>}{canCreateTaskDraft && <button type="button" className="chat-ai-action-button" onClick={() => handleSuggestedMeeting(aiSummary.suggestedMeeting!)}>Mở tạo lịch họp</button>}</span>
+              </div>}
+              <div className="chat-ai-footer-bar">
+                <button type="button" className="chat-ai-mini-btn" disabled={aiBusy} onClick={() => void summarizeChat(aiMessageCount)}>Phân tích lại</button>
+                <button type="button" className="chat-ai-mini-btn" onClick={() => void copySummaryText()}>{copiedSummary ? 'Đã sao chép' : 'Sao chép biên bản'}</button>
+                <button type="button" className="chat-ai-mini-btn" onClick={closeAiStudio}>Đóng</button>
+              </div>
+              <small>Kết quả chỉ mang tính gợi ý. {aiSummary.generationStatus ? `Trạng thái: ${aiSummary.generationStatus === 'COMPLETED' ? 'Hoàn tất' : aiSummary.generationStatus}. ` : ''} {aiSummary.generatedAt ? `Phân tích lúc ${new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(aiSummary.generatedAt))}. ` : ''}Kiểm tra lại trước khi tạo công việc chính thức.</small>
+            </>}
+            {!aiBusy && !aiSummary && <button type="button" className="chat-ai-primary-btn" onClick={() => void summarizeChat(aiMessageCount)}>Bắt đầu tóm tắt {aiMessageCount} tin gần nhất</button>}
+          </div>
+        )}
+        {aiTab === 'ASK' && (
+          <div className="chat-ai-tab-body">
+            <div className="chat-ai-ask-chips">
+              {['Nhóm đã chốt những gì?', 'Ai đang phụ trách việc nào?', 'Đang có lỗi hoặc vướng mắc gì?'].map(sample => (
+                <button key={sample} type="button" disabled={aiBusy} onClick={() => { setAiQuery(sample); void runChatAssist('ASK_THREAD', sample) }}>{sample}</button>
+              ))}
             </div>
-            <small>Kết quả chỉ mang tính gợi ý. {aiSummary.generationStatus ? `Trạng thái: ${aiSummary.generationStatus === 'COMPLETED' ? 'Hoàn tất' : aiSummary.generationStatus}. ` : ''} {aiSummary.generatedAt ? `Phân tích lúc ${new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(aiSummary.generatedAt))}. ` : ''}Kiểm tra lại trước khi tạo công việc chính thức.</small>
-          </>}
-          {!aiBusy && !aiSummary && <button type="button" className="chat-ai-primary-btn" onClick={() => void summarizeChat(aiMessageCount)}>Bắt đầu tóm tắt {aiMessageCount} tin gần nhất</button>}
-        </div>
-      )}
-      {aiTab === 'ASK' && (
-        <div className="chat-ai-tab-body">
-          <div className="chat-ai-ask-chips">
-            {['Nhóm đã chốt những gì?', 'Ai đang phụ trách việc nào?', 'Đang có lỗi hoặc vướng mắc gì?'].map(sample => (
-              <button key={sample} type="button" disabled={aiBusy} onClick={() => { setAiQuery(sample); void runChatAssist('ASK_THREAD', sample) }}>{sample}</button>
-            ))}
+            <div className="chat-ai-ask-row">
+              <input aria-label="Hỏi AI về cuộc trò chuyện" value={aiQuery} maxLength={500} placeholder="Hỏi về quyết định, người phụ trách, tệp đã gửi…" onChange={e => setAiQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void runChatAssist('ASK_THREAD') } }} />
+              <button type="button" className="chat-ai-primary-btn" disabled={aiBusy || !aiQuery.trim()} onClick={() => void runChatAssist('ASK_THREAD')}>{aiBusy ? 'Đang tìm…' : 'Hỏi'}</button>
+            </div>
+            {aiAssist?.mode === 'ASK_THREAD' && <div className="chat-ai-answer-box">
+              <p>{aiAssist.answer}</p>
+              {!!aiAssist.references.length && <div className="chat-ai-refs"><strong>Trích dẫn từ cuộc trò chuyện</strong><ul>{aiAssist.references.map((ref, i) => <li key={i}><span><b>{ref.senderName}:</b> {ref.excerpt}</span><button type="button" className="chat-ai-action-button" onClick={() => openSourceMessage(ref.messageId)}>Xem tin gốc</button></li>)}</ul></div>}
+              {!!aiAssist.suggestions.length && <div className="chat-ai-suggestion-list">{aiAssist.suggestions.map((s, i) => <button key={i} type="button" onClick={() => applySuggestion(s)}>{s}</button>)}</div>}
+            </div>}
           </div>
-          <div className="chat-ai-ask-row">
-            <input aria-label="Hỏi AI về cuộc trò chuyện" value={aiQuery} maxLength={500} placeholder="Hỏi về quyết định, người phụ trách, tệp đã gửi…" onChange={e => setAiQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void runChatAssist('ASK_THREAD') } }} />
-            <button type="button" className="chat-ai-primary-btn" disabled={aiBusy || !aiQuery.trim()} onClick={() => void runChatAssist('ASK_THREAD')}>{aiBusy ? 'Đang tìm…' : 'Hỏi'}</button>
+        )}
+        {aiTab === 'REPLY' && (
+          <div className="chat-ai-tab-body">
+            <div className="chat-ai-reply-actions">
+              <button type="button" className="chat-ai-primary-btn" disabled={aiBusy || !messages.length} onClick={() => void runChatAssist('SUGGEST_REPLIES')}>Gợi ý 3 câu trả lời nhanh</button>
+              <button type="button" className="chat-ai-mini-btn" disabled={aiBusy || !draft.trim()} onClick={() => void runChatAssist('POLISH_DRAFT')}>Viết lại bản nháp lịch sự</button>
+            </div>
+            {!aiAssist && !!aiSummary?.smartReplies?.length && <div className="chat-ai-answer-box">
+              <p className="chat-ai-assist-note">Gợi ý phản hồi nhanh từ lần tóm tắt gần nhất:</p>
+              <div className="chat-ai-suggestion-list">{aiSummary.smartReplies.map((s, i) => <button key={i} type="button" onClick={() => applySuggestion(s)} title="Bấm để chèn vào ô soạn tin">{s}</button>)}</div>
+            </div>}
+            {aiAssist && (aiAssist.mode === 'SUGGEST_REPLIES' || aiAssist.mode === 'POLISH_DRAFT') && <div className="chat-ai-answer-box">
+              {aiAssist.answer && <p className="chat-ai-assist-note">{aiAssist.answer}</p>}
+              <div className="chat-ai-suggestion-list">{aiAssist.suggestions.map((s, i) => <button key={i} type="button" onClick={() => applySuggestion(s)} title="Bấm để chèn vào ô soạn tin">{s}</button>)}</div>
+            </div>}
           </div>
-          {aiAssist?.mode === 'ASK_THREAD' && <div className="chat-ai-answer-box">
-            <p>{aiAssist.answer}</p>
-            {!!aiAssist.references.length && <div className="chat-ai-refs"><strong>Trích dẫn từ cuộc trò chuyện</strong><ul>{aiAssist.references.map((ref, i) => <li key={i}><span><b>{ref.senderName}:</b> {ref.excerpt}</span><button type="button" className="chat-ai-action-button" onClick={() => openSourceMessage(ref.messageId)}>Xem tin gốc</button></li>)}</ul></div>}
-            {!!aiAssist.suggestions.length && <div className="chat-ai-suggestion-list">{aiAssist.suggestions.map((s, i) => <button key={i} type="button" onClick={() => applySuggestion(s)}>{s}</button>)}</div>}
-          </div>}
-        </div>
-      )}
-      {aiTab === 'REPLY' && (
-        <div className="chat-ai-tab-body">
-          <div className="chat-ai-reply-actions">
-            <button type="button" className="chat-ai-primary-btn" disabled={aiBusy || !messages.length} onClick={() => void runChatAssist('SUGGEST_REPLIES')}>Gợi ý 3 câu trả lời nhanh</button>
-            <button type="button" className="chat-ai-mini-btn" disabled={aiBusy || !draft.trim()} onClick={() => void runChatAssist('POLISH_DRAFT')}>Viết lại bản nháp lịch sự</button>
-          </div>
-          {!aiAssist && !!aiSummary?.smartReplies?.length && <div className="chat-ai-answer-box">
-            <p className="chat-ai-assist-note">Gợi ý phản hồi nhanh từ lần tóm tắt gần nhất:</p>
-            <div className="chat-ai-suggestion-list">{aiSummary.smartReplies.map((s, i) => <button key={i} type="button" onClick={() => applySuggestion(s)} title="Bấm để chèn vào ô soạn tin">{s}</button>)}</div>
-          </div>}
-          {aiAssist && (aiAssist.mode === 'SUGGEST_REPLIES' || aiAssist.mode === 'POLISH_DRAFT') && <div className="chat-ai-answer-box">
-            {aiAssist.answer && <p className="chat-ai-assist-note">{aiAssist.answer}</p>}
-            <div className="chat-ai-suggestion-list">{aiAssist.suggestions.map((s, i) => <button key={i} type="button" onClick={() => applySuggestion(s)} title="Bấm để chèn vào ô soạn tin">{s}</button>)}</div>
-          </div>}
-        </div>
-      )}
+        )}
+      </div>
     </aside>}
     {error && <p role="alert" className="chat-error">{error} <button onClick={() => { revoked.current = false; setReload(n => n + 1) }}>Tải lại</button></p>}
     <div className="chat-history" ref={view} onScroll={() => { const history = view.current; if (history) { following.current = history.scrollHeight - history.scrollTop - history.clientHeight < 64; if (following.current) { setNewMessages(0); setIsFollowing(true); } else { setIsFollowing(false); } } }} tabIndex={0} aria-label="Lịch sử tin nhắn" aria-busy={!ready}>
