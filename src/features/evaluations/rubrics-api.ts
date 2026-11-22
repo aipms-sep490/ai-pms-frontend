@@ -46,16 +46,35 @@ export interface CriterionInput {
   levels?: RubricCriterionLevel[]
 }
 export interface RubricDraft extends RubricScopeFields { name: string; description: string | null; criteria: CriterionInput[] }
+export interface RubricWorkbookStagedRow {
+  rowNumber: number
+  code: string
+  parentCode: string
+  name: string
+  description: string | null
+  weightPercent: number
+  maxScore: number | null
+  sortOrder: number
+  isRequired: boolean
+  learningOutcome: string | null
+  evidenceGuidance: string | null
+  targetScope: 'PROJECT' | 'MAJOR' | 'STUDENT' | null
+  isIntegration: boolean
+  hasError: boolean
+}
 export interface RubricWorkbookPreview {
   draft: (RubricDraft & { concurrencyToken: string }) | null
   issues: Array<{ cell: string; message: string }>
   changes: string[]
+  stagedRows?: RubricWorkbookStagedRow[]
 }
 export const downloadRubricWorkbook = (id: number) => httpGetBlob(`/v1/rubrics/${id}/workbook`)
 export const previewRubricWorkbook = (id: number, file: File) => {
   const body = new FormData(); body.append('file', file)
   return httpPostForm<RubricWorkbookPreview>(`/v1/rubrics/${id}/workbook/preview`, body)
 }
+export const cloneRubricCriterion = (id: number, criterionId: number, concurrencyToken: string) =>
+  httpPost<Rubric>(`/v1/rubrics/${id}/criteria/${criterionId}/clone`, { concurrencyToken })
 
 export const listRubrics = (page = 1, status?: string) => {
   const query = new URLSearchParams({ page: String(page), pageSize: '20' })

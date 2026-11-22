@@ -15,4 +15,6 @@ export const rubricErrors: Record<string, string> = {
   RUBRIC_SELF_APPROVAL_FORBIDDEN: 'Người gửi không được tự phê duyệt bộ tiêu chí này.',
   RUBRIC_SCOPE_NOT_LEAD_DEPARTMENT: 'Chỉ bộ môn chủ trì được phê duyệt tiêu chí chung của đồ án liên ngành.',
   RUBRIC_APPROVAL_ADMIN_NOT_ACADEMIC: 'Tài khoản quản trị không có thẩm quyền học vụ để phê duyệt.',
+  IMMUTABLE_VERSION: 'Phiên bản bộ tiêu chí đã khóa/công bố và bất biến. Hãy tạo phiên bản nháp mới để chỉnh sửa.',
+  STALE_CONCURRENCY_TOKEN: 'Bộ tiêu chí đã có cập nhật mới. Hãy tải lại dữ liệu trước khi lưu.',
 }
