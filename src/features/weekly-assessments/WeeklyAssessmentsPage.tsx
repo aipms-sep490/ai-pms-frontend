@@ -108,13 +108,13 @@ function WeeklyAssessmentsBody({ projectId, projectTitle, routeBase, members, ac
             type="button"
             disabled={editorState.busy}
             onClick={() => void changeSelection(() => setSelectedStudentId(member.userId))}
-            className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+            className={`inline-flex min-h-9 items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
               selectedStudentId === member.userId
                 ? 'bg-primary text-white shadow-xs'
-                : 'border border-hairline bg-card text-ink-soft hover:border-primary/50 hover:bg-slate-50'
+                : 'border border-hairline bg-card text-ink-soft hover:border-primary/50 hover:bg-canvas'
             }`}
           >
-            <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${selectedStudentId === member.userId ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'}`}>
+            <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${selectedStudentId === member.userId ? 'bg-card/20 text-white' : 'bg-primary/10 text-primary'}`}>
               {member.fullName.trim().charAt(0).toUpperCase()}
             </span>
             {member.fullName}
@@ -261,19 +261,19 @@ function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, 
       <h2>{assessment ? `${assessment.rubricName} (v${assessment.version})` : 'Chưa có bản chấm cho tuần này'}</h2>
       {assessment && <WeeklyBadge status={assessment.status} />}
     </div>
-    {assessment && <div style={{ padding: '0 24px', marginTop: 12 }}><ActionVerdict actions={[{ code: 'SUBMIT_WEEKLY_ASSESSMENT', allowed: assessment.canSubmit, reasons: !assessment.canSubmit ? (isSubmitted ? ['Bản chấm tuần này đã nộp.'] : !assessment.canEdit ? ['Bản chấm bị khóa hoặc không được phép chỉnh sửa.'] : ['Chưa đủ điều kiện nộp điểm tuần này.']) : [] }]} actionCode="SUBMIT_WEEKLY_ASSESSMENT" status="ready" okLabel="Đủ điều kiện nộp điểm đánh giá tuần" blockedLabel="Chưa thể nộp điểm đánh giá tuần" /></div>}
-    {error && <div style={{ padding: '0 24px', marginTop: 12 }}><WeeklyError message={error} /></div>}
+    {assessment && <div className="mt-3 px-6"><ActionVerdict actions={[{ code: 'SUBMIT_WEEKLY_ASSESSMENT', allowed: assessment.canSubmit, reasons: !assessment.canSubmit ? (isSubmitted ? ['Bản chấm tuần này đã nộp.'] : !assessment.canEdit ? ['Bản chấm bị khóa hoặc không được phép chỉnh sửa.'] : ['Chưa đủ điều kiện nộp điểm tuần này.']) : [] }]} actionCode="SUBMIT_WEEKLY_ASSESSMENT" status="ready" okLabel="Đủ điều kiện nộp điểm đánh giá tuần" blockedLabel="Chưa thể nộp điểm đánh giá tuần" /></div>}
+    {error && <div className="mt-3 px-6"><WeeklyError message={error} /></div>}
     {recovery && <div className="collab collab-card"><p className="collab-note">Bản mới nhất đã được tải lại. Nội dung chưa lưu của bạn được giữ riêng, chưa ghi đè dữ liệu.</p><details><summary>Xem nội dung chưa lưu</summary>{Object.entries(recovery.edits).map(([id, value]) => <p key={id}>Tiêu chí #{id}: {value.score || 'Chưa chấm'} · {value.comments}</p>)}<p>{recovery.comments}</p></details><div className="collab-actions">{assessment?.canEdit && <Button onClick={() => { setEdits(Object.fromEntries(assessment.scores.map(score => [score.rubricCriterionId, recovery.edits[score.rubricCriterionId] ?? { score: score.score == null ? '' : String(score.score), comments: score.comments ?? '' }]))); setComments(recovery.comments); setRecovery(null) }}>Khôi phục vào bản nháp mới nhất</Button>}<Button variant="outline" onClick={() => setRecovery(null)}>Giữ dữ liệu máy chủ</Button></div></div>}
 
-    {!assessment && !isStudent && <div style={{ padding: '16px 24px' }}>
+    {!assessment && !isStudent && <div className="px-6 py-4">
       <label>Rubric áp dụng<select value={selectedRubricId ?? ''} onChange={(event) => setSelectedRubricId(Number(event.target.value) || null)} disabled={!rubrics}>
         <option value="">— Chọn rubric —</option>
         {rubrics?.map((rubric) => <option key={rubric.id} value={rubric.id}>{rubric.name} (v{rubric.version})</option>)}
       </select></label>
     </div>}
 
-    {!assessment && isStudent && <div style={{ padding: '16px 24px' }} className="text-sm text-ink-muted flex items-center gap-2"><span className="material-symbols-outlined text-slate-400" aria-hidden="true">info</span>Giảng viên hướng dẫn chưa nộp bản đánh giá cho tuần này. Nhận xét sẽ hiển thị ngay khi được công bố.</div>}
-    {draftCriteria.length > 0 && <Table className="weekly-criteria">
+    {!assessment && isStudent && <div className="flex items-center gap-2 px-6 py-4 text-sm text-ink-muted"><span className="material-symbols-outlined text-ink-muted" aria-hidden="true">info</span>Giảng viên hướng dẫn chưa nộp bản đánh giá cho tuần này. Nhận xét sẽ hiển thị ngay khi được công bố.</div>}
+    {draftCriteria.length > 0 && <div className="overflow-x-auto"><Table className="weekly-criteria">
       <TableHead><tr><th>Tiêu chí</th><th>Điểm (tối đa)</th><th>Nhận xét</th></tr></TableHead>
       <tbody>
         {draftCriteria.map((criterion) => <tr key={criterion.rubricCriterionId}>
@@ -286,18 +286,18 @@ function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, 
             onChange={(event) => updateEdit(criterion.rubricCriterionId, { comments: event.target.value })} /> : (edits[criterion.rubricCriterionId]?.comments || '')}</td>
         </tr>)}
       </tbody>
-    </Table>}
+    </Table></div>}
 
-    {draftCriteria.length > 0 && <div style={{ padding: '12px 24px' }}>
+    {draftCriteria.length > 0 && <div className="px-6 py-3">
       <label>Nhận xét chung<textarea maxLength={2000} value={comments} disabled={!canEditNow || busy} onChange={(event) => setComments(event.target.value)} /></label>
     </div>}
 
-    {assessment?.totalScore != null && <div style={{ padding: '0 24px 12px' }}><strong>Tổng điểm tham khảo: {formatScore(assessment.totalScore)}</strong></div>}
-    {assessment?.submittedAt && <div style={{ padding: '0 24px 12px' }}><small>Đã nộp: {formatWeeklyDateTime(assessment.submittedAt)}</small></div>}
+    {assessment?.totalScore != null && <div className="px-6 pb-3 text-sm text-ink"><strong>Tổng điểm tham khảo: {formatScore(assessment.totalScore)}</strong></div>}
+    {assessment?.submittedAt && <div className="px-6 pb-3 text-xs text-ink-muted"><small>Đã nộp: {formatWeeklyDateTime(assessment.submittedAt)}</small></div>}
 
     {!isStudent && <div className="weekly-actions">
       <span />
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div className="flex flex-wrap items-center gap-2">
         {!assessment && <button className="weekly-button" type="button" disabled={busy || !!recovery || !selectedRubricId} onClick={createDraft}>Tạo bản chấm</button>}
         {isDraft && assessment?.canEdit && <>
           <button className="weekly-button weekly-button--secondary" type="button" disabled={busy || !!recovery} onClick={saveDraft}>Lưu nháp</button>
