@@ -13,7 +13,7 @@ import { dateTimeLabel, toUtcDateTime } from '../execution/execution-utils'
 
 const statusLabel: Record<string, string> = { DRAFT: 'Bản nháp', PUBLISHED: 'Đã công bố', RETIRED: 'Đã ngừng sử dụng' }
 const field = 'mt-1 w-full rounded-lg border border-hairline bg-card p-3 text-sm text-ink'
-const button = 'min-h-10 rounded-lg border border-hairline px-3 py-2 text-sm font-semibold text-ink disabled:opacity-50'
+const button = 'min-h-11 rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-semibold text-ink transition-colors hover:bg-primary-subtle hover:text-primary disabled:opacity-50'
 type DraftSnapshot = { title: string; type: string; version: string; content: string; from: string; to: string; departmentId: string; semesterId: string; periodId: string; selected: Doc | null }
 
 export function AcademicKnowledgeManagementPage() {
@@ -112,8 +112,8 @@ export function AcademicKnowledgeManagementPage() {
     }
     setMode('view'); setDraftSnapshot(null); setMessage('Đã hủy các thay đổi.')
   }
-  return <main className="workspace-page mx-auto max-w-5xl space-y-5 pb-12">
-    <header><p className="font-mono text-xs font-semibold uppercase tracking-wide text-primary">Quản trị học vụ</p><h1 className="mt-1 font-heading text-2xl font-bold text-ink">Kho tài liệu cho trợ lý AI</h1><p className="mt-2 text-sm leading-6 text-ink-muted">Nhập nội dung text, lưu nháp rồi công bố. Chỉ phiên bản còn hiệu lực, đúng khoa và kỳ mới được dùng để trả lời. Tài liệu DEMO chỉ dùng kiểm thử.</p></header>
+  return <div className="workspace-page mx-auto max-w-5xl space-y-5 pb-12">
+    <header className="workspace-heading"><div className="workspace-heading-copy"><span className="workspace-kicker">Quản trị học vụ</span><h1>Kho tài liệu cho trợ lý AI</h1><p>Nhập nội dung text, lưu nháp rồi công bố. Chỉ phiên bản còn hiệu lực, đúng khoa và kỳ mới được dùng để trả lời. Tài liệu DEMO chỉ dùng kiểm thử.</p></div></header>
     {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><p>{error.message}</p>{error.retryable && <button type="button" disabled={busy} className={button} onClick={() => setReload(value => value + 1)}>Thử tải lại danh sách</button>}</div>}
     {message && <p role="status" className="rounded-lg border border-primary-subtle bg-primary-subtle p-3 text-sm text-ink">{message}</p>}
     <ConfigModeFrame mode={mode} dirty={draftDirty} busy={busy} onEdit={() => { setDraftSnapshot(snapshot()); setMode('edit') }} onCancel={cancelDraft} onSave={() => formRef.current?.requestSubmit()} saveLabel={busy ? 'Đang xử lý…' : 'Lưu bản nháp'} editDisabled={!ready} saveDisabled={!ready || (!selected && !admin && !departmentId)} allowSaveUnchanged navigationGuard={false} blastRadius="Bản nháp mới chỉ nằm trong kho quản lý. Trợ lý AI chỉ dùng tài liệu sau khi công bố; phạm vi khoa, kỳ và thời gian hiệu lực quyết định tài liệu nào được dùng. Phiên bản đang công bố có thể bị thu hồi khi công bố bản mới.">
@@ -140,5 +140,5 @@ export function AcademicKnowledgeManagementPage() {
     </div></li>)}</ul>}</section>
     {history && <section className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-heading font-semibold text-ink">Lịch sử · {history.title}</h2><ul className="mt-3 space-y-2">{history.rows.map(row => <li key={row.id} className="text-sm text-ink-soft">v{row.version} · {statusLabel[row.status] ?? 'Trạng thái chưa xác định'} · {row.chunkCount} đoạn nguồn{row.publishedAt ? ` · Công bố ${dateTimeLabel(row.publishedAt)} (giờ Việt Nam)` : ''}</li>)}</ul></section>}
     {confirmationDialog}
-  </main>
+  </div>
 }

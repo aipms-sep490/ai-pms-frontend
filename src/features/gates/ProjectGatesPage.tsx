@@ -68,18 +68,18 @@ export function ProjectGatesPage() {
     {!loading && actor !== 'student' && <section className="space-y-3 rounded-xl border border-hairline bg-card p-5 shadow-xs">
       <h2 className="text-sm font-bold text-ink">Tạo checkpoint mới</h2>
       <div className="grid gap-3 sm:grid-cols-3">
-        <label className="text-sm text-ink-soft">Tiêu đề<input className="mt-1 w-full rounded-lg border border-hairline p-2 text-sm" value={newTitle} disabled={creating} onChange={(event) => setNewTitle(event.target.value)} /></label>
-        <label className="text-sm text-ink-soft">Mã ngành (để trống nếu chung)<input type="number" className="mt-1 w-full rounded-lg border border-hairline p-2 text-sm" value={newMajorId} disabled={creating} onChange={(event) => setNewMajorId(event.target.value)} /></label>
-        <label className="text-sm text-ink-soft">Thời điểm dự kiến<input type="datetime-local" className="mt-1 w-full rounded-lg border border-hairline p-2 text-sm" value={newPlannedAt} disabled={creating} onChange={(event) => setNewPlannedAt(event.target.value)} /></label>
+        <label className="text-sm text-ink-soft">Tiêu đề<input className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" value={newTitle} disabled={creating} onChange={(event) => setNewTitle(event.target.value)} /></label>
+        <label className="text-sm text-ink-soft">Mã ngành (để trống nếu chung)<input type="number" className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" value={newMajorId} disabled={creating} onChange={(event) => setNewMajorId(event.target.value)} /></label>
+        <label className="text-sm text-ink-soft">Thời điểm dự kiến<input type="datetime-local" className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" value={newPlannedAt} disabled={creating} onChange={(event) => setNewPlannedAt(event.target.value)} /></label>
       </div>
-      <button type="button" className="min-h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={creating || !newTitle.trim() || !newPlannedAt} onClick={() => void submitCreate()}>Tạo checkpoint</button>
+      <button type="button" className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50" disabled={creating || !newTitle.trim() || !newPlannedAt} onClick={() => void submitCreate()}>Tạo checkpoint</button>
     </section>}
 
     {!loading && !error && checkpoints && checkpoints.length === 0 && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đồ án chưa có checkpoint theo dõi nào.</p>}
     {!loading && !error && checkpoints && checkpoints.length > 0 && <ol className="space-y-3">
       {checkpoints.map((checkpoint) => <CheckpointRow key={checkpoint.id} checkpoint={checkpoint} onChanged={(updated) => setCheckpoints((current) => current?.map((c) => c.id === updated.id ? updated : c) ?? null)} onConflict={reload} />)}
     </ol>}
-    <p className="text-xs text-slate-400">Trang: {routeBase}</p>
+    <p className="text-xs text-ink-muted">Trang: {routeBase}</p>
   </WorkspacePage>
 }
 
@@ -165,13 +165,13 @@ function CheckpointRow({ checkpoint, onChanged, onConflict }: {
 
     {checkpoint.canManage && <div className="mt-4 space-y-3 border-t border-hairline pt-3">
       <div className="flex flex-wrap items-end gap-2">
-        <label className="text-sm text-ink-soft">Kết luận<select className="mt-1 block rounded-lg border border-hairline p-2 text-sm" value={decision} disabled={busy} onChange={(event) => setDecision(event.target.value as CheckpointDecisionValue)}>
+        <label className="text-sm text-ink-soft">Kết luận<select className="mt-1 block min-h-11 rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" value={decision} disabled={busy} onChange={(event) => setDecision(event.target.value as CheckpointDecisionValue)}>
           <option value="MET">Đạt</option>
           <option value="AT_RISK">Rủi ro</option>
           <option value="NOT_MET">Chưa đạt</option>
           <option value="CANCELLED">Hủy</option>
         </select></label>
-        <label className="flex-1 min-w-48 text-sm text-ink-soft">Lý do<input className="mt-1 w-full rounded-lg border border-hairline p-2 text-sm" value={reason} disabled={busy} onChange={(event) => setReason(event.target.value)} /></label>
+        <label className="flex-1 min-w-48 text-sm text-ink-soft">Lý do<input className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" value={reason} disabled={busy} onChange={(event) => setReason(event.target.value)} /></label>
       </div>
 
       <div className="space-y-1.5">
@@ -193,7 +193,7 @@ function CheckpointRow({ checkpoint, onChanged, onConflict }: {
             <input
               type="number"
               placeholder="Evidence ID"
-              className="w-32 rounded-lg border border-hairline p-1.5 text-xs"
+              className="min-h-10 w-32 rounded-lg border border-hairline bg-card px-2.5 py-1.5 text-xs text-ink"
               value={ev.evidenceId}
               disabled={busy}
               onChange={(e) => updateEvidenceRow(idx, { evidenceId: e.target.value })}
@@ -201,7 +201,7 @@ function CheckpointRow({ checkpoint, onChanged, onConflict }: {
             <input
               type="number"
               placeholder="Review ID"
-              className="w-32 rounded-lg border border-hairline p-1.5 text-xs"
+              className="min-h-10 w-32 rounded-lg border border-hairline bg-card px-2.5 py-1.5 text-xs text-ink"
               value={ev.reviewId}
               disabled={busy}
               onChange={(e) => updateEvidenceRow(idx, { reviewId: e.target.value })}
@@ -219,9 +219,9 @@ function CheckpointRow({ checkpoint, onChanged, onConflict }: {
       </div>
 
       <div className="pt-1">
-        <button type="button" className="min-h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={busy || !reason.trim()} onClick={() => void submitDecision()}>Ghi kết luận</button>
+        <button type="button" className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50" disabled={busy || !reason.trim()} onClick={() => void submitDecision()}>Ghi kết luận</button>
       </div>
     </div>}
-    {latestDecision?.decision === 'CANCELLED' && <p className="mt-2 text-xs text-slate-400">Checkpoint đã hủy; không thêm kết luận mới.</p>}
+    {latestDecision?.decision === 'CANCELLED' && <p className="mt-2 text-xs text-ink-muted">Checkpoint đã hủy; không thêm kết luận mới.</p>}
   </li>
 }

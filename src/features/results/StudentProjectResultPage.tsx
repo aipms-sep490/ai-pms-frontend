@@ -16,8 +16,8 @@ import { env } from '../../app/config/env'
 export function StudentProjectResultPage() {
   const journey = useStudentJourney()
   return <WorkspacePage className="space-y-5" title="Kết quả đồ án" eyebrow="Kết quả chính thức" description="Xem điểm cá nhân và kết luận sau khi bộ môn công bố kết quả.">
-    {journey.isLoading ? <p role="status">Đang tải hồ sơ đồ án…</p>
-      : journey.error ? <div role="alert">Chưa tải được hồ sơ đồ án. <button type="button" className="min-h-11 underline" onClick={() => void journey.refreshAll()}>Tải lại hồ sơ</button></div>
+    {journey.isLoading ? <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải hồ sơ đồ án…</p>
+      : journey.error ? <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><span>Chưa tải được hồ sơ đồ án.</span> <button type="button" className="min-h-11 font-semibold underline" onClick={() => void journey.refreshAll()}>Tải lại hồ sơ</button></div>
       : journey.project && journey.profile ? <PublishedStudentResult key={`${journey.project.id}:${journey.profile.id}`} project={journey.project} studentId={journey.profile.id} />
       : <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Không tìm thấy đồ án hoặc hồ sơ sinh viên hiện tại.</p>}
     <Link to="/projects/lifecycle" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold text-primary"><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Về hồ sơ đồ án</Link>

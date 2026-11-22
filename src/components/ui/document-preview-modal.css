@@ -103,14 +103,14 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 38px;
+  min-height: 44px;
   padding: 6px 14px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid var(--color-hairline);
-  background: white;
+  background: var(--color-card);
   color: var(--color-ink);
   transition: all 0.15s ease;
 }
@@ -122,7 +122,7 @@
 
 .doc-preview-btn--primary {
   background: var(--color-primary);
-  color: white;
+  color: var(--color-on-navy);
   border-color: var(--color-primary);
   box-shadow: 0 2px 6px -1px color-mix(in oklab, var(--color-primary) 35%, transparent);
 }
@@ -133,8 +133,8 @@
 }
 
 .doc-preview-btn--close {
-  min-height: 38px;
-  width: 38px;
+  min-height: 44px;
+  width: 44px;
   padding: 0;
   border-radius: 8px;
   font-size: 18px;
@@ -142,7 +142,7 @@
 
 .doc-preview-btn--close:hover {
   background: var(--color-status-error-bg);
-  color: var(--color-danger-text);
+  color: var(--color-status-error-text);
   border-color: var(--color-status-error-border);
 }
 
@@ -179,7 +179,7 @@
   max-height: 80vh;
   object-fit: contain;
   border-radius: 8px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 30px color-mix(in oklab, var(--color-brand-navy) 14%, transparent);
   transition: transform 0.15s ease-out;
 }
 

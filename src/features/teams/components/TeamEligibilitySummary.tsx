@@ -40,8 +40,8 @@ export function TeamEligibilitySummary({
         </div>
         {canRefresh && (
           <button type="button" onClick={() => void refresh()} disabled={refreshPending}
-            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-50">
-            <span className={`material-symbols-outlined text-[16px] ${refreshPending ? 'animate-spin' : ''}`}>refresh</span>
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-ink transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary-hover disabled:opacity-50">
+            <span className={`material-symbols-outlined text-[16px] ${refreshPending ? 'motion-safe:animate-spin' : ''}`} aria-hidden="true">refresh</span>
             {refreshPending ? 'Đang kiểm tra...' : 'Kiểm tra lại'}
           </button>
         )}
@@ -102,13 +102,13 @@ export function TeamEligibilitySummary({
         </div>
       )}
 
-      <div className="mt-4 flex flex-col gap-2 border-t border-hairline pt-4 sm:flex-row sm:items-center sm:justify-between">
-        {pass && canContinueToRegistration && (
-          <button type="button" onClick={onContinueToRegistration} className="shrink-0 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-white hover:bg-primary-hover">
+      {pass && canContinueToRegistration && (
+        <div className="mt-4 flex flex-col gap-2 border-t border-hairline pt-4 sm:flex-row sm:items-center sm:justify-end">
+          <button type="button" onClick={onContinueToRegistration} className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-hover">
             Tiếp tục đăng ký đề tài
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   )
 }

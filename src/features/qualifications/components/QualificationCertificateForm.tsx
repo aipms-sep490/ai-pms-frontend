@@ -5,7 +5,7 @@ import { services } from '../../../services/service-gateway'
 import { HttpError } from '../../../services/http/http-client'
 import type { StudentQualificationDto } from '../../../types/backend'
 
-const inputClass = 'mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm'
+const inputClass = 'mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted'
 
 export function QualificationCertificateForm({ onSubmitted, onBusyChange }: { onSubmitted: (value: StudentQualificationDto) => void; onBusyChange?: (busy: boolean) => void }) {
   const [busy, setBusy] = useState(false)
@@ -45,14 +45,14 @@ export function QualificationCertificateForm({ onSubmitted, onBusyChange }: { on
     <p id="certificate-help" className="mt-1 text-sm leading-6 text-ink-muted">{policy ? uploadPolicyLabel(policy) : 'Giới hạn tệp theo chính sách máy chủ.'} Hồ sơ sẽ chờ bộ môn xác minh; nộp tệp chưa xác nhận đủ điều kiện đăng ký.</p>
     {env.isMockMode && <p role="status" className="mt-2 text-sm text-ink-muted">Nộp chứng nhận cần kết nối API. Chế độ dữ liệu mẫu chỉ hỗ trợ xem.</p>}
     <fieldset disabled={busy || env.isMockMode} className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2">
-      <label className="min-w-0 text-sm font-medium sm:col-span-2">Tệp chứng nhận<input name="file" type="file" accept="application/pdf,image/png,image/jpeg" aria-describedby="certificate-help certificate-error" className={`${inputClass} min-w-0 max-w-full`} /></label>
-      <label className="text-sm font-medium sm:col-span-2">Số chứng nhận (không bắt buộc)<input name="certificateNumber" maxLength={100} className={inputClass} /></label>
-      <label className="text-sm font-medium">Ngày cấp (không bắt buộc)<input name="issuedAt" type="date" className={inputClass} /></label>
-      <label className="text-sm font-medium">Ngày hết hạn (không bắt buộc)<input name="expiresAt" type="date" className={inputClass} /></label>
-      <label className="flex min-h-11 items-center gap-3 text-sm sm:col-span-2"><input name="completed" type="checkbox" />Tôi đã hoàn thành đào tạo và gửi chứng nhận để xác minh.</label>
+      <label className="min-w-0 text-sm font-medium text-ink-soft sm:col-span-2">Tệp chứng nhận<input name="file" type="file" accept="application/pdf,image/png,image/jpeg" aria-describedby="certificate-help certificate-error" className={`${inputClass} min-w-0 max-w-full file:mr-3 file:rounded-md file:border-0 file:bg-primary-subtle file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary`} /></label>
+      <label className="text-sm font-medium text-ink-soft sm:col-span-2">Số chứng nhận (không bắt buộc)<input name="certificateNumber" maxLength={100} className={inputClass} /></label>
+      <label className="text-sm font-medium text-ink-soft">Ngày cấp (không bắt buộc)<input name="issuedAt" type="date" className={inputClass} /></label>
+      <label className="text-sm font-medium text-ink-soft">Ngày hết hạn (không bắt buộc)<input name="expiresAt" type="date" className={inputClass} /></label>
+      <label className="flex min-h-11 items-center gap-3 text-sm text-ink sm:col-span-2"><input name="completed" type="checkbox" />Tôi đã hoàn thành đào tạo và gửi chứng nhận để xác minh.</label>
     </fieldset>
-    <p id="certificate-error" ref={errorRef} tabIndex={-1} role={error ? 'alert' : undefined} className="mt-2 text-sm text-status-error-text">{error}</p>
-    <button type="submit" disabled={busy || env.isMockMode} className="mt-2 min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Đang nộp…' : 'Nộp chứng nhận'}</button>
+    <p id="certificate-error" ref={errorRef} tabIndex={-1} role={error ? 'alert' : undefined} className={error ? 'mt-2 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text' : 'mt-2 text-sm text-status-error-text'}>{error}</p>
+    <button type="submit" disabled={busy || env.isMockMode} className="mt-2 min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50">{busy ? 'Đang nộp…' : 'Nộp chứng nhận'}</button>
   </form>
 }
 

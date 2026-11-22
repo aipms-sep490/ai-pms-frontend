@@ -7,13 +7,13 @@ export interface MultidisciplinaryTagProps {
 
 export function MultidisciplinaryTag({ major, className = '' }: MultidisciplinaryTagProps) {
   const styles: Record<MajorType, string> = {
-    SE: 'bg-[var(--color-tag-se-bg)] text-[var(--color-tag-se)] border-[var(--color-tag-se)]/20',
-    'UI/UX': 'bg-[var(--color-tag-uiux-bg)] text-[var(--color-tag-uiux)] border-[var(--color-tag-uiux)]/20',
-    UIUX: 'bg-[var(--color-tag-uiux-bg)] text-[var(--color-tag-uiux)] border-[var(--color-tag-uiux)]/20',
-    AI: 'bg-[var(--color-tag-ai-bg)] text-[var(--color-tag-ai)] border-[var(--color-tag-ai)]/20',
-    QA: 'bg-[var(--color-tag-qa-bg)] text-[var(--color-tag-qa)] border-[var(--color-tag-qa)]/20',
-    IS: 'bg-[var(--color-tag-is-bg)] text-[var(--color-tag-is)] border-[var(--color-tag-is)]/20',
-    ALL: 'bg-slate-100 text-slate-700 border-hairline',
+    SE: 'bg-tag-se-bg text-tag-se border-tag-se/20',
+    'UI/UX': 'bg-tag-uiux-bg text-tag-uiux border-tag-uiux/20',
+    UIUX: 'bg-tag-uiux-bg text-tag-uiux border-tag-uiux/20',
+    AI: 'bg-tag-ai-bg text-tag-ai border-tag-ai/20',
+    QA: 'bg-tag-qa-bg text-tag-qa border-tag-qa/20',
+    IS: 'bg-tag-is-bg text-tag-is border-tag-is/20',
+    ALL: 'bg-canvas text-ink-soft border-hairline',
   }
 
   const displayMajor = major === 'UIUX' ? 'UI/UX' : major

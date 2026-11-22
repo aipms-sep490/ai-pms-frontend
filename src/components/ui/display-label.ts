@@ -1,6 +1,6 @@
 const labels: Record<string, string> = {
   BEGINNER: 'Cơ bản', INTERMEDIATE: 'Khá', ADVANCED: 'Nâng cao', EXPERT: 'Chuyên sâu',
-  HIGH: 'Cao', MEDIUM: 'Trung bình', LOW: 'Thấp',
+  CRITICAL: 'Nghiêm trọng', HIGH: 'Cao', MEDIUM: 'Trung bình', LOW: 'Thấp',
   DRAFT: 'Bản nháp', PROPOSED: 'Đề xuất — chưa duyệt', PUBLISHED: 'Đã công bố', FROZEN: 'Đã đóng băng', RETIRED: 'Ngừng sử dụng', REVOKED: 'Đã thu hồi', ACTIVE: 'Đang hoạt động',
   NOT_READY: 'Chưa sẵn sàng', PREVIEW: 'Bản xem trước', CORRECTED: 'Đã đính chính',
   MAJOR: 'Theo chuyên ngành', INDUSTRY: 'Doanh nghiệp', INDUSTRY_EXPERT: 'Chuyên gia doanh nghiệp',
@@ -10,13 +10,16 @@ const labels: Record<string, string> = {
   SUBMITTED: 'Đã nộp', FINALIZED: 'Đã chốt', COMPLETED: 'Đã hoàn thành', CANCELLED: 'Đã hủy',
   COMMON: 'Cả đồ án', MAJOR_SPECIFIC: 'Theo chuyên ngành', INDIVIDUAL: 'Theo sinh viên',
   SINGLE_MAJOR: 'Một ngành', INTERDISCIPLINARY: 'Liên ngành',
-  LECTURER: 'Giảng viên đánh giá', SUPERVISOR: 'Giảng viên hướng dẫn', STUDENT: 'Sinh viên',
+  LECTURER: 'Giảng viên', SUPERVISOR: 'Giảng viên hướng dẫn', STUDENT: 'Sinh viên',
   DEPARTMENT_STAFF: 'Cán bộ bộ môn', ADMIN: 'Quản trị viên',
+  HEALTHY: 'Đang hoạt động', Healthy: 'Đang hoạt động', DEGRADED: 'Suy giảm', UNHEALTHY: 'Gián đoạn',
   DISCIPLINE_MENTOR: 'Hướng dẫn chuyên ngành', PRIMARY_SUPERVISOR: 'Giảng viên hướng dẫn chính',
   CO_SUPERVISOR: 'Giảng viên đồng hướng dẫn',
   REGISTRATION: 'Đăng ký', PROJECT_REVIEW: 'Thẩm định', SUPERVISOR_SELECTION: 'Phân công hướng dẫn',
   EXECUTION: 'Thực hiện', FINAL_SUBMISSION: 'Bàn giao cuối kỳ', EVALUATION: 'Đánh giá',
   PROGRESS_PACKAGE: 'Hồ sơ tiến độ', TECHNICAL_DOCUMENT: 'Tài liệu kỹ thuật', PROPOSAL: 'Đề cương',
+  MEETING: 'Cuộc họp', PROGRESS_REPORT: 'Báo cáo tiến độ', TASK: 'Công việc',
+  OFFICIAL: 'Chính thức', SUPPORTING: 'Bổ trợ',
   FULL: 'Đủ dữ liệu', SUFFICIENT_DATA: 'Đủ dữ liệu', INSUFFICIENT_DATA: 'Chưa đủ dữ liệu',
 }
 

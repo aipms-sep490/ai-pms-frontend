@@ -22,47 +22,53 @@ const emptyFilters: AcademicFilters = { search: '', includeInactive: false }
 export function useAcademicStructure(filters: AcademicFilters = emptyFilters) {
   const { session } = useAuthSession()
   const { search, organizationId, includeInactive } = filters
-  const [hierarchy, setHierarchy] = useState<AcademicHierarchyOrganization[] | null>(null)
-  const [context, setContext] = useState<AcademicWorkflowContext | null>(null)
-  const [error, setError] = useState<Error | null>(null)
-  const [isLoading, setIsLoading] = useState(Boolean(session))
+  const [resolved, setResolved] = useState<{
+    key: string
+    token: string
+    hierarchy: AcademicHierarchyOrganization[] | null
+    context: AcademicWorkflowContext | null
+    error: Error | null
+  } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [requestVersion, setRequestVersion] = useState(0)
 
   const retry = useCallback(() => setRequestVersion((value) => value + 1), [])
+  const requestKey = session ? `${session.accessToken}:${search}:${organizationId ?? ''}:${includeInactive}:${requestVersion}` : ''
 
   useEffect(() => {
-    if (!session) {
-      setHierarchy(null)
-      setContext(null)
-      setError(null)
-      setIsLoading(false)
-      return
-    }
-
+    if (!session) return
     const controller = new AbortController()
-    setIsLoading(true)
-    setError(null)
+    const key = `${session.accessToken}:${search}:${organizationId ?? ''}:${includeInactive}:${requestVersion}`
+    const token = session.accessToken
 
     Promise.all([
-      getAcademicHierarchy(session.accessToken, { search, organizationId, includeInactive }, controller.signal),
-      getAcademicWorkflowContext(session.accessToken, controller.signal),
+      getAcademicHierarchy(token, { search, organizationId, includeInactive }, controller.signal),
+      getAcademicWorkflowContext(token, controller.signal),
     ])
       .then(([nextHierarchy, nextContext]) => {
-        setHierarchy(nextHierarchy)
-        setContext(nextContext)
+        if (!controller.signal.aborted) {
+          setResolved({ key, token, hierarchy: nextHierarchy, context: nextContext, error: null })
+        }
       })
       .catch((reason: unknown) => {
         if (!controller.signal.aborted) {
-          setError(reason instanceof Error ? reason : new Error('Unable to load academic structure.'))
+          setResolved((current) => ({
+            key,
+            token,
+            hierarchy: current?.token === token ? current.hierarchy : null,
+            context: current?.token === token ? current.context : null,
+            error: reason instanceof Error ? reason : new Error('Unable to load academic structure.'),
+          }))
         }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setIsLoading(false)
       })
 
     return () => controller.abort()
   }, [session, search, organizationId, includeInactive, requestVersion])
+
+  const hierarchy = session && resolved?.token === session.accessToken ? resolved.hierarchy : null
+  const context = session && resolved?.token === session.accessToken ? resolved.context : null
+  const error = session && resolved?.key === requestKey ? resolved.error : null
+  const isLoading = Boolean(session) && resolved?.key !== requestKey
 
   const submitRecord = useCallback(async (draft: AcademicRecordDraft) => {
     if (!session) throw new Error('An authenticated session is required.')

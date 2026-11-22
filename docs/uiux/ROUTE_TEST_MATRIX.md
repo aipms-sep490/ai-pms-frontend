@@ -1,22 +1,22 @@
 # ROUTE TEST MATRIX — Route × Role × State × API
-> Historical route inventory. Shared route labels below now reflect `ProtectedRoute`; other guard cells are nearest scoped guard cues, not complete ancestry. API names and state lists remain candidates until traced to each action/endpoint. Use `02-SCREEN-INVENTORY.csv` and `16-ROUTE-RUNTIME-MATRIX.csv` for the later audit, and validate endpoint-specific HTTP states before acceptance.
-> Governed by AI_PMS_SHARED_GOVERNANCE_RULES.md (Rule 4). A listed 401/403/404/409 does not imply that every route can produce that response.
+> Comprehensive test denominator mapping every frontend route to required interaction states, roles, and authoritative backend APIs.
+> Governed by AI_PMS_SHARED_GOVERNANCE_RULES.md (Rule 4: 10+ states matrix).
 
-| Index | Route | Primary Role | Enforced Guard | Feature Flag | Candidate Backend API | State candidates (untriaged) |
+| Index | Route | Primary Role | Enforced Guard | Feature Flag | Authoritative Backend API | Required States to Verify |
 |---|---|---|---|---|---|---|
 | 1 | `/login` | `Public / Authenticated` | `None` | `None` | `AuthController (POST /api/v1/auth/login, POST /api/v1/auth/google)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
 | 2 | `/forgot-password` | `Public / Authenticated` | `None` | `None` | `AuthController (POST /api/v1/auth/forgot-password)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
 | 3 | `/reset-password` | `Public / Authenticated` | `None` | `None` | `AuthController (POST /api/v1/auth/reset-password)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
-| 4 | `/industry/enroll` | `Public invitation` | `IndustryEnrollmentRoute` | `env.industryEnabled` | `IndustryController (POST /api/v1/industry/enroll)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
-| 5 | `/industry` | `Authenticated industry` | `ProtectedRoute + IndustryLayout` | `env.industryEnabled` | `IndustryController (GET /api/v1/industry/assignments, GET /api/v1/industry/projects)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
-| 6 | `/industry/workspace` | `Authenticated industry` | `ProtectedRoute + IndustryLayout` | `env.industryEnabled` | `IndustryController (GET /api/v1/industry/workspace)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
-| 7 | `/industry/assignments/:assignmentId` | `Authenticated industry` | `ProtectedRoute + IndustryLayout` | `env.industryEnabled` | `IndustryController (GET /api/v1/industry/assignments/{id}, POST feedback)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
-| 8 | `/` | `Authenticated` | `ProtectedRoute` | `None` | `Workflow / Context Controller` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
-| 9 | `/profile` | `Authenticated` | `ProtectedRoute` | `None` | `AcademicProfilesController, UsersController (GET /api/v1/users/me)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
-| 10 | `/profile/security` | `Authenticated` | `ProtectedRoute` | `None` | `UsersController (PUT /api/v1/users/me/security)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
-| 11 | `/notifications` | `Authenticated` | `ProtectedRoute` | `None` | `NotificationsController (GET /api/v1/notifications, PUT read)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
-| 12 | `/calendar` | `Authenticated` | `ProtectedRoute` | `None` | `CalendarController (GET /api/v1/calendar/events)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
-| 13 | `/messages/:conversationId?` | `Authenticated` | `ProtectedRoute` | `None` | `ChatController (GET /api/v1/chat/conversations, messages)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
+| 4 | `/industry/enroll` | `Public / Authenticated` | `IndustryEnrollmentRoute` | `env.industryEnabled` | `IndustryController (POST /api/v1/industry/enroll)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
+| 5 | `/industry` | `Public / Authenticated` | `IndustryLayout` | `env.industryEnabled` | `IndustryController (GET /api/v1/industry/assignments, GET /api/v1/industry/projects)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
+| 6 | `/industry/workspace` | `Public / Authenticated` | `IndustryLayout` | `env.industryEnabled` | `IndustryController (GET /api/v1/industry/workspace)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
+| 7 | `/industry/assignments/:assignmentId` | `Public / Authenticated` | `IndustryLayout` | `env.industryEnabled` | `IndustryController (GET /api/v1/industry/assignments/{id}, POST feedback)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
+| 8 | `/` | `Public / Authenticated` | `None` | `None` | `Workflow / Context Controller` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
+| 9 | `/profile` | `Public / Authenticated` | `None` | `None` | `AcademicProfilesController, UsersController (GET /api/v1/users/me)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
+| 10 | `/profile/security` | `Public / Authenticated` | `None` | `None` | `UsersController (PUT /api/v1/users/me/security)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
+| 11 | `/notifications` | `Public / Authenticated` | `None` | `None` | `NotificationsController (GET /api/v1/notifications, PUT read)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
+| 12 | `/calendar` | `Public / Authenticated` | `None` | `None` | `CalendarController (GET /api/v1/calendar/events)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
+| 13 | `/messages/:conversationId?` | `Public / Authenticated` | `None` | `None` | `ChatController (GET /api/v1/chat/conversations, messages)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
 | 14 | `/project/overview` | `student` | `None` | `None` | `WorkflowContextController, ActionAggregatorsController (GET /api/v1/student/workflow-context)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
 | 15 | `/project/templates` | `student` | `None` | `None` | `Workflow / Context Controller` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
 | 16 | `/project/workspace` | `student` | `ActiveStudentProjectRoute` | `None` | `WorkflowContextController, ExecutionCapabilitiesController (GET /api/v1/projects/{id}/workspace)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
@@ -146,5 +146,5 @@
 | 140 | `/admin/access/rbac` | `admin` | `None` | `None` | `RolesController, PermissionsController (GET /api/v1/roles, GET /api/v1/permissions)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
 | 141 | `/admin/access/users/:userId` | `admin` | `None` | `None` | `UsersController (GET /api/v1/users/{id})` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
 | 142 | `/admin/industry` | `admin` | `None` | `env.industryEnabled` | `IndustryController (GET /api/v1/industry/invitations)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
-| 143 | `/preview/workflows` | `Authenticated` | `ProtectedRoute` | `env.workflowPreviewEnabled` | `WorkflowPreviewPage (Mock / Preview)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
-| 144 | `/*` | `Authenticated` | `ProtectedRoute` | `None` | `None (Client 404 Catch-all)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
+| 143 | `/preview/workflows` | `Public / Authenticated` | `None` | `env.workflowPreviewEnabled` | `WorkflowPreviewPage (Mock / Preview)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |
+| 144 | `/*` | `Public / Authenticated` | `None` | `None` | `None (Client 404 Catch-all)` | Loading, Empty/Filtered, Blocked, 401, 403, 404, 409, 5xx/Retry, Success |

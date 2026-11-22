@@ -5,7 +5,7 @@ import { getWorkspaceNavigation } from '../../app/router/workspace-route-registr
 import { env } from '../../app/config/env'
 import type { WorkspaceAccess } from '../../app/context/workspace-access'
 import { Modal } from './Modal'
-import { contextualNavigation, isDeferredDepartmentPath, normalizeNavigationQuery } from './workspace-experience'
+import { contextualNavigation, normalizeNavigationQuery } from './workspace-experience'
 import './quick-navigation.css'
 
 export function QuickNavigation({ access }: { access:WorkspaceAccess }) {
@@ -15,8 +15,8 @@ export function QuickNavigation({ access }: { access:WorkspaceAccess }) {
   const [query,setQuery] = useState('')
   const resultsRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
-  const enabled=access.identityRole!=='department'&&!isDeferredDepartmentPath(location.pathname)
-  const baseRoutes=getWorkspaceNavigation(access).filter(item=>!isDeferredDepartmentPath(item.path))
+  const enabled = access.identityRole !== 'unknown'
+  const baseRoutes = getWorkspaceNavigation(access)
   const routes=[...contextualNavigation(location.pathname,access.identityRole),...baseRoutes,
     ...(baseRoutes.some(item=>item.id==='account-profile')?[
       {id:'quick-notifications',path:'/notifications',title:'Thông báo',icon:'notifications'},

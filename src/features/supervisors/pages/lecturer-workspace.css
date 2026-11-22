@@ -1,5 +1,7 @@
+.lecturer-workspace .lecturer-projects:not(:has(.lecturer-project)) { padding: 24px; border: 1px solid var(--color-hairline); border-radius: 14px; background: var(--color-card); }
+.lecturer-workspace .lecturer-project-list:empty { display: none; margin: 0; }
 .lecturer-workspace .lecturer-project-list { margin-top: 20px; display: grid; gap: 20px; }
-.lecturer-workspace .lecturer-project { min-width: 0; background: var(--color-card); border: 1px solid var(--color-hairline); border-radius: 14px; padding: 28px; box-shadow: 0 2px 5px rgb(20 55 36 / 3%); }
+.lecturer-workspace .lecturer-project { min-width: 0; background: var(--color-card); border: 1px solid var(--color-hairline); border-radius: 14px; padding: 28px; box-shadow: 0 2px 5px color-mix(in oklab, var(--color-brand-navy) 4%, transparent); }
 .lecturer-project h3 { max-width: 76ch; font-size: 18px; line-height: 1.5; }
 .lecturer-signals { display: grid; grid-template-columns: 1fr 1fr 1.4fr 1fr; gap: 24px; margin: 24px 0; }
 .lecturer-signal { min-width: 0; font-size: 13px; line-height: 1.6; }

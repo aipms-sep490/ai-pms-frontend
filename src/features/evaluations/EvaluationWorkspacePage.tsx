@@ -21,5 +21,5 @@ export function EvaluationWorkspacePage() {
   const invalid = !Number.isSafeInteger(id) || id < 1
   if (!invalid && result?.id !== id) return <PageLoading />
   if (!invalid && result?.assignmentId && !result.error) return <Navigate to={`/evaluator/assignments/${result.assignmentId}`} replace />
-  return <WorkspacePage title="Đánh giá đồ án" description="Mở bản đánh giá theo phân công được cấp cho bạn."><p role="alert" className="workspace-surface p-5 text-status-error-text">{invalid ? 'Mã đánh giá không hợp lệ.' : result?.error}</p><Link className="workspace-action-link" to="/evaluator/workspace">Về danh sách phân công</Link></WorkspacePage>
+  return <WorkspacePage title="Đánh giá đồ án" eyebrow="Đánh giá đồ án" description="Mở bản đánh giá theo phân công được cấp cho bạn."><p role="alert" className="workspace-surface p-5 text-status-error-text">{invalid ? 'Mã đánh giá không hợp lệ.' : result?.error}</p><Link className="workspace-action-link" to="/evaluator/workspace">Về danh sách phân công</Link></WorkspacePage>
 }

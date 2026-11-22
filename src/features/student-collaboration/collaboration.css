@@ -12,7 +12,7 @@
 .collab-row, .collab-actions, .collab-pager { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .collab-row { justify-content: space-between; }
 .collab-actions { margin-top: 18px; }
-.collab button { max-width: 100%; min-height: 40px; height: auto; white-space: normal; overflow-wrap: anywhere; padding-top: 9px; padding-bottom: 9px; }
+.collab button { max-width: 100%; min-height: 44px; height: auto; white-space: normal; overflow-wrap: anywhere; padding-top: 9px; padding-bottom: 9px; }
 .collab-pager { justify-content: flex-end; margin-top: 18px; font-size: 13px; }
 .collab-muted { font-size: 13px; color: var(--color-ink-muted); line-height: 1.6; }
 .collab-empty { padding: 32px 20px; text-align: center; background: var(--color-canvas); border: 1px dashed var(--color-hairline); border-radius: 12px; color: var(--color-ink-muted); }
@@ -20,7 +20,7 @@
 .collab-error { padding: 14px 18px; border: 1px solid var(--color-status-error-border); border-radius: 10px; color: var(--color-status-error-text); background: var(--color-status-error-bg); }
 .collab-form { display: grid; gap: 18px; }
 .collab-form label { display: grid; gap: 7px; font-size: 13px; font-weight: 600; color: var(--color-ink); }
-.collab-form :is(input, textarea, select), .collab-select { min-width: 0; width: 100%; border: 1px solid var(--color-hairline); border-radius: 9px; background: var(--color-card); padding: 11px 12px; font: inherit; color: var(--color-ink); }
+.collab-form :is(input, textarea, select), .collab-select { min-width: 0; width: 100%; min-height: 44px; border: 1px solid var(--color-hairline); border-radius: 9px; background: var(--color-card); padding: 10px 12px; font: inherit; font-weight: 400; color: var(--color-ink); }
 .collab-form textarea { resize: vertical; min-height: 100px; line-height: 1.7; }
 .collab :is(input, textarea, select, button):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
 .collab-section { border-bottom: 1px solid var(--color-hairline); padding-bottom: 22px; }

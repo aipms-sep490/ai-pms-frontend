@@ -64,20 +64,20 @@ export function AdminIndustryInvitationsPage() {
     finally { setBusy(false) }
   }
 
-  return <WorkspacePage className="space-y-5" title="Mời chuyên gia doanh nghiệp" eyebrow="Industry Advisory"
+  return <WorkspacePage className="space-y-5" title="Mời chuyên gia doanh nghiệp" eyebrow="Cố vấn doanh nghiệp"
     description="Chuyên gia doanh nghiệp chỉ đóng vai trò cố vấn — không có vai trò học thuật, không có trọng số chấm điểm trừ khi phương án đánh giá được duyệt quy định khác.">
     <form onSubmit={invite} className="workspace-surface grid gap-3 p-4 sm:grid-cols-3 sm:p-5">
-      <label className="flex flex-col gap-1 text-sm font-medium text-slate-800">Email
+      <label className="flex flex-col gap-1 text-sm font-medium text-ink-soft">Email
         <input type="email" required value={form.email} disabled={busy} onChange={event => setForm(prev => ({ ...prev, email: event.target.value }))}
-          className="min-h-11 rounded-lg border border-hairline bg-card px-3" placeholder="expert@company.com" />
+          className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-ink" placeholder="expert@company.com" />
       </label>
-      <label className="flex flex-col gap-1 text-sm font-medium text-slate-800">Họ tên
+      <label className="flex flex-col gap-1 text-sm font-medium text-ink-soft">Họ tên
         <input required value={form.fullName} disabled={busy} onChange={event => setForm(prev => ({ ...prev, fullName: event.target.value }))}
-          className="min-h-11 rounded-lg border border-hairline bg-card px-3" />
+          className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-ink" />
       </label>
-      <label className="flex flex-col gap-1 text-sm font-medium text-slate-800">Tổ chức
+      <label className="flex flex-col gap-1 text-sm font-medium text-ink-soft">Tổ chức
         <input required value={form.organization} disabled={busy} onChange={event => setForm(prev => ({ ...prev, organization: event.target.value }))}
-          className="min-h-11 rounded-lg border border-hairline bg-card px-3" />
+          className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-ink" />
       </label>
       <div className="sm:col-span-3">
         <Button type="submit" disabled={busy}>{busy ? 'Đang gửi…' : 'Gửi lời mời'}</Button>
@@ -87,8 +87,8 @@ export function AdminIndustryInvitationsPage() {
     {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</div>}
     {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{notice}</p>}
 
-    {loading && <p role="status" className="text-sm text-slate-600">Đang tải danh sách lời mời…</p>}
-    {!loading && invitations.length === 0 && <p className="text-sm text-slate-600">Chưa có lời mời nào.</p>}
+    {loading && <p role="status" className="workspace-surface p-5 text-sm text-ink-muted">Đang tải danh sách lời mời…</p>}
+    {!loading && invitations.length === 0 && <p className="workspace-surface p-5 text-sm text-ink-muted">Chưa có lời mời nào.</p>}
     {!loading && invitations.length > 0 && <Table stack aria-label="Danh sách lời mời chuyên gia">
       <TableHead><TableRow head>
         <TableHeaderCell>Email</TableHeaderCell>
@@ -97,7 +97,7 @@ export function AdminIndustryInvitationsPage() {
         <TableHeaderCell>Thao tác</TableHeaderCell>
       </TableRow></TableHead>
       <TableBody>{invitations.map(row => <TableRow key={row.id}>
-        <TableCell label="Email" className="font-medium text-slate-900">{row.email}</TableCell>
+        <TableCell label="Email" className="font-medium text-ink">{row.email}</TableCell>
         <TableCell label="Trạng thái"><StatusBadge tone={statusTone[row.status]} label={statusText[row.status]} /></TableCell>
         <TableCell label="Hết hạn lúc">{formatDateTime(row.expiresAt)}</TableCell>
         <TableCell label="Thao tác">

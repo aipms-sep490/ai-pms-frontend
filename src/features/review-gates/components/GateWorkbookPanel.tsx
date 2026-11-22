@@ -71,8 +71,8 @@ export function GateWorkbookPanel({ template, dirty, onSaved }: {
         disabled={!file || busy || dirty} onClick={() => void inspect()}>{busy ? 'Đang xử lý…' : 'Xem lỗi và thay đổi'}</button>
     </div>}
     {dirty && <p role="status" className="mt-2 text-xs text-status-warning-text">Lưu thay đổi trên màn hình trước khi nhập Excel.</p>}
-    {error && <p role="alert" className="mt-2 text-sm text-danger-text">{error}</p>}
-    {preview && <div className="mt-3 rounded-lg border border-hairline bg-subtle p-3 text-sm">
+    {error && <p role="alert" className="mt-2 text-sm text-status-error-text">{error}</p>}
+    {preview && <div className="mt-3 rounded-lg border border-hairline bg-canvas p-3 text-sm">
       {preview.issues.length ? <><strong>Chưa thể nhập</strong><ul className="mt-2 list-inside list-disc space-y-1">
         {preview.issues.map((issue, index) => <li key={index}>{issue.cell}: {issue.message}</li>)}
       </ul></> : <><strong>Thay đổi sẽ lưu vào bản nháp</strong><ul className="mt-2 list-inside list-disc space-y-1">

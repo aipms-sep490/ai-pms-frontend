@@ -39,7 +39,7 @@ export function GateEvidenceArchiveButton({ projectId, gateCode, disabled = fals
         <span aria-hidden="true">📦</span>
         {busy ? 'Đang nén & tải...' : 'Tải trọn bộ minh chứng (.ZIP)'}
       </button>
-      {error && <p role="alert" className="mt-1 text-xs text-danger-text">{error}</p>}
+      {error && <p role="alert" className="mt-1 text-xs text-status-error-text">{error}</p>}
     </div>
   )
 }

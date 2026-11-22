@@ -34,19 +34,21 @@ export function AcademicGovernancePage() {
   const savePeriod = async (draft: ProjectPeriodDraft) => { setOperationError(null); setOperationSuccess(null); try { await governance.saveProjectPeriod(draft); setEditor(null); setOperationSuccess('Đã lưu cấu trúc giai đoạn. Chính sách áp dụng được quản lý ở màn hình riêng.') } catch (reason: unknown) { setOperationError(academicError(reason, 'governance')) } }
   const changeStatus = async (kind: 'semester' | 'period', id: number, status: GovernanceStatus, expectedStatus: GovernanceStatus) => { if (await requestConfirmation({ title: 'Thay đổi trạng thái?', description: `Chuyển ${kind === 'semester' ? 'học kỳ' : 'giai đoạn'} sang ${statusLabels[status].toLowerCase()}.`, confirmLabel: 'Xác nhận thay đổi' }) === null) return; setOperationError(null); setOperationSuccess(null); try { await governance.setStatus(kind, id, status, expectedStatus); setOperationSuccess(`Đã chuyển trạng thái sang ${statusLabels[status].toLowerCase()}.`) } catch (reason: unknown) { setOperationError(academicError(reason, 'governance')) } }
 
-  if (governance.isUnauthorized) return <section className="governance-state" role="alert"><strong>Cần đăng nhập để xem cấu hình học vụ.</strong><Link to="/login">Đăng nhập</Link></section>
-  if (governance.loading) return <section className="governance-state" role="status">Đang tải học kỳ và các giai đoạn đồ án…</section>
-  if (governance.isForbidden) return <section className="governance-state" role="alert">Bạn không có quyền truy cập cấu hình học vụ.</section>
-  if (governance.error) {
-    const issue = academicError(governance.error, 'governance')
-    return <section className="governance-state" role="alert">{issue.message} {issue.action && <Button onClick={governance.retry}>{issue.action === 'reload' ? 'Tải lại dữ liệu' : 'Thử lại'}</Button>}</section>
+  if (governance.isUnauthorized || governance.loading || governance.isForbidden || governance.error) {
+    const issue = governance.error ? academicError(governance.error, 'governance') : null
+    return <WorkspacePage className="governance-page" title="Học kỳ và giai đoạn đồ án" eyebrow="Quản lý học vụ" description="Thiết lập thời gian đăng ký, thực hiện và đánh giá cho từng học kỳ.">
+      {governance.isUnauthorized ? <section className="governance-state governance-error" role="alert"><strong>Cần đăng nhập để xem cấu hình học vụ.</strong><Link to="/login" className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Đăng nhập</Link></section>
+        : governance.loading ? <section className="governance-state" role="status">Đang tải học kỳ và các giai đoạn đồ án…</section>
+        : governance.isForbidden ? <section className="governance-state governance-error" role="alert">Bạn không có quyền truy cập cấu hình học vụ.</section>
+        : issue ? <section className="governance-state governance-error" role="alert">{issue.message} {issue.action && <Button onClick={governance.retry}>{issue.action === 'reload' ? 'Tải lại dữ liệu' : 'Thử lại'}</Button>}</section> : null}
+    </WorkspacePage>
   }
   return <WorkspacePage className="governance-page" title="Học kỳ và giai đoạn đồ án" eyebrow="Quản lý học vụ" description="Thiết lập thời gian đăng ký, thực hiện và đánh giá cho từng học kỳ." action={governance.canManage ? <div className="governance-actions"><Button onClick={() => openEditor({ kind: 'semester' })}>Thêm học kỳ</Button><Button variant="secondary" onClick={() => openEditor({ kind: 'period' })}>Thêm giai đoạn</Button></div> : null}>
     
     <p className="text-sm text-ink-muted">Điều kiện về thành viên và ngành tham gia được quản lý trong chính sách của từng giai đoạn.</p>
     <form className="governance-filter" onSubmit={(event) => { event.preventDefault(); setFilters({ search }) }}><input aria-label="Tìm học kỳ hoặc giai đoạn" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm theo mã hoặc tên"/><Button type="submit" variant="secondary">Lọc</Button></form>
-    {!governance.canManage ? <p className="governance-note">Bạn đang ở chế độ chỉ xem.</p> : null}{operationError && !editor ? <div className="governance-error col-span-full" role="alert">{operationError.message}{operationError.action && <Button onClick={governance.retry}>Tải lại dữ liệu</Button>}</div> : null}{operationSuccess ? <p className="governance-message" role="status">{operationSuccess}</p> : null}
-    {!governance.canManage && <p role="status" className="rounded-lg border border-hairline bg-card p-4 text-sm text-ink-muted">Cấu trúc học kỳ và kỳ đồ án do quản trị viên cấu hình. Bộ môn có thể xem và mở chính sách của kỳ thuộc phạm vi được cấp.</p>}
+    {operationError && !editor ? <div className="governance-error col-span-full" role="alert">{operationError.message}{operationError.action && <Button onClick={governance.retry}>Tải lại dữ liệu</Button>}</div> : null}{operationSuccess ? <p className="governance-message" role="status">{operationSuccess}</p> : null}
+    {!governance.canManage && <p role="status" className="rounded-lg border border-hairline bg-card p-4 text-sm text-ink-muted">Bạn đang ở chế độ chỉ xem. Cấu trúc học kỳ và kỳ đồ án do quản trị viên cấu hình; bộ môn có thể xem và mở chính sách của kỳ thuộc phạm vi được cấp.</p>}
     <section aria-labelledby="governance-semesters-title">
       <div className="governance-section-title"><h2 id="governance-semesters-title">Học kỳ</h2><span>{governance.semesters.length} học kỳ</span></div>
       <div className="governance-grid">{governance.semesters.map(semester => <article key={semester.id} className="governance-card">

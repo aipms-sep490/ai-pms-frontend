@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { HttpError } from '../../../services/http/http-client'
 import { academicError } from '../academic-error'
@@ -60,7 +60,14 @@ export function AcademicRecordForm({
   const [name, setName] = useState(record?.name ?? '')
   const [description, setDescription] = useState(record?.description ?? '')
   const [organizationId, setOrganizationId] = useState(parentIds.organizationId?.toString() ?? '')
-  const [departmentId, setDepartmentId] = useState(parentIds.departmentId?.toString() ?? '')
+  const [departmentId, setDepartmentId] = useState(() => {
+    if (parentIds.departmentId) return parentIds.departmentId.toString()
+    if (kind === 'major') {
+      const firstDepartment = hierarchy.flatMap((item) => item.departments).find((item) => item.department.isActive)
+      if (firstDepartment) return String(firstDepartment.department.id)
+    }
+    return ''
+  })
   const [formError, setFormError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const formId = useId()
@@ -74,12 +81,6 @@ export function AcademicRecordForm({
     })
     setFormError(null)
   }
-
-  useEffect(() => {
-    if (kind !== 'major' || departmentId) return
-    const firstDepartment = hierarchy.flatMap((item) => item.departments).find((item) => item.department.isActive)
-    if (firstDepartment) setDepartmentId(String(firstDepartment.department.id))
-  }, [departmentId, hierarchy, kind])
 
   const isEditing = Boolean(record)
   const availableOrganizations = hierarchy.filter((item) => item.organization.isActive)

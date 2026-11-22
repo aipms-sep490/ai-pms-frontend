@@ -80,7 +80,7 @@ export function GateRequirementDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-slate-900/30 backdrop-blur-[2px] transition-all"
+      className="fixed inset-0 z-50 flex justify-end bg-ink/40 backdrop-blur-[2px] transition-all"
       onClick={event => {
         if (event.target === event.currentTarget) onClose()
       }}
@@ -89,7 +89,7 @@ export function GateRequirementDrawer({
       aria-labelledby="requirement-drawer-title"
     >
       <div className="flex h-full w-full max-w-lg flex-col bg-card p-6 shadow-2xl sm:border-l sm:border-hairline">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div className="flex items-center justify-between border-b border-hairline pb-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-primary">
               Cấu hình điều kiện học thuật
@@ -101,7 +101,7 @@ export function GateRequirementDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-canvas hover:text-ink-muted"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-ink-muted hover:bg-canvas hover:text-ink"
             aria-label="Đóng"
           >
             ✕
@@ -112,9 +112,9 @@ export function GateRequirementDrawer({
           <div className="space-y-4">
             <div>
               <label htmlFor="req-code" className="block text-xs font-semibold text-ink-soft">Mã yêu cầu *</label>
-              <input id="req-code" required={!env.reviewGatesMockEnabled} value={code} onChange={e => setCode(e.target.value)} className="mt-1 w-full rounded-lg border border-hairline p-2 text-sm" />
+              <input id="req-code" required={!env.reviewGatesMockEnabled} value={code} onChange={e => setCode(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" />
             </div>
-            {error && <p role="alert" className="text-xs text-danger-text">{error}</p>}
+            {error && <p role="alert" className="text-xs text-status-error-text">{error}</p>}
             <div>
               <label htmlFor="req-title" className="block text-xs font-semibold text-ink-soft">
                 Tên yêu cầu / Tiêu chuẩn đầu ra *
@@ -125,7 +125,7 @@ export function GateRequirementDrawer({
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="Ví dụ: Software Requirement Specification (SRS v1.0)"
-                className="mt-1.5 w-full rounded-lg border border-hairline p-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="mt-1.5 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
@@ -138,7 +138,7 @@ export function GateRequirementDrawer({
                   id="req-type"
                   value={type}
                   onChange={e => setType(e.target.value as RequirementType)}
-                  className="mt-1.5 w-full rounded-lg border border-hairline p-2.5 text-sm text-ink focus:border-primary focus:outline-none"
+                  className="mt-1.5 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2.5 text-sm text-ink focus:border-primary focus:outline-none"
                 >
                   {requirementTypes.map(t => (
                     <option key={t} value={t}>
@@ -156,7 +156,7 @@ export function GateRequirementDrawer({
                   id="req-scope"
                   value={scope}
                   onChange={e => setScope(e.target.value as RequirementScope)}
-                  className="mt-1.5 w-full rounded-lg border border-hairline p-2.5 text-sm text-ink focus:border-primary focus:outline-none"
+                  className="mt-1.5 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2.5 text-sm text-ink focus:border-primary focus:outline-none"
                 >
                   {requirementScopes.map(s => (
                     <option key={s} value={s}>
@@ -169,11 +169,11 @@ export function GateRequirementDrawer({
 
             {(scope === 'MAJOR_SPECIFIC' || scope === 'INDIVIDUAL') && <div>
               <label htmlFor="req-major" className="block text-xs font-semibold text-ink-soft">Mã ngành đích *</label>
-              <input id="req-major" inputMode="numeric" value={majorId} onChange={e => setMajorId(e.target.value)} className="mt-1 w-full rounded-lg border border-hairline p-2 text-sm" />
+              <input id="req-major" inputMode="numeric" value={majorId} onChange={e => setMajorId(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" />
             </div>}
             {scope === 'INDIVIDUAL' && <div>
               <label htmlFor="req-student" className="block text-xs font-semibold text-ink-soft">Mã sinh viên đích *</label>
-              <input id="req-student" inputMode="numeric" value={studentId} onChange={e => setStudentId(e.target.value)} className="mt-1 w-full rounded-lg border border-hairline p-2 text-sm" />
+              <input id="req-student" inputMode="numeric" value={studentId} onChange={e => setStudentId(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" />
             </div>}
 
             <div>
@@ -184,7 +184,7 @@ export function GateRequirementDrawer({
                 id="req-verification"
                 value={verification}
                 onChange={e => setVerification(e.target.value as VerificationMode)}
-                className="mt-1.5 w-full rounded-lg border border-hairline p-2.5 text-sm text-ink focus:border-primary focus:outline-none"
+                className="mt-1.5 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2.5 text-sm text-ink focus:border-primary focus:outline-none"
               >
                 {verificationModes.map(m => (
                   <option key={m} value={m}>
@@ -213,17 +213,17 @@ export function GateRequirementDrawer({
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+          <div className="flex items-center justify-end gap-3 border-t border-hairline pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink-muted hover:bg-canvas"
+              className="min-h-11 rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink-muted hover:bg-canvas"
             >
               Hủy
             </button>
             <button
               type="submit"
-              className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
+              className="min-h-11 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-white shadow-xs hover:bg-primary-hover"
             >
               Lưu yêu cầu
             </button>

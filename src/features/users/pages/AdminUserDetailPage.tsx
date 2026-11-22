@@ -125,7 +125,7 @@ export function AdminUserDetailPage() {
     } finally { setProfileBusy(false) }
   }
 
-  return <main className="workspace-page admin-workspace admin-detail" aria-labelledby="admin-user-title">
+  return <div className="workspace-page admin-workspace admin-detail" aria-labelledby="admin-user-title">
     <Link className="admin-back" to={returnTo}><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Danh sách tài khoản</Link>
     {state === 'loading' && <p role="status">Đang tải hồ sơ tài khoản…</p>}
     {state === 'forbidden' && <p className="admin-error" role="alert">Bạn không có quyền xem hồ sơ tài khoản này.</p>}
@@ -135,7 +135,7 @@ export function AdminUserDetailPage() {
       <header className="admin-heading admin-user-heading">
         <div className="admin-user-identity">
           <span className="admin-user-avatar" aria-hidden="true">{user.fullName.trim().charAt(0).toLocaleUpperCase('vi-VN')}</span>
-          <div><p className="admin-kicker">TÀI KHOẢN #{user.id}</p><h1 id="admin-user-title">{user.fullName}</h1><p>{user.email}</p></div>
+          <div><p className="admin-kicker">Tài khoản #{user.id}</p><h1 id="admin-user-title">{user.fullName}</h1><p>{user.email}</p></div>
         </div>
         <span className={`admin-status admin-status-${user.status.toLowerCase()}`}>{displayLabel(user.status)}</span>
       </header>
@@ -175,5 +175,5 @@ export function AdminUserDetailPage() {
       </div>
     </>}
     {confirmationDialog}
-  </main>
+  </div>
 }

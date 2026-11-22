@@ -270,7 +270,7 @@ export function ReportEditor({
                   {formatReportDate(selectedCycle.deadline)}
                 </p>
                 {isSelectedCycleOverdue && selectedCycle.latePolicy === 'BLOCK' && (
-                  <p role="alert" className="report-validation text-danger-text">
+                  <p role="alert" className="report-validation text-status-error-text">
                     Kỳ này đã qua hạn nộp ({formatReportDate(selectedCycle.deadline)}) và áp dụng chính sách chặn nộp muộn.
                   </p>
                 )}
@@ -337,7 +337,7 @@ export function ReportEditor({
               <label className="report-content-field" key={key} htmlFor={`report-${key}`}>
                 <span>
                   <b>{label}</b>
-                  {required && <span aria-hidden="true" className="text-danger-text"> *</span>}
+                  {required && <span aria-hidden="true" className="text-status-error-text"> *</span>}
                 </span>
                 <small id={`hint-${key}`}>{hint}</small>
                 <textarea

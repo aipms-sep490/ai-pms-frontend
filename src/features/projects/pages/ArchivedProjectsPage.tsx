@@ -36,18 +36,18 @@ export function ArchivedProjectsPage() {
   }, [load])
 
   return (
-    <main className="workspace-page mx-auto max-w-6xl space-y-5 pb-12">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="font-mono text-xs font-semibold uppercase tracking-wide text-primary">
+    <div className="workspace-page mx-auto max-w-6xl space-y-5 pb-12">
+      <header className="workspace-heading">
+        <div className="workspace-heading-copy">
+          <span className="workspace-kicker">
             {scope === 'admin' ? 'Phạm vi quản trị' : 'Phạm vi bộ môn'}
-          </p>
-          <h1 className="mt-1 font-heading text-2xl font-bold text-ink">Kho lưu trữ đồ án</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">
+          </span>
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-ink">Kho lưu trữ đồ án</h1>
+          <p className="max-w-3xl text-sm leading-6 text-ink-muted">
             Tra cứu các đồ án đã đưa vào kho. Nội dung chỉ được xem và hiển thị theo quyền của tài khoản hiện tại.
           </p>
         </div>
-        <BackLink fallback={scope === 'admin' ? '/admin/portfolio' : '/department/portfolio'} className={buttonClassName({ variant: 'secondary' })}>
+        <BackLink fallback={scope === 'admin' ? '/admin/portfolio' : '/department/portfolio'} className={buttonClassName({ variant: 'secondary', className: 'min-h-11' })}>
           <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_back</span>Quay lại danh mục
         </BackLink>
       </header>
@@ -71,16 +71,18 @@ export function ArchivedProjectsPage() {
         <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs">
           <p className="text-sm font-medium text-ink-soft">{data.projects.totalCount} đồ án đã lưu trữ trong phạm vi hiện tại.</p>
           {data.projects.items.length === 0 ? (
-            <p className="mt-4 text-sm text-ink-muted">Chưa có đồ án nào được chuyển vào kho lưu trữ trong phạm vi của bạn.</p>
+            <p className="mt-4 rounded-lg border border-dashed border-hairline bg-canvas p-6 text-center text-sm text-ink-muted">
+              Chưa có đồ án nào được chuyển vào kho lưu trữ trong phạm vi của bạn.
+            </p>
           ) : (
             <ul className="mt-4 divide-y divide-hairline">
               {data.projects.items.map((project) => (
                 <li key={project.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-semibold text-ink">{project.code} · {project.title}</p>
                     <p className="mt-1 text-sm text-ink-muted">Trạng thái: {displayLabel(project.status)}</p>
                   </div>
-                  <Link to={`/department/projects/${project.id}/archive-view`} className={buttonClassName({ variant: 'secondary', size: 'sm' })}>
+                  <Link to={`/department/projects/${project.id}/archive-view`} className={buttonClassName({ variant: 'secondary', size: 'sm', className: 'min-h-11' })}>
                     <span className="material-symbols-outlined text-[16px]" aria-hidden="true">visibility</span>Xem chi tiết
                   </Link>
                 </li>
@@ -89,6 +91,6 @@ export function ArchivedProjectsPage() {
           )}
         </section>
       )}
-    </main>
+    </div>
   )
 }

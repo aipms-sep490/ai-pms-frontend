@@ -148,13 +148,13 @@ export const DefenseCoordinatorView: React.FC = () => {
 
       {/* Main Mode Navigation Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-4">
-        <div className="flex items-center gap-1 rounded-xl border border-hairline bg-canvas p-1 text-xs">
+        <div className="flex flex-wrap items-center gap-1 rounded-xl border border-hairline bg-canvas p-1 text-xs">
           <button
             type="button"
             onClick={() => setActiveMainTab('GRID')}
-            className={`rounded-lg px-4 py-2 font-bold transition-all ${
+            className={`min-h-11 rounded-lg px-4 py-2 font-bold transition-all ${
               activeMainTab === 'GRID'
-                ? 'bg-surface text-primary shadow-xs'
+                ? 'bg-card text-primary shadow-xs'
                 : 'text-ink-muted hover:text-ink'
             }`}
           >
@@ -163,9 +163,9 @@ export const DefenseCoordinatorView: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveMainTab('ROOM_CANVAS')}
-            className={`rounded-lg px-4 py-2 font-bold transition-all ${
+            className={`min-h-11 rounded-lg px-4 py-2 font-bold transition-all ${
               activeMainTab === 'ROOM_CANVAS'
-                ? 'bg-surface text-primary shadow-xs'
+                ? 'bg-card text-primary shadow-xs'
                 : 'text-ink-muted hover:text-ink'
             }`}
           >
@@ -174,9 +174,9 @@ export const DefenseCoordinatorView: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveMainTab('CHANGE_REQUESTS')}
-            className={`rounded-lg px-4 py-2 font-bold transition-all ${
+            className={`min-h-11 rounded-lg px-4 py-2 font-bold transition-all ${
               activeMainTab === 'CHANGE_REQUESTS'
-                ? 'bg-surface text-primary shadow-xs'
+                ? 'bg-card text-primary shadow-xs'
                 : 'text-ink-muted hover:text-ink'
             }`}
           >
@@ -208,7 +208,7 @@ export const DefenseCoordinatorView: React.FC = () => {
         <div className="space-y-4">
           {/* Room Selector Strip */}
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-canvas/60 p-3">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold text-ink">Chọn phòng xem sơ đồ:</span>
               <div className="flex flex-wrap gap-1.5">
                 {rooms.map((r) => (
@@ -216,10 +216,10 @@ export const DefenseCoordinatorView: React.FC = () => {
                     key={r.id}
                     type="button"
                     onClick={() => setCanvasRoomCode(r.code)}
-                    className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${
+                    className={`min-h-9 rounded-lg px-3 py-1 text-xs font-bold transition-all ${
                       canvasRoomCode === r.code
                         ? 'bg-primary text-white shadow-xs'
-                        : 'bg-surface border border-hairline text-ink hover:bg-canvas'
+                        : 'border border-hairline bg-card text-ink hover:bg-canvas'
                     }`}
                   >
                     {r.code}
@@ -259,28 +259,28 @@ export const DefenseCoordinatorView: React.FC = () => {
 
       {/* TAB 3: Change Requests Table */}
       {activeMainTab === 'CHANGE_REQUESTS' && (
-        <div className="rounded-2xl border border-hairline bg-surface p-6 shadow-xs space-y-4">
+        <div className="space-y-4 rounded-2xl border border-hairline bg-card p-6 shadow-xs">
           <div className="flex items-center justify-between">
             <div>
               <h4 className="text-sm font-bold text-ink">Danh sách Đơn yêu cầu đổi phòng & đổi lịch</h4>
               <p className="text-xs text-ink-muted">Trưởng bộ môn & Ban Đào tạo xem xét phê duyệt</p>
             </div>
-            <span className="rounded-full bg-amber-100 text-amber-800 px-3 py-1 text-xs font-bold">
+            <span className="rounded-full border border-status-warning-border bg-status-warning-bg px-3 py-1 text-xs font-bold text-status-warning-text">
               1 đơn chờ duyệt
             </span>
           </div>
 
-          <div className="divide-y divide-hairline rounded-xl border border-hairline overflow-hidden">
-            <div className="p-4 bg-canvas/30 flex flex-wrap items-center justify-between gap-4 text-xs">
+          <div className="divide-y divide-hairline overflow-hidden rounded-xl border border-hairline">
+            <div className="flex flex-wrap items-center justify-between gap-4 bg-canvas/30 p-4 text-xs">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-ink text-sm">PRJ-2026-031</span>
-                  <span className="rounded bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5">
+                  <span className="text-sm font-bold text-ink">PRJ-2026-031</span>
+                  <span className="rounded border border-status-warning-border bg-status-warning-bg px-2 py-0.5 text-xs font-bold text-status-warning-text">
                     CHỜ DUYỆT (PENDING)
                   </span>
                 </div>
                 <p className="text-ink-soft">Hệ thống Xe tự hành nhận diện biển báo giao thông Việt Nam</p>
-                <div className="flex flex-wrap gap-4 text-xs text-ink-muted pt-1">
+                <div className="flex flex-wrap gap-4 pt-1 text-xs text-ink-muted">
                   <span>Phòng cũ: <strong>A-202 (Slot 2, 20/11)</strong></span>
                   <span>➜ Mong muốn đổi sang: <strong className="text-primary">A-305 (Slot 4, 21/11)</strong></span>
                   <span>Lý do: <em>Cần không gian lớn hơn để demo mô hình xe chạy thực tế</em></span>
@@ -291,14 +291,14 @@ export const DefenseCoordinatorView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => showToast('Đã từ chối đơn đổi phòng của PRJ-2026-031')}
-                  className="rounded-lg border border-hairline px-3 py-1.5 font-semibold text-ink hover:bg-canvas transition-colors"
+                  className="min-h-11 rounded-lg border border-hairline bg-card px-3 py-1.5 font-semibold text-ink transition-colors hover:bg-canvas"
                 >
                   Từ chối
                 </button>
                 <button
                   type="button"
                   onClick={() => showToast('Đã phê duyệt đổi sang phòng A-305 thành công!')}
-                  className="rounded-lg bg-emerald-700 px-3.5 py-1.5 font-semibold text-white hover:bg-emerald-800 transition-colors shadow-xs"
+                  className="min-h-11 rounded-lg bg-primary px-3.5 py-1.5 font-semibold text-white shadow-xs transition-colors hover:bg-primary-hover"
                 >
                   Phê duyệt đổi phòng
                 </button>

@@ -146,7 +146,7 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
     {runError && <p role="alert" className="mt-2 text-xs text-status-error-text">{runError}</p>}
 
     {selectedRun && (
-      <div className="mt-3 flex items-center justify-between rounded-lg bg-subtle p-3 border border-hairline">
+      <div className="mt-3 flex items-center justify-between rounded-lg bg-canvas p-3 border border-hairline">
         <p className="text-xs text-ink-soft">
           Đang xem kết quả lịch sử <strong>Lượt gợi ý #{selectedRun.id}</strong> (Tạo lúc: {new Date(selectedRun.createdAt).toLocaleString('vi-VN')})
         </p>
@@ -161,7 +161,7 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
     )}
 
     {historyOpen && (
-      <div className="mt-3 rounded-lg border border-hairline bg-subtle p-3 space-y-2">
+      <div className="mt-3 rounded-lg border border-hairline bg-canvas p-3 space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-ink uppercase tracking-wide">Lịch sử các phiên gợi ý đã lưu</h3>
           <button
@@ -182,7 +182,7 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
             {historyRuns.map((r) => (
               <li key={r.id} className="flex items-center justify-between text-xs rounded bg-card p-2 border border-hairline">
                 <span>
-                  <strong>Lượt gợi ý #{r.id}</strong> · {r.assignmentType}{r.majorId ? ` (Ngành #${r.majorId})` : ''} · {new Date(r.createdAt).toLocaleString('vi-VN')}
+                  <strong>Lượt gợi ý #{r.id}</strong> · {r.assignmentType === 'DISCIPLINE_MENTOR' ? 'Mentor chuyên ngành' : r.assignmentType === 'PRIMARY' ? 'GVHD chính' : r.assignmentType}{r.majorId ? ` (Ngành #${r.majorId})` : ''} · {new Date(r.createdAt).toLocaleString('vi-VN')}
                 </span>
                 <button
                   type="button"
@@ -228,7 +228,7 @@ function RecommendationRow({ item, rank, selectable, onPick }: {
     </div>
     {item.matchedExpertise.length > 0
       ? <div className="mt-3 flex flex-wrap gap-1.5">
-        {item.matchedExpertise.map(tag => <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-ink-muted">{tag}</span>)}
+        {item.matchedExpertise.map(tag => <span key={tag} className="rounded-full border border-hairline bg-canvas px-2.5 py-0.5 text-xs text-ink-soft">{tag}</span>)}
       </div>
       : EXPERTISE_STATUS_LABEL[item.expertiseStatus] && <p className="mt-3 text-xs text-ink-muted">{EXPERTISE_STATUS_LABEL[item.expertiseStatus]}</p>}
 
@@ -237,7 +237,7 @@ function RecommendationRow({ item, rank, selectable, onPick }: {
       <div className="mt-2 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
         <span className="font-semibold text-ink-soft">Tiêu chí:</span>
         {item.reasons.map((r) => (
-          <span key={r} className="rounded bg-subtle px-1.5 py-0.5 border border-hairline">{r}</span>
+          <span key={r} className="rounded bg-canvas px-1.5 py-0.5 border border-hairline">{r}</span>
         ))}
       </div>
     )}
@@ -253,6 +253,6 @@ function RecommendationRow({ item, rank, selectable, onPick }: {
     )}
 
     {onPick && selectable && <button type="button" onClick={() => onPick(candidate.id)} className="mt-3 min-h-11 rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-primary-subtle">Chọn giảng viên này</button>}
-    {onPick && !selectable && <p className="mt-3 text-xs text-slate-400">Giảng viên này hiện không nằm trong danh sách có thể mời.</p>}
+    {onPick && !selectable && <p className="mt-3 text-xs text-ink-muted">Giảng viên này hiện không nằm trong danh sách có thể mời.</p>}
   </li>
 }

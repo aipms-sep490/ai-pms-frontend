@@ -10,7 +10,7 @@ export function ApprovalTimelineCard({ timeline }: ApprovalTimelineCardProps) {
     <Card className="border-hairline bg-card shadow-xs">
       <CardHeader className="pb-3 border-b border-hairline">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px] text-academic-emerald" aria-hidden="true">
+          <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">
             fact_check
           </span>
           <CardTitle className="text-sm font-heading">
@@ -20,7 +20,7 @@ export function ApprovalTimelineCard({ timeline }: ApprovalTimelineCardProps) {
       </CardHeader>
 
       <CardContent className="pt-4">
-        <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+        <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-hairline">
           {timeline.map((stage) => {
             const isCompleted = stage.status === 'completed'
             const isCurrent = stage.status === 'current'
@@ -29,16 +29,16 @@ export function ApprovalTimelineCard({ timeline }: ApprovalTimelineCardProps) {
               <div key={stage.step} className="relative group">
                 {/* Step Marker Dot */}
                 <div
-                  className={`absolute -left-6 top-1 w-5 h-5 rounded-full flex items-center justify-center ring-4 ring-white ${
+                  className={`absolute -left-6 top-1 w-5 h-5 rounded-full flex items-center justify-center ring-4 ring-card ${
                     isCompleted
-                      ? 'bg-academic-emerald text-white'
+                      ? 'bg-status-success-text text-white'
                       : isCurrent
-                      ? 'bg-primary text-white animate-pulse'
-                      : 'bg-slate-200 text-ink-muted'
+                      ? 'bg-primary text-white motion-safe:animate-pulse'
+                      : 'border border-hairline bg-canvas text-ink-muted'
                   }`}
                 >
                   {isCompleted ? (
-                    <span className="material-symbols-outlined text-[13px]">check</span>
+                    <span className="material-symbols-outlined text-[13px]" aria-hidden="true">check</span>
                   ) : (
                     <span className="font-mono text-xs font-bold">{stage.step}</span>
                   )}
@@ -48,9 +48,9 @@ export function ApprovalTimelineCard({ timeline }: ApprovalTimelineCardProps) {
                 <div
                   className={`p-3 rounded-lg border transition-colors ${
                     isCurrent
-                      ? 'bg-primary-subtle/50 border-primary/30'
+                      ? 'bg-primary-subtle border-primary/30'
                       : isCompleted
-                      ? 'bg-canvas/70 border-hairline'
+                      ? 'bg-canvas border-hairline'
                       : 'bg-card border-dashed border-hairline'
                   }`}
                 >
@@ -60,12 +60,12 @@ export function ApprovalTimelineCard({ timeline }: ApprovalTimelineCardProps) {
                         {stage.step}. {stage.title}
                       </span>
                       {isCompleted && (
-                        <span className="font-mono text-xs font-semibold text-status-success-text bg-status-success-bg px-1.5 py-0.5 rounded">
+                        <span className="font-mono text-xs font-semibold text-status-success-text bg-status-success-bg border border-status-success-border px-1.5 py-0.5 rounded">
                           Hoàn tất
                         </span>
                       )}
                       {isCurrent && (
-                        <span className="font-mono text-xs font-semibold text-status-info-text bg-status-info-bg px-1.5 py-0.5 rounded">
+                        <span className="font-mono text-xs font-semibold text-primary bg-primary-subtle border border-primary/20 px-1.5 py-0.5 rounded">
                           Đang diễn ra
                         </span>
                       )}
@@ -79,9 +79,9 @@ export function ApprovalTimelineCard({ timeline }: ApprovalTimelineCardProps) {
                     Kết luận: <span className="text-ink">{stage.decision}</span>
                   </p>
 
-                  <div className="flex flex-wrap items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-hairline/60 text-xs text-ink-muted">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-hairline text-xs text-ink-muted">
                     <span>Thẩm định: <strong>{stage.reviewer}</strong></span>
-                    {stage.note && <span className="italic text-slate-400">{stage.note}</span>}
+                    {stage.note && <span className="italic text-ink-muted">{stage.note}</span>}
                   </div>
                 </div>
               </div>

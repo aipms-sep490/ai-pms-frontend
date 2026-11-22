@@ -10,15 +10,13 @@ import '../../components/ui/workspace-page.css'
 import '../../components/ui/workspace-polish.css'
 import '../../components/ui/workspace-consistency.css'
 import '../../components/ui/workspace-experience.css'
-import { isDeferredDepartmentPath } from '../../components/ui/workspace-experience'
 import { useAuthSession } from '../../features/auth/context/useAuthSession'
-import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 import { TourProvider } from '../../features/onboarding/TourProvider'
 
 export function AppLayout() {
   const location = useLocation()
   const { session } = useAuthSession()
-  const enhanced = getWorkspaceRole(session?.user)!=='department'&&!isDeferredDepartmentPath(location.pathname)
+  const isFullPageChat = location.pathname === '/messages' || location.pathname.startsWith('/messages/')
   const entrance = useEntranceMotion<HTMLElement>(location.pathname)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const hamburgerTriggerRef = useRef<HTMLButtonElement | null>(null)
@@ -48,7 +46,7 @@ export function AppLayout() {
       />
 
       {/* 2. Main Workspace Canvas */}
-      <div className="app-workspace flex-1 flex flex-col min-w-0 min-h-screen lg:pl-60 bg-canvas">
+      <div className="app-workspace flex-1 flex flex-col min-w-0 min-h-screen lg:pl-[272px] bg-canvas">
         {/* Sticky Top Header Bar */}
         <TopHeader
           key={session?.user.id ?? 'anonymous'}
@@ -58,7 +56,7 @@ export function AppLayout() {
         />
 
         {/* Page Content Outlet */}
-        <main id="main-content" tabIndex={-1} ref={entrance} data-experience={enhanced?'enhanced':undefined} className="app-page-content flex-1 p-4 md:p-6 max-w-[1400px] w-full mx-auto">
+        <main id="main-content" tabIndex={-1} ref={entrance} data-experience="enhanced" className={`app-page-content flex-1 p-4 md:p-6 ${isFullPageChat ? '' : 'pb-28 md:pb-28'} max-w-[1400px] w-full mx-auto`}>
           <Outlet />
         </main>
       </div>

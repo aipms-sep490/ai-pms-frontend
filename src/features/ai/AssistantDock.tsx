@@ -118,7 +118,7 @@ function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, rout
   }, [])
   return <div className="assistant-dock">
     <dialog ref={dialog} id="assistant-dock-dialog" aria-labelledby="assistant-dock-title" className={`assistant-dock-dialog${expanded ? ' is-expanded' : ''}`}
-      onCancel={event => { if (event.target === event.currentTarget) { event.preventDefault(); hide() } }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); hide() } }}>
+      onClose={() => setOpen(false)} onCancel={event => { if (event.target === event.currentTarget) { event.preventDefault(); hide() } }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); hide() } }}>
       <header className="assistant-dock-header">
         <span className="assistant-avatar material-symbols-outlined" aria-hidden="true">auto_awesome</span>
         <div className="assistant-dock-heading">

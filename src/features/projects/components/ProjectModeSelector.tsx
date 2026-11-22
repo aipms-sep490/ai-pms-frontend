@@ -30,16 +30,16 @@ export function ProjectModeSelector({
           htmlFor="project-mode-single-major"
           className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 ${
             selectedMode === 'SINGLE_MAJOR'
-              ? 'border-primary/35 bg-primary-subtle/40 shadow-xs'
+              ? 'border-primary/35 bg-primary-subtle shadow-xs'
               : 'border-hairline hover:border-line-strong bg-card'
           } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
         >
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[22px] text-primary">apartment</span>
+              <span className="material-symbols-outlined text-[22px] text-primary" aria-hidden="true">apartment</span>
               <div>
                 <h4 className="text-sm font-bold text-ink">Một ngành</h4>
-                <span className="inline-block mt-0.5 text-xs font-bold text-status-success-text bg-status-success-bg border border-status-success-border px-1.5 py-0.2 rounded">
+                <span className="inline-block mt-0.5 text-xs font-bold text-status-success-text bg-status-success-bg border border-status-success-border px-1.5 py-0.5 rounded">
                   MỘT CHUYÊN NGÀNH
                 </span>
               </div>
@@ -58,8 +58,8 @@ export function ProjectModeSelector({
           <p className="text-xs text-ink-muted leading-relaxed">
             Dành cho nhóm có tất cả thành viên thuộc cùng một chuyên ngành.
           </p>
-          <div className="pt-2 border-t border-line/80 flex items-center gap-1.5 text-xs font-semibold text-primary">
-            <span className="material-symbols-outlined text-[15px]">check_circle</span>
+          <div className="pt-2 border-t border-hairline flex items-center gap-1.5 text-xs font-semibold text-primary">
+            <span className="material-symbols-outlined text-[15px]" aria-hidden="true">check_circle</span>
             Phù hợp khi mọi thành viên thuộc cùng một ngành
           </div>
         </label>
@@ -69,16 +69,16 @@ export function ProjectModeSelector({
           htmlFor="project-mode-interdisciplinary"
           className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 ${
             selectedMode === 'INTERDISCIPLINARY'
-              ? 'border-primary/35 bg-primary-subtle/40 shadow-xs'
+              ? 'border-primary/35 bg-primary-subtle shadow-xs'
               : 'border-hairline hover:border-line-strong bg-card'
           } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
         >
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[22px] text-primary">hub</span>
+              <span className="material-symbols-outlined text-[22px] text-primary" aria-hidden="true">hub</span>
               <div>
                 <h4 className="text-sm font-bold text-ink">Liên ngành</h4>
-                <span className="inline-block mt-0.5 text-xs font-bold text-primary bg-primary-subtle border border-primary/35 px-1.5 py-0.2 rounded">
+                <span className="inline-block mt-0.5 text-xs font-bold text-primary bg-primary-subtle border border-primary/35 px-1.5 py-0.5 rounded">
                   NHIỀU CHUYÊN NGÀNH
                 </span>
               </div>
@@ -97,8 +97,8 @@ export function ProjectModeSelector({
           <p className="text-xs text-ink-muted leading-relaxed">
             Dành cho nhóm phối hợp nhiều chuyên ngành, có phân công và số thành viên phù hợp cho từng ngành.
           </p>
-          <div className="pt-2 border-t border-line flex items-center gap-1.5 text-xs font-semibold text-primary">
-            <span className="material-symbols-outlined text-[15px]">account_tree</span>
+          <div className="pt-2 border-t border-hairline flex items-center gap-1.5 text-xs font-semibold text-primary">
+            <span className="material-symbols-outlined text-[15px]" aria-hidden="true">account_tree</span>
             Hệ thống kiểm tra số lượng thành viên và phân công theo từng ngành
           </div>
         </label>

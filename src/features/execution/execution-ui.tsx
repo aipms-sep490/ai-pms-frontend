@@ -26,7 +26,7 @@ export function ExPagination({ page, pages, total, busy, onPage }: { page: numbe
   const numbers = generatePageNumbers(page, totalPages)
   return <nav className="ex-pagination" aria-label="Phân trang"><span>{total} kết quả · Trang {page}/{totalPages}</span><div className="flex items-center gap-1">
     <button type="button" className="ex-button" disabled={busy || page <= 1} onClick={() => onPage(page - 1)}><ExIcon name="chevron_left" />Trước</button>
-    {numbers.map((item, index) => item === 'ellipsis' ? <span key={`e-${index}`} className="px-1 text-slate-400 font-bold" aria-hidden="true">…</span> : <button key={`p-${item}`} type="button" className={`ex-button ${item === page ? 'ex-button-primary font-bold' : ''}`} disabled={busy} aria-current={item === page ? 'page' : undefined} onClick={() => onPage(item)}>{item}</button>)}
+    {numbers.map((item, index) => item === 'ellipsis' ? <span key={`e-${index}`} className="px-1 text-ink-muted font-bold" aria-hidden="true">…</span> : <button key={`p-${item}`} type="button" className={`ex-button ${item === page ? 'ex-button-primary font-bold' : ''}`} disabled={busy} aria-current={item === page ? 'page' : undefined} onClick={() => onPage(item)}>{item}</button>)}
     <button type="button" className="ex-button" disabled={busy || page >= totalPages} onClick={() => onPage(page + 1)}>Sau<ExIcon name="chevron_right" /></button>
   </div></nav>
 }

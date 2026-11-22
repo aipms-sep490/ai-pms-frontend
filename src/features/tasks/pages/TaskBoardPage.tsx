@@ -190,28 +190,28 @@ export function TaskBoardPage() {
               </div>
               <div className="flex flex-wrap items-center gap-3 text-xs text-ink-muted">
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-slate-400" aria-hidden="true" />
+                  <span className="h-2 w-2 rounded-full bg-line-strong" aria-hidden="true" />
                   <span>Chưa bắt đầu: <strong className="text-ink">{data.items.filter(t => t.status === 'TODO').length}</strong></span>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />
+                  <span className="h-2 w-2 rounded-full bg-status-warning-text" aria-hidden="true" />
                   <span>Đang làm: <strong className="text-ink">{data.items.filter(t => t.status === 'IN_PROGRESS').length}</strong></span>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-indigo-600" aria-hidden="true" />
+                  <span className="h-2 w-2 rounded-full bg-primary" aria-hidden="true" />
                   <span>Chờ nghiệm thu: <strong className="text-ink">{data.items.filter(t => t.status === 'IN_REVIEW').length}</strong></span>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-emerald-600" aria-hidden="true" />
+                  <span className="h-2 w-2 rounded-full bg-status-success-text" aria-hidden="true" />
                   <span>Hoàn thành: <strong className="text-ink">{data.items.filter(t => t.status === 'DONE').length}</strong></span>
                 </span>
               </div>
             </div>
-            <div className="mt-2 flex h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-              <div style={{ width: `${(data.items.filter(t => t.status === 'DONE').length / data.items.length) * 100}%` }} className="bg-emerald-600 transition-all" />
-              <div style={{ width: `${(data.items.filter(t => t.status === 'IN_REVIEW').length / data.items.length) * 100}%` }} className="bg-indigo-600 transition-all" />
-              <div style={{ width: `${(data.items.filter(t => t.status === 'IN_PROGRESS').length / data.items.length) * 100}%` }} className="bg-amber-500 transition-all" />
-              <div style={{ width: `${(data.items.filter(t => t.status === 'TODO').length / data.items.length) * 100}%` }} className="bg-slate-400 transition-all" />
+            <div className="mt-2 flex h-2 w-full overflow-hidden rounded-full bg-canvas border border-hairline">
+              <div style={{ width: `${(data.items.filter(t => t.status === 'DONE').length / data.items.length) * 100}%` }} className="bg-status-success-text transition-all" />
+              <div style={{ width: `${(data.items.filter(t => t.status === 'IN_REVIEW').length / data.items.length) * 100}%` }} className="bg-primary transition-all" />
+              <div style={{ width: `${(data.items.filter(t => t.status === 'IN_PROGRESS').length / data.items.length) * 100}%` }} className="bg-status-warning-text transition-all" />
+              <div style={{ width: `${(data.items.filter(t => t.status === 'TODO').length / data.items.length) * 100}%` }} className="bg-line-strong transition-all" />
             </div>
           </div>
         )}

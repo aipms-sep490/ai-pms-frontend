@@ -71,7 +71,7 @@ export function RoomCatalogPanel({ rooms, onChanged }: { rooms: RoomDto[]; onCha
     } finally { setBusy(false) }
   }
 
-  return <section aria-label="Quản lý danh mục phòng" className="rounded-2xl border border-hairline bg-surface p-4 shadow-xs">
+  return <section aria-label="Quản lý danh mục phòng" className="rounded-2xl border border-hairline bg-card p-4 shadow-xs">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h2 className="text-lg font-bold">Danh mục phòng</h2>
       <button type="button" onClick={() => setOpen(value => !value)} className="min-h-11 rounded-lg border border-hairline px-3 text-sm font-semibold text-primary">
@@ -103,11 +103,11 @@ export function RoomCatalogPanel({ rooms, onChanged }: { rooms: RoomDto[]; onCha
             <label key={key} className="text-sm font-semibold">{label}
               <input type={key === 'floor' || key === 'capacity' ? 'number' : 'text'} value={draft[key]} disabled={busy || uncertain}
                 onChange={event => setDraft(current => ({ ...current, [key]: event.target.value }))}
-                className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-2" />
+                className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" />
             </label>)}
           <label className="text-sm font-semibold">Trạng thái
             <select value={draft.status} disabled={busy || uncertain} onChange={event => setDraft(current => ({ ...current, status: event.target.value }))}
-              className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-2">
+              className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
               <option value="ACTIVE">Hoạt động</option><option value="MAINTENANCE">Bảo trì</option><option value="INACTIVE">Ngừng dùng</option>
             </select>
           </label>

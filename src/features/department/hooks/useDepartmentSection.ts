@@ -19,18 +19,30 @@ export function departmentError(error: unknown): { state: LoadState; message: st
 
 /** A retry or context change invalidates earlier reads, including rejected reads. */
 export function useDepartmentSection<T>(read: () => Promise<T>, isEmpty: (data: T) => boolean) {
-  const [section, setSection] = useState<Section<T>>({ state: 'loading', data: null, message: null })
+  const [resolved, setResolved] = useState<{ read: () => Promise<T>; section: Section<T> } | null>(null)
   const version = useRef(0)
+  const resolveSection = useCallback(async (reader: () => Promise<T>): Promise<Section<T>> => {
+    try {
+      const data = await reader()
+      return { state: isEmpty(data) ? 'empty' : 'success', data, message: null }
+    } catch (error) {
+      return { data: null, ...departmentError(error) }
+    }
+  }, [isEmpty])
   const refresh = useCallback(async () => {
     const current = ++version.current
-    setSection({ state: 'loading', data: null, message: null })
-    try {
-      const data = await read()
-      if (current === version.current) setSection({ state: isEmpty(data) ? 'empty' : 'success', data, message: null })
-    } catch (error) {
-      if (current === version.current) setSection({ data: null, ...departmentError(error) })
-    }
-  }, [read, isEmpty])
-  useEffect(() => { const requestVersion = version; void refresh(); return () => { requestVersion.current++ } }, [refresh])
-  return { ...section, refresh }
+    setResolved(null)
+    const section = await resolveSection(read)
+    if (current === version.current) setResolved({ read, section })
+  }, [read, resolveSection])
+  useEffect(() => {
+    const requestVersion = version
+    const current = ++requestVersion.current
+    void resolveSection(read).then(section => {
+      if (current === requestVersion.current) setResolved({ read, section })
+    })
+    return () => { requestVersion.current++ }
+  }, [read, resolveSection])
+  const active: Section<T> = resolved?.read === read ? resolved.section : { state: 'loading', data: null, message: null }
+  return { ...active, refresh }
 }

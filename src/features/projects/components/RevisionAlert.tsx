@@ -19,17 +19,17 @@ export function RevisionAlert({
   const displayDate = date ?? timestamp
   const handleEdit = onEdit ?? onEditClick
   return (
-    <div className="bg-status-warning-bg border-2 border-warning-strong rounded-2xl p-5 shadow-xs flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-4">
+    <div className="flex flex-col gap-3 rounded-2xl border border-status-warning-border border-l-4 border-l-[var(--color-accent-amber)] bg-status-warning-bg p-5 shadow-xs">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-status-warning-bg text-status-warning-text flex items-center justify-center shrink-0 mt-0.5">
-            <span className="material-symbols-outlined text-[22px]">feedback</span>
+          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-status-warning-border bg-card text-status-warning-text">
+            <span className="material-symbols-outlined text-[22px]" aria-hidden="true">feedback</span>
           </div>
           <div>
-            <h4 className="text-sm font-bold text-status-warning-text flex items-center gap-2">
+            <h4 className="flex items-center gap-2 text-sm font-bold text-status-warning-text">
               Hội đồng Bộ môn yêu cầu chỉnh sửa đề cương (Revision Required)
             </h4>
-            <p className="text-xs text-status-warning-text mt-0.5">
+            <p className="mt-0.5 text-xs text-status-warning-text">
               Đề cương sơ bộ chưa đạt phê duyệt hoàn toàn. Vui lòng đọc kỹ ý kiến thẩm định bên dưới và tiến hành cập nhật.
             </p>
           </div>
@@ -39,23 +39,23 @@ export function RevisionAlert({
           <button
             type="button"
             onClick={handleEdit}
-            className="px-4 py-2 bg-warning-strong hover:bg-warning-strong-hover text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shrink-0 shadow-xs"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-primary-hover"
           >
-            <span className="material-symbols-outlined text-[16px]">edit_note</span>
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">edit_note</span>
             Sửa đề cương ngay
           </button>
         )}
       </div>
 
-      <div className="mt-4 border-l-2 border-warning-strong pl-4">
-        <span className="text-xs font-bold uppercase tracking-wider text-status-warning-text block mb-1">
+      <div className="mt-2 border-l-2 border-status-warning-border pl-4">
+        <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-status-warning-text">
           Nội dung thẩm định từ {reviewerName || 'Hội đồng Khoa CNTT'}:
         </span>
-        <p className="text-xs text-ink-soft leading-relaxed font-medium">
+        <p className="text-xs font-medium leading-relaxed text-ink-soft">
           "{reason || 'Chưa có nội dung nhận xét.'}"
         </p>
         {displayDate && (
-          <span className="text-xs text-slate-400 mt-2 block">
+          <span className="mt-2 block text-xs text-ink-muted">
             Thời gian phản hồi: {dateTimeLabel(displayDate)}
           </span>
         )}

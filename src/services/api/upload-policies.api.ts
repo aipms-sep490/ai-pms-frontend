@@ -32,7 +32,7 @@ export function getUploadPolicy(parentType: string): Promise<UploadPolicy | null
 }
 
 export function uploadPolicyLabel(policy: UploadPolicy): string {
-  const formats = policy.allowedExtensions.map(ext => ext.replace(/^\./, '').toUpperCase()).join(', ')
+  const formats = (policy.allowedExtensions ?? []).map(ext => ext.replace(/^\./, '').toUpperCase()).join(', ')
   return [formats || 'Loại tệp theo chính sách máy chủ', policy.maxBytesLabel ? `tối đa ${policy.maxBytesLabel}` : 'Giới hạn do máy chủ xác nhận'].join(' · ')
 }
 

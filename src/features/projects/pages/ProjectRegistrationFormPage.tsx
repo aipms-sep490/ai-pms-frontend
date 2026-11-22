@@ -69,36 +69,37 @@ export function ProjectRegistrationFormPage() {
 
   if (hasProject && !editable && !revision) {
     return (
-    <section className="mx-auto max-w-3xl rounded-md border border-slate-200 bg-white p-6 text-center">
+      <section className="mx-auto max-w-3xl rounded-xl border border-hairline bg-card p-6 text-center shadow-xs">
         <span className="material-symbols-outlined text-4xl text-primary" aria-hidden="true">task_alt</span>
-        <h1 className="mt-3 text-xl font-bold text-slate-900">Đề cương đang ở chế độ chỉ xem</h1>
-        <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-600">Hồ sơ đang ở trạng thái <strong>{projectStatusLabel(journey.project?.status ?? '')}</strong> và hiện chưa thể chỉnh sửa.</p>
-        <button type="button" onClick={() => navigate('/project/status')} className="mt-5 rounded-md bg-primary px-5 py-2.5 text-xs font-bold text-white hover:bg-primary/90">Xem trạng thái đề cương</button>
+        <h1 className="mt-3 font-heading text-xl font-bold text-ink">Đề cương đang ở chế độ chỉ xem</h1>
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-ink-muted">Hồ sơ đang ở trạng thái <strong>{projectStatusLabel(journey.project?.status ?? '')}</strong> và hiện chưa thể chỉnh sửa.</p>
+        <button type="button" onClick={() => navigate('/project/status')} className="mt-5 inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-primary-hover">Xem trạng thái đề cương</button>
       </section>
     )
   }
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-16">
-      <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-        <div>
-          <BackLink fallback="/project/overview" className="mb-2 inline-flex min-h-10 items-center gap-1 text-xs font-semibold text-ink-muted hover:text-primary">
+    <div className="workspace-page mx-auto flex max-w-4xl flex-col gap-6 pb-16">
+      <header className="workspace-heading">
+        <div className="workspace-heading-copy">
+          <BackLink fallback="/project/overview" className="mb-1 inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-ink-muted hover:text-primary">
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_back</span> Quay lại
           </BackLink>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{revision ? 'Chỉnh sửa và nộp lại đề cương' : hasProject ? 'Chỉnh sửa đề cương đồ án' : 'Tạo bản nháp đề cương'}</h1>
-          <p className="mt-1 text-xs text-slate-500">Nhóm: <strong className="text-slate-700">{journey.team?.name ?? 'Chưa có nhóm'}</strong>. Hình thức đồ án, ngành và bộ môn được quản lý theo thông tin học vụ.</p>
+          <span className="workspace-kicker">Đăng ký đề cương đồ án</span>
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-ink">{revision ? 'Chỉnh sửa và nộp lại đề cương' : hasProject ? 'Chỉnh sửa đề cương đồ án' : 'Tạo bản nháp đề cương'}</h1>
+          <p className="text-sm text-ink-muted">Nhóm: <strong className="text-ink-soft">{journey.team?.name ?? 'Chưa có nhóm'}</strong>. Hình thức đồ án, ngành và bộ môn được quản lý theo thông tin học vụ.</p>
         </div>
-        <button type="button" onClick={() => navigate('/project/status')} className="rounded-md border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem trạng thái</button>
+        <button type="button" onClick={() => navigate('/project/status')} className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary">Xem trạng thái</button>
       </header>
 
       {!hasProject && !registration.canCreate && <FailureState message="Chưa thể tạo bản nháp. Nhóm cần đủ điều kiện đăng ký và bạn cần là trưởng nhóm." onRetry={() => void journey.refreshAll()} />}
-      {registeringNewAfterRejection && <section className="rounded-md border border-status-error-border bg-status-error-bg p-4 text-xs text-status-error-text"><strong>Đăng ký đề tài mới sau khi đề tài trước bị từ chối.</strong><p className="mt-1">Biểu mẫu này tạo một bản nháp hoàn toàn mới; đề cương cũ vẫn được giữ trong lịch sử.</p></section>}
-      {revision && registration.latestRevision && <RevisionAlert reason={registration.latestRevision.reason} reviewerName={registration.latestRevision.changedByName || 'Hệ thống'} timestamp={registration.latestRevision.changedAt} onEdit={() => {}} />}
+      {registeringNewAfterRejection && <section className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-xs text-status-error-text"><strong>Đăng ký đề tài mới sau khi đề tài trước bị từ chối.</strong><p className="mt-1">Biểu mẫu này tạo một bản nháp hoàn toàn mới; đề cương cũ vẫn được giữ trong lịch sử.</p></section>}
+      {revision && registration.latestRevision && <RevisionAlert reason={registration.latestRevision.reason} reviewerName={registration.latestRevision.changedByName || 'Hệ thống'} timestamp={registration.latestRevision.changedAt} />}
       {registrationProject ? <ProjectProvenance project={registrationProject} /> : null}
       <RegistrationAcademicScope scope={registration.academicScope} organizationId={journey.semester?.organizationId} />
 
-      <form onSubmit={submit} className="flex flex-col gap-6 rounded-md border border-slate-200 bg-white p-5">
-        <p className="text-xs text-slate-500"><span aria-hidden="true">*</span> Trường bắt buộc</p>
+      <form onSubmit={submit} className="flex flex-col gap-6 rounded-xl border border-hairline bg-card p-5 shadow-xs sm:p-6">
+        <p className="text-xs text-ink-muted"><span aria-hidden="true">*</span> Trường bắt buộc</p>
         {registration.error?.kind === 'validation' && <ValidationSummary summaryRef={validationSummaryRef} fields={registration.error.fields} message={registration.error.message} />}
         <TextField id="project-title" label="Tên đề tài" value={registration.form.title} required disabled={!editable} error={registration.error?.fields?.title} onChange={(value) => registration.setField('title', value)} />
         {editable && <div>
@@ -141,11 +142,11 @@ export function ProjectRegistrationFormPage() {
         </div>
         {registration.error && registration.error.kind !== 'validation' && <ErrorMessage kind={registration.error.kind} message={registration.error.message} onRetry={registration.error.kind === 'system' ? () => void journey.refreshAll() : undefined} />}
         {hasProject && <RegistrationReadinessChecklist reasons={registration.submitReasons} />}
-        <footer className="flex flex-col justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center">
-          <button type="button" onClick={() => void save()} disabled={!registration.canEdit || registration.creating || registration.saving || submitting} className="rounded-md border border-slate-300 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+        <footer className="flex flex-col justify-between gap-3 border-t border-hairline pt-4 sm:flex-row sm:items-center">
+          <button type="button" onClick={() => void save()} disabled={!registration.canEdit || registration.creating || registration.saving || submitting} className="inline-flex min-h-11 items-center justify-center rounded-lg border border-line-strong bg-card px-4 py-2.5 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary disabled:opacity-50">
             {registration.creating ? 'Đang tạo nháp...' : registration.saving ? 'Đang lưu...' : hasProject ? 'Lưu thay đổi' : 'Tạo bản nháp'}
           </button>
-          {hasProject ? <button type="submit" disabled={submitting || registration.saving || (revision ? !registration.canResubmit : !registration.canSubmit)} className="rounded-md bg-primary px-5 py-2.5 text-xs font-bold text-white hover:bg-primary/90 disabled:opacity-50">{registration.submitting ? 'Đang nộp...' : registration.resubmitting ? 'Đang nộp lại...' : revision ? 'Nộp lại sau chỉnh sửa' : 'Nộp đề cương'}</button> : <p className="text-xs text-slate-500">Sau khi tạo bản nháp thành công, bạn có thể rà soát và nộp bằng thao tác riêng.</p>}
+          {hasProject ? <button type="submit" disabled={submitting || registration.saving || (revision ? !registration.canResubmit : !registration.canSubmit)} className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-primary-hover disabled:opacity-50">{registration.submitting ? 'Đang nộp...' : registration.resubmitting ? 'Đang nộp lại...' : revision ? 'Nộp lại sau chỉnh sửa' : 'Nộp đề cương'}</button> : <p className="text-xs text-ink-muted">Sau khi tạo bản nháp thành công, bạn có thể rà soát và nộp bằng thao tác riêng.</p>}
         </footer>
       </form>
     </div>
@@ -154,7 +155,7 @@ export function ProjectRegistrationFormPage() {
 
 function ProjectProvenance({ project }: { project: NonNullable<ReturnType<typeof useStudentJourney>['project']> }) {
   const source = project.proposalSource ?? 'STUDENT_PROPOSAL'
-  return <section className="rounded-md border border-status-success-border bg-status-success-bg p-5 text-sm text-status-success-text"><p className="text-xs font-bold uppercase tracking-wider">Nguồn đề tài</p>{source === 'PUBLISHED_TOPIC' ? <p className="mt-2 text-xs"><strong>Đề tài đã công bố</strong> · {project.selectedTopic ? `${project.selectedTopic.code} · ${project.selectedTopic.title}` : 'Chưa tải được thông tin chi tiết của đề tài đã chọn.'}</p> : <p className="mt-2 text-xs"><strong>Đề xuất của sinh viên</strong> · Hồ sơ này được khởi tạo từ đề xuất của nhóm.</p>}<p className="mt-2 text-xs">Nội dung đề cương được nhóm rà soát và cập nhật riêng trong biểu mẫu này.</p></section>
+  return <section className="rounded-xl border border-status-success-border bg-status-success-bg p-5 text-sm text-status-success-text"><p className="text-xs font-bold uppercase tracking-wider">Nguồn đề tài</p>{source === 'PUBLISHED_TOPIC' ? <p className="mt-2 text-xs"><strong>Đề tài đã công bố</strong> · {project.selectedTopic ? `${project.selectedTopic.code} · ${project.selectedTopic.title}` : 'Chưa tải được thông tin chi tiết của đề tài đã chọn.'}</p> : <p className="mt-2 text-xs"><strong>Đề xuất của sinh viên</strong> · Hồ sơ này được khởi tạo từ đề xuất của nhóm.</p>}<p className="mt-2 text-xs">Nội dung đề cương được nhóm rà soát và cập nhật riêng trong biểu mẫu này.</p></section>
 }
 
 /** Soft, client-side pre-check only — the backend is the sole enforcer (422
@@ -175,8 +176,8 @@ function SimilarityResult({ result }: { result: TopicSimilarityResultDto | null 
   </div>
 }
 
-function TextField({ id, label, hint, value, required, disabled, error, onChange }: { id: string; label: string; hint?: string; value: string; required?: boolean; disabled: boolean; error?: string; onChange: (value: string) => void }) { const helpId = `${id}-help`; return <label htmlFor={id} className="block text-xs font-bold uppercase tracking-wider text-slate-700">{label}{required ? <span aria-hidden="true"> *</span> : ''}<input id={id} value={value} disabled={disabled} aria-invalid={Boolean(error)} aria-describedby={hint || error ? helpId : undefined} onChange={(event) => onChange(event.target.value)} className={`mt-1.5 w-full rounded-md border px-3.5 py-2.5 text-sm normal-case tracking-normal disabled:bg-slate-100 ${error ? 'border-danger-strong' : 'border-slate-300'}`} />{error ? <span id={helpId} className="mt-1 block text-xs font-medium normal-case tracking-normal text-danger-text">{error}</span> : hint ? <span id={helpId} className="mt-1 block text-xs font-normal normal-case tracking-normal text-slate-500">{hint}</span> : null}</label> }
-function TextArea({ id, label, value, disabled, onChange }: { id: string; label: string; value: string; disabled: boolean; onChange: (value: string) => void }) { return <label htmlFor={id} className="block text-xs font-bold uppercase tracking-wider text-slate-700">{label}<textarea id={id} value={value} disabled={disabled} rows={3} onChange={(event) => onChange(event.target.value)} className="mt-1.5 w-full rounded-md border border-slate-300 px-3.5 py-2.5 text-sm normal-case tracking-normal disabled:bg-slate-100" /></label> }
+function TextField({ id, label, hint, value, required, disabled, error, onChange }: { id: string; label: string; hint?: string; value: string; required?: boolean; disabled: boolean; error?: string; onChange: (value: string) => void }) { const helpId = `${id}-help`; return <label htmlFor={id} className="block text-xs font-bold uppercase tracking-wider text-ink-soft">{label}{required ? <span aria-hidden="true"> *</span> : ''}<input id={id} value={value} disabled={disabled} aria-invalid={Boolean(error)} aria-describedby={hint || error ? helpId : undefined} onChange={(event) => onChange(event.target.value)} className={`mt-1.5 min-h-11 w-full rounded-lg border bg-card px-3.5 py-2.5 text-sm font-normal text-ink normal-case tracking-normal focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20 disabled:bg-canvas disabled:text-ink-muted ${error ? 'border-status-error-border' : 'border-line-strong'}`} />{error ? <span id={helpId} className="mt-1 block text-xs font-medium normal-case tracking-normal text-status-error-text">{error}</span> : hint ? <span id={helpId} className="mt-1 block text-xs font-normal normal-case tracking-normal text-ink-muted">{hint}</span> : null}</label> }
+function TextArea({ id, label, value, disabled, onChange }: { id: string; label: string; value: string; disabled: boolean; onChange: (value: string) => void }) { return <label htmlFor={id} className="block text-xs font-bold uppercase tracking-wider text-ink-soft">{label}<textarea id={id} value={value} disabled={disabled} rows={3} onChange={(event) => onChange(event.target.value)} className="mt-1.5 w-full rounded-lg border border-line-strong bg-card px-3.5 py-2.5 text-sm font-normal text-ink normal-case tracking-normal focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20 disabled:bg-canvas disabled:text-ink-muted" /></label> }
 function ValidationSummary({ fields = {}, message, summaryRef }: { fields?: Partial<Record<ProjectRegistrationField, string>>; message: string; summaryRef: RefObject<HTMLDivElement | null> }) {
   const labels: Record<ProjectRegistrationField, string> = {
     title: 'Tên đề tài', domain: 'Lĩnh vực', technologies: 'Công nghệ', keywords: 'Từ khóa',
@@ -189,7 +190,7 @@ function ValidationSummary({ fields = {}, message, summaryRef }: { fields?: Part
   </div>
 }
 function LoadingState() { return <div className="mx-auto max-w-4xl"><PageLoading label="Đang tải biểu mẫu đề cương…" /></div> }
-function FailureState({ message, onRetry }: { message: string; onRetry: () => void }) { return <section className="rounded-md border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text" role="alert"><p>{message}</p><button type="button" onClick={onRetry} className="mt-3 rounded-md border border-status-warning-border bg-white px-3 py-1.5 text-xs font-bold">Tải lại</button></section> }
+function FailureState({ message, onRetry }: { message: string; onRetry: () => void }) { return <section className="rounded-xl border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text" role="alert"><p>{message}</p><button type="button" onClick={onRetry} className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-status-warning-border bg-card px-3.5 py-2 text-xs font-bold text-status-warning-text hover:bg-canvas">Tải lại</button></section> }
 function ErrorMessage({ kind: _kind, message, onRetry }: { kind: string; message: string; onRetry?: () => void }) {
   const needsEligibility = message.includes('kiểm tra điều kiện còn hiệu lực')
   return <div className="rounded-md border border-status-error-border bg-status-error-bg p-3 text-xs text-status-error-text" role="alert">

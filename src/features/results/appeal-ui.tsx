@@ -22,4 +22,4 @@ export async function saveAppealDownload(read: () => Promise<Blob>, fileName: st
   finally { URL.revokeObjectURL(url) }
 }
 
-export const appealInputClass = 'min-h-11 w-full rounded-lg border border-hairline bg-card p-3 text-sm text-ink'
+export const appealInputClass = 'min-h-11 w-full rounded-lg border border-hairline bg-card p-3 font-normal text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted'

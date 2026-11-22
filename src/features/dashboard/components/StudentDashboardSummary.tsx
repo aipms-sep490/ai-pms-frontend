@@ -119,7 +119,7 @@ export function StudentDashboardSummary() {
                 {taskProgress != null ? 'thực thi nội bộ' : 'Chưa có dữ liệu'}
               </span>
             </div>
-            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
               <div
                 className="shimmer-progress h-full rounded-full bg-primary transition-all duration-500"
                 style={{ width: `${Math.min(100, Math.max(0, taskProgress ?? 0))}%` }}
@@ -147,7 +147,7 @@ export function StudentDashboardSummary() {
                 {academicProgress != null ? 'trọng số đã duyệt' : 'Chưa cấu hình'}
               </span>
             </div>
-            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
               <div
                 className="h-full rounded-full bg-primary transition-all duration-500"
                 style={{ width: `${Math.min(100, Math.max(0, academicProgress ?? 0))}%` }}
@@ -162,7 +162,7 @@ export function StudentDashboardSummary() {
           <div className="card-hover-lift rounded-xl border border-hairline bg-card p-4.5 shadow-2xs">
             <div className="flex items-center justify-between text-xs text-ink-muted">
               <span className="font-semibold">Minh chứng đã duyệt</span>
-              <span className="material-symbols-outlined text-[18px] text-indigo-600" aria-hidden="true">fact_check</span>
+              <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">fact_check</span>
             </div>
             <div className="mt-2 flex items-baseline gap-2">
               <span className="text-2xl font-black tracking-tight text-ink tabular-nums">
@@ -172,9 +172,9 @@ export function StudentDashboardSummary() {
                 {totalRequirements > 0 ? 'yêu cầu đạt' : 'Chưa có yêu cầu'}
               </span>
             </div>
-            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
               <div
-                className="h-full rounded-full bg-indigo-600 transition-all duration-500"
+                className="h-full rounded-full bg-primary transition-all duration-500"
                 style={{ width: totalRequirements > 0 ? `${Math.min(100, (acceptedRequirements / totalRequirements) * 100)}%` : '0%' }}
               />
             </div>
@@ -187,7 +187,7 @@ export function StudentDashboardSummary() {
           <div className="card-hover-lift rounded-xl border border-hairline bg-card p-4.5 shadow-2xs">
             <div className="flex items-center justify-between text-xs text-ink-muted">
               <span className="font-semibold">Điều kiện bảo vệ</span>
-              <span className="material-symbols-outlined text-[18px] text-amber-600" aria-hidden="true">gavel</span>
+              <span className="material-symbols-outlined text-[18px] text-status-warning-text" aria-hidden="true">gavel</span>
             </div>
             <div className="mt-2 flex items-center gap-2">
               <span
@@ -225,7 +225,7 @@ export function StudentDashboardSummary() {
           </div>
           <Link
             to="/project/tasks"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary-hover"
+            className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Xem toàn bộ bảng công việc →
           </Link>
@@ -233,7 +233,7 @@ export function StudentDashboardSummary() {
 
         {urgentTasks.length === 0 ? (
           <div className="py-6 text-center text-xs text-ink-muted">
-            <span className="material-symbols-outlined text-3xl text-emerald-500" aria-hidden="true">check_circle</span>
+            <span className="material-symbols-outlined text-3xl text-status-success-text" aria-hidden="true">check_circle</span>
             <p className="mt-1 font-semibold text-ink">Không có công việc nào bị quá hạn hoặc bị chặn!</p>
             <p className="text-ink-muted">Bạn có thể tiếp tục triển khai các hạng mục tiếp theo trong kế hoạch.</p>
           </div>
@@ -311,7 +311,7 @@ export function StudentDashboardSummary() {
             {analysis?.riskLevel && (
               <span
                 className={`rounded-md px-3 py-1 text-xs font-bold ${
-                  analysis.riskLevel === 'HIGH'
+                  analysis.riskLevel === 'HIGH' || analysis.riskLevel === 'CRITICAL'
                     ? 'bg-status-error-bg text-status-error-text border border-status-error-border'
                     : 'bg-status-warning-bg text-status-warning-text border border-status-warning-border'
                 }`}
@@ -342,7 +342,7 @@ export function StudentDashboardSummary() {
             </div>
             <Link
               to="/project/weekly-assessments"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary-hover"
+              className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Xem chi tiết các tuần →
             </Link>
@@ -394,8 +394,8 @@ export function StudentDashboardSummary() {
               )}
             </div>
           ) : (
-            <div className="mt-4 flex items-center gap-3 rounded-xl border border-hairline bg-canvas/40 p-4 text-xs text-ink-muted">
-              <span className="material-symbols-outlined text-2xl text-slate-400" aria-hidden="true">info</span>
+            <div className="mt-4 flex items-center gap-3 rounded-xl border border-hairline bg-canvas p-4 text-xs text-ink-muted">
+              <span className="material-symbols-outlined text-2xl text-ink-muted" aria-hidden="true">info</span>
               <div>
                 <p className="font-semibold text-ink">Chưa có đánh giá tuần nào được công bố</p>
                 <p className="mt-0.5">Giảng viên hướng dẫn sẽ theo dõi và gửi phản hồi định kỳ mỗi tuần theo tiến độ đồ án.</p>
@@ -412,7 +412,7 @@ export function StudentDashboardSummary() {
         <DeadlineList
           title="Công việc sắp đến hạn"
           empty="Chưa có công việc nào sắp đến hạn cần chú ý."
-          items={data.taskDeadlines.map(task => ({
+          items={(data.taskDeadlines ?? []).map(task => ({
             id: task.id,
             title: task.title,
             date: task.dueAtUtc,
@@ -485,12 +485,13 @@ function formatDate(value: string) {
 }
 
 function riskLabel(value: string) {
-  return ({ HIGH: 'Cao', MEDIUM: 'Trung bình', LOW: 'Thấp' } as Record<string, string>)[value] ?? value
+  return ({ CRITICAL: 'Nghiêm trọng', HIGH: 'Cao', MEDIUM: 'Trung bình', LOW: 'Thấp' } as Record<string, string>)[value] ?? value
 }
 
 function contributionStatusLabel(value: string) {
   return (
     ({
+      CURRENT: 'Đã cập nhật',
       SUFFICIENT: 'Đủ dữ liệu',
       INSUFFICIENT: 'Chưa đủ dữ liệu',
       UNAVAILABLE: 'Chưa có dữ liệu',

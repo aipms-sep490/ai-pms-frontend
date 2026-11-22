@@ -88,10 +88,19 @@
 
   /* Z-index scale — one ordered map for every global overlay surface */
   --z-index-chat: 40;
+  --z-index-backdrop: 45;
   --z-index-drawer: 50;
   --z-index-modal: 60;
   --z-index-modal-confirm: 70;
   --z-index-tour: 100;
+}
+
+@layer base {
+  label :is(input, select, textarea) {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: normal;
+  }
 }
 
 :root {
@@ -139,7 +148,8 @@ select:disabled {
   color: var(--color-ink-muted);
 }
 
-/* Material Symbols Outlined */
+/* Material Symbols Outlined — Google Fonts stylesheet injects unlayered .material-symbols-outlined { display: inline-block },
+   so explicit compound selectors ensure Tailwind layout utilities (grid, flex, hidden) win cleanly. */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined' !important;
   font-weight: normal;
@@ -148,7 +158,9 @@ select:disabled {
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
@@ -156,6 +168,10 @@ select:disabled {
   -webkit-font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
 }
+.material-symbols-outlined.grid { display: grid; }
+.material-symbols-outlined.flex { display: flex; }
+.material-symbols-outlined.inline-flex { display: inline-flex; }
+.material-symbols-outlined.hidden { display: none; }
 
 .material-symbols-fill {
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;

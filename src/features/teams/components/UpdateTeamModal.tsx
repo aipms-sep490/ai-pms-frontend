@@ -45,13 +45,13 @@ export function UpdateTeamModal({ isOpen, team, onClose, onSubmit, isPending }: 
         <form onSubmit={submit} className="flex flex-col gap-4">
           <label className="text-xs font-bold uppercase tracking-wider text-ink-soft">
             Tên nhóm *
-            <input autoFocus disabled={isPending} value={name} onChange={(event) => setName(event.target.value)} className="mt-1.5 w-full rounded-md border border-line-strong px-3.5 py-2.5 text-sm font-normal normal-case tracking-normal" />
+            <input autoFocus disabled={isPending} value={name} onChange={(event) => setName(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-md border border-line-strong bg-card px-3.5 py-2.5 text-sm font-normal text-ink normal-case tracking-normal focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20" />
           </label>
           <label className="text-xs font-bold uppercase tracking-wider text-ink-soft">
             Mô tả
-            <textarea disabled={isPending} value={description} onChange={(event) => setDescription(event.target.value)} rows={3} className="mt-1.5 w-full rounded-md border border-line-strong px-3.5 py-2.5 text-sm font-normal normal-case tracking-normal" />
+            <textarea disabled={isPending} value={description} onChange={(event) => setDescription(event.target.value)} rows={3} className="mt-1.5 w-full rounded-md border border-line-strong bg-card px-3.5 py-2.5 text-sm font-normal text-ink normal-case tracking-normal focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20" />
           </label>
-          {error && <p className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs font-medium text-danger-text">{error}</p>}
+          {error && <p className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs font-medium text-status-error-text">{error}</p>}
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={onClose} disabled={isPending} className="app-modal__button">Hủy</button>
             <button type="submit" disabled={isPending} className="app-modal__button app-modal__button--primary">{isPending ? 'Đang lưu...' : 'Lưu thay đổi'}</button>

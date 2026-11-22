@@ -279,7 +279,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
           {report && (
             <div className="report-detail-banner">
               <div>
-                <p className="report-eyebrow">
+                <p className="report-eyebrow workspace-kicker">
                   {reportTypeLabels[report.reportType]} • #{report.id}
                 </p>
                 <h2>

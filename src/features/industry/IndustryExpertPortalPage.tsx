@@ -292,13 +292,13 @@ export function IndustryExpertPortalPage() {
                   className={`w-full min-h-11 text-left cursor-pointer rounded-xl border p-4 shadow-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                     selectedAssignmentId === a.id
                       ? 'border-primary bg-primary-subtle/40'
-                      : 'border-hairline bg-card hover:bg-subtle'
+                      : 'border-hairline bg-card hover:bg-canvas'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-semibold text-ink text-sm">{a.projectTitle}</h3>
-                    <span className="shrink-0 rounded bg-subtle px-1.5 py-0.5 text-xs font-semibold text-ink-soft border border-hairline">
-                      {a.scope}
+                    <span className="shrink-0 rounded bg-canvas px-1.5 py-0.5 text-xs font-semibold text-ink-soft border border-hairline">
+                      {a.scope === 'MAJOR_SPECIFIC' ? 'Theo ngành' : a.scope === 'COMMON' ? 'Chung' : a.scope}
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-ink-muted">Mã đồ án: {a.projectCode}</p>
@@ -320,13 +320,13 @@ export function IndustryExpertPortalPage() {
               <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-base font-bold text-ink">{selectedAssignment.projectTitle}</h3>
-                  <span className="rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                  <span className="rounded-full bg-primary-subtle border border-primary/20 px-2.5 py-0.5 text-xs font-semibold text-primary">
                     Ý kiến tư vấn (Advisory Only)
                   </span>
                 </div>
                 <p className="text-xs text-ink-muted">
-                  Phạm vi cố vấn: <strong>{selectedAssignment.scope}</strong>
-                  {selectedAssignment.majorId ? ` (Ngành #${selectedAssignment.majorId})` : ' (Chung)'} · Trạng thái: <strong>{selectedAssignment.status}</strong>
+                  Phạm vi cố vấn: <strong className="text-ink-soft">{selectedAssignment.scope === 'MAJOR_SPECIFIC' ? 'Theo ngành' : selectedAssignment.scope === 'COMMON' ? 'Chung' : selectedAssignment.scope}</strong>
+                  {selectedAssignment.majorId ? ` (Ngành #${selectedAssignment.majorId})` : ' (Toàn đồ án)'} · Trạng thái: <strong className="text-ink-soft">{selectedAssignment.status === 'ACTIVE' ? 'Đang hiệu lực' : selectedAssignment.status === 'REVOKED' ? 'Đã thu hồi' : selectedAssignment.status === 'EXPIRED' ? 'Hết hiệu lực' : selectedAssignment.status}</strong>
                 </p>
               </section>
 
@@ -341,7 +341,7 @@ export function IndustryExpertPortalPage() {
                 {!loadingFiles && !filesError && detailsForId === selectedAssignment.id && files.length > 0 && (
                   <ul className="space-y-2">
                     {files.map((f) => (
-                      <li key={f.id} className="flex items-center justify-between rounded-lg border border-hairline p-3 text-xs bg-subtle">
+                      <li key={f.id} className="flex items-center justify-between rounded-lg border border-hairline p-3 text-xs bg-canvas">
                         <div>
                           <p className="font-semibold text-ink">{f.fileName}</p>
                           <p className="text-ink-muted text-xs">
@@ -403,7 +403,7 @@ export function IndustryExpertPortalPage() {
                   {!loadingFeedback && !feedbackLoadError && detailsForId === selectedAssignment.id && feedbackList.length > 0 && (
                     <ul className="space-y-2">
                       {feedbackList.map((fb) => (
-                        <li key={fb.id} className="rounded-lg border border-hairline p-3 text-xs bg-subtle space-y-1">
+                        <li key={fb.id} className="rounded-lg border border-hairline p-3 text-xs bg-canvas space-y-1">
                           <div className="flex items-center justify-between text-ink-muted">
                             <span className="font-semibold text-ink">Phiên bản #{fb.version}</span>
                             <span>{new Date(fb.submittedAt).toLocaleString('vi-VN')}</span>

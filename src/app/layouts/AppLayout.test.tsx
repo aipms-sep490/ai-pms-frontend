@@ -95,12 +95,12 @@ describe('AppLayout & Navigation Shell', () => {
     expect(screen.queryByRole('link', { name: /Tổng quan lộ trình/ })).toBeNull()
   })
 
-  it('shows department navigation without student workspace routes', () => {
+  it('shows department navigation with unified experience and quick search without student workspace routes', () => {
     renderAppLayout(['/department/projects/review'], ['DEPARTMENT_STAFF'])
     expect(screen.getByRole('link', { name: /Thẩm định đề cương/ })).toBeDefined()
     expect(screen.queryByRole('link', { name: /Tổng quan lộ trình/ })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Tìm chức năng' })).toBeNull()
-    expect(document.querySelector('[data-experience=enhanced]')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Tìm chức năng' })).toBeDefined()
+    expect(document.querySelector('[data-experience=enhanced]')).not.toBeNull()
   })
 
   it('opens quick navigation with the keyboard, focuses search and matches Vietnamese without accents', () => {

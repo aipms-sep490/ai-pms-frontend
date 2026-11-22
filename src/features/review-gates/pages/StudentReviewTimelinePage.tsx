@@ -164,12 +164,12 @@ export function StudentReviewTimelinePage() {
           <PageLoading label="Đang tải tiến trình Review Gates của nhóm..." />
         </div>
       ) : error ? (
-        <div role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-6 text-center text-danger-text">
+        <div role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-6 text-center text-status-error-text">
           <p className="font-semibold">{error}</p>
           <button
             type="button"
             onClick={() => void loadTimeline()}
-            className="mt-3 rounded-lg bg-danger-strong px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-danger-strong-hover"
+            className="mt-3 min-h-11 rounded-lg bg-status-error-text px-4 py-2 text-xs font-bold text-white shadow-xs hover:opacity-90"
           >
             Thử lại
           </button>

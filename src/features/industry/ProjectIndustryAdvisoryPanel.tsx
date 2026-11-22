@@ -163,7 +163,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
         </div>
 
         {/* Phân công chuyên gia */}
-        <div className="rounded-lg border border-hairline bg-subtle p-4 space-y-3">
+        <div className="rounded-lg border border-hairline bg-canvas p-4 space-y-3">
           <h3 className="text-xs font-bold text-ink uppercase tracking-wide">Phân công chuyên gia mới</h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="text-xs text-ink-soft">
@@ -171,7 +171,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
               <input
                 type="number"
                 placeholder="vd: 15"
-                className="mt-1 block w-full rounded-md border border-hairline p-1.5 text-xs bg-card"
+                className="mt-1 block min-h-10 w-full rounded-md border border-hairline bg-card px-2.5 py-1.5 text-xs text-ink"
                 value={expertId}
                 disabled={assigning}
                 onChange={(e) => setExpertId(e.target.value)}
@@ -180,7 +180,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
             <label className="text-xs text-ink-soft">
               Phạm vi (Scope)
               <select
-                className="mt-1 block w-full rounded-md border border-hairline p-1.5 text-xs bg-card"
+                className="mt-1 block min-h-10 w-full rounded-md border border-hairline bg-card px-2.5 py-1.5 text-xs text-ink"
                 value={scope}
                 disabled={assigning}
                 onChange={(e) => setScope(e.target.value as IndustryScope)}
@@ -195,7 +195,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
                 <input
                   type="number"
                   placeholder="vd: 12"
-                  className="mt-1 block w-full rounded-md border border-hairline p-1.5 text-xs bg-card"
+                  className="mt-1 block min-h-10 w-full rounded-md border border-hairline bg-card px-2.5 py-1.5 text-xs text-ink"
                   value={majorId}
                   disabled={assigning}
                   onChange={(e) => setMajorId(e.target.value)}
@@ -206,7 +206,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
               Bắt đầu
               <input
                 type="datetime-local"
-                className="mt-1 block w-full rounded-md border border-hairline p-1.5 text-xs bg-card"
+                className="mt-1 block min-h-10 w-full rounded-md border border-hairline bg-card px-2.5 py-1.5 text-xs text-ink"
                 value={startsAt}
                 disabled={assigning}
                 onChange={(e) => setStartsAt(e.target.value)}
@@ -216,7 +216,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
               Kết thúc
               <input
                 type="datetime-local"
-                className="mt-1 block w-full rounded-md border border-hairline p-1.5 text-xs bg-card"
+                className="mt-1 block min-h-10 w-full rounded-md border border-hairline bg-card px-2.5 py-1.5 text-xs text-ink"
                 value={endsAt}
                 disabled={assigning}
                 onChange={(e) => setEndsAt(e.target.value)}
@@ -229,7 +229,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
 
           <button
             type="button"
-            className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+            className="min-h-10 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
             disabled={assigning || !expertId || !startsAt || !endsAt || (scope === 'MAJOR_SPECIFIC' && !majorId)}
             onClick={() => void handleAssign()}
           >
@@ -252,11 +252,11 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <span className="font-semibold text-ink">Chuyên gia #{a.expertId}</span>
-                      <span className="ml-2 rounded bg-subtle px-1.5 py-0.5 border border-hairline text-ink-soft">
+                      <span className="ml-2 rounded bg-canvas px-1.5 py-0.5 border border-hairline text-ink-soft">
                         Phạm vi: {a.scope}{a.majorId ? ` (Ngành #${a.majorId})` : ''}
                       </span>
                       <span className="ml-2 text-ink-muted">
-                        Trạng thái: <strong>{a.status}</strong>
+                        Trạng thái: <strong className="text-ink-soft">{a.status === 'ACTIVE' ? 'Đang hiệu lực' : a.status === 'REVOKED' ? 'Đã thu hồi' : a.status}</strong>
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -309,13 +309,13 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
           </p>
 
           {/* Form chia sẻ file */}
-          <div className="flex flex-wrap items-end gap-2 rounded-lg border border-hairline p-3 bg-subtle">
+          <div className="flex flex-wrap items-end gap-2 rounded-lg border border-hairline p-3 bg-canvas">
             <label className="text-xs text-ink-soft">
               Mã phiên bản bài nộp (Deliverable Version ID)
               <input
                 type="number"
                 placeholder="vd: 101"
-                className="mt-1 block rounded-md border border-hairline p-1.5 text-xs bg-card"
+                className="mt-1 block min-h-10 rounded-md border border-hairline bg-card px-2.5 py-1.5 text-xs text-ink"
                 value={versionId}
                 disabled={sharing}
                 onChange={(e) => setVersionId(e.target.value)}
@@ -326,7 +326,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
               <input
                 type="number"
                 placeholder="vd: 501"
-                className="mt-1 block rounded-md border border-hairline p-1.5 text-xs bg-card"
+                className="mt-1 block min-h-10 rounded-md border border-hairline bg-card px-2.5 py-1.5 text-xs text-ink"
                 value={fileId}
                 disabled={sharing}
                 onChange={(e) => setFileId(e.target.value)}
@@ -334,7 +334,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
             </label>
             <button
               type="button"
-              className="min-h-8 rounded-lg bg-primary px-3 text-xs font-semibold text-white disabled:opacity-50"
+              className="min-h-10 rounded-lg bg-primary px-3 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
               disabled={sharing || !versionId || !fileId}
               onClick={() => void handleShareFile(activeAssignment)}
             >
@@ -354,7 +354,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
             {sharedFiles.length > 0 && (
               <ul className="space-y-1.5">
                 {sharedFiles.map((f) => (
-                  <li key={f.id} className="flex items-center justify-between rounded border border-hairline p-2 text-xs bg-subtle">
+                  <li key={f.id} className="flex items-center justify-between rounded border border-hairline p-2 text-xs bg-canvas">
                     <div>
                       <span className="font-semibold text-ink">{f.fileName}</span>
                       <span className="ml-2 text-ink-muted">

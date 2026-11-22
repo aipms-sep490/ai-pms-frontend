@@ -16,7 +16,7 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
             <span className="font-mono text-xs font-bold text-primary bg-primary-subtle border border-hairline px-2 py-0.5 rounded whitespace-nowrap">
               {dossier.projectCode} • {dossier.groupCode}
             </span>
-            <span className="font-mono text-xs text-ink-muted bg-slate-100 px-2 py-0.5 rounded whitespace-nowrap">
+            <span className="font-mono text-xs text-ink-muted bg-canvas border border-hairline px-2 py-0.5 rounded whitespace-nowrap">
               Kỳ {dossier.semester}
             </span>
             <Badge variant="success" size="sm" dot>
@@ -83,7 +83,7 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
               Email: {dossier.supervisor.email}
             </p>
             {dossier.supervisor.signatureDate && (
-              <p className="font-mono text-xs text-slate-400 mt-0.5">
+              <p className="font-mono text-xs text-ink-muted mt-0.5">
                 Thời điểm ký: {dossier.supervisor.signatureDate}
               </p>
             )}
@@ -96,7 +96,7 @@ export function ProjectDossierCard({ dossier }: ProjectDossierCardProps) {
             <span className="font-mono text-xs font-semibold uppercase tracking-wider text-ink-muted">
               Cán bộ / Giảng viên Phản biện
             </span>
-            <span className="font-mono text-xs text-slate-400 bg-slate-200/70 px-2 py-0.5 rounded whitespace-nowrap">
+            <span className="font-mono text-xs text-ink-muted bg-card border border-hairline px-2 py-0.5 rounded whitespace-nowrap">
               Được phân công
             </span>
           </div>

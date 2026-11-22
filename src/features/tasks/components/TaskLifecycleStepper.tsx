@@ -22,13 +22,13 @@ export function TaskLifecycleStepper({ status }: TaskLifecycleStepperProps) {
           Tiến trình thực hiện công việc
         </span>
         {status === 'BLOCKED' && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-status-danger-bg px-2.5 py-0.5 text-xs font-bold text-status-danger-text">
+          <span className="inline-flex items-center gap-1 rounded-full border border-status-error-border bg-status-error-bg px-2.5 py-0.5 text-xs font-bold text-status-error-text">
             <span className="material-symbols-outlined text-sm">pause_circle</span>
             Đang vướng mắc
           </span>
         )}
         {status === 'CANCELLED' && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-status-neutral-bg px-2.5 py-0.5 text-xs font-bold text-ink-muted">
+          <span className="inline-flex items-center gap-1 rounded-full border border-hairline bg-canvas px-2.5 py-0.5 text-xs font-bold text-ink-muted">
             <span className="material-symbols-outlined text-sm">cancel</span>
             Đã hủy
           </span>
