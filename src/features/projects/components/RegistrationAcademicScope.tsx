@@ -25,9 +25,15 @@ export function RegistrationAcademicScope({ scope, organizationId }: { scope: Te
   return <section className="rounded-md border border-slate-200 bg-slate-50 p-5" aria-label="Phạm vi đăng ký">
     <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Phạm vi đăng ký</p>
     {scope ? <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-      <p><strong>Hình thức:</strong> {scope.projectMode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành'}</p>
+      <p><strong>Hình thức:</strong> {scope.projectMode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành'}{scope.trackCode ? ` (${scope.trackCode})` : ''}</p>
       <p><strong>Bộ môn phụ trách:</strong> {department ? `${department.departmentName} (${department.departmentCode})` : `Chưa tải được tên bộ môn (mã ${scope.leadDepartmentId})`}</p>
       <p className="sm:col-span-2"><strong>Ngành chính:</strong> {scope.primaryMajorId ? majorName(scope.primaryMajorId) : 'Không áp dụng'}</p>
+      {scope.trackCode === 'IT_MKT' ? (
+        <p className="sm:col-span-2"><strong>Đầu ra Tích hợp (POL-05 · INT-*):</strong> {scope.hasIntegrationDeliverable ? 'Đã khai báo tối thiểu 1 đầu ra INT-*' : 'Chưa khai báo đầu ra INT-* bắt buộc'}</p>
+      ) : null}
+      {scope.mktAttributionLimitsNote ? (
+        <p className="sm:col-span-2"><strong>Giới hạn quy kết MKT (POL-04):</strong> {scope.mktAttributionLimitsNote}</p>
+      ) : null}
       <div className="sm:col-span-2"><strong>Ngành tham gia:</strong><ul className="mt-2 space-y-1">{scope.requirements.map(item => <li key={item.majorId}>{majorName(item.majorId)} <span className="text-slate-500">· {item.minMembers}–{item.maxMembers} thành viên</span></li>)}</ul></div>
     </div> : <p className="mt-2 text-sm text-slate-600">Chưa tải được phạm vi đăng ký của nhóm. Thông tin này được xác định trong quá trình lập nhóm.</p>}
     {failed && <p role="status" className="mt-3 text-sm text-status-warning-text">Chưa tải được tên ngành và bộ môn. <button type="button" className="underline" onClick={() => setRetry(value => value + 1)}>Thử lại</button></p>}
