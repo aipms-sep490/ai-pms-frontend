@@ -3,8 +3,30 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { ExecutionAccessProvider } from '../../execution/context/ExecutionAccessProvider'
 import { MilestoneDetailPage } from './MilestoneDetailPage'
-const api = vi.hoisted(() => ({ getProjectMilestones: vi.fn(), getProjectMilestoneProgress: vi.fn(), createMilestone: vi.fn(), updateMilestone: vi.fn(), deleteMilestone: vi.fn(), reorderMilestones: vi.fn() }))
+import { HttpError } from '../../../services/http/http-client'
+
+const api = vi.hoisted(() => ({
+  getProjectMilestones: vi.fn(),
+  getProjectMilestoneProgress: vi.fn(),
+  createMilestone: vi.fn(),
+  updateMilestone: vi.fn(),
+  deleteMilestone: vi.fn(),
+  reorderMilestones: vi.fn(),
+  addMilestoneDependency: vi.fn(),
+  removeMilestoneDependency: vi.fn(),
+}))
 vi.mock('../../../services/service-gateway', () => ({ services: { milestone: api } }))
+vi.mock('../../execution/hooks/useMilestoneExecutionCapabilities', () => ({
+  useMilestoneExecutionCapabilities: vi.fn(() => ({
+    status: 'ready',
+    data: null,
+    get: () => ({
+      state: 'allowed',
+      allowed: true,
+      reasons: [],
+    }),
+  })),
+}))
 const m = { id:3,projectId:9,title:'Khởi động',status:'IN_PROGRESS',sortOrder:0,concurrencyToken:'milestone-token' }
 const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
 function renderPage(manage: boolean, path = '/project/milestones/3', allowed = manage) {
@@ -48,5 +70,97 @@ describe('MilestoneDetailPage', () => {
   it('does not manufacture milestones for an empty project', async () => {
     api.getProjectMilestones.mockResolvedValue([]); renderPage(false,'/project/milestones')
     await screen.findByText('Nhóm chưa có mốc đồ án'); expect(api.createMilestone).not.toHaveBeenCalled()
+  })
+
+  it('displays parallel execution notice when milestone has no dependencies', async () => {
+    renderPage(true)
+    expect(await screen.findByText('Mốc này không phụ thuộc mốc nào khác, có thể thực hiện song song với các mốc khác.')).toBeTruthy()
+  })
+
+  it('displays existing dependencies with predecessor title and Finish-to-Start label', async () => {
+    const mWithDep = {
+      ...m,
+      dependencies: [
+        { milestoneId: 3, dependsOnMilestoneId: 2, dependencyType: 'FINISH_TO_START', dependsOnTitle: 'Mốc khảo sát' },
+      ],
+    }
+    api.getProjectMilestones.mockResolvedValue([mWithDep])
+    renderPage(true)
+    expect(await screen.findByText('Mốc khảo sát')).toBeTruthy()
+    expect(screen.getByText(/Hoàn thành mốc tiền nhiệm → Bắt đầu mốc này \(Finish-to-Start\)/)).toBeTruthy()
+  })
+
+  it('allows adding a Finish-to-Start predecessor dependency', async () => {
+    const m2 = { id: 2, projectId: 9, title: 'Mốc nghiên cứu', status: 'COMPLETED', sortOrder: 0, dueDate: '2026-11-20' }
+    api.getProjectMilestones.mockResolvedValue([m2, m])
+    api.addMilestoneDependency.mockResolvedValue({ ...m, dependencies: [{ milestoneId: 3, dependsOnMilestoneId: 2, dependencyType: 'FINISH_TO_START' }] })
+    renderPage(true)
+    await screen.findByText('Mốc này không phụ thuộc mốc nào khác, có thể thực hiện song song với các mốc khác.')
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm mốc tiền nhiệm' }))
+    const select = screen.getByRole('combobox', { name: 'Chọn mốc tiền nhiệm' })
+    fireEvent.change(select, { target: { value: '2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm liên kết' }))
+    await vi.waitFor(() => {
+      expect(api.addMilestoneDependency).toHaveBeenCalledWith({
+        milestoneId: 3,
+        dependsOnMilestoneId: 2,
+        dependencyType: 'FINISH_TO_START',
+        concurrencyToken: 'milestone-token',
+      })
+    })
+  })
+
+  it('allows deleting an existing milestone dependency', async () => {
+    const mWithDep = {
+      ...m,
+      dependencies: [
+        { milestoneId: 3, dependsOnMilestoneId: 2, dependencyType: 'FINISH_TO_START', dependsOnTitle: 'Mốc khảo sát' },
+      ],
+    }
+    api.getProjectMilestones.mockResolvedValue([mWithDep])
+    api.removeMilestoneDependency.mockResolvedValue(undefined)
+    renderPage(true)
+    expect(await screen.findByText('Mốc khảo sát')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Xóa liên kết' }))
+    await vi.waitFor(() => {
+      expect(api.removeMilestoneDependency).toHaveBeenCalledWith(3, 2, 'milestone-token')
+    })
+  })
+
+  it('displays cycle error feedback when backend detects dependency cycle', async () => {
+    const m2 = { id: 2, projectId: 9, title: 'Mốc B', status: 'IN_PROGRESS', sortOrder: 1 }
+    api.getProjectMilestones.mockResolvedValue([m2, m])
+    api.addMilestoneDependency.mockRejectedValue(
+      new HttpError('Cycle', 409, { code: 'MILESTONE_DEPENDENCY_CYCLE', title: 'Cycle', status: 409 })
+    )
+    renderPage(true)
+    await screen.findByText('Mốc này không phụ thuộc mốc nào khác, có thể thực hiện song song với các mốc khác.')
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm mốc tiền nhiệm' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'Chọn mốc tiền nhiệm' }), { target: { value: '2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm liên kết' }))
+    expect(await screen.findByText('Phát hiện vòng lặp phụ thuộc mốc tiến độ (Dependency Cycle). Không thể thiết lập quan hệ này.')).toBeTruthy()
+  })
+
+  it('displays order violation error when predecessor due date is after successor start date', async () => {
+    const m2 = { id: 2, projectId: 9, title: 'Mốc B', status: 'IN_PROGRESS', sortOrder: 1 }
+    api.getProjectMilestones.mockResolvedValue([m2, m])
+    api.addMilestoneDependency.mockRejectedValue(
+      new HttpError('Order violation', 409, { code: 'MILESTONE_DEPENDENCY_ORDER_VIOLATION', title: 'Order', status: 409 })
+    )
+    renderPage(true)
+    await screen.findByText('Mốc này không phụ thuộc mốc nào khác, có thể thực hiện song song với các mốc khác.')
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm mốc tiền nhiệm' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'Chọn mốc tiền nhiệm' }), { target: { value: '2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm liên kết' }))
+    expect(await screen.findByText('Mốc tiến độ phụ thuộc (Finish-to-Start) không được bắt đầu trước khi mốc tiền nhiệm kết thúc.')).toBeTruthy()
+  })
+
+  it('displays parallel execution status in milestones list view', async () => {
+    const m2 = { id: 2, projectId: 9, title: 'Mốc song song', status: 'PLANNED', sortOrder: 1, dependencies: [] }
+    const mWithDep = { id: 3, projectId: 9, title: 'Mốc phụ thuộc', status: 'PLANNED', sortOrder: 2, dependencies: [{ milestoneId: 3, dependsOnMilestoneId: 2, dependencyType: 'FINISH_TO_START' }] }
+    api.getProjectMilestones.mockResolvedValue([m2, mWithDep])
+    renderPage(true, '/project/milestones')
+    expect(await screen.findByText(/Chạy song song/)).toBeTruthy()
+    expect(screen.getByText(/Phụ thuộc: 1 mốc/)).toBeTruthy()
   })
 })

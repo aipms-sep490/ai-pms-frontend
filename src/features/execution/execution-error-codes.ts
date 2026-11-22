@@ -90,6 +90,42 @@ const verifiedErrors: Record<string, WorkflowErrorFeedback> = {
     retryable: false,
     nextAction: 'reload',
   },
+  TASK_OUTSIDE_MILESTONE: {
+    message: 'Hạn nộp hoặc thời gian công việc phải nằm trong khoảng thời gian của mốc tiến độ.',
+    retryable: false,
+  },
+  TASK_OUTSIDE_EXECUTION_WINDOW: {
+    message: 'Thời gian công việc phải nằm trong kỳ thực hiện (Execution Window) của đồ án.',
+    retryable: false,
+  },
+  MILESTONE_OUTSIDE_EXECUTION_WINDOW: {
+    message: 'Thời gian mốc tiến độ phải nằm trong kỳ thực hiện (Execution Window) của đồ án.',
+    retryable: false,
+  },
+  PARENT_DATE_CONFLICT: {
+    message: 'Không thể thay đổi thời gian do ảnh hưởng đến các công việc hoặc mốc tiến độ trực thuộc. Hãy điều chỉnh các đối tượng con trước.',
+    retryable: false,
+  },
+  MILESTONE_DEPENDENCY_CYCLE: {
+    message: 'Phát hiện vòng lặp phụ thuộc mốc tiến độ (Dependency Cycle). Không thể thiết lập quan hệ này.',
+    retryable: false,
+  },
+  MILESTONE_DEPENDENCY_ORDER_VIOLATION: {
+    message: 'Mốc tiến độ phụ thuộc (Finish-to-Start) không được bắt đầu trước khi mốc tiền nhiệm kết thúc.',
+    retryable: false,
+  },
+  MILESTONE_DEPENDENCY_NOT_SELF: {
+    message: 'Mốc tiến độ không thể phụ thuộc vào chính nó.',
+    retryable: false,
+  },
+  MILESTONE_DEPENDENCY_SAME_PROJECT: {
+    message: 'Hai mốc tiến độ phụ thuộc phải thuộc cùng một đồ án.',
+    retryable: false,
+  },
+  REPORT_DEADLINE_INVALID: {
+    message: 'Hạn nộp báo cáo phải sau hoặc bằng ngày kết thúc kỳ báo cáo.',
+    retryable: false,
+  },
 }
 
 export function workflowErrorFromCode(code?: string): WorkflowErrorFeedback | undefined {

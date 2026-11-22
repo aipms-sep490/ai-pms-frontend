@@ -160,13 +160,26 @@ export function TaskContentEditor({ task, timeline, busy, onCancel, onSubmit }: 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = new FormData(event.currentTarget)
     const title = String(form.get('title') ?? '').trim(); const start = String(form.get('startAt') ?? ''); const due = String(form.get('dueAt') ?? '')
-    if (!title || (start && due && due < start)) { setValidation('Nhập tên công việc và chọn hạn bằng hoặc sau ngày bắt đầu.'); return }
-    setValidation(''); void onSubmit({ milestoneId: Number(form.get('milestoneId')), parentTaskId: task.parentTaskId ?? null,
+    const milestoneId = Number(form.get('milestoneId'))
+    if (!title) { setValidation('Nhập tên công việc.'); return }
+    if (start && due && due < start) { setValidation('Hạn hoàn thành phải bằng hoặc sau ngày bắt đầu.'); return }
+    const targetMilestone = timeline?.milestones.find(m => m.id === milestoneId)
+    if (targetMilestone) {
+      if (targetMilestone.startDate && start && start.slice(0, 10) < targetMilestone.startDate) {
+        setValidation(`Ngày bắt đầu công việc (${start.slice(0, 10)}) không được trước ngày bắt đầu của mốc (${targetMilestone.startDate}).`)
+        return
+      }
+      if (targetMilestone.dueDate && due && due.slice(0, 10) > targetMilestone.dueDate) {
+        setValidation(`Hạn hoàn thành công việc (${due.slice(0, 10)}) không được sau hạn của mốc (${targetMilestone.dueDate}).`)
+        return
+      }
+    }
+    setValidation(''); void onSubmit({ milestoneId, parentTaskId: task.parentTaskId ?? null,
       title, description: String(form.get('description') ?? '').trim() || null, priority: String(form.get('priority')), startAt: toUtcDateTime(start), dueAt: toUtcDateTime(due) })
   }
   return <section className="ex-panel" aria-label="Chỉnh sửa công việc"><div className="ex-panel-heading"><h2>Chỉnh sửa công việc</h2></div><form className="ex-form" onSubmit={submit}><fieldset disabled={busy}><div className="ex-fields">
     <label className="ex-full">Tên công việc<input autoFocus name="title" defaultValue={task.title} required maxLength={255} /></label><label className="ex-full">Mô tả<textarea name="description" defaultValue={task.description ?? ''} rows={3} maxLength={10000} /></label>
-    <label>Mốc đồ án<select name="milestoneId" defaultValue={task.milestoneId}>{timeline?.milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label>Mức ưu tiên<select name="priority" defaultValue={task.priority ?? 'MEDIUM'}>{Object.entries(priorityLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+    <label>Mốc đồ án<select name="milestoneId" defaultValue={task.milestoneId}>{timeline?.milestones.map(item => <option key={item.id} value={item.id}>{item.title}{item.startDate && item.dueDate ? ` (${item.startDate} → ${item.dueDate})` : ''}</option>)}</select></label><label>Mức ưu tiên<select name="priority" defaultValue={task.priority ?? 'MEDIUM'}>{Object.entries(priorityLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
     <label>Bắt đầu dự kiến<input type="datetime-local" name="startAt" defaultValue={localDateTime(task.startAt)} /></label><label>Hạn hoàn thành<input type="datetime-local" name="dueAt" defaultValue={localDateTime(task.dueAt)} /></label>
   </div><p className="ex-muted mt-3">Thời gian tính theo giờ Việt Nam (UTC+7).</p>{validation && <p role="alert" className="ex-notice ex-notice-error mt-3">{validation}</p>}<div className="ex-form-footer"><button className="ex-button" type="button" onClick={onCancel}>Hủy</button><button className="ex-button ex-button-primary">{busy ? 'Đang lưu…' : 'Lưu nội dung'}</button></div></fieldset></form></section>
 }
