@@ -115,6 +115,8 @@ export interface EvaluationSchemeComponentInput {
   /** Preserve historical nulls; never silently backfill a stage while saving other fields. */
   stage?: EvaluationStage | null
   evaluatorWeights?: SchemeEvaluatorWeight[] | null
+  targetScope?: 'PROJECT' | 'MAJOR' | 'STUDENT' | null
+  isIntegration?: boolean
 }
 export interface SaveEvaluationSchemeInput {
   projectId: number
@@ -139,3 +141,60 @@ export const getEvaluationDraft = (evaluationId: number, signal?: AbortSignal) =
 export const getProjectEvaluations = (projectId: number, signal?: AbortSignal, page = 1) => httpGet<PagedResult<EvaluationDraft>>(`/projects/${projectId}/evaluations?page=${page}&pageSize=100`, signal)
 export const saveEvaluationDraft = (evaluationId: number, body: { concurrencyToken: string; comments: string | null; scores: EvaluationScoreInput[] }) => httpPut<EvaluationDraft>(`/evaluations/${evaluationId}/draft`, body)
 export const finalizeEvaluation = (evaluationId: number, concurrencyToken: string) => httpPost<EvaluationDraft>(`/evaluations/${evaluationId}/finalize`, { concurrencyToken })
+
+export interface GateIndividualProcessScoreItem {
+  id: number
+  gateInstanceId: number
+  gateNumber: number
+  studentId: number
+  supervisorAssignmentId: number
+  score: number | null
+  gateWeightPercent: number
+  mentorReferenceNotes: string | null
+  comments: string | null
+  status: 'DRAFT' | 'FINALIZED' | string
+  concurrencyToken: string
+  updatedAt: string
+  finalizedAt: string | null
+}
+
+export interface StudentIndividualProcessSummary {
+  studentId: number
+  studentName: string
+  majorId: number | null
+  cumulativeScore: number | null
+  isComplete: boolean
+  gateScores: GateIndividualProcessScoreItem[]
+}
+
+export interface ProjectIndividualProcessScores {
+  projectId: number
+  viewerRole: string
+  canEdit: boolean
+  gateWeights: Array<{ gateNumber: number; weightPercent: number }>
+  students: StudentIndividualProcessSummary[]
+}
+
+export const getProjectIndividualProcessScores = (projectId: number, signal?: AbortSignal) =>
+  httpGet<ProjectIndividualProcessScores>(`/projects/${projectId}/individual-process-scores`, signal)
+
+export const saveIndividualProcessScore = (
+  projectId: number,
+  gateInstanceId: number,
+  studentId: number,
+  body: { score: number; comments?: string | null; mentorReferenceNotes?: string | null; concurrencyToken?: string | null },
+) => httpPut<GateIndividualProcessScoreItem>(`/projects/${projectId}/gates/${gateInstanceId}/individual-process-scores/${studentId}`, body)
+
+export const finalizeIndividualProcessScore = (
+  projectId: number,
+  gateInstanceId: number,
+  studentId: number,
+  concurrencyToken: string,
+) => httpPost<GateIndividualProcessScoreItem>(`/projects/${projectId}/gates/${gateInstanceId}/individual-process-scores/${studentId}/finalize`, { concurrencyToken })
+
+export const saveIndividualProcessMentorNote = (
+  projectId: number,
+  gateInstanceId: number,
+  studentId: number,
+  body: { mentorReferenceNotes: string; concurrencyToken?: string | null },
+) => httpPut<GateIndividualProcessScoreItem>(`/projects/${projectId}/gates/${gateInstanceId}/individual-process-scores/${studentId}/mentor-note`, body)

@@ -32,6 +32,15 @@ export interface ResultComponentScore {
   requiredEvaluators: number
   finalizedEvaluators: number
   stage?: string | null
+  targetScope?: 'PROJECT' | 'MAJOR' | 'STUDENT' | null
+  isIntegration?: boolean
+}
+
+export interface ResultFeedbackItem {
+  componentId?: number | null
+  source: string
+  stage?: string | null
+  comments: string
 }
 
 /** `isDemo`/`approvalStatus` distinguish an academically-approved scheme from a demo/proposed one
@@ -52,12 +61,15 @@ export interface ResultBreakdown {
   majorAggregate?: number | null
   majorBreakdown: ResultMajorScore[]
   components: ResultComponentScore[]
+  outcomeDetail?: 'PASSED' | 'FAILED_TOTAL' | 'FAILED_COMPONENT_FLOOR' | 'DEFENSE_ABSENT' | string | null
+  publishedFeedback?: ResultFeedbackItem[] | null
 }
 
 export interface ResultPreview {
   projectId: number; canPublish: boolean; blockers: string[]; totalScore: number | null; passThreshold: number | null; outcome: string | null; confirmationToken: string
   contributions: ResultContribution[]
   breakdown?: ResultBreakdown | null
+  outcomeDetail?: string | null
 }
 
 export interface ProjectResult {
@@ -69,6 +81,7 @@ export interface ProjectResult {
   /** Set only for a corrected (v2+) result. */
   revisionId?: number | null
   supersedesVersion?: number | null
+  outcomeDetail?: string | null
 }
 
 export interface StudentResult {
@@ -79,6 +92,22 @@ export interface StudentResult {
   version: number
   revisionId?: number | null
   supersedesVersion?: number | null
+  outcomeDetail?: string | null
+}
+
+export interface BatchPublishResult {
+  projectResult: ProjectResult
+  studentResults: StudentResult[]
+}
+
+export interface StudentDefenseAbsence {
+  id: number
+  projectId: number
+  studentId: number
+  recordedBy: number
+  reason: string
+  minutesReference: string | null
+  recordedAt: string
 }
 
 /** Redacted published-version summary from the history list (no raw inputs / correction notes). */

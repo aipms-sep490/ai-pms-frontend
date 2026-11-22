@@ -87,6 +87,7 @@ function ColdChecklistBody({ projectId, projectTitle, actor, routeBase }: {
           <div><small>Đã khóa</small><p style={{ fontSize: 18, fontWeight: 700 }}>{progress.lockedReports}</p></div>
           <div><small>Sẵn sàng chấm</small><p style={{ fontSize: 18, fontWeight: 700, color: progress.ready ? 'green' : 'inherit' }}>{progress.ready ? 'Đạt' : 'Chưa đạt'}</p></div>
         </div>
+        {actor === 'student' && <p style={{ padding: '0 12px 12px', fontSize: 12, color: 'var(--color-ink-muted)' }}>Điểm chấm nguội (Cold) được hệ thống ẩn hoàn toàn với sinh viên trước khi bộ môn công bố kết quả chính thức.</p>}
       </div>}
 
       <div className="cold-panel">

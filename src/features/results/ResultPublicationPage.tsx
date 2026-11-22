@@ -88,7 +88,30 @@ export function ResultPublicationPage() {
       capabilities.retry()
       if (current !== version.current) return
       if (reason instanceof HttpError && reason.status === 409) await load()
-      setConfirmed(null); setPreview(null); setError(departmentError(reason).message + ' Hãy tải lại và kiểm tra bản xem trước mới.')
+      const msg = reason instanceof HttpError && reason.status === 422 && (reason.problem?.code === 'INCOMPLETE_SCORES' || reason.problem?.errorCode === 'INCOMPLETE_SCORES')
+        ? 'Chưa đủ phiếu chấm đã khóa (INCOMPLETE_SCORES) — không thể quy thiếu thành 0.'
+        : departmentError(reason).message
+      setConfirmed(null); setPreview(null); setError(msg + ' Hãy tải lại và kiểm tra bản xem trước mới.')
+    } finally { lock.current = false; setBusy(false) }
+  }
+
+  async function publishBatch() {
+    if (lock.current || !canPublish || !preview?.canPublish || !confirmed || confirmed !== capabilities.data) return
+    lock.current = true; setBusy(true)
+    const current = version.current, token = preview.confirmationToken
+    try {
+      if (await requestConfirmation({ title: 'Công bố hàng loạt toàn nhóm?', description: 'Ghi đồng thời kết quả đồ án và toàn bộ sinh viên trong 1 giao dịch nguyên tử (điểm + nhận xét). Không thể hoàn tác trực tiếp.', confirmLabel: 'Công bố toàn nhóm', danger: true }) === null || current !== version.current || !publicationAuthority.current.allowed || publicationAuthority.current.projectId !== projectId || publicationAuthority.current.data !== confirmed) return
+      await results.publishBatchResults(projectId, token)
+      capabilities.retry()
+      if (current === version.current) await load()
+    } catch (reason) {
+      capabilities.retry()
+      if (current !== version.current) return
+      if (reason instanceof HttpError && reason.status === 409) await load()
+      const msg = reason instanceof HttpError && reason.status === 422 && (reason.problem?.code === 'INCOMPLETE_SCORES' || reason.problem?.errorCode === 'INCOMPLETE_SCORES')
+        ? 'Chưa đủ phiếu chấm đã khóa (INCOMPLETE_SCORES) — toàn bộ giao dịch công bố đã được giữ nguyên.'
+        : departmentError(reason).message
+      setConfirmed(null); setPreview(null); setError(msg + ' Hãy tải lại và kiểm tra bản xem trước mới.')
     } finally { lock.current = false; setBusy(false) }
   }
 
@@ -101,7 +124,7 @@ export function ResultPublicationPage() {
     {loading && <p role="status">Đang tải kết quả và bản xem trước…</p>}
     {!loading && notice && <p role="status" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text">{notice}</p>}
     {!loading && published && <><section className="workspace-surface space-y-2 p-5" aria-label="Kết quả đồ án đã công bố"><h2 className="font-semibold text-status-success-text">Kết quả đã công bố: {outcome(published.outcome)}</h2><p>Tổng điểm {published.totalScore} · Ngưỡng đạt {published.passThreshold}</p><p className="break-words text-sm text-ink-muted">{published.calculationRule}</p><p className="text-sm text-ink-muted">{new Date(published.publishedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</p>{published.version > 1 && <p className="rounded-lg border border-status-warning-border bg-status-warning-bg p-2 text-sm text-status-warning-text">Đây là kết quả đã đính chính — phiên bản {published.version}{published.supersedesVersion != null ? `, thay thế phiên bản ${published.supersedesVersion}` : ''}.</p>}</section><ProjectResultBreakdown majorNames={labels.majors} breakdown={published.breakdown} contributions={published.contributions} /></>}
-    {!loading && preview && <section className="workspace-surface space-y-4 p-4 sm:p-5" aria-label="Bản xem trước kết quả"><h2 className="font-heading font-semibold">Bước 2 · Xem trước và công bố kết quả</h2><p>Điểm: {preview.totalScore ?? '—'} · Ngưỡng: {preview.passThreshold ?? '—'} · {outcome(preview.outcome)}</p><ActionVerdict actions={[{ code: 'PUBLISH_RESULT', allowed: preview.canPublish, reasons: preview.blockers.map(blocker => blocker === 'ADMIN_REQUIRED_FOR_CROSS_DEPARTMENT_PUBLICATION' ? leadPublicationMessage : blocker === 'DEMO_SCHEME_NOT_OFFICIAL' ? 'Phương án minh họa chưa được phê duyệt để công bố điểm chính thức.' : blocker) }]} actionCode="PUBLISH_RESULT" status="ready" okLabel="Đủ điều kiện công bố theo bản xem trước" blockedLabel="Chưa đủ điều kiện công bố" />{!canPublish ? <p className="rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-muted">{capabilities.reasonLabel('publish_project_result')}</p> : <><label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={confirmed !== null && confirmed === capabilities.data} disabled={!canPublish || !preview.canPublish || busy} onChange={event => setConfirmed(event.target.checked ? capabilities.data : null)} />Tôi đã kiểm tra bản xem trước này và xác nhận công bố.</label><Button className="min-h-11 resource-permission-action" disabled={!canPublish || !preview.canPublish || confirmed === null || confirmed !== capabilities.data || busy} onClick={() => void publish()}>Công bố kết quả đồ án</Button>{!preview.canPublish && <p className="text-sm text-ink-muted">Cần xử lý các điều kiện còn thiếu trước khi công bố.</p>}</>}</section>}
+    {!loading && preview && <section className="workspace-surface space-y-4 p-4 sm:p-5" aria-label="Bản xem trước kết quả"><h2 className="font-heading font-semibold">Bước 2 · Xem trước và công bố kết quả</h2><p>Điểm: {preview.totalScore ?? '—'} · Ngưỡng: {preview.passThreshold ?? '—'} · {outcome(preview.outcome)}</p><ActionVerdict actions={[{ code: 'PUBLISH_RESULT', allowed: preview.canPublish, reasons: preview.blockers.map(blocker => blocker === 'ADMIN_REQUIRED_FOR_CROSS_DEPARTMENT_PUBLICATION' ? leadPublicationMessage : blocker === 'DEMO_SCHEME_NOT_OFFICIAL' ? 'Phương án minh họa chưa được phê duyệt để công bố điểm chính thức.' : blocker) }]} actionCode="PUBLISH_RESULT" status="ready" okLabel="Đủ điều kiện công bố theo bản xem trước" blockedLabel="Chưa đủ điều kiện công bố" />{!canPublish ? <p className="rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-muted">{capabilities.reasonLabel('publish_project_result')}</p> : <><label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={confirmed !== null && confirmed === capabilities.data} disabled={!canPublish || !preview.canPublish || busy} onChange={event => setConfirmed(event.target.checked ? capabilities.data : null)} />Tôi đã kiểm tra bản xem trước này và xác nhận công bố.</label><div className="flex flex-wrap gap-3"><Button className="min-h-11 resource-permission-action" disabled={!canPublish || !preview.canPublish || confirmed === null || confirmed !== capabilities.data || busy} onClick={() => void publish()}>Công bố kết quả đồ án</Button><Button variant="secondary" className="min-h-11 resource-permission-action" disabled={!canPublish || !preview.canPublish || confirmed === null || confirmed !== capabilities.data || busy} onClick={() => void publishBatch()}>Công bố hàng loạt toàn nhóm</Button></div>{!preview.canPublish && <p className="text-sm text-ink-muted">Cần xử lý các điều kiện còn thiếu trước khi công bố.</p>}</>}</section>}
     {!loading && preview && <ProjectResultBreakdown majorNames={labels.majors} breakdown={preview.breakdown} contributions={preview.contributions} />}
     {validId && <StudentResultPublicationPanel key={projectId} projectId={projectId} studentNames={labels.students} />}
     {validId && published && <ResultHistoryPanel key={`${projectId}:${published.version}`} projectId={projectId} />}

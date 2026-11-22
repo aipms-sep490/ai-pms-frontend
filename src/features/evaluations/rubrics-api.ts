@@ -5,6 +5,7 @@ export interface RubricCriterion {
   id: number; criterionId?: number; name: string; description: string | null; weightPercent: number; maxScore: number | null
   sortOrder: number; isRequired: boolean; children: RubricCriterion[]
   criterionCode?: string | null; learningOutcome?: string | null; evidenceGuidance?: string | null
+  targetScope?: 'PROJECT' | 'MAJOR' | 'STUDENT' | null; isIntegration?: boolean
   /** Historical responses may omit the tree parent. */
   parentId?: number | null
   effectiveWeightPercent?: number | null
@@ -40,6 +41,7 @@ export interface CriterionInput {
   name: string; description: string | null; weightPercent: number; maxScore: number | null
   sortOrder: number; isRequired: boolean; children: CriterionInput[]
   criterionCode?: string | null; learningOutcome?: string | null; evidenceGuidance?: string | null
+  targetScope?: 'PROJECT' | 'MAJOR' | 'STUDENT' | null; isIntegration?: boolean
   effectiveWeightPercent?: number | null
   levels?: RubricCriterionLevel[]
 }
