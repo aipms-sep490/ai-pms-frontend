@@ -142,6 +142,55 @@ export const getProjectEvaluations = (projectId: number, signal?: AbortSignal, p
 export const saveEvaluationDraft = (evaluationId: number, body: { concurrencyToken: string; comments: string | null; scores: EvaluationScoreInput[] }) => httpPut<EvaluationDraft>(`/evaluations/${evaluationId}/draft`, body)
 export const finalizeEvaluation = (evaluationId: number, concurrencyToken: string) => httpPost<EvaluationDraft>(`/evaluations/${evaluationId}/finalize`, { concurrencyToken })
 
+export interface WorkbenchAssignmentSummary {
+  assignmentId: number
+  evaluationId: number | null
+  scope: EvaluationScope | string
+  stage: EvaluationStage | null
+  componentName: string | null
+  status: 'NOT_STARTED' | 'DRAFT' | 'FINALIZED' | string
+  totalScore: number | null
+  missingCriteriaCount: number
+  evaluationConcurrencyToken: string | null
+}
+
+export interface ScoringWorkbenchRosterMember {
+  studentId: number
+  studentCode: string | null
+  fullName: string
+  majorId: number | null
+  majorCode: string | null
+  majorName: string | null
+  isLeader: boolean
+  contributionPercent: number
+  individualProcessScore: number | null
+  individualProcessComplete: boolean
+  assignments: WorkbenchAssignmentSummary[]
+}
+
+export interface ProjectScoringWorkbench {
+  projectId: number
+  projectTitle: string
+  projectStatus: string
+  failingComponentThreshold: number
+  roster: ScoringWorkbenchRosterMember[]
+  projectLevelAssignments: WorkbenchAssignmentSummary[]
+}
+
+export interface BatchFinalizeEvaluationsResponse {
+  projectId: number
+  finalizedCount: number
+  evaluations: EvaluationDraft[]
+}
+
+export const getProjectScoringWorkbench = (projectId: number, signal?: AbortSignal) =>
+  httpGet<ProjectScoringWorkbench>(`/projects/${projectId}/scoring-workbench`, signal)
+
+export const batchFinalizeEvaluations = (
+  projectId: number,
+  items: Array<{ evaluationId: number; concurrencyToken: string }>,
+) => httpPost<BatchFinalizeEvaluationsResponse>(`/projects/${projectId}/evaluations/batch-finalize`, { items })
+
 export interface GateIndividualProcessScoreItem {
   id: number
   gateInstanceId: number

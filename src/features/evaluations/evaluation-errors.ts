@@ -20,6 +20,21 @@ export function evaluationError(reason: unknown): string {
     if (code === 'SCOPE_ACCESS_DENIED') {
       return 'Tài nguyên này nằm ngoài phạm vi phân công hoặc chuyên ngành được cấp quyền (SCOPE_ACCESS_DENIED).'
     }
+    if (code === 'INCOMPLETE_SCORES') {
+      return 'Còn tiêu chí chưa nhập điểm (INCOMPLETE_SCORES). Hệ thống không quy điểm thiếu thành 0; hãy hoàn tất mọi tiêu chí trước khi chốt.'
+    }
+    if (code === 'STALE_CONCURRENCY_TOKEN') {
+      return 'Dữ liệu đã thay đổi ở phiên khác (STALE_CONCURRENCY_TOKEN). Nháp trên màn hình được giữ nguyên để bạn đối chiếu trước khi lưu lại.'
+    }
+    if (code === 'PROJECT_NOT_ACTIVE') {
+      return 'Đồ án chưa ở trạng thái ACTIVE nên không thể thực hiện thao tác này (PROJECT_NOT_ACTIVE).'
+    }
+    if (code === 'REGISTRATION_WINDOW_CLOSED') {
+      return 'Đợt đăng ký đã đóng theo mốc thời gian hệ thống (REGISTRATION_WINDOW_CLOSED).'
+    }
+    if (code === 'GATE_3_NOT_PASSED') {
+      return 'Đồ án chưa vượt qua Gate 3 (GATE_3_NOT_PASSED); chưa thể gửi hoặc khóa gói bàn giao cuối kỳ.'
+    }
     if (reason.problem?.detail) return reason.problem.detail
     if (reason.status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
     if (reason.status === 403) return 'Hệ thống không cấp quyền người chấm hoặc phạm vi học thuật cho tài nguyên này.'
