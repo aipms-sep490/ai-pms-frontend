@@ -17,6 +17,7 @@ import { useMeetingCandidates } from './useMeetingCandidates'
 import { MeetingGovernancePanel } from './MeetingGovernancePanel'
 import { MeetingVideoSection } from './video/MeetingVideoSection'
 import { MeetingVideoPresencePanel } from './video/MeetingVideoPresencePanel'
+import { MeetingAiDetailSection } from './video/ai/MeetingAiDetailSection'
 
 type Confirmation = { type: 'cancel' | 'complete' | 'discard' | 'refresh' } | { type: 'remove'; userId: number; name: string }
 export function MeetingDetailPage() {
@@ -223,6 +224,34 @@ function MeetingDetailView({ id }: { id: number }) {
         </section>
         <MeetingVideoSection meeting={meeting} routeBase={routeBase} />
         <MeetingVideoPresencePanel meeting={meeting} />
+        <MeetingAiDetailSection
+          meeting={meeting}
+          canManage={manage}
+          isSupervisor={!access.readOnly && access.actor === 'supervisor'}
+          currentUserId={access.currentUserId ?? null}
+          teamMemberUserIds={(access.team?.members ?? []).map((m) => m.userId)}
+          onApplyMinutesToNotes={
+            manage && notesEditable
+              ? (minutes) => {
+                  setAppliedDraft({ key: `video-ai-${Date.now()}`, notes: minutes })
+                  setEditor('notes')
+                  setDirty(true)
+                  setSuccess('Đã điền biên bản AI vào khung Biên bản cuộc họp phía trên. Kiểm tra lại trước khi lưu.')
+                }
+              : undefined
+          }
+          onApplySupervisorFeedback={
+            !access.readOnly && access.actor === 'supervisor' && writableNotes
+              ? (draft) => {
+                  setFeedback(draft)
+                  setEditor('feedback')
+                  setDirty(true)
+                  setSuccess('Đã điền bản nháp nhận xét vào khung Nhận xét của GVHD bên dưới.')
+                }
+              : undefined
+          }
+          onMeetingChanged={reload}
+        />
         {meeting.concurrencyToken ? <MeetingGovernancePanel meeting={meeting} concurrencyToken={meeting.concurrencyToken} candidates={candidates.data} canManage={manage} disabled={disabled || dirty} onChanged={reload} /> : <section className="mtg-panel mtg-padded"><h2>Kết luận và công việc sau họp</h2><p className="mtg-help">Thông tin cuộc họp chưa đầy đủ. Tải lại trước khi chỉnh sửa.</p></section>}
         <section className="mtg-panel mtg-padded" aria-labelledby="meeting-feedback-title"><div className="mtg-section-heading"><h2 id="meeting-feedback-title">Nhận xét của GVHD <span className="mtg-count">{meeting.feedbacks.length}</span></h2>{!access.readOnly && access.actor === 'supervisor' && writableNotes && editor !== 'feedback' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('feedback')}>Viết nhận xét</button>}</div>
           {meeting.feedbacks.length === 0 ? <p className="mtg-help">Chưa có nhận xét từ giảng viên.</p> : <ol className="mtg-feedback-list">{meeting.feedbacks.map((item) => <li key={item.id}><strong>{item.supervisorName}</strong><time dateTime={item.createdAt}>{formatMeetingTime(item.createdAt)}</time><p className="mtg-prose">{item.feedbackText}</p></li>)}</ol>}
