@@ -89,7 +89,12 @@ describe('Review Gates transport against BE a1f510b (mock disabled)', () => {
     await api.submitGateForReview({ projectId: '1', gateCode: 'R1', concurrencyToken: token, notes: 'Ready' })
     const [url, init] = fetchMock.mock.calls[0]
     expect(url).toBe('/api/v1/projects/1/review-gates/R1/submit-for-review')
-    expect(JSON.parse(init?.body as string)).toEqual({ concurrencyToken: token, notes: 'Ready' })
+    const payload = JSON.parse(init?.body as string) as Record<string, unknown>
+    expect(payload).toMatchObject({ concurrencyToken: token, notes: 'Ready' })
+    expect(typeof payload.idempotencyKey).toBe('string')
+    expect((payload.idempotencyKey as string).length).toBeGreaterThan(0)
+    expect(payload).not.toHaveProperty('projectId')
+    expect(payload).not.toHaveProperty('gateCode')
   })
 
   it('maps a draft to the BE write DTO, assigns sequence and nullable dates', async () => {

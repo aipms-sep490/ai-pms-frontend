@@ -107,8 +107,9 @@ export interface StudentGateRequirement {
   type: RequirementType
   scope: RequirementScope
   isMandatory: boolean
-  verificationStatus: 'PENDING' | 'SUBMITTED' | 'ACCEPTED' | 'REJECTED'
+  verificationStatus: 'PENDING' | 'SUBMITTED' | 'ACCEPTED' | 'REJECTED' | 'QUARANTINED'
   latestArtifact?: {
+    evidenceId?: number | null
     version: number
     filename: string
     submittedAt: string
@@ -119,6 +120,8 @@ export interface StudentGateRequirement {
     sha256?: string
     downloadUrl?: string
     linkUrl?: string | null
+    scanStatus?: 'UPLOADING' | 'SCANNING' | 'READY' | 'QUARANTINED' | 'PREVIEW_FAILED' | string
+    scanDetails?: string | null
   } | null
   reviewerFeedback?: string | null
 }
@@ -135,6 +138,8 @@ export interface StudentGateInstance {
   windowStart: string | null
   windowEnd: string | null
   concurrencyToken?: string
+  latestPackageId?: number | null
+  latestRoundNumber?: number | null
   blockingReasons: Array<{ code: string; requirementCode?: string; message: string }>
   requirements: StudentGateRequirement[]
 }
@@ -193,6 +198,7 @@ export interface SubmitGatePackageRequest {
   gateCode: string
   notes?: string
   concurrencyToken?: string
+  idempotencyKey?: string
 }
 
 export interface SupervisorFeedbackRequest {
@@ -215,6 +221,7 @@ export interface AssignedReviewItem {
   requirements: StudentGateRequirement[]
   reviewerNotes?: string | null
   concurrencyToken: string
+  latestPackageId?: number | null
 }
 
 export interface VerifyEvidenceRequest {
@@ -223,6 +230,9 @@ export interface VerifyEvidenceRequest {
   decision: 'ACCEPTED' | 'REJECTED'
   feedback?: string
   concurrencyToken: string
+  packageId?: number | null
+  evidenceId?: number | null
+  evidenceVersion?: number | null
 }
 
 export interface GateDecisionRequest {
@@ -230,5 +240,6 @@ export interface GateDecisionRequest {
   decision: 'PASSED' | 'REVISION_REQUIRED'
   notes: string
   concurrencyToken: string
+  packageId?: number | null
 }
 

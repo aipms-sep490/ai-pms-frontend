@@ -148,9 +148,26 @@ export async function submitGateForReview(
   req: SubmitGatePackageRequest,
 ): Promise<StudentReviewTimelineDto> {
   if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.submitGateForReview(req)
+  const idempotencyKey = req.idempotencyKey?.trim() || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `gate-${req.projectId}-${req.gateCode}-${Date.now()}`)
   return httpPost<StudentReviewTimelineDto>(`/projects/${req.projectId}/review-gates/${encodeURIComponent(req.gateCode)}/submit-for-review`, {
-    notes: req.notes, concurrencyToken: requireGateToken(req.concurrencyToken),
+    notes: req.notes,
+    concurrencyToken: requireGateToken(req.concurrencyToken),
+    idempotencyKey,
   })
+}
+
+export interface SignedPreviewToken {
+  token: string
+  expiresAtUtc: string
+  streamUrl: string
+  safePreviewUrl: string
+  contentType: string
+  fileName: string
+  scanStatus: string
+}
+
+export async function issueEvidencePreviewToken(projectId: string, gateCode: string, requirementId: string, version: number): Promise<SignedPreviewToken> {
+  return httpPost<SignedPreviewToken>(`/projects/${encodeURIComponent(projectId)}/review-gates/${encodeURIComponent(gateCode)}/requirements/${encodeURIComponent(requirementId)}/evidence/${version}/preview-token`, {})
 }
 
 export async function submitSupervisorFeedback(
