@@ -1,5 +1,5 @@
-import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, expect, it } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, expect, it, vi } from 'vitest'
 import { AssistantAnswerText } from './AssistantAnswerText'
 
 afterEach(cleanup)
@@ -21,4 +21,31 @@ it('renders streamed section headings without requiring surrounding blank lines'
   expect(container.querySelector('strong')?.textContent).toBe('deadline')
   expect(container.querySelector('code')?.textContent).toBe('TASK-1')
   expect(container.textContent).not.toContain('##')
+})
+
+it('renders fenced code blocks with copy button, blockquotes, italic, hr and clickable inline citations', () => {
+  const onCite = vi.fn()
+  const md = [
+    'Xem chi tiết tại [DOC-1] và [PROJECT-2] với *lưu ý quan trọng*.',
+    '',
+    '> Trích dẫn quy định học vụ.',
+    '',
+    '---',
+    '',
+    '```sql',
+    'SELECT TOP 5 * FROM dbo.projects;',
+    '```',
+  ].join('\n')
+  const { container } = render(<AssistantAnswerText text={md} onCiteClick={onCite} streaming />)
+  expect(container.querySelector('em')?.textContent).toBe('lưu ý quan trọng')
+  expect(container.querySelector('blockquote')?.textContent).toContain('Trích dẫn quy định học vụ.')
+  expect(container.querySelector('hr')).toBeTruthy()
+  expect(container.querySelector('pre code')?.textContent).toContain('SELECT TOP 5 * FROM dbo.projects;')
+  expect(screen.getByRole('button', { name: /Sao chép mã/ })).toBeTruthy()
+  expect(container.querySelector('.assistant-stream-cursor')).toBeTruthy()
+
+  fireEvent.click(screen.getByRole('button', { name: 'DOC-1' }))
+  fireEvent.click(screen.getByRole('button', { name: 'PROJECT-2' }))
+  expect(onCite).toHaveBeenNthCalledWith(1, 'DOC', 0)
+  expect(onCite).toHaveBeenNthCalledWith(2, 'PROJECT', 1)
 })

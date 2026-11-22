@@ -130,3 +130,16 @@ it('opens workflow support inside the dock while keeping the chat draft', () => 
   fireEvent.click(screen.getByRole('button', { name: 'Trò chuyện' }))
   expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe('Keep this')
 })
+
+it('hides floating dock on /academic/assistant and toggles via Alt+A shortcut', () => {
+  const full = render(<MemoryRouter initialEntries={['/academic/assistant']}><AssistantDock /></MemoryRouter>)
+  expect(screen.queryByRole('button', { name: 'Mở trợ lý AI' })).toBeNull()
+  full.unmount()
+
+  render(tree())
+  fireEvent.keyDown(window, { key: 'a', altKey: true })
+  expect(screen.getByRole('dialog', { name: 'Trợ lý AI' })).toBeTruthy()
+  expect(screen.getByRole('button', { name: 'Mở toàn màn hình' })).toBeTruthy()
+  fireEvent.keyDown(window, { key: 'a', altKey: true })
+  expect(screen.queryByRole('dialog')).toBeNull()
+})

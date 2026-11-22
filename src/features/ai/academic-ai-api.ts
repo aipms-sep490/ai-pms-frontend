@@ -1,4 +1,4 @@
-import { httpDelete, httpGet, httpGetBlob, httpPost, httpPostForm, httpPostStream } from '../../services/http/http-client'
+import { httpDelete, httpGet, httpGetBlob, httpPatch, httpPost, httpPostForm, httpPostStream } from '../../services/http/http-client'
 import type { EvidenceReference } from './ai-api'
 
 export interface KnowledgeCitation { documentId: number; versionId: number; title: string; version: string; documentType: string; section: string | null; page: number | null; effectiveFrom: string | null; excerpt: string }
@@ -198,16 +198,55 @@ export interface AcademicAssistantResponse {
   revision?: number
   draft?: AssistantDraft
   structuredReport?: AssistantStructuredReport | null
+  followUpSuggestions?: string[] | null
+  feedbackRating?: number | null
 }
-export interface AssistantConversation { id: number; title: string; projectId: number | null; scope: string; revision: number; updatedAt: string }
+export interface AssistantConversation {
+  id: number
+  title: string
+  projectId: number | null
+  scope: string
+  revision: number
+  updatedAt: string
+  isPinned?: boolean
+  turnCount?: number
+}
+export interface AssistantProjectOption {
+  id: number
+  code: string
+  title: string
+  status: string
+  roleLabel: string
+}
+export interface AssistantFeedbackResult {
+  runId: number
+  rating: number
+  note: string | null
+  feedbackAt: string
+}
 /** A persisted turn includes the server-side start time so history shows when the user sent it. */
 export interface AssistantTurn { id: number; query: string; sentAt?: string; response: AcademicAssistantResponse }
 export interface ConversationDetail { conversation: AssistantConversation; turns: AssistantTurn[]; hasMore: boolean }
 export interface AssistantStreamEvent { type: 'status' | 'preview' | 'completed' | 'error'; text?: string; response?: AcademicAssistantResponse }
 export const createAssistantConversation = (projectId?: number, signal?: AbortSignal) => httpPost<AssistantConversation>('/academic/assistant/conversations', { projectId, scope: projectId ? 'COMBINED' : 'ACADEMIC' }, { signal })
-export const listAssistantConversations = (projectId?: number, beforeId?: number, signal?: AbortSignal) => httpGet<AssistantConversation[]>(`/academic/assistant/conversations?${new URLSearchParams({ ...(projectId ? { projectId: String(projectId) } : {}), ...(beforeId ? { beforeId: String(beforeId) } : {}) })}`, { signal })
+export const listAssistantConversations = (projectId?: number, beforeId?: number, signal?: AbortSignal, search?: string) => {
+  const params = new URLSearchParams({
+    ...(projectId ? { projectId: String(projectId) } : {}),
+    ...(beforeId ? { beforeId: String(beforeId) } : {}),
+    ...(search?.trim() ? { search: search.trim() } : {}),
+  })
+  return httpGet<AssistantConversation[]>(`/academic/assistant/conversations?${params}`, { signal })
+}
 export const getAssistantConversation = (id: number, beforeTurnId?: number, signal?: AbortSignal) => httpGet<ConversationDetail>(`/academic/assistant/conversations/${id}${beforeTurnId ? `?beforeTurnId=${beforeTurnId}` : ''}`, { signal })
+export const updateAssistantConversation = (id: number, payload: { title?: string; isPinned?: boolean }, signal?: AbortSignal) =>
+  httpPatch<AssistantConversation>(`/academic/assistant/conversations/${id}`, payload, { signal })
+export const downloadAssistantConversation = (id: number, format: 'md' | 'txt' | 'docx' | 'pdf', signal?: AbortSignal) =>
+  httpGetBlob(`/academic/assistant/conversations/${id}/download?format=${format}`, { signal })
 export const deleteAssistantConversation = (id: number, signal?: AbortSignal) => httpDelete(`/academic/assistant/conversations/${id}`, { signal })
+export const submitAssistantFeedback = (runId: number, rating: 1 | -1, note?: string, signal?: AbortSignal) =>
+  httpPost<AssistantFeedbackResult>(`/academic/assistant/runs/${runId}/feedback`, { rating, note: note?.trim() || null }, { signal })
+export const listAssistantProjects = (signal?: AbortSignal) =>
+  httpGet<AssistantProjectOption[]>('/academic/assistant/projects', { signal })
 export const getAssistantCitation = (runId: number, index: number, signal?: AbortSignal) => httpGet<KnowledgeCitation>(`/academic/assistant/runs/${runId}/citations/${index}`, { signal })
 
 export const applyProjectAiSetup = (projectId: number, payload: ApplyProjectSetupRequest, signal?: AbortSignal) =>

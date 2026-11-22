@@ -84,7 +84,8 @@ export const workspaceRouteRegistry: readonly WorkspaceRouteMeta[] = [
   { id: 'academic-profile-verifications', path: '/academic/profile-verifications', title: 'Xác minh hồ sơ học vụ', breadcrumb: 'Xác minh hồ sơ học vụ', icon: 'verified_user', section: 'governance', group: '4. Review Gates & kiểm soát', groupOrder: 4, identityRoles: ['DEPARTMENT_STAFF', 'ADMIN'], navigationVisibility: 'always' },
   { id: 'admin-milestone-templates', path: '/admin/milestone-templates', title: 'Mẫu mốc đồ án', breadcrumb: 'Mẫu mốc đồ án', icon: 'flag', section: 'administration', identityRoles: ['ADMIN'], navigationVisibility: 'always' },
 
-  // Shared Account & Calendar
+  // Shared Account, AI Assistant & Calendar
+  { id: 'shared-ai-assistant', path: '/academic/assistant', title: 'Trợ lý AI', breadcrumb: 'Trợ lý AI', icon: 'auto_awesome', section: 'account', identityRoles: ['ADMIN', 'DEPARTMENT_STAFF', 'LECTURER', 'STUDENT'], navigationVisibility: 'always', featureEnabled: env.academicAiAssistantEnabled },
   { id: 'account-profile', path: '/profile', title: 'Hồ sơ tài khoản', breadcrumb: 'Hồ sơ tài khoản', icon: 'account_circle', section: 'account', identityRoles: ['ADMIN', 'DEPARTMENT_STAFF', 'LECTURER', 'STUDENT'], navigationVisibility: 'always' },
   { id: 'calendar-attention', path: '/calendar', title: 'Lịch tổng hợp', breadcrumb: 'Lịch tổng hợp', icon: 'calendar_month', section: 'account', identityRoles: ['ADMIN', 'DEPARTMENT_STAFF', 'LECTURER', 'STUDENT'], navigationVisibility: 'always' },
 

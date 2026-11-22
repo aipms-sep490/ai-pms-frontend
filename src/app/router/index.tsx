@@ -70,6 +70,10 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorEl
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'calendar', element: <CalendarAttentionPage /> },
       { path: 'messages/:conversationId?', element: <ChatPage /> },
+      ...(env.academicAiAssistantEnabled ? [{
+        element: <RoleRoute allowed={['student', 'lecturer', 'department', 'admin']} />,
+        children: [{ path: 'academic/assistant', element: <AcademicAssistantPage /> }],
+      }] : []),
       {
         element: <RoleRoute allowed={['student']} />,
         children: [
@@ -114,7 +118,6 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorEl
           { path: 'project/result', element: <StudentProjectResultPage /> },
           { path: 'project/timeline', element: <StudentReviewTimelinePage /> },
           { path: 'project/review-gates', element: <StudentReviewTimelinePage /> },
-          ...(env.academicAiAssistantEnabled ? [{ path: 'academic/assistant', element: <AcademicAssistantPage /> }] : []),
         ],
       },
       {

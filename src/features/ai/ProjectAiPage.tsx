@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { askProjectAssistant, getProjectAiDigest, type ProjectAiDigest, type ProjectAssistantResponse } from './ai-api'
 import { ProjectProgressAnalysisPanel } from './components/ProjectProgressAnalysisPanel'
@@ -6,8 +7,11 @@ import { HttpError } from '../../services/http/http-client'
 import { EvidenceReferences } from './components/EvidenceReferences'
 import { ProgressScenarioPanel } from './components/ProgressScenarioPanel'
 import { AiAnalysisRunsPanel } from './components/AiAnalysisRunsPanel'
+import { AcademicAssistantPanel } from './components/AcademicAssistantPanel'
 import { env } from '../../app/config/env'
 import { openAssistant } from './assistant-dock-events'
+import type { AssistantDraft } from './academic-ai-api'
+import './assistant-dock.css'
 
 // AI run history is actor- and scope-hash-scoped server-side. Keying by project+user forces a
 // full remount (not just a prop update) on an identity or project switch, so no stale analysis
@@ -16,12 +20,124 @@ export function ProjectAiPage() {
   const access = useExecutionAccess()
   return <ProjectAiView key={`${access.project.id}:${access.currentUserId}`} />
 }
+
 function ProjectAiView() {
   const [historyRevision, setHistoryRevision] = useState(0)
-  const { project } = useExecutionAccess(); const [query, setQuery] = useState(''); const [answer, setAnswer] = useState<ProjectAssistantResponse | null>(null); const [busy, setBusy] = useState(false); const [error, setError] = useState<string | null>(null)
-  const ask = async (event: FormEvent) => { event.preventDefault(); const value = query.trim(); if (!value || busy) return; setBusy(true); setError(null); setAnswer(null); try { setAnswer(await askProjectAssistant(project.id, value)); setHistoryRevision(revision => revision + 1) } catch (reason) { setError(errorMessage(reason)) } finally { setBusy(false) } }
-  return <div className="workspace-page mx-auto max-w-5xl space-y-5 pb-12"><header className="workspace-heading"><div className="workspace-heading-copy"><span className="workspace-kicker">Trợ lý AI</span><h1>Trợ lý AI &amp; phân tích đồ án</h1><p>Trợ lý kết hợp dữ liệu đồ án được cấp quyền và tài liệu học vụ đã công bố. Phản hồi không là quyết định học vụ, không cập nhật dữ liệu.</p></div>{env.academicAiAssistantEnabled && <button type="button" onClick={openAssistant} className="min-h-11 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở trò chuyện với trợ lý AI</button>}</header><ProjectAiDigestCard projectId={project.id} /><ProjectProgressAnalysisPanel projectId={project.id} onSaved={() => setHistoryRevision(revision => revision + 1)} />{env.aiRunHistoryEnabled && <AiAnalysisRunsPanel key={historyRevision} projectId={project.id} />}<ProgressScenarioPanel /><section className="rounded-xl border border-hairline bg-card p-5 shadow-xs"><h2 className="font-heading text-lg font-semibold text-ink">Hỏi trợ lý theo đồ án</h2><p className="mt-1 text-sm text-ink-muted">Hãy hỏi về tiến độ, công việc, báo cáo hoặc bước tiếp theo. Kiểm tra chứng cứ trước khi hành động; trợ lý không có quyền thực thi lệnh.</p><form className="mt-4 space-y-3" onSubmit={event => void ask(event)}><label className="flex flex-col gap-1 text-sm font-medium text-ink-soft" htmlFor="project-ai-query">Câu hỏi<textarea id="project-ai-query" value={query} onChange={event => setQuery(event.target.value)} rows={4} maxLength={1000} className="rounded-lg border border-hairline bg-card p-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" placeholder="Ví dụ: Những việc nào cần ưu tiên trong tuần này?" /></label><button type="submit" disabled={!query.trim() || busy} className="min-h-11 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50">{busy ? 'Đang hỏi trợ lý…' : 'Gửi câu hỏi'}</button></form>{error && <p role="alert" className="mt-4 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}{answer && <AssistantAnswer answer={answer} />}</section></div>
+  const navigate = useNavigate()
+  const { project, routeBase, actor, canManageStructure } = useExecutionAccess()
+  const [query, setQuery] = useState('')
+  const [answer, setAnswer] = useState<ProjectAssistantResponse | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const ask = async (event: FormEvent) => {
+    event.preventDefault()
+    const value = query.trim()
+    if (!value || busy) return
+    setBusy(true); setError(null); setAnswer(null)
+    try {
+      setAnswer(await askProjectAssistant(project.id, value))
+      setHistoryRevision(revision => revision + 1)
+    } catch (reason) {
+      setError(errorMessage(reason))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleUseDraft = (draft: AssistantDraft) => {
+    const target = draft.kind === 'TASK' ? 'tasks' : draft.kind === 'WEEKLY_REPORT' ? 'reports/new' : draft.kind === 'MEETING_MINUTES' ? 'meetings' : 'meetings/new'
+    navigate(`${routeBase}/${target}`, { state: { assistantDraft: { ...draft, projectId: project.id } } })
+  }
+
+  const handleOpenTarget = (target: string, resourceId?: number | null) => {
+    const allowed = new Set(['tasks', 'milestones', 'meetings', 'reports', 'deliverables', 'cold-reports', 'timeline', 'final-submission', 'files', 'agreement'])
+    if (!allowed.has(target)) return
+    const supportsDetail = ['tasks', 'milestones', 'meetings', 'reports'].includes(target) && typeof resourceId === 'number' && Number.isSafeInteger(resourceId) && resourceId > 0
+    navigate(`${routeBase}/${target}${supportsDetail ? `/${resourceId}` : ''}`)
+  }
+
+  return (
+    <div className="workspace-page mx-auto max-w-5xl space-y-5 pb-12">
+      <header className="workspace-heading">
+        <div className="workspace-heading-copy">
+          <span className="workspace-kicker">Trợ lý AI</span>
+          <h1>Trợ lý AI &amp; phân tích đồ án</h1>
+          <p>Trợ lý kết hợp dữ liệu đồ án được cấp quyền và tài liệu học vụ đã công bố. Phản hồi không là quyết định học vụ, không cập nhật dữ liệu.</p>
+        </div>
+        {env.academicAiAssistantEnabled && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate(`/academic/assistant?projectId=${project.id}`)}
+              className="min-h-11 rounded-lg border border-hairline bg-card px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary"
+            >
+              Mở toàn màn hình
+            </button>
+            <button
+              type="button"
+              onClick={openAssistant}
+              className="min-h-11 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              Mở trò chuyện với trợ lý AI
+            </button>
+          </div>
+        )}
+      </header>
+
+      <ProjectAiDigestCard projectId={project.id} />
+      <ProjectProgressAnalysisPanel projectId={project.id} onSaved={() => setHistoryRevision(revision => revision + 1)} />
+      {env.aiRunHistoryEnabled && <AiAnalysisRunsPanel key={historyRevision} projectId={project.id} />}
+      <ProgressScenarioPanel />
+
+      {env.academicAiAssistantEnabled ? (
+        <section className="assistant-embedded-card rounded-xl border border-hairline bg-card shadow-xs overflow-hidden">
+          <div className="assistant-embedded-head">
+            <div>
+              <h2 className="font-heading text-lg font-semibold text-ink">Trò chuyện trực tiếp với Trợ lý AI-PMS</h2>
+              <p className="mt-0.5 text-xs text-ink-muted">Hỗ trợ streaming, đính kèm ảnh/PDF/DOCX, gõ <code>/</code> chọn lệnh nhanh, lưu lịch sử &amp; trích dẫn nguồn đồ án.</p>
+            </div>
+            <button
+              type="button"
+              className="assistant-topbar-pill-btn"
+              onClick={() => navigate(`/academic/assistant?projectId=${project.id}`)}
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">open_in_new</span>
+              Toàn màn hình
+            </button>
+          </div>
+          <div className="assistant-embedded-body">
+            <AcademicAssistantPanel
+              dock
+              layout="dock"
+              projectId={project.id}
+              pageContext="Trợ lý AI và phân tích"
+              allowReportForm={actor === 'student'}
+              canApplyProjectSetup={canManageStructure}
+              onUseDraft={handleUseDraft}
+              onOpenTarget={handleOpenTarget}
+            />
+          </div>
+        </section>
+      ) : (
+        <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs">
+          <h2 className="font-heading text-lg font-semibold text-ink">Hỏi trợ lý theo đồ án</h2>
+          <p className="mt-1 text-sm text-ink-muted">Hãy hỏi về tiến độ, công việc, báo cáo hoặc bước tiếp theo. Kiểm tra chứng cứ trước khi hành động; trợ lý không có quyền thực thi lệnh.</p>
+          <form className="mt-4 space-y-3" onSubmit={event => void ask(event)}>
+            <label className="flex flex-col gap-1 text-sm font-medium text-ink-soft" htmlFor="project-ai-query">
+              Câu hỏi
+              <textarea id="project-ai-query" value={query} onChange={event => setQuery(event.target.value)} rows={4} maxLength={1000} className="rounded-lg border border-hairline bg-card p-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" placeholder="Ví dụ: Những việc nào cần ưu tiên trong tuần này?" />
+            </label>
+            <button type="submit" disabled={!query.trim() || busy} className="min-h-11 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50">{busy ? 'Đang hỏi trợ lý…' : 'Gửi câu hỏi'}</button>
+          </form>
+          {error && <p role="alert" className="mt-4 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}
+          {answer && <AssistantAnswer answer={answer} />}
+        </section>
+      )}
+    </div>
+  )
 }
+
 const digestRiskLabels: Record<string, string> = { LOW: 'Thấp', MEDIUM: 'Trung bình', HIGH: 'Cao', CRITICAL: 'Nghiêm trọng', INSUFFICIENT_DATA: 'Chưa đủ dữ liệu' }
 function ProjectAiDigestCard({ projectId }: { projectId: number }) {
   const [digest, setDigest] = useState<ProjectAiDigest | null>(null)

@@ -16,7 +16,7 @@ import { TourProvider } from '../../features/onboarding/TourProvider'
 export function AppLayout() {
   const location = useLocation()
   const { session } = useAuthSession()
-  const isFullPageChat = location.pathname === '/messages' || location.pathname.startsWith('/messages/')
+  const isFullPageChat = location.pathname === '/messages' || location.pathname.startsWith('/messages/') || location.pathname === '/academic/assistant'
   const entrance = useEntranceMotion<HTMLElement>(location.pathname)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const hamburgerTriggerRef = useRef<HTMLButtonElement | null>(null)
