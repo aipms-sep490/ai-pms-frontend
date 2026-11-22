@@ -138,6 +138,11 @@ describe('design tokens', () => {
     expect(offenders(dimmed)).toEqual([])
   })
 
+  it('never uses undefined ghost colour or surface tokens', () => {
+    const ghostTokens = /\b(?:bg-surface|bg-subtle|(?:bg|text|border)-status-(?:info|danger|neutral)-(?:bg|text|border)|text-muted|text-success)\b|--color-status-info-/
+    expect(offenders(ghostTokens)).toEqual([])
+  })
+
   it('guarantees WCAG 2.2 AA text contrast (>= 4.5:1) for every text token pair', () => {
     const white = '#ffffff'
     const pairs: [string, string, string][] = [
