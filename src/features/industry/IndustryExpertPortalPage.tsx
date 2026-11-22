@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { displayLabel } from '../../components/ui/display-label'
+import { ListLoading } from '../../components/ui/ListLoading'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { HttpError } from '../../services/http/http-client'
+import { humanizeHttpError } from '../../services/http/humanize-http-error'
 import {
   downloadIndustrySharedFile,
   getIndustryFeedbackHistory,
@@ -258,7 +261,7 @@ export function IndustryExpertPortalPage() {
         }
       }
     } catch (err) {
-      if (selectedAssignmentRef.current === selectedAssignment.id) setFeedbackError(err instanceof HttpError ? err.message : 'Không thể gửi ý kiến nhận xét.')
+      if (selectedAssignmentRef.current === selectedAssignment.id) setFeedbackError(humanizeHttpError(err, 'Không thể gửi ý kiến nhận xét.'))
     } finally {
       setSubmittingFeedback(false)
     }
@@ -268,10 +271,10 @@ export function IndustryExpertPortalPage() {
     <WorkspacePage
       className="space-y-5"
       title="Cổng chuyên gia cố vấn doanh nghiệp"
-      eyebrow="Cố vấn chuyên môn · Advisory Only"
+      eyebrow="Cố vấn chuyên môn"
       description="Xem tài liệu được chia sẻ và đóng góp ý kiến nhận xét chuyên môn cho đồ án. Ý kiến cố vấn mang tính chất tham khảo, không phải điểm đánh giá chính thức."
     >
-      {loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải phân công…</p>}
+      {loading && <ListLoading label="Đang tải phân công…" />}
       {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" className="ml-2 min-h-11 font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => void loadAssignments()}>Thử lại</button></p>}
 
       {!loading && !error && assignments.length === 0 && (
@@ -298,12 +301,12 @@ export function IndustryExpertPortalPage() {
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-semibold text-ink text-sm">{a.projectTitle}</h3>
                     <span className="shrink-0 rounded bg-canvas px-1.5 py-0.5 text-xs font-semibold text-ink-soft border border-hairline">
-                      {a.scope === 'MAJOR_SPECIFIC' ? 'Theo ngành' : a.scope === 'COMMON' ? 'Chung' : a.scope}
+                      {displayLabel(a.scope)}
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-ink-muted">Mã đồ án: {a.projectCode}</p>
                   <p className="mt-1 text-xs text-ink-soft">
-                    {new Date(a.startsAt).toLocaleDateString('vi-VN')} – {new Date(a.endsAt).toLocaleDateString('vi-VN')}
+                    {new Date(a.startsAt).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} – {new Date(a.endsAt).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
                   </p>
                   </button>
                 </li>
@@ -321,12 +324,12 @@ export function IndustryExpertPortalPage() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-base font-bold text-ink">{selectedAssignment.projectTitle}</h3>
                   <span className="rounded-full bg-primary-subtle border border-primary/20 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                    Ý kiến tư vấn (Advisory Only)
+                    Ý kiến tư vấn (chỉ cố vấn)
                   </span>
                 </div>
                 <p className="text-xs text-ink-muted">
-                  Phạm vi cố vấn: <strong className="text-ink-soft">{selectedAssignment.scope === 'MAJOR_SPECIFIC' ? 'Theo ngành' : selectedAssignment.scope === 'COMMON' ? 'Chung' : selectedAssignment.scope}</strong>
-                  {selectedAssignment.majorId ? ` (Ngành #${selectedAssignment.majorId})` : ' (Toàn đồ án)'} · Trạng thái: <strong className="text-ink-soft">{selectedAssignment.status === 'ACTIVE' ? 'Đang hiệu lực' : selectedAssignment.status === 'REVOKED' ? 'Đã thu hồi' : selectedAssignment.status === 'EXPIRED' ? 'Hết hiệu lực' : selectedAssignment.status}</strong>
+                  Phạm vi cố vấn: <strong className="text-ink-soft">{displayLabel(selectedAssignment.scope)}</strong>
+                  {selectedAssignment.majorName ? ` (${selectedAssignment.majorName})` : selectedAssignment.majorId ? '' : ' (Chung)'} · Trạng thái: <strong className="text-ink-soft">{displayLabel(selectedAssignment.status)}</strong>
                 </p>
               </section>
 
@@ -405,8 +408,8 @@ export function IndustryExpertPortalPage() {
                       {feedbackList.map((fb) => (
                         <li key={fb.id} className="rounded-lg border border-hairline p-3 text-xs bg-canvas space-y-1">
                           <div className="flex items-center justify-between text-ink-muted">
-                            <span className="font-semibold text-ink">Phiên bản #{fb.version}</span>
-                            <span>{new Date(fb.submittedAt).toLocaleString('vi-VN')}</span>
+                            <span className="font-semibold text-ink">Phiên bản #{fb.version}{fb.submittedByName ? ` · ${fb.submittedByName}` : ''}</span>
+                            <span>{new Date(fb.submittedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</span>
                           </div>
                           <p className="text-ink leading-relaxed whitespace-pre-wrap">{fb.content}</p>
                         </li>

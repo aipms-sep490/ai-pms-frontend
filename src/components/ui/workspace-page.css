@@ -2,7 +2,7 @@
 .workspace-back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 20px; color: var(--color-ink-muted); font-size: 13px; text-decoration: none; font-weight: 500; }
 .workspace-back:hover { color: var(--color-primary); text-decoration: none; }
 .workspace-back .material-symbols-outlined { font-size: 18px; }
-.workspace-heading { display: flex; position: sticky; top: 0; z-index: 1; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; background: var(--color-canvas); }
+.workspace-heading { display: flex; position: static; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .milestone-templates-page > .workspace-heading, .cold-template-page > .workspace-heading { position: static; }
 .workspace-page :is(a, button, input, select, textarea, [tabindex]):focus-visible { scroll-margin-top: 12rem; }
 .workspace-heading-copy { min-width: 0; flex: 1; }
@@ -17,7 +17,7 @@
   border: 1px solid var(--color-hairline);
   border-radius: 16px;
   background: var(--color-card);
-  overflow: hidden;
+  overflow: clip;
   box-shadow: 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 4%, transparent), 0 1px 2px color-mix(in oklab, var(--color-brand-navy) 2%, transparent);
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }

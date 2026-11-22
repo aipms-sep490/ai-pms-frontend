@@ -71,6 +71,7 @@ describe('AdminIndustryInvitationsPage', () => {
     mocks.revokeIndustryInvitation.mockResolvedValue(invitation({ status: 'REVOKED' }))
     render(<AdminIndustryInvitationsPage />)
     fireEvent.click(await screen.findByRole('button', { name: 'Thu hồi' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Thu hồi lời mời' }))
     await waitFor(() => expect(mocks.revokeIndustryInvitation).toHaveBeenCalledWith(1))
     expect(await screen.findByText('Đã thu hồi lời mời của expert@company.com.')).toBeTruthy()
   })

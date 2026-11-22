@@ -65,7 +65,7 @@ export function MentorWorkspacePage() {
         </div>
         <ul className="grid gap-4 md:grid-cols-2">
           {items.map(({ assignment, project, error: projectError }) => {
-            const majorName = assignment.majorId ? academicResolver.major(assignment.majorId) : `Chuyên ngành #${assignment.majorId}`
+            const majorName = assignment.majorId ? academicResolver.major(assignment.majorId) : 'Chưa xác định chuyên ngành'
             const isInterdisciplinary = project?.academicScope?.projectMode === 'INTERDISCIPLINARY'
             return (
               <li key={assignment.id} className="min-w-0 workspace-surface p-5">
@@ -81,10 +81,10 @@ export function MentorWorkspacePage() {
                   )}
                 </div>
                 <h2 className="mt-2 break-words text-lg font-bold text-ink">
-                  {project?.title ?? `Đồ án #${assignment.projectId}`}
+                  {project?.title ?? 'Đồ án được phân công'}
                 </h2>
                 <p className="mt-1 text-sm text-ink-muted">
-                  {project?.code ?? `#${assignment.projectId}`} · {project?.status ? projectStatusLabel(project.status) : 'Chưa tải trạng thái'}
+                  {[project?.code, project?.status ? projectStatusLabel(project.status) : 'Chưa tải trạng thái'].filter(Boolean).join(' · ')}
                 </p>
                 {projectError ? (
                   <p role="alert" className="mt-4 text-sm text-status-error-text">{projectError}</p>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { previewOfficeFile, type OfficePreview } from '../../services/api/office-preview.api'
+import { humanizeHttpError } from '../../services/http/humanize-http-error'
 import './document-preview-modal.css'
 
 export interface DocumentPreviewModalProps {
@@ -159,7 +160,7 @@ export function DocumentPreviewModal({
       })
       .catch((err) => {
         if (!active || controller.signal.aborted) return
-        setError(err instanceof Error ? err.message : 'Không thể tải bản xem trước của tài liệu.')
+        setError(humanizeHttpError(err, 'Không thể tải bản xem trước của tài liệu.'))
       })
       .finally(() => {
         if (active) setLoading(false)

@@ -4,7 +4,7 @@ import { EvaluationSchemePolicySummary } from './EvaluationSchemePolicySummary'
 import type { EvaluationScheme, SchemePolicy } from './evaluation-types'
 
 const policy: SchemePolicy = { isDemo: false, approvalStatus: 'APPROVED', approvalReference: 'QD/2026/123', formula: 'COMPONENT_WEIGHTS', calculationVersion: 'DECIMAL_V2', roundingMode: 'AWAY_FROM_ZERO', decimalPlaces: 2 }
-const scheme: EvaluationScheme = { id: 1, rootId: 1, version: 1, projectId: 9, projectPeriodId: 4, name: 'Scheme', status: 'PUBLISHED', passThreshold: 5, concurrencyToken: 'token', policyVersionId: 1, students: [], calculationRule: 'RULE', lockedAt: '2026-10-10T00:00:00Z', policy, components: [{ id: 2, name: 'Chung', scope: 'COMMON', majorId: null, rubricId: 8, projectWeightPercent: 100, studentWeightPercent: 100, requiredEvaluators: 2, stage: 'DEFENSE', evaluatorWeights: [{ evaluatorId: 7, weightPercent: 60 }, { evaluatorId: 8, weightPercent: 40 }] }] }
+const scheme: EvaluationScheme = { id: 1, rootId: 1, version: 1, projectId: 9, projectPeriodId: 4, name: 'Scheme', status: 'PUBLISHED', passThreshold: 5, concurrencyToken: 'token', policyVersionId: 1, students: [], calculationRule: 'RULE', lockedAt: '2026-10-10T00:00:00Z', policy, components: [{ id: 2, name: 'Chung', scope: 'COMMON', majorId: null, rubricId: 8, projectWeightPercent: 100, studentWeightPercent: 100, requiredEvaluators: 2, stage: 'DEFENSE', evaluatorWeights: [{ evaluatorId: 7, evaluatorName: 'TS. Nguyễn Minh', weightPercent: 60 }, { evaluatorId: 8, evaluatorName: 'TS. Lê Hòa', weightPercent: 40 }] }] }
 afterEach(cleanup)
 it('separates recorded approval from locking, authority and result readiness', () => {
   render(<EvaluationSchemePolicySummary scheme={scheme} />)
@@ -12,7 +12,7 @@ it('separates recorded approval from locking, authority and result readiness', (
   expect(screen.getByText('QD/2026/123')).toBeTruthy()
   expect(screen.getByText(/quyền và điều kiện công bố kết quả được kiểm tra riêng/)).toBeTruthy()
   expect(screen.getByText('Theo trọng số thành phần')).toBeTruthy()
-  expect(screen.getByText('Người chấm #7: 60%')).toBeTruthy()
+  expect(screen.getByText('TS. Nguyễn Minh: 60%')).toBeTruthy()
   expect(screen.getByText(/thiếu điểm không tự chia lại trọng số/)).toBeTruthy()
   expect(screen.getByText('Giai đoạn: Bảo vệ')).toBeTruthy()
   expect(screen.queryByRole('button')).toBeNull()

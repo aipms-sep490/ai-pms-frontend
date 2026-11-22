@@ -13,14 +13,26 @@ const SLOTS = [
 
 export interface RoomAllocationSummary {
   projectId: number
+  projectCode?: string | null
   date: string
   slotNumber: number
   startAt: string
   endAt: string
   roomId: number
   roomCode: string
-  projectTitle?: string
-  committeeName?: string
+  projectTitle?: string | null
+  committeeName?: string | null
+}
+
+function formatVietnamTime(iso: string): string {
+  const parsed = new Date(iso)
+  if (Number.isNaN(parsed.getTime())) return iso.slice(11, 16)
+  return new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }).format(parsed)
+}
+
+function formatVietnamDate(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim())
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : value
 }
 
 interface Props {
@@ -103,11 +115,11 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
           isSelected
             ? 'border-primary bg-primary-subtle shadow-xs ring-2 ring-primary/40'
             : room.status !== 'ACTIVE'
-              ? 'border-hairline bg-canvas text-ink-muted opacity-60'
+              ? 'border-hairline bg-canvas text-ink-muted opacity-65'
               : isLockedWhole
                 ? 'border-status-warning-border bg-status-warning-bg text-status-warning-text'
                 : lockedSlotCount > 0
-                  ? 'border-status-warning-border bg-status-warning-bg/60 hover:border-primary'
+                  ? 'border-status-warning-border bg-status-warning-bg/70 hover:border-primary'
                   : 'border-hairline bg-card hover:border-primary hover:shadow-xs'
         }`}
       >
@@ -129,15 +141,15 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
         </div>
         <div className="mt-1 space-y-0.5 text-xs text-ink-muted">
           <span className="block font-medium">{room.capacity} chỗ</span>
-          <span className="block text-xs">
+          <span className="inline-flex items-center gap-1 text-xs">
             {room.status !== 'ACTIVE'
               ? 'Đang bảo trì'
               : isLockedWhole
                 ? 'Đã khóa cả đợt'
                 : dayAllocations.length > 0
-                  ? `📅 ${dayAllocations.length} ca có lịch`
+                  ? <><span className="material-symbols-outlined text-[14px] text-primary" aria-hidden="true">calendar_month</span>{dayAllocations.length} ca có lịch</>
                   : lockedSlotCount > 0
-                    ? `🔒 ${lockedSlotCount} ca khóa`
+                    ? <><span className="material-symbols-outlined text-[14px] text-status-warning-text" aria-hidden="true">lock</span>{lockedSlotCount} ca khóa</>
                     : 'Sẵn sàng'}
           </span>
         </div>
@@ -213,11 +225,12 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              className={`min-h-10 rounded-md px-3 text-xs font-bold transition-colors ${
+              className={`inline-flex min-h-10 items-center gap-1.5 rounded-md px-3 text-xs font-bold transition-colors ${
                 viewMode === 'grid' ? 'bg-card text-primary shadow-xs' : 'text-ink-muted hover:text-ink'
               }`}
             >
-              📅 Lưới thời khóa biểu
+              <span className="material-symbols-outlined text-[15px]" aria-hidden="true">calendar_month</span>
+              Lưới thời khóa biểu
             </button>
           </div>
         </div>
@@ -239,9 +252,9 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
           </div>
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-hairline bg-card p-3">
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-bold text-ink">
-                Lưới thời khóa biểu tầng {floor} · Ngày {selectedDate}
+                Lưới thời khóa biểu tầng {floor} · Ngày {formatVietnamDate(selectedDate)}
               </h3>
               <span className="text-xs text-ink-muted">6 ca hành chính (75 phút/ca)</span>
             </div>
@@ -293,9 +306,9 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                           return (
                             <TableCell key={slotNum} className="border-l border-hairline bg-primary-subtle p-2">
                               <div className="rounded border-l-4 border-primary bg-card p-1.5 shadow-2xs">
-                                <span className="block font-bold text-primary">Đồ án #{alloc.projectId}</span>
+                                <span className="block font-bold text-primary">{alloc.projectCode ?? `Đồ án #${alloc.projectId}`}</span>
                                 <span className="block text-xs text-ink-muted">
-                                  {alloc.startAt.slice(11, 16)}–{alloc.endAt.slice(11, 16)}
+                                  {formatVietnamTime(alloc.startAt)}–{formatVietnamTime(alloc.endAt)}
                                 </span>
                               </div>
                             </TableCell>
@@ -306,7 +319,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                           return (
                             <TableCell key={slotNum} className="border-l border-hairline bg-status-warning-bg p-2">
                               <div className="flex flex-col items-center gap-1 text-xs font-semibold text-status-warning-text">
-                                <span>🔒 Đã khóa</span>
+                                <span className="inline-flex items-center gap-1"><span className="material-symbols-outlined text-[14px]" aria-hidden="true">lock</span>Đã khóa</span>
                                 <button
                                   type="button"
                                   onClick={() => toggleSlot(room.id, slotNum)}
@@ -417,8 +430,8 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
 
                   <div className="mt-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-ink">Lịch 6 ca ngày {selectedDate}</span>
-                      <span className="text-xs text-ink-muted">Chi tiết nhóm & khóa ca</span>
+                      <span className="text-xs font-bold text-ink">Lịch 6 ca ngày {formatVietnamDate(selectedDate)}</span>
+                      <span className="text-xs text-ink-muted">Chi tiết nhóm &amp; khóa ca</span>
                     </div>
 
                     <div className="mt-2 space-y-2">
@@ -446,16 +459,19 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                                 <span className="text-xs font-normal text-ink-muted">({time})</span>
                               </div>
                               {alloc ? (
-                                <span className="mt-0.5 block font-semibold text-primary">
-                                  🛡️ Đồ án #{alloc.projectId}
+                                <span className="mt-0.5 inline-flex items-center gap-1 font-semibold text-primary">
+                                  <span className="material-symbols-outlined text-[14px]" aria-hidden="true">shield</span>
+                                  {alloc.projectCode ?? `Đồ án #${alloc.projectId}`}
                                 </span>
                               ) : isLocked ? (
-                                <span className="mt-0.5 block text-xs text-status-warning-text">
-                                  🔒 Đã khóa không xếp
+                                <span className="mt-0.5 inline-flex items-center gap-1 text-xs text-status-warning-text">
+                                  <span className="material-symbols-outlined text-[14px]" aria-hidden="true">lock</span>
+                                  Đã khóa không xếp
                                 </span>
                               ) : (
-                                <span className="mt-0.5 block text-xs text-status-success-text">
-                                  🟢 Trống · Sẵn sàng
+                                <span className="mt-0.5 inline-flex items-center gap-1 text-xs text-status-success-text">
+                                  <span className="material-symbols-outlined text-[14px]" aria-hidden="true">check_circle</span>
+                                  Trống · Sẵn sàng
                                 </span>
                               )}
                             </div>

@@ -136,7 +136,7 @@ export function TaskDetailModal({
     reload()
   }
 
-  const titleText = task ? `#${task.id} · ${task.title}` : `Công việc #${taskId}`
+  const titleText = task ? task.title : 'Chi tiết công việc'
 
   return (
     <Modal
@@ -253,7 +253,7 @@ export function TaskDetailModal({
                         <dt className="text-ink-muted">Nguồn phát sinh:</dt>
                         <dd>
                           <Link className="font-semibold text-primary underline" to={`${routeBase}/meetings/${task.description.match(/Cuộc họp #(\d+)/i)![1]}`}>
-                            Cuộc họp #{task.description.match(/Cuộc họp #(\d+)/i)![1]}
+                            Xem cuộc họp nguồn
                           </Link>
                         </dd>
                       </div>

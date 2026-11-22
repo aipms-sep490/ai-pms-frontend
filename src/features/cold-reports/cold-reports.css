@@ -9,10 +9,14 @@
 .cold-panel-heading span { font-size: 12px; color: var(--color-ink-muted); font-family: var(--font-mono); }
 .cold-panel-heading .cold-progress-status { font-weight: 600; color: var(--color-ink-soft); }
 .cold-panel-heading .cold-locked-meta { margin-left: 12px; color: var(--color-status-success-text); font-weight: 600; }
-.cold-progress-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; padding: 14px 24px; }
-.cold-progress-metric small { display: block; font-size: 12px; color: var(--color-ink-muted); }
-.cold-progress-value { margin: 4px 0 0; font-size: 18px; font-weight: 700; color: var(--color-ink); }
-.cold-progress-value--ready { color: var(--color-status-success-text); }
+.cold-progress-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); padding: 18px 24px; }
+.cold-progress-stat { display: flex; flex-direction: column; gap: 4px; }
+.cold-progress-stat dt { font-size: 12px; color: var(--color-ink-muted); font-weight: 600; }
+.cold-progress-stat dd { margin: 0; font-size: 15px; font-weight: 700; color: var(--color-ink); }
+.cold-progress-stat dd.is-ready { color: var(--color-status-success-text); }
+.cold-progress-bar-wrap { padding: 0 24px 18px; }
+.cold-progress-bar { height: 8px; border-radius: 9999px; background: var(--color-hairline); overflow: hidden; }
+.cold-progress-bar > span { display: block; height: 100%; background: var(--color-primary); border-radius: inherit; transition: width 220ms ease; }
 .cold-list { list-style: none; padding: 0; margin: 0; }
 .cold-list > li { border-bottom: 1px solid var(--color-line); }
 .cold-list > li:last-child { border-bottom: 0; }
@@ -26,9 +30,12 @@
 .cold-badge { display: inline-flex; padding: 4px 10px; font-size: 12px; line-height: 1.3; font-weight: 600; border-radius: 6px; white-space: nowrap; }
 .cold-badge--draft { background: var(--color-canvas); color: var(--color-ink-soft); border: 1px solid var(--color-line-strong); }
 .cold-badge--submitted { background: var(--color-status-warning-bg); color: var(--color-status-warning-text); border: 1px solid var(--color-status-warning-border); }
-.cold-badge--locked { background: var(--color-status-success-bg); color: var(--color-status-success-text); border: 1px solid var(--color-status-success-border); }
+.cold-badge--locked, .cold-badge--reviewed { background: var(--color-status-success-bg); color: var(--color-status-success-text); border: 1px solid var(--color-status-success-border); }
 .cold-editor { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--color-line); display: grid; gap: 12px; }
 .cold-reports label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 650; color: var(--color-ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
+.cold-reports label.cold-file-picker { display: inline-flex; flex-direction: row; align-items: center; gap: 8px; min-height: 40px; padding: 8px 14px; border-radius: 8px; border: 1px dashed var(--color-line-strong); background: var(--color-canvas); color: var(--color-ink); font-size: 13px; font-weight: 600; cursor: pointer; text-transform: none; letter-spacing: normal; width: fit-content; }
+.cold-reports label.cold-file-picker:hover { border-color: var(--color-primary); background: var(--color-primary-subtle); color: var(--color-primary); }
+.cold-file-picker input[type='file'] { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; clip: rect(0, 0, 0, 0); }
 .cold-reports textarea, .cold-reports input[type='text'] { min-height: 44px; border: 1px solid var(--color-line-strong); border-radius: 8px; padding: 8px 14px; background: var(--color-card); color: var(--color-ink); font: inherit; font-size: 13px; width: 100%; }
 .cold-reports input[type='file'] { display: inline-flex; align-items: center; min-height: 44px; max-width: 100%; padding: 6px 10px; border: 1px solid var(--color-hairline); border-radius: 8px; background: var(--color-canvas); color: var(--color-ink-soft); font-size: 13px; }
 .cold-reports textarea { resize: vertical; min-height: 72px; line-height: 1.6; font-weight: 400; }
@@ -51,17 +58,11 @@
 .cold-empty { text-align: center; padding: 48px 24px; color: var(--color-ink-muted); font-size: 13px; }
 .cold-readonly { margin-top: 12px; font-size: 13px; color: var(--color-ink-muted); }
 .cold-history-toggle { margin-top: 10px; }
-.cold-history { margin-top: 10px; padding: 12px 14px; border: 1px solid var(--color-line-strong); border-radius: 8px; background: var(--color-canvas); }
-.cold-history-title { margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--color-ink); }
-.cold-history-muted { margin: 0; font-size: 12px; color: var(--color-ink-muted); }
-.cold-history-item { padding: 10px 0; border-bottom: 1px solid var(--color-hairline); font-size: 12px; }
-.cold-history-item:last-child { border-bottom: 0; padding-bottom: 0; }
-.cold-history-item-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
-.cold-history-version { font-weight: 600; color: var(--color-ink); }
-.cold-history-date { font-size: 12px; color: var(--color-ink-muted); }
-.cold-history-note { margin: 4px 0; color: var(--color-ink-soft); }
-.cold-history-files { list-style: none; padding-left: 0; margin: 6px 0 0; display: grid; gap: 6px; }
-.cold-history-file { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.cold-history-details { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-line); }
+.cold-history-details summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--color-ink-soft); }
+.cold-history-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.cold-history-item { padding: 10px 12px; border: 1px solid var(--color-line); border-radius: 8px; background: var(--color-canvas); font-size: 13px; display: grid; gap: 6px; }
+.cold-history-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 @media (max-width: 640px) {
   .cold-row-head { flex-direction: column; }
   .cold-row-state { align-items: flex-start; }

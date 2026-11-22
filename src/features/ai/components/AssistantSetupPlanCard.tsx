@@ -11,7 +11,9 @@ import {
   type AssistantSetupMilestone,
   type AssistantSetupTask,
 } from '../academic-ai-api'
+import { displayLabel } from '../../../components/ui/display-label'
 import { HttpError } from '../../../services/http/http-client'
+import { humanizeHttpError } from '../../../services/http/humanize-http-error'
 
 const makeUuid = () =>
   typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -314,7 +316,7 @@ export function AssistantRubricSetupCard({
       setApplied(result)
     } catch (err) {
       if (err instanceof HttpError) {
-        setError(err.message || 'Chưa tạo được bộ tiêu chí nháp. Kiểm tra mã rubric, trọng số và học kỳ hiện hành.')
+        setError(humanizeHttpError(err, 'Chưa tạo được bộ tiêu chí nháp. Kiểm tra mã bộ tiêu chí, trọng số và học kỳ hiện hành.'))
       } else {
         setError('Chưa kết nối được máy chủ. Nội dung chỉnh sửa của bạn vẫn được giữ nguyên.')
       }
@@ -329,9 +331,9 @@ export function AssistantRubricSetupCard({
         <div className="assistant-setup-done-head">
           <span className="material-symbols-outlined" aria-hidden="true">check_circle</span>
           <div>
-            <h3>Đã tạo bộ tiêu chí nháp (DRAFT)</h3>
+            <h3>Đã tạo bộ tiêu chí bản nháp</h3>
             <p>
-              <strong>{applied.code}</strong> · {applied.name} ({applied.criteriaCount} tiêu chí · trạng thái <strong>{applied.status}</strong>).
+              <strong>{applied.code}</strong> · {applied.name} ({applied.criteriaCount} tiêu chí · trạng thái <strong>{displayLabel(applied.status)}</strong>).
               Bộ tiêu chí cần được rà soát và phê duyệt trước khi công bố.
             </p>
           </div>
@@ -346,11 +348,11 @@ export function AssistantRubricSetupCard({
   }
 
   return (
-    <section className="assistant-setup-card" aria-label="Gói thiết lập Bộ tiêu chí đánh giá (Rubric)">
+    <section className="assistant-setup-card" aria-label="Gói thiết lập Bộ tiêu chí đánh giá">
       <header className="assistant-setup-head">
         <span className="assistant-structured-kicker">
           <span className="material-symbols-outlined" aria-hidden="true">grading</span>
-          Bộ tiêu chí Rubric nháp (DRAFT) · Xem trước & áp dụng
+          Bộ tiêu chí đánh giá bản nháp · Xem trước & áp dụng
         </span>
       </header>
       {plan.warnings.length > 0 && (
@@ -359,11 +361,11 @@ export function AssistantRubricSetupCard({
         </ul>
       )}
       <div className="assistant-rubric-grid">
-        <label>Mã Rubric<input value={code} disabled={busy} maxLength={50} onChange={e => { idempotencyKey.current = makeUuid(); setCode(e.target.value) }} /></label>
-        <label>Tên Rubric<input value={name} disabled={busy} maxLength={255} onChange={e => { idempotencyKey.current = makeUuid(); setName(e.target.value) }} /></label>
+        <label>Mã bộ tiêu chí<input value={code} disabled={busy} maxLength={50} onChange={e => { idempotencyKey.current = makeUuid(); setCode(e.target.value) }} /></label>
+        <label>Tên bộ tiêu chí<input value={name} disabled={busy} maxLength={255} onChange={e => { idempotencyKey.current = makeUuid(); setName(e.target.value) }} /></label>
         <label>Mô hình<select value={projectMode} disabled={busy} onChange={e => { idempotencyKey.current = makeUuid(); setProjectMode(e.target.value) }}><option value="SINGLE_MAJOR">Đơn ngành</option><option value="INTERDISCIPLINARY">Liên ngành</option></select></label>
         <label>Giai đoạn<select value={evaluationStage} disabled={busy} onChange={e => { idempotencyKey.current = makeUuid(); setEvaluationStage(e.target.value) }}><option value="ON_GOING">Quá trình</option><option value="COLD">Chấm nguội</option><option value="DEFENSE">Bảo vệ</option></select></label>
-        <label>Phạm vi<select value={evaluationScope} disabled={busy} onChange={e => { idempotencyKey.current = makeUuid(); setEvaluationScope(e.target.value) }}><option value="COMMON">Chung (COMMON)</option><option value="MAJOR_SPECIFIC">Theo ngành</option><option value="INDIVIDUAL">Cá nhân</option></select></label>
+        <label>Phạm vi<select value={evaluationScope} disabled={busy} onChange={e => { idempotencyKey.current = makeUuid(); setEvaluationScope(e.target.value) }}><option value="COMMON">Chung (Cả đồ án)</option><option value="MAJOR_SPECIFIC">Theo ngành</option><option value="INDIVIDUAL">Cá nhân</option></select></label>
       </div>
       <label className="assistant-setup-sublabel">Mô tả<textarea rows={2} value={description} disabled={busy} onChange={e => setDescription(e.target.value)} /></label>
 
@@ -391,10 +393,10 @@ export function AssistantRubricSetupCard({
         </p>
         {canApply ? (
           <button type="button" className="assistant-setup-apply" disabled={busy || !weightValid || !name.trim() || !code.trim()} onClick={() => void apply()}>
-            {busy ? 'Đang lưu bộ tiêu chí nháp…' : 'Tạo bộ tiêu chí nháp (DRAFT)'}
+            {busy ? 'Đang lưu bộ tiêu chí nháp…' : 'Tạo bộ tiêu chí bản nháp'}
           </button>
         ) : (
-          <p className="assistant-setup-perm-note">Chỉ Cán bộ Khoa hoặc Quản trị viên mới có quyền tạo bộ tiêu chí Rubric.</p>
+          <p className="assistant-setup-perm-note">Chỉ Cán bộ bộ môn hoặc Quản trị viên mới có quyền tạo bộ tiêu chí đánh giá.</p>
         )}
       </footer>
     </section>

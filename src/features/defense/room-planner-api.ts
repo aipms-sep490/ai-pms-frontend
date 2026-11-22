@@ -18,7 +18,10 @@ export interface RoomSchedulingExclusion {
 
 export interface DefenseAllocation {
   projectId: number
+  projectCode?: string | null
+  projectTitle?: string | null
   committeeId?: number
+  committeeName?: string | null
   gateInstanceId?: number
   roomId: number
   roomCode: string
@@ -32,12 +35,14 @@ export interface AutoSchedulePreview {
   scheduledCount: number
   unscheduledCount: number
   allocations: DefenseAllocation[]
-  conflicts: { projectId: number; reason: string }[]
+  conflicts: { projectId: number; projectCode?: string | null; projectTitle?: string | null; reason: string }[]
   concurrencyToken: string
 }
 
 export interface ReviewGate3ScheduleDto {
   projectId: number
+  projectCode?: string | null
+  projectTitle?: string | null
   gateInstanceId: number
   roomId: number
   roomCode: string

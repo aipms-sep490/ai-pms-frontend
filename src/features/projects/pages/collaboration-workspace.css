@@ -15,7 +15,8 @@
 .collaboration-shell .sidebar-rail nav > div { color: var(--cw-muted); }
 .collaboration-shell .app-top-header { height: 58px; border-bottom: 1px solid var(--color-hairline); }
 .collaboration-shell .app-top-header nav .font-mono { font-family: var(--font-sans); color: var(--cw-ink); }
-.collaboration-shell .app-page-content { padding: 32px; }
+.collaboration-shell .app-page-content { padding: 28px 92px 112px 32px; }
+.collaboration-shell .app-page-content.is-full-chat { padding: 20px 24px; }
 .collaboration-workspace { max-width: 1200px; margin: 0 auto; font-size: 14px; line-height: 1.5; }
 .collaboration-workspace *, .collaboration-workspace *::before, .collaboration-workspace *::after { box-sizing: border-box; }
 .collaboration-workspace :is(button, a, input, select, textarea):focus-visible { outline: 2px solid var(--cw-accent); outline-offset: 3px; }
@@ -168,7 +169,8 @@
   .collaboration-shell .app-workspace { padding-left: 232px; }
 }
 @media (min-width: 1024px) and (max-width: 1279px) {
-  .collaboration-shell .app-page-content { padding: 24px; }
+  .collaboration-shell .app-page-content { padding: 24px 88px 112px 24px; }
+  .collaboration-shell .app-page-content.is-full-chat { padding: 16px 20px; }
   .cw-columns { grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; }
   .cw-member-table-heading, .cw-member-row { grid-template-columns: minmax(0, 1fr) 96px; gap: 8px 12px; }
   .cw-member-table-heading > span:last-child { display: none; }
@@ -178,13 +180,15 @@
 }
 @media (max-width: 1023px) {
   .collaboration-shell .app-workspace { padding-left: 0; }
-  .collaboration-shell .app-page-content { padding: 24px; }
+  .collaboration-shell .app-page-content { padding: 24px 24px 124px; }
+  .collaboration-shell .app-page-content.is-full-chat { padding: 16px; }
   .cw-columns { grid-template-columns: minmax(0, 1fr); }
   .cw-side-column { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
   .cw-side-column > section:first-child { grid-column: 1 / -1; }
 }
 @media (max-width: 639px) {
-  .collaboration-shell .app-page-content { padding: 20px 16px; }
+  .collaboration-shell .app-page-content { padding: 20px 16px 124px; }
+  .collaboration-shell .app-page-content.is-full-chat { padding: 8px; }
   .cw-page-heading { flex-direction: column; align-items: flex-start; gap: 16px; }
   .cw-heading-actions { width: 100%; }
   .cw-heading-actions .cw-button-primary { margin-left: auto; }

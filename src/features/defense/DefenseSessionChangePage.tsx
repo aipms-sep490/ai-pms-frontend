@@ -129,21 +129,21 @@ export function DefenseSessionChangePage() {
   if (!Number.isSafeInteger(sessionId) || sessionId < 1)
     return <WorkspacePage title="Phiên bảo vệ"><p role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">Mã phiên bảo vệ không hợp lệ.</p></WorkspacePage>
 
-  return <WorkspacePage title="Phiên bảo vệ & yêu cầu đổi lịch" eyebrow={`Phiên #${sessionId}`}
+  return <WorkspacePage title="Phiên bảo vệ & yêu cầu đổi lịch" eyebrow={defense?.projectCode ?? 'Điều chỉnh lịch bảo vệ'}
     description="Lịch chính thức được đọc từ hệ thống. Chủ tọa và thư ký có thể đề xuất đổi phòng hoặc ca trước khi phiên kết thúc.">
     <div className="space-y-5">
       {loading && <p role="status" className="text-sm text-ink-muted">Đang tải phiên bảo vệ…</p>}
       {error && <InlineAlert tone="error">{error} <button type="button" onClick={reload} className="min-h-11 font-semibold underline">Tải lại</button></InlineAlert>}
       {defense && <section className="rounded-2xl border border-hairline bg-card p-4 shadow-xs">
         <h2 className="font-bold">Lịch hiện tại · {defense.status === 'SCHEDULED' ? 'Đã lên lịch' : 'Đã hủy'}</h2>
-        <p className="mt-2 text-sm">Đồ án #{defense.projectId} · {localTime(defense.startAt)} – {localTime(defense.endAt)}</p>
+        <p className="mt-2 text-sm">{defense.projectCode ? `${defense.projectCode}${defense.projectTitle ? ` · ${defense.projectTitle}` : ''}` : defense.projectTitle || 'Phiên bảo vệ'} · {localTime(defense.startAt)} – {localTime(defense.endAt)}</p>
         <p className="text-sm">Phòng: {defense.room}</p>
       </section>}
       {defense && !loading && !officer && !error && <p className="rounded-xl border border-hairline bg-canvas p-4 text-sm text-ink-muted">Bạn chỉ có quyền xem lịch. Chỉ chủ tọa hoặc thư ký của hội đồng được gửi yêu cầu đổi lịch.</p>}
       {officer && !loading && <section className="rounded-2xl border border-hairline bg-card p-4 shadow-xs">
         <h2 className="font-bold">Yêu cầu đổi lịch</h2>
         {pending && <div className="mt-3 rounded-xl border border-hairline bg-canvas p-3 text-sm">
-          <p>Đang chờ xử lý: phòng #{pending.desiredRoomId} · {localTime(pending.desiredStartAt)}</p>
+          <p>Đang chờ xử lý: {pending.desiredRoomCode ?? rooms.find(room => room.id === pending.desiredRoomId)?.code ?? 'Phòng đề xuất'} · {localTime(pending.desiredStartAt)}</p>
           <p className="mt-1">Lý do: {pending.reasonDetails}</p>
           {pending.requesterId === login?.user.id && <button type="button" disabled={busy}
             onClick={() => void withdraw(pending)} className="mt-2 min-h-11 rounded-lg border border-hairline bg-card px-3 font-semibold disabled:opacity-50">Rút yêu cầu</button>}
@@ -180,7 +180,7 @@ export function DefenseSessionChangePage() {
         </div>}
         {requests.filter(row => row.status !== 'PENDING').length > 0 && <div className="mt-4 text-sm">
           <h3 className="font-semibold">Lịch sử yêu cầu</h3>
-          <ul className="mt-1 space-y-1">{requests.filter(row => row.status !== 'PENDING').map(row => <li key={row.id}>#{row.id} · {requestStatus[row.status] ?? row.status} · {localTime(row.createdAt)}</li>)}</ul>
+          <ul className="mt-1 space-y-1">{requests.filter(row => row.status !== 'PENDING').map(row => <li key={row.id}>{requestStatus[row.status] ?? row.status} · {row.desiredRoomCode ?? rooms.find(r => r.id === row.desiredRoomId)?.code ?? 'Phòng đề xuất'} · {localTime(row.createdAt)}</li>)}</ul>
         </div>}
       </section>}
       {success && <InlineAlert tone="success">{success}</InlineAlert>}

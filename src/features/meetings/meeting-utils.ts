@@ -56,7 +56,7 @@ export function mustRefreshAfterError(reason: unknown): boolean {
 
 export function meetingVenue(meeting: Pick<MeetingDetail, 'location' | 'onlineUrl' | 'videoChannel' | 'meetingDeliveryMode'>): string {
   if (meeting.location) return meeting.meetingDeliveryMode === 'HYBRID' ? meeting.location + ' · Kết hợp trực tuyến' : meeting.location
-  if (meeting.videoChannel === 'IN_APP_VIDEO') return 'Phòng họp trực tuyến PMS'
+  if (meeting.videoChannel === 'IN_APP_VIDEO') return 'Phòng họp trực tuyến AIPMS'
   if (meeting.meetingDeliveryMode === 'REMOTE' || meeting.onlineUrl) return 'Họp trực tuyến'
   return 'Chưa xác định địa điểm'
 }

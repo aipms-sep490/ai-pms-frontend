@@ -44,7 +44,7 @@ export function TeamRosterTable({
     <div className="overflow-hidden rounded-xl border border-hairline bg-card">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-5 py-4">
         <div>
-          <h3 className="text-base font-semibold text-ink">Thành viên nhóm</h3>
+          <h3 className="text-base font-semibold text-ink">Danh sách thành viên</h3>
           <p className="mt-0.5 text-xs text-ink-muted">
             {members.length} thành viên
           </p>

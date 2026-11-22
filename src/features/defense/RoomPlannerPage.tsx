@@ -7,6 +7,7 @@ import { DefenseChangeRequestsPanel } from './DefenseChangeRequestsPanel'
 import { Gate3ScheduleChangePanel } from './Gate3ScheduleChangePanel'
 import { RoomCatalogPanel } from './RoomCatalogPanel'
 import { PeriodCalendarPanel } from './PeriodCalendarPanel'
+import { displayLabel } from '../../components/ui/display-label'
 import { HttpError } from '../../services/http/http-client'
 import {
   applyDefenseSchedule,
@@ -22,6 +23,24 @@ import type { AutoSchedulePreview, DefenseAllocation, ReviewGate3ScheduleDto, Ro
 
 const nextDayVietnam = () => new Date(Date.now() + 86400000).toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' })
 
+function formatVietnamTime(iso: string): string {
+  const parsed = new Date(iso)
+  if (Number.isNaN(parsed.getTime())) return iso.slice(11, 16)
+  return new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }).format(parsed)
+}
+
+function formatVietnamDate(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim())
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : value
+}
+
+function projectDisplay(projectId: number, code?: string | null, title?: string | null): string {
+  if (code && title) return `${code} · ${title}`
+  if (code) return code
+  if (title) return title
+  return `Đồ án #${projectId}`
+}
+
 function plannerError(reason: unknown, fallback: string): string {
   if (reason instanceof HttpError) {
     if (reason.status === 401) return 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.'
@@ -36,6 +55,8 @@ function plannerError(reason: unknown, fallback: string): string {
 interface PublishedSession {
   key: string
   projectId: number
+  projectCode?: string | null
+  projectTitle?: string | null
   roomId: number | null
   roomCode: string | null
   startAt: string
@@ -48,14 +69,16 @@ async function readPublished(periodId: number, gate: 'R3' | 'R4', signal?: Abort
   if (gate === 'R3') {
     const sessions = await getGate3Schedules(periodId, signal)
     return sessions.filter(item => Boolean(item.publishedAt)).map(item => ({
-      key: `R3-${item.gateInstanceId}`, projectId: item.projectId, roomId: item.roomId,
+      key: `R3-${item.gateInstanceId}`, projectId: item.projectId, projectCode: item.projectCode,
+      projectTitle: item.projectTitle, roomId: item.roomId,
       roomCode: item.roomCode, startAt: item.startAt, endAt: item.endAt, status: 'Đã công bố',
       gate3: item,
     }))
   }
   const sessions = await getPeriodDefenseSessions(periodId, undefined, signal)
   return sessions.filter(item => item.status === 'SCHEDULED').map(item => ({
-    key: `R4-${item.id}`, projectId: item.projectId, roomId: item.roomId,
+    key: `R4-${item.id}`, projectId: item.projectId, projectCode: item.projectCode,
+    projectTitle: item.projectTitle, roomId: item.roomId,
     roomCode: item.roomCode, startAt: item.startAt, endAt: item.endAt, status: item.status,
   }))
 }
@@ -234,33 +257,35 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
   return (
     <WorkspacePage
       title={`Phòng & lập lịch ${targetGate === 'R3' ? 'Gate 3 (Review chuyên môn)' : 'Gate 4 (Hội đồng bảo vệ)'}`}
-      eyebrow={`Kỳ đồ án #${periodId}`}
+      eyebrow="Điều phối phòng và lịch trình"
       description="Chọn tầng 2–4, loại phòng hoặc ca khỏi lần tự xếp này, rồi xem trước và duyệt công bố lịch chính thức."
     >
       <fieldset disabled={busy} className="min-w-0 space-y-5">
         {/* Gate Selection Tabs */}
-        <div className="flex flex-wrap gap-2 border-b border-hairline pb-2">
+        <div className="flex flex-wrap gap-2 border-b border-hairline pb-2" role="group" aria-label="Chọn cổng kiểm duyệt cần lập lịch">
           <button
             type="button"
+            aria-pressed={targetGate === 'R4'}
             onClick={() => changeGate('R4')}
             className={`min-h-11 rounded-lg px-4 text-sm font-bold transition-colors ${
               targetGate === 'R4'
                 ? 'bg-primary text-white shadow-xs'
-                : 'bg-card text-ink-muted hover:bg-canvas'
+                : 'border border-hairline bg-card text-ink-muted hover:bg-canvas'
             }`}
           >
-            Gate 4 · Lập lịch bảo vệ tốt nghiệp (Offline)
+            Gate 4 · Lập lịch bảo vệ tốt nghiệp (Trực tiếp)
           </button>
           <button
             type="button"
+            aria-pressed={targetGate === 'R3'}
             onClick={() => changeGate('R3')}
             className={`min-h-11 rounded-lg px-4 text-sm font-bold transition-colors ${
               targetGate === 'R3'
                 ? 'bg-primary text-white shadow-xs'
-                : 'bg-card text-ink-muted hover:bg-canvas'
+                : 'border border-hairline bg-card text-ink-muted hover:bg-canvas'
             }`}
           >
-            Gate 3 · Lập lịch thẩm định chuyên môn (Offline)
+            Gate 3 · Lập lịch thẩm định chuyên môn (Trực tiếp)
           </button>
         </div>
 
@@ -268,11 +293,11 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-primary">
           {targetGate === 'R3' ? (
             <p>
-              <strong>Quy chuẩn Gate 3:</strong> Chỉ xếp cho các nhóm đã <strong>PASSED Gate 2</strong> trong cửa sổ thời gian quy định. Yêu cầu 2 giảng viên phản biện (Chủ tọa & Thư ký), không phải GVHD. Lịch sau khi công bố sẽ gửi thông báo và mở biên bản điện tử.
+              <strong>Quy chuẩn Gate 3:</strong> Chỉ xếp cho các nhóm đã <strong>đạt Gate 2</strong> trong cửa sổ thời gian quy định. Yêu cầu 2 giảng viên phản biện (Chủ tọa &amp; Thư ký), không phải GVHD. Lịch sau khi công bố sẽ gửi thông báo và mở biên bản điện tử.
             </p>
           ) : (
             <p>
-              <strong>Quy chuẩn Gate 4:</strong> Chỉ xếp cho các nhóm đã <strong>PASSED Gate 3</strong>. Yêu cầu hội đồng bảo vệ đã phân công, đủ sức chứa phòng (SV + GV + 5 chỗ dự phòng), chống trùng ca giảng viên và GVHD không được ngồi hội đồng.
+              <strong>Quy chuẩn Gate 4:</strong> Chỉ xếp cho các nhóm đã <strong>đạt Gate 3</strong>. Yêu cầu hội đồng bảo vệ đã phân công, đủ sức chứa phòng (SV + GV + 5 chỗ dự phòng), chống trùng ca giảng viên và GVHD không được ngồi hội đồng.
             </p>
           )}
         </div>
@@ -328,7 +353,7 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
             </p>
           )}
           <p className="mt-3 text-sm text-ink-muted">
-            {activeRooms.length} phòng hoạt động ở tầng 2–4 · {exclusions.length} mục loại trừ chỉ áp dụng cho lần xếp lịch này (không lưu DB).
+            {activeRooms.length} phòng hoạt động ở tầng 2–4 · {exclusions.length} mục loại trừ chỉ áp dụng cho lần xếp lịch này.
           </p>
         </div>
 
@@ -370,7 +395,7 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
                 <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-status-warning-text">
                   {preview.conflicts.map((item) => (
                     <li key={item.projectId}>
-                      Đồ án #{item.projectId}: <strong>{formatScheduleConflictReason(item.reason)}</strong>
+                      {projectDisplay(item.projectId, item.projectCode, item.projectTitle)}: <strong>{formatScheduleConflictReason(item.reason)}</strong>
                     </li>
                   ))}
                 </ul>
@@ -390,11 +415,11 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
                 <TableBody>
                   {preview.allocations.map((item) => (
                     <TableRow key={item.projectId}>
-                      <TableCell className="font-semibold">#{item.projectId}</TableCell>
-                      <TableCell>{item.date}</TableCell>
+                      <TableCell className="font-semibold">{projectDisplay(item.projectId, item.projectCode, item.projectTitle)}</TableCell>
+                      <TableCell>{formatVietnamDate(item.date)}</TableCell>
                       <TableCell>Ca {item.slotNumber}</TableCell>
                       <TableCell className="text-xs text-ink-muted">
-                        {item.startAt.slice(11, 16)} – {item.endAt.slice(11, 16)}
+                        {formatVietnamTime(item.startAt)} – {formatVietnamTime(item.endAt)}
                       </TableCell>
                       <TableCell className="font-medium">{item.roomCode}</TableCell>
                     </TableRow>
@@ -442,10 +467,10 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
                 {targetGate === 'R3' && <TableHeaderCell>Thao tác</TableHeaderCell>}
               </TableRow></TableHead>
               <TableBody>{published.map(item => <TableRow key={item.key}>
-                <TableCell>#{item.projectId}</TableCell>
+                <TableCell className="font-semibold">{projectDisplay(item.projectId, item.projectCode, item.projectTitle)}</TableCell>
                 <TableCell>{new Date(item.startAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</TableCell>
                 <TableCell>{item.roomCode ?? 'Chưa có phòng'}</TableCell>
-                <TableCell>{item.status === 'SCHEDULED' ? 'Đã lên lịch' : item.status}</TableCell>
+                <TableCell>{item.status === 'Đã công bố' ? item.status : displayLabel(item.status)}</TableCell>
                 {targetGate === 'R3' && <TableCell>{item.gate3 &&
                   <button type="button" className="min-h-11 font-semibold text-primary underline" onClick={() => setEditingGate3(item.gate3!)}>Đổi phòng/ca</button>}</TableCell>}
               </TableRow>)}</TableBody>

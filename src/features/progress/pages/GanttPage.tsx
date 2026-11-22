@@ -60,7 +60,7 @@ function ScheduleTrack({ start, end, progress, status, range, ticks, today, labe
   const interval = scheduleInterval(start,end,range)
   return <div className="schedule-track">{ticks.map(tick => <span className="schedule-gridline" key={tick.day} style={{left:`${tick.left}%`}} />)}{today !== null && <span className="schedule-today" style={{left:`${today}%`}} />}
     {interval.state === 'dated' ? <span className={`schedule-bar ${interval.point ? 'is-point' : ''} ${status === 'BLOCKED' ? 'is-blocked' : ''} ${status === 'CANCELLED' ? 'is-cancelled' : ''}`} style={{left:`${interval.left}%`,width:`${interval.width}%`}} role="img" aria-label={`${label}: ${interval.label}${progress === null ? '' : `, ${Math.round(progress)}% hoàn thành`}`} title={`${interval.label}${progress === null ? '' : ` · ${Math.round(progress)}% hoàn thành`}`}>
-      {progress !== null && !interval.point && <span className="schedule-bar-fill" style={{width:`${Math.max(0,Math.min(100,progress))}%`}} />}{!interval.point && progress !== null && <span className={`schedule-bar-value ${progress >= 50 ? 'is-on-fill' : ''}`}>{Math.round(progress)}%</span>}
+      {progress !== null && !interval.point && <span className="schedule-bar-fill" style={{width:`${Math.max(0,Math.min(100,progress))}%`}} />}{!interval.point && progress !== null && interval.width >= 4 && <span className={`schedule-bar-value ${progress >= 50 ? 'is-on-fill' : ''}`}>{Math.round(progress)}%</span>}
     </span> : <span className="schedule-undated">{interval.state === 'invalid' ? 'Khoảng ngày chưa hợp lệ' : 'Chưa có thời gian dự kiến'}</span>}
   </div>
 }

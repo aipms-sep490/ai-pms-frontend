@@ -31,7 +31,7 @@ export function ProjectLifecyclePage() {
     return () => { cancelled = true }
   }, [project?.id, revision])
   if (journey.isLoading) return <PageLoading />
-  if (journey.error) return <ExState message="Chưa tải được hồ sơ đồ án. Hãy thử lại." retry={() => void journey.refreshAll()} />
+  if (journey.error) return <ExecutionPage title="Hồ sơ đồ án"><ExState message="Chưa tải được hồ sơ đồ án. Hãy thử lại." retry={() => void journey.refreshAll()} /></ExecutionPage>
   if (!project || !team) return <ExecutionPage title="Hồ sơ đồ án"><ExState title="Nhóm chưa có hồ sơ đồ án" message="Hoàn thiện điều kiện nhóm rồi tạo đề cương để đăng ký." action={<Link className="ex-button" to="/project/register">Tạo đề cương</Link>} /></ExecutionPage>
   return <ExecutionPage title="Hồ sơ đồ án" eyebrow={project.code} description={`${project.title} · ${team.name} (${team.code})${semester?.name ? ` · ${semester.name}` : ''}`}>
     <div className="lifecycle-page">
@@ -39,7 +39,7 @@ export function ProjectLifecyclePage() {
       <dl className="lifecycle-facts">
         <div>
           <dt>Trạng thái</dt>
-          <dd><span className="ex-badge ex-badge-IN_PROGRESS">{projectStatusLabel(project.status)}</span></dd>
+          <dd><span className={`ex-badge ex-badge-${project.status}`}>{projectStatusLabel(project.status)}</span></dd>
         </div>
         <div>
           <dt>Trưởng nhóm</dt>
@@ -93,11 +93,11 @@ export function ProjectLifecyclePage() {
             </div>
             <div className="min-w-0 flex-1">
               <span className="font-semibold text-sm text-ink block truncate">{member.fullName}</span>
-              <span className="text-xs text-ink-muted block">Thành viên #{member.userId}</span>
+              <span className="text-xs text-ink-muted block">{project.majors?.find(m => m.majorId === member.majorId)?.majorName ?? (member.isLeader ? 'Trưởng nhóm' : 'Thành viên nhóm')}</span>
             </div>
             <span className={`shrink-0 text-xs px-2.5 py-0.5 rounded-full font-semibold ${
               member.isLeader
-                ? 'bg-primary-subtle text-primary border border-status-success-border'
+                ? 'bg-primary-subtle text-primary border border-primary/25'
                 : 'bg-canvas text-ink-muted border border-hairline'
             }`}>
               {member.isLeader ? 'Trưởng nhóm' : 'Thành viên'}
@@ -147,6 +147,17 @@ const historyReasonTranslations: Record<string, string> = {
   'Department staff started proposal review.': 'Bộ môn bắt đầu thẩm định đề cương.',
   'Team completed the initial proposal and submitted it for department review.': 'Nhóm đã hoàn thiện đề cương ban đầu và gửi bộ môn thẩm định.',
   'Initial project registration created by team leader.': 'Trưởng nhóm đã khởi tạo hồ sơ đăng ký đồ án.',
+  'Final package submitted': 'Đã nộp và khóa gói bàn giao cuối kỳ.',
+  'Final package submitted.': 'Đã nộp và khóa gói bàn giao cuối kỳ.',
+  'Confirm pre-approval supervision.': 'Đã xác nhận giảng viên hướng dẫn trước khi thẩm định đề cương.',
+  'Supervision confirmed before academic approval.': 'Giảng viên hướng dẫn đã được xác nhận trước bước phê duyệt học vụ.',
+  'Project submitted for review.': 'Đã nộp đề cương để bộ môn thẩm định.',
+  'Project approved.': 'Đề cương đồ án đã được phê duyệt.',
+  'Project rejected.': 'Đề cương đồ án chưa được chấp thuận.',
+  'Revision requested.': 'Bộ môn yêu cầu chỉnh sửa đề cương.',
+  'Revision submitted.': 'Nhóm đã nộp bản chỉnh sửa đề cương.',
+  'Supervisor assigned.': 'Đã phân công giảng viên hướng dẫn.',
+  'Project activated.': 'Đồ án đã chuyển sang giai đoạn thực hiện.',
 }
 
 function historyReasonLabel(reason: string) {

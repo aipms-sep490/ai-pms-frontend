@@ -35,11 +35,12 @@
 
 .review-page__empty {
   margin: 0;
-  padding: 20px;
+  padding: 36px 24px;
   border: 1px dashed var(--color-hairline);
   border-radius: 12px;
   background: var(--color-card);
   color: var(--color-ink-muted);
+  text-align: center;
 }
 
 .review-page h2 {
@@ -171,18 +172,20 @@
   justify-content: center;
   min-height: 44px;
   padding: 8px 16px;
+  border: 1px solid var(--color-primary);
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
-  background-color: var(--color-primary);
-  color: white;
+  background-color: var(--color-card);
+  color: var(--color-primary);
   text-decoration: none;
   margin-top: 10px;
-  transition: background-color 0.15s;
+  transition: background-color 0.15s, color 0.15s;
   width: fit-content;
 }
 .review-page__open-link:hover {
-  background-color: var(--color-primary-hover);
+  background-color: var(--color-primary-subtle);
+  color: var(--color-primary-hover);
 }
 
 @media (max-width: 620px) {
@@ -203,4 +206,6 @@
 .review-history-list > p { margin:0; padding:14px 0; border-bottom:1px solid var(--color-hairline); font-size:14px; line-height:1.65; overflow-wrap:anywhere; }
 .review-history-list > p:last-child { border-bottom:0; padding-bottom:0; }
 .review-page > p { color:var(--color-ink-muted); font-size:14px; line-height:1.6; }
-.review-page > section section { border:0; border-radius:0; box-shadow:none; }
+
+.review-page > :is(article,section) { padding: 24px; }
+.review-page > section section { border: 0; border-radius: 0; box-shadow: none; }

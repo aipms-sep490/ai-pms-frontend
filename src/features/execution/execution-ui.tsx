@@ -4,10 +4,10 @@ import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { ListLoading } from '../../components/ui/ListLoading'
 import './execution.css'
 
-export function ExecutionPage({ title, description, eyebrow, backTo, action, children }: {
-  title: string; description?: string; eyebrow?: string; backTo?: string; action?: ReactNode; children: ReactNode
+export function ExecutionPage({ title, description, eyebrow, backTo, backLabel, action, children }: {
+  title: string; description?: string; eyebrow?: string; backTo?: string; backLabel?: string; action?: ReactNode; children: ReactNode
 }) {
-  return <WorkspacePage className="execution-page" title={title} description={description} eyebrow={eyebrow} backTo={backTo} action={action}>{children}</WorkspacePage>
+  return <WorkspacePage className="execution-page" title={title} description={description} eyebrow={eyebrow} backTo={backTo} backLabel={backLabel} action={action}>{children}</WorkspacePage>
 }
 export function ExIcon({ name }: { name: string }) { return <span className="material-symbols-outlined" aria-hidden="true">{name}</span> }
 export function ExState({ loading, message, title, retry, action }: { loading?: boolean; message?: string; title?: string; retry?: () => void; action?: ReactNode }) {

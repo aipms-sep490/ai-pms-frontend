@@ -64,7 +64,7 @@ describe('IndustryExpertPortalPage', () => {
     render(<IndustryExpertPortalPage />)
 
     expect((await screen.findAllByText('AI-PMS Web System')).length).toBeGreaterThan(0)
-    expect(screen.getByText(/Ý kiến tư vấn \(Advisory Only\)/)).toBeTruthy()
+    expect(screen.getByText(/Ý kiến tư vấn \(chỉ cố vấn\)/)).toBeTruthy()
     expect(await screen.findByText('specs.pdf')).toBeTruthy()
     expect(screen.getByText('Kiến trúc rất tốt, cần chú ý phân quyền API.')).toBeTruthy()
     expect(screen.getByText(/Phiên bản #1/)).toBeTruthy()

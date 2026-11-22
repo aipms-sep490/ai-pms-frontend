@@ -152,7 +152,7 @@
 /* Sticky live scoring progress bar */
 .evaluator-sticky-scorebar {
   position: sticky;
-  top: 60px;
+  top: 68px;
   z-index: 20;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);

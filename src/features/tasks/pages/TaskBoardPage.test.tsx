@@ -183,10 +183,10 @@ describe('TaskBoardPage', () => {
   it('clears the previous modal task when navigation selects another task', async () => {
     api.getTask.mockImplementation((id: number) => id === 1 ? Promise.resolve(item) : new Promise(() => {}))
     const { router } = renderBoard(true, '/project/tasks?taskDetail=1')
-    expect(await screen.findByRole('heading', { name: /#1 · Phân tích yêu cầu/ })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: /Phân tích yêu cầu/ })).toBeTruthy()
     await act(async () => { await router.navigate('/project/tasks?taskDetail=2') })
-    expect(screen.queryByRole('heading', { name: /#1 · Phân tích yêu cầu/ })).toBeNull()
-    expect(screen.getByRole('heading', { name: 'Công việc #2' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: /Phân tích yêu cầu/ })).toBeNull()
+    expect(screen.getByRole('heading', { name: 'Chi tiết công việc' })).toBeTruthy()
     expect(screen.getByRole('link', { name: /Mở trang chi tiết đầy đủ/ }).getAttribute('href')).toBe('/project/tasks/2')
     expect(api.updateTask).not.toHaveBeenCalled()
     expect(api.updateTaskStatus).not.toHaveBeenCalled()
@@ -204,7 +204,7 @@ describe('TaskBoardPage', () => {
 
     // Modal opens centered over the board
     expect(await screen.findByRole('dialog')).toBeDefined()
-    expect(screen.getByRole('heading', { name: /#1 · Phân tích yêu cầu/ })).toBeDefined()
+    expect(screen.getByRole('heading', { name: /Phân tích yêu cầu/ })).toBeDefined()
 
     // Board context is still fully present in the DOM
     expect(screen.getByRole('region', { name: 'Bảng công việc theo trang' })).toBeDefined()

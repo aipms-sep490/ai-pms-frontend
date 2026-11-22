@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getActionReasons, isActionAllowed, type ProjectDto, type ProjectWorkflowActionsDto, type SupervisorAssignmentDto, type SupervisorCandidateDto, type SupervisorRequestDto, type TeamDto, type UserAccountDto } from '../../../types/backend'
 import { HttpError } from '../../../services/http/http-client'
+import { humanizeHttpError } from '../../../services/http/humanize-http-error'
 import { services } from '../../../services/service-gateway'
 import { normalizeProjectStatus } from '../../projects/hooks/useProjectRegistration'
 import { getActivePrimaryAssignment } from '../../projects/utils/project-resolution.utils'
@@ -14,12 +15,12 @@ function classify(error: unknown): SupervisionError {
   if (error instanceof HttpError || (typeof error === 'object' && error !== null && 'status' in error)) {
     const response = error as { status: number; message?: string }
     if (response.status === 401) return { kind: 'authentication', message: 'Phiên đăng nhập đã hết hạn.' }
-    if (response.status === 403) return { kind: 'forbidden', message: 'Hệ thống từ chối quyền hoặc phạm vi đồ án.' }
-    if (response.status === 404) return { kind: 'not-found', message: 'đồ án, request hoặc candidate không còn khả dụng.' }
-    if (response.status === 409) return { kind: 'conflict', message: `Trạng thái supervisor vừa thay đổi. ${response.message ?? 'Dữ liệu mới đã được tải; hãy tự chọn lại thao tác.'}` }
-    if (response.status === 400 || response.status === 422) return { kind: 'validation', message: response.message || 'Hệ thống từ chối yêu cầu theo quy tắc nghiệp vụ.' }
+    if (response.status === 403) return { kind: 'forbidden', message: 'Bạn không có quyền hoặc phạm vi đồ án để thực hiện thao tác này.' }
+    if (response.status === 404) return { kind: 'not-found', message: 'Đồ án, yêu cầu hoặc giảng viên hướng dẫn không còn khả dụng.' }
+    if (response.status === 409) return { kind: 'conflict', message: humanizeHttpError(error, 'Trạng thái phân công hướng dẫn vừa thay đổi. Dữ liệu mới đã được tải; hãy chọn lại thao tác.') }
+    if (response.status === 400 || response.status === 422) return { kind: 'validation', message: humanizeHttpError(error, 'Hệ thống từ chối yêu cầu theo quy tắc nghiệp vụ.') }
   }
-  return { kind: 'system', message: error instanceof Error ? error.message : 'Không thể tải hoặc xử lý dữ liệu supervisor.' }
+  return { kind: 'system', message: humanizeHttpError(error, 'Không thể tải hoặc xử lý dữ liệu giảng viên hướng dẫn.') }
 }
 
 export function useSupervisorSelection({

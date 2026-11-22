@@ -12,6 +12,7 @@ export function StudentDashboardSummary() {
   const [data, setData] = useState<StudentDashboard | null>(null)
   const [timeline, setTimeline] = useState<StudentReviewTimelineDto | null>(null)
   const [latestAssessment, setLatestAssessment] = useState<WeeklyAssessment | null>(null)
+  const [weeklyStatus, setWeeklyStatus] = useState<'ok' | 'forbidden' | 'unavailable'>('ok')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,8 +35,10 @@ export function StudentDashboardSummary() {
         try {
           const weekly = await getWeeklyAssessmentHistory(dashboard.project.id, {}, 1, 1)
           setLatestAssessment(weekly.items[0] ?? null)
-        } catch {
+          setWeeklyStatus('ok')
+        } catch (weeklyErr) {
           setLatestAssessment(null)
+          setWeeklyStatus(weeklyErr instanceof HttpError && weeklyErr.status === 403 ? 'forbidden' : 'unavailable')
         }
       }
     } catch (reason) {
@@ -53,7 +56,7 @@ export function StudentDashboardSummary() {
     void load()
   }, [load])
 
-  if (loading) return <PageLoading label="Đang tải buồng lái điều hành cá nhân…" />
+  if (loading) return <PageLoading label="Đang tải tổng quan tiến độ đồ án…" />
 
   if (error || !data) {
     return (
@@ -90,14 +93,11 @@ export function StudentDashboardSummary() {
   ].slice(0, 3)
 
   return (
-    <section className="space-y-6" aria-label="Buồng lái điều hành đồ án sinh viên">
-      {/* =========================================================================
-          COCKPIT GAUGES: 4 CHỈ SỐ HỌC THUẬT & THỰC THI TÁCH BẠCH
-          ========================================================================= */}
+    <section className="space-y-6" aria-label="Tổng quan tiến độ đồ án sinh viên">
       <div>
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-ink-muted">
-            Bảng đồng hồ điều hành (Cockpit Gauges)
+            Tổng quan tiến độ đồ án
           </h2>
           <span className="text-xs text-ink-muted">
             Cập nhật lúc: {new Date(data.asOfUtc).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
@@ -133,10 +133,10 @@ export function StudentDashboardSummary() {
             </p>
           </div>
 
-          {/* Gauge 2: Tiến độ học vụ (Review Gates %) */}
+          {/* Gauge 2: Tiến độ cổng kiểm duyệt */}
           <div className="card-hover-lift rounded-xl border border-hairline bg-card p-4.5 shadow-2xs">
             <div className="flex items-center justify-between text-xs text-ink-muted">
-              <span className="font-semibold">Tiến độ học vụ (Gates)</span>
+              <span className="font-semibold">Tiến độ cổng kiểm duyệt</span>
               <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">verified</span>
             </div>
             <div className="mt-2 flex items-baseline gap-2">
@@ -154,11 +154,11 @@ export function StudentDashboardSummary() {
               />
             </div>
             <p className="mt-2 truncate text-xs text-ink-muted" title={timeline?.academicProgressSource ?? 'Chưa cấu hình chính sách cổng'}>
-              Cổng hiện tại: <strong className="text-ink">{timeline?.currentGateCode ?? 'R1'}</strong>
+              Cổng hiện tại: <strong className="text-ink">{timeline?.currentGateCode?.trim() || 'Chưa mở cổng'}</strong>
             </p>
           </div>
 
-          {/* Gauge 3: Minh chứng đã duyệt (Evidence Coverage) */}
+          {/* Gauge 3: Minh chứng đã duyệt */}
           <div className="card-hover-lift rounded-xl border border-hairline bg-card p-4.5 shadow-2xs">
             <div className="flex items-center justify-between text-xs text-ink-muted">
               <span className="font-semibold">Minh chứng đã duyệt</span>
@@ -183,7 +183,7 @@ export function StudentDashboardSummary() {
             </p>
           </div>
 
-          {/* Gauge 4: Sẵn sàng bảo vệ (Defense Readiness) */}
+          {/* Gauge 4: Điều kiện bảo vệ */}
           <div className="card-hover-lift rounded-xl border border-hairline bg-card p-4.5 shadow-2xs">
             <div className="flex items-center justify-between text-xs text-ink-muted">
               <span className="font-semibold">Điều kiện bảo vệ</span>
@@ -206,29 +206,36 @@ export function StudentDashboardSummary() {
             <p className="mt-3 truncate text-xs text-ink-muted" title={timeline?.defenseReadinessStatus ?? 'Đang trong tiến trình học kỳ'}>
               {timeline?.capabilities?.blockingReasons?.length
                 ? `Còn ${timeline.capabilities.blockingReasons.length} điều kiện cần hoàn thiện`
-                : 'Theo dõi theo tiến trình các cổng'}
+                : 'Theo dõi qua các cổng kiểm duyệt'}
             </p>
           </div>
         </div>
       </div>
 
-      {/* =========================================================================
-          FLIGHT DECK: 3 VIỆC CẦN LÀM GẤP NHẤT (URGENT ACTION DECK)
-          ========================================================================= */}
+      {/* VIỆC CẦN LÀM HÔM NAY */}
       <section className="space-y-3 rounded-2xl border border-hairline bg-card p-5 shadow-xs sm:p-6" aria-labelledby="flight-deck-heading">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-[22px]" aria-hidden="true">bolt</span>
             <h2 id="flight-deck-heading" className="font-heading text-base font-bold text-ink">
-              Việc cần làm hôm nay (Flight Deck)
+              Việc cần làm hôm nay
             </h2>
           </div>
-          <Link
-            to="/project/tasks"
-            className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          >
-            Xem toàn bộ bảng công việc →
-          </Link>
+          {project?.status === 'ACTIVE' ? (
+            <Link
+              to="/project/tasks"
+              className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              Xem toàn bộ bảng công việc →
+            </Link>
+          ) : project?.status === 'FINAL_SUBMISSION' ? (
+            <Link
+              to="/project/final-submission"
+              className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              Mở bàn giao cuối kỳ →
+            </Link>
+          ) : null}
         </div>
 
         {urgentTasks.length === 0 ? (
@@ -255,14 +262,12 @@ export function StudentDashboardSummary() {
                   </span>
                   <div className="min-w-0">
                     <Link
-                      to={`/project/tasks/${task.id}`}
+                      to={project?.status === 'FINAL_SUBMISSION' ? '/project/final-submission' : `/project/tasks/${task.id}`}
                       className="font-semibold text-sm text-ink hover:text-primary line-clamp-1"
                     >
                       {task.title}
                     </Link>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-                      <span>Mã: #{task.id}</span>
-                      <span>·</span>
                       <span className={task.isOverdue ? 'font-bold text-status-error-text' : ''}>
                         Hạn chót: {formatDate(task.dueAtUtc)}
                         {task.isOverdue && ' (Đã quá hạn)'}
@@ -279,10 +284,10 @@ export function StudentDashboardSummary() {
 
                 <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
                   <Link
-                    to={`/project/tasks/${task.id}`}
+                    to={project?.status === 'FINAL_SUBMISSION' ? '/project/final-submission' : `/project/tasks/${task.id}`}
                     className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-hairline bg-canvas px-3 text-xs font-semibold text-ink-soft transition-colors hover:border-primary/40 hover:text-primary"
                   >
-                    Xử lý ngay
+                    {project?.status === 'FINAL_SUBMISSION' ? 'Xem bàn giao' : 'Xử lý ngay'}
                     <span className="material-symbols-outlined text-[15px]" aria-hidden="true">arrow_forward</span>
                   </Link>
                 </div>
@@ -313,7 +318,9 @@ export function StudentDashboardSummary() {
                 className={`rounded-md px-3 py-1 text-xs font-bold ${
                   analysis.riskLevel === 'HIGH' || analysis.riskLevel === 'CRITICAL'
                     ? 'bg-status-error-bg text-status-error-text border border-status-error-border'
-                    : 'bg-status-warning-bg text-status-warning-text border border-status-warning-border'
+                    : analysis.riskLevel === 'LOW'
+                      ? 'bg-status-success-bg text-status-success-text border border-status-success-border'
+                      : 'bg-status-warning-bg text-status-warning-text border border-status-warning-border'
                 }`}
               >
                 Mức rủi ro: {riskLabel(analysis.riskLevel)}
@@ -393,6 +400,14 @@ export function StudentDashboardSummary() {
                 </div>
               )}
             </div>
+          ) : weeklyStatus === 'forbidden' ? (
+            <div className="mt-4 flex items-center gap-3 rounded-xl border border-hairline bg-canvas/40 p-4 text-xs text-ink-muted" role="status">
+              <span className="material-symbols-outlined text-2xl text-slate-400" aria-hidden="true">lock</span>
+              <div>
+                <p className="font-semibold text-ink">Chưa mở quyền xem lịch sử đánh giá tuần</p>
+                <p className="mt-0.5">Mục này chỉ hiển thị khi kỳ học vụ hoặc giảng viên bật chế độ chia sẻ đánh giá định kỳ.</p>
+              </div>
+            </div>
           ) : (
             <div className="mt-4 flex items-center gap-3 rounded-xl border border-hairline bg-canvas p-4 text-xs text-ink-muted">
               <span className="material-symbols-outlined text-2xl text-ink-muted" aria-hidden="true">info</span>
@@ -417,18 +432,18 @@ export function StudentDashboardSummary() {
             title: task.title,
             date: task.dueAtUtc,
             overdue: task.isOverdue,
-            href: `/project/tasks/${task.id}`,
+            href: project?.status === 'FINAL_SUBMISSION' ? '/project/final-submission' : `/project/tasks/${task.id}`,
           }))}
         />
         <DeadlineList
-          title="Mốc sắp đến hạn (Milestones)"
+          title="Mốc đồ án sắp đến hạn"
           empty="Chưa có mốc nào sắp đến hạn cần chú ý."
           items={(data.milestoneDeadlines ?? []).map(item => ({
             id: item.id,
             title: item.title,
             date: item.dueDate,
             overdue: item.isOverdue,
-            href: `/project/milestones/${item.id}`,
+            href: project?.status === 'FINAL_SUBMISSION' ? '/project/final-submission' : `/project/milestones/${item.id}`,
           }))}
         />
       </div>
@@ -485,7 +500,7 @@ function formatDate(value: string) {
 }
 
 function riskLabel(value: string) {
-  return ({ CRITICAL: 'Nghiêm trọng', HIGH: 'Cao', MEDIUM: 'Trung bình', LOW: 'Thấp' } as Record<string, string>)[value] ?? value
+  return ({ CRITICAL: 'Rất cao', HIGH: 'Cao', MEDIUM: 'Trung bình', LOW: 'Thấp' } as Record<string, string>)[value] ?? value
 }
 
 function contributionStatusLabel(value: string) {

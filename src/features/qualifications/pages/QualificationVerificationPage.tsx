@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '../../../components/ui/Button'
+import { ListLoading } from '../../../components/ui/ListLoading'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { useQualificationQueue } from '../hooks/useQualificationQueue'
@@ -51,8 +52,8 @@ export function QualificationVerificationPage() {
       {queue.error && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{queue.error}</div>}
       {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{notice}</p>}
     </section>
-    {queue.loading ? <p role="status" className="p-4 text-sm text-ink-muted">Đang tải hồ sơ…</p> : !queue.error && queue.items.length === 0 ? <p className="workspace-surface p-5 text-sm text-ink-muted">Không có hồ sơ phù hợp.</p> : <ul className="space-y-3" aria-label="Hồ sơ sinh viên">{queue.items.map(item => <li key={item.id} className="workspace-surface p-4 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words font-heading font-semibold text-ink">{item.fullName}</h2><p className="mt-1 font-mono text-xs text-ink-muted">{item.studentCode ?? `Sinh viên #${item.userId}`}</p></div><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone[item.verificationStatus] ?? statusTone.EXPIRED}`}>{statuses[item.verificationStatus] ?? item.verificationStatus}</span></div>
+    {queue.loading ? <ListLoading label="Đang tải hồ sơ…" /> : !queue.error && queue.items.length === 0 ? <p className="workspace-surface p-5 text-sm text-ink-muted">Không có hồ sơ phù hợp.</p> : <ul className="space-y-3" aria-label="Hồ sơ sinh viên">{queue.items.map(item => <li key={item.id} className="workspace-surface p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words font-heading font-semibold text-ink">{item.fullName}</h2><p className="mt-1 font-mono text-xs text-ink-muted">{item.studentCode ?? 'Chưa có MSSV'}</p></div><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone[item.verificationStatus] ?? statusTone.EXPIRED}`}>{statuses[item.verificationStatus] ?? item.verificationStatus}</span></div>
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Đào tạo</dt><dd className="mt-1 font-medium text-ink">{item.trainingStatus === 'TRAINING_COMPLETED' ? 'Đã hoàn thành' : 'Chưa hoàn thành'}</dd></div>
         <div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Số chứng chỉ</dt><dd className="mt-1 break-all font-medium text-ink">{item.certificateNumber ?? 'Chưa khai báo'}</dd></div>
@@ -61,7 +62,7 @@ export function QualificationVerificationPage() {
       </dl>
       {item.certificateFileId && <QualificationCertificateViewer key={`${item.id}:${item.concurrencyToken}:${item.certificateFileId}`} qualificationId={item.id} />}
       {item.rejectionReason && <p className="mt-3 break-words rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">Lý do từ chối: {item.rejectionReason}</p>}
-      {item.verifiedAt && <p className="mt-3 text-xs text-ink-muted">Đã xử lý ngày {date(item.verifiedAt)} · Người xác minh #{item.verifiedBy}</p>}
+      {item.verifiedAt && <p className="mt-3 text-xs text-ink-muted">Đã xử lý ngày {date(item.verifiedAt)}{item.verifiedByName ? ` · Người xác minh: ${item.verifiedByName}` : ''}</p>}
       {item.verificationStatus === 'PENDING_VERIFICATION' && <div className="mt-4 flex flex-wrap gap-3">
         <span title={item.trainingStatus !== 'TRAINING_COMPLETED' ? 'Cần hoàn thành đào tạo trước khi xác minh.' : undefined}><Button className="min-h-11" disabled={pendingId !== null || !item.concurrencyToken || item.trainingStatus !== 'TRAINING_COMPLETED'} onClick={() => void decide(item.id, item.concurrencyToken ?? '', false)}>Xác minh</Button></span>
         <Button className="min-h-11" variant="danger" disabled={pendingId !== null || !item.concurrencyToken} onClick={() => void decide(item.id, item.concurrencyToken ?? '', true)}>Từ chối</Button>

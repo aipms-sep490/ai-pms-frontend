@@ -1,4 +1,5 @@
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import { ListLoading } from '../../../components/ui/ListLoading'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -77,7 +78,9 @@ export function AcademicStructurePage() {
     }
   }
 
-  const hasStateBlock = academic.isUnauthenticated || academic.isLoading || academic.isUnauthorized || academic.isForbidden || Boolean(academic.error)
+  const hasStateBlock = academic.isUnauthenticated || academic.isUnauthorized || academic.isForbidden || Boolean(academic.error)
+
+  const hasFilters = Boolean(draftFilters.search.trim() || draftFilters.organizationId || draftFilters.includeInactive)
 
   return (
     <WorkspacePage
@@ -85,14 +88,12 @@ export function AcademicStructurePage() {
       title="Cấu trúc đào tạo"
       eyebrow="Quản lý học vụ"
       description="Sắp xếp tổ chức, bộ môn và chuyên ngành; quản lý thông tin và trạng thái hoạt động."
-      action={!hasStateBlock && academic.canManageOrganizations ? <Button onClick={() => openEditor('organization')}>Thêm tổ chức</Button> : null}
+      action={!hasStateBlock && !academic.isLoading && academic.canManageOrganizations ? <Button onClick={() => openEditor('organization')}>Thêm tổ chức</Button> : null}
     >
       {confirmationDialog}
 
       {academic.isUnauthenticated ? (
         <section className="academic-state-panel academic-error-panel" role="alert"><div><strong>Cần đăng nhập để xem cấu trúc học vụ</strong><p>Đăng nhập để xem thông tin đào tạo của bạn.</p></div><Link to="/login" className="academic-link-button text-white">Đăng nhập</Link></section>
-      ) : academic.isLoading ? (
-        <section className="academic-state-panel" role="status">Đang tải cấu trúc học vụ…</section>
       ) : academic.isUnauthorized ? (
         <section className="academic-state-panel academic-error-panel" role="alert"><div><strong>Phiên đăng nhập đã hết hạn</strong><p>Đăng nhập lại để tiếp tục xem thông tin đào tạo.</p></div><Link to="/login" className="academic-link-button text-white">Đăng nhập</Link></section>
       ) : academic.isForbidden ? (
@@ -115,6 +116,7 @@ export function AcademicStructurePage() {
             </label>
             <label className="academic-checkbox"><input type="checkbox" checked={draftFilters.includeInactive} onChange={(event) => setDraftFilters((current) => ({ ...current, includeInactive: event.target.checked }))} /> Bao gồm bản ghi ngừng hoạt động</label>
             <Button type="submit" variant="secondary">Áp dụng bộ lọc</Button>
+            {hasFilters && <Button type="button" variant="ghost" onClick={() => { setDraftFilters(initialFilters); setFilters(initialFilters) }}>Xóa lọc</Button>}
           </form>
 
           {!academic.canManageAcademicStructure && academic.context && (
@@ -123,7 +125,9 @@ export function AcademicStructurePage() {
           {operationError && <p className="academic-operation-error" role="alert">{operationError}</p>}
           {operationSuccess && <p className="academic-operation-success" role="status">{operationSuccess}</p>}
 
-          {academic.isEmpty ? (
+          {academic.isLoading ? (
+            <ListLoading label="Đang tải cấu trúc học vụ…" />
+          ) : academic.isEmpty ? (
             <section className="academic-state-panel" role="status">Không có tổ chức, bộ môn hoặc chuyên ngành nào khớp bộ lọc hiện tại.</section>
           ) : academic.hierarchy ? (
             <AcademicHierarchyTree

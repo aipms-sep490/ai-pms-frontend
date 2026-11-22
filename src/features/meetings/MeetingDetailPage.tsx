@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Modal } from '../../components/ui/Modal'
+import { displayLabel } from '../../components/ui/display-label'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { useAssistantActionDraft } from '../ai/useAssistantActionDraft'
 import { env } from '../../app/config/env'
@@ -145,7 +146,7 @@ function MeetingDetailView({ id }: { id: number }) {
     : 'Bỏ các thay đổi chưa lưu trong biểu mẫu này?'
   const isDangerConfirm = confirmation?.type === 'cancel' || confirmation?.type === 'remove' || confirmation?.type === 'discard'
   const onlineUrl = safeMeetingUrl(meeting?.onlineUrl ?? null)
-  return <MeetingShell title={meeting && !loadError ? meeting.title : 'Chi tiết cuộc họp'} projectTitle={project.title} backTo={`${routeBase}/meetings`} description="Thông tin cuộc họp, biên bản và những việc cả nhóm đã thống nhất." action={<Link className="mtg-button mtg-button--secondary" to={`${routeBase}/meetings`}>Danh sách cuộc họp</Link>}>
+  return <MeetingShell title={meeting && !loadError ? meeting.title : 'Chi tiết cuộc họp'} projectTitle={project.title} backTo={`${routeBase}/meetings`} backLabel="Danh sách cuộc họp" description="Thông tin cuộc họp, biên bản và những việc cả nhóm đã thống nhất.">
     <MeetingUnsavedNotice dirty={dirty} busy={busy} />
     {success && <p role="status" className="mtg-notice mtg-notice--success">{success}</p>}
     {error && <MeetingError message={error} />}
@@ -211,7 +212,7 @@ function MeetingDetailView({ id }: { id: number }) {
             const selected = Number(participantId)
             if (!candidates.data.some((candidate) => candidate.userId === selected) || meeting.participants.some((participant) => participant.userId === selected) || dirty) return
             void mutate(() => api.addMeetingParticipant(id, selected, meeting.concurrencyToken), 'Đã thêm người tham gia.')
-          }}><label>Thêm người tham gia<select value={participantId} disabled={disabled || dirty} onChange={(event) => setParticipantId(event.target.value)}><option value="">Chọn thành viên hoặc GVHD</option>{candidates.data.filter((candidate) => !meeting.participants.some((participant) => participant.userId === candidate.userId)).map((candidate) => <option key={candidate.userId} value={candidate.userId}>{candidate.fullName} · {candidate.role}</option>)}</select></label><button className="mtg-button mtg-button--secondary" disabled={disabled || dirty || !participantId} type="submit">Thêm vào cuộc họp</button></form>}</>}
+          }}><label>Thêm người tham gia<select value={participantId} disabled={disabled || dirty} onChange={(event) => setParticipantId(event.target.value)}><option value="">Chọn thành viên hoặc GVHD</option>{candidates.data.filter((candidate) => !meeting.participants.some((participant) => participant.userId === candidate.userId)).map((candidate) => <option key={candidate.userId} value={candidate.userId}>{candidate.fullName} · {displayLabel(candidate.role)}</option>)}</select></label><button className="mtg-button mtg-button--secondary" disabled={disabled || dirty || !participantId} type="submit">Thêm vào cuộc họp</button></form>}</>}
         </section>
 
       </aside></div>
@@ -220,7 +221,7 @@ function MeetingDetailView({ id }: { id: number }) {
           {manage && scheduled && <div className="mtg-stack"><button className="mtg-button" disabled={disabled || dirty} onClick={() => setConfirmation({ type: 'complete' })}>Hoàn tất cuộc họp</button><button className="mtg-button mtg-button--danger" disabled={disabled || dirty} onClick={() => setConfirmation({ type: 'cancel' })}>Hủy lịch họp</button></div>}
           {dirty && <p className="mtg-help">Lưu hoặc đóng phần đang chỉnh sửa trước khi thực hiện thao tác khác.</p>}
           {!needsRefresh && <button className="mtg-text-button mtg-refresh" disabled={busy} onClick={() => dirty ? setConfirmation({ type: 'refresh' }) : reload()}>Tải lại trạng thái</button>}
-          {env.meetingCollaborationEnabled && manage && collaboration && collaboration.emailDeliveries.length > 0 && <div className="mtg-stack"><h3 className="mtg-subheading">Gửi email nhắc</h3><ul className="mtg-email-deliveries">{collaboration.emailDeliveries.map((delivery, index) => <li key={`${delivery.userId}-${delivery.notificationType}-${index}`}>{delivery.notificationType} · {delivery.status}{delivery.attemptCount > 1 ? ` · ${delivery.attemptCount} lần thử` : ''}{delivery.sentAt ? ` · ${formatMeetingTime(delivery.sentAt)}` : ''}</li>)}</ul>{collaboration.hasMoreEmailDeliveries && <p className="mtg-help">Còn thêm lượt gửi email chưa hiển thị.</p>}</div>}
+          {env.meetingCollaborationEnabled && manage && collaboration && collaboration.emailDeliveries.length > 0 && <div className="mtg-stack"><h3 className="mtg-subheading">Gửi email nhắc</h3><ul className="mtg-email-deliveries">{collaboration.emailDeliveries.map((delivery, index) => <li key={`${delivery.userId}-${delivery.notificationType}-${index}`}>{displayLabel(delivery.notificationType)} · {displayLabel(delivery.status)}{delivery.attemptCount > 1 ? ` · ${delivery.attemptCount} lần thử` : ''}{delivery.sentAt ? ` · ${formatMeetingTime(delivery.sentAt)}` : ''}</li>)}</ul>{collaboration.hasMoreEmailDeliveries && <p className="mtg-help">Còn thêm lượt gửi email chưa hiển thị.</p>}</div>}
         </section>
         <MeetingVideoSection meeting={meeting} routeBase={routeBase} />
         <MeetingVideoPresencePanel meeting={meeting} />

@@ -82,12 +82,12 @@ it('validates 100% root weight sum and applies draft rubric setup for department
   // Change weight so total != 100% -> button disabled
   const weightInputs = screen.getAllByRole('spinbutton')
   fireEvent.change(weightInputs[0], { target: { value: '50' } })
-  expect((screen.getByRole('button', { name: 'Tạo bộ tiêu chí nháp (DRAFT)' }) as HTMLButtonElement).disabled).toBe(true)
+  expect((screen.getByRole('button', { name: 'Tạo bộ tiêu chí bản nháp' }) as HTMLButtonElement).disabled).toBe(true)
 
   // Restore to 40% -> total 100% -> apply succeeds
   fireEvent.change(weightInputs[0], { target: { value: '40' } })
-  fireEvent.click(screen.getByRole('button', { name: 'Tạo bộ tiêu chí nháp (DRAFT)' }))
-  await waitFor(() => expect(screen.getByText('Đã tạo bộ tiêu chí nháp (DRAFT)')).toBeTruthy())
+  fireEvent.click(screen.getByRole('button', { name: 'Tạo bộ tiêu chí bản nháp' }))
+  await waitFor(() => expect(screen.getByText('Đã tạo bộ tiêu chí bản nháp')).toBeTruthy())
   expect(mocks.applyRubricAiSetup).toHaveBeenCalledWith(expect.objectContaining({ code: 'RUBRIC_SE_2026', academicSemesterId: 3 }))
   fireEvent.click(screen.getByRole('button', { name: 'Mở quản lý Bộ tiêu chí' }))
   expect(onOpenRubrics).toHaveBeenCalled()

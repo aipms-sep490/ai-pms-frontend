@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { displayLabel } from '../../../components/ui/display-label'
 import type {
   GateRequirement,
   ReviewGate,
@@ -122,7 +123,9 @@ export function ReviewGateBuilder({
             </span>
           </div>
           <p className="mt-1 text-xs text-ink-muted">
-            Chế độ: <strong className="text-ink-soft">{template.mode === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành'}</strong> · Ngành: {template.major} · Mã: {template.code}
+            Chế độ: <strong className="text-ink-soft">{template.mode === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành'}</strong>
+            {template.major && template.major !== 'INTERDISCIPLINARY' && template.major !== 'SINGLE_MAJOR' ? ` · Ngành: ${template.major}` : ''}
+            {` · Mã: ${template.code}`}
           </p>
         </div>
 
@@ -383,7 +386,7 @@ export function ReviewGateBuilder({
                             {req.title}
                           </strong>
                           <span className="text-xs text-ink-muted">
-                            Loại: {req.type} · Ngành: {req.scope} · Thẩm định: {req.verification}
+                            Loại: {displayLabel(req.type)} · Phạm vi: {displayLabel(req.scope)} · Thẩm định: {displayLabel(req.verification)}
                           </span>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">

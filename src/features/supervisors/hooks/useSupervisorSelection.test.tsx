@@ -92,7 +92,7 @@ describe('useSupervisorSelection', () => {
     await act(async () => { expect(await result.current.cancel(pending as never)).toBe(false) })
     expect(supervisor.cancelRequest).toHaveBeenCalledTimes(1)
     expect(supervisor.getRequests).toHaveBeenCalledTimes(2)
-    expect(result.current.error?.message).toContain('Request already processed.')
+    expect(result.current.error?.message).toContain('Trạng thái phân công hướng dẫn vừa thay đổi')
   })
 
   it('derives missingMentorMajorIds from the submit action reasons, not from assignments', async () => {

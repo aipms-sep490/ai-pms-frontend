@@ -221,11 +221,15 @@ export function ReviewGateGovernancePage() {
     }
   }
 
+  const publishedCount = templates.filter(t => t.status === 'PUBLISHED').length
+  const draftCount = templates.filter(t => t.status !== 'PUBLISHED').length
+  const selectedMatrixProject = matrixProjects.find(p => p.projectId === selectedProjectId)
+
   return (
     <WorkspacePage
       title="Cấu hình & Giám sát Tiến trình Đồ án"
-      eyebrow="Quản lý Học vụ · Review Gate Governance"
-      description="Thiết kế các đợt thẩm định học thuật (Review Gates R1..Rn), kiểm tra điều kiện minh chứng và ma trận theo dõi tiến độ các nhóm."
+      eyebrow="Quản lý học vụ · Chính sách cổng kiểm duyệt"
+      description="Thiết kế các cổng kiểm duyệt (R1..Rn), kiểm tra điều kiện minh chứng và ma trận theo dõi tiến độ các nhóm."
     >
       <ReviewGatesMockNotice />
       {/* Alert Notices */}
@@ -254,42 +258,46 @@ export function ReviewGateGovernancePage() {
       )}
 
       {/* Main Navigation Tabs */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-hairline pb-2">
+      <div className="flex flex-wrap items-center gap-2 border-b border-hairline pb-2" role="group" aria-label="Khu vực quản trị cổng kiểm duyệt">
         <button
           type="button"
+          aria-pressed={activeTab === 'overview'}
           onClick={() => setActiveTab('overview')}
-          className={`rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+          className={`min-h-11 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
             activeTab === 'overview'
               ? 'bg-primary text-white shadow-2xs'
               : 'text-ink-muted hover:bg-canvas'
           }`}
         >
-          Thư viện Mẫu Tiến trình (Overview)
+          Thư viện mẫu tiến trình
         </button>
         <button
           type="button"
+          aria-pressed={activeTab === 'builder'}
           onClick={() => setActiveTab('builder')}
-          className={`rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+          className={`min-h-11 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
             activeTab === 'builder'
               ? 'bg-primary text-white shadow-2xs'
               : 'text-ink-muted hover:bg-canvas'
           }`}
         >
-          Thiết kế Review Gates (Builder)
+          Thiết kế cổng kiểm duyệt
         </button>
         <button
           type="button"
+          aria-pressed={activeTab === 'matrix'}
           onClick={() => { setReviewerGaps(null); setActiveTab('matrix') }}
-          className={`rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+          className={`min-h-11 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
             activeTab === 'matrix'
               ? 'bg-primary text-white shadow-2xs'
               : 'text-ink-muted hover:bg-canvas'
           }`}
         >
-          Ma trận Giám sát Tiến trình (Matrix)
+          Ma trận tiến độ
         </button>
         <button
           type="button"
+          aria-pressed={activeTab === 'hybrid'}
           onClick={() => {
             const currentHasHybrid = matrixProjects.find(p => p.projectId === selectedProjectId)?.hybridScopes
             if (!currentHasHybrid) {
@@ -298,24 +306,25 @@ export function ReviewGateGovernancePage() {
             }
             setActiveTab('hybrid')
           }}
-          className={`rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+          className={`min-h-11 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
             activeTab === 'hybrid'
               ? 'bg-primary text-white shadow-2xs'
               : 'text-ink-muted hover:bg-canvas'
           }`}
         >
-          Gate Liên ngành (Interdisciplinary)
+          Cổng liên ngành
         </button>
         <button
           type="button"
+          aria-pressed={activeTab === 'defense'}
           onClick={() => setActiveTab('defense')}
-          className={`rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+          className={`min-h-11 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
             activeTab === 'defense'
               ? 'bg-primary text-white shadow-2xs'
               : 'text-ink-muted hover:bg-canvas'
           }`}
         >
-          Xét Điều kiện Bảo vệ (Defense Readiness)
+          Xét điều kiện bảo vệ
         </button>
       </div>
 
@@ -328,7 +337,7 @@ export function ReviewGateGovernancePage() {
           {/* TAB 1: OVERVIEW / TEMPLATES LIBRARY */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
                   <span className="text-xs font-semibold text-ink-muted">Kỳ học áp dụng</span>
                   <p className="mt-1 text-xl font-bold text-ink">
@@ -340,14 +349,23 @@ export function ReviewGateGovernancePage() {
                   <p className="mt-1 text-2xl font-black text-primary">{templates.length}</p>
                 </div>
                 <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
-                  <span className="text-xs font-semibold text-ink-muted">Số Gates tiêu chuẩn</span>
+                  <span className="text-xs font-semibold text-ink-muted">Số cổng tiêu chuẩn</span>
                   <p className="mt-1 text-2xl font-black text-ink">
-                    {templates.length > 0 ? `${templates[0].gatesCount < 10 ? '0' : ''}${templates[0].gatesCount} Gates` : 'Chưa cấu hình'}
+                    {templates.length > 0 ? `${templates[0].gatesCount < 10 ? '0' : ''}${templates[0].gatesCount} cổng` : 'Chưa cấu hình'}
                   </p>
                 </div>
                 <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
-                  <span className="text-xs font-semibold text-ink-muted">Trạng thái phê duyệt</span>
-                  <div className="mt-2"><StatusBadge tone="warning" label="Bản nháp Bộ môn" /></div>
+                  <span className="text-xs font-semibold text-ink-muted">Trạng thái mẫu</span>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {templates.length === 0 ? (
+                      <StatusBadge tone="neutral" label="Chưa có mẫu" />
+                    ) : (
+                      <>
+                        {publishedCount > 0 && <StatusBadge tone="success" label={`${publishedCount} đã công bố`} />}
+                        {draftCount > 0 && <StatusBadge tone="warning" label={`${draftCount} bản nháp`} />}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -419,7 +437,9 @@ export function ReviewGateGovernancePage() {
                             <span className="block font-semibold text-ink">
                               {tmpl.mode === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành'}
                             </span>
-                            <span className="text-xs text-ink-muted">{tmpl.major}</span>
+                            {tmpl.major && tmpl.major !== 'INTERDISCIPLINARY' && tmpl.major !== 'SINGLE_MAJOR' && (
+                              <span className="text-xs text-ink-muted">{tmpl.major}</span>
+                            )}
                           </td>
                           <td className="py-3.5 px-3 text-center font-bold">{tmpl.gatesCount}</td>
                           <td className="py-3.5 px-3 text-center font-mono">v{tmpl.version}</td>
@@ -524,7 +544,7 @@ export function ReviewGateGovernancePage() {
                       .filter(p => p.mode === 'INTERDISCIPLINARY' || p.hybridScopes)
                       .map(p => (
                         <option key={p.projectId} value={p.projectId}>
-                          {p.projectId} — {p.projectName}
+                          {p.projectCode ?? p.projectId} — {p.projectName}
                         </option>
                       ))}
                   </select>
@@ -536,6 +556,7 @@ export function ReviewGateGovernancePage() {
 
               <InterdisciplinaryGatePanel
                 projectId={selectedProjectId}
+                projectCode={selectedMatrixProject?.projectCode}
                 hybridScopes={matrixProjects.find(p => p.projectId === selectedProjectId)?.hybridScopes}
                 hybridScopeLabels={matrixProjects.find(p => p.projectId === selectedProjectId)?.hybridScopeLabels}
                 hybridScopeDecisionDetails={matrixProjects.find(p => p.projectId === selectedProjectId)?.hybridScopeDecisionDetails}
@@ -549,25 +570,25 @@ export function ReviewGateGovernancePage() {
           {activeTab === 'defense' && (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-card p-4 shadow-2xs">
-                <div className="flex flex-wrap items-center gap-2">
-                  <label htmlFor="defense-project-select" className="text-xs font-bold text-ink-soft">
+                <div className="flex min-w-0 max-w-full flex-1 flex-wrap items-center gap-2">
+                  <label htmlFor="defense-project-select" className="shrink-0 text-xs font-bold text-ink-soft">
                     Chọn đồ án thẩm định điều kiện bảo vệ:
                   </label>
                   <select
                     id="defense-project-select"
                     value={selectedProjectId}
                     onChange={e => setSelectedProjectId(e.target.value)}
-                    className="min-h-11 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-medium text-ink"
+                    className="min-h-11 min-w-0 max-w-full flex-1 truncate rounded-lg border border-hairline bg-card py-1.5 pl-3 pr-9 text-xs font-semibold text-ink"
                   >
                     {matrixProjects.map(p => (
                       <option key={p.projectId} value={p.projectId}>
-                        {p.projectId} — {p.projectName} ({p.mode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành'})
+                        {p.projectCode ?? p.projectId} — {p.projectName} ({p.mode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành'})
                       </option>
                     ))}
                   </select>
                 </div>
-                <span className="text-xs text-ink-muted">
-                  Mã dự án: <strong>{selectedProjectId}</strong>
+                <span className="shrink-0 whitespace-nowrap text-xs text-ink-muted">
+                  Mã đồ án: <strong className="text-ink">{selectedMatrixProject?.projectCode ?? defenseSummary?.projectCode ?? selectedProjectId}</strong>
                 </span>
               </div>
 
@@ -579,7 +600,7 @@ export function ReviewGateGovernancePage() {
                 />
               ) : (
                 <div className="rounded-xl border border-hairline bg-card p-8 text-center text-sm text-ink-muted">
-                  Chưa có dữ liệu điều kiện bảo vệ cho đồ án {selectedProjectId}.
+                  Chưa có dữ liệu điều kiện bảo vệ cho đồ án {selectedMatrixProject?.projectCode ?? selectedMatrixProject?.projectName ?? selectedProjectId}.
                 </div>
               )}
             </div>

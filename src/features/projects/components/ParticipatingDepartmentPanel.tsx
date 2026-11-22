@@ -25,13 +25,13 @@ export function ParticipatingDepartmentPanel({
   return (
     <section aria-labelledby="participating-department-heading">
       <h2 id="participating-department-heading">Ý kiến các bộ môn tham gia</h2>
-      <p className="text-sm text-ink-muted">Bản đề cương #{snapshotId ?? 'chưa xác định'} đã nộp. Bạn phản hồi với tư cách bộ môn được phân công.</p>
+      <p className="text-sm text-ink-muted">Bản đề cương đã nộp. Bạn phản hồi với tư cách bộ môn được phân công.</p>
       {participatingIds.length ? <ul className="mt-3 space-y-2">{participatingIds.map((departmentId) => {
         const decision = decisionByDepartment.get(departmentId)
         return <li key={departmentId} className="rounded-lg border border-hairline p-3 text-sm">
           <strong>{names.department(departmentId)}</strong>
           <span className="ml-2 font-semibold">{displayLabel(decision?.decision ?? 'PENDING')}</span>
-          {decision?.decidedBy ? <p className="mt-1 text-ink-muted">Người thẩm định #{decision.decidedBy}</p> : null}
+          {decision?.decidedByName ? <p className="mt-1 text-ink-muted">Người thẩm định: {decision.decidedByName}</p> : null}
           {decision?.decidedAt ? <p className="mt-1 text-ink-muted">Thẩm định lúc: {dateTimeLabel(decision.decidedAt)}</p> : null}
           {decision?.reason ? <p className="mt-1 text-ink-muted">Lý do: {decision.reason}</p> : null}
         </li>

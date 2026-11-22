@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { getProject } from '../../../services/api/projects.api'
 
 /** Navigation discovers existing resource pages; each endpoint still authorizes access. */
 export function DepartmentProjectLayout() {
@@ -7,6 +8,16 @@ export function DepartmentProjectLayout() {
   const navigate = useNavigate()
   const match = /^\/department\/projects\/(?:review\/)?([1-9]\d*)(?:\/|$)/.exec(pathname)
   const projectId = match?.[1]
+  const [projectLabel, setProjectLabel] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!projectId) { setProjectLabel(null); return }
+    let active = true
+    void getProject(Number(projectId))
+      .then(project => { if (active && project) setProjectLabel([project.code, project.title].filter(Boolean).join(' · ')) })
+      .catch(() => { if (active) setProjectLabel(null) })
+    return () => { active = false }
+  }, [projectId])
 
   const primaryLinks = projectId ? [
     ['Thẩm định', `/department/projects/review/${projectId}`],
@@ -48,10 +59,7 @@ export function DepartmentProjectLayout() {
       {projectId && (
         <nav aria-label="Các nghiệp vụ của đồ án" className="mb-5 space-y-2.5 rounded-xl border border-hairline bg-card p-3.5 shadow-2xs">
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-            <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
-              <span className="rounded-md bg-primary-subtle px-2 py-0.5 font-mono text-xs font-bold text-primary">#{projectId}</span>
-              Đồ án #{projectId}
-            </span>
+            <span className="font-semibold text-ink">{projectLabel ?? 'Hồ sơ đồ án'}</span>
             <Link to="/department/portfolio" className="inline-flex min-h-11 items-center rounded-lg px-2.5 font-semibold text-primary underline-offset-4 transition-colors hover:bg-primary-subtle hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
               Danh mục đồ án
             </Link>

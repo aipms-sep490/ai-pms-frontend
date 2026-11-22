@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { env } from '../../app/config/env'
+import { displayLabel } from '../../components/ui/display-label'
 import type { CreateMeeting, MeetingCandidate, MeetingDetail, MeetingRecurrence } from './meeting-types'
 import { recurrenceLabels } from './meeting-types'
 import type { MeetingDeliveryMode, MeetingVideoChannel } from './video/meeting-video.types'
@@ -91,7 +92,7 @@ export function MeetingScheduleForm({ meeting, initialDraft, busy, locked = fals
       </select></label>
       {recurrence !== 'NONE' && <label>Số lần họp<input type="number" min={1} max={12} value={occurrenceCount} onChange={(event) => { setOccurrenceCount(event.target.value); setError(''); onDirty() }} /></label>}
     </div>{recurrence !== 'NONE' && <p className="mtg-help">Hệ thống sẽ tạo {occurrenceCount || '…'} cuộc họp cách nhau {recurrence === 'WEEKLY' ? '7 ngày' : '14 ngày'}, bắt đầu từ thời gian đã chọn.</p>}</fieldset>}
-    {!meeting && <fieldset className="mtg-candidate-list"><legend>Mời người tham gia</legend><p className="mtg-help">Người tạo được tự động thêm vào cuộc họp. Bạn có thể mời thêm sau khi lưu lịch.</p>{candidates.map((candidate) => <label className="mtg-checkbox" key={candidate.userId}><input type="checkbox" checked={candidate.userId === currentUserId || participants.includes(candidate.userId)} disabled={candidate.userId === currentUserId} onChange={(event) => { setParticipantChoices(current => ({ ...current, [candidate.userId]: event.target.checked })); onDirty() }} /><span>{candidate.fullName}<small>{candidate.role}{candidate.userId === currentUserId ? ' · Bạn' : ''}</small></span></label>)}</fieldset>}
+    {!meeting && <fieldset className="mtg-candidate-list"><legend>Mời người tham gia</legend><p className="mtg-help">Người tạo được tự động thêm vào cuộc họp. Bạn có thể mời thêm sau khi lưu lịch.</p>{candidates.map((candidate) => <label className="mtg-checkbox" key={candidate.userId}><input type="checkbox" checked={candidate.userId === currentUserId || participants.includes(candidate.userId)} disabled={candidate.userId === currentUserId} onChange={(event) => { setParticipantChoices(current => ({ ...current, [candidate.userId]: event.target.checked })); onDirty() }} /><span>{candidate.fullName}<small>{displayLabel(candidate.role)}{candidate.userId === currentUserId ? ' · Bạn' : ''}</small></span></label>)}</fieldset>}
     {error && <p role="alert" className="mtg-validation">{error}</p>}
     <div className="mtg-form-actions">{onCancel && <button type="button" className="mtg-button mtg-button--secondary" onClick={onCancel}>Đóng chỉnh sửa</button>}<button className="mtg-button" type="submit">{locked ? 'Cần kiểm tra lại trạng thái' : busy ? 'Đang lưu…' : meeting ? 'Lưu lịch họp' : 'Tạo cuộc họp'}</button></div>
   </fieldset></form>

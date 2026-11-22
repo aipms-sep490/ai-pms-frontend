@@ -16,7 +16,7 @@ it('creates staff correction against a selected published target with no student
   api.submitResultCorrectionRequest.mockResolvedValue({ id: 7 }); const onCreated = vi.fn()
   render(<AppealManagementPanel projectId={9} onCreated={onCreated} />)
   const target = await screen.findByLabelText('Đối tượng'); fireEvent.change(target, { target: { value: '88' } }); fireEvent.click(screen.getByRole('button', { name: 'Đọc phiên bản kết quả hiện tại' }))
-  await screen.findByText('v2 · 8 · PASS'); fireEvent.change(screen.getByLabelText('Thành phần đính chính'), { target: { value: '6' } }); fireEvent.change(screen.getByLabelText('Lý do đính chính'), { target: { value: 'Đối chiếu bản nộp đã khóa' } }); fireEvent.click(screen.getByRole('button', { name: 'Tạo yêu cầu đính chính' }))
+  await screen.findByText('v2 · 8 · Đạt'); fireEvent.change(screen.getByLabelText('Thành phần đính chính'), { target: { value: '6' } }); fireEvent.change(screen.getByLabelText('Lý do đính chính'), { target: { value: 'Đối chiếu bản nộp đã khóa' } }); fireEvent.click(screen.getByRole('button', { name: 'Tạo yêu cầu đính chính' }))
   await waitFor(() => expect(api.submitResultCorrectionRequest).toHaveBeenCalledWith(9, { source: 'STAFF_CORRECTION', policyId: 4, windowId: null, targetType: 'STUDENT', studentId: 88, resultVersion: 2, componentId: 6, reason: 'Đối chiếu bản nộp đã khóa' }))
   expect(onCreated).toHaveBeenCalledWith(7)
 })

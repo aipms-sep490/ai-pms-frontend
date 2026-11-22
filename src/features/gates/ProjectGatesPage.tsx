@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ListLoading } from '../../components/ui/ListLoading'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { HttpError } from '../../services/http/http-client'
@@ -14,14 +15,16 @@ const decisionTone: Record<string, string> = {
 }
 const describeDecision = (value: CheckpointDecisionValue) => decisionText[value] ?? value
 const toneFor = (value: CheckpointDecisionValue) => decisionTone[value] ?? 'border-hairline bg-canvas text-ink-muted'
-const formatPlannedAt = (value: string) => new Date(value).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
+const formatPlannedAt = (value: string) => new Date(value).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' })
 
 function errorMessage(reason: unknown, forbidden: string): string {
   return reason instanceof HttpError && reason.status === 403 ? forbidden : 'Chưa tải được dữ liệu. Hãy thử lại.'
 }
 
 export function ProjectGatesPage() {
-  const { project, actor, routeBase } = useExecutionAccess()
+  const { project, actor } = useExecutionAccess()
+  const projectMajors = project.majors ?? []
+  const majorNameMap = Object.fromEntries(projectMajors.map((m) => [m.majorId, m.majorName]))
   const [checkpoints, setCheckpoints] = useState<ProjectCheckpoint[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -60,31 +63,37 @@ export function ProjectGatesPage() {
     }
   }
 
-  return <WorkspacePage className="space-y-5" title="Checkpoint theo dõi tiến độ" eyebrow="Theo dõi, không chặn tiến độ"
+  return <WorkspacePage className="space-y-5" title="Mốc kiểm soát tiến độ" eyebrow="Theo dõi, không chặn tiến độ"
     description="Kế hoạch theo dõi và kết luận từng giai đoạn. Quá hạn chưa có kết luận chỉ là cảnh báo rủi ro, không làm đồ án trượt.">
-    {loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải checkpoint…</p>}
+    {loading && <ListLoading label="Đang tải mốc kiểm soát tiến độ…" />}
     {!loading && error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><span>{error}</span><button type="button" className="min-h-11 font-semibold underline" onClick={reload}>Tải lại</button></div>}
 
     {!loading && actor !== 'student' && <section className="space-y-3 rounded-xl border border-hairline bg-card p-5 shadow-xs">
       <h2 className="text-sm font-bold text-ink">Tạo checkpoint mới</h2>
       <div className="grid gap-3 sm:grid-cols-3">
-        <label className="text-sm text-ink-soft">Tiêu đề<input className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" value={newTitle} disabled={creating} onChange={(event) => setNewTitle(event.target.value)} /></label>
-        <label className="text-sm text-ink-soft">Mã ngành (để trống nếu chung)<input type="number" className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" value={newMajorId} disabled={creating} onChange={(event) => setNewMajorId(event.target.value)} /></label>
-        <label className="text-sm text-ink-soft">Thời điểm dự kiến<input type="datetime-local" className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" value={newPlannedAt} disabled={creating} onChange={(event) => setNewPlannedAt(event.target.value)} /></label>
+        <label className="text-sm text-ink-soft">Tiêu đề<input className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 font-normal text-sm text-ink" value={newTitle} disabled={creating} onChange={(event) => setNewTitle(event.target.value)} /></label>
+        <label className="text-sm text-ink-soft">Chuyên ngành áp dụng
+          <select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 font-normal text-sm text-ink" value={newMajorId} disabled={creating} onChange={(event) => setNewMajorId(event.target.value)}>
+            <option value="">Chung (cả đồ án)</option>
+            {projectMajors.map((major) => (
+              <option key={major.majorId} value={major.majorId}>{major.majorName}</option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm text-ink-soft">Thời điểm dự kiến<input type="datetime-local" className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 font-normal text-sm text-ink" value={newPlannedAt} disabled={creating} onChange={(event) => setNewPlannedAt(event.target.value)} /></label>
       </div>
       <button type="button" className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50" disabled={creating || !newTitle.trim() || !newPlannedAt} onClick={() => void submitCreate()}>Tạo checkpoint</button>
     </section>}
 
     {!loading && !error && checkpoints && checkpoints.length === 0 && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đồ án chưa có checkpoint theo dõi nào.</p>}
     {!loading && !error && checkpoints && checkpoints.length > 0 && <ol className="space-y-3">
-      {checkpoints.map((checkpoint) => <CheckpointRow key={checkpoint.id} checkpoint={checkpoint} onChanged={(updated) => setCheckpoints((current) => current?.map((c) => c.id === updated.id ? updated : c) ?? null)} onConflict={reload} />)}
+      {checkpoints.map((checkpoint) => <CheckpointRow key={checkpoint.id} checkpoint={checkpoint} majorNameMap={majorNameMap} onChanged={(updated) => setCheckpoints((current) => current?.map((c) => c.id === updated.id ? updated : c) ?? null)} onConflict={reload} />)}
     </ol>}
-    <p className="text-xs text-ink-muted">Trang: {routeBase}</p>
   </WorkspacePage>
 }
 
-function CheckpointRow({ checkpoint, onChanged, onConflict }: {
-  checkpoint: ProjectCheckpoint; onChanged: (updated: ProjectCheckpoint) => void; onConflict: () => void
+function CheckpointRow({ checkpoint, majorNameMap, onChanged, onConflict }: {
+  checkpoint: ProjectCheckpoint; majorNameMap: Record<number, string>; onChanged: (updated: ProjectCheckpoint) => void; onConflict: () => void
 }) {
   const [decision, setDecision] = useState<CheckpointDecisionValue>('MET')
   const [reason, setReason] = useState('')
@@ -140,7 +149,7 @@ function CheckpointRow({ checkpoint, onChanged, onConflict }: {
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
         <h2 className="text-base font-bold text-ink">{checkpoint.title}</h2>
-        <p className="mt-1 text-xs text-ink-muted">Dự kiến: {formatPlannedAt(checkpoint.plannedAt)}{checkpoint.majorId != null ? ` · Ngành #${checkpoint.majorId}` : ' · Chung'}</p>
+        <p className="mt-1 text-xs text-ink-muted">Dự kiến: {formatPlannedAt(checkpoint.plannedAt)} · {checkpoint.majorName ?? (checkpoint.majorId != null ? majorNameMap[checkpoint.majorId] ?? 'Theo chuyên ngành' : 'Chung')}</p>
       </div>
       {unresolvedRisk && <span className="shrink-0 rounded-full border border-status-warning-border bg-status-warning-bg px-2.5 py-1 text-xs font-semibold text-status-warning-text">Quá hạn, chưa kết luận</span>}
     </div>
@@ -149,12 +158,12 @@ function CheckpointRow({ checkpoint, onChanged, onConflict }: {
       {checkpoint.decisions.map((d) => <li key={d.id} className="text-sm">
         <div className="flex flex-wrap items-center gap-2 text-ink-soft">
           <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${toneFor(d.decision)}`}>{describeDecision(d.decision)}</span>
-          <span className="text-xs text-ink-muted">{new Date(d.decidedAt).toLocaleDateString('vi-VN')}</span>
+          <span className="text-xs text-ink-muted">{new Date(d.decidedAt).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}{d.decidedByName ? ` · ${d.decidedByName}` : ''}</span>
         </div>
         {d.reason && <p className="mt-0.5 text-sm leading-6 text-ink-muted">{d.reason}</p>}
         {d.evidence && d.evidence.length > 0 && (
           <p className="mt-1 text-xs text-ink-muted">
-            Minh chứng đã review: {d.evidence.map((e) => `#${e.evidenceId} (Review #${e.reviewId})`).join(', ')}
+            Đã đối chiếu {d.evidence.length} minh chứng được duyệt
           </p>
         )}
       </li>)}
@@ -222,6 +231,6 @@ function CheckpointRow({ checkpoint, onChanged, onConflict }: {
         <button type="button" className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50" disabled={busy || !reason.trim()} onClick={() => void submitDecision()}>Ghi kết luận</button>
       </div>
     </div>}
-    {latestDecision?.decision === 'CANCELLED' && <p className="mt-2 text-xs text-ink-muted">Checkpoint đã hủy; không thêm kết luận mới.</p>}
+    {latestDecision?.decision === 'CANCELLED' && <p className="mt-2 text-xs text-ink-muted">Mốc kiểm soát đã hủy; không thêm kết luận mới.</p>}
   </li>
 }

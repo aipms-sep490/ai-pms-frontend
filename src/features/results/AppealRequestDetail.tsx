@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '../../components/ui/Button'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
 import { ChangeDiff } from '../../components/ui/ChangeDiff'
+import { displayLabel } from '../../components/ui/display-label'
 import { HistoryTimeline } from '../../components/ui/HistoryTimeline'
+import { ListLoading } from '../../components/ui/ListLoading'
+import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
 import { HttpError } from '../../services/http/http-client'
 import { getProjectResultVersion, getStudentResultVersion } from '../../services/api/project-results.api'
@@ -16,6 +19,7 @@ export function AppealRequestDetail({ projectId, requestId, onChanged }: { proje
   const [page, setPage] = useState(1), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false)
   const [error, setError] = useState(''), [stale, setStale] = useState(false)
   const [reviewerId, setReviewerId] = useState(''), [reason, setReason] = useState(''), [proposal, setProposal] = useState<'KEEP' | 'AMEND'>('KEEP')
+  const [reviewers, setReviewers] = useState<api.EligibleAppealReviewer[]>([])
   const [context, setContext] = useState<api.AppealReviewContext | null>(null), [evidence, setEvidence] = useState<api.AppealFile[] | null>(null)
   const [amendments, setAmendments] = useState<Record<string, { score: string; reason: string }>>({})
   const [preview, setPreview] = useState<api.AppealPreview | null>(null)
@@ -34,6 +38,16 @@ export function AppealRequestDetail({ projectId, requestId, onChanged }: { proje
     finally { if (current === generation.current) setLoading(false) }
   }, [projectId, requestId, page])
   useEffect(() => { void load(); return () => { generation.current++ } }, [load])
+
+  const canAssignReviewer = row?.allowedActions.includes('ASSIGN_REVIEWER') ?? false
+  useEffect(() => {
+    if (!canAssignReviewer || typeof api.getEligibleAppealReviewers !== 'function') return
+    const abort = new AbortController()
+    void api.getEligibleAppealReviewers(abort.signal)
+      .then(result => { if (!abort.signal.aborted) setReviewers(result.items ?? []) })
+      .catch(() => { if (!abort.signal.aborted) setReviewers([]) })
+    return () => abort.abort()
+  }, [canAssignReviewer])
 
   async function run(operation: () => Promise<unknown>, mutation = false) {
     if (lock.current || loading || (mutation && stale)) return
@@ -91,38 +105,60 @@ export function AppealRequestDetail({ projectId, requestId, onChanged }: { proje
     await run(() => api.reviewAppeal(projectId, requestId, { concurrencyToken: row.concurrencyToken, proposal, reason: reason.trim(), amendments: inputs }), true)
   }
   return <section className="workspace-surface space-y-4 p-4 sm:p-6" aria-label={`Yêu cầu #${requestId}`}>
-    {confirmationDialog}<h2 className="font-semibold">Yêu cầu #{requestId}</h2>
+    {confirmationDialog}
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <h2 className="font-semibold text-ink">Chi tiết yêu cầu phúc khảo</h2>
+      {row && <StatusBadge tone={row.status === 'ACCEPTED' ? 'success' : row.status === 'REJECTED' ? 'danger' : 'warning'} label={displayLabel(row.status)} />}
+    </div>
     {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}
-    {loading && <p role="status" className="text-sm text-ink-muted">Đang tải yêu cầu…</p>}
+    {loading && <ListLoading label="Đang tải yêu cầu…" />}
     <Button variant="secondary" disabled={busy || loading} onClick={() => { setError(''); setStale(true); void load() }}>Tải lại yêu cầu</Button>
     {stale && <div role="alert" className="space-y-2 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text"><p>Nội dung nháp được giữ lại. Đối chiếu dữ liệu mới trước khi gửi lại.</p><Button disabled={busy || loading || !row} onClick={() => { setStale(false); setError('') }}>Tôi đã đối chiếu dữ liệu mới</Button></div>}
     {row && !loading && <>
-      <dl className="grid gap-2 text-sm sm:grid-cols-2"><div>Nguồn: {row.source}</div><div>Trạng thái: {row.status}</div><div>Đối tượng: {row.targetType} {row.studentId ?? ''} · v{row.resultVersion}</div><div>Thành phần #{row.componentId} · {row.scope} · Ngành {row.majorId ?? '—'}</div><div>Người gửi #{row.requestedBy}</div><div>Reviewer #{row.reviewerId ?? 'Chưa giao'}</div></dl>
+      <dl className="grid gap-2 text-sm sm:grid-cols-2">
+        <div>Nguồn: <strong>{displayLabel(row.source)}</strong></div>
+        <div>Trạng thái: <strong>{displayLabel(row.status)}</strong></div>
+        <div>Đối tượng: <strong>{row.studentName ?? displayLabel(row.targetType)}</strong> · v{row.resultVersion}</div>
+        <div>Thành phần: <strong>{row.componentName ?? 'Thành phần kết quả'}</strong> · {displayLabel(row.scope)}{row.majorName ? ` · ${row.majorName}` : ''}</div>
+        <div>Người gửi: <strong>{row.requestedByName ?? 'Người yêu cầu'}</strong></div>
+        <div>Người thẩm định: <strong>{row.reviewerName ?? (row.reviewerId ? 'Đã phân công' : 'Chưa giao')}</strong></div>
+      </dl>
       <p className="whitespace-pre-wrap text-sm">{row.reason}</p>
-      {row.proposal && <p>Đề nghị: {row.proposal} · {row.reviewReason}</p>}{row.decisionReason && <p>Quyết định: {row.decisionReason}</p>}
-      {row.blockers.length > 0 && !allowed('ACCEPT') && !allowed('REJECT') && <ul role="alert" className="list-disc rounded-lg border border-status-warning-border bg-status-warning-bg py-3 pr-4 pl-8 text-sm text-status-warning-text">{row.blockers.map(code => <li key={code}>{code}</li>)}</ul>}
-      <div className="space-y-2"><h3 className="font-medium">Minh chứng đính kèm</h3>{row.files.length === 0 && <p className="text-sm">Chưa có tệp đính kèm.</p>}{row.files.map(item => <Button key={item.fileId} variant="secondary" disabled={busy} onClick={() => void run(() => saveAppealDownload(() => api.downloadAppealFile(projectId, requestId, item.fileId), item.fileName))}>{item.fileName} · {item.sizeBytes} B</Button>)}</div>
+      {row.proposal && <p className="text-sm">Đề nghị: <strong>{displayLabel(row.proposal)}</strong>{row.reviewReason ? ` · ${row.reviewReason}` : ''}</p>}
+      {row.decisionReason && <p className="text-sm">Quyết định: {row.decisionReason}</p>}
+      {row.blockers.length > 0 && !allowed('ACCEPT') && !allowed('REJECT') && <ul role="alert" className="list-disc rounded-lg border border-status-warning-border bg-status-warning-bg py-3 pr-4 pl-8 text-sm text-status-warning-text">{row.blockers.map(code => <li key={code}>{displayLabel(code)}</li>)}</ul>}
+      <div className="space-y-2"><h3 className="font-medium">Minh chứng đính kèm</h3>{row.files.length === 0 && <p className="text-sm text-ink-muted">Chưa có tệp đính kèm.</p>}{row.files.map(item => <Button key={item.fileId} variant="secondary" disabled={busy} onClick={() => void run(() => saveAppealDownload(() => api.downloadAppealFile(projectId, requestId, item.fileId), item.fileName))}>{item.fileName} · {(item.sizeBytes / 1024).toFixed(1)} KB</Button>)}</div>
       {allowed('UPLOAD') && <form className="space-y-2" onSubmit={event => { event.preventDefault(); if (!file || file.size <= 0 || file.size > 10 * 1024 * 1024) { setError('Chọn tệp từ 1 byte đến 10 MiB.'); return }; void run(async () => { await api.uploadAppealFile(projectId, requestId, row.concurrencyToken, file); setFile(null); if (fileInput.current) fileInput.current.value = '' }, true) }}><label className="block text-sm">Minh chứng bổ sung (tối đa 10 MiB/tệp)<input ref={fileInput} type="file" disabled={disabled} onChange={event => setFile(event.target.files?.[0] ?? null)} /></label><Button type="submit" disabled={disabled || !file}>Tải minh chứng lên</Button></form>}
-      {allowed('ASSIGN_REVIEWER') && <form className="flex flex-wrap items-end gap-3" onSubmit={event => { event.preventDefault(); if (Number.isSafeInteger(Number(reviewerId)) && Number(reviewerId) > 0) void run(() => api.assignAppealReviewer(projectId, requestId, row.concurrencyToken, Number(reviewerId)), true) }}><label className="text-sm">ID reviewer<input type="number" min="1" required value={reviewerId} disabled={disabled} onChange={event => setReviewerId(event.target.value)} className={appealInputClass} /></label><Button type="submit" disabled={disabled}>Giao reviewer</Button><p className="text-sm text-ink-muted">Hệ thống kiểm tra ngành/khoa và tính độc lập của reviewer.</p></form>}
-      {(allowed('REVIEW') || allowed('PREVIEW')) && <Button variant="secondary" disabled={disabled} onClick={() => void run(async () => { const [next, files] = await Promise.all([api.getAppealReviewContext(projectId, requestId), api.getAppealEvidence(projectId, requestId)]); setContext(next); setEvidence(files) })}>Đọc hồ sơ review đã khóa</Button>}
-      {evidence && <div className="space-y-2"><h3>Minh chứng nguồn đã khóa</h3>{evidence.length === 0 && <p>Không có tệp nguồn được cấp trong hồ sơ này.</p>}{evidence.map(item => <Button key={item.fileId} disabled={busy} variant="secondary" onClick={() => void run(() => saveAppealDownload(() => api.downloadAppealFile(projectId, requestId, item.fileId, true), item.fileName))}>{item.fileName}</Button>)}</div>}
-      {context && <div className="space-y-3"><p>Calculation version: {context.calculationVersion}</p>{context.evaluations.map(evaluation => <fieldset key={evaluation.id} className="space-y-2 rounded-lg border border-hairline p-3" disabled={disabled || !allowed('REVIEW')}><legend>{evaluation.rubricName} · v{evaluation.rubricVersion} · Evaluation #{evaluation.id}</legend>{evaluation.scores.map(criterion => { const key = `${evaluation.id}:${criterion.rubricCriterionId}`, input = amendments[key] ?? { score: '', reason: '' }; return <div key={key} className="grid gap-2 sm:grid-cols-3">{criterion.maxScore == null ? <span className="text-sm">{criterion.name}: Nhóm tiêu chí, không đính chính điểm trực tiếp.</span> : <><span className="text-sm">{criterion.name}: {criterion.score ?? '—'} / {criterion.maxScore}</span><label className="text-sm">Điểm đính chính {criterion.name}<input type="number" min="0" max={criterion.maxScore} step="any" value={input.score} onChange={event => setAmendments(values => ({ ...values, [key]: { ...input, score: event.target.value } }))} className={appealInputClass} /></label><label className="text-sm">Lý do tiêu chí {criterion.name}<input maxLength={2000} value={input.reason} onChange={event => setAmendments(values => ({ ...values, [key]: { ...input, reason: event.target.value } }))} className={appealInputClass} /></label></>}</div> })}</fieldset>)}{context.amendments.length > 0 && <ul>{context.amendments.map(item => <li key={`${item.evaluationId}:${item.criterionId}`}>Đã đề nghị: evaluation #{item.evaluationId}, tiêu chí #{item.criterionId}: {item.score} · {item.reason}</li>)}</ul>}</div>}
-      {(allowed('REVIEW') || allowed('REJECT') || allowed('ACCEPT')) && <label className="block text-sm">Lý do review / quyết định<textarea maxLength={2000} value={reason} disabled={disabled} onChange={event => { setReason(event.target.value); setPreview(null) }} className={appealInputClass} /></label>}
-      {allowed('REVIEW') && <div className="flex flex-wrap gap-3"><label>Đề nghị<select value={proposal} disabled={disabled} onChange={event => setProposal(event.target.value as 'KEEP' | 'AMEND')} className={appealInputClass}><option value="KEEP">Giữ nguyên</option><option value="AMEND">Đính chính tiêu chí</option></select></label><Button disabled={disabled || !context || !reason.trim()} onClick={() => void submitReview()}>Lưu đề nghị review</Button></div>}
+      {allowed('ASSIGN_REVIEWER') && <form className="flex flex-wrap items-end gap-3" onSubmit={event => { event.preventDefault(); if (Number.isSafeInteger(Number(reviewerId)) && Number(reviewerId) > 0) void run(() => api.assignAppealReviewer(projectId, requestId, row.concurrencyToken, Number(reviewerId)), true) }}>
+        <label className="text-sm">Người thẩm định
+          <select required value={reviewerId} disabled={disabled} onChange={event => setReviewerId(event.target.value)} className={appealInputClass}>
+            <option value="">Chọn giảng viên thẩm định</option>
+            {reviewers.map(item => <option key={item.userId} value={item.userId}>{item.fullName}{item.departmentName ? ` (${item.departmentName})` : ''}</option>)}
+          </select>
+        </label>
+        <Button type="submit" disabled={disabled || !reviewerId}>Giao người thẩm định</Button>
+        <p className="text-sm text-ink-muted">Hệ thống tự động kiểm tra ngành/bộ môn và tính độc lập của người thẩm định.</p>
+      </form>}
+      {(allowed('REVIEW') || allowed('PREVIEW')) && <Button variant="secondary" disabled={disabled} onClick={() => void run(async () => { const [next, files] = await Promise.all([api.getAppealReviewContext(projectId, requestId), api.getAppealEvidence(projectId, requestId)]); setContext(next); setEvidence(files) })}>Đọc hồ sơ thẩm định đã khóa</Button>}
+      {evidence && <div className="space-y-2"><h3>Minh chứng nguồn đã khóa</h3>{evidence.length === 0 && <p className="text-sm text-ink-muted">Không có tệp nguồn được cấp trong hồ sơ này.</p>}{evidence.map(item => <Button key={item.fileId} disabled={busy} variant="secondary" onClick={() => void run(() => saveAppealDownload(() => api.downloadAppealFile(projectId, requestId, item.fileId, true), item.fileName))}>{item.fileName}</Button>)}</div>}
+      {context && <div className="space-y-3"><p className="text-sm text-ink-muted">Phiên bản công thức tính: {context.calculationVersion}</p>{context.evaluations.map(evaluation => <fieldset key={evaluation.id} className="space-y-2 rounded-lg border border-hairline p-3" disabled={disabled || !allowed('REVIEW')}><legend className="px-1 text-sm font-medium">{evaluation.rubricName} · v{evaluation.rubricVersion}{evaluation.evaluatorName ? ` · ${evaluation.evaluatorName}` : ''}</legend>{evaluation.scores.map(criterion => { const key = `${evaluation.id}:${criterion.rubricCriterionId}`, input = amendments[key] ?? { score: '', reason: '' }; return <div key={key} className="grid gap-2 sm:grid-cols-3">{criterion.maxScore == null ? <span className="text-sm">{criterion.name}: Nhóm tiêu chí, không đính chính điểm trực tiếp.</span> : <><span className="text-sm">{criterion.name}: {criterion.score ?? '—'} / {criterion.maxScore}</span><label className="text-sm">Điểm đính chính {criterion.name}<input type="number" min="0" max={criterion.maxScore} step="any" value={input.score} onChange={event => setAmendments(values => ({ ...values, [key]: { ...input, score: event.target.value } }))} className={appealInputClass} /></label><label className="text-sm">Lý do tiêu chí {criterion.name}<input maxLength={2000} value={input.reason} onChange={event => setAmendments(values => ({ ...values, [key]: { ...input, reason: event.target.value } }))} className={appealInputClass} /></label></>}</div> })}</fieldset>)}{context.amendments.length > 0 && <ul className="list-disc pl-5 text-sm">{context.amendments.map(item => <li key={`${item.evaluationId}:${item.criterionId}`}>Đã đề nghị điều chỉnh {item.criterionName ?? 'tiêu chí'}: {item.score} điểm · {item.reason}</li>)}</ul>}</div>}
+      {(allowed('REVIEW') || allowed('REJECT') || allowed('ACCEPT')) && <label className="block text-sm">Lý do thẩm định / quyết định<textarea maxLength={2000} value={reason} disabled={disabled} onChange={event => { setReason(event.target.value); setPreview(null) }} className={appealInputClass} /></label>}
+      {allowed('REVIEW') && <div className="flex flex-wrap gap-3"><label className="text-sm">Đề nghị<select value={proposal} disabled={disabled} onChange={event => setProposal(event.target.value as 'KEEP' | 'AMEND')} className={appealInputClass}><option value="KEEP">Giữ nguyên</option><option value="AMEND">Đính chính tiêu chí</option></select></label><Button disabled={disabled || !context || !reason.trim()} onClick={() => void submitReview()}>Lưu đề nghị thẩm định</Button></div>}
       {allowed('PREVIEW') && <Button disabled={disabled} onClick={() => void loadPreview()}>Xem trước kết quả ảnh hưởng</Button>}
       {preview && <div className="space-y-3"><h3 className="font-medium">Kết quả ảnh hưởng theo máy chủ</h3>{preview.affectedResults.map(item => {
         const previous = currentVersions[`${item.studentId ?? 'project'}:${item.supersedesVersion ?? row.resultVersion}`]
-        return <section key={item.studentId ?? 'project'} className="space-y-2" aria-label={item.studentId == null ? 'Đồ án' : `Sinh viên #${item.studentId}`}>
-          <p>{item.studentId == null ? 'Đồ án' : `Sinh viên #${item.studentId}`}: v{item.supersedesVersion} → v{item.version} · {item.totalScore} · {item.outcome}</p>
-          <ChangeDiff rows={[{ label: 'Phiên bản', before: item.supersedesVersion ?? row.resultVersion, after: item.version }, { label: 'Tổng điểm', before: previous?.totalScore, after: item.totalScore }, { label: 'Kết quả', before: previous?.outcome, after: item.outcome }]} />
+        const targetLabel = item.studentId == null ? 'Đồ án' : (item.studentName ?? 'Sinh viên')
+        return <section key={item.studentId ?? 'project'} className="space-y-2" aria-label={targetLabel}>
+          <p>{targetLabel}: v{item.supersedesVersion} → v{item.version} · {item.totalScore} · {displayLabel(item.outcome)}</p>
+          <ChangeDiff rows={[{ label: 'Phiên bản', before: item.supersedesVersion ?? row.resultVersion, after: item.version }, { label: 'Tổng điểm', before: previous?.totalScore, after: item.totalScore }, { label: 'Kết quả', before: previous ? displayLabel(previous.outcome) : undefined, after: displayLabel(item.outcome) }]} />
           {!previous && <p className="text-sm text-ink-muted">Chưa đọc được điểm của phiên bản hiện tại; kiểm tra lịch sử kết quả trước khi quyết định.</p>}
         </section>
       })}</div>}
       {(allowed('ACCEPT') || allowed('REJECT')) && <ActionVerdict actions={[{ code: 'ACCEPT', allowed: allowed('ACCEPT'), reasons: row.blockers }]} actionCode="ACCEPT" status="ready" okLabel="Điều kiện công bố hợp lệ" blockedLabel="Không thể công bố đính chính">
-        <ActionVerdict.Decision primary={{ label: 'Chấp nhận và công bố revision', onClick: () => void decide('ACCEPTED'), disabled: disabled || !preview || !reason.trim() }}
+        <ActionVerdict.Decision primary={{ label: 'Chấp nhận và công bố bản đính chính', onClick: () => void decide('ACCEPTED'), disabled: disabled || !preview || !reason.trim() }}
           secondary={allowed('REJECT') ? { label: 'Từ chối yêu cầu', onClick: () => void decide('REJECTED'), disabled: disabled || !reason.trim() } : undefined} />
       </ActionVerdict>}
-      {history && <section className="space-y-3"><h3 className="font-medium">Lịch sử yêu cầu</h3><HistoryTimeline items={history.items.map(item => ({ at: item.at, action: item.action, actor: `#${item.actorId}`, note: [item.reason, item.bundleId != null ? `Bundle #${item.bundleId}` : null].filter(Boolean).join(' · ') }))} emptyLabel="Chưa có sự kiện." /><AppealPaging page={page} totalCount={history.totalCount} busy={busy || loading} onChange={setPage} /></section>}
+      {history && <section className="space-y-3"><h3 className="font-medium">Lịch sử yêu cầu</h3><HistoryTimeline items={history.items.map(item => ({ at: item.at, action: displayLabel(item.action), actor: item.actorName ?? 'Người thực hiện', note: [item.reason, item.bundleId != null ? 'Gói đính chính' : null].filter(Boolean).join(' · ') }))} emptyLabel="Chưa có sự kiện." /><AppealPaging page={page} totalCount={history.totalCount} busy={busy || loading} onChange={setPage} /></section>}
     </>}
   </section>
 }

@@ -1,5 +1,6 @@
 import { useContext, useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { displayLabel } from '../../components/ui/display-label'
 import * as api from '../../services/api/meetings.api'
 import * as tasksApi from '../../services/api/tasks.api'
 import * as milestonesApi from '../../services/api/milestones.api'
@@ -297,7 +298,7 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
               <ol className="mtg-feedback-list">
                 {decisions.map(item => (
                   <li key={item.id}>
-                    <time dateTime={item.decidedAt}>{formatMeetingTime(item.decidedAt)}</time>
+                    <time dateTime={item.decidedAt}>{formatMeetingTime(item.decidedAt)}{item.decidedByName ? ` · ${item.decidedByName}` : ''}</time>
                     <p className="mtg-prose">{item.content}</p>
                   </li>
                 ))}
@@ -354,12 +355,13 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
                   const linkedTaskId = extractTaskId(item.description)
                   const linkedTask = linkedTaskId ? tasksMap[linkedTaskId] : null
                   const linkedMilestoneTitle = linkedTask
-                    ? milestones.find(m => m.id === linkedTask.milestoneId)?.title ?? (linkedTask.milestoneId ? `Mốc #${linkedTask.milestoneId}` : null)
+                    ? milestones.find(m => m.id === linkedTask.milestoneId)?.title ?? null
                     : null
                   const cleanDesc = displayDescription(item.description)
-                  const assigneeName = candidates.find(c => c.userId === item.assigneeUserId)?.fullName
+                  const assigneeName = item.assigneeName
+                    ?? candidates.find(c => c.userId === item.assigneeUserId)?.fullName
                     ?? meeting.participants.find(p => p.userId === item.assigneeUserId)?.fullName
-                    ?? `Thành viên #${item.assigneeUserId}`
+                    ?? 'Thành viên nhóm'
 
                   return (
                     <li key={item.id}>
@@ -387,8 +389,9 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
                       {/* Linked Task Display or Link Task Action */}
                       {linkedTaskId ? (
                         <div className="mtg-linked-task" data-testid={`linked-task-${item.id}`}>
-                          <span className="mtg-linked-task-badge">
-                            📋 Task liên kết: <strong>#{linkedTaskId}</strong>
+                          <span className="mtg-linked-task-badge inline-flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[15px]" aria-hidden="true">task_alt</span>
+                            Công việc liên kết{linkedTask?.title && linkedTask.title !== item.title ? `: ${linkedTask.title}` : ''}
                           </span>
                           {linkedTask ? (
                             <>
@@ -396,24 +399,26 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
                                 {taskStatusLabel(linkedTask.status)}
                               </span>
                               {linkedMilestoneTitle && (
-                                <span className="mtg-task-milestone" title="Mốc đồ án">
-                                  🎯 {linkedMilestoneTitle}
+                                <span className="mtg-task-milestone inline-flex items-center gap-1" title="Mốc đồ án">
+                                  <span className="material-symbols-outlined text-[14px]" aria-hidden="true">flag</span>
+                                  {linkedMilestoneTitle}
                                 </span>
                               )}
                               {linkedTask.assignees.length > 0 && (
-                                <span className="mtg-task-assignee" title="Người phụ trách">
-                                  👤 {linkedTask.assignees.map(a => a.userFullName).join(', ')}
+                                <span className="mtg-task-assignee inline-flex items-center gap-1" title="Người phụ trách">
+                                  <span className="material-symbols-outlined text-[14px]" aria-hidden="true">person</span>
+                                  {linkedTask.assignees.map(a => a.userFullName).join(', ')}
                                 </span>
                               )}
                             </>
                           ) : (
-                            <span className="mtg-help">Đang tải thông tin task…</span>
+                            <span className="mtg-help">Đang tải thông tin công việc…</span>
                           )}
                           <Link
                             to={`${routeBase}/tasks/${linkedTaskId}`}
                             className="mtg-text-button mtg-task-link"
                           >
-                            Xem Task ↗
+                            Mở công việc
                           </Link>
                         </div>
                       ) : (
@@ -531,7 +536,7 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
                       <option value="">Chưa phân công</option>
                       {candidates.map(candidate => (
                         <option key={candidate.userId} value={candidate.userId}>
-                          {candidate.fullName} · {candidate.role}
+                          {candidate.fullName} · {displayLabel(candidate.role)}
                         </option>
                       ))}
                     </select>

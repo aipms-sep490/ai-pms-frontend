@@ -78,11 +78,11 @@ export interface MeetingNotes {
   attendances: { userId: number; attendanceStatus: AttendanceStatus }[]
 }
 export interface MeetingCandidate { userId: number; fullName: string; role: string }
-export interface MeetingDecision { id: number; meetingId: number; content: string; decidedBy: number; decidedAt: string }
+export interface MeetingDecision { id: number; meetingId: number; content: string; decidedBy: number; decidedByName?: string | null; decidedAt: string }
 export type MeetingActionStatus = 'OPEN' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED'
 export interface MeetingActionItem {
-  id: number; meetingId: number; title: string; description: string | null; assigneeUserId: number | null
-  dueAt: string | null; status: MeetingActionStatus | string; concurrencyToken: string; createdBy: number; createdAt: string; updatedAt: string
+  id: number; meetingId: number; title: string; description: string | null; assigneeUserId: number | null; assigneeName?: string | null
+  dueAt: string | null; status: MeetingActionStatus | string; concurrencyToken: string; createdBy: number; createdByName?: string | null; createdAt: string; updatedAt: string
 }
 export interface SaveMeetingActionItem {
   title: string; description: string | null; assigneeUserId: number | null; dueAt: string | null

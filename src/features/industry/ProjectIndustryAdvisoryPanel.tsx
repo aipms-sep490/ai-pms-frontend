@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
+import { displayLabel } from '../../components/ui/display-label'
 import { HttpError } from '../../services/http/http-client'
+import { humanizeHttpError } from '../../services/http/humanize-http-error'
 import {
   assignIndustryExpert,
   getIndustrySharedFiles,
@@ -65,7 +67,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
       const res = await getIndustrySharedFiles(assignmentId)
       setSharedFiles(res.items)
     } catch (err) {
-      setFilesError(err instanceof HttpError ? err.message : 'Không tải được file đã chia sẻ.')
+      setFilesError(humanizeHttpError(err, 'Không tải được tệp đã chia sẻ.'))
     } finally {
       setLoadingFiles(false)
     }
@@ -88,20 +90,20 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
     setAssignError('')
     setAssignSuccess('')
     try {
-      await assignIndustryExpert(projectId, {
+      const created = await assignIndustryExpert(projectId, {
         expertId: eId,
         scope,
         majorId: scope === 'MAJOR_SPECIFIC' ? Number(majorId) : null,
         startsAt: new Date(startsAt).toISOString(),
         endsAt: new Date(endsAt).toISOString(),
       })
-      setAssignSuccess(`Đã phân công chuyên gia #${eId} vào đồ án.`)
+      setAssignSuccess(`Đã phân công ${created?.expertName ?? 'chuyên gia doanh nghiệp'} vào đồ án.`)
       setExpertId('')
       setStartsAt('')
       setEndsAt('')
       await loadAssignments()
     } catch (err) {
-      setAssignError(err instanceof HttpError ? err.message : 'Không thể phân công chuyên gia.')
+      setAssignError(humanizeHttpError(err, 'Không thể phân công chuyên gia.'))
     } finally {
       setAssigning(false)
     }
@@ -112,7 +114,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
       await revokeIndustryAssignment(assignment.id, assignment.concurrencyToken)
       await loadAssignments()
     } catch (err) {
-      setError(err instanceof HttpError ? err.message : 'Không thể thu hồi phân công.')
+      setError(humanizeHttpError(err, 'Không thể thu hồi phân công.'))
     }
   }
 
@@ -134,7 +136,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
       await loadSharedFiles(assignment.id)
       await loadAssignments()
     } catch (err) {
-      setShareError(err instanceof HttpError ? err.message : 'Không thể chia sẻ file.')
+      setShareError(humanizeHttpError(err, 'Không thể chia sẻ tệp.'))
     } finally {
       setSharing(false)
     }
@@ -146,7 +148,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
       await loadSharedFiles(assignment.id)
       await loadAssignments()
     } catch (err) {
-      setFilesError(err instanceof HttpError ? err.message : 'Không thể thu hồi chia sẻ file.')
+      setFilesError(humanizeHttpError(err, 'Không thể thu hồi chia sẻ tệp.'))
     }
   }
 
@@ -158,7 +160,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
         <div>
           <h2 className="text-base font-bold text-ink">Cố vấn doanh nghiệp & Chuyên gia chuyên môn</h2>
           <p className="mt-1 text-xs text-ink-muted">
-            Phân công chuyên gia doanh nghiệp độc lập tư vấn cho đồ án. Ý kiến tư vấn mang tính tham khảo (Advisory Only), không chấm điểm và không cấp quyền học thuật.
+            Phân công chuyên gia doanh nghiệp độc lập tư vấn cho đồ án. Ý kiến tư vấn mang tính tham khảo (chỉ cố vấn), không chấm điểm và không cấp quyền học thuật.
           </p>
         </div>
 
@@ -167,7 +169,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
           <h3 className="text-xs font-bold text-ink uppercase tracking-wide">Phân công chuyên gia mới</h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="text-xs text-ink-soft">
-              Mã chuyên gia (Expert ID)
+              Mã chuyên gia
               <input
                 type="number"
                 placeholder="vd: 15"
@@ -178,20 +180,20 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
               />
             </label>
             <label className="text-xs text-ink-soft">
-              Phạm vi (Scope)
+              Phạm vi cố vấn
               <select
                 className="mt-1 block min-h-10 w-full rounded-md border border-hairline bg-card px-2.5 py-1.5 text-xs text-ink"
                 value={scope}
                 disabled={assigning}
                 onChange={(e) => setScope(e.target.value as IndustryScope)}
               >
-                <option value="COMMON">COMMON (Cả đồ án)</option>
-                <option value="MAJOR_SPECIFIC">MAJOR_SPECIFIC (Theo ngành)</option>
+                <option value="COMMON">Cả đồ án</option>
+                <option value="MAJOR_SPECIFIC">Theo chuyên ngành</option>
               </select>
             </label>
             {scope === 'MAJOR_SPECIFIC' && (
               <label className="text-xs text-ink-soft">
-                Mã ngành (Major ID)
+                Mã chuyên ngành
                 <input
                   type="number"
                   placeholder="vd: 12"
@@ -251,12 +253,15 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
                 <li key={a.id} className="rounded-lg border border-hairline p-3 text-xs bg-card space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <span className="font-semibold text-ink">Chuyên gia #{a.expertId}</span>
+                      <span className="font-semibold text-ink">
+                        {a.expertName ?? 'Chuyên gia doanh nghiệp'}
+                        {a.expertOrganization ? ` (${a.expertOrganization})` : ''}
+                      </span>
                       <span className="ml-2 rounded bg-canvas px-1.5 py-0.5 border border-hairline text-ink-soft">
-                        Phạm vi: {a.scope}{a.majorId ? ` (Ngành #${a.majorId})` : ''}
+                        Phạm vi: {displayLabel(a.scope)}{a.majorName ? ` (${a.majorName})` : ''}
                       </span>
                       <span className="ml-2 text-ink-muted">
-                        Trạng thái: <strong className="text-ink-soft">{a.status === 'ACTIVE' ? 'Đang hiệu lực' : a.status === 'REVOKED' ? 'Đã thu hồi' : a.status}</strong>
+                        Trạng thái: <strong className="text-ink-soft">{displayLabel(a.status)}</strong>
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -279,7 +284,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
                     </div>
                   </div>
                   <p className="text-ink-muted">
-                    Thời gian: {new Date(a.startsAt).toLocaleDateString('vi-VN')} – {new Date(a.endsAt).toLocaleDateString('vi-VN')}
+                    Thời gian: {new Date(a.startsAt).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} – {new Date(a.endsAt).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
                   </p>
                 </li>
               ))}
@@ -293,7 +298,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
         <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-ink">
-              Quản lý file chia sẻ — Chuyên gia #{activeAssignment.expertId} (Phạm vi: {activeAssignment.scope})
+              Quản lý tệp chia sẻ — {activeAssignment.expertName ?? 'Chuyên gia doanh nghiệp'} ({displayLabel(activeAssignment.scope)})
             </h3>
             <button
               type="button"
@@ -305,13 +310,13 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
           </div>
 
           <p className="text-xs text-ink-muted">
-            Chỉ được chia sẻ các file bản nộp bài (Deliverable version) thuộc đúng phạm vi ({activeAssignment.scope}). Hồ sơ cá nhân của sinh viên bị nghiêm cấm chia sẻ.
+            Chỉ được chia sẻ các tệp phiên bản bàn giao thuộc đúng phạm vi ({displayLabel(activeAssignment.scope)}). Hồ sơ cá nhân của sinh viên bị nghiêm cấm chia sẻ.
           </p>
 
           {/* Form chia sẻ file */}
           <div className="flex flex-wrap items-end gap-2 rounded-lg border border-hairline p-3 bg-canvas">
             <label className="text-xs text-ink-soft">
-              Mã phiên bản bài nộp (Deliverable Version ID)
+              Mã phiên bản bài nộp
               <input
                 type="number"
                 placeholder="vd: 101"
@@ -322,7 +327,7 @@ export function ProjectIndustryAdvisoryPanel({ projectId }: { projectId: number 
               />
             </label>
             <label className="text-xs text-ink-soft">
-              Mã file (File ID)
+              Mã tệp đính kèm
               <input
                 type="number"
                 placeholder="vd: 501"

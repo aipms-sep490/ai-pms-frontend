@@ -81,8 +81,8 @@ export function AssignedGateReviewPage() {
 
   return (
     <WorkspacePage
-      eyebrow="Hội đồng Thẩm định · Review Gate Queue"
-      title="Thẩm định Tiến trình Đồ án (Review Gates)"
+      eyebrow="Hội đồng thẩm định"
+      title="Thẩm định tiến trình đồ án"
       description="Xem xét minh chứng học thuật theo phiên bản được nộp, đối chiếu tiêu chí và đưa ra quyết định thẩm định chính thức."
     >
       <ReviewGatesMockNotice />
@@ -112,8 +112,8 @@ export function AssignedGateReviewPage() {
           onReload={loadAssignments}
           loading={loading || error !== null}
         />
-        <Pagination page={page} pages={totalPages} total={totalCount} pageSize={pageSize} busy={loading || error !== null}
-          onPage={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1) }} />
+        {totalPages > 1 && <Pagination page={page} pages={totalPages} total={totalCount} pageSize={pageSize} busy={loading || error !== null}
+          onPage={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1) }} />}
       </div>}
       </>}
     </WorkspacePage>

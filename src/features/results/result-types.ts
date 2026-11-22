@@ -13,11 +13,10 @@ export interface ResultPolicy { projectId: number; passThreshold: number; concur
 
 /** One scored contribution feeding a project result. `advisory` contributions (v5 D6:
  * industry ADVISORY) are shown separately and never counted into the numeric total. */
-export interface ResultContribution { assignmentId: number; evaluationId: number; evaluatorId: number; rubricId: number; weightPercent: number; score: number; advisory?: boolean; source?: string }
+export interface ResultContribution { assignmentId: number; evaluationId: number; evaluatorId: number; evaluatorName?: string | null; rubricId: number; weightPercent: number; score: number; advisory?: boolean; source?: string }
 
-/** Per-major aggregate inside a project breakdown. The backend does not expose a per-major weight
- * or display name here — only the score (null while PENDING). */
-export interface ResultMajorScore { majorId: number; score: number | null }
+/** Per-major aggregate inside a project breakdown. */
+export interface ResultMajorScore { majorId: number; majorName?: string | null; score: number | null }
 
 /** One weighted component of a result (project- or student-level). `score` is null while that
  * component is still PENDING — never substitute 0; `requiredEvaluators`/`finalizedEvaluators`
@@ -88,9 +87,11 @@ export interface ResultRevisionSummary {
   supersedesVersion: number | null
   /** Null for a project-level entry; set for a student-level one. */
   studentId: number | null
+  studentName?: string | null
   totalScore: number
   outcome: string
   publishedBy: number
+  publishedByName?: string | null
   publishedAt: string
   reason?: string | null
   bundleId?: number | null

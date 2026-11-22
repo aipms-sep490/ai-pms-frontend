@@ -157,7 +157,7 @@ describe('SupervisorRecommendationPanel', () => {
     await waitFor(() => {
       expect(mocks.createSupervisorRecommendationRun).toHaveBeenCalledWith(9, { assignmentType: 'PRIMARY', majorId: undefined })
     })
-    expect(await screen.findByText(/Đã lưu phiên gợi ý #88/)).toBeTruthy()
+    expect(await screen.findByText(/Đã lưu lượt gợi ý \(1 giảng viên\)/)).toBeTruthy()
 
     // Click "Lịch sử gợi ý"
     fireEvent.click(screen.getByRole('button', { name: 'Lịch sử gợi ý' }))

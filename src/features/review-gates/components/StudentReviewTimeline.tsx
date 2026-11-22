@@ -9,6 +9,29 @@ import { env } from '../../../app/config/env'
 import { evidenceArtifactLabel } from '../utils/evidence-link'
 import { gateStatusLabels, requirementTypeLabel } from '../utils/review-gate-labels'
 import { displayLabel } from '../../../components/ui/display-label'
+import { dateTimeLabel } from '../../execution/execution-utils'
+import { humanizeHttpError } from '../../../services/http/humanize-http-error'
+
+function formatRequirementCode(code: string): string {
+  if (/^INDIV_\d+$/i.test(code)) return 'Minh chứng cá nhân'
+  return code
+}
+
+function formatSubmitter(submittedBy?: string | null, submittedByName?: string | null): string {
+  if (submittedByName?.trim()) return submittedByName.trim()
+  if (!submittedBy?.trim()) return 'Thành viên nhóm'
+  if (/^\d+$/.test(submittedBy.trim())) return 'Thành viên nhóm'
+  return submittedBy.trim()
+}
+
+function defenseReadinessLabel(status?: string | null, isReady?: boolean | null): string {
+  const normalized = status?.trim().toUpperCase()
+  if (normalized === 'READY' || normalized === 'ELIGIBLE' || normalized === 'PASSED') return 'ĐỦ ĐIỀU KIỆN (DỰ KIẾN)'
+  if (normalized === 'BLOCKED' || normalized === 'NOT_READY' || normalized === 'INELIGIBLE') return 'CHƯA ĐỦ ĐIỀU KIỆN'
+  if (isReady === true) return 'ĐỦ ĐIỀU KIỆN (DỰ KIẾN)'
+  if (isReady === false) return 'CHƯA ĐỦ ĐIỀU KIỆN'
+  return 'CHƯA ĐƯỢC ĐÁNH GIÁ'
+}
 
 interface StudentReviewTimelineProps {
   timeline: StudentReviewTimelineDto
@@ -110,7 +133,7 @@ export function StudentReviewTimeline({
 
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="rounded-lg border border-hairline bg-canvas px-3 py-1.5 text-xs text-ink-soft">
-            Vai trò hiện tại: <strong className={isLeader ? 'text-primary' : 'text-ink'}>{isLeader ? 'Trưởng nhóm (Leader)' : isAuthenticated ? 'Thành viên (Member)' : 'Chưa xác thực (Guest)'}</strong>
+            Vai trò hiện tại: <strong className={isLeader ? 'text-primary' : 'text-ink'}>{isLeader ? 'Trưởng nhóm' : isAuthenticated ? 'Thành viên nhóm' : 'Chưa xác thực'}</strong>
           </div>
           {onToggleRole && (
             <div className="flex items-center gap-1.5">
@@ -137,7 +160,7 @@ export function StudentReviewTimeline({
         </div>
       ) : !isLeader ? (
         <div className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-xs text-status-warning-text">
-          <strong>Thông báo quyền hạn:</strong> Bạn đang xem với vai trò Thành viên (Student Member). Bạn có thể xem toàn bộ tiến trình, lịch sử nhận xét và minh chứng. Quyền nộp hồ sơ thẩm định chính thức và bản sửa đổi Gate thuộc về Trưởng nhóm.
+          <strong>Thông báo quyền hạn:</strong> Bạn đang xem với vai trò Thành viên nhóm. Bạn có thể xem toàn bộ tiến trình, lịch sử nhận xét và minh chứng. Quyền nộp hồ sơ thẩm định chính thức và bản sửa đổi thuộc về Trưởng nhóm.
         </div>
       ) : null}
 
@@ -147,7 +170,7 @@ export function StudentReviewTimeline({
         <div className="min-w-0 rounded-xl border border-hairline bg-card p-4 shadow-2xs">
           <span className="text-xs font-semibold text-ink-muted">Tiến độ thực hiện học vụ</span>
           <div className="mt-1 flex min-h-16 flex-col justify-between gap-1">
-            <span className={academicProgress != null ? 'text-2xl font-black text-status-success-text' : 'text-base font-semibold leading-6 text-status-success-text'}>
+            <span className={academicProgress != null ? 'text-2xl font-black text-status-success-text whitespace-nowrap' : 'text-base font-semibold leading-6 text-status-success-text'}>
               {academicProgress != null ? `${academicProgress}%` : timeline.academicProgressSource === 'NOT_CONFIGURED' ? 'Chưa áp dụng quy chế Cổng thẩm định' : 'Chưa có dữ liệu'}
             </span>
             <span className="text-xs text-ink-muted">({completedGatesCount}/{totalGatesCount} Cổng đạt)</span>
@@ -164,10 +187,10 @@ export function StudentReviewTimeline({
         </div>
 
         {/* KPI 2: Task Progress */}
-        <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-ink-muted">Tiến độ công việc (Task Board)</span>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-primary">
+        <div className="min-w-0 rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+          <span className="text-xs font-semibold text-ink-muted">Tiến độ công việc</span>
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <span className="shrink-0 whitespace-nowrap text-2xl font-black text-primary">
               {timeline.taskProgress != null ? `${timeline.taskProgress}%` : 'Chưa đồng bộ'}
             </span>
             <span className="text-xs text-ink-soft font-medium">Khác với tiến độ học vụ</span>
@@ -180,33 +203,33 @@ export function StudentReviewTimeline({
           </div>}
           <p className="mt-1.5 text-xs text-ink-muted">
             {timeline.taskProgress != null
-              ? 'Dữ liệu từ task board; hoàn thành task kỹ thuật không thay thế đạt cổng học vụ.'
-              : 'Chưa kết nối dữ liệu Task Board.'}
+              ? 'Dữ liệu từ bảng công việc; hoàn thành công việc kỹ thuật không thay thế đạt cổng học vụ.'
+              : 'Chưa kết nối dữ liệu bảng công việc.'}
           </p>
         </div>
 
         {/* KPI 3: Current Review Gate */}
-        <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+        <div className="min-w-0 rounded-xl border border-hairline bg-card p-4 shadow-2xs">
           <span className="text-xs font-semibold text-ink-muted">Cổng thẩm định hiện tại</span>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-xl font-black text-ink">{selectedGate?.code}</span>
-            <span className="text-xs font-semibold text-ink-muted truncate">{selectedGate?.title}</span>
+          <div className="mt-1 flex items-baseline gap-2 min-w-0">
+            <span className="shrink-0 whitespace-nowrap text-xl font-black text-ink">{selectedGate?.code}</span>
+            <span className="min-w-0 text-xs font-semibold text-ink-muted truncate" title={selectedGate?.title}>{selectedGate?.title}</span>
           </div>
-          <div className="mt-2 flex items-center justify-between text-xs">
+          <div className="mt-2 flex items-center justify-between gap-2 text-xs">
             <span className="text-ink-muted">Hạn chót thẩm định:</span>
-            <span className="font-semibold text-ink-soft">{selectedGate?.windowEnd || 'Theo kỳ'}</span>
+            <span className="shrink-0 whitespace-nowrap font-semibold text-ink-soft">{selectedGate?.windowEnd || 'Theo kỳ'}</span>
           </div>
           <p className="mt-1.5 text-xs text-ink-muted">Trạng thái: {selectedGate ? gateStatusLabels[selectedGate.status] ?? 'Chưa xác định' : 'Chưa xác định'}</p>
         </div>
 
         {/* KPI 4: Defense Readiness Advisory */}
-        <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-ink-muted">Đủ điều kiện bảo vệ (Advisory)</span>
+        <div className="min-w-0 rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+          <div className="flex items-center justify-between gap-2">
+            <span className="min-w-0 text-xs font-semibold text-ink-muted">Đủ điều kiện bảo vệ (Tham khảo)</span>
             <button
               type="button"
               onClick={() => setShowDefenseModal(true)}
-              className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+              className="shrink-0 whitespace-nowrap text-xs font-semibold text-primary hover:underline cursor-pointer"
             >
               Chi tiết ↗
             </button>
@@ -221,12 +244,7 @@ export function StudentReviewTimeline({
                   : 'text-ink-muted'
               }`}
             >
-              {timeline.defenseReadinessStatus ||
-                (isDefenseReady === true
-                  ? 'ĐỦ ĐIỀU KIỆN (DỰ KIẾN)'
-                  : isDefenseReady === false
-                  ? 'CHƯA ĐỦ ĐIỀU KIỆN'
-                  : 'CHƯA ĐƯỢC ĐÁNH GIÁ')}
+              {defenseReadinessLabel(timeline.defenseReadinessStatus, isDefenseReady)}
             </span>
           </div>
           <p className="mt-2 text-xs text-ink-muted">
@@ -434,7 +452,7 @@ export function StudentReviewTimeline({
                         <tr key={req.id} className="hover:bg-canvas/70">
                           <td className="px-3.5 py-3">
                             <strong className="block font-semibold text-ink">{req.title}</strong>
-                            <span className="text-ink-muted">{req.code}</span>
+                            <span className="text-ink-muted">{formatRequirementCode(req.code)}</span>
                             {req.reviewerFeedback && (
                               <p className="mt-1 text-status-error-text bg-status-error-bg/70 p-1.5 rounded-sm border border-status-error-border">
                                 <strong>Nhận xét:</strong> {req.reviewerFeedback}
@@ -457,7 +475,7 @@ export function StudentReviewTimeline({
                             {req.latestArtifact ? (
                               <div>
                                 <strong className="break-all text-ink" title={req.latestArtifact.linkUrl ?? req.latestArtifact.filename}>v{req.latestArtifact.version}: {evidenceArtifactLabel(req.latestArtifact)}</strong>
-                                <div className="text-ink-muted">{req.latestArtifact.submittedAt} · {req.latestArtifact.submittedBy}</div>
+                                <div className="text-ink-muted">{dateTimeLabel(req.latestArtifact.submittedAt)} · {formatSubmitter(req.latestArtifact.submittedBy, req.latestArtifact.submittedByName)}</div>
                                 {req.latestArtifact.notes && <div className="text-ink-muted italic mt-0.5">"{req.latestArtifact.notes}"</div>}
                                 <EvidenceDownloadButton projectId={timeline.projectId} gateCode={selectedGate.code} requirement={req} />
                               </div>
@@ -541,7 +559,7 @@ export function StudentReviewTimeline({
                     onClick={async () => {
                       setSubmittingGate(true); setSubmitError(null)
                       try { await onSubmitForReview(selectedGate.code) }
-                      catch (err) { setSubmitError(err instanceof Error ? err.message : 'Không thể gửi hồ sơ thẩm định.') }
+                      catch (err) { setSubmitError(humanizeHttpError(err, 'Không thể gửi hồ sơ thẩm định.')) }
                       finally { setSubmittingGate(false) }
                     }}>
                     {submittingGate ? 'Đang gửi...' : 'Gửi hồ sơ thẩm định'}
@@ -564,7 +582,7 @@ export function StudentReviewTimeline({
                     <li key={`${item.submittedAt}-${index}`} className="rounded-xl border border-hairline bg-canvas/60 p-4 text-xs">
                       <div className="flex items-center justify-between text-ink-muted mb-1.5">
                         <span className="font-semibold text-primary">{item.supervisorName ?? 'Giảng viên hướng dẫn'}</span>
-                        <time dateTime={item.submittedAt}>{item.submittedAt}</time>
+                        <time dateTime={item.submittedAt}>{dateTimeLabel(item.submittedAt)}</time>
                       </div>
                       <p className="whitespace-pre-wrap text-sm text-ink">{item.feedback}</p>
                     </li>
@@ -574,7 +592,7 @@ export function StudentReviewTimeline({
                 <div className="rounded-xl border border-hairline bg-canvas p-6 text-center text-xs text-ink-muted">
                   <span className="material-symbols-outlined text-3xl text-ink-muted" aria-hidden="true">chat_bubble_outline</span>
                   <p className="mt-1 font-semibold text-ink">Chưa có nhận xét cho cổng này.</p>
-                  <p className="text-ink-muted">Theo dõi phản hồi của giảng viên hướng dẫn hoặc reviewer tại đây.</p>
+                  <p className="text-ink-muted">Theo dõi phản hồi của giảng viên hướng dẫn hoặc giảng viên thẩm định tại đây.</p>
                 </div>
               )}
             </div>
@@ -604,7 +622,7 @@ export function StudentReviewTimeline({
                       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-status-error-border/40 pb-2">
                         <div>
                           <strong className="text-sm font-bold text-status-error-text">{req.title}</strong>
-                          <span className="ml-2 text-ink-muted font-mono">({req.code})</span>
+                          <span className="ml-2 text-ink-muted font-mono">({formatRequirementCode(req.code)})</span>
                         </div>
                         <span className="rounded-md bg-status-error-bg px-2 py-0.5 font-bold text-status-error-text border border-status-error-border">
                           {req.verificationStatus === 'REJECTED' ? 'Cần nộp lại' : 'Cần chỉnh sửa'}
@@ -612,7 +630,7 @@ export function StudentReviewTimeline({
                       </div>
                       {req.reviewerFeedback && (
                         <p className="mt-2 text-ink leading-relaxed">
-                          <strong>Góp ý của Reviewer:</strong> {req.reviewerFeedback}
+                          <strong>Góp ý của giảng viên thẩm định:</strong> {req.reviewerFeedback}
                         </p>
                       )}
                       <div className="mt-3 flex justify-end">
@@ -647,7 +665,7 @@ export function StudentReviewTimeline({
       {selectedGate && (
         <section className="card-hover-lift rounded-xl border border-hairline bg-card p-5" aria-label={`Nhận xét hướng dẫn · ${selectedGate.code}`}>
           <h3 className="font-bold text-ink">Nhận xét hướng dẫn · {selectedGate.code}</h3>
-          <p className="mt-1 text-xs text-ink-muted">Nhận xét tư vấn từ giảng viên hướng dẫn, không thay đổi kết luận thẩm định chính thức của reviewer.</p>
+          <p className="mt-1 text-xs text-ink-muted">Nhận xét tư vấn từ giảng viên hướng dẫn, không thay đổi kết luận thẩm định chính thức của giảng viên thẩm định.</p>
           {(timeline.supervisorFeedbacks ?? []).filter(item => item.gateCode === selectedGate.code).length > 0 ? (
             <ul className="mt-3 space-y-3">
               {timeline.supervisorFeedbacks?.filter(item => item.gateCode === selectedGate.code).map((item, index) => (

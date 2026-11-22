@@ -5,8 +5,10 @@ function isNotificationToday(iso: string): boolean {
   return !Number.isNaN(d.getTime()) && d.toDateString() === now.toDateString()
 }
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { HttpError } from '../../services/http/http-client'
+import { AuthSessionContext } from '../auth/context/auth-session-context'
+import { getWorkspaceRole } from '../auth/utils/role-access'
 import { getNotifications, getUnreadCount, markAllNotificationsRead, markNotificationRead, type NotificationPage } from './notifications-api'
 import { NotificationRow, NotificationEmpty, NotificationLoading } from './NotificationRow'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
@@ -64,10 +66,27 @@ export function NotificationsPage() {
     mutation.current = pending
     return pending
   }
-  return <WorkspacePage title="Thông báo" eyebrow="Trung tâm cập nhật" description="Lịch họp, nhận xét và những thay đổi cần theo dõi — tập trung ở một nơi.">
+  const auth = useContext(AuthSessionContext)
+  const workspaceRole = getWorkspaceRole(auth?.session?.user)
+  const pageDescription = workspaceRole === 'department'
+    ? 'Theo dõi hồ sơ đề cương, bàn giao cuối kỳ, lượt đánh giá và cảnh báo tiến độ thuộc phạm vi bộ môn.'
+    : workspaceRole === 'admin'
+      ? 'Theo dõi cập nhật học vụ, thay đổi hệ thống và các sự kiện quan trọng trên nền tảng.'
+      : workspaceRole === 'lecturer'
+        ? 'Đề nghị hướng dẫn, lịch họp, phân công thẩm định và cập nhật từ các nhóm đồ án của bạn.'
+        : 'Lịch họp, nhận xét từ giảng viên và các mốc tiến độ quan trọng của đồ án — tập trung ở một nơi.'
+
+  return <WorkspacePage title="Thông báo" eyebrow="Trung tâm cập nhật" description={pageDescription}>
     <section className="notification-panel" aria-label="Danh sách thông báo" aria-busy={loading}>
       <div className="notification-toolbar">
-        <SegmentedControl label="Lọc thông báo" value={filter} options={[{value:'all',label:'Tất cả'},{value:'unread',label:'Chưa đọc'}]} disabled={busy} onChange={value=>{setFilter(value);setPage(1)}} />
+        <div className="flex flex-wrap items-center gap-3">
+          <SegmentedControl label="Lọc thông báo" value={filter} options={[{value:'all',label:'Tất cả'},{value:'unread',label:'Chưa đọc'}]} disabled={busy} onChange={value=>{setFilter(value);setPage(1)}} />
+          {unreadCount !== null && unreadCount > 0 && (
+            <span className="inline-flex items-center rounded-full border border-status-warning-border bg-status-warning-bg px-2.5 py-0.5 text-xs font-semibold text-status-warning-text">
+              {unreadCount} chưa đọc
+            </span>
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-2"><button type="button" className="notification-action" disabled={busy || loading} onClick={() => void load()}>Làm mới</button><button type="button" className="notification-action" disabled={busy || loading || (unreadCount === null ? !data?.items.some(item => !item.isRead) : unreadCount === 0)} onClick={() => void mutate(markAllNotificationsRead).catch(() => {})}>Đánh dấu tất cả đã đọc</button></div>
       </div>
       {error && <p role="alert" className="notification-error">{error} <button type="button" disabled={loading || busy} onClick={() => void load()}>Tải lại</button></p>}
@@ -76,14 +95,14 @@ export function NotificationsPage() {
         const olderItems = data.items.filter(item => !isNotificationToday(item.createdAt))
         if (todayItems.length > 0 && olderItems.length > 0) {
           return (
-            <div className="space-y-6">
+            <div className="divide-y divide-hairline">
               <section aria-labelledby="notif-today-heading">
-                <h2 id="notif-today-heading" className="mb-2 text-xs font-bold uppercase tracking-wider text-ink-muted">Hôm nay</h2>
-                <ul className="notification-list">{todayItems.map(item => <NotificationRow key={item.id} item={item} busy={busy} onRead={() => mutate(() => markNotificationRead(item.id))} />)}</ul>
+                <h2 id="notif-today-heading" className="px-6 pt-4 pb-2 text-xs font-bold uppercase tracking-wider text-ink-muted bg-canvas/70 border-b border-hairline">Hôm nay</h2>
+                <ul className="notification-list">{todayItems.map(item => <NotificationRow key={item.id} item={item} busy={busy} headingLevel="h3" onRead={() => mutate(() => markNotificationRead(item.id))} />)}</ul>
               </section>
               <section aria-labelledby="notif-older-heading">
-                <h2 id="notif-older-heading" className="mb-2 text-xs font-bold uppercase tracking-wider text-ink-muted">Trước đó</h2>
-                <ul className="notification-list">{olderItems.map(item => <NotificationRow key={item.id} item={item} busy={busy} onRead={() => mutate(() => markNotificationRead(item.id))} />)}</ul>
+                <h2 id="notif-older-heading" className="px-6 pt-4 pb-2 text-xs font-bold uppercase tracking-wider text-ink-muted bg-canvas/70 border-b border-hairline">Trước đó</h2>
+                <ul className="notification-list">{olderItems.map(item => <NotificationRow key={item.id} item={item} busy={busy} headingLevel="h3" onRead={() => mutate(() => markNotificationRead(item.id))} />)}</ul>
               </section>
             </div>
           )

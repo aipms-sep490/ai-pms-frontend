@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
+import { ListLoading } from '../../../components/ui/ListLoading'
 import { useTopics } from '../hooks/useTopics'
 import { TopicContentForm } from '../components/TopicContentForm'
 import { useTopicCatalog } from '../hooks/useTopicCatalog'
@@ -22,7 +23,7 @@ export function TopicManagementPage() {
   const [message, setMessage] = useState<string | null>(null)
 
   if (topics.isUnauthorized) return <div className="workspace-page topic mk-page-enter"><div className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-soft"><Link className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4" to="/login">Đăng nhập</Link></div></div>
-  if (topics.loading) return <div className="workspace-page topic mk-page-enter"><p role="status" className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải danh mục đề tài…</p></div>
+  if (topics.loading && id) return <div className="workspace-page topic mk-page-enter"><ListLoading label="Đang tải danh mục đề tài…" /></div>
   if (topics.isForbidden) return <div className="workspace-page topic mk-page-enter"><p role="alert" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text">Bạn không có quyền quản lý đề tài trong bộ môn này.</p></div>
   if (topics.error) return <div className="workspace-page topic mk-page-enter"><div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-status-error-border bg-status-error-bg p-5 text-sm text-status-error-text"><p>Không thể tải danh mục đề tài.</p><Button className="min-h-11" onClick={() => void topics.refresh()}>Thử lại</Button></div></div>
 
@@ -32,6 +33,13 @@ export function TopicManagementPage() {
     if (decision === null || version !== decisionVersion.current) return
     try { if (close) await topics.close(decision); else await topics.publish(); setMessage(close ? 'Đã đóng đề tài.' : 'Đã công bố đề tài.') }
     catch (reason) { setMessage(topicErrorMessage(reason)) }
+  }
+
+  const resolveMajorName = (majorId: number | null | undefined, fallbackReqs?: Array<{ majorId: number; majorName?: string | null }>) => {
+    if (!majorId) return 'Không áp dụng'
+    return catalog.majors.find(m => m.id === majorId)?.name
+      ?? fallbackReqs?.find(r => r.majorId === majorId)?.majorName
+      ?? 'Chuyên ngành thuộc bộ môn'
   }
 
   if (id && topics.current) {
@@ -51,10 +59,10 @@ export function TopicManagementPage() {
           <p>{topic.description || 'Chưa có mô tả.'}</p>
           <dl>
             <div><dt>Hình thức</dt><dd>{modeLabels[topic.projectMode]}</dd></div>
-            <div><dt>Ngành chính</dt><dd>{topic.primaryMajorId ? `#${topic.primaryMajorId}` : 'Không áp dụng'}</dd></div>
+            <div><dt>Ngành chính</dt><dd>{resolveMajorName(topic.primaryMajorId, topic.requirements)}</dd></div>
           </dl>
           <h2>Yêu cầu theo ngành</h2>
-          {topic.requirements.length ? <ul>{topic.requirements.map((requirement) => <li key={requirement.majorId}>{requirement.majorName || `Ngành #${requirement.majorId}`}: {requirement.minMembers}–{requirement.maxMembers} · {requirement.responsibility}</li>)}</ul> : <p>Chưa có yêu cầu theo ngành.</p>}
+          {topic.requirements.length ? <ul>{topic.requirements.map((requirement) => <li key={requirement.majorId}>{requirement.majorName || resolveMajorName(requirement.majorId)}: {requirement.minMembers}–{requirement.maxMembers} · {requirement.responsibility}</li>)}</ul> : <p>Chưa có yêu cầu theo ngành.</p>}
           <h2>Bối cảnh và vấn đề</h2><p>{topic.problemStatement || 'Chưa có nội dung.'}</p>
           <h2>Mục tiêu</h2><p>{topic.objectives || 'Chưa có nội dung.'}</p>
           <h2>Sản phẩm kỳ vọng</h2><p>{topic.expectedOutput || 'Chưa có nội dung.'}</p>
@@ -82,17 +90,20 @@ export function TopicManagementPage() {
       </header>
       <form className="topic__filters" onSubmit={event => { event.preventDefault(); topics.setFilters({ ...topics.filters, page: 1 }) }}>
         <label><span>Tìm đề tài</span><input placeholder="Mã hoặc tên đề tài" value={topics.filters.search ?? ''} onChange={event => topics.setFilters({ ...topics.filters, search: event.target.value || undefined, page: 1 })} /></label>
-        <label><span>Trạng thái</span><select aria-label="Trạng thái đề tài" value={topics.filters.status ?? 'DRAFT'} onChange={event => topics.setFilters({ ...topics.filters, status: event.target.value as 'DRAFT' | 'PUBLISHED' | 'CLOSED', page: 1 })}><option value="DRAFT">Bản nháp</option><option value="PUBLISHED">Đã công bố</option><option value="CLOSED">Đã đóng</option></select></label>
+        <label><span>Trạng thái</span><select aria-label="Trạng thái đề tài" value={topics.filters.status ?? ''} onChange={event => topics.setFilters({ ...topics.filters, status: (event.target.value || undefined) as 'DRAFT' | 'PUBLISHED' | 'CLOSED' | undefined, page: 1 })}><option value="">Tất cả trạng thái</option><option value="DRAFT">Bản nháp</option><option value="PUBLISHED">Đã công bố</option><option value="CLOSED">Đã đóng</option></select></label>
+        {(topics.filters.search || topics.filters.status) && <div className="flex items-end"><Button type="button" variant="ghost" size="sm" onClick={() => topics.setFilters({ ...topics.filters, search: undefined, status: undefined, page: 1 })}>Xóa lọc</Button></div>}
       </form>
       <details className="topic__create-disclosure"><summary>Tạo đề tài mới<span className="material-symbols-outlined" aria-hidden="true">add</span></summary><h2>Tạo bản nháp đề tài</h2><TopicContentForm catalog={catalog} busy={topics.saving} onSave={async () => undefined} create={{ onCreate: async input => { const result = await topics.create(input); setMessage('Đã tạo bản nháp đề tài.'); return result } }} /></details>
       {topics.mutationError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{topicErrorMessage(topics.mutationError)}</p>}
       {message && <p className="topic__message" role="status">{message}</p>}
       <section className="topic__list" aria-labelledby="topic-list-title">
         <div className="topic__section-heading"><div><p>DANH SÁCH</p><h2 id="topic-list-title">Đề tài hiện có</h2></div><span>{topics.totalCount} đề tài</span></div>
-        {topics.items.map(topic => <article key={topic.id}><div><span className="topic__status">{statusLabels[topic.status]}</span><Link to={`/department/topics/${topic.id}`}>{topic.title}</Link><p>{topic.code} · {topic.leadDepartmentName}</p></div><p>{modeLabels[topic.projectMode]} · {topic.requirements.map(requirement => requirement.majorName || requirement.majorId).join(', ')}</p></article>)}
-        {!topics.items.length && <p className="topic__empty">Không có đề tài trong trạng thái đã chọn.</p>}
+        {topics.loading ? <ListLoading label="Đang tải danh mục đề tài…" /> : <>
+          {topics.items.map(topic => <article key={topic.id}><div><span className="topic__status">{statusLabels[topic.status]}</span><Link to={`/department/topics/${topic.id}`}>{topic.title}</Link><p>{topic.code} · {topic.leadDepartmentName}</p></div><p>{modeLabels[topic.projectMode]} · {topic.requirements.map(requirement => requirement.majorName || resolveMajorName(requirement.majorId)).join(', ')}</p></article>)}
+          {!topics.items.length && <p className="topic__empty">Không có đề tài trong trạng thái đã chọn.</p>}
+        </>}
       </section>
-      {topics.totalCount > topics.pageSize && <nav className="topic__pagination" aria-label="Phân trang danh mục đề tài"><Button className="min-h-11" disabled={topics.page <= 1} onClick={() => topics.setFilters({ ...topics.filters, page: topics.page - 1 })}>Trang trước</Button><span>Trang {topics.page}</span><Button className="min-h-11" disabled={topics.page * topics.pageSize >= topics.totalCount} onClick={() => topics.setFilters({ ...topics.filters, page: topics.page + 1 })}>Trang sau</Button></nav>}
+      {!topics.loading && topics.totalCount > topics.pageSize && <nav className="topic__pagination" aria-label="Phân trang danh mục đề tài"><Button variant="secondary" className="min-h-11" disabled={topics.page <= 1} onClick={() => topics.setFilters({ ...topics.filters, page: topics.page - 1 })}>Trang trước</Button><span>Trang {topics.page}</span><Button variant="secondary" className="min-h-11" disabled={topics.page * topics.pageSize >= topics.totalCount} onClick={() => topics.setFilters({ ...topics.filters, page: topics.page + 1 })}>Trang sau</Button></nav>}
     </div>
   )
 }

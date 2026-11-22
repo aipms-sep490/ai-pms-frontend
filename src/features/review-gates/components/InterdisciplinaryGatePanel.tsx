@@ -8,6 +8,7 @@ import { dateTimeLabel } from '../../execution/execution-utils'
 
 interface InterdisciplinaryGatePanelProps {
   projectId?: string
+  projectCode?: string | null
   hybridScopes?: Record<string, GateStatus>
   hybridScopeLabels?: Record<string, string>
   hybridScopeDecisionDetails?: Record<string, { decidedByName?: string | null; decidedAt?: string | null }>
@@ -40,6 +41,7 @@ const scopeMeta: Record<string, { name: string; desc: string }> = {
 
 export function InterdisciplinaryGatePanel({
   projectId,
+  projectCode,
   hybridScopes,
   hybridScopeLabels,
   hybridScopeDecisionDetails,
@@ -53,6 +55,7 @@ export function InterdisciplinaryGatePanel({
   const [conflictedScope, setConflictedScope] = useState<string | null>(null)
   const [requiredScopes, setRequiredScopes] = useState<string[]>([])
   const [projectScopeLabels, setProjectScopeLabels] = useState<Record<string, string>>({})
+  const [resolvedProjectCode, setResolvedProjectCode] = useState<string | null>(null)
   const [topologyState, setTopologyState] = useState<'loading' | 'ready' | 'unavailable'>('loading')
 
   useEffect(() => {
@@ -67,8 +70,9 @@ export function InterdisciplinaryGatePanel({
       const majorKeys = project.majors.map(item => String(item.majorId))
       setRequiredScopes(['COMMON', ...majorKeys])
       setProjectScopeLabels(Object.fromEntries(project.majors.map(item => [String(item.majorId), item.majorName])))
+      setResolvedProjectCode(project.code || null)
       setTopologyState('ready')
-    }).catch(() => { if (active) { setRequiredScopes([]); setTopologyState('unavailable') } })
+    }).catch(() => { if (active) { setRequiredScopes([]); setResolvedProjectCode(null); setTopologyState('unavailable') } })
     return () => { active = false }
   }, [projectId])
 
@@ -99,6 +103,7 @@ export function InterdisciplinaryGatePanel({
   const hasRevision = scopeKeys.some(key => scopes[key] === 'REVISION_REQUIRED')
   const scopeName = (key: string) => hybridScopeLabels?.[key]?.trim() || projectScopeLabels[key] || scopeMeta[key]?.name || `Ngành ${key}`
 
+  const displayProjectCode = projectCode?.trim() || resolvedProjectCode || ''
   if (scopeKeys.length === 0) {
     return (
       <div className="rounded-xl border border-hairline bg-card p-8 text-center shadow-xs">
@@ -109,7 +114,7 @@ export function InterdisciplinaryGatePanel({
         <p className="mx-auto mt-1.5 max-w-md text-xs text-ink-muted">
           {topologyState === 'loading' ? 'Đang tải các ngành của đồ án từ hệ thống…' : topologyState === 'unavailable' && projectId
             ? 'Chưa tải được cấu trúc ngành của đồ án. Hãy thử lại; hệ thống chưa thể xác nhận đủ các phạm vi bắt buộc.' : projectId
-            ? `Đồ án ${projectId} chưa có cấu trúc phân nhánh liên ngành hoặc đang chờ Hội đồng thẩm định công bố snapshot các phân ban chuyên môn.`
+            ? `Đồ án ${displayProjectCode || 'đã chọn'} chưa có cấu trúc phân nhánh liên ngành hoặc đang chờ Hội đồng thẩm định công bố cấu trúc các phân ban chuyên môn.`
             : 'Vui lòng chọn đồ án liên ngành để xem chi tiết các phân nhánh chuyên môn.'}
         </p>
       </div>
@@ -124,7 +129,7 @@ export function InterdisciplinaryGatePanel({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-primary">
-              Đồ án liên ngành · {projectId || 'Chưa chọn đồ án'}
+              Đồ án liên ngành{displayProjectCode ? ` · ${displayProjectCode}` : ''}
             </span>
             <h2 className="text-lg font-bold text-ink">
               G2 · Integrated Concept & Architecture Gate

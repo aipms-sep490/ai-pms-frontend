@@ -56,7 +56,13 @@ export function AppLayout() {
         />
 
         {/* Page Content Outlet */}
-        <main id="main-content" tabIndex={-1} ref={entrance} data-experience="enhanced" className={`app-page-content flex-1 p-4 md:p-6 ${isFullPageChat ? '' : 'pb-28 md:pb-28'} max-w-[1400px] w-full mx-auto`}>
+        <main
+          id="main-content"
+          tabIndex={-1}
+          ref={entrance}
+          data-experience="enhanced"
+          className={`app-page-content flex-1 p-4 md:p-6 ${isFullPageChat ? 'is-full-chat' : 'pb-28 md:pb-28'} max-w-[1400px] w-full mx-auto`}
+        >
           <Outlet />
         </main>
       </div>

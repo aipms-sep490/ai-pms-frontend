@@ -13,7 +13,7 @@ type WorkspaceArea = { key: string; title: string; description: string; path: st
 
 const areas: WorkspaceArea[] = [
   { key: 'progress', title: 'Tiến độ', description: 'Tiến độ, vướng mắc và phản hồi.', path: 'progress' },
-  { key: 'review-gates', title: 'Tiến trình Gates', description: 'Theo dõi thẩm định hồ sơ, minh chứng và hướng dẫn khắc phục.', path: 'review-gates' },
+  { key: 'review-gates', title: 'Cổng kiểm duyệt', description: 'Theo dõi thẩm định hồ sơ, minh chứng và hướng dẫn khắc phục.', path: 'review-gates' },
   { key: 'tasks', title: 'Công việc & mốc', description: 'Hạn, phụ trách và trạng thái.', path: 'tasks' },
   { key: 'meetings', title: 'Cuộc họp', description: 'Lịch, biên bản, kết luận và việc sau họp.', path: 'meetings' },
   { key: 'deliverables', title: 'Hạng mục bàn giao', description: 'Phiên bản nộp và phản hồi.', path: 'deliverables' },
@@ -32,7 +32,7 @@ export function SupervisorProjectWorkspacePage() {
   const availableAreas = [
     ...areas,
     ...(env.weeklyAssessmentEnabled ? [{ key: 'weekly', title: 'Điểm cá nhân theo tuần', description: 'Chấm tham khảo theo tuần, không vào kết quả chính thức.', path: 'weekly-assessments' }] : []),
-    ...(env.gatesEnabled ? [{ key: 'checkpoints', title: 'Checkpoint theo dõi', description: 'Kế hoạch theo dõi và kết luận từng giai đoạn.', path: 'checkpoints' }] : []),
+    ...(env.gatesEnabled ? [{ key: 'checkpoints', title: 'Mốc kiểm soát tiến độ', description: 'Kế hoạch theo dõi và kết luận từng giai đoạn.', path: 'checkpoints' }] : []),
     ...(env.aiAdvisoryEnabled || env.aiProgressRiskEnabled ? [{ key: 'ai', title: 'Rủi ro và AI', description: 'Phân tích tham khảo từ dữ liệu tiến độ.', path: 'ai' }] : []),
   ]
 
@@ -44,9 +44,9 @@ export function SupervisorProjectWorkspacePage() {
           <h1>Tổng quan đồ án</h1>
           <p>Theo dõi tiến độ, nội dung cần phản hồi và toàn bộ tài liệu của đồ án được phân công.</p>
         </div>
-        <div className="workspace-heading-actions flex flex-wrap gap-3">
+        <div className="workspace-heading-actions flex shrink-0 flex-wrap items-center gap-2.5">
           <button type="button" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary bg-card px-4 text-sm font-semibold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => { progress.reload(); void operational.reload() }}>Làm mới dữ liệu</button>
-          <Link className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary bg-card px-4 text-sm font-semibold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to="/supervisor/workspace">Đổi đồ án</Link>
+          <Link className="inline-flex min-h-11 items-center justify-center rounded-lg border border-hairline bg-card px-4 text-sm font-semibold text-ink-soft hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to="/supervisor/workspace">Đổi đồ án</Link>
         </div>
       </header>
 
@@ -55,7 +55,7 @@ export function SupervisorProjectWorkspacePage() {
           <p className="text-xs font-medium text-ink-muted">{access.project.code} · {access.project.teamName ?? 'Chưa có thông tin nhóm'}</p>
           <h2 id="supervision-project-summary" className="mt-1 text-xl font-bold text-ink">{access.project.title}</h2>
         </div>
-        <dl className="grid divide-y divide-hairline sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 sm:divide-x sm:divide-y-0">
+        <dl className="grid divide-y divide-hairline sm:grid-cols-2 lg:grid-cols-5 sm:divide-x sm:divide-y-0">
           <Metric label="Trạng thái" value={projectStatusLabel(access.project.status)} />
           <Metric label="Nhóm" value={access.project.teamName ?? 'Chưa có thông tin'} />
           <Metric label="GVHD" value={access.supervisor?.supervisorName ?? 'Chưa có thông tin'} />

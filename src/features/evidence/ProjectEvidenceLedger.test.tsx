@@ -10,7 +10,7 @@ const reviewApi = vi.hoisted(() => ({ getEvidenceReviewTarget: vi.fn(), getEvide
 vi.mock('./evidence-review-api', () => reviewApi)
 
 const page = {
-  items: [{ id: 11, projectId: 9, sourceType: 'TASK', sourceId: 7, majorId: 3, classification: 'PRIMARY', verificationStatus: 'PENDING', submittedBy: 4, submittedAt: '2026-10-01T09:30:00Z', notes: 'Phân tích đã hoàn thành.' }],
+  items: [{ id: 11, projectId: 9, sourceType: 'TASK', sourceId: 7, sourceTitle: 'Phân tích yêu cầu', majorId: 3, majorName: 'Phần mềm', classification: 'PRIMARY', verificationStatus: 'PENDING', submittedBy: 4, submittedByName: 'Nguyễn An', submittedAt: '2026-10-01T09:30:00Z', notes: 'Phân tích đã hoàn thành.' }],
   totalCount: 21, page: 1, pageSize: 20, totalPages: 2,
 }
 
@@ -24,24 +24,24 @@ describe('ProjectEvidenceLedger', () => {
   it('renders server evidence and source deep-links without a privileged create action', async () => {
     api.getProjectEvidence.mockResolvedValue(page)
     renderLedger()
-    expect(await screen.findByText('Công việc #7')).toBeTruthy()
-    expect(screen.getByText(/Ngành #3/)).toBeTruthy()
+    expect(await screen.findByText('Công việc: Phân tích yêu cầu')).toBeTruthy()
+    expect(screen.getByText(/Phần mềm ·/)).toBeTruthy()
     expect(screen.getAllByText('Chờ xác minh').length).toBeGreaterThan(1)
     expect(screen.getByRole('link', { name: 'Mở nguồn' }).getAttribute('href')).toBe('/project/tasks/7')
     expect(screen.queryByRole('button', { name: /ghi nhận evidence|tạo evidence/i })).toBeNull()
   })
 
   it('opens a FILE evidence at the authorized backend download target', async () => {
-    api.getProjectEvidence.mockResolvedValue({ ...page, items: [{ ...page.items[0], sourceType: 'FILE', sourceId: 44, sourceUrl: '/api/v1/files/44/download' }] })
+    api.getProjectEvidence.mockResolvedValue({ ...page, items: [{ ...page.items[0], sourceType: 'FILE', sourceId: 44, sourceTitle: 'spec.pdf', sourceUrl: '/api/v1/files/44/download' }] })
     renderLedger()
-    await screen.findByText('Tệp #44')
+    await screen.findByText('Tệp: spec.pdf')
     expect(screen.getByRole('button', { name: 'Mở nguồn' })).toBeTruthy()
   })
 
   it('passes source, status, major and pagination filters to the real evidence query', async () => {
     api.getProjectEvidence.mockResolvedValue(page)
     renderLedger()
-    await screen.findByText('Công việc #7')
+    await screen.findByText('Công việc: Phân tích yêu cầu')
     fireEvent.change(screen.getByRole('combobox', { name: 'Nguồn' }), { target: { value: 'MEETING' } })
     await vi.waitFor(() => expect(api.getProjectEvidence).toHaveBeenLastCalledWith(9, expect.objectContaining({ sourceType: 'MEETING', page: 1, pageSize: 20 })))
     fireEvent.change(screen.getByRole('combobox', { name: 'Trạng thái xác minh' }), { target: { value: 'UNKNOWN' } })
@@ -63,7 +63,7 @@ describe('ProjectEvidenceLedger', () => {
   it('keeps a discipline mentor filter when clearing other filters', async () => {
     api.getProjectEvidence.mockResolvedValue(page)
     render(<MemoryRouter><ProjectEvidenceLedger projectId={9} routeBase="/mentor/projects/9" majors={[{ majorId: 3, majorName: 'Phần mềm' }]} lockedMajorId={3} /></MemoryRouter>)
-    await screen.findByText('Công việc #7')
+    await screen.findByText('Công việc: Phân tích yêu cầu')
     expect((screen.getByRole('combobox', { name: 'Ngành' }) as HTMLSelectElement).disabled).toBe(true)
     fireEvent.click(screen.getByRole('button', { name: 'Xóa lọc' }))
     await vi.waitFor(() => expect(api.getProjectEvidence).toHaveBeenLastCalledWith(9, expect.objectContaining({ majorId: 3 })))
@@ -75,13 +75,13 @@ describe('ProjectEvidenceLedger', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Nguồn' }), { target: { value: 'MEETING' } })
     await screen.findByText('Chưa có minh chứng phù hợp')
     await act(async () => old(page))
-    expect(screen.queryByText('Công việc #7')).toBeNull()
+    expect(screen.queryByText('Công việc: Phân tích yêu cầu')).toBeNull()
   })
 
   it('never offers a review toggle for a student actor', async () => {
     api.getProjectEvidence.mockResolvedValue(page)
     render(<MemoryRouter><ProjectEvidenceLedger projectId={9} routeBase="/project" majors={[]} actor="student" /></MemoryRouter>)
-    await screen.findByText('Công việc #7')
+    await screen.findByText('Công việc: Phân tích yêu cầu')
     expect(screen.queryByRole('button', { name: /Duyệt minh chứng/ })).toBeNull()
   })
 
@@ -90,7 +90,7 @@ describe('ProjectEvidenceLedger', () => {
     reviewApi.getEvidenceReviewTarget.mockResolvedValue({ evidenceId: 11, sourceVersionId: null, sourceVersion: 'v1', latestReviewId: 0, canReview: false, denialReason: 'Ngoài phạm vi ngành được phân công.' })
     reviewApi.getEvidenceReviews.mockResolvedValue({ items: [], page: 1, pageSize: 20, totalCount: 0, totalPages: 0 })
     render(<MemoryRouter><ProjectEvidenceLedger projectId={9} routeBase="/supervisor/projects/9" majors={[]} actor="supervisor" /></MemoryRouter>)
-    await screen.findByText('Công việc #7')
+    await screen.findByText('Công việc: Phân tích yêu cầu')
     fireEvent.click(screen.getByRole('button', { name: 'Duyệt minh chứng' }))
     expect(await screen.findByText('Ngoài phạm vi ngành được phân công.')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Ghi kết quả duyệt' })).toBeNull()
@@ -102,7 +102,7 @@ describe('ProjectEvidenceLedger', () => {
     reviewApi.getEvidenceReviews.mockResolvedValue({ items: [], page: 1, pageSize: 20, totalCount: 0, totalPages: 0 })
     reviewApi.reviewEvidence.mockResolvedValue({ id: 1, evidenceId: 11, sourceVersionId: null, sourceVersion: 'hash-v1', reviewerId: 5, decision: 'CHANGES_REQUESTED', reason: 'Thiếu minh chứng kiểm thử', reviewedAt: '2026-10-12T00:00:00Z' })
     render(<MemoryRouter><ProjectEvidenceLedger projectId={9} routeBase="/supervisor/projects/9" majors={[]} actor="supervisor" /></MemoryRouter>)
-    await screen.findByText('Công việc #7')
+    await screen.findByText('Công việc: Phân tích yêu cầu')
     fireEvent.click(screen.getByRole('button', { name: 'Duyệt minh chứng' }))
     await screen.findByRole('button', { name: 'Ghi kết quả duyệt' })
     fireEvent.change(screen.getByLabelText('Kết quả'), { target: { value: 'CHANGES_REQUESTED' } })
@@ -118,7 +118,7 @@ describe('ProjectEvidenceLedger', () => {
     reviewApi.getEvidenceReviews.mockResolvedValue({ items: [], page: 1, pageSize: 20, totalCount: 0, totalPages: 0 })
     reviewApi.reviewEvidence.mockResolvedValue({ id: 1, evidenceId: 11, sourceVersionId: null, sourceVersion: 'hash-v1', reviewerId: 5, decision: 'ACCEPTED', reason: 'Đủ', reviewedAt: '2026-10-12T00:00:00Z' })
     render(<MemoryRouter><ProjectEvidenceLedger projectId={9} routeBase="/supervisor/projects/9" majors={[]} actor="supervisor" /></MemoryRouter>)
-    await screen.findByText('Công việc #7')
+    await screen.findByText('Công việc: Phân tích yêu cầu')
     fireEvent.click(screen.getByRole('button', { name: 'Duyệt minh chứng' }))
     await screen.findByRole('button', { name: 'Ghi kết quả duyệt' })
     fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Đủ' } })
@@ -133,7 +133,7 @@ describe('ProjectEvidenceLedger', () => {
     reviewApi.getEvidenceReviews.mockResolvedValue({ items: [], page: 1, pageSize: 20, totalCount: 0, totalPages: 0 })
     reviewApi.reviewEvidence.mockRejectedValue(new HttpError('stale', 409))
     render(<MemoryRouter><ProjectEvidenceLedger projectId={9} routeBase="/supervisor/projects/9" majors={[]} actor="supervisor" /></MemoryRouter>)
-    await screen.findByText('Công việc #7')
+    await screen.findByText('Công việc: Phân tích yêu cầu')
     fireEvent.click(screen.getByRole('button', { name: 'Duyệt minh chứng' }))
     await screen.findByRole('button', { name: 'Ghi kết quả duyệt' })
     fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Thử lại' } })

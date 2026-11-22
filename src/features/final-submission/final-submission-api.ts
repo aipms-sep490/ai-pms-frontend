@@ -15,7 +15,7 @@ export interface FinalChecklist {
   projectId: number; projectPeriodId: number | null; deadline: string | null
   draftConcurrencyToken: string | null; requirementsConcurrencyToken: string | null
   canSubmit: boolean; blockers: string[]
-  items: Array<{ deliverableId: number; title: string; selectedVersionId: number | null; isComplete: boolean }>
+  items: Array<{ deliverableId: number; title: string; selectedVersionId: number | null; selectedVersionNumber?: number | null; isComplete: boolean }>
 }
 export interface LockedFinalSubmission {
   id: number; projectId: number; projectPeriodId: number; status: string; isLocked: boolean

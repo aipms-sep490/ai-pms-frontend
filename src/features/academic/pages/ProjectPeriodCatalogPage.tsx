@@ -106,7 +106,7 @@ export function ProjectPeriodCatalogPage() {
     {/* Academic directory scope notice */}
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-hairline bg-card/60 px-4 py-2.5 text-xs text-ink-muted">
       <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-sm text-primary">policy</span>
+        <span className="material-symbols-outlined text-sm text-primary" aria-hidden="true">policy</span>
         <span>Danh sách được giới hạn theo <strong>cơ sở đào tạo của tài khoản</strong>; quản trị viên có thể xem toàn hệ thống.</span>
       </div>
       <span className="rounded-full bg-canvas px-2.5 py-0.5 font-medium text-ink-muted border border-hairline/60">
@@ -119,7 +119,7 @@ export function ProjectPeriodCatalogPage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="max-w-2xl">
           <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
-            <span className="material-symbols-outlined text-sm">info</span>
+            <span className="material-symbols-outlined text-sm" aria-hidden="true">info</span>
             Quy trình tham gia đợt đồ án
           </div>
           <h2 className="mt-1 font-heading text-base font-bold text-ink">3 bước chuẩn bị trước khi nộp hồ sơ</h2>

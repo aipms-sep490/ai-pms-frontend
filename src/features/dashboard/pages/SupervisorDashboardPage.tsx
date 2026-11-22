@@ -59,9 +59,9 @@ export function SupervisorDashboardPage() {
     {!loading && !error && data && <>
       <section aria-label="Chỉ số khối lượng" className="space-y-3">
         <StatTileRow tiles={[
-          { icon: 'folder_managed', label: 'Đồ án được phân công', value: data.workload.assignedProjects, hero: true, caption: 'Khối lượng hướng dẫn hiện tại.' },
-          { icon: 'fact_check', label: 'Báo cáo chờ duyệt', value: data.pendingProgressReviews, tone: data.pendingProgressReviews > 0 ? 'warning' : 'neutral' },
-          { icon: 'event_busy', label: 'Công việc quá hạn', value: data.overdueTasks, tone: data.overdueTasks > 0 ? 'danger' : 'neutral' },
+          { icon: 'folder_managed', label: 'Đồ án được phân công', value: data.workload.assignedProjects, hero: true, caption: 'Phạm vi GVHD chính hiện tại.' },
+          { icon: 'fact_check', label: 'Báo cáo chờ duyệt', value: data.pendingProgressReviews, tone: data.pendingProgressReviews > 0 ? 'warning' : 'neutral', caption: data.pendingProgressReviews > 0 ? 'Cần xem xét và gửi phản hồi.' : 'Không có báo cáo tồn đọng.' },
+          { icon: 'event_busy', label: 'Công việc quá hạn', value: data.overdueTasks, tone: data.overdueTasks > 0 ? 'danger' : 'neutral', caption: data.overdueTasks > 0 ? 'Cần nhắc nhóm cập nhật tiến độ.' : 'Các công việc đang đúng hạn.' },
         ]} />
         <p className="rounded-lg border border-hairline bg-card px-4 py-3 text-sm text-ink-soft">Đồ án / hạn mức: <strong className="tabular-nums text-ink">{data.workload.profileMaxActiveProjects === null ? 'Chưa cấu hình' : `${data.workload.assignedProjects}/${data.workload.profileMaxActiveProjects}`}</strong>{!data.workload.hasProfile || !data.workload.isAvailable ? ' · Hồ sơ hướng dẫn hiện chưa sẵn sàng nhận thêm.' : ''}</p>
       </section>
@@ -72,7 +72,8 @@ export function SupervisorDashboardPage() {
           p => p.pendingProgressReviews > 0 ||
                (p.analysis?.progressSummary?.overdueTasks ?? 0) > 0 ||
                (p.analysis?.progressSummary?.blockedTasks ?? 0) > 0 ||
-               p.analysis?.riskLevel === 'HIGH'
+               p.analysis?.riskLevel === 'HIGH' ||
+               p.analysis?.riskLevel === 'CRITICAL'
         )
         if (!urgentProjects.length) return null
         return (
@@ -84,7 +85,7 @@ export function SupervisorDashboardPage() {
                 </span>
                 <div>
                   <h2 className="text-base font-bold text-status-warning-text">
-                    Hộp thư duyệt nhanh & Việc khẩn cấp (Action Inbox)
+                    Hộp thư duyệt nhanh & Việc khẩn cấp
                   </h2>
                   <p className="text-xs text-status-warning-text">
                     Có {urgentProjects.length} đồ án đang có báo cáo tiến độ chờ xác nhận hoặc công việc quá hạn/vướng mắc.
@@ -109,9 +110,9 @@ export function SupervisorDashboardPage() {
                         <span className="rounded-md bg-status-warning-bg px-2 py-0.5 text-xs font-bold text-status-warning-text border border-warning-strong">
                           {proj.pendingProgressReviews} báo cáo chờ duyệt
                         </span>
-                      ) : proj.analysis?.riskLevel === 'HIGH' ? (
+                      ) : proj.analysis?.riskLevel === 'HIGH' || proj.analysis?.riskLevel === 'CRITICAL' ? (
                         <span className="rounded-md bg-status-error-bg px-2 py-0.5 text-xs font-bold text-status-error-text border border-status-error-border">
-                          Rủi ro cao
+                          Rủi ro: {displayLabel(proj.analysis.riskLevel)}
                         </span>
                       ) : null}
                     </div>
@@ -148,7 +149,7 @@ export function SupervisorDashboardPage() {
             </div>
 
             <p className="mt-3 text-xs text-status-warning-text italic">
-              * Nhận xét và xác nhận báo cáo của Giảng viên hướng dẫn ghi nhận sự đồng hành chuyên môn; thẩm định đạt cổng chính thức do Thẩm định viên (Reviewer) độc lập phê duyệt.
+              * Nhận xét và xác nhận báo cáo của Giảng viên hướng dẫn ghi nhận sự đồng hành chuyên môn; thẩm định đạt cổng chính thức do Thẩm định viên độc lập phê duyệt.
             </p>
           </section>
         )
@@ -173,7 +174,7 @@ function ProjectRow({ project }: { project: DashboardProject }) {
       <div className="flex flex-wrap items-center gap-2">
         <p className="font-semibold text-ink text-base">{project.code} · {project.title}</p>
         <span className="rounded-full bg-canvas px-2 py-0.5 text-xs font-medium text-ink-soft">{displayLabel(project.status)}</span>
-        {env.aiAdvisoryEnabled && risk && <span className={risk === 'HIGH' ? 'rounded-full bg-status-error-bg px-2 py-0.5 text-xs font-semibold text-status-error-text' : 'rounded-full bg-status-warning-bg px-2 py-0.5 text-xs font-semibold text-status-warning-text'}>Rủi ro: {displayLabel(risk)}</span>}
+        {env.aiAdvisoryEnabled && risk && <span className={risk === 'HIGH' || risk === 'CRITICAL' ? 'rounded-full bg-status-error-bg px-2 py-0.5 text-xs font-semibold text-status-error-text' : risk === 'LOW' ? 'rounded-full bg-status-success-bg px-2 py-0.5 text-xs font-semibold text-status-success-text' : 'rounded-full bg-status-warning-bg px-2 py-0.5 text-xs font-semibold text-status-warning-text'}>Rủi ro: {displayLabel(risk)}</span>}
       </div>
       <p className="mt-1.5 text-xs text-ink-muted">
         Bộ môn: <strong className="text-ink-soft">{project.departmentName ?? 'Chưa có bộ môn'}</strong>
@@ -188,11 +189,15 @@ function ProjectRow({ project }: { project: DashboardProject }) {
         </div>
       )}
     </div>
-    {project.status === 'ACTIVE' && (
+    {project.status === 'ACTIVE' ? (
       <Link className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary bg-card px-4 text-xs font-bold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors shadow-2xs" to={`/supervisor/projects/${project.id}/workspace`}>
         Mở không gian đồ án
       </Link>
-    )}
+    ) : project.status === 'FINAL_SUBMISSION' ? (
+      <Link className="inline-flex min-h-11 items-center justify-center rounded-lg border border-hairline bg-card px-4 text-xs font-bold text-ink-soft hover:border-primary hover:text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors shadow-2xs" to={`/supervisor/projects/${project.id}/final-submission`}>
+        Xem bàn giao cuối kỳ
+      </Link>
+    ) : null}
   </li>
 }
 

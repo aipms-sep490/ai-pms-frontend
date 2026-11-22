@@ -379,13 +379,13 @@ describe('MeetingGovernancePanel: Task Creation and Linking (ISSUE-01)', () => {
     })
 
     // 3. UI displays linked task badge and details
-    const badge = await screen.findByText(/Task liên kết:/)
-    expect(badge.textContent).toContain('#888')
+    const badge = await screen.findByText(/Công việc liên kết/)
+    expect(badge).toBeTruthy()
     expect(screen.getByText('Chưa bắt đầu')).toBeTruthy() // TODO label
     expect(screen.getAllByText(/Giai đoạn 1: Thiết kế kiến trúc/).length).toBeGreaterThanOrEqual(1)
 
     // 4. View Task link points to routeBase/tasks/888
-    const viewTaskLink = screen.getByRole('link', { name: /Xem Task/ }) as HTMLAnchorElement
+    const viewTaskLink = screen.getByRole('link', { name: /Mở công việc/ }) as HTMLAnchorElement
     expect(viewTaskLink.getAttribute('href')).toBe('/supervisor/projects/90005/tasks/888')
 
     // 5. Duplicate creation button is NOT present for this linked item
@@ -434,12 +434,12 @@ describe('MeetingGovernancePanel: Task Creation and Linking (ISSUE-01)', () => {
     expect(screen.queryByText(/\[Task #999\]/)).toBeNull()
 
     // Linked task badge and status
-    const badge = await screen.findByText(/Task liên kết:/)
-    expect(badge.textContent).toContain('#999')
+    const badge = await screen.findByText(/Công việc liên kết/)
+    expect(badge).toBeTruthy()
     expect(screen.getByText('Đang thực hiện')).toBeTruthy()
 
     // Navigation link
-    const link = screen.getByRole('link', { name: /Xem Task/ })
+    const link = screen.getByRole('link', { name: /Mở công việc/ })
     expect(link.getAttribute('href')).toBe('/supervisor/projects/90005/tasks/999')
   })
 
@@ -513,8 +513,8 @@ describe('MeetingGovernancePanel: Task Creation and Linking (ISSUE-01)', () => {
     })
 
     // Now linked task badge is rendered and inline creation form is closed
-    const badge = await screen.findByText(/Task liên kết:/)
-    expect(badge.textContent).toContain('#777')
+    const badge = await screen.findByText(/Công việc liên kết/)
+    expect(badge).toBeTruthy()
     expect(screen.queryByRole('group', { name: 'Tạo Task liên kết' })).toBeNull()
   })
 

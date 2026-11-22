@@ -30,6 +30,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [inboxError, setInboxError] = useState('')
   const [inboxLoading, setInboxLoading] = useState(false)
   const userId = session?.user.id
+  const userRoles = (session?.user?.roles ?? []).map(r => r.toUpperCase())
+  const isPureAdmin = userRoles.length > 0 && userRoles.every(r => r === 'ADMIN')
   const [inboxOwner, setInboxOwner] = useState<number | undefined>()
   const deniedInboxOwner = useRef<number | undefined>(undefined)
   const [deniedHubOwner, setDeniedHubOwner] = useState<number | undefined>()
@@ -42,7 +44,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback((conversationId?: string) => { deniedInboxOwner.current = undefined; setChangedConversations(conversationId ? new Set([conversationId]) : null); setRevision(value => value + 1) }, [])
 
   useEffect(() => {
-    if (!env.chatEnabled || env.isMockMode || !userId || deniedHubOwner === userId) return
+    if (!env.chatEnabled || env.isMockMode || !userId || isPureAdmin || deniedHubOwner === userId) return
     let disposed = false
     let timer: ReturnType<typeof setTimeout> | undefined
     let retry: ReturnType<typeof setTimeout> | undefined
@@ -93,10 +95,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', catchUp)
       void hub.stop(); setConnection(null); setState('offline')
     }
-  }, [userId, deniedHubOwner])
+  }, [userId, isPureAdmin, deniedHubOwner])
 
   useEffect(() => {
-    if (!env.chatEnabled || env.isMockMode || !userId) return
+    if (!env.chatEnabled || env.isMockMode || !userId || isPureAdmin) return
     const abort = new AbortController()
     let running = false, queued = false
     const load = async () => {
@@ -140,11 +142,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     reloadInbox.current = () => { void load() }
     void load()
     return () => { abort.abort(); reloadInbox.current = () => {}; deniedInboxOwner.current = undefined; setInboxOwner(undefined); setInboxError(''); setInboxLoading(false) }
-  }, [userId])
+  }, [userId, isPureAdmin])
   useEffect(() => {
     if (previousRevision.current === revision) return
     previousRevision.current = revision; reloadInbox.current()
   }, [revision])
   const visibleInbox = inboxOwner === userId && userId ? inbox : emptyInbox
-  return <ChatContext.Provider value={{ connection, revision, state, chatDenied: deniedHubOwner === userId && !!userId, inbox: visibleInbox, inboxError, inboxLoading, refresh, changedConversations, unreadCount: totalUnread(visibleInbox.items), unreadKnown: inboxOwner === userId && !!userId, acknowledgeRead }}>{children}</ChatContext.Provider>
+  return <ChatContext.Provider value={{ connection, revision, state, chatDenied: (deniedHubOwner === userId || isPureAdmin) && !!userId, inbox: visibleInbox, inboxError, inboxLoading, refresh, changedConversations, unreadCount: totalUnread(visibleInbox.items), unreadKnown: inboxOwner === userId && !!userId, acknowledgeRead }}>{children}</ChatContext.Provider>
 }

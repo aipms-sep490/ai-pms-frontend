@@ -211,7 +211,7 @@ export const ReviewGateModeConfigPanel: React.FC<ReviewGateModeConfigPanelProps>
     <div className="rounded-2xl border border-hairline bg-card p-6 shadow-xs space-y-6">
       {/* Toast */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 rounded-xl border border-primary/20 bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-xl motion-safe:animate-in motion-safe:slide-in-from-bottom-3 duration-200">
+        <div role="status" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-[min(92vw,480px)] rounded-xl border border-primary/20 bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-xl motion-safe:animate-in motion-safe:slide-in-from-bottom-3 duration-200">
           {toastMessage}
         </div>
       )}

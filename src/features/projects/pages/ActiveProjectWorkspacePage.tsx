@@ -177,7 +177,7 @@ export function ProjectWorkspaceSummary({
           <div>
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-tag-ai" aria-hidden="true">folder_open</span>
-              <h2 className="text-base font-bold text-ink">Sản phẩm bàn giao & phiên bản</h2>
+              <h2 className="text-base font-bold text-ink">Hạng mục bàn giao & phiên bản</h2>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-ink-muted">Theo dõi các sản phẩm cần nộp, phiên bản đã gửi và nhận xét của giảng viên.</p>
           </div>

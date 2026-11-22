@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { displayLabel } from '../../components/ui/display-label'
+import { ListLoading } from '../../components/ui/ListLoading'
 import { httpGetBlob, HttpError } from '../../services/http/http-client'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { getProjectEvidence, type ProjectEvidence, type ProjectEvidenceQuery } from '../projects/api/project-governance-api'
@@ -22,18 +24,18 @@ export function ProjectEvidenceLedgerPage() {
   return <>
     {scope.loading && <p role="status" className="mb-4 text-sm">Đang tải phạm vi ngành…</p>}
     {scope.error && <p role="status" className="mb-4 text-sm text-ink-muted">{scope.error} Bộ lọc ngành tạm thời chưa khả dụng. <button type="button" className="min-h-11 underline" onClick={scope.retry}>Tải lại phạm vi ngành</button></p>}
-    <ProjectEvidenceLedger projectId={access.project.id} routeBase={access.routeBase} majors={scope.majors} lockedMajorId={access.actor === 'mentor' ? access.supervisor?.majorId ?? undefined : undefined} actor={access.actor} />
+    <ProjectEvidenceLedger projectId={access.project.id} projectLabel={[access.project.code, access.project.title].filter(Boolean).join(' · ')} routeBase={access.routeBase} majors={scope.majors} lockedMajorId={access.actor === 'mentor' ? access.supervisor?.majorId ?? undefined : undefined} actor={access.actor} />
   </>
 }
 
 /** Listing is read-only; review decisions are written via BE-13 (project-evidence/{id}/reviews).
  * `actor` is presentation-only (hides the review toggle for students, who have no
  * review-history API access at all) — the server remains the sole review authority. */
-interface LedgerProps { projectId: number; routeBase: string; majors?: { majorId: number; majorName: string }[]; lockedMajorId?: number; actor?: 'student' | 'supervisor' | 'mentor' }
+interface LedgerProps { projectId: number; projectLabel?: string; routeBase: string; majors?: { majorId: number; majorName: string }[]; lockedMajorId?: number; actor?: 'student' | 'supervisor' | 'mentor' }
 export function ProjectEvidenceLedger(props: LedgerProps) {
   return <EvidenceLedger key={`${props.projectId}:${props.routeBase}:${props.lockedMajorId ?? ''}`} {...props} />
 }
-function EvidenceLedger({ projectId, routeBase, majors = [], lockedMajorId, actor }: LedgerProps) {
+function EvidenceLedger({ projectId, projectLabel, routeBase, majors = [], lockedMajorId, actor }: LedgerProps) {
   const [filters, setFilters] = useState<Filters>({ majorId: lockedMajorId })
   const [majorInput, setMajorInput] = useState(String(lockedMajorId ?? ''))
   const [page, setPage] = useState(1)
@@ -70,12 +72,13 @@ function EvidenceLedger({ projectId, routeBase, majors = [], lockedMajorId, acto
     setFilters(current => ({ ...current, [key]: value || undefined }))
     setPage(1)
   }
+  const majorMap = useMemo(() => Object.fromEntries(majors.map(item => [item.majorId, item.majorName])), [majors])
   const totalPages = result?.totalPages ?? 1
 
   return <div className="workspace-page space-y-6 pb-12">
     <header className="workspace-heading border-b border-hairline pb-5">
       <div className="min-w-0">
-        <p className="workspace-kicker font-mono text-xs font-semibold uppercase tracking-[0.14em] text-primary">Đồ án #{projectId} · Sổ minh chứng</p>
+        <p className="workspace-kicker font-mono text-xs font-semibold uppercase tracking-[0.14em] text-primary">{projectLabel ? `${projectLabel} · Sổ minh chứng` : 'Sổ minh chứng đồ án'}</p>
         <h1 className="mt-2 text-2xl font-bold tracking-tight text-ink sm:text-3xl">Sổ minh chứng</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">Tra cứu minh chứng theo công việc, báo cáo và cuộc họp; đối chiếu trạng thái từ hệ thống.</p>
       </div>
@@ -96,7 +99,7 @@ function EvidenceLedger({ projectId, routeBase, majors = [], lockedMajorId, acto
         <label className="text-sm font-medium text-ink-soft">Ngành
           <select value={majorInput} disabled={!!lockedMajorId || !majors.length} onChange={event => setMajorInput(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
             {!lockedMajorId && <option value="">Tất cả ngành</option>}
-            {lockedMajorId && !majors.some(item => item.majorId === lockedMajorId) && <option value={lockedMajorId}>Ngành hướng dẫn #{lockedMajorId}</option>}
+            {lockedMajorId && !majors.some(item => item.majorId === lockedMajorId) && <option value={lockedMajorId}>Ngành hướng dẫn</option>}
             {majors.map(item => <option key={item.majorId} value={item.majorId}>{item.majorName}</option>)}
           </select>
         </label>
@@ -105,18 +108,18 @@ function EvidenceLedger({ projectId, routeBase, majors = [], lockedMajorId, acto
     </section>
 
     {error && <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" onClick={() => void load()} className="ml-2 min-h-11 font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Thử lại</button></section>}
-    {loading && <p role="status" aria-live="polite" className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-soft">Đang tải minh chứng…</p>}
+    {loading && <ListLoading label="Đang tải minh chứng…" />}
     {!loading && !error && result?.items.length === 0 && <section className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-soft"><h2 className="font-semibold text-ink">Chưa có minh chứng phù hợp</h2><p className="mt-1 leading-6">Hãy thử điều chỉnh bộ lọc. Trạng thái xác minh được lấy trực tiếp từ hệ thống.</p></section>}
-    {!loading && !error && result?.items.length ? <EvidenceList items={result.items} routeBase={routeBase} actor={actor} onReviewed={() => void load()} /> : null}
+    {!loading && !error && result?.items.length ? <EvidenceList items={result.items} majorMap={majorMap} routeBase={routeBase} actor={actor} onReviewed={() => void load()} /> : null}
     {!loading && !error && result && result.totalPages > 1 && <nav aria-label="Phân trang minh chứng" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-card p-4 text-sm"><button type="button" disabled={page <= 1} onClick={() => setPage(current => current - 1)} className="min-h-11 whitespace-nowrap rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Trang trước</button><span aria-live="polite">Trang {page} / {totalPages} · {result.totalCount} minh chứng</span><button type="button" disabled={page >= totalPages} onClick={() => setPage(current => current + 1)} className="min-h-11 whitespace-nowrap rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Trang sau</button></nav>}
   </div>
 }
 
-function EvidenceList({ items, routeBase, actor, onReviewed }: { items: ProjectEvidence[]; routeBase: string; actor?: 'student' | 'supervisor' | 'mentor'; onReviewed: () => void }) {
+function EvidenceList({ items, majorMap, routeBase, actor, onReviewed }: { items: ProjectEvidence[]; majorMap: Record<number, string>; routeBase: string; actor?: 'student' | 'supervisor' | 'mentor'; onReviewed: () => void }) {
   return <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-label="Danh sách minh chứng"><ul className="divide-y divide-hairline">{items.map(item => <li key={item.id} className="grid gap-3 p-4 sm:p-5">
     <div className="grid gap-3 lg:grid-cols-[minmax(12rem,1fr)_minmax(9rem,.7fr)_minmax(10rem,.7fr)_auto] lg:items-start">
-      <div className="min-w-0"><p className="font-semibold text-ink">{sourceLabels[item.sourceType as keyof typeof sourceLabels] ?? item.sourceType} #{item.sourceId}</p><p className="mt-1 text-sm text-ink-muted">{item.majorId ? `Ngành #${item.majorId}` : 'Chưa phân loại ngành'} · {item.classification}</p>{item.notes ? <p className="mt-2 break-words text-sm leading-6 text-ink-soft">{item.notes}</p> : <p className="mt-2 text-sm text-ink-muted">Không có ghi chú.</p>}</div>
-      <div className="text-sm"><p className="font-medium text-ink">{verificationLabels[item.verificationStatus as keyof typeof verificationLabels] ?? item.verificationStatus}</p><p className="mt-1 text-ink-muted">Người gửi #{item.submittedBy}</p></div>
+      <div className="min-w-0"><p className="font-semibold text-ink">{sourceLabels[item.sourceType as keyof typeof sourceLabels] ?? displayLabel(item.sourceType)}{item.sourceTitle ? `: ${item.sourceTitle}` : ''}</p><p className="mt-1 text-sm text-ink-muted">{item.majorName ?? (item.majorId ? majorMap[item.majorId] ?? 'Chuyên ngành' : 'Chưa phân loại ngành')} · {displayLabel(item.classification)}</p>{item.notes ? <p className="mt-2 break-words text-sm leading-6 text-ink-soft">{item.notes}</p> : <p className="mt-2 text-sm text-ink-muted">Không có ghi chú.</p>}</div>
+      <div className="text-sm"><p className="font-medium text-ink">{verificationLabels[item.verificationStatus as keyof typeof verificationLabels] ?? displayLabel(item.verificationStatus)}</p><p className="mt-1 text-ink-muted">Người gửi: {item.submittedByName ?? 'Thành viên đồ án'}</p></div>
       <p className="text-sm leading-6 text-ink-muted">{formatDate(item.submittedAt)}</p>
        <div>{sourcePath(routeBase, item) ? (isProtectedSource(sourcePath(routeBase, item)!) ? <ProtectedSourceButton path={sourcePath(routeBase, item)!} /> : <Link to={sourcePath(routeBase, item)!} className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở nguồn</Link>) : <span className="inline-flex min-h-11 items-center text-sm text-ink-muted">Chưa có đường dẫn nguồn</span>}</div>
     </div>
