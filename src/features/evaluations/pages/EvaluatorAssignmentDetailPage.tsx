@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import * as api from '../../../services/api/evaluations.api'
 import { HttpError } from '../../../services/http/http-client'
-import { evaluationError, isConflict } from '../evaluation-errors'
+import { evaluationError, isAssignmentRevoked, isConflict } from '../evaluation-errors'
 import { evaluationStageLabel, type EvaluationDraft, type EvaluationScore } from '../evaluation-types'
 import { CriterionLevelPanel } from '../components/CriterionLevelPanel'
 import { ScoringGuideDrawer } from '../components/ScoringGuideDrawer'
@@ -151,7 +151,11 @@ export function EvaluatorAssignmentDetailPage() {
       setDraft(next); setValues(valuesFor(next)); setOverallComment(next.comments ?? ''); setMessage('Đã lưu bản nháp theo dữ liệu máy chủ.')
     } catch (reason) {
       if (isConflict(reason)) { setConflicted(true); await load(true) }
-      if (reason instanceof HttpError && (reason.status === 403 || reason.status === 404)) { setPermissionLost(true); setEvidence(null); setDraft(null) }
+      if (reason instanceof HttpError && (reason.status === 403 || reason.status === 404)) {
+        setPermissionLost(true)
+        setEvidence(null)
+        if (!isAssignmentRevoked(reason)) setDraft(null)
+      }
       setMessage(evaluationError(reason))
     } finally { mutationLock.current = false; setBusy(false) }
   }
@@ -167,7 +171,11 @@ export function EvaluatorAssignmentDetailPage() {
       setDraft(next); setValues(valuesFor(next)); setOverallComment(next.comments ?? ''); setMessage('Máy chủ đã chốt đánh giá.')
     } catch (reason) {
       if (isConflict(reason)) { setConflicted(true); await load(true) }
-      if (reason instanceof HttpError && (reason.status === 403 || reason.status === 404)) { setPermissionLost(true); setEvidence(null); setDraft(null) }
+      if (reason instanceof HttpError && (reason.status === 403 || reason.status === 404)) {
+        setPermissionLost(true)
+        setEvidence(null)
+        if (!isAssignmentRevoked(reason)) setDraft(null)
+      }
       setMessage(evaluationError(reason))
     } finally { mutationLock.current = false; setBusy(false) }
   }
@@ -202,7 +210,7 @@ export function EvaluatorAssignmentDetailPage() {
       <section className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-semibold text-ink">Tóm tắt gói bàn giao</h2>{evidenceState === 'loading' ? <p role="status" className="mt-1 text-sm leading-6 text-ink-muted">Đang tải thông tin gói bàn giao theo phân công…</p> : null}{evidenceState === 'unavailable' ? <p role="alert" className="mt-1 text-sm leading-6 text-status-warning-text">Chưa tải được thông tin gói bàn giao theo phân công. Các phần chấm điểm khác vẫn giữ nguyên.</p> : null}{evidenceState === 'ready' && evidence ? <div className="mt-2 space-y-1 text-sm leading-6 text-ink-muted"><p>Giai đoạn: {evaluationStageLabel(evidence.stage)}</p>{evidence.stage === 'COLD' ? <p>Gói báo cáo: {evidence.coldPackageId ? 'Đã khóa' : 'Chưa có'}</p> : null}<p>Gói bàn giao: {evidence.finalSubmissionId ? 'Bản nộp đã khóa của đồ án' : 'Chưa có'}</p><p>Thời điểm nộp: {evidence.submittedAt ? dateTimeLabel(evidence.submittedAt) : 'Chưa có'}</p><p>Số hạng mục bàn giao: {evidence.itemCount}</p>{evidence.itemCount === 0 ? <p role="status" className="text-status-warning-text">Không có tài liệu trong gói đã khóa khớp phạm vi bài chấm này. Minh chứng ngành/cá nhân phải được khai báo đúng ngành và sinh viên trước khi khóa gói. Liên hệ khoa để kiểm tra bộ bàn giao; tài liệu chung không tự trở thành minh chứng cá nhân.</p> : <p>Tài liệu được hiển thị tại mục Báo cáo của sinh viên, có thể xem trước hoặc tải xuống.</p>}</div> : null}<p className="mt-3 text-sm text-ink-muted">Chỉ xem và tải các tệp trong phạm vi phân công này.</p></section>
     {state === 'loading' ? <p role="status" className="rounded-xl border border-hairline bg-card p-4 text-sm text-ink-muted">Đang tải bản nháp và tiêu chí chấm…</p> : null}
     {state === 'unavailable' ? <section className="rounded-xl border border-status-error-border bg-status-error-bg p-5 text-sm text-status-error-text">Chưa tải được bản nháp đánh giá. <button type="button" className="min-h-11 font-semibold underline" onClick={() => void load(true)}>Tải lại</button></section> : null}
-    {!scoringAllowed ? <section role="alert" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text"><h2 className="font-semibold">Phân công chỉ đọc</h2><p className="mt-1 leading-6">{detail.denialReason === 'LEGACY_SCOPE_UNKNOWN' ? 'Hệ thống đánh dấu phạm vi phân công cũ hoặc không xác định; không có thao tác chấm điểm.' : 'Hệ thống không cấp quyền chấm điểm cho phân công này. Các thao tác tạo, lưu và chốt được ẩn.'}</p></section> : null}
+    {!scoringAllowed ? <section role="alert" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text"><h2 className="font-semibold">Phân công chỉ đọc</h2><p className="mt-1 leading-6">{permissionLost ? 'Phân công đã bị thu hồi hoặc không còn quyền chấm; biểu mẫu đã khóa để bảo toàn bản nháp bạn vừa nhập.' : detail.denialReason === 'LEGACY_SCOPE_UNKNOWN' ? 'Hệ thống đánh dấu phạm vi phân công cũ hoặc không xác định; không có thao tác chấm điểm.' : 'Hệ thống không cấp quyền chấm điểm cho phân công này. Các thao tác tạo, lưu và chốt được ẩn.'}</p></section> : null}
     {state === 'empty' ? <section className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-semibold text-ink">Chưa có bản nháp đánh giá</h2><p className="mt-1 text-sm leading-6 text-ink-muted">Bạn có thể yêu cầu máy chủ tạo bản nháp cho đúng phân công này. Máy chủ sẽ kiểm tra cửa sổ đánh giá, gói bàn giao đã khóa và phạm vi hiện tại.</p>{scoringAllowed ? <button type="button" disabled={busy} onClick={() => void startDraft()} className="mt-4 min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Đang tạo…' : 'Tạo bản nháp đánh giá'}</button> : null}</section> : null}
 
     {state === 'ready' && draft ? <>

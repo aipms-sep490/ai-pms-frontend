@@ -79,7 +79,7 @@ export async function httpGetBlob(
   }
   if (!response.ok) {
     const problem = await readProblem(response)
-    throw new HttpError(problem.detail || problem.title || `Request failed with status ${response.status}.`, response.status, problem)
+    throw new HttpError(problem.message || problem.detail || problem.title || `Request failed with status ${response.status}.`, response.status, problem)
   }
   return response.blob()
 }
@@ -94,7 +94,7 @@ export async function httpGetStream(path: string, options?: HttpRequestOptions):
   }
   if (!response.ok) {
     const problem = await readProblem(response)
-    throw new HttpError(problem.detail || problem.title || 'Không thể tải tệp.', response.status, problem)
+    throw new HttpError(problem.message || problem.detail || problem.title || 'Không thể tải tệp.', response.status, problem)
   }
   if (!response.body) throw new Error('Máy chủ chưa trả nội dung tệp.')
   return response.body
@@ -271,7 +271,7 @@ async function readResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const problem = await readProblem(response)
     throw new HttpError(
-      problem.detail || problem.title || `Request failed with status ${response.status}.`,
+      problem.message || problem.detail || problem.title || `Request failed with status ${response.status}.`,
       response.status,
       problem,
     )
@@ -286,7 +286,15 @@ async function readResponse<T>(response: Response): Promise<T> {
 
 async function readProblem(response: Response): Promise<ApiProblem> {
   try {
-    return (await response.json()) as ApiProblem
+    const raw = (await response.json()) as ApiProblem
+    const normalized: ApiProblem = { ...raw }
+    if (normalized.code === undefined && raw.errorCode !== undefined) normalized.code = raw.errorCode
+    if (normalized.errorCode === undefined && raw.code !== undefined) normalized.errorCode = raw.code
+    if (normalized.traceId === undefined && raw.correlationId !== undefined) normalized.traceId = raw.correlationId
+    if (normalized.correlationId === undefined && raw.traceId !== undefined) normalized.correlationId = raw.traceId
+    if (normalized.errors === undefined && raw.fieldErrors !== undefined) normalized.errors = raw.fieldErrors
+    if (normalized.fieldErrors === undefined && raw.errors !== undefined) normalized.fieldErrors = raw.errors
+    return normalized
   } catch {
     return { status: response.status, title: response.statusText }
   }

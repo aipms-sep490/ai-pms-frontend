@@ -103,4 +103,43 @@ describe('shared HTTP authentication pipeline', () => {
     expect(refresh).toHaveBeenCalledTimes(1)
     expect(fetch.mock.calls[1][1]).toMatchObject({ method: 'PUT', body, headers: { Authorization: 'Bearer fresh-token', 'Content-Type': 'application/octet-stream' } })
   })
+
+  it('parses additive V4 ProblemDetails fields while preserving legacy aliases', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(422, {
+      status: 422,
+      title: 'A business rule was violated.',
+      detail: 'Missing required criteria.',
+      message: 'Thiếu tiêu chí bắt buộc.',
+      code: 'INCOMPLETE_SCORES',
+      correlationId: 'corr-422-1',
+      fieldErrors: { scores: ['Required'] },
+      blockingRequirements: [{ code: 'CRITERION_MISSING', message: 'C1 missing', target: 'c1' }],
+      currentState: 'DRAFT',
+      expectedState: 'FINALIZED',
+      policyVersion: 'POL-2026-V4',
+      retryable: false,
+    })))
+
+    try {
+      await httpGet('/evaluations/1/finalize')
+      throw new Error('Expected HttpError')
+    } catch (error) {
+      expect(error).toBeInstanceOf(HttpError)
+      const httpError = error as HttpError
+      expect(httpError.message).toBe('Thiếu tiêu chí bắt buộc.')
+      expect(httpError.problem).toMatchObject({
+        code: 'INCOMPLETE_SCORES',
+        errorCode: 'INCOMPLETE_SCORES',
+        traceId: 'corr-422-1',
+        correlationId: 'corr-422-1',
+        errors: { scores: ['Required'] },
+        fieldErrors: { scores: ['Required'] },
+        currentState: 'DRAFT',
+        expectedState: 'FINALIZED',
+        policyVersion: 'POL-2026-V4',
+        retryable: false,
+      })
+      expect(httpError.problem?.blockingRequirements).toHaveLength(1)
+    }
+  })
 })

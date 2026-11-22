@@ -290,6 +290,9 @@ async function loadAllMeetings(projectId: number) {
 function formatBytes(value: number) { return value < 1024 ? `${value} B` : value < 1024 * 1024 ? `${Math.ceil(value / 1024)} KB` : `${(value / 1024 / 1024).toFixed(1)} MB` }
 function fileError(reason: unknown, action: string) {
   if (!(reason instanceof HttpError)) return `Không thể ${action}. Hãy thử lại.`
+  const code = reason.problem?.code ?? reason.problem?.errorCode
+  if (code === 'ASSIGNMENT_REVOKED') return 'Phân công của bạn đã bị thu hồi hoặc hết hiệu lực (ASSIGNMENT_REVOKED).'
+  if (code === 'SCOPE_ACCESS_DENIED') return 'Tệp hoặc hạng mục này nằm ngoài phạm vi chuyên ngành được phân công (SCOPE_ACCESS_DENIED).'
   if (reason.status === 400) return 'Dữ liệu lọc hoặc tệp không hợp lệ.'
   if (reason.status === 401) return 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.'
   if (reason.status === 403) return 'Bạn không có quyền thao tác với tệp hoặc hạng mục này.'

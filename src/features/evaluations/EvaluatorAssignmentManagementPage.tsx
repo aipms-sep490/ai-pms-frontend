@@ -22,8 +22,17 @@ type AssignmentStatusFilter = 'ALL' | 'ACTIVE' | 'REVOKED'
 type AssignmentFormErrors = { evaluatorId?: string; periodId?: string; componentId?: string; studentId?: string; revokeReason?: string }
 
 function assignmentError(reason: unknown, fallback: string) {
-  if (reason instanceof HttpError && reason.status === 403) return 'Hệ thống không cấp quyền thực hiện thao tác này trong phạm vi đồ án.'
-  if (reason instanceof HttpError && reason.status === 404) return 'Không tìm thấy đồ án hoặc phân công. Hãy tải lại dữ liệu.'
+  if (reason instanceof HttpError) {
+    const code = reason.problem?.code ?? reason.problem?.errorCode
+    if (code === 'EVALUATOR_ROLE_CONFLICT') {
+      return 'Xung đột vai trò D17 (EVALUATOR_ROLE_CONFLICT): Giảng viên hướng dẫn chính không thể được phân công chấm phản biện hoặc hội đồng cho cùng đồ án.'
+    }
+    if (code === 'ASSIGNMENT_REVOKED') {
+      return 'Phân công này đã bị thu hồi hoặc hết hạn (ASSIGNMENT_REVOKED).'
+    }
+    if (reason.status === 403) return 'Hệ thống không cấp quyền thực hiện thao tác này trong phạm vi đồ án.'
+    if (reason.status === 404) return 'Không tìm thấy đồ án hoặc phân công. Hãy tải lại dữ liệu.'
+  }
   return reason instanceof Error && reason.message.startsWith('Đã lưu ') ? reason.message : fallback
 }
 
@@ -139,7 +148,12 @@ export function EvaluatorAssignmentManagementPage() {
       capabilities.retry()
       if (reason instanceof HttpError && reason.status === 409) {
         await load()
-        setError('Phân công, bộ tiêu chí hoặc điều kiện đánh giá đã thay đổi. Dữ liệu mới đã được tải lại; hãy kiểm tra trước khi thao tác tiếp.')
+        const code = reason.problem?.code ?? reason.problem?.errorCode
+        if (code === 'EVALUATOR_ROLE_CONFLICT') {
+          setError(assignmentError(reason, fallback))
+        } else {
+          setError('Phân công, bộ tiêu chí hoặc điều kiện đánh giá đã thay đổi. Dữ liệu mới đã được tải lại; hãy kiểm tra trước khi thao tác tiếp.')
+        }
       } else setError(assignmentError(reason, fallback))
     } finally { mutationLock.current = false; setBusy(false) }
   }
@@ -165,7 +179,8 @@ export function EvaluatorAssignmentManagementPage() {
         try {
           await assignEvaluator(projectId, { evaluatorId: evaluator, projectPeriodId: period, evaluationType, componentId: selectedComponent.id, scope: selectedComponent.scope, majorId: selectedComponent.majorId, studentId: target })
           completed++
-        } catch {
+        } catch (reason) {
+          if (completed === 0) throw reason
           await load()
           throw new Error('Đã lưu ' + completed + '/' + targets.length + ' phân công. Đã dừng ở mục lỗi; hãy kiểm tra danh sách trước khi thử lại.')
         }

@@ -367,4 +367,22 @@ describe('Evaluator Workspace Phase 5', () => {
     expect(await screen.findByText(/không xem trực tiếp trên trình duyệt được/)).toBeTruthy()
     vi.unstubAllGlobals()
   })
+
+  it('locks the form on 403 ASSIGNMENT_REVOKED while preserving typed local draft values', async () => {
+    api.saveEvaluationDraft.mockRejectedValue(new HttpError('Revoked', 403, {
+      status: 403,
+      code: 'ASSIGNMENT_REVOKED',
+      detail: 'This evaluation assignment has been revoked or expired.',
+    }))
+    page()
+    const score = await screen.findByLabelText('Điểm Phân tích') as HTMLInputElement
+    fireEvent.change(score, { target: { value: '8.25' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
+    expect(await screen.findByText(/ASSIGNMENT_REVOKED/)).toBeTruthy()
+    const lockedScore = screen.getByLabelText('Điểm Phân tích') as HTMLInputElement
+    expect(lockedScore.value).toBe('8.25')
+    expect(lockedScore.disabled).toBe(true)
+    expect(screen.queryByRole('button', { name: 'Lưu bản nháp' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Yêu cầu chốt đánh giá' })).toBeNull()
+  })
 })

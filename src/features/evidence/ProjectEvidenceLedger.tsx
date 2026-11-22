@@ -228,6 +228,9 @@ function ProtectedSourceButton({ path }: { path: string }) {
 
 function messageFor(reason: unknown): string {
   if (reason instanceof HttpError) {
+    const code = reason.problem?.code ?? reason.problem?.errorCode
+    if (code === 'ASSIGNMENT_REVOKED') return 'Phân công của bạn đã bị thu hồi hoặc hết hiệu lực (ASSIGNMENT_REVOKED).'
+    if (code === 'SCOPE_ACCESS_DENIED') return 'Minh chứng này nằm ngoài phạm vi ngành được phân công (SCOPE_ACCESS_DENIED).'
     if (reason.status === 403) return 'Hệ thống không cấp quyền xem minh chứng của đồ án này.'
     if (reason.status === 404) return 'Không tìm thấy đồ án hoặc minh chứng được yêu cầu.'
   }
