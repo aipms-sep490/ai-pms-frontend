@@ -7,6 +7,9 @@ import { getDeliverables, getDeliverableVersions } from '../../services/api/deli
 import { HttpError } from '../../services/http/http-client'
 import { Button } from '../../components/ui/Button'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
+import { ListLoading } from '../../components/ui/ListLoading'
+import { PageLoading } from '../../components/ui/PageLoading'
+import { services } from '../../services/service-gateway'
 import type { Deliverable, DeliverableVersion } from '../deliverables/deliverable-types'
 import * as api from './final-submission-api'
 import type { FinalChecklist, FinalDraft, FinalPeriod, FinalRequirements, LockedFinalSubmission } from './final-submission-api'
@@ -57,7 +60,7 @@ function message(reason: unknown): string {
 
 const blockerLabels: Record<string, string> = {
   LEADER_REQUIRED: 'Chỉ trưởng nhóm được chuẩn bị và nộp bản cuối',
-  PROJECT_NOT_ACTIVE: 'Đồ án chưa ở trạng thái ACTIVE',
+  PROJECT_NOT_ACTIVE: 'Đồ án chưa ở trạng thái đang thực hiện',
   ACADEMIC_SCOPE_INACTIVE: 'Phạm vi học vụ của đồ án chưa còn hiệu lực',
   FINAL_SUBMISSION_PERIOD_REQUIRED: 'Chưa đến đợt bàn giao cuối đang hiệu lực',
   SEMESTER_CLOSED: 'Học kỳ đã đóng',
@@ -72,18 +75,20 @@ const blockerLabels: Record<string, string> = {
   EMPTY_PACKAGE: 'Gói bàn giao chưa chọn phiên bản sản phẩm',
   DUPLICATE_DELIVERABLE_VERSION: 'Một hạng mục đang có nhiều phiên bản trong gói',
 }
-const describeBlocker = (code: string) => {
+const describeBlocker = (code: string, deliverables: Deliverable[] = []) => {
   const [kind, id] = code.split(':', 2)
-  if (kind === 'VERSION_INELIGIBLE') return `Phiên bản #${id} chưa hợp lệ để bàn giao`
-  if (kind === 'FILE_CONTENT_INVALID') return `Nội dung tệp #${id} không còn hợp lệ`
-  if (kind === 'REQUIRED_DELIVERABLE_MISSING') return `Thiếu phiên bản hợp lệ cho hạng mục bắt buộc #${id}`
-  return blockerLabels[code] ?? 'Điều kiện bàn giao chưa được đáp ứng. Tải lại checklist để kiểm tra.'
+  const numericId = Number(id)
+  const matchedDeliverable = Number.isInteger(numericId) ? deliverables.find(d => d.id === numericId)?.title : undefined
+  if (kind === 'VERSION_INELIGIBLE') return 'Một phiên bản đã chọn chưa hợp lệ để bàn giao'
+  if (kind === 'FILE_CONTENT_INVALID') return 'Một tệp đính kèm không còn hợp lệ để bàn giao'
+  if (kind === 'REQUIRED_DELIVERABLE_MISSING') return matchedDeliverable ? `Thiếu phiên bản hợp lệ cho hạng mục bắt buộc: ${matchedDeliverable}` : 'Thiếu phiên bản hợp lệ cho một hạng mục bắt buộc'
+  return blockerLabels[code] ?? 'Điều kiện bàn giao chưa được đáp ứng. Tải lại danh sách kiểm tra.'
 }
 
 export function StudentFinalSubmissionPage() {
   const journey = useStudentJourney()
-  if (journey.isLoading) return <p role="status" className="p-6">Đang tải đồ án…</p>
-  if (!journey.project) return <p role="alert" className="p-6">Không tìm thấy đồ án thuộc nhóm hiện tại.</p>
+  if (journey.isLoading) return <PageLoading label="Đang tải hồ sơ bàn giao…" />
+  if (!journey.project) return <WorkspacePage title="Bàn giao cuối đồ án" eyebrow="Hoàn tất đồ án"><p role="alert" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text">Không tìm thấy đồ án thuộc nhóm hiện tại.</p></WorkspacePage>
   return <FinalSubmissionWorkspace key={journey.project.id} projectId={journey.project.id} projectStatus={journey.project.status} onSubmitted={journey.refreshAll} />
 }
 
@@ -96,6 +101,7 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
   const [versions, setVersions] = useState<DeliverableVersion[]>([])
   const [selectedDeliverableId, setSelectedDeliverableId] = useState<number | null>(null)
   const [selectedVersionIds, setSelectedVersionIds] = useState<Record<number, number>>({})
+  const [versionNumberById, setVersionNumberById] = useState<Record<number, number>>({})
   const [periodId, setPeriodId] = useState<number | null>(null)
   const [notes, setNotes] = useState('')
   const [confirmed, setConfirmed] = useState(false)
@@ -121,6 +127,7 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
       setPeriodId(nextDraft?.projectPeriodId ?? periodOptions.find(item => item.canPrepareDraft)?.id ?? null)
       setNotes(nextDraft?.notes ?? '')
       setSelectedVersionIds(Object.fromEntries(nextDraft?.items.map(item => [item.deliverableId, item.deliverableVersionId]) ?? []))
+      setVersionNumberById(Object.fromEntries(nextDraft?.items.map(item => [item.deliverableVersionId, item.versionNumber]) ?? []))
       setConfirmed(false)
       setLoaded(true)
       setError(null)
@@ -133,7 +140,14 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
     setSelectedDeliverableId(id || null)
     setVersions([])
     if (!id) return
-    try { setVersions(await allEligibleVersions(id)) }
+    try {
+      const nextVersions = await allEligibleVersions(id)
+      setVersions(nextVersions)
+      setVersionNumberById(current => ({
+        ...current,
+        ...Object.fromEntries(nextVersions.map(v => [v.id, v.versionNumber])),
+      }))
+    }
     catch (reason) { setError(message(reason)) }
   }
 
@@ -158,20 +172,26 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
   const canPrepareDraft = projectStatus === 'ACTIVE' && (draft ? draft.canEdit : periods.some(item => item.canPrepareDraft))
   const canSubmit = projectStatus === 'ACTIVE' && Boolean(checklist?.canSubmit)
   const submissionReasons = checklist ? [
-    ...checklist.blockers.map(describeBlocker),
-    ...(projectStatus !== 'ACTIVE' && !checklist.blockers.includes('PROJECT_NOT_ACTIVE') ? ['Đồ án chưa ở trạng thái ACTIVE'] : []),
-    ...(!checklist.canSubmit && checklist.blockers.length === 0 ? ['Checklist chưa xác nhận có thể nộp bản cuối.'] : []),
-    ...(!checklist.draftConcurrencyToken || !checklist.requirementsConcurrencyToken ? ['Thiếu phiên bản xác nhận của bản nháp hoặc cấu hình. Tải lại checklist.'] : []),
+    ...checklist.blockers.map(code => describeBlocker(code, deliverables)),
+    ...(projectStatus !== 'ACTIVE' && !checklist.blockers.includes('PROJECT_NOT_ACTIVE') ? ['Đồ án chưa ở trạng thái đang thực hiện'] : []),
+    ...(!checklist.canSubmit && checklist.blockers.length === 0 ? ['Danh mục kiểm tra chưa xác nhận đủ điều kiện nộp bản cuối.'] : []),
+    ...(!checklist.draftConcurrencyToken || !checklist.requirementsConcurrencyToken ? ['Thiếu phiên bản xác nhận của bản nháp hoặc cấu hình. Hãy tải lại trang.'] : []),
   ] : []
+
+  const formatVersionBadge = (versionId: number | null, explicitNumber?: number | null) => {
+    if (!versionId) return 'chưa chọn'
+    const num = explicitNumber ?? versionNumberById[versionId]
+    return num ? `phiên bản v${num}` : 'đã chọn phiên bản'
+  }
 
   return <WorkspacePage className="space-y-5" title="Bàn giao cuối đồ án" eyebrow="Hoàn tất đồ án" description="Chuẩn bị các phiên bản sản phẩm và gửi gói bàn giao của nhóm.">
     {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-danger-text">{error} <button type="button" className="font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
-    {loading && <p role="status" className="rounded-lg border bg-card p-5 text-sm">Đang tải hồ sơ bàn giao…</p>}
+    {loading && <ListLoading label="Đang tải hồ sơ bàn giao…" />}
     {!loading && loaded && locked && <LockedPackageView projectId={projectId} packageData={locked} />}
     {!loading && loaded && !locked && <>
       {(draft?.editBlockers.includes('LEADER_REQUIRED') || checklist?.blockers.includes('LEADER_REQUIRED')) && (
         <div className="rounded-xl border border-status-info-border bg-status-info-bg p-4 text-xs text-status-info-text shadow-2xs">
-          <strong>Thông báo quyền hạn:</strong> Bạn đang đăng nhập với vai trò Thành viên (Student Member). Quyền chuẩn bị bản nháp và nộp gói bàn giao cuối cùng thuộc về Trưởng nhóm (Student Leader). Thành viên có quyền rà soát danh mục và kiểm tra các tệp đính kèm.
+          <strong>Thông báo quyền hạn:</strong> Bạn đang đăng nhập với vai trò Thành viên nhóm. Quyền chuẩn bị bản nháp và nộp gói bàn giao cuối cùng thuộc về Trưởng nhóm. Bạn vẫn có thể rà soát danh mục và kiểm tra các tệp đính kèm.
         </div>
       )}
       <section className="workspace-surface workspace-surface-padding"><h2 className="font-semibold text-ink">Bản nháp bàn giao</h2><p className="mt-1 text-sm text-ink-muted">Chọn rõ phiên bản của từng hạng mục. Bản nháp không tự chọn phiên bản mới nhất.</p>
@@ -179,12 +199,12 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
           <label className="block text-sm font-medium text-ink-soft">Đợt bàn giao<select className="mt-1 min-h-11 w-full rounded-lg border border-line-strong px-3 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none" value={periodId ?? ''} disabled={busy || !canPrepareDraft} onChange={event => setPeriodId(Number(event.target.value) || null)}><option value="">Chọn đợt</option>{periods.map(period => <option key={period.id} value={period.id} disabled={!period.canPrepareDraft && period.id !== draft?.projectPeriodId}>{period.name} · {displayLabel(period.status)}</option>)}</select></label>
           <label className="block text-sm font-medium text-ink-soft">Ghi chú<textarea className="mt-1 w-full rounded-lg border border-line-strong p-3 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none" rows={3} maxLength={10000} value={notes} disabled={busy || !canPrepareDraft} onChange={event => setNotes(event.target.value)} /></label>
           <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm font-medium text-ink-soft">Hạng mục<select className="mt-1 min-h-11 w-full rounded-lg border border-line-strong px-3 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none" value={selectedDeliverableId ?? ''} disabled={busy || !canPrepareDraft} onChange={event => void chooseDeliverable(Number(event.target.value))}><option value="">Chọn hạng mục</option>{deliverables.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label className="text-sm font-medium text-ink-soft">Phiên bản<select className="mt-1 min-h-11 w-full rounded-lg border border-line-strong px-3 text-ink focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none" value={selectedDeliverableId ? selectedVersionIds[selectedDeliverableId] ?? '' : ''} disabled={!selectedDeliverableId || busy || !canPrepareDraft} onChange={event => { if (selectedDeliverableId) setSelectedVersionIds(current => ({ ...current, [selectedDeliverableId]: Number(event.target.value) })) }}><option value="">Chọn phiên bản hợp lệ</option>{versions.map(item => <option key={item.id} value={item.id}>v{item.versionNumber} · {item.status === 'ACCEPTED' ? 'Đã chấp nhận' : displayLabel(item.status)}</option>)}</select></label></div>
-          <ul className="space-y-2 text-sm">{Object.entries(selectedVersionIds).map(([deliverableId, versionId]) => <li key={deliverableId} className="workspace-record-row flex flex-wrap items-center justify-between gap-3"><span>{deliverables.find(item => item.id === Number(deliverableId))?.title ?? `Hạng mục #${deliverableId}`} · phiên bản #{versionId}</span><Button variant="danger" size="sm" disabled={busy || !canPrepareDraft} onClick={() => setSelectedVersionIds(current => { const next = { ...current }; delete next[Number(deliverableId)]; return next })}>Bỏ</Button></li>)}</ul>
-          {draft?.editBlockers.length ? <p className="text-sm text-status-warning-text">Không thể sửa: {draft.editBlockers.map(describeBlocker).join(', ')}</p> : null}
-          <div><Button type="submit" disabled={busy || !periodId || !canPrepareDraft}>{draft ? 'Lưu bản nháp' : 'Tạo bản nháp'}</Button></div>
+          <ul className="space-y-2 text-sm">{Object.entries(selectedVersionIds).map(([deliverableId, versionId]) => <li key={deliverableId} className="workspace-record-row flex flex-wrap items-center justify-between gap-3"><span>{deliverables.find(item => item.id === Number(deliverableId))?.title ?? 'Hạng mục sản phẩm'} · {formatVersionBadge(versionId)}</span><Button variant="ghost" size="sm" disabled={busy || !canPrepareDraft} onClick={() => setSelectedVersionIds(current => { const next = { ...current }; delete next[Number(deliverableId)]; return next })}>Bỏ</Button></li>)}</ul>
+          {draft?.editBlockers.length ? <p className="text-sm text-status-warning-text">Không thể sửa: {draft.editBlockers.map(code => describeBlocker(code, deliverables)).join(', ')}</p> : null}
+          <div><Button type="submit" variant="secondary" disabled={busy || !periodId || !canPrepareDraft}>{draft ? 'Lưu bản nháp' : 'Tạo bản nháp'}</Button></div>
         </form>
       </section>
-      {checklist && <section className="workspace-surface workspace-surface-padding"><h2 className="font-semibold text-ink">Kiểm tra trước khi bàn giao</h2><p className="mt-1 text-sm text-ink-muted">Hạn: {checklist.deadline ? new Date(checklist.deadline).toLocaleString('vi-VN') : 'Chưa có'}</p><ul className="mt-3 space-y-2 text-sm">{checklist.items.map(item => <li key={item.deliverableId} className="workspace-record-row">{item.isComplete ? '✓' : '○'} {item.title} · {item.selectedVersionId ? `version #${item.selectedVersionId}` : 'chưa chọn'}</li>)}</ul><div id="final-submission-blockers" className="mt-4"><ActionVerdict actions={[{ code: 'SUBMIT_FINAL_PACKAGE', allowed: canSubmit && Boolean(checklist.draftConcurrencyToken) && Boolean(checklist.requirementsConcurrencyToken), reasons: submissionReasons }]} actionCode="SUBMIT_FINAL_PACKAGE" status="ready" okLabel="Đủ điều kiện nộp bản cuối" blockedLabel="Chưa đủ điều kiện nộp bản cuối" /></div><label className="mt-4 flex items-start gap-2 text-sm"><input type="checkbox" checked={confirmed} disabled={!canSubmit || busy} onChange={event => setConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-line-strong text-primary focus:ring-primary" /><span>Tôi xác nhận khóa gói và nộp bản cuối theo checklist hiện tại.</span></label><div className="mt-4"><Button type="button" aria-describedby={!canSubmit && checklist.blockers.length > 0 ? "final-submission-blockers" : undefined} disabled={!canSubmit || !confirmed || busy || !checklist.draftConcurrencyToken || !checklist.requirementsConcurrencyToken} onClick={() => { if (canSubmit) void run(() => api.submitFinalSubmission(projectId, checklist.draftConcurrencyToken!, checklist.requirementsConcurrencyToken!), true) }}>{busy ? 'Đang nộp…' : 'Nộp và khóa gói'}</Button></div></section>}
+      {checklist && <section className="workspace-surface workspace-surface-padding"><h2 className="font-semibold text-ink">Kiểm tra trước khi bàn giao</h2><p className="mt-1 text-sm text-ink-muted">Hạn: {checklist.deadline ? new Date(checklist.deadline).toLocaleString('vi-VN') : 'Chưa có'}</p><ul className="mt-3 space-y-2 text-sm">{checklist.items.map(item => <li key={item.deliverableId} className="workspace-record-row">{item.isComplete ? '✓' : '○'} {item.title} · {formatVersionBadge(item.selectedVersionId, item.selectedVersionNumber)}</li>)}</ul><div id="final-submission-blockers" className="mt-4"><ActionVerdict actions={[{ code: 'SUBMIT_FINAL_PACKAGE', allowed: canSubmit && Boolean(checklist.draftConcurrencyToken) && Boolean(checklist.requirementsConcurrencyToken), reasons: submissionReasons }]} actionCode="SUBMIT_FINAL_PACKAGE" status="ready" okLabel="Đủ điều kiện nộp bản cuối" blockedLabel="Chưa đủ điều kiện nộp bản cuối" /></div><label className="mt-4 flex items-start gap-2 text-sm"><input type="checkbox" checked={confirmed} disabled={!canSubmit || busy} onChange={event => setConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-line-strong text-primary focus:ring-primary" /><span>Tôi xác nhận khóa gói và nộp bản cuối theo danh mục kiểm tra hiện tại.</span></label><div className="mt-4"><Button type="button" aria-describedby={!canSubmit && checklist.blockers.length > 0 ? "final-submission-blockers" : undefined} disabled={!canSubmit || !confirmed || busy || !checklist.draftConcurrencyToken || !checklist.requirementsConcurrencyToken} onClick={() => { if (canSubmit) void run(() => api.submitFinalSubmission(projectId, checklist.draftConcurrencyToken!, checklist.requirementsConcurrencyToken!), true) }}>{busy ? 'Đang nộp…' : 'Nộp và khóa gói'}</Button></div></section>}
     </>}
     <div>
       <Link to="/projects/lifecycle" className="inline-flex items-center gap-2 rounded-lg border border-hairline bg-card px-3.5 py-2 text-sm font-semibold text-ink-soft hover:bg-canvas transition-all">
@@ -209,7 +229,7 @@ export function LockedPackageView({ projectId, packageData }: { projectId: numbe
     } catch { setError('Không thể tải tệp trong bản tổng hợp đã khóa.') }
     finally { setDownloadingId(null) }
   }
-  return <section className="rounded-xl border border-status-success-border bg-status-success-bg p-5"><h2 className="font-semibold text-status-success-text">Gói đã khóa và nộp</h2><p className="mt-1 text-sm">Nộp lúc {formatDate(packageData.submittedAt)} · hạn {formatDate(packageData.deadline)} · {packageData.items.length} phiên bản sản phẩm</p><p className="mt-1 text-xs text-status-success-text">Bản bàn giao đã chốt #{packageData.id}; không có thao tác sửa, xóa hoặc nộp lại.</p>{packageData.notes && <p className="mt-3 whitespace-pre-wrap rounded-lg bg-card/70 p-3 text-sm text-ink-soft"><strong>Ghi chú:</strong> {packageData.notes}</p>}{error && <p role="alert" className="mt-3 text-sm text-danger-text">{error}</p>}<ul className="mt-3 space-y-3 text-sm">{packageData.items.map(item => <li key={item.deliverableVersionId} className="rounded-lg bg-card p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{item.title} · phiên bản {item.versionNumber}</strong><span className="rounded-full bg-slate-100 px-2 py-1 text-xs">{item.wasRequired ? 'Bắt buộc' : 'Tùy chọn'} · {item.statusAtSubmission === 'ACCEPTED' ? 'Đã chấp nhận' : displayLabel(item.statusAtSubmission)}</span></div>{item.files.length === 0 ? <p className="mt-2 text-xs text-ink-muted">Bản bàn giao này không có tệp để tải xuống.</p> : <ul className="mt-2 space-y-1">{item.files.map(file => <li key={file.id}><button type="button" disabled={downloadingId !== null} className="min-h-11 text-left font-semibold text-primary hover:underline disabled:opacity-50" onClick={() => void download(file.id, file.fileName)}>{downloadingId === file.id ? 'Đang tải…' : `${file.fileName}${file.sizeBytes ? ` · ${formatBytes(file.sizeBytes)}` : ''}`}</button></li>)}</ul>}</li>)}</ul></section>
+  return <section className="rounded-xl border border-status-success-border bg-status-success-bg p-5"><h2 className="font-semibold text-status-success-text">Gói đã khóa và nộp</h2><p className="mt-1 text-sm">Nộp lúc {formatDate(packageData.submittedAt)} · hạn {formatDate(packageData.deadline)} · {packageData.items.length} phiên bản sản phẩm</p><p className="mt-1 text-xs text-status-success-text">Bản bàn giao đã chốt · Không có thao tác sửa, xóa hoặc nộp lại.</p>{packageData.notes && <p className="mt-3 whitespace-pre-wrap rounded-lg bg-card/70 p-3 text-sm text-ink-soft"><strong>Ghi chú:</strong> {packageData.notes}</p>}{error && <p role="alert" className="mt-3 text-sm text-danger-text">{error}</p>}<ul className="mt-3 space-y-3 text-sm">{packageData.items.map(item => <li key={item.deliverableVersionId} className="rounded-lg bg-card p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{item.title} · phiên bản v{item.versionNumber}</strong><span className="rounded-full bg-slate-100 px-2 py-1 text-xs">{item.wasRequired ? 'Bắt buộc' : 'Tùy chọn'} · {item.statusAtSubmission === 'ACCEPTED' ? 'Đã chấp nhận' : displayLabel(item.statusAtSubmission)}</span></div>{item.files.length === 0 ? <p className="mt-2 text-xs text-ink-muted">Bản bàn giao này không có tệp để tải xuống.</p> : <ul className="mt-2 space-y-1">{item.files.map(file => <li key={file.id}><button type="button" disabled={downloadingId !== null} className="min-h-11 text-left font-semibold text-primary hover:underline disabled:opacity-50" onClick={() => void download(file.id, file.fileName)}>{downloadingId === file.id ? 'Đang tải…' : `${file.fileName}${file.sizeBytes ? ` · ${formatBytes(file.sizeBytes)}` : ''}`}</button></li>)}</ul>}</li>)}</ul></section>
 }
 
 /** Uses the locked-package endpoint only; Backend authorizes each reader's current scope. */
@@ -217,31 +237,37 @@ export function FinalSubmissionViewerPage({ backTo = '/projects/lifecycle', back
   const location = useLocation()
   const assignmentReturn = location.pathname.startsWith('/evaluator/') && typeof location.state?.assignmentReturn === 'string' && /^\/evaluator\/assignments\/[1-9]\d*$/.test(location.state.assignmentReturn) ? location.state.assignmentReturn : null
   const projectId = Number(useParams().projectId)
+  const [projectMeta, setProjectMeta] = useState<{ code: string; title: string } | null>(null)
   const [packageData, setPackageData] = useState<LockedFinalSubmission | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const load = useCallback(async () => {
-    if (!Number.isInteger(projectId) || projectId < 1) { setError('đồ án ID không hợp lệ.'); setLoading(false); return }
+    if (!Number.isInteger(projectId) || projectId < 1) { setError('Mã đồ án không hợp lệ.'); setLoading(false); return }
     setLoading(true); setError(null); setPackageData(null)
     try {
-      const result = await api.getLockedFinalSubmission(projectId)
+      const [result, proj] = await Promise.all([
+        api.getLockedFinalSubmission(projectId),
+        services.project?.getProject ? services.project.getProject(projectId).catch(() => null) : Promise.resolve(null),
+      ])
       setPackageData(result)
+      if (proj) setProjectMeta({ code: proj.code, title: proj.title })
     } catch (reason) { setError(message(reason)) }
     finally { setLoading(false) }
   }, [projectId])
   useEffect(() => { void load() }, [load])
   return (
-    <main className="workspace-page mx-auto max-w-5xl space-y-5 pb-12">
-      <header>
-        <h1 className="text-2xl font-bold text-ink">Gói bàn giao cuối</h1>
-        <p className="mt-1 text-sm text-ink-muted">Đồ án #{Number.isInteger(projectId) ? projectId : '—'} · Nội dung và tệp trong bản bàn giao đã chốt.</p>
-      </header>
-      {loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải gói bàn giao đã khóa…</p>}
+    <WorkspacePage
+      className="space-y-5"
+      title="Gói bàn giao cuối"
+      eyebrow={projectMeta?.code ?? 'Bàn giao cuối kỳ'}
+      description={projectMeta ? `${projectMeta.title} · Nội dung và tệp trong bản bàn giao đã chốt.` : 'Nội dung và tệp trong bản bàn giao đã chốt.'}
+    >
+      {loading && <ListLoading label="Đang tải gói bàn giao đã khóa…" />}
       {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-danger-text">{error} <button type="button" className="font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
       {!loading && !error && !packageData && (
         <section className="rounded-2xl border border-hairline bg-card p-8 text-center shadow-xs">
-          <span className="material-symbols-outlined text-4xl text-slate-400">inventory_2</span>
-          <h3 className="mt-3 font-semibold text-ink">Chưa có gói bàn giao cuối đã khóa</h3>
+          <span className="material-symbols-outlined text-4xl text-slate-400" aria-hidden="true">inventory_2</span>
+          <h2 className="mt-3 text-base font-semibold text-ink">Chưa có gói bàn giao cuối đã khóa</h2>
           <p className="mt-1 text-sm text-ink-muted">Đồ án chưa chốt gói bàn giao cuối kỳ.</p>
         </section>
       )}
@@ -252,12 +278,13 @@ export function FinalSubmissionViewerPage({ backTo = '/projects/lifecycle', back
           <span>{assignmentReturn ? 'Quay lại chấm điểm' : backLabel}</span>
         </Link>
       </div>
-    </main>
+    </WorkspacePage>
   )
 }
 
 export function FinalRequirementsPage() {
   const projectId = Number(useParams().projectId)
+  const [projectMeta, setProjectMeta] = useState<{ code: string; title: string } | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [requirements, setRequirements] = useState<FinalRequirements | null>(null)
   const [deliverables, setDeliverables] = useState<Deliverable[]>([])
@@ -266,10 +293,19 @@ export function FinalRequirementsPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const load = useCallback(async () => {
-    if (!Number.isInteger(projectId) || projectId < 1) { setError('đồ án ID không hợp lệ.'); setLoading(false); return }
+    if (!Number.isInteger(projectId) || projectId < 1) { setError('Mã đồ án không hợp lệ.'); setLoading(false); return }
     setLoading(true)
     setRequirements(null); setDeliverables([])
-    try { const [defs, items] = await Promise.all([api.getFinalRequirements(projectId), allDeliverables(projectId)]); setRequirements(defs); setDeliverables(items); setSelectedIds(defs.items.map(item => item.deliverableId)); setError(null) }
+    try {
+      const [defs, items, proj] = await Promise.all([
+        api.getFinalRequirements(projectId),
+        allDeliverables(projectId),
+        services.project?.getProject ? services.project.getProject(projectId).catch(() => null) : Promise.resolve(null),
+      ])
+      setRequirements(defs); setDeliverables(items); setSelectedIds(defs.items.map(item => item.deliverableId))
+      if (proj) setProjectMeta({ code: proj.code, title: proj.title })
+      setError(null)
+    }
     catch (reason) { setError(message(reason)) }
     finally { setLoading(false) }
   }, [projectId])
@@ -282,18 +318,19 @@ export function FinalRequirementsPage() {
     finally { setBusy(false) }
   }
   return (
-    <main className="workspace-page mx-auto max-w-4xl space-y-5 pb-12">
-      <header>
-        <h1 className="text-2xl font-bold text-ink">Yêu cầu bàn giao</h1>
-        <p className="mt-1 text-sm text-ink-muted">Đồ án #{projectId} · Chọn các hạng mục nhóm cần nộp trước khi chốt bàn giao.</p>
-      </header>
+    <WorkspacePage
+      className="space-y-5"
+      title="Yêu cầu bàn giao"
+      eyebrow={projectMeta?.code ?? 'Cấu hình bàn giao'}
+      description={projectMeta ? `${projectMeta.title} · Chọn các hạng mục nhóm cần nộp trước khi chốt bàn giao.` : 'Chọn các hạng mục nhóm cần nộp trước khi chốt bàn giao.'}
+    >
       {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-danger-text">{error} <button type="button" className="font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
       {success && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{success}</p>}
-      {loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải yêu cầu…</p>}
+      {loading && <ListLoading label="Đang tải yêu cầu…" />}
       {!loading && requirements && (
         <>
           <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs">
-            <h2 className="font-semibold text-ink">hạng mục bắt buộc</h2>
+            <h2 className="font-semibold text-ink">Hạng mục bắt buộc</h2>
             {deliverables.length === 0 ? (
               <p className="mt-3 text-sm text-ink-muted">Đồ án chưa có hạng mục cần nộp.</p>
             ) : (
@@ -330,12 +367,12 @@ export function FinalRequirementsPage() {
               className="inline-flex items-center gap-2 rounded-lg border border-hairline bg-card px-3.5 py-2 text-sm font-semibold text-ink-soft hover:bg-canvas transition-all"
             >
               <span>Xem gói đã khóa</span>
-              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
             </Link>
           </div>
         </>
       )}
-    </main>
+    </WorkspacePage>
   )
 }
 

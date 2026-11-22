@@ -27,7 +27,7 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
     const value = { academic: { departments: [{ id: 2, name: 'IT' }] } } as unknown as AcademicWorkflowContextValue
     render(<MemoryRouter><AcademicWorkflowContext.Provider value={value}><ReviewGateGovernancePage /></AcademicWorkflowContext.Provider></MemoryRouter>)
     await screen.findByText('IT Capstone – Review 1–4')
-    fireEvent.click(screen.getByRole('button', { name: 'Ma trận Giám sát Tiến trình (Matrix)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ma trận tiến độ' }))
     expect(await screen.findByText(/đồ án thiếu reviewer/)).toBeTruthy()
     expect(urgent.getDepartmentUrgentActions).toHaveBeenCalledWith(2)
     expect(screen.getAllByText('—').length).toBeGreaterThan(0)
@@ -55,7 +55,7 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
     )
 
     await screen.findByText('IT Capstone – Review 1–4')
-    fireEvent.click(screen.getByRole('button', { name: 'Thiết kế Review Gates (Builder)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Thiết kế cổng kiểm duyệt' }))
 
     expect(await screen.findByText('Trình tự Review Gates')).toBeTruthy()
     expect(screen.getAllByText(/Requirement & Analysis/)[0]).toBeTruthy()
@@ -76,7 +76,7 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
     )
 
     await screen.findByText('IT Capstone – Review 1–4')
-    fireEvent.click(screen.getByRole('button', { name: 'Thiết kế Review Gates (Builder)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Thiết kế cổng kiểm duyệt' }))
 
     const addReqBtn = await screen.findByRole('button', { name: '＋ Thêm yêu cầu' })
     fireEvent.click(addReqBtn)
@@ -100,7 +100,7 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
     )
 
     await screen.findByText('IT Capstone – Review 1–4')
-    fireEvent.click(screen.getByRole('button', { name: 'Ma trận Giám sát Tiến trình (Matrix)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ma trận tiến độ' }))
 
     expect(await screen.findByText('Campus Support Platform')).toBeTruthy()
     expect(screen.getByText('Smart Library System')).toBeTruthy()
@@ -120,7 +120,7 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
     )
 
     await screen.findByText('IT Capstone – Review 1–4')
-    fireEvent.click(screen.getByRole('button', { name: 'Gate Liên ngành (Interdisciplinary)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cổng liên ngành' }))
 
     expect(await screen.findByText('G2 · Integrated Concept & Architecture Gate')).toBeTruthy()
     expect(screen.getByText('CHỜ THẨM ĐỊNH CÁC NGÀNH')).toBeTruthy()
@@ -151,11 +151,11 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
     )
 
     await screen.findByText('IT Capstone – Review 1–4')
-    fireEvent.click(screen.getByRole('button', { name: 'Xét Điều kiện Bảo vệ (Defense Readiness)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Xét điều kiện bảo vệ' }))
 
-    expect(await screen.findByText('Xét điều kiện tham gia bảo vệ đồ án tốt nghiệp (Defense Readiness)')).toBeTruthy()
+    expect(await screen.findByText('Xét điều kiện tham gia bảo vệ đồ án tốt nghiệp')).toBeTruthy()
     expect(screen.getByText('CHƯA ĐỦ ĐIỀU KIỆN')).toBeTruthy()
-    expect(screen.getByText('NOT READY')).toBeTruthy()
+    expect(screen.getByText('Chưa đủ điều kiện bảo vệ')).toBeTruthy()
     expect(screen.getByText('Hoàn thành và ĐẠT (PASSED) tất cả các đợt Review Gate (R1–R4)')).toBeTruthy()
   })
 
@@ -171,7 +171,7 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
     )
 
     await screen.findByText('IT Capstone – Review 1–4')
-    fireEvent.click(screen.getByRole('button', { name: 'Thiết kế Review Gates (Builder)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Thiết kế cổng kiểm duyệt' }))
 
     const saveDraftBtn = await screen.findByRole('button', { name: 'Lưu bản nháp' })
     fireEvent.click(saveDraftBtn)
@@ -206,7 +206,7 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
     )
 
     await screen.findByText('IT Capstone – Review 1–4')
-    fireEvent.click(screen.getByRole('button', { name: 'Thiết kế Review Gates (Builder)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Thiết kế cổng kiểm duyệt' }))
 
     expect(await screen.findByText('ĐÃ CÔNG BỐ')).toBeTruthy()
     expect(screen.getByText(/Mẫu tiến trình đã công bố chính thức:/)).toBeTruthy()
@@ -231,7 +231,7 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
     )
 
     await screen.findByText('IT Capstone – Review 1–4')
-    fireEvent.click(screen.getByRole('button', { name: 'Ma trận Giám sát Tiến trình (Matrix)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ma trận tiến độ' }))
 
     // Check dynamic headers (R1..R4)
     expect(await screen.findByText('R1')).toBeTruthy()

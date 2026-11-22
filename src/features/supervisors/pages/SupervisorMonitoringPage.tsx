@@ -2,6 +2,7 @@ import { displayLabel } from '../../../components/ui/display-label'
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
+import { ListLoading } from '../../../components/ui/ListLoading'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
 import { useSupervisors } from '../hooks/useSupervisors'
 import './supervisor-monitoring.css'
@@ -12,30 +13,32 @@ export function SupervisorMonitoringPage() {
   const isDetail = Boolean(id)
 
   if (supervisors.isUnauthorized) return <StatePanel title="Phiên đăng nhập đã hết hạn" detail="Đăng nhập lại để tiếp tục xem danh sách giảng viên."><Link className="sup__state-link" to="/login">Đến trang đăng nhập</Link></StatePanel>
-  if (supervisors.loading) return <StatePanel title="Đang tải giảng viên" detail="Hệ thống đang đồng bộ hồ sơ và trạng thái sẵn sàng." busy />
+  if (supervisors.loading && isDetail) return <StatePanel title="Đang tải giảng viên" detail="Hệ thống đang đồng bộ hồ sơ và trạng thái sẵn sàng." busy />
   if (supervisors.isForbidden) return <StatePanel title="Không có quyền truy cập" detail="Tài khoản hiện tại không thuộc phạm vi bộ môn được phép xem." />
   if (supervisors.error) return <StatePanel title="Không thể tải danh sách" detail="Kết nối dữ liệu giảng viên chưa sẵn sàng."><Button onClick={() => void supervisors.refresh()}>Thử lại</Button></StatePanel>
 
   if (isDetail && supervisors.current) {
     const current = supervisors.current
-    return <main className="workspace-page sup">
+    return <div className="workspace-page sup">
       <Link className="sup__back" to="/department/supervisors"><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Danh sách giảng viên</Link>
       <header className="sup__profile-header">
         <span className="sup__avatar" aria-hidden="true">{initials(current.fullName)}</span>
-        <div className="sup__profile-copy"><p className="sup__eyebrow">Hồ sơ giảng viên · #{current.id}</p><h1>{current.fullName}</h1><p>{current.departmentName}</p></div>
+        <div className="sup__profile-copy"><p className="sup__eyebrow">Hồ sơ giảng viên</p><h1>{current.fullName}</h1><p>{current.departmentName}</p></div>
         <Status available={current.isAvailable} />
       </header>
       <div className="sup__detail-grid">
         <section className="sup__panel"><p className="sup__section-label">Giới thiệu</p><p className="sup__bio">{current.bio ?? 'Giảng viên chưa cập nhật phần giới thiệu.'}</p></section>
-        <section className="sup__panel"><p className="sup__section-label">Chuyên môn</p>{current.expertise.length ? <ul className="sup__expertise">{current.expertise.map(item => <li key={`${item.name}-${displayLabel(item.proficiencyLevel)}`}><span>{item.name}</span>{item.proficiencyLevel && <small>{item.proficiencyLevel}</small>}</li>)}</ul> : <p className="sup__muted">Chưa có dữ liệu chuyên môn.</p>}</section>
+        <section className="sup__panel"><p className="sup__section-label">Chuyên môn</p>{current.expertise.length ? <ul className="sup__expertise">{current.expertise.map(item => <li key={`${item.name}-${displayLabel(item.proficiencyLevel)}`}><span>{item.name}</span>{item.proficiencyLevel && <small>{displayLabel(item.proficiencyLevel)}</small>}</li>)}</ul> : <p className="sup__muted">Chưa có dữ liệu chuyên môn.</p>}</section>
       </div>
       <aside className="sup__notice"><span className="material-symbols-outlined" aria-hidden="true">info</span><p>Số đồ án đang hướng dẫn và số nhóm có thể nhận thêm được hiển thị khi chọn giảng viên cho đồ án.</p></aside>
-    </main>
+    </div>
   }
 
   if (isDetail) return <StatePanel title="Không tìm thấy giảng viên" detail="Hồ sơ có thể đã bị xóa hoặc nằm ngoài phạm vi bộ môn."><Link className="sup__state-link" to="/department/supervisors">Quay lại danh sách</Link></StatePanel>
 
-  return <main className="workspace-page sup">
+  const hasActiveFilters = Boolean(supervisors.filters.search || supervisors.filters.expertise || supervisors.filters.isAvailable !== undefined)
+
+  return <div className="workspace-page sup">
     <header className="sup__header"><div><p className="sup__eyebrow">Không gian bộ môn</p><h1>Giảng viên hướng dẫn</h1><p>Tra cứu hồ sơ, chuyên môn và trạng thái sẵn sàng của giảng viên trong bộ môn.</p></div><div className="sup__count"><strong>{supervisors.totalCount}</strong><span>hồ sơ</span></div></header>
     <div className="sup__filters" aria-label="Lọc giảng viên hướng dẫn">
       <label><span>Tìm kiếm</span><input placeholder="Tên giảng viên" value={supervisors.filters.search ?? ''} onChange={event => supervisors.setFilters({ ...supervisors.filters, search: event.target.value || undefined, page: 1 })} /></label>
@@ -47,20 +50,27 @@ export function SupervisorMonitoringPage() {
         <option value="false">Tạm thời chưa nhận</option>
       </select>
       </label>
+      {hasActiveFilters && <div className="flex items-end"><Button variant="ghost" size="sm" onClick={() => supervisors.setFilters({ ...supervisors.filters, search: undefined, expertise: undefined, isAvailable: undefined, page: 1 })}>Xóa lọc</Button></div>}
     </div>
-    <section className="sup__list" aria-label="Danh sách giảng viên">{supervisors.items.map(supervisor => <article key={supervisor.id}>
-      <span className="sup__avatar sup__avatar--small" aria-hidden="true">{initials(supervisor.fullName)}</span>
-      <div className="sup__card-copy"><Link to={`/department/supervisors/${supervisor.id}`}>{supervisor.fullName}</Link><p>{supervisor.departmentName}</p><div className="sup__tags">{supervisor.expertise.slice(0, 3).map(expertise => <span key={expertise.name}>{expertise.name}</span>)}{supervisor.expertise.length > 3 && <span>+{supervisor.expertise.length - 3}</span>}{!supervisor.expertise.length && <em>Chưa cập nhật chuyên môn</em>}</div></div>
-      <Status available={supervisor.isAvailable} />
-      <Link className="sup__open" aria-label={`Mở hồ sơ ${supervisor.fullName}`} to={`/department/supervisors/${supervisor.id}`}><span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>
-    </article>)}</section>
-    {!supervisors.items.length ? <WorkspaceEmptyState title="Không tìm thấy giảng viên" message={supervisors.filters.search || supervisors.filters.departmentId || supervisors.filters.expertise || supervisors.filters.isAvailable !== undefined ? 'Không có giảng viên khớp bộ lọc hiện tại. Thử thay đổi từ khóa hoặc điều kiện lọc.' : 'Chưa có giảng viên trong phạm vi bộ môn hiện tại.'} /> : null}
-    {supervisors.totalCount > supervisors.pageSize ? <nav className="sup__paging" aria-label="Phân trang giảng viên">
+    {supervisors.loading ? (
+      <div className="mt-4"><ListLoading label="Đang tải giảng viên…" /></div>
+    ) : (
+      <>
+        <section className="sup__list" aria-label="Danh sách giảng viên">{supervisors.items.map(supervisor => <article key={supervisor.id}>
+          <span className="sup__avatar sup__avatar--small" aria-hidden="true">{initials(supervisor.fullName)}</span>
+          <div className="sup__card-copy"><Link to={`/department/supervisors/${supervisor.id}`}>{supervisor.fullName}</Link><p>{supervisor.departmentName}</p><div className="sup__tags">{supervisor.expertise.slice(0, 3).map(expertise => <span key={expertise.name}>{expertise.name}</span>)}{supervisor.expertise.length > 3 && <span>+{supervisor.expertise.length - 3}</span>}{!supervisor.expertise.length && <em>Chưa cập nhật chuyên môn</em>}</div></div>
+          <Status available={supervisor.isAvailable} />
+          <Link className="sup__open" aria-label={`Mở hồ sơ ${supervisor.fullName}`} to={`/department/supervisors/${supervisor.id}`}><span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>
+        </article>)}</section>
+        {!supervisors.items.length ? <WorkspaceEmptyState title="Không tìm thấy giảng viên" message={supervisors.filters.search || supervisors.filters.departmentId || supervisors.filters.expertise || supervisors.filters.isAvailable !== undefined ? 'Không có giảng viên khớp bộ lọc hiện tại. Thử thay đổi từ khóa hoặc điều kiện lọc.' : 'Chưa có giảng viên trong phạm vi bộ môn hiện tại.'} /> : null}
+      </>
+    )}
+    {!supervisors.loading && supervisors.totalCount > supervisors.pageSize ? <nav className="sup__paging" aria-label="Phân trang giảng viên">
       <Button variant="secondary" disabled={supervisors.page <= 1} onClick={() => supervisors.setFilters({ ...supervisors.filters, page: supervisors.page - 1 })}>Trang trước</Button>
       <span>Trang {supervisors.page} / {Math.ceil(supervisors.totalCount / supervisors.pageSize)}</span>
       <Button variant="secondary" disabled={supervisors.page * supervisors.pageSize >= supervisors.totalCount} onClick={() => supervisors.setFilters({ ...supervisors.filters, page: supervisors.page + 1 })}>Trang sau</Button>
     </nav> : null}
-  </main>
+  </div>
 }
 
 function Status({ available }: { available: boolean }) {
@@ -68,7 +78,7 @@ function Status({ available }: { available: boolean }) {
 }
 
 function StatePanel({ title, detail, busy = false, children }: { title: string; detail: string; busy?: boolean; children?: ReactNode }) {
-  return <main className="workspace-page sup sup__state"><span className={`material-symbols-outlined ${busy ? 'sup__spin' : ''}`} aria-hidden="true">{busy ? 'progress_activity' : 'info'}</span><h1>{title}</h1><p>{detail}</p>{children}</main>
+  return <div className="workspace-page sup sup__state"><span className={`material-symbols-outlined ${busy ? 'sup__spin' : ''}`} aria-hidden="true">{busy ? 'progress_activity' : 'info'}</span><h1>{title}</h1><p>{detail}</p>{children}</div>
 }
 
 function initials(value: string) {

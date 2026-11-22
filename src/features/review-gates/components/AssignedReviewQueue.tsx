@@ -3,10 +3,20 @@ import type { AssignedReviewItem } from '../types/review-gates.types'
 import { Button } from '../../../components/ui/Button'
 import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
 import { HttpError } from '../../../services/http/http-client'
+import { humanizeHttpError } from '../../../services/http/humanize-http-error'
 import { env } from '../../../app/config/env'
 import { EvidenceDownloadButton } from './EvidenceDownloadButton'
 import { evidenceArtifactLabel, isLinkArtifact } from '../utils/evidence-link'
 import { dateTimeLabel } from '../../execution/execution-utils'
+import { displayLabel } from '../../../components/ui/display-label'
+
+function formatSubmitter(name?: string | null, fallback?: string | number | null): string {
+  const named = String(name ?? '').trim()
+  if (named) return named
+  const raw = String(fallback ?? '').trim()
+  if (!raw || /^\d+$/.test(raw)) return 'Thành viên nhóm'
+  return raw
+}
 
 interface AssignedReviewQueueProps {
   assignments: AssignedReviewItem[]
@@ -45,6 +55,7 @@ export function AssignedReviewQueue({
     filename: string
     version: number
     submittedBy: string
+    submittedByName?: string | null
     submittedAt: string
     notes?: string | null
     linkUrl?: string | null
@@ -80,7 +91,7 @@ export function AssignedReviewQueue({
       setSuccessMsg(`Đã cập nhật trạng thái minh chứng thành ${decision === 'ACCEPTED' ? 'Chấp thuận' : 'Yêu cầu nộp lại'}.`)
     } catch (err) {
       setConflict(err instanceof HttpError ? err.status === 409 : env.reviewGatesMockEnabled && err instanceof Error && err.message.includes('409'))
-      setActionError(err instanceof Error ? err.message : 'Lỗi khi xác minh minh chứng.')
+      setActionError(humanizeHttpError(err, 'Không thể xác minh minh chứng.'))
     } finally {
       setBusy(false)
     }
@@ -97,11 +108,11 @@ export function AssignedReviewQueue({
       setActionError(null)
       setSuccessMsg(null)
       await onSubmitDecision(selectedItem.id, decision, reviewNotes.trim(), selectedItem.concurrencyToken)
-      setSuccessMsg(`Đã lưu quyết định thẩm định Gate thành công: ${decision === 'PASSED' ? 'ĐẠT (PASSED)' : 'CẦN CHỈNH SỬA'}.`)
+      setSuccessMsg(`Đã lưu quyết định thẩm định cổng kiểm duyệt thành công: ${decision === 'PASSED' ? 'Đạt' : 'Cần chỉnh sửa'}.`)
       setReviewNotes('')
     } catch (err) {
       setConflict(err instanceof HttpError ? err.status === 409 : env.reviewGatesMockEnabled && err instanceof Error && err.message.includes('409'))
-      setActionError(err instanceof Error ? err.message : 'Lỗi khi ra quyết định thẩm định.')
+      setActionError(humanizeHttpError(err, 'Không thể lưu quyết định thẩm định.'))
     } finally {
       setBusy(false)
     }
@@ -133,11 +144,11 @@ export function AssignedReviewQueue({
                       : 'border-hairline bg-card hover:bg-canvas'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="rounded-md bg-slate-900 px-2 py-0.5 text-xs font-bold text-white">
                       {item.gateCode}
                     </span>
-                    <span className="text-xs font-semibold text-ink-muted">Scope: {item.scope}</span>
+                    <span className="text-xs font-semibold text-ink-muted">{displayLabel(item.scope)}</span>
                   </div>
                   <h4 className="mt-2 text-xs font-bold text-ink">{item.projectName}</h4>
                   <p className="text-xs text-ink-muted">{item.projectCode}</p>
@@ -169,9 +180,9 @@ export function AssignedReviewQueue({
           <EntityIdentityStrip chips={[
             { icon: 'verified', label: 'Mốc thẩm định', value: `${selectedItem.gateCode} · ${selectedItem.gateTitle}` },
             { icon: 'topic', label: 'Đồ án', value: `${selectedItem.projectCode} · ${selectedItem.projectName}` },
-            { icon: 'category', label: 'Phạm vi', value: selectedItem.scope },
+            { icon: 'category', label: 'Phạm vi', value: displayLabel(selectedItem.scope) },
             { icon: 'event', label: 'Hạn thẩm định', value: dateTimeLabel(selectedItem.dueAt) },
-            { icon: 'fact_check', label: 'Trạng thái', value: selectedItem.status },
+            { icon: 'fact_check', label: 'Trạng thái', value: displayLabel(selectedItem.status) },
           ]} />
 
           {/* Feedback & Error alerts */}
@@ -180,10 +191,10 @@ export function AssignedReviewQueue({
               <div role="alert" className="rounded-lg border border-warning-strong bg-status-warning-bg p-4 text-xs text-status-warning-text space-y-2">
                 <div className="flex items-center gap-2 font-bold text-status-warning-text">
                   <span className="material-symbols-outlined text-base">warning</span>
-                  <span>Xung đột dữ liệu (HTTP 409 Conflict)</span>
+                  <span>Dữ liệu vừa được cập nhật</span>
                 </div>
                 <p>
-                  Hồ sơ đợt thẩm định này đã có thay đổi mới từ người dùng khác hoặc token phiên làm việc đã cũ.
+                  Hồ sơ đợt thẩm định này đã có thay đổi mới từ người dùng khác.
                   Nội dung nhận xét bạn đang soạn thảo bên dưới <strong>vẫn được giữ nguyên</strong>.
                 </p>
                 {onReload && (
@@ -240,7 +251,7 @@ export function AssignedReviewQueue({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <strong className="text-xs font-bold text-ink">{req.title}</strong>
-                        <span className="rounded bg-slate-200 px-1.5 py-0.5 text-xs text-ink-soft font-medium">{req.type}</span>
+                        <span className="rounded bg-slate-200 px-1.5 py-0.5 text-xs text-ink-soft font-medium">{displayLabel(req.type)}</span>
                         {req.isMandatory && (
                           <span className="rounded bg-status-error-bg px-1.5 py-0.5 text-xs font-bold text-danger-text">Bắt buộc</span>
                         )}
@@ -265,9 +276,9 @@ export function AssignedReviewQueue({
                     {/* Submitted artifact details */}
                     {req.latestArtifact ? (
                       <div className="mt-2.5 rounded-md border border-hairline bg-card p-2.5 text-ink-soft">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-ink inline-flex items-center gap-1.5">
-                            <span>{isLinkArtifact(req.latestArtifact) ? 'Liên kết minh chứng:' : 'Tệp minh chứng:'}</span>
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="min-w-0 font-semibold text-ink inline-flex flex-wrap items-center gap-1.5">
+                            <span>{isLinkArtifact(req.latestArtifact) || req.type === 'LINK' ? 'Liên kết minh chứng:' : 'Tệp minh chứng:'}</span>
                             <button
                               type="button"
                               onClick={() =>
@@ -280,12 +291,12 @@ export function AssignedReviewQueue({
                               <span className="break-all" title={req.latestArtifact.linkUrl ?? req.latestArtifact.filename}>{evidenceArtifactLabel(req.latestArtifact)}</span>
                             </button>
                           </span>
-                          <span className="rounded-full bg-canvas px-2 py-0.5 text-xs font-semibold text-ink-muted">
+                          <span className="shrink-0 whitespace-nowrap rounded-full bg-canvas px-2 py-0.5 text-xs font-semibold text-ink-muted">
                             Phiên bản v{req.latestArtifact.version}
                           </span>
                         </div>
-                        <div className="mt-1 text-slate-400">
-                          Nộp bởi {req.latestArtifact.submittedBy} lúc {dateTimeLabel(req.latestArtifact.submittedAt)}
+                        <div className="mt-1 text-ink-muted">
+                          Nộp bởi {formatSubmitter(req.latestArtifact.submittedByName, req.latestArtifact.submittedBy)} lúc {dateTimeLabel(req.latestArtifact.submittedAt)}
                         </div>
                         {req.latestArtifact.notes && (
                           <div className="mt-1 text-ink-muted italic">
@@ -312,7 +323,7 @@ export function AssignedReviewQueue({
                       <Button
                         size="sm"
                         variant="secondary"
-                        disabled={busy || loading || isDecided || !req.latestArtifact}
+                        disabled={busy || loading || isDecided || !req.latestArtifact || isAccepted}
                         onClick={() => handleVerify(req.id, 'ACCEPTED')}
                       >
                         ✓ Duyệt đạt
@@ -335,15 +346,15 @@ export function AssignedReviewQueue({
           {/* Decision Section */}
           <div className="border-t border-hairline pt-4">
             <h4 className="text-xs font-bold uppercase tracking-wider text-ink-soft">
-              Quyết định Thẩm định Review Gate (Toàn diện)
+              Quyết định thẩm định cổng kiểm duyệt
             </h4>
             {isDecided ? (
               <div className="mt-2 rounded-lg border border-status-success-border bg-status-success-bg p-3 text-xs font-semibold text-status-success-text">
-                ✓ Đợt thẩm định này đã ghi nhận kết luận chính thức ({selectedItem.latestDecision || 'ĐÃ CHỐT'}). Quyền thẩm định đã đóng băng.
+                ✓ Đợt thẩm định này đã ghi nhận kết luận chính thức ({selectedItem.latestDecision ? displayLabel(selectedItem.latestDecision) : 'Đã chốt'}). Quyền thẩm định đã đóng băng.
               </div>
             ) : (
               <p className="mt-1 text-xs text-ink-muted">
-                Quyết định Gate PASS chỉ được kích hoạt khi <strong>toàn bộ minh chứng bắt buộc</strong> đã được xác minh ĐẠT (ACCEPTED).
+                Quyết định đạt cổng chỉ được kích hoạt khi <strong>toàn bộ minh chứng bắt buộc</strong> đã được xác minh đạt.
               </p>
             )}
 
@@ -384,7 +395,7 @@ export function AssignedReviewQueue({
                   disabled={busy || loading || isDecided}
                   onClick={() => handleDecision('REVISION_REQUIRED')}
                 >
-                  Yêu cầu nhóm chỉnh sửa (Revision Required)
+                  Yêu cầu nhóm chỉnh sửa
                 </Button>
                 <Button
                   variant="primary"
@@ -393,7 +404,7 @@ export function AssignedReviewQueue({
                   onClick={() => handleDecision('PASSED')}
                   title={isDecided ? 'Đợt thẩm định đã hoàn tất' : !allMandatoryAccepted ? 'Cần duyệt đạt toàn bộ minh chứng bắt buộc trước' : undefined}
                 >
-                  {busy ? 'Đang lưu...' : 'Xác nhận Gate PASS (Đạt)'}
+                  {busy ? 'Đang lưu...' : 'Xác nhận đạt cổng kiểm duyệt'}
                 </Button>
               </div>
             </div>
@@ -414,8 +425,8 @@ export function AssignedReviewQueue({
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-xl text-primary">description</span>
                 <div>
-                  <h3 className="text-sm font-bold text-ink">Chi tiết Siêu dữ liệu Minh chứng (Metadata Preview)</h3>
-                  <p className="text-xs text-ink-muted">Xem trước thông tin siêu dữ liệu phiên bản (không phải trình đọc tệp nội dung)</p>
+                  <h3 className="text-sm font-bold text-ink">Chi tiết thông tin minh chứng</h3>
+                  <p className="text-xs text-ink-muted">Xem thông tin chi tiết phiên bản tệp đã nộp</p>
                 </div>
               </div>
               <button
@@ -440,11 +451,11 @@ export function AssignedReviewQueue({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-ink-muted">Người nộp:</span>
-                  <span className="font-semibold text-ink-soft">{previewingArtifact.submittedBy}</span>
+                  <span className="font-semibold text-ink-soft">{formatSubmitter(previewingArtifact.submittedByName, previewingArtifact.submittedBy)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-ink-muted">Thời gian nộp:</span>
-                  <span className="font-semibold text-ink-soft">{previewingArtifact.submittedAt}</span>
+                  <span className="font-semibold text-ink-soft">{dateTimeLabel(previewingArtifact.submittedAt)}</span>
                 </div>
                 {previewingArtifact.notes && (
                   <div className="border-t border-hairline/60 pt-1.5">
@@ -461,7 +472,7 @@ export function AssignedReviewQueue({
                 <p className="mt-1 text-xs text-status-info-text">
                   {isLinkArtifact(previewingArtifact)
                     ? 'Minh chứng được mở ngoài hệ thống. Quyền truy cập nội dung do dịch vụ đích quản lý; không có tệp để tải từ hệ thống.'
-                    : 'Tải tệp qua API có xác thực. Hệ thống kiểm tra quyền trên từng request và phục vụ đúng phiên bản được yêu cầu.'}
+                    : 'Tệp được tải xuống qua kết nối có xác thực. Hệ thống kiểm tra quyền truy cập và cung cấp đúng phiên bản đã nộp.'}
                 </p>
               </div>
             </div>

@@ -66,10 +66,13 @@ export function StudentJourneyProvider({ children }: { children: ReactNode }) {
   const refreshSequence = useRef(0)
   const profile = toJourneyProfile(workflowContext)
   const semester = workflowContext?.selectedSemester ?? null
+  const semesterId = semester?.id ?? null
+  const sessionUserId = session?.user.id ?? null
+  const isStudent = Boolean(session?.user.roles.some(role => role.toUpperCase() === 'STUDENT'))
 
   const refreshAllInternal = useCallback(async (silent = false) => {
     const requestId = ++refreshSequence.current
-    if (!session || !session.user.roles.some(role => role.toUpperCase() === 'STUDENT')) {
+    if (!sessionUserId || !isStudent) {
       setPeriod(null)
       setTeam(null)
       setProject(null)
@@ -86,37 +89,27 @@ export function StudentJourneyProvider({ children }: { children: ReactNode }) {
     setError(null)
     try {
       // Global context owns identity, authorization and selected semester.
-      let nextPeriod: ProjectPeriodDto | null = null
-      if (semester) nextPeriod = await services.academic.getRegistrationPeriod(semester.id)
-
-      let nextTeam: TeamDto | null = null
-      if (semester) nextTeam = await services.team.getCurrentTeam(semester.id)
+      const [nextPeriod, nextTeam] = semesterId
+        ? await Promise.all([
+            services.academic.getRegistrationPeriod(semesterId),
+            services.team.getCurrentTeam(semesterId),
+          ])
+        : [null, null]
 
       let nextProject: ProjectDto | null = null
-      let nextAssignments: SupervisorAssignmentDto[] = []
       if (nextTeam) {
         const projects = await services.project.getProjects({ teamId: nextTeam.id })
         const summary = findCurrentTeamProject(projects.items)
         if (summary) {
           nextProject = await services.project.getProject(summary.id)
-          nextAssignments = (await services.supervisor.getAssignments(nextProject.id)).items
         }
       }
 
-      const nextTeamActions = !env.isMockMode && nextTeam
-        ? await services.workflow.getTeamActions(nextTeam.id)
-        : null
-      // Project execution capabilities are an advisory pre-gate. Their transport
-      // failure must not remove read-only project access; capability consumers
-      // receive null and fail closed instead.
-      let nextProjectActions: ProjectWorkflowActionsDto | null = null
-      if (!env.isMockMode && nextProject) {
-        try {
-          nextProjectActions = await services.workflow.getProjectActions(nextProject.id)
-        } catch {
-          nextProjectActions = null
-        }
-      }
+      const [nextAssignments, nextTeamActions, nextProjectActions] = await Promise.all([
+        nextProject ? services.supervisor.getAssignments(nextProject.id).then(r => r.items) : Promise.resolve<SupervisorAssignmentDto[]>([]),
+        !env.isMockMode && nextTeam ? services.workflow.getTeamActions(nextTeam.id) : Promise.resolve<TeamWorkflowActionsDto | null>(null),
+        !env.isMockMode && nextProject ? services.workflow.getProjectActions(nextProject.id).catch(() => null) : Promise.resolve<ProjectWorkflowActionsDto | null>(null),
+      ])
 
       if (requestId !== refreshSequence.current) return
       setPeriod(nextPeriod)
@@ -132,7 +125,7 @@ export function StudentJourneyProvider({ children }: { children: ReactNode }) {
     } finally {
       if (requestId === refreshSequence.current) setIsLoading(false)
     }
-  }, [semester, session])
+  }, [isStudent, semesterId, sessionUserId])
 
   const refreshAll = useCallback(() => refreshAllInternal(false), [refreshAllInternal])
   const refreshAllSilently = useCallback(() => refreshAllInternal(true), [refreshAllInternal])

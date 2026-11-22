@@ -145,7 +145,7 @@ export function StudentJourneyHero() {
               {config.badge}
             </span>
             <span className="text-xs text-ink-muted font-mono">
-              SV: {profile?.fullName ?? 'Sinh viên'}{profile?.studentCode ? ` (${profile.studentCode})` : (profile?.id ? ` (ID #${profile.id})` : '')}
+              SV: {profile?.fullName ?? 'Sinh viên'}{profile?.studentCode ? ` (${profile.studentCode})` : ''}
             </span>
           </div>
           <h2 className="text-lg font-bold tracking-tight text-ink">{config.title}</h2>

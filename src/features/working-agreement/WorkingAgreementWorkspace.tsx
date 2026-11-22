@@ -36,6 +36,7 @@ export function WorkingAgreementWorkspace({ projectId, readOnly = false }: { pro
   const [loading, setLoading] = useState(true), [error, setError] = useState(''), [notice, setNotice] = useState('')
   const [revision, setRevision] = useState(0), [editing, setEditing] = useState(false)
   const [memberNames, setMemberNames] = useState<Record<number, string>>({})
+  const [projectMeta, setProjectMeta] = useState<{ title: string; code: string } | null>(null)
   const [sections, setSections] = useState<AgreementSection[]>(blank), [conflict, setConflict] = useState(false)
   const [busy, setBusy] = useState(false), [historyOpen, setHistoryOpen] = useState(false)
   const mutation = useRef(false)
@@ -56,7 +57,10 @@ export function WorkingAgreementWorkspace({ projectId, readOnly = false }: { pro
   }, [projectId, readOnly, revision])
   useEffect(() => {
     let active = true
-    void services.project.getProject(projectId).then(project => services.team.getTeam(project.teamId)).then(team => {
+    void services.project.getProject(projectId).then(project => {
+      if (active) setProjectMeta({ title: project.title, code: project.code })
+      return services.team.getTeam(project.teamId)
+    }).then(team => {
       if (active) setMemberNames(Object.fromEntries(team.members.map(member => [member.userId, member.fullName])))
     }).catch(() => { if (active) setMemberNames({}) })
     return () => { active = false }
@@ -92,7 +96,7 @@ export function WorkingAgreementWorkspace({ projectId, readOnly = false }: { pro
   }
   return <div className="collab">{confirmationDialog}
     <CollaborationIntro icon="handshake" title="Thống nhất cách làm việc">Khi thay đổi nguyên tắc hoặc thành viên, nhóm cùng xác nhận một phiên bản mới. Nội dung đã công bố được giữ nguyên.</CollaborationIntro>
-    <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
+    {projectMeta && <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: projectMeta.title }, ...(projectMeta.code ? [{ icon: 'tag', label: 'Mã đồ án', value: projectMeta.code }] : [])]} />}
     {loading && <PageLoading label="Đang tải cam kết nhóm…" />}
     {error && <div role="alert" className="collab-error">{error} <Button variant="ghost" onClick={() => setRevision(value => value + 1)}>Tải lại</Button></div>}
     {notice && <p role="status" className="collab-note">{notice}</p>}

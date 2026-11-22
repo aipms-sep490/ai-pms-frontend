@@ -11,6 +11,7 @@ import { StudentReviewTimeline } from '../components/StudentReviewTimeline'
 import type { ReviewSubmissionPayload } from '../components/ReviewSubmissionModal'
 import { SupervisorGateFollowupPanel } from '../components/SupervisorGateFollowupPanel'
 import { HttpError } from '../../../services/http/http-client'
+import { humanizeHttpError } from '../../../services/http/humanize-http-error'
 import { Button } from '../../../components/ui/Button'
 import { ReviewGatesMockNotice } from '../components/ReviewGatesMockNotice'
 import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
@@ -23,7 +24,7 @@ function timelineError(error: unknown): string {
     if (error.status === 401) return 'Phiên đăng nhập chưa sẵn sàng. Vui lòng đăng nhập lại.'
     if (error.status === 429) return 'Hệ thống đang giới hạn lượt truy cập. Vui lòng thử lại sau.'
   }
-  return error instanceof Error ? error.message : 'Không thể tải tiến trình thẩm định của nhóm.'
+  return humanizeHttpError(error, 'Không thể tải tiến trình thẩm định của nhóm.')
 }
 
 export function StudentReviewTimelinePage() {
@@ -138,13 +139,13 @@ export function StudentReviewTimelinePage() {
     <WorkspacePage
       eyebrow={
         isLecturer
-          ? 'Giảng viên Hướng dẫn · Tiến trình Thẩm định'
+          ? 'Giảng viên hướng dẫn · Tiến trình thẩm định'
           : isStaff
-          ? 'Khoa / Bộ môn · Tiến trình Thẩm định'
-          : 'Sinh viên Đồ án · Review Gate Timeline'
+          ? 'Khoa / Bộ môn · Tiến trình thẩm định'
+          : 'Sinh viên đồ án · Tiến trình cổng kiểm duyệt'
       }
       title="Tiến trình & Hồ sơ Thẩm định Đồ án"
-      description="Theo dõi các đợt Review Gates (R1..R4), kiểm tra trạng thái minh chứng và nộp bản cập nhật theo phản hồi của hội đồng thẩm định."
+      description="Theo dõi các cổng kiểm duyệt (G1..G4), kiểm tra trạng thái minh chứng và nộp bản cập nhật theo phản hồi của hội đồng thẩm định."
       identity={timeline ? <EntityIdentityStrip chips={[
         { icon: 'folder_open', label: 'Đồ án', value: `${timeline.projectCode} · ${timeline.projectName}` },
         { icon: 'account_tree', label: 'Ngành', value: timeline.major },
@@ -161,18 +162,14 @@ export function StudentReviewTimelinePage() {
       </div>}
       {loading ? (
         <div className="py-12">
-          <PageLoading label="Đang tải tiến trình Review Gates của nhóm..." />
+          <PageLoading label="Đang tải tiến trình thẩm định của nhóm..." />
         </div>
       ) : error ? (
         <div role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-6 text-center text-danger-text">
           <p className="font-semibold">{error}</p>
-          <button
-            type="button"
-            onClick={() => void loadTimeline()}
-            className="mt-3 rounded-lg bg-danger-strong px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-danger-strong-hover"
-          >
+          <Button variant="danger" className="mt-3 min-h-11" onClick={() => void loadTimeline()}>
             Thử lại
-          </button>
+          </Button>
         </div>
       ) : timeline ? (
         <div className="space-y-6">

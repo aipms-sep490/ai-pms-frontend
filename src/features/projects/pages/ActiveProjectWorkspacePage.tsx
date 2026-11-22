@@ -92,7 +92,7 @@ export function ProjectWorkspaceSummary({
   const teamName = team?.name ?? project.teamName ?? 'Chưa có thông tin nhóm'
 
   return (
-    <main className="workspace-page mx-auto flex max-w-6xl flex-col gap-6 pb-12">
+    <div className="workspace-page mx-auto flex max-w-6xl flex-col gap-6 pb-12">
       <header className="rounded-md border border-status-success-border bg-status-success-bg p-5  sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -179,7 +179,7 @@ export function ProjectWorkspaceSummary({
           <div>
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-tag-ai">folder_open</span>
-              <h2 className="text-base font-bold text-ink">Deliverables & phiên bản</h2>
+              <h2 className="text-base font-bold text-ink">Hạng mục bàn giao & phiên bản</h2>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-ink-muted">Theo dõi các sản phẩm cần nộp, phiên bản đã gửi và nhận xét của giảng viên.</p>
           </div>
@@ -190,7 +190,7 @@ export function ProjectWorkspaceSummary({
           </div>
         </section>
       </div>
-    </main>
+    </div>
   )
 }
 

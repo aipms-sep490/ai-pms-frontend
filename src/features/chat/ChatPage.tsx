@@ -5,6 +5,7 @@ import { useAuthSession } from '../auth/context/useAuthSession'
 import { getHomePath } from '../auth/utils/role-access'
 import { BackLink } from '../../components/ui/BackLink'
 import { env } from '../../app/config/env'
+import { getProject } from '../../services/api/projects.api'
 import { getOwnAssignments } from '../../services/api/supervisors.api'
 import { useChat } from './ChatProvider'
 import { ChatThread, chatError } from './ChatThread'
@@ -18,8 +19,8 @@ export function ChatPage() {
   const { conversationId } = useParams()
   const { session } = useAuthSession()
   const { chatDenied, refresh } = useChat()
-  if (!env.chatEnabled) return <p role="status">Tính năng chat chưa được bật.</p>
-  if (env.isMockMode) return <p role="status">Chat realtime cần phiên đăng nhập API thật. Chế độ mock không kết nối hoặc gửi tin đến BE.</p>
+  if (!env.chatEnabled) return <p role="status">Tính năng nhắn tin hiện chưa được bật.</p>
+  if (env.isMockMode) return <p role="status">Nhắn tin trực tuyến cần phiên đăng nhập chính thức của hệ thống.</p>
   if (chatDenied) return <section className="chat-unavailable" role="alert">
     <BackLink fallback={session ? getHomePath(session.user) : '/profile'} className="chat-page-back"><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Quay lại không gian làm việc</BackLink>
     <h1>Tin nhắn chưa khả dụng</h1>
@@ -50,7 +51,7 @@ export function ChatConversations({ id, onOpen, backTo, compact = false }: { id?
   const [roomTab, setRoomTab] = useState<'ALL' | 'UNREAD' | 'GROUP' | 'DIRECT'>('ALL')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [projects, setProjects] = useState<number[]>([])
+  const [projects, setProjects] = useState<Array<{ id: number; label: string }>>([])
   const [assignmentPage, setAssignmentPage] = useState(1)
   const [moreAssignments, setMoreAssignments] = useState(false)
   const isLecturer = session?.user.roles.some(role => role.toUpperCase() === 'LECTURER') === true
@@ -69,9 +70,23 @@ export function ChatConversations({ id, onOpen, backTo, compact = false }: { id?
   useEffect(() => {
     if (!isLecturer) return
     let active = true
-    void getOwnAssignments({ status: 'ACTIVE', page: assignmentPage, pageSize: 30 }).then(page => {
+    void getOwnAssignments({ status: 'ACTIVE', page: assignmentPage, pageSize: 30 }).then(async page => {
       if (!active) return
-      setProjects(old => [...new Set([...old, ...page.items.filter(a => !a.endedAt && (a.assignmentType === 'PRIMARY' || a.assignmentType === 'DISCIPLINE_MENTOR')).map(a => a.projectId)])])
+      const ids = [...new Set(page.items.filter(a => !a.endedAt && (a.assignmentType === 'PRIMARY' || a.assignmentType === 'DISCIPLINE_MENTOR')).map(a => a.projectId))]
+      const resolved = await Promise.all(ids.map(async pid => {
+        try {
+          const proj = await getProject(pid)
+          return { id: pid, label: [proj.code, proj.title].filter(Boolean).join(' · ') || 'Nhóm đồ án' }
+        } catch {
+          return { id: pid, label: 'Nhóm đồ án' }
+        }
+      }))
+      if (!active) return
+      setProjects(old => {
+        const map = new Map(old.map(item => [item.id, item]))
+        for (const item of resolved) map.set(item.id, item)
+        return [...map.values()]
+      })
       setMoreAssignments(page.page < page.totalPages)
     }).catch(() => { if (active) setError('Chưa tải được đồ án được phân công.') })
     return () => { active = false }
@@ -118,7 +133,7 @@ export function ChatConversations({ id, onOpen, backTo, compact = false }: { id?
             {(journey?.team || journey?.project || projects.length > 0) && <div className="chat-groups">
               {journey?.team && <button disabled={busy} onClick={() => group('teams', journey.team!.id)}><span className="material-symbols-outlined" aria-hidden="true">groups</span>Nhóm {journey.team.name}</button>}
               {journey?.project && <button disabled={busy} onClick={() => group('projects', journey.project!.id)}><span className="material-symbols-outlined" aria-hidden="true">folder_open</span>Đồ án {journey.project.title}</button>}
-              {projects.map(project => <button key={project} disabled={busy} onClick={() => group('projects', project)}><span className="material-symbols-outlined" aria-hidden="true">folder_open</span>Nhóm đồ án #{project}</button>)}
+              {projects.map(project => <button key={project.id} disabled={busy} onClick={() => group('projects', project.id)}><span className="material-symbols-outlined" aria-hidden="true">folder_open</span>{project.label}</button>)}
               {moreAssignments && <button onClick={() => setAssignmentPage(n => n + 1)}>Thêm đồ án được phân công</button>}
             </div>}
             <label>Tìm người nhận trong đồ án<input value={search} maxLength={100} onChange={e => setSearch(e.target.value)} placeholder="Nhập tên người nhận…" /></label>

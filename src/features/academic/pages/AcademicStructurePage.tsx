@@ -1,4 +1,5 @@
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import { ListLoading } from '../../../components/ui/ListLoading'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -81,10 +82,6 @@ export function AcademicStructurePage() {
     return <section className="academic-state-panel academic-error-panel" role="alert"><div><strong>Cần đăng nhập để xem cấu trúc học vụ</strong><p>Đăng nhập để xem thông tin đào tạo của bạn.</p></div><Link to="/login" className="academic-link-button">Đăng nhập</Link></section>
   }
 
-  if (academic.isLoading) {
-    return <section className="academic-state-panel" role="status">Đang tải cấu trúc học vụ…</section>
-  }
-
   if (academic.isUnauthorized) {
     return <section className="academic-state-panel academic-error-panel" role="alert"><div><strong>Phiên đăng nhập đã hết hạn</strong><p>Đăng nhập lại để tiếp tục xem thông tin đào tạo.</p></div><Link to="/login" className="academic-link-button">Đăng nhập</Link></section>
   }
@@ -97,10 +94,11 @@ export function AcademicStructurePage() {
     return <section className="academic-state-panel academic-error-panel" role="alert"><div><strong>Lỗi tải dữ liệu</strong><p>{getErrorMessage(academic.error)}</p></div><Button onClick={academic.retry}>Thử lại</Button></section>
   }
 
+  const hasFilters = Boolean(draftFilters.search.trim() || draftFilters.organizationId || draftFilters.includeInactive)
+
   return (
     <WorkspacePage className="academic-page" title="Cấu trúc đào tạo" eyebrow="Quản lý học vụ" description="Sắp xếp tổ chức, bộ môn và chuyên ngành; quản lý thông tin và trạng thái hoạt động." action={academic.canManageOrganizations && <Button onClick={() => openEditor('organization')}>Thêm tổ chức</Button>}>
       {confirmationDialog}
-      
 
       <form className="academic-filter-bar" onSubmit={(event) => { event.preventDefault(); setFilters(draftFilters) }}>
         <label>
@@ -116,6 +114,7 @@ export function AcademicStructurePage() {
         </label>
         <label className="academic-checkbox"><input type="checkbox" checked={draftFilters.includeInactive} onChange={(event) => setDraftFilters((current) => ({ ...current, includeInactive: event.target.checked }))} /> Bao gồm bản ghi ngừng hoạt động</label>
         <Button type="submit" variant="secondary">Áp dụng bộ lọc</Button>
+        {hasFilters && <Button type="button" variant="ghost" onClick={() => { setDraftFilters(initialFilters); setFilters(initialFilters) }}>Xóa lọc</Button>}
       </form>
 
       {!academic.canManageAcademicStructure && academic.context && (
@@ -124,7 +123,9 @@ export function AcademicStructurePage() {
       {operationError && <p className="academic-operation-error" role="alert">{operationError}</p>}
       {operationSuccess && <p className="academic-operation-success" role="status">{operationSuccess}</p>}
 
-      {academic.isEmpty ? (
+      {academic.isLoading ? (
+        <ListLoading label="Đang tải cấu trúc học vụ…" />
+      ) : academic.isEmpty ? (
         <section className="academic-state-panel" role="status">Không có tổ chức, bộ môn hoặc chuyên ngành nào khớp bộ lọc hiện tại.</section>
       ) : academic.hierarchy ? (
         <AcademicHierarchyTree

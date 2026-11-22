@@ -19,10 +19,11 @@ export interface DeliverableVersion {
   deliverableId: number
   versionNumber: number
   submittedBy: number
+  submittedByName?: string | null
   note: string | null
   status: DeliverableVersionStatus
   submittedAt: string
-  files: Array<{ id: number; fileName: string; contentType: string; sizeBytes: number; uploadedBy: number; createdAt: string }>
+  files: Array<{ id: number; fileName: string; contentType: string; sizeBytes: number; uploadedBy: number; uploadedByName?: string | null; createdAt: string }>
 }
 
 export interface DeliverableFeedback {

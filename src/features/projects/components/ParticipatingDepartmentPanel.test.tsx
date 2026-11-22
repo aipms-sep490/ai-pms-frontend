@@ -17,7 +17,7 @@ describe('ParticipatingDepartmentPanel', () => {
       { departmentId: 4, decision: 'APPROVED', decidedBy: 11, decidedAt: '2026-09-23T00:00:00Z', reason: null },
       { departmentId: 5, decision: 'REJECTED', decidedBy: 12, decidedAt: null, reason: 'No qualified member' },
     ]} />)
-    expect(screen.getByText(/Bản đề cương #12 đã nộp/)).toBeTruthy()
+    expect(screen.getByText(/Bản đề cương đã nộp/)).toBeTruthy()
     expect(screen.getByText('Đã chấp thuận')).toBeTruthy()
     expect(screen.getByText('Không chấp thuận')).toBeTruthy()
     expect(screen.getByText('Chờ xử lý')).toBeTruthy()

@@ -6,7 +6,7 @@ import { notificationCopy, notificationTime } from './notification-copy'
 import { resolveNotificationLink } from './notification-link-resolver'
 import './notifications.css'
 
-export function NotificationRow({ item, busy, onRead, onNavigate, compact = false }: { item: NotificationItem; busy: boolean; onRead: () => void | Promise<void>; onNavigate?: () => void; compact?: boolean }) {
+export function NotificationRow({ item, busy, onRead, onNavigate, compact = false, headingLevel = 'h2' }: { item: NotificationItem; busy: boolean; onRead: () => void | Promise<void>; onNavigate?: () => void; compact?: boolean; headingLevel?: 'h2' | 'h3' }) {
   const copy = notificationCopy(item)
   const auth = useContext(AuthSessionContext)
   const roles = auth?.session?.user.roles ?? []
@@ -36,7 +36,7 @@ export function NotificationRow({ item, busy, onRead, onNavigate, compact = fals
     <span className={`notification-icon ${copy.icon === 'warning' ? 'notification-icon--warning' : ''} material-symbols-outlined`} aria-hidden="true">{copy.icon}</span>
     <div className="notification-body">
       <div className="notification-meta"><span aria-label={`Loại thông báo: ${copy.label}`} className="inline-flex items-center gap-1 rounded-full border border-hairline bg-card px-2 py-0.5 text-xs font-semibold text-ink-soft"><span className="material-symbols-outlined text-[14px]" aria-hidden="true">{copy.icon}</span><span>{copy.label}</span></span>{!item.isRead && <span className="notification-unread">Chưa đọc</span>}</div>
-      <h2>{copy.title}</h2>
+      {headingLevel === 'h3' ? <h3>{copy.title}</h3> : <h2>{copy.title}</h2>}
       {copy.content && copy.content.trim() !== copy.title.trim() && <p className="notification-content">{copy.content}</p>}
       <div className="notification-bottom">
         {actionLink && <Link className="notification-read" to={actionLink.url} onClick={open}>{actionLink.label}</Link>}
@@ -52,5 +52,17 @@ export function NotificationEmpty({ unread = false }: { unread?: boolean }) {
 }
 
 export function NotificationLoading() {
-  return <div className="notification-loading" role="status"><span className="material-symbols-outlined" aria-hidden="true">hourglass_top</span>Đang tải thông báo…</div>
+  return <div className="notification-loading-skeleton" role="status" aria-label="Đang tải thông báo">
+    {[0, 1, 2].map(i => (
+      <div key={i} className="notification-skeleton-row">
+        <span className="notification-skeleton-avatar mk-skeleton" aria-hidden="true" />
+        <div className="notification-skeleton-lines">
+          <span className="mk-skeleton w-28 h-3 rounded-full" />
+          <span className="mk-skeleton w-3/4 h-4 rounded" />
+          <span className="mk-skeleton w-full h-3 rounded" />
+        </div>
+      </div>
+    ))}
+    <span className="sr-only">Đang tải thông báo…</span>
+  </div>
 }

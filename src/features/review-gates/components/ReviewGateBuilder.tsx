@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { displayLabel } from '../../../components/ui/display-label'
 import type {
   GateRequirement,
   ReviewGate,
@@ -121,8 +122,10 @@ export function ReviewGateBuilder({
               {template.status === 'PUBLISHED' ? 'ĐÃ CÔNG BỐ' : 'BẢN NHÁP'}
             </span>
           </div>
-          <p className="mt-1 text-xs text-slate-600">
-            Chế độ: <strong className="text-slate-700">{template.mode === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành'}</strong> · Ngành: {template.major} · Mã: {template.code}
+          <p className="mt-1 text-xs text-ink-muted">
+            Chế độ: <strong className="text-ink-soft">{template.mode === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành'}</strong>
+            {template.major && template.major !== 'INTERDISCIPLINARY' && template.major !== 'SINGLE_MAJOR' ? ` · Ngành: ${template.major}` : ''}
+            {` · Mã: ${template.code}`}
           </p>
         </div>
 
@@ -379,11 +382,11 @@ export function ReviewGateBuilder({
                         className="flex flex-wrap items-center justify-between rounded-lg border border-slate-200 bg-white p-3 hover:border-slate-300"
                       >
                         <div className="min-w-0 flex-1">
-                          <strong className="block text-xs font-semibold text-slate-900">
+                          <strong className="block text-xs font-semibold text-ink">
                             {req.title}
                           </strong>
-                          <span className="text-xs text-slate-600">
-                            Loại: {req.type} · Ngành: {req.scope} · Thẩm định: {req.verification}
+                          <span className="text-xs text-ink-muted">
+                            Loại: {displayLabel(req.type)} · Phạm vi: {displayLabel(req.scope)} · Thẩm định: {displayLabel(req.verification)}
                           </span>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">

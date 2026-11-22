@@ -51,7 +51,7 @@ export function SupervisorDashboardPage() {
     <ActorDashboardCard />
     <form className="workspace-surface flex flex-wrap gap-4 p-6" onSubmit={applyFilter}>
       <label className="flex min-w-52 flex-1 flex-col gap-1 text-sm font-medium text-ink-soft" htmlFor="supervisor-dashboard-search">Tìm đồ án<input id="supervisor-dashboard-search" value={searchInput} onChange={event => setSearchInput(event.target.value)} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" placeholder="Mã hoặc tên đồ án" /></label>
-      <label className="flex flex-col gap-1 text-sm font-medium text-ink-soft" htmlFor="supervisor-dashboard-status">Trạng thái<select id="supervisor-dashboard-status" value={filter.status ?? ''} onChange={event => setFilter(current => ({ ...current, status: event.target.value || undefined, page: 1 }))} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><option value="">Tất cả</option>{statuses.map(status => <option key={status} value={status}>{projectStatusLabel(status)}</option>)}</select></label>
+      <label className="flex flex-col gap-1 text-sm font-medium text-ink-soft" htmlFor="supervisor-dashboard-status">Trạng thái<select id="supervisor-dashboard-status" value={filter.status ?? ''} onChange={event => setFilter(current => ({ ...current, status: event.target.value || undefined, page: 1 }))} className="h-11 rounded-lg border border-hairline bg-card px-3 py-2 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><option value="">Tất cả</option>{statuses.map(status => <option key={status} value={status}>{projectStatusLabel(status)}</option>)}</select></label>
       <button type="submit" className="min-h-11 self-end rounded-lg border border-hairline px-4 text-sm font-semibold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Áp dụng</button>
     </form>
     {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><p className="font-semibold">Chưa tải được tổng quan</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại</button></div>}
@@ -59,9 +59,9 @@ export function SupervisorDashboardPage() {
     {!loading && !error && data && <>
       <section aria-label="Chỉ số khối lượng" className="space-y-3">
         <StatTileRow tiles={[
-          { icon: 'folder_managed', label: 'Đồ án được phân công', value: data.workload.assignedProjects, hero: true, caption: 'Khối lượng hướng dẫn hiện tại.' },
-          { icon: 'fact_check', label: 'Báo cáo chờ duyệt', value: data.pendingProgressReviews, tone: data.pendingProgressReviews > 0 ? 'warning' : 'neutral' },
-          { icon: 'event_busy', label: 'Công việc quá hạn', value: data.overdueTasks, tone: data.overdueTasks > 0 ? 'danger' : 'neutral' },
+          { icon: 'folder_managed', label: 'Đồ án được phân công', value: data.workload.assignedProjects, hero: true, caption: 'Phạm vi GVHD chính hiện tại.' },
+          { icon: 'fact_check', label: 'Báo cáo chờ duyệt', value: data.pendingProgressReviews, tone: data.pendingProgressReviews > 0 ? 'warning' : 'neutral', caption: data.pendingProgressReviews > 0 ? 'Cần xem xét và gửi phản hồi.' : 'Không có báo cáo tồn đọng.' },
+          { icon: 'event_busy', label: 'Công việc quá hạn', value: data.overdueTasks, tone: data.overdueTasks > 0 ? 'danger' : 'neutral', caption: data.overdueTasks > 0 ? 'Cần nhắc nhóm cập nhật tiến độ.' : 'Các công việc đang đúng hạn.' },
         ]} />
         <p className="rounded-lg border border-hairline bg-card px-4 py-3 text-sm text-ink-soft">Đồ án / hạn mức: <strong className="tabular-nums text-ink">{data.workload.profileMaxActiveProjects === null ? 'Chưa cấu hình' : `${data.workload.assignedProjects}/${data.workload.profileMaxActiveProjects}`}</strong>{!data.workload.hasProfile || !data.workload.isAvailable ? ' · Hồ sơ hướng dẫn hiện chưa sẵn sàng nhận thêm.' : ''}</p>
       </section>
@@ -72,7 +72,8 @@ export function SupervisorDashboardPage() {
           p => p.pendingProgressReviews > 0 ||
                (p.analysis?.progressSummary?.overdueTasks ?? 0) > 0 ||
                (p.analysis?.progressSummary?.blockedTasks ?? 0) > 0 ||
-               p.analysis?.riskLevel === 'HIGH'
+               p.analysis?.riskLevel === 'HIGH' ||
+               p.analysis?.riskLevel === 'CRITICAL'
         )
         if (!urgentProjects.length) return null
         return (
@@ -84,7 +85,7 @@ export function SupervisorDashboardPage() {
                 </span>
                 <div>
                   <h2 className="text-base font-bold text-status-warning-text">
-                    Hộp thư duyệt nhanh & Việc khẩn cấp (Action Inbox)
+                    Hộp thư duyệt nhanh & Việc khẩn cấp
                   </h2>
                   <p className="text-xs text-status-warning-text">
                     Có {urgentProjects.length} đồ án đang có báo cáo tiến độ chờ xác nhận hoặc công việc quá hạn/vướng mắc.
@@ -109,9 +110,9 @@ export function SupervisorDashboardPage() {
                         <span className="rounded-md bg-status-warning-bg px-2 py-0.5 text-xs font-bold text-status-warning-text border border-warning-strong">
                           {proj.pendingProgressReviews} báo cáo chờ duyệt
                         </span>
-                      ) : proj.analysis?.riskLevel === 'HIGH' ? (
+                      ) : proj.analysis?.riskLevel === 'HIGH' || proj.analysis?.riskLevel === 'CRITICAL' ? (
                         <span className="rounded-md bg-status-error-bg px-2 py-0.5 text-xs font-bold text-danger-text border border-status-error-border">
-                          Rủi ro cao
+                          Rủi ro: {displayLabel(proj.analysis.riskLevel)}
                         </span>
                       ) : null}
                     </div>
@@ -126,7 +127,7 @@ export function SupervisorDashboardPage() {
                     </p>
                   </div>
 
-                  <div className="mt-3.5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2.5">
+                  <div className="mt-3.5 flex flex-wrap items-center gap-2 border-t border-hairline pt-2.5">
                     <Link
                       to={`/supervisor/projects/${proj.id}/reports`}
                       className="inline-flex min-h-9 items-center gap-1 rounded-md bg-primary px-3 py-1 text-xs font-bold text-white shadow-2xs hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -148,7 +149,7 @@ export function SupervisorDashboardPage() {
             </div>
 
             <p className="mt-3 text-xs text-status-warning-text italic">
-              * Nhận xét và xác nhận báo cáo của Giảng viên hướng dẫn ghi nhận sự đồng hành chuyên môn; thẩm định đạt cổng chính thức do Thẩm định viên (Reviewer) độc lập phê duyệt.
+              * Nhận xét và xác nhận báo cáo của Giảng viên hướng dẫn ghi nhận sự đồng hành chuyên môn; thẩm định đạt cổng chính thức do Thẩm định viên độc lập phê duyệt.
             </p>
           </section>
         )
@@ -173,7 +174,7 @@ function ProjectRow({ project }: { project: DashboardProject }) {
       <div className="flex flex-wrap items-center gap-2">
         <p className="font-semibold text-ink text-base">{project.code} · {project.title}</p>
         <span className="rounded-full bg-canvas px-2 py-0.5 text-xs font-medium text-ink-soft">{displayLabel(project.status)}</span>
-        {env.aiAdvisoryEnabled && risk && <span className={risk === 'HIGH' ? 'rounded-full bg-status-error-bg px-2 py-0.5 text-xs font-semibold text-status-error-text' : 'rounded-full bg-status-warning-bg px-2 py-0.5 text-xs font-semibold text-status-warning-text'}>Rủi ro: {displayLabel(risk)}</span>}
+        {env.aiAdvisoryEnabled && risk && <span className={risk === 'HIGH' || risk === 'CRITICAL' ? 'rounded-full bg-status-error-bg px-2 py-0.5 text-xs font-semibold text-status-error-text' : risk === 'LOW' ? 'rounded-full bg-status-success-bg px-2 py-0.5 text-xs font-semibold text-status-success-text' : 'rounded-full bg-status-warning-bg px-2 py-0.5 text-xs font-semibold text-status-warning-text'}>Rủi ro: {displayLabel(risk)}</span>}
       </div>
       <p className="mt-1.5 text-xs text-ink-muted">
         Bộ môn: <strong className="text-ink-soft">{project.departmentName ?? 'Chưa có bộ môn'}</strong>
@@ -188,11 +189,15 @@ function ProjectRow({ project }: { project: DashboardProject }) {
         </div>
       )}
     </div>
-    {project.status === 'ACTIVE' && (
+    {project.status === 'ACTIVE' ? (
       <Link className="inline-flex min-h-10 items-center justify-center rounded-lg border border-primary bg-card px-4 text-xs font-bold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors shadow-2xs" to={`/supervisor/projects/${project.id}/workspace`}>
         Mở không gian đồ án
       </Link>
-    )}
+    ) : project.status === 'FINAL_SUBMISSION' ? (
+      <Link className="inline-flex min-h-10 items-center justify-center rounded-lg border border-hairline bg-card px-4 text-xs font-bold text-ink-soft hover:border-primary hover:text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors shadow-2xs" to={`/supervisor/projects/${project.id}/final-submission`}>
+        Xem bàn giao cuối kỳ
+      </Link>
+    ) : null}
   </li>
 }
 

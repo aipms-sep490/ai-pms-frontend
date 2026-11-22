@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { ProjectDto, SupervisorAssignmentDto, SupervisorRequestDto, TeamDto, TeamLeaderChangeRequestDto } from '../../../types/backend'
 import { HttpError } from '../../../services/http/http-client'
+import { humanizeHttpError } from '../../../services/http/humanize-http-error'
 import { services } from '../../../services/service-gateway'
 import { loadOwnSupervisorAssignments } from '../utils/loadOwnSupervisorAssignments'
 
@@ -11,12 +12,12 @@ function classify(error: unknown): InboxError {
   if (error instanceof HttpError || (typeof error === 'object' && error !== null && 'status' in error)) {
     const response = error as { status: number; message?: string }
     if (response.status === 401) return { kind: 'authentication', message: 'Phiên đăng nhập đã hết hạn.' }
-    if (response.status === 403) return { kind: 'forbidden', message: 'Hệ thống từ chối quyền Inbox hoặc request scope.' }
-    if (response.status === 404) return { kind: 'not-found', message: 'Request không còn khả dụng.' }
-    if (response.status === 409) return { kind: 'conflict', message: `Request đã thay đổi ở phiên khác. ${response.message ?? 'Inbox đã được làm mới; hãy kiểm tra trước khi quyết định lại.'}` }
-    if (response.status === 400 || response.status === 422) return { kind: 'validation', message: response.message || 'Hệ thống từ chối quyết định theo quy tắc nghiệp vụ.' }
+    if (response.status === 403) return { kind: 'forbidden', message: 'Bạn không có quyền truy cập hộp thư yêu cầu hướng dẫn này.' }
+    if (response.status === 404) return { kind: 'not-found', message: 'Yêu cầu hướng dẫn không còn khả dụng.' }
+    if (response.status === 409) return { kind: 'conflict', message: humanizeHttpError(error, 'Yêu cầu đã thay đổi ở phiên khác. Danh sách đã được làm mới; hãy kiểm tra trước khi quyết định lại.') }
+    if (response.status === 400 || response.status === 422) return { kind: 'validation', message: humanizeHttpError(error, 'Hệ thống từ chối quyết định theo quy tắc nghiệp vụ.') }
   }
-  return { kind: 'system', message: error instanceof Error ? error.message : 'Không thể tải hoặc xử lý Supervisor Inbox.' }
+  return { kind: 'system', message: humanizeHttpError(error, 'Không thể tải hoặc xử lý hộp thư yêu cầu hướng dẫn.') }
 }
 
 export function useSupervisorInbox() {

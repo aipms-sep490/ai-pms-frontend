@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { displayLabel } from '../../../components/ui/display-label'
 import { HttpError } from '../../../services/http/http-client'
 import {
   createSupervisorRecommendationRun,
@@ -33,11 +34,12 @@ function recommendationFailure(reason: unknown): string {
  * preview — picking a suggestion only pre-selects a candidate; the student still sends the request
  * manually. AI never creates a request or an assignment (BR-60–63).
  */
-export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRIMARY', majorId, candidateIds, onPick }: {
+export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRIMARY', majorId, majorNames = {}, candidateIds, onPick }: {
   projectId: number
   assignmentType?: SupervisorRecommendationAssignmentType
   /** Required for a DISCIPLINE_MENTOR slot; must stay unset for PRIMARY. */
   majorId?: number
+  majorNames?: Record<number, string>
   /** Supervisor profile ids that are selectable in the current flow. */
   candidateIds?: ReadonlySet<number>
   onPick?: (supervisorId: number) => void
@@ -105,7 +107,7 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
     setSaveRunError('')
     try {
       const run = await createSupervisorRecommendationRun(projectId, { assignmentType, majorId })
-      setSaveRunSuccess(`Đã lưu phiên gợi ý #${run.id} (${run.items.length} giảng viên).`)
+      setSaveRunSuccess(`Đã lưu lượt gợi ý (${run.items.length} giảng viên).`)
       setSelectedRun(run)
     } catch (err) {
       setSaveRunError(recommendationFailure(err))
@@ -148,7 +150,7 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
     {selectedRun && (
       <div className="mt-3 flex items-center justify-between rounded-lg bg-subtle p-3 border border-hairline">
         <p className="text-xs text-ink-soft">
-          Đang xem kết quả lịch sử <strong>Lượt gợi ý #{selectedRun.id}</strong> (Tạo lúc: {new Date(selectedRun.createdAt).toLocaleString('vi-VN')})
+          Đang xem kết quả lịch sử <strong>{displayLabel(selectedRun.assignmentType)}</strong> (Tạo lúc: {new Date(selectedRun.createdAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })})
         </p>
         <button
           type="button"
@@ -179,10 +181,10 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
         )}
         {historyRuns.length > 0 && (
           <ul className="space-y-1.5">
-            {historyRuns.map((r) => (
+            {historyRuns.map((r, idx) => (
               <li key={r.id} className="flex items-center justify-between text-xs rounded bg-card p-2 border border-hairline">
                 <span>
-                  <strong>Lượt gợi ý #{r.id}</strong> · {r.assignmentType}{r.majorId ? ` (Ngành #${r.majorId})` : ''} · {new Date(r.createdAt).toLocaleString('vi-VN')}
+                  <strong>Lượt {historyRuns.length - idx}</strong> · {displayLabel(r.assignmentType)}{r.majorId && majorNames[r.majorId] ? ` (${majorNames[r.majorId]})` : ''} · {new Date(r.createdAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
                 </span>
                 <button
                   type="button"
@@ -245,7 +247,7 @@ function RecommendationRow({ item, rank, selectable, onPick }: {
     {/* Current eligibility check vs generation time */}
     {item.currentlyEligible === false && (
       <div className="mt-2 rounded-md border border-status-error-border bg-status-error-bg p-2 text-xs text-status-error-text">
-        <span className="font-semibold">⚠️ Cảnh báo:</span> Giảng viên này hiện không còn đủ điều kiện tiếp nhận (đã thay đổi sau thời điểm gợi ý).
+        <span className="inline-flex items-center gap-1 font-semibold"><span className="material-symbols-outlined text-[15px]" aria-hidden="true">warning</span>Cảnh báo:</span> Giảng viên này hiện không còn đủ điều kiện tiếp nhận (đã thay đổi sau thời điểm gợi ý).
         {item.currentReasons.length > 0 && (
           <span className="block mt-0.5">Lý do: {item.currentReasons.join(', ')}</span>
         )}
@@ -253,6 +255,6 @@ function RecommendationRow({ item, rank, selectable, onPick }: {
     )}
 
     {onPick && selectable && <button type="button" onClick={() => onPick(candidate.id)} className="mt-3 min-h-11 rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-primary-subtle">Chọn giảng viên này</button>}
-    {onPick && !selectable && <p className="mt-3 text-xs text-slate-400">Giảng viên này hiện không nằm trong danh sách có thể mời.</p>}
+    {onPick && !selectable && <p className="mt-3 text-xs text-ink-muted">Giảng viên này hiện không nằm trong danh sách có thể mời.</p>}
   </li>
 }

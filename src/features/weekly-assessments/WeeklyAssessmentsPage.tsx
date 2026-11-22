@@ -1,4 +1,4 @@
-import { Table, TableHead } from '../../components/ui/Table'
+import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../components/ui/Table'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import * as api from '../../services/api/weekly.api'
@@ -39,11 +39,11 @@ export function WeeklyAssessmentsPage() {
   }, [project.id, project.teamId, team, retry])
   if (loading) return <WeeklyLoading />
   if (error) return <WeeklyError message={error} retry={() => setRetry(value => value + 1)} />
-  return <WeeklyAssessmentsBody key={project.id} projectId={project.id} projectTitle={project.title} routeBase={routeBase} members={members} actor={actor} currentUserId={currentUserId} />
+  return <WeeklyAssessmentsBody key={project.id} projectId={project.id} projectCode={project.code} projectTitle={project.title} routeBase={routeBase} members={members} actor={actor} currentUserId={currentUserId} />
 }
 
-function WeeklyAssessmentsBody({ projectId, projectTitle, routeBase, members, actor, currentUserId }: {
-  projectId: number; projectTitle: string; routeBase: string
+function WeeklyAssessmentsBody({ projectId, projectCode, projectTitle, routeBase, members, actor, currentUserId }: {
+  projectId: number; projectCode?: string | null; projectTitle: string; routeBase: string
   members: { userId: number; fullName: string }[]
   actor?: 'student' | 'supervisor' | 'mentor'
   currentUserId?: number
@@ -76,10 +76,13 @@ function WeeklyAssessmentsBody({ projectId, projectTitle, routeBase, members, ac
     return () => controller.abort()
   }, [projectId])
 
-  return <WeeklyShell title={isStudent ? "Đánh giá cá nhân theo tuần" : "Điểm cá nhân theo tuần"} projectTitle={projectTitle} backTo={`${routeBase}/workspace`}
-    description={isStudent ? "Theo dõi nhận xét và điểm tham khảo định kỳ từ Giảng viên hướng dẫn." : "Chấm tham khảo hằng tuần cho từng sinh viên. Không tự cộng vào kết quả học phần chính thức."}>
+  return <WeeklyShell title={isStudent ? 'Đánh giá cá nhân theo tuần' : 'Điểm cá nhân theo tuần'} projectTitle={projectTitle} backTo={`${routeBase}/workspace`}
+    description={isStudent ? 'Theo dõi nhận xét và điểm tham khảo định kỳ từ Giảng viên hướng dẫn.' : 'Chấm tham khảo hằng tuần cho từng sinh viên. Không tự cộng vào kết quả học phần chính thức.'}>
     {confirmationDialog}
-    <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: projectTitle }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
+    <EntityIdentityStrip chips={[
+      { icon: 'folder', label: 'Đồ án', value: projectTitle },
+      ...(projectCode ? [{ icon: 'tag', label: 'Mã đồ án', value: projectCode }] : []),
+    ]} />
     <CollaborationIntro icon="insights" title="Phản hồi nhỏ, tiến bộ mỗi tuần">Điểm theo dõi chỉ để tham khảo. Giữ lại từng phiên bản nhận xét để sinh viên nhìn thấy tiến bộ của mình, không cộng vào kết quả chính thức.</CollaborationIntro>
     {weeksError ? <WeeklyError message={weeksError} /> : !weeks ? <WeeklyLoading /> : weeks.length === 0 ? <WorkspaceEmptyState title="Chưa có tuần đánh giá" message="Hệ thống chưa tạo lịch tuần đánh giá cho đồ án này." /> : <>
       <div className="weekly-toolbar">
@@ -101,26 +104,6 @@ function WeeklyAssessmentsBody({ projectId, projectTitle, routeBase, members, ac
           </select></label>
         )}
       </div>
-      {!isStudent && <div className="weekly-members-strip mt-3 flex flex-wrap gap-2" aria-label="Chọn nhanh sinh viên">
-        {members.map((member) => (
-          <button
-            key={member.userId}
-            type="button"
-            disabled={editorState.busy}
-            onClick={() => void changeSelection(() => setSelectedStudentId(member.userId))}
-            className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
-              selectedStudentId === member.userId
-                ? 'bg-primary text-white shadow-xs'
-                : 'border border-hairline bg-card text-ink-soft hover:border-primary/50 hover:bg-slate-50'
-            }`}
-          >
-            <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${selectedStudentId === member.userId ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'}`}>
-              {member.fullName.trim().charAt(0).toUpperCase()}
-            </span>
-            {member.fullName}
-          </button>
-        ))}
-      </div>}
       {selectedWeek != null && selectedStudentId != null && (() => {
         const week = weeks.find((w) => w.weekNumber === selectedWeek)
         return <WeeklyAssessmentEditor key={`${selectedStudentId}:${selectedWeek}`} projectId={projectId} weekNumber={selectedWeek} studentId={selectedStudentId} hasStarted={week?.hasStarted ?? false} isStudent={isStudent} onEditorState={setEditorState} />
@@ -249,7 +232,7 @@ function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, 
 
   if (loading) return <WeeklyLoading />
   if (historyFailed) return <WeeklyError message={error} retry={() => setRevision(value => value + 1)} />
-  if (!hasStarted) return <div className="weekly-notice weekly-notice--error">{isStudent ? "Tuần này chưa bắt đầu. Đánh giá sẽ được cập nhật khi kết thúc tuần học." : "Tuần này chưa tới, chưa thể chấm."}</div>
+  if (!hasStarted) return <div className="weekly-notice weekly-notice--error">{isStudent ? 'Tuần này chưa bắt đầu. Đánh giá sẽ được cập nhật khi kết thúc tuần học.' : 'Tuần này chưa tới, chưa thể chấm.'}</div>
 
   const isDraft = assessment?.status === 'DRAFT'
   const isSubmitted = assessment?.status === 'SUBMITTED'
@@ -261,43 +244,43 @@ function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, 
       <h2>{assessment ? `${assessment.rubricName} (v${assessment.version})` : 'Chưa có bản chấm cho tuần này'}</h2>
       {assessment && <WeeklyBadge status={assessment.status} />}
     </div>
-    {assessment && <div style={{ padding: '0 24px', marginTop: 12 }}><ActionVerdict actions={[{ code: 'SUBMIT_WEEKLY_ASSESSMENT', allowed: assessment.canSubmit, reasons: !assessment.canSubmit ? (isSubmitted ? ['Bản chấm tuần này đã nộp.'] : !assessment.canEdit ? ['Bản chấm bị khóa hoặc không được phép chỉnh sửa.'] : ['Chưa đủ điều kiện nộp điểm tuần này.']) : [] }]} actionCode="SUBMIT_WEEKLY_ASSESSMENT" status="ready" okLabel="Đủ điều kiện nộp điểm đánh giá tuần" blockedLabel="Chưa thể nộp điểm đánh giá tuần" /></div>}
-    {error && <div style={{ padding: '0 24px', marginTop: 12 }}><WeeklyError message={error} /></div>}
-    {recovery && <div className="collab collab-card"><p className="collab-note">Bản mới nhất đã được tải lại. Nội dung chưa lưu của bạn được giữ riêng, chưa ghi đè dữ liệu.</p><details><summary>Xem nội dung chưa lưu</summary>{Object.entries(recovery.edits).map(([id, value]) => <p key={id}>Tiêu chí #{id}: {value.score || 'Chưa chấm'} · {value.comments}</p>)}<p>{recovery.comments}</p></details><div className="collab-actions">{assessment?.canEdit && <Button onClick={() => { setEdits(Object.fromEntries(assessment.scores.map(score => [score.rubricCriterionId, recovery.edits[score.rubricCriterionId] ?? { score: score.score == null ? '' : String(score.score), comments: score.comments ?? '' }]))); setComments(recovery.comments); setRecovery(null) }}>Khôi phục vào bản nháp mới nhất</Button>}<Button variant="outline" onClick={() => setRecovery(null)}>Giữ dữ liệu máy chủ</Button></div></div>}
+    {assessment && <div className="mt-3 px-6"><ActionVerdict actions={[{ code: 'SUBMIT_WEEKLY_ASSESSMENT', allowed: assessment.canSubmit, reasons: !assessment.canSubmit ? (isSubmitted ? ['Bản chấm tuần này đã nộp.'] : !assessment.canEdit ? ['Bản chấm bị khóa hoặc không được phép chỉnh sửa.'] : ['Chưa đủ điều kiện nộp điểm tuần này.']) : [] }]} actionCode="SUBMIT_WEEKLY_ASSESSMENT" status="ready" okLabel="Đủ điều kiện nộp điểm đánh giá tuần" blockedLabel="Chưa thể nộp điểm đánh giá tuần" /></div>}
+    {error && <div className="mt-3 px-6"><WeeklyError message={error} /></div>}
+    {recovery && <div className="collab collab-card"><p className="collab-note">Bản mới nhất đã được tải lại. Nội dung chưa lưu của bạn được giữ riêng, chưa ghi đè dữ liệu.</p><details><summary>Xem nội dung chưa lưu</summary>{Object.entries(recovery.edits).map(([id, value]) => <p key={id}>{draftCriteria.find(c => c.rubricCriterionId === Number(id))?.name ?? 'Tiêu chí'}: {value.score || 'Chưa chấm'} · {value.comments}</p>)}<p>{recovery.comments}</p></details><div className="collab-actions">{assessment?.canEdit && <Button onClick={() => { setEdits(Object.fromEntries(assessment.scores.map(score => [score.rubricCriterionId, recovery.edits[score.rubricCriterionId] ?? { score: score.score == null ? '' : String(score.score), comments: score.comments ?? '' }]))); setComments(recovery.comments); setRecovery(null) }}>Khôi phục vào bản nháp mới nhất</Button>}<Button variant="outline" onClick={() => setRecovery(null)}>Giữ dữ liệu máy chủ</Button></div></div>}
 
-    {!assessment && !isStudent && <div style={{ padding: '16px 24px' }}>
+    {!assessment && !isStudent && <div className="px-6 py-4">
       <label>Rubric áp dụng<select value={selectedRubricId ?? ''} onChange={(event) => setSelectedRubricId(Number(event.target.value) || null)} disabled={!rubrics}>
-        <option value="">— Chọn rubric —</option>
+        <option value="">— Chọn bộ tiêu chí —</option>
         {rubrics?.map((rubric) => <option key={rubric.id} value={rubric.id}>{rubric.name} (v{rubric.version})</option>)}
       </select></label>
     </div>}
 
-    {!assessment && isStudent && <div style={{ padding: '16px 24px' }} className="text-sm text-ink-muted flex items-center gap-2"><span className="material-symbols-outlined text-slate-400" aria-hidden="true">info</span>Giảng viên hướng dẫn chưa nộp bản đánh giá cho tuần này. Nhận xét sẽ hiển thị ngay khi được công bố.</div>}
-    {draftCriteria.length > 0 && <Table className="weekly-criteria">
-      <TableHead><tr><th>Tiêu chí</th><th>Điểm (tối đa)</th><th>Nhận xét</th></tr></TableHead>
-      <tbody>
-        {draftCriteria.map((criterion) => <tr key={criterion.rubricCriterionId}>
-          <td className="weekly-criteria-name">{criterion.name}{criterion.description && <small>{criterion.description}</small>}</td>
-          <td>{canEditNow ? <input type="number" min={0} max={criterion.maxScore} step="0.01" disabled={busy}
+    {!assessment && isStudent && <div className="flex items-center gap-2 px-6 py-4 text-sm text-ink-muted"><span className="material-symbols-outlined text-ink-muted" aria-hidden="true">info</span>Giảng viên hướng dẫn chưa nộp bản đánh giá cho tuần này. Nhận xét sẽ hiển thị ngay khi được công bố.</div>}
+    {draftCriteria.length > 0 && <Table stack className="weekly-criteria">
+      <TableHead><TableRow head><TableHeaderCell>Tiêu chí</TableHeaderCell><TableHeaderCell>Điểm (tối đa)</TableHeaderCell><TableHeaderCell>Nhận xét</TableHeaderCell></TableRow></TableHead>
+      <TableBody>
+        {draftCriteria.map((criterion) => <TableRow key={criterion.rubricCriterionId}>
+          <TableCell label="Tiêu chí" className="weekly-criteria-name">{criterion.name}{criterion.description && <small>{criterion.description}</small>}</TableCell>
+          <TableCell label="Điểm (tối đa)">{canEditNow ? <input type="number" min={0} max={criterion.maxScore} step="0.01" disabled={busy}
             aria-label={`Điểm ${criterion.name}`} value={edits[criterion.rubricCriterionId]?.score ?? ''}
-            onChange={(event) => updateEdit(criterion.rubricCriterionId, { score: event.target.value })} /> : <span>{edits[criterion.rubricCriterionId]?.score || '—'}</span>} / {criterion.maxScore}</td>
-          <td>{canEditNow ? <input type="text" maxLength={2000} aria-label={`Nhận xét ${criterion.name}`} disabled={busy}
+            onChange={(event) => updateEdit(criterion.rubricCriterionId, { score: event.target.value })} /> : <span>{edits[criterion.rubricCriterionId]?.score || '—'}</span>} / {criterion.maxScore}</TableCell>
+          <TableCell label="Nhận xét">{canEditNow ? <input type="text" maxLength={2000} aria-label={`Nhận xét ${criterion.name}`} disabled={busy}
             value={edits[criterion.rubricCriterionId]?.comments ?? ''}
-            onChange={(event) => updateEdit(criterion.rubricCriterionId, { comments: event.target.value })} /> : (edits[criterion.rubricCriterionId]?.comments || '')}</td>
-        </tr>)}
-      </tbody>
+            onChange={(event) => updateEdit(criterion.rubricCriterionId, { comments: event.target.value })} /> : (edits[criterion.rubricCriterionId]?.comments || '—')}</TableCell>
+        </TableRow>)}
+      </TableBody>
     </Table>}
 
-    {draftCriteria.length > 0 && <div style={{ padding: '12px 24px' }}>
+    {draftCriteria.length > 0 && <div className="px-6 py-3">
       <label>Nhận xét chung<textarea maxLength={2000} value={comments} disabled={!canEditNow || busy} onChange={(event) => setComments(event.target.value)} /></label>
     </div>}
 
-    {assessment?.totalScore != null && <div style={{ padding: '0 24px 12px' }}><strong>Tổng điểm tham khảo: {formatScore(assessment.totalScore)}</strong></div>}
-    {assessment?.submittedAt && <div style={{ padding: '0 24px 12px' }}><small>Đã nộp: {formatWeeklyDateTime(assessment.submittedAt)}</small></div>}
+    {assessment?.totalScore != null && <div className="px-6 pb-3"><strong>Tổng điểm tham khảo: {formatScore(assessment.totalScore)}</strong></div>}
+    {assessment?.submittedAt && <div className="px-6 pb-3"><small>Đã nộp: {formatWeeklyDateTime(assessment.submittedAt)}</small></div>}
 
     {!isStudent && <div className="weekly-actions">
       <span />
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div className="flex flex-wrap gap-2">
         {!assessment && <button className="weekly-button" type="button" disabled={busy || !!recovery || !selectedRubricId} onClick={createDraft}>Tạo bản chấm</button>}
         {isDraft && assessment?.canEdit && <>
           <button className="weekly-button weekly-button--secondary" type="button" disabled={busy || !!recovery} onClick={saveDraft}>Lưu nháp</button>

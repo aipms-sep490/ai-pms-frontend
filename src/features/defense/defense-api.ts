@@ -168,11 +168,17 @@ export interface CreateDefenseChangeRequest {
 export interface DefenseChangeRequestDto {
   id: number
   defenseSessionId: number
+  projectId?: number | null
+  projectCode?: string | null
+  projectTitle?: string | null
   requesterId: number
+  requesterName?: string | null
   currentRoomId: number
+  currentRoomCode?: string | null
   currentStartAt: string
   currentEndAt: string
   desiredRoomId: number
+  desiredRoomCode?: string | null
   desiredStartAt: string
   desiredEndAt: string
   reasonCategory: string
@@ -180,6 +186,7 @@ export interface DefenseChangeRequestDto {
   evidenceFileUrl: string | null
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN' | string
   reviewerId: number | null
+  reviewerName?: string | null
   reviewNote?: string | null
   reviewedAt?: string | null
   concurrencyToken: string

@@ -29,7 +29,7 @@ describe('AdminRbacPage · read-only MVP (BE-11)', () => {
     render(<MemoryRouter><AdminRbacPage /></MemoryRouter>)
     fireEvent.click(screen.getByRole('button', { name: /ADMIN/ }))
     expect(screen.queryByRole('button', { name: 'Lưu phân quyền' })).toBeNull()
-    expect(screen.getByText(/chế độ chỉ đọc trong MVP/)).toBeTruthy()
+    expect(screen.getByText(/chế độ chỉ đọc/)).toBeTruthy()
     const checkbox = screen.getByRole('checkbox', { name: /ACCOUNT_READ/ }) as HTMLInputElement
     // The matrix is disabled via the enclosing <fieldset disabled> (read-only mode).
     expect(checkbox.closest('fieldset')?.disabled).toBe(true)

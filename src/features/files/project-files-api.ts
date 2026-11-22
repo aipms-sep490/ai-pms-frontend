@@ -13,6 +13,7 @@ export interface ProjectFile {
   contentType: string
   sizeBytes: number
   uploadedBy: number
+  uploadedByName?: string | null
   createdAt: string
   canDelete?: boolean
 }

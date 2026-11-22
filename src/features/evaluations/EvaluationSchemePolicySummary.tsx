@@ -4,7 +4,7 @@ import { evaluationStageLabel, type EvaluationScheme } from './evaluation-types'
 const labels: Record<string, string> = {
   COMPONENT_WEIGHTS: 'Theo trọng số thành phần',
   DEMO_50_30_20: 'Tỷ lệ 50/30/20 — chỉ minh họa',
-  DECIMAL_V2: 'Decimal v2', LEGACY_V1: 'Legacy v1 — giữ cách tính đã ghi nhận',
+  DECIMAL_V2: 'Decimal v2', LEGACY_V1: 'Phiên bản v1 — giữ cách tính đã ghi nhận',
   AWAY_FROM_ZERO: 'Điểm giữa làm tròn ra xa 0', TO_EVEN: 'Điểm giữa làm tròn đến số chẵn',
   APPROVED: 'Đã chấp thuận', DEMO: 'Minh họa',
 }
@@ -43,7 +43,7 @@ export function EvaluationSchemePolicySummary({ scheme }: { scheme: EvaluationSc
         <strong>{item.name}</strong><p className="mt-1">Giai đoạn: {evaluationStageLabel(item.stage)}</p>
         {item.evaluatorWeights == null ? <p>Trung bình đều theo hệ thống · {item.requiredEvaluators} người chấm bắt buộc.</p> : item.evaluatorWeights.length === 0 ? <p>Danh sách trọng số rỗng — cần kiểm tra cấu hình trên hệ thống.</p> : <>
           <p>{item.requiredEvaluators} người chấm bắt buộc; thiếu điểm không tự chia lại trọng số.</p>
-          <ul className="mt-1 space-y-1">{item.evaluatorWeights.map((weight, index) => <li key={`${weight.evaluatorId}-${index}`}>Người chấm #{weight.evaluatorId}: {weight.weightPercent}%</li>)}</ul>
+          <ul className="mt-1 space-y-1">{item.evaluatorWeights.map((weight, index) => <li key={`${weight.evaluatorId}-${index}`}>{weight.evaluatorName ?? `Người chấm ${index + 1}`}: {weight.weightPercent}%</li>)}</ul>
         </>}
       </li>)}</ul>
     </div>

@@ -60,33 +60,33 @@ function individualFixture() {
 async function selectIndividual() {
   fireEvent.change(await screen.findByLabelText('Đợt đánh giá'), { target: { value: '7' } })
   fireEvent.change(screen.getByLabelText('Thành phần đánh giá'), { target: { value: '42' } })
-  return screen.getByLabelText('Sinh viên (giữ Ctrl để chọn nhiều)') as HTMLSelectElement
+  return screen.getByRole('group', { name: /Chọn sinh viên cần chấm/ }) as HTMLFieldSetElement
 }
 
 it('blocks individual choice while names load and distinguishes duplicate names and missing major names', async () => {
   individualFixture()
   let finish!: (value: unknown) => void
   namesApi.getReviewDetail.mockReturnValue(new Promise(resolve => { finish = resolve }))
-  renderPage(); const select = await selectIndividual()
-  expect(select.disabled).toBe(true)
+  renderPage(); const group = await selectIndividual()
+  expect(group.disabled).toBe(true)
   expect(screen.getByText(/Đang tải tên sinh viên/)).toBeDefined()
   finish({ latestSubmission: { evidence: { members: [{ userId: 9, fullName: 'Tên giống nhau' }, { userId: 10, fullName: 'Tên giống nhau' }] } } })
-  await waitFor(() => expect(select.disabled).toBe(false))
-  expect(screen.getByRole('option', { name: 'Sinh viên #9 · Tên giống nhau · Ngành #101' })).toBeDefined()
-  expect(screen.getByRole('option', { name: 'Sinh viên #10 · Tên giống nhau · Ngành #101' })).toBeDefined()
+  await waitFor(() => expect(group.disabled).toBe(false))
+  expect(screen.getByRole('checkbox', { name: 'Sinh viên #9 · Tên giống nhau · Ngành #101' })).toBeDefined()
+  expect(screen.getByRole('checkbox', { name: 'Sinh viên #10 · Tên giống nhau · Ngành #101' })).toBeDefined()
   expect(api.assignEvaluator).not.toHaveBeenCalled()
 })
 
 it('keeps scoped unique IDs usable after a name read fails, then retries that read', async () => {
   individualFixture()
   namesApi.getReviewDetail.mockRejectedValueOnce(new HttpError('PRIVATE', 403)).mockResolvedValueOnce({ latestSubmission: { evidence: { members: [{ userId: 9, fullName: 'Đã tải lại' }] } } })
-  renderPage(); const select = await selectIndividual()
+  renderPage(); const group = await selectIndividual()
   await screen.findByRole('alert')
-  expect(select.disabled).toBe(false)
-  expect(screen.getByRole('option', { name: 'Sinh viên #9 · Ngành #101' })).toBeDefined()
-  expect(screen.getByRole('option', { name: 'Sinh viên #10 · Ngành #101' })).toBeDefined()
+  expect(group.disabled).toBe(false)
+  expect(screen.getByRole('checkbox', { name: 'Sinh viên #9 · Ngành #101' })).toBeDefined()
+  expect(screen.getByRole('checkbox', { name: 'Sinh viên #10 · Ngành #101' })).toBeDefined()
   fireEvent.click(screen.getByRole('button', { name: 'Thử tải lại tên sinh viên' }))
-  await screen.findByRole('option', { name: 'Sinh viên #9 · Đã tải lại · Ngành #101' })
+  await screen.findByRole('checkbox', { name: 'Sinh viên #9 · Đã tải lại · Ngành #101' })
   expect(namesApi.getReviewDetail).toHaveBeenCalledTimes(2)
   expect(api.assignEvaluator).not.toHaveBeenCalled()
 })
@@ -99,10 +99,10 @@ it('keeps each individual roster in its frozen major while distinguishing unname
   renderPage(); await selectIndividual()
   expect(screen.getByRole('option', { name: /Cá nhân.*Ngành #101/ })).toBeDefined()
   expect(screen.getByRole('option', { name: /Cá nhân.*Ngành #102/ })).toBeDefined()
-  expect(screen.queryByRole('option', { name: 'Sinh viên #11 · Ngành #102' })).toBeNull()
+  expect(screen.queryByRole('checkbox', { name: 'Sinh viên #11 · Ngành #102' })).toBeNull()
   fireEvent.change(screen.getByLabelText('Thành phần đánh giá'), { target: { value: '43' } })
-  expect(screen.getByRole('option', { name: 'Sinh viên #11 · Ngành #102' })).toBeDefined()
-  expect(screen.queryByRole('option', { name: 'Sinh viên #9 · Ngành #101' })).toBeNull()
+  expect(screen.getByRole('checkbox', { name: 'Sinh viên #11 · Ngành #102' })).toBeDefined()
+  expect(screen.queryByRole('checkbox', { name: 'Sinh viên #9 · Ngành #101' })).toBeNull()
   expect(api.assignEvaluator).not.toHaveBeenCalled()
 })
 

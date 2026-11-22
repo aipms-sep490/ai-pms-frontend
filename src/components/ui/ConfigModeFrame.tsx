@@ -35,7 +35,7 @@ export function ConfigModeFrame({ mode, dirty, busy, onEdit, onCancel, onSave, b
 
   return (
     <section className="min-w-0">
-      <div className="sticky top-0 z-10 mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas py-3">
+      <div className="sticky top-[58px] z-10 mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas py-3">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
           {breadcrumb}
           <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${mode === 'edit' ? 'border-attention-border bg-attention-bg text-ink' : 'border-hairline bg-card text-ink-soft'}`}>

@@ -386,21 +386,28 @@ export function DefenseManagementPanel({
             {committees.map((c) => (
               <li key={c.id} className="rounded-lg border border-hairline p-3 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-ink">{c.name} (#{c.id}) · v{c.version ?? 1}</span>
+                  <span className="font-semibold text-ink">{c.name} · v{c.version ?? 1}</span>
                   <span className="text-ink-muted">{c.members.length} thành viên · {c.status === 'CONFIRMED' ? 'Đang có hiệu lực' : c.status === 'SUPERSEDED' ? 'Đã thay thế' : 'Bản nháp'}</span>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {c.members.map((m, idx) => (
-                    <span key={idx} className="rounded bg-subtle px-1.5 py-0.5 border border-hairline text-ink-soft">
-                      Giảng viên #{m.userId} · Ngành #{m.majorId}
-                    </span>
-                  ))}
+                  {c.members.map((m, idx) => {
+                    const matched = candidates.find(cand => cand.userId === m.userId && cand.majorId === m.majorId)
+                      ?? candidates.find(cand => cand.userId === m.userId)
+                    const memberName = m.fullName ?? matched?.fullName ?? 'Giảng viên hội đồng'
+                    const majorLabel = m.majorName ?? matched?.majorName
+                    const roleText = m.role === 'CHAIR' ? 'Chủ tịch' : m.role === 'SECRETARY' ? 'Thư ký' : null
+                    return (
+                      <span key={idx} className="rounded border border-hairline bg-subtle px-1.5 py-0.5 text-ink-soft">
+                        {memberName}{majorLabel ? ` · ${majorLabel}` : ''}{roleText ? ` (${roleText})` : ''}
+                      </span>
+                    )
+                  })}
                 </div>
                 {c.status === 'DRAFT' && c.concurrencyToken && <button type="button"
                   className="mt-2 min-h-11 rounded-lg border border-primary px-3 text-xs font-semibold text-primary disabled:opacity-50"
                   disabled={confirmingCommitteeId !== null || hasScheduledSession}
                   onClick={() => void handleConfirmCommittee(c)}>
-                  {confirmingCommitteeId === c.id ? 'Đang xác nhận…' : 'Xác nhận hội đồng để phân chấm Cold'}
+                  {confirmingCommitteeId === c.id ? 'Đang xác nhận…' : 'Xác nhận hội đồng để phân công chấm nguội'}
                 </button>}
               </li>
             ))}
@@ -472,7 +479,7 @@ export function DefenseManagementPanel({
           >
             {creatingCommittee ? 'Đang tạo…' : 'Tạo hội đồng'}
           </button>
-          <p className="text-xs text-ink-muted">Sau khi khóa Final Package, xác nhận hội đồng rồi phân công thành viên chấm Cold theo ngành. Hội đồng không tự cấp điểm nếu chưa có assignment rubric.</p>
+          <p className="text-xs text-ink-muted">Sau khi khóa hồ sơ nộp cuối, xác nhận hội đồng rồi phân công thành viên chấm nguội theo ngành. Hội đồng chỉ chấm điểm khi có phân công bộ tiêu chí tương ứng.</p>
         </div>
       </section>
 
@@ -497,7 +504,7 @@ export function DefenseManagementPanel({
                   <option value="">-- Chọn hội đồng --</option>
                   {committees.filter(c => c.status === 'CONFIRMED').map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} (#{c.id})
+                      {c.name} · v{c.version ?? 1}
                     </option>
                   ))}
                 </select>
@@ -584,7 +591,10 @@ export function ProjectDefensePage() {
       eyebrow="Hội đồng đánh giá"
       description="Thời gian và phòng bảo vệ của đồ án. Thành phần hội đồng không hiển thị ở đây."
     >
-      {projectId && <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: (journey.project as { title?: string } | undefined)?.title || `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />}
+      {projectId && <EntityIdentityStrip chips={[
+        { icon: 'folder', label: 'Đồ án', value: (journey.project as { title?: string } | undefined)?.title || sessions?.[0]?.projectTitle || 'Đồ án hiện tại' },
+        ...((journey.project as { code?: string } | undefined)?.code || sessions?.[0]?.projectCode ? [{ icon: 'tag', label: 'Mã đồ án', value: (journey.project as { code?: string } | undefined)?.code || sessions?.[0]?.projectCode || '' }] : []),
+      ]} />}
       {!projectId && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Không tìm thấy đồ án đang hoạt động để xem lịch bảo vệ.</p>}
       {projectId && loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải lịch bảo vệ…</p>}
       {projectId && !loading && error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><span>{error}</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
@@ -624,9 +634,15 @@ export function ProjectDefenseManagementPage() {
   }, [projectId, revision])
 
   if (!Number.isSafeInteger(projectId) || projectId < 1) return <WorkspacePage title="Quản lý bảo vệ"><p role="alert">Mã đồ án không hợp lệ.</p></WorkspacePage>
+  const sessionMeta = sessions?.[0]
+  const displayProjectTitle = sessionMeta?.projectTitle || 'Đồ án được quản lý'
+  const displayProjectCode = sessionMeta?.projectCode || null
   return (
-    <WorkspacePage title={isDepartmentRoute ? 'Quản lý hội đồng & lịch bảo vệ' : 'Lịch bảo vệ đồ án'} eyebrow={`Đồ án #${projectId}`} description={isDepartmentRoute ? 'Bộ môn phụ trách thành lập hội đồng và xếp lịch trong phạm vi BE cấp.' : 'Giảng viên hướng dẫn theo dõi lịch bảo vệ; bộ môn phụ trách phân hội đồng.'}>
-      <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
+    <WorkspacePage title={isDepartmentRoute ? 'Quản lý hội đồng & lịch bảo vệ' : 'Lịch bảo vệ đồ án'} eyebrow={displayProjectCode ?? 'Hội đồng & bảo vệ'} description={isDepartmentRoute ? 'Bộ môn phụ trách thành lập hội đồng và xếp lịch trong phạm vi quản lý.' : 'Giảng viên hướng dẫn theo dõi lịch bảo vệ; bộ môn phụ trách phân hội đồng.'}>
+      <EntityIdentityStrip chips={[
+        { icon: 'folder', label: 'Đồ án', value: displayProjectTitle },
+        ...(displayProjectCode ? [{ icon: 'tag', label: 'Mã đồ án', value: displayProjectCode }] : []),
+      ]} />
 
       {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error}</p>}
       {!error && sessions && (isDepartmentRoute

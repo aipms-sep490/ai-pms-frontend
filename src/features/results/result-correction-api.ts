@@ -9,20 +9,22 @@ export interface AppealPolicy { id: number; projectId: number; version: number; 
 export interface AppealWindow { id: number; policyId: number; status: string; opensAt: string; closesAt: string; concurrencyToken: string; targets: AppealTarget[] }
 export interface AppealFile { fileId: number; fileName: string; contentType: string; sizeBytes: number; sha256: string; downloadUrl: string }
 export interface ResultCorrectionRequest extends AppealTarget {
-  id: number; projectId: number; source: string; componentId: number; scope: string; majorId: number | null
-  status: CorrectionStatus; requestedBy: number; reviewerId: number | null; reason: string
+  id: number; projectId: number; source: string; componentId: number; componentName?: string | null; scope: string; majorId: number | null; majorName?: string | null; studentName?: string | null
+  status: CorrectionStatus; requestedBy: number; requestedByName?: string | null; reviewerId: number | null; reviewerName?: string | null; reason: string
   proposal: string | null; reviewReason: string | null; decisionReason: string | null; concurrencyToken: string
   allowedActions: string[]; blockers: string[]; files: AppealFile[]
 }
 export interface CreateCorrectionRequest extends AppealTarget { source: 'STUDENT_APPEAL' | 'STAFF_CORRECTION'; policyId: number; windowId: number | null; componentId: number; reason: string }
-export interface ScoreAmendment { evaluationId: number; criterionId: number; score: number; reason: string }
-export interface AppealEvent { id: number; action: string; actorId: number; at: string; reason: string | null; bundleId: number | null; amendments: ScoreAmendment[] }
+export interface ScoreAmendment { evaluationId: number; criterionId: number; criterionName?: string | null; score: number; reason: string }
+export interface AppealEvent { id: number; action: string; actorId: number; actorName?: string | null; at: string; reason: string | null; bundleId: number | null; amendments: ScoreAmendment[] }
 export interface AppealPreview { confirmationToken: string; affectedResults: ResultRevisionSummary[] }
 export interface AppealReviewContext {
   requestId: number; componentId: number; scope: string; majorId: number | null; studentId: number | null; calculationVersion: string
-  evaluations: Array<{ id: number; assignmentId: number; evaluatorId: number; rubricId: number; rubricName: string; rubricVersion: number; totalScore: number | null; scores: EvaluationScore[] }>
+  evaluations: Array<{ id: number; assignmentId: number; evaluatorId: number; evaluatorName?: string | null; rubricId: number; rubricName: string; rubricVersion: number; totalScore: number | null; scores: EvaluationScore[] }>
   amendments: ScoreAmendment[]
 }
+export interface EligibleAppealReviewer { id: number; userId: number; fullName: string; departmentName?: string | null }
+export const getEligibleAppealReviewers = (signal?: AbortSignal) => httpGet<PagedResult<EligibleAppealReviewer>>('/supervisors?page=1&pageSize=100', signal)
 const root = (p: number) => `/projects/${p}/result`
 const request = (p: number, id: number) => `${root(p)}/correction-requests/${id}`
 export const getAppealPolicy = (p: number, signal?: AbortSignal) => httpGet<AppealPolicy | null>(`${root(p)}/appeal-policy`, signal)

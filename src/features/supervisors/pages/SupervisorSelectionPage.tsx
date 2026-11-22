@@ -3,6 +3,8 @@ import { displayLabel } from '../../../components/ui/display-label'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
+import { Modal } from '../../../components/ui/Modal'
+import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useStudentJourney } from '../../../app/context'
 import { useSupervisorSelection, type SupervisorAssignmentType } from '../hooks/useSupervisorSelection'
 import { projectStatusLabel } from '../../projects/utils/project-status'
@@ -63,16 +65,18 @@ export function SupervisorSelectionPage() {
   if (!journey.project) return <section className="p-6"><h1>Chọn giảng viên hướng dẫn</h1><p>Bạn chưa có đồ án để thực hiện bước này.</p></section>
   if (selection.error?.kind === 'authentication') return <p className="p-6"><Link to="/login">Đăng nhập lại để tiếp tục.</Link></p>
 
+  const hasFilters = Boolean(selection.query.search.trim() || selection.query.expertise.trim())
+
   return (
-    <main className="workspace-page mk-page-enter mx-auto max-w-5xl space-y-6 pb-12">
-      <header className="border-b border-hairline pb-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-primary">Định hướng đồ án</p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">{selection.activeAssignment ? 'Giảng viên hướng dẫn' : 'Chọn giảng viên hướng dẫn'}</h1>
-        <p className="mt-2 text-sm text-slate-600">{journey.project.code} · {journey.project.title} · {projectStatusLabel(journey.project.status)}</p>
-        <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">{selection.activeAssignment
-          ? (selection.missingMentorMajorIds.length > 0 ? 'Đã có GVHD chính. Mời thêm Mentor cho các ngành liên quan còn thiếu xác nhận.' : 'Xem phân công hiện tại và lịch sử yêu cầu hướng dẫn của nhóm.')
-          : 'Bạn có thể mời GVHD chính và Mentor từng ngành (nếu đồ án liên ngành) ngay khi đề cương còn là bản nháp — không cần chờ Bộ môn duyệt. Tìm giảng viên phù hợp và gửi lời mời từ tài khoản trưởng nhóm.'}</p>
-      </header>
+    <WorkspacePage
+      className="mx-auto max-w-5xl space-y-6 pb-12"
+      eyebrow="Định hướng đồ án"
+      title={selection.activeAssignment ? 'Giảng viên hướng dẫn' : 'Chọn giảng viên hướng dẫn'}
+      description={selection.activeAssignment
+        ? (selection.missingMentorMajorIds.length > 0 ? 'Đã có GVHD chính. Mời thêm giảng viên chuyên ngành cho các ngành liên quan còn thiếu xác nhận.' : 'Xem phân công hiện tại và lịch sử yêu cầu hướng dẫn của nhóm.')
+        : 'Bạn có thể mời GVHD chính và giảng viên chuyên ngành (nếu đồ án liên ngành) ngay khi đề cương còn là bản nháp — không cần chờ Bộ môn duyệt. Tìm giảng viên phù hợp và gửi lời mời từ tài khoản trưởng nhóm.'}
+    >
+      <p className="-mt-3 text-sm font-medium text-ink-soft">{journey.project.code} · {journey.project.title} · {projectStatusLabel(journey.project.status)}</p>
 
       {selection.error ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{selection.error.message}<Button className="ml-3" size="sm" variant="secondary" onClick={() => void selection.refresh(true)}>Tải lại</Button></section> : null}
 
@@ -82,16 +86,16 @@ export function SupervisorSelectionPage() {
       </section> : null}
 
       <section className="border-b border-hairline pb-6">
-        <h2 className="text-lg font-bold text-slate-900">Yêu cầu hướng dẫn</h2>
+        <h2 className="text-lg font-bold text-ink">Yêu cầu hướng dẫn</h2>
         {selection.requests.length ? <ul className="mt-3 divide-y divide-hairline">{selection.requests.map((request) => <li key={request.id} className="py-3 text-sm">
           <StatusBadge tone={requestStatusTone(request.status)} label={displayLabel(request.status)} /> · <span className="font-semibold">{slotLabel(request.assignmentType, request.majorId, majorName)}</span> · {request.supervisorName?.trim() || selection.assignments.find(item => item.supervisorProfileId === request.supervisorProfileId)?.supervisorName || selection.candidates.find(item => item.id === request.supervisorProfileId)?.fullName || 'Chưa tải được tên giảng viên'} · gửi lúc {dateTimeLabel(request.requestedAt)}
-          {request.status === 'PENDING' && request.expiresAt ? <span className="text-xs text-slate-500"> · hết hạn lúc {dateTimeLabel(request.expiresAt)}</span> : null}
+          {request.status === 'PENDING' && request.expiresAt ? <span className="text-xs text-ink-muted"> · hết hạn lúc {dateTimeLabel(request.expiresAt)}</span> : null}
           {request.requestMessage ? <p className="mt-1">Lời nhắn: {request.requestMessage}</p> : null}
           {request.responseMessage ? <p className="mt-1">Phản hồi: {request.responseMessage}</p> : null}
           {request.status === 'PENDING' && selection.isLeader ? <Button className="mt-2" size="sm" variant="danger" disabled={selection.cancelPending !== null} onClick={() => void selection.cancel(request)}>Hủy yêu cầu</Button> : null}
-          {request.status === 'REJECTED' ? <p className="mt-2 text-xs text-slate-600">Bạn có thể chọn một giảng viên phù hợp khác.</p> : null}
-          {request.status === 'EXPIRED' ? <p className="mt-2 text-xs text-slate-600">Lời mời đã quá hạn phản hồi. Bạn có thể gửi lại cho vị trí này.</p> : null}
-        </li>)}</ul> : <p className="mt-2 text-sm text-slate-600">Chưa có yêu cầu hướng dẫn.</p>}
+          {request.status === 'REJECTED' ? <p className="mt-2 text-xs text-ink-muted">Bạn có thể chọn một giảng viên phù hợp khác.</p> : null}
+          {request.status === 'EXPIRED' ? <p className="mt-2 text-xs text-ink-muted">Lời mời đã quá hạn phản hồi. Bạn có thể gửi lại cho vị trí này.</p> : null}
+        </li>)}</ul> : <p className="mt-2 text-sm text-ink-muted">Chưa có yêu cầu hướng dẫn.</p>}
       </section>
 
       {env.supervisorRecommendationEnabled && (selection.canSend || selection.canSendMentor) && journey.project && activeSlot && <SupervisorRecommendationPanel
@@ -103,39 +107,49 @@ export function SupervisorSelectionPage() {
         onPick={id => choose(id)} />}
 
       {(!selection.activeAssignment || selection.missingMentorMajorIds.length > 0) && <section className="workspace-surface workspace-surface-padding">
-        {slotOptions.length === 0 ? <p className="text-sm text-slate-600">Bạn chưa thể gửi yêu cầu hướng dẫn ở trạng thái hiện tại.</p> : <>
+        {slotOptions.length === 0 ? <p className="text-sm text-ink-muted">Bạn chưa thể gửi yêu cầu hướng dẫn ở trạng thái hiện tại.</p> : <>
           <div className="mb-4">
-            <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">Mời cho vị trí</p>
+            <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-ink-muted">Mời cho vị trí</p>
             {slotOptions.length > 1 ? <div className="flex flex-wrap items-center gap-2">
               {slotOptions.map((option) => <button key={option.key} type="button" aria-pressed={activeSlot?.key === option.key}
                 onClick={() => { selection.setSlotKey(option.key); setSelectedId(null); setSelectedSlot(null) }}
-                className={`min-h-9 rounded-full border px-3 text-xs font-semibold ${activeSlot?.key === option.key ? 'border-primary bg-primary text-white' : 'border-hairline bg-card text-slate-700'}`}>
+                className={`min-h-9 rounded-full border px-3 text-xs font-semibold ${activeSlot?.key === option.key ? 'border-primary bg-primary text-white' : 'border-hairline bg-card text-ink-soft'}`}>
                 {option.label}
               </button>)}
-            </div> : <p className="text-sm font-semibold text-slate-900">{activeSlot?.label}</p>}
+            </div> : <p className="text-sm font-semibold text-ink">{activeSlot?.label}</p>}
           </div>
-          <div className="flex flex-wrap items-end gap-3">
-            <div><label htmlFor="candidate-search" className="block text-sm font-medium">Tìm giảng viên</label><input id="candidate-search" className="mt-1 rounded border border-slate-300 px-3 py-2" value={selection.query.search} onChange={(event) => selection.setQuery((current) => ({ ...current, search: event.target.value }))} /></div>
-            <div><label htmlFor="candidate-expertise" className="block text-sm font-medium">Chuyên môn</label><input id="candidate-expertise" className="mt-1 rounded border border-slate-300 px-3 py-2" value={selection.query.expertise} onChange={(event) => selection.setQuery((current) => ({ ...current, expertise: event.target.value }))} /></div>
-            <Button size="sm" variant="secondary" disabled={selection.candidateLoading} onClick={() => void selection.applyFilters()}>Lọc danh sách</Button>
-          </div>
-          {selection.candidates.length === 0 ? <p className="mt-4 text-sm text-slate-600">Không có giảng viên phù hợp với điều kiện của đồ án.</p> : null}
+          <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); void selection.applyFilters() }}>
+            <div><label htmlFor="candidate-search" className="block text-sm font-medium text-ink-soft">Tìm giảng viên</label><input id="candidate-search" className="mt-1 min-h-10 rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" value={selection.query.search} onChange={(event) => selection.setQuery((current) => ({ ...current, search: event.target.value }))} /></div>
+            <div><label htmlFor="candidate-expertise" className="block text-sm font-medium text-ink-soft">Chuyên môn</label><input id="candidate-expertise" className="mt-1 min-h-10 rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" value={selection.query.expertise} onChange={(event) => selection.setQuery((current) => ({ ...current, expertise: event.target.value }))} /></div>
+            <Button type="submit" size="sm" variant="secondary" disabled={selection.candidateLoading}>Lọc danh sách</Button>
+            {hasFilters && <Button type="button" size="sm" variant="ghost" disabled={selection.candidateLoading} onClick={() => { selection.setQuery({ search: '', expertise: '' }); void selection.applyFilters() }}>Xóa lọc</Button>}
+          </form>
+          {selection.candidates.length === 0 ? <p className="mt-4 text-sm text-ink-muted">Không có giảng viên phù hợp với điều kiện của đồ án.</p> : null}
           <ul className="mt-4 divide-y divide-hairline border-t border-hairline">{selection.candidates.map((candidate) => <li key={candidate.id} className="grid gap-2 py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
-            <div className="min-w-0"><h3 className="font-semibold">{candidate.fullName}</h3><p className="text-sm text-slate-600">{candidate.departmentName}</p>
-            {candidate.bio ? <p className="mt-2 text-sm">{candidate.bio}</p> : null}
-            <p className="mt-2 text-xs">Chuyên môn: {candidate.expertise.map((item) => item.name).join(', ') || 'Chưa cập nhật'}</p>
-            <p className="mt-1 text-xs">Đang hướng dẫn {candidate.activeProjects} đồ án · còn {candidate.remainingSlots}/{candidate.semesterLimit} vị trí</p>
-            </div><Button className="mt-3 md:mt-0" size="sm" disabled={!activeSlot || selection.sendRequestPending} onClick={() => choose(candidate.id)}>{slotOptions.length > 1 ? `Chọn cho ${activeSlot?.label}` : 'Chọn giảng viên'}</Button>
+            <div className="min-w-0"><h3 className="font-semibold text-ink">{candidate.fullName}</h3><p className="text-sm text-ink-muted">{candidate.departmentName}</p>
+            {candidate.bio ? <p className="mt-2 text-sm text-ink-soft">{candidate.bio}</p> : null}
+            <p className="mt-2 text-xs text-ink-muted">Chuyên môn: {candidate.expertise.map((item) => item.name).join(', ') || 'Chưa cập nhật'}</p>
+            <p className="mt-1 text-xs text-ink-muted">Đang hướng dẫn {candidate.activeProjects} đồ án · còn {candidate.remainingSlots}/{candidate.semesterLimit} vị trí</p>
+            </div><Button className="mt-3 md:mt-0" size="sm" variant="secondary" disabled={!activeSlot || selection.sendRequestPending} onClick={() => choose(candidate.id)}>{slotOptions.length > 1 ? `Chọn cho ${activeSlot?.label}` : 'Chọn giảng viên'}</Button>
           </li>)}</ul>
         </>}
       </section>}
 
-      {selected && selectedSlot ? <form className="workspace-surface workspace-surface-padding" onSubmit={(event) => void submit(event)}>
-        <h2 className="font-bold text-slate-900">Gửi yêu cầu tới {selected.fullName} · {selectedSlot.label}</h2>
-        <label htmlFor="request-message" className="mt-3 block text-sm font-medium">Lời nhắn (tùy chọn)</label>
-        <textarea id="request-message" className="mt-1 w-full rounded border border-slate-300 p-3" value={message} onChange={(event) => setMessage(event.target.value)} />
-        <div className="mt-3 flex gap-2"><Button type="submit" disabled={selection.sendRequestPending}>Gửi yêu cầu</Button><Button type="button" variant="secondary" onClick={() => { setSelectedId(null); setSelectedSlot(null) }}>Hủy</Button></div>
-      </form> : null}
-    </main>
+      <Modal
+        open={Boolean(selected && selectedSlot)}
+        title={selected && selectedSlot ? `Gửi yêu cầu tới ${selected.fullName}` : 'Gửi yêu cầu hướng dẫn'}
+        description={selectedSlot ? `Vị trí mời: ${selectedSlot.label}` : undefined}
+        busy={selection.sendRequestPending}
+        onClose={() => { setSelectedId(null); setSelectedSlot(null) }}
+      >
+        {selected && selectedSlot ? <form className="space-y-4" onSubmit={(event) => void submit(event)}>
+          <div>
+            <label htmlFor="request-message" className="block text-sm font-medium text-ink-soft">Lời nhắn (tùy chọn)</label>
+            <textarea id="request-message" rows={4} className="mt-1 w-full rounded-lg border border-hairline bg-card p-3 text-sm text-ink" placeholder="Giới thiệu ngắn về hướng đề tài và kỳ vọng của nhóm…" value={message} onChange={(event) => setMessage(event.target.value)} />
+          </div>
+          <div className="flex justify-end gap-2"><Button type="button" variant="secondary" disabled={selection.sendRequestPending} onClick={() => { setSelectedId(null); setSelectedSlot(null) }}>Hủy</Button><Button type="submit" disabled={selection.sendRequestPending}>Gửi yêu cầu</Button></div>
+        </form> : null}
+      </Modal>
+    </WorkspacePage>
   )
 }

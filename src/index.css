@@ -10,8 +10,11 @@
      deeper action orange keeps white button text and links at WCAG AA. */
   --color-canvas: #F8F9FB;
   --color-card: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-subtle: #F1F5F9;
   --color-hairline: #E4E7EC;
   --color-skeleton: #E4E7EC;
+  --app-header-height: 58px;
 
   --color-primary: #C2410C;
   --color-primary-hover: #9A3412;
@@ -58,6 +61,10 @@
   --color-status-error-text: #BE2638;
   --color-status-error-bg: #FFF1F2;
   --color-status-error-border: #F8B9C0;
+
+  --color-status-info-text: #1D4ED8;
+  --color-status-info-bg: #EFF6FF;
+  --color-status-info-border: #BFDBFE;
 
   /* Multidisciplinary Major Tags */
   --color-tag-se: #1D4ED8;
@@ -117,9 +124,35 @@ body {
   border-color: var(--color-hairline);
 }
 
+:where(select:not([multiple])) {
+  min-height: 40px;
+  line-height: 1.4;
+  padding-block: 8px;
+  padding-inline: 12px 34px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
 select:not([multiple]) {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--color-card);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23647083' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px 16px;
+  padding-right: 34px;
   cursor: pointer;
   transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.app-context-skeleton {
+  display: inline-block;
+  width: 5.5rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  background: var(--color-hairline);
+  vertical-align: middle;
 }
 
 select:not([multiple]):hover:not(:disabled) {

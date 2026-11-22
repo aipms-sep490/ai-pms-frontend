@@ -16,8 +16,16 @@ export function StatTileRow({ tiles }: { tiles: readonly StatTile[] }) {
   const visible = tiles.slice(0, 4)
   const heroIndex = visible.findIndex((tile) => tile.hero)
 
+  const gridCols = visible.length === 1
+    ? 'grid-cols-1'
+    : visible.length === 2
+      ? 'sm:grid-cols-2'
+      : visible.length === 3
+        ? 'sm:grid-cols-3'
+        : 'sm:grid-cols-2 lg:grid-cols-4'
+
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Chỉ số tổng quan">
+    <ul className={`grid gap-3 ${gridCols}`} aria-label="Chỉ số tổng quan">
       {visible.map((tile, index) => {
         const hero = index === heroIndex
         const isInteractive = typeof tile.onClick === 'function'

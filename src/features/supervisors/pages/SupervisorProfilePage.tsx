@@ -78,8 +78,8 @@ export function SupervisorProfilePage() {
     }
   }
 
-  if (!session) return <main className="workspace-page mx-auto max-w-3xl p-6"><Link to="/login">Đăng nhập để cập nhật hồ sơ giảng viên.</Link></main>
-  return <main className="workspace-page mx-auto max-w-3xl supervisor-profile-page space-y-5 pb-12" aria-labelledby="supervisor-profile-title">
+  if (!session) return <div className="workspace-page mx-auto max-w-3xl p-6"><Link to="/login">Đăng nhập để cập nhật hồ sơ giảng viên.</Link></div>
+  return <div className="workspace-page mx-auto max-w-3xl supervisor-profile-page space-y-5 pb-12" aria-labelledby="supervisor-profile-title">
     <header className="rounded-2xl border border-hairline bg-card p-6 shadow-xs">
       <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Hồ sơ giảng viên</p>
       <h1 id="supervisor-profile-title" className="mt-1 text-2xl font-bold text-ink">{session.user.fullName}</h1>
@@ -90,7 +90,7 @@ export function SupervisorProfilePage() {
     {message ? <p role="status" className="rounded-xl border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{message}</p> : null}
     {loading ? <section role="status" className="rounded-2xl border border-hairline bg-card p-6 text-sm text-ink-muted">Đang tải hồ sơ giảng viên từ hệ thống…</section> : null}
     {!loading ? <form className="space-y-5 rounded-2xl border border-hairline bg-card p-6 shadow-xs" onSubmit={save} noValidate>
-      {!profile ? <p className="rounded-lg bg-status-warning-bg p-3 text-sm text-status-warning-text">Chưa có hồ sơ giảng viên. Lần lưu đầu tiên sẽ tạo hồ sơ cho tài khoản đã xác thực này.</p> : <p className="text-sm text-ink-muted">{profile.departmentName} · Hồ sơ #{profile.id}</p>}
+      {!profile ? <p className="rounded-lg bg-status-warning-bg p-3 text-sm text-status-warning-text">Chưa có hồ sơ giảng viên. Lần lưu đầu tiên sẽ tạo hồ sơ cho tài khoản đã xác thực này.</p> : <p className="text-sm text-ink-muted">Bộ môn: {profile.departmentName}</p>}
       <label className="block text-sm font-medium text-ink-soft" htmlFor="supervisor-bio">Giới thiệu chuyên môn</label>
       <textarea id="supervisor-bio" value={bio} maxLength={4000} rows={5} onChange={(event) => setBio(event.target.value)} className="w-full rounded-lg border border-line-strong p-3 text-sm" aria-describedby="supervisor-bio-help" />
       <p id="supervisor-bio-help" className="-mt-3 text-xs text-ink-muted">Tối đa 4.000 ký tự. Để trống nếu chưa muốn công bố giới thiệu.</p>
@@ -101,5 +101,5 @@ export function SupervisorProfilePage() {
       </section>
       <div className="flex flex-wrap gap-3"><Button type="submit" disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu hồ sơ giảng viên'}</Button><Button type="button" variant="secondary" disabled={saving} onClick={() => void load()}>Hủy thay đổi</Button></div>
     </form> : null}
-  </main>
+  </div>
 }

@@ -11,13 +11,15 @@ import { aggregatorAttention } from './action-aggregators'
 import type { WorkspaceRole } from '../auth/utils/role-access'
 import type { CalendarAttentionData, CalendarProjectionItem, CalendarSourceStatus, AttentionItem } from './calendar-types'
 import { deliverableProjection, finalSubmissionProjection, meetingProjection, scopedCalendarProjection } from './calendar-projections'
+import { displayLabel } from '../../components/ui/display-label'
+import { humanizeHttpError } from '../../services/http/humanize-http-error'
 import type { AcademicReferenceDto } from '../../types/backend'
 
 export interface CalendarLoaderInput { role: WorkspaceRole; semesterId: number | null; departmentIds?: readonly number[]; departments?: readonly Pick<AcademicReferenceDto, 'id' | 'name'>[]; accessToken?: string; signal?: AbortSignal }
 export const calendarApis = { getUsers, getScopedCalendar, getStudentNextActions, getSupervisorTriageQueue, getDepartmentUrgentActions, getStudentDashboard, getMeetings, getDeliverables, getFinalChecklist }
 type CalendarApis = typeof calendarApis
 function errorStatus(id: string, label: string, reason: unknown): CalendarSourceStatus {
-  return { id, label, state: 'error', message: reason instanceof Error ? reason.message : 'Không thể tải nguồn dữ liệu.' }
+  return { id, label, state: 'error', message: humanizeHttpError(reason, 'Không thể tải nguồn dữ liệu.') }
 }
 function sort(items: AttentionItem[]): AttentionItem[] {
   return [...items].sort((a, b) => a.presentationPriority - b.presentationPriority || (a.dueAt ?? '').localeCompare(b.dueAt ?? ''))
@@ -107,8 +109,8 @@ export async function loadCalendarAttention(input: CalendarLoaderInput, apis: Ca
       })(),
       loadActions(role === 'student' ? 'next-actions' : 'triage-queue', role === 'student' ? 'Việc cần làm của sinh viên' : 'Việc cần xử lý của giảng viên', () => role === 'student' ? apis.getStudentNextActions(input.signal) : apis.getSupervisorTriageQueue(input.signal)),
     ])
-    result.sources.push({ id: 'progress-report-deadline', label: 'Hạn báo cáo tiến độ', state: 'unsupported', message: 'API hiện trả kỳ báo cáo, không trả hạn nộp báo cáo.' })
-    if (role === 'lecturer') result.sources.push({ id: 'evaluation-assignments', label: 'Hạn đánh giá', state: 'unsupported', message: 'DTO hiện không có hạn đánh giá; không tạo sự kiện lịch.' })
+    result.sources.push({ id: 'progress-report-deadline', label: 'Hạn báo cáo tiến độ', state: 'unsupported', message: 'Kỳ báo cáo hiện chưa kèm hạn nộp cụ thể.' })
+    if (role === 'lecturer') result.sources.push({ id: 'evaluation-assignments', label: 'Hạn đánh giá', state: 'unsupported', message: 'Phân công đánh giá hiện chưa có mốc hạn để hiển thị trên lịch.' })
     if (!scopedCalendarReady && dashboard && !input.signal?.aborted) await loadStudentCalendarFallback(dashboard, result, apis, input.signal)
     return { ...result, attention: sort(result.attention) }
   }
@@ -131,7 +133,7 @@ export async function loadCalendarAttention(input: CalendarLoaderInput, apis: Ca
     try {
       const accounts = await apis.getUsers(input.accessToken, { page: 1, pageSize: 20 })
       result.sources.push({ id: 'accounts', label: 'Tài khoản nền tảng', state: accounts.totalCount > accounts.items.length ? 'partial' : stateForItems(accounts.items), message: accounts.totalCount > accounts.items.length ? 'Chỉ hiển thị trang đầu tối đa 20 tài khoản.' : undefined })
-      result.attention.push(...accounts.items.filter((account) => account.status !== 'ACTIVE').map((account) => ({ code: `ACCOUNT_${account.status}`, source: 'ACCOUNT' as const, sourceId: account.id, title: account.fullName, description: `Tài khoản đang ở trạng thái ${account.status}.`, status: account.status, presentationPriority: account.status === 'SUSPENDED' ? 10 : 30, deepLink: `/admin/access/users/${account.id}` })))
+      result.attention.push(...accounts.items.filter((account) => account.status !== 'ACTIVE').map((account) => ({ code: `ACCOUNT_${account.status}`, source: 'ACCOUNT' as const, sourceId: account.id, title: account.fullName, description: `Tài khoản đang ở trạng thái ${displayLabel(account.status)}.`, status: account.status, presentationPriority: account.status === 'SUSPENDED' ? 10 : 30, deepLink: `/admin/access/users/${account.id}` })))
     } catch (reason) { result.sources.push(errorStatus('accounts', 'Tài khoản nền tảng', reason)) }
     result.sources.push({ id: 'admin-calendar', label: 'Lịch nền tảng', state: 'unavailable', message: 'Lịch tổng hợp chưa hỗ trợ tài khoản quản trị.' })
     return { ...result, attention: sort(result.attention) }

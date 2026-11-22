@@ -1,5 +1,7 @@
 import { dateTimeLabel } from '../execution/execution-utils'
 import { Modal } from '../../components/ui/Modal'
+import { WorkspacePage } from '../../components/ui/WorkspacePage'
+import { ListLoading } from '../../components/ui/ListLoading'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
@@ -99,34 +101,28 @@ export function ProjectContributionsPage() {
   const completedTasks = summary?.members.reduce((total, member) => total + member.completedTasks, 0) ?? 0
   const assignedTasks = summary?.members.reduce((total, member) => total + member.assignedTasks, 0) ?? 0
 
-  return <main className="workspace-page space-y-5">{confirmationDialog}
-    <header className="flex flex-col gap-4 border-b border-hairline pb-5 sm:flex-row sm:items-end sm:justify-between">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-primary-subtle text-primary border border-primary/20 font-mono text-xs font-bold uppercase tracking-wider">
-            Theo dõi đóng góp
-          </span>
-          <span className="text-xs text-ink-muted font-medium">Đồ án #{projectId ?? '—'}</span>
-        </div>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-ink sm:text-3xl">Đóng góp của thành viên</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">Theo dõi hoạt động và mở từng chứng cứ do hệ thống ghi nhận. Chỉ số hoạt động hỗ trợ đối chiếu, không thay thế điểm học phần.</p>
-      </div>
-      {summary && <div className="flex shrink-0 flex-wrap items-end gap-2">
-        <label className="grid gap-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">Nguồn dữ liệu
-          <select aria-label="Nguồn dữ liệu" className="min-h-11 rounded-md border border-hairline bg-card px-3 text-sm font-medium normal-case tracking-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" value={snapshot ? 'snapshot' : 'live'} onChange={event => { setSnapshot(event.target.value === 'snapshot'); setPage(1); setSelectedUserId(null); setSourceType('') }}>
-            <option value="live">Dữ liệu hiện tại</option><option value="snapshot">Bản tổng hợp đã lưu</option>
-          </select>
-        </label>
-        <button type="button" onClick={exportCsv} className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-hairline bg-card px-3 text-sm font-semibold text-ink-soft hover:bg-canvas hover:text-ink transition-colors shadow-2xs">
-          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>
-          Xuất báo cáo (CSV)
-        </button>
-        {canSnapshot && <button type="button" disabled={busy} className="min-h-11 rounded-md bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover shadow-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void rebuild()}>{busy ? 'Đang tạo…' : 'Lưu bản tổng hợp'}</button>}
-      </div>}
-    </header>
+  const projectEyebrow = journey.project?.code ? `Theo dõi đóng góp · ${journey.project.code}` : 'Theo dõi đóng góp'
 
+  return <WorkspacePage
+    className="space-y-5"
+    title="Đóng góp của thành viên"
+    eyebrow={projectEyebrow}
+    description="Theo dõi hoạt động và mở từng chứng cứ do hệ thống ghi nhận. Chỉ số hoạt động hỗ trợ đối chiếu, không thay thế điểm học phần."
+    action={summary ? <div className="flex shrink-0 flex-wrap items-end gap-2">
+      <label className="grid gap-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">Nguồn dữ liệu
+        <select aria-label="Nguồn dữ liệu" className="min-h-11 rounded-md border border-hairline bg-card px-3 text-sm font-medium normal-case tracking-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" value={snapshot ? 'snapshot' : 'live'} onChange={event => { setSnapshot(event.target.value === 'snapshot'); setPage(1); setSelectedUserId(null); setSourceType('') }}>
+          <option value="live">Dữ liệu hiện tại</option><option value="snapshot">Bản tổng hợp đã lưu</option>
+        </select>
+      </label>
+      <button type="button" onClick={exportCsv} className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-hairline bg-card px-3 text-sm font-semibold text-ink-soft hover:bg-canvas hover:text-ink transition-colors shadow-2xs">
+        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>
+        Xuất báo cáo (CSV)
+      </button>
+      {canSnapshot && <button type="button" disabled={busy} className="min-h-11 rounded-md bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover shadow-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void rebuild()}>{busy ? 'Đang tạo…' : 'Lưu bản tổng hợp'}</button>}
+    </div> : undefined}
+  >{confirmationDialog}
     {error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-danger-text"><span>{error}</span><button type="button" className="min-h-10 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại</button></div>}
-    {loading && <div role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải dữ liệu đóng góp…</div>}
+    {loading && <ListLoading label="Đang tải dữ liệu đóng góp…" />}
     {!loading && !projectId && <div className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Không tìm thấy đồ án để xem đóng góp.</div>}
 
     {!loading && summary && <>
@@ -142,26 +138,26 @@ export function ProjectContributionsPage() {
       <section className="overflow-hidden rounded-lg border border-hairline bg-card" aria-labelledby="contribution-members-heading">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-4 sm:px-5">
           <div><h2 id="contribution-members-heading" className="font-semibold text-ink">Hoạt động theo thành viên</h2><p className="mt-1 text-xs text-ink-muted">{summary.snapshotHash ? `Mã bản tổng hợp ${summary.snapshotHash.slice(0, 12)}` : 'Cập nhật theo hoạt động hiện tại'}</p></div>
-          <span className="rounded-full border border-status-success-border bg-primary-subtle px-2.5 py-1 text-xs font-bold text-primary">{summary.members.length} thành viên trên trang</span>
+          <span className="rounded-full border border-primary/25 bg-primary-subtle px-2.5 py-1 text-xs font-bold text-primary">{summary.members.length} thành viên trên trang</span>
         </div>
-        {summary.members.length === 0 ? <div className="p-8 text-center text-sm text-ink-muted">Chưa có dữ liệu đóng góp trong nguồn đã chọn.</div> : <ul className="divide-y divide-hairline">{summary.members.map(member => <li key={member.userId} className={`grid gap-4 p-4 transition-colors sm:p-5 lg:grid-cols-[minmax(14rem,1.3fr)_minmax(20rem,2fr)_auto] lg:items-center ${selectedUserId === member.userId ? 'bg-primary-subtle/70' : 'hover:bg-canvas/80'}`}>
-          <div className="flex min-w-0 items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-subtle text-sm font-bold text-primary">{initials(member.displayName)}</span><div className="min-w-0"><strong className="block truncate text-sm text-ink">{member.displayName}</strong><span className="font-mono text-xs text-ink-muted">Thành viên #{member.userId}</span></div></div>
+        {summary.members.length === 0 ? <div className="p-8 text-center text-sm text-ink-muted">Chưa có dữ liệu đóng góp trong nguồn đã chọn.</div> : <ul className="divide-y divide-hairline">{summary.members.map(member => <li key={member.userId} className={`grid gap-4 p-4 transition-colors sm:p-5 xl:grid-cols-[minmax(12rem,1.1fr)_minmax(16rem,1.8fr)_auto] xl:items-center ${selectedUserId === member.userId ? 'bg-primary-subtle/70' : 'hover:bg-canvas/80'}`}>
+          <div className="flex min-w-0 items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-subtle text-sm font-bold text-primary">{initials(member.displayName)}</span><div className="min-w-0"><strong className="block truncate text-sm text-ink">{member.displayName}</strong><span className="text-xs text-ink-muted">Thành viên nhóm</span></div></div>
           <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-xs sm:grid-cols-3"><ContributionStat label="Công việc" value={`${member.completedTasks}/${member.assignedTasks}`} /><ContributionStat label="Báo cáo" value={member.submittedReports} /><ContributionStat label="Cuộc họp" value={member.attendedMeetings} /><ContributionStat label="Bản nộp" value={member.submittedDeliverableVersions} /><ContributionStat label="Tệp" value={member.uploadedFiles} /><ContributionStat label="Hoạt động" value={member.activityScore} /></div>
-          <button type="button" aria-label="Xem chứng cứ" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-md border border-hairline bg-card px-3.5 text-sm font-semibold text-primary transition-colors hover:border-primary/30 hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => { setSelectedUserId(member.userId); setEvidencePage(1); setSourceType('') }}><span className="font-mono text-xs font-bold">{member.evidenceCount}</span> Xem chứng cứ</button>
+          <button type="button" aria-label="Xem chứng cứ" title={`Xem ${member.evidenceCount} chứng cứ của ${member.displayName}`} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-md border border-hairline bg-card px-3.5 text-sm font-semibold text-primary transition-colors hover:border-primary/30 hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => { setSelectedUserId(member.userId); setEvidencePage(1); setSourceType('') }}><span className="font-mono text-xs font-bold">{member.evidenceCount}</span> Xem chứng cứ</button>
         </li>)}</ul>}
         {summary.totalCount > 20 && <Pager page={page} total={summary.totalCount} onChange={setPage} />}
       </section>
 
-      {selectedUserId && <Modal open drawer title="Minh chứng đóng góp" description={selectedMember?.displayName ?? `Thành viên #${selectedUserId}`} onClose={() => setSelectedUserId(null)}><div>
+      {selectedUserId && <Modal open drawer title="Minh chứng đóng góp" description={selectedMember?.displayName ?? 'Thành viên nhóm'} onClose={() => setSelectedUserId(null)}><div>
         {error && <p role="alert" className="mb-4 text-sm text-danger-text">{error}</p>}
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-hairline pb-4"><p className="max-w-60 text-sm leading-6 text-ink-muted">Hoạt động được ghi nhận để đối chiếu đóng góp của thành viên.</p><label className="grid shrink-0 gap-1 text-xs font-semibold text-ink-muted">Nguồn chứng cứ<select aria-label="Nguồn chứng cứ" className="min-h-11 min-w-52 rounded-md border border-hairline bg-card px-3 text-sm font-medium text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" value={sourceType} onChange={event => { setSourceType(event.target.value); setEvidencePage(1) }}><option value="">Tất cả nguồn</option><option value="TASK">Công việc</option><option value="PROGRESS_REPORT">Báo cáo tiến độ</option><option value="MEETING">Cuộc họp</option><option value="DELIVERABLE_VERSION">Phiên bản hạng mục</option><option value="FILE">Tệp</option></select></label></div>
-        {evidenceLoading && <div role="status" className="p-5 text-sm text-ink-muted">Đang tải chứng cứ…</div>}
+        {evidenceLoading && <ListLoading label="Đang tải chứng cứ…" />}
         {!evidenceLoading && evidence.length === 0 && <div className="p-8 text-center text-sm text-ink-muted"><span className="material-symbols-outlined mb-2 block text-3xl text-slate-300" aria-hidden="true">inventory_2</span>Chưa có chứng cứ phù hợp.</div>}
-        {!evidenceLoading && evidence.length > 0 && <ul className="divide-y divide-hairline">{evidence.map(item => <li key={`${item.sourceType}-${item.sourceId}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center"><span className="grid size-9 place-items-center rounded-md bg-primary-subtle text-primary"><span className="material-symbols-outlined text-[19px]" aria-hidden="true">description</span></span><div className="min-w-0"><strong className="block break-words text-sm text-ink">{item.sourceType === 'PROGRESS_REPORT' ? ({ WEEKLY: 'Báo cáo tuần', MONTHLY: 'Báo cáo tháng' }[item.label] ?? item.label) : item.label}</strong><span className="mt-1 block font-mono text-xs text-ink-muted">{sourceLabel(item.sourceType)} #{item.sourceId}</span></div><div className="col-start-2 text-left sm:col-start-auto sm:text-right"><span className="block text-xs text-ink-muted">{formatDate(item.occurredAt)}</span><span className="mt-1 block font-mono text-xs text-ink-muted">Mức đóng góp: {item.credit}</span></div></li>)}</ul>}
+        {!evidenceLoading && evidence.length > 0 && <ul className="divide-y divide-hairline">{evidence.map(item => <li key={`${item.sourceType}-${item.sourceId}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center"><span className="grid size-9 place-items-center rounded-md bg-primary-subtle text-primary"><span className="material-symbols-outlined text-[19px]" aria-hidden="true">description</span></span><div className="min-w-0"><strong className="block break-words text-sm text-ink">{item.sourceType === 'PROGRESS_REPORT' ? ({ WEEKLY: 'Báo cáo tuần', MONTHLY: 'Báo cáo tháng' }[item.label] ?? item.label) : item.label}</strong><span className="mt-1 block text-xs text-ink-muted">{sourceLabel(item.sourceType)}</span></div><div className="col-start-2 text-left sm:col-start-auto sm:text-right"><span className="block text-xs text-ink-muted">{formatDate(item.occurredAt)}</span><span className="mt-1 block font-mono text-xs text-ink-muted">Mức đóng góp: {item.credit}</span></div></li>)}</ul>}
         {evidenceTotal > 20 && <Pager page={evidencePage} total={evidenceTotal} onChange={setEvidencePage} />}
       </div></Modal>}
     </>}
-  </main>
+  </WorkspacePage>
 }
 
 function Pager({ page, total, onChange }: { page: number; total: number; onChange: (next: number) => void }) {

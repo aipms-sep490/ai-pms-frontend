@@ -1,6 +1,21 @@
 import { useState } from 'react'
 import type { DefenseReadinessSummary } from '../types/review-gates.types'
 
+const DEFENSE_BLOCKER_LABELS: Record<string, string> = {
+  COLD_PACKAGE_REQUIRED: 'Chưa hoàn tất gói báo cáo chấm nguội',
+  COLD_SCHEME_REQUIRED: 'Chưa cấu hình phương án chấm nguội',
+  COLD_EVALUATION_REQUIRED: 'Chưa hoàn tất đánh giá chấm nguội',
+  FINAL_SUBMISSION_REQUIRED: 'Chưa nộp gói bàn giao cuối kỳ',
+  REVIEW_GATE_REQUIRED: 'Chưa đạt cổng kiểm duyệt bắt buộc',
+  SUPERVISOR_REQUIRED: 'Chưa phân công giảng viên hướng dẫn',
+  COMMITTEE_REQUIRED: 'Chưa phân công hội đồng bảo vệ',
+  NOT_READY: 'Chưa sẵn sàng',
+}
+
+function formatDefenseDetail(detail: string): string {
+  return detail.replace(/\b[A-Z][A-Z0-9_]{3,}\b/g, token => DEFENSE_BLOCKER_LABELS[token] ?? token)
+}
+
 interface DefenseReadinessCheckerProps {
   summary: DefenseReadinessSummary
   onRecheck?: () => void
@@ -22,7 +37,7 @@ export function DefenseReadinessChecker({
               Nghiệm thu học thuật cuối kỳ
             </span>
             <h2 className="text-lg font-bold text-ink">
-              Xét điều kiện tham gia bảo vệ đồ án tốt nghiệp (Defense Readiness)
+              Xét điều kiện tham gia bảo vệ đồ án tốt nghiệp
             </h2>
           </div>
           <span
@@ -36,7 +51,7 @@ export function DefenseReadinessChecker({
           </span>
         </div>
         <p className="mt-2 text-xs text-ink-muted">
-          Đồ án: <strong className="text-ink">{summary.projectId}</strong> – {summary.projectName}
+          Đồ án: <strong className="text-ink">{summary.projectCode ?? summary.projectId}</strong> – {summary.projectName}
         </p>
       </div>
 
@@ -66,7 +81,7 @@ export function DefenseReadinessChecker({
                       : 'bg-canvas text-ink-muted hover:bg-slate-200'
                   }`}
                 >
-                  Điều kiện từng thành viên (Per-student)
+                  Điều kiện từng thành viên
                 </button>
               </div>
 
@@ -113,7 +128,7 @@ export function DefenseReadinessChecker({
                           <strong className="block text-xs font-bold text-ink">
                             {c.title}
                           </strong>
-                          <p className="mt-1 text-xs text-ink-muted leading-relaxed">{c.detail}</p>
+                          <p className="mt-1 text-xs text-ink-muted leading-relaxed">{formatDefenseDetail(c.detail)}</p>
                         </div>
                       </div>
 
@@ -126,7 +141,7 @@ export function DefenseReadinessChecker({
                             : 'bg-canvas text-ink-muted border-hairline'
                         }`}
                       >
-                        {isPass ? 'ĐẠT (PASS)' : isFail ? 'CHƯA ĐẠT (BLOCKED)' : 'CHỜ DUYỆT'}
+                        {isPass ? 'Đạt' : isFail ? 'Chưa đạt' : 'Chờ duyệt'}
                       </span>
                     </div>
                   )
@@ -156,8 +171,8 @@ export function DefenseReadinessChecker({
             <span className="text-xs font-bold uppercase tracking-wider">
               Kết luận xét điều kiện bảo vệ
             </span>
-            <div className="mt-2 text-3xl font-black">
-              {summary.isReady ? 'READY FOR DEFENSE' : 'NOT READY'}
+            <div className="mt-2 text-2xl font-black">
+              {summary.isReady ? 'Đủ điều kiện bảo vệ' : 'Chưa đủ điều kiện bảo vệ'}
             </div>
             <p className="mt-2 text-xs leading-relaxed opacity-90">
               {summary.isReady

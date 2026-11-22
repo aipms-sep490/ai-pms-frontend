@@ -19,6 +19,8 @@ const assignment: IndustryAssignment = {
   projectCode: 'SE-09',
   projectTitle: 'AI-PMS Web',
   expertId: 15,
+  expertName: 'Ông Nguyễn Hải',
+  expertOrganization: 'FPT Software',
   scope: 'COMMON',
   majorId: null,
   startsAt: '2026-10-01T00:00:00Z',
@@ -39,13 +41,13 @@ afterEach(cleanup)
 describe('ProjectIndustryAdvisoryPanel', () => {
   it('renders existing industry assignments for the project', async () => {
     render(<ProjectIndustryAdvisoryPanel projectId={9} />)
-    expect(await screen.findByText('Chuyên gia #15')).toBeTruthy()
-    expect(screen.getByText(/Phạm vi: COMMON/)).toBeTruthy()
+    expect(await screen.findByText(/Ông Nguyễn Hải/)).toBeTruthy()
+    expect(screen.getByText(/Phạm vi: Cả đồ án/)).toBeTruthy()
     expect(screen.getByText('Quản lý file chia sẻ')).toBeTruthy()
   })
 
   it('allows assigning a new expert to project with COMMON scope', async () => {
-    api.assignIndustryExpert.mockResolvedValue({ ...assignment, id: 2, expertId: 20 })
+    api.assignIndustryExpert.mockResolvedValue({ ...assignment, id: 2, expertId: 20, expertName: 'Bà Lê Mai' })
     render(<ProjectIndustryAdvisoryPanel projectId={9} />)
 
     fireEvent.change(screen.getByPlaceholderText('vd: 15'), { target: { value: '20' } })
@@ -63,14 +65,14 @@ describe('ProjectIndustryAdvisoryPanel', () => {
         endsAt: new Date('2026-12-31T17:00').toISOString(),
       })
     })
-    expect(await screen.findByText('Đã phân công chuyên gia #20 vào đồ án.')).toBeTruthy()
+    expect(await screen.findByText('Đã phân công Bà Lê Mai vào đồ án.')).toBeTruthy()
   })
 
   it('allows revoking an active assignment with concurrency token', async () => {
     api.revokeIndustryAssignment.mockResolvedValue({ ...assignment, status: 'REVOKED' })
     render(<ProjectIndustryAdvisoryPanel projectId={9} />)
 
-    await screen.findByText('Chuyên gia #15')
+    await screen.findByText(/Ông Nguyễn Hải/)
     fireEvent.click(screen.getByRole('button', { name: 'Thu hồi phân công' }))
 
     await waitFor(() => {
@@ -91,10 +93,10 @@ describe('ProjectIndustryAdvisoryPanel', () => {
     })
     render(<ProjectIndustryAdvisoryPanel projectId={9} />)
 
-    await screen.findByText('Chuyên gia #15')
+    await screen.findByText(/Ông Nguyễn Hải/)
     fireEvent.click(screen.getByRole('button', { name: 'Quản lý file chia sẻ' }))
 
-    expect(await screen.findByText(/Quản lý file chia sẻ — Chuyên gia #15/)).toBeTruthy()
+    expect(await screen.findByText(/Quản lý tệp chia sẻ — Ông Nguyễn Hải/)).toBeTruthy()
 
     fireEvent.change(screen.getByPlaceholderText('vd: 101'), { target: { value: '101' } })
     fireEvent.change(screen.getByPlaceholderText('vd: 501'), { target: { value: '501' } })

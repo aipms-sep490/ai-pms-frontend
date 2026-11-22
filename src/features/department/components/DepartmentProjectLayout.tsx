@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { getProject } from '../../../services/api/projects.api'
 
 /** Navigation discovers existing resource pages; each endpoint still authorizes access. */
 export function DepartmentProjectLayout() {
@@ -7,6 +8,16 @@ export function DepartmentProjectLayout() {
   const navigate = useNavigate()
   const match = /^\/department\/projects\/(?:review\/)?([1-9]\d*)(?:\/|$)/.exec(pathname)
   const projectId = match?.[1]
+  const [projectLabel, setProjectLabel] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!projectId) { setProjectLabel(null); return }
+    let active = true
+    void getProject(Number(projectId))
+      .then(project => { if (active && project) setProjectLabel([project.code, project.title].filter(Boolean).join(' · ')) })
+      .catch(() => { if (active) setProjectLabel(null) })
+    return () => { active = false }
+  }, [projectId])
 
   const primaryLinks = projectId ? [
     ['Thẩm định', `/department/projects/review/${projectId}`],
@@ -48,7 +59,7 @@ export function DepartmentProjectLayout() {
       {projectId && (
         <nav aria-label="Các nghiệp vụ của đồ án" className="mb-5 space-y-2 rounded-lg border border-hairline bg-card p-3">
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-            <span className="font-semibold text-ink-soft">Đồ án #{projectId}</span>
+            <span className="font-semibold text-ink-soft">{projectLabel ?? 'Hồ sơ đồ án'}</span>
             <Link to="/department/portfolio" className="inline-flex min-h-11 items-center font-semibold text-primary underline">
               Danh mục đồ án
             </Link>

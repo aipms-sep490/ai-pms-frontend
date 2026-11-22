@@ -24,8 +24,12 @@ export interface IndustryAssignment {
   projectCode: string
   projectTitle: string
   expertId: number
+  expertName?: string | null
+  expertEmail?: string | null
+  expertOrganization?: string | null
   scope: IndustryScope
   majorId: number | null
+  majorName?: string | null
   startsAt: string
   endsAt: string
   status: string
@@ -65,6 +69,7 @@ export interface IndustryFeedback {
   supersedesVersion: number | null
   content: string
   submittedBy: number
+  submittedByName?: string | null
   submittedAt: string
   advisoryOnly: boolean
 }

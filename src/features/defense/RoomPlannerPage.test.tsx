@@ -62,7 +62,8 @@ describe('RoomPlannerPage', () => {
       allocations: [{ projectId: 12, committeeId: 3, roomId: 7, roomCode: 'A-201', date: '2026-12-01',
         slotNumber: 1, startAt: '2026-12-01T08:00:00+07:00', endAt: '2026-12-01T09:15:00+07:00' }],
     }))
-    expect(screen.getByText('Kỳ đồ án #6')).toBeTruthy()
+    expect(screen.getByText('Điều phối phòng và lịch trình')).toBeTruthy()
+    expect(api.getPeriodDefenseSessions).toHaveBeenCalledWith(6, undefined, expect.any(AbortSignal))
     expect(screen.queryByRole('button', { name: 'Duyệt và áp dụng lịch' })).toBeNull()
     expect(api.applyDefenseSchedule).not.toHaveBeenCalled()
     expect(api.applyGate3Schedule).not.toHaveBeenCalled()

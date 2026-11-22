@@ -15,6 +15,7 @@ import { PageLoading } from '../../../components/ui/PageLoading'
 import { services } from '../../../services/service-gateway'
 import { EligibilityHistoryPanel } from '../components/EligibilityHistoryPanel'
 import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
+import { humanizeHttpError } from '../../../services/http/humanize-http-error'
 
 export function TeamManagementPage() {
   const navigate = useNavigate()
@@ -124,7 +125,7 @@ export function TeamManagementPage() {
       setIsLeaveConfirmOpen(false)
       showToast('Bạn đã rời khỏi nhóm.')
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Rời nhóm thất bại.', 'error')
+      showToast(humanizeHttpError(err, 'Rời nhóm thất bại.'), 'error')
     }
   }
 
@@ -137,8 +138,8 @@ export function TeamManagementPage() {
       {/* Toast Feedback */}
       {toastMessage && (
         <div
-          role="status"
-          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-md border flex items-center gap-2.5 text-xs font-semibold ${
+          role={toastMessage.type === 'error' ? 'alert' : 'status'}
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-[min(92vw,480px)] px-4 py-3 rounded-lg border shadow-lg flex items-center gap-2.5 text-xs font-semibold ${
             toastMessage.type === 'success'
               ? 'bg-primary text-white border-primary-hover'
               : 'bg-status-error-text text-white border-status-error-text'

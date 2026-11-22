@@ -21,7 +21,7 @@ describe('FinalSubmissionViewerPage', () => {
     render(<MemoryRouter initialEntries={['/evaluator/projects/9/final-submission']}><Routes><Route path="/evaluator/projects/:projectId/final-submission" element={<FinalSubmissionViewerPage backTo="/evaluator/evaluations" backLabel="Danh sách assignments" />} /></Routes></MemoryRouter>)
 
     expect(await screen.findByText('Gói đã khóa và nộp')).toBeTruthy()
-    expect(screen.getByText(/Bản bàn giao đã chốt #7/)).toBeTruthy()
+    expect(screen.getByText(/Bản bàn giao đã chốt/)).toBeTruthy()
     expect(screen.getByRole('button', { name: /final.pdf/ })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Nộp và khóa gói' })).toBeNull()
     expect(api.getLockedFinalSubmission).toHaveBeenCalledWith(9)

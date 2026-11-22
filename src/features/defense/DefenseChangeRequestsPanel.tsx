@@ -65,7 +65,7 @@ export function DefenseChangeRequestsPanel({ periodId, rooms, onScheduleChanged 
     } finally { setBusyId(null) }
   }
 
-  return <section aria-label="Yêu cầu đổi lịch bảo vệ" className="rounded-2xl border border-hairline bg-surface p-4 shadow-xs">
+  return <section aria-label="Yêu cầu đổi lịch bảo vệ" className="rounded-2xl border border-hairline bg-card p-4 shadow-xs">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h2 className="text-lg font-bold">Yêu cầu đổi lịch bảo vệ · Gate 4</h2>
       <button type="button" onClick={reload} disabled={busyId !== null}
@@ -75,10 +75,19 @@ export function DefenseChangeRequestsPanel({ periodId, rooms, onScheduleChanged 
     {error && <p role="alert" className="mt-3 text-sm text-status-error-text">{error}</p>}
     {success && <p role="status" className="mt-3 text-sm text-status-success-text">{success}</p>}
     {!loading && !error && requests.length === 0 && <p className="mt-3 text-sm text-ink-muted">Không có yêu cầu đang chờ trong phạm vi của bạn.</p>}
-    {!loading && requests.map(request => <article key={request.id} className="mt-3 rounded-xl border border-hairline p-4">
-      <h3 className="font-semibold">Phiên bảo vệ #{request.defenseSessionId} · Yêu cầu #{request.id}</h3>
-      <p className="mt-1 text-sm text-ink-muted">Phòng hiện tại #{request.currentRoomId} · {formatTime(request.currentStartAt)}</p>
-      <p className="text-sm">Đề xuất: {rooms.find(room => room.id === request.desiredRoomId)?.code ?? `Phòng #${request.desiredRoomId}`} · {formatTime(request.desiredStartAt)} – {formatTime(request.desiredEndAt)}</p>
+    {!loading && requests.map(request => {
+      const currentRoomLabel = request.currentRoomCode ?? rooms.find(room => room.id === request.currentRoomId)?.code ?? 'Phòng hiện tại'
+      const desiredRoomLabel = request.desiredRoomCode ?? rooms.find(room => room.id === request.desiredRoomId)?.code ?? 'Phòng đề xuất'
+      const heading = request.projectCode
+        ? `${request.projectCode}${request.projectTitle ? ` · ${request.projectTitle}` : ''}`
+        : request.projectTitle || 'Yêu cầu đổi lịch bảo vệ'
+      return <article key={request.id} className="mt-3 rounded-xl border border-hairline p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-semibold text-ink">{heading}</h3>
+        {request.requesterName && <span className="text-xs text-ink-muted">Người đề xuất: {request.requesterName}</span>}
+      </div>
+      <p className="mt-1 text-sm text-ink-muted">Hiện tại: {currentRoomLabel} · {formatTime(request.currentStartAt)}</p>
+      <p className="text-sm">Đề xuất: {desiredRoomLabel} · {formatTime(request.desiredStartAt)} – {formatTime(request.desiredEndAt)}</p>
       <p className="mt-2 text-sm"><strong>Lý do:</strong> {categoryLabel[request.reasonCategory] ?? request.reasonCategory} · {request.reasonDetails}</p>
       {request.evidenceFileUrl && <p className="mt-1 break-all text-sm">Minh chứng: {request.evidenceFileUrl}</p>}
       <label className="mt-3 block text-sm font-semibold">Ghi chú xử lý
@@ -92,6 +101,7 @@ export function DefenseChangeRequestsPanel({ periodId, rooms, onScheduleChanged 
         <button type="button" onClick={() => void decide(request, 'REJECTED')} disabled={busyId !== null}
           className="min-h-11 rounded-lg border border-hairline px-4 text-sm font-semibold disabled:opacity-50">Từ chối</button>
       </div>
-    </article>)}
+    </article>
+    })}
   </section>
 }

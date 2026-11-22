@@ -141,7 +141,7 @@ export const DefenseCoordinatorView: React.FC = () => {
     <div className="space-y-6">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 rounded-xl border border-primary/20 bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-xl animate-in slide-in-from-bottom-3 duration-200">
+        <div role="status" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-[min(92vw,480px)] rounded-xl border border-primary/20 bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-xl animate-in slide-in-from-bottom-3 duration-200">
           {toastMessage}
         </div>
       )}

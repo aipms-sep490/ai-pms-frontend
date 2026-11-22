@@ -117,9 +117,9 @@ const copyByType: Record<string, { title: string; content: string; label: string
     icon: 'assignment_ind',
   },
   COLD_EVALUATOR_ASSIGNED: {
-    title: 'Bạn được phân chấm Cold',
-    content: 'Hãy xem gói minh chứng đã khóa, chấm đúng phạm vi được giao và chốt điểm Cold trước khi xếp lịch bảo vệ.',
-    label: 'Chấm Cold',
+    title: 'Bạn được phân công chấm nguội',
+    content: 'Hãy xem gói minh chứng đã khóa, chấm đúng phạm vi được giao và chốt điểm chấm nguội trước khi xếp lịch bảo vệ.',
+    label: 'Chấm nguội',
     icon: 'assignment_ind',
   },
   SUPERVISOR_REPLACED: {
@@ -181,6 +181,36 @@ const copyByType: Record<string, { title: string; content: string; label: string
     content: 'Hệ thống ghi nhận tín hiệu rủi ro nghiêm trọng về tiến độ. Hãy kiểm tra các yếu tố rủi ro và trao đổi với giảng viên hướng dẫn.',
     label: 'Cảnh báo tiến độ',
     icon: 'warning',
+  },
+  PROJECT_RISK_ALERT: {
+    title: 'Cảnh báo rủi ro tiến độ đồ án',
+    content: 'Hệ thống phát hiện dấu hiệu rủi ro tiến độ trên đồ án. Hãy kiểm tra các công việc bị vướng hoặc quá hạn để xử lý sớm.',
+    label: 'Cảnh báo tiến độ',
+    icon: 'warning',
+  },
+  DEFENSE_SCHEDULE_CHANGED: {
+    title: 'Lịch bảo vệ đồ án đã thay đổi',
+    content: 'Thời gian, phòng bảo vệ hoặc hội đồng của đồ án vừa được cập nhật. Hãy kiểm tra lại lịch mới nhất.',
+    label: 'Lịch bảo vệ',
+    icon: 'event_repeat',
+  },
+  REVIEW_GATE_3_SCHEDULED: {
+    title: 'Đã có lịch thẩm định cổng kiểm duyệt 3',
+    content: 'Lịch tổ chức phiên thẩm định cổng kiểm duyệt 3 (G3) đã được sắp xếp. Hãy kiểm tra thời gian và phòng họp.',
+    label: 'Lịch cổng kiểm duyệt',
+    icon: 'event',
+  },
+  REVIEW_GATE_3_SCHEDULE_CHANGED: {
+    title: 'Lịch thẩm định cổng kiểm duyệt 3 đã thay đổi',
+    content: 'Thời gian hoặc phòng họp của phiên thẩm định cổng kiểm duyệt 3 (G3) vừa được điều chỉnh. Hãy kiểm tra lịch mới.',
+    label: 'Lịch cổng kiểm duyệt',
+    icon: 'event_repeat',
+  },
+  REVIEW_GATE_3_CHANGED: {
+    title: 'Lịch thẩm định cổng kiểm duyệt 3 đã thay đổi',
+    content: 'Thời gian hoặc phòng họp của phiên thẩm định cổng kiểm duyệt 3 (G3) vừa được điều chỉnh. Hãy kiểm tra lịch mới.',
+    label: 'Lịch cổng kiểm duyệt',
+    icon: 'event_repeat',
   },
   DELIVERABLE_SUBMITTED: {
     title: 'Có phiên bản hạng mục mới được nộp',
@@ -352,9 +382,67 @@ const copyByType: Record<string, { title: string; content: string; label: string
   },
 }
 
+const gateDecisionLabels: Record<string, string> = {
+  PASSED: 'Đạt',
+  FAILED: 'Chưa đạt',
+  REVISION_REQUIRED: 'Cần chỉnh sửa',
+  PENDING: 'Đang chờ thẩm định',
+  APPROVED: 'Đã phê duyệt',
+  REJECTED: 'Chưa đạt yêu cầu',
+}
+
+function isSafeLocalizedBackendText(text: string | null | undefined): text is string {
+  if (!text) return false
+  const trimmed = text.trim()
+  if (trimmed.length < 4 || trimmed.length > 400) return false
+  if (!/[À-ỹ]/u.test(trimmed)) return false
+  if (/@|\/internal\/|UNTRANSLATED|undefined|Review Gate|Defense Readiness|timeline|#[0-9]+/i.test(trimmed)) return false
+  return true
+}
+
+function enrichCopy(
+  base: { title: string; content: string; label: string; icon: string },
+  item: NotificationItem,
+) {
+  let { title, content } = base
+  const rawTitle = item.title?.trim() ?? ''
+  const rawContent = item.content?.trim() ?? ''
+
+  // Use clean contextual Vietnamese strings emitted by the localized backend writers
+  if (isSafeLocalizedBackendText(rawTitle)) {
+    title = rawTitle
+  }
+  if (isSafeLocalizedBackendText(rawContent)) {
+    content = rawContent
+  }
+
+  // Enrich legacy English Review Gate records already stored in DB (e.g. "Review gate G3 updated" / "Gate decision: PASSED.")
+  const gateMatch = rawTitle.match(/^Review gate\s+(G\d+)\s+updated$/i)
+  if (gateMatch && title === base.title) {
+    title = `Hồ sơ cổng kiểm duyệt ${gateMatch[1].toUpperCase()} có cập nhật`
+  }
+  const decisionMatch = rawContent.match(/^Gate decision:\s*([A-Z_]+)\.?$/i)
+  if (decisionMatch && content === base.content) {
+    const verdict = gateDecisionLabels[decisionMatch[1].toUpperCase()]
+    if (verdict) {
+      content = `Kết quả thẩm định: ${verdict}. Hãy mở hồ sơ tiến trình để xem nhận xét và bước tiếp theo.`
+    }
+  }
+  const meetingStartMatch = rawTitle.match(/^Meeting starts soon:\s*(.+)$/i)
+  if (meetingStartMatch && title === base.title) {
+    const meetingName = meetingStartMatch[1].trim()
+    if (meetingName && !/@|\/internal\/|UNTRANSLATED|undefined/i.test(meetingName) && meetingName.length <= 140) {
+      title = `Cuộc họp sắp bắt đầu: ${meetingName}`
+    }
+  }
+
+  return { ...base, title, content }
+}
+
 export function notificationCopy(item: NotificationItem) {
-  // The current DTO has no structured name parameters; backend prose is not display copy.
-  if (Object.hasOwn(copyByType, item.notificationType)) return copyByType[item.notificationType]
+  if (Object.hasOwn(copyByType, item.notificationType)) {
+    return enrichCopy(copyByType[item.notificationType], item)
+  }
 
   const type = /^[A-Z][A-Z0-9_]{0,79}$/.test(item.notificationType) ? item.notificationType : 'INVALID_NOTIFICATION_TYPE'
   console.warn('[notifications] Unsupported notification type:', type)

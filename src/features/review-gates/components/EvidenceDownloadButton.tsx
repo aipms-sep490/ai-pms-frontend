@@ -11,7 +11,7 @@ export function EvidenceDownloadButton({ projectId, gateCode, requirement }: {
   const [error, setError] = useState<string | null>(null)
   const artifact = requirement.latestArtifact
   if (!artifact) return null
-  if (isLinkArtifact(artifact)) {
+  if (isLinkArtifact(artifact) || requirement.type === 'LINK') {
     const link = safeEvidenceLink(artifact.linkUrl ?? artifact.filename)
     return link ? <a href={link} target="_blank" rel="noopener noreferrer" title={link}
       aria-label={`Mở minh chứng ngoài hệ thống: ${link}`}

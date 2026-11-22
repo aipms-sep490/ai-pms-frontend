@@ -6,6 +6,8 @@ export interface HttpRequestOptions {
   accessToken?: string
   /** Auth endpoints and the one retried request must never recurse into refresh. */
   skipAuthRefresh?: boolean
+  /** Keep request alive across immediate page transitions (e.g. logout). */
+  keepalive?: boolean
 }
 
 export interface HttpAuthenticationBridge {
@@ -264,7 +266,7 @@ function createRequestInit(options?: HttpRequestOptions): RequestInit {
   // Google challenge/login binds the identity response to an HttpOnly, path-scoped cookie.
   // Cross-origin local development therefore needs credentialed requests; the API's explicit
   // CORS policy remains the authority for which origins may receive/send that cookie.
-  return { headers, signal: options?.signal, credentials: 'include' }
+  return { headers, signal: options?.signal, credentials: 'include', ...(options?.keepalive ? { keepalive: true } : {}) }
 }
 
 async function readResponse<T>(response: Response): Promise<T> {

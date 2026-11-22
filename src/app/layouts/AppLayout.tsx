@@ -58,7 +58,13 @@ export function AppLayout() {
         />
 
         {/* Page Content Outlet */}
-        <main id="main-content" tabIndex={-1} ref={entrance} data-experience={enhanced?'enhanced':undefined} className="app-page-content flex-1 p-4 md:p-6 max-w-[1400px] w-full mx-auto">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          ref={entrance}
+          data-experience={enhanced?'enhanced':undefined}
+          className={`app-page-content flex-1 p-4 md:p-6 max-w-[1400px] w-full mx-auto${location.pathname === '/messages' || location.pathname.startsWith('/messages/') ? ' is-full-chat' : ''}`}
+        >
           <Outlet />
         </main>
       </div>

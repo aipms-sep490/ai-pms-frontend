@@ -9,9 +9,9 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
-import { HttpError } from '../../../services/http/http-client'
+import { humanizeHttpError } from '../../../services/http/humanize-http-error'
 import { env } from '../../../app/config/env'
-import type { UserAccount, UserDraft } from '../api/admin-api'
+import type { Audit, UserAccount, UserDraft } from '../api/admin-api'
 import { useAdminWorkspace } from '../hooks/useAdminWorkspace'
 import './admin-workspace.css'
 import { SystemStatusPanel } from '../components/SystemStatusPanel'
@@ -22,7 +22,7 @@ import { getAcademicHierarchy } from '../../academic/api/academic-api'
 import { AccessEventsPanel } from '../components/AccessEventsPanel'
 
 const blankAccount: UserDraft = { departmentId: null, majorId: null, email: '', password: '', fullName: '', phone: null, studentCode: null, employeeCode: null, title: null, roleIds: [] }
-const messageFor = (reason: unknown) => reason instanceof HttpError ? reason.message : 'Chưa thể hoàn tất thao tác. Hãy thử lại.'
+const messageFor = (reason: unknown) => humanizeHttpError(reason, 'Chưa thể hoàn tất thao tác. Hãy thử lại.')
 const integer = (value: FormDataEntryValue | null) => { const result = Number(value); return Number.isInteger(result) && result > 0 ? result : null }
 
 function auditDateBoundary(day: string, end = false): string | undefined {
@@ -65,6 +65,7 @@ export function AdminWorkspacePage() {
     toUtc: auditDateBoundary(auditTo, true),
   })
   const [notice, setNotice] = useState<string | null>(null)
+  const [errorNotice, setErrorNotice] = useState<string | null>(null)
   const [importText, setImportText] = useState('')
   const [accountScope, setAccountScope] = useState({ departmentId: '', majorId: '' })
   const [busy, setBusy] = useState(false)
@@ -74,7 +75,7 @@ export function AdminWorkspacePage() {
   const busyRef = useRef(false)
   const globalRoles = useMemo(() => admin.rbac.value.roles.filter((role) => role.isAssignableGlobalRole && role.assignmentKind === 'GLOBAL'), [admin.rbac.value.roles])
   const setFilter = (patch: Record<string, string>) => { const next = new URLSearchParams(params); Object.entries(patch).forEach(([key, value]) => value ? next.set(key, value) : next.delete(key)); if (!('page' in patch)) next.set('page', '1'); setParams(next) }
-  const run = async (action: () => Promise<unknown>, success: string) => { if (busyRef.current) return false; busyRef.current = true; setBusy(true); try { await action(); setNotice(success); return true } catch (reason) { setNotice(messageFor(reason)); return false } finally { busyRef.current = false; setBusy(false) } }
+  const run = async (action: () => Promise<unknown>, success: string) => { if (busyRef.current) return false; busyRef.current = true; setBusy(true); setNotice(null); setErrorNotice(null); try { await action(); setNotice(success); return true } catch (reason) { setErrorNotice(messageFor(reason)); return false } finally { busyRef.current = false; setBusy(false) } }
 
   function submitCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const element = event.currentTarget; const form = new FormData(element)
@@ -83,12 +84,12 @@ export function AdminWorkspacePage() {
   }
 
   function submitImport() {
-    try { const accounts = JSON.parse(importText) as UserDraft[]; if (!Array.isArray(accounts) || !accounts.length) throw new Error('invalid'); void run(() => admin.importUsers(accounts), 'Máy chủ đã nhập toàn bộ lô tài khoản.').then(ok => { if (ok) setImportText('') }) } catch { setNotice('Tệp JSON phải là mảng tài khoản theo cấu trúc yêu cầu. Lô không được gửi khi dữ liệu chưa hợp lệ.') }
+    try { const accounts = JSON.parse(importText) as UserDraft[]; if (!Array.isArray(accounts) || !accounts.length) throw new Error('invalid'); void run(() => admin.importUsers(accounts), 'Máy chủ đã nhập toàn bộ lô tài khoản.').then(ok => { if (ok) setImportText('') }) } catch { setNotice(null); setErrorNotice('Tệp JSON phải là mảng tài khoản theo cấu trúc yêu cầu. Lô không được gửi khi dữ liệu chưa hợp lệ.') }
   }
 
   const activeTab = params.get('tab') === 'audit' ? 'audit' : params.get('tab') === 'access' ? 'access' : 'accounts'
 
-  return <main className="workspace-page admin-workspace" aria-labelledby="admin-title">
+  return <div className="workspace-page admin-workspace" aria-labelledby="admin-title">
     <header className="admin-heading">
       <div>
         <p className="admin-kicker">QUẢN TRỊ NỀN TẢNG</p>
@@ -101,14 +102,19 @@ export function AdminWorkspacePage() {
       </div>
     </header>
     <nav className="admin-tabs" aria-label="Khu vực quản trị">
-      <button type="button" className={`admin-tab-btn ${activeTab === 'accounts' ? 'is-active' : ''}`} aria-controls="accounts" aria-pressed={activeTab === 'accounts'} onClick={() => setFilter({ tab: 'accounts' })}>Tài khoản người dùng</button>
-      <Link to="/admin/access/rbac">Phân quyền</Link>
-      <button type="button" className={`admin-tab-btn ${activeTab === 'access' ? 'is-active' : ''}`} aria-controls="access-events" aria-pressed={activeTab === 'access'} onClick={() => setFilter({ tab: 'access' })}>Nhật ký truy cập</button>
-      <button type="button" className={`admin-tab-btn ${activeTab === 'audit' ? 'is-active' : ''}`} aria-controls="audit" aria-pressed={activeTab === 'audit'} onClick={() => setFilter({ tab: 'audit' })}>Nhật ký bảo mật</button>
-      <Link to="/academic/governance">Học kỳ & Kỳ đồ án</Link>
-      {env.industryEnabled && <Link to="/admin/industry">Chuyên gia doanh nghiệp</Link>}
+      <div className="admin-tab-group">
+        <button type="button" className={`admin-tab-btn ${activeTab === 'accounts' ? 'is-active' : ''}`} aria-controls="accounts" aria-pressed={activeTab === 'accounts'} onClick={() => setFilter({ tab: 'accounts' })}>Tài khoản người dùng</button>
+        <button type="button" className={`admin-tab-btn ${activeTab === 'access' ? 'is-active' : ''}`} aria-controls="access-events" aria-pressed={activeTab === 'access'} onClick={() => setFilter({ tab: 'access' })}>Nhật ký truy cập</button>
+        <button type="button" className={`admin-tab-btn ${activeTab === 'audit' ? 'is-active' : ''}`} aria-controls="audit" aria-pressed={activeTab === 'audit'} onClick={() => setFilter({ tab: 'audit' })}>Nhật ký bảo mật</button>
+      </div>
+      <div className="admin-nav-links" aria-label="Trang quản trị liên quan">
+        <Link to="/admin/access/rbac">Phân quyền</Link>
+        <Link to="/academic/governance">Học kỳ & Kỳ đồ án</Link>
+        {env.industryEnabled && <Link to="/admin/industry">Chuyên gia doanh nghiệp</Link>}
+      </div>
     </nav>
     {notice ? <p className="admin-notice" role="status">{notice}</p> : null}
+    {errorNotice ? <p className="admin-error" role="alert">{errorNotice}</p> : null}
     <SystemStatusPanel />
 
     <section className="admin-overview" aria-label="Tổng quan vận hành">
@@ -122,7 +128,7 @@ export function AdminWorkspacePage() {
       <div className="admin-panel-heading"><div><h2 id="admin-activity-title">Hoạt động bảo mật được ghi nhận</h2><p>Các bản ghi trong trang nhật ký hiện tại. Mở nhật ký để lọc và xem thêm.</p></div><Button type="button" variant="secondary" onClick={() => setFilter({ tab: 'audit' })}>Xem nhật ký</Button></div>
       <ul className="admin-activity-list">{admin.audit.value.items.slice(0, 4).map(record => <li key={record.id}>
         <span className={`admin-activity-indicator ${record.outcome === 'SUCCESS' ? 'is-success' : 'is-failure'}`} aria-hidden="true" />
-        <span><strong>{auditActionLabel(record.action)}</strong><small>{record.entityType === 'USER' ? 'Tài khoản' : record.entityType}{record.entityId ? ` #${record.entityId}` : ''} · {record.outcome === 'SUCCESS' ? 'Thành công' : record.outcome === 'FAILURE' ? 'Thất bại' : displayLabel(record.outcome)}</small></span>
+        <span><strong>{auditActionLabel(record.action)}</strong><small>{formatAuditEntity(record)}{record.actorName ? ` · bởi ${record.actorName}` : ''} · {record.outcome === 'SUCCESS' ? 'Thành công' : record.outcome === 'FAILURE' ? 'Thất bại' : displayLabel(record.outcome)}</small></span>
         <time dateTime={record.occurredAt}>{new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' }).format(utcTimestamp(record.occurredAt))}</time>
       </li>)}</ul>
     </section> : null}
@@ -164,9 +170,9 @@ export function AdminWorkspacePage() {
       </Table> : null}
       {admin.users.state === 'ready' && !admin.users.value.items.length ? <p>Không có tài khoản phù hợp với bộ lọc hiện tại.</p> : null}
       {admin.users.state === 'ready' && <Pagination page={admin.users.value.page} pageSize={admin.users.value.pageSize} total={admin.users.value.totalCount} onPage={(next) => setFilter({ page: String(next) })} />}
-      <details className="admin-disclosure rounded-xl border border-hairline bg-slate-50/40 p-4 mt-4"><summary className="cursor-pointer font-bold text-ink hover:text-primary">Tạo tài khoản đơn lẻ</summary><form className="admin-form mt-3" onSubmit={submitCreate}><fieldset className="admin-create-fields" disabled={busy}><label>Họ tên<input name="fullName" required /></label><label>Email<input name="email" type="email" required /></label><label>Mật khẩu ban đầu<input name="password" type="password" minLength={10} placeholder="Ít nhất 10 ký tự" required autoComplete="new-password" /></label><label>Mã sinh viên<input name="studentCode" /></label><label>Mã nhân sự<input name="employeeCode" /></label><AcademicScopeFields {...accountScope} onChange={setAccountScope} /><fieldset><legend>Vai trò hệ thống</legend>{globalRoles.map((role) => <label key={role.id} className="admin-choice"><input name="roleIds" type="checkbox" value={role.id} />{role.code === 'LECTURER' ? 'Giảng viên' : displayLabel(role.code)}</label>)}</fieldset><p className="admin-boundary">Vai trò trưởng nhóm, giảng viên hướng dẫn và người chấm được quản lý theo từng đồ án.</p><Button type="submit" disabled={busy}>{busy ? 'Đang tạo…' : 'Tạo tài khoản'}</Button></fieldset></form></details>
-      <details className="admin-disclosure rounded-xl border border-hairline bg-slate-50/40 p-4 mt-4"><summary className="cursor-pointer font-bold text-ink hover:text-primary">Nhập nhiều tài khoản (JSON Batch)</summary><div className="mt-3"><p className="text-xs text-ink-muted">Nhập từ 1 đến 500 tài khoản bằng tệp JSON. Cả lô chỉ được lưu khi tất cả tài khoản hợp lệ.</p><div className="mt-2 flex items-center gap-2"><Button size="sm" variant="outline" type="button" onClick={() => setImportText(JSON.stringify([{ fullName: 'Nguyễn Văn Mẫu', email: 'mau@example.edu.vn', password: 'Password123!', roleIds: [1], departmentId: null, majorId: null }], null, 2))}>Điền dữ liệu mẫu</Button>{importText.trim() ? <Button size="sm" variant="ghost" type="button" onClick={() => setImportText('')}>Xóa nội dung</Button> : null}</div><label className="admin-import-label mt-2"><span className="text-xs font-semibold text-ink-soft">Nội dung JSON</span><textarea value={importText} onChange={(event) => setImportText(event.target.value)} placeholder={'[{"fullName":"…","email":"…","password":"…","roleIds":[1],"departmentId":null,"majorId":null}]'} className="font-mono text-xs" /></label><Button type="button" disabled={busy || !importText.trim()} onClick={submitImport}>{busy ? 'Đang gửi...' : 'Gửi lô tới máy chủ'}</Button></div></details>
-      <details className="admin-disclosure rounded-xl border border-hairline bg-slate-50/40 p-4 mt-4"><summary className="cursor-pointer font-bold text-ink hover:text-primary">Cập nhật Khung cho sinh viên đã có tài khoản</summary><div className="mt-3"><p className="text-xs text-ink-muted mb-2">Chỉ cập nhật cột Khung theo MSSV, không tạo tài khoản mới.</p><Button variant="outline" onClick={() => setCurriculumImportOpen(true)}>Nhập Khung từ file</Button></div></details>
+      <details className="admin-disclosure rounded-xl border border-hairline bg-canvas p-4 mt-4"><summary className="cursor-pointer font-bold text-ink hover:text-primary">Tạo tài khoản đơn lẻ</summary><form className="admin-form mt-3" onSubmit={submitCreate}><fieldset className="admin-create-fields" disabled={busy}><label>Họ tên<input name="fullName" required /></label><label>Email<input name="email" type="email" required /></label><label>Mật khẩu ban đầu<input name="password" type="password" minLength={10} placeholder="Ít nhất 10 ký tự" required autoComplete="new-password" /></label><label>Mã sinh viên<input name="studentCode" /></label><label>Mã nhân sự<input name="employeeCode" /></label><AcademicScopeFields {...accountScope} onChange={setAccountScope} /><fieldset><legend>Vai trò hệ thống</legend>{globalRoles.map((role) => <label key={role.id} className="admin-choice"><input name="roleIds" type="checkbox" value={role.id} />{role.code === 'LECTURER' ? 'Giảng viên' : displayLabel(role.code)}</label>)}</fieldset><p className="admin-boundary">Vai trò trưởng nhóm, giảng viên hướng dẫn và người chấm được quản lý theo từng đồ án.</p><Button type="submit" disabled={busy}>{busy ? 'Đang tạo…' : 'Tạo tài khoản'}</Button></fieldset></form></details>
+      <details className="admin-disclosure rounded-xl border border-hairline bg-canvas p-4 mt-4"><summary className="cursor-pointer font-bold text-ink hover:text-primary">Nhập nhiều tài khoản (JSON Batch)</summary><div className="mt-3"><p className="text-xs text-ink-muted">Nhập từ 1 đến 500 tài khoản bằng tệp JSON. Cả lô chỉ được lưu khi tất cả tài khoản hợp lệ.</p><div className="mt-2 flex items-center gap-2"><Button size="sm" variant="outline" type="button" onClick={() => setImportText(JSON.stringify([{ fullName: 'Nguyễn Văn Mẫu', email: 'mau@example.edu.vn', password: 'Password123!', roleIds: [1], departmentId: null, majorId: null }], null, 2))}>Điền dữ liệu mẫu</Button>{importText.trim() ? <Button size="sm" variant="ghost" type="button" onClick={() => setImportText('')}>Xóa nội dung</Button> : null}</div><label className="admin-import-label mt-2"><span className="text-xs font-semibold text-ink-soft">Nội dung JSON</span><textarea value={importText} onChange={(event) => setImportText(event.target.value)} placeholder={'[{"fullName":"…","email":"…","password":"…","roleIds":[1],"departmentId":null,"majorId":null}]'} className="font-mono text-xs" /></label><Button type="button" disabled={busy || !importText.trim()} onClick={submitImport}>{busy ? 'Đang gửi...' : 'Gửi lô tới máy chủ'}</Button></div></details>
+      <details className="admin-disclosure rounded-xl border border-hairline bg-canvas p-4 mt-4"><summary className="cursor-pointer font-bold text-ink hover:text-primary">Cập nhật Khung cho sinh viên đã có tài khoản</summary><div className="mt-3"><p className="text-xs text-ink-muted mb-2">Chỉ cập nhật cột Khung theo MSSV, không tạo tài khoản mới.</p><Button variant="outline" onClick={() => setCurriculumImportOpen(true)}>Nhập Khung từ file</Button></div></details>
       <p className="admin-gap">Mở hồ sơ từng tài khoản để cập nhật bộ môn và chuyên ngành. Phân công đồ án được quản lý riêng.</p>
     </section>
 
@@ -184,8 +190,8 @@ export function AdminWorkspacePage() {
           auditTo: String(data.get('toUtc') ?? ''),
         })
       }}>
-        <label>Hành động<input name="action" defaultValue={auditAction} placeholder="Ví dụ: ACCOUNT_, AUTH_" /></label>
-        <label>Đối tượng<input name="entityType" defaultValue={auditEntityType} placeholder="Ví dụ: USER, PROJECT" /></label>
+        <label>Hành động<input name="action" defaultValue={auditAction} placeholder="Nhập mã hành động cần lọc..." /></label>
+        <label>Đối tượng<input name="entityType" defaultValue={auditEntityType} placeholder="Nhập loại đối tượng cần lọc..." /></label>
         <label>Kết quả
           <select name="outcome" defaultValue={auditOutcome}>
             <option value="">Tất cả</option>
@@ -203,10 +209,11 @@ export function AdminWorkspacePage() {
       {admin.audit.state === 'loading' ? <ListLoading label="Đang tải nhật ký…" /> : null}
       {admin.audit.state === 'error' ? <Failure message={admin.isForbidden(admin.audit) ? 'Bạn không có quyền xem nhật ký bảo mật.' : 'Chưa tải được nhật ký bảo mật.'} retry={admin.refresh} /> : null}
       {admin.audit.state === 'ready' && admin.audit.value.items.length > 0 ? (
-        <Table className="mt-3">
+        <Table stack className="mt-3">
           <TableHead>
-            <TableRow>
+            <TableRow head>
               <TableHeaderCell>Hành động</TableHeaderCell>
+              <TableHeaderCell>Người thực hiện</TableHeaderCell>
               <TableHeaderCell>Đối tượng</TableHeaderCell>
               <TableHeaderCell>Kết quả</TableHeaderCell>
               <TableHeaderCell>Thời gian</TableHeaderCell>
@@ -216,13 +223,15 @@ export function AdminWorkspacePage() {
             {admin.audit.value.items.map((record) => (
               <TableRow key={record.id}>
                 <TableCell label="Hành động"><strong title={record.action}>{auditActionLabel(record.action)}</strong></TableCell>
-                <TableCell label="Đối tượng">{record.entityType === 'USER' ? 'Tài khoản' : record.entityType} #{record.entityId ?? '—'}</TableCell>
+                <TableCell label="Người thực hiện">{record.actorName?.trim() || 'Hệ thống'}</TableCell>
+                <TableCell label="Đối tượng">{formatAuditEntity(record)}</TableCell>
                 <TableCell label="Kết quả">
-                  <span className={`inline-block rounded px-2 py-0.5 text-xs font-semibold ${record.outcome === 'SUCCESS' ? 'bg-status-success-bg text-status-success-text' : 'bg-status-error-bg text-status-error-text'}`}>
-                    {record.outcome === 'SUCCESS' ? 'Thành công' : record.outcome === 'FAILURE' ? 'Thất bại' : record.outcome}
-                  </span>
+                  <StatusBadge
+                    tone={record.outcome === 'SUCCESS' ? 'success' : 'danger'}
+                    label={record.outcome === 'SUCCESS' ? 'Thành công' : record.outcome === 'FAILURE' ? 'Thất bại' : displayLabel(record.outcome)}
+                  />
                 </TableCell>
-                <TableCell label="Thời gian"><time>{new Date(utcTimestamp(record.occurredAt)).toLocaleString('vi-VN')}</time></TableCell>
+                <TableCell label="Thời gian"><time dateTime={record.occurredAt}>{new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' }).format(utcTimestamp(record.occurredAt))}</time></TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -231,7 +240,13 @@ export function AdminWorkspacePage() {
       {admin.audit.state === 'ready' && admin.audit.value.totalCount === 0 ? <p role="status">Không có hoạt động phù hợp với bộ lọc hiện tại.</p> : null}
       {admin.audit.state === 'ready' && admin.audit.value.totalCount > 0 && <Pagination page={admin.audit.value.page} pageSize={admin.audit.value.pageSize} total={admin.audit.value.totalCount} onPage={(next) => setFilter({ page: String(next) })} />}
     </section>
-  </main>
+  </div>
+}
+
+function formatAuditEntity(record: Audit): string {
+  const typeLabel = displayLabel(record.entityType)
+  if (record.entityDisplayName?.trim()) return `${typeLabel}: ${record.entityDisplayName.trim()}`
+  return typeLabel
 }
 
 function Fact({ label, value }: { label: string; value: string }) { return <div><span>{label}</span><strong>{value}</strong></div> }
@@ -253,5 +268,51 @@ function Pagination({ page, pageSize, total, onPage }: { page: number; pageSize:
   )
 }
 
-function auditActionLabel(code: string) { return ({ AUTH_LOGIN: 'Đăng nhập', AUTH_LOGOUT: 'Đăng xuất', AUTH_REFRESH_TOKEN_ROTATED: 'Gia hạn phiên đăng nhập', ACCOUNT_CREATED: 'Tạo tài khoản', ACCOUNT_UPDATED: 'Cập nhật tài khoản' } as Record<string,string>)[code] ?? code }
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  AUTH_LOGIN: 'Đăng nhập',
+  AUTH_LOGIN_SUCCESS: 'Đăng nhập thành công',
+  AUTH_LOGIN_FAILED: 'Đăng nhập thất bại',
+  AUTH_LOGOUT: 'Đăng xuất',
+  AUTH_PASSWORD_CHANGED: 'Đổi mật khẩu',
+  AUTH_PASSWORD_RESET: 'Đặt lại mật khẩu',
+  AUTH_REFRESH_TOKEN_ROTATED: 'Gia hạn phiên đăng nhập',
+  ACCOUNT_CREATED: 'Tạo tài khoản',
+  ACCOUNT_UPDATED: 'Cập nhật tài khoản',
+  ACCOUNT_ACTIVATED: 'Kích hoạt tài khoản',
+  ACCOUNT_DEACTIVATED: 'Vô hiệu hóa tài khoản',
+  ACCOUNT_BLOCKED: 'Khóa tài khoản',
+  ACCOUNT_UNBLOCKED: 'Mở khóa tài khoản',
+  ACCOUNT_IMPORTED: 'Nhập lô tài khoản',
+  ACCOUNT_ROLE_ASSIGNED: 'Gán vai trò cho tài khoản',
+  ACCOUNT_ROLE_REMOVED: 'Gỡ vai trò khỏi tài khoản',
+  ACADEMIC_PROFILE_UPDATED: 'Cập nhật hồ sơ học vụ',
+  ACADEMIC_PROFILE_VERIFIED: 'Xác minh hồ sơ học vụ',
+  ACADEMIC_PROFILE_REJECTED: 'Yêu cầu bổ sung hồ sơ học vụ',
+  ROLE_PERMISSIONS_UPDATED: 'Cập nhật quyền của vai trò',
+  ROLE_CREATED: 'Tạo vai trò',
+  ROLE_UPDATED: 'Cập nhật vai trò',
+  ROLE_DELETED: 'Xóa vai trò',
+  PERMISSION_CREATED: 'Tạo quyền truy cập',
+  PERMISSION_UPDATED: 'Cập nhật quyền truy cập',
+  PERMISSION_DELETED: 'Xóa quyền truy cập',
+  USER_CREATED: 'Tạo người dùng',
+  USER_UPDATED: 'Cập nhật người dùng',
+  USER_STATUS_CHANGED: 'Đổi trạng thái người dùng',
+  PROJECT_CREATED: 'Tạo đồ án',
+  PROJECT_UPDATED: 'Cập nhật đồ án',
+  PROJECT_APPROVED: 'Phê duyệt đồ án',
+  PROJECT_REJECTED: 'Từ chối đồ án',
+  EXPERT_INVITED: 'Mời chuyên gia doanh nghiệp',
+  EXPERT_INVITATION_REVOKED: 'Thu hồi lời mời chuyên gia',
+  CHAT_CREATED: 'Tạo cuộc trò chuyện',
+  CHAT_MESSAGE_SENT: 'Gửi tin nhắn',
+  CHAT_MESSAGE_DELETED: 'Xóa tin nhắn',
+  ACADEMIC_ASSISTANT_ASKED: 'Hỏi đáp Trợ lý AI',
+  ASSISTANT_CONVERSATION_CREATED: 'Tạo hội thoại Trợ lý AI',
+  ASSISTANT_CONVERSATION_DELETED: 'Xóa hội thoại Trợ lý AI',
+}
+
+function auditActionLabel(code: string) {
+  return AUDIT_ACTION_LABELS[code] ?? displayLabel(code)
+}
 

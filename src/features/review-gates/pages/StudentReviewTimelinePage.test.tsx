@@ -131,7 +131,7 @@ describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
     const toggleRoleBtn = screen.getByRole('button', { name: '⇄ Đổi vai trò kiểm thử' })
     fireEvent.click(toggleRoleBtn)
 
-    expect(screen.getByText(/Bạn đang xem với vai trò Thành viên \(Student Member\)/)).toBeTruthy()
+    expect(screen.getByText(/Bạn đang xem với vai trò Thành viên/)).toBeTruthy()
 
     // Action button is disabled for member
     const actionBtns = screen.getAllByRole('button', { name: /Nộp bản sửa|Nộp lại|Nộp tài liệu/ })

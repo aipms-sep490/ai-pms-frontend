@@ -16,7 +16,6 @@
 .lecturer-request-summary::after { content: '+'; position: absolute; right: 4px; top: 0; color: var(--color-primary); font-size: 20px; }
 .lecturer-request details[open] > summary::after { content: '−'; }
 .lecturer-request-summary strong { max-width: 85ch; line-height: 1.6; }
-.lecturer-request-summary span { color: var(--color-primary); font-size: 12px; white-space: nowrap; }
 .lecturer-team { padding-left: 16px; border-left: 2px solid var(--color-hairline); }
 @media (max-width: 720px) {
   .lecturer-workspace .lecturer-project { padding: 20px; }

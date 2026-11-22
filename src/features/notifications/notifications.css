@@ -18,7 +18,12 @@
 .notification-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--color-ink-muted); }
 .notification-unread { display: inline-flex; align-items: center; gap: 5px; color: var(--color-primary); font-weight: 600; }
 .notification-unread::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
-.notification-body h2 { margin: 5px 0 0; font-size: 15px; font-weight: 650; line-height: 1.5; color: var(--color-ink); overflow-wrap: anywhere; }
+.notification-body h2, .notification-body h3 { margin: 5px 0 0; font-size: 15px; font-weight: 650; line-height: 1.5; color: var(--color-ink); overflow-wrap: anywhere; }
+.notification-loading-skeleton { display: grid; }
+.notification-skeleton-row { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 14px; padding: 18px 20px; border-bottom: 1px solid var(--color-line); }
+.notification-skeleton-row:last-child { border-bottom: 0; }
+.notification-skeleton-avatar { width: 40px; height: 40px; border-radius: 10px; display: block; }
+.notification-skeleton-lines { display: grid; gap: 8px; align-content: center; }
 .notification-content { margin: 6px 0 0; color: var(--color-ink-muted); font-size: 13px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
 .notification-bottom { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; }
 .notification-bottom time { font-size: 12px; color: var(--color-ink-muted); }
@@ -40,7 +45,7 @@
 .notification-popover-scroll { max-height: min(480px, calc(100dvh - 260px)); overflow-y: auto; overscroll-behavior: contain; }
 .notification-row--compact { grid-template-columns: 36px minmax(0, 1fr); gap: 12px; padding: 16px 20px; }
 .notification-row--compact .notification-icon { width: 36px; height: 36px; font-size: 19px; }
-.notification-row--compact .notification-body h2 { font-size: 13px; }
+.notification-row--compact .notification-body h2, .notification-row--compact .notification-body h3 { font-size: 13px; }
 .notification-row--compact .notification-content { font-size: 12px; }
 .notification-popover-footer { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-top: 1px solid var(--color-line); background: var(--color-canvas); color: var(--color-primary); font-size: 13px; font-weight: 600; text-decoration: none; }
 .notification-popover-footer:hover { background: var(--color-primary-subtle); color: var(--color-primary); }

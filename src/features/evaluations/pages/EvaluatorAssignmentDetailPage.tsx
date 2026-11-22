@@ -4,7 +4,6 @@ import { dateTimeLabel } from '../../execution/execution-utils'
 import './evaluator-detail.css'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import * as api from '../../../services/api/evaluations.api'
 import { HttpError } from '../../../services/http/http-client'
@@ -65,7 +64,8 @@ export function EvaluatorAssignmentDetailPage() {
   const [busy, setBusy] = useState(false)
   const [conflicted, setConflicted] = useState(false), [permissionLost, setPermissionLost] = useState(false)
   const mutationLock = useRef(false)
-  const [message, setMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<number, string>>({})
   const [evidence, setEvidence] = useState<EvaluationAssignmentEvidence | null>(null)
   const [evidenceState, setEvidenceState] = useState<'loading' | 'ready' | 'unavailable'>('loading')
@@ -80,7 +80,7 @@ export function EvaluatorAssignmentDetailPage() {
       if (next && !preserveLocal) { setValues(valuesFor(next)); setOverallComment(next.comments ?? ''); setFieldErrors({}) }
       setState(next ? 'ready' : 'empty')
     } catch (reason) {
-      setMessage(evaluationError(reason))
+      setErrorMessage(evaluationError(reason))
       setState('unavailable')
     }
   }, [assignment.id, assignment.projectId])
@@ -126,12 +126,12 @@ export function EvaluatorAssignmentDetailPage() {
   async function startDraft() {
     if (!scoringAllowed || mutationLock.current || conflicted) return
     mutationLock.current = true
-    setBusy(true); setMessage(null)
+    setBusy(true); setNotice(null); setErrorMessage(null)
     try {
       const next = await api.createEvaluationDraft(assignment.id)
       setDraft(next); setValues(valuesFor(next)); setOverallComment(next.comments ?? ''); setState('ready')
     } catch (reason) {
-      setMessage(evaluationError(reason))
+      setErrorMessage(evaluationError(reason))
       if (isConflict(reason) || (reason instanceof HttpError && reason.status === 403)) await load(true)
     } finally { mutationLock.current = false; setBusy(false) }
   }
@@ -145,14 +145,14 @@ export function EvaluatorAssignmentDetailPage() {
       const raw = row?.score.trim() ?? ''
       return raw ? [{ rubricCriterionId: criterion.rubricCriterionId, score: Number(raw), comments: row?.comments.trim() || null }] : []
     })
-    setBusy(true); setMessage(null)
+    setBusy(true); setNotice(null); setErrorMessage(null)
     try {
       const next = await api.saveEvaluationDraft(draft.id, { concurrencyToken: draft.concurrencyToken, comments: overallComment.trim() || null, scores })
-      setDraft(next); setValues(valuesFor(next)); setOverallComment(next.comments ?? ''); setMessage('Đã lưu bản nháp theo dữ liệu máy chủ.')
+      setDraft(next); setValues(valuesFor(next)); setOverallComment(next.comments ?? ''); setNotice('Đã lưu bản nháp theo dữ liệu máy chủ.')
     } catch (reason) {
       if (isConflict(reason)) { setConflicted(true); await load(true) }
       if (reason instanceof HttpError && (reason.status === 403 || reason.status === 404)) { setPermissionLost(true); setEvidence(null); setDraft(null) }
-      setMessage(evaluationError(reason))
+      setErrorMessage(evaluationError(reason))
     } finally { mutationLock.current = false; setBusy(false) }
   }
 
@@ -161,14 +161,14 @@ export function EvaluatorAssignmentDetailPage() {
     mutationLock.current = true; setBusy(true)
     const confirmed = await requestConfirmation({ title: 'Chốt đánh giá?', description: 'Chốt bản điểm đã lưu. Sau khi chốt, bạn không thể sửa điểm hoặc nhận xét. Hệ thống kiểm tra lại phân công và thời hạn đánh giá.', confirmLabel: 'Yêu cầu chốt đánh giá', danger: true })
     if (confirmed === null) { mutationLock.current = false; setBusy(false); return }
-    setBusy(true); setMessage(null)
+    setBusy(true); setNotice(null); setErrorMessage(null)
     try {
       const next = await api.finalizeEvaluation(draft.id, draft.concurrencyToken)
-      setDraft(next); setValues(valuesFor(next)); setOverallComment(next.comments ?? ''); setMessage('Máy chủ đã chốt đánh giá.')
+      setDraft(next); setValues(valuesFor(next)); setOverallComment(next.comments ?? ''); setNotice('Máy chủ đã chốt đánh giá.')
     } catch (reason) {
       if (isConflict(reason)) { setConflicted(true); await load(true) }
       if (reason instanceof HttpError && (reason.status === 403 || reason.status === 404)) { setPermissionLost(true); setEvidence(null); setDraft(null) }
-      setMessage(evaluationError(reason))
+      setErrorMessage(evaluationError(reason))
     } finally { mutationLock.current = false; setBusy(false) }
   }
 
@@ -182,7 +182,7 @@ export function EvaluatorAssignmentDetailPage() {
   })
   const sheetWeight = detail.componentStudentWeightPercent ?? (schemeContext.state === 'ready' ? schemeContext.component?.studentWeightPercent : null)
   return <WorkspacePage title="Chấm điểm theo phạm vi được phân công" eyebrow={assignment.componentName ?? 'Bài chấm được phân công'} description="Đối chiếu minh chứng, ghi điểm và nhận xét cho từng tiêu chí." backTo="/evaluator/workspace" className="evaluation-workspace evaluator-detail space-y-6 pb-12" identity={<EntityIdentityStrip chips={[
-    { icon: 'folder_open', label: 'Đồ án', value: assignment.projectTitle ?? `Đồ án #${assignment.projectId}` },
+    { icon: 'folder_open', label: 'Đồ án', value: assignment.projectTitle ?? 'Đồ án được phân công' },
     { icon: 'grading', label: 'Bộ tiêu chí của phiếu chấm', value: rubricSummary },
     { icon: 'event_note', label: 'Giai đoạn', value: evaluationStageLabel(detail.stage ?? assignment.stage ?? evidence?.stage) },
     { icon: 'person_pin', label: 'Phạm vi', value: scopeDescription(assignment.scope, assignment.majorName, assignment.studentName) },
@@ -194,7 +194,8 @@ export function EvaluatorAssignmentDetailPage() {
 
     <ScoringGuideDrawer />
     {detail.completedEvaluators != null && detail.requiredEvaluators != null ? <p role="status" className="text-sm text-ink-muted">Người chấm đã hoàn tất: {detail.completedEvaluators}/{detail.requiredEvaluators}. Thiếu phiếu thì kết quả ở trạng thái chờ, không phải 0.</p> : null}
-    {message ? <section role="alert" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text">{message}</section> : null}
+    {notice ? <section role="status" className="rounded-xl border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{notice}</section> : null}
+    {errorMessage ? <section role="alert" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text">{errorMessage}</section> : null}
     {conflicted && <section role="alert" className="workspace-surface p-4"><p>Điểm nháp được giữ để đối chiếu. Hãy kiểm tra dữ liệu máy chủ vừa tải trước khi lưu/chốt lại.</p><button type="button" disabled={busy || state !== 'ready'} className="min-h-11 text-primary underline" onClick={() => setConflicted(false)}>Tôi đã đối chiếu bản điểm mới</button></section>}
     <div className="evaluator-cold-layout">
     {hasPreview ? <aside className="evaluator-cold-aside"><ReportPreviewPanel assignmentId={assignment.id} files={previewFiles} /></aside> : null}
@@ -208,7 +209,7 @@ export function EvaluatorAssignmentDetailPage() {
     {state === 'ready' && draft ? <>
       <div className="evaluator-sticky-scorebar">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Tiến trình chấm Rubrics:</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Tiến trình chấm điểm:</span>
           <span className="rounded-full bg-canvas px-2.5 py-0.5 text-xs font-bold text-ink">
             {draft.scores.filter(c => (values[c.rubricCriterionId]?.score ?? '').trim() !== '').length} / {draft.scores.length} tiêu chí
           </span>
@@ -227,7 +228,7 @@ export function EvaluatorAssignmentDetailPage() {
               form="evaluator-scoring-form"
               disabled={busy || conflicted}
               aria-label="Lưu nhanh tiến trình"
-              className="inline-flex min-h-9 items-center justify-center rounded-lg bg-primary px-3.5 text-xs font-semibold text-white shadow-xs hover:bg-primary-hover disabled:opacity-50"
+              className="inline-flex min-h-9 items-center justify-center rounded-lg border border-primary bg-card px-3.5 text-xs font-semibold text-primary shadow-xs hover:bg-primary-subtle disabled:opacity-50"
             >
               {busy ? 'Đang lưu…' : 'Lưu nhanh'}
             </button>
@@ -237,14 +238,14 @@ export function EvaluatorAssignmentDetailPage() {
 
       <section className="rounded-xl border border-hairline bg-card p-5">
         <h2 className="font-semibold text-ink">Bộ tiêu chí áp dụng</h2>
-        <p className="mt-1 text-sm leading-6 text-ink-muted">Nhập điểm hoặc bấm chọn nhanh mức chất lượng gợi ý từ Rubric. Đối chiếu tài liệu ở khung bên trái khi chấm.</p>
+        <p className="mt-1 text-sm leading-6 text-ink-muted">Nhập điểm hoặc bấm chọn nhanh mức chất lượng gợi ý từ bộ tiêu chí. Đối chiếu tài liệu ở khung bên trái khi chấm.</p>
       </section>
 
       <form id="evaluator-scoring-form" className="evaluator-scoring-form" onSubmit={(event) => void save(event)} noValidate>
-        {scoreGroups(draft.scores).map(group => <div key={group.key} role={group.parentId == null ? undefined : 'group'} aria-label={group.parentId == null ? undefined : `Nhóm ${group.parentName ?? `#${group.parentId}`}`} className={group.parentId == null ? '' : 'space-y-3 border-l-2 border-primary/30 pl-4'}>
-          {group.parentId != null && <h3 className="font-semibold text-ink">{group.parentName ?? `Nhóm tiêu chí #${group.parentId}`}</h3>}
+        {scoreGroups(draft.scores).map(group => <div key={group.key} role={group.parentId == null ? undefined : 'group'} aria-label={group.parentId == null ? undefined : `Nhóm ${group.parentName ?? 'tiêu chí'}`} className={group.parentId == null ? '' : 'space-y-3 border-l-2 border-primary/30 pl-4'}>
+          {group.parentId != null && <h2 className="font-semibold text-ink">{group.parentName ?? 'Nhóm tiêu chí'}</h2>}
           {group.scores.map(criterion => <section key={criterion.rubricCriterionId} className="rounded-xl border border-hairline bg-card p-5">
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]"><div className="min-w-0"><h2 className="break-words font-semibold text-ink">{criterion.criterionCode ? `${criterion.criterionCode} · ` : ""}{criterion.name}{criterion.isRequired ? <span aria-label="bắt buộc" className="ml-1 text-status-error-text">*</span> : null}</h2><p className="mt-1 break-words text-sm leading-6 text-ink-muted">{criterion.description || 'Không có mô tả.'} · Trọng số hiệu lực trong bộ tiêu chí: {formatPercent(criterion.effectiveWeightPercent ?? criterion.weightPercent)} · tối đa {formatScore(criterion.maxScore)}</p></div><label className="text-sm font-semibold text-ink-soft">Điểm<input aria-label={`Điểm ${criterion.name}`} aria-describedby={fieldErrors[criterion.rubricCriterionId] ? `score-error-${criterion.rubricCriterionId}` : undefined} value={values[criterion.rubricCriterionId]?.score ?? ''} onChange={(event) => updateCriterion(criterion, { score: event.target.value })} disabled={!scoringAllowed || !editable || busy} inputMode="decimal" type="number" min="0" max={criterion.maxScore} step="0.01" className="mt-1 block w-full rounded-lg border border-hairline bg-card px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50" />{(values[criterion.rubricCriterionId]?.score ?? '') === '' && <span className="mt-1 block text-xs font-normal text-ink-muted">— Chưa chấm</span>}</label></div>
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]"><div className="min-w-0"><h3 className="break-words font-semibold text-ink">{criterion.criterionCode ? `${criterion.criterionCode} · ` : ""}{criterion.name}{criterion.isRequired ? <span aria-label="bắt buộc" className="ml-1 text-status-error-text">*</span> : null}</h3><p className="mt-1 break-words text-sm leading-6 text-ink-muted">{criterion.description || 'Không có mô tả.'} · Trọng số hiệu lực trong bộ tiêu chí: {formatPercent(criterion.effectiveWeightPercent ?? criterion.weightPercent)} · tối đa {formatScore(criterion.maxScore)}</p></div><label className="text-sm font-semibold text-ink-soft">Điểm<input aria-label={`Điểm ${criterion.name}`} aria-describedby={fieldErrors[criterion.rubricCriterionId] ? `score-error-${criterion.rubricCriterionId}` : undefined} value={values[criterion.rubricCriterionId]?.score ?? ''} onChange={(event) => updateCriterion(criterion, { score: event.target.value })} disabled={!scoringAllowed || !editable || busy} inputMode="decimal" type="number" min="0" max={criterion.maxScore} step="0.01" className="mt-1 block w-full rounded-lg border border-hairline bg-card px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50" />{(values[criterion.rubricCriterionId]?.score ?? '') === '' && <span className="mt-1 block text-xs font-normal text-ink-muted">— Chưa chấm</span>}</label></div>
 
           {criterion.evidenceGuidance ? (
             <div className="mt-3 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary-subtle/50 p-2.5 text-xs text-ink-soft">
@@ -271,7 +272,6 @@ export function EvaluatorAssignmentDetailPage() {
     </> : null}
     </div>
     </div>
-    <Link to="/evaluator/workspace" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">← Về không gian người chấm</Link>
     <UnsavedChangesNotice dirty={dirty && editable && scoringAllowed} busy={busy} />
     {confirmationDialog}
   </WorkspacePage>

@@ -64,7 +64,7 @@ describe('AssignedGateReviewPage (Cross-Role RV-01)', () => {
     await screen.findByText('Hàng đợi Thẩm định (2)')
 
     // PASS button should be disabled because SDD is REJECTED
-    const passBtn = screen.getByRole('button', { name: 'Xác nhận Gate PASS (Đạt)' }) as HTMLButtonElement
+    const passBtn = screen.getByRole('button', { name: 'Xác nhận đạt cổng kiểm duyệt' }) as HTMLButtonElement
     expect(passBtn.disabled).toBe(true)
     expect(screen.getByText(/Chưa đủ điều kiện PASS/)).toBeTruthy()
   })
@@ -86,16 +86,16 @@ describe('AssignedGateReviewPage (Cross-Role RV-01)', () => {
       expect(screen.getByText(/Đủ điều kiện phê duyệt PASS/)).toBeTruthy()
     })
 
-    const passBtn = screen.getByRole('button', { name: 'Xác nhận Gate PASS (Đạt)' }) as HTMLButtonElement
+    const passBtn = screen.getByRole('button', { name: 'Xác nhận đạt cổng kiểm duyệt' }) as HTMLButtonElement
     expect(passBtn.disabled).toBe(false)
 
     // Fill review notes and submit PASS
     const notesArea = screen.getByPlaceholderText(/Nhập chi tiết đánh giá, căn cứ quyết định/)
     fireEvent.change(notesArea, { target: { value: 'Hồ sơ thiết kế đạt yêu cầu chuẩn mực học thuật.' } })
 
-    const submitBtn = screen.getByRole('button', { name: 'Xác nhận Gate PASS (Đạt)' })
+    const submitBtn = screen.getByRole('button', { name: 'Xác nhận đạt cổng kiểm duyệt' })
     fireEvent.click(submitBtn)
 
-    expect(await screen.findByText(/Đã lưu quyết định thẩm định Gate thành công/)).toBeTruthy()
+    expect(await screen.findByText(/Đã lưu quyết định thẩm định cổng kiểm duyệt thành công/)).toBeTruthy()
   })
 })

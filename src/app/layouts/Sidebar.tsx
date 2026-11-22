@@ -267,7 +267,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                         }`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="break-words text-left leading-4 uppercase tracking-wider">{group}</span>
+                          <span className="break-words text-left leading-4 uppercase tracking-wider">{`${groupIndex + 1}. ${group.replace(/^\d+\.\s*/, '')}`}</span>
                           <span className="rounded-full bg-slate-200/80 px-1.5 py-0.5 text-xs font-semibold text-slate-600">
                             {items.length}
                           </span>
@@ -308,7 +308,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                                 >
                                   {item.icon}
                                 </span>
-                                <span className="truncate">{item.title}</span>
+                                <span className="truncate" title={item.title}>{item.title}</span>
                                 {item.id === 'chat' && chatUnread > 0 && (
                                   <span className="shrink-0 rounded-full bg-primary px-2 text-xs text-white" aria-label={`${chatUnread} tin nhắn chưa đọc`}>
                                     {chatUnread > 99 ? '99+' : chatUnread}
@@ -332,7 +332,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                       <NavLink key={item.id} to={item.path} end={item.path === '/academic'} onClick={() => { if (window.innerWidth < 1024) handleClose() }} className={({ isActive }) => `flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-xs font-medium transition-all duration-150 ${isActive ? 'bg-primary-subtle text-primary font-semibold shadow-xs' : 'text-ink-muted hover:text-ink hover:bg-slate-100'}`}>
                         <div className="flex items-center gap-2.5 min-w-0">
                           <span className="material-symbols-outlined text-[18px] shrink-0 text-slate-400" aria-hidden="true">{item.icon}</span>
-                          <span className="truncate">{item.title}</span>
+                          <span className="truncate" title={item.title}>{item.title}</span>
                         </div>
                       </NavLink>
                     ))}
@@ -366,7 +366,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                     >
                       {item.icon}
                     </span>
-                    <span className="truncate">{item.title}</span>
+                    <span className="truncate" title={item.title}>{item.title}</span>
                     {item.id === 'chat' && chatUnread > 0 && <span className="shrink-0 rounded-full bg-primary px-2 text-xs text-white" aria-label={`${chatUnread} tin nhắn chưa đọc`}>{chatUnread > 99 ? '99+' : chatUnread}</span>}
                   </div>
                 </NavLink>
@@ -385,10 +385,10 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
               <span className={`absolute bottom-0 right-0 w-2 h-2 rounded-full ring-2 ring-white ${session ? 'bg-academic-emerald' : 'bg-slate-300'}`} />
             </div>
             <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-[12px] font-semibold text-ink truncate">
+              <span className="text-[12px] font-semibold text-ink truncate" title={profileName}>
                 {profileName}
               </span>
-              <span className="font-mono text-xs text-ink-muted truncate">
+              <span className="font-mono text-xs text-ink-muted truncate" title={profileCode}>
                 {profileCode}
               </span>
             </div>

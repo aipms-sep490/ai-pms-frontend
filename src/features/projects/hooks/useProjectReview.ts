@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { HttpError } from '../../../services/http/http-client'
+import { humanizeHttpError } from '../../../services/http/humanize-http-error'
 import { isActionAllowed, type ProjectDto, type ProjectWorkflowActionsDto } from '../../../types/backend'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import {
@@ -40,13 +41,13 @@ function classifyError(error: unknown): ReviewError {
     const response = error as { status: number; message?: string }
     const status = response.status
     if (status === 401) return { kind: 'unauthorized', message: 'Phiên đăng nhập đã hết hạn.', cause: error }
-    if (status === 403) return { kind: 'forbidden', message: 'Hệ thống từ chối quyền hoặc Department scope.', cause: error }
-    if (status === 404) return { kind: 'not-found', message: 'Không tìm thấy đồ án Review.', cause: error }
-    if (status === 409) return { kind: 'conflict', message: `Dữ liệu review vừa thay đổi. ${response.message ?? 'Hãy kiểm tra dữ liệu mới trước khi quyết định lại.'}`, cause: error }
-    if (status === 422) return { kind: 'validation', message: response.message ?? 'Hệ thống không chấp nhận dữ liệu hoặc điều kiện review hiện tại.', cause: error }
-    if (status >= 500) return { kind: 'system', message: 'Hệ thống gặp lỗi khi xử lý review. Không có trạng thái nào được FE coi là thành công.', cause: error }
+    if (status === 403) return { kind: 'forbidden', message: 'Bạn không có quyền hoặc phạm vi bộ môn để thẩm định đề cương này.', cause: error }
+    if (status === 404) return { kind: 'not-found', message: 'Không tìm thấy hồ sơ đề cương cần thẩm định.', cause: error }
+    if (status === 409) return { kind: 'conflict', message: humanizeHttpError(error, 'Dữ liệu thẩm định vừa thay đổi. Hãy kiểm tra bản mới nhất trước khi quyết định lại.'), cause: error }
+    if (status === 422) return { kind: 'validation', message: humanizeHttpError(error, 'Hệ thống không chấp nhận dữ liệu hoặc điều kiện thẩm định hiện tại.'), cause: error }
+    if (status >= 500) return { kind: 'system', message: 'Hệ thống gặp sự cố khi xử lý thẩm định. Vui lòng thử lại sau.', cause: error }
   }
-  return { kind: 'system', message: 'Không thể kết nối hoặc tải dữ liệu review.', cause: error }
+  return { kind: 'system', message: humanizeHttpError(error, 'Không thể kết nối hoặc tải dữ liệu thẩm định.'), cause: error }
 }
 
 export function useProjectReview(id?: number) {

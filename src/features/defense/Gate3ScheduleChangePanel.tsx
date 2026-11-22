@@ -60,9 +60,13 @@ export function Gate3ScheduleChangePanel({ periodId, schedule, rooms, onChanged,
     } finally { setBusy(false) }
   }
 
-  return <section aria-label={`Đổi lịch Gate 3 đồ án ${schedule.projectId}`} className="rounded-xl border border-hairline bg-canvas p-4">
-    <h3 className="font-semibold">Đổi lịch Gate 3 · Đồ án #{schedule.projectId}</h3>
-    <p className="mt-1 text-sm text-ink-muted">Chỉ đổi trước khi phiên bắt đầu. BE kiểm tra phòng, người đánh giá, cửa sổ Gate và ngày làm việc.</p>
+  const projectLabel = schedule.projectCode
+    ? `${schedule.projectCode}${schedule.projectTitle ? ` · ${schedule.projectTitle}` : ''}`
+    : schedule.projectTitle || 'Đồ án cần đổi lịch'
+
+  return <section aria-label={`Đổi lịch Gate 3 ${projectLabel}`} className="rounded-xl border border-hairline bg-canvas p-4">
+    <h3 className="font-semibold">Đổi lịch Gate 3 · {projectLabel}</h3>
+    <p className="mt-1 text-sm text-ink-muted">Chỉ đổi trước khi phiên bắt đầu. Hệ thống kiểm tra phòng, giảng viên đánh giá, khung thời gian Gate 3 và ngày làm việc.</p>
     <div className="mt-3 grid gap-3 sm:grid-cols-2">
       <label className="text-sm font-semibold">Phòng mới
         <select value={roomId} onChange={event => setRoomId(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-2">

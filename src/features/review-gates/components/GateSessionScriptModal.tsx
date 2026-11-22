@@ -1,9 +1,18 @@
 import React, { useState } from 'react'
+import { displayLabel } from '../../../components/ui/display-label'
 import type {
   GateSessionScript,
   ScriptQaEntry,
   ScriptRemediationItem,
 } from '../types/gate-session-script.types'
+
+function formatSessionTime(value?: string | null): string {
+  if (!value) return '—'
+  if (/^\d{2}:\d{2}/.test(value)) return value
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' }).format(parsed)
+}
 
 export interface GateSessionScriptModalProps {
   isOpen: boolean
@@ -108,10 +117,10 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
       `Đồ án: [${script.projectCode}] ${script.projectTitle}`,
       `Hình thức: ${isOnline ? 'ONLINE (LiveKit)' : `OFFLINE (Phòng ${script.roomCode || 'A-201'})`}`,
       `Thời gian: ${script.scheduledStartAt} - ${script.scheduledEndAt}`,
-      `Kết luận: ${script.verdict}`,
+      `Kết luận: ${displayLabel(script.verdict)}`,
       `-----------------------------------------`,
       `DANH SÁCH CÂU HỎI VẤN ĐÁP (Q&A):`,
-      ...script.qaLog.map((q, i) => `${i + 1}. Người hỏi: ${q.askerName} -> Câu hỏi: ${q.question} | Trả lời: ${q.answeredBy} (${q.evaluation})`),
+      ...script.qaLog.map((q, i) => `${i + 1}. Người hỏi: ${q.askerName} -> Câu hỏi: ${q.question} | Trả lời: ${q.answeredBy} (${displayLabel(q.evaluation)})`),
       `-----------------------------------------`,
       `DANH MỤC YÊU CẦU SỬA ĐỔI:`,
       ...script.remediationItems.map((r, i) => `${i + 1}. ${r.title} (Giao cho: ${r.assignee}, Hạn: ${r.dueDate})`),
@@ -262,7 +271,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
               activeTab === 'VERDICT' ? 'border-primary text-primary' : 'border-transparent text-ink-muted hover:text-ink'
             }`}
           >
-            5. Kết luận & Chữ ký ({script.verdict})
+            5. Kết luận & Chữ ký ({displayLabel(script.verdict)})
           </button>
         </div>
 
@@ -352,7 +361,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                       <div>
                         <span className="font-bold text-ink mr-2">{p.name}</span>
                         <span className="rounded bg-canvas border border-hairline px-1.5 py-0.5 text-xs font-semibold text-ink-muted">
-                          {p.role}
+                          {displayLabel(p.role)}
                         </span>
                       </div>
                     </div>
@@ -360,14 +369,15 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                     <div className="text-xs text-ink-muted">
                       {isOnline ? (
                         p.isPresent ? (
-                          <span className="text-emerald-700 font-medium">
-                            Đã tham gia: {p.durationMinutes || 48} phút ({p.joinedAt || '08:02'} – {p.leftAt || '08:50'})
+                          <span className="text-status-success-text font-medium">
+                            Đã tham gia{p.durationMinutes ? `: ${p.durationMinutes} phút` : ''}
+                            {p.joinedAt || p.leftAt ? ` (${formatSessionTime(p.joinedAt)} – ${formatSessionTime(p.leftAt)})` : ''}
                           </span>
                         ) : (
-                          <span className="text-slate-400">Chưa vào phòng</span>
+                          <span className="text-ink-muted">Chưa vào phòng</span>
                         )
                       ) : (
-                        <span className={p.isPresent ? 'text-emerald-700 font-bold' : 'text-slate-400'}>
+                        <span className={p.isPresent ? 'text-status-success-text font-bold' : 'text-ink-muted'}>
                           {p.isPresent ? 'Có mặt tại phòng' : 'Vắng mặt'}
                         </span>
                       )}
