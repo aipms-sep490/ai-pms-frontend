@@ -394,10 +394,38 @@ const gateDecisionLabels: Record<string, string> = {
 function isSafeLocalizedBackendText(text: string | null | undefined): text is string {
   if (!text) return false
   const trimmed = text.trim()
-  if (trimmed.length < 4 || trimmed.length > 400) return false
+  if (trimmed.length < 4 || trimmed.length > 800) return false
   if (!/[À-ỹ]/u.test(trimmed)) return false
   if (/@|\/internal\/|UNTRANSLATED|undefined|Review Gate|Defense Readiness|timeline|#[0-9]+/i.test(trimmed)) return false
+  if (/^Meeting starts soon:|Your meeting is starting soon|Open AI-PMS\s*>|^Meeting:\s*|^Project:\s*|^Start:\s*|^Location:\s*/im.test(trimmed)) return false
   return true
+}
+
+function formatLegacyMeetingReminderContent(rawContent: string): string | null {
+  if (!/Your meeting is starting soon|Open AI-PMS\s*>|^Start:\s*/im.test(rawContent)) return null
+  const pick = (label: string) => rawContent.match(new RegExp(`^${label}:\\s*(.+)$`, 'im'))?.[1]?.trim()
+  const meetingName = pick('Meeting')
+  const project = pick('Project')
+  const startRaw = pick('Start')
+  const locationRaw = pick('Location')
+  const joinUrl = rawContent.match(/^Join:\s*(https?:\/\/\S+)/im)?.[1]?.trim()
+
+  const start = startRaw?.replace(/\(Vietnam,\s*UTC\+7\)/i, '(Việt Nam, UTC+7)')
+  const location = locationRaw && /^online$/i.test(locationRaw) ? 'Trực tuyến' : locationRaw
+  const hasVideoRoom = /join the video room/i.test(rawContent)
+
+  const lines: string[] = [
+    meetingName && start
+      ? `Cuộc họp "${meetingName}" sắp bắt đầu lúc ${start}.`
+      : meetingName
+        ? `Cuộc họp "${meetingName}" sắp bắt đầu.`
+        : 'Cuộc họp của bạn sắp bắt đầu.',
+  ]
+  if (project) lines.push(`• Đồ án: ${project}`)
+  if (location) lines.push(`• Địa điểm: ${location}`)
+  if (joinUrl) lines.push(`• Liên kết tham gia: ${joinUrl}`)
+  else if (hasVideoRoom) lines.push('• Tham gia: Nhấn "Xem cuộc họp" bên dưới để vào phòng họp video AI-PMS.')
+  return lines.join('\n')
 }
 
 function enrichCopy(
@@ -432,8 +460,12 @@ function enrichCopy(
   if (meetingStartMatch && title === base.title) {
     const meetingName = meetingStartMatch[1].trim()
     if (meetingName && !/@|\/internal\/|UNTRANSLATED|undefined/i.test(meetingName) && meetingName.length <= 140) {
-      title = `Cuộc họp sắp bắt đầu: ${meetingName}`
+      title = `Sắp đến giờ họp: ${meetingName}`
     }
+  }
+  if (item.notificationType === 'MEETING_START_REMINDER' && content === base.content) {
+    const translated = formatLegacyMeetingReminderContent(rawContent)
+    if (translated) content = translated
   }
 
   return { ...base, title, content }
