@@ -5,7 +5,7 @@ import { ChatThread } from './ChatThread'
 import { HttpError } from '../../services/http/http-client'
 
 const mocks = vi.hoisted(() => ({
-  detail: vi.fn(), messages: vi.fn(), members: vi.fn(), send: vi.fn(), read: vi.fn(), aiSummary: vi.fn(),
+  detail: vi.fn(), messages: vi.fn(), members: vi.fn(), send: vi.fn(), read: vi.fn(), aiSummary: vi.fn(), aiAssist: vi.fn(),
   revision: 0, changedConversations: null as Set<string> | null, refresh: vi.fn(), on: vi.fn(), off: vi.fn(), invoke: vi.fn(),
 }))
 vi.mock('./chat-api', async importOriginal => ({ ...(await importOriginal<object>()), chatApi: mocks }))
@@ -264,5 +264,63 @@ describe('chat business and failure boundaries', () => {
     fireEvent.click(askButton)
     await screen.findByText('Tóm tắt AI')
     expect(screen.getByRole('note').textContent).toContain('Phản hồi chỉ có giá trị tham khảo/tư vấn')
+  })
+
+  it('suggests smart replies from quickbar and inserts selected chip into composer without sending', async () => {
+    mocks.aiAssist.mockResolvedValue({
+      conversationId: '9',
+      mode: 'SUGGEST_REPLIES',
+      answer: 'Chọn một câu gợi ý phù hợp:',
+      suggestions: ['Em đã nhận thông tin và sẽ cập nhật báo cáo trước 18h ạ.', 'Nhóm mình thống nhất chốt phương án này nhé.'],
+      references: [],
+      generatedAt: '2026-11-22T04:00:00Z',
+      generationStatus: 'COMPLETED',
+    })
+    mount()
+    await screen.findByText(message.body)
+    fireEvent.click(screen.getByRole('button', { name: 'Gợi ý trả lời' }))
+    const chip = await screen.findByRole('button', { name: 'Em đã nhận thông tin và sẽ cập nhật báo cáo trước 18h ạ.' })
+    expect(mocks.aiAssist).toHaveBeenCalledWith('9', expect.objectContaining({ mode: 'SUGGEST_REPLIES' }))
+    fireEvent.click(chip)
+    expect((screen.getByRole('textbox', { name: 'Tin nhắn' }) as HTMLTextAreaElement).value).toBe('Em đã nhận thông tin và sẽ cập nhật báo cáo trước 18h ạ.')
+    expect(mocks.send).not.toHaveBeenCalled()
+  })
+
+  it('polishes a rough draft and answers grounded thread questions with citations', async () => {
+    mocks.aiAssist
+      .mockResolvedValueOnce({
+        conversationId: '9',
+        mode: 'POLISH_DRAFT',
+        answer: '3 phiên bản viết lại lịch sự hơn:',
+        suggestions: ['Thầy ơi, em xin phép cập nhật lại phần đặc tả trước tối nay ạ.'],
+        references: [],
+        generatedAt: '2026-11-22T04:00:00Z',
+        generationStatus: 'COMPLETED',
+      })
+      .mockResolvedValueOnce({
+        conversationId: '9',
+        mode: 'ASK_THREAD',
+        answer: 'Nhóm đã thống nhất chốt API trong tuần này.',
+        suggestions: [],
+        references: [{ messageId: '1', senderName: 'Người hướng dẫn', excerpt: 'Chốt API trong tuần này' }],
+        generatedAt: '2026-11-22T04:00:00Z',
+        generationStatus: 'COMPLETED',
+      })
+    mount()
+    await screen.findByText(message.body)
+    const input = screen.getByRole('textbox', { name: 'Tin nhắn' })
+    fireEvent.change(input, { target: { value: 'toi nay em nop nha thay' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Viết lịch sự' }))
+    const polished = await screen.findByRole('button', { name: 'Thầy ơi, em xin phép cập nhật lại phần đặc tả trước tối nay ạ.' })
+    expect(mocks.aiAssist).toHaveBeenCalledWith('9', expect.objectContaining({ mode: 'POLISH_DRAFT', draftText: 'toi nay em nop nha thay' }))
+    fireEvent.click(polished)
+    expect((input as HTMLTextAreaElement).value).toBe('Thầy ơi, em xin phép cập nhật lại phần đặc tả trước tối nay ạ.')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hỏi đoạn chat' }))
+    const askInput = await screen.findByLabelText('Hỏi AI về cuộc trò chuyện')
+    fireEvent.change(askInput, { target: { value: 'Nhóm đã chốt gì?' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Hỏi' }))
+    expect(await screen.findByText('Nhóm đã thống nhất chốt API trong tuần này.')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Xem tin gốc' })).toBeTruthy()
   })
 })

@@ -10,12 +10,195 @@ export interface AssistantMeetingDraft {
 }
 export interface AssistantTaskDraft { dueAt?: string | null; priority?: string | null; milestoneTitle?: string | null; assigneeNames?: string[]; primaryMajorName?: string | null }
 export interface AssistantReportDraft { periodStart?: string | null; periodEnd?: string | null; completedWork?: string | null; inProgressWork?: string | null; blockers?: string | null; risks?: string | null; nextActions?: string | null; plannedWork?: string | null }
-export interface AssistantDraft { kind: 'TASK' | 'MEETING' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN'; title: string; description: string; meeting?: AssistantMeetingDraft | null; task?: AssistantTaskDraft | null; report?: AssistantReportDraft | null; tasks?: AssistantDraft[] | null }
-export type AssistantToolMode = 'PROGRESS' | 'REPORT_REVIEW' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN'
+
+export interface AssistantContextCoverage {
+  projectTitle?: string | null
+  projectStage?: string | null
+  tasksScanned: number
+  tasksTotal: number
+  deliverablesCount: number
+  coldItemsCount: number
+  reviewGatesCount: number
+}
+
+export interface AssistantDiagnosticItem {
+  category: 'DOCUMENT' | 'TASK' | 'REVIEW_GATE' | 'COLD_REPORT' | 'MILESTONE' | 'EVIDENCE'
+  title: string
+  location: string
+  status: 'DONE' | 'IN_PROGRESS' | 'NEEDS_REVISION' | 'BLOCKED' | 'OVERDUE' | 'MISSING' | 'PENDING_REVIEW'
+  progressText: string
+  issueDetail?: string | null
+  owner?: string | null
+  dueAt?: string | null
+  target?: string | null
+  resourceId?: number | null
+  citationId?: string | null
+}
+
+export interface AssistantStructuredReport {
+  summaryTitle: string
+  coverage: AssistantContextCoverage
+  items: AssistantDiagnosticItem[]
+}
+
+export interface AssistantSetupMilestone {
+  tempKey: string
+  existingMilestoneId?: number | null
+  title: string
+  description?: string | null
+  startDate?: string | null
+  dueDate?: string | null
+}
+
+export interface AssistantSetupDeliverable {
+  tempKey: string
+  title: string
+  description?: string | null
+  deliverableType: string
+  milestoneRef?: string | null
+  evidenceScope: 'COMMON' | 'MAJOR_SPECIFIC' | string
+  targetMajorName?: string | null
+  dueAt?: string | null
+  acceptanceCriteria: string[]
+}
+
+export interface AssistantSetupTask {
+  tempKey: string
+  title: string
+  description?: string | null
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | string
+  milestoneRef?: string | null
+  dueAt?: string | null
+  assigneeNames: string[]
+  primaryMajorName?: string | null
+  acceptanceCriteria: string[]
+  dependsOnRefs: string[]
+}
+
+export interface AssistantProjectSetupPlan {
+  summary: string
+  milestones: AssistantSetupMilestone[]
+  deliverables: AssistantSetupDeliverable[]
+  tasks: AssistantSetupTask[]
+  warnings: string[]
+}
+
+export interface AssistantRubricLevelDraft {
+  levelOrder: number
+  label: string
+  descriptor: string
+  scoreFrom?: number | null
+  scoreTo?: number | null
+}
+
+export interface AssistantRubricCriterionDraft {
+  tempKey: string
+  parentTempKey?: string | null
+  criterionCode?: string | null
+  name: string
+  description?: string | null
+  weightPercent: number
+  maxScore?: number | null
+  isRequired: boolean
+  learningOutcome?: string | null
+  evidenceGuidance?: string | null
+  levels: AssistantRubricLevelDraft[]
+}
+
+export interface AssistantRubricSetupPlan {
+  code: string
+  name: string
+  description?: string | null
+  projectMode: 'SINGLE_MAJOR' | 'INTERDISCIPLINARY' | string
+  evaluationStage: 'ON_GOING' | 'COLD' | 'DEFENSE' | string
+  evaluationScope: 'COMMON' | 'MAJOR_SPECIFIC' | 'INDIVIDUAL' | string
+  majorName?: string | null
+  criteria: AssistantRubricCriterionDraft[]
+  warnings: string[]
+}
+
+export interface ApplyProjectSetupRequest {
+  idempotencyKey: string
+  runId?: number | null
+  milestones: AssistantSetupMilestone[]
+  deliverables: AssistantSetupDeliverable[]
+  tasks: AssistantSetupTask[]
+}
+
+export interface CreatedSetupItemRef {
+  tempKey: string
+  id: number
+  title: string
+  kind: 'MILESTONE' | 'DELIVERABLE' | 'TASK' | string
+}
+
+export interface ApplyProjectSetupResult {
+  projectId: number
+  replay: boolean
+  milestonesCreated: number
+  deliverablesCreated: number
+  tasksCreated: number
+  taskCriteriaCreated: number
+  dependenciesCreated: number
+  items: CreatedSetupItemRef[]
+  warnings: string[]
+}
+
+export interface ApplyRubricSetupRequest {
+  idempotencyKey: string
+  runId?: number | null
+  departmentId?: number | null
+  academicSemesterId: number
+  majorId?: number | null
+  code: string
+  name: string
+  description?: string | null
+  projectMode: string
+  evaluationStage: string
+  evaluationScope: string
+  criteria: AssistantRubricCriterionDraft[]
+}
+
+export interface ApplyRubricSetupResult {
+  rubricId: number
+  code: string
+  name: string
+  status: string
+  criteriaCount: number
+  replay: boolean
+}
+
+export interface AssistantDraft {
+  kind: 'TASK' | 'MEETING' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN' | 'PROJECT_SETUP' | 'RUBRIC_SETUP'
+  title: string
+  description: string
+  meeting?: AssistantMeetingDraft | null
+  task?: AssistantTaskDraft | null
+  report?: AssistantReportDraft | null
+  tasks?: AssistantDraft[] | null
+  setupPlan?: AssistantProjectSetupPlan | null
+  rubricSetup?: AssistantRubricSetupPlan | null
+}
+export type AssistantToolMode = 'PROGRESS' | 'REPORT_REVIEW' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN' | 'PROJECT_SETUP' | 'RUBRIC_SETUP'
 export type AssistantExportFormat = 'txt' | 'md' | 'docx' | 'xlsx' | 'pdf'
 export interface AssistantRubricOption { id: number; title: string; version: number; assignedToProject: boolean }
 export const listAssistantRubrics = (projectId: number, signal?: AbortSignal) => httpGet<AssistantRubricOption[]>(`/academic/assistant/review-rubrics?projectId=${projectId}`, { signal })
-export interface AcademicAssistantResponse { answer: string; answerType: string; citations: KnowledgeCitation[]; projectEvidence: EvidenceReference[]; insufficientEvidence: boolean; limitationNote: string | null; generationStatus: string; generatedAt: string; runId: number | null; attachments?: { fileName: string; mediaType: string }[]; conversationId?: number; revision?: number; draft?: AssistantDraft }
+export interface AcademicAssistantResponse {
+  answer: string
+  answerType: string
+  citations: KnowledgeCitation[]
+  projectEvidence: EvidenceReference[]
+  insufficientEvidence: boolean
+  limitationNote: string | null
+  generationStatus: string
+  generatedAt: string
+  runId: number | null
+  attachments?: { fileName: string; mediaType: string }[]
+  conversationId?: number
+  revision?: number
+  draft?: AssistantDraft
+  structuredReport?: AssistantStructuredReport | null
+}
 export interface AssistantConversation { id: number; title: string; projectId: number | null; scope: string; revision: number; updatedAt: string }
 /** A persisted turn includes the server-side start time so history shows when the user sent it. */
 export interface AssistantTurn { id: number; query: string; sentAt?: string; response: AcademicAssistantResponse }
@@ -26,6 +209,12 @@ export const listAssistantConversations = (projectId?: number, beforeId?: number
 export const getAssistantConversation = (id: number, beforeTurnId?: number, signal?: AbortSignal) => httpGet<ConversationDetail>(`/academic/assistant/conversations/${id}${beforeTurnId ? `?beforeTurnId=${beforeTurnId}` : ''}`, { signal })
 export const deleteAssistantConversation = (id: number, signal?: AbortSignal) => httpDelete(`/academic/assistant/conversations/${id}`, { signal })
 export const getAssistantCitation = (runId: number, index: number, signal?: AbortSignal) => httpGet<KnowledgeCitation>(`/academic/assistant/runs/${runId}/citations/${index}`, { signal })
+
+export const applyProjectAiSetup = (projectId: number, payload: ApplyProjectSetupRequest, signal?: AbortSignal) =>
+  httpPost<ApplyProjectSetupResult>(`/projects/${projectId}/ai/setup/apply`, payload, { signal })
+
+export const applyRubricAiSetup = (payload: ApplyRubricSetupRequest, signal?: AbortSignal) =>
+  httpPost<ApplyRubricSetupResult>('/academic/ai/rubric-setup/apply', payload, { signal })
 
 export async function streamAssistant(query: string, files: File[], conversation: AssistantConversation, pageContext: string, draftKind: AssistantDraft['kind'] | undefined, onPreview: (text: string) => void, signal: AbortSignal, tool?: { mode: AssistantToolMode; rubricId?: number }): Promise<AcademicAssistantResponse> {
   const form = new FormData()

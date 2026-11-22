@@ -30,6 +30,7 @@ export function AiTopicSimilarityCheck({ input, children }: { input: AiTopicSimi
 
   return <div className="min-w-0 space-y-3">
     <div className="flex flex-wrap gap-2">{children}<button type="button" className={buttonClass} disabled={busy || !input.title.trim() || !input.teamId} onClick={() => void check()}>{busy ? 'Đang đối chiếu ý tưởng…' : 'Kiểm tra ý tưởng bằng AI'}</button></div>
+    {!input.teamId && <p className="text-xs text-status-warning-text">Cần tạo nhóm đồ án với tư cách trưởng nhóm trước khi đối chiếu ý tưởng bằng AI.</p>}
     <p className="text-sm text-ink-muted">AI đối chiếu tên, vấn đề, mục tiêu và sản phẩm kỳ vọng. Bổ sung nội dung đề cương để có căn cứ tốt hơn. Kết quả chỉ hỗ trợ rà soát, không quyết định việc nộp.</p>
     {busy && <p role="status" className="text-sm text-ink-muted">Đang đọc các đề tài trong phạm vi được phép và phân tích mức tương đồng…</p>}
     {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><p>{error}</p><button type="button" className={buttonClass} onClick={() => void check()}>Thử lại kiểm tra AI</button></div>}
@@ -65,10 +66,10 @@ function formatDate(value: string) { const date = new Date(value); return Number
 function errorMessage(reason: unknown) {
   if (reason instanceof HttpError) {
     if (reason.status === 401) return 'Phiên đăng nhập đã hết hạn. Đăng nhập lại để kiểm tra.'
-    if (reason.status === 403) return 'Bạn chưa có quyền kiểm tra đề tài cho nhóm này.'
+    if (reason.status === 403) return reason.message?.trim() || 'Bạn chưa có quyền kiểm tra đề tài cho nhóm này.'
     if (reason.status === 404) return 'Chưa tìm thấy nhóm hoặc đồ án trong phạm vi hiện tại.'
     if (reason.status === 429) return 'Đã vượt giới hạn kiểm tra AI. Hãy chờ một lúc rồi thử lại.'
-    if ([400, 409, 422].includes(reason.status)) return 'Chưa thể kiểm tra với nội dung hoặc trạng thái hiện tại. Kiểm tra thông tin nhóm và đề cương rồi thử lại.'
+    if ([400, 409, 422].includes(reason.status)) return reason.message?.trim() || 'Chưa thể kiểm tra với nội dung hoặc trạng thái hiện tại. Kiểm tra thông tin nhóm và đề cương rồi thử lại.'
   }
   return 'Chưa kiểm tra được ý tưởng bằng AI. Nội dung đề cương được giữ nguyên; hãy thử lại.'
 }

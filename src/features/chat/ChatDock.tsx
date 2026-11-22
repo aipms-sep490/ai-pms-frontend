@@ -22,6 +22,7 @@ function SessionChatDock({ userId }: { userId: string }) {
   const { unreadCount, unreadKnown, state, inbox } = useChat()
   const location = useLocation()
   const [view, setView] = useState<ChatDockView>({ type: 'closed' })
+  const [wide, setWide] = useState(false)
   const [incomingToast, setIncomingToast] = useState<{ id: string; title: string; snippet: string } | null>(null)
   const prevUnreadRef = useRef(unreadCount)
   const dialog = useRef<HTMLDialogElement>(null), launcher = useRef<HTMLButtonElement>(null)
@@ -99,17 +100,28 @@ function SessionChatDock({ userId }: { userId: string }) {
     }
   }
   return <div className="chat-dock" hidden={fullPage}>
-    <dialog id="chat-dock-panel" ref={dialog} className="chat-dock-panel" aria-labelledby="chat-dock-title"
+    <dialog id="chat-dock-panel" ref={dialog} className={`chat-dock-panel${wide ? ' is-wide' : ''}`} aria-labelledby="chat-dock-title"
       onBlur={blurPanel} onCancel={event => { event.preventDefault(); finish({ type: 'closed' }) }}
       onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); finish({ type: 'closed' }) } }}>
       <header className="chat-dock-toolbar">
-        {view.type === 'conversation' && <Button variant="ghost" icon="arrow_back" aria-label="Về danh sách trò chuyện" data-chat-focus onClick={() => setView({ type: 'list' })} />}
-        <div><h2 id="chat-dock-title">Tin nhắn</h2><p role="status">{chatConnectionLabel(state)}</p></div>
-        <Link className="chat-expand" to={conversationId ? `/messages/${conversationId}` : '/messages'} aria-label="Mở trang tin nhắn" onClick={() => setView({ type: 'closed' })}><span className="material-symbols-outlined" aria-hidden="true">open_in_full</span></Link>
+        {view.type === 'conversation'
+          ? <Button variant="ghost" icon="arrow_back" aria-label="Về danh sách trò chuyện" data-chat-focus onClick={() => setView({ type: 'list' })} />
+          : <span className="chat-dock-brand-icon material-symbols-outlined" aria-hidden="true">forum</span>}
+        <div className="chat-dock-heading">
+          <div className="chat-dock-title-row">
+            <h2 id="chat-dock-title">Tin nhắn</h2>
+            <span className={`chat-dock-live-dot ${state === 'connected' ? 'is-connected' : 'is-syncing'}`} aria-hidden="true" />
+          </div>
+          <p role="status">{chatConnectionLabel(state)}</p>
+        </div>
+        <button type="button" className="chat-dock-wide-btn" aria-label={wide ? 'Thu gọn khung tin nhắn' : 'Mở rộng khung tin nhắn'} title={wide ? 'Thu gọn khung' : 'Mở rộng khung'} onClick={() => setWide(v => !v)}>
+          <span className="material-symbols-outlined" aria-hidden="true">{wide ? 'close_fullscreen' : 'aspect_ratio'}</span>
+        </button>
+        <Link className="chat-expand" to={conversationId ? `/messages/${conversationId}` : '/messages'} aria-label="Mở trang tin nhắn" title="Mở toàn màn hình" onClick={() => setView({ type: 'closed' })}><span className="material-symbols-outlined" aria-hidden="true">open_in_full</span></Link>
         <Button variant="ghost" icon="remove" aria-label="Thu nhỏ tin nhắn" data-chat-focus={view.type === 'list' ? true : undefined} onClick={() => finish({ type: 'minimized', conversationId })} />
         <Button variant="ghost" icon="close" aria-label="Đóng tin nhắn" onClick={() => finish({ type: 'closed' })} />
       </header>
-      {view.type === 'list' && <ChatConversations onOpen={room => setView({ type: 'conversation', conversationId: room.id })} />}
+      {view.type === 'list' && <ChatConversations compact onOpen={room => setView({ type: 'conversation', conversationId: room.id })} />}
       {conversationId && <ChatThread key={conversationId} id={conversationId} userId={userId} active={expanded && view.type === 'conversation'} />}
     </dialog>
 

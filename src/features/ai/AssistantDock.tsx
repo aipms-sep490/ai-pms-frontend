@@ -16,23 +16,29 @@ export function AssistantDock() {
   const { session } = useAuthSession()
   const journey = useContext(StudentJourneyContext)
   const { pathname, state } = useLocation()
-  if (!env.academicAiAssistantEnabled || env.isMockMode || !session || !session.user.roles.some(role => ['STUDENT', 'LECTURER', 'ADMIN', 'DEPARTMENT_STAFF'].includes(role.toUpperCase()))) return null
+  if (!env.academicAiAssistantEnabled || env.isMockMode || !session) return null
+  const roles = session.user.roles.map(role => role.toUpperCase())
+  if (!roles.some(role => ['STUDENT', 'LECTURER', 'ADMIN', 'DEPARTMENT_STAFF'].includes(role))) return null
   const routeProject = pathname.match(/^\/(?:supervisor|mentor|department)\/projects\/(\d+)(?:\/|$)/)?.[1]
   const studentProject = /^\/project(?:\/|$)/.test(pathname) && !journey?.isLoading && !journey?.error ? journey?.project?.id : undefined
   const projectId = routeProject ? Number(routeProject) : studentProject
   const scopeKey = `${session.user.id}:${projectId ? journey?.semester?.id ?? 'none' : 'general'}:${projectId ?? 'general'}`
-  const pageLabels: Record<string, string> = { tasks: 'Công việc', meetings: 'Cuộc họp', deliverables: 'Minh chứng bàn giao', overview: 'Tổng quan', milestones: 'Mốc tiến độ', evaluations: 'Chấm điểm', results: 'Kết quả', team: 'Nhóm', ai: 'Trợ lý và phân tích', workspace: 'Không gian làm việc' }
+  const pageLabels: Record<string, string> = { tasks: 'Công việc', meetings: 'Cuộc họp', deliverables: 'Minh chứng bàn giao', overview: 'Tổng quan', milestones: 'Mốc tiến độ', evaluations: 'Chấm điểm', results: 'Kết quả', team: 'Nhóm', ai: 'Trợ lý và phân tích', workspace: 'Không gian làm việc', 'cold-reports': 'Chấm nguội', timeline: 'Review Gates', rubrics: 'Bộ tiêu chí' }
   const pageContext = pathname.split('/').map(part => pageLabels[part]).filter(Boolean).join(' / ') || 'Hỏi đáp chung'
   const routeBase = pathname.startsWith('/project/') ? '/project' : pathname.match(/^\/supervisor\/projects\/\d+/)?.[0]
   const workflowBase = routeBase ?? pathname.match(/^\/department\/projects\/\d+/)?.[0] ?? pathname.match(/^\/mentor\/projects\/\d+\/majors\/\d+/)?.[0]
-  return createPortal(<SessionAssistantDock key={session.user.id} scopeKey={scopeKey} projectId={projectId} pageContext={pageContext} routeBase={routeBase} workflowBase={workflowBase} autoOpen={state?.openAssistant === true} />, document.body)
+  const isStudentLeader = Boolean(routeBase === '/project' && journey?.team?.members.some(member => member.userId === session.user.id && member.isLeader))
+  const canApplyProjectSetup = Boolean(projectId && (isStudentLeader || pathname.startsWith('/supervisor/projects/')))
+  const canApplyRubricSetup = roles.includes('DEPARTMENT_STAFF') || roles.includes('ADMIN')
+  return createPortal(<SessionAssistantDock key={session.user.id} scopeKey={scopeKey} projectId={projectId} pageContext={pageContext} routeBase={routeBase} workflowBase={workflowBase} canApplyProjectSetup={canApplyProjectSetup} canApplyRubricSetup={canApplyRubricSetup} academicSemesterId={journey?.semester?.id} autoOpen={state?.openAssistant === true} />, document.body)
 }
 
-function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, routeBase, workflowBase }: { scopeKey: string; projectId?: number; autoOpen: boolean; pageContext: string; routeBase?: string; workflowBase?: string }) {
+function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, routeBase, workflowBase, canApplyProjectSetup, canApplyRubricSetup, academicSemesterId }: { scopeKey: string; projectId?: number; autoOpen: boolean; pageContext: string; routeBase?: string; workflowBase?: string; canApplyProjectSetup: boolean; canApplyRubricSetup: boolean; academicSemesterId?: number }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const fullPageChat = pathname === '/messages' || pathname.startsWith('/messages/')
   const [open, setOpen] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const [chatExpanded, setChatExpanded] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [reset, setReset] = useState(0)
@@ -46,12 +52,28 @@ function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, rout
     const target = draft.kind === 'TASK' ? 'tasks' : draft.kind === 'WEEKLY_REPORT' ? 'reports/new' : draft.kind === 'MEETING_MINUTES' ? 'meetings' : 'meetings/new'
     navigate(`${routeBase}/${target}`, { state: { assistantDraft: { ...draft, projectId } } })
   }
-  const openEvidence = (evidence: EvidenceReference) => {
-    const match = evidence.referenceUrl?.match(/^\/api\/v1\/(tasks|milestones|meetings|progress-reports)\/(\d+)$/)
-    if (!routeBase || !match) return
+  const openTarget = (target: string, resourceId?: number | null) => {
+    const base = routeBase ?? workflowBase
+    if (!base || !projectId) return
+    const allowedTargets = new Set(['tasks', 'milestones', 'meetings', 'reports', 'deliverables', 'cold-reports', 'timeline', 'final-submission', 'files', 'agreement'])
+    if (!allowedTargets.has(target)) return
     hide()
-    navigate(`${routeBase}/${match[1] === 'progress-reports' ? 'reports' : match[1]}/${match[2]}`)
+    const supportsDetail = ['tasks', 'milestones', 'meetings', 'reports'].includes(target) && typeof resourceId === 'number' && Number.isSafeInteger(resourceId) && resourceId > 0
+    navigate(`${base}/${target}${supportsDetail ? `/${resourceId}` : ''}`)
   }
+  const openEvidence = (evidence: EvidenceReference) => {
+    const url = evidence.referenceUrl ?? ''
+    const detail = url.match(/^\/api\/v1\/(tasks|milestones|meetings|progress-reports)\/(\d+)$/)
+    if (detail) {
+      openTarget(detail[1] === 'progress-reports' ? 'reports' : detail[1], Number(detail[2]))
+      return
+    }
+    if (/^\/api\/v1\/deliverables\/\d+$/.test(url)) { openTarget('deliverables'); return }
+    if (url.includes('/cold/')) { openTarget('cold-reports'); return }
+    if (url.includes('/review-gates')) { openTarget('timeline'); return }
+    if (url.includes('/evidence')) { openTarget('files'); return }
+  }
+  const openRubrics = () => { hide(); navigate('/academic/rubrics') }
   useEffect(() => { if (autoOpen) show() }, [autoOpen])
   useEffect(() => {
     const openChat = () => show()
@@ -95,16 +117,23 @@ function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, rout
     return () => { viewport?.removeEventListener('resize', resize); viewport?.removeEventListener('scroll', resize) }
   }, [])
   return <div className="assistant-dock">
-    <dialog ref={dialog} id="assistant-dock-dialog" aria-labelledby="assistant-dock-title" className="assistant-dock-dialog"
+    <dialog ref={dialog} id="assistant-dock-dialog" aria-labelledby="assistant-dock-title" className={`assistant-dock-dialog${expanded ? ' is-expanded' : ''}`}
       onCancel={event => { if (event.target === event.currentTarget) { event.preventDefault(); hide() } }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); hide() } }}>
       <header className="assistant-dock-header">
         <span className="assistant-avatar material-symbols-outlined" aria-hidden="true">auto_awesome</span>
-        <div className="assistant-dock-heading"><h2 id="assistant-dock-title">Trợ lý AI</h2><p>{projectId ? 'Đồng hành cùng đồ án của bạn' : 'Cùng bạn học tập và làm đồ án'}</p></div>
+        <div className="assistant-dock-heading">
+          <div className="assistant-dock-title-row">
+            <h2 id="assistant-dock-title">Trợ lý AI</h2>
+            <span className="assistant-brand-pill">AI-PMS</span>
+          </div>
+          <p>{projectId ? 'Phân tích đồ án · Đọc tệp & tự động setup' : 'Hỗ trợ học vụ · Đọc ảnh, tài liệu & đồ án'}</p>
+        </div>
+        <button type="button" className="assistant-expand-btn" aria-label={expanded ? 'Thu gọn khung trợ lý' : 'Mở rộng khung trợ lý'} title={expanded ? 'Thu gọn khung' : 'Mở rộng khung'} onClick={() => setExpanded(value => !value)}><span className="material-symbols-outlined" aria-hidden="true">{expanded ? 'close_fullscreen' : 'open_in_full'}</span></button>
         <button type="button" aria-label="Cuộc trò chuyện mới" title="Cuộc trò chuyện mới" onClick={() => setReset(value => value + 1)}><span className="material-symbols-outlined" aria-hidden="true">edit_square</span></button>
-        <button type="button" aria-label="Thu nhỏ trợ lý AI" onClick={hide}><span className="material-symbols-outlined" aria-hidden="true">remove</span></button>
-        <button type="button" aria-label="Đóng trợ lý AI" onClick={hide}><span className="material-symbols-outlined" aria-hidden="true">close</span></button>
+        <button type="button" aria-label="Thu nhỏ trợ lý AI" title="Thu nhỏ" onClick={hide}><span className="material-symbols-outlined" aria-hidden="true">remove</span></button>
+        <button type="button" aria-label="Đóng trợ lý AI" title="Đóng" onClick={hide}><span className="material-symbols-outlined" aria-hidden="true">close</span></button>
       </header>
-      {mounted && <AssistantDockContent key={scopeKey} projectId={projectId} reset={reset} workflowBase={workflowBase} onNavigate={path => { hide(); navigate(path) }} allowReportForm={routeBase === '/project'} pageContext={pageContext} onUseDraft={routeBase && projectId ? useDraft : undefined} onOpenEvidence={routeBase && projectId ? openEvidence : undefined} />}
+      {mounted && <AssistantDockContent key={scopeKey} projectId={projectId} reset={reset} workflowBase={workflowBase} onNavigate={path => { hide(); navigate(path) }} allowReportForm={routeBase === '/project'} canApplyProjectSetup={canApplyProjectSetup} canApplyRubricSetup={canApplyRubricSetup} academicSemesterId={academicSemesterId} pageContext={pageContext} onUseDraft={routeBase && projectId ? useDraft : undefined} onOpenEvidence={(routeBase ?? workflowBase) && projectId ? openEvidence : undefined} onOpenTarget={(routeBase ?? workflowBase) && projectId ? openTarget : undefined} onOpenRubrics={canApplyRubricSetup ? openRubrics : undefined} />}
     </dialog>
     {!chatExpanded && (!fullPageChat || open) && <button ref={launcher} type="button" className="assistant-launcher" aria-label={open ? 'Thu nhỏ trợ lý AI' : 'Mở trợ lý AI'} aria-expanded={open} aria-controls="assistant-dock-dialog" title="Trợ lý AI" onClick={open ? hide : show}>
       <span className="material-symbols-outlined" aria-hidden="true">{open ? 'expand_more' : 'auto_awesome'}</span><span className="assistant-launcher-badge" aria-hidden="true">AI</span>
@@ -112,11 +141,14 @@ function SessionAssistantDock({ scopeKey, projectId, autoOpen, pageContext, rout
   </div>
 }
 
-function AssistantDockContent({ projectId, reset, pageContext, allowReportForm, onUseDraft, onOpenEvidence, workflowBase, onNavigate }: {
+function AssistantDockContent({ projectId, reset, pageContext, allowReportForm, canApplyProjectSetup, canApplyRubricSetup, academicSemesterId, onUseDraft, onOpenEvidence, onOpenTarget, onOpenRubrics, workflowBase, onNavigate }: {
   projectId?: number; reset: number; pageContext: string; allowReportForm: boolean
+  canApplyProjectSetup: boolean; canApplyRubricSetup: boolean; academicSemesterId?: number
   workflowBase?: string; onNavigate: (path: string) => void
   onUseDraft?: (draft: AssistantDraft) => void
   onOpenEvidence?: (evidence: EvidenceReference) => void
+  onOpenTarget?: (target: string, resourceId?: number | null) => void
+  onOpenRubrics?: () => void
 }) {
   const [view, setView] = useState<'chat' | 'risk' | 'workflow'>('chat')
   const [riskOpened, setRiskOpened] = useState(false)
@@ -131,7 +163,7 @@ function AssistantDockContent({ projectId, reset, pageContext, allowReportForm, 
       <button type="button" aria-pressed={showWorkflow} onClick={() => setView('workflow')}><span className="material-symbols-outlined" aria-hidden="true">checklist</span>Hỗ trợ nghiệp vụ</button>
     </nav>}
     <div className="assistant-chat-view" hidden={showRisk || showWorkflow}>
-      <AcademicAssistantPanel allowReportForm={allowReportForm} key={reset} projectId={projectId} pageContext={pageContext} onUseDraft={onUseDraft} onOpenEvidence={onOpenEvidence} dock />
+      <AcademicAssistantPanel allowReportForm={allowReportForm} canApplyProjectSetup={canApplyProjectSetup} canApplyRubricSetup={canApplyRubricSetup} academicSemesterId={academicSemesterId} key={reset} projectId={projectId} pageContext={pageContext} onUseDraft={onUseDraft} onOpenEvidence={onOpenEvidence} onOpenTarget={onOpenTarget} onOpenRubrics={onOpenRubrics} dock />
     </div>
     {hasRisk && riskOpened && <div className="assistant-risk-view" hidden={!showRisk}>
       <ProjectProgressAnalysisPanel projectId={projectId!} dock />
