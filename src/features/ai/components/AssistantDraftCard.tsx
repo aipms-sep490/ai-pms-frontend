@@ -1,18 +1,64 @@
 import { useState } from 'react'
 import type { AssistantDraft } from '../academic-ai-api'
 import { formatMeetingTime } from '../../meetings/meeting-utils'
+import { AssistantProjectSetupCard, AssistantRubricSetupCard } from './AssistantSetupPlanCard'
 
-export function AssistantDraftCard({ draft, onUse }: { draft: AssistantDraft; onUse?: (draft: AssistantDraft) => void }) {
+export function AssistantDraftCard({
+  draft,
+  projectId,
+  runId,
+  canApplyProjectSetup = false,
+  canApplyRubricSetup = false,
+  academicSemesterId,
+  onUse,
+  onNavigateTarget,
+  onOpenRubrics,
+}: {
+  draft: AssistantDraft
+  projectId?: number
+  runId?: number | null
+  canApplyProjectSetup?: boolean
+  canApplyRubricSetup?: boolean
+  academicSemesterId?: number
+  onUse?: (draft: AssistantDraft) => void
+  onNavigateTarget?: (target: string, resourceId?: number | null) => void
+  onOpenRubrics?: () => void
+}) {
   const [title, setTitle] = useState(draft.title)
   const [description, setDescription] = useState(draft.description)
+
+  if (draft.kind === 'PROJECT_SETUP' && draft.setupPlan) {
+    return (
+      <AssistantProjectSetupCard
+        projectId={projectId}
+        runId={runId}
+        plan={draft.setupPlan}
+        canApply={canApplyProjectSetup}
+        onNavigateTarget={onNavigateTarget}
+      />
+    )
+  }
+
+  if (draft.kind === 'RUBRIC_SETUP' && draft.rubricSetup) {
+    return (
+      <AssistantRubricSetupCard
+        runId={runId}
+        plan={draft.rubricSetup}
+        canApply={canApplyRubricSetup}
+        academicSemesterId={academicSemesterId}
+        onOpenRubrics={onOpenRubrics}
+      />
+    )
+  }
+
   if (draft.kind === 'WORK_PLAN') return <section className="assistant-draft" aria-label="Kế hoạch công việc đề xuất">
     <h3>Kế hoạch công việc đề xuất</h3><p>Kiểm tra và lưu từng công việc tại biểu mẫu. Chưa có công việc nào được tạo.</p>
     {draft.tasks?.filter(task => task.kind === 'TASK').slice(0, 8).map((task, index) => <AssistantDraftCard key={index} draft={task} onUse={onUse} />)}
     {!draft.tasks?.length && <p>Chưa có đầu việc cụ thể để điền vào biểu mẫu. Hãy yêu cầu AI tách kế hoạch thành các công việc.</p>}
   </section>
-  const labels = { TASK: 'công việc', MEETING: 'lịch họp', WEEKLY_REPORT: 'báo cáo tuần', MEETING_MINUTES: 'biên bản họp' }
+  const labels: Record<string, string> = { TASK: 'công việc', MEETING: 'lịch họp', WEEKLY_REPORT: 'báo cáo tuần', MEETING_MINUTES: 'biên bản họp' }
   return <fieldset className="assistant-draft">
-    <legend>Bản nháp {labels[draft.kind]}</legend>
+    <legend>Bản nháp {labels[draft.kind] ?? 'nội dung'}</legend>
     <label>Tiêu đề<input value={title} maxLength={255} onChange={event => setTitle(event.target.value)} /></label>
     <label>Nội dung<textarea value={description} maxLength={4000} rows={4} onChange={event => setDescription(event.target.value)} /></label>
     {draft.kind === 'TASK' && draft.task && <div className="assistant-tool-help">

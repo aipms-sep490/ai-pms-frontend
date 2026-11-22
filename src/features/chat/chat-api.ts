@@ -24,7 +24,19 @@ export interface ChatConversation {
 }
 export interface SendMessage { clientMessageId: string; body: string | null; replyToMessageId?: string; attachmentIds?: string[] }
 export interface ChatAiActionItem { title: string; ownerName?: string | null; dueAt?: string | null; sourceMessageId?: string | null }
-export interface ChatAiSummary { summary: string; decisions: string[]; openQuestions: string[]; actionItems: ChatAiActionItem[]; generatedAt: string; generationStatus?: string }
+export interface ChatAiSuggestedMeeting { title: string; description?: string | null; suggestedTimeNote?: string | null; sourceMessageId?: string | null }
+export interface ChatAiSummary {
+  summary: string; decisions: string[]; openQuestions: string[]; actionItems: ChatAiActionItem[]
+  generatedAt: string; generationStatus?: string
+  blockers?: string[]; smartReplies?: string[]; suggestedMeeting?: ChatAiSuggestedMeeting | null
+}
+export type ChatAiAssistMode = 'SUGGEST_REPLIES' | 'POLISH_DRAFT' | 'ASK_THREAD'
+export interface ChatAiAssistRequest { mode: ChatAiAssistMode; query?: string; draftText?: string; tone?: string; messageCount?: number }
+export interface ChatAiReference { messageId: string; senderName: string; excerpt: string }
+export interface ChatAiAssistResult {
+  conversationId: string; mode: ChatAiAssistMode; answer: string; suggestions: string[]
+  references: ChatAiReference[]; generatedAt: string; generationStatus: string
+}
 const root = '/v1/chat'
 const query = (values: Record<string, string | undefined>) => {
   const p = new URLSearchParams()
@@ -50,7 +62,8 @@ export const chatApi = {
   react: (id: string, messageId: string, emoji: string) => httpPut<ChatMessage>(`${root}/conversations/${id}/messages/${messageId}/reactions`, { emoji }),
   unreact: (id: string, messageId: string, emoji: string) => httpDelete<ChatMessage>(`${root}/conversations/${id}/messages/${messageId}/reactions${query({ emoji })}`),
   mute: (id: string, mutedUntil: string | null) => httpPut<ChatConversation>(`${root}/conversations/${id}/mute`, { mutedUntil }),
-  aiSummary: (id: string) => httpPost<ChatAiSummary>(`${root}/conversations/${id}/ai/summary`, {}),
+  aiSummary: (id: string, messageCount?: number) => httpPost<ChatAiSummary>(`${root}/conversations/${id}/ai/summary`, messageCount ? { messageCount } : {}),
+  aiAssist: (id: string, body: ChatAiAssistRequest) => httpPost<ChatAiAssistResult>(`${root}/conversations/${id}/ai/assist`, body),
 }
 
 export function mergeMessages(current: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {

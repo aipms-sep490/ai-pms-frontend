@@ -102,7 +102,19 @@ export function ProjectRegistrationFormPage() {
         {registration.error?.kind === 'validation' && <ValidationSummary summaryRef={validationSummaryRef} fields={registration.error.fields} message={registration.error.message} />}
         <TextField id="project-title" label="Tên đề tài" value={registration.form.title} required disabled={!editable} error={registration.error?.fields?.title} onChange={(value) => registration.setField('title', value)} />
         {editable && <div>
-          <AiTopicSimilarityCheck key={JSON.stringify([journey.profile?.id, journey.team?.id, registrationProject?.id, registration.academicScope, registration.form])} input={{
+          <AiTopicSimilarityCheck key={JSON.stringify([
+            journey.profile?.id ?? null,
+            journey.team?.id ?? null,
+            registrationProject?.id ?? null,
+            registration.academicScope?.leadDepartmentId ?? null,
+            registration.academicScope?.projectMode ?? null,
+            registration.form.title.trim(),
+            registration.form.problemStatement,
+            registration.form.objectives,
+            registration.form.expectedOutput,
+            registration.form.domain,
+            registration.form.keywords,
+          ])} input={{
             teamId: journey.team?.id ?? 0,
             ...(registrationProject ? { projectId: registrationProject.id } : {}),
             title: registration.form.title.trim(),

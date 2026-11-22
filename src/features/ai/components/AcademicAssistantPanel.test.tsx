@@ -222,7 +222,7 @@ it('discards a pending answer when the project changes', async () => {
   let resolve!: (value: unknown) => void
   ask.mockImplementation(() => new Promise(done => { resolve = done }))
   const { rerender } = render(<AcademicAssistantPanel projectId={5} />)
-  fireEvent.click(screen.getByRole('button', { name: 'Hạn nộp và biểu mẫu cần dùng là gì?' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Tài liệu bàn giao, báo cáo chấm nguội và Review Gates của nhóm đã làm đến đâu rồi, mục nào còn thiếu hoặc GVHD yêu cầu sửa?' }))
   rerender(<AcademicAssistantPanel projectId={6} />)
   resolve({ answer: 'Private old project', citations: [], projectEvidence: [] })
   await waitFor(() => expect((screen.getByLabelText('Câu hỏi học vụ') as HTMLTextAreaElement).value).toBe(''))
