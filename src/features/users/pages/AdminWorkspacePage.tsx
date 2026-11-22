@@ -88,10 +88,10 @@ export function AdminWorkspacePage() {
 
   const activeTab = params.get('tab') === 'audit' ? 'audit' : params.get('tab') === 'access' ? 'access' : 'accounts'
 
-  return <main className="workspace-page admin-workspace" aria-labelledby="admin-title">
+  return <div className="workspace-page admin-workspace" aria-labelledby="admin-title">
     <header className="admin-heading">
       <div>
-        <p className="admin-kicker">QUẢN TRỊ NỀN TẢNG</p>
+        <p className="admin-kicker">Quản trị nền tảng</p>
         <h1 id="admin-title">Hệ thống và quyền truy cập</h1>
         <p>Quản lý tài khoản, phân quyền và theo dõi hoạt động trên hệ thống.</p>
       </div>
@@ -145,7 +145,7 @@ export function AdminWorkspacePage() {
             <TableHeaderCell>Trạng thái</TableHeaderCell>
             <TableHeaderCell>Đăng nhập gần nhất</TableHeaderCell>
             <TableHeaderCell>Phạm vi học thuật</TableHeaderCell>
-            <TableHeaderCell aria-label="Thao tác" />
+            <TableHeaderCell>Thao tác</TableHeaderCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -164,9 +164,9 @@ export function AdminWorkspacePage() {
       </Table> : null}
       {admin.users.state === 'ready' && !admin.users.value.items.length ? <p>Không có tài khoản phù hợp với bộ lọc hiện tại.</p> : null}
       {admin.users.state === 'ready' && <Pagination page={admin.users.value.page} pageSize={admin.users.value.pageSize} total={admin.users.value.totalCount} onPage={(next) => setFilter({ page: String(next) })} />}
-      <details className="admin-disclosure rounded-xl border border-hairline bg-slate-50/40 p-4 mt-4"><summary className="cursor-pointer font-bold text-ink hover:text-primary">Tạo tài khoản đơn lẻ</summary><form className="admin-form mt-3" onSubmit={submitCreate}><fieldset className="admin-create-fields" disabled={busy}><label>Họ tên<input name="fullName" required /></label><label>Email<input name="email" type="email" required /></label><label>Mật khẩu ban đầu<input name="password" type="password" minLength={10} placeholder="Ít nhất 10 ký tự" required autoComplete="new-password" /></label><label>Mã sinh viên<input name="studentCode" /></label><label>Mã nhân sự<input name="employeeCode" /></label><AcademicScopeFields {...accountScope} onChange={setAccountScope} /><fieldset><legend>Vai trò hệ thống</legend>{globalRoles.map((role) => <label key={role.id} className="admin-choice"><input name="roleIds" type="checkbox" value={role.id} />{role.code === 'LECTURER' ? 'Giảng viên' : displayLabel(role.code)}</label>)}</fieldset><p className="admin-boundary">Vai trò trưởng nhóm, giảng viên hướng dẫn và người chấm được quản lý theo từng đồ án.</p><Button type="submit" disabled={busy}>{busy ? 'Đang tạo…' : 'Tạo tài khoản'}</Button></fieldset></form></details>
-      <details className="admin-disclosure rounded-xl border border-hairline bg-slate-50/40 p-4 mt-4"><summary className="cursor-pointer font-bold text-ink hover:text-primary">Nhập nhiều tài khoản (JSON Batch)</summary><div className="mt-3"><p className="text-xs text-ink-muted">Nhập từ 1 đến 500 tài khoản bằng tệp JSON. Cả lô chỉ được lưu khi tất cả tài khoản hợp lệ.</p><div className="mt-2 flex items-center gap-2"><Button size="sm" variant="outline" type="button" onClick={() => setImportText(JSON.stringify([{ fullName: 'Nguyễn Văn Mẫu', email: 'mau@example.edu.vn', password: 'Password123!', roleIds: [1], departmentId: null, majorId: null }], null, 2))}>Điền dữ liệu mẫu</Button>{importText.trim() ? <Button size="sm" variant="ghost" type="button" onClick={() => setImportText('')}>Xóa nội dung</Button> : null}</div><label className="admin-import-label mt-2"><span className="text-xs font-semibold text-ink-soft">Nội dung JSON</span><textarea value={importText} onChange={(event) => setImportText(event.target.value)} placeholder={'[{"fullName":"…","email":"…","password":"…","roleIds":[1],"departmentId":null,"majorId":null}]'} className="font-mono text-xs" /></label><Button type="button" disabled={busy || !importText.trim()} onClick={submitImport}>{busy ? 'Đang gửi...' : 'Gửi lô tới máy chủ'}</Button></div></details>
-      <details className="admin-disclosure rounded-xl border border-hairline bg-slate-50/40 p-4 mt-4"><summary className="cursor-pointer font-bold text-ink hover:text-primary">Cập nhật Khung cho sinh viên đã có tài khoản</summary><div className="mt-3"><p className="text-xs text-ink-muted mb-2">Chỉ cập nhật cột Khung theo MSSV, không tạo tài khoản mới.</p><Button variant="outline" onClick={() => setCurriculumImportOpen(true)}>Nhập Khung từ file</Button></div></details>
+      <details className="admin-disclosure rounded-xl border border-hairline bg-canvas p-4 mt-4"><summary className="cursor-pointer font-bold text-ink hover:text-primary">Tạo tài khoản đơn lẻ</summary><form className="admin-form mt-3" onSubmit={submitCreate}><fieldset className="admin-create-fields" disabled={busy}><label>Họ tên<input name="fullName" required /></label><label>Email<input name="email" type="email" required /></label><label>Mật khẩu ban đầu<input name="password" type="password" minLength={10} placeholder="Ít nhất 10 ký tự" required autoComplete="new-password" /></label><label>Mã sinh viên<input name="studentCode" /></label><label>Mã nhân sự<input name="employeeCode" /></label><AcademicScopeFields {...accountScope} onChange={setAccountScope} /><fieldset><legend>Vai trò hệ thống</legend>{globalRoles.map((role) => <label key={role.id} className="admin-choice"><input name="roleIds" type="checkbox" value={role.id} />{role.code === 'LECTURER' ? 'Giảng viên' : displayLabel(role.code)}</label>)}</fieldset><p className="admin-boundary">Vai trò trưởng nhóm, giảng viên hướng dẫn và người chấm được quản lý theo từng đồ án.</p><Button type="submit" disabled={busy}>{busy ? 'Đang tạo…' : 'Tạo tài khoản'}</Button></fieldset></form></details>
+      <details className="admin-disclosure rounded-xl border border-hairline bg-canvas p-4 mt-4"><summary className="cursor-pointer font-bold text-ink hover:text-primary">Nhập nhiều tài khoản (JSON Batch)</summary><div className="mt-3"><p className="text-xs text-ink-muted">Nhập từ 1 đến 500 tài khoản bằng tệp JSON. Cả lô chỉ được lưu khi tất cả tài khoản hợp lệ.</p><div className="mt-2 flex items-center gap-2"><Button size="sm" variant="outline" type="button" onClick={() => setImportText(JSON.stringify([{ fullName: 'Nguyễn Văn Mẫu', email: 'mau@example.edu.vn', password: 'Password123!', roleIds: [1], departmentId: null, majorId: null }], null, 2))}>Điền dữ liệu mẫu</Button>{importText.trim() ? <Button size="sm" variant="ghost" type="button" onClick={() => setImportText('')}>Xóa nội dung</Button> : null}</div><label className="admin-import-label mt-2"><span className="text-xs font-semibold text-ink-soft">Nội dung JSON</span><textarea value={importText} onChange={(event) => setImportText(event.target.value)} placeholder={'[{"fullName":"…","email":"…","password":"…","roleIds":[1],"departmentId":null,"majorId":null}]'} className="font-mono text-xs" /></label><Button type="button" disabled={busy || !importText.trim()} onClick={submitImport}>{busy ? 'Đang gửi...' : 'Gửi lô tới máy chủ'}</Button></div></details>
+      <details className="admin-disclosure rounded-xl border border-hairline bg-canvas p-4 mt-4"><summary className="cursor-pointer font-bold text-ink hover:text-primary">Cập nhật Khung cho sinh viên đã có tài khoản</summary><div className="mt-3"><p className="text-xs text-ink-muted mb-2">Chỉ cập nhật cột Khung theo MSSV, không tạo tài khoản mới.</p><Button variant="outline" onClick={() => setCurriculumImportOpen(true)}>Nhập Khung từ file</Button></div></details>
       <p className="admin-gap">Mở hồ sơ từng tài khoản để cập nhật bộ môn và chuyên ngành. Phân công đồ án được quản lý riêng.</p>
     </section>
 
@@ -231,7 +231,7 @@ export function AdminWorkspacePage() {
       {admin.audit.state === 'ready' && admin.audit.value.totalCount === 0 ? <p role="status">Không có hoạt động phù hợp với bộ lọc hiện tại.</p> : null}
       {admin.audit.state === 'ready' && admin.audit.value.totalCount > 0 && <Pagination page={admin.audit.value.page} pageSize={admin.audit.value.pageSize} total={admin.audit.value.totalCount} onPage={(next) => setFilter({ page: String(next) })} />}
     </section>
-  </main>
+  </div>
 }
 
 function Fact({ label, value }: { label: string; value: string }) { return <div><span>{label}</span><strong>{value}</strong></div> }
