@@ -10,14 +10,13 @@ import { useAuthSession } from '../../auth/context/useAuthSession'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { HttpError } from '../../../services/http/http-client'
-import type { UserAccount, UserDraft } from '../api/admin-api'
+import { exportAdminUserAccounts, type UserAccount, type UserDraft } from '../api/admin-api'
 import { useAdminWorkspace } from '../hooks/useAdminWorkspace'
 import './admin-workspace.css'
 import { SystemStatusPanel } from '../components/SystemStatusPanel'
-import { RosterExportDialog } from '../components/RosterExportDialog'
-import { CurriculumImportDialog } from '../components/CurriculumImportDialog'
 import { StudentImportDialog } from '../components/StudentImportDialog'
 import { getAcademicHierarchy } from '../../academic/api/academic-api'
+import type { AcademicHierarchyOrganization } from '../../academic/types/academic.types'
 import { AccessEventsPanel } from '../components/AccessEventsPanel'
 
 const blankAccount: UserDraft = { departmentId: null, majorId: null, email: '', password: '', fullName: '', phone: null, studentCode: null, employeeCode: null, title: null, roleIds: [] }
@@ -32,9 +31,11 @@ function auditDateBoundary(day: string, end = false): string | undefined {
 
 export function AdminWorkspacePage() {
   const { session } = useAuthSession()
+  const [hierarchy, setHierarchy] = useState<AcademicHierarchyOrganization[]>([])
   const [academicNames, setAcademicNames] = useState<{ departments: Record<number, string>; majors: Record<number, string> }>({ departments: {}, majors: {} })
   useEffect(() => {
     const abort = new AbortController()
+    setHierarchy([])
     setAcademicNames({ departments: {}, majors: {} })
     if (session?.accessToken) void getAcademicHierarchy(session.accessToken, { search: '', includeInactive: true }, abort.signal).then(rows => {
       if (abort.signal.aborted) return
@@ -43,6 +44,7 @@ export function AdminWorkspacePage() {
         departments[entry.department.id] = entry.department.name
         for (const major of entry.majors) majors[major.id] = major.name
       }
+      setHierarchy(rows)
       setAcademicNames({ departments, majors })
     }).catch(() => undefined)
     return () => abort.abort()
@@ -51,12 +53,24 @@ export function AdminWorkspacePage() {
   const page = Math.max(1, Number(params.get('page') ?? '1') || 1)
   const search = params.get('search') ?? ''
   const status = params.get('status') ?? ''
+  const roleFilter = params.get('role') ?? ''
+  const departmentFilter = params.get('departmentId') ?? ''
+  const majorFilter = params.get('majorId') ?? ''
+  const departmentIdNum = Number(departmentFilter) > 0 ? Number(departmentFilter) : undefined
+  const majorIdNum = Number(majorFilter) > 0 ? Number(majorFilter) : undefined
   const auditAction = params.get('auditAction') ?? ''
   const auditEntityType = params.get('auditEntityType') ?? ''
   const auditOutcome = params.get('auditOutcome') ?? ''
   const auditFrom = params.get('auditFrom') ?? ''
   const auditTo = params.get('auditTo') ?? ''
-  const admin = useAdminWorkspace({ search, status: status || undefined, page }, {
+  const admin = useAdminWorkspace({
+    search,
+    status: status || undefined,
+    role: roleFilter || undefined,
+    departmentId: departmentIdNum,
+    majorId: majorIdNum,
+    page,
+  }, {
     action: auditAction || undefined,
     entityType: auditEntityType || undefined,
     outcome: auditOutcome || undefined,
@@ -67,13 +81,48 @@ export function AdminWorkspacePage() {
   const [importText, setImportText] = useState('')
   const [accountScope, setAccountScope] = useState({ departmentId: '', majorId: '' })
   const [busy, setBusy] = useState(false)
-  const [exportOpen, setExportOpen] = useState(false)
-  const [curriculumImportOpen, setCurriculumImportOpen] = useState(false)
+  const [exportingAccounts, setExportingAccounts] = useState(false)
   const [studentImportOpen, setStudentImportOpen] = useState(false)
   const busyRef = useRef(false)
+  const allDepartments = useMemo(() => hierarchy.flatMap(org => org.departments), [hierarchy])
+  const availableMajors = useMemo(() => {
+    if (!departmentFilter) return allDepartments.flatMap(d => d.majors)
+    return allDepartments.find(d => String(d.department.id) === departmentFilter)?.majors ?? []
+  }, [allDepartments, departmentFilter])
   const globalRoles = useMemo(() => admin.rbac.value.roles.filter((role) => role.isAssignableGlobalRole && role.assignmentKind === 'GLOBAL'), [admin.rbac.value.roles])
   const setFilter = (patch: Record<string, string>) => { const next = new URLSearchParams(params); Object.entries(patch).forEach(([key, value]) => value ? next.set(key, value) : next.delete(key)); if (!('page' in patch)) next.set('page', '1'); setParams(next) }
   const run = async (action: () => Promise<unknown>, success: string) => { if (busyRef.current) return false; busyRef.current = true; setBusy(true); try { await action(); setNotice(success); return true } catch (reason) { setNotice(messageFor(reason)); return false } finally { busyRef.current = false; setBusy(false) } }
+
+  async function handleExportAccounts() {
+    if (!session?.accessToken || exportingAccounts) return
+    setExportingAccounts(true)
+    setNotice(null)
+    try {
+      const blob = await exportAdminUserAccounts({
+        search: search || undefined,
+        status: status || undefined,
+        role: roleFilter || undefined,
+        departmentId: departmentIdNum,
+        majorId: majorIdNum,
+      }, session.accessToken)
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      try {
+        anchor.href = url
+        anchor.download = 'system-accounts.xlsx'
+        document.body.appendChild(anchor)
+        anchor.click()
+      } finally {
+        anchor.remove()
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+      }
+      setNotice('Đã xuất tệp Excel danh sách tài khoản hệ thống theo bộ lọc hiện tại.')
+    } catch (reason) {
+      setNotice(messageFor(reason))
+    } finally {
+      setExportingAccounts(false)
+    }
+  }
 
   function submitCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const element = event.currentTarget; const form = new FormData(element)
@@ -125,13 +174,28 @@ export function AdminWorkspacePage() {
       </li>)}</ul>
     </section> : null}
 
-    <section id="accounts" className="admin-panel" aria-labelledby="accounts-title" hidden={activeTab !== 'accounts'}><div className="admin-panel-heading admin-roster-heading"><div><h2 id="accounts-title">Tài khoản người dùng</h2><p>Tìm kiếm, lọc trạng thái và quản lý vòng đời tài khoản. Vai trò hệ thống được quản lý riêng với phân công trong đồ án.</p></div><div className="flex flex-wrap gap-2"><Button icon="upload" onClick={() => setStudentImportOpen(true)}>Nhập sinh viên từ Excel</Button><Button variant="outline" icon="download" onClick={() => setExportOpen(true)}>Xuất Excel danh sách nhóm</Button></div></div>
-      {exportOpen && <RosterExportDialog onClose={() => setExportOpen(false)} />}
-      {curriculumImportOpen && <CurriculumImportDialog onClose={() => setCurriculumImportOpen(false)} onImported={admin.refresh} />}
+    <section id="accounts" className="admin-panel" aria-labelledby="accounts-title" hidden={activeTab !== 'accounts'}><div className="admin-panel-heading admin-roster-heading"><div><h2 id="accounts-title">Tài khoản người dùng</h2><p>Tìm kiếm, lọc theo vai trò, khoa/ngành, trạng thái và quản lý vòng đời tài khoản. Vai trò hệ thống được quản lý riêng với phân công trong đồ án.</p></div><div className="flex flex-wrap gap-2"><Button icon="upload" onClick={() => setStudentImportOpen(true)}>Nhập sinh viên từ Excel</Button><Button variant="outline" icon="download" disabled={exportingAccounts} onClick={() => void handleExportAccounts()}>{exportingAccounts ? 'Đang xuất…' : 'Xuất Excel Tài khoản'}</Button></div></div>
       {studentImportOpen && <StudentImportDialog onClose={() => setStudentImportOpen(false)} onImported={admin.refresh} />}
-      <form key={JSON.stringify([search,status])} className="admin-filter" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); setFilter({ search: String(data.get('search') ?? ''), status: String(data.get('status') ?? ''), page: '1' }) }}>
-        <label>Tìm kiếm<input name="search" defaultValue={search} placeholder="Tên, email hoặc mã" /></label><label>Trạng thái<select name="status" defaultValue={status}><option value="">Tất cả</option><option value="ACTIVE">Đang hoạt động</option><option value="INACTIVE">Ngừng hoạt động</option><option value="SUSPENDED">Đang khóa</option></select></label><Button type="submit" variant="secondary">Áp dụng</Button>
-        {(search || status) ? <Button type="button" variant="outline" onClick={() => setFilter({ search: '', status: '', page: '1' })}>Đặt lại bộ lọc</Button> : null}
+      <form key={JSON.stringify([search, status, roleFilter, departmentFilter, majorFilter])} className="admin-filter" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); setFilter({ search: String(data.get('search') ?? ''), status: String(data.get('status') ?? ''), role: String(data.get('role') ?? ''), departmentId: String(data.get('departmentId') ?? ''), majorId: String(data.get('majorId') ?? ''), page: '1' }) }}>
+        <label>Tìm kiếm<input name="search" defaultValue={search} placeholder="Tên, email hoặc mã" /></label>
+        <label>Vai trò<select name="role" defaultValue={roleFilter}>
+          <option value="">Tất cả vai trò</option>
+          <option value="STUDENT">Sinh viên</option>
+          <option value="LECTURER">Giảng viên</option>
+          <option value="DEPARTMENT_STAFF">Giáo vụ Khoa</option>
+          <option value="ADMIN">Quản trị viên</option>
+        </select></label>
+        <label>Khoa / Bộ môn<select name="departmentId" defaultValue={departmentFilter} onChange={event => setFilter({ departmentId: event.target.value, majorId: '', page: '1' })}>
+          <option value="">Tất cả khoa</option>
+          {allDepartments.map(({ department }) => <option key={department.id} value={department.id}>{department.name}</option>)}
+        </select></label>
+        <label>Ngành<select name="majorId" defaultValue={majorFilter}>
+          <option value="">Tất cả ngành</option>
+          {availableMajors.map(major => <option key={major.id} value={major.id}>{major.name}</option>)}
+        </select></label>
+        <label>Trạng thái<select name="status" defaultValue={status}><option value="">Tất cả</option><option value="ACTIVE">Đang hoạt động</option><option value="INACTIVE">Ngừng hoạt động</option><option value="SUSPENDED">Đang khóa</option></select></label>
+        <Button type="submit" variant="secondary">Áp dụng</Button>
+        {(search || status || roleFilter || departmentFilter || majorFilter) ? <Button type="button" variant="outline" onClick={() => setFilter({ search: '', status: '', role: '', departmentId: '', majorId: '', page: '1' })}>Đặt lại bộ lọc</Button> : null}
       </form>
       {admin.users.state === 'loading' ? <ListLoading label="Đang tải danh sách tài khoản…" /> : null}
       {admin.users.state === 'error' ? <Failure message={admin.isForbidden(admin.users) ? 'Bạn không có quyền quản trị tài khoản.' : 'Chưa tải được danh sách tài khoản.'} retry={admin.refresh} /> : null}
@@ -153,8 +217,17 @@ export function AdminWorkspacePage() {
             <TableCell label="Trạng thái"><Status status={user.status} /></TableCell>
             <TableCell label="Đăng nhập gần nhất">{user.lastLoginAt ? <time dateTime={user.lastLoginAt}>{new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(utcTimestamp(user.lastLoginAt))}</time> : 'Chưa ghi nhận'}</TableCell>
             <TableCell label="Phạm vi học thuật">
-              {user.departmentId ? academicNames.departments[user.departmentId] ?? 'Chưa tải được tên bộ môn' : 'Chưa liên kết bộ môn'}
-              {user.majorId ? ` · ${academicNames.majors[user.majorId] ?? 'Chưa tải được tên ngành'}` : ''}
+              <div className="flex flex-col">
+                <span>
+                  {user.departmentId ? academicNames.departments[user.departmentId] ?? 'Chưa tải được tên bộ môn' : 'Chưa liên kết bộ môn'}
+                  {user.majorId ? ` · ${academicNames.majors[user.majorId] ?? 'Chưa tải được tên ngành'}` : ''}
+                </span>
+                {(user.classCode || user.specializationName) && (
+                  <small className="text-ink-muted">
+                    {[user.classCode ? `Lớp ${user.classCode}` : null, user.specializationName].filter(Boolean).join(' · ')}
+                  </small>
+                )}
+              </div>
             </TableCell>
             <TableCell label="Thao tác"><Link to={`/admin/access/users/${user.id}`} state={{ returnTo: `/admin/access?${params.toString()}` }}>Xem chi tiết</Link></TableCell>
           </TableRow>)}
@@ -164,8 +237,7 @@ export function AdminWorkspacePage() {
       {admin.users.state === 'ready' && <Pagination page={admin.users.value.page} pageSize={admin.users.value.pageSize} total={admin.users.value.totalCount} onPage={(next) => setFilter({ page: String(next) })} />}
       <details className="admin-disclosure rounded-xl border border-hairline bg-slate-50/40 p-4 mt-4"><summary className="cursor-pointer font-bold text-ink hover:text-primary">Tạo tài khoản đơn lẻ</summary><form className="admin-form mt-3" onSubmit={submitCreate}><fieldset className="admin-create-fields" disabled={busy}><label>Họ tên<input name="fullName" required /></label><label>Email<input name="email" type="email" required /></label><label>Mật khẩu ban đầu<input name="password" type="password" minLength={10} placeholder="Ít nhất 10 ký tự" required autoComplete="new-password" /></label><label>Mã sinh viên<input name="studentCode" /></label><label>Mã nhân sự<input name="employeeCode" /></label><AcademicScopeFields {...accountScope} onChange={setAccountScope} /><fieldset><legend>Vai trò hệ thống</legend>{globalRoles.map((role) => <label key={role.id} className="admin-choice"><input name="roleIds" type="checkbox" value={role.id} />{role.code === 'LECTURER' ? 'Giảng viên' : displayLabel(role.code)}</label>)}</fieldset><p className="admin-boundary">Vai trò trưởng nhóm, giảng viên hướng dẫn và người chấm được quản lý theo từng đồ án.</p><Button type="submit" disabled={busy}>{busy ? 'Đang tạo…' : 'Tạo tài khoản'}</Button></fieldset></form></details>
       <details className="admin-disclosure rounded-xl border border-hairline bg-slate-50/40 p-4 mt-4"><summary className="cursor-pointer font-bold text-ink hover:text-primary">Nhập nhiều tài khoản (JSON Batch)</summary><div className="mt-3"><p className="text-xs text-ink-muted">Nhập từ 1 đến 500 tài khoản bằng tệp JSON. Cả lô chỉ được lưu khi tất cả tài khoản hợp lệ.</p><div className="mt-2 flex items-center gap-2"><Button size="sm" variant="outline" type="button" onClick={() => setImportText(JSON.stringify([{ fullName: 'Nguyễn Văn Mẫu', email: 'mau@example.edu.vn', password: 'Password123!', roleIds: [1], departmentId: null, majorId: null }], null, 2))}>Điền dữ liệu mẫu</Button>{importText.trim() ? <Button size="sm" variant="ghost" type="button" onClick={() => setImportText('')}>Xóa nội dung</Button> : null}</div><label className="admin-import-label mt-2"><span className="text-xs font-semibold text-ink-soft">Nội dung JSON</span><textarea value={importText} onChange={(event) => setImportText(event.target.value)} placeholder={'[{"fullName":"…","email":"…","password":"…","roleIds":[1],"departmentId":null,"majorId":null}]'} className="font-mono text-xs" /></label><Button type="button" disabled={busy || !importText.trim()} onClick={submitImport}>{busy ? 'Đang gửi...' : 'Gửi lô tới máy chủ'}</Button></div></details>
-      <details className="admin-disclosure rounded-xl border border-hairline bg-slate-50/40 p-4 mt-4"><summary className="cursor-pointer font-bold text-ink hover:text-primary">Cập nhật Khung cho sinh viên đã có tài khoản</summary><div className="mt-3"><p className="text-xs text-ink-muted mb-2">Chỉ cập nhật cột Khung theo MSSV, không tạo tài khoản mới.</p><Button variant="outline" onClick={() => setCurriculumImportOpen(true)}>Nhập Khung từ file</Button></div></details>
-      <p className="admin-gap">Mở hồ sơ từng tài khoản để cập nhật bộ môn và chuyên ngành. Phân công đồ án được quản lý riêng.</p>
+      <p className="admin-gap">Mở hồ sơ từng tài khoản để cập nhật bộ môn và ngành. Cập nhật khung CTĐT, xác minh hồ sơ sinh viên và xuất danh sách nhóm thuộc thẩm quyền Giáo vụ Khoa.</p>
     </section>
 
     {activeTab === 'access' && <AccessEventsPanel />}

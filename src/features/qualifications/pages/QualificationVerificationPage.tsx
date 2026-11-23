@@ -12,7 +12,7 @@ function date(value?: string | null) {
   return Number.isNaN(parsed.valueOf()) ? 'Ngày chưa hợp lệ' : parsed.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
 }
 
-export function QualificationVerificationPage() {
+export function QualificationVerificationPage({ embedded = false }: { embedded?: boolean }) {
   const queue = useQualificationQueue()
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const [pendingId, setPendingId] = useState<number | null>(null), [notice, setNotice] = useState<string | null>(null)
@@ -32,7 +32,7 @@ export function QualificationVerificationPage() {
     } finally { lock.current = false; setPendingId(null) }
   }
 
-  return <WorkspacePage title="Xác minh điều kiện tham gia đồ án" eyebrow="Điều kiện tham gia" description="Kiểm tra hồ sơ đào tạo và thông tin chứng chỉ của sinh viên thuộc bộ môn trước khi đăng ký đồ án.">
+  const body = <>
     <section className="workspace-surface space-y-4 p-4 sm:p-5" aria-label="Lọc hồ sơ xác minh">
       <div className="flex flex-wrap items-end gap-3">
         <label className="min-w-0 w-full text-sm font-medium sm:w-auto sm:flex-1">Tìm sinh viên<input className="mt-2 block min-h-11 w-full rounded-lg border border-hairline px-3" value={queue.search} disabled={pendingId !== null} onChange={event => queue.setSearch(event.target.value)} placeholder="Tên hoặc mã sinh viên" /></label>
@@ -61,5 +61,9 @@ export function QualificationVerificationPage() {
     </li>)}</ul>}
     {!queue.loading && !queue.error && <nav className="flex flex-wrap items-center justify-between gap-3 text-sm" aria-label="Phân trang hồ sơ xác minh"><Button className="min-h-11" variant="secondary" disabled={queue.page <= 1 || pendingId !== null} onClick={() => queue.setPage(queue.page - 1)}>Trang trước</Button><p>Trang {queue.page} / {queue.totalPages} · {queue.totalCount} hồ sơ</p><Button className="min-h-11" variant="secondary" disabled={queue.page >= queue.totalPages || pendingId !== null} onClick={() => queue.setPage(queue.page + 1)}>Trang sau</Button></nav>}
     {confirmationDialog}
+  </>
+  if (embedded) return <div className="space-y-4">{body}</div>
+  return <WorkspacePage title="Xác minh điều kiện tham gia đồ án" eyebrow="Điều kiện tham gia" description="Kiểm tra hồ sơ đào tạo và thông tin chứng chỉ của sinh viên thuộc bộ môn trước khi đăng ký đồ án.">
+    {body}
   </WorkspacePage>
 }

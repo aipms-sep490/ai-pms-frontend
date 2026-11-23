@@ -121,6 +121,8 @@
 "/department/projects/:projectId/archive-view","department","ProjectArchiveViewPage","src/features/projects/pages/ProjectArchiveViewPage.tsx","NO","YES","NO","YES","NO","NO","NO"
 "/department/supervisors","department","SupervisorMonitoringPage","src/features/supervisors/pages/SupervisorMonitoringPage.tsx","NO","NO","YES","NO","NO","NO","NO"
 "/department/supervisors/:id","department","SupervisorMonitoringPage","src/features/supervisors/pages/SupervisorMonitoringPage.tsx","NO","NO","YES","NO","NO","NO","NO"
+"/department/students","department","DepartmentStudentsPage","src/features/department/pages/DepartmentStudentsPage.tsx","YES","YES","YES","YES","YES","NO","NO"
+"/department/students/:userId","department","DepartmentStudentDetailPage","src/features/department/pages/DepartmentStudentDetailPage.tsx","YES","YES","YES","YES","YES","NO","NO"
 "/department/student-qualifications","department","QualificationVerificationPage","src/features/qualifications/pages/QualificationVerificationPage.tsx","YES","YES","NO","YES","NO","NO","NO"
 "/department/topics","department","TopicManagementPage","src/features/topics/pages/TopicManagementPage.tsx","NO","YES","NO","YES","YES","NO","NO"
 "/department/topics/:id","department","TopicManagementPage","src/features/topics/pages/TopicManagementPage.tsx","NO","YES","NO","YES","YES","NO","NO"

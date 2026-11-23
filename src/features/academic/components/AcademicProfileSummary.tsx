@@ -1,9 +1,247 @@
+import { useEffect, useState, type FormEvent } from 'react'
+import { Button } from '../../../components/ui/Button'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { HttpError } from '../../../services/http/http-client'
-import { useEffect, useState } from 'react'
-import { getMyAcademicProfile, type AcademicProfile } from '../api/profile-verification-api'
-import { academicProfileStatus } from '../api/profile-verification-api'
+import { useAuthSession } from '../../auth/context/useAuthSession'
+import {
+  listSpecializations,
+  updateMyStudentAcademic,
+  type DepartmentSpecialization,
+} from '../../department/api/department-students-api'
+import {
+  academicProfileStatus,
+  getMyAcademicProfile,
+  type AcademicProfile,
+} from '../api/profile-verification-api'
+
+const statusTone: Record<string, BadgeTone> = {
+  VERIFIED: 'success',
+  PENDING: 'warning',
+  REJECTED: 'danger',
+}
+
+function updateErrorText(reason: unknown): string {
+  if (reason instanceof HttpError) {
+    if (reason.status === 409) {
+      return 'Hồ sơ học vụ đã được Khoa xác minh hoặc bạn đang tham gia nhóm đồ án nên không thể tự sửa. Vui lòng liên hệ Giáo vụ Khoa nếu cần điều chỉnh.'
+    }
+    if (reason.status === 422 || reason.status === 400) {
+      return reason.problem?.detail || 'Lớp hành chính hoặc chuyên ngành hẹp chưa hợp lệ theo phạm vi Khoa/Ngành của bạn.'
+    }
+    if (reason.status === 403) return 'Chỉ tài khoản sinh viên mới có thể tự cập nhật mục này.'
+  }
+  return 'Chưa thể cập nhật lớp và chuyên ngành hẹp. Vui lòng thử lại.'
+}
+
 export function AcademicProfileSummary() {
-  const [profile, setProfile] = useState<AcademicProfile | null>(null), [error, setError] = useState<'missing' | 'failed' | null>(null), [revision, setRevision] = useState(0)
-  useEffect(() => { let active = true; setError(null); void getMyAcademicProfile().then(result => { if (active) setProfile(result) }).catch(reason => { if (active) setError(reason instanceof HttpError && reason.status === 404 ? 'missing' : 'failed') }); return () => { active = false } }, [revision])
-  return <section className="border-t border-hairline py-5" aria-labelledby="academic-profile-title"><h3 id="academic-profile-title" className="text-sm font-semibold">Thông tin học vụ</h3>{error === 'missing' ? <p className="mt-2 text-sm text-ink-muted">Tài khoản chưa có hồ sơ học vụ.</p> : error ? <p className="mt-2 text-sm text-ink-muted">Chưa tải được hồ sơ học vụ. <button type="button" className="font-semibold text-primary" onClick={() => setRevision(revision + 1)}>Thử lại</button></p> : profile ? <><dl className="mt-3 grid gap-4 sm:grid-cols-3"><div><dt className="text-xs text-ink-muted">Bộ môn</dt><dd className="mt-1 text-sm font-medium">{profile.departmentName || 'Chưa cập nhật'}</dd></div><div><dt className="text-xs text-ink-muted">Chuyên ngành</dt><dd className="mt-1 text-sm font-medium">{profile.majorName || 'Chưa cập nhật'}</dd></div><div><dt className="text-xs text-ink-muted">Xác minh</dt><dd className="mt-1 text-sm font-medium">{academicProfileStatus(profile.status)}</dd></div></dl>{profile.rejectionReason && <p className="mt-3 text-sm text-status-warning-text">Cần bổ sung: {profile.rejectionReason}</p>}</> : <p role="status" className="mt-2 text-sm text-ink-muted">Đang tải thông tin học vụ…</p>}</section>
+  const { session } = useAuthSession()
+  const isStudent = Boolean(session?.user.roles.includes('STUDENT'))
+  const [profile, setProfile] = useState<AcademicProfile | null>(null)
+  const [error, setError] = useState<'missing' | 'failed' | null>(null)
+  const [revision, setRevision] = useState(0)
+
+  const [specializations, setSpecializations] = useState<DepartmentSpecialization[]>([])
+  const [editing, setEditing] = useState(false)
+  const [classCode, setClassCode] = useState('')
+  const [specializationId, setSpecializationId] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    setError(null)
+    void getMyAcademicProfile()
+      .then(result => {
+        if (!active) return
+        setProfile(result)
+        setClassCode(result.classCode ?? '')
+        setSpecializationId(result.specializationId ? String(result.specializationId) : '')
+      })
+      .catch(reason => {
+        if (active) setError(reason instanceof HttpError && reason.status === 404 ? 'missing' : 'failed')
+      })
+    return () => { active = false }
+  }, [revision])
+
+  useEffect(() => {
+    if (!isStudent || !profile?.departmentId) return
+    const controller = new AbortController()
+    listSpecializations(
+      { departmentId: profile.departmentId, majorId: profile.majorId ?? undefined, includeInactive: false },
+      controller.signal,
+    )
+      .then(list => { if (!controller.signal.aborted) setSpecializations(list) })
+      .catch(() => undefined)
+    return () => controller.abort()
+  }, [isStudent, profile?.departmentId, profile?.majorId])
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!profile || saving) return
+    const trimmedClass = classCode.trim()
+    if (!trimmedClass) {
+      setSaveError('Vui lòng nhập Lớp hành chính (ví dụ: SE1801, MKT1802).')
+      return
+    }
+    setSaving(true)
+    setSaveError(null)
+    setSaveSuccess(null)
+    try {
+      const updated = await updateMyStudentAcademic({
+        classCode: trimmedClass,
+        specializationId: Number(specializationId) > 0 ? Number(specializationId) : null,
+      })
+      setProfile(updated)
+      setClassCode(updated.classCode ?? '')
+      setSpecializationId(updated.specializationId ? String(updated.specializationId) : '')
+      setEditing(false)
+      setSaveSuccess('Đã cập nhật lớp hành chính và chuyên ngành hẹp. Hồ sơ đang ở trạng thái Chờ Khoa xác minh.')
+    } catch (reason) {
+      if (reason instanceof HttpError && reason.status === 409) {
+        setRevision(r => r + 1)
+        setEditing(false)
+      }
+      setSaveError(updateErrorText(reason))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const isLocked = profile?.status === 'VERIFIED'
+
+  return (
+    <section className="border-t border-hairline py-5" aria-labelledby="academic-profile-title">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id="academic-profile-title" className="text-sm font-semibold">Thông tin học vụ</h3>
+        {profile && (
+          <StatusBadge
+            tone={statusTone[profile.status] ?? 'neutral'}
+            label={academicProfileStatus(profile.status)}
+          />
+        )}
+      </div>
+
+      {error === 'missing' ? (
+        <p className="mt-2 text-sm text-ink-muted">Tài khoản chưa có hồ sơ học vụ.</p>
+      ) : error ? (
+        <p className="mt-2 text-sm text-ink-muted">
+          Chưa tải được hồ sơ học vụ.{' '}
+          <button type="button" className="font-semibold text-primary" onClick={() => setRevision(revision + 1)}>
+            Thử lại
+          </button>
+        </p>
+      ) : profile ? (
+        <div className="mt-3 space-y-3">
+          <dl className="grid gap-4 sm:grid-cols-3">
+            {profile.studentCode && (
+              <div>
+                <dt className="text-xs text-ink-muted">MSSV</dt>
+                <dd className="mt-1 font-mono text-sm font-medium">{profile.studentCode}</dd>
+              </div>
+            )}
+            <div>
+              <dt className="text-xs text-ink-muted">Bộ môn / Khoa</dt>
+              <dd className="mt-1 text-sm font-medium">{profile.departmentName || 'Chưa cập nhật'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-ink-muted">Chuyên ngành</dt>
+              <dd className="mt-1 text-sm font-medium">{profile.majorName || 'Chưa cập nhật'}</dd>
+            </div>
+            {isStudent && (
+              <>
+                <div>
+                  <dt className="text-xs text-ink-muted">Khung CTĐT</dt>
+                  <dd className="mt-1 text-sm font-medium">{profile.curriculumCode || 'Chưa cập nhật'}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-muted">Lớp hành chính</dt>
+                  <dd className="mt-1 text-sm font-medium">{profile.classCode || 'Chưa nhập lớp'}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-muted">Chuyên ngành hẹp</dt>
+                  <dd className="mt-1 text-sm font-medium">
+                    {profile.specializationName
+                      ? `${profile.specializationCode ? `${profile.specializationCode} · ` : ''}${profile.specializationName}`
+                      : 'Chưa chọn chuyên ngành hẹp'}
+                  </dd>
+                </div>
+              </>
+            )}
+          </dl>
+
+          {profile.rejectionReason && (
+            <p className="text-sm text-status-warning-text">Cần bổ sung: {profile.rejectionReason}</p>
+          )}
+          {saveError && <p role="alert" className="text-sm text-status-error-text">{saveError}</p>}
+          {saveSuccess && <p role="status" className="text-sm text-status-success-text">{saveSuccess}</p>}
+
+          {isStudent && isLocked && (
+            <p className="rounded-lg border border-hairline bg-slate-50 px-3 py-2 text-xs text-ink-muted">
+              Hồ sơ học vụ đã được Khoa xác minh và khóa tự chỉnh sửa. Nếu lớp hoặc chuyên ngành hẹp có thay đổi, vui lòng liên hệ Giáo vụ Khoa.
+            </p>
+          )}
+
+          {isStudent && !isLocked && (
+            editing ? (
+              <form className="grid gap-3 rounded-lg border border-hairline bg-slate-50/70 p-4 sm:grid-cols-2" onSubmit={event => void handleSubmit(event)}>
+                <label className="text-sm font-medium">
+                  Lớp hành chính *
+                  <input
+                    className="mt-1 block w-full rounded-lg border border-hairline bg-white px-3 py-2 text-sm"
+                    value={classCode}
+                    onChange={event => { setClassCode(event.target.value); setSaveError(null) }}
+                    placeholder="Ví dụ: SE1801, MKT1802"
+                    maxLength={50}
+                    required
+                    disabled={saving}
+                  />
+                </label>
+                <label className="text-sm font-medium">
+                  Chuyên ngành hẹp
+                  <select
+                    className="mt-1 block w-full rounded-lg border border-hairline bg-white px-3 py-2 text-sm"
+                    value={specializationId}
+                    onChange={event => { setSpecializationId(event.target.value); setSaveError(null) }}
+                    disabled={saving}
+                  >
+                    <option value="">Chọn chuyên ngành hẹp (theo Khoa)</option>
+                    {specializations.map(spec => (
+                      <option key={spec.id} value={spec.id}>{spec.code} · {spec.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="flex flex-wrap gap-2 sm:col-span-2">
+                  <Button type="submit" size="sm" disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu lớp & chuyên ngành hẹp'}</Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    disabled={saving}
+                    onClick={() => {
+                      setEditing(false)
+                      setClassCode(profile.classCode ?? '')
+                      setSpecializationId(profile.specializationId ? String(profile.specializationId) : '')
+                      setSaveError(null)
+                    }}
+                  >
+                    Hủy
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <div>
+                <Button size="sm" variant="secondary" onClick={() => { setEditing(true); setSaveSuccess(null); setSaveError(null) }}>
+                  Cập nhật lớp & chuyên ngành hẹp
+                </Button>
+              </div>
+            )
+          )}
+        </div>
+      ) : (
+        <p role="status" className="mt-2 text-sm text-ink-muted">Đang tải thông tin học vụ…</p>
+      )}
+    </section>
+  )
 }

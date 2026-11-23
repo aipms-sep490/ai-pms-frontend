@@ -65,6 +65,7 @@ export const workspaceRouteRegistry: readonly WorkspaceRouteMeta[] = [
 
   // Department Academic Governance
   { id: 'governance-home', path: '/department/workspace', title: 'Tổng quan bộ môn', breadcrumb: 'Tổng quan bộ môn', icon: 'dashboard', section: 'governance', group: '1. Tổng quan & hồ sơ', groupOrder: 1, identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
+  { id: 'governance-students', path: '/department/students', title: 'Quản lý sinh viên', breadcrumb: 'Quản lý sinh viên Khoa', icon: 'groups', section: 'governance', group: '1. Tổng quan & hồ sơ', groupOrder: 1, identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
   { id: 'governance-qualifications', path: '/department/student-qualifications', title: 'Điều kiện sinh viên', breadcrumb: 'Xác minh điều kiện tham gia', icon: 'verified', section: 'governance', group: '1. Tổng quan & hồ sơ', groupOrder: 1, identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
   { id: 'governance-archives', path: '/department/projects/archived', title: 'Đồ án lưu trữ', breadcrumb: 'Đồ án lưu trữ', icon: 'inventory_2', section: 'governance', group: '1. Tổng quan & hồ sơ', groupOrder: 1, identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
   { id: 'governance-portfolio', path: '/department/portfolio', title: 'Danh mục đồ án', breadcrumb: 'Danh mục đồ án', icon: 'space_dashboard', section: 'governance', group: '1. Tổng quan & hồ sơ', groupOrder: 1, identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
@@ -78,18 +79,16 @@ export const workspaceRouteRegistry: readonly WorkspaceRouteMeta[] = [
   { id: 'governance-rubrics', path: '/academic/rubrics', title: 'Bộ tiêu chí đánh giá', breadcrumb: 'Bộ tiêu chí đánh giá', icon: 'grading', section: 'governance', group: '3. Cấu hình học vụ', groupOrder: 3, identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
   { id: 'governance-knowledge', path: '/academic/knowledge', title: 'Kho tài liệu AI học vụ', breadcrumb: 'Kho tài liệu AI học vụ', icon: 'menu_book', section: 'governance', group: '3. Cấu hình học vụ', groupOrder: 3, identityRoles: ['DEPARTMENT_STAFF', 'ADMIN'], navigationVisibility: 'always', featureEnabled: env.academicAiAssistantEnabled },
 
-  // Platform Administration
+  // Platform Administration (strictly isolated from deep project / academic operations)
   { id: 'administration-access', path: '/admin/access', title: 'Quản trị nền tảng', breadcrumb: 'Quản trị quyền', icon: 'admin_panel_settings', section: 'administration', identityRoles: ['ADMIN'], navigationVisibility: 'always' },
-  { id: 'administration-portfolio', path: '/admin/portfolio', title: 'Tổng quan đồ án', breadcrumb: 'Tổng quan đồ án', icon: 'space_dashboard', section: 'administration', identityRoles: ['ADMIN'], navigationVisibility: 'always' },
-  { id: 'academic-profile-verifications', path: '/academic/profile-verifications', title: 'Xác minh hồ sơ học vụ', breadcrumb: 'Xác minh hồ sơ học vụ', icon: 'verified_user', section: 'governance', group: '4. Review Gates & kiểm soát', groupOrder: 4, identityRoles: ['DEPARTMENT_STAFF', 'ADMIN'], navigationVisibility: 'always' },
-  { id: 'admin-milestone-templates', path: '/admin/milestone-templates', title: 'Mẫu mốc đồ án', breadcrumb: 'Mẫu mốc đồ án', icon: 'flag', section: 'administration', identityRoles: ['ADMIN'], navigationVisibility: 'always' },
+  { id: 'academic-profile-verifications', path: '/academic/profile-verifications', title: 'Xác minh hồ sơ học vụ', breadcrumb: 'Xác minh hồ sơ học vụ', icon: 'verified_user', section: 'governance', group: '4. Review Gates & kiểm soát', groupOrder: 4, identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
 
   // Shared Account & Calendar
   { id: 'account-profile', path: '/profile', title: 'Hồ sơ tài khoản', breadcrumb: 'Hồ sơ tài khoản', icon: 'account_circle', section: 'account', identityRoles: ['ADMIN', 'DEPARTMENT_STAFF', 'LECTURER', 'STUDENT'], navigationVisibility: 'always' },
   { id: 'calendar-attention', path: '/calendar', title: 'Lịch tổng hợp', breadcrumb: 'Lịch tổng hợp', icon: 'calendar_month', section: 'account', identityRoles: ['ADMIN', 'DEPARTMENT_STAFF', 'LECTURER', 'STUDENT'], navigationVisibility: 'always' },
 
   // Review Gates Governance & Assignments
-  { id: 'governance-review-gates', path: '/academic/review-gates', title: 'Chính sách Review Gates', breadcrumb: 'Chính sách Review Gates', icon: 'rule_settings', section: 'governance', group: '4. Review Gates & kiểm soát', groupOrder: 4, identityRoles: ['DEPARTMENT_STAFF', 'ADMIN'], navigationVisibility: 'always' },
+  { id: 'governance-review-gates', path: '/academic/review-gates', title: 'Chính sách Review Gates', breadcrumb: 'Chính sách Review Gates', icon: 'rule_settings', section: 'governance', group: '4. Review Gates & kiểm soát', groupOrder: 4, identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
   { id: 'governance-progress-matrix', path: '/department/projects/progress-matrix', title: 'Ma trận Tiến độ Gates', breadcrumb: 'Ma trận Tiến độ Gates', icon: 'view_timeline', section: 'governance', group: '4. Review Gates & kiểm soát', groupOrder: 4, identityRoles: ['DEPARTMENT_STAFF'], navigationVisibility: 'always' },
   { id: 'reviewer-gate-assignments', path: '/review/gate-assignments', title: 'Thẩm định Review Gates', breadcrumb: 'Thẩm định Review Gates', icon: 'verified_user', section: 'lecturer', identityRoles: ['LECTURER'], navigationVisibility: 'always' },
 ]

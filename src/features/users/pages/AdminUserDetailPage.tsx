@@ -165,7 +165,14 @@ export function AdminUserDetailPage() {
             <div><h2 id="admin-academic-title">Phạm vi học thuật</h2><p>Bộ môn và ngành được máy chủ xác nhận.</p></div>
             {!academicEditing && <Button type="button" variant="secondary" onClick={beginAcademicEdit} disabled={!user.concurrencyToken}>Chỉnh sửa phạm vi học thuật</Button>}
           </div>
-          <dl><dt>Bộ môn hiện tại</dt><dd>{academicProfile?.departmentName ?? (user.departmentId ? academicNames.department(user.departmentId) : 'Chưa liên kết')}</dd><dt>Ngành hiện tại</dt><dd>{academicProfile?.majorName ?? (user.majorId ? academicNames.major(user.majorId) : 'Chưa liên kết')}</dd>{academicProfile && <><dt>Trạng thái hồ sơ</dt><dd>{displayLabel(academicProfile.status)}</dd></>}</dl>
+          <dl>
+            <dt>Bộ môn hiện tại</dt><dd>{academicProfile?.departmentName ?? (user.departmentId ? academicNames.department(user.departmentId) : 'Chưa liên kết')}</dd>
+            <dt>Ngành hiện tại</dt><dd>{academicProfile?.majorName ?? (user.majorId ? academicNames.major(user.majorId) : 'Chưa liên kết')}</dd>
+            {(academicProfile?.classCode ?? user.classCode) && <><dt>Lớp hành chính</dt><dd>{academicProfile?.classCode ?? user.classCode}</dd></>}
+            {(academicProfile?.specializationName ?? user.specializationName) && <><dt>Chuyên ngành hẹp</dt><dd>{academicProfile?.specializationCode ?? user.specializationCode ? `${academicProfile?.specializationCode ?? user.specializationCode} · ` : ''}{academicProfile?.specializationName ?? user.specializationName}</dd></>}
+            {(academicProfile?.curriculumCode ?? user.curriculumCode) && <><dt>Khung CTĐT</dt><dd>{academicProfile?.curriculumCode ?? user.curriculumCode}</dd></>}
+            {academicProfile && <><dt>Trạng thái hồ sơ</dt><dd>{displayLabel(academicProfile.status)}</dd></>}
+          </dl>
           {academicEditing && <form className="admin-form" onSubmit={(event) => void saveAcademicProfile(event)}>
             <AcademicScopeFields {...profileDraft} onChange={setProfileDraft} disabled={profileBusy || !user.concurrencyToken} />
             <p className="admin-boundary">Thay đổi phạm vi có thể bị chặn khi tài khoản đang thuộc nhóm hoặc có phân công hướng dẫn/chấm còn hiệu lực.</p>

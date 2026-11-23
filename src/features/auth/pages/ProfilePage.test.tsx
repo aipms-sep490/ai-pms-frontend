@@ -46,7 +46,7 @@ afterEach(() => {
 
 describe('ProfilePage', () => {
   it.each([['Họ và tên', 256, 'Họ và tên tối đa 255 ký tự.'], ['Số điện thoại', 31, 'Số điện thoại tối đa 30 ký tự.'], ['Chức danh', 101, 'Chức danh tối đa 100 ký tự.']])('rejects an oversized %s without saving or discarding the input', async (label, size, message) => {
-    authSession.session = { user: { id: 42, email: 'qa@example.edu.vn', fullName: 'QA Student', roles: ['STUDENT'] } }
+    authSession.session = { user: { id: 42, email: 'qa@example.edu.vn', fullName: 'QA Lecturer', roles: ['LECTURER'] } }
     render(<ProfilePage />, { wrapper: MemoryRouter })
     fireEvent.click(await screen.findByRole('button', { name: 'Chỉnh sửa hồ sơ' }))
     const input = screen.getByLabelText(String(label)) as HTMLInputElement
@@ -55,6 +55,14 @@ describe('ProfilePage', () => {
     expect(screen.getByRole('alert').textContent).toContain(message)
     expect(input.value).toHaveLength(Number(size))
     expect(authSession.updateProfile).not.toHaveBeenCalled()
+  })
+
+  it('hides job title input for pure student accounts', async () => {
+    authSession.session = { user: { id: 42, email: 'sv@example.edu.vn', fullName: 'Sinh viên A', roles: ['STUDENT'] } }
+    vi.mocked(authApi.getMyProfile).mockResolvedValue({ phone: '0901234567', title: null })
+    render(<ProfilePage />, { wrapper: MemoryRouter })
+    fireEvent.click(await screen.findByRole('button', { name: 'Chỉnh sửa hồ sơ' }))
+    expect(screen.queryByLabelText('Chức danh')).toBeNull()
   })
 
   it.each([400, 422])('explains a server validation response %s without blaming connectivity', async status => {
@@ -193,7 +201,7 @@ describe('ProfilePage', () => {
   })
 
   it('shows blank optional fields for a profile that is genuinely empty', async () => {
-    authSession.session = { user: { id: 42, email: 'staff@example.edu.vn', fullName: 'Sinh viên', roles: ['STUDENT'] } }
+    authSession.session = { user: { id: 42, email: 'staff@example.edu.vn', fullName: 'Giảng viên', roles: ['LECTURER'] } }
     vi.mocked(authApi.getMyProfile).mockResolvedValue({ phone: null, title: null })
 
     render(<ProfilePage />, { wrapper: MemoryRouter })

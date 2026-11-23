@@ -344,6 +344,66 @@ const copyByType: Record<string, { title: string; content: string; label: string
     label: 'Điều kiện bảo vệ',
     icon: 'school',
   },
+  SLA_REMINDER_48H: {
+    title: 'Nhắc hạn xử lý hồ sơ thẩm định (48 giờ)',
+    content: 'Hồ sơ thẩm định tiến trình đang chờ xử lý quá 48 giờ. Vui lòng kiểm tra và hoàn tất đánh giá đúng hạn.',
+    label: 'Nhắc hạn xử lý',
+    icon: 'alarm',
+  },
+  SLA_ESCALATION_72H: {
+    title: 'Cảnh báo quá hạn xử lý hồ sơ thẩm định (72 giờ)',
+    content: 'Hồ sơ thẩm định tiến trình đã vượt mốc 72 giờ chưa có quyết định. Giáo vụ Khoa và giảng viên cần xử lý ngay.',
+    label: 'Cảnh báo quá hạn',
+    icon: 'warning',
+  },
+  PROJECT_RISK_ALERT: {
+    title: 'Cảnh báo rủi ro tiến độ đồ án',
+    content: 'Hệ thống phát hiện dấu hiệu chậm tiến độ hoặc rủi ro công việc. Nhóm và giảng viên cần rà soát kế hoạch ngay.',
+    label: 'Cảnh báo tiến độ',
+    icon: 'warning',
+  },
+  FINAL_LOCK_REQUESTED: {
+    title: 'Nhóm đề nghị khóa gói bàn giao cuối kỳ',
+    content: 'Trưởng nhóm đã gửi yêu cầu khóa gói bàn giao cuối kỳ. Giảng viên hướng dẫn vui lòng rà soát và quyết định.',
+    label: 'Bàn giao cuối kỳ',
+    icon: 'lock_clock',
+  },
+  FINAL_LOCK_RETURNED: {
+    title: 'Gói bàn giao cuối kỳ được trả về để bổ sung',
+    content: 'Giảng viên hướng dẫn đã mở lại gói bàn giao cuối kỳ để nhóm chỉnh sửa hoặc bổ sung minh chứng trước khi khóa.',
+    label: 'Bàn giao cuối kỳ',
+    icon: 'lock_open',
+  },
+  CHECKLIST_PUBLISHED: {
+    title: 'Bộ yêu cầu tiến trình đã được ban hành',
+    content: 'Danh mục hạng mục cần nộp cho đợt thẩm định đã được công bố. Nhóm và giảng viên vui lòng theo dõi để thực hiện.',
+    label: 'Bộ yêu cầu tiến trình',
+    icon: 'checklist',
+  },
+  GATE_DEADLINE_CHANGE_REQUESTED: {
+    title: 'Có đề nghị điều chỉnh hạn mốc thẩm định',
+    content: 'Một yêu cầu điều chỉnh hạn nộp mốc thẩm định vừa được gửi lên Khoa để xem xét phê duyệt.',
+    label: 'Điều chỉnh hạn nộp',
+    icon: 'schedule',
+  },
+  GATE_DEADLINE_CHANGE_DECIDED: {
+    title: 'Đã có quyết định điều chỉnh hạn mốc thẩm định',
+    content: 'Khoa đã ghi nhận kết quả xử lý đối với đề nghị thay đổi hạn nộp mốc thẩm định. Vui lòng kiểm tra lịch cập nhật.',
+    label: 'Điều chỉnh hạn nộp',
+    icon: 'event_available',
+  },
+  DEFENSE_STANDBY_SWAPPED: {
+    title: 'Cập nhật thay đổi thành viên hội đồng bảo vệ',
+    content: 'Giám khảo dự bị đã được điều động thay thế cho phiên bảo vệ. Vui lòng kiểm tra lại phân công hội đồng.',
+    label: 'Hội đồng bảo vệ',
+    icon: 'swap_horiz',
+  },
+  CRITICAL_ANCHORED_COMMENT_ADDED: {
+    title: 'Có nhận xét nghiêm trọng cần xử lý ngay',
+    content: 'Giảng viên vừa gắn nhận xét mức độ nghiêm trọng trên tài liệu minh chứng của nhóm. Hãy mở hồ sơ để khắc phục.',
+    label: 'Nhận xét nghiêm trọng',
+    icon: 'priority_high',
+  },
 }
 
 export function notificationCopy(item: NotificationItem) {

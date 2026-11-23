@@ -121,20 +121,22 @@ Index,ResolvedPath,RawPath,Component,AllowedRoles,Guard,FeatureFlag,SourceLine
 120,"/department/projects/:projectId/archive-view","department/projects/:projectId/archive-view","ProjectArchiveViewPage","department","DepartmentAcademicScopeRoute","None",209
 121,"/department/supervisors","department/supervisors","SupervisorMonitoringPage","department","DepartmentAcademicScopeRoute","None",210
 122,"/department/supervisors/:id","department/supervisors/:id","SupervisorMonitoringPage","department","DepartmentAcademicScopeRoute","None",211
-123,"/department/student-qualifications","department/student-qualifications","QualificationVerificationPage","department","DepartmentAcademicScopeRoute","None",212
-124,"/department/topics","department/topics","TopicManagementPage","department","DepartmentAcademicScopeRoute","None",213
-125,"/department/topics/:id","department/topics/:id","TopicManagementPage","department","DepartmentAcademicScopeRoute","None",214
-126,"/department/documents","department/documents","DepartmentDocumentsPage","department","DepartmentAcademicScopeRoute","None",215
-127,"/department/cold-templates","department/cold-templates","ColdTemplateManagementPage","department","DepartmentAcademicScopeRoute","env.coldReportEnabled",216
-128,"/admin/access","admin/access","AdminWorkspacePage","admin","None","None",223
-129,"/admin/portfolio","admin/portfolio","PortfolioDashboardPage","admin","None","None",224
-130,"/admin/projects/:projectId","admin/projects/:projectId","AdminEvaluationLayout","admin","AdminEvaluationLayout","None",225
-131,"/admin/projects/:projectId/evaluation-schemes","evaluation-schemes","EvaluationSchemeManagementPage","admin","AdminEvaluationLayout","None",226
-132,"/admin/projects/:projectId/evaluators","evaluators","EvaluatorAssignmentManagementPage","admin","AdminEvaluationLayout","None",227
-133,"/admin/projects/:projectId/final-submission","final-submission","FinalSubmissionViewerPage","admin","AdminEvaluationLayout","None",228
-134,"/admin/projects/:projectId/result","result","ResultPublicationPage","admin","AdminEvaluationLayout","None",229
-135,"/admin/milestone-templates","admin/milestone-templates","MilestoneTemplatesPage","admin","None","None",231
-136,"/admin/access/rbac","admin/access/rbac","AdminRbacPage","admin","None","None",232
-137,"/admin/access/users/:userId","admin/access/users/:userId","AdminUserDetailPage","admin","None","None",233
-138,"/preview/workflows","preview/workflows","WorkflowPreviewPage","Public / Authenticated","None","env.workflowPreviewEnabled",237
-139,"/*","*","NotFoundPage","Public / Authenticated","None","None",238
+123,"/department/students","department/students","DepartmentStudentsPage","department","DepartmentAcademicScopeRoute","None",212
+124,"/department/students/:userId","department/students/:userId","DepartmentStudentDetailPage","department","DepartmentAcademicScopeRoute","None",213
+125,"/department/student-qualifications","department/student-qualifications","QualificationVerificationPage","department","DepartmentAcademicScopeRoute","None",214
+126,"/department/topics","department/topics","TopicManagementPage","department","DepartmentAcademicScopeRoute","None",215
+127,"/department/topics/:id","department/topics/:id","TopicManagementPage","department","DepartmentAcademicScopeRoute","None",216
+128,"/department/documents","department/documents","DepartmentDocumentsPage","department","DepartmentAcademicScopeRoute","None",217
+129,"/department/cold-templates","department/cold-templates","ColdTemplateManagementPage","department","DepartmentAcademicScopeRoute","env.coldReportEnabled",218
+130,"/admin/access","admin/access","AdminWorkspacePage","admin","None","None",225
+131,"/admin/portfolio","admin/portfolio","PortfolioDashboardPage","admin","None","None",226
+132,"/admin/projects/:projectId","admin/projects/:projectId","AdminEvaluationLayout","admin","AdminEvaluationLayout","None",227
+133,"/admin/projects/:projectId/evaluation-schemes","evaluation-schemes","EvaluationSchemeManagementPage","admin","AdminEvaluationLayout","None",228
+134,"/admin/projects/:projectId/evaluators","evaluators","EvaluatorAssignmentManagementPage","admin","AdminEvaluationLayout","None",229
+135,"/admin/projects/:projectId/final-submission","final-submission","FinalSubmissionViewerPage","admin","AdminEvaluationLayout","None",230
+136,"/admin/projects/:projectId/result","result","ResultPublicationPage","admin","AdminEvaluationLayout","None",231
+137,"/admin/milestone-templates","admin/milestone-templates","MilestoneTemplatesPage","admin","None","None",233
+138,"/admin/access/rbac","admin/access/rbac","AdminRbacPage","admin","None","None",234
+139,"/admin/access/users/:userId","admin/access/users/:userId","AdminUserDetailPage","admin","None","None",235
+140,"/preview/workflows","preview/workflows","WorkflowPreviewPage","Public / Authenticated","None","env.workflowPreviewEnabled",239
+141,"/*","*","NotFoundPage","Public / Authenticated","None","None",240

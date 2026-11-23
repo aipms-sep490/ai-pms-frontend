@@ -100,6 +100,8 @@ const ROUTE_API_MAPPING = {
   '/department/projects/:projectId/archive-view': 'ProjectsController (GET /api/v1/projects/{id}/archive)',
   '/department/supervisors': 'SupervisorsController (GET /api/v1/supervisors/department)',
   '/department/supervisors/:id': 'SupervisorsController (GET /api/v1/supervisors/{id})',
+  '/department/students': 'DepartmentStudentsController (GET /api/v1/departments/me/students, specializations, export)',
+  '/department/students/:userId': 'DepartmentStudentsController (GET/PUT /api/v1/departments/me/students/{id})',
   '/department/student-qualifications': 'StudentQualificationsController (GET /api/v1/academic/student-qualifications)',
   '/department/topics': 'TopicsController (GET /api/v1/topics/department)',
   '/department/topics/:id': 'TopicsController (GET /api/v1/topics/{id})',
