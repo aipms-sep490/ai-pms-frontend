@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
+import { Pagination } from '../../../components/ui/Pagination'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { HttpError } from '../../../services/http/http-client'
 import { getAiRun, getProjectAiRuns, type AiRunDto, type AiRunKind } from '../ai-api'
@@ -53,7 +54,8 @@ function RunDetail({ projectId, runId }: { projectId: number; runId: number }) {
  * state or assigns people, and runs are shown exactly as the backend returns them. */
 export function AiAnalysisRunsPanel({ projectId }: { projectId: number }) {
   const [page, setPage] = useState(1)
-  const [result, setResult] = useState<{ items: AiRunDto[]; totalPages: number } | null>(null)
+  const [pageSize, setPageSize] = useState(10)
+  const [result, setResult] = useState<{ items: AiRunDto[]; totalPages: number; totalCount: number } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [revision, setRevision] = useState(0)
@@ -65,16 +67,16 @@ export function AiAnalysisRunsPanel({ projectId }: { projectId: number }) {
   useEffect(() => {
     const controller = new AbortController()
     setLoading(true)
-    void getProjectAiRuns(projectId, page, 20, controller.signal)
-      .then(data => { if (!controller.signal.aborted) { setResult({ items: data.items, totalPages: data.totalPages }); setError(false) } })
+    void getProjectAiRuns(projectId, page, pageSize, controller.signal)
+      .then(data => { if (!controller.signal.aborted) { setResult({ items: data.items, totalPages: data.totalPages, totalCount: data.totalCount ?? data.items.length }); setError(false) } })
       .catch(reason => {
         if (controller.signal.aborted) return
-        if (reason instanceof HttpError && reason.status === 404) { setResult({ items: [], totalPages: 0 }); setError(false) }
+        if (reason instanceof HttpError && reason.status === 404) { setResult({ items: [], totalPages: 0, totalCount: 0 }); setError(false) }
         else setError(true)
       })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
-  }, [projectId, page, revision])
+  }, [projectId, page, pageSize, revision])
 
   const retry = () => { setLoading(true); setError(false); setResult(null); setRevision(value => value + 1) }
 
@@ -151,11 +153,18 @@ export function AiAnalysisRunsPanel({ projectId }: { projectId: number }) {
           </li>
         })}
       </ul>}
-      {!loading && !error && result && result.totalPages > 1 && <nav className="mt-4 flex items-center justify-between gap-3 text-sm" aria-label="Trang lịch sử phân tích">
-        <button type="button" className="min-h-11 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Trang trước</button>
-        <span className="tabular-nums text-ink-muted">Trang {page} / {result.totalPages}</span>
-        <button type="button" className="min-h-11 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={page >= result.totalPages} onClick={() => setPage(value => value + 1)}>Trang sau</button>
-      </nav>}
+      {!loading && !error && result && result.totalPages > 1 && (
+        <div className="mt-4">
+          <Pagination
+            page={page}
+            pages={result.totalPages}
+            total={result.totalCount}
+            pageSize={pageSize}
+            onPage={setPage}
+            onPageSizeChange={nextSize => { setPageSize(nextSize); setPage(1) }}
+          />
+        </div>
+      )}
     </div>
   </section>
 }

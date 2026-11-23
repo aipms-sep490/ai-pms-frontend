@@ -35,7 +35,7 @@ describe('AI advisory API contract', () => {
     await getProjectAiRuns(9, 2, 10)
     await getAiRun(9, 3)
     expect(fetch.mock.calls.map(([url, options]) => [url, options.method])).toEqual([
-      ['/api/v1/projects/9/ai/runs?page=1&pageSize=20', 'GET'],
+      ['/api/v1/projects/9/ai/runs?page=1&pageSize=10', 'GET'],
       ['/api/v1/projects/9/ai/runs?page=2&pageSize=10', 'GET'],
       ['/api/v1/projects/9/ai/runs/3', 'GET'],
     ])
