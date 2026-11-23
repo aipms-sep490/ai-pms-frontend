@@ -22,6 +22,7 @@ import { Button } from '../../components/ui/Button'
 import { ResourcePermissionNotice } from '../../components/ui/ResourcePermissionNotice'
 import { useProjectCapabilities } from '../capabilities/useProjectCapabilities'
 import { SchemeConflictReview, type SchemeConflict } from './SchemeConflictReview'
+import { suggestEvaluationScheme, formatAiSuiteError } from '../ai-suite/ai-suite-api'
 
 type DraftComponent = schemesApi.EvaluationSchemeComponentInput & { key: string }
 
@@ -90,6 +91,7 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
   const [components, setComponents] = useState<DraftComponent[]>(() => [component()])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [aiSuggesting, setAiSuggesting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [conflict, setConflict] = useState<SchemeConflict | null>(null)
@@ -158,6 +160,43 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
   const startDraft = () => {
     if (!canManage || busy || loading || conflicted || !project) return
     setSelected(null); setCreating(true); setName(''); setPeriodId(0); setThreshold(''); setComponents([component()]); setError(null); setNotice(null); setConflict(null)
+  }
+  const runAiSuggest = async () => {
+    if (!editable || busy || aiSuggesting || !project) return
+    setAiSuggesting(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const suggestion = await suggestEvaluationScheme(projectId)
+      if (!mounted.current) return
+      if (suggestion.components.length === 0) {
+        setError(suggestion.warnings.join(' ') || suggestion.summary)
+        return
+      }
+      if (!name.trim() && suggestion.suggestedName) setName(suggestion.suggestedName)
+      if (threshold === '' && Number.isFinite(suggestion.suggestedPassThreshold)) setThreshold(suggestion.suggestedPassThreshold)
+      if (!periodId) {
+        const activePeriod = periods.find(p => p.status === 'ACTIVE')
+        if (activePeriod) setPeriodId(activePeriod.id)
+      }
+      setComponents(suggestion.components.map(item => ({
+        key: crypto.randomUUID(),
+        name: item.name,
+        scope: (item.scope === 'MAJOR_SPECIFIC' || item.scope === 'INDIVIDUAL' ? item.scope : 'COMMON') as EvaluationScope,
+        majorId: item.scope === 'COMMON' ? null : item.majorId,
+        rubricId: item.rubricId,
+        projectWeightPercent: item.projectWeightPercent,
+        studentWeightPercent: item.studentWeightPercent,
+        requiredEvaluators: item.requiredEvaluators,
+        stage: (item.stage === 'ON_GOING' || item.stage === 'COLD' || item.stage === 'DEFENSE' ? item.stage : null),
+      })))
+      const warnSuffix = suggestion.warnings.length > 0 ? ` Lưu ý: ${suggestion.warnings.join(' ')}` : ''
+      setNotice(`AI đã điền sẵn ${suggestion.components.length} thành phần từ các Rubric ĐÃ CÔNG BỐ (${suggestion.summary}). Hãy kiểm tra kỹ trọng số & ngưỡng đạt trước khi bấm Lưu bản nháp.${warnSuffix}`)
+    } catch (reason) {
+      if (mounted.current) setError(formatAiSuiteError(reason, 'Chưa thể gợi ý phân bổ phổ điểm bằng AI lúc này.'))
+    } finally {
+      if (mounted.current) setAiSuggesting(false)
+    }
   }
   const useServer = () => {
     if (busy || loading || !conflict?.loaded) return
@@ -285,7 +324,25 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
     <div className="workspace-master-detail">
       <section className="rounded-xl border border-hairline bg-card p-4"><h2 className="font-semibold text-ink">Phiên bản của đồ án</h2>{loading ? <p role="status" className="mt-3 text-sm text-ink-muted">Đang tải phương án đánh giá…</p> : items.length === 0 ? <p className="mt-3 text-sm text-ink-muted">Chưa có phương án đánh giá. Bạn có thể tạo bản nháp khi gói bàn giao và đợt đánh giá đã sẵn sàng.</p> : <ul className="mt-3 space-y-2">{items.map(item => <li key={item.id}><button type="button" disabled={busy || loading} onClick={() => choose(item)} className={`min-h-11 w-full rounded-lg border p-3 text-left text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected?.id === item.id ? 'border-primary bg-primary/5' : 'border-hairline hover:bg-canvas'}`}><strong>{item.name}</strong><span className="mt-1 block text-xs text-ink-muted">v{item.version} · {displayLabel(item.status)} · {item.components.length} thành phần</span></button></li>)}</ul>}</section>
       <section className="rounded-xl border border-hairline bg-card p-5">{!creating && (!selected || selected.status !== 'DRAFT') ? <span className="mb-4 inline-block rounded-full border border-hairline bg-card px-3 py-1 text-xs font-semibold text-ink-soft">Chế độ xem</span> : <span className="mb-4 inline-block rounded-full border border-attention-border bg-attention-bg px-3 py-1 text-xs font-semibold text-ink">ĐANG CHỈNH SỬA</span>}{!creating && !selected ? <div className="workspace-empty-detail"><span className="material-symbols-outlined" aria-hidden="true">schema</span><h2>Thiết lập phương án đánh giá</h2><p>Chọn phiên bản để xem, hoặc tạo bản nháp với các thành phần và trọng số của đợt đánh giá.</p>{displayCanManage && <Button variant="secondary" disabled={busy || loading || conflicted || !project || !canManage} onClick={startDraft}>Tạo bản nháp</Button>}</div> : <form onSubmit={save} className="space-y-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-ink">{creating ? 'Bản nháp phương án đánh giá mới' : `${selected?.name} · v${selected?.version}`}</h2>{selected && <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-muted"><StatusBadge status={selected.status} /> <span>{selected.policyVersionId ? `Áp dụng chính sách kỳ đánh giá (phiên bản ${selected.policyVersionId})` : 'Chưa chốt chính sách áp dụng'}</span></p>}{selected && (selected.status ?? '').toUpperCase() === 'PROPOSED' && <p role="note" className="mt-2 rounded-lg border border-status-warning-border bg-status-warning-bg p-2 text-xs text-status-warning-text">Phương án này mới là đề xuất, chưa được bộ môn phê duyệt. Khóa cấu hình để chấm không thay cho phê duyệt học thuật; hệ thống kiểm tra riêng điều kiện công bố điểm chính thức.</p>}</div>{selected && displayCanManage && <div className="flex flex-wrap gap-2">{selected.status === 'DRAFT' && <><Button disabled={busy || conflicted || !project || !canManage} onClick={publish} icon="lock">Công bố phương án</Button><Button variant="danger" disabled={busy || conflicted || !project || !canManage} onClick={remove} icon="delete">Xóa bản nháp</Button></>}{selected.status !== 'DRAFT' && <Button variant="secondary" disabled={busy || conflicted || !project || !canManage} onClick={version} icon="content_copy">Tạo phiên bản</Button>}</div>}</div>
-        {selected && <EvaluationSchemePolicySummary scheme={selected} />}{creating && <p className="workspace-note p-4 text-sm">Bản nháp mới được hệ thống lưu ở chế độ minh họa khi chưa có chính sách phê duyệt riêng.</p>}
+        {selected && <EvaluationSchemePolicySummary scheme={selected} />}
+        {editable && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/25 bg-primary-subtle/40 px-4 py-3">
+            <p className="text-xs text-ink-soft">
+              <strong className="text-primary">AI gợi ý phân bổ từ Rubric ĐÃ CÔNG BỐ:</strong> Chỉ chọn các Rubric hợp lệ có sẵn trong DB, cân bằng tổng điểm đồ án 100% và điểm sinh viên từng ngành 100% — không tự lưu hay công bố.
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              icon="auto_awesome"
+              disabled={busy || aiSuggesting || rubrics.length === 0}
+              onClick={() => void runAiSuggest()}
+            >
+              {aiSuggesting ? 'AI đang gợi ý…' : 'AI gợi ý phân bổ Phổ điểm'}
+            </Button>
+          </div>
+        )}
+        {creating && <p className="workspace-note p-4 text-sm">Bản nháp mới được hệ thống lưu ở chế độ minh họa khi chưa có chính sách phê duyệt riêng.</p>}
         <div className="grid gap-3 md:grid-cols-3"><label className="text-sm font-medium text-ink-soft">Tên phương án đánh giá<input value={name} disabled={!editable || busy} onChange={event => setName(event.target.value)} required className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink disabled:bg-canvas" /></label><label className="text-sm font-medium text-ink-soft">Kỳ đánh giá<select value={periodId} disabled={!editable || busy} onChange={event => setPeriodId(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink disabled:bg-canvas"><option value={0}>Chọn đợt đánh giá</option>{periods.map(item => <option key={item.id} value={item.id}>{item.name} · {displayLabel(item.status)}</option>)}</select></label><label className="text-sm font-medium text-ink-soft">Ngưỡng đạt (0–10)<input type="number" min="0" max="10" step="0.01" value={threshold} disabled={!editable || busy} onChange={event => setThreshold(event.target.value === '' ? '' : Number(event.target.value))} required className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink disabled:bg-canvas" /></label></div>
         <div className="workspace-note py-4 text-sm text-ink-soft">
           <strong>Kiểm tra trước khi lưu:</strong>

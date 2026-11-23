@@ -8,6 +8,7 @@ import type {
   DefenseMockRequest,
   DepartmentBriefRequest,
   DepartmentExecutiveBriefDto,
+  EvaluationSchemeSuggestDto,
   GateScriptDraftDto,
   GateScriptDraftRequest,
   ProgressReportDraftDto,
@@ -90,6 +91,10 @@ export const getLatestDepartmentBrief = async (departmentId?: number): Promise<D
   const res = await httpGet<DepartmentExecutiveBriefDto | undefined>(`/ai-suite/department/executive-brief/latest${query}`)
   return res ?? null
 }
+
+// #9 Evaluation Scheme AI Suggest
+export const suggestEvaluationScheme = (projectId: number) =>
+  httpPost<EvaluationSchemeSuggestDto>(`/ai-suite/projects/${projectId}/evaluation-schemes/suggest`, {})
 
 export function formatAiSuiteError(error: unknown, fallback = 'Chưa thể chạy phân tích AI lúc này. Vui lòng thử lại.'): string {
   if (error instanceof HttpError) {

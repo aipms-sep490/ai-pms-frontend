@@ -333,8 +333,44 @@ export interface ApplyColdTemplateSetupResult {
   warnings?: string[] | null
 }
 
+export interface AssistantMilestoneTemplateItemDraft {
+  title: string
+  description?: string | null
+  startOffsetDays?: number | null
+  dueOffsetDays?: number | null
+  sortOrder: number
+}
+
+export interface AssistantMilestoneTemplateSetupPlan {
+  name: string
+  description?: string | null
+  summary: string
+  items: AssistantMilestoneTemplateItemDraft[]
+  warnings: string[]
+}
+
+export interface ApplyMilestoneTemplateSetupRequest {
+  idempotencyKey: string
+  runId?: number | null
+  existingTemplateId?: number | null
+  name: string
+  description?: string | null
+  items: AssistantMilestoneTemplateItemDraft[]
+}
+
+export interface ApplyMilestoneTemplateSetupResult {
+  templateId: number
+  versionId: number
+  versionNumber: number
+  name: string
+  status: string
+  itemsCount: number
+  replay: boolean
+  warnings?: string[] | null
+}
+
 export interface AssistantDraft {
-  kind: 'TASK' | 'MEETING' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN' | 'PROJECT_SETUP' | 'RUBRIC_SETUP' | 'REVIEW_GATE_SETUP' | 'TOPIC_BATCH_SETUP' | 'COLD_TEMPLATE_SETUP'
+  kind: 'TASK' | 'MEETING' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN' | 'PROJECT_SETUP' | 'RUBRIC_SETUP' | 'REVIEW_GATE_SETUP' | 'TOPIC_BATCH_SETUP' | 'COLD_TEMPLATE_SETUP' | 'MILESTONE_TEMPLATE_SETUP'
   title: string
   description: string
   meeting?: AssistantMeetingDraft | null
@@ -346,8 +382,9 @@ export interface AssistantDraft {
   reviewGateSetup?: AssistantReviewGateSetupPlan | null
   topicBatchSetup?: AssistantTopicBatchPlan | null
   coldTemplateSetup?: AssistantColdTemplateSetupPlan | null
+  milestoneTemplateSetup?: AssistantMilestoneTemplateSetupPlan | null
 }
-export type AssistantToolMode = 'PROGRESS' | 'REPORT_REVIEW' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN' | 'PROJECT_SETUP' | 'RUBRIC_SETUP' | 'REVIEW_GATE_SETUP' | 'TOPIC_BATCH_SETUP' | 'COLD_TEMPLATE_SETUP'
+export type AssistantToolMode = 'PROGRESS' | 'REPORT_REVIEW' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN' | 'PROJECT_SETUP' | 'RUBRIC_SETUP' | 'REVIEW_GATE_SETUP' | 'TOPIC_BATCH_SETUP' | 'COLD_TEMPLATE_SETUP' | 'MILESTONE_TEMPLATE_SETUP'
 export type AssistantExportFormat = 'txt' | 'md' | 'docx' | 'xlsx' | 'pdf'
 export interface AssistantRubricOption { id: number; title: string; version: number; assignedToProject: boolean }
 export const listAssistantRubrics = (projectId: number, signal?: AbortSignal) => httpGet<AssistantRubricOption[]>(`/academic/assistant/review-rubrics?projectId=${projectId}`, { signal })
@@ -431,6 +468,9 @@ export const applyTopicBatchAiSetup = (payload: ApplyTopicBatchSetupRequest, sig
 
 export const applyColdTemplateAiSetup = (payload: ApplyColdTemplateSetupRequest, signal?: AbortSignal) =>
   httpPost<ApplyColdTemplateSetupResult>('/academic/ai/cold-template-setup/apply', payload, { signal })
+
+export const applyMilestoneTemplateAiSetup = (payload: ApplyMilestoneTemplateSetupRequest, signal?: AbortSignal) =>
+  httpPost<ApplyMilestoneTemplateSetupResult>('/academic/ai/milestone-template-setup/apply', payload, { signal })
 
 export async function streamAssistant(query: string, files: File[], conversation: AssistantConversation, pageContext: string, draftKind: AssistantDraft['kind'] | undefined, onPreview: (text: string) => void, signal: AbortSignal, tool?: { mode: AssistantToolMode; rubricId?: number; projectPeriodId?: number }): Promise<AcademicAssistantResponse> {
   const form = new FormData()
