@@ -16,10 +16,14 @@ export function TopicContentForm({ initial = emptyTopicContent, catalog, busy, o
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const fieldId = (field: string) => `${prefix}-${field}`
   const attributes = (field: string) => ({ id: fieldId(field), 'aria-invalid': Boolean(fieldErrors[field]), 'aria-describedby': fieldErrors[field] ? `${fieldId(field)}-error` : undefined })
-  const inlineError = (field: string) => fieldErrors[field] && <span id={`${fieldId(field)}-error`} className="block text-sm text-status-error-text">{fieldErrors[field]}</span>
+  const inlineError = (field: string) => fieldErrors[field] && <span id={`${fieldId(field)}-error`} className="block text-xs font-medium text-status-error-text">{fieldErrors[field]}</span>
   const majors = [...catalog.majors, ...initial.requirements.filter(item => !catalog.majors.some(major => major.id === item.majorId)).map(item => ({ id: item.majorId, name: item.majorName || `Ngành #${item.majorId}`, departmentId: item.departmentId ?? null }))]
   const patch = (field: keyof TopicContent, value: TopicContent[keyof TopicContent]) => { onDirtyChange?.(true); setContent(previous => ({ ...previous, [field]: value })) }
-  const requirement = (index: number, field: string, value: string | number) => setContent(previous => ({ ...previous, requirements: previous.requirements.map((item, i) => i === index ? { ...item, [field]: value } : item) }))
+  const requirement = (index: number, field: string, value: string | number) => {
+    onDirtyChange?.(true)
+    setContent(previous => ({ ...previous, requirements: previous.requirements.map((item, i) => i === index ? { ...item, [field]: value } : item) }))
+  }
+
   async function submit(event: React.FormEvent) {
     event.preventDefault()
     if (lock.current || busy) return
@@ -53,24 +57,175 @@ export function TopicContentForm({ initial = emptyTopicContent, catalog, busy, o
     } catch (reason) { setMessage(topicErrorMessage(reason)); requestAnimationFrame(() => summary.current?.focus()) }
     finally { lock.current = false }
   }
-  return <form noValidate className="topic__create space-y-4" onChange={() => onDirtyChange?.(true)} onSubmit={event => void submit(event)}>
-    {Object.keys(fieldErrors).length > 0 && <div ref={summary} role="alert" tabIndex={-1} className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><p className="font-semibold">Kiểm tra các trường sau trước khi lưu:</p><ul>{Object.entries(fieldErrors).map(([field, error]) => <li key={field}><a className="underline" href={`#${fieldId(field)}`} onClick={event => { event.preventDefault(); document.getElementById(fieldId(field))?.focus() }}>{error}</a></li>)}</ul></div>}
-    {message && <div ref={summary} role="alert" tabIndex={-1} className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{message}</div>}
-    {success && <p role="status" className="text-sm text-status-success-text">{success}</p>}
-    {catalog.loading && <p role="status">Đang tải kỳ đăng ký và danh mục ngành…</p>}
-    {catalog.error && <div role="alert"><p>Chưa tải được danh mục học vụ để chọn kỳ/ngành.</p><Button type="button" variant="secondary" onClick={catalog.retry}>Tải lại danh mục</Button></div>}
-    <fieldset disabled={busy || catalog.loading} className="space-y-4">
-      {create && <div className="topic__form-grid"><label>Kỳ đăng ký<select {...attributes('period')} aria-label="Kỳ đăng ký" required value={periodId} onChange={event => setPeriodId(event.target.value)}><option value="">Chọn kỳ đăng ký</option>{catalog.periods.map(period => <option key={period.id} value={period.id}>{period.semesterCode} · {period.name}</option>)}</select>{inlineError('period')}</label><label>Mã đề tài<input aria-label="Mã đề tài" {...attributes('code')} required value={code} onChange={event => setCode(event.target.value)} />{inlineError('code')}</label><p className="topic__wide text-sm">Khoa chủ trì: {catalog.department?.name || 'Chưa có scope đã xác minh'}. Hệ thống kiểm tra lại thời gian và chính sách kỳ khi lưu.</p></div>}
-      <div className="topic__form-grid"><label className="topic__wide">Tên đề tài<input aria-label="Tên đề tài" {...attributes('title')} required value={content.title} onChange={event => patch('title', event.target.value)} />{inlineError('title')}</label>
-      {([{ key: 'description', label: 'Mô tả' }, { key: 'problemStatement', label: 'Bối cảnh và vấn đề' }, { key: 'objectives', label: 'Mục tiêu' }, { key: 'expectedOutput', label: 'Sản phẩm kỳ vọng' }] as const).map(field => <label key={field.key} className="topic__wide">{field.label}<textarea rows={3} value={content[field.key] ?? ''} onChange={event => patch(field.key, event.target.value || null)} /></label>)}
-      <label>Lĩnh vực<input value={content.domain ?? ''} onChange={event => patch('domain', event.target.value || null)} /></label><label>Công nghệ (phân cách bằng dấu phẩy)<input value={content.technologies.join(',')} onChange={event => patch('technologies', event.target.value.split(','))} /></label><label>Từ khóa (phân cách bằng dấu phẩy)<input value={content.keywords.join(',')} onChange={event => patch('keywords', event.target.value.split(','))} /></label>
-      <label>Hình thức đồ án<select aria-label="Hình thức đồ án" value={content.projectMode} onChange={event => setContent(previous => ({ ...previous, projectMode: event.target.value as TopicContent['projectMode'], primaryMajorId: null }))}><option value="SINGLE_MAJOR">Một ngành</option><option value="INTERDISCIPLINARY">Liên ngành</option></select></label>
-      {content.projectMode === 'SINGLE_MAJOR' && <label>Ngành chính<select {...attributes('primary')} aria-label="Ngành chính" required value={content.primaryMajorId ?? ''} onChange={event => patch('primaryMajorId', Number(event.target.value))}><option value="">Chọn ngành chính</option>{majors.filter(major => major.departmentId === catalog.department?.id || major.id === initial.primaryMajorId).map(major => <option key={major.id} value={major.id}>{major.name}</option>)}</select>{inlineError('primary')}</label>}</div>
-      <h3 {...attributes('requirements')} tabIndex={-1} className="font-semibold">Yêu cầu và trách nhiệm theo ngành</h3>{inlineError('requirements')}
-      {content.requirements.map((item, index) => <fieldset key={index} className="rounded-lg border border-hairline p-4"><legend className="px-2 text-sm font-semibold">Ngành yêu cầu {index + 1}</legend><div className="topic__form-grid"><label>Ngành yêu cầu {index + 1}<select {...attributes(`major-${index}`)} aria-label={`Ngành yêu cầu ${index + 1}`} required value={item.majorId || ''} onChange={event => requirement(index, 'majorId', Number(event.target.value))}><option value="">Chọn ngành</option>{majors.map(major => <option key={major.id} value={major.id}>{major.name}</option>)}</select>{inlineError(`major-${index}`)}</label><label>Tối thiểu {index + 1}<input aria-label={`Tối thiểu ${index + 1}`} {...attributes(`min-${index}`)} required type="number" min={1} step={1} value={item.minMembers} onChange={event => requirement(index, 'minMembers', Number(event.target.value))} />{inlineError(`min-${index}`)}</label><label>Tối đa {index + 1}<input aria-label={`Tối đa ${index + 1}`} {...attributes(`max-${index}`)} required type="number" min={item.minMembers} step={1} value={item.maxMembers} onChange={event => requirement(index, 'maxMembers', Number(event.target.value))} />{inlineError(`max-${index}`)}</label><label className="topic__wide">Trách nhiệm {index + 1}<textarea aria-label={`Trách nhiệm ${index + 1}`} {...attributes(`responsibility-${index}`)} required rows={2} value={item.responsibility} onChange={event => requirement(index, 'responsibility', event.target.value)} />{inlineError(`responsibility-${index}`)}</label></div><Button type="button" variant="secondary" onClick={() => patch('requirements', content.requirements.filter((_, i) => i !== index))}>Xóa ngành {index + 1}</Button></fieldset>)}
-      <Button type="button" variant="secondary" onClick={() => patch('requirements', [...content.requirements, { majorId: 0, minMembers: 1, maxMembers: 1, responsibility: '' }])}>Thêm ngành yêu cầu</Button>
-      <p className="text-sm text-ink-muted">Bản nháp có thể chưa đủ nội dung để công bố. Trước khi công bố, cần hoàn thiện bối cảnh, mục tiêu, sản phẩm, lĩnh vực, công nghệ và từ khóa; hệ thống sẽ kiểm tra điều kiện cuối.</p>
-      <Button type="submit" disabled={busy || !!catalog.error || (create !== undefined && !catalog.department)}>{busy ? 'Đang lưu…' : create ? 'Tạo bản nháp' : 'Lưu bản nháp'}</Button>
-    </fieldset>
-  </form>
+
+  return (
+    <form noValidate className="topic__create space-y-5" onChange={() => onDirtyChange?.(true)} onSubmit={event => void submit(event)}>
+      {Object.keys(fieldErrors).length > 0 && (
+        <div ref={summary} role="alert" tabIndex={-1} className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">
+          <p className="font-semibold">Kiểm tra các trường sau trước khi lưu:</p>
+          <ul className="mt-1.5 list-disc space-y-1 pl-5 text-xs">
+            {Object.entries(fieldErrors).map(([field, error]) => (
+              <li key={field}>
+                <a className="underline" href={`#${fieldId(field)}`} onClick={event => { event.preventDefault(); document.getElementById(fieldId(field))?.focus() }}>
+                  {error}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {message && <div ref={summary} role="alert" tabIndex={-1} className="rounded-xl border border-status-error-border bg-status-error-bg p-3.5 text-sm text-status-error-text">{message}</div>}
+      {success && <p role="status" className="rounded-xl border border-status-success-border bg-status-success-bg px-3.5 py-2.5 text-sm font-medium text-status-success-text">{success}</p>}
+      {catalog.loading && <p role="status" className="text-sm text-ink-muted">Đang tải kỳ đăng ký và danh mục ngành…</p>}
+      {catalog.error && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">
+          <p>Chưa tải được danh mục học vụ để chọn kỳ/ngành.</p>
+          <Button type="button" variant="secondary" onClick={catalog.retry}>Tải lại danh mục</Button>
+        </div>
+      )}
+
+      <fieldset disabled={busy || catalog.loading} className="space-y-5">
+        {create && (
+          <div className="rounded-xl border border-hairline bg-canvas/60 p-4">
+            <div className="topic__form-grid">
+              <label>
+                Kỳ đăng ký
+                <select {...attributes('period')} aria-label="Kỳ đăng ký" required value={periodId} onChange={event => setPeriodId(event.target.value)}>
+                  <option value="">Chọn kỳ đăng ký</option>
+                  {catalog.periods.map(period => (
+                    <option key={period.id} value={period.id}>{period.semesterCode} · {period.name}</option>
+                  ))}
+                </select>
+                {inlineError('period')}
+              </label>
+              <label>
+                Mã đề tài
+                <input aria-label="Mã đề tài" {...attributes('code')} required placeholder="VD: CAP_SE_01" value={code} onChange={event => setCode(event.target.value)} />
+                {inlineError('code')}
+              </label>
+              <p className="topic__wide text-xs text-ink-muted">
+                Khoa chủ trì: <strong className="text-ink-soft">{catalog.department?.name || 'Chưa có scope đã xác minh'}</strong>. Hệ thống kiểm tra lại thời gian và chính sách kỳ khi lưu.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="topic__form-grid">
+          <label className="topic__wide">
+            Tên đề tài
+            <input aria-label="Tên đề tài" {...attributes('title')} required value={content.title} onChange={event => patch('title', event.target.value)} />
+            {inlineError('title')}
+          </label>
+          <label className="topic__wide">
+            Mô tả
+            <textarea rows={2} value={content.description ?? ''} onChange={event => patch('description', event.target.value || null)} />
+          </label>
+          <label>
+            Bối cảnh và vấn đề
+            <textarea rows={3} value={content.problemStatement ?? ''} onChange={event => patch('problemStatement', event.target.value || null)} />
+          </label>
+          <label>
+            Mục tiêu
+            <textarea rows={3} value={content.objectives ?? ''} onChange={event => patch('objectives', event.target.value || null)} />
+          </label>
+          <label className="topic__wide">
+            Sản phẩm kỳ vọng
+            <textarea rows={2} value={content.expectedOutput ?? ''} onChange={event => patch('expectedOutput', event.target.value || null)} />
+          </label>
+          <label>
+            Lĩnh vực
+            <input value={content.domain ?? ''} placeholder="VD: EdTech, AI, Thương mại điện tử" onChange={event => patch('domain', event.target.value || null)} />
+          </label>
+          <label>
+            Công nghệ (phân cách bằng dấu phẩy)
+            <input value={content.technologies.join(', ')} placeholder="VD: React, .NET, SQL Server" onChange={event => patch('technologies', event.target.value.split(','))} />
+          </label>
+          <label className="topic__wide">
+            Từ khóa (phân cách bằng dấu phẩy)
+            <input value={content.keywords.join(', ')} placeholder="VD: RAG, học vụ, trích xuất tri thức" onChange={event => patch('keywords', event.target.value.split(','))} />
+          </label>
+          <label>
+            Hình thức đồ án
+            <select aria-label="Hình thức đồ án" value={content.projectMode} onChange={event => { onDirtyChange?.(true); setContent(previous => ({ ...previous, projectMode: event.target.value as TopicContent['projectMode'], primaryMajorId: null })) }}>
+              <option value="SINGLE_MAJOR">Một ngành</option>
+              <option value="INTERDISCIPLINARY">Liên ngành</option>
+            </select>
+          </label>
+          {content.projectMode === 'SINGLE_MAJOR' && (
+            <label>
+              Ngành chính
+              <select {...attributes('primary')} aria-label="Ngành chính" required value={content.primaryMajorId ?? ''} onChange={event => patch('primaryMajorId', Number(event.target.value))}>
+                <option value="">Chọn ngành chính</option>
+                {majors.filter(major => major.departmentId === catalog.department?.id || major.id === initial.primaryMajorId).map(major => (
+                  <option key={major.id} value={major.id}>{major.name}</option>
+                ))}
+              </select>
+              {inlineError('primary')}
+            </label>
+          )}
+        </div>
+
+        <div className="space-y-3 border-t border-hairline pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 {...attributes('requirements')} tabIndex={-1} className="text-sm font-bold text-ink">
+                Yêu cầu và trách nhiệm theo ngành
+              </h3>
+              {inlineError('requirements')}
+            </div>
+            <Button type="button" variant="secondary" icon="add" onClick={() => patch('requirements', [...content.requirements, { majorId: 0, minMembers: 1, maxMembers: 1, responsibility: '' }])}>
+              Thêm ngành yêu cầu
+            </Button>
+          </div>
+
+          <div className="space-y-3">
+            {content.requirements.map((item, index) => (
+              <fieldset key={index} className="rounded-xl border border-hairline bg-canvas/60 p-4">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <legend className="text-xs font-bold uppercase tracking-wider text-ink-muted">Ngành yêu cầu {index + 1}</legend>
+                  <Button type="button" variant="secondary" onClick={() => patch('requirements', content.requirements.filter((_, i) => i !== index))}>
+                    Xóa ngành {index + 1}
+                  </Button>
+                </div>
+                <div className="topic__form-grid">
+                  <label className="topic__wide">
+                    Ngành yêu cầu {index + 1}
+                    <select {...attributes(`major-${index}`)} aria-label={`Ngành yêu cầu ${index + 1}`} required value={item.majorId || ''} onChange={event => requirement(index, 'majorId', Number(event.target.value))}>
+                      <option value="">Chọn ngành</option>
+                      {majors.map(major => <option key={major.id} value={major.id}>{major.name}</option>)}
+                    </select>
+                    {inlineError(`major-${index}`)}
+                  </label>
+                  <label>
+                    Tối thiểu {index + 1}
+                    <input aria-label={`Tối thiểu ${index + 1}`} {...attributes(`min-${index}`)} required type="number" min={1} step={1} value={item.minMembers} onChange={event => requirement(index, 'minMembers', Number(event.target.value))} />
+                    {inlineError(`min-${index}`)}
+                  </label>
+                  <label>
+                    Tối đa {index + 1}
+                    <input aria-label={`Tối đa ${index + 1}`} {...attributes(`max-${index}`)} required type="number" min={item.minMembers} step={1} value={item.maxMembers} onChange={event => requirement(index, 'maxMembers', Number(event.target.value))} />
+                    {inlineError(`max-${index}`)}
+                  </label>
+                  <label className="topic__wide">
+                    Trách nhiệm {index + 1}
+                    <textarea aria-label={`Trách nhiệm ${index + 1}`} {...attributes(`responsibility-${index}`)} required rows={2} value={item.responsibility} onChange={event => requirement(index, 'responsibility', event.target.value)} />
+                    {inlineError(`responsibility-${index}`)}
+                  </label>
+                </div>
+              </fieldset>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4">
+          <p className="max-w-xl text-xs leading-relaxed text-ink-muted">
+            Bản nháp có thể lưu từng phần. Trước khi công bố, cần hoàn thiện bối cảnh, mục tiêu, sản phẩm, lĩnh vực, công nghệ và từ khóa.
+          </p>
+          <Button id="topic-form-save-btn" type="submit" icon="save" disabled={busy || !!catalog.error || (create !== undefined && !catalog.department)}>
+            {busy ? 'Đang lưu…' : create ? 'Tạo bản nháp' : 'Lưu bản nháp'}
+          </Button>
+        </div>
+      </fieldset>
+    </form>
+  )
 }
