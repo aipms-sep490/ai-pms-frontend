@@ -70,7 +70,7 @@ function buildQuickCards(projectId: number | undefined, userRoles: readonly stri
   ]
 }
 
-const acceptedFiles = '.png,.jpg,.jpeg,.webp,.pdf,.docx,.txt,.md,.csv,.json'
+const acceptedFiles = '.png,.jpg,.jpeg,.webp,.pdf,.docx,.xlsx,.txt,.md,.csv,.json'
 const FEEDBACK_REASONS = ['Thiếu nguồn dẫn chứng', 'Chưa sát ngữ cảnh đồ án', 'Trả lời còn dài / chung chung', 'Thông tin chưa chính xác']
 
 type ChatTurn = {
@@ -415,7 +415,7 @@ export function AcademicAssistantPanel({
       setError('Chọn tối đa 4 tệp, mỗi tệp từ 1 byte đến 10 MB, tổng không quá 20 MB.'); return
     }
     if (next.some(file => !acceptedFiles.split(',').some(extension => file.name.toLowerCase().endsWith(extension)))) {
-      setError('Định dạng chưa được hỗ trợ. Chọn PNG/JPG/WebP, PDF, DOCX, TXT, MD, CSV hoặc JSON.'); return
+      setError('Định dạng chưa được hỗ trợ. Chọn PNG/JPG/WebP, PDF, DOCX, XLSX, TXT, MD, CSV hoặc JSON.'); return
     }
     setFiles(next); setError(null)
   }

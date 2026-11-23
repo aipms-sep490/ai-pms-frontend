@@ -144,6 +144,8 @@ export interface ApplyProjectSetupResult {
   warnings: string[]
 }
 
+export const ASSISTANT_ACCEPTED_FILES = '.png,.jpg,.jpeg,.webp,.pdf,.docx,.xlsx,.txt,.md,.csv,.json'
+
 export interface ApplyRubricSetupRequest {
   idempotencyKey: string
   runId?: number | null
@@ -157,6 +159,8 @@ export interface ApplyRubricSetupRequest {
   evaluationStage: string
   evaluationScope: string
   criteria: AssistantRubricCriterionDraft[]
+  effectiveFrom?: string | null
+  effectiveTo?: string | null
 }
 
 export interface ApplyRubricSetupResult {
@@ -166,6 +170,7 @@ export interface ApplyRubricSetupResult {
   status: string
   criteriaCount: number
   replay: boolean
+  warnings?: string[] | null
 }
 
 export interface AssistantDraft {

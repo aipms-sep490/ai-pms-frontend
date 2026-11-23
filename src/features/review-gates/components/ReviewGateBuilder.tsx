@@ -11,6 +11,7 @@ import { gateWeightTotal, validateGateWeights } from '../api/review-gates-contra
 
 interface ReviewGateBuilderProps {
   template: ReviewGateTemplate
+  majors?: readonly { id: number; code?: string | null; name: string }[]
   onChange: (updated: ReviewGateTemplate) => void
   onSaveDraft: () => void
   onPublish: () => void
@@ -21,6 +22,7 @@ interface ReviewGateBuilderProps {
 
 export function ReviewGateBuilder({
   template,
+  majors = [],
   onChange,
   onSaveDraft,
   onPublish,
@@ -165,6 +167,69 @@ export function ReviewGateBuilder({
         <p className="mt-1 font-semibold">Tổng hiện tại: {gateWeightTotal(template.gates)}% · {template.gates.filter(gate => gate.weight != null).length}/{template.gates.length} cổng đã nhập.</p>
         {(weightsError || formError) && <p ref={formErrorRef} tabIndex={-1} id="gate-weights-error" role="alert" className="mt-2 text-status-error-text">{weightsError || formError}</p>}
       </div>
+
+      {template.status !== 'PUBLISHED' && (
+        <fieldset disabled={readOnly} className="grid grid-cols-1 gap-3 rounded-xl border border-hairline bg-card p-4 shadow-2xs sm:grid-cols-2 lg:grid-cols-4">
+          <label className="grid gap-1 text-xs font-semibold text-ink-soft">
+            Mã mẫu tiến trình
+            <input
+              aria-label="Mã mẫu tiến trình"
+              value={template.code}
+              maxLength={60}
+              onChange={e => onChange({ ...template, code: e.target.value })}
+              className="min-h-10 rounded-lg border border-line-strong bg-card px-3 py-1.5 font-mono text-xs font-normal text-ink"
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-semibold text-ink-soft sm:col-span-2 lg:col-span-1">
+            Tên mẫu tiến trình
+            <input
+              aria-label="Tên mẫu tiến trình"
+              value={template.name}
+              maxLength={255}
+              onChange={e => onChange({ ...template, name: e.target.value })}
+              className="min-h-10 rounded-lg border border-line-strong bg-card px-3 py-1.5 text-xs font-normal text-ink"
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-semibold text-ink-soft">
+            Chế độ đồ án
+            <select
+              aria-label="Chế độ đồ án mẫu tiến trình"
+              value={template.mode}
+              onChange={e => onChange({ ...template, mode: e.target.value as ReviewGateTemplate['mode'] })}
+              className="min-h-10 rounded-lg border border-line-strong bg-card px-3 py-1.5 text-xs font-normal text-ink"
+            >
+              <option value="SINGLE_MAJOR">Đơn ngành</option>
+              <option value="INTERDISCIPLINARY">Liên ngành</option>
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs font-semibold text-ink-soft">
+            Ngành / Phạm vi mô tả
+            {majors.length > 0 && template.mode === 'SINGLE_MAJOR' ? (
+              <select
+                aria-label="Chuyên ngành của mẫu tiến trình"
+                value={template.major ?? ''}
+                onChange={e => onChange({ ...template, major: e.target.value })}
+                className="min-h-10 rounded-lg border border-line-strong bg-card px-3 py-1.5 text-xs font-normal text-ink"
+              >
+                <option value="">Chung toàn bộ môn</option>
+                {majors.map(m => (
+                  <option key={m.id} value={m.code || m.name}>
+                    {m.code ? `${m.code} · ${m.name}` : m.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                aria-label="Ngành hoặc phạm vi mẫu tiến trình"
+                value={template.major ?? ''}
+                placeholder={template.mode === 'INTERDISCIPLINARY' ? 'VD: Liên ngành SE + MKT' : 'VD: Kỹ thuật phần mềm'}
+                onChange={e => onChange({ ...template, major: e.target.value })}
+                className="min-h-10 rounded-lg border border-line-strong bg-card px-3 py-1.5 text-xs font-normal text-ink"
+              />
+            )}
+          </label>
+        </fieldset>
+      )}
 
       {template.status === 'PUBLISHED' && (
         <div className="rounded-xl border border-status-success-border bg-status-success-bg p-3.5 text-xs text-status-success-text flex items-center justify-between">
@@ -428,7 +493,9 @@ export function ReviewGateBuilder({
       </div>
 
       <GateRequirementDrawer
+        key={`${selectedGateIndex}-${editingRequirementIndex ?? 'new'}-${isDrawerOpen}`}
         isOpen={isDrawerOpen}
+        majors={majors}
         requirement={editingRequirementIndex !== null && currentGate ? currentGate.requirements[editingRequirementIndex] : null}
         onClose={() => {
           setIsDrawerOpen(false)
