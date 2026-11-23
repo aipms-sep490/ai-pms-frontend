@@ -1,1 +1,3 @@
 .period-policy-page > .workspace-heading { position: static; }
+.period-policy-page .workspace-master-detail { align-items: stretch; }
+.period-policy-page .workspace-master-detail > section { display: flex; flex-direction: column; }
