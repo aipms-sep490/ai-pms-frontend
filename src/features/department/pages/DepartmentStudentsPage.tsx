@@ -67,7 +67,7 @@ export function DepartmentStudentsPage() {
   const departmentName = academic?.departments[0]?.name ?? 'Khoa của bạn'
 
   const page = Math.max(1, Number(params.get('page') ?? '1') || 1)
-  const semesterParam = params.get('semesterId') ?? (academic?.selectedSemester ? String(academic.selectedSemester.id) : '')
+  const semesterParam = params.get('semesterId') ?? ''
   const search = params.get('search') ?? ''
   const majorId = params.get('majorId') ?? ''
   const specializationId = params.get('specializationId') ?? ''
@@ -79,6 +79,8 @@ export function DepartmentStudentsPage() {
 
   const [majors, setMajors] = useState<Array<{ id: number; code: string; name: string }>>([])
   const [specializations, setSpecializations] = useState<DepartmentSpecialization[]>([])
+  const [draftMajorId, setDraftMajorId] = useState(majorId)
+  const [draftSpecId, setDraftSpecId] = useState(specializationId)
   const [data, setData] = useState<DepartmentStudentDirectoryPage | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -89,6 +91,9 @@ export function DepartmentStudentsPage() {
   const [rosterExportOpen, setRosterExportOpen] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
   const requestSeq = useRef(0)
+  const exportAbortRef = useRef<AbortController | null>(null)
+  useEffect(() => () => { exportAbortRef.current?.abort(); exportAbortRef.current = null }, [])
+  useEffect(() => { setDraftMajorId(majorId); setDraftSpecId(specializationId) }, [majorId, specializationId])
 
   const setFilter = useCallback((patch: Record<string, string>) => {
     const next = new URLSearchParams(params)
@@ -148,10 +153,10 @@ export function DepartmentStudentsPage() {
   }), [semesterParam, search, majorId, specializationId, classCode, curriculumCode, profileStatus, qualificationStatus, teamStatus, page])
 
   const filteredSpecs = useMemo(() => {
-    if (!majorId) return specializations
-    const mid = Number(majorId)
+    if (!draftMajorId) return specializations
+    const mid = Number(draftMajorId)
     return specializations.filter(s => s.majorId === null || s.majorId === mid)
-  }, [specializations, majorId])
+  }, [specializations, draftMajorId])
 
   useEffect(() => {
     if (activeTab !== 'directory') return
@@ -176,12 +181,15 @@ export function DepartmentStudentsPage() {
   }, [activeTab, queryFilters, reloadKey])
 
   async function handleExportStudents() {
-    if (!session?.accessToken || exporting) return
+    if (!session?.accessToken || exporting || exportAbortRef.current) return
+    const controller = new AbortController()
+    exportAbortRef.current = controller
     setExporting(true)
     setError(null)
     setNotice(null)
     try {
-      const blob = await exportDepartmentStudents(queryFilters, session.accessToken)
+      const blob = await exportDepartmentStudents(queryFilters, session.accessToken, controller.signal)
+      if (controller.signal.aborted) return
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
       try {
@@ -195,9 +203,9 @@ export function DepartmentStudentsPage() {
       }
       setNotice('Đã xuất danh sách sinh viên Khoa (.xlsx) theo bộ lọc hiện tại.')
     } catch (reason) {
-      setError(errorMessage(reason))
+      if (!controller.signal.aborted) setError(errorMessage(reason))
     } finally {
-      setExporting(false)
+      if (exportAbortRef.current === controller) { exportAbortRef.current = null; setExporting(false) }
     }
   }
 
@@ -324,7 +332,7 @@ export function DepartmentStudentsPage() {
               <label className="text-sm font-medium">
                 Học kỳ (xem nhóm/đồ án)
                 <select name="semesterId" defaultValue={semesterParam} className="mt-1 block w-full rounded-lg border border-hairline px-3 py-2 text-sm">
-                  <option value="">Tất cả học kỳ</option>
+                  <option value="">Học kỳ đang hoạt động (mặc định)</option>
                   {(academic?.currentSemesters ?? []).map(s => (
                     <option key={s.id} value={s.id}>{s.code} · {s.name}</option>
                   ))}
@@ -332,14 +340,24 @@ export function DepartmentStudentsPage() {
               </label>
               <label className="text-sm font-medium">
                 Ngành
-                <select name="majorId" defaultValue={majorId} className="mt-1 block w-full rounded-lg border border-hairline px-3 py-2 text-sm">
+                <select
+                  name="majorId"
+                  value={draftMajorId}
+                  onChange={event => { setDraftMajorId(event.target.value); setDraftSpecId('') }}
+                  className="mt-1 block w-full rounded-lg border border-hairline px-3 py-2 text-sm"
+                >
                   <option value="">Tất cả ngành</option>
                   {majors.map(m => <option key={m.id} value={m.id}>{m.code} · {m.name}</option>)}
                 </select>
               </label>
               <label className="text-sm font-medium">
                 Chuyên ngành hẹp
-                <select name="specializationId" defaultValue={specializationId} className="mt-1 block w-full rounded-lg border border-hairline px-3 py-2 text-sm">
+                <select
+                  name="specializationId"
+                  value={draftSpecId}
+                  onChange={event => setDraftSpecId(event.target.value)}
+                  className="mt-1 block w-full rounded-lg border border-hairline px-3 py-2 text-sm"
+                >
                   <option value="">Tất cả chuyên ngành hẹp</option>
                   {filteredSpecs.map(s => <option key={s.id} value={s.id}>{s.code} · {s.name}</option>)}
                 </select>
@@ -371,8 +389,8 @@ export function DepartmentStudentsPage() {
                   <option value="REJECTED">Cần bổ sung</option>
                 </select>
               </label>
-              <label className="text-sm font-medium">
-                Điều kiện & Nhóm
+              <div className="text-sm font-medium">
+                <span className="block">Điều kiện & Nhóm</span>
                 <div className="mt-1 grid grid-cols-2 gap-2">
                   <select name="qualificationStatus" aria-label="Điều kiện tham gia" defaultValue={qualificationStatus} className="rounded-lg border border-hairline px-2 py-2 text-sm">
                     <option value="">Mọi ĐK</option>
@@ -387,7 +405,7 @@ export function DepartmentStudentsPage() {
                     <option value="WITHOUT_TEAM">Chưa có nhóm</option>
                   </select>
                 </div>
-              </label>
+              </div>
               <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-4">
                 <Button type="submit" variant="secondary">Lọc sinh viên</Button>
                 {hasActiveFilters && (

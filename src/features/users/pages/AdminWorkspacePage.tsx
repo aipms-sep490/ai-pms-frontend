@@ -84,6 +84,8 @@ export function AdminWorkspacePage() {
   const [exportingAccounts, setExportingAccounts] = useState(false)
   const [studentImportOpen, setStudentImportOpen] = useState(false)
   const busyRef = useRef(false)
+  const exportAbortRef = useRef<AbortController | null>(null)
+  useEffect(() => () => { exportAbortRef.current?.abort(); exportAbortRef.current = null }, [])
   const allDepartments = useMemo(() => hierarchy.flatMap(org => org.departments), [hierarchy])
   const availableMajors = useMemo(() => {
     if (!departmentFilter) return allDepartments.flatMap(d => d.majors)
@@ -94,7 +96,9 @@ export function AdminWorkspacePage() {
   const run = async (action: () => Promise<unknown>, success: string) => { if (busyRef.current) return false; busyRef.current = true; setBusy(true); try { await action(); setNotice(success); return true } catch (reason) { setNotice(messageFor(reason)); return false } finally { busyRef.current = false; setBusy(false) } }
 
   async function handleExportAccounts() {
-    if (!session?.accessToken || exportingAccounts) return
+    if (!session?.accessToken || exportingAccounts || exportAbortRef.current) return
+    const controller = new AbortController()
+    exportAbortRef.current = controller
     setExportingAccounts(true)
     setNotice(null)
     try {
@@ -104,7 +108,8 @@ export function AdminWorkspacePage() {
         role: roleFilter || undefined,
         departmentId: departmentIdNum,
         majorId: majorIdNum,
-      }, session.accessToken)
+      }, session.accessToken, controller.signal)
+      if (controller.signal.aborted) return
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
       try {
@@ -118,9 +123,9 @@ export function AdminWorkspacePage() {
       }
       setNotice('Đã xuất tệp Excel danh sách tài khoản hệ thống theo bộ lọc hiện tại.')
     } catch (reason) {
-      setNotice(messageFor(reason))
+      if (!controller.signal.aborted) setNotice(messageFor(reason))
     } finally {
-      setExportingAccounts(false)
+      if (exportAbortRef.current === controller) { exportAbortRef.current = null; setExportingAccounts(false) }
     }
   }
 
@@ -185,7 +190,17 @@ export function AdminWorkspacePage() {
           <option value="DEPARTMENT_STAFF">Giáo vụ Khoa</option>
           <option value="ADMIN">Quản trị viên</option>
         </select></label>
-        <label>Khoa / Bộ môn<select name="departmentId" defaultValue={departmentFilter} onChange={event => setFilter({ departmentId: event.target.value, majorId: '', page: '1' })}>
+        <label>Khoa / Bộ môn<select name="departmentId" defaultValue={departmentFilter} onChange={event => {
+          const data = event.currentTarget.form ? new FormData(event.currentTarget.form) : null
+          setFilter({
+            search: data ? String(data.get('search') ?? '') : search,
+            status: data ? String(data.get('status') ?? '') : status,
+            role: data ? String(data.get('role') ?? '') : roleFilter,
+            departmentId: event.target.value,
+            majorId: '',
+            page: '1',
+          })
+        }}>
           <option value="">Tất cả khoa</option>
           {allDepartments.map(({ department }) => <option key={department.id} value={department.id}>{department.name}</option>)}
         </select></label>

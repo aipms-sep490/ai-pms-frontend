@@ -77,9 +77,12 @@ const gates: Rule = { entities: ['PROJECT_GATE', 'PROJECT', 'REVIEW_GATE', 'GATE
 const gateQueue: Rule = { ...gates, targets: { ...gates.targets,
   lecturer: { url: '/review/gate-assignments', label: 'Mở hàng đợi thẩm định' },
 } }
-const gateSla: Rule = { entities: ['PROJECT_GATE', 'PROJECT'], targets: {
+const gateSla: Rule = { entities: ['PROJECT_GATE', 'REVIEW_GATE', 'PROJECT'], targets: {
   lecturer: { url: '/review/gate-assignments', label: 'Mở hàng đợi thẩm định' },
   department: { url: '/department/projects/progress-matrix', label: 'Mở ma trận tiến trình' },
+} }
+const projectReviewSla: Rule = { entities: ['PROJECT_REVIEW'], targets: {
+  department: { url: '/department/projects/review', label: 'Mở hàng đợi thẩm định đề cương' },
 } }
 const gatePolicy: Rule = { ...gates, rolePriority: ['department', 'lecturer', 'student'], entities: ['PROJECT_PERIOD', 'REVIEW_POLICY', 'PROJECT', 'PROJECT_GATE'] }
 
@@ -128,7 +131,9 @@ export function resolveNotificationLink(
   // Feedback IDs are remapped to their actual parent by the recipient inbox endpoint.
   const rule = item.notificationType === 'SUPERVISOR_FEEDBACK_ADDED'
     ? ({ PROGRESS_REPORT: report, DELIVERABLE_VERSION: deliverable, DELIVERABLE: deliverable, MEETING: meeting, TASK: task, PROJECT: risk } as Record<string, Rule>)[entity]
-    : Object.hasOwn(rules, item.notificationType) ? rules[item.notificationType] : null
+    : (item.notificationType === 'SLA_REMINDER_48H' || item.notificationType === 'SLA_ESCALATION_72H') && entity === 'PROJECT_REVIEW'
+      ? projectReviewSla
+      : Object.hasOwn(rules, item.notificationType) ? rules[item.notificationType] : null
   if (!rule || !rule.entities.includes(entity) || (rule.feature && !env[rule.feature])) return null
   const mine = new Set(roles.map(role => role.toUpperCase()))
   for (const role of rule.rolePriority ?? defaultPriority) {

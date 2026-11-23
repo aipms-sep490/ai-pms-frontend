@@ -171,8 +171,15 @@ export function getDepartmentStudentDetail(userId: number, semesterId?: number, 
   )
 }
 
-export function updateDepartmentStudentAcademic(userId: number, body: UpdateDepartmentStudentAcademicInput) {
-  return httpPut<DepartmentStudentDetail>(`/departments/me/students/${userId}/academic`, body)
+export function updateDepartmentStudentAcademic(
+  userId: number,
+  body: UpdateDepartmentStudentAcademicInput,
+  semesterId?: number,
+) {
+  return httpPut<DepartmentStudentDetail>(
+    buildQuery(`/departments/me/students/${userId}/academic`, { semesterId }),
+    body,
+  )
 }
 
 export function exportDepartmentStudents(

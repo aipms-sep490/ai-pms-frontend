@@ -159,7 +159,7 @@ export function DepartmentStudentDetailPage() {
         specializationId: Number(draftSpecId) > 0 ? Number(draftSpecId) : null,
         curriculumCode: draftCurriculum.trim() || null,
         concurrencyToken: detail.concurrencyToken,
-      })
+      }, semesterId)
       setDetail(updated)
       syncDraft(updated)
       setNotice('Đã cập nhật thông tin học vụ (Ngành, Lớp, Chuyên ngành hẹp, Khung CTĐT) của sinh viên.')

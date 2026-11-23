@@ -32,6 +32,8 @@ const cases: Array<[string[], string, Partial<Record<string, string>>]> = [
   [['EVALUATION_FINALIZED'], 'EVALUATION', { DEPARTMENT_STAFF: '/department/portfolio' }],
   [['APPEAL_REQUESTED', 'APPEAL_REVIEWER_ASSIGNED', 'APPEAL_REVIEWED', 'APPEAL_DECIDED'], 'PROJECT', { STUDENT: '/project/result', LECTURER: '/review/projects/17/corrections', DEPARTMENT_STAFF: '/review/projects/17/corrections' }],
   [['REVIEW_GATE_UPDATED', 'REVIEW_DEADLINE_APPROACHING', 'GATE_REVISION_REQUIRED', 'EVIDENCE_VERIFIED', 'GATE_DECISION_RECORDED', 'DISCIPLINE_REVIEW_PENDING', 'DISCIPLINE_DECISION_RECORDED', 'DEFENSE_READINESS_CHANGED', 'CHECKLIST_PUBLISHED', 'GATE_DEADLINE_CHANGE_REQUESTED', 'GATE_DEADLINE_CHANGE_DECIDED', 'CRITICAL_ANCHORED_COMMENT_ADDED'], 'PROJECT_GATE', { STUDENT: '/project/timeline', LECTURER: '/supervisor/workspace', DEPARTMENT_STAFF: '/department/projects/progress-matrix' }],
+  [['SLA_REMINDER_48H', 'SLA_ESCALATION_72H'], 'REVIEW_GATE', { LECTURER: '/review/gate-assignments', DEPARTMENT_STAFF: '/department/projects/progress-matrix' }],
+  [['SLA_REMINDER_48H', 'SLA_ESCALATION_72H'], 'PROJECT_REVIEW', { DEPARTMENT_STAFF: '/department/projects/review' }],
   [['SLA_REMINDER_48H', 'SLA_ESCALATION_72H'], 'PROJECT_GATE', { LECTURER: '/review/gate-assignments', DEPARTMENT_STAFF: '/department/projects/progress-matrix' }],
   [['GATE_REVIEW_ASSIGNED', 'GATE_REVIEW_SUBMITTED', 'GATE_REVISION_SUBMITTED'], 'PROJECT_GATE', { STUDENT: '/project/timeline', LECTURER: '/review/gate-assignments', DEPARTMENT_STAFF: '/department/projects/progress-matrix' }],
   [['REVIEW_POLICY_PUBLISHED'], 'PROJECT_PERIOD', { STUDENT: '/project/timeline', LECTURER: '/supervisor/workspace', DEPARTMENT_STAFF: '/department/projects/progress-matrix' }],

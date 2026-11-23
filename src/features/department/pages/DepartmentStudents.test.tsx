@@ -222,7 +222,7 @@ describe('DepartmentStudentDetailPage', () => {
       specializationId: 11,
       curriculumCode: 'K18_SE',
       concurrencyToken: 'stu-tok-1',
-    })
+    }, undefined)
   })
 
   it('reloads detail and displays conflict alert on 409', async () => {
