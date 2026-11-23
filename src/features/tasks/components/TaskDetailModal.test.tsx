@@ -84,7 +84,7 @@ describe('TaskDetailModal', () => {
   it('renders task details with status badge, priority badge, and description', async () => {
     renderModal()
     expect(await screen.findByRole('dialog')).toBeDefined()
-    expect(screen.getByRole('heading', { name: /#42 · Xây dựng giao diện Kanban/ })).toBeDefined()
+    expect(screen.getByRole('heading', { name: /Xây dựng giao diện Kanban/ })).toBeDefined()
     expect(screen.getByText('Chi tiết mô tả công việc cần làm.')).toBeDefined()
     expect(screen.getByText('Khang')).toBeDefined()
     expect(screen.getByText('Đang làm')).toBeDefined()

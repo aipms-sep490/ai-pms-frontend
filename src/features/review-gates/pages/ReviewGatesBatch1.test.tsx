@@ -15,7 +15,7 @@ afterEach(cleanup)
 async function builder() {
   render(<MemoryRouter><ReviewGateGovernancePage /></MemoryRouter>)
   await screen.findByText(template.name)
-  fireEvent.click(screen.getByRole('button', { name: 'Thiết kế Review Gates (Builder)' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Thiết kế cổng kiểm duyệt' }))
   return screen.getByRole('spinbutton', { name: 'Trọng số học vụ của R1 (%)' }) as HTMLInputElement
 }
 

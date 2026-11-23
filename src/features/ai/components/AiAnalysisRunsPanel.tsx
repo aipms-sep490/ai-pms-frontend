@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { FilterToolbar } from '../../../components/ui/FilterToolbar'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { HttpError } from '../../../services/http/http-client'
 import { getAiRun, getProjectAiRuns, type AiRunDto, type AiRunKind } from '../ai-api'
 import { EvidenceReferences } from './EvidenceReferences'
@@ -7,9 +9,16 @@ const kindLabel: Record<string, string> = { PROJECT_ASK: 'Hỏi trợ lý', REPO
 const statusLabel: Record<string, string> = { RUNNING: 'Đang xử lý', COMPLETED: 'Hoàn tất', FAILED: 'Lỗi', INSUFFICIENT_EVIDENCE: 'Chưa đủ chứng cứ', FALLBACK: 'Phản hồi dự phòng' }
 const describeKind = (kind: AiRunKind) => kindLabel[kind] ?? kind
 const describeStatus = (status: string) => statusLabel[status] ?? status
+const statusTone = (status: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' => {
+  if (status === 'COMPLETED') return 'success'
+  if (status === 'FAILED') return 'danger'
+  if (status === 'INSUFFICIENT_EVIDENCE' || status === 'FALLBACK') return 'warning'
+  if (status === 'RUNNING') return 'info'
+  return 'neutral'
+}
 const formatDateTime = (value: string) => {
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(date)
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' }).format(date)
 }
 
 function RunDetail({ projectId, runId }: { projectId: number; runId: number }) {
@@ -49,6 +58,9 @@ export function AiAnalysisRunsPanel({ projectId }: { projectId: number }) {
   const [error, setError] = useState(false)
   const [revision, setRevision] = useState(0)
   const [openId, setOpenId] = useState<number | null>(null)
+  const [kindFilter, setKindFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -66,35 +78,84 @@ export function AiAnalysisRunsPanel({ projectId }: { projectId: number }) {
 
   const retry = () => { setLoading(true); setError(false); setResult(null); setRevision(value => value + 1) }
 
-  return <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs">
-    <h2 className="font-heading text-lg font-semibold text-ink">Lịch sử phân tích AI</h2>
-    <p className="mt-1 text-sm text-ink-muted">Các lần phân tích đã lưu của đồ án. Kết quả mang tính tham khảo; AI không đổi trạng thái hay phân công.</p>
-    {loading && <p role="status" className="mt-4 text-sm text-ink-muted">Đang tải lịch sử…</p>}
-    {!loading && error && <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><span>Chưa tải được lịch sử phân tích AI.</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
-    {!loading && !error && result && result.items.length === 0 && <p className="mt-4 text-sm text-ink-muted">Chưa có lần phân tích nào được lưu.</p>}
-    {!loading && !error && result && result.items.length > 0 && <ul className="mt-4 space-y-2">
-      {result.items.map(run => {
-        const open = openId === run.id
-        const scopeChanged = run.errorCode === 'AI_HISTORY_SCOPE_CHANGED'
-        return <li key={run.id} className="rounded-lg border border-hairline bg-card">
-          <button type="button" aria-expanded={open} onClick={() => setOpenId(open ? null : run.id)} className="flex w-full flex-wrap items-center justify-between gap-2 p-3 text-left">
-            <span className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold text-ink">{describeKind(run.kind)}</span>
-              <span className="rounded-full border border-hairline bg-canvas px-2 py-0.5 text-xs text-ink-muted">{run.modelVersion} · {run.configVersion}</span>
-              <span className="rounded-full border border-hairline bg-canvas px-2 py-0.5 text-xs text-ink-muted">{describeStatus(run.status)}</span>
-              {run.status === 'FAILED' && <span className="rounded-full border border-status-error-border bg-status-error-bg px-2 py-0.5 text-xs font-semibold text-status-error-text">Lỗi</span>}
-              {scopeChanged && <span className="rounded-full border border-status-warning-border bg-status-warning-bg px-2 py-0.5 text-xs font-semibold text-status-warning-text">Ngoài phạm vi hiện tại</span>}
-            </span>
-            <span className="text-xs text-ink-muted">{formatDateTime(run.startedAt)}</span>
-          </button>
-          {open && <div className="px-3 pb-3"><RunDetail projectId={projectId} runId={run.id} /></div>}
-        </li>
-      })}
-    </ul>}
-    {!loading && !error && result && result.totalPages > 1 && <nav className="mt-4 flex items-center justify-between gap-3 text-sm" aria-label="Trang lịch sử phân tích">
-      <button type="button" className="min-h-11 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Trang trước</button>
-      <span className="tabular-nums text-ink-muted">Trang {page} / {result.totalPages}</span>
-      <button type="button" className="min-h-11 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={page >= result.totalPages} onClick={() => setPage(value => value + 1)}>Trang sau</button>
-    </nav>}
+  const filteredItems = useMemo(() => {
+    const items = result?.items ?? []
+    const q = search.trim().toLowerCase()
+    return items.filter(run => {
+      if (kindFilter && run.kind !== kindFilter) return false
+      if (statusFilter && run.status !== statusFilter) return false
+      if (q) {
+        const hay = `${describeKind(run.kind)} ${describeStatus(run.status)} ${formatDateTime(run.startedAt)}`.toLowerCase()
+        if (!hay.includes(q)) return false
+      }
+      return true
+    })
+  }, [result, kindFilter, statusFilter, search])
+
+  const hasFilters = Boolean(kindFilter || statusFilter || search.trim())
+  const clearFilters = () => { setKindFilter(''); setStatusFilter(''); setSearch('') }
+
+  return <section className="rounded-xl border border-hairline bg-card shadow-xs overflow-hidden">
+    <div className="border-b border-hairline px-5 py-4">
+      <h2 className="font-heading text-lg font-semibold text-ink">Lịch sử phân tích AI</h2>
+      <p className="mt-1 text-sm text-ink-muted">Các lần phân tích đã lưu của đồ án. Kết quả mang tính tham khảo; AI không đổi trạng thái hay phân công.</p>
+    </div>
+    {!loading && !error && result && result.items.length > 0 && (
+      <FilterToolbar
+        embedded
+        tabs={[
+          { value: '', label: 'Tất cả' },
+          ...Object.entries(kindLabel).map(([value, label]) => ({ value, label })),
+        ]}
+        activeTab={kindFilter}
+        onTabChange={setKindFilter}
+        search={search}
+        onSearchChange={setSearch}
+        searchLabel="Tìm trong lịch sử AI"
+        searchPlaceholder="Tìm loại phân tích, trạng thái hoặc ngày…"
+        controls={
+          <select aria-label="Trạng thái phân tích" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="">Tất cả trạng thái</option>
+            {Object.entries(statusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        }
+        hasActiveFilters={hasFilters}
+        onClearAll={clearFilters}
+        resultSummary={`${filteredItems.length} / ${result.items.length} lần phân tích`}
+      />
+    )}
+    <div className="p-5">
+      {loading && <p role="status" className="text-sm text-ink-muted">Đang tải lịch sử…</p>}
+      {!loading && error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><span>Chưa tải được lịch sử phân tích AI.</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
+      {!loading && !error && result && result.items.length === 0 && <p className="text-sm text-ink-muted">Chưa có lần phân tích nào được lưu.</p>}
+      {!loading && !error && result && result.items.length > 0 && filteredItems.length === 0 && (
+        <div className="rounded-lg border border-hairline bg-canvas p-4 text-center text-sm text-ink-muted">
+          <p>Không có lần phân tích nào khớp bộ lọc hiện tại.</p>
+          <button type="button" className="mt-2 font-semibold text-primary underline" onClick={clearFilters}>Xóa bộ lọc</button>
+        </div>
+      )}
+      {!loading && !error && result && filteredItems.length > 0 && <ul className="space-y-2">
+        {filteredItems.map(run => {
+          const open = openId === run.id
+          const scopeChanged = run.errorCode === 'AI_HISTORY_SCOPE_CHANGED'
+          return <li key={run.id} className="rounded-lg border border-hairline bg-card transition-colors hover:border-primary/30">
+            <button type="button" aria-expanded={open} onClick={() => setOpenId(open ? null : run.id)} className="flex w-full flex-wrap items-center justify-between gap-2 p-3 text-left">
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-ink">{describeKind(run.kind)}</span>
+                <StatusBadge tone={statusTone(run.status)} label={describeStatus(run.status)} />
+                {scopeChanged && <StatusBadge tone="warning" label="Ngoài phạm vi hiện tại" />}
+              </span>
+              <span className="text-xs tabular-nums text-ink-muted">{formatDateTime(run.startedAt)}</span>
+            </button>
+            {open && <div className="border-t border-hairline px-3 pb-3 pt-2"><RunDetail projectId={projectId} runId={run.id} /></div>}
+          </li>
+        })}
+      </ul>}
+      {!loading && !error && result && result.totalPages > 1 && <nav className="mt-4 flex items-center justify-between gap-3 text-sm" aria-label="Trang lịch sử phân tích">
+        <button type="button" className="min-h-11 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Trang trước</button>
+        <span className="tabular-nums text-ink-muted">Trang {page} / {result.totalPages}</span>
+        <button type="button" className="min-h-11 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={page >= result.totalPages} onClick={() => setPage(value => value + 1)}>Trang sau</button>
+      </nav>}
+    </div>
   </section>
 }

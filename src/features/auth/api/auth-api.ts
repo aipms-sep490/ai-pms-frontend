@@ -18,7 +18,7 @@ export function logout(refreshToken: string): Promise<void> {
   return httpPost<void, { refreshToken: string }>(
     endpoints.authLogout,
     { refreshToken },
-    { skipAuthRefresh: true },
+    { skipAuthRefresh: true, keepalive: true },
   )
 }
 

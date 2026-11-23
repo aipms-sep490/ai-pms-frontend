@@ -17,6 +17,7 @@ export interface CheckpointDecision {
   decision: CheckpointDecisionValue
   reason: string
   decidedBy: number
+  decidedByName?: string | null
   decidedAt: string
   evidence: CheckpointEvidenceRef[]
 }
@@ -26,6 +27,7 @@ export interface ProjectCheckpoint {
   projectId: number
   title: string
   majorId: number | null
+  majorName?: string | null
   plannedAt: string
   concurrencyToken: string
   isOverdue: boolean

@@ -9,7 +9,7 @@ it('loads the exact selected published version and paginates using the server co
   api.getProjectResultVersion.mockResolvedValue({ projectId: 9, version: 2, totalScore: 8, outcome: 'PASS', contributions: [] })
   render(<ResultHistoryPanel projectId={9} />)
   fireEvent.click(await screen.findByRole('button', { name: /v2 · 8/ }))
-  expect(await screen.findByText('Phiên bản đã chọn: v2 · 8 · PASS')).toBeTruthy()
+  expect(await screen.findByText('Phiên bản đã chọn: v2 · 8 · Đạt')).toBeTruthy()
   expect(api.getProjectResultVersion).toHaveBeenCalledWith(9, 2)
   fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
   await waitFor(() => expect(api.getProjectResultHistory).toHaveBeenCalledWith(9, 2, 20, expect.any(AbortSignal)))

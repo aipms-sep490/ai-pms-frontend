@@ -1,0 +1,82 @@
+.app-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  user-select: none;
+  border: 1px solid transparent;
+}
+
+.app-avatar--circle {
+  border-radius: 9999px;
+}
+
+.app-avatar--rounded {
+  border-radius: 10px;
+}
+
+.app-avatar--xs {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+}
+
+.app-avatar--sm {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+
+.app-avatar--md {
+  width: 38px;
+  height: 38px;
+  font-size: 13px;
+}
+
+.app-avatar--lg {
+  width: 48px;
+  height: 48px;
+  font-size: 16px;
+}
+
+.app-avatar--tone-primary {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  border-color: color-mix(in oklab, var(--color-primary) 24%, transparent);
+}
+
+.app-avatar--tone-se {
+  background: var(--color-tag-se-bg);
+  color: var(--color-tag-se);
+  border-color: color-mix(in oklab, var(--color-tag-se) 22%, transparent);
+}
+
+.app-avatar--tone-success {
+  background: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+  border-color: var(--color-status-success-border);
+}
+
+.app-avatar--tone-uiux {
+  background: var(--color-tag-uiux-bg);
+  color: var(--color-tag-uiux);
+  border-color: color-mix(in oklab, var(--color-tag-uiux) 22%, transparent);
+}
+
+.app-avatar--tone-warning {
+  background: var(--color-status-warning-bg);
+  color: var(--color-status-warning-text);
+  border-color: var(--color-status-warning-border);
+}
+
+.app-avatar__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}

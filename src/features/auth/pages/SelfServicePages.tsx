@@ -170,7 +170,7 @@ export function ProfileSecurityPage() {
     }
   }
 
-  if (!session) return <main className="auth-page-shell"><section className="auth-card"><h1>Cần đăng nhập</h1><Link to="/login">Mở trang đăng nhập</Link></section></main>
+  if (!session) return <div className="auth-page-shell"><section className="auth-card"><h1>Cần đăng nhập</h1><Link to="/login">Mở trang đăng nhập</Link></section></div>
 
   return <WorkspacePage title="Bảo mật tài khoản" eyebrow="Tài khoản cá nhân" description="Cập nhật mật khẩu để bảo vệ tài khoản của bạn." backTo="/profile"><section className="profile-workspace workspace-surface" aria-labelledby="security-title">
     <h2 id="security-title" className="text-lg font-semibold">Đổi mật khẩu</h2>

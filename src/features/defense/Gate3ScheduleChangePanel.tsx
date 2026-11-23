@@ -60,33 +60,37 @@ export function Gate3ScheduleChangePanel({ periodId, schedule, rooms, onChanged,
     } finally { setBusy(false) }
   }
 
-  return <section aria-label={`Đổi lịch Gate 3 đồ án ${schedule.projectId}`} className="rounded-xl border border-hairline bg-canvas p-4">
-    <h3 className="font-semibold">Đổi lịch Gate 3 · Đồ án #{schedule.projectId}</h3>
-    <p className="mt-1 text-sm text-ink-muted">Chỉ đổi trước khi phiên bắt đầu. BE kiểm tra phòng, người đánh giá, cửa sổ Gate và ngày làm việc.</p>
+  const projectLabel = schedule.projectCode
+    ? `${schedule.projectCode}${schedule.projectTitle ? ` · ${schedule.projectTitle}` : ''}`
+    : schedule.projectTitle || 'Đồ án cần đổi lịch'
+
+  return <section aria-label={`Đổi lịch Gate 3 ${projectLabel}`} className="rounded-xl border border-hairline bg-canvas p-4">
+    <h3 className="font-semibold">Đổi lịch Gate 3 · {projectLabel}</h3>
+    <p className="mt-1 text-sm text-ink-muted">Chỉ đổi trước khi phiên bắt đầu. Hệ thống kiểm tra phòng, giảng viên đánh giá, khung thời gian Gate 3 và ngày làm việc.</p>
     <div className="mt-3 grid gap-3 sm:grid-cols-2">
       <label className="text-sm font-semibold">Phòng mới
-        <select value={roomId} onChange={event => setRoomId(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-2">
+        <select value={roomId} onChange={event => setRoomId(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
           {rooms.filter(room => room.status === 'ACTIVE' && [2, 3, 4].includes(room.floor)).map(room =>
             <option key={room.id} value={room.id}>{room.code} · {room.building} · tầng {room.floor}</option>)}
         </select>
       </label>
       <label className="text-sm font-semibold">Ngày mới
-        <input type="date" min={todayVietnam()} value={date} onChange={event => setDate(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-2" />
+        <input type="date" min={todayVietnam()} value={date} onChange={event => setDate(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" />
       </label>
       <label className="text-sm font-semibold">Ca mới
-        <select value={slot} onChange={event => setSlot(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-2">
+        <select value={slot} onChange={event => setSlot(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
           <option value="">Chọn ca</option>{slots.map(([start, end], index) => <option key={start} value={index + 1}>Ca {index + 1} · {start}–{end}</option>)}
         </select>
       </label>
       <label className="text-sm font-semibold sm:col-span-2">Lý do đổi lịch
-        <textarea value={reason} maxLength={2000} onChange={event => setReason(event.target.value)} disabled={busy} className="mt-1 min-h-20 w-full rounded-lg border border-hairline p-2" />
+        <textarea value={reason} maxLength={2000} onChange={event => setReason(event.target.value)} disabled={busy} className="mt-1 min-h-20 w-full rounded-lg border border-hairline bg-card p-3 font-normal text-ink" />
       </label>
     </div>
     {error && <InlineAlert tone="error" className="mt-3">{error}</InlineAlert>}
     <div className="mt-3 flex flex-wrap gap-2">
       <button type="button" disabled={busy || unverified || !valid} onClick={() => void save()} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">Xác nhận đổi lịch</button>
-      {unverified && <button type="button" onClick={() => { onChanged(); onClose() }} className="min-h-11 rounded-lg border border-hairline px-4 text-sm font-semibold">Tải lại lịch</button>}
-      <button type="button" disabled={busy} onClick={onClose} className="min-h-11 rounded-lg border border-hairline px-4 text-sm font-semibold">Đóng</button>
+      {unverified && <button type="button" onClick={() => { onChanged(); onClose() }} className="min-h-11 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold">Tải lại lịch</button>}
+      <button type="button" disabled={busy} onClick={onClose} className="min-h-11 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold">Đóng</button>
     </div>
   </section>
 }

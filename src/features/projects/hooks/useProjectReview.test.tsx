@@ -66,7 +66,7 @@ describe('useProjectReview', () => {
     expect(api.getProjectMajorRequirements).toHaveBeenCalledTimes(2)
     expect(api.getReviewSnapshots).toHaveBeenCalledTimes(2)
     expect(result.current.error?.kind).toBe('conflict')
-    expect(result.current.error?.message).toContain('A department decision was already recorded.')
+    expect(result.current.error?.message).toContain('Dữ liệu thẩm định vừa thay đổi')
   })
 
   it('uses the server requirements token and refreshes after a successful replacement', async () => {

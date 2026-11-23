@@ -43,7 +43,7 @@ export function KanbanBoard({
             {/* Task Cards Column Body */}
             <div className="flex flex-col gap-2.5 flex-1">
               {tasks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 px-3 text-center border-2 border-dashed border-hairline rounded-lg text-slate-400">
+                <div className="flex flex-col items-center justify-center py-12 px-3 text-center border-2 border-dashed border-hairline rounded-lg text-ink-muted">
                   <span className="material-symbols-outlined text-[24px] mb-1">
                     {hasDetailTasks ? 'inbox' : 'pending'}
                   </span>
@@ -54,7 +54,7 @@ export function KanbanBoard({
                       <span className="text-xs font-medium text-ink-muted">
                         Chưa có dữ liệu chi tiết trong fixture
                       </span>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-ink-muted">
                         Chỉ số tổng ({totalMilestoneTasks} tác vụ) là metadata kế hoạch
                       </span>
                     </div>

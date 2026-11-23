@@ -21,7 +21,7 @@
   border: 1px solid var(--color-hairline);
   border-radius: 12px;
   color: var(--color-ink-soft);
-  background: #ffffff;
+  background: var(--color-card);
 }
 
 .error-panel {
@@ -71,8 +71,8 @@
   padding: 20px;
   border: 1px solid var(--color-line);
   border-radius: 12px;
-  background: #ffffff;
-  box-shadow: 0 8px 24px rgba(22, 44, 72, 0.04);
+  background: var(--color-card);
+  box-shadow: 0 8px 24px color-mix(in oklab, var(--color-brand-navy) 4%, transparent);
 }
 
 .lifecycle-card.terminal {

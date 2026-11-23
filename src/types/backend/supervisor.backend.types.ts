@@ -30,6 +30,7 @@ export interface SupervisorAssignmentDto {
   reasons?: string[] | null
   endReason?: string | null
   replacesAssignmentId?: number | null
+  replacesSupervisorName?: string | null
 }
 
 export interface SupervisorRequestDto {

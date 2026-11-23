@@ -90,7 +90,7 @@ export function PeriodCalendarPanel({ periodId, onChanged }: { periodId: number;
     } finally { setBusy(false) }
   }
 
-  return <section aria-label="Lịch làm việc kỳ đồ án" className="rounded-2xl border border-hairline bg-surface p-4 shadow-xs">
+  return <section aria-label="Lịch làm việc kỳ đồ án" className="rounded-2xl border border-hairline bg-card p-4 shadow-xs">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div><h2 className="text-lg font-bold">Lịch làm việc của kỳ</h2>
         <p className="text-sm text-ink-muted">Ngày nghỉ và ngày làm việc quyết định ca có thể xếp cho Gate 3/4.</p></div>
@@ -115,10 +115,10 @@ export function PeriodCalendarPanel({ periodId, onChanged }: { periodId: number;
           <button type="button" disabled={busy || uncertain} onClick={() => setHolidays(rows => rows.filter(item => item.date !== row.date))} className="min-h-11 font-semibold text-status-error-text underline">Xóa</button>
         </li>)}</ul>
         <div className="mt-3 flex flex-wrap items-end gap-2">
-          <label className="text-sm font-semibold">Ngày<input type="date" value={newDate} disabled={busy || uncertain} onChange={event => setNewDate(event.target.value)} className="mt-1 min-h-11 rounded-lg border border-hairline px-2" /></label>
-          <label className="text-sm font-semibold">Tên ngày nghỉ<input value={newName} maxLength={200} disabled={busy || uncertain} onChange={event => setNewName(event.target.value)} className="mt-1 min-h-11 rounded-lg border border-hairline px-2" /></label>
+          <label className="text-sm font-semibold">Ngày<input type="date" value={newDate} disabled={busy || uncertain} onChange={event => setNewDate(event.target.value)} className="mt-1 min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink" /></label>
+          <label className="text-sm font-semibold">Tên ngày nghỉ<input value={newName} maxLength={200} disabled={busy || uncertain} onChange={event => setNewName(event.target.value)} className="mt-1 min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink" /></label>
           <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={newRecurring} disabled={busy || uncertain} onChange={event => setNewRecurring(event.target.checked)} />Hằng năm</label>
-          <button type="button" disabled={busy || uncertain || !newDate || !newName.trim() || holidays.some(row => row.date === newDate)} onClick={addHoliday} className="min-h-11 rounded-lg border border-hairline px-3 text-sm font-semibold disabled:opacity-50">Thêm ngày nghỉ</button>
+          <button type="button" disabled={busy || uncertain || !newDate || !newName.trim() || holidays.some(row => row.date === newDate)} onClick={addHoliday} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm font-semibold disabled:opacity-50">Thêm ngày nghỉ</button>
         </div>
       </div>
       {!valid && <p role="alert" className="text-sm text-status-error-text">Cần ít nhất một ngày làm việc và tối đa 500 ngày nghỉ khác ngày, có tên hợp lệ.</p>}
@@ -126,10 +126,10 @@ export function PeriodCalendarPanel({ periodId, onChanged }: { periodId: number;
       <div className="rounded-xl border border-hairline bg-canvas p-3">
         <p className="text-sm">Mốc ngày lễ Việt Nam 2025–2030 là dữ liệu tham khảo. Cán bộ phải đối chiếu lịch Tết và nghỉ bù chính thức từng năm trước khi xếp lịch.</p>
         <div className="mt-2 flex flex-wrap items-end gap-2"><label className="text-sm font-semibold">Năm
-          <select value={year} onChange={event => setYear(Number(event.target.value))} disabled={busy || uncertain} className="mt-1 min-h-11 rounded-lg border border-hairline px-2">
+          <select value={year} onChange={event => setYear(Number(event.target.value))} disabled={busy || uncertain} className="mt-1 min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
             {[2025, 2026, 2027, 2028, 2029, 2030].map(value => <option key={value} value={value}>{value}</option>)}
           </select></label>
-          <button type="button" disabled={busy || uncertain || dirty} onClick={() => void loadBaseline()} className="min-h-11 rounded-lg border border-hairline px-3 text-sm font-semibold disabled:opacity-50">Nạp mốc ngày nghỉ mẫu</button>
+          <button type="button" disabled={busy || uncertain || dirty} onClick={() => void loadBaseline()} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm font-semibold disabled:opacity-50">Nạp mốc ngày nghỉ mẫu</button>
         </div>
         {dirty && <p className="mt-1 text-sm text-ink-muted">Lưu hoặc tải lại thay đổi đang sửa trước khi nạp mốc mẫu.</p>}
       </div>

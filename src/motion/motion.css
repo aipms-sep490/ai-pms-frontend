@@ -95,7 +95,7 @@
 /* Frosted glass sticky surface for action toolbars and headers */
 .glass-sticky-header {
   position: sticky;
-  top: 0;
+  top: var(--app-header-height, 58px);
   z-index: 20;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);

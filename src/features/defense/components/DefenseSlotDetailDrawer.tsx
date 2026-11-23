@@ -44,16 +44,16 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/40 backdrop-blur-xs flex justify-end">
+    <div className="fixed inset-0 z-[var(--z-index-drawer)] flex justify-end overflow-hidden bg-brand-navy/40 backdrop-blur-xs">
       {/* Backdrop click to close */}
       <div className="flex-1" onClick={onClose} />
 
       {/* Drawer Container */}
-      <div className="w-full max-w-2xl bg-surface shadow-2xl flex flex-col h-full border-l border-hairline animate-in slide-in-from-right duration-200">
+      <div className="flex h-full w-full max-w-2xl flex-col border-l border-hairline bg-card shadow-2xl animate-in slide-in-from-right duration-200">
         {/* Drawer Header */}
-        <div className="flex items-center justify-between border-b border-hairline px-6 py-4 bg-canvas/40">
+        <div className="flex items-center justify-between border-b border-hairline bg-canvas/40 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-white font-bold text-sm shadow-xs">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-sm font-bold text-white shadow-xs">
               {session.room}
             </div>
             <div>
@@ -61,8 +61,8 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
                 <h3 className="text-base font-bold text-ink">
                   {session.projectCode || `Đồ án #${session.projectId}`}
                 </h3>
-                <span className="rounded-full bg-primary-subtle text-primary border border-primary/20 px-2 py-0.5 text-xs font-bold">
-                  {session.status === 'SCHEDULED' ? 'Đã lên lịch' : session.status}
+                <span className="rounded-full border border-primary/20 bg-primary-subtle px-2 py-0.5 text-xs font-bold text-primary">
+                  {session.status === 'SCHEDULED' ? 'Đã lên lịch' : session.status === 'CANCELLED' ? 'Đã hủy' : session.status === 'COMPLETED' ? 'Đã hoàn thành' : session.status}
                 </span>
               </div>
               <p className="text-xs text-ink-muted">
@@ -73,19 +73,20 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
 
           <button
             type="button"
+            aria-label="Đóng"
             onClick={onClose}
-            className="rounded-lg p-2 text-ink-muted hover:bg-canvas hover:text-ink transition-colors"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-ink-muted transition-colors hover:bg-canvas hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             ✕
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-hairline px-6 bg-surface text-xs font-semibold">
+        <div className="flex border-b border-hairline bg-card px-6 text-xs font-semibold">
           <button
             type="button"
             onClick={() => setActiveTab('OVERVIEW')}
-            className={`py-3 px-3 border-b-2 transition-colors ${
+            className={`min-h-11 border-b-2 px-3 py-3 transition-colors ${
               activeTab === 'OVERVIEW'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-ink-muted hover:text-ink'
@@ -96,7 +97,7 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
           <button
             type="button"
             onClick={() => setActiveTab('ROOM_CANVAS')}
-            className={`py-3 px-3 border-b-2 transition-colors ${
+            className={`min-h-11 border-b-2 px-3 py-3 transition-colors ${
               activeTab === 'ROOM_CANVAS'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-ink-muted hover:text-ink'
@@ -107,7 +108,7 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
           <button
             type="button"
             onClick={() => setActiveTab('RESCHEDULE')}
-            className={`py-3 px-3 border-b-2 transition-colors ${
+            className={`min-h-11 border-b-2 px-3 py-3 transition-colors ${
               activeTab === 'RESCHEDULE'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-ink-muted hover:text-ink'
@@ -118,40 +119,40 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
         </div>
 
         {/* Drawer Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 space-y-6 overflow-y-auto p-6">
           {activeTab === 'OVERVIEW' && (
             <div className="space-y-6">
               {/* Project Title Card */}
               <div className="rounded-xl border border-hairline bg-canvas/50 p-4">
                 <span className="text-xs font-bold uppercase tracking-wider text-primary">Tên đề tài đồ án</span>
-                <h4 className="text-sm font-bold text-ink mt-1">
+                <h4 className="mt-1 text-sm font-bold text-ink">
                   {session.projectTitle || 'Hệ thống Quản lý Tiến độ Đồ án Tốt nghiệp Thông minh'}
                 </h4>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                  <span className="rounded-md bg-surface border border-hairline px-2 py-0.5 text-ink-muted">
+                  <span className="rounded-md border border-hairline bg-card px-2 py-0.5 text-ink-muted">
                     Mã đợt: K18 Fall 2026
                   </span>
-                  <span className="rounded-md bg-surface border border-hairline px-2 py-0.5 text-ink-muted">
+                  <span className="rounded-md border border-hairline bg-card px-2 py-0.5 text-ink-muted">
                     Ngành: Kỹ thuật phần mềm (SE)
                   </span>
                 </div>
               </div>
 
               {/* Evaluator & Rubrics Workflow Section */}
-              <div className="rounded-xl border border-primary/20 bg-primary-subtle/30 p-4 space-y-3">
+              <div className="space-y-3 rounded-xl border border-primary/20 bg-primary-subtle/30 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary text-[20px]" aria-hidden="true">fact_check</span>
+                    <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">fact_check</span>
                     <h5 className="text-xs font-bold uppercase tracking-wider text-primary">Quy trình & Bộ Rubrics áp dụng</h5>
                   </div>
-                  <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-bold text-primary border border-primary/20">
+                  <span className="rounded-full border border-primary/20 bg-card px-2.5 py-0.5 text-xs font-bold text-primary">
                     4 Evaluators
                   </span>
                 </div>
                 <p className="text-xs text-ink-muted">
                   Thành viên hội đồng đóng vai trò là <strong>Evaluator</strong>, thực hiện đánh giá độc lập dựa trên quy trình bảo vệ Gate 4 và bộ Rubrics chuẩn được phê duyệt cho nhóm.
                 </p>
-                <div className="rounded-lg bg-surface border border-hairline p-2.5 text-xs space-y-1">
+                <div className="space-y-1 rounded-lg border border-hairline bg-card p-2.5 text-xs">
                   <div className="flex justify-between">
                     <span className="text-ink-muted">Bộ Rubric:</span>
                     <span className="font-semibold text-ink">RUBRIC-DEFENSE-FA26 (100% trọng số)</span>
@@ -162,12 +163,12 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
                   </div>
                   <div className="flex justify-between">
                     <span className="text-ink-muted">Tính kế thừa:</span>
-                    <span className="font-semibold text-emerald-700">✓ 1 thành viên kế thừa từ Gate 1-3</span>
+                    <span className="font-semibold text-status-success-text">✓ 1 thành viên kế thừa từ Gate 1-3</span>
                   </div>
                 </div>
                 <a
                   href="/evaluator/workspace"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-hover underline pt-1"
+                  className="inline-flex min-h-11 items-center gap-1.5 pt-1 text-xs font-bold text-primary underline hover:text-primary-hover"
                 >
                   <span>Mở không gian chấm điểm Rubric (Evaluator Workspace)</span>
                   <span className="material-symbols-outlined text-[16px]" aria-hidden="true">open_in_new</span>
@@ -180,13 +181,13 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
                   <h5 className="text-xs font-bold uppercase tracking-wider text-ink">
                     Hội đồng Thẩm định & Đánh giá ({committeeMock.length} thành viên)
                   </h5>
-                  <span className="text-xs text-primary font-medium">HĐ #{session.committeeId}</span>
+                  <span className="text-xs font-medium text-primary">HĐ #{session.committeeId}</span>
                 </div>
-                <div className="divide-y divide-hairline rounded-xl border border-hairline bg-surface overflow-hidden">
+                <div className="divide-y divide-hairline overflow-hidden rounded-xl border border-hairline bg-card">
                   {committeeMock.map((m) => (
                     <div key={m.id} className="flex items-center justify-between p-3 text-xs">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">
                           {m.name.slice(0, 1)}
                         </div>
                         <div>
@@ -207,11 +208,11 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
                 <h5 className="text-xs font-bold uppercase tracking-wider text-ink">
                   Nhóm sinh viên thực hiện ({studentsMock.length} thành viên)
                 </h5>
-                <div className="divide-y divide-hairline rounded-xl border border-hairline bg-surface overflow-hidden">
+                <div className="divide-y divide-hairline overflow-hidden rounded-xl border border-hairline bg-card">
                   {studentsMock.map((s) => (
                     <div key={s.id} className="flex items-center justify-between p-3 text-xs">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-tag-se-bg font-bold text-tag-se">
                           {s.name.slice(0, 1)}
                         </div>
                         <div>
@@ -219,20 +220,20 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
                           <div className="text-xs text-ink-muted">{s.role === 'STUDENT_LEADER' ? 'Trưởng nhóm' : 'Thành viên'}</div>
                         </div>
                       </div>
-                      <span className="text-ink-muted font-mono text-xs">MSSV: SE150{s.id}</span>
+                      <span className="font-mono text-xs text-ink-muted">MSSV: SE150{s.id}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Supervisor Observing */}
-              <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/40 p-3.5 flex items-center justify-between text-xs">
+              <div className="flex items-center justify-between rounded-xl border border-dashed border-status-warning-border bg-status-warning-bg p-3.5 text-xs">
                 <div>
-                  <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">Giảng viên hướng dẫn</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-status-warning-text">Giảng viên hướng dẫn</span>
                   <p className="font-bold text-ink">{supervisorMock.name}</p>
                   <p className="text-xs text-ink-muted">{supervisorMock.title} · (Dự thính, không tham gia chấm điểm)</p>
                 </div>
-                <span className="rounded-full bg-amber-100 text-amber-800 px-2.5 py-1 text-xs font-semibold">
+                <span className="rounded-full border border-status-warning-border bg-card px-2.5 py-1 text-xs font-semibold text-status-warning-text">
                   Tham dự
                 </span>
               </div>
@@ -262,11 +263,11 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
           {activeTab === 'RESCHEDULE' && (
             <div className="space-y-4">
               <div className="rounded-xl border border-hairline bg-canvas/40 p-4">
-                <h5 className="text-xs font-bold text-ink uppercase tracking-wider">Tình trạng yêu cầu đổi phòng</h5>
+                <h5 className="text-xs font-bold uppercase tracking-wider text-ink">Tình trạng yêu cầu đổi phòng</h5>
                 {session.hasChangeRequest ? (
-                  <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 space-y-1">
+                  <div className="mt-3 space-y-1 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-xs text-status-warning-text">
                     <p className="font-bold">⚠️ Có yêu cầu đổi phòng đang chờ Trưởng bộ môn phê duyệt</p>
-                    <p className="text-xs text-amber-700">Lý do: Phòng A-201 gặp sự cố máy chiếu, nhóm cần đổi sang phòng A-204.</p>
+                    <p className="text-xs text-status-warning-text">Lý do: Phòng A-201 gặp sự cố máy chiếu, nhóm cần đổi sang phòng A-204.</p>
                   </div>
                 ) : (
                   <p className="mt-2 text-xs text-ink-muted">
@@ -279,7 +280,7 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
                 <button
                   type="button"
                   onClick={() => onRequestReschedule(session)}
-                  className="w-full rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-white hover:bg-primary/90 transition-colors shadow-xs"
+                  className="min-h-11 w-full rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-primary-hover"
                 >
                   + Tạo đơn yêu cầu đổi phòng / đổi giờ
                 </button>
@@ -289,12 +290,12 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
         </div>
 
         {/* Drawer Footer Actions */}
-        <div className="flex items-center justify-between border-t border-hairline px-6 py-4 bg-canvas/60">
+        <div className="flex items-center justify-between border-t border-hairline bg-canvas/60 px-6 py-4">
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => window.print()}
-              className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-canvas transition-colors"
+              className="min-h-11 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-canvas"
             >
               📄 In biên bản bảo vệ
             </button>
@@ -302,7 +303,7 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
               <button
                 type="button"
                 onClick={() => onCancelSession(session)}
-                className="rounded-lg border border-status-error-border bg-status-error-bg/30 px-3 py-1.5 text-xs font-semibold text-status-error-text hover:bg-status-error-bg transition-colors"
+                className="min-h-11 rounded-lg border border-status-error-border bg-status-error-bg/30 px-3 py-1.5 text-xs font-semibold text-status-error-text transition-colors hover:bg-status-error-bg"
               >
                 Hủy lịch
               </button>
@@ -312,7 +313,7 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-hairline bg-surface px-4 py-1.5 text-xs font-semibold text-ink hover:bg-canvas transition-colors"
+            className="min-h-11 rounded-lg border border-hairline bg-card px-4 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-canvas"
           >
             Đóng
           </button>

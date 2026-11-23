@@ -39,7 +39,7 @@ export function MilestoneHeader({
                   className={`px-3 py-1 text-xs font-mono font-bold rounded-md transition-all cursor-pointer whitespace-nowrap ${
                     isSelected
                       ? 'bg-primary text-white shadow-xs'
-                      : 'text-ink-muted hover:text-ink hover:bg-slate-200/60'
+                      : 'text-ink-muted hover:text-ink hover:bg-hairline'
                   }`}
                 >
                   {key}
@@ -111,15 +111,15 @@ export function MilestoneHeader({
               aria-valuenow={milestone.progress}
               aria-valuemin={0}
               aria-valuemax={100}
-              className="w-full bg-slate-200 h-2 rounded-full overflow-hidden"
+              className="w-full bg-hairline h-2 rounded-full overflow-hidden"
             >
               <div
                 className={`h-full rounded-full transition-all duration-300 ${
                   milestone.progress === 100
-                    ? 'bg-academic-emerald'
+                    ? 'bg-status-success-text'
                     : milestone.progress > 0
                     ? 'bg-primary'
-                    : 'bg-slate-300'
+                    : 'bg-line-strong'
                 }`}
                 style={{ width: `${milestone.progress}%` }}
               />

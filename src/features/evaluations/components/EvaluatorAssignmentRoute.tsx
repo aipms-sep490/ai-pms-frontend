@@ -41,14 +41,14 @@ export function EvaluatorAssignmentRoute() {
   }, [load])
 
   if (state === 'loading' || (state === 'ready' && detail?.assignment.id !== assignmentId)) return <PageLoading label="Đang xác minh phạm vi phân công đánh giá…" />
-  if (state === 'denied') return <main className="mx-auto max-w-3xl space-y-4 pb-12"><section role="alert" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text">Phân công này không còn hiệu lực hoặc không thuộc phạm vi của bạn. Đường dẫn không cấp quyền đánh giá.</section><Link to="/evaluator/workspace" className="inline-flex min-h-11 items-center font-semibold text-primary underline">← Về không gian người chấm</Link></main>
+  if (state === 'denied') return <div className="mx-auto max-w-3xl space-y-4 pb-12"><section role="alert" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text">Phân công này không còn hiệu lực hoặc không thuộc phạm vi của bạn. Đường dẫn không cấp quyền đánh giá.</section><Link to="/evaluator/workspace" className="inline-flex min-h-11 items-center font-semibold text-primary underline">← Về không gian người chấm</Link></div>
   if (state === 'unavailable' || !detail) {
-    return <main className="mx-auto max-w-3xl space-y-4 pb-12">
+    return <div className="mx-auto max-w-3xl space-y-4 pb-12">
       <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-5 text-sm text-status-error-text">
         Chưa xác minh được phân công đánh giá. Hãy tải lại trước khi mở nội dung chấm điểm.
         <button type="button" className="ml-2 min-h-11 font-semibold underline" onClick={() => void load()}>Tải lại</button>
       </section>
-    </main>
+    </div>
   }
   return <Outlet key={assignmentId} context={{ assignment: detail.assignment, detail } satisfies EvaluatorAssignmentContext} />
 }

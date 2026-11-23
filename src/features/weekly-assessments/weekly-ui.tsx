@@ -10,7 +10,7 @@ export function WeeklyBadge({ status }: { status: WeeklyAssessmentStatus }) {
 }
 
 export function WeeklyShell({ title, description, projectTitle, backTo, children, action }: {
-  title: string; description: string; projectTitle: string; backTo: string; children: ReactNode; action?: ReactNode
+  title: string; description: string; projectTitle: string; backTo?: string; children: ReactNode; action?: ReactNode
 }) {
   return <section className="weekly-assessments"><ExecutionPage title={title} description={description} eyebrow={`Điểm cá nhân theo tuần • ${projectTitle}`} backTo={backTo} action={action}>{children}</ExecutionPage></section>
 }

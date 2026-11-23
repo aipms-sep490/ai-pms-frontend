@@ -34,9 +34,9 @@ describe('TeamInvitationsPanel', () => {
       { id: 2, teamId: 2, invitedUserId: 14, invitedBy: 9, status: 'EXPIRED', createdAt: '2026-08-15T07:15:42' },
     ] })
     expect(screen.getByText('Võ Anh Duy')).toBeTruthy()
-    expect(screen.getByText('Đã hủy')).toBeTruthy()
-    expect(screen.getByText('Đã hết hạn')).toBeTruthy()
-    expect(screen.queryByText('Đã từ chối')).toBeNull()
+    expect(screen.getByText('Đã hủy', { selector: 'span' })).toBeTruthy()
+    expect(screen.getByText('Đã hết hạn', { selector: 'span' })).toBeTruthy()
+    expect(screen.queryByText('Đã từ chối', { selector: 'span' })).toBeNull()
     expect(screen.queryByText(/User ID|API BACKEND/)).toBeNull()
   })
 

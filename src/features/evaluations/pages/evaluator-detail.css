@@ -5,11 +5,25 @@
   background: var(--color-card);
   box-shadow: 0 1px 3px 0 color-mix(in oklab, var(--color-brand-navy) 4%, transparent);
 }
-.evaluator-detail .evaluator-scoring-form > section {
+.evaluator-detail .evaluator-scoring-form > section,
+.evaluator-detail .evaluator-criterion-item {
   border: 0;
   border-bottom: 1px solid var(--color-hairline);
   border-radius: 0;
   background: transparent;
+}
+.evaluator-detail .evaluator-criterion-group {
+  border-bottom: 1px solid var(--color-hairline);
+  background: var(--color-card);
+}
+.evaluator-detail .evaluator-criterion-group-header {
+  padding: 14px 20px;
+  background: var(--color-canvas);
+  border-bottom: 1px solid var(--color-hairline);
+  border-left: 3px solid var(--color-primary);
+}
+.evaluator-detail .evaluator-criterion-group .evaluator-criterion-item:last-child {
+  border-bottom: 0;
 }
 .evaluator-detail .evaluator-scoring-form > section:last-child {
   border-bottom: 0;
@@ -58,7 +72,7 @@
 @media (min-width: 1024px) {
   .evaluator-detail .evaluator-cold-layout:has(.evaluator-cold-aside) {
     display: grid;
-    grid-template-columns: minmax(380px, 1.15fr) minmax(400px, 1.25fr);
+    grid-template-columns: minmax(420px, 1.15fr) minmax(440px, 1.25fr);
     gap: 24px;
     align-items: start;
   }
@@ -152,7 +166,7 @@
 /* Sticky live scoring progress bar */
 .evaluator-sticky-scorebar {
   position: sticky;
-  top: 60px;
+  top: 68px;
   z-index: 20;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);

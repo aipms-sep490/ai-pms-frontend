@@ -1,3 +1,4 @@
+import { getInitials } from '../../../components/ui/initials'
 import type { TeamMemberDto, TimelineTaskDto } from '../../../types/backend'
 
 export function utcTimestamp(value?: string | null): number {
@@ -50,5 +51,5 @@ export function dateLabel(value?: string | null): string {
 }
 
 export function initials(name: string): string {
-  return name.trim().split(/\s+/).slice(-2).map(part => part[0]).join('').toUpperCase()
+  return getInitials(name, '—')
 }

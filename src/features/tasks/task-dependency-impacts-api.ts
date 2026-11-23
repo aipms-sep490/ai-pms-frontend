@@ -12,9 +12,11 @@ export interface TaskDependencyImpact {
   status: 'PENDING' | DependencyImpactDecision
   reopenedAt: string
   reopenedBy: number
+  reopenedByName?: string | null
   reopenReason: string
   reviewedAt: string | null
   reviewedBy: number | null
+  reviewedByName?: string | null
   reviewReason: string | null
   canResolve: boolean
   blockedReason: string | null

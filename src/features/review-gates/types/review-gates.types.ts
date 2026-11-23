@@ -68,6 +68,7 @@ export type GateStatus = 'PLANNED' | 'IN_REVIEW' | 'PASSED' | 'REVISION_REQUIRED
 
 export interface ProjectReviewMatrixRow {
   projectId: string
+  projectCode?: string | null
   projectName: string
   mode: 'SINGLE_MAJOR' | 'INTERDISCIPLINARY'
   major: string
@@ -94,6 +95,7 @@ export interface DefenseCondition {
 
 export interface DefenseReadinessSummary {
   projectId: string
+  projectCode?: string | null
   projectName: string
   isReady: boolean
   blockedCount: number
@@ -114,6 +116,7 @@ export interface StudentGateRequirement {
     filename: string
     submittedAt: string
     submittedBy: string
+    submittedByName?: string | null
     notes?: string | null
     contentType?: string
     sizeBytes?: number

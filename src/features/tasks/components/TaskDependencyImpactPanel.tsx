@@ -103,7 +103,7 @@ export function TaskDependencyImpactPanel({ taskId, taskStatus, concurrencyToken
           {pending.map(item => <article key={item.id} className="rounded-lg border border-hairline p-3 ex-stack">
             <p className="font-semibold text-status-warning-text">{verdictLabels[item.status]}</p>
             <p><Link className="ex-link" to={`${routeBase}/tasks/${item.predecessorTaskId}`}>{item.predecessorTitle}</Link> · {taskStatusLabel(item.predecessorStatus)}</p>
-            <p className="ex-muted">Mở lại lúc {dateTimeLabel(item.reopenedAt)}</p>
+            <p className="ex-muted">Mở lại lúc {dateTimeLabel(item.reopenedAt)}{item.reopenedByName ? ` · bởi ${item.reopenedByName}` : ''}</p>
             <p className="whitespace-pre-wrap">Lý do: {item.reopenReason}</p>
             {!item.canResolve && <p className="ex-muted">{item.blockedReason || 'Hoàn tất công việc tiền nhiệm trước khi kết luận ảnh hưởng.'}</p>}
             {canReview && data.canReview ? <div className="ex-actions flex-wrap">
@@ -124,7 +124,7 @@ export function TaskDependencyImpactPanel({ taskId, taskStatus, concurrencyToken
           </article>)}
           {reviewed.length > 0 && <details><summary className="ex-link">Lịch sử đánh giá ảnh hưởng ({reviewed.length})</summary><ol className="ex-history">{reviewed.map(item => <li key={item.id}>
             <strong>{verdictLabels[item.status]}</strong><p>{item.predecessorTitle}</p>
-            <time>{dateTimeLabel(item.reviewedAt)}{item.reviewedBy ? ` · Người đánh giá #${item.reviewedBy}` : ''}</time>
+            <time>{dateTimeLabel(item.reviewedAt)}{item.reviewedByName ? ` · Người đánh giá: ${item.reviewedByName}` : ''}</time>
             <p className="whitespace-pre-wrap">{item.reviewReason}</p>
           </li>)}</ol></details>}
         </>}

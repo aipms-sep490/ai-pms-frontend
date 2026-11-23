@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import { Button } from '../../../components/ui/Button'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { getAssignedReviewPage, submitGateDecision, verifyEvidence } from '../api/review-gates-api'
 import { Pagination } from '../../../components/ui/Pagination'
@@ -42,8 +43,9 @@ export function AssignedGateReviewPage() {
   }, [page, pageSize])
 
   useEffect(() => {
+    const activeRequest = requestId
     void loadAssignments()
-    return () => { requestId.current++ }
+    return () => { activeRequest.current++ }
   }, [loadAssignments])
 
   const handleVerifyEvidence = async (
@@ -87,9 +89,12 @@ export function AssignedGateReviewPage() {
 
   return (
     <WorkspacePage
-      eyebrow="Hội đồng Thẩm định · Review Gate Queue"
-      title="Thẩm định Tiến trình Đồ án (Review Gates)"
+      size="wide"
+      className="review-gates-surface space-y-5"
+      eyebrow="Hội đồng thẩm định"
+      title="Thẩm định tiến trình đồ án"
       description="Xem xét minh chứng học thuật theo phiên bản được nộp, đối chiếu tiêu chí và đưa ra quyết định thẩm định chính thức."
+      action={<Button variant="secondary" icon="refresh" disabled={loading} onClick={() => void loadAssignments()}>Tải lại</Button>}
     >
       <ReviewGatesMockNotice />
       {loading && !hasLoaded ? (
@@ -98,13 +103,13 @@ export function AssignedGateReviewPage() {
         </div>
       ) : <>
       {error && (
-        <div role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-6 text-center text-danger-text">
+        <div role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-6 text-center text-status-error-text">
           <p className="font-semibold">{error}</p>
           <button
             type="button"
             disabled={loading}
             onClick={() => void loadAssignments()}
-            className="mt-3 rounded-lg bg-danger-strong px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-danger-strong-hover"
+            className="mt-3 min-h-11 rounded-lg bg-status-error-text px-4 py-2 text-xs font-bold text-white shadow-xs hover:opacity-90"
           >
             Thử lại
           </button>
@@ -118,8 +123,8 @@ export function AssignedGateReviewPage() {
           onReload={loadAssignments}
           loading={loading || error !== null}
         />
-        <Pagination page={page} pages={totalPages} total={totalCount} pageSize={pageSize} busy={loading || error !== null}
-          onPage={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1) }} />
+        {totalPages > 1 && <Pagination page={page} pages={totalPages} total={totalCount} pageSize={pageSize} busy={loading || error !== null}
+          onPage={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1) }} />}
       </div>}
       </>}
     </WorkspacePage>

@@ -15,15 +15,15 @@ const run = (over: Partial<Record<string, unknown>>) => ({
 })
 
 describe('AiAnalysisRunsPanel', () => {
-  it('lists runs with kind, model/config version and status', async () => {
+  it('lists runs with kind and status without leaking raw model/config versions', async () => {
     mocks.getProjectAiRuns.mockResolvedValue(paged([
       run({ id: 1, kind: 'PROJECT_ASK' }),
       run({ id: 2, kind: 'REPORT_SUMMARY', status: 'FAILED', errorCode: 'AI_PROVIDER_FALLBACK' }),
     ]))
     render(<AiAnalysisRunsPanel projectId={9} />)
-    expect(await screen.findByText('Hỏi trợ lý')).toBeTruthy()
-    expect(screen.getByText('Tóm tắt báo cáo')).toBeTruthy()
-    expect(screen.getAllByText('rule-v1 · v1').length).toBe(2)
+    expect(await screen.findByRole('button', { name: /Hỏi trợ lý/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Tóm tắt báo cáo/ })).toBeTruthy()
+    expect(screen.queryByText('rule-v1 · v1')).toBeNull()
     expect(screen.getAllByText('Lỗi').length).toBeGreaterThan(0)
   })
 
@@ -31,7 +31,7 @@ describe('AiAnalysisRunsPanel', () => {
     mocks.getProjectAiRuns.mockResolvedValue(paged([run({ id: 5 })]))
     mocks.getAiRun.mockResolvedValue(run({ id: 5, answer: { projectId: 9, answer: 'Ưu tiên task quá hạn.', contextScope: 'PROJECT_WITH_INVITED_MEETINGS', evidence: [], limitationNote: null, insufficientEvidence: false, generatedAt: '2026-10-08T03:00:00Z', generationStatus: 'COMPLETED', runId: 5 } }))
     render(<AiAnalysisRunsPanel projectId={9} />)
-    fireEvent.click(await screen.findByText('Hỏi trợ lý'))
+    fireEvent.click(await screen.findByRole('button', { name: /Hỏi trợ lý/ }))
     await waitFor(() => expect(mocks.getAiRun).toHaveBeenCalledWith(9, 5, expect.any(AbortSignal)))
     expect(mocks.getProjectAiRuns).toHaveBeenCalledWith(9, 1, 20, expect.any(AbortSignal))
   })
@@ -40,7 +40,7 @@ describe('AiAnalysisRunsPanel', () => {
     mocks.getProjectAiRuns.mockResolvedValue(paged([run({ id: 1 })]))
     mocks.getAiRun.mockResolvedValue(run({ id: 1, answer: { projectId: 9, answer: 'Ưu tiên task quá hạn.', contextScope: 'PROJECT_WITH_INVITED_MEETINGS', evidence: [], limitationNote: 'Chỉ dựa trên dữ liệu hiện có.', insufficientEvidence: false, generatedAt: '2026-10-08T03:00:00Z', generationStatus: 'COMPLETED', runId: 1 } }))
     render(<AiAnalysisRunsPanel projectId={9} />)
-    fireEvent.click(await screen.findByText('Hỏi trợ lý'))
+    fireEvent.click(await screen.findByRole('button', { name: /Hỏi trợ lý/ }))
     expect(await screen.findByText('Ưu tiên task quá hạn.')).toBeTruthy()
     expect(screen.getByText('Chỉ dựa trên dữ liệu hiện có.')).toBeTruthy()
   })
@@ -52,7 +52,7 @@ describe('AiAnalysisRunsPanel', () => {
       reportSummary: { projectId: 9, reportId: 17, reportType: 'WEEKLY', periodStart: '2026-09-14', periodEnd: '2026-09-20', summary: { completed: 'Đã xong API.', inProgress: 'Kiểm thử.', blockers: 'Chờ tích hợp.', risks: 'Chậm tiến độ.', nextActions: 'Kiểm thử phân quyền.' }, contextScope: 'PROJECT_WITH_INVITED_MEETINGS', evidence: [], limitationNote: null, generatedAt: '2026-10-08T03:00:00Z', generationStatus: 'COMPLETED', runId: 2 },
     }))
     render(<AiAnalysisRunsPanel projectId={9} />)
-    fireEvent.click(await screen.findByText('Tóm tắt báo cáo'))
+    fireEvent.click(await screen.findByRole('button', { name: /Tóm tắt báo cáo/ }))
     expect(await screen.findByText('Đã xong API.')).toBeTruthy()
     expect(screen.getByText('Chờ tích hợp.')).toBeTruthy()
   })
@@ -70,7 +70,7 @@ describe('AiAnalysisRunsPanel', () => {
       },
     }))
     render(<AiAnalysisRunsPanel projectId={9} />)
-    fireEvent.click(await screen.findByText('Phân tích tiến độ'))
+    fireEvent.click(await screen.findByRole('button', { name: /Phân tích tiến độ/ }))
     expect(await screen.findByText(/Phạm vi ngành/)).toBeTruthy()
     expect(screen.getByText(/PROJECT_RISK, MILESTONES/)).toBeTruthy()
   })
@@ -80,7 +80,7 @@ describe('AiAnalysisRunsPanel', () => {
     mocks.getAiRun.mockResolvedValue(run({ id: 4, errorCode: 'AI_HISTORY_SCOPE_CHANGED', evidence: [], answer: null }))
     render(<AiAnalysisRunsPanel projectId={9} />)
     expect(await screen.findByText('Ngoài phạm vi hiện tại')).toBeTruthy()
-    fireEvent.click(screen.getByText('Hỏi trợ lý'))
+    fireEvent.click(screen.getByRole('button', { name: /Hỏi trợ lý/ }))
     expect(await screen.findByText(/không còn hiển thị trong phạm vi hiện tại/)).toBeTruthy()
   })
 
@@ -99,7 +99,7 @@ describe('AiAnalysisRunsPanel', () => {
   it('pages through history without refetching on the detail route', async () => {
     mocks.getProjectAiRuns.mockResolvedValue(paged([run({ id: 1 })], 2))
     render(<AiAnalysisRunsPanel projectId={9} />)
-    await screen.findByText('Hỏi trợ lý')
+    await screen.findByRole('button', { name: /Hỏi trợ lý/ })
     fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
     await waitFor(() => expect(mocks.getProjectAiRuns).toHaveBeenCalledWith(9, 2, 20, expect.any(AbortSignal)))
   })

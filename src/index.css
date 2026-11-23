@@ -10,8 +10,11 @@
      deeper action orange keeps white button text and links at WCAG AA. */
   --color-canvas: #F8F9FB;
   --color-card: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-subtle: #F1F5F9;
   --color-hairline: #E4E7EC;
   --color-skeleton: #E4E7EC;
+  --app-header-height: 58px;
 
   --color-primary: #C2410C;
   --color-primary-hover: #9A3412;
@@ -59,6 +62,10 @@
   --color-status-error-bg: #FFF1F2;
   --color-status-error-border: #F8B9C0;
 
+  --color-status-info-text: #1D4ED8;
+  --color-status-info-bg: #EFF6FF;
+  --color-status-info-border: #BFDBFE;
+
   /* Multidisciplinary Major Tags */
   --color-tag-se: #1D4ED8;
   --color-tag-se-bg: #EFF6FF;
@@ -88,10 +95,19 @@
 
   /* Z-index scale — one ordered map for every global overlay surface */
   --z-index-chat: 40;
+  --z-index-backdrop: 45;
   --z-index-drawer: 50;
   --z-index-modal: 60;
   --z-index-modal-confirm: 70;
   --z-index-tour: 100;
+}
+
+@layer base {
+  label :is(input, select, textarea) {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: normal;
+  }
 }
 
 :root {
@@ -117,9 +133,35 @@ body {
   border-color: var(--color-hairline);
 }
 
+:where(select:not([multiple])) {
+  min-height: 40px;
+  line-height: 1.4;
+  padding-block: 8px;
+  padding-inline: 12px 34px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
 select:not([multiple]) {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--color-card);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23647083' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px 16px;
+  padding-right: 34px;
   cursor: pointer;
   transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.app-context-skeleton {
+  display: inline-block;
+  width: 5.5rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  background: var(--color-hairline);
+  vertical-align: middle;
 }
 
 select:not([multiple]):hover:not(:disabled) {
@@ -139,7 +181,8 @@ select:disabled {
   color: var(--color-ink-muted);
 }
 
-/* Material Symbols Outlined */
+/* Material Symbols Outlined — Google Fonts stylesheet injects unlayered .material-symbols-outlined { display: inline-block },
+   so explicit compound selectors ensure Tailwind layout utilities (grid, flex, hidden) win cleanly. */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined' !important;
   font-weight: normal;
@@ -148,7 +191,9 @@ select:disabled {
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
@@ -156,6 +201,10 @@ select:disabled {
   -webkit-font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
 }
+.material-symbols-outlined.grid { display: grid; }
+.material-symbols-outlined.flex { display: flex; }
+.material-symbols-outlined.inline-flex { display: inline-flex; }
+.material-symbols-outlined.hidden { display: none; }
 
 .material-symbols-fill {
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
@@ -241,7 +290,7 @@ select:disabled {
 
 /* Responsive Sidebar Rail & Drawer */
 .sidebar-rail {
-  width: 15rem; /* 240px */
+  width: 248px;
 }
 
 @media (max-width: 1023px) {

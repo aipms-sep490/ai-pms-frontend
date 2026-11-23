@@ -80,7 +80,7 @@ export function CreateTeamModal({
               onChange={(e) => setCode(e.target.value)}
               placeholder="Ví dụ: SE28 hoặc AI05"
               required
-              className="w-full px-3.5 py-2.5 text-sm border border-line-strong rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary bg-card uppercase font-mono"
+              className="min-h-11 w-full rounded-md border border-line-strong bg-card px-3.5 py-2.5 font-mono text-sm text-ink uppercase focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
             />
             <p className="text-xs text-ink-muted mt-1">
               Mã định danh nhóm trong học kỳ (chữ và số viết hoa).
@@ -89,12 +89,12 @@ export function CreateTeamModal({
 
           {majors.length > 0 && <div>
             <label className="block text-xs font-medium text-ink-soft mb-1.5">Phạm vi đồ án *</label>
-            <select value={projectMode} onChange={(event) => { const next = event.target.value as 'SINGLE_MAJOR' | 'INTERDISCIPLINARY'; setProjectMode(next); if (next === 'SINGLE_MAJOR' && selectedMajorIds.length > 1) setSelectedMajorIds(selectedMajorIds.slice(0, 1)) }} className="w-full px-3.5 py-2.5 text-sm border border-line-strong rounded-md" disabled={isLoading}>
+            <select value={projectMode} onChange={(event) => { const next = event.target.value as 'SINGLE_MAJOR' | 'INTERDISCIPLINARY'; setProjectMode(next); if (next === 'SINGLE_MAJOR' && selectedMajorIds.length > 1) setSelectedMajorIds(selectedMajorIds.slice(0, 1)) }} className="min-h-11 w-full rounded-md border border-line-strong bg-card px-3.5 py-2.5 text-sm font-normal text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20" disabled={isLoading}>
               <option value="SINGLE_MAJOR">Đơn ngành</option>
               <option value="INTERDISCIPLINARY">Liên ngành</option>
             </select>
             <div className="mt-2 grid gap-1 text-sm">
-              {majors.map((major) => <label key={major.id} className="flex items-center gap-2"><input type={projectMode === 'SINGLE_MAJOR' ? 'radio' : 'checkbox'} name="create-team-major" checked={selectedMajorIds.includes(major.id)} onChange={() => setSelectedMajorIds((current) => projectMode === 'SINGLE_MAJOR' ? [major.id] : current.includes(major.id) ? current.filter((id) => id !== major.id) : [...current, major.id])} disabled={isLoading} />{major.name}</label>)}
+              {majors.map((major) => <label key={major.id} className="flex min-h-9 items-center gap-2"><input type={projectMode === 'SINGLE_MAJOR' ? 'radio' : 'checkbox'} name="create-team-major" checked={selectedMajorIds.includes(major.id)} onChange={() => setSelectedMajorIds((current) => projectMode === 'SINGLE_MAJOR' ? [major.id] : current.includes(major.id) ? current.filter((id) => id !== major.id) : [...current, major.id])} disabled={isLoading} className="accent-primary" />{major.name}</label>)}
             </div>
           </div>}
 
@@ -110,7 +110,7 @@ export function CreateTeamModal({
               onChange={(e) => setName(e.target.value)}
               placeholder="Ví dụ: Nhóm SE28 - Capstone đồ án"
               required
-              className="w-full px-3.5 py-2.5 text-sm border border-line-strong rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary bg-card"
+              className="min-h-11 w-full rounded-md border border-line-strong bg-card px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
             />
           </div>
 
@@ -125,7 +125,7 @@ export function CreateTeamModal({
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="Định hướng nghiên cứu, mục tiêu đề tài của nhóm..."
-              className="w-full px-3.5 py-2.5 text-sm border border-line-strong rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary bg-card"
+              className="w-full rounded-md border border-line-strong bg-card px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
             />
           </div>
 

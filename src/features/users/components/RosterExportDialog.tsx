@@ -102,10 +102,10 @@ export function RosterExportDialog({ onClose, lockedDepartmentId }: { onClose: (
   return <Modal open title="Xuất danh sách sinh viên theo nhóm" description="Tải tệp Excel theo mẫu danh sách nhóm của học kỳ." busy={exporting} onClose={onClose}>
     <form className="roster-export" onSubmit={event => void download(event)} aria-busy={exporting}>
       <div className="roster-export__format"><span className="material-symbols-outlined" aria-hidden="true">table_view</span><div><strong>Excel (.xlsx)</strong><p>STT · Mã nhóm · MSSV · Họ và tên · Trưởng nhóm/Thành viên · SĐT · Email · Khung · Lớp · Chuyên ngành hẹp</p></div></div>
-      {!canAccess || !token ? <p role="alert">Chỉ tài khoản Admin hoặc Giáo vụ Khoa mới được xuất danh sách này.</p> : <>
-        {loading && <p role="status">Đang tải học kỳ và danh mục đào tạo…</p>}
-        {loadError && <p role="alert">Chưa tải được bộ lọc. <Button variant="outline" size="sm" onClick={() => setRevision(value => value + 1)}>Thử lại</Button></p>}
-        {!loading && !loadError && !semesters.length && <p role="status">Chưa có học kỳ để xuất danh sách.</p>}
+      {!canAccess || !token ? <p className="roster-export__error" role="alert">Chỉ tài khoản Admin hoặc Giáo vụ Khoa mới được xuất danh sách này.</p> : <>
+        {loading && <p className="roster-export__hint" role="status">Đang tải học kỳ và danh mục đào tạo…</p>}
+        {loadError && <p className="roster-export__error" role="alert">Chưa tải được bộ lọc. <Button variant="outline" size="sm" onClick={() => setRevision(value => value + 1)}>Thử lại</Button></p>}
+        {!loading && !loadError && !semesters.length && <p className="roster-export__hint" role="status">Chưa có học kỳ để xuất danh sách.</p>}
         <fieldset disabled={loading || loadError || exporting}>
           <label>Học kỳ <span aria-hidden="true">*</span><select required value={semesterId} onChange={event => { setSemesterId(event.target.value); if (!lockedDept) setDepartmentId(''); setMajorId(''); clearFeedback() }}>
             <option value="">Chọn học kỳ</option>

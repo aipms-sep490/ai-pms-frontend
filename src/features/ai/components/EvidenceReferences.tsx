@@ -1,3 +1,4 @@
+import { displayLabel } from '../../../components/ui/display-label'
 import type { EvidenceReference } from '../ai-api'
 
 /**
@@ -13,7 +14,7 @@ export function EvidenceReferences({ items, heading = 'Chứng cứ hệ thống
     <ul className="mt-2 space-y-2 text-sm text-ink-soft">
       {items.map((item) => <li key={`${item.sourceType}-${item.sourceId}`} className="rounded-lg border border-hairline bg-card p-3">
         <p className="font-semibold text-ink">{item.title}</p>
-        <p className="mt-1 text-xs text-ink-muted">{item.sourceType} · {item.sourceId}{item.periodOrDate ? ` · ${item.periodOrDate}` : ''}</p>
+        <p className="mt-1 text-xs text-ink-muted">{displayLabel(item.sourceType)}{item.periodOrDate ? ` · ${item.periodOrDate}` : ''}</p>
         {item.excerpt && <p className="mt-2 whitespace-pre-wrap leading-6">{item.excerpt}</p>}
         {item.referenceUrl && <p className="mt-2 break-all text-xs text-ink-muted">Nguồn tham chiếu: {item.referenceUrl}</p>}
       </li>)}

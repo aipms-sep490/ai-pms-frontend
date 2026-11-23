@@ -30,9 +30,9 @@ function checklistWith(items: ColdChecklist['items'], blockers: string[] = []): 
   return { id: 1, projectId: 9, projectPeriodId: 3, deadline: '2026-12-10T16:59:59Z', status: 'OPEN', concurrencyToken: 'pkg-token', lockedAt: null, canLock: false, blockers, items }
 }
 
-function mount(checklist: ColdChecklist) {
+function mount(checklist: ColdChecklist, overrides: Partial<ExecutionAccess> = {}) {
   api.getColdChecklist.mockResolvedValue(checklist)
-  const access: ExecutionAccess = { project: { id: 9, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'], actor: 'student', canManageStructure: true, currentUserId: 2, routeBase: '/project' }
+  const access: ExecutionAccess = { project: { id: 9, title: 'Quản lý đồ án', status: 'ACTIVE' } as ExecutionAccess['project'], actor: 'student', canManageStructure: true, currentUserId: 2, routeBase: '/project', ...overrides }
   const router = createMemoryRouter([{ element: <ExecutionAccessProvider value={access}><Outlet /></ExecutionAccessProvider>, children: [
     { path: '/project/cold-reports', element: <ColdChecklistPage /> },
   ] }], { initialEntries: ['/project/cold-reports'] })
@@ -56,17 +56,23 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('COLD checklist page', () => {
-  it('shows project identity, lock blockers and an explicit empty checklist state', async () => {
+  it('shows lock blockers and an explicit empty checklist state for leader', async () => {
     mount(checklistWith([], ['WINDOW_CLOSED']))
     expect(await screen.findByText('Chưa đủ điều kiện khóa gói')).toBeTruthy()
     expect(screen.getByText('WINDOW_CLOSED')).toBeTruthy()
     expect(screen.getByText('Chưa có checklist báo cáo')).toBeTruthy()
-    expect(screen.getByRole('list', { name: 'Thông tin định danh' })).toBeTruthy()
   })
+
+  it('hides lock ActionVerdict for non-leader students who cannot lock', async () => {
+    mount(checklistWith([], ['WINDOW_CLOSED']), { canManageStructure: false })
+    await screen.findByText('Chưa có checklist báo cáo')
+    expect(screen.queryByText('Chưa đủ điều kiện khóa gói')).toBeNull()
+  })
+
   it('renders required items with their latest status and the package deadline', async () => {
     mount(checklistWith([{ id: 1, templateId: 5, templateVersion: 1, reportType: 'SOFTWARE_REQUIREMENT', name: 'Software Requirement', required: true, scope: 'MAJOR_SPECIFIC', majorId: 12, studentId: null, latest: draftSubmission, canWrite: true }]))
     expect(await screen.findByText('Software Requirement')).toBeTruthy()
-    expect(screen.getByText('Bản nháp')).toBeTruthy()
+    expect(screen.getByText('Bản nháp', { selector: '.cold-badge' })).toBeTruthy()
     expect(screen.getByText(/Hạn nộp/)).toBeTruthy()
   })
 
@@ -76,12 +82,13 @@ describe('COLD checklist page', () => {
     await screen.findByText('Chưa có bản nào')
     fireEvent.click(screen.getByRole('button', { name: 'Tạo bản nháp' }))
     await waitFor(() => expect(api.saveColdDraft).toHaveBeenCalledWith(1, { expectedLatestVersion: 0 }))
-    expect(await screen.findByText('Bản nháp')).toBeTruthy()
+    expect(await screen.findByText('Bản nháp', { selector: '.cold-badge' })).toBeTruthy()
   })
 
-  it('saves the note with the current version and concurrency token', async () => {
+  it('saves the note inside the draft modal with current version and concurrency token', async () => {
     api.saveColdDraft.mockResolvedValue({ ...draftSubmission, note: 'Đã cập nhật' })
     mount(checklistWith([{ id: 1, templateId: 5, templateVersion: 1, reportType: 'SOFTWARE_REQUIREMENT', name: 'Software Requirement', required: true, scope: 'MAJOR_SPECIFIC', majorId: 12, studentId: null, latest: draftSubmission, canWrite: true }]))
+    fireEvent.click(await screen.findByRole('button', { name: /Chỉnh sửa & nộp/ }))
     const note = await screen.findByLabelText('Ghi chú') as HTMLTextAreaElement
     fireEvent.change(note, { target: { value: 'Đã cập nhật' } })
     fireEvent.click(screen.getByRole('button', { name: 'Lưu ghi chú' }))
@@ -90,15 +97,23 @@ describe('COLD checklist page', () => {
 
   it('disables submit until at least one file is attached', async () => {
     mount(checklistWith([{ id: 1, templateId: 5, templateVersion: 1, reportType: 'SOFTWARE_REQUIREMENT', name: 'Software Requirement', required: true, scope: 'MAJOR_SPECIFIC', majorId: 12, studentId: null, latest: draftSubmission, canWrite: true }]))
+    fireEvent.click(await screen.findByRole('button', { name: /Chỉnh sửa & nộp/ }))
     const submit = await screen.findByRole('button', { name: 'Nộp báo cáo' }) as HTMLButtonElement
     expect(submit.disabled).toBe(true)
+  })
+
+  it('allows previewing attached files even in DRAFT mode', async () => {
+    const draftWithFile: ColdSubmission = { ...draftSubmission, files: [{ id: 10, fileName: 'draft.pdf', contentType: 'application/pdf', sizeBytes: 1024, sha256: 'xyz', downloadUrl: '' }] }
+    mount(checklistWith([{ id: 1, templateId: 5, templateVersion: 1, reportType: 'SOFTWARE_REQUIREMENT', name: 'Software Requirement', required: true, scope: 'MAJOR_SPECIFIC', majorId: 12, studentId: null, latest: draftWithFile, canWrite: true }]))
+    await screen.findByText('draft.pdf')
+    expect(screen.getAllByRole('button', { name: 'Xem trước' }).length).toBeGreaterThan(0)
   })
 
   it('hides write controls for a read-only actor and shows the download action instead', async () => {
     const withFile: ColdSubmission = { ...draftSubmission, status: 'SUBMITTED', submittedAt: '2026-10-02T00:00:00Z', files: [{ id: 9, fileName: 'srs.pdf', contentType: 'application/pdf', sizeBytes: 2048, sha256: 'abc', downloadUrl: '' }] }
     mount(checklistWith([{ id: 1, templateId: 5, templateVersion: 1, reportType: 'SOFTWARE_REQUIREMENT', name: 'Software Requirement', required: true, scope: 'MAJOR_SPECIFIC', majorId: 12, studentId: null, latest: withFile, canWrite: false }]))
     await screen.findByText('srs.pdf')
-    expect(screen.queryByLabelText('Ghi chú')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Chỉnh sửa & nộp/ })).toBeNull()
     expect(screen.getByRole('button', { name: 'Tải xuống' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Nộp lại (tạo phiên bản mới)' })).toBeNull()
   })
@@ -106,10 +121,19 @@ describe('COLD checklist page', () => {
   it('reloads the checklist instead of replaying the mutation on a 409 conflict', async () => {
     api.saveColdDraft.mockRejectedValue(new HttpError('stale', 409))
     mount(checklistWith([{ id: 1, templateId: 5, templateVersion: 1, reportType: 'SOFTWARE_REQUIREMENT', name: 'Software Requirement', required: true, scope: 'MAJOR_SPECIFIC', majorId: 12, studentId: null, latest: draftSubmission, canWrite: true }]))
+    fireEvent.click(await screen.findByRole('button', { name: /Chỉnh sửa & nộp/ }))
     await screen.findByLabelText('Ghi chú')
     fireEvent.click(screen.getByRole('button', { name: 'Lưu ghi chú' }))
     await screen.findByRole('alert')
     await waitFor(() => expect(api.getColdChecklist).toHaveBeenCalledTimes(2))
+  })
+
+  it('surfaces history loading error with retry button', async () => {
+    api.getColdSubmissionHistory.mockRejectedValueOnce(new Error('network'))
+    mount(checklistWith([{ id: 1, templateId: 5, templateVersion: 1, reportType: 'SOFTWARE_REQUIREMENT', name: 'Software Requirement', required: true, scope: 'MAJOR_SPECIFIC', majorId: 12, studentId: null, latest: draftSubmission, canWrite: true }]))
+    fireEvent.click(await screen.findByRole('button', { name: 'Xem lịch sử nộp' }))
+    expect(await screen.findByRole('alert')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Tải lại' })).toBeTruthy()
   })
 
   it('surfaces lock blockers without hiding the item list', async () => {

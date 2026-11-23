@@ -69,11 +69,11 @@ export function TransferLeaderModal({
             <label className="block text-xs font-bold text-ink-soft uppercase tracking-wider mb-2">
               Chọn thành viên kế nhiệm *
             </label>
-            <div className="divide-y divide-slate-100 border border-hairline rounded-md overflow-hidden">
+            <div className="divide-y divide-hairline overflow-hidden rounded-md border border-hairline">
               {eligibleMembers.map((m) => (
                 <label
                   key={m.userId}
-                  className={`flex items-center justify-between p-3 cursor-pointer hover:bg-canvas transition-colors ${
+                  className={`flex min-h-11 cursor-pointer items-center justify-between p-3 transition-colors hover:bg-canvas ${
                     selectedUserId === m.userId ? 'bg-primary-subtle' : ''
                   }`}
                 >
@@ -85,7 +85,7 @@ export function TransferLeaderModal({
                       value={m.userId}
                       checked={selectedUserId === m.userId}
                       onChange={() => setSelectedUserId(m.userId)}
-                      className="text-primary focus:ring-primary"
+                      className="accent-primary focus:ring-primary"
                     />
                     <div>
                       <p className="text-xs font-semibold text-ink">{m.fullName}</p>
@@ -100,7 +100,7 @@ export function TransferLeaderModal({
             <label className="block text-xs font-bold text-ink-soft">
               Lý do / ghi chú
               <textarea
-                className="mt-2 w-full rounded-md border border-hairline p-3 font-normal"
+                className="mt-2 w-full rounded-md border border-line-strong bg-card p-3 font-normal text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
                 placeholder="Mô tả ngắn lý do đề nghị thay đổi Trưởng nhóm"
@@ -109,7 +109,7 @@ export function TransferLeaderModal({
           )}
 
           {error && (
-            <div className="bg-status-error-bg border border-status-error-border rounded-lg p-2.5 text-xs text-danger-text font-medium">
+            <div className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs font-medium text-status-error-text">
               {error}
             </div>
           )}

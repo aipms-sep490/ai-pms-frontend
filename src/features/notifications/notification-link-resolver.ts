@@ -60,9 +60,9 @@ const defenseStandby: Rule = { entities: ['DEFENSE_SESSION'], feature: 'defenseS
   department: { url: '/department/portfolio', label: 'Xem danh mục đồ án bảo vệ' },
 } }
 const gate3Schedule: Rule = { entities: ['GATE_SESSION_SCRIPT'], targets: {
-  student: { url: '/project/timeline', label: 'Xem lịch Review Gate 3 của đồ án' },
-  lecturer: { url: '/review/gate-assignments', label: 'Xem lịch Review Gate 3 được phân công' },
-  department: { url: '/department/projects/progress-matrix', label: 'Xem tiến trình Review Gate 3' },
+  student: { url: '/project/timeline', label: 'Xem lịch cổng kiểm duyệt 3 của đồ án' },
+  lecturer: { url: '/review/gate-assignments', label: 'Xem lịch cổng kiểm duyệt 3 được phân công' },
+  department: { url: '/department/projects/progress-matrix', label: 'Xem tiến trình cổng kiểm duyệt 3' },
 } }
 const appeal: Rule = { entities: ['PROJECT'], feature: 'resultCorrectionEnabled', targets: {
   student: { url: '/project/result', label: 'Xem yêu cầu phúc khảo' },
@@ -103,12 +103,12 @@ const rules: Record<string, Rule | null> = {
   PROJECT_RISK_MEDIUM: risk, PROJECT_RISK_HIGH: risk, PROJECT_RISK_CRITICAL: risk, PROJECT_RISK_ALERT: risk,
   DEFENSE_SCHEDULED: defense, DEFENSE_CANCELLED: defense, DEFENSE_SCHEDULE_CHANGED: defense,
   DEFENSE_STANDBY_SWAPPED: defenseStandby,
-  REVIEW_GATE_3_SCHEDULED: gate3Schedule, REVIEW_GATE_3_SCHEDULE_CHANGED: gate3Schedule,
+  REVIEW_GATE_3_SCHEDULED: gate3Schedule, REVIEW_GATE_3_SCHEDULE_CHANGED: gate3Schedule, REVIEW_GATE_3_CHANGED: gate3Schedule,
   EVALUATOR_ASSIGNED: { entities: ['EVALUATION_ASSIGNMENT'], targets: {
     lecturer: id => ({ url: `/evaluator/assignments/${id}`, label: 'Xem phân công đánh giá' }),
   } },
   COLD_EVALUATOR_ASSIGNED: { entities: ['EVALUATION_ASSIGNMENT'], targets: {
-    lecturer: id => ({ url: `/evaluator/assignments/${id}`, label: 'Chấm Cold được phân công' }),
+    lecturer: id => ({ url: `/evaluator/assignments/${id}`, label: 'Chấm nguội được phân công' }),
   } },
   EVALUATION_FINALIZED: { entities: ['EVALUATION'], targets: { department: risk.targets.department } },
   APPEAL_REQUESTED: appeal, APPEAL_REVIEWER_ASSIGNED: appeal, APPEAL_REVIEWED: appeal, APPEAL_DECIDED: appeal,

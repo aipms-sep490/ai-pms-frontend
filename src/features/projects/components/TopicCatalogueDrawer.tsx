@@ -17,64 +17,65 @@ export function TopicCatalogueDrawer({
   if (!isOpen || !topic) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex justify-end">
-      <div className="bg-card w-full max-w-xl h-full shadow-2xl flex flex-col justify-between animate-in slide-in-from-right duration-200">
+    <div className="fixed inset-0 z-50 flex justify-end bg-[color-mix(in_oklab,var(--color-brand-navy)_45%,transparent)] backdrop-blur-xs">
+      <div className="flex h-full w-full max-w-xl flex-col justify-between bg-card shadow-2xl motion-safe:animate-in motion-safe:slide-in-from-right duration-200">
         {/* Header */}
-        <div className="p-6 border-b border-line flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-4 border-b border-hairline p-6">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="font-mono text-xs font-bold text-status-info-text bg-status-info-bg px-2 py-0.5 rounded border border-status-info-border">
+            <div className="mb-1.5 flex items-center gap-2">
+              <span className="rounded border border-primary/20 bg-primary-subtle px-2 py-0.5 font-mono text-xs font-bold text-primary">
                 {topic.code}
               </span>
               {topic.isInterdisciplinary ? (
-                <span className="text-xs font-bold text-tag-ai bg-tag-ai-bg px-2 py-0.5 rounded border border-tag-ai/20">
+                <span className="rounded border border-tag-ai/20 bg-tag-ai-bg px-2 py-0.5 text-xs font-bold text-tag-ai">
                   Liên ngành
                 </span>
               ) : (
-                <span className="text-xs font-bold text-ink-muted bg-slate-100 px-2 py-0.5 rounded">
+                <span className="rounded border border-hairline bg-canvas px-2 py-0.5 text-xs font-bold text-ink-soft">
                   Đơn ngành
                 </span>
               )}
             </div>
-            <h3 className="text-lg font-bold text-ink leading-snug">{topic.titleVi}</h3>
-            <p className="text-xs text-ink-muted italic mt-0.5">{topic.titleEn}</p>
+            <h3 className="text-lg font-bold leading-snug text-ink">{topic.titleVi}</h3>
+            <p className="mt-0.5 text-xs italic text-ink-muted">{topic.titleEn}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-ink-muted rounded-lg p-1.5 transition-colors shrink-0"
+            aria-label="Đóng chi tiết đề tài"
+            className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-canvas hover:text-ink"
           >
-            <span className="material-symbols-outlined text-[22px]">close</span>
+            <span className="material-symbols-outlined text-[22px]" aria-hidden="true">close</span>
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto flex flex-col gap-5 text-sm text-ink-soft">
+        <div className="flex flex-col gap-5 overflow-y-auto p-6 text-sm text-ink-soft">
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">
+            <h4 className="mb-1.5 text-xs font-bold uppercase tracking-wider text-ink-muted">
               Mô tả Đề tài
             </h4>
-            <p className="text-xs text-ink-muted leading-relaxed bg-canvas p-3.5 rounded-xl border border-line">
+            <p className="rounded-xl border border-hairline bg-canvas p-3.5 text-xs leading-relaxed text-ink-muted">
               {topic.description}
             </p>
           </div>
 
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">
+            <h4 className="mb-1.5 text-xs font-bold uppercase tracking-wider text-ink-muted">
               Mục tiêu Nghiên cứu
             </h4>
-            <p className="text-xs text-ink-muted leading-relaxed">{topic.objectives}</p>
+            <p className="text-xs leading-relaxed text-ink-muted">{topic.objectives}</p>
           </div>
 
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-1.5">
+            <h4 className="mb-1.5 text-xs font-bold uppercase tracking-wider text-ink-muted">
               Kết quả Kỳ vọng (Deliverables)
             </h4>
-            <p className="text-xs text-ink-muted leading-relaxed">{topic.expectedOutput}</p>
+            <p className="text-xs leading-relaxed text-ink-muted">{topic.expectedOutput}</p>
           </div>
 
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-2">
+            <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-ink-muted">
               Chuyên ngành Phù hợp
             </h4>
             <div className="flex flex-wrap gap-1.5">
@@ -85,14 +86,14 @@ export function TopicCatalogueDrawer({
           </div>
 
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-2">
+            <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-ink-muted">
               Công nghệ Đề xuất
             </h4>
             <div className="flex flex-wrap gap-1.5">
               {topic.technologies.map((tech) => (
                 <span
                   key={tech}
-                  className="px-2.5 py-1 bg-slate-100 text-ink-soft rounded-md text-xs font-mono font-medium"
+                  className="rounded-md border border-hairline bg-canvas px-2.5 py-1 font-mono text-xs font-medium text-ink-soft"
                 >
                   {tech}
                 </span>
@@ -102,11 +103,11 @@ export function TopicCatalogueDrawer({
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-line bg-canvas/50 flex items-center justify-end gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-hairline bg-canvas p-6">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-ink-muted hover:bg-slate-100 rounded-lg transition-colors"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-hairline bg-card px-4 py-2 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary"
           >
             Đóng
           </button>
@@ -116,9 +117,9 @@ export function TopicCatalogueDrawer({
               onSelectTopic(topic)
               onClose()
             }}
-            className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-2"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-primary-hover"
           >
-            <span className="material-symbols-outlined text-[18px]">assignment_turned_in</span>
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">assignment_turned_in</span>
             Chọn đề tài này cho nhóm
           </button>
         </div>

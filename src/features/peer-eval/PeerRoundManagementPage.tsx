@@ -17,8 +17,9 @@ export function SupervisorPeerRoundsPage() {
   const { project, supervisor, routeBase } = useExecutionAccess()
   const canCreate = supervisor?.assignmentType === 'PRIMARY' && supervisor.isPrimary && !supervisor.endedAt
     && ['ACTIVE', 'FINAL_SUBMISSION'].includes(project.status.toUpperCase())
+  const majorNames = Object.fromEntries((project.majors ?? []).map(m => [m.majorId, m.majorName]))
   return <WorkspacePage title="Đánh giá đồng đội" eyebrow="Theo dõi đóng góp" backTo={`${routeBase}/workspace`} description="Mở đợt phản hồi, theo dõi bài đã gửi và hiểu cách nhóm đang phối hợp.">
-    <PeerRoundWorkspace key={project.id} projectId={project.id} canCreate={canCreate} />
+    <PeerRoundWorkspace key={project.id} projectId={project.id} canCreate={canCreate} majorNames={majorNames} />
   </WorkspacePage>
 }
 
@@ -28,7 +29,7 @@ export function DepartmentPeerEvaluationsPage() {
     ? <PeerRoundWorkspace key={projectId} projectId={projectId} /> : <p>Đường dẫn đồ án không hợp lệ.</p>}</WorkspacePage>
 }
 
-export function PeerRoundWorkspace({ projectId, canCreate = false }: { projectId: number; canCreate?: boolean }) {
+export function PeerRoundWorkspace({ projectId, canCreate = false, majorNames = {} }: { projectId: number; canCreate?: boolean; majorNames?: Record<number, string> }) {
   const [page, setPage] = useState(1), [rounds, setRounds] = useState<PagedResult<PeerRound> | null>(null)
   const [selected, setSelected] = useState<PeerRound | null>(null), [revision, setRevision] = useState(0)
   const [error, setError] = useState(''), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false)
@@ -79,7 +80,7 @@ export function PeerRoundWorkspace({ projectId, canCreate = false }: { projectId
       {!rounds.items.length && <p className="collab-empty">Chưa có đợt đánh giá nào.</p>}
       {rounds.items.map(round => <div key={round.id} className="collab-section"><div className="collab-row"><Button variant={selected?.id === round.id ? 'secondary' : 'ghost'} aria-pressed={selected?.id === round.id} disabled={busy} onClick={() => setSelected(round)}>{round.title}</Button><span className="collab-muted">{peerStatusLabel[round.status] ?? round.status}</span></div><p className="collab-muted">{collaborationDate(round.opensAt)} — {collaborationDate(round.closesAt)}</p></div>)}
       <CollaborationPager page={page} total={rounds.totalCount} busy={busy} onChange={setPage} />
-    </section><aside className="collab-card collab-stack"><h2>Danh sách được chốt</h2>{selected ? <><p className="collab-muted">{selected.memberCount} thành viên trong phạm vi được xem.</p>{selected.roster.map(member => <div key={member.userId}><strong>{member.fullName}</strong><p className="collab-muted">Ngành #{member.majorId}</p></div>)}{selected.canManage && selected.status !== 'CLOSED' && <Button variant="outline" disabled={busy} onClick={() => void close(selected)}>Đóng đợt này</Button>}</> : <p className="collab-muted">Chọn đợt để xem danh sách.</p>}</aside></div>}
+    </section><aside className="collab-card collab-stack"><h2>Danh sách được chốt</h2>{selected ? <><p className="collab-muted">{selected.memberCount} thành viên trong phạm vi được xem.</p>{selected.roster.map(member => <div key={member.userId}><strong>{member.fullName}</strong>{member.majorId && majorNames[member.majorId] ? <p className="collab-muted">{majorNames[member.majorId]}</p> : null}</div>)}{selected.canManage && selected.status !== 'CLOSED' && <Button variant="outline" disabled={busy} onClick={() => void close(selected)}>Đóng đợt này</Button>}</> : <p className="collab-muted">Chọn đợt để xem danh sách.</p>}</aside></div>}
     {selected && rounds && <PeerSubmissionList key={`${selected.id}:${revision}`} projectId={projectId} round={selected} />}
   </div>
 }
@@ -91,7 +92,7 @@ function PeerSubmissionList({ projectId, round }: { projectId: number; round: Pe
     void api.getPeerSubmissions(projectId, round.id, page, 10, abort.signal).then(result => { if (!abort.signal.aborted) setData(result) }).catch(reason => { if (!abort.signal.aborted) setError(collaborationError(reason)) })
     return () => abort.abort()
   }, [projectId, round.id, page, retry])
-  const name = (id: number) => round.roster.find(member => member.userId === id)?.fullName ?? `Thành viên #${id}`
+  const name = (id: number) => round.roster.find(member => member.userId === id)?.fullName ?? 'Thành viên nhóm'
   return <section className="collab-card collab-stack"><div className="collab-row"><h2>Bài đã gửi · {round.title}</h2>{data && <span className="collab-muted">{data.totalCount} bài trong phạm vi được xem</span>}</div>
     {error ? <p role="alert" className="collab-error">{error} <Button variant="ghost" onClick={() => setRetry(value => value + 1)}>Thử lại</Button></p> : !data ? <PageLoading /> : <>
       {!data.items.length && <p className="collab-empty">Chưa có bài đã gửi trong phạm vi của bạn.</p>}

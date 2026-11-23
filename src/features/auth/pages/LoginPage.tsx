@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { HttpError } from '../../../services/http/http-client'
 import { Button } from '../../../components/ui/Button'
@@ -30,6 +30,10 @@ export function LoginPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
   const isSubmitting = status === 'authenticating' || status === 'refreshing'
+
+  useEffect(() => {
+    document.title = 'Đăng nhập · AIPMS'
+  }, [])
 
   if (status === 'authenticated' && session) return <Navigate to={resolveIntendedDestination(location.state, getHomePath(session.user))} replace />
 

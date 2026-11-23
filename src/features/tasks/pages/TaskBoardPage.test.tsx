@@ -140,12 +140,13 @@ describe('TaskBoardPage', () => {
     renderBoard(true); await screen.findByText('Không có công việc phù hợp')
     expect(screen.queryByRole('textbox', { name: 'Tên công việc' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Tạo công việc' }))
-    expect(await screen.findByRole('textbox', { name: 'Tên công việc' })).toBeTruthy()
-    expect(screen.getByRole('checkbox', { name: 'Duy' })).toBeTruthy()
-    expect(screen.getByRole('option', { name: 'Khởi động' })).toBeTruthy()
+    const createDialog = await screen.findByRole('dialog')
+    expect(within(createDialog).getByRole('textbox', { name: 'Tên công việc' })).toBeTruthy()
+    expect(within(createDialog).getByRole('checkbox', { name: 'Duy' })).toBeTruthy()
+    expect(within(createDialog).getByRole('option', { name: 'Khởi động' })).toBeTruthy()
     expect(api.createTask).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', {name:'Hủy'}))
-    expect(document.activeElement).toBe(screen.getByRole('button', {name:'Tạo công việc'}))
+    fireEvent.click(within(createDialog).getByRole('button', { name: 'Hủy' }))
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Tạo công việc' }))
   })
   it('does not let an advisory leader flag override a denied backend action', async () => {
     renderBoard(true, '/project/tasks', false); await screen.findByText('Không có công việc phù hợp')
@@ -155,12 +156,11 @@ describe('TaskBoardPage', () => {
     renderBoard(false, '/project/tasks', true); await screen.findByText('Không có công việc phù hợp')
     expect(screen.queryByRole('button', { name: 'Tạo công việc' })).toBeNull()
   })
-  it('submits filters to BE only after applying', async () => {
+  it('applies status immediately and debounces search to BE without manual Apply button', async () => {
     renderBoard(false); await screen.findByText('Không có công việc phù hợp')
-    fireEvent.change(screen.getByRole('textbox', { name: 'Tìm công việc' }), { target: { value: 'architecture' } })
     fireEvent.change(screen.getByRole('combobox', { name: 'Trạng thái' }), { target: { value: 'BLOCKED' } })
-    expect(api.getProjectTasks).toHaveBeenCalledTimes(1)
-    fireEvent.click(screen.getByRole('button', { name: 'Áp dụng' }))
+    await vi.waitFor(() => expect(api.getProjectTasks).toHaveBeenLastCalledWith(9, expect.objectContaining({ status: 'BLOCKED', page: 1, pageSize: 20 }), expect.any(AbortSignal)))
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Tìm công việc' }), { target: { value: 'architecture' } })
     await vi.waitFor(() => expect(api.getProjectTasks).toHaveBeenLastCalledWith(9, expect.objectContaining({ search: 'architecture', status: 'BLOCKED', page: 1, pageSize: 20 }), expect.any(AbortSignal)))
   })
   it('preserves member and milestone filters through actual server pagination', async () => {
@@ -183,10 +183,10 @@ describe('TaskBoardPage', () => {
   it('clears the previous modal task when navigation selects another task', async () => {
     api.getTask.mockImplementation((id: number) => id === 1 ? Promise.resolve(item) : new Promise(() => {}))
     const { router } = renderBoard(true, '/project/tasks?taskDetail=1')
-    expect(await screen.findByRole('heading', { name: /#1 · Phân tích yêu cầu/ })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: /Phân tích yêu cầu/ })).toBeTruthy()
     await act(async () => { await router.navigate('/project/tasks?taskDetail=2') })
-    expect(screen.queryByRole('heading', { name: /#1 · Phân tích yêu cầu/ })).toBeNull()
-    expect(screen.getByRole('heading', { name: 'Công việc #2' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: /Phân tích yêu cầu/ })).toBeNull()
+    expect(screen.getByRole('heading', { name: 'Chi tiết công việc' })).toBeTruthy()
     expect(screen.getByRole('link', { name: /Mở trang chi tiết đầy đủ/ }).getAttribute('href')).toBe('/project/tasks/2')
     expect(api.updateTask).not.toHaveBeenCalled()
     expect(api.updateTaskStatus).not.toHaveBeenCalled()
@@ -204,7 +204,7 @@ describe('TaskBoardPage', () => {
 
     // Modal opens centered over the board
     expect(await screen.findByRole('dialog')).toBeDefined()
-    expect(screen.getByRole('heading', { name: /#1 · Phân tích yêu cầu/ })).toBeDefined()
+    expect(screen.getByRole('heading', { name: /Phân tích yêu cầu/ })).toBeDefined()
 
     // Board context is still fully present in the DOM
     expect(screen.getByRole('region', { name: 'Bảng công việc theo trang' })).toBeDefined()

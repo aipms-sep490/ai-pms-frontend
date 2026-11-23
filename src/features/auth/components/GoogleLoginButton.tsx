@@ -110,7 +110,7 @@ export function GoogleLoginButton({ purpose = 'LOGIN', currentPassword = '', onL
             }
           },
         })
-        window.google.accounts.id.renderButton(host.current, { theme: 'outline', size: 'large', width: Math.min(320, host.current.clientWidth || 320), text: purpose === 'LINK' ? 'continue_with' : 'signin_with', locale: 'vi' })
+        window.google.accounts.id.renderButton(host.current, { theme: 'outline', size: 'large', width: Math.min(400, host.current.clientWidth || 320), text: purpose === 'LINK' ? 'continue_with' : 'signin_with', locale: 'vi' })
       } catch (reason) {
         if (active) setError(errorMessage(reason))
       } finally {

@@ -52,8 +52,8 @@ export const RescheduleRequestModal: React.FC<RescheduleRequestModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
-      <div className="w-full max-w-xl rounded-2xl border border-hairline bg-surface p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[var(--z-index-modal)] flex items-center justify-center bg-brand-navy/40 p-4 backdrop-blur-xs">
+      <div className="w-full max-w-xl rounded-2xl border border-hairline bg-card p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-hairline pb-4">
           <div>
@@ -62,13 +62,13 @@ export const RescheduleRequestModal: React.FC<RescheduleRequestModalProps> = ({
               Đơn sẽ được gửi trực tiếp đến Trưởng bộ môn & Ban Đào tạo xem xét
             </p>
           </div>
-          <button type="button" onClick={onClose} className="text-ink-muted hover:text-ink text-sm">
+          <button type="button" aria-label="Đóng" onClick={onClose} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-sm text-ink-muted hover:bg-canvas hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
             ✕
           </button>
         </div>
 
         {/* Notice Banner (FAMS style) */}
-        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-xs text-amber-900 flex items-start gap-2.5">
+        <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-status-warning-border bg-status-warning-bg p-3 text-xs text-status-warning-text">
           <span className="text-base">ℹ️</span>
           <p className="text-xs leading-relaxed">
             Vui lòng kiểm tra kỹ thông tin trước khi gửi. Yêu cầu của bạn sẽ được xem xét và xử lý trong vòng <strong>24h làm việc</strong>.
@@ -77,12 +77,12 @@ export const RescheduleRequestModal: React.FC<RescheduleRequestModalProps> = ({
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4 text-xs">
           {/* 1. Current Schedule Info */}
-          <div className="rounded-xl border border-hairline bg-canvas/50 p-3.5 space-y-1">
+          <div className="space-y-1 rounded-xl border border-hairline bg-canvas/50 p-3.5">
             <span className="text-xs font-bold uppercase tracking-wider text-ink-muted">Lịch bảo vệ hiện tại</span>
-            <div className="font-bold text-ink text-sm">
+            <div className="text-sm font-bold text-ink">
               {session.projectCode || `Đồ án #${session.projectId}`} — {session.projectTitle || 'Bảo vệ ĐATN'}
             </div>
-            <div className="flex flex-wrap gap-3 text-xs text-ink-muted mt-1">
+            <div className="mt-1 flex flex-wrap gap-3 text-xs text-ink-muted">
               <span>Phòng: <strong className="text-ink">{session.room}</strong></span>
               <span>Ca hiện tại: <strong className="text-ink">Slot {session.slotNumber || 1}</strong></span>
             </div>
@@ -97,7 +97,7 @@ export const RescheduleRequestModal: React.FC<RescheduleRequestModalProps> = ({
                 required
                 value={newDate}
                 onChange={(e) => setNewDate(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-hairline bg-canvas p-2 text-xs text-ink focus:outline-none focus:border-primary"
+                className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-xs text-ink focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               />
             </div>
 
@@ -106,7 +106,7 @@ export const RescheduleRequestModal: React.FC<RescheduleRequestModalProps> = ({
               <select
                 value={newSlotNumber}
                 onChange={(e) => setNewSlotNumber(Number(e.target.value))}
-                className="mt-1 block w-full rounded-lg border border-hairline bg-canvas p-2 text-xs text-ink focus:outline-none focus:border-primary"
+                className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 font-normal text-xs text-ink focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 {DEFENSE_OFFICE_SLOTS.map((slot) => (
                   <option key={slot.slotNumber} value={slot.slotNumber}>
@@ -119,11 +119,11 @@ export const RescheduleRequestModal: React.FC<RescheduleRequestModalProps> = ({
 
           {/* Conflict Checker Banner */}
           {isSlotConflicted ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-800 text-xs">
+            <div className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-xs text-status-error-text">
               <strong>❌ Xung đột lịch:</strong> Giảng viên phản biện của nhóm đã có lịch chấm hội đồng khác trong khung giờ này. Vui lòng chọn ca khác.
             </div>
           ) : (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2.5 text-emerald-800 text-xs flex items-center gap-2">
+            <div className="flex items-center gap-2 rounded-lg border border-status-success-border bg-status-success-bg p-2.5 text-xs text-status-success-text">
               <span>✓ Khung giờ hợp lệ: Hội đồng và nhóm sinh viên đều rảnh trong ca này.</span>
             </div>
           )}
@@ -136,7 +136,7 @@ export const RescheduleRequestModal: React.FC<RescheduleRequestModalProps> = ({
                 required
                 value={targetRoomId}
                 onChange={(e) => setTargetRoomId(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-hairline bg-canvas p-2 text-xs text-ink focus:outline-none focus:border-primary"
+                className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 font-normal text-xs text-ink focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <option value="">-- Chọn phòng trống --</option>
                 {availableRoomsForSlot.map((r) => (
@@ -154,7 +154,7 @@ export const RescheduleRequestModal: React.FC<RescheduleRequestModalProps> = ({
             <select
               value={reasonCategory}
               onChange={(e) => setReasonCategory(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-hairline bg-canvas p-2 text-xs text-ink focus:outline-none focus:border-primary"
+              className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 font-normal text-xs text-ink focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <option value="FACILITY_ISSUE">Thiết bị phòng gặp sự cố (Máy chiếu, âm thanh, mạng)</option>
               <option value="DEMO_SPACE_NEED">Cần không gian lớn hơn để demo mô hình / phần cứng</option>
@@ -173,23 +173,23 @@ export const RescheduleRequestModal: React.FC<RescheduleRequestModalProps> = ({
               placeholder="Nhập lý do cụ thể và đề xuất hướng xử lý..."
               value={reasonDetails}
               onChange={(e) => setReasonDetails(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-hairline bg-canvas p-2.5 text-xs text-ink focus:outline-none focus:border-primary"
+              className="mt-1 block w-full rounded-lg border border-hairline bg-card p-2.5 text-xs text-ink focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             />
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-3 border-t border-hairline">
+          <div className="flex justify-end gap-2 border-t border-hairline pt-3">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-hairline px-4 py-2 font-medium text-ink hover:bg-canvas"
+              className="min-h-11 rounded-lg border border-hairline px-4 py-2 font-medium text-ink hover:bg-canvas"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !targetRoomId || !reasonDetails.trim() || isSlotConflicted}
-              className="rounded-lg bg-primary px-4 py-2 font-semibold text-white shadow-xs hover:bg-primary/90 disabled:opacity-50"
+              className="min-h-11 rounded-lg bg-primary px-4 py-2 font-semibold text-white shadow-xs hover:bg-primary-hover disabled:opacity-50"
             >
               {isSubmitting ? 'Đang gửi…' : 'Gửi yêu cầu đổi phòng'}
             </button>

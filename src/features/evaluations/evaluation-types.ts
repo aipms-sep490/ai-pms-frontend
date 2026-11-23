@@ -20,7 +20,7 @@ export const evaluationStageLabels = {
 export const evaluationStageLabel = (stage: EvaluationStage | null | undefined) =>
   stage ? evaluationStageLabels[stage as keyof typeof evaluationStageLabels] ?? stage : 'Chưa xác định'
 export interface CriterionLevel { levelOrder: number; label: string; descriptor: string; scoreFrom: number | null; scoreTo: number | null }
-export interface SchemeEvaluatorWeight { evaluatorId: number; weightPercent: number }
+export interface SchemeEvaluatorWeight { evaluatorId: number; evaluatorName?: string | null; weightPercent: number }
 export type CriterionTargetScope = 'PROJECT' | 'MAJOR' | 'STUDENT'
 export interface GateProcessWeight { gateNumber: number; weightPercent: number }
 export interface SchemePolicy {

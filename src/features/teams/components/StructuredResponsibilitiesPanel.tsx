@@ -120,29 +120,29 @@ function ResponsibilitiesEditor({ teamId, scope, majorNames, canEdit, onSaved, m
     <h3 className="font-semibold text-ink">Trách nhiệm theo chuyên ngành</h3>
     <p className="mt-1 text-sm text-ink-muted">Phân công được lưu cùng đề cương khi nộp. Bạn chỉ có thể sửa trước khi chốt.</p>
     {!majorId ? <p className="mt-3 text-sm text-ink-muted">Lưu phạm vi ngành trước khi thêm trách nhiệm theo chuyên ngành.</p> : <>
-      <label className="mt-3 block text-sm">Chuyên ngành
-        <select disabled={busy} value={majorId} onChange={event => onMajorChange(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-3">
+      <label className="mt-3 block text-sm font-medium text-ink-soft">Chuyên ngành
+        <select disabled={busy} value={majorId} onChange={event => onMajorChange(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-line-strong bg-card px-3 font-normal text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20">
           {scope.requirements.map(item => <option key={item.majorId} value={item.majorId}>{majorNames[item.majorId] || `Chưa tải được tên ngành (mã ${item.majorId})`}</option>)}
         </select>
       </label>
       {error && <p role="alert" className="mt-3 text-sm text-status-error-text">{error}</p>}
       {notice && <p role="status" className="mt-3 text-sm text-status-success-text">{notice}</p>}
-      {loading && <p role="status" className="mt-3 text-sm">Đang tải…</p>}
-      {!loading && !data && error && <button type="button" disabled={busy} onClick={() => void load()} className="mt-3 min-h-11 rounded-lg border border-hairline px-3 text-sm font-semibold">Thử tải lại</button>}
-      {data && !data.isAvailable ? <p className="mt-3 text-sm">Chưa có phân công trách nhiệm cho chuyên ngành này.</p> : <>
+      {loading && <p role="status" className="mt-3 text-sm text-ink-muted">Đang tải…</p>}
+      {!loading && !data && error && <button type="button" disabled={busy} onClick={() => void load()} className="mt-3 min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm font-semibold text-ink-soft hover:bg-canvas">Thử tải lại</button>}
+      {data && !data.isAvailable ? <p className="mt-3 text-sm text-ink-muted">Chưa có phân công trách nhiệm cho chuyên ngành này.</p> : <>
         <div className="mt-3 space-y-2">{rows.map((row, index) => <div key={index} className="flex gap-2">
           <input aria-label={`Trách nhiệm ${index + 1}`} value={row} maxLength={2000} disabled={!editable}
             onChange={event => editRows(current => current.map((item, i) => i === index ? event.target.value : item))}
-            className="min-h-11 min-w-0 flex-1 rounded-lg border border-hairline px-3" />
-          {canEdit && <button type="button" disabled={!editable} onClick={() => editRows(current => current.filter((_, i) => i !== index))} className="min-h-11 px-3 text-sm font-semibold text-status-error-text">Xóa</button>}
+            className="min-h-11 min-w-0 flex-1 rounded-lg border border-line-strong bg-card px-3 text-sm text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20 disabled:bg-canvas disabled:text-ink-muted" />
+          {canEdit && <button type="button" disabled={!editable} onClick={() => editRows(current => current.filter((_, i) => i !== index))} className="min-h-11 rounded-lg px-3 text-sm font-semibold text-status-error-text hover:bg-status-error-bg disabled:opacity-50">Xóa</button>}
         </div>)}</div>
-        {data && hasDraft && !loading && <details className="mt-3 text-sm text-ink-muted"><summary>Dữ liệu đã lưu để đối chiếu</summary>
+        {data && hasDraft && !loading && <details className="mt-3 text-sm text-ink-muted"><summary className="cursor-pointer">Dữ liệu đã lưu để đối chiếu</summary>
           {data.items.length ? <ul className="mt-2 list-disc pl-5">{data.items.map(item => <li key={item.id}>{item.content}</li>)}</ul> : <p className="mt-2">Chưa có trách nhiệm được lưu cho ngành này.</p>}
         </details>}
         {!canEdit && data && !data.isSnapshot && <p className="mt-3 text-sm text-ink-muted">Bạn đang ở chế độ chỉ xem phân công.</p>}
         {data && !data.isSnapshot && canEdit && <div className="mt-3 flex flex-wrap gap-3">
-          <button type="button" disabled={!editable || rows.length >= 100} onClick={() => editRows(current => [...current, ''])} className="min-h-11 rounded-lg border border-hairline px-3 text-sm font-semibold">Thêm trách nhiệm</button>
-          <button type="button" disabled={!editable || !data.concurrencyToken} onClick={() => void save()} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Đang lưu…' : 'Lưu'}</button>
+          <button type="button" disabled={!editable || rows.length >= 100} onClick={() => editRows(current => [...current, ''])} className="min-h-11 rounded-lg border border-hairline bg-card px-3.5 text-sm font-semibold text-ink-soft hover:bg-canvas disabled:opacity-50">Thêm trách nhiệm</button>
+          <button type="button" disabled={!editable || !data.concurrencyToken} onClick={() => void save()} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50">{busy ? 'Đang lưu…' : 'Lưu'}</button>
         </div>}
         {data?.isSnapshot && <p className="mt-3 text-sm text-status-warning-text">Phân công đã được chốt cùng đề cương và chỉ có thể xem.</p>}
       </>}

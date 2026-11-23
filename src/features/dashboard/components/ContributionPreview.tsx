@@ -29,7 +29,7 @@ export function ContributionPreview({ contributions }: ContributionPreviewProps)
         <div
           role="group"
           aria-label="Biểu đồ phân bổ tỷ lệ đóng góp giữa các thành viên"
-          className="w-full h-3 rounded-full overflow-hidden flex shadow-inner bg-slate-100"
+          className="w-full h-3 rounded-full overflow-hidden flex shadow-inner bg-canvas border border-hairline"
         >
           {contributions.map((member) => (
             <div

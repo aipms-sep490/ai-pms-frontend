@@ -16,7 +16,7 @@ export function StudentJourneyHero() {
     if (error) {
       return {
         badge: 'Chưa đồng bộ dữ liệu',
-        badgeClass: 'bg-status-error-bg text-danger-text border-status-error-border',
+        badgeClass: 'bg-status-error-bg text-status-error-text border-status-error-border',
         title: 'Không thể tải trạng thái đồ án',
         desc: error,
         icon: 'cloud_off',
@@ -80,7 +80,7 @@ export function StudentJourneyHero() {
       case 'REVISION_REQUIRED':
         return {
           badge: 'Cần xử lý: Yêu cầu Chỉnh sửa',
-          badgeClass: 'bg-status-error-bg text-danger-text border-status-error-border animate-pulse',
+          badgeClass: 'bg-status-error-bg text-status-error-text border-status-error-border motion-safe:animate-pulse',
           title: 'Bộ môn yêu cầu nhóm chỉnh sửa lại đề cương đồ án',
           desc: 'Đề cương của bạn đã có phản hồi từ Hội đồng thẩm định. Vui lòng đọc kỹ ý kiến nhận xét của Bộ môn, cập nhật nội dung và nộp lại trước thời hạn.',
           icon: 'warning',
@@ -92,7 +92,7 @@ export function StudentJourneyHero() {
       case 'PROJECT_REJECTED':
         return {
           badge: 'Kết quả thẩm định',
-          badgeClass: 'bg-status-error-bg text-danger-text border-status-error-border',
+          badgeClass: 'bg-status-error-bg text-status-error-text border-status-error-border',
           title: 'Đề cương chưa được Bộ môn chấp thuận',
           desc: 'Xem kết quả và toàn bộ lịch sử thẩm định của đề cương. Bạn có thể theo dõi nhận xét tại đây.',
           icon: 'assignment_late',
@@ -112,6 +112,34 @@ export function StudentJourneyHero() {
           ctaText: 'Chọn giảng viên hướng dẫn',
           ctaRoute: '/project/supervisor',
           ctaIcon: 'person_search',
+        }
+      case 'FINAL_SUBMISSION':
+        return {
+          badge: 'Giai đoạn Bàn giao cuối kỳ',
+          badgeClass: 'bg-status-warning-bg text-status-warning-text border-status-warning-border',
+          title: `Đồ án: ${project?.title ?? 'Đang cập nhật thông tin'}`,
+          desc: `GVHD: ${activeSupervisor?.supervisorName ?? 'Chưa phân công'} • Học kỳ: ${semester?.name ?? 'Chưa xác định'} • Thành viên: ${team?.members.length ?? 0} bạn • Nhóm: ${team?.code || teamDisplayName}`,
+          icon: 'inventory_2',
+          iconBg: 'bg-warning-strong text-white',
+          ctaText: 'Mở bàn giao cuối kỳ',
+          ctaRoute: '/project/final-submission',
+          ctaIcon: 'upload_file',
+          secondaryText: 'Lịch bảo vệ',
+          secondaryRoute: '/project/defense',
+        }
+      case 'COMPLETED':
+        return {
+          badge: 'Đã hoàn thành đồ án',
+          badgeClass: 'bg-status-success-bg text-status-success-text border-status-success-border',
+          title: `Đồ án: ${project?.title ?? 'Đang cập nhật thông tin'}`,
+          desc: `GVHD: ${activeSupervisor?.supervisorName ?? 'Chưa phân công'} • Học kỳ: ${semester?.name ?? 'Chưa xác định'} • Nhóm: ${team?.code || teamDisplayName}`,
+          icon: 'workspace_premium',
+          iconBg: 'bg-primary text-white',
+          ctaText: 'Xem kết quả đồ án',
+          ctaRoute: '/project/result',
+          ctaIcon: 'grading',
+          secondaryText: 'Hồ sơ đồ án',
+          secondaryRoute: '/projects/lifecycle',
         }
       case 'ACTIVE':
       default:
@@ -145,7 +173,7 @@ export function StudentJourneyHero() {
               {config.badge}
             </span>
             <span className="text-xs text-ink-muted font-mono">
-              SV: {profile?.fullName ?? 'Sinh viên'}{profile?.studentCode ? ` (${profile.studentCode})` : (profile?.id ? ` (ID #${profile.id})` : '')}
+              SV: {profile?.fullName ?? 'Sinh viên'}{profile?.studentCode ? ` (${profile.studentCode})` : ''}
             </span>
           </div>
           <h2 className="text-lg font-bold tracking-tight text-ink">{config.title}</h2>

@@ -40,14 +40,14 @@ describe('ProjectResultBreakdown', () => {
 
   it('lists advisory contributions separately and states they are not scored', () => {
     const contributions: ResultContribution[] = [
-      { assignmentId: 10, evaluationId: 1, evaluatorId: 5, rubricId: 2, weightPercent: 0, score: 0, advisory: true, source: 'ADVISORY' },
-      { assignmentId: 11, evaluationId: 2, evaluatorId: 6, rubricId: 2, weightPercent: 50, score: 8 },
+      { assignmentId: 10, evaluationId: 1, evaluatorId: 5, evaluatorName: 'Ông Trần Minh', rubricId: 2, weightPercent: 0, score: 0, advisory: true, source: 'ADVISORY' },
+      { assignmentId: 11, evaluationId: 2, evaluatorId: 6, evaluatorName: 'TS. Lê Nam', rubricId: 2, weightPercent: 50, score: 8 },
     ]
     render(<ProjectResultBreakdown contributions={contributions} />)
     expect(screen.getByText(/không tính vào điểm số/)).toBeTruthy()
-    expect(screen.getByText(/người chấm #5/)).toBeTruthy()
+    expect(screen.getByText(/Ông Trần Minh/)).toBeTruthy()
     // The scored (non-advisory) contribution is not listed in the advisory section.
-    expect(screen.queryByText(/người chấm #6/)).toBeNull()
+    expect(screen.queryByText(/TS\. Lê Nam/)).toBeNull()
   })
 
   it('renders an authoritative COMMON100 formula without the old50/50 claim', () => {

@@ -233,7 +233,8 @@ describe('ProfilePage', () => {
     render(<ProfilePage />, { wrapper: MemoryRouter })
 
     expect(screen.getByText('Department Staff')).toBeDefined()
-    expect(screen.getByText('#42')).toBeDefined()
+    expect(screen.getByText('staff@example.edu.vn')).toBeDefined()
+    expect(screen.queryByText('#42')).toBeNull()
     expect(screen.getByText('Cán bộ bộ môn')).toBeDefined()
     expect((await screen.findAllByText('Trưởng bộ môn')).length).toBeGreaterThan(0)
     expect(screen.getByText('0901234567')).toBeDefined()

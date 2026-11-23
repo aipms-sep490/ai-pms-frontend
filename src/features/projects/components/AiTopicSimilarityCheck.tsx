@@ -5,22 +5,34 @@ import type { AiTopicSimilarityRequest, AiTopicSimilarityResultDto } from '../..
 
 const buttonClass = 'min-h-11 rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50'
 
-/** The caller keys this component by identity, scope and all draft inputs. */
+/** Key this component by actor identity and academic scope (not every keystroke) so edits preserve readable results while flagging staleness. */
 export function AiTopicSimilarityCheck({ input, children }: { input: AiTopicSimilarityRequest; children?: ReactNode }) {
   const pending = useRef<AbortController | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [result, setResult] = useState<AiTopicSimilarityResultDto | null>(null)
+  const [checked, setChecked] = useState<{ signature: string; result: AiTopicSimilarityResultDto } | null>(null)
   useEffect(() => () => { pending.current?.abort() }, [])
+
+  const inputSignature = JSON.stringify({
+    teamId: input.teamId,
+    projectId: input.projectId ?? null,
+    title: input.title.trim(),
+    problemStatement: input.problemStatement ?? '',
+    objectives: input.objectives ?? '',
+    expectedOutput: input.expectedOutput ?? '',
+    domain: input.domain ?? '',
+    keywords: input.keywords ?? [],
+  })
 
   const check = async () => {
     if (pending.current || !input.title.trim() || !input.teamId) return
     const controller = new AbortController()
+    const runSignature = inputSignature
     pending.current = controller
-    setBusy(true); setError(''); setResult(null)
+    setBusy(true); setError('')
     try {
       const response = await services.topic.checkTopicSimilarityWithAi(input, controller.signal)
-      if (!controller.signal.aborted) setResult(response)
+      if (!controller.signal.aborted) setChecked({ signature: runSignature, result: response })
     } catch (reason) {
       if (!controller.signal.aborted) setError(errorMessage(reason))
     } finally {
@@ -28,20 +40,23 @@ export function AiTopicSimilarityCheck({ input, children }: { input: AiTopicSimi
     }
   }
 
+  const isStale = Boolean(checked && checked.signature !== inputSignature)
+
   return <div className="min-w-0 space-y-3">
-    <div className="flex flex-wrap gap-2">{children}<button type="button" className={buttonClass} disabled={busy || !input.title.trim() || !input.teamId} onClick={() => void check()}>{busy ? 'Đang đối chiếu ý tưởng…' : 'Kiểm tra ý tưởng bằng AI'}</button></div>
+    <div className="flex flex-wrap gap-2">{children}<button type="button" className={buttonClass} disabled={busy || !input.title.trim() || !input.teamId} onClick={() => void check()}>{busy ? 'Đang đối chiếu ý tưởng…' : isStale ? 'Kiểm tra lại bằng AI' : 'Kiểm tra ý tưởng bằng AI'}</button></div>
     {!input.teamId && <p className="text-xs text-status-warning-text">Cần tạo nhóm đồ án với tư cách trưởng nhóm trước khi đối chiếu ý tưởng bằng AI.</p>}
-    <p className="text-sm text-ink-muted">AI đối chiếu tên, vấn đề, mục tiêu và sản phẩm kỳ vọng. Bổ sung nội dung đề cương để có căn cứ tốt hơn. Kết quả chỉ hỗ trợ rà soát, không quyết định việc nộp.</p>
+    <p className="text-xs leading-relaxed text-ink-muted">AI đối chiếu tên, vấn đề, mục tiêu và sản phẩm kỳ vọng. Bổ sung nội dung đề cương để có căn cứ tốt hơn. Kết quả chỉ hỗ trợ rà soát, không quyết định việc nộp.</p>
     {busy && <p role="status" className="text-sm text-ink-muted">Đang đọc các đề tài trong phạm vi được phép và phân tích mức tương đồng…</p>}
-    {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><p>{error}</p><button type="button" className={buttonClass} onClick={() => void check()}>Thử lại kiểm tra AI</button></div>}
-    {result && <AiSimilarityResult result={result} />}
+    {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><p>{error}</p><button type="button" className={`mt-2 ${buttonClass}`} onClick={() => void check()}>Thử lại kiểm tra AI</button></div>}
+    {checked && <AiSimilarityResult result={checked.result} stale={isStale} />}
   </div>
 }
 
-function AiSimilarityResult({ result }: { result: AiTopicSimilarityResultDto }) {
+function AiSimilarityResult({ result, stale }: { result: AiTopicSimilarityResultDto; stale: boolean }) {
   const completed = result.generationStatus === 'COMPLETED'
   const label = completed ? 'Đã đối chiếu bằng AI' : result.generationStatus === 'FALLBACK' ? 'Chưa hoàn tất phân tích AI' : 'Chưa đủ dữ liệu để đối chiếu ý tưởng'
   return <section aria-label="Kết quả đối chiếu ý tưởng" className="space-y-3 rounded-xl border border-hairline bg-canvas p-4 text-sm text-ink">
+    {stale && <p role="status" className="rounded-lg border border-status-warning-border bg-status-warning-bg px-3 py-2 text-xs font-medium text-status-warning-text">Nội dung đề cương đã thay đổi sau lần kiểm tra gần nhất — bấm kiểm tra lại để cập nhật kết quả mới.</p>}
     <h2 className="font-semibold" role="status">{label}</h2>
     <p>{result.summary}</p>
     {!completed && <p className="text-status-warning-text">Không thể kết luận ý tưởng không trùng. Bạn vẫn có thể dùng kiểm tra tên đề tài và rà soát cùng giảng viên.</p>}
@@ -57,8 +72,8 @@ function AiSimilarityResult({ result }: { result: AiTopicSimilarityResultDto }) 
       <h4 className="font-semibold">Điểm khác</h4><ul className="list-disc pl-5">{match.differences.map((value, index) => <li key={index}>{value}</li>)}</ul>
       <details><summary className="min-h-11 cursor-pointer py-3 font-semibold text-primary">Xem đoạn đối chiếu</summary><p className="font-semibold">Đề cương đang nhập</p><blockquote className="my-2 whitespace-pre-wrap border-l-2 border-hairline pl-3">{match.proposalExcerpt}</blockquote><p className="font-semibold">Đề tài được đối chiếu</p><blockquote className="my-2 whitespace-pre-wrap border-l-2 border-hairline pl-3">{match.candidateExcerpt}</blockquote></details>
     </article>)}
-    <p className="text-ink-muted">{result.limitationNote}</p>
-    <p className="text-xs text-ink-muted">Kiểm tra lúc {formatDate(result.generatedAt)} · giờ Việt Nam · {result.modelVersion}</p>
+    <p className="text-xs text-ink-muted">{result.limitationNote}</p>
+    <p className="text-xs text-ink-muted">Kiểm tra lúc {formatDate(result.generatedAt)} · giờ Việt Nam</p>
   </section>
 }
 

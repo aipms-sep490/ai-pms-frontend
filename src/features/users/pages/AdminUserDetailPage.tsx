@@ -6,6 +6,7 @@ import { displayLabel } from '../../../components/ui/display-label'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
+import { ListLoading } from '../../../components/ui/ListLoading'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { HttpError } from '../../../services/http/http-client'
 import { useAuthSession } from '../../auth/context/useAuthSession'
@@ -125,9 +126,9 @@ export function AdminUserDetailPage() {
     } finally { setProfileBusy(false) }
   }
 
-  return <main className="workspace-page admin-workspace admin-detail" aria-labelledby="admin-user-title">
+  return <div className="workspace-page admin-workspace admin-detail" aria-labelledby="admin-user-title">
     <Link className="admin-back" to={returnTo}><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Danh sách tài khoản</Link>
-    {state === 'loading' && <p role="status">Đang tải hồ sơ tài khoản…</p>}
+    {state === 'loading' && <ListLoading label="Đang tải hồ sơ tài khoản…" />}
     {state === 'forbidden' && <p className="admin-error" role="alert">Bạn không có quyền xem hồ sơ tài khoản này.</p>}
     {state === 'missing' && <p className="admin-error" role="alert">Không tìm thấy tài khoản.</p>}
     {state === 'error' && <p className="admin-error" role="alert">Chưa tải được hồ sơ tài khoản. <Button size="sm" variant="outline" onClick={() => void load()}>Thử lại</Button></p>}
@@ -135,7 +136,7 @@ export function AdminUserDetailPage() {
       <header className="admin-heading admin-user-heading">
         <div className="admin-user-identity">
           <span className="admin-user-avatar" aria-hidden="true">{user.fullName.trim().charAt(0).toLocaleUpperCase('vi-VN')}</span>
-          <div><p className="admin-kicker">TÀI KHOẢN #{user.id}</p><h1 id="admin-user-title">{user.fullName}</h1><p>{user.email}</p></div>
+          <div><p className="admin-kicker">{user.studentCode || user.employeeCode || 'Hồ sơ tài khoản'}</p><h1 id="admin-user-title">{user.fullName}</h1><p>{user.email}</p></div>
         </div>
         <span className={`admin-status admin-status-${user.status.toLowerCase()}`}>{displayLabel(user.status)}</span>
       </header>
@@ -182,5 +183,5 @@ export function AdminUserDetailPage() {
       </div>
     </>}
     {confirmationDialog}
-  </main>
+  </div>
 }

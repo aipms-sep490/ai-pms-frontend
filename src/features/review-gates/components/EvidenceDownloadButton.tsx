@@ -11,13 +11,13 @@ export function EvidenceDownloadButton({ projectId, gateCode, requirement }: {
   const [error, setError] = useState<string | null>(null)
   const artifact = requirement.latestArtifact
   if (!artifact) return null
-  if (isLinkArtifact(artifact)) {
+  if (isLinkArtifact(artifact) || requirement.type === 'LINK') {
     const link = safeEvidenceLink(artifact.linkUrl ?? artifact.filename)
     return link ? <a href={link} target="_blank" rel="noopener noreferrer" title={link}
       aria-label={`Mở minh chứng ngoài hệ thống: ${link}`}
       className="mt-2 inline-flex min-h-11 max-w-full items-center break-all text-xs font-semibold text-primary underline">
       Mở minh chứng ngoài hệ thống · {evidenceLinkLabel(link)}
-    </a> : <p role="alert" className="mt-2 text-xs text-danger-text">Liên kết minh chứng không hợp lệ; chỉ mở URL HTTPS an toàn.</p>
+    </a> : <p role="alert" className="mt-2 text-xs text-status-error-text">Liên kết minh chứng không hợp lệ; chỉ mở URL HTTPS an toàn.</p>
   }
 
   async function download() {
@@ -44,11 +44,11 @@ export function EvidenceDownloadButton({ projectId, gateCode, requirement }: {
 
   return <div className="mt-2 space-y-1">
     <button type="button" disabled={busy || env.reviewGatesMockEnabled || !artifact.downloadUrl}
-      onClick={() => void download()} className="min-h-11 text-xs font-semibold text-primary underline disabled:text-slate-400 disabled:no-underline">
+      onClick={() => void download()} className="min-h-11 text-xs font-semibold text-primary underline disabled:text-ink-muted disabled:no-underline">
       {busy ? 'Đang tải...' : `Tải tệp v${artifact.version}`}
     </button>
-    {env.reviewGatesMockEnabled && <p className="text-xs text-slate-500">Mô phỏng: chưa có nội dung tệp thực tế.</p>}
-    {!env.reviewGatesMockEnabled && !artifact.downloadUrl && <p className="text-xs text-slate-500">Chưa có tệp được lưu để tải.</p>}
-    {error && <p role="alert" className="text-xs text-danger-text">{error}</p>}
+    {env.reviewGatesMockEnabled && <p className="text-xs text-ink-muted">Mô phỏng: chưa có nội dung tệp thực tế.</p>}
+    {!env.reviewGatesMockEnabled && !artifact.downloadUrl && <p className="text-xs text-ink-muted">Chưa có tệp được lưu để tải.</p>}
+    {error && <p role="alert" className="text-xs text-status-error-text">{error}</p>}
   </div>
 }

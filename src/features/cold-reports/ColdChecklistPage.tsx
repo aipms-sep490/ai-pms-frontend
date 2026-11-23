@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import * as api from '../../services/api/cold.api'
 import type { ColdChecklist, ColdChecklistItem, ColdSubmission } from '../../services/api/cold.api'
@@ -7,16 +7,32 @@ import { coldError, coldNeedsAuthoritativeRefresh } from './cold-errors'
 import { ColdBadge, ColdError, ColdLoading, ColdShell } from './cold-ui'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
-import { EntityIdentityStrip } from '../../components/ui/EntityIdentityStrip'
+import { FilterToolbar } from '../../components/ui/FilterToolbar'
+import { Modal } from '../../components/ui/Modal'
 import { WorkspaceEmptyState } from '../../components/ui/WorkspaceState'
+import { displayLabel } from '../../components/ui/display-label'
+import { SubmissionPreflightPanel } from '../ai-suite/SubmissionPreflightPanel'
+
+type StatusFilter = 'ALL' | 'MISSING' | 'DRAFT' | 'SUBMITTED' | 'LOCKED'
+type RequiredFilter = 'ALL' | 'REQUIRED' | 'OPTIONAL'
 
 export function ColdChecklistPage() {
-  const { project, actor, routeBase } = useExecutionAccess()
-  return <ColdChecklistBody key={project.id} projectId={project.id} projectTitle={project.title} actor={actor} routeBase={routeBase} />
+  const { project, actor, routeBase, canManageStructure } = useExecutionAccess()
+  return (
+    <ColdChecklistBody
+      key={project.id}
+      projectId={project.id}
+      projectCode={project.code}
+      projectTitle={project.title}
+      actor={actor}
+      routeBase={routeBase}
+      canManageStructure={canManageStructure}
+    />
+  )
 }
 
-function ColdChecklistBody({ projectId, projectTitle, actor, routeBase }: {
-  projectId: number; projectTitle: string; actor: string; routeBase: string
+function ColdChecklistBody({ projectId, projectCode, projectTitle, actor, routeBase, canManageStructure }: {
+  projectId: number; projectCode?: string; projectTitle: string; actor: string; routeBase: string; canManageStructure: boolean
 }) {
   const [checklist, setChecklist] = useState<ColdChecklist | null>(null)
   const [progress, setProgress] = useState<api.ColdProgress | null>(null)
@@ -25,6 +41,10 @@ function ColdChecklistBody({ projectId, projectTitle, actor, routeBase }: {
   const [locking, setLocking] = useState(false)
   const [lockError, setLockError] = useState('')
   const [revision, setRevision] = useState(0)
+
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
+  const [requiredFilter, setRequiredFilter] = useState<RequiredFilter>('ALL')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -68,34 +88,109 @@ function ColdChecklistBody({ projectId, projectTitle, actor, routeBase }: {
   }
 
   const allBlockers = Array.from(new Set([...(checklist?.blockers ?? []), ...(progress?.blockers ?? [])]))
+  const showLockVerdict = Boolean(checklist && (canManageStructure || checklist.canLock || actor !== 'student'))
 
-  return <ColdShell title="Chấm nguội theo ngành" projectTitle={projectTitle} backTo={`${routeBase}/workspace`}
-    description={actor === 'student' ? 'Nộp từng báo cáo theo ngành/cá nhân được giao trước hạn. Hội đồng chấm sau khi khóa gói.' : 'Theo dõi báo cáo chấm nguội của nhóm theo từng ngành và cá nhân.'}>
-    <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: projectTitle }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
+  const items = checklist?.items ?? []
+  const statusCounts = useMemo(() => {
+    const counts = { ALL: items.length, MISSING: 0, DRAFT: 0, SUBMITTED: 0, LOCKED: 0 }
+    for (const item of items) {
+      if (!item.latest) counts.MISSING += 1
+      else if (item.latest.status === 'DRAFT') counts.DRAFT += 1
+      else if (item.latest.status === 'SUBMITTED') counts.SUBMITTED += 1
+      else counts.LOCKED += 1
+    }
+    return counts
+  }, [items])
+
+  const filteredItems = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return items.filter((item) => {
+      if (statusFilter === 'MISSING' && item.latest) return false
+      if (statusFilter === 'DRAFT' && item.latest?.status !== 'DRAFT') return false
+      if (statusFilter === 'SUBMITTED' && item.latest?.status !== 'SUBMITTED') return false
+      if (statusFilter === 'LOCKED' && (!item.latest || (item.latest.status !== 'LOCKED' && item.latest.status !== 'REVIEWED'))) return false
+      if (requiredFilter === 'REQUIRED' && !item.required) return false
+      if (requiredFilter === 'OPTIONAL' && item.required) return false
+      if (!q) return true
+      const reportTypeLabel = displayLabel(item.reportType).toLowerCase()
+      const scopeText = coldScopeLabel(item.scope).toLowerCase()
+      return item.name.toLowerCase().includes(q)
+        || item.reportType.toLowerCase().includes(q)
+        || reportTypeLabel.includes(q)
+        || scopeText.includes(q)
+    })
+  }, [items, requiredFilter, search, statusFilter])
+
+  const activeChips = [
+    ...(search.trim() ? [{ id: 'search', label: 'Từ khóa', value: search.trim() }] : []),
+    ...(statusFilter !== 'ALL' ? [{
+      id: 'status',
+      label: 'Trạng thái',
+      value: ({ MISSING: 'Chưa tạo', DRAFT: 'Bản nháp', SUBMITTED: 'Đã nộp', LOCKED: 'Đã khóa' })[statusFilter],
+    }] : []),
+    ...(requiredFilter !== 'ALL' ? [{
+      id: 'required',
+      label: 'Phân loại',
+      value: requiredFilter === 'REQUIRED' ? 'Bắt buộc' : 'Tùy chọn',
+    }] : []),
+  ]
+
+  function removeChip(id: string) {
+    if (id === 'search') setSearch('')
+    if (id === 'status') setStatusFilter('ALL')
+    if (id === 'required') setRequiredFilter('ALL')
+  }
+
+  function clearFilters() {
+    setSearch('')
+    setStatusFilter('ALL')
+    setRequiredFilter('ALL')
+  }
+
+  return <ColdShell
+    title="Chấm nguội theo ngành"
+    projectTitle={projectTitle}
+    eyebrow={projectCode ? `Chấm nguội · ${projectCode}` : `Chấm nguội · ${projectTitle}`}
+    backTo={actor === 'student' ? undefined : `${routeBase}/workspace`}
+    description={actor === 'student' ? 'Nộp từng báo cáo theo ngành hoặc cá nhân được giao trước hạn. Hội đồng sẽ chấm sau khi khóa gói.' : 'Theo dõi báo cáo chấm nguội của nhóm theo từng ngành và cá nhân.'}
+    action={
+      <button type="button" className="cold-button cold-button--secondary" onClick={reload} disabled={loading}>
+        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
+        Làm mới
+      </button>
+    }
+  >
     {loading ? <ColdLoading /> : error ? <ColdError message={error} retry={reload} /> : !checklist ? <WorkspaceEmptyState title="Chưa có checklist báo cáo" message="Hệ thống chưa trả về checklist chấm nguội cho đồ án này." /> : <>
-      <ActionVerdict actions={[{ code: 'LOCK_COLD_PACKAGE', allowed: checklist.canLock, reasons: allBlockers }]} actionCode="LOCK_COLD_PACKAGE" status="ready" okLabel="Đủ điều kiện khóa gói" blockedLabel="Chưa đủ điều kiện khóa gói" />
+      {showLockVerdict && (
+        <ActionVerdict
+          actions={[{ code: 'LOCK_COLD_PACKAGE', allowed: checklist.canLock, reasons: allBlockers }]}
+          actionCode="LOCK_COLD_PACKAGE"
+          status="ready"
+          okLabel="Đủ điều kiện khóa gói"
+          blockedLabel="Chưa đủ điều kiện khóa gói"
+        />
+      )}
       {lockError && <ColdError message={lockError} />}
-      
-      {progress && <div className="cold-panel" style={{ marginBottom: 16 }}>
+      {progress && <div className="cold-panel cold-panel--progress">
         <div className="cold-panel-heading">
           <h2>Tiến độ gói chấm nguội</h2>
-          <span style={{ fontWeight: 600 }}>Trạng thái: {progress.packageStatus}</span>
+          <span className="cold-progress-status">Trạng thái: {displayLabel(progress.packageStatus)}</span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, padding: 12 }}>
-          <div><small>Báo cáo hiển thị</small><p style={{ fontSize: 18, fontWeight: 700 }}>{progress.visibleReports}</p></div>
-          <div><small>Đã nộp</small><p style={{ fontSize: 18, fontWeight: 700 }}>{progress.submittedReports}</p></div>
-          <div><small>Đã khóa</small><p style={{ fontSize: 18, fontWeight: 700 }}>{progress.lockedReports}</p></div>
-          <div><small>Sẵn sàng chấm</small><p style={{ fontSize: 18, fontWeight: 700, color: progress.ready ? 'green' : 'inherit' }}>{progress.ready ? 'Đạt' : 'Chưa đạt'}</p></div>
-        </div>
-        {actor === 'student' && <p style={{ padding: '0 12px 12px', fontSize: 12, color: 'var(--color-ink-muted)' }}>Điểm chấm nguội (Cold) được hệ thống ẩn hoàn toàn với sinh viên trước khi bộ môn công bố kết quả chính thức.</p>}
+        <dl className="cold-progress-grid">
+          <div className="cold-progress-stat"><dt>Báo cáo hiển thị</dt><dd>{progress.visibleReports}</dd></div>
+          <div className="cold-progress-stat"><dt>Đã nộp</dt><dd>{progress.submittedReports}</dd></div>
+          <div className="cold-progress-stat"><dt>Đã khóa</dt><dd>{progress.lockedReports}</dd></div>
+          <div className="cold-progress-stat"><dt>Sẵn sàng chấm</dt><dd className={progress.ready ? 'is-ready' : ''}>{progress.ready ? 'Đạt' : 'Chưa đạt'}</dd></div>
+        </dl>
+        {actor === 'student' && <p className="px-5 pb-4 text-xs text-ink-muted">Điểm chấm nguội (Cold) được hệ thống ẩn hoàn toàn với sinh viên trước khi bộ môn công bố kết quả chính thức.</p>}
       </div>}
 
       <div className="cold-panel">
-        <div className="cold-panel-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="cold-panel-heading">
           <div>
             <h2>Danh sách báo cáo</h2>
             <span>Hạn nộp: {formatColdDateTime(checklist.deadline)}</span>
-            {checklist.lockedAt && <span style={{ marginLeft: 12, color: 'var(--color-status-success-text)', fontWeight: 600 }}>• Đã khóa: {formatColdDateTime(checklist.lockedAt)}</span>}
+            {checklist.lockedAt && <span className="cold-locked-meta">• Đã khóa: {formatColdDateTime(checklist.lockedAt)}</span>}
           </div>
           {checklist.canLock && (
             <button
@@ -108,9 +203,65 @@ function ColdChecklistBody({ projectId, projectTitle, actor, routeBase }: {
             </button>
           )}
         </div>
-        {checklist.items.length === 0 ? <WorkspaceEmptyState title="Chưa có checklist báo cáo" message="Chưa có checklist báo cáo nào được áp dụng cho đồ án này." /> : <ul className="cold-list">
-          {checklist.items.map((item) => <ColdItemRow key={item.id} item={item} onChanged={replaceItem} onConflict={reload} />)}
-        </ul>}
+
+        {checklist.items.length > 0 && (
+          <div className="border-b border-hairline px-5 py-3.5">
+            <FilterToolbar
+              embedded
+              search={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="Tìm tên hoặc loại báo cáo…"
+              searchLabel="Tìm báo cáo chấm nguội"
+              tabsLabel="Lọc theo trạng thái báo cáo"
+              activeTab={statusFilter}
+              onTabChange={(value) => setStatusFilter(value as StatusFilter)}
+              tabs={[
+                { value: 'ALL', label: 'Tất cả', count: statusCounts.ALL },
+                { value: 'MISSING', label: 'Chưa tạo', count: statusCounts.MISSING },
+                { value: 'DRAFT', label: 'Bản nháp', count: statusCounts.DRAFT },
+                { value: 'SUBMITTED', label: 'Đã nộp', count: statusCounts.SUBMITTED },
+                { value: 'LOCKED', label: 'Đã khóa', count: statusCounts.LOCKED },
+              ]}
+              controls={
+                <label className="ft-select-wrap">
+                  <span className="sr-only">Yêu cầu báo cáo</span>
+                  <select
+                    aria-label="Phân loại bắt buộc"
+                    value={requiredFilter}
+                    onChange={(event) => setRequiredFilter(event.target.value as RequiredFilter)}
+                    className="ft-select"
+                  >
+                    <option value="ALL">Tất cả yêu cầu</option>
+                    <option value="REQUIRED">Bắt buộc</option>
+                    <option value="OPTIONAL">Tùy chọn</option>
+                  </select>
+                </label>
+              }
+              activeChips={activeChips}
+              onRemoveChip={removeChip}
+              onClearAll={clearFilters}
+              hasActiveFilters={activeChips.length > 0}
+              resultSummary={activeChips.length > 0 ? `Hiển thị ${filteredItems.length} / ${checklist.items.length} báo cáo` : undefined}
+            />
+          </div>
+        )}
+
+        {checklist.items.length === 0 ? (
+          <WorkspaceEmptyState title="Chưa có checklist báo cáo" message="Chưa có checklist báo cáo nào được áp dụng cho đồ án này." />
+        ) : filteredItems.length === 0 ? (
+          <WorkspaceEmptyState
+            title="Không tìm thấy báo cáo phù hợp"
+            message="Thử điều chỉnh từ khóa hoặc bỏ bộ lọc trạng thái để xem đầy đủ danh sách báo cáo."
+            action={<button type="button" className="cold-button cold-button--secondary" onClick={clearFilters}>Xóa bộ lọc</button>}
+          />
+        ) : (
+          <ul className="cold-list">
+            {filteredItems.map((item) => <ColdItemRow key={item.id} item={item} onChanged={replaceItem} onConflict={reload} />)}
+          </ul>
+        )}
+      </div>
+      <div className="mt-4">
+        <SubmissionPreflightPanel projectId={projectId} target="COLD" />
       </div>
     </>}
   </ColdShell>
@@ -122,15 +273,17 @@ function ColdItemRow({ item, onChanged, onConflict }: {
   const [note, setNote] = useState(item.latest?.note ?? '')
   const [busy, setBusy] = useState(false)
   const [rowError, setRowError] = useState('')
+  const [editorOpen, setEditorOpen] = useState(false)
   const latest = item.latest
 
   useEffect(() => { setNote(latest?.note ?? '') }, [latest?.id, latest?.note])
 
-  async function run(action: () => Promise<ColdSubmission>) {
+  async function run(action: () => Promise<ColdSubmission>, onSuccess?: (result: ColdSubmission) => void) {
     setBusy(true); setRowError('')
     try {
       const result = await action()
       onChanged(result)
+      onSuccess?.(result)
     } catch (reason) {
       setRowError(coldError(reason))
       if (coldNeedsAuthoritativeRefresh(reason)) onConflict()
@@ -140,11 +293,11 @@ function ColdItemRow({ item, onChanged, onConflict }: {
   }
 
   function createDraft() {
-    void run(() => api.saveColdDraft(item.id, { expectedLatestVersion: 0 }))
+    void run(() => api.saveColdDraft(item.id, { expectedLatestVersion: 0 }), () => setEditorOpen(true))
   }
   function resubmitNewVersion() {
     if (!latest) return
-    void run(() => api.saveColdDraft(item.id, { expectedLatestVersion: latest.version }))
+    void run(() => api.saveColdDraft(item.id, { expectedLatestVersion: latest.version }), () => setEditorOpen(true))
   }
   function saveNote() {
     if (!latest) return
@@ -162,12 +315,11 @@ function ColdItemRow({ item, onChanged, onConflict }: {
   }
   function submit() {
     if (!latest) return
-    void run(() => api.submitColdSubmission(latest.id, latest.concurrencyToken))
+    void run(() => api.submitColdSubmission(latest.id, latest.concurrencyToken), () => setEditorOpen(false))
   }
-  async function downloadFile(fileId: number, fileName: string) {
-    if (!latest) return
+  async function downloadFile(submissionId: number, fileId: number, fileName: string) {
     try {
-      const blob = await api.downloadColdSubmissionFile(latest.id, fileId)
+      const blob = await api.downloadColdSubmissionFile(submissionId, fileId)
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
       anchor.href = url; anchor.download = fileName
@@ -181,7 +333,20 @@ function ColdItemRow({ item, onChanged, onConflict }: {
   const [showHistory, setShowHistory] = useState(false)
   const [history, setHistory] = useState<ColdSubmission[] | null>(null)
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [historyError, setHistoryError] = useState('')
   const [previewFile, setPreviewFile] = useState<{ id: number; fileName: string; sizeBytes: number; contentType?: string; submissionId: number } | null>(null)
+
+  async function loadHistory() {
+    setLoadingHistory(true); setHistoryError('')
+    try {
+      const res = await api.getColdSubmissionHistory(item.id, 1, 50)
+      setHistory(res.items)
+    } catch (reason) {
+      setHistoryError(coldError(reason))
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
 
   async function toggleHistory() {
     if (showHistory) {
@@ -190,26 +355,22 @@ function ColdItemRow({ item, onChanged, onConflict }: {
     }
     setShowHistory(true)
     if (!history) {
-      setLoadingHistory(true)
-      try {
-        const res = await api.getColdSubmissionHistory(item.id, 1, 50)
-        setHistory(res.items)
-      } catch {
-        // history fetch error handled quietly
-      } finally {
-        setLoadingHistory(false)
-      }
+      await loadHistory()
     }
   }
 
   const isDraft = latest?.status === 'DRAFT'
   const canEditDraft = item.canWrite && isDraft
   const canResubmit = item.canWrite && latest?.status === 'SUBMITTED'
+  const localizedReportType = displayLabel(item.reportType)
 
   return <li className="cold-row">
     <div className="cold-row-head">
       <div>
-        <div className="cold-row-meta"><span>{item.reportType}</span><span>{coldScopeLabel(item.scope)}{item.required ? ' • Bắt buộc' : ''}</span></div>
+        <div className="cold-row-meta">
+          <span>{localizedReportType}</span>
+          <span>{coldScopeLabel(item.scope)}{item.required ? ' • Bắt buộc' : ' • Tùy chọn'}</span>
+        </div>
         <h3>{item.name}</h3>
       </div>
       <div className="cold-row-state">
@@ -218,89 +379,169 @@ function ColdItemRow({ item, onChanged, onConflict }: {
       </div>
     </div>
 
-    {rowError && <ColdError message={rowError} />}
+    {rowError && !editorOpen && <div className="mt-3"><ColdError message={rowError} /></div>}
 
-    {!latest && item.canWrite && <div className="cold-editor-actions" style={{ marginTop: 12 }}>
-      <button className="cold-button" type="button" disabled={busy} onClick={createDraft}>Tạo bản nháp</button>
-    </div>}
-
-    {latest && (canEditDraft ? <div className="cold-editor">
-      <label>Ghi chú<textarea value={note} onChange={(event) => setNote(event.target.value)} disabled={busy} /></label>
-      <ul className="cold-file-list">
-        {latest.files.map((file) => <li key={file.id}>
-          <span>{file.fileName} <small>({formatFileSize(file.sizeBytes)})</small></span>
-          <button className="cold-button cold-button--secondary" type="button" disabled={busy} onClick={() => removeFile(file.id)}>Xóa</button>
-        </li>)}
-        {latest.files.length === 0 && <li><small>Chưa có tệp nào.</small></li>}
-      </ul>
-      <div className="cold-editor-actions">
-        <input type="file" accept=".pdf,.docx,.zip" disabled={busy} onChange={uploadFile} />
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="cold-button cold-button--secondary" type="button" disabled={busy} onClick={saveNote}>Lưu ghi chú</button>
-          <button className="cold-button" type="button" disabled={busy || latest.files.length === 0} onClick={submit}>Nộp báo cáo</button>
-        </div>
+    {latest && (
+      <div className="cold-readonly">
+        {latest.note && <p className="mb-2 text-ink-soft">{latest.note}</p>}
+        {latest.files.length > 0 ? (
+          <ul className="cold-file-list">
+            {latest.files.map((file) => <li key={file.id}>
+              <span>{file.fileName} <small>({formatFileSize(file.sizeBytes)})</small></span>
+              <div className="cold-inline-actions">
+                <button className="cold-button cold-button--secondary cold-button--compact" type="button" onClick={() => setPreviewFile({ id: file.id, fileName: file.fileName, sizeBytes: file.sizeBytes, contentType: file.contentType, submissionId: latest.id })}>Xem trước</button>
+                <button className="cold-button cold-button--secondary cold-button--compact" type="button" onClick={() => void downloadFile(latest.id, file.id, file.fileName)}>Tải xuống</button>
+              </div>
+            </li>)}
+          </ul>
+        ) : isDraft ? (
+          <p className="text-xs text-ink-muted">Chưa đính kèm tệp nào. Mở hộp thoại chỉnh sửa để tải tệp lên và nộp báo cáo.</p>
+        ) : null}
+        {latest.submittedAt && <small className="mt-2 block">Đã nộp: {formatColdDateTime(latest.submittedAt)}</small>}
       </div>
-    </div> : <div className="cold-readonly">
-      {latest.note && <p>{latest.note}</p>}
-      <ul className="cold-file-list">
-        {latest.files.map((file) => <li key={file.id}>
-          <span>{file.fileName} <small>({formatFileSize(file.sizeBytes)})</small></span>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button className="cold-button cold-button--secondary" type="button" onClick={() => setPreviewFile({ id: file.id, fileName: file.fileName, sizeBytes: file.sizeBytes, contentType: file.contentType, submissionId: latest.id })}>Xem trước</button>
-            <button className="cold-button cold-button--secondary" type="button" onClick={() => void downloadFile(file.id, file.fileName)}>Tải xuống</button>
-          </div>
-        </li>)}
-      </ul>
-      {latest.submittedAt && <small>Đã nộp: {formatColdDateTime(latest.submittedAt)}</small>}
-      {canResubmit && <div className="cold-editor-actions" style={{ marginTop: 12 }}>
-        <button className="cold-button cold-button--secondary" type="button" disabled={busy} onClick={resubmitNewVersion}>Nộp lại (tạo phiên bản mới)</button>
-      </div>}
-    </div>)}
+    )}
 
-    <div style={{ marginTop: 10 }}>
+    <div className="cold-editor-actions cold-editor-actions--spaced">
+      <div className="cold-inline-actions">
+        {!latest && item.canWrite && (
+          <button className="cold-button" type="button" disabled={busy} onClick={createDraft}>Tạo bản nháp</button>
+        )}
+        {canEditDraft && (
+          <button className="cold-button" type="button" disabled={busy} onClick={() => { setRowError(''); setEditorOpen(true) }}>
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">edit_document</span>
+            Chỉnh sửa &amp; nộp
+          </button>
+        )}
+        {canResubmit && (
+          <button className="cold-button cold-button--secondary" type="button" disabled={busy} onClick={resubmitNewVersion}>Nộp lại (tạo phiên bản mới)</button>
+        )}
+      </div>
       <button
         type="button"
-        className="cold-button cold-button--secondary"
+        className="cold-button cold-button--secondary cold-button--compact"
         onClick={() => void toggleHistory()}
-        style={{ fontSize: 12, padding: '4px 10px' }}
       >
         {showHistory ? 'Ẩn lịch sử nộp' : 'Xem lịch sử nộp'}
       </button>
     </div>
 
     {showHistory && (
-      <div style={{ marginTop: 10, padding: 12, border: '1px solid var(--color-line-strong)', borderRadius: 8, background: 'var(--color-canvas)' }}>
-        <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--color-ink)' }}>Lịch sử các phiên bản:</h4>
-        {loadingHistory && <p style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>Đang tải lịch sử…</p>}
-        {history && history.length === 0 && <p style={{ fontSize: 12, color: 'var(--color-ink-muted)' }}>Chưa có bản ghi lịch sử nào.</p>}
-        {history && history.map((sub) => (
-          <div key={sub.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--color-hairline)', fontSize: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 600 }}>Phiên bản {sub.version} ({sub.status})</span>
-              <span style={{ color: 'var(--color-ink-muted)', fontSize: 12 }}>{sub.submittedAt ? formatColdDateTime(sub.submittedAt) : formatColdDateTime(sub.createdAt)}</span>
-            </div>
-            {sub.note && <p style={{ margin: '4px 0', color: 'var(--color-ink-soft)' }}>Ghi chú: {sub.note}</p>}
-            {sub.files.length > 0 && (
-              <ul style={{ listStyle: 'none', paddingLeft: 0, marginTop: 4 }}>
-                {sub.files.map((file) => (
-                  <li key={file.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 }}>
-                    <span>{file.fileName} <small>({formatFileSize(file.sizeBytes)})</small></span>
-                    <button
-                      type="button"
-                      className="cold-button cold-button--secondary"
-                      style={{ fontSize: 12, padding: '2px 8px' }}
-                      onClick={() => void downloadFile(file.id, file.fileName)}
-                    >
-                      Tải bản này
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ))}
+      <div className="cold-history-details">
+        <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-ink-muted">Lịch sử các phiên bản</h4>
+        {loadingHistory && <p className="text-xs text-ink-muted">Đang tải lịch sử…</p>}
+        {historyError && <ColdError message={historyError} retry={() => void loadHistory()} />}
+        {!historyError && history && history.length === 0 && <p className="text-xs text-ink-muted">Chưa có bản ghi lịch sử nào.</p>}
+        {!historyError && history && history.length > 0 && (
+          <ul className="cold-history-list">
+            {history.map((sub) => (
+              <li key={sub.id} className="cold-history-item">
+                <div className="cold-history-head">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-ink">Phiên bản v{sub.version}</span>
+                    <ColdBadge status={sub.status} />
+                  </div>
+                  <span className="text-xs text-ink-muted">{sub.submittedAt ? formatColdDateTime(sub.submittedAt) : formatColdDateTime(sub.createdAt)}</span>
+                </div>
+                {sub.note && <p className="text-xs text-ink-soft">Ghi chú: {sub.note}</p>}
+                {sub.files.length > 0 && (
+                  <ul className="cold-file-list">
+                    {sub.files.map((file) => (
+                      <li key={file.id}>
+                        <span>{file.fileName} <small>({formatFileSize(file.sizeBytes)})</small></span>
+                        <div className="cold-inline-actions">
+                          <button
+                            type="button"
+                            className="cold-button cold-button--secondary cold-button--compact"
+                            onClick={() => setPreviewFile({ id: file.id, fileName: file.fileName, sizeBytes: file.sizeBytes, contentType: file.contentType, submissionId: sub.id })}
+                          >
+                            Xem trước
+                          </button>
+                          <button
+                            type="button"
+                            className="cold-button cold-button--secondary cold-button--compact"
+                            onClick={() => void downloadFile(sub.id, file.id, file.fileName)}
+                          >
+                            Tải bản này
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     )}
-    {previewFile && <DocumentPreviewModal open fileName={previewFile.fileName} fileSize={previewFile.sizeBytes} contentType={previewFile.contentType} loadBlob={signal => api.downloadColdSubmissionFile(previewFile.submissionId, previewFile.id, signal)} onDownload={() => downloadFile(previewFile.id, previewFile.fileName)} onClose={() => setPreviewFile(null)} />}
+
+    {canEditDraft && latest && editorOpen && (
+      <Modal
+        open
+        drawer
+        busy={busy}
+        title={item.name}
+        description={`${localizedReportType} · ${coldScopeLabel(item.scope)} · Phiên bản ${latest.version}`}
+        onClose={() => setEditorOpen(false)}
+      >
+        <div className="flex flex-col gap-4">
+          {rowError && <ColdError message={rowError} />}
+          <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-ink-soft">
+            Ghi chú
+            <textarea
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              disabled={busy}
+              rows={4}
+              placeholder="Ghi chú phạm vi báo cáo, liên kết hoặc lưu ý cho hội đồng…"
+              className="w-full rounded-lg border border-line-strong bg-card px-3.5 py-2.5 text-sm font-normal normal-case tracking-normal text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
+            />
+          </label>
+
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-ink-soft">Tệp đính kèm ({latest.files.length})</span>
+              <label className="cold-file-picker">
+                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">upload_file</span>
+                <span>Chọn tệp đính kèm (.pdf, .docx, .zip)</span>
+                <input type="file" accept=".pdf,.docx,.zip" disabled={busy} onChange={uploadFile} />
+              </label>
+            </div>
+            <ul className="cold-file-list">
+              {latest.files.map((file) => <li key={file.id}>
+                <span className="min-w-0 truncate">{file.fileName} <small>({formatFileSize(file.sizeBytes)})</small></span>
+                <div className="cold-inline-actions">
+                  <button
+                    className="cold-button cold-button--secondary cold-button--compact"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setPreviewFile({ id: file.id, fileName: file.fileName, sizeBytes: file.sizeBytes, contentType: file.contentType, submissionId: latest.id })}
+                  >
+                    Xem trước
+                  </button>
+                  <button
+                    className="cold-button cold-button--secondary cold-button--compact"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => removeFile(file.id)}
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </li>)}
+              {latest.files.length === 0 && <li><small>Chưa có tệp nào. Cần đính kèm ít nhất 1 tệp trước khi nộp báo cáo.</small></li>}
+            </ul>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-hairline pt-4">
+            <button className="cold-button cold-button--secondary" type="button" disabled={busy} onClick={() => setEditorOpen(false)}>Đóng</button>
+            <button className="cold-button cold-button--secondary" type="button" disabled={busy} onClick={saveNote}>Lưu ghi chú</button>
+            <button className="cold-button" type="button" disabled={busy || latest.files.length === 0} onClick={submit}>Nộp báo cáo</button>
+          </div>
+        </div>
+      </Modal>
+    )}
+
+    {previewFile && <DocumentPreviewModal open fileName={previewFile.fileName} fileSize={previewFile.sizeBytes} contentType={previewFile.contentType} loadBlob={signal => api.downloadColdSubmissionFile(previewFile.submissionId, previewFile.id, signal)} onDownload={() => downloadFile(previewFile.submissionId, previewFile.id, previewFile.fileName)} onClose={() => setPreviewFile(null)} />}
   </li>
 }

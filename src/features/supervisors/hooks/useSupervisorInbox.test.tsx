@@ -46,7 +46,7 @@ describe('useSupervisorInbox', () => {
     expect(supervisor.respondToSupervisorRequest).toHaveBeenCalledTimes(1)
     expect(supervisor.getSupervisorInbox).toHaveBeenCalledTimes(2)
     expect(result.current.error?.kind).toBe('conflict')
-    expect(result.current.error?.message).toContain('Supervisor capacity changed.')
+    expect(result.current.error?.message).toContain('Yêu cầu đã thay đổi')
   })
 
   it('does not let a rendered but no-longer-pending request be decided again', async () => {

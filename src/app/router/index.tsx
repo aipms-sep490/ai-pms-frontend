@@ -1,5 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
-import { RouteFrame } from './RouteFrame'
+import { RouteErrorBoundary, RouteFrame } from './RouteFrame'
 import { AppLayout } from '../layouts/AppLayout'
 import { HomeRedirect, RoleRoute } from '../../features/auth/components/RoleRoute'
 import { SupervisorExecutionRoute } from '../../features/supervisors/components/SupervisorExecutionRoute'
@@ -38,7 +38,7 @@ import {
 } from './lazy-pages'
 
 
-export const appRouter = createBrowserRouter([{ element: <RouteFrame />, children: [
+export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorElement: <RouteErrorBoundary />, children: [
   { path: 'login', element: <LoginPage /> },
   { path: 'forgot-password', element: <ForgotPasswordPage /> },
   { path: 'reset-password', element: <ResetPasswordPage /> },
@@ -59,6 +59,10 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'calendar', element: <CalendarAttentionPage /> },
       { path: 'messages/:conversationId?', element: <ChatPage /> },
+      ...(env.academicAiAssistantEnabled ? [{
+        element: <RoleRoute allowed={['student', 'lecturer', 'department', 'admin']} />,
+        children: [{ path: 'academic/assistant', element: <AcademicAssistantPage /> }],
+      }] : []),
       {
         element: <RoleRoute allowed={['student']} />,
         children: [
@@ -103,7 +107,6 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
           { path: 'project/result', element: <StudentProjectResultPage /> },
           { path: 'project/timeline', element: <StudentReviewTimelinePage /> },
           { path: 'project/review-gates', element: <StudentReviewTimelinePage /> },
-          ...(env.academicAiAssistantEnabled ? [{ path: 'academic/assistant', element: <AcademicAssistantPage /> }] : []),
         ],
       },
       {
@@ -145,6 +148,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, childre
             { path: 'mentor/projects/:projectId/majors/:majorId/reports', element: <ProgressReportsPage /> },
             { path: 'mentor/projects/:projectId/majors/:majorId/reports/:reportId', element: <ProgressReportDetailPage /> },
             { path: 'mentor/projects/:projectId/majors/:majorId/meetings', element: <MeetingsPage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/meetings/:meetingId/video', element: <MeetingVideoRoomPage /> },
             { path: 'mentor/projects/:projectId/majors/:majorId/meetings/:meetingId', element: <MeetingDetailPage /> },
             { path: 'mentor/projects/:projectId/majors/:majorId/evidence', element: <ProjectEvidenceLedgerPage /> },
             ...(env.gatesEnabled ? [{ path: 'mentor/projects/:projectId/majors/:majorId/checkpoints', element: <ProjectGatesPage /> }] : []),

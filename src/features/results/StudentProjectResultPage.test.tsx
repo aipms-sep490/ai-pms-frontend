@@ -73,7 +73,7 @@ it('shows only the summary when BE-09 breakdown fields are absent', async () => 
   render(<MemoryRouter><StudentProjectResultPage /></MemoryRouter>)
   await screen.findByText('8,25')
   expect(screen.queryByText('Chi tiết thành phần điểm')).toBeNull()
-  expect(screen.getByText('Quy định #2')).toBeTruthy()
+  expect(screen.getByText('Phương án đánh giá đã công bố')).toBeTruthy()
 })
 it('shows four backend-sourced tiles and distinguishes a pending component from score zero', async () => {
   mocks.getStudentResult.mockResolvedValue({ ...result, breakdown: {

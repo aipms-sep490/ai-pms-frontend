@@ -39,8 +39,8 @@ export function ProjectResultBreakdown({ breakdown, contributions, majorNames = 
           </p>
           <p className="text-sm text-ink-muted">{breakdown.schemeName && `Phương án: ${breakdown.schemeName}. `}{breakdown.schemeVersion != null ? `Phiên bản ${breakdown.schemeVersion}.` : 'Chưa có phiên bản phương án.'}</p>
           <dl className="grid gap-4 sm:grid-cols-2">
-            <div><dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Điểm chung (COMMON)</dt><dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-ink">{formatScore(breakdown.commonScore)}</dd></div>
-            <div><dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Tổng hợp theo ngành (MajorAggregate)</dt><dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-ink">{formatScore(breakdown.majorAggregate)}</dd></div>
+            <div><dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Điểm chung</dt><dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-ink">{formatScore(breakdown.commonScore)}</dd></div>
+            <div><dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Tổng hợp theo ngành</dt><dd className="mt-1 font-mono text-lg font-semibold tabular-nums text-ink">{formatScore(breakdown.majorAggregate)}</dd></div>
           </dl>
           {breakdown.components.length > 0 && <><Table stack aria-label="Điểm thành phần do hệ thống cung cấp">
             <TableHead><TableRow head><TableHeaderCell>Thành phần</TableHeaderCell><TableHeaderCell numeric>Điểm</TableHeaderCell><TableHeaderCell>Trạng thái</TableHeaderCell></TableRow></TableHead>
@@ -48,7 +48,7 @@ export function ProjectResultBreakdown({ breakdown, contributions, majorNames = 
               const inactive = component.weightPercent === 0
               const pending = component.score == null
               return <TableRow key={component.componentId}>
-                <TableCell label="Thành phần">{component.name}{component.majorId != null && ` · ${majorNames[component.majorId] ?? `Ngành #${component.majorId}`}`}</TableCell>
+                <TableCell label="Thành phần">{component.name}{component.majorId != null && majorNames[component.majorId] ? ` · ${majorNames[component.majorId]}` : ''}</TableCell>
                 <TableCell label="Điểm" numeric>{inactive ? 'Không áp dụng' : formatScore(component.score)}</TableCell>
                 <TableCell label="Trạng thái"><StatusBadge tone={inactive || pending ? 'warning' : 'success'} label={inactive ? 'Không tính vào tổng này' : pending ? 'Chưa có điểm' : 'Đã chấm'} /></TableCell>
               </TableRow>
@@ -70,7 +70,7 @@ export function ProjectResultBreakdown({ breakdown, contributions, majorNames = 
                     const pending = major.score === null
                     return (
                       <TableRow key={`${major.majorId}-${index}`}>
-                        <TableCell label="Ngành" className="font-medium text-ink">{majorNames[major.majorId] ?? 'Chưa tải được tên ngành'}</TableCell>
+                        <TableCell label="Ngành" className="font-medium text-ink">{major.majorName ?? majorNames[major.majorId] ?? 'Chưa tải được tên ngành'}</TableCell>
                         <TableCell label="Điểm ngành" numeric className="font-semibold">{formatScore(major.score)}</TableCell>
                         <TableCell label="Trạng thái"><StatusBadge tone={pending ? 'warning' : 'success'} label={pending ? 'Chưa có điểm' : 'Đã chấm'} /></TableCell>
                       </TableRow>
@@ -90,7 +90,7 @@ export function ProjectResultBreakdown({ breakdown, contributions, majorNames = 
             {advisory.map(item => (
               <li key={item.assignmentId} className="rounded-lg border border-hairline bg-canvas p-3">
                 <span className="inline-flex items-center rounded-full border border-hairline bg-card px-2 py-0.5 text-xs font-semibold text-ink-muted">{displayLabel('ADVISORY')}</span>
-                <span className="ml-2 text-ink-soft">{item.source ? displayLabel(item.source) : 'Chuyên gia doanh nghiệp'} · người chấm #{item.evaluatorId}</span>
+                <span className="ml-2 text-ink-soft">{item.source ? displayLabel(item.source) : 'Chuyên gia doanh nghiệp'}{item.evaluatorName ? ` · ${item.evaluatorName}` : ''}</span>
               </li>
             ))}
           </ul>

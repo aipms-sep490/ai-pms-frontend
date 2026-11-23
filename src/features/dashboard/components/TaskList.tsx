@@ -32,7 +32,7 @@ export function TaskList({ tasks }: TaskListProps) {
         <div
           role="group"
           aria-label="Lọc công việc theo trạng thái"
-          className="flex items-center gap-1 bg-slate-100 p-1 rounded-md text-xs font-medium overflow-x-auto no-scrollbar max-w-full"
+          className="flex items-center gap-1 bg-canvas border border-hairline p-1 rounded-md text-xs font-medium overflow-x-auto no-scrollbar max-w-full"
         >
           <button
             type="button"
@@ -85,7 +85,7 @@ export function TaskList({ tasks }: TaskListProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="p-0 divide-y divide-slate-100">
+      <CardContent className="p-0 divide-y divide-hairline">
         {displayedTasks.length === 0 ? (
           <div className="p-8 text-center text-sm text-ink-muted">
             Không có công việc nào trong danh mục này.
@@ -94,8 +94,8 @@ export function TaskList({ tasks }: TaskListProps) {
           displayedTasks.map((task) => (
             <div
               key={task.id}
-              className={`p-3.5 px-4 flex items-center justify-between gap-3 hover:bg-canvas/80 transition-colors ${
-                task.isCritical ? 'bg-status-error-bg/40 border-l-4 border-l-red-500' : ''
+              className={`p-3.5 px-4 flex items-center justify-between gap-3 hover:bg-canvas transition-colors ${
+                task.isCritical ? 'bg-status-error-bg border-l-4 border-l-status-error-border' : ''
               }`}
             >
               <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -115,7 +115,7 @@ export function TaskList({ tasks }: TaskListProps) {
                     </span>
                     <MultidisciplinaryTag major={task.major} />
                     {task.isCritical && (
-                      <span className="inline-flex items-center gap-1 font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-status-error-bg text-danger-text border border-status-error-border whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-status-error-bg text-status-error-text border border-status-error-border whitespace-nowrap">
                         ! Đường găng nghẽn
                       </span>
                     )}
@@ -149,14 +149,14 @@ export function TaskList({ tasks }: TaskListProps) {
                     aria-valuenow={task.progress}
                     aria-valuemin={0}
                     aria-valuemax={100}
-                    className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden"
+                    className="w-full bg-canvas border border-hairline h-1.5 rounded-full overflow-hidden"
                   >
                     <div
                       className={`h-full rounded-full ${
                         task.status === 'done'
-                          ? 'bg-academic-emerald'
+                          ? 'bg-status-success-text'
                           : task.status === 'overdue'
-                          ? 'bg-academic-coral'
+                          ? 'bg-status-error-text'
                           : 'bg-primary'
                       }`}
                       style={{ width: `${task.progress}%` }}
@@ -165,7 +165,7 @@ export function TaskList({ tasks }: TaskListProps) {
                 </div>
 
                 <span
-                  className="p-1 text-slate-400"
+                  className="p-1 text-ink-muted"
                   title="Chi tiết công việc sẽ khả dụng ở phân hệ Tasks"
                   aria-hidden="true"
                 >

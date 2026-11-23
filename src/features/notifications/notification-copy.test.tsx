@@ -82,4 +82,25 @@ describe('Vietnamese notification copy', () => {
     expect(screen.queryByText(rawContent)).toBeNull()
     expect(document.body.textContent).not.toMatch(/private|internal|UNTRANSLATED|undefined/)
   })
+
+  it('translates legacy English MEETING_START_REMINDER records with Vietnamese meeting titles cleanly', () => {
+    const legacy: NotificationItem = {
+      id: 99,
+      notificationType: 'MEETING_START_REMINDER',
+      title: 'Meeting starts soon: Cuộc họp nhóm',
+      content: 'Your meeting is starting soon.\n\nMeeting: Cuộc họp nhóm\nProject: PRJ-DC36A1F9\nStart: 19/11/2026 14:48 (Vietnam, UTC+7)\nLocation: Online\nOpen AI-PMS > Meetings > this meeting to join the video room.',
+      relatedEntityType: 'MEETING',
+      relatedEntityId: 70010,
+      createdAt: '2026-11-19T07:46:00Z',
+      isRead: false,
+      readAt: null,
+    }
+    const copy = notificationCopy(legacy)
+    expect(copy.title).toBe('Sắp đến giờ họp: Cuộc họp nhóm')
+    expect(copy.content).toContain('Cuộc họp "Cuộc họp nhóm" sắp bắt đầu lúc 19/11/2026 14:48 (Việt Nam, UTC+7).')
+    expect(copy.content).toContain('Đồ án: PRJ-DC36A1F9')
+    expect(copy.content).toContain('Địa điểm: Trực tuyến')
+    expect(copy.content).toContain('Xem cuộc họp')
+    expect(copy.content).not.toMatch(/Your meeting|Open AI-PMS|Location:/i)
+  })
 })

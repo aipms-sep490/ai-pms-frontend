@@ -53,11 +53,11 @@ export function AcademicProfileSummary() {
 
   useEffect(() => {
     let active = true
-    setError(null)
     void getMyAcademicProfile()
       .then(result => {
         if (!active) return
         setProfile(result)
+        setError(null)
         setClassCode(result.classCode ?? '')
         setSpecializationId(result.specializationId ? String(result.specializationId) : '')
       })
@@ -120,7 +120,7 @@ export function AcademicProfileSummary() {
   return (
     <section className="border-t border-hairline py-5" aria-labelledby="academic-profile-title">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 id="academic-profile-title" className="text-sm font-semibold">Thông tin học vụ</h3>
+        <h3 id="academic-profile-title" className="text-sm font-semibold text-ink">Thông tin học vụ</h3>
         {profile && (
           <StatusBadge
             tone={statusTone[profile.status] ?? 'neutral'}
@@ -134,7 +134,11 @@ export function AcademicProfileSummary() {
       ) : error ? (
         <p className="mt-2 text-sm text-ink-muted">
           Chưa tải được hồ sơ học vụ.{' '}
-          <button type="button" className="font-semibold text-primary" onClick={() => setRevision(revision + 1)}>
+          <button
+            type="button"
+            className="min-h-9 rounded-md px-2 font-semibold text-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            onClick={() => { setError(null); setRevision(revision + 1) }}
+          >
             Thử lại
           </button>
         </p>
@@ -144,30 +148,30 @@ export function AcademicProfileSummary() {
             {profile.studentCode && (
               <div>
                 <dt className="text-xs text-ink-muted">MSSV</dt>
-                <dd className="mt-1 font-mono text-sm font-medium">{profile.studentCode}</dd>
+                <dd className="mt-1 font-mono text-sm font-medium text-ink">{profile.studentCode}</dd>
               </div>
             )}
             <div>
               <dt className="text-xs text-ink-muted">Bộ môn / Khoa</dt>
-              <dd className="mt-1 text-sm font-medium">{profile.departmentName || 'Chưa cập nhật'}</dd>
+              <dd className="mt-1 text-sm font-medium text-ink">{profile.departmentName || 'Chưa cập nhật'}</dd>
             </div>
             <div>
               <dt className="text-xs text-ink-muted">Chuyên ngành</dt>
-              <dd className="mt-1 text-sm font-medium">{profile.majorName || 'Chưa cập nhật'}</dd>
+              <dd className="mt-1 text-sm font-medium text-ink">{profile.majorName || 'Chưa cập nhật'}</dd>
             </div>
             {isStudent && (
               <>
                 <div>
                   <dt className="text-xs text-ink-muted">Khung CTĐT</dt>
-                  <dd className="mt-1 text-sm font-medium">{profile.curriculumCode || 'Chưa cập nhật'}</dd>
+                  <dd className="mt-1 text-sm font-medium text-ink">{profile.curriculumCode || 'Chưa cập nhật'}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-ink-muted">Lớp hành chính</dt>
-                  <dd className="mt-1 text-sm font-medium">{profile.classCode || 'Chưa nhập lớp'}</dd>
+                  <dd className="mt-1 text-sm font-medium text-ink">{profile.classCode || 'Chưa nhập lớp'}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-ink-muted">Chuyên ngành hẹp</dt>
-                  <dd className="mt-1 text-sm font-medium">
+                  <dd className="mt-1 text-sm font-medium text-ink">
                     {profile.specializationName
                       ? `${profile.specializationCode ? `${profile.specializationCode} · ` : ''}${profile.specializationName}`
                       : 'Chưa chọn chuyên ngành hẹp'}
@@ -184,18 +188,18 @@ export function AcademicProfileSummary() {
           {saveSuccess && <p role="status" className="text-sm text-status-success-text">{saveSuccess}</p>}
 
           {isStudent && isLocked && (
-            <p className="rounded-lg border border-hairline bg-slate-50 px-3 py-2 text-xs text-ink-muted">
+            <p className="rounded-lg border border-hairline bg-canvas px-3 py-2 text-xs text-ink-muted">
               Hồ sơ học vụ đã được Khoa xác minh và khóa tự chỉnh sửa. Nếu lớp hoặc chuyên ngành hẹp có thay đổi, vui lòng liên hệ Giáo vụ Khoa.
             </p>
           )}
 
           {isStudent && !isLocked && (
             editing ? (
-              <form className="grid gap-3 rounded-lg border border-hairline bg-slate-50/70 p-4 sm:grid-cols-2" onSubmit={event => void handleSubmit(event)}>
-                <label className="text-sm font-medium">
+              <form className="grid gap-3 rounded-lg border border-hairline bg-canvas p-4 sm:grid-cols-2" onSubmit={event => void handleSubmit(event)}>
+                <label className="text-sm font-medium text-ink-soft">
                   Lớp hành chính *
                   <input
-                    className="mt-1 block w-full rounded-lg border border-hairline bg-white px-3 py-2 text-sm"
+                    className="mt-1 block w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink"
                     value={classCode}
                     onChange={event => { setClassCode(event.target.value); setSaveError(null) }}
                     placeholder="Ví dụ: SE1801, MKT1802"
@@ -204,10 +208,10 @@ export function AcademicProfileSummary() {
                     disabled={saving}
                   />
                 </label>
-                <label className="text-sm font-medium">
+                <label className="text-sm font-medium text-ink-soft">
                   Chuyên ngành hẹp
                   <select
-                    className="mt-1 block w-full rounded-lg border border-hairline bg-white px-3 py-2 text-sm"
+                    className="mt-1 block w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink"
                     value={specializationId}
                     onChange={event => { setSpecializationId(event.target.value); setSaveError(null) }}
                     disabled={saving}

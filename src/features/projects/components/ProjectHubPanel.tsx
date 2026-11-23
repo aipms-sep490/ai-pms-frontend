@@ -10,7 +10,7 @@ const PULSE_BADGE: Record<ProjectHealthPulse['status'], { label: string; cls: st
   GREEN: { label: 'Ổn định (GREEN)', cls: 'border-status-success-border bg-status-success-bg text-status-success-text' },
   YELLOW: { label: 'Cần theo dõi (YELLOW)', cls: 'border-status-warning-border bg-status-warning-bg text-status-warning-text' },
   RED: { label: 'Rủi ro cao (RED)', cls: 'border-status-error-border bg-status-error-bg text-status-error-text' },
-  INSUFFICIENT_DATA: { label: 'Chưa đủ dữ liệu', cls: 'border-hairline bg-subtle text-ink-muted' },
+  INSUFFICIENT_DATA: { label: 'Chưa đủ dữ liệu', cls: 'border-hairline bg-canvas text-ink-muted' },
 }
 
 export function ProjectHubPanel({
@@ -60,7 +60,7 @@ export function ProjectHubPanel({
         </div>
       )}
 
-      <div className="space-y-2 rounded-lg border border-hairline bg-subtle p-3">
+      <div className="space-y-2 rounded-lg border border-hairline bg-canvas p-3">
         <h3 className="text-xs font-bold text-ink">Kho tài nguyên ghim (Spec Vault)</h3>
         <ul className="space-y-1 text-xs">
           {pinnedResources.map(res => (
@@ -82,7 +82,7 @@ export function ProjectHubPanel({
         )}
       </div>
 
-      <div className="space-y-2 rounded-lg border border-hairline bg-subtle p-3">
+      <div className="space-y-2 rounded-lg border border-hairline bg-canvas p-3">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-ink">Góp ý neo minh chứng (Anchored Comments)</h3>
           {openCriticalCount > 0 && (
@@ -110,7 +110,7 @@ export function ProjectHubPanel({
         </ul>
       </div>
 
-      <div className="space-y-2 rounded-lg border border-hairline bg-subtle p-3">
+      <div className="space-y-2 rounded-lg border border-hairline bg-canvas p-3">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-ink">Bản đồ hoạt động nội bộ ({heatmap.weeks} tuần · không cần Git sync)</h3>
           {heatmap.silentMemberIds.length > 0 && (
@@ -128,7 +128,7 @@ export function ProjectHubPanel({
               </div>
               <div className="flex items-center gap-1.5">
                 {member.weeklyCounts.map((count, idx) => (
-                  <span key={idx} className="rounded border border-hairline bg-subtle px-2 py-0.5 text-xs text-ink">
+                  <span key={idx} className="rounded border border-hairline bg-canvas px-2 py-0.5 text-xs text-ink">
                     W{idx + 1}: {count}
                   </span>
                 ))}

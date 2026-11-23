@@ -12,12 +12,25 @@ export const coldStatusLabels: Record<string, string> = {
   LOCKED: 'Đã khóa',
 }
 
+export const coldPackageStatusLabels: Record<string, string> = {
+  OPEN: 'Đang mở',
+  PENDING: 'Chờ nộp',
+  SUBMITTED: 'Đã nộp',
+  READY: 'Sẵn sàng chấm',
+  LOCKED: 'Đã khóa',
+  CLOSED: 'Đã đóng',
+}
+
 export function coldScopeLabel(scope: ColdScope): string {
   return coldScopeLabels[scope] ?? scope
 }
 
 export function coldStatusLabel(status: ColdSubmissionStatus): string {
   return coldStatusLabels[status] ?? status
+}
+
+export function coldPackageStatusLabel(status: string): string {
+  return coldPackageStatusLabels[status.toUpperCase()] ?? status
 }
 
 export function formatColdDateTime(value: string): string {

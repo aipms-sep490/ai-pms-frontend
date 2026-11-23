@@ -23,15 +23,20 @@
 .topic label { display: grid; gap: 6px; color: var(--color-ink-soft); font-size: 13px; font-weight: 650; }
 .topic input,
 .topic textarea,
-.topic select { min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid var(--color-hairline); border-radius: 8px; background: #fff; color: var(--color-ink); font-size: 14px; }
+.topic select { min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid var(--color-hairline); border-radius: 8px; background: var(--color-card); color: var(--color-ink); font-size: 14px; font-weight: 400; }
 .topic input:focus,
 .topic textarea:focus,
 .topic select:focus { border-color: var(--color-primary); outline: 3px solid color-mix(in oklab, var(--color-primary) 18%, transparent); outline-offset: 0; }
 .topic__create,
+.topic__create-disclosure,
 .topic__detail,
 .topic__edit,
 .topic__close,
-.topic__list { min-width: 0; padding: 20px; border: 1px solid var(--color-hairline); border-radius: 12px; background: #fff; }
+.topic__list { min-width: 0; padding: 20px; border: 1px solid var(--color-hairline); border-radius: 12px; background: var(--color-card); }
+.topic__create-disclosure > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; cursor: pointer; font-size: 15px; font-weight: 700; color: var(--color-ink); list-style: none; }
+.topic__create-disclosure > summary::-webkit-details-marker { display: none; }
+.topic__create-disclosure[open] > h2 { margin-top: 16px; }
+.topic__create-disclosure .topic__create { margin-top: 12px; padding: 0; border: 0; border-radius: 0; }
 .topic__section-heading { display: flex; justify-content: space-between; gap: 20px; align-items: end; padding-bottom: 16px; border-bottom: 1px solid var(--color-hairline); }
 .topic__section-heading > span { max-width: 520px; margin: 0; text-align: right; }
 .topic__form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
@@ -39,7 +44,7 @@
 .topic__create-action { display: flex; justify-content: flex-end; margin-top: 18px; }
 .topic__message { margin: 0; padding: 12px 14px; border: 1px solid color-mix(in oklab, var(--color-primary) 25%, transparent); border-radius: 8px; background: var(--color-primary-subtle); color: var(--color-primary-hover); }
 .topic__list { display: grid; gap: 10px; }
-.topic__list article { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 16px 20px; border: 1px solid var(--color-hairline); border-radius: 10px; background: white; transition: all 160ms ease; }
+.topic__list article { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 16px 20px; border: 1px solid var(--color-hairline); border-radius: 10px; background: var(--color-card); transition: all 160ms ease; }
 .topic__list article:hover { border-color: var(--color-primary); box-shadow: 0 4px 12px -2px color-mix(in oklab, var(--color-brand-navy) 8%, transparent); }
 .topic__list article a { display: block; margin-top: 4px; color: var(--color-ink); font-weight: 700; text-decoration: none; font-size: 15px; }
 .topic__list article a:hover { color: var(--color-primary); }

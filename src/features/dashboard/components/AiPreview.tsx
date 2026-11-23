@@ -9,7 +9,7 @@ interface AiPreviewProps {
 
 export function AiPreview({ insight }: AiPreviewProps) {
   return (
-    <Card className="border-status-info-border bg-card shadow-xs">
+    <Card className="border-primary/20 bg-card shadow-xs">
       <CardHeader className="py-3 px-4 border-b border-hairline flex-wrap gap-2">
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-2">

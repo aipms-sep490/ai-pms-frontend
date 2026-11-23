@@ -1,11 +1,12 @@
 import { displayLabel } from '../../../components/ui/display-label'
 import { DepartmentWorkflowGuide } from '../components/DepartmentWorkflowGuide'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAcademicWorkflow } from '../../../app/context/useAcademicWorkflow'
 import { Button } from '../../../components/ui/Button'
 import { BulkActionBar } from '../../../components/ui/BulkActionBar'
+import { ListLoading } from '../../../components/ui/ListLoading'
 import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../../components/ui/Table'
 import { useDepartmentSection as useSection, type Section } from '../hooks/useDepartmentSection'
@@ -16,6 +17,7 @@ import { useAuthSession } from '../../auth/context/useAuthSession'
 import { getReviewQueue, type ReviewQueuePage, type ReviewProjectSummary } from '../../projects/api/project-review-api'
 import { list as listSupervisors, type Page as SupervisorPage, type Supervisor } from '../../supervisors/api/supervisor-api'
 import { getDepartmentUrgentActions, type ActionAggregatorResponse } from '../../calendar/action-aggregators-api'
+import { DepartmentExecutiveBriefPanel } from '../../ai-suite/DepartmentExecutiveBriefPanel'
 
 const emptyReviews = (data: ReviewQueuePage<ReviewProjectSummary>) => data.items.length === 0
 const emptyPortfolio = (data: PortfolioDashboard) => data.projects.items.length === 0
@@ -23,7 +25,7 @@ const emptySupervisors = (data: SupervisorPage<Supervisor>) => data.items.length
 const emptyUrgent = (data: ActionAggregatorResponse) => data.totalCount === 0
 
 function SectionState({ section, onRetry, children }: { section: Section<unknown>; onRetry: () => void; children: ReactNode }) {
-  if (section.state === 'loading') return <p role="status" className="py-3 text-sm text-ink-muted">Đang tải dữ liệu…</p>
+  if (section.state === 'loading') return <ListLoading label="Đang tải dữ liệu…" />
   if (!['success', 'empty'].includes(section.state)) return <section role="alert" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text"><p>{section.message}</p><Button className="mt-3" size="sm" variant="secondary" onClick={onRetry}>Thử lại</Button></section>
   if (section.state === 'empty') return <p className="rounded-xl border border-hairline bg-card p-4 text-sm text-ink-muted">Chưa có dữ liệu trong phạm vi bộ môn hiện tại.</p>
   return <>{children}</>
@@ -38,10 +40,11 @@ export function DepartmentWorkspacePage() {
   const search = searchParams.get('q') ?? ''
   const status = searchParams.get('status') ?? ''
   const token = session?.accessToken
-  const [portfolioPage, setPortfolioPage] = useState(1)
   const semesterId = academic.academic?.selectedSemester?.id
+  const [pageState, setPageState] = useState<{ semesterId: number | undefined; page: number }>({ semesterId, page: 1 })
+  const portfolioPage = pageState.semesterId === semesterId ? pageState.page : 1
+  const setPortfolioPage = (page: number) => setPageState({ semesterId, page })
   const departmentIds = (academic.academic?.departments ?? []).map(department => department.id).filter(id => Number.isSafeInteger(id) && id > 0).join(',')
-  useEffect(() => { setPortfolioPage(1) }, [semesterId])
   const urgentRead = useCallback(async (): Promise<ActionAggregatorResponse> => {
     const ids = departmentIds.split(',').map(Number).filter(id => id > 0)
     if (!ids.length) throw new Error('Department scope unavailable')
@@ -49,6 +52,7 @@ export function DepartmentWorkspacePage() {
     return { asOfUtc: results[0].asOfUtc, totalCount: results.reduce((sum, result) => sum + result.totalCount, 0), hasMore: results.some(result => result.hasMore), items: results.flatMap(result => result.items) }
   }, [departmentIds])
   const reviewRead = useCallback(() => token ? getReviewQueue({ page: 1, pageSize: 5 }, token) : Promise.reject(new HttpError('Unauthenticated', 401)), [token])
+  const attentionRead = useCallback(() => getPortfolioDashboard('department', { page: 1, pageSize: 20, semesterId }), [semesterId])
   const portfolioRead = useCallback(() => getPortfolioDashboard('department', { page: portfolioPage, pageSize: 5, semesterId, search: search || undefined, status: status || undefined }), [portfolioPage, semesterId, search, status])
   const supervisorRead = useCallback(async (): Promise<SupervisorPage<Supervisor>> => {
     if (!token) throw new HttpError('Unauthenticated', 401)
@@ -64,13 +68,14 @@ export function DepartmentWorkspacePage() {
   }, [departmentIds, token])
   const reviews = useSection<ReviewQueuePage<ReviewProjectSummary>>(reviewRead, emptyReviews)
   const urgent = useSection<ActionAggregatorResponse>(urgentRead, emptyUrgent)
+  const attentionPortfolio = useSection<PortfolioDashboard>(attentionRead, emptyPortfolio)
   const portfolio = useSection<PortfolioDashboard>(portfolioRead, emptyPortfolio)
   const supervisors = useSection<SupervisorPage<Supervisor>>(supervisorRead, emptySupervisors)
   const periods = academic.academic?.periods ?? []
   const departmentName = academic.academic?.departments.map(department => department.name).join(', ') || 'Bộ môn hiện tại'
-  const attention = useMemo(() => portfolio.data?.projects.items.filter((project) => project.pendingProgressReviews > 0 || (project.analysis?.progressSummary.blockedTasks ?? 0) > 0 || (project.analysis?.progressSummary.overdueTasks ?? 0) > 0) ?? [], [portfolio.data])
+  const attention = useMemo(() => attentionPortfolio.data?.projects.items.filter((project) => project.pendingProgressReviews > 0 || (project.analysis?.progressSummary.blockedTasks ?? 0) > 0 || (project.analysis?.progressSummary.overdueTasks ?? 0) > 0).slice(0, 5) ?? [], [attentionPortfolio.data])
   const visibleSelected = portfolio.data?.projects.items.filter(project => selectedIds.includes(project.id)) ?? []
-  const statusOptions = portfolio.data?.summary.projectStates.map(item => item.status) ?? []
+  const statusOptions = [...(portfolio.data?.summary?.projectStates?.map(item => item.status) ?? [])]
   if (status && !statusOptions.includes(status)) statusOptions.push(status)
   function updateFilter(key: 'q' | 'status', value: string) {
     setSearchParams(previous => { const next = new URLSearchParams(previous); if (value) next.set(key, value); else next.delete(key); return next }, { replace: true })
@@ -81,11 +86,11 @@ export function DepartmentWorkspacePage() {
 
   return <WorkspacePage className="space-y-8" title="Quản lý đồ án bộ môn" eyebrow="Không gian bộ môn" description={`${departmentName}. Theo dõi danh mục đồ án, hồ sơ chờ thẩm định và nguồn lực hướng dẫn.`} action={
     <div className="flex flex-wrap items-center gap-2">
-      <Link className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-subtle/50 px-3.5 text-xs font-semibold text-primary hover:bg-primary-subtle hover:border-primary transition-all" to="/department/projects/progress-matrix">
+      <Link className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-primary/20 bg-primary-subtle px-3.5 text-xs font-semibold text-primary transition-all hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to="/department/projects/progress-matrix">
         <span className="material-symbols-outlined text-[18px]" aria-hidden="true">view_timeline</span>
-        Ma trận Tiến độ Gates
+        Ma trận tiến độ kiểm duyệt
       </Link>
-      <Link className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-xs font-semibold text-white hover:bg-primary-hover shadow-2xs transition-all" to="/department/projects/review">
+      <Link className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-primary px-4 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to="/department/projects/review">
         Thẩm định đề cương
       </Link>
     </div>
@@ -100,12 +105,18 @@ export function DepartmentWorkspacePage() {
       { icon: 'supervisor_account', label: 'Giảng viên trong bộ môn', value: supervisors.data?.totalCount ?? null },
     ]} /></div>
     <nav aria-label="Đi tới khu vực bộ môn" className="flex flex-wrap gap-2 text-xs font-semibold">
-      <a className="inline-flex min-h-10 items-center rounded-lg border border-status-warning-border bg-status-warning-bg px-3 text-status-warning-text transition-colors hover:bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href="#action-queue">Việc cần xử lý</a>
-      <a className="inline-flex min-h-10 items-center rounded-lg border border-hairline bg-card px-3 text-ink-soft transition-colors hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href="#monitoring">Theo dõi tiến độ</a>
-      <a className="inline-flex min-h-10 items-center rounded-lg border border-hairline bg-card px-3 text-ink-soft transition-colors hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href="#configuration">Cấu hình học vụ</a>
+      <a className="inline-flex min-h-11 items-center rounded-lg border border-status-warning-border bg-status-warning-bg px-3.5 text-status-warning-text transition-colors hover:bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href="#action-queue">Việc cần xử lý</a>
+      <a className="inline-flex min-h-11 items-center rounded-lg border border-hairline bg-card px-3.5 text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href="#monitoring">Theo dõi tiến độ</a>
+      <a className="inline-flex min-h-11 items-center rounded-lg border border-hairline bg-card px-3.5 text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href="#configuration">Cấu hình học vụ</a>
     </nav>
     {!departmentIds ? <p role="alert" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">Chưa xác định được bộ môn từ phiên đăng nhập. Không truy vấn phạm vi khác.</p> : !['success', 'empty', 'loading'].includes(urgent.state) && <SectionState section={urgent} onRetry={urgent.refresh}><span /></SectionState>}
     {!['success', 'empty', 'loading'].includes(supervisors.state) && <SectionState section={supervisors} onRetry={supervisors.refresh}><span /></SectionState>}
+
+    <DepartmentExecutiveBriefPanel
+      departmentId={academic.academic?.departments?.[0]?.id}
+      semesterId={semesterId}
+      routePrefix="/department"
+    />
 
     {/* =========================================================================
         TIER 1: HÀNG ĐỢI TÁC VỤ CẦN XỬ LÝ NGAY (URGENT ACTION QUEUE)
@@ -114,7 +125,7 @@ export function DepartmentWorkspacePage() {
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-status-warning-border/50 pb-3">
         <div>
           <span className="inline-flex items-center gap-1.5 rounded-md bg-status-warning-bg px-2 py-0.5 text-xs font-bold text-status-warning-text uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-warning-strong motion-safe:animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-status-warning-text motion-safe:animate-pulse" />
             Khu vực 1: Tác vụ khẩn cấp
           </span>
           <h2 id="urgent-actions-heading" className="mt-1 font-heading text-xl font-bold text-ink">
@@ -181,11 +192,11 @@ export function DepartmentWorkspacePage() {
             )}
           </div>
 
-          <SectionState section={portfolio} onRetry={portfolio.refresh}>
+          <SectionState section={attentionPortfolio} onRetry={attentionPortfolio.refresh}>
             {attention.length ? (
               <div className="space-y-2.5">
                 {attention.map((project) => (
-                  <article key={project.id} className="rounded-xl border border-hairline bg-card p-4 transition-all hover:border-warning-strong hover:shadow-2xs">
+                  <article key={project.id} className="rounded-xl border border-hairline bg-card p-4 transition-all hover:border-status-warning-border hover:shadow-2xs">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h4 className="truncate font-semibold text-ink text-sm">{project.code} · {project.title}</h4>
@@ -196,7 +207,7 @@ export function DepartmentWorkspacePage() {
                         </div>
                       </div>
                       <Link
-                        className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-hairline px-3 text-xs font-semibold text-primary hover:border-primary hover:bg-primary-subtle shrink-0"
+                        className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg border border-hairline px-3 text-xs font-semibold text-primary transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         to={`/department/projects/${project.id}/governance`}
                       >
                         Mở hồ sơ
@@ -208,22 +219,10 @@ export function DepartmentWorkspacePage() {
             ) : (
               <div className="rounded-xl border border-status-success-border bg-status-success-bg p-4 text-xs font-medium text-status-success-text flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
-                Không có tín hiệu cần chú ý trong trang danh mục này.
+                Không có đồ án nào có tín hiệu cần chú ý ở thời điểm hiện tại.
               </div>
             )}
           </SectionState>
-
-          {portfolio.data && portfolio.data.projects.totalPages > 1 && (
-            <nav aria-label="Phân trang tín hiệu đồ án" className="flex items-center justify-between text-xs pt-2">
-              <Button size="sm" variant="secondary" disabled={portfolioPage <= 1} onClick={() => { setSelectedIds([]); setPortfolioPage(portfolioPage - 1) }}>
-                Trang trước
-              </Button>
-              <span className="text-ink-muted font-medium">Trang {portfolio.data.projects.page} / {portfolio.data.projects.totalPages}</span>
-              <Button size="sm" variant="secondary" disabled={portfolioPage >= portfolio.data.projects.totalPages} onClick={() => { setSelectedIds([]); setPortfolioPage(portfolioPage + 1) }}>
-                Trang sau
-              </Button>
-            </nav>
-          )}
         </div>
       </div>
     </section>
@@ -233,18 +232,18 @@ export function DepartmentWorkspacePage() {
         ========================================================================= */}
     <section id="monitoring" aria-labelledby="monitoring-heading" className="space-y-4">
       <div>
-        <span className="inline-flex items-center gap-1.5 rounded-md bg-status-info-bg px-2 py-0.5 text-xs font-bold text-status-info-text uppercase tracking-wider">
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary-subtle px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-primary">
           Khu vực 2: Vận hành & Giám sát
         </span>
         <h2 id="monitoring-heading" className="mt-1 font-heading text-xl font-bold text-ink">
           Giám sát tiến độ và cổng thẩm định
         </h2>
         <p className="mt-1 text-xs text-ink-muted">
-          Theo dõi tổng thể các đợt Review Gates, khối lượng đồ án bộ môn quản lý và đội ngũ giảng viên.
+          Theo dõi tổng thể các cổng kiểm duyệt, khối lượng đồ án bộ môn quản lý và đội ngũ giảng viên.
         </p>
       </div>
 
-      {/* Spotlight Card: Ma trận Tiến độ Review Gates */}
+      {/* Spotlight Card: Ma trận Tiến độ Cổng kiểm duyệt */}
       <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-primary-subtle/70 via-card to-card p-5 sm:p-6 shadow-2xs">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-4">
@@ -252,7 +251,7 @@ export function DepartmentWorkspacePage() {
               <span className="material-symbols-outlined text-[26px]" aria-hidden="true">view_timeline</span>
             </div>
             <div>
-              <h3 className="text-base font-bold text-ink">Ma trận Tiến độ Review Gates của bộ môn</h3>
+              <h3 className="text-base font-bold text-ink">Ma trận tiến độ cổng kiểm duyệt của bộ môn</h3>
               <p className="mt-1 text-xs text-ink-muted max-w-xl">
                 Theo dõi các cổng thẩm định của đồ án trong phạm vi bộ môn và kỳ đang chọn. Xem hồ sơ để kiểm tra yêu cầu nộp, kết quả và phản hồi.
               </p>
@@ -260,7 +259,7 @@ export function DepartmentWorkspacePage() {
           </div>
           <Link
             to="/department/projects/progress-matrix"
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-xs font-bold text-white hover:bg-primary-hover shadow-xs transition-all shrink-0 cursor-pointer"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-xs font-bold text-white shadow-xs transition-all hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary shrink-0 cursor-pointer"
           >
             Mở Ma trận Tiến độ
             <span className="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
@@ -274,8 +273,9 @@ export function DepartmentWorkspacePage() {
           <Link to="/department/portfolio" className="workspace-action-link">Mở danh mục đầy đủ</Link>
         </div>
         <div className="flex flex-wrap items-end gap-3 py-4">
-          <label className="min-w-48 flex-1 text-sm font-semibold text-ink-soft">Tìm đồ án<input type="search" value={search} onChange={event => updateFilter('q', event.target.value)} className="mt-1 block min-h-10 w-full rounded-lg border border-hairline bg-card px-3 text-sm text-ink" /></label>
-          <label className="min-w-40 text-sm font-semibold text-ink-soft">Trạng thái<select value={status} onChange={event => updateFilter('status', event.target.value)} className="mt-1 block min-h-10 w-full rounded-lg border border-hairline bg-card px-3 text-sm text-ink"><option value="">Tất cả trạng thái</option>{statusOptions.map(value => <option key={value} value={value}>{projectStatusLabel(value)}</option>)}</select></label>
+          <label className="min-w-48 flex-1 text-sm font-semibold text-ink-soft">Tìm đồ án<input type="search" placeholder="Mã hoặc tên đồ án…" value={search} onChange={event => updateFilter('q', event.target.value)} className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" /></label>
+          <label className="min-w-40 text-sm font-semibold text-ink-soft">Trạng thái<select value={status} onChange={event => updateFilter('status', event.target.value)} className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><option value="">Tất cả trạng thái</option>{statusOptions.map(value => <option key={value} value={value}>{projectStatusLabel(value)}</option>)}</select></label>
+          {(search || status) && <Button size="sm" variant="ghost" onClick={() => { setSearchParams(prev => { const next = new URLSearchParams(prev); next.delete('q'); next.delete('status'); return next }, { replace: true }); setPortfolioPage(1); setSelectedIds([]) }}>Xóa lọc</Button>}
         </div>
         {portfolio.state === 'empty' ? <p className="rounded-lg bg-canvas p-4 text-sm text-ink-muted">{search || status ? 'Không có đồ án khớp bộ lọc hiện tại.' : 'Chưa có đồ án trong phạm vi bộ môn hiện tại.'}</p> : portfolio.state === 'success' && portfolio.data ? <>
           <BulkActionBar count={visibleSelected.length} noun="đồ án" blocked={visibleSelected.filter(project => project.status === 'ARCHIVED').map(project => ({ id: project.id, label: project.code, reason: 'Đã lưu trữ; chỉ có thể xem hồ sơ.' }))} onClear={() => setSelectedIds([])}>
@@ -285,25 +285,34 @@ export function DepartmentWorkspacePage() {
             <TableHead><TableRow head><TableHeaderCell>Chọn</TableHeaderCell><TableHeaderCell>Đồ án</TableHeaderCell><TableHeaderCell>Trạng thái</TableHeaderCell><TableHeaderCell>Mở hồ sơ</TableHeaderCell></TableRow></TableHead>
             <TableBody>{portfolio.data.projects.items.map(project => <TableRow key={project.id}><TableCell label="Chọn"><input type="checkbox" aria-label={`Chọn ${project.code}`} checked={selectedIds.includes(project.id)} onChange={() => toggleProject(project.id)} /></TableCell><TableCell label="Đồ án"><strong className="block text-ink">{project.title}</strong><span className="font-mono text-xs text-ink-muted">{project.code} · {project.departmentName ?? departmentName}</span></TableCell><TableCell label="Trạng thái">{projectStatusLabel(project.status)}</TableCell><TableCell label="Mở hồ sơ"><Link to={`/department/projects/${project.id}/governance`} className="workspace-action-link">Xem hồ sơ</Link></TableCell></TableRow>)}</TableBody>
           </Table>
-          <p className="mt-3 text-xs text-ink-muted">Hiển thị {portfolio.data.projects.items.length} trong {portfolio.data.projects.totalCount} đồ án</p>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-ink-muted">Hiển thị {portfolio.data.projects.items.length} trong {portfolio.data.projects.totalCount} đồ án</p>
+            {portfolio.data.projects.totalPages > 1 && (
+              <nav aria-label="Phân trang danh mục đồ án" className="flex items-center gap-3 text-xs">
+                <Button size="sm" variant="secondary" disabled={portfolioPage <= 1} onClick={() => { setSelectedIds([]); setPortfolioPage(portfolioPage - 1) }}>Trang trước</Button>
+                <span className="font-medium text-ink-muted">Trang {portfolio.data.projects.page} / {portfolio.data.projects.totalPages}</span>
+                <Button size="sm" variant="secondary" disabled={portfolioPage >= portfolio.data.projects.totalPages} onClick={() => { setSelectedIds([]); setPortfolioPage(portfolioPage + 1) }}>Trang sau</Button>
+              </nav>
+            )}
+          </div>
         </> : <SectionState section={portfolio} onRetry={portfolio.refresh}><span /></SectionState>}
       </section>
 
       {/* Quick Monitoring Navigation Links */}
       <nav aria-label="Lối tắt giám sát bộ môn" className="grid overflow-hidden rounded-xl border border-hairline bg-card sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-hairline">
-        <Link className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/portfolio">
+        <Link className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary" to="/department/portfolio">
           <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">folder_managed</span>
           Danh mục đồ án
         </Link>
-        <Link className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/supervisors">
+        <Link className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary" to="/department/supervisors">
           <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">supervisor_account</span>
           Giảng viên hướng dẫn
         </Link>
-        <Link className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/topics">
+        <Link className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary" to="/department/topics">
           <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">lightbulb</span>
           Quản lý đề tài
         </Link>
-        <Link className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary" to="/department/student-qualifications">
+        <Link className="flex min-h-14 items-center gap-3 px-4 text-xs font-semibold text-ink-soft transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary" to="/department/student-qualifications">
           <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">verified</span>
           Xác minh điều kiện sinh viên
         </Link>
@@ -323,7 +332,7 @@ export function DepartmentWorkspacePage() {
             Kế hoạch học vụ và chính sách đào tạo
           </h2>
           <p className="mt-1 text-xs text-ink-muted">
-            Quản trị thời gian mở các kỳ đồ án, thiết lập mẫu Cổng thẩm định theo ngành và bộ tiêu chí Rubric.
+            Quản trị thời gian mở các kỳ đồ án, thiết lập mẫu cổng kiểm duyệt theo ngành và bộ tiêu chí đánh giá.
           </p>
         </div>
       </div>
@@ -336,7 +345,7 @@ export function DepartmentWorkspacePage() {
               <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">date_range</span>
               Kỳ đồ án trong học kỳ
             </h3>
-            <Link to="/academic/governance" className="text-xs font-semibold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            <Link to="/academic/governance" className="inline-flex min-h-9 items-center rounded-md px-2 text-xs font-semibold text-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
               Quản lý học vụ →
             </Link>
           </div>
@@ -363,7 +372,7 @@ export function DepartmentWorkspacePage() {
                             ? 'border-status-success-border bg-status-success-bg text-status-success-text'
                             : period.status === 'ACTIVE'
                             ? 'border-hairline bg-canvas text-ink-muted'
-                            : 'border-status-info-border bg-status-info-bg text-status-info-text'
+                            : 'border-primary/20 bg-primary-subtle text-primary'
                         }`}
                       >
                         {period.isOpen ? 'Đang mở' : period.status === 'ACTIVE' ? 'Ngoài thời gian mở' : displayLabel(period.status)}
@@ -393,34 +402,34 @@ export function DepartmentWorkspacePage() {
             <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">rule_settings</span>
             Thiết lập chính sách
           </h3>
-          <div className="rounded-xl border border-hairline bg-card p-4 flex flex-col gap-2">
-            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-canvas transition-colors" to="/academic/review-gates">
+          <div className="rounded-xl border border-hairline bg-card p-3 flex flex-col gap-1.5">
+            <Link className="flex min-h-11 items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to="/academic/review-gates">
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">rule_settings</span>
-                Chính sách Review Gates
+                Chính sách cổng kiểm duyệt
               </span>
-              <span className="material-symbols-outlined text-[16px] text-slate-400" aria-hidden="true">arrow_forward</span>
+              <span className="material-symbols-outlined text-[16px] text-ink-muted" aria-hidden="true">arrow_forward</span>
             </Link>
-            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-canvas transition-colors" to="/academic">
+            <Link className="flex min-h-11 items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to="/academic">
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">account_balance</span>
                 Cấu trúc đào tạo
               </span>
-              <span className="material-symbols-outlined text-[16px] text-slate-400" aria-hidden="true">arrow_forward</span>
+              <span className="material-symbols-outlined text-[16px] text-ink-muted" aria-hidden="true">arrow_forward</span>
             </Link>
-            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-canvas transition-colors" to="/academic/governance">
+            <Link className="flex min-h-11 items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to="/academic/governance">
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">date_range</span>
                 Học kỳ và chính sách
               </span>
-              <span className="material-symbols-outlined text-[16px] text-slate-400" aria-hidden="true">arrow_forward</span>
+              <span className="material-symbols-outlined text-[16px] text-ink-muted" aria-hidden="true">arrow_forward</span>
             </Link>
-            <Link className="flex items-center justify-between p-2 rounded-lg text-xs font-semibold text-ink hover:bg-canvas transition-colors" to="/academic/rubrics">
+            <Link className="flex min-h-11 items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to="/academic/rubrics">
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">grading</span>
-                Bộ tiêu chí Rubric
+                Bộ tiêu chí đánh giá
               </span>
-              <span className="material-symbols-outlined text-[16px] text-slate-400" aria-hidden="true">arrow_forward</span>
+              <span className="material-symbols-outlined text-[16px] text-ink-muted" aria-hidden="true">arrow_forward</span>
             </Link>
           </div>
         </div>

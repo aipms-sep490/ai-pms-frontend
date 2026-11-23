@@ -1,6 +1,21 @@
 import { useState } from 'react'
 import type { DefenseReadinessSummary } from '../types/review-gates.types'
 
+const DEFENSE_BLOCKER_LABELS: Record<string, string> = {
+  COLD_PACKAGE_REQUIRED: 'Chưa hoàn tất gói báo cáo chấm nguội',
+  COLD_SCHEME_REQUIRED: 'Chưa cấu hình phương án chấm nguội',
+  COLD_EVALUATION_REQUIRED: 'Chưa hoàn tất đánh giá chấm nguội',
+  FINAL_SUBMISSION_REQUIRED: 'Chưa nộp gói bàn giao cuối kỳ',
+  REVIEW_GATE_REQUIRED: 'Chưa đạt cổng kiểm duyệt bắt buộc',
+  SUPERVISOR_REQUIRED: 'Chưa phân công giảng viên hướng dẫn',
+  COMMITTEE_REQUIRED: 'Chưa phân công hội đồng bảo vệ',
+  NOT_READY: 'Chưa sẵn sàng',
+}
+
+function formatDefenseDetail(detail: string): string {
+  return detail.replace(/\b[A-Z][A-Z0-9_]{3,}\b/g, token => DEFENSE_BLOCKER_LABELS[token] ?? token)
+}
+
 interface DefenseReadinessCheckerProps {
   summary: DefenseReadinessSummary
   onRecheck?: () => void
@@ -16,27 +31,27 @@ export function DefenseReadinessChecker({
     <div className="space-y-6">
       {/* Top Context Header */}
       <div className="rounded-xl border border-hairline bg-card p-5 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-primary">
               Nghiệm thu học thuật cuối kỳ
             </span>
             <h2 className="text-lg font-bold text-ink">
-              Xét điều kiện tham gia bảo vệ đồ án tốt nghiệp (Defense Readiness)
+              Xét điều kiện tham gia bảo vệ đồ án tốt nghiệp
             </h2>
           </div>
           <span
             className={`rounded-full px-3 py-1 text-xs font-bold border ${
               summary.isReady
                 ? 'bg-status-success-bg text-status-success-text border-status-success-border'
-                : 'bg-status-error-bg text-danger-text border-status-error-border'
+                : 'bg-status-error-bg text-status-error-text border-status-error-border'
             }`}
           >
             {summary.isReady ? 'ĐỦ ĐIỀU KIỆN BẢO VỆ' : 'CHƯA ĐỦ ĐIỀU KIỆN'}
           </span>
         </div>
         <p className="mt-2 text-xs text-ink-muted">
-          Đồ án: <strong className="text-ink">{summary.projectId}</strong> – {summary.projectName}
+          Đồ án: <strong className="text-ink">{summary.projectCode ?? summary.projectId}</strong> – {summary.projectName}
         </p>
       </div>
 
@@ -44,15 +59,15 @@ export function DefenseReadinessChecker({
         {/* Left Column: Conditions Checklist */}
         <div className="lg:col-span-8 space-y-4">
           <div className="rounded-xl border border-hairline bg-card shadow-xs p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-3">
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => setActiveTab('project')}
                   className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                     activeTab === 'project'
                       ? 'bg-primary text-white'
-                      : 'bg-canvas text-ink-muted hover:bg-slate-200'
+                      : 'bg-canvas text-ink-muted hover:bg-hairline'
                   }`}
                 >
                   Điều kiện của nhóm đồ án
@@ -63,10 +78,10 @@ export function DefenseReadinessChecker({
                   className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                     activeTab === 'student'
                       ? 'bg-primary text-white'
-                      : 'bg-canvas text-ink-muted hover:bg-slate-200'
+                      : 'bg-canvas text-ink-muted hover:bg-hairline'
                   }`}
                 >
-                  Điều kiện từng thành viên (Per-student)
+                  Điều kiện từng thành viên
                 </button>
               </div>
 
@@ -99,12 +114,12 @@ export function DefenseReadinessChecker({
                     >
                       <div className="flex items-start gap-3">
                         <span
-                          className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-black ${
+                          className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black ${
                             isPass
                               ? 'bg-primary text-white'
                               : isFail
-                              ? 'bg-danger-strong text-white'
-                              : 'bg-slate-300 text-ink-soft'
+                              ? 'bg-status-error-text text-white'
+                              : 'border border-hairline bg-canvas text-ink-soft'
                           }`}
                         >
                           {isPass ? '✓' : isFail ? '✕' : '?'}
@@ -113,7 +128,7 @@ export function DefenseReadinessChecker({
                           <strong className="block text-xs font-bold text-ink">
                             {c.title}
                           </strong>
-                          <p className="mt-1 text-xs text-ink-muted leading-relaxed">{c.detail}</p>
+                          <p className="mt-1 text-xs text-ink-muted leading-relaxed">{formatDefenseDetail(c.detail)}</p>
                         </div>
                       </div>
 
@@ -122,11 +137,11 @@ export function DefenseReadinessChecker({
                           isPass
                             ? 'bg-status-success-bg text-status-success-text border-status-success-border'
                             : isFail
-                            ? 'bg-status-error-bg text-danger-text border-status-error-border'
+                            ? 'bg-status-error-bg text-status-error-text border-status-error-border'
                             : 'bg-canvas text-ink-muted border-hairline'
                         }`}
                       >
-                        {isPass ? 'ĐẠT (PASS)' : isFail ? 'CHƯA ĐẠT (BLOCKED)' : 'CHỜ DUYỆT'}
+                        {isPass ? 'Đạt' : isFail ? 'Chưa đạt' : 'Chờ duyệt'}
                       </span>
                     </div>
                   )
@@ -150,16 +165,16 @@ export function DefenseReadinessChecker({
             className={`rounded-xl border p-5 shadow-xs ${
               summary.isReady
                 ? 'border-status-success-border bg-status-success-bg text-status-success-text'
-                : 'border-status-error-border bg-status-error-bg/70 text-danger-text'
+                : 'border-status-error-border bg-status-error-bg/70 text-status-error-text'
             }`}
           >
             <span className="text-xs font-bold uppercase tracking-wider">
               Kết luận xét điều kiện bảo vệ
             </span>
-            <div className="mt-2 text-3xl font-black">
-              {summary.isReady ? 'READY FOR DEFENSE' : 'NOT READY'}
+            <div className="mt-2 text-2xl font-black">
+              {summary.isReady ? 'Đủ điều kiện bảo vệ' : 'Chưa đủ điều kiện bảo vệ'}
             </div>
-            <p className="mt-2 text-xs leading-relaxed opacity-90">
+            <p className="mt-2 text-xs leading-relaxed">
               {summary.isReady
                 ? 'Đồ án đã đáp ứng đầy đủ tất cả các điều kiện tiên quyết học thuật. Nhóm sinh viên chính thức được phép phân hội đồng và xếp lịch bảo vệ.'
                 : `Có ${summary.blockedCount} điều kiện bắt buộc chưa hoàn tất. Nhóm chưa được phép xếp lịch bảo vệ chính thức.`}
@@ -170,7 +185,7 @@ export function DefenseReadinessChecker({
             <h4 className="font-bold text-ink uppercase tracking-wider text-xs">
               Quy tắc học thuật chuẩn mực
             </h4>
-            <div className="space-y-2 border-t border-slate-100 pt-2">
+            <div className="space-y-2 border-t border-hairline pt-2">
               <div className="flex justify-between">
                 <span>Được quyền nộp Final Submission?</span>
                 <span className="font-bold text-ink">
@@ -184,7 +199,7 @@ export function DefenseReadinessChecker({
                 </span>
               </div>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-ink-muted">
               Điều kiện bảo vệ (Defense Readiness) tách biệt hoàn toàn với điểm bảo vệ (Defense Score) và xếp loại tốt nghiệp cuối cùng.
             </p>
           </div>

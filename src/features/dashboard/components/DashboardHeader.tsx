@@ -59,12 +59,12 @@ export function DashboardHeader({
             <span className="font-medium text-ink-soft">
               Trưởng nhóm: {teamLeader}
             </span>
-            <span className="text-slate-300" aria-hidden="true">•</span>
+            <span className="text-ink-muted" aria-hidden="true">•</span>
             <span className="text-primary font-semibold font-mono">
               GVHD: {supervisor}
             </span>
-            <span className="text-slate-300" aria-hidden="true">•</span>
-            <span className="text-academic-emerald font-medium">
+            <span className="text-ink-muted" aria-hidden="true">•</span>
+            <span className="text-status-success-text font-medium">
               Mốc hiện tại: {currentMilestone}
             </span>
           </div>

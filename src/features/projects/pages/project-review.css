@@ -8,21 +8,23 @@
 
 .review-page > article,
 .review-page > section {
-  padding: 20px;
+  padding: 22px;
   border: 1px solid var(--color-hairline);
   border-radius: 14px;
-  background: #ffffff;
+  background: var(--color-card);
   box-shadow: 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 4%, transparent);
 }
 
 .review-page h1 {
-  font-size: 22px;
+  font-size: clamp(26px, 2.5vw, 32px);
+  line-height: 1.2;
   font-weight: 700;
   color: var(--color-ink);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.03em;
   margin: 0;
 }
 
+.review-page > .review-page__header,
 .review-page__header {
   padding: 0;
   border: 0;
@@ -31,29 +33,14 @@
   box-shadow: none;
 }
 
-.review-page__header p {
-  margin: 0 0 6px;
-  color: var(--color-primary);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-}
-
-.review-page__header span {
-  display: block;
-  margin-top: 8px;
-  color: var(--color-ink-muted);
-  font-size: 14px;
-  line-height: 1.6;
-}
-
 .review-page__empty {
   margin: 0;
-  padding: 20px;
+  padding: 36px 24px;
   border: 1px dashed var(--color-hairline);
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--color-card);
   color: var(--color-ink-muted);
+  text-align: center;
 }
 
 .review-page h2 {
@@ -70,7 +57,7 @@
   padding: 12px 14px;
   border: 1px solid var(--color-hairline);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--color-card);
   color: var(--color-ink);
   font-size: 14px;
   line-height: 1.5;
@@ -106,10 +93,11 @@
 .review-page__search input {
   min-width: min(100%, 280px);
   flex: 1 1 280px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--color-hairline);
   border-radius: 8px;
+  background: var(--color-card);
   color: var(--color-ink);
 }
 
@@ -137,7 +125,7 @@
 
 .review-page .btn-approve {
   background-color: var(--color-status-success-text) !important;
-  color: #ffffff !important;
+  color: white !important;
   border-color: transparent !important;
 }
 .review-page .btn-approve:hover {
@@ -155,16 +143,17 @@
 
 .review-page .btn-reject {
   background-color: var(--color-status-error-text) !important;
-  color: #ffffff !important;
+  color: white !important;
   border-color: transparent !important;
 }
 .review-page .btn-reject:hover {
-  background-color: var(--color-danger-text) !important;
+  background-color: var(--color-status-error-text) !important;
 }
 
 .review-page__back-link {
   display: inline-flex;
   align-items: center;
+  min-height: 44px;
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
@@ -181,20 +170,22 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 36px;
-  padding: 0 16px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-primary);
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
-  background-color: var(--color-primary);
-  color: #ffffff;
+  background-color: var(--color-card);
+  color: var(--color-primary);
   text-decoration: none;
   margin-top: 10px;
-  transition: background-color 0.15s;
+  transition: background-color 0.15s, color 0.15s;
   width: fit-content;
 }
 .review-page__open-link:hover {
-  background-color: var(--color-primary-hover);
+  background-color: var(--color-primary-subtle);
+  color: var(--color-primary-hover);
 }
 
 @media (max-width: 620px) {
@@ -211,11 +202,10 @@
   }
 }
 
-.review-page h1 { font-size:clamp(26px,2.5vw,32px); line-height:1.2; letter-spacing:-.03em; }
 .review-history-list { display:grid; gap:0; }
 .review-history-list > p { margin:0; padding:14px 0; border-bottom:1px solid var(--color-hairline); font-size:14px; line-height:1.65; overflow-wrap:anywhere; }
 .review-history-list > p:last-child { border-bottom:0; padding-bottom:0; }
 .review-page > p { color:var(--color-ink-muted); font-size:14px; line-height:1.6; }
 
-.review-page > :is(article,section) { border:0; border-radius:0; box-shadow:none; padding:26px; }
-.review-page > section section { border:0; border-radius:0; box-shadow:none; }
+.review-page > :is(article,section) { padding: 24px; }
+.review-page > section section { border: 0; border-radius: 0; box-shadow: none; }

@@ -69,7 +69,7 @@
   padding: 16px;
   border: 1px solid var(--color-hairline);
   border-radius: 8px;
-  background: #fff;
+  background: var(--color-card);
 }
 
 .sup__filters label {
@@ -93,7 +93,7 @@
   padding: 9px 11px;
   border: 1px solid var(--color-hairline);
   border-radius: 6px;
-  background: #fff;
+  background: var(--color-card);
   color: var(--color-ink);
   font-size: 14px;
 }
@@ -109,7 +109,7 @@
   overflow: hidden;
   border: 1px solid var(--color-hairline);
   border-radius: 8px;
-  background: #fff;
+  background: var(--color-card);
 }
 
 .sup article {
@@ -234,8 +234,8 @@
 
 .sup__status--unavailable {
   border-color: var(--color-status-warning-border);
-  background: var(--color-primary-subtle);
-  color: var(--color-primary);
+  background: var(--color-status-warning-bg);
+  color: var(--color-status-warning-text);
 }
 
 .sup__open {
@@ -276,7 +276,7 @@
   padding: 32px;
   border: 1px solid var(--color-hairline);
   border-radius: 8px;
-  background: #fff;
+  background: var(--color-card);
   text-align: center;
 }
 
@@ -338,7 +338,7 @@
   padding: 20px;
   border: 1px solid var(--color-hairline);
   border-radius: 8px;
-  background: #fff;
+  background: var(--color-card);
 }
 
 .sup__bio,
@@ -368,6 +368,10 @@
 }
 
 @keyframes sup-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sup__spin { animation: none; }
+}
 
 @media (max-width: 800px) {
   .sup__filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }

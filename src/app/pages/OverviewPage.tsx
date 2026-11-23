@@ -33,23 +33,24 @@ export function OverviewPage() {
   }[journeyState]
   const nextAction = resolveStudentNextAction({ journeyState, projectStatus: project?.status })
 
+  const isExecutionPhase = stageIndex >= 4
+
   return (
-    <WorkspacePage className="space-y-6" title="Tổng quan lộ trình" eyebrow="Không gian đồ án" description="Theo dõi trạng thái đồ án, việc cần ưu tiên và bước tiếp theo của nhóm.">
+    <WorkspacePage size="wide" className="space-y-6" title="Tổng quan lộ trình" eyebrow="Không gian đồ án" description="Theo dõi trạng thái đồ án, việc cần ưu tiên và bước tiếp theo của nhóm.">
       {/* Dynamic Student Journey Banner */}
       <StudentJourneyHero />
-      <StudentDashboardSummary />
 
-      {!error ? (
+      {!error && !isExecutionPhase ? (
         <section className="workspace-surface" aria-labelledby="journey-next-step">
-          <div className="border-b border-line px-5 py-4 sm:px-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Lộ trình đăng ký đồ án</p>
+          <div className="border-b border-hairline px-5 py-4 sm:px-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">Lộ trình đăng ký đồ án</p>
             <h2 id="journey-next-step" className="mt-1 text-lg font-bold tracking-tight text-ink">Bước tiếp theo của nhóm</h2>
           </div>
           <ol className="grid grid-cols-2 gap-px bg-canvas sm:grid-cols-5">
             {journeySteps.map((step, index) => (
-              <li key={step.label} className={`bg-card px-4 py-4 ${index <= stageIndex ? 'text-primary' : 'text-slate-400'}`}>
+              <li key={step.label} className={`bg-card px-4 py-4 ${index <= stageIndex ? 'text-primary' : 'text-ink-muted'}`}>
                 <div className="flex items-center gap-2">
-                  <span className={`material-symbols-outlined text-[19px] ${index <= stageIndex ? 'text-primary' : 'text-slate-300'}`} aria-hidden="true">
+                  <span className={`material-symbols-outlined text-[19px] ${index <= stageIndex ? 'text-primary' : 'text-ink-muted'}`} aria-hidden="true">
                     {index < stageIndex ? 'check_circle' : step.icon}
                   </span>
                   <span className="text-xs font-semibold">{step.label}</span>
@@ -65,6 +66,26 @@ export function OverviewPage() {
             <Button onClick={() => navigate(nextAction.route)} icon="arrow_forward" className="flex-row-reverse shrink-0">
               Tiếp tục
             </Button>
+          </div>
+        </section>
+      ) : null}
+
+      <StudentDashboardSummary />
+
+      {!error && isExecutionPhase ? (
+        <section className="workspace-surface px-5 py-4 sm:px-6" aria-labelledby="journey-next-step">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p id="journey-next-step" className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-muted">Lộ trình đăng ký đồ án</p>
+            <ol className="flex flex-wrap items-center gap-3 text-xs">
+              {journeySteps.map((step, index) => (
+                <li key={step.label} className={`inline-flex items-center gap-1 font-semibold ${index <= stageIndex ? 'text-primary' : 'text-ink-muted'}`}>
+                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
+                    {index < stageIndex ? 'check_circle' : step.icon}
+                  </span>
+                  <span>{step.label}</span>
+                </li>
+              ))}
+            </ol>
           </div>
         </section>
       ) : null}

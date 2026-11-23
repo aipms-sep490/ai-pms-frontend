@@ -9,7 +9,10 @@ export type DefenseSessionStatus = 'SCHEDULED' | 'CANCELLED' | (string & {})
 export interface DefenseSession {
   id: number
   projectId: number
+  projectCode?: string | null
+  projectTitle?: string | null
   committeeId: number
+  committeeName?: string | null
   startAt: string
   endAt: string
   room: string
@@ -21,7 +24,9 @@ export interface DefenseSession {
 
 export interface CommitteeMember {
   userId: number
+  fullName?: string | null
   majorId: number
+  majorName?: string | null
   role?: 'MEMBER' | 'CHAIR' | 'SECRETARY'
 }
 

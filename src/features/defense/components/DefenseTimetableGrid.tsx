@@ -123,14 +123,14 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
   return (
     <div className="flex flex-col space-y-4">
       {/* 1. Header Toolbar (Learned from FAMS 3.13.2) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface p-4 shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-hairline bg-card p-4 shadow-xs">
         {/* Date Navigator */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-lg border border-hairline bg-canvas p-1 text-xs">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex min-h-11 items-center rounded-lg border border-hairline bg-canvas p-1 text-xs">
             <button
               type="button"
               onClick={handlePrevDay}
-              className="rounded p-1 text-ink-muted hover:bg-surface hover:text-ink transition-colors"
+              className="rounded p-1.5 text-ink-muted transition-colors hover:bg-card hover:text-ink"
               title="Ngày trước"
             >
               ◀
@@ -144,7 +144,7 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
             <button
               type="button"
               onClick={handleNextDay}
-              className="rounded p-1 text-ink-muted hover:bg-surface hover:text-ink transition-colors"
+              className="rounded p-1.5 text-ink-muted transition-colors hover:bg-card hover:text-ink"
               title="Ngày tiếp theo"
             >
               ▶
@@ -153,24 +153,24 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
           <button
             type="button"
             onClick={handleToday}
-            className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-canvas transition-colors"
+            className="min-h-11 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-canvas"
           >
             Hôm nay
           </button>
-          <span className="text-sm font-bold text-ink capitalize ml-1">{formattedDate}</span>
+          <span className="ml-1 text-sm font-bold text-ink capitalize">{formattedDate}</span>
         </div>
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center text-xs text-ink-muted mr-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block mr-1.5" />
-            Đang dùng: <strong className="text-ink ml-1">{occupiedRoomsCount}/{rooms.length} phòng</strong>
+          <div className="mr-2 hidden items-center text-xs text-ink-muted sm:flex">
+            <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-status-success-text" />
+            Đang dùng: <strong className="ml-1 text-ink">{occupiedRoomsCount}/{rooms.length} phòng</strong>
           </div>
           {onAutoScheduleClick && (
             <button
               type="button"
               onClick={onAutoScheduleClick}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-primary/90 transition-colors"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-primary-hover"
             >
               <span>⚡</span>
               <span>Tự động chia lịch</span>
@@ -180,7 +180,7 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
             <button
               type="button"
               onClick={onExportExcelClick}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-surface px-3 py-2 text-xs font-semibold text-ink hover:bg-canvas transition-colors"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-canvas"
             >
               <span>📊 Xuất Excel</span>
             </button>
@@ -198,13 +198,13 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
               placeholder="Tìm đồ án, hội đồng, phòng…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-56 rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs text-ink placeholder:text-ink-muted focus:border-primary focus:outline-none"
+              className="min-h-11 w-56 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs text-ink placeholder:text-ink-muted focus:border-primary focus:outline-none"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1.5 text-xs text-ink-muted hover:text-ink"
+                className="absolute top-1/2 right-2 -translate-y-1/2 text-xs text-ink-muted hover:text-ink"
               >
                 ✕
               </button>
@@ -215,7 +215,7 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
           <select
             value={selectedBuilding}
             onChange={(e) => setSelectedBuilding(e.target.value)}
-            className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs text-ink focus:outline-none"
+            className="min-h-11 rounded-lg border border-hairline bg-card px-3 py-1.5 font-normal text-xs text-ink focus:outline-none"
           >
             <option value="ALL">Tất cả tòa nhà</option>
             {buildings.map((b) => (
@@ -226,11 +226,11 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
           </select>
 
           {/* Shift Select */}
-          <div className="flex rounded-lg border border-hairline bg-surface p-0.5 text-xs">
+          <div className="flex rounded-lg border border-hairline bg-card p-0.5 text-xs">
             <button
               type="button"
               onClick={() => setSelectedShift('ALL')}
-              className={`rounded-md px-2.5 py-1 font-medium ${
+              className={`min-h-9 rounded-md px-2.5 py-1 font-medium ${
                 selectedShift === 'ALL' ? 'bg-primary text-white' : 'text-ink-muted hover:text-ink'
               }`}
             >
@@ -239,7 +239,7 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
             <button
               type="button"
               onClick={() => setSelectedShift('MORNING')}
-              className={`rounded-md px-2.5 py-1 font-medium ${
+              className={`min-h-9 rounded-md px-2.5 py-1 font-medium ${
                 selectedShift === 'MORNING' ? 'bg-primary text-white' : 'text-ink-muted hover:text-ink'
               }`}
             >
@@ -248,7 +248,7 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
             <button
               type="button"
               onClick={() => setSelectedShift('AFTERNOON')}
-              className={`rounded-md px-2.5 py-1 font-medium ${
+              className={`min-h-9 rounded-md px-2.5 py-1 font-medium ${
                 selectedShift === 'AFTERNOON' ? 'bg-primary text-white' : 'text-ink-muted hover:text-ink'
               }`}
             >
@@ -258,7 +258,7 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
         </div>
 
         {/* Free Room Toggle */}
-        <label className="flex items-center gap-2 cursor-pointer text-xs text-ink-soft">
+        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-xs text-ink-soft">
           <input
             type="checkbox"
             checked={showOnlyFreeRooms}
@@ -270,18 +270,18 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
       </div>
 
       {/* 3. Timetable Grid Matrix */}
-      <div className="overflow-x-auto rounded-2xl border border-hairline bg-surface shadow-xs">
+      <div className="overflow-x-auto rounded-2xl border border-hairline bg-card shadow-xs">
         <div role="table" aria-label="Ma trận lịch bảo vệ theo phòng và ca" className="w-full min-w-[900px] text-left text-xs">
           {/* Table Header: Slots */}
           <div role="rowgroup" className="border-b border-hairline bg-canvas/80 text-ink-muted">
             <div role="row" className="flex">
-              <div role="columnheader" className="w-48 p-3.5 font-bold uppercase tracking-wider text-xs text-ink shrink-0">
+              <div role="columnheader" className="w-48 shrink-0 p-3.5 text-xs font-bold uppercase tracking-wider text-ink">
                 Phòng bảo vệ
               </div>
               {visibleSlots.map((slot) => (
-                <div role="columnheader" key={slot.slotNumber} className="flex-1 p-3.5 font-bold text-center border-l border-hairline min-w-[160px]">
-                  <div className="text-ink font-semibold text-xs">SLOT {slot.slotNumber}</div>
-                  <div className="text-xs text-ink-muted font-normal mt-0.5">{slot.timeRange}</div>
+                <div role="columnheader" key={slot.slotNumber} className="min-w-[160px] flex-1 border-l border-hairline p-3.5 text-center font-bold">
+                  <div className="text-xs font-semibold text-ink">SLOT {slot.slotNumber}</div>
+                  <div className="mt-0.5 text-xs font-normal text-ink-muted">{slot.timeRange}</div>
                 </div>
               ))}
             </div>
@@ -296,19 +296,19 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
             ) : (
               filteredRooms.map((room) => {
                 return (
-                  <div role="row" key={room.id} className="flex hover:bg-canvas/30 transition-colors">
+                  <div role="row" key={room.id} className="flex transition-colors hover:bg-canvas/30">
                     {/* Room Specs Column */}
-                    <div role="cell" className="w-48 p-3.5 align-top shrink-0">
-                      <div className="font-bold text-ink text-sm flex items-center gap-1.5">
+                    <div role="cell" className="w-48 shrink-0 p-3.5 align-top">
+                      <div className="flex items-center gap-1.5 text-sm font-bold text-ink">
                         <span>{room.code}</span>
                         {room.status === 'MAINTENANCE' && (
-                          <span className="rounded bg-amber-100 text-amber-800 text-xs px-1.5 py-0.2">Bảo trì</span>
+                          <span className="rounded border border-status-warning-border bg-status-warning-bg px-1.5 py-0.5 text-xs text-status-warning-text">Bảo trì</span>
                         )}
                       </div>
-                      <div className="text-xs text-ink-muted mt-0.5">
+                      <div className="mt-0.5 text-xs text-ink-muted">
                         {room.building} · Tầng {room.floor}
                       </div>
-                      <div className="text-xs text-primary font-medium mt-1">
+                      <div className="mt-1 text-xs font-medium text-primary">
                         Sức chứa: {room.capacity} chỗ
                       </div>
                     </div>
@@ -321,35 +321,35 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
                       )
 
                       return (
-                        <div role="cell" key={slot.slotNumber} className="flex-1 p-2 border-l border-hairline align-top min-h-24 min-w-[160px]">
+                        <div role="cell" key={slot.slotNumber} className="min-h-24 min-w-[160px] flex-1 border-l border-hairline p-2 align-top">
                           {session ? (
                             /* Occupied Slot Card (FAMS style with Primary Orange tone) */
                             <div
                               onClick={() => onSelectSession?.(session)}
                               className={`cursor-pointer rounded-xl border p-2.5 shadow-xs transition-all hover:scale-[1.02] hover:shadow-md ${
                                 session.status === 'SCHEDULED'
-                                  ? 'border-l-4 border-l-primary border-hairline bg-primary-subtle/20'
+                                  ? 'border-hairline border-l-4 border-l-primary bg-primary-subtle/20'
                                   : session.status === 'CANCELLED'
-                                  ? 'border-l-4 border-l-status-error-border border-hairline bg-status-error-bg/30'
+                                  ? 'border-hairline border-l-4 border-l-status-error-border bg-status-error-bg/30'
                                   : 'border-hairline bg-canvas'
                               }`}
                             >
                               <div className="flex items-center justify-between gap-1">
-                                <span className="font-bold text-xs text-primary line-clamp-1">
+                                <span className="line-clamp-1 text-xs font-bold text-primary">
                                   {session.projectCode || `Đồ án #${session.projectId}`}
                                 </span>
                                 {session.hasChangeRequest && (
-                                  <span className="text-xs text-amber-600 font-bold" title="Đang có yêu cầu đổi phòng">
+                                  <span className="text-xs font-bold text-status-warning-text" title="Đang có yêu cầu đổi phòng">
                                     ⚠️
                                   </span>
                                 )}
                               </div>
-                              <p className="mt-1 text-xs font-medium text-ink line-clamp-2 leading-tight">
+                              <p className="mt-1 line-clamp-2 text-xs leading-tight font-medium text-ink">
                                 {session.projectTitle || 'Bảo vệ Đồ án Tốt nghiệp'}
                               </p>
                               <div className="mt-2 flex items-center justify-between text-xs text-ink-muted">
-                                <span className="truncate max-w-[90px]">{session.committeeName || 'HĐ Thẩm định'}</span>
-                                <span className="rounded bg-surface px-1.5 py-0.2 font-semibold border border-hairline text-xs">
+                                <span className="max-w-[90px] truncate">{session.committeeName || 'HĐ Thẩm định'}</span>
+                                <span className="rounded border border-hairline bg-card px-1.5 py-0.5 text-xs font-semibold">
                                   {session.status === 'SCHEDULED' ? 'Đã xếp' : session.status}
                                 </span>
                               </div>
@@ -358,9 +358,9 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
                             /* Empty Slot */
                             <div
                               onClick={() => onEmptySlotClick?.(room.id, slot.slotNumber)}
-                              className="group h-full min-h-[70px] rounded-xl border border-dashed border-hairline flex flex-col items-center justify-center p-2 text-center hover:border-primary/50 hover:bg-primary-subtle/10 cursor-pointer transition-colors"
+                              className="group flex h-full min-h-[70px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-hairline p-2 text-center transition-colors hover:border-primary/50 hover:bg-primary-subtle/10"
                             >
-                              <span className="text-xs text-ink-muted group-hover:text-primary transition-colors font-medium">
+                              <span className="text-xs font-medium text-ink-muted transition-colors group-hover:text-primary">
                                 + Xếp lịch
                               </span>
                             </div>

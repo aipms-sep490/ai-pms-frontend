@@ -16,18 +16,18 @@ interface ProjectProgressMatrixProps {
 
 const statusPillClasses: Record<GateStatus, string> = {
   PASSED: 'bg-status-success-bg text-status-success-text border-status-success-border',
-  REVISION_REQUIRED: 'bg-status-error-bg text-danger-text border-status-error-border font-bold',
-  IN_REVIEW: 'bg-status-info-bg text-status-info-text border-status-info-border',
+  REVISION_REQUIRED: 'bg-status-error-bg text-status-error-text border-status-error-border font-bold',
+  IN_REVIEW: 'bg-primary-subtle text-primary border-primary/20',
   PLANNED: 'bg-status-warning-bg text-status-warning-text border-status-warning-border',
-  LOCKED: 'bg-slate-100 text-slate-400 border-slate-200',
+  LOCKED: 'bg-canvas text-ink-muted border-hairline',
 }
 
 const statusLabels: Record<GateStatus, string> = {
-  PASSED: 'ĐẠT (PASS)',
-  REVISION_REQUIRED: 'CẦN CHỈNH SỬA',
-  IN_REVIEW: 'ĐANG XÉT',
-  PLANNED: 'KẾ HOẠCH',
-  LOCKED: 'CHƯA MỞ',
+  PASSED: 'Đạt',
+  REVISION_REQUIRED: 'Cần chỉnh sửa',
+  IN_REVIEW: 'Đang xét',
+  PLANNED: 'Kế hoạch',
+  LOCKED: 'Chưa mở',
 }
 
 export function ProjectProgressMatrix({
@@ -54,24 +54,24 @@ export function ProjectProgressMatrix({
     <div className="space-y-5">
       {/* KPI Cards Bar */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-slate-500">Tổng số đồ án</span>
-          <p className="mt-1 text-2xl font-black text-slate-900">{projects.length}</p>
+        <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+          <span className="text-xs font-semibold text-ink-muted">Tổng số đồ án</span>
+          <p className="mt-1 text-2xl font-black text-ink">{projects.length}</p>
         </div>
         <div className="rounded-xl border border-status-error-border bg-status-error-bg/50 p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-danger-text">Cần chỉnh sửa Review</span>
-          <p className="mt-1 text-2xl font-black text-danger-text">
+          <span className="text-xs font-semibold text-status-error-text">Cần chỉnh sửa Review</span>
+          <p className="mt-1 text-2xl font-black text-status-error-text">
             {projects.filter(p => Object.values(p.gateStatuses).includes('REVISION_REQUIRED')).length}
           </p>
         </div>
-        <div className="rounded-xl border border-status-info-border bg-status-info-bg p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-status-info-text">Đang thẩm định</span>
-          <p className="mt-1 text-2xl font-black text-status-info-text">
+        <div className="rounded-xl border border-primary/20 bg-primary-subtle p-4 shadow-2xs">
+          <span className="text-xs font-semibold text-primary">Đang thẩm định</span>
+          <p className="mt-1 text-2xl font-black text-primary">
             {projects.filter(p => Object.values(p.gateStatuses).includes('IN_REVIEW')).length}
           </p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-slate-500">Đồ án liên ngành</span>
+        <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+          <span className="text-xs font-semibold text-ink-muted">Đồ án liên ngành</span>
           <p className="mt-1 text-2xl font-black text-primary">
             {projects.filter(p => p.mode === 'INTERDISCIPLINARY').length}
           </p>
@@ -79,24 +79,24 @@ export function ProjectProgressMatrix({
       </div>
 
       {/* Matrix Table Section */}
-      <div className="rounded-xl border border-slate-200 bg-white shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 p-4">
+      <div className="rounded-xl border border-hairline bg-card shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline p-4">
           <div>
-            <h3 className="text-sm font-bold text-slate-800">Ma trận tiến trình các đồ án</h3>
-            <p className="text-xs text-slate-500">
-              Nhấp vào từng đồ án để xem quyết định của Reviewer và nguyên nhân bị chặn.
+            <h3 className="text-sm font-bold text-ink">Ma trận tiến trình các đồ án</h3>
+            <p className="text-xs text-ink-muted">
+              Nhấp vào từng đồ án để xem quyết định thẩm định và nguyên nhân bị chặn.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <label htmlFor="matrix-mode-select" className="text-xs font-semibold text-slate-600">
+            <label htmlFor="matrix-mode-select" className="text-xs font-semibold text-ink-soft">
               Chế độ đồ án:
             </label>
             <select
               id="matrix-mode-select"
               value={filterMode}
               onChange={e => setFilterMode(e.target.value)}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"
+              className="min-h-10 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-semibold text-ink"
             >
               <option value="ALL">Tất cả chế độ</option>
               <option value="SINGLE_MAJOR">Đơn ngành</option>
@@ -106,20 +106,21 @@ export function ProjectProgressMatrix({
         </div>
 
         <div className="overflow-x-auto">
-          <Table className="w-full min-w-[720px] text-left text-xs">
+          <Table className="w-full min-w-[780px] text-left text-xs">
             <TableHead className="font-semibold uppercase tracking-wider text-ink">
               <tr>
-                <th className="py-3 px-4">Mã / Tên đồ án</th>
-                <th className="py-3 px-4">Chuyên ngành / Mode</th>
+                <th className="px-4 py-3">Mã / Tên đồ án</th>
+                <th className="px-4 py-3">Chuyên ngành / Hình thức</th>
                 {displayGateCodes.map(code => (
-                  <th key={code} className="py-3 px-3 text-center">{code}</th>
+                  <th key={code} className="px-3 py-3 text-center whitespace-nowrap">{code}</th>
                 ))}
-                <th className="py-3 px-4">Tiến độ Task*</th>
+                <th className="px-4 py-3 whitespace-nowrap">Tiến độ công việc*</th>
               </tr>
             </TableHead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
+            <tbody className="divide-y divide-hairline text-ink-soft">
               {filteredProjects.map(proj => {
                 const keys = Object.keys(proj.gateStatuses)
+                const projectDisplayCode = proj.projectCode ?? proj.projectId
                 return (
                   <tr
                     key={proj.projectId}
@@ -129,47 +130,47 @@ export function ProjectProgressMatrix({
                       setDecisionError(null)
                       if (onSelectProject) onSelectProject(proj.projectId)
                     }}
-                    className="cursor-pointer transition-colors hover:bg-slate-50"
+                    className="cursor-pointer transition-colors hover:bg-canvas"
                   >
-                    <td className="py-3.5 px-4">
+                    <td className="px-4 py-3.5">
                       <button type="button" aria-label={`Xem ma trận đồ án ${proj.projectName}`} className="block min-h-10 text-left focus-visible:rounded focus-visible:outline-2 focus-visible:outline-primary">
-                        <strong className="block font-bold text-primary">{proj.projectId}</strong>
-                        <span className="text-xs text-slate-600 font-medium">{proj.projectName}</span>
+                        <strong className="block font-bold text-primary">{projectDisplayCode}</strong>
+                        <span className="text-xs font-medium text-ink-soft">{proj.projectName}</span>
                       </button>
                     </td>
-                    <td className="py-3.5 px-4">
-                      <span className="block font-semibold text-slate-800">{proj.major}</span>
-                      <span className="text-xs uppercase font-bold text-slate-400">
+                    <td className="px-4 py-3.5">
+                      <span className="block font-semibold text-ink">{proj.major}</span>
+                      <span className="text-xs font-bold uppercase text-ink-muted">
                         {proj.mode === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành'}
                       </span>
                     </td>
                     {displayGateCodes.map(code => {
                       const st = proj.gateStatuses[code]
                       return (
-                        <td key={code} className="py-3.5 px-3 text-center">
+                        <td key={code} className="px-3 py-3.5 text-center">
                           {st ? (
                             <span
-                              className={`inline-block rounded-full border border-l-4 px-2.5 py-0.5 text-xs font-bold ${
-                                statusPillClasses[st] || 'bg-slate-100 text-slate-500'
+                              className={`inline-block whitespace-nowrap rounded-full border border-l-4 px-2.5 py-0.5 text-xs font-bold ${
+                                statusPillClasses[st] || 'border-hairline bg-canvas text-ink-muted'
                               }`}
                             >
                               {statusLabels[st] ?? 'Chưa xác định'}
                             </span>
                           ) : (
-                            <span className="text-ink-muted" title="Không có gate trong bản ghi ma trận">—</span>
+                            <span className="text-ink-muted" title="Không có cổng trong bản ghi ma trận">—</span>
                           )}
                         </td>
                       )
                     })}
-                    <td className="py-3.5 px-4 min-w-[130px]">
-                      {proj.hasTasks === false ? <span className="text-xs text-slate-600">Chưa có công việc</span> : <div className="flex items-center gap-2">
-                        <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                    <td className="min-w-[140px] px-4 py-3.5">
+                      {proj.hasTasks === false ? <span className="text-xs text-ink-muted">Chưa có công việc</span> : <div className="flex items-center gap-2">
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-hairline">
                           <div
                             className="h-full rounded-full bg-primary"
                             style={{ width: `${proj.taskProgress}%` }}
                           />
                         </div>
-                        <span className="text-xs font-bold text-slate-600">{proj.taskProgress}%</span>
+                        <span className="shrink-0 text-xs font-bold text-ink-soft">{proj.taskProgress}%</span>
                       </div>}
                     </td>
                   </tr>
@@ -178,34 +179,34 @@ export function ProjectProgressMatrix({
             </tbody>
           </Table>
         </div>
-        <p className="p-3 text-xs text-slate-400 border-t border-slate-100">
-          * Tiến độ Task % là số liệu quản lý nội bộ; không thay thế quyết định thẩm định chính thức của Reviewer.
+        <p className="border-t border-hairline p-3 text-xs text-ink-muted">
+          * Tiến độ công việc (%) là số liệu quản lý nội bộ; không thay thế quyết định thẩm định chính thức của người chấm.
         </p>
       </div>
 
       {/* Inspecting Project Drawer / Modal */}
       {inspectingProject && (
         <div
-          className="fixed inset-0 z-50 flex justify-end bg-slate-900/30 backdrop-blur-[2px]"
+          className="fixed inset-0 z-50 flex justify-end bg-ink/40 backdrop-blur-[2px]"
           onClick={e => {
             if (e.target === e.currentTarget) setInspectingProject(null)
           }}
           role="dialog"
           aria-modal="true"
         >
-          <div className="flex h-full w-full max-w-md flex-col bg-white p-6 shadow-2xl overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex h-full w-full max-w-md flex-col bg-card p-6 shadow-2xl overflow-y-auto sm:border-l sm:border-hairline">
+            <div className="flex items-center justify-between border-b border-hairline pb-3">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                  {inspectingProject.projectId}
+                  {inspectingProject.projectCode ?? inspectingProject.projectId}
                 </span>
-                <h3 className="text-base font-bold text-slate-800">{inspectingProject.projectName}</h3>
+                <h3 className="text-base font-bold text-ink">{inspectingProject.projectName}</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setInspectingProject(null)}
                 aria-label="Đóng chi tiết đồ án"
-                className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-ink-muted hover:bg-canvas hover:text-ink"
               >
                 ✕
               </button>
@@ -213,14 +214,14 @@ export function ProjectProgressMatrix({
 
             <div className="space-y-4 py-4 text-xs">
               <div>
-                <h4 className="font-bold text-slate-700">Trạng thái các đợt Review Gate</h4>
+                <h4 className="font-bold text-ink-soft">Trạng thái các đợt Review Gate</h4>
                 <div className="mt-2 space-y-1.5">
                   {Object.entries(inspectingProject.gateStatuses).map(([code, st]) => (
                     <div
                       key={code}
-                      className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-2.5"
+                      className="flex items-center justify-between rounded-lg border border-hairline bg-canvas p-2.5"
                     >
-                      <span className="font-bold text-slate-800">{code}</span>
+                      <span className="font-bold text-ink">{code}</span>
                       <span
                         className={`rounded-full border px-2 py-0.5 text-xs font-bold ${
                           statusPillClasses[st]
@@ -254,7 +255,7 @@ export function ProjectProgressMatrix({
                     <span className="inline-flex items-center rounded-md bg-status-warning-bg px-2 py-0.5 text-xs font-bold text-status-warning-text">
                       Mô phỏng Sandbox
                     </span>
-                    <strong className="block text-xs font-bold text-slate-800">
+                    <strong className="block text-xs font-bold text-ink">
                       Ghi nhận kết luận thẩm định (Reviewer Scoped Decision)
                     </strong>
                   </div>
@@ -264,11 +265,11 @@ export function ProjectProgressMatrix({
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600">Chọn Gate</label>
+                      <label className="block text-xs font-semibold text-ink-soft">Chọn Gate</label>
                       <select
                         value={selectedGateToDecide}
                         onChange={e => setSelectedGateToDecide(e.target.value)}
-                        className="mt-1 w-full rounded border border-slate-200 bg-white p-1.5 text-xs font-semibold"
+                        className="mt-1 min-h-10 w-full rounded-lg border border-hairline bg-card px-2 py-1.5 text-xs font-medium text-ink"
                       >
                         {Object.keys(inspectingProject.gateStatuses).map(c => (
                           <option key={c} value={c}>
@@ -278,11 +279,11 @@ export function ProjectProgressMatrix({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600">Kết luận</label>
+                      <label className="block text-xs font-semibold text-ink-soft">Kết luận</label>
                       <select
                         value={decisionChoice}
                         onChange={e => setDecisionChoice(e.target.value as 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW')}
-                        className="mt-1 w-full rounded border border-slate-200 bg-white p-1.5 text-xs font-semibold"
+                        className="mt-1 min-h-10 w-full rounded-lg border border-hairline bg-card px-2 py-1.5 text-xs font-medium text-ink"
                       >
                         <option value="PASSED">ĐẠT (PASSED)</option>
                         <option value="REVISION_REQUIRED">CẦN SỬA (REVISION)</option>
@@ -292,11 +293,11 @@ export function ProjectProgressMatrix({
                   </div>
 
                   {decisionError && (
-                    <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs text-danger-text">
+                    <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs text-status-error-text">
                       <strong className="block font-bold">Lỗi cập nhật quyết định:</strong>
                       <span>{decisionError}</span>
                       {decisionError.includes('409') && (
-                        <p className="mt-1 text-xs text-danger-text italic">
+                        <p className="mt-1 text-xs text-status-error-text italic">
                           Dữ liệu đã có thay đổi mới từ người dùng khác. Vui lòng kiểm tra lại trước khi gửi.
                         </p>
                       )}
@@ -329,20 +330,20 @@ export function ProjectProgressMatrix({
                         setUpdatingDecision(false)
                       }
                     }}
-                    className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-white shadow-2xs hover:bg-primary-hover disabled:opacity-50"
+                    className="min-h-10 w-full rounded-lg bg-primary py-2 text-xs font-bold text-white shadow-2xs hover:bg-primary-hover disabled:opacity-50"
                   >
                     {updatingDecision ? 'Đang cập nhật...' : 'Cập nhật quyết định Reviewer'}
                   </button>
                 </div>
               ) : (
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 space-y-2">
+                <div className="rounded-lg border border-hairline bg-canvas p-3.5 space-y-2">
                   <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-sm text-slate-500">visibility</span>
-                    <strong className="block text-xs font-bold text-slate-800">
+                    <span className="material-symbols-outlined text-sm text-ink-muted">visibility</span>
+                    <strong className="block text-xs font-bold text-ink">
                       Giám sát Tiến trình Thẩm định
                     </strong>
                   </div>
-                  <p className="text-xs text-slate-600">
+                  <p className="text-xs text-ink-soft">
                     Giao diện này dành riêng cho việc giám sát tiến độ của Khoa / Bộ môn. Quyết định thẩm định chính thức chỉ được thực hiện bởi Reviewer được phân công thông qua Hàng đợi thẩm định với mã token xác thực.
                   </p>
                 </div>

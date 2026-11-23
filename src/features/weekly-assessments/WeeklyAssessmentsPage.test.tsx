@@ -194,12 +194,14 @@ describe('Weekly assessments page', () => {
     await waitFor(() => expect(api.getWeeklyAssessmentHistory).toHaveBeenCalledTimes(2))
   })
 
-  it('renders student read-only view without edit/submit actions or member dropdown', async () => {
+  it('renders student read-only view without edit/submit actions, staff verdict, rubric fetch, or member dropdown', async () => {
     api.getWeeklyAssessmentHistory.mockResolvedValue({ items: [draft], page: 1, pageSize: 1, totalCount: 1, totalPages: 1 })
     mount(true, 'student', 12)
     expect(await screen.findByText('Đánh giá cá nhân theo tuần')).toBeTruthy()
     expect(screen.queryByLabelText('Sinh viên')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Nộp điểm' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Lưu nháp' })).toBeNull()
+    expect(screen.queryByText(/Đủ điều kiện nộp điểm đánh giá tuần|Chưa thể nộp điểm đánh giá tuần/)).toBeNull()
+    expect(api.getWeeklyAssessmentRubrics).not.toHaveBeenCalled()
   })
 })

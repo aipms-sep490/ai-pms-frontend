@@ -18,8 +18,17 @@ import { useProjectReview } from '../hooks/useProjectReview'
 import './project-review.css'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
-import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { ListLoading } from '../../../components/ui/ListLoading'
 import { schemeStatusTone } from '../../../components/ui/status-badge-tone'
+
+const pendingActionLabel: Record<string, string> = {
+  begin: 'bắt đầu thẩm định',
+  approve: 'phê duyệt đề cương',
+  reject: 'từ chối đề cương',
+  revision: 'yêu cầu chỉnh sửa',
+  department: 'ghi nhận ý kiến bộ môn',
+  requirements: 'cập nhật yêu cầu theo ngành',
+}
 
 function ScopeSummary({ review, names }: { review: ReturnType<typeof useProjectReview>; names: AcademicNameResolver }) {
   const scope = review.detail?.academicScope ?? review.detail?.latestSubmission?.evidence.scope
@@ -58,7 +67,7 @@ function ProjectProposalDetails({ review }: { review: ReturnType<typeof useProje
         <div><dt>Từ khóa</dt><dd>{tags('KEYWORD').join(', ') || '—'}</dd></div>
         <div><dt>Ngày nộp</dt><dd>{project.submittedAt ? dateTimeLabel(project.submittedAt) : '—'}</dd></div>
         <div><dt>Nguồn đề cương</dt><dd>{project.proposalSource === 'PUBLISHED_TOPIC'
-          ? <>Đề tài đã công bố{project.selectedTopic ? ` · #${project.topicId ?? project.selectedTopic.id} · ${project.selectedTopic.code} — ${project.selectedTopic.title}` : project.topicId ? ` · #${project.topicId}` : ''}</>
+          ? <>Đề tài đã công bố{project.selectedTopic ? ` · ${project.selectedTopic.code} — ${project.selectedTopic.title}` : ''}</>
           : 'Đề xuất của sinh viên'}</dd></div>
       </dl>
       <h3>Mô tả</h3>
@@ -84,24 +93,27 @@ export function ProjectReviewPage() {
   const [reason, setReason] = useState('')
   const [message, setMessage] = useState('')
 
-  if (review.isUnauthorized) return <p><Link to="/login">Đăng nhập lại để tiếp tục.</Link></p>
-  if (review.loading) return <p>Đang tải danh sách thẩm định…</p>
-  if (review.isForbidden) return <p>Bạn không có quyền thẩm định đề cương trong bộ môn này. <Button onClick={() => void review.refresh()}>Thử lại</Button></p>
-  if (review.error) return <p role="alert">{review.error.message} <Button onClick={() => void review.refresh()}>Làm mới</Button></p>
+  if (review.isUnauthorized) return <div className="workspace-page review-page mk-page-enter"><div className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-soft"><Link className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4" to="/login">Đăng nhập lại để tiếp tục.</Link></div></div>
+  if (review.loading) return <div className="workspace-page review-page mk-page-enter"><ListLoading label="Đang tải danh sách thẩm định…" /></div>
+  if (review.isForbidden) return <div className="workspace-page review-page mk-page-enter"><div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text"><p>Bạn không có quyền thẩm định đề cương trong bộ môn này.</p><Button className="min-h-11" onClick={() => void review.refresh()}>Thử lại</Button></div></div>
+  if (review.error) return <div className="workspace-page review-page mk-page-enter"><div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-status-error-border bg-status-error-bg p-5 text-sm text-status-error-text"><p>{review.error.message}</p><Button className="min-h-11" onClick={() => void review.refresh()}>Làm mới</Button></div></div>
 
   if (!id) {
     const queue = review.queue
     return (
-      <div className="review-page mk-page-enter">
-        <header className="review-page__header">
-          <p>THẨM ĐỊNH ĐỀ CƯƠNG</p>
-          <h1>Danh sách đề cương chờ xử lý</h1>
-          <span>Tìm và mở hồ sơ đề cương thuộc phạm vi bộ môn của bạn.</span>
+      <div className="workspace-page review-page mk-page-enter">
+        <header className="workspace-heading review-page__header">
+          <div className="workspace-heading-copy">
+            <span className="workspace-kicker">Thẩm định đề cương</span>
+            <h1>Danh sách đề cương chờ xử lý</h1>
+            <p className="mt-1 text-sm text-ink-muted">Tìm và mở hồ sơ đề cương thuộc phạm vi bộ môn của bạn.</p>
+          </div>
         </header>
         <form className="review-page__search" onSubmit={(event) => { event.preventDefault(); review.setSearch(search) }}>
           <label htmlFor="review-search">Tìm đề cương</label>
           <input id="review-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Mã, tên đề cương hoặc nhóm" />
-          <Button type="submit">Tìm kiếm</Button>
+          <Button type="submit" variant="secondary" className="min-h-11">Tìm kiếm</Button>
+          {search && <Button type="button" variant="ghost" className="min-h-11" onClick={() => { setSearch(''); review.setSearch('') }}>Xóa lọc</Button>}
         </form>
         {(queue?.items ?? []).map((project) => (
           <article key={project.id}>
@@ -113,9 +125,9 @@ export function ProjectReviewPage() {
         ))}
         {queue && queue.items.length === 0 ? <p className="review-page__empty">Không có đề cương nào trong phạm vi bộ môn ở thời điểm này.</p> : null}
         {queue && queue.totalPages && queue.totalPages > 1 ? <nav className="review-page__actions" aria-label="Phân trang danh sách đề cương">
-          <Button disabled={queue.page <= 1} onClick={() => review.goToPage(queue.page - 1)}>Trang trước</Button>
+          <Button variant="secondary" className="min-h-11" disabled={queue.page <= 1} onClick={() => review.goToPage(queue.page - 1)}>Trang trước</Button>
           <span>Trang {queue.page} / {queue.totalPages}</span>
-          <Button disabled={queue.page >= queue.totalPages} onClick={() => review.goToPage(queue.page + 1)}>Trang sau</Button>
+          <Button variant="secondary" className="min-h-11" disabled={queue.page >= queue.totalPages} onClick={() => review.goToPage(queue.page + 1)}>Trang sau</Button>
         </nav> : null}
       </div>
     )
@@ -153,9 +165,14 @@ export function ProjectReviewPage() {
   const [currentSnapshot, previousSnapshot] = snapshots
   const hasBackendApproval = review.workflow?.actions?.some(action => action.code === 'approve_project') ?? false
   return (
-    <div className="review-page mk-page-enter">
-      <Link className="review-page__back-link" to="/department/projects/review">← Danh sách thẩm định</Link>
-      <h1>Thẩm định đề cương</h1>
+    <div className="workspace-page review-page mk-page-enter">
+      <header className="workspace-heading review-page__header">
+        <div className="workspace-heading-copy">
+          <Link className="review-page__back-link" to="/department/projects/review">← Danh sách thẩm định</Link>
+          <span className="workspace-kicker">Hội đồng bộ môn</span>
+          <h1>Thẩm định đề cương</h1>
+        </div>
+      </header>
       <section className="space-y-4">
         <h2>{review.project?.title ?? (review.project?.code ? `${review.project.code} — Chưa có tên đề cương` : `Đồ án #${id}`)}</h2>
         <EntityIdentityStrip
@@ -176,12 +193,7 @@ export function ProjectReviewPage() {
           ]}
         />
         <div className="flex flex-wrap items-center gap-3">
-          <StatusBadge
-            status={review.workflow?.status ?? review.project?.status}
-            label={projectStatusLabel(review.workflow?.status ?? review.project?.status ?? '')}
-            tone={schemeStatusTone(review.workflow?.status ?? review.project?.status)}
-          />
-          <Link className="review-page__open-link inline-flex items-center text-sm font-semibold text-primary underline" to={`/department/projects/${id}/result`}>
+          <Link className="review-page__open-link" to={`/department/projects/${id}/result`}>
             Theo dõi đánh giá và công bố kết quả →
           </Link>
         </div>
@@ -192,14 +204,14 @@ export function ProjectReviewPage() {
       {currentSnapshot?.evidence && previousSnapshot?.evidence && <section aria-label="So sánh hai lần nộp" className="space-y-3">
         <h2>Thay đổi ở lần nộp #{currentSnapshot.submissionNumber}</h2>
         <ChangeDiff beforeLabel={`LẦN NỘP #${previousSnapshot.submissionNumber}`} afterLabel={`LẦN NỘP #${currentSnapshot.submissionNumber}`} rows={[
-          { label: 'Chế độ đồ án', before: previousSnapshot.evidence.scope.projectMode, after: currentSnapshot.evidence.scope.projectMode },
-          { label: 'Ngành chính', before: previousSnapshot.evidence.scope.primaryMajorId, after: currentSnapshot.evidence.scope.primaryMajorId },
+          { label: 'Chế độ đồ án', before: displayLabel(previousSnapshot.evidence.scope.projectMode), after: displayLabel(currentSnapshot.evidence.scope.projectMode) },
+          { label: 'Ngành chính', before: previousSnapshot.evidence.scope.primaryMajorId ? names.major(previousSnapshot.evidence.scope.primaryMajorId) : 'Không áp dụng', after: currentSnapshot.evidence.scope.primaryMajorId ? names.major(currentSnapshot.evidence.scope.primaryMajorId) : 'Không áp dụng' },
           { label: 'Số thành viên tối đa', before: previousSnapshot.evidence.policy.maxMembers, after: currentSnapshot.evidence.policy.maxMembers },
           { label: 'Số ngành tối thiểu', before: previousSnapshot.evidence.policy.minDistinctMajors, after: currentSnapshot.evidence.policy.minDistinctMajors },
           { label: 'Số thành viên', before: previousSnapshot.evidence.members.length, after: currentSnapshot.evidence.members.length },
           { label: 'Số bộ môn', before: previousSnapshot.evidence.departmentIds.length, after: currentSnapshot.evidence.departmentIds.length },
         ]} />
-        <p className="text-sm text-ink-muted">So sánh dữ liệu snapshot đăng ký; nội dung đề cương không có trong bản tổng hợp này.</p>
+        <p className="text-sm text-ink-muted">So sánh dữ liệu bản ghi đăng ký; nội dung đề cương không nằm trong bản tổng hợp này.</p>
       </section>}
       <MajorRequirementEditor
         requirements={review.requirements?.requirements ?? scope?.requirements ?? []}
@@ -235,7 +247,7 @@ export function ProjectReviewPage() {
             secondary={review.canReject ? { label: 'Từ chối đề cương', onClick: () => void submit('reject'), disabled: review.pending !== null } : undefined} />
         </ActionVerdict>}
         {isInterdisciplinary && review.canApprove && participatingSummary !== 'ALL_APPROVED' ? <p className="mt-2 text-sm text-ink-muted">Chỉ có thể phê duyệt cuối khi tất cả bộ môn tham gia đã đồng ý với phiên bản hiện tại.</p> : null}
-        {review.pending ? <p role="status">Đang xử lý {review.pending}…</p> : null}
+        {review.pending ? <p role="status">Đang xử lý {pendingActionLabel[review.pending] ?? displayLabel(review.pending)}…</p> : null}
         {message ? <p role="status">{message}</p> : null}
       </section>
       <section className="space-y-4">

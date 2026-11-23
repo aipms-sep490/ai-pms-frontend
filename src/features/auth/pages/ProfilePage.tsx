@@ -39,6 +39,7 @@ export function ProfilePage() {
 function AuthenticatedProfile({ session, status, error, refreshProfile, updateProfile }: AuthSessionContextValue & { session: LoginSession }) {
   const isPureStudent = session.user.roles.includes('STUDENT') && !session.user.roles.some(r => r !== 'STUDENT')
   const [isEditing, setIsEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<'fullName' | 'phone' | 'title', string>>>({})
   const [formSuccess, setFormSuccess] = useState<string | null>(null)
@@ -122,6 +123,7 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
       ...(title !== undefined ? { title } : {}),
     }
 
+    setSaving(true)
     try {
       const updated = await updateProfile(payload)
       if (updated.phone === undefined || updated.title === undefined) throw new Error('The saved profile response is incomplete.')
@@ -134,6 +136,8 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
       setDirty({ phone: false, title: false })
     } catch (reason) {
       setFormError(getProfileErrorMessage(reason instanceof Error ? reason : new Error()))
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -170,10 +174,6 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
 
         <div className="auth-profile-grid">
           <div>
-            <span>Mã tài khoản</span>
-            <strong>#{session.user.id}</strong>
-          </div>
-          <div>
             <span>Vai trò tài khoản</span>
             <strong>
               {session.user.roles.length > 0
@@ -191,18 +191,20 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
                 : 'Chưa có vai trò'}
             </strong>
           </div>
-          {!isPureStudent && profile?.title && (
+          <div>
+            <span>Trạng thái tài khoản</span>
+            <strong>Đang hoạt động</strong>
+          </div>
+          {!isPureStudent && (
             <div>
               <span>Chức danh</span>
-              <strong>{profile.title}</strong>
+              <strong>{profile?.title || 'Chưa cập nhật'}</strong>
             </div>
           )}
-          {profile?.phone && (
-            <div>
-              <span>Số điện thoại</span>
-              <strong>{profile.phone}</strong>
-            </div>
-          )}
+          <div>
+            <span>Số điện thoại</span>
+            <strong>{profile?.phone || 'Chưa cập nhật'}</strong>
+          </div>
         </div>
 
         <AcademicProfileSummary />
@@ -248,8 +250,8 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
             )}
 
             <div className="auth-actions">
-              <Button type="submit">Lưu hồ sơ</Button>
-              <Button type="button" variant="secondary" onClick={handleCancel}>
+              <Button type="submit" disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu hồ sơ'}</Button>
+              <Button type="button" variant="secondary" disabled={saving} onClick={handleCancel}>
                 Hủy
               </Button>
             </div>

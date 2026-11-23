@@ -1,6 +1,6 @@
 import { reportError, reportFieldErrors, reportNeedsAuthoritativeRefresh } from './report-errors'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom'
+import { useBlocker, useNavigate, useParams } from 'react-router-dom'
 import { useExecutionAccess, type ExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import * as api from '../../services/api/progress-reports.api'
 import { useAssistantActionDraft } from '../ai/useAssistantActionDraft'
@@ -240,25 +240,21 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
       title={create ? 'Tạo báo cáo tiến độ' : 'Chi tiết báo cáo'}
       projectTitle={project.title}
       backTo={`${routeBase}/reports`}
+      backLabel="Danh sách báo cáo"
       description={
         create
           ? 'Lưu bản nháp để cả nhóm cùng hoàn thiện trước khi nộp cho GVHD.'
           : 'Nội dung báo cáo và lịch sử nhận xét của giảng viên hướng dẫn.'
-      }
-      action={
-        <Link className="report-button report-button--secondary" to={`${routeBase}/reports`}>
-          Danh sách báo cáo
-        </Link>
       }
     >
       {blocker.state === 'blocked' && (
         <div className="report-notice report-notice--error" role="alert">
           <p>Bạn có nội dung chưa lưu. Rời trang sẽ bỏ những thay đổi này.</p>
           <div className="flex flex-wrap gap-3">
-            <button className="report-button report-button--secondary" onClick={() => blocker.reset()}>
+            <button className="report-button" onClick={() => blocker.reset()}>
               Ở lại soạn tiếp
             </button>
-            <button className="report-button" onClick={() => blocker.proceed()}>
+            <button className="report-button report-button--secondary" onClick={() => blocker.proceed()}>
               Bỏ thay đổi và rời trang
             </button>
           </div>
@@ -279,8 +275,8 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
           {report && (
             <div className="report-detail-banner">
               <div>
-                <p className="report-eyebrow">
-                  {reportTypeLabels[report.reportType]} • #{report.id}
+                <p className="report-eyebrow workspace-kicker">
+                  {reportTypeLabels[report.reportType]}
                 </p>
                 <h2>
                   {formatReportDate(report.periodStart)} – {formatReportDate(report.periodEnd)}

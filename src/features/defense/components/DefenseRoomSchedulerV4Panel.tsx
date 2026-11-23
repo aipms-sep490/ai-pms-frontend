@@ -132,14 +132,14 @@ export function DefenseRoomSchedulerV4Panel({
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {slots.map((slot, idx) => (
-          <div key={slot} className="rounded-lg border border-hairline bg-subtle px-2.5 py-2 text-xs text-ink">
+          <div key={slot} className="rounded-lg border border-hairline bg-canvas px-2.5 py-2 text-xs text-ink">
             <strong>Ca {idx + 1}:</strong> {slot}
           </div>
         ))}
       </div>
 
       {onStandbySwap && (
-        <div className="space-y-2 rounded-lg border border-hairline bg-subtle p-3">
+        <div className="space-y-2 rounded-lg border border-hairline bg-canvas p-3">
           <h3 className="text-xs font-bold text-ink">Thay thế giám khảo khẩn cấp (Standby Pool · 1 click)</h3>
           <div className="grid gap-2 sm:grid-cols-3">
             <input

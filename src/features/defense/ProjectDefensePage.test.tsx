@@ -178,7 +178,7 @@ describe('ProjectDefensePage', () => {
     })
     renderManagement()
     await screen.findByText('Quản lý hội đồng & Lịch bảo vệ (Khoa / Quản trị)')
-    await screen.findByRole('option', { name: /Hội đồng \(#5\)/ })
+    await screen.findByRole('option', { name: /Hội đồng · v1/ })
     fireEvent.change(screen.getByLabelText(/Chọn hội đồng/), { target: { value: '5' } })
     fireEvent.change(screen.getByLabelText(/Phòng bảo vệ/), { target: { value: 'A1.01' } })
     fireEvent.change(screen.getByLabelText(/Thời gian bắt đầu/), { target: { value: '2000-01-01T08:00' } })
@@ -200,7 +200,7 @@ describe('ProjectDefensePage', () => {
     renderManagement()
     expect(await screen.findByText(/Hội đồng nháp/)).toBeTruthy()
     expect((screen.getByLabelText(/Chọn hội đồng/) as HTMLSelectElement).disabled).toBe(true)
-    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận hội đồng để phân chấm Cold' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận hội đồng để phân công chấm nguội' }))
     await waitFor(() => expect(mocks.confirmDefenseCommittee).toHaveBeenCalledWith(5, 'draft-token'))
     expect((screen.getByLabelText(/Chọn hội đồng/) as HTMLSelectElement).disabled).toBe(false)
     expect(screen.getByRole('option', { name: /Hội đồng nháp/ })).toBeTruthy()
@@ -239,5 +239,18 @@ describe('ProjectDefensePage', () => {
         room: 'A-201',
       }))
     })
+  })
+  it('hides staff-only cancel verdict on student page when canCancel is false', async () => {
+    mocks.getProjectDefenseSessions.mockResolvedValue(paged([{ ...scheduled, canCancel: false }]))
+    render_()
+    expect(await screen.findByText(/A1\.01/)).toBeTruthy()
+    expect(screen.queryByText(/Không thể hủy lịch bảo vệ|Đủ điều kiện hủy lịch bảo vệ/)).toBeNull()
+  })
+
+  it('mounts DefenseScheduleView on department route so staff can inspect and cancel an open session', async () => {
+    mocks.getProjectDefenseSessions.mockResolvedValue(paged([scheduled]))
+    renderManagement()
+    expect(await screen.findByText(/A1\.01/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Hủy lịch' })).toBeTruthy()
   })
 });

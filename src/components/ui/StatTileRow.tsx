@@ -3,7 +3,7 @@ import { badgeToneClass, type BadgeTone } from './status-badge-tone'
 export type StatTile = {
   icon: string
   label: string
-  value: number | null
+  value: number | string | null
   caption?: string
   tone?: BadgeTone
   hero?: boolean
@@ -16,8 +16,16 @@ export function StatTileRow({ tiles }: { tiles: readonly StatTile[] }) {
   const visible = tiles.slice(0, 4)
   const heroIndex = visible.findIndex((tile) => tile.hero)
 
+  const gridCols = visible.length === 1
+    ? 'grid-cols-1'
+    : visible.length === 2
+      ? 'sm:grid-cols-2'
+      : visible.length === 3
+        ? 'sm:grid-cols-3'
+        : 'sm:grid-cols-2 lg:grid-cols-4'
+
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Chỉ số tổng quan">
+    <ul className={`grid gap-3 ${gridCols}`} aria-label="Chỉ số tổng quan">
       {visible.map((tile, index) => {
         const hero = index === heroIndex
         const isInteractive = typeof tile.onClick === 'function'
@@ -32,7 +40,7 @@ export function StatTileRow({ tiles }: { tiles: readonly StatTile[] }) {
               {tile.icon}
             </span>
             <span className={`block text-xs font-semibold uppercase tracking-[0.06em] ${hero ? 'text-white' : 'text-ink-muted'}`}>{tile.label}</span>
-            <strong className="mt-1 block text-3xl font-semibold tabular-nums">{tile.value === null ? '—' : tile.value.toLocaleString('vi-VN')}</strong>
+            <strong className="mt-1 block text-3xl font-semibold tabular-nums">{tile.value === null ? '—' : typeof tile.value === 'string' ? tile.value : tile.value.toLocaleString('vi-VN')}</strong>
             {(tile.caption || tile.value === null) && <p className={`mt-2 text-sm ${hero ? 'text-white' : 'text-ink-soft'}`}>{tile.caption ?? 'Chưa có dữ liệu trong phạm vi hiện tại.'}</p>}
           </>
         )

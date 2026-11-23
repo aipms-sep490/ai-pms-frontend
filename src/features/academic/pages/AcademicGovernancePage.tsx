@@ -25,6 +25,8 @@ export function AcademicGovernancePage() {
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState({ search: '' })
+  const [selectedSemesterCode, setSelectedSemesterCode] = useState<string>('ALL')
+  const [periodPage, setPeriodPage] = useState(1)
   const [editor, setEditor] = useState<Editor | null>(null)
   const [operationError, setOperationError] = useState<AcademicError | null>(null)
   const [operationSuccess, setOperationSuccess] = useState<string | null>(null)
@@ -34,19 +36,29 @@ export function AcademicGovernancePage() {
   const savePeriod = async (draft: ProjectPeriodDraft) => { setOperationError(null); setOperationSuccess(null); try { await governance.saveProjectPeriod(draft); setEditor(null); setOperationSuccess('Đã lưu cấu trúc giai đoạn. Chính sách áp dụng được quản lý ở màn hình riêng.') } catch (reason: unknown) { setOperationError(academicError(reason, 'governance')) } }
   const changeStatus = async (kind: 'semester' | 'period', id: number, status: GovernanceStatus, expectedStatus: GovernanceStatus) => { if (await requestConfirmation({ title: 'Thay đổi trạng thái?', description: `Chuyển ${kind === 'semester' ? 'học kỳ' : 'giai đoạn'} sang ${statusLabels[status].toLowerCase()}.`, confirmLabel: 'Xác nhận thay đổi' }) === null) return; setOperationError(null); setOperationSuccess(null); try { await governance.setStatus(kind, id, status, expectedStatus); setOperationSuccess(`Đã chuyển trạng thái sang ${statusLabels[status].toLowerCase()}.`) } catch (reason: unknown) { setOperationError(academicError(reason, 'governance')) } }
 
-  if (governance.isUnauthorized) return <section className="governance-state" role="alert"><strong>Cần đăng nhập để xem cấu hình học vụ.</strong><Link to="/login">Đăng nhập</Link></section>
-  if (governance.loading) return <section className="governance-state" role="status">Đang tải học kỳ và các giai đoạn đồ án…</section>
-  if (governance.isForbidden) return <section className="governance-state" role="alert">Bạn không có quyền truy cập cấu hình học vụ.</section>
-  if (governance.error) {
-    const issue = academicError(governance.error, 'governance')
-    return <section className="governance-state" role="alert">{issue.message} {issue.action && <Button onClick={governance.retry}>{issue.action === 'reload' ? 'Tải lại dữ liệu' : 'Thử lại'}</Button>}</section>
+  if (governance.isUnauthorized || governance.loading || governance.isForbidden || governance.error) {
+    const issue = governance.error ? academicError(governance.error, 'governance') : null
+    return <WorkspacePage className="governance-page" title="Học kỳ và giai đoạn đồ án" eyebrow="Quản lý học vụ" description="Thiết lập thời gian đăng ký, thực hiện và đánh giá cho từng học kỳ.">
+      {governance.isUnauthorized ? <section className="governance-state governance-error" role="alert"><strong>Cần đăng nhập để xem cấu hình học vụ.</strong><Link to="/login" className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Đăng nhập</Link></section>
+        : governance.loading ? <section className="governance-state" role="status">Đang tải học kỳ và các giai đoạn đồ án…</section>
+        : governance.isForbidden ? <section className="governance-state governance-error" role="alert">Bạn không có quyền truy cập cấu hình học vụ.</section>
+        : issue ? <section className="governance-state governance-error" role="alert">{issue.message} {issue.action && <Button onClick={governance.retry}>{issue.action === 'reload' ? 'Tải lại dữ liệu' : 'Thử lại'}</Button>}</section> : null}
+    </WorkspacePage>
   }
-  return <WorkspacePage className="governance-page" title="Học kỳ và giai đoạn đồ án" eyebrow="Quản lý học vụ" description="Thiết lập thời gian đăng ký, thực hiện và đánh giá cho từng học kỳ." action={governance.canManage ? <div className="governance-actions"><Button onClick={() => openEditor({ kind: 'semester' })}>Thêm học kỳ</Button><Button variant="secondary" onClick={() => openEditor({ kind: 'period' })}>Thêm giai đoạn</Button></div> : null}>
-    
-    <p className="text-sm text-ink-muted">Điều kiện về thành viên và ngành tham gia được quản lý trong chính sách của từng giai đoạn.</p>
-    <form className="governance-filter" onSubmit={(event) => { event.preventDefault(); setFilters({ search }) }}><input aria-label="Tìm học kỳ hoặc giai đoạn" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm theo mã hoặc tên"/><Button type="submit" variant="secondary">Lọc</Button></form>
-    {!governance.canManage ? <p className="governance-note">Bạn đang ở chế độ chỉ xem.</p> : null}{operationError && !editor ? <div className="governance-error col-span-full" role="alert">{operationError.message}{operationError.action && <Button onClick={governance.retry}>Tải lại dữ liệu</Button>}</div> : null}{operationSuccess ? <p className="governance-message" role="status">{operationSuccess}</p> : null}
-    {!governance.canManage && <p role="status" className="rounded-lg border border-hairline bg-card p-4 text-sm text-ink-muted">Cấu trúc học kỳ và kỳ đồ án do quản trị viên cấu hình. Bộ môn có thể xem và mở chính sách của kỳ thuộc phạm vi được cấp.</p>}
+  const periodSemesterCodes = Array.from(new Set(governance.periods.map(p => p.semesterCode).filter(Boolean)))
+  const filteredPeriods = selectedSemesterCode === 'ALL'
+    ? governance.periods
+    : governance.periods.filter(p => p.semesterCode === selectedSemesterCode)
+  const periodPageSize = 6
+  const totalPeriodPages = Math.max(1, Math.ceil(filteredPeriods.length / periodPageSize))
+  const safePeriodPage = Math.min(periodPage, totalPeriodPages)
+  const visiblePeriods = filteredPeriods.slice((safePeriodPage - 1) * periodPageSize, safePeriodPage * periodPageSize)
+
+  return <WorkspacePage className="governance-page" title="Học kỳ và kỳ đồ án" eyebrow="Quản lý học vụ" description="Thiết lập thời gian đăng ký, thực hiện và đánh giá cho từng học kỳ. Điều kiện về thành viên và ngành tham gia được quản lý trong chính sách của từng giai đoạn." action={governance.canManage ? <div className="governance-actions"><Button onClick={() => openEditor({ kind: 'semester' })}>Thêm học kỳ</Button><Button variant="secondary" onClick={() => openEditor({ kind: 'period' })}>Thêm giai đoạn</Button></div> : null}>
+    <form className="governance-filter" onSubmit={(event) => { event.preventDefault(); setFilters({ search }); setPeriodPage(1) }}><input aria-label="Tìm học kỳ hoặc giai đoạn" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm theo mã hoặc tên"/><Button type="submit" variant="secondary">Lọc</Button></form>
+    {!governance.canManage && <p role="status" className="governance-note text-sm"><strong>Chế độ chỉ xem:</strong> Cấu trúc học kỳ và kỳ đồ án do quản trị viên cấu hình. Bộ môn có thể xem và mở chính sách của kỳ thuộc phạm vi được cấp.</p>}
+    {operationError && !editor ? <div className="governance-error col-span-full" role="alert">{operationError.message}{operationError.action && <Button onClick={governance.retry}>Tải lại dữ liệu</Button>}</div> : null}
+    {operationSuccess ? <p className="governance-message" role="status">{operationSuccess}</p> : null}
     <section aria-labelledby="governance-semesters-title">
       <div className="governance-section-title"><h2 id="governance-semesters-title">Học kỳ</h2><span>{governance.semesters.length} học kỳ</span></div>
       <div className="governance-grid">{governance.semesters.map(semester => <article key={semester.id} className="governance-card">
@@ -60,20 +72,31 @@ export function AcademicGovernancePage() {
       {!governance.semesters.length && <p className="governance-empty">Chưa có học kỳ phù hợp.</p>}
     </section>
     <section aria-labelledby="governance-periods-title">
-      <div className="governance-section-title"><h2 id="governance-periods-title">Giai đoạn đồ án</h2><span>{governance.periods.length} giai đoạn</span></div>
-      <div className="governance-periods">{governance.periods.map(period => <article key={period.id} className="governance-period">
+      <div className="governance-section-title"><h2 id="governance-periods-title">Giai đoạn đồ án</h2><span>{filteredPeriods.length} giai đoạn</span></div>
+      {periodSemesterCodes.length > 1 && <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Lọc giai đoạn theo học kỳ">
+        <button type="button" onClick={() => { setSelectedSemesterCode('ALL'); setPeriodPage(1) }} className={`min-h-9 rounded-full border px-3 text-xs font-semibold transition-colors ${selectedSemesterCode === 'ALL' ? 'border-primary bg-primary-subtle text-primary' : 'border-hairline bg-card text-ink-soft hover:border-primary/40'}`}>Tất cả ({governance.periods.length})</button>
+        {periodSemesterCodes.map(code => <button key={code} type="button" onClick={() => { setSelectedSemesterCode(code); setPeriodPage(1) }} className={`min-h-9 rounded-full border px-3 text-xs font-semibold transition-colors ${selectedSemesterCode === code ? 'border-primary bg-primary-subtle text-primary' : 'border-hairline bg-card text-ink-soft hover:border-primary/40'}`}>{code}</button>)}
+      </div>}
+      <div className="governance-periods">{visiblePeriods.map(period => <article key={period.id} className="governance-period">
         <div className="governance-record-heading"><div><p className="governance-record-code">{period.semesterCode} · {labels[period.periodType]}</p><h3>{period.name}</h3></div></div>
         <dl className="governance-dates"><div><dt>Bắt đầu (giờ Việt Nam)</dt><dd>{dateTimeLabel(period.startAt)}</dd></div><div><dt>Kết thúc (giờ Việt Nam)</dt><dd>{dateTimeLabel(period.endAt)}</dd></div></dl>
         <dl className="governance-period-facts"><div><dt>Số thành viên</dt><dd>{period.minTeamSize}–{period.maxTeamSize}</dd></div><div><dt>Số ngành tối thiểu</dt><dd>{period.minDistinctMajors}</dd></div><div><dt>Đồ án tối đa mỗi GVHD</dt><dd>{period.maxProjectsPerSupervisor}</dd></div></dl>
         <div className="governance-record-footer"><div className="governance-record-actions">
           <Link to={`/academic/project-periods/${period.id}/policy`} className="workspace-action-link">Các phiên bản chính sách<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>
-          <Link to={`/academic/project-periods/${period.id}/review-gates`} className="workspace-action-link">Cấu hình Review Gates<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>
-          {env.defenseScheduleEnabled && env.roomPlannerEnabled && <Link to={`/academic/project-periods/${period.id}/room-planner`} className="workspace-action-link">Phòng & lịch Gate 3/4<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>}
+          <Link to={`/academic/project-periods/${period.id}/review-gates`} className="workspace-action-link">Cấu hình cổng kiểm duyệt<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>
+          {env.defenseScheduleEnabled && env.roomPlannerEnabled && <Link to={`/academic/project-periods/${period.id}/room-planner`} className="workspace-action-link">Phòng & lịch bảo vệ<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>}
           {governance.canManage && !['CLOSED', 'ARCHIVED'].includes(period.status) && <Button size="sm" variant="secondary" onClick={() => openEditor({ kind: 'period', record: period })}>Chỉnh sửa cấu trúc</Button>}
         </div><Status label={`giai đoạn ${period.name}`} status={period.status} busy={governance.submitting} canManage={governance.canManage} onChange={status => changeStatus('period', period.id, status, period.status)} /></div>
 
       </article>)}</div>
-      {!governance.periods.length && <p className="governance-empty">Chưa có giai đoạn phù hợp với bộ lọc.</p>}
+      {totalPeriodPages > 1 && <div className="mt-4 flex items-center justify-between rounded-lg border border-hairline bg-card px-4 py-2.5 text-xs">
+        <span className="text-ink-muted">Trang <strong className="text-ink">{safePeriodPage}</strong> / {totalPeriodPages} · {filteredPeriods.length} giai đoạn</span>
+        <div className="flex gap-2">
+          <button type="button" disabled={safePeriodPage <= 1} onClick={() => setPeriodPage(p => Math.max(1, p - 1))} className="min-h-9 rounded-lg border border-hairline px-3 font-semibold text-ink-soft hover:border-primary hover:text-primary disabled:opacity-40">Trước</button>
+          <button type="button" disabled={safePeriodPage >= totalPeriodPages} onClick={() => setPeriodPage(p => Math.min(totalPeriodPages, p + 1))} className="min-h-9 rounded-lg border border-hairline px-3 font-semibold text-ink-soft hover:border-primary hover:text-primary disabled:opacity-40">Sau</button>
+        </div>
+      </div>}
+      {!filteredPeriods.length && <p className="governance-empty">Chưa có giai đoạn phù hợp với bộ lọc.</p>}
     </section>
     {confirmationDialog}
     {editor?.kind === 'semester' ? <SemesterForm record={editor.record} organizations={governance.organizations} error={operationError} submitting={governance.submitting} onCancel={() => setEditor(null)} onSubmit={saveSemester}/> : null}{editor?.kind === 'period' ? <ProjectPeriodForm record={editor.record} semesters={governance.semesters} error={operationError} submitting={governance.submitting} onCancel={() => setEditor(null)} onSubmit={savePeriod}/> : null}

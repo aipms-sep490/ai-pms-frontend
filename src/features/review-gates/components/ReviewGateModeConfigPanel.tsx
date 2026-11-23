@@ -15,7 +15,7 @@ export interface GateModeItem {
   status: 'PLANNED' | 'IN_PROGRESS' | 'PASSED' | 'REVISION_REQUIRED'
 }
 
-export const INITIAL_GATE_MODES: GateModeItem[] = [
+const INITIAL_GATE_MODES: GateModeItem[] = [
   {
     gateCode: 'R1',
     gateTitle: 'Đề cương & Đặc tả yêu cầu (SRS)',
@@ -208,10 +208,10 @@ export const ReviewGateModeConfigPanel: React.FC<ReviewGateModeConfigPanelProps>
   }
 
   return (
-    <div className="rounded-2xl border border-hairline bg-surface p-6 shadow-xs space-y-6">
+    <div className="rounded-2xl border border-hairline bg-card p-6 shadow-xs space-y-6">
       {/* Toast */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 rounded-xl border border-primary/20 bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-xl animate-in slide-in-from-bottom-3 duration-200">
+        <div role="status" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-[min(92vw,480px)] rounded-xl border border-primary/20 bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-xl motion-safe:animate-in motion-safe:slide-in-from-bottom-3 duration-200">
           {toastMessage}
         </div>
       )}
@@ -243,15 +243,15 @@ export const ReviewGateModeConfigPanel: React.FC<ReviewGateModeConfigPanelProps>
               key={gate.gateCode}
               className={`rounded-2xl border p-5 shadow-xs transition-all space-y-4 ${
                 isOnline
-                  ? 'border-sky-200 bg-sky-50/20 hover:border-sky-400'
-                  : 'border-emerald-200 bg-emerald-50/20 hover:border-emerald-400'
+                  ? 'border-primary/20 bg-primary-subtle/30 hover:border-primary/40'
+                  : 'border-status-success-border bg-status-success-bg/30 hover:border-status-success-border'
               }`}
             >
               {/* Gate Header & Mode Switcher */}
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className={`h-11 w-11 rounded-xl flex items-center justify-center font-bold text-base shadow-xs ${
-                    isOnline ? 'bg-sky-600 text-white' : 'bg-primary text-white'
+                    isOnline ? 'bg-tag-se text-white' : 'bg-primary text-white'
                   }`}>
                     {gate.gateCode}
                   </div>
@@ -264,12 +264,12 @@ export const ReviewGateModeConfigPanel: React.FC<ReviewGateModeConfigPanelProps>
                 </div>
 
                 {/* Delivery Mode Toggle */}
-                <div className="flex rounded-lg border border-hairline bg-surface p-0.5 text-xs font-bold">
+                <div className="flex rounded-lg border border-hairline bg-card p-0.5 text-xs font-bold">
                   <button
                     type="button"
                     onClick={() => handleModeChange(gate.gateCode, 'ONLINE')}
                     className={`rounded-md px-2.5 py-1 transition-colors ${
-                      isOnline ? 'bg-sky-600 text-white shadow-xs' : 'text-ink-muted hover:text-ink'
+                      isOnline ? 'bg-tag-se text-white shadow-xs' : 'text-ink-muted hover:text-ink'
                     }`}
                   >
                     Online
@@ -287,28 +287,28 @@ export const ReviewGateModeConfigPanel: React.FC<ReviewGateModeConfigPanelProps>
               </div>
 
               {/* Detail Info by Mode */}
-              <div className="rounded-xl border border-hairline bg-surface/80 p-3.5 text-xs space-y-2">
+              <div className="rounded-xl border border-hairline bg-card p-3.5 text-xs space-y-2">
                 {isOnline ? (
                   <>
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-sky-800 flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-semibold text-tag-se flex items-center gap-1.5">
                         <span>🌐</span>
                         <span>Họp Trực tuyến qua LiveKit</span>
                       </span>
-                      <span className="text-xs text-emerald-700 font-medium">● Ghi nhận thời lượng tự động</span>
+                      <span className="text-xs text-status-success-text font-medium">● Ghi nhận thời lượng tự động</span>
                     </div>
                     <p className="text-xs text-ink-muted">
                       Tự động ghi nhận thời gian bắt đầu/kết thúc thực tế và thời lượng có mặt của từng thành viên hội đồng.
                     </p>
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="font-mono text-xs text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                      <span className="font-mono text-xs text-tag-se bg-tag-se-bg px-2 py-0.5 rounded border border-tag-se/25">
                         {gate.liveKitRoomName}
                       </span>
                       {onJoinLiveKit && (
                         <button
                           type="button"
                           onClick={() => onJoinLiveKit(gate.liveKitRoomName || 'livekit-room')}
-                          className="font-bold text-sky-700 hover:text-sky-900 underline"
+                          className="font-bold text-primary hover:text-primary-hover underline"
                         >
                           Vào phòng LiveKit ↗
                         </button>
@@ -317,14 +317,14 @@ export const ReviewGateModeConfigPanel: React.FC<ReviewGateModeConfigPanelProps>
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-emerald-800 flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-semibold text-status-success-text flex items-center gap-1.5">
                         <span>🏛️</span>
                         <span>Bảo vệ Trực tiếp tại trường</span>
                       </span>
-                      <span className="text-xs text-emerald-700 font-bold">✓ Tự động phân chia phòng</span>
+                      <span className="text-xs text-status-success-text font-bold">✓ Tự động phân chia phòng</span>
                     </div>
-                    <div className="flex items-center justify-between pt-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                       <div>
                         <span className="font-bold text-ink text-sm mr-2">{gate.roomCode || 'A-201'}</span>
                         <span className="text-xs text-ink-muted">({gate.building || 'Tòa Alpha'} · Tầng {gate.floor || 2})</span>
@@ -344,13 +344,13 @@ export const ReviewGateModeConfigPanel: React.FC<ReviewGateModeConfigPanelProps>
               </div>
 
               {/* Action: Open Script & Minutes */}
-              <div className="flex items-center justify-between pt-1">
-                <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <span className={`rounded-md border px-2 py-0.5 text-xs font-semibold ${
                   gate.status === 'PASSED'
-                    ? 'bg-emerald-100 text-emerald-800'
+                    ? 'border-status-success-border bg-status-success-bg text-status-success-text'
                     : gate.status === 'IN_PROGRESS'
-                    ? 'bg-primary-subtle text-primary'
-                    : 'bg-canvas text-ink-muted'
+                    ? 'border-primary/20 bg-primary-subtle text-primary'
+                    : 'border-hairline bg-canvas text-ink-muted'
                 }`}>
                   Trạng thái: {gate.status === 'PASSED' ? 'Đã đạt' : gate.status === 'IN_PROGRESS' ? 'Đang thẩm định' : 'Lên kế hoạch'}
                 </span>
@@ -358,7 +358,7 @@ export const ReviewGateModeConfigPanel: React.FC<ReviewGateModeConfigPanelProps>
                 <button
                   type="button"
                   onClick={() => handleOpenScript(gate)}
-                  className="rounded-xl border border-hairline bg-surface px-3.5 py-1.5 text-xs font-bold text-ink hover:bg-canvas transition-colors shadow-xs"
+                  className="min-h-10 rounded-xl border border-hairline bg-card px-3.5 py-1.5 text-xs font-bold text-ink hover:bg-canvas transition-colors shadow-xs"
                 >
                   📝 Kịch bản & Biên bản phiên {gate.gateCode}
                 </button>

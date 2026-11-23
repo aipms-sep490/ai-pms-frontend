@@ -6,6 +6,7 @@ import { EntityIdentityStrip } from '../../components/ui/EntityIdentityStrip'
 import { useStudentJourney } from '../../app/context'
 import { localDateTime, toUtcDateTime } from '../execution/execution-utils'
 import { HttpError } from '../../services/http/http-client'
+import { DefenseMockPanel } from '../ai-suite/DefenseMockPanel'
 import {
   cancelDefense,
   createDefenseCommittee,
@@ -34,10 +35,10 @@ export const toneFor = (status: DefenseSessionStatus) => statusTone[status] ?? '
 export const formatRange = (start: string, end: string) => {
   const startDate = new Date(start)
   if (Number.isNaN(startDate.getTime())) return start
-  const dayPart = new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).format(startDate)
-  const startTime = new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(startDate)
+  const dayPart = new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }).format(startDate)
+  const startTime = new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' }).format(startDate)
   const endDate = new Date(end)
-  const endTime = !Number.isNaN(endDate.getTime()) ? new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(endDate) : null
+  const endTime = !Number.isNaN(endDate.getTime()) ? new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' }).format(endDate) : null
   return `${dayPart} · ${startTime}${endTime ? `–${endTime}` : ''}`
 }
 
@@ -84,16 +85,20 @@ export function findSessionConflicts(sessions: DefenseSession[] | null): Array<[
 export function DefenseScheduleView({
   projectId: _projectId,
   sessions,
+  showManageVerdict = false,
   onCancelled,
 }: {
   projectId: number
   sessions: DefenseSession[] | null
+  showManageVerdict?: boolean
   onCancelled?: () => void
 }) {
   const scheduled = sessions?.find((session) => session.status === 'SCHEDULED')
   const conflicts = findSessionConflicts(sessions)
-  const mostRecentCancelled = sessions?.filter((session) => session.status === 'CANCELLED').at(-1)
+  const cancelledSessions = sessions?.filter((session) => session.status === 'CANCELLED') ?? []
+  const mostRecentCancelled = cancelledSessions.at(-1)
   const highlighted = scheduled ?? mostRecentCancelled ?? null
+  const previousSessions = (sessions ?? []).filter((session) => session.id !== highlighted?.id)
 
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
@@ -146,7 +151,7 @@ export function DefenseScheduleView({
           {scheduled?.canCancel && !showCancelModal && (
             <button
               type="button"
-              className="text-xs font-semibold text-status-error-text underline underline-offset-4"
+              className="min-h-11 px-2 text-xs font-semibold text-status-error-text underline underline-offset-4"
               onClick={() => setShowCancelModal(true)}
             >
               Hủy lịch
@@ -160,11 +165,11 @@ export function DefenseScheduleView({
       )}
 
       {showCancelModal && scheduled && (
-        <div className="mt-4 rounded-lg border border-hairline bg-subtle p-3 space-y-2">
+        <div className="mt-4 space-y-2 rounded-lg border border-hairline bg-canvas p-3">
           <label className="block text-xs font-semibold text-ink-soft">
             Lý do hủy lịch bảo vệ (bắt buộc)
             <textarea
-              className="mt-1 w-full rounded-md border border-hairline p-2 text-sm"
+              className="mt-1 w-full rounded-md border border-hairline bg-card p-2 font-normal text-sm text-ink"
               rows={2}
               value={cancelReason}
               placeholder="vd: Điều chỉnh phòng bảo vệ theo yêu cầu khoa"
@@ -176,7 +181,7 @@ export function DefenseScheduleView({
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
-              className="px-3 py-1 text-xs font-semibold text-ink-muted hover:underline"
+              className="min-h-11 px-3 py-1 text-xs font-semibold text-ink-muted hover:underline"
               disabled={cancelling}
               onClick={() => { setShowCancelModal(false); setCancelError('') }}
             >
@@ -184,7 +189,7 @@ export function DefenseScheduleView({
             </button>
             <button
               type="button"
-              className="rounded-md bg-status-error-bg border border-status-error-border px-3 py-1 text-xs font-semibold text-status-error-text disabled:opacity-50"
+              className="min-h-11 rounded-md border border-status-error-border bg-status-error-bg px-3 py-1 text-xs font-semibold text-status-error-text disabled:opacity-50"
               disabled={cancelling || !cancelReason.trim()}
               onClick={() => void handleCancel()}
             >
@@ -193,7 +198,7 @@ export function DefenseScheduleView({
           </div>
         </div>
       )}
-      {scheduled && (
+      {scheduled && (scheduled.canCancel || showManageVerdict) && (
         <div className="mt-3">
           <ActionVerdict
             actions={[{
@@ -209,6 +214,24 @@ export function DefenseScheduleView({
         </div>
       )}
     </section>
+      {previousSessions.length > 0 && (
+        <section className="rounded-xl border border-hairline bg-card p-4 shadow-xs">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-ink-muted">Lịch sử phiên bảo vệ trước đó ({previousSessions.length})</h3>
+          <ul className="mt-2.5 divide-y divide-hairline text-sm">
+            {previousSessions.map((session) => (
+              <li key={session.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                <div className="min-w-0">
+                  <p className="font-medium text-ink">{formatRange(session.startAt, session.endAt)} · Phòng {session.room}</p>
+                  {session.cancellationReason && <p className="mt-0.5 text-xs text-status-error-text">Lý do hủy: {session.cancellationReason}</p>}
+                </div>
+                <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${toneFor(session.status)}`}>
+                  {describeStatus(session.status)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
   </div>
   )
 }
@@ -386,21 +409,28 @@ export function DefenseManagementPanel({
             {committees.map((c) => (
               <li key={c.id} className="rounded-lg border border-hairline p-3 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-ink">{c.name} (#{c.id}) · v{c.version ?? 1}</span>
+                  <span className="font-semibold text-ink">{c.name} · v{c.version ?? 1}</span>
                   <span className="text-ink-muted">{c.members.length} thành viên · {c.status === 'CONFIRMED' ? 'Đang có hiệu lực' : c.status === 'SUPERSEDED' ? 'Đã thay thế' : 'Bản nháp'}</span>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {c.members.map((m, idx) => (
-                    <span key={idx} className="rounded bg-subtle px-1.5 py-0.5 border border-hairline text-ink-soft">
-                      Giảng viên #{m.userId} · Ngành #{m.majorId}
-                    </span>
-                  ))}
+                  {c.members.map((m, idx) => {
+                    const matched = candidates.find(cand => cand.userId === m.userId && cand.majorId === m.majorId)
+                      ?? candidates.find(cand => cand.userId === m.userId)
+                    const memberName = m.fullName ?? matched?.fullName ?? 'Giảng viên hội đồng'
+                    const majorLabel = m.majorName ?? matched?.majorName
+                    const roleText = m.role === 'CHAIR' ? 'Chủ tịch' : m.role === 'SECRETARY' ? 'Thư ký' : null
+                    return (
+                      <span key={idx} className="rounded border border-hairline bg-canvas px-1.5 py-0.5 text-ink-soft">
+                        {memberName}{majorLabel ? ` · ${majorLabel}` : ''}{roleText ? ` (${roleText})` : ''}
+                      </span>
+                    )
+                  })}
                 </div>
                 {c.status === 'DRAFT' && c.concurrencyToken && <button type="button"
                   className="mt-2 min-h-11 rounded-lg border border-primary px-3 text-xs font-semibold text-primary disabled:opacity-50"
                   disabled={confirmingCommitteeId !== null || hasScheduledSession}
                   onClick={() => void handleConfirmCommittee(c)}>
-                  {confirmingCommitteeId === c.id ? 'Đang xác nhận…' : 'Xác nhận hội đồng để phân chấm Cold'}
+                  {confirmingCommitteeId === c.id ? 'Đang xác nhận…' : 'Xác nhận hội đồng để phân công chấm nguội'}
                 </button>}
               </li>
             ))}
@@ -408,12 +438,12 @@ export function DefenseManagementPanel({
         )}
 
         {/* Tạo hội đồng mới */}
-        <div className="mt-4 border-t border-hairline pt-3 space-y-3">
-          <h4 className="text-xs font-semibold text-ink uppercase tracking-wide">Tạo hội đồng mới</h4>
+        <div className="mt-4 space-y-3 border-t border-hairline pt-3">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-ink">Tạo hội đồng mới</h4>
           <label className="block text-xs text-ink-soft">
             Tên hội đồng
             <input
-              className="mt-1 block w-full rounded-md border border-hairline p-2 text-sm"
+              className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm text-ink"
               value={committeeName}
               placeholder="vd: Hội đồng bảo vệ Kỹ thuật phần mềm 01"
               disabled={creatingCommittee}
@@ -421,15 +451,15 @@ export function DefenseManagementPanel({
             />
           </label>
           <div className="space-y-2">
-            <span className="text-xs text-ink-soft font-semibold">Danh sách thành viên hội đồng</span>
+            <span className="text-xs font-semibold text-ink-soft">Danh sách thành viên hội đồng</span>
             {candidateState === 'loading' && <p role="status" className="text-xs text-ink-muted">Đang kiểm tra giảng viên đủ điều kiện…</p>}
-            {candidateState === 'error' && <p role="alert" className="text-xs text-status-error-text">Chưa tải được ứng viên từ máy chủ. <button type="button" className="underline" onClick={() => setCandidateRevision(v => v + 1)}>Thử lại</button></p>}
+            {candidateState === 'error' && <p role="alert" className="text-xs text-status-error-text">Chưa tải được ứng viên từ máy chủ. <button type="button" className="min-h-11 underline" onClick={() => setCandidateRevision(v => v + 1)}>Thử lại</button></p>}
             {candidateState === 'ready' && candidates.length === 0 && <p role="status" className="text-xs text-ink-muted">Chưa có giảng viên đủ chuyên môn trong phạm vi bộ môn phụ trách.</p>}
             {candidateState === 'ready' && candidates.some(c => c.blockReason === 'SUPERVISOR_CONFLICT') && <p className="text-xs text-status-warning-text">Giảng viên đang hướng dẫn đồ án này được hiển thị để đối chiếu nhưng bị khóa chọn.</p>}
             {memberRows.map((row, idx) => (
               <div key={idx} className="flex flex-wrap items-end gap-2">
                 <label className="min-w-64 flex-1 text-xs text-ink-soft">Giảng viên và chuyên ngành {idx + 1}
-                  <select className="mt-1 min-h-11 w-full rounded-md border border-hairline bg-card p-2 text-sm" value={row.userId && row.majorId ? `${row.userId}:${row.majorId}` : ''}
+                  <select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-sm text-ink" value={row.userId && row.majorId ? `${row.userId}:${row.majorId}` : ''}
                     disabled={creatingCommittee || candidateState !== 'ready'}
                     onChange={event => { const [userId = '', majorId = ''] = event.target.value.split(':'); updateMemberRow(idx, { userId, majorId }) }}>
                     <option value="">Chọn người chấm đủ điều kiện</option>
@@ -439,14 +469,14 @@ export function DefenseManagementPanel({
                   </select>
                 </label>
                 <label className="text-xs text-ink-soft">Vai trò trong hội đồng
-                  <select className="mt-1 min-h-11 rounded-md border border-hairline bg-card p-2 text-sm" value={row.role} disabled={creatingCommittee}
+                  <select className="mt-1 min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-sm text-ink" value={row.role} disabled={creatingCommittee}
                     onChange={event => updateMemberRow(idx, { role: event.target.value as 'MEMBER' | 'CHAIR' | 'SECRETARY' })}>
                     <option value="MEMBER">Thành viên</option><option value="CHAIR">Chủ tịch</option><option value="SECRETARY">Thư ký</option>
                   </select>
                 </label>
                 <button
                   type="button"
-                  className="text-xs text-status-error-text hover:underline"
+                  className="min-h-11 px-2 text-xs text-status-error-text hover:underline"
                   disabled={creatingCommittee || memberRows.length === 1}
                   onClick={() => removeMemberRow(idx)}
                 >
@@ -456,7 +486,7 @@ export function DefenseManagementPanel({
             ))}
             <button
               type="button"
-              className="text-xs font-semibold text-primary hover:underline"
+              className="min-h-11 text-xs font-semibold text-primary hover:underline"
               disabled={creatingCommittee}
               onClick={addMemberRow}
             >
@@ -466,13 +496,13 @@ export function DefenseManagementPanel({
           {createCommitteeError && <p role="alert" className="text-xs text-status-error-text">{createCommitteeError}</p>}
           <button
             type="button"
-            className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+            className="min-h-11 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
             disabled={creatingCommittee || candidateState !== 'ready' || !committeeName.trim()}
             onClick={() => void handleCreateCommittee()}
           >
             {creatingCommittee ? 'Đang tạo…' : 'Tạo hội đồng'}
           </button>
-          <p className="text-xs text-ink-muted">Sau khi khóa Final Package, xác nhận hội đồng rồi phân công thành viên chấm Cold theo ngành. Hội đồng không tự cấp điểm nếu chưa có assignment rubric.</p>
+          <p className="text-xs text-ink-muted">Sau khi khóa hồ sơ nộp cuối, xác nhận hội đồng rồi phân công thành viên chấm nguội theo ngành. Hội đồng chỉ chấm điểm khi có phân công bộ tiêu chí tương ứng.</p>
         </div>
       </section>
 
@@ -489,7 +519,7 @@ export function DefenseManagementPanel({
               <label className="text-xs text-ink-soft">
                 Chọn hội đồng bảo vệ
                 <select
-                  className="mt-1 block w-full rounded-md border border-hairline p-2 text-sm"
+                  className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-sm text-ink"
                   value={selectedCommitteeId}
                   disabled={scheduling || !committees.some(c => c.status === 'CONFIRMED')}
                   onChange={(e) => setSelectedCommitteeId(e.target.value)}
@@ -497,7 +527,7 @@ export function DefenseManagementPanel({
                   <option value="">-- Chọn hội đồng --</option>
                   {committees.filter(c => c.status === 'CONFIRMED').map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} (#{c.id})
+                      {c.name} · v{c.version ?? 1}
                     </option>
                   ))}
                 </select>
@@ -505,7 +535,7 @@ export function DefenseManagementPanel({
               <label className="text-xs text-ink-soft">
                 Phòng bảo vệ
                 <input
-                  className="mt-1 block w-full rounded-md border border-hairline p-2 text-sm"
+                  className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm text-ink"
                   value={room}
                   placeholder="vd: A1.01 hoặc Online Meet"
                   disabled={scheduling}
@@ -517,7 +547,7 @@ export function DefenseManagementPanel({
                 <input
                   type="datetime-local"
                   min={localDateTime(new Date().toISOString())}
-                  className="mt-1 block w-full rounded-md border border-hairline p-2 text-sm"
+                  className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm text-ink"
                   value={startAt}
                   disabled={scheduling}
                   onChange={(e) => setStartAt(e.target.value)}
@@ -528,7 +558,7 @@ export function DefenseManagementPanel({
                 <input
                   type="datetime-local"
                   min={startAt || localDateTime(new Date().toISOString())}
-                  className="mt-1 block w-full rounded-md border border-hairline p-2 text-sm"
+                  className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm text-ink"
                   value={endAt}
                   disabled={scheduling}
                   onChange={(e) => setEndAt(e.target.value)}
@@ -539,7 +569,7 @@ export function DefenseManagementPanel({
             {scheduleSuccess && <p role="status" className="text-xs text-status-success-text">{scheduleSuccess}</p>}
             <button
               type="button"
-              className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+              className="min-h-11 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
               disabled={scheduling || !selectedCommitteeId || !startAt || !endAt || !room.trim()}
               onClick={() => void handleScheduleDefense()}
             >
@@ -583,18 +613,35 @@ export function ProjectDefensePage() {
       title="Lịch bảo vệ"
       eyebrow="Hội đồng đánh giá"
       description="Thời gian và phòng bảo vệ của đồ án. Thành phần hội đồng không hiển thị ở đây."
+      action={projectId ? (
+        <button
+          type="button"
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary disabled:opacity-50"
+          disabled={loading}
+          onClick={retry}
+        >
+          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
+          Làm mới
+        </button>
+      ) : undefined}
     >
-      {projectId && <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: (journey.project as { title?: string } | undefined)?.title || `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />}
+      {projectId && <EntityIdentityStrip chips={[
+        { icon: 'folder', label: 'Đồ án', value: (journey.project as { title?: string } | undefined)?.title || sessions?.[0]?.projectTitle || 'Đồ án hiện tại' },
+        ...((journey.project as { code?: string } | undefined)?.code || sessions?.[0]?.projectCode ? [{ icon: 'tag', label: 'Mã đồ án', value: (journey.project as { code?: string } | undefined)?.code || sessions?.[0]?.projectCode || '' }] : []),
+      ]} />}
       {!projectId && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Không tìm thấy đồ án đang hoạt động để xem lịch bảo vệ.</p>}
       {projectId && loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải lịch bảo vệ…</p>}
       {projectId && !loading && error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><span>{error}</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
 
       {projectId && !loading && !error && (
-        <DefenseScheduleView
-          projectId={projectId}
-          sessions={sessions}
-          onCancelled={() => setRevision((v) => v + 1)}
-        />
+        <>
+          <DefenseScheduleView
+            projectId={projectId}
+            sessions={sessions}
+            onCancelled={() => setRevision((v) => v + 1)}
+          />
+          <DefenseMockPanel projectId={projectId} />
+        </>
       )}
 
     </WorkspacePage>
@@ -623,16 +670,25 @@ export function ProjectDefenseManagementPage() {
     return () => controller.abort()
   }, [projectId, revision])
 
-  if (!Number.isSafeInteger(projectId) || projectId < 1) return <WorkspacePage title="Quản lý bảo vệ"><p role="alert">Mã đồ án không hợp lệ.</p></WorkspacePage>
+  if (!Number.isSafeInteger(projectId) || projectId < 1) return <WorkspacePage title="Quản lý bảo vệ"><p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">Mã đồ án không hợp lệ.</p></WorkspacePage>
+  const sessionMeta = sessions?.[0]
+  const displayProjectTitle = sessionMeta?.projectTitle || 'Đồ án được quản lý'
+  const displayProjectCode = sessionMeta?.projectCode || null
   return (
-    <WorkspacePage title={isDepartmentRoute ? 'Quản lý hội đồng & lịch bảo vệ' : 'Lịch bảo vệ đồ án'} eyebrow={`Đồ án #${projectId}`} description={isDepartmentRoute ? 'Bộ môn phụ trách thành lập hội đồng và xếp lịch trong phạm vi BE cấp.' : 'Giảng viên hướng dẫn theo dõi lịch bảo vệ; bộ môn phụ trách phân hội đồng.'}>
-      <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
+    <WorkspacePage title={isDepartmentRoute ? 'Quản lý hội đồng & lịch bảo vệ' : 'Lịch bảo vệ đồ án'} eyebrow={displayProjectCode ?? 'Hội đồng & bảo vệ'} description={isDepartmentRoute ? 'Bộ môn phụ trách thành lập hội đồng và xếp lịch trong phạm vi quản lý.' : 'Giảng viên hướng dẫn theo dõi lịch bảo vệ; bộ môn phụ trách phân hội đồng.'}>
+      <EntityIdentityStrip chips={[
+        { icon: 'folder', label: 'Đồ án', value: displayProjectTitle },
+        ...(displayProjectCode ? [{ icon: 'tag', label: 'Mã đồ án', value: displayProjectCode }] : []),
+      ]} />
 
       {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error}</p>}
       {!error && sessions && (isDepartmentRoute
-        ? <DefenseManagementPanel projectId={projectId} hasScheduledSession={sessions.some((session) => session.status === 'SCHEDULED')} onSessionScheduled={() => setRevision((value) => value + 1)} />
-        : <DefenseScheduleView projectId={projectId} sessions={sessions} />)}
-      {!error && !sessions && <p role="status">Đang tải lịch bảo vệ…</p>}
+        ? <>
+            <DefenseScheduleView projectId={projectId} sessions={sessions} showManageVerdict onCancelled={() => setRevision((value) => value + 1)} />
+            <DefenseManagementPanel projectId={projectId} hasScheduledSession={sessions.some((session) => session.status === 'SCHEDULED')} onSessionScheduled={() => setRevision((value) => value + 1)} />
+          </>
+        : <><DefenseScheduleView projectId={projectId} sessions={sessions} /><div className="mt-5"><DefenseMockPanel projectId={projectId} /></div></>)}
+      {!error && !sessions && <p role="status" className="workspace-surface p-5 text-sm text-ink-muted">Đang tải lịch bảo vệ…</p>}
     </WorkspacePage>
   )
 }

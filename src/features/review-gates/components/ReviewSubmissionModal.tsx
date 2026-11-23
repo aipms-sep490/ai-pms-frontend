@@ -184,7 +184,7 @@ export function ReviewSubmissionModal({
             <span className="font-bold text-primary">v{nextVer} (Bản mới)</span>
           </div>
           {requirement.reviewerFeedback && (
-            <div className="mt-2 rounded-md border border-status-error-border bg-status-error-bg p-2 text-danger-text">
+            <div className="mt-2 rounded-md border border-status-error-border bg-status-error-bg p-2 text-status-error-text">
               <strong>Phản hồi của Reviewer:</strong> {requirement.reviewerFeedback}
             </div>
           )}
@@ -222,7 +222,7 @@ export function ReviewSubmissionModal({
 
         {submissionMode === 'file' ? (
           <div className="space-y-3">
-            <p role="status" className="text-xs text-slate-600">{policyState === 'ready' && uploadPolicy ? uploadPolicyLabel(uploadPolicy) : policyState === 'loading' ? 'Đang tải giới hạn tệp từ máy chủ…' : 'Chưa tải được chính sách tệp. Máy chủ sẽ kiểm tra giới hạn và định dạng khi gửi.'}</p>
+            <p role="status" className="text-xs text-ink-soft">{policyState === 'ready' && uploadPolicy ? uploadPolicyLabel(uploadPolicy) : policyState === 'loading' ? 'Đang tải giới hạn tệp từ máy chủ…' : 'Chưa tải được chính sách tệp. Máy chủ sẽ kiểm tra giới hạn và định dạng khi gửi.'}</p>
             {!selectedFile ? (
               <div
                 role="button"
@@ -307,7 +307,7 @@ export function ReviewSubmissionModal({
                     disabled={!isPermitted || busy}
                     onClick={() => { setSelectedFile(null); setArtifactName('') }}
                     aria-label="Hủy chọn tệp"
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 hover:text-ink-soft transition-colors cursor-pointer"
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-ink-muted hover:bg-canvas hover:text-ink-soft transition-colors cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-[16px]" aria-hidden="true">close</span>
                   </button>
@@ -317,7 +317,7 @@ export function ReviewSubmissionModal({
 
             <div>
               <label htmlFor="evidence-filename" className="block text-xs font-bold text-ink-soft">
-                Tên hiển thị tài liệu minh chứng <span className="text-danger-text">*</span>
+                Tên hiển thị tài liệu minh chứng <span className="text-status-error-text">*</span>
               </label>
               <input
                 id="evidence-filename"
@@ -328,7 +328,7 @@ export function ReviewSubmissionModal({
                 value={artifactName}
                 onChange={(e) => setArtifactName(e.target.value)}
                 placeholder="Ví dụ: SDD_v3.pdf hoặc https://github.com/.../pull/42"
-                className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-xs text-ink focus:border-primary focus:outline-hidden disabled:bg-canvas"
+                className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-xs text-ink focus:border-primary focus:outline-hidden disabled:bg-canvas"
               />
               <p className="mt-1 text-xs text-ink-muted">
                 {env.reviewGatesMockEnabled ? 'Mô phỏng: có thể nhập tên minh chứng để thử giao diện.' : 'Chọn tệp ở trên. Tên file tải lên được lưu theo tệp đã chọn.'}
@@ -338,7 +338,7 @@ export function ReviewSubmissionModal({
         ) : (
           <div>
             <label htmlFor="external-evidence-url" className="block text-xs font-bold text-ink-soft">
-              Liên kết minh chứng ngoài (URL / Git PR / Google Drive) <span className="text-danger-text">*</span>
+              Liên kết minh chứng ngoài (URL / Git PR / Google Drive) <span className="text-status-error-text">*</span>
             </label>
             <input
               id="external-evidence-url"
@@ -351,9 +351,9 @@ export function ReviewSubmissionModal({
               value={artifactName}
               onChange={(e) => setArtifactName(e.target.value)}
               placeholder="Ví dụ: SDD_v3.pdf hoặc https://github.com/.../pull/42"
-              className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-3 py-2 text-xs text-ink focus:border-primary focus-visible:ring-2 focus-visible:ring-primary disabled:bg-canvas"
+              className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-xs text-ink focus:border-primary focus-visible:ring-2 focus-visible:ring-primary disabled:bg-canvas"
             />
-            {linkError && <p id="external-evidence-url-error" role="alert" className="mt-1 text-xs text-danger-text">{linkError}</p>}
+            {linkError && <p id="external-evidence-url-error" role="alert" className="mt-1 text-xs text-status-error-text">{linkError}</p>}
             <p id="external-evidence-url-help" className="mt-1 text-xs text-ink-muted">
               Đảm bảo đường dẫn ở chế độ công khai hoặc đã cấp quyền truy cập cho Giảng viên / Hội đồng thẩm định.
             </p>
@@ -362,7 +362,7 @@ export function ReviewSubmissionModal({
 
         <div>
           <label htmlFor="evidence-notes" className="block text-xs font-bold text-ink-soft">
-            Giải trình nội dung thay đổi / Ghi chú <span className="text-danger-text">*</span>
+            Giải trình nội dung thay đổi / Ghi chú <span className="text-status-error-text">*</span>
           </label>
           <textarea
             id="evidence-notes"
@@ -373,7 +373,7 @@ export function ReviewSubmissionModal({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Mô tả cụ thể những điểm đã chỉnh sửa theo phản hồi của reviewer..."
-            className="mt-1 w-full rounded-lg border border-hairline px-3 py-2 text-xs text-ink focus:border-primary focus:outline-hidden disabled:bg-canvas"
+            className="mt-1 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-xs text-ink focus:border-primary focus:outline-hidden disabled:bg-canvas"
           />
           <p className="mt-1 text-xs text-ink-muted">
             Nêu rõ các nội dung hoặc tài liệu đã cập nhật để Hội đồng dễ dàng đối chiếu và thẩm định lại.
@@ -381,7 +381,7 @@ export function ReviewSubmissionModal({
         </div>
 
         {error && (
-          <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs font-semibold text-danger-text">
+          <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs font-semibold text-status-error-text">
             {error}
             {conflict && onReload && <button type="button" disabled={busy} className="mt-2 block text-xs underline"
               onClick={async () => {

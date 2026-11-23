@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { displayLabel } from '../../components/ui/display-label'
+import { FilterToolbar } from '../../components/ui/FilterToolbar'
+import type { FilterChipItem } from '../../components/ui/FilterChips'
+import { ListLoading } from '../../components/ui/ListLoading'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { httpGetBlob, HttpError } from '../../services/http/http-client'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { getProjectEvidence, type ProjectEvidence, type ProjectEvidenceQuery } from '../projects/api/project-governance-api'
@@ -11,9 +17,16 @@ const sourceTypes = ['TASK', 'DELIVERABLE', 'MEETING', 'PROGRESS_REPORT', 'FILE'
 const verificationStatuses = ['PENDING', 'UNKNOWN', 'VERIFIED', 'REJECTED'] as const
 const sourceLabels: Record<(typeof sourceTypes)[number], string> = { TASK: 'Công việc', DELIVERABLE: 'Hạng mục bàn giao', MEETING: 'Cuộc họp', PROGRESS_REPORT: 'Báo cáo tiến độ', FILE: 'Tệp' }
 const verificationLabels: Record<string, string> = { PENDING: 'Chờ xác minh', UNKNOWN: 'Chưa xác định', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối' }
+const verificationTone = (status: string): 'success' | 'danger' | 'warning' | 'neutral' => {
+  if (status === 'VERIFIED') return 'success'
+  if (status === 'REJECTED') return 'danger'
+  if (status === 'PENDING') return 'warning'
+  return 'neutral'
+}
 const pageSize = 20
 
 type Filters = Pick<ProjectEvidenceQuery, 'sourceType' | 'majorId' | 'verificationStatus'>
+type EvidenceSort = 'newest' | 'oldest'
 
 export function ProjectEvidenceLedgerPage() {
   const access = useExecutionAccess()
@@ -22,20 +35,21 @@ export function ProjectEvidenceLedgerPage() {
   return <>
     {scope.loading && <p role="status" className="mb-4 text-sm">Đang tải phạm vi ngành…</p>}
     {scope.error && <p role="status" className="mb-4 text-sm text-ink-muted">{scope.error} Bộ lọc ngành tạm thời chưa khả dụng. <button type="button" className="min-h-11 underline" onClick={scope.retry}>Tải lại phạm vi ngành</button></p>}
-    <ProjectEvidenceLedger projectId={access.project.id} routeBase={access.routeBase} majors={scope.majors} lockedMajorId={access.actor === 'mentor' ? access.supervisor?.majorId ?? undefined : undefined} actor={access.actor} />
+    <ProjectEvidenceLedger projectId={access.project.id} projectLabel={[access.project.code, access.project.title].filter(Boolean).join(' · ')} routeBase={access.routeBase} majors={scope.majors} lockedMajorId={access.actor === 'mentor' ? access.supervisor?.majorId ?? undefined : undefined} actor={access.actor} />
   </>
 }
 
 /** Listing is read-only; review decisions are written via BE-13 (project-evidence/{id}/reviews).
  * `actor` is presentation-only (hides the review toggle for students, who have no
  * review-history API access at all) — the server remains the sole review authority. */
-interface LedgerProps { projectId: number; routeBase: string; majors?: { majorId: number; majorName: string }[]; lockedMajorId?: number; actor?: 'student' | 'supervisor' | 'mentor' }
+interface LedgerProps { projectId: number; projectLabel?: string; routeBase: string; majors?: { majorId: number; majorName: string }[]; lockedMajorId?: number; actor?: 'student' | 'supervisor' | 'mentor' }
 export function ProjectEvidenceLedger(props: LedgerProps) {
   return <EvidenceLedger key={`${props.projectId}:${props.routeBase}:${props.lockedMajorId ?? ''}`} {...props} />
 }
-function EvidenceLedger({ projectId, routeBase, majors = [], lockedMajorId, actor }: LedgerProps) {
+function EvidenceLedger({ projectId, projectLabel, routeBase, majors = [], lockedMajorId, actor }: LedgerProps) {
   const [filters, setFilters] = useState<Filters>({ majorId: lockedMajorId })
-  const [majorInput, setMajorInput] = useState(String(lockedMajorId ?? ''))
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<EvidenceSort>('newest')
   const [page, setPage] = useState(1)
   const [result, setResult] = useState<{ items: ProjectEvidence[]; totalCount: number; totalPages: number } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -60,66 +74,125 @@ function EvidenceLedger({ projectId, routeBase, majors = [], lockedMajorId, acto
 
   useEffect(() => { const requests = sequence; void load(); return () => { requests.current++ } }, [load])
 
-  const applyMajor = () => {
-    const majorId = lockedMajorId ?? Number(majorInput)
-    if (!lockedMajorId && majorInput && !majors.some(item => item.majorId === majorId)) return
-    setFilters(current => ({ ...current, majorId: lockedMajorId ?? (majorInput ? majorId : undefined) }))
+  const changeMajor = (value: string) => {
+    if (lockedMajorId) return
+    const majorId = value ? Number(value) : undefined
+    if (majorId !== undefined && !majors.some(item => item.majorId === majorId)) return
+    setFilters(current => ({ ...current, majorId }))
     setPage(1)
   }
   const changeFilter = (key: keyof Omit<Filters, 'majorId'>, value: string) => {
     setFilters(current => ({ ...current, [key]: value || undefined }))
     setPage(1)
   }
+  const clearAll = () => {
+    setFilters({ majorId: lockedMajorId })
+    setSearch('')
+    setSortBy('newest')
+    setPage(1)
+  }
+  const majorMap = useMemo(() => Object.fromEntries(majors.map(item => [item.majorId, item.majorName])), [majors])
   const totalPages = result?.totalPages ?? 1
 
-  return <main className="mx-auto max-w-6xl space-y-6 pb-12">
-    <header className="border-b border-hairline pb-5">
-      <p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-primary">Đồ án #{projectId} · Sổ minh chứng</p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight text-ink sm:text-3xl">Sổ minh chứng</h1>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">Tra cứu minh chứng theo công việc, báo cáo và cuộc họp; đối chiếu trạng thái từ hệ thống.</p>
-    </header>
+  const visibleItems = useMemo(() => {
+    const items = result?.items ?? []
+    const q = search.trim().toLowerCase()
+    const filtered = q ? items.filter(item =>
+      `${item.sourceTitle ?? ''} ${item.notes ?? ''} ${item.submittedByName ?? ''} ${sourceLabels[item.sourceType as keyof typeof sourceLabels] ?? ''}`.toLowerCase().includes(q)
+    ) : items
+    return [...filtered].sort((a, b) => {
+      const diff = new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+      return sortBy === 'oldest' ? -diff : diff
+    })
+  }, [result, search, sortBy])
 
-    <section className="rounded-xl border border-hairline bg-card p-4 shadow-xs sm:p-5" aria-label="Lọc minh chứng">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="text-sm font-medium text-ink-soft">Nguồn
-          <select value={filters.sourceType ?? ''} onChange={event => changeFilter('sourceType', event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-            <option value="">Tất cả nguồn</option>{sourceTypes.map(value => <option key={value} value={value}>{sourceLabels[value]}</option>)}
-          </select>
-        </label>
-        <label className="text-sm font-medium text-ink-soft">Trạng thái xác minh
-          <select value={filters.verificationStatus ?? ''} onChange={event => changeFilter('verificationStatus', event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-            <option value="">Tất cả trạng thái</option>{verificationStatuses.map(value => <option key={value} value={value}>{verificationLabels[value]}</option>)}
-          </select>
-        </label>
-        <label className="text-sm font-medium text-ink-soft">Ngành
-          <select value={majorInput} disabled={!!lockedMajorId || !majors.length} onChange={event => setMajorInput(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-            {!lockedMajorId && <option value="">Tất cả ngành</option>}
-            {lockedMajorId && !majors.some(item => item.majorId === lockedMajorId) && <option value={lockedMajorId}>Ngành hướng dẫn #{lockedMajorId}</option>}
-            {majors.map(item => <option key={item.majorId} value={item.majorId}>{item.majorName}</option>)}
-          </select>
-        </label>
-        <div className="flex items-end gap-2"><button type="button" onClick={applyMajor} className="min-h-11 flex-1 rounded-lg border border-primary bg-card px-4 text-sm font-semibold text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Áp dụng</button><button type="button" onClick={() => { setFilters({ majorId: lockedMajorId }); setMajorInput(String(lockedMajorId ?? '')); setPage(1) }} className="min-h-11 rounded-lg px-3 text-sm font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Xóa lọc</button></div>
-      </div>
+  const activeChips = useMemo<FilterChipItem[]>(() => {
+    const chips: FilterChipItem[] = []
+    if (filters.sourceType) chips.push({ id: 'sourceType', label: 'Nguồn', value: sourceLabels[filters.sourceType as keyof typeof sourceLabels] ?? filters.sourceType })
+    if (filters.verificationStatus) chips.push({ id: 'verificationStatus', label: 'Trạng thái', value: verificationLabels[filters.verificationStatus] ?? filters.verificationStatus })
+    if (!lockedMajorId && filters.majorId) chips.push({ id: 'majorId', label: 'Ngành', value: majorMap[filters.majorId] ?? 'Chuyên ngành' })
+    if (search.trim()) chips.push({ id: 'search', label: 'Từ khóa', value: search.trim() })
+    return chips
+  }, [filters, lockedMajorId, majorMap, search])
+
+  const hasActiveFilters = activeChips.length > 0 || sortBy !== 'newest' || Boolean(lockedMajorId)
+
+  return <WorkspacePage
+    size="wide"
+    className="space-y-5"
+    title="Sổ minh chứng"
+    eyebrow={projectLabel ? `${projectLabel} · Sổ minh chứng` : 'Sổ minh chứng đồ án'}
+    description="Tra cứu minh chứng theo công việc, báo cáo và cuộc họp; đối chiếu trạng thái từ hệ thống."
+    action={
+      <button type="button" disabled={loading} onClick={() => void load()} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary disabled:opacity-50">
+        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
+        Làm mới
+      </button>
+    }
+  >
+    <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-label="Lọc minh chứng">
+      <FilterToolbar
+        embedded
+        search={search}
+        onSearchChange={setSearch}
+        searchLabel="Tìm minh chứng"
+        searchPlaceholder="Tìm theo tiêu đề, ghi chú hoặc người gửi…"
+        controls={
+          <>
+            <select aria-label="Nguồn" value={filters.sourceType ?? ''} onChange={event => changeFilter('sourceType', event.target.value)}>
+              <option value="">Tất cả nguồn</option>
+              {sourceTypes.map(value => <option key={value} value={value}>{sourceLabels[value]}</option>)}
+            </select>
+            <select aria-label="Trạng thái xác minh" value={filters.verificationStatus ?? ''} onChange={event => changeFilter('verificationStatus', event.target.value)}>
+              <option value="">Tất cả trạng thái</option>
+              {verificationStatuses.map(value => <option key={value} value={value}>{verificationLabels[value]}</option>)}
+            </select>
+            <select aria-label="Ngành" value={String(filters.majorId ?? '')} disabled={!!lockedMajorId || !majors.length} onChange={event => changeMajor(event.target.value)}>
+              {!lockedMajorId && <option value="">Tất cả ngành</option>}
+              {lockedMajorId && !majors.some(item => item.majorId === lockedMajorId) && <option value={lockedMajorId}>Ngành hướng dẫn</option>}
+              {majors.map(item => <option key={item.majorId} value={item.majorId}>{item.majorName}</option>)}
+            </select>
+          </>
+        }
+        sort={{
+          value: sortBy,
+          onChange: (val) => setSortBy(val as EvidenceSort),
+          options: [
+            { value: 'newest', label: 'Mới gửi nhất' },
+            { value: 'oldest', label: 'Cũ nhất' },
+          ],
+        }}
+        activeChips={activeChips}
+        onRemoveChip={(id) => {
+          if (id === 'search') setSearch('')
+          else if (id === 'majorId') changeMajor('')
+          else changeFilter(id as keyof Omit<Filters, 'majorId'>, '')
+        }}
+        hasActiveFilters={hasActiveFilters}
+        onClearAll={clearAll}
+        resultSummary={result ? `${visibleItems.length} / ${result.totalCount} minh chứng` : undefined}
+      />
+
+      {error && <div role="alert" className="m-4 rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" onClick={() => void load()} className="ml-2 min-h-11 font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Thử lại</button></div>}
+      {loading && <ListLoading label="Đang tải minh chứng…" />}
+      {!loading && !error && result && visibleItems.length === 0 && <div className="p-6 text-center text-sm text-ink-soft"><h2 className="font-semibold text-ink">Chưa có minh chứng phù hợp</h2><p className="mt-1 leading-6 text-ink-muted">Hãy thử điều chỉnh bộ lọc. Trạng thái xác minh được lấy trực tiếp từ hệ thống.</p></div>}
+      {!loading && !error && visibleItems.length > 0 ? <EvidenceList items={visibleItems} majorMap={majorMap} routeBase={routeBase} actor={actor} onReviewed={() => void load()} /> : null}
     </section>
 
-    {error && <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" onClick={() => void load()} className="ml-2 min-h-11 font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Thử lại</button></section>}
-    {loading && <p role="status" aria-live="polite" className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-soft">Đang tải minh chứng…</p>}
-    {!loading && !error && result?.items.length === 0 && <section className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-soft"><h2 className="font-semibold text-ink">Chưa có minh chứng phù hợp</h2><p className="mt-1 leading-6">Hãy thử điều chỉnh bộ lọc. Trạng thái xác minh được lấy trực tiếp từ hệ thống.</p></section>}
-    {!loading && !error && result?.items.length ? <EvidenceList items={result.items} routeBase={routeBase} actor={actor} onReviewed={() => void load()} /> : null}
-    {!loading && !error && result && result.totalPages > 1 && <nav aria-label="Phân trang minh chứng" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-card p-4 text-sm"><button type="button" disabled={page <= 1} onClick={() => setPage(current => current - 1)} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Trang trước</button><span aria-live="polite">Trang {page} / {totalPages} · {result.totalCount} minh chứng</span><button type="button" disabled={page >= totalPages} onClick={() => setPage(current => current + 1)} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Trang sau</button></nav>}
-  </main>
+    {!loading && !error && result && result.totalPages > 1 && <nav aria-label="Phân trang minh chứng" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-card p-4 text-sm"><button type="button" disabled={page <= 1} onClick={() => setPage(current => current - 1)} className="min-h-11 whitespace-nowrap rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Trang trước</button><span aria-live="polite">Trang {page} / {totalPages} · {result.totalCount} minh chứng</span><button type="button" disabled={page >= totalPages} onClick={() => setPage(current => current + 1)} className="min-h-11 whitespace-nowrap rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Trang sau</button></nav>}
+  </WorkspacePage>
 }
 
-function EvidenceList({ items, routeBase, actor, onReviewed }: { items: ProjectEvidence[]; routeBase: string; actor?: 'student' | 'supervisor' | 'mentor'; onReviewed: () => void }) {
-  return <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-label="Danh sách minh chứng"><ul className="divide-y divide-hairline">{items.map(item => <li key={item.id} className="grid gap-3 p-4 sm:p-5">
-    <div className="grid gap-3 lg:grid-cols-[minmax(12rem,1fr)_minmax(9rem,.7fr)_minmax(10rem,.7fr)_auto] lg:items-start">
-      <div className="min-w-0"><p className="font-semibold text-ink">{sourceLabels[item.sourceType as keyof typeof sourceLabels] ?? item.sourceType} #{item.sourceId}</p><p className="mt-1 text-sm text-ink-muted">{item.majorId ? `Ngành #${item.majorId}` : 'Chưa phân loại ngành'} · {item.classification}</p>{item.notes ? <p className="mt-2 break-words text-sm leading-6 text-ink-soft">{item.notes}</p> : <p className="mt-2 text-sm text-ink-muted">Không có ghi chú.</p>}</div>
-      <div className="text-sm"><p className="font-medium text-ink">{verificationLabels[item.verificationStatus as keyof typeof verificationLabels] ?? item.verificationStatus}</p><p className="mt-1 text-ink-muted">Người gửi #{item.submittedBy}</p></div>
+function EvidenceList({ items, majorMap, routeBase, actor, onReviewed }: { items: ProjectEvidence[]; majorMap: Record<number, string>; routeBase: string; actor?: 'student' | 'supervisor' | 'mentor'; onReviewed: () => void }) {
+  return <div aria-label="Danh sách minh chứng"><ul className="divide-y divide-hairline">{items.map(item => <li key={item.id} className="grid gap-3 p-4 sm:p-5">
+    <div className="grid gap-3 lg:grid-cols-[minmax(12rem,1fr)_minmax(10rem,.7fr)_minmax(10rem,.7fr)_auto] lg:items-start">
+      <div className="min-w-0"><p className="font-semibold text-ink">{sourceLabels[item.sourceType as keyof typeof sourceLabels] ?? displayLabel(item.sourceType)}{item.sourceTitle ? `: ${item.sourceTitle}` : ''}</p><p className="mt-1 text-sm text-ink-muted">{item.majorName ?? (item.majorId ? majorMap[item.majorId] ?? 'Chuyên ngành' : 'Chưa phân loại ngành')} · {displayLabel(item.classification)}</p>{item.notes ? <p className="mt-2 break-words text-sm leading-6 text-ink-soft">{item.notes}</p> : <p className="mt-2 text-sm text-ink-muted">Không có ghi chú.</p>}</div>
+      <div className="text-sm"><StatusBadge tone={verificationTone(item.verificationStatus)} label={verificationLabels[item.verificationStatus as keyof typeof verificationLabels] ?? displayLabel(item.verificationStatus)} /><p className="mt-1.5 text-xs text-ink-muted">Người gửi: {item.submittedByName ?? 'Thành viên đồ án'}</p></div>
       <p className="text-sm leading-6 text-ink-muted">{formatDate(item.submittedAt)}</p>
        <div>{sourcePath(routeBase, item) ? (isProtectedSource(sourcePath(routeBase, item)!) ? <ProtectedSourceButton path={sourcePath(routeBase, item)!} /> : <Link to={sourcePath(routeBase, item)!} className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở nguồn</Link>) : <span className="inline-flex min-h-11 items-center text-sm text-ink-muted">Chưa có đường dẫn nguồn</span>}</div>
     </div>
     {actor && actor !== 'student' && <EvidenceReviewSection evidenceId={item.id} onReviewed={onReviewed} />}
-  </li>)}</ul></section>
+  </li>)}</ul></div>
 }
 
 const reviewDecisionLabels: Record<string, string> = { ACCEPTED: 'Đã chấp nhận', CHANGES_REQUESTED: 'Cần bổ sung', REJECTED: 'Từ chối' }
@@ -174,13 +247,13 @@ function EvidenceReviewSection({ evidenceId, onReviewed }: { evidenceId: number;
       </ul>}
       {!loading && target && !target.canReview && <p className="text-sm text-ink-muted">{target.denialReason ?? 'Chưa thể duyệt minh chứng này.'}</p>}
       {!loading && target?.canReview && <div className="flex flex-wrap items-end gap-2">
-        <label className="text-sm text-ink-soft">Kết quả<select className="mt-1 block min-h-10 rounded-lg border border-hairline p-2 text-sm" value={decision} disabled={busy} onChange={(event) => setDecision(event.target.value as EvidenceReviewDecision)}>
+        <label className="text-sm text-ink-soft">Kết quả<select className="mt-1 block min-h-10 rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink" value={decision} disabled={busy} onChange={(event) => setDecision(event.target.value as EvidenceReviewDecision)}>
           <option value="ACCEPTED">Đã chấp nhận</option>
           <option value="CHANGES_REQUESTED">Cần bổ sung</option>
           <option value="REJECTED">Từ chối</option>
         </select></label>
-        <label className="flex-1 min-w-48 text-sm text-ink-soft">Lý do<input className="mt-1 w-full min-h-10 rounded-lg border border-hairline p-2 text-sm" value={reason} disabled={busy} onChange={(event) => setReason(event.target.value)} /></label>
-        <button type="button" className="min-h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={busy || !reason.trim()} onClick={() => void submit()}>Ghi kết quả duyệt</button>
+        <label className="flex-1 min-w-48 text-sm text-ink-soft">Lý do<input className="mt-1 w-full min-h-10 rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink" value={reason} disabled={busy} onChange={(event) => setReason(event.target.value)} /></label>
+        <button type="button" className="min-h-10 whitespace-nowrap rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50" disabled={busy || !reason.trim()} onClick={() => void submit()}>Ghi kết quả duyệt</button>
       </div>}
     </div>}
   </div>
@@ -239,5 +312,5 @@ function messageFor(reason: unknown): string {
 
 function formatDate(value: string) {
   const date = new Date(value)
-  return Number.isNaN(date.valueOf()) ? value : date.toLocaleString('vi-VN')
+  return Number.isNaN(date.valueOf()) ? value : date.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' })
 }

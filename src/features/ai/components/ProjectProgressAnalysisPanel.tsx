@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { displayLabel } from '../../../components/ui/display-label'
 import { HttpError } from '../../../services/http/http-client'
 import { env } from '../../../app/config/env'
 import { getProjectProgressAnalysis, recordProjectProgressAnalysis, type ProjectProgressAnalysis } from '../ai-api'
@@ -18,7 +19,7 @@ function ProgressContent({ projectId, compact = false, dock = false, onSaved }: 
   const request = useRef(0)
   const saveLock = useRef(false)
   const alive = useRef(false)
-  useEffect(() => { alive.current = true; return () => { alive.current = false; request.current++ } }, [])
+  useEffect(() => { const pending = request; alive.current = true; return () => { alive.current = false; pending.current++ } }, [])
   const [analysis, setAnalysis] = useState<ProjectProgressAnalysis | null>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false); const [saveNotice, setSaveNotice] = useState<{ message: string; error: boolean } | null>(null)
   // Opening the panel only reads data; an explicit analysis/save action records a run.
@@ -45,16 +46,16 @@ function ProgressContent({ projectId, compact = false, dock = false, onSaved }: 
   const isKnownRisk = knownRiskLevels.has(analysis.riskLevel)
   const majorScoped = analysis.contextScope === 'MAJOR'
   const riskClass = insufficient || !isKnownStatus || !isKnownRisk ? 'border-status-warning-border bg-status-warning-bg text-status-warning-text' : analysis.riskLevel === 'CRITICAL' || analysis.riskLevel === 'HIGH' ? 'border-status-error-border bg-status-error-bg text-status-error-text' : analysis.riskLevel === 'MEDIUM' ? 'border-status-warning-border bg-status-warning-bg text-status-warning-text' : 'border-status-success-border bg-status-success-bg text-status-success-text'
-  const riskLabel = insufficient ? 'Chưa đủ dữ liệu' : !isKnownStatus || !isKnownRisk ? 'Trạng thái chưa hỗ trợ' : `Rủi ro: ${analysis.riskLevel}`
-  return <section aria-labelledby={headingId} className="rounded-xl border border-hairline bg-card p-5 shadow-xs"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-primary">Phân tích tư vấn</p><h2 id={headingId} className="mt-1 font-heading text-lg font-semibold text-ink">Rủi ro và tiến độ đồ án</h2><p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">Phân tích giúp nhận biết điểm cần chú ý trong tiến độ. Kết quả mang tính tham khảo và không thay thế đánh giá của giảng viên.</p></div><div className="flex items-center gap-2"><button type="button" className="min-h-10 rounded-lg border border-hairline px-3 text-xs font-semibold text-primary hover:bg-primary-subtle" disabled={loading || saving} onClick={() => void (env.aiProgressRiskEnabled ? save() : load())}>{saving ? 'Đang phân tích…' : 'Phân tích lại'}</button><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${riskClass}`}>{riskLabel}</span></div></div>
+  const riskLabel = insufficient ? 'Chưa đủ dữ liệu' : !isKnownStatus || !isKnownRisk ? 'Trạng thái chưa hỗ trợ' : `Mức rủi ro: ${displayLabel(analysis.riskLevel)}`
+  return <section aria-labelledby={headingId} className="rounded-xl border border-hairline bg-card p-5 shadow-xs"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-primary">Phân tích tư vấn</p><h2 id={headingId} className="mt-1 font-heading text-lg font-semibold text-ink">Rủi ro và tiến độ đồ án</h2><p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">Phân tích giúp nhận biết điểm cần chú ý trong tiến độ. Kết quả mang tính tham khảo và không thay thế đánh giá của giảng viên.</p></div><div className="flex items-center gap-2"><button type="button" className="min-h-11 rounded-lg border border-hairline px-3 text-xs font-semibold text-primary hover:bg-primary-subtle" disabled={loading || saving} onClick={() => void (env.aiProgressRiskEnabled ? save() : load())}>{saving ? 'Đang phân tích…' : 'Phân tích lại'}</button><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${riskClass}`}>{riskLabel}</span></div></div>
     {majorScoped && <p role="status" className="mt-4 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">Bạn chỉ xem được phạm vi ngành được phân công. Không khả dụng: {analysis.unavailableMetrics.map(code => unavailableMetricLabels[code] ?? code).join(', ') || 'không có'}. Các số liệu dưới đây chỉ tính trên công việc bạn thấy được, không phải toàn đồ án.</p>}
     {insufficient ? <p role="status" className="mt-4 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">Chưa đủ dữ liệu để đánh giá rủi ro. Hãy bổ sung công việc, minh chứng và báo cáo tiến độ.</p>
       : !isKnownStatus || !isKnownRisk ? <p role="status" className="mt-4 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">Chưa thể xác định mức rủi ro từ kết quả hiện tại. Hãy kiểm tra dữ liệu tiến độ và thử lại.</p>
-      : majorScoped ? <div className={dock ? "mt-4 grid grid-cols-2 gap-3" : "mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"}><Metric label="Tiến độ (phạm vi ngành)" value={`${analysis.progressSummary.progressPercentage}%`} /><Metric label="công việc quá hạn" value={analysis.progressSummary.overdueTasks} /><Metric label="công việc vướng mắc" value={analysis.progressSummary.blockedTasks} /><Metric label="Mốc tiến độ" value="Không khả dụng" /></div>
-      : <div className={dock ? "mt-4 grid grid-cols-2 gap-3" : "mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"}><Metric label="Tiến độ" value={`${analysis.progressSummary.progressPercentage}%`} /><Metric label="công việc quá hạn" value={analysis.progressSummary.overdueTasks} /><Metric label="công việc vướng mắc" value={analysis.progressSummary.blockedTasks} /><Metric label="Độ tin cậy" value={analysis.confidence === null ? 'Chưa có' : `${Math.round(analysis.confidence * 100)}%`} /></div>}
-    {!compact && <><InfoList title="Tóm tắt" items={analysis.summary ? [analysis.summary] : []} empty="Chưa có tóm tắt." /><InfoList title="Tín hiệu rủi ro" items={analysis.signals?.length ? analysis.signals.map(signal => `${signal.severity}: ${signal.description}`) : analysis.factors.map(factor => `${factor.severity}: ${factor.explanation}`)} empty="Hệ thống chưa trả tín hiệu rủi ro cụ thể." /><InfoList title="Gợi ý tư vấn" items={analysis.recommendations} empty="Hệ thống chưa trả gợi ý tư vấn." /><p className="mt-4 text-sm text-ink-muted">Gợi ý là văn bản tham khảo; không có nút thực thi hay quyền được suy ra từ gợi ý.</p></>}
+      : majorScoped ? <div className={dock ? "mt-4 grid grid-cols-2 gap-3" : "mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"}><Metric label="Tiến độ (phạm vi ngành)" value={`${analysis.progressSummary.progressPercentage}%`} /><Metric label="Công việc quá hạn" value={analysis.progressSummary.overdueTasks} /><Metric label="Công việc vướng mắc" value={analysis.progressSummary.blockedTasks} /><Metric label="Mốc tiến độ" value="Không khả dụng" /></div>
+      : <div className={dock ? "mt-4 grid grid-cols-2 gap-3" : "mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"}><Metric label="Tiến độ" value={`${analysis.progressSummary.progressPercentage}%`} /><Metric label="Công việc quá hạn" value={analysis.progressSummary.overdueTasks} /><Metric label="Công việc vướng mắc" value={analysis.progressSummary.blockedTasks} /><Metric label="Độ tin cậy" value={analysis.confidence === null ? 'Chưa có' : `${Math.round(analysis.confidence * 100)}%`} /></div>}
+    {!compact && <><InfoList title="Tóm tắt" items={analysis.summary ? [analysis.summary] : []} empty="Chưa có tóm tắt." /><InfoList title="Tín hiệu rủi ro" items={analysis.signals?.length ? analysis.signals.map(signal => `${displayLabel(signal.severity)}: ${signal.description}`) : analysis.factors.map(factor => `${displayLabel(factor.severity)}: ${factor.explanation}`)} empty="Hệ thống chưa trả tín hiệu rủi ro cụ thể." /><InfoList title="Gợi ý tư vấn" items={analysis.recommendations} empty="Hệ thống chưa trả gợi ý tư vấn." /><p className="mt-4 text-sm text-ink-muted">Gợi ý là văn bản tham khảo; không có nút thực thi hay quyền được suy ra từ gợi ý.</p></>}
     {analysis.riskScore !== null && <p className="mt-4 font-semibold">Chỉ số nguy cơ: {analysis.riskScore}/100</p>}
-    {analysis.projectEvidence?.length ? <InfoList title="Công việc và hạng mục liên quan" items={analysis.projectEvidence.map(e => e.title + (e.excerpt ? ' · ' + e.excerpt : ''))} empty="" /> : null}
+    {analysis.projectEvidence?.length ? <InfoList title="Công việc và hạng mục liên quan" items={analysis.projectEvidence.map(e => formatEvidenceLine(e.title, e.excerpt))} empty="" /> : null}
     {analysis.generationStatus === 'FALLBACK' && <p role="status" className="mt-3 text-sm text-ink-muted">Đang dùng diễn giải từ quy tắc vì model AI chưa khả dụng.</p>}
     {analysis.limitations && <p className="mt-4 rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-soft"><span className="font-semibold">Giới hạn:</span> {analysis.limitations}</p>}
     {!env.aiRunHistoryEnabled && saveNotice && <p role={saveNotice.error ? "alert" : "status"} className="mt-3 text-sm">{saveNotice.message}</p>}
@@ -64,5 +65,20 @@ function ProgressContent({ projectId, compact = false, dock = false, onSaved }: 
 }
 function Metric({ label, value }: { label: string; value: string | number }) { return <div className="rounded-lg border border-hairline bg-canvas p-3"><p className="text-xs text-ink-muted">{label}</p><p className="mt-1 text-lg font-bold tabular-nums text-ink">{value}</p></div> }
 function InfoList({ title, items, empty }: { title: string; items: string[]; empty: string }) { return <section className="mt-5"><h3 className="font-semibold text-ink">{title}</h3>{items.length ? <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-ink-soft">{items.map((item, index) => <li key={`${title}-${index}`}>{item}</li>)}</ul> : <p className="mt-2 text-sm text-ink-muted">{empty}</p>}</section> }
+function formatEvidenceSegment(value: string) {
+  return value
+    .split(/\s*·\s*/)
+    .map(part => {
+      const trimmed = part.trim()
+      return /^[A-Z0-9_]+$/.test(trimmed) ? displayLabel(trimmed) : trimmed
+    })
+    .filter(Boolean)
+    .join(' · ')
+}
+function formatEvidenceLine(title: string, excerpt?: string | null) {
+  const formattedTitle = formatEvidenceSegment(title)
+  const formattedExcerpt = excerpt ? formatEvidenceSegment(excerpt) : ''
+  return formattedExcerpt ? `${formattedTitle} · ${formattedExcerpt}` : formattedTitle
+}
 function formatDate(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(date) }
 function errorMessage(reason: unknown) { if (reason instanceof HttpError) { if (reason.status === 403) return 'Hệ thống không cấp quyền xem phân tích của đồ án này.'; if (reason.status === 404) return 'Không tìm thấy đồ án hoặc dữ liệu phân tích.'; if (reason.status === 401) return 'Phiên đăng nhập đã hết hạn.' }; return 'Không thể tải phân tích từ hệ thống.' }

@@ -19,6 +19,13 @@ export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCr
   const [primaryChoice, setPrimary] = useState<string | null>(null)
   const primary = primaryChoice ?? String(uniqueNameMatch(scope.majors, initialDraft?.task?.primaryMajorName, m => m.majorName)?.majorId ?? '')
   const [milestoneChoice, setMilestoneChoice] = useState<string | null>(null)
+  const [dueAtInput, setDueAtInput] = useState(() => toMeetingInput(initialDraft?.task?.dueAt ?? null))
+  function setQuickDue(daysFromNow: number) {
+    const target = new Date(Date.now() + daysFromNow * 86400_000)
+    const vnDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(target)
+    setDueAtInput(`${vnDate}T23:59`)
+  }
+  const showDisciplineFields = scope.ready && (scope.interdisciplinary || scope.majors.length > 1)
   const milestone = milestoneChoice ?? String(uniqueNameMatch(milestones, initialDraft?.task?.milestoneTitle, m => m.title)?.id ?? '')
   const matchedAssignees = (initialDraft?.task?.assigneeNames ?? []).map(name => uniqueNameMatch(members, name, m => m.fullName)).filter(m => !!m)
   const unresolved = !!initialDraft?.task && ((!!initialDraft.task.milestoneTitle && !uniqueNameMatch(milestones, initialDraft.task.milestoneTitle, m => m.title)) || matchedAssignees.length !== (initialDraft.task.assigneeNames?.length ?? 0) || (!!initialDraft.task.primaryMajorName && !uniqueNameMatch(scope.majors, initialDraft.task.primaryMajorName, m => m.majorName)))
@@ -67,9 +74,18 @@ export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCr
       <fieldset disabled={busy || !scope.ready} className="cw-form-fields">
         <label className="cw-full-width">Tên công việc<input autoFocus name="title" defaultValue={initialDraft?.title} required maxLength={255} placeholder="Ví dụ: Hoàn thiện màn hình đăng nhập" /></label>
         <label>Mốc đồ án<select name="milestoneId" required value={milestone} onChange={event => setMilestoneChoice(event.target.value)}><option value="" disabled>Chọn mốc</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
-        <label><span>Hạn hoàn thành <span className="cw-optional">(không bắt buộc)</span></span><input name="dueAt" type="datetime-local" defaultValue={toMeetingInput(initialDraft?.task?.dueAt ?? null)} /><span className="cw-field-hint">Giờ Việt Nam (UTC+7)</span></label>
+        <label><span>Hạn hoàn thành <span className="cw-optional">(không bắt buộc)</span></span>
+          <input name="dueAt" type="datetime-local" value={dueAtInput} onChange={event => setDueAtInput(event.target.value)} />
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <button type="button" className="rounded-md border border-hairline bg-canvas px-2 py-0.5 text-xs font-medium text-ink-soft hover:border-primary hover:text-primary" onClick={() => setQuickDue(0)}>Hôm nay</button>
+            <button type="button" className="rounded-md border border-hairline bg-canvas px-2 py-0.5 text-xs font-medium text-ink-soft hover:border-primary hover:text-primary" onClick={() => setQuickDue(3)}>+3 ngày</button>
+            <button type="button" className="rounded-md border border-hairline bg-canvas px-2 py-0.5 text-xs font-medium text-ink-soft hover:border-primary hover:text-primary" onClick={() => setQuickDue(7)}>+7 ngày</button>
+            {dueAtInput && <button type="button" className="rounded-md px-1.5 py-0.5 text-xs font-medium text-ink-muted hover:text-ink" onClick={() => setDueAtInput('')}>Xóa hạn</button>}
+          </div>
+          <span className="cw-field-hint">Giờ Việt Nam (UTC+7)</span>
+        </label>
         <label>Mức ưu tiên<select name="priority" defaultValue={initialDraft?.task?.priority ?? 'MEDIUM'}><option value="LOW">Thấp</option><option value="MEDIUM">Bình thường</option><option value="HIGH">Cao</option><option value="CRITICAL">Khẩn cấp</option></select></label>
-        {scope.ready && <>
+        {showDisciplineFields && <>
           <label>Ngành chính<select name="primaryMajor" value={primary} required={scope.interdisciplinary} onChange={event => setPrimary(event.target.value)}><option value="">{scope.interdisciplinary ? 'Chọn ngành chính' : 'Chưa phân loại'}</option>{scope.majors.map(item => <option key={item.majorId} value={item.majorId}>{item.majorName}</option>)}</select></label>
           <fieldset className="cw-full-width cw-assignees"><legend>Ngành hỗ trợ</legend><p className="cw-field-hint">Công việc liên ngành cần đúng một ngành chính. Chỉ chọn ngành thuộc phạm vi đồ án.</p><div>{scope.majors.filter(item => String(item.majorId) !== primary).map(item => <label key={item.majorId}><input type="checkbox" name="supportingMajor" value={item.majorId} />{item.majorName}</label>)}</div></fieldset>
         </>}

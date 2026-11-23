@@ -14,10 +14,10 @@ export function Modal({ open, title, description, busy = false, onClose, childre
     if (!dialog || !open) return
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const originalOverflow = document.body.style.overflow
-    dialog.showModal()
+    if (!dialog.open) dialog.showModal()
     initialFocusRef?.current?.focus()
     document.body.style.overflow = 'hidden'
-    return () => { dialog.close(); document.body.style.overflow = originalOverflow; if (opener?.isConnected) opener.focus() }
+    return () => { if (dialog.open) dialog.close(); document.body.style.overflow = originalOverflow; if (opener?.isConnected) opener.focus() }
   }, [open, ref, initialFocusRef])
   return <dialog ref={ref} role={role} className={`app-modal ${drawer ? 'app-modal--drawer' : ''} ${className ?? ''}`.trim()} aria-labelledby={heading} aria-describedby={description ? detail : undefined}
     onCancel={event => { event.preventDefault(); if (!busy) onClose() }}>

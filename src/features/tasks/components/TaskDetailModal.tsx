@@ -136,7 +136,7 @@ export function TaskDetailModal({
     reload()
   }
 
-  const titleText = task ? `#${task.id} · ${task.title}` : `Công việc #${taskId}`
+  const titleText = task ? task.title : 'Chi tiết công việc'
 
   return (
     <Modal
@@ -253,7 +253,7 @@ export function TaskDetailModal({
                         <dt className="text-ink-muted">Nguồn phát sinh:</dt>
                         <dd>
                           <Link className="font-semibold text-primary underline" to={`${routeBase}/meetings/${task.description.match(/Cuộc họp #(\d+)/i)![1]}`}>
-                            Cuộc họp #{task.description.match(/Cuộc họp #(\d+)/i)![1]}
+                            Xem cuộc họp nguồn
                           </Link>
                         </dd>
                       </div>
@@ -322,7 +322,7 @@ export function TaskDetailModal({
                   {task.dependencies.length ? (
                     <ul className="space-y-2 text-sm">
                       {task.dependencies.map(dependency => (
-                        <li key={dependency.id} className="flex items-center justify-between rounded border border-hairline bg-slate-50 p-2">
+                        <li key={dependency.id} className="flex items-center justify-between rounded border border-hairline bg-canvas p-2">
                           <div>
                             <Link className="font-semibold text-primary underline" to={`${routeBase}/tasks/${dependency.dependsOnTaskId}`}>
                               {allTasks.find(item => item.id === dependency.dependsOnTaskId)?.title ?? 'Xem việc liên quan'}
@@ -334,7 +334,7 @@ export function TaskDetailModal({
                           {canManageDependencies && (
                             <button
                               type="button"
-                              className="ex-text-button text-xs text-danger"
+                              className="ex-text-button ex-danger-text text-xs text-status-error-text"
                               disabled={mutation.busy}
                               onClick={() => void mutation.run(() => services.task.removeTaskDependency(task.id, dependency.dependsOnTaskId, task.concurrencyToken), reload)}
                             >
@@ -385,7 +385,7 @@ export function TaskDetailModal({
                   <div className="pt-2">
                     <button
                       type="button"
-                      className="ex-text-button text-xs text-danger"
+                      className="ex-text-button ex-danger-text text-xs text-status-error-text"
                       onClick={() => setDeleting(true)}
                     >
                       Xóa công việc

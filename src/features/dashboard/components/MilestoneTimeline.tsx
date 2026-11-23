@@ -8,7 +8,7 @@ interface MilestoneTimelineProps {
 export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="bg-canvas/60 py-2.5 px-4">
+      <CardHeader className="bg-canvas py-2.5 px-4">
         <div className="flex items-center justify-between w-full flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">
@@ -36,8 +36,8 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
                   isCompleted
                     ? 'bg-status-success-bg border-status-success-border'
                     : isActive
-                    ? 'bg-status-info-bg border-status-info-border ring-2 ring-primary/20 shadow-xs'
-                    : 'bg-canvas/60 border-hairline opacity-80'
+                    ? 'bg-primary-subtle border-primary/20 ring-2 ring-primary/20 shadow-xs'
+                    : 'bg-canvas border-hairline opacity-80'
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -47,7 +47,7 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
                         ? 'bg-status-success-bg text-status-success-text'
                         : isActive
                         ? 'bg-primary text-white shadow-2xs'
-                        : 'bg-slate-200 text-ink-muted'
+                        : 'bg-canvas border border-hairline text-ink-muted'
                     }`}
                   >
                     {m.id}
@@ -63,7 +63,7 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
                   </h4>
                 </div>
 
-                <div className="space-y-1 pt-1 border-t border-hairline/60">
+                <div className="space-y-1 pt-1 border-t border-hairline">
                   <div className="flex items-center justify-between text-xs font-mono">
                     <span className="text-ink-muted">Tiến độ</span>
                     <span
@@ -71,7 +71,7 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
                         isCompleted
                           ? 'text-status-success-text'
                           : isActive
-                          ? 'text-status-info-text'
+                          ? 'text-primary'
                           : 'text-ink-muted'
                       }`}
                     >
@@ -84,15 +84,13 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
                     aria-valuenow={m.progress}
                     aria-valuemin={0}
                     aria-valuemax={100}
-                    className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden"
+                    className="w-full bg-canvas border border-hairline h-1.5 rounded-full overflow-hidden"
                   >
                     <div
                       className={`h-full rounded-full transition-all ${
-                        isCompleted
+                        isCompleted || isActive
                           ? 'bg-primary'
-                          : isActive
-                          ? 'bg-primary'
-                          : 'bg-slate-400'
+                          : 'bg-hairline'
                       }`}
                       style={{ width: `${m.progress}%` }}
                     />

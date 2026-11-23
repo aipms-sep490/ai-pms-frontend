@@ -1,8 +1,11 @@
-.workspace-page { --page-gutter: 24px; width: 100%; max-width: 1200px; min-width: 0; margin-inline: auto; padding-bottom: 32px; color: var(--color-ink); font-size: 14px; line-height: 1.6; }
+.workspace-page { --page-gutter: 24px; width: 100%; max-width: 1440px; min-width: 0; margin-inline: auto; padding-bottom: 32px; color: var(--color-ink); font-size: 14px; line-height: 1.6; }
+.workspace-page.workspace-page--wide { max-width: 1440px; }
+.workspace-page.workspace-page--standard { max-width: 1240px; }
+.workspace-page.workspace-page--narrow { max-width: 960px; }
 .workspace-back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 20px; color: var(--color-ink-muted); font-size: 13px; text-decoration: none; font-weight: 500; }
 .workspace-back:hover { color: var(--color-primary); text-decoration: none; }
 .workspace-back .material-symbols-outlined { font-size: 18px; }
-.workspace-heading { display: flex; position: sticky; top: 0; z-index: 1; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; background: var(--color-canvas); }
+.workspace-heading { display: flex; position: static; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .milestone-templates-page > .workspace-heading, .cold-template-page > .workspace-heading { position: static; }
 .workspace-page :is(a, button, input, select, textarea, [tabindex]):focus-visible { scroll-margin-top: 12rem; }
 .workspace-heading-copy { min-width: 0; flex: 1; }
@@ -16,8 +19,8 @@
   min-width: 0;
   border: 1px solid var(--color-hairline);
   border-radius: 16px;
-  background: white;
-  overflow: hidden;
+  background: var(--color-card);
+  overflow: clip;
   box-shadow: 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 4%, transparent), 0 1px 2px color-mix(in oklab, var(--color-brand-navy) 2%, transparent);
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
@@ -36,18 +39,22 @@
   .workspace-context-detail { max-width: 100%; }
 }
 
-.workspace-page.execution-page { max-width: 1200px; }
+.workspace-page.execution-page { max-width: 1440px; }
 .api-form label { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--color-ink); }
 .api-form :is(input:not([type="checkbox"]), select, textarea) {
   width: 100%;
   min-width: 0;
-  min-height: 40px;
+  min-height: 44px;
   border: 1px solid var(--color-line-strong);
   border-radius: 8px;
   padding: 9px 12px;
-  background: white;
+  background: var(--color-card);
   color: var(--color-ink);
-  font: inherit;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .api-form :is(input, select, textarea):focus-visible {

@@ -68,7 +68,7 @@ describe('ProjectReviewPage', () => {
   it('renders only canonical published-topic provenance from ProjectDto', () => {
     hook.useProjectReview.mockReturnValue(reviewState({ project: { code: 'P-1', title: 'Interdisciplinary project', teamName: 'Team Alpha', proposalSource: 'PUBLISHED_TOPIC', topicId: 42, selectedTopic: { id: 42, code: 'TOP-42', title: 'Secure AI' } } }))
     detailPage()
-    expect(screen.getByText(/Đề tài đã công bố/).textContent).toContain('#42 · TOP-42 — Secure AI')
+    expect(screen.getByText(/Đề tài đã công bố/).textContent).toContain('TOP-42 — Secure AI')
   })
 
   it('renders a SINGLE_MAJOR scope without cross-department panel or action', () => {
