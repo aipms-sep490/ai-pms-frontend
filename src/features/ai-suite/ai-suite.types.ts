@@ -366,3 +366,30 @@ export interface DepartmentExecutiveBriefDto {
   weeklyPriorityActions: string[]
   meta: AiSnapshotMetaDto
 }
+
+// #9 Evaluation Scheme AI Suggest
+export interface EvaluationSchemeSuggestComponentDto {
+  name: string
+  scope: 'COMMON' | 'MAJOR_SPECIFIC' | 'INDIVIDUAL' | string
+  majorId: number | null
+  majorName: string | null
+  rubricId: number
+  rubricCode: string
+  rubricName: string
+  stage: 'ON_GOING' | 'COLD' | 'DEFENSE' | string
+  projectWeightPercent: number
+  studentWeightPercent: number
+  requiredEvaluators: number
+  rationale: string
+}
+
+export interface EvaluationSchemeSuggestDto {
+  projectId: number
+  suggestedName: string
+  suggestedPassThreshold: number
+  summary: string
+  usedAi: boolean
+  components: EvaluationSchemeSuggestComponentDto[]
+  warnings: string[]
+  meta: AiSnapshotMetaDto
+}

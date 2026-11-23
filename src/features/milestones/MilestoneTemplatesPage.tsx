@@ -11,6 +11,8 @@ import { HttpError, httpGet } from '../../services/http/http-client'
 import type { PagedResult, ProjectPeriodDto } from '../../types/backend'
 import '../execution/execution.css'
 import * as api from './milestone-templates-api'
+import { DepartmentAiDraftBar } from '../ai-suite/DepartmentAiDraftBar'
+import { applyMilestoneTemplateAiSetup, type AssistantMilestoneTemplateSetupPlan } from '../ai/academic-ai-api'
 
 const emptyItem: api.ItemDraft = { title: '', description: null, startOffsetDays: null, dueOffsetDays: null, sortOrder: 0 }
 
@@ -29,6 +31,9 @@ export function MilestoneTemplatesPage() {
   const [mode, setMode] = useState<'view' | 'edit'>('view')
   const formRef = useRef<HTMLFormElement>(null)
   const [itemEditor, setItemEditor] = useState<(api.ItemDraft & { id?: number }) | null>(null)
+  const [aiDraftOpen, setAiDraftOpen] = useState(false)
+  const [aiApplying, setAiApplying] = useState(false)
+  const [aiError, setAiError] = useState('')
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
 
   const load = useCallback(async () => {
@@ -138,6 +143,7 @@ export function MilestoneTemplatesPage() {
       action={
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" icon="refresh" disabled={busy || loading} onClick={() => void load()}>Tải lại</Button>
+          <Button variant="secondary" icon="auto_awesome" disabled={busy} onClick={() => { setAiError(''); setAiDraftOpen(true) }}>Soạn nháp bằng AI</Button>
           <Button disabled={busy} icon="add" onClick={() => { setEditor({ name: '', description: '' }); setMode('edit') }}>Tạo mẫu</Button>
         </div>
       }
@@ -307,13 +313,28 @@ export function MilestoneTemplatesPage() {
                   <h2>{selected.name}</h2>
                   <p>Phiên bản đã công bố được giữ nguyên; tạo phiên bản mới khi cần thay đổi.</p>
                 </div>
-                <Button
-                  variant="secondary"
-                  disabled={busy}
-                  onClick={() => void run(() => api.createTemplateVersion(selected.id).then(next => setVersionId(next.id)), 'Đã tạo phiên bản mới.')}
-                >
-                  Tạo phiên bản
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  {version && version.items.length > 0 && (
+                    <Button
+                      variant="secondary"
+                      icon="content_copy"
+                      disabled={busy}
+                      onClick={() => void run(
+                        () => api.createTemplateVersion(selected.id, version.id).then(next => setVersionId(next.id)),
+                        `Đã nhân bản phiên bản mới từ v${version.versionNumber} (giữ nguyên ${version.items.length} mốc).`,
+                      )}
+                    >
+                      Nhân bản từ v{version.versionNumber}
+                    </Button>
+                  )}
+                  <Button
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => void run(() => api.createTemplateVersion(selected.id).then(next => setVersionId(next.id)), 'Đã tạo phiên bản mới.')}
+                  >
+                    Tạo phiên bản
+                  </Button>
+                </div>
               </div>
 
               <div className="ex-padding ex-stack">
@@ -482,6 +503,133 @@ export function MilestoneTemplatesPage() {
           </form>
         </Modal>
       )}
+
+      <DepartmentAiDraftBar
+        open={aiDraftOpen}
+        onClose={() => setAiDraftOpen(false)}
+        title="Soạn nháp Mẫu mốc đồ án bằng AI"
+        description="Tải tệp Đề cương / Lịch học kỳ (PDF, DOCX, XLSX) hoặc mô tả độ dài học kỳ để AI sinh danh sách mốc kèm ngày lệch (startOffsetDays / dueOffsetDays) ở trạng thái DRAFT."
+        toolMode="MILESTONE_TEMPLATE_SETUP"
+        pageContext="/admin/milestone-templates"
+        placeholder="VD: Tạo bộ 4 mốc tiêu chuẩn cho đồ án tốt nghiệp 14 tuần (98 ngày) từ khởi tạo SRS đến bảo vệ cuối kỳ..."
+        starters={[
+          {
+            label: 'Đồ án chuẩn 14 tuần (4 mốc)',
+            prompt: 'Soạn mẫu mốc đồ án tốt nghiệp 14 tuần (0-98 ngày) gồm 4 mốc: Khởi tạo & SRS, Thiết kế SDD, Triển khai giữa kỳ, Hoàn thiện & Bảo vệ.',
+          },
+          {
+            label: 'Đồ án chuyên sâu 16 tuần (5 mốc)',
+            prompt: 'Soạn mẫu mốc đồ án tốt nghiệp 16 tuần (0-112 ngày) gồm 5 mốc kèm mục tiêu bàn giao rõ ràng.',
+          },
+          {
+            label: 'Trích xuất từ tệp đề cương đính kèm',
+            prompt: 'Đọc tệp đề cương đính kèm và trích xuất bộ mốc tiến độ với startOffsetDays và dueOffsetDays hợp lý.',
+          },
+        ]}
+        renderResult={response => {
+          const plan: AssistantMilestoneTemplateSetupPlan | null | undefined = response.draft?.milestoneTemplateSetup
+          if (!plan) {
+            return (
+              <div className="rounded-xl border border-hairline bg-canvas p-4 text-sm text-ink-soft whitespace-pre-wrap">
+                {response.answer}
+              </div>
+            )
+          }
+          return (
+            <section className="space-y-3 rounded-xl border border-hairline bg-card p-4" aria-label="Bản nháp Mẫu mốc AI">
+              <div className="border-b border-hairline pb-2.5">
+                <h3 className="text-base font-bold text-ink">{plan.name}</h3>
+                <p className="mt-0.5 text-xs text-ink-muted">{plan.summary}</p>
+              </div>
+              {plan.warnings.length > 0 && (
+                <ul className="space-y-1 rounded-lg border border-status-warning-border bg-status-warning-bg px-3 py-2 text-xs text-status-warning-text">
+                  {plan.warnings.map((w, i) => <li key={i}>• {w}</li>)}
+                </ul>
+              )}
+              <ol className="space-y-2">
+                {plan.items.map((item, idx) => (
+                  <li key={idx} className="rounded-lg border border-hairline bg-canvas p-3 text-xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <strong className="text-sm text-ink">{idx + 1}. {item.title}</strong>
+                      <span className="rounded-full border border-hairline bg-card px-2 py-0.5 font-mono text-ink-soft">
+                        Ngày {item.startOffsetDays ?? '—'} → {item.dueOffsetDays ?? '—'}
+                      </span>
+                    </div>
+                    {item.description && <p className="mt-1 text-ink-soft">{item.description}</p>}
+                  </li>
+                ))}
+              </ol>
+              {aiError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs text-status-error-text">{aiError}</p>}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-3">
+                <span className="text-xs text-ink-muted">
+                  Tất cả mốc lưu ở phiên bản DRAFT — Quản trị viên kiểm tra rồi mới bấm Công bố.
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {selected && (
+                    <Button
+                      variant="secondary"
+                      disabled={aiApplying}
+                      onClick={async () => {
+                        setAiApplying(true); setAiError('')
+                        try {
+                          const key = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-0000-4000-8000-000000000000`
+                          const res = await applyMilestoneTemplateAiSetup({
+                            idempotencyKey: key,
+                            runId: response.runId ?? null,
+                            existingTemplateId: selected.id,
+                            name: selected.name,
+                            description: selected.description,
+                            items: plan.items,
+                          })
+                          setAiDraftOpen(false)
+                          setNotice(`Đã tạo phiên bản nháp v${res.versionNumber} (${res.itemsCount} mốc) cho mẫu "${selected.name}".`)
+                          await load()
+                          setSelectedId(res.templateId)
+                          setVersionId(res.versionId)
+                        } catch (reason) {
+                          setAiError(message(reason))
+                        } finally {
+                          setAiApplying(false)
+                        }
+                      }}
+                    >
+                      Thêm phiên bản nháp vào "{selected.name}"
+                    </Button>
+                  )}
+                  <Button
+                    disabled={aiApplying}
+                    onClick={async () => {
+                      setAiApplying(true); setAiError('')
+                      try {
+                        const key = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-0000-4000-8000-000000000000`
+                        const res = await applyMilestoneTemplateAiSetup({
+                          idempotencyKey: key,
+                          runId: response.runId ?? null,
+                          existingTemplateId: null,
+                          name: plan.name,
+                          description: plan.description ?? null,
+                          items: plan.items,
+                        })
+                        setAiDraftOpen(false)
+                        setNotice(`Đã tạo mẫu mốc mới "${res.name}" (v${res.versionNumber}, ${res.itemsCount} mốc) ở trạng thái DRAFT.`)
+                        await load()
+                        setSelectedId(res.templateId)
+                        setVersionId(res.versionId)
+                      } catch (reason) {
+                        setAiError(message(reason))
+                      } finally {
+                        setAiApplying(false)
+                      }
+                    }}
+                  >
+                    {aiApplying ? 'Đang lưu bản nháp…' : 'Tạo mẫu mốc mới (DRAFT)'}
+                  </Button>
+                </div>
+              </div>
+            </section>
+          )
+        }}
+      />
     </WorkspacePage>
   )
 }
