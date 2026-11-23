@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { AssistantDraft } from '../academic-ai-api'
 import { formatMeetingTime } from '../../meetings/meeting-utils'
 import { AssistantProjectSetupCard, AssistantRubricSetupCard } from './AssistantSetupPlanCard'
+import { AssistantReviewGateSetupCard } from './AssistantReviewGateSetupCard'
 import { createTask } from '../../../services/api/tasks.api'
 import { getProjectMilestones } from '../../../services/api/milestones.api'
 import type { MilestoneDto } from '../../../types/backend'
@@ -57,6 +58,16 @@ export function AssistantDraftCard({
         canApply={canApplyRubricSetup}
         academicSemesterId={academicSemesterId}
         onOpenRubrics={onOpenRubrics}
+      />
+    )
+  }
+
+  if (draft.kind === 'REVIEW_GATE_SETUP' && draft.reviewGateSetup) {
+    return (
+      <AssistantReviewGateSetupCard
+        runId={runId}
+        plan={draft.reviewGateSetup}
+        canApply={canApplyRubricSetup}
       />
     )
   }

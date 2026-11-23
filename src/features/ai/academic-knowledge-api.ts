@@ -1,4 +1,4 @@
-import { httpGet, httpPost, HttpError } from '../../services/http/http-client'
+import { httpGet, httpPost, httpPostForm, HttpError } from '../../services/http/http-client'
 import type { PagedResult } from '../../types/backend'
 import type { KnowledgeDocument, KnowledgeDocumentInput, KnowledgeVersion, KnowledgeVersionInput } from '../../types/backend/academic-knowledge.backend.types'
 import type { Department } from '../academic/types/academic.types'
@@ -11,6 +11,30 @@ export const createKnowledgeVersion = (id: number, body: KnowledgeVersionInput) 
 export const publishKnowledgeDocument = (id: number) => httpPost<KnowledgeVersion>(`${documents}/${id}/publish`)
 export const retireKnowledgeDocument = (id: number) => httpPost<KnowledgeDocument>(`${documents}/${id}/retire`)
 export const reindexKnowledgeDocument = (id: number) => httpPost<KnowledgeVersion>(`${documents}/${id}/reindex`)
+
+export interface KnowledgeChunkDraft {
+  heading?: string | null
+  pageNumber?: number | null
+  content: string
+}
+
+export interface KnowledgeExtractPreview {
+  sourceFileName: string
+  suggestedTitle: string
+  suggestedDocumentType: string
+  summary: string
+  content: string
+  chunks: KnowledgeChunkDraft[]
+  usedAi: boolean
+  warnings: string[]
+}
+
+export function extractKnowledgePreview(input: { file?: File; departmentDocumentId?: number }, signal?: AbortSignal) {
+  const form = new FormData()
+  if (input.file) form.append('file', input.file)
+  if (input.departmentDocumentId) form.set('departmentDocumentId', String(input.departmentDocumentId))
+  return httpPostForm<KnowledgeExtractPreview>(`${documents}/extract-preview`, form, { signal })
+}
 
 // The existing academic API has hierarchy and write helpers, but no flat department reader.
 export const listAcademicDepartments = (page = 1) => httpGet<PagedResult<Department>>(`/academic/departments?page=${page}&pageSize=100`)

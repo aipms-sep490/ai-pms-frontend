@@ -173,8 +173,168 @@ export interface ApplyRubricSetupResult {
   warnings?: string[] | null
 }
 
+export interface AssistantReviewGateRequirementDraft {
+  code: string
+  title: string
+  description?: string | null
+  type: 'FILE' | 'EXTERNAL_LINK' | 'TEXT' | 'ARTIFACT' | string
+  scope: 'COMMON' | 'MAJOR_SPECIFIC' | string
+  majorName?: string | null
+  verification: 'HUMAN' | 'AUTO' | string
+  required: boolean
+}
+
+export interface AssistantReviewGateDraft {
+  code: string
+  sequence: number
+  title: string
+  objective: string
+  weight?: number | null
+  startDate?: string | null
+  endDate?: string | null
+  required: boolean
+  blockNextGate: boolean
+  blocksDefense: boolean
+  reviewerPolicy: string
+  reviewScope: string
+  requirements: AssistantReviewGateRequirementDraft[]
+}
+
+export interface AssistantReviewGateSetupPlan {
+  code: string
+  name: string
+  mode: 'SINGLE_MAJOR' | 'INTERDISCIPLINARY' | string
+  majorCode?: string | null
+  summary: string
+  gates: AssistantReviewGateDraft[]
+  warnings: string[]
+}
+
+export interface ApplyReviewGateSetupRequest {
+  idempotencyKey: string
+  runId?: number | null
+  projectPeriodId?: number | null
+  code: string
+  name: string
+  mode: string
+  major?: string | null
+  gates: AssistantReviewGateDraft[]
+}
+
+export interface ApplyReviewGateSetupResult {
+  templateId: number
+  code: string
+  name: string
+  status: string
+  gatesCount: number
+  replay: boolean
+  warnings?: string[] | null
+}
+
+export interface AssistantTopicRequirementDraft {
+  majorId?: number | null
+  majorName?: string | null
+  minMembers: number
+  maxMembers: number
+  responsibility: string
+}
+
+export interface AssistantTopicDraft {
+  tempKey: string
+  code: string
+  title: string
+  description?: string | null
+  problemStatement?: string | null
+  objectives?: string | null
+  expectedOutput?: string | null
+  domain?: string | null
+  technologies: string[]
+  keywords: string[]
+  projectMode: 'SINGLE_MAJOR' | 'INTERDISCIPLINARY' | string
+  primaryMajorId?: number | null
+  primaryMajorName?: string | null
+  requirements: AssistantTopicRequirementDraft[]
+  duplicateTitleConflict?: boolean
+  duplicateTitleDetail?: string | null
+  similarityWarning?: string | null
+  highestSimilarityScore?: number | null
+}
+
+export interface AssistantTopicBatchPlan {
+  summary: string
+  topics: AssistantTopicDraft[]
+  warnings: string[]
+}
+
+export interface ApplyTopicBatchSetupRequest {
+  idempotencyKey: string
+  runId?: number | null
+  projectPeriodId: number
+  leadDepartmentId?: number | null
+  topics: AssistantTopicDraft[]
+}
+
+export interface TopicBatchCreatedItem {
+  tempKey: string
+  topicId: number
+  code: string
+  title: string
+  status: string
+}
+
+export interface TopicBatchSkippedItem {
+  tempKey: string
+  code: string
+  title: string
+  reason: string
+}
+
+export interface ApplyTopicBatchSetupResult {
+  createdCount: number
+  skippedCount: number
+  replay: boolean
+  created: TopicBatchCreatedItem[]
+  skipped: TopicBatchSkippedItem[]
+  warnings: string[]
+}
+
+export interface AssistantColdReportItemDraft {
+  code: string
+  name: string
+  required: boolean
+}
+
+export interface AssistantColdTemplateSetupPlan {
+  name: string
+  scope: 'COMMON' | 'MAJOR_SPECIFIC' | string
+  majorName?: string | null
+  summary: string
+  reports: AssistantColdReportItemDraft[]
+  warnings: string[]
+}
+
+export interface ApplyColdTemplateSetupRequest {
+  idempotencyKey: string
+  runId?: number | null
+  projectPeriodId: number
+  scope: string
+  majorId?: number | null
+  name: string
+  reports: AssistantColdReportItemDraft[]
+}
+
+export interface ApplyColdTemplateSetupResult {
+  templateId: number
+  name: string
+  version: number
+  scope: string
+  reportsCount: number
+  replay: boolean
+  warnings?: string[] | null
+}
+
 export interface AssistantDraft {
-  kind: 'TASK' | 'MEETING' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN' | 'PROJECT_SETUP' | 'RUBRIC_SETUP'
+  kind: 'TASK' | 'MEETING' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN' | 'PROJECT_SETUP' | 'RUBRIC_SETUP' | 'REVIEW_GATE_SETUP' | 'TOPIC_BATCH_SETUP' | 'COLD_TEMPLATE_SETUP'
   title: string
   description: string
   meeting?: AssistantMeetingDraft | null
@@ -183,8 +343,11 @@ export interface AssistantDraft {
   tasks?: AssistantDraft[] | null
   setupPlan?: AssistantProjectSetupPlan | null
   rubricSetup?: AssistantRubricSetupPlan | null
+  reviewGateSetup?: AssistantReviewGateSetupPlan | null
+  topicBatchSetup?: AssistantTopicBatchPlan | null
+  coldTemplateSetup?: AssistantColdTemplateSetupPlan | null
 }
-export type AssistantToolMode = 'PROGRESS' | 'REPORT_REVIEW' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN' | 'PROJECT_SETUP' | 'RUBRIC_SETUP'
+export type AssistantToolMode = 'PROGRESS' | 'REPORT_REVIEW' | 'WEEKLY_REPORT' | 'MEETING_MINUTES' | 'WORK_PLAN' | 'PROJECT_SETUP' | 'RUBRIC_SETUP' | 'REVIEW_GATE_SETUP' | 'TOPIC_BATCH_SETUP' | 'COLD_TEMPLATE_SETUP'
 export type AssistantExportFormat = 'txt' | 'md' | 'docx' | 'xlsx' | 'pdf'
 export interface AssistantRubricOption { id: number; title: string; version: number; assignedToProject: boolean }
 export const listAssistantRubrics = (projectId: number, signal?: AbortSignal) => httpGet<AssistantRubricOption[]>(`/academic/assistant/review-rubrics?projectId=${projectId}`, { signal })
@@ -260,7 +423,16 @@ export const applyProjectAiSetup = (projectId: number, payload: ApplyProjectSetu
 export const applyRubricAiSetup = (payload: ApplyRubricSetupRequest, signal?: AbortSignal) =>
   httpPost<ApplyRubricSetupResult>('/academic/ai/rubric-setup/apply', payload, { signal })
 
-export async function streamAssistant(query: string, files: File[], conversation: AssistantConversation, pageContext: string, draftKind: AssistantDraft['kind'] | undefined, onPreview: (text: string) => void, signal: AbortSignal, tool?: { mode: AssistantToolMode; rubricId?: number }): Promise<AcademicAssistantResponse> {
+export const applyReviewGateAiSetup = (payload: ApplyReviewGateSetupRequest, signal?: AbortSignal) =>
+  httpPost<ApplyReviewGateSetupResult>('/academic/ai/review-gate-setup/apply', payload, { signal })
+
+export const applyTopicBatchAiSetup = (payload: ApplyTopicBatchSetupRequest, signal?: AbortSignal) =>
+  httpPost<ApplyTopicBatchSetupResult>('/academic/ai/topic-batch-setup/apply', payload, { signal })
+
+export const applyColdTemplateAiSetup = (payload: ApplyColdTemplateSetupRequest, signal?: AbortSignal) =>
+  httpPost<ApplyColdTemplateSetupResult>('/academic/ai/cold-template-setup/apply', payload, { signal })
+
+export async function streamAssistant(query: string, files: File[], conversation: AssistantConversation, pageContext: string, draftKind: AssistantDraft['kind'] | undefined, onPreview: (text: string) => void, signal: AbortSignal, tool?: { mode: AssistantToolMode; rubricId?: number; projectPeriodId?: number }): Promise<AcademicAssistantResponse> {
   const form = new FormData()
   form.set('query', query); form.set('scope', conversation.scope)
   form.set('conversationId', String(conversation.id)); form.set('expectedRevision', String(conversation.revision))
@@ -269,6 +441,7 @@ export async function streamAssistant(query: string, files: File[], conversation
   if (draftKind) form.set('draftKind', draftKind)
   if (tool) form.set('toolMode', tool.mode)
   if (tool?.rubricId) form.set('rubricId', String(tool.rubricId))
+  if (tool?.projectPeriodId) form.set('projectPeriodId', String(tool.projectPeriodId))
   files.forEach(file => form.append('files', file))
   let result: AcademicAssistantResponse | undefined
   await httpPostStream<AssistantStreamEvent>('/academic/assistant/stream', form, event => {
