@@ -1,7 +1,9 @@
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { ListLoading } from '../../../components/ui/ListLoading'
+import { Modal } from '../../../components/ui/Modal'
+import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { HttpError } from '../../../services/http/http-client'
@@ -27,6 +29,12 @@ interface EditorState {
 
 const initialFilters: AcademicFilters = { search: '', includeInactive: false }
 
+const entityTitleLabels: Record<AcademicEntityKind, string> = {
+  organization: 'tổ chức',
+  department: 'bộ môn',
+  major: 'chuyên ngành',
+}
+
 function getErrorMessage(error: Error): string {
   if (error instanceof HttpError && error.status === 401) return 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại để tiếp tục.'
   if (error instanceof HttpError && error.status === 403) return 'Tài khoản không có quyền xem cấu trúc học vụ hiện tại.'
@@ -34,18 +42,41 @@ function getErrorMessage(error: Error): string {
 }
 
 export function AcademicStructurePage() {
-  const [draftFilters, setDraftFilters] = useState(initialFilters)
   const [filters, setFilters] = useState(initialFilters)
+  const [cachedOrganizations, setCachedOrganizations] = useState<Organization[]>([])
   const [editor, setEditor] = useState<EditorState | null>(null)
   const [operationError, setOperationError] = useState<string | null>(null)
   const [operationSuccess, setOperationSuccess] = useState<string | null>(null)
   const academic = useAcademicStructure(filters)
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
 
-  const organizations = useMemo(
-    () => academic.hierarchy?.map(({ organization }) => organization) ?? [],
-    [academic.hierarchy],
-  )
+  // Preserve previously seen organizations so selecting one organization in the scope filter
+  // never causes the other organizations to vanish from the dropdown.
+  useEffect(() => {
+    const incoming = academic.hierarchy?.map(({ organization }) => organization) ?? []
+    if (!incoming.length) return
+    setCachedOrganizations(prev => {
+      const byId = new Map(prev.map(org => [org.id, org]))
+      let changed = false
+      for (const org of incoming) {
+        const existing = byId.get(org.id)
+        if (!existing || existing.code !== org.code || existing.name !== org.name) {
+          byId.set(org.id, org)
+          changed = true
+        }
+      }
+      if (!changed) return prev
+      return [...byId.values()].sort((a, b) => a.code.localeCompare(b.code, 'vi'))
+    })
+  }, [academic.hierarchy])
+
+  const organizations = useMemo(() => {
+    const byId = new Map(cachedOrganizations.map(org => [org.id, org]))
+    for (const item of academic.hierarchy ?? []) {
+      byId.set(item.organization.id, item.organization)
+    }
+    return [...byId.values()].sort((a, b) => a.code.localeCompare(b.code, 'vi'))
+  }, [cachedOrganizations, academic.hierarchy])
 
   const openEditor = (kind: AcademicEntityKind, record?: AcademicRecord) => {
     setOperationError(null)
@@ -79,16 +110,39 @@ export function AcademicStructurePage() {
   }
 
   const hasStateBlock = academic.isUnauthenticated || academic.isUnauthorized || academic.isForbidden || Boolean(academic.error)
+  const hasFilters = Boolean(filters.search.trim() || filters.organizationId || filters.includeInactive)
 
-  const hasFilters = Boolean(draftFilters.search.trim() || draftFilters.organizationId || draftFilters.includeInactive)
+  const activeChips: ActiveFilterChip[] = []
+  if (filters.organizationId) {
+    const org = organizations.find(o => o.id === filters.organizationId)
+    activeChips.push({
+      id: 'organizationId',
+      label: 'Tổ chức',
+      value: org ? `${org.code} · ${org.name}` : 'Đang lọc',
+    })
+  }
+  if (filters.includeInactive) {
+    activeChips.push({
+      id: 'includeInactive',
+      label: 'Hiển thị',
+      value: 'Bao gồm ngừng hoạt động',
+    })
+  }
+
+  const totalDepartments = (academic.hierarchy ?? []).reduce((sum, item) => sum + item.departments.length, 0)
+  const totalMajors = (academic.hierarchy ?? []).reduce(
+    (sum, item) => sum + item.departments.reduce((dSum, dep) => dSum + dep.majors.length, 0),
+    0,
+  )
 
   return (
     <WorkspacePage
+      size="wide"
       className="academic-page"
       title="Cấu trúc đào tạo"
       eyebrow="Quản lý học vụ"
       description="Sắp xếp tổ chức, bộ môn và chuyên ngành; quản lý thông tin và trạng thái hoạt động."
-      action={!hasStateBlock && !academic.isLoading && academic.canManageOrganizations ? <Button onClick={() => openEditor('organization')}>Thêm tổ chức</Button> : null}
+      action={!hasStateBlock && !academic.isLoading && academic.canManageOrganizations ? <Button icon="add" onClick={() => openEditor('organization')}>Thêm tổ chức</Button> : null}
     >
       {confirmationDialog}
 
@@ -102,22 +156,50 @@ export function AcademicStructurePage() {
         <section className="academic-state-panel academic-error-panel" role="alert"><div><strong>Lỗi tải dữ liệu</strong><p>{getErrorMessage(academic.error)}</p></div><Button onClick={academic.retry}>Thử lại</Button></section>
       ) : (
         <>
-          <form className="academic-filter-bar" onSubmit={(event) => { event.preventDefault(); setFilters(draftFilters) }}>
-            <label>
-              Tìm theo mã hoặc tên
-              <input value={draftFilters.search} onChange={(event) => setDraftFilters((current) => ({ ...current, search: event.target.value }))} placeholder="Ví dụ: SE, CNTT" />
-            </label>
-            <label>
-              Phạm vi tổ chức
-              <select value={draftFilters.organizationId ?? ''} onChange={(event) => setDraftFilters((current) => ({ ...current, organizationId: event.target.value ? Number(event.target.value) : undefined }))}>
-                <option value="">Tất cả tổ chức</option>
-                {organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.code} · {organization.name}</option>)}
-              </select>
-            </label>
-            <label className="academic-checkbox"><input type="checkbox" checked={draftFilters.includeInactive} onChange={(event) => setDraftFilters((current) => ({ ...current, includeInactive: event.target.checked }))} /> Bao gồm bản ghi ngừng hoạt động</label>
-            <Button type="submit" variant="secondary">Áp dụng bộ lọc</Button>
-            {hasFilters && <Button type="button" variant="ghost" onClick={() => { setDraftFilters(initialFilters); setFilters(initialFilters) }}>Xóa lọc</Button>}
-          </form>
+          <FilterToolbar
+            search={filters.search}
+            onSearchChange={value => setFilters(current => ({ ...current, search: value }))}
+            searchLabel="Tìm theo mã hoặc tên"
+            searchPlaceholder="Tìm tổ chức, bộ môn, chuyên ngành (VD: SE, CNTT)..."
+            debounceMs={0}
+            controls={
+              <>
+                <label className="ft-select-wrap">
+                  <span className="sr-only">Phạm vi tổ chức</span>
+                  <select
+                    className="ft-select"
+                    aria-label="Phạm vi tổ chức"
+                    value={filters.organizationId ?? ''}
+                    onChange={event => setFilters(current => ({ ...current, organizationId: event.target.value ? Number(event.target.value) : undefined }))}
+                  >
+                    <option value="">Tất cả tổ chức</option>
+                    {organizations.map(organization => (
+                      <option key={organization.id} value={organization.id}>
+                        {organization.code} · {organization.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-ink-soft hover:border-primary/40">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={filters.includeInactive}
+                    onChange={event => setFilters(current => ({ ...current, includeInactive: event.target.checked }))}
+                  />
+                  Bao gồm bản ghi ngừng hoạt động
+                </label>
+              </>
+            }
+            activeChips={activeChips}
+            onRemoveChip={id => {
+              if (id === 'organizationId') setFilters(current => ({ ...current, organizationId: undefined }))
+              if (id === 'includeInactive') setFilters(current => ({ ...current, includeInactive: false }))
+            }}
+            onClearAll={() => setFilters(initialFilters)}
+            hasActiveFilters={hasFilters}
+            resultSummary={academic.hierarchy ? `${academic.hierarchy.length} tổ chức · ${totalDepartments} bộ môn · ${totalMajors} chuyên ngành` : undefined}
+          />
 
           {!academic.canManageAcademicStructure && academic.context && (
             <p className="academic-permission-note" role="status">Bạn có thể xem cấu trúc đào tạo. Quyền chỉnh sửa do quản trị viên cấp.</p>
@@ -148,8 +230,14 @@ export function AcademicStructurePage() {
           ) : null}
 
           {editor && academic.hierarchy && (
-            <div className="academic-modal-backdrop" role="presentation">
+            <Modal
+              open
+              title={`${editor.record ? 'Chỉnh sửa' : 'Thêm'} ${entityTitleLabels[editor.kind]}`}
+              busy={academic.isSubmitting}
+              onClose={() => setEditor(null)}
+            >
               <AcademicRecordForm
+                embedded
                 kind={editor.kind}
                 record={editor.record}
                 hierarchy={academic.hierarchy}
@@ -157,7 +245,7 @@ export function AcademicStructurePage() {
                 onCancel={() => setEditor(null)}
                 onSubmit={saveRecord}
               />
-            </div>
+            </Modal>
           )}
         </>
       )}

@@ -18,6 +18,7 @@ interface AcademicRecordFormProps {
   record?: AcademicRecord
   hierarchy: AcademicHierarchyOrganization[]
   isSubmitting: boolean
+  embedded?: boolean
   onCancel: () => void
   onSubmit: (draft: AcademicRecordDraft) => Promise<void>
 }
@@ -52,6 +53,7 @@ export function AcademicRecordForm({
   record,
   hierarchy,
   isSubmitting,
+  embedded = false,
   onCancel,
   onSubmit,
 }: AcademicRecordFormProps) {
@@ -125,17 +127,8 @@ export function AcademicRecordForm({
     }
   }
 
-  return (
-    <section className="academic-form-card" aria-labelledby="academic-form-title">
-      <div className="academic-form-heading">
-        <div>
-          <p className="eyebrow">{isEditing ? 'Cập nhật hồ sơ' : 'Tạo hồ sơ'}</p>
-          <h2 id="academic-form-title">{isEditing ? 'Chỉnh sửa' : 'Thêm'} {entityLabels[kind]}</h2>
-        </div>
-        <Button variant="ghost" aria-label="Đóng biểu mẫu" onClick={onCancel}>Đóng</Button>
-      </div>
-
-      <form className="academic-form" onSubmit={handleSubmit} noValidate>
+  const formBody = (
+      <form className={embedded ? 'academic-form mt-0' : 'academic-form'} onSubmit={handleSubmit} noValidate>
         {kind === 'department' && !isEditing && (
           <label>
             Tổ chức sở hữu
@@ -180,6 +173,21 @@ export function AcademicRecordForm({
           <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Đang lưu…' : 'Lưu thay đổi'}</Button>
         </div>
       </form>
+  )
+
+  if (embedded) return formBody
+
+  return (
+    <section className="academic-form-card" aria-labelledby="academic-form-title">
+      <div className="academic-form-heading">
+        <div>
+          <p className="eyebrow">{isEditing ? 'Cập nhật hồ sơ' : 'Tạo hồ sơ'}</p>
+          <h2 id="academic-form-title">{isEditing ? 'Chỉnh sửa' : 'Thêm'} {entityLabels[kind]}</h2>
+        </div>
+        <Button variant="ghost" aria-label="Đóng biểu mẫu" onClick={onCancel}>Đóng</Button>
+      </div>
+
+      {formBody}
     </section>
   )
 }

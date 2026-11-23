@@ -25,8 +25,11 @@
 .governance-record-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
 .governance-status { gap:10px; }
 .governance-status > .governance-badge { border:1px solid var(--color-hairline); border-radius:999px; padding:4px 10px; font-weight:600; color:var(--color-ink-muted); background:var(--color-canvas); }
-.governance-status > .governance-badge--active { border-color:color-mix(in oklab, var(--color-primary) 20%, transparent); color:var(--color-primary); background:var(--color-primary-subtle); }
-.governance-status > .governance-badge--upcoming { border-color:var(--color-status-warning-border); color:var(--color-status-warning-text); background:var(--color-status-warning-bg); }
+.governance-status > .governance-badge--draft { border-color:var(--color-status-warning-border); color:var(--color-status-warning-text); background:var(--color-status-warning-bg); }
+.governance-status > .governance-badge--upcoming { border-color:color-mix(in oklab, var(--color-primary) 28%, transparent); color:var(--color-primary-hover); background:var(--color-primary-subtle); }
+.governance-status > .governance-badge--active { border-color:var(--color-status-success-border); color:var(--color-status-success-text); background:var(--color-status-success-bg); }
+.governance-status > .governance-badge--closed { border-color:var(--color-hairline); color:var(--color-ink-soft); background:var(--color-canvas); }
+.governance-status > .governance-badge--archived { border-color:color-mix(in oklab, var(--color-brand-navy) 28%, var(--color-hairline)); color:var(--color-brand-navy); background:color-mix(in oklab, var(--color-brand-navy) 10%, var(--color-canvas)); }
 .governance-status select { min-height:44px; max-width:100%; padding:6px 10px; border:1px solid var(--color-hairline); border-radius:8px; background:var(--color-card); color:var(--color-ink); font-size:12px; font-weight:400; }
 .governance-editor form { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
 .governance-editor label { display:flex; flex-direction:column; gap:8px; min-width:0; font-size:13px; color: var(--color-ink-soft); }
