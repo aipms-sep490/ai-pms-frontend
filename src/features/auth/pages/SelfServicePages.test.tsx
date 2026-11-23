@@ -86,4 +86,14 @@ describe('password self-service pages', () => {
     expect(authSession.logout).toHaveBeenCalledOnce()
     expect(await screen.findByText('Trang đăng nhập')).toBeDefined()
   })
+
+  it('toggles password visibility on security password fields', () => {
+    render(<MemoryRouter initialEntries={['/profile/security']}><ProfileSecurityPage /></MemoryRouter>)
+    const currentInput = screen.getByLabelText('Mật khẩu hiện tại') as HTMLInputElement
+    expect(currentInput.type).toBe('password')
+    fireEvent.click(screen.getByRole('button', { name: 'Hiện mật khẩu hiện tại' }))
+    expect(currentInput.type).toBe('text')
+    fireEvent.click(screen.getByRole('button', { name: 'Ẩn mật khẩu hiện tại' }))
+    expect(currentInput.type).toBe('password')
+  })
 })

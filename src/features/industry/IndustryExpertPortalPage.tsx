@@ -1,7 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { Button } from '../../components/ui/Button'
 import { displayLabel } from '../../components/ui/display-label'
+import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import { ListLoading } from '../../components/ui/ListLoading'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { WorkspaceEmptyState } from '../../components/ui/WorkspaceState'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { HttpError } from '../../services/http/http-client'
 import { humanizeHttpError } from '../../services/http/humanize-http-error'
@@ -52,6 +56,17 @@ export function IndustryExpertPortalPage() {
   const [feedbackError, setFeedbackError] = useState('')
   const [assignmentRefreshError, setAssignmentRefreshError] = useState(false)
   const [feedbackSuccess, setFeedbackSuccess] = useState('')
+  const [assignmentSearch, setAssignmentSearch] = useState('')
+  const [scopeFilter, setScopeFilter] = useState<'ALL' | 'COMMON' | 'MAJOR_SPECIFIC'>('ALL')
+
+  const filteredAssignments = useMemo(() => {
+    const query = assignmentSearch.trim().toLowerCase()
+    return assignments.filter(a => {
+      if (scopeFilter !== 'ALL' && a.scope !== scopeFilter) return false
+      if (!query) return true
+      return `${a.projectTitle} ${a.projectCode} ${a.majorName ?? ''}`.toLowerCase().includes(query)
+    })
+  }, [assignmentSearch, assignments, scopeFilter])
 
   const loadAssignments = useCallback(async () => {
     setLoading(true)
@@ -269,56 +284,85 @@ export function IndustryExpertPortalPage() {
 
   return (
     <WorkspacePage
+      size="wide"
       className="space-y-5"
       title="Cổng chuyên gia cố vấn doanh nghiệp"
       eyebrow="Cố vấn chuyên môn"
       description="Xem tài liệu được chia sẻ và đóng góp ý kiến nhận xét chuyên môn cho đồ án. Ý kiến cố vấn mang tính chất tham khảo, không phải điểm đánh giá chính thức."
+      action={<Button variant="secondary" icon="refresh" disabled={loading} onClick={() => void loadAssignments()}>Tải lại</Button>}
     >
       {loading && <ListLoading label="Đang tải phân công…" />}
       {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" className="ml-2 min-h-11 font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => void loadAssignments()}>Thử lại</button></p>}
 
       {!loading && !error && assignments.length === 0 && (
-        <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">
-          Bạn chưa được phân công cố vấn đồ án nào. Hãy liên hệ bộ môn nếu bạn đã nhận được thư mời.
-        </p>
+        <WorkspaceEmptyState
+          title="Chưa có đồ án phân công"
+          message="Bạn chưa được phân công cố vấn đồ án nào. Hãy liên hệ bộ môn nếu bạn đã nhận được thư mời."
+        />
       )}
 
       {!loading && assignments.length > 0 && (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 items-start">
           {/* Cột trái: Danh sách đồ án */}
-          <div className="space-y-3 lg:col-span-1">
-            <h2 className="text-sm font-bold text-ink">Đồ án được phân công</h2>
-            <ul className="space-y-2">
-              {assignments.map((a) => (
-                <li key={a.id}>
-                  <button type="button" onClick={() => selectAssignment(a.id)} aria-pressed={selectedAssignmentId === a.id}
-                  className={`w-full min-h-11 text-left cursor-pointer rounded-xl border p-4 shadow-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                    selectedAssignmentId === a.id
-                      ? 'border-primary bg-primary-subtle/40'
-                      : 'border-hairline bg-card hover:bg-canvas'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-ink text-sm">{a.projectTitle}</h3>
-                    <span className="shrink-0 rounded bg-canvas px-1.5 py-0.5 text-xs font-semibold text-ink-soft border border-hairline">
-                      {displayLabel(a.scope)}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-ink-muted">Mã đồ án: {a.projectCode}</p>
-                  <p className="mt-1 text-xs text-ink-soft">
-                    {new Date(a.startsAt).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} – {new Date(a.endsAt).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
-                  </p>
-                  </button>
-                </li>
-              ))}
-            </ul>
+          <div className="space-y-3 lg:col-span-4">
+            <h2 className="text-sm font-bold text-brand-navy">Đồ án được phân công ({assignments.length})</h2>
+            <FilterToolbar
+              embedded
+              debounceMs={0}
+              ariaLabel="Lọc danh sách đồ án cố vấn"
+              search={assignmentSearch}
+              onSearchChange={setAssignmentSearch}
+              searchPlaceholder="Tìm tên hoặc mã đồ án…"
+              searchLabel="Tìm đồ án cố vấn"
+              controls={
+                <label className="ft-select-wrap">
+                  <span className="sr-only">Lọc theo phạm vi</span>
+                  <select aria-label="Phạm vi cố vấn" value={scopeFilter} onChange={(e) => setScopeFilter(e.target.value as 'ALL' | 'COMMON' | 'MAJOR_SPECIFIC')}>
+                    <option value="ALL">Mọi phạm vi</option>
+                    <option value="COMMON">Phạm vi chung</option>
+                    <option value="MAJOR_SPECIFIC">Theo ngành</option>
+                  </select>
+                </label>
+              }
+              onClearAll={assignmentSearch || scopeFilter !== 'ALL' ? () => { setAssignmentSearch(''); setScopeFilter('ALL') } : undefined}
+              hasActiveFilters={Boolean(assignmentSearch || scopeFilter !== 'ALL')}
+            />
+            {filteredAssignments.length === 0 ? (
+              <p className="rounded-xl border border-hairline bg-card p-4 text-xs text-ink-muted">Không có đồ án phù hợp với bộ lọc.</p>
+            ) : (
+              <ul className="space-y-2">
+                {filteredAssignments.map((a) => (
+                  <li key={a.id}>
+                    <button
+                      type="button"
+                      onClick={() => selectAssignment(a.id)}
+                      aria-pressed={selectedAssignmentId === a.id}
+                      className={`w-full min-h-11 text-left cursor-pointer rounded-xl border p-4 shadow-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                        selectedAssignmentId === a.id
+                          ? 'border-primary bg-primary-subtle/40'
+                          : 'border-hairline bg-card hover:bg-canvas'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-semibold text-ink text-sm">{a.projectTitle}</h3>
+                        <StatusBadge tone="neutral" label={displayLabel(a.scope)} />
+                      </div>
+                      <p className="mt-1 text-xs text-ink-muted">Mã đồ án: {a.projectCode}</p>
+                      <p className="mt-1 text-xs text-ink-soft">
+                        {new Date(a.startsAt).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} – {new Date(a.endsAt).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
+                      </p>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
             {assignments.length < assignmentTotal && <button type="button" disabled={loadingMoreAssignments} className="min-h-11 rounded-lg border border-hairline px-3 text-sm font-semibold text-primary disabled:opacity-50" onClick={() => void loadMoreAssignments()}>{loadingMoreAssignments ? 'Đang tải…' : `Xem thêm phân công (${assignments.length}/${assignmentTotal})`}</button>}
             {assignmentMoreError && <p role="alert" className="text-xs text-status-error-text">Chưa tải được trang phân công tiếp theo. Hãy thử lại.</p>}
           </div>
 
           {/* Cột phải: Chi tiết đồ án, File và Nhận xét */}
           {selectedAssignment && (
-            <div className="space-y-5 lg:col-span-2">
+            <div className="space-y-5 lg:col-span-8">
               {/* Header chi tiết */}
               <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">

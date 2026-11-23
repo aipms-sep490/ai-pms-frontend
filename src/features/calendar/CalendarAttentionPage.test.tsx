@@ -153,4 +153,38 @@ describe('CalendarAttentionPage', () => {
     await waitFor(() => expect(loader).toHaveBeenCalledTimes(2))
     expect(loader).toHaveBeenLastCalledWith(expect.objectContaining({ departments: access.departments }))
   })
+
+  it('renders a 7-column Mon–Sun month calendar grid and reveals day details on click', async () => {
+    render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    await screen.findAllByText('Task có hạn')
+    fireEvent.click(screen.getByRole('button', { name: 'Theo tháng' }))
+    const grid = screen.getByRole('grid')
+    expect(within(grid).getAllByRole('columnheader').map(el => el.textContent)).toEqual(['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'])
+    const dayCell = within(grid).getByRole('gridcell', { name: /2026-10-04/ })
+    fireEvent.click(dayCell)
+    expect(dayCell.getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getAllByText('Task có hạn').length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('localizes raw workflow status enums without leaking BLOCKED, IN_REVIEW, PENDING, or DRAFT', async () => {
+    loader.mockResolvedValue({
+      calendar: [
+        { sourceType: 'TASK', sourceId: 11, title: 'Việc bị chặn', dueAt: '2026-10-05T01:00:00Z', status: 'BLOCKED', deepLink: '/project/tasks/11' },
+        { sourceType: 'DELIVERABLE', sourceId: 12, title: 'Hồ sơ đang xét', dueAt: '2026-10-06T01:00:00Z', status: 'IN_REVIEW', deepLink: '/project/deliverables' },
+        { sourceType: 'PROGRESS_REPORT', sourceId: 13, title: 'Báo cáo nháp', dueAt: '2026-10-07T01:00:00Z', status: 'DRAFT', deepLink: '/project/reports' },
+        { sourceType: 'MILESTONE', sourceId: 14, title: 'Mốc chờ xử lý', dueAt: '2026-10-08T01:00:00Z', status: 'PENDING', deepLink: '/project/milestones' },
+      ],
+      attention: [],
+      sources: [{ id: 'tasks', label: 'Công việc', state: 'ready' }],
+    })
+    render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    expect((await screen.findAllByText('Bị chặn')).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Đang xem xét').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Bản nháp').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Chờ xử lý').length).toBeGreaterThanOrEqual(1)
+    expect(screen.queryByText('BLOCKED')).toBeNull()
+    expect(screen.queryByText('IN_REVIEW')).toBeNull()
+    expect(screen.queryByText('DRAFT')).toBeNull()
+    expect(screen.queryByText('PENDING')).toBeNull()
+  })
 })

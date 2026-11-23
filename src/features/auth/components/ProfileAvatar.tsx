@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Button } from '../../../components/ui/Button'
+import { getInitials } from '../../../components/ui/initials'
 import { HttpError } from '../../../services/http/http-client'
 import { getUploadPolicy, uploadPolicyLabel, validateUploadFile, type UploadPolicy } from '../../../services/api/upload-policies.api'
 import { getMyAvatarBlob, getMyAvatarMetadata, removeMyAvatar, uploadMyAvatar, type UserAvatarMetadata } from '../api/auth-api'
@@ -133,7 +134,7 @@ export function ProfileAvatar({ fullName, userId }: { fullName: string; userId: 
         setError('Không mở được ảnh này. Hãy chọn ảnh PNG hoặc JPEG khác.')
         if (previewRef.current) clearChosen()
         else { if (imageRef.current) URL.revokeObjectURL(imageRef.current); imageRef.current = null; setImageUrl(null) }
-      }} /> : <span aria-hidden="true">{fullName.trim().charAt(0).toLocaleUpperCase('vi-VN')}</span>}
+      }} /> : <span aria-hidden="true">{getInitials(fullName)}</span>}
     </div>
     <div className="profile-avatar-actions">
       <label className="profile-avatar-picker">Chọn ảnh<input type="file" accept={avatarAccept} aria-label="Chọn ảnh đại diện PNG hoặc JPEG" disabled={busy || loading} onChange={choose} /></label>
