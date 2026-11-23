@@ -10,16 +10,17 @@ import type { RegistrationSourceKind } from '../types/registration-source.types'
 export function RegistrationSourcePage() {
   const navigate = useNavigate()
   const journey = useStudentJourney()
-  const [sourceKind, setSourceKind] = useState<RegistrationSourceKind>('PUBLISHED_TOPIC')
+  const [selectedSource, setSelectedSource] = useState<RegistrationSourceKind | null>(null)
   const project = journey.project
+  const sourceKind: RegistrationSourceKind = selectedSource ?? (project?.proposalSource === 'STUDENT_PROPOSAL' ? 'STUDENT_PROPOSAL' : 'PUBLISHED_TOPIC')
   const status = project?.status.replaceAll('_', '').toUpperCase()
   const isLeader = Boolean(journey.team?.members.some((member) => member.userId === journey.profile?.id && member.isLeader))
   const editableDraft = Boolean(project && isLeader && (status === 'DRAFT' || status === 'REVISIONREQUIRED') && isActionAllowed(journey.projectActions?.actions ?? [], 'edit_project_draft'))
 
-  return <WorkspacePage title="Đăng ký đồ án" eyebrow="Đề tài và đăng ký" description="Chọn đề tài có sẵn hoặc đề xuất đề tài riêng cho nhóm." backTo="/topics" className="space-y-6">
+  return <WorkspacePage size="standard" title="Đăng ký đồ án" eyebrow="Đề tài và đăng ký" description="Chọn đề tài có sẵn hoặc đề xuất đề tài riêng cho nhóm." backTo="/topics" className="space-y-6">
     {journey.isLoading ? <section role="status" className="workspace-surface p-6 text-sm text-ink-muted">Đang tải thông tin đăng ký…</section> : journey.error ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-6 text-sm text-status-error-text"><p>{journey.error}</p><Button variant="outline" className="mt-4 min-h-11" onClick={() => void journey.refreshAll()}>Tải lại</Button></section> : <>
     {project ? <Provenance project={project} /> : <section className="rounded-xl border border-hairline bg-canvas p-4 text-sm text-ink-soft">Nhóm chưa có bản nháp đồ án.</section>}
-    <section aria-label="Cách đăng ký đề tài" className="grid gap-4 md:grid-cols-2"><SourceCard active={sourceKind === 'PUBLISHED_TOPIC'} title="Đề tài đã công bố" detail="Chọn đề tài phù hợp từ danh mục của bộ môn." onSelect={() => setSourceKind('PUBLISHED_TOPIC')} /><SourceCard active={sourceKind === 'STUDENT_PROPOSAL'} title="Đề xuất đề tài riêng" detail="Nhóm tự xây dựng đề cương và gửi bộ môn thẩm định." onSelect={() => setSourceKind('STUDENT_PROPOSAL')} /></section>
+    <section aria-label="Cách đăng ký đề tài" className="grid gap-4 md:grid-cols-2"><SourceCard active={sourceKind === 'PUBLISHED_TOPIC'} title="Đề tài đã công bố" detail="Chọn đề tài phù hợp từ danh mục của bộ môn." onSelect={() => setSelectedSource('PUBLISHED_TOPIC')} /><SourceCard active={sourceKind === 'STUDENT_PROPOSAL'} title="Đề xuất đề tài riêng" detail="Nhóm tự xây dựng đề cương và gửi bộ môn thẩm định." onSelect={() => setSelectedSource('STUDENT_PROPOSAL')} /></section>
     {sourceKind === 'PUBLISHED_TOPIC' ? <TopicPath hasDraft={Boolean(project)} editableDraft={editableDraft} onCreateDraft={() => navigate('/project/register')} onOpenCatalogue={() => navigate('/topics')} /> : <ProposalPath hasDraft={Boolean(project)} onOpenDraft={() => navigate('/project/register')} />}
     </>}
   </WorkspacePage>

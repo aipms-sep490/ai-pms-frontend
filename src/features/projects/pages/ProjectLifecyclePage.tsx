@@ -5,6 +5,7 @@ import { services } from '../../../services/service-gateway'
 import type { ProjectStatusHistoryDto } from '../../../types/backend'
 import { projectStatusLabel } from '../utils/project-status'
 import { PageLoading } from '../../../components/ui/PageLoading'
+import { Avatar } from '../../../components/ui/Avatar'
 import { ExecutionPage, ExState } from '../../execution/execution-ui'
 import { dateTimeLabel } from '../../execution/execution-utils'
 import './project-lifecycle.css'
@@ -33,7 +34,21 @@ export function ProjectLifecyclePage() {
   if (journey.isLoading) return <PageLoading />
   if (journey.error) return <ExecutionPage title="Hồ sơ đồ án"><ExState message="Chưa tải được hồ sơ đồ án. Hãy thử lại." retry={() => void journey.refreshAll()} /></ExecutionPage>
   if (!project || !team) return <ExecutionPage title="Hồ sơ đồ án"><ExState title="Nhóm chưa có hồ sơ đồ án" message="Hoàn thiện điều kiện nhóm rồi tạo đề cương để đăng ký." action={<Link className="ex-button" to="/project/register">Tạo đề cương</Link>} /></ExecutionPage>
-  return <ExecutionPage title="Hồ sơ đồ án" eyebrow={project.code} description={`${project.title} · ${team.name} (${team.code})${semester?.name ? ` · ${semester.name}` : ''}`}>
+  return <ExecutionPage
+    title="Hồ sơ đồ án"
+    eyebrow={project.code}
+    description={`${project.title} · ${team.name} (${team.code})${semester?.name ? ` · ${semester.name}` : ''}`}
+    action={
+      <button
+        type="button"
+        className="ex-button ex-button-ghost"
+        onClick={() => { void journey.refreshAll(); setRevision(value => value + 1) }}
+      >
+        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
+        Làm mới
+      </button>
+    }
+  >
     <div className="lifecycle-page">
     <section className="lifecycle-section lifecycle-overview" aria-label="Thông tin đồ án">
       <dl className="lifecycle-facts">
@@ -88,9 +103,7 @@ export function ProjectLifecyclePage() {
       <div className="lifecycle-members">
         {team.members.map(member => (
           <div key={member.userId} className="lifecycle-member">
-            <div className="size-10 rounded-full bg-primary-subtle text-primary flex items-center justify-center font-bold text-xs shrink-0 border border-primary/10">
-              {member.fullName.charAt(0)}
-            </div>
+            <Avatar name={member.fullName} toneSeed={member.userId} size="md" shape="circle" />
             <div className="min-w-0 flex-1">
               <span className="font-semibold text-sm text-ink block truncate">{member.fullName}</span>
               <span className="text-xs text-ink-muted block">{project.majors?.find(m => m.majorId === member.majorId)?.majorName ?? (member.isLeader ? 'Trưởng nhóm' : 'Thành viên nhóm')}</span>

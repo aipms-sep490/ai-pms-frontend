@@ -113,6 +113,34 @@ export function StudentJourneyHero() {
           ctaRoute: '/project/supervisor',
           ctaIcon: 'person_search',
         }
+      case 'FINAL_SUBMISSION':
+        return {
+          badge: 'Giai đoạn Bàn giao cuối kỳ',
+          badgeClass: 'bg-status-warning-bg text-status-warning-text border-status-warning-border',
+          title: `Đồ án: ${project?.title ?? 'Đang cập nhật thông tin'}`,
+          desc: `GVHD: ${activeSupervisor?.supervisorName ?? 'Chưa phân công'} • Học kỳ: ${semester?.name ?? 'Chưa xác định'} • Thành viên: ${team?.members.length ?? 0} bạn • Nhóm: ${team?.code || teamDisplayName}`,
+          icon: 'inventory_2',
+          iconBg: 'bg-warning-strong text-white',
+          ctaText: 'Mở bàn giao cuối kỳ',
+          ctaRoute: '/project/final-submission',
+          ctaIcon: 'upload_file',
+          secondaryText: 'Lịch bảo vệ',
+          secondaryRoute: '/project/defense',
+        }
+      case 'COMPLETED':
+        return {
+          badge: 'Đã hoàn thành đồ án',
+          badgeClass: 'bg-status-success-bg text-status-success-text border-status-success-border',
+          title: `Đồ án: ${project?.title ?? 'Đang cập nhật thông tin'}`,
+          desc: `GVHD: ${activeSupervisor?.supervisorName ?? 'Chưa phân công'} • Học kỳ: ${semester?.name ?? 'Chưa xác định'} • Nhóm: ${team?.code || teamDisplayName}`,
+          icon: 'workspace_premium',
+          iconBg: 'bg-primary text-white',
+          ctaText: 'Xem kết quả đồ án',
+          ctaRoute: '/project/result',
+          ctaIcon: 'grading',
+          secondaryText: 'Hồ sơ đồ án',
+          secondaryRoute: '/projects/lifecycle',
+        }
       case 'ACTIVE':
       default:
         return {

@@ -1,4 +1,4 @@
-.cold-reports { max-width: 1360px; margin: 0 auto; padding: 0 0 48px; color: var(--color-ink); }
+.cold-reports { max-width: 1440px; margin: 0 auto; padding: 0 0 48px; color: var(--color-ink); }
 .cold-reports * { box-sizing: border-box; }
 .cold-reports a, .cold-reports button, .cold-reports input, .cold-reports textarea { transition: border-color 160ms, background-color 160ms, box-shadow 160ms; }
 .cold-reports :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }

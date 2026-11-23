@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { Avatar } from '../../../components/ui/Avatar'
 import type { PagedResult, TeamInvitationCandidateDto, TeamInvitationDto } from '../../../types/backend'
 import { dateTimeLabel } from '../../execution/execution-utils'
 
@@ -49,9 +50,35 @@ export function TeamInvitationsPanel({
   const [activeTab, setActiveTab] = useState<'sent' | 'received'>('sent')
   const [message, setMessage] = useState('')
   const [majorFilter, setMajorFilter] = useState<number | null>(null)
+  const [inviteStatusFilter, setInviteStatusFilter] = useState('')
+  const [inviteSearch, setInviteSearch] = useState('')
   const visibleCandidates = majorFilter == null ? candidates.items : candidates.items.filter((candidate) => candidate.majorId === majorFilter)
   const personName = (id: number) => memberNames[id] || candidates.items.find(candidate => candidate.userId === id)?.fullName
   const statusLabel = (status: string) => ({ PENDING: 'Đang chờ phản hồi', ACCEPTED: 'Đã chấp nhận', REJECTED: 'Đã từ chối', CANCELLED: 'Đã hủy', EXPIRED: 'Đã hết hạn' }[status] || 'Chưa có thông tin')
+
+  const filteredSent = useMemo(() => {
+    const q = inviteSearch.trim().toLowerCase()
+    return sentInvitations.filter(inv => {
+      if (inviteStatusFilter && inv.status !== inviteStatusFilter) return false
+      if (q) {
+        const hay = `${inv.invitedUserName ?? ''} ${memberNames[inv.invitedUserId] ?? ''} ${inv.message ?? ''}`.toLowerCase()
+        if (!hay.includes(q)) return false
+      }
+      return true
+    })
+  }, [sentInvitations, inviteStatusFilter, inviteSearch, memberNames])
+
+  const filteredReceived = useMemo(() => {
+    const q = inviteSearch.trim().toLowerCase()
+    return receivedInvitations.filter(inv => {
+      if (inviteStatusFilter && inv.status !== inviteStatusFilter) return false
+      if (q) {
+        const hay = `${inv.teamName ?? ''} ${inv.invitedByName ?? ''} ${inv.message ?? ''}`.toLowerCase()
+        if (!hay.includes(q)) return false
+      }
+      return true
+    })
+  }, [receivedInvitations, inviteStatusFilter, inviteSearch])
 
   const handleSend = async (candidate: TeamInvitationCandidateDto) => {
     if (!onSendInvitation) return
@@ -137,7 +164,7 @@ export function TeamInvitationsPanel({
                   {unfilledMajors.map((entry) => (
                     <button key={entry.majorId} type="button" onClick={() => setMajorFilter(entry.majorId)}
                       className={`min-h-9 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${majorFilter === entry.majorId ? 'border border-primary/20 bg-primary-subtle text-primary' : 'text-ink-muted hover:bg-canvas hover:text-ink'}`}>
-                      {entry.majorName ?? `Ngành #${entry.majorId}`} (còn thiếu {entry.remaining})
+                      {entry.majorName ?? 'Chuyên ngành khác'} (còn thiếu {entry.remaining})
                     </button>
                   ))}
                 </div>
@@ -149,9 +176,12 @@ export function TeamInvitationsPanel({
                   <p className="p-3 text-xs text-ink-muted">{majorFilter == null ? 'Không có sinh viên phù hợp với điều kiện nhóm.' : 'Không có ứng viên ngành này trong trang hiện tại.'}</p>
                 ) : visibleCandidates.map((candidate) => (
                   <div key={candidate.userId} className="flex flex-wrap items-center justify-between gap-3 p-3 sm:flex-nowrap">
-                    <div className="min-w-0 text-xs">
-                      <p className="truncate font-bold text-ink">{candidate.fullName} · {candidate.studentCode ?? candidate.email}</p>
-                      <p className="text-ink-muted">{candidate.majorCode} — {candidate.majorName}</p>
+                    <div className="flex min-w-0 items-center gap-2.5 text-xs">
+                      <Avatar name={candidate.fullName} size="sm" />
+                      <div className="min-w-0">
+                        <p className="truncate font-bold text-ink">{candidate.fullName} · {candidate.studentCode ?? candidate.email}</p>
+                        <p className="text-ink-muted">{candidate.majorCode} — {candidate.majorName}</p>
+                      </div>
                     </div>
                     <button type="button" onClick={() => handleSend(candidate)}
                       disabled={!candidate.canInvite || isMutationPending('invite', candidate.userId)}
@@ -175,25 +205,54 @@ export function TeamInvitationsPanel({
 
           {/* Sent invitations list */}
           <div>
-            <h5 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-ink-muted">
-              Danh sách lời mời của nhóm
-            </h5>
+            <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+              <h5 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                Danh sách lời mời của nhóm
+              </h5>
+              {sentInvitations.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="search"
+                    value={inviteSearch}
+                    onChange={(e) => setInviteSearch(e.target.value)}
+                    placeholder="Lọc lời mời…"
+                    aria-label="Lọc lời mời đã gửi"
+                    className="min-h-9 rounded-lg border border-hairline bg-card px-2.5 py-1 text-xs text-ink"
+                  />
+                  <select
+                    aria-label="Trạng thái lời mời đã gửi"
+                    value={inviteStatusFilter}
+                    onChange={(e) => setInviteStatusFilter(e.target.value)}
+                    className="min-h-9 rounded-lg border border-hairline bg-card px-2.5 py-1 text-xs text-ink"
+                  >
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="PENDING">Đang chờ phản hồi</option>
+                    <option value="ACCEPTED">Đã chấp nhận</option>
+                    <option value="REJECTED">Đã từ chối</option>
+                    <option value="CANCELLED">Đã hủy</option>
+                    <option value="EXPIRED">Đã hết hạn</option>
+                  </select>
+                </div>
+              )}
+            </div>
             {sentInvitations.length === 0 ? (
               <div className="rounded-lg border border-dashed border-hairline bg-canvas p-6 text-center text-xs text-ink-muted">
                 Chưa có lời mời nào được gửi đi.
               </div>
+            ) : filteredSent.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-hairline bg-canvas p-6 text-center text-xs text-ink-muted">
+                Không có lời mời nào phù hợp bộ lọc hiện tại.
+              </div>
             ) : (
               <div className="divide-y divide-hairline">
-                {sentInvitations.map((inv) => {
+                {filteredSent.map((inv) => {
                   const targetUser = inv.invitedUserName || personName(inv.invitedUserId) || 'Sinh viên được mời'
                   const inviterName = inv.invitedByName || personName(inv.invitedBy)
 
                   return (
                     <div key={inv.id} className="flex flex-wrap items-center justify-between gap-4 p-3.5 hover:bg-canvas sm:flex-nowrap">
                       <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-hairline bg-canvas text-xs font-bold text-ink-muted">
-                          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">outgoing_mail</span>
-                        </div>
+                        <Avatar name={targetUser} size="sm" />
                         <div className="min-w-0">
                           <div className="truncate text-xs font-bold text-ink">
                             {targetUser}
@@ -244,14 +303,42 @@ export function TeamInvitationsPanel({
       )}
 
       {activeTab === 'received' && (
-        <div className="p-5">
+        <div className="space-y-3 p-5">
+          {receivedInvitations.length > 0 && (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <input
+                type="search"
+                value={inviteSearch}
+                onChange={(e) => setInviteSearch(e.target.value)}
+                placeholder="Tìm theo tên nhóm hoặc người mời…"
+                aria-label="Lọc lời mời đã nhận"
+                className="min-h-9 rounded-lg border border-hairline bg-card px-2.5 py-1 text-xs text-ink"
+              />
+              <select
+                aria-label="Trạng thái lời mời đã nhận"
+                value={inviteStatusFilter}
+                onChange={(e) => setInviteStatusFilter(e.target.value)}
+                className="min-h-9 rounded-lg border border-hairline bg-card px-2.5 py-1 text-xs text-ink"
+              >
+                <option value="">Tất cả trạng thái</option>
+                <option value="PENDING">Đang chờ phản hồi</option>
+                <option value="ACCEPTED">Đã chấp nhận</option>
+                <option value="REJECTED">Đã từ chối</option>
+                <option value="EXPIRED">Đã hết hạn</option>
+              </select>
+            </div>
+          )}
           {receivedInvitations.length === 0 ? (
             <div className="rounded-lg border border-dashed border-hairline bg-canvas p-6 text-center text-xs text-ink-muted">
               Hộp thư rỗng. Bạn chưa nhận được lời mời nào từ các nhóm khác.
             </div>
+          ) : filteredReceived.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-hairline bg-canvas p-6 text-center text-xs text-ink-muted">
+              Không có lời mời nào phù hợp bộ lọc hiện tại.
+            </div>
           ) : (
             <div className="divide-y divide-hairline">
-              {receivedInvitations.map((inv) => {
+              {filteredReceived.map((inv) => {
                 const teamTitle = inv.teamName
                   ? (inv.teamName.startsWith('Nhóm') ? `Lời mời từ ${inv.teamName}` : `Lời mời từ nhóm ${inv.teamName}`)
                   : `Lời mời từ nhóm #${inv.teamId}`

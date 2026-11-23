@@ -32,6 +32,8 @@ describe('RegistrationSourcePage', () => {
 
   it('opens the selectable catalogue only for an editable Backend draft', () => {
     page()
+    expect(screen.getByRole('button', { name: /Đề xuất đề tài riêng/ }).getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(screen.getByRole('button', { name: /Đề tài đã công bố/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Xem danh mục đề tài' }))
     expect(screen.getByText('Topic catalogue route')).toBeTruthy()
   })

@@ -13,6 +13,7 @@ export function StudentDashboardSummary() {
   const [timeline, setTimeline] = useState<StudentReviewTimelineDto | null>(null)
   const [latestAssessment, setLatestAssessment] = useState<WeeklyAssessment | null>(null)
   const [weeklyStatus, setWeeklyStatus] = useState<'ok' | 'forbidden' | 'unavailable'>('ok')
+  const [taskTab, setTaskTab] = useState<'urgent' | 'upcoming' | 'all'>('urgent')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -85,22 +86,42 @@ export function StudentDashboardSummary() {
   const acceptedRequirements = allRequirements.filter(r => r.verificationStatus === 'ACCEPTED').length
   const totalRequirements = allRequirements.length
 
-  // Top urgent tasks for Flight Deck
+  // Unified task deadline slices (no more duplicate "Việc cần làm hôm nay" + "Công việc sắp đến hạn")
   const taskDeadlines = data.taskDeadlines ?? []
-  const urgentTasks = [
-    ...taskDeadlines.filter(t => t.isOverdue || t.status === 'BLOCKED'),
-    ...taskDeadlines.filter(t => !t.isOverdue && t.status !== 'BLOCKED'),
-  ].slice(0, 3)
+  const urgentTaskList = taskDeadlines.filter(t => t.isOverdue || t.status === 'BLOCKED')
+  const upcomingTaskList = taskDeadlines.filter(t => !t.isOverdue && t.status !== 'BLOCKED')
+  const effectiveTaskTab = taskTab === 'urgent' && urgentTaskList.length === 0 && upcomingTaskList.length > 0 ? 'upcoming' : taskTab
+  const visibleTasks = effectiveTaskTab === 'urgent' ? urgentTaskList : effectiveTaskTab === 'upcoming' ? upcomingTaskList : taskDeadlines
 
   return (
     <section className="space-y-6" aria-label="Tổng quan tiến độ đồ án sinh viên">
       <div>
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-ink-muted">
-            Tổng quan tiến độ đồ án
-          </h2>
+        <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-ink-muted">
+              Tổng quan tiến độ đồ án
+            </h2>
+            {project && (
+              <span className="rounded-md border border-hairline bg-card px-2 py-0.5 text-xs font-semibold text-ink-soft">
+                {project.code} · {projectStatusLabel(project.status)}
+              </span>
+            )}
+            {analysis?.riskLevel && (
+              <span
+                className={`rounded-md px-2.5 py-0.5 text-xs font-bold ${
+                  analysis.riskLevel === 'HIGH' || analysis.riskLevel === 'CRITICAL'
+                    ? 'bg-status-error-bg text-status-error-text border border-status-error-border'
+                    : analysis.riskLevel === 'LOW'
+                      ? 'bg-status-success-bg text-status-success-text border border-status-success-border'
+                      : 'bg-status-warning-bg text-status-warning-text border border-status-warning-border'
+                }`}
+              >
+                Rủi ro: {riskLabel(analysis.riskLevel)}
+              </span>
+            )}
+          </div>
           <span className="text-xs text-ink-muted">
-            Cập nhật lúc: {new Date(data.asOfUtc).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+            Cập nhật lúc: {new Date(data.asOfUtc).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' })}
           </span>
         </div>
 
@@ -212,123 +233,129 @@ export function StudentDashboardSummary() {
         </div>
       </div>
 
-      {/* VIỆC CẦN LÀM HÔM NAY */}
-      <section className="space-y-3 rounded-2xl border border-hairline bg-card p-5 shadow-xs sm:p-6" aria-labelledby="flight-deck-heading">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-[22px]" aria-hidden="true">bolt</span>
-            <h2 id="flight-deck-heading" className="font-heading text-base font-bold text-ink">
-              Việc cần làm hôm nay
-            </h2>
-          </div>
-          {project?.status === 'ACTIVE' ? (
-            <Link
-              to="/project/tasks"
-              className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              Xem toàn bộ bảng công việc →
-            </Link>
-          ) : project?.status === 'FINAL_SUBMISSION' ? (
-            <Link
-              to="/project/final-submission"
-              className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              Mở bàn giao cuối kỳ →
-            </Link>
-          ) : null}
-        </div>
-
-        {urgentTasks.length === 0 ? (
-          <div className="py-6 text-center text-xs text-ink-muted">
-            <span className="material-symbols-outlined text-3xl text-status-success-text" aria-hidden="true">check_circle</span>
-            <p className="mt-1 font-semibold text-ink">Không có công việc nào bị quá hạn hoặc bị chặn!</p>
-            <p className="text-ink-muted">Bạn có thể tiếp tục triển khai các hạng mục tiếp theo trong kế hoạch.</p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-hairline">
-            {urgentTasks.map((task) => (
-              <li key={task.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-3 min-w-0">
-                  <span
-                    className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                      task.isOverdue
-                        ? 'bg-status-error-bg text-status-error-text'
-                        : task.status === 'BLOCKED'
-                          ? 'bg-status-warning-bg text-status-warning-text'
-                          : 'bg-primary-subtle text-primary'
-                    }`}
-                  >
-                    {task.isOverdue ? '!' : '#'}
-                  </span>
-                  <div className="min-w-0">
-                    <Link
-                      to={project?.status === 'FINAL_SUBMISSION' ? '/project/final-submission' : `/project/tasks/${task.id}`}
-                      className="font-semibold text-sm text-ink hover:text-primary line-clamp-1"
-                    >
-                      {task.title}
-                    </Link>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-                      <span className={task.isOverdue ? 'font-bold text-status-error-text' : ''}>
-                        Hạn chót: {formatDate(task.dueAtUtc)}
-                        {task.isOverdue && ' (Đã quá hạn)'}
-                      </span>
-                      {task.status === 'BLOCKED' && (
-                        <>
-                          <span>·</span>
-                          <span className="font-semibold text-status-warning-text">Đang bị chặn</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
-                  <Link
-                    to={project?.status === 'FINAL_SUBMISSION' ? '/project/final-submission' : `/project/tasks/${task.id}`}
-                    className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-hairline bg-canvas px-3 text-xs font-semibold text-ink-soft transition-colors hover:border-primary/40 hover:text-primary"
-                  >
-                    {project?.status === 'FINAL_SUBMISSION' ? 'Xem bàn giao' : 'Xử lý ngay'}
-                    <span className="material-symbols-outlined text-[15px]" aria-hidden="true">arrow_forward</span>
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {/* =========================================================================
-          TIẾN ĐỘ ĐỒ ÁN & CHI TIẾT THEO DÕI
-          ========================================================================= */}
-      {project && (
-        <section className="rounded-2xl border border-hairline bg-card p-5 shadow-xs sm:p-6" aria-labelledby="project-status-heading">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Thông tin đề tài</span>
-              <h3 id="project-status-heading" className="mt-0.5 font-heading text-lg font-bold text-ink">
-                {project.title}
-              </h3>
-              <p className="mt-1 text-xs text-ink-muted">
-                Mã đồ án: <strong className="text-ink">{project.code}</strong> · Trạng thái:{' '}
-                <strong className="text-primary">{projectStatusLabel(project.status)}</strong>
-              </p>
+      {/* CÔNG VIỆC CẦN CHÚ Ý & MỐC SẮP ĐẾN HẠN (Hợp nhất 2 cột gọn) */}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.9fr)] lg:items-start">
+        <section className="space-y-3 rounded-2xl border border-hairline bg-card p-5 shadow-xs sm:p-6" aria-labelledby="flight-deck-heading">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-[22px]" aria-hidden="true">bolt</span>
+              <h2 id="flight-deck-heading" className="font-heading text-base font-bold text-ink">
+                Công việc cần chú ý
+              </h2>
             </div>
-            {analysis?.riskLevel && (
-              <span
-                className={`rounded-md px-3 py-1 text-xs font-bold ${
-                  analysis.riskLevel === 'HIGH' || analysis.riskLevel === 'CRITICAL'
-                    ? 'bg-status-error-bg text-status-error-text border border-status-error-border'
-                    : analysis.riskLevel === 'LOW'
-                      ? 'bg-status-success-bg text-status-success-text border border-status-success-border'
-                      : 'bg-status-warning-bg text-status-warning-text border border-status-warning-border'
+            {project?.status === 'ACTIVE' ? (
+              <Link
+                to="/project/tasks"
+                className="inline-flex min-h-10 items-center gap-1 text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                Xem bảng công việc →
+              </Link>
+            ) : project?.status === 'FINAL_SUBMISSION' ? (
+              <Link
+                to="/project/final-submission"
+                className="inline-flex min-h-10 items-center gap-1 text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                Mở bàn giao cuối kỳ →
+              </Link>
+            ) : null}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Lọc công việc cần chú ý">
+            {([
+              ['urgent', `Quá hạn / Bị chặn (${urgentTaskList.length})`],
+              ['upcoming', `Sắp đến hạn (${upcomingTaskList.length})`],
+              ['all', `Tất cả (${taskDeadlines.length})`],
+            ] as const).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={effectiveTaskTab === key}
+                onClick={() => setTaskTab(key)}
+                className={`min-h-9 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  effectiveTaskTab === key
+                    ? 'border border-primary/25 bg-primary-subtle text-primary'
+                    : 'border border-transparent text-ink-muted hover:bg-canvas hover:text-ink'
                 }`}
               >
-                Mức rủi ro: {riskLabel(analysis.riskLevel)}
-              </span>
-            )}
+                {label}
+              </button>
+            ))}
           </div>
+
+          {visibleTasks.length === 0 ? (
+            <div className="py-6 text-center text-xs text-ink-muted">
+              <span className="material-symbols-outlined text-3xl text-status-success-text" aria-hidden="true">check_circle</span>
+              <p className="mt-1 font-semibold text-ink">
+                {effectiveTaskTab === 'urgent' ? 'Không có công việc nào quá hạn hoặc bị chặn!' : 'Chưa có công việc nào sắp đến hạn.'}
+              </p>
+              <p className="text-ink-muted">Bạn có thể tiếp tục triển khai các hạng mục tiếp theo trong kế hoạch.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-hairline">
+              {visibleTasks.slice(0, 6).map((task) => (
+                <li key={task.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <span
+                      className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                        task.isOverdue
+                          ? 'bg-status-error-bg text-status-error-text'
+                          : task.status === 'BLOCKED'
+                            ? 'bg-status-warning-bg text-status-warning-text'
+                            : 'bg-primary-subtle text-primary'
+                      }`}
+                    >
+                      {task.isOverdue ? '!' : '#'}
+                    </span>
+                    <div className="min-w-0">
+                      <Link
+                        to={project?.status === 'FINAL_SUBMISSION' ? '/project/final-submission' : `/project/tasks/${task.id}`}
+                        className="font-semibold text-sm text-ink hover:text-primary line-clamp-1"
+                      >
+                        {task.title}
+                      </Link>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+                        <span className={task.isOverdue ? 'font-bold text-status-error-text' : ''}>
+                          Hạn chót: {formatDate(task.dueAtUtc)}
+                          {task.isOverdue && ' (Đã quá hạn)'}
+                        </span>
+                        {task.status === 'BLOCKED' && (
+                          <>
+                            <span>·</span>
+                            <span className="font-semibold text-status-warning-text">Đang bị chặn</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+                    <Link
+                      to={project?.status === 'FINAL_SUBMISSION' ? '/project/final-submission' : `/project/tasks/${task.id}`}
+                      className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-hairline bg-canvas px-3 text-xs font-semibold text-ink-soft transition-colors hover:border-primary/40 hover:text-primary"
+                    >
+                      {project?.status === 'FINAL_SUBMISSION' ? 'Xem bàn giao' : 'Xử lý ngay'}
+                      <span className="material-symbols-outlined text-[15px]" aria-hidden="true">arrow_forward</span>
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
-      )}
+
+        <DeadlineList
+          title="Mốc đồ án sắp đến hạn"
+          empty="Chưa có mốc nào sắp đến hạn cần chú ý."
+          items={(data.milestoneDeadlines ?? []).map(item => ({
+            id: item.id,
+            title: item.title,
+            date: item.dueDate,
+            overdue: item.isOverdue,
+            href: project?.status === 'FINAL_SUBMISSION' ? '/project/final-submission' : `/project/milestones/${item.id}`,
+          }))}
+        />
+      </div>
 
       {/* =========================================================================
           ĐÁNH GIÁ & NHẬN XÉT ĐỊNH KỲ TỪ GVHD
@@ -402,7 +429,7 @@ export function StudentDashboardSummary() {
             </div>
           ) : weeklyStatus === 'forbidden' ? (
             <div className="mt-4 flex items-center gap-3 rounded-xl border border-hairline bg-canvas/40 p-4 text-xs text-ink-muted" role="status">
-              <span className="material-symbols-outlined text-2xl text-slate-400" aria-hidden="true">lock</span>
+              <span className="material-symbols-outlined text-2xl text-ink-muted" aria-hidden="true">lock</span>
               <div>
                 <p className="font-semibold text-ink">Chưa mở quyền xem lịch sử đánh giá tuần</p>
                 <p className="mt-0.5">Mục này chỉ hiển thị khi kỳ học vụ hoặc giảng viên bật chế độ chia sẻ đánh giá định kỳ.</p>
@@ -419,34 +446,6 @@ export function StudentDashboardSummary() {
           )}
         </section>
       )}
-
-      {/* =========================================================================
-          HAI CỘT: CÔNG VIỆC & MỐC SẮP ĐẾN HẠN
-          ========================================================================= */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        <DeadlineList
-          title="Công việc sắp đến hạn"
-          empty="Chưa có công việc nào sắp đến hạn cần chú ý."
-          items={(data.taskDeadlines ?? []).map(task => ({
-            id: task.id,
-            title: task.title,
-            date: task.dueAtUtc,
-            overdue: task.isOverdue,
-            href: project?.status === 'FINAL_SUBMISSION' ? '/project/final-submission' : `/project/tasks/${task.id}`,
-          }))}
-        />
-        <DeadlineList
-          title="Mốc đồ án sắp đến hạn"
-          empty="Chưa có mốc nào sắp đến hạn cần chú ý."
-          items={(data.milestoneDeadlines ?? []).map(item => ({
-            id: item.id,
-            title: item.title,
-            date: item.dueDate,
-            overdue: item.isOverdue,
-            href: project?.status === 'FINAL_SUBMISSION' ? '/project/final-submission' : `/project/milestones/${item.id}`,
-          }))}
-        />
-      </div>
 
       <p className="text-xs leading-5 text-ink-muted">
         Chỉ số đóng góp: {contributionStatusLabel(data.contributionDataStatus)}. Lưu ý: Chỉ báo đóng góp và tiến độ công
@@ -496,7 +495,7 @@ function formatDate(value: string) {
   const date = new Date(value)
   return Number.isNaN(date.getTime())
     ? value
-    : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short' }).format(date)
+    : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' }).format(date)
 }
 
 function riskLabel(value: string) {

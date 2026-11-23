@@ -37,6 +37,7 @@ export function useSupervisorSelection({
   const [query, setQuery] = useState({ search: '', expertise: '' })
   const appliedQuery = useRef({ search: '', expertise: '' })
   const readVersion = useRef(0)
+  const loadedProjectId = useRef<number | null>(null)
   const [selectedSlotKey, setSlotKey] = useState<string | null>(null)
 
   const isLeader = Boolean(team?.members.some((member) => member.userId === profile?.id && member.isLeader))
@@ -61,8 +62,10 @@ export function useSupervisorSelection({
 
   const refresh = useCallback(async (refreshCandidates = true, filters = appliedQuery.current) => {
     const version = ++readVersion.current
-    if (!project) { setCandidates([]); setRequests([]); setAssignments([]); setLoading(false); return }
-    setLoading(true); setError(null); setCandidates([])
+    if (!project) { loadedProjectId.current = null; setCandidates([]); setRequests([]); setAssignments([]); setLoading(false); return }
+    const isInitialForProject = loadedProjectId.current !== project.id
+    if (isInitialForProject) setLoading(true)
+    setError(null)
     try {
       const [requestResult, assignmentResult] = await Promise.all([
         services.supervisor.getRequests(project.id),
@@ -84,14 +87,16 @@ export function useSupervisorSelection({
         if (version !== readVersion.current) return
         setCandidates(candidateResult.items)
       } else setCandidates([])
+      loadedProjectId.current = project.id
     } catch (nextError) { if (version === readVersion.current) setError(classify(nextError)) }
     finally { if (version === readVersion.current) { setLoading(false); setCandidateLoading(false) } }
   }, [canSendAction, isLeader, resolveSlotKey, project])
 
   useEffect(() => { const versionRef = readVersion; void refresh(); return () => { versionRef.current++ } }, [refresh])
 
-  const applyFilters = useCallback(async () => {
-    const filters = { search: query.search, expertise: query.expertise }
+  const applyFilters = useCallback(async (override?: { search: string; expertise: string }) => {
+    const filters = override ?? { search: query.search, expertise: query.expertise }
+    if (override) setQuery(override)
     appliedQuery.current = filters
     await refresh(true, filters)
   }, [query, refresh])

@@ -152,8 +152,8 @@ describe('SupervisorRecommendationPanel', () => {
     render(<SupervisorRecommendationPanel projectId={9} />)
     await screen.findByText('TS. An')
 
-    // Click "Lưu run hiện tại"
-    fireEvent.click(screen.getByRole('button', { name: 'Lưu run hiện tại' }))
+    // Click "Lưu kết quả gợi ý"
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu kết quả gợi ý' }))
     await waitFor(() => {
       expect(mocks.createSupervisorRecommendationRun).toHaveBeenCalledWith(9, { assignmentType: 'PRIMARY', majorId: undefined })
     })
