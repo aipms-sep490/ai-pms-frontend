@@ -26,6 +26,7 @@ describe('ProjectFilesPage', () => {
       return new Promise((_resolve, reject) => options.signal.addEventListener('abort', () => reject(new DOMException('paused', 'AbortError'))))
     }).mockResolvedValueOnce({ id: 8 })
     render(<MemoryRouter initialEntries={['/lecturer/projects/9/files']}><Routes><Route path="/lecturer/projects/:projectId/files" element={<ProjectFilesPage />} /></Routes></MemoryRouter>)
+    fireEvent.click((await screen.findAllByRole('button', { name: /Đính kèm tệp/ }))[0])
     await screen.findByRole('option', { name: 'Mốc 1 · Báo cáo' })
     fireEvent.change(screen.getByLabelText('Hạng mục'), { target: { value: '42' } })
     const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -50,6 +51,7 @@ describe('ProjectFilesPage', () => {
     api.getProjectFiles.mockResolvedValue({ items: [], page: 1, pageSize: 20, totalCount: 0 })
     api.uploadProjectFile.mockRejectedValueOnce(new Error('Không đủ dung lượng lưu trữ.'))
     render(<MemoryRouter initialEntries={['/lecturer/projects/9/files']}><Routes><Route path="/lecturer/projects/:projectId/files" element={<ProjectFilesPage />} /></Routes></MemoryRouter>)
+    fireEvent.click((await screen.findAllByRole('button', { name: /Đính kèm tệp/ }))[0])
     await screen.findByRole('option', { name: 'Mốc 1 · Báo cáo' })
     fireEvent.change(screen.getByLabelText('Hạng mục'), { target: { value: '42' } })
     fireEvent.change(document.querySelector('input[type="file"]')!, { target: { files: [new File(['pdf'], 'report.pdf', { type: 'application/pdf' })] } })
@@ -86,9 +88,8 @@ describe('ProjectFilesPage', () => {
     render(<MemoryRouter initialEntries={['/department/projects/9/files']}><Routes><Route path="/department/projects/:projectId/files" element={<ProjectFilesPage />} /></Routes></MemoryRouter>)
 
     expect(await screen.findByText('minutes.pdf')).toBeTruthy()
-    expect(screen.queryByRole('heading', { name: 'Đính kèm tệp' })).toBeNull()
-    fireEvent.change(screen.getByLabelText('Nguồn tệp'), { target: { value: 'TASK' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Áp dụng' }))
+    expect(screen.queryByRole('button', { name: /Đính kèm tệp/ })).toBeNull()
+    fireEvent.click(screen.getByRole('tab', { name: 'Công việc' }))
     await waitFor(() => expect(api.getProjectFiles).toHaveBeenLastCalledWith(9, expect.objectContaining({ parentType: 'TASK', page: 1, pageSize: 20 })))
   })
 })

@@ -6,6 +6,7 @@ import type { TaskComment, TaskFile } from '../task-evidence-api'
 import { createProjectEvidence } from '../../projects/api/project-governance-api'
 import { DocumentPreviewModal, getFileCategory } from '../../../components/ui/DocumentPreviewModal'
 import { getUploadPolicy, uploadPolicyLabel, validateUploadFile, type UploadPolicy } from '../../../services/api/upload-policies.api'
+import { getInitials } from '../../../components/ui/initials'
 import { Modal } from '../../../components/ui/Modal'
 import { cancelProjectFileUpload, currentUploadOwner, type ProjectFileUploadSession } from '../../files/project-file-uploads'
 
@@ -187,7 +188,7 @@ export function TaskEvidenceAndComments({ taskId, projectId, majors, mentorMajor
     <div className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-semibold text-ink">Bình luận</h2><form onSubmit={comment} className="mt-4 space-y-2"><label className="block text-sm font-medium text-ink-soft">Nội dung<textarea value={content} maxLength={5000} onChange={event => setContent(event.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-hairline bg-card p-3 text-sm font-normal text-ink" disabled={busy} /></label><button disabled={busy || !content.trim()} className="min-h-11 rounded-lg bg-primary hover:bg-primary-hover px-4 text-sm font-semibold text-white disabled:opacity-50">Gửi bình luận</button></form>{!loading && comments.length === 0 && <p className="mt-4 text-sm text-ink-muted">Chưa có bình luận.</p>}<ul className="mt-4 space-y-3">{comments.map(item => (
       <li key={item.id} className="flex items-start gap-3 rounded-lg border border-hairline bg-canvas p-3 text-sm">
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-xs font-bold text-primary">
-          {item.authorName.trim().split(' ').pop()?.slice(0, 2).toUpperCase() || 'U'}
+          {getInitials(item.authorName, 'U')}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-1">

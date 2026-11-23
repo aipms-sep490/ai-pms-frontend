@@ -1,4 +1,6 @@
 import { getUploadPolicy, validateUploadFile } from '../../services/api/upload-policies.api'
+import { FilterToolbar } from '../../components/ui/FilterToolbar'
+import type { FilterChipItem } from '../../components/ui/FilterChips'
 import { Modal } from '../../components/ui/Modal'
 import { utcTimestamp } from '../projects/utils/collaboration-workspace'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
@@ -20,6 +22,8 @@ const statusLabel: Record<DeliverableStatus, string> = {
   DRAFT: 'Bản nháp', OPEN: 'Đang mở', SUBMITTED: 'Chờ duyệt', ACCEPTED: 'Đã chấp nhận', REJECTED: 'Cần chỉnh sửa', CLOSED: 'Đã khóa',
 }
 const statuses = Object.keys(statusLabel) as DeliverableStatus[]
+const defaultTypeOptions = ['DOCUMENT', 'REPORT', 'SOURCE_CODE', 'PRESENTATION', 'PROTOTYPE', 'DATASET']
+type DeliverableSort = 'default' | 'due_asc' | 'title_asc' | 'version_desc'
 type VersionState = PagedResult<DeliverableVersion> & { deliverableId: number }
 type FeedbackState = PagedResult<DeliverableFeedback> & { versionId: number }
 type ErrorTarget = { kind: 'upload' | 'definition' | 'review'; id: number | null }
@@ -37,7 +41,8 @@ function DeliverablesView() {
   const status = statuses.includes(params.get('status') as DeliverableStatus) ? params.get('status') as DeliverableStatus : undefined
   const deliverableType = params.get('deliverableType')?.trim() || undefined
   const search = params.get('search')?.trim() || undefined
-  const [filterDraft, setFilterDraft] = useState({ search: search ?? '', status: status ?? '', deliverableType: deliverableType ?? '' })
+  const [sortBy, setSortBy] = useState<DeliverableSort>('default')
+  const [knownTypes, setKnownTypes] = useState<string[]>([])
   const [data, setData] = useState<PagedResult<Deliverable> | null>(null)
   const [selected, setSelected] = useState<Deliverable | null>(null)
   const [versions, setVersions] = useState<VersionState | null>(null)
@@ -51,25 +56,33 @@ function DeliverablesView() {
   const [revision, setRevision] = useState(0)
   const [showCreate, setShowCreate] = useState(false)
   const [editing, setEditing] = useState<Deliverable | null>(null)
+  const [uploadTarget, setUploadTarget] = useState<Deliverable | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Deliverable | null>(null)
   const [previewTarget, setPreviewTarget] = useState<DeliverableVersion['files'][number] | null>(null)
   const [reviewVersionTarget, setReviewVersionTarget] = useState<DeliverableVersion | null>(null)
   const mutationLock = useRef(false)
   const detailRequest = useRef(0)
 
-  useEffect(() => setFilterDraft({ search: search ?? '', status: status ?? '', deliverableType: deliverableType ?? '' }), [search, status, deliverableType])
-
   const load = useCallback(async (signal?: AbortSignal) => {
-    setLoading(true); setError(null)
+    setLoading(true)
+    setError(null)
     try {
       const result = await api.getDeliverables(project.id, { search, status, deliverableType, page, pageSize: 10 }, signal)
       if (!signal?.aborted) {
         setData(result)
+        setKnownTypes(prev => {
+          const found = result.items.map(i => i.deliverableType).filter((v): v is string => Boolean(v))
+          const merged = new Set([...prev, ...found])
+          return merged.size === prev.length ? prev : [...merged]
+        })
         setSelected((current) => current ? result.items.find((item) => item.id === current.id) ?? null : null)
       }
       return result
-    } catch (reason) { if (!signal?.aborted) setError(deliverableError(reason)) }
-    finally { if (!signal?.aborted) setLoading(false) }
+    } catch (reason) {
+      if (!signal?.aborted) setError(deliverableError(reason))
+    } finally {
+      if (!signal?.aborted) setLoading(false)
+    }
     return null
   }, [deliverableType, page, project.id, search, status])
 
@@ -79,8 +92,11 @@ function DeliverablesView() {
     try {
       const result = await api.getDeliverableVersions(item.id, versionPage, 10, signal)
       if (!signal?.aborted && request === detailRequest.current) setVersions({ ...result, deliverableId: item.id })
-    } catch (reason) { if (!signal?.aborted && request === detailRequest.current) setError(deliverableError(reason)) }
-    finally { if (!signal?.aborted && request === detailRequest.current) setDetailLoading(false) }
+    } catch (reason) {
+      if (!signal?.aborted && request === detailRequest.current) setError(deliverableError(reason))
+    } finally {
+      if (!signal?.aborted && request === detailRequest.current) setDetailLoading(false)
+    }
   }, [])
 
   const loadFeedback = useCallback(async (version: DeliverableVersion, feedbackPage = 1, signal?: AbortSignal) => {
@@ -89,17 +105,24 @@ function DeliverablesView() {
     try {
       const result = await api.getDeliverableFeedback(version.id, feedbackPage, 10, signal)
       if (!signal?.aborted && request === detailRequest.current) setFeedback({ ...result, versionId: version.id })
-    } catch (reason) { if (!signal?.aborted && request === detailRequest.current) setError(deliverableError(reason)) }
-    finally { if (!signal?.aborted && request === detailRequest.current) setDetailLoading(false) }
+    } catch (reason) {
+      if (!signal?.aborted && request === detailRequest.current) setError(deliverableError(reason))
+    } finally {
+      if (!signal?.aborted && request === detailRequest.current) setDetailLoading(false)
+    }
   }, [])
 
-  useEffect(() => { const controller = new AbortController(); void load(controller.signal); return () => controller.abort() }, [load, revision])
+  useEffect(() => {
+    const controller = new AbortController()
+    void load(controller.signal)
+    return () => controller.abort()
+  }, [load, revision])
 
   async function mutate(action: () => Promise<unknown>, message: string, refreshDetail = false, target?: ErrorTarget) {
     if (mutationLock.current) return
     mutationLock.current = true; setBusy(true); setError(null); setSuccess('')
     try {
-      await action(); setSuccess(message); setShowCreate(false); setEditing(null); setDeleteTarget(null)
+      await action(); setSuccess(message); setShowCreate(false); setEditing(null); setUploadTarget(null); setDeleteTarget(null)
       const refreshed = await load()
       if (refreshDetail && selected) {
         const current = refreshed?.items.find((item) => item.id === selected.id)
@@ -112,18 +135,33 @@ function DeliverablesView() {
           const current = refreshed?.items.find((item) => item.id === selected.id)
           if (current) await loadVersions(current)
         }
+        if (uploadTarget) {
+          const current = refreshed?.items.find((item) => item.id === uploadTarget.id)
+          if (!current || ['ACCEPTED', 'CLOSED'].includes(current.status)) {
+            setUploadTarget(null)
+          } else {
+            setUploadTarget(current)
+          }
+        }
       }
       setError({ ...deliverableError(reason), target })
-    } finally { mutationLock.current = false; setBusy(false) }
+    } finally {
+      mutationLock.current = false
+      setBusy(false)
+    }
   }
 
-  function applyFilters(event: FormEvent) {
-    event.preventDefault()
-    const next = new URLSearchParams()
-    if (filterDraft.search.trim()) next.set('search', filterDraft.search.trim())
-    if (filterDraft.status) next.set('status', filterDraft.status)
-    if (filterDraft.deliverableType.trim()) next.set('deliverableType', filterDraft.deliverableType.trim())
+  function updateParam(key: string, value: string) {
+    const next = new URLSearchParams(params)
+    next.delete('page')
+    if (value.trim()) next.set(key, value.trim())
+    else next.delete(key)
     setParams(next)
+  }
+
+  function clearAll() {
+    setSortBy('default')
+    setParams({})
   }
 
   function saveDefinition(event: FormEvent<HTMLFormElement>, item?: Deliverable) {
@@ -179,65 +217,355 @@ function DeliverablesView() {
   }
 
   const closeHistory = () => { ++detailRequest.current; setSelected(null); setVersions(null); setSelectedVersion(null); setFeedback(null); setDetailLoading(false) }
-  const types = useMemo(() => [...new Set(data?.items.map((item) => item.deliverableType).filter((value): value is string => Boolean(value)) ?? [])], [data])
-  return <ExecutionPage title="Hạng mục cần nộp" eyebrow={`Thực hiện đồ án • ${project.title}`} backTo={`${routeBase}/workspace`}
-    description="Theo dõi yêu cầu đầu ra, các phiên bản đã nộp và phản hồi của giảng viên."
-    action={canManageStructure ? <button className="ex-button ex-button-primary" type="button" onClick={() => { setShowCreate((value) => !value); setEditing(null) }}><ExIcon name="add" />Tạo hạng mục</button> : undefined}>
-    {success && <p className="ex-notice" role="status">{success}</p>}
-    {error && !selected && <div className="ex-notice ex-notice-error" role="alert"><p>{error.message}</p>{error.retryable && <button className="ex-text-button" type="button" disabled={loading || busy} onClick={() => setRevision((value) => value + 1)}>{error.nextAction === 'reload' ? 'Tải lại dữ liệu' : 'Thử lại'}</button>}</div>}
-    {showCreate && canManageStructure && <DefinitionForm title="Tạo hạng mục cần nộp" item={null} busy={busy} fieldErrors={error?.target?.kind === 'definition' && error.target.id === null ? error.fieldErrors : undefined} onSubmit={saveDefinition} onCancel={() => setShowCreate(false)} />}
 
-    <section className="ex-panel" aria-label="Danh sách hạng mục cần nộp">
-      <form className="ex-filters" onSubmit={applyFilters}>
-        <label className="ex-filter-search">Tìm theo tên<input value={filterDraft.search} onChange={(event) => setFilterDraft({ ...filterDraft, search: event.target.value })} /></label>
-        <label>Trạng thái<select value={filterDraft.status} onChange={(event) => setFilterDraft({ ...filterDraft, status: event.target.value })}><option value="">Tất cả</option>{statuses.map((value) => <option key={value} value={value}>{statusLabel[value]}</option>)}</select></label>
-        <label>Loại hạng mục<input list="deliverable-types" placeholder="Ví dụ: Tài liệu kỹ thuật" value={filterDraft.deliverableType} onChange={(event) => setFilterDraft({ ...filterDraft, deliverableType: event.target.value })} /><datalist id="deliverable-types">{types.map((value) => <option key={value} value={value} />)}</datalist></label>
-        <button className="ex-button" type="submit" disabled={loading}>Áp dụng</button>
-        <button className="ex-text-button" type="button" onClick={() => { setFilterDraft({ search: '', status: '', deliverableType: '' }); setParams({}) }}>Xóa lọc</button>
-      </form>
-      {loading ? <ExState loading /> : data && data.items.length === 0 ? <ExState title="Chưa có hạng mục phù hợp" message="Thay đổi bộ lọc hoặc tạo hạng mục mới khi bạn có quyền." /> : data && <>
-        <div className="deliverable-list-heading"><span>Hạng mục</span><span>Trạng thái</span><span>Phiên bản</span><span>Thao tác</span></div>
-        <div>{data.items.map((item) => <article className="deliverable-row" key={item.id}>
-          <div className="deliverable-main"><h2>{item.title}</h2><p>{item.description || 'Chưa có mô tả.'}</p><small>{item.deliverableType ? displayLabel(item.deliverableType) : 'Chưa phân loại'}{item.dueAt ? ` • Hạn ${formatDate(item.dueAt)}` : ' • Không đặt hạn riêng'}</small></div>
-          <span className={`ex-badge ex-badge-${item.status}`}>{statusLabel[item.status] ?? 'Trạng thái chưa xác định'}</span>
-          <span className="deliverable-version">V{item.latestVersion}</span>
-          <div className="deliverable-actions"><button className="ex-text-button" type="button" onClick={() => void loadVersions(item)}>Xem phiên bản</button>{canManageStructure && <button className="ex-text-button" type="button" onClick={() => { setEditing(item); setShowCreate(false) }}>Sửa</button>}{canManageStructure && ['DRAFT', 'OPEN'].includes(item.status) && item.latestVersion === 0 && <button className="ex-text-button ex-danger-text" type="button" onClick={() => setDeleteTarget(item)}>Xóa</button>}</div>
-          {actor === 'student' && !['ACCEPTED', 'CLOSED'].includes(item.status) && <form className="deliverable-upload" onSubmit={(event) => submitVersion(event, item)}><DeliverableFileInput title={item.title} id={item.id} disabled={busy} error={error?.target?.kind === 'upload' && error.target.id === item.id ? error.fieldErrors?.file : undefined} /><label>Ghi chú phiên bản<input aria-label={`Ghi chú ${item.title}`} name="note" maxLength={2000} disabled={busy} aria-invalid={error?.target?.kind === 'upload' && error.target.id === item.id && error.fieldErrors?.note ? true : undefined} aria-describedby={error?.target?.kind === 'upload' && error.target.id === item.id && error.fieldErrors?.note ? `deliverable-note-error-${item.id}` : undefined} />{error?.target?.kind === 'upload' && error.target.id === item.id && error.fieldErrors?.note && <small id={`deliverable-note-error-${item.id}`} role="alert">{error.fieldErrors.note}</small>}</label><button className="ex-button" disabled={busy}>Nộp phiên bản</button></form>}
-          {editing?.id === item.id && <div className="deliverable-inline-form"><DefinitionForm title={`Sửa ${item.title}`} item={item} busy={busy} fieldErrors={error?.target?.kind === 'definition' && error.target.id === item.id ? error.fieldErrors : undefined} onSubmit={saveDefinition} onCancel={() => setEditing(null)} /></div>}
-          {deleteTarget?.id === item.id && <div className="deliverable-delete"><h3>Xóa hạng mục chưa có phiên bản?</h3><p>Hạng mục chỉ có thể xóa khi vẫn đang mở và chưa từng nhận phiên bản nào.</p><div className="ex-actions"><button className="ex-button" disabled={busy} onClick={() => setDeleteTarget(null)}>Giữ lại</button><button className="ex-button ex-button-danger" disabled={busy} onClick={() => void mutate(() => api.deleteDeliverable(item.id), 'Đã xóa hạng mục.')}>Xác nhận xóa</button></div></div>}
-        </article>)}</div>
-        <ExPagination page={page} pages={data.totalPages} total={data.totalCount} busy={loading} onPage={(next) => { const query = new URLSearchParams(params); query.set('page', String(next)); setParams(query) }} />
-      </>}
-    </section>
+  const typeOptions = useMemo(() => {
+    const set = new Set([...knownTypes, ...defaultTypeOptions])
+    if (deliverableType) set.add(deliverableType)
+    return [...set]
+  }, [knownTypes, deliverableType])
 
-    {selected && <Modal open drawer busy={busy} title="Lịch sử phiên bản" description={selected.title} onClose={closeHistory}><div className="deliverable-history-detail">
-      {error && <div role="alert" className="ex-notice ex-notice-error"><p>{error.message}</p>{error.retryable && <button className="ex-text-button" type="button" disabled={detailLoading || busy} onClick={() => selectedVersion ? void loadFeedback(selectedVersion) : void loadVersions(selected)}>{error.nextAction === 'reload' ? 'Tải lại dữ liệu' : 'Thử lại'}</button>}</div>}
-      {detailLoading && !versions ? <ExState loading /> : versions && versions.items.length === 0 ? <ExState title="Chưa có phiên bản" message="Thành viên nhóm có thể nộp phiên bản đầu tiên khi đồ án đang ở giai đoạn thực hiện." /> : versions && <>
-        <div className="deliverable-history">{versions.items.map((version) => <article key={version.id} className="deliverable-history-row"><div><h3>Phiên bản {version.versionNumber}</h3><p>{version.note || 'Không có ghi chú.'}</p><small>Nộp {formatDate(version.submittedAt)}</small></div><span className={`ex-badge ex-badge-${version.status}`}>{statusLabel[version.status] ?? version.status}</span><div className="deliverable-file-list">{version.files.map((file) => <div key={file.id} className="flex items-center gap-1.5"><button className="ex-text-button flex items-center gap-1" type="button" disabled={busy} onClick={() => setPreviewTarget(file)}><span className="material-symbols-outlined text-[16px]">visibility</span><span>{file.fileName}</span> <small>({formatBytes(file.sizeBytes)})</small></button><button className="ex-text-button" type="button" disabled={busy} title="Tải xuống tệp" onClick={() => void download(file)}><ExIcon name="download" /></button></div>)}</div><button className="ex-text-button" type="button" onClick={() => void loadFeedback(version)}>Xem phản hồi</button>
-          {!readOnly && env.aiDeliverableReviewEnabled && actor === 'student' && <button className="ex-text-button" type="button" disabled={busy} onClick={() => setReviewVersionTarget(version)}>Kiểm tra bằng AI</button>}
-          {!readOnly && actor === 'supervisor' && version.status === 'SUBMITTED' && version.versionNumber === selected.latestVersion && <form className="deliverable-review" onSubmit={(event) => reviewVersion(event, version)}><label>Quyết định<select name="decision"><option value="ACCEPTED">Chấp nhận</option><option value="REJECTED">Yêu cầu chỉnh sửa</option></select></label><label>Nhận xét bắt buộc<input aria-label={`Nhận xét V${version.versionNumber}`} name="feedback" required maxLength={10000} /></label><button className="ex-button ex-button-primary" disabled={busy}>Gửi đánh giá</button></form>}
-        </article>)}</div>
-        <ExPagination page={versions.page} pages={versions.totalPages} total={versions.totalCount} busy={detailLoading} onPage={(next) => void loadVersions(selected, next)} />
-      </>}
-    {selectedVersion && <section className="ex-panel" aria-labelledby="version-feedback-title"><div className="ex-panel-heading"><div><h2 id="version-feedback-title">Phản hồi phiên bản {selectedVersion.versionNumber}</h2><p>Nhận xét đã lưu của giảng viên hướng dẫn.</p></div><button className="ex-text-button" onClick={() => { ++detailRequest.current; setSelectedVersion(null); setFeedback(null); setDetailLoading(false) }}>Đóng</button></div>{detailLoading && !feedback ? <ExState loading /> : feedback && feedback.items.length === 0 ? <ExState title="Chưa có phản hồi" message="Phản hồi sẽ xuất hiện sau khi giảng viên đánh giá phiên bản." /> : feedback && <><ol className="deliverable-feedback">{feedback.items.map((item) => <li key={item.id}><p>{item.feedback}</p><time dateTime={item.createdAt}>{formatDate(item.createdAt)}</time></li>)}</ol><ExPagination page={feedback.page} pages={feedback.totalPages} total={feedback.totalCount} busy={detailLoading} onPage={(next) => void loadFeedback(selectedVersion, next)} /></>}</section>}
-    </div></Modal>}
-    {reviewVersionTarget && <DeliverableAiReviewModal projectId={project.id} versionId={reviewVersionTarget.id} versionNumber={reviewVersionTarget.versionNumber} onClose={() => setReviewVersionTarget(null)} />}
-    {previewTarget && <DocumentPreviewModal open fileName={previewTarget.fileName} fileSize={previewTarget.sizeBytes} contentType={previewTarget.contentType} loadBlob={signal => api.downloadDeliverableFile(previewTarget.id, signal)} onDownload={() => download(previewTarget)} onClose={() => setPreviewTarget(null)} />}
-  </ExecutionPage>
+  const sortedItems = useMemo(() => {
+    const items = data?.items ?? []
+    if (sortBy === 'default') return items
+    return [...items].sort((a, b) => {
+      if (sortBy === 'due_asc') return utcTimestamp(a.dueAt) - utcTimestamp(b.dueAt)
+      if (sortBy === 'title_asc') return a.title.localeCompare(b.title, 'vi-VN')
+      if (sortBy === 'version_desc') return b.latestVersion - a.latestVersion
+      return 0
+    })
+  }, [data, sortBy])
+
+  const activeChips = useMemo<FilterChipItem[]>(() => {
+    const chips: FilterChipItem[] = []
+    if (search) chips.push({ id: 'search', label: 'Từ khóa', value: search })
+    if (status) chips.push({ id: 'status', label: 'Trạng thái', value: statusLabel[status] })
+    if (deliverableType) chips.push({ id: 'deliverableType', label: 'Loại', value: displayLabel(deliverableType) })
+    return chips
+  }, [search, status, deliverableType])
+
+  const hasActiveFilters = activeChips.length > 0 || sortBy !== 'default'
+
+  return (
+    <ExecutionPage
+      title="Hạng mục cần nộp"
+      eyebrow={`Thực hiện đồ án • ${project.title}`}
+      backTo={actor === 'student' ? undefined : `${routeBase}/workspace`}
+      description="Theo dõi yêu cầu đầu ra, các phiên bản đã nộp và phản hồi của giảng viên."
+      action={
+        <>
+          <button className="ex-button" type="button" disabled={loading} onClick={() => setRevision(v => v + 1)}>
+            <ExIcon name="refresh" />Làm mới
+          </button>
+          {canManageStructure && (
+            <button className="ex-button ex-button-primary" type="button" onClick={() => { setError(null); setShowCreate(true); setEditing(null) }}>
+              <ExIcon name="add" />Tạo hạng mục
+            </button>
+          )}
+        </>
+      }
+    >
+      {success && <p className="ex-notice" role="status">{success}</p>}
+      {error && !selected && !showCreate && !editing && !uploadTarget && (
+        <div className="ex-notice ex-notice-error" role="alert">
+          <p>{error.message}</p>
+          {error.retryable && (
+            <button className="ex-text-button" type="button" disabled={loading || busy} onClick={() => setRevision((value) => value + 1)}>
+              {error.nextAction === 'reload' ? 'Tải lại dữ liệu' : 'Thử lại'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {showCreate && canManageStructure && (
+        <Modal open title="Tạo hạng mục cần nộp" description="Loại hạng mục và hạn nộp sẽ được kiểm tra khi lưu." busy={busy} onClose={() => setShowCreate(false)}>
+          {error?.target?.kind === 'definition' && error.target.id === null && <p className="ex-notice ex-notice-error" role="alert">{error.message}</p>}
+          <DefinitionForm
+            item={null}
+            busy={busy}
+            fieldErrors={error?.target?.kind === 'definition' && error.target.id === null ? error.fieldErrors : undefined}
+            onSubmit={saveDefinition}
+            onCancel={() => setShowCreate(false)}
+          />
+        </Modal>
+      )}
+
+      {editing && canManageStructure && (
+        <Modal open title={`Sửa ${editing.title}`} description="Cập nhật yêu cầu đầu ra và hạn nộp." busy={busy} onClose={() => setEditing(null)}>
+          {error?.target?.kind === 'definition' && error.target.id === editing.id && <p className="ex-notice ex-notice-error" role="alert">{error.message}</p>}
+          <DefinitionForm
+            item={editing}
+            busy={busy}
+            fieldErrors={error?.target?.kind === 'definition' && error.target.id === editing.id ? error.fieldErrors : undefined}
+            onSubmit={saveDefinition}
+            onCancel={() => setEditing(null)}
+          />
+        </Modal>
+      )}
+
+      {uploadTarget && (
+        <Modal open title={`Nộp phiên bản mới · ${uploadTarget.title}`} description={`Phiên bản hiện tại: V${uploadTarget.latestVersion}. Phiên bản cũ vẫn được giữ nguyên.`} busy={busy} onClose={() => setUploadTarget(null)}>
+          {error?.target?.kind === 'upload' && error.target.id === uploadTarget.id && (
+            <div className="ex-notice ex-notice-error" role="alert">
+              <p>{error.message}</p>
+              {error.retryable && (
+                <button className="ex-text-button" type="button" disabled={loading || busy} onClick={() => setRevision((value) => value + 1)}>
+                  {error.nextAction === 'reload' ? 'Tải lại dữ liệu' : 'Thử lại'}
+                </button>
+              )}
+            </div>
+          )}
+          <form className="ex-form !p-0" onSubmit={(event) => void submitVersion(event, uploadTarget)}>
+            <div className="ex-fields">
+              <div className="ex-full">
+                <DeliverableFileInput
+                  title={uploadTarget.title}
+                  id={uploadTarget.id}
+                  disabled={busy}
+                  error={error?.target?.kind === 'upload' && error.target.id === uploadTarget.id ? error.fieldErrors?.file : undefined}
+                />
+              </div>
+              <label className="ex-full">
+                Ghi chú phiên bản
+                <textarea
+                  aria-label={`Ghi chú ${uploadTarget.title}`}
+                  name="note"
+                  rows={3}
+                  maxLength={2000}
+                  disabled={busy}
+                  placeholder="Mô tả ngắn gọn thay đổi hoặc nội dung của phiên bản này…"
+                  aria-invalid={error?.target?.kind === 'upload' && error.target.id === uploadTarget.id && error.fieldErrors?.note ? true : undefined}
+                  aria-describedby={error?.target?.kind === 'upload' && error.target.id === uploadTarget.id && error.fieldErrors?.note ? `deliverable-note-error-${uploadTarget.id}` : undefined}
+                />
+                {error?.target?.kind === 'upload' && error.target.id === uploadTarget.id && error.fieldErrors?.note && (
+                  <small id={`deliverable-note-error-${uploadTarget.id}`} role="alert">{error.fieldErrors.note}</small>
+                )}
+              </label>
+            </div>
+            <div className="ex-form-footer">
+              <button type="button" className="ex-button" disabled={busy} onClick={() => setUploadTarget(null)}>Hủy</button>
+              <button type="submit" className="ex-button ex-button-primary" disabled={busy}>{busy ? 'Đang nộp…' : 'Nộp phiên bản'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {deleteTarget && (
+        <Modal open title="Xóa hạng mục chưa có phiên bản?" description={`Hạng mục “${deleteTarget.title}” chỉ có thể xóa khi vẫn đang mở và chưa từng nhận phiên bản nào.`} busy={busy} onClose={() => setDeleteTarget(null)}>
+          <div className="app-modal__actions">
+            <button className="ex-button" type="button" disabled={busy} onClick={() => setDeleteTarget(null)}>Giữ lại</button>
+            <button className="ex-button ex-button-danger" type="button" disabled={busy} onClick={() => void mutate(() => api.deleteDeliverable(deleteTarget.id), 'Đã xóa hạng mục.')}>Xác nhận xóa</button>
+          </div>
+        </Modal>
+      )}
+
+      <section className="ex-panel" aria-label="Danh sách hạng mục cần nộp">
+        <FilterToolbar
+          embedded
+          tabs={[
+            { value: '', label: 'Tất cả' },
+            ...statuses.map(value => ({ value, label: statusLabel[value] })),
+          ]}
+          activeTab={status ?? ''}
+          onTabChange={(val) => updateParam('status', val)}
+          search={search ?? ''}
+          onSearchChange={(val) => updateParam('search', val)}
+          searchLabel="Tìm theo tên"
+          searchPlaceholder="Tìm theo tên hạng mục cần nộp…"
+          controls={
+            <select aria-label="Loại hạng mục" value={deliverableType ?? ''} onChange={(e) => updateParam('deliverableType', e.target.value)}>
+              <option value="">Tất cả loại hạng mục</option>
+              {typeOptions.map((value) => <option key={value} value={value}>{displayLabel(value)}</option>)}
+            </select>
+          }
+          sort={{
+            value: sortBy,
+            onChange: (val) => setSortBy(val as DeliverableSort),
+            options: [
+              { value: 'default', label: 'Mặc định' },
+              { value: 'due_asc', label: 'Hạn gần nhất' },
+              { value: 'title_asc', label: 'Tên A–Z' },
+              { value: 'version_desc', label: 'Nhiều phiên bản nhất' },
+            ],
+          }}
+          activeChips={activeChips}
+          onRemoveChip={(id) => updateParam(id, '')}
+          hasActiveFilters={hasActiveFilters}
+          onClearAll={clearAll}
+          resultSummary={data ? `${sortedItems.length} / ${data.totalCount} hạng mục` : undefined}
+        />
+
+        {loading ? (
+          <ExState loading />
+        ) : data && sortedItems.length === 0 ? (
+          <ExState
+            title="Chưa có hạng mục phù hợp"
+            message={hasActiveFilters ? 'Thử xóa bộ lọc để xem toàn bộ hạng mục cần nộp.' : 'Tạo hạng mục đầu tiên để theo dõi các phiên bản bàn giao của nhóm.'}
+            action={hasActiveFilters ? (
+              <button type="button" className="ex-button" onClick={clearAll}>Xóa bộ lọc</button>
+            ) : canManageStructure ? (
+              <button type="button" className="ex-button ex-button-primary" onClick={() => setShowCreate(true)}><ExIcon name="add" />Tạo hạng mục đầu tiên</button>
+            ) : undefined}
+          />
+        ) : data && (
+          <>
+            <div className="deliverable-list-heading"><span>Hạng mục</span><span>Trạng thái</span><span>Phiên bản</span><span>Thao tác</span></div>
+            <div>
+              {sortedItems.map((item) => (
+                <article className="deliverable-row" key={item.id}>
+                  <div className="deliverable-main">
+                    <h2>{item.title}</h2>
+                    <p>{item.description || 'Chưa có mô tả.'}</p>
+                    <small>{item.deliverableType ? displayLabel(item.deliverableType) : 'Chưa phân loại'}{item.dueAt ? ` • Hạn ${formatDate(item.dueAt)}` : ' • Không đặt hạn riêng'}</small>
+                  </div>
+                  <span className={`ex-badge ex-badge-${item.status}`}>{statusLabel[item.status] ?? 'Trạng thái chưa xác định'}</span>
+                  <span className="deliverable-version">V{item.latestVersion}</span>
+                  <div className="deliverable-actions">
+                    {actor === 'student' && !['ACCEPTED', 'CLOSED'].includes(item.status) && (
+                      <button className="ex-button ex-button-primary !min-h-9 !py-1.5 !px-3 !text-xs" type="button" disabled={busy} onClick={() => { setError(null); setUploadTarget(item) }}>
+                        <ExIcon name="upload_file" />Nộp phiên bản
+                      </button>
+                    )}
+                    <button className="ex-text-button" type="button" onClick={() => void loadVersions(item)}>Xem phiên bản</button>
+                    {canManageStructure && <button className="ex-text-button" type="button" onClick={() => { setError(null); setEditing(item); setShowCreate(false) }}>Sửa</button>}
+                    {canManageStructure && ['DRAFT', 'OPEN'].includes(item.status) && item.latestVersion === 0 && (
+                      <button className="ex-text-button ex-danger-text" type="button" onClick={() => setDeleteTarget(item)}>Xóa</button>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+            <ExPagination page={page} pages={data.totalPages} total={data.totalCount} busy={loading} onPage={(next) => { const query = new URLSearchParams(params); query.set('page', String(next)); setParams(query) }} />
+          </>
+        )}
+      </section>
+
+      {selected && (
+        <Modal open drawer busy={busy} title="Lịch sử phiên bản" description={selected.title} onClose={closeHistory}>
+          <div className="deliverable-history-detail">
+            {error && (
+              <div role="alert" className="ex-notice ex-notice-error">
+                <p>{error.message}</p>
+                {error.retryable && (
+                  <button className="ex-text-button" type="button" disabled={detailLoading || busy} onClick={() => selectedVersion ? void loadFeedback(selectedVersion) : void loadVersions(selected)}>
+                    {error.nextAction === 'reload' ? 'Tải lại dữ liệu' : 'Thử lại'}
+                  </button>
+                )}
+              </div>
+            )}
+            {detailLoading && !versions ? (
+              <ExState loading />
+            ) : versions && versions.items.length === 0 ? (
+              <ExState title="Chưa có phiên bản" message="Thành viên nhóm có thể nộp phiên bản đầu tiên khi đồ án đang ở giai đoạn thực hiện." />
+            ) : versions && (
+              <>
+                <div className="deliverable-history">
+                  {versions.items.map((version) => (
+                    <article key={version.id} className="deliverable-history-row">
+                      <div>
+                        <h3>Phiên bản {version.versionNumber}</h3>
+                        <p>{version.note || 'Không có ghi chú.'}</p>
+                        <small>Nộp {formatDate(version.submittedAt)}</small>
+                      </div>
+                      <span className={`ex-badge ex-badge-${version.status}`}>{statusLabel[version.status] ?? displayLabel(version.status)}</span>
+                      <div className="deliverable-file-list">
+                        {version.files.map((file) => (
+                          <div key={file.id} className="flex items-center gap-1.5">
+                            <button className="ex-text-button flex items-center gap-1" type="button" disabled={busy} onClick={() => setPreviewTarget(file)}>
+                              <span className="material-symbols-outlined text-[16px]">visibility</span>
+                              <span>{file.fileName}</span> <small>({formatBytes(file.sizeBytes)})</small>
+                            </button>
+                            <button className="ex-text-button" type="button" disabled={busy} title="Tải xuống tệp" onClick={() => void download(file)}><ExIcon name="download" /></button>
+                          </div>
+                        ))}
+                      </div>
+                      <button className="ex-text-button" type="button" onClick={() => void loadFeedback(version)}>Xem phản hồi</button>
+                      {!readOnly && env.aiDeliverableReviewEnabled && actor === 'student' && (
+                        <button className="ex-text-button" type="button" disabled={busy} onClick={() => setReviewVersionTarget(version)}>Kiểm tra bằng AI</button>
+                      )}
+                      {!readOnly && actor === 'supervisor' && version.status === 'SUBMITTED' && version.versionNumber === selected.latestVersion && (
+                        <form className="deliverable-review" onSubmit={(event) => reviewVersion(event, version)}>
+                          <label>Quyết định<select name="decision"><option value="ACCEPTED">Chấp nhận</option><option value="REJECTED">Yêu cầu chỉnh sửa</option></select></label>
+                          <label>Nhận xét bắt buộc<input aria-label={`Nhận xét V${version.versionNumber}`} name="feedback" required maxLength={10000} /></label>
+                          <button className="ex-button ex-button-primary" disabled={busy}>Gửi đánh giá</button>
+                        </form>
+                      )}
+                    </article>
+                  ))}
+                </div>
+                <ExPagination page={versions.page} pages={versions.totalPages} total={versions.totalCount} busy={detailLoading} onPage={(next) => void loadVersions(selected, next)} />
+              </>
+            )}
+            {selectedVersion && (
+              <section className="ex-panel" aria-labelledby="version-feedback-title">
+                <div className="ex-panel-heading">
+                  <div>
+                    <h2 id="version-feedback-title">Phản hồi phiên bản {selectedVersion.versionNumber}</h2>
+                    <p>Nhận xét đã lưu của giảng viên hướng dẫn.</p>
+                  </div>
+                  <button className="ex-text-button" onClick={() => { ++detailRequest.current; setSelectedVersion(null); setFeedback(null); setDetailLoading(false) }}>Đóng</button>
+                </div>
+                {detailLoading && !feedback ? (
+                  <ExState loading />
+                ) : feedback && feedback.items.length === 0 ? (
+                  <ExState title="Chưa có phản hồi" message="Phản hồi sẽ xuất hiện sau khi giảng viên đánh giá phiên bản." />
+                ) : feedback && (
+                  <>
+                    <ol className="deliverable-feedback">
+                      {feedback.items.map((item) => <li key={item.id}><p>{item.feedback}</p><time dateTime={item.createdAt}>{formatDate(item.createdAt)}</time></li>)}
+                    </ol>
+                    <ExPagination page={feedback.page} pages={feedback.totalPages} total={feedback.totalCount} busy={detailLoading} onPage={(next) => void loadFeedback(selectedVersion, next)} />
+                  </>
+                )}
+              </section>
+            )}
+          </div>
+        </Modal>
+      )}
+      {reviewVersionTarget && <DeliverableAiReviewModal projectId={project.id} versionId={reviewVersionTarget.id} versionNumber={reviewVersionTarget.versionNumber} onClose={() => setReviewVersionTarget(null)} />}
+      {previewTarget && <DocumentPreviewModal open fileName={previewTarget.fileName} fileSize={previewTarget.sizeBytes} contentType={previewTarget.contentType} loadBlob={signal => api.downloadDeliverableFile(previewTarget.id, signal)} onDownload={() => download(previewTarget)} onClose={() => setPreviewTarget(null)} />}
+    </ExecutionPage>
+  )
 }
 
-function DefinitionForm({ title, item, busy, fieldErrors, onSubmit, onCancel }: { title: string; item: Deliverable | null; busy: boolean; fieldErrors?: Record<string, string>; onSubmit: (event: FormEvent<HTMLFormElement>, item?: Deliverable) => void; onCancel: () => void }) {
+function DefinitionForm({ item, busy, fieldErrors, onSubmit, onCancel }: {
+  item: Deliverable | null; busy: boolean; fieldErrors?: Record<string, string>; onSubmit: (event: FormEvent<HTMLFormElement>, item?: Deliverable) => void; onCancel: () => void
+}) {
   const field = (name: 'title' | 'deliverableType' | 'description' | 'dueAt') => fieldErrors?.[name] && <small role="alert">{fieldErrors[name]}</small>
-  return <section className={item ? 'deliverable-definition deliverable-definition-inline' : 'ex-panel deliverable-definition'}><div className="ex-panel-heading"><div><h2>{title}</h2><p>Loại hạng mục và hạn nộp sẽ được kiểm tra khi lưu.</p></div></div><form className="ex-form" onSubmit={(event) => onSubmit(event, item ?? undefined)}><fieldset disabled={busy}><div className="ex-fields"><label>Tên hạng mục *<input name="title" required maxLength={255} defaultValue={item?.title ?? ''} aria-invalid={fieldErrors?.title ? true : undefined} />{field('title')}</label><label>Loại hạng mục<input name="deliverableType" maxLength={50} defaultValue={item?.deliverableType ?? ''} aria-invalid={fieldErrors?.deliverableType ? true : undefined} />{field('deliverableType')}</label><label className="ex-full">Mô tả<textarea name="description" maxLength={10000} rows={4} defaultValue={item?.description ?? ''} aria-invalid={fieldErrors?.description ? true : undefined} />{field('description')}</label><label>Hạn nộp theo giờ Việt Nam<input name="dueAt" type="datetime-local" defaultValue={toDateTimeInput(item?.dueAt ?? null)} aria-invalid={fieldErrors?.dueAt ? true : undefined} />{field('dueAt')}</label></div><div className="ex-form-footer"><button className="ex-button" type="button" onClick={onCancel}>Hủy</button><button className="ex-button ex-button-primary">{busy ? 'Đang lưu…' : 'Lưu hạng mục'}</button></div></fieldset></form></section>
+  return (
+    <form className="ex-form !p-0" onSubmit={(event) => onSubmit(event, item ?? undefined)}>
+      <fieldset disabled={busy}>
+        <div className="ex-fields">
+          <label>Tên hạng mục *<input autoFocus name="title" required maxLength={255} defaultValue={item?.title ?? ''} aria-invalid={fieldErrors?.title ? true : undefined} />{field('title')}</label>
+          <label>Loại hạng mục<input name="deliverableType" maxLength={50} defaultValue={item?.deliverableType ?? ''} placeholder="Ví dụ: Tài liệu kỹ thuật" aria-invalid={fieldErrors?.deliverableType ? true : undefined} />{field('deliverableType')}</label>
+          <label className="ex-full">Mô tả<textarea name="description" maxLength={10000} rows={4} defaultValue={item?.description ?? ''} aria-invalid={fieldErrors?.description ? true : undefined} />{field('description')}</label>
+          <label className="ex-full">Hạn nộp theo giờ Việt Nam<input name="dueAt" type="datetime-local" defaultValue={toDateTimeInput(item?.dueAt ?? null)} aria-invalid={fieldErrors?.dueAt ? true : undefined} />{field('dueAt')}</label>
+        </div>
+        <div className="ex-form-footer">
+          <button className="ex-button" type="button" onClick={onCancel}>Hủy</button>
+          <button className="ex-button ex-button-primary">{busy ? 'Đang lưu…' : 'Lưu hạng mục'}</button>
+        </div>
+      </fieldset>
+    </form>
+  )
 }
 
 function DeliverableFileInput({ title, id, disabled, error }: { title: string; id: number; disabled: boolean; error?: string }) {
   const [fileName, setFileName] = useState('Chưa chọn tệp')
-  return <label>Chọn tệp<span className="deliverable-file-picker"><span>Chọn tệp</span><small>{fileName}</small><input aria-label={`Tệp ${title}`} name="file" type="file" required disabled={disabled} aria-invalid={error ? true : undefined} aria-describedby={error ? `deliverable-file-error-${id}` : undefined} onChange={(event) => setFileName(event.target.files?.[0]?.name || 'Chưa chọn tệp')} /></span>{error && <small id={`deliverable-file-error-${id}`} role="alert">{error}</small>}</label>
+  return (
+    <label>Chọn tệp
+      <span className="deliverable-file-picker">
+        <span>Chọn tệp</span>
+        <small>{fileName}</small>
+        <input aria-label={`Tệp ${title}`} name="file" type="file" required disabled={disabled} aria-invalid={error ? true : undefined} aria-describedby={error ? `deliverable-file-error-${id}` : undefined} onChange={(event) => setFileName(event.target.files?.[0]?.name || 'Chưa chọn tệp')} />
+      </span>
+      {error && <small id={`deliverable-file-error-${id}`} role="alert">{error}</small>}
+    </label>
+  )
 }
 
 function definitionFromForm(form: HTMLFormElement): SaveDeliverable | null {
-  const data = new FormData(form); const title = String(data.get('title') ?? '').trim()
+  const data = new FormData(form)
+  const title = String(data.get('title') ?? '').trim()
   if (!title) return null
   return { title, milestoneId: null, description: String(data.get('description') ?? '').trim() || null, deliverableType: String(data.get('deliverableType') ?? '').trim() || null, dueAt: toUtc(String(data.get('dueAt') ?? '')) }
 }

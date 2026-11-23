@@ -78,10 +78,11 @@ describe('SprintBacklogPanel', () => {
   it('creates a sprint via the project-scoped endpoint without a goal field', async () => {
     api.createSprint.mockResolvedValue(sprint({ id: 2, name: 'Sprint 2' }))
     render_()
+    fireEvent.click(await screen.findByRole('button', { name: '+ Tạo sprint' }))
     fireEvent.change(await screen.findByLabelText('Tên sprint'), { target: { value: 'Sprint 2' } })
     fireEvent.change(screen.getByLabelText('Bắt đầu'), { target: { value: '2026-11-01' } })
     fireEvent.change(screen.getByLabelText('Kết thúc'), { target: { value: '2026-11-14' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Tạo sprint' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Tạo sprint' }))
     await waitFor(() => expect(api.createSprint).toHaveBeenCalledWith(9, { name: 'Sprint 2', startAt: '2026-11-01', endAt: '2026-11-14' }))
   })
 

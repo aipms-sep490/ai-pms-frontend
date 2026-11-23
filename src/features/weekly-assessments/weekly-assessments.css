@@ -1,8 +1,18 @@
-.weekly-assessments { max-width: 1360px; margin: 0 auto; padding: 0 0 48px; color: var(--color-ink); }
+.weekly-assessments { max-width: 1440px; margin: 0 auto; padding: 0 0 48px; color: var(--color-ink); }
 .weekly-assessments * { box-sizing: border-box; }
 .weekly-assessments a, .weekly-assessments button, .weekly-assessments input, .weekly-assessments select, .weekly-assessments textarea { transition: border-color 160ms, background-color 160ms, box-shadow 160ms; }
 .weekly-assessments :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
-.weekly-toolbar { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; padding: 16px 24px; background: var(--color-canvas); border: 1px solid var(--color-hairline); border-radius: 10px; margin-bottom: 16px; }
+.weekly-toolbar { display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; background: var(--color-card); border: 1px solid var(--color-hairline); border-radius: 12px; margin-bottom: 16px; }
+.weekly-toolbar-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.weekly-stepper { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+.weekly-week-pills { display: flex; align-items: center; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.weekly-week-pill { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 32px; min-width: 44px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--color-hairline); background: var(--color-canvas); color: var(--color-ink-soft); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.weekly-week-pill:hover:not(:disabled) { border-color: color-mix(in oklab, var(--color-primary) 40%, transparent); background: var(--color-primary-subtle); color: var(--color-primary); }
+.weekly-week-pill--active { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-card); }
+.weekly-week-pill--active:hover:not(:disabled) { background: var(--color-primary-hover); color: var(--color-card); }
+.weekly-week-pill--future { opacity: 0.65; border-style: dashed; }
+.weekly-prose-comment { margin: 6px 0 0; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--color-hairline); background: var(--color-canvas); font-size: 13.5px; line-height: 1.65; color: var(--color-ink); white-space: pre-wrap; }
+.weekly-history-bar { padding: 14px 24px; border-top: 1px solid var(--color-hairline); background: var(--color-canvas); }
 .weekly-assessments label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 650; color: var(--color-ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
 .weekly-assessments select, .weekly-assessments input[type='number'], .weekly-assessments input[type='text'], .weekly-assessments textarea { min-height: 40px; border: 1px solid var(--color-hairline); border-radius: 8px; padding: 8px 14px; background: var(--color-card); color: var(--color-ink); font: inherit; font-size: 13px; font-weight: 400; text-transform: none; letter-spacing: normal; }
 .weekly-assessments textarea { resize: vertical; min-height: 72px; line-height: 1.6; font-weight: 400; width: 100%; }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { dateLabel } from '../utils/collaboration-workspace'
 import type {
   StudentGateInstance,
   StudentGateRequirement,
@@ -42,7 +43,7 @@ export function NextActionBanner({
   if (!activeGate) {
     return (
       <section
-        className="mb-6 rounded-xl border border-hairline bg-card p-5 shadow-xs"
+        className="mb-4 rounded-xl border border-hairline bg-card p-4 shadow-xs"
         aria-label="Khối việc cần làm tiếp theo"
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -60,8 +61,8 @@ export function NextActionBanner({
             </h2>
             <p className="text-xs text-ink-muted">
               {closestMilestone?.dueDate
-                ? `Hạn hoàn thành mốc tiếp theo: ${closestMilestone.dueDate}.`
-                : 'Tiếp tục thực hiện các công việc kỹ thuật trên Task board.'}
+                ? `Hạn hoàn thành mốc tiếp theo: ${dateLabel(closestMilestone.dueDate)}.`
+                : 'Tiếp tục thực hiện các công việc kỹ thuật trên Bảng công việc.'}
               {taskAttentionCount && taskAttentionCount.overdue > 0 && (
                 <span className="ml-1 font-semibold text-status-error-text">
                   (Có {taskAttentionCount.overdue} việc quá hạn cần xử lý)
@@ -146,25 +147,25 @@ export function NextActionBanner({
   return (
     <>
       <section
-        className={`mb-6 rounded-xl border p-5 shadow-xs transition-all ${cardBorderClass}`}
+        className={`mb-4 rounded-xl border p-4 shadow-xs transition-all ${cardBorderClass}`}
         aria-label="Khối việc cần làm tiếp theo"
       >
         {/* Header: Eyebrow, Gate Info, Status Badge */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1.5">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-lg" aria-hidden="true">
                 {iconName}
               </span>
-              <span className="text-xs font-bold uppercase tracking-wider opacity-80">
-                Việc cần làm tiếp theo · Next Action
+              <span className="text-xs font-bold uppercase tracking-wider">
+                Việc cần làm tiếp theo
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="rounded-md border border-primary/20 bg-primary-subtle px-2.5 py-0.5 font-mono text-xs font-bold text-primary">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-md border border-primary/20 bg-primary-subtle px-2 py-0.5 font-mono text-xs font-bold text-primary">
                 {activeGate.code}
               </span>
-              <h2 className="text-base font-bold text-ink sm:text-lg">
+              <h2 className="text-base font-bold text-ink">
                 {activeGate.title}
               </h2>
               <span
@@ -185,19 +186,19 @@ export function NextActionBanner({
             <div>
               Hạn cổng:{' '}
               <strong className="text-ink">
-                {activeGate.windowEnd || 'Đang cập nhật'}
+                {activeGate.windowEnd ? dateLabel(activeGate.windowEnd) : 'Theo tiến độ kỳ'}
               </strong>
             </div>
             {closestMilestone?.dueDate && (
               <div className="mt-0.5 text-ink-muted">
-                Mốc task: {closestMilestone.dueDate}
+                Mốc gần nhất: <strong className="text-ink-soft">{dateLabel(closestMilestone.dueDate)}</strong>
               </div>
             )}
           </div>
         </div>
 
         {/* Content Grid: Requirements Status & Action Context */}
-        <div className="mt-4 grid grid-cols-1 gap-4 border-t border-hairline pt-4 lg:grid-cols-12">
+        <div className="mt-3 grid grid-cols-1 gap-3 border-t border-hairline pt-3 lg:grid-cols-12">
           {/* Left: Requirements Detail */}
           <div className="space-y-2 lg:col-span-7">
             <h3 className="text-xs font-bold uppercase tracking-wider text-ink-soft">
@@ -302,8 +303,9 @@ export function NextActionBanner({
             {taskAttentionCount && (taskAttentionCount.blocked > 0 || taskAttentionCount.overdue > 0) && (
               <div className="text-xs text-ink-muted">
                 {taskAttentionCount.blocked > 0 && (
-                  <span className="block font-semibold text-status-warning-text">
-                    ⚠️ Có {taskAttentionCount.blocked} công việc bị vướng mắc (Blocked) trên bảng task.
+                  <span className="flex items-center gap-1 font-semibold text-status-warning-text">
+                    <span className="material-symbols-outlined text-[15px]" aria-hidden="true">warning</span>
+                    Có {taskAttentionCount.blocked} công việc bị vướng mắc trên bảng công việc.
                   </span>
                 )}
                 {taskAttentionCount.overdue > 0 && (

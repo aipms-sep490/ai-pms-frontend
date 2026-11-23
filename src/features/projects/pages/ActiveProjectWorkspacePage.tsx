@@ -23,8 +23,8 @@ export function ActiveProjectWorkspacePage() {
   if (journey.isLoading) return <PageLoading />
   if (journey.error) return <WorkspaceState message="Chưa tải được thông tin đồ án. Hãy thử lại." retry={journey.refreshAll} error />
 
-  // A URL must not bypass the Backend-derived journey. ACTIVE is the only entry state.
-  if (journey.journeyState !== 'ACTIVE' || !journey.project) {
+  // Allow ACTIVE and post-execution read-only states (matching ActiveStudentProjectRoute).
+  if (!['ACTIVE', 'FINAL_SUBMISSION', 'COMPLETED'].includes(journey.journeyState) || !journey.project) {
     return <Navigate to={fallback.route} replace />
   }
 

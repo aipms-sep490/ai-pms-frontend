@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import { ListLoading } from '../../components/ui/ListLoading'
+import { Modal } from '../../components/ui/Modal'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { HttpError } from '../../services/http/http-client'
@@ -29,10 +31,15 @@ export function ProjectGatesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [revision, setRevision] = useState(0)
+  const [createOpen, setCreateOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newMajorId, setNewMajorId] = useState('')
   const [newPlannedAt, setNewPlannedAt] = useState('')
+  const [statusTab, setStatusTab] = useState('')
+  const [majorFilter, setMajorFilter] = useState('')
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<'planned_asc' | 'planned_desc'>('planned_asc')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -54,7 +61,7 @@ export function ProjectGatesPage() {
     setCreating(true); setError(null)
     try {
       await createCheckpoint(project.id, { title: newTitle.trim(), majorId: newMajorId ? Number(newMajorId) : null, plannedAt: new Date(newPlannedAt).toISOString() })
-      setNewTitle(''); setNewMajorId(''); setNewPlannedAt('')
+      setNewTitle(''); setNewMajorId(''); setNewPlannedAt(''); setCreateOpen(false)
       reload()
     } catch (reason) {
       setError(errorMessage(reason, 'Bạn chưa có quyền tạo checkpoint cho đồ án này.'))
@@ -63,32 +70,126 @@ export function ProjectGatesPage() {
     }
   }
 
-  return <WorkspacePage className="space-y-5" title="Mốc kiểm soát tiến độ" eyebrow="Theo dõi, không chặn tiến độ"
-    description="Kế hoạch theo dõi và kết luận từng giai đoạn. Quá hạn chưa có kết luận chỉ là cảnh báo rủi ro, không làm đồ án trượt.">
+  const filteredCheckpoints = useMemo(() => {
+    const items = checkpoints ?? []
+    const q = search.trim().toLowerCase()
+    const list = items.filter((cp) => {
+      const latest = cp.decisions.at(-1)?.decision
+      const unresolvedRisk = cp.isOverdue && !cp.decisions.some((d) => d.decision === 'MET' || d.decision === 'CANCELLED')
+      if (statusTab === 'OVERDUE' && !unresolvedRisk) return false
+      if (statusTab === 'PENDING' && cp.decisions.length > 0) return false
+      if (statusTab && statusTab !== 'OVERDUE' && statusTab !== 'PENDING' && latest !== statusTab) return false
+      if (majorFilter === 'COMMON' && cp.majorId != null) return false
+      if (majorFilter && majorFilter !== 'COMMON' && String(cp.majorId ?? '') !== majorFilter) return false
+      if (q) {
+        const hay = `${cp.title} ${cp.decisions.map(d => d.reason ?? '').join(' ')}`.toLowerCase()
+        if (!hay.includes(q)) return false
+      }
+      return true
+    })
+    return [...list].sort((a, b) => {
+      const diff = new Date(a.plannedAt).getTime() - new Date(b.plannedAt).getTime()
+      return sortBy === 'planned_desc' ? -diff : diff
+    })
+  }, [checkpoints, statusTab, majorFilter, search, sortBy])
+
+  const hasFilters = Boolean(statusTab || majorFilter || search.trim() || sortBy !== 'planned_asc')
+  const clearFilters = () => { setStatusTab(''); setMajorFilter(''); setSearch(''); setSortBy('planned_asc') }
+
+  return <WorkspacePage
+    size="wide"
+    className="space-y-5"
+    title="Mốc kiểm soát tiến độ"
+    eyebrow="Theo dõi, không chặn tiến độ"
+    description="Kế hoạch theo dõi và kết luận từng giai đoạn. Quá hạn chưa có kết luận chỉ là cảnh báo rủi ro, không làm đồ án trượt."
+    action={
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" disabled={loading} onClick={reload} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary disabled:opacity-50">
+          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
+          Làm mới
+        </button>
+        {actor !== 'student' && (
+          <button type="button" onClick={() => setCreateOpen(true)} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover">
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">add</span>
+            Tạo checkpoint mới
+          </button>
+        )}
+      </div>
+    }
+  >
     {loading && <ListLoading label="Đang tải mốc kiểm soát tiến độ…" />}
     {!loading && error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><span>{error}</span><button type="button" className="min-h-11 font-semibold underline" onClick={reload}>Tải lại</button></div>}
 
-    {!loading && actor !== 'student' && <section className="space-y-3 rounded-xl border border-hairline bg-card p-5 shadow-xs">
-      <h2 className="text-sm font-bold text-ink">Tạo checkpoint mới</h2>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <label className="text-sm text-ink-soft">Tiêu đề<input className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 font-normal text-sm text-ink" value={newTitle} disabled={creating} onChange={(event) => setNewTitle(event.target.value)} /></label>
-        <label className="text-sm text-ink-soft">Chuyên ngành áp dụng
-          <select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 font-normal text-sm text-ink" value={newMajorId} disabled={creating} onChange={(event) => setNewMajorId(event.target.value)}>
-            <option value="">Chung (cả đồ án)</option>
-            {projectMajors.map((major) => (
-              <option key={major.majorId} value={major.majorId}>{major.majorName}</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm text-ink-soft">Thời điểm dự kiến<input type="datetime-local" className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 font-normal text-sm text-ink" value={newPlannedAt} disabled={creating} onChange={(event) => setNewPlannedAt(event.target.value)} /></label>
-      </div>
-      <button type="button" className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50" disabled={creating || !newTitle.trim() || !newPlannedAt} onClick={() => void submitCreate()}>Tạo checkpoint</button>
-    </section>}
+    {createOpen && actor !== 'student' && (
+      <Modal open title="Tạo checkpoint mới" description="Thêm mốc kiểm soát để theo dõi tiến độ định kỳ của nhóm." busy={creating} onClose={() => setCreateOpen(false)}>
+        <div className="space-y-4">
+          <label className="block text-sm font-medium text-ink-soft">Tiêu đề<input autoFocus className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 font-normal text-sm text-ink" value={newTitle} disabled={creating} onChange={(event) => setNewTitle(event.target.value)} /></label>
+          <label className="block text-sm font-medium text-ink-soft">Chuyên ngành áp dụng
+            <select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 font-normal text-sm text-ink" value={newMajorId} disabled={creating} onChange={(event) => setNewMajorId(event.target.value)}>
+              <option value="">Chung (cả đồ án)</option>
+              {projectMajors.map((major) => (
+                <option key={major.majorId} value={major.majorId}>{major.majorName}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm font-medium text-ink-soft">Thời điểm dự kiến<input type="datetime-local" className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 font-normal text-sm text-ink" value={newPlannedAt} disabled={creating} onChange={(event) => setNewPlannedAt(event.target.value)} /></label>
+          <div className="app-modal__actions">
+            <button type="button" className="app-modal__button" disabled={creating} onClick={() => setCreateOpen(false)}>Hủy</button>
+            <button type="button" className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50" disabled={creating || !newTitle.trim() || !newPlannedAt} onClick={() => void submitCreate()}>{creating ? 'Đang tạo…' : 'Tạo checkpoint'}</button>
+          </div>
+        </div>
+      </Modal>
+    )}
 
     {!loading && !error && checkpoints && checkpoints.length === 0 && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đồ án chưa có checkpoint theo dõi nào.</p>}
-    {!loading && !error && checkpoints && checkpoints.length > 0 && <ol className="space-y-3">
-      {checkpoints.map((checkpoint) => <CheckpointRow key={checkpoint.id} checkpoint={checkpoint} majorNameMap={majorNameMap} onChanged={(updated) => setCheckpoints((current) => current?.map((c) => c.id === updated.id ? updated : c) ?? null)} onConflict={reload} />)}
-    </ol>}
+    {!loading && !error && checkpoints && checkpoints.length > 0 && (
+      <>
+        <FilterToolbar
+          tabs={[
+            { value: '', label: 'Tất cả', count: checkpoints.length },
+            { value: 'PENDING', label: 'Chưa kết luận' },
+            { value: 'OVERDUE', label: 'Quá hạn' },
+            { value: 'MET', label: 'Đạt' },
+            { value: 'AT_RISK', label: 'Rủi ro' },
+            { value: 'NOT_MET', label: 'Chưa đạt' },
+          ]}
+          activeTab={statusTab}
+          onTabChange={setStatusTab}
+          search={search}
+          onSearchChange={setSearch}
+          searchLabel="Tìm checkpoint"
+          searchPlaceholder="Tìm theo tiêu đề hoặc lý do kết luận…"
+          controls={projectMajors.length > 1 ? (
+            <select aria-label="Chuyên ngành" value={majorFilter} onChange={(e) => setMajorFilter(e.target.value)}>
+              <option value="">Tất cả phạm vi</option>
+              <option value="COMMON">Chung (cả đồ án)</option>
+              {projectMajors.map((major) => <option key={major.majorId} value={String(major.majorId)}>{major.majorName}</option>)}
+            </select>
+          ) : undefined}
+          sort={{
+            value: sortBy,
+            onChange: (val) => setSortBy(val as 'planned_asc' | 'planned_desc'),
+            options: [
+              { value: 'planned_asc', label: 'Thời điểm tăng dần' },
+              { value: 'planned_desc', label: 'Thời điểm giảm dần' },
+            ],
+          }}
+          hasActiveFilters={hasFilters}
+          onClearAll={clearFilters}
+          resultSummary={`${filteredCheckpoints.length} / ${checkpoints.length} checkpoint`}
+        />
+        {filteredCheckpoints.length === 0 ? (
+          <div className="rounded-xl border border-hairline bg-card p-6 text-center text-sm text-ink-muted">
+            <p>Không có checkpoint nào phù hợp bộ lọc hiện tại.</p>
+            <button type="button" className="mt-2 font-semibold text-primary underline" onClick={clearFilters}>Xóa bộ lọc</button>
+          </div>
+        ) : (
+          <ol className="space-y-3">
+            {filteredCheckpoints.map((checkpoint) => <CheckpointRow key={checkpoint.id} checkpoint={checkpoint} majorNameMap={majorNameMap} onChanged={(updated) => setCheckpoints((current) => current?.map((c) => c.id === updated.id ? updated : c) ?? null)} onConflict={reload} />)}
+          </ol>
+        )}
+      </>
+    )}
   </WorkspacePage>
 }
 

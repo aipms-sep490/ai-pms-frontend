@@ -35,10 +35,10 @@ export const toneFor = (status: DefenseSessionStatus) => statusTone[status] ?? '
 export const formatRange = (start: string, end: string) => {
   const startDate = new Date(start)
   if (Number.isNaN(startDate.getTime())) return start
-  const dayPart = new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).format(startDate)
-  const startTime = new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(startDate)
+  const dayPart = new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }).format(startDate)
+  const startTime = new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' }).format(startDate)
   const endDate = new Date(end)
-  const endTime = !Number.isNaN(endDate.getTime()) ? new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(endDate) : null
+  const endTime = !Number.isNaN(endDate.getTime()) ? new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' }).format(endDate) : null
   return `${dayPart} · ${startTime}${endTime ? `–${endTime}` : ''}`
 }
 
@@ -85,16 +85,20 @@ export function findSessionConflicts(sessions: DefenseSession[] | null): Array<[
 export function DefenseScheduleView({
   projectId: _projectId,
   sessions,
+  showManageVerdict = false,
   onCancelled,
 }: {
   projectId: number
   sessions: DefenseSession[] | null
+  showManageVerdict?: boolean
   onCancelled?: () => void
 }) {
   const scheduled = sessions?.find((session) => session.status === 'SCHEDULED')
   const conflicts = findSessionConflicts(sessions)
-  const mostRecentCancelled = sessions?.filter((session) => session.status === 'CANCELLED').at(-1)
+  const cancelledSessions = sessions?.filter((session) => session.status === 'CANCELLED') ?? []
+  const mostRecentCancelled = cancelledSessions.at(-1)
   const highlighted = scheduled ?? mostRecentCancelled ?? null
+  const previousSessions = (sessions ?? []).filter((session) => session.id !== highlighted?.id)
 
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
@@ -194,7 +198,7 @@ export function DefenseScheduleView({
           </div>
         </div>
       )}
-      {scheduled && (
+      {scheduled && (scheduled.canCancel || showManageVerdict) && (
         <div className="mt-3">
           <ActionVerdict
             actions={[{
@@ -210,6 +214,24 @@ export function DefenseScheduleView({
         </div>
       )}
     </section>
+      {previousSessions.length > 0 && (
+        <section className="rounded-xl border border-hairline bg-card p-4 shadow-xs">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-ink-muted">Lịch sử phiên bảo vệ trước đó ({previousSessions.length})</h3>
+          <ul className="mt-2.5 divide-y divide-hairline text-sm">
+            {previousSessions.map((session) => (
+              <li key={session.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                <div className="min-w-0">
+                  <p className="font-medium text-ink">{formatRange(session.startAt, session.endAt)} · Phòng {session.room}</p>
+                  {session.cancellationReason && <p className="mt-0.5 text-xs text-status-error-text">Lý do hủy: {session.cancellationReason}</p>}
+                </div>
+                <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${toneFor(session.status)}`}>
+                  {describeStatus(session.status)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
   </div>
   )
 }
@@ -591,6 +613,17 @@ export function ProjectDefensePage() {
       title="Lịch bảo vệ"
       eyebrow="Hội đồng đánh giá"
       description="Thời gian và phòng bảo vệ của đồ án. Thành phần hội đồng không hiển thị ở đây."
+      action={projectId ? (
+        <button
+          type="button"
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary disabled:opacity-50"
+          disabled={loading}
+          onClick={retry}
+        >
+          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
+          Làm mới
+        </button>
+      ) : undefined}
     >
       {projectId && <EntityIdentityStrip chips={[
         { icon: 'folder', label: 'Đồ án', value: (journey.project as { title?: string } | undefined)?.title || sessions?.[0]?.projectTitle || 'Đồ án hiện tại' },
@@ -650,7 +683,10 @@ export function ProjectDefenseManagementPage() {
 
       {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error}</p>}
       {!error && sessions && (isDepartmentRoute
-        ? <DefenseManagementPanel projectId={projectId} hasScheduledSession={sessions.some((session) => session.status === 'SCHEDULED')} onSessionScheduled={() => setRevision((value) => value + 1)} />
+        ? <>
+            <DefenseScheduleView projectId={projectId} sessions={sessions} showManageVerdict onCancelled={() => setRevision((value) => value + 1)} />
+            <DefenseManagementPanel projectId={projectId} hasScheduledSession={sessions.some((session) => session.status === 'SCHEDULED')} onSessionScheduled={() => setRevision((value) => value + 1)} />
+          </>
         : <><DefenseScheduleView projectId={projectId} sessions={sessions} /><div className="mt-5"><DefenseMockPanel projectId={projectId} /></div></>)}
       {!error && !sessions && <p role="status" className="workspace-surface p-5 text-sm text-ink-muted">Đang tải lịch bảo vệ…</p>}
     </WorkspacePage>

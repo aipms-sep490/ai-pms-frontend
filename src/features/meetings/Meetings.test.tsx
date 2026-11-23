@@ -298,16 +298,15 @@ describe('Meetings end-user workflow', () => {
     api.getMeeting.mockResolvedValue({ ...meeting, onlineUrl: 'javascript:alert(1)' })
     mount(); await ready(); expect(screen.queryByRole('link', { name: 'Mở phòng họp ↗' })).toBeNull()
   })
-  it('applies filters explicitly using VN day boundaries and retains them during pagination', async () => {
+  it('applies filters immediately using VN day boundaries and retains them during pagination', async () => {
     api.getMeetings.mockResolvedValue({ ...listResult(), totalCount: 11, totalPages: 2 })
     mount({ path: '/project/meetings' }); await screen.findByRole('link', { name: /Rà soát tiến độ tuần/ })
-    input('Trạng thái', 'COMPLETED'); input('Từ ngày', '2026-09-23'); input('Đến ngày', '2026-09-24')
-    expect(api.getMeetings).toHaveBeenCalledTimes(1); click('Áp dụng')
-    await waitFor(() => expect(api.getMeetings).toHaveBeenCalledTimes(2))
-    expect(api.getMeetings.mock.calls[1][1]).toEqual({ status: 'COMPLETED', from: '2026-09-22T17:00:00.000Z', to: '2026-09-24T16:59:59.999Z', page: 1, pageSize: 10 })
+    fireEvent.click(screen.getByRole('tab', { name: 'Đã hoàn tất' }))
+    fireEvent.click(screen.getByRole('button', { name: /Khoảng ngày/ }))
+    input('Từ ngày', '2026-09-23'); input('Đến ngày', '2026-09-24')
+    await waitFor(() => expect(api.getMeetings).toHaveBeenLastCalledWith(2, { status: 'COMPLETED', from: '2026-09-22T17:00:00.000Z', to: '2026-09-24T16:59:59.999Z', page: 1, pageSize: 10 }, expect.any(AbortSignal)))
     await screen.findByRole('link', { name: /Rà soát tiến độ tuần/ }); click('Trang sau')
-    await waitFor(() => expect(api.getMeetings).toHaveBeenCalledTimes(3))
-    expect(api.getMeetings.mock.calls[2][1]).toMatchObject({ status: 'COMPLETED', page: 2 })
+    await waitFor(() => expect(api.getMeetings).toHaveBeenLastCalledWith(2, expect.objectContaining({ status: 'COMPLETED', page: 2 }), expect.any(AbortSignal)))
   })
   it('shows empty data and recovers from list loading failures', async () => {
     api.getMeetings.mockRejectedValueOnce(new HttpError('Unavailable', 503)).mockResolvedValue(listResult([]))

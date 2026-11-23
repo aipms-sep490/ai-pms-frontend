@@ -121,9 +121,9 @@
 
 .report-main { display: grid; gap: 20px; min-width: 0; }
 .report-detail-grid + .report-feedback { margin-top: 24px; }
-.report-detail-grid--reading { grid-template-columns:minmax(0,1fr); }
-.report-detail-grid--reading .report-aside { position:static; grid-row:1; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); }
-.report-detail-grid--reading .report-reading p { max-width:85ch; }
+.report-detail-grid--reading { grid-template-columns: minmax(0, 1fr) 320px; }
+@media (max-width: 1100px) { .report-detail-grid--reading { grid-template-columns: minmax(0, 1fr); } }
+.report-detail-grid--reading .report-reading p { max-width: 85ch; }
 @media (min-width: 1101px) {
  .report-aside { position: sticky; top: 84px; }
  .report-aside > .report-panel { min-width: 0; }
