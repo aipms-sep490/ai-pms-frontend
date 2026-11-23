@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { HttpError } from '../../../services/http/http-client'
 import { useAuthSession } from '../../auth/context/useAuthSession'
-import { closeTopic, createTopic, getTopic, listTopics, publishTopic, updateTopic, type CreateTopic, type Topic, type TopicFilters, type TopicPage, type TopicContent } from '../api/topic-api'
+import { closeTopic, createTopic, getTopic, listTopics, publishTopic, topicErrorMessage, updateTopic, type CreateTopic, type Topic, type TopicFilters, type TopicPage, type TopicContent } from '../api/topic-api'
+
+export interface BatchPublishResult {
+  publishedCount: number
+  failed: Array<{ id: number; code: string; title: string; reason: string }>
+}
 
 const empty: TopicPage = { items: [], page: 1, pageSize: 20, totalCount: 0 }
 export function useTopics(id?: number) {
@@ -10,5 +15,48 @@ export function useTopics(id?: number) {
   const refresh = useCallback(async () => { if (!token) return; const version = ++requestVersion.current; setLoading(true); setError(null); setCurrent(null); try { if (id) { const topic = await getTopic(id, token); if (version === requestVersion.current) setCurrent(topic) } else { const items = await listTopics(token, filters); if (version === requestVersion.current) setDirectory(items) } } catch (caught) { if (version === requestVersion.current) setError(caught as Error) } finally { if (version === requestVersion.current) setLoading(false) } }, [id, token, filters])
   useEffect(() => { const version = requestVersion; void refresh(); return () => { version.current++ } }, [refresh])
   const mutate = async (operation: () => Promise<Topic>) => { if (mutationLock.current) throw new Error('Một thao tác đề tài đang được xử lý.'); mutationLock.current = true; setSaving(true); setMutationError(null); const version = requestVersion.current; try { const topic = await operation(); if (version === requestVersion.current) await refresh(); return topic } catch (caught) { if (version === requestVersion.current) { if (caught instanceof HttpError && caught.status === 409) await refresh(); setMutationError(caught as Error) }; throw caught } finally { mutationLock.current = false; setSaving(false) } }
-  return { items: directory.items, page: directory.page, pageSize: directory.pageSize, totalCount: directory.totalCount, current, filters, setFilters, loading, error, mutationError, saving, refresh, create: (input: CreateTopic) => session ? mutate(() => createTopic(input, session.accessToken)) : Promise.reject(new Error('Unauthenticated')), update: (content: TopicContent) => session && current ? mutate(() => updateTopic(current.id, content, current.concurrencyToken, session.accessToken)) : Promise.reject(new Error('Topic unavailable')), publish: () => session && current ? mutate(() => publishTopic(current.id, current.concurrencyToken, session.accessToken)) : Promise.reject(new Error('Topic unavailable')), close: (reason: string) => session && current ? mutate(() => closeTopic(current.id, current.concurrencyToken, reason, session.accessToken)) : Promise.reject(new Error('Topic unavailable')), isUnauthorized: !session || (error instanceof HttpError && error.status === 401), isForbidden: error instanceof HttpError && error.status === 403 }
+  const publishMany = async (targets: Array<{ id: number; code: string; title: string; concurrencyToken: string }>): Promise<BatchPublishResult> => {
+    if (!session) throw new Error('Unauthenticated')
+    if (mutationLock.current) throw new Error('Một thao tác đề tài đang được xử lý.')
+    mutationLock.current = true; setSaving(true); setMutationError(null)
+    const version = requestVersion.current
+    const failed: BatchPublishResult['failed'] = []
+    let publishedCount = 0
+    try {
+      for (const target of targets) {
+        try {
+          await publishTopic(target.id, target.concurrencyToken, session.accessToken)
+          publishedCount++
+        } catch (caught) {
+          failed.push({ id: target.id, code: target.code, title: target.title, reason: topicErrorMessage(caught) })
+        }
+      }
+      if (version === requestVersion.current) await refresh()
+      return { publishedCount, failed }
+    } finally {
+      mutationLock.current = false; setSaving(false)
+    }
+  }
+  return {
+    items: directory.items,
+    page: directory.page,
+    pageSize: directory.pageSize,
+    totalCount: directory.totalCount,
+    current,
+    filters,
+    setFilters,
+    loading,
+    error,
+    mutationError,
+    saving,
+    refresh,
+    create: (input: CreateTopic) => session ? mutate(() => createTopic(input, session.accessToken)) : Promise.reject(new Error('Unauthenticated')),
+    update: (content: TopicContent) => session && current ? mutate(() => updateTopic(current.id, content, current.concurrencyToken, session.accessToken)) : Promise.reject(new Error('Topic unavailable')),
+    publish: () => session && current ? mutate(() => publishTopic(current.id, current.concurrencyToken, session.accessToken)) : Promise.reject(new Error('Topic unavailable')),
+    publishById: (topicId: number, concurrencyToken: string) => session ? mutate(() => publishTopic(topicId, concurrencyToken, session.accessToken)) : Promise.reject(new Error('Unauthenticated')),
+    publishMany,
+    close: (reason: string) => session && current ? mutate(() => closeTopic(current.id, current.concurrencyToken, reason, session.accessToken)) : Promise.reject(new Error('Topic unavailable')),
+    isUnauthorized: !session || (error instanceof HttpError && error.status === 401),
+    isForbidden: error instanceof HttpError && error.status === 403,
+  }
 }

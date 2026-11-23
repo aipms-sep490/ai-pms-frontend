@@ -85,4 +85,24 @@ describe('TopicManagementPage', () => {
     hook.useTopics.mockReturnValue(state({ items: [] })); page(); expect(screen.getByText(/Không có đề tài/)).toBeTruthy(); cleanup()
     hook.useTopics.mockReturnValue(state({ isForbidden: true })); page(); expect(screen.getByText(/không có quyền quản lý/)).toBeTruthy()
   })
+  it('supports quick publish and batch publish directly from the list view', async () => {
+    const publishById = vi.fn().mockResolvedValue({ ...topic, status: 'PUBLISHED' })
+    const publishMany = vi.fn().mockResolvedValue({ publishedCount: 1, failed: [] })
+    const current = state({ publishById, publishMany })
+    hook.useTopics.mockReturnValue(current)
+    page()
+
+    // Quick publish on row
+    fireEvent.click(screen.getByRole('button', { name: 'Công bố' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Công bố đề tài' }))
+    await waitFor(() => expect(publishById).toHaveBeenCalledWith(4, 'token'))
+
+    // Batch publish via checkbox
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Chọn bản nháp AI Assist' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Công bố 1 đề tài' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Công bố 1 đề tài' }))
+    await waitFor(() => expect(publishMany).toHaveBeenCalledWith([
+      { id: 4, code: 'AI-4', title: 'AI Assist', concurrencyToken: 'token' },
+    ]))
+  })
 })
