@@ -33,13 +33,14 @@ export function OverviewPage() {
   }[journeyState]
   const nextAction = resolveStudentNextAction({ journeyState, projectStatus: project?.status })
 
+  const isExecutionPhase = stageIndex >= 4
+
   return (
-    <WorkspacePage className="space-y-6" title="Tổng quan lộ trình" eyebrow="Không gian đồ án" description="Theo dõi trạng thái đồ án, việc cần ưu tiên và bước tiếp theo của nhóm.">
+    <WorkspacePage size="wide" className="space-y-6" title="Tổng quan lộ trình" eyebrow="Không gian đồ án" description="Theo dõi trạng thái đồ án, việc cần ưu tiên và bước tiếp theo của nhóm.">
       {/* Dynamic Student Journey Banner */}
       <StudentJourneyHero />
-      <StudentDashboardSummary />
 
-      {!error ? (
+      {!error && !isExecutionPhase ? (
         <section className="workspace-surface" aria-labelledby="journey-next-step">
           <div className="border-b border-hairline px-5 py-4 sm:px-6">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">Lộ trình đăng ký đồ án</p>
@@ -65,6 +66,26 @@ export function OverviewPage() {
             <Button onClick={() => navigate(nextAction.route)} icon="arrow_forward" className="flex-row-reverse shrink-0">
               Tiếp tục
             </Button>
+          </div>
+        </section>
+      ) : null}
+
+      <StudentDashboardSummary />
+
+      {!error && isExecutionPhase ? (
+        <section className="workspace-surface px-5 py-4 sm:px-6" aria-labelledby="journey-next-step">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p id="journey-next-step" className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-muted">Lộ trình đăng ký đồ án</p>
+            <ol className="flex flex-wrap items-center gap-3 text-xs">
+              {journeySteps.map((step, index) => (
+                <li key={step.label} className={`inline-flex items-center gap-1 font-semibold ${index <= stageIndex ? 'text-primary' : 'text-ink-muted'}`}>
+                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
+                    {index < stageIndex ? 'check_circle' : step.icon}
+                  </span>
+                  <span>{step.label}</span>
+                </li>
+              ))}
+            </ol>
           </div>
         </section>
       ) : null}

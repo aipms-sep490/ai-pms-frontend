@@ -27,8 +27,17 @@ describe('SupervisorSelectionPage', () => {
     fireEvent.click(screen.getByText('Chọn giảng viên'))
     fireEvent.click(screen.getByText('Gửi yêu cầu'))
     expect(hook.send).toHaveBeenCalledWith(hook.candidates[0], '', 'PRIMARY', undefined)
-    fireEvent.click(screen.getByText('Lọc danh sách'))
-    expect(hook.applyFilters).toHaveBeenCalledTimes(1)
+    fireEvent.change(screen.getByLabelText('Chuyên môn'), { target: { value: 'AI' } })
+    expect(hook.applyFilters).toHaveBeenCalledWith({ search: '', expertise: 'AI' })
+  })
+
+  it('passes explicit empty filter values on clear without stale closure bug', () => {
+    const hook = state({ query: { search: 'Mai', expertise: 'AI' } })
+    journey.useStudentJourney.mockReturnValue(currentJourney)
+    selection.useSupervisorSelection.mockReturnValue(hook)
+    render(<MemoryRouter><SupervisorSelectionPage /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('button', { name: 'Xóa lọc' }))
+    expect(hook.applyFilters).toHaveBeenCalledWith({ search: '', expertise: '' })
   })
 
   it('keeps member request controls disabled and presents Backend 403 distinctly', () => {

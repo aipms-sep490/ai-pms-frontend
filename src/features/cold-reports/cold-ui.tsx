@@ -9,10 +9,10 @@ export function ColdBadge({ status }: { status: ColdSubmissionStatus }) {
   return <span className={`cold-badge cold-badge--${status.toLowerCase()}`}>{coldStatusLabel(status)}</span>
 }
 
-export function ColdShell({ title, description, projectTitle, backTo, children, action }: {
-  title: string; description: string; projectTitle: string; backTo: string; children: ReactNode; action?: ReactNode
+export function ColdShell({ title, description, projectTitle, eyebrow, backTo, children, action }: {
+  title: string; description: string; projectTitle: string; eyebrow?: string; backTo?: string; children: ReactNode; action?: ReactNode
 }) {
-  return <section className="cold-reports"><ExecutionPage title={title} description={description} eyebrow={`Chấm nguội • ${projectTitle}`} backTo={backTo} action={action}>{children}</ExecutionPage></section>
+  return <section className="cold-reports"><ExecutionPage title={title} description={description} eyebrow={eyebrow ?? `Chấm nguội • ${projectTitle}`} backTo={backTo} action={action}>{children}</ExecutionPage></section>
 }
 
 export function ColdLoading() {

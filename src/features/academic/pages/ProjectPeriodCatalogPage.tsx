@@ -1,11 +1,15 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useStudentJourney } from '../../../app/context'
+import { FilterToolbar } from '../../../components/ui/FilterToolbar'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import { HttpError } from '../../../services/http/http-client'
 import { getProjectPeriods, getSemesters } from '../api/governance-api'
 import type { PagedResult, ProjectPeriod, Semester } from '../types/governance.types'
+
+type WindowFilter = '' | 'OPEN' | 'UPCOMING' | 'CLOSED'
+type PeriodSort = 'default' | 'end_asc' | 'start_desc'
 
 const pageSize = 6
 const dateLabel = (value: string) => new Intl.DateTimeFormat('vi-VN', {
@@ -35,7 +39,8 @@ export function ProjectPeriodCatalogPage() {
   const urlSemesterId = searchParams.get('semesterId') ? Number(searchParams.get('semesterId')) : undefined
   const urlPage = searchParams.get('page') ? Math.max(1, Number(searchParams.get('page'))) : 1
 
-  const [searchText, setSearchText] = useState(urlSearch)
+  const [windowFilter, setWindowFilter] = useState<WindowFilter>('')
+  const [sortBy, setSortBy] = useState<PeriodSort>('default')
   const [semesters, setSemesters] = useState<Semester[]>([])
   const [response, setResponse] = useState<{ key: string; data: PagedResult<ProjectPeriod> } | null>(null)
   const [failedKey, setFailedKey] = useState<string | null>(null)
@@ -75,10 +80,9 @@ export function ProjectPeriodCatalogPage() {
     return () => controller.abort()
   }, [token, urlSearch, urlSemesterId, urlPage, revision, requestKey])
 
-  const submitSearch = (event: FormEvent) => {
-    event.preventDefault()
+  const handleSearchChange = (value: string) => {
     const nextParams = new URLSearchParams(searchParams)
-    const trimmed = searchText.trim()
+    const trimmed = value.trim()
     if (trimmed) nextParams.set('q', trimmed)
     else nextParams.delete('q')
     nextParams.delete('page')
@@ -100,9 +104,33 @@ export function ProjectPeriodCatalogPage() {
     setSearchParams(nextParams)
   }
 
+  const clearAll = () => {
+    setWindowFilter('')
+    setSortBy('default')
+    setSearchParams({})
+  }
+
+  const visiblePeriods = useMemo(() => {
+    const items = result?.items ?? []
+    const filtered = items.filter((period) => {
+      if (!windowFilter) return true
+      const status = getPeriodWindowStatus(period.startAt, period.endAt)
+      if (windowFilter === 'OPEN') return status.isWithinWindow
+      if (windowFilter === 'UPCOMING') return status.tone === 'neutral'
+      return status.tone === 'muted'
+    })
+    if (sortBy === 'default') return filtered
+    return [...filtered].sort((a, b) =>
+      sortBy === 'end_asc'
+        ? new Date(a.endAt).getTime() - new Date(b.endAt).getTime()
+        : new Date(b.startAt).getTime() - new Date(a.startAt).getTime(),
+    )
+  }, [result, windowFilter, sortBy])
+
+  const hasFilters = Boolean(urlSearch || urlSemesterId || windowFilter || sortBy !== 'default')
   const totalPages = Math.max(1, Math.ceil((result?.totalCount ?? 0) / pageSize))
 
-  return <WorkspacePage title="Kỳ đăng ký đồ án" eyebrow="Khám phá học kỳ" description="Tìm kỳ đăng ký đang hoạt động và xem bước tiếp theo trong lộ trình đồ án.">
+  return <WorkspacePage size="wide" title="Kỳ đăng ký đồ án" eyebrow="Khám phá học kỳ" description="Tìm kỳ đăng ký đang hoạt động và xem bước tiếp theo trong lộ trình đồ án.">
     {/* Academic directory scope notice */}
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-hairline bg-card/60 px-4 py-2.5 text-xs text-ink-muted">
       <div className="flex items-center gap-2">
@@ -167,20 +195,39 @@ export function ProjectPeriodCatalogPage() {
       </div>
     </section>
 
-    <section className="rounded-xl border border-hairline bg-card p-4 sm:p-5" aria-label="Tìm kỳ đăng ký">
-      <form onSubmit={submitSearch} className="flex flex-col gap-3 lg:flex-row lg:items-end">
-        <label className="min-w-0 flex-1 text-sm font-semibold text-ink-soft">Tìm theo mã hoặc tên kỳ
-          <input value={searchText} onChange={event => setSearchText(event.target.value)} placeholder="Ví dụ: Fall 2026" className="mt-1.5 min-h-11 w-full rounded-lg border border-hairline bg-canvas px-3 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" />
-        </label>
-        <label className="text-sm font-semibold text-ink-soft lg:w-56">Học kỳ
-          <select value={urlSemesterId ?? ''} onChange={event => handleSemesterChange(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-lg border border-hairline bg-canvas px-3 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-            <option value="">Tất cả học kỳ</option>
-            {semesters.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </label>
-        <button type="submit" className="min-h-11 whitespace-nowrap rounded-lg bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:self-end">Tìm kiếm</button>
-      </form>
-    </section>
+    <FilterToolbar
+      ariaLabel="Tìm kỳ đăng ký"
+      tabs={[
+        { value: '', label: 'Tất cả' },
+        { value: 'OPEN', label: 'Đang mở nhận hồ sơ' },
+        { value: 'UPCOMING', label: 'Chưa mở' },
+        { value: 'CLOSED', label: 'Đã hết hạn' },
+      ]}
+      activeTab={windowFilter}
+      onTabChange={(val) => setWindowFilter(val as WindowFilter)}
+      search={urlSearch}
+      onSearchChange={handleSearchChange}
+      searchLabel="Tìm theo mã hoặc tên kỳ"
+      searchPlaceholder="Tìm theo mã hoặc tên kỳ (ví dụ: Fall 2026)…"
+      controls={
+        <select aria-label="Học kỳ" value={urlSemesterId ?? ''} onChange={event => handleSemesterChange(event.target.value)}>
+          <option value="">Tất cả học kỳ</option>
+          {semesters.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+        </select>
+      }
+      sort={{
+        value: sortBy,
+        onChange: (val) => setSortBy(val as PeriodSort),
+        options: [
+          { value: 'default', label: 'Mặc định' },
+          { value: 'end_asc', label: 'Sắp kết thúc' },
+          { value: 'start_desc', label: 'Mới mở nhất' },
+        ],
+      }}
+      hasActiveFilters={hasFilters}
+      onClearAll={clearAll}
+      resultSummary={result ? `${visiblePeriods.length} / ${result.totalCount} kỳ phù hợp` : undefined}
+    />
     <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
       <h2 className="font-heading text-xl font-bold text-ink">Kỳ đang mở đăng ký</h2>
       {result && <span className="rounded-full bg-primary-subtle px-3 py-1 text-sm font-semibold text-primary">{result.totalCount} kỳ phù hợp</span>}
@@ -196,9 +243,9 @@ export function ProjectPeriodCatalogPage() {
         Không tải được danh sách kỳ đăng ký. <button type="button" onClick={() => setRevision(value => value + 1)} className="font-semibold underline">Thử lại</button>
       </div>
     )}
-    {!loading && !error && !isForbidden && result?.items.length === 0 && <p className="mt-4 rounded-xl border border-hairline bg-card p-6 text-ink-muted">Chưa có kỳ đăng ký đang hoạt động phù hợp bộ lọc. Hãy thử từ khóa hoặc học kỳ khác.</p>}
-    {!loading && !error && !isForbidden && result && result.items.length > 0 && <>
-      <ul className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{result.items.map(period => {
+    {!loading && !error && !isForbidden && visiblePeriods.length === 0 && <p className="mt-4 rounded-xl border border-hairline bg-card p-6 text-ink-muted">Chưa có kỳ đăng ký đang hoạt động phù hợp bộ lọc. Hãy thử từ khóa hoặc học kỳ khác.</p>}
+    {!loading && !error && !isForbidden && result && visiblePeriods.length > 0 && <>
+      <ul className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{visiblePeriods.map(period => {
         const isCurrentSemester = period.academicSemesterId === semester?.id
         const windowStatus = getPeriodWindowStatus(period.startAt, period.endAt)
         return <li key={period.id} className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-hairline bg-card">

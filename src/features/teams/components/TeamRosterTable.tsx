@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { TeamMemberDto } from '../../../types/backend'
+import { Avatar } from '../../../components/ui/Avatar'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../../components/ui/Table'
 import { badgeToneClass } from '../../../components/ui/status-badge-tone'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
@@ -79,9 +80,7 @@ export function TeamRosterTable({
               <TableRow key={member.userId} className={isSelf ? 'bg-primary-subtle' : ''}>
                 <TableCell label="Thành viên" className="font-medium text-ink">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-hairline bg-canvas text-xs font-bold text-ink-muted">
-                      {member.fullName.charAt(0)}
-                    </div>
+                    <Avatar name={member.fullName} size="sm" />
                     <div>
                       <span>{member.fullName}</span>
                       {isSelf && <span className="ml-1.5 text-xs font-semibold text-primary">(Bạn)</span>}

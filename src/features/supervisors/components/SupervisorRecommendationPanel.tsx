@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Avatar } from '../../../components/ui/Avatar'
 import { displayLabel } from '../../../components/ui/display-label'
 import { HttpError } from '../../../services/http/http-client'
 import {
@@ -131,7 +132,7 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
           className="text-xs font-semibold text-primary underline underline-offset-4 disabled:opacity-50"
           onClick={() => void handleSaveRun()}
         >
-          {savingRun ? 'Đang lưu…' : 'Lưu run hiện tại'}
+          {savingRun ? 'Đang lưu…' : 'Lưu kết quả gợi ý'}
         </button>
         <button
           type="button"
@@ -217,8 +218,9 @@ function RecommendationRow({ item, rank, selectable, onPick }: {
   return <li className="rounded-xl border border-hairline bg-card p-4 shadow-xs">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="flex size-6 items-center justify-center rounded-full bg-primary-subtle text-xs font-bold text-primary">{rank}</span>
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-xs font-bold text-primary">{rank}</span>
+          <Avatar name={candidate.fullName} size="sm" />
           <h3 className="text-base font-bold text-ink">{candidate.fullName}</h3>
         </div>
         {candidate.departmentName?.trim() && <p className="mt-1 text-xs text-ink-muted">{candidate.departmentName}</p>}

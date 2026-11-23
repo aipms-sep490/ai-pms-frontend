@@ -156,4 +156,15 @@ describe('useSupervisorSelection', () => {
     expect(result.current.candidates[0]?.id).toBe(8)
     expect(result.current.slotKey).toBe('MENTOR-9')
   })
+
+  it('clears filters immediately via override without flipping full-page loading state', async () => {
+    const { result } = renderHook(() => useSupervisorSelection({ project: project as never, team: leaderTeam as never, profile: { id: 2 } as never, actions: actions as never, refreshAll: vi.fn() }))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    await act(async () => { await result.current.applyFilters({ search: 'Mai', expertise: 'AI' }) })
+    expect(result.current.loading).toBe(false)
+    expect(supervisor.getCandidates).toHaveBeenLastCalledWith(9, { search: 'Mai', expertise: 'AI', assignmentType: 'PRIMARY', majorId: undefined })
+    await act(async () => { await result.current.applyFilters({ search: '', expertise: '' }) })
+    expect(result.current.loading).toBe(false)
+    expect(supervisor.getCandidates).toHaveBeenLastCalledWith(9, { search: undefined, expertise: undefined, assignmentType: 'PRIMARY', majorId: undefined })
+  })
 })

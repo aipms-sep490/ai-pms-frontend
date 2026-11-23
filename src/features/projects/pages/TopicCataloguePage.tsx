@@ -2,6 +2,8 @@ import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAcademicWorkflow } from '../../../app/context/useAcademicWorkflow'
 import { useStudentJourney } from '../../../app/context/useStudentJourney'
+import { FilterToolbar } from '../../../components/ui/FilterToolbar'
+import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useAuthSession } from '../../../features/auth/context/useAuthSession'
 import { services } from '../../../services/service-gateway'
 import { HttpError } from '../../../services/http/http-client'
@@ -11,6 +13,7 @@ import { useTopicDiscovery } from '../../registration/hooks/useTopicDiscovery'
 import { getTopic, type ProjectMode, type Topic } from '../../topics/api/topic-api'
 
 const pageSize = 12
+type TopicSort = 'default' | 'title_asc' | 'code_asc'
 
 export function TopicCataloguePage() {
   const navigate = useNavigate()
@@ -20,7 +23,9 @@ export function TopicCataloguePage() {
   const journey = useStudentJourney()
   const [search, setSearch] = useState('')
   const [projectMode, setProjectMode] = useState<ProjectMode | undefined>()
+  const [departmentFilter, setDepartmentFilter] = useState('')
   const [compatibleOnly, setCompatibleOnly] = useState(false)
+  const [sortBy, setSortBy] = useState<TopicSort>('default')
   const [page, setPage] = useState(1)
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -40,11 +45,32 @@ export function TopicCataloguePage() {
     pageSize,
   }), [academic?.periods, academic?.selectedSemester?.id, compatibleOnly, page, projectMode, search])
   const discovery = useTopicDiscovery(session?.accessToken, filters)
-  const verifiedMajor = academic?.majors[0] ?? null
+  const verifiedMajor = academic?.majors.find((m) => m.id === journey.profile?.majorId) ?? academic?.majors[0] ?? null
   const project = selectionProject?.id === journey.project?.id ? selectionProject : journey.project
   const projectStatus = project?.status.replaceAll('_', '').toUpperCase()
   const isLeader = Boolean(journey.team?.members.some((member) => member.userId === journey.profile?.id && member.isLeader))
   const canSelect = Boolean(project && (projectStatus === 'DRAFT' || projectStatus === 'REVISIONREQUIRED') && isLeader && isActionAllowed(journey.projectActions?.actions ?? [], 'edit_project_draft'))
+
+  const departmentOptions = useMemo(() => {
+    const names = new Set<string>()
+    discovery.topics.forEach((t) => { if (t.leadDepartmentName) names.add(t.leadDepartmentName) })
+    return [...names].sort((a, b) => a.localeCompare(b, 'vi-VN'))
+  }, [discovery.topics])
+
+  const visibleTopics = useMemo(() => {
+    const filtered = departmentFilter
+      ? discovery.topics.filter((t) => t.leadDepartmentName === departmentFilter)
+      : discovery.topics
+    if (sortBy === 'default') return filtered
+    return [...filtered].sort((a, b) =>
+      sortBy === 'code_asc'
+        ? a.code.localeCompare(b.code, 'vi-VN')
+        : a.title.localeCompare(b.title, 'vi-VN'),
+    )
+  }, [discovery.topics, departmentFilter, sortBy])
+
+  const hasFilters = Boolean(search.trim() || projectMode || departmentFilter || compatibleOnly || sortBy !== 'default')
+  const clearAll = () => { setSearch(''); setProjectMode(undefined); setDepartmentFilter(''); setCompatibleOnly(false); setSortBy('default'); setPage(1) }
 
   const openDetail = useCallback(async (topicId: number) => {
     if (!accessToken) return
@@ -79,24 +105,65 @@ export function TopicCataloguePage() {
   const errorTitle = discovery.errorKind === 'authentication' ? 'Phiên đăng nhập cần được xác thực lại' : discovery.errorKind === 'forbidden' ? 'Bạn không có quyền xem danh mục đề tài này' : 'Không thể tải danh mục đề tài'
   const totalPages = Math.max(1, Math.ceil(discovery.totalCount / pageSize))
 
-  return <div className="workspace-page mx-auto flex max-w-6xl flex-col gap-6 pb-12">
-    <header className="workspace-heading">
-      <div className="workspace-heading-copy">
-        <span className="workspace-kicker">Danh mục học vụ</span>
-        <h1 className="font-heading text-2xl font-bold tracking-tight text-ink">Danh mục đề tài đã công bố</h1>
-        <p className="text-sm text-ink-muted">Chuyên ngành của bạn: {verifiedMajor ? `${verifiedMajor.code} · ${verifiedMajor.name}` : 'chưa có'}.</p>
-      </div>
-      <button type="button" onClick={() => navigate('/project/source')} className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-card px-4 py-2.5 text-xs font-bold text-primary transition-colors hover:bg-primary-subtle">Đề xuất đề tài riêng</button>
-    </header>
+  return <WorkspacePage
+    size="wide"
+    className="space-y-5"
+    title="Danh mục đề tài đã công bố"
+    eyebrow="Danh mục học vụ"
+    description={`Chuyên ngành của bạn: ${verifiedMajor ? `${verifiedMajor.code} · ${verifiedMajor.name}` : 'chưa có'}.`}
+    action={
+      <button type="button" onClick={() => navigate('/project/source')} className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-card px-4 py-2.5 text-xs font-bold text-primary transition-colors hover:bg-primary-subtle">
+        Đề xuất đề tài riêng
+      </button>
+    }
+  >
     <section className="rounded-xl border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text"><p className="text-xs leading-relaxed">Tham khảo các đề tài đã công bố. Trưởng nhóm có thể chọn đề tài khi hồ sơ còn ở dạng bản nháp.</p>{project?.proposalSource === 'PUBLISHED_TOPIC' && project.selectedTopic ? <p className="mt-2 text-xs font-semibold">Đề tài đã chọn: {project.selectedTopic.code} · {project.selectedTopic.title}</p> : null}</section>
-    <section className="grid gap-3 rounded-xl border border-hairline bg-card p-4 md:grid-cols-[1fr_auto_auto]"><input aria-label="Tìm kiếm đề tài" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1) }} placeholder="Tìm theo mã hoặc tên đề tài" className="min-h-11 min-w-0 rounded-lg border border-line-strong bg-card px-3 py-2 text-sm text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20" /><select aria-label="Lọc chế độ đề tài" value={projectMode ?? ''} onChange={(event) => { setProjectMode(event.target.value ? event.target.value as ProjectMode : undefined); setPage(1) }} className="min-h-11 rounded-lg border border-line-strong bg-card px-3 py-2 text-sm font-normal text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"><option value="">Mọi chế độ</option><option value="SINGLE_MAJOR">Đơn ngành</option><option value="INTERDISCIPLINARY">Liên ngành</option></select><label className="flex min-h-11 cursor-pointer items-center gap-2 text-xs font-medium text-ink-soft"><input type="checkbox" checked={compatibleOnly} onChange={(event) => { setCompatibleOnly(event.target.checked); setPage(1) }} className="accent-primary" />Phù hợp với ngành của tôi</label></section>
+    <FilterToolbar
+      tabs={[
+        { value: '', label: 'Mọi chế độ' },
+        { value: 'SINGLE_MAJOR', label: 'Đơn ngành' },
+        { value: 'INTERDISCIPLINARY', label: 'Liên ngành' },
+      ]}
+      activeTab={projectMode ?? ''}
+      onTabChange={(val) => { setProjectMode(val ? val as ProjectMode : undefined); setPage(1) }}
+      search={search}
+      onSearchChange={(val) => { setSearch(val); setPage(1) }}
+      searchLabel="Tìm kiếm đề tài"
+      searchPlaceholder="Tìm theo mã hoặc tên đề tài…"
+      controls={
+        <>
+          {departmentOptions.length > 1 && (
+            <select aria-label="Bộ môn chủ trì" value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}>
+              <option value="">Tất cả bộ môn</option>
+              {departmentOptions.map((dept) => <option key={dept} value={dept}>{dept}</option>)}
+            </select>
+          )}
+          <label className="flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-line-strong bg-card px-3 text-xs font-semibold text-ink-soft">
+            <input type="checkbox" checked={compatibleOnly} onChange={(event) => { setCompatibleOnly(event.target.checked); setPage(1) }} className="accent-primary" />
+            Phù hợp với ngành của tôi
+          </label>
+        </>
+      }
+      sort={{
+        value: sortBy,
+        onChange: (val) => setSortBy(val as TopicSort),
+        options: [
+          { value: 'default', label: 'Mặc định' },
+          { value: 'title_asc', label: 'Tên A–Z' },
+          { value: 'code_asc', label: 'Mã đề tài A–Z' },
+        ],
+      }}
+      hasActiveFilters={hasFilters}
+      onClearAll={clearAll}
+      resultSummary={`${visibleTopics.length} / ${discovery.totalCount} đề tài`}
+    />
     {discovery.isLoading ? <TopicLoading /> : null}
     {discovery.error ? <TopicError title={errorTitle} error={discovery.error} onRetry={discovery.retry} /> : null}
     {selectionError ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{selectionError}</section> : null}
-    {!discovery.isLoading && !discovery.error && discovery.topics.length === 0 ? <TopicEmpty /> : null}
-    {!discovery.isLoading && !discovery.error && discovery.topics.length > 0 ? <><div className="grid grid-cols-1 gap-4 md:grid-cols-2">{discovery.topics.map((topic) => <TopicCard key={topic.id} topic={topic} onDetail={openDetail} />)}</div><nav className="flex flex-wrap items-center justify-between gap-3 text-xs text-ink-muted"><span>{discovery.totalCount} đề tài</span><div className="flex items-center gap-2"><button type="button" disabled={page === 1} onClick={() => setPage((value) => value - 1)} className="min-h-11 rounded-lg border border-hairline bg-card px-3.5 py-2 font-semibold text-ink-soft transition-colors hover:bg-canvas disabled:opacity-50">Trước</button><span className="self-center px-1">{page}/{totalPages}</span><button type="button" disabled={page >= totalPages} onClick={() => setPage((value) => value + 1)} className="min-h-11 rounded-lg border border-hairline bg-card px-3.5 py-2 font-semibold text-ink-soft transition-colors hover:bg-canvas disabled:opacity-50">Sau</button></div></nav></> : null}
+    {!discovery.isLoading && !discovery.error && visibleTopics.length === 0 ? <TopicEmpty /> : null}
+    {!discovery.isLoading && !discovery.error && visibleTopics.length > 0 ? <><div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">{visibleTopics.map((topic) => <TopicCard key={topic.id} topic={topic} onDetail={openDetail} />)}</div><nav className="flex flex-wrap items-center justify-between gap-3 text-xs text-ink-muted"><span>{discovery.totalCount} đề tài</span><div className="flex items-center gap-2"><button type="button" disabled={page === 1} onClick={() => setPage((value) => value - 1)} className="min-h-11 rounded-lg border border-hairline bg-card px-3.5 py-2 font-semibold text-ink-soft transition-colors hover:bg-canvas disabled:opacity-50">Trước</button><span className="self-center px-1">{page}/{totalPages}</span><button type="button" disabled={page >= totalPages} onClick={() => setPage((value) => value + 1)} className="min-h-11 rounded-lg border border-hairline bg-card px-3.5 py-2 font-semibold text-ink-soft transition-colors hover:bg-canvas disabled:opacity-50">Sau</button></div></nav></> : null}
     <TopicDetailDrawer topic={selectedTopic} isLoading={detailLoading} error={detailError} onClose={() => { setSelectedTopic(null); setDetailError(null) }} canSelect={canSelect} selecting={selecting} onSelectTopic={(topic) => void selectTopic(topic)} />
-  </div>
+  </WorkspacePage>
 }
 
 function TopicCard({ topic, onDetail }: { topic: Topic; onDetail: (id: number) => Promise<void> }) {
