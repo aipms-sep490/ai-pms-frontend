@@ -121,29 +121,36 @@ export function AssistantComposer({
   const [slashDismissedFor, setSlashDismissedFor] = useState<string | null>(null)
   const [slashIndex, setSlashIndex] = useState(0)
   const [recording, setRecording] = useState(false)
+  const composerBoxRef = useRef<HTMLDivElement | null>(null)
   const fileInput = useRef<HTMLInputElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
 
   const speechSupported = useMemo(() => Boolean(getSpeechRecognitionCtor()), [])
   const activeModeValue = toolMode ?? draftKind ?? ''
+  const activeModeLabel = activeModeValue ? (modeBadgeLabels[activeModeValue] ?? activeModeValue) : ''
 
-  const availableCommands = useMemo(
-    () => SLASH_COMMANDS.filter(cmd =>
-      (!cmd.requiresProject || Boolean(projectId))
-      && (!cmd.requiresRubricPerm || canApplyRubricSetup),
-    ),
-    [projectId, canApplyRubricSetup],
+  const visibleCommands = useMemo(
+    () => SLASH_COMMANDS.filter(cmd => !cmd.requiresRubricPerm || canApplyRubricSetup),
+    [canApplyRubricSetup],
   )
 
   const slashTypedMatch = query.startsWith('/') && !query.includes(' ') && !query.includes('\n')
   const slashFilter = slashTypedMatch ? query.slice(1).toLowerCase() : ''
   const filteredCommands = useMemo(() => {
-    if (!slashFilter) return availableCommands
-    return availableCommands.filter(cmd =>
-      cmd.command.slice(1).includes(slashFilter) || cmd.label.toLowerCase().includes(slashFilter),
-    )
-  }, [availableCommands, slashFilter])
+    const base = slashFilter
+      ? visibleCommands.filter(cmd =>
+          cmd.command.slice(1).includes(slashFilter) || cmd.label.toLowerCase().includes(slashFilter),
+        )
+      : visibleCommands
+    // Put currently usable commands ahead of project-locked ones when browsing without a project.
+    if (!projectId) {
+      return [...base].sort((a, b) => Number(Boolean(a.requiresProject)) - Number(Boolean(b.requiresProject)))
+    }
+    return base
+  }, [visibleCommands, slashFilter, projectId])
+
+  const isCommandDisabled = (cmd: SlashCommandItem) => Boolean(cmd.requiresProject && !projectId)
 
   const slashOpen = !busy && (slashManualOpen || (slashTypedMatch && slashDismissedFor !== query)) && filteredCommands.length > 0
 
@@ -152,15 +159,28 @@ export function AssistantComposer({
     if (slashTypedMatch) setSlashDismissedFor(query)
   }
 
+  // Close slash command popover on outside click
   useEffect(() => {
-    setSlashIndex(0)
-  }, [slashFilter, slashOpen])
+    if (!slashOpen) return
+    const handlePointerDown = (event: MouseEvent) => {
+      if (composerBoxRef.current && !composerBoxRef.current.contains(event.target as Node)) {
+        dismissSlash()
+      }
+    }
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [slashOpen, slashTypedMatch, query])
+
+  useEffect(() => {
+    const firstEnabled = filteredCommands.findIndex(cmd => !isCommandDisabled(cmd))
+    setSlashIndex(firstEnabled >= 0 ? firstEnabled : 0)
+  }, [slashFilter, slashOpen, projectId])
 
   useEffect(() => {
     const el = textareaRef.current
     if (!el) return
     el.style.height = 'auto'
-    const next = Math.min(el.scrollHeight, dock ? 120 : 180)
+    const next = Math.min(el.scrollHeight, dock ? 128 : 180)
     el.style.height = query ? `${next}px` : ''
   }, [query, dock])
 
@@ -169,9 +189,22 @@ export function AssistantComposer({
   }, [])
 
   const pickSlashCommand = (cmd: SlashCommandItem) => {
+    if (isCommandDisabled(cmd)) return
     setSlashManualOpen(false)
     onApplyMode(cmd.value)
     requestAnimationFrame(() => textareaRef.current?.focus())
+  }
+
+  const moveSlashSelection = (delta: 1 | -1) => {
+    if (filteredCommands.length === 0) return
+    let next = slashIndex
+    for (let step = 0; step < filteredCommands.length; step++) {
+      next = (next + delta + filteredCommands.length) % filteredCommands.length
+      if (!isCommandDisabled(filteredCommands[next])) {
+        setSlashIndex(next)
+        return
+      }
+    }
   }
 
   const toggleVoice = () => {
@@ -291,32 +324,70 @@ export function AssistantComposer({
         }}
       />
 
-      <div className={`assistant-composer-box${dragging ? ' is-dragging' : ''}${recording ? ' is-recording' : ''}`}>
+      <div
+        ref={composerBoxRef}
+        className={`assistant-composer-box${dragging ? ' is-dragging' : ''}${recording ? ' is-recording' : ''}`}
+      >
         {slashOpen && (
           <div className="assistant-slash-popover" role="listbox" aria-label="Lệnh nhanh trợ lý AI">
             <div className="assistant-slash-head">
-              <span>Lệnh nhanh (gõ / để lọc · ↑↓ chọn · Enter áp dụng)</span>
-              <button type="button" onClick={dismissSlash} aria-label="Đóng lệnh nhanh">×</button>
-            </div>
-            <ul>
-              {filteredCommands.map((cmd, idx) => (
-                <li key={cmd.command}>
+              <span className="assistant-slash-head-title">
+                <span className="material-symbols-outlined" aria-hidden="true">bolt</span>
+                Lệnh nhanh
+                <span className="assistant-slash-kbd-hint">↑↓ chọn · Enter áp dụng</span>
+              </span>
+              <div className="assistant-slash-head-right">
+                {activeModeValue && (
                   <button
                     type="button"
-                    role="option"
-                    aria-selected={idx === slashIndex}
-                    className={idx === slashIndex ? 'is-selected' : undefined}
-                    onMouseEnter={() => setSlashIndex(idx)}
-                    onClick={() => pickSlashCommand(cmd)}
+                    className="assistant-slash-reset"
+                    onClick={() => {
+                      setSlashManualOpen(false)
+                      onApplyMode('')
+                    }}
                   >
-                    <span className="material-symbols-outlined" aria-hidden="true">{cmd.icon}</span>
-                    <div>
-                      <strong><code>{cmd.command}</code> · {cmd.label}</strong>
-                      <small>{cmd.description}</small>
-                    </div>
+                    Hỏi đáp tự do
                   </button>
-                </li>
-              ))}
+                )}
+                <button type="button" className="assistant-slash-close" onClick={dismissSlash} aria-label="Đóng lệnh nhanh">×</button>
+              </div>
+            </div>
+            <ul>
+              {filteredCommands.map((cmd, idx) => {
+                const disabled = isCommandDisabled(cmd)
+                const isActive = activeModeValue === cmd.value
+                return (
+                  <li key={cmd.command}>
+                    <button
+                      type="button"
+                      role="option"
+                      disabled={disabled}
+                      aria-disabled={disabled}
+                      aria-selected={idx === slashIndex}
+                      className={`${idx === slashIndex && !disabled ? 'is-selected' : ''}${isActive ? ' is-current' : ''}${disabled ? ' is-locked' : ''}`}
+                      onMouseEnter={() => { if (!disabled) setSlashIndex(idx) }}
+                      onClick={() => pickSlashCommand(cmd)}
+                    >
+                      <span className="assistant-slash-icon" aria-hidden="true">
+                        <span className="material-symbols-outlined">{cmd.icon}</span>
+                      </span>
+                      <div className="assistant-slash-copy">
+                        <div className="assistant-slash-row-top">
+                          <strong><code>{cmd.command}</code> · {cmd.label}</strong>
+                          {disabled && <span className="assistant-slash-lock-tag">Cần mở đồ án</span>}
+                          {isActive && !disabled && (
+                            <span className="assistant-slash-active-tag">
+                              <span className="material-symbols-outlined" aria-hidden="true">check</span>
+                              Đang chọn
+                            </span>
+                          )}
+                        </div>
+                        <small>{cmd.description}</small>
+                      </div>
+                    </button>
+                  </li>
+                )
+              })}
             </ul>
           </div>
         )}
@@ -364,17 +435,18 @@ export function AssistantComposer({
             if (slashOpen) {
               if (event.key === 'ArrowDown') {
                 event.preventDefault()
-                setSlashIndex(i => (i + 1) % filteredCommands.length)
+                moveSlashSelection(1)
                 return
               }
               if (event.key === 'ArrowUp') {
                 event.preventDefault()
-                setSlashIndex(i => (i - 1 + filteredCommands.length) % filteredCommands.length)
+                moveSlashSelection(-1)
                 return
               }
               if (event.key === 'Enter' || event.key === 'Tab') {
                 event.preventDefault()
-                pickSlashCommand(filteredCommands[slashIndex] ?? filteredCommands[0])
+                const chosen = filteredCommands[slashIndex] ?? filteredCommands.find(c => !isCommandDisabled(c))
+                if (chosen) pickSlashCommand(chosen)
                 return
               }
               if (event.key === 'Escape') {
@@ -407,103 +479,94 @@ export function AssistantComposer({
         />
 
         <div className="assistant-composer-actions">
-          <button
-            type="button"
-            aria-label="+ Ảnh / tài liệu"
-            title="Đính kèm ảnh (PNG/JPG/WebP) hoặc tài liệu (PDF/DOCX/TXT/CSV/JSON)"
-            disabled={busy || files.length >= 4}
-            className="assistant-attach"
-            onClick={() => fileInput.current?.click()}
-          >
-            <span className="material-symbols-outlined" aria-hidden="true">attach_file</span>
-            {!dock && 'Ảnh / tài liệu'}
-          </button>
-
-          {dock && (
+          <div className="assistant-composer-tools">
             <button
               type="button"
-              className={`assistant-slash-trigger${slashOpen ? ' is-active' : ''}`}
-              disabled={busy}
-              aria-label="Mở danh sách lệnh nhanh"
-              title="Lệnh nhanh (/)"
-              onClick={() => {
-                if (slashOpen) dismissSlash()
-                else setSlashManualOpen(true)
-              }}
+              aria-label="+ Ảnh / tài liệu"
+              title="Đính kèm ảnh (PNG/JPG/WebP) hoặc tài liệu (PDF/DOCX/TXT/CSV/JSON)"
+              disabled={busy || files.length >= 4}
+              className={`assistant-attach${files.length > 0 ? ' has-files' : ''}`}
+              onClick={() => fileInput.current?.click()}
             >
-              <span className="material-symbols-outlined" aria-hidden="true">bolt</span>
+              <span className="material-symbols-outlined" aria-hidden="true">attach_file</span>
+              {!dock && <span>Ảnh / tài liệu</span>}
+              {dock && files.length > 0 && <span className="assistant-attach-count">{files.length}</span>}
             </button>
-          )}
 
-          {speechSupported && (
-            <button
-              type="button"
-              className={`assistant-voice-btn${recording ? ' is-recording' : ''}`}
-              disabled={busy}
-              aria-label={recording ? 'Dừng ghi âm giọng nói' : 'Nhập bằng giọng nói'}
-              title={recording ? 'Đang ghi âm · bấm để dừng' : 'Nhập bằng giọng nói (Tiếng Việt)'}
-              onClick={toggleVoice}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">{recording ? 'mic_off' : 'mic'}</span>
-            </button>
-          )}
-
-          {dock && (
-            <label className="assistant-mode">
-              <select
-                aria-label="Chế độ trợ lý"
+            {dock && (
+              <button
+                type="button"
+                className={`assistant-slash-trigger${slashOpen || activeModeValue ? ' is-active' : ''}`}
                 disabled={busy}
-                value={activeModeValue}
-                onChange={event => onApplyMode(event.target.value)}
+                aria-label="Mở danh sách lệnh nhanh"
+                aria-expanded={slashOpen}
+                aria-haspopup="listbox"
+                title="Chọn nhanh công cụ & lệnh AI (/)"
+                onClick={() => {
+                  if (slashOpen) dismissSlash()
+                  else setSlashManualOpen(true)
+                }}
               >
-                <option value="">Hỏi đáp</option>
-                <option value="PROGRESS" disabled={!projectId}>Tiến độ &amp; deadline</option>
-                <option value="PROJECT_SETUP" disabled={!projectId}>Tự động setup tiêu chí &amp; task</option>
-                {canApplyRubricSetup && <option value="RUBRIC_SETUP">Tự động setup bộ Rubric</option>}
-                <option value="REPORT_REVIEW" disabled={!projectId}>Nhận xét báo cáo</option>
-                <option value="WEEKLY_REPORT">Soạn báo cáo tuần</option>
-                <option value="MEETING_MINUTES">Soạn biên bản họp</option>
-                <option value="WORK_PLAN">Soạn kế hoạch</option>
-                <option value="TASK">Soạn công việc</option>
-                <option value="MEETING">Soạn lịch họp</option>
-              </select>
-            </label>
-          )}
+                <span className="material-symbols-outlined" aria-hidden="true">bolt</span>
+                <span className="assistant-slash-trigger-label">
+                  {activeModeLabel || 'Lệnh nhanh'}
+                </span>
+                <span className="material-symbols-outlined assistant-slash-chevron" aria-hidden="true">
+                  {slashOpen ? 'expand_less' : 'expand_more'}
+                </span>
+              </button>
+            )}
 
-          {query.length > 1400 && (
-            <span className="assistant-char-count" aria-live="polite">{query.length}/2000</span>
-          )}
+            {speechSupported && (
+              <button
+                type="button"
+                className={`assistant-voice-btn${recording ? ' is-recording' : ''}`}
+                disabled={busy}
+                aria-label={recording ? 'Dừng ghi âm giọng nói' : 'Nhập bằng giọng nói'}
+                title={recording ? 'Đang ghi âm · bấm để dừng' : 'Nhập bằng giọng nói (Tiếng Việt)'}
+                onClick={toggleVoice}
+              >
+                <span className="material-symbols-outlined" aria-hidden="true">{recording ? 'mic_off' : 'mic'}</span>
+              </button>
+            )}
+          </div>
 
-          {busy ? (
-            <button
-              type="button"
-              className="assistant-send is-stop"
-              aria-label="Dừng trả lời"
-              title="Dừng trả lời"
-              onClick={onStop}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">stop</span>
-            </button>
-          ) : (
-            <button
-              type="submit"
-              aria-label={dock ? 'Gửi' : 'Hỏi trợ lý học vụ'}
-              title="Gửi tin nhắn"
-              disabled={!query.trim() && files.length === 0}
-              className="assistant-send"
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">arrow_upward</span>
-              {!dock && 'Hỏi trợ lý học vụ'}
-            </button>
-          )}
+          <div className="assistant-composer-submit-group">
+            {query.length > 1400 && (
+              <span className="assistant-char-count" aria-live="polite">{query.length}/2000</span>
+            )}
+
+            {busy ? (
+              <button
+                type="button"
+                className="assistant-send is-stop"
+                aria-label="Dừng trả lời"
+                title="Dừng trả lời"
+                onClick={onStop}
+              >
+                <span className="material-symbols-outlined" aria-hidden="true">stop</span>
+              </button>
+            ) : (
+              <button
+                type="submit"
+                aria-label={dock ? 'Gửi' : 'Hỏi trợ lý học vụ'}
+                title="Gửi tin nhắn (Enter)"
+                disabled={!query.trim() && files.length === 0}
+                className="assistant-send"
+              >
+                <span className="material-symbols-outlined" aria-hidden="true">arrow_upward</span>
+                {!dock && <span>Hỏi trợ lý học vụ</span>}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="assistant-composer-meta">
         <p className="assistant-advisory">AI chỉ tư vấn · Kiểm tra nguồn trước khi sử dụng</p>
         <details className="assistant-file-help">
-          <summary className="text-xs text-ink-muted">Định dạng tệp &amp; phím tắt</summary>
-          <p className="text-xs leading-5 text-ink-muted">
+          <summary>Tệp &amp; phím tắt</summary>
+          <p>
             Hỗ trợ PNG, JPG, WebP, PDF, DOCX, TXT, MD, CSV, JSON (tối đa 4 tệp, 10 MB/tệp, tổng 20 MB).
             Gõ <code>/</code> để chọn nhanh công cụ AI, bấm <code>Alt + A</code> để mở/thu gọn nhanh trợ lý từ mọi trang.
           </p>

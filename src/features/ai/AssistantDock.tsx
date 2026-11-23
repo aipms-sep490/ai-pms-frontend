@@ -217,31 +217,33 @@ function SessionAssistantDock({
           <div className="assistant-dock-heading">
             <div className="assistant-dock-title-row">
               <h2 id="assistant-dock-title">Trợ lý AI</h2>
-              <span className="assistant-brand-pill">AI-PMS</span>
+              <span className="assistant-brand-pill">
+                <span className="assistant-online-dot" aria-hidden="true" />
+                AI-PMS
+              </span>
             </div>
             <p>{projectId ? 'Phân tích đồ án · Đọc tệp & tự động setup' : 'Hỗ trợ học vụ · Đọc ảnh, tài liệu & đồ án'}</p>
           </div>
-          <button type="button" aria-label="Mở toàn màn hình" title="Mở không gian AI toàn màn hình" onClick={openFullScreen}>
-            <span className="material-symbols-outlined" aria-hidden="true">open_in_new</span>
-          </button>
-          <button
-            type="button"
-            className="assistant-expand-btn"
-            aria-label={expanded ? 'Thu gọn khung trợ lý' : 'Mở rộng khung trợ lý'}
-            title={expanded ? 'Thu gọn khung' : 'Mở rộng khung'}
-            onClick={() => setExpanded(value => !value)}
-          >
-            <span className="material-symbols-outlined" aria-hidden="true">{expanded ? 'close_fullscreen' : 'open_in_full'}</span>
-          </button>
-          <button type="button" aria-label="Cuộc trò chuyện mới" title="Cuộc trò chuyện mới" onClick={() => { activeConversationRef.current = null; setReset(value => value + 1) }}>
-            <span className="material-symbols-outlined" aria-hidden="true">edit_square</span>
-          </button>
-          <button type="button" aria-label="Thu nhỏ trợ lý AI" title="Thu nhỏ" onClick={hide}>
-            <span className="material-symbols-outlined" aria-hidden="true">remove</span>
-          </button>
-          <button type="button" aria-label="Đóng trợ lý AI" title="Đóng" onClick={hide}>
-            <span className="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
+          <div className="assistant-dock-header-actions">
+            <button type="button" aria-label="Cuộc trò chuyện mới" title="Cuộc trò chuyện mới" onClick={() => { activeConversationRef.current = null; setReset(value => value + 1) }}>
+              <span className="material-symbols-outlined" aria-hidden="true">edit_square</span>
+            </button>
+            <button
+              type="button"
+              className="assistant-expand-btn"
+              aria-label={expanded ? 'Thu gọn khung trợ lý' : 'Mở rộng khung trợ lý'}
+              title={expanded ? 'Thu gọn khung' : 'Mở rộng khung'}
+              onClick={() => setExpanded(value => !value)}
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">{expanded ? 'close_fullscreen' : 'open_in_full'}</span>
+            </button>
+            <button type="button" aria-label="Mở toàn màn hình" title="Mở không gian AI toàn màn hình" onClick={openFullScreen}>
+              <span className="material-symbols-outlined" aria-hidden="true">open_in_new</span>
+            </button>
+            <button type="button" aria-label="Đóng trợ lý AI" title="Đóng (Esc)" onClick={hide}>
+              <span className="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+          </div>
         </header>
         {mounted && (
           <AssistantDockContent
