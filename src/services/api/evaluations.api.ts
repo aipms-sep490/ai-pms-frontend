@@ -75,8 +75,7 @@ export interface EligibleEvaluator {
   displayName: string
   departmentId: number
   departmentName: string
-  // Superset keeps DISCIPLINE_MENTOR/INDUSTRY ready without breaking the live SUPERVISOR/LECTURER flow.
-  evaluationTypes: Array<'SUPERVISOR' | 'LECTURER' | 'DISCIPLINE_MENTOR' | 'INDUSTRY' | (string & {})>
+  evaluationTypes: Array<'SUPERVISOR' | 'LECTURER' | 'DISCIPLINE_MENTOR' | (string & {})>
 }
 
 export const getMyEvaluationAssignments = (page = 1, pageSize = 20, signal?: AbortSignal) => httpGet<PagedResult<EvaluationAssignment>>(`/evaluation-assignments/my?page=${page}&pageSize=${pageSize}`, signal)

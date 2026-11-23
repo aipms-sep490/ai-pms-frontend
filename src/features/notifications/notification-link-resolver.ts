@@ -105,8 +105,6 @@ const rules: Record<string, Rule | null> = {
   GATE_REVIEW_ASSIGNED: gateQueue, GATE_REVIEW_SUBMITTED: gateQueue, GATE_REVISION_SUBMITTED: gateQueue,
   GATE_REVISION_REQUIRED: gates, EVIDENCE_VERIFIED: gates, GATE_DECISION_RECORDED: gates,
   DISCIPLINE_REVIEW_PENDING: gates, DISCIPLINE_DECISION_RECORDED: gates, DEFENSE_READINESS_CHANGED: gates,
-  // Expert enrollment needs a token absent from this DTO, not an academic-role destination.
-  INDUSTRY_INVITATION: null,
 }
 
 export function resolveNotificationLink(

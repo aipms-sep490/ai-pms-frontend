@@ -16,10 +16,6 @@ const ROUTE_API_MAPPING = {
   '/login': 'AuthController (POST /api/v1/auth/login, POST /api/v1/auth/google)',
   '/forgot-password': 'AuthController (POST /api/v1/auth/forgot-password)',
   '/reset-password': 'AuthController (POST /api/v1/auth/reset-password)',
-  '/industry/enroll': 'IndustryController (POST /api/v1/industry/enroll)',
-  '/industry': 'IndustryController (GET /api/v1/industry/assignments, GET /api/v1/industry/projects)',
-  '/industry/workspace': 'IndustryController (GET /api/v1/industry/workspace)',
-  '/industry/assignments/:assignmentId': 'IndustryController (GET /api/v1/industry/assignments/{id}, POST feedback)',
   '/profile': 'AcademicProfilesController, UsersController (GET /api/v1/users/me)',
   '/profile/security': 'UsersController (PUT /api/v1/users/me/security)',
   '/notifications': 'NotificationsController (GET /api/v1/notifications, PUT read)',
@@ -117,7 +113,6 @@ const ROUTE_API_MAPPING = {
   '/admin/milestone-templates': 'MilestonesController (GET /api/v1/milestone-templates)',
   '/admin/access/rbac': 'RolesController, PermissionsController (GET /api/v1/roles, GET /api/v1/permissions)',
   '/admin/access/users/:userId': 'UsersController (GET /api/v1/users/{id})',
-  '/admin/industry': 'IndustryController (GET /api/v1/industry/invitations)',
   '/preview/workflows': 'WorkflowPreviewPage (Mock / Preview)',
   '/*': 'None (Client 404 Catch-all)',
 }
@@ -196,8 +191,6 @@ function extractRoutes(elements, context) {
         else if (elementVal.includes('EvaluatorAssignmentRoute')) nextGuard = 'EvaluatorAssignmentRoute'
         else if (elementVal.includes('DepartmentAcademicScopeRoute')) nextGuard = 'DepartmentAcademicScopeRoute'
         else if (elementVal.includes('AdminEvaluationLayout')) nextGuard = 'AdminEvaluationLayout'
-        else if (elementVal.includes('IndustryLayout')) nextGuard = 'IndustryLayout'
-        else if (elementVal.includes('IndustryEnrollmentRoute')) nextGuard = 'IndustryEnrollmentRoute'
       }
 
       // Path Prefix

@@ -184,9 +184,6 @@ export function getStudentNavItems() {
  * Resolves a breadcrumb title from the current pathname.
  */
 export function getBreadcrumbForPath(pathname: string): string {
-  if (pathname === '/industry/enroll') return env.industryEnabled ? 'Đăng ký chuyên gia doanh nghiệp' : 'Trang không tồn tại'
-  if (pathname === '/industry' || pathname === '/industry/workspace') return env.industryEnabled ? 'Phân công tư vấn doanh nghiệp' : 'Trang không tồn tại'
-  if (/^\/industry\/assignments\/\d+(?:\/|$)/.test(pathname)) return env.industryEnabled ? 'Chi tiết phân công tư vấn' : 'Trang không tồn tại'
   const registryBreadcrumb = getWorkspaceBreadcrumb(pathname)
   if (/^\/(?:review|department)\/projects\/\d+\/corrections(?:\/|$)/.test(pathname)) return 'Phúc khảo và đính chính'
   if (registryBreadcrumb && (pathname !== '/project/ai' || env.aiAdvisoryEnabled || env.aiProgressRiskEnabled)) return registryBreadcrumb
@@ -285,7 +282,6 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname === '/admin/access') return 'Quản trị nền tảng'
   if (pathname === '/admin/access/rbac') return 'Vai trò và quyền truy cập'
   if (/^\/admin\/access\/users\/\d+(?:\/|$)/.test(pathname)) return 'Chi tiết tài khoản'
-  if (pathname === '/admin/industry') return 'Mời chuyên gia doanh nghiệp'
   if (pathname === '/supervisor/workspace') return 'Hướng dẫn đồ án'
   if (pathname === '/profile') return 'Hồ sơ tài khoản'
   if (pathname === '/profile/security') return 'Đổi mật khẩu'

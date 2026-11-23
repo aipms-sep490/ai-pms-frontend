@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('../config/env', async importOriginal => {
   const { env } = await importOriginal<typeof import('../config/env')>()
   return { env: { ...env, academicAiAssistantEnabled: true, aiAdvisoryEnabled: true, coldReportEnabled: true,
-    defenseScheduleEnabled: true, gatesEnabled: true, industryEnabled: true, peerEvaluationEnabled: true,
+    defenseScheduleEnabled: true, gatesEnabled: true, peerEvaluationEnabled: true,
     resultCorrectionEnabled: true, weeklyAssessmentEnabled: true, workflowPreviewEnabled: true, workingAgreementEnabled: true } }
 })
 import { appRouter } from './index'

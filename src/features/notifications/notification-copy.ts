@@ -212,12 +212,6 @@ const copyByType: Record<string, { title: string; content: string; label: string
     label: 'Công việc sau cuộc họp',
     icon: 'assignment',
   },
-  INDUSTRY_INVITATION: {
-    title: 'Bạn nhận được lời mời tham gia với vai trò chuyên gia',
-    content: 'Có lời mời tham gia tư vấn chuyên môn. Hãy kiểm tra thông tin lời mời và hướng dẫn đăng ký được gửi cho bạn.',
-    label: 'Lời mời chuyên gia',
-    icon: 'work',
-  },
   APPEAL_REQUESTED: {
     title: 'Có yêu cầu phúc khảo mới',
     content: 'Một yêu cầu phúc khảo đã được gửi. Hãy kiểm tra hồ sơ trong phạm vi được cấp quyền.',

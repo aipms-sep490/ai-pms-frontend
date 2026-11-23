@@ -11,8 +11,8 @@
 
 export interface ResultPolicy { projectId: number; passThreshold: number; concurrencyToken: string; isLocked: boolean; assignments: Array<{ assignmentId: number; weightPercent: number }> }
 
-/** One scored contribution feeding a project result. `advisory` contributions (v5 D6:
- * industry ADVISORY) are shown separately and never counted into the numeric total. */
+/** One scored contribution feeding a project result. Advisory contributions
+ * are shown separately and never counted into the numeric total. */
 export interface ResultContribution { assignmentId: number; evaluationId: number; evaluatorId: number; rubricId: number; weightPercent: number; score: number; advisory?: boolean; source?: string }
 
 /** Per-major aggregate inside a project breakdown. The backend does not expose a per-major weight

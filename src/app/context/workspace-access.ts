@@ -8,7 +8,7 @@ import { useAcademicWorkflow } from './useAcademicWorkflow'
 import { StudentJourneyContext } from './StudentJourneyContext'
 
 export type WorkspaceContextStatus = 'unknown' | 'loading' | 'ready' | 'unavailable'
-export type ProjectAssignment = 'TEAM_LEADER' | 'TEAM_MEMBER' | 'PRIMARY_SUPERVISOR' | 'DISCIPLINE_MENTOR' | 'EVALUATOR' | 'INDUSTRY_EXPERT'
+export type ProjectAssignment = 'TEAM_LEADER' | 'TEAM_MEMBER' | 'PRIMARY_SUPERVISOR' | 'DISCIPLINE_MENTOR' | 'EVALUATOR'
 
 export interface WorkspaceAccess {
   identityRole: WorkspaceRole

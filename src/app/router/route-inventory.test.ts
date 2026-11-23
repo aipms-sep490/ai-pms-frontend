@@ -29,15 +29,6 @@ describe('Route Census & Inventory Integrity (Q-01 / F-ROUTE-01)', () => {
     expect(adminAccessLine).not.toContain('"env.coldReportEnabled"')
   })
 
-  it('correctly scopes env.industryEnabled to /admin/industry', () => {
-    const csvContent = readFileSync(csvPath, 'utf8')
-    const lines = csvContent.split('\n')
-    const industryLine = lines.find((l: string) => l.includes('"/admin/industry"'))
-    expect(industryLine).toBeDefined()
-    expect(industryLine).toContain('"admin"')
-    expect(industryLine).toContain('"env.industryEnabled"')
-  })
-
   it('correctly isolates env.coldReportEnabled to cold-templates without leaking', () => {
     const csvContent = readFileSync(csvPath, 'utf8')
     const lines = csvContent.split('\n')

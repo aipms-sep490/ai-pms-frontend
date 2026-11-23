@@ -78,7 +78,7 @@ it.each(['ADMIN', 'LECTURER', 'DEPARTMENT_STAFF'])('is available to academic rol
   state.session = { user: { id: 1, roles: [role] } }; render(tree())
   expect(screen.getByRole('button', { name: 'Mở trợ lý AI' })).toBeTruthy()
 })
-it('is absent for logged out, industry-only and disabled sessions', () => {
+it('is absent for logged out, role-free and disabled sessions', () => {
   state.session = null; const view = render(tree()); expect(screen.queryByRole('button')).toBeNull()
   state.session = { user: { id: 1, roles: [] } }; view.rerender(tree()); expect(screen.queryByRole('button')).toBeNull()
   state.session = { user: { id: 1, roles: ['STUDENT'] } }; state.enabled = false; view.rerender(tree()); expect(screen.queryByRole('button')).toBeNull()

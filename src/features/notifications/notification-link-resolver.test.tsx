@@ -33,7 +33,6 @@ const cases: Array<[string[], string, Partial<Record<string, string>>]> = [
   [['REVIEW_GATE_UPDATED', 'REVIEW_DEADLINE_APPROACHING', 'GATE_REVISION_REQUIRED', 'EVIDENCE_VERIFIED', 'GATE_DECISION_RECORDED', 'DISCIPLINE_REVIEW_PENDING', 'DISCIPLINE_DECISION_RECORDED', 'DEFENSE_READINESS_CHANGED'], 'PROJECT_GATE', { STUDENT: '/project/timeline', LECTURER: '/supervisor/workspace', DEPARTMENT_STAFF: '/department/projects/progress-matrix' }],
   [['GATE_REVIEW_ASSIGNED', 'GATE_REVIEW_SUBMITTED', 'GATE_REVISION_SUBMITTED'], 'PROJECT_GATE', { STUDENT: '/project/timeline', LECTURER: '/review/gate-assignments', DEPARTMENT_STAFF: '/department/projects/progress-matrix' }],
   [['REVIEW_POLICY_PUBLISHED'], 'PROJECT_PERIOD', { STUDENT: '/project/timeline', LECTURER: '/supervisor/workspace', DEPARTMENT_STAFF: '/department/projects/progress-matrix', ADMIN: '/academic/review-gates' }],
-  [['INDUSTRY_INVITATION'], 'USER', {}],
 ]
 const rows = cases.flatMap(([types, entity, destinations]) => types.map(type => ({ type, entity, destinations })))
 const roles = ['STUDENT', 'LECTURER', 'DEPARTMENT_STAFF', 'ADMIN']

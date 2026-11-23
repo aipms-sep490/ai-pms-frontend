@@ -3,7 +3,7 @@ const labels: Record<string, string> = {
   HIGH: 'Cao', MEDIUM: 'Trung bình', LOW: 'Thấp',
   DRAFT: 'Bản nháp', PROPOSED: 'Đề xuất — chưa duyệt', PUBLISHED: 'Đã công bố', FROZEN: 'Đã đóng băng', RETIRED: 'Ngừng sử dụng', REVOKED: 'Đã thu hồi', ACTIVE: 'Đang hoạt động',
   NOT_READY: 'Chưa sẵn sàng', PREVIEW: 'Bản xem trước', CORRECTED: 'Đã đính chính',
-  MAJOR: 'Theo chuyên ngành', INDUSTRY: 'Doanh nghiệp', INDUSTRY_EXPERT: 'Chuyên gia doanh nghiệp',
+  MAJOR: 'Theo chuyên ngành',
   ADVISORY: 'Cố vấn (không tính điểm)', WEIGHTED: 'Có trọng số điểm',
   UPCOMING: 'Sắp diễn ra', CLOSED: 'Đã đóng', ARCHIVED: 'Đã lưu trữ', LOCKED: 'Đã khóa',
   ACCEPTED: 'Đã nhận hướng dẫn', ELIGIBLE: 'Đủ điều kiện', INELIGIBLE: 'Chưa đủ điều kiện', PENDING: 'Chờ xử lý', APPROVED: 'Đã chấp thuận', REJECTED: 'Không chấp thuận',

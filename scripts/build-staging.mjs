@@ -21,8 +21,6 @@ const buildEnv = {
   VITE_ENABLE_ROOM_PLANNER: 'true',
   VITE_ENABLE_PEER_EVAL: 'true',
   VITE_ENABLE_RESULT_CORRECTION: 'true',
-  // Expert enrollment still requires a verified invitation/mail delivery setup.
-  VITE_ENABLE_INDUSTRY: 'false',
   VITE_ENABLE_WORKFLOW_PREVIEW: 'false',
 }
 for (const script of ['node_modules/typescript/bin/tsc', 'node_modules/vite/bin/vite.js']) {

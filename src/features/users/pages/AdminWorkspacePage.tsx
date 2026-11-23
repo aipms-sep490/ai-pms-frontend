@@ -10,7 +10,6 @@ import { useAuthSession } from '../../auth/context/useAuthSession'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { HttpError } from '../../../services/http/http-client'
-import { env } from '../../../app/config/env'
 import type { UserAccount, UserDraft } from '../api/admin-api'
 import { useAdminWorkspace } from '../hooks/useAdminWorkspace'
 import './admin-workspace.css'
@@ -106,7 +105,6 @@ export function AdminWorkspacePage() {
       <button type="button" className={`admin-tab-btn ${activeTab === 'access' ? 'is-active' : ''}`} aria-controls="access-events" aria-pressed={activeTab === 'access'} onClick={() => setFilter({ tab: 'access' })}>Nhật ký truy cập</button>
       <button type="button" className={`admin-tab-btn ${activeTab === 'audit' ? 'is-active' : ''}`} aria-controls="audit" aria-pressed={activeTab === 'audit'} onClick={() => setFilter({ tab: 'audit' })}>Nhật ký bảo mật</button>
       <Link to="/academic/governance">Học kỳ & Kỳ đồ án</Link>
-      {env.industryEnabled && <Link to="/admin/industry">Chuyên gia doanh nghiệp</Link>}
     </nav>
     {notice ? <p className="admin-notice" role="status">{notice}</p> : null}
     <SystemStatusPanel />
