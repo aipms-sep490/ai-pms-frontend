@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { AcademicWorkflowContext } from '../../../app/context/academic-workflow-context'
 import { Button } from '../../../components/ui/Button'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { Modal } from '../../../components/ui/Modal'
@@ -26,6 +27,7 @@ type TopicSort = 'default' | 'title_asc' | 'code_asc'
 
 export function TopicManagementPage() {
   const { id } = useParams()
+  const workflow = useContext(AcademicWorkflowContext)
   const topics = useTopics(id ? Number(id) : undefined)
   const catalog = useTopicCatalog()
   const [draftDirty, setDraftDirty] = useState(false)
@@ -240,9 +242,17 @@ export function TopicManagementPage() {
           periods={catalog.periods}
           majors={catalog.majors}
           leadDepartmentId={catalog.department?.id ?? null}
-          onCreated={() => {
-            setMessage('Đã tạo hàng loạt bản nháp đề tài (DRAFT). Hãy kiểm tra chi tiết từng đề tài trước khi công bố.')
-            void topics.refresh()
+          activeSemesterId={workflow?.academic?.selectedSemester?.id ?? workflow?.academic?.currentSemesters[0]?.id ?? null}
+          onCreated={result => {
+            if (result.createdCount <= 0) return
+            setMessage(
+              `Đã tạo ${result.createdCount} bản nháp đề tài (DRAFT)${result.skippedCount > 0 ? `, bỏ qua ${result.skippedCount} dòng không hợp lệ` : ''}. Hãy kiểm tra chi tiết từng đề tài trước khi công bố.`,
+            )
+            if (topics.filters.status && topics.filters.status !== 'DRAFT') {
+              topics.setFilters({ ...topics.filters, status: 'DRAFT', page: 1 })
+            } else {
+              void topics.refresh()
+            }
           }}
         />
       )}

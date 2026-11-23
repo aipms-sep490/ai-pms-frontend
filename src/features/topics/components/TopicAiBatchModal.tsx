@@ -19,9 +19,13 @@ function createIdempotencyKey(): string {
 
 export interface TopicBatchPeriodOption {
   id: number
+  academicSemesterId?: number
+  semesterCode?: string
   code?: string
   name: string
   periodType?: string
+  status?: string
+  endAt?: string
 }
 
 export interface TopicBatchMajorOption {
@@ -30,12 +34,52 @@ export interface TopicBatchMajorOption {
   name: string
 }
 
+const periodStatusLabel: Record<string, string> = {
+  ACTIVE: 'Đang mở',
+  UPCOMING: 'Sắp mở',
+  DRAFT: 'Bản nháp',
+  CLOSED: 'Đã đóng',
+  ARCHIVED: 'Đã lưu trữ',
+}
+
+function isEligibleRegistrationPeriod(period: TopicBatchPeriodOption, nowMs: number): boolean {
+  if (period.periodType && period.periodType !== 'REGISTRATION') return false
+  if (period.status === 'CLOSED' || period.status === 'ARCHIVED') return false
+  if (period.endAt) {
+    const endMs = Date.parse(period.endAt)
+    if (Number.isFinite(endMs) && endMs <= nowMs) return false
+  }
+  return true
+}
+
+function periodRank(period: TopicBatchPeriodOption, activeSemesterId?: number | null): number {
+  const isCurrentSemester = Boolean(activeSemesterId && period.academicSemesterId === activeSemesterId)
+  const statusWeight =
+    period.status === 'ACTIVE' ? 0
+    : period.status === 'UPCOMING' ? 1
+    : period.status === 'DRAFT' ? 2
+    : 3
+  return (isCurrentSemester ? 0 : 10) + statusWeight
+}
+
+function formatPeriodOption(period: TopicBatchPeriodOption, expired: boolean): string {
+  const prefix = period.semesterCode ? `${period.semesterCode} · ` : ''
+  const codePart = period.code ? ` (${period.code})` : ''
+  const statusText = expired
+    ? ' — Đã hết hạn'
+    : period.status && periodStatusLabel[period.status]
+      ? ` — ${periodStatusLabel[period.status]}`
+      : ''
+  return `${prefix}${period.name}${codePart}${statusText}`
+}
+
 export function TopicAiBatchPreview({
   runId,
   plan,
   periods,
   majors,
   leadDepartmentId,
+  activeSemesterId,
   onApplied,
 }: {
   runId?: number | null
@@ -43,13 +87,35 @@ export function TopicAiBatchPreview({
   periods: TopicBatchPeriodOption[]
   majors: TopicBatchMajorOption[]
   leadDepartmentId?: number | null
+  activeSemesterId?: number | null
   onApplied?: (result: ApplyTopicBatchSetupResult) => void
 }) {
-  const regPeriods = useMemo(
-    () => periods.filter(p => !p.periodType || p.periodType === 'REGISTRATION'),
-    [periods],
-  )
-  const [projectPeriodId, setProjectPeriodId] = useState<string>(regPeriods[0]?.id ? String(regPeriods[0].id) : '')
+  const { eligiblePeriods, ineligiblePeriods } = useMemo(() => {
+    const nowMs = Date.now()
+    const regOnly = periods.filter(p => !p.periodType || p.periodType === 'REGISTRATION')
+    const eligible: TopicBatchPeriodOption[] = []
+    const ineligible: Array<{ period: TopicBatchPeriodOption; expired: boolean }> = []
+    for (const p of regOnly) {
+      if (isEligibleRegistrationPeriod(p, nowMs)) {
+        eligible.push(p)
+      } else {
+        const endMs = p.endAt ? Date.parse(p.endAt) : Number.NaN
+        const expired = p.status !== 'CLOSED' && p.status !== 'ARCHIVED' && Number.isFinite(endMs) && endMs <= nowMs
+        ineligible.push({ period: p, expired })
+      }
+    }
+    eligible.sort((a, b) => periodRank(a, activeSemesterId) - periodRank(b, activeSemesterId) || b.id - a.id)
+    return { eligiblePeriods: eligible, ineligiblePeriods: ineligible }
+  }, [periods, activeSemesterId])
+
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string>('')
+  const projectPeriodId =
+    selectedPeriodId && eligiblePeriods.some(p => String(p.id) === selectedPeriodId)
+      ? selectedPeriodId
+      : eligiblePeriods[0]?.id
+        ? String(eligiblePeriods[0].id)
+        : ''
+
   const [topics, setTopics] = useState<AssistantTopicDraft[]>(() =>
     plan.topics.map(t => ({
       ...t,
@@ -68,10 +134,13 @@ export function TopicAiBatchPreview({
   const [expandedKey, setExpandedKey] = useState<string | null>(plan.topics[0]?.tempKey ?? null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [failedBatch, setFailedBatch] = useState<ApplyTopicBatchSetupResult | null>(null)
   const [applied, setApplied] = useState<ApplyTopicBatchSetupResult | null>(null)
   const idempotencyKeyRef = useRef<string>(createIdempotencyKey())
 
   function toggleSelect(key: string) {
+    idempotencyKeyRef.current = createIdempotencyKey()
+    setFailedBatch(null)
     setSelectedKeys(prev => {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
@@ -81,6 +150,8 @@ export function TopicAiBatchPreview({
   }
 
   function updateTopic(tempKey: string, patch: Partial<AssistantTopicDraft>) {
+    idempotencyKeyRef.current = createIdempotencyKey()
+    setFailedBatch(null)
     setTopics(prev => prev.map(t => (t.tempKey === tempKey ? { ...t, ...patch } : t)))
   }
 
@@ -89,6 +160,7 @@ export function TopicAiBatchPreview({
     if (busy || chosen.length === 0 || !projectPeriodId) return
     setBusy(true)
     setError('')
+    setFailedBatch(null)
     try {
       const result = await applyTopicBatchAiSetup({
         idempotencyKey: idempotencyKeyRef.current,
@@ -97,9 +169,15 @@ export function TopicAiBatchPreview({
         leadDepartmentId: leadDepartmentId ?? null,
         topics: chosen,
       })
-      setApplied(result)
-      onApplied?.(result)
+      if (result.createdCount > 0) {
+        setApplied(result)
+        onApplied?.(result)
+      } else {
+        idempotencyKeyRef.current = createIdempotencyKey()
+        setFailedBatch(result)
+      }
     } catch (reason) {
+      idempotencyKeyRef.current = createIdempotencyKey()
       if (reason instanceof HttpError) {
         setError(humanizeHttpError(reason, 'Chưa thể tạo hàng loạt bản nháp đề tài. Kiểm tra kỳ đăng ký và quyền bộ môn.'))
       } else {
@@ -124,17 +202,37 @@ export function TopicAiBatchPreview({
             className="mt-1 block min-h-10 min-w-56 rounded-lg border border-hairline bg-canvas px-3 py-1.5 text-sm font-normal text-ink"
             value={projectPeriodId}
             disabled={busy || Boolean(applied)}
-            onChange={e => setProjectPeriodId(e.target.value)}
+            onChange={e => {
+              idempotencyKeyRef.current = createIdempotencyKey()
+              setFailedBatch(null)
+              setError('')
+              setSelectedPeriodId(e.target.value)
+            }}
           >
             <option value="">-- Chọn kỳ đăng ký --</option>
-            {regPeriods.map(p => (
+            {eligiblePeriods.map(p => (
               <option key={p.id} value={p.id}>
-                {p.name}{p.code ? ` (${p.code})` : ''}
+                {formatPeriodOption(p, false)}
               </option>
             ))}
+            {ineligiblePeriods.length > 0 && (
+              <optgroup label="Kỳ đã đóng / lưu trữ / hết hạn (không thể tạo)">
+                {ineligiblePeriods.map(({ period: p, expired }) => (
+                  <option key={p.id} value={p.id} disabled>
+                    {formatPeriodOption(p, expired)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </label>
       </div>
+
+      {eligiblePeriods.length === 0 && (
+        <p role="alert" className="rounded-lg border border-status-warning-border bg-status-warning-bg px-3 py-2 text-xs text-status-warning-text">
+          Hiện chưa có kỳ đăng ký (REGISTRATION) nào đang mở hoặc ở trạng thái bản nháp còn hạn. Hãy tạo hoặc mở kỳ đăng ký trước khi lưu đề tài nháp.
+        </p>
+      )}
 
       {plan.warnings.length > 0 && (
         <ul className="space-y-1 rounded-lg border border-status-warning-border bg-status-warning-bg px-3 py-2 text-xs text-status-warning-text">
@@ -327,6 +425,21 @@ export function TopicAiBatchPreview({
         </p>
       )}
 
+      {failedBatch && (
+        <div role="alert" className="space-y-2 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-xs text-status-error-text">
+          <p className="font-semibold">
+            Chưa tạo được bản nháp đề tài nào (0/{failedBatch.skippedCount} dòng bị bỏ qua). Hãy kiểm tra kỳ đăng ký hoặc chỉnh lại thông tin rồi thử lại:
+          </p>
+          {failedBatch.skipped.length > 0 && (
+            <ul className="space-y-1">
+              {failedBatch.skipped.map((s, idx) => (
+                <li key={idx}>• {s.code} ({s.title || 'Không tiêu đề'}): {s.reason}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       {applied ? (
         <div role="status" className="space-y-2 rounded-lg border border-status-success-border bg-status-success-bg p-3 text-xs text-status-success-text">
           <p className="font-semibold">
@@ -365,6 +478,7 @@ export function TopicAiBatchModal({
   periods,
   majors,
   leadDepartmentId,
+  activeSemesterId,
   onCreated,
 }: {
   open: boolean
@@ -372,7 +486,8 @@ export function TopicAiBatchModal({
   periods: TopicBatchPeriodOption[]
   majors: TopicBatchMajorOption[]
   leadDepartmentId?: number | null
-  onCreated: () => void
+  activeSemesterId?: number | null
+  onCreated: (result: ApplyTopicBatchSetupResult) => void
 }) {
   return (
     <DepartmentAiDraftBar
@@ -405,7 +520,8 @@ export function TopicAiBatchModal({
             periods={periods}
             majors={majors}
             leadDepartmentId={leadDepartmentId}
-            onApplied={() => onCreated()}
+            activeSemesterId={activeSemesterId}
+            onApplied={result => onCreated(result)}
           />
         ) : (
           <div className="rounded-xl border border-hairline bg-canvas p-4 text-sm text-ink-soft whitespace-pre-wrap">
