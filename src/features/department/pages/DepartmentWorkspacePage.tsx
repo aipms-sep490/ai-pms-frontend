@@ -20,6 +20,7 @@ import { getReviewQueue, type ReviewQueuePage, type ReviewProjectSummary } from 
 import { list as listSupervisors, type Page as SupervisorPage, type Supervisor } from '../../supervisors/api/supervisor-api'
 import { getDepartmentUrgentActions, type ActionAggregatorResponse } from '../../calendar/action-aggregators-api'
 import { DepartmentExecutiveBriefPanel } from '../../ai-suite/DepartmentExecutiveBriefPanel'
+import { getPreSemesterReadiness, type PreSemesterReadiness } from '../api/pre-semester-api'
 
 const emptyReviews = (data: ReviewQueuePage<ReviewProjectSummary>) => data.items.length === 0
 const emptyPortfolio = (data: PortfolioDashboard) => data.projects.items.length === 0
@@ -48,6 +49,7 @@ export function DepartmentWorkspacePage() {
   const academic = useAcademicWorkflow()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [preSemReadiness, setPreSemReadiness] = useState<PreSemesterReadiness | null>(null)
   const search = searchParams.get('q') ?? ''
   const status = searchParams.get('status') ?? ''
 
@@ -66,6 +68,14 @@ export function DepartmentWorkspacePage() {
 
   const token = session?.accessToken
   const semesterId = academic.academic?.selectedSemester?.id
+  useEffect(() => {
+    if (!token) return
+    let active = true
+    void getPreSemesterReadiness(semesterId)
+      .then(data => { if (active) setPreSemReadiness(data) })
+      .catch(() => { if (active) setPreSemReadiness(null) })
+    return () => { active = false }
+  }, [token, semesterId])
   const [pageState, setPageState] = useState<{ semesterId: number | undefined; page: number }>({ semesterId, page: 1 })
   const portfolioPage = pageState.semesterId === semesterId ? pageState.page : 1
   const setPortfolioPage = (page: number) => setPageState({ semesterId, page })
@@ -140,6 +150,29 @@ export function DepartmentWorkspacePage() {
       }
     >
       <DepartmentWorkflowGuide />
+
+      {preSemReadiness && preSemReadiness.readyCount < preSemReadiness.totalRelevantCount && (
+        <section
+          aria-label="Chuẩn bị đầu kỳ"
+          className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-primary/25 bg-primary-subtle/50 px-5 py-4"
+        >
+          <div className="space-y-1">
+            <p className="text-xs font-bold uppercase tracking-wider text-primary">
+              Chuẩn bị đầu kỳ · {preSemReadiness.semesterName} ({preSemReadiness.semesterCode})
+            </p>
+            <p className="text-sm font-semibold text-ink">
+              Đã hoàn thiện {preSemReadiness.readyCount}/{preSemReadiness.totalRelevantCount} hạng mục đầu kỳ — bạn có thể kế thừa nhanh từ kỳ trước hoặc dùng AI soạn bản nháp.
+            </p>
+          </div>
+          <Link
+            to="/department/pre-semester-setup"
+            className="inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-lg bg-primary px-4 text-xs font-semibold text-white transition-colors hover:bg-primary-hover"
+          >
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">rocket_launch</span>
+            Mở Trung tâm Chuẩn bị Đầu kỳ
+          </Link>
+        </section>
+      )}
 
       <div className="role-metric-compact"><StatTileRow tiles={[
         { icon: 'priority_high', label: 'Việc cần xử lý', value: urgent.data?.totalCount ?? null, caption: urgent.data?.hasMore ? 'Danh sách việc khẩn còn trang tiếp theo.' : 'Theo bộ môn trong phiên hiện tại.', hero: true },
