@@ -34,7 +34,10 @@
 .cw-button:active { transform: scale(0.98); }
 .cw-button-primary { color: white; background: var(--cw-accent); border-color: var(--cw-accent); box-shadow: 0 2px 8px -2px color-mix(in oklab, var(--color-primary) 30%, transparent); }
 .cw-button-primary:hover { background: var(--color-primary-hover); border-color: var(--color-primary-hover); color: white; box-shadow: 0 4px 12px -2px color-mix(in oklab, var(--color-primary) 35%, transparent); }
-.cw-project-line { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 24px; margin-bottom: 24px; background: var(--color-card); border: 1px solid var(--cw-line); border-radius: 16px; box-shadow: 0 4px 20px -4px color-mix(in oklab, var(--color-brand-navy) 6%, transparent), 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 3%, transparent); }
+.cw-project-line { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 22px; margin-bottom: 16px; background: var(--color-card); border: 1px solid var(--cw-line); border-radius: 16px; box-shadow: 0 4px 20px -4px color-mix(in oklab, var(--color-brand-navy) 6%, transparent), 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 3%, transparent); }
+.cw-chip-link { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 9999px; border: 1px solid var(--cw-line); background: var(--color-canvas); color: var(--color-ink-soft); font-size: 12px; font-weight: 600; text-decoration: none; transition: all 140ms ease; }
+.cw-chip-link:hover { border-color: var(--color-primary); background: var(--color-primary-subtle); color: var(--color-primary); }
+.cw-chip-link .material-symbols-outlined { font-size: 15px; }
 .cw-project-title { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .cw-project-title > .material-symbols-outlined { color: var(--cw-accent); font-size: 26px; padding: 10px; background: var(--cw-accent-soft); border-radius: 10px; border: 1px solid color-mix(in oklab, var(--color-primary) 20%, transparent); }
 .cw-project-title strong { display: block; font-weight: 650; font-size: 15px; color: var(--color-ink); }
@@ -44,7 +47,7 @@
 .cw-project-progress strong { color: var(--cw-accent); font-weight: 700; font-family: var(--font-mono); }
 .cw-progress { display: block; width: 100%; height: 7px; border-radius: 9999px; background: var(--color-hairline); overflow: hidden; }
 .cw-progress > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--color-primary), var(--color-primary)); transition: width 400ms cubic-bezier(.16,1,.3,1); }
-.cw-attention { display: flex; gap: 14px; align-items: center; margin-bottom: 24px; padding: 16px 22px; border: 1px solid var(--color-status-warning-border); border-radius: 12px; background: var(--color-status-warning-bg); color: var(--color-status-warning-text); }
+.cw-attention { display: flex; gap: 14px; align-items: center; margin-bottom: 16px; padding: 14px 20px; border: 1px solid var(--color-status-warning-border); border-radius: 12px; background: var(--color-status-warning-bg); color: var(--color-status-warning-text); }
 .cw-attention > .material-symbols-outlined { color: var(--color-status-warning-text); }
 .cw-attention > div { flex: 1; min-width: 0; }
 .cw-attention h2 { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--color-status-warning-text); }
@@ -55,7 +58,7 @@
 .cw-attention-links a { min-height: 36px; padding: 4px 8px; border-radius: 6px; background: var(--color-status-warning-bg); }
 .cw-attention-links a:hover { background: var(--color-status-warning-border); }
 .cw-attention-links .material-symbols-outlined { font-size: 16px; }
-.cw-columns { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+.cw-columns { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; align-items: start; }
 @media(min-width:901px) { .cw-side-column { position:sticky; top:84px; } }
 .cw-main-column, .cw-side-column { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
 .cw-panel { border: 1px solid var(--cw-line); border-radius: 16px; background: var(--color-card); overflow: hidden; box-shadow: 0 4px 20px -4px color-mix(in oklab, var(--color-brand-navy) 6%, transparent), 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 3%, transparent); }

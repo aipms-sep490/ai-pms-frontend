@@ -240,4 +240,17 @@ describe('ProjectDefensePage', () => {
       }))
     })
   })
+  it('hides staff-only cancel verdict on student page when canCancel is false', async () => {
+    mocks.getProjectDefenseSessions.mockResolvedValue(paged([{ ...scheduled, canCancel: false }]))
+    render_()
+    expect(await screen.findByText(/A1\.01/)).toBeTruthy()
+    expect(screen.queryByText(/Không thể hủy lịch bảo vệ|Đủ điều kiện hủy lịch bảo vệ/)).toBeNull()
+  })
+
+  it('mounts DefenseScheduleView on department route so staff can inspect and cancel an open session', async () => {
+    mocks.getProjectDefenseSessions.mockResolvedValue(paged([scheduled]))
+    renderManagement()
+    expect(await screen.findByText(/A1\.01/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Hủy lịch' })).toBeTruthy()
+  })
 });

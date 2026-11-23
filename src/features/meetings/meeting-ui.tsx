@@ -8,7 +8,7 @@ export function MeetingStatusBadge({ status }: { status: MeetingStatus }) {
   return <span className={`mtg-status mtg-status--${status.toLowerCase()}`}>{meetingStatuses[status] ?? status}</span>
 }
 export function MeetingShell({ title, projectTitle, backTo, backLabel, action, description = 'Sắp xếp lịch họp, ghi lại kết luận và thống nhất việc cần làm tiếp theo.', children }: {
-  title: string; projectTitle: string; backTo: string; backLabel?: string; action?: ReactNode; description?: string; children: ReactNode
+  title: string; projectTitle: string; backTo?: string; backLabel?: string; action?: ReactNode; description?: string; children: ReactNode
 }) {
   return <section className="meetings mk-page-enter"><ExecutionPage title={title} description={description} eyebrow={`Trao đổi và hướng dẫn • ${projectTitle}`} backTo={backTo} backLabel={backLabel} action={action}>{children}</ExecutionPage></section>
 }

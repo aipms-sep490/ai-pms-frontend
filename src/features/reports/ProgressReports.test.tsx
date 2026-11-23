@@ -744,7 +744,7 @@ describe('Report list', () => {
   it('filters using the API, resets pagination, and preserves project context', async () => {
     mount({ path: '/project/reports?page=3' })
     await screen.findByText(draft.summary)
-    input('Trạng thái', 'SUBMITTED')
+    fireEvent.click(screen.getByRole('tab', { name: 'Đã nộp' }))
     await waitFor(() =>
       expect(api.getProgressReports).toHaveBeenLastCalledWith(
         9,
@@ -768,7 +768,7 @@ describe('Report list', () => {
     let resolve!: (value: unknown) => void
     api.getProgressReports.mockReturnValueOnce(new Promise((done) => { resolve = done })).mockResolvedValue({ items: [], totalCount: 0, totalPages: 0 })
     mount({ path: '/project/reports' })
-    input('Trạng thái', 'REVIEWED')
+    fireEvent.click(screen.getByRole('tab', { name: 'Đã nhận xét' }))
     await screen.findByText('Chưa có báo cáo phù hợp')
     await act(async () => resolve({ items: [draft], totalCount: 1, totalPages: 1 }))
     expect(screen.queryByText(draft.summary)).toBeNull()

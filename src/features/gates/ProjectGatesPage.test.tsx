@@ -68,7 +68,7 @@ describe('ProjectGatesPage', () => {
     api.getProjectCheckpoints.mockResolvedValue(paged([]))
     api.createCheckpoint.mockResolvedValue(checkpoint)
     mount()
-    await screen.findByText('Tạo checkpoint mới')
+    fireEvent.click(await screen.findByRole('button', { name: /Tạo checkpoint mới/ }))
     fireEvent.change(screen.getByLabelText('Tiêu đề'), { target: { value: 'Review giữa kỳ' } })
     fireEvent.change(screen.getByLabelText('Thời điểm dự kiến'), { target: { value: '2026-11-01T09:00' } })
     fireEvent.click(screen.getByRole('button', { name: 'Tạo checkpoint' }))

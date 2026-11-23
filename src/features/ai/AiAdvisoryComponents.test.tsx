@@ -39,7 +39,7 @@ describe('AI advisory components', () => {
     render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage /></ExecutionAccessProvider></MemoryRouter>)
     await screen.findByText('Chưa có lần phân tích nào được lưu.')
     fireEvent.click(screen.getByRole('button', { name: 'Lưu vào lịch sử phân tích' }))
-    await screen.findByRole('button', { name: /Phân tích tiến độfresh-model/ })
+    await screen.findByRole('button', { name: /Phân tích tiến độ.*Hoàn tất/ })
     expect(api.recordProjectProgressAnalysis).toHaveBeenCalledTimes(1)
     expect(api.getProjectAiRuns).toHaveBeenCalledTimes(2)
     expect(api.getProjectAiRuns).toHaveBeenLastCalledWith(9, 1, 20, expect.any(AbortSignal))

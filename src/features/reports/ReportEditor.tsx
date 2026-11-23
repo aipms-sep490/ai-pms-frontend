@@ -247,9 +247,8 @@ export function ReportEditor({
             completedWork: aiDraft.completedWork || current.completedWork,
             inProgressWork: aiDraft.inProgressWork || current.inProgressWork,
             plannedWork: aiDraft.plannedWork || current.plannedWork,
-            nextActions: aiDraft.plannedWork || current.nextActions,
+            nextActions: current.nextActions || aiDraft.plannedWork || '',
             blockers: aiDraft.issuesAndRisks || current.blockers,
-            risks: aiDraft.issuesAndRisks || current.risks,
           }))
           setDirty(true)
           onDirtyChange(true)
@@ -376,7 +375,6 @@ export function ReportEditor({
                   aria-invalid={fieldErrors?.[key] ? true : undefined}
                   aria-describedby={`hint-${key}${fieldErrors?.[key] ? ` error-${key}` : ''}`}
                   className={suggestedKeys.includes(key as keyof ProgressReportPrefill['suggested']) ? 'report-suggested-field' : undefined}
-                  disabled={prefillLoading}
                   value={values[key] ?? ''}
                   onChange={(event) => update(key, event.target.value)}
                 />

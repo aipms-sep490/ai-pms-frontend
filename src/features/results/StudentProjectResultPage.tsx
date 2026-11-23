@@ -15,7 +15,7 @@ import { env } from '../../app/config/env'
 
 export function StudentProjectResultPage() {
   const journey = useStudentJourney()
-  return <WorkspacePage className="space-y-5" title="Kết quả đồ án" eyebrow="Kết quả chính thức" description="Xem điểm cá nhân và kết luận sau khi bộ môn công bố kết quả." backTo="/projects/lifecycle" backLabel="Về hồ sơ đồ án">
+  return <WorkspacePage className="space-y-5" title="Kết quả đồ án" eyebrow="Kết quả chính thức" description="Xem điểm cá nhân và kết luận sau khi bộ môn công bố kết quả.">
     {journey.isLoading ? <ListLoading label="Đang tải hồ sơ đồ án…" />
       : journey.error ? <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><span>Chưa tải được hồ sơ đồ án.</span><button type="button" className="min-h-11 font-semibold underline" onClick={() => void journey.refreshAll()}>Tải lại hồ sơ</button></div>
       : journey.project && journey.profile ? <PublishedStudentResult key={`${journey.project.id}:${journey.profile.id}`} project={journey.project} studentId={journey.profile.id} />
@@ -51,14 +51,14 @@ function PublishedStudentResult({ project, studentId }: { project: ProjectDto; s
   const outcome = ({ PASS: 'Đạt', PASSED: 'Đạt', FAIL: 'Không đạt', FAILED: 'Không đạt' } as Record<string, string>)[outcomeKey] ?? result.outcome
   const outcomeTone = outcomeKey === 'PASS' || outcomeKey === 'PASSED' ? 'success' : outcomeKey === 'FAIL' || outcomeKey === 'FAILED' ? 'error' : 'neutral'
   return <><StatTileRow tiles={[
-    { icon: 'score', label: 'Điểm cá nhân', value: result.totalScore, hero: true, caption: 'Kết quả chính thức đã công bố' },
-    { icon: 'rule', label: 'Ngưỡng đạt', value: result.passThreshold },
+    { icon: 'score', label: 'Điểm cá nhân', value: formatScore(result.totalScore), hero: true, caption: 'Kết quả chính thức đã công bố' },
+    { icon: 'rule', label: 'Ngưỡng đạt', value: formatScore(result.passThreshold) },
     { icon: 'task_alt', label: 'Thành phần đã chấm', value: gradedCount, caption: result.breakdown ? undefined : 'Chưa có chi tiết từ hệ thống.' },
     { icon: 'pending', label: 'Thành phần chờ điểm', value: pendingCount, caption: result.breakdown ? undefined : 'Chưa có chi tiết từ hệ thống.' },
   ]} />
   <section className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs" aria-label="Kết quả cá nhân đã công bố">
     <dl className="p-5 sm:p-6"><ResultFact label="Kết luận" value={outcome} prominent tone={outcomeTone} /></dl>
-    <dl className="grid gap-4 border-t border-hairline p-5 sm:grid-cols-3"><ResultFact label="Quy định đánh giá" value={schemeLabel} /><ResultFact label="Ngành" value={major} /><ResultFact label="Công bố lúc" value={new Date(result.publishedAt).toLocaleString('vi-VN')} /></dl>
+    <dl className="grid gap-4 border-t border-hairline p-5 sm:grid-cols-3"><ResultFact label="Quy định đánh giá" value={schemeLabel} /><ResultFact label="Ngành" value={major} /><ResultFact label="Công bố lúc" value={new Date(result.publishedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' })} /></dl>
     {result.version > 1 && <p className="border-t border-hairline bg-status-warning-bg p-3 text-sm text-status-warning-text">Đây là kết quả đã đính chính — phiên bản {result.version}{result.supersedesVersion != null ? `, thay thế phiên bản ${result.supersedesVersion}` : ''}.</p>}
     {result.breakdown && (result.breakdown.isDemo || result.breakdown.approvalStatus !== 'APPROVED') && <p className="border-t border-hairline bg-status-warning-bg p-3 text-sm text-status-warning-text">{result.breakdown.isLegacy ? 'Quy định đánh giá cũ, chỉ để tra cứu.' : 'Phương án đánh giá đang ở dạng thử nghiệm hoặc chưa được duyệt chính thức.'}</p>}
     {components.length > 0 && <div className="border-t border-hairline p-5 sm:p-6">
@@ -76,7 +76,7 @@ function PublishedStudentResult({ project, studentId }: { project: ProjectDto; s
         <TableBody>{components.map((component, index) => {
           const pending = component.score === null
           return <TableRow key={`${component.componentId}-${index}`}>
-            <TableCell label="Thành phần" className="font-medium text-ink"><span className="block">{component.name}</span><span className="block text-xs font-normal text-ink-muted">{scopeLabel(component.scope)}{component.majorId != null && ` · ${project.majors.find(major => major.majorId === component.majorId)?.majorName || `Ngành #${component.majorId}`}`}</span></TableCell>
+            <TableCell label="Thành phần" className="font-medium text-ink"><span className="block">{component.name}</span><span className="block text-xs font-normal text-ink-muted">{scopeLabel(component.scope)}{component.majorId != null && ` · ${project.majors.find(major => major.majorId === component.majorId)?.majorName || 'Chuyên ngành khác'}`}</span></TableCell>
             <TableCell label="Trọng số" numeric>{formatPercent(component.weightPercent)}</TableCell>
             <TableCell label="Điểm" numeric className="font-semibold">{formatScore(component.score)}</TableCell>
             <TableCell label="Trạng thái"><StatusBadge tone={pending ? 'warning' : 'success'} label={pending ? `Chưa có điểm (${component.finalizedEvaluators}/${component.requiredEvaluators} người chấm)` : 'Đã chấm'} /></TableCell>

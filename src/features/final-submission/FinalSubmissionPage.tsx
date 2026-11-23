@@ -100,6 +100,7 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
   const [locked, setLocked] = useState<LockedFinalSubmission | null>(null)
   const [deliverables, setDeliverables] = useState<Deliverable[]>([])
   const [versions, setVersions] = useState<DeliverableVersion[]>([])
+  const [loadingVersions, setLoadingVersions] = useState(false)
   const [selectedDeliverableId, setSelectedDeliverableId] = useState<number | null>(null)
   const [selectedVersionIds, setSelectedVersionIds] = useState<Record<number, number>>({})
   const [versionNumberById, setVersionNumberById] = useState<Record<number, number>>({})
@@ -141,6 +142,7 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
     setSelectedDeliverableId(id || null)
     setVersions([])
     if (!id) return
+    setLoadingVersions(true)
     try {
       const nextVersions = await allEligibleVersions(id)
       setVersions(nextVersions)
@@ -150,6 +152,7 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
       }))
     }
     catch (reason) { setError(message(reason)) }
+    finally { setLoadingVersions(false) }
   }
 
   const run = async (operation: () => Promise<unknown>, submitted = false) => {
@@ -185,7 +188,18 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
     return num ? `phiên bản v${num}` : 'đã chọn phiên bản'
   }
 
-  return <WorkspacePage className="space-y-5" title="Bàn giao cuối đồ án" eyebrow="Hoàn tất đồ án" description="Chuẩn bị các phiên bản sản phẩm và gửi gói bàn giao của nhóm.">
+  return <WorkspacePage
+    size="wide"
+    className="space-y-5"
+    title="Bàn giao cuối đồ án"
+    eyebrow="Hoàn tất đồ án"
+    description="Chuẩn bị các phiên bản sản phẩm và gửi gói bàn giao của nhóm."
+    action={
+      <Button variant="outline" icon="refresh" disabled={loading || busy} onClick={() => void load()}>
+        Làm mới
+      </Button>
+    }
+  >
     {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" className="min-h-11 font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
     {loading && <ListLoading label="Đang tải hồ sơ bàn giao…" />}
     {!loading && loaded && locked && <LockedPackageView projectId={projectId} packageData={locked} />}
@@ -195,25 +209,23 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
           <strong>Thông báo quyền hạn:</strong> Bạn đang đăng nhập với vai trò Thành viên nhóm. Quyền chuẩn bị bản nháp và nộp gói bàn giao cuối cùng thuộc về Trưởng nhóm. Bạn vẫn có thể rà soát danh mục và kiểm tra các tệp đính kèm.
         </div>
       )}
-      <section className="workspace-surface workspace-surface-padding"><h2 className="font-semibold text-ink">Bản nháp bàn giao</h2><p className="mt-1 text-sm text-ink-muted">Chọn rõ phiên bản của từng hạng mục. Bản nháp không tự chọn phiên bản mới nhất.</p>
-        <form className="mt-4 space-y-4" onSubmit={saveDraft}>
-          <label className="block text-sm font-medium text-ink-soft">Đợt bàn giao<select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:bg-canvas disabled:text-ink-muted" value={periodId ?? ''} disabled={busy || !canPrepareDraft} onChange={event => setPeriodId(Number(event.target.value) || null)}><option value="">Chọn đợt</option>{periods.map(period => <option key={period.id} value={period.id} disabled={!period.canPrepareDraft && period.id !== draft?.projectPeriodId}>{period.name} · {displayLabel(period.status)}</option>)}</select></label>
-          <label className="block text-sm font-medium text-ink-soft">Ghi chú<textarea className="mt-1 w-full rounded-lg border border-hairline bg-card p-3 font-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:bg-canvas disabled:text-ink-muted" rows={3} maxLength={10000} value={notes} disabled={busy || !canPrepareDraft} onChange={event => setNotes(event.target.value)} /></label>
-          <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm font-medium text-ink-soft">Hạng mục<select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:bg-canvas disabled:text-ink-muted" value={selectedDeliverableId ?? ''} disabled={busy || !canPrepareDraft} onChange={event => void chooseDeliverable(Number(event.target.value))}><option value="">Chọn hạng mục</option>{deliverables.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label className="text-sm font-medium text-ink-soft">Phiên bản<select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:bg-canvas disabled:text-ink-muted" value={selectedDeliverableId ? selectedVersionIds[selectedDeliverableId] ?? '' : ''} disabled={!selectedDeliverableId || busy || !canPrepareDraft} onChange={event => { if (selectedDeliverableId) setSelectedVersionIds(current => ({ ...current, [selectedDeliverableId]: Number(event.target.value) })) }}><option value="">Chọn phiên bản hợp lệ</option>{versions.map(item => <option key={item.id} value={item.id}>v{item.versionNumber} · {item.status === 'ACCEPTED' ? 'Đã chấp nhận' : displayLabel(item.status)}</option>)}</select></label></div>
-          <ul className="space-y-2 text-sm">{Object.entries(selectedVersionIds).map(([deliverableId, versionId]) => <li key={deliverableId} className="workspace-record-row flex flex-wrap items-center justify-between gap-3"><span>{deliverables.find(item => item.id === Number(deliverableId))?.title ?? 'Hạng mục sản phẩm'} · {formatVersionBadge(versionId)}</span><Button variant="ghost" size="sm" disabled={busy || !canPrepareDraft} onClick={() => setSelectedVersionIds(current => { const next = { ...current }; delete next[Number(deliverableId)]; return next })}>Bỏ</Button></li>)}</ul>
-          {draft?.editBlockers.length ? <p className="text-sm text-status-warning-text">Không thể sửa: {draft.editBlockers.map(code => describeBlocker(code, deliverables)).join(', ')}</p> : null}
-          <div><Button type="submit" variant="secondary" disabled={busy || !periodId || !canPrepareDraft}>{draft ? 'Lưu bản nháp' : 'Tạo bản nháp'}</Button></div>
-        </form>
-      </section>
-      {checklist && <section className="workspace-surface workspace-surface-padding"><h2 className="font-semibold text-ink">Kiểm tra trước khi bàn giao</h2><p className="mt-1 text-sm text-ink-muted">Hạn: {checklist.deadline ? new Date(checklist.deadline).toLocaleString('vi-VN') : 'Chưa có'}</p><ul className="mt-3 space-y-2 text-sm">{checklist.items.map(item => <li key={item.deliverableId} className="workspace-record-row">{item.isComplete ? '✓' : '○'} {item.title} · {formatVersionBadge(item.selectedVersionId, item.selectedVersionNumber)}</li>)}</ul><div id="final-submission-blockers" className="mt-4"><ActionVerdict actions={[{ code: 'SUBMIT_FINAL_PACKAGE', allowed: canSubmit && Boolean(checklist.draftConcurrencyToken) && Boolean(checklist.requirementsConcurrencyToken), reasons: submissionReasons }]} actionCode="SUBMIT_FINAL_PACKAGE" status="ready" okLabel="Đủ điều kiện nộp bản cuối" blockedLabel="Chưa đủ điều kiện nộp bản cuối" /></div><label className="mt-4 flex items-start gap-2 text-sm"><input type="checkbox" checked={confirmed} disabled={!canSubmit || busy} onChange={event => setConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-line-strong text-primary focus:ring-primary" /><span>Tôi xác nhận khóa gói và nộp bản cuối theo danh mục kiểm tra hiện tại.</span></label><div className="mt-4"><Button type="button" aria-describedby={!canSubmit && checklist.blockers.length > 0 ? "final-submission-blockers" : undefined} disabled={!canSubmit || !confirmed || busy || !checklist.draftConcurrencyToken || !checklist.requirementsConcurrencyToken} onClick={() => { if (canSubmit) void run(() => api.submitFinalSubmission(projectId, checklist.draftConcurrencyToken!, checklist.requirementsConcurrencyToken!), true) }}>{busy ? 'Đang nộp…' : 'Nộp và khóa gói'}</Button></div></section>}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)] lg:items-start">
+        <section className="workspace-surface workspace-surface-padding"><h2 className="font-semibold text-ink">Bản nháp bàn giao</h2><p className="mt-1 text-sm text-ink-muted">Chọn rõ phiên bản của từng hạng mục. Bản nháp không tự chọn phiên bản mới nhất.</p>
+          <form className="mt-4 space-y-4" onSubmit={saveDraft}>
+            <label className="block text-sm font-medium text-ink-soft">Đợt bàn giao<select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:bg-canvas disabled:text-ink-muted" value={periodId ?? ''} disabled={busy || !canPrepareDraft} onChange={event => setPeriodId(Number(event.target.value) || null)}><option value="">Chọn đợt</option>{periods.map(period => <option key={period.id} value={period.id} disabled={!period.canPrepareDraft && period.id !== draft?.projectPeriodId}>{period.name} · {displayLabel(period.status)}</option>)}</select></label>
+            <label className="block text-sm font-medium text-ink-soft">Ghi chú<textarea className="mt-1 w-full rounded-lg border border-hairline bg-card p-3 font-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:bg-canvas disabled:text-ink-muted" rows={3} maxLength={10000} value={notes} disabled={busy || !canPrepareDraft} onChange={event => setNotes(event.target.value)} /></label>
+            <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm font-medium text-ink-soft">Hạng mục<select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:bg-canvas disabled:text-ink-muted" value={selectedDeliverableId ?? ''} disabled={busy || !canPrepareDraft} onChange={event => void chooseDeliverable(Number(event.target.value))}><option value="">Chọn hạng mục</option>{deliverables.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label className="text-sm font-medium text-ink-soft">Phiên bản<select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:bg-canvas disabled:text-ink-muted" value={selectedDeliverableId ? selectedVersionIds[selectedDeliverableId] ?? '' : ''} disabled={!selectedDeliverableId || loadingVersions || busy || !canPrepareDraft} onChange={event => { if (selectedDeliverableId) setSelectedVersionIds(current => ({ ...current, [selectedDeliverableId]: Number(event.target.value) })) }}><option value="">{loadingVersions ? 'Đang tải phiên bản hợp lệ…' : 'Chọn phiên bản hợp lệ'}</option>{versions.map(item => <option key={item.id} value={item.id}>v{item.versionNumber} · {item.status === 'ACCEPTED' ? 'Đã chấp nhận' : displayLabel(item.status)}</option>)}</select></label></div>
+            {Object.keys(selectedVersionIds).length > 0 && (
+              <ul className="space-y-2 text-sm">{Object.entries(selectedVersionIds).map(([deliverableId, versionId]) => <li key={deliverableId} className="workspace-record-row flex flex-wrap items-center justify-between gap-3"><span className="font-medium text-ink">{deliverables.find(item => item.id === Number(deliverableId))?.title ?? 'Hạng mục sản phẩm'} · <span className="text-primary">{formatVersionBadge(versionId)}</span></span><Button variant="ghost" size="sm" disabled={busy || !canPrepareDraft} onClick={() => setSelectedVersionIds(current => { const next = { ...current }; delete next[Number(deliverableId)]; return next })}>Bỏ</Button></li>)}</ul>
+            )}
+            {draft?.editBlockers.length ? <p className="text-sm text-status-warning-text">Không thể sửa: {draft.editBlockers.map(code => describeBlocker(code, deliverables)).join(', ')}</p> : null}
+            <div><Button type="submit" variant="secondary" disabled={busy || !periodId || !canPrepareDraft}>{draft ? 'Lưu bản nháp' : 'Tạo bản nháp'}</Button></div>
+          </form>
+        </section>
+        {checklist && <section className="workspace-surface workspace-surface-padding"><h2 className="font-semibold text-ink">Kiểm tra trước khi bàn giao</h2><p className="mt-1 text-sm text-ink-muted">Hạn: {checklist.deadline ? formatDate(checklist.deadline) : 'Chưa có'}</p><ul className="mt-3 space-y-2 text-sm">{checklist.items.map(item => <li key={item.deliverableId} className="workspace-record-row flex items-center justify-between gap-2"><span className="flex items-center gap-2"><span className={`material-symbols-outlined text-[18px] ${item.isComplete ? 'text-status-success-text' : 'text-ink-muted'}`} aria-hidden="true">{item.isComplete ? 'check_circle' : 'radio_button_unchecked'}</span><span>{item.title}</span></span><span className="text-xs font-semibold text-ink-muted">{formatVersionBadge(item.selectedVersionId, item.selectedVersionNumber)}</span></li>)}</ul><div id="final-submission-blockers" className="mt-4"><ActionVerdict actions={[{ code: 'SUBMIT_FINAL_PACKAGE', allowed: canSubmit && Boolean(checklist.draftConcurrencyToken) && Boolean(checklist.requirementsConcurrencyToken), reasons: submissionReasons }]} actionCode="SUBMIT_FINAL_PACKAGE" status="ready" okLabel="Đủ điều kiện nộp bản cuối" blockedLabel="Chưa đủ điều kiện nộp bản cuối" /></div><label className="mt-4 flex items-start gap-2 text-sm"><input type="checkbox" checked={confirmed} disabled={!canSubmit || busy} onChange={event => setConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-line-strong text-primary focus:ring-primary" /><span>Tôi xác nhận khóa gói và nộp bản cuối theo danh mục kiểm tra hiện tại.</span></label><div className="mt-4"><Button type="button" aria-describedby={!canSubmit && checklist.blockers.length > 0 ? "final-submission-blockers" : undefined} disabled={!canSubmit || !confirmed || busy || !checklist.draftConcurrencyToken || !checklist.requirementsConcurrencyToken} onClick={() => { if (canSubmit) void run(() => api.submitFinalSubmission(projectId, checklist.draftConcurrencyToken!, checklist.requirementsConcurrencyToken!), true) }}>{busy ? 'Đang nộp…' : 'Nộp và khóa gói'}</Button></div></section>}
+      </div>
       <SubmissionPreflightPanel projectId={projectId} target="FINAL_SUBMISSION" />
     </>}
-    <div>
-      <Link to="/projects/lifecycle" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-hairline bg-card px-3.5 py-2 text-sm font-semibold text-ink-soft transition-all hover:bg-canvas">
-        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span>
-        <span>Về hồ sơ đồ án</span>
-      </Link>
-    </div>
   </WorkspacePage>
 }
 
@@ -378,6 +390,6 @@ export function FinalRequirementsPage() {
   )
 }
 
-function formatDate(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Không xác định' : date.toLocaleString('vi-VN') }
+function formatDate(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Không xác định' : date.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' }) }
 function formatBytes(value: number) { return value < 1024 ? `${value} B` : value < 1024 * 1024 ? `${Math.ceil(value / 1024)} KB` : `${(value / 1024 / 1024).toFixed(1)} MB` }
 

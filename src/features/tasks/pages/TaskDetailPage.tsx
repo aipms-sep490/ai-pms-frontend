@@ -17,6 +17,8 @@ import { TaskBreakdownAiPanel } from '../../ai-suite/TaskSprintAiPanels'
 import { useTaskExecutionCapabilities } from '../../execution/hooks/useTaskExecutionCapabilities'
 import { canUseTaskExecutionAction } from '../../execution/execution-authority'
 import * as disciplineApi from '../../projects/api/discipline-governance-api'
+import { Modal } from '../../../components/ui/Modal'
+import { Avatar } from '../../../components/ui/Avatar'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 
@@ -26,6 +28,7 @@ export function taskStatusTone(status?: string | null): BadgeTone {
     case 'DONE': return 'success'
     case 'IN_PROGRESS':
     case 'DOING': return 'info'
+    case 'IN_REVIEW': return 'warning'
     case 'BLOCKED': return 'danger'
     case 'CANCELLED': return 'neutral'
     case 'TODO':
@@ -36,6 +39,7 @@ export function taskStatusTone(status?: string | null): BadgeTone {
 
 export function taskPriorityTone(priority?: string | null): BadgeTone {
   switch ((priority ?? '').toUpperCase()) {
+    case 'CRITICAL':
     case 'URGENT':
     case 'HIGH': return 'danger'
     case 'MEDIUM': return 'warning'
@@ -132,16 +136,15 @@ function TaskDetail({ id }: { id: number }) {
     {error && <ExState message={error} retry={reload} />}{contextError && <ExState message={contextError} retry={reload} />}
     {timeline && !contextValid && <p className="ex-notice ex-notice-error" role="alert">Công việc này không thuộc đồ án đang xem. <Link className="ex-link" to={`${routeBase}/tasks`}>Về danh sách công việc</Link></p>}
     {mutation.error && <p className="ex-notice ex-notice-error" role="alert">{mutation.error}</p>}{mutation.notice && <p className="ex-notice" role="status">{mutation.notice}</p>}
-    {editing === 'content' && <TaskContentEditor task={task} timeline={timeline} busy={mutation.busy} onCancel={() => setEditing(null)} onSubmit={payload => mutation.run(() => services.task.updateTask(task.id, { ...payload, concurrencyToken: task.concurrencyToken }), saved)} />}
+    {editing === 'content' && (
+      <Modal open title="Chỉnh sửa công việc" description={task.title} busy={mutation.busy} onClose={() => setEditing(null)}>
+        <TaskContentEditor task={task} timeline={timeline} busy={mutation.busy} onCancel={() => setEditing(null)} onSubmit={payload => mutation.run(() => services.task.updateTask(task.id, { ...payload, concurrencyToken: task.concurrencyToken }), saved)} />
+      </Modal>
+    )}
     <div className="ex-detail-grid"><div>
       <section className="ex-panel"><div className="ex-panel-heading"><h2>Nội dung công việc</h2></div><div className="ex-padding ex-stack"><p className="ex-prose">{task.description?.trim() || 'Chưa có mô tả cho công việc này.'}</p><dl className="ex-facts"><div><dt>Bắt đầu dự kiến</dt><dd>{dateTimeLabel(task.startAt)}</dd></div><div><dt>Hạn hoàn thành</dt><dd>{dateTimeLabel(task.dueAt)}</dd></div>{task.parentTaskId && <div><dt>Thuộc công việc</dt><dd><Link className="ex-link" to={`${routeBase}/tasks/${task.parentTaskId}`}>{allTasks.find(item => item.id === task.parentTaskId)?.title ?? 'Xem công việc cha'}</Link></dd></div>}<div><dt>Mốc đồ án</dt><dd>{milestone ? (access.actor === 'mentor' ? milestone.title : <Link className="ex-link" to={`${routeBase}/milestones/${milestone.id}`}>{milestone.title}</Link>) : 'Đang tải thông tin mốc…'}</dd></div>{task.description?.match(/Cuộc họp #(\d+)/i)?.[1] && <div><dt>Nguồn phát sinh</dt><dd><Link className="ex-link" to={`${routeBase}/meetings/${task.description.match(/Cuộc họp #(\d+)/i)![1]}`}>Xem cuộc họp nguồn</Link></dd></div>}</dl></div></section>
       {contextValid && <TaskCriteriaPanel key={task.id} taskId={task.id} revision={revision} />}
       {contextValid && <div className="mb-4"><TaskBreakdownAiPanel key={`ai-bd-${task.id}`} projectId={project.id} taskId={task.id} taskTitle={task.title} taskDescription={task.description} onCriteriaApplied={reload} /></div>}
-      <section className="ex-panel"><div className="ex-panel-heading"><h2>Người phụ trách</h2>{canAssign && <button className="ex-text-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('assignees') }}>Phân công</button>}</div>
-        <div className="ex-padding">{editing === 'assignees' && canAssign ? <AssigneeEditor key={task.updatedAt} task={task} candidates={candidates} busy={mutation.busy} onCancel={() => setEditing(null)} onSubmit={ids => mutation.run(() => services.task.setTaskAssignees(task.id, ids, task.concurrencyToken), saved)} />
-          : <p className="ex-prose">{task.assignees.map(person => person.userFullName).join(', ') || 'Chưa phân công người phụ trách.'}</p>}{!team && editing === 'assignees' && <ExState message={teamLoadError ?? 'Chưa tải được danh sách thành viên nhóm. Bạn vẫn xem được công việc nhưng chưa giao được người phụ trách.'} retry={retryTeam} />}</div>
-        {taskResultLocked && <p className="ex-padding ex-muted">Phân công đã khóa khi chờ nghiệm thu hoặc hoàn thành. Nếu cần chỉnh sửa, trưởng nhóm hoặc GVHD phải mở lại công việc và ghi lý do.</p>}
-      </section>
       <section className="ex-panel"><div className="ex-panel-heading"><div><h2>Công việc liên quan</h2><p>Các việc cần bắt đầu hoặc hoàn thành trước công việc này.</p></div>{canManageDependencies && <button className="ex-text-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('dependency') }}>Thêm liên kết</button>}</div>
         <div className="ex-padding">{task.dependencies.length ? <ul className="ex-dependencies">{task.dependencies.map(dependency => <li key={dependency.id}><div><Link className="ex-link" to={`${routeBase}/tasks/${dependency.dependsOnTaskId}`}>{allTasks.find(item => item.id === dependency.dependsOnTaskId)?.title ?? 'Xem công việc liên quan'}</Link><small>{dependencyLabels[dependency.dependencyType] ?? 'Liên kết công việc'}</small></div>{canManageDependencies && <button className="ex-text-button" disabled={mutation.busy} onClick={() => void mutation.run(() => services.task.removeTaskDependency(task.id, dependency.dependsOnTaskId, task.concurrencyToken), reload)}>Bỏ liên kết</button>}</li>)}</ul> : <p className="ex-muted">Chưa có liên kết với công việc khác.</p>}
           {editing === 'dependency' && <DependencyEditor tasks={allTasks.filter(item => item.id !== task.id && !task.dependencies.some(dependency => dependency.dependsOnTaskId === item.id))} busy={mutation.busy} onCancel={() => setEditing(null)} onSubmit={(dependsOnTaskId, dependencyType) => mutation.run(() => services.task.addTaskDependency({ taskId: task.id, dependsOnTaskId, dependencyType, concurrencyToken: task.concurrencyToken }), saved)} />}
@@ -152,8 +155,15 @@ function TaskDetail({ id }: { id: number }) {
       <TaskEvidenceAndComments taskId={task.id} projectId={project.id} majors={project.majors ?? []} mentorMajorId={access.actor === 'mentor' ? access.supervisor?.majorId ?? null : null} canAddEvidence={canAddEvidence} />
       <TaskDisciplinePanel taskId={task.id} majors={project.majors} canManage={canManageDisciplines} />
       {mayDelete && <><button className="ex-text-button ex-danger-text" onClick={() => setDeleting(true)}>Xóa công việc</button>{deleting && <ExConfirm title="Xóa công việc này?" description="Chỉ công việc chưa có phân công, liên kết hoặc lịch sử mới được xóa. Các công việc đã thực hiện nên chuyển sang trạng thái Đã hủy." busy={mutation.busy} onCancel={() => setDeleting(false)} onConfirm={() => void mutation.run(() => services.task.deleteTask(task.id, task.concurrencyToken), () => navigate(`${routeBase}/tasks`, { replace: true }), 'Đã xóa công việc.')} />}</>}
-    </div><aside><section className="ex-panel"><div className="ex-panel-heading"><h2>Cập nhật tiến độ</h2></div><div className="ex-padding">{canUpdateStatus ? <StatusEditor key={task.status} task={task} busy={mutation.busy} onSubmit={(newStatus, reason) => mutation.run(() => services.task.updateTaskStatus(task.id, { newStatus, reason: reason.trim() || null, concurrencyToken: task.concurrencyToken }), reload, 'Đã cập nhật trạng thái.')} />
-      : <p className="ex-muted">Người phụ trách, trưởng nhóm và giảng viên hướng dẫn có thể cập nhật trạng thái công việc.</p>}</div></section></aside></div>
+    </div><aside className="space-y-4">
+      <section className="ex-panel"><div className="ex-panel-heading"><h2>Cập nhật tiến độ</h2></div><div className="ex-padding">{canUpdateStatus ? <StatusEditor key={task.status} task={task} busy={mutation.busy} onSubmit={(newStatus, reason) => mutation.run(() => services.task.updateTaskStatus(task.id, { newStatus, reason: reason.trim() || null, concurrencyToken: task.concurrencyToken }), reload, 'Đã cập nhật trạng thái.')} />
+        : <p className="ex-muted">Người phụ trách, trưởng nhóm và giảng viên hướng dẫn có thể cập nhật trạng thái công việc.</p>}</div></section>
+      <section className="ex-panel"><div className="ex-panel-heading"><h2>Người phụ trách</h2>{canAssign && <button className="ex-text-button" disabled={mutation.busy} onClick={() => { mutation.clear(); setEditing('assignees') }}>Phân công</button>}</div>
+        <div className="ex-padding">{editing === 'assignees' && canAssign ? <AssigneeEditor key={task.updatedAt} task={task} candidates={candidates} busy={mutation.busy} onCancel={() => setEditing(null)} onSubmit={ids => mutation.run(() => services.task.setTaskAssignees(task.id, ids, task.concurrencyToken), saved)} />
+          : task.assignees.length > 0 ? <ul className="space-y-2">{task.assignees.map(person => <li key={person.userId} className="flex items-center gap-2.5 text-sm font-medium text-ink"><Avatar name={person.userFullName} size="sm" shape="circle" /><span className="truncate">{person.userFullName}</span></li>)}</ul> : <p className="ex-muted">Chưa phân công người phụ trách.</p>}{!team && editing === 'assignees' && <ExState message={teamLoadError ?? 'Chưa tải được danh sách thành viên nhóm. Bạn vẫn xem được công việc nhưng chưa giao được người phụ trách.'} retry={retryTeam} />}</div>
+        {taskResultLocked && <p className="ex-padding ex-muted">Phân công đã khóa khi chờ nghiệm thu hoặc hoàn thành. Nếu cần chỉnh sửa, trưởng nhóm hoặc GVHD phải mở lại công việc và ghi lý do.</p>}
+      </section>
+    </aside></div>
   </ExecutionPage>
 }
 

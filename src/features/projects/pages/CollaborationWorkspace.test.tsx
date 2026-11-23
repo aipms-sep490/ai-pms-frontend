@@ -169,7 +169,7 @@ describe('collaboration workspace API integration', () => {
     await screen.findByRole('progressbar', { name: `Tiến độ công việc của ${names[0]}` })
     fireEvent.click(screen.getByRole('button', { name: 'Tạo công việc' }))
     const form = screen.getByRole('region', { name: 'Tạo công việc' })
-    await within(form).findByRole('combobox', { name: 'Ngành chính' })
+    await waitFor(() => expect((within(form).getByRole('textbox', { name: 'Tên công việc' }) as HTMLInputElement).disabled).toBe(false))
     fireEvent.change(within(form).getByRole('textbox', { name: 'Tên công việc' }), { target: { value: '  Hoàn thiện đăng nhập  ' } })
     fireEvent.change(within(form).getByRole('combobox', { name: 'Mốc đồ án' }), { target: { value: '3' } })
     fireEvent.change(within(form).getByLabelText(/Hạn hoàn thành/), { target: { value: '2099-10-01T15:00' } })

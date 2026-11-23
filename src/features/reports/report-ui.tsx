@@ -9,7 +9,7 @@ export function ReportBadge({ status }: { status: ReportStatus }) {
 }
 
 export function ReportShell({ title, description, projectTitle, backTo, backLabel, children, action }: {
-  title: string; description: string; projectTitle: string; backTo: string; backLabel?: string; children: ReactNode; action?: ReactNode
+  title: string; description: string; projectTitle: string; backTo?: string; backLabel?: string; children: ReactNode; action?: ReactNode
 }) {
   return <section className="reports"><ExecutionPage title={title} description={description} eyebrow={`Theo dõi thực hiện • ${projectTitle}`} backTo={backTo} backLabel={backLabel} action={action}>{children}</ExecutionPage></section>
 }

@@ -170,6 +170,8 @@
 
 .ft-controls select,
 .ft-sort-select {
+  appearance: none;
+  -webkit-appearance: none;
   min-height: 40px;
   padding: 7px 34px 7px 12px;
   border: 1px solid var(--color-line-strong);

@@ -46,7 +46,6 @@ describe('ProjectEvidenceLedger', () => {
     await vi.waitFor(() => expect(api.getProjectEvidence).toHaveBeenLastCalledWith(9, expect.objectContaining({ sourceType: 'MEETING', page: 1, pageSize: 20 })))
     fireEvent.change(screen.getByRole('combobox', { name: 'Trạng thái xác minh' }), { target: { value: 'UNKNOWN' } })
     fireEvent.change(screen.getByRole('combobox', { name: 'Ngành' }), { target: { value: '12' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Áp dụng' }))
     await vi.waitFor(() => expect(api.getProjectEvidence).toHaveBeenLastCalledWith(9, expect.objectContaining({ sourceType: 'MEETING', verificationStatus: 'UNKNOWN', majorId: 12, page: 1 })))
     await screen.findByRole('button', { name: 'Trang sau' })
     fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
@@ -65,7 +64,7 @@ describe('ProjectEvidenceLedger', () => {
     render(<MemoryRouter><ProjectEvidenceLedger projectId={9} routeBase="/mentor/projects/9" majors={[{ majorId: 3, majorName: 'Phần mềm' }]} lockedMajorId={3} /></MemoryRouter>)
     await screen.findByText('Công việc: Phân tích yêu cầu')
     expect((screen.getByRole('combobox', { name: 'Ngành' }) as HTMLSelectElement).disabled).toBe(true)
-    fireEvent.click(screen.getByRole('button', { name: 'Xóa lọc' }))
+    fireEvent.click(screen.getByRole('button', { name: /Xóa bộ lọc|Xóa lọc/ }))
     await vi.waitFor(() => expect(api.getProjectEvidence).toHaveBeenLastCalledWith(9, expect.objectContaining({ majorId: 3 })))
   })
   it('ignores the old query response after a filter change', async () => {
