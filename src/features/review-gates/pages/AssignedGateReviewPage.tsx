@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import { Button } from '../../../components/ui/Button'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { getAssignedReviewPage, submitGateDecision, verifyEvidence } from '../api/review-gates-api'
 import { Pagination } from '../../../components/ui/Pagination'
@@ -81,9 +82,12 @@ export function AssignedGateReviewPage() {
 
   return (
     <WorkspacePage
+      size="wide"
+      className="review-gates-surface space-y-5"
       eyebrow="Hội đồng thẩm định"
       title="Thẩm định tiến trình đồ án"
       description="Xem xét minh chứng học thuật theo phiên bản được nộp, đối chiếu tiêu chí và đưa ra quyết định thẩm định chính thức."
+      action={<Button variant="secondary" icon="refresh" disabled={loading} onClick={() => void loadAssignments()}>Tải lại</Button>}
     >
       <ReviewGatesMockNotice />
       {loading && !hasLoaded ? (

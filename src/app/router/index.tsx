@@ -159,6 +159,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorEl
             { path: 'mentor/projects/:projectId/majors/:majorId/reports', element: <ProgressReportsPage /> },
             { path: 'mentor/projects/:projectId/majors/:majorId/reports/:reportId', element: <ProgressReportDetailPage /> },
             { path: 'mentor/projects/:projectId/majors/:majorId/meetings', element: <MeetingsPage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/meetings/:meetingId/video', element: <MeetingVideoRoomPage /> },
             { path: 'mentor/projects/:projectId/majors/:majorId/meetings/:meetingId', element: <MeetingDetailPage /> },
             { path: 'mentor/projects/:projectId/majors/:majorId/evidence', element: <ProjectEvidenceLedgerPage /> },
             ...(env.gatesEnabled ? [{ path: 'mentor/projects/:projectId/majors/:majorId/checkpoints', element: <ProjectGatesPage /> }] : []),
