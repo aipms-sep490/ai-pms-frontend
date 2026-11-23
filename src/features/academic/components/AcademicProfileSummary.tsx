@@ -21,6 +21,8 @@ const statusTone: Record<string, BadgeTone> = {
   REJECTED: 'danger',
 }
 
+const CLASS_CODE_REGEX = /^[A-Za-z0-9][A-Za-z0-9._ /-]{0,49}$/
+
 function updateErrorText(reason: unknown): string {
   if (reason instanceof HttpError) {
     if (reason.status === 409) {
@@ -83,6 +85,10 @@ export function AcademicProfileSummary() {
     const trimmedClass = classCode.trim()
     if (!trimmedClass) {
       setSaveError('Vui lòng nhập Lớp hành chính (ví dụ: SE1801, MKT1802).')
+      return
+    }
+    if (!CLASS_CODE_REGEX.test(trimmedClass)) {
+      setSaveError('Lớp hành chính phải bắt đầu bằng chữ/số và chỉ chứa ký tự hợp lệ (A-Z, 0-9, khoảng trắng, ".", "_", "-", "/", tối đa 50 ký tự).')
       return
     }
     setSaving(true)

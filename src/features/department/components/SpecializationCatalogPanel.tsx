@@ -26,6 +26,8 @@ function errorText(reason: unknown): string {
   return 'Chưa thể lưu chuyên ngành hẹp. Vui lòng thử lại.'
 }
 
+const SPEC_CODE_REGEX = /^[A-Z0-9][A-Z0-9._-]{0,49}$/
+
 export function SpecializationCatalogPanel({ departmentId, majors, onClose, onChanged }: Props) {
   const [items, setItems] = useState<DepartmentSpecialization[]>([])
   const [loading, setLoading] = useState(true)
@@ -81,6 +83,14 @@ export function SpecializationCatalogPanel({ departmentId, majors, onClose, onCh
     const trimmedName = name.trim()
     if (!trimmedCode || !trimmedName) {
       setError('Mã và tên chuyên ngành hẹp không được để trống.')
+      return
+    }
+    if (!SPEC_CODE_REGEX.test(trimmedCode)) {
+      setError('Mã chuyên ngành hẹp phải bắt đầu bằng chữ/số và chỉ chứa A-Z, 0-9, ".", "_", "-" (tối đa 50 ký tự).')
+      return
+    }
+    if (trimmedName.length > 200) {
+      setError('Tên chuyên ngành hẹp tối đa 200 ký tự.')
       return
     }
     setBusy(true)
@@ -159,7 +169,7 @@ export function SpecializationCatalogPanel({ departmentId, majors, onClose, onCh
               value={code}
               onChange={event => setCode(event.target.value)}
               placeholder="Ví dụ: SE-WEB, MKT-DIG"
-              maxLength={40}
+              maxLength={50}
               required
               disabled={busy}
             />
@@ -171,7 +181,7 @@ export function SpecializationCatalogPanel({ departmentId, majors, onClose, onCh
               value={name}
               onChange={event => setName(event.target.value)}
               placeholder="Ví dụ: Kỹ thuật Web & Cloud"
-              maxLength={150}
+              maxLength={200}
               required
               disabled={busy}
             />

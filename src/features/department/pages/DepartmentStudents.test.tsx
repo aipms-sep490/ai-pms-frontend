@@ -298,6 +298,41 @@ describe('AcademicProfileSummary student self-update and lock', () => {
     expect(mocks.updateMyStudentAcademic).toHaveBeenCalledWith({ classCode: 'SE1809', specializationId: 11 })
   })
 
+  it('rejects invalid class code format locally without calling the server', async () => {
+    mocks.useAuthSession.mockReturnValue({
+      session: { accessToken: 'stu-token', user: { id: 42, roles: ['STUDENT'] } },
+    })
+    mocks.getMyAcademicProfile.mockResolvedValue({
+      userId: 42,
+      fullName: 'Nguyễn Minh Quân',
+      email: 'quan@fpt.edu.vn',
+      studentCode: 'SE180042',
+      departmentId: 2,
+      departmentName: 'Khoa CNTT',
+      majorId: 20,
+      majorName: 'Kỹ thuật phần mềm',
+      classCode: null,
+      specializationId: null,
+      specializationCode: null,
+      specializationName: null,
+      curriculumCode: 'K18_SE',
+      status: 'PENDING',
+      reviewedBy: null,
+      reviewedAt: null,
+      rejectionReason: null,
+      concurrencyToken: 'tok',
+    })
+
+    render(<AcademicProfileSummary />)
+    await screen.findByText('SE180042')
+    fireEvent.click(screen.getByRole('button', { name: 'Cập nhật lớp & chuyên ngành hẹp' }))
+    fireEvent.change(screen.getByLabelText(/Lớp hành chính/), { target: { value: '###' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu lớp & chuyên ngành hẹp' }))
+
+    expect((await screen.findByRole('alert')).textContent).toMatch(/phải bắt đầu bằng chữ\/số/)
+    expect(mocks.updateMyStudentAcademic).not.toHaveBeenCalled()
+  })
+
   it('locks self-editing when academic profile is VERIFIED', async () => {
     mocks.useAuthSession.mockReturnValue({
       session: { accessToken: 'stu-token', user: { id: 42, roles: ['STUDENT'] } },

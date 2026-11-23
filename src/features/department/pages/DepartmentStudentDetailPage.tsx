@@ -48,6 +48,8 @@ const qualificationLabels: Record<string, string> = {
   NOT_SUBMITTED: 'Chưa nộp hồ sơ điều kiện',
 }
 
+const CLASS_CODE_REGEX = /^[A-Za-z0-9][A-Za-z0-9._ /-]{0,49}$/
+
 function formatDate(value?: string | null): string {
   if (!value) return 'Chưa có'
   const parsed = new Date(value)
@@ -142,13 +144,18 @@ export function DepartmentStudentDetailPage() {
   async function handleSaveAcademic(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!detail || saving) return
+    const trimmedClass = draftClassCode.trim()
+    if (trimmedClass && !CLASS_CODE_REGEX.test(trimmedClass)) {
+      setError('Lớp hành chính phải bắt đầu bằng chữ/số và chỉ chứa ký tự hợp lệ (A-Z, 0-9, khoảng trắng, ".", "_", "-", "/", tối đa 50 ký tự).')
+      return
+    }
     setSaving(true)
     setError(null)
     setNotice(null)
     try {
       const updated = await updateDepartmentStudentAcademic(detail.summary.userId, {
         majorId: Number(draftMajorId) > 0 ? Number(draftMajorId) : null,
-        classCode: draftClassCode.trim() || null,
+        classCode: trimmedClass || null,
         specializationId: Number(draftSpecId) > 0 ? Number(draftSpecId) : null,
         curriculumCode: draftCurriculum.trim() || null,
         concurrencyToken: detail.concurrencyToken,
