@@ -7,7 +7,7 @@ import { ProjectAiPage } from './ProjectAiPage'
 import { ProjectProgressAnalysisPanel } from './components/ProjectProgressAnalysisPanel'
 import { ReportAiSummary } from './components/ReportAiSummary'
 
-const api = vi.hoisted(() => ({ getProjectProgressAnalysis: vi.fn(), getProjectAiDigest: vi.fn(), recordProjectProgressAnalysis: vi.fn(), getReportAiSummary: vi.fn(), askProjectAssistant: vi.fn(), getProjectAiRuns: vi.fn().mockResolvedValue({ items: [], totalCount: 0, page: 1, pageSize: 20 }) }))
+const api = vi.hoisted(() => ({ getProjectProgressAnalysis: vi.fn(), getProjectAiDigest: vi.fn(), recordProjectProgressAnalysis: vi.fn(), getReportAiSummary: vi.fn(), askProjectAssistant: vi.fn(), getProjectAiRuns: vi.fn().mockResolvedValue({ items: [], totalCount: 0, page: 1, pageSize: 10 }) }))
 vi.mock('./ai-api', () => api)
 vi.mock('../../app/config/env', () => ({ env: { aiRunHistoryEnabled: true, academicAiAssistantEnabled: false } }))
 
@@ -19,7 +19,7 @@ const analysis = {
 }
 const summary = { projectId: 9, reportId: 17, reportType: 'WEEKLY', periodStart: '2026-09-14', periodEnd: '2026-09-20', summary: { completed: 'Đã xong API.', inProgress: 'Kiểm thử.', blockers: 'Chờ tích hợp.', risks: 'Chậm tiến độ.', nextActions: 'Kiểm thử phân quyền.' }, contextScope: 'Project #9', evidence: [{ sourceType: 'PROGRESS_REPORT', sourceId: 'PR-17', title: 'Weekly report', periodOrDate: '2026-09-14 to 2026-09-20', referenceUrl: '/api/v1/progress-reports/17', excerpt: 'Đã xong API.' }], limitationNote: null, generatedAt: '2026-10-03T08:00:00Z' }
 
-beforeEach(() => { vi.resetAllMocks(); api.getProjectProgressAnalysis.mockResolvedValue(analysis); api.getProjectAiDigest.mockResolvedValue({ projectId: 9, generatedAtUtc: '2026-10-03T08:00:00Z', dataStatus: 'SUFFICIENT', riskLevel: 'MEDIUM', riskScore: 32, progressSummary: analysis.progressSummary, signals: [], nextActions: ['Phân công người xử lý.'], evidence: [], limitations: null }); api.getReportAiSummary.mockResolvedValue(summary); api.getProjectAiRuns.mockResolvedValue({ items: [], totalCount: 0, page: 1, pageSize: 20 }) })
+beforeEach(() => { vi.resetAllMocks(); api.getProjectProgressAnalysis.mockResolvedValue(analysis); api.getProjectAiDigest.mockResolvedValue({ projectId: 9, generatedAtUtc: '2026-10-03T08:00:00Z', dataStatus: 'SUFFICIENT', riskLevel: 'MEDIUM', riskScore: 32, progressSummary: analysis.progressSummary, signals: [], nextActions: ['Phân công người xử lý.'], evidence: [], limitations: null }); api.getReportAiSummary.mockResolvedValue(summary); api.getProjectAiRuns.mockResolvedValue({ items: [], totalCount: 0, page: 1, pageSize: 10 }) })
 afterEach(cleanup)
 
 describe('AI advisory components', () => {
@@ -42,7 +42,7 @@ describe('AI advisory components', () => {
     await screen.findByRole('button', { name: /Phân tích tiến độ.*Hoàn tất/ })
     expect(api.recordProjectProgressAnalysis).toHaveBeenCalledTimes(1)
     expect(api.getProjectAiRuns).toHaveBeenCalledTimes(2)
-    expect(api.getProjectAiRuns).toHaveBeenLastCalledWith(9, 1, 20, expect.any(AbortSignal))
+    expect(api.getProjectAiRuns).toHaveBeenLastCalledWith(9, 1, 10, expect.any(AbortSignal))
   })
   it('clearly labels a project assistant fallback without inventing an insufficient-evidence state', async () => {
     api.askProjectAssistant.mockResolvedValue({ projectId: 9, answer: 'Provider unavailable', contextScope: 'Project #9', evidence: summary.evidence, limitationNote: 'Fallback', insufficientEvidence: false, generationStatus: 'FALLBACK', generatedAt: '2026-10-03T08:00:00Z' })

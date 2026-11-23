@@ -500,13 +500,16 @@ export function AssistantReviewGateSetupCard({
       )}
 
       {applied ? (
-        <div role="status" className="space-y-1.5 rounded-lg border border-status-success-border bg-status-success-bg p-3 text-xs text-status-success-text">
-          <p className="font-semibold">
-            ✓ Đã tạo bản nháp khung cổng "{applied.name}" ({applied.code}) gồm {applied.gatesCount} cổng ở trạng thái {applied.status}.
-          </p>
-          {applied.warnings?.map((w, i) => (
-            <p key={i}>• {w}</p>
-          ))}
+        <div role="status" className="flex items-start gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-3 text-xs text-ink">
+          <span className="material-symbols-outlined mt-0.5 shrink-0 text-[16px] text-status-success-text" aria-hidden="true">check_circle</span>
+          <div className="space-y-1.5">
+            <p className="font-semibold text-ink">
+              Đã tạo bản nháp khung cổng "{applied.name}" ({applied.code}) gồm {applied.gatesCount} cổng ở trạng thái {applied.status}.
+            </p>
+            {applied.warnings?.map((w, i) => (
+              <p key={i} className="text-ink-soft">• {w}</p>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-3">
