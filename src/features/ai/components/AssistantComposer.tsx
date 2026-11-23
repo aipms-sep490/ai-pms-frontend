@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type { AssistantDraft, AssistantRubricOption, AssistantToolMode } from '../academic-ai-api'
 
-const acceptedFiles = '.png,.jpg,.jpeg,.webp,.pdf,.docx,.txt,.md,.csv,.json'
+const acceptedFiles = '.png,.jpg,.jpeg,.webp,.pdf,.docx,.xlsx,.txt,.md,.csv,.json'
 
 interface SlashCommandItem {
   command: string
@@ -395,7 +395,7 @@ export function AssistantComposer({
         {dragging && (
           <div className="assistant-drop-hint" aria-hidden="true">
             <span className="material-symbols-outlined">upload_file</span>
-            Thả ảnh hoặc tài liệu (PDF, DOCX, PNG…) vào đây
+            Thả ảnh hoặc tài liệu (PDF, DOCX, XLSX, PNG…) vào đây
           </div>
         )}
 
@@ -483,7 +483,7 @@ export function AssistantComposer({
             <button
               type="button"
               aria-label="+ Ảnh / tài liệu"
-              title="Đính kèm ảnh (PNG/JPG/WebP) hoặc tài liệu (PDF/DOCX/TXT/CSV/JSON)"
+              title="Đính kèm ảnh (PNG/JPG/WebP) hoặc tài liệu (PDF/DOCX/XLSX/TXT/CSV/JSON)"
               disabled={busy || files.length >= 4}
               className={`assistant-attach${files.length > 0 ? ' has-files' : ''}`}
               onClick={() => fileInput.current?.click()}
@@ -567,7 +567,7 @@ export function AssistantComposer({
         <details className="assistant-file-help">
           <summary>Tệp &amp; phím tắt</summary>
           <p>
-            Hỗ trợ PNG, JPG, WebP, PDF, DOCX, TXT, MD, CSV, JSON (tối đa 4 tệp, 10 MB/tệp, tổng 20 MB).
+            Hỗ trợ PNG, JPG, WebP, PDF, DOCX, XLSX, TXT, MD, CSV, JSON (tối đa 4 tệp, 10 MB/tệp, tổng 20 MB).
             Gõ <code>/</code> để chọn nhanh công cụ AI, bấm <code>Alt + A</code> để mở/thu gọn nhanh trợ lý từ mọi trang.
           </p>
         </details>

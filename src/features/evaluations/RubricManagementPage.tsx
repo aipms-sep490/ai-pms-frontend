@@ -21,6 +21,8 @@ import { formatPercent, formatScore } from '../../components/ui/format'
 import { RubricSheetPreview } from './components/RubricSheetPreview'
 import { RubricVersionDiff } from './components/RubricVersionDiff'
 import { RubricWorkbookPanel } from './components/RubricWorkbookPanel'
+import { DepartmentAiDraftBar } from '../ai-suite/DepartmentAiDraftBar'
+import { AssistantRubricSetupCard } from '../ai/components/AssistantSetupPlanCard'
 import { rubricWeightGroupIssues, weightGroupIssueLabel, type WeightGroupIssue } from './rubric-weight-groups'
 import './rubric-management.css'
 
@@ -138,6 +140,7 @@ export function RubricManagementPage() {
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [busy, setBusy] = useState(false)
+  const [aiDraftOpen, setAiDraftOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [listFailed, setListFailed] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -294,8 +297,45 @@ export function RubricManagementPage() {
   const modalCriterion = modalCriterionPath ? findCriterionAtPath(criteria, modalCriterionPath) : null
   const formDisabled = Boolean(selected && !selected.canEdit) || busy
 
-  return <WorkspacePage size="wide" className="rubric-page space-y-5" title="Bộ tiêu chí đánh giá" eyebrow="Cấu hình học vụ" description="Quản lý tiêu chí, trọng số và các phiên bản dùng trong từng đợt đánh giá." action={<Button icon="add" disabled={busy || loading || listFailed} onClick={() => void startDraft()}>Tạo bộ tiêu chí</Button>}>
+  return <WorkspacePage size="wide" className="rubric-page space-y-5" title="Bộ tiêu chí đánh giá" eyebrow="Cấu hình học vụ" description="Quản lý tiêu chí, trọng số và các phiên bản dùng trong từng đợt đánh giá." action={<div className="flex flex-wrap items-center gap-2"><Button variant="secondary" icon="auto_awesome" disabled={busy || loading || listFailed} onClick={() => setAiDraftOpen(true)}>Soạn nháp bằng AI</Button><Button icon="add" disabled={busy || loading || listFailed} onClick={() => void startDraft()}>Tạo bộ tiêu chí</Button></div>}>
     {confirmationDialog}
+    <DepartmentAiDraftBar
+      open={aiDraftOpen}
+      onClose={() => setAiDraftOpen(false)}
+      title="Soạn nháp Bộ tiêu chí đánh giá bằng AI"
+      description="Tải lên Đề cương học phần / Bảng chấm mẫu (PDF, DOCX, XLSX, ảnh) hoặc mô tả yêu cầu để AI dựng khung Rubric tổng 100% cùng 4 mức chất lượng ở trạng thái DRAFT."
+      toolMode="RUBRIC_SETUP"
+      pageContext="/academic/rubrics"
+      placeholder="VD: Thiết lập bộ tiêu chí bảo vệ đồ án tốt nghiệp ngành Kỹ thuật phần mềm (giai đoạn Bảo vệ, 4 tiêu chí gốc tổng 100%, mỗi tiêu chí đủ 4 mức chất lượng)…"
+      starters={[
+        { label: 'Bảo vệ đồ án CNTT', prompt: 'Thiết lập bộ tiêu chí Bảo vệ đồ án tốt nghiệp đơn ngành CNTT (tổng 100%, 4 mức chất lượng: Xuất sắc, Khá, Đạt, Chưa đạt).' },
+        { label: 'Chấm nguội (Cold)', prompt: 'Thiết lập bộ tiêu chí Chấm nguội (COLD) tài liệu SRS/SDS và mã nguồn, tổng 100%, kèm hướng dẫn minh chứng cụ thể.' },
+        { label: 'Liên ngành SE + MKT', prompt: 'Thiết lập bộ tiêu chí Liên ngành (INTERDISCIPLINARY) phạm vi Chung cho đồ án kết hợp Kỹ thuật phần mềm và Marketing.' },
+      ]}
+      renderResult={(res) => (
+        res.draft?.kind === 'RUBRIC_SETUP' && res.draft.rubricSetup ? (
+          <AssistantRubricSetupCard
+            runId={res.runId}
+            plan={res.draft.rubricSetup}
+            canApply
+            departments={departments}
+            semesters={semesters}
+            majors={majors}
+            defaultDepartmentId={departmentId || departments[0]?.id || null}
+            academicSemesterId={semesterId || semesters[0]?.id || 0}
+            onApplied={(created) => {
+              void loadList().then(() => select(created.rubricId))
+              setAiDraftOpen(false)
+            }}
+          />
+        ) : (
+          <div className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-xs text-status-warning-text space-y-2">
+            <p className="font-semibold">AI chưa trích xuất được cấu trúc tiêu chí chuẩn từ yêu cầu trên.</p>
+            <p className="whitespace-pre-wrap text-ink">{res.answer}</p>
+          </div>
+        )
+      )}
+    />
     {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" className="min-h-11 font-semibold underline" onClick={() => void loadList()}>Tải lại</button></p>}
     <FilterToolbar
       search={listSearch}

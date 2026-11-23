@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react'
+import { useContext, useMemo, useRef, useState } from 'react'
+import { AcademicWorkflowContext } from '../../../app/context/academic-workflow-context'
 import {
   applyProjectAiSetup,
   applyRubricAiSetup,
@@ -6,6 +7,7 @@ import {
   type ApplyRubricSetupResult,
   type AssistantProjectSetupPlan,
   type AssistantRubricCriterionDraft,
+  type AssistantRubricLevelDraft,
   type AssistantRubricSetupPlan,
   type AssistantSetupDeliverable,
   type AssistantSetupMilestone,
@@ -266,45 +268,163 @@ export function AssistantProjectSetupCard({
   )
 }
 
+const DEFAULT_RUBRIC_LEVELS: AssistantRubricLevelDraft[] = [
+  { levelOrder: 1, label: 'Xuất sắc', descriptor: 'Đáp ứng vượt trội toàn bộ yêu cầu học thuật, minh chứng đầy đủ và có chiều sâu.', scoreFrom: 8.5, scoreTo: 10 },
+  { levelOrder: 2, label: 'Khá / Tốt', descriptor: 'Đáp ứng đầy đủ các yêu cầu cốt lõi, minh chứng rõ ràng, còn vài điểm nhỏ cần tối ưu.', scoreFrom: 7.0, scoreTo: 8.4 },
+  { levelOrder: 3, label: 'Đạt yêu cầu', descriptor: 'Đáp ứng mức tối thiểu theo quy định học vụ nhưng còn thiếu độ hoàn thiện hoặc chi tiết.', scoreFrom: 5.0, scoreTo: 6.9 },
+  { levelOrder: 4, label: 'Chưa đạt', descriptor: 'Thiếu minh chứng quan trọng hoặc chưa đáp ứng yêu cầu tối thiểu của tiêu chí.', scoreFrom: 0, scoreTo: 4.9 },
+]
+
+export interface RubricScopeOption {
+  id: number
+  code?: string | null
+  name: string
+  departmentId?: number | null
+}
+
 export function AssistantRubricSetupCard({
   runId,
   plan,
   canApply,
   academicSemesterId,
+  departments: propDepartments,
+  semesters: propSemesters,
+  majors: propMajors,
+  defaultDepartmentId,
   onOpenRubrics,
+  onApplied,
 }: {
   runId?: number | null
   plan: AssistantRubricSetupPlan
   canApply: boolean
   academicSemesterId?: number
+  departments?: readonly RubricScopeOption[]
+  semesters?: readonly RubricScopeOption[]
+  majors?: readonly RubricScopeOption[]
+  defaultDepartmentId?: number | null
   onOpenRubrics?: () => void
+  onApplied?: (result: ApplyRubricSetupResult) => void
 }) {
+  const workflow = useContext(AcademicWorkflowContext)
+  const departments = useMemo<readonly RubricScopeOption[]>(
+    () => propDepartments ?? workflow?.academic?.departments ?? [],
+    [propDepartments, workflow?.academic?.departments],
+  )
+  const semesters = useMemo<readonly RubricScopeOption[]>(
+    () => propSemesters ?? workflow?.academic?.currentSemesters ?? [],
+    [propSemesters, workflow?.academic?.currentSemesters],
+  )
+  const allMajors = useMemo<readonly RubricScopeOption[]>(
+    () => propMajors ?? workflow?.academic?.majors ?? [],
+    [propMajors, workflow?.academic?.majors],
+  )
+
+  const initialSemesterId =
+    academicSemesterId ||
+    workflow?.academic?.selectedSemester?.id ||
+    semesters[0]?.id ||
+    0
+  const initialDepartmentId = defaultDepartmentId ?? departments[0]?.id ?? null
+
+  const [departmentId, setDepartmentId] = useState<number | null>(initialDepartmentId)
+  const [semesterId, setSemesterId] = useState<number>(initialSemesterId)
+  const [majorId, setMajorId] = useState<number | null>(null)
   const [code, setCode] = useState(plan.code)
   const [name, setName] = useState(plan.name)
   const [description, setDescription] = useState(plan.description ?? '')
   const [projectMode, setProjectMode] = useState(plan.projectMode || 'SINGLE_MAJOR')
   const [evaluationStage, setEvaluationStage] = useState(plan.evaluationStage || 'DEFENSE')
   const [evaluationScope, setEvaluationScope] = useState(plan.evaluationScope || 'COMMON')
-  const [criteria, setCriteria] = useState<AssistantRubricCriterionDraft[]>(() => plan.criteria.map(c => ({ ...c })))
+  const [criteria, setCriteria] = useState<AssistantRubricCriterionDraft[]>(() =>
+    plan.criteria.map((c, idx) => ({
+      ...c,
+      tempKey: c.tempKey || `C${idx + 1}`,
+      levels: (c.levels ?? []).map(l => ({ ...l })),
+    })),
+  )
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [applied, setApplied] = useState<ApplyRubricSetupResult | null>(null)
   const idempotencyKey = useRef(makeUuid())
 
-  const rootWeightSum = useMemo(
-    () => Math.round(criteria.filter(c => !c.parentTempKey).reduce((s, c) => s + (Number(c.weightPercent) || 0), 0) * 100) / 100,
+  const filteredMajors = useMemo(() => {
+    if (!departmentId) return allMajors
+    const scoped = allMajors.filter(m => !m.departmentId || m.departmentId === departmentId)
+    return scoped.length > 0 ? scoped : allMajors
+  }, [allMajors, departmentId])
+
+  const parentKeys = useMemo(
+    () => new Set(criteria.map(c => c.parentTempKey?.trim()).filter((k): k is string => Boolean(k))),
     [criteria],
   )
-  const weightValid = Math.abs(rootWeightSum - 100) < 0.01
+
+  const groupWeightErrors = useMemo(() => {
+    const groups = new Map<string, number>()
+    for (const c of criteria) {
+      const parentKey = c.parentTempKey?.trim() || '__ROOT__'
+      groups.set(parentKey, Math.round(((groups.get(parentKey) ?? 0) + (Number(c.weightPercent) || 0)) * 100) / 100)
+    }
+    const issues: string[] = []
+    for (const [key, sum] of groups.entries()) {
+      if (Math.abs(sum - 100) >= 0.01) {
+        if (key === '__ROOT__') issues.push(`Nhóm tiêu chí gốc hiện là ${sum}% (cần đúng 100%)`)
+        else {
+          const parentName = criteria.find(c => c.tempKey === key)?.name || key
+          issues.push(`Nhóm con của "${parentName}" hiện là ${sum}% (cần đúng 100%)`)
+        }
+      }
+    }
+    return issues
+  }, [criteria])
+
+  const rootWeightSum = useMemo(
+    () => Math.round(criteria.filter(c => !c.parentTempKey?.trim()).reduce((s, c) => s + (Number(c.weightPercent) || 0), 0) * 100) / 100,
+    [criteria],
+  )
+  const weightValid = criteria.length > 0 && groupWeightErrors.length === 0
+  const needsMajor = evaluationScope === 'MAJOR_SPECIFIC'
+  const majorValid = !needsMajor || Boolean(majorId && majorId > 0)
+
+  const mutateCriteria = (updater: (list: AssistantRubricCriterionDraft[]) => AssistantRubricCriterionDraft[]) => {
+    idempotencyKey.current = makeUuid()
+    setCriteria(updater)
+  }
+
+  const addCriterion = (parentTempKey: string | null = null) => {
+    mutateCriteria(list => {
+      const nextNum = list.length + 1
+      return [
+        ...list,
+        {
+          tempKey: `C${nextNum}_${Date.now().toString(36).slice(-3)}`,
+          parentTempKey,
+          name: parentTempKey ? `Tiêu chí con ${nextNum}` : `Tiêu chí mới ${nextNum}`,
+          description: null,
+          weightPercent: 10,
+          maxScore: 10,
+          isRequired: true,
+          learningOutcome: null,
+          evidenceGuidance: null,
+          levels: DEFAULT_RUBRIC_LEVELS.map(l => ({ ...l })),
+        },
+      ]
+    })
+  }
+
+  const removeCriterion = (tempKey: string) => {
+    mutateCriteria(list => list.filter(c => c.tempKey !== tempKey && c.parentTempKey !== tempKey))
+  }
 
   const apply = async () => {
-    if (!canApply || busy || !name.trim() || !code.trim() || !weightValid) return
+    if (!canApply || busy || !name.trim() || !code.trim() || !weightValid || !majorValid) return
     setBusy(true); setError('')
     try {
       const result = await applyRubricAiSetup({
         idempotencyKey: idempotencyKey.current,
         runId: runId ?? null,
-        academicSemesterId: academicSemesterId ?? 0,
+        departmentId: departmentId ?? null,
+        academicSemesterId: semesterId,
+        majorId: needsMajor ? majorId : null,
         code: code.trim(),
         name: name.trim(),
         description: description.trim() || null,
@@ -314,6 +434,7 @@ export function AssistantRubricSetupCard({
         criteria,
       })
       setApplied(result)
+      onApplied?.(result)
     } catch (err) {
       if (err instanceof HttpError) {
         setError(humanizeHttpError(err, 'Chưa tạo được bộ tiêu chí nháp. Kiểm tra mã bộ tiêu chí, trọng số và học kỳ hiện hành.'))
@@ -338,6 +459,11 @@ export function AssistantRubricSetupCard({
             </p>
           </div>
         </div>
+        {applied.warnings && applied.warnings.length > 0 && (
+          <ul className="assistant-setup-warnings">
+            {applied.warnings.map((w, i) => <li key={i}>{w}</li>)}
+          </ul>
+        )}
         {onOpenRubrics && (
           <div className="assistant-setup-links">
             <button type="button" onClick={onOpenRubrics}>Mở quản lý Bộ tiêu chí</button>
@@ -352,7 +478,7 @@ export function AssistantRubricSetupCard({
       <header className="assistant-setup-head">
         <span className="assistant-structured-kicker">
           <span className="material-symbols-outlined" aria-hidden="true">grading</span>
-          Bộ tiêu chí đánh giá bản nháp · Xem trước & áp dụng
+          Bộ tiêu chí đánh giá bản nháp · Xem trước &amp; chỉnh sửa trực tiếp
         </span>
       </header>
       {plan.warnings.length > 0 && (
@@ -361,38 +487,296 @@ export function AssistantRubricSetupCard({
         </ul>
       )}
       <div className="assistant-rubric-grid">
-        <label>Mã bộ tiêu chí<input value={code} disabled={busy} maxLength={50} onChange={e => { idempotencyKey.current = makeUuid(); setCode(e.target.value) }} /></label>
-        <label>Tên bộ tiêu chí<input value={name} disabled={busy} maxLength={255} onChange={e => { idempotencyKey.current = makeUuid(); setName(e.target.value) }} /></label>
-        <label>Mô hình<select value={projectMode} disabled={busy} onChange={e => { idempotencyKey.current = makeUuid(); setProjectMode(e.target.value) }}><option value="SINGLE_MAJOR">Đơn ngành</option><option value="INTERDISCIPLINARY">Liên ngành</option></select></label>
-        <label>Giai đoạn<select value={evaluationStage} disabled={busy} onChange={e => { idempotencyKey.current = makeUuid(); setEvaluationStage(e.target.value) }}><option value="ON_GOING">Quá trình</option><option value="COLD">Chấm nguội</option><option value="DEFENSE">Bảo vệ</option></select></label>
-        <label>Phạm vi<select value={evaluationScope} disabled={busy} onChange={e => { idempotencyKey.current = makeUuid(); setEvaluationScope(e.target.value) }}><option value="COMMON">Chung (Cả đồ án)</option><option value="MAJOR_SPECIFIC">Theo ngành</option><option value="INDIVIDUAL">Cá nhân</option></select></label>
+        <label>
+          Mã bộ tiêu chí
+          <input value={code} disabled={busy} maxLength={50} onChange={e => { idempotencyKey.current = makeUuid(); setCode(e.target.value) }} />
+        </label>
+        <label>
+          Tên bộ tiêu chí
+          <input value={name} disabled={busy} maxLength={255} onChange={e => { idempotencyKey.current = makeUuid(); setName(e.target.value) }} />
+        </label>
+        {departments.length > 0 && (
+          <label>
+            Bộ môn / Khoa
+            <select
+              aria-label="Bộ môn áp dụng bộ tiêu chí"
+              value={departmentId ?? ''}
+              disabled={busy}
+              onChange={e => {
+                idempotencyKey.current = makeUuid()
+                setDepartmentId(e.target.value ? Number(e.target.value) : null)
+                setMajorId(null)
+              }}
+            >
+              <option value="">Mặc định theo tài khoản</option>
+              {departments.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        {semesters.length > 0 && (
+          <label>
+            Học kỳ áp dụng
+            <select
+              aria-label="Học kỳ áp dụng bộ tiêu chí"
+              value={semesterId || ''}
+              disabled={busy}
+              onChange={e => {
+                idempotencyKey.current = makeUuid()
+                setSemesterId(e.target.value ? Number(e.target.value) : 0)
+              }}
+            >
+              <option value="">Học kỳ đang hoạt động</option>
+              {semesters.map(s => (
+                <option key={s.id} value={s.id}>{s.code ? `${s.code} · ${s.name}` : s.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        <label>
+          Mô hình
+          <select value={projectMode} disabled={busy} onChange={e => { idempotencyKey.current = makeUuid(); setProjectMode(e.target.value) }}>
+            <option value="SINGLE_MAJOR">Đơn ngành</option>
+            <option value="INTERDISCIPLINARY">Liên ngành</option>
+          </select>
+        </label>
+        <label>
+          Giai đoạn
+          <select value={evaluationStage} disabled={busy} onChange={e => { idempotencyKey.current = makeUuid(); setEvaluationStage(e.target.value) }}>
+            <option value="ON_GOING">Đánh giá quá trình</option>
+            <option value="COLD">Chấm nguội</option>
+            <option value="DEFENSE">Bảo vệ</option>
+          </select>
+        </label>
+        <label>
+          Phạm vi
+          <select
+            value={evaluationScope}
+            disabled={busy}
+            onChange={e => {
+              idempotencyKey.current = makeUuid()
+              setEvaluationScope(e.target.value)
+              if (e.target.value === 'COMMON') setMajorId(null)
+            }}
+          >
+            <option value="COMMON">Chung (Cả đồ án)</option>
+            <option value="MAJOR_SPECIFIC">Theo ngành</option>
+            <option value="INDIVIDUAL">Cá nhân</option>
+          </select>
+        </label>
+        {needsMajor && (
+          <label>
+            Chuyên ngành *
+            <select
+              aria-label="Chuyên ngành áp dụng bộ tiêu chí"
+              value={majorId ?? ''}
+              disabled={busy}
+              onChange={e => {
+                idempotencyKey.current = makeUuid()
+                setMajorId(e.target.value ? Number(e.target.value) : null)
+              }}
+            >
+              <option value="">Chọn chuyên ngành</option>
+              {filteredMajors.map(m => (
+                <option key={m.id} value={m.id}>{m.code ? `${m.code} · ${m.name}` : m.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
-      <label className="assistant-setup-sublabel">Mô tả<textarea rows={2} value={description} disabled={busy} onChange={e => setDescription(e.target.value)} /></label>
+
+      <label className="assistant-setup-sublabel">
+        Mô tả
+        <textarea rows={2} value={description} disabled={busy} onChange={e => { idempotencyKey.current = makeUuid(); setDescription(e.target.value) }} />
+      </label>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <strong className="text-xs text-ink">Danh sách tiêu chí ({criteria.length})</strong>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => addCriterion(null)}
+          className="rounded-md border border-primary/30 bg-primary-subtle px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/15 disabled:opacity-50"
+        >
+          ＋ Thêm tiêu chí gốc
+        </button>
+      </div>
 
       <div className="assistant-setup-list">
-        {criteria.map((c, idx) => (
-          <article key={c.tempKey || idx} className="assistant-setup-item">
-            <div className="assistant-setup-item-row">
-              <input aria-label={`Tên tiêu chí ${idx + 1}`} value={c.name} disabled={busy} onChange={e => { idempotencyKey.current = makeUuid(); setCriteria(list => list.map((x, i) => i === idx ? { ...x, name: e.target.value } : x)) }} />
-              <label className="assistant-weight-input">
-                <input type="number" min={1} max={100} step={0.5} value={c.weightPercent} disabled={busy} onChange={e => { idempotencyKey.current = makeUuid(); setCriteria(list => list.map((x, i) => i === idx ? { ...x, weightPercent: Number(e.target.value) } : x)) }} />%
-              </label>
-            </div>
-            {c.description && <p className="assistant-setup-note">{c.description}</p>}
-            {c.evidenceGuidance && <small>Minh chứng: {c.evidenceGuidance}</small>}
-            {c.levels.length > 0 && <small>Thang điểm: {c.levels.map(l => `${l.label} (${l.scoreFrom ?? 0}-${l.scoreTo ?? 10})`).join(' · ')}</small>}
-          </article>
-        ))}
+        {criteria.map((c, idx) => {
+          const isChild = Boolean(c.parentTempKey?.trim())
+          const isParent = parentKeys.has(c.tempKey)
+          const parentName = isChild ? criteria.find(p => p.tempKey === c.parentTempKey)?.name : null
+          return (
+            <article key={c.tempKey || idx} className={`assistant-setup-item ${isChild ? 'ml-4 border-l-2 border-l-primary/40' : ''}`}>
+              <div className="assistant-setup-item-row">
+                <input
+                  aria-label={`Tên tiêu chí ${idx + 1}`}
+                  value={c.name}
+                  disabled={busy}
+                  onChange={e => mutateCriteria(list => list.map((x, i) => i === idx ? { ...x, name: e.target.value } : x))}
+                />
+                <label className="assistant-weight-input">
+                  <input
+                    type="number"
+                    min={0.5}
+                    max={100}
+                    step={0.5}
+                    value={c.weightPercent}
+                    disabled={busy}
+                    onChange={e => mutateCriteria(list => list.map((x, i) => i === idx ? { ...x, weightPercent: Number(e.target.value) } : x))}
+                  />%
+                </label>
+                {!isChild && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => addCriterion(c.tempKey)}
+                    className="rounded border border-hairline px-2 py-1 text-xs font-medium text-primary hover:bg-primary-subtle"
+                    title="Thêm tiêu chí con thuộc nhóm này"
+                  >
+                    + Con
+                  </button>
+                )}
+                {criteria.length > 1 && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    aria-label={`Xóa tiêu chí ${c.name}`}
+                    onClick={() => removeCriterion(c.tempKey)}
+                    className="rounded border border-status-error-border px-2 py-1 text-xs font-medium text-status-error-text hover:bg-status-error-bg"
+                  >
+                    Xóa
+                  </button>
+                )}
+              </div>
+
+              {parentName && <small className="text-xs text-primary">Thuộc nhóm: {parentName}</small>}
+
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <label className="text-xs text-ink-soft">
+                  Chuẩn đầu ra (LO)
+                  <input
+                    value={c.learningOutcome ?? ''}
+                    disabled={busy}
+                    placeholder="VD: CLO1 · Thiết kế kiến trúc"
+                    onChange={e => mutateCriteria(list => list.map((x, i) => i === idx ? { ...x, learningOutcome: e.target.value || null } : x))}
+                    className="mt-1 w-full rounded border border-hairline bg-card px-2 py-1.5 text-xs text-ink"
+                  />
+                </label>
+                <label className="text-xs text-ink-soft">
+                  Hướng dẫn minh chứng
+                  <input
+                    value={c.evidenceGuidance ?? ''}
+                    disabled={busy}
+                    placeholder="VD: Sơ đồ ERD, báo cáo kiểm thử…"
+                    onChange={e => mutateCriteria(list => list.map((x, i) => i === idx ? { ...x, evidenceGuidance: e.target.value || null } : x))}
+                    className="mt-1 w-full rounded border border-hairline bg-card px-2 py-1.5 text-xs text-ink"
+                  />
+                </label>
+              </div>
+
+              {!isParent && (
+                <details className="mt-2 rounded-lg border border-hairline bg-canvas p-2.5">
+                  <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 text-xs font-semibold text-ink-soft">
+                    <span>Thang mức chất lượng ({c.levels.length}/4 mức) · Điểm tối đa {c.maxScore ?? 10}</span>
+                    {c.levels.length < 4 && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={e => {
+                          e.preventDefault()
+                          mutateCriteria(list => list.map((x, i) => i === idx ? { ...x, levels: DEFAULT_RUBRIC_LEVELS.map(l => ({ ...l })) } : x))
+                        }}
+                        className="rounded border border-primary/30 bg-primary-subtle px-2 py-0.5 text-xs font-semibold text-primary"
+                      >
+                        Điền sẵn 4 mức chuẩn
+                      </button>
+                    )}
+                  </summary>
+                  <div className="mt-2 space-y-2">
+                    {c.levels.map((lvl, lIdx) => (
+                      <div key={lIdx} className="grid gap-1.5 rounded border border-hairline bg-card p-2 sm:grid-cols-12">
+                        <input
+                          aria-label={`Tên mức ${lIdx + 1} của ${c.name}`}
+                          value={lvl.label}
+                          disabled={busy}
+                          onChange={e => mutateCriteria(list => list.map((x, i) => i === idx ? {
+                            ...x,
+                            levels: x.levels.map((lv, li) => li === lIdx ? { ...lv, label: e.target.value } : lv),
+                          } : x))}
+                          className="sm:col-span-3 rounded border border-hairline px-2 py-1 text-xs"
+                          placeholder="Tên mức"
+                        />
+                        <input
+                          type="number"
+                          step={0.1}
+                          aria-label={`Từ điểm mức ${lIdx + 1}`}
+                          value={lvl.scoreFrom ?? ''}
+                          disabled={busy}
+                          onChange={e => mutateCriteria(list => list.map((x, i) => i === idx ? {
+                            ...x,
+                            levels: x.levels.map((lv, li) => li === lIdx ? { ...lv, scoreFrom: e.target.value === '' ? null : Number(e.target.value) } : lv),
+                          } : x))}
+                          className="sm:col-span-2 rounded border border-hairline px-2 py-1 text-xs"
+                          placeholder="Từ"
+                        />
+                        <input
+                          type="number"
+                          step={0.1}
+                          aria-label={`Đến điểm mức ${lIdx + 1}`}
+                          value={lvl.scoreTo ?? ''}
+                          disabled={busy}
+                          onChange={e => mutateCriteria(list => list.map((x, i) => i === idx ? {
+                            ...x,
+                            levels: x.levels.map((lv, li) => li === lIdx ? { ...lv, scoreTo: e.target.value === '' ? null : Number(e.target.value) } : lv),
+                          } : x))}
+                          className="sm:col-span-2 rounded border border-hairline px-2 py-1 text-xs"
+                          placeholder="Đến"
+                        />
+                        <input
+                          aria-label={`Mô tả mức ${lIdx + 1} của ${c.name}`}
+                          value={lvl.descriptor}
+                          disabled={busy}
+                          onChange={e => mutateCriteria(list => list.map((x, i) => i === idx ? {
+                            ...x,
+                            levels: x.levels.map((lv, li) => li === lIdx ? { ...lv, descriptor: e.target.value } : lv),
+                          } : x))}
+                          className="sm:col-span-5 rounded border border-hairline px-2 py-1 text-xs"
+                          placeholder="Mô tả đạt mức…"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </article>
+          )
+        })}
       </div>
 
+      {!majorValid && (
+        <p role="alert" className="assistant-setup-error">Phạm vi Theo ngành cần chọn Chuyên ngành áp dụng trước khi lưu.</p>
+      )}
       {error && <p role="alert" className="assistant-setup-error">{error}</p>}
 
       <footer className="assistant-setup-footer">
-        <p className={weightValid ? 'assistant-weight-ok' : 'assistant-weight-bad'}>
-          Tổng trọng số tiêu chí gốc: <strong>{rootWeightSum}%</strong> {!weightValid && '(cần bằng đúng 100%)'}
-        </p>
+        <div>
+          <p className={weightValid ? 'assistant-weight-ok' : 'assistant-weight-bad'}>
+            Tổng trọng số tiêu chí gốc: <strong>{rootWeightSum}%</strong> {!weightValid && '(cần bằng đúng 100%)'}
+          </p>
+          {groupWeightErrors.length > 0 && (
+            <p className="text-xs text-status-error-text">{groupWeightErrors.join(' · ')}</p>
+          )}
+        </div>
         {canApply ? (
-          <button type="button" className="assistant-setup-apply" disabled={busy || !weightValid || !name.trim() || !code.trim()} onClick={() => void apply()}>
+          <button
+            type="button"
+            className="assistant-setup-apply"
+            disabled={busy || !weightValid || !majorValid || !name.trim() || !code.trim()}
+            onClick={() => void apply()}
+          >
             {busy ? 'Đang lưu bộ tiêu chí nháp…' : 'Tạo bộ tiêu chí bản nháp'}
           </button>
         ) : (

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { env } from '../../../app/config/env'
+import { displayLabel } from '../../../components/ui/display-label'
 import type {
   GateRequirement,
   RequirementScope,
@@ -9,6 +10,7 @@ import type {
 
 interface GateRequirementDrawerProps {
   requirement: GateRequirement | null
+  majors?: readonly { id: number; code?: string | null; name: string }[]
   isOpen: boolean
   onClose: () => void
   onSave: (requirement: GateRequirement) => void
@@ -35,6 +37,7 @@ const verificationModes: VerificationMode[] = ['HUMAN', 'SYSTEM', 'SYSTEM + HUMA
 
 export function GateRequirementDrawer({
   requirement,
+  majors = [],
   isOpen,
   onClose,
   onSave,
@@ -142,7 +145,7 @@ export function GateRequirementDrawer({
                 >
                   {requirementTypes.map(t => (
                     <option key={t} value={t}>
-                      {t}
+                      {displayLabel(t)}
                     </option>
                   ))}
                 </select>
@@ -160,7 +163,7 @@ export function GateRequirementDrawer({
                 >
                   {requirementScopes.map(s => (
                     <option key={s} value={s}>
-                      {s}
+                      {displayLabel(s)}
                     </option>
                   ))}
                 </select>
@@ -168,8 +171,24 @@ export function GateRequirementDrawer({
             </div>
 
             {(scope === 'MAJOR_SPECIFIC' || scope === 'INDIVIDUAL') && <div>
-              <label htmlFor="req-major" className="block text-xs font-semibold text-ink-soft">Mã ngành đích *</label>
-              <input id="req-major" inputMode="numeric" value={majorId} onChange={e => setMajorId(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" />
+              <label htmlFor="req-major" className="block text-xs font-semibold text-ink-soft">Chuyên ngành đích *</label>
+              {majors.length > 0 ? (
+                <select
+                  id="req-major"
+                  value={majorId}
+                  onChange={e => setMajorId(e.target.value)}
+                  className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink"
+                >
+                  <option value="">Chọn chuyên ngành</option>
+                  {majors.map(m => (
+                    <option key={m.id} value={String(m.id)}>
+                      {m.code ? `${m.code} · ${m.name}` : m.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input id="req-major" inputMode="numeric" value={majorId} onChange={e => setMajorId(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" />
+              )}
             </div>}
             {scope === 'INDIVIDUAL' && <div>
               <label htmlFor="req-student" className="block text-xs font-semibold text-ink-soft">Mã sinh viên đích *</label>

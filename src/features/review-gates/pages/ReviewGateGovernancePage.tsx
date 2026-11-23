@@ -612,6 +612,7 @@ export function ReviewGateGovernancePage() {
             <ReviewGateBuilder
               key={currentTemplate.id}
               template={currentTemplate}
+              majors={academicContext?.academic?.majors ?? []}
               onChange={handleTemplateChange}
               onSaveDraft={handleSaveDraft}
               onPublish={handlePublish}
