@@ -1,5 +1,5 @@
 import { env } from '../../../app/config/env'
-import { httpGet, httpGetBlob, httpPost, httpPostForm, httpPut } from '../../../services/http/http-client'
+import { httpDelete, httpGet, httpGetBlob, httpPost, httpPostForm, httpPut } from '../../../services/http/http-client'
 import type { PagedResult } from '../../../types/backend/common.backend.types'
 import { requireGateToken, toTemplateRequest } from './review-gates-contract'
 import { reviewGatesMockAdapter } from './review-gates-mock-adapter'
@@ -53,6 +53,11 @@ export async function saveReviewGateTemplate(template: ReviewGateTemplate): Prom
 export async function publishReviewGateTemplate(id: string, concurrencyToken?: string): Promise<ReviewGateTemplate> {
   if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.publishTemplate(id, concurrencyToken)
   return httpPost<ReviewGateTemplate>(`/academic/gate-templates/${id}/publish`, { concurrencyToken: requireGateToken(concurrencyToken) })
+}
+
+export async function deleteReviewGateTemplate(id: string): Promise<void> {
+  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.deleteTemplate(id)
+  await httpDelete(`/academic/gate-templates/${encodeURIComponent(id)}`)
 }
 
 export async function getProjectReviewMatrix(filterMode?: string): Promise<ProjectReviewMatrixRow[]> {
