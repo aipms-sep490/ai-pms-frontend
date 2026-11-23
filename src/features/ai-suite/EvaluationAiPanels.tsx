@@ -196,7 +196,7 @@ export function ScoreCalibrationPanel({ projectId }: { projectId: number }) {
                 <li key={idx} className="rounded-lg border border-hairline bg-canvas p-2.5">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className={a.severity === 'HIGH' ? 'ais-pill ais-pill--danger' : a.severity === 'MEDIUM' ? 'ais-pill ais-pill--warning' : 'ais-pill ais-pill--neutral'}>
-                      {a.severity}
+                      {a.severity === 'HIGH' ? 'Mức độ cao' : a.severity === 'MEDIUM' ? 'Mức trung bình' : a.severity === 'LOW' ? 'Mức thấp' : a.severity}
                     </span>
                     <strong className="text-ink">{a.title}</strong>
                     {a.criterionName && <span className="text-ink-muted">· {a.criterionName}</span>}

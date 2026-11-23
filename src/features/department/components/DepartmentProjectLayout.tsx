@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { env } from '../../../app/config/env'
 import { getProject } from '../../../services/api/projects.api'
 
 /** Navigation discovers existing resource pages; each endpoint still authorizes access. */
@@ -27,11 +28,15 @@ export function DepartmentProjectLayout() {
     ['Kết quả', `/department/projects/${projectId}/result`],
   ] : []
 
-  const secondaryLinks = projectId ? [
+  const secondaryLinks: [string, string][] = projectId ? [
     ['Yêu cầu bàn giao', `/department/projects/${projectId}/final-requirements`],
     ['Hồ sơ bàn giao', `/department/projects/${projectId}/final-submission`],
     ['Kho tệp', `/department/projects/${projectId}/files`],
     ['Đóng góp', `/department/projects/${projectId}/contributions`],
+    ...(env.defenseScheduleEnabled ? [['Lịch bảo vệ', `/department/projects/${projectId}/defense`] as [string, string]] : []),
+    ...(env.aiAdvisoryEnabled || env.aiProgressRiskEnabled ? [['Phân tích rủi ro', `/department/projects/${projectId}/risk`] as [string, string]] : []),
+    ...(env.resultCorrectionEnabled ? [['Đính chính & Phúc khảo', `/department/projects/${projectId}/corrections`] as [string, string]] : []),
+    ['Hồ sơ lưu trữ', `/department/projects/${projectId}/archive-view`],
   ] : []
 
   const allLinks = [...primaryLinks, ...secondaryLinks]

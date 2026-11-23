@@ -8,7 +8,8 @@ export const getMilestoneTemplates = () => httpGet<MilestoneTemplate[]>('/milest
 export const createMilestoneTemplate = (body: { name: string; description: string | null }) => httpPost<MilestoneTemplate>('/milestone-templates', body)
 export const updateMilestoneTemplate = (id: number, body: { name: string; description: string | null }) => httpPut<void>(`/milestone-templates/${id}`, body)
 export const deleteMilestoneTemplate = (id: number) => httpDelete(`/milestone-templates/${id}`)
-export const createTemplateVersion = (id: number) => httpPost<TemplateVersion>(`/milestone-templates/${id}/versions`)
+export const createTemplateVersion = (id: number, copyFromVersionId?: number) =>
+  httpPost<TemplateVersion>(`/milestone-templates/${id}/versions${copyFromVersionId ? `?copyFromVersionId=${copyFromVersionId}` : ''}`)
 export const publishTemplateVersion = (id: number) => httpPost<void>(`/milestone-templates/versions/${id}/publish`)
 export const createTemplateItem = (id: number, body: ItemDraft) => httpPost<TemplateVersion>(`/milestone-templates/versions/${id}/items`, body)
 export const updateTemplateItem = (id: number, body: ItemDraft) => httpPut<TemplateVersion>(`/milestone-templates/items/${id}`, body)

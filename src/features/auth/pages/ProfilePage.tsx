@@ -2,6 +2,8 @@ import { AcademicProfileSummary } from '../../academic/components/AcademicProfil
 import { Link } from 'react-router-dom'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '../../../components/ui/Button'
+import { displayLabel } from '../../../components/ui/display-label'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { HttpError } from '../../../services/http/http-client'
 import { useAuthSession } from '../context/useAuthSession'
 import { getMyProfile, type EditableProfile, type StoredProfile } from '../api/auth-api'
@@ -10,6 +12,17 @@ import type { LoginSession } from '../types/auth.types'
 import './auth-pages.css'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { ProfileAvatar } from '../components/ProfileAvatar'
+
+const PROFILE_ROLE_LABELS: Record<string, string> = {
+  STUDENT: 'Sinh viên',
+  LECTURER: 'Giảng viên',
+  DEPARTMENT_STAFF: 'Cán bộ bộ môn',
+  ADMIN: 'Quản trị viên',
+  INDUSTRY_EXPERT: 'Chuyên gia doanh nghiệp',
+  SUPERVISOR: 'Giảng viên hướng dẫn',
+  EVALUATOR: 'Người chấm đánh giá',
+  MENTOR: 'Cố vấn chuyên môn',
+}
 
 function getProfileErrorMessage(error: Error): string {
   if (error instanceof HttpError) {
@@ -178,22 +191,14 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
             <strong>
               {session.user.roles.length > 0
                 ? session.user.roles
-                    .map(
-                      (role) =>
-                        ({
-                          STUDENT: 'Sinh viên',
-                          LECTURER: 'Giảng viên',
-                          DEPARTMENT_STAFF: 'Cán bộ bộ môn',
-                          ADMIN: 'Quản trị viên',
-                        }[role] ?? role)
-                    )
+                    .map((role) => PROFILE_ROLE_LABELS[role] ?? displayLabel(role))
                     .join(', ')
                 : 'Chưa có vai trò'}
             </strong>
           </div>
           <div>
             <span>Trạng thái tài khoản</span>
-            <strong>Đang hoạt động</strong>
+            <div className="justify-self-start"><StatusBadge tone="success" label="Đang hoạt động" /></div>
           </div>
           {!isPureStudent && (
             <div>

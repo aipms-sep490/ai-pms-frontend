@@ -1,17 +1,21 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Avatar } from '../../../components/ui/Avatar'
 import { Button } from '../../../components/ui/Button'
+import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { useQualificationQueue } from '../hooks/useQualificationQueue'
 
 import { QualificationCertificateViewer } from '../components/QualificationCertificateViewer'
 const statuses: Record<string, string> = { PENDING_VERIFICATION: 'Chờ xác minh', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối', EXPIRED: 'Đã hết hạn' }
-const statusTone: Record<string, string> = {
-  PENDING_VERIFICATION: 'border-status-warning-border bg-status-warning-bg text-status-warning-text',
-  VERIFIED: 'border-status-success-border bg-status-success-bg text-status-success-text',
-  REJECTED: 'border-status-error-border bg-status-error-bg text-status-error-text',
-  EXPIRED: 'border-hairline bg-canvas text-ink-muted',
+const statusBadgeTone: Record<string, BadgeTone> = {
+  PENDING_VERIFICATION: 'warning',
+  VERIFIED: 'success',
+  REJECTED: 'danger',
+  EXPIRED: 'neutral',
 }
 function date(value?: string | null) {
   if (!value) return 'Chưa khai báo'
@@ -23,12 +27,22 @@ export function QualificationVerificationPage({ embedded = false }: { embedded?:
   const queue = useQualificationQueue()
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const filterKey = `${queue.page}:${queue.search}:${queue.status}`
+  const [trainingFilter, setTrainingFilter] = useState<'ALL' | 'COMPLETED' | 'PENDING'>('ALL')
   const [pendingId, setPendingId] = useState<number | null>(null)
   const [noticeState, setNoticeState] = useState<{ key: string; text: string } | null>(null)
   const notice = noticeState?.key === filterKey ? noticeState.text : null
   const setNotice = (text: string | null) => setNoticeState(text ? { key: filterKey, text } : null)
   const lock = useRef(false), errorSummary = useRef<HTMLDivElement>(null)
   useEffect(() => { if (queue.error) errorSummary.current?.focus() }, [queue.error])
+
+  const visibleItems = useMemo(() => {
+    if (trainingFilter === 'ALL') return queue.items
+    return queue.items.filter(item =>
+      trainingFilter === 'COMPLETED'
+        ? item.trainingStatus === 'TRAINING_COMPLETED'
+        : item.trainingStatus !== 'TRAINING_COMPLETED',
+    )
+  }, [queue.items, trainingFilter])
 
   async function decide(id: number, token: string, reject: boolean) {
     if (lock.current) return
@@ -42,18 +56,65 @@ export function QualificationVerificationPage({ embedded = false }: { embedded?:
     } finally { lock.current = false; setPendingId(null) }
   }
 
+  const hasActiveFilters = Boolean(queue.search.trim() || trainingFilter !== 'ALL')
+  const activeChips: ActiveFilterChip[] = []
+  if (trainingFilter !== 'ALL') {
+    activeChips.push({
+      id: 'training',
+      label: 'Đào tạo',
+      value: trainingFilter === 'COMPLETED' ? 'Đã hoàn thành' : 'Chưa hoàn thành',
+    })
+  }
+
   const body = <>
-    <section className="workspace-surface space-y-4 p-4 sm:p-5" aria-label="Lọc hồ sơ xác minh">
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="min-w-0 w-full text-sm font-medium text-ink-soft sm:w-auto sm:flex-1">Tìm sinh viên<input className="mt-1.5 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted" value={queue.search} disabled={pendingId !== null} onChange={event => queue.setSearch(event.target.value)} placeholder="Tên hoặc mã sinh viên" /></label>
-        <label className="text-sm font-medium text-ink-soft">Trạng thái<select className="mt-1.5 block min-h-11 max-w-full rounded-lg border border-hairline bg-card px-3 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted" value={queue.status} disabled={pendingId !== null} onChange={event => queue.setStatus(event.target.value)}>{Object.entries(statuses).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
-        <Button className="min-h-11" variant="secondary" onClick={() => void queue.refresh()} disabled={queue.loading || pendingId !== null}>Tải lại</Button>
+    <FilterToolbar
+      search={queue.search}
+      onSearchChange={value => { if (pendingId === null) queue.setSearch(value) }}
+      searchLabel="Tìm sinh viên"
+      searchPlaceholder="Tên hoặc mã sinh viên"
+      debounceMs={0}
+      tabs={Object.entries(statuses).map(([code, label]) => ({ value: code, label }))}
+      activeTab={queue.status}
+      onTabChange={code => { if (pendingId === null) queue.setStatus(code) }}
+      tabsLabel="Lọc hồ sơ chứng chỉ theo trạng thái"
+      controls={
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="ft-select-wrap">
+            <span className="sr-only">Trạng thái đào tạo</span>
+            <select
+              className="ft-select"
+              aria-label="Lọc theo trạng thái đào tạo"
+              value={trainingFilter}
+              disabled={pendingId !== null}
+              onChange={event => setTrainingFilter(event.target.value as 'ALL' | 'COMPLETED' | 'PENDING')}
+            >
+              <option value="ALL">Tất cả trạng thái đào tạo</option>
+              <option value="COMPLETED">Đã hoàn thành đào tạo</option>
+              <option value="PENDING">Chưa hoàn thành đào tạo</option>
+            </select>
+          </label>
+          {embedded && <Button variant="secondary" icon="refresh" onClick={() => void queue.refresh()} disabled={queue.loading || pendingId !== null}>Tải lại</Button>}
+        </div>
+      }
+      activeChips={activeChips}
+      onRemoveChip={chipId => { if (chipId === 'training') setTrainingFilter('ALL') }}
+      onClearAll={() => { queue.setSearch(''); setTrainingFilter('ALL') }}
+      hasActiveFilters={hasActiveFilters}
+      resultSummary={`${visibleItems.length} / ${queue.totalCount} hồ sơ`}
+    />
+    {queue.error && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{queue.error}</div>}
+    {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{notice}</p>}
+    {queue.loading ? <ListLoading label="Đang tải hồ sơ…" /> : !queue.error && visibleItems.length === 0 ? <p className="workspace-surface p-5 text-sm text-ink-muted">Không có hồ sơ phù hợp.</p> : <ul className="space-y-3" aria-label="Hồ sơ sinh viên">{visibleItems.map(item => <li key={item.id} className="workspace-surface p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar name={item.fullName} size="md" />
+          <div className="min-w-0">
+            <h2 className="break-words font-heading font-semibold text-ink">{item.fullName}</h2>
+            <p className="mt-0.5 font-mono text-xs text-ink-muted">{item.studentCode ?? 'Chưa có MSSV'}</p>
+          </div>
+        </div>
+        <StatusBadge tone={statusBadgeTone[item.verificationStatus] ?? 'neutral'} label={statuses[item.verificationStatus] ?? item.verificationStatus} />
       </div>
-      {queue.error && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{queue.error}</div>}
-      {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{notice}</p>}
-    </section>
-    {queue.loading ? <ListLoading label="Đang tải hồ sơ…" /> : !queue.error && queue.items.length === 0 ? <p className="workspace-surface p-5 text-sm text-ink-muted">Không có hồ sơ phù hợp.</p> : <ul className="space-y-3" aria-label="Hồ sơ sinh viên">{queue.items.map(item => <li key={item.id} className="workspace-surface p-4 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words font-heading font-semibold text-ink">{item.fullName}</h2><p className="mt-1 font-mono text-xs text-ink-muted">{item.studentCode ?? 'Chưa có MSSV'}</p></div><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone[item.verificationStatus] ?? statusTone.EXPIRED}`}>{statuses[item.verificationStatus] ?? item.verificationStatus}</span></div>
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Đào tạo</dt><dd className="mt-1 font-medium text-ink">{item.trainingStatus === 'TRAINING_COMPLETED' ? 'Đã hoàn thành' : 'Chưa hoàn thành'}</dd></div>
         <div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Số chứng chỉ</dt><dd className="mt-1 break-all font-medium text-ink">{item.certificateNumber ?? 'Chưa khai báo'}</dd></div>
@@ -69,7 +130,7 @@ export function QualificationVerificationPage({ embedded = false }: { embedded?:
         {!item.concurrencyToken && <p className="self-center text-sm text-ink-muted">Hồ sơ chưa có phiên bản xác minh. Hãy tải lại; chưa thể quyết định.</p>}{item.trainingStatus !== 'TRAINING_COMPLETED' && <p className="self-center text-sm text-ink-muted">Cần hoàn thành đào tạo trước khi xác minh.</p>}
       </div>}
     </li>)}</ul>}
-    {!queue.loading && !queue.error && <nav className="flex flex-wrap items-center justify-between gap-3 text-sm" aria-label="Phân trang hồ sơ xác minh"><Button className="min-h-11" variant="secondary" disabled={queue.page <= 1 || pendingId !== null} onClick={() => queue.setPage(queue.page - 1)}>Trang trước</Button><p className="text-ink-muted">Trang {queue.page} / {queue.totalPages} · {queue.totalCount} hồ sơ</p><Button className="min-h-11" variant="secondary" disabled={queue.page >= queue.totalPages || pendingId !== null} onClick={() => queue.setPage(queue.page + 1)}>Trang sau</Button></nav>}
+    {!queue.loading && !queue.error && queue.totalPages > 1 && <nav className="flex flex-wrap items-center justify-between gap-3 text-sm" aria-label="Phân trang hồ sơ xác minh"><Button className="min-h-11" variant="secondary" disabled={queue.page <= 1 || pendingId !== null} onClick={() => queue.setPage(queue.page - 1)}>Trang trước</Button><p className="text-ink-muted">Trang {queue.page} / {queue.totalPages} · {queue.totalCount} hồ sơ</p><Button className="min-h-11" variant="secondary" disabled={queue.page >= queue.totalPages || pendingId !== null} onClick={() => queue.setPage(queue.page + 1)}>Trang sau</Button></nav>}
     {confirmationDialog}
   </>
   if (embedded) return <div className="space-y-4">{body}</div>

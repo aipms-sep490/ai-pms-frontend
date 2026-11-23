@@ -89,6 +89,7 @@ export const AcademicAssistantPage = lazy(() => import('../../features/ai/Academ
 export const DepartmentWorkspacePage = lazy(() => import('../../features/department/pages/DepartmentWorkspacePage').then(m => ({ default: m.DepartmentWorkspacePage })))
 export const DepartmentStudentsPage = lazy(() => import('../../features/department/pages/DepartmentStudentsPage').then(m => ({ default: m.DepartmentStudentsPage })))
 export const DepartmentStudentDetailPage = lazy(() => import('../../features/department/pages/DepartmentStudentDetailPage').then(m => ({ default: m.DepartmentStudentDetailPage })))
+export const PreSemesterSetupHubPage = lazy(() => import('../../features/department/pages/PreSemesterSetupHubPage').then(m => ({ default: m.PreSemesterSetupHubPage })))
 export const ArchivedProjectsPage = lazy(() => import('../../features/projects/pages/ArchivedProjectsPage').then(m => ({ default: m.ArchivedProjectsPage })))
 export const ProjectArchiveViewPage = lazy(() => import('../../features/projects/pages/ProjectArchiveViewPage').then(m => ({ default: m.ProjectArchiveViewPage })))
 export const ReviewGateGovernancePage = lazy(() => import('../../features/review-gates/pages/ReviewGateGovernancePage').then(m => ({ default: m.ReviewGateGovernancePage })))

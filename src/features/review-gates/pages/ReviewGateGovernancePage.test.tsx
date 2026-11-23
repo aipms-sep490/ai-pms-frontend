@@ -251,4 +251,16 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
     const conflictMsgs = await screen.findAllByText(/409: Phiên bản bản ghi tiến trình/)
     expect(conflictMsgs.length).toBeGreaterThanOrEqual(1)
   })
+
+  it('opens directly on the progress matrix tab when navigated to /department/projects/progress-matrix', async () => {
+    render(
+      <MemoryRouter initialEntries={['/department/projects/progress-matrix']}>
+        <ReviewGateGovernancePage />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Ma trận tiến trình các đồ án')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Ma trận tiến độ' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByText('Campus Support Platform')).toBeTruthy()
+  })
 })

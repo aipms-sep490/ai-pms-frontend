@@ -2,6 +2,8 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { FilterChips, type FilterChipItem } from './FilterChips'
 import './filter-toolbar.css'
 
+export type ActiveFilterChip = FilterChipItem
+
 export interface FilterTabOption {
   value: string
   label: string

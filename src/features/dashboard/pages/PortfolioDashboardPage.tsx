@@ -1,8 +1,10 @@
 import { displayLabel } from '../../../components/ui/display-label'
+import { FilterToolbar } from '../../../components/ui/FilterToolbar'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { projectStatusLabel } from '../../projects/utils/project-status'
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import { getWorkspaceRole } from '../../auth/utils/role-access'
@@ -17,13 +19,17 @@ import { PageLoading } from '../../../components/ui/PageLoading'
 import { DepartmentExecutiveBriefPanel } from '../../ai-suite/DepartmentExecutiveBriefPanel'
 
 const statuses = ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'REVISION_REQUIRED', 'REJECTED', 'APPROVED', 'SUPERVISOR_PENDING', 'ACTIVE', 'FINAL_SUBMISSION', 'COMPLETED', 'ARCHIVED']
+type SortKey = 'default' | 'risk' | 'progress-asc' | 'title'
+const riskRank: Record<string, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 }
 
 export function PortfolioDashboardPage() {
   const { session } = useAuthSession()
   const role = getWorkspaceRole(session?.user)
   const scope = role === 'admin' ? 'admin' : 'department'
-  const [searchInput, setSearchInput] = useState('')
   const [filter, setFilter] = useState<DashboardFilter>({ page: 1, pageSize: 20 })
+  const [riskFilter, setRiskFilter] = useState<string>('ALL')
+  const [supervisorFilter, setSupervisorFilter] = useState<string>('ALL')
+  const [sortBy, setSortBy] = useState<SortKey>('default')
   const [data, setData] = useState<PortfolioDashboard | null>(null)
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
@@ -43,10 +49,25 @@ export function PortfolioDashboardPage() {
   }, [scope, filter])
   useEffect(() => { const requestVersion = version; void load(); return () => { requestVersion.current++ } }, [load])
 
-  const applyFilter = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setFilter(current => ({ ...current, search: searchInput.trim() || undefined, page: 1 }))
-  }
+  const handleSearchChange = useCallback((value: string) => {
+    const trimmed = value.trim() || undefined
+    setFilter((current) => {
+      if (current.search === trimmed) return current
+      const next: DashboardFilter = { ...current, page: 1 }
+      if (trimmed) next.search = trimmed
+      else delete next.search
+      return next
+    })
+  }, [])
+
+  const handleStatusChange = useCallback((status: string) => {
+    setFilter((current) => {
+      const next: DashboardFilter = { ...current, page: 1 }
+      if (status) next.status = status
+      else delete next.status
+      return next
+    })
+  }, [])
 
   const download = async () => {
     if (exportLock.current) return
@@ -66,17 +87,31 @@ export function PortfolioDashboardPage() {
     } finally { exportLock.current = false; setExporting(false) }
   }
 
+  /** Lazily checks backend archive workflow action on click instead of firing N+1 requests on page mount. */
   const archive = async (project: DashboardProject) => {
-    if (archiveLock.current) return
+    if (archiveLock.current || !session?.accessToken) return
     archiveLock.current = true
     const current = version.current
-    setArchivingId(project.id); setNotice(null)
+    setArchivingId(project.id); setNotice(null); setError(null)
     try {
-      const decision = await requestConfirmation({ title: 'Lưu trữ đồ án?', description: `${project.code} · ${project.title}. Hệ thống sẽ kiểm tra lại quyền, trạng thái và phiên bản trước khi lưu trữ.`, confirmLabel: 'Xác nhận lưu trữ', danger: true })
+      const actionsResult = await getReviewActions(project.id, session.accessToken)
+      if (current !== version.current) return
+      const archiveAction = actionsResult.actions.find(item => item.code === 'archive_project')
+      if (!archiveAction?.allowed) {
+        setError(archiveAction?.reasons?.length ? `Chưa thể lưu trữ ${project.code}: ${archiveAction.reasons.join(' ')}` : `Hệ thống không cho phép lưu trữ ${project.code} ở trạng thái hiện tại.`)
+        return
+      }
+      const decision = await requestConfirmation({
+        title: 'Lưu trữ đồ án?',
+        description: `${project.code} · ${project.title}. Hệ thống sẽ kiểm tra lại quyền, trạng thái và phiên bản trước khi lưu trữ.`,
+        confirmLabel: 'Xác nhận lưu trữ',
+        danger: true,
+      })
       if (decision === null || current !== version.current) return
-      await archiveProject(project.id, null); await load(); setNotice('Đã lưu trữ đồ án; danh sách đã được tải lại từ hệ thống.')
-    }
-    catch (reason) {
+      await archiveProject(project.id, null)
+      await load()
+      setNotice('Đã lưu trữ đồ án; danh sách đã được tải lại từ hệ thống.')
+    } catch (reason) {
       if (reason instanceof HttpError && reason.status === 409) await load()
       setError(reason instanceof HttpError && reason.status === 409
         ? 'Đồ án đã thay đổi. Danh sách đã được tải lại; hãy kiểm tra trước khi lưu trữ.'
@@ -84,54 +119,281 @@ export function PortfolioDashboardPage() {
     } finally { archiveLock.current = false; setArchivingId(null) }
   }
 
+  const supervisorOptions = useMemo(() => {
+    const names = new Set<string>()
+    for (const p of data?.projects.items ?? []) {
+      if (p.supervisor?.name) names.add(p.supervisor.name)
+    }
+    return [...names].sort((a, b) => a.localeCompare(b, 'vi'))
+  }, [data?.projects.items])
+
+  const visibleProjects = useMemo(() => {
+    const raw = data?.projects.items ?? []
+    const list = raw.filter((project) => {
+      if (riskFilter !== 'ALL' && (project.analysis?.riskLevel ?? 'NONE') !== riskFilter) return false
+      if (supervisorFilter === 'UNASSIGNED' && project.supervisor?.name) return false
+      if (supervisorFilter !== 'ALL' && supervisorFilter !== 'UNASSIGNED' && project.supervisor?.name !== supervisorFilter) return false
+      return true
+    })
+    if (sortBy === 'risk') {
+      return [...list].sort((a, b) => (riskRank[b.analysis?.riskLevel ?? ''] ?? 0) - (riskRank[a.analysis?.riskLevel ?? ''] ?? 0))
+    }
+    if (sortBy === 'progress-asc') {
+      return [...list].sort((a, b) => (a.analysis?.progressSummary?.progressPercentage ?? 101) - (b.analysis?.progressSummary?.progressPercentage ?? 101))
+    }
+    if (sortBy === 'title') {
+      return [...list].sort((a, b) => a.title.localeCompare(b.title, 'vi'))
+    }
+    return list
+  }, [data?.projects.items, riskFilter, sortBy, supervisorFilter])
+
   const activeCount = data?.summary.projectStates.find(item => item.status === 'ACTIVE')?.count ?? 0
   const completedCount = data?.summary.projectStates.find(item => item.status === 'COMPLETED')?.count ?? 0
   const attentionRisks = useMemo(() => data?.summary.riskLevels.filter(item => item.status !== 'LOW').reduce((total, item) => total + item.count, 0) ?? 0, [data])
 
-  return <WorkspacePage title="Danh mục đồ án" eyebrow={scope === 'admin' ? 'Tổng quan nền tảng' : 'Phạm vi bộ môn'} description="Theo dõi trạng thái và tiến độ các đồ án trong phạm vi được cấp." action={<div className="flex flex-wrap items-end gap-3"><label className="text-sm font-medium">Định dạng xuất<select aria-label="Định dạng xuất" className="ml-2 min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink" value={exportFormat} disabled={exporting} onChange={event => setExportFormat(event.target.value as PortfolioExportFormat)}><option value="csv">CSV</option><option value="xlsx">Excel</option><option value="pdf">PDF</option></select></label><button type="button" disabled={exporting || loading || !data} onClick={() => void download()} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50">{exporting ? 'Đang xuất…' : `Xuất ${exportFormat.toUpperCase()}`}</button></div>}>
+  const activeChips = [
+    ...(filter.search ? [{ id: 'search', label: 'Từ khóa', value: filter.search }] : []),
+    ...(filter.status ? [{ id: 'status', label: 'Trạng thái', value: projectStatusLabel(filter.status) }] : []),
+    ...(filter.majorId ? [{ id: 'major', label: 'Ngành', value: data?.summary.majors.find(m => m.majorId === filter.majorId)?.code ?? 'Ngành đã chọn' }] : []),
+    ...(riskFilter !== 'ALL' ? [{ id: 'risk', label: 'Rủi ro', value: displayLabel(riskFilter) }] : []),
+    ...(supervisorFilter !== 'ALL' ? [{ id: 'supervisor', label: 'GVHD', value: supervisorFilter === 'UNASSIGNED' ? 'Chưa có GVHD' : supervisorFilter }] : []),
+  ]
 
-    <form className="workspace-filter-grid" onSubmit={applyFilter}>
-      <label className="flex flex-col gap-1 text-sm font-medium text-ink-soft sm:col-span-2" htmlFor="portfolio-search">Tìm đồ án<input id="portfolio-search" value={searchInput} onChange={event => setSearchInput(event.target.value)} className="min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" placeholder="Mã hoặc tên đồ án" /></label>
-      <label className="flex flex-col gap-1 text-sm font-medium text-ink-soft" htmlFor="portfolio-status">Trạng thái<select id="portfolio-status" className="min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={filter.status ?? ''} onChange={event => setFilter(current => ({ ...current, status: event.target.value || undefined, page: 1 }))}><option value="">Tất cả</option>{statuses.map(status => <option key={status} value={status}>{projectStatusLabel(status)}</option>)}</select></label>
-      <div className="flex items-end gap-2">
-        <button type="submit" className="min-h-11 flex-1 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Áp dụng</button>
-        {(searchInput || filter.status || filter.majorId) && (
-          <button type="button" className="min-h-11 rounded-lg px-3 text-sm font-semibold text-ink-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => { setSearchInput(''); setFilter({ page: 1, pageSize: 20 }) }}>Xóa lọc</button>
-        )}
-      </div>
-    </form>
-    {confirmationDialog}
-    {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><p className="font-semibold">Không thể hoàn tất thao tác</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại dữ liệu</button></div>}
-    {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{notice}</p>}
-    {loading && <PageLoading label="Đang tải danh mục đồ án…" />}
-    {!loading && data && <>
-      <div className="mb-4">
+  function clearFilters() {
+    setFilter({ page: 1, pageSize: 20 })
+    setRiskFilter('ALL')
+    setSupervisorFilter('ALL')
+    setSortBy('default')
+  }
+
+  return (
+    <WorkspacePage
+      size="wide"
+      className="space-y-6 pb-12"
+      title="Danh mục đồ án"
+      eyebrow={scope === 'admin' ? 'Tổng quan nền tảng' : 'Phạm vi bộ môn'}
+      description="Theo dõi trạng thái, mức rủi ro và tiến độ các đồ án trong phạm vi được cấp."
+      action={
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="text-xs font-semibold text-ink-soft">
+            Định dạng xuất
+            <select aria-label="Định dạng xuất" className="ml-2 min-h-10 rounded-lg border border-hairline bg-card px-3 font-normal text-ink" value={exportFormat} disabled={exporting} onChange={event => setExportFormat(event.target.value as PortfolioExportFormat)}>
+              <option value="csv">CSV</option>
+              <option value="xlsx">Excel</option>
+              <option value="pdf">PDF</option>
+            </select>
+          </label>
+          <button type="button" disabled={exporting || loading || !data} onClick={() => void download()} className="min-h-10 rounded-lg bg-primary px-4 text-xs font-semibold text-white hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50">
+            {exporting ? 'Đang xuất…' : `Xuất ${exportFormat.toUpperCase()}`}
+          </button>
+        </div>
+      }
+    >
+      <FilterToolbar
+        search={filter.search ?? ''}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder="Tìm theo mã hoặc tên đồ án…"
+        searchLabel="Tìm đồ án"
+        controls={
+          <>
+            <label className="ft-select-wrap" htmlFor="portfolio-status">
+              <span className="sr-only">Trạng thái</span>
+              <select id="portfolio-status" aria-label="Trạng thái" className="ft-select" value={filter.status ?? ''} onChange={event => handleStatusChange(event.target.value)}>
+                <option value="">Tất cả trạng thái</option>
+                {statuses.map(status => <option key={status} value={status}>{projectStatusLabel(status)}</option>)}
+              </select>
+            </label>
+            {env.aiAdvisoryEnabled && (
+              <label className="ft-select-wrap">
+                <span className="sr-only">Mức rủi ro</span>
+                <select aria-label="Mức rủi ro" className="ft-select" value={riskFilter} onChange={e => setRiskFilter(e.target.value)}>
+                  <option value="ALL">Mọi mức rủi ro</option>
+                  <option value="CRITICAL">{displayLabel('CRITICAL')}</option>
+                  <option value="HIGH">{displayLabel('HIGH')}</option>
+                  <option value="MEDIUM">{displayLabel('MEDIUM')}</option>
+                  <option value="LOW">{displayLabel('LOW')}</option>
+                </select>
+              </label>
+            )}
+            <label className="ft-select-wrap">
+              <span className="sr-only">Giảng viên hướng dẫn</span>
+              <select aria-label="Giảng viên hướng dẫn" className="ft-select" value={supervisorFilter} onChange={e => setSupervisorFilter(e.target.value)}>
+                <option value="ALL">Tất cả GVHD</option>
+                <option value="UNASSIGNED">Chưa có GVHD</option>
+                {supervisorOptions.map(name => <option key={name} value={name}>{name}</option>)}
+              </select>
+            </label>
+          </>
+        }
+        sort={{
+          value: sortBy,
+          onChange: (value) => setSortBy(value as SortKey),
+          options: [
+            { value: 'default', label: 'Mặc định' },
+            { value: 'risk', label: 'Rủi ro cao nhất' },
+            { value: 'progress-asc', label: 'Tiến độ thấp trước' },
+            { value: 'title', label: 'Tên đồ án A–Z' },
+          ],
+        }}
+        activeChips={activeChips}
+        onRemoveChip={(id) => {
+          if (id === 'search') handleSearchChange('')
+          if (id === 'status') handleStatusChange('')
+          if (id === 'major') setFilter(c => { const next = { ...c, page: 1 }; delete next.majorId; return next })
+          if (id === 'risk') setRiskFilter('ALL')
+          if (id === 'supervisor') setSupervisorFilter('ALL')
+        }}
+        onClearAll={clearFilters}
+        hasActiveFilters={activeChips.length > 0 || sortBy !== 'default'}
+        resultSummary={data ? `Hiển thị ${visibleProjects.length} / ${data.projects.totalCount} đồ án` : undefined}
+      />
+
+      {confirmationDialog}
+      {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><p className="font-semibold">Không thể hoàn tất thao tác</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại dữ liệu</button></div>}
+      {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{notice}</p>}
+      {loading && <PageLoading label="Đang tải danh mục đồ án…" />}
+      {!loading && data && <>
         <DepartmentExecutiveBriefPanel routePrefix={scope === 'admin' ? '/admin' : '/department'} />
-      </div>
-      <section aria-label="Tóm tắt danh mục đồ án">
-        <dl className={`grid gap-3 ${env.aiAdvisoryEnabled ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'}`}>
-          <Metric label="Tổng đồ án" value={data.summary.totalProjects} />
-          <Metric label="Đang thực hiện" value={activeCount} tone="success" />
-          <Metric label="Đã hoàn thành" value={completedCount} />
-          {env.aiAdvisoryEnabled && <Metric label="Cần chú ý theo rủi ro" value={attentionRisks} tone={attentionRisks > 0 ? 'warning' : 'neutral'} />}
-        </dl>
-      </section>
-      <section className={`mt-4 grid gap-4 ${env.aiAdvisoryEnabled ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}><SummaryCard title="Theo trạng thái" items={data.summary.projectStates.map(item => `${projectStatusLabel(item.status)}: ${item.count}`)} />{env.aiAdvisoryEnabled && <SummaryCard title="Theo rủi ro" items={data.summary.riskLevels.map(item => `${displayLabel(item.status)}: ${item.count}`)} />}<SummaryCard title="Theo chuyên ngành" items={data.summary.majors.map(item => `${item.code}: ${item.projectCount}`)} /></section>
-      <section className="workspace-surface workspace-surface-padding mt-6"><div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-heading font-semibold text-ink">Danh sách đồ án</h2><p className="mt-1 text-sm text-ink-muted">Dữ liệu tại {formatAsOf(data.asOfUtc)}. Hệ thống ghi nhận lịch sử xuất dữ liệu.</p></div><MajorChips majors={data.summary.majors} selected={filter.majorId} onSelect={majorId => setFilter(current => ({ ...current, majorId, page: 1 }))} /></div>{data.projects.items.length === 0 ? <p className="mt-4 text-sm text-ink-muted">Không có đồ án phù hợp với bộ lọc hiện tại.</p> : <ul className="mt-4 divide-y divide-hairline">{data.projects.items.map(project => <ProjectRow readOnly={scope === 'admin'} key={project.id} project={project} accessToken={session?.accessToken ?? ''} archiving={archivingId !== null} onArchive={() => void archive(project)} />)}</ul>}</section>
-      <Pagination page={filter.page ?? 1} totalPages={data.projects.totalPages} onChange={page => setFilter(current => ({ ...current, page }))} />
-    </>}
-  </WorkspacePage>
+        <section aria-label="Tóm tắt danh mục đồ án" className="workspace-metrics">
+          <StatTileRow
+            tiles={[
+              { icon: 'folder_managed', label: 'Tổng đồ án', value: data.summary.totalProjects, hero: true },
+              { icon: 'play_circle', label: 'Đang thực hiện', value: activeCount, tone: activeCount > 0 ? 'success' : 'neutral' },
+              { icon: 'verified', label: 'Đã hoàn thành', value: completedCount },
+              ...(env.aiAdvisoryEnabled ? [{ icon: 'warning', label: 'Cần chú ý theo rủi ro', value: attentionRisks, tone: (attentionRisks > 0 ? 'warning' : 'neutral') as 'warning' | 'neutral' }] : []),
+            ]}
+          />
+        </section>
+        <section className={`grid gap-4 ${env.aiAdvisoryEnabled ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+          <SummaryCard title="Theo trạng thái" items={data.summary.projectStates.map(item => ({ key: item.status, label: `${projectStatusLabel(item.status)}: ${item.count}`, active: filter.status === item.status, onClick: () => handleStatusChange(filter.status === item.status ? '' : item.status) }))} />
+          {env.aiAdvisoryEnabled && <SummaryCard title="Theo rủi ro" items={data.summary.riskLevels.map(item => ({ key: item.status, label: `${displayLabel(item.status)}: ${item.count}`, active: riskFilter === item.status, onClick: () => setRiskFilter(riskFilter === item.status ? 'ALL' : item.status) }))} />}
+          <SummaryCard title="Theo chuyên ngành" items={data.summary.majors.map(item => ({ key: String(item.majorId), label: `${item.code}: ${item.projectCount}`, active: filter.majorId === item.majorId, onClick: () => setFilter(c => ({ ...c, majorId: c.majorId === item.majorId ? undefined : item.majorId, page: 1 })) }))} />
+        </section>
+        <section className="workspace-surface workspace-surface-padding">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="font-heading font-semibold text-ink">Danh sách đồ án</h2>
+              <p className="mt-1 text-sm text-ink-muted">Dữ liệu tại {formatAsOf(data.asOfUtc)}. Hệ thống ghi nhận lịch sử xuất dữ liệu.</p>
+            </div>
+            <MajorChips majors={data.summary.majors} selected={filter.majorId} onSelect={majorId => setFilter(current => ({ ...current, majorId, page: 1 }))} />
+          </div>
+          {visibleProjects.length === 0 ? (
+            <p className="mt-4 text-sm text-ink-muted">Không có đồ án phù hợp với bộ lọc hiện tại.</p>
+          ) : (
+            <ul className="mt-4 divide-y divide-hairline">
+              {visibleProjects.map(project => (
+                <ProjectRow
+                  readOnly={scope === 'admin'}
+                  key={project.id}
+                  project={project}
+                  archiving={archivingId !== null}
+                  archivingThis={archivingId === project.id}
+                  onArchive={() => void archive(project)}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
+        <Pagination page={filter.page ?? 1} totalPages={data.projects.totalPages} onChange={page => setFilter(current => ({ ...current, page }))} />
+      </>}
+    </WorkspacePage>
+  )
 }
 
-function Metric({ label, value, tone = 'neutral' }: { label: string; value: number; tone?: 'neutral' | 'success' | 'warning' }) { const tones = { neutral: 'border-hairline', success: 'border-status-success-border', warning: 'border-status-warning-border' }; return <div className={`workspace-metric ${tones[tone]}`}><dt className="text-xs font-medium text-ink-muted">{label}</dt><dd className="mt-1 text-2xl font-bold tabular-nums text-ink">{value}</dd></div> }
-function SummaryCard({ title, items }: { title: string; items: string[] }) { return <section className="workspace-summary"><h2 className="font-heading text-sm font-semibold text-ink">{title}</h2>{items.length === 0 ? <p className="mt-2 text-sm text-ink-muted">Chưa có dữ liệu.</p> : <ul className="mt-3 flex flex-wrap gap-2">{items.map(item => <li key={item} className="rounded-full bg-primary-subtle px-2.5 py-1 text-xs font-medium text-primary">{item}</li>)}</ul>}</section> }
-function MajorChips({ majors, selected, onSelect }: { majors: PortfolioDashboard['summary']['majors']; selected?: number; onSelect: (majorId: number | undefined) => void }) { if (majors.length === 0) return null; return <div className="flex max-w-full flex-wrap gap-2" aria-label="Lọc theo chuyên ngành"><button type="button" aria-pressed={!selected} className={`min-h-10 rounded-lg border px-3 text-sm font-semibold transition-colors ${!selected ? 'border-primary bg-primary text-white shadow-2xs' : 'border-hairline bg-card text-primary hover:bg-primary-subtle'}`} onClick={() => onSelect(undefined)}>Tất cả ngành</button>{majors.map(major => <button type="button" key={major.majorId} aria-pressed={selected === major.majorId} className={`min-h-10 rounded-lg border px-3 text-sm font-semibold transition-colors ${selected === major.majorId ? 'border-primary bg-primary text-white shadow-2xs' : 'border-hairline bg-card text-primary hover:bg-primary-subtle'}`} onClick={() => onSelect(major.majorId)}>{major.code}</button>)}</div> }
-function ProjectRow({ project, accessToken, archiving, onArchive, readOnly = false }: { readOnly?: boolean; project: DashboardProject; accessToken: string; archiving: boolean; onArchive: () => void }) { const risk = project.analysis?.riskLevel; const riskTone = risk === 'HIGH' || risk === 'CRITICAL' ? 'danger' : risk === 'MEDIUM' ? 'warning' : risk === 'LOW' ? 'success' : 'neutral'; return <li className="flex flex-wrap items-start justify-between gap-4 py-4 text-sm"><div className="min-w-0 flex-1"><p className="font-semibold text-ink">{project.code} · {project.title}</p><p className="mt-1 text-ink-muted">{project.departmentName ?? 'Chưa có khoa'} · {project.supervisor?.name ?? 'Chưa có GVHD'}</p><div className="mt-2 flex flex-wrap gap-2"><span className="rounded-full bg-canvas px-2.5 py-0.5 text-xs font-medium text-ink-soft">{projectStatusLabel(project.status)}</span>{env.aiAdvisoryEnabled && risk && <StatusBadge status={risk} tone={riskTone} label={`Rủi ro: ${displayLabel(risk)}`} />}</div></div>{readOnly && <div className="flex flex-wrap items-center gap-2"><Link to={`/admin/projects/${project.id}/evaluation-schemes`} className="inline-flex min-h-10 items-center rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-primary hover:bg-primary-subtle">Phương án đánh giá</Link><Link to={`/admin/projects/${project.id}/result`} className="inline-flex min-h-10 items-center rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-primary hover:bg-primary-subtle">Kết quả</Link></div>}{!readOnly && <div className="flex flex-wrap items-center gap-2"><Link to={`/department/projects/review/${project.id}`} className="inline-flex min-h-10 items-center rounded-lg border border-primary bg-card px-3 text-xs font-semibold text-primary hover:bg-primary-subtle">Xem</Link><Link to={`/department/projects/${project.id}/governance`} className="inline-flex min-h-10 items-center rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-ink-soft hover:border-primary hover:text-primary">Điều phối</Link><Link to={`/department/projects/${project.id}/result`} className="inline-flex min-h-10 items-center rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-ink-soft hover:border-primary hover:text-primary">Kết quả</Link><details className="relative"><summary className="inline-flex min-h-10 cursor-pointer list-none items-center gap-1 rounded-lg border border-hairline bg-canvas px-3 text-xs font-semibold text-ink-soft hover:border-primary hover:text-primary">Thêm<span className="material-symbols-outlined text-[16px]" aria-hidden="true">expand_more</span></summary><div className="absolute right-0 z-20 mt-1 flex min-w-44 flex-col rounded-xl border border-hairline bg-card p-1.5 shadow-lg"><Link to={`/department/projects/${project.id}/evaluation-schemes`} className="rounded-lg px-3 py-2 text-xs font-semibold text-ink hover:bg-primary-subtle hover:text-primary">Phương án đánh giá</Link>{project.status === 'FINAL_SUBMISSION' && <Link to={`/department/projects/${project.id}/evaluations`} className="rounded-lg px-3 py-2 text-xs font-semibold text-ink hover:bg-primary-subtle hover:text-primary">Người chấm</Link>}<Link to={`/department/projects/${project.id}/files`} className="rounded-lg px-3 py-2 text-xs font-semibold text-ink hover:bg-primary-subtle hover:text-primary">Tệp</Link>{env.aiAdvisoryEnabled && <Link to={`/department/projects/${project.id}/risk`} className="rounded-lg px-3 py-2 text-xs font-semibold text-ink hover:bg-primary-subtle hover:text-primary">Phân tích</Link>}</div></details><ArchiveAction projectId={project.id} accessToken={accessToken} archiving={archiving} onArchive={onArchive} /></div>}</li> }
-function ArchiveAction({ projectId, accessToken, archiving, onArchive }: { projectId: number; accessToken: string; archiving: boolean; onArchive: () => void }) {
-  const [state, setState] = useState<{ loading: boolean; allowed: boolean; reasons: string[] }>({ loading: true, allowed: false, reasons: [] })
-  useEffect(() => { let active = true; if (!accessToken) return; getReviewActions(projectId, accessToken).then(result => { const action = result.actions.find(item => item.code === 'archive_project'); if (active) setState({ loading: false, allowed: Boolean(action?.allowed), reasons: action?.reasons ?? [] }) }).catch(() => { if (active) setState({ loading: false, allowed: false, reasons: [] }) }); return () => { active = false } }, [projectId, accessToken])
-  if (state.loading || !state.allowed) return state.reasons.length ? <span className="self-center text-xs text-ink-muted" title={state.reasons.join(' ')}>Chưa thể lưu trữ</span> : null
-  return <button type="button" disabled={archiving} className="min-h-11 font-semibold text-status-error-text underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50" onClick={onArchive}>{archiving ? 'Đang lưu trữ…' : 'Lưu trữ'}</button>
+function SummaryCard({ title, items }: { title: string; items: Array<{ key: string; label: string; active?: boolean; onClick?: () => void }> }) {
+  return (
+    <section className="workspace-summary">
+      <h2 className="font-heading text-sm font-semibold text-ink">{title}</h2>
+      {items.length === 0 ? (
+        <p className="mt-2 text-sm text-ink-muted">Chưa có dữ liệu.</p>
+      ) : (
+        <ul className="mt-3 flex flex-wrap gap-2">
+          {items.map(item => (
+            <li key={item.key}>
+              <button
+                type="button"
+                aria-pressed={item.active}
+                onClick={item.onClick}
+                className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${item.active ? 'bg-primary text-white' : 'bg-primary-subtle text-primary hover:bg-primary/15'}`}
+              >
+                {item.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
 }
-function Pagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (page: number) => void }) { if (totalPages <= 1) return null; return <nav aria-label="Trang portfolio" className="flex items-center justify-between gap-3 text-sm"><button type="button" disabled={page <= 1} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => onChange(page - 1)}>Trang trước</button><span className="tabular-nums text-ink-muted">Trang {page} / {totalPages}</span><button type="button" disabled={page >= totalPages} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => onChange(page + 1)}>Trang sau</button></nav> }
-function formatAsOf(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(date) }
+
+function MajorChips({ majors, selected, onSelect }: { majors: PortfolioDashboard['summary']['majors']; selected?: number; onSelect: (majorId: number | undefined) => void }) {
+  if (majors.length === 0) return null
+  return (
+    <div className="flex max-w-full flex-wrap gap-2" aria-label="Lọc theo chuyên ngành">
+      <button type="button" aria-pressed={!selected} className={`min-h-10 rounded-lg border px-3 text-sm font-semibold transition-colors ${!selected ? 'border-primary bg-primary text-white shadow-2xs' : 'border-hairline bg-card text-primary hover:bg-primary-subtle'}`} onClick={() => onSelect(undefined)}>Tất cả ngành</button>
+      {majors.map(major => (
+        <button type="button" key={major.majorId} aria-pressed={selected === major.majorId} className={`min-h-10 rounded-lg border px-3 text-sm font-semibold transition-colors ${selected === major.majorId ? 'border-primary bg-primary text-white shadow-2xs' : 'border-hairline bg-card text-primary hover:bg-primary-subtle'}`} onClick={() => onSelect(major.majorId)}>{major.code}</button>
+      ))}
+    </div>
+  )
+}
+
+function ProjectRow({ project, archiving, archivingThis, onArchive, readOnly = false }: { readOnly?: boolean; project: DashboardProject; archiving: boolean; archivingThis: boolean; onArchive: () => void }) {
+  const risk = project.analysis?.riskLevel
+  const riskTone = risk === 'HIGH' || risk === 'CRITICAL' ? 'danger' : risk === 'MEDIUM' ? 'warning' : risk === 'LOW' ? 'success' : 'neutral'
+  const normalized = project.status.replaceAll('_', '').toUpperCase()
+  return (
+    <li className="flex flex-wrap items-start justify-between gap-4 py-4 text-sm">
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold text-ink">{project.code} · {project.title}</p>
+        <p className="mt-1 text-xs text-ink-muted">{project.departmentName ?? 'Chưa có khoa'} · {project.supervisor?.name ?? 'Chưa có GVHD'}</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <StatusBadge
+            tone={normalized === 'ACTIVE' || normalized === 'COMPLETED' ? 'success' : normalized === 'FINALSUBMISSION' ? 'info' : normalized === 'REJECTED' ? 'danger' : 'neutral'}
+            label={projectStatusLabel(project.status)}
+          />
+          {env.aiAdvisoryEnabled && risk && <StatusBadge status={risk} tone={riskTone} label={`Rủi ro: ${displayLabel(risk)}`} />}
+        </div>
+      </div>
+      {readOnly && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Link to={`/admin/projects/${project.id}/evaluation-schemes`} className="inline-flex min-h-10 items-center rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-primary hover:bg-primary-subtle">Phương án đánh giá</Link>
+          <Link to={`/admin/projects/${project.id}/result`} className="inline-flex min-h-10 items-center rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-primary hover:bg-primary-subtle">Kết quả</Link>
+        </div>
+      )}
+      {!readOnly && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Link to={`/department/projects/review/${project.id}`} className="inline-flex min-h-10 items-center rounded-lg border border-primary bg-card px-3 text-xs font-semibold text-primary hover:bg-primary-subtle">Xem</Link>
+          <Link to={`/department/projects/${project.id}/governance`} className="inline-flex min-h-10 items-center rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-ink-soft hover:border-primary hover:text-primary">Điều phối</Link>
+          <Link to={`/department/projects/${project.id}/result`} className="inline-flex min-h-10 items-center rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-ink-soft hover:border-primary hover:text-primary">Kết quả</Link>
+          <details className="relative">
+            <summary className="inline-flex min-h-10 cursor-pointer list-none items-center gap-1 rounded-lg border border-hairline bg-canvas px-3 text-xs font-semibold text-ink-soft hover:border-primary hover:text-primary">
+              Thêm<span className="material-symbols-outlined text-[16px]" aria-hidden="true">expand_more</span>
+            </summary>
+            <div className="absolute right-0 z-20 mt-1 flex min-w-44 flex-col rounded-xl border border-hairline bg-card p-1.5 shadow-lg">
+              <Link to={`/department/projects/${project.id}/evaluation-schemes`} className="rounded-lg px-3 py-2 text-xs font-semibold text-ink hover:bg-primary-subtle hover:text-primary">Phương án đánh giá</Link>
+              {project.status === 'FINAL_SUBMISSION' && <Link to={`/department/projects/${project.id}/evaluations`} className="rounded-lg px-3 py-2 text-xs font-semibold text-ink hover:bg-primary-subtle hover:text-primary">Người chấm</Link>}
+              <Link to={`/department/projects/${project.id}/files`} className="rounded-lg px-3 py-2 text-xs font-semibold text-ink hover:bg-primary-subtle hover:text-primary">Tệp</Link>
+              {env.defenseScheduleEnabled && <Link to={`/department/projects/${project.id}/defense`} className="rounded-lg px-3 py-2 text-xs font-semibold text-ink hover:bg-primary-subtle hover:text-primary">Lịch bảo vệ</Link>}
+              {env.aiAdvisoryEnabled && <Link to={`/department/projects/${project.id}/risk`} className="rounded-lg px-3 py-2 text-xs font-semibold text-ink hover:bg-primary-subtle hover:text-primary">Phân tích</Link>}
+            </div>
+          </details>
+          {normalized === 'ARCHIVED' ? (
+            <Link to={`/department/projects/${project.id}/archive-view`} className="inline-flex min-h-10 items-center rounded-lg border border-hairline bg-canvas px-3 text-xs font-semibold text-ink-soft hover:border-primary hover:text-primary">Hồ sơ lưu trữ</Link>
+          ) : (
+            <button type="button" disabled={archiving} className="min-h-10 rounded-lg px-2.5 text-xs font-semibold text-status-error-text hover:bg-status-error-bg disabled:cursor-not-allowed disabled:opacity-50" onClick={onArchive}>
+              {archivingThis ? 'Đang kiểm tra…' : 'Lưu trữ'}
+            </button>
+          )}
+        </div>
+      )}
+    </li>
+  )
+}
+
+function Pagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (page: number) => void }) {
+  if (totalPages <= 1) return null
+  return <nav aria-label="Trang portfolio" className="flex items-center justify-between gap-3 text-sm"><button type="button" disabled={page <= 1} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => onChange(page - 1)}>Trang trước</button><span className="tabular-nums text-ink-muted">Trang {page} / {totalPages}</span><button type="button" disabled={page >= totalPages} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => onChange(page + 1)}>Trang sau</button></nav>
+}
+
+function formatAsOf(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' }).format(date) }

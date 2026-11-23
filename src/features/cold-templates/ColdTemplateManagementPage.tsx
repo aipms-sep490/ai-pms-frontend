@@ -4,15 +4,18 @@ import { getAcademicHierarchy } from '../academic/api/academic-api'
 import { getProjectPeriods } from '../academic/api/governance-api'
 import { readAllPages } from '../../services/api/paged-read'
 import { getProjects } from '../../services/api/projects.api'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { ConfigModeFrame } from '../../components/ui/ConfigModeFrame'
+import { StatusBadge } from '../../components/ui/StatusBadge'
 import { HttpError } from '../../services/http/http-client'
 import { createColdTemplate, getColdTemplateItExample, getColdTemplates } from '../../services/api/cold-templates.api'
 import type { ColdReportInput, ColdTemplate } from '../../services/api/cold-templates.api'
 import { applyColdChecklist } from '../../services/api/cold.api'
 import type { ColdTemplateTarget } from '../../services/api/cold.api'
 import { AcademicWorkflowContext } from '../../app/context/academic-workflow-context'
+import { DepartmentAiDraftBar } from '../ai-suite/DepartmentAiDraftBar'
+import { applyColdTemplateAiSetup, type AssistantColdTemplateSetupPlan } from '../ai/academic-ai-api'
 
 type ReportRow = ColdReportInput
 
@@ -72,6 +75,9 @@ export function ColdTemplateManagementPage() {
   const [createError, setCreateError] = useState('')
   const [createSuccess, setCreateSuccess] = useState('')
   const [createMode, setCreateMode] = useState<'view' | 'edit'>('view')
+  const [aiColdOpen, setAiColdOpen] = useState(false)
+  const [aiColdApplying, setAiColdApplying] = useState(false)
+  const [aiColdError, setAiColdError] = useState('')
 
   // Apply template to project state
   const [applyProjectId, setApplyProjectId] = useState('')
@@ -82,6 +88,7 @@ export function ColdTemplateManagementPage() {
   const [applying, setApplying] = useState(false)
   const [applyError, setApplyError] = useState('')
   const [applySuccess, setApplySuccess] = useState('')
+  const [templateFilterText, setTemplateFilterText] = useState('')
 
   useEffect(() => {
     if (!applyProjectId || !session) return
@@ -91,6 +98,37 @@ export function ColdTemplateManagementPage() {
     }).catch(() => { if (active) setApplyError('Chưa tải được danh sách sinh viên của đồ án. Hãy chọn lại đồ án.') })
     return () => { active = false }
   }, [applyProjectId, session])
+
+  // Auto-load common & scoped templates for the selected Apply period so users don't have to manually search Step 1 first.
+  useEffect(() => {
+    const period = Number(applyPeriodId)
+    if (!period || !session) return
+    let active = true
+    const majorTargets: Array<number | null> = [null, ...availableMajors.slice(0, 5).map(m => m.id)]
+    void Promise.all(
+      majorTargets.map(m => Promise.resolve(getColdTemplates(m, period, 1, 50)).catch(() => null)),
+    ).then(results => {
+      if (!active) return
+      const loaded = results.flatMap(res => res?.items ?? [])
+      if (!loaded.length) return
+      setTemplateChoices(current => {
+        const byId = new Map(current.map(item => [item.id, item]))
+        for (const item of loaded) byId.set(item.id, item)
+        return [...byId.values()]
+      })
+    })
+    return () => { active = false }
+  }, [applyPeriodId, availableMajors, session])
+
+  const filteredTemplates = useMemo(() => {
+    if (!templates) return null
+    const q = templateFilterText.trim().toLowerCase()
+    if (!q) return templates
+    return templates.filter(tmpl =>
+      tmpl.name.toLowerCase().includes(q)
+      || tmpl.reports.some(r => r.code.toLowerCase().includes(q) || r.name.toLowerCase().includes(q)),
+    )
+  }, [templates, templateFilterText])
 
   async function search() {
     const major = templateScope === 'COMMON' ? null : Number(majorId)
@@ -212,12 +250,13 @@ export function ColdTemplateManagementPage() {
 
   return (
     <WorkspacePage
+      size="wide"
       className="space-y-6 cold-template-page"
       title="Mẫu báo cáo chấm nguội"
       eyebrow="Chấm nguội · Quản lý theo phạm vi và kỳ đồ án"
       description="Tạo bộ đầu mục báo cáo chung hoặc theo ngành cho từng kỳ đánh giá hoặc bàn giao cuối kỳ. Mỗi lần tạo là một phiên bản mới, bất biến."
     >
-      {/* Thông tin ngữ cảnh khoa */}
+      {/* Thông tin ngữ cảnh khoa & Điều hướng nhanh 3 bước */}
       <section className="rounded-xl border border-hairline bg-card p-4 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -228,20 +267,19 @@ export function ColdTemplateManagementPage() {
                 : 'Chỉ cán bộ thuộc đúng bộ môn mới có quyền tạo và áp dụng mẫu báo cáo cho các ngành phụ trách.'}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <span className="rounded-md border border-hairline bg-canvas px-2.5 py-1 font-medium text-ink-soft">
-              Kỳ hợp lệ: Đánh giá hoặc Bàn giao cuối kỳ
-            </span>
-            <span className="rounded-md border border-hairline bg-canvas px-2.5 py-1 font-medium text-ink-soft">
-              Mã đầu mục: In hoa không dấu (A-Z, 0-9, _)
-            </span>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <a href="#cold-step-search" className="inline-flex min-h-9 items-center rounded-lg border border-hairline bg-canvas px-3 font-semibold text-ink-soft hover:border-primary hover:text-primary">1. Tra cứu mẫu</a>
+            <a href="#cold-step-create" className="inline-flex min-h-9 items-center rounded-lg border border-hairline bg-canvas px-3 font-semibold text-ink-soft hover:border-primary hover:text-primary">2. Tạo mẫu mới</a>
+            <a href="#cold-step-apply" className="inline-flex min-h-9 items-center rounded-lg border border-hairline bg-canvas px-3 font-semibold text-ink-soft hover:border-primary hover:text-primary">3. Áp dụng vào đồ án</a>
           </div>
         </div>
       </section>
 
       {catalogError && <p role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{catalogError}</p>}
+
+      <div className="grid items-start gap-6 xl:grid-cols-2">
       {/* BƯỚC 1: Tra cứu & Danh sách mẫu */}
-      <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
+      <section id="cold-step-search" className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-3">
           <div>
             <h2 className="text-base font-bold text-ink">Bước 1: Tra cứu mẫu đã có</h2>
@@ -249,7 +287,7 @@ export function ColdTemplateManagementPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2">
           <label className="text-sm font-semibold text-ink-soft">Phạm vi template
             <select className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card py-2 pl-3 pr-9 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={templateScope} onChange={event => { setTemplateScope(event.target.value as 'COMMON' | 'MAJOR_SPECIFIC'); setTemplates(null) }}><option value="MAJOR_SPECIFIC">Theo ngành</option><option value="COMMON">Chung</option></select>
           </label>
@@ -282,17 +320,29 @@ export function ColdTemplateManagementPage() {
         )}
         {templates && templates.length > 0 && (
           <div className="space-y-3 pt-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
-              Kết quả ({templates.length} mẫu)
-            </h3>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                Kết quả ({filteredTemplates?.length ?? 0}/{templates.length} mẫu)
+              </h3>
+              {templates.length > 2 && (
+                <input
+                  type="search"
+                  aria-label="Lọc nhanh danh sách mẫu"
+                  placeholder="Lọc theo tên hoặc mã đầu mục..."
+                  value={templateFilterText}
+                  onChange={e => setTemplateFilterText(e.target.value)}
+                  className="min-h-9 rounded-lg border border-hairline bg-card px-3 text-xs text-ink"
+                />
+              )}
+            </div>
             <ul className="space-y-3">
-              {templates.map((template) => (
+              {(filteredTemplates ?? []).map((template) => (
                 <li key={template.id} className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-hairline bg-canvas p-4 transition-shadow hover:shadow-xs">
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-semibold text-ink">{template.name} (v{template.version})</p>
-                      <span className="rounded-md bg-primary-subtle px-2 py-0.5 text-xs font-semibold text-primary">v{template.version}</span>
-                      <span className="rounded-md border border-hairline bg-card px-2 py-0.5 text-xs font-semibold text-ink-muted">{template.scope === 'COMMON' ? 'Chung' : 'Theo ngành'}</span>
+                      <StatusBadge tone="info" label={`v${template.version}`} />
+                      <StatusBadge tone="neutral" label={template.scope === 'COMMON' ? 'Chung' : 'Theo ngành'} />
                     </div>
                     <ul className="space-y-1 text-xs text-ink-soft">
                       {template.reports.map((report) => (
@@ -322,22 +372,35 @@ export function ColdTemplateManagementPage() {
       </section>
 
       {/* BƯỚC 2: Tạo mẫu mới */}
+      <div id="cold-step-create">
       <ConfigModeFrame mode={createMode} dirty={Boolean(name || rows.length !== 1 || rows[0].code || rows[0].name || !rows[0].required)} busy={creating} onEdit={() => setCreateMode('edit')} onCancel={() => { setName(''); setRows([emptyRow()]); setCreateMode('view'); setCreateSuccess('Đã hủy các thay đổi.') }} onSave={() => void submitCreate()} saveLabel="Tạo template" saveDisabled={(templateScope === 'MAJOR_SPECIFIC' && !majorId) || !projectPeriodId || !name.trim() || !rows.some(row => row.code.trim() && row.name.trim())} navigationGuard={false} blastRadius="Mẫu mới tạo là một phiên bản bất biến trong phạm vi ngành và kỳ đồ án đang chọn. Danh sách nộp chỉ được áp dụng cho đồ án sau thao tác riêng ở Bước 3.">
       <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-3">
           <div>
             <h2 className="text-base font-bold text-ink">Bước 2: Tạo mẫu mới (phiên bản mới)</h2>
             <p className="text-xs text-ink-muted">
-              Mỗi lần lưu tạo một phiên bản bất biến cho phạm vi và kỳ đồ án đang chọn ở Bước 1.
+              {createMode === 'view'
+                ? 'Nhấn nút “Chỉnh sửa” ở thanh trên để bắt đầu soạn phiên bản mẫu mới cho phạm vi và kỳ đang chọn ở Bước 1.'
+                : 'Mỗi lần lưu tạo một phiên bản bất biến cho phạm vi và kỳ đồ án đang chọn ở Bước 1.'}
             </p>
           </div>
-          <button
-            type="button"
-            className="inline-flex min-h-9 items-center whitespace-nowrap rounded-lg border border-primary/20 bg-primary-subtle px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            onClick={() => void loadItExample()}
-          >
-            Dùng mẫu IT (chỉ để tham khảo)
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex min-h-9 items-center gap-1 whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              onClick={() => { setAiColdError(''); setAiColdOpen(true) }}
+            >
+              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">auto_awesome</span>
+              Soạn mẫu bằng AI
+            </button>
+            <button
+              type="button"
+              className="inline-flex min-h-9 items-center whitespace-nowrap rounded-lg border border-primary/20 bg-primary-subtle px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              onClick={() => void loadItExample()}
+            >
+              Dùng mẫu IT (chỉ để tham khảo)
+            </button>
+          </div>
         </div>
 
         <div>
@@ -413,9 +476,11 @@ export function ColdTemplateManagementPage() {
         {createSuccess && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{createSuccess}</p>}
       </section>
       </ConfigModeFrame>
+      </div>
+      </div>
 
       {/* BƯỚC 3: Áp dụng mẫu vào đồ án */}
-      <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
+      <section id="cold-step-apply" className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
         <div className="border-b border-hairline pb-3">
           <h2 className="text-base font-bold text-ink">Bước 3: Áp dụng mẫu vào đồ án</h2>
           <p className="mt-1 text-xs text-ink-muted">Gán mẫu chung và mẫu của từng ngành vào cùng đồ án; có thể chỉ định thêm phần cá nhân.</p>
@@ -497,6 +562,122 @@ export function ColdTemplateManagementPage() {
         {applyError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{applyError}</p>}
         {applySuccess && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{applySuccess}</p>}
       </section>
+
+      <DepartmentAiDraftBar
+        open={aiColdOpen}
+        onClose={() => setAiColdOpen(false)}
+        title="Soạn mẫu hồ sơ chấm nguội bằng AI"
+        description="Đính kèm đề cương môn học hoặc nhập chuyên ngành (Marketing, Kinh tế, Thiết kế, Liên ngành…) để AI đề xuất bộ đầu mục báo cáo chuẩn UPPER_SNAKE_CASE."
+        toolMode="COLD_TEMPLATE_SETUP"
+        pageContext="/department/cold-templates"
+        projectPeriodId={projectPeriodId ? Number(projectPeriodId) : undefined}
+        placeholder="VD: Tạo bộ hồ sơ chấm nguội cho chuyên ngành Marketing / Thiết kế đồ họa gồm 6 đầu mục báo cáo..."
+        starters={[
+          {
+            label: 'Khối Marketing / Kinh doanh',
+            prompt: 'Soạn mẫu hồ sơ chấm nguội cho đồ án chuyên ngành Marketing / Kinh doanh gồm nghiên cứu thị trường, chiến lược, kế hoạch tài chính và minh chứng triển khai.',
+          },
+          {
+            label: 'Khối Thiết kế đồ họa / UI-UX',
+            prompt: 'Soạn mẫu hồ sơ chấm nguội cho đồ án chuyên ngành Thiết kế gồm Design Brief, Concept/Moodboard, Design System, kiểm thử trải nghiệm và Portfolio.',
+          },
+          {
+            label: 'Khối Liên ngành (SE + Kinh doanh)',
+            prompt: 'Soạn mẫu hồ sơ chấm nguội dùng chung (COMMON) cho đồ án liên ngành kết hợp Kỹ thuật phần mềm và Marketing.',
+          },
+        ]}
+        renderResult={response => {
+          const plan: AssistantColdTemplateSetupPlan | null | undefined = response.draft?.coldTemplateSetup
+          if (!plan) {
+            return (
+              <div className="rounded-xl border border-hairline bg-canvas p-4 text-sm text-ink-soft whitespace-pre-wrap">
+                {response.answer}
+              </div>
+            )
+          }
+          return (
+            <section className="space-y-3 rounded-xl border border-hairline bg-card p-4" aria-label="Bản nháp mẫu chấm nguội AI">
+              <div className="border-b border-hairline pb-2.5">
+                <h3 className="text-base font-bold text-ink">{plan.name}</h3>
+                <p className="mt-0.5 text-xs text-ink-muted">{plan.summary}</p>
+              </div>
+              {plan.warnings.length > 0 && (
+                <ul className="space-y-1 rounded-lg border border-status-warning-border bg-status-warning-bg px-3 py-2 text-xs text-status-warning-text">
+                  {plan.warnings.map((w, idx) => <li key={idx}>• {w}</li>)}
+                </ul>
+              )}
+              <ul className="space-y-1.5">
+                {plan.reports.map((report, idx) => (
+                  <li key={`${report.code}-${idx}`} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hairline bg-canvas px-3 py-2 text-xs">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <code className="rounded bg-card px-1.5 py-0.5 font-mono font-bold text-primary">{report.code}</code>
+                      <span className="font-medium text-ink">{report.name}</span>
+                    </div>
+                    <span className={report.required ? 'font-semibold text-status-warning-text' : 'text-ink-muted'}>
+                      {report.required ? 'Bắt buộc' : 'Tùy chọn'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {aiColdError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs text-status-error-text">{aiColdError}</p>}
+              <div className="flex flex-wrap items-center justify-end gap-2 border-t border-hairline pt-3">
+                <button
+                  type="button"
+                  className="min-h-10 rounded-lg border border-primary bg-card px-4 text-xs font-semibold text-primary hover:bg-primary-subtle"
+                  onClick={() => {
+                    setName(plan.name)
+                    setRows(plan.reports.map(r => ({ code: r.code.slice(0, 30), name: r.name, required: r.required })))
+                    setCreateMode('edit')
+                    setCreateError('')
+                    setCreateSuccess('Đã đổ bộ đầu mục AI đề xuất vào Bước 2. Kiểm tra phạm vi/kỳ rồi bấm Tạo template.')
+                    setAiColdOpen(false)
+                  }}
+                >
+                  Đổ vào biểu mẫu để chỉnh thêm
+                </button>
+                <button
+                  type="button"
+                  disabled={aiColdApplying || !projectPeriodId || (templateScope === 'MAJOR_SPECIFIC' && !majorId)}
+                  className="min-h-10 rounded-lg bg-primary px-4 text-xs font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={async () => {
+                    if (!projectPeriodId) return
+                    setAiColdApplying(true)
+                    setAiColdError('')
+                    try {
+                      const key = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+                        ? crypto.randomUUID()
+                        : `${Date.now()}-0000-4000-8000-000000000000`
+                      const saved = await applyColdTemplateAiSetup({
+                        idempotencyKey: key,
+                        runId: response.runId ?? null,
+                        projectPeriodId: Number(projectPeriodId),
+                        scope: templateScope,
+                        majorId: templateScope === 'COMMON' ? null : Number(majorId),
+                        name: plan.name,
+                        reports: plan.reports,
+                      })
+                      setCreateSuccess(`Đã lưu phiên bản v${saved.version} mẫu chấm nguội "${saved.name}" (${saved.reportsCount} đầu mục).`)
+                      setAiColdOpen(false)
+                      void search()
+                    } catch (reason) {
+                      setAiColdError(errorMessage(reason))
+                    } finally {
+                      setAiColdApplying(false)
+                    }
+                  }}
+                >
+                  {aiColdApplying ? 'Đang lưu…' : 'Lưu thành phiên bản mới ngay'}
+                </button>
+              </div>
+              {(!projectPeriodId || (templateScope === 'MAJOR_SPECIFIC' && !majorId)) && (
+                <p className="text-xs text-ink-muted">
+                  Chọn Kỳ đồ án (và Chuyên ngành nếu theo ngành) ở Bước 1 để bật nút Lưu ngay, hoặc bấm "Đổ vào biểu mẫu để chỉnh thêm".
+                </p>
+              )}
+            </section>
+          )
+        }}
+      />
     </WorkspacePage>
   )
 }

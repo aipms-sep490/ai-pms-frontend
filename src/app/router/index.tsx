@@ -30,7 +30,7 @@ import {
   FinalSubmissionViewerPage, StudentFinalSubmissionPage, RubricManagementPage, EvaluatorAssignmentManagementPage,
   EvaluationSchemeManagementPage, StudentProjectResultPage, ProjectContributionsPage, ProjectFilesPage,
   ProjectEvidenceLedgerPage, ProjectAiPage, ProjectGatesPage, ProjectWorkingAgreementPage, ProjectDefensePage, ProjectDefenseManagementPage, RoomPlannerPage, DefenseSessionChangePage,
-  ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, DepartmentStudentsPage, DepartmentStudentDetailPage, ArchivedProjectsPage,
+  ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, DepartmentStudentsPage, DepartmentStudentDetailPage, PreSemesterSetupHubPage, ArchivedProjectsPage,
   ProjectArchiveViewPage, CalendarAttentionPage, ReviewGateGovernancePage,
   StudentReviewTimelinePage, AssignedGateReviewPage,
   AcademicKnowledgeManagementPage,
@@ -175,6 +175,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorEl
       {
         element: <RoleRoute allowed={['department', 'admin']} />,
         children: [
+          { path: 'department/pre-semester-setup', element: <PreSemesterSetupHubPage /> },
           { path: 'academic', element: <AcademicStructurePage /> },
           { path: 'academic/governance', element: <AcademicGovernancePage /> },
           { path: 'academic/project-periods/:periodId/policy', element: <PeriodPolicyManagementPage /> },

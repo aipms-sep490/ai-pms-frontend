@@ -1,7 +1,9 @@
 import { Table, TableHead } from '../../../components/ui/Table'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
-import { useCallback, useContext, useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
+import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import {
   getDefenseReadiness,
@@ -28,6 +30,8 @@ import { HttpError } from '../../../services/http/http-client'
 import { gateWeightTotal, validateGateWeights } from '../api/review-gates-contract'
 import { AcademicWorkflowContext } from '../../../app/context/academic-workflow-context'
 import { getDepartmentUrgentActions } from '../../calendar/action-aggregators-api'
+import { DepartmentAiDraftBar } from '../../ai-suite/DepartmentAiDraftBar'
+import { AssistantReviewGateSetupCard } from '../../ai/components/AssistantReviewGateSetupCard'
 
 function templateError(error: unknown, template: ReviewGateTemplate): string {
   if (error instanceof HttpError && error.status === 409) return 'Mẫu đã công bố không thể sửa hoặc phiên bản đã thay đổi. Giữ lại nội dung đang nhập; tải lại để đối chiếu hoặc nhân bản thành phiên bản nháp mới.'
@@ -61,11 +65,27 @@ function cloneDraftTemplate(templateToClone: ReviewGateTemplate, stamp: number):
   }
 }
 
+const gateDecisionLabels: Record<'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW', string> = {
+  PASSED: 'Đạt',
+  REVISION_REQUIRED: 'Cần chỉnh sửa',
+  IN_REVIEW: 'Đang thẩm định',
+}
+
+type GovernanceTab = 'overview' | 'builder' | 'matrix' | 'hybrid' | 'defense'
+
+function defaultTabForPathname(pathname: string): GovernanceTab {
+  return pathname.replace(/\/+$/, '').endsWith('/progress-matrix') ? 'matrix' : 'overview'
+}
+
 export function ReviewGateGovernancePage() {
   const academicContext = useContext(AcademicWorkflowContext)
+  const location = useLocation()
   const departmentKey = (academicContext?.academic?.departments ?? []).map(item => item.id).filter(id => Number.isSafeInteger(id) && id > 0).join(',')
   const { periodId } = useParams<{ periodId?: string }>()
-  const [activeTab, setActiveTab] = useState<'overview' | 'builder' | 'matrix' | 'hybrid' | 'defense'>('overview')
+  const [activeTab, setActiveTab] = useState<GovernanceTab>(() => defaultTabForPathname(location.pathname))
+  const [templateSearch, setTemplateSearch] = useState('')
+  const [templateStatusFilter, setTemplateStatusFilter] = useState<'ALL' | 'PUBLISHED' | 'DRAFT'>('ALL')
+  const [templateModeFilter, setTemplateModeFilter] = useState<'ALL' | 'SINGLE_MAJOR' | 'INTERDISCIPLINARY'>('ALL')
   const [templates, setTemplates] = useState<ReviewGateTemplate[]>([])
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('')
   const [dirtyTemplateIds, setDirtyTemplateIds] = useState<Set<string>>(() => new Set())
@@ -78,9 +98,14 @@ export function ReviewGateGovernancePage() {
   const [error, setError] = useState<string | null>(null)
   const [defenseError, setDefenseError] = useState<string | null>(null)
   const [readinessRefresh, setReadinessRefresh] = useState(0)
+  const [aiDraftOpen, setAiDraftOpen] = useState(false)
   const [reviewerGaps, setReviewerGaps] = useState<{ key: string; state: 'ready' | 'unavailable'; count: number } | null>(null)
   const cloneSequence = useRef(0)
   const scopedReviewerGaps = reviewerGaps?.key === departmentKey ? reviewerGaps : null
+
+  useEffect(() => {
+    setActiveTab(defaultTabForPathname(location.pathname))
+  }, [location.pathname])
 
   const loadAllData = useCallback(async () => {
     setLoading(true)
@@ -195,7 +220,8 @@ export function ReviewGateGovernancePage() {
     try {
       const updated = await updateGateDecision(projectId, gateCode, newStatus)
       setMatrixProjects(prev => prev.map(p => (p.projectId === updated.projectId ? updated : p)))
-      setNotice(`Đã ghi nhận kết luận thẩm định cho đồ án ${projectId}: ${gateCode} → ${newStatus}.`)
+      const projectLabel = updated.projectCode || updated.projectName
+      setNotice(`Đã ghi nhận kết luận thẩm định cho đồ án ${projectLabel}: ${gateCode} → ${gateDecisionLabels[newStatus]}.`)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Không thể cập nhật kết luận thẩm định.'
       setError(msg)
@@ -209,10 +235,13 @@ export function ReviewGateGovernancePage() {
     newStatus: 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW',
   ) {
     try {
-      const token = matrixProjects.find(p => p.projectId === projectId)?.hybridScopeTokens?.[scope]
+      const targetProject = matrixProjects.find(p => p.projectId === projectId)
+      const token = targetProject?.hybridScopeTokens?.[scope]
       const updated = await updateHybridScopeDecision(projectId, scope, newStatus, token)
       setMatrixProjects(prev => prev.map(p => (p.projectId === updated.projectId ? updated : p)))
-      setNotice(`Đã cập nhật quyết định ngành ${scope} của đồ án ${projectId}: ${newStatus}.`)
+      const projectLabel = updated.projectCode || updated.projectName
+      const scopeLabel = updated.hybridScopeLabels?.[scope] ?? targetProject?.hybridScopeLabels?.[scope] ?? scope
+      setNotice(`Đã cập nhật quyết định ngành ${scopeLabel} của đồ án ${projectLabel}: ${gateDecisionLabels[newStatus]}.`)
     } catch (err) {
       if (err instanceof HttpError && err.status === 409) {
         try { setMatrixProjects(await getProjectReviewMatrix()) } catch { /* keep current matrix and selected choice */ }
@@ -225,11 +254,55 @@ export function ReviewGateGovernancePage() {
   const draftCount = templates.filter(t => t.status !== 'PUBLISHED').length
   const selectedMatrixProject = matrixProjects.find(p => p.projectId === selectedProjectId)
 
+  const resolvedPeriodLabel = useMemo(() => {
+    if (periodId) {
+      const matched = academicContext?.academic?.periods.find(item => String(item.id) === periodId || item.code === periodId)
+      if (matched) return `${matched.code} · ${matched.name}`
+      if (!/^\d+$/.test(periodId)) return decodeURIComponent(periodId)
+      return 'Kỳ đồ án đang chọn'
+    }
+    if (env.reviewGatesMockEnabled) return 'Fall 2026 · SEP490'
+    return academicContext?.academic?.selectedSemester
+      ? `${academicContext.academic.selectedSemester.code} · ${academicContext.academic.selectedSemester.name}`
+      : 'Tất cả kỳ học'
+  }, [periodId, academicContext])
+
+  const filteredTemplates = useMemo(() => {
+    const q = templateSearch.trim().toLowerCase()
+    return templates.filter(tmpl => {
+      if (templateStatusFilter === 'PUBLISHED' && tmpl.status !== 'PUBLISHED') return false
+      if (templateStatusFilter === 'DRAFT' && tmpl.status === 'PUBLISHED') return false
+      if (templateModeFilter !== 'ALL' && tmpl.mode !== templateModeFilter) return false
+      if (q && !`${tmpl.name} ${tmpl.code} ${tmpl.major ?? ''}`.toLowerCase().includes(q)) return false
+      return true
+    })
+  }, [templates, templateSearch, templateStatusFilter, templateModeFilter])
+
+  const templateChips: ActiveFilterChip[] = []
+  if (templateStatusFilter !== 'ALL') {
+    templateChips.push({ id: 'status', label: 'Trạng thái', value: templateStatusFilter === 'PUBLISHED' ? 'Đã công bố' : 'Bản nháp' })
+  }
+  if (templateModeFilter !== 'ALL') {
+    templateChips.push({ id: 'mode', label: 'Chế độ', value: templateModeFilter === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành' })
+  }
+  const hasTemplateFilters = Boolean(templateSearch.trim() || templateStatusFilter !== 'ALL' || templateModeFilter !== 'ALL')
+
   return (
     <WorkspacePage
+      size="wide"
       title="Cấu hình & Giám sát Tiến trình Đồ án"
       eyebrow="Quản lý học vụ · Chính sách cổng kiểm duyệt"
       description="Thiết kế các cổng kiểm duyệt (R1..Rn), kiểm tra điều kiện minh chứng và ma trận theo dõi tiến độ các nhóm."
+      action={
+        <button
+          type="button"
+          onClick={() => setAiDraftOpen(true)}
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-subtle px-3.5 text-sm font-semibold text-primary transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">auto_awesome</span>
+          Soạn nháp bằng AI
+        </button>
+      }
     >
       <ReviewGatesMockNotice />
       {/* Alert Notices */}
@@ -341,7 +414,7 @@ export function ReviewGateGovernancePage() {
                 <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
                   <span className="text-xs font-semibold text-ink-muted">Kỳ học áp dụng</span>
                   <p className="mt-1 text-xl font-bold text-ink">
-                    {periodId ? decodeURIComponent(periodId) : env.reviewGatesMockEnabled ? 'Fall 2026 · SEP490' : 'Tất cả kỳ học'}
+                    {resolvedPeriodLabel}
                   </p>
                 </div>
                 <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
@@ -372,7 +445,7 @@ export function ReviewGateGovernancePage() {
               {/* Template Library Table */}
               <div className="rounded-xl border border-hairline bg-card shadow-xs overflow-hidden">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline p-4">
-                  <h3 className="text-sm font-bold text-ink">Danh mục Mẫu Tiến trình Review</h3>
+                  <h3 className="text-sm font-bold text-ink">Danh mục Mẫu Tiến trình Thẩm định</h3>
                   <button
                     type="button"
                     onClick={() => {
@@ -397,7 +470,7 @@ export function ReviewGateGovernancePage() {
                             blockNextGate: true,
                             start: env.reviewGatesMockEnabled ? '2026-11-01' : null,
                             end: env.reviewGatesMockEnabled ? '2026-11-15' : null,
-                            reviewerPolicy: 'Assigned Reviewer',
+                            reviewerPolicy: 'Người thẩm định được phân công',
                             reviewScope: 'COMMON',
                             requirements: [],
                           },
@@ -406,7 +479,7 @@ export function ReviewGateGovernancePage() {
                       setTemplates(prev => [newDraft, ...prev])
                       setSelectedTemplateId(newDraft.id)
                       setActiveTab('builder')
-                      setNotice('Đã tạo bản nháp tiến trình mới. Vui lòng thiết lập cấu trúc Gates và lưu bản nháp.')
+                      setNotice('Đã tạo bản nháp tiến trình mới. Vui lòng thiết lập cấu trúc cổng kiểm duyệt và lưu bản nháp.')
                     }}
                     className="min-h-10 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-primary-hover cursor-pointer"
                   >
@@ -414,20 +487,74 @@ export function ReviewGateGovernancePage() {
                   </button>
                 </div>
 
+                <div className="border-b border-hairline px-4 py-3">
+                  <FilterToolbar
+                    embedded
+                    search={templateSearch}
+                    onSearchChange={setTemplateSearch}
+                    searchLabel="Tìm mẫu tiến trình"
+                    searchPlaceholder="Tìm theo tên mẫu, mã mẫu hoặc chuyên ngành..."
+                    debounceMs={0}
+                    tabs={[
+                      { value: 'ALL', label: 'Tất cả', count: templates.length },
+                      { value: 'PUBLISHED', label: 'Đã công bố', count: publishedCount },
+                      { value: 'DRAFT', label: 'Bản nháp', count: draftCount },
+                    ]}
+                    activeTab={templateStatusFilter}
+                    onTabChange={v => setTemplateStatusFilter(v as 'ALL' | 'PUBLISHED' | 'DRAFT')}
+                    tabsLabel="Lọc mẫu tiến trình theo trạng thái"
+                    controls={
+                      <label className="ft-select-wrap">
+                        <span className="sr-only">Chế độ mẫu</span>
+                        <select
+                          className="ft-select"
+                          aria-label="Lọc mẫu theo chế độ"
+                          value={templateModeFilter}
+                          onChange={e => setTemplateModeFilter(e.target.value as 'ALL' | 'SINGLE_MAJOR' | 'INTERDISCIPLINARY')}
+                        >
+                          <option value="ALL">Tất cả chế độ</option>
+                          <option value="SINGLE_MAJOR">Đơn ngành</option>
+                          <option value="INTERDISCIPLINARY">Liên ngành</option>
+                        </select>
+                      </label>
+                    }
+                    activeChips={templateChips}
+                    onRemoveChip={id => {
+                      if (id === 'status') setTemplateStatusFilter('ALL')
+                      if (id === 'mode') setTemplateModeFilter('ALL')
+                    }}
+                    onClearAll={() => {
+                      setTemplateSearch('')
+                      setTemplateStatusFilter('ALL')
+                      setTemplateModeFilter('ALL')
+                    }}
+                    hasActiveFilters={hasTemplateFilters}
+                    resultSummary={`Hiển thị ${filteredTemplates.length}/${templates.length} mẫu`}
+                  />
+                </div>
+
+                {filteredTemplates.length === 0 ? (
+                  <div className="p-6">
+                    <WorkspaceEmptyState
+                      title={hasTemplateFilters ? 'Không tìm thấy mẫu tiến trình phù hợp' : 'Chưa có mẫu tiến trình nào'}
+                      message={hasTemplateFilters ? 'Thử thay đổi từ khóa hoặc xóa bộ lọc hiện tại.' : 'Nhấn "Tạo Mẫu Tiến trình Mới" để thiết lập các cổng kiểm duyệt cho kỳ học.'}
+                    />
+                  </div>
+                ) : (
                 <div className="overflow-x-auto">
                   <Table className="w-full min-w-[640px] text-left text-xs">
                     <TableHead className="font-semibold uppercase tracking-wider text-ink-muted">
                       <tr>
                         <th className="py-3 px-4">Tên Mẫu Tiến trình</th>
                         <th className="py-3 px-4">Chế độ / Ngành</th>
-                        <th className="py-3 px-3 text-center">Số Gate</th>
+                        <th className="py-3 px-3 text-center">Số cổng</th>
                         <th className="py-3 px-3 text-center">Phiên bản</th>
                         <th className="py-3 px-3 text-center">Trạng thái</th>
                         <th className="py-3 px-4 text-right">Thao tác</th>
                       </tr>
                     </TableHead>
                     <tbody className="divide-y divide-hairline text-ink-soft">
-                      {templates.map(tmpl => (
+                      {filteredTemplates.map(tmpl => (
                         <tr key={tmpl.id} className="hover:bg-canvas">
                           <td className="py-3.5 px-4">
                             <strong className="block font-bold text-ink">{tmpl.name}</strong>
@@ -473,7 +600,7 @@ export function ReviewGateGovernancePage() {
                               }}
                               className="min-h-9 rounded-md border border-hairline px-3 py-1 font-semibold text-primary hover:bg-canvas"
                             >
-                              Thiết kế Gate ↗
+                              Thiết kế cổng ↗
                             </button>
                           </td>
                         </tr>
@@ -481,6 +608,7 @@ export function ReviewGateGovernancePage() {
                     </tbody>
                   </Table>
                 </div>
+                )}
               </div>
             </div>
           )}
@@ -497,6 +625,7 @@ export function ReviewGateGovernancePage() {
             <ReviewGateBuilder
               key={currentTemplate.id}
               template={currentTemplate}
+              majors={academicContext?.academic?.majors ?? []}
               onChange={handleTemplateChange}
               onSaveDraft={handleSaveDraft}
               onPublish={handlePublish}
@@ -607,6 +736,52 @@ export function ReviewGateGovernancePage() {
           )}
         </>
       )}
+
+      <DepartmentAiDraftBar
+        open={aiDraftOpen}
+        onClose={() => setAiDraftOpen(false)}
+        title="Soạn nháp Khung cổng thẩm định bằng AI"
+        description="Tải tệp Đề cương / Lịch học kỳ (PDF, DOCX, XLSX) hoặc mô tả yêu cầu để AI đề xuất các cổng G1..Gn với trọng số 100% và minh chứng theo ngành."
+        toolMode="REVIEW_GATE_SETUP"
+        pageContext="/department/review-gates"
+        projectPeriodId={periodId && /^\d+$/.test(periodId) ? Number(periodId) : undefined}
+        placeholder="VD: Thiết kế 3 cổng thẩm định G1 (25%), G2 (35%), G3 (40% chặn bảo vệ) cho đồ án tốt nghiệp chuyên ngành Kỹ thuật phần mềm..."
+        starters={[
+          {
+            label: 'Khung 3 cổng đơn ngành chuẩn (G1–G3)',
+            prompt: 'Đề xuất khung 3 cổng thẩm định G1 (25% khởi tạo & SRS), G2 (35% thiết kế & demo giữa kỳ), G3 (40% nghiệm thu & chặn bảo vệ) với đầy đủ yêu cầu minh chứng.',
+          },
+          {
+            label: 'Khung liên ngành (COMMON + MAJOR_SPECIFIC)',
+            prompt: 'Đề xuất khung 3 cổng thẩm định cho đồ án liên ngành, có cả yêu cầu minh chứng chung (COMMON) và theo chuyên ngành (MAJOR_SPECIFIC).',
+          },
+          {
+            label: 'Trích xuất từ tệp đề cương đính kèm',
+            prompt: 'Đọc tệp đề cương / kế hoạch học kỳ đính kèm và trích xuất cấu trúc cổng thẩm định G1..Gn kèm mốc ngày và yêu cầu minh chứng.',
+          },
+        ]}
+        renderResult={response =>
+          response.draft?.reviewGateSetup ? (
+            <AssistantReviewGateSetupCard
+              runId={response.runId}
+              plan={response.draft.reviewGateSetup}
+              defaultPeriodId={periodId && /^\d+$/.test(periodId) ? Number(periodId) : undefined}
+              onApplied={result => {
+                setAiDraftOpen(false)
+                setNotice(`Đã tạo bản nháp khung cổng "${result.name}" (${result.code}) ở trạng thái DRAFT.`)
+                void loadAllData().then(() => {
+                  setSelectedTemplateId(String(result.templateId))
+                  setActiveTab('builder')
+                })
+              }}
+            />
+          ) : (
+            <div className="rounded-xl border border-hairline bg-canvas p-4 text-sm text-ink-soft whitespace-pre-wrap">
+              {response.answer}
+            </div>
+          )
+        }
+      />
     </WorkspacePage>
   )
 }
