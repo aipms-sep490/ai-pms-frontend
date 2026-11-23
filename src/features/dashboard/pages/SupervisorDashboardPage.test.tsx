@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { SupervisorDashboardPage } from './SupervisorDashboardPage'
@@ -51,9 +51,23 @@ describe('SupervisorDashboardPage', () => {
 
   it('renders Action Inbox when projects have pending reviews or overdue tasks', async () => {
     render(<MemoryRouter><SupervisorDashboardPage /></MemoryRouter>)
-    expect(await screen.findByRole('region', { name: 'Hộp thư duyệt nhanh' })).toBeTruthy()
-    expect(screen.getByText(/Hộp thư duyệt nhanh & Việc khẩn cấp/)).toBeTruthy()
-    expect(screen.getByText('1 báo cáo chờ duyệt')).toBeTruthy()
-    expect(screen.getByRole('link', { name: /Xem & Duyệt báo cáo/ })).toBeTruthy()
+    const inboxRegion = await screen.findByRole('region', { name: 'Hộp thư duyệt nhanh' })
+    expect(inboxRegion).toBeTruthy()
+    expect(within(inboxRegion).getByText(/Hộp thư duyệt nhanh & Việc khẩn cấp/)).toBeTruthy()
+    expect(within(inboxRegion).getByText('1 báo cáo chờ duyệt')).toBeTruthy()
+    expect(within(inboxRegion).getByRole('link', { name: /Xem & Duyệt báo cáo/ })).toBeTruthy()
+  })
+
+  it('restores a read-only workspace link for COMPLETED and ARCHIVED projects', async () => {
+    api.getSupervisorDashboard.mockResolvedValueOnce({
+      ...dashboard,
+      projects: {
+        ...dashboard.projects,
+        items: [{ ...dashboard.projects.items[0], id: 9, code: 'PRJ-9', status: 'COMPLETED', pendingProgressReviews: 0 }],
+      },
+    })
+    render(<MemoryRouter><SupervisorDashboardPage /></MemoryRouter>)
+    const link = await screen.findByRole('link', { name: /Xem hồ sơ \(Chỉ xem\)/ })
+    expect(link.getAttribute('href')).toBe('/supervisor/projects/9/workspace')
   })
 })

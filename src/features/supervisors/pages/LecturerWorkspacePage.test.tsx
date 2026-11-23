@@ -14,16 +14,17 @@ const state = (overrides: Record<string, unknown> = {}) => ({ requests: [request
 
 describe('LecturerWorkspacePage', () => {
   beforeEach(() => { summaries.useSupervisorProjectSummaries.mockReturnValue({}) })
-  it('waits for the in-app confirmation before sending an accept decision', async () => {
+  it('waits for the in-app confirmation modal before sending an accept decision with optional response', async () => {
     const hook = state()
     inbox.useSupervisorInbox.mockReturnValue(hook)
     vi.stubGlobal('confirm', vi.fn(() => true))
     render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)
     expect(screen.getByRole('heading', { name: 'Hướng dẫn đồ án' })).toBeTruthy()
-    fireEvent.change(screen.getByLabelText('Phản hồi (tùy chọn)'), { target: { value: 'Accepted' } })
-    fireEvent.click(screen.getByText('Nhận hướng dẫn'))
+    fireEvent.click(screen.getByRole('button', { name: 'Nhận hướng dẫn' }))
     expect(hook.respond).not.toHaveBeenCalled()
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Nhận hướng dẫn' }))
+    const dialog = screen.getByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText('Phản hồi (tùy chọn)'), { target: { value: 'Accepted' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Nhận hướng dẫn' }))
     await waitFor(() => expect(hook.respond).toHaveBeenCalledWith(request, 'accept', 'Accepted'))
     expect(globalThis.confirm).not.toHaveBeenCalled()
   })
