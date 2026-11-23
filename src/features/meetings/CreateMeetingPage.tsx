@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { createMeeting, createMeetingSeries } from '../../services/api/meetings.api'
 import type { CreateMeeting } from './meeting-types'
@@ -15,6 +15,7 @@ export function CreateMeetingPage() {
   const access = useExecutionAccess()
   return <CreateMeetingView key={`${access.project.id}:${access.currentUserId}`} />
 }
+
 function CreateMeetingView() {
   const access = useExecutionAccess()
   const { project, routeBase, currentUserId } = access
@@ -36,6 +37,7 @@ function CreateMeetingView() {
   const [uncertain, setUncertain] = useState(false)
   const [dirty, setDirty] = useState(false)
   useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
+
   async function save(body: CreateMeeting) {
     if (!canSchedule || locked.current || uncertain) return
     locked.current = true; setBusy(true); setError('')
@@ -52,18 +54,45 @@ function CreateMeetingView() {
       if (alive.current) { setError(meetingError(reason)); setUncertain(mustRefreshAfterError(reason)) }
     } finally { locked.current = false; if (alive.current) setBusy(false) }
   }
-  return <MeetingShell title="Lên lịch họp" projectTitle={project.title} backTo={`${routeBase}/meetings`} action={<Link className="mtg-button mtg-button--secondary" to={`${routeBase}/meetings`}>Danh sách cuộc họp</Link>}>
-    <MeetingUnsavedNotice dirty={dirty} busy={busy} />
-    {access.executionCapabilities?.status === 'loading' ? <MeetingLoading /> : !canSchedule ? <MeetingError message="Bạn chưa có quyền lên lịch họp cho đồ án này." /> : <>
-      {error && <MeetingError message={error} />}
-      {uncertain && <p className="mtg-notice">Tạm khóa gửi lại để tránh tạo lịch trùng. Quay về danh sách và kiểm tra lịch vừa tạo trước khi mở một biểu mẫu mới.</p>}
-      <section className="mtg-panel mtg-padded"><h2>Thông tin cuộc họp</h2><p className="mtg-help">Thời gian hiển thị và nhập theo giờ Việt Nam (UTC+7).</p>
-        {candidates.loading && <p role="status" className="mtg-help">Đang tải thành viên và GVHD…</p>}
-        {candidates.error && <MeetingError message={`Chưa tải được danh sách mời. ${candidates.error}`} retry={candidates.retry} />}
-        {candidates.notice && <p className="mtg-notice">{candidates.notice}</p>}
-        <MeetingScheduleForm key={draftState.key} initialDraft={draftState.draft} busy={busy} locked={uncertain || (!!draftState.draft?.meeting?.inviteAll && (candidates.loading || !!candidates.error))} currentUserId={currentUserId} candidates={candidates.data} onSave={save} onDirty={() => setDirty(true)} />
-      </section>
-    </>}
-  </MeetingShell>
-}
 
+  return (
+    <MeetingShell
+      title="Lên lịch họp"
+      description="Đặt lịch họp nhanh cho nhóm hoặc giảng viên hướng dẫn. Mọi mốc giờ hiển thị và nhập theo giờ Việt Nam (UTC+7)."
+      projectTitle={project.title}
+      backTo={`${routeBase}/meetings`}
+      backLabel="Danh sách cuộc họp"
+    >
+      <MeetingUnsavedNotice dirty={dirty} busy={busy} />
+      {access.executionCapabilities?.status === 'loading' ? (
+        <MeetingLoading />
+      ) : !canSchedule ? (
+        <MeetingError message="Bạn chưa có quyền lên lịch họp cho đồ án này." />
+      ) : (
+        <>
+          {error && <MeetingError message={error} />}
+          {uncertain && (
+            <p className="mtg-notice">
+              Tạm khóa gửi lại để tránh tạo lịch trùng. Quay về danh sách và kiểm tra lịch vừa tạo trước khi mở một biểu mẫu mới.
+            </p>
+          )}
+          <MeetingScheduleForm
+            key={draftState.key}
+            initialDraft={draftState.draft}
+            busy={busy}
+            locked={uncertain || (!!draftState.draft?.meeting?.inviteAll && (candidates.loading || !!candidates.error))}
+            currentUserId={currentUserId}
+            candidates={candidates.data}
+            candidatesLoading={candidates.loading}
+            candidatesError={candidates.error}
+            candidatesNotice={candidates.notice}
+            onRetryCandidates={candidates.retry}
+            cancelTo={`${routeBase}/meetings`}
+            onSave={save}
+            onDirty={() => setDirty(true)}
+          />
+        </>
+      )}
+    </MeetingShell>
+  )
+}

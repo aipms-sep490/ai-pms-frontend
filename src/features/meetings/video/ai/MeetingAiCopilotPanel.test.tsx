@@ -222,4 +222,44 @@ describe('MeetingAiCopilotPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Điền vào khung Nhận xét GVHD' }))
     expect(onApplyFeedback).toHaveBeenCalledWith('Nhóm làm việc tốt, cần sớm xử lý phần VNPay.')
   })
+
+  it('hides supervisor feedback draft for student leaders and surfaces stale-summary freshness banner', async () => {
+    const seg2 = { ...sampleSegment, id: 102, content: 'Cập nhật thêm phần API kiểm thử.' }
+    const seg3 = { ...sampleSegment, id: 103, content: 'Nhóm chốt lịch demo chiều thứ Sáu.' }
+    api.getMeetingAiWorkspace.mockResolvedValue({
+      meetingId: 50,
+      totalSegments: 3,
+      lastSegmentId: 103,
+      segments: [sampleSegment, seg2, seg3],
+      speakerStats: [],
+      latestInsight: sampleInsight,
+      aiAvailable: true,
+      audioSttConfigured: false,
+    })
+    api.getMeetingAiInsights.mockResolvedValue([sampleInsight])
+
+    render(
+      <MeetingAiCopilotPanel
+        meeting={meeting}
+        variant="room"
+        canManage={true}
+        isSupervisor={false}
+        currentUserId={1}
+        milestones={[{ id: 40, title: 'Mốc 2: Hoàn thiện API' }]}
+      />,
+    )
+
+    expect(await screen.findByText(sampleSegment.content)).toBeTruthy()
+    // 1-click quick AI action strip available directly in transcript tab
+    expect(screen.getByRole('group', { name: 'Phân tích AI nhanh' })).toBeTruthy()
+
+    // Stale-summary freshness notice shows +2 new segments on Summary tab
+    fireEvent.click(screen.getByRole('tab', { name: 'Tóm tắt & Biên bản' }))
+    expect(screen.getByText(/lượt nói mới chưa vào bản tóm tắt/)).toBeTruthy()
+
+    // Coach tab hides Supervisor Feedback Draft for non-supervisor student leaders
+    fireEvent.click(screen.getByRole('tab', { name: 'Điều phối AI' }))
+    expect(screen.queryByRole('button', { name: /Nháp nhận xét GVHD/ })).toBeNull()
+    expect(screen.getByRole('button', { name: /Đối chiếu Task/ })).toBeTruthy()
+  })
 })

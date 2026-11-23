@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Modal } from '../../../components/ui/Modal'
 import { useExecutionAccess } from '../../execution/context/ExecutionAccessContext'
 import { env } from '../../../app/config/env'
 import * as meetingsApi from '../../../services/api/meetings.api'
@@ -7,7 +8,7 @@ import * as milestonesApi from '../../../services/api/milestones.api'
 import * as tasksApi from '../../../services/api/tasks.api'
 import type { MilestoneDto } from '../../../types/backend'
 import type { MeetingDetail } from '../meeting-types'
-import { MeetingError, MeetingLoading, MeetingShell } from '../meeting-ui'
+import { MeetingError, MeetingLoading } from '../meeting-ui'
 import { canManageMeeting, meetingError } from '../meeting-utils'
 import { MeetingNotesForm } from '../MeetingNotesForm'
 import { MeetingGovernancePanel } from '../MeetingGovernancePanel'
@@ -17,6 +18,7 @@ import { endMeetingVideo, joinMeetingVideo } from './meeting-video-api'
 import { MeetingVideoPreflight, type MeetingVideoPreflightSelection } from './MeetingVideoPreflight'
 import type { MeetingVideoJoinResponse } from './meeting-video.types'
 import { useMeetingVideoAccess } from './useMeetingVideoAccess'
+import '../meetings.css'
 
 const LiveKitRoomAdapter = lazy(() =>
   import('./providers/livekit/LiveKitRoomAdapter').then((module) => ({ default: module.LiveKitRoomAdapter })),
@@ -26,6 +28,34 @@ export function MeetingVideoRoomPage() {
   const { meetingId } = useParams()
   const access = useExecutionAccess()
   return <MeetingVideoRoomView key={`${access.project.id}:${meetingId}`} id={Number(meetingId)} />
+}
+
+function MeetLobbyTopbar({
+  projectTitle,
+  meetingTitle,
+  backTo,
+}: {
+  projectTitle: string
+  meetingTitle?: string
+  backTo: string
+}) {
+  return (
+    <header className="mtg-meet-topbar">
+      <div className="mtg-meet-topbar__brand">
+        <span className="mtg-meet-topbar__logo" aria-hidden="true">
+          <span className="material-symbols-outlined">video_camera_front</span>
+        </span>
+        <div className="mtg-meet-topbar__copy">
+          <strong>AIPMS Meet{meetingTitle ? ` · ${meetingTitle}` : ''}</strong>
+          <span>{projectTitle}</span>
+        </div>
+      </div>
+      <Link className="mtg-button mtg-button--secondary mtg-button--small" to={backTo}>
+        <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+        Chi tiết cuộc họp
+      </Link>
+    </header>
+  )
 }
 
 function MeetingVideoRoomView({ id }: { id: number }) {
@@ -73,41 +103,46 @@ function MeetingVideoRoomView({ id }: { id: number }) {
     return () => controller.abort()
   }, [id, project.id, revision])
 
+  if (loading || error || !meeting) {
+    return (
+      <div className="meetings mtg-meet-shell mtg-meet-shell--lobby">
+        <MeetLobbyTopbar projectTitle={project.title} backTo={backTo} />
+        <div className="mtg-meet-center-wrap">
+          {loading ? (
+            <div className="mtg-meet-state-card">
+              <MeetingLoading />
+            </div>
+          ) : (
+            <div className="mtg-meet-state-card">
+              <MeetingError message={error} retry={() => setRevision((value) => value + 1)} />
+              <Link className="mtg-button mtg-button--secondary" to={backTo}>
+                Quay lại chi tiết cuộc họp
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <MeetingShell
-      title="Phòng họp trực tuyến"
-      description="Kiểm tra thiết bị trước khi tham gia, trao đổi trực tiếp cùng nhóm và sử dụng Trợ lý AI cuộc họp."
+    <MeetingVideoRoomAccess
+      meeting={meeting}
       projectTitle={project.title}
       backTo={backTo}
-      action={
-        <Link className="mtg-button mtg-button--secondary" to={backTo}>
-          Chi tiết cuộc họp
-        </Link>
-      }
-    >
-      {loading ? (
-        <MeetingLoading />
-      ) : error ? (
-        <MeetingError message={error} retry={() => setRevision((value) => value + 1)} />
-      ) : (
-        meeting && (
-          <MeetingVideoRoomAccess
-            meeting={meeting}
-            backTo={backTo}
-            onMeetingUpdated={setMeeting}
-          />
-        )
-      )}
-    </MeetingShell>
+      onMeetingUpdated={setMeeting}
+    />
   )
 }
 
 function MeetingVideoRoomAccess({
   meeting,
+  projectTitle,
   backTo,
   onMeetingUpdated,
 }: {
   meeting: MeetingDetail
+  projectTitle: string
   backTo: string
   onMeetingUpdated: (updated: MeetingDetail) => void
 }) {
@@ -126,15 +161,10 @@ function MeetingVideoRoomAccess({
   const [milestones, setMilestones] = useState<MilestoneDto[]>([])
   const joinLock = useRef(false)
   const endLock = useRef(false)
-  const endDialogRef = useRef<HTMLDivElement>(null)
   const canManage = canManageMeeting(access, meeting)
   const isSupervisor = access.actor === 'supervisor'
   const teamMemberUserIds = (access.team?.members ?? []).map((m) => m.userId)
   const denialMessages = state.status === 'ready' ? state.resource.denialReasons.map(meetingVideoErrorCode) : []
-
-  useEffect(() => {
-    if (confirmEnd) endDialogRef.current?.focus()
-  }, [confirmEnd])
 
   useEffect(() => {
     if (!credential || !canManage) return
@@ -237,16 +267,12 @@ function MeetingVideoRoomAccess({
       const meetingRef = `Nguồn: Trợ lý AI Cuộc họp #${fresh.id}: ${fresh.title}`
       const taskDesc = description ? `${description}\n\n${meetingRef}` : meetingRef
       const assignees =
-        item.assigneeUserId && teamMemberUserIds.includes(item.assigneeUserId)
-          ? [item.assigneeUserId]
-          : []
+        item.assigneeUserId && teamMemberUserIds.includes(item.assigneeUserId) ? [item.assigneeUserId] : []
       const createdTask = await tasksApi.createTask({
         milestoneId,
         title: item.title,
         description: taskDesc,
-        priority: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(item.priority)
-          ? item.priority
-          : 'MEDIUM',
+        priority: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(item.priority) ? item.priority : 'MEDIUM',
         dueAt,
         assigneeUserIds: assignees,
       })
@@ -264,35 +290,91 @@ function MeetingVideoRoomAccess({
     await refreshMeetingDetail()
   }
 
-  if (state.status === 'loading' || state.status === 'idle') return <MeetingLoading />
-  if (state.status === 'error') return <MeetingError message={state.message} retry={refresh} />
+  if (state.status === 'loading' || state.status === 'idle') {
+    return (
+      <div className="meetings mtg-meet-shell mtg-meet-shell--lobby">
+        <MeetLobbyTopbar projectTitle={projectTitle} meetingTitle={meeting.title} backTo={backTo} />
+        <div className="mtg-meet-center-wrap">
+          <div className="mtg-meet-state-card">
+            <MeetingLoading />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (state.status === 'error') {
+    return (
+      <div className="meetings mtg-meet-shell mtg-meet-shell--lobby">
+        <MeetLobbyTopbar projectTitle={projectTitle} meetingTitle={meeting.title} backTo={backTo} />
+        <div className="mtg-meet-center-wrap">
+          <div className="mtg-meet-state-card">
+            <MeetingError message={state.message} retry={refresh} />
+            <Link className="mtg-button mtg-button--secondary" to={backTo}>
+              Quay lại chi tiết cuộc họp
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (!state.resource.capabilities.canJoin) {
     return (
-      <section className="mtg-panel mtg-padded">
-        <h2>Chưa thể tham gia phòng họp</h2>
-        {denialMessages.length > 0 ? (
-          <ul className="mtg-video-denials" role="alert">
-            {denialMessages.map((message, index) => (
-              <li key={`${message}-${index}`}>{message}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mtg-help">Bạn chưa được cấp quyền tham gia phòng họp ở thời điểm này.</p>
-        )}
-        <Link className="mtg-button mtg-button--secondary" to={backTo}>
-          Quay lại chi tiết cuộc họp
-        </Link>
-      </section>
+      <div className="meetings mtg-meet-shell mtg-meet-shell--lobby">
+        <MeetLobbyTopbar projectTitle={projectTitle} meetingTitle={meeting.title} backTo={backTo} />
+        <div className="mtg-meet-center-wrap">
+          <section className="mtg-meet-state-card mtg-schedule-card">
+            <div className="mtg-schedule-card__head">
+              <div className="mtg-schedule-card__title-group">
+                <span className="mtg-schedule-card__icon" aria-hidden="true">
+                  <span className="material-symbols-outlined">videocam_off</span>
+                </span>
+                <div>
+                  <h2>Chưa thể tham gia phòng họp</h2>
+                  <p className="mtg-schedule-card__sub">{meeting.title}</p>
+                </div>
+              </div>
+            </div>
+            <div className="mtg-schedule-card__body">
+              {denialMessages.length > 0 ? (
+                <ul className="mtg-video-banner__denials" role="alert">
+                  {denialMessages.map((message, index) => (
+                    <li key={`${message}-${index}`}>
+                      <span className="material-symbols-outlined" aria-hidden="true">info</span>
+                      <span>{message}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mtg-help mtg-help--tight">Bạn chưa được cấp quyền tham gia phòng họp ở thời điểm này.</p>
+              )}
+              <Link className="mtg-button mtg-button--secondary" to={backTo}>
+                Quay lại chi tiết cuộc họp
+              </Link>
+            </div>
+          </section>
+        </div>
+      </div>
     )
   }
 
   const governanceOpen = sidePanel === 'governance'
   const aiOpen = sidePanel === 'ai'
 
+  // FULLSCREEN GOOGLE MEET ACTIVE CALL MODE
   if (credential && preferences) {
     return (
-      <>
-        <Suspense fallback={<MeetingLoading />}>
+      <div className="meetings mtg-meet-shell mtg-meet-shell--live">
+        <Suspense
+          fallback={
+            <div className="mtg-meet-center-wrap">
+              <div className="mtg-meet-state-card">
+                <MeetingLoading />
+              </div>
+            </div>
+          }
+        >
           <LiveKitRoomAdapter
             credential={credential}
             preferences={preferences}
@@ -330,41 +412,70 @@ function MeetingVideoRoomAccess({
             }}
           />
         </Suspense>
+
         {confirmEnd && (
-          <div ref={endDialogRef} tabIndex={-1} className="mtg-confirm" role="alertdialog" aria-label="Xác nhận kết thúc phòng">
-            <p>Kết thúc phòng họp với tất cả người tham gia? Cuộc họp vẫn được giữ nguyên trên lịch.</p>
-            {endError && <p role="alert">{endError}</p>}
-            <div className="mtg-actions">
-              <button className="mtg-button mtg-button--secondary" disabled={ending} onClick={() => setConfirmEnd(false)}>
+          <Modal
+            open
+            role="alertdialog"
+            title="Xác nhận kết thúc phòng"
+            description="Kết thúc phòng họp với tất cả người tham gia? Cuộc họp vẫn được giữ nguyên trên lịch."
+            busy={ending}
+            onClose={() => setConfirmEnd(false)}
+          >
+            {endError && (
+              <p role="alert" className="mtg-notice mtg-notice--error mtg-notice--compact">
+                {endError}
+              </p>
+            )}
+            <div className="app-modal__actions">
+              <button
+                type="button"
+                className="app-modal__button"
+                disabled={ending}
+                onClick={() => setConfirmEnd(false)}
+              >
                 Quay lại
               </button>
-              <button className="mtg-button mtg-button--danger" disabled={ending} onClick={() => void endRoom()}>
+              <button
+                type="button"
+                className="app-modal__button app-modal__button--danger"
+                disabled={ending}
+                onClick={() => void endRoom()}
+              >
                 {ending ? 'Đang kết thúc…' : 'Kết thúc phòng'}
               </button>
             </div>
-          </div>
+          </Modal>
         )}
-      </>
+      </div>
     )
   }
 
+  // FULLSCREEN GOOGLE MEET PRE-JOIN LOBBY
   return (
-    <>
-      {joinError && (
-        <p className="mtg-notice mtg-notice--error" role="alert">
-          {joinError}
-        </p>
-      )}
-      <MeetingVideoPreflight
-        onBack={() => navigate(backTo)}
-        onConnectRequested={(selection) => void requestConnect(selection)}
-      />
-      {joining && (
-        <p className="mtg-loading" role="status">
-          Đang chuẩn bị phòng họp…
-        </p>
-      )}
-    </>
+    <div className="meetings mtg-meet-shell mtg-meet-shell--lobby">
+      <MeetLobbyTopbar projectTitle={projectTitle} meetingTitle={meeting.title} backTo={backTo} />
+      <div className="mtg-meet-center-wrap">
+        <div className="mtg-meet-lobby-container">
+          {joinError && (
+            <p className="mtg-notice mtg-notice--error mtg-notice--compact" role="alert">
+              {joinError}
+            </p>
+          )}
+          <MeetingVideoPreflight
+            meetingTitle={meeting.title}
+            joining={joining}
+            onBack={() => navigate(backTo)}
+            onConnectRequested={(selection) => void requestConnect(selection)}
+          />
+          {joining && (
+            <p className="mtg-meet-joining-status" role="status">
+              Đang chuẩn bị phòng họp…
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -445,54 +556,76 @@ function RoomGovernanceDrawer({
   if (!open) return null
   const writableNotes = canManage && (meeting.status === 'SCHEDULED' || meeting.status === 'COMPLETED')
   return (
-    <aside className="mtg-video-governance" aria-label="Quản trị cuộc họp">
-      <div className="mtg-section-heading">
+    <aside className="mtg-video-governance mtg-meet-side-drawer" aria-label="Quản trị cuộc họp">
+      <div className="mtg-meet-side-drawer__head">
         <h2>Quản trị cuộc họp</h2>
-        <button ref={closeRef} className="mtg-button mtg-button--secondary" onClick={onClose}>
+        <button
+          ref={closeRef}
+          type="button"
+          className="mtg-button mtg-button--secondary mtg-button--small"
+          onClick={onClose}
+        >
           Đóng
         </button>
       </div>
-      <h3>Nội dung dự kiến</h3>
-      <p className="mtg-prose">{meeting.agenda || 'Chưa có nội dung dự kiến.'}</p>
-      {draftMinutes && (
-        <p className="mtg-notice" role="status">
-          Đã điền sẵn biên bản do Trợ lý AI tạo vào biểu mẫu bên dưới. Kiểm tra lại rồi bấm Lưu để ghi nhận chính thức.
-        </p>
-      )}
-      {writableNotes && meeting.concurrencyToken && (
-        <>
-          <MeetingNotesForm
-            key={draftMinutes?.key ?? 'room-manual'}
-            initialNotes={draftMinutes?.notes}
+      <div className="mtg-meet-side-drawer__body">
+        <div className="mtg-prose-box">
+          <h3>Nội dung dự kiến</h3>
+          <p className="mtg-prose">{meeting.agenda || 'Chưa có nội dung dự kiến.'}</p>
+        </div>
+        {draftMinutes && (
+          <p className="mtg-notice mtg-notice--compact" role="status">
+            Đã điền sẵn biên bản do Trợ lý AI tạo vào biểu mẫu bên dưới. Kiểm tra lại rồi bấm Lưu để ghi nhận chính thức.
+          </p>
+        )}
+        {writableNotes && meeting.concurrencyToken && (
+          <>
+            <MeetingNotesForm
+              key={draftMinutes?.key ?? 'room-manual'}
+              initialNotes={draftMinutes?.notes}
+              meeting={meeting}
+              busy={busy}
+              locked={needsRefresh}
+              onDirty={() => setNotice('')}
+              onCancel={onClose}
+              onSave={save}
+            />
+            {notice && (
+              <p role="status" className="mtg-notice mtg-notice--success mtg-notice--compact">
+                {notice}
+              </p>
+            )}
+            {error && (
+              <p role="alert" className="mtg-notice mtg-notice--error mtg-notice--compact">
+                {error}
+              </p>
+            )}
+            {needsRefresh && (
+              <button
+                type="button"
+                className="mtg-button mtg-button--secondary"
+                disabled={busy}
+                onClick={() => void reload()}
+              >
+                Tải lại phiên bản để tiếp tục
+              </button>
+            )}
+          </>
+        )}
+        {meeting.concurrencyToken && (
+          <MeetingGovernancePanel
             meeting={meeting}
-            busy={busy}
-            locked={needsRefresh}
-            onDirty={() => setNotice('')}
-            onCancel={onClose}
-            onSave={save}
+            concurrencyToken={meeting.concurrencyToken}
+            candidates={[]}
+            canManage={canManage}
+            disabled={busy || needsRefresh}
+            onChanged={() => void reload()}
           />
-          {notice && <p role="status">{notice}</p>}
-          {error && <p role="alert">{error}</p>}
-          {needsRefresh && (
-            <button className="mtg-button mtg-button--secondary" disabled={busy} onClick={() => void reload()}>
-              Tải lại phiên bản để tiếp tục
-            </button>
-          )}
-        </>
-      )}
-      {meeting.concurrencyToken && (
-        <MeetingGovernancePanel
-          meeting={meeting}
-          concurrencyToken={meeting.concurrencyToken}
-          candidates={[]}
-          canManage={canManage}
-          disabled={busy || needsRefresh}
-          onChanged={() => void reload()}
-        />
-      )}
-      <Link className="mtg-button mtg-button--secondary" to={backTo}>
-        Mở quản trị cuộc họp
-      </Link>
+        )}
+        <Link className="mtg-button mtg-button--secondary mtg-button--full" to={backTo}>
+          Mở quản trị cuộc họp
+        </Link>
+      </div>
     </aside>
   )
 }
