@@ -12,6 +12,10 @@ export interface ExpertInvitation {
   id: number
   expertId: number
   email: string
+  fullName?: string | null
+  organization?: string | null
+  expertName?: string | null
+  expertOrganization?: string | null
   status: ExpertInvitationStatus
   expiresAt: string
 }

@@ -107,6 +107,7 @@ describe('Admin form state', () => {
     const createUser = vi.fn().mockRejectedValue(new Error('Failed'))
     workspace.useAdminWorkspace.mockReturnValue(ready({ createUser }))
     render(<MemoryRouter><AdminWorkspacePage /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo tài khoản' }))
     fireEvent.change(screen.getByLabelText('Họ tên'), { target: { value: 'Nguyễn An' } })
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'an@example.test' } })
     fireEvent.change(screen.getByLabelText('Mật khẩu ban đầu'), { target: { value: 'Example123!' } })

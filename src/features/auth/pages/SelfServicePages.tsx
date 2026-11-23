@@ -1,12 +1,12 @@
-import { ExternalLoginsPanel } from '../components/ExternalLoginsPanel'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
+import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { HttpError } from '../../../services/http/http-client'
 import { changePassword, requestPasswordReset, resetPassword } from '../api/auth-api'
+import { ExternalLoginsPanel } from '../components/ExternalLoginsPanel'
 import { useAuthSession } from '../context/useAuthSession'
 import './auth-pages.css'
-import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 
 const passwordMessage = 'Ít nhất 10 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.'
 
@@ -43,6 +43,54 @@ function changeError(error: unknown) {
   return 'Không thể đổi mật khẩu lúc này. Hãy thử lại sau.'
 }
 
+function PasswordInput({
+  id,
+  value,
+  onChange,
+  autoComplete,
+  disabled,
+  invalid,
+  describedBy,
+  toggleLabel,
+}: {
+  id: string
+  value: string
+  onChange: (value: string) => void
+  autoComplete: string
+  disabled?: boolean
+  invalid?: boolean
+  describedBy?: string
+  toggleLabel: string
+}) {
+  const [visible, setVisible] = useState(false)
+  return (
+    <div className="auth-password-field">
+      <input
+        id={id}
+        type={visible ? 'text' : 'password'}
+        autoComplete={autoComplete}
+        value={value}
+        onChange={event => onChange(event.target.value)}
+        aria-invalid={invalid}
+        aria-describedby={describedBy}
+        disabled={disabled}
+      />
+      <button
+        type="button"
+        className="auth-password-toggle"
+        disabled={disabled}
+        aria-label={visible ? `Ẩn ${toggleLabel}` : `Hiện ${toggleLabel}`}
+        aria-pressed={visible}
+        onClick={() => setVisible(prev => !prev)}
+      >
+        <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
+          {visible ? 'visibility_off' : 'visibility'}
+        </span>
+      </button>
+    </div>
+  )
+}
+
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [pending, setPending] = useState(false)
@@ -68,18 +116,36 @@ export function ForgotPasswordPage() {
     }
   }
 
-  return <main className="auth-page-shell"><section className="auth-card" aria-labelledby="forgot-title">
-    <h1 id="forgot-title">Quên mật khẩu</h1>
-    <p className="auth-description">Nhập email tài khoản AIPMS để yêu cầu liên kết đặt lại mật khẩu.</p>
-    {accepted ? <p className="auth-status" role="status">Yêu cầu đã được tiếp nhận. Nếu email thuộc tài khoản đang hoạt động, hãy kiểm tra hộp thư và thư rác để tìm liên kết đặt lại.</p>
-      : <form className="auth-form" onSubmit={submit} noValidate>
-        <label htmlFor="reset-email">Email</label>
-        <input id="reset-email" type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} aria-invalid={Boolean(error)} aria-describedby={error ? 'forgot-error' : undefined} disabled={pending} />
-        {error && <p className="auth-error" id="forgot-error" role="alert">{error}</p>}
-        <Button type="submit" disabled={pending}>{pending ? 'Đang gửi yêu cầu…' : 'Gửi liên kết đặt lại'}</Button>
-      </form>}
-    <Link className="auth-return-link" to="/login">Quay lại đăng nhập</Link>
-  </section></main>
+  return (
+    <main className="auth-page-shell">
+      <section className="auth-card" aria-labelledby="forgot-title">
+        <h1 id="forgot-title">Quên mật khẩu</h1>
+        <p className="auth-description">Nhập email tài khoản AIPMS để yêu cầu liên kết đặt lại mật khẩu.</p>
+        {accepted ? (
+          <p className="auth-status" role="status">
+            Yêu cầu đã được tiếp nhận. Nếu email thuộc tài khoản đang hoạt động, hãy kiểm tra hộp thư và thư rác để tìm liên kết đặt lại.
+          </p>
+        ) : (
+          <form className="auth-form" onSubmit={submit} noValidate>
+            <label htmlFor="reset-email">Email</label>
+            <input
+              id="reset-email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={event => setEmail(event.target.value)}
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? 'forgot-error' : undefined}
+              disabled={pending}
+            />
+            {error && <p className="auth-error" id="forgot-error" role="alert">{error}</p>}
+            <Button type="submit" disabled={pending}>{pending ? 'Đang gửi yêu cầu…' : 'Gửi liên kết đặt lại'}</Button>
+          </form>
+        )}
+        <Link className="auth-return-link" to="/login">Quay lại đăng nhập</Link>
+      </section>
+    </main>
+  )
 }
 
 export function ResetPasswordPage() {
@@ -116,20 +182,57 @@ export function ResetPasswordPage() {
     }
   }
 
-  return <main className="auth-page-shell"><section className="auth-card" aria-labelledby="reset-title">
-    <h1 id="reset-title">Đặt lại mật khẩu</h1>
-    {!token ? <><p className="auth-error" role="alert">Liên kết đặt lại không hợp lệ. Hãy yêu cầu liên kết mới.</p><Link className="auth-return-link" to="/forgot-password">Yêu cầu liên kết mới</Link></>
-      : completed ? <><p className="auth-status" role="status">Mật khẩu đã được đặt lại. Hãy đăng nhập bằng mật khẩu mới.</p><Link className="auth-return-link" to="/login">Đăng nhập</Link></>
-        : <><form className="auth-form" onSubmit={submit} noValidate>
-          <label htmlFor="new-password">Mật khẩu mới</label>
-          <input id="new-password" type="password" autoComplete="new-password" value={newPassword} onChange={event => setNewPassword(event.target.value)} aria-invalid={Boolean(error)} aria-describedby="reset-password-hint" disabled={pending} />
-          <p className="auth-form-hint" id="reset-password-hint">{passwordMessage}</p>
-          <label htmlFor="confirm-password">Xác nhận mật khẩu mới</label>
-          <input id="confirm-password" type="password" autoComplete="new-password" value={confirm} onChange={event => setConfirm(event.target.value)} disabled={pending} />
-          {error && <p className="auth-error" role="alert">{error} {error.includes('liên kết') && <Link to="/forgot-password">Yêu cầu liên kết mới</Link>}</p>}
-          <Button type="submit" disabled={pending}>{pending ? 'Đang đặt lại…' : 'Đặt lại mật khẩu'}</Button>
-        </form><Link className="auth-return-link" to="/login">Quay lại đăng nhập</Link></>}
-  </section></main>
+  return (
+    <main className="auth-page-shell">
+      <section className="auth-card" aria-labelledby="reset-title">
+        <h1 id="reset-title">Đặt lại mật khẩu</h1>
+        {!token ? (
+          <>
+            <p className="auth-error" role="alert">Liên kết đặt lại không hợp lệ. Hãy yêu cầu liên kết mới.</p>
+            <Link className="auth-return-link" to="/forgot-password">Yêu cầu liên kết mới</Link>
+          </>
+        ) : completed ? (
+          <>
+            <p className="auth-status" role="status">Mật khẩu đã được đặt lại. Hãy đăng nhập bằng mật khẩu mới.</p>
+            <Link className="auth-return-link" to="/login">Đăng nhập</Link>
+          </>
+        ) : (
+          <>
+            <form className="auth-form" onSubmit={submit} noValidate>
+              <label htmlFor="new-password">Mật khẩu mới</label>
+              <PasswordInput
+                id="new-password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={setNewPassword}
+                invalid={Boolean(error)}
+                describedBy="reset-password-hint"
+                disabled={pending}
+                toggleLabel="mật khẩu mới"
+              />
+              <p className="auth-form-hint" id="reset-password-hint">{passwordMessage}</p>
+              <label htmlFor="confirm-password">Xác nhận mật khẩu mới</label>
+              <PasswordInput
+                id="confirm-password"
+                autoComplete="new-password"
+                value={confirm}
+                onChange={setConfirm}
+                disabled={pending}
+                toggleLabel="xác nhận mật khẩu mới"
+              />
+              {error && (
+                <p className="auth-error" role="alert">
+                  {error} {error.includes('liên kết') && <Link to="/forgot-password">Yêu cầu liên kết mới</Link>}
+                </p>
+              )}
+              <Button type="submit" disabled={pending}>{pending ? 'Đang đặt lại…' : 'Đặt lại mật khẩu'}</Button>
+            </form>
+            <Link className="auth-return-link" to="/login">Quay lại đăng nhập</Link>
+          </>
+        )}
+      </section>
+    </main>
+  )
 }
 
 export function ProfileSecurityPage() {
@@ -170,22 +273,64 @@ export function ProfileSecurityPage() {
     }
   }
 
-  if (!session) return <div className="auth-page-shell"><section className="auth-card"><h1>Cần đăng nhập</h1><Link to="/login">Mở trang đăng nhập</Link></section></div>
+  if (!session) {
+    return (
+      <div className="auth-page-shell">
+        <section className="auth-card">
+          <h1>Cần đăng nhập</h1>
+          <Link to="/login">Mở trang đăng nhập</Link>
+        </section>
+      </div>
+    )
+  }
 
-  return <WorkspacePage title="Bảo mật tài khoản" eyebrow="Tài khoản cá nhân" description="Cập nhật mật khẩu để bảo vệ tài khoản của bạn." backTo="/profile"><section className="profile-workspace workspace-surface" aria-labelledby="security-title">
-    <h2 id="security-title" className="text-lg font-semibold">Đổi mật khẩu</h2>
-    <p className="auth-description">Sau khi đổi mật khẩu, bạn cần đăng nhập lại.</p>
-    <form className="auth-form" onSubmit={submit} noValidate>
-      <label htmlFor="current-password">Mật khẩu hiện tại</label>
-      <input id="current-password" type="password" autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} disabled={pending} />
-      <label htmlFor="security-password">Mật khẩu mới</label>
-      <input id="security-password" type="password" autoComplete="new-password" value={newPassword} onChange={event => setNewPassword(event.target.value)} aria-describedby="security-password-hint" disabled={pending} />
-      <p className="auth-form-hint" id="security-password-hint">{passwordMessage}</p>
-      <label htmlFor="security-confirm">Xác nhận mật khẩu mới</label>
-      <input id="security-confirm" type="password" autoComplete="new-password" value={confirm} onChange={event => setConfirm(event.target.value)} disabled={pending} />
-      {error && <p className="auth-error" role="alert">{error}</p>}
-      <Button type="submit" disabled={pending}>{pending ? 'Đang đổi mật khẩu…' : 'Đổi mật khẩu'}</Button>
-    </form>
-  </section><ExternalLoginsPanel /></WorkspacePage>
+  return (
+    <WorkspacePage
+      title="Bảo mật tài khoản"
+      eyebrow="Tài khoản cá nhân"
+      description="Cập nhật mật khẩu để bảo vệ tài khoản của bạn."
+      backTo="/profile"
+    >
+      <div className="profile-security-stack">
+        <section className="profile-workspace workspace-surface" aria-labelledby="security-title">
+          <h2 id="security-title" className="text-lg font-semibold">Đổi mật khẩu</h2>
+          <p className="auth-description">Sau khi đổi mật khẩu, bạn cần đăng nhập lại.</p>
+          <form className="auth-form" onSubmit={submit} noValidate>
+            <label htmlFor="current-password">Mật khẩu hiện tại</label>
+            <PasswordInput
+              id="current-password"
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={setCurrentPassword}
+              disabled={pending}
+              toggleLabel="mật khẩu hiện tại"
+            />
+            <label htmlFor="security-password">Mật khẩu mới</label>
+            <PasswordInput
+              id="security-password"
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={setNewPassword}
+              describedBy="security-password-hint"
+              disabled={pending}
+              toggleLabel="mật khẩu mới"
+            />
+            <p className="auth-form-hint" id="security-password-hint">{passwordMessage}</p>
+            <label htmlFor="security-confirm">Xác nhận mật khẩu mới</label>
+            <PasswordInput
+              id="security-confirm"
+              autoComplete="new-password"
+              value={confirm}
+              onChange={setConfirm}
+              disabled={pending}
+              toggleLabel="xác nhận mật khẩu mới"
+            />
+            {error && <p className="auth-error" role="alert">{error}</p>}
+            <Button type="submit" disabled={pending}>{pending ? 'Đang đổi mật khẩu…' : 'Đổi mật khẩu'}</Button>
+          </form>
+        </section>
+        <ExternalLoginsPanel />
+      </div>
+    </WorkspacePage>
+  )
 }
-

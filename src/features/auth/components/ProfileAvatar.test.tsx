@@ -25,7 +25,8 @@ it('previews a selected image and reports success only after avatar readback', a
   vi.mocked(api.getMyAvatarMetadata).mockResolvedValueOnce(empty).mockResolvedValueOnce(saved)
   vi.mocked(api.uploadMyAvatar).mockResolvedValue(saved)
   render(<ProfileAvatar fullName="Nguyễn An" userId={7} />)
-  await screen.findByLabelText('Chữ đại diện của Nguyễn An')
+  const fallback = await screen.findByLabelText('Chữ đại diện của Nguyễn An')
+  expect(fallback.textContent).toBe('NA')
   fireEvent.change(screen.getByLabelText('Chọn ảnh đại diện PNG hoặc JPEG'), {
     target: { files: [new File(['png'], 'portrait.png', { type: 'image/png' })] },
   })

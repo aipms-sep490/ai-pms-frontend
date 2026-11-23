@@ -35,7 +35,12 @@ export function NotificationRow({ item, busy, onRead, onNavigate, compact = fals
   return <li className={`notification-row ${item.isRead ? '' : 'notification-row--unread'} ${compact ? 'notification-row--compact' : ''}`}>
     <span className={`notification-icon ${copy.icon === 'warning' ? 'notification-icon--warning' : ''} material-symbols-outlined`} aria-hidden="true">{copy.icon}</span>
     <div className="notification-body">
-      <div className="notification-meta"><span aria-label={`Loại thông báo: ${copy.label}`} className="inline-flex items-center gap-1 rounded-full border border-hairline bg-card px-2 py-0.5 text-xs font-semibold text-ink-soft"><span className="material-symbols-outlined text-[14px]" aria-hidden="true">{copy.icon}</span><span>{copy.label}</span></span>{!item.isRead && <span className="notification-unread">Chưa đọc</span>}</div>
+      <div className="notification-meta">
+        <span aria-label={`Loại thông báo: ${copy.label}`} className="inline-flex items-center rounded-full border border-hairline bg-canvas px-2.5 py-0.5 text-xs font-semibold text-ink-soft">
+          <span>{copy.label}</span>
+        </span>
+        {!item.isRead && <span className="notification-unread">Chưa đọc</span>}
+      </div>
       {headingLevel === 'h3' ? <h3>{copy.title}</h3> : <h2>{copy.title}</h2>}
       {copy.content && copy.content.trim() !== copy.title.trim() && <p className="notification-content">{copy.content}</p>}
       <div className="notification-bottom">
