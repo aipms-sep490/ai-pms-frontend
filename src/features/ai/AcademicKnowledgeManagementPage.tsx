@@ -8,11 +8,14 @@ import * as knowledge from './academic-knowledge-api'
 import type { Department } from '../academic/types/academic.types'
 import { useAuthSession } from '../auth/context/useAuthSession'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
+import { Button } from '../../components/ui/Button'
 import { ConfigModeFrame } from '../../components/ui/ConfigModeFrame'
 import { FilterToolbar, type ActiveFilterChip } from '../../components/ui/FilterToolbar'
 import { Modal } from '../../components/ui/Modal'
+import { Pagination } from '../../components/ui/Pagination'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../components/ui/status-badge-tone'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { dateTimeLabel, toUtcDateTime } from '../execution/execution-utils'
 
@@ -69,7 +72,7 @@ export function AcademicKnowledgeManagementPage() {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [typeFilter, setTypeFilter] = useState('ALL')
   const [deptFilter, setDeptFilter] = useState('ALL')
-  const [docPage, setDocPage] = useState(1)
+  const [sortBy, setSortBy] = useState<'default' | 'title_asc' | 'version_desc'>('default')
   const ready = readyFor?.reload === reload && readyFor?.token === session?.accessToken && readyFor?.admin === admin
   const load = useCallback(async () => {
     setDocs(await readAllPages(page => knowledge.listKnowledgeDocuments(page)))
@@ -197,7 +200,7 @@ export function AcademicKnowledgeManagementPage() {
 
   const filteredDocs = useMemo(() => {
     const q = listSearch.trim().toLowerCase()
-    return docs.filter(doc => {
+    const filtered = docs.filter(doc => {
       if (statusFilter !== 'ALL' && doc.status !== statusFilter) return false
       if (typeFilter !== 'ALL' && doc.documentType !== typeFilter) return false
       if (deptFilter !== 'ALL') {
@@ -210,14 +213,14 @@ export function AcademicKnowledgeManagementPage() {
       }
       return true
     })
-  }, [docs, statusFilter, typeFilter, deptFilter, listSearch, departments])
+    if (sortBy === 'title_asc') return [...filtered].sort((a, b) => a.title.localeCompare(b.title, 'vi'))
+    if (sortBy === 'version_desc') return [...filtered].sort((a, b) => String(b.currentVersion).localeCompare(String(a.currentVersion), 'vi', { numeric: true }))
+    return filtered
+  }, [docs, statusFilter, typeFilter, deptFilter, listSearch, departments, sortBy])
 
-  const pageSize = 10
-  const totalDocPages = Math.max(1, Math.ceil(filteredDocs.length / pageSize))
-  const safeDocPage = Math.min(docPage, totalDocPages)
-  const visibleDocs = filteredDocs.slice((safeDocPage - 1) * pageSize, safeDocPage * pageSize)
+  const docPager = useClientPagination(filteredDocs, 10)
 
-  const hasDocFilters = Boolean(listSearch.trim() || statusFilter !== 'ALL' || typeFilter !== 'ALL' || deptFilter !== 'ALL')
+  const hasDocFilters = Boolean(listSearch.trim() || statusFilter !== 'ALL' || typeFilter !== 'ALL' || deptFilter !== 'ALL' || sortBy !== 'default')
   const docChips: ActiveFilterChip[] = []
   if (statusFilter !== 'ALL') docChips.push({ id: 'status', label: 'Trạng thái', value: statusLabel[statusFilter] ?? statusFilter })
   if (typeFilter !== 'ALL') docChips.push({ id: 'type', label: 'Loại', value: typeLabels[typeFilter] ?? typeFilter })
@@ -231,18 +234,23 @@ export function AcademicKnowledgeManagementPage() {
 
   return <WorkspacePage size="wide" className="space-y-5 pb-12" eyebrow="Quản trị học vụ" title="Kho tài liệu cho trợ lý AI" description="Nhập nội dung tài liệu, lưu bản nháp rồi công bố. Chỉ phiên bản còn hiệu lực, đúng khoa và kỳ mới được dùng để trả lời.">
     {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><p>{error.message}</p>{error.retryable && <button type="button" disabled={busy} className={button} onClick={() => setReload(value => value + 1)}>Thử tải lại danh sách</button>}</div>}
-    {message && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{message}</p>}
+    {message && (
+      <div className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-3 text-sm text-ink">
+        <span className="material-symbols-outlined shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+        <p role="status">{message}</p>
+      </div>
+    )}
     <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
       <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-heading text-lg font-semibold text-ink">Tài liệu trong phạm vi quản lý</h2>
-          <button type="button" disabled={busy} className={button} onClick={() => setReload(value => value + 1)}>Tải lại danh sách</button>
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại danh sách" disabled={busy} onClick={() => setReload(value => value + 1)} />
         </div>
         {ready && (
           <FilterToolbar
             embedded
             search={listSearch}
-            onSearchChange={v => { setListSearch(v); setDocPage(1) }}
+            onSearchChange={v => { setListSearch(v); docPager.setPage(1) }}
             searchLabel="Tìm tài liệu AI"
             searchPlaceholder="Tìm theo tiêu đề, phiên bản, khoa..."
             debounceMs={0}
@@ -253,13 +261,13 @@ export function AcademicKnowledgeManagementPage() {
               { value: 'RETIRED', label: 'Ngừng sử dụng', count: statusCounts.RETIRED },
             ]}
             activeTab={statusFilter}
-            onTabChange={v => { setStatusFilter(v); setDocPage(1) }}
+            onTabChange={v => { setStatusFilter(v); docPager.setPage(1) }}
             tabsLabel="Lọc tài liệu AI theo trạng thái"
             controls={
               <>
                 <label className="ft-select-wrap">
                   <span className="sr-only">Loại tài liệu</span>
-                  <select className="ft-select" aria-label="Lọc theo loại tài liệu" value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setDocPage(1) }}>
+                  <select className="ft-select" aria-label="Lọc theo loại tài liệu" value={typeFilter} onChange={e => { setTypeFilter(e.target.value); docPager.setPage(1) }}>
                     <option value="ALL">Tất cả loại</option>
                     {Object.entries(typeLabels).map(([k, lbl]) => <option key={k} value={k}>{lbl}</option>)}
                   </select>
@@ -267,7 +275,7 @@ export function AcademicKnowledgeManagementPage() {
                 {departments.length > 1 && (
                   <label className="ft-select-wrap">
                     <span className="sr-only">Phạm vi khoa</span>
-                    <select className="ft-select" aria-label="Lọc theo khoa" value={deptFilter} onChange={e => { setDeptFilter(e.target.value); setDocPage(1) }}>
+                    <select className="ft-select" aria-label="Lọc theo khoa" value={deptFilter} onChange={e => { setDeptFilter(e.target.value); docPager.setPage(1) }}>
                       <option value="ALL">Tất cả khoa</option>
                       <option value="SHARED">Dùng chung theo kỳ</option>
                       {departments.map(d => <option key={d.id} value={String(d.id)}>{d.name}</option>)}
@@ -276,31 +284,41 @@ export function AcademicKnowledgeManagementPage() {
                 )}
               </>
             }
+            sort={{
+              value: sortBy,
+              onChange: val => setSortBy(val as 'default' | 'title_asc' | 'version_desc'),
+              options: [
+                { value: 'default', label: 'Mặc định' },
+                { value: 'title_asc', label: 'Tiêu đề A–Z' },
+                { value: 'version_desc', label: 'Phiên bản mới nhất' },
+              ],
+            }}
             activeChips={docChips}
             onRemoveChip={id => {
               if (id === 'status') setStatusFilter('ALL')
               if (id === 'type') setTypeFilter('ALL')
               if (id === 'dept') setDeptFilter('ALL')
-              setDocPage(1)
+              docPager.setPage(1)
             }}
-            onClearAll={() => { setListSearch(''); setStatusFilter('ALL'); setTypeFilter('ALL'); setDeptFilter('ALL'); setDocPage(1) }}
+            onClearAll={() => { setListSearch(''); setStatusFilter('ALL'); setTypeFilter('ALL'); setDeptFilter('ALL'); setSortBy('default'); docPager.setPage(1) }}
             hasActiveFilters={hasDocFilters}
             resultSummary={`${filteredDocs.length} / ${docs.length} tài liệu`}
           />
         )}
-        {!ready ? <p role="status" className="mt-4 text-sm text-ink-muted">{error ? 'Chưa tải được dữ liệu quản lý.' : 'Đang tải dữ liệu quản lý…'}</p> : visibleDocs.length === 0 ? <p className="mt-4 text-sm text-ink-muted">{hasDocFilters ? 'Không có tài liệu khớp bộ lọc hiện tại.' : 'Chưa có tài liệu.'}</p> : <ul className="divide-y divide-hairline">{visibleDocs.map(doc => <li key={doc.id} className="space-y-3 py-4"><div><div className="flex flex-wrap items-center gap-2"><p className="break-words font-semibold text-ink">{doc.title}</p><StatusBadge tone={statusTone(doc.status)} label={statusLabel[doc.status] ?? 'Trạng thái chưa xác định'} /></div><p className="mt-1 text-xs text-ink-muted">v{doc.currentVersion}{doc.documentType ? ` · ${typeLabels[doc.documentType] ?? doc.documentType}` : ''} · {departments.find(d => d.id === doc.departmentId)?.name ?? 'Dùng chung theo kỳ'}</p></div><div className="flex flex-wrap gap-2">
+        {!ready ? <p role="status" className="mt-4 text-sm text-ink-muted">{error ? 'Chưa tải được dữ liệu quản lý.' : 'Đang tải dữ liệu quản lý…'}</p> : docPager.paginatedItems.length === 0 ? <p className="mt-4 text-sm text-ink-muted">{hasDocFilters ? 'Không có tài liệu khớp bộ lọc hiện tại.' : 'Chưa có tài liệu.'}</p> : <ul className="divide-y divide-hairline">{docPager.paginatedItems.map(doc => <li key={doc.id} className="space-y-3 py-4"><div><div className="flex flex-wrap items-center gap-2"><p className="break-words font-semibold text-ink">{doc.title}</p><StatusBadge tone={statusTone(doc.status)} label={statusLabel[doc.status] ?? 'Trạng thái chưa xác định'} /></div><p className="mt-1 text-xs text-ink-muted">v{doc.currentVersion}{doc.documentType ? ` · ${typeLabels[doc.documentType] ?? doc.documentType}` : ''} · {departments.find(d => d.id === doc.departmentId)?.name ?? 'Dùng chung theo kỳ'}</p></div><div className="flex flex-wrap gap-2">
           <button disabled={busy} className={button} onClick={() => void act(async () => { const rows = await knowledge.getKnowledgeHistory(doc.id); setHistory({ title: doc.title, rows }) }, 'Đã tải lịch sử phiên bản.', 'history')}>Lịch sử</button>
           {['DRAFT', 'PUBLISHED'].includes(doc.status) && <><button disabled={busy} className={button} onClick={() => { if (mode === 'view') setDraftSnapshot(snapshot()); setSelected(doc); setMode('edit'); setVersion(''); setContent(''); setFrom(''); setTo('') }}>Tạo phiên bản</button><button disabled={busy} className="min-h-10 rounded-lg border border-primary bg-card px-3 py-2 text-sm font-semibold text-primary hover:bg-primary-subtle disabled:opacity-50" onClick={() => void transition(doc, 'publish')}>Công bố bản nháp mới nhất</button><button disabled={busy} className="min-h-10 rounded-lg border border-status-error-border bg-status-error-bg px-3 py-2 text-sm font-semibold text-status-error-text hover:opacity-90 disabled:opacity-50" onClick={() => void transition(doc, 'retire')}>Ngừng sử dụng</button></>}
           {doc.status === 'PUBLISHED' && <button disabled={busy} className={button} onClick={() => void act(() => knowledge.reindexKnowledgeDocument(doc.id), 'Đã kiểm tra lại chỉ mục tài liệu.', 'reindex')}>Lập chỉ mục lại</button>}
         </div></li>)}</ul>}
-        {totalDocPages > 1 && (
-          <nav className="flex items-center justify-between border-t border-hairline pt-3 text-xs" aria-label="Phân trang kho tài liệu">
-            <span className="text-ink-muted">Trang <strong className="text-ink">{safeDocPage}</strong> / {totalDocPages}</span>
-            <div className="flex gap-2">
-              <button type="button" disabled={safeDocPage <= 1} onClick={() => setDocPage(p => Math.max(1, p - 1))} className="min-h-9 rounded-lg border border-hairline px-3 font-semibold text-ink-soft disabled:opacity-40">Trước</button>
-              <button type="button" disabled={safeDocPage >= totalDocPages} onClick={() => setDocPage(p => Math.min(totalDocPages, p + 1))} className="min-h-9 rounded-lg border border-hairline px-3 font-semibold text-ink-soft disabled:opacity-40">Sau</button>
-            </div>
-          </nav>
+        {docPager.showPagination && (
+          <Pagination
+            page={docPager.page}
+            pages={docPager.pages}
+            total={docPager.total}
+            pageSize={docPager.pageSize}
+            onPage={docPager.setPage}
+            onPageSizeChange={docPager.setPageSize}
+          />
         )}
       </section>
 
