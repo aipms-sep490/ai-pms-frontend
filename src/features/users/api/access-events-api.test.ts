@@ -9,13 +9,14 @@ import { getAccessEvents } from './admin-api'
 
 describe('access events API contract', () => {
   it('passes server-side filters and page to the Admin-only endpoint', async () => {
-    http.httpGet.mockResolvedValue({ items: [], page: 2, pageSize: 20, totalCount: 0 })
+    http.httpGet.mockResolvedValue({ items: [], page: 2, pageSize: 10, totalCount: 0 })
     const signal = new AbortController().signal
     await getAccessEvents('admin-token', { search: 'Minh', eventType: 'LOGIN', outcome: 'FAILURE', page: 2 }, signal)
     const [url, options] = http.httpGet.mock.calls[0]
     expect(url.split('?')[0]).toBe('/v1/security/access-events')
     expect(new URLSearchParams(url.split('?')[1]).get('search')).toBe('Minh')
     expect(new URLSearchParams(url.split('?')[1]).get('page')).toBe('2')
+    expect(new URLSearchParams(url.split('?')[1]).get('pageSize')).toBe('10')
     expect(options).toEqual({ accessToken: 'admin-token', signal })
   })
 })
