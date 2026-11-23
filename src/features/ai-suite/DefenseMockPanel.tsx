@@ -131,7 +131,7 @@ export function DefenseMockPanel({ projectId }: { projectId: number }) {
     <AiSuiteCardShell
       icon="record_voice_over"
       title="AI Luyện Bảo vệ & Chấm thử Câu trả lời (Voice / Text)"
-      badge="Mục #1 · Hội đồng giả lập"
+      badge="AI Hội đồng giả lập"
       subtitle="Sinh câu hỏi phản biện sát đồ án thực tế, luyện nói trực tiếp bằng micro (Web Speech API) và nhận chấm điểm 0–10 + câu vặn lại tức thì."
       meta={data?.meta}
       markdownText={markdown}
@@ -512,7 +512,7 @@ export function GateScriptAiPanel({
       compact
       icon="script"
       title="AI Soạn Kịch bản Phiên Thẩm định & Câu hỏi Hội đồng"
-      badge="Mục #1b · Hội đồng"
+      badge="AI Soạn kịch bản hội đồng"
       subtitle="Tổng hợp hồ sơ cổng, task đang mở và yêu cầu chưa đạt để gợi ý kịch bản điều phối, câu hỏi xoáy sâu và danh mục cần chỉnh sửa."
       meta={draft?.meta}
       error={error}

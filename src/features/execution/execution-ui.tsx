@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react'
 import { generatePageNumbers } from '../../components/ui/Pagination'
-import { WorkspacePage } from '../../components/ui/WorkspacePage'
+import { WorkspacePage, type WorkspacePageSize } from '../../components/ui/WorkspacePage'
 import { ListLoading } from '../../components/ui/ListLoading'
 import './execution.css'
 
-export function ExecutionPage({ title, description, eyebrow, backTo, backLabel, action, children }: {
-  title: string; description?: string; eyebrow?: string; backTo?: string; backLabel?: string; action?: ReactNode; children: ReactNode
+export function ExecutionPage({ title, description, eyebrow, backTo, backLabel, action, size = 'wide', children }: {
+  title: string; description?: string; eyebrow?: string; backTo?: string; backLabel?: string; action?: ReactNode; size?: WorkspacePageSize; children: ReactNode
 }) {
-  return <WorkspacePage className="execution-page" title={title} description={description} eyebrow={eyebrow} backTo={backTo} backLabel={backLabel} action={action}>{children}</WorkspacePage>
+  return <WorkspacePage className="execution-page" size={size} title={title} description={description} eyebrow={eyebrow} backTo={backTo} backLabel={backLabel} action={action}>{children}</WorkspacePage>
 }
 export function ExIcon({ name }: { name: string }) { return <span className="material-symbols-outlined" aria-hidden="true">{name}</span> }
 export function ExState({ loading, message, title, retry, action }: { loading?: boolean; message?: string; title?: string; retry?: () => void; action?: ReactNode }) {

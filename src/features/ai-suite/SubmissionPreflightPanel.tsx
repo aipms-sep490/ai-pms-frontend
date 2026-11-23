@@ -52,7 +52,7 @@ export function SubmissionPreflightPanel({
     <AiSuiteCardShell
       icon="verified_user"
       title={`AI Kiểm tra Tiền nộp · ${TARGET_LABEL[target]}`}
-      badge="Mục #6 · Pre-flight Check"
+      badge="AI Kiểm tra hồ sơ"
       subtitle="Quét checklist bắt buộc, tệp đính kèm và nội dung PDF báo cáo để phát hiện sớm mục còn thiếu trước khi nhấn nút khóa gói."
       meta={data?.meta}
       error={error}

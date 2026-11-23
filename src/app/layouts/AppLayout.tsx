@@ -62,7 +62,7 @@ export function AppLayout() {
       />
 
       {/* 2. Main Workspace Canvas */}
-      <div className="app-workspace flex-1 flex flex-col min-w-0 min-h-screen lg:pl-[272px] bg-canvas">
+      <div className="app-workspace flex-1 flex flex-col min-w-0 min-h-screen lg:pl-[248px] bg-canvas">
         {/* Sticky Top Header Bar */}
         <TopHeader
           key={session?.user.id ?? 'anonymous'}
@@ -77,7 +77,7 @@ export function AppLayout() {
           tabIndex={-1}
           ref={entrance}
           data-experience="enhanced"
-          className={`app-page-content flex-1 p-4 md:p-6 ${isFullPageChat ? 'is-full-chat' : 'pb-28 md:pb-28'} max-w-[1400px] w-full mx-auto`}
+          className={`app-page-content flex-1 p-4 md:p-6 ${isFullPageChat ? 'is-full-chat' : 'pb-28 md:pb-28'} w-full`}
         >
           <Outlet />
         </main>

@@ -10,6 +10,7 @@ import { getWorkspaceRole } from '../../features/auth/utils/role-access'
 import '../../components/ui/page-loading.css'
 import { useChat } from '../../features/chat/ChatProvider'
 import { BrandLogo } from '../../components/ui/BrandLogo'
+import { getInitials } from '../../components/ui/initials'
 import { SelfAvatarImage } from '../../features/auth/components/SelfAvatarImage'
 
 interface SidebarProps {
@@ -54,7 +55,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
   const hasReadyContext = role === 'student' ? Boolean(team) : Boolean(academic?.selectedSemester || session)
   const profileName = profile?.fullName?.trim() || session?.user.fullName || 'Tài khoản'
   const profileCode = role === 'student' ? profile?.studentCode || 'Tài khoản sinh viên' : session?.user.email || 'Tài khoản'
-  const profileInitials = profileName.split(/\s+/).slice(-2).map((part) => part[0]).join('').toUpperCase()
+  const profileInitials = getInitials(profileName, 'TK')
 
   const sectionOrder = ['student', 'lecturer', 'administration', 'governance', 'account']
   const navigationItems = [...getWorkspaceNavigation(access)].sort((a, b) => sectionOrder.indexOf(a.section) - sectionOrder.indexOf(b.section))
@@ -208,7 +209,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
         aria-modal={isOpen ? true : undefined}
         aria-label="Menu điều hướng chính"
         data-tour={TOUR_ANCHOR.sidebar}
-        className={`fixed left-0 top-0 bottom-0 w-[272px] max-w-[calc(100vw-48px)] bg-card border-r border-hairline z-(--z-index-drawer) flex flex-col justify-between select-none sidebar-rail ${
+        className={`fixed left-0 top-0 bottom-0 w-[248px] max-w-[calc(100vw-48px)] bg-card border-r border-hairline z-(--z-index-drawer) flex flex-col justify-between select-none sidebar-rail ${
           isOpen ? 'drawer-open' : ''
         }`}
       >
