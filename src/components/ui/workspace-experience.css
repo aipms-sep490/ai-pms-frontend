@@ -1,6 +1,8 @@
 /* Common product presentation synchronized across student, lecturer, department and admin workspaces. */
 [data-experience=enhanced] { --experience-ink:var(--color-ink); --experience-muted:var(--color-ink-muted); --experience-line:var(--color-hairline); }
-[data-experience=enhanced] .workspace-page { max-width:1200px; }
+[data-experience=enhanced] .workspace-page { max-width:1440px; }
+[data-experience=enhanced] .workspace-page.workspace-page--standard { max-width:1240px; }
+[data-experience=enhanced] .workspace-page.workspace-page--narrow { max-width:960px; }
 [data-experience=enhanced] h1 { font-family:var(--font-heading); font-size:clamp(26px,2.2vw,32px); line-height:1.3; letter-spacing:-.035em; text-wrap:pretty; color:var(--experience-ink); }
 [data-experience=enhanced] :is(.workspace-heading,.admin-heading,.report-header,.mtg-header) { align-items:center; gap:24px; padding-bottom:8px; }
 [data-experience=enhanced] .workspace-heading-actions { padding-top:0; }
@@ -11,7 +13,8 @@
 [data-experience=enhanced] :is(.workspace-back,.report-back,.mtg-back,.admin-back) { display:inline-flex; align-items:center; gap:8px; min-height:40px; padding:7px 11px; border:1px solid var(--experience-line); border-radius:9px; background:#fff; font-size:13px; font-weight:550; text-decoration:none; color:var(--experience-ink); }
 [data-experience=enhanced] :is(.workspace-back,.report-back,.mtg-back,.admin-back):hover { background:var(--color-primary-subtle); border-color:var(--color-primary); color:var(--color-primary-hover); }
 [data-experience=enhanced] :is(.workspace-back,.report-back,.mtg-back,.admin-back) .material-symbols-outlined { font-size:18px; }
-[data-experience=enhanced] :is(.report-toolbar,.mtg-filters,.admin-filter,.ex-filters) { background:var(--color-canvas); padding:20px 24px; gap:16px; border-radius:12px; border:1px solid var(--experience-line); }
+[data-experience=enhanced] :is(.report-toolbar,.mtg-filters,.admin-filter,.ex-filters) { background:var(--color-canvas); padding:16px 20px; gap:14px; border-radius:12px; border:1px solid var(--experience-line); }
+[data-experience=enhanced] :is(.ex-panel,.mtg-panel,.report-panel,.workspace-surface) > :is(.report-toolbar,.mtg-filters,.admin-filter,.ex-filters) { border:0; border-bottom:1px solid var(--experience-line); border-radius:0; }
 [data-experience=enhanced] form label { font-size:13px; letter-spacing:normal; line-height:1.6; text-transform:none; color:var(--experience-ink); }
 [data-experience=enhanced] form :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=file]),select) { min-height:44px; font-size:14px; border-radius:9px; }
 [data-experience=enhanced] form textarea { font-size:14px; line-height:1.7; border-radius:9px; }

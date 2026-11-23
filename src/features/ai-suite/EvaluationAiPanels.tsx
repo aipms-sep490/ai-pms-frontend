@@ -52,7 +52,7 @@ export function RubricGradingCopilotPanel({
     <AiSuiteCardShell
       icon="grading"
       title="AI Trợ lý Chấm Rubric theo Minh chứng"
-      badge="Mục #4a · Rubric Copilot"
+      badge="AI Gợi ý chấm điểm"
       subtitle="Đối chiếu hồ sơ nộp, tiến độ và biên bản họp với từng tiêu chí Rubric. AI chỉ gợi ý khoảng điểm & nhận xét nháp — giảng viên tự nhập và chốt điểm chính thức."
       meta={data?.meta}
       error={error}
@@ -119,7 +119,7 @@ export function RubricGradingCopilotPanel({
                   </div>
                   <p className="text-ink-soft leading-relaxed">{c.suggestedComment}</p>
                   {c.evidenceCitations.length > 0 && (
-                    <p className="text-[11px] text-ink-muted">
+                    <p className="text-xs text-ink-muted">
                       <strong>Dẫn chứng:</strong> {c.evidenceCitations.join(' · ')}
                     </p>
                   )}
@@ -172,7 +172,7 @@ export function ScoreCalibrationPanel({ projectId }: { projectId: number }) {
       compact
       icon="tune"
       title="AI Kiểm tra Nhất quán Điểm Hội đồng (Score Calibration)"
-      badge="Mục #4b · Tiền công bố"
+      badge="AI Soát điểm tiền công bố"
       subtitle="Phát hiện tự động các phiếu chấm lệch điểm bất thường giữa giám khảo hoặc mâu thuẫn giữa nhận xét và điểm số trước khi Khoa công bố."
       meta={data?.meta}
       error={error}
@@ -258,7 +258,7 @@ export function AppealAssistPanel({
       compact
       icon="gavel"
       title="AI Trợ lý Rà soát Đơn Phúc khảo & Soạn Giải trình"
-      badge="Mục #4c · Phúc khảo"
+      badge="AI Hỗ trợ phúc khảo"
       subtitle="Tóm tắt luận điểm sinh viên, liệt kê mục cần xác minh từ phiếu chấm gốc và soạn bản nháp phản hồi chuẩn mực hành chính."
       meta={data?.meta}
       error={error}

@@ -56,7 +56,7 @@ export function ProgressReportAiDraftBar({
         compact
         icon="edit_note"
         title="AI Tự soạn Báo cáo Tiến độ từ Task, Deliverables & Cuộc họp AI"
-        badge="Mục #2 · Auto Draft"
+        badge="AI Soạn báo cáo"
         subtitle="Tổng hợp công việc đã hoàn thành, đang làm, tồn đọng và biên bản AI Video Call trong kỳ. Bạn luôn có toàn quyền chỉnh sửa trước khi lưu."
         meta={draft?.meta}
         error={error}

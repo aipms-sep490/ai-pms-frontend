@@ -4,8 +4,10 @@ import { useTour } from '../../features/onboarding/tour-context'
 import './workspace-page.css'
 import './workspace-flat.css'
 
-export function WorkspacePage({ title, description, eyebrow, backTo, backLabel = 'Quay lại', action, identity, children, className = '', guideId }: {
-  title: string; description?: string; eyebrow?: string; backTo?: string; backLabel?: string; action?: ReactNode; identity?: ReactNode; children: ReactNode; className?: string; guideId?: string
+export type WorkspacePageSize = 'wide' | 'standard' | 'narrow'
+
+export function WorkspacePage({ title, description, eyebrow, backTo, backLabel = 'Quay lại', action, identity, children, className = '', guideId, size = 'wide' }: {
+  title: string; description?: string; eyebrow?: string; backTo?: string; backLabel?: string; action?: ReactNode; identity?: ReactNode; children: ReactNode; className?: string; guideId?: string; size?: WorkspacePageSize
 }) {
   const { setGuideId } = useTour()
   useEffect(() => {
@@ -14,7 +16,7 @@ export function WorkspacePage({ title, description, eyebrow, backTo, backLabel =
     return () => setGuideId(null)
   }, [guideId, setGuideId])
   const parts = eyebrow?.split(/[•·]/)
-  return <div className={`workspace-page workspace-flat ${className}`} data-guide-id={guideId}>
+  return <div className={`workspace-page workspace-flat workspace-page--${size} ${className}`} data-guide-id={guideId}>
     {backTo && <BackLink className="workspace-back" fallback={backTo}><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>{backLabel}</BackLink>}
     <header className="workspace-heading">
       <div className="workspace-heading-copy">

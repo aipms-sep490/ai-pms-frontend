@@ -290,7 +290,7 @@ select:disabled {
 
 /* Responsive Sidebar Rail & Drawer */
 .sidebar-rail {
-  width: 15rem; /* 240px */
+  width: 248px;
 }
 
 @media (max-width: 1023px) {

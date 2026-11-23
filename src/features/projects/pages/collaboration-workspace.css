@@ -8,16 +8,16 @@
   color: var(--cw-ink);
   background: var(--color-canvas);
 }
-.collaboration-shell .sidebar-rail { width: 232px; }
+.collaboration-shell .sidebar-rail { width: 248px; }
 .collaboration-shell .sidebar-rail [class*="rounded"],
 .collaboration-shell .app-top-header [class*="rounded"] { border-radius: 8px; }
 .collaboration-shell .sidebar-rail [class*="shadow"] { box-shadow: none; }
 .collaboration-shell .sidebar-rail nav > div { color: var(--cw-muted); }
 .collaboration-shell .app-top-header { height: 58px; border-bottom: 1px solid var(--color-hairline); }
 .collaboration-shell .app-top-header nav .font-mono { font-family: var(--font-sans); color: var(--cw-ink); }
-.collaboration-shell .app-page-content { padding: 28px 92px 112px 32px; }
+.collaboration-shell .app-page-content { padding: 24px 32px 104px 32px; }
 .collaboration-shell .app-page-content.is-full-chat { padding: 20px 24px; }
-.collaboration-workspace { max-width: 1200px; margin: 0 auto; font-size: 14px; line-height: 1.5; }
+.collaboration-workspace { max-width: 1440px; margin: 0 auto; font-size: 14px; line-height: 1.5; }
 .collaboration-workspace *, .collaboration-workspace *::before, .collaboration-workspace *::after { box-sizing: border-box; }
 .collaboration-workspace :is(button, a, input, select, textarea):focus-visible { outline: 2px solid var(--cw-accent); outline-offset: 3px; }
 .collaboration-workspace button { cursor: pointer; }
@@ -166,10 +166,10 @@
 .cw-form-error { color: var(--color-status-error-text); font-size: 12.5px; margin: 16px 0 0; }
 .cw-success { display: flex; align-items: center; gap: 8px; margin: 0 0 20px; color: var(--cw-accent); font-size: 13.5px; font-weight: 600; }
 @media (min-width: 1024px) {
-  .collaboration-shell .app-workspace { padding-left: 232px; }
+  .collaboration-shell .app-workspace { padding-left: 248px; }
 }
 @media (min-width: 1024px) and (max-width: 1279px) {
-  .collaboration-shell .app-page-content { padding: 24px 88px 112px 24px; }
+  .collaboration-shell .app-page-content { padding: 20px 24px 104px 24px; }
   .collaboration-shell .app-page-content.is-full-chat { padding: 16px 20px; }
   .cw-columns { grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; }
   .cw-member-table-heading, .cw-member-row { grid-template-columns: minmax(0, 1fr) 96px; gap: 8px 12px; }

@@ -56,7 +56,7 @@
 .rubric-page > div > section, .evaluation-scheme-page > div > section { min-width: 0; border: 1px solid var(--color-hairline); border-radius: 10px; }
 .rubric-page form > div > div > .criterion-editor { border: 0; border-top: 1px solid var(--color-line); border-radius: 0; background: #fff; padding: 18px 0; }
 .criterion-editor .criterion-editor { border: 0; border-top: 1px solid var(--color-line); border-radius: 0; background: #fff; padding: 16px 0; }
-.topic { max-width: 1200px; }
+.topic { max-width: 1440px; }
 .topic__create-disclosure { border: 1px solid var(--color-hairline); border-radius: 10px; background: #fff; overflow: hidden; }
 .topic__create-disclosure > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; padding: 16px 20px; color: var(--color-primary); font-weight: 650; font-size: 14px; list-style: none; }
 .topic__create-disclosure > summary::-webkit-details-marker { display: none; }

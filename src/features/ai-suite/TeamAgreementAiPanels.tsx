@@ -31,7 +31,7 @@ export function TeamSkillGapPanel({ teamId }: { teamId: number }) {
     <AiSuiteCardShell
       icon="diversity_3"
       title="AI Phân tích Lỗ hổng Kỹ năng & Cơ cấu Liên ngành"
-      badge="Mục #7a · Skill-Gap"
+      badge="AI Phân tích kỹ năng"
       subtitle="Đối chiếu chuyên ngành, chứng chỉ của các thành viên với hướng đề tài để phát hiện mảng còn thiếu và đề xuất phân vai hợp lý."
       meta={data?.meta}
       error={error}
@@ -78,7 +78,7 @@ export function TeamSkillGapPanel({ teamId }: { teamId: number }) {
                         <span className={meta.cls}>{meta.label}</span>
                       </div>
                       {item.coveredByMembers.length > 0 && (
-                        <p className="text-[11px] text-primary">Phụ trách: {item.coveredByMembers.join(', ')}</p>
+                        <p className="text-xs text-primary">Phụ trách: {item.coveredByMembers.join(', ')}</p>
                       )}
                       <p className="text-ink-soft">{item.note}</p>
                     </div>
@@ -150,7 +150,7 @@ export function WorkingAgreementAiDraftBar({
       compact
       icon="handshake"
       title="AI Soạn Dự thảo Cam kết Làm việc Nhóm"
-      badge="Mục #7b · Working Agreement"
+      badge="AI Soạn cam kết nhóm"
       subtitle="Tạo nhanh bộ điều khoản lịch họp, tiêu chuẩn bàn giao, Git/review và cơ chế xử lý xung đột phù hợp cấu trúc nhóm."
       meta={draft?.meta}
       error={error}

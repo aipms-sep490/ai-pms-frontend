@@ -68,7 +68,7 @@ export function ContributionFairnessPanel({ projectId }: { projectId: number }) 
     <AiSuiteCardShell
       icon="balance"
       title="AI Phân tích Công bằng Đóng góp Đa chiều (Free-rider & Burnout)"
-      badge="Mục #3 · Liên kết Video Call AI"
+      badge="AI Phân tích đóng góp"
       subtitle="Kết hợp Task, Tiêu chí nghiệm thu, Bình luận, Điểm danh họp, Thời lượng phát biểu Video Call AI và đánh giá định kỳ. Chỉ số hỗ trợ điều phối, không thay thế điểm học phần."
       meta={data?.meta}
       markdownText={markdown}
@@ -115,20 +115,20 @@ export function ContributionFairnessPanel({ projectId }: { projectId: number }) 
 
                   <div className="grid grid-cols-3 gap-2 rounded-lg bg-canvas p-2 text-center text-xs">
                     <div>
-                      <span className="block text-[11px] text-ink-muted">Task xong</span>
+                      <span className="block text-xs text-ink-muted">Task xong</span>
                       <strong className="font-mono text-ink">{m.tasksCompleted}/{m.tasksAssigned}</strong>
                     </div>
                     <div>
-                      <span className="block text-[11px] text-ink-muted">Tiêu chí</span>
+                      <span className="block text-xs text-ink-muted">Tiêu chí</span>
                       <strong className="font-mono text-ink">{m.criteriaCompleted}</strong>
                     </div>
                     <div>
-                      <span className="block text-[11px] text-ink-muted">Phát biểu họp</span>
+                      <span className="block text-xs text-ink-muted">Phát biểu họp</span>
                       <strong className="font-mono text-primary">{m.speechSegments} ({m.speechSharePercent.toFixed(0)}%)</strong>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 text-[11px] text-ink-muted">
+                  <div className="flex flex-wrap gap-2 text-xs text-ink-muted">
                     <span>Trễ hạn: <strong className={m.tasksOverdue > 0 ? 'text-status-error-text' : 'text-ink'}>{m.tasksOverdue}</strong></span>
                     <span>· Trao đổi: <strong>{m.commentCount}</strong></span>
                     <span>· Dự họp: <strong>{m.meetingsAttended}</strong></span>

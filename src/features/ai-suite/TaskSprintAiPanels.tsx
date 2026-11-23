@@ -80,7 +80,7 @@ export function TaskBreakdownAiPanel({
       compact
       icon="checklist"
       title="AI Chia nhỏ Tiêu chí Nghiệm thu & Gợi ý Người phụ trách"
-      badge="Mục #5a · Task Breakdown"
+      badge="AI Chia nhỏ việc"
       subtitle="Phân tách công việc thành checklist nghiệm thu rõ ràng, ước lượng độ phức tạp và gợi ý thành viên phù hợp theo chuyên ngành & tải việc."
       meta={data?.meta}
       error={error}
@@ -141,7 +141,7 @@ export function TaskBreakdownAiPanel({
                       {a.fullName}{' '}
                       {a.majorName && <span className="text-primary">({a.majorName})</span>}
                     </p>
-                    <p className="text-[11px] text-ink-muted">Đang mở: {a.openTaskCount} task · {a.reason}</p>
+                    <p className="text-xs text-ink-muted">Đang mở: {a.openTaskCount} task · {a.reason}</p>
                   </div>
                 ))}
               </div>
@@ -193,7 +193,7 @@ export function SprintRetroAiButton({ projectId, sprintId, sprintName }: { proje
           compact
           icon="replay_circle_filled"
           title={`AI Sprint Retrospective · ${sprintName}`}
-          badge="Mục #5b · Retro"
+          badge="AI Tổng kết Sprint"
           subtitle="Tổng kết điểm làm tốt, nút thắt tồn đọng và hành động cụ thể cho Sprint tiếp theo."
           meta={data?.meta}
           error={error}

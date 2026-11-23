@@ -1,4 +1,7 @@
-.workspace-page { --page-gutter: 24px; width: 100%; max-width: 1200px; min-width: 0; margin-inline: auto; padding-bottom: 32px; color: var(--color-ink); font-size: 14px; line-height: 1.6; }
+.workspace-page { --page-gutter: 24px; width: 100%; max-width: 1440px; min-width: 0; margin-inline: auto; padding-bottom: 32px; color: var(--color-ink); font-size: 14px; line-height: 1.6; }
+.workspace-page.workspace-page--wide { max-width: 1440px; }
+.workspace-page.workspace-page--standard { max-width: 1240px; }
+.workspace-page.workspace-page--narrow { max-width: 960px; }
 .workspace-back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 20px; color: var(--color-ink-muted); font-size: 13px; text-decoration: none; font-weight: 500; }
 .workspace-back:hover { color: var(--color-primary); text-decoration: none; }
 .workspace-back .material-symbols-outlined { font-size: 18px; }
@@ -36,7 +39,7 @@
   .workspace-context-detail { max-width: 100%; }
 }
 
-.workspace-page.execution-page { max-width: 1200px; }
+.workspace-page.execution-page { max-width: 1440px; }
 .api-form label { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--color-ink); }
 .api-form :is(input:not([type="checkbox"]), select, textarea) {
   width: 100%;

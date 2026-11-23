@@ -70,7 +70,7 @@ export function DepartmentExecutiveBriefPanel({
     <AiSuiteCardShell
       icon="summarize"
       title="AI Bản tin Điều hành Tuần cho Ban Chủ nhiệm Khoa (Executive Brief)"
-      badge="Mục #8 · Điều hành Khoa"
+      badge="AI Điều hành Khoa"
       subtitle="Tổng hợp tự động toàn bộ đồ án đang chạy, nhóm nguy cơ trễ/im lặng ≥14 ngày, tải hướng dẫn giảng viên và đơn phúc khảo chờ xử lý."
       meta={data?.meta}
       markdownText={markdown}
@@ -130,7 +130,7 @@ export function DepartmentExecutiveBriefPanel({
                         {p.riskLevel}
                       </span>
                     </div>
-                    <p className="text-[11px] text-ink-muted">
+                    <p className="text-xs text-ink-muted">
                       Quá hạn: <strong>{p.overdueTaskCount}</strong> · Bị chặn: <strong>{p.blockedTaskCount}</strong> · Không họp: <strong>{p.daysSinceLastMeeting} ngày</strong>
                     </p>
                     <p className="text-ink-soft">{p.reason}</p>
