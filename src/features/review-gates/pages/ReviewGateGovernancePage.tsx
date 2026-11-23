@@ -30,6 +30,8 @@ import { HttpError } from '../../../services/http/http-client'
 import { gateWeightTotal, validateGateWeights } from '../api/review-gates-contract'
 import { AcademicWorkflowContext } from '../../../app/context/academic-workflow-context'
 import { getDepartmentUrgentActions } from '../../calendar/action-aggregators-api'
+import { DepartmentAiDraftBar } from '../../ai-suite/DepartmentAiDraftBar'
+import { AssistantReviewGateSetupCard } from '../../ai/components/AssistantReviewGateSetupCard'
 
 function templateError(error: unknown, template: ReviewGateTemplate): string {
   if (error instanceof HttpError && error.status === 409) return 'Mẫu đã công bố không thể sửa hoặc phiên bản đã thay đổi. Giữ lại nội dung đang nhập; tải lại để đối chiếu hoặc nhân bản thành phiên bản nháp mới.'
@@ -96,6 +98,7 @@ export function ReviewGateGovernancePage() {
   const [error, setError] = useState<string | null>(null)
   const [defenseError, setDefenseError] = useState<string | null>(null)
   const [readinessRefresh, setReadinessRefresh] = useState(0)
+  const [aiDraftOpen, setAiDraftOpen] = useState(false)
   const [reviewerGaps, setReviewerGaps] = useState<{ key: string; state: 'ready' | 'unavailable'; count: number } | null>(null)
   const cloneSequence = useRef(0)
   const scopedReviewerGaps = reviewerGaps?.key === departmentKey ? reviewerGaps : null
@@ -290,6 +293,16 @@ export function ReviewGateGovernancePage() {
       title="Cấu hình & Giám sát Tiến trình Đồ án"
       eyebrow="Quản lý học vụ · Chính sách cổng kiểm duyệt"
       description="Thiết kế các cổng kiểm duyệt (R1..Rn), kiểm tra điều kiện minh chứng và ma trận theo dõi tiến độ các nhóm."
+      action={
+        <button
+          type="button"
+          onClick={() => setAiDraftOpen(true)}
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-subtle px-3.5 text-sm font-semibold text-primary transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">auto_awesome</span>
+          Soạn nháp bằng AI
+        </button>
+      }
     >
       <ReviewGatesMockNotice />
       {/* Alert Notices */}
@@ -723,6 +736,52 @@ export function ReviewGateGovernancePage() {
           )}
         </>
       )}
+
+      <DepartmentAiDraftBar
+        open={aiDraftOpen}
+        onClose={() => setAiDraftOpen(false)}
+        title="Soạn nháp Khung cổng thẩm định bằng AI"
+        description="Tải tệp Đề cương / Lịch học kỳ (PDF, DOCX, XLSX) hoặc mô tả yêu cầu để AI đề xuất các cổng G1..Gn với trọng số 100% và minh chứng theo ngành."
+        toolMode="REVIEW_GATE_SETUP"
+        pageContext="/department/review-gates"
+        projectPeriodId={periodId && /^\d+$/.test(periodId) ? Number(periodId) : undefined}
+        placeholder="VD: Thiết kế 3 cổng thẩm định G1 (25%), G2 (35%), G3 (40% chặn bảo vệ) cho đồ án tốt nghiệp chuyên ngành Kỹ thuật phần mềm..."
+        starters={[
+          {
+            label: 'Khung 3 cổng đơn ngành chuẩn (G1–G3)',
+            prompt: 'Đề xuất khung 3 cổng thẩm định G1 (25% khởi tạo & SRS), G2 (35% thiết kế & demo giữa kỳ), G3 (40% nghiệm thu & chặn bảo vệ) với đầy đủ yêu cầu minh chứng.',
+          },
+          {
+            label: 'Khung liên ngành (COMMON + MAJOR_SPECIFIC)',
+            prompt: 'Đề xuất khung 3 cổng thẩm định cho đồ án liên ngành, có cả yêu cầu minh chứng chung (COMMON) và theo chuyên ngành (MAJOR_SPECIFIC).',
+          },
+          {
+            label: 'Trích xuất từ tệp đề cương đính kèm',
+            prompt: 'Đọc tệp đề cương / kế hoạch học kỳ đính kèm và trích xuất cấu trúc cổng thẩm định G1..Gn kèm mốc ngày và yêu cầu minh chứng.',
+          },
+        ]}
+        renderResult={response =>
+          response.draft?.reviewGateSetup ? (
+            <AssistantReviewGateSetupCard
+              runId={response.runId}
+              plan={response.draft.reviewGateSetup}
+              defaultPeriodId={periodId && /^\d+$/.test(periodId) ? Number(periodId) : undefined}
+              onApplied={result => {
+                setAiDraftOpen(false)
+                setNotice(`Đã tạo bản nháp khung cổng "${result.name}" (${result.code}) ở trạng thái DRAFT.`)
+                void loadAllData().then(() => {
+                  setSelectedTemplateId(String(result.templateId))
+                  setActiveTab('builder')
+                })
+              }}
+            />
+          ) : (
+            <div className="rounded-xl border border-hairline bg-canvas p-4 text-sm text-ink-soft whitespace-pre-wrap">
+              {response.answer}
+            </div>
+          )
+        }
+      />
     </WorkspacePage>
   )
 }

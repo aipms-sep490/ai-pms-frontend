@@ -14,6 +14,8 @@ import type { ColdReportInput, ColdTemplate } from '../../services/api/cold-temp
 import { applyColdChecklist } from '../../services/api/cold.api'
 import type { ColdTemplateTarget } from '../../services/api/cold.api'
 import { AcademicWorkflowContext } from '../../app/context/academic-workflow-context'
+import { DepartmentAiDraftBar } from '../ai-suite/DepartmentAiDraftBar'
+import { applyColdTemplateAiSetup, type AssistantColdTemplateSetupPlan } from '../ai/academic-ai-api'
 
 type ReportRow = ColdReportInput
 
@@ -73,6 +75,9 @@ export function ColdTemplateManagementPage() {
   const [createError, setCreateError] = useState('')
   const [createSuccess, setCreateSuccess] = useState('')
   const [createMode, setCreateMode] = useState<'view' | 'edit'>('view')
+  const [aiColdOpen, setAiColdOpen] = useState(false)
+  const [aiColdApplying, setAiColdApplying] = useState(false)
+  const [aiColdError, setAiColdError] = useState('')
 
   // Apply template to project state
   const [applyProjectId, setApplyProjectId] = useState('')
@@ -379,13 +384,23 @@ export function ColdTemplateManagementPage() {
                 : 'Mỗi lần lưu tạo một phiên bản bất biến cho phạm vi và kỳ đồ án đang chọn ở Bước 1.'}
             </p>
           </div>
-          <button
-            type="button"
-            className="inline-flex min-h-9 items-center whitespace-nowrap rounded-lg border border-primary/20 bg-primary-subtle px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            onClick={() => void loadItExample()}
-          >
-            Dùng mẫu IT (chỉ để tham khảo)
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex min-h-9 items-center gap-1 whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              onClick={() => { setAiColdError(''); setAiColdOpen(true) }}
+            >
+              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">auto_awesome</span>
+              Soạn mẫu bằng AI
+            </button>
+            <button
+              type="button"
+              className="inline-flex min-h-9 items-center whitespace-nowrap rounded-lg border border-primary/20 bg-primary-subtle px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              onClick={() => void loadItExample()}
+            >
+              Dùng mẫu IT (chỉ để tham khảo)
+            </button>
+          </div>
         </div>
 
         <div>
@@ -547,6 +562,122 @@ export function ColdTemplateManagementPage() {
         {applyError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{applyError}</p>}
         {applySuccess && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{applySuccess}</p>}
       </section>
+
+      <DepartmentAiDraftBar
+        open={aiColdOpen}
+        onClose={() => setAiColdOpen(false)}
+        title="Soạn mẫu hồ sơ chấm nguội bằng AI"
+        description="Đính kèm đề cương môn học hoặc nhập chuyên ngành (Marketing, Kinh tế, Thiết kế, Liên ngành…) để AI đề xuất bộ đầu mục báo cáo chuẩn UPPER_SNAKE_CASE."
+        toolMode="COLD_TEMPLATE_SETUP"
+        pageContext="/department/cold-templates"
+        projectPeriodId={projectPeriodId ? Number(projectPeriodId) : undefined}
+        placeholder="VD: Tạo bộ hồ sơ chấm nguội cho chuyên ngành Marketing / Thiết kế đồ họa gồm 6 đầu mục báo cáo..."
+        starters={[
+          {
+            label: 'Khối Marketing / Kinh doanh',
+            prompt: 'Soạn mẫu hồ sơ chấm nguội cho đồ án chuyên ngành Marketing / Kinh doanh gồm nghiên cứu thị trường, chiến lược, kế hoạch tài chính và minh chứng triển khai.',
+          },
+          {
+            label: 'Khối Thiết kế đồ họa / UI-UX',
+            prompt: 'Soạn mẫu hồ sơ chấm nguội cho đồ án chuyên ngành Thiết kế gồm Design Brief, Concept/Moodboard, Design System, kiểm thử trải nghiệm và Portfolio.',
+          },
+          {
+            label: 'Khối Liên ngành (SE + Kinh doanh)',
+            prompt: 'Soạn mẫu hồ sơ chấm nguội dùng chung (COMMON) cho đồ án liên ngành kết hợp Kỹ thuật phần mềm và Marketing.',
+          },
+        ]}
+        renderResult={response => {
+          const plan: AssistantColdTemplateSetupPlan | null | undefined = response.draft?.coldTemplateSetup
+          if (!plan) {
+            return (
+              <div className="rounded-xl border border-hairline bg-canvas p-4 text-sm text-ink-soft whitespace-pre-wrap">
+                {response.answer}
+              </div>
+            )
+          }
+          return (
+            <section className="space-y-3 rounded-xl border border-hairline bg-card p-4" aria-label="Bản nháp mẫu chấm nguội AI">
+              <div className="border-b border-hairline pb-2.5">
+                <h3 className="text-base font-bold text-ink">{plan.name}</h3>
+                <p className="mt-0.5 text-xs text-ink-muted">{plan.summary}</p>
+              </div>
+              {plan.warnings.length > 0 && (
+                <ul className="space-y-1 rounded-lg border border-status-warning-border bg-status-warning-bg px-3 py-2 text-xs text-status-warning-text">
+                  {plan.warnings.map((w, idx) => <li key={idx}>• {w}</li>)}
+                </ul>
+              )}
+              <ul className="space-y-1.5">
+                {plan.reports.map((report, idx) => (
+                  <li key={`${report.code}-${idx}`} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hairline bg-canvas px-3 py-2 text-xs">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <code className="rounded bg-card px-1.5 py-0.5 font-mono font-bold text-primary">{report.code}</code>
+                      <span className="font-medium text-ink">{report.name}</span>
+                    </div>
+                    <span className={report.required ? 'font-semibold text-status-warning-text' : 'text-ink-muted'}>
+                      {report.required ? 'Bắt buộc' : 'Tùy chọn'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {aiColdError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs text-status-error-text">{aiColdError}</p>}
+              <div className="flex flex-wrap items-center justify-end gap-2 border-t border-hairline pt-3">
+                <button
+                  type="button"
+                  className="min-h-10 rounded-lg border border-primary bg-card px-4 text-xs font-semibold text-primary hover:bg-primary-subtle"
+                  onClick={() => {
+                    setName(plan.name)
+                    setRows(plan.reports.map(r => ({ code: r.code.slice(0, 30), name: r.name, required: r.required })))
+                    setCreateMode('edit')
+                    setCreateError('')
+                    setCreateSuccess('Đã đổ bộ đầu mục AI đề xuất vào Bước 2. Kiểm tra phạm vi/kỳ rồi bấm Tạo template.')
+                    setAiColdOpen(false)
+                  }}
+                >
+                  Đổ vào biểu mẫu để chỉnh thêm
+                </button>
+                <button
+                  type="button"
+                  disabled={aiColdApplying || !projectPeriodId || (templateScope === 'MAJOR_SPECIFIC' && !majorId)}
+                  className="min-h-10 rounded-lg bg-primary px-4 text-xs font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={async () => {
+                    if (!projectPeriodId) return
+                    setAiColdApplying(true)
+                    setAiColdError('')
+                    try {
+                      const key = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+                        ? crypto.randomUUID()
+                        : `${Date.now()}-0000-4000-8000-000000000000`
+                      const saved = await applyColdTemplateAiSetup({
+                        idempotencyKey: key,
+                        runId: response.runId ?? null,
+                        projectPeriodId: Number(projectPeriodId),
+                        scope: templateScope,
+                        majorId: templateScope === 'COMMON' ? null : Number(majorId),
+                        name: plan.name,
+                        reports: plan.reports,
+                      })
+                      setCreateSuccess(`Đã lưu phiên bản v${saved.version} mẫu chấm nguội "${saved.name}" (${saved.reportsCount} đầu mục).`)
+                      setAiColdOpen(false)
+                      void search()
+                    } catch (reason) {
+                      setAiColdError(errorMessage(reason))
+                    } finally {
+                      setAiColdApplying(false)
+                    }
+                  }}
+                >
+                  {aiColdApplying ? 'Đang lưu…' : 'Lưu thành phiên bản mới ngay'}
+                </button>
+              </div>
+              {(!projectPeriodId || (templateScope === 'MAJOR_SPECIFIC' && !majorId)) && (
+                <p className="text-xs text-ink-muted">
+                  Chọn Kỳ đồ án (và Chuyên ngành nếu theo ngành) ở Bước 1 để bật nút Lưu ngay, hoặc bấm "Đổ vào biểu mẫu để chỉnh thêm".
+                </p>
+              )}
+            </section>
+          )
+        }}
+      />
     </WorkspacePage>
   )
 }

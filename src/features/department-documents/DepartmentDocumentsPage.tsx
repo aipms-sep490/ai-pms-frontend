@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Link, useInRouterContext } from 'react-router-dom'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import { Modal } from '../../components/ui/Modal'
@@ -42,6 +43,7 @@ async function saveDownload(row: DepartmentDocument) {
 
 export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean }) {
   const { session } = useAuthSession()
+  const inRouter = useInRouterContext()
   const [majors, setMajors] = useState<MajorOption[]>([])
   const [periods, setPeriods] = useState<PeriodOption[]>([])
   const [majorId, setMajorId] = useState('')
@@ -352,6 +354,23 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
             <button type="button" className="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg border border-hairline bg-card px-3 py-1.5 text-sm font-medium text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => void download(row)}>Tải về</button>
             {manager && row.status === 'DRAFT' && <button type="button" className="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={busyId !== null}
               onClick={() => void changeStatus(row, 'PUBLISHED')}>Công bố</button>}
+            {manager && row.status === 'PUBLISHED' && (
+              inRouter ? (
+                <Link
+                  to={`/academic/knowledge?fromDepartmentDocId=${row.id}`}
+                  className="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg border border-primary/30 bg-primary-subtle px-3 py-1.5 text-sm font-semibold text-primary transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  Đẩy sang Kho tri thức AI
+                </Link>
+              ) : (
+                <a
+                  href={`/academic/knowledge?fromDepartmentDocId=${row.id}`}
+                  className="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg border border-primary/30 bg-primary-subtle px-3 py-1.5 text-sm font-semibold text-primary transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  Đẩy sang Kho tri thức AI
+                </a>
+              )
+            )}
             {manager && row.status === 'PUBLISHED' && <button type="button" className="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg border border-hairline bg-card px-3 py-1.5 text-sm font-medium text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={busyId !== null}
               onClick={() => void changeStatus(row, 'RETIRED')}>Thu hồi</button>}
           </div>

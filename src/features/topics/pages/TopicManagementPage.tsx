@@ -12,6 +12,7 @@ import { TopicContentForm } from '../components/TopicContentForm'
 import { useTopicCatalog } from '../hooks/useTopicCatalog'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { topicErrorMessage } from '../api/topic-api'
+import { TopicAiBatchModal } from '../components/TopicAiBatchModal'
 import './topic-management.css'
 
 const statusLabels = { DRAFT: 'Bản nháp', PUBLISHED: 'Đã công bố', CLOSED: 'Đã đóng' } as const
@@ -29,6 +30,7 @@ export function TopicManagementPage() {
   const catalog = useTopicCatalog()
   const [draftDirty, setDraftDirty] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
+  const [aiBatchOpen, setAiBatchOpen] = useState(false)
   const [modeFilter, setModeFilter] = useState<'ALL' | 'SINGLE_MAJOR' | 'INTERDISCIPLINARY'>('ALL')
   const [majorFilter, setMajorFilter] = useState<string>('ALL')
   const [sortBy, setSortBy] = useState<TopicSort>('default')
@@ -127,7 +129,14 @@ export function TopicManagementPage() {
       eyebrow="Danh mục học vụ"
       title="Quản lý đề tài"
       description="Tạo, công bố và theo dõi các đề tài dùng cho kỳ đồ án."
-      action={<Button icon="add" onClick={() => setCreateOpen(true)}>Tạo đề tài mới</Button>}
+      action={
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" icon="auto_awesome" onClick={() => setAiBatchOpen(true)}>
+            Nhập / Soạn hàng loạt bằng AI
+          </Button>
+          <Button icon="add" onClick={() => setCreateOpen(true)}>Tạo đề tài mới</Button>
+        </div>
+      }
     >
       <FilterToolbar
         search={topics.filters.search ?? ''}
@@ -222,6 +231,20 @@ export function TopicManagementPage() {
             }}
           />
         </Modal>
+      )}
+
+      {aiBatchOpen && (
+        <TopicAiBatchModal
+          open
+          onClose={() => setAiBatchOpen(false)}
+          periods={catalog.periods}
+          majors={catalog.majors}
+          leadDepartmentId={catalog.department?.id ?? null}
+          onCreated={() => {
+            setMessage('Đã tạo hàng loạt bản nháp đề tài (DRAFT). Hãy kiểm tra chi tiết từng đề tài trước khi công bố.')
+            void topics.refresh()
+          }}
+        />
       )}
 
       {topics.mutationError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{topicErrorMessage(topics.mutationError)}</p>}

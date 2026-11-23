@@ -31,6 +31,7 @@ export function DepartmentAiDraftBar({
   placeholder,
   starters = [],
   defaultPrompt = '',
+  projectPeriodId,
   renderResult,
 }: {
   open: boolean
@@ -42,6 +43,7 @@ export function DepartmentAiDraftBar({
   placeholder: string
   starters?: DepartmentAiDraftStarter[]
   defaultPrompt?: string
+  projectPeriodId?: number
   renderResult: (response: AcademicAssistantResponse, onReset: () => void) => ReactNode
 }) {
   const [query, setQuery] = useState(defaultPrompt)
@@ -118,7 +120,7 @@ export function DepartmentAiDraftBar({
         undefined,
         text => setPreviewText(text),
         controller.signal,
-        { mode: toolMode },
+        { mode: toolMode, projectPeriodId },
       )
       setResponse(result)
       setPreviewText('')
