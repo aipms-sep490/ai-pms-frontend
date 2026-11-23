@@ -1,18 +1,22 @@
 import type { LiveCaptionLine } from './meeting-video-ai.types'
 import { speakerInitials } from './meeting-video-ai-utils'
+import type { TranscriptionState } from './useMeetingLiveTranscription'
 
 export function LiveCaptionsOverlay({
   captions,
   visible,
   listening,
+  status,
   onHide,
 }: {
   captions: LiveCaptionLine[]
   visible: boolean
   listening: boolean
+  status?: TranscriptionState
   onHide: () => void
 }) {
-  if (!visible || (captions.length === 0 && !listening)) return null
+  const isPausedMuted = status === 'paused-muted'
+  if (!visible || (captions.length === 0 && !listening && !isPausedMuted)) return null
 
   return (
     <div
@@ -21,11 +25,14 @@ export function LiveCaptionsOverlay({
       aria-label="Phụ đề trực tiếp AI"
       aria-live="polite"
     >
-      <div className="mtg-ai-captions-bar">
+      <div className={`mtg-ai-captions-bar ${captions.length > 0 ? 'has-lines' : ''}`}>
         <div className="mtg-ai-captions-head">
           <span className="mtg-ai-captions-badge">
-            <span className={`mtg-ai-live-dot ${listening ? 'is-active' : ''}`} aria-hidden="true" />
-            <span>Phụ đề AI trực tiếp</span>
+            <span
+              className={`mtg-ai-live-dot ${listening ? 'is-active' : isPausedMuted ? 'is-paused' : ''}`}
+              aria-hidden="true"
+            />
+            <span>{isPausedMuted ? 'Phụ đề tạm dừng · Mic đang tắt' : 'Phụ đề AI trực tiếp'}</span>
           </span>
           <button
             type="button"
@@ -40,7 +47,9 @@ export function LiveCaptionsOverlay({
 
         {captions.length === 0 ? (
           <p className="mtg-ai-caption-placeholder">
-            AI đang lắng nghe micrô của bạn… Hãy bắt đầu nói để hiển thị phụ đề trực tiếp cho cả phòng.
+            {isPausedMuted
+              ? 'Bật lại micrô để AI tiếp tục chuyển giọng nói thành phụ đề trực tiếp.'
+              : 'AI đang lắng nghe micrô… Hãy bắt đầu nói để hiện phụ đề cho cả phòng.'}
           </p>
         ) : (
           <ul className="mtg-ai-caption-list">

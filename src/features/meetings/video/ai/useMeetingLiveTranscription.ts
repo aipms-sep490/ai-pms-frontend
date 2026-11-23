@@ -99,6 +99,28 @@ export interface UseMeetingLiveTranscriptionResult {
 
 const CAPTION_TTL_MS = 15_000
 const MAX_VISIBLE_CAPTIONS = 3
+const SHORT_FRAGMENT_MAX_CHARS = 32
+const SHORT_FRAGMENT_FLUSH_MS = 750
+const MAX_COALESCED_CHARS = 360
+const DUPLICATE_WINDOW_MS = 4_000
+
+function normalizeSpeechText(raw: string): string {
+  const collapsed = raw.replace(/\s+/g, ' ').trim()
+  if (!collapsed) return ''
+  return collapsed[0].toLocaleUpperCase('vi-VN') + collapsed.slice(1)
+}
+
+function endsSentence(text: string): boolean {
+  return /[.?!…]$/.test(text.trim())
+}
+
+interface PendingSpeechBuffer {
+  clientSegmentId: string
+  text: string
+  spokenAt: string
+  language: string
+  timerId: number | null
+}
 
 export function useMeetingLiveTranscription({
   meetingId,
@@ -125,6 +147,8 @@ export function useMeetingLiveTranscription({
   const restartTimerRef = useRef<number | null>(null)
   const lastInterimSentAtRef = useRef(0)
   const currentDraftIdRef = useRef<string>(createClientSegmentId())
+  const pendingBufferRef = useRef<PendingSpeechBuffer | null>(null)
+  const lastPersistedRef = useRef<{ text: string; atMs: number } | null>(null)
   const enabledRef = useRef(enabled)
   const micEnabledRef = useRef(micEnabled)
   const mountedRef = useRef(true)
@@ -310,8 +334,89 @@ export function useMeetingLiveTranscription({
       }
     }
 
+    const persistUtterance = (
+      clientSegmentId: string,
+      finalText: string,
+      utteranceLang: string,
+      spokenAt: string,
+    ) => {
+      const normalized = normalizeSpeechText(finalText)
+      if (normalized.length < 2) return
+
+      const nowMs = Date.now()
+      const prev = lastPersistedRef.current
+      if (
+        prev &&
+        prev.text.toLowerCase() === normalized.toLowerCase() &&
+        nowMs - prev.atMs < DUPLICATE_WINDOW_MS
+      ) {
+        return
+      }
+      lastPersistedRef.current = { text: normalized, atMs: nowMs }
+
+      upsertCaption({
+        key: clientSegmentId,
+        clientSegmentId,
+        speakerName: localSpeakerName,
+        text: normalized,
+        isFinal: true,
+        language: utteranceLang,
+        spokenAt,
+      })
+
+      publishPacket(
+        {
+          type: 'caption-final',
+          clientSegmentId,
+          speakerName: localSpeakerName,
+          text: normalized,
+          language: utteranceLang,
+          spokenAt,
+        },
+        true,
+      )
+
+      void appendMeetingTranscript(meetingId, {
+        content: normalized,
+        language: utteranceLang,
+        source: 'WEB_SPEECH',
+        isHighlighted: false,
+        clientSegmentId,
+        spokenAt,
+      })
+        .then((saved) => {
+          if (!mountedRef.current) return
+          upsertCaption({
+            key: clientSegmentId,
+            clientSegmentId,
+            speakerName: saved.speakerName,
+            text: saved.content,
+            isFinal: true,
+            language: saved.language,
+            spokenAt: saved.spokenAt,
+            persistedId: saved.id,
+          })
+          callbacksRef.current.onSegmentPersisted?.(saved)
+          publishPacket({ type: 'transcript-sync', segmentId: saved.id }, true)
+        })
+        .catch(() => {
+          // Keep live caption visible even if a single transient persistence call fails.
+        })
+    }
+
+    const flushPendingBuffer = () => {
+      const buf = pendingBufferRef.current
+      if (!buf) return
+      pendingBufferRef.current = null
+      if (buf.timerId !== null) {
+        window.clearTimeout(buf.timerId)
+      }
+      persistUtterance(buf.clientSegmentId, buf.text, buf.language, buf.spokenAt)
+    }
+
     const stopRecognition = () => {
       clearPendingRestart()
+      flushPendingBuffer()
       const current = recognitionRef.current
       recognitionRef.current = null
       if (current) {
@@ -406,58 +511,75 @@ export function useMeetingLiveTranscription({
         }
 
         if (finalParts.length > 0) {
-          const finalText = finalParts.join(' ').trim()
-          const clientSegmentId = currentDraftIdRef.current
-          currentDraftIdRef.current = createClientSegmentId()
+          const chunk = finalParts.join(' ').replace(/\s+/g, ' ').trim()
+          if (chunk.length < 2) return
 
-          upsertCaption({
-            key: clientSegmentId,
-            clientSegmentId,
-            speakerName: localSpeakerName,
-            text: finalText,
-            isFinal: true,
-            language,
-            spokenAt: nowIso,
-          })
+          const activeBuf = pendingBufferRef.current
+          if (activeBuf) {
+            if (activeBuf.timerId !== null) {
+              window.clearTimeout(activeBuf.timerId)
+              activeBuf.timerId = null
+            }
+            const mergedText = normalizeSpeechText(`${activeBuf.text} ${chunk}`)
+            const clientSegmentId = activeBuf.clientSegmentId
+            const shouldFlushNow =
+              mergedText.length >= SHORT_FRAGMENT_MAX_CHARS ||
+              mergedText.length >= MAX_COALESCED_CHARS ||
+              endsSentence(mergedText)
 
-          publishPacket(
-            {
-              type: 'caption-final',
-              clientSegmentId,
-              speakerName: localSpeakerName,
-              text: finalText,
-              language,
-              spokenAt: nowIso,
-            },
-            true,
-          )
-
-          void appendMeetingTranscript(meetingId, {
-            content: finalText,
-            language,
-            source: 'WEB_SPEECH',
-            isHighlighted: false,
-            clientSegmentId,
-            spokenAt: nowIso,
-          })
-            .then((saved) => {
-              if (!mountedRef.current) return
+            if (shouldFlushNow) {
+              pendingBufferRef.current = null
+              currentDraftIdRef.current = createClientSegmentId()
+              persistUtterance(clientSegmentId, mergedText, activeBuf.language, activeBuf.spokenAt)
+            } else {
+              activeBuf.text = mergedText
               upsertCaption({
                 key: clientSegmentId,
                 clientSegmentId,
-                speakerName: saved.speakerName,
-                text: saved.content,
-                isFinal: true,
-                language: saved.language,
-                spokenAt: saved.spokenAt,
-                persistedId: saved.id,
+                speakerName: localSpeakerName,
+                text: mergedText,
+                isFinal: false,
+                language: activeBuf.language,
+                spokenAt: nowIso,
               })
-              callbacksRef.current.onSegmentPersisted?.(saved)
-              publishPacket({ type: 'transcript-sync', segmentId: saved.id }, true)
+              activeBuf.timerId = window.setTimeout(() => {
+                flushPendingBuffer()
+              }, SHORT_FRAGMENT_FLUSH_MS)
+            }
+            return
+          }
+
+          const normalizedChunk = normalizeSpeechText(chunk)
+          const clientSegmentId = currentDraftIdRef.current
+          const shouldFlushImmediately =
+            normalizedChunk.length >= SHORT_FRAGMENT_MAX_CHARS || endsSentence(normalizedChunk)
+
+          if (shouldFlushImmediately) {
+            currentDraftIdRef.current = createClientSegmentId()
+            persistUtterance(clientSegmentId, normalizedChunk, language, nowIso)
+          } else {
+            // Show short fragment instantaneously in live captions while coalescing rapid follow-up chunks.
+            upsertCaption({
+              key: clientSegmentId,
+              clientSegmentId,
+              speakerName: localSpeakerName,
+              text: normalizedChunk,
+              isFinal: false,
+              language,
+              spokenAt: nowIso,
             })
-            .catch(() => {
-              // Keep live caption visible even if a single transient persistence call fails.
-            })
+            const timerId = window.setTimeout(() => {
+              flushPendingBuffer()
+            }, SHORT_FRAGMENT_FLUSH_MS)
+            pendingBufferRef.current = {
+              clientSegmentId,
+              text: normalizedChunk,
+              spokenAt: nowIso,
+              language,
+              timerId,
+            }
+            currentDraftIdRef.current = createClientSegmentId()
+          }
         }
       }
 

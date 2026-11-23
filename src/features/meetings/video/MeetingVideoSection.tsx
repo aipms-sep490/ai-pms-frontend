@@ -15,6 +15,14 @@ function sessionCopy(session: MeetingVideoSession | null) {
   return 'Phiên Video gặp sự cố. Hãy tải lại trạng thái hoặc liên hệ người tổ chức.'
 }
 
+function sessionBadge(session: MeetingVideoSession | null): { label: string; tone: string } {
+  if (!session) return { label: 'Chưa mở phòng', tone: 'idle' }
+  if (session.status === 'LIVE') return { label: 'Đang diễn ra', tone: 'live' }
+  if (session.status === 'CREATED') return { label: 'Đang chuẩn bị', tone: 'pending' }
+  if (session.status === 'ENDED') return { label: 'Đã kết thúc', tone: 'ended' }
+  return { label: 'Cần kiểm tra', tone: 'error' }
+}
+
 export function MeetingVideoSection({ meeting, routeBase }: { meeting: MeetingDetail; routeBase: string }) {
   const { state, refresh, enabled } = useMeetingVideoAccess(meeting)
   const [actionError, setActionError] = useState('')
@@ -45,19 +53,95 @@ export function MeetingVideoSection({ meeting, routeBase }: { meeting: MeetingDe
   const resource = state.status === 'ready' ? state.resource : null
   const denialMessages = resource?.denialReasons.map(meetingVideoErrorCode) ?? []
   const roomPath = `${routeBase}/meetings/${meeting.id}/video`
+  const badge = sessionBadge(resource?.session ?? null)
+  const hasActions = Boolean(resource && (resource.capabilities.canStart || resource.capabilities.canJoin))
 
-  return <section className="mtg-panel mtg-padded mtg-video-section" aria-labelledby="meeting-video-title">
-    <div className="mtg-section-heading"><div><p className="mtg-eyebrow">HỌP TRỰC TUYẾN</p><h2 id="meeting-video-title">Phòng họp trực tuyến</h2></div></div>
-    {state.status === 'loading' && <p className="mtg-help" role="status">Đang tải quyền truy cập Video…</p>}
-    {state.status === 'error' && <div className="mtg-notice mtg-notice--error" role="alert"><p>{state.message}</p><button className="mtg-button mtg-button--secondary" onClick={refresh}>Tải lại quyền Video</button></div>}
-    {resource && <>
-      <p className="mtg-prose">{sessionCopy(resource.session)}</p>
-      {denialMessages.length > 0 && <ul className="mtg-video-denials" role="alert">{denialMessages.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul>}
-      {actionError && <p className="mtg-notice mtg-notice--error" role="alert">{actionError}</p>}
-      <div className="mtg-actions mtg-video-actions">
-        {resource.capabilities.canStart && <button className="mtg-button" disabled={starting} onClick={() => void start()}>{starting ? 'Đang bắt đầu…' : 'Mở phòng họp'}</button>}
-        {resource.capabilities.canJoin && <Link className="mtg-button mtg-button--secondary" to={roomPath}>Kiểm tra trước khi tham gia</Link>}
+  return (
+    <section
+      className={`mtg-video-banner ${badge.tone === 'live' ? 'mtg-video-banner--live' : ''}`}
+      aria-labelledby="meeting-video-title"
+    >
+      <div className="mtg-video-banner__row">
+        <div className="mtg-video-banner__main">
+          <span className={`mtg-video-banner__icon mtg-video-banner__icon--${badge.tone}`} aria-hidden="true">
+            <span className="material-symbols-outlined">
+              {badge.tone === 'live' ? 'video_camera_front' : 'videocam'}
+            </span>
+          </span>
+          <div className="mtg-video-banner__copy">
+            <div className="mtg-video-banner__title-row">
+              <h2 id="meeting-video-title">Phòng họp trực tuyến</h2>
+              {resource && (
+                <span className={`mtg-video-pill mtg-video-pill--${badge.tone}`}>
+                  {badge.tone === 'live' && <span className="mtg-video-pill__dot" aria-hidden="true" />}
+                  {badge.label}
+                </span>
+              )}
+            </div>
+            {state.status === 'loading' && (
+              <p className="mtg-video-banner__desc" role="status">
+                Đang tải quyền truy cập Video…
+              </p>
+            )}
+            {resource && <p className="mtg-video-banner__desc">{sessionCopy(resource.session)}</p>}
+          </div>
+        </div>
+
+        {hasActions && resource && (
+          <div className="mtg-video-banner__actions">
+            {resource.capabilities.canStart && (
+              <button
+                type="button"
+                className="mtg-button"
+                disabled={starting}
+                onClick={() => void start()}
+              >
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  video_call
+                </span>
+                {starting ? 'Đang bắt đầu…' : 'Mở phòng họp'}
+              </button>
+            )}
+            {resource.capabilities.canJoin && (
+              <Link
+                className={`mtg-button ${resource.capabilities.canStart ? 'mtg-button--secondary' : ''}`}
+                to={roomPath}
+              >
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  login
+                </span>
+                Kiểm tra trước khi tham gia
+              </Link>
+            )}
+          </div>
+        )}
       </div>
-    </>}
-  </section>
+
+      {state.status === 'error' && (
+        <div className="mtg-notice mtg-notice--error mtg-video-banner__alert" role="alert">
+          <p>{state.message}</p>
+          <button type="button" className="mtg-button mtg-button--secondary" onClick={refresh}>
+            Tải lại quyền Video
+          </button>
+        </div>
+      )}
+
+      {denialMessages.length > 0 && (
+        <ul className="mtg-video-banner__denials" role="alert">
+          {denialMessages.map((message, index) => (
+            <li key={`${message}-${index}`}>
+              <span className="material-symbols-outlined" aria-hidden="true">info</span>
+              <span>{message}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {actionError && (
+        <p className="mtg-notice mtg-notice--error mtg-video-banner__alert" role="alert">
+          {actionError}
+        </p>
+      )}
+    </section>
+  )
 }

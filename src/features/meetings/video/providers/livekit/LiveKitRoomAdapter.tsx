@@ -132,28 +132,24 @@ export function LiveKitRoomAdapter({
         {controlError && (
           <div className="mtg-notice mtg-notice--error mtg-livekit-control-error" role="alert">
             <p>{controlError}</p>
-            <button className="mtg-text-button" onClick={() => setControlError('')}>
+            <button type="button" className="mtg-text-button" onClick={() => setControlError('')}>
               Đóng thông báo
             </button>
           </div>
         )}
-        <div className={`mtg-video-cockpit ${governanceOpen ? 'mtg-video-cockpit--split' : ''}`}>
-          <div className="mtg-video-cockpit-stage">
-            <LiveKitRoomContent
-              room={room}
-              title={title}
-              connectionState={labels[state]}
-              canEnd={canEnd}
-              mediaCapabilities={credential.capabilities}
-              onLeave={onLeave}
-              onEndRequested={onEndRequested}
-              onGovernance={onGovernance}
-              governanceOpen={governanceOpen}
-              onProviderError={(reason) => setControlError(liveKitErrorMessage(reason))}
-            />
-          </div>
-          {governance}
-        </div>
+        <LiveKitRoomContent
+          room={room}
+          title={title}
+          connectionState={labels[state]}
+          canEnd={canEnd}
+          mediaCapabilities={credential.capabilities}
+          onLeave={onLeave}
+          onEndRequested={onEndRequested}
+          onGovernance={onGovernance}
+          governanceOpen={governanceOpen}
+          onProviderError={(reason) => setControlError(liveKitErrorMessage(reason))}
+          sidePanel={governanceOpen ? governance : null}
+        />
       </RoomContext.Provider>
     )
   }
@@ -219,6 +215,7 @@ function LiveKitRoomWithAi({
   const [latestPersistedSegment, setLatestPersistedSegment] =
     useState<MeetingTranscriptSegment | null>(null)
   const [remoteRefreshNonce, setRemoteRefreshNonce] = useState(0)
+  const [hasUnreadAiUpdate, setHasUnreadAiUpdate] = useState(false)
 
   const handleSegmentPersisted = useCallback((seg: MeetingTranscriptSegment) => {
     setLatestPersistedSegment(seg)
@@ -228,6 +225,11 @@ function LiveKitRoomWithAi({
     setRemoteRefreshNonce((n) => n + 1)
   }, [])
 
+  const handleRemoteInsight = useCallback(() => {
+    setRemoteRefreshNonce((n) => n + 1)
+    if (!ai.aiOpen) setHasUnreadAiUpdate(true)
+  }, [ai.aiOpen])
+
   const transcription = useMeetingLiveTranscription({
     meetingId: ai.meeting.id,
     room,
@@ -236,76 +238,16 @@ function LiveKitRoomWithAi({
     enabled: sttEnabled,
     onSegmentPersisted: handleSegmentPersisted,
     onRemoteCaptionFinal: triggerRemoteRefresh,
-    onRemoteInsightUpdated: triggerRemoteRefresh,
+    onRemoteInsightUpdated: handleRemoteInsight,
     onRemoteTranscriptSync: triggerRemoteRefresh,
   })
 
-  const splitOpen = governanceOpen || ai.aiOpen
+  const sidePanelVisible = ai.aiOpen || governanceOpen
 
-  return (
-    <div className={`mtg-video-cockpit ${splitOpen ? 'mtg-video-cockpit--split' : ''}`}>
-      <div className="mtg-video-cockpit-stage">
-        <LiveKitRoomContent
-          room={room}
-          title={title}
-          connectionState={connectionState}
-          canEnd={canEnd}
-          mediaCapabilities={credential.capabilities}
-          onLeave={onLeave}
-          onEndRequested={onEndRequested}
-          onGovernance={onGovernance}
-          governanceOpen={governanceOpen}
-          onProviderError={onProviderError}
-          captionsOverlay={
-            <LiveCaptionsOverlay
-              captions={transcription.liveCaptions}
-              visible={captionsVisible}
-              listening={transcription.status === 'listening'}
-              onHide={() => setCaptionsVisible(false)}
-            />
-          }
-          footerExtras={
-            <>
-              <button
-                type="button"
-                className="mtg-button mtg-button--secondary mtg-ai-room-trigger"
-                aria-pressed={sttEnabled}
-                disabled={!transcription.supported || ai.meeting.status === 'CANCELLED'}
-                title={
-                  transcription.supported
-                    ? 'Bật/tắt nhận diện giọng nói & phụ đề AI trực tiếp'
-                    : 'Trình duyệt không hỗ trợ nhận diện giọng nói trực tiếp'
-                }
-                onClick={() => {
-                  setSttEnabled((prev) => {
-                    const next = !prev
-                    if (next) setCaptionsVisible(true)
-                    return next
-                  })
-                }}
-              >
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  {sttEnabled ? 'subtitles' : 'subtitles_off'}
-                </span>
-                <span>{sttEnabled ? 'Đang đọc lời nói' : 'Phụ đề AI'}</span>
-              </button>
-              <button
-                type="button"
-                className="mtg-button mtg-button--secondary mtg-ai-room-trigger"
-                aria-expanded={ai.aiOpen}
-                onClick={ai.onAiToggle}
-              >
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  auto_awesome
-                </span>
-                <span>Trợ lý AI</span>
-              </button>
-            </>
-          }
-        />
-      </div>
-
-      {ai.aiOpen && (
+  // Keep MeetingAiCopilotPanel mounted while in the room so closing/reopening preserves Q&A, Coach & Auto-Pulse.
+  const activeSidePanel = (
+    <>
+      <div className="mtg-livekit-side-slot__pane" hidden={!ai.aiOpen}>
         <MeetingAiCopilotPanel
           meeting={ai.meeting}
           variant="room"
@@ -317,6 +259,9 @@ function LiveKitRoomWithAi({
           onApplyMinutesToNotes={ai.onApplyMinutesToNotes}
           onApplyDecision={ai.onApplyDecision}
           onCreateActionItem={ai.onCreateActionItem}
+          onInsightGenerated={() => {
+            if (!ai.aiOpen) setHasUnreadAiUpdate(true)
+          }}
           liveControls={{
             supported: transcription.supported,
             enabled: sttEnabled,
@@ -342,9 +287,81 @@ function LiveKitRoomWithAi({
             onBroadcastTranscriptSync: transcription.broadcastTranscriptSync,
           }}
         />
+      </div>
+      {governanceOpen && !ai.aiOpen && (
+        <div className="mtg-livekit-side-slot__pane">{governance}</div>
       )}
+    </>
+  )
 
-      {!ai.aiOpen && governance}
-    </div>
+  return (
+    <LiveKitRoomContent
+      room={room}
+      title={title}
+      connectionState={connectionState}
+      canEnd={canEnd}
+      mediaCapabilities={credential.capabilities}
+      onLeave={onLeave}
+      onEndRequested={onEndRequested}
+      onGovernance={onGovernance}
+      governanceOpen={governanceOpen}
+      onProviderError={onProviderError}
+      captionsOverlay={
+        <LiveCaptionsOverlay
+          captions={transcription.liveCaptions}
+          visible={captionsVisible}
+          listening={transcription.status === 'listening'}
+          status={transcription.status}
+          onHide={() => setCaptionsVisible(false)}
+        />
+      }
+      centerExtras={
+        <button
+          type="button"
+          className={`mtg-meet-dock-btn ${sttEnabled ? 'is-accent' : 'is-neutral'}`}
+          aria-label={sttEnabled ? 'Đang đọc lời nói' : 'Phụ đề AI'}
+          aria-pressed={sttEnabled}
+          disabled={!transcription.supported || ai.meeting.status === 'CANCELLED'}
+          title={
+            transcription.supported
+              ? 'Bật/tắt nhận diện giọng nói & phụ đề AI trực tiếp'
+              : 'Trình duyệt không hỗ trợ nhận diện giọng nói trực tiếp'
+          }
+          onClick={() => {
+            setSttEnabled((prev) => {
+              const next = !prev
+              if (next) setCaptionsVisible(true)
+              return next
+            })
+          }}
+        >
+          <span className="material-symbols-outlined" aria-hidden="true">
+            {sttEnabled ? 'subtitles' : 'subtitles_off'}
+          </span>
+        </button>
+      }
+      rightExtras={
+        <button
+          type="button"
+          className={`mtg-meet-tool-btn mtg-meet-tool-btn--ai ${ai.aiOpen ? 'is-active' : ''}`}
+          aria-expanded={ai.aiOpen}
+          title="Mở Trợ lý AI Cuộc họp (Lời nói, Tóm tắt, Hỏi AI & Điều phối)"
+          onClick={() => {
+            setHasUnreadAiUpdate(false)
+            ai.onAiToggle()
+          }}
+        >
+          <span className="material-symbols-outlined" aria-hidden="true">
+            auto_awesome
+          </span>
+          <span>Trợ lý AI</span>
+          {!ai.aiOpen && (hasUnreadAiUpdate || sttEnabled) && (
+            <span className="mtg-meet-tool-dot" aria-hidden="true" />
+          )}
+        </button>
+      }
+      sidePanel={activeSidePanel}
+      sidePanelVisible={sidePanelVisible}
+    />
   )
 }

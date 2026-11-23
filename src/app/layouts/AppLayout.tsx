@@ -17,6 +17,7 @@ export function AppLayout() {
   const location = useLocation()
   const { session } = useAuthSession()
   const isFullPageChat = location.pathname === '/messages' || location.pathname.startsWith('/messages/') || location.pathname === '/academic/assistant'
+  const isImmersiveVideoRoom = /^\/(?:project|supervisor\/projects\/\d+|mentor\/projects\/\d+\/majors\/\d+)\/meetings\/\d+\/video(?:\/|$)/.test(location.pathname)
   const entrance = useEntranceMotion<HTMLElement>(location.pathname)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const hamburgerTriggerRef = useRef<HTMLButtonElement | null>(null)
@@ -27,6 +28,21 @@ export function AppLayout() {
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false)
+  }
+
+  if (isImmersiveVideoRoom) {
+    return (
+      <TourProvider>
+        <main
+          id="main-content"
+          tabIndex={-1}
+          data-experience="enhanced"
+          className="w-full h-dvh min-h-screen overflow-hidden font-sans antialiased"
+        >
+          <Outlet />
+        </main>
+      </TourProvider>
+    )
   }
 
   return (
