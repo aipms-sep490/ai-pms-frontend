@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('../config/env', async importOriginal => {
   const { env } = await importOriginal<typeof import('../config/env')>()
   return { env: { ...env, academicAiAssistantEnabled: true, aiAdvisoryEnabled: true, coldReportEnabled: true,
-    defenseScheduleEnabled: true, gatesEnabled: true, industryEnabled: true, peerEvaluationEnabled: true,
+    defenseScheduleEnabled: true, gatesEnabled: true, peerEvaluationEnabled: true,
     resultCorrectionEnabled: true, weeklyAssessmentEnabled: true, workflowPreviewEnabled: true, workingAgreementEnabled: true } }
 })
 import { appRouter } from './index'
@@ -69,8 +69,13 @@ describe('workspace route registry', () => {
     const department = getWorkspaceNavigation(access({ identityRole: 'department', identityRoles: ['DEPARTMENT_STAFF'] }))
     const admin = getWorkspaceNavigation(access({ identityRole: 'admin', identityRoles: ['ADMIN'] }))
     expect(department.map((route) => route.id)).toContain('governance-review')
-    expect(department.map((route) => route.path)).toEqual(expect.arrayContaining(['/department/workspace', '/department/student-qualifications', '/department/projects/archived']))
+    expect(department.map((route) => route.path)).toEqual(expect.arrayContaining(['/department/workspace', '/department/students', '/department/student-qualifications', '/department/projects/archived']))
     expect(admin.map((route) => route.id)).toContain('administration-access')
+    expect(admin.map((route) => route.id)).not.toContain('administration-portfolio')
+    expect(admin.map((route) => route.id)).not.toContain('admin-milestone-templates')
+    expect(admin.map((route) => route.id)).not.toContain('academic-profile-verifications')
+    expect(admin.map((route) => route.id)).not.toContain('governance-review-gates')
+    expect(admin.map((route) => route.id)).not.toContain('governance-students')
     expect(admin.map((route) => route.id)).not.toContain('governance-review')
     expect(admin.map((route) => route.id)).not.toContain('governance-qualifications')
     expect(admin.map((route) => route.id)).not.toContain('governance-archives')

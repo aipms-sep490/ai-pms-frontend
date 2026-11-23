@@ -14,7 +14,7 @@ const rowTone: Record<string, BadgeTone> = { UPDATE: 'success', ERROR: 'danger',
 const errorLabels: Record<string, string> = {
   STUDENT_CODE_INVALID: 'MSSV không hợp lệ.', DUPLICATE_STUDENT_CODE: 'MSSV bị trùng trong tệp.',
   CURRICULUM_CODE_INVALID: 'Khung không hợp lệ (tối đa 100 ký tự).', STUDENT_NOT_FOUND: 'Không tìm thấy sinh viên duy nhất khớp MSSV.',
-  STUDENT_ROLE_REQUIRED: 'Tài khoản chưa có vai trò sinh viên.', IMPORT_FILE_SIZE_INVALID: 'Tệp phải có dữ liệu và không quá 5 MB.',
+  STUDENT_ROLE_REQUIRED: 'Tài khoản chưa có vai trò sinh viên.', STUDENT_OUTSIDE_DEPARTMENT_SCOPE: 'Sinh viên không thuộc khoa bạn phụ trách.', IMPORT_FILE_SIZE_INVALID: 'Tệp phải có dữ liệu và không quá 5 MB.',
   IMPORT_FORMAT_REQUIRED_XLSX_OR_CSV: 'Chỉ hỗ trợ tệp CSV hoặc XLSX.', IMPORT_NO_DATA: 'Tệp chưa có dòng dữ liệu.',
   IMPORT_HEADERS_REQUIRE_UNIQUE_MSSV_AND_CURRICULUM: 'Dòng đầu phải có hai cột MSSV và Khung, không trùng tên cột.',
   IMPORT_REQUIRES_1_TO_500_ROWS: 'Tệp phải có từ 1 đến 500 dòng dữ liệu.', IMPORT_LIMIT_EXCEEDED: 'Tệp vượt giới hạn 500 dòng hoặc 64 cột.',
@@ -26,7 +26,7 @@ function importError(reason: unknown, committing: boolean): string {
   if (reason instanceof HttpError) {
     if (reason.status === 409) return 'Dữ liệu sinh viên đã thay đổi. Hãy xem trước lại để lấy phiên bản mới trước khi xác nhận.'
     if (reason.status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
-    if (reason.status === 403) return 'Chỉ Admin đang hoạt động mới được nhập Khung sinh viên.'
+    if (reason.status === 403) return 'Chỉ Admin hoặc Giáo vụ Khoa đang hoạt động mới được nhập Khung sinh viên.'
     if (reason.status === 413) return 'Tệp quá lớn. Vui lòng chọn tệp không quá 5 MB.'
     if (reason.status === 400) {
       const errors = (reason.problem as { errors?: unknown } | undefined)?.errors
@@ -39,7 +39,8 @@ function importError(reason: unknown, committing: boolean): string {
 
 export function CurriculumImportDialog({ onClose, onImported }: { onClose: () => void; onImported: () => void }) {
   const { session } = useAuthSession()
-  const isAdmin = getWorkspaceRole(session?.user) === 'admin'
+  const role = getWorkspaceRole(session?.user)
+  const canAccess = role === 'admin' || role === 'department'
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<CurriculumPreview | null>(null)
   const [result, setResult] = useState<CurriculumCommitResult | null>(null)
@@ -60,7 +61,7 @@ export function CurriculumImportDialog({ onClose, onImported }: { onClose: () =>
   }
 
   async function run(action: 'preview' | 'commit') {
-    if (request.current || !isAdmin || !session || !file || (action === 'commit' && (!rows || !confirmed))) return
+    if (request.current || !canAccess || !session || !file || (action === 'commit' && (!rows || !confirmed))) return
     const controller = new AbortController()
     request.current = controller
     setPending(action); setError(null); setResult(null); setConfirmed(false)
@@ -85,7 +86,7 @@ export function CurriculumImportDialog({ onClose, onImported }: { onClose: () =>
   }
 
   return <ImportDialog<CurriculumPreview['rows'][number]> title="Nhập Khung sinh viên" description="Chọn tệp MSSV + Khung, kiểm tra từng dòng rồi xác nhận cập nhật."
-    onClose={onClose} authorized={isAdmin && !!session} unauthorizedMessage="Chỉ Admin mới được nhập Khung sinh viên."
+    onClose={onClose} authorized={canAccess && !!session} unauthorizedMessage="Chỉ Admin hoặc Giáo vụ Khoa mới được nhập Khung sinh viên."
     busy={!!pending} notice={<><p>Cập nhật Khung cho sinh viên đã có tài khoản theo MSSV. Khung để trống sẽ được bỏ qua; các thông tin tài khoản và thành viên nhóm được giữ nguyên.</p><p>CSV UTF-8 hoặc XLSX một trang tính, tối đa 500 dòng và 5 MB. Dòng đầu gồm <strong>MSSV</strong> và <strong>Khung</strong>.</p></>}
     templateHref="/templates/student-curriculum-import.csv" fileLabel="Tệp MSSV + Khung" file={file}
     accept=".csv,.xlsx" limits="5 MB · 500 dòng" onFileChange={chooseFile}

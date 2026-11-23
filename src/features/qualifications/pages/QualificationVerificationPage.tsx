@@ -23,7 +23,7 @@ function date(value?: string | null) {
   return Number.isNaN(parsed.valueOf()) ? 'Ngày chưa hợp lệ' : parsed.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
 }
 
-export function QualificationVerificationPage() {
+export function QualificationVerificationPage({ embedded = false }: { embedded?: boolean }) {
   const queue = useQualificationQueue()
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const filterKey = `${queue.page}:${queue.search}:${queue.status}`
@@ -66,7 +66,7 @@ export function QualificationVerificationPage() {
     })
   }
 
-  return <WorkspacePage size="wide" title="Xác minh điều kiện tham gia đồ án" eyebrow="Điều kiện tham gia" description="Kiểm tra hồ sơ đào tạo và thông tin chứng chỉ của sinh viên thuộc bộ môn trước khi đăng ký đồ án." action={<Button variant="secondary" icon="refresh" onClick={() => void queue.refresh()} disabled={queue.loading || pendingId !== null}>Tải lại</Button>}>
+  const body = <>
     <FilterToolbar
       search={queue.search}
       onSearchChange={value => { if (pendingId === null) queue.setSearch(value) }}
@@ -78,20 +78,23 @@ export function QualificationVerificationPage() {
       onTabChange={code => { if (pendingId === null) queue.setStatus(code) }}
       tabsLabel="Lọc hồ sơ chứng chỉ theo trạng thái"
       controls={
-        <label className="ft-select-wrap">
-          <span className="sr-only">Trạng thái đào tạo</span>
-          <select
-            className="ft-select"
-            aria-label="Lọc theo trạng thái đào tạo"
-            value={trainingFilter}
-            disabled={pendingId !== null}
-            onChange={event => setTrainingFilter(event.target.value as 'ALL' | 'COMPLETED' | 'PENDING')}
-          >
-            <option value="ALL">Tất cả trạng thái đào tạo</option>
-            <option value="COMPLETED">Đã hoàn thành đào tạo</option>
-            <option value="PENDING">Chưa hoàn thành đào tạo</option>
-          </select>
-        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="ft-select-wrap">
+            <span className="sr-only">Trạng thái đào tạo</span>
+            <select
+              className="ft-select"
+              aria-label="Lọc theo trạng thái đào tạo"
+              value={trainingFilter}
+              disabled={pendingId !== null}
+              onChange={event => setTrainingFilter(event.target.value as 'ALL' | 'COMPLETED' | 'PENDING')}
+            >
+              <option value="ALL">Tất cả trạng thái đào tạo</option>
+              <option value="COMPLETED">Đã hoàn thành đào tạo</option>
+              <option value="PENDING">Chưa hoàn thành đào tạo</option>
+            </select>
+          </label>
+          {embedded && <Button variant="secondary" icon="refresh" onClick={() => void queue.refresh()} disabled={queue.loading || pendingId !== null}>Tải lại</Button>}
+        </div>
       }
       activeChips={activeChips}
       onRemoveChip={chipId => { if (chipId === 'training') setTrainingFilter('ALL') }}
@@ -129,5 +132,9 @@ export function QualificationVerificationPage() {
     </li>)}</ul>}
     {!queue.loading && !queue.error && queue.totalPages > 1 && <nav className="flex flex-wrap items-center justify-between gap-3 text-sm" aria-label="Phân trang hồ sơ xác minh"><Button className="min-h-11" variant="secondary" disabled={queue.page <= 1 || pendingId !== null} onClick={() => queue.setPage(queue.page - 1)}>Trang trước</Button><p className="text-ink-muted">Trang {queue.page} / {queue.totalPages} · {queue.totalCount} hồ sơ</p><Button className="min-h-11" variant="secondary" disabled={queue.page >= queue.totalPages || pendingId !== null} onClick={() => queue.setPage(queue.page + 1)}>Trang sau</Button></nav>}
     {confirmationDialog}
+  </>
+  if (embedded) return <div className="space-y-4">{body}</div>
+  return <WorkspacePage title="Xác minh điều kiện tham gia đồ án" eyebrow="Điều kiện tham gia" description="Kiểm tra hồ sơ đào tạo và thông tin chứng chỉ của sinh viên thuộc bộ môn trước khi đăng ký đồ án.">
+    {body}
   </WorkspacePage>
 }

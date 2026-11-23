@@ -27,8 +27,17 @@ type AssignmentStatusFilter = 'ALL' | 'ACTIVE' | 'REVOKED'
 type AssignmentFormErrors = { evaluatorId?: string; periodId?: string; componentId?: string; studentId?: string; revokeReason?: string }
 
 function assignmentError(reason: unknown, fallback: string) {
-  if (reason instanceof HttpError && reason.status === 403) return 'Hệ thống không cấp quyền thực hiện thao tác này trong phạm vi đồ án.'
-  if (reason instanceof HttpError && reason.status === 404) return 'Không tìm thấy đồ án hoặc phân công. Hãy tải lại dữ liệu.'
+  if (reason instanceof HttpError) {
+    const code = reason.problem?.code ?? reason.problem?.errorCode
+    if (code === 'EVALUATOR_ROLE_CONFLICT') {
+      return 'Xung đột vai trò D17 (EVALUATOR_ROLE_CONFLICT): Giảng viên hướng dẫn chính không thể được phân công chấm phản biện hoặc hội đồng cho cùng đồ án.'
+    }
+    if (code === 'ASSIGNMENT_REVOKED') {
+      return 'Phân công này đã bị thu hồi hoặc hết hạn (ASSIGNMENT_REVOKED).'
+    }
+    if (reason.status === 403) return 'Hệ thống không cấp quyền thực hiện thao tác này trong phạm vi đồ án.'
+    if (reason.status === 404) return 'Không tìm thấy đồ án hoặc phân công. Hãy tải lại dữ liệu.'
+  }
   return reason instanceof Error && reason.message.startsWith('Đã lưu ') ? reason.message : fallback
 }
 
@@ -147,7 +156,12 @@ export function EvaluatorAssignmentManagementPage() {
       capabilities.retry()
       if (reason instanceof HttpError && reason.status === 409) {
         await load()
-        setError('Phân công, bộ tiêu chí hoặc điều kiện đánh giá đã thay đổi. Dữ liệu mới đã được tải lại; hãy kiểm tra trước khi thao tác tiếp.')
+        const code = reason.problem?.code ?? reason.problem?.errorCode
+        if (code === 'EVALUATOR_ROLE_CONFLICT') {
+          setError(assignmentError(reason, fallback))
+        } else {
+          setError('Phân công, bộ tiêu chí hoặc điều kiện đánh giá đã thay đổi. Dữ liệu mới đã được tải lại; hãy kiểm tra trước khi thao tác tiếp.')
+        }
       } else setError(assignmentError(reason, fallback))
     } finally { mutationLock.current = false; setBusy(false) }
   }
@@ -173,7 +187,8 @@ export function EvaluatorAssignmentManagementPage() {
         try {
           await assignEvaluator(projectId, { evaluatorId: evaluator, projectPeriodId: period, evaluationType, componentId: selectedComponent.id, scope: selectedComponent.scope, majorId: selectedComponent.majorId, studentId: target })
           completed++
-        } catch {
+        } catch (reason) {
+          if (completed === 0) throw reason
           await load()
           throw new Error('Đã lưu ' + completed + '/' + targets.length + ' phân công. Đã dừng ở mục lỗi; hãy kiểm tra danh sách trước khi thử lại.')
         }
@@ -293,7 +308,6 @@ export function EvaluatorAssignmentManagementPage() {
                       <option value="">Tất cả vai trò</option>
                       <option value="LECTURER">Giảng viên</option>
                       <option value="SUPERVISOR">Giảng viên hướng dẫn</option>
-                      <option value="INDUSTRY">Doanh nghiệp</option>
                     </select>
                   </label>
                 </>
@@ -382,7 +396,7 @@ export function EvaluatorAssignmentManagementPage() {
                 {fieldErrors.studentId && <span id="assignment-student-error" className="mt-1 block text-xs text-status-error-text">{fieldErrors.studentId}</span>}
               </fieldset>}
               <div className="flex flex-col"><label className="text-sm font-medium text-ink-soft" htmlFor="evaluator-id">Người chấm</label>{eligibleEvaluators.length > 5 && <input type="search" className="mt-1 mb-1 min-h-11 w-full rounded-md border border-hairline bg-card px-2.5 text-xs text-ink placeholder:text-ink-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" placeholder="Lọc nhanh theo tên hoặc bộ môn…" value={evaluatorFilter} onChange={e => setEvaluatorFilter(e.target.value)} aria-label="Lọc người chấm" disabled={busy || candidatesLoading || !periodId} />}<select id="evaluator-id" aria-invalid={Boolean(fieldErrors.evaluatorId)} aria-describedby={fieldErrors.evaluatorId ? 'evaluator-id-error' : undefined} required className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={evaluatorId} onChange={event => { const selected = eligibleEvaluators.find(item => item.userId === Number(event.target.value)); setEvaluatorId(event.target.value); if (selected && !selected.evaluationTypes.includes(evaluationType)) setEvaluationType(selected.evaluationTypes[0] ?? 'LECTURER'); setFieldErrors(current => ({ ...current, evaluatorId: undefined })) }} disabled={busy || candidatesLoading || !periodId}><option value="">{candidatesLoading ? 'Đang tải người chấm…' : 'Chọn người chấm'}</option>{filteredEvaluators.map(item => <option key={item.userId} value={item.userId}>{item.displayName} · {item.departmentName} · {item.evaluationTypes.map(displayLabel).join(' / ')}</option>)}</select>{fieldErrors.evaluatorId && <span id="evaluator-id-error" className="mt-1 block text-xs text-status-error-text">{fieldErrors.evaluatorId}</span>}</div>
-              <label className="text-sm font-medium text-ink-soft" htmlFor="evaluation-type">Vai trò đánh giá<select id="evaluation-type" className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={evaluationType} onChange={event => setEvaluationType(event.target.value as EvaluatorRole)} disabled={busy || !evaluatorId}>{roleOptions.map(type => <option key={type} value={type}>{displayLabel(type)}</option>)}</select>{evaluationType === 'INDUSTRY' && <span className="mt-1 block text-xs text-status-warning-text">Doanh nghiệp mặc định là cố vấn, không tính điểm trừ khi phương án đánh giá được duyệt có trọng số.</span>}</label>
+              <label className="text-sm font-medium text-ink-soft" htmlFor="evaluation-type">Vai trò đánh giá<select id="evaluation-type" className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={evaluationType} onChange={event => setEvaluationType(event.target.value as EvaluatorRole)} disabled={busy || !evaluatorId}>{roleOptions.map(type => <option key={type} value={type}>{displayLabel(type)}</option>)}</select></label>
               <div>
                 <Button
                   type="submit"

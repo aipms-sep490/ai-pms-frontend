@@ -2,7 +2,6 @@ import { TOUR_ANCHOR } from '../../features/onboarding/tour-anchors'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { getWorkspaceNavigation } from '../../app/router/workspace-route-registry'
-import { env } from '../../app/config/env'
 import type { WorkspaceAccess } from '../../app/context/workspace-access'
 import { Modal } from './Modal'
 import { contextualNavigation, normalizeNavigationQuery } from './workspace-experience'
@@ -24,7 +23,6 @@ export function QuickNavigation({ access }: { access:WorkspaceAccess }) {
     ]:[]),
     ...(baseRoutes.some(item=>item.id==='administration-access')?[
       {id:'quick-rbac',path:'/admin/access/rbac',title:'Phân quyền hệ thống',icon:'admin_panel_settings'},
-      ...(env.industryEnabled?[{id:'quick-industry',path:'/admin/industry',title:'Chuyên gia doanh nghiệp',icon:'handshake'}]:[]),
     ]:[]),
   ]
   const normalized=normalizeNavigationQuery(query)

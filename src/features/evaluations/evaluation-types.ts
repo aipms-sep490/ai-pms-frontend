@@ -1,7 +1,5 @@
-/** v5 EvaluatorSource. SUPERVISOR/LECTURER are live today; DISCIPLINE_MENTOR/INDUSTRY
- * are accepted now so an industry/mentor assignment renders correctly the moment the
- * backend starts emitting it. Kept open with `string` for forward compatibility. */
-export type EvaluatorRole = 'SUPERVISOR' | 'LECTURER' | 'DISCIPLINE_MENTOR' | 'INDUSTRY' | (string & {})
+/** Evaluator role on a project assignment. Kept open with `string` for forward compatibility. */
+export type EvaluatorRole = 'SUPERVISOR' | 'LECTURER' | 'DISCIPLINE_MENTOR' | (string & {})
 
 export interface EvaluationAssignment {
   projectTitle?: string | null; componentName?: string | null; rubricName?: string | null; majorName?: string | null; studentName?: string | null
@@ -10,9 +8,7 @@ export interface EvaluationAssignment {
   scope: 'COMMON' | 'MAJOR_SPECIFIC' | 'INDIVIDUAL' | 'UNKNOWN'; majorId: number | null; studentId: number | null; componentId: number | null; policyVersionId: number | null
   /** Current BE EvaluationAssignmentDto includes the stage frozen on this assignment. */
   stage?: EvaluationStage | null
-  /** v5 D6/BRX-EVAL-05: industry input is advisory unless the scheme grants a weighted scope.
-   * Optional until the backend ships it; absent is treated as non-advisory (scored). */
-  industryScoringMode?: 'ADVISORY' | 'WEIGHTED'; advisory?: boolean
+  advisory?: boolean
 }
 export type EvaluationScope = Exclude<EvaluationAssignment['scope'], 'UNKNOWN'>
 export type EvaluationStage = 'ON_GOING' | 'COLD' | 'DEFENSE' | (string & {})
@@ -25,15 +21,20 @@ export const evaluationStageLabel = (stage: EvaluationStage | null | undefined) 
   stage ? evaluationStageLabels[stage as keyof typeof evaluationStageLabels] ?? stage : 'Chưa xác định'
 export interface CriterionLevel { levelOrder: number; label: string; descriptor: string; scoreFrom: number | null; scoreTo: number | null }
 export interface SchemeEvaluatorWeight { evaluatorId: number; evaluatorName?: string | null; weightPercent: number }
+export type CriterionTargetScope = 'PROJECT' | 'MAJOR' | 'STUDENT'
+export interface GateProcessWeight { gateNumber: number; weightPercent: number }
 export interface SchemePolicy {
   isDemo: boolean; approvalStatus: string; approvalReference: string | null
   formula: string; calculationVersion: string; roundingMode: string; decimalPlaces: number
+  failingComponentThreshold?: number | null
+  individualGateWeights?: GateProcessWeight[] | null
 }
 export interface EvaluationSchemeComponent {
   id: number; name: string; scope: EvaluationScope; majorId: number | null; rubricId: number
   projectWeightPercent: number; studentWeightPercent: number; requiredEvaluators: number
   /** Missing weights use the BE equal-mean rule; historical stages remain unknown. */
   evaluatorWeights?: SchemeEvaluatorWeight[] | null; stage?: EvaluationStage | null
+  targetScope?: CriterionTargetScope | null; isIntegration?: boolean
 }
 export interface EvaluationSchemeStudent { studentId: number; majorId: number; departmentId: number }
 export interface EvaluationScheme { id: number; rootId: number; version: number; projectId: number; projectPeriodId: number; name: string; status: 'DRAFT' | 'PROPOSED' | 'PUBLISHED' | 'FROZEN' | string; passThreshold: number; concurrencyToken: string; policyVersionId: number | null; components: EvaluationSchemeComponent[]; students: EvaluationSchemeStudent[]; calculationRule: string; policy?: SchemePolicy | null; lockedAt?: string | null }

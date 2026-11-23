@@ -3,6 +3,11 @@ import { humanizeHttpError } from '../../../services/http/humanize-http-error'
 
 export function reviewGateError(error: unknown): string {
   if (error instanceof HttpError) {
+    const code = error.problem?.code ?? error.problem?.errorCode
+    if (code === 'FILE_QUARANTINED') return 'Tệp không vượt qua kiểm tra bảo mật (QUARANTINED — giả định dạng, chứa macro hoặc nén bất thường) và đã bị chặn.'
+    if (code === 'STALE_EVIDENCE_VERSION') return 'Phiên bản minh chứng hoặc gói Gate snapshot đã thay đổi (STALE_EVIDENCE_VERSION). Vui lòng tải lại trước khi thẩm định.'
+    if (code === 'IDEMPOTENCY_CONFLICT') return 'Yêu cầu nộp Gate trùng khóa Idempotency-Key với nội dung khác (IDEMPOTENCY_CONFLICT). Hãy tải lại trạng thái mới nhất.'
+    if (code === 'RESTRICTED_DELETE') return 'Không thể xóa tệp đã được tham chiếu trong hồ sơ minh chứng hoặc gói Gate đã khóa (RESTRICTED_DELETE).'
     switch (error.status) {
       case 401: return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại; nội dung đang nhập được giữ lại.'
       case 403: return `${humanizeHttpError(error, 'Bạn không có quyền thực hiện thao tác này.')} Nội dung đang nhập được giữ lại.`

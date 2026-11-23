@@ -209,4 +209,22 @@ describe('EvaluatorAssignmentManagementPage', () => {
     const select = screen.getByLabelText('Người chấm') as HTMLSelectElement
     expect(select.querySelectorAll('option')).toHaveLength(4)
   })
+
+  it('displays D17 EVALUATOR_ROLE_CONFLICT explicitly when supervisor COI occurs on assign', async () => {
+    api.getProjectPeriods.mockResolvedValue({ items: [{ id: 7, name: 'Đợt bảo vệ', semesterName: 'Fall 2026', periodType: 'EVALUATION', status: 'ACTIVE', rubricId: 4 }], page: 1, pageSize: 100, totalCount: 1 })
+    api.getEvaluationSchemes.mockResolvedValue([{ id: 31, rootId: 31, version: 1, projectId: 2, projectPeriodId: 7, name: 'Scheme Fall', status: 'PUBLISHED', passThreshold: 5, concurrencyToken: 'scheme-token', policyVersionId: 6, calculationRule: 'RULE', students: [], components: [{ id: 42, name: 'Common', scope: 'COMMON', majorId: null, rubricId: 4, projectWeightPercent: 100, studentWeightPercent: 0, requiredEvaluators: 1 }] }])
+    api.getEligibleEvaluators.mockResolvedValue({ items: [{ userId: 6, displayName: 'GV Trần', departmentId: 1, departmentName: 'SE', evaluationTypes: ['LECTURER'] }], page: 1, pageSize: 100, totalCount: 1 })
+    api.assignEvaluator.mockRejectedValue(new HttpError('COI', 409, {
+      status: 409,
+      code: 'EVALUATOR_ROLE_CONFLICT',
+      detail: 'Primary supervisor cannot evaluate this project.',
+    }))
+    renderPage()
+    fireEvent.change(await screen.findByLabelText('Đợt đánh giá'), { target: { value: '7' } })
+    fireEvent.change(screen.getByLabelText('Thành phần đánh giá'), { target: { value: '42' } })
+    await screen.findByRole('option', { name: /GV Trần/ })
+    fireEvent.change(screen.getByLabelText('Người chấm'), { target: { value: '6' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Phân công người chấm' }))
+    expect(await screen.findByText(/EVALUATOR_ROLE_CONFLICT/)).toBeTruthy()
+  })
 })

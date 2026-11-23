@@ -21,7 +21,6 @@ vi.mock('../../../services/api/meetings.api', () => meetingsApi)
 vi.mock('../../../services/api/progress-reports.api', () => reportsApi)
 vi.mock('../components/DepartmentGovernanceOverview', () => ({ DepartmentGovernanceOverview: () => null }))
 vi.mock('../../supervisors/components/AssignmentManagementPanel', () => ({ AssignmentManagementPanel: () => null }))
-vi.mock('../../industry/ProjectIndustryAdvisoryPanel', () => ({ ProjectIndustryAdvisoryPanel: () => null }))
 
 beforeEach(() => {
   vi.clearAllMocks()

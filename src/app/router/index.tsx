@@ -15,8 +15,6 @@ import { DepartmentAcademicScopeRoute } from '../../features/department/componen
 import { AdminEvaluationLayout } from '../../features/evaluations/AdminEvaluationLayout'
 import { ChatPage } from '../../features/chat/ChatPage'
 import { DepartmentDocumentsPage } from '../../features/department-documents/DepartmentDocumentsPage'
-import { IndustryLayout } from '../../features/auth/components/IndustryRoutes'
-import { IndustryEnrollmentRoute } from '../../features/auth/components/IndustryEnrollmentRoute'
 import {
   MilestoneTemplatesPage, WorkflowPreviewPage, ProfileVerificationsPage, LecturerWorkspacePage, SupervisorProfilePage,
   SupervisorProjectWorkspacePage, SupervisorProgressReviewPage, SupervisorFinalSubmissionPage, WeeklyAssessmentsPage,
@@ -25,15 +23,15 @@ import {
   ProjectLifecyclePage, MilestoneDetailPage, GanttPage, TeamManagementPage, TopicCataloguePage, ProjectRegistrationFormPage,
   ProjectReviewStatusPage, SupervisorSelectionPage, LoginPage, ForgotPasswordPage, ProfileSecurityPage, ResetPasswordPage,
   ProfilePage, AcademicStructurePage, AcademicGovernancePage, ProjectPeriodCatalogPage, PeriodPolicyManagementPage, AdminWorkspacePage, AdminRbacPage,
-  AdminUserDetailPage, IndustryExpertPortalPage, ProjectReviewPage, ProjectGovernancePage, SupervisorMonitoringPage, TopicManagementPage,
+  AdminUserDetailPage, ProjectReviewPage, ProjectGovernancePage, SupervisorMonitoringPage, TopicManagementPage,
   ColdTemplateManagementPage, RegistrationSourcePage, QualificationVerificationPage, DeliverablesPage,
   EvaluatorAssignmentsPage, EvaluationWorkspacePage, EvaluatorAssignmentDetailPage, EvaluatorWorkspacePage,
   ResultPublicationPage, ResultCorrectionsPage, NotificationsPage, PortfolioDashboardPage, SupervisorDashboardPage, FinalRequirementsPage,
   FinalSubmissionViewerPage, StudentFinalSubmissionPage, RubricManagementPage, EvaluatorAssignmentManagementPage,
   EvaluationSchemeManagementPage, StudentProjectResultPage, ProjectContributionsPage, ProjectFilesPage,
   ProjectEvidenceLedgerPage, ProjectAiPage, ProjectGatesPage, ProjectWorkingAgreementPage, ProjectDefensePage, ProjectDefenseManagementPage, RoomPlannerPage, DefenseSessionChangePage,
-  ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, PreSemesterSetupHubPage, ArchivedProjectsPage,
-  ProjectArchiveViewPage, CalendarAttentionPage, AdminIndustryInvitationsPage, ReviewGateGovernancePage,
+  ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, DepartmentStudentsPage, DepartmentStudentDetailPage, PreSemesterSetupHubPage, ArchivedProjectsPage,
+  ProjectArchiveViewPage, CalendarAttentionPage, ReviewGateGovernancePage,
   StudentReviewTimelinePage, AssignedGateReviewPage,
   AcademicKnowledgeManagementPage,
   AcademicAssistantPage,
@@ -44,15 +42,6 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorEl
   { path: 'login', element: <LoginPage /> },
   { path: 'forgot-password', element: <ForgotPasswordPage /> },
   { path: 'reset-password', element: <ResetPasswordPage /> },
-  ...(env.industryEnabled ? [{ path: 'industry/enroll', element: <IndustryEnrollmentRoute /> }] : []),
-  ...(env.industryEnabled ? [{
-    path: 'industry', element: <ProtectedRoute><IndustryLayout /></ProtectedRoute>,
-    children: [
-      { index: true, element: <IndustryExpertPortalPage /> },
-      { path: 'workspace', element: <IndustryExpertPortalPage /> },
-      { path: 'assignments/:assignmentId', element: <IndustryExpertPortalPage /> },
-    ],
-  }] : []),
   {
     element: (
       <ProtectedRoute>
@@ -225,6 +214,8 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorEl
           { path: 'department/projects/:projectId/archive-view', element: <ProjectArchiveViewPage /> },
           { path: 'department/supervisors', element: <SupervisorMonitoringPage /> },
           { path: 'department/supervisors/:id', element: <SupervisorMonitoringPage /> },
+          { path: 'department/students', element: <DepartmentStudentsPage /> },
+          { path: 'department/students/:userId', element: <DepartmentStudentDetailPage /> },
           { path: 'department/student-qualifications', element: <QualificationVerificationPage /> },
           { path: 'department/topics', element: <TopicManagementPage /> },
           { path: 'department/topics/:id', element: <TopicManagementPage /> },
@@ -247,7 +238,6 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorEl
           { path: 'admin/milestone-templates', element: <MilestoneTemplatesPage /> },
           { path: 'admin/access/rbac', element: <AdminRbacPage /> },
           { path: 'admin/access/users/:userId', element: <AdminUserDetailPage /> },
-          ...(env.industryEnabled ? [{ path: 'admin/industry', element: <AdminIndustryInvitationsPage /> }] : []),
         ],
       },
 

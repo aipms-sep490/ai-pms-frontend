@@ -103,6 +103,16 @@ it('does not load export data for a non-admin actor', async () => {
   expect(mocks.getAcademicHierarchy).not.toHaveBeenCalled()
 })
 
+it('allows department staff to export with locked department scope', async () => {
+  mocks.useAuthSession.mockReturnValue({ session: { accessToken: 'dept-token', user: { roles: ['DEPARTMENT_STAFF'] } } })
+  render(<RosterExportDialog lockedDepartmentId={2} onClose={vi.fn()} />)
+  await chooseSemester()
+  expect((screen.getByLabelText('Bộ môn') as HTMLSelectElement).disabled).toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: 'Tải Excel' }))
+  await screen.findByText(/Đã tạo tệp Excel/)
+  expect(mocks.exportTeamRoster).toHaveBeenCalledWith({ semesterId: 7, departmentId: 2, majorId: undefined }, 'dept-token', expect.any(AbortSignal))
+})
+
 it('aborts an in-flight download when leaving the page', async () => {
   mocks.exportTeamRoster.mockReturnValue(new Promise(() => {}))
   const view = render(<RosterExportDialog onClose={vi.fn()} />)

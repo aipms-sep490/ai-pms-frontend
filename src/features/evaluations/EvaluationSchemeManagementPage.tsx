@@ -297,6 +297,37 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
     await run(() => schemesApi.deleteEvaluationScheme(selected.id, selected.concurrencyToken), 'Đã xóa phương án đánh giá bản nháp.')
   }
 
+  const applyPol01Preset = (mode: 'SINGLE' | 'INTERDISCIPLINARY') => {
+    if (!editable || !project) return
+    const defaultRubricId = rubrics[0]?.id ?? 0
+    setThreshold(5)
+    if (mode === 'SINGLE') {
+      const majorId = project.majors[0]?.majorId ?? null
+      setComponents([
+        { key: crypto.randomUUID(), name: 'Chấm Nguội Tài liệu (Cold 30%)', scope: 'COMMON', majorId: null, rubricId: defaultRubricId, projectWeightPercent: 37.5, studentWeightPercent: 30, requiredEvaluators: 2, stage: 'COLD', targetScope: 'PROJECT', isIntegration: false },
+        { key: crypto.randomUUID(), name: 'Bảo vệ Hội đồng (Defense 50%)', scope: 'COMMON', majorId: null, rubricId: defaultRubricId, projectWeightPercent: 62.5, studentWeightPercent: 50, requiredEvaluators: 2, stage: 'DEFENSE', targetScope: 'PROJECT', isIntegration: false },
+        { key: crypto.randomUUID(), name: 'Cá nhân Quá trình GVHD (G1–G3 20%)', scope: 'INDIVIDUAL', majorId, rubricId: defaultRubricId, projectWeightPercent: 0, studentWeightPercent: 20, requiredEvaluators: 1, stage: 'ON_GOING', targetScope: 'STUDENT', isIntegration: false },
+      ])
+      setNotice('Đã áp dụng mẫu POL-01 Đơn ngành: 30% Cold + 50% Defense + 20% GVHD G1–G3 (điểm liệt < 4.00).')
+    } else {
+      const majors = project.majors
+      const majorShare = majors.length > 0 ? Number((50 / majors.length).toFixed(4)) : 50
+      const rows: DraftComponent[] = [
+        { key: crypto.randomUUID(), name: 'Chung — Cold (30% của 40% = 12%, gồm INT-*)', scope: 'COMMON', majorId: null, rubricId: defaultRubricId, projectWeightPercent: 15, studentWeightPercent: 12, requiredEvaluators: 2, stage: 'COLD', targetScope: 'PROJECT', isIntegration: true },
+        { key: crypto.randomUUID(), name: 'Chung — Defense (70% của 40% = 28%, gồm INT-*)', scope: 'COMMON', majorId: null, rubricId: defaultRubricId, projectWeightPercent: 35, studentWeightPercent: 28, requiredEvaluators: 2, stage: 'DEFENSE', targetScope: 'PROJECT', isIntegration: true },
+      ]
+      majors.forEach((m, i) => {
+        const projWeight = i === majors.length - 1 ? Number((50 - majorShare * (majors.length - 1)).toFixed(4)) : majorShare
+        rows.push(
+          { key: crypto.randomUUID(), name: `Chuyên ngành ${m.majorCode} (40%)`, scope: 'MAJOR_SPECIFIC', majorId: m.majorId, rubricId: defaultRubricId, projectWeightPercent: projWeight, studentWeightPercent: 40, requiredEvaluators: 1, stage: 'DEFENSE', targetScope: 'MAJOR', isIntegration: false },
+          { key: crypto.randomUUID(), name: `Cá nhân Quá trình GVHD — ${m.majorCode} (20%)`, scope: 'INDIVIDUAL', majorId: m.majorId, rubricId: defaultRubricId, projectWeightPercent: 0, studentWeightPercent: 20, requiredEvaluators: 1, stage: 'ON_GOING', targetScope: 'STUDENT', isIntegration: false },
+        )
+      })
+      setComponents(rows)
+      setNotice('Đã áp dụng mẫu POL-01 Liên ngành: 40% Chung (30% Cold + 70% Defense, gồm INT-*) + 40% Chuyên ngành riêng + 20% GVHD G1–G3 (điểm liệt < 4.00).')
+    }
+  }
+
   const groupedComponents = useMemo(() => {
     const groups = new Map<string, Array<{ item: DraftComponent; index: number }>>()
     components.forEach((item, index) => {
@@ -342,6 +373,7 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
             </Button>
           </div>
         )}
+        {editable && project && <div className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-canvas p-3 text-xs"><span className="font-semibold text-ink">Mẫu POL-01 chuẩn:</span><Button variant="secondary" size="sm" onClick={() => applyPol01Preset('SINGLE')}>Đơn ngành 30/50/20</Button>{project.majors.length >= 2 && <Button variant="secondary" size="sm" onClick={() => applyPol01Preset('INTERDISCIPLINARY')}>Liên ngành 40(30/70)/40/20</Button>}<span className="text-ink-muted">Điểm liệt thành phần &lt; 4.00 · GVHD G1–G3: 20/35/45%</span></div>}
         {creating && <p className="workspace-note p-4 text-sm">Bản nháp mới được hệ thống lưu ở chế độ minh họa khi chưa có chính sách phê duyệt riêng.</p>}
         <div className="grid gap-3 md:grid-cols-3"><label className="text-sm font-medium text-ink-soft">Tên phương án đánh giá<input value={name} disabled={!editable || busy} onChange={event => setName(event.target.value)} required className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink disabled:bg-canvas" /></label><label className="text-sm font-medium text-ink-soft">Kỳ đánh giá<select value={periodId} disabled={!editable || busy} onChange={event => setPeriodId(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink disabled:bg-canvas"><option value={0}>Chọn đợt đánh giá</option>{periods.map(item => <option key={item.id} value={item.id}>{item.name} · {displayLabel(item.status)}</option>)}</select></label><label className="text-sm font-medium text-ink-soft">Ngưỡng đạt (0–10)<input type="number" min="0" max="10" step="0.01" value={threshold} disabled={!editable || busy} onChange={event => setThreshold(event.target.value === '' ? '' : Number(event.target.value))} required className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink disabled:bg-canvas" /></label></div>
         <div className="workspace-note py-4 text-sm text-ink-soft">
@@ -377,13 +409,15 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
                       <label className="text-sm">Tên<input value={item.name} onChange={event => updateComponent(item.key, { name: event.target.value })} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink disabled:bg-canvas" /></label>
                       <label className="text-sm">Giai đoạn<select aria-label={`Giai đoạn thành phần ${index + 1}`} value={item.stage ?? ''} onChange={event => updateComponent(item.key, { stage: event.target.value || null })} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink disabled:bg-canvas"><option value="">Chưa xác định</option>{item.stage && !(item.stage in evaluationStageLabels) && <option value={item.stage}>{item.stage}</option>}{(Object.keys(evaluationStageLabels) as Array<keyof typeof evaluationStageLabels>).map(stage => <option key={stage} value={stage}>{evaluationStageLabels[stage]}</option>)}</select></label>
-                      {item.stage === 'ON_GOING' && <p className="text-xs text-status-warning-text md:col-span-2">Đánh giá quá trình không dùng cho điểm chính thức ở kỳ này.</p>}
+                      {item.stage === 'ON_GOING' && <p className="text-xs text-status-warning-text md:col-span-2">Đánh giá quá trình không dùng cho điểm chính thức ở kỳ này (ngoại trừ thành phần 20% GVHD POL-03).</p>}
                       <label className="text-sm">Phạm vi<select value={item.scope} onChange={event => changeScope(item.key, event.target.value as EvaluationScope)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink disabled:bg-canvas">{(Object.keys(scopeLabel) as EvaluationScope[]).map(scope => <option key={scope} value={scope}>{scopeLabel[scope]}</option>)}</select></label>
+                      <label className="text-sm">Đối tượng chấm (TargetScope)<select value={item.targetScope ?? ''} onChange={event => updateComponent(item.key, { targetScope: (event.target.value || null) as 'PROJECT' | 'MAJOR' | 'STUDENT' | null })} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink disabled:bg-canvas"><option value="">Mặc định theo phạm vi</option><option value="PROJECT">PROJECT (Toàn dự án)</option><option value="MAJOR">MAJOR (Theo ngành)</option><option value="STUDENT">STUDENT (Từng sinh viên)</option></select></label>
                       <label className="text-sm">Chuyên ngành<select value={item.majorId ?? ''} disabled={item.scope === 'COMMON'} onChange={event => updateComponent(item.key, { majorId: Number(event.target.value) || null })} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink disabled:bg-canvas"><option value="">Không áp dụng</option>{project?.majors.map(major => <option key={major.majorId} value={major.majorId}>{major.majorCode} · {major.majorName}</option>)}</select></label>
                       <label className="text-sm">Bộ tiêu chí đã công bố<select value={item.rubricId} onChange={event => updateComponent(item.key, { rubricId: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink disabled:bg-canvas"><option value={0}>Chọn bộ tiêu chí</option>{rubrics.map(rubric => <option key={rubric.id} value={rubric.id}>{rubric.code} · v{rubric.version}</option>)}</select></label>
                       <label className="text-sm">Trọng số điểm đồ án (%)<input type="number" min="0" max="100" step="0.0001" value={item.projectWeightPercent} disabled={item.scope === 'INDIVIDUAL'} onChange={event => updateComponent(item.key, { projectWeightPercent: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink disabled:bg-canvas" /></label>
                       <label className="text-sm">Trọng số điểm sinh viên (%)<input type="number" min="0" max="100" step="0.0001" value={item.studentWeightPercent} onChange={event => updateComponent(item.key, { studentWeightPercent: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink disabled:bg-canvas" /></label>
                       <label className="text-sm">Số người chấm<input type="number" min="1" max="20" step="1" value={item.requiredEvaluators} onChange={event => updateComponent(item.key, { requiredEvaluators: Number(event.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-ink disabled:bg-canvas" /></label>
+                      <label className="flex items-center gap-2 text-sm md:col-span-2"><input type="checkbox" checked={Boolean(item.isIntegration)} onChange={event => updateComponent(item.key, { isIntegration: event.target.checked })} />Bao gồm nhóm tiêu chí Tích hợp liên ngành (INT-* · POL-05)</label>
                     </div>
                   </div>
                 ))}

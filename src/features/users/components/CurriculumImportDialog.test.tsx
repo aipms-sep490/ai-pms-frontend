@@ -126,6 +126,17 @@ it('blocks non-admin and unauthenticated sessions', () => {
   expect(confirmButton().disabled).toBe(true)
 })
 
+it('allows department staff to preview and commit curriculum updates within their scope', async () => {
+  mocks.useAuthSession.mockReturnValue({ session: { accessToken: 'dept-token', user: { roles: ['DEPARTMENT_STAFF'] } } })
+  const refresh = vi.fn()
+  render(<CurriculumImportDialog onClose={vi.fn()} onImported={refresh} />)
+  await preview()
+  fireEvent.click(screen.getByRole('checkbox', { name: /Tôi đã kiểm tra/ }))
+  fireEvent.click(confirmButton())
+  await screen.findByText('Đã cập nhật 1 sinh viên; 0 sinh viên không đổi.')
+  expect(refresh).toHaveBeenCalledOnce()
+})
+
 it('aborts preview when unmounted', async () => {
   mocks.previewCurriculum.mockReturnValue(new Promise(() => {}))
   const view = render(<CurriculumImportDialog onClose={vi.fn()} onImported={vi.fn()} />)

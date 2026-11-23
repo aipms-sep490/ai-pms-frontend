@@ -50,6 +50,7 @@ export function ProfilePage() {
 }
 
 function AuthenticatedProfile({ session, status, error, refreshProfile, updateProfile }: AuthSessionContextValue & { session: LoginSession }) {
+  const isPureStudent = session.user.roles.includes('STUDENT') && !session.user.roles.some(r => r !== 'STUDENT')
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -180,6 +181,7 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
             </span>
             <h2 id="profile-title" className="text-xl font-bold text-ink">{session.user.fullName}</h2>
             <p className="auth-description text-xs text-ink-muted mt-0.5">{session.user.email}</p>
+            {!isPureStudent && profile?.title && <p className="text-sm font-medium text-ink-muted mt-0.5">{profile.title}</p>}
           </div>
         </div>
 
@@ -198,10 +200,12 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
             <span>Trạng thái tài khoản</span>
             <div className="justify-self-start"><StatusBadge tone="success" label="Đang hoạt động" /></div>
           </div>
-          <div>
-            <span>Chức danh</span>
-            <strong>{profile?.title || 'Chưa cập nhật'}</strong>
-          </div>
+          {!isPureStudent && (
+            <div>
+              <span>Chức danh</span>
+              <strong>{profile?.title || 'Chưa cập nhật'}</strong>
+            </div>
+          )}
           <div>
             <span>Số điện thoại</span>
             <strong>{profile?.phone || 'Chưa cập nhật'}</strong>
@@ -234,17 +238,21 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
             />
             {fieldErrors.phone && <p id="profile-phone-error" className="profile-field-error">{fieldErrors.phone}</p>}
 
-            <label htmlFor="profile-job-title">Chức danh</label>
-            <input
-              id="profile-job-title"
-              name="title"
-              autoComplete="organization-title"
-              defaultValue={profile.title ?? ''}
-              aria-invalid={Boolean(fieldErrors.title)}
-              aria-describedby={fieldErrors.title ? 'profile-title-error' : undefined}
-              onChange={() => { setDirty((d) => ({ ...d, title: true })); setFieldErrors(current => ({ ...current, title: undefined })); setFormError(null) }}
-            />
-            {fieldErrors.title && <p id="profile-title-error" className="profile-field-error">{fieldErrors.title}</p>}
+            {!isPureStudent && (
+              <>
+                <label htmlFor="profile-job-title">Chức danh</label>
+                <input
+                  id="profile-job-title"
+                  name="title"
+                  autoComplete="organization-title"
+                  defaultValue={profile.title ?? ''}
+                  aria-invalid={Boolean(fieldErrors.title)}
+                  aria-describedby={fieldErrors.title ? 'profile-title-error' : undefined}
+                  onChange={() => { setDirty((d) => ({ ...d, title: true })); setFieldErrors(current => ({ ...current, title: undefined })); setFormError(null) }}
+                />
+                {fieldErrors.title && <p id="profile-title-error" className="profile-field-error">{fieldErrors.title}</p>}
+              </>
+            )}
 
             <div className="auth-actions">
               <Button type="submit" disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu hồ sơ'}</Button>

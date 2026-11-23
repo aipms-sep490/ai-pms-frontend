@@ -50,6 +50,14 @@ function PublishedStudentResult({ project, studentId }: { project: ProjectDto; s
   const outcomeKey = result.outcome.toUpperCase()
   const outcome = ({ PASS: 'Đạt', PASSED: 'Đạt', FAIL: 'Không đạt', FAILED: 'Không đạt' } as Record<string, string>)[outcomeKey] ?? result.outcome
   const outcomeTone = outcomeKey === 'PASS' || outcomeKey === 'PASSED' ? 'success' : outcomeKey === 'FAIL' || outcomeKey === 'FAILED' ? 'error' : 'neutral'
+  const outcomeDetailKey = result.outcomeDetail ?? result.breakdown?.outcomeDetail ?? null
+  const outcomeDetailNote = outcomeDetailKey ? ({
+    PASSED: 'Đạt tổng điểm và không có thành phần điểm liệt (< 4.00).',
+    FAILED_TOTAL: 'Không đạt — Tổng điểm thấp hơn ngưỡng đạt quy định.',
+    FAILED_COMPONENT_FLOOR: 'Không đạt — Có ít nhất 1 thành phần điểm liệt (< 4.00) theo quy chế POL-01.',
+    DEFENSE_ABSENT: 'Không đạt — Ghi nhận vắng mặt bảo vệ (DEFENSE_ABSENT).',
+  } as Record<string, string>)[outcomeDetailKey] ?? outcomeDetailKey : null
+  const publishedFeedback = result.breakdown?.publishedFeedback ?? []
   return <><StatTileRow tiles={[
     { icon: 'score', label: 'Điểm cá nhân', value: formatScore(result.totalScore), hero: true, caption: 'Kết quả chính thức đã công bố' },
     { icon: 'rule', label: 'Ngưỡng đạt', value: formatScore(result.passThreshold) },
@@ -57,7 +65,10 @@ function PublishedStudentResult({ project, studentId }: { project: ProjectDto; s
     { icon: 'pending', label: 'Thành phần chờ điểm', value: pendingCount, caption: result.breakdown ? undefined : 'Chưa có chi tiết từ hệ thống.' },
   ]} />
   <section className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs" aria-label="Kết quả cá nhân đã công bố">
-    <dl className="p-5 sm:p-6"><ResultFact label="Kết luận" value={outcome} prominent tone={outcomeTone} /></dl>
+    <dl className="p-5 sm:p-6">
+      <ResultFact label="Kết luận" value={outcome} prominent tone={outcomeTone} />
+      {outcomeDetailNote && <p className={`mt-2 text-sm font-medium ${outcomeDetailKey === 'PASSED' ? 'text-status-success-text' : 'text-status-error-text'}`}>{outcomeDetailNote}</p>}
+    </dl>
     <dl className="grid gap-4 border-t border-hairline p-5 sm:grid-cols-3"><ResultFact label="Quy định đánh giá" value={schemeLabel} /><ResultFact label="Ngành" value={major} /><ResultFact label="Công bố lúc" value={new Date(result.publishedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' })} /></dl>
     {result.version > 1 && <p className="border-t border-hairline bg-status-warning-bg p-3 text-sm text-status-warning-text">Đây là kết quả đã đính chính — phiên bản {result.version}{result.supersedesVersion != null ? `, thay thế phiên bản ${result.supersedesVersion}` : ''}.</p>}
     {result.breakdown && (result.breakdown.isDemo || result.breakdown.approvalStatus !== 'APPROVED') && <p className="border-t border-hairline bg-status-warning-bg p-3 text-sm text-status-warning-text">{result.breakdown.isLegacy ? 'Quy định đánh giá cũ, chỉ để tra cứu.' : 'Phương án đánh giá đang ở dạng thử nghiệm hoặc chưa được duyệt chính thức.'}</p>}
@@ -84,6 +95,18 @@ function PublishedStudentResult({ project, studentId }: { project: ProjectDto; s
         })}</TableBody>
       </Table>
       <p className="mt-3 text-sm text-ink-muted">{components.length} thành phần</p>
+    </div>}
+    {publishedFeedback.length > 0 && <div className="border-t border-hairline p-5 sm:p-6" aria-label="Nhận xét chính thức đã công bố">
+      <h3 className="text-sm font-bold text-ink">Nhận xét từ Hội đồng & GVHD</h3>
+      <ul className="mt-3 space-y-2">
+        {publishedFeedback.map((fb, idx) => <li key={`${fb.source}-${idx}`} className="rounded-lg border border-hairline bg-canvas p-3 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-ink-soft">
+            <span>{fb.source}</span>
+            {fb.stage && <span>{fb.stage}</span>}
+          </div>
+          <p className="mt-1 whitespace-pre-wrap text-ink">{fb.comments}</p>
+        </li>)}
+      </ul>
     </div>}
     <p className="border-t border-hairline bg-canvas p-5 text-sm leading-6 text-ink-muted">Điểm và kết luận lấy từ kết quả cá nhân đã công bố. {components.length === 0 && 'Chi tiết thành phần chỉ hiển thị khi hệ thống cung cấp dữ liệu được phép xem.'}</p>
   </section>
