@@ -12,6 +12,7 @@ import './curriculum-import.css'
 const errors: Record<string, string> = {
   STUDENT_CODE_INVALID: 'MSSV thiếu hoặc không hợp lệ (tối đa 50 ký tự).', FULL_NAME_INVALID: 'Họ tên thiếu hoặc không hợp lệ (tối đa 255 ký tự).',
   EMAIL_INVALID: 'Email không hợp lệ.', PHONE_INVALID: 'SĐT không hợp lệ (tối đa 30 ký tự).', CURRICULUM_CODE_INVALID: 'Khung không hợp lệ (tối đa 100 ký tự).',
+  CLASS_CODE_INVALID: 'Lớp hành chính không hợp lệ (tối đa 50 ký tự).', SPECIALIZATION_NOT_FOUND: 'Chuyên ngành hẹp không thuộc phạm vi Khoa/Ngành đã chọn.',
   DUPLICATE_EMAIL: 'Email trùng trong tệp.', DUPLICATE_STUDENT_CODE: 'MSSV trùng trong tệp.', EMAIL_ALREADY_EXISTS: 'Email đã có tài khoản.', STUDENT_CODE_ALREADY_EXISTS: 'MSSV đã có tài khoản.',
   IMPORT_ACTIVE_MAJOR_REQUIRED: 'Chọn chuyên ngành đang hoạt động.', IMPORT_HEADERS_REQUIRE_MSSV_NAME_EMAIL: 'Dòng đầu phải có MSSV, Họ tên, Email và không trùng tên cột.',
   IMPORT_FILE_INVALID: 'Không đọc được tệp. Kiểm tra định dạng CSV UTF-8 hoặc XLSX.', IMPORT_NO_DATA: 'Tệp chưa có dòng dữ liệu.',
@@ -81,7 +82,7 @@ export function StudentImportDialog({ onClose, onImported }: { onClose: () => vo
   return <ImportDialog<StudentImportPreview['rows'][number]> title="Nhập tài khoản sinh viên từ Excel"
     description="Tạo tài khoản hàng loạt. Sinh viên đăng nhập bằng Google với đúng email trong file."
     onClose={onClose} authorized={isAdmin && !!session} unauthorizedMessage="Chỉ Admin được nhập tài khoản sinh viên."
-    busy={!!pending} notice={<><p>Bắt buộc: <strong>MSSV, Họ tên, Email</strong>. Tùy chọn: SĐT, Khung. Tối đa 500 sinh viên, 5 MB; CSV UTF-8 hoặc XLSX một trang tính.</p><p>Dùng email Gmail hoặc email trường do Google Workspace quản lý. Mỗi lô thuộc một chuyên ngành. Tài khoản mới có vai trò Sinh viên, hồ sơ học vụ chờ xác minh và chưa được xếp nhóm.</p></>}
+    busy={!!pending} notice={<><p>Bắt buộc: <strong>MSSV, Họ tên, Email</strong>. Tùy chọn: SĐT, Khung, Lớp, Chuyên ngành hẹp. Tối đa 500 sinh viên, 5 MB; CSV UTF-8 hoặc XLSX một trang tính.</p><p>Dùng email Gmail hoặc email trường do Google Workspace quản lý. Mỗi lô thuộc một chuyên ngành. Tài khoản mới có vai trò Sinh viên, hồ sơ học vụ chờ xác minh và chưa được xếp nhóm.</p></>}
     templateHref="/templates/student-accounts-import.csv" fileLabel="File danh sách sinh viên" file={file}
     accept=".csv,.xlsx" limits="5 MB · 500 dòng" onFileChange={chooseFile}
     beforeFile={<AcademicScopeFields {...scope} disabled={!!pending} onChange={next => { setScope(next); resetPreview() }} />}
@@ -89,12 +90,12 @@ export function StudentImportDialog({ onClose, onImported }: { onClose: () => vo
     onPreview={() => void run('preview')} error={error}
     success={created === null ? null : `Đã tạo ${created} tài khoản sinh viên. Sinh viên có thể chọn Đăng nhập với Google bằng email đã nhập.`}
     preview={preview && { rows: preview.rows, label: 'Danh sách tài khoản sẽ tạo', regionLabel: 'Chi tiết sinh viên nhập',
-      columns: ['Dòng / MSSV', 'Họ tên / Email', 'SĐT / Khung', 'Kết quả'],
+      columns: ['Dòng / MSSV', 'Họ tên / Email', 'SĐT / Khung / Lớp', 'Kết quả'],
       getKey: row => row.account.rowNumber, getStatus: row => row.errors.length ? 'error' : 'valid',
       renderRow: ({ account, errors: rowErrors }) => <>
         <TableCell label="Dòng / MSSV">{account.rowNumber}<br /><strong>{account.studentCode || 'Thiếu MSSV'}</strong></TableCell>
         <TableCell label="Họ tên / Email">{account.fullName}<br />{account.email}</TableCell>
-        <TableCell label="SĐT / Khung">{account.phone || '—'}<br />{account.curriculumCode || '—'}</TableCell>
+        <TableCell label="SĐT / Khung / Lớp">{account.phone || '—'}<br />{account.curriculumCode || '—'}{account.classCode ? ` · Lớp ${account.classCode}` : ''}{account.specializationCode ? ` · ${account.specializationCode}` : ''}</TableCell>
         <TableCell label="Kết quả">{rowErrors.length ? rowErrors.map((code, index) => <p key={index} className="text-status-error-text">{errors[code] ?? code}</p>) : <StatusBadge tone="success" label="Sẽ tạo mới" />}</TableCell>
       </>, validLabel: 'sẽ tạo mới', warningLabel: 'sẽ cập nhật', canCommit, commitCount: preview.rows.length,
       confirmationLabel: `Tôi đã kiểm tra và xác nhận tạo ${preview.rows.length} tài khoản sinh viên đăng nhập Google.`,

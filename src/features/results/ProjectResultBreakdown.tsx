@@ -14,7 +14,7 @@ interface ProjectResultBreakdownProps {
 /**
  * Displays frozen server result data and optional BE-15 formula metadata without calculating scores.
  * Renders nothing when the backend hasn't shipped a breakdown yet, so the caller still shows the
- * numeric total on its own. Advisory contributions (industry ADVISORY) are listed apart and never
+ * numeric total on its own. Advisory contributions are listed apart and never
  * summed. A non-approved scheme (demo/proposed — e.g. an unapproved Marketing rubric template) is
  * flagged; never present it as an official academic breakdown without that signal.
  */

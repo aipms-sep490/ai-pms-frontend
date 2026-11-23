@@ -60,10 +60,6 @@ const rbacWriteEnabled = import.meta.env.VITE_ENABLE_RBAC_WRITE?.trim().toLowerC
 /** Meeting series/recurrence, RSVP and notes-lock (BE-06/N06/N07). Enable only
  * after the /meeting-series and /meetings/{id}/collaboration endpoints ship. */
 const meetingCollaborationEnabled = import.meta.env.VITE_ENABLE_MEETING_COLLABORATION?.trim().toLowerCase() === 'true'
-/** Industry advisory (admin invitations, lead assignment, expert portal). Advisory only — no
- * academic role, no scoring weight. Enable only after the /industry endpoints and Google
- * enrollment are configured on the deployed backend. */
-const industryEnabled = import.meta.env.VITE_ENABLE_INDUSTRY?.trim().toLowerCase() === 'true'
 
 export const env = {
   apiBaseUrl: apiBaseUrl.replace(/\/$/, ''),
@@ -97,7 +93,6 @@ export const env = {
   /** Gates Jira-style sprint/backlog/story-point/label UI until the backend sprint contract ships; default off. */
   jiraSprintEnabled: import.meta.env.VITE_ENABLE_JIRA_SPRINT?.trim().toLowerCase() === 'true',
   meetingCollaborationEnabled,
-  industryEnabled,
   /** Real API by default; development mocks require explicit opt-in and never run in production. */
   reviewGatesMockEnabled: !import.meta.env.PROD && import.meta.env.VITE_USE_MOCK_REVIEW_GATES?.trim().toLowerCase() === 'true',
 } as const

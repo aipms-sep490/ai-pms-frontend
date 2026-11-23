@@ -182,6 +182,7 @@ function ColdChecklistBody({ projectId, projectCode, projectTitle, actor, routeB
           <div className="cold-progress-stat"><dt>Đã khóa</dt><dd>{progress.lockedReports}</dd></div>
           <div className="cold-progress-stat"><dt>Sẵn sàng chấm</dt><dd className={progress.ready ? 'is-ready' : ''}>{progress.ready ? 'Đạt' : 'Chưa đạt'}</dd></div>
         </dl>
+        {actor === 'student' && <p className="px-5 pb-4 text-xs text-ink-muted">Điểm chấm nguội (Cold) được hệ thống ẩn hoàn toàn với sinh viên trước khi bộ môn công bố kết quả chính thức.</p>}
       </div>}
 
       <div className="cold-panel">

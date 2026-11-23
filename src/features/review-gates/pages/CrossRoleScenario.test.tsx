@@ -270,8 +270,12 @@ describe('Cross-Role QA & Contract Reconciliation (PROMPT 3 E2E Scenario)', () =
       ).toBe('/department/projects/progress-matrix')
 
       expect(
-        resolveReviewGateNotificationLink('REVIEW_POLICY_PUBLISHED', ['ADMIN'])?.url,
-      ).toBe('/academic/review-gates')
+        resolveReviewGateNotificationLink('REVIEW_POLICY_PUBLISHED', ['DEPARTMENT_STAFF'])?.url,
+      ).toBe('/department/projects/progress-matrix')
+
+      expect(
+        resolveReviewGateNotificationLink('REVIEW_POLICY_PUBLISHED', ['ADMIN']),
+      ).toBeNull()
 
       expect(
         resolveReviewGateNotificationLink('GATE_DECISION_RECORDED', ['STUDENT'])?.url,

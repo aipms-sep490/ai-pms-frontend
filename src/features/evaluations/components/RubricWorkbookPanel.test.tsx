@@ -49,3 +49,33 @@ it('clears a stale preview when the rubric token changes', async () => {
   await waitFor(() => expect(screen.queryByText('Cũ')).toBeNull())
   expect((screen.getByRole('button', { name: 'Xem lỗi và thay đổi' }) as HTMLButtonElement).disabled).toBe(true)
 })
+
+it('allows inline repair of invalid weight rows in Staging Preview Grid before committing', async () => {
+  const onCommitted = vi.fn().mockResolvedValue(undefined)
+  api.previewRubricWorkbook.mockResolvedValue({
+    draft: null,
+    issues: [{ cell: 'Tiêu chí!E:G', message: 'Tổng trọng số chưa đủ 100%.' }],
+    changes: [],
+    stagedRows: [
+      {
+        rowNumber: 2, code: 'C1', parentCode: '', name: 'Tiêu chí tích hợp', description: null,
+        weightPercent: 90, maxScore: 10, sortOrder: 0, isRequired: true,
+        learningOutcome: 'CLO1', evidenceGuidance: null, targetScope: 'PROJECT', isIntegration: true, hasError: true,
+      },
+    ],
+  })
+  render(<RubricWorkbookPanel rubric={rubric} dirty={false} onCommitted={onCommitted} />)
+  fireEvent.change(screen.getByLabelText('Tệp Excel đã điền'), { target: { files: [new File(['xlsx'], 'rubric.xlsx')] } })
+  fireEvent.click(screen.getByRole('button', { name: 'Xem lỗi và thay đổi' }))
+  expect(await screen.findByText(/Staging Preview Grid/)).toBeTruthy()
+  expect(screen.queryByRole('button', { name: 'Xác nhận lưu tiêu chí' })).toBeNull()
+
+  // Repair weight from 90 -> 100 inline
+  fireEvent.change(screen.getByLabelText('Trọng số dòng 1'), { target: { value: '100' } })
+  const commitBtn = await screen.findByRole('button', { name: 'Xác nhận lưu tiêu chí' })
+  fireEvent.click(commitBtn)
+  await waitFor(() => expect(onCommitted).toHaveBeenCalledTimes(1))
+  const committedPayload = onCommitted.mock.calls[0][0]
+  expect(committedPayload.draft.criteria[0].weightPercent).toBe(100)
+  expect(committedPayload.draft.criteria[0].isIntegration).toBe(true)
+})

@@ -10,16 +10,13 @@ import { StatusBadge } from '../../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../../components/ui/Table'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
-import { env } from '../../../app/config/env'
 import { humanizeHttpError } from '../../../services/http/humanize-http-error'
 import { getAcademicHierarchy } from '../../academic/api/academic-api'
 import { AcademicScopeFields } from '../../academic/components/AcademicScopeFields'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import { utcTimestamp } from '../../projects/utils/collaboration-workspace'
-import type { Audit, UserAccount, UserDraft } from '../api/admin-api'
+import { exportAdminUserAccounts, type Audit, type UserAccount, type UserDraft } from '../api/admin-api'
 import { AccessEventsPanel } from '../components/AccessEventsPanel'
-import { CurriculumImportDialog } from '../components/CurriculumImportDialog'
-import { RosterExportDialog } from '../components/RosterExportDialog'
 import { StudentImportDialog } from '../components/StudentImportDialog'
 import { SystemStatusPanel } from '../components/SystemStatusPanel'
 import { useAdminWorkspace } from '../hooks/useAdminWorkspace'
@@ -99,14 +96,25 @@ export function AdminWorkspacePage() {
   const page = Math.max(1, Number(params.get('page') ?? '1') || 1)
   const search = params.get('search') ?? ''
   const status = params.get('status') ?? ''
+  const roleFilter = params.get('role') ?? ''
+  const departmentFilter = params.get('departmentId') ?? ''
+  const majorFilter = params.get('majorId') ?? ''
+  const departmentIdNum = Number(departmentFilter) > 0 ? Number(departmentFilter) : undefined
+  const majorIdNum = Number(majorFilter) > 0 ? Number(majorFilter) : undefined
   const auditAction = params.get('auditAction') ?? ''
   const auditEntityType = params.get('auditEntityType') ?? ''
   const auditOutcome = params.get('auditOutcome') ?? ''
   const auditFrom = params.get('auditFrom') ?? ''
   const auditTo = params.get('auditTo') ?? ''
-
   const admin = useAdminWorkspace(
-    { search, status: status || undefined, page },
+    {
+      search,
+      status: status || undefined,
+      role: roleFilter || undefined,
+      departmentId: departmentIdNum,
+      majorId: majorIdNum,
+      page,
+    },
     {
       action: auditAction || undefined,
       entityType: auditEntityType || undefined,
@@ -116,11 +124,7 @@ export function AdminWorkspacePage() {
     },
   )
 
-  const [roleFilter, setRoleFilter] = useState('')
-  const [departmentFilter, setDepartmentFilter] = useState('')
-  const [majorFilter, setMajorFilter] = useState('')
   const [sortBy, setSortBy] = useState<AccountSort>('default')
-
   const [notice, setNotice] = useState<string | null>(null)
   const [errorNotice, setErrorNotice] = useState<string | null>(null)
   const [importText, setImportText] = useState('')
@@ -128,10 +132,11 @@ export function AdminWorkspacePage() {
   const [busy, setBusy] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [jsonImportOpen, setJsonImportOpen] = useState(false)
-  const [exportOpen, setExportOpen] = useState(false)
-  const [curriculumImportOpen, setCurriculumImportOpen] = useState(false)
   const [studentImportOpen, setStudentImportOpen] = useState(false)
+  const [exportingAccounts, setExportingAccounts] = useState(false)
   const busyRef = useRef(false)
+  const exportAbortRef = useRef<AbortController | null>(null)
+  useEffect(() => () => { exportAbortRef.current?.abort(); exportAbortRef.current = null }, [])
 
   const globalRoles = useMemo(
     () => admin.rbac.value.roles.filter((role) => role.isAssignableGlobalRole && role.assignmentKind === 'GLOBAL'),
@@ -199,6 +204,40 @@ export function AdminWorkspacePage() {
     } finally {
       busyRef.current = false
       setBusy(false)
+    }
+  }
+
+  async function handleExportAccounts() {
+    if (!session?.accessToken || exportingAccounts || exportAbortRef.current) return
+    const controller = new AbortController()
+    exportAbortRef.current = controller
+    setExportingAccounts(true)
+    setNotice(null)
+    try {
+      const blob = await exportAdminUserAccounts({
+        search: search || undefined,
+        status: status || undefined,
+        role: roleFilter || undefined,
+        departmentId: departmentIdNum,
+        majorId: majorIdNum,
+      }, session.accessToken, controller.signal)
+      if (controller.signal.aborted) return
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      try {
+        anchor.href = url
+        anchor.download = 'system-accounts.xlsx'
+        document.body.appendChild(anchor)
+        anchor.click()
+      } finally {
+        anchor.remove()
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+      }
+      setNotice('Đã xuất tệp Excel danh sách tài khoản hệ thống theo bộ lọc hiện tại.')
+    } catch (reason) {
+      if (!controller.signal.aborted) setNotice(messageFor(reason))
+    } finally {
+      if (exportAbortRef.current === controller) { exportAbortRef.current = null; setExportingAccounts(false) }
     }
   }
 
@@ -292,7 +331,6 @@ export function AdminWorkspacePage() {
         <div className="admin-nav-links" aria-label="Trang quản trị liên quan">
           <Link to="/admin/access/rbac">Phân quyền</Link>
           <Link to="/academic/governance">Học kỳ & Kỳ đồ án</Link>
-          {env.industryEnabled && <Link to="/admin/industry">Chuyên gia doanh nghiệp</Link>}
         </div>
       </nav>
 
@@ -311,19 +349,16 @@ export function AdminWorkspacePage() {
         <div className="admin-panel-heading admin-roster-heading">
           <div>
             <h2 id="accounts-title">Tài khoản người dùng</h2>
-            <p>Tìm kiếm, lọc trạng thái và quản lý vòng đời tài khoản. Vai trò hệ thống được quản lý riêng với phân công trong đồ án.</p>
+            <p>Tìm kiếm, lọc theo vai trò, khoa/ngành, trạng thái và quản lý vòng đời tài khoản. Vai trò hệ thống được quản lý riêng với phân công trong đồ án.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button icon="person_add" onClick={() => { setErrorNotice(null); setCreateOpen(true) }}>Tạo tài khoản</Button>
             <Button variant="secondary" icon="upload" onClick={() => setStudentImportOpen(true)}>Nhập sinh viên từ Excel</Button>
             <Button variant="outline" icon="data_object" onClick={() => { setErrorNotice(null); setJsonImportOpen(true) }}>Nhập JSON</Button>
-            <Button variant="outline" icon="school" onClick={() => setCurriculumImportOpen(true)}>Cập nhật Khung</Button>
-            <Button variant="outline" icon="download" onClick={() => setExportOpen(true)}>Xuất Excel danh sách nhóm</Button>
+            <Button variant="outline" icon="download" disabled={exportingAccounts} onClick={() => void handleExportAccounts()}>{exportingAccounts ? 'Đang xuất…' : 'Xuất Excel Tài khoản'}</Button>
           </div>
         </div>
 
-        {exportOpen && <RosterExportDialog onClose={() => setExportOpen(false)} />}
-        {curriculumImportOpen && <CurriculumImportDialog onClose={() => setCurriculumImportOpen(false)} onImported={admin.refresh} />}
         {studentImportOpen && <StudentImportDialog onClose={() => setStudentImportOpen(false)} onImported={admin.refresh} />}
 
         <div className="mt-4">
@@ -348,7 +383,7 @@ export function AdminWorkspacePage() {
                 {globalRoles.length > 0 && (
                   <label className="ft-select-wrap">
                     <span className="sr-only">Lọc theo vai trò hệ thống</span>
-                    <select aria-label="Vai trò hệ thống" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+                    <select aria-label="Vai trò hệ thống" value={roleFilter} onChange={(e) => setFilter({ role: e.target.value, page: '1' })}>
                       <option value="">Mọi vai trò</option>
                       {globalRoles.map(role => (
                         <option key={role.id} value={role.code}>
@@ -364,10 +399,7 @@ export function AdminWorkspacePage() {
                     <select
                       aria-label="Bộ môn"
                       value={departmentFilter}
-                      onChange={(e) => {
-                        setDepartmentFilter(e.target.value)
-                        setMajorFilter('')
-                      }}
+                      onChange={(e) => setFilter({ departmentId: e.target.value, majorId: '', page: '1' })}
                     >
                       <option value="">Mọi bộ môn</option>
                       {departmentEntries.map(([id, name]) => (
@@ -379,7 +411,7 @@ export function AdminWorkspacePage() {
                 {availableMajors.length > 0 && (
                   <label className="ft-select-wrap">
                     <span className="sr-only">Lọc theo chuyên ngành</span>
-                    <select aria-label="Chuyên ngành" value={majorFilter} onChange={(e) => setMajorFilter(e.target.value)}>
+                    <select aria-label="Chuyên ngành" value={majorFilter} onChange={(e) => setFilter({ majorId: e.target.value, page: '1' })}>
                       <option value="">Mọi chuyên ngành</option>
                       {availableMajors.map((major) => (
                         <option key={major.id} value={String(major.id)}>{major.name}</option>
@@ -402,21 +434,18 @@ export function AdminWorkspacePage() {
             onRemoveChip={(id) => {
               if (id === 'search') setFilter({ search: '', page: '1' })
               if (id === 'status') setFilter({ status: '', page: '1' })
-              if (id === 'role') setRoleFilter('')
-              if (id === 'department') { setDepartmentFilter(''); setMajorFilter('') }
-              if (id === 'major') setMajorFilter('')
+              if (id === 'role') setFilter({ role: '', page: '1' })
+              if (id === 'department') setFilter({ departmentId: '', majorId: '', page: '1' })
+              if (id === 'major') setFilter({ majorId: '', page: '1' })
             }}
             onClearAll={() => {
-              setFilter({ search: '', status: '', page: '1' })
-              setRoleFilter('')
-              setDepartmentFilter('')
-              setMajorFilter('')
+              setFilter({ search: '', status: '', role: '', departmentId: '', majorId: '', page: '1' })
               setSortBy('default')
             }}
             hasActiveFilters={accountChips.length > 0}
             resultSummary={
               admin.users.state === 'ready' && (roleFilter || departmentFilter || majorFilter)
-                ? `Hiển thị ${filteredUsers.length} / ${admin.users.value.items.length} tài khoản trên trang này`
+                ? `Hiển thị ${filteredUsers.length} / ${admin.users.value.totalCount} tài khoản`
                 : undefined
             }
           />
@@ -478,8 +507,17 @@ export function AdminWorkspacePage() {
                       ) : 'Chưa ghi nhận'}
                     </TableCell>
                     <TableCell label="Phạm vi học thuật">
-                      {user.departmentId ? academicNames.departments[user.departmentId] ?? 'Chưa tải được tên bộ môn' : 'Chưa liên kết bộ môn'}
-                      {user.majorId ? ` · ${academicNames.majors[user.majorId] ?? 'Chưa tải được tên ngành'}` : ''}
+                      <div className="flex flex-col">
+                        <span>
+                          {user.departmentId ? academicNames.departments[user.departmentId] ?? 'Chưa tải được tên bộ môn' : 'Chưa liên kết bộ môn'}
+                          {user.majorId ? ` · ${academicNames.majors[user.majorId] ?? 'Chưa tải được tên ngành'}` : ''}
+                        </span>
+                        {(user.classCode || user.specializationName) && (
+                          <small className="text-xs text-ink-muted">
+                            {[user.classCode ? `Lớp ${user.classCode}` : null, user.specializationName].filter(Boolean).join(' · ')}
+                          </small>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell label="Thao tác">
                       <Link className="font-semibold text-primary hover:underline" to={`/admin/access/users/${user.id}`} state={{ returnTo: `/admin/access?${params.toString()}` }}>
@@ -503,10 +541,8 @@ export function AdminWorkspacePage() {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      setFilter({ search: '', status: '', page: '1' })
-                      setRoleFilter('')
-                      setDepartmentFilter('')
-                      setMajorFilter('')
+                      setFilter({ search: '', status: '', role: '', departmentId: '', majorId: '', page: '1' })
+                      setSortBy('default')
                     }}
                   >
                     Đặt lại bộ lọc
@@ -526,7 +562,7 @@ export function AdminWorkspacePage() {
           />
         )}
 
-        <p className="admin-gap">Mở hồ sơ từng tài khoản để cập nhật bộ môn và chuyên ngành. Phân công đồ án được quản lý riêng.</p>
+        <p className="admin-gap">Mở hồ sơ từng tài khoản để cập nhật bộ môn và ngành. Cập nhật khung CTĐT, xác minh hồ sơ sinh viên và xuất danh sách nhóm thuộc thẩm quyền Giáo vụ Khoa.</p>
       </section>
 
       {activeTab === 'accounts' && admin.audit.state === 'ready' && admin.audit.value.items.length > 0 ? (

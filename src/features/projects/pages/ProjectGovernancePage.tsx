@@ -16,8 +16,6 @@ import { getProject } from '../../../services/api/projects.api'
 import { readAllPages } from '../../../services/api/paged-read'
 import { HttpError } from '../../../services/http/http-client'
 import * as api from '../api/project-governance-api'
-import { env } from '../../../app/config/env'
-import { ProjectIndustryAdvisoryPanel } from '../../industry/ProjectIndustryAdvisoryPanel'
 import { localDateTime, toUtcDateTime } from '../../execution/execution-utils'
 
 const date = (value: string | null) =>
@@ -487,7 +485,6 @@ export function ProjectGovernancePage() {
           </section>
 
           <AssignmentManagementPanel projectId={projectId} projectStatus={data.governance.projectStatus} />
-          {env.industryEnabled && <ProjectIndustryAdvisoryPanel projectId={projectId} />}
         </div>
       )}
 

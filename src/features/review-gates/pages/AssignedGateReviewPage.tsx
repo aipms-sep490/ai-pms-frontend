@@ -55,12 +55,17 @@ export function AssignedGateReviewPage() {
     feedback?: string,
     concurrencyToken?: string,
   ) => {
+    const assignment = assignments.find((a) => a.id === assignmentId)
+    const req = assignment?.requirements.find((r) => r.id === requirementId)
     const updated = await verifyEvidence({
       assignmentId,
       requirementId,
       decision,
       feedback,
       concurrencyToken: concurrencyToken || '',
+      packageId: assignment?.latestPackageId ?? undefined,
+      evidenceId: req?.latestArtifact?.evidenceId ?? undefined,
+      evidenceVersion: req?.latestArtifact?.version ?? undefined,
     })
     setAssignments((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
   }
@@ -71,11 +76,13 @@ export function AssignedGateReviewPage() {
     notes: string,
     concurrencyToken?: string,
   ) => {
+    const assignment = assignments.find((a) => a.id === assignmentId)
     const updated = await submitGateDecision({
       assignmentId,
       decision,
       notes,
       concurrencyToken: concurrencyToken || '',
+      packageId: assignment?.latestPackageId ?? undefined,
     })
     setAssignments((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
   }

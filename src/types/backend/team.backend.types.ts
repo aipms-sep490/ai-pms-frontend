@@ -42,6 +42,9 @@ export interface TeamAcademicScopeDto {
   leadDepartmentId: number
   requirements: MajorRequirementDto[]
   concurrencyToken: string
+  trackCode?: 'IT_ONLY' | 'MKT_ONLY' | 'IT_MKT' | null
+  hasIntegrationDeliverable?: boolean
+  mktAttributionLimitsNote?: string | null
 }
 
 export interface TeamAcademicScopeRequest extends Omit<TeamAcademicScopeDto, 'concurrencyToken'> {

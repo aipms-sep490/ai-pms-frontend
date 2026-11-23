@@ -5,7 +5,6 @@ import { getGoogleChallenge, linkGoogle, loginWithGoogle } from '../api/auth-api
 import { useAuthSession } from '../context/useAuthSession'
 import { getHomePath } from '../utils/role-access'
 import { resolveIntendedDestination } from '../utils/intended-destination'
-import { createIndustryChallenge, enrollIndustryExpert } from '../../industry/industry-session-api'
 
 declare global {
   interface Window {
@@ -51,7 +50,7 @@ function errorMessage(error: unknown) {
   return 'Chưa kết nối được với dịch vụ đăng nhập Google. Bạn có thể đăng nhập bằng mật khẩu hoặc thử lại.'
 }
 
-export function GoogleLoginButton({ purpose = 'LOGIN', currentPassword = '', onLinked, invitationToken }: { purpose?: 'LOGIN' | 'LINK' | 'INDUSTRY_ENROLL'; currentPassword?: string; onLinked?: () => void; invitationToken?: string } = {}) {
+export function GoogleLoginButton({ purpose = 'LOGIN', currentPassword = '', onLinked }: { purpose?: 'LOGIN' | 'LINK'; currentPassword?: string; onLinked?: () => void } = {}) {
   const host = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const location = useLocation()
@@ -72,8 +71,7 @@ export function GoogleLoginButton({ purpose = 'LOGIN', currentPassword = '', onL
     host.current?.replaceChildren()
     void (async () => {
       try {
-        if (purpose === 'INDUSTRY_ENROLL' && invitationToken?.length !== 64) throw new Error('Invalid invitation')
-        const challenge = purpose === 'INDUSTRY_ENROLL' ? await createIndustryChallenge() : await getGoogleChallenge(purpose)
+        const challenge = await getGoogleChallenge(purpose)
         if (!active) return
         expiryTimer = setTimeout(() => {
           expired = true
@@ -101,13 +99,11 @@ export function GoogleLoginButton({ purpose = 'LOGIN', currentPassword = '', onL
                 return
               }
               if (!acceptExternalLogin) return
-              const session = purpose === 'INDUSTRY_ENROLL'
-                ? await enrollIndustryExpert({ challengeId: challenge.challengeId, idToken: response.credential, invitationToken: invitationToken! })
-                : await loginWithGoogle(challenge.challengeId, response.credential)
+              const session = await loginWithGoogle(challenge.challengeId, response.credential)
               const completed = await acceptExternalLogin(session)
-              if (active) navigate(purpose === 'INDUSTRY_ENROLL' ? '/industry/workspace' : resolveIntendedDestination(location.state, getHomePath(completed.user)), { replace: true })
+              if (active) navigate(resolveIntendedDestination(location.state, getHomePath(completed.user)), { replace: true })
             } catch (reason) {
-              if (active) { expired = true; host.current?.replaceChildren(); setError(purpose === 'INDUSTRY_ENROLL' ? 'Chưa hoàn tất đăng ký chuyên gia. Kiểm tra thư mời, tài khoản Google và kết nối bảo mật rồi thử lại.' : errorMessage(reason)) }
+              if (active) { expired = true; host.current?.replaceChildren(); setError(errorMessage(reason)) }
             } finally {
               pending = false
               if (active) setBusy(false)
@@ -122,7 +118,7 @@ export function GoogleLoginButton({ purpose = 'LOGIN', currentPassword = '', onL
       }
     })()
     return () => { active = false; clearTimeout(expiryTimer) }
-  }, [acceptExternalLogin, navigate, attempt, purpose, currentPassword, onLinked, location.state, invitationToken])
+  }, [acceptExternalLogin, navigate, attempt, purpose, currentPassword, onLinked, location.state])
 
   return <div className="auth-google">
     <div ref={host} hidden={busy} aria-label={purpose === 'LINK' ? 'Liên kết tài khoản Google' : 'Đăng nhập với Google'} />

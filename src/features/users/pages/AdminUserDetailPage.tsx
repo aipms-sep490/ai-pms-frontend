@@ -281,6 +281,27 @@ export function AdminUserDetailPage() {
                 <dd>{academicProfile?.departmentName ?? (user.departmentId ? academicNames.department(user.departmentId) : 'Chưa liên kết')}</dd>
                 <dt>Ngành hiện tại</dt>
                 <dd>{academicProfile?.majorName ?? (user.majorId ? academicNames.major(user.majorId) : 'Chưa liên kết')}</dd>
+                {(academicProfile?.classCode ?? user.classCode) && (
+                  <>
+                    <dt>Lớp hành chính</dt>
+                    <dd>{academicProfile?.classCode ?? user.classCode}</dd>
+                  </>
+                )}
+                {(academicProfile?.specializationName ?? user.specializationName) && (
+                  <>
+                    <dt>Chuyên ngành hẹp</dt>
+                    <dd>
+                      {academicProfile?.specializationCode ?? user.specializationCode ? `${academicProfile?.specializationCode ?? user.specializationCode} · ` : ''}
+                      {academicProfile?.specializationName ?? user.specializationName}
+                    </dd>
+                  </>
+                )}
+                {(academicProfile?.curriculumCode ?? user.curriculumCode) && (
+                  <>
+                    <dt>Khung CTĐT</dt>
+                    <dd>{academicProfile?.curriculumCode ?? user.curriculumCode}</dd>
+                  </>
+                )}
                 {academicProfile && (
                   <>
                     <dt>Trạng thái hồ sơ</dt>

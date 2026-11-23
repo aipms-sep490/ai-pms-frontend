@@ -54,11 +54,15 @@ const defense: Rule = { entities: ['DEFENSE_SESSION'], feature: 'defenseSchedule
   student: { url: '/project/defense', label: 'Xem lịch bảo vệ đồ án hiện tại' },
   lecturer: id => ({ url: `/lecturer/defense-sessions/${id}`, label: 'Xem phiên bảo vệ được phân công' }),
 } }
+const defenseStandby: Rule = { entities: ['DEFENSE_SESSION'], feature: 'defenseScheduleEnabled', targets: {
+  student: { url: '/project/defense', label: 'Xem lịch bảo vệ đồ án hiện tại' },
+  lecturer: id => ({ url: `/lecturer/defense-sessions/${id}`, label: 'Xem phiên bảo vệ được phân công' }),
+  department: { url: '/department/portfolio', label: 'Xem danh mục đồ án bảo vệ' },
+} }
 const gate3Schedule: Rule = { entities: ['GATE_SESSION_SCRIPT'], targets: {
   student: { url: '/project/timeline', label: 'Xem lịch cổng kiểm duyệt 3 của đồ án' },
   lecturer: { url: '/review/gate-assignments', label: 'Xem lịch cổng kiểm duyệt 3 được phân công' },
   department: { url: '/department/projects/progress-matrix', label: 'Xem tiến trình cổng kiểm duyệt 3' },
-  admin: { url: '/academic/review-gates', label: 'Xem lịch cổng kiểm duyệt 3' },
 } }
 const appeal: Rule = { entities: ['PROJECT'], feature: 'resultCorrectionEnabled', targets: {
   student: { url: '/project/result', label: 'Xem yêu cầu phúc khảo' },
@@ -73,9 +77,14 @@ const gates: Rule = { entities: ['PROJECT_GATE', 'PROJECT', 'REVIEW_GATE', 'GATE
 const gateQueue: Rule = { ...gates, targets: { ...gates.targets,
   lecturer: { url: '/review/gate-assignments', label: 'Mở hàng đợi thẩm định' },
 } }
-const gatePolicy: Rule = { ...gates, rolePriority: ['admin', 'department', 'lecturer', 'student'], entities: ['PROJECT_PERIOD', 'REVIEW_POLICY', 'PROJECT', 'PROJECT_GATE'], targets: { ...gates.targets,
-  admin: { url: '/academic/review-gates', label: 'Xem chính sách thẩm định' },
+const gateSla: Rule = { entities: ['PROJECT_GATE', 'REVIEW_GATE', 'PROJECT'], targets: {
+  lecturer: { url: '/review/gate-assignments', label: 'Mở hàng đợi thẩm định' },
+  department: { url: '/department/projects/progress-matrix', label: 'Mở ma trận tiến trình' },
 } }
+const projectReviewSla: Rule = { entities: ['PROJECT_REVIEW'], targets: {
+  department: { url: '/department/projects/review', label: 'Mở hàng đợi thẩm định đề cương' },
+} }
+const gatePolicy: Rule = { ...gates, rolePriority: ['department', 'lecturer', 'student'], entities: ['PROJECT_PERIOD', 'REVIEW_POLICY', 'PROJECT', 'PROJECT_GATE'] }
 
 const rules: Record<string, Rule | null> = {
   TEAM_INVITATION_SENT: team, TEAM_INVITATION_ACCEPTED: team, TEAM_INVITATION_REJECTED: team, TEAM_INVITATION_CANCELLED: team,
@@ -89,9 +98,11 @@ const rules: Record<string, Rule | null> = {
   DELIVERABLE_SUBMITTED: deliverable, DELIVERABLE_FEEDBACK_ADDED: deliverable,
   MEETING_SCHEDULED: meeting, MEETING_START_REMINDER: meeting, MEETING_ACTION_ASSIGNED: meetingAction,
   FINAL_SUBMISSION_LOCKED: finalSubmission, FINAL_SUBMISSION_DEADLINE_REMINDER: finalSubmission, FINAL_SUBMISSION_OVERDUE: finalSubmission,
+  FINAL_LOCK_REQUESTED: finalSubmission, FINAL_LOCK_RETURNED: finalSubmission,
   PROJECT_RESULT_PUBLISHED: result, STUDENT_RESULT_PUBLISHED: result,
   PROJECT_RISK_MEDIUM: risk, PROJECT_RISK_HIGH: risk, PROJECT_RISK_CRITICAL: risk, PROJECT_RISK_ALERT: risk,
   DEFENSE_SCHEDULED: defense, DEFENSE_CANCELLED: defense, DEFENSE_SCHEDULE_CHANGED: defense,
+  DEFENSE_STANDBY_SWAPPED: defenseStandby,
   REVIEW_GATE_3_SCHEDULED: gate3Schedule, REVIEW_GATE_3_SCHEDULE_CHANGED: gate3Schedule, REVIEW_GATE_3_CHANGED: gate3Schedule,
   EVALUATOR_ASSIGNED: { entities: ['EVALUATION_ASSIGNMENT'], targets: {
     lecturer: id => ({ url: `/evaluator/assignments/${id}`, label: 'Xem phân công đánh giá' }),
@@ -105,8 +116,9 @@ const rules: Record<string, Rule | null> = {
   GATE_REVIEW_ASSIGNED: gateQueue, GATE_REVIEW_SUBMITTED: gateQueue, GATE_REVISION_SUBMITTED: gateQueue,
   GATE_REVISION_REQUIRED: gates, EVIDENCE_VERIFIED: gates, GATE_DECISION_RECORDED: gates,
   DISCIPLINE_REVIEW_PENDING: gates, DISCIPLINE_DECISION_RECORDED: gates, DEFENSE_READINESS_CHANGED: gates,
-  // Expert enrollment needs a token absent from this DTO, not an academic-role destination.
-  INDUSTRY_INVITATION: null,
+  SLA_REMINDER_48H: gateSla, SLA_ESCALATION_72H: gateSla,
+  CHECKLIST_PUBLISHED: gates, GATE_DEADLINE_CHANGE_REQUESTED: gates, GATE_DEADLINE_CHANGE_DECIDED: gates,
+  CRITICAL_ANCHORED_COMMENT_ADDED: gates,
 }
 
 export function resolveNotificationLink(
@@ -119,7 +131,9 @@ export function resolveNotificationLink(
   // Feedback IDs are remapped to their actual parent by the recipient inbox endpoint.
   const rule = item.notificationType === 'SUPERVISOR_FEEDBACK_ADDED'
     ? ({ PROGRESS_REPORT: report, DELIVERABLE_VERSION: deliverable, DELIVERABLE: deliverable, MEETING: meeting, TASK: task, PROJECT: risk } as Record<string, Rule>)[entity]
-    : Object.hasOwn(rules, item.notificationType) ? rules[item.notificationType] : null
+    : (item.notificationType === 'SLA_REMINDER_48H' || item.notificationType === 'SLA_ESCALATION_72H') && entity === 'PROJECT_REVIEW'
+      ? projectReviewSla
+      : Object.hasOwn(rules, item.notificationType) ? rules[item.notificationType] : null
   if (!rule || !rule.entities.includes(entity) || (rule.feature && !env[rule.feature])) return null
   const mine = new Set(roles.map(role => role.toUpperCase()))
   for (const role of rule.rolePriority ?? defaultPriority) {

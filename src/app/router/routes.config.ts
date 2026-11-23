@@ -184,9 +184,6 @@ export function getStudentNavItems() {
  * Resolves a breadcrumb title from the current pathname.
  */
 export function getBreadcrumbForPath(pathname: string): string {
-  if (pathname === '/industry/enroll') return env.industryEnabled ? 'Đăng ký chuyên gia doanh nghiệp' : 'Trang không tồn tại'
-  if (pathname === '/industry' || pathname === '/industry/workspace') return env.industryEnabled ? 'Phân công tư vấn doanh nghiệp' : 'Trang không tồn tại'
-  if (/^\/industry\/assignments\/\d+(?:\/|$)/.test(pathname)) return env.industryEnabled ? 'Chi tiết phân công tư vấn' : 'Trang không tồn tại'
   const registryBreadcrumb = getWorkspaceBreadcrumb(pathname)
   if (/^\/(?:review|department)\/projects\/\d+\/corrections(?:\/|$)/.test(pathname)) return 'Phúc khảo và đính chính'
   if (registryBreadcrumb && (pathname !== '/project/ai' || env.aiAdvisoryEnabled || env.aiProgressRiskEnabled)) return registryBreadcrumb
@@ -293,6 +290,8 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname === '/notifications') return 'Thông báo'
   if (pathname === '/messages' || pathname.startsWith('/messages/')) return 'Tin nhắn'
   if (pathname === '/supervisor/dashboard') return 'Tổng quan hướng dẫn'
+  if (pathname === '/department/students') return 'Quản lý sinh viên Khoa'
+  if (/^\/department\/students\/\d+(?:\/|$)/.test(pathname)) return 'Chi tiết sinh viên'
   if (pathname === '/department/student-qualifications') return 'Xác minh điều kiện tham gia'
   if (pathname === '/academic') return 'Cấu trúc đào tạo'
   if (/^\/academic\/project-periods\/\d+\/policy(?:\/|$)/.test(pathname)) return 'Phiên bản chính sách'
@@ -304,7 +303,6 @@ export function getBreadcrumbForPath(pathname: string): string {
   if (pathname === '/admin/access') return 'Quản trị nền tảng'
   if (pathname === '/admin/access/rbac') return 'Vai trò và quyền truy cập'
   if (/^\/admin\/access\/users\/\d+(?:\/|$)/.test(pathname)) return 'Chi tiết tài khoản'
-  if (pathname === '/admin/industry') return env.industryEnabled ? 'Mời chuyên gia doanh nghiệp' : 'Trang không tồn tại'
   if (pathname === '/supervisor/workspace') return 'Hướng dẫn đồ án'
   if (pathname === '/profile') return 'Hồ sơ tài khoản'
   if (pathname === '/profile/security') return 'Đổi mật khẩu'

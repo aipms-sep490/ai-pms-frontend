@@ -6,7 +6,7 @@ const labels: Record<string, string> = {
   PASSED: 'Đạt', FAILED: 'Chưa đạt', PASS: 'Đạt', FAIL: 'Chưa đạt', LINK: 'Liên kết', EXTERNAL_LINK: 'Liên kết ngoài', FILE: 'Tệp đính kèm', DOCUMENT: 'Tài liệu', DEMO: 'Bản trình diễn',
   DRAFT: 'Bản nháp', PROPOSED: 'Đề xuất — chưa duyệt', PUBLISHED: 'Đã công bố', FROZEN: 'Đã đóng băng', RETIRED: 'Ngừng sử dụng', REVOKED: 'Đã thu hồi', ACTIVE: 'Đang hoạt động', INACTIVE: 'Ngừng hoạt động', SUSPENDED: 'Đang khóa',
   NOT_READY: 'Chưa sẵn sàng', READY: 'Sẵn sàng', PREVIEW: 'Bản xem trước', CORRECTED: 'Đã đính chính', PROVISIONAL: 'Tạm tính',
-  MAJOR: 'Theo chuyên ngành', INDUSTRY: 'Doanh nghiệp', INDUSTRY_EXPERT: 'Chuyên gia doanh nghiệp',
+  MAJOR: 'Theo chuyên ngành',
   ADVISORY: 'Cố vấn (không tính điểm)', WEIGHTED: 'Có trọng số điểm',
   UPCOMING: 'Sắp diễn ra', OPEN: 'Đang mở', CLOSED: 'Đã đóng', ARCHIVED: 'Đã lưu trữ', LOCKED: 'Đã khóa', REOPENED: 'Đã mở lại',
   ACCEPTED: 'Đã chấp nhận', ELIGIBLE: 'Đủ điều kiện', INELIGIBLE: 'Chưa đủ điều kiện', PENDING: 'Chờ xử lý', APPROVED: 'Đã chấp thuận', REJECTED: 'Không chấp thuận',
