@@ -263,4 +263,24 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
     expect(screen.getByRole('button', { name: 'Ma trận tiến độ' }).getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByText('Campus Support Platform')).toBeTruthy()
   })
+
+  it('confirms and deletes a DRAFT review gate template from the library table', async () => {
+    reviewGatesMockAdapter.reset()
+    render(
+      <MemoryRouter>
+        <ReviewGateGovernancePage />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('IT Capstone – Review 1–4')).toBeTruthy()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Xóa nháp' })[0])
+
+    const confirmBtn = await screen.findByRole('button', { name: 'Xóa bản nháp' })
+    fireEvent.click(confirmBtn)
+
+    await waitFor(() => {
+      expect(screen.queryByText('IT Capstone – Review 1–4')).toBeNull()
+    })
+    reviewGatesMockAdapter.reset()
+  })
 })

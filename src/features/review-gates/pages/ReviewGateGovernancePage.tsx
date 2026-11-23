@@ -6,6 +6,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'r
 import { useLocation, useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import {
+  deleteReviewGateTemplate,
   getDefenseReadiness,
   getProjectReviewMatrix,
   getReviewGateTemplates,
@@ -32,6 +33,7 @@ import { AcademicWorkflowContext } from '../../../app/context/academic-workflow-
 import { getDepartmentUrgentActions } from '../../calendar/action-aggregators-api'
 import { DepartmentAiDraftBar } from '../../ai-suite/DepartmentAiDraftBar'
 import { AssistantReviewGateSetupCard } from '../../ai/components/AssistantReviewGateSetupCard'
+import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 
 function templateError(error: unknown, template: ReviewGateTemplate): string {
   if (error instanceof HttpError && error.status === 409) return 'Mẫu đã công bố không thể sửa hoặc phiên bản đã thay đổi. Giữ lại nội dung đang nhập; tải lại để đối chiếu hoặc nhân bản thành phiên bản nháp mới.'
@@ -88,6 +90,7 @@ export function ReviewGateGovernancePage() {
   const [templateModeFilter, setTemplateModeFilter] = useState<'ALL' | 'SINGLE_MAJOR' | 'INTERDISCIPLINARY'>('ALL')
   const [templates, setTemplates] = useState<ReviewGateTemplate[]>([])
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('')
+  const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const [dirtyTemplateIds, setDirtyTemplateIds] = useState<Set<string>>(() => new Set())
   const [selectedProjectId, setSelectedProjectId] = useState<string>('')
   const [matrixProjects, setMatrixProjects] = useState<ProjectReviewMatrixRow[]>([])
@@ -212,6 +215,43 @@ export function ReviewGateGovernancePage() {
     setNotice(`Đã nhân bản ${templateToClone.name} thành bản nháp mới v${cloned.version}.`)
   }
 
+  async function handleDeleteDraftTemplate(templateToDelete: ReviewGateTemplate) {
+    if (templateToDelete.status !== 'DRAFT' || busy) return
+    const decision = await requestConfirmation({
+      title: `Xóa bản nháp "${templateToDelete.name}"?`,
+      description: `Bản nháp ${templateToDelete.code} (v${templateToDelete.version}) và toàn bộ cổng/yêu cầu bên trong sẽ bị xóa vĩnh viễn. Thao tác này không thể hoàn tác.`,
+      confirmLabel: 'Xóa bản nháp',
+      danger: true,
+    })
+    if (decision === null) return
+
+    const isUnsavedLocalDraft = templateToDelete.id.startsWith('tmpl-draft') || templateToDelete.id.startsWith('tmpl-temp')
+    setBusy(true)
+    setError(null)
+    setNotice(null)
+    try {
+      if (!isUnsavedLocalDraft) {
+        await deleteReviewGateTemplate(templateToDelete.id)
+      }
+      const remaining = templates.filter(t => t.id !== templateToDelete.id)
+      setTemplates(remaining)
+      setDirtyTemplateIds(previous => {
+        const next = new Set(previous)
+        next.delete(templateToDelete.id)
+        return next
+      })
+      if (selectedTemplateId === templateToDelete.id) {
+        setSelectedTemplateId(remaining[0]?.id ?? '')
+        if (activeTab === 'builder') setActiveTab('overview')
+      }
+      setNotice(`Đã xóa bản nháp tiến trình "${templateToDelete.name}" (${templateToDelete.code}).`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không thể xóa bản nháp mẫu tiến trình.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function handleUpdateDecision(
     projectId: string,
     gateCode: string,
@@ -305,6 +345,7 @@ export function ReviewGateGovernancePage() {
       }
     >
       <ReviewGatesMockNotice />
+      {confirmationDialog}
       {/* Alert Notices */}
       {notice && (
         <div
@@ -592,6 +633,17 @@ export function ReviewGateGovernancePage() {
                                 Nhân bản
                               </button>
                             )}
+                            {tmpl.status === 'DRAFT' && (
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void handleDeleteDraftTemplate(tmpl)}
+                                className="min-h-9 rounded-md border border-status-error-border bg-card px-2.5 py-1 font-semibold text-status-error-text hover:bg-status-error-bg disabled:opacity-50"
+                                title="Xóa bản nháp tiến trình này"
+                              >
+                                Xóa nháp
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => {
@@ -630,6 +682,7 @@ export function ReviewGateGovernancePage() {
               onSaveDraft={handleSaveDraft}
               onPublish={handlePublish}
               onClone={handleCloneTemplate}
+              onDeleteDraft={tmpl => void handleDeleteDraftTemplate(tmpl)}
               busy={busy}
               formError={error}
             />

@@ -811,6 +811,15 @@ class ReviewGatesMockAdapter {
     return JSON.parse(JSON.stringify(item))
   }
 
+  async deleteTemplate(id: string): Promise<void> {
+    const idx = this.templates.findIndex(t => t.id === id)
+    if (idx === -1) throw new Error('Template not found')
+    if (this.templates[idx].status === 'PUBLISHED') {
+      throw new Error('409: Chỉ được xóa mẫu tiến trình ở trạng thái Bản nháp (DRAFT).')
+    }
+    this.templates.splice(idx, 1)
+  }
+
   async getMonitoringMatrix(filterMode?: string): Promise<ProjectReviewMatrixRow[]> {
     let rows = this.matrix
     if (filterMode && filterMode !== 'ALL') {

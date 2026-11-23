@@ -16,6 +16,7 @@ interface ReviewGateBuilderProps {
   onSaveDraft: () => void
   onPublish: () => void
   onClone?: (template: ReviewGateTemplate) => void
+  onDeleteDraft?: (template: ReviewGateTemplate) => void
   busy?: boolean
   formError?: string | null
 }
@@ -27,6 +28,7 @@ export function ReviewGateBuilder({
   onSaveDraft,
   onPublish,
   onClone,
+  onDeleteDraft,
   busy = false,
   formError,
 }: ReviewGateBuilderProps) {
@@ -141,6 +143,17 @@ export function ReviewGateBuilder({
               title="Nhân bản tạo phiên bản nháp mới"
             >
               Nhân bản bản nháp mới
+            </button>
+          )}
+          {template.status === 'DRAFT' && onDeleteDraft && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onDeleteDraft(template)}
+              className="min-h-10 rounded-lg border border-status-error-border bg-card px-3 py-2 text-xs font-semibold text-status-error-text hover:bg-status-error-bg disabled:opacity-50"
+              title="Xóa bản nháp mẫu tiến trình này"
+            >
+              Xóa nháp
             </button>
           )}
           <button
