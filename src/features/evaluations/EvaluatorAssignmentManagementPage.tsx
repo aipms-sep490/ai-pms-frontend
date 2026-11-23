@@ -1,10 +1,14 @@
 import { majorChoiceLabel, studentChoiceLabel, useProjectStudentNames } from './useProjectStudentNames'
 import { list as listSupervisors } from '../supervisors/api/supervisor-api'
 import { readAllPages } from '../../services/api/paged-read'
+import { Avatar } from '../../components/ui/Avatar'
 import { ButtonLink } from '../../components/ui/ButtonLink'
+import { FilterToolbar, type ActiveFilterChip } from '../../components/ui/FilterToolbar'
+import { Modal } from '../../components/ui/Modal'
+import { StatusBadge } from '../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { displayLabel } from '../../components/ui/display-label'
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { projectEvaluationPaths } from './project-evaluation-paths'
 import { useAuthSession } from '../auth/context/useAuthSession'
@@ -12,7 +16,7 @@ import { getProjectPeriods } from '../academic/api/governance-api'
 import type { ProjectPeriod } from '../academic/types/governance.types'
 import { getProject } from '../../services/api/projects.api'
 import { assignEvaluator, getEligibleEvaluators, getEvaluationSchemes, getProjectEvaluationAssignments, revokeEvaluator, type EligibleEvaluator } from '../../services/api/evaluations.api'
-import type { EvaluationAssignment, EvaluationScheme, EvaluationSchemeComponent, EvaluatorRole } from './evaluation-types'
+import { evaluationStageLabel, type EvaluationAssignment, type EvaluationScheme, type EvaluationSchemeComponent, type EvaluatorRole } from './evaluation-types'
 import { HttpError } from '../../services/http/http-client'
 import { Button } from '../../components/ui/Button'
 import { ListLoading } from '../../components/ui/ListLoading'
@@ -50,6 +54,9 @@ export function EvaluatorAssignmentManagementPage() {
   const [schemes, setSchemes] = useState<EvaluationScheme[]>([])
   const [assignments, setAssignments] = useState<EvaluationAssignment[]>([])
   const [assignmentStatus, setAssignmentStatus] = useState<AssignmentStatusFilter>('ALL')
+  const [listSearch, setListSearch] = useState('')
+  const [stageFilter, setStageFilter] = useState('')
+  const [roleFilter, setRoleFilter] = useState('')
   const [evaluatorId, setEvaluatorId] = useState('')
   const [evaluatorFilter, setEvaluatorFilter] = useState('')
   const [eligibleEvaluators, setEligibleEvaluators] = useState<EligibleEvaluator[]>([])
@@ -203,76 +210,234 @@ export function EvaluatorAssignmentManagementPage() {
     item.departmentName.toLowerCase().includes(evaluatorFilter.toLowerCase())
   )
 
+  const componentById = useMemo(
+    () => new Map(schemes.flatMap(s => s.components).map(c => [c.id, c])),
+    [schemes],
+  )
+  const visibleAssignments = useMemo(() => {
+    const q = listSearch.trim().toLowerCase()
+    return assignments.filter(item => {
+      const comp = item.componentId ? componentById.get(item.componentId) : undefined
+      if (stageFilter && comp?.stage !== stageFilter) return false
+      if (roleFilter && item.evaluationType !== roleFilter) return false
+      if (q) {
+        const evalName = evaluatorNames[item.evaluatorId] ?? ''
+        const compName = comp?.name ?? displayLabel(item.scope)
+        const studentLabel = item.studentId ? studentChoiceLabel(item.studentId, studentNames[item.studentId]) : ''
+        const periodName = periods.find(p => p.id === item.projectPeriodId)?.name ?? ''
+        if (!`${evalName} ${compName} ${studentLabel} ${periodName} ${displayLabel(item.evaluationType)}`.toLowerCase().includes(q)) return false
+      }
+      return true
+    })
+  }, [assignments, componentById, stageFilter, roleFilter, listSearch, evaluatorNames, studentNames, periods])
+
+  const hasListFilters = Boolean(listSearch.trim() || assignmentStatus !== 'ALL' || stageFilter || roleFilter)
+  const listChips: ActiveFilterChip[] = []
+  if (assignmentStatus !== 'ALL') listChips.push({ id: 'status', label: 'Trạng thái', value: assignmentStatus === 'ACTIVE' ? 'Đang hiệu lực' : 'Đã thu hồi' })
+  if (stageFilter) listChips.push({ id: 'stage', label: 'Giai đoạn', value: evaluationStageLabel(stageFilter) })
+  if (roleFilter) listChips.push({ id: 'role', label: 'Vai trò', value: displayLabel(roleFilter) })
+
   return (
-    <WorkspacePage className="space-y-6 academic-capability-page" title={readOnly ? 'Xem phân công người chấm' : 'Phân công người chấm'} eyebrow="Đánh giá đồ án" description={readOnly ? 'Theo dõi phân công theo dữ liệu học vụ đã ghi nhận.' : 'Chọn đợt đánh giá, thành phần chấm và giảng viên phù hợp cho đồ án.'} action={<ButtonLink to={paths.scheme} icon="schema">Phương án đánh giá</ButtonLink>}>
+    <WorkspacePage size="wide" className="space-y-6 academic-capability-page" title={readOnly ? 'Xem phân công người chấm' : 'Phân công người chấm'} eyebrow="Đánh giá đồ án" description={readOnly ? 'Theo dõi phân công theo dữ liệu học vụ đã ghi nhận.' : 'Chọn đợt đánh giá, thành phần chấm và giảng viên phù hợp cho đồ án.'} action={<ButtonLink to={paths.scheme} icon="schema">Phương án đánh giá</ButtonLink>}>
     {readOnly && !capabilities.loading && <p role="status" className="rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-muted">Chế độ theo dõi: bộ môn phụ trách thực hiện phân công và thu hồi người chấm.</p>}
     <ResourcePermissionNotice loading={capabilities.loading} error={capabilities.error} allowed={canManage} reason={capabilities.reasonLabel('manage_evaluators')} onRetry={capabilities.retry} />
 
     {error && <div ref={errorSummary} tabIndex={-1} role="alert" aria-labelledby="assignment-error-title" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><p id="assignment-error-title" className="font-semibold">Chưa thể hoàn tất thao tác</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại dữ liệu</button></div>}
     {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{notice}</p>}
     {loading && <ListLoading label="Đang tải phân công…" />}
-    {!loading && loaded && <>
-      {canManage && <section aria-labelledby="new-assignment-title" className="rounded-xl border border-hairline bg-card p-5 shadow-xs"><h2 id="new-assignment-title" className="font-heading font-semibold text-ink">Phân công mới</h2><p className="mt-1 text-sm leading-6 text-ink-muted">Chỉ những giảng viên đủ điều kiện cho đợt và thành phần đã chọn mới xuất hiện trong danh sách.</p>
-        <form className="mt-4 grid gap-4 sm:grid-cols-3" onSubmit={submit} noValidate>
-          <label className="text-sm font-medium text-ink-soft" htmlFor="evaluation-period">Đợt đánh giá<select id="evaluation-period" aria-invalid={Boolean(fieldErrors.periodId)} aria-describedby={fieldErrors.periodId ? 'evaluation-period-error' : undefined} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" required value={periodId} onChange={event => { setPeriodId(event.target.value); setComponentId(''); setStudentId(''); setEvaluatorId(''); setFieldErrors(current => ({ ...current, periodId: undefined, componentId: undefined, studentId: undefined, evaluatorId: undefined })) }} disabled={busy}><option value="">Chọn đợt</option>{periods.map(item => <option key={item.id} value={item.id} disabled={item.status !== 'ACTIVE'}>{item.semesterName} · {item.name} · {displayLabel(item.status)}</option>)}</select>{fieldErrors.periodId && <span id="evaluation-period-error" className="mt-1 block text-xs text-status-error-text">{fieldErrors.periodId}</span>}</label>
-          <label className="text-sm font-medium text-ink-soft" htmlFor="scheme-component">Thành phần đánh giá<select id="scheme-component" aria-invalid={Boolean(fieldErrors.componentId)} aria-describedby={fieldErrors.componentId ? 'scheme-component-error' : undefined} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" required value={componentId} onChange={event => { setComponentId(event.target.value); setStudentId(''); setEvaluatorId(''); setFieldErrors(current => ({ ...current, componentId: undefined, studentId: undefined, evaluatorId: undefined })) }} disabled={busy || !periodId}><option value="">Chọn thành phần đã công bố</option>{publishedComponents.map(({ scheme, component }) => <option key={component.id} value={component.id}>{scheme.name} v{scheme.version} · {component.name} · {displayLabel(component.scope)}{component.majorId ? ` · ${majorChoiceLabel(component.majorId, majorNames[component.majorId])}` : ''}</option>)}</select>{fieldErrors.componentId && <span id="scheme-component-error" className="mt-1 block text-xs text-status-error-text">{fieldErrors.componentId}</span>}</label>
-          {selectedComponent?.scope === 'INDIVIDUAL' && <fieldset className="min-w-0 sm:col-span-3" disabled={busy || identities.loading} aria-invalid={Boolean(fieldErrors.studentId)} aria-describedby={fieldErrors.studentId ? 'assignment-student-error' : undefined}>
-            <legend className="text-sm font-medium text-ink-soft">Chọn sinh viên cần chấm ({selectedStudentIds.length}/{eligibleStudents.length})</legend>
-            {identities.loading && <p role="status" className="mt-1 text-sm text-ink-muted">Đang tải tên sinh viên từ hồ sơ đã chốt…</p>}
-            {identities.error && <div role="alert" className="mt-1 flex flex-wrap items-center gap-2 text-sm text-status-warning-text"><span>{identities.error}</span><Button type="button" size="sm" variant="secondary" onClick={identities.retry}>Thử tải lại tên sinh viên</Button></div>}
-            <div className="mt-2 max-h-48 space-y-1.5 overflow-y-auto rounded-lg border border-hairline bg-canvas/40 p-2.5">
-              {eligibleStudents.map(student => {
-                const checked = selectedStudentIds.includes(student.studentId)
-                const label = `${studentChoiceLabel(student.studentId, studentNames[student.studentId])} · ${majorChoiceLabel(student.majorId, majorNames[student.majorId])}`
-                return (
-                  <label key={student.studentId} className={`flex min-h-10 cursor-pointer items-center gap-2.5 rounded-md border px-3 py-1.5 text-sm transition-colors ${checked ? 'border-primary bg-primary-subtle font-semibold text-ink' : 'border-hairline bg-card text-ink-soft hover:border-primary/40'}`}>
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      disabled={busy || identities.loading}
-                      onChange={() => {
-                        const next = checked
-                          ? selectedStudentIds.filter(id => id !== student.studentId)
-                          : [...selectedStudentIds, student.studentId]
-                        setStudentId(next.join(','))
-                        setEvaluatorId('')
-                        setFieldErrors(current => ({ ...current, studentId: undefined, evaluatorId: undefined }))
-                      }}
-                    />
-                    <span>{label}</span>
-                  </label>
-                )
-              })}
+    {!loading && loaded && (
+      <div className={canManage ? 'grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_420px]' : 'space-y-6'}>
+        <div className="min-w-0 space-y-5">
+          {periodId && publishedComponents.length > 0 && <section aria-labelledby="coverage-title" className={`rounded-xl border p-5 shadow-xs ${coverageGaps.length > 0 ? 'border-status-warning-border bg-status-warning-bg' : 'border-status-success-border bg-status-success-bg'}`}>
+            <h2 id="coverage-title" className="font-heading font-semibold text-ink">Độ phủ người chấm theo thành phần</h2>
+            {coverageGaps.length === 0
+              ? <p className="mt-1 text-sm text-status-success-text">Mọi thành phần đã công bố của đợt này đã đủ số người chấm theo yêu cầu.</p>
+              : <><p className="mt-1 text-sm text-status-warning-text">Các thành phần sau chưa đủ người chấm — không thể chốt kết quả cho tới khi đủ số lượng theo yêu cầu.</p>
+                <ul className="mt-3 space-y-1 text-sm">{coverageGaps.map(({ scheme, component, assigned, required }) => <li key={component.id} className="flex flex-wrap items-center gap-2"><span className="font-medium text-ink">{scheme.name} v{scheme.version} · {component.name}</span><span className="text-ink-muted">({displayLabel(component.scope)}{component.majorId ? ` · ${majorChoiceLabel(component.majorId, majorNames[component.majorId])}` : ''})</span><span className="font-mono font-semibold text-status-warning-text">{assigned}/{required} người chấm</span></li>)}</ul></>}
+          </section>}
+
+          <section aria-labelledby="assignment-list-title" className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
+            <div>
+              <h2 id="assignment-list-title" className="font-heading font-semibold text-ink">Phân công hiện có</h2>
+              <p className="mt-1 text-sm text-ink-muted">Theo dõi người chấm đang được phân công và lịch sử thu hồi.</p>
             </div>
-            {fieldErrors.studentId && <span id="assignment-student-error" className="mt-1 block text-xs text-status-error-text">{fieldErrors.studentId}</span>}
-          </fieldset>}
-          <div className="flex flex-col"><label className="text-sm font-medium text-ink-soft" htmlFor="evaluator-id">Người chấm</label>{eligibleEvaluators.length > 5 && <input type="search" className="mt-1 mb-1 min-h-11 w-full rounded-md border border-hairline bg-card px-2.5 text-xs text-ink placeholder:text-ink-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" placeholder="Lọc nhanh theo tên hoặc bộ môn…" value={evaluatorFilter} onChange={e => setEvaluatorFilter(e.target.value)} aria-label="Lọc người chấm" disabled={busy || candidatesLoading || !periodId} />}<select id="evaluator-id" aria-invalid={Boolean(fieldErrors.evaluatorId)} aria-describedby={fieldErrors.evaluatorId ? 'evaluator-id-error' : undefined} required className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={evaluatorId} onChange={event => { const selected = eligibleEvaluators.find(item => item.userId === Number(event.target.value)); setEvaluatorId(event.target.value); if (selected && !selected.evaluationTypes.includes(evaluationType)) setEvaluationType(selected.evaluationTypes[0] ?? 'LECTURER'); setFieldErrors(current => ({ ...current, evaluatorId: undefined })) }} disabled={busy || candidatesLoading || !periodId}><option value="">{candidatesLoading ? 'Đang tải người chấm…' : 'Chọn người chấm'}</option>{filteredEvaluators.map(item => <option key={item.userId} value={item.userId}>{item.displayName} · {item.departmentName} · {item.evaluationTypes.map(displayLabel).join(' / ')}</option>)}</select>{fieldErrors.evaluatorId && <span id="evaluator-id-error" className="mt-1 block text-xs text-status-error-text">{fieldErrors.evaluatorId}</span>}</div>
-          <label className="text-sm font-medium text-ink-soft" htmlFor="evaluation-type">Vai trò đánh giá<select id="evaluation-type" className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={evaluationType} onChange={event => setEvaluationType(event.target.value as EvaluatorRole)} disabled={busy || !evaluatorId}>{roleOptions.map(type => <option key={type} value={type}>{displayLabel(type)}</option>)}</select>{evaluationType === 'INDUSTRY' && <span className="mt-1 block text-xs text-status-warning-text">Doanh nghiệp mặc định là cố vấn, không tính điểm trừ khi phương án đánh giá được duyệt có trọng số.</span>}</label>
-          <div className="sm:col-span-3">
-            <Button
-              type="submit"
-              disabled={busy || candidatesLoading || eligiblePeriods.length === 0 || !evaluatorId || !targetReady || (selectedComponent?.scope === 'INDIVIDUAL' && identities.loading)}
-            >
-              {busy ? 'Đang lưu…' : 'Phân công người chấm'}
-            </Button>
+            <FilterToolbar
+              embedded
+              search={listSearch}
+              onSearchChange={setListSearch}
+              searchLabel="Tìm phân công người chấm"
+              searchPlaceholder="Tìm theo giảng viên, thành phần, sinh viên..."
+              debounceMs={0}
+              tabs={[
+                { value: 'ALL', label: 'Tất cả' },
+                { value: 'ACTIVE', label: 'Đang hiệu lực' },
+                { value: 'REVOKED', label: 'Đã thu hồi' },
+              ]}
+              activeTab={assignmentStatus}
+              onTabChange={next => { if (!busy) setAssignmentStatus(next as AssignmentStatusFilter) }}
+              tabsLabel="Lọc phân công theo trạng thái"
+              controls={
+                <>
+                  <label className="ft-select-wrap">
+                    <span className="sr-only">Giai đoạn</span>
+                    <select className="ft-select" aria-label="Lọc theo giai đoạn" value={stageFilter} onChange={e => setStageFilter(e.target.value)} disabled={busy}>
+                      <option value="">Tất cả giai đoạn</option>
+                      <option value="ON_GOING">Đánh giá quá trình</option>
+                      <option value="COLD">Chấm hồ sơ đã khóa</option>
+                      <option value="DEFENSE">Bảo vệ</option>
+                    </select>
+                  </label>
+                  <label className="ft-select-wrap">
+                    <span className="sr-only">Vai trò đánh giá</span>
+                    <select className="ft-select" aria-label="Lọc theo vai trò đánh giá" value={roleFilter} onChange={e => setRoleFilter(e.target.value)} disabled={busy}>
+                      <option value="">Tất cả vai trò</option>
+                      <option value="LECTURER">Giảng viên</option>
+                      <option value="SUPERVISOR">Giảng viên hướng dẫn</option>
+                      <option value="INDUSTRY">Doanh nghiệp</option>
+                    </select>
+                  </label>
+                </>
+              }
+              activeChips={listChips}
+              onRemoveChip={id => {
+                if (id === 'status') setAssignmentStatus('ALL')
+                if (id === 'stage') setStageFilter('')
+                if (id === 'role') setRoleFilter('')
+              }}
+              onClearAll={() => { setListSearch(''); setAssignmentStatus('ALL'); setStageFilter(''); setRoleFilter('') }}
+              hasActiveFilters={hasListFilters}
+              resultSummary={`${visibleAssignments.length} / ${assignments.length} phân công`}
+            />
+
+            {visibleAssignments.length === 0 ? <p className="mt-4 text-sm text-ink-muted">Chưa có người chấm phù hợp với bộ lọc này.</p> : <ul className="divide-y divide-hairline">{visibleAssignments.map(item => {
+              const displayName = evaluatorNames[item.evaluatorId] ?? 'Giảng viên được phân công'
+              const comp = item.componentId ? componentById.get(item.componentId) : undefined
+              return (
+                <li key={item.id} className="py-4 text-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <Avatar name={displayName} size="sm" />
+                      <div className="min-w-0">
+                        <p className="font-semibold text-ink">{displayName} · {comp?.name ?? displayLabel(item.scope)}{item.studentId ? ` · ${studentChoiceLabel(item.studentId, studentNames[item.studentId])}` : ''}</p>
+                        <p className="mt-1 text-ink-muted">{displayLabel(item.evaluationType)}{comp?.stage ? ` · ${evaluationStageLabel(comp.stage)}` : ''} · {periods.find(p => p.id === item.projectPeriodId)?.name ?? 'Đợt đánh giá'}</p>
+                        <p className="mt-1 font-mono text-xs text-ink-muted">Phân công {assignedAt(item.assignedAt)}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'neutral'} label={item.status === 'ACTIVE' ? 'Đang hiệu lực' : 'Đã thu hồi'} />
+                      {canManage && item.status === 'ACTIVE' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={busy}
+                          className="text-status-error-text hover:bg-status-error-bg"
+                          onClick={() => { setRevokeTarget(item); setRevokeReason(''); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }}
+                        >
+                          Thu hồi
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              )
+            })}</ul>}
+          </section>
+        </div>
+
+        {canManage && (
+          <section aria-labelledby="new-assignment-title" className="rounded-xl border border-hairline bg-card p-5 shadow-xs xl:sticky xl:top-6">
+            <h2 id="new-assignment-title" className="font-heading font-semibold text-ink">Phân công mới</h2>
+            <p className="mt-1 text-xs leading-5 text-ink-muted">Chỉ những giảng viên đủ điều kiện cho đợt và thành phần đã chọn mới xuất hiện trong danh sách.</p>
+            <form className="mt-4 grid gap-3.5" onSubmit={submit} noValidate>
+              <label className="text-sm font-medium text-ink-soft" htmlFor="evaluation-period">Đợt đánh giá<select id="evaluation-period" aria-invalid={Boolean(fieldErrors.periodId)} aria-describedby={fieldErrors.periodId ? 'evaluation-period-error' : undefined} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" required value={periodId} onChange={event => { setPeriodId(event.target.value); setComponentId(''); setStudentId(''); setEvaluatorId(''); setFieldErrors(current => ({ ...current, periodId: undefined, componentId: undefined, studentId: undefined, evaluatorId: undefined })) }} disabled={busy}><option value="">Chọn đợt</option>{periods.map(item => <option key={item.id} value={item.id} disabled={item.status !== 'ACTIVE'}>{item.semesterName} · {item.name} · {displayLabel(item.status)}</option>)}</select>{fieldErrors.periodId && <span id="evaluation-period-error" className="mt-1 block text-xs text-status-error-text">{fieldErrors.periodId}</span>}</label>
+              <label className="text-sm font-medium text-ink-soft" htmlFor="scheme-component">Thành phần đánh giá<select id="scheme-component" aria-invalid={Boolean(fieldErrors.componentId)} aria-describedby={fieldErrors.componentId ? 'scheme-component-error' : undefined} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" required value={componentId} onChange={event => { setComponentId(event.target.value); setStudentId(''); setEvaluatorId(''); setFieldErrors(current => ({ ...current, componentId: undefined, studentId: undefined, evaluatorId: undefined })) }} disabled={busy || !periodId}><option value="">Chọn thành phần đã công bố</option>{publishedComponents.map(({ scheme, component }) => <option key={component.id} value={component.id}>{scheme.name} v{scheme.version} · {component.name} · {displayLabel(component.scope)}{component.majorId ? ` · ${majorChoiceLabel(component.majorId, majorNames[component.majorId])}` : ''}</option>)}</select>{fieldErrors.componentId && <span id="scheme-component-error" className="mt-1 block text-xs text-status-error-text">{fieldErrors.componentId}</span>}</label>
+              {selectedComponent?.scope === 'INDIVIDUAL' && <fieldset className="min-w-0" disabled={busy || identities.loading} aria-invalid={Boolean(fieldErrors.studentId)} aria-describedby={fieldErrors.studentId ? 'assignment-student-error' : undefined}>
+                <legend className="text-sm font-medium text-ink-soft">Chọn sinh viên cần chấm ({selectedStudentIds.length}/{eligibleStudents.length})</legend>
+                {identities.loading && <p role="status" className="mt-1 text-sm text-ink-muted">Đang tải tên sinh viên từ hồ sơ đã chốt…</p>}
+                {identities.error && <div role="alert" className="mt-1 flex flex-wrap items-center gap-2 text-sm text-status-warning-text"><span>{identities.error}</span><Button type="button" size="sm" variant="secondary" onClick={identities.retry}>Thử tải lại tên sinh viên</Button></div>}
+                <div className="mt-2 max-h-48 space-y-1.5 overflow-y-auto rounded-lg border border-hairline bg-canvas/40 p-2.5">
+                  {eligibleStudents.map(student => {
+                    const checked = selectedStudentIds.includes(student.studentId)
+                    const label = `${studentChoiceLabel(student.studentId, studentNames[student.studentId])} · ${majorChoiceLabel(student.majorId, majorNames[student.majorId])}`
+                    return (
+                      <label key={student.studentId} className={`flex min-h-10 cursor-pointer items-center gap-2.5 rounded-md border px-3 py-1.5 text-sm transition-colors ${checked ? 'border-primary bg-primary-subtle font-semibold text-ink' : 'border-hairline bg-card text-ink-soft hover:border-primary/40'}`}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={busy || identities.loading}
+                          onChange={() => {
+                            const next = checked
+                              ? selectedStudentIds.filter(id => id !== student.studentId)
+                              : [...selectedStudentIds, student.studentId]
+                            setStudentId(next.join(','))
+                            setEvaluatorId('')
+                            setFieldErrors(current => ({ ...current, studentId: undefined, evaluatorId: undefined }))
+                          }}
+                        />
+                        <span>{label}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+                {fieldErrors.studentId && <span id="assignment-student-error" className="mt-1 block text-xs text-status-error-text">{fieldErrors.studentId}</span>}
+              </fieldset>}
+              <div className="flex flex-col"><label className="text-sm font-medium text-ink-soft" htmlFor="evaluator-id">Người chấm</label>{eligibleEvaluators.length > 5 && <input type="search" className="mt-1 mb-1 min-h-11 w-full rounded-md border border-hairline bg-card px-2.5 text-xs text-ink placeholder:text-ink-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" placeholder="Lọc nhanh theo tên hoặc bộ môn…" value={evaluatorFilter} onChange={e => setEvaluatorFilter(e.target.value)} aria-label="Lọc người chấm" disabled={busy || candidatesLoading || !periodId} />}<select id="evaluator-id" aria-invalid={Boolean(fieldErrors.evaluatorId)} aria-describedby={fieldErrors.evaluatorId ? 'evaluator-id-error' : undefined} required className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={evaluatorId} onChange={event => { const selected = eligibleEvaluators.find(item => item.userId === Number(event.target.value)); setEvaluatorId(event.target.value); if (selected && !selected.evaluationTypes.includes(evaluationType)) setEvaluationType(selected.evaluationTypes[0] ?? 'LECTURER'); setFieldErrors(current => ({ ...current, evaluatorId: undefined })) }} disabled={busy || candidatesLoading || !periodId}><option value="">{candidatesLoading ? 'Đang tải người chấm…' : 'Chọn người chấm'}</option>{filteredEvaluators.map(item => <option key={item.userId} value={item.userId}>{item.displayName} · {item.departmentName} · {item.evaluationTypes.map(displayLabel).join(' / ')}</option>)}</select>{fieldErrors.evaluatorId && <span id="evaluator-id-error" className="mt-1 block text-xs text-status-error-text">{fieldErrors.evaluatorId}</span>}</div>
+              <label className="text-sm font-medium text-ink-soft" htmlFor="evaluation-type">Vai trò đánh giá<select id="evaluation-type" className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={evaluationType} onChange={event => setEvaluationType(event.target.value as EvaluatorRole)} disabled={busy || !evaluatorId}>{roleOptions.map(type => <option key={type} value={type}>{displayLabel(type)}</option>)}</select>{evaluationType === 'INDUSTRY' && <span className="mt-1 block text-xs text-status-warning-text">Doanh nghiệp mặc định là cố vấn, không tính điểm trừ khi phương án đánh giá được duyệt có trọng số.</span>}</label>
+              <div>
+                <Button
+                  type="submit"
+                  className="w-full justify-center"
+                  disabled={busy || candidatesLoading || eligiblePeriods.length === 0 || !evaluatorId || !targetReady || (selectedComponent?.scope === 'INDIVIDUAL' && identities.loading)}
+                >
+                  {busy ? 'Đang lưu…' : 'Phân công người chấm'}
+                </Button>
+              </div>
+            </form>
+            {periods.length === 0 && <p className="mt-3 text-sm text-status-warning-text">Chưa có đợt đánh giá thuộc phạm vi quản lý của bạn.</p>}
+            {periods.length > 0 && eligiblePeriods.length === 0 && <p className="mt-3 text-sm text-status-warning-text">Chưa có đợt đánh giá đang diễn ra để phân công.</p>}
+            {periodId && publishedComponents.length === 0 && <p className="mt-3 text-sm text-status-warning-text">Đợt đã chọn chưa có phương án đánh giá được công bố.</p>}
+            {targetReady && !candidatesLoading && eligibleEvaluators.length === 0 && <p className="mt-3 text-sm text-status-warning-text">Hệ thống chưa tìm thấy người chấm hợp lệ cho thành phần và đối tượng đã chọn.</p>}
+          </section>
+        )}
+      </div>
+    )}
+
+    {revokeTarget && (
+      <Modal
+        open
+        title="Thu hồi phân công người chấm"
+        busy={busy}
+        onClose={() => { setRevokeTarget(null); setRevokeReason(''); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }}
+      >
+        <form onSubmit={submitRevoke} className="space-y-4">
+          <p className="text-sm text-ink-soft">
+            Thu hồi quyền chấm của <strong className="text-ink">{evaluatorNames[revokeTarget.evaluatorId] ?? 'Giảng viên được phân công'}</strong> cho thành phần <strong className="text-ink">{componentById.get(revokeTarget.componentId ?? 0)?.name ?? displayLabel(revokeTarget.scope)}</strong>.
+          </p>
+          <label className="block text-sm font-medium text-ink-soft" htmlFor={`revoke-reason-${revokeTarget.id}`}>
+            Lý do thu hồi
+            <input
+              id={`revoke-reason-${revokeTarget.id}`}
+              aria-invalid={Boolean(fieldErrors.revokeReason)}
+              aria-describedby={fieldErrors.revokeReason ? `revoke-reason-error-${revokeTarget.id}` : undefined}
+              className="mt-1.5 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              value={revokeReason}
+              onChange={event => { setRevokeReason(event.target.value); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }}
+              disabled={busy}
+              autoFocus
+            />
+            {fieldErrors.revokeReason && <span id={`revoke-reason-error-${revokeTarget.id}`} className="mt-1 block text-xs text-status-error-text">{fieldErrors.revokeReason}</span>}
+          </label>
+          <p className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-xs text-status-warning-text">
+            Thao tác này gỡ quyền chấm ngay lập tức và không thể tự khôi phục từ giao diện.
+          </p>
+          <div className="flex flex-wrap justify-end gap-2 border-t border-hairline pt-3">
+            <Button type="button" variant="secondary" disabled={busy} onClick={() => { setRevokeTarget(null); setRevokeReason(''); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }}>Hủy</Button>
+            <Button type="submit" variant="danger" disabled={busy}>{busy ? 'Đang thu hồi…' : 'Xác nhận thu hồi'}</Button>
           </div>
         </form>
-        {periods.length === 0 && <p className="mt-3 text-sm text-status-warning-text">Chưa có đợt đánh giá thuộc phạm vi quản lý của bạn.</p>}
-        {periods.length > 0 && eligiblePeriods.length === 0 && <p className="mt-3 text-sm text-status-warning-text">Chưa có đợt đánh giá đang diễn ra để phân công.</p>}
-        {periodId && publishedComponents.length === 0 && <p className="mt-3 text-sm text-status-warning-text">Đợt đã chọn chưa có phương án đánh giá được công bố.</p>}
-        {targetReady && !candidatesLoading && eligibleEvaluators.length === 0 && <p className="mt-3 text-sm text-status-warning-text">Hệ thống chưa tìm thấy người chấm hợp lệ cho thành phần và đối tượng đã chọn.</p>}
-      </section>}
-      {periodId && publishedComponents.length > 0 && <section aria-labelledby="coverage-title" className={`rounded-xl border p-5 shadow-xs ${coverageGaps.length > 0 ? 'border-status-warning-border bg-status-warning-bg' : 'border-status-success-border bg-status-success-bg'}`}>
-        <h2 id="coverage-title" className="font-heading font-semibold text-ink">Độ phủ người chấm theo thành phần</h2>
-        {coverageGaps.length === 0
-          ? <p className="mt-1 text-sm text-status-success-text">Mọi thành phần đã công bố của đợt này đã đủ số người chấm theo yêu cầu.</p>
-          : <><p className="mt-1 text-sm text-status-warning-text">Các thành phần sau chưa đủ người chấm — không thể chốt kết quả cho tới khi đủ số lượng theo yêu cầu.</p>
-            <ul className="mt-3 space-y-1 text-sm">{coverageGaps.map(({ scheme, component, assigned, required }) => <li key={component.id} className="flex flex-wrap items-center gap-2"><span className="font-medium text-ink">{scheme.name} v{scheme.version} · {component.name}</span><span className="text-ink-muted">({displayLabel(component.scope)}{component.majorId ? ` · ${majorChoiceLabel(component.majorId, majorNames[component.majorId])}` : ''})</span><span className="font-mono font-semibold text-status-warning-text">{assigned}/{required} người chấm</span></li>)}</ul></>}
-      </section>}
-      <section aria-labelledby="assignment-list-title" className="rounded-xl border border-hairline bg-card p-5 shadow-xs"><div className="flex flex-wrap items-end justify-between gap-3"><div><h2 id="assignment-list-title" className="font-heading font-semibold text-ink">Phân công hiện có</h2><p className="mt-1 text-sm text-ink-muted">Theo dõi người chấm đang được phân công và lịch sử thu hồi.</p></div><label className="text-sm font-medium text-ink-soft" htmlFor="assignment-status">Trạng thái<select id="assignment-status" className="mt-1 min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={assignmentStatus} onChange={event => setAssignmentStatus(event.target.value as AssignmentStatusFilter)} disabled={busy}><option value="ALL">Tất cả</option><option value="ACTIVE">Đang hiệu lực</option><option value="REVOKED">Đã thu hồi</option></select></label></div>
-        {assignments.length === 0 ? <p className="mt-4 text-sm text-ink-muted">Chưa có người chấm phù hợp với bộ lọc này.</p> : <ul className="mt-4 divide-y divide-hairline">{assignments.map(item => <li key={item.id} className="py-4 text-sm"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold text-ink">{evaluatorNames[item.evaluatorId] ?? 'Giảng viên được phân công'} · {schemes.flatMap(s => s.components).find(c => c.id === item.componentId)?.name ?? displayLabel(item.scope)}{item.studentId ? ` · ${studentChoiceLabel(item.studentId, studentNames[item.studentId])}` : ''}</p><p className="mt-1 text-ink-muted">{displayLabel(item.evaluationType)} · {periods.find(p => p.id === item.projectPeriodId)?.name ?? 'Đợt đánh giá'}</p><p className="mt-1 font-mono text-xs text-ink-muted">Phân công {assignedAt(item.assignedAt)}</p></div><span className={item.status === 'ACTIVE' ? 'rounded-full bg-status-success-bg px-2.5 py-1 text-xs font-semibold text-status-success-text' : 'rounded-full border border-hairline bg-canvas px-2.5 py-1 text-xs font-semibold text-ink-soft'}>{item.status === 'ACTIVE' ? 'Đang hiệu lực' : 'Đã thu hồi'}</span></div>{canManage && item.status === 'ACTIVE' && <div className="mt-3">{revokeTarget?.id === item.id ? <form onSubmit={submitRevoke} className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3"><label className="block text-sm font-medium text-ink-soft" htmlFor={`revoke-reason-${item.id}`}>Lý do thu hồi<input id={`revoke-reason-${item.id}`} aria-invalid={Boolean(fieldErrors.revokeReason)} aria-describedby={fieldErrors.revokeReason ? `revoke-reason-error-${item.id}` : undefined} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={revokeReason} onChange={event => { setRevokeReason(event.target.value); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }} disabled={busy} autoFocus />{fieldErrors.revokeReason && <span id={`revoke-reason-error-${item.id}`} className="mt-1 block text-xs text-status-error-text">{fieldErrors.revokeReason}</span>}</label><p className="mt-2 text-xs text-ink-soft">Thao tác này gỡ quyền chấm ngay lập tức và không thể tự khôi phục từ giao diện.</p><div className="mt-3 flex flex-wrap gap-2"><Button type="submit" variant="danger" disabled={busy}>{busy ? 'Đang thu hồi…' : 'Xác nhận thu hồi'}</Button><Button type="button" variant="secondary" disabled={busy} onClick={() => { setRevokeTarget(null); setRevokeReason(''); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }}>Hủy</Button></div></form> : <button type="button" disabled={busy} className="min-h-11 font-semibold text-status-error-text underline underline-offset-4 disabled:opacity-50" onClick={() => { setRevokeTarget(item); setRevokeReason(''); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }}>Thu hồi</button>}</div>}</li>)}</ul>}
-      </section>
-    </>}
+      </Modal>
+    )}
+
     <div>
       <Link
         to={paths.result}

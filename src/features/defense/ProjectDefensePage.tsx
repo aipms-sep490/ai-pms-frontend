@@ -3,6 +3,8 @@ import { useLocation, useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
 import { EntityIdentityStrip } from '../../components/ui/EntityIdentityStrip'
+import { Modal } from '../../components/ui/Modal'
+import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useStudentJourney } from '../../app/context'
 import { localDateTime, toUtcDateTime } from '../execution/execution-utils'
 import { HttpError } from '../../services/http/http-client'
@@ -165,38 +167,48 @@ export function DefenseScheduleView({
       )}
 
       {showCancelModal && scheduled && (
-        <div className="mt-4 space-y-2 rounded-lg border border-hairline bg-canvas p-3">
-          <label className="block text-xs font-semibold text-ink-soft">
-            Lý do hủy lịch bảo vệ (bắt buộc)
-            <textarea
-              className="mt-1 w-full rounded-md border border-hairline bg-card p-2 font-normal text-sm text-ink"
-              rows={2}
-              value={cancelReason}
-              placeholder="vd: Điều chỉnh phòng bảo vệ theo yêu cầu khoa"
-              disabled={cancelling}
-              onChange={(e) => setCancelReason(e.target.value)}
-            />
-          </label>
-          {cancelError && <p role="alert" className="text-xs text-status-error-text">{cancelError}</p>}
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              className="min-h-11 px-3 py-1 text-xs font-semibold text-ink-muted hover:underline"
-              disabled={cancelling}
-              onClick={() => { setShowCancelModal(false); setCancelError('') }}
-            >
-              Đóng
-            </button>
-            <button
-              type="button"
-              className="min-h-11 rounded-md border border-status-error-border bg-status-error-bg px-3 py-1 text-xs font-semibold text-status-error-text disabled:opacity-50"
-              disabled={cancelling || !cancelReason.trim()}
-              onClick={() => void handleCancel()}
-            >
-              {cancelling ? 'Đang hủy…' : 'Xác nhận hủy lịch'}
-            </button>
+        <Modal
+          open
+          title="Hủy lịch bảo vệ"
+          busy={cancelling}
+          onClose={() => { setShowCancelModal(false); setCancelError('') }}
+        >
+          <div className="space-y-3">
+            <p className="text-sm text-ink-soft">
+              Hủy phiên bảo vệ tại phòng <strong className="text-ink">{scheduled.room}</strong> ({formatRange(scheduled.startAt, scheduled.endAt)}).
+            </p>
+            <label className="block text-xs font-semibold text-ink-soft">
+              Lý do hủy lịch bảo vệ (bắt buộc)
+              <textarea
+                className="mt-1.5 w-full rounded-lg border border-hairline bg-card p-2.5 font-normal text-sm text-ink"
+                rows={3}
+                value={cancelReason}
+                placeholder="vd: Điều chỉnh phòng bảo vệ theo yêu cầu khoa"
+                disabled={cancelling}
+                onChange={(e) => setCancelReason(e.target.value)}
+              />
+            </label>
+            {cancelError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs text-status-error-text">{cancelError}</p>}
+            <div className="flex items-center justify-end gap-2 border-t border-hairline pt-3">
+              <button
+                type="button"
+                className="min-h-11 rounded-lg border border-hairline px-3.5 text-xs font-semibold text-ink-muted hover:bg-canvas"
+                disabled={cancelling}
+                onClick={() => { setShowCancelModal(false); setCancelError('') }}
+              >
+                Đóng
+              </button>
+              <button
+                type="button"
+                className="min-h-11 rounded-lg border border-status-error-border bg-status-error-bg px-4 text-xs font-semibold text-status-error-text disabled:opacity-50"
+                disabled={cancelling || !cancelReason.trim()}
+                onClick={() => void handleCancel()}
+              >
+                {cancelling ? 'Đang hủy…' : 'Xác nhận hủy lịch'}
+              </button>
+            </div>
           </div>
-        </div>
+        </Modal>
       )}
       {scheduled && (scheduled.canCancel || showManageVerdict) && (
         <div className="mt-3">
@@ -393,11 +405,15 @@ export function DefenseManagementPanel({
 
   return (
     <div className="space-y-5 border-t border-hairline pt-5">
-      <h2 className="text-base font-bold text-ink">Quản lý hội đồng & Lịch bảo vệ (Khoa / Quản trị)</h2>
+      <h2 className="text-base font-bold text-ink">Quản lý hội đồng &amp; Lịch bảo vệ (Khoa / Quản trị)</h2>
 
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
       {/* Danh sách hội đồng */}
       <section className="space-y-3 rounded-xl border border-hairline bg-card p-5 shadow-xs">
-        <h3 className="text-sm font-bold text-ink">Danh sách hội đồng bảo vệ</h3>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-bold text-ink">Danh sách hội đồng bảo vệ</h3>
+          <span className="text-xs text-ink-muted">{committees.length} hội đồng</span>
+        </div>
         {loadingCommittees && <p className="text-xs text-ink-muted">Đang tải danh sách hội đồng…</p>}
         {committeeError && <p role="alert" className="text-xs text-status-error-text">{committeeError}</p>}
         {!loadingCommittees && committees.length === 0 && (
@@ -408,9 +424,15 @@ export function DefenseManagementPanel({
           <ul className="space-y-2">
             {committees.map((c) => (
               <li key={c.id} className="rounded-lg border border-hairline p-3 text-xs">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-semibold text-ink">{c.name} · v{c.version ?? 1}</span>
-                  <span className="text-ink-muted">{c.members.length} thành viên · {c.status === 'CONFIRMED' ? 'Đang có hiệu lực' : c.status === 'SUPERSEDED' ? 'Đã thay thế' : 'Bản nháp'}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-ink-muted">{c.members.length} thành viên</span>
+                    <StatusBadge
+                      tone={c.status === 'CONFIRMED' ? 'success' : c.status === 'SUPERSEDED' ? 'neutral' : 'warning'}
+                      label={c.status === 'CONFIRMED' ? 'Đang có hiệu lực' : c.status === 'SUPERSEDED' ? 'Đã thay thế' : 'Bản nháp'}
+                    />
+                  </div>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {c.members.map((m, idx) => {
@@ -578,6 +600,7 @@ export function DefenseManagementPanel({
           </div>
         )}
       </section>
+      </div>
     </div>
   )
 }
@@ -609,6 +632,7 @@ export function ProjectDefensePage() {
   const retry = () => { setLoading(true); setError(null); setSessions(null); setRevision((value) => value + 1) }
   return (
     <WorkspacePage
+      size="wide"
       className="space-y-5"
       title="Lịch bảo vệ"
       eyebrow="Hội đồng đánh giá"
@@ -675,7 +699,7 @@ export function ProjectDefenseManagementPage() {
   const displayProjectTitle = sessionMeta?.projectTitle || 'Đồ án được quản lý'
   const displayProjectCode = sessionMeta?.projectCode || null
   return (
-    <WorkspacePage title={isDepartmentRoute ? 'Quản lý hội đồng & lịch bảo vệ' : 'Lịch bảo vệ đồ án'} eyebrow={displayProjectCode ?? 'Hội đồng & bảo vệ'} description={isDepartmentRoute ? 'Bộ môn phụ trách thành lập hội đồng và xếp lịch trong phạm vi quản lý.' : 'Giảng viên hướng dẫn theo dõi lịch bảo vệ; bộ môn phụ trách phân hội đồng.'}>
+    <WorkspacePage size="wide" title={isDepartmentRoute ? 'Quản lý hội đồng & lịch bảo vệ' : 'Lịch bảo vệ đồ án'} eyebrow={displayProjectCode ?? 'Hội đồng & bảo vệ'} description={isDepartmentRoute ? 'Bộ môn phụ trách thành lập hội đồng và xếp lịch trong phạm vi quản lý.' : 'Giảng viên hướng dẫn theo dõi lịch bảo vệ; bộ môn phụ trách phân hội đồng.'}>
       <EntityIdentityStrip chips={[
         { icon: 'folder', label: 'Đồ án', value: displayProjectTitle },
         ...(displayProjectCode ? [{ icon: 'tag', label: 'Mã đồ án', value: displayProjectCode }] : []),

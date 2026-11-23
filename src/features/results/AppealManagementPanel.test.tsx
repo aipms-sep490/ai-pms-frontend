@@ -2,16 +2,25 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { AppealManagementPanel } from './AppealManagementPanel'
 import { HttpError } from '../../services/http/http-client'
-const api = vi.hoisted(() => ({ getAppealPolicy: vi.fn(), getAppealWindows: vi.fn(), recordAppealPolicy: vi.fn(), openAppealWindow: vi.fn(), submitResultCorrectionRequest: vi.fn(), getEvaluationSchemes: vi.fn(), getProjectResult: vi.fn(), getStudentResult: vi.fn() }))
+const api = vi.hoisted(() => ({ getAppealPolicy: vi.fn(), getAppealWindows: vi.fn(), recordAppealPolicy: vi.fn(), openAppealWindow: vi.fn(), submitResultCorrectionRequest: vi.fn(), getEvaluationSchemes: vi.fn(), getProjectResult: vi.fn(), getStudentResult: vi.fn(), getProject: vi.fn(), getTeam: vi.fn() }))
 vi.mock('./result-correction-api', () => api)
 vi.mock('../../services/api/evaluations.api', () => ({ getEvaluationSchemes: api.getEvaluationSchemes }))
 vi.mock('../../services/api/project-results.api', () => ({ getProjectResult: api.getProjectResult, getStudentResult: api.getStudentResult }))
+vi.mock('../../services/api/projects.api', () => ({ getProject: api.getProject }))
+vi.mock('../../services/api/teams.api', () => ({ getTeam: api.getTeam }))
 beforeEach(() => {
   vi.clearAllMocks(); api.getAppealPolicy.mockResolvedValue({ id: 4, version: 3, approvalReference: 'Actual approval supplied by staff' }); api.getAppealWindows.mockResolvedValue({ items: [], totalCount: 0 })
   api.getEvaluationSchemes.mockResolvedValue([{ status: 'PUBLISHED', students: [{ studentId: 88 }] }])
+  api.getProject.mockResolvedValue({ id: 9, teamId: 21 })
+  api.getTeam.mockResolvedValue({ id: 21, members: [{ userId: 88, fullName: 'Nguyễn Minh Quân', studentCode: 'SE180088' }] })
   api.getStudentResult.mockResolvedValue({ projectId: 9, studentId: 88, version: 2, totalScore: 8, outcome: 'PASS', breakdown: { components: [{ componentId: 6, name: 'Chấm ngành', scope: 'MAJOR_SPECIFIC', stage: 'COLD', weightPercent: 50 }] } })
 })
 afterEach(cleanup)
+it('resolves real student full name and code from team roster instead of anonymous #1 labels', async () => {
+  render(<AppealManagementPanel projectId={9} onCreated={() => {}} />)
+  expect(await screen.findByRole('option', { name: 'Nguyễn Minh Quân (SE180088)' })).toBeTruthy()
+  expect(screen.queryByRole('option', { name: 'Sinh viên #1' })).toBeNull()
+})
 it('creates staff correction against a selected published target with no student window', async () => {
   api.submitResultCorrectionRequest.mockResolvedValue({ id: 7 }); const onCreated = vi.fn()
   render(<AppealManagementPanel projectId={9} onCreated={onCreated} />)

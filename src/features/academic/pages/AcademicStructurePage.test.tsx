@@ -87,12 +87,26 @@ describe('AcademicStructurePage', () => {
     expect(screen.getByText(/Bạn có thể xem cấu trúc đào tạo/i)).toBeDefined()
   })
 
-  it('submits supported search and organization filters to the hook', () => {
+  it('submits supported search and organization filters live without losing other organization options', () => {
+    const twoOrgs = [
+      ...hierarchy,
+      {
+        organization: { id: 2, code: 'HUST', name: 'Hanoi Tech', description: null, isActive: true, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
+        departments: [],
+      },
+    ]
+    academicHook.useAcademicStructure.mockImplementation((filters?: { organizationId?: number }) => ({
+      ...defaultState(),
+      hierarchy: filters?.organizationId ? twoOrgs.filter(item => item.organization.id === filters.organizationId) : twoOrgs,
+    }))
     renderPage()
     fireEvent.change(screen.getByLabelText('Tìm theo mã hoặc tên'), { target: { value: 'SE' } })
     fireEvent.change(screen.getByLabelText('Phạm vi tổ chức'), { target: { value: '1' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Áp dụng bộ lọc' }))
     expect(academicHook.useAcademicStructure).toHaveBeenLastCalledWith({ search: 'SE', organizationId: 1, includeInactive: false })
+    const orgSelect = screen.getByLabelText('Phạm vi tổ chức') as HTMLSelectElement
+    const optionValues = Array.from(orgSelect.options).map(option => option.value)
+    expect(optionValues).toContain('1')
+    expect(optionValues).toContain('2')
   })
 
   it('confirms successful supported mutations after the form is submitted', async () => {
