@@ -998,8 +998,15 @@ export function AcademicAssistantPanel({
               {userDisplayName ? `Xin chào ${userDisplayName.trim().slice(0, 36)}, mình hỗ trợ gì cho bạn?` : 'Mình có thể hỗ trợ gì cho bạn?'}
             </h2>
             <p className="mt-1 text-sm leading-6 text-ink-muted">
-              Tra cứu quy định học vụ, theo dõi tiến độ đồ án, đọc biên bản họp AI, phân tích ảnh/PDF/DOCX và tự động setup tiêu chí, công việc. Gõ <code>/</code> để chọn nhanh công cụ.
+              Hỏi đáp quy định học vụ, rà soát tiến độ đồ án, đọc tài liệu đính kèm và tự động setup tiêu chí, công việc.
             </p>
+            {useStreamLayout && (
+              <div className="assistant-welcome-caps" aria-hidden="true">
+                <span><span className="material-symbols-outlined">attach_file</span>PDF · DOCX · Ảnh</span>
+                <span><span className="material-symbols-outlined">bolt</span>Gõ / lệnh nhanh</span>
+                <span><span className="material-symbols-outlined">mic</span>Nhập giọng nói</span>
+              </div>
+            )}
             <div className={useStreamLayout ? 'assistant-quick-grid' : 'mt-3 flex flex-wrap gap-2'}>
               {quickCards.map(card => (
                 <button
@@ -1012,7 +1019,12 @@ export function AcademicAssistantPanel({
                 >
                   {useStreamLayout ? (
                     <>
-                      <span className="material-symbols-outlined" aria-hidden="true">{card.icon}</span>
+                      <div className="assistant-quick-card-head">
+                        <span className="assistant-quick-card-icon" aria-hidden="true">
+                          <span className="material-symbols-outlined">{card.icon}</span>
+                        </span>
+                        <span className="assistant-quick-card-arrow material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+                      </div>
                       <strong>{card.title}</strong>
                       <small>{card.detail}</small>
                     </>
