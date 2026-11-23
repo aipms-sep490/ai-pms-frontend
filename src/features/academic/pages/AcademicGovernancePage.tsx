@@ -1,6 +1,8 @@
 import { Modal as AppModal } from '../../../components/ui/Modal'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
+import { Pagination } from '../../../components/ui/Pagination'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
@@ -30,8 +32,6 @@ export function AcademicGovernancePage() {
   const [periodTypeFilter, setPeriodTypeFilter] = useState<string>('ALL')
   const [selectedSemesterCode, setSelectedSemesterCode] = useState<string>('ALL')
   const [sortBy, setSortBy] = useState<GovernanceSort>('newest')
-  const [semesterPage, setSemesterPage] = useState(1)
-  const [periodPage, setPeriodPage] = useState(1)
   const [editor, setEditor] = useState<Editor | null>(null)
   const [operationError, setOperationError] = useState<AcademicError | null>(null)
   const [operationSuccess, setOperationSuccess] = useState<string | null>(null)
@@ -83,6 +83,9 @@ export function AcademicGovernancePage() {
     return counts
   }, [governance.semesters, governance.periods])
 
+  const semesterPager = useClientPagination(filteredSemesters, 12)
+  const periodPager = useClientPagination(filteredPeriods, 12)
+
   if (governance.isUnauthorized || governance.loading || governance.isForbidden || governance.error) {
     const issue = governance.error ? academicError(governance.error, 'governance') : null
     return <WorkspacePage size="wide" className="governance-page" title="Học kỳ và giai đoạn đồ án" eyebrow="Quản lý học vụ" description="Thiết lập thời gian đăng ký, thực hiện và đánh giá cho từng học kỳ.">
@@ -92,16 +95,6 @@ export function AcademicGovernancePage() {
         : issue ? <section className="governance-state governance-error" role="alert">{issue.message} {issue.action && <Button onClick={governance.retry}>{issue.action === 'reload' ? 'Tải lại dữ liệu' : 'Thử lại'}</Button>}</section> : null}
     </WorkspacePage>
   }
-
-  const semesterPageSize = 6
-  const totalSemesterPages = Math.max(1, Math.ceil(filteredSemesters.length / semesterPageSize))
-  const safeSemesterPage = Math.min(semesterPage, totalSemesterPages)
-  const visibleSemesters = filteredSemesters.slice((safeSemesterPage - 1) * semesterPageSize, safeSemesterPage * semesterPageSize)
-
-  const periodPageSize = 6
-  const totalPeriodPages = Math.max(1, Math.ceil(filteredPeriods.length / periodPageSize))
-  const safePeriodPage = Math.min(periodPage, totalPeriodPages)
-  const visiblePeriods = filteredPeriods.slice((safePeriodPage - 1) * periodPageSize, safePeriodPage * periodPageSize)
 
   const hasActiveFilters = Boolean(search.trim() || statusFilter !== 'ALL' || periodTypeFilter !== 'ALL' || selectedSemesterCode !== 'ALL')
   const activeChips: ActiveFilterChip[] = []
@@ -114,14 +107,14 @@ export function AcademicGovernancePage() {
     setStatusFilter('ALL')
     setPeriodTypeFilter('ALL')
     setSelectedSemesterCode('ALL')
-    setSemesterPage(1)
-    setPeriodPage(1)
+    semesterPager.setPage(1)
+    periodPager.setPage(1)
   }
 
-  return <WorkspacePage size="wide" className="governance-page" title="Học kỳ và kỳ đồ án" eyebrow="Quản lý học vụ" description="Thiết lập thời gian đăng ký, thực hiện và đánh giá cho từng học kỳ. Điều kiện về thành viên và ngành tham gia được quản lý trong chính sách của từng giai đoạn." action={governance.canManage ? <div className="governance-actions"><Button icon="add" onClick={() => openEditor({ kind: 'semester' })}>Thêm học kỳ</Button><Button variant="secondary" icon="event_note" onClick={() => openEditor({ kind: 'period' })}>Thêm giai đoạn</Button></div> : null}>
+  return <WorkspacePage size="wide" className="governance-page" title="Học kỳ và kỳ đồ án" eyebrow="Quản lý học vụ" description="Thiết lập thời gian đăng ký, thực hiện và đánh giá cho từng học kỳ. Điều kiện về thành viên và ngành tham gia được quản lý trong chính sách của từng giai đoạn." action={<div className="governance-actions"><Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" onClick={governance.retry} />{governance.canManage && <><Button icon="add" onClick={() => openEditor({ kind: 'semester' })}>Thêm học kỳ</Button><Button variant="secondary" icon="event_note" onClick={() => openEditor({ kind: 'period' })}>Thêm giai đoạn</Button></>}</div>}>
     <FilterToolbar
       search={search}
-      onSearchChange={value => { setSearch(value); setSemesterPage(1); setPeriodPage(1) }}
+      onSearchChange={value => { setSearch(value); semesterPager.setPage(1); periodPager.setPage(1) }}
       searchLabel="Tìm học kỳ hoặc giai đoạn"
       searchPlaceholder="Tìm theo mã, tên học kỳ hoặc giai đoạn..."
       tabs={[
@@ -133,7 +126,7 @@ export function AcademicGovernancePage() {
         { value: 'ARCHIVED', label: 'Đã lưu trữ', count: statusCounts.ARCHIVED },
       ]}
       activeTab={statusFilter}
-      onTabChange={value => { setStatusFilter(value as 'ALL' | GovernanceStatus); setSemesterPage(1); setPeriodPage(1) }}
+      onTabChange={value => { setStatusFilter(value as 'ALL' | GovernanceStatus); semesterPager.setPage(1); periodPager.setPage(1) }}
       tabsLabel="Lọc theo trạng thái học kỳ và giai đoạn"
       controls={
         <>
@@ -143,7 +136,7 @@ export function AcademicGovernancePage() {
               className="ft-select"
               aria-label="Lọc theo loại giai đoạn"
               value={periodTypeFilter}
-              onChange={event => { setPeriodTypeFilter(event.target.value); setPeriodPage(1) }}
+              onChange={event => { setPeriodTypeFilter(event.target.value); periodPager.setPage(1) }}
             >
               <option value="ALL">Tất cả loại giai đoạn</option>
               {projectPeriodTypes.map(type => (
@@ -158,7 +151,7 @@ export function AcademicGovernancePage() {
                 className="ft-select"
                 aria-label="Lọc giai đoạn theo học kỳ"
                 value={selectedSemesterCode}
-                onChange={event => { setSelectedSemesterCode(event.target.value); setPeriodPage(1) }}
+                onChange={event => { setSelectedSemesterCode(event.target.value); periodPager.setPage(1) }}
               >
                 <option value="ALL">Tất cả học kỳ ({governance.periods.length})</option>
                 {periodSemesterCodes.map(code => <option key={code} value={code}>{code}</option>)}
@@ -181,8 +174,8 @@ export function AcademicGovernancePage() {
         if (id === 'status') setStatusFilter('ALL')
         if (id === 'periodType') setPeriodTypeFilter('ALL')
         if (id === 'semesterCode') setSelectedSemesterCode('ALL')
-        setSemesterPage(1)
-        setPeriodPage(1)
+        semesterPager.setPage(1)
+        periodPager.setPage(1)
       }}
       onClearAll={clearAllFilters}
       hasActiveFilters={hasActiveFilters}
@@ -193,7 +186,7 @@ export function AcademicGovernancePage() {
     {operationSuccess ? <p className="governance-message" role="status">{operationSuccess}</p> : null}
     <section aria-labelledby="governance-semesters-title">
       <div className="governance-section-title"><h2 id="governance-semesters-title">Học kỳ</h2><span>{filteredSemesters.length} học kỳ</span></div>
-      <div className="governance-grid">{visibleSemesters.map(semester => <article key={semester.id} className="governance-card">
+      <div className="governance-grid">{semesterPager.paginatedItems.map(semester => <article key={semester.id} className="governance-card">
         <div className="governance-record-heading"><div><p className="governance-record-code">{semester.code}</p><h3>{semester.name}</h3></div><span className="governance-record-kind">Học kỳ</span></div>
         <p className="governance-record-meta">{semester.organizationName || semester.organizationCode}</p>
         <dl className="governance-dates"><div><dt>Bắt đầu</dt><dd>{formatDate(semester.startDate)}</dd></div><div><dt>Kết thúc</dt><dd>{formatDate(semester.endDate)}</dd></div></dl>
@@ -201,18 +194,23 @@ export function AcademicGovernancePage() {
           <Status label={`học kỳ ${semester.code}`} status={semester.status} busy={governance.submitting} canManage={governance.canManage} onChange={status => changeStatus('semester', semester.id, status, semester.status)} />
         </div>
       </article>)}</div>
-      {totalSemesterPages > 1 && <div className="mt-4 flex items-center justify-between rounded-lg border border-hairline bg-card px-4 py-2.5 text-xs">
-        <span className="text-ink-muted">Trang <strong className="text-ink">{safeSemesterPage}</strong> / {totalSemesterPages} · {filteredSemesters.length} học kỳ</span>
-        <div className="flex gap-2">
-          <button type="button" disabled={safeSemesterPage <= 1} onClick={() => setSemesterPage(p => Math.max(1, p - 1))} className="min-h-9 rounded-lg border border-hairline px-3 font-semibold text-ink-soft hover:border-primary hover:text-primary disabled:opacity-40">Trước</button>
-          <button type="button" disabled={safeSemesterPage >= totalSemesterPages} onClick={() => setSemesterPage(p => Math.min(totalSemesterPages, p + 1))} className="min-h-9 rounded-lg border border-hairline px-3 font-semibold text-ink-soft hover:border-primary hover:text-primary disabled:opacity-40">Sau</button>
+      {semesterPager.showPagination && (
+        <div className="mt-4">
+          <Pagination
+            page={semesterPager.page}
+            pages={semesterPager.pages}
+            total={semesterPager.total}
+            pageSize={semesterPager.pageSize}
+            onPage={semesterPager.setPage}
+            onPageSizeChange={semesterPager.setPageSize}
+          />
         </div>
-      </div>}
+      )}
       {!filteredSemesters.length && <p className="governance-empty">Chưa có học kỳ phù hợp với bộ lọc.</p>}
     </section>
     <section aria-labelledby="governance-periods-title">
       <div className="governance-section-title"><h2 id="governance-periods-title">Giai đoạn đồ án</h2><span>{filteredPeriods.length} giai đoạn</span></div>
-      <div className="governance-periods">{visiblePeriods.map(period => <article key={period.id} className="governance-period">
+      <div className="governance-periods">{periodPager.paginatedItems.map(period => <article key={period.id} className="governance-period">
         <div className="governance-record-heading"><div><p className="governance-record-code">{period.semesterCode} · {labels[period.periodType]}</p><h3>{period.name}</h3></div></div>
         <dl className="governance-dates"><div><dt>Bắt đầu (giờ Việt Nam)</dt><dd>{dateTimeLabel(period.startAt)}</dd></div><div><dt>Kết thúc (giờ Việt Nam)</dt><dd>{dateTimeLabel(period.endAt)}</dd></div></dl>
         <dl className="governance-period-facts"><div><dt>Số thành viên</dt><dd>{period.minTeamSize}–{period.maxTeamSize}</dd></div><div><dt>Số ngành tối thiểu</dt><dd>{period.minDistinctMajors}</dd></div><div><dt>Đồ án tối đa mỗi GVHD</dt><dd>{period.maxProjectsPerSupervisor}</dd></div></dl>
@@ -224,13 +222,18 @@ export function AcademicGovernancePage() {
         </div><Status label={`giai đoạn ${period.name}`} status={period.status} busy={governance.submitting} canManage={governance.canManage} onChange={status => changeStatus('period', period.id, status, period.status)} /></div>
 
       </article>)}</div>
-      {totalPeriodPages > 1 && <div className="mt-4 flex items-center justify-between rounded-lg border border-hairline bg-card px-4 py-2.5 text-xs">
-        <span className="text-ink-muted">Trang <strong className="text-ink">{safePeriodPage}</strong> / {totalPeriodPages} · {filteredPeriods.length} giai đoạn</span>
-        <div className="flex gap-2">
-          <button type="button" disabled={safePeriodPage <= 1} onClick={() => setPeriodPage(p => Math.max(1, p - 1))} className="min-h-9 rounded-lg border border-hairline px-3 font-semibold text-ink-soft hover:border-primary hover:text-primary disabled:opacity-40">Trước</button>
-          <button type="button" disabled={safePeriodPage >= totalPeriodPages} onClick={() => setPeriodPage(p => Math.min(totalPeriodPages, p + 1))} className="min-h-9 rounded-lg border border-hairline px-3 font-semibold text-ink-soft hover:border-primary hover:text-primary disabled:opacity-40">Sau</button>
+      {periodPager.showPagination && (
+        <div className="mt-4">
+          <Pagination
+            page={periodPager.page}
+            pages={periodPager.pages}
+            total={periodPager.total}
+            pageSize={periodPager.pageSize}
+            onPage={periodPager.setPage}
+            onPageSizeChange={periodPager.setPageSize}
+          />
         </div>
-      </div>}
+      )}
       {!filteredPeriods.length && <p className="governance-empty">Chưa có giai đoạn phù hợp với bộ lọc.</p>}
     </section>
     {confirmationDialog}
