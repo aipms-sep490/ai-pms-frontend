@@ -6,6 +6,7 @@ import { useStudentJourney } from '../../app/context'
 import { getDeliverables, getDeliverableVersions } from '../../services/api/deliverables.api'
 import { HttpError } from '../../services/http/http-client'
 import { Button } from '../../components/ui/Button'
+import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { InlineAlert } from '../../components/ui/InlineAlert'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
 import { ListLoading } from '../../components/ui/ListLoading'
@@ -240,6 +241,7 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
 export function LockedPackageView({ projectId, packageData }: { projectId: number; packageData: LockedFinalSubmission }) {
   const [error, setError] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
+  const [previewFile, setPreviewFile] = useState<{ id: number; fileName: string; contentType?: string; sizeBytes?: number } | null>(null)
   const download = async (fileId: number, fileName: string) => {
     setDownloadingId(fileId)
     try {
@@ -278,12 +280,39 @@ export function LockedPackageView({ projectId, packageData }: { projectId: numbe
             {item.files.length === 0 ? (
               <p className="mt-2 text-xs text-ink-muted">Bản bàn giao này không có tệp để tải xuống.</p>
             ) : (
-              <ul className="mt-2 space-y-1">
+              <ul className="mt-2.5 space-y-1.5">
                 {item.files.map(file => (
-                  <li key={file.id}>
-                    <button type="button" disabled={downloadingId !== null} className="min-h-11 text-left font-semibold text-primary hover:underline disabled:opacity-50" onClick={() => void download(file.id, file.fileName)}>
-                      {downloadingId === file.id ? 'Đang tải…' : `${file.fileName}${file.sizeBytes ? ` · ${formatBytes(file.sizeBytes)}` : ''}`}
+                  <li key={file.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hairline bg-card px-3 py-2">
+                    <button
+                      type="button"
+                      className="inline-flex min-h-9 min-w-0 flex-1 items-center gap-2 text-left font-semibold text-ink transition-colors hover:text-primary hover:underline"
+                      onClick={() => setPreviewFile(file)}
+                      title="Nhấn để xem trước tài liệu"
+                    >
+                      <span className="material-symbols-outlined shrink-0 text-[18px] text-primary" aria-hidden="true">description</span>
+                      <span className="truncate">{file.fileName}</span>
+                      {file.sizeBytes ? <span className="shrink-0 font-mono text-xs font-normal text-ink-muted">· {formatBytes(file.sizeBytes)}</span> : null}
                     </button>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={downloadingId !== null}
+                        className="inline-flex min-h-9 items-center gap-1 rounded-md border border-primary/25 bg-primary-subtle px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 disabled:opacity-50"
+                        onClick={() => setPreviewFile(file)}
+                      >
+                        <span className="material-symbols-outlined text-[15px]" aria-hidden="true">visibility</span>
+                        <span>Xem trước</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={downloadingId !== null}
+                        className="inline-flex min-h-9 items-center gap-1 rounded-md border border-hairline bg-card px-2.5 py-1 text-xs font-semibold text-ink-soft transition-colors hover:border-primary/35 hover:text-primary disabled:opacity-50"
+                        onClick={() => void download(file.id, file.fileName)}
+                      >
+                        <span className="material-symbols-outlined text-[15px]" aria-hidden="true">download</span>
+                        <span>{downloadingId === file.id ? 'Đang tải…' : 'Tải xuống'}</span>
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -291,6 +320,18 @@ export function LockedPackageView({ projectId, packageData }: { projectId: numbe
           </li>
         ))}
       </ul>
+      {previewFile && (
+        <DocumentPreviewModal
+          open
+          fileId={previewFile.id}
+          fileName={previewFile.fileName}
+          fileSize={previewFile.sizeBytes}
+          contentType={previewFile.contentType}
+          loadBlob={() => api.downloadLockedFile(projectId, previewFile.id)}
+          onDownload={() => void download(previewFile.id, previewFile.fileName)}
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
     </section>
   )
 }

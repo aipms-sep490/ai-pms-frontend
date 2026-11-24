@@ -1,5 +1,6 @@
 import { dateTimeLabel } from '../execution/execution-utils'
 import { Avatar } from '../../components/ui/Avatar'
+import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import { InlineAlert } from '../../components/ui/InlineAlert'
 import { Modal } from '../../components/ui/Modal'
@@ -8,11 +9,12 @@ import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { ListLoading } from '../../components/ui/ListLoading'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { useStudentJourney } from '../../app/context'
 import { useAuthSession } from '../auth/context/useAuthSession'
 import { getWorkspaceRole } from '../auth/utils/role-access'
 import { HttpError } from '../../services/http/http-client'
+import { downloadProjectFile } from '../files/project-files-api'
 import * as api from './contributions-api'
 import type { ContributionEvidence, ContributionSummary } from './contributions-api'
 import { ContributionFairnessPanel } from '../ai-suite/ContributionFairnessPanel'
@@ -21,12 +23,14 @@ type MemberSort = 'score_desc' | 'tasks_desc' | 'evidence_desc' | 'name_asc'
 
 export function ProjectContributionsPage() {
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
+  const location = useLocation()
   const routeId = Number(useParams().projectId)
   const journey = useStudentJourney()
   const { session } = useAuthSession()
   const role = getWorkspaceRole(session?.user)
   const projectId = Number.isInteger(routeId) && routeId > 0 ? routeId : journey.project?.id
   const canSnapshot = role === 'department' || role === 'admin'
+  const [previewEvidenceFile, setPreviewEvidenceFile] = useState<{ id: number; fileName: string } | null>(null)
   const [snapshot, setSnapshot] = useState(false)
   const [page, setPage] = useState(1)
   const [memberSearch, setMemberSearch] = useState('')
@@ -132,6 +136,47 @@ export function ProjectContributionsPage() {
     if (!needle) return evidence
     return evidence.filter(item => item.label.toLowerCase().includes(needle) || sourceLabel(item.sourceType).toLowerCase().includes(needle))
   }, [evidence, evidenceSearch])
+
+  const executionBase = useMemo(() => {
+    const mentorMatch = location.pathname.match(/^(\/mentor\/projects\/\d+\/majors\/\d+)/)
+    if (mentorMatch) return mentorMatch[1]
+    if (location.pathname.startsWith('/supervisor/projects/') && projectId) return `/supervisor/projects/${projectId}`
+    if (location.pathname.startsWith('/project/')) return '/project'
+    if (role === 'student') return '/project'
+    if (role === 'lecturer' && projectId) return `/supervisor/projects/${projectId}`
+    return null
+  }, [location.pathname, projectId, role])
+
+  const resolveEvidenceLink = useCallback((item: ContributionEvidence): string | null => {
+    if (item.sourceType === 'FILE') {
+      if (executionBase) return `${executionBase}/files`
+      if (projectId && (role === 'department' || role === 'admin')) return `/department/projects/${projectId}/files`
+      return null
+    }
+    if (!executionBase) return null
+    switch (item.sourceType) {
+      case 'TASK': return `${executionBase}/tasks/${item.sourceId}`
+      case 'PROGRESS_REPORT': return `${executionBase}/reports/${item.sourceId}`
+      case 'MEETING': return `${executionBase}/meetings/${item.sourceId}`
+      case 'DELIVERABLE_VERSION':
+      case 'DELIVERABLE': return `${executionBase}/deliverables`
+      default: return null
+    }
+  }, [executionBase, projectId, role])
+
+  const downloadEvidenceFile = async (fileId: number, fileName: string) => {
+    try {
+      const blob = await downloadProjectFile(fileId)
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = fileName
+      anchor.click()
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch {
+      setEvidenceError('Không thể tải tệp minh chứng này.')
+    }
+  }
 
   const projectEyebrow = journey.project?.code ? `Theo dõi đóng góp · ${journey.project.code}` : 'Theo dõi đóng góp'
   const backTo = Number.isInteger(routeId) && routeId > 0
@@ -313,28 +358,102 @@ export function ProjectContributionsPage() {
                 )}
                 {!evidenceLoading && filteredEvidence.length > 0 && (
                   <ul className="divide-y divide-hairline">
-                    {filteredEvidence.map(item => (
-                      <li key={`${item.sourceType}-${item.sourceId}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 py-3.5 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
-                        <span className="grid size-9 place-items-center rounded-md bg-primary-subtle text-primary">
-                          <span className="material-symbols-outlined text-[19px]" aria-hidden="true">description</span>
-                        </span>
-                        <div className="min-w-0">
-                          <strong className="block break-words text-sm text-ink">
-                            {item.sourceType === 'PROGRESS_REPORT' ? ({ WEEKLY: 'Báo cáo tuần', MONTHLY: 'Báo cáo tháng' }[item.label] ?? item.label) : item.label}
-                          </strong>
-                          <span className="mt-1 block text-xs text-ink-muted">{sourceLabel(item.sourceType)}</span>
-                        </div>
-                        <div className="col-start-2 text-left sm:col-start-auto sm:text-right">
-                          <span className="block text-xs text-ink-muted">{formatDate(item.occurredAt)}</span>
-                          {item.credit !== 1 && <span className="mt-1 block font-mono text-xs text-ink-muted">Mức đóng góp: {item.credit}</span>}
-                        </div>
-                      </li>
-                    ))}
+                    {filteredEvidence.map(item => {
+                      const titleText = item.sourceType === 'PROGRESS_REPORT'
+                        ? ({ WEEKLY: 'Báo cáo tuần', MONTHLY: 'Báo cáo tháng' }[item.label] ?? item.label)
+                        : item.label
+                      const href = resolveEvidenceLink(item)
+                      const isFile = item.sourceType === 'FILE'
+                      const sourceIcon = item.sourceType === 'TASK'
+                        ? 'checklist'
+                        : item.sourceType === 'MEETING'
+                          ? 'groups'
+                          : item.sourceType === 'PROGRESS_REPORT'
+                            ? 'assignment'
+                            : item.sourceType === 'DELIVERABLE_VERSION'
+                              ? 'inventory_2'
+                              : 'description'
+                      return (
+                        <li key={`${item.sourceType}-${item.sourceId}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 py-3.5 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
+                          <span className="grid size-9 place-items-center rounded-md bg-primary-subtle text-primary">
+                            <span className="material-symbols-outlined text-[19px]" aria-hidden="true">{sourceIcon}</span>
+                          </span>
+                          <div className="min-w-0">
+                            {isFile ? (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewEvidenceFile({ id: item.sourceId, fileName: titleText })}
+                                className="block max-w-full text-left font-semibold break-words text-sm text-ink transition-colors hover:text-primary hover:underline"
+                              >
+                                {titleText}
+                              </button>
+                            ) : href ? (
+                              <Link
+                                to={href}
+                                onClick={() => setSelectedUserId(null)}
+                                className="block max-w-full font-semibold break-words text-sm text-ink transition-colors hover:text-primary hover:underline"
+                              >
+                                {titleText}
+                              </Link>
+                            ) : (
+                              <strong className="block break-words text-sm text-ink">{titleText}</strong>
+                            )}
+                            <span className="mt-1 block text-xs text-ink-muted">{sourceLabel(item.sourceType)}</span>
+                          </div>
+                          <div className="col-start-2 flex flex-wrap items-center justify-between gap-2 text-left sm:col-start-auto sm:flex-col sm:items-end sm:text-right">
+                            <div>
+                              <span className="block text-xs text-ink-muted">{formatDate(item.occurredAt)}</span>
+                              {item.credit !== 1 && <span className="mt-0.5 block font-mono text-xs text-ink-muted">Mức đóng góp: {item.credit}</span>}
+                            </div>
+                            {isFile ? (
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewEvidenceFile({ id: item.sourceId, fileName: titleText })}
+                                  className="inline-flex min-h-8 items-center gap-1 rounded-md border border-primary/25 bg-primary-subtle px-2 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+                                >
+                                  <span className="material-symbols-outlined text-[14px]" aria-hidden="true">visibility</span>
+                                  Xem
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void downloadEvidenceFile(item.sourceId, titleText)}
+                                  className="inline-flex min-h-8 items-center gap-1 rounded-md border border-hairline bg-card px-2 py-1 text-xs font-semibold text-ink-soft transition-colors hover:border-primary/35 hover:text-primary"
+                                  title="Tải xuống"
+                                >
+                                  <span className="material-symbols-outlined text-[14px]" aria-hidden="true">download</span>
+                                  Tải
+                                </button>
+                              </div>
+                            ) : href ? (
+                              <Link
+                                to={href}
+                                onClick={() => setSelectedUserId(null)}
+                                className="inline-flex min-h-8 items-center gap-1 rounded-md border border-hairline bg-card px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:border-primary/35 hover:bg-primary-subtle"
+                              >
+                                <span>Mở nguồn</span>
+                                <span className="material-symbols-outlined text-[14px]" aria-hidden="true">open_in_new</span>
+                              </Link>
+                            ) : null}
+                          </div>
+                        </li>
+                      )
+                    })}
                   </ul>
                 )}
                 {evidenceTotal > 20 && <Pager page={evidencePage} total={evidenceTotal} onChange={setEvidencePage} />}
               </div>
             </Modal>
+          )}
+          {previewEvidenceFile && (
+            <DocumentPreviewModal
+              open
+              fileId={previewEvidenceFile.id}
+              fileName={previewEvidenceFile.fileName}
+              loadBlob={(signal) => downloadProjectFile(previewEvidenceFile.id, signal)}
+              onDownload={() => void downloadEvidenceFile(previewEvidenceFile.id, previewEvidenceFile.fileName)}
+              onClose={() => setPreviewEvidenceFile(null)}
+            />
           )}
         </>
       )}

@@ -352,7 +352,11 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
         {docPager.paginatedItems.map(row => <article key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-card p-4 transition-colors hover:border-primary/30">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-semibold text-ink">{row.title}</h3>
+              <h3 className="font-semibold text-ink">
+                <button type="button" className="text-left transition-colors hover:text-primary hover:underline" onClick={() => setPreview(row)}>
+                  {row.title}
+                </button>
+              </h3>
               <StatusBadge tone={row.status === 'PUBLISHED' ? 'success' : row.status === 'DRAFT' ? 'warning' : 'neutral'} label={row.status === 'PUBLISHED' ? 'Đã công bố' : row.status === 'DRAFT' ? 'Bản nháp' : 'Đã thu hồi'} />
             </div>
             <p className="mt-1 text-sm text-ink-muted">{row.code} · v{row.version} · {row.fileName}</p>

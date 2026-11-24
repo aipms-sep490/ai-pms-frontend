@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { displayLabel } from '../../components/ui/display-label'
+import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import { InlineAlert } from '../../components/ui/InlineAlert'
 import type { FilterChipItem } from '../../components/ui/FilterChips'
@@ -205,15 +206,84 @@ function EvidenceLedger({ projectId, projectLabel, routeBase, majors = [], locke
 }
 
 function EvidenceList({ items, majorMap, routeBase, actor, onReviewed }: { items: ProjectEvidence[]; majorMap: Record<number, string>; routeBase: string; actor?: 'student' | 'supervisor' | 'mentor'; onReviewed: () => void }) {
-  return <div aria-label="Danh sách minh chứng"><ul className="divide-y divide-hairline">{items.map(item => <li key={item.id} className="grid gap-3 p-4 sm:p-5">
-    <div className="grid gap-3 lg:grid-cols-[minmax(12rem,1fr)_minmax(10rem,.7fr)_minmax(10rem,.7fr)_auto] lg:items-start">
-      <div className="min-w-0"><p className="font-semibold text-ink">{sourceLabels[item.sourceType as keyof typeof sourceLabels] ?? displayLabel(item.sourceType)}{item.sourceTitle ? `: ${item.sourceTitle}` : ''}</p><p className="mt-1 text-sm text-ink-muted">{item.majorName ?? (item.majorId ? majorMap[item.majorId] ?? 'Chuyên ngành' : 'Chưa phân loại ngành')} · {displayLabel(item.classification)}</p>{item.notes ? <p className="mt-2 break-words text-sm leading-6 text-ink-soft">{item.notes}</p> : <p className="mt-2 text-sm text-ink-muted">Không có ghi chú.</p>}</div>
-      <div className="text-sm"><StatusBadge tone={verificationTone(item.verificationStatus)} label={verificationLabels[item.verificationStatus as keyof typeof verificationLabels] ?? displayLabel(item.verificationStatus)} /><p className="mt-1.5 text-xs text-ink-muted">Người gửi: {item.submittedByName ?? 'Thành viên đồ án'}</p></div>
-      <p className="text-sm leading-6 text-ink-muted">{formatDate(item.submittedAt)}</p>
-       <div>{sourcePath(routeBase, item) ? (isProtectedSource(sourcePath(routeBase, item)!) ? <ProtectedSourceButton path={sourcePath(routeBase, item)!} /> : <Link to={sourcePath(routeBase, item)!} className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở nguồn</Link>) : <span className="inline-flex min-h-11 items-center text-sm text-ink-muted">Chưa có đường dẫn nguồn</span>}</div>
-    </div>
-    {actor && actor !== 'student' && <EvidenceReviewSection evidenceId={item.id} onReviewed={onReviewed} />}
-  </li>)}</ul></div>
+  const [previewTarget, setPreviewTarget] = useState<{ fileName: string; apiPath: string } | null>(null)
+  const downloadApiPath = async (apiPath: string, fileName: string) => {
+    const blob = await httpGetBlob(apiPath.startsWith('/api/v1/') ? apiPath.slice('/api/v1'.length) : apiPath)
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = fileName
+    anchor.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  }
+  return <div aria-label="Danh sách minh chứng">
+    <ul className="divide-y divide-hairline">{items.map(item => {
+      const target = sourcePath(routeBase, item)
+      const isProtected = target ? isProtectedSource(target) : false
+      const titleLabel = `${sourceLabels[item.sourceType as keyof typeof sourceLabels] ?? displayLabel(item.sourceType)}${item.sourceTitle ? `: ${item.sourceTitle}` : ''}`
+      const fileDisplayName = item.sourceTitle || `minh-chung-${item.sourceId}`
+      return (
+        <li key={item.id} className="grid gap-3 p-4 sm:p-5">
+          <div className="grid gap-3 lg:grid-cols-[minmax(12rem,1fr)_minmax(10rem,.7fr)_minmax(10rem,.7fr)_auto] lg:items-start">
+            <div className="min-w-0">
+              {target ? (
+                isProtected ? (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewTarget({ fileName: fileDisplayName, apiPath: target })}
+                    className="text-left font-semibold text-ink transition-colors hover:text-primary hover:underline"
+                  >
+                    {titleLabel}
+                  </button>
+                ) : (
+                  <Link to={target} className="font-semibold text-ink transition-colors hover:text-primary hover:underline">
+                    {titleLabel}
+                  </Link>
+                )
+              ) : (
+                <p className="font-semibold text-ink">{titleLabel}</p>
+              )}
+              <p className="mt-1 text-sm text-ink-muted">{item.majorName ?? (item.majorId ? majorMap[item.majorId] ?? 'Chuyên ngành' : 'Chưa phân loại ngành')} · {displayLabel(item.classification)}</p>
+              {item.notes ? <p className="mt-2 break-words text-sm leading-6 text-ink-soft">{item.notes}</p> : <p className="mt-2 text-sm text-ink-muted">Không có ghi chú.</p>}
+            </div>
+            <div className="text-sm"><StatusBadge tone={verificationTone(item.verificationStatus)} label={verificationLabels[item.verificationStatus as keyof typeof verificationLabels] ?? displayLabel(item.verificationStatus)} /><p className="mt-1.5 text-xs text-ink-muted">Người gửi: {item.submittedByName ?? 'Thành viên đồ án'}</p></div>
+            <p className="text-sm leading-6 text-ink-muted">{formatDate(item.submittedAt)}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              {target ? (
+                isProtected ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewTarget({ fileName: fileDisplayName, apiPath: target })}
+                      className="inline-flex min-h-9 items-center gap-1 rounded-md border border-primary/25 bg-primary-subtle px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+                    >
+                      <span className="material-symbols-outlined text-[15px]" aria-hidden="true">visibility</span>
+                      Xem trước
+                    </button>
+                    <ProtectedSourceButton path={target} />
+                  </>
+                ) : (
+                  <Link to={target} className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở nguồn</Link>
+                )
+              ) : (
+                <span className="inline-flex min-h-11 items-center text-sm text-ink-muted">Chưa có đường dẫn nguồn</span>
+              )}
+            </div>
+          </div>
+          {actor && actor !== 'student' && <EvidenceReviewSection evidenceId={item.id} onReviewed={onReviewed} />}
+        </li>
+      )
+    })}</ul>
+    {previewTarget && (
+      <DocumentPreviewModal
+        open
+        fileName={previewTarget.fileName}
+        loadBlob={(signal) => httpGetBlob(previewTarget.apiPath.startsWith('/api/v1/') ? previewTarget.apiPath.slice('/api/v1'.length) : previewTarget.apiPath, { signal })}
+        onDownload={() => void downloadApiPath(previewTarget.apiPath, previewTarget.fileName)}
+        onClose={() => setPreviewTarget(null)}
+      />
+    )}
+  </div>
 }
 
 const reviewDecisionLabels: Record<string, string> = { ACCEPTED: 'Đã chấp nhận', CHANGES_REQUESTED: 'Cần bổ sung', REJECTED: 'Từ chối' }

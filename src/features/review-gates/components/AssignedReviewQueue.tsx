@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { AssignedReviewItem } from '../types/review-gates.types'
 import { Button } from '../../../components/ui/Button'
+import { DocumentPreviewModal } from '../../../components/ui/DocumentPreviewModal'
 import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
 import { Modal } from '../../../components/ui/Modal'
@@ -10,8 +11,9 @@ import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { HttpError } from '../../../services/http/http-client'
 import { humanizeHttpError } from '../../../services/http/humanize-http-error'
 import { env } from '../../../app/config/env'
+import { downloadReviewGateEvidence } from '../api/review-gates-api'
 import { EvidenceDownloadButton } from './EvidenceDownloadButton'
-import { evidenceArtifactLabel, isLinkArtifact } from '../utils/evidence-link'
+import { evidenceArtifactLabel, isLinkArtifact, safeEvidenceLink } from '../utils/evidence-link'
 import { requirementTypeLabel } from '../utils/review-gate-labels'
 import { displayLabel } from '../../../components/ui/display-label'
 import { dateTimeLabel } from '../../execution/execution-utils'
@@ -83,6 +85,10 @@ export function AssignedReviewQueue({
   const [sortBy, setSortBy] = useState<SortKey>('due-asc')
 
   const [previewingArtifact, setPreviewingArtifact] = useState<{
+    projectId: string
+    gateCode: string
+    requirementId: string
+    requirementType: string
     filename: string
     version: number
     submittedBy: string
@@ -90,8 +96,39 @@ export function AssignedReviewQueue({
     submittedAt: string
     notes?: string | null
     linkUrl?: string | null
+    downloadUrl?: string
+    sizeBytes?: number
     contentType?: string
   } | null>(null)
+  const [previewDocOpen, setPreviewDocOpen] = useState(false)
+  const [modalDownloading, setModalDownloading] = useState(false)
+  const [modalDownloadError, setModalDownloadError] = useState<string | null>(null)
+
+  const downloadPreviewingArtifact = async () => {
+    if (!previewingArtifact || !previewingArtifact.downloadUrl) return
+    setModalDownloading(true)
+    setModalDownloadError(null)
+    try {
+      const blob = await downloadReviewGateEvidence(
+        previewingArtifact.projectId,
+        previewingArtifact.gateCode,
+        previewingArtifact.requirementId,
+        previewingArtifact.version,
+      )
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = previewingArtifact.filename
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (err) {
+      setModalDownloadError(err instanceof Error ? err.message : 'Không thể tải tệp minh chứng.')
+    } finally {
+      setModalDownloading(false)
+    }
+  }
 
   const gateCodes = useMemo(
     () => Array.from(new Set(assignments.map((a) => a.gateCode))).sort(),
@@ -419,9 +456,18 @@ export function AssignedReviewQueue({
                                 <span>{isLinkArtifact(req.latestArtifact) || req.type === 'LINK' ? 'Liên kết minh chứng:' : 'Tệp minh chứng:'}</span>
                                 <button
                                   type="button"
-                                  onClick={() => setPreviewingArtifact(req.latestArtifact!)}
+                                  onClick={() => {
+                                    setModalDownloadError(null)
+                                    setPreviewingArtifact({
+                                      ...req.latestArtifact!,
+                                      projectId: selectedItem.projectId,
+                                      gateCode: selectedItem.gateCode,
+                                      requirementId: req.id,
+                                      requirementType: req.type,
+                                    })
+                                  }}
                                   className="inline-flex items-center gap-1 font-semibold text-primary hover:underline cursor-pointer"
-                                  title="Xem chi tiết siêu dữ liệu phiên bản minh chứng"
+                                  title="Xem chi tiết phiên bản và mở tài liệu minh chứng"
                                 >
                                   <span className="material-symbols-outlined text-xs" aria-hidden="true">visibility</span>
                                   <span className="break-all" title={req.latestArtifact.linkUrl ?? req.latestArtifact.filename}>{evidenceArtifactLabel(req.latestArtifact)}</span>
@@ -566,56 +612,126 @@ export function AssignedReviewQueue({
       )}
 
       {/* Exact Artifact Version Preview Modal */}
-      {previewingArtifact && (
-        <Modal
-          open
-          title="Chi tiết thông tin minh chứng"
-          description="Xem thông tin chi tiết phiên bản tệp đã nộp"
-          onClose={() => setPreviewingArtifact(null)}
-        >
-          <div className="space-y-3 text-xs">
-            <div className="rounded-lg border border-hairline bg-canvas p-3 space-y-2">
-              <div className="flex min-w-0 justify-between gap-3">
-                <span className="shrink-0 text-ink-muted">{isLinkArtifact(previewingArtifact) ? 'Liên kết ngoài:' : 'Tên tệp:'}</span>
-                <span className="min-w-0 break-all font-bold text-ink" title={previewingArtifact.linkUrl ?? previewingArtifact.filename}>{evidenceArtifactLabel(previewingArtifact)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-ink-muted">Phiên bản thẩm định:</span>
-                <span className="rounded-md bg-primary-subtle px-2 py-0.5 font-bold text-primary">v{previewingArtifact.version}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-ink-muted">Người nộp:</span>
-                <span className="font-semibold text-ink-soft">{formatSubmitter(previewingArtifact.submittedByName, previewingArtifact.submittedBy)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-ink-muted">Thời gian nộp:</span>
-                <span className="font-semibold text-ink-soft">{dateTimeLabel(previewingArtifact.submittedAt)}</span>
-              </div>
-              {previewingArtifact.notes && (
-                <div className="border-t border-hairline/60 pt-2">
-                  <span className="text-ink-muted block mb-0.5">Ghi chú nộp bài:</span>
-                  <p className="italic text-ink-soft">"{previewingArtifact.notes}"</p>
+      {previewingArtifact && (() => {
+        const isLink = isLinkArtifact(previewingArtifact) || previewingArtifact.requirementType === 'LINK'
+        const safeUrl = isLink ? safeEvidenceLink(previewingArtifact.linkUrl ?? previewingArtifact.filename) : null
+        const canAccessFile = !isLink && !env.reviewGatesMockEnabled && Boolean(previewingArtifact.downloadUrl)
+        return (
+          <>
+            <Modal
+              open
+              title="Chi tiết thông tin minh chứng"
+              description="Xem thông tin chi tiết phiên bản tệp đã nộp"
+              onClose={() => { setPreviewingArtifact(null); setPreviewDocOpen(false); setModalDownloadError(null) }}
+            >
+              <div className="space-y-3 text-xs">
+                <div className="rounded-lg border border-hairline bg-canvas p-3 space-y-2">
+                  <div className="flex min-w-0 justify-between gap-3">
+                    <span className="shrink-0 text-ink-muted">{isLink ? 'Liên kết ngoài:' : 'Tên tệp:'}</span>
+                    {safeUrl ? (
+                      <a
+                        href={safeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="min-w-0 break-all font-bold text-primary hover:underline"
+                        title={previewingArtifact.linkUrl ?? previewingArtifact.filename}
+                      >
+                        {evidenceArtifactLabel(previewingArtifact)}
+                      </a>
+                    ) : canAccessFile ? (
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDocOpen(true)}
+                        className="min-w-0 break-all text-right font-bold text-primary hover:underline"
+                        title={previewingArtifact.filename}
+                      >
+                        {evidenceArtifactLabel(previewingArtifact)}
+                      </button>
+                    ) : (
+                      <span className="min-w-0 break-all font-bold text-ink" title={previewingArtifact.linkUrl ?? previewingArtifact.filename}>{evidenceArtifactLabel(previewingArtifact)}</span>
+                    )}
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-ink-muted">Phiên bản thẩm định:</span>
+                    <span className="rounded-md bg-primary-subtle px-2 py-0.5 font-bold text-primary">v{previewingArtifact.version}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-ink-muted">Người nộp:</span>
+                    <span className="font-semibold text-ink-soft">{formatSubmitter(previewingArtifact.submittedByName, previewingArtifact.submittedBy)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-ink-muted">Thời gian nộp:</span>
+                    <span className="font-semibold text-ink-soft">{dateTimeLabel(previewingArtifact.submittedAt)}</span>
+                  </div>
+                  {previewingArtifact.notes && (
+                    <div className="border-t border-hairline/60 pt-2">
+                      <span className="text-ink-muted block mb-0.5">Ghi chú nộp bài:</span>
+                      <p className="italic text-ink-soft">"{previewingArtifact.notes}"</p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <div className="rounded-lg border border-primary/20 bg-primary-subtle p-3 text-primary">
-              <p className="font-semibold text-xs">
-                {isLinkArtifact(previewingArtifact) ? 'Minh chứng dạng liên kết:' : 'Chế độ bảo mật lưu trữ:'}
-              </p>
-              <p className="mt-1 text-xs text-ink-soft">
-                {isLinkArtifact(previewingArtifact)
-                  ? 'Minh chứng được mở ngoài hệ thống. Quyền truy cập nội dung do dịch vụ đích quản lý; không có tệp để tải từ hệ thống.'
-                  : 'Tệp được tải xuống qua kết nối có xác thực. Hệ thống kiểm tra quyền truy cập và cung cấp đúng phiên bản đã nộp.'}
-              </p>
-            </div>
+                <div className="rounded-lg border border-primary/20 bg-primary-subtle p-3 text-primary">
+                  <p className="font-semibold text-xs">
+                    {isLink ? 'Minh chứng dạng liên kết:' : 'Chế độ bảo mật lưu trữ:'}
+                  </p>
+                  <p className="mt-1 text-xs text-ink-soft">
+                    {isLink
+                      ? 'Minh chứng được mở ngoài hệ thống. Quyền truy cập nội dung do dịch vụ đích quản lý; không có tệp để tải từ hệ thống.'
+                      : 'Tệp được tải xuống qua kết nối có xác thực. Hệ thống kiểm tra quyền truy cập và cung cấp đúng phiên bản đã nộp.'}
+                  </p>
+                </div>
 
-            <div className="flex justify-end pt-2">
-              <Button variant="secondary" size="sm" onClick={() => setPreviewingArtifact(null)}>Đóng</Button>
-            </div>
-          </div>
-        </Modal>
-      )}
+                {modalDownloadError && (
+                  <p role="alert" className="text-xs font-medium text-status-error-text">{modalDownloadError}</p>
+                )}
+
+                <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
+                  {safeUrl && (
+                    <a
+                      href={safeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary-hover"
+                    >
+                      <span className="material-symbols-outlined text-[15px]" aria-hidden="true">open_in_new</span>
+                      <span>Mở liên kết ngoài</span>
+                    </a>
+                  )}
+                  {canAccessFile && (
+                    <>
+                      <Button variant="primary" size="sm" icon="visibility" onClick={() => setPreviewDocOpen(true)}>
+                        Xem trước tài liệu
+                      </Button>
+                      <Button variant="secondary" size="sm" icon="download" disabled={modalDownloading} onClick={() => void downloadPreviewingArtifact()}>
+                        {modalDownloading ? 'Đang tải…' : 'Tải tệp xuống'}
+                      </Button>
+                    </>
+                  )}
+                  <Button variant="secondary" size="sm" onClick={() => { setPreviewingArtifact(null); setPreviewDocOpen(false); setModalDownloadError(null) }}>Đóng</Button>
+                </div>
+              </div>
+            </Modal>
+
+            {previewDocOpen && canAccessFile && (
+              <DocumentPreviewModal
+                open
+                fileName={previewingArtifact.filename}
+                fileSize={previewingArtifact.sizeBytes}
+                contentType={previewingArtifact.contentType}
+                loadBlob={() => downloadReviewGateEvidence(
+                  previewingArtifact.projectId,
+                  previewingArtifact.gateCode,
+                  previewingArtifact.requirementId,
+                  previewingArtifact.version,
+                )}
+                onDownload={() => void downloadPreviewingArtifact()}
+                onClose={() => setPreviewDocOpen(false)}
+              />
+            )}
+          </>
+        )
+      })()}
     </div>
   )
 }

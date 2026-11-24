@@ -17,6 +17,7 @@ import {
 } from '../../academic/api/profile-verification-api'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import { QualificationCertificateViewer } from '../../qualifications/components/QualificationCertificateViewer'
+import { projectStatusLabel } from '../../projects/utils/project-status'
 import {
   getDepartmentStudentDetail,
   listSpecializations,
@@ -347,7 +348,7 @@ export function DepartmentStudentDetailPage() {
                 <div><dt className="text-xs text-ink-muted">Nhóm</dt><dd className="font-medium">{summary.teamCode}</dd></div>
                 <div><dt className="text-xs text-ink-muted">Vai trò trong nhóm</dt><dd>{summary.isTeamLeader ? 'Trưởng nhóm' : 'Thành viên'}</dd></div>
                 <div><dt className="text-xs text-ink-muted">Mã đồ án</dt><dd className="font-mono">{summary.projectCode ?? 'Chưa đăng ký đồ án'}</dd></div>
-                <div><dt className="text-xs text-ink-muted">Trạng thái / Hướng đồ án</dt><dd>{[summary.projectStatus, detail.trackCode].filter(Boolean).join(' · ') || '—'}</dd></div>
+                <div><dt className="text-xs text-ink-muted">Trạng thái / Hướng đồ án</dt><dd>{[summary.projectStatus ? projectStatusLabel(summary.projectStatus) : null, detail.trackCode].filter(Boolean).join(' · ') || '—'}</dd></div>
                 {detail.projectTitle && (
                   <div className="sm:col-span-2"><dt className="text-xs text-ink-muted">Tên đồ án</dt><dd className="font-medium">{detail.projectTitle}</dd></div>
                 )}

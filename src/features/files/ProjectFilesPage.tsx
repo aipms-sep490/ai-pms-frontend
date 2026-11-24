@@ -6,7 +6,7 @@ import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import type { FilterChipItem } from '../../components/ui/FilterChips'
 import { dateTimeLabel, utcTimestamp } from '../execution/execution-utils'
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { useStudentJourney } from '../../app/context'
 import { services } from '../../services/service-gateway'
 import { getMeetings } from '../../services/api/meetings.api'
@@ -37,11 +37,29 @@ const formatLabels: Record<string, string> = {
 }
 
 export function ProjectFilesPage() {
+  const location = useLocation()
   const routeId = Number(useParams().projectId)
   const journey = useStudentJourney()
   const { session } = useAuthSession()
   const role = getWorkspaceRole(session?.user)
   const projectId = Number.isInteger(routeId) && routeId > 0 ? routeId : journey.project?.id
+  const executionBase = useMemo(() => {
+    const mentorMatch = location.pathname.match(/^(\/mentor\/projects\/\d+\/majors\/\d+)/)
+    if (mentorMatch) return mentorMatch[1]
+    if (location.pathname.startsWith('/supervisor/projects/') && projectId) return `/supervisor/projects/${projectId}`
+    if (location.pathname.startsWith('/project/')) return '/project'
+    if (role === 'student') return '/project'
+    if (role === 'lecturer' && projectId) return `/supervisor/projects/${projectId}`
+    return null
+  }, [location.pathname, projectId, role])
+  const parentHref = (file: ProjectFile): string | null => {
+    if (!executionBase) return null
+    if (file.parentType === 'TASK') return `${executionBase}/tasks/${file.parentId}`
+    if (file.parentType === 'REPORT') return `${executionBase}/reports/${file.parentId}`
+    if (file.parentType === 'MEETING') return `${executionBase}/meetings/${file.parentId}`
+    if (file.parentType === 'VERSION') return `${executionBase}/deliverables`
+    return null
+  }
   const activeStudentProject = role === 'student' && journey.journeyState === 'ACTIVE' && journey.project?.id === projectId
   const canUpload = activeStudentProject || (role === 'lecturer' && Number.isInteger(routeId) && routeId > 0)
 
@@ -452,15 +470,35 @@ export function ProjectFilesPage() {
         ) : data && (
           <>
             <ul className="divide-y divide-hairline">
-              {sortedItems.map(file => (
+              {sortedItems.map(file => {
+                const parentLabel = (file.parentType === 'VERSION' ? versionLabels[file.parentId] : parents.find(parent => parent.type === file.parentType && parent.id === file.parentId)?.label) ?? parentLabels[file.parentType] ?? 'Tệp đồ án'
+                const sourceHref = parentHref(file)
+                return (
                 <li key={file.id} className="grid gap-3 px-4 py-4 text-sm transition-colors hover:bg-canvas/80 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:px-5">
-                  <span className="grid size-10 place-items-center rounded-xl bg-primary-subtle text-primary">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setPreviewTarget(file)}
+                    aria-label={`Xem trước ${file.fileName}`}
+                    className="grid size-10 place-items-center rounded-xl bg-primary-subtle text-primary transition-colors hover:bg-primary/15"
+                  >
                     <span className="material-symbols-outlined text-[20px]" aria-hidden="true">description</span>
-                  </span>
+                  </button>
                   <div className="min-w-0">
-                    <strong className="block break-words text-ink">{file.fileName}</strong>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setPreviewTarget(file)}
+                      className="block max-w-full text-left font-bold break-words text-ink transition-colors hover:text-primary hover:underline"
+                    >
+                      {file.fileName}
+                    </button>
                     <p className="mt-1 text-xs text-ink-muted">
-                      {(file.parentType === 'VERSION' ? versionLabels[file.parentId] : parents.find(parent => parent.type === file.parentType && parent.id === file.parentId)?.label) ?? parentLabels[file.parentType] ?? 'Tệp đồ án'}
+                      {sourceHref ? (
+                        <Link to={sourceHref} className="font-medium text-primary hover:underline">{parentLabel}</Link>
+                      ) : (
+                        <span>{parentLabel}</span>
+                      )}
                       {' · '}
                       <span title={file.contentType || undefined}>{fileFormat(file.contentType, file.fileName)}</span>
                       {' · '}
@@ -482,7 +520,8 @@ export function ProjectFilesPage() {
                     )}
                   </div>
                 </li>
-              ))}
+                )
+              })}
             </ul>
             <Pagination
               page={data.page}
