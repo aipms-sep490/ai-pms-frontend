@@ -6,6 +6,18 @@ import { getProjectEvidence, type ProjectEvidence, type ProjectEvidenceQuery } f
 import { useProjectDisciplineScope } from '../projects/hooks/useProjectDisciplineScope'
 import { getEvidenceReviewTarget, getEvidenceReviews, reviewEvidence } from './evidence-review-api'
 import type { EvidenceReview, EvidenceReviewDecision, EvidenceReviewTarget } from './evidence-review-types'
+import { Pagination, StatTileRow, StatusBadge, useClientPagination } from '../../components/ui'
+import { displayLabel } from '../../components/ui/display-label'
+import type { BadgeTone } from '../../components/ui/status-badge-tone'
+
+function verificationTone(status: string): BadgeTone {
+  switch (status.toUpperCase()) {
+    case 'VERIFIED': return 'success'
+    case 'PENDING': return 'warning'
+    case 'REJECTED': return 'danger'
+    default: return 'neutral'
+  }
+}
 
 const sourceTypes = ['TASK', 'DELIVERABLE', 'MEETING', 'PROGRESS_REPORT', 'FILE'] as const
 const verificationStatuses = ['PENDING', 'UNKNOWN', 'VERIFIED', 'REJECTED'] as const
@@ -71,8 +83,12 @@ function EvidenceLedger({ projectId, routeBase, majors = [], lockedMajorId, acto
     setPage(1)
   }
   const totalPages = result?.totalPages ?? 1
+  const evidenceItems = result?.items ?? []
+  const taskEvidenceCount = result ? evidenceItems.filter(item => item.sourceType === 'TASK').length : null
+  const reportMeetingEvidenceCount = result ? evidenceItems.filter(item => item.sourceType === 'PROGRESS_REPORT' || item.sourceType === 'MEETING').length : null
+  const deliverableFileEvidenceCount = result ? evidenceItems.filter(item => item.sourceType === 'DELIVERABLE' || item.sourceType === 'FILE').length : null
 
-  return <div className="workspace-page space-y-6 pb-12">
+  return <div className="workspace-page space-y-5 pb-12">
     <header className="workspace-heading border-b border-hairline pb-5">
       <div className="min-w-0">
         <p className="workspace-kicker font-mono text-xs font-semibold uppercase tracking-[0.14em] text-primary">Đồ án #{projectId} · Sổ minh chứng</p>
@@ -81,47 +97,87 @@ function EvidenceLedger({ projectId, routeBase, majors = [], lockedMajorId, acto
       </div>
     </header>
 
-    <section className="rounded-xl border border-hairline bg-card p-4 shadow-xs sm:p-5" aria-label="Lọc minh chứng">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="text-sm font-medium text-ink-soft">Nguồn
-          <select value={filters.sourceType ?? ''} onChange={event => changeFilter('sourceType', event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+    <StatTileRow
+      tiles={[
+        { icon: 'fact_check', label: 'Tổng minh chứng', value: result ? result.totalCount : null, caption: 'Ghi nhận theo bộ lọc hiện tại', hero: true },
+        { icon: 'assignment', label: 'Công việc', value: taskEvidenceCount, caption: 'Minh chứng từ công việc trên trang này', tone: 'info' },
+        { icon: 'description', label: 'Báo cáo & Cuộc họp', value: reportMeetingEvidenceCount, caption: 'Báo cáo tiến độ và cuộc họp trang này', tone: 'warning' },
+        { icon: 'inventory_2', label: 'Hạng mục & Tệp', value: deliverableFileEvidenceCount, caption: 'Bàn giao và kho tệp trên trang này', tone: 'success' },
+      ]}
+    />
+
+    <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-label="Lọc minh chứng">
+      <div className="flex items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+        <h2 className="text-[15px] font-bold text-ink">Bộ lọc minh chứng</h2>
+        <span className="text-xs text-ink-muted">Đối chiếu trạng thái trực tiếp từ hệ thống</span>
+      </div>
+      <div className="flex flex-wrap items-end gap-3 p-5">
+        <label className="flex-1 min-w-44 text-xs font-semibold uppercase tracking-wide text-ink-soft">Nguồn
+          <select value={filters.sourceType ?? ''} onChange={event => changeFilter('sourceType', event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm font-normal normal-case tracking-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
             <option value="">Tất cả nguồn</option>{sourceTypes.map(value => <option key={value} value={value}>{sourceLabels[value]}</option>)}
           </select>
         </label>
-        <label className="text-sm font-medium text-ink-soft">Trạng thái xác minh
-          <select value={filters.verificationStatus ?? ''} onChange={event => changeFilter('verificationStatus', event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+        <label className="flex-1 min-w-44 text-xs font-semibold uppercase tracking-wide text-ink-soft">Trạng thái xác minh
+          <select value={filters.verificationStatus ?? ''} onChange={event => changeFilter('verificationStatus', event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm font-normal normal-case tracking-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
             <option value="">Tất cả trạng thái</option>{verificationStatuses.map(value => <option key={value} value={value}>{verificationLabels[value]}</option>)}
           </select>
         </label>
-        <label className="text-sm font-medium text-ink-soft">Ngành
-          <select value={majorInput} disabled={!!lockedMajorId || !majors.length} onChange={event => setMajorInput(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+        <label className="flex-1 min-w-44 text-xs font-semibold uppercase tracking-wide text-ink-soft">Ngành
+          <select value={majorInput} disabled={!!lockedMajorId || !majors.length} onChange={event => setMajorInput(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm font-normal normal-case tracking-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
             {!lockedMajorId && <option value="">Tất cả ngành</option>}
             {lockedMajorId && !majors.some(item => item.majorId === lockedMajorId) && <option value={lockedMajorId}>Ngành hướng dẫn #{lockedMajorId}</option>}
             {majors.map(item => <option key={item.majorId} value={item.majorId}>{item.majorName}</option>)}
           </select>
         </label>
-        <div className="flex items-end gap-2"><button type="button" onClick={applyMajor} className="min-h-11 flex-1 whitespace-nowrap rounded-lg border border-primary bg-card px-4 text-sm font-semibold text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Áp dụng</button><button type="button" onClick={() => { setFilters({ majorId: lockedMajorId }); setMajorInput(String(lockedMajorId ?? '')); setPage(1) }} className="min-h-11 whitespace-nowrap rounded-lg px-3 text-sm font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Xóa lọc</button></div>
+        <div className="flex items-end gap-2"><button type="button" onClick={applyMajor} className="min-h-11 whitespace-nowrap rounded-lg border border-primary bg-card px-4 text-sm font-semibold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Áp dụng</button><button type="button" onClick={() => { setFilters({ majorId: lockedMajorId }); setMajorInput(String(lockedMajorId ?? '')); setPage(1) }} className="min-h-11 whitespace-nowrap rounded-lg px-3 text-sm font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Xóa lọc</button></div>
       </div>
     </section>
 
     {error && <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" onClick={() => void load()} className="ml-2 min-h-11 font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Thử lại</button></section>}
     {loading && <p role="status" aria-live="polite" className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-soft">Đang tải minh chứng…</p>}
     {!loading && !error && result?.items.length === 0 && <section className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-soft"><h2 className="font-semibold text-ink">Chưa có minh chứng phù hợp</h2><p className="mt-1 leading-6">Hãy thử điều chỉnh bộ lọc. Trạng thái xác minh được lấy trực tiếp từ hệ thống.</p></section>}
-    {!loading && !error && result?.items.length ? <EvidenceList items={result.items} routeBase={routeBase} actor={actor} onReviewed={() => void load()} /> : null}
-    {!loading && !error && result && result.totalPages > 1 && <nav aria-label="Phân trang minh chứng" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-card p-4 text-sm"><button type="button" disabled={page <= 1} onClick={() => setPage(current => current - 1)} className="min-h-11 whitespace-nowrap rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Trang trước</button><span aria-live="polite">Trang {page} / {totalPages} · {result.totalCount} minh chứng</span><button type="button" disabled={page >= totalPages} onClick={() => setPage(current => current + 1)} className="min-h-11 whitespace-nowrap rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Trang sau</button></nav>}
+    {!loading && !error && result?.items.length ? <EvidenceList items={result.items} totalCount={result.totalCount} majors={majors} routeBase={routeBase} actor={actor} onReviewed={() => void load()} /> : null}
+    {!loading && !error && result && result.totalPages > 1 && (
+      <div className="rounded-xl border border-hairline bg-card px-5 py-3 shadow-xs">
+        <Pagination page={page} pages={totalPages} total={result.totalCount} pageSize={pageSize} onPage={setPage} />
+      </div>
+    )}
   </div>
 }
 
-function EvidenceList({ items, routeBase, actor, onReviewed }: { items: ProjectEvidence[]; routeBase: string; actor?: 'student' | 'supervisor' | 'mentor'; onReviewed: () => void }) {
-  return <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-label="Danh sách minh chứng"><ul className="divide-y divide-hairline">{items.map(item => <li key={item.id} className="grid gap-3 p-4 sm:p-5">
-    <div className="grid gap-3 lg:grid-cols-[minmax(12rem,1fr)_minmax(9rem,.7fr)_minmax(10rem,.7fr)_auto] lg:items-start">
-      <div className="min-w-0"><p className="font-semibold text-ink">{sourceLabels[item.sourceType as keyof typeof sourceLabels] ?? item.sourceType} #{item.sourceId}</p><p className="mt-1 text-sm text-ink-muted">{item.majorId ? `Ngành #${item.majorId}` : 'Chưa phân loại ngành'} · {item.classification}</p>{item.notes ? <p className="mt-2 break-words text-sm leading-6 text-ink-soft">{item.notes}</p> : <p className="mt-2 text-sm text-ink-muted">Không có ghi chú.</p>}</div>
-      <div className="text-sm"><p className="font-medium text-ink">{verificationLabels[item.verificationStatus as keyof typeof verificationLabels] ?? item.verificationStatus}</p><p className="mt-1 text-ink-muted">Người gửi #{item.submittedBy}</p></div>
-      <p className="text-sm leading-6 text-ink-muted">{formatDate(item.submittedAt)}</p>
-       <div>{sourcePath(routeBase, item) ? (isProtectedSource(sourcePath(routeBase, item)!) ? <ProtectedSourceButton path={sourcePath(routeBase, item)!} /> : <Link to={sourcePath(routeBase, item)!} className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở nguồn</Link>) : <span className="inline-flex min-h-11 items-center text-sm text-ink-muted">Chưa có đường dẫn nguồn</span>}</div>
+function EvidenceList({ items, totalCount, majors, routeBase, actor, onReviewed }: { items: ProjectEvidence[]; totalCount: number; majors: { majorId: number; majorName: string }[]; routeBase: string; actor?: 'student' | 'supervisor' | 'mentor'; onReviewed: () => void }) {
+  const majorLabel = (majorId: number | null) => {
+    if (!majorId) return 'Chưa phân loại ngành'
+    const matched = majors.find(item => item.majorId === majorId)?.majorName
+    return matched ? `Ngành: ${matched}` : 'Theo phạm vi chuyên ngành'
+  }
+  return <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-label="Danh sách minh chứng">
+    <div className="flex flex-wrap items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+      <div className="flex items-center gap-2">
+        <h2 className="text-[15px] font-bold text-ink">Danh sách minh chứng</h2>
+        <span className="rounded-full border border-hairline bg-card px-2 py-0.5 text-xs font-semibold text-ink-soft tabular-nums">{totalCount}</span>
+      </div>
+      <span className="text-xs text-ink-muted">Nhấn Mở nguồn để đối chiếu bản gốc</span>
     </div>
-    {actor && actor !== 'student' && <EvidenceReviewSection evidenceId={item.id} onReviewed={onReviewed} />}
-  </li>)}</ul></section>
+    <ul className="divide-y divide-hairline">{items.map(item => <li key={item.id} className="grid gap-3 px-5 py-4 transition-colors hover:bg-canvas/60">
+      <div className="grid gap-3 lg:grid-cols-[minmax(12rem,1fr)_minmax(10rem,.7fr)_minmax(10rem,.7fr)_auto] lg:items-center">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-semibold text-ink">{sourceLabels[item.sourceType as keyof typeof sourceLabels] ?? item.sourceType} #{item.sourceId}</p>
+            <StatusBadge tone="info" label={displayLabel(item.classification)} />
+          </div>
+          <p className="mt-1 text-xs text-ink-muted">{majorLabel(item.majorId)}</p>
+          {item.notes ? <p className="mt-1.5 break-words text-sm leading-6 text-ink-soft">{item.notes}</p> : <p className="mt-1.5 text-xs text-ink-muted">Không có ghi chú.</p>}
+        </div>
+        <div className="text-sm">
+          <StatusBadge status={item.verificationStatus} tone={verificationTone(item.verificationStatus)} label={verificationLabels[item.verificationStatus as keyof typeof verificationLabels] ?? item.verificationStatus} />
+        </div>
+        <p className="text-xs leading-6 text-ink-muted tabular-nums">{formatDate(item.submittedAt)}</p>
+        <div className="flex items-center justify-end">{sourcePath(routeBase, item) ? (isProtectedSource(sourcePath(routeBase, item)!) ? <ProtectedSourceButton path={sourcePath(routeBase, item)!} /> : <Link to={sourcePath(routeBase, item)!} className="inline-flex min-h-10 items-center rounded-md border border-hairline bg-card px-3 text-sm font-semibold text-primary hover:border-primary/30 hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở nguồn</Link>) : <span className="inline-flex min-h-10 items-center text-xs text-ink-muted">Chưa có đường dẫn nguồn</span>}</div>
+      </div>
+      {actor && actor !== 'student' && <EvidenceReviewSection evidenceId={item.id} onReviewed={onReviewed} />}
+    </li>)}</ul>
+  </section>
 }
 
 const reviewDecisionLabels: Record<string, string> = { ACCEPTED: 'Đã chấp nhận', CHANGES_REQUESTED: 'Cần bổ sung', REJECTED: 'Từ chối' }
@@ -166,14 +222,29 @@ function EvidenceReviewSection({ evidenceId, onReviewed }: { evidenceId: number;
     }
   }
 
+  const historyPagination = useClientPagination(history ?? [], 6)
+
   return <div className="border-t border-hairline pt-3">
     <button type="button" className="min-h-9 text-sm font-semibold text-primary underline underline-offset-4" onClick={toggle}>{open ? 'Ẩn duyệt minh chứng' : 'Duyệt minh chứng'}</button>
     {open && <div className="mt-3 space-y-3">
       {loading && <p role="status" className="text-sm text-ink-muted">Đang tải…</p>}
       {error && <p role="alert" className="text-sm text-status-error-text">{error}</p>}
-      {!loading && history && history.length > 0 && <ul className="space-y-2">
-        {history.map((review) => <li key={review.id} className="text-sm"><span className="font-semibold text-ink">{reviewDecisionLabels[review.decision] ?? review.decision}</span> <span className="text-ink-muted">· {formatDate(review.reviewedAt)}</span><p className="mt-0.5 text-ink-soft">{review.reason}</p></li>)}
-      </ul>}
+      {!loading && history && history.length > 0 && <>
+        <ul className="space-y-2">
+          {historyPagination.paginatedItems.map((review) => <li key={review.id} className="text-sm"><span className="font-semibold text-ink">{reviewDecisionLabels[review.decision] ?? review.decision}</span> <span className="text-ink-muted">· {formatDate(review.reviewedAt)}</span><p className="mt-0.5 text-ink-soft">{review.reason}</p></li>)}
+        </ul>
+        {historyPagination.showPagination && (
+          <div className="border-t border-hairline pt-2">
+            <Pagination
+              page={historyPagination.page}
+              pages={historyPagination.totalPages}
+              total={historyPagination.total}
+              pageSize={historyPagination.pageSize}
+              onPage={historyPagination.setPage}
+            />
+          </div>
+        )}
+      </>}
       {!loading && target && !target.canReview && <p className="text-sm text-ink-muted">{target.denialReason ?? 'Chưa thể duyệt minh chứng này.'}</p>}
       {!loading && target?.canReview && <div className="flex flex-wrap items-end gap-2">
         <label className="text-sm text-ink-soft">Kết quả<select className="mt-1 block min-h-10 rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink" value={decision} disabled={busy} onChange={(event) => setDecision(event.target.value as EvidenceReviewDecision)}>

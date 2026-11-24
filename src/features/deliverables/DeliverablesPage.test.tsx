@@ -70,7 +70,7 @@ describe('DeliverablesPage', () => {
     page(); await screen.findByText('Báo cáo thiết kế')
     fireEvent.change(screen.getByLabelText('Tệp Báo cáo thiết kế'), { target: { files: [new File(['a'], 'report.pdf', { type: 'application/pdf' })] } })
     fireEvent.submit(screen.getByRole('button', { name: 'Nộp phiên bản' }).closest('form')!)
-    expect(await screen.findByText('Đã chấp nhận', { selector: 'span.ex-badge' })).toBeTruthy()
+    expect(await screen.findByText('Đã chấp nhận', { selector: 'article span' })).toBeTruthy()
     expect(api.getDeliverables).toHaveBeenCalledTimes(2)
     expect(screen.queryByRole('button', { name: 'Nộp phiên bản' })).toBeNull()
     expect(screen.queryByRole('button', { name: /Thử lại|Tải lại dữ liệu/ })).toBeNull()

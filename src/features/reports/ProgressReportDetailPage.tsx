@@ -1,5 +1,5 @@
 import { reportError, reportFieldErrors, reportNeedsAuthoritativeRefresh } from './report-errors'
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom'
 import { useExecutionAccess, type ExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import * as api from '../../services/api/progress-reports.api'
@@ -17,6 +17,7 @@ import {
 import { ReportBadge, ReportError, ReportLoading, ReportShell } from './report-ui'
 import { ReportAiSummary } from '../ai/components/ReportAiSummary'
 import { HistoryTimeline } from '../../components/ui/HistoryTimeline'
+import { Pagination, useClientPagination } from '../../components/ui'
 import { env } from '../../app/config/env'
 import type { PagedResult } from '../../types/backend'
 
@@ -234,6 +235,11 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
 
   const editable = actor === 'student' && (create || report?.status === 'DRAFT')
   const missing = report ? missingSubmissionFields(report) : []
+  const sortedFeedbacks = useMemo(() => {
+    const list = report?.feedbacks ?? []
+    return [...list].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt) || b.id - a.id)
+  }, [report?.feedbacks])
+  const feedbackPagination = useClientPagination(sortedFeedbacks, 8)
 
   return (
     <ReportShell
@@ -297,8 +303,8 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
             </div>
           )}
 
-          <div className={`report-detail-grid${editable ? '' : ' report-detail-grid--reading'}`}>
-            <div className="report-main">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+            <div className="report-main xl:col-span-8 min-w-0">
               {editable ? (
                 <ReportEditor
                   key={`${editorVersion}:${create ? assistant.key : 'existing'}`}
@@ -314,147 +320,177 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
                 />
               ) : (
                 report && (
-                  <article className="report-panel report-reading">
-                    <h2>Nội dung báo cáo</h2>
-                    {canonicalSubmissionFields.map(({ key, label }, index) => (
-                      <section key={key}>
-                        <h3>
-                          <span>{String(index + 1).padStart(2, '0')}</span>
-                          {label}
-                        </h3>
-                        <p>{report[key] || 'Chưa có nội dung.'}</p>
-                      </section>
-                    ))}
-                    {report.plannedWork && (
-                      <section key="plannedWork">
-                        <h3>
-                          <span>07</span>
-                          Kế hoạch công việc
-                        </h3>
-                        <p>{report.plannedWork}</p>
-                      </section>
-                    )}
-                    {report.issuesAndRisks && (
-                      <section key="issuesAndRisks" className="report-legacy-field">
-                        <h3>
-                          <span>*</span>
-                          Khó khăn & rủi ro (Trường cũ)
-                        </h3>
-                        <p>{report.issuesAndRisks}</p>
-                        <small className="report-help">Trường cũ, đã thay bằng Vướng mắc và Rủi ro.</small>
-                      </section>
-                    )}
+                  <article className="report-panel overflow-hidden">
+                    <div className="flex items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+                      <h2>Nội dung báo cáo</h2>
+                    </div>
+                    <div className="report-reading">
+                      {canonicalSubmissionFields.map(({ key, label }, index) => (
+                        <section key={key}>
+                          <h3>
+                            <span>{String(index + 1).padStart(2, '0')}</span>
+                            {label}
+                          </h3>
+                          <p>{report[key] || 'Chưa có nội dung.'}</p>
+                        </section>
+                      ))}
+                      {report.plannedWork && (
+                        <section key="plannedWork">
+                          <h3>
+                            <span>07</span>
+                            Kế hoạch công việc
+                          </h3>
+                          <p>{report.plannedWork}</p>
+                        </section>
+                      )}
+                      {report.issuesAndRisks && (
+                        <section key="issuesAndRisks" className="report-legacy-field">
+                          <h3>
+                            <span>*</span>
+                            Khó khăn & rủi ro (Trường cũ)
+                          </h3>
+                          <p>{report.issuesAndRisks}</p>
+                          <small className="report-help">Trường cũ, đã thay bằng Vướng mắc và Rủi ro.</small>
+                        </section>
+                      )}
+                    </div>
                   </article>
                 )
               )}
             </div>
 
-            <aside className="report-aside">
-              <section className="report-panel report-action-panel">
-                <h2>{report?.status === 'DRAFT' || create ? 'Trước khi nộp' : 'Trạng thái báo cáo'}</h2>
-                {create ? (
-                  <p>Chọn kỳ báo cáo và điền tóm tắt để lưu nháp. Trưởng nhóm nộp sau khi các mục bắt buộc đã hoàn thiện.</p>
-                ) : report?.status === 'DRAFT' ? (
-                  <>
-                    <p>
-                      {actor === 'supervisor'
-                        ? 'Nhóm đang soạn nội dung. Bạn có thể nhận xét sau khi trưởng nhóm nộp báo cáo.'
-                        : 'Thành viên nhóm có thể sửa bản nháp. Chỉ trưởng nhóm được nộp báo cáo.'}
-                    </p>
-                    <ul className="report-checklist">
-                      {canonicalSubmissionFields.map(({ key, label }) => (
-                        <li key={key}>
-                          <span aria-hidden="true">{report[key]?.trim() ? '✓' : '○'}</span>
-                          {label}
-                        </li>
-                      ))}
-                    </ul>
-                    {actor === 'student' && canManageStructure && (
-                      <>
-                        {!report.progressReportPeriodId && <p className="report-validation">Bản nháp chưa gắn kỳ báo cáo. Chọn kỳ phù hợp trong biểu mẫu rồi lưu thay đổi trước khi nộp.</p>}
-                        {dirty && <p className="report-validation">Lưu thay đổi trước khi nộp.</p>}
-                        {!dirty && missing.length > 0 && <p className="report-help">Còn thiếu: {missing.join(', ')}.</p>}
-                        {confirmSubmit ? (
-                          <div className="report-confirm" role="group" aria-label="Xác nhận nộp báo cáo">
-                            <p>Sau khi nộp, cả nhóm không thể sửa nội dung. Bạn đã kiểm tra đầy đủ?</p>
-                            <button className="report-button" disabled={busy} onClick={() => void submit()}>
-                              {busy ? 'Đang nộp…' : 'Xác nhận nộp'}
-                            </button>
+            <aside className="xl:col-span-4 xl:sticky xl:top-20 space-y-5 min-w-0">
+              <section className="report-panel overflow-hidden">
+                <div className="flex items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+                  <h2>{report?.status === 'DRAFT' || create ? 'Trước khi nộp' : 'Trạng thái báo cáo'}</h2>
+                </div>
+                <div className="report-action-panel">
+                  {create ? (
+                    <p>Chọn kỳ báo cáo và điền tóm tắt để lưu nháp. Trưởng nhóm nộp sau khi các mục bắt buộc đã hoàn thiện.</p>
+                  ) : report?.status === 'DRAFT' ? (
+                    <>
+                      <p>
+                        {actor === 'supervisor'
+                          ? 'Nhóm đang soạn nội dung. Bạn có thể nhận xét sau khi trưởng nhóm nộp báo cáo.'
+                          : 'Thành viên nhóm có thể sửa bản nháp. Chỉ trưởng nhóm được nộp báo cáo.'}
+                      </p>
+                      <ul className="report-checklist">
+                        {canonicalSubmissionFields.map(({ key, label }) => (
+                          <li key={key}>
+                            <span aria-hidden="true">{report[key]?.trim() ? '✓' : '○'}</span>
+                            {label}
+                          </li>
+                        ))}
+                      </ul>
+                      {actor === 'student' && canManageStructure && (
+                        <>
+                          {!report.progressReportPeriodId && <p className="report-validation">Bản nháp chưa gắn kỳ báo cáo. Chọn kỳ phù hợp trong biểu mẫu rồi lưu thay đổi trước khi nộp.</p>}
+                          {dirty && <p className="report-validation">Lưu thay đổi trước khi nộp.</p>}
+                          {!dirty && missing.length > 0 && <p className="report-help">Còn thiếu: {missing.join(', ')}.</p>}
+                          {confirmSubmit ? (
+                            <div className="report-confirm" role="group" aria-label="Xác nhận nộp báo cáo">
+                              <p>Sau khi nộp, cả nhóm không thể sửa nội dung. Bạn đã kiểm tra đầy đủ?</p>
+                              <button className="report-button" disabled={busy} onClick={() => void submit()}>
+                                {busy ? 'Đang nộp…' : 'Xác nhận nộp'}
+                              </button>
+                              <button
+                                className="report-button report-button--secondary"
+                                disabled={busy}
+                                onClick={() => setConfirmSubmit(false)}
+                              >
+                                Quay lại kiểm tra
+                              </button>
+                            </div>
+                          ) : (
                             <button
-                              className="report-button report-button--secondary"
-                              disabled={busy}
-                              onClick={() => setConfirmSubmit(false)}
+                              className="report-button w-full"
+                              disabled={busy || dirty || missing.length > 0 || !report.progressReportPeriodId}
+                              onClick={() => setConfirmSubmit(true)}
                             >
-                              Quay lại kiểm tra
+                              Nộp cho GVHD
                             </button>
-                          </div>
-                        ) : (
-                          <button
-                            className="report-button"
-                            disabled={busy || dirty || missing.length > 0 || !report.progressReportPeriodId}
-                            onClick={() => setConfirmSubmit(true)}
-                          >
-                            Nộp cho GVHD
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <p>
-                    Nội dung đã được khóa sau khi nộp.{' '}
-                    {report?.status === 'REVIEWED'
-                      ? 'GVHD đã gửi nhận xét; xem chi tiết bên dưới.'
-                      : 'Báo cáo đang chờ nhận xét từ GVHD.'}
-                  </p>
-                )}
-                {!create && (
-                  <button
-                    className="report-text-button"
-                    disabled={busy || hasUnsavedChanges}
-                    onClick={() => {
-                      setError('')
-                      setRevision((value) => value + 1)
-                    }}
-                  >
-                    Tải lại trạng thái
-                  </button>
-                )}
+                          )}
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <p>
+                      Nội dung đã được khóa sau khi nộp.{' '}
+                      {report?.status === 'REVIEWED'
+                        ? 'GVHD đã gửi nhận xét; xem chi tiết bên dưới.'
+                        : 'Báo cáo đang chờ nhận xét từ GVHD.'}
+                    </p>
+                  )}
+                  {!create && (
+                    <button
+                      className="report-text-button"
+                      disabled={busy || hasUnsavedChanges}
+                      onClick={() => {
+                        setError('')
+                        setRevision((value) => value + 1)
+                      }}
+                    >
+                      Tải lại trạng thái
+                    </button>
+                  )}
+                </div>
               </section>
+
+              {report && (
+                <section className="report-panel overflow-hidden" aria-labelledby="feedback-title">
+                  <div className="report-section-heading bg-canvas/70 border-b border-hairline px-5 py-3.5">
+                    <h2 id="feedback-title">Phản hồi của GVHD</h2>
+                    <span className="rounded-full border border-hairline bg-card px-2 py-0.5 text-xs font-semibold text-ink-soft tabular-nums">{report.feedbacks.length}</span>
+                  </div>
+                  <div className="report-feedback">
+                    <HistoryTimeline
+                      label="Lịch sử phản hồi"
+                      emptyLabel="Chưa có phản hồi. Phản hồi của GVHD sẽ xuất hiện tại đây."
+                      items={feedbackPagination.paginatedItems.map(item => ({
+                        at: item.createdAt,
+                        actor: item.supervisorName,
+                        action: 'Phản hồi của GVHD',
+                        note: item.feedbackText,
+                      }))}
+                    />
+                    {feedbackPagination.showPagination && (
+                      <Pagination
+                        className="mt-4"
+                        page={feedbackPagination.page}
+                        pages={feedbackPagination.totalPages}
+                        total={feedbackPagination.total}
+                        pageSize={feedbackPagination.pageSize}
+                        pageSizeOptions={[8, 16, 30]}
+                        onPage={feedbackPagination.setPage}
+                        onPageSizeChange={feedbackPagination.setPageSize}
+                      />
+                    )}
+                    {!readOnly && actor === 'supervisor' && ['SUBMITTED', 'REVIEWED'].includes(report.status) && (
+                      <form onSubmit={(event) => void sendFeedback(event)}>
+                        <label htmlFor="report-feedback">Phản hồi mới</label>
+                        <textarea
+                          id="report-feedback"
+                          required
+                          rows={5}
+                          value={feedback}
+                          disabled={busy}
+                          onChange={(event) => setFeedback(event.target.value)}
+                          placeholder="Phản hồi về kết quả và hướng dẫn bước tiếp theo…"
+                        />
+                        <button className="report-button" disabled={busy || !feedback.trim()} type="submit">
+                          {busy ? 'Đang gửi…' : 'Gửi phản hồi'}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </section>
+              )}
+
               {report && actor !== 'mentor' && env.aiAdvisoryEnabled && (
                 <ReportAiSummary projectId={project.id} reportId={report.id} />
               )}
             </aside>
           </div>
-
-          {report && (
-            <section className="report-panel report-feedback" aria-labelledby="feedback-title">
-              <div className="report-section-heading">
-                <h2 id="feedback-title">Phản hồi của GVHD</h2>
-                <span>{report.feedbacks.length}</span>
-              </div>
-              <HistoryTimeline label="Lịch sử phản hồi" emptyLabel="Chưa có phản hồi. Phản hồi của GVHD sẽ xuất hiện tại đây."
-                items={report.feedbacks.map(item => ({ at: item.createdAt, actor: item.supervisorName,
-                  action: 'Phản hồi của GVHD', note: item.feedbackText }))} />
-              {!readOnly && actor === 'supervisor' && ['SUBMITTED', 'REVIEWED'].includes(report.status) && (
-                <form onSubmit={(event) => void sendFeedback(event)}>
-                  <label htmlFor="report-feedback">Phản hồi mới</label>
-                  <textarea
-                    id="report-feedback"
-                    required
-                    rows={5}
-                    value={feedback}
-                    disabled={busy}
-                    onChange={(event) => setFeedback(event.target.value)}
-                    placeholder="Phản hồi về kết quả và hướng dẫn bước tiếp theo…"
-                  />
-                  <button className="report-button" disabled={busy || !feedback.trim()} type="submit">
-                    {busy ? 'Đang gửi…' : 'Gửi phản hồi'}
-                  </button>
-                </form>
-              )}
-            </section>
-          )}
         </>
       )}
     </ReportShell>

@@ -44,9 +44,17 @@ export function GanttChart({
   }
 
   const isMilestonesView = viewMode === 'milestones'
+  const totalTasksCount = groups.reduce((sum, g) => sum + g.tasks.length, 0)
 
   return (
-    <div className="border border-hairline rounded-lg bg-card shadow-xs overflow-hidden">
+    <div className="border border-hairline rounded-xl bg-card shadow-xs overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+        <div className="flex items-center gap-2">
+          <h2 className="text-[15px] font-bold text-ink">{isMilestonesView ? 'Tiến độ theo cột mốc' : 'Biểu đồ Gantt 15 tuần'}</h2>
+          <span className="rounded-full border border-hairline bg-card px-2 py-0.5 text-xs font-semibold text-ink-soft tabular-nums">{groups.length} nhóm · {totalTasksCount} tác vụ</span>
+        </div>
+        <span className="text-xs text-ink-muted">Nhấn vào từng nhóm WBS để mở rộng tác vụ</span>
+      </div>
       {/* Scrollable Container with Sticky Left Column */}
       <div
         className="w-full overflow-x-auto focus-visible:outline-none [scrollbar-color:var(--color-line-strong)_var(--color-canvas)] [scrollbar-width:thin]"

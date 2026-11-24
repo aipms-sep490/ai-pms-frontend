@@ -1,5 +1,6 @@
 import { Table, TableHead } from '../../components/ui/Table'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { StatTileRow } from '../../components/ui'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import * as api from '../../services/api/weekly.api'
 import type { Rubric, RubricCriterion, WeeklyAssessment, WeeklyAssessmentWeek } from '../../services/api/weekly.api'
@@ -12,10 +13,8 @@ import { getTeam } from '../../services/api/teams.api'
 import { WeeklyAssessmentHistory } from './WeeklyAssessmentHistory'
 import { Button } from '../../components/ui/Button'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
-import { EntityIdentityStrip } from '../../components/ui/EntityIdentityStrip'
 import { WorkspaceEmptyState } from '../../components/ui/WorkspaceState'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
-import { CollaborationIntro } from '../student-collaboration/collaboration-ui'
 
 type ScoreEdit = { score: string; comments: string }
 type EditableCriterion = { rubricCriterionId: number; name: string; description: string | null; maxScore: number }
@@ -55,6 +54,10 @@ function WeeklyAssessmentsBody({ projectId, projectTitle, routeBase, members, ac
   const studentSelfId = isStudent && currentUserId && members.some(m => m.userId === currentUserId) ? currentUserId : null
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(studentSelfId ?? members[0]?.userId ?? null)
   const [editorState, setEditorState] = useState({ dirty: false, busy: false })
+  const [summaryMeta, setSummaryMeta] = useState<{ totalScore: number | null; version: number | null }>({ totalScore: null, version: null })
+  const handleSummaryMeta = useCallback((meta: { totalScore: number | null; version: number | null }) => {
+    setSummaryMeta((prev) => (prev.totalScore === meta.totalScore && prev.version === meta.version ? prev : meta))
+  }, [])
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   async function changeSelection(change: () => void) {
     if (editorState.busy) return
@@ -76,61 +79,75 @@ function WeeklyAssessmentsBody({ projectId, projectTitle, routeBase, members, ac
     return () => controller.abort()
   }, [projectId])
 
+  const startedWeeksCount = weeks ? weeks.filter((w) => w.hasStarted).length : null
+
   return <WeeklyShell title={isStudent ? "Đánh giá cá nhân theo tuần" : "Điểm cá nhân theo tuần"} projectTitle={projectTitle} backTo={`${routeBase}/workspace`}
     description={isStudent ? "Theo dõi nhận xét và điểm tham khảo định kỳ từ Giảng viên hướng dẫn." : "Chấm tham khảo hằng tuần cho từng sinh viên. Không tự cộng vào kết quả học phần chính thức."}>
     {confirmationDialog}
-    <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: projectTitle }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
-    <CollaborationIntro icon="insights" title="Phản hồi nhỏ, tiến bộ mỗi tuần">Điểm theo dõi chỉ để tham khảo. Giữ lại từng phiên bản nhận xét để sinh viên nhìn thấy tiến bộ của mình, không cộng vào kết quả chính thức.</CollaborationIntro>
-    {weeksError ? <WeeklyError message={weeksError} /> : !weeks ? <WeeklyLoading /> : weeks.length === 0 ? <WorkspaceEmptyState title="Chưa có tuần đánh giá" message="Hệ thống chưa tạo lịch tuần đánh giá cho đồ án này." /> : <>
-      <div className="weekly-toolbar">
-        <label>Tuần<select value={selectedWeek ?? ''} disabled={editorState.busy} onChange={(event) => { const value = Number(event.target.value); void changeSelection(() => setSelectedWeek(value)) }}>
-          {weeks.map((week) => <option key={week.weekNumber} value={week.weekNumber}>
-            Tuần {week.weekNumber} ({formatCalendarDate(week.startDate)}–{formatCalendarDate(week.endDate)}){!week.hasStarted ? ' • Chưa tới' : ''}
-          </option>)}
-        </select></label>
-        {isStudent ? (
-          <div className="flex items-center gap-2 text-sm text-ink-soft">
-            <span className="font-medium text-ink">Sinh viên:</span>
-            <span className="rounded-md border border-hairline bg-card px-2.5 py-1 text-xs font-semibold text-ink">
-              {members.find(m => m.userId === selectedStudentId)?.fullName ?? 'Sinh viên'}
-            </span>
+    <div className="space-y-5">
+      <StatTileRow
+        tiles={[
+          { icon: 'calendar_month', label: 'Tuần đã mở', value: startedWeeksCount, caption: weeks ? `Trên tổng ${weeks.length} tuần của học kỳ` : 'Đang tải lịch đánh giá', hero: true },
+          { icon: 'grade', label: 'Điểm gần nhất', value: summaryMeta.totalScore, caption: summaryMeta.version ? `Bản đánh giá v${summaryMeta.version} (tham khảo)` : 'Chưa có tổng điểm cho mục chọn', tone: summaryMeta.totalScore != null ? 'success' : 'neutral' },
+          { icon: 'groups', label: 'Số sinh viên', value: members.length, caption: isStudent ? 'Thành viên thuộc nhóm đồ án' : 'Chọn nhanh sinh viên để chấm', tone: 'info' },
+          { icon: 'history', label: 'Phiên bản hiện tại', value: summaryMeta.version, caption: 'Lưu vết đầy đủ mỗi lần điều chỉnh', tone: 'neutral' },
+        ]}
+      />
+      {weeksError ? <WeeklyError message={weeksError} /> : !weeks ? <WeeklyLoading /> : weeks.length === 0 ? <WorkspaceEmptyState title="Chưa có tuần đánh giá" message="Hệ thống chưa tạo lịch tuần đánh giá cho đồ án này." /> : <>
+        <div className="weekly-toolbar !mb-0 flex-wrap items-end justify-between bg-canvas/70 border-hairline">
+          <div className="flex flex-wrap items-end gap-4">
+            <label>Tuần<select value={selectedWeek ?? ''} disabled={editorState.busy} onChange={(event) => { const value = Number(event.target.value); void changeSelection(() => setSelectedWeek(value)) }}>
+              {weeks.map((week) => <option key={week.weekNumber} value={week.weekNumber}>
+                Tuần {week.weekNumber} ({formatCalendarDate(week.startDate)}–{formatCalendarDate(week.endDate)}){!week.hasStarted ? ' • Chưa tới' : ''}
+              </option>)}
+            </select></label>
+            {isStudent ? (
+              <div className="flex items-center gap-2 text-sm text-ink-soft min-h-10">
+                <span className="font-medium text-ink">Sinh viên:</span>
+                <span className="rounded-md border border-hairline bg-card px-2.5 py-1 text-xs font-semibold text-ink">
+                  {members.find(m => m.userId === selectedStudentId)?.fullName ?? 'Sinh viên'}
+                </span>
+              </div>
+            ) : (
+              <label>Sinh viên<select value={selectedStudentId ?? ''} disabled={editorState.busy} onChange={(event) => { const value = Number(event.target.value); void changeSelection(() => setSelectedStudentId(value)) }}>
+                {members.map((member) => <option key={member.userId} value={member.userId}>{member.fullName}</option>)}
+              </select></label>
+            )}
           </div>
-        ) : (
-          <label>Sinh viên<select value={selectedStudentId ?? ''} disabled={editorState.busy} onChange={(event) => { const value = Number(event.target.value); void changeSelection(() => setSelectedStudentId(value)) }}>
-            {members.map((member) => <option key={member.userId} value={member.userId}>{member.fullName}</option>)}
-          </select></label>
-        )}
-      </div>
-      {!isStudent && <div className="weekly-members-strip mt-3 flex flex-wrap gap-2" aria-label="Chọn nhanh sinh viên">
-        {members.map((member) => (
-          <button
-            key={member.userId}
-            type="button"
-            disabled={editorState.busy}
-            onClick={() => void changeSelection(() => setSelectedStudentId(member.userId))}
-            className={`inline-flex min-h-9 items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
-              selectedStudentId === member.userId
-                ? 'bg-primary text-white shadow-xs'
-                : 'border border-hairline bg-card text-ink-soft hover:border-primary/50 hover:bg-canvas'
-            }`}
-          >
-            <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${selectedStudentId === member.userId ? 'bg-card/20 text-white' : 'bg-primary/10 text-primary'}`}>
-              {member.fullName.trim().charAt(0).toUpperCase()}
-            </span>
-            {member.fullName}
-          </button>
-        ))}
-      </div>}
-      {selectedWeek != null && selectedStudentId != null && (() => {
-        const week = weeks.find((w) => w.weekNumber === selectedWeek)
-        return <WeeklyAssessmentEditor key={`${selectedStudentId}:${selectedWeek}`} projectId={projectId} weekNumber={selectedWeek} studentId={selectedStudentId} hasStarted={week?.hasStarted ?? false} isStudent={isStudent} onEditorState={setEditorState} />
-      })()}
-    </>}
+          {!isStudent && <div className="weekly-members-strip flex flex-wrap gap-2" aria-label="Chọn nhanh sinh viên">
+            {members.map((member) => (
+              <button
+                key={member.userId}
+                type="button"
+                disabled={editorState.busy}
+                onClick={() => void changeSelection(() => setSelectedStudentId(member.userId))}
+                className={`inline-flex min-h-9 items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+                  selectedStudentId === member.userId
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'border border-hairline bg-card text-ink-soft hover:border-primary/50 hover:bg-canvas'
+                }`}
+              >
+                <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${selectedStudentId === member.userId ? 'bg-card/20 text-white' : 'bg-primary/10 text-primary'}`}>
+                  {member.fullName.trim().charAt(0).toUpperCase()}
+                </span>
+                {member.fullName}
+              </button>
+            ))}
+          </div>}
+        </div>
+        {selectedWeek != null && selectedStudentId != null && (() => {
+          const week = weeks.find((w) => w.weekNumber === selectedWeek)
+          return <WeeklyAssessmentEditor key={`${selectedStudentId}:${selectedWeek}`} projectId={projectId} weekNumber={selectedWeek} studentId={selectedStudentId} hasStarted={week?.hasStarted ?? false} isStudent={isStudent} onEditorState={setEditorState} onSummaryMeta={handleSummaryMeta} />
+        })()}
+      </>}
+    </div>
   </WeeklyShell>
 }
 
-function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, isStudent, onEditorState }: {
-  projectId: number; weekNumber: number; studentId: number; hasStarted: boolean; isStudent?: boolean; onEditorState: (state: { dirty: boolean; busy: boolean }) => void
+function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, isStudent, onEditorState, onSummaryMeta }: {
+  projectId: number; weekNumber: number; studentId: number; hasStarted: boolean; isStudent?: boolean
+  onEditorState: (state: { dirty: boolean; busy: boolean }) => void
+  onSummaryMeta: (meta: { totalScore: number | null; version: number | null }) => void
 }) {
   const [assessment, setAssessment] = useState<WeeklyAssessment | null>(null)
   const [loading, setLoading] = useState(true)
@@ -185,6 +202,7 @@ function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, 
     return value.score !== (saved?.score == null ? '' : String(saved.score)) || value.comments !== (saved?.comments ?? '')
   }))
   useEffect(() => { onEditorState({ dirty, busy: busy || loading }) }, [dirty, busy, loading, onEditorState])
+  useEffect(() => { onSummaryMeta({ totalScore: assessment?.totalScore ?? null, version: assessment?.version ?? null }) }, [assessment?.totalScore, assessment?.version, onSummaryMeta])
   const draftCriteria: EditableCriterion[] = useMemo(() => {
     if (assessment) return assessment.scores.map((s) => ({ rubricCriterionId: s.rubricCriterionId, name: s.name, description: s.description, maxScore: s.maxScore }))
     if (selectedRubric) return leafCriteria(selectedRubric.criteria).map((c) => ({ rubricCriterionId: c.id, name: c.name, description: c.description, maxScore: c.maxScore ?? 10 }))
@@ -256,59 +274,85 @@ function WeeklyAssessmentEditor({ projectId, weekNumber, studentId, hasStarted, 
   const canRevise = !isStudent && Boolean(assessment && (isSubmitted || isDraft && !assessment.canEdit))
   const canEditNow = !isStudent && !recovery && ((!assessment && selectedRubricId != null) || (isDraft && assessment?.canEdit))
 
-  return <div className="weekly-panel">
-    <div className="weekly-panel-heading">
-      <h2>{assessment ? `${assessment.rubricName} (v${assessment.version})` : 'Chưa có bản chấm cho tuần này'}</h2>
-      {assessment && <WeeklyBadge status={assessment.status} />}
-    </div>
-    {assessment && <div className="mt-3 px-6"><ActionVerdict actions={[{ code: 'SUBMIT_WEEKLY_ASSESSMENT', allowed: assessment.canSubmit, reasons: !assessment.canSubmit ? (isSubmitted ? ['Bản chấm tuần này đã nộp.'] : !assessment.canEdit ? ['Bản chấm bị khóa hoặc không được phép chỉnh sửa.'] : ['Chưa đủ điều kiện nộp điểm tuần này.']) : [] }]} actionCode="SUBMIT_WEEKLY_ASSESSMENT" status="ready" okLabel="Đủ điều kiện nộp điểm đánh giá tuần" blockedLabel="Chưa thể nộp điểm đánh giá tuần" /></div>}
-    {error && <div className="mt-3 px-6"><WeeklyError message={error} /></div>}
-    {recovery && <div className="collab collab-card"><p className="collab-note">Bản mới nhất đã được tải lại. Nội dung chưa lưu của bạn được giữ riêng, chưa ghi đè dữ liệu.</p><details><summary>Xem nội dung chưa lưu</summary>{Object.entries(recovery.edits).map(([id, value]) => <p key={id}>Tiêu chí #{id}: {value.score || 'Chưa chấm'} · {value.comments}</p>)}<p>{recovery.comments}</p></details><div className="collab-actions">{assessment?.canEdit && <Button onClick={() => { setEdits(Object.fromEntries(assessment.scores.map(score => [score.rubricCriterionId, recovery.edits[score.rubricCriterionId] ?? { score: score.score == null ? '' : String(score.score), comments: score.comments ?? '' }]))); setComments(recovery.comments); setRecovery(null) }}>Khôi phục vào bản nháp mới nhất</Button>}<Button variant="outline" onClick={() => setRecovery(null)}>Giữ dữ liệu máy chủ</Button></div></div>}
-
-    {!assessment && !isStudent && <div className="px-6 py-4">
-      <label>Rubric áp dụng<select value={selectedRubricId ?? ''} onChange={(event) => setSelectedRubricId(Number(event.target.value) || null)} disabled={!rubrics}>
-        <option value="">— Chọn rubric —</option>
-        {rubrics?.map((rubric) => <option key={rubric.id} value={rubric.id}>{rubric.name} (v{rubric.version})</option>)}
-      </select></label>
-    </div>}
-
-    {!assessment && isStudent && <div className="flex items-center gap-2 px-6 py-4 text-sm text-ink-muted"><span className="material-symbols-outlined text-ink-muted" aria-hidden="true">info</span>Giảng viên hướng dẫn chưa nộp bản đánh giá cho tuần này. Nhận xét sẽ hiển thị ngay khi được công bố.</div>}
-    {draftCriteria.length > 0 && <div className="overflow-x-auto"><Table className="weekly-criteria">
-      <TableHead><tr><th>Tiêu chí</th><th>Điểm (tối đa)</th><th>Nhận xét</th></tr></TableHead>
-      <tbody>
-        {draftCriteria.map((criterion) => <tr key={criterion.rubricCriterionId}>
-          <td className="weekly-criteria-name">{criterion.name}{criterion.description && <small>{criterion.description}</small>}</td>
-          <td>{canEditNow ? <input type="number" min={0} max={criterion.maxScore} step="0.01" disabled={busy}
-            aria-label={`Điểm ${criterion.name}`} value={edits[criterion.rubricCriterionId]?.score ?? ''}
-            onChange={(event) => updateEdit(criterion.rubricCriterionId, { score: event.target.value })} /> : <span>{edits[criterion.rubricCriterionId]?.score || '—'}</span>} / {criterion.maxScore}</td>
-          <td>{canEditNow ? <input type="text" maxLength={2000} aria-label={`Nhận xét ${criterion.name}`} disabled={busy}
-            value={edits[criterion.rubricCriterionId]?.comments ?? ''}
-            onChange={(event) => updateEdit(criterion.rubricCriterionId, { comments: event.target.value })} /> : (edits[criterion.rubricCriterionId]?.comments || '')}</td>
-        </tr>)}
-      </tbody>
-    </Table></div>}
-
-    {draftCriteria.length > 0 && <div className="px-6 py-3">
-      <label>Nhận xét chung<textarea maxLength={2000} value={comments} disabled={!canEditNow || busy} onChange={(event) => setComments(event.target.value)} /></label>
-    </div>}
-
-    {assessment?.totalScore != null && <div className="px-6 pb-3 text-sm text-ink"><strong>Tổng điểm tham khảo: {formatScore(assessment.totalScore)}</strong></div>}
-    {assessment?.submittedAt && <div className="px-6 pb-3 text-xs text-ink-muted"><small>Đã nộp: {formatWeeklyDateTime(assessment.submittedAt)}</small></div>}
-
-    {!isStudent && <div className="weekly-actions">
-      <span />
-      <div className="flex flex-wrap items-center gap-2">
-        {!assessment && <button className="weekly-button" type="button" disabled={busy || !!recovery || !selectedRubricId} onClick={createDraft}>Tạo bản chấm</button>}
-        {isDraft && assessment?.canEdit && <>
-          <button className="weekly-button weekly-button--secondary" type="button" disabled={busy || !!recovery} onClick={saveDraft}>Lưu nháp</button>
-          <button className="weekly-button" type="button" disabled={busy || !!recovery || !assessment.canSubmit} onClick={submit}>Nộp điểm</button>
-        </>}
-        {canRevise && <>
-          <input type="text" maxLength={1000} aria-label="Lý do chỉnh sửa" placeholder="Lý do chỉnh sửa" value={revisionReason} disabled={busy} onChange={(event) => setRevisionReason(event.target.value)} />
-          <button className="weekly-button weekly-button--secondary" type="button" disabled={busy || !!recovery || !revisionReason.trim()} onClick={createCorrection}>Tạo chỉnh sửa (phiên bản mới)</button>
-        </>}
+  return <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+    <div className="weekly-panel !mb-0 xl:col-span-8 min-w-0">
+      <div className="weekly-panel-heading bg-canvas/70 border-b border-hairline px-5 py-3.5">
+        <h2>{assessment ? `${assessment.rubricName} (v${assessment.version})` : 'Chưa có bản chấm cho tuần này'}</h2>
+        {assessment && <WeeklyBadge status={assessment.status} />}
       </div>
-    </div>}
-    <div className="collab-card"><Button variant="ghost" icon="history" aria-expanded={historyOpen} onClick={() => setHistoryOpen(value => !value)}>Xem lịch sử phiên bản</Button>{historyOpen && <WeeklyAssessmentHistory key={`${revision}:${assessment?.concurrencyToken}`} projectId={projectId} studentId={studentId} weekNumber={weekNumber} />}</div>
+      {assessment && <div className="mt-3 px-5"><ActionVerdict actions={[{ code: 'SUBMIT_WEEKLY_ASSESSMENT', allowed: assessment.canSubmit, reasons: !assessment.canSubmit ? (isSubmitted ? ['Bản chấm tuần này đã nộp.'] : !assessment.canEdit ? ['Bản chấm bị khóa hoặc không được phép chỉnh sửa.'] : ['Chưa đủ điều kiện nộp điểm tuần này.']) : [] }]} actionCode="SUBMIT_WEEKLY_ASSESSMENT" status="ready" okLabel="Đủ điều kiện nộp điểm đánh giá tuần" blockedLabel="Chưa thể nộp điểm đánh giá tuần" /></div>}
+      {error && <div className="mt-3 px-5"><WeeklyError message={error} /></div>}
+      {recovery && <div className="collab collab-card mx-5 mt-3"><p className="collab-note">Bản mới nhất đã được tải lại. Nội dung chưa lưu của bạn được giữ riêng, chưa ghi đè dữ liệu.</p><details><summary>Xem nội dung chưa lưu</summary>{Object.entries(recovery.edits).map(([id, value]) => <p key={id}>Tiêu chí #{id}: {value.score || 'Chưa chấm'} · {value.comments}</p>)}<p>{recovery.comments}</p></details><div className="collab-actions">{assessment?.canEdit && <Button onClick={() => { setEdits(Object.fromEntries(assessment.scores.map(score => [score.rubricCriterionId, recovery.edits[score.rubricCriterionId] ?? { score: score.score == null ? '' : String(score.score), comments: score.comments ?? '' }]))); setComments(recovery.comments); setRecovery(null) }}>Khôi phục vào bản nháp mới nhất</Button>}<Button variant="outline" onClick={() => setRecovery(null)}>Giữ dữ liệu máy chủ</Button></div></div>}
+
+      {!assessment && !isStudent && <div className="px-5 py-4">
+        <label>Rubric áp dụng<select value={selectedRubricId ?? ''} onChange={(event) => setSelectedRubricId(Number(event.target.value) || null)} disabled={!rubrics}>
+          <option value="">— Chọn rubric —</option>
+          {rubrics?.map((rubric) => <option key={rubric.id} value={rubric.id}>{rubric.name} (v{rubric.version})</option>)}
+        </select></label>
+      </div>}
+
+      {!assessment && isStudent && <div className="flex items-center gap-2 px-5 py-4 text-sm text-ink-muted"><span className="material-symbols-outlined text-ink-muted" aria-hidden="true">info</span>Giảng viên hướng dẫn chưa nộp bản đánh giá cho tuần này. Nhận xét sẽ hiển thị ngay khi được công bố.</div>}
+      {draftCriteria.length > 0 && <div className="overflow-x-auto"><Table className="weekly-criteria">
+        <TableHead><tr><th>Tiêu chí</th><th>Điểm (tối đa)</th><th>Nhận xét</th></tr></TableHead>
+        <tbody>
+          {draftCriteria.map((criterion) => <tr key={criterion.rubricCriterionId}>
+            <td className="weekly-criteria-name">{criterion.name}{criterion.description && <small>{criterion.description}</small>}</td>
+            <td>{canEditNow ? <input type="number" min={0} max={criterion.maxScore} step="0.01" disabled={busy}
+              aria-label={`Điểm ${criterion.name}`} value={edits[criterion.rubricCriterionId]?.score ?? ''}
+              onChange={(event) => updateEdit(criterion.rubricCriterionId, { score: event.target.value })} /> : <span>{edits[criterion.rubricCriterionId]?.score || '—'}</span>} / {criterion.maxScore}</td>
+            <td>{canEditNow ? <input type="text" maxLength={2000} aria-label={`Nhận xét ${criterion.name}`} disabled={busy}
+              value={edits[criterion.rubricCriterionId]?.comments ?? ''}
+              onChange={(event) => updateEdit(criterion.rubricCriterionId, { comments: event.target.value })} /> : (edits[criterion.rubricCriterionId]?.comments || '')}</td>
+          </tr>)}
+        </tbody>
+      </Table></div>}
+
+      {draftCriteria.length > 0 && <div className="px-5 py-4">
+        <label>Nhận xét chung<textarea maxLength={2000} value={comments} disabled={!canEditNow || busy} onChange={(event) => setComments(event.target.value)} /></label>
+      </div>}
+
+      {assessment?.totalScore != null && <div className="px-5 pb-3 text-sm text-ink"><strong>Tổng điểm tham khảo: {formatScore(assessment.totalScore)}</strong></div>}
+      {assessment?.submittedAt && <div className="px-5 pb-3 text-xs text-ink-muted"><small>Đã nộp: {formatWeeklyDateTime(assessment.submittedAt)}</small></div>}
+
+      {!isStudent && <div className="weekly-actions border-t border-hairline bg-canvas/50">
+        <span />
+        <div className="flex flex-wrap items-center gap-2">
+          {!assessment && <button className="weekly-button" type="button" disabled={busy || !!recovery || !selectedRubricId} onClick={createDraft}>Tạo bản chấm</button>}
+          {isDraft && assessment?.canEdit && <>
+            <button className="weekly-button weekly-button--secondary" type="button" disabled={busy || !!recovery} onClick={saveDraft}>Lưu nháp</button>
+            <button className="weekly-button" type="button" disabled={busy || !!recovery || !assessment.canSubmit} onClick={submit}>Nộp điểm</button>
+          </>}
+          {canRevise && <>
+            <input type="text" maxLength={1000} aria-label="Lý do chỉnh sửa" placeholder="Lý do chỉnh sửa" value={revisionReason} disabled={busy} onChange={(event) => setRevisionReason(event.target.value)} />
+            <button className="weekly-button weekly-button--secondary" type="button" disabled={busy || !!recovery || !revisionReason.trim()} onClick={createCorrection}>Tạo chỉnh sửa (phiên bản mới)</button>
+          </>}
+        </div>
+      </div>}
+    </div>
+
+    <aside className="xl:col-span-4 xl:sticky xl:top-20 space-y-5 min-w-0">
+      <section className="weekly-panel !mb-0">
+        <div className="weekly-panel-heading bg-canvas/70 border-b border-hairline px-5 py-3.5">
+          <h2>Lịch sử đánh giá tuần</h2>
+        </div>
+        <div className="p-5 space-y-3">
+          <p className="text-xs leading-5 text-ink-muted">Mở lịch sử phiên bản để đối chiếu các lần lưu, nộp điểm và lý do chỉnh sửa theo thời gian.</p>
+          <Button variant="secondary" icon="history" aria-expanded={historyOpen} onClick={() => setHistoryOpen(value => !value)}>Xem lịch sử phiên bản</Button>
+          {historyOpen && <div className="pt-2"><WeeklyAssessmentHistory key={`${revision}:${assessment?.concurrencyToken}`} projectId={projectId} studentId={studentId} weekNumber={weekNumber} /></div>}
+        </div>
+      </section>
+      <section className="weekly-panel !mb-0">
+        <div className="weekly-panel-heading bg-canvas/70 border-b border-hairline px-5 py-3.5">
+          <h2>Lưu ý chấm điểm tuần</h2>
+        </div>
+        <div className="p-5">
+          <ul className="space-y-2 text-xs text-ink-muted list-disc pl-4">
+            <li>Điểm tuần mang tính phản hồi quá trình, không cộng trực tiếp vào điểm học phần chính thức.</li>
+            <li>Mỗi lần chỉnh sửa sau khi nộp sẽ tạo phiên bản mới để bảo toàn lịch sử trao đổi.</li>
+            <li>Sinh viên chỉ thấy các bản đánh giá đã được giảng viên nộp.</li>
+          </ul>
+        </div>
+      </section>
+    </aside>
   </div>
 }

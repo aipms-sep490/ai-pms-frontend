@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams, useLocation, useNavigate } from 'react-router-dom'
 import { useExecutionAccess } from '../../execution/context/ExecutionAccessContext'
-import { ExecutionPage, ExIcon, ExPagination, ExState } from '../../execution/execution-ui'
+import { ExecutionPage, ExIcon, ExState } from '../../execution/execution-ui'
 import { executionError, priorityLabels, taskTransitions } from '../../execution/execution-utils'
 import { services } from '../../../services/service-gateway'
 import type { BackendTaskStatus, MilestoneDto, PagedResult, TaskDto } from '../../../types/backend'
@@ -11,6 +11,8 @@ import { canUseProjectExecutionAction } from '../../execution/execution-authorit
 import { env } from '../../../app/config/env'
 import { SprintBacklogPanel } from '../components/SprintBacklogPanel'
 import { TaskDetailModal } from '../components/TaskDetailModal'
+import { Pagination, StatTileRow, StatusBadge } from '../../../components/ui'
+import { taskStatusTone } from './TaskDetailPage'
 import type { AssistantDraft } from '../../ai/academic-ai-api'
 import { readActionDraft } from '../../ai/assistant-action-draft'
 import './task-board.css'
@@ -158,8 +160,25 @@ export function TaskBoardPage() {
     if (!creating && restoreCreateFocus.current) { createRef.current?.focus(); restoreCreateFocus.current = false }
   }, [creating])
   const activeMember = members.find(member => member.userId === assigneeUserId)
+  const pageItems = data?.items ?? []
+  const inProgressCount = data ? pageItems.filter(t => t.status === 'IN_PROGRESS' || t.status === 'IN_REVIEW').length : null
+  const blockedOrOverdueCount = data ? pageItems.filter(t => t.status === 'BLOCKED' || isOverdue({ ...t, assignees: [] }, observedAt)).length : null
+  const doneCount = data ? pageItems.filter(t => t.status === 'DONE').length : null
+
   return <ExecutionPage title="Công việc" eyebrow={project.code} description="Xem ai đang phụ trách, việc nào cần xử lý và hạn hoàn thành."
     action={<><button className="ex-button" onClick={refresh} disabled={loading}><ExIcon name="refresh" />Cập nhật</button>{canCreate && <button ref={createRef} className="ex-button ex-button-primary" onClick={() => { setCreating(true); setCreated(false) }} disabled={creating}><ExIcon name="add" />Tạo công việc</button>}</>}>
+    {view !== 'sprint' && (
+      <div className="mb-5">
+        <StatTileRow
+          tiles={[
+            { icon: 'assignment', label: 'Tổng công việc', value: data ? data.totalCount : null, caption: 'Toàn bộ phạm vi bộ lọc hiện tại', hero: true },
+            { icon: 'pending_actions', label: 'Đang thực hiện', value: inProgressCount, caption: 'Đang làm và chờ kiểm tra trên trang này', tone: 'info' },
+            { icon: 'warning', label: 'Quá hạn / Bị chặn', value: blockedOrOverdueCount, caption: 'Cần ưu tiên tháo gỡ trên trang này', tone: blockedOrOverdueCount ? 'danger' : 'neutral' },
+            { icon: 'task_alt', label: 'Hoàn tất', value: doneCount, caption: 'Hoàn thành trên trang hiện tại', tone: 'success' },
+          ]}
+        />
+      </div>
+    )}
     {created && (
       <div className="ex-notice flex items-center justify-between" role="status">
         <span>Đã tạo công việc.</span>
@@ -175,86 +194,64 @@ export function TaskBoardPage() {
     )}
     {dragNotice && <p className="ex-notice" role="status">{dragNotice}</p>}
     {!team && <ExState message={teamLoadError ?? 'Chưa tải được danh sách thành viên nhóm. Bạn vẫn xem được công việc nhưng chưa giao được người phụ trách.'} retry={retryTeam} />}
-    {creating && (milestoneLoading ? <ExState loading /> : milestoneError ? <ExState message={milestoneError} retry={refresh} /> : eligibleMilestones.length ? <div className="mb-6"><WorkspaceTaskForm key={`${project.id}:${assistantDraft?.draftKey ?? 'manual'}`} initialDraft={assistantDraft?.projectId === project.id ? assistantDraft : undefined} project={project} members={members} milestones={eligibleMilestones} onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); refresh() }} /></div>
+    {creating && (milestoneLoading ? <ExState loading /> : milestoneError ? <ExState message={milestoneError} retry={refresh} /> : eligibleMilestones.length ? <div className="mb-5"><WorkspaceTaskForm key={`${project.id}:${assistantDraft?.draftKey ?? 'manual'}`} initialDraft={assistantDraft?.projectId === project.id ? assistantDraft : undefined} project={project} members={members} milestones={eligibleMilestones} onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); refresh() }} /></div>
       : <section className="ex-panel"><ExState title="Cần có mốc đồ án đang thực hiện" message="Tạo một mốc trước khi thêm công việc cho nhóm." action={<Link className="ex-button" to={`${routeBase}/milestones`}>Quản lý mốc đồ án</Link>} /><div className="ex-padding"><button className="ex-text-button" onClick={closeCreate}>Đóng</button></div></section>)}
     <section className="ex-panel task-board-panel" aria-label="Danh sách công việc">
-      <div className="ex-toolbar ex-toolbar--two-rows flex flex-col gap-3 p-4">
-        {data && data.items.length > 0 && (
-          <div className="w-full rounded-xl border border-hairline bg-canvas/60 p-3 mb-1" aria-label="Tổng quan tiến trình công việc">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-ink">Tiến độ trang này:</span>
-                <span className="rounded-full bg-primary-subtle px-2 py-0.5 font-bold text-primary">
-                  {Math.round((data.items.filter(t => t.status === 'DONE').length / data.items.length) * 100)}% hoàn thành
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-ink-muted">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-line-strong" aria-hidden="true" />
-                  <span>Chưa bắt đầu: <strong className="text-ink">{data.items.filter(t => t.status === 'TODO').length}</strong></span>
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-status-warning-text" aria-hidden="true" />
-                  <span>Đang làm: <strong className="text-ink">{data.items.filter(t => t.status === 'IN_PROGRESS').length}</strong></span>
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-primary" aria-hidden="true" />
-                  <span>Chờ nghiệm thu: <strong className="text-ink">{data.items.filter(t => t.status === 'IN_REVIEW').length}</strong></span>
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-status-success-text" aria-hidden="true" />
-                  <span>Hoàn thành: <strong className="text-ink">{data.items.filter(t => t.status === 'DONE').length}</strong></span>
-                </span>
-              </div>
-            </div>
-            <div className="mt-2 flex h-2 w-full overflow-hidden rounded-full bg-canvas border border-hairline">
-              <div style={{ width: `${(data.items.filter(t => t.status === 'DONE').length / data.items.length) * 100}%` }} className="bg-status-success-text transition-all" />
-              <div style={{ width: `${(data.items.filter(t => t.status === 'IN_REVIEW').length / data.items.length) * 100}%` }} className="bg-primary transition-all" />
-              <div style={{ width: `${(data.items.filter(t => t.status === 'IN_PROGRESS').length / data.items.length) * 100}%` }} className="bg-status-warning-text transition-all" />
-              <div style={{ width: `${(data.items.filter(t => t.status === 'TODO').length / data.items.length) * 100}%` }} className="bg-line-strong transition-all" />
-            </div>
+      <div className="ex-toolbar flex flex-wrap items-center justify-between gap-3 bg-canvas/70 border-b border-hairline px-5 py-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="ex-tabs" role="group" aria-label="Cách hiển thị">
+            <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}><ExIcon name="format_list_bulleted" /> Danh sách</button>
+            <button type="button" aria-pressed={view === 'status'} onClick={() => setView('status')}>Theo trạng thái</button>
+            <button type="button" aria-pressed={view === 'board'} onClick={() => setView('board')}>Bảng Kanban</button>
+            {env.jiraSprintEnabled && <button type="button" aria-pressed={view === 'sprint'} onClick={() => setView('sprint')}>Sprint &amp; Backlog</button>}
           </div>
-        )}
-        <div className="flex w-full flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Phạm vi:</span>
-            <div className="ex-tabs" role="group" aria-label="Phạm vi công việc">
-              <button type="button" aria-pressed={!assigneeUserId} onClick={() => updateParams('assignee', '')}>Cả nhóm</button>
-              {currentUserId && <button type="button" aria-pressed={assigneeUserId === currentUserId} onClick={() => updateParams('assignee', String(currentUserId))}>Của tôi</button>}
+          {view !== 'sprint' && (
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="ex-tabs" role="group" aria-label="Phạm vi công việc">
+                <button type="button" aria-pressed={!assigneeUserId} onClick={() => updateParams('assignee', '')}>Cả nhóm</button>
+                {currentUserId && <button type="button" aria-pressed={assigneeUserId === currentUserId} onClick={() => updateParams('assignee', String(currentUserId))}>Của tôi</button>}
+              </div>
+              {assigneeUserId && assigneeUserId !== currentUserId && (
+                <span className="text-xs font-medium text-ink-soft inline-flex items-center gap-1.5">
+                  <span>{activeMember?.fullName ?? 'Thành viên đã chọn'}</span>
+                  <button type="button" className="ex-text-button text-xs underline" onClick={() => updateParams('assignee', '')}>Bỏ lọc</button>
+                </span>
+              )}
             </div>
-            {assigneeUserId && assigneeUserId !== currentUserId && (
-              <span className="text-xs font-medium text-ink-soft inline-flex items-center gap-1.5 ml-2">
-                <span>{activeMember?.fullName ?? 'Thành viên đã chọn'}</span>
-                <button type="button" className="ex-text-button text-xs underline" onClick={() => updateParams('assignee', '')}>Bỏ lọc</button>
-              </span>
+          )}
+        </div>
+        {view !== 'sprint' && data && (
+          <div className="flex flex-wrap items-center gap-3">
+            {data.items.length > 0 && (
+              <div className="flex items-center gap-2" aria-label="Tổng quan tiến trình công việc">
+                <span className="text-xs font-semibold text-ink-soft">Tiến độ trang:</span>
+                <div className="flex h-2 w-24 overflow-hidden rounded-full bg-card border border-hairline">
+                  <div style={{ width: `${(data.items.filter(t => t.status === 'DONE').length / data.items.length) * 100}%` }} className="bg-status-success-text transition-all" />
+                  <div style={{ width: `${(data.items.filter(t => t.status === 'IN_REVIEW').length / data.items.length) * 100}%` }} className="bg-primary transition-all" />
+                  <div style={{ width: `${(data.items.filter(t => t.status === 'IN_PROGRESS').length / data.items.length) * 100}%` }} className="bg-status-warning-text transition-all" />
+                  <div style={{ width: `${(data.items.filter(t => t.status === 'TODO').length / data.items.length) * 100}%` }} className="bg-line-strong transition-all" />
+                </div>
+                <span className="rounded-full bg-primary-subtle px-2 py-0.5 text-xs font-bold text-primary tabular-nums">
+                  {Math.round((data.items.filter(t => t.status === 'DONE').length / data.items.length) * 100)}%
+                </span>
+              </div>
             )}
-          </div>
-          {data && (
             <span className="text-xs text-ink-muted tabular-nums">
               Tổng số công việc: <strong className="text-ink">{data.totalCount}</strong>
             </span>
-          )}
-        </div>
-        <div className="flex w-full flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Hiển thị:</span>
-            <div className="ex-tabs" role="group" aria-label="Cách hiển thị">
-              <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}><ExIcon name="format_list_bulleted" /> Danh sách</button>
-              <button type="button" aria-pressed={view === 'status'} onClick={() => setView('status')}>Theo trạng thái</button>
-              <button type="button" aria-pressed={view === 'board'} onClick={() => setView('board')}>Bảng Kanban</button>
-              {env.jiraSprintEnabled && <button type="button" aria-pressed={view === 'sprint'} onClick={() => setView('sprint')}>Sprint &amp; Backlog</button>}
-            </div>
           </div>
-        </div>
+        )}
       </div>
-      <form onSubmit={apply}>
-        <div className="ex-filters"><label className="ex-filter-search">Tìm công việc<input value={draft.search} onChange={event => setDraft({ ...draft, search: event.target.value })} placeholder="Tên công việc…" /></label>
-          <label>Trạng thái<select value={draft.status} onChange={event => setDraft({ ...draft, status: event.target.value })}><option value="">Tất cả</option>{statuses.map(value => <option key={value} value={value}>{taskStatusLabel(value)}</option>)}</select></label>
-          {members.length > 0 && <label>Người phụ trách<select value={draft.assignee} onChange={event => setDraft({ ...draft, assignee: event.target.value })}><option value="">Cả nhóm</option>{members.map(member => <option key={member.userId} value={member.userId}>{member.fullName}</option>)}</select></label>}
-          <button className="ex-button" type="submit">Áp dụng</button><button className="ex-text-button" type="button" aria-expanded={advanced} onClick={() => setAdvanced(value => !value)}>Bộ lọc khác</button>
-        </div>
-        {advanced && <div className="ex-filters">{showMajorFilter && <><label>Ngành<select value={draft.major} onChange={event => setDraft({ ...draft, major: event.target.value })}><option value="">Tất cả ngành</option>{project.majors.map(item => <option key={item.id} value={item.majorId}>{item.majorName}</option>)}</select></label><label>Vai trò ngành<select value={draft.role} onChange={event => setDraft({ ...draft, role: event.target.value })}><option value="">Tất cả vai trò</option>{disciplineRoles.map(value => <option key={value} value={value}>{disciplineRoleLabels[value]}</option>)}</select></label></>}<label>Mốc đồ án<select value={draft.milestone} onChange={event => setDraft({ ...draft, milestone: event.target.value })}><option value="">Tất cả mốc</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label>Mức ưu tiên<select value={draft.priority} onChange={event => setDraft({ ...draft, priority: event.target.value })}><option value="">Tất cả mức</option>{Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="ex-filter-check"><input type="checkbox" checked={draft.overdue} onChange={event => setDraft({ ...draft, overdue: event.target.checked })} />Chỉ việc quá hạn</label><button className="ex-text-button" type="button" onClick={() => setParams({})}>Xóa bộ lọc</button></div>}
-      </form>
+      {view !== 'sprint' && (
+        <form onSubmit={apply}>
+          <div className="ex-filters"><label className="ex-filter-search">Tìm công việc<input value={draft.search} onChange={event => setDraft({ ...draft, search: event.target.value })} placeholder="Tên công việc…" /></label>
+            <label>Trạng thái<select value={draft.status} onChange={event => setDraft({ ...draft, status: event.target.value })}><option value="">Tất cả</option>{statuses.map(value => <option key={value} value={value}>{taskStatusLabel(value)}</option>)}</select></label>
+            {members.length > 0 && <label>Người phụ trách<select value={draft.assignee} onChange={event => setDraft({ ...draft, assignee: event.target.value })}><option value="">Cả nhóm</option>{members.map(member => <option key={member.userId} value={member.userId}>{member.fullName}</option>)}</select></label>}
+            <button className="ex-button" type="submit">Áp dụng</button><button className="ex-text-button" type="button" aria-expanded={advanced} onClick={() => setAdvanced(value => !value)}>Bộ lọc khác</button>
+          </div>
+          {advanced && <div className="ex-filters">{showMajorFilter && <><label>Ngành<select value={draft.major} onChange={event => setDraft({ ...draft, major: event.target.value })}><option value="">Tất cả ngành</option>{project.majors.map(item => <option key={item.id} value={item.majorId}>{item.majorName}</option>)}</select></label><label>Vai trò ngành<select value={draft.role} onChange={event => setDraft({ ...draft, role: event.target.value })}><option value="">Tất cả vai trò</option>{disciplineRoles.map(value => <option key={value} value={value}>{disciplineRoleLabels[value]}</option>)}</select></label></>}<label>Mốc đồ án<select value={draft.milestone} onChange={event => setDraft({ ...draft, milestone: event.target.value })}><option value="">Tất cả mốc</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label>Mức ưu tiên<select value={draft.priority} onChange={event => setDraft({ ...draft, priority: event.target.value })}><option value="">Tất cả mức</option>{Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="ex-filter-check"><input type="checkbox" checked={draft.overdue} onChange={event => setDraft({ ...draft, overdue: event.target.checked })} />Chỉ việc quá hạn</label><button className="ex-text-button" type="button" onClick={() => setParams({})}>Xóa bộ lọc</button></div>}
+        </form>
+      )}
       {view === 'sprint' ? <SprintBacklogPanel projectId={project.id} routeBase={routeBase} canManage={canCreate} /> : loading ? <ExState loading /> : error ? <ExState message={error} retry={refresh} /> : data && <>
         {!data.items.length ? <ExState title="Không có công việc phù hợp" message="Thử đổi bộ lọc hoặc tạo công việc mới cho nhóm." /> : <>
           {view === 'board' ? <><p className="ex-muted ex-padding">{access.readOnly ? 'Bảng công việc chỉ xem; nhấn vào thẻ để xem chi tiết.' : 'Kéo thả thẻ công việc giữa các cột để chuyển trạng thái nhanh, hoặc nhấn vào thẻ để xem chi tiết.'} Chỉ hiển thị công việc trên trang hiện tại.</p><section className="task-board-scroll" aria-label="Bảng công việc theo trang" tabIndex={0}>{statuses.map(value => <section data-status={value} className={`task-board-column ${dragOverColumn === value ? 'is-drag-over' : ''} ${value === 'IN_PROGRESS' ? 'task-board-column--in-progress' : ''}`} key={value} aria-label={taskStatusLabel(value)}
@@ -328,7 +325,18 @@ export function TaskBoardPage() {
           {view === 'list' ? <ul>{data.items.map(task => <TaskRow key={task.id} task={task} routeBase={routeBase} milestones={milestones} listSearch={params.toString()} onSelect={openTaskDetail} />)}</ul>
             : statuses.filter(value => data.items.some(task => task.status === value)).map(value => <div key={value}><h2 className="ex-group-heading">{taskStatusLabel(value)} <span className="ex-muted">· {data.items.filter(task => task.status === value).length} việc trên trang này</span></h2><ul>{data.items.filter(task => task.status === value).map(task => <TaskRow key={task.id} task={task} routeBase={routeBase} milestones={milestones} listSearch={params.toString()} onSelect={openTaskDetail} />)}</ul></div>)}</>}
         </>}
-        <ExPagination page={page} pages={data.totalPages} total={data.totalCount} onPage={nextPage => { const next = new URLSearchParams(params); next.set('page', String(nextPage)); setParams(next) }} />
+        {data.totalPages > 1 && (
+          <div className="border-t border-hairline bg-canvas/50 px-5 py-3.5">
+            <Pagination
+              page={page}
+              pages={data.totalPages}
+              total={data.totalCount}
+              pageSize={data.pageSize}
+              busy={loading}
+              onPage={nextPage => { const next = new URLSearchParams(params); next.set('page', String(nextPage)); setParams(next) }}
+            />
+          </div>
+        )}
       </>}
     </section>
 
@@ -352,6 +360,6 @@ function TaskRow({ task, routeBase, milestones, listSearch, onSelect }: { task: 
       onSelect(task.id)
     }
   }}><span className="ex-task-title"><ExIcon name={task.status === 'DONE' ? 'check_circle' : task.status === 'BLOCKED' ? 'pause_circle' : 'radio_button_unchecked'} /><div><strong>{task.title}</strong><small>{milestones.find(item => item.id === task.milestoneId)?.title || 'Công việc của đồ án'} · Ưu tiên {priorityLabels[task.priority ?? '']?.toLowerCase() ?? 'chưa chọn'}</small></div></span>
-    <span className="ex-task-assignee">{task.assignees.map(person => person.userFullName).join(', ') || 'Chưa phân công'}</span><span className="ex-task-status"><span className={`ex-badge ex-badge-${task.status}`}>{taskStatusLabel(task.status)}</span></span><span className={`ex-task-date ${overdue ? 'is-overdue' : ''}`}>{dateLabel(task.dueAt)}{overdue && <small>Quá hạn</small>}</span>
+    <span className="ex-task-assignee">{task.assignees.map(person => person.userFullName).join(', ') || 'Chưa phân công'}</span><span className="ex-task-status"><StatusBadge status={task.status} label={taskStatusLabel(task.status)} tone={taskStatusTone(task.status)} /></span><span className={`ex-task-date ${overdue ? 'is-overdue' : ''}`}>{dateLabel(task.dueAt)}{overdue && <small>Quá hạn</small>}</span>
   </Link></li>
 }

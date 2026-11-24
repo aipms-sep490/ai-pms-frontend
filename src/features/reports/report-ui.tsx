@@ -1,11 +1,19 @@
 import type { ReactNode } from 'react'
 import { ListLoading } from '../../components/ui/ListLoading'
+import { StatusBadge } from '../../components/ui'
+import type { BadgeTone } from '../../components/ui/status-badge-tone'
 import { reportStatusLabels, type ReportStatus } from './report-types'
 import { ExecutionPage } from '../execution/execution-ui'
 import './reports.css'
 
+const reportStatusTone: Record<ReportStatus, BadgeTone> = {
+  DRAFT: 'neutral',
+  SUBMITTED: 'warning',
+  REVIEWED: 'success',
+}
+
 export function ReportBadge({ status }: { status: ReportStatus }) {
-  return <span className={`report-badge report-badge--${status.toLowerCase()}`}>{reportStatusLabels[status] ?? status}</span>
+  return <StatusBadge status={status} tone={reportStatusTone[status] ?? 'neutral'} label={reportStatusLabels[status] ?? status} />
 }
 
 export function ReportShell({ title, description, projectTitle, backTo, children, action }: {

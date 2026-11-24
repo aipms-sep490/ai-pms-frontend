@@ -6,6 +6,7 @@ import type { SprintBurndownDto, SprintCarryover, SprintDto, TaskDto } from '../
 import { backlogTasks, collectLabels, parseLabels, pendingTasksInSprint, sprintPoints, STORY_POINTS, tasksInSprint } from '../sprint-model'
 import { loadSprintBoard } from '../sprint-board-data'
 import { HttpError } from '../../../services/http/http-client'
+import { Pagination, StatTileRow, StatusBadge, useClientPagination } from '../../../components/ui'
 
 /**
  * Jira-style sprint + backlog view. Self-contained: fetches its own sprints and task board page.
@@ -54,17 +55,29 @@ export function SprintBacklogPanel({ projectId, routeBase, canManage = false }: 
   const labels = collectLabels(tasks)
   const planningOrActive = sprints.filter(s => s.status !== 'COMPLETED')
   const completed = sprints.filter(s => s.status === 'COMPLETED')
+  const backlog = backlogTasks(tasks)
+  const completedPagination = useClientPagination(completed, 8)
   const completingSprint = completingSprintId != null ? sprints.find(s => s.id === completingSprintId) ?? null : null
 
   if (state === 'loading') return <p role="status" className="ex-muted ex-padding">Đang tải sprint và backlog…</p>
   if (state === 'error') return <section className="ex-panel"><div className="ex-padding"><p role="alert" className="text-status-error-text">{error || 'Chưa tải được dữ liệu sprint.'}</p><button type="button" className="ex-button mt-2" onClick={reload}>Tải lại</button></div></section>
 
-  return <div className="sprint-view">
+  return <div className="sprint-view p-5">
+    <StatTileRow
+      tiles={[
+        { icon: 'sprint', label: 'Tổng sprint', value: sprints.length, caption: 'Toàn bộ chu kỳ trong đồ án', hero: true },
+        { icon: 'play_circle', label: 'Đang chạy', value: planningOrActive.filter(s => s.status === 'ACTIVE').length, caption: 'Sprint đang thực thi hiện tại', tone: 'info' },
+        { icon: 'inventory_2', label: 'Backlog', value: backlog.length, caption: 'Công việc chưa đưa vào sprint', tone: backlog.length > 0 ? 'warning' : 'neutral' },
+        { icon: 'verified', label: 'Đã hoàn tất', value: completed.length, caption: 'Sprint đã đóng và tổng kết', tone: 'success' },
+      ]}
+    />
     {notice && <p role="status" className="sprint-notice">{notice}</p>}
     {error && <p role="alert" className="sprint-error">{error}</p>}
 
-    {canManage && <form className="ex-panel sprint-create" onSubmit={createSprint}>
-      <div className="ex-panel-heading"><h2>Tạo sprint</h2></div>
+    {canManage && <form className="ex-panel sprint-create !mb-0" onSubmit={createSprint}>
+      <div className="ex-panel-heading bg-canvas/70 border-b border-hairline px-5 py-3.5">
+        <h2>Tạo sprint</h2>
+      </div>
       <div className="ex-padding sprint-create-fields">
         <label>Tên sprint<input value={form.name} maxLength={120} required onChange={e => setForm({ ...form, name: e.target.value })} /></label>
         <label>Bắt đầu<input type="date" value={form.startAt} required onChange={e => setForm({ ...form, startAt: e.target.value })} /></label>
@@ -78,14 +91,46 @@ export function SprintBacklogPanel({ projectId, routeBase, canManage = false }: 
       run={run} onRequestComplete={() => setCompletingSprintId(sprint.id)}
     />)}
 
-    <section className="ex-panel sprint-card" aria-label="Backlog">
-      <div className="ex-panel-heading"><h2>Backlog</h2></div>
+    <section className="ex-panel sprint-card !mb-0" aria-label="Backlog">
+      <div className="ex-panel-heading bg-canvas/70 border-b border-hairline px-5 py-3.5">
+        <div className="flex items-center gap-2">
+          <h2>Backlog</h2>
+          <span className="rounded-full border border-hairline bg-card px-2 py-0.5 text-xs font-semibold text-ink-soft tabular-nums">{backlog.length}</span>
+        </div>
+      </div>
       <div className="ex-padding">
-        <TaskRows tasks={backlogTasks(tasks)} sprints={sprints} routeBase={routeBase} busy={busy || !canManage} labelOptions={labels} run={run} emptyText="Không có công việc trong backlog." />
+        <TaskRows tasks={backlog} sprints={sprints} routeBase={routeBase} busy={busy || !canManage} labelOptions={labels} run={run} emptyText="Không có công việc trong backlog." allowPageSizeChange />
       </div>
     </section>
 
-    {completed.length > 0 && <section className="ex-panel"><div className="ex-panel-heading"><h2>Sprint đã hoàn tất</h2></div><ul className="ex-padding sprint-completed">{completed.map(sprint => { const points = sprintPoints(tasks, sprint.id); return <li key={sprint.id}>{sprint.name} · {points.done}/{points.total} điểm · {points.count} công việc</li> })}</ul></section>}
+    {completed.length > 0 && (
+      <section className="ex-panel !mb-0">
+        <div className="ex-panel-heading bg-canvas/70 border-b border-hairline px-5 py-3.5">
+          <div className="flex items-center gap-2">
+            <h2>Sprint đã hoàn tất</h2>
+            <span className="rounded-full border border-hairline bg-card px-2 py-0.5 text-xs font-semibold text-ink-soft tabular-nums">{completed.length}</span>
+          </div>
+        </div>
+        <div className="ex-padding">
+          <ul className="sprint-completed">
+            {completedPagination.paginatedItems.map(sprint => {
+              const points = sprintPoints(tasks, sprint.id)
+              return <li key={sprint.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hairline bg-canvas/50 px-3.5 py-2.5 text-sm">{sprint.name} · {points.done}/{points.total} điểm · {points.count} công việc</li>
+            })}
+          </ul>
+          {completedPagination.showPagination && (
+            <Pagination
+              className="mt-4"
+              page={completedPagination.page}
+              pages={completedPagination.totalPages}
+              total={completedPagination.total}
+              pageSize={completedPagination.pageSize}
+              onPage={completedPagination.setPage}
+            />
+          )}
+        </div>
+      </section>
+    )}
 
     {completingSprint && <CompleteSprintDialog
       sprint={completingSprint} openTasks={pendingTasksInSprint(tasks, completingSprint.id)}
@@ -112,9 +157,17 @@ function SprintCard({ sprint, tasks, sprints, routeBase, busy, labelOptions, run
     return () => abort.abort()
   }, [projectIdForBurndown, sprint.id])
 
-  return <section className="ex-panel sprint-card" aria-label={`Sprint ${sprint.name}`}>
-    <div className="ex-panel-heading sprint-card-head">
-      <div><h2>{sprint.name} <span className={`sprint-badge sprint-badge--${String(sprint.status).toLowerCase()}`}>{sprint.status === 'ACTIVE' ? 'Đang chạy' : 'Lên kế hoạch'}</span></h2></div>
+  return <section className="ex-panel sprint-card !mb-0" aria-label={`Sprint ${sprint.name}`}>
+    <div className="ex-panel-heading sprint-card-head bg-canvas/70 border-b border-hairline px-5 py-3.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2>{sprint.name}</h2>
+        <StatusBadge
+          status={sprint.status}
+          tone={sprint.status === 'ACTIVE' ? 'success' : 'info'}
+          label={sprint.status === 'ACTIVE' ? 'Đang chạy' : 'Lên kế hoạch'}
+        />
+        <span className="rounded-full border border-hairline bg-card px-2 py-0.5 text-xs font-semibold text-ink-soft tabular-nums">{points.count} việc</span>
+      </div>
       <div className="sprint-card-actions">
         {sprint.status === 'PLANNED' && <button type="button" className="ex-button" disabled={busy || !sprint.canStart} title={sprint.canStart ? undefined : 'Chưa thể bắt đầu sprint này'} onClick={() => void run(() => tasksApi.startSprint(sprint.projectId, sprint.id, sprint.concurrencyToken), `Đã bắt đầu ${sprint.name}.`)}>Bắt đầu</button>}
         {sprint.status === 'ACTIVE' && <button type="button" className="ex-button" disabled={busy || !sprint.canComplete} title={sprint.canComplete ? undefined : 'Chưa thể hoàn tất sprint này'} onClick={onRequestComplete}>Hoàn tất</button>}
@@ -183,12 +236,27 @@ function CompleteSprintDialog({ sprint, openTasks, otherSprints, busy, onCancel,
   </div>
 }
 
-function TaskRows({ tasks, sprints, routeBase, busy, labelOptions, run, emptyText }: {
+function TaskRows({ tasks, sprints, routeBase, busy, labelOptions, run, emptyText, allowPageSizeChange = false }: {
   tasks: TaskDto[]; sprints: SprintDto[]; routeBase: string; busy: boolean; labelOptions: string[]
-  run: (action: () => Promise<unknown>, success: string) => Promise<boolean>; emptyText?: string
+  run: (action: () => Promise<unknown>, success: string) => Promise<boolean>; emptyText?: string; allowPageSizeChange?: boolean
 }) {
+  const pagination = useClientPagination(tasks, 8)
   if (!tasks.length) return <p className="ex-muted">{emptyText ?? 'Chưa có công việc.'}</p>
-  return <ul className="sprint-task-rows">{tasks.map(task => <TaskRow key={task.id} task={task} sprints={sprints} routeBase={routeBase} busy={busy} labelOptions={labelOptions} run={run} />)}</ul>
+  return <>
+    <ul className="sprint-task-rows">{pagination.paginatedItems.map(task => <TaskRow key={task.id} task={task} sprints={sprints} routeBase={routeBase} busy={busy} labelOptions={labelOptions} run={run} />)}</ul>
+    {pagination.showPagination && (
+      <Pagination
+        className="mt-4"
+        page={pagination.page}
+        pages={pagination.totalPages}
+        total={pagination.total}
+        pageSize={pagination.pageSize}
+        pageSizeOptions={[8, 16, 30]}
+        onPage={pagination.setPage}
+        onPageSizeChange={allowPageSizeChange ? pagination.setPageSize : undefined}
+      />
+    )}
+  </>
 }
 
 function TaskRow({ task, sprints, routeBase, busy, labelOptions, run }: {

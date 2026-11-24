@@ -94,7 +94,17 @@ function MeetingVideoRoomAccess({ meeting, backTo }: { meeting: MeetingDetail; b
 
   if (state.status === 'loading' || state.status === 'idle') return <MeetingLoading />
   if (state.status === 'error') return <MeetingError message={state.message} retry={refresh} />
-  if (!state.resource.capabilities.canJoin) return <section className="mtg-panel mtg-padded"><h2>Chưa thể tham gia phòng họp</h2>{denialMessages.length > 0 ? <ul className="mtg-video-denials" role="alert">{denialMessages.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul> : <p className="mtg-help">Bạn chưa được cấp quyền tham gia phòng họp ở thời điểm này.</p>}<Link className="mtg-button mtg-button--secondary" to={backTo}>Quay lại chi tiết cuộc họp</Link></section>
+  if (!state.resource.capabilities.canJoin) return (
+    <section className="mtg-panel overflow-hidden">
+      <div className="flex items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+        <h2>Chưa thể tham gia phòng họp</h2>
+      </div>
+      <div className="mtg-padded">
+        {denialMessages.length > 0 ? <ul className="mtg-video-denials" role="alert">{denialMessages.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul> : <p className="mtg-help">Bạn chưa được cấp quyền tham gia phòng họp ở thời điểm này.</p>}
+        <Link className="mtg-button mtg-button--secondary" to={backTo}>Quay lại chi tiết cuộc họp</Link>
+      </div>
+    </section>
+  )
   if (credential && preferences) return <><Suspense fallback={<MeetingLoading />}><LiveKitRoomAdapter credential={credential} preferences={preferences} title={meeting.title} canEnd={state.resource.capabilities.canEnd} onLeave={leaveRoom} onEndRequested={() => setConfirmEnd(true)} onTerminal={terminal} governance={<RoomGovernanceDrawer meeting={meeting} backTo={backTo} canManage={canManageMeeting(access, meeting)} open={governanceOpen} onClose={() => setGovernanceOpen(false)} />} governanceOpen={governanceOpen} onGovernance={() => setGovernanceOpen((value) => !value)} /></Suspense>{confirmEnd && <div ref={endDialogRef} tabIndex={-1} className="mtg-confirm" role="alertdialog" aria-label="Xác nhận kết thúc phòng"><p>Kết thúc phòng họp với tất cả người tham gia? Cuộc họp vẫn được giữ nguyên trên lịch.</p>{endError && <p role="alert">{endError}</p>}<div className="mtg-actions"><button className="mtg-button mtg-button--secondary" disabled={ending} onClick={() => setConfirmEnd(false)}>Quay lại</button><button className="mtg-button mtg-button--danger" disabled={ending} onClick={() => void endRoom()}>{ending ? 'Đang kết thúc…' : 'Kết thúc phòng'}</button></div></div>}</>
   return <>{joinError && <p className="mtg-notice mtg-notice--error" role="alert">{joinError}</p>}<MeetingVideoPreflight onBack={() => navigate(backTo)} onConnectRequested={(selection) => void requestConnect(selection)} />{joining && <p className="mtg-loading" role="status">Đang chuẩn bị phòng họp…</p>}</>
 }

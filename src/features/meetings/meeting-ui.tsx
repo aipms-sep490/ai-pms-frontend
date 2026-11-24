@@ -1,11 +1,19 @@
 import type { ReactNode } from 'react'
 import { ListLoading } from '../../components/ui/ListLoading'
+import { StatusBadge } from '../../components/ui'
+import type { BadgeTone } from '../../components/ui/status-badge-tone'
 import { meetingStatuses, type MeetingStatus } from './meeting-types'
 import { ExecutionPage } from '../execution/execution-ui'
 import './meetings.css'
 
+const meetingStatusTone: Record<MeetingStatus, BadgeTone> = {
+  SCHEDULED: 'warning',
+  COMPLETED: 'success',
+  CANCELLED: 'danger',
+}
+
 export function MeetingStatusBadge({ status }: { status: MeetingStatus }) {
-  return <span className={`mtg-status mtg-status--${status.toLowerCase()}`}>{meetingStatuses[status] ?? status}</span>
+  return <StatusBadge status={status} tone={meetingStatusTone[status] ?? 'neutral'} label={meetingStatuses[status] ?? status} />
 }
 export function MeetingShell({ title, projectTitle, backTo, action, description = 'Sắp xếp lịch họp, ghi lại kết luận và thống nhất việc cần làm tiếp theo.', children }: {
   title: string; projectTitle: string; backTo: string; action?: ReactNode; description?: string; children: ReactNode

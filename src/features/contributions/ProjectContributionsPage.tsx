@@ -1,6 +1,6 @@
 import { dateTimeLabel } from '../execution/execution-utils'
-import { Modal } from '../../components/ui/Modal'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
+import { Pagination, StatTileRow, StatusBadge } from '../../components/ui'
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useStudentJourney } from '../../app/context'
@@ -98,6 +98,11 @@ export function ProjectContributionsPage() {
   const totalEvidence = summary?.members.reduce((total, member) => total + member.evidenceCount, 0) ?? 0
   const completedTasks = summary?.members.reduce((total, member) => total + member.completedTasks, 0) ?? 0
   const assignedTasks = summary?.members.reduce((total, member) => total + member.assignedTasks, 0) ?? 0
+  const averageScore = summary?.members.length
+    ? Math.round(summary.members.reduce((total, member) => total + member.activityScore, 0) / summary.members.length)
+    : 0
+  const memberTotalPages = summary ? Math.max(1, Math.ceil(summary.totalCount / 20)) : 1
+  const evidenceTotalPages = Math.max(1, Math.ceil(evidenceTotal / 20))
 
   return <div className="workspace-page space-y-5">{confirmationDialog}
     <header className="workspace-heading flex flex-col gap-4 border-b border-hairline pb-5 sm:flex-row sm:items-end sm:justify-between">
@@ -130,46 +135,82 @@ export function ProjectContributionsPage() {
     {!loading && !projectId && <div className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Không tìm thấy đồ án để xem đóng góp.</div>}
 
     {!loading && summary && <>
-      <section className="grid gap-px overflow-hidden rounded-lg border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4" aria-label="Tổng hợp đóng góp">
-        <SummaryMetric label="Thành viên" value={summary.totalCount} helper={snapshot ? 'Bản tổng hợp đã lưu' : 'Dữ liệu hiện tại'} />
-        <SummaryMetric label="Công việc hoàn tất" value={`${completedTasks}/${assignedTasks}`} helper="Theo nhiệm vụ được giao" />
-        <SummaryMetric label="Tổng chứng cứ" value={totalEvidence} helper="Trong trang hiện tại" />
-        <SummaryMetric label="Phiên bản quy tắc" value={summary.ruleVersion} helper={summary.snapshotAt ? formatDate(summary.snapshotAt) : ({ SUFFICIENT: 'Đủ dữ liệu', INSUFFICIENT_DATA: 'Chưa đủ dữ liệu' }[summary.dataStatus] ?? 'Chưa xác định')} compact />
-      </section>
+      <StatTileRow
+        tiles={[
+          { icon: 'groups', label: 'Thành viên', value: summary.totalCount, caption: snapshot ? 'Bản tổng hợp đã lưu' : 'Dữ liệu hoạt động hiện tại', hero: true },
+          { icon: 'task_alt', label: 'Công việc hoàn tất', value: completedTasks, caption: `Trên ${assignedTasks} nhiệm vụ được giao`, tone: 'success' },
+          { icon: 'fact_check', label: 'Tổng chứng cứ', value: totalEvidence, caption: 'Hoạt động ghi nhận trong trang này', tone: 'info' },
+          { icon: 'insights', label: 'Điểm hoạt động TB', value: averageScore, caption: `${summary.ruleVersion} · ${summary.snapshotAt ? formatDate(summary.snapshotAt) : ({ SUFFICIENT: 'Đủ dữ liệu', INSUFFICIENT_DATA: 'Chưa đủ dữ liệu' }[summary.dataStatus] ?? 'Đang cập nhật')}`, tone: summary.dataStatus === 'INSUFFICIENT_DATA' ? 'warning' : 'neutral' },
+        ]}
+      />
 
       {summary.dataStatus === 'INSUFFICIENT_DATA' && <div role="status" className="flex gap-3 rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm leading-6 text-status-warning-text"><span className="material-symbols-outlined mt-0.5 text-[19px]" aria-hidden="true">info</span><p>Chưa đủ chứng cứ để so sánh hoạt động giữa các thành viên. Đây không phải là đánh giá hoặc điểm học phần.</p></div>}
 
-      <section className="overflow-hidden rounded-lg border border-hairline bg-card" aria-labelledby="contribution-members-heading">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-4 sm:px-5">
-          <div><h2 id="contribution-members-heading" className="font-semibold text-ink">Hoạt động theo thành viên</h2><p className="mt-1 text-xs text-ink-muted">{summary.snapshotHash ? `Mã bản tổng hợp ${summary.snapshotHash.slice(0, 12)}` : 'Cập nhật theo hoạt động hiện tại'}</p></div>
-          <span className="rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-1 text-xs font-bold text-primary">{summary.members.length} thành viên trên trang</span>
-        </div>
-        {summary.members.length === 0 ? <div className="p-8 text-center text-sm text-ink-muted">Chưa có dữ liệu đóng góp trong nguồn đã chọn.</div> : <ul className="divide-y divide-hairline">{summary.members.map(member => <li key={member.userId} className={`grid gap-4 p-4 transition-colors sm:p-5 lg:grid-cols-[minmax(14rem,1.3fr)_minmax(20rem,2fr)_auto] lg:items-center ${selectedUserId === member.userId ? 'bg-primary-subtle/70' : 'hover:bg-canvas/80'}`}>
-          <div className="flex min-w-0 items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-subtle text-sm font-bold text-primary">{initials(member.displayName)}</span><div className="min-w-0"><strong className="block truncate text-sm text-ink">{member.displayName}</strong><span className="font-mono text-xs text-ink-muted">Thành viên #{member.userId}</span></div></div>
-          <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-xs sm:grid-cols-3"><ContributionStat label="Công việc" value={`${member.completedTasks}/${member.assignedTasks}`} /><ContributionStat label="Báo cáo" value={member.submittedReports} /><ContributionStat label="Cuộc họp" value={member.attendedMeetings} /><ContributionStat label="Bản nộp" value={member.submittedDeliverableVersions} /><ContributionStat label="Tệp" value={member.uploadedFiles} /><ContributionStat label="Hoạt động" value={member.activityScore} /></div>
-          <button type="button" aria-label="Xem chứng cứ" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-hairline bg-card px-3.5 text-sm font-semibold text-primary transition-colors hover:border-primary/30 hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => { setSelectedUserId(member.userId); setEvidencePage(1); setSourceType('') }}><span className="font-mono text-xs font-bold">{member.evidenceCount}</span> Xem chứng cứ</button>
-        </li>)}</ul>}
-        {summary.totalCount > 20 && <Pager page={page} total={summary.totalCount} onChange={setPage} />}
-      </section>
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+        <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs xl:col-span-7 min-w-0" aria-labelledby="contribution-members-heading">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+            <div>
+              <h2 id="contribution-members-heading" className="text-[15px] font-bold text-ink">Hoạt động theo thành viên</h2>
+              <p className="mt-0.5 text-xs text-ink-muted">{summary.snapshotHash ? `Mã bản tổng hợp ${summary.snapshotHash.slice(0, 12)}` : 'Cập nhật theo hoạt động hiện tại'}</p>
+            </div>
+            <span className="rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-0.5 text-xs font-bold text-primary tabular-nums">{summary.members.length} thành viên</span>
+          </div>
+          {summary.members.length === 0 ? <div className="p-8 text-center text-sm text-ink-muted">Chưa có dữ liệu đóng góp trong nguồn đã chọn.</div> : (
+            <ul className="divide-y divide-hairline">{summary.members.map(member => <li key={member.userId} className={`grid gap-4 p-4 transition-colors sm:px-5 lg:grid-cols-[minmax(12rem,1.2fr)_minmax(16rem,2fr)_auto] lg:items-center ${selectedUserId === member.userId ? 'bg-primary-subtle/60 border-l-2 border-l-primary' : 'hover:bg-canvas/70'}`}>
+              <div className="flex min-w-0 items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-subtle text-sm font-bold text-primary">{initials(member.displayName)}</span><div className="min-w-0"><strong className="block truncate text-sm text-ink">{member.displayName}</strong><span className="text-xs text-ink-muted tabular-nums">{member.evidenceCount} chứng cứ đã ghi nhận</span></div></div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-3"><ContributionStat label="Công việc" value={`${member.completedTasks}/${member.assignedTasks}`} /><ContributionStat label="Báo cáo" value={member.submittedReports} /><ContributionStat label="Cuộc họp" value={member.attendedMeetings} /><ContributionStat label="Bản nộp" value={member.submittedDeliverableVersions} /><ContributionStat label="Tệp" value={member.uploadedFiles} /><ContributionStat label="Hoạt động" value={member.activityScore} /></div>
+              <button type="button" aria-label="Xem chứng cứ" className={`inline-flex min-h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selectedUserId === member.userId ? 'border-primary bg-primary text-white' : 'border-hairline bg-card text-primary hover:border-primary/30 hover:bg-primary-subtle'}`} onClick={() => { setSelectedUserId(member.userId); setEvidencePage(1); setSourceType('') }}><span className="font-mono text-xs font-bold">{member.evidenceCount}</span> Xem chứng cứ</button>
+            </li>)}</ul>
+          )}
+          {memberTotalPages > 1 && (
+            <div className="border-t border-hairline bg-canvas/50 px-5 py-3.5">
+              <Pagination page={page} pages={memberTotalPages} total={summary.totalCount} pageSize={20} busy={loading} onPage={setPage} />
+            </div>
+          )}
+        </section>
 
-      {selectedUserId && <Modal open drawer title="Minh chứng đóng góp" description={selectedMember?.displayName ?? `Thành viên #${selectedUserId}`} onClose={() => setSelectedUserId(null)}><div>
-        {error && <p role="alert" className="mb-4 text-sm text-status-error-text">{error}</p>}
-        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-hairline pb-4"><p className="max-w-60 text-sm leading-6 text-ink-muted">Hoạt động được ghi nhận để đối chiếu đóng góp của thành viên.</p><label className="grid shrink-0 gap-1 text-xs font-semibold text-ink-muted">Nguồn chứng cứ<select aria-label="Nguồn chứng cứ" className="min-h-11 min-w-52 rounded-md border border-hairline bg-card px-3 text-sm font-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" value={sourceType} onChange={event => { setSourceType(event.target.value); setEvidencePage(1) }}><option value="">Tất cả nguồn</option><option value="TASK">Công việc</option><option value="PROGRESS_REPORT">Báo cáo tiến độ</option><option value="MEETING">Cuộc họp</option><option value="DELIVERABLE_VERSION">Phiên bản hạng mục</option><option value="FILE">Tệp</option></select></label></div>
-        {evidenceLoading && <div role="status" className="p-5 text-sm text-ink-muted">Đang tải chứng cứ…</div>}
-        {!evidenceLoading && evidence.length === 0 && <div className="p-8 text-center text-sm text-ink-muted"><span className="material-symbols-outlined mb-2 block text-3xl text-ink-muted" aria-hidden="true">inventory_2</span>Chưa có chứng cứ phù hợp.</div>}
-        {!evidenceLoading && evidence.length > 0 && <ul className="divide-y divide-hairline">{evidence.map(item => <li key={`${item.sourceType}-${item.sourceId}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center"><span className="grid size-9 place-items-center rounded-md bg-primary-subtle text-primary"><span className="material-symbols-outlined text-[19px]" aria-hidden="true">description</span></span><div className="min-w-0"><strong className="block break-words text-sm text-ink">{item.sourceType === 'PROGRESS_REPORT' ? ({ WEEKLY: 'Báo cáo tuần', MONTHLY: 'Báo cáo tháng' }[item.label] ?? item.label) : item.label}</strong><span className="mt-1 block font-mono text-xs text-ink-muted">{sourceLabel(item.sourceType)} #{item.sourceId}</span></div><div className="col-start-2 text-left sm:col-start-auto sm:text-right"><span className="block text-xs text-ink-muted">{formatDate(item.occurredAt)}</span><span className="mt-1 block font-mono text-xs text-ink-muted">Mức đóng góp: {item.credit}</span></div></li>)}</ul>}
-        {evidenceTotal > 20 && <Pager page={evidencePage} total={evidenceTotal} onChange={setEvidencePage} />}
-      </div></Modal>}
+        <aside className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs xl:col-span-5 xl:sticky xl:top-20 min-w-0" aria-label="Nhật ký hoạt động và chứng cứ">
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+            <div>
+              <h2 className="text-[15px] font-bold text-ink">Minh chứng đóng góp</h2>
+              <p className="mt-0.5 text-xs text-ink-muted">{selectedUserId ? (selectedMember?.displayName ?? `Thành viên #${selectedUserId}`) : 'Chọn thành viên để đối chiếu nhật ký'}</p>
+            </div>
+            {selectedUserId && (
+              <button type="button" className="text-xs font-semibold text-primary hover:underline" onClick={() => setSelectedUserId(null)}>Đóng</button>
+            )}
+          </div>
+          {!selectedUserId ? (
+            <div className="p-8 text-center text-sm text-ink-muted">
+              <span className="material-symbols-outlined mb-2 block text-3xl text-ink-muted" aria-hidden="true">fact_check</span>
+              <p>Nhấn <strong>Xem chứng cứ</strong> ở một thành viên bên trái để đối chiếu từng hoạt động đã ghi nhận.</p>
+            </div>
+          ) : (
+            <div className="p-5 space-y-4">
+              {error && <p role="alert" className="text-sm text-status-error-text">{error}</p>}
+              <div className="flex flex-wrap items-end justify-between gap-3 border-b border-hairline pb-4">
+                <p className="flex-1 min-w-44 text-xs leading-5 text-ink-muted">Hoạt động được ghi nhận để đối chiếu đóng góp của thành viên.</p>
+                <label className="grid shrink-0 gap-1 text-xs font-semibold text-ink-muted">Nguồn chứng cứ
+                  <select aria-label="Nguồn chứng cứ" className="min-h-10 min-w-48 rounded-md border border-hairline bg-card px-3 text-sm font-normal text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" value={sourceType} onChange={event => { setSourceType(event.target.value); setEvidencePage(1) }}>
+                    <option value="">Tất cả nguồn</option><option value="TASK">Công việc</option><option value="PROGRESS_REPORT">Báo cáo tiến độ</option><option value="MEETING">Cuộc họp</option><option value="DELIVERABLE_VERSION">Phiên bản hạng mục</option><option value="FILE">Tệp</option>
+                  </select>
+                </label>
+              </div>
+              {evidenceLoading && <div role="status" className="py-5 text-sm text-ink-muted">Đang tải chứng cứ…</div>}
+              {!evidenceLoading && evidence.length === 0 && <div className="py-8 text-center text-sm text-ink-muted"><span className="material-symbols-outlined mb-2 block text-3xl text-ink-muted" aria-hidden="true">inventory_2</span>Chưa có chứng cứ phù hợp.</div>}
+              {!evidenceLoading && evidence.length > 0 && (
+                <ul className="divide-y divide-hairline">{evidence.map(item => <li key={`${item.sourceType}-${item.sourceId}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 py-3.5 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center"><span className="grid size-9 place-items-center rounded-md bg-primary-subtle text-primary"><span className="material-symbols-outlined text-[19px]" aria-hidden="true">description</span></span><div className="min-w-0"><strong className="block break-words text-sm text-ink">{item.sourceType === 'PROGRESS_REPORT' ? ({ WEEKLY: 'Báo cáo tuần', MONTHLY: 'Báo cáo tháng' }[item.label] ?? item.label) : item.label}</strong><div className="mt-1 flex flex-wrap items-center gap-1.5"><StatusBadge tone="info" label={sourceLabel(item.sourceType)} /><span className="font-mono text-xs text-ink-muted">#{item.sourceId}</span></div></div><div className="col-start-2 text-left sm:col-start-auto sm:text-right"><span className="block text-xs text-ink-muted tabular-nums">{formatDate(item.occurredAt)}</span><span className="mt-1 block font-mono text-xs text-ink-soft">Mức đóng góp: {item.credit}</span></div></li>)}</ul>
+              )}
+              {evidenceTotalPages > 1 && (
+                <div className="border-t border-hairline pt-3">
+                  <Pagination page={evidencePage} pages={evidenceTotalPages} total={evidenceTotal} pageSize={20} busy={evidenceLoading} onPage={setEvidencePage} />
+                </div>
+              )}
+            </div>
+          )}
+        </aside>
+      </div>
     </>}
   </div>
-}
-
-function Pager({ page, total, onChange }: { page: number; total: number; onChange: (next: number) => void }) {
-  return <nav aria-label="Phân trang đóng góp" className="flex items-center justify-between border-t border-hairline px-4 py-3 text-sm sm:px-5"><button type="button" disabled={page <= 1} className="min-h-10 rounded-md border border-hairline px-3 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-40" onClick={() => onChange(page - 1)}>Trang trước</button><span className="font-mono text-xs text-ink-muted">{page} / {Math.ceil(total / 20)}</span><button type="button" disabled={page >= Math.ceil(total / 20)} className="min-h-10 rounded-md border border-hairline px-3 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-40" onClick={() => onChange(page + 1)}>Trang sau</button></nav>
-}
-
-function SummaryMetric({ label, value, helper, compact = false }: { label: string; value: string | number; helper: string; compact?: boolean }) {
-  return <div className="min-w-0 bg-card p-4 sm:p-5"><p className="text-xs font-semibold uppercase tracking-[0.1em] text-ink-muted">{label}</p><p className={`mt-2 font-mono font-semibold text-ink ${compact ? 'truncate text-base' : 'text-2xl'}`}>{value}</p><p className="mt-1 truncate text-xs text-ink-muted">{helper}</p></div>
 }
 
 function ContributionStat({ label, value }: { label: string; value: string | number }) {

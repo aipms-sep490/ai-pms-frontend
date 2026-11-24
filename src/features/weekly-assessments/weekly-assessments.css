@@ -1,4 +1,4 @@
-.weekly-assessments { max-width: 1360px; margin: 0 auto; padding: 0 0 48px; color: var(--color-ink); }
+.weekly-assessments { max-width: 100%; margin: 0; padding: 0 0 48px; color: var(--color-ink); }
 .weekly-assessments * { box-sizing: border-box; }
 .weekly-assessments a, .weekly-assessments button, .weekly-assessments input, .weekly-assessments select, .weekly-assessments textarea { transition: border-color 160ms, background-color 160ms, box-shadow 160ms; }
 .weekly-assessments :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }

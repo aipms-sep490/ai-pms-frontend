@@ -3,12 +3,13 @@ import { useStudentJourney } from '../../app/context'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { Button } from '../../components/ui/Button'
 import { PageLoading } from '../../components/ui/PageLoading'
+import { Pagination } from '../../components/ui'
 import type { PagedResult } from '../../types/backend'
 import { getWeeklyAssessmentHistory, type WeeklyAssessment } from '../../services/api/weekly.api'
 import { formatScore } from '../../components/ui/format'
 import { WeeklyBadge } from './weekly-ui'
 import { formatCalendarDate } from './weekly-types'
-import { CollaborationIntro, CollaborationPager, collaborationDate, collaborationError } from '../student-collaboration/collaboration-ui'
+import { CollaborationIntro, collaborationDate, collaborationError } from '../student-collaboration/collaboration-ui'
 
 export function StudentWeeklyAssessmentsPage() {
   const journey = useStudentJourney()
@@ -33,7 +34,9 @@ export function WeeklyAssessmentHistory({ projectId, studentId, weekNumber, stud
     }).catch(reason => { if (!abort.signal.aborted) setError(collaborationError(reason)) })
     return () => abort.abort()
   }, [projectId, studentId, weekNumber, page, retry, studentOnly])
-  return <section className="collab collab-card"><div className="collab-row"><h2>Lịch sử phản hồi</h2>{data && <span className="collab-muted">{data.totalCount} phiên bản</span>}</div>
+  const totalPages = data ? Math.max(1, Math.ceil(data.totalCount / 10)) : 1
+  return <section className="collab collab-card overflow-hidden !p-0"><div className="collab-row bg-canvas/70 border-b border-hairline px-5 py-3.5"><h2 className="text-[15px] font-bold text-ink">Lịch sử phản hồi</h2>{data && <span className="rounded-full border border-hairline bg-card px-2 py-0.5 text-xs font-semibold text-ink-soft tabular-nums">{data.totalCount} phiên bản</span>}</div>
+    <div className="p-5">
     {error ? <p className="collab-error" role="alert">{error} <Button variant="ghost" onClick={() => setRetry(value => value + 1)}>Tải lại</Button></p> : !data ? <PageLoading /> : <>
       {!data.items.length && <p className="collab-empty">Chưa có phản hồi được gửi cho khoảng thời gian này.</p>}
       <div className="collab-history">{data.items.map(row => <details key={row.id} open={data.items.length === 1 || undefined}>
@@ -44,7 +47,19 @@ export function WeeklyAssessmentHistory({ projectId, studentId, weekNumber, stud
           {row.comments && <p className="whitespace-pre-wrap">{row.comments}</p>}
           {row.revisionReason && <p className="collab-muted">Lý do tạo phiên bản: {row.revisionReason}</p>}
         </div>
-      </details>)}</div><CollaborationPager page={page} total={data.totalCount} onChange={setPage} />
+      </details>)}</div>
+      {totalPages > 1 && (
+        <div className="mt-4 border-t border-hairline pt-3">
+          <Pagination
+            page={page}
+            pages={totalPages}
+            total={data.totalCount}
+            pageSize={10}
+            onPage={setPage}
+          />
+        </div>
+      )}
     </>}
+    </div>
   </section>
 }

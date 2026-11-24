@@ -168,7 +168,7 @@ describe('TaskBoardPage', () => {
       .mockResolvedValueOnce({ ...empty, page: 2, items: [{ ...item, id: 21, title: 'Công việc trang hai' }], totalCount: 21, totalPages: 2 })
     renderBoard(false, '/project/tasks?assignee=5&milestone=3')
     await screen.findByText('Phân tích yêu cầu'); expect(api.getProjectTasks).toHaveBeenCalledTimes(1)
-    fireEvent.click(screen.getByRole('button', { name: 'Sau' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
     await screen.findByText('Công việc trang hai')
     expect(screen.queryByText('Phân tích yêu cầu')).toBeNull()
     expect(api.getProjectTasks).toHaveBeenLastCalledWith(9, expect.objectContaining({ assigneeUserId: 5, milestoneId: 3, page: 2, pageSize: 20 }), expect.any(AbortSignal))

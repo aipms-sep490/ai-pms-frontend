@@ -22,7 +22,7 @@ describe('Private weekly history', () => {
   it('uses server paging for version history', async () => {
     api.getWeeklyAssessmentHistory.mockResolvedValue({ items: [row], totalCount: 11 })
     render(<WeeklyAssessmentHistory projectId={9} studentId={12} studentOnly />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Tiếp' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Trang sau' }))
     await waitFor(() => expect(api.getWeeklyAssessmentHistory).toHaveBeenLastCalledWith(9, { studentId: 12, weekNumber: undefined }, 2, 10, expect.any(AbortSignal)))
   })
 })

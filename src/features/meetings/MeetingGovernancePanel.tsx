@@ -17,6 +17,7 @@ import {
 } from './meeting-utils'
 import { taskStatusTone } from '../tasks/pages/TaskDetailPage'
 import { taskStatusLabel } from '../projects/utils/collaboration-workspace'
+import { Pagination, useClientPagination } from '../../components/ui'
 
 const actionLabels: Record<string, string> = {
   OPEN: 'Mở',
@@ -255,15 +256,22 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
   const mayManageActions = canManage && meeting.status !== 'CANCELLED'
   const controlsDisabled = disabled || busy || awaitingRefresh
   const isSubmitDisabled = controlsDisabled || !title.trim() || Boolean(dueAtError) || (canCreateTask && createTaskOnSubmit && !selectedMilestoneId && milestones.length > 0)
+  const decisionsPagination = useClientPagination(decisions, 8)
+  const actionsPagination = useClientPagination(actions, 8)
 
   return (
-    <section className="mtg-panel mtg-padded" aria-labelledby="meeting-governance-title">
-      <div className="mtg-section-heading">
+    <section className="mtg-panel overflow-hidden" aria-labelledby="meeting-governance-title">
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
         <div>
           <h2 id="meeting-governance-title">Kết luận và công việc sau họp</h2>
-          <p className="mtg-help">Ghi kết luận sau khi cuộc họp hoàn tất để cả nhóm theo dõi bước tiếp theo.</p>
+          <p className="text-xs text-ink-muted mt-0.5">Ghi kết luận sau khi cuộc họp hoàn tất để cả nhóm theo dõi bước tiếp theo.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-hairline bg-card px-2.5 py-0.5 text-xs font-semibold text-ink-soft tabular-nums">{decisions.length} kết luận</span>
+          <span className="rounded-full border border-hairline bg-card px-2.5 py-0.5 text-xs font-semibold text-ink-soft tabular-nums">{actions.length} công việc</span>
         </div>
       </div>
+      <div className="mtg-padded">
       {loading && <p role="status" className="mtg-help">Đang tải kết luận và công việc…</p>}
       {error && (
         <div className="mtg-notice mtg-notice--error" role="alert">
@@ -294,14 +302,26 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
               )}
             </div>
             {decisions.length ? (
-              <ol className="mtg-feedback-list">
-                {decisions.map(item => (
-                  <li key={item.id}>
-                    <time dateTime={item.decidedAt}>{formatMeetingTime(item.decidedAt)}</time>
-                    <p className="mtg-prose">{item.content}</p>
-                  </li>
-                ))}
-              </ol>
+              <>
+                <ol className="mtg-feedback-list">
+                  {decisionsPagination.paginatedItems.map(item => (
+                    <li key={item.id}>
+                      <time dateTime={item.decidedAt}>{formatMeetingTime(item.decidedAt)}</time>
+                      <p className="mtg-prose">{item.content}</p>
+                    </li>
+                  ))}
+                </ol>
+                {decisionsPagination.showPagination && (
+                  <Pagination
+                    className="mt-3"
+                    page={decisionsPagination.page}
+                    pages={decisionsPagination.totalPages}
+                    total={decisionsPagination.total}
+                    pageSize={decisionsPagination.pageSize}
+                    onPage={decisionsPagination.setPage}
+                  />
+                )}
+              </>
             ) : (
               <p className="mtg-help">Chưa có kết luận được ghi nhận.</p>
             )}
@@ -349,8 +369,9 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
             </div>
 
             {actions.length ? (
+              <>
               <ul className="mtg-feedback-list">
-                {actions.map(item => {
+                {actionsPagination.paginatedItems.map(item => {
                   const linkedTaskId = extractTaskId(item.description)
                   const linkedTask = linkedTaskId ? tasksMap[linkedTaskId] : null
                   const linkedMilestoneTitle = linkedTask
@@ -387,8 +408,9 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
                       {/* Linked Task Display or Link Task Action */}
                       {linkedTaskId ? (
                         <div className="mtg-linked-task" data-testid={`linked-task-${item.id}`}>
-                          <span className="mtg-linked-task-badge">
-                            📋 Task liên kết: <strong>#{linkedTaskId}</strong>
+                          <span className="mtg-linked-task-badge inline-flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[15px]" aria-hidden="true">assignment</span>
+                            Task liên kết: <strong>#{linkedTaskId}</strong>
                           </span>
                           {linkedTask ? (
                             <>
@@ -396,13 +418,15 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
                                 {taskStatusLabel(linkedTask.status)}
                               </span>
                               {linkedMilestoneTitle && (
-                                <span className="mtg-task-milestone" title="Mốc đồ án">
-                                  🎯 {linkedMilestoneTitle}
+                                <span className="mtg-task-milestone inline-flex items-center gap-1" title="Mốc đồ án">
+                                  <span className="material-symbols-outlined text-[15px]" aria-hidden="true">flag</span>
+                                  {linkedMilestoneTitle}
                                 </span>
                               )}
                               {linkedTask.assignees.length > 0 && (
-                                <span className="mtg-task-assignee" title="Người phụ trách">
-                                  👤 {linkedTask.assignees.map(a => a.userFullName).join(', ')}
+                                <span className="mtg-task-assignee inline-flex items-center gap-1" title="Người phụ trách">
+                                  <span className="material-symbols-outlined text-[15px]" aria-hidden="true">person</span>
+                                  {linkedTask.assignees.map(a => a.userFullName).join(', ')}
                                 </span>
                               )}
                             </>
@@ -487,6 +511,19 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
                   )
                 })}
               </ul>
+              {actionsPagination.showPagination && (
+                <Pagination
+                  className="mt-3"
+                  page={actionsPagination.page}
+                  pages={actionsPagination.totalPages}
+                  total={actionsPagination.total}
+                  pageSize={actionsPagination.pageSize}
+                  pageSizeOptions={[8, 16, 30]}
+                  onPage={actionsPagination.setPage}
+                  onPageSizeChange={actionsPagination.setPageSize}
+                />
+              )}
+              </>
             ) : (
               <p className="mtg-help">Chưa có công việc sau họp.</p>
             )}
@@ -618,6 +655,7 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
           </div>
         </div>
       )}
+      </div>
     </section>
   )
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Modal } from '../../components/ui/Modal'
+import { Pagination, useClientPagination } from '../../components/ui'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { useAssistantActionDraft } from '../ai/useAssistantActionDraft'
 import { env } from '../../app/config/env'
@@ -144,6 +145,11 @@ function MeetingDetailView({ id }: { id: number }) {
     : 'Bỏ các thay đổi chưa lưu trong biểu mẫu này?'
   const isDangerConfirm = confirmation?.type === 'cancel' || confirmation?.type === 'remove' || confirmation?.type === 'discard'
   const onlineUrl = safeMeetingUrl(meeting?.onlineUrl ?? null)
+  const participantsPagination = useClientPagination(meeting?.participants ?? [], 8)
+  const feedbacksPagination = useClientPagination(meeting?.feedbacks ?? [], 8)
+  const attendedCount = meeting?.participants.filter(p => p.attendanceStatus === 'ATTENDED').length ?? 0
+  const absentCount = meeting?.participants.filter(p => p.attendanceStatus === 'ABSENT').length ?? 0
+  const unrecordedAttendanceCount = (meeting?.participants.length ?? 0) - attendedCount - absentCount
   return <MeetingShell title={meeting && !loadError ? meeting.title : 'Chi tiết cuộc họp'} projectTitle={project.title} backTo={`${routeBase}/meetings`} description="Thông tin cuộc họp, biên bản và những việc cả nhóm đã thống nhất." action={<Link className="mtg-button mtg-button--secondary" to={`${routeBase}/meetings`}>Danh sách cuộc họp</Link>}>
     <MeetingUnsavedNotice dirty={dirty} busy={busy} />
     {success && <p role="status" className="mtg-notice mtg-notice--success">{success}</p>}
@@ -156,78 +162,165 @@ function MeetingDetailView({ id }: { id: number }) {
       </div>
     </Modal>}
     {loading ? <MeetingLoading /> : loadError ? <MeetingError message={loadError} retry={reload} /> : meeting && <>
-      <div className="mtg-detail-banner"><div><p className="mtg-eyebrow">Thời gian · Giờ Việt Nam (UTC+7)</p><h2>{formatMeetingTime(meeting.startAt)}</h2><p>{meeting.endAt ? `Kết thúc: ${formatMeetingTime(meeting.endAt)}` : 'Chưa xác định giờ kết thúc'}</p>{collaboration?.seriesId && <p className="mtg-help">Thuộc chuỗi lặp {recurrenceLabels[collaboration.recurrence as keyof typeof recurrenceLabels] ?? collaboration.recurrence}{collaboration.occurrenceNumber ? ` · Lần thứ ${collaboration.occurrenceNumber}` : ''}</p>}</div><MeetingStatusBadge status={meeting.status} /></div>
-      <div className="mtg-detail-grid"><div className="mtg-stack">
-        <section className="mtg-panel mtg-padded"><div className="mtg-section-heading"><h2>Nội dung và địa điểm</h2>{manage && scheduled && editor !== 'schedule' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('schedule')}>Sửa lịch</button>}</div>
-          {editor === 'schedule' ? <MeetingScheduleForm meeting={meeting} busy={busy} locked={needsRefresh} onDirty={() => setDirty(true)} onCancel={closeEditor} onSave={async (body) => {
-            if (!manage || !scheduled) return
-            const { participantUserIds: _participants, ...schedule } = body
-            await mutate(() => api.updateMeeting(id, { ...schedule, concurrencyToken: meeting.concurrencyToken }), 'Đã lưu thay đổi lịch họp.')
-          }} /> : <><p className="mtg-prose">{meeting.agenda || 'Chưa có nội dung dự kiến.'}</p><dl className="mtg-facts"><div><dt>Địa điểm</dt><dd>{meetingVenue(meeting)}</dd></div><div><dt>Người tổ chức</dt><dd>{meeting.createdByName}</dd></div></dl>{onlineUrl ? <a className="mtg-button mtg-button--secondary" href={onlineUrl} target="_blank" rel="noopener noreferrer">Mở phòng họp ↗</a> : meeting.onlineUrl && <p className="mtg-help">Liên kết họp không hợp lệ. Liên hệ người tổ chức để cập nhật.</p>}</>}
-        </section>
-        <section className="mtg-panel mtg-padded"><div className="mtg-section-heading"><h2>Biên bản và điểm danh</h2><div className="mtg-actions">{env.meetingCollaborationEnabled && collaboration?.canLockNotes && <button className="mtg-text-button" disabled={disabled || dirty || lockBusy} onClick={() => void lockNotes()}>{lockBusy ? 'Đang khóa…' : 'Khóa biên bản'}</button>}{manage && notesEditable && editor !== 'notes' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => { setAppliedDraft(null); setEditor('notes') }}>Cập nhật biên bản</button>}</div></div>
-          {notesLocked && <p className="mtg-help">Biên bản đã được khóa{formatMeetingTime(collaboration?.notesLockedAt ?? '') !== 'Chưa rõ thời gian' ? ` lúc ${formatMeetingTime(collaboration?.notesLockedAt ?? '')}` : ''}, không thể chỉnh sửa thêm.</p>}
-          {assistant.draft && <div className="mtg-notice"><p>Bản nháp AI: {assistant.draft.title}. Kiểm tra nội dung trước khi lưu. Điểm danh được giữ nguyên.</p>{manage && notesEditable && (!env.meetingCollaborationEnabled || !!collaboration) ? <button type="button" className="mtg-button mtg-button--secondary" disabled={disabled || dirty} onClick={() => { setAppliedDraft({key: assistant.key, notes: assistant.draft!.description}); setEditor('notes'); setDirty(true) }}>Điền bản nháp vào biên bản</button> : <p>Chưa thể áp dụng bản nháp: cần quyền sửa và biên bản chưa khóa.</p>}</div>}
-          {editor === 'notes' ? <MeetingNotesForm key={appliedDraft?.key ?? 'manual'} initialNotes={appliedDraft?.notes} meeting={meeting} busy={busy} locked={needsRefresh || notesLocked} onDirty={() => setDirty(true)} onCancel={closeEditor} onSave={async (body) => { if (manage && notesEditable) await mutate(() => api.updateMeetingNotes(id, { ...body, concurrencyToken: meeting.concurrencyToken }), 'Đã lưu biên bản và điểm danh.') }} /> : <p className="mtg-prose">{meeting.meetingNotes || 'Chưa có biên bản. Ghi lại kết luận sau buổi trao đổi để cả nhóm cùng theo dõi.'}</p>}
-          {editor !== 'notes' && <section aria-label="Điểm danh chính thức">
-            <h3 className="mtg-subheading">Điểm danh người tham gia</h3>
-            {meeting.participants.length === 0 ? <p className="mtg-help">Chưa có người tham gia để điểm danh.</p> : <ul className="mtg-participants">
-              {meeting.participants.map(participant => <li key={participant.userId}><div><strong>{participant.fullName}</strong><small>{participant.attendanceStatus && participant.attendanceStatus !== 'INVITED' ? attendanceStatuses[participant.attendanceStatus] ?? 'Chưa cập nhật điểm danh' : 'Chưa cập nhật điểm danh'}</small></div></li>)}
-            </ul>}
-            <p className="mtg-help">Điểm danh do người quản lý ghi nhận, độc lập với phản hồi lời mời và dữ liệu kết nối Video.</p>
-          </section>}
-          {env.meetingCollaborationEnabled && <MeetingNotesHistoryPanel meetingId={id} refreshKey={collaboration?.notesVersion ?? 0} />}
-        </section>
+      <div className="mtg-detail-banner">
+        <div>
+          <p className="mtg-eyebrow">Thời gian · Giờ Việt Nam (UTC+7)</p>
+          <h2>{formatMeetingTime(meeting.startAt)}</h2>
+          <p>{meeting.endAt ? `Kết thúc: ${formatMeetingTime(meeting.endAt)}` : 'Chưa xác định giờ kết thúc'}</p>
+          {collaboration?.seriesId && <p className="mtg-help">Thuộc chuỗi lặp {recurrenceLabels[collaboration.recurrence as keyof typeof recurrenceLabels] ?? collaboration.recurrence}{collaboration.occurrenceNumber ? ` · Lần thứ ${collaboration.occurrenceNumber}` : ''}</p>}
+        </div>
+        <MeetingStatusBadge status={meeting.status} />
+      </div>
 
-      </div><aside className="mtg-stack">
-        <section className="mtg-panel mtg-padded"><h2>Người tham gia <span className="mtg-count">{meeting.participants.length}</span></h2>
-          <ul className="mtg-participants">{meeting.participants.map((participant) => (
-            <li key={participant.userId}>
-              <div>
-                <strong>{participant.fullName}</strong>
-                {participant.userId === meeting.createdBy && <span className="mtg-organizer">Tổ chức</span>}
-                <small>{participant.attendanceStatus ? attendanceStatuses[participant.attendanceStatus] ?? participant.attendanceStatus : 'Chưa cập nhật'}</small>
-                {env.meetingCollaborationEnabled && participant.rsvpStatus && <small className="mtg-rsvp-chip">{rsvpStatusLabels[participant.rsvpStatus] ?? participant.rsvpStatus}</small>}
-              </div>
-              {manage && scheduled && (
-                <button className="mtg-text-button" aria-label={`Bỏ ${participant.fullName} khỏi cuộc họp`} disabled={disabled || dirty} onClick={() => setConfirmation({ type: 'remove', userId: participant.userId, name: participant.fullName })}>Bỏ</button>
-              )}
-            </li>
-          ))}</ul>
-          {env.meetingCollaborationEnabled && collaboration?.myRsvp && scheduled && <div className="mtg-rsvp" role="group" aria-label="Phản hồi tham dự">
-            <p className="mtg-help">Bạn tham dự cuộc họp này?</p>
-            <p role="status" className="mtg-help">{rsvpBusy ? 'Đang lưu phản hồi…' : `Phản hồi của bạn: ${rsvpStatusLabels[collaboration.myRsvp.status] ?? collaboration.myRsvp.status}`}</p>
-            <div className="mtg-actions">
-              {([['ACCEPTED', 'Tham dự'], ['TENTATIVE', 'Có thể'], ['DECLINED', 'Từ chối']] as const).map(([status, label]) => (
-                <button key={status} type="button" className="mtg-button mtg-button--secondary" aria-pressed={collaboration.myRsvp?.status === status} disabled={rsvpBusy} onClick={() => void respondRsvp(status)}>{label}</button>
-              ))}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+        <div className="xl:col-span-8 space-y-5 min-w-0">
+          <section className="mtg-panel">
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+              <h2>Nội dung và địa điểm</h2>
+              {manage && scheduled && editor !== 'schedule' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('schedule')}>Sửa lịch</button>}
             </div>
-          </div>}
-          {meeting.participants.length === 0 && <p className="mtg-help">Chưa có người tham gia.</p>}
-          {manage && scheduled && candidates.notice && <p className="mtg-help">{candidates.notice}</p>}
-          {manage && scheduled && <>{candidates.loading ? <p role="status" className="mtg-help">Đang tải danh sách mời…</p> : candidates.error ? <MeetingError message={candidates.error} retry={candidates.retry} /> : <form className="mtg-form" onSubmit={(event) => {
-            event.preventDefault()
-            const selected = Number(participantId)
-            if (!candidates.data.some((candidate) => candidate.userId === selected) || meeting.participants.some((participant) => participant.userId === selected) || dirty) return
-            void mutate(() => api.addMeetingParticipant(id, selected, meeting.concurrencyToken), 'Đã thêm người tham gia.')
-          }}><label>Thêm người tham gia<select value={participantId} disabled={disabled || dirty} onChange={(event) => setParticipantId(event.target.value)}><option value="">Chọn thành viên hoặc GVHD</option>{candidates.data.filter((candidate) => !meeting.participants.some((participant) => participant.userId === candidate.userId)).map((candidate) => <option key={candidate.userId} value={candidate.userId}>{candidate.fullName} · {candidate.role}</option>)}</select></label><button className="mtg-button mtg-button--secondary" disabled={disabled || dirty || !participantId} type="submit">Thêm vào cuộc họp</button></form>}</>}
-        </section>
+            <div className="mtg-padded">
+              {editor === 'schedule' ? <MeetingScheduleForm meeting={meeting} busy={busy} locked={needsRefresh} onDirty={() => setDirty(true)} onCancel={closeEditor} onSave={async (body) => {
+                if (!manage || !scheduled) return
+                const { participantUserIds: _participants, ...schedule } = body
+                await mutate(() => api.updateMeeting(id, { ...schedule, concurrencyToken: meeting.concurrencyToken }), 'Đã lưu thay đổi lịch họp.')
+              }} /> : <><p className="mtg-prose">{meeting.agenda || 'Chưa có nội dung dự kiến.'}</p><dl className="mtg-facts"><div><dt>Địa điểm</dt><dd>{meetingVenue(meeting)}</dd></div><div><dt>Người tổ chức</dt><dd>{meeting.createdByName}</dd></div></dl>{onlineUrl ? <a className="mtg-button mtg-button--secondary" href={onlineUrl} target="_blank" rel="noopener noreferrer">Mở phòng họp ↗</a> : meeting.onlineUrl && <p className="mtg-help">Liên kết họp không hợp lệ. Liên hệ người tổ chức để cập nhật.</p>}</>}
+            </div>
+          </section>
 
-      </aside></div>
-      <div className="mtg-stack mtg-followup">
-        <section className="mtg-panel mtg-padded mtg-status-panel"><h2>Trạng thái cuộc họp</h2><p className="mtg-help">{scheduled ? 'Hoàn tất khi buổi trao đổi kết thúc. Hủy lịch nếu cuộc họp không diễn ra.' : meeting.status === 'COMPLETED' ? 'Lịch và danh sách tham gia đã được khóa. Người quản lý vẫn có thể bổ sung biên bản và điểm danh.' : 'Cuộc họp đã hủy. Nội dung và lịch sử được giữ lại để tra cứu.'}</p>
-          {manage && scheduled && <div className="mtg-stack"><button className="mtg-button" disabled={disabled || dirty} onClick={() => setConfirmation({ type: 'complete' })}>Hoàn tất cuộc họp</button><button className="mtg-button mtg-button--danger" disabled={disabled || dirty} onClick={() => setConfirmation({ type: 'cancel' })}>Hủy lịch họp</button></div>}
-          {dirty && <p className="mtg-help">Lưu hoặc đóng phần đang chỉnh sửa trước khi thực hiện thao tác khác.</p>}
-          {!needsRefresh && <button className="mtg-text-button mtg-refresh" disabled={busy} onClick={() => dirty ? setConfirmation({ type: 'refresh' }) : reload()}>Tải lại trạng thái</button>}
-          {env.meetingCollaborationEnabled && manage && collaboration && collaboration.emailDeliveries.length > 0 && <div className="mtg-stack"><h3 className="mtg-subheading">Gửi email nhắc</h3><ul className="mtg-email-deliveries">{collaboration.emailDeliveries.map((delivery, index) => <li key={`${delivery.userId}-${delivery.notificationType}-${index}`}>{delivery.notificationType} · {delivery.status}{delivery.attemptCount > 1 ? ` · ${delivery.attemptCount} lần thử` : ''}{delivery.sentAt ? ` · ${formatMeetingTime(delivery.sentAt)}` : ''}</li>)}</ul>{collaboration.hasMoreEmailDeliveries && <p className="mtg-help">Còn thêm lượt gửi email chưa hiển thị.</p>}</div>}
-        </section>
-        <MeetingVideoSection meeting={meeting} routeBase={routeBase} />
-        <MeetingVideoPresencePanel meeting={meeting} />
-        {meeting.concurrencyToken ? <MeetingGovernancePanel meeting={meeting} concurrencyToken={meeting.concurrencyToken} candidates={candidates.data} canManage={manage} disabled={disabled || dirty} onChanged={reload} /> : <section className="mtg-panel mtg-padded"><h2>Kết luận và công việc sau họp</h2><p className="mtg-help">Thông tin cuộc họp chưa đầy đủ. Tải lại trước khi chỉnh sửa.</p></section>}
-        <section className="mtg-panel mtg-padded" aria-labelledby="meeting-feedback-title"><div className="mtg-section-heading"><h2 id="meeting-feedback-title">Nhận xét của GVHD <span className="mtg-count">{meeting.feedbacks.length}</span></h2>{!access.readOnly && access.actor === 'supervisor' && writableNotes && editor !== 'feedback' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('feedback')}>Viết nhận xét</button>}</div>
-          {meeting.feedbacks.length === 0 ? <p className="mtg-help">Chưa có nhận xét từ giảng viên.</p> : <ol className="mtg-feedback-list">{meeting.feedbacks.map((item) => <li key={item.id}><strong>{item.supervisorName}</strong><time dateTime={item.createdAt}>{formatMeetingTime(item.createdAt)}</time><p className="mtg-prose">{item.feedbackText}</p></li>)}</ol>}
-          {editor === 'feedback' && <form className="mtg-form" onSubmit={sendFeedback}><fieldset disabled={disabled}><label>Nhận xét mới<textarea rows={4} required value={feedback} onChange={(event) => { setFeedback(event.target.value); setDirty(true) }} /></label><div className="mtg-form-actions"><button type="button" className="mtg-button mtg-button--secondary" onClick={closeEditor}>Đóng chỉnh sửa</button><button className="mtg-button" disabled={!feedback.trim()} type="submit">Gửi nhận xét</button></div></fieldset></form>}
-        </section>
+          <MeetingVideoSection meeting={meeting} routeBase={routeBase} />
+          <MeetingVideoPresencePanel meeting={meeting} />
+
+          <section className="mtg-panel">
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+              <h2>Biên bản và điểm danh</h2>
+              <div className="mtg-actions">
+                {env.meetingCollaborationEnabled && collaboration?.canLockNotes && <button className="mtg-text-button" disabled={disabled || dirty || lockBusy} onClick={() => void lockNotes()}>{lockBusy ? 'Đang khóa…' : 'Khóa biên bản'}</button>}
+                {manage && notesEditable && editor !== 'notes' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => { setAppliedDraft(null); setEditor('notes') }}>Cập nhật biên bản</button>}
+              </div>
+            </div>
+            <div className="mtg-padded space-y-4">
+              {notesLocked && <p className="mtg-help">Biên bản đã được khóa{formatMeetingTime(collaboration?.notesLockedAt ?? '') !== 'Chưa rõ thời gian' ? ` lúc ${formatMeetingTime(collaboration?.notesLockedAt ?? '')}` : ''}, không thể chỉnh sửa thêm.</p>}
+              {assistant.draft && <div className="mtg-notice"><p>Bản nháp AI: {assistant.draft.title}. Kiểm tra nội dung trước khi lưu. Điểm danh được giữ nguyên.</p>{manage && notesEditable && (!env.meetingCollaborationEnabled || !!collaboration) ? <button type="button" className="mtg-button mtg-button--secondary" disabled={disabled || dirty} onClick={() => { setAppliedDraft({key: assistant.key, notes: assistant.draft!.description}); setEditor('notes'); setDirty(true) }}>Điền bản nháp vào biên bản</button> : <p>Chưa thể áp dụng bản nháp: cần quyền sửa và biên bản chưa khóa.</p>}</div>}
+              {editor === 'notes' ? <MeetingNotesForm key={appliedDraft?.key ?? 'manual'} initialNotes={appliedDraft?.notes} meeting={meeting} busy={busy} locked={needsRefresh || notesLocked} onDirty={() => setDirty(true)} onCancel={closeEditor} onSave={async (body) => { if (manage && notesEditable) await mutate(() => api.updateMeetingNotes(id, { ...body, concurrencyToken: meeting.concurrencyToken }), 'Đã lưu biên bản và điểm danh.') }} /> : <p className="mtg-prose">{meeting.meetingNotes || 'Chưa có biên bản. Ghi lại kết luận sau buổi trao đổi để cả nhóm cùng theo dõi.'}</p>}
+              {editor !== 'notes' && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hairline bg-canvas/60 px-4 py-2.5 text-xs text-ink-soft">
+                  <span>
+                    <strong className="text-ink">Điểm danh chính thức:</strong>{' '}
+                    <span className="tabular-nums">{attendedCount} có mặt · {absentCount} vắng mặt · {unrecordedAttendanceCount} chưa cập nhật</span>
+                  </span>
+                  <span className="text-ink-muted">Chi tiết từng thành viên hiển thị ở bảng bên phải</span>
+                </div>
+              )}
+              {env.meetingCollaborationEnabled && <MeetingNotesHistoryPanel meetingId={id} refreshKey={collaboration?.notesVersion ?? 0} />}
+            </div>
+          </section>
+
+          {meeting.concurrencyToken ? <MeetingGovernancePanel meeting={meeting} concurrencyToken={meeting.concurrencyToken} candidates={candidates.data} canManage={manage} disabled={disabled || dirty} onChanged={reload} /> : <section className="mtg-panel"><div className="bg-canvas/70 border-b border-hairline px-5 py-3.5"><h2>Kết luận và công việc sau họp</h2></div><div className="mtg-padded"><p className="mtg-help">Thông tin cuộc họp chưa đầy đủ. Tải lại trước khi chỉnh sửa.</p></div></section>}
+        </div>
+
+        <aside className="xl:col-span-4 xl:sticky xl:top-20 space-y-5 min-w-0">
+          <section className="mtg-panel mtg-status-panel">
+            <div className="flex items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+              <h2>Trạng thái cuộc họp</h2>
+            </div>
+            <div className="mtg-padded space-y-3">
+              <p className="mtg-help">{scheduled ? 'Hoàn tất khi buổi trao đổi kết thúc. Hủy lịch nếu cuộc họp không diễn ra.' : meeting.status === 'COMPLETED' ? 'Lịch và danh sách tham gia đã được khóa. Người quản lý vẫn có thể bổ sung biên bản và điểm danh.' : 'Cuộc họp đã hủy. Nội dung và lịch sử được giữ lại để tra cứu.'}</p>
+              {manage && scheduled && <div className="flex flex-wrap gap-2"><button className="mtg-button flex-1" disabled={disabled || dirty} onClick={() => setConfirmation({ type: 'complete' })}>Hoàn tất cuộc họp</button><button className="mtg-button mtg-button--danger flex-1" disabled={disabled || dirty} onClick={() => setConfirmation({ type: 'cancel' })}>Hủy lịch họp</button></div>}
+              {dirty && <p className="mtg-help">Lưu hoặc đóng phần đang chỉnh sửa trước khi thực hiện thao tác khác.</p>}
+              {!needsRefresh && <button className="mtg-text-button mtg-refresh" disabled={busy} onClick={() => dirty ? setConfirmation({ type: 'refresh' }) : reload()}>Tải lại trạng thái</button>}
+              {env.meetingCollaborationEnabled && manage && collaboration && collaboration.emailDeliveries.length > 0 && (
+                <details className="rounded-lg border border-hairline bg-canvas/60 px-3.5 py-2.5">
+                  <summary className="cursor-pointer text-xs font-semibold text-ink">
+                    Gửi email nhắc ({collaboration.emailDeliveries.length})
+                  </summary>
+                  <div className="mt-2 space-y-1.5">
+                    <h3 className="sr-only">Gửi email nhắc</h3>
+                    <ul className="mtg-email-deliveries space-y-1 text-xs text-ink-soft">
+                      {collaboration.emailDeliveries.map((delivery, index) => <li key={`${delivery.userId}-${delivery.notificationType}-${index}`}>{delivery.notificationType} · {delivery.status}{delivery.attemptCount > 1 ? ` · ${delivery.attemptCount} lần thử` : ''}{delivery.sentAt ? ` · ${formatMeetingTime(delivery.sentAt)}` : ''}</li>)}
+                    </ul>
+                    {collaboration.hasMoreEmailDeliveries && <p className="mtg-help">Còn thêm lượt gửi email chưa hiển thị.</p>}
+                  </div>
+                </details>
+              )}
+            </div>
+          </section>
+
+          <section className="mtg-panel">
+            <div className="flex items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+              <h2>Người tham gia &amp; điểm danh</h2>
+              <span className="rounded-full border border-hairline bg-card px-2 py-0.5 text-xs font-semibold text-ink-soft tabular-nums">{meeting.participants.length}</span>
+            </div>
+            <div className="mtg-padded">
+              <ul className="mtg-participants">{participantsPagination.paginatedItems.map((participant) => (
+                <li key={participant.userId}>
+                  <div>
+                    <strong>{participant.fullName}</strong>
+                    {participant.userId === meeting.createdBy && <span className="mtg-organizer">Tổ chức</span>}
+                    <small>{participant.attendanceStatus ? attendanceStatuses[participant.attendanceStatus] ?? participant.attendanceStatus : 'Chưa cập nhật'}</small>
+                    {env.meetingCollaborationEnabled && participant.rsvpStatus && <small className="mtg-rsvp-chip">{rsvpStatusLabels[participant.rsvpStatus] ?? participant.rsvpStatus}</small>}
+                  </div>
+                  {manage && scheduled && (
+                    <button className="mtg-text-button" aria-label={`Bỏ ${participant.fullName} khỏi cuộc họp`} disabled={disabled || dirty} onClick={() => setConfirmation({ type: 'remove', userId: participant.userId, name: participant.fullName })}>Bỏ</button>
+                  )}
+                </li>
+              ))}</ul>
+              {participantsPagination.showPagination && (
+                <Pagination
+                  className="mt-3"
+                  page={participantsPagination.page}
+                  pages={participantsPagination.totalPages}
+                  total={participantsPagination.total}
+                  pageSize={participantsPagination.pageSize}
+                  onPage={participantsPagination.setPage}
+                />
+              )}
+              {env.meetingCollaborationEnabled && collaboration?.myRsvp && scheduled && <div className="mtg-rsvp mt-4 border-t border-hairline pt-4" role="group" aria-label="Phản hồi tham dự">
+                <p className="mtg-help">Bạn tham dự cuộc họp này?</p>
+                <p role="status" className="mtg-help">{rsvpBusy ? 'Đang lưu phản hồi…' : `Phản hồi của bạn: ${rsvpStatusLabels[collaboration.myRsvp.status] ?? collaboration.myRsvp.status}`}</p>
+                <div className="mtg-actions">
+                  {([['ACCEPTED', 'Tham dự'], ['TENTATIVE', 'Có thể'], ['DECLINED', 'Từ chối']] as const).map(([status, label]) => (
+                    <button key={status} type="button" className="mtg-button mtg-button--secondary" aria-pressed={collaboration.myRsvp?.status === status} disabled={rsvpBusy} onClick={() => void respondRsvp(status)}>{label}</button>
+                  ))}
+                </div>
+              </div>}
+              {meeting.participants.length === 0 && <p className="mtg-help">Chưa có người tham gia.</p>}
+              {manage && scheduled && candidates.notice && <p className="mtg-help mt-3">{candidates.notice}</p>}
+              {manage && scheduled && <>{candidates.loading ? <p role="status" className="mtg-help mt-3">Đang tải danh sách mời…</p> : candidates.error ? <MeetingError message={candidates.error} retry={candidates.retry} /> : <form className="mtg-form" onSubmit={(event) => {
+                event.preventDefault()
+                const selected = Number(participantId)
+                if (!candidates.data.some((candidate) => candidate.userId === selected) || meeting.participants.some((participant) => participant.userId === selected) || dirty) return
+                void mutate(() => api.addMeetingParticipant(id, selected, meeting.concurrencyToken), 'Đã thêm người tham gia.')
+              }}><label>Thêm người tham gia<select value={participantId} disabled={disabled || dirty} onChange={(event) => setParticipantId(event.target.value)}><option value="">Chọn thành viên hoặc GVHD</option>{candidates.data.filter((candidate) => !meeting.participants.some((participant) => participant.userId === candidate.userId)).map((candidate) => <option key={candidate.userId} value={candidate.userId}>{candidate.fullName} · {candidate.role}</option>)}</select></label><button className="mtg-button mtg-button--secondary" disabled={disabled || dirty || !participantId} type="submit">Thêm vào cuộc họp</button></form>}</>}
+            </div>
+          </section>
+
+          <section className="mtg-panel" aria-labelledby="meeting-feedback-title">
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+              <div className="flex items-center gap-2">
+                <h2 id="meeting-feedback-title">Nhận xét của GVHD</h2>
+                <span className="rounded-full border border-hairline bg-card px-2 py-0.5 text-xs font-semibold text-ink-soft tabular-nums">{meeting.feedbacks.length}</span>
+              </div>
+              {!access.readOnly && access.actor === 'supervisor' && writableNotes && editor !== 'feedback' && <button className="mtg-text-button" disabled={disabled || dirty} onClick={() => setEditor('feedback')}>Viết nhận xét</button>}
+            </div>
+            <div className="mtg-padded">
+              {meeting.feedbacks.length === 0 ? <p className="mtg-help">Chưa có nhận xét từ giảng viên.</p> : <>
+                <ol className="mtg-feedback-list">{feedbacksPagination.paginatedItems.map((item) => <li key={item.id}><strong>{item.supervisorName}</strong><time dateTime={item.createdAt}>{formatMeetingTime(item.createdAt)}</time><p className="mtg-prose">{item.feedbackText}</p></li>)}</ol>
+                {feedbacksPagination.showPagination && (
+                  <Pagination
+                    className="mt-3"
+                    page={feedbacksPagination.page}
+                    pages={feedbacksPagination.totalPages}
+                    total={feedbacksPagination.total}
+                    pageSize={feedbacksPagination.pageSize}
+                    onPage={feedbacksPagination.setPage}
+                  />
+                )}
+              </>}
+              {editor === 'feedback' && <form className="mtg-form" onSubmit={sendFeedback}><fieldset disabled={disabled}><label>Nhận xét mới<textarea rows={4} required value={feedback} onChange={(event) => { setFeedback(event.target.value); setDirty(true) }} /></label><div className="mtg-form-actions"><button type="button" className="mtg-button mtg-button--secondary" onClick={closeEditor}>Đóng chỉnh sửa</button><button className="mtg-button" disabled={!feedback.trim()} type="submit">Gửi nhận xét</button></div></fieldset></form>}
+            </div>
+          </section>
+        </aside>
       </div>
     </>}
   </MeetingShell>

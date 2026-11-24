@@ -7,6 +7,7 @@ import { services } from '../../../services/service-gateway'
 import type { ProjectProgressSummaryDto, ProjectTimelineDataDto } from '../../../types/backend'
 import { taskStatusLabel } from '../../projects/utils/collaboration-workspace'
 import { calendarDay, dayLabel, scheduleInterval, scheduleRange, scheduleTicks } from '../utils/schedule'
+import { StatTileRow } from '../../../components/ui'
 
 export function GanttPage() {
   const { project, routeBase } = useExecutionAccess()
@@ -39,11 +40,43 @@ export function GanttPage() {
   function toggle(id: number) { setExpanded(items => items.includes(id) ? items.filter(value => value !== id) : [...items,id]) }
   return <ExecutionPage title="Lịch thực hiện" eyebrow={project.code} description="Xem thời gian của các mốc và công việc để sắp xếp kế hoạch của nhóm."
     action={<><Link className="ex-button" to={`${routeBase}/milestones`}><ExIcon name="flag" />Quản lý mốc</Link><button className="ex-button" disabled={loading} onClick={reload}><ExIcon name="refresh" />Cập nhật</button></>}>
-    {summary && <dl className="schedule-summary"><div><dt>Tiến độ chung</dt><dd>{new Intl.NumberFormat('vi-VN',{maximumFractionDigits:1}).format(summary.progressPercentage)}%</dd></div><div><dt>Việc hoàn thành</dt><dd>{summary.doneTasks}/{summary.totalTasks}</dd></div><div className={summary.overdueTasks ? 'is-alert' : ''}><dt>Quá hạn</dt><dd>{summary.overdueTasks}</dd></div><div className={summary.blockedTasks ? 'is-warning' : ''}><dt>Vướng mắc</dt><dd>{summary.blockedTasks}</dd></div></dl>}
+    {summary && (
+      <div className="mb-5">
+        <StatTileRow
+          tiles={[
+            { icon: 'donut_large', label: 'Tiến độ chung (%)', value: Math.round(summary.progressPercentage), caption: `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(summary.progressPercentage)}% tổng tiến độ đồ án`, hero: true },
+            { icon: 'task_alt', label: 'Việc hoàn thành', value: summary.doneTasks, caption: `Trên tổng ${summary.totalTasks} công việc`, tone: 'success' },
+            { icon: 'schedule', label: 'Quá hạn', value: summary.overdueTasks, caption: 'Công việc đã quá hạn hoàn thành', tone: summary.overdueTasks ? 'danger' : 'neutral' },
+            { icon: 'pause_circle', label: 'Vướng mắc', value: summary.blockedTasks, caption: 'Công việc bị chặn cần tháo gỡ', tone: summary.blockedTasks ? 'warning' : 'neutral' },
+          ]}
+        />
+      </div>
+    )}
     {summaryError && <ExState message={summaryError} retry={reload} />}
-    <section className="ex-panel" aria-label="Biểu đồ lịch thực hiện">
-      <div className="ex-toolbar"><div className="ex-tabs" role="group" aria-label="Mức chi tiết"><button aria-pressed={!showTasks} onClick={() => setShowTasks(false)}>Các mốc</button><button aria-pressed={showTasks} onClick={() => setShowTasks(true)}>Cả công việc</button></div><div className="ex-tabs" role="group" aria-label="Đơn vị thời gian"><button aria-pressed={scale === 'month'} onClick={() => setScale('month')}>Theo tháng</button><button aria-pressed={scale === 'week'} onClick={() => setScale('week')}>Theo tuần</button></div></div>
-      <div className="schedule-range"><label>Mốc đồ án<select value={selected} onChange={event => setSelected(event.target.value)}><option value="">Tất cả các mốc</option>{timeline?.milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><p>{range ? `${dayLabel(range.start,true)} – ${dayLabel(range.end,true)}` : 'Chưa có thời gian dự kiến'}<small>Thời gian trên biểu đồ lấy từ ngày đã đặt cho mốc và công việc.</small></p></div>
+    <section className="ex-panel !mb-0" aria-label="Biểu đồ lịch thực hiện">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="ex-tabs" role="group" aria-label="Mức chi tiết">
+            <button aria-pressed={!showTasks} onClick={() => setShowTasks(false)}>Các mốc</button>
+            <button aria-pressed={showTasks} onClick={() => setShowTasks(true)}>Cả công việc</button>
+          </div>
+          <div className="ex-tabs" role="group" aria-label="Đơn vị thời gian">
+            <button aria-pressed={scale === 'month'} onClick={() => setScale('month')}>Theo tháng</button>
+            <button aria-pressed={scale === 'week'} onClick={() => setScale('week')}>Theo tuần</button>
+          </div>
+          <label className="flex items-center gap-2 text-xs font-semibold text-ink-soft">
+            <span>Mốc đồ án</span>
+            <select className="min-h-10 rounded-lg border border-hairline bg-card px-3 py-1.5 text-sm font-normal text-ink" value={selected} onChange={event => setSelected(event.target.value)}>
+              <option value="">Tất cả các mốc</option>
+              {timeline?.milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="text-right text-xs text-ink-muted tabular-nums">
+          <p className="font-semibold text-ink">{range ? `${dayLabel(range.start,true)} – ${dayLabel(range.end,true)}` : 'Chưa có thời gian dự kiến'}</p>
+          <small>Thời gian trên biểu đồ lấy từ ngày đã đặt cho mốc và công việc.</small>
+        </div>
+      </div>
       {loading ? <ExState loading /> : error ? <ExState message={error} retry={reload} /> : !milestones.length ? <ExState title="Chưa có lịch thực hiện" message="Tạo mốc đồ án và đặt thời gian để bắt đầu lên kế hoạch." action={<Link className="ex-button" to={`${routeBase}/milestones`}>Xem các mốc đồ án</Link>} />
         : range ? <><p className="schedule-scroll-hint">Cuộn ngang để xem toàn bộ khoảng thời gian.</p><div className="schedule-scroll" tabIndex={0} aria-label="Lịch theo thời gian, có thể cuộn ngang">
           <div className="schedule-table" style={{ '--schedule-width': `${width}px` } as CSSProperties}><div className="schedule-axis"><span className="schedule-label">Mốc / công việc</span><div className="schedule-track">{axisTicks.map(tick => <span className="schedule-tick" key={tick.day} style={{left:`${tick.left}%`}}>{tick.label}</span>)}</div></div>

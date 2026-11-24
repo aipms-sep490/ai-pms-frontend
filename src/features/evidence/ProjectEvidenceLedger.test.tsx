@@ -25,7 +25,7 @@ describe('ProjectEvidenceLedger', () => {
     api.getProjectEvidence.mockResolvedValue(page)
     renderLedger()
     expect(await screen.findByText('Công việc #7')).toBeTruthy()
-    expect(screen.getByText(/Ngành #3/)).toBeTruthy()
+    expect(screen.getByText(/Ngành: Phần mềm/)).toBeTruthy()
     expect(screen.getAllByText('Chờ xác minh').length).toBeGreaterThan(1)
     expect(screen.getByRole('link', { name: 'Mở nguồn' }).getAttribute('href')).toBe('/project/tasks/7')
     expect(screen.queryByRole('button', { name: /ghi nhận evidence|tạo evidence/i })).toBeNull()

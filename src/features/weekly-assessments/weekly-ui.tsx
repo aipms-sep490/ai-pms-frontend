@@ -1,12 +1,20 @@
 import type { ReactNode } from 'react'
 import { ListLoading } from '../../components/ui/ListLoading'
+import { StatusBadge } from '../../components/ui'
+import type { BadgeTone } from '../../components/ui/status-badge-tone'
 import { weeklyStatusLabel } from './weekly-types'
 import type { WeeklyAssessmentStatus } from '../../services/api/weekly.api'
 import { ExecutionPage } from '../execution/execution-ui'
 import './weekly-assessments.css'
 
+const weeklyStatusTone: Record<WeeklyAssessmentStatus, BadgeTone> = {
+  DRAFT: 'neutral',
+  SUBMITTED: 'success',
+  SUPERSEDED: 'warning',
+}
+
 export function WeeklyBadge({ status }: { status: WeeklyAssessmentStatus }) {
-  return <span className={`weekly-badge weekly-badge--${status.toLowerCase()}`}>{weeklyStatusLabel(status)}</span>
+  return <StatusBadge status={status} tone={weeklyStatusTone[status] ?? 'neutral'} label={weeklyStatusLabel(status)} />
 }
 
 export function WeeklyShell({ title, description, projectTitle, backTo, children, action }: {
