@@ -5,10 +5,12 @@ import { Button } from '../../../components/ui/Button'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
 import { Pagination } from '../../../components/ui/Pagination'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../../components/ui/Table'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import '../../../components/ui/workspace-tabs.css'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
 import { HttpError } from '../../../services/http/http-client'
 import { getAcademicHierarchy } from '../../academic/api/academic-api'
@@ -266,54 +268,70 @@ export function DepartmentStudentsPage() {
       description="Theo dõi danh sách sinh viên, lớp hành chính, chuyên ngành hẹp, khung CTĐT, xác minh hồ sơ học vụ và điều kiện tham gia đồ án trong phạm vi Khoa."
       action={
         activeTab === 'directory' ? (
-          <div className="flex flex-wrap gap-2">
-            {departmentId && (
-              <Button variant="secondary" icon="category" onClick={() => setSpecOpen(true)}>
-                Quản lý Chuyên ngành hẹp
-              </Button>
-            )}
-            <Button variant="outline" icon="upload" onClick={() => setCurriculumOpen(true)}>
-              Cập nhật Khung CTĐT
-            </Button>
-            <Button variant="outline" icon="download" disabled={exporting} onClick={() => void handleExportStudents()}>
-              {exporting ? 'Đang xuất…' : 'Xuất DS SV Khoa'}
-            </Button>
-            <Button variant="outline" icon="groups" onClick={() => setRosterExportOpen(true)}>
-              Xuất DS Nhóm Khoa
-            </Button>
-          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon="refresh"
+            aria-label="Tải lại"
+            disabled={loading}
+            onClick={() => setReloadKey(k => k + 1)}
+          />
         ) : undefined
       }
     >
-      <nav className="flex flex-wrap gap-2 border-b border-hairline pb-3" aria-label="Phân khu quản lý sinh viên">
-        <Button
-          variant={activeTab === 'directory' ? 'primary' : 'secondary'}
-          size="sm"
-          onClick={() => setFilter({ tab: 'directory' })}
-        >
-          Danh sách sinh viên Khoa
-        </Button>
-        <Button
-          variant={activeTab === 'profiles' ? 'primary' : 'secondary'}
-          size="sm"
-          onClick={() => setFilter({ tab: 'profiles' })}
-        >
-          Xác minh hồ sơ học vụ
-        </Button>
-        <Button
-          variant={activeTab === 'qualifications' ? 'primary' : 'secondary'}
-          size="sm"
-          onClick={() => setFilter({ tab: 'qualifications' })}
-        >
-          Xác minh điều kiện
-        </Button>
-      </nav>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
+        <nav className="ui-workspace-tabs" aria-label="Phân khu quản lý sinh viên">
+          <button
+            type="button"
+            className={`ui-workspace-tab ${activeTab === 'directory' ? 'is-active' : ''}`}
+            aria-pressed={activeTab === 'directory'}
+            onClick={() => setFilter({ tab: 'directory' })}
+          >
+            Danh sách sinh viên Khoa
+          </button>
+          <button
+            type="button"
+            className={`ui-workspace-tab ${activeTab === 'profiles' ? 'is-active' : ''}`}
+            aria-pressed={activeTab === 'profiles'}
+            onClick={() => setFilter({ tab: 'profiles' })}
+          >
+            Xác minh hồ sơ học vụ
+          </button>
+          <button
+            type="button"
+            className={`ui-workspace-tab ${activeTab === 'qualifications' ? 'is-active' : ''}`}
+            aria-pressed={activeTab === 'qualifications'}
+            onClick={() => setFilter({ tab: 'qualifications' })}
+          >
+            Xác minh điều kiện
+          </button>
+        </nav>
+
+        {activeTab === 'directory' && (
+          <div className="flex flex-wrap items-center gap-2">
+            {departmentId && (
+              <Button variant="secondary" size="sm" icon="category" onClick={() => setSpecOpen(true)}>
+                Chuyên ngành hẹp
+              </Button>
+            )}
+            <Button variant="outline" size="sm" icon="upload" onClick={() => setCurriculumOpen(true)}>
+              Cập nhật Khung CTĐT
+            </Button>
+            <Button variant="outline" size="sm" icon="download" disabled={exporting} onClick={() => void handleExportStudents()}>
+              {exporting ? 'Đang xuất…' : 'Xuất DS SV Khoa'}
+            </Button>
+            <Button variant="outline" size="sm" icon="groups" onClick={() => setRosterExportOpen(true)}>
+              Xuất DS Nhóm Khoa
+            </Button>
+          </div>
+        )}
+      </div>
 
       {activeTab === 'profiles' && <ProfileVerificationsPage embedded />}
       {activeTab === 'qualifications' && <QualificationVerificationPage embedded />}
 
       {activeTab === 'directory' && (
-        <div className="space-y-4">
+        <div className="mt-4 space-y-4">
           {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg px-4 py-3 text-sm text-status-error-text">{error}</p>}
           {notice && (
             <div className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card px-4 py-3 text-sm text-ink">
@@ -322,39 +340,54 @@ export function DepartmentStudentsPage() {
             </div>
           )}
 
-          <section className="grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Thống kê sinh viên Khoa">
-            <KpiCard
-              label="Tổng SV thuộc Khoa"
-              value={stats ? String(stats.totalStudents) : '—'}
-              active={!profileStatus && !qualificationStatus && !teamStatus}
-              onClick={() => setFilter({ profileStatus: '', qualificationStatus: '', teamStatus: '', page: '1' })}
-            />
-            <KpiCard
-              label="Chờ xác minh hồ sơ"
-              value={stats ? String(stats.pendingVerificationCount) : '—'}
-              active={profileStatus === 'PENDING'}
-              onClick={() => setFilter({ profileStatus: profileStatus === 'PENDING' ? '' : 'PENDING', page: '1' })}
-            />
-            <KpiCard
-              label="Đủ điều kiện đồ án"
-              value={stats ? String(stats.qualifiedCount) : '—'}
-              active={qualificationStatus === 'VERIFIED'}
-              onClick={() => setFilter({ qualificationStatus: qualificationStatus === 'VERIFIED' ? '' : 'VERIFIED', page: '1' })}
-            />
-            <KpiCard
-              label="Chưa có nhóm"
-              value={stats ? String(stats.withoutTeamCount) : '—'}
-              active={teamStatus === 'WITHOUT_TEAM'}
-              onClick={() => setFilter({ teamStatus: teamStatus === 'WITHOUT_TEAM' ? '' : 'WITHOUT_TEAM', page: '1' })}
-            />
-          </section>
+          <StatTileRow
+            tiles={[
+              {
+                icon: 'groups',
+                label: 'Tổng SV thuộc Khoa',
+                value: stats ? stats.totalStudents : null,
+                caption: 'Nhấn để xem toàn bộ danh sách.',
+                hero: true,
+                active: !profileStatus && !qualificationStatus && !teamStatus,
+                onClick: () => setFilter({ profileStatus: '', qualificationStatus: '', teamStatus: '', page: '1' }),
+              },
+              {
+                icon: 'pending_actions',
+                label: 'Chờ xác minh hồ sơ',
+                value: stats ? stats.pendingVerificationCount : null,
+                caption: 'Nhấn để lọc hồ sơ chờ xác minh.',
+                tone: (stats?.pendingVerificationCount ?? 0) > 0 ? 'warning' : 'neutral',
+                active: profileStatus === 'PENDING',
+                onClick: () => setFilter({ profileStatus: profileStatus === 'PENDING' ? '' : 'PENDING', page: '1' }),
+              },
+              {
+                icon: 'verified',
+                label: 'Đủ điều kiện đồ án',
+                value: stats ? stats.qualifiedCount : null,
+                caption: 'Nhấn để lọc sinh viên đã đạt ĐK.',
+                tone: 'success',
+                active: qualificationStatus === 'VERIFIED',
+                onClick: () => setFilter({ qualificationStatus: qualificationStatus === 'VERIFIED' ? '' : 'VERIFIED', page: '1' }),
+              },
+              {
+                icon: 'person_search',
+                label: 'Chưa có nhóm',
+                value: stats ? stats.withoutTeamCount : null,
+                caption: 'Nhấn để lọc sinh viên chưa vào nhóm.',
+                tone: (stats?.withoutTeamCount ?? 0) > 0 ? 'info' : 'neutral',
+                active: teamStatus === 'WITHOUT_TEAM',
+                onClick: () => setFilter({ teamStatus: teamStatus === 'WITHOUT_TEAM' ? '' : 'WITHOUT_TEAM', page: '1' }),
+              },
+            ]}
+          />
 
           <FilterToolbar
+            className="ft-bar--compact"
             ariaLabel="Bộ lọc sinh viên Khoa"
             search={search}
             onSearchChange={val => setFilter({ search: val })}
             searchLabel="Tìm kiếm"
-            searchPlaceholder="MSSV, họ tên hoặc email…"
+            searchPlaceholder="Tìm MSSV, tên…"
             debounceMs={200}
             controls={
               <>
@@ -482,17 +515,7 @@ export function DepartmentStudentsPage() {
             }}
             onClearAll={clearAllFilters}
             hasActiveFilters={hasActiveFilters}
-            resultSummary={data ? `${sortedStudents.length} / ${data.totalCount} sinh viên` : undefined}
-            rightActions={
-              <Button
-                variant="secondary"
-                size="sm"
-                icon="refresh"
-                aria-label="Tải lại"
-                disabled={loading}
-                onClick={() => setReloadKey(k => k + 1)}
-              />
-            }
+            resultSummary={activeChips.length > 0 && data ? `${sortedStudents.length} / ${data.totalCount} sinh viên` : undefined}
           />
 
           {loading ? (
@@ -618,29 +641,11 @@ function StudentRow({ student, semesterParam }: { student: DepartmentStudentSumm
           <span className="text-xs text-ink-muted">Chưa có nhóm</span>
         )}
       </TableCell>
-      <TableCell label="Thao tác">
-        <Link className="font-medium text-primary hover:underline" to={detailUrl}>
+      <TableCell label="Thao tác" className="whitespace-nowrap text-right">
+        <Link className="whitespace-nowrap font-medium text-primary hover:underline" to={detailUrl}>
           Chi tiết
         </Link>
       </TableCell>
     </TableRow>
-  )
-}
-
-function KpiCard({ label, value, active, onClick }: { label: string; value: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`flex h-full flex-col justify-between rounded-xl border p-4 text-left transition ${
-        active
-          ? 'border-primary bg-primary-subtle/40 shadow-xs'
-          : 'border-hairline bg-card hover:border-primary/40'
-      }`}
-    >
-      <span className="block text-xs font-medium text-ink-muted">{label}</span>
-      <strong className="mt-1 block text-2xl font-bold text-ink">{value}</strong>
-    </button>
   )
 }

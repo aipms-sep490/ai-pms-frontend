@@ -89,10 +89,7 @@ export function SupervisorMonitoringPage() {
       title="Giảng viên hướng dẫn"
       description="Tra cứu hồ sơ, chuyên môn và trạng thái sẵn sàng của giảng viên trong bộ môn."
       action={
-        <div className="flex items-center gap-3">
-          <div className="sup__count"><strong>{supervisors.totalCount}</strong><span>hồ sơ</span></div>
-          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={supervisors.loading} onClick={() => void supervisors.refresh()} />
-        </div>
+        <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={supervisors.loading} onClick={() => void supervisors.refresh()} />
       }
     >
       <div className="mb-5">
@@ -107,6 +104,7 @@ export function SupervisorMonitoringPage() {
       </div>
 
       <FilterToolbar
+        className="ft-bar--compact"
         search={supervisors.filters.search ?? ''}
         onSearchChange={value => supervisors.setFilters({ ...supervisors.filters, search: value || undefined, page: 1 })}
         searchLabel="Tìm kiếm giảng viên"
@@ -141,8 +139,8 @@ export function SupervisorMonitoringPage() {
               <span className="sr-only">Chuyên môn</span>
               <input
                 aria-label="Chuyên môn"
-                placeholder="Lọc chuyên môn (VD: AI)..."
-                className="ft-select min-w-[160px]"
+                placeholder="Chuyên môn (AI…)"
+                className="ft-select w-[155px]"
                 value={supervisors.filters.expertise ?? ''}
                 onChange={event => supervisors.setFilters({ ...supervisors.filters, expertise: event.target.value || undefined, page: 1 })}
               />

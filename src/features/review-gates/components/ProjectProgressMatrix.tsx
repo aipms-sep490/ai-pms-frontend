@@ -256,7 +256,7 @@ export function ProjectProgressMatrix({
                             style={{ width: `${proj.taskProgress}%` }}
                           />
                         </div>
-                        <span className="shrink-0 text-xs font-bold text-ink-soft">{proj.taskProgress}%</span>
+                        <span className="shrink-0 text-xs font-bold tabular-nums text-ink-soft">{new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(proj.taskProgress)}%</span>
                       </div>}
                     </td>
                   </tr>

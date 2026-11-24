@@ -14,7 +14,7 @@
   --color-subtle: #F1F5F9;
   --color-hairline: #E4E7EC;
   --color-skeleton: #E4E7EC;
-  --app-header-height: 58px;
+  --app-header-height: 56px;
 
   --color-primary: #C2410C;
   --color-primary-hover: #9A3412;
@@ -290,7 +290,7 @@ select:disabled {
 
 /* Responsive Sidebar Rail & Drawer */
 .sidebar-rail {
-  width: 248px;
+  width: 276px;
 }
 
 @media (max-width: 1023px) {

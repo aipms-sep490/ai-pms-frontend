@@ -121,7 +121,7 @@ export function GoogleLoginButton({ purpose = 'LOGIN', currentPassword = '', onL
   }, [acceptExternalLogin, navigate, attempt, purpose, currentPassword, onLinked, location.state])
 
   return <div className="auth-google">
-    <div ref={host} hidden={busy} aria-label={purpose === 'LINK' ? 'Liên kết tài khoản Google' : 'Đăng nhập với Google'} />
+    <div ref={host} hidden={busy || Boolean(error)} aria-label={purpose === 'LINK' ? 'Liên kết tài khoản Google' : 'Đăng nhập với Google'} />
     {busy && <p className="auth-google-status" role="status">{purpose === 'LINK' ? 'Đang liên kết tài khoản Google…' : 'Đang xác thực tài khoản Google…'}</p>}
     {loading && <p className="auth-google-status" role="status">Đang tải đăng nhập Google…</p>}
     {error && <div className="auth-google-fallback"><p className="auth-error" role="status">{error}</p><button type="button" onClick={() => setAttempt((value) => value + 1)}>Thử lại</button></div>}

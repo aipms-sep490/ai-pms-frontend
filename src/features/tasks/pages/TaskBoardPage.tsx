@@ -233,7 +233,7 @@ export function TaskBoardPage() {
     return chips
   }, [search, status, assigneeUserId, members, milestoneId, milestones, priority, overdue, majorId, project.majors, disciplineRole])
 
-  const advancedActiveCount = Number(Boolean(milestoneId)) + Number(Boolean(priority)) + Number(overdue) + Number(Boolean(majorId)) + Number(Boolean(disciplineRole))
+  const advancedActiveCount = Number(Boolean(milestoneId)) + Number(Boolean(priority)) + (showMajorFilter ? Number(Boolean(majorId)) + Number(Boolean(disciplineRole)) : 0)
   const hasActiveFilters = activeChips.length > 0 || sortBy !== 'default'
   const activeMember = members.find(member => member.userId === assigneeUserId)
   const pageItems = data?.items ?? []
@@ -373,18 +373,10 @@ export function TaskBoardPage() {
                 </select>
                 {members.length > 0 && (
                   <select aria-label="Người phụ trách" value={String(assigneeUserId ?? '')} onChange={(e) => updateParam('assignee', e.target.value)}>
-                    <option value="">Cả nhóm</option>
+                    <option value="">Mọi thành viên</option>
                     {members.map(member => <option key={member.userId} value={member.userId}>{member.fullName}</option>)}
                   </select>
                 )}
-                <select aria-label="Mốc đồ án" value={String(milestoneId ?? '')} onChange={(e) => updateParam('milestone', e.target.value)}>
-                  <option value="">Tất cả mốc</option>
-                  {milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
-                </select>
-                <select aria-label="Mức ưu tiên" value={priority} onChange={(e) => updateParam('priority', e.target.value)}>
-                  <option value="">Mọi ưu tiên</option>
-                  {Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>
                 <button
                   type="button"
                   className={`ft-btn ${overdue ? 'is-active' : ''}`}
@@ -406,28 +398,44 @@ export function TaskBoardPage() {
                 { value: 'updated_desc', label: 'Mới cập nhật' },
               ],
             }}
-            advancedControls={showMajorFilter ? (
+            advancedControls={
               <>
-                <label>Ngành
-                  <select aria-label="Ngành" value={String(majorId ?? '')} onChange={(e) => updateParam('major', e.target.value)}>
-                    <option value="">Tất cả ngành</option>
-                    {project.majors.map(item => <option key={item.id} value={item.majorId}>{item.majorName}</option>)}
+                <label>Mốc đồ án
+                  <select aria-label="Mốc đồ án" value={String(milestoneId ?? '')} onChange={(e) => updateParam('milestone', e.target.value)}>
+                    <option value="">Tất cả mốc</option>
+                    {milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
                   </select>
                 </label>
-                <label>Vai trò ngành
-                  <select aria-label="Vai trò ngành" value={disciplineRole ?? ''} onChange={(e) => updateParam('role', e.target.value)}>
-                    <option value="">Tất cả vai trò</option>
-                    {disciplineRoles.map(value => <option key={value} value={value}>{disciplineRoleLabels[value]}</option>)}
+                <label>Mức ưu tiên
+                  <select aria-label="Mức ưu tiên" value={priority} onChange={(e) => updateParam('priority', e.target.value)}>
+                    <option value="">Mọi ưu tiên</option>
+                    {Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                   </select>
                 </label>
+                {showMajorFilter && (
+                  <>
+                    <label>Ngành
+                      <select aria-label="Ngành" value={String(majorId ?? '')} onChange={(e) => updateParam('major', e.target.value)}>
+                        <option value="">Tất cả ngành</option>
+                        {project.majors.map(item => <option key={item.id} value={item.majorId}>{item.majorName}</option>)}
+                      </select>
+                    </label>
+                    <label>Vai trò ngành
+                      <select aria-label="Vai trò ngành" value={disciplineRole ?? ''} onChange={(e) => updateParam('role', e.target.value)}>
+                        <option value="">Tất cả vai trò</option>
+                        {disciplineRoles.map(value => <option key={value} value={value}>{disciplineRoleLabels[value]}</option>)}
+                      </select>
+                    </label>
+                  </>
+                )}
               </>
-            ) : undefined}
-            advancedActiveCount={showMajorFilter ? Number(Boolean(majorId)) + Number(Boolean(disciplineRole)) : advancedActiveCount}
+            }
+            advancedActiveCount={advancedActiveCount}
             activeChips={activeChips}
             onRemoveChip={(chipId) => updateParam(chipId, '')}
             hasActiveFilters={hasActiveFilters}
             onClearAll={clearAllFilters}
-            resultSummary={data ? `Hiển thị ${sortedItems.length} / ${data.totalCount} công việc` : undefined}
+            resultSummary={hasActiveFilters && data ? `Hiển thị ${sortedItems.length} / ${data.totalCount} công việc` : undefined}
           />
         )}
 

@@ -63,7 +63,7 @@ export function AppLayout() {
       />
 
       {/* 2. Main Workspace Canvas */}
-      <div className="app-workspace flex-1 flex flex-col min-w-0 min-h-screen lg:pl-[248px] bg-canvas">
+      <div className="app-workspace flex-1 flex flex-col min-w-0 min-h-screen lg:pl-[276px] bg-canvas">
         {/* Sticky Top Header Bar */}
         <TopHeader
           key={session?.user.id ?? 'anonymous'}

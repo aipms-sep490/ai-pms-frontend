@@ -261,45 +261,23 @@ export function TeamManagementPage() {
       ) : (
         /* When Student HAS A TEAM */
         <div className="flex flex-col gap-5">
-          {/* Compact Team Overview & Status Bar */}
-          <div className="flex flex-col justify-between gap-4 rounded-xl border border-hairline bg-card p-5 shadow-xs md:flex-row md:items-center">
+          {/* Compact Team Identity Bar (metrics live in StatTileRow below to avoid duplication) */}
+          <div className="flex flex-col justify-between gap-3 rounded-xl border border-hairline bg-card px-5 py-4 shadow-xs md:flex-row md:items-center">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
                 <span className="rounded-lg border border-primary/20 bg-primary-subtle px-2.5 py-0.5 font-mono text-xs font-bold text-primary">
                   {team.code}
                 </span>
                 <h2 className="text-lg font-bold text-ink">{team.name}</h2>
-                <span className="rounded-full border border-hairline bg-canvas px-2.5 py-0.5 text-xs font-semibold text-ink-soft">
-                  {team.academicScope?.projectMode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành'}
-                </span>
-                <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
-                  team.status === 'ELIGIBLE'
-                    ? 'border-status-success-border bg-status-success-bg text-status-success-text'
-                    : team.status === 'LOCKED'
-                      ? 'border-hairline bg-canvas text-ink-soft'
-                      : 'border-status-warning-border bg-status-warning-bg text-status-warning-text'
-                }`}>
-                  {team.status === 'ELIGIBLE'
-                    ? 'Đủ điều kiện đăng ký'
-                    : team.status === 'LOCKED'
-                      ? 'Đã khóa theo đề tài'
-                      : 'Đang kiện toàn nhân sự'}
-                </span>
               </div>
               {team.description && (
-                <p className="mt-1.5 max-w-2xl text-xs text-ink-muted">{team.description}</p>
+                <p className="mt-1 max-w-3xl text-xs text-ink-muted">{team.description}</p>
               )}
-              {rosterLocked && <p className="mt-1.5 text-xs text-ink-muted">Danh sách thành viên đã được chốt theo hồ sơ đồ án.</p>}
+              {rosterLocked && <p className="mt-1 text-xs text-ink-muted">Danh sách thành viên đã được chốt theo hồ sơ đồ án.</p>}
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 shrink-0">
-              <div className="text-right">
-                <span className="block text-xs text-ink-muted">Sĩ số nhóm</span>
-                <span className="text-sm font-bold tabular-nums text-ink">
-                  {team.members.length} / {maxTeamSize ?? '—'} thành viên
-                </span>
-              </div>
-              {!rosterLocked && team.eligibility.canRegister && permissions.canCreateProjectDraft && (
+            {!rosterLocked && team.eligibility.canRegister && permissions.canCreateProjectDraft && (
+              <div className="flex shrink-0 items-center gap-3">
                 <button
                   type="button"
                   onClick={() => navigate('/project/register')}
@@ -308,8 +286,8 @@ export function TeamManagementPage() {
                   Đăng ký đề tài
                   <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {leaderChangeRequests.some((request) => request.status === 'PENDING') && (
@@ -338,7 +316,7 @@ export function TeamManagementPage() {
                 icon: 'groups',
                 label: 'Sĩ số nhóm',
                 value: `${team.members.length} / ${maxTeamSize ?? '—'}`,
-                caption: `${team.code} · ${team.name}`,
+                caption: `${team.members.length} / ${maxTeamSize ?? '—'} thành viên`,
                 hero: true,
               },
               {

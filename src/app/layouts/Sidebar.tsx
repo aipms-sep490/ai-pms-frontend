@@ -209,18 +209,21 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
         aria-modal={isOpen ? true : undefined}
         aria-label="Menu điều hướng chính"
         data-tour={TOUR_ANCHOR.sidebar}
-        className={`fixed left-0 top-0 bottom-0 w-[248px] max-w-[calc(100vw-48px)] bg-card border-r border-hairline z-(--z-index-drawer) flex flex-col justify-between select-none sidebar-rail ${
+        className={`fixed left-0 top-0 bottom-0 w-[276px] max-w-[calc(100vw-48px)] bg-card border-r border-hairline z-(--z-index-drawer) flex flex-col justify-between select-none sidebar-rail ${
           isOpen ? 'drawer-open' : ''
         }`}
       >
-        <div className="flex flex-col flex-1 overflow-y-auto">
+        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
           {/* Top Brand & Academic Header */}
           <div className="p-4 pb-3 border-b border-hairline flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex min-w-0 items-center gap-2.5">
-                <div className="flex flex-col">
+                <div className="flex flex-col min-w-0">
                   <BrandLogo />
-                  <span className="font-mono text-xs text-ink-muted leading-tight">
+                  <span
+                    className="font-mono text-xs text-ink-muted leading-tight truncate"
+                    title={pendingStudent ? undefined : brandSubtitle}
+                  >
                     {pendingStudent ? <span className="app-context-skeleton" aria-hidden="true" /> : brandSubtitle}
                   </span>
                 </div>
@@ -257,7 +260,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
           </div>
 
           {/* Main Navigation Links */}
-          <nav className="p-3 flex flex-col gap-1 flex-1" aria-label="Menu chức năng">
+          <nav className="p-3 pb-4 flex flex-col gap-1 flex-1" aria-label="Menu chức năng">
             <div className="px-2 py-1 text-xs font-mono font-semibold uppercase tracking-wider text-ink-muted">
               {sectionLabel}
             </div>
@@ -284,7 +287,12 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                         }`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="break-words text-left leading-4 uppercase tracking-wider">{`${groupIndex + 1}. ${group.replace(/^\d+\.\s*/, '')}`}</span>
+                          <span
+                            className="truncate whitespace-nowrap text-left text-xs leading-4 uppercase tracking-normal"
+                            title={`${groupIndex + 1}. ${group.replace(/^\d+\.\s*/, '')}`}
+                          >
+                            {`${groupIndex + 1}. ${group.replace(/^\d+\.\s*/, '')}`}
+                          </span>
                           <span className="shrink-0 rounded-full bg-canvas border border-hairline px-1.5 py-0.5 text-xs font-semibold text-ink-soft">
                             {items.length}
                           </span>

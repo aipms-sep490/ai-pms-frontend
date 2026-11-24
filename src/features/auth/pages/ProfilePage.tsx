@@ -171,10 +171,10 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
         <Button variant="secondary" size="sm" onClick={() => { void refreshProfile(); retryProfile() }} disabled={isRefreshing || profileLoading} icon="refresh" aria-label="Làm mới hồ sơ" title="Làm mới hồ sơ" />
       }
     >
-      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
+      <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-12">
         {/* Left Bento Column: Identity Card, Avatar & Security Action */}
-        <section className="workspace-surface flex flex-col gap-5 p-6 xl:col-span-4" aria-labelledby="profile-title">
-          <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left xl:flex-col xl:text-center">
+        <section className="workspace-surface flex h-full flex-col gap-5 p-6 xl:col-span-4" aria-labelledby="profile-title">
+          <div className="profile-identity-card flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left xl:flex-col xl:text-center">
             <ProfileAvatar key={session.user.id} fullName={session.user.fullName} userId={session.user.id} />
             <div className="min-w-0">
               <span className="mb-1.5 inline-flex items-center rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-0.5 font-mono text-xs font-bold uppercase tracking-wider text-primary">
@@ -204,7 +204,7 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
           </div>
 
           {profile && !isEditing && (
-            <div className="flex flex-col gap-2.5 border-t border-hairline pt-4">
+            <div className="mt-auto flex flex-col gap-2.5 border-t border-hairline pt-4">
               <Button icon="edit" onClick={() => setIsEditing(true)}>Chỉnh sửa hồ sơ</Button>
               <Link className="profile-security-link justify-center" to="/profile/security">
                 <span className="material-symbols-outlined text-[18px]" aria-hidden="true">shield</span>
@@ -216,10 +216,10 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
         </section>
 
         {/* Right Bento Column: Contact Info, Academic Scope & Inline Editor */}
-        <section className="workspace-surface flex flex-col gap-5 p-6 xl:col-span-8" aria-label="Thông tin chi tiết và học vụ">
+        <section className="workspace-surface flex h-full flex-col gap-5 p-6 xl:col-span-8" aria-label="Thông tin chi tiết và học vụ">
           <div>
             <h3 className="text-sm font-bold uppercase tracking-wider text-ink-muted">Thông tin liên hệ</h3>
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className={`mt-3 grid grid-cols-1 gap-3 ${!isPureStudent ? 'sm:grid-cols-2' : ''}`}>
               <div className="rounded-lg border border-hairline bg-canvas/60 px-4 py-3">
                 <span className="block text-xs text-ink-muted">Số điện thoại</span>
                 <strong className="mt-0.5 block text-sm font-semibold text-ink">{profile?.phone || 'Chưa cập nhật'}</strong>

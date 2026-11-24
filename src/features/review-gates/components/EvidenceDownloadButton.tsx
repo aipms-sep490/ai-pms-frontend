@@ -17,7 +17,9 @@ export function EvidenceDownloadButton({ projectId, gateCode, requirement }: {
       aria-label={`Mở minh chứng ngoài hệ thống: ${link}`}
       className="mt-2 inline-flex min-h-11 max-w-full items-center break-all text-xs font-semibold text-primary underline">
       Mở minh chứng ngoài hệ thống · {evidenceLinkLabel(link)}
-    </a> : <p role="alert" className="mt-2 text-xs text-status-error-text">Liên kết minh chứng không hợp lệ; chỉ mở URL HTTPS an toàn.</p>
+    </a> : requirement.verificationStatus === 'ACCEPTED' ? (
+      <p className="mt-1.5 text-xs text-ink-muted italic">Tài liệu đã được hội đồng xác nhận trực tiếp (không đính kèm URL ngoài).</p>
+    ) : <p role="alert" className="mt-2 text-xs text-status-error-text">Liên kết minh chứng không hợp lệ; chỉ mở URL HTTPS an toàn.</p>
   }
 
   async function download() {

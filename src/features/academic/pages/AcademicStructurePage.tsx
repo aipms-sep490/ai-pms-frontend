@@ -175,7 +175,7 @@ export function AcademicStructurePage() {
             search={filters.search}
             onSearchChange={value => setFilters(current => ({ ...current, search: value }))}
             searchLabel="Tìm theo mã hoặc tên"
-            searchPlaceholder="Tìm tổ chức, bộ môn, chuyên ngành (VD: SE, CNTT)..."
+            searchPlaceholder="Tìm tổ chức, bộ môn, ngành…"
             debounceMs={0}
             controls={
               <>

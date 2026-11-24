@@ -202,6 +202,33 @@ export function PortfolioDashboardPage() {
         </div>
       }
     >
+      {confirmationDialog}
+      {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><p className="font-semibold">Không thể hoàn tất thao tác</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại dữ liệu</button></div>}
+      {notice && (
+        <p role="status" className="flex items-start gap-2.5 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-3.5 text-sm text-ink shadow-2xs">
+          <span className="material-symbols-outlined mt-0.5 shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+          <span>{notice}</span>
+        </p>
+      )}
+      {!loading && data && <>
+        <DepartmentExecutiveBriefPanel routePrefix={scope === 'admin' ? '/admin' : '/department'} />
+        <section aria-label="Tóm tắt danh mục đồ án">
+          <StatTileRow
+            tiles={[
+              { icon: 'folder_managed', label: 'Tổng đồ án', value: data.summary.totalProjects, hero: true },
+              { icon: 'play_circle', label: 'Đang thực hiện', value: activeCount, tone: activeCount > 0 ? 'success' : 'neutral' },
+              { icon: 'verified', label: 'Đã hoàn thành', value: completedCount },
+              ...(env.aiAdvisoryEnabled ? [{ icon: 'warning', label: 'Cần chú ý theo rủi ro', value: attentionRisks, tone: (attentionRisks > 0 ? 'warning' : 'neutral') as 'warning' | 'neutral' }] : []),
+            ]}
+          />
+        </section>
+        <section className={`grid items-stretch gap-4 ${env.aiAdvisoryEnabled ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+          <SummaryCard title="Theo trạng thái" items={data.summary.projectStates.map(item => ({ key: item.status, label: `${projectStatusLabel(item.status)}: ${item.count}`, active: filter.status === item.status, onClick: () => handleStatusChange(filter.status === item.status ? '' : item.status) }))} />
+          {env.aiAdvisoryEnabled && <SummaryCard title="Theo rủi ro" items={data.summary.riskLevels.map(item => ({ key: item.status, label: `${displayLabel(item.status)}: ${item.count}`, active: riskFilter === item.status, onClick: () => setRiskFilter(riskFilter === item.status ? 'ALL' : item.status) }))} />}
+          <SummaryCard title="Theo chuyên ngành" items={data.summary.majors.map(item => ({ key: String(item.majorId), label: `${item.code}: ${item.projectCount}`, active: filter.majorId === item.majorId, onClick: () => setFilter(c => ({ ...c, majorId: c.majorId === item.majorId ? undefined : item.majorId, page: 1 })) }))} />
+        </section>
+      </>}
+
       <FilterToolbar
         search={filter.search ?? ''}
         onSearchChange={handleSearchChange}
@@ -261,32 +288,8 @@ export function PortfolioDashboardPage() {
         resultSummary={data ? `Hiển thị ${visibleProjects.length} / ${data.projects.totalCount} đồ án` : undefined}
       />
 
-      {confirmationDialog}
-      {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><p className="font-semibold">Không thể hoàn tất thao tác</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại dữ liệu</button></div>}
-      {notice && (
-        <p role="status" className="flex items-start gap-2.5 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-3.5 text-sm text-ink shadow-2xs">
-          <span className="material-symbols-outlined mt-0.5 shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
-          <span>{notice}</span>
-        </p>
-      )}
       {loading && <PageLoading label="Đang tải danh mục đồ án…" />}
       {!loading && data && <>
-        <DepartmentExecutiveBriefPanel routePrefix={scope === 'admin' ? '/admin' : '/department'} />
-        <section aria-label="Tóm tắt danh mục đồ án" className="workspace-metrics">
-          <StatTileRow
-            tiles={[
-              { icon: 'folder_managed', label: 'Tổng đồ án', value: data.summary.totalProjects, hero: true },
-              { icon: 'play_circle', label: 'Đang thực hiện', value: activeCount, tone: activeCount > 0 ? 'success' : 'neutral' },
-              { icon: 'verified', label: 'Đã hoàn thành', value: completedCount },
-              ...(env.aiAdvisoryEnabled ? [{ icon: 'warning', label: 'Cần chú ý theo rủi ro', value: attentionRisks, tone: (attentionRisks > 0 ? 'warning' : 'neutral') as 'warning' | 'neutral' }] : []),
-            ]}
-          />
-        </section>
-        <section className={`grid items-stretch gap-4 ${env.aiAdvisoryEnabled ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
-          <SummaryCard title="Theo trạng thái" items={data.summary.projectStates.map(item => ({ key: item.status, label: `${projectStatusLabel(item.status)}: ${item.count}`, active: filter.status === item.status, onClick: () => handleStatusChange(filter.status === item.status ? '' : item.status) }))} />
-          {env.aiAdvisoryEnabled && <SummaryCard title="Theo rủi ro" items={data.summary.riskLevels.map(item => ({ key: item.status, label: `${displayLabel(item.status)}: ${item.count}`, active: riskFilter === item.status, onClick: () => setRiskFilter(riskFilter === item.status ? 'ALL' : item.status) }))} />}
-          <SummaryCard title="Theo chuyên ngành" items={data.summary.majors.map(item => ({ key: String(item.majorId), label: `${item.code}: ${item.projectCount}`, active: filter.majorId === item.majorId, onClick: () => setFilter(c => ({ ...c, majorId: c.majorId === item.majorId ? undefined : item.majorId, page: 1 })) }))} />
-        </section>
         <section className="workspace-surface workspace-surface-padding">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>

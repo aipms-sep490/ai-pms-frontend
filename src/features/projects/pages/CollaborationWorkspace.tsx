@@ -115,7 +115,7 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
       </div>
     </header>
 
-    <section className="cw-project-line card-hover-lift" aria-label="Tiến độ chung">
+    <section className="cw-project-line" aria-label="Tiến độ chung">
       <div className="cw-project-title">
         <Icon name="folder_open" />
         <div className="min-w-0">
@@ -136,10 +136,10 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
       <StatTileRow
         tiles={[
           {
-            icon: 'donut_large',
-            label: 'Tiến độ công việc',
-            value: progress !== null ? `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(progress)}%` : null,
-            caption: summary ? `${summary.doneTasks}/${summary.totalTasks} việc đã hoàn thành` : 'Đang đồng bộ tiến độ đồ án',
+            icon: 'flag',
+            label: 'Mốc đồ án',
+            value: data.timeline.state === 'ready' ? (timeline?.milestones.length ?? 0) : null,
+            caption: closestMilestone ? `Gần nhất: ${closestMilestone.title}` : 'Theo lộ trình thực hiện',
             hero: true,
           },
           {

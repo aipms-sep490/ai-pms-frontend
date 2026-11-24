@@ -126,7 +126,7 @@ export function TopHeader({
   }[journey?.journeyState ?? 'NO_TEAM']
 
   return (
-    <header className="app-top-header sticky top-0 h-12 bg-card border-b border-hairline z-30 px-3 sm:px-4 md:px-6 flex items-center justify-between">
+    <header className="app-top-header sticky top-0 h-14 bg-card border-b border-hairline z-30 px-3 sm:px-4 md:px-6 flex items-center justify-between gap-4">
       {/* Left: Mobile hamburger & Breadcrumb */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <button
@@ -166,12 +166,12 @@ export function TopHeader({
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
         {unavailableStudent ? <span className="hidden md:inline text-xs text-status-warning-text" role="alert">Ngữ cảnh đồ án chưa tải được</span> : null}
         {selectedSemester && role === 'student' && !pendingStudent ? (
-          <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-xs font-mono font-medium">
+          <span className="hidden 2xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-xs font-mono font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
             {selectedSemester.name} • {stateLabel}
           </span>
         ) : null}
-        {role !== 'student' ? <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-xs font-mono font-medium"><span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />{selectedSemester ? `${selectedSemester.name} • ${semesterLabel}` : semesterLabel}</span> : null}
+        {role !== 'student' ? <span className="hidden 2xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-subtle text-primary border border-hairline text-xs font-mono font-medium"><span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />{selectedSemester ? `${selectedSemester.name} • ${semesterLabel}` : semesterLabel}</span> : null}
         <QuickNavigation access={workspaceAccess} />
         <TourLauncher />
         <div className="relative" ref={notificationRef}>
@@ -183,10 +183,10 @@ export function TopHeader({
             aria-expanded={notificationOpen}
             aria-controls="notification-preview"
             aria-label={unreadCount === null ? 'Mở thông báo học vụ' : `Mở thông báo học vụ, ${unreadCount} chưa đọc${unreadStale ? ', đang chờ đồng bộ' : ''}`}
-            className="relative flex min-h-11 min-w-11 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="relative flex h-10 w-10 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <span className="material-symbols-outlined text-[20px] shrink-0" aria-hidden="true">notifications</span>
-            {unreadCount !== null && unreadCount > 0 && <span aria-hidden="true" className="absolute right-0 top-0 min-w-5 rounded-full bg-danger-strong px-1.5 text-center text-xs font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+            {unreadCount !== null && unreadCount > 0 && <span aria-hidden="true" className="absolute right-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger-strong px-1 text-center text-xs font-bold leading-none text-white ring-2 ring-card">{unreadCount > 99 ? '99+' : unreadCount}</span>}
           </button>
           {notificationOpen && <section id="notification-preview" aria-label="Thông báo mới" className="notification-popover">
             <div className="notification-popover-header"><div><h2>Thông báo</h2><p>{unreadCount === null ? 'Cập nhật dành cho bạn' : unreadCount > 0 ? unreadCount + ' thông báo chưa đọc' : 'Bạn đã đọc hết thông báo mới'}{unreadStale ? ' · Đang chờ đồng bộ' : ''}</p></div><button type="button" className="notification-close" aria-label="Đóng bảng thông báo" onClick={() => { setNotificationOpen(false); notificationTriggerRef.current?.focus() }}><span className="material-symbols-outlined" aria-hidden="true">close</span></button></div>

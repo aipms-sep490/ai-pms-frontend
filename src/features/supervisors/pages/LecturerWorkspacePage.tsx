@@ -610,7 +610,7 @@ export function LecturerWorkspacePage() {
 function ProjectSignals({ summary }: { summary?: ReturnType<typeof useSupervisorProjectSummaries>[number] }) {
   if (!summary) return <p role="status" className="mt-4 text-xs text-ink-muted">Đang tải tiến độ và lịch theo dữ liệu hệ thống…</p>
   return <dl className="lecturer-signals">
-    <Signal label="Tiến độ" resource={summary.progress} render={data => `${data.percentage}% · ${data.doneTasks}/${data.totalTasks} việc`} />
+    <Signal label="Tiến độ" resource={summary.progress} render={data => `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(data.percentage)}% · ${data.doneTasks}/${data.totalTasks} việc`} />
     <Signal label="Cần lưu ý" resource={summary.attention} render={data => `${data.overdue} quá hạn · ${data.blocked} vướng mắc`} />
     <Signal label="Lịch họp sắp tới" resource={summary.meetings} render={data => data.nextAt ? formatMeetingTime(data.nextAt) : 'Chưa có lịch họp sắp tới'} />
     <Signal label="Báo cáo tiến độ" resource={summary.reports} render={data => `${data.count} báo cáo`} />

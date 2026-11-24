@@ -20,7 +20,7 @@
 .collab-error { padding: 14px 18px; border: 1px solid var(--color-status-error-border); border-radius: 10px; color: var(--color-status-error-text); background: var(--color-status-error-bg); }
 .collab-form { display: grid; gap: 18px; }
 .collab-form label { display: grid; gap: 7px; font-size: 13px; font-weight: 600; color: var(--color-ink); }
-.collab-form :is(input, textarea, select), .collab-select { min-width: 0; width: 100%; min-height: 44px; border: 1px solid var(--color-hairline); border-radius: 9px; background: var(--color-card); padding: 10px 12px; font: inherit; font-weight: 400; color: var(--color-ink); }
+.collab-form :is(input, textarea, select), .collab-select { min-width: 0; width: 100%; min-height: 44px; border: 1px solid var(--color-hairline); border-radius: 9px; background-color: var(--color-card); padding: 10px 12px; font: inherit; font-weight: 400; color: var(--color-ink); }
 .collab-form textarea { resize: vertical; min-height: 100px; line-height: 1.7; }
 .collab :is(input, textarea, select, button):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
 .collab-section { border-bottom: 1px solid var(--color-hairline); padding-bottom: 22px; }

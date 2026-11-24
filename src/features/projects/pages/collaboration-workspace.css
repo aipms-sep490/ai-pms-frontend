@@ -1,23 +1,15 @@
-/* Collaboration Workspace — PMS FAMS Palette Design */
-.collaboration-shell {
+/* Collaboration Workspace — Feature-scoped surface styles (shell layout rules live in src/app/layouts/app-shell.css) */
+.collaboration-workspace {
   --cw-ink: var(--color-ink);
   --cw-muted: var(--color-ink-muted);
   --cw-line: var(--color-hairline);
   --cw-accent: var(--color-primary);
   --cw-accent-soft: var(--color-primary-subtle);
-  color: var(--cw-ink);
-  background: var(--color-canvas);
+  max-width: 100%;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
 }
-.collaboration-shell .sidebar-rail { width: 248px; }
-.collaboration-shell .sidebar-rail [class*="rounded"],
-.collaboration-shell .app-top-header [class*="rounded"] { border-radius: 8px; }
-.collaboration-shell .sidebar-rail [class*="shadow"] { box-shadow: none; }
-.collaboration-shell .sidebar-rail nav > div { color: var(--cw-muted); }
-.collaboration-shell .app-top-header { height: 58px; border-bottom: 1px solid var(--color-hairline); }
-.collaboration-shell .app-top-header nav .font-mono { font-family: var(--font-sans); color: var(--cw-ink); }
-.collaboration-shell .app-page-content { padding: 24px 32px 104px 32px; }
-.collaboration-shell .app-page-content.is-full-chat { padding: 20px 24px; }
-.collaboration-workspace { max-width: 100%; margin: 0; font-size: 14px; line-height: 1.5; }
 .collaboration-workspace *, .collaboration-workspace *::before, .collaboration-workspace *::after { box-sizing: border-box; }
 .collaboration-workspace :is(button, a, input, select, textarea):focus-visible { outline: 2px solid var(--cw-accent); outline-offset: 3px; }
 .collaboration-workspace button { cursor: pointer; }
@@ -59,8 +51,7 @@
 .cw-attention-links a { min-height: 36px; padding: 4px 8px; border-radius: 6px; background: var(--color-status-warning-bg); }
 .cw-attention-links a:hover { background: var(--color-status-warning-border); }
 .cw-attention-links .material-symbols-outlined { font-size: 16px; }
-.cw-columns { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; align-items: start; }
-@media(min-width:901px) { .cw-side-column { position:sticky; top:84px; } }
+.cw-columns { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; align-items: stretch; }
 .cw-main-column, .cw-side-column { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
 .cw-panel { border: 1px solid var(--cw-line); border-radius: 16px; background: var(--color-card); overflow: hidden; box-shadow: 0 4px 20px -4px color-mix(in oklab, var(--color-brand-navy) 6%, transparent), 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 3%, transparent); }
 .cw-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 22px 24px 16px; }
@@ -74,7 +65,7 @@
 .cw-context-links { display: flex; flex-wrap: wrap; gap: 10px 14px; padding: 0 24px 20px; }
 .cw-context-links--stack { flex-direction: column; padding: 0 20px 18px; }
 .cw-context-links--stack .cw-text-link { width: 100%; justify-content: space-between; }
-.cw-secondary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: stretch; }
+.cw-secondary-grid { flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: stretch; }
 .cw-panel--stretch { display: flex; flex-direction: column; height: 100%; }
 .cw-panel-body-fill { flex: 1; display: flex; flex-direction: column; justify-content: center; }
 @media (max-width: 767px) { .cw-secondary-grid { grid-template-columns: 1fr; } }
@@ -160,7 +151,8 @@
 .cw-create form { padding: 0 24px 24px; }
 .cw-form-fields { border: 0; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .cw-form-fields > label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--cw-ink); font-weight: 600; }
-.cw-form-fields :is(input:not([type="checkbox"]), select, textarea) { min-width: 0; width: 100%; background: var(--color-card); border: 1px solid var(--cw-line); border-radius: 8px; min-height: 44px; padding: 8px 14px; font-size: 13px; font-weight: 400; color: var(--color-ink); }
+.cw-form-fields :is(input:not([type="checkbox"]), select, textarea) { min-width: 0; width: 100%; background-color: var(--color-card); border: 1px solid var(--cw-line); border-radius: 8px; min-height: 44px; padding: 8px 14px; font-size: 13px; font-weight: 400; color: var(--color-ink); }
+.cw-form-fields select { padding-right: 34px; }
 .cw-form-fields :is(input:not([type="checkbox"]), select, textarea):focus { border-color: var(--cw-accent); outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 15%, transparent); }
 .cw-form-fields textarea { resize: vertical; }
 .cw-form-fields input::placeholder, .cw-form-fields textarea::placeholder { color: var(--color-ink-muted); }

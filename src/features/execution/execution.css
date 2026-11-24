@@ -80,7 +80,8 @@
 .ex-form fieldset { border: 0; min-width: 0; margin: 0; padding: 0; }
 .ex-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
 .ex-fields > label, .ex-field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; min-width: 0; color: var(--color-ink-soft); }
-.ex-fields :is(input, select, textarea) { border: 1px solid var(--color-hairline); border-radius: 8px; padding: 8px 14px; min-height: 40px; font-size: 13px; font-family: inherit; font-weight: 400; text-transform: none; letter-spacing: normal; color: var(--color-ink); background: var(--color-card); }
+.ex-fields :is(input, select, textarea) { border: 1px solid var(--color-hairline); border-radius: 8px; padding: 8px 14px; min-height: 40px; font-size: 13px; font-family: inherit; font-weight: 400; text-transform: none; letter-spacing: normal; color: var(--color-ink); background-color: var(--color-card); }
+.ex-fields select { padding-right: 34px; }
 .ex-fields :is(input, select, textarea):focus { border-color: var(--color-primary); outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 15%, transparent); }
 .ex-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0; margin: 0; border-block: 1px solid var(--color-line); }
 .ex-facts > div { padding: 16px 18px; border-right: 1px solid var(--color-line); display: flex; flex-direction: column; gap: 6px; }
@@ -161,21 +162,23 @@
 .ex-tabs button[aria-pressed="true"] { background: var(--color-card); color: var(--color-primary); box-shadow: 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 6%, transparent); }
 .ex-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; padding: 14px 24px; border-bottom: 1px solid var(--color-hairline); background: var(--color-card); }
 .ex-filters label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 650; color: var(--color-ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
-.ex-filters :is(input, select) { min-height: 40px; padding: 8px 12px; border: 1px solid var(--color-hairline); border-radius: 8px; font-size: 13px; background: var(--color-card); color: var(--color-ink); font-weight: 400; text-transform: none; letter-spacing: normal; }
+.ex-filters :is(input, select) { min-height: 40px; padding: 8px 12px; border: 1px solid var(--color-hairline); border-radius: 8px; font-size: 13px; background-color: var(--color-card); color: var(--color-ink); font-weight: 400; text-transform: none; letter-spacing: normal; }
 .ex-filters :is(input, select):focus { border-color: var(--color-primary); outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 15%, transparent); }
 .ex-filter-search { flex: 1 1 240px; max-width: 420px; }
 .ex-filter-check { flex-direction: row !important; align-items: center; gap: 8px !important; height: 40px; cursor: pointer; font-size: 13px; color: var(--color-ink); text-transform: none !important; letter-spacing: normal !important; }
 .ex-filters > .ex-button { height: 40px; min-height: 40px; padding: 0 16px; }
 .ex-filters > .ex-text-button { height: 40px; min-height: 40px; }
-.ex-task-list-heading { display: grid; grid-template-columns: minmax(0, 1.3fr) 220px 140px 96px; gap: 16px; padding: 12px 24px; background: var(--color-canvas); border-bottom: 1px solid var(--color-hairline); font-size: 12px; font-weight: 700; color: var(--color-ink-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-.ex-task-row { display: grid; grid-template-columns: minmax(0, 1.3fr) 220px 140px 96px; gap: 16px; align-items: center; padding: 14px 24px; border-bottom: 1px solid var(--color-hairline); text-decoration: none; color: var(--color-ink); transition: background-color 150ms ease; }
+.ex-task-list-heading { display: grid; grid-template-columns: minmax(0, 1.3fr) 210px 140px 136px; gap: 16px; align-items: center; padding: 12px 24px; background: var(--color-canvas); border-bottom: 1px solid var(--color-hairline); font-size: 12px; font-weight: 700; color: var(--color-ink-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.ex-task-list-heading > span { white-space: nowrap; }
+.ex-task-list-heading > span:last-child { text-align: right; }
+.ex-task-row { display: grid; grid-template-columns: minmax(0, 1.3fr) 210px 140px 136px; gap: 16px; align-items: center; padding: 14px 24px; border-bottom: 1px solid var(--color-hairline); text-decoration: none; color: var(--color-ink); transition: background-color 150ms ease; }
 .ex-task-row:hover { background: var(--color-canvas); }
 .ex-task-title { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
 .ex-task-title .material-symbols-outlined { margin-top: 2px; color: var(--color-ink-muted); font-size: 20px; }
 .ex-task-title div { min-width: 0; }
 .ex-task-title strong { display: block; font-size: 14px; font-weight: 600; color: var(--color-ink); overflow-wrap: anywhere; }
 .ex-task-title small { display: block; margin-top: 3px; font-size: 12px; color: var(--color-ink-muted); }
-.ex-task-assignee { font-size: 12.5px; color: var(--color-ink-soft); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
+.ex-task-assignee { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12.5px; color: var(--color-ink-soft); line-height: 1.4; }
 .ex-task-status { display: flex; align-items: center; }
 .ex-task-date { font-size: 12.5px; color: var(--color-ink-muted); text-align: right; font-variant-numeric: tabular-nums; }
 .ex-task-date.is-overdue { color: var(--color-status-error-text); font-weight: 600; }
@@ -229,7 +232,7 @@
 .task-evidence-comments { margin-top:24px; }
 .task-evidence-comments > div { border-color: var(--color-hairline); border-radius:10px; padding:24px; min-width:0; }
 
-.task-evidence-comments textarea, .task-evidence-comments select { color: var(--color-ink); border-color: var(--color-hairline); background: var(--color-card); }
+.task-evidence-comments textarea, .task-evidence-comments select { color: var(--color-ink); border-color: var(--color-hairline); background-color: var(--color-card); }
 .ex-dependencies li > div { display:grid; gap:6px; min-width:0; }
 .ex-dependencies .ex-link { overflow-wrap:anywhere; }
 
@@ -242,7 +245,7 @@
 .task-evidence-file { position:relative; }
 .task-evidence-file input[type=file] { width:1px; height:1px; min-width:0; min-height:0; padding:0; }
 /* Keep form controls visible inside the detail sidebar. */
-.ex-field > :is(input, select, textarea) { width: 100%; min-height: 42px; padding: 9px 12px; border: 1px solid var(--color-hairline); border-radius: 8px; background: var(--color-card); color: var(--color-ink); font: inherit; font-size: 14px; font-weight: 400; text-transform: none; letter-spacing: normal; }
+.ex-field > :is(input, select, textarea) { width: 100%; min-height: 42px; padding: 9px 12px; border: 1px solid var(--color-hairline); border-radius: 8px; background-color: var(--color-card); color: var(--color-ink); font: inherit; font-size: 14px; font-weight: 400; text-transform: none; letter-spacing: normal; }
 .ex-field > textarea { resize: vertical; }
 .ex-field > :is(input, select, textarea):focus { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .ex-fields > .ex-full { grid-column: 1 / -1; }

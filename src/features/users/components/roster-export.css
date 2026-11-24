@@ -5,8 +5,8 @@
 .roster-export__format p { margin: 6px 0 0; color: var(--color-ink-muted); font-size: 12px; line-height: 1.7; }
 .roster-export fieldset { display: grid; gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
 .roster-export label { display: flex; flex-wrap: wrap; gap: 6px; color: var(--color-ink-soft); font-size: 14px; font-weight: 600; }
-.roster-export select { width: 100%; min-width: 0; min-height: 44px; padding: 10px; border: 1px solid var(--color-line-strong); border-radius: 6px; background: var(--color-card); color: var(--color-ink); font: inherit; font-weight: 400; }
-.roster-export select:disabled { background: var(--color-canvas); color: var(--color-ink-muted); }
+.roster-export select { width: 100%; min-width: 0; min-height: 44px; padding: 10px 34px 10px 10px; border: 1px solid var(--color-line-strong); border-radius: 6px; background-color: var(--color-card); color: var(--color-ink); font: inherit; font-weight: 400; }
+.roster-export select:disabled { background-color: var(--color-canvas); color: var(--color-ink-muted); }
 .roster-export__hint { margin: 0; font-size: 12px; line-height: 1.65; color: var(--color-ink-muted); }
 .roster-export__error,.roster-export__success { margin: 0; padding: 12px; border-radius: 6px; font-size: 14px; line-height: 1.6; }
 .roster-export__error { border: 1px solid var(--color-status-error-border); background: var(--color-status-error-bg); color: var(--color-status-error-text); }

@@ -11,8 +11,18 @@
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  align-items: flex-start;
-  padding: 0.25rem 0;
+  align-items: flex-end;
+  padding: 0 0 1rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-brand-navy) 10%, var(--color-hairline));
+}
+
+.calendar-page__header > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.calendar-page__header > button {
+  flex-shrink: 0;
 }
 
 .calendar-page__header h1 {
@@ -34,12 +44,19 @@
 }
 
 .calendar-page__eyebrow {
-  font-size: 0.75rem !important;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  display: inline-block;
+  padding: 3px 10px;
+  margin: 0 0 8px !important;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--color-primary) 24%, transparent);
+  background: var(--color-primary-subtle);
   color: var(--color-primary) !important;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
+  font-size: 12px !important;
+  font-weight: 700;
+  line-height: 1.45 !important;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .calendar-page__notice {
@@ -90,17 +107,38 @@
 .attention-panel__heading {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 1rem;
-  padding: 1.1rem 1.25rem;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--color-line);
   background: var(--color-canvas);
   border-radius: 0.85rem 0.85rem 0 0;
 }
 
+.calendar-panel__toolbar > div:first-child,
+.attention-panel__heading > div:first-child {
+  min-width: 0;
+  flex: 1 1 200px;
+}
+
 .calendar-panel__filters {
-  padding: 0.85rem 1.25rem;
-  border-bottom: 1px solid var(--color-line);
+  padding: 0;
   background: var(--color-card);
+}
+
+.calendar-panel__filters .ft-search {
+  flex: 1 1 130px;
+  min-width: 125px;
+}
+
+.calendar-panel__filters .ft-controls select {
+  max-width: 138px;
+  padding: 5px 26px 5px 9px !important;
+}
+
+.calendar-panel__filters .ft-sort-wrap .ft-sort-select {
+  max-width: 175px;
+  padding: 5px 26px 5px 28px !important;
 }
 
 .calendar-panel h2,
@@ -125,7 +163,8 @@
   align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
-  flex-wrap: wrap;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
 }
 
 .calendar-segmented {
@@ -587,7 +626,7 @@
 @media (min-width: 901px) {
   .attention-panel {
     position: sticky;
-    top: 84px;
+    top: 72px;
   }
 }
 
@@ -596,10 +635,12 @@
   .calendar-panel__toolbar,
   .attention-panel__heading {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .calendar-panel__controls {
     justify-content: space-between;
+    flex-wrap: wrap;
   }
 
   .calendar-page__layout {

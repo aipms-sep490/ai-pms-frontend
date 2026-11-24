@@ -306,9 +306,14 @@ export function ReviewGateGovernancePage() {
     }
     if (env.reviewGatesMockEnabled) return 'Fall 2026 · SEP490'
     return academicContext?.academic?.selectedSemester
-      ? `${academicContext.academic.selectedSemester.code} · ${academicContext.academic.selectedSemester.name}`
+      ? academicContext.academic.selectedSemester.code
       : 'Tất cả kỳ học'
   }, [periodId, academicContext])
+
+  const resolvedPeriodCaption = useMemo(() => {
+    if (env.reviewGatesMockEnabled) return 'Phạm vi cấu hình cổng thẩm định.'
+    return academicContext?.academic?.selectedSemester?.name || 'Phạm vi cấu hình cổng thẩm định.'
+  }, [academicContext])
 
   const filteredTemplates = useMemo(() => {
     const q = templateSearch.trim().toLowerCase()
@@ -428,7 +433,7 @@ export function ReviewGateGovernancePage() {
             <div className="space-y-6">
               <StatTileRow
                 tiles={[
-                  { icon: 'calendar_month', label: 'Kỳ học áp dụng', value: resolvedPeriodLabel, hero: true, caption: 'Phạm vi cấu hình cổng thẩm định.' },
+                  { icon: 'calendar_month', label: 'Kỳ học áp dụng', value: resolvedPeriodLabel, hero: true, caption: resolvedPeriodCaption },
                   { icon: 'library_books', label: 'Mẫu tiến trình', value: templates.length, tone: 'info', caption: `${publishedCount} đã công bố · ${draftCount} bản nháp.` },
                   { icon: 'flag', label: 'Số cổng tiêu chuẩn', value: templates.length > 0 ? `${templates[0].gatesCount < 10 ? '0' : ''}${templates[0].gatesCount} cổng` : 'Chưa cấu hình', tone: 'neutral', caption: 'Cấu trúc kiểm duyệt tiến độ đồ án.' },
                   { icon: 'verified', label: 'Mẫu đã công bố', value: publishedCount, tone: publishedCount > 0 ? 'success' : 'warning', caption: draftCount > 0 ? `${draftCount} bản nháp đang chỉnh sửa.` : 'Sẵn sàng áp dụng cho sinh viên.' },
@@ -563,9 +568,9 @@ export function ReviewGateGovernancePage() {
                           </td>
                           <td className="py-3.5 px-3 text-center font-bold">{tmpl.gatesCount}</td>
                           <td className="py-3.5 px-3 text-center font-mono">v{tmpl.version}</td>
-                          <td className="py-3.5 px-3 text-center">
+                          <td className="py-3.5 px-3 text-center whitespace-nowrap">
                             <span
-                              className={`rounded-full px-2.5 py-0.5 text-xs font-bold border ${
+                              className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-bold border ${
                                 tmpl.status === 'PUBLISHED'
                                   ? 'bg-status-success-bg text-status-success-text border-status-success-border'
                                   : 'bg-status-warning-bg text-status-warning-text border-status-warning-border'
@@ -574,12 +579,13 @@ export function ReviewGateGovernancePage() {
                               {tmpl.status === 'PUBLISHED' ? 'ĐÃ CÔNG BỐ' : 'BẢN NHÁP'}
                             </span>
                           </td>
-                          <td className="py-3.5 px-4 text-right space-x-2">
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                            <div className="inline-flex items-center justify-end gap-2">
                             {tmpl.status === 'PUBLISHED' && (
                               <button
                                 type="button"
                                 onClick={() => handleCloneTemplate(tmpl)}
-                                className="min-h-9 rounded-md border border-hairline px-2.5 py-1 font-semibold text-ink-soft hover:bg-canvas"
+                                className="min-h-9 whitespace-nowrap rounded-md border border-hairline px-2.5 py-1 font-semibold text-ink-soft hover:bg-canvas"
                                 title="Nhân bản tạo phiên bản nháp mới"
                               >
                                 Nhân bản
@@ -590,7 +596,7 @@ export function ReviewGateGovernancePage() {
                                 type="button"
                                 disabled={busy}
                                 onClick={() => void handleDeleteDraftTemplate(tmpl)}
-                                className="min-h-9 rounded-md border border-status-error-border bg-card px-2.5 py-1 font-semibold text-status-error-text hover:bg-status-error-bg disabled:opacity-50"
+                                className="min-h-9 whitespace-nowrap rounded-md border border-status-error-border bg-card px-2.5 py-1 font-semibold text-status-error-text hover:bg-status-error-bg disabled:opacity-50"
                                 title="Xóa bản nháp tiến trình này"
                               >
                                 Xóa nháp
@@ -602,10 +608,11 @@ export function ReviewGateGovernancePage() {
                                 setSelectedTemplateId(tmpl.id)
                                 setActiveTab('builder')
                               }}
-                              className="min-h-9 rounded-md border border-hairline px-3 py-1 font-semibold text-primary hover:bg-canvas"
+                              className="min-h-9 whitespace-nowrap rounded-md border border-hairline px-3 py-1 font-semibold text-primary hover:bg-canvas"
                             >
                               Thiết kế cổng ↗
                             </button>
+                            </div>
                           </td>
                         </tr>
                       ))}

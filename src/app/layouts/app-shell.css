@@ -1,6 +1,6 @@
 /* Unified Application Shell — Single source of truth for sidebar width, header rhythm, and safe floating-dock padding */
 .collaboration-shell {
-  --shell-sidebar-width: 248px;
+  --shell-sidebar-width: 276px;
   --cw-ink: var(--color-ink);
   --cw-muted: var(--color-ink-muted);
   --cw-line: var(--color-hairline);
@@ -14,8 +14,8 @@
   width: var(--shell-sidebar-width);
 }
 
-.collaboration-shell .sidebar-rail [class*="rounded"],
-.collaboration-shell .app-top-header [class*="rounded"] {
+.collaboration-shell .sidebar-rail [class*="rounded"]:not(.rounded-full),
+.collaboration-shell .app-top-header [class*="rounded"]:not(.rounded-full) {
   border-radius: 8px;
 }
 
@@ -28,7 +28,7 @@
 }
 
 .collaboration-shell .app-top-header {
-  height: 58px;
+  height: 56px;
   border-bottom: 1px solid color-mix(in oklab, var(--color-brand-navy) 10%, var(--color-hairline));
 }
 

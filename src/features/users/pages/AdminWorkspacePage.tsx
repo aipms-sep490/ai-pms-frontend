@@ -438,10 +438,11 @@ export function AdminWorkspacePage() {
         <div className="mt-4">
           <FilterToolbar
             embedded
+            className="ft-bar--compact"
             ariaLabel="Bộ lọc tài khoản người dùng"
             search={search}
             onSearchChange={(value) => setFilter({ search: value, page: '1' })}
-            searchPlaceholder="Tìm theo tên, email, MSSV hoặc mã nhân sự…"
+            searchPlaceholder="Tìm tên, email…"
             searchLabel="Tìm kiếm tài khoản"
             activeTab={status}
             onTabChange={(value) => setFilter({ status: value, page: '1' })}
@@ -565,8 +566,8 @@ export function AdminWorkspacePage() {
                         .map(role => (role === 'LECTURER' ? 'Giảng viên' : role === 'EVALUATOR' ? 'Người chấm' : displayLabel(role)))
                         .join(', ') || 'Chưa gán'}
                     </TableCell>
-                    <TableCell label="Trạng thái"><Status status={user.status} /></TableCell>
-                    <TableCell label="Đăng nhập gần nhất">
+                    <TableCell label="Trạng thái" className="whitespace-nowrap"><Status status={user.status} /></TableCell>
+                    <TableCell label="Đăng nhập gần nhất" className="whitespace-nowrap">
                       {user.lastLoginAt ? (
                         <time dateTime={user.lastLoginAt}>
                           {formatSafeTimestamp(user.lastLoginAt, {
@@ -592,8 +593,8 @@ export function AdminWorkspacePage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell label="Thao tác">
-                      <Link className="font-semibold text-primary hover:underline" to={`/admin/access/users/${user.id}`} state={{ returnTo: `/admin/access?${params.toString()}` }}>
+                    <TableCell label="Thao tác" className="whitespace-nowrap">
+                      <Link className="whitespace-nowrap font-semibold text-primary hover:underline" to={`/admin/access/users/${user.id}`} state={{ returnTo: `/admin/access?${params.toString()}` }}>
                         Xem chi tiết
                       </Link>
                     </TableCell>
@@ -773,13 +774,13 @@ export function AdminWorkspacePage() {
                   <TableCell label="Hành động"><strong title={record.action}>{auditActionLabel(record.action)}</strong></TableCell>
                   <TableCell label="Người thực hiện">{record.actorName?.trim() || 'Hệ thống'}</TableCell>
                   <TableCell label="Đối tượng">{formatAuditEntity(record)}</TableCell>
-                  <TableCell label="Kết quả">
+                  <TableCell label="Kết quả" className="whitespace-nowrap">
                     <StatusBadge
                       tone={record.outcome === 'SUCCESS' ? 'success' : 'danger'}
                       label={record.outcome === 'SUCCESS' ? 'Thành công' : record.outcome === 'FAILURE' ? 'Thất bại' : displayLabel(record.outcome)}
                     />
                   </TableCell>
-                  <TableCell label="Thời gian">
+                  <TableCell label="Thời gian" className="whitespace-nowrap">
                     <time dateTime={record.occurredAt}>
                       {formatSafeTimestamp(record.occurredAt, { dateStyle: 'short', timeStyle: 'short' })}
                     </time>
@@ -929,7 +930,7 @@ function Pagination({
             aria-label="Số bản ghi trên mỗi trang"
             value={pageSize}
             onChange={(event) => onPageSizeChange(Number(event.target.value))}
-            className="h-8 min-h-8 w-auto rounded-lg border border-hairline bg-card px-2 text-xs text-ink"
+            className="h-8 min-h-8 w-auto rounded-lg border border-hairline bg-card pl-2.5 pr-8 text-xs text-ink"
           >
             {[10, 12, 20, 50].map((size) => (
               <option key={size} value={size}>{size} / trang</option>

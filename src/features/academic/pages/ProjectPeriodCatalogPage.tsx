@@ -133,7 +133,7 @@ export function ProjectPeriodCatalogPage() {
   const totalPages = Math.max(1, Math.ceil((result?.totalCount ?? 0) / pageSize))
 
   return <WorkspacePage size="wide" title="Kỳ đăng ký đồ án" eyebrow="Khám phá học kỳ" description="Tìm kỳ đăng ký đang hoạt động và xem bước tiếp theo trong lộ trình đồ án." action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading} onClick={() => setRevision(value => value + 1)} />}>
-    <div className="mb-5">
+    <div className="mb-4">
       <StatTileRow
         tiles={[
           { icon: 'event_note', label: 'Kỳ đăng ký khả dụng', value: result ? result.totalCount : null, hero: true, caption: 'Trong cơ sở đào tạo của bạn.' },
@@ -144,7 +144,7 @@ export function ProjectPeriodCatalogPage() {
       />
     </div>
     {/* Academic directory scope notice */}
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-hairline bg-card/60 px-4 py-2.5 text-xs text-ink-muted">
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-hairline bg-card/60 px-4 py-2 text-xs text-ink-muted">
       <div className="flex items-center gap-2">
         <span className="material-symbols-outlined text-sm text-primary" aria-hidden="true">policy</span>
         <span>Danh sách được giới hạn theo <strong>cơ sở đào tạo của tài khoản</strong>; quản trị viên có thể xem toàn hệ thống.</span>
@@ -155,7 +155,7 @@ export function ProjectPeriodCatalogPage() {
     </div>
 
     {/* F-Research inspired Guidance Panel (P09) */}
-    <section className="mb-6 rounded-xl border border-hairline bg-gradient-to-r from-primary-subtle/50 via-card to-card p-5" aria-label="Hướng dẫn tham gia kỳ đồ án">
+    <section className="mb-4 rounded-xl border border-hairline bg-gradient-to-r from-primary-subtle/50 via-card to-card p-4" aria-label="Hướng dẫn tham gia kỳ đồ án">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="max-w-2xl">
           <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">

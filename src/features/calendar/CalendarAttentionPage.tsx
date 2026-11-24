@@ -386,7 +386,7 @@ export function CalendarAttentionPage() {
                   ariaLabel="Bộ lọc sự kiện lịch"
                   search={search}
                   onSearchChange={setSearch}
-                  searchPlaceholder="Tìm theo tiêu đề sự kiện hoặc tên đồ án…"
+                  searchPlaceholder="Tìm sự kiện…"
                   searchLabel="Tìm kiếm sự kiện lịch"
                   controls={
                     <>

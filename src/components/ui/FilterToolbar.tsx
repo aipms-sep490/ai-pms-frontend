@@ -139,7 +139,9 @@ export function FilterToolbar({
   const showClearAll = Boolean(
     onClearAll && (hasActiveFilters ?? (activeChips.length > 0 || Boolean(draftSearch.trim()))),
   )
-  const showFooter = activeChips.length > 0 || Boolean(resultSummary)
+  const inlineTabSummary = Boolean(tabs && tabs.length > 0 && activeChips.length === 0 && resultSummary)
+  const inlineMainSummary = Boolean(!tabs?.length && !className.includes('ft-bar--compact') && activeChips.length === 0 && resultSummary)
+  const showFooter = activeChips.length > 0 || (Boolean(resultSummary) && !inlineTabSummary && !inlineMainSummary)
 
   function handleClearSearch() {
     setDraftSearch('')
@@ -181,11 +183,16 @@ export function FilterToolbar({
               )
             })}
           </div>
-          {rightActions && <div className="ft-right-actions">{rightActions}</div>}
+          {(inlineTabSummary || rightActions) && (
+            <div className="ft-right-actions">
+              {inlineTabSummary && <div className="ft-summary">{resultSummary}</div>}
+              {rightActions}
+            </div>
+          )}
         </div>
       )}
 
-      {(onSearchChange || controls || sort || advancedControls || showClearAll || (!tabs?.length && rightActions)) && (
+      {(onSearchChange || controls || sort || advancedControls || showClearAll || inlineMainSummary || (!tabs?.length && rightActions)) && (
         <div className="ft-main-row">
           {onSearchChange && (
             <div className="ft-search">
@@ -280,8 +287,11 @@ export function FilterToolbar({
             </button>
           )}
 
-          {!tabs?.length && rightActions && (
-            <div className="ft-right-actions">{rightActions}</div>
+          {(inlineMainSummary || (!tabs?.length && rightActions)) && (
+            <div className="ft-right-actions">
+              {inlineMainSummary && <div className="ft-summary">{resultSummary}</div>}
+              {!tabs?.length && rightActions}
+            </div>
           )}
         </div>
       )}
@@ -293,16 +303,18 @@ export function FilterToolbar({
       )}
 
       {showFooter && (
-        <div className="ft-footer-row">
-          <div>
-            {activeChips.length > 0 && onRemoveChip && (
-              <FilterChips
-                chips={activeChips}
-                onRemove={onRemoveChip}
-                onClearAll={activeChips.length > 1 ? handleClearAll : undefined}
-              />
-            )}
-          </div>
+        <div className={`ft-footer-row ${activeChips.length === 0 ? 'ft-footer-row--summary-only' : ''}`.trim()}>
+          {activeChips.length > 0 && (
+            <div>
+              {onRemoveChip && (
+                <FilterChips
+                  chips={activeChips}
+                  onRemove={onRemoveChip}
+                  onClearAll={activeChips.length > 1 ? handleClearAll : undefined}
+                />
+              )}
+            </div>
+          )}
           {resultSummary && <div className="ft-summary">{resultSummary}</div>}
         </div>
       )}

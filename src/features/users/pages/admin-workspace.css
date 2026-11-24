@@ -16,7 +16,7 @@
   outline-offset: 2px;
 }
 
-.admin-workspace :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+.admin-workspace :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
   min-width: 0;
   min-height: 40px;
   width: 100%;
@@ -30,28 +30,26 @@
   font-weight: 400;
 }
 
+.admin-workspace :where(select:not([multiple])) {
+  padding-right: 34px;
+}
+
 .admin-workspace .ft-bar :is(input[type="date"], select) {
   width: auto;
   min-height: 36px;
   height: 36px;
-  padding: 5px 10px;
   border-color: var(--color-hairline);
   border-radius: 8px;
   font-size: 12.5px;
 }
 
-.admin-workspace .ft-bar select {
-  padding-right: 28px;
-}
-
-.admin-workspace .ft-bar .ft-sort-select {
-  padding-left: 28px;
+.admin-workspace .ft-bar--compact .ft-controls select {
+  max-width: 185px;
 }
 
 .admin-workspace .ft-bar .ft-search-input {
   min-height: 36px;
   height: 36px;
-  padding: 6px 32px 6px 33px;
   border-color: var(--color-hairline);
   border-radius: 8px;
   font-size: 13px;
@@ -456,9 +454,10 @@
   width: auto;
   min-height: 32px;
   height: 32px;
-  padding: 2px 24px 2px 8px;
+  padding: 2px 30px 2px 10px;
   border-color: var(--color-hairline);
   border-radius: 7px;
+  background-color: var(--color-card);
   font-size: 12px;
 }
 

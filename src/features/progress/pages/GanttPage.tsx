@@ -214,9 +214,15 @@ export function GanttPage() {
             <button aria-pressed={!showTasks} onClick={() => setShowTasks(false)}>Các mốc</button>
             <button aria-pressed={showTasks} onClick={() => setShowTasks(true)}>Cả công việc</button>
           </div>
-          <div className="ex-tabs" role="group" aria-label="Đơn vị thời gian">
-            <button aria-pressed={scale === 'month'} onClick={() => setScale('month')}>Theo tháng</button>
-            <button aria-pressed={scale === 'week'} onClick={() => setScale('week')}>Theo tuần</button>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-card px-2.5 py-1.5 font-mono text-xs font-medium text-ink-soft tabular-nums">
+              <ExIcon name="date_range" />
+              {range ? `${dayLabel(range.start, true)} – ${dayLabel(range.end, true)}` : 'Chưa có thời gian dự kiến'}
+            </span>
+            <div className="ex-tabs" role="group" aria-label="Đơn vị thời gian">
+              <button aria-pressed={scale === 'month'} onClick={() => setScale('month')}>Theo tháng</button>
+              <button aria-pressed={scale === 'week'} onClick={() => setScale('week')}>Theo tuần</button>
+            </div>
           </div>
         </div>
 
@@ -249,7 +255,6 @@ export function GanttPage() {
           }
           hasActiveFilters={hasAnyFilter}
           onClearAll={clearAllFilters}
-          resultSummary={range ? `${dayLabel(range.start, true)} – ${dayLabel(range.end, true)}` : 'Chưa có thời gian dự kiến'}
         />
 
         {loading ? (

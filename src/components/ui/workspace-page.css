@@ -19,14 +19,9 @@
   min-width: 0;
   border: 1px solid color-mix(in oklab, var(--color-brand-navy) 11%, var(--color-hairline));
   border-radius: 14px;
-  background: var(--color-card);
+  background-color: var(--color-card);
   overflow: clip;
   box-shadow: 0 1px 2px color-mix(in oklab, var(--color-brand-navy) 5%, transparent), 0 6px 16px -8px color-mix(in oklab, var(--color-brand-navy) 9%, transparent);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
-}
-.workspace-surface:hover {
-  border-color: color-mix(in oklab, var(--color-brand-navy) 18%, var(--color-line-strong));
-  box-shadow: 0 2px 4px color-mix(in oklab, var(--color-brand-navy) 6%, transparent), 0 10px 22px -10px color-mix(in oklab, var(--color-brand-navy) 12%, transparent);
 }
 .workspace-surface-padding { padding: var(--page-gutter); }
 @media(max-width: 760px) {
@@ -47,7 +42,7 @@
   border: 1px solid var(--color-line-strong);
   border-radius: 8px;
   padding: 9px 12px;
-  background: var(--color-card);
+  background-color: var(--color-card);
   color: var(--color-ink);
   font-family: inherit;
   font-size: 14px;

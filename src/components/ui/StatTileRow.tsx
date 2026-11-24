@@ -54,9 +54,13 @@ export function StatTileRow({ tiles }: { tiles: readonly StatTile[] }) {
         const hero = index === heroIndex
         const tone: BadgeTone = tile.tone ?? 'info'
         const isInteractive = typeof tile.onClick === 'function'
-        const activeClass = tile.active ? 'ring-2 ring-primary ring-offset-2' : ''
+        const activeClass = tile.active
+          ? (hero ? 'shadow-md' : 'border-primary bg-primary-subtle/35 shadow-sm')
+          : ''
         const interactiveClass = isInteractive
-          ? 'cursor-pointer transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/50 active:translate-y-0 text-left w-full'
+          ? (hero
+              ? 'cursor-pointer transition-colors duration-150 hover:bg-primary-hover text-left w-full'
+              : 'cursor-pointer transition-colors duration-150 hover:border-primary/60 hover:bg-primary-subtle/20 text-left w-full')
           : ''
 
         const surfaceClass = hero
@@ -93,7 +97,13 @@ export function StatTileRow({ tiles }: { tiles: readonly StatTile[] }) {
                   {tile.icon}
                 </span>
               </div>
-              <strong className={`mt-2 block text-2xl sm:text-[28px] font-bold leading-tight tabular-nums ${valueTextClass}`}>
+              <strong
+                className={`mt-2 block font-bold leading-tight tabular-nums ${
+                  typeof tile.value === 'string' && tile.value.length > 8
+                    ? 'text-xl sm:text-[22px] break-words'
+                    : 'text-2xl sm:text-[28px]'
+                } ${valueTextClass}`}
+              >
                 {tile.value === null ? '—' : typeof tile.value === 'string' ? tile.value : tile.value.toLocaleString('vi-VN')}
               </strong>
             </div>
