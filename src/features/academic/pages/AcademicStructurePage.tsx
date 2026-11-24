@@ -1,5 +1,8 @@
+import { Pagination } from '../../../components/ui/Pagination'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
@@ -41,10 +44,29 @@ export function AcademicStructurePage() {
   const academic = useAcademicStructure(filters)
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
 
+  const hierarchyList = useMemo(() => academic.hierarchy ?? [], [academic.hierarchy])
   const organizations = useMemo(
-    () => academic.hierarchy?.map(({ organization }) => organization) ?? [],
-    [academic.hierarchy],
+    () => hierarchyList.map(({ organization }) => organization),
+    [hierarchyList],
   )
+  const structureStats = useMemo(() => {
+    let departments = 0
+    let majors = 0
+    let activeRecords = 0
+    for (const item of hierarchyList) {
+      if (item.organization.isActive) activeRecords += 1
+      departments += item.departments.length
+      for (const dept of item.departments) {
+        if (dept.department.isActive) activeRecords += 1
+        majors += dept.majors.length
+        for (const major of dept.majors) {
+          if (major.isActive) activeRecords += 1
+        }
+      }
+    }
+    return { departments, majors, activeRecords }
+  }, [hierarchyList])
+  const orgPagination = useClientPagination(hierarchyList, 8)
 
   const openEditor = (kind: AcademicEntityKind, record?: AcademicRecord) => {
     setOperationError(null)
@@ -101,6 +123,13 @@ export function AcademicStructurePage() {
         <section className="academic-state-panel academic-error-panel" role="alert"><div><strong>Lỗi tải dữ liệu</strong><p>{getErrorMessage(academic.error)}</p></div><Button onClick={academic.retry}>Thử lại</Button></section>
       ) : (
         <>
+          <StatTileRow tiles={[
+            { icon: 'account_balance', label: 'Đơn vị tổ chức', value: organizations.length, caption: 'Cơ sở đào tạo trong phạm vi.', hero: true },
+            { icon: 'apartment', label: 'Bộ môn', value: structureStats.departments, tone: 'info', caption: 'Trực thuộc các đơn vị tổ chức.' },
+            { icon: 'school', label: 'Ngành đào tạo', value: structureStats.majors, tone: 'success', caption: 'Chuyên ngành thuộc các bộ môn.' },
+            { icon: 'check_circle', label: 'Đang hoạt động', value: structureStats.activeRecords, tone: 'neutral', caption: 'Tổng bản ghi đang mở.' },
+          ]} />
+
           <form className="academic-filter-bar" onSubmit={(event) => { event.preventDefault(); setFilters(draftFilters) }}>
             <label>
               Tìm theo mã hoặc tên
@@ -126,21 +155,34 @@ export function AcademicStructurePage() {
           {academic.isEmpty ? (
             <section className="academic-state-panel" role="status">Không có tổ chức, bộ môn hoặc chuyên ngành nào khớp bộ lọc hiện tại.</section>
           ) : academic.hierarchy ? (
-            <AcademicHierarchyTree
-              hierarchy={academic.hierarchy}
-              canManageAcademicStructure={academic.canManageAcademicStructure}
-              canManageOrganizations={academic.canManageOrganizations}
-              isSubmitting={academic.isSubmitting}
-              onEdit={openEditor}
-              onCreate={({ kind }) => openEditor(kind)}
-              onStatusChange={changeStatus}
-              onDelete={async (kind, record) => {
-                if (await requestConfirmation({ title: 'Xóa ' + record.name + '?', description: 'Không thể khôi phục sau khi xóa. Nếu dữ liệu đang được sử dụng, hệ thống sẽ từ chối thao tác.', confirmLabel: 'Xóa', danger: true }) === null) return
-                setOperationError(null); setOperationSuccess(null)
-                try { await academic.deleteRecord(kind, record.id); setOperationSuccess('Đã xóa bản ghi.') }
-                catch (reason) { setOperationError(reason instanceof HttpError && reason.status === 409 ? 'Bản ghi đang được sử dụng và chưa thể xóa.' : 'Chưa xóa được bản ghi. Hãy kiểm tra quyền truy cập và thử lại.') }
-              }}
-            />
+            <>
+              <AcademicHierarchyTree
+                hierarchy={orgPagination.paginatedItems}
+                canManageAcademicStructure={academic.canManageAcademicStructure}
+                canManageOrganizations={academic.canManageOrganizations}
+                isSubmitting={academic.isSubmitting}
+                onEdit={openEditor}
+                onCreate={({ kind }) => openEditor(kind)}
+                onStatusChange={changeStatus}
+                onDelete={async (kind, record) => {
+                  if (await requestConfirmation({ title: 'Xóa ' + record.name + '?', description: 'Không thể khôi phục sau khi xóa. Nếu dữ liệu đang được sử dụng, hệ thống sẽ từ chối thao tác.', confirmLabel: 'Xóa', danger: true }) === null) return
+                  setOperationError(null); setOperationSuccess(null)
+                  try { await academic.deleteRecord(kind, record.id); setOperationSuccess('Đã xóa bản ghi.') }
+                  catch (reason) { setOperationError(reason instanceof HttpError && reason.status === 409 ? 'Bản ghi đang được sử dụng và chưa thể xóa.' : 'Chưa xóa được bản ghi. Hãy kiểm tra quyền truy cập và thử lại.') }
+                }}
+              />
+              {orgPagination.showPagination && (
+                <Pagination
+                  page={orgPagination.page}
+                  pages={orgPagination.totalPages}
+                  total={orgPagination.total}
+                  pageSize={orgPagination.pageSize}
+                  pageSizeOptions={[8, 16, 30]}
+                  onPage={orgPagination.setPage}
+                  onPageSizeChange={orgPagination.setPageSize}
+                />
+              )}
+            </>
           ) : null}
 
           {editor && academic.hierarchy && (

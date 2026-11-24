@@ -167,16 +167,15 @@
 
 .auth-link-button:hover { background: var(--color-primary-hover); color: var(--color-on-navy); }
 
-.profile-workspace { max-width: 960px; padding: 28px; }
-.profile-identity { display: flex; align-items: center; gap: 18px; padding-bottom: 24px; border-bottom: 1px solid var(--color-line); }
+.profile-workspace { width: 100%; max-width: 100%; margin: 0; padding: 24px; }
+.profile-identity { display: flex; align-items: center; gap: 18px; padding-bottom: 20px; border-bottom: 1px solid var(--color-line); }
 .profile-identity > div:last-child { min-width: 0; }
-.profile-identity h2 { margin: 4px 0; overflow-wrap: anywhere; font-family: var(--font-heading); font-size: 24px; line-height: 1.35; color: var(--color-brand-navy); font-weight: 700; }
+.profile-identity h2 { margin: 4px 0; overflow-wrap: anywhere; font-family: var(--font-heading); font-size: 22px; line-height: 1.3; color: var(--color-brand-navy); font-weight: 700; }
 .profile-identity p { overflow-wrap: anywhere; }
-.profile-workspace .auth-profile-grid { gap: 0; margin: 24px 0; }
-.profile-workspace .auth-profile-grid > div { padding: 0 24px 0 0; border: 0; border-radius: 0; background: none; }
-.profile-workspace .auth-profile-grid > div + div { padding-left: 24px; border-left: 1px solid var(--color-line); }
-.profile-workspace .auth-form { max-width: 640px; }
-.profile-workspace .auth-actions { padding-top: 20px; border-top: 1px solid var(--color-line); }
+.profile-workspace .auth-profile-grid { gap: 12px; margin: 0; }
+.profile-workspace .auth-profile-grid > div { padding: 14px 16px; border: 1px solid var(--color-hairline); border-radius: 12px; background: var(--color-canvas); }
+.profile-workspace .auth-form { max-width: 100%; margin-top: 16px; }
+.profile-workspace .auth-actions { padding-top: 18px; border-top: 1px solid var(--color-line); }
 .profile-security-link { display: inline-flex; align-items: center; gap: 8px; color: var(--color-primary); font-weight: 600; text-decoration: none; }
 .profile-security-link:hover { color: var(--color-primary-hover); }
 .profile-security-link .material-symbols-outlined { font-size: 17px; }

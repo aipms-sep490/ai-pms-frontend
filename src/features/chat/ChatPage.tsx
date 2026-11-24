@@ -94,8 +94,15 @@ export function ChatConversations({ id, onOpen, backTo, compact = false }: { id?
   return <aside className={`chat-sidebar${compact ? ' is-compact' : ''}`} aria-label="Cuộc trò chuyện">
       {!compact && <header className="chat-sidebar-header">
         {backTo && <BackLink fallback={backTo} className="chat-page-back"><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Quay lại không gian làm việc</BackLink>}
-        <div className="flex items-center justify-between">
-          <h1>Tin nhắn</h1>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <h1>Tin nhắn</h1>
+            {unreadRoomsCount > 0 && (
+              <span className="inline-flex items-center rounded-full bg-primary px-2 py-0.5 text-xs font-bold tabular-nums text-white" aria-label={`${unreadRoomsCount} cuộc trò chuyện chưa đọc`}>
+                {unreadRoomsCount}
+              </span>
+            )}
+          </div>
           <span className={`chat-status-pill ${state === 'connected' ? 'is-connected' : 'is-syncing'}`} title={chatConnectionLabel(state)}>
             <span className="chat-status-dot" aria-hidden="true" />
             {state === 'connected' ? 'Trực tuyến' : 'Đang kết nối'}

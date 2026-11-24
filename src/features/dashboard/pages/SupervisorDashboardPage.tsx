@@ -1,6 +1,6 @@
 import { projectStatusLabel } from '../../projects/utils/project-status'
 import { displayLabel } from '../../../components/ui/display-label'
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { HttpError } from '../../../services/http/http-client'
 import { getSupervisorDashboard, type DashboardFilter, type DashboardProject, type SupervisorDashboard } from '../api/dashboard-api'
@@ -8,6 +8,9 @@ import { env } from '../../../app/config/env'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { Button } from '../../../components/ui/Button'
 import { PageLoading } from '../../../components/ui/PageLoading'
+import { Pagination } from '../../../components/ui/Pagination'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { ActorDashboardCard } from '../components/ActorDashboardCard'
 import { StatTileRow } from '../../../components/ui/StatTileRow'
 
@@ -47,79 +50,103 @@ export function SupervisorDashboardPage() {
     setFilter(current => ({ ...current, search: searchInput.trim() || undefined, page: 1 }))
   }
 
-  return <WorkspacePage className="mk-page-enter space-y-6" eyebrow="Không gian giảng viên" title="Tổng quan hướng dẫn" description="Theo dõi khối lượng hướng dẫn, báo cáo chờ phản hồi và các đồ án cần chú ý." action={<Button variant="outline" icon="refresh" disabled={loading} onClick={() => void load()}>Tải lại</Button>}>
-    <ActorDashboardCard />
-    <form className="workspace-surface flex flex-wrap gap-4 p-6" onSubmit={applyFilter}>
-      <label className="flex min-w-52 flex-1 flex-col gap-1 text-sm font-medium text-ink-soft" htmlFor="supervisor-dashboard-search">Tìm đồ án<input id="supervisor-dashboard-search" value={searchInput} onChange={event => setSearchInput(event.target.value)} className="min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" placeholder="Mã hoặc tên đồ án" /></label>
-      <label className="flex flex-col gap-1 text-sm font-medium text-ink-soft" htmlFor="supervisor-dashboard-status">Trạng thái<select id="supervisor-dashboard-status" value={filter.status ?? ''} onChange={event => setFilter(current => ({ ...current, status: event.target.value || undefined, page: 1 }))} className="min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><option value="">Tất cả</option>{statuses.map(status => <option key={status} value={status}>{projectStatusLabel(status)}</option>)}</select></label>
-      <button type="submit" className="min-h-11 self-end rounded-lg border border-hairline px-4 text-sm font-semibold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Áp dụng</button>
-    </form>
-    {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><p className="font-semibold">Chưa tải được tổng quan</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại</button></div>}
+  const urgentProjects = useMemo(
+    () => (data?.projects.items ?? []).filter(
+      p => p.pendingProgressReviews > 0 ||
+        (p.analysis?.progressSummary?.overdueTasks ?? 0) > 0 ||
+        (p.analysis?.progressSummary?.blockedTasks ?? 0) > 0 ||
+        p.analysis?.riskLevel === 'HIGH',
+    ),
+    [data],
+  )
+  const urgentPagination = useClientPagination(urgentProjects, 6)
+
+  return <WorkspacePage className="mk-page-enter space-y-5" eyebrow="Không gian giảng viên" title="Tổng quan hướng dẫn" description="Theo dõi khối lượng hướng dẫn, báo cáo chờ phản hồi và các đồ án cần chú ý." action={<Button variant="outline" icon="refresh" disabled={loading} onClick={() => void load()}>Tải lại</Button>}>
+    {error && <div role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><p className="font-semibold">Chưa tải được tổng quan</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại</button></div>}
     {loading && <PageLoading label="Đang tải tổng quan hướng dẫn…" />}
     {!loading && !error && data && <>
-      <section aria-label="Chỉ số khối lượng" className="space-y-3">
+      <section aria-label="Chỉ số khối lượng">
         <StatTileRow tiles={[
-          { icon: 'folder_managed', label: 'Đồ án được phân công', value: data.workload.assignedProjects, hero: true, caption: 'Khối lượng hướng dẫn hiện tại.' },
-          { icon: 'fact_check', label: 'Báo cáo chờ duyệt', value: data.pendingProgressReviews, tone: data.pendingProgressReviews > 0 ? 'warning' : 'neutral' },
-          { icon: 'event_busy', label: 'Công việc quá hạn', value: data.overdueTasks, tone: data.overdueTasks > 0 ? 'danger' : 'neutral' },
+          {
+            icon: 'folder_managed',
+            label: 'Đồ án được phân công',
+            value: data.workload.assignedProjects,
+            hero: true,
+            caption: data.workload.profileMaxActiveProjects === null
+              ? 'Hạn mức hướng dẫn chưa cấu hình.'
+              : `Đang hướng dẫn ${data.workload.assignedProjects}/${data.workload.profileMaxActiveProjects} hạn mức.`,
+          },
+          {
+            icon: 'fact_check',
+            label: 'Báo cáo chờ duyệt',
+            value: data.pendingProgressReviews,
+            tone: data.pendingProgressReviews > 0 ? 'warning' : 'neutral',
+            caption: data.pendingProgressReviews > 0 ? 'Cần phản hồi tiến độ nhóm.' : 'Không có báo cáo tồn đọng.',
+          },
+          {
+            icon: 'event_busy',
+            label: 'Công việc quá hạn',
+            value: data.overdueTasks,
+            tone: data.overdueTasks > 0 ? 'danger' : 'neutral',
+            caption: 'Trong các đồ án đang phụ trách.',
+          },
+          {
+            icon: 'speed',
+            label: 'Hạn mức hướng dẫn',
+            value: data.workload.profileMaxActiveProjects,
+            tone: !data.workload.hasProfile || !data.workload.isAvailable ? 'warning' : 'info',
+            caption: data.workload.profileMaxActiveProjects === null
+              ? 'Chưa cấu hình hạn mức.'
+              : !data.workload.hasProfile || !data.workload.isAvailable
+                ? 'Hồ sơ hiện chưa sẵn sàng nhận thêm.'
+                : `Còn trống ${Math.max(0, data.workload.profileMaxActiveProjects - data.workload.assignedProjects)} suất nhận nhóm.`,
+          },
         ]} />
-        <p className="rounded-lg border border-hairline bg-card px-4 py-3 text-sm text-ink-soft">Đồ án / hạn mức: <strong className="tabular-nums text-ink">{data.workload.profileMaxActiveProjects === null ? 'Chưa cấu hình' : `${data.workload.assignedProjects}/${data.workload.profileMaxActiveProjects}`}</strong>{!data.workload.hasProfile || !data.workload.isAvailable ? ' · Hồ sơ hướng dẫn hiện chưa sẵn sàng nhận thêm.' : ''}</p>
       </section>
 
-      {/* Quick Action Inbox (P1.1) */}
-      {(() => {
-        const urgentProjects = data.projects.items.filter(
-          p => p.pendingProgressReviews > 0 ||
-               (p.analysis?.progressSummary?.overdueTasks ?? 0) > 0 ||
-               (p.analysis?.progressSummary?.blockedTasks ?? 0) > 0 ||
-               p.analysis?.riskLevel === 'HIGH'
-        )
-        if (!urgentProjects.length) return null
-        return (
-          <section aria-label="Hộp thư duyệt nhanh" className="rounded-xl border border-warning-strong bg-status-warning-bg/70 p-5 shadow-xs">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-status-warning-border/80 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-status-warning-text text-xl" aria-hidden="true">
-                  mark_email_unread
-                </span>
-                <div>
-                  <h2 className="text-base font-bold text-status-warning-text">
-                    Hộp thư duyệt nhanh & Việc khẩn cấp (Action Inbox)
-                  </h2>
-                  <p className="text-xs text-status-warning-text">
-                    Có {urgentProjects.length} đồ án đang có báo cáo tiến độ chờ xác nhận hoặc công việc quá hạn/vướng mắc.
-                  </p>
-                </div>
-              </div>
-              <span className="inline-flex items-center rounded-full bg-status-warning-bg px-3 py-1 text-xs font-bold text-status-warning-text">
-                {data.pendingProgressReviews} báo cáo chờ phản hồi
+      {/* Quick Action Inbox (P1.1) with client pagination when > 6 items */}
+      {urgentProjects.length > 0 && (
+        <section aria-label="Hộp thư duyệt nhanh" className="overflow-hidden rounded-xl border border-status-warning-border bg-card shadow-xs">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-status-warning-border bg-status-warning-bg px-5 py-3.5">
+            <div className="flex items-center gap-2.5">
+              <span className="material-symbols-outlined text-status-warning-text text-xl" aria-hidden="true">
+                mark_email_unread
               </span>
+              <div>
+                <h2 className="font-heading text-sm font-bold text-status-warning-text">
+                  Hộp thư duyệt nhanh &amp; Việc khẩn cấp (Action Inbox)
+                </h2>
+                <p className="text-xs text-status-warning-text">
+                  Có {urgentProjects.length} đồ án đang có báo cáo tiến độ chờ xác nhận hoặc công việc quá hạn/vướng mắc.
+                </p>
+              </div>
             </div>
+            <span className="inline-flex items-center rounded-full border border-status-warning-border bg-card px-3 py-1 text-xs font-bold tabular-nums text-status-warning-text">
+              {data.pendingProgressReviews} báo cáo chờ phản hồi
+            </span>
+          </div>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {urgentProjects.map(proj => (
+          <div className="p-5 space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {urgentPagination.paginatedItems.map(proj => (
                 <div
                   key={proj.id}
-                  className="flex flex-col justify-between rounded-lg border border-status-warning-border bg-card p-4 shadow-2xs"
+                  className="flex flex-col justify-between rounded-xl border border-hairline bg-canvas/50 p-4 shadow-2xs"
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2">
-                      <strong className="text-sm font-bold text-ink">{proj.code}</strong>
+                      <strong className="font-mono text-sm font-bold text-ink">{proj.code}</strong>
                       {proj.pendingProgressReviews > 0 ? (
-                        <span className="rounded-md bg-status-warning-bg px-2 py-0.5 text-xs font-bold text-status-warning-text border border-warning-strong">
-                          {proj.pendingProgressReviews} báo cáo chờ duyệt
-                        </span>
+                        <StatusBadge tone="warning" label={`${proj.pendingProgressReviews} báo cáo chờ duyệt`} />
                       ) : proj.analysis?.riskLevel === 'HIGH' ? (
-                        <span className="rounded-md bg-status-error-bg px-2 py-0.5 text-xs font-bold text-status-error-text border border-status-error-border">
-                          Rủi ro cao
-                        </span>
+                        <StatusBadge tone="danger" label="Rủi ro cao" />
                       ) : null}
                     </div>
-                    <h3 className="mt-1 text-xs font-semibold text-ink line-clamp-1">{proj.title}</h3>
+                    <h3 className="mt-1.5 text-sm font-semibold text-ink line-clamp-1">{proj.title}</h3>
                     <p className="mt-1 text-xs text-ink-muted">
                       Bộ môn: {proj.departmentName ?? 'Chưa có bộ môn'}
                       {(proj.analysis?.progressSummary?.overdueTasks ?? 0) > 0 && (
-                        <span className="ml-2 text-status-error-text font-semibold">
+                        <span className="ml-2 text-status-error-text font-semibold tabular-nums">
                           · {proj.analysis?.progressSummary?.overdueTasks} việc quá hạn
                         </span>
                       )}
@@ -129,16 +156,16 @@ export function SupervisorDashboardPage() {
                   <div className="mt-3.5 flex flex-wrap items-center gap-2 border-t border-hairline pt-2.5">
                     <Link
                       to={`/supervisor/projects/${proj.id}/reports`}
-                      className="inline-flex min-h-9 items-center gap-1 rounded-md bg-primary px-3 py-1 text-xs font-bold text-white shadow-2xs hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-primary px-3 py-1 text-xs font-bold text-white shadow-2xs hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       <span className="material-symbols-outlined text-sm" aria-hidden="true">
                         assignment
                       </span>
-                      Xem & Duyệt báo cáo
+                      Xem &amp; Duyệt báo cáo
                     </Link>
                     <Link
                       to={`/supervisor/projects/${proj.id}/workspace`}
-                      className="inline-flex min-h-9 items-center gap-1 rounded-md border border-hairline bg-card px-2.5 py-1 text-xs font-semibold text-ink-soft hover:bg-canvas"
+                      className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-hairline bg-card px-2.5 py-1 text-xs font-semibold text-ink-soft hover:border-primary/40 hover:text-primary"
                     >
                       Vào không gian
                     </Link>
@@ -147,37 +174,92 @@ export function SupervisorDashboardPage() {
               ))}
             </div>
 
-            <p className="mt-3 text-xs text-status-warning-text italic">
+            {urgentPagination.showPagination && (
+              <Pagination
+                page={urgentPagination.page}
+                pages={urgentPagination.totalPages}
+                total={urgentPagination.total}
+                pageSize={urgentPagination.pageSize}
+                onPage={urgentPagination.setPage}
+              />
+            )}
+
+            <p className="text-xs text-ink-muted italic">
               * Nhận xét và xác nhận báo cáo của Giảng viên hướng dẫn ghi nhận sự đồng hành chuyên môn; thẩm định đạt cổng chính thức do Thẩm định viên (Reviewer) độc lập phê duyệt.
             </p>
-          </section>
-        )
-      })()}
-
-      <section className="workspace-surface workspace-surface-padding mt-6"><div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-heading font-semibold text-ink">Đồ án phụ trách</h2><p className="mt-1 text-sm text-ink-muted">Dữ liệu tại {formatAsOf(data.asOfUtc)}.</p></div><StatusCounts counts={data.projectStates} /></div>{data.projects.items.length === 0 ? <p className="mt-4 text-sm text-ink-muted">Không có đồ án phù hợp với bộ lọc hiện tại.</p> : <ul className="mt-4 divide-y divide-hairline">{data.projects.items.map(project => <ProjectRow key={project.id} project={project} />)}</ul>}</section>
-      <Pagination page={filter.page ?? 1} totalPages={data.projects.totalPages} disabled={loading} onChange={page => setFilter(current => ({ ...current, page }))} />
+          </div>
+        </section>
+      )}
     </>}
+
+    <form className="workspace-surface flex flex-wrap items-end gap-3 p-4" onSubmit={applyFilter}>
+      <label className="flex min-w-56 flex-1 flex-col gap-1 text-xs font-semibold text-ink-soft" htmlFor="supervisor-dashboard-search">Tìm đồ án<input id="supervisor-dashboard-search" value={searchInput} onChange={event => setSearchInput(event.target.value)} className="min-h-11 rounded-lg border border-line-strong bg-card px-3 text-sm font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" placeholder="Mã hoặc tên đồ án" /></label>
+      <label className="flex min-w-44 flex-col gap-1 text-xs font-semibold text-ink-soft" htmlFor="supervisor-dashboard-status">Trạng thái<select id="supervisor-dashboard-status" value={filter.status ?? ''} onChange={event => setFilter(current => ({ ...current, status: event.target.value || undefined, page: 1 }))} className="min-h-11 rounded-lg border border-line-strong bg-card px-3 text-sm font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><option value="">Tất cả</option>{statuses.map(status => <option key={status} value={status}>{projectStatusLabel(status)}</option>)}</select></label>
+      <button type="submit" className="min-h-11 rounded-lg border border-primary/30 bg-primary-subtle px-4 text-sm font-semibold text-primary hover:bg-primary hover:text-white transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Áp dụng</button>
+      {(filter.search || filter.status) && (
+        <button type="button" onClick={() => { setSearchInput(''); setFilter({ page: 1, pageSize: 20 }) }} className="min-h-11 rounded-lg border border-hairline bg-card px-3.5 text-sm font-semibold text-ink-soft hover:bg-canvas">Đặt lại</button>
+      )}
+    </form>
+
+    {!loading && !error && data && <>
+      <section className="workspace-surface">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">school</span>
+              <h2 className="font-heading text-sm font-bold text-ink">Đồ án phụ trách</h2>
+              <span className="inline-flex items-center rounded-full border border-hairline bg-card px-2.5 py-0.5 text-xs font-bold tabular-nums text-ink-soft">
+                {data.projects.totalCount}
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-ink-muted">Dữ liệu tại {formatAsOf(data.asOfUtc)}.</p>
+          </div>
+          <StatusCounts counts={data.projectStates} />
+        </div>
+        <div className="px-5 py-2">
+          {data.projects.items.length === 0 ? (
+            <p className="py-6 text-center text-sm text-ink-muted">Không có đồ án phù hợp với bộ lọc hiện tại.</p>
+          ) : (
+            <ul className="divide-y divide-hairline">
+              {data.projects.items.map(project => <ProjectRow key={project.id} project={project} />)}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      {data.projects.totalPages > 1 && (
+        <Pagination
+          page={filter.page ?? 1}
+          pages={data.projects.totalPages}
+          total={data.projects.totalCount}
+          pageSize={data.projects.pageSize}
+          busy={loading}
+          onPage={page => setFilter(current => ({ ...current, page }))}
+        />
+      )}
+    </>}
+    <ActorDashboardCard />
   </WorkspacePage>
 }
 
 function StatusCounts({ counts }: { counts: SupervisorDashboard['projectStates'] }) {
-  return <ul className="flex flex-wrap gap-2" aria-label="Phân bố trạng thái đồ án">{counts.map(item => <li key={item.status} className="rounded-full bg-primary-subtle px-2.5 py-1 text-xs font-medium text-primary">{displayLabel(item.status)}: {item.count}</li>)}</ul>
+  return <ul className="flex flex-wrap gap-2" aria-label="Phân bố trạng thái đồ án">{counts.map(item => <li key={item.status} className="rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-1 text-xs font-semibold tabular-nums text-primary">{displayLabel(item.status)}: {item.count}</li>)}</ul>
 }
 
 function ProjectRow({ project }: { project: DashboardProject }) {
   const risk = project.analysis?.riskLevel
   const progressPct = project.analysis?.progressSummary?.progressPercentage
   const hasPending = project.pendingProgressReviews > 0
-  return <li className="flex flex-wrap items-center justify-between gap-4 py-4 text-sm transition-colors hover:bg-canvas/50 rounded-lg px-3">
+  return <li className="flex flex-wrap items-center justify-between gap-4 py-4 text-sm transition-colors hover:bg-canvas/50 rounded-lg px-2">
     <div className="min-w-0 flex-1">
       <div className="flex flex-wrap items-center gap-2">
         <p className="font-semibold text-ink text-base">{project.code} · {project.title}</p>
-        <span className="rounded-full bg-canvas px-2 py-0.5 text-xs font-medium text-ink-soft">{displayLabel(project.status)}</span>
-        {env.aiAdvisoryEnabled && risk && <span className={risk === 'HIGH' ? 'rounded-full bg-status-error-bg px-2 py-0.5 text-xs font-semibold text-status-error-text' : 'rounded-full bg-status-warning-bg px-2 py-0.5 text-xs font-semibold text-status-warning-text'}>Rủi ro: {displayLabel(risk)}</span>}
+        <StatusBadge status={project.status} tone="neutral" label={displayLabel(project.status)} />
+        {env.aiAdvisoryEnabled && risk && <StatusBadge tone={risk === 'HIGH' ? 'danger' : 'warning'} label={`Rủi ro: ${displayLabel(risk)}`} />}
       </div>
       <p className="mt-1.5 text-xs text-ink-muted">
         Bộ môn: <strong className="text-ink-soft">{project.departmentName ?? 'Chưa có bộ môn'}</strong>
-        {hasPending ? <span className="ml-3 inline-flex items-center rounded-md bg-status-warning-bg px-2 py-0.5 font-bold text-status-warning-text">⚠️ {project.pendingProgressReviews} báo cáo chờ duyệt</span> : <span className="ml-3 text-ink-muted">0 báo cáo chờ duyệt</span>}
+        {hasPending ? <span className="ml-3 inline-flex items-center rounded-md bg-status-warning-bg px-2 py-0.5 font-bold text-status-warning-text">Chờ duyệt: {project.pendingProgressReviews} báo cáo</span> : <span className="ml-3 text-ink-muted">0 báo cáo chờ duyệt</span>}
       </p>
       {progressPct != null && (
         <div className="mt-2.5 flex items-center gap-3 max-w-xs">
@@ -194,11 +276,6 @@ function ProjectRow({ project }: { project: DashboardProject }) {
       </Link>
     )}
   </li>
-}
-
-function Pagination({ page, totalPages, disabled, onChange }: { page: number; totalPages: number; disabled: boolean; onChange: (page: number) => void }) {
-  if (totalPages <= 1) return null
-  return <nav aria-label="Trang đồ án phụ trách" className="flex items-center justify-between gap-3 text-sm"><button type="button" disabled={disabled || page <= 1} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => onChange(page - 1)}>Trang trước</button><span className="tabular-nums text-ink-muted">Trang {page} / {totalPages}</span><button type="button" disabled={disabled || page >= totalPages} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => onChange(page + 1)}>Trang sau</button></nav>
 }
 
 function formatAsOf(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(date) }

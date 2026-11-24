@@ -1,5 +1,9 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
+import { Pagination } from '../../components/ui/Pagination'
+import { StatTileRow } from '../../components/ui/StatTileRow'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { getAcademicHierarchy } from '../academic/api/academic-api'
 import { getProjectPeriods } from '../academic/api/governance-api'
@@ -60,6 +64,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [pendingUploadId, setPendingUploadId] = useState<number | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const uploadedNeedsReload = pendingUploadId !== null
 
   const filterKey = `${majorId}:${periodId}`
@@ -69,6 +74,22 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
   const error = actionError || activeList?.error || ''
   const unsupported = activeList?.unsupported ?? false
   const setError = (value: string) => setActionError(value)
+
+  const filteredRows = useMemo(() => {
+    if (!rows) return []
+    const needle = searchQuery.trim().toLowerCase()
+    if (!needle) return rows
+    return rows.filter(row =>
+      row.code.toLowerCase().includes(needle)
+      || row.title.toLowerCase().includes(needle)
+      || row.fileName.toLowerCase().includes(needle),
+    )
+  }, [rows, searchQuery])
+
+  const docPagination = useClientPagination(filteredRows, 8)
+  const publishedCount = rows ? rows.filter(row => row.status === 'PUBLISHED').length : null
+  const draftCount = rows ? rows.filter(row => row.status === 'DRAFT').length : null
+  const archivedCount = rows ? rows.filter(row => row.status !== 'PUBLISHED' && row.status !== 'DRAFT').length : null
 
   useEffect(() => {
     if (!session) return
@@ -203,70 +224,146 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
     setSuccess('Đã xác nhận bản nháp trong danh sách. Hãy kiểm tra và công bố để sinh viên xem được.')
   }
 
-  return <WorkspacePage title={manager ? 'Tài liệu mẫu của bộ môn' : 'Tài liệu mẫu theo ngành'}
+  const listSection = (
+    <section className={`workspace-surface ${manager && !unsupported ? 'xl:col-span-8' : ''}`} aria-label="Danh sách tài liệu">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+        <div>
+          <h2 className="text-base font-bold text-ink">{manager ? 'Phiên bản tài liệu' : 'Tài liệu đã công bố'}</h2>
+          <p className="text-xs text-ink-muted">
+            {manager ? 'Xem trước, tải về, công bố bản nháp hoặc thu hồi phiên bản cũ.' : 'Tài liệu chính thức do bộ môn công bố theo ngành đang chọn.'}
+          </p>
+        </div>
+        {rows && (
+          <StatusBadge
+            tone={filteredRows.length > 0 ? 'info' : 'neutral'}
+            label={searchQuery.trim() ? `${filteredRows.length} / ${rows.length} tài liệu` : `${rows.length} tài liệu`}
+          />
+        )}
+      </header>
+
+      <div className="space-y-3 p-5">
+        {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}
+        {success && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{success}</p>}
+        {loading && <p role="status" className="text-sm text-ink-muted">Đang tải tài liệu…</p>}
+        {!loading && !error && rows?.length === 0 && (
+          <p className="rounded-lg border border-hairline bg-canvas p-4 text-sm text-ink-muted">
+            Chưa có tài liệu phù hợp với ngành và kỳ đã chọn.
+          </p>
+        )}
+        {!loading && !error && rows && rows.length > 0 && filteredRows.length === 0 && (
+          <p className="rounded-lg border border-hairline bg-canvas p-4 text-sm text-ink-muted">
+            Không có tài liệu nào khớp từ khóa “{searchQuery.trim()}”.
+          </p>
+        )}
+        {!loading && filteredRows.length > 0 && (
+          <div className="space-y-2.5">
+            {docPagination.paginatedItems.map(row => (
+              <article key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-canvas/40 p-4 transition-colors hover:border-primary/40 hover:bg-card">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="truncate font-semibold text-ink">{row.title}</h3>
+                    <StatusBadge
+                      tone={row.status === 'PUBLISHED' ? 'success' : row.status === 'DRAFT' ? 'warning' : 'neutral'}
+                      label={row.status === 'PUBLISHED' ? 'Đã công bố' : row.status === 'DRAFT' ? 'Bản nháp' : 'Đã thu hồi'}
+                    />
+                  </div>
+                  <p className="truncate text-xs text-ink-muted">
+                    <span className="font-mono font-semibold text-ink-soft">{row.code}</span> · v{row.version} · {row.fileName}
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  <button type="button" className="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => setPreview(row)}>Xem trước</button>
+                  <button type="button" className="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => void download(row)}>Tải về</button>
+                  {manager && row.status === 'DRAFT' && <button type="button" className="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={busyId !== null}
+                    onClick={() => void changeStatus(row, 'PUBLISHED')}>Công bố</button>}
+                  {manager && row.status === 'PUBLISHED' && <button type="button" className="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={busyId !== null}
+                    onClick={() => void changeStatus(row, 'RETIRED')}>Thu hồi</button>}
+                </div>
+              </article>
+            ))}
+            {docPagination.showPagination && (
+              <Pagination
+                page={docPagination.page}
+                pages={docPagination.totalPages}
+                total={docPagination.total}
+                pageSize={docPagination.pageSize}
+                pageSizeOptions={[8, 16, 30]}
+                onPage={docPagination.setPage}
+                onPageSizeChange={docPagination.setPageSize}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+
+  return <WorkspacePage className="space-y-5" title={manager ? 'Tài liệu mẫu của bộ môn' : 'Tài liệu mẫu theo ngành'}
     eyebrow={manager ? 'Điều hành học vụ' : 'Tiến trình đồ án'}
     description={manager ? 'Tải lên theo ngành/kỳ, kiểm tra bản nháp rồi công bố phiên bản. Bản cũ được lưu để truy vết.'
       : 'Xem tài liệu đã được bộ môn công bố cho ngành hoặc kỳ đồ án của bạn.'}>
-    <section className="workspace-surface space-y-4 p-5" aria-label="Bộ lọc tài liệu">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="space-y-1 text-sm font-medium text-ink-soft">Ngành
+    <StatTileRow tiles={[
+      { icon: 'folder_open', label: 'Tổng tài liệu', value: rows ? rows.length : null, caption: 'Trong ngành & kỳ đang chọn.', hero: true },
+      { icon: 'check_circle', label: 'Đã công bố', value: publishedCount, tone: 'success', caption: 'Sinh viên có thể tải về.' },
+      { icon: 'edit_note', label: 'Bản nháp', value: draftCount, tone: 'warning', caption: 'Chờ kiểm tra trước công bố.' },
+      { icon: 'inventory_2', label: 'Đã lưu trữ', value: archivedCount, tone: 'neutral', caption: 'Phiên bản cũ đã thu hồi.' },
+    ]} />
+
+    <section className="workspace-surface p-4 sm:p-5 space-y-3" aria-label="Bộ lọc tài liệu">
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="min-w-44 flex-1 text-xs font-semibold text-ink-soft">Ngành
           <select className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted" value={majorId} disabled={uploadedNeedsReload || uploading || busyId !== null} onChange={event => { setActionError(''); setMajorId(event.target.value) }}>
             {majors.length === 0 && <option value="">Chưa có ngành khả dụng</option>}
             {majors.map(major => <option key={major.id} value={major.id}>{major.name}{major.code ? ` (${major.code})` : ''}</option>)}
           </select>
         </label>
-        {manager && <label className="space-y-1 text-sm font-medium text-ink-soft">Kỳ đồ án
+        {manager && <label className="min-w-48 flex-1 text-xs font-semibold text-ink-soft">Kỳ đồ án
           <select className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted" value={periodId} disabled={uploadedNeedsReload || uploading || busyId !== null} onChange={event => { setActionError(''); setPeriodId(event.target.value) }}>
             <option value="">Tất cả kỳ và tài liệu dùng chung</option>
             {periods.map(period => <option key={period.id} value={period.id}>{period.name} ({period.code})</option>)}
           </select>
         </label>}
+        <label className="min-w-48 flex-1 text-xs font-semibold text-ink-soft">Tìm theo mã hoặc tên tài liệu
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={event => setSearchQuery(event.target.value)}
+            placeholder="VD: REPORT, đề cương…"
+            className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          />
+        </label>
+        <button type="button" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-hairline bg-card px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void retryList()} disabled={loading || !majorId}>Tải lại</button>
       </div>
       {catalogError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{catalogError}</p>}
-      <button type="button" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-hairline bg-card px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void retryList()} disabled={loading || !majorId}>Tải lại</button>
     </section>
 
-    {manager && !unsupported && <form className="workspace-surface mt-4 space-y-3 p-5" onSubmit={event => void submitUpload(event)}>
-      <h2 className="text-lg font-semibold text-ink">Tải lên phiên bản mới</h2>
-      <p className="text-sm text-ink-muted">PDF, DOCX hoặc XLSX; tối đa 20 MB. Cùng mã tài liệu sẽ tạo phiên bản kế tiếp trong ngành và kỳ đã chọn.</p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-sm font-medium text-ink-soft">Mã tài liệu
-          <input className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={code} onChange={event => setCode(event.target.value)} minLength={2} maxLength={60} pattern="[A-Za-z0-9_-]+" required />
-        </label>
-        <label className="text-sm font-medium text-ink-soft">Tên tài liệu
-          <input className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={title} onChange={event => setTitle(event.target.value)} minLength={2} maxLength={200} required />
-        </label>
+    {manager && !unsupported ? (
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
+        {listSection}
+        <form className="workspace-surface xl:sticky xl:top-20 xl:col-span-4" onSubmit={event => void submitUpload(event)}>
+          <header className="border-b border-hairline bg-canvas/70 px-5 py-3.5">
+            <h2 className="text-base font-bold text-ink">Tải lên phiên bản mới</h2>
+            <p className="mt-0.5 text-xs text-ink-muted">PDF, DOCX hoặc XLSX · tối đa 20 MB. Cùng mã sẽ tạo phiên bản kế tiếp.</p>
+          </header>
+          <div className="space-y-3.5 p-5">
+            <label className="block text-sm font-medium text-ink-soft">Mã tài liệu
+              <input className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={code} onChange={event => setCode(event.target.value)} minLength={2} maxLength={60} pattern="[A-Za-z0-9_-]+" required />
+            </label>
+            <label className="block text-sm font-medium text-ink-soft">Tên tài liệu
+              <input className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={title} onChange={event => setTitle(event.target.value)} minLength={2} maxLength={200} required />
+            </label>
+            <label className="block text-sm font-medium text-ink-soft">Tệp mẫu
+              <input id="department-document-file" type="file" className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink file:mr-3 file:rounded-md file:border-0 file:bg-primary-subtle file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" accept=".pdf,.docx,.xlsx" required
+                onChange={event => setFile(event.target.files?.[0] ?? null)} />
+            </label>
+            <button type="submit" className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={uploading || uploadedNeedsReload || !majorId || !file || file.size > 20 * 1024 * 1024}>
+              {uploading ? 'Đang tải lên…' : 'Tải lên bản nháp'}
+            </button>
+          </div>
+        </form>
       </div>
-      <label className="block text-sm font-medium text-ink-soft">Tệp mẫu
-        <input id="department-document-file" type="file" className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink file:mr-3 file:rounded-md file:border-0 file:bg-primary-subtle file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" accept=".pdf,.docx,.xlsx" required
-          onChange={event => setFile(event.target.files?.[0] ?? null)} />
-      </label>
-      <button type="submit" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={uploading || uploadedNeedsReload || !majorId || !file || file.size > 20 * 1024 * 1024}>
-        {uploading ? 'Đang tải lên…' : 'Tải lên bản nháp'}
-      </button>
-    </form>}
+    ) : listSection}
 
-    <section className="workspace-surface mt-4 space-y-3 p-5" aria-label="Danh sách tài liệu">
-      <h2 className="text-lg font-semibold text-ink">{manager ? 'Phiên bản tài liệu' : 'Tài liệu đã công bố'}</h2>
-      {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}
-      {success && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{success}</p>}
-      {loading && <p role="status" className="text-sm text-ink-muted">Đang tải tài liệu…</p>}
-      {!loading && !error && rows?.length === 0 && <p className="rounded-lg border border-hairline bg-canvas p-4 text-sm text-ink-muted">Chưa có tài liệu phù hợp với ngành và kỳ đã chọn.</p>}
-      {rows?.map(row => <article key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-card p-4">
-        <div className="min-w-0">
-          <h3 className="font-semibold text-ink">{row.title}</h3>
-          <p className="text-sm text-ink-muted">{row.code} · v{row.version} · {row.fileName} · {row.status === 'PUBLISHED' ? 'Đã công bố' : row.status === 'DRAFT' ? 'Bản nháp' : 'Đã thu hồi'}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg border border-hairline bg-card px-3 py-1.5 text-sm font-medium text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => setPreview(row)}>Xem trước</button>
-          <button type="button" className="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg border border-hairline bg-card px-3 py-1.5 text-sm font-medium text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => void download(row)}>Tải về</button>
-          {manager && row.status === 'DRAFT' && <button type="button" className="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={busyId !== null}
-            onClick={() => void changeStatus(row, 'PUBLISHED')}>Công bố</button>}
-          {manager && row.status === 'PUBLISHED' && <button type="button" className="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg border border-hairline bg-card px-3 py-1.5 text-sm font-medium text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={busyId !== null}
-            onClick={() => void changeStatus(row, 'RETIRED')}>Thu hồi</button>}
-        </div>
-      </article>)}
-    </section>
     {preview && <DocumentPreviewModal open fileId={preview.id} fileName={preview.fileName} contentType={preview.contentType}
       fileSize={preview.sizeBytes} loadBlob={signal => downloadDepartmentDocument(preview.id, signal)}
       onDownload={() => saveDownload(preview)} onClose={() => setPreview(null)} />}

@@ -4,9 +4,13 @@ import { getAcademicHierarchy } from '../academic/api/academic-api'
 import { getProjectPeriods } from '../academic/api/governance-api'
 import { readAllPages } from '../../services/api/paged-read'
 import { getProjects } from '../../services/api/projects.api'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { ConfigModeFrame } from '../../components/ui/ConfigModeFrame'
+import { StatTileRow } from '../../components/ui/StatTileRow'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { Pagination } from '../../components/ui/Pagination'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import { HttpError } from '../../services/http/http-client'
 import { createColdTemplate, getColdTemplateItExample, getColdTemplates } from '../../services/api/cold-templates.api'
 import type { ColdReportInput, ColdTemplate } from '../../services/api/cold-templates.api'
@@ -210,337 +214,380 @@ export function ColdTemplateManagementPage() {
     }
   }
 
+  const templateList = useMemo(() => templates ?? [], [templates])
+  const templatePagination = useClientPagination(templateList, 8)
+  const filledReportCount = rows.filter((row) => row.code.trim() || row.name.trim()).length
+
   return (
     <WorkspacePage
-      className="space-y-6 cold-template-page"
+      className="space-y-5 cold-template-page"
       title="Bộ report chấm nguội"
-      eyebrow="COLD · QUẢN LÝ THEO PHẠM VI VÀ KỲ ĐỒ ÁN"
-      description="Tạo bộ report chung hoặc theo ngành cho từng kỳ đồ án EVALUATION hoặc FINAL_SUBMISSION. Mỗi lần tạo là một phiên bản mới, bất biến."
+      eyebrow="CHẤM HỒ SƠ ĐÃ KHÓA · QUẢN LÝ THEO PHẠM VI VÀ KỲ ĐỒ ÁN"
+      description="Tạo bộ báo cáo chung hoặc theo chuyên ngành cho kỳ Đánh giá hoặc Bàn giao cuối kỳ. Mỗi lần tạo là một phiên bản mới, bất biến."
     >
-      {/* Thông tin ngữ cảnh khoa */}
-      <section className="rounded-xl border border-hairline bg-card p-4 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-bold text-ink">Quy tắc nghiệp vụ Cán bộ khoa (Department Staff)</h2>
-            <p className="mt-1 text-xs text-ink-muted">
-              {currentDepartment
-                ? `Khoa hiện tại: ${currentDepartment.name} (${currentDepartment.code} · ID: #${currentDepartment.id})`
-                : 'Chỉ cán bộ thuộc đúng Khoa mới có quyền tạo và áp dụng template cho các ngành của Khoa mình.'}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <span className="rounded-md border border-hairline bg-canvas px-2.5 py-1 font-medium text-ink-soft">
-              Kỳ hợp lệ: EVALUATION hoặc FINAL_SUBMISSION
-            </span>
-            <span className="rounded-md border border-hairline bg-canvas px-2.5 py-1 font-medium text-ink-soft">
-              Mã report: In hoa ASCII (A-Z, 0-9, _)
-            </span>
-          </div>
-        </div>
+      <StatTileRow tiles={[
+        {
+          icon: 'inventory_2',
+          label: 'Template tìm thấy',
+          value: templates ? templates.length : templateChoices.length,
+          caption: templates ? 'Kết quả trong kỳ đang tra cứu.' : 'Chọn phạm vi & kỳ để tra cứu.',
+          hero: true,
+        },
+        {
+          icon: 'school',
+          label: 'Ngành quản lý',
+          value: availableMajors.length,
+          caption: currentDepartment ? `${currentDepartment.code} · #${currentDepartment.id}` : 'Phạm vi khoa hiện tại.',
+          tone: 'info',
+        },
+        {
+          icon: 'date_range',
+          label: 'Kỳ áp dụng',
+          value: availablePeriods.length,
+          caption: 'Kỳ Đánh giá & Bàn giao cuối kỳ.',
+          tone: 'success',
+        },
+        {
+          icon: 'checklist',
+          label: 'Đầu mục đang soạn',
+          value: filledReportCount,
+          caption: `${rows.length} dòng trong trình soạn mẫu.`,
+          tone: 'warning',
+        },
+      ]} />
 
-        {/* Dropdown gợi ý nhanh nếu có dữ liệu từ context */}
-        {(availableMajors.length > 0 || availablePeriods.length > 0) && (
-          <div className="mt-3 grid grid-cols-1 gap-3 border-t border-hairline pt-3 sm:grid-cols-2">
-            {availableMajors.length > 0 && (
-              <label className="block text-xs font-semibold text-ink-soft">
-                Gợi ý chọn nhanh ngành thuộc khoa của bạn:
-                <select
-                  className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-canvas px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
-                  value={majorId}
-                  disabled={templateScope === 'COMMON'}
-                  onChange={(e) => setMajorId(e.target.value)}
-                >
-                  <option value="">-- Chọn ngành trực thuộc khoa --</option>
-                  {availableMajors.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      [{m.code}] {m.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+      {/* Thu gọn quy tắc nghiệp vụ để đẩy vùng thao tác lên ngay đầu màn hình */}
+      <details className="rounded-xl border border-hairline bg-card shadow-xs">
+        <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-ink hover:bg-canvas/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+          <span className="inline-flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">policy</span>
+            Quy tắc nghiệp vụ Cán bộ bộ môn
+            {currentDepartment && (
+              <span className="rounded-md border border-hairline bg-canvas px-2 py-0.5 font-mono text-xs font-semibold text-ink-soft">
+                {currentDepartment.code}
+              </span>
             )}
-            {availablePeriods.length > 0 && (
-              <label className="block text-xs font-semibold text-ink-soft">
-                Gợi ý chọn nhanh kỳ đồ án:
-                <select
-                  className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-canvas px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  value={projectPeriodId}
-                  onChange={(e) => setProjectPeriodId(e.target.value)}
-                >
-                  <option value="">-- Chọn kỳ đồ án --</option>
-                  {availablePeriods.map((p) => {
-                    const isEligible = p.periodType === 'EVALUATION' || p.periodType === 'FINAL_SUBMISSION'
-                    return (
-                      <option key={p.id} value={p.id}>
-                        [{p.periodType}] {p.name}  {isEligible ? '— [Hợp lệ cho COLD]' : '— [Chỉ đọc/Khác]'}
-                      </option>
-                    )
-                  })}
-                </select>
-              </label>
-            )}
-          </div>
-        )}
-      </section>
+          </span>
+          <span className="flex flex-wrap items-center gap-2 text-xs font-medium text-ink-muted">
+            <span className="rounded-md border border-hairline bg-canvas px-2 py-0.5 text-ink-soft">
+              Kỳ hợp lệ: Đánh giá / Bàn giao cuối kỳ
+            </span>
+            <span className="rounded-md border border-hairline bg-canvas px-2 py-0.5 text-ink-soft">
+              Mã ASCII: A-Z, 0-9, _
+            </span>
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">expand_more</span>
+          </span>
+        </summary>
+        <div className="space-y-2 border-t border-hairline bg-canvas/50 px-4 py-3.5">
+          <p className="text-xs leading-5 text-ink-muted">
+            {currentDepartment
+              ? `Khoa hiện tại: ${currentDepartment.name} (${currentDepartment.code} · ID: #${currentDepartment.id}). Chọn phạm vi, chuyên ngành và kỳ đồ án ngay tại Khuôn 1 để tra cứu hoặc tạo phiên bản mẫu mới.`
+              : 'Chỉ cán bộ thuộc đúng Khoa mới có quyền tạo và áp dụng mẫu báo cáo cho các chuyên ngành của Khoa mình. Chọn phạm vi, chuyên ngành và kỳ đồ án tại Khuôn 1.'}
+          </p>
+        </div>
+      </details>
 
       {catalogError && <p role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{catalogError}</p>}
-      {/* KHUÔN 1: Tra cứu & Danh sách Templates */}
-      <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-3">
-          <div>
-            <h2 className="text-base font-bold text-ink">Khuôn 1: Tra cứu template đã có</h2>
-            <p className="text-xs text-ink-muted">Chọn phạm vi và kỳ đồ án để xem các bộ template đã được tạo.</p>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="text-sm font-semibold text-ink-soft">Phạm vi template
-            <select className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={templateScope} onChange={event => { setTemplateScope(event.target.value as 'COMMON' | 'MAJOR_SPECIFIC'); setTemplates(null) }}><option value="MAJOR_SPECIFIC">Theo ngành</option><option value="COMMON">Chung</option></select>
-          </label>
-          <label className="text-sm font-semibold text-ink-soft">
-            Ngành áp dụng
-            <select className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted" value={majorId} disabled={templateScope === 'COMMON'} onChange={(event) => setMajorId(event.target.value)}><option value="">-- Chọn ngành --</option>{availableMajors.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.code})</option> )}</select>
-          </label>
+      {/* BENTO 2 CỘT: Trái = Khuôn 1 (Tra cứu) + Khuôn 2 (Tạo mẫu) | Phải = Khuôn 3 (Áp dụng vào đồ án) */}
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
+        <div className="space-y-5 xl:col-span-7">
+          {/* KHUÔN 1: Tra cứu & Danh sách Templates */}
+          <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+            <header className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+              <div>
+                <h2 className="text-base font-bold text-ink">Khuôn 1: Tra cứu template đã có</h2>
+                <p className="text-xs text-ink-muted">Chọn phạm vi và kỳ đồ án để xem các bộ template đã được tạo.</p>
+              </div>
+              {templates && (
+                <StatusBadge tone={templates.length > 0 ? 'info' : 'neutral'} label={`${templates.length} template`} />
+              )}
+            </header>
 
-          <label className="text-sm font-semibold text-ink-soft">
-            Kỳ đồ án áp dụng
-            <select className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={projectPeriodId} onChange={(event) => { setProjectPeriodId(event.target.value); setTemplates(null); setTemplateChoices([]); setTargetRows([emptyTargetRow()]) }}><option value="">-- Chọn kỳ đồ án --</option>{availablePeriods.filter(p => p.periodType === 'EVALUATION' || p.periodType === 'FINAL_SUBMISSION').map(p => <option key={p.id} value={p.id}>{p.name} ({p.code})</option> )}</select>
-          </label>
-
-          <button
-            type="button"
-            className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={loading || (templateScope === 'MAJOR_SPECIFIC' && !majorId) || !projectPeriodId}
-            onClick={() => void search()}
-          >
-            {loading ? 'Đang tải…' : 'Tìm'}
-          </button>
-        </div>
-
-        {loading && <p role="status" className="text-sm text-ink-muted">Đang tải danh sách template…</p>}
-        {listError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{listError}</p>}
-        {templates && templates.length === 0 && (
-          <p className="rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-muted">
-            Chưa có template cho phạm vi/kỳ này.
-          </p>
-        )}
-        {templates && templates.length > 0 && (
-          <div className="space-y-3 pt-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
-              Kết quả ({templates.length} template)
-            </h3>
-            <ul className="space-y-3">
-              {templates.map((template) => (
-                <li key={template.id} className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-hairline bg-canvas p-4 transition-shadow hover:shadow-xs">
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-ink">{template.name} (v{template.version})</p>
-                      <span className="rounded-md border border-hairline bg-card px-2 py-0.5 font-mono text-xs text-ink-muted">ID: #{template.id}</span>
-                      <span className="rounded-md bg-primary-subtle px-2 py-0.5 text-xs font-semibold text-primary">v{template.version}</span>
-                      <span className="rounded-md border border-hairline bg-card px-2 py-0.5 text-xs font-semibold text-ink-muted">{template.scope === 'COMMON' ? 'Chung' : 'Theo ngành'}</span>
-                    </div>
-                    <ul className="space-y-1 text-xs text-ink-soft">
-                      {template.reports.map((report) => (
-                        <li key={report.code} className="flex items-center gap-2">
-                          <code className="rounded border border-hairline bg-card px-1.5 py-0.5 font-semibold text-ink">{report.code}</code>
-                          <span>— {report.name}</span>
-                          {report.required && <span className="text-status-warning-text font-medium">· Bắt buộc</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <button
-                    type="button"
-                    className="inline-flex min-h-9 items-center gap-1 whitespace-nowrap rounded-lg border border-primary bg-card px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                    onClick={() => {
-                      addTargetRow(template)
-                      if (!applyPeriodId && projectPeriodId) setApplyPeriodId(projectPeriodId)
-                    }}
-                  >
-                    + Chọn để áp dụng
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </section>
-
-      {/* KHUÔN 2: Tạo Template mới */}
-      <ConfigModeFrame mode={createMode} dirty={Boolean(name || rows.length !== 1 || rows[0].code || rows[0].name || !rows[0].required)} busy={creating} onEdit={() => setCreateMode('edit')} onCancel={() => { setName(''); setRows([emptyRow()]); setCreateMode('view'); setCreateSuccess('Đã hủy các thay đổi.') }} onSave={() => void submitCreate()} saveLabel="Tạo template" saveDisabled={(templateScope === 'MAJOR_SPECIFIC' && !majorId) || !projectPeriodId || !name.trim() || !rows.some(row => row.code.trim() && row.name.trim())} navigationGuard={false} blastRadius="Mẫu mới tạo là một phiên bản bất biến trong phạm vi ngành và kỳ đồ án đang chọn. Checklist chỉ được áp dụng cho đồ án sau thao tác riêng ở Khuôn 3.">
-      <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-3">
-          <div>
-            <h2 className="text-base font-bold text-ink">Khuôn 2: Tạo template mới (phiên bản mới)</h2>
-            <p className="text-xs text-ink-muted">
-              Mỗi lần lưu tạo một phiên bản bất biến cho phạm vi và kỳ đồ án đang chọn ở Khuôn 1.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="inline-flex min-h-9 items-center whitespace-nowrap rounded-lg border border-primary/20 bg-primary-subtle px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            onClick={() => void loadItExample()}
-          >
-            Dùng mẫu IT (chỉ để tham khảo)
-          </button>
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-ink-soft">
-            Tên template
-            <input
-              className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted"
-              placeholder="VD: Báo cáo chấm nguội chuyên ngành Kỹ thuật phần mềm"
-              value={name}
-              disabled={creating}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </label>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Danh sách các đầu mục báo cáo (Reports)</h3>
-            <span className="text-xs text-ink-muted">Mã tự động chuyển thành IN HOA</span>
-          </div>
-
-          <div className="space-y-2">
-            {rows.map((row, index) => (
-              <div key={index} className="flex flex-wrap items-center gap-2.5 rounded-lg border border-hairline bg-canvas p-2.5">
-                <input
-                  className="min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 font-mono text-sm uppercase text-ink sm:w-44 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted"
-                  placeholder="Mã report"
-                  value={row.code}
-                  disabled={creating}
-                  onChange={(event) => updateRow(index, { code: event.target.value })}
-                />
-                <input
-                  className="min-h-11 min-w-48 flex-1 rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted"
-                  placeholder="Tên report"
-                  value={row.name}
-                  disabled={creating}
-                  onChange={(event) => updateRow(index, { name: event.target.value })}
-                />
-                <label className="inline-flex min-h-9 items-center gap-2 px-2 text-xs font-semibold text-ink-soft">
-                  <input
-                    type="checkbox"
-                    checked={row.required}
-                    disabled={creating}
-                    onChange={(event) => updateRow(index, { required: event.target.checked })}
-                  />
-                  Bắt buộc
+            <div className="space-y-4 p-5">
+              <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+                <label className="text-sm font-semibold text-ink-soft">Phạm vi template
+                  <select className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={templateScope} onChange={event => { setTemplateScope(event.target.value as 'COMMON' | 'MAJOR_SPECIFIC'); setTemplates(null) }}><option value="MAJOR_SPECIFIC">Theo ngành</option><option value="COMMON">Chung</option></select>
                 </label>
+                <label className="text-sm font-semibold text-ink-soft">
+                  Ngành áp dụng
+                  <select className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted" value={majorId} disabled={templateScope === 'COMMON'} onChange={(event) => setMajorId(event.target.value)}><option value="">-- Chọn ngành --</option>{availableMajors.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.code})</option> )}</select>
+                </label>
+
+                <label className="text-sm font-semibold text-ink-soft">
+                  Kỳ đồ án áp dụng
+                  <select className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={projectPeriodId} onChange={(event) => { setProjectPeriodId(event.target.value); setTemplates(null); setTemplateChoices([]); setTargetRows([emptyTargetRow()]) }}><option value="">-- Chọn kỳ đồ án --</option>{availablePeriods.filter(p => p.periodType === 'EVALUATION' || p.periodType === 'FINAL_SUBMISSION').map(p => <option key={p.id} value={p.id}>{p.name} ({p.code})</option> )}</select>
+                </label>
+
                 <button
                   type="button"
-                  className="inline-flex min-h-9 items-center rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-status-error-text transition-colors hover:border-status-error-border hover:bg-status-error-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
-                  disabled={creating || rows.length === 1}
-                  onClick={() => removeRow(index)}
+                  className="min-h-11 rounded-lg bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={loading || (templateScope === 'MAJOR_SPECIFIC' && !majorId) || !projectPeriodId}
+                  onClick={() => void search()}
                 >
-                  Xóa
+                  {loading ? 'Đang tải…' : 'Tìm'}
                 </button>
               </div>
-            ))}
-          </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-            <button
-              type="button"
-              className="inline-flex min-h-11 items-center rounded-lg border border-hairline bg-card px-4 text-xs font-semibold text-primary transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={creating}
-              onClick={addRow}
-            >
-              + Thêm report
-            </button>
-          </div>
-        </div>
-
-        {createError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{createError}</p>}
-        {createSuccess && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{createSuccess}</p>}
-      </section>
-      </ConfigModeFrame>
-
-      {/* KHUÔN 3: Áp dụng template vào đồ án */}
-      <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
-        <div className="border-b border-hairline pb-3">
-          <h2 className="text-base font-bold text-ink">Khuôn 3: Áp dụng template vào đồ án (Khoa phân bổ checklist)</h2>
-          <p className="mt-1 text-xs text-ink-muted">Gán mẫu chung và mẫu của từng ngành vào cùng đồ án; có thể chỉ định thêm phần cá nhân.</p>
-        </div>
-
-        <div className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3.5 text-xs text-status-warning-text leading-relaxed">
-          <strong>Lưu ý kiểm soát ngành:</strong> Tuyệt đối không tự ý áp dụng checklist IT cho sinh viên/đồ án thuộc ngành Marketing, Design hoặc các chuyên ngành khác. Mỗi ngành phải sử dụng đúng template của ngành mình.
-        </div>
-
-        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-3">
-          <label className="text-sm font-semibold text-ink-soft">
-            Đồ án áp dụng
-            <select className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={applyProjectId} onChange={(e) => { setApplyProjectId(e.target.value); setStudents([]); setTargetRows(current => current.map(row => ({ ...row, studentId: '' }))) }}><option value="">-- Chọn đồ án --</option>{availableProjects.map(p => <option key={p.id} value={p.id}>{p.title} ({p.code})</option>)}</select>
-          </label>
-          <label className="text-sm font-semibold text-ink-soft">
-            Kỳ áp dụng
-            <select className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={applyPeriodId || projectPeriodId} onChange={(e) => setApplyPeriodId(e.target.value)}><option value="">-- Chọn kỳ --</option>{availablePeriods.map(p => <option key={p.id} value={p.id}>{p.name} ({p.code})</option>)}</select>
-          </label>
-          <label className="text-sm font-semibold text-ink-soft">
-            Hạn nộp báo cáo (Deadline)
-            <input
-              type="datetime-local"
-              className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              value={applyDeadline}
-              onChange={(e) => setApplyDeadline(e.target.value)}
-            />
-          </label>
-        </div>
-
-        <div className="space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Danh sách target templates</h3>
-          {targetRows.map((target, idx) => (
-            <div key={idx} className="flex flex-wrap items-center gap-2.5 rounded-lg border border-hairline bg-canvas p-2.5">
-              <select className="min-h-11 min-w-56 flex-1 rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={target.templateId} onChange={(e) => { const selected = templateChoices.find(t => String(t.id) === e.target.value); updateTargetRow(idx, selected ? emptyTargetRow(selected) : emptyTargetRow()) }}><option value="">-- Chọn template --</option>{templateChoices.filter(t => t.projectPeriodId === Number(applyPeriodId || projectPeriodId)).map(t => <option key={t.id} value={t.id}>{t.scope === 'COMMON' ? 'Chung · ' : 'Ngành · '}{t.name} (v{t.version})</option>)}</select>
-              <select
-                className="min-h-11 rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted"
-                value={target.scope}
-                disabled={templateChoices.find(t => String(t.id) === target.templateId)?.majorId == null}
-                onChange={(e) => updateTargetRow(idx, { scope: e.target.value as TargetRow['scope'] })}
-              >
-                {target.scope === 'COMMON' && <option value="COMMON">COMMON (Chung)</option>}
-                <option value="MAJOR_SPECIFIC">MAJOR_SPECIFIC (Theo ngành)</option>
-                <option value="INDIVIDUAL">INDIVIDUAL (Cá nhân)</option>
-              </select>
-              {target.scope === 'INDIVIDUAL' && (
-                <select aria-label="Sinh viên được áp dụng" className="min-h-11 min-w-48 rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={target.studentId} onChange={(e) => updateTargetRow(idx, { studentId: e.target.value })}><option value="">-- Chọn sinh viên --</option>{students.map(student => <option key={student.userId} value={student.userId}>{student.fullName}</option>)}</select>
+              {loading && <p role="status" className="text-sm text-ink-muted">Đang tải danh sách template…</p>}
+              {listError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{listError}</p>}
+              {templates && templates.length === 0 && (
+                <p className="rounded-lg border border-hairline bg-canvas p-3.5 text-sm text-ink-muted">
+                  Chưa có template cho phạm vi/kỳ này.
+                </p>
               )}
+              {templates && templates.length > 0 && (
+                <div className="space-y-3 pt-1">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                    Kết quả ({templates.length} template)
+                  </h3>
+                  <ul className="space-y-2.5">
+                    {templatePagination.paginatedItems.map((template) => (
+                      <li key={template.id} className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-hairline bg-canvas p-4 transition-shadow hover:border-primary/40 hover:shadow-xs">
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold text-ink">{template.name} (v{template.version})</p>
+                            <span className="rounded-md border border-hairline bg-card px-2 py-0.5 font-mono text-xs text-ink-muted">Mã #{template.id}</span>
+                            <StatusBadge tone={template.scope === 'COMMON' ? 'success' : 'neutral'} label={template.scope === 'COMMON' ? 'Chung toàn đồ án' : 'Theo chuyên ngành'} />
+                          </div>
+                          <ul className="space-y-1 text-xs text-ink-soft">
+                            {template.reports.map((report) => (
+                              <li key={report.code} className="flex flex-wrap items-center gap-2">
+                                <code className="rounded border border-hairline bg-card px-1.5 py-0.5 font-semibold text-ink">{report.code}</code>
+                                <span>— {report.name}</span>
+                                {report.required && <span className="font-medium text-status-warning-text">· Bắt buộc</span>}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <button
+                          type="button"
+                          className="inline-flex min-h-9 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-primary bg-card px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          onClick={() => {
+                            addTargetRow(template)
+                            if (!applyPeriodId && projectPeriodId) setApplyPeriodId(projectPeriodId)
+                          }}
+                        >
+                          + Chọn để áp dụng
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {templatePagination.showPagination && (
+                    <Pagination
+                      page={templatePagination.page}
+                      pages={templatePagination.totalPages}
+                      total={templatePagination.total}
+                      pageSize={templatePagination.pageSize}
+                      pageSizeOptions={[8, 16, 30]}
+                      onPage={templatePagination.setPage}
+                      onPageSizeChange={templatePagination.setPageSize}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* KHUÔN 2: Tạo Template mới */}
+          <ConfigModeFrame
+            mode={createMode}
+            dirty={Boolean(name || rows.length !== 1 || rows[0].code || rows[0].name || !rows[0].required)}
+            busy={creating}
+            onEdit={() => setCreateMode('edit')}
+            onCancel={() => { setName(''); setRows([emptyRow()]); setCreateMode('view'); setCreateSuccess('Đã hủy các thay đổi.') }}
+            onSave={() => void submitCreate()}
+            saveLabel="Tạo template"
+            saveDisabled={(templateScope === 'MAJOR_SPECIFIC' && !majorId) || !projectPeriodId || !name.trim() || !rows.some(row => row.code.trim() && row.name.trim())}
+            navigationGuard={false}
+            blastRadius="Mẫu mới tạo là một phiên bản bất biến trong phạm vi ngành và kỳ đồ án đang chọn. Checklist chỉ được áp dụng cho đồ án sau thao tác riêng ở Khuôn 3."
+          >
+            <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+              <header className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+                <div>
+                  <h2 className="text-base font-bold text-ink">Khuôn 2: Tạo template mới (phiên bản mới)</h2>
+                  <p className="text-xs text-ink-muted">
+                    Mỗi lần lưu tạo một phiên bản bất biến cho phạm vi và kỳ đồ án đang chọn ở Khuôn 1.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="inline-flex min-h-9 items-center whitespace-nowrap rounded-lg border border-primary/20 bg-primary-subtle px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  onClick={() => void loadItExample()}
+                >
+                  Dùng mẫu IT (chỉ để tham khảo)
+                </button>
+              </header>
+
+              <div className="space-y-4 p-5">
+                <div>
+                  <label className="block text-sm font-semibold text-ink-soft">
+                    Tên template
+                    <input
+                      className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted"
+                      placeholder="VD: Báo cáo chấm nguội chuyên ngành Kỹ thuật phần mềm"
+                      value={name}
+                      disabled={creating}
+                      onChange={(event) => setName(event.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Danh sách các đầu mục báo cáo (Reports)</h3>
+                    <span className="text-xs text-ink-muted">Mã tự động chuyển thành IN HOA</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {rows.map((row, index) => (
+                      <div key={index} className="flex flex-wrap items-center gap-2.5 rounded-lg border border-hairline bg-canvas p-2.5">
+                        <input
+                          className="min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 font-mono text-sm uppercase text-ink sm:w-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted"
+                          placeholder="Mã report"
+                          value={row.code}
+                          disabled={creating}
+                          onChange={(event) => updateRow(index, { code: event.target.value })}
+                        />
+                        <input
+                          className="min-h-11 min-w-44 flex-1 rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted"
+                          placeholder="Tên report"
+                          value={row.name}
+                          disabled={creating}
+                          onChange={(event) => updateRow(index, { name: event.target.value })}
+                        />
+                        <label className="inline-flex min-h-9 items-center gap-2 px-2 text-xs font-semibold text-ink-soft">
+                          <input
+                            type="checkbox"
+                            checked={row.required}
+                            disabled={creating}
+                            onChange={(event) => updateRow(index, { required: event.target.checked })}
+                          />
+                          Bắt buộc
+                        </label>
+                        <button
+                          type="button"
+                          className="inline-flex min-h-9 items-center rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-status-error-text transition-colors hover:border-status-error-border hover:bg-status-error-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
+                          disabled={creating || rows.length === 1}
+                          onClick={() => removeRow(index)}
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                    <button
+                      type="button"
+                      className="inline-flex min-h-11 items-center rounded-lg border border-hairline bg-card px-4 text-xs font-semibold text-primary transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={creating}
+                      onClick={addRow}
+                    >
+                      + Thêm report
+                    </button>
+                  </div>
+                </div>
+
+                {createError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{createError}</p>}
+                {createSuccess && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{createSuccess}</p>}
+              </div>
+            </section>
+          </ConfigModeFrame>
+        </div>
+
+        {/* KHUÔN 3: Áp dụng template vào đồ án (cột phải Bento, sẵn sàng phân bổ) */}
+        <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs xl:sticky xl:top-20 xl:col-span-5">
+          <header className="flex flex-wrap items-start justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+            <div>
+              <h2 className="text-base font-bold text-ink">Khuôn 3: Áp dụng template vào đồ án (Khoa phân bổ checklist)</h2>
+              <p className="mt-0.5 text-xs text-ink-muted">Gán mẫu chung và mẫu của từng ngành vào cùng đồ án; có thể chỉ định thêm phần cá nhân.</p>
+            </div>
+            <StatusBadge tone="warning" label={`${targetRows.length} mục áp dụng`} />
+          </header>
+
+          <div className="space-y-4 p-5">
+            <div className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-xs leading-relaxed text-status-warning-text">
+              <strong>Lưu ý kiểm soát ngành:</strong> Tuyệt đối không tự ý áp dụng checklist IT cho sinh viên/đồ án thuộc ngành Marketing, Design hoặc các chuyên ngành khác. Mỗi ngành phải sử dụng đúng template của ngành mình.
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              <label className="text-sm font-semibold text-ink-soft">
+                Đồ án áp dụng
+                <select className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={applyProjectId} onChange={(e) => { setApplyProjectId(e.target.value); setStudents([]); setTargetRows(current => current.map(row => ({ ...row, studentId: '' }))) }}><option value="">-- Chọn đồ án --</option>{availableProjects.map(p => <option key={p.id} value={p.id}>{p.title} ({p.code})</option>)}</select>
+              </label>
+              <label className="text-sm font-semibold text-ink-soft">
+                Kỳ áp dụng
+                <select className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={applyPeriodId || projectPeriodId} onChange={(e) => setApplyPeriodId(e.target.value)}><option value="">-- Chọn kỳ --</option>{availablePeriods.map(p => <option key={p.id} value={p.id}>{p.name} ({p.code})</option>)}</select>
+              </label>
+              <label className="text-sm font-semibold text-ink-soft sm:col-span-2 xl:col-span-1">
+                Hạn nộp báo cáo (Deadline)
+                <input
+                  type="datetime-local"
+                  className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  value={applyDeadline}
+                  onChange={(e) => setApplyDeadline(e.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="space-y-2.5 border-t border-hairline pt-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Danh sách mẫu áp dụng</h3>
+                <button
+                  type="button"
+                  className="inline-flex min-h-9 items-center rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-primary transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  onClick={() => addTargetRow()}
+                >
+                  + Thêm mục áp dụng
+                </button>
+              </div>
+              {targetRows.map((target, idx) => (
+                <div key={idx} className="space-y-2 rounded-lg border border-hairline bg-canvas p-3">
+                  <select className="min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={target.templateId} onChange={(e) => { const selected = templateChoices.find(t => String(t.id) === e.target.value); updateTargetRow(idx, selected ? emptyTargetRow(selected) : emptyTargetRow()) }}><option value="">-- Chọn template --</option>{templateChoices.filter(t => t.projectPeriodId === Number(applyPeriodId || projectPeriodId)).map(t => <option key={t.id} value={t.id}>{t.scope === 'COMMON' ? 'Chung · ' : 'Ngành · '}{t.name} (v{t.version})</option>)}</select>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      className="min-h-11 min-w-0 flex-1 rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted"
+                      value={target.scope}
+                      disabled={templateChoices.find(t => String(t.id) === target.templateId)?.majorId == null}
+                      onChange={(e) => updateTargetRow(idx, { scope: e.target.value as TargetRow['scope'] })}
+                    >
+                      {target.scope === 'COMMON' && <option value="COMMON">Chung (toàn đồ án)</option>}
+                      <option value="MAJOR_SPECIFIC">Theo chuyên ngành</option>
+                      <option value="INDIVIDUAL">Cá nhân sinh viên</option>
+                    </select>
+                    <button
+                      type="button"
+                      className="inline-flex min-h-11 items-center rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-status-error-text transition-colors hover:border-status-error-border hover:bg-status-error-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
+                      disabled={targetRows.length === 1}
+                      onClick={() => removeTargetRow(idx)}
+                    >
+                      Xóa mục
+                    </button>
+                  </div>
+                  {target.scope === 'INDIVIDUAL' && (
+                    <select aria-label="Sinh viên được áp dụng" className="min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={target.studentId} onChange={(e) => updateTargetRow(idx, { studentId: e.target.value })}><option value="">-- Chọn sinh viên --</option>{students.map(student => <option key={student.userId} value={student.userId}>{student.fullName}</option>)}</select>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-1">
               <button
                 type="button"
-                className="ml-auto inline-flex min-h-9 items-center rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-status-error-text transition-colors hover:border-status-error-border hover:bg-status-error-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={targetRows.length === 1}
-                onClick={() => removeTargetRow(idx)}
+                disabled={applying || !applyProjectId || !applyDeadline || !targetRows.some((t) => t.templateId)}
+                className="min-h-11 w-full rounded-lg bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => void submitApply()}
               >
-                Xóa target
+                {applying ? 'Đang áp dụng…' : 'Áp dụng checklist vào đồ án'}
               </button>
             </div>
-          ))}
-          <button
-            type="button"
-            className="inline-flex min-h-11 items-center rounded-lg border border-hairline bg-card px-4 text-xs font-semibold text-primary transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            onClick={() => addTargetRow()}
-          >
-            + Thêm target
-          </button>
-        </div>
 
-        <div className="pt-2">
-          <button
-            type="button"
-            disabled={applying || !applyProjectId || !applyDeadline || !targetRows.some((t) => t.templateId)}
-            className="min-h-11 rounded-lg bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
-            onClick={() => void submitApply()}
-          >
-            {applying ? 'Đang áp dụng…' : 'Áp dụng checklist vào đồ án'}
-          </button>
-        </div>
-
-        {applyError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{applyError}</p>}
-        {applySuccess && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{applySuccess}</p>}
-      </section>
+            {applyError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{applyError}</p>}
+            {applySuccess && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{applySuccess}</p>}
+          </div>
+        </section>
+      </div>
     </WorkspacePage>
   )
 }

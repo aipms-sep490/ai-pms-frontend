@@ -134,12 +134,12 @@ export function StudentJourneyHero() {
   const config = getJourneyConfig()
 
   return (
-    <section className="flex flex-col justify-between gap-6 workspace-surface p-6 md:flex-row md:items-center">
-      <div className="flex items-start gap-4 min-w-0 max-w-3xl">
+    <section className="flex flex-col justify-between gap-5 workspace-surface p-5 sm:p-6 md:flex-row md:items-center border-l-4 border-l-primary">
+      <div className="flex items-start gap-4 min-w-0 flex-1">
         <div className={`w-12 h-12 rounded-2xl ${config.iconBg} flex items-center justify-center font-bold text-xl shrink-0 shadow-sm mt-0.5`}>
           <span className="material-symbols-outlined text-[26px]">{config.icon}</span>
         </div>
-        <div className="flex min-w-0 flex-col gap-1.5">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex items-center gap-2.5 flex-wrap">
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${config.badgeClass}`}>
               {config.badge}
@@ -148,8 +148,8 @@ export function StudentJourneyHero() {
               SV: {profile?.fullName ?? 'Sinh viên'}{profile?.studentCode ? ` (${profile.studentCode})` : (profile?.id ? ` (ID #${profile.id})` : '')}
             </span>
           </div>
-          <h2 className="text-lg font-bold tracking-tight text-ink">{config.title}</h2>
-          <p className="text-xs text-ink-muted leading-relaxed">{config.desc}</p>
+          <h2 className="font-heading text-lg font-bold tracking-tight text-ink sm:text-xl">{config.title}</h2>
+          <p className="max-w-3xl text-xs text-ink-soft leading-relaxed sm:text-sm">{config.desc}</p>
         </div>
       </div>
 
@@ -158,7 +158,7 @@ export function StudentJourneyHero() {
           <button
             type="button"
             onClick={() => navigate(config.secondaryRoute!)}
-            className="rounded-lg border border-hairline bg-card px-4 py-2.5 text-xs font-semibold text-ink-soft transition-colors hover:border-primary/30 hover:bg-primary-subtle"
+            className="min-h-11 rounded-lg border border-hairline bg-card px-4 py-2 text-xs font-semibold text-ink-soft transition-colors hover:border-primary/30 hover:bg-primary-subtle hover:text-primary"
           >
             {config.secondaryText}
           </button>
@@ -166,7 +166,7 @@ export function StudentJourneyHero() {
         <button
           type="button"
           onClick={() => error ? void refreshAll() : navigate(config.ctaRoute)}
-          className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-primary-hover"
+          className="flex min-h-11 items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-primary-hover"
         >
           <span className="material-symbols-outlined text-[18px]">{config.ctaIcon}</span>
           {config.ctaText}

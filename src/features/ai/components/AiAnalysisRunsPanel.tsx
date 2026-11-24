@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react'
 import { HttpError } from '../../../services/http/http-client'
+import { Pagination } from '../../../components/ui/Pagination'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import type { BadgeTone } from '../../../components/ui/status-badge-tone'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { getAiRun, getProjectAiRuns, type AiRunDto, type AiRunKind } from '../ai-api'
 import { EvidenceReferences } from './EvidenceReferences'
 
 const kindLabel: Record<string, string> = { PROJECT_ASK: 'Hỏi trợ lý', REPORT_SUMMARY: 'Tóm tắt báo cáo', PROGRESS_ANALYSIS: 'Phân tích tiến độ' }
 const statusLabel: Record<string, string> = { RUNNING: 'Đang xử lý', COMPLETED: 'Hoàn tất', FAILED: 'Lỗi', INSUFFICIENT_EVIDENCE: 'Chưa đủ chứng cứ', FALLBACK: 'Phản hồi dự phòng' }
+const statusTone: Record<string, BadgeTone> = { RUNNING: 'info', COMPLETED: 'success', FAILED: 'danger', INSUFFICIENT_EVIDENCE: 'warning', FALLBACK: 'warning' }
 const describeKind = (kind: AiRunKind) => kindLabel[kind] ?? kind
 const describeStatus = (status: string) => statusLabel[status] ?? status
+const toneForStatus = (status: string): BadgeTone => statusTone[status] ?? 'neutral'
 const formatDateTime = (value: string) => {
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(date)
@@ -44,7 +50,7 @@ function RunDetail({ projectId, runId }: { projectId: number; runId: number }) {
  * state or assigns people, and runs are shown exactly as the backend returns them. */
 export function AiAnalysisRunsPanel({ projectId }: { projectId: number }) {
   const [page, setPage] = useState(1)
-  const [result, setResult] = useState<{ items: AiRunDto[]; totalPages: number } | null>(null)
+  const [result, setResult] = useState<{ items: AiRunDto[]; totalPages: number; totalCount: number; pageSize: number } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [revision, setRevision] = useState(0)
@@ -54,10 +60,10 @@ export function AiAnalysisRunsPanel({ projectId }: { projectId: number }) {
     const controller = new AbortController()
     setLoading(true)
     void getProjectAiRuns(projectId, page, 20, controller.signal)
-      .then(data => { if (!controller.signal.aborted) { setResult({ items: data.items, totalPages: data.totalPages }); setError(false) } })
+      .then(data => { if (!controller.signal.aborted) { setResult({ items: data.items, totalPages: data.totalPages, totalCount: data.totalCount ?? data.items.length, pageSize: data.pageSize ?? 20 }); setError(false) } })
       .catch(reason => {
         if (controller.signal.aborted) return
-        if (reason instanceof HttpError && reason.status === 404) { setResult({ items: [], totalPages: 0 }); setError(false) }
+        if (reason instanceof HttpError && reason.status === 404) { setResult({ items: [], totalPages: 0, totalCount: 0, pageSize: 20 }); setError(false) }
         else setError(true)
       })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
@@ -65,36 +71,80 @@ export function AiAnalysisRunsPanel({ projectId }: { projectId: number }) {
   }, [projectId, page, revision])
 
   const retry = () => { setLoading(true); setError(false); setResult(null); setRevision(value => value + 1) }
+  const clientPagination = useClientPagination(result?.items ?? [], 8)
+  const useServerPaging = Boolean(result && result.totalPages > 1)
+  const visibleItems = useServerPaging ? (result?.items ?? []) : clientPagination.paginatedItems
 
-  return <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs">
-    <h2 className="font-heading text-lg font-semibold text-ink">Lịch sử phân tích AI</h2>
-    <p className="mt-1 text-sm text-ink-muted">Các lần phân tích đã lưu của đồ án. Kết quả mang tính tham khảo; AI không đổi trạng thái hay phân công.</p>
-    {loading && <p role="status" className="mt-4 text-sm text-ink-muted">Đang tải lịch sử…</p>}
-    {!loading && error && <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><span>Chưa tải được lịch sử phân tích AI.</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
-    {!loading && !error && result && result.items.length === 0 && <p className="mt-4 text-sm text-ink-muted">Chưa có lần phân tích nào được lưu.</p>}
-    {!loading && !error && result && result.items.length > 0 && <ul className="mt-4 space-y-2">
-      {result.items.map(run => {
-        const open = openId === run.id
-        const scopeChanged = run.errorCode === 'AI_HISTORY_SCOPE_CHANGED'
-        return <li key={run.id} className="rounded-lg border border-hairline bg-card">
-          <button type="button" aria-expanded={open} onClick={() => setOpenId(open ? null : run.id)} className="flex w-full flex-wrap items-center justify-between gap-2 p-3 text-left">
-            <span className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold text-ink">{describeKind(run.kind)}</span>
-              <span className="rounded-full border border-hairline bg-canvas px-2 py-0.5 text-xs text-ink-muted">{run.modelVersion} · {run.configVersion}</span>
-              <span className="rounded-full border border-hairline bg-canvas px-2 py-0.5 text-xs text-ink-muted">{describeStatus(run.status)}</span>
-              {run.status === 'FAILED' && <span className="rounded-full border border-status-error-border bg-status-error-bg px-2 py-0.5 text-xs font-semibold text-status-error-text">Lỗi</span>}
-              {scopeChanged && <span className="rounded-full border border-status-warning-border bg-status-warning-bg px-2 py-0.5 text-xs font-semibold text-status-warning-text">Ngoài phạm vi hiện tại</span>}
-            </span>
-            <span className="text-xs text-ink-muted">{formatDateTime(run.startedAt)}</span>
-          </button>
-          {open && <div className="px-3 pb-3"><RunDetail projectId={projectId} runId={run.id} /></div>}
-        </li>
-      })}
-    </ul>}
-    {!loading && !error && result && result.totalPages > 1 && <nav className="mt-4 flex items-center justify-between gap-3 text-sm" aria-label="Trang lịch sử phân tích">
-      <button type="button" className="min-h-11 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Trang trước</button>
-      <span className="tabular-nums text-ink-muted">Trang {page} / {result.totalPages}</span>
-      <button type="button" className="min-h-11 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={page >= result.totalPages} onClick={() => setPage(value => value + 1)}>Trang sau</button>
-    </nav>}
-  </section>
+  return (
+    <section className="workspace-surface">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">history</span>
+          <div>
+            <h2 className="font-heading text-sm font-bold text-ink">Lịch sử phân tích AI</h2>
+            <p className="text-xs text-ink-muted">Các lần phân tích đã lưu của đồ án. Kết quả mang tính tham khảo; AI không đổi trạng thái hay phân công.</p>
+          </div>
+        </div>
+        {result && (
+          <span className="inline-flex items-center rounded-full border border-hairline bg-card px-2.5 py-0.5 text-xs font-bold tabular-nums text-ink-soft">
+            {result.totalCount}
+          </span>
+        )}
+      </div>
+
+      <div className="p-5">
+        {loading && <p role="status" className="text-sm text-ink-muted">Đang tải lịch sử…</p>}
+        {!loading && error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><span>Chưa tải được lịch sử phân tích AI.</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
+        {!loading && !error && result && result.items.length === 0 && <p className="text-sm text-ink-muted">Chưa có lần phân tích nào được lưu.</p>}
+        {!loading && !error && result && visibleItems.length > 0 && (
+          <ul className="space-y-2">
+            {visibleItems.map(run => {
+              const open = openId === run.id
+              const scopeChanged = run.errorCode === 'AI_HISTORY_SCOPE_CHANGED'
+              return (
+                <li key={run.id} className="rounded-xl border border-hairline bg-card overflow-hidden">
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    onClick={() => setOpenId(open ? null : run.id)}
+                    className="flex w-full flex-wrap items-center justify-between gap-2 p-3 text-left transition-colors hover:bg-canvas/60"
+                  >
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-sm text-ink">{describeKind(run.kind)}</span>
+                      <StatusBadge tone="neutral" label={`${run.modelVersion} · ${run.configVersion}`} />
+                      <StatusBadge tone={toneForStatus(run.status)} label={describeStatus(run.status)} />
+                      {scopeChanged && <StatusBadge tone="warning" label="Ngoài phạm vi hiện tại" />}
+                    </span>
+                    <span className="font-mono text-xs text-ink-muted tabular-nums">{formatDateTime(run.startedAt)}</span>
+                  </button>
+                  {open && <div className="border-t border-hairline bg-canvas/40 px-3.5 py-3"><RunDetail projectId={projectId} runId={run.id} /></div>}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+        {!loading && !error && result && useServerPaging && (
+          <Pagination
+            page={page}
+            pages={result.totalPages}
+            total={Math.max(result.totalCount, result.items.length)}
+            pageSize={result.pageSize}
+            busy={loading}
+            onPage={setPage}
+            className="mt-4"
+          />
+        )}
+        {!loading && !error && result && !useServerPaging && clientPagination.showPagination && (
+          <Pagination
+            page={clientPagination.page}
+            pages={clientPagination.totalPages}
+            total={clientPagination.total}
+            pageSize={clientPagination.pageSize}
+            onPage={clientPagination.setPage}
+            className="mt-4"
+          />
+        )}
+      </div>
+    </section>
+  )
 }

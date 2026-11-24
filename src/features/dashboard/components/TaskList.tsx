@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Badge } from '../../../components/ui/Badge'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { MultidisciplinaryTag } from '../../../components/ui/MultidisciplinaryTag'
+import { Pagination } from '../../../components/ui/Pagination'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import type { TaskItem, TaskFilter } from '../types/dashboard.types'
 import { filterTasks, getTaskFilterCounts } from '../utils/filter-tasks'
 
@@ -14,10 +16,11 @@ export function TaskList({ tasks }: TaskListProps) {
 
   const counts = getTaskFilterCounts(tasks)
   const displayedTasks = filterTasks(tasks, filter)
+  const pagination = useClientPagination(displayedTasks, 8)
 
   return (
     <Card>
-      <CardHeader className="py-3 px-4 flex-wrap gap-2">
+      <CardHeader className="bg-canvas/70 border-b border-hairline py-3.5 px-5 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">
             task_alt
@@ -91,7 +94,7 @@ export function TaskList({ tasks }: TaskListProps) {
             Không có công việc nào trong danh mục này.
           </div>
         ) : (
-          displayedTasks.map((task) => (
+          pagination.paginatedItems.map((task) => (
             <div
               key={task.id}
               className={`p-3.5 px-4 flex items-center justify-between gap-3 hover:bg-canvas transition-colors ${
@@ -176,6 +179,19 @@ export function TaskList({ tasks }: TaskListProps) {
           ))
         )}
       </CardContent>
+      {pagination.showPagination && (
+        <div className="border-t border-hairline px-4 py-3">
+          <Pagination
+            page={pagination.page}
+            pages={pagination.totalPages}
+            total={pagination.total}
+            pageSize={pagination.pageSize}
+            pageSizeOptions={[8, 16, 30]}
+            onPage={pagination.setPage}
+            onPageSizeChange={pagination.setPageSize}
+          />
+        </div>
+      )}
     </Card>
   )
 }

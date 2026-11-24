@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button } from '../../../components/ui/Button'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { displayLabel } from '../../../components/ui/display-label'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { HttpError } from '../../../services/http/http-client'
@@ -54,22 +55,37 @@ export function AccountRoleAssignments({ user, roles, rolesState, accessToken, o
     } finally { setBusyRole(null) }
   }
 
-  return <section className="admin-panel" aria-label="Quản lý vai trò toàn hệ thống">
-    <h2>Gán vai trò hệ thống</h2>
-    <p className="admin-boundary">Một tài khoản có thể có nhiều vai trò hệ thống. Giảng viên hướng dẫn và người chấm được phân công theo từng đồ án; cùng một người có thể hướng dẫn nhóm này và chấm nhóm khác.</p>
-    {rolesState === 'loading' && <p role="status" className="text-sm text-ink-muted">Đang tải danh mục vai trò…</p>}
-    {rolesState === 'error' && <p role="alert" className="admin-error">Chưa tải được danh mục vai trò. Hãy tải lại trang trước khi gán.</p>}
-    {rolesState === 'ready' && globalRoles.length === 0 && <p role="status" className="text-sm text-ink-muted">Chưa có vai trò hệ thống có thể gán.</p>}
-    {rolesState === 'ready' && globalRoles.length > 0 && <ul className="space-y-2">{globalRoles.map(role => {
-      const assigned = user.roles.includes(role.code)
-      return <li key={role.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hairline p-2">
-        <span><strong>{displayLabel(role.code)}</strong> <span className="text-ink-muted">{assigned ? 'Đã gán' : 'Chưa gán'}</span></span>
-        <Button type="button" size="sm" variant={assigned ? 'outline' : 'secondary'} disabled={busyRole !== null || uncertain}
-          onClick={() => void change(role)}>{busyRole === role.id ? 'Đang lưu…' : assigned ? `Thu hồi ${displayLabel(role.code)}` : `Gán ${displayLabel(role.code)}`}</Button>
-      </li>
-    })}</ul>}
-    {message && <p className="admin-notice" role={uncertain ? 'alert' : 'status'}>{message}</p>}
-    {uncertain && <Button type="button" size="sm" variant="outline" onClick={() => void refresh()}>Tải lại vai trò</Button>}
-    {confirmationDialog}
-  </section>
+  return (
+    <section className="admin-bento-card" aria-label="Quản lý vai trò toàn hệ thống">
+      <div className="flex items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">badge</span>
+          <h2 className="font-heading text-sm font-bold text-ink">Gán vai trò hệ thống</h2>
+        </div>
+        <span className="inline-flex items-center rounded-full border border-hairline bg-card px-2.5 py-0.5 text-xs font-bold tabular-nums text-ink-soft">
+          {globalRoles.length} vai trò
+        </span>
+      </div>
+      <div className="p-5 space-y-3">
+        <p className="text-xs leading-relaxed text-ink-muted">Một tài khoản có thể có nhiều vai trò hệ thống. Giảng viên hướng dẫn và người chấm được phân công theo từng đồ án; cùng một người có thể hướng dẫn nhóm này và chấm nhóm khác.</p>
+        {rolesState === 'loading' && <p role="status" className="text-sm text-ink-muted">Đang tải danh mục vai trò…</p>}
+        {rolesState === 'error' && <p role="alert" className="admin-error">Chưa tải được danh mục vai trò. Hãy tải lại trang trước khi gán.</p>}
+        {rolesState === 'ready' && globalRoles.length === 0 && <p role="status" className="text-sm text-ink-muted">Chưa có vai trò hệ thống có thể gán.</p>}
+        {rolesState === 'ready' && globalRoles.length > 0 && <ul className="space-y-2">{globalRoles.map(role => {
+          const assigned = user.roles.includes(role.code)
+          return <li key={role.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-hairline bg-canvas/40 px-3.5 py-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <strong className="text-sm text-ink">{displayLabel(role.code)}</strong>
+              <StatusBadge tone={assigned ? 'success' : 'neutral'} label={assigned ? 'Đã gán' : 'Chưa gán'} />
+            </div>
+            <Button type="button" size="sm" variant={assigned ? 'outline' : 'secondary'} disabled={busyRole !== null || uncertain}
+              onClick={() => void change(role)}>{busyRole === role.id ? 'Đang lưu…' : assigned ? `Thu hồi ${displayLabel(role.code)}` : `Gán ${displayLabel(role.code)}`}</Button>
+          </li>
+        })}</ul>}
+        {message && <p className="admin-notice !mb-0" role={uncertain ? 'alert' : 'status'}>{message}</p>}
+        {uncertain && <Button type="button" size="sm" variant="outline" onClick={() => void refresh()}>Tải lại vai trò</Button>}
+      </div>
+      {confirmationDialog}
+    </section>
+  )
 }

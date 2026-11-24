@@ -1,9 +1,14 @@
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { ConfigModeFrame } from '../../../components/ui/ConfigModeFrame'
 import { NumberField } from '../../../components/ui/NumberField'
+import { Pagination } from '../../../components/ui/Pagination'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { ToggleField } from '../../../components/ui/ToggleField'
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import type { BadgeTone } from '../../../components/ui/status-badge-tone'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { HttpError } from '../../../services/http/http-client'
 import { academicError, type AcademicError } from '../academic-error'
@@ -19,11 +24,7 @@ const modes = ['SINGLE_MAJOR', 'INTERDISCIPLINARY']
 const sources = ['STUDENT_PROPOSAL', 'PUBLISHED_TOPIC']
 const policyOptionLabels: Record<string, string> = { SINGLE_MAJOR: 'Một ngành', INTERDISCIPLINARY: 'Liên ngành', STUDENT_PROPOSAL: 'Sinh viên đề xuất', PUBLISHED_TOPIC: 'Đề tài đã công bố' }
 const policyStatusLabels: Record<string, string> = { DRAFT: 'Bản nháp', PUBLISHED: 'Đã công bố', LOCKED: 'Đã khóa' }
-const policyBadgeClass: Record<string, string> = {
-  DRAFT: 'border-status-warning-border bg-status-warning-bg text-status-warning-text',
-  PUBLISHED: 'border-status-success-border bg-status-success-bg text-status-success-text',
-  LOCKED: 'border-hairline bg-canvas text-ink-muted',
-}
+const policyStatusTone: Record<string, BadgeTone> = { DRAFT: 'warning', PUBLISHED: 'success', LOCKED: 'neutral' }
 
 function fromPolicy(value: api.PeriodPolicy): Draft {
   return { ...value.policy, effectiveFrom: localDateTime(value.effectiveFrom), effectiveTo: localDateTime(value.effectiveTo) }
@@ -70,9 +71,10 @@ export function PeriodPolicyManagementPage() {
   const dirty = draft !== null && (editing ? JSON.stringify(draft) !== JSON.stringify(fromPolicy(editing)) : true)
 
   const activeData = validPeriodId && resolved?.periodId === periodId ? resolved : null
-  const history = activeData?.history ?? []
+  const history = useMemo(() => activeData?.history ?? [], [activeData?.history])
   const effective = activeData?.effective ?? null
   const loading = validPeriodId && (activeData === null || reloading)
+  const historyPagination = useClientPagination(history, 8)
   const error: AcademicError | null = !validPeriodId
     ? invalidPeriodError
     : actionError ?? activeData?.error ?? null
@@ -159,22 +161,178 @@ export function PeriodPolicyManagementPage() {
     } finally { mutationLock.current = false; setBusy(false) }
   }
 
-  return <WorkspacePage className="space-y-6 period-policy-page" title="Phiên bản chính sách" eyebrow={`Giai đoạn đồ án #${periodId}`} description="Xem lịch sử và điều chỉnh các điều kiện áp dụng cho giai đoạn này." backTo="/academic/governance">
+  return <WorkspacePage className="space-y-5 period-policy-page" title="Phiên bản chính sách" eyebrow={`Giai đoạn đồ án #${periodId}`} description="Xem lịch sử và điều chỉnh các điều kiện áp dụng cho giai đoạn này." backTo="/academic/governance">
     {confirmationDialog}
-    {history[0]?.status === 'DRAFT' && <p className="workspace-note p-4 text-sm">Đang có bản nháp chính sách. Chọn bản nháp trong lịch sử để sửa hoặc công bố trước khi tạo bản kế tiếp.</p>}{conflicted && <p role="status" className="workspace-note p-4 text-sm">Bản nhập được giữ để đối chiếu và đã khóa lưu/công bố. Tải lại dữ liệu rồi chọn bản nháp mới trong lịch sử hoặc tạo bản kế tiếp từ chính sách hiện hành; hệ thống không tự gửi lại thao tác.</p>}
+
+    <StatTileRow tiles={[
+      {
+        icon: 'verified',
+        label: 'Phiên bản hiện hành',
+        value: effective ? effective.version : null,
+        caption: effective ? (policyStatusLabels[effective.status] ?? effective.status) : 'Chưa có bản hiệu lực.',
+        hero: true,
+      },
+      {
+        icon: 'history',
+        label: 'Tổng phiên bản',
+        value: loading ? null : history.length,
+        tone: 'info',
+        caption: history[0]?.status === 'DRAFT' ? 'Đang có 1 bản nháp chờ duyệt.' : 'Chưa có bản nháp đang mở.',
+      },
+      {
+        icon: 'groups',
+        label: 'Thành viên tối đa',
+        value: effective ? effective.policy.maxTeamSize : null,
+        tone: 'success',
+        caption: effective ? `Tối thiểu ${effective.policy.minTeamSize} thành viên / nhóm.` : 'Theo chính sách hiệu lực.',
+      },
+      {
+        icon: 'supervisor_account',
+        label: 'Đồ án tối đa / GVHD',
+        value: effective ? effective.policy.maxProjectsPerSupervisor : null,
+        tone: 'warning',
+        caption: effective ? `Tối thiểu ${effective.policy.minDistinctMajors} ngành tham gia.` : 'Theo chính sách hiệu lực.',
+      },
+    ]} />
+
+    {history[0]?.status === 'DRAFT' && <p className="workspace-note p-4 text-sm">Đang có bản nháp chính sách. Chọn bản nháp trong lịch sử để sửa hoặc công bố trước khi tạo bản kế tiếp.</p>}
+    {conflicted && <p role="status" className="workspace-note p-4 text-sm">Bản nhập được giữ để đối chiếu và đã khóa lưu/công bố. Tải lại dữ liệu rồi chọn bản nháp mới trong lịch sử hoặc tạo bản kế tiếp từ chính sách hiện hành; hệ thống không tự gửi lại thao tác.</p>}
     {error && <div ref={errorSummary} tabIndex={-1} role="alert" aria-labelledby="policy-error-title" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><p id="policy-error-title" className="font-semibold">Chưa thể hoàn tất thao tác</p><p className="mt-1">{error.message}</p>{error.action && <button type="button" onClick={() => void load()} className="mt-2 min-h-11 font-semibold underline underline-offset-4">{error.action === 'reload' ? 'Tải lại dữ liệu' : 'Thử lại'}</button>}</div>}
     {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{notice}</p>}
-    <section className="workspace-surface p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold text-ink">Chính sách hiện hành</h2>{effective && <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${policyBadgeClass[effective.status] ?? policyBadgeClass.LOCKED}`}>v{effective.version} · {policyStatusLabels[effective.status] ?? effective.status}</span>}</div>{effective ? <p className="mt-1 text-sm text-ink-muted">Phiên bản {effective.version} · {policyStatusLabels[effective.status] ?? effective.status} · hiệu lực (giờ Việt Nam) {dateTimeLabel(effective.effectiveFrom)} đến {dateTimeLabel(effective.effectiveTo)}</p> : <p className="mt-1 text-sm text-status-warning-text">Chưa có chính sách hiệu lực tại thời điểm hiện tại.</p>}</div><button type="button" disabled={loading || busy || !effective || history[0]?.status === 'DRAFT'} onClick={createSuccessor} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50">Tạo bản kế tiếp</button></div>{effective && <PolicyFields policy={effective.policy} />}</section>
-    <div className="workspace-master-detail"><section className="workspace-surface p-5"><h2 className="font-semibold text-ink">Lịch sử phiên bản</h2>{loading ? <p role="status" className="mt-3 text-sm text-ink-muted">Đang tải lịch sử chính sách…</p> : history.length === 0 ? <p className="mt-3 text-sm text-ink-muted">Chưa có phiên bản chính sách.</p> : <ul className="mt-3 space-y-2.5">{history.map(item => <li key={item.id}><button type="button" onClick={() => item.status === 'DRAFT' ? editDraft(item) : undefined} disabled={loading || busy || item.status !== 'DRAFT'} className={`policy-history-row min-h-11 w-full rounded-xl border p-3.5 text-left text-sm transition-colors ${item.status === 'DRAFT' ? 'border-status-warning-border bg-status-warning-bg hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary' : 'border-hairline bg-canvas cursor-default'}`}><span className="flex flex-wrap items-center justify-between gap-2"><strong className="text-ink">Phiên bản {item.version} · {policyStatusLabels[item.status] ?? item.status}</strong><span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${policyBadgeClass[item.status] ?? policyBadgeClass.LOCKED}`}>{policyStatusLabels[item.status] ?? item.status}</span></span><span className="mt-1 block font-mono text-xs text-ink-muted">{dateTimeLabel(item.effectiveFrom)} → {dateTimeLabel(item.effectiveTo)}</span>{item.status === 'DRAFT' && <span className="mt-1 block text-xs font-semibold text-status-warning-text">Có thể chỉnh sửa</span>}</button></li>)}</ul>}</section>
-      <section className="workspace-surface p-5"><ConfigModeFrame mode={draft ? 'edit' : 'view'} dirty={dirty} busy={loading || busy} saveDisabled={conflicted} allowSaveUnchanged
-        editDisabled={!history.length || (history[0]?.status !== 'DRAFT' && !effective)} navigationGuard={false}
-        onEdit={() => history[0]?.status === 'DRAFT' ? editDraft(history[0]) : createSuccessor()}
-        onCancel={() => { setEditing(null); setDraft(null); setError(null) }} onSave={() => formRef.current?.requestSubmit()}
-        saveLabel="Lưu bản nháp" breadcrumb={<span className="text-sm font-semibold text-ink">Chính sách giai đoạn</span>}
-        blastRadius="Phiên bản mới áp dụng ngay khi công bố và kết thúc hiệu lực phiên bản trước.">
-        {!draft ? <p className="text-sm text-ink-muted">Chọn “Tạo bản kế tiếp” để thay đổi chính sách. Các phiên bản đã công bố hoặc đã khóa chỉ xuất hiện trong lịch sử.</p> : <form ref={formRef} onSubmit={save} className="space-y-5"><div><h2 className="font-semibold text-ink">{editing ? `Chỉnh sửa bản nháp ${editing.version}` : 'Bản nháp kế tiếp'}</h2><p className="mt-1 text-sm text-ink-muted">Khi công bố, phiên bản mới sẽ áp dụng từ thời điểm hiện tại. Hệ thống kiểm tra lại thời gian hiệu lực và điều kiện sử dụng trước khi lưu.</p></div><PolicyEditor draft={draft} error={error} disabled={loading || busy || conflicted} onChange={setDraft} /><div className="flex flex-wrap gap-3">{editing?.status === 'DRAFT' && <button type="button" disabled={loading || busy || conflicted} onClick={publish} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50">Công bố ngay</button>}</div></form>}
-      </ConfigModeFrame></section></div>
-    <QualificationPolicyPanel periodId={periodId} />
+
+    {/* BENTO 2 CỘT: Trái (8/12) = Chính sách hiện hành + Trình chỉnh sửa + Điều kiện chứng nhận | Phải (4/12) = Lịch sử phiên bản */}
+    <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
+      <div className="space-y-5 xl:col-span-8">
+        <section className="workspace-surface">
+          <header className="flex flex-wrap items-start justify-between gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base font-bold text-ink">Chính sách hiện hành</h2>
+                {effective && <StatusBadge tone={policyStatusTone[effective.status] ?? 'neutral'} label={`v${effective.version} · ${policyStatusLabels[effective.status] ?? effective.status}`} />}
+              </div>
+              {effective ? (
+                <p className="mt-1 text-xs text-ink-muted">
+                  Phiên bản {effective.version} · {policyStatusLabels[effective.status] ?? effective.status} · hiệu lực (giờ Việt Nam) {dateTimeLabel(effective.effectiveFrom)} đến {dateTimeLabel(effective.effectiveTo)}
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-status-warning-text">Chưa có chính sách hiệu lực tại thời điểm hiện tại.</p>
+              )}
+            </div>
+            <button
+              type="button"
+              disabled={loading || busy || !effective || history[0]?.status === 'DRAFT'}
+              onClick={createSuccessor}
+              className="min-h-11 shrink-0 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Tạo bản kế tiếp
+            </button>
+          </header>
+          <div className="p-5">
+            {effective ? <PolicyFields policy={effective.policy} /> : (
+              <p className="text-sm text-ink-muted">Hãy tạo hoặc công bố một phiên bản chính sách để áp dụng cho giai đoạn này.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="workspace-surface p-5">
+          <ConfigModeFrame
+            mode={draft ? 'edit' : 'view'}
+            dirty={dirty}
+            busy={loading || busy}
+            saveDisabled={conflicted}
+            allowSaveUnchanged
+            editDisabled={!history.length || (history[0]?.status !== 'DRAFT' && !effective)}
+            navigationGuard={false}
+            onEdit={() => history[0]?.status === 'DRAFT' ? editDraft(history[0]) : createSuccessor()}
+            onCancel={() => { setEditing(null); setDraft(null); setError(null) }}
+            onSave={() => formRef.current?.requestSubmit()}
+            saveLabel="Lưu bản nháp"
+            breadcrumb={<span className="text-sm font-semibold text-ink">Chính sách giai đoạn</span>}
+            blastRadius="Phiên bản mới áp dụng ngay khi công bố và kết thúc hiệu lực phiên bản trước."
+          >
+            {!draft ? (
+              <p className="text-sm text-ink-muted">
+                Chọn “Tạo bản kế tiếp” để thay đổi chính sách. Các phiên bản đã công bố hoặc đã khóa chỉ xuất hiện trong lịch sử.
+              </p>
+            ) : (
+              <form ref={formRef} onSubmit={save} className="space-y-5">
+                <div>
+                  <h2 className="text-base font-bold text-ink">{editing ? `Chỉnh sửa bản nháp ${editing.version}` : 'Bản nháp kế tiếp'}</h2>
+                  <p className="mt-1 text-xs text-ink-muted">
+                    Khi công bố, phiên bản mới sẽ áp dụng từ thời điểm hiện tại. Hệ thống kiểm tra lại thời gian hiệu lực và điều kiện sử dụng trước khi lưu.
+                  </p>
+                </div>
+                <PolicyEditor draft={draft} error={error} disabled={loading || busy || conflicted} onChange={setDraft} />
+                <div className="flex flex-wrap gap-3">
+                  {editing?.status === 'DRAFT' && (
+                    <button
+                      type="button"
+                      disabled={loading || busy || conflicted}
+                      onClick={publish}
+                      className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Công bố ngay
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
+          </ConfigModeFrame>
+        </section>
+
+        <QualificationPolicyPanel periodId={periodId} />
+      </div>
+
+      <section className="workspace-surface xl:sticky xl:top-20 xl:col-span-4">
+        <header className="flex items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+          <div>
+            <h2 className="text-base font-bold text-ink">Lịch sử phiên bản</h2>
+            <p className="text-xs text-ink-muted">Bản nháp có thể mở lại để chỉnh sửa.</p>
+          </div>
+          <StatusBadge tone="neutral" label={`${history.length} bản`} />
+        </header>
+        <div className="space-y-3 p-5">
+          {loading ? (
+            <p role="status" className="text-sm text-ink-muted">Đang tải lịch sử chính sách…</p>
+          ) : history.length === 0 ? (
+            <p className="rounded-lg border border-hairline bg-canvas p-4 text-sm text-ink-muted">Chưa có phiên bản chính sách.</p>
+          ) : (
+            <>
+              <ul className="space-y-2.5">
+                {historyPagination.paginatedItems.map(item => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => item.status === 'DRAFT' ? editDraft(item) : undefined}
+                      disabled={loading || busy || item.status !== 'DRAFT'}
+                      className={`policy-history-row min-h-11 w-full rounded-xl border p-3.5 text-left text-sm transition-colors ${item.status === 'DRAFT' ? 'border-status-warning-border bg-status-warning-bg hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary' : 'cursor-default border-hairline bg-canvas'}`}
+                    >
+                      <span className="flex flex-wrap items-center justify-between gap-2">
+                        <strong className="text-ink">Phiên bản {item.version} · {policyStatusLabels[item.status] ?? item.status}</strong>
+                        <StatusBadge tone={policyStatusTone[item.status] ?? 'neutral'} label={policyStatusLabels[item.status] ?? item.status} />
+                      </span>
+                      <span className="mt-1.5 block font-mono text-xs text-ink-muted">{dateTimeLabel(item.effectiveFrom)} → {dateTimeLabel(item.effectiveTo)}</span>
+                      {item.status === 'DRAFT' && <span className="mt-1 block text-xs font-semibold text-status-warning-text">Nhấn để chỉnh sửa bản nháp</span>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {historyPagination.showPagination && (
+                <Pagination
+                  page={historyPagination.page}
+                  pages={historyPagination.totalPages}
+                  total={historyPagination.total}
+                  pageSize={historyPagination.pageSize}
+                  pageSizeOptions={[8, 16, 30]}
+                  onPage={historyPagination.setPage}
+                  onPageSizeChange={historyPagination.setPageSize}
+                />
+              )}
+            </>
+          )}
+        </div>
+      </section>
+    </div>
   </WorkspacePage>
 }
 
@@ -211,4 +369,4 @@ function PolicyEditor({ draft, error, disabled, onChange }: { draft: Draft; erro
   </>
 }
 
-function PolicyFields({ policy }: { policy: api.PeriodPolicyFields }) { const labels = (value: string) => value.split(',').filter(Boolean).map(item => policyOptionLabels[item] ?? item).join(', '); return <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3"><div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Phương thức đồ án</dt><dd className="mt-1 font-semibold text-ink">{labels(policy.allowedProjectModes)}</dd></div><div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Nguồn đề tài</dt><dd className="mt-1 font-semibold text-ink">{labels(policy.allowedProposalSources)}</dd></div><div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Số thành viên</dt><dd className="mt-1 font-semibold text-ink">{policy.minTeamSize}–{policy.maxTeamSize}</dd></div><div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Số ngành tối thiểu</dt><dd className="mt-1 font-semibold text-ink">{policy.minDistinctMajors}</dd></div><div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Đồ án tối đa mỗi giảng viên</dt><dd className="mt-1 font-semibold text-ink">{policy.maxProjectsPerSupervisor}</dd></div><div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Thỏa thuận làm việc nhóm</dt><dd className="mt-1 font-semibold text-ink">{policy.requireWorkingAgreement ? 'Bắt buộc trước khi kích hoạt' : 'Không bắt buộc'}</dd></div></dl> }
+function PolicyFields({ policy }: { policy: api.PeriodPolicyFields }) { const labels = (value: string) => value.split(',').filter(Boolean).map(item => policyOptionLabels[item] ?? item).join(', '); return <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3"><div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Phương thức đồ án</dt><dd className="mt-1 font-semibold text-ink">{labels(policy.allowedProjectModes)}</dd></div><div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Nguồn đề tài</dt><dd className="mt-1 font-semibold text-ink">{labels(policy.allowedProposalSources)}</dd></div><div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Số thành viên</dt><dd className="mt-1 font-semibold text-ink">{policy.minTeamSize}–{policy.maxTeamSize}</dd></div><div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Số ngành tối thiểu</dt><dd className="mt-1 font-semibold text-ink">{policy.minDistinctMajors}</dd></div><div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Đồ án tối đa mỗi giảng viên</dt><dd className="mt-1 font-semibold text-ink">{policy.maxProjectsPerSupervisor}</dd></div><div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Thỏa thuận làm việc nhóm</dt><dd className="mt-1 font-semibold text-ink">{policy.requireWorkingAgreement ? 'Bắt buộc trước khi kích hoạt' : 'Không bắt buộc'}</dd></div></dl> }

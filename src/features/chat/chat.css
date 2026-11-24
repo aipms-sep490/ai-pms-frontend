@@ -3,7 +3,9 @@
 
 /* Chat follows the workspace theme and keeps touch/keyboard controls usable. */
 .chat-mobile-connection{display:none}
-.chat-shell{min-width:0;min-height:0;height:calc(100dvh - 9rem)}
+.chat-shell{width:100%;max-width:100%;min-width:0;min-height:0;height:calc(100dvh - 9rem);box-shadow:0 1px 2px color-mix(in oklab, var(--color-brand-navy) 5%, transparent),0 8px 22px -10px color-mix(in oklab, var(--color-brand-navy) 10%, transparent)}
+.chat-sidebar-header{background:color-mix(in oklab, var(--color-canvas) 75%, var(--color-card));border-bottom:1px solid var(--color-hairline)}
+.chat-sidebar-header h1{font-family:var(--font-heading);font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--color-brand-navy)}
 .chat-shell button,.chat-shell summary{min-height:44px}
 .chat-shell summary{display:list-item;align-content:center}
 .chat-shell button:hover:not(:disabled){background:var(--color-primary-subtle);color:var(--color-primary)}

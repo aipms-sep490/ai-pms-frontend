@@ -172,20 +172,62 @@ export function ProfileSecurityPage() {
 
   if (!session) return <div className="auth-page-shell"><section className="auth-card"><h1>Cần đăng nhập</h1><Link to="/login">Mở trang đăng nhập</Link></section></div>
 
-  return <WorkspacePage title="Bảo mật tài khoản" eyebrow="Tài khoản cá nhân" description="Cập nhật mật khẩu để bảo vệ tài khoản của bạn." backTo="/profile"><section className="profile-workspace workspace-surface" aria-labelledby="security-title">
-    <h2 id="security-title" className="text-lg font-semibold">Đổi mật khẩu</h2>
-    <p className="auth-description">Sau khi đổi mật khẩu, bạn cần đăng nhập lại.</p>
-    <form className="auth-form" onSubmit={submit} noValidate>
-      <label htmlFor="current-password">Mật khẩu hiện tại</label>
-      <input id="current-password" type="password" autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} disabled={pending} />
-      <label htmlFor="security-password">Mật khẩu mới</label>
-      <input id="security-password" type="password" autoComplete="new-password" value={newPassword} onChange={event => setNewPassword(event.target.value)} aria-describedby="security-password-hint" disabled={pending} />
-      <p className="auth-form-hint" id="security-password-hint">{passwordMessage}</p>
-      <label htmlFor="security-confirm">Xác nhận mật khẩu mới</label>
-      <input id="security-confirm" type="password" autoComplete="new-password" value={confirm} onChange={event => setConfirm(event.target.value)} disabled={pending} />
-      {error && <p className="auth-error" role="alert">{error}</p>}
-      <Button type="submit" disabled={pending}>{pending ? 'Đang đổi mật khẩu…' : 'Đổi mật khẩu'}</Button>
-    </form>
-  </section><ExternalLoginsPanel /></WorkspacePage>
+  return (
+    <WorkspacePage title="Bảo mật tài khoản" eyebrow="Tài khoản cá nhân" description="Cập nhật mật khẩu và quản lý tài khoản đăng nhập liên kết." backTo="/profile">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12 items-start">
+        {/* Left Bento Column: Password Change Form */}
+        <section className="profile-workspace workspace-surface !p-0 xl:col-span-7" aria-labelledby="security-title">
+          <div className="flex items-center gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+            <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">lock_reset</span>
+            <div>
+              <h2 id="security-title" className="font-heading text-sm font-bold text-ink">Đổi mật khẩu</h2>
+              <p className="text-xs text-ink-muted">Sau khi đổi mật khẩu, tất cả phiên cũ sẽ bị thu hồi và bạn cần đăng nhập lại.</p>
+            </div>
+          </div>
+          <div className="p-5">
+            <form className="auth-form !mt-0" onSubmit={submit} noValidate>
+              <label htmlFor="current-password">Mật khẩu hiện tại</label>
+              <input id="current-password" type="password" autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} disabled={pending} />
+              <label htmlFor="security-password">Mật khẩu mới</label>
+              <input id="security-password" type="password" autoComplete="new-password" value={newPassword} onChange={event => setNewPassword(event.target.value)} aria-describedby="security-password-hint" disabled={pending} />
+              <p className="auth-form-hint" id="security-password-hint">{passwordMessage}</p>
+              <label htmlFor="security-confirm">Xác nhận mật khẩu mới</label>
+              <input id="security-confirm" type="password" autoComplete="new-password" value={confirm} onChange={event => setConfirm(event.target.value)} disabled={pending} />
+              {error && <p className="auth-error" role="alert">{error}</p>}
+              <div className="pt-2">
+                <Button type="submit" disabled={pending}>{pending ? 'Đang đổi mật khẩu…' : 'Đổi mật khẩu'}</Button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        {/* Right Bento Column: Security Guidance & External Logins */}
+        <div className="xl:col-span-5 space-y-5">
+          <section className="workspace-surface" aria-labelledby="security-guidance-title">
+            <div className="flex items-center gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+              <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">verified_user</span>
+              <h2 id="security-guidance-title" className="font-heading text-sm font-bold text-ink">Khuyến nghị bảo mật</h2>
+            </div>
+            <ul className="space-y-2.5 p-5 text-xs leading-5 text-ink-soft">
+              <li className="flex items-start gap-2">
+                <span className="material-symbols-outlined mt-0.5 text-[16px] text-status-success-text shrink-0" aria-hidden="true">check_circle</span>
+                <span>Sử dụng mật khẩu riêng dài từ 10 ký tự trở lên, kết hợp chữ hoa, chữ thường, số và ký tự đặc biệt.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="material-symbols-outlined mt-0.5 text-[16px] text-status-success-text shrink-0" aria-hidden="true">check_circle</span>
+                <span>Không dùng lại mật khẩu cá nhân hoặc chia sẻ tài khoản sinh viên/giảng viên cho người khác.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="material-symbols-outlined mt-0.5 text-[16px] text-status-success-text shrink-0" aria-hidden="true">check_circle</span>
+                <span>Đổi mật khẩu ngay nếu nghi ngờ truy cập trái phép — hệ thống sẽ tự đăng xuất các phiên còn lại.</span>
+              </li>
+            </ul>
+          </section>
+
+          <ExternalLoginsPanel />
+        </div>
+      </div>
+    </WorkspacePage>
+  )
 }
 

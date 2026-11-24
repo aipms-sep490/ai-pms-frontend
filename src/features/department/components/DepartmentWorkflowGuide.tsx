@@ -11,5 +11,44 @@ const steps = [
 ]
 
 export function DepartmentWorkflowGuide() {
-  return <details className="rounded-lg border border-hairline bg-card p-4 sm:p-5"><summary className="min-h-11 cursor-pointer font-heading font-semibold text-ink">Hướng dẫn vận hành bộ môn theo vòng đời đồ án</summary><p className="mt-2 text-sm leading-6 text-ink-muted">Các bước giúp tìm đúng màn hình. Quyền và điều kiện thao tác được kiểm tra trên từng hồ sơ, không được cấp thêm từ hướng dẫn này.</p><ol className="mt-4 grid gap-4 md:grid-cols-2">{steps.map((step, index) => <li key={step.title} className="rounded-lg border border-hairline p-4"><h3 className="font-semibold text-ink">{index + 1}. {step.title}</h3><p className="mt-2 text-sm leading-6 text-ink-muted">{step.text}</p><Link className="mt-2 inline-flex min-h-11 items-center font-semibold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to={step.to}>{step.action}</Link></li>)}</ol></details>
+  return (
+    <details className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+      <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-canvas/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+        <span className="inline-flex items-center gap-2 font-heading">
+          <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">menu_book</span>
+          Hướng dẫn vận hành bộ môn theo vòng đời đồ án
+        </span>
+        <span className="inline-flex items-center gap-2 text-xs font-medium text-ink-muted">
+          <span className="rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-0.5 font-semibold text-primary">
+            {steps.length} bước
+          </span>
+          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">expand_more</span>
+        </span>
+      </summary>
+      <div className="border-t border-hairline bg-canvas/50 p-4 sm:p-5">
+        <p className="max-w-3xl text-xs leading-5 text-ink-muted">
+          Các bước giúp tìm đúng màn hình. Quyền và điều kiện thao tác được kiểm tra trên từng hồ sơ, không được cấp thêm từ hướng dẫn này.
+        </p>
+        <ol className="mt-3.5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {steps.map((step, index) => (
+            <li key={step.title} className="flex flex-col justify-between rounded-xl border border-hairline bg-card p-3.5">
+              <div>
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-ink">
+                  <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary-subtle font-mono text-xs font-bold text-primary">
+                    {index + 1}
+                  </span>
+                  {step.title}
+                </h3>
+                <p className="mt-1.5 text-xs leading-5 text-ink-muted">{step.text}</p>
+              </div>
+              <Link className="mt-2 inline-flex min-h-9 items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to={step.to}>
+                {step.action}
+                <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
+              </Link>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </details>
+  )
 }

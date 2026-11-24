@@ -1,6 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useStudentJourney } from '../../../app/context'
+import { Pagination } from '../../../components/ui/Pagination'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import { HttpError } from '../../../services/http/http-client'
@@ -18,10 +21,10 @@ function getPeriodWindowStatus(startAt: string, endAt: string) {
   const end = new Date(endAt).getTime()
 
   if (now < start) {
-    return { label: 'Chưa mở nhận hồ sơ', tone: 'neutral' as const, isWithinWindow: false }
+    return { label: 'Chưa mở nhận hồ sơ', tone: 'info' as const, isWithinWindow: false }
   }
   if (now > end) {
-    return { label: 'Đã hết hạn nhận hồ sơ', tone: 'muted' as const, isWithinWindow: false }
+    return { label: 'Đã hết hạn nhận hồ sơ', tone: 'neutral' as const, isWithinWindow: false }
   }
   return { label: 'Đang mở nhận hồ sơ', tone: 'success' as const, isWithinWindow: true }
 }
@@ -101,141 +104,180 @@ export function ProjectPeriodCatalogPage() {
   }
 
   const totalPages = Math.max(1, Math.ceil((result?.totalCount ?? 0) / pageSize))
+  const openWindowCount = result ? result.items.filter(item => getPeriodWindowStatus(item.startAt, item.endAt).isWithinWindow).length : null
+  const upcomingWindowCount = result ? result.items.filter(item => getPeriodWindowStatus(item.startAt, item.endAt).tone === 'info').length : null
 
-  return <WorkspacePage title="Kỳ đăng ký đồ án" eyebrow="Khám phá học kỳ" description="Tìm kỳ đăng ký đang hoạt động và xem bước tiếp theo trong lộ trình đồ án.">
-    {/* Academic directory scope notice */}
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-hairline bg-card/60 px-4 py-2.5 text-xs text-ink-muted">
-      <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-sm text-primary">policy</span>
-        <span>Danh sách được giới hạn theo <strong>cơ sở đào tạo của tài khoản</strong>; quản trị viên có thể xem toàn hệ thống.</span>
+  return <WorkspacePage
+    className="space-y-5"
+    title="Kỳ đăng ký đồ án"
+    eyebrow="Khám phá học kỳ"
+    description="Tìm kỳ đăng ký đang hoạt động và xem bước tiếp theo trong lộ trình đồ án."
+    action={
+      <div className="flex flex-wrap items-center gap-2">
+        <Link to="/team" className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+          <span className="material-symbols-outlined text-sm text-primary" aria-hidden="true">groups</span>
+          Quản lý nhóm
+        </Link>
+        <Link to="/projects/lifecycle" className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+          <span className="material-symbols-outlined text-sm text-primary" aria-hidden="true">timeline</span>
+          Lộ trình đồ án
+        </Link>
+        <Link to="/topics" className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-primary/20 bg-primary-subtle px-3 text-xs font-semibold text-primary transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+          <span className="material-symbols-outlined text-sm" aria-hidden="true">explore</span>
+          Khám phá đề tài
+        </Link>
       </div>
-      <span className="rounded-full bg-canvas px-2.5 py-0.5 font-medium text-ink-muted border border-hairline/60">
-        Phạm vi tài khoản
-      </span>
-    </div>
+    }
+  >
+    <StatTileRow tiles={[
+      { icon: 'event_note', label: 'Kỳ đăng ký phù hợp', value: result ? result.totalCount : null, caption: 'Phạm vi cơ sở đào tạo của tài khoản.', hero: true },
+      { icon: 'lock_open', label: 'Kỳ đang mở', value: openWindowCount, tone: 'success', caption: 'Đang trong hạn nhận hồ sơ.' },
+      { icon: 'schedule', label: 'Kỳ sắp mở', value: upcomingWindowCount, tone: 'info', caption: 'Sắp tới thời gian đăng ký.' },
+      { icon: 'calendar_month', label: 'Học kỳ hoạt động', value: semesters.length, tone: 'neutral', caption: semester ? `Đang chọn: ${semester.name}` : 'Chưa chọn học kỳ.' },
+    ]} />
 
-    {/* F-Research inspired Guidance Panel (P09) */}
-    <section className="mb-6 rounded-xl border border-hairline bg-gradient-to-r from-primary-subtle/50 via-card to-card p-5" aria-label="Hướng dẫn tham gia kỳ đồ án">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="max-w-2xl">
-          <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
-            <span className="material-symbols-outlined text-sm">info</span>
-            Quy trình tham gia đợt đồ án
-          </div>
-          <h2 className="mt-1 font-heading text-base font-bold text-ink">3 bước chuẩn bị trước khi nộp hồ sơ</h2>
-          <p className="mt-1 text-xs text-ink-muted leading-relaxed">
-            Sinh viên cần bảo đảm điều kiện học vụ, thành lập nhóm hợp lệ và chọn đề tài phù hợp trước khi thời hạn đăng ký của đợt kết thúc.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 shrink-0">
-          <Link to="/team" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-            <span className="material-symbols-outlined text-sm text-primary" aria-hidden="true">groups</span>
-            Quản lý nhóm
-          </Link>
-          <Link to="/projects/lifecycle" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-            <span className="material-symbols-outlined text-sm text-primary" aria-hidden="true">timeline</span>
-            Lộ trình đồ án
-          </Link>
-          <Link to="/topics" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-            <span className="material-symbols-outlined text-sm text-primary" aria-hidden="true">explore</span>
-            Khám phá đề tài
-          </Link>
-        </div>
-      </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-3 border-t border-hairline/60 pt-4 text-xs">
-        <div className="flex items-start gap-2.5">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-white text-xs">1</span>
-          <div>
-            <strong className="block font-semibold text-ink">Kiểm tra điều kiện</strong>
-            <span className="text-ink-muted">Xem điều kiện học vụ của đợt đăng ký trong hồ sơ</span>
-          </div>
-        </div>
-        <div className="flex items-start gap-2.5">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-white text-xs">2</span>
-          <div>
-            <strong className="block font-semibold text-ink">Lập nhóm đồ án</strong>
-            <span className="text-ink-muted">Số thành viên theo quy định của đợt đăng ký</span>
-          </div>
-        </div>
-        <div className="flex items-start gap-2.5">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-white text-xs">3</span>
-          <div>
-            <strong className="block font-semibold text-ink">Đăng ký đề tài</strong>
-            <span className="text-ink-muted">Chọn đề tài từ giảng viên hoặc tự đề xuất</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section className="rounded-xl border border-hairline bg-card p-4 sm:p-5" aria-label="Tìm kỳ đăng ký">
-      <form onSubmit={submitSearch} className="flex flex-col gap-3 lg:flex-row lg:items-end">
-        <label className="min-w-0 flex-1 text-sm font-semibold text-ink-soft">Tìm theo mã hoặc tên kỳ
-          <input value={searchText} onChange={event => setSearchText(event.target.value)} placeholder="Ví dụ: Fall 2026" className="mt-1.5 min-h-11 w-full rounded-lg border border-hairline bg-canvas px-3 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" />
+    {/* Thanh tìm kiếm & lọc 1 hàng ngang gọn ngay trên đầu */}
+    <section className="workspace-surface p-4 sm:p-5 space-y-3" aria-label="Tìm kỳ đăng ký">
+      <form onSubmit={submitSearch} className="flex flex-wrap items-end gap-3">
+        <label className="min-w-56 flex-1 text-xs font-semibold text-ink-soft">Tìm theo mã hoặc tên kỳ
+          <input value={searchText} onChange={event => setSearchText(event.target.value)} placeholder="Ví dụ: Fall 2026" className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" />
         </label>
-        <label className="text-sm font-semibold text-ink-soft lg:w-56">Học kỳ
-          <select value={urlSemesterId ?? ''} onChange={event => handleSemesterChange(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-lg border border-hairline bg-canvas px-3 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+        <label className="min-w-48 text-xs font-semibold text-ink-soft lg:w-64">Học kỳ
+          <select value={urlSemesterId ?? ''} onChange={event => handleSemesterChange(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
             <option value="">Tất cả học kỳ</option>
             {semesters.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
         </label>
-        <button type="submit" className="min-h-11 whitespace-nowrap rounded-lg bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:self-end">Tìm kiếm</button>
+        <button type="submit" className="min-h-11 shrink-0 whitespace-nowrap rounded-lg bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Tìm kiếm</button>
       </form>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-2.5 text-xs text-ink-muted">
+        <div className="flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-sm text-primary" aria-hidden="true">policy</span>
+          <span>Danh sách được giới hạn theo <strong>cơ sở đào tạo của tài khoản</strong>; quản trị viên có thể xem toàn hệ thống.</span>
+        </div>
+        <StatusBadge tone="neutral" label="Phạm vi tài khoản" />
+      </div>
     </section>
-    <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
-      <h2 className="font-heading text-xl font-bold text-ink">Kỳ đang mở đăng ký</h2>
-      {result && <span className="rounded-full bg-primary-subtle px-3 py-1 text-sm font-semibold text-primary">{result.totalCount} kỳ phù hợp</span>}
-    </div>
-    {loading && <p role="status" className="mt-4 rounded-xl border border-hairline bg-card p-6 text-ink-muted">Đang tải các kỳ đăng ký…</p>}
-    {isForbidden && (
-      <div role="alert" className="mt-4 rounded-xl border border-status-warning-border bg-status-warning-bg p-5 text-status-warning-text">
-        <strong>Không thể xem danh sách kỳ đăng ký:</strong> Tài khoản chưa được gán cơ sở đào tạo đang hoạt động hoặc không có quyền xem dữ liệu này. Liên hệ quản trị viên nếu bạn cần hỗ trợ.
-      </div>
-    )}
-    {!isForbidden && error && (
-      <div role="alert" className="mt-4 rounded-xl border border-status-error-border bg-status-error-bg p-5 text-status-error-text">
-        Không tải được danh sách kỳ đăng ký. <button type="button" onClick={() => setRevision(value => value + 1)} className="font-semibold underline">Thử lại</button>
-      </div>
-    )}
-    {!loading && !error && !isForbidden && result?.items.length === 0 && <p className="mt-4 rounded-xl border border-hairline bg-card p-6 text-ink-muted">Chưa có kỳ đăng ký đang hoạt động phù hợp bộ lọc. Hãy thử từ khóa hoặc học kỳ khác.</p>}
-    {!loading && !error && !isForbidden && result && result.items.length > 0 && <>
-      <ul className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{result.items.map(period => {
-        const isCurrentSemester = period.academicSemesterId === semester?.id
-        const windowStatus = getPeriodWindowStatus(period.startAt, period.endAt)
-        return <li key={period.id} className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-hairline bg-card">
-          <div className="flex-1 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="rounded-full bg-primary-subtle px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">{period.semesterName}</span>
-              <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                windowStatus.tone === 'success'
-                  ? 'border-status-success-border bg-status-success-bg text-status-success-text'
-                  : windowStatus.tone === 'neutral'
-                    ? 'border-primary-subtle bg-primary-subtle/50 text-primary'
-                    : 'border-hairline bg-canvas text-ink-muted'
-              }`}>{windowStatus.label}</span>
-            </div>
-            <h3 className="mt-5 break-words font-heading text-lg font-bold text-ink">{period.name}</h3>
-            <p className="mt-1 font-mono text-sm text-ink-muted">{period.code}</p>
-            <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-hairline pt-4 text-sm">
-              <div><dt className="text-ink-muted">Bắt đầu</dt><dd className="mt-1 font-semibold text-ink">{dateLabel(period.startAt)}</dd></div>
-              <div><dt className="text-ink-muted">Kết thúc</dt><dd className="mt-1 font-semibold text-ink">{dateLabel(period.endAt)}</dd></div>
-            </dl>
+
+    {/* Danh sách kỳ đang mở nổi bật ngay trên màn hình chính */}
+    <section className="workspace-surface" aria-label="Danh sách kỳ đăng ký">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+        <div>
+          <h2 className="font-heading text-base font-bold text-ink">Kỳ đang mở đăng ký</h2>
+          <p className="text-xs text-ink-muted">Kiểm tra khung thời gian mở nhận hồ sơ và đi tới màn hình nhóm của học kỳ đang chọn.</p>
+        </div>
+        {result && <StatusBadge tone="info" label={`${result.totalCount} kỳ phù hợp`} />}
+      </header>
+
+      <div className="space-y-4 p-5">
+        {loading && <p role="status" className="rounded-xl border border-hairline bg-canvas p-5 text-sm text-ink-muted">Đang tải các kỳ đăng ký…</p>}
+        {isForbidden && (
+          <div role="alert" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-5 text-sm text-status-warning-text">
+            <strong>Không thể xem danh sách kỳ đăng ký:</strong> Tài khoản chưa được gán cơ sở đào tạo đang hoạt động hoặc không có quyền xem dữ liệu này. Liên hệ quản trị viên nếu bạn cần hỗ trợ.
           </div>
-          <div className="border-t border-hairline p-4">
-            {isCurrentSemester ? (
-              <Link to="/team" className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 font-semibold text-white hover:bg-primary-hover">
-                Xem nhóm và điều kiện <span aria-hidden="true">→</span>
-              </Link>
-            ) : (
-              <p className="text-sm leading-6 text-ink-muted">Học kỳ này chưa được chọn trong hồ sơ hiện tại. Kiểm tra ngữ cảnh học kỳ trước khi tiếp tục.</p>
+        )}
+        {!isForbidden && error && (
+          <div role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-5 text-sm text-status-error-text">
+            Không tải được danh sách kỳ đăng ký. <button type="button" onClick={() => setRevision(value => value + 1)} className="font-semibold underline">Thử lại</button>
+          </div>
+        )}
+        {!loading && !error && !isForbidden && result?.items.length === 0 && (
+          <p className="rounded-xl border border-hairline bg-canvas p-5 text-sm text-ink-muted">
+            Chưa có kỳ đăng ký đang hoạt động phù hợp bộ lọc. Hãy thử từ khóa hoặc học kỳ khác.
+          </p>
+        )}
+        {!loading && !error && !isForbidden && result && result.items.length > 0 && (
+          <>
+            <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{result.items.map(period => {
+              const isCurrentSemester = period.academicSemesterId === semester?.id
+              const windowStatus = getPeriodWindowStatus(period.startAt, period.endAt)
+              return (
+                <li key={period.id} className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-hairline bg-card shadow-2xs transition-shadow hover:border-primary/40 hover:shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-4 py-3">
+                    <span className="rounded-full bg-primary-subtle px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-primary">{period.semesterName}</span>
+                    <StatusBadge tone={windowStatus.tone} label={windowStatus.label} />
+                  </div>
+                  <div className="flex-1 p-4">
+                    <h3 className="break-words font-heading text-base font-bold text-ink">{period.name}</h3>
+                    <p className="mt-1 font-mono text-xs text-ink-muted">{period.code}</p>
+                    <dl className="mt-3.5 grid grid-cols-2 gap-2.5 border-t border-hairline pt-3.5 text-xs">
+                      <div className="rounded-lg border border-hairline bg-canvas p-2.5">
+                        <dt className="text-ink-muted">Bắt đầu</dt>
+                        <dd className="mt-1 font-semibold tabular-nums text-ink">{dateLabel(period.startAt)}</dd>
+                      </div>
+                      <div className="rounded-lg border border-hairline bg-canvas p-2.5">
+                        <dt className="text-ink-muted">Kết thúc</dt>
+                        <dd className="mt-1 font-semibold tabular-nums text-ink">{dateLabel(period.endAt)}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                  <div className="border-t border-hairline bg-canvas/40 p-3.5">
+                    {isCurrentSemester ? (
+                      <Link to="/team" className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                        Xem nhóm và điều kiện <span aria-hidden="true">→</span>
+                      </Link>
+                    ) : (
+                      <p className="text-xs leading-5 text-ink-muted">Học kỳ này chưa được chọn trong hồ sơ hiện tại. Kiểm tra ngữ cảnh học kỳ trước khi tiếp tục.</p>
+                    )}
+                  </div>
+                </li>
+              )
+            })}</ul>
+            {totalPages > 1 && (
+              <Pagination
+                page={urlPage}
+                pages={totalPages}
+                total={result.totalCount}
+                pageSize={pageSize}
+                busy={loading}
+                onPage={handlePageChange}
+              />
             )}
+          </>
+        )}
+      </div>
+    </section>
+
+    {/* Thu gọn khối hướng dẫn 3 bước thành dải ngang gọn gàng có thể đóng/mở */}
+    <details className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-label="Hướng dẫn tham gia kỳ đồ án">
+      <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center justify-between gap-3 bg-canvas/70 px-5 py-3 text-sm font-bold text-ink hover:bg-primary-subtle/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+        <span className="inline-flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">info</span>
+          3 bước chuẩn bị trước khi nộp hồ sơ
+        </span>
+        <span className="inline-flex items-center gap-2 text-xs font-medium text-ink-muted">
+          Quy trình tham gia đợt đồ án
+          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">expand_more</span>
+        </span>
+      </summary>
+      <div className="space-y-3 border-t border-hairline p-4 sm:p-5">
+        <p className="max-w-3xl text-xs leading-relaxed text-ink-muted">
+          Sinh viên cần bảo đảm điều kiện học vụ, thành lập nhóm hợp lệ và chọn đề tài phù hợp trước khi thời hạn đăng ký của đợt kết thúc.
+        </p>
+        <div className="grid gap-3 text-xs sm:grid-cols-3">
+          <div className="flex items-start gap-2.5 rounded-xl border border-hairline bg-canvas p-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">1</span>
+            <div>
+              <strong className="block font-semibold text-ink">Kiểm tra điều kiện</strong>
+              <span className="text-ink-muted">Xem điều kiện học vụ của đợt đăng ký trong hồ sơ</span>
+            </div>
           </div>
-        </li>
-      })}</ul>
-      <nav className="mt-5 flex items-center justify-center gap-3" aria-label="Phân trang kỳ đăng ký">
-        <button type="button" disabled={urlPage <= 1} onClick={() => handlePageChange(urlPage - 1)} className="min-h-11 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold text-primary transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40">Trang trước</button>
-        <span className="text-sm font-semibold text-ink-soft">{urlPage} / {totalPages}</span>
-        <button type="button" disabled={urlPage >= totalPages} onClick={() => handlePageChange(urlPage + 1)} className="min-h-11 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold text-primary transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40">Trang sau</button>
-      </nav>
-    </>}
+          <div className="flex items-start gap-2.5 rounded-xl border border-hairline bg-canvas p-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">2</span>
+            <div>
+              <strong className="block font-semibold text-ink">Lập nhóm đồ án</strong>
+              <span className="text-ink-muted">Số thành viên theo quy định của đợt đăng ký</span>
+            </div>
+          </div>
+          <div className="flex items-start gap-2.5 rounded-xl border border-hairline bg-canvas p-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">3</span>
+            <div>
+              <strong className="block font-semibold text-ink">Đăng ký đề tài</strong>
+              <span className="text-ink-muted">Chọn đề tài từ giảng viên hoặc tự đề xuất</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
   </WorkspacePage>
 }

@@ -3,6 +3,8 @@ import { getAcademicHierarchy } from '../../academic/api/academic-api'
 import { createAcademicNameResolver } from '../../projects/components/academic-name-resolver'
 import { utcTimestamp } from '../../projects/utils/collaboration-workspace'
 import { displayLabel } from '../../../components/ui/display-label'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
@@ -15,6 +17,12 @@ import { AccountRoleAssignments } from '../components/AccountRoleAssignments'
 import './admin-workspace.css'
 
 type DetailState = 'loading' | 'ready' | 'missing' | 'forbidden' | 'error'
+
+const accountStatusTone: Record<UserAccount['status'], BadgeTone> = {
+  ACTIVE: 'success',
+  INACTIVE: 'neutral',
+  SUSPENDED: 'danger',
+}
 
 function academicUpdateError(reason: unknown): string {
   if (reason instanceof HttpError) {
@@ -125,9 +133,9 @@ export function AdminUserDetailPage() {
     } finally { setProfileBusy(false) }
   }
 
-  return <div className="workspace-page admin-workspace admin-detail" aria-labelledby="admin-user-title">
-    <Link className="admin-back" to={returnTo}><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Danh sách tài khoản</Link>
-    {state === 'loading' && <p role="status">Đang tải hồ sơ tài khoản…</p>}
+  return <div className="workspace-page admin-workspace admin-detail space-y-5" aria-labelledby="admin-user-title">
+    <Link className="admin-back !mb-0" to={returnTo}><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Danh sách tài khoản</Link>
+    {state === 'loading' && <p role="status" className="text-sm text-ink-muted">Đang tải hồ sơ tài khoản…</p>}
     {state === 'forbidden' && <p className="admin-error" role="alert">Bạn không có quyền xem hồ sơ tài khoản này.</p>}
     {state === 'missing' && <p className="admin-error" role="alert">Không tìm thấy tài khoản.</p>}
     {state === 'error' && <p className="admin-error" role="alert">Chưa tải được hồ sơ tài khoản. <Button size="sm" variant="outline" onClick={() => void load()}>Thử lại</Button></p>}
@@ -135,42 +143,114 @@ export function AdminUserDetailPage() {
       <header className="admin-heading admin-user-heading">
         <div className="admin-user-identity">
           <span className="admin-user-avatar" aria-hidden="true">{user.fullName.trim().charAt(0).toLocaleUpperCase('vi-VN')}</span>
-          <div><p className="admin-kicker">Tài khoản #{user.id}</p><h1 id="admin-user-title">{user.fullName}</h1><p>{user.email}</p></div>
+          <div>
+            <p className="admin-kicker">Tài khoản #{user.id}</p>
+            <h1 id="admin-user-title">{user.fullName}</h1>
+            <p>{user.email}</p>
+          </div>
         </div>
-        <span className={`admin-status admin-status-${user.status.toLowerCase()}`}>{displayLabel(user.status)}</span>
+        <StatusBadge tone={accountStatusTone[user.status]} label={displayLabel(user.status)} />
       </header>
       {notice && <p className="admin-notice" role="status">{notice}</p>}
-      <div className="admin-detail-grid">
-        <section className="admin-panel" aria-labelledby="admin-identity-title">
-          <h2 id="admin-identity-title">Danh tính và liên hệ</h2>
-          <dl><dt>Email</dt><dd>{user.email}</dd><dt>Mã tài khoản</dt><dd>{user.studentCode ?? user.employeeCode ?? 'Không có'}</dd><dt>Chức danh</dt><dd>{user.title ?? 'Chưa cập nhật'}</dd><dt>Điện thoại</dt><dd>{user.phone ?? 'Chưa cập nhật'}</dd></dl>
-        </section>
-        <section className="admin-panel" aria-labelledby="admin-roles-title">
-          <h2 id="admin-roles-title">Vai trò tài khoản</h2>
-          <p>{user.roles.map(role => role === 'LECTURER' ? 'Giảng viên' : role === 'EVALUATOR' ? 'Người chấm' : displayLabel(role)).join(', ') || 'Chưa có vai trò'}</p>
-          <p className="admin-boundary">Vai trò hệ thống khác với phân công hướng dẫn hoặc đánh giá của từng đồ án.</p>
-        </section>
-        <AccountRoleAssignments user={user} roles={admin.rbac?.value.roles ?? []} rolesState={admin.rbac?.state ?? 'error'} accessToken={session?.accessToken ?? ''} onReadback={setUser} />
-        <section className="admin-panel" aria-labelledby="admin-security-title">
-          <h2 id="admin-security-title">Trạng thái và bảo mật</h2>
-          <dl><dt>Lần đăng nhập thất bại</dt><dd>{user.accessFailedCount}</dd><dt>Khóa đến</dt><dd>{user.lockoutEndAt ? new Date(utcTimestamp(user.lockoutEndAt)).toLocaleString('vi-VN') : 'Không có'}</dd></dl>
-          <div className="admin-actions">
-            {user.status !== 'ACTIVE' && <Button onClick={() => void change('activate')}>Kích hoạt</Button>}
-            {user.status !== 'INACTIVE' && <Button variant="secondary" onClick={() => void change('deactivate')}>Vô hiệu hóa</Button>}
-            {user.status !== 'SUSPENDED' ? <Button variant="danger" onClick={() => void change('block')}>Khóa</Button> : <Button variant="secondary" onClick={() => void change('unblock')}>Mở khóa</Button>}
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 items-start">
+        {/* Bento 1: Danh tính & liên hệ */}
+        <section className="admin-bento-card lg:col-span-6" aria-labelledby="admin-identity-title">
+          <div className="flex items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">person</span>
+              <h2 id="admin-identity-title" className="font-heading text-sm font-bold text-ink">Danh tính và liên hệ</h2>
+            </div>
+            <span className="font-mono text-xs font-semibold text-ink-muted">#{user.id}</span>
+          </div>
+          <div className="p-5">
+            <dl>
+              <dt>Email</dt><dd>{user.email}</dd>
+              <dt>Mã tài khoản</dt><dd className="font-mono">{user.studentCode ?? user.employeeCode ?? 'Không có'}</dd>
+              <dt>Chức danh</dt><dd>{user.title ?? 'Chưa cập nhật'}</dd>
+              <dt>Điện thoại</dt><dd className="tabular-nums">{user.phone ?? 'Chưa cập nhật'}</dd>
+            </dl>
           </div>
         </section>
-        <section className="admin-panel admin-academic-profile" aria-labelledby="admin-academic-title">
-          <div className="admin-panel-heading">
-            <div><h2 id="admin-academic-title">Phạm vi học thuật</h2><p>Bộ môn và ngành được máy chủ xác nhận.</p></div>
-            {!academicEditing && <Button type="button" variant="secondary" onClick={beginAcademicEdit} disabled={!user.concurrencyToken}>Chỉnh sửa phạm vi học thuật</Button>}
+
+        {/* Bento 2: Trạng thái & bảo mật */}
+        <section className="admin-bento-card lg:col-span-6" aria-labelledby="admin-security-title">
+          <div className="flex items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">shield</span>
+              <h2 id="admin-security-title" className="font-heading text-sm font-bold text-ink">Trạng thái và bảo mật</h2>
+            </div>
+            <StatusBadge tone={accountStatusTone[user.status]} label={displayLabel(user.status)} />
           </div>
-          <dl><dt>Bộ môn hiện tại</dt><dd>{academicProfile?.departmentName ?? (user.departmentId ? academicNames.department(user.departmentId) : 'Chưa liên kết')}</dd><dt>Ngành hiện tại</dt><dd>{academicProfile?.majorName ?? (user.majorId ? academicNames.major(user.majorId) : 'Chưa liên kết')}</dd>{academicProfile && <><dt>Trạng thái hồ sơ</dt><dd>{displayLabel(academicProfile.status)}</dd></>}</dl>
-          {academicEditing && <form className="admin-form" onSubmit={(event) => void saveAcademicProfile(event)}>
-            <AcademicScopeFields {...profileDraft} onChange={setProfileDraft} disabled={profileBusy || !user.concurrencyToken} />
-            <p className="admin-boundary">Thay đổi phạm vi có thể bị chặn khi tài khoản đang thuộc nhóm hoặc có phân công hướng dẫn/chấm còn hiệu lực.</p>
-            <div className="admin-actions"><Button type="submit" disabled={profileBusy || !user.concurrencyToken}>{profileBusy ? 'Đang cập nhật…' : 'Cập nhật phạm vi học thuật'}</Button><Button type="button" variant="secondary" onClick={cancelAcademicEdit} disabled={profileBusy}>Hủy chỉnh sửa</Button></div>
-          </form>}
+          <div className="p-5">
+            <dl>
+              <dt>Lần đăng nhập thất bại</dt>
+              <dd className="tabular-nums">{user.accessFailedCount}</dd>
+              <dt>Khóa đến</dt>
+              <dd className="tabular-nums">{user.lockoutEndAt ? new Date(utcTimestamp(user.lockoutEndAt)).toLocaleString('vi-VN') : 'Không có'}</dd>
+            </dl>
+            <div className="admin-actions mt-4 border-t border-hairline pt-4">
+              {user.status !== 'ACTIVE' && <Button onClick={() => void change('activate')}>Kích hoạt</Button>}
+              {user.status !== 'INACTIVE' && <Button variant="secondary" onClick={() => void change('deactivate')}>Vô hiệu hóa</Button>}
+              {user.status !== 'SUSPENDED' ? <Button variant="danger" onClick={() => void change('block')}>Khóa</Button> : <Button variant="secondary" onClick={() => void change('unblock')}>Mở khóa</Button>}
+            </div>
+          </div>
+        </section>
+
+        {/* Bento 3: Vai trò tài khoản + Quản lý gán vai trò */}
+        <div className="lg:col-span-6 space-y-5">
+          <section className="admin-bento-card" aria-labelledby="admin-roles-title">
+            <div className="flex items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">admin_panel_settings</span>
+                <h2 id="admin-roles-title" className="font-heading text-sm font-bold text-ink">Vai trò tài khoản</h2>
+              </div>
+              <span className="inline-flex items-center rounded-full border border-hairline bg-card px-2.5 py-0.5 text-xs font-bold tabular-nums text-ink-soft">
+                {user.roles.length} vai trò
+              </span>
+            </div>
+            <div className="p-5 space-y-2.5">
+              <p className="text-sm font-semibold text-ink">{user.roles.map(role => role === 'LECTURER' ? 'Giảng viên' : role === 'EVALUATOR' ? 'Người chấm' : displayLabel(role)).join(', ') || 'Chưa có vai trò'}</p>
+              <p className="admin-boundary">Vai trò hệ thống khác với phân công hướng dẫn hoặc đánh giá của từng đồ án.</p>
+            </div>
+          </section>
+          <AccountRoleAssignments user={user} roles={admin.rbac?.value.roles ?? []} rolesState={admin.rbac?.state ?? 'error'} accessToken={session?.accessToken ?? ''} onReadback={setUser} />
+        </div>
+
+        {/* Bento 4: Phạm vi học thuật */}
+        <section className="admin-bento-card admin-academic-profile lg:col-span-6" aria-labelledby="admin-academic-title">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+            <div className="flex items-start gap-2">
+              <span className="material-symbols-outlined mt-0.5 text-[18px] text-primary" aria-hidden="true">school</span>
+              <div>
+                <h2 id="admin-academic-title" className="font-heading text-sm font-bold text-ink">Phạm vi học thuật</h2>
+                <p className="mt-0.5 text-xs text-ink-muted">Bộ môn và ngành được máy chủ xác nhận.</p>
+              </div>
+            </div>
+            {!academicEditing && <Button type="button" size="sm" variant="secondary" onClick={beginAcademicEdit} disabled={!user.concurrencyToken}>Chỉnh sửa phạm vi học thuật</Button>}
+          </div>
+          <div className="p-5">
+            <dl>
+              <dt>Bộ môn hiện tại</dt>
+              <dd>{academicProfile?.departmentName ?? (user.departmentId ? academicNames.department(user.departmentId) : 'Chưa liên kết')}</dd>
+              <dt>Ngành hiện tại</dt>
+              <dd>{academicProfile?.majorName ?? (user.majorId ? academicNames.major(user.majorId) : 'Chưa liên kết')}</dd>
+              {academicProfile && <>
+                <dt>Trạng thái hồ sơ</dt>
+                <dd><StatusBadge status={academicProfile.status} label={displayLabel(academicProfile.status)} /></dd>
+              </>}
+            </dl>
+            {academicEditing && (
+              <form className="admin-form mt-4 border-t border-hairline pt-4" onSubmit={(event) => void saveAcademicProfile(event)}>
+                <AcademicScopeFields {...profileDraft} onChange={setProfileDraft} disabled={profileBusy || !user.concurrencyToken} />
+                <p className="admin-boundary">Thay đổi phạm vi có thể bị chặn khi tài khoản đang thuộc nhóm hoặc có phân công hướng dẫn/chấm còn hiệu lực.</p>
+                <div className="admin-actions">
+                  <Button type="submit" disabled={profileBusy || !user.concurrencyToken}>{profileBusy ? 'Đang cập nhật…' : 'Cập nhật phạm vi học thuật'}</Button>
+                  <Button type="button" variant="secondary" onClick={cancelAcademicEdit} disabled={profileBusy}>Hủy chỉnh sửa</Button>
+                </div>
+              </form>
+            )}
+          </div>
         </section>
       </div>
     </>}

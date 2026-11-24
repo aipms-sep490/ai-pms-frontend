@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { HttpError } from '../../../services/http/http-client'
 import { getStudentDashboard, type StudentDashboard } from '../api/dashboard-api'
@@ -7,6 +7,10 @@ import type { StudentReviewTimelineDto } from '../../review-gates/types/review-g
 import { getWeeklyAssessmentHistory, type WeeklyAssessment } from '../../../services/api/weekly.api'
 import { projectStatusLabel } from '../../projects/utils/project-status'
 import { PageLoading } from '../../../components/ui/PageLoading'
+import { Pagination } from '../../../components/ui/Pagination'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 
 export function StudentDashboardSummary() {
   const [data, setData] = useState<StudentDashboard | null>(null)
@@ -53,6 +57,15 @@ export function StudentDashboardSummary() {
     void load()
   }, [load])
 
+  const urgentTasks = useMemo(() => {
+    const taskDeadlines = data?.taskDeadlines ?? []
+    return [
+      ...taskDeadlines.filter(t => t.isOverdue || t.status === 'BLOCKED'),
+      ...taskDeadlines.filter(t => !t.isOverdue && t.status !== 'BLOCKED'),
+    ]
+  }, [data?.taskDeadlines])
+  const urgentPagination = useClientPagination(urgentTasks, 8)
+
   if (loading) return <PageLoading label="Đang tải buồng lái điều hành cá nhân…" />
 
   if (error || !data) {
@@ -81,356 +94,298 @@ export function StudentDashboardSummary() {
   const allRequirements = timeline?.gates.flatMap(g => g.requirements) ?? []
   const acceptedRequirements = allRequirements.filter(r => r.verificationStatus === 'ACCEPTED').length
   const totalRequirements = allRequirements.length
-
-  // Top urgent tasks for Flight Deck
-  const taskDeadlines = data.taskDeadlines ?? []
-  const urgentTasks = [
-    ...taskDeadlines.filter(t => t.isOverdue || t.status === 'BLOCKED'),
-    ...taskDeadlines.filter(t => !t.isOverdue && t.status !== 'BLOCKED'),
-  ].slice(0, 3)
+  const blockingCount = timeline?.capabilities?.blockingReasons?.length ?? 0
 
   return (
-    <section className="space-y-6" aria-label="Buồng lái điều hành đồ án sinh viên">
-      {/* =========================================================================
-          COCKPIT GAUGES: 4 CHỈ SỐ HỌC THUẬT & THỰC THI TÁCH BẠCH
-          ========================================================================= */}
+    <section className="space-y-5" aria-label="Buồng lái điều hành đồ án sinh viên">
       <div>
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-ink-muted">
-            Bảng đồng hồ điều hành (Cockpit Gauges)
+        <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">
+            Chỉ số điều hành đồ án
           </h2>
-          <span className="text-xs text-ink-muted">
-            Cập nhật lúc: {new Date(data.asOfUtc).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+          <span className="font-mono text-xs text-ink-muted tabular-nums">
+            Cập nhật lúc: {data.asOfUtc && Number.isFinite(Date.parse(data.asOfUtc)) ? new Date(data.asOfUtc).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '—'}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Gauge 1: Tiến độ công việc (Tasks %) */}
-          <div className="card-hover-lift rounded-xl border border-hairline bg-card p-4.5 shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-ink-muted">
-              <span className="font-semibold">Tiến độ công việc</span>
-              <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">task_alt</span>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black tracking-tight text-ink tabular-nums">
-                {taskProgress != null ? `${taskProgress.toFixed(0)}%` : '—'}
-              </span>
-              <span className="text-xs text-ink-muted">
-                {taskProgress != null ? 'thực thi nội bộ' : 'Chưa có dữ liệu'}
-              </span>
-            </div>
-            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
-              <div
-                className="shimmer-progress h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: `${Math.min(100, Math.max(0, taskProgress ?? 0))}%` }}
-              />
-            </div>
-            <p className="mt-2 text-xs text-ink-muted">
-              Đang mở: <strong className="text-ink">{data.assignedOpenTasks}</strong> · Quá hạn:{' '}
-              <strong className={data.assignedOverdueTasks > 0 ? 'text-status-error-text' : 'text-ink'}>
-                {data.assignedOverdueTasks}
-              </strong>
-            </p>
-          </div>
-
-          {/* Gauge 2: Tiến độ học vụ (Review Gates %) */}
-          <div className="card-hover-lift rounded-xl border border-hairline bg-card p-4.5 shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-ink-muted">
-              <span className="font-semibold">Tiến độ học vụ (Gates)</span>
-              <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">verified</span>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black tracking-tight text-ink tabular-nums">
-                {academicProgress != null ? `${academicProgress.toFixed(0)}%` : '—'}
-              </span>
-              <span className="text-xs text-ink-muted">
-                {academicProgress != null ? 'trọng số đã duyệt' : 'Chưa cấu hình'}
-              </span>
-            </div>
-            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: `${Math.min(100, Math.max(0, academicProgress ?? 0))}%` }}
-              />
-            </div>
-            <p className="mt-2 truncate text-xs text-ink-muted" title={timeline?.academicProgressSource ?? 'Chưa cấu hình chính sách cổng'}>
-              Cổng hiện tại: <strong className="text-ink">{timeline?.currentGateCode ?? 'R1'}</strong>
-            </p>
-          </div>
-
-          {/* Gauge 3: Minh chứng đã duyệt (Evidence Coverage) */}
-          <div className="card-hover-lift rounded-xl border border-hairline bg-card p-4.5 shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-ink-muted">
-              <span className="font-semibold">Minh chứng đã duyệt</span>
-              <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">fact_check</span>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black tracking-tight text-ink tabular-nums">
-                {totalRequirements > 0 ? `${acceptedRequirements}/${totalRequirements}` : '—'}
-              </span>
-              <span className="text-xs text-ink-muted">
-                {totalRequirements > 0 ? 'yêu cầu đạt' : 'Chưa có yêu cầu'}
-              </span>
-            </div>
-            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: totalRequirements > 0 ? `${Math.min(100, (acceptedRequirements / totalRequirements) * 100)}%` : '0%' }}
-              />
-            </div>
-            <p className="mt-2 text-xs text-ink-muted">
-              Được hội đồng thẩm định chấp thuận
-            </p>
-          </div>
-
-          {/* Gauge 4: Sẵn sàng bảo vệ (Defense Readiness) */}
-          <div className="card-hover-lift rounded-xl border border-hairline bg-card p-4.5 shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-ink-muted">
-              <span className="font-semibold">Điều kiện bảo vệ</span>
-              <span className="material-symbols-outlined text-[18px] text-status-warning-text" aria-hidden="true">gavel</span>
-            </div>
-            <div className="mt-2 flex items-center gap-2">
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold ${
-                  isDefenseReady === true
-                    ? 'bg-status-success-bg text-status-success-text border border-status-success-border'
-                    : 'bg-status-warning-bg text-status-warning-text border border-status-warning-border'
-                }`}
-              >
-                {isDefenseReady !== true && (
-                  <span className="pulse-indicator h-1.5 w-1.5 bg-warning-strong" aria-hidden="true" />
-                )}
-                {isDefenseReady === true ? 'SẴN SÀNG BẢO VỆ' : 'CHƯA ĐỦ ĐIỀU KIỆN'}
-              </span>
-            </div>
-            <p className="mt-3 truncate text-xs text-ink-muted" title={timeline?.defenseReadinessStatus ?? 'Đang trong tiến trình học kỳ'}>
-              {timeline?.capabilities?.blockingReasons?.length
-                ? `Còn ${timeline.capabilities.blockingReasons.length} điều kiện cần hoàn thiện`
-                : 'Theo dõi theo tiến trình các cổng'}
-            </p>
-          </div>
-        </div>
+        <StatTileRow tiles={[
+          {
+            icon: 'task_alt',
+            label: 'Tiến độ công việc (%)',
+            value: taskProgress != null ? Math.round(taskProgress) : null,
+            hero: true,
+            caption: `Đang mở: ${data.assignedOpenTasks ?? 0} · Quá hạn: ${data.assignedOverdueTasks ?? 0}`,
+          },
+          {
+            icon: 'verified',
+            label: 'Tiến độ học vụ (%)',
+            value: academicProgress != null ? Math.round(academicProgress) : null,
+            tone: 'info',
+            caption: `Cổng hiện tại: ${timeline?.currentGateCode ?? 'R1'}`,
+          },
+          {
+            icon: 'fact_check',
+            label: 'Minh chứng đã duyệt',
+            value: totalRequirements > 0 ? acceptedRequirements : null,
+            tone: 'success',
+            caption: totalRequirements > 0 ? `${acceptedRequirements}/${totalRequirements} yêu cầu hội đồng chấp thuận` : 'Chưa có yêu cầu minh chứng',
+          },
+          {
+            icon: 'gavel',
+            label: 'Điều kiện bảo vệ',
+            value: isDefenseReady === true ? 0 : blockingCount,
+            tone: isDefenseReady === true ? 'success' : 'warning',
+            caption: isDefenseReady === true
+              ? 'Sẵn sàng bảo vệ'
+              : blockingCount > 0
+                ? `Chưa đủ điều kiện · còn ${blockingCount} mục`
+                : 'Chưa đủ điều kiện · theo dõi tiến trình cổng',
+          },
+        ]} />
       </div>
 
       {/* =========================================================================
-          FLIGHT DECK: 3 VIỆC CẦN LÀM GẤP NHẤT (URGENT ACTION DECK)
-          ========================================================================= */}
-      <section className="space-y-3 rounded-2xl border border-hairline bg-card p-5 shadow-xs sm:p-6" aria-labelledby="flight-deck-heading">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-[22px]" aria-hidden="true">bolt</span>
-            <h2 id="flight-deck-heading" className="font-heading text-base font-bold text-ink">
-              Việc cần làm hôm nay (Flight Deck)
-            </h2>
-          </div>
-          <Link
-            to="/project/tasks"
-            className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          >
-            Xem toàn bộ bảng công việc →
-          </Link>
-        </div>
-
-        {urgentTasks.length === 0 ? (
-          <div className="py-6 text-center text-xs text-ink-muted">
-            <span className="material-symbols-outlined text-3xl text-status-success-text" aria-hidden="true">check_circle</span>
-            <p className="mt-1 font-semibold text-ink">Không có công việc nào bị quá hạn hoặc bị chặn!</p>
-            <p className="text-ink-muted">Bạn có thể tiếp tục triển khai các hạng mục tiếp theo trong kế hoạch.</p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-hairline">
-            {urgentTasks.map((task) => (
-              <li key={task.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-3 min-w-0">
-                  <span
-                    className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                      task.isOverdue
-                        ? 'bg-status-error-bg text-status-error-text'
-                        : task.status === 'BLOCKED'
-                          ? 'bg-status-warning-bg text-status-warning-text'
-                          : 'bg-primary-subtle text-primary'
-                    }`}
-                  >
-                    {task.isOverdue ? '!' : '#'}
-                  </span>
-                  <div className="min-w-0">
-                    <Link
-                      to={`/project/tasks/${task.id}`}
-                      className="font-semibold text-sm text-ink hover:text-primary line-clamp-1"
-                    >
-                      {task.title}
-                    </Link>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-                      <span>Mã: #{task.id}</span>
-                      <span>·</span>
-                      <span className={task.isOverdue ? 'font-bold text-status-error-text' : ''}>
-                        Hạn chót: {formatDate(task.dueAtUtc)}
-                        {task.isOverdue && ' (Đã quá hạn)'}
-                      </span>
-                      {task.status === 'BLOCKED' && (
-                        <>
-                          <span>·</span>
-                          <span className="font-semibold text-status-warning-text">Đang bị chặn</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
-                  <Link
-                    to={`/project/tasks/${task.id}`}
-                    className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-hairline bg-canvas px-3 text-xs font-semibold text-ink-soft transition-colors hover:border-primary/40 hover:text-primary"
-                  >
-                    Xử lý ngay
-                    <span className="material-symbols-outlined text-[15px]" aria-hidden="true">arrow_forward</span>
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {/* =========================================================================
-          TIẾN ĐỘ ĐỒ ÁN & CHI TIẾT THEO DÕI
+          THÔNG TIN ĐỀ TÀI COMPACT STRIP
           ========================================================================= */}
       {project && (
-        <section className="rounded-2xl border border-hairline bg-card p-5 shadow-xs sm:p-6" aria-labelledby="project-status-heading">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Thông tin đề tài</span>
-              <h3 id="project-status-heading" className="mt-0.5 font-heading text-lg font-bold text-ink">
-                {project.title}
-              </h3>
-              <p className="mt-1 text-xs text-ink-muted">
-                Mã đồ án: <strong className="text-ink">{project.code}</strong> · Trạng thái:{' '}
-                <strong className="text-primary">{projectStatusLabel(project.status)}</strong>
-              </p>
-            </div>
-            {analysis?.riskLevel && (
-              <span
-                className={`rounded-md px-3 py-1 text-xs font-bold ${
-                  analysis.riskLevel === 'HIGH' || analysis.riskLevel === 'CRITICAL'
-                    ? 'bg-status-error-bg text-status-error-text border border-status-error-border'
-                    : 'bg-status-warning-bg text-status-warning-text border border-status-warning-border'
-                }`}
-              >
-                Mức rủi ro: {riskLabel(analysis.riskLevel)}
-              </span>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* =========================================================================
-          ĐÁNH GIÁ & NHẬN XÉT ĐỊNH KỲ TỪ GVHD
-          ========================================================================= */}
-      {project && (
-        <section className="rounded-2xl border border-hairline bg-card p-5 shadow-xs sm:p-6" aria-labelledby="weekly-feedback-heading">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-[22px]" aria-hidden="true">rate_review</span>
-              <div>
-                <h3 id="weekly-feedback-heading" className="font-heading text-base font-bold text-ink">
-                  Đánh giá & Nhận xét tuần từ GVHD
-                </h3>
-                <p className="text-xs text-ink-muted">
-                  Phản hồi định kỳ hằng tuần giúp theo dõi tiến độ và nhận xét học thuật từ giảng viên hướng dẫn.
-                </p>
-              </div>
-            </div>
-            <Link
-              to="/project/weekly-assessments"
-              className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              Xem chi tiết các tuần →
-            </Link>
-          </div>
-
-          {latestAssessment ? (
-            <div className="mt-4 rounded-xl border border-hairline bg-canvas/60 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline/80 pb-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="rounded-md bg-primary-subtle px-2.5 py-1 text-xs font-bold text-primary">
-                    Tuần {latestAssessment.weekNumber}
-                  </span>
-                  <span className="text-xs text-ink-muted">
-                    {formatDate(latestAssessment.startDate)} – {formatDate(latestAssessment.endDate)}
-                  </span>
-                </div>
-                {latestAssessment.totalScore != null && (
-                  <span className="rounded-full bg-status-success-bg px-3 py-1 font-mono text-xs font-bold text-status-success-text border border-status-success-border">
-                    Điểm tham khảo: {latestAssessment.totalScore.toFixed(2)}/10
-                  </span>
+        <section className="workspace-surface" aria-labelledby="project-status-heading">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-xs font-bold text-primary">{project.code}</span>
+                <StatusBadge status={project.status} tone="info" label={projectStatusLabel(project.status)} />
+                <StatusBadge
+                  tone={isDefenseReady === true ? 'success' : 'warning'}
+                  label={isDefenseReady === true ? 'Sẵn sàng bảo vệ' : 'Chưa đủ điều kiện bảo vệ'}
+                />
+                {analysis?.riskLevel && (
+                  <StatusBadge
+                    tone={analysis.riskLevel === 'HIGH' || analysis.riskLevel === 'CRITICAL' ? 'danger' : 'warning'}
+                    label={`Mức rủi ro: ${riskLabel(analysis.riskLevel)}`}
+                  />
                 )}
               </div>
-
-              {latestAssessment.comments ? (
-                <div className="mt-3">
-                  <p className="text-xs font-semibold text-ink-soft">Nhận xét của giảng viên hướng dẫn:</p>
-                  <p className="mt-1 whitespace-pre-wrap rounded-lg bg-card p-3 text-xs leading-relaxed text-ink border border-hairline">
-                    "{latestAssessment.comments}"
-                  </p>
-                </div>
-              ) : (
-                <p className="mt-3 text-xs italic text-ink-muted">
-                  Bản chấm tuần {latestAssessment.weekNumber} chưa có ghi chú chung.
-                </p>
-              )}
-
-              {latestAssessment.scores.length > 0 && (
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {latestAssessment.scores.map(s => (
-                    <div key={s.rubricCriterionId} className="rounded-lg border border-hairline bg-card p-2 text-xs">
-                      <div className="flex items-center justify-between gap-1 font-medium text-ink-soft">
-                        <span className="truncate" title={s.name}>{s.name}</span>
-                        <strong className="font-mono text-ink shrink-0">{s.score != null ? `${s.score}/${s.maxScore}` : '—'}</strong>
-                      </div>
-                      {s.comments && <p className="mt-1 text-xs text-ink-muted line-clamp-2">"{s.comments}"</p>}
-                    </div>
-                  ))}
-                </div>
-              )}
+              <h3 id="project-status-heading" className="mt-1 font-heading text-base font-bold text-ink">
+                {project.title}
+              </h3>
             </div>
-          ) : (
-            <div className="mt-4 flex items-center gap-3 rounded-xl border border-hairline bg-canvas p-4 text-xs text-ink-muted">
-              <span className="material-symbols-outlined text-2xl text-ink-muted" aria-hidden="true">info</span>
-              <div>
-                <p className="font-semibold text-ink">Chưa có đánh giá tuần nào được công bố</p>
-                <p className="mt-0.5">Giảng viên hướng dẫn sẽ theo dõi và gửi phản hồi định kỳ mỗi tuần theo tiến độ đồ án.</p>
-              </div>
-            </div>
-          )}
+            <Link
+              to="/project/overview"
+              className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-hairline bg-canvas px-3.5 text-xs font-semibold text-primary transition-colors hover:border-primary/40 hover:bg-primary-subtle"
+            >
+              Không gian đồ án
+              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
+            </Link>
+          </div>
         </section>
       )}
 
       {/* =========================================================================
-          HAI CỘT: CÔNG VIỆC & MỐC SẮP ĐẾN HẠN
+          BENTO 2 CỘT: FLIGHT DECK + DEADLINES (TRÁI 7) | GVHD FEEDBACK + MILESTONES (PHẢI 5)
           ========================================================================= */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        <DeadlineList
-          title="Công việc sắp đến hạn"
-          empty="Chưa có công việc nào sắp đến hạn cần chú ý."
-          items={(data.taskDeadlines ?? []).map(task => ({
-            id: task.id,
-            title: task.title,
-            date: task.dueAtUtc,
-            overdue: task.isOverdue,
-            href: `/project/tasks/${task.id}`,
-          }))}
-        />
-        <DeadlineList
-          title="Mốc sắp đến hạn (Milestones)"
-          empty="Chưa có mốc nào sắp đến hạn cần chú ý."
-          items={(data.milestoneDeadlines ?? []).map(item => ({
-            id: item.id,
-            title: item.title,
-            date: item.dueDate,
-            overdue: item.isOverdue,
-            href: `/project/milestones/${item.id}`,
-          }))}
-        />
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12 items-start">
+        {/* Left Bento Column: Flight Deck & Task Deadlines */}
+        <div className="xl:col-span-7 space-y-5">
+          <section className="workspace-surface" aria-labelledby="flight-deck-heading">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">bolt</span>
+                <h2 id="flight-deck-heading" className="font-heading text-sm font-bold text-ink">
+                  Việc cần làm hôm nay (Flight Deck)
+                </h2>
+                <span className="inline-flex items-center rounded-full border border-hairline bg-card px-2 py-0.5 text-xs font-bold tabular-nums text-ink-soft">
+                  {urgentTasks.length}
+                </span>
+              </div>
+              <Link
+                to="/project/tasks"
+                className="inline-flex min-h-9 items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                Xem toàn bộ bảng công việc →
+              </Link>
+            </div>
+
+            <div className="px-5 py-3">
+              {urgentTasks.length === 0 ? (
+                <div className="py-6 text-center text-xs text-ink-muted">
+                  <span className="material-symbols-outlined text-3xl text-status-success-text" aria-hidden="true">check_circle</span>
+                  <p className="mt-1 font-semibold text-ink">Không có công việc nào bị quá hạn hoặc bị chặn!</p>
+                  <p className="text-ink-muted">Bạn có thể tiếp tục triển khai các hạng mục tiếp theo trong kế hoạch.</p>
+                </div>
+              ) : (
+                <>
+                  <ul className="divide-y divide-hairline">
+                    {urgentPagination.paginatedItems.map((task) => (
+                      <li key={task.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-start gap-3 min-w-0">
+                          <span
+                            className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                              task.isOverdue
+                                ? 'bg-status-error-bg text-status-error-text'
+                                : task.status === 'BLOCKED'
+                                  ? 'bg-status-warning-bg text-status-warning-text'
+                                  : 'bg-primary-subtle text-primary'
+                            }`}
+                          >
+                            {task.isOverdue ? '!' : '#'}
+                          </span>
+                          <div className="min-w-0">
+                            <Link
+                              to={`/project/tasks/${task.id}`}
+                              className="font-semibold text-sm text-ink hover:text-primary line-clamp-1"
+                            >
+                              {task.title}
+                            </Link>
+                            <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+                              <span className="font-mono">Mã: #{task.id}</span>
+                              <span>·</span>
+                              <span className={task.isOverdue ? 'font-bold text-status-error-text tabular-nums' : 'tabular-nums'}>
+                                Hạn chót: {formatDate(task.dueAtUtc)}
+                                {task.isOverdue && ' (Đã quá hạn)'}
+                              </span>
+                              {task.status === 'BLOCKED' && (
+                                <>
+                                  <span>·</span>
+                                  <span className="font-semibold text-status-warning-text">Đang bị chặn</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+                          <Link
+                            to={`/project/tasks/${task.id}`}
+                            className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-hairline bg-canvas px-3 text-xs font-semibold text-ink-soft transition-colors hover:border-primary/40 hover:bg-primary-subtle hover:text-primary"
+                          >
+                            Xử lý ngay
+                            <span className="material-symbols-outlined text-[15px]" aria-hidden="true">arrow_forward</span>
+                          </Link>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  {urgentPagination.showPagination && (
+                    <Pagination
+                      page={urgentPagination.page}
+                      pages={urgentPagination.totalPages}
+                      total={urgentPagination.total}
+                      pageSize={urgentPagination.pageSize}
+                      onPage={urgentPagination.setPage}
+                      className="mt-3"
+                    />
+                  )}
+                </>
+              )}
+            </div>
+          </section>
+
+          <DeadlineList
+            title="Công việc sắp đến hạn"
+            icon="schedule"
+            empty="Chưa có công việc nào sắp đến hạn cần chú ý."
+            allowPageSizeChange
+            items={(data.taskDeadlines ?? []).map(task => ({
+              id: task.id,
+              title: task.title,
+              date: task.dueAtUtc,
+              overdue: task.isOverdue,
+              href: `/project/tasks/${task.id}`,
+            }))}
+          />
+        </div>
+
+        {/* Right Bento Column: Weekly Assessment Feedback & Milestone Deadlines */}
+        <div className="xl:col-span-5 space-y-5">
+          {project && (
+            <section className="workspace-surface" aria-labelledby="weekly-feedback-heading">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">rate_review</span>
+                  <h3 id="weekly-feedback-heading" className="font-heading text-sm font-bold text-ink">
+                    Đánh giá &amp; Nhận xét tuần từ GVHD
+                  </h3>
+                </div>
+                <Link
+                  to="/project/weekly-assessments"
+                  className="inline-flex min-h-9 items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  Xem chi tiết các tuần →
+                </Link>
+              </div>
+
+              <div className="p-5">
+                {latestAssessment ? (
+                  <div className="rounded-xl border border-hairline bg-canvas/60 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-md bg-primary-subtle px-2.5 py-1 text-xs font-bold text-primary">
+                          Tuần {latestAssessment.weekNumber}
+                        </span>
+                        <span className="text-xs text-ink-muted tabular-nums">
+                          {formatDate(latestAssessment.startDate)} – {formatDate(latestAssessment.endDate)}
+                        </span>
+                      </div>
+                      {latestAssessment.totalScore != null && (
+                        <span className="rounded-full bg-status-success-bg px-3 py-1 font-mono text-xs font-bold text-status-success-text border border-status-success-border tabular-nums">
+                          Điểm tham khảo: {latestAssessment.totalScore.toFixed(2)}/10
+                        </span>
+                      )}
+                    </div>
+
+                    {latestAssessment.comments ? (
+                      <div className="mt-3">
+                        <p className="text-xs font-semibold text-ink-soft">Nhận xét của giảng viên hướng dẫn:</p>
+                        <p className="mt-1 whitespace-pre-wrap rounded-lg bg-card p-3 text-xs leading-relaxed text-ink border border-hairline">
+                          &ldquo;{latestAssessment.comments}&rdquo;
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-xs italic text-ink-muted">
+                        Bản chấm tuần {latestAssessment.weekNumber} chưa có ghi chú chung.
+                      </p>
+                    )}
+
+                    {latestAssessment.scores.length > 0 && (
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {latestAssessment.scores.map(s => (
+                          <div key={s.rubricCriterionId} className="rounded-lg border border-hairline bg-card p-2.5 text-xs">
+                            <div className="flex items-center justify-between gap-1 font-medium text-ink-soft">
+                              <span className="truncate" title={s.name}>{s.name}</span>
+                              <strong className="font-mono text-ink shrink-0 tabular-nums">{s.score != null ? `${s.score}/${s.maxScore}` : '—'}</strong>
+                            </div>
+                            {s.comments && <p className="mt-1 text-xs text-ink-muted line-clamp-2">&ldquo;{s.comments}&rdquo;</p>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 rounded-xl border border-hairline bg-canvas p-4 text-xs text-ink-muted">
+                    <span className="material-symbols-outlined text-2xl text-ink-muted" aria-hidden="true">info</span>
+                    <div>
+                      <p className="font-semibold text-ink">Chưa có đánh giá tuần nào được công bố</p>
+                      <p className="mt-0.5">Giảng viên hướng dẫn sẽ theo dõi và gửi phản hồi định kỳ mỗi tuần theo tiến độ đồ án.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          <DeadlineList
+            title="Mốc sắp đến hạn (Milestones)"
+            icon="flag"
+            empty="Chưa có mốc nào sắp đến hạn cần chú ý."
+            items={(data.milestoneDeadlines ?? []).map(item => ({
+              id: item.id,
+              title: item.title,
+              date: item.dueDate,
+              overdue: item.isOverdue,
+              href: `/project/milestones/${item.id}`,
+            }))}
+          />
+        </div>
       </div>
 
       <p className="text-xs leading-5 text-ink-muted">
@@ -443,36 +398,66 @@ export function StudentDashboardSummary() {
 
 function DeadlineList({
   title,
+  icon,
   empty,
   items,
+  allowPageSizeChange = false,
 }: {
   title: string
+  icon: string
   empty: string
   items: Array<{ id: number; title: string; date: string; overdue: boolean; href: string }>
+  allowPageSizeChange?: boolean
 }) {
+  const pagination = useClientPagination(items, 8)
+
   return (
-    <section className="card-hover-lift rounded-2xl border border-hairline bg-card p-5 shadow-xs sm:p-6">
-      <h3 className="font-heading text-sm font-bold text-ink">{title}</h3>
-      {items.length === 0 ? (
-        <p className="mt-2 text-xs text-ink-muted">{empty}</p>
-      ) : (
-        <ul className="mt-3 divide-y divide-hairline text-xs">
-          {items.map(item => (
-            <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
-              <Link
-                to={item.href}
-                className="font-medium text-ink hover:text-primary underline underline-offset-4 line-clamp-1"
-              >
-                {item.title}
-              </Link>
-              <span className={item.overdue ? 'font-bold text-status-error-text' : 'text-ink-muted'}>
-                {formatDate(item.date)}
-                {item.overdue ? ' · Quá hạn' : ''}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+    <section className="workspace-surface">
+      <div className="flex items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">{icon}</span>
+          <h3 className="font-heading text-sm font-bold text-ink">{title}</h3>
+        </div>
+        <span className="inline-flex items-center rounded-full border border-hairline bg-card px-2.5 py-0.5 text-xs font-bold tabular-nums text-ink-soft">
+          {items.length}
+        </span>
+      </div>
+      <div className="px-5 py-3">
+        {items.length === 0 ? (
+          <p className="py-3 text-xs text-ink-muted">{empty}</p>
+        ) : (
+          <>
+            <ul className="divide-y divide-hairline text-xs">
+              {pagination.paginatedItems.map(item => (
+                <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                  <Link
+                    to={item.href}
+                    className="font-medium text-ink hover:text-primary line-clamp-1"
+                  >
+                    {item.title}
+                  </Link>
+                  <span className={item.overdue ? 'font-bold text-status-error-text tabular-nums' : 'text-ink-muted tabular-nums'}>
+                    {formatDate(item.date)}
+                    {item.overdue ? ' · Quá hạn' : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {pagination.showPagination && (
+              <Pagination
+                page={pagination.page}
+                pages={pagination.totalPages}
+                total={pagination.total}
+                pageSize={pagination.pageSize}
+                pageSizeOptions={[8, 16, 30]}
+                onPage={pagination.setPage}
+                onPageSizeChange={allowPageSizeChange ? pagination.setPageSize : undefined}
+                className="mt-3"
+              />
+            )}
+          </>
+        )}
+      </div>
     </section>
   )
 }
