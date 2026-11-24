@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { displayLabel } from '../../components/ui/display-label'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
+import { InlineAlert } from '../../components/ui/InlineAlert'
 import type { FilterChipItem } from '../../components/ui/FilterChips'
 import { ListLoading } from '../../components/ui/ListLoading'
 import { StatTileRow } from '../../components/ui/StatTileRow'
@@ -182,7 +183,16 @@ function EvidenceLedger({ projectId, projectLabel, routeBase, majors = [], locke
         resultSummary={result ? `${visibleItems.length} / ${result.totalCount} minh chứng` : undefined}
       />
 
-      {error && <div role="alert" className="m-4 rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" onClick={() => void load()} className="ml-2 min-h-11 font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Thử lại</button></div>}
+      {error && (
+        <div className="m-4">
+          <InlineAlert
+            tone="error"
+            action={<button type="button" onClick={() => void load()} className="inline-flex min-h-8 items-center rounded-md px-2.5 py-1 text-xs font-bold text-primary hover:bg-card/80">Thử lại</button>}
+          >
+            {error}
+          </InlineAlert>
+        </div>
+      )}
       {loading && <ListLoading label="Đang tải minh chứng…" />}
       {!loading && !error && result && visibleItems.length === 0 && <div className="p-6 text-center text-sm text-ink-soft"><h2 className="font-semibold text-ink">Chưa có minh chứng phù hợp</h2><p className="mt-1 leading-6 text-ink-muted">Hãy thử điều chỉnh bộ lọc. Trạng thái xác minh được lấy trực tiếp từ hệ thống.</p></div>}
       {!loading && !error && visibleItems.length > 0 ? <EvidenceList items={visibleItems} majorMap={majorMap} routeBase={routeBase} actor={actor} onReviewed={() => void load()} /> : null}

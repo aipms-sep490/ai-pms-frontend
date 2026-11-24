@@ -7,6 +7,7 @@ import { getHomePath } from '../utils/role-access'
 import { resolveIntendedDestination } from '../utils/intended-destination'
 import { GoogleLoginButton } from '../components/GoogleLoginButton'
 import { BrandLogo } from '../../../components/ui/BrandLogo'
+import { InlineAlert } from '../../../components/ui/InlineAlert'
 import './auth-pages.css'
 import './login-design.css'
 
@@ -106,7 +107,7 @@ export function LoginPage() {
           <h1 className="auth-login-title" id="login-title">Đăng nhập tài khoản</h1>
           <p className="login-description">Tiếp tục công việc và theo dõi đồ án của bạn.</p>
           {(location.state as { passwordChanged?: boolean } | null)?.passwordChanged && (
-            <p className="auth-status" role="status">Mật khẩu đã được đổi. Hãy đăng nhập lại bằng mật khẩu mới.</p>
+            <InlineAlert tone="success" className="mt-3">Mật khẩu đã được đổi. Hãy đăng nhập lại bằng mật khẩu mới.</InlineAlert>
           )}
           <form className="auth-form" onSubmit={handleSubmit} noValidate>
             <label htmlFor="login-email">Email</label>
@@ -153,7 +154,7 @@ export function LoginPage() {
               </button>
             </div>
             {fieldErrors.password && <p id="login-password-error" className="auth-field-error" role="alert">{fieldErrors.password}</p>}
-            {formError && <p id="login-error" className="auth-error" role="alert">{formError}</p>}
+            {formError && <InlineAlert id="login-error" tone="error" className="mt-2">{formError}</InlineAlert>}
             <Button
               className="auth-submit"
               type="submit"

@@ -3,6 +3,7 @@ import { Link, useInRouterContext } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
+import { InlineAlert } from '../../components/ui/InlineAlert'
 import { Modal } from '../../components/ui/Modal'
 import { Pagination } from '../../components/ui/Pagination'
 import { StatusBadge } from '../../components/ui/StatusBadge'
@@ -253,12 +254,12 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
       </div>
     }
   >
-    {catalogError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{catalogError}</p>}
+    {catalogError && <InlineAlert tone="error">{catalogError}</InlineAlert>}
 
     {manager && !unsupported && uploadOpen && (
       <Modal open title="Tải lên phiên bản mới" description="PDF, DOCX hoặc XLSX; tối đa 20 MB. Cùng mã tài liệu sẽ tạo phiên bản kế tiếp trong ngành và kỳ đã chọn." busy={uploading} onClose={() => setUploadOpen(false)}>
         <form className="space-y-4" onSubmit={event => void submitUpload(event)}>
-          {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}
+          {error && <InlineAlert tone="error">{error}</InlineAlert>}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm font-medium text-ink-soft">Mã tài liệu
               <input className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={code} onChange={event => setCode(event.target.value)} minLength={2} maxLength={60} pattern="[A-Za-z0-9_-]+" required />
@@ -338,13 +339,8 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
       />
 
       <div className="space-y-3 p-5">
-        {error && !uploadOpen && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}
-        {success && (
-          <div className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-3 text-sm text-ink">
-            <span className="material-symbols-outlined shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
-            <p role="status">{success}</p>
-          </div>
-        )}
+        {error && !uploadOpen && <InlineAlert tone="error">{error}</InlineAlert>}
+        {success && <InlineAlert tone="success">{success}</InlineAlert>}
         {loading && <p role="status" className="text-sm text-ink-muted">Đang tải tài liệu…</p>}
         {!loading && !error && rows?.length === 0 && <p className="rounded-lg border border-hairline bg-canvas p-4 text-sm text-ink-muted">Chưa có tài liệu phù hợp với ngành và kỳ đã chọn.</p>}
         {!loading && !error && rows && rows.length > 0 && filteredRows.length === 0 && (

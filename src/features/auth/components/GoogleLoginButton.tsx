@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { InlineAlert } from '../../../components/ui/InlineAlert'
 import { HttpError } from '../../../services/http/http-client'
 import { getGoogleChallenge, linkGoogle, loginWithGoogle } from '../api/auth-api'
 import { useAuthSession } from '../context/useAuthSession'
@@ -124,6 +125,23 @@ export function GoogleLoginButton({ purpose = 'LOGIN', currentPassword = '', onL
     <div ref={host} hidden={busy || Boolean(error)} aria-label={purpose === 'LINK' ? 'Liên kết tài khoản Google' : 'Đăng nhập với Google'} />
     {busy && <p className="auth-google-status" role="status">{purpose === 'LINK' ? 'Đang liên kết tài khoản Google…' : 'Đang xác thực tài khoản Google…'}</p>}
     {loading && <p className="auth-google-status" role="status">Đang tải đăng nhập Google…</p>}
-    {error && <div className="auth-google-fallback"><p className="auth-error" role="status">{error}</p><button type="button" onClick={() => setAttempt((value) => value + 1)}>Thử lại</button></div>}
+    {error && (
+      <InlineAlert
+        tone="error"
+        role="status"
+        className="w-full text-left"
+        action={
+          <button
+            type="button"
+            className="inline-flex min-h-8 items-center rounded-md px-2.5 py-1 text-xs font-bold text-primary transition-colors hover:bg-card/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            onClick={() => setAttempt((value) => value + 1)}
+          >
+            Thử lại
+          </button>
+        }
+      >
+        {error}
+      </InlineAlert>
+    )}
   </div>
 }

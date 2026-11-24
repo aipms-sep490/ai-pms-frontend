@@ -6,6 +6,7 @@ import { useStudentJourney } from '../../app/context'
 import { getDeliverables, getDeliverableVersions } from '../../services/api/deliverables.api'
 import { HttpError } from '../../services/http/http-client'
 import { Button } from '../../components/ui/Button'
+import { InlineAlert } from '../../components/ui/InlineAlert'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
 import { ListLoading } from '../../components/ui/ListLoading'
 import { PageLoading } from '../../components/ui/PageLoading'
@@ -264,7 +265,7 @@ export function LockedPackageView({ projectId, packageData }: { projectId: numbe
       <p className="mt-1.5 text-sm text-ink-soft">Nộp lúc {formatDate(packageData.submittedAt)} · hạn {formatDate(packageData.deadline)} · {packageData.items.length} phiên bản sản phẩm</p>
       <p className="mt-1 text-xs font-medium text-status-success-text">Bản bàn giao đã chốt · Không có thao tác sửa, xóa hoặc nộp lại.</p>
       {packageData.notes && <p className="mt-3 whitespace-pre-wrap rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-soft"><strong>Ghi chú:</strong> {packageData.notes}</p>}
-      {error && <p role="alert" className="mt-3 text-sm text-status-error-text">{error}</p>}
+      {error && <InlineAlert tone="error" className="mt-3">{error}</InlineAlert>}
       <ul className="mt-3 space-y-3 text-sm">
         {packageData.items.map(item => (
           <li key={item.deliverableVersionId} className="rounded-lg border border-hairline bg-canvas p-3">
@@ -325,7 +326,14 @@ export function FinalSubmissionViewerPage({ backTo = '/projects/lifecycle', back
       description={projectMeta ? `${projectMeta.title} · Nội dung và tệp trong bản bàn giao đã chốt.` : 'Nội dung và tệp trong bản bàn giao đã chốt.'}
     >
       {loading && <ListLoading label="Đang tải gói bàn giao đã khóa…" />}
-      {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" className="min-h-11 font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
+      {error && (
+        <InlineAlert
+          tone="error"
+          action={<button type="button" className="inline-flex min-h-8 items-center rounded-md px-2.5 py-1 text-xs font-bold text-primary hover:bg-card/80" onClick={() => void load()}>Tải lại</button>}
+        >
+          {error}
+        </InlineAlert>
+      )}
       {!loading && !error && !packageData && (
         <section className="rounded-2xl border border-hairline bg-card p-8 text-center shadow-xs">
           <span className="material-symbols-outlined text-4xl text-ink-muted" aria-hidden="true">inventory_2</span>
@@ -386,7 +394,14 @@ export function FinalRequirementsPage() {
       eyebrow={projectMeta?.code ?? 'Cấu hình bàn giao'}
       description={projectMeta ? `${projectMeta.title} · Chọn các hạng mục nhóm cần nộp trước khi chốt bàn giao.` : 'Chọn các hạng mục nhóm cần nộp trước khi chốt bàn giao.'}
     >
-      {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" className="min-h-11 font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
+      {error && (
+        <InlineAlert
+          tone="error"
+          action={<button type="button" className="inline-flex min-h-8 items-center rounded-md px-2.5 py-1 text-xs font-bold text-primary hover:bg-card/80" onClick={() => void load()}>Tải lại</button>}
+        >
+          {error}
+        </InlineAlert>
+      )}
       {success && (
         <p role="status" className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-sm text-ink shadow-xs">
           <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>

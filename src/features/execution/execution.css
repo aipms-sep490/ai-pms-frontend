@@ -64,9 +64,9 @@
 .ex-badge-CANCELLED, .ex-badge-REJECTED { color: var(--color-status-error-text); background: var(--color-status-error-bg); border-color: var(--color-status-error-border); }
 .ex-progress { display: block; height: 7px; border-radius: 9999px; background: var(--color-hairline); overflow: hidden; width: 100%; }
 .ex-progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--color-primary), var(--color-primary)); border-radius: inherit; }
-.ex-notice { padding: 14px 18px; border: 1px solid color-mix(in oklab, var(--color-primary) 25%, transparent); background: var(--color-primary-subtle); color: var(--color-primary); border-radius: 10px; margin-bottom: 16px; font-size: 12.5px; font-weight: 500; }
-.ex-notice-error { color: var(--color-status-error-text); background: var(--color-status-error-bg); border-color: var(--color-status-error-border); }
-.ex-notice p { display: inline; margin-right: 12px; }
+.ex-notice { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 14px; padding: 10px 14px; border: 1px solid color-mix(in oklab, var(--color-primary) 22%, transparent); border-left: 3px solid var(--color-primary); background: color-mix(in oklab, var(--color-primary-subtle) 78%, var(--color-card)); color: var(--color-ink); border-radius: 8px; margin-bottom: 16px; font-size: 13px; line-height: 1.5; font-weight: 500; }
+.ex-notice-error { color: var(--color-status-error-text); background: color-mix(in oklab, var(--color-status-error-bg) 80%, var(--color-card)); border-color: color-mix(in oklab, var(--color-status-error-border) 80%, transparent); border-left-color: var(--color-status-error-text); }
+.ex-notice p { margin: 0; }
 .ex-empty { padding: 48px 24px; color: var(--color-ink-muted); text-align: center; font-size: 13px; }
 .ex-empty h2 { font-size: 17px; font-weight: 700; color: var(--color-ink); margin-bottom: 8px; }
 .ex-empty .ex-button { margin-top: 16px; }

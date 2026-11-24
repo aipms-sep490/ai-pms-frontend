@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useAcademicWorkflow } from '../../../app/context/useAcademicWorkflow'
 import { Button } from '../../../components/ui/Button'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
+import { InlineAlert } from '../../../components/ui/InlineAlert'
 import { ListLoading } from '../../../components/ui/ListLoading'
 import { Pagination } from '../../../components/ui/Pagination'
 import { StatTileRow } from '../../../components/ui/StatTileRow'
@@ -333,13 +334,8 @@ export function DepartmentStudentsPage() {
 
       {activeTab === 'directory' && (
         <div className="mt-4 space-y-4">
-          {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg px-4 py-3 text-sm text-status-error-text">{error}</p>}
-          {notice && (
-            <div className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card px-4 py-3 text-sm text-ink">
-              <span className="material-symbols-outlined shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
-              <p role="status">{notice}</p>
-            </div>
-          )}
+          {error && <InlineAlert tone="error">{error}</InlineAlert>}
+          {notice && <InlineAlert tone="success">{notice}</InlineAlert>}
 
           <StatTileRow
             tiles={[

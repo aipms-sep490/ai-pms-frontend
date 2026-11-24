@@ -1,6 +1,7 @@
 import { dateTimeLabel } from '../execution/execution-utils'
 import { Avatar } from '../../components/ui/Avatar'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
+import { InlineAlert } from '../../components/ui/InlineAlert'
 import { Modal } from '../../components/ui/Modal'
 import { StatTileRow } from '../../components/ui/StatTileRow'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
@@ -158,10 +159,12 @@ export function ProjectContributionsPage() {
     >
       {confirmationDialog}
       {error && (
-        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">
-          <span>{error}</span>
-          <button type="button" className="min-h-10 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại</button>
-        </div>
+        <InlineAlert
+          tone="error"
+          action={<button type="button" className="inline-flex min-h-8 items-center rounded-md px-2.5 py-1 text-xs font-bold text-primary hover:bg-card/80" onClick={() => void load()}>Tải lại</button>}
+        >
+          {error}
+        </InlineAlert>
       )}
       {loading && <ListLoading label="Đang tải dữ liệu đóng góp…" />}
       {!loading && !projectId && <div className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Không tìm thấy đồ án để xem đóng góp.</div>}
@@ -184,10 +187,9 @@ export function ProjectContributionsPage() {
           />
 
           {summary.dataStatus === 'INSUFFICIENT_DATA' && (
-            <div role="status" className="flex gap-3 rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm leading-6 text-status-warning-text">
-              <span className="material-symbols-outlined mt-0.5 text-[19px]" aria-hidden="true">info</span>
-              <p>Chưa đủ chứng cứ để so sánh hoạt động giữa các thành viên. Đây không phải là đánh giá hoặc điểm học phần.</p>
-            </div>
+            <InlineAlert tone="warning">
+              Chưa đủ chứng cứ để so sánh hoạt động giữa các thành viên. Đây không phải là đánh giá hoặc điểm học phần.
+            </InlineAlert>
           )}
 
           <section className="overflow-hidden rounded-lg border border-hairline bg-card" aria-labelledby="contribution-members-heading">
@@ -272,7 +274,7 @@ export function ProjectContributionsPage() {
           {selectedUserId && (
             <Modal open drawer title="Minh chứng đóng góp" description={selectedMember?.displayName ?? 'Thành viên nhóm'} onClose={() => { setSelectedUserId(null); setEvidenceError(null) }}>
               <div className="space-y-4">
-                {evidenceError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{evidenceError}</p>}
+                {evidenceError && <InlineAlert tone="error">{evidenceError}</InlineAlert>}
                 <FilterToolbar
                   embedded
                   className="rounded-lg border border-hairline"
