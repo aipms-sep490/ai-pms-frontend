@@ -27,6 +27,7 @@ it('loads in view mode and explains the publication scope', async () => {
   expect(screen.getByLabelText('Tên tài liệu').matches(':disabled')).toBe(true)
   expect(screen.getByText(/Trợ lý AI chỉ dùng tài liệu sau khi công bố/)).toBeTruthy()
   await waitFor(() => expect((screen.getByRole('button', { name: 'Chỉnh sửa' }) as HTMLButtonElement).disabled).toBe(false))
+  expect(screen.getByRole('button', { name: /Chọn tệp để trích xuất/ }).matches(':disabled')).toBe(false)
 })
 it('confirms cancellation and restores the unsaved document draft', async () => {
   await ready()

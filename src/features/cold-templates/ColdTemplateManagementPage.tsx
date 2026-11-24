@@ -288,6 +288,15 @@ export function ColdTemplateManagementPage() {
       title="Mẫu báo cáo chấm nguội"
       eyebrow="Chấm nguội · Quản lý theo phạm vi và kỳ đồ án"
       description="Tạo bộ đầu mục báo cáo chung hoặc theo ngành cho từng kỳ đánh giá hoặc bàn giao cuối kỳ. Mỗi lần tạo là một phiên bản mới, bất biến."
+      action={
+        <Button
+          variant="secondary"
+          icon="auto_awesome"
+          onClick={() => { setAiColdError(''); setAiColdOpen(true) }}
+        >
+          Soạn mẫu bằng AI
+        </Button>
+      }
     >
       {/* Thông tin ngữ cảnh khoa & Điều hướng nhanh 3 bước */}
       <section className="rounded-xl border border-hairline bg-card p-4 shadow-xs">
@@ -474,29 +483,42 @@ export function ColdTemplateManagementPage() {
 
       {/* BƯỚC 2: Tạo mẫu mới */}
       <div id="cold-step-create" className="flex h-full flex-col">
-      <ConfigModeFrame mode={createMode} dirty={Boolean(name || rows.length !== 1 || rows[0].code || rows[0].name || !rows[0].required)} busy={creating} onEdit={() => setCreateMode('edit')} onCancel={() => { setName(''); setRows([emptyRow()]); setCreateMode('view'); setCreateSuccess('Đã hủy các thay đổi.') }} onSave={() => void submitCreate()} saveLabel="Tạo template" saveDisabled={(templateScope === 'MAJOR_SPECIFIC' && !majorId) || !projectPeriodId || !name.trim() || !rows.some(row => row.code.trim() && row.name.trim())} navigationGuard={false} blastRadius="Mẫu mới tạo là một phiên bản bất biến trong phạm vi ngành và kỳ đồ án đang chọn. Danh sách nộp chỉ được áp dụng cho đồ án sau thao tác riêng ở Bước 3.">
+      <ConfigModeFrame
+        mode={createMode}
+        dirty={Boolean(name || rows.length !== 1 || rows[0].code || rows[0].name || !rows[0].required)}
+        busy={creating}
+        extraActions={
+          <button
+            type="button"
+            className="inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-lg border border-primary/30 bg-primary-subtle px-3.5 py-2 text-xs font-semibold text-primary transition-colors hover:border-primary hover:bg-primary hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            onClick={() => { setAiColdError(''); setAiColdOpen(true) }}
+          >
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">auto_awesome</span>
+            Soạn mẫu bằng AI
+          </button>
+        }
+        onEdit={() => setCreateMode('edit')}
+        onCancel={() => { setName(''); setRows([emptyRow()]); setCreateMode('view'); setCreateSuccess('Đã hủy các thay đổi.') }}
+        onSave={() => void submitCreate()}
+        saveLabel="Tạo template"
+        saveDisabled={(templateScope === 'MAJOR_SPECIFIC' && !majorId) || !projectPeriodId || !name.trim() || !rows.some(row => row.code.trim() && row.name.trim())}
+        navigationGuard={false}
+        blastRadius="Mẫu mới tạo là một phiên bản bất biến trong phạm vi ngành và kỳ đồ án đang chọn. Danh sách nộp chỉ được áp dụng cho đồ án sau thao tác riêng ở Bước 3."
+      >
       <section className="flex h-full flex-col rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-3">
           <div>
             <h2 className="text-base font-bold text-ink">Bước 2: Tạo mẫu mới (phiên bản mới)</h2>
             <p className="text-xs text-ink-muted">
               {createMode === 'view'
-                ? 'Nhấn nút “Chỉnh sửa” ở thanh trên để bắt đầu soạn phiên bản mẫu mới cho phạm vi và kỳ đang chọn ở Bước 1.'
+                ? 'Nhấn “Soạn mẫu bằng AI” để tạo nhanh bằng AI, hoặc nhấn “Chỉnh sửa” ở thanh trên để tự nhập thủ công cho phạm vi và kỳ ở Bước 1.'
                 : 'Mỗi lần lưu tạo một phiên bản bất biến cho phạm vi và kỳ đồ án đang chọn ở Bước 1.'}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="inline-flex min-h-9 items-center gap-1 whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              onClick={() => { setAiColdError(''); setAiColdOpen(true) }}
-            >
-              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">auto_awesome</span>
-              Soạn mẫu bằng AI
-            </button>
-            <button
-              type="button"
-              className="inline-flex min-h-9 items-center whitespace-nowrap rounded-lg border border-primary/20 bg-primary-subtle px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="inline-flex min-h-9 items-center whitespace-nowrap rounded-lg border border-primary/20 bg-primary-subtle px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => void loadItExample()}
             >
               Dùng mẫu IT (chỉ để tham khảo)
@@ -730,6 +752,53 @@ export function ColdTemplateManagementPage() {
                   </li>
                 ))}
               </ul>
+              <div className="grid gap-2.5 rounded-lg border border-hairline bg-canvas p-3 sm:grid-cols-3">
+                <label className="text-xs font-semibold text-ink-soft">
+                  Phạm vi lưu mẫu
+                  <select
+                    aria-label="Phạm vi lưu mẫu chấm nguội AI"
+                    className="mt-1 block min-h-9 w-full rounded-lg border border-hairline bg-card px-2.5 text-xs font-normal text-ink"
+                    value={templateScope}
+                    disabled={aiColdApplying}
+                    onChange={e => setTemplateScope(e.target.value as 'COMMON' | 'MAJOR_SPECIFIC')}
+                  >
+                    <option value="MAJOR_SPECIFIC">Theo ngành</option>
+                    <option value="COMMON">Chung (toàn đồ án)</option>
+                  </select>
+                </label>
+                {templateScope === 'MAJOR_SPECIFIC' && (
+                  <label className="text-xs font-semibold text-ink-soft">
+                    Chuyên ngành áp dụng
+                    <select
+                      aria-label="Chuyên ngành lưu mẫu chấm nguội AI"
+                      className="mt-1 block min-h-9 w-full rounded-lg border border-hairline bg-card px-2.5 text-xs font-normal text-ink"
+                      value={majorId}
+                      disabled={aiColdApplying}
+                      onChange={e => setMajorId(e.target.value)}
+                    >
+                      <option value="">-- Chọn ngành --</option>
+                      {availableMajors.map(m => (
+                        <option key={m.id} value={m.id}>{m.name} ({m.code})</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <label className="text-xs font-semibold text-ink-soft">
+                  Kỳ đồ án áp dụng
+                  <select
+                    aria-label="Kỳ đồ án lưu mẫu chấm nguội AI"
+                    className="mt-1 block min-h-9 w-full rounded-lg border border-hairline bg-card px-2.5 text-xs font-normal text-ink"
+                    value={projectPeriodId}
+                    disabled={aiColdApplying}
+                    onChange={e => setProjectPeriodId(e.target.value)}
+                  >
+                    <option value="">-- Chọn kỳ đồ án --</option>
+                    {availablePeriods.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
               {aiColdError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs text-status-error-text">{aiColdError}</p>}
               <div className="flex flex-wrap items-center justify-end gap-2 border-t border-hairline pt-3">
                 <button
