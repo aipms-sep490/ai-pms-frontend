@@ -356,18 +356,20 @@ export function PreSemesterSetupHubPage() {
                   </div>
                   {!item.allowedByRole && (
                     <p className="rounded-lg border border-hairline bg-canvas px-2.5 py-1.5 text-xs text-ink-muted">
-                      Hạng mục này thuộc thẩm quyền vai trò khác ({item.key === 'PERIODS' || item.key === 'MILESTONE_TEMPLATES' ? 'Quản trị viên' : 'Cán bộ bộ môn'}).
+                      Hạng mục này thuộc thẩm quyền vai trò khác ({item.key === 'PERIODS' ? 'Quản trị viên' : 'Cán bộ bộ môn'}).
                     </p>
                   )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 border-t border-hairline pt-3">
-                  <Link
-                    to={item.route}
-                    className="inline-flex min-h-9 items-center rounded-lg border border-hairline bg-canvas px-3 text-xs font-semibold text-ink transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary"
-                  >
-                    Mở trang quản lý
-                  </Link>
+                  {(item.allowedByRole || item.route.startsWith('/academic/')) && (
+                    <Link
+                      to={item.route}
+                      className="inline-flex min-h-9 items-center rounded-lg border border-hairline bg-canvas px-3 text-xs font-semibold text-ink transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary"
+                    >
+                      Mở trang quản lý
+                    </Link>
+                  )}
                   {item.supportsRollover && item.allowedByRole && sourceSemesterOptions.length > 0 && (
                     <button
                       type="button"

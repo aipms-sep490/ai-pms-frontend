@@ -528,7 +528,7 @@ export function MilestoneTemplatesPage() {
         title="Soạn nháp Mẫu mốc đồ án bằng AI"
         description="Tải tệp Đề cương / Lịch học kỳ (PDF, DOCX, XLSX) hoặc mô tả độ dài học kỳ để AI sinh danh sách mốc kèm ngày lệch (startOffsetDays / dueOffsetDays) ở trạng thái DRAFT."
         toolMode="MILESTONE_TEMPLATE_SETUP"
-        pageContext="/admin/milestone-templates"
+        pageContext="/department/milestone-templates"
         placeholder="VD: Tạo bộ 4 mốc tiêu chuẩn cho đồ án tốt nghiệp 14 tuần (98 ngày) từ khởi tạo SRS đến bảo vệ cuối kỳ..."
         starters={[
           {
