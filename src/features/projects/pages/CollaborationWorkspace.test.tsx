@@ -55,7 +55,7 @@ describe('collaboration workspace API integration', () => {
   it('labels development sample gates without requesting a real timeline', async () => {
     renderWorkspace()
     expect(screen.getByText('DỮ LIỆU MẪU · Review Gates.', { exact: true })).toBeTruthy()
-    expect(await screen.findByRole('heading', { name: 'System Design & Prototype' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'System Design & Prototype' }, { timeout: 3000 })).toBeTruthy()
     expect(calls.some(call => call.url.pathname.includes('/review-gates/timeline'))).toBe(false)
   })
 

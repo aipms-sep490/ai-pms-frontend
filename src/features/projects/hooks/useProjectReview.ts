@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { readAllPages } from '../../../services/api/paged-read'
 import { HttpError } from '../../../services/http/http-client'
 import { isActionAllowed, type ProjectDto, type ProjectWorkflowActionsDto } from '../../../types/backend'
 import { useAuthSession } from '../../auth/context/useAuthSession'
@@ -167,6 +168,11 @@ export function useProjectReview(id?: number) {
     }, session.accessToken))
   }, [execute, id, requirements, session])
 
+  const loadAllQueue = useCallback(async () => {
+    if (!session) return []
+    return readAllPages((page) => getReviewQueue({ page, pageSize: 100, search: query.search }, session.accessToken))
+  }, [query.search, session])
+
   const allowed = (code: string) => isActionAllowed(workflow?.actions ?? [], code)
 
   return {
@@ -183,6 +189,7 @@ export function useProjectReview(id?: number) {
     loading,
     pending,
     refresh,
+    loadAllQueue,
     setSearch: (search: string) => setQuery((current) => ({ ...current, page: 1, search })),
     goToPage: (page: number) => setQuery((current) => ({ ...current, page: Math.max(1, page) })),
     goToReviewSnapshotPage: (page: number) => setReviewSnapshotPage(Math.max(1, page)),

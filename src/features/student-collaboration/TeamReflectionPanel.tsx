@@ -24,11 +24,30 @@ export function TeamReflectionPanel({ projectId, studentId, audience, canManageP
     ...(env.weeklyAssessmentEnabled && audience === 'student' && studentId ? [{ id: 'weekly', label: 'Phản hồi hằng tuần', icon: 'insights' }] : []),
   ]
   if (!options.length) return null
-  return <section className="collab collab-card" aria-label="Cam kết và phản hồi"><div className="collab-row"><div><h2>Cam kết & phản hồi</h2><p className="collab-muted">Theo dõi cách nhóm phối hợp, ghi nhận đóng góp và giữ lại từng phiên bản.</p></div><div className="collab-actions">{options.map(option => <Button key={option.id} variant={selected === option.id ? 'secondary' : 'outline'} icon={option.icon} aria-expanded={selected === option.id} onClick={() => toggle(option.id)}>{option.label}</Button>)}</div></div>
-    <Suspense fallback={<PageLoading />}>
-      {visited.includes('agreement') && <div hidden={selected !== 'agreement'}><Agreement key={projectId} projectId={projectId} readOnly={audience === 'primary'} /></div>}
-      {visited.includes('peer') && <div hidden={selected !== 'peer'}><Peer key={projectId} projectId={projectId} canCreate={canManagePeer} /></div>}
-      {visited.includes('weekly') && studentId && <div hidden={selected !== 'weekly'}><Weekly key={`${projectId}:${studentId}`} projectId={projectId} studentId={studentId} studentOnly /></div>}
-    </Suspense>
-  </section>
+  return (
+    <section className="collab collab-card collab-card-flush" aria-label="Cam kết và phản hồi">
+      <div className="collab-card-header">
+        <div>
+          <h2>Cam kết & phản hồi</h2>
+          <p className="collab-muted mt-0.5">Theo dõi cách nhóm phối hợp, ghi nhận đóng góp và giữ lại từng phiên bản.</p>
+        </div>
+        <div className="collab-actions !mt-0">
+          {options.map(option => (
+            <Button key={option.id} variant={selected === option.id ? 'secondary' : 'outline'} icon={option.icon} aria-expanded={selected === option.id} onClick={() => toggle(option.id)}>
+              {option.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+      {visited.length > 0 && (
+        <div className={selected ? 'collab-card-body' : 'hidden'}>
+          <Suspense fallback={<PageLoading />}>
+            {visited.includes('agreement') && <div hidden={selected !== 'agreement'}><Agreement key={projectId} projectId={projectId} readOnly={audience === 'primary'} /></div>}
+            {visited.includes('peer') && <div hidden={selected !== 'peer'}><Peer key={projectId} projectId={projectId} canCreate={canManagePeer} /></div>}
+            {visited.includes('weekly') && studentId && <div hidden={selected !== 'weekly'}><Weekly key={`${projectId}:${studentId}`} projectId={projectId} studentId={studentId} studentOnly /></div>}
+          </Suspense>
+        </div>
+      )}
+    </section>
+  )
 }

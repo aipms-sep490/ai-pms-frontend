@@ -41,13 +41,13 @@ export function TeamRosterTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-hairline bg-card">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-5 py-4">
-        <div>
-          <h3 className="text-base font-semibold text-ink">Thành viên nhóm</h3>
-          <p className="mt-0.5 text-xs text-ink-muted">
-            {members.length} thành viên
-          </p>
+    <div className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+        <div className="flex items-center gap-2.5">
+          <h3 className="text-base font-bold text-ink">Thành viên nhóm</h3>
+          <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-0.5 font-mono text-xs font-bold tabular-nums text-primary">
+            {members.length}
+          </span>
         </div>
         {isLeader && !rosterLocked && members.length > 1 && (
           <button

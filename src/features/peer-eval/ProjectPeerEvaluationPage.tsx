@@ -11,6 +11,7 @@ import { Button } from '../../components/ui/Button'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
 import { EntityIdentityStrip } from '../../components/ui/EntityIdentityStrip'
 import { WorkspaceEmptyState } from '../../components/ui/WorkspaceState'
+import { Pagination, StatTileRow, useClientPagination } from '../../components/ui'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
 import { PeerRoundPicker } from './PeerRoundPicker'
 import { CollaborationIntro, collaborationDate } from '../student-collaboration/collaboration-ui'
@@ -135,68 +136,207 @@ export function ProjectPeerEvaluationPage() {
   }
 
   const submitted = myEval?.status === 'SUBMITTED'
+  const submittedItems = myEval?.submission?.items ?? []
+  const ratedCount = submitted ? submittedItems.length : roster.filter(member => form[member.userId]?.rating).length
+  const remainingCount = Math.max(0, roster.length - ratedCount)
+  const completionPct = roster.length > 0 ? Math.round((ratedCount / roster.length) * 100) : 100
+  const rosterPagination = useClientPagination(roster, 8)
+  const submittedPagination = useClientPagination(submittedItems, 8)
 
+  return (
+    <WorkspacePage className="space-y-5 collab" title="Đánh giá đồng đội" eyebrow="Đánh giá đồng cấp"
+      description="Đánh giá đóng góp của các thành viên trong nhóm. Đây là minh chứng tham khảo cho giảng viên, không phải là điểm số.">
+      {confirmationDialog}
+      <CollaborationIntro icon="diversity_3" title="Ghi nhận đóng góp, cùng tiến bộ">Chia sẻ nhận xét cụ thể và công bằng. Bạn chỉ đọc được bài mình gửi; phản hồi không được tự cộng vào điểm chính thức.</CollaborationIntro>
+      {projectId && <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: (journey.project as { title?: string } | undefined)?.title || `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />}
+      {projectId && <div className="collab-actions !mt-0"><Button variant="outline" icon="history" disabled={loading || savingDraft || submitting || !!recovery} onClick={() => setHistoryOpen(value => !value)} aria-expanded={historyOpen}>Xem các đợt trước</Button>{selectedRound && <Button variant="ghost" disabled={loading || savingDraft || submitting || !!recovery} onClick={() => void selectRound(null)}>Về đợt đang mở</Button>}</div>}
+      {historyOpen && projectId && !loading && !savingDraft && !submitting && !recovery && <PeerRoundPicker projectId={projectId} userId={myId} onPick={value => void selectRound(value)} />}
 
-  return <WorkspacePage className="space-y-5 collab" title="Đánh giá đồng đội" eyebrow="Đánh giá đồng cấp"
-    description="Đánh giá đóng góp của các thành viên trong nhóm. Đây là minh chứng tham khảo cho giảng viên, không phải là điểm số.">
-    {confirmationDialog}
-    <CollaborationIntro icon="diversity_3" title="Ghi nhận đóng góp, cùng tiến bộ">Chia sẻ nhận xét cụ thể và công bằng. Bạn chỉ đọc được bài mình gửi; phản hồi không được tự cộng vào điểm chính thức.</CollaborationIntro>
-    {projectId && <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: (journey.project as { title?: string } | undefined)?.title || `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />}
-    {projectId && <div className="collab-actions"><Button variant="outline" icon="history" disabled={loading || savingDraft || submitting || !!recovery} onClick={() => setHistoryOpen(value => !value)} aria-expanded={historyOpen}>Xem các đợt trước</Button>{selectedRound && <Button variant="ghost" disabled={loading || savingDraft || submitting || !!recovery} onClick={() => void selectRound(null)}>Về đợt đang mở</Button>}</div>}
-    {historyOpen && projectId && !loading && !savingDraft && !submitting && !recovery && <PeerRoundPicker projectId={projectId} userId={myId} onPick={value => void selectRound(value)} />}
-    {!loading && round && <div className="collab-card"><div className="collab-row"><h2>{round.title}</h2><span className="collab-muted">Hạn gửi: {collaborationDate(round.closesAt)}</span></div><p className="collab-muted">{roster.filter(member => form[member.userId]?.rating).length}/{roster.length} thành viên đã được đánh giá.</p></div>}
-    {recovery && <div role="alert" className="collab-note">Nội dung chưa lưu vẫn được giữ riêng để bạn đối chiếu. <details><summary>Xem nội dung chưa lưu</summary>{Object.entries(recovery).map(([id, value]) => <p key={id}>Thành viên #{id}: {value.rating}/5 · {value.comment}</p>)}</details><div className="collab-actions"><Button disabled={loading || !round?.canSubmit} onClick={() => { setForm(Object.fromEntries(roster.map(member => [member.userId, recovery[member.userId] ?? form[member.userId] ?? { rating: 0, comment: '' }]))); setRecovery(null) }}>Khôi phục bản nháp để đối chiếu</Button><Button variant="outline" disabled={loading} onClick={() => setRecovery(null)}>Giữ dữ liệu máy chủ</Button></div></div>}
-    {!projectId && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Không tìm thấy đồ án đang hoạt động để đánh giá đồng đội.</p>}
-    {projectId && loading && <PageLoading label="Đang tải đánh giá đồng đội…" />}
-    {projectId && !loading && error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><span>{error}</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
-    {projectId && !loading && !error && myEval?.status === 'NO_OPEN_ROUND' && <WorkspaceEmptyState title="Hiện không có đợt đánh giá đồng đội nào đang mở." message="Module đánh giá đồng đội chưa có đợt nào đang mở cho đồ án này." />}
-    {projectId && !loading && !error && round && roster.length === 0 && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Nhóm chưa có thành viên khác để đánh giá.</p>}
+      {!loading && round && (
+        <>
+          <StatTileRow
+            tiles={[
+              {
+                icon: 'how_to_vote',
+                label: 'Đã chấm điểm',
+                value: ratedCount,
+                caption: `Trên tổng ${roster.length} đồng đội`,
+                hero: true,
+              },
+              {
+                icon: 'pending_actions',
+                label: 'Còn cần chấm',
+                value: remainingCount,
+                caption: remainingCount === 0 ? 'Đã chấm đủ thành viên' : 'Hoàn tất trước khi gửi bài',
+                tone: remainingCount === 0 ? 'success' : 'warning',
+              },
+              {
+                icon: 'donut_large',
+                label: 'Tỷ lệ hoàn thành (%)',
+                value: completionPct,
+                caption: submitted ? 'Đã gửi bài đánh giá' : 'Tiến độ hoàn thiện biểu mẫu',
+                tone: 'info',
+              },
+              {
+                icon: 'groups',
+                label: 'Thành viên chốt đợt',
+                value: round.memberCount,
+                caption: `Hạn gửi: ${collaborationDate(round.closesAt)}`,
+                tone: 'neutral',
+              },
+            ]}
+          />
 
-    {projectId && !loading && !error && round && roster.length > 0 && submitted && <>
-      <p className="flex items-center gap-2 rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm font-semibold text-status-success-text"><span className="material-symbols-outlined text-base" aria-hidden="true">task_alt</span>Bạn đã gửi đánh giá đồng đội cho đợt "{round.title}".</p>
-      <ul className="space-y-2">
-        {(myEval?.submission?.items ?? []).map(item => <li key={item.targetUserId} className="rounded-xl border border-hairline bg-card p-4 shadow-xs text-sm">
-          <div className="flex items-center justify-between gap-2"><span className="font-semibold text-ink">{roster.find(mate => mate.userId === item.targetUserId)?.fullName || `Thành viên #${item.targetUserId}`}</span><StatusBadge tone="neutral" label={ratingLabels[item.rating] ?? String(item.rating)} /></div>
-          {item.comment?.trim() && <p className="mt-1 leading-6 text-ink-soft">{item.comment}</p>}
-        </li>)}
-      </ul>
-    </>}
+          <div className="collab-card collab-card-flush">
+            <div className="collab-card-header">
+              <h2>{round.title}</h2>
+              <span className="font-mono text-xs font-semibold text-ink-muted">Hạn gửi: {collaborationDate(round.closesAt)}</span>
+            </div>
+            <div className="px-5 py-3.5">
+              <p className="collab-muted">{ratedCount}/{roster.length} thành viên đã được đánh giá.</p>
+            </div>
+          </div>
+        </>
+      )}
 
-    {projectId && !loading && !error && round && roster.length > 0 && !submitted && <>
-      <div className="mb-4">
-        <ActionVerdict
-          actions={[{
-            code: 'SUBMIT_PEER_EVALUATION',
-            allowed: round.canSubmit,
-            reasons: round.reasons.map(code => ROUND_BLOCKED_MESSAGES[code] || code),
-          }]}
-          actionCode="SUBMIT_PEER_EVALUATION"
-          status="ready"
-          okLabel="Đủ điều kiện gửi đánh giá"
-          blockedLabel="Chưa thể gửi đánh giá"
-        />
-      </div>
-      <ul className="space-y-3">
-        {roster.map(mate => <li key={mate.userId} className="space-y-2 rounded-xl border border-hairline bg-card p-4 shadow-xs">
-          <h2 className="text-base font-bold text-ink">{mate.fullName}</h2>
-          <fieldset className="flex flex-wrap gap-2" disabled={!round.canSubmit || savingDraft || submitting || !!recovery}><legend className="sr-only">Mức đóng góp của {mate.fullName}</legend>
-            {ratings.map(value => {
-              const active = form[mate.userId]?.rating === value
-              return <button key={value} type="button" aria-pressed={active} onClick={() => setRating(mate.userId, value)}
-                className={`min-h-11 rounded-lg border px-3 text-sm font-semibold transition-colors ${active ? 'border-primary bg-primary text-white' : 'border-hairline bg-card text-ink-soft hover:border-primary hover:bg-primary-subtle hover:text-primary'}`}>{value} · {ratingLabels[value]}</button>
+      {recovery && <div role="alert" className="collab-note">Nội dung chưa lưu vẫn được giữ riêng để bạn đối chiếu. <details><summary>Xem nội dung chưa lưu</summary>{Object.entries(recovery).map(([id, value]) => <p key={id}>Thành viên #{id}: {value.rating}/5 · {value.comment}</p>)}</details><div className="collab-actions"><Button disabled={loading || !round?.canSubmit} onClick={() => { setForm(Object.fromEntries(roster.map(member => [member.userId, recovery[member.userId] ?? form[member.userId] ?? { rating: 0, comment: '' }]))); setRecovery(null) }}>Khôi phục bản nháp để đối chiếu</Button><Button variant="outline" disabled={loading} onClick={() => setRecovery(null)}>Giữ dữ liệu máy chủ</Button></div></div>}
+      {!projectId && <p className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-muted">Không tìm thấy đồ án đang hoạt động để đánh giá đồng đội.</p>}
+      {projectId && loading && <PageLoading label="Đang tải đánh giá đồng đội…" />}
+      {projectId && !loading && error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><span>{error}</span><button type="button" className="min-h-11 font-semibold underline" onClick={retry}>Tải lại</button></div>}
+      {projectId && !loading && !error && myEval?.status === 'NO_OPEN_ROUND' && <WorkspaceEmptyState title="Hiện không có đợt đánh giá đồng đội nào đang mở." message="Module đánh giá đồng đội chưa có đợt nào đang mở cho đồ án này." />}
+      {projectId && !loading && !error && round && roster.length === 0 && <p className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-muted">Nhóm chưa có thành viên khác để đánh giá.</p>}
+
+      {projectId && !loading && !error && round && roster.length > 0 && submitted && (
+        <>
+          <p className="flex items-center gap-2 rounded-xl border border-status-success-border bg-status-success-bg p-4 text-sm font-semibold text-status-success-text">
+            <span className="material-symbols-outlined text-base" aria-hidden="true">task_alt</span>
+            Bạn đã gửi đánh giá đồng đội cho đợt "{round.title}".
+          </p>
+          <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {submittedPagination.paginatedItems.map(item => (
+              <li key={item.targetUserId} className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+                <div className="flex items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+                  <span className="font-bold text-ink">{roster.find(mate => mate.userId === item.targetUserId)?.fullName || `Thành viên #${item.targetUserId}`}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-base font-bold tabular-nums text-primary">{item.rating}/5</span>
+                    <StatusBadge tone="neutral" label={ratingLabels[item.rating] ?? String(item.rating)} />
+                  </div>
+                </div>
+                <div className="p-4 text-sm">
+                  <p className="leading-6 text-ink-soft">{item.comment?.trim() || 'Không có nhận xét đính kèm.'}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+          {submittedPagination.showPagination && (
+            <div className="rounded-xl border border-hairline bg-card px-5 py-3.5 shadow-xs">
+              <Pagination
+                page={submittedPagination.page}
+                pages={submittedPagination.totalPages}
+                total={submittedPagination.total}
+                pageSize={submittedPagination.pageSize}
+                pageSizeOptions={[8, 16, 30]}
+                onPage={submittedPagination.setPage}
+                onPageSizeChange={submittedPagination.setPageSize}
+              />
+            </div>
+          )}
+        </>
+      )}
+
+      {projectId && !loading && !error && round && roster.length > 0 && !submitted && (
+        <>
+          <ActionVerdict
+            actions={[{
+              code: 'SUBMIT_PEER_EVALUATION',
+              allowed: round.canSubmit,
+              reasons: round.reasons.map(code => ROUND_BLOCKED_MESSAGES[code] || code),
+            }]}
+            actionCode="SUBMIT_PEER_EVALUATION"
+            status="ready"
+            okLabel="Đủ điều kiện gửi đánh giá"
+            blockedLabel="Chưa thể gửi đánh giá"
+          />
+
+          <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {rosterPagination.paginatedItems.map(mate => {
+              const currentRating = form[mate.userId]?.rating ?? 0
+              return (
+                <li key={mate.userId} className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary-subtle text-xs font-bold text-primary" aria-hidden="true">
+                        {mate.fullName.charAt(0)}
+                      </span>
+                      <h2 className="text-base font-bold text-ink">{mate.fullName}</h2>
+                    </div>
+                    {currentRating > 0 ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary-subtle px-3 py-0.5 font-mono text-xs font-bold tabular-nums text-primary">
+                        {currentRating}/5 · {ratingLabels[currentRating]}
+                      </span>
+                    ) : (
+                      <StatusBadge tone="warning" label="Chưa chấm" />
+                    )}
+                  </div>
+                  <div className="space-y-4 p-5">
+                    <fieldset className="flex flex-wrap gap-2" disabled={!round.canSubmit || savingDraft || submitting || !!recovery}>
+                      <legend className="sr-only">Mức đóng góp của {mate.fullName}</legend>
+                      {ratings.map(value => {
+                        const active = currentRating === value
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() => setRating(mate.userId, value)}
+                            className={`min-h-11 rounded-lg border px-3 text-sm font-semibold tabular-nums transition-colors ${active ? 'border-primary bg-primary text-white shadow-xs' : 'border-hairline bg-card text-ink-soft hover:border-primary hover:bg-primary-subtle hover:text-primary'}`}
+                          >
+                            {value} · {ratingLabels[value]}
+                          </button>
+                        )
+                      })}
+                    </fieldset>
+                    <label className="block text-xs font-semibold text-ink-soft">
+                      Nhận xét (tùy chọn)
+                      <textarea
+                        rows={2}
+                        value={form[mate.userId]?.comment ?? ''}
+                        onChange={event => setComment(mate.userId, event.target.value)}
+                        maxLength={2000}
+                        disabled={!round.canSubmit || savingDraft || submitting || !!recovery}
+                        className="mt-1.5 w-full rounded-lg border border-hairline bg-card p-2.5 text-sm font-normal text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20 disabled:bg-canvas disabled:text-ink-muted"
+                        placeholder="Ví dụ: chủ động nhận việc khó, bàn giao đúng hạn…"
+                      />
+                    </label>
+                  </div>
+                </li>
+              )
             })}
-          </fieldset>
-          <label className="block text-sm text-ink-soft">Nhận xét (tùy chọn)
-            <textarea rows={2} value={form[mate.userId]?.comment ?? ''} onChange={event => setComment(mate.userId, event.target.value)} maxLength={2000} disabled={!round.canSubmit || savingDraft || submitting || !!recovery}
-              className="mt-1 w-full rounded-lg border border-hairline bg-card p-2 text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20 disabled:bg-canvas disabled:text-ink-muted" placeholder="Ví dụ: chủ động nhận việc khó, bàn giao đúng hạn…" />
-          </label>
-        </li>)}
-      </ul>
-      {formError && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{formError}</div>}
-      {round.canSubmit && <div className="flex flex-wrap gap-3">
-        <button type="button" onClick={saveDraft} disabled={savingDraft || submitting || !!recovery} className="min-h-11 rounded-lg border border-primary bg-card px-5 font-semibold text-primary transition-colors hover:bg-primary-subtle disabled:opacity-60">{savingDraft ? 'Đang lưu…' : 'Lưu nháp'}</button>
-        <button type="button" onClick={submit} disabled={submitting || savingDraft || !!recovery} className="min-h-11 rounded-lg bg-primary px-5 font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-60">{submitting ? 'Đang gửi…' : 'Gửi đánh giá'}</button>
-      </div>}
-    </>}
-  </WorkspacePage>
+          </ul>
+
+          {rosterPagination.showPagination && (
+            <div className="rounded-xl border border-hairline bg-card px-5 py-3.5 shadow-xs">
+              <Pagination
+                page={rosterPagination.page}
+                pages={rosterPagination.totalPages}
+                total={rosterPagination.total}
+                pageSize={rosterPagination.pageSize}
+                pageSizeOptions={[8, 16, 30]}
+                onPage={rosterPagination.setPage}
+                onPageSizeChange={rosterPagination.setPageSize}
+              />
+            </div>
+          )}
+
+          {formError && <div role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-3.5 text-sm text-status-error-text">{formError}</div>}
+          {round.canSubmit && (
+            <div className="flex flex-wrap items-center justify-end gap-3 rounded-xl border border-hairline bg-card px-5 py-4 shadow-xs">
+              <button type="button" onClick={saveDraft} disabled={savingDraft || submitting || !!recovery} className="min-h-11 rounded-lg border border-primary bg-card px-5 font-semibold text-primary transition-colors hover:bg-primary-subtle disabled:opacity-60">{savingDraft ? 'Đang lưu…' : 'Lưu nháp'}</button>
+              <button type="button" onClick={submit} disabled={submitting || savingDraft || !!recovery} className="min-h-11 rounded-lg bg-primary px-5 font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-60">{submitting ? 'Đang gửi…' : 'Gửi đánh giá'}</button>
+            </div>
+          )}
+        </>
+      )}
+    </WorkspacePage>
+  )
 }

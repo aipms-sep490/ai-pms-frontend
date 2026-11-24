@@ -14,7 +14,7 @@ import { Modal } from '../../../components/ui/Modal'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { services } from '../../../services/service-gateway'
 import { EligibilityHistoryPanel } from '../components/EligibilityHistoryPanel'
-import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
+import { StatTileRow, StatusBadge } from '../../../components/ui'
 
 export function TeamManagementPage() {
   const navigate = useNavigate()
@@ -164,8 +164,6 @@ export function TeamManagementPage() {
         </div>
       )}
 
-      {!rosterLocked && <StudentQualificationCard key={currentUserId} onSubmitted={management.refreshAll} />}
-
       {/* Header */}
       <header className="workspace-heading">
         <div className="workspace-heading-copy">
@@ -202,16 +200,18 @@ export function TeamManagementPage() {
         )}
       </header>
 
+      {!team && !rosterLocked && <StudentQualificationCard key={currentUserId} onSubmitted={management.refreshAll} />}
+
       {/* When Student Has NO TEAM */}
       {!team ? (
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col items-center gap-4 rounded-xl border border-hairline bg-card p-8 text-center">
+        <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
+          <div className="flex flex-col items-center gap-4 rounded-xl border border-hairline bg-card p-8 text-center shadow-xs xl:col-span-5">
             <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary-subtle text-primary">
               <span className="material-symbols-outlined text-[36px]" aria-hidden="true">group_add</span>
             </div>
-            <div className="max-w-md">
+            <div>
               <h3 className="text-lg font-bold text-ink">Bạn chưa tham gia nhóm đồ án nào</h3>
-              <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
+              <p className="mt-1.5 max-w-3xl text-xs leading-relaxed text-ink-muted">
                 Để đăng ký đề tài đồ án tốt nghiệp, bạn cần thành lập một nhóm mới hoặc chấp nhận lời mời tham gia từ các nhóm khác.
               </p>
             </div>
@@ -226,153 +226,216 @@ export function TeamManagementPage() {
           </div>
 
           {/* Received invitations box */}
-          <TeamInvitationsPanel
-            sentInvitations={[]}
-            receivedInvitations={receivedInvitations}
-            isLeader={false}
-            rosterLocked={false}
-            candidates={candidates}
-            candidateSearch={candidateSearch}
-            candidateLoading={isLoadingCandidates}
-            candidateError={candidateError?.message}
-            onCandidateSearchChange={setCandidateSearch}
-            onCandidatePageChange={setCandidatePage}
-            onRetryCandidates={() => void retryCandidates()}
-            isMutationPending={isMutationPending}
-            onSendInvitation={async () => {}}
-            onCancelInvitation={async () => {}}
-            onAcceptInvitation={handleAcceptInvitation}
-            onRejectInvitation={handleRejectInvitation}
-          />
+          <div className="xl:col-span-7">
+            <TeamInvitationsPanel
+              sentInvitations={[]}
+              receivedInvitations={receivedInvitations}
+              isLeader={false}
+              rosterLocked={false}
+              candidates={candidates}
+              candidateSearch={candidateSearch}
+              candidateLoading={isLoadingCandidates}
+              candidateError={candidateError?.message}
+              onCandidateSearchChange={setCandidateSearch}
+              onCandidatePageChange={setCandidatePage}
+              onRetryCandidates={() => void retryCandidates()}
+              isMutationPending={isMutationPending}
+              onSendInvitation={async () => {}}
+              onCancelInvitation={async () => {}}
+              onAcceptInvitation={handleAcceptInvitation}
+              onRejectInvitation={handleRejectInvitation}
+            />
+          </div>
         </div>
-      ) : (
-        /* When Student HAS A TEAM */
-        <div className="flex flex-col gap-6">
-          {/* FAMS Entity Identity Strip (P02) */}
-          <EntityIdentityStrip chips={[
-            { icon: 'group', label: 'Mã nhóm', value: team.code },
-            { icon: 'calendar_today', label: 'Học kỳ', value: semester?.name || 'Học kỳ hiện tại' },
-            { icon: 'school', label: 'Chế độ', value: team.academicScope?.projectMode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành' },
-            { icon: 'verified', label: 'Trạng thái', value: team.status === 'ELIGIBLE' ? 'Đủ điều kiện' : team.status === 'LOCKED' ? 'Đã khóa' : 'Đang kiện toàn', tone: team.status === 'ELIGIBLE' ? 'success' : team.status === 'LOCKED' ? 'neutral' : 'warning' },
-          ]} />
+      ) : (() => {
+        const eligibleMembers = team.members.filter((member) => member.isEligibleStudent && member.isProjectQualificationEligible !== false).length
+        const pendingInvitationsCount = [...sentInvitations, ...receivedInvitations].filter((inv) => inv.status === 'PENDING').length
+        const isCurrentUserLeader = team.members.some((member) => member.userId === currentUserId && member.isLeader)
+        const distinctMajors = new Set(team.members.map((member) => member.majorId).filter((majorId): majorId is number => majorId != null)).size
 
-          {/* Team Overview Card */}
-          <div className="flex flex-col justify-between gap-4 rounded-xl border border-hairline bg-card p-6 md:flex-row md:items-center">
-            <div>
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="rounded-lg border border-primary/20 bg-primary-subtle px-2.5 py-0.5 font-mono text-sm font-bold text-primary">
-                  {team.code}
-                </span>
-                <h2 className="text-lg font-bold text-ink">{team.name}</h2>
-                <span className="rounded-full border border-hairline bg-canvas px-2.5 py-0.5 text-xs font-semibold text-ink-soft">
-                  {team.status === 'ELIGIBLE'
-                    ? 'Đủ điều kiện đăng ký'
-                    : team.status === 'LOCKED'
-                      ? 'Đã khóa theo đề tài'
-                      : 'Đang kiện toàn nhân sự'}
-                </span>
-              </div>
-              {team.description && (
-                <p className="mt-1.5 max-w-2xl text-xs text-ink-muted">{team.description}</p>
-              )}
-            </div>
+        return (
+          /* When Student HAS A TEAM */
+          <div className="flex flex-col gap-5">
+            <StatTileRow
+              tiles={[
+                {
+                  icon: 'groups',
+                  label: 'Thành viên nhóm',
+                  value: team.members.length,
+                  caption: `${team.members.length} / ${maxTeamSize ?? '—'} thành viên`,
+                  hero: true,
+                },
+                {
+                  icon: 'verified_user',
+                  label: 'Đủ tư cách đồ án',
+                  value: eligibleMembers,
+                  caption: `${eligibleMembers}/${team.members.length} thành viên đạt chuẩn học vụ`,
+                  tone: eligibleMembers === team.members.length ? 'success' : 'warning',
+                },
+                {
+                  icon: 'mail',
+                  label: 'Lời mời chờ',
+                  value: pendingInvitationsCount,
+                  caption: `${sentInvitations.length} đã gửi · ${receivedInvitations.length} đã nhận`,
+                  tone: pendingInvitationsCount > 0 ? 'warning' : 'neutral',
+                },
+                {
+                  icon: 'badge',
+                  label: 'Chuyên ngành hiện có',
+                  value: distinctMajors,
+                  caption: isCurrentUserLeader ? 'Vai trò của bạn: Trưởng nhóm' : 'Vai trò của bạn: Thành viên',
+                  tone: 'info',
+                },
+              ]}
+            />
 
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
-              {permissions.canEditTeam && (
-                <button type="button" onClick={() => setIsUpdateModalOpen(true)} className="inline-flex min-h-11 items-center rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary">
-                  Chỉnh sửa nhóm
-                </button>
-              )}
-              <div className="text-right">
-                <span className="block text-xs text-ink-muted">Sĩ số nhóm</span>
-                <span className="text-sm font-bold text-ink-soft">
-                  {team.members.length} / {maxTeamSize ?? '—'} thành viên
-                </span>
+            {rosterLocked && (
+              <p className="rounded-xl border border-hairline bg-canvas px-4 py-3 text-sm font-medium text-ink-soft">
+                Danh sách thành viên đã được chốt theo hồ sơ đồ án.
+              </p>
+            )}
+
+            {leaderChangeRequests.some((request) => request.status === 'PENDING') && (
+              <section className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-xs text-status-warning-text">
+                <div className="flex items-center gap-2 font-bold">
+                  <span className="material-symbols-outlined text-[18px]">hourglass_top</span>
+                  Yêu cầu đổi trưởng nhóm đang chờ người phụ trách duyệt
+                </div>
+                {leaderChangeRequests.filter((request) => request.status === 'PENDING').map((request) => {
+                  const target = team.members.find((member) => member.userId === request.newLeaderUserId)
+                  return (
+                    <p key={request.id} className="mt-2">
+                      {target?.fullName ?? 'Thành viên #' + request.newLeaderUserId}
+                      {' · Mentor: ' + request.mentorName}
+                      {' · gửi lúc ' + new Date(request.requestedAt).toLocaleString('vi-VN')}
+                    </p>
+                  )
+                })}
+              </section>
+            )}
+
+            <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
+              <div className="flex flex-col gap-5 xl:col-span-8">
+                {/* Team Overview Card */}
+                <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <span className="rounded-lg border border-primary/20 bg-primary-subtle px-2.5 py-0.5 font-mono text-xs font-bold text-primary">
+                        {team.code}
+                      </span>
+                      <h2 className="text-base font-bold text-ink">{team.name}</h2>
+                      <StatusBadge
+                        tone="info"
+                        label={team.academicScope?.projectMode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành'}
+                      />
+                      <StatusBadge
+                        tone={team.status === 'ELIGIBLE' ? 'success' : team.status === 'LOCKED' ? 'neutral' : 'warning'}
+                        label={team.status === 'ELIGIBLE'
+                          ? 'Đủ điều kiện đăng ký'
+                          : team.status === 'LOCKED'
+                            ? 'Đã khóa theo đề tài'
+                            : 'Đang kiện toàn nhân sự'}
+                      />
+                    </div>
+                    {permissions.canEditTeam && (
+                      <button type="button" onClick={() => setIsUpdateModalOpen(true)} className="inline-flex min-h-11 items-center rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary">
+                        Chỉnh sửa nhóm
+                      </button>
+                    )}
+                  </div>
+                  <div className="px-5 py-4">
+                    <p className="max-w-3xl text-xs leading-relaxed text-ink-muted">
+                      {team.description || 'Chưa có mô tả cho nhóm đồ án.'}
+                    </p>
+                  </div>
+                </section>
+
+                {/* Roster Table */}
+                <TeamRosterTable
+                  members={team.members}
+                  currentUserId={currentUserId}
+                  currentUserStudentCode={profile?.studentCode ?? undefined}
+                  majorNames={majorNames}
+                  isLeader={permissions.canManageRoster}
+                  rosterLocked={rosterLocked}
+                  onRemoveMember={handleRemoveMember}
+                  onOpenTransferLeader={() => setIsTransferModalOpen(true)}
+                />
+
+                {!rosterLocked && team.academicScope && (
+                  <StructuredResponsibilitiesPanel teamId={team.id} scope={team.academicScope} majorNames={majorNames} canEdit={permissions.canConfigureScope} onSaved={retry} />
+                )}
+
+                {!rosterLocked && (
+                  <AcademicScopePanel
+                    teamId={team.id}
+                    period={period}
+                    workflowContext={workflowContext}
+                    scope={team.academicScope}
+                    canConfigure={permissions.canConfigureScope}
+                    onSaved={retry}
+                    fallbackOrganizationId={team.members.find((member) => member.userId === currentUserId)?.organizationId}
+                    fallbackMajorId={profile?.majorId}
+                  />
+                )}
               </div>
+
+              <aside className="flex flex-col gap-5 xl:col-span-4" aria-label="Điều kiện đăng ký và lời mời">
+                {!rosterLocked && (
+                  <TeamEligibilitySummary
+                    team={team}
+                    majorNames={majorNames}
+                    canRefresh={permissions.canRefreshEligibility}
+                    refreshPending={isMutationPending('refresh-eligibility', team.id)}
+                    canContinueToRegistration={team.eligibility.canRegister && permissions.canCreateProjectDraft}
+                    onRefresh={handleRefreshEligibility}
+                    onContinueToRegistration={() => navigate('/project/register')}
+                  />
+                )}
+
+                {!rosterLocked && <StudentQualificationCard key={currentUserId} onSubmitted={management.refreshAll} />}
+
+                {/* Invitations Panel */}
+                {sentInvitationError && (
+                  <div role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">
+                    Chưa tải được lời mời đã gửi. {sentInvitationError.message}{' '}
+                    <button type="button" onClick={() => void retry()} disabled={isRefreshing} className="underline disabled:opacity-50">Tải lại</button>
+                  </div>
+                )}
+                {(!rosterLocked || sentInvitations.length > 0 || receivedInvitations.length > 0) && (
+                  <TeamInvitationsPanel
+                    sentInvitations={sentInvitations}
+                    memberNames={Object.fromEntries(team.members.map(member => [member.userId, member.fullName]))}
+                    receivedInvitations={receivedInvitations}
+                    isLeader={permissions.canInvite}
+                    rosterLocked={rosterLocked}
+                    unfilledMajors={unfilledMajors}
+                    candidates={candidates}
+                    candidateSearch={candidateSearch}
+                    candidateLoading={isLoadingCandidates}
+                    candidateError={candidateError?.message}
+                    onCandidateSearchChange={setCandidateSearch}
+                    onCandidatePageChange={setCandidatePage}
+                    onRetryCandidates={() => void retryCandidates()}
+                    isMutationPending={isMutationPending}
+                    onSendInvitation={handleSendInvitation}
+                    onCancelInvitation={handleCancelInvitation}
+                    onAcceptInvitation={handleAcceptInvitation}
+                    onRejectInvitation={handleRejectInvitation}
+                  />
+                )}
+
+                <EligibilityHistoryPanel
+                  teamId={team.id}
+                  canCheck={permissions.canRefreshEligibility}
+                  canLock={!rosterLocked && team.status === 'ELIGIBLE' && team.members.some(member => member.isLeader && member.userId === currentUserId)}
+                  onChanged={() => { retry() }}
+                />
+              </aside>
             </div>
           </div>
-
-          {!rosterLocked && <TeamEligibilitySummary
-            team={team}
-            majorNames={majorNames}
-            canRefresh={permissions.canRefreshEligibility}
-            refreshPending={isMutationPending('refresh-eligibility', team.id)}
-            canContinueToRegistration={team.eligibility.canRegister && permissions.canCreateProjectDraft}
-            onRefresh={handleRefreshEligibility}
-            onContinueToRegistration={() => navigate('/project/register')}
-          />}
-
-          <EligibilityHistoryPanel teamId={team.id} canCheck={permissions.canRefreshEligibility} canLock={!rosterLocked && team.status === 'ELIGIBLE' && team.members.some(member => member.isLeader && member.userId === currentUserId)} onChanged={() => { retry() }} />
-          {!rosterLocked && <AcademicScopePanel
-            
-            teamId={team.id}
-            period={period}
-            workflowContext={workflowContext}
-            scope={team.academicScope}
-            canConfigure={permissions.canConfigureScope}
-            onSaved={retry}
-            fallbackOrganizationId={team.members.find((member) => member.userId === currentUserId)?.organizationId}
-            fallbackMajorId={profile?.majorId}
-          />}
-          {!rosterLocked && team.academicScope && <StructuredResponsibilitiesPanel teamId={team.id} scope={team.academicScope} majorNames={majorNames} canEdit={permissions.canConfigureScope} onSaved={retry} />}
-
-          {rosterLocked && <p className="text-sm text-ink-muted">Danh sách thành viên đã được chốt theo hồ sơ đồ án.</p>}
-
-          {leaderChangeRequests.some((request) => request.status === 'PENDING') && (
-            <section className="rounded-md border border-status-warning-border bg-status-warning-bg p-4 text-xs text-status-warning-text">
-              <div className="flex items-center gap-2 font-bold">
-                <span className="material-symbols-outlined text-[18px]">hourglass_top</span>
-                Yêu cầu đổi trưởng nhóm đang chờ người phụ trách duyệt
-              </div>
-              {leaderChangeRequests.filter((request) => request.status === 'PENDING').map((request) => {
-                const target = team.members.find((member) => member.userId === request.newLeaderUserId)
-                return (
-                  <p key={request.id} className="mt-2">
-                    {target?.fullName ?? 'Thành viên #' + request.newLeaderUserId}
-                    {' · Mentor: ' + request.mentorName}
-                    {' · gửi lúc ' + new Date(request.requestedAt).toLocaleString('vi-VN')}
-                  </p>
-                )
-              })}
-            </section>
-          )}
-
-          {/* Roster Table */}
-          <TeamRosterTable
-            members={team.members}
-            currentUserId={currentUserId}
-            currentUserStudentCode={profile?.studentCode ?? undefined}
-            majorNames={majorNames}
-            isLeader={permissions.canManageRoster}
-            rosterLocked={rosterLocked}
-            onRemoveMember={handleRemoveMember}
-            onOpenTransferLeader={() => setIsTransferModalOpen(true)}
-          />
-
-          {/* Invitations Panel */}
-          {sentInvitationError && <div role="alert" className="rounded-md border border-hairline bg-card p-4 text-sm text-status-error-text">Chưa tải được lời mời đã gửi. {sentInvitationError.message} <button type="button" onClick={() => void retry()} disabled={isRefreshing} className="underline disabled:opacity-50">Tải lại</button></div>}
-          {(!rosterLocked || sentInvitations.length > 0 || receivedInvitations.length > 0) && <TeamInvitationsPanel
-            sentInvitations={sentInvitations}
-            memberNames={Object.fromEntries(team.members.map(member => [member.userId, member.fullName]))}
-            receivedInvitations={receivedInvitations}
-            isLeader={permissions.canInvite}
-            rosterLocked={rosterLocked}
-            unfilledMajors={unfilledMajors}
-            candidates={candidates}
-            candidateSearch={candidateSearch}
-            candidateLoading={isLoadingCandidates}
-            candidateError={candidateError?.message}
-            onCandidateSearchChange={setCandidateSearch}
-            onCandidatePageChange={setCandidatePage}
-            onRetryCandidates={() => void retryCandidates()}
-            isMutationPending={isMutationPending}
-            onSendInvitation={handleSendInvitation}
-            onCancelInvitation={handleCancelInvitation}
-            onAcceptInvitation={handleAcceptInvitation}
-            onRejectInvitation={handleRejectInvitation}
-          />}
-        </div>
-      )}
+        )
+      })()}
 
       {/* Modals */}
       <CreateTeamModal

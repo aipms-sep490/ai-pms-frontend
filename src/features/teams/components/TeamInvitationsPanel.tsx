@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { PagedResult, TeamInvitationCandidateDto, TeamInvitationDto } from '../../../types/backend'
+import { Pagination, useClientPagination } from '../../../components/ui'
 import { dateTimeLabel } from '../../execution/execution-utils'
 
 interface TeamInvitationsPanelProps {
@@ -49,6 +50,8 @@ export function TeamInvitationsPanel({
   const [activeTab, setActiveTab] = useState<'sent' | 'received'>('sent')
   const [message, setMessage] = useState('')
   const [majorFilter, setMajorFilter] = useState<number | null>(null)
+  const sentPagination = useClientPagination(sentInvitations, 8)
+  const receivedPagination = useClientPagination(receivedInvitations, 8)
   const visibleCandidates = majorFilter == null ? candidates.items : candidates.items.filter((candidate) => candidate.majorId === majorFilter)
   const personName = (id: number) => memberNames[id] || candidates.items.find(candidate => candidate.userId === id)?.fullName
   const statusLabel = (status: string) => ({ PENDING: 'Đang chờ phản hồi', ACCEPTED: 'Đã chấp nhận', REJECTED: 'Đã từ chối', CANCELLED: 'Đã hủy', EXPIRED: 'Đã hết hạn' }[status] || 'Chưa có thông tin')
@@ -74,8 +77,8 @@ export function TeamInvitationsPanel({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-hairline bg-card">
-      <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4">
+    <div className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+      <div className="flex items-center justify-between gap-4 border-b border-hairline bg-canvas/70 px-5 py-3.5">
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -162,12 +165,15 @@ export function TeamInvitationsPanel({
                 ))}
               </div>
               {candidates.totalPages > 1 && (
-                <div className="flex items-center justify-end gap-2 text-xs text-ink-muted">
-                  <button type="button" onClick={() => onCandidatePageChange(candidates.page - 1)} disabled={candidates.page <= 1 || candidateLoading}
-                    className="min-h-11 rounded-lg border border-hairline bg-card px-3 py-1.5 font-semibold text-ink-soft hover:bg-canvas disabled:opacity-50">Trước</button>
-                  <span>Trang {candidates.page}/{candidates.totalPages}</span>
-                  <button type="button" onClick={() => onCandidatePageChange(candidates.page + 1)} disabled={candidates.page >= candidates.totalPages || candidateLoading}
-                    className="min-h-11 rounded-lg border border-hairline bg-card px-3 py-1.5 font-semibold text-ink-soft hover:bg-canvas disabled:opacity-50">Sau</button>
+                <div className="border-t border-hairline pt-3">
+                  <Pagination
+                    page={candidates.page}
+                    pages={candidates.totalPages}
+                    total={candidates.totalCount}
+                    pageSize={candidates.pageSize}
+                    busy={candidateLoading}
+                    onPage={onCandidatePageChange}
+                  />
                 </div>
               )}
             </div>
@@ -183,61 +189,74 @@ export function TeamInvitationsPanel({
                 Chưa có lời mời nào được gửi đi.
               </div>
             ) : (
-              <div className="divide-y divide-hairline">
-                {sentInvitations.map((inv) => {
-                  const targetUser = inv.invitedUserName || personName(inv.invitedUserId) || 'Sinh viên được mời'
-                  const inviterName = inv.invitedByName || personName(inv.invitedBy)
+              <>
+                <div className="divide-y divide-hairline">
+                  {sentPagination.paginatedItems.map((inv) => {
+                    const targetUser = inv.invitedUserName || personName(inv.invitedUserId) || 'Sinh viên được mời'
+                    const inviterName = inv.invitedByName || personName(inv.invitedBy)
 
-                  return (
-                    <div key={inv.id} className="flex flex-wrap items-center justify-between gap-4 p-3.5 hover:bg-canvas sm:flex-nowrap">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-hairline bg-canvas text-xs font-bold text-ink-muted">
-                          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">outgoing_mail</span>
+                    return (
+                      <div key={inv.id} className="flex flex-wrap items-center justify-between gap-4 p-3.5 hover:bg-canvas sm:flex-nowrap">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-hairline bg-canvas text-xs font-bold text-ink-muted">
+                            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">outgoing_mail</span>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="truncate text-xs font-bold text-ink">
+                              {targetUser}
+                            </div>
+                            <div className="text-xs text-ink-muted">
+                              {inviterName ? `Người mời: ${inviterName} · ` : ''}Gửi lúc: {dateTimeLabel(inv.createdAt)}
+                              {inv.expiresAt && ` • Hết hạn: ${dateTimeLabel(inv.expiresAt)}`}
+                            </div>
+                            {inv.message && (
+                              <p className="mt-1 break-words text-xs italic text-ink-muted">
+                                {inv.message}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <div className="truncate text-xs font-bold text-ink">
-                            {targetUser}
-                          </div>
-                          <div className="text-xs text-ink-muted">
-                            {inviterName ? `Người mời: ${inviterName} · ` : ''}Gửi lúc: {dateTimeLabel(inv.createdAt)}
-                            {inv.expiresAt && ` • Hết hạn: ${dateTimeLabel(inv.expiresAt)}`}
-                          </div>
-                          {inv.message && (
-                            <p className="mt-1 break-words text-xs italic text-ink-muted">
-                              {inv.message}
-                            </p>
+
+                        <div className="flex shrink-0 items-center gap-3">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              inv.status === 'PENDING'
+                                ? 'border border-status-warning-border bg-status-warning-bg text-status-warning-text'
+                                : inv.status === 'ACCEPTED'
+                                  ? 'border border-status-success-border bg-status-success-bg text-status-success-text'
+                                  : 'border border-status-error-border bg-status-error-bg text-status-error-text'
+                            }`}
+                          >
+                            {statusLabel(inv.status)}
+                          </span>
+
+                          {isLeader && inv.status === 'PENDING' && !rosterLocked && (
+                            <button
+                              type="button"
+                              disabled={isMutationPending('cancel', inv.id)}
+                              onClick={() => handleCancel(inv.id)}
+                              className="min-h-11 rounded-lg px-3 py-1.5 text-xs font-semibold text-status-error-text transition-colors hover:bg-status-error-bg disabled:opacity-50"
+                            >
+                              {isMutationPending('cancel', inv.id) ? 'Đang hủy...' : 'Hủy lời mời'}
+                            </button>
                           )}
                         </div>
                       </div>
-
-                      <div className="flex shrink-0 items-center gap-3">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            inv.status === 'PENDING'
-                              ? 'border border-status-warning-border bg-status-warning-bg text-status-warning-text'
-                              : inv.status === 'ACCEPTED'
-                                ? 'border border-status-success-border bg-status-success-bg text-status-success-text'
-                                : 'border border-status-error-border bg-status-error-bg text-status-error-text'
-                          }`}
-                        >
-                          {statusLabel(inv.status)}
-                        </span>
-
-                        {isLeader && inv.status === 'PENDING' && !rosterLocked && (
-                          <button
-                            type="button"
-                            disabled={isMutationPending('cancel', inv.id)}
-                            onClick={() => handleCancel(inv.id)}
-                            className="min-h-11 rounded-lg px-3 py-1.5 text-xs font-semibold text-status-error-text transition-colors hover:bg-status-error-bg disabled:opacity-50"
-                          >
-                            {isMutationPending('cancel', inv.id) ? 'Đang hủy...' : 'Hủy lời mời'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+                {sentPagination.showPagination && (
+                  <div className="mt-3 border-t border-hairline pt-3">
+                    <Pagination
+                      page={sentPagination.page}
+                      pages={sentPagination.totalPages}
+                      total={sentPagination.total}
+                      pageSize={sentPagination.pageSize}
+                      onPage={sentPagination.setPage}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -250,65 +269,78 @@ export function TeamInvitationsPanel({
               Hộp thư rỗng. Bạn chưa nhận được lời mời nào từ các nhóm khác.
             </div>
           ) : (
-            <div className="divide-y divide-hairline">
-              {receivedInvitations.map((inv) => {
-                const teamTitle = inv.teamName
-                  ? (inv.teamName.startsWith('Nhóm') ? `Lời mời từ ${inv.teamName}` : `Lời mời từ nhóm ${inv.teamName}`)
-                  : `Lời mời từ nhóm #${inv.teamId}`
-                const inviterName = inv.invitedByName || personName(inv.invitedBy)
+            <>
+              <div className="divide-y divide-hairline">
+                {receivedPagination.paginatedItems.map((inv) => {
+                  const teamTitle = inv.teamName
+                    ? (inv.teamName.startsWith('Nhóm') ? `Lời mời từ ${inv.teamName}` : `Lời mời từ nhóm ${inv.teamName}`)
+                    : `Lời mời từ nhóm #${inv.teamId}`
+                  const inviterName = inv.invitedByName || personName(inv.invitedBy)
 
-                return (
-                  <div key={inv.id} className="flex flex-wrap items-center justify-between gap-4 p-4 hover:bg-canvas sm:flex-nowrap">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-xs font-bold text-primary">
-                        <span className="material-symbols-outlined text-[20px]" aria-hidden="true">groups</span>
+                  return (
+                    <div key={inv.id} className="flex flex-wrap items-center justify-between gap-4 p-4 hover:bg-canvas sm:flex-nowrap">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-xs font-bold text-primary">
+                          <span className="material-symbols-outlined text-[20px]" aria-hidden="true">groups</span>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="truncate text-xs font-bold text-ink">
+                            {teamTitle}
+                          </div>
+                          <div className="text-xs text-ink-muted">
+                            {inviterName ? `Người mời: ${inviterName} · ` : ''}Nhận lúc: {dateTimeLabel(inv.createdAt)}
+                            {inv.expiresAt && ` • Hết hạn: ${dateTimeLabel(inv.expiresAt)}`}
+                          </div>
+                          {inv.message && (
+                            <p className="mt-1 break-words rounded border border-hairline bg-canvas p-2 text-xs italic text-ink-muted">
+                              {inv.message}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-xs font-bold text-ink">
-                          {teamTitle}
-                        </div>
-                        <div className="text-xs text-ink-muted">
-                          {inviterName ? `Người mời: ${inviterName} · ` : ''}Nhận lúc: {dateTimeLabel(inv.createdAt)}
-                          {inv.expiresAt && ` • Hết hạn: ${dateTimeLabel(inv.expiresAt)}`}
-                        </div>
-                        {inv.message && (
-                          <p className="mt-1 break-words rounded border border-hairline bg-canvas p-2 text-xs italic text-ink-muted">
-                            {inv.message}
-                          </p>
+
+                      <div className="flex shrink-0 items-center gap-2">
+                        {inv.status === 'PENDING' ? (
+                          <>
+                            <button
+                              type="button"
+                              disabled={isMutationPending('accept', inv.id)}
+                              onClick={() => handleAccept(inv.id)}
+                              className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
+                            >
+                              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">check</span>
+                              {isMutationPending('accept', inv.id) ? 'Đang chấp nhận...' : 'Chấp nhận'}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isMutationPending('reject', inv.id)}
+                              onClick={() => handleReject(inv.id)}
+                              className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-status-error-text transition-colors hover:border-status-error-border hover:bg-status-error-bg disabled:opacity-50"
+                            >
+                              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">close</span>
+                              {isMutationPending('reject', inv.id) ? 'Đang từ chối...' : 'Từ chối'}
+                            </button>
+                          </>
+                        ) : (
+                          <span className="rounded-full border border-hairline bg-canvas px-2.5 py-1 text-xs font-semibold text-ink-muted">{statusLabel(inv.status)}</span>
                         )}
                       </div>
                     </div>
-
-                    <div className="flex shrink-0 items-center gap-2">
-                      {inv.status === 'PENDING' ? (
-                        <>
-                          <button
-                            type="button"
-                            disabled={isMutationPending('accept', inv.id)}
-                            onClick={() => handleAccept(inv.id)}
-                            className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
-                          >
-                            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">check</span>
-                            {isMutationPending('accept', inv.id) ? 'Đang chấp nhận...' : 'Chấp nhận'}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={isMutationPending('reject', inv.id)}
-                            onClick={() => handleReject(inv.id)}
-                            className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-status-error-text transition-colors hover:border-status-error-border hover:bg-status-error-bg disabled:opacity-50"
-                          >
-                            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">close</span>
-                            {isMutationPending('reject', inv.id) ? 'Đang từ chối...' : 'Từ chối'}
-                          </button>
-                        </>
-                      ) : (
-                        <span className="rounded-full border border-hairline bg-canvas px-2.5 py-1 text-xs font-semibold text-ink-muted">{statusLabel(inv.status)}</span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+              {receivedPagination.showPagination && (
+                <div className="mt-3 border-t border-hairline pt-3">
+                  <Pagination
+                    page={receivedPagination.page}
+                    pages={receivedPagination.totalPages}
+                    total={receivedPagination.total}
+                    pageSize={receivedPagination.pageSize}
+                    onPage={receivedPagination.setPage}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

@@ -1,5 +1,6 @@
 import { Link, Navigate } from 'react-router-dom'
 import { ButtonLink } from '../../../components/ui/ButtonLink'
+import { StatTileRow, StatusBadge } from '../../../components/ui'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useStudentJourney } from '../../../app/context'
 import type { ProjectDto, SupervisorAssignmentDto, TeamDto } from '../../../types/backend'
@@ -57,18 +58,53 @@ export function ExecutionEntry({ projectId, routeBase = '/project' }: { projectI
   if (!state) return <PageLoading />
   if (state.error) return <WorkspaceState error message={state.error.status === 403 ? 'Bạn chưa có quyền xem công việc của đồ án này.' : 'Chưa tải được tiến độ đồ án. Hãy thử lại.'} />
   return (
-    <section className="rounded-md border border-hairline bg-card p-5  sm:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+      <div className="flex flex-col gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-ink">Công việc và tiến độ</h2>
-          <p className="mt-1 text-sm text-ink-muted">{state.count === 0 ? 'Chưa có mốc đồ án.' : `${state.count} mốc đồ án.`}</p>
-          <p className="mt-1 text-xs text-ink-muted">Tiến độ chung: {state.progress === null ? 'chưa có dữ liệu' : `${state.progress}%`}. Có {state.overdue} việc quá hạn và {state.blocked} việc đang vướng mắc.</p>
+          <h2 className="text-base font-bold text-ink">Công việc và tiến độ</h2>
+          <p className="mt-0.5 text-xs text-ink-muted">
+            {state.count === 0 ? 'Chưa có mốc đồ án.' : `${state.count} mốc đồ án.`} Tiến độ chung: {state.progress === null ? 'chưa có dữ liệu' : `${state.progress}%`}. Có {state.overdue} việc quá hạn và {state.blocked} việc đang vướng mắc.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
           <Link className="ex-button" to={`${routeBase}/milestones`}>Mốc đồ án</Link>
           <Link className="ex-button" to={`${routeBase}/tasks`}>Công việc</Link>
           <Link className="ex-button" to={`${routeBase}/gantt`}>Lịch thực hiện</Link>
         </div>
+      </div>
+      <div className="p-5">
+        <StatTileRow
+          tiles={[
+            {
+              icon: 'donut_large',
+              label: 'Tiến độ chung (%)',
+              value: state.progress === null ? null : Math.round(state.progress),
+              caption: state.progress === null ? 'Chưa có dữ liệu tiến độ' : `${state.progress}% khối lượng đã hoàn tất`,
+              hero: true,
+            },
+            {
+              icon: 'flag',
+              label: 'Mốc đồ án',
+              value: state.count,
+              caption: state.timelineMilestones > 0 ? `${state.timelineMilestones} mốc trên lịch thực hiện` : 'Chưa có mốc trên lịch',
+              tone: 'info',
+            },
+            {
+              icon: 'schedule',
+              label: 'Việc quá hạn',
+              value: state.overdue,
+              caption: state.overdue > 0 ? 'Cần ưu tiên xử lý sớm' : 'Không có việc quá hạn',
+              tone: state.overdue > 0 ? 'danger' : 'success',
+            },
+            {
+              icon: 'pause_circle',
+              label: 'Đang vướng mắc',
+              value: state.blocked,
+              caption: state.blocked > 0 ? 'Cần phối hợp tháo gỡ' : 'Tiến độ thông suốt',
+              tone: state.blocked > 0 ? 'warning' : 'neutral',
+            },
+          ]}
+        />
       </div>
     </section>
   )
@@ -90,14 +126,16 @@ export function ProjectWorkspaceSummary({
   const mode = team?.academicScope?.projectMode ?? project.academicScope?.projectMode
   const projectMode = mode === 'SINGLE_MAJOR' ? 'Đơn ngành' : mode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Chưa có thông tin'
   const teamName = team?.name ?? project.teamName ?? 'Chưa có thông tin nhóm'
+  const memberCount = team?.members?.length ?? null
+  const majorCount = project.majors?.length ?? null
 
   return (
-    <div className="workspace-page mx-auto flex max-w-6xl flex-col gap-6 pb-12">
-      <header className="workspace-heading rounded-xl border border-status-success-border bg-status-success-bg p-5 sm:p-6">
+    <div className="workspace-page flex flex-col gap-5 pb-10">
+      <header className="workspace-heading">
         <div className="workspace-heading-copy">
-          <span className="workspace-kicker">Đồ án đang thực hiện</span>
+          <span className="workspace-kicker">Đồ án đang thực hiện · {project.code}</span>
           <h1 className="mt-1 font-heading text-2xl font-bold tracking-tight text-ink">Không gian đồ án</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-soft">Theo dõi công việc, tiến độ và trao đổi với nhóm trong quá trình thực hiện đồ án.</p>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-muted">Theo dõi công việc, tiến độ và trao đổi với nhóm trong quá trình thực hiện đồ án.</p>
         </div>
         <div className="workspace-heading-actions flex flex-wrap gap-2 shrink-0">
           <Link
@@ -124,69 +162,109 @@ export function ProjectWorkspaceSummary({
         </div>
       </header>
 
-      <section className="overflow-hidden rounded-xl border border-hairline bg-card" aria-labelledby="active-project-summary">
-        <div className="border-b border-hairline px-5 py-5 sm:px-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">{audience === 'student' ? 'Không gian sinh viên' : 'Không gian GVHD được phân công'}</p>
-          <h2 id="active-project-summary" className="mt-1 text-xl font-bold tracking-tight text-ink">{project.title}</h2>
-          <p className="mt-1 text-xs text-ink-muted">{project.code} • {teamName}</p>
-        </div>
-        <dl className="grid gap-px bg-hairline sm:grid-cols-2 lg:grid-cols-4">
-          <Metric label="Trạng thái" value={projectStatusLabel(project.status)} />
-          <Metric label="Nhóm" value={teamName} />
-          <Metric label="Hình thức đồ án" value={projectMode} />
-          <Metric label="Giảng viên hướng dẫn" value={supervisor?.supervisorName || 'Chưa có thông tin'} />
-        </dl>
-        <div className="grid gap-5 border-t border-hairline px-5 py-5 sm:px-6 lg:grid-cols-2">
-          <TextBlock title="Mô tả" value={project.description} />
-          <TextBlock title="Mục tiêu" value={project.objectives} />
-          <TextBlock title="Vấn đề cần giải quyết" value={project.problemStatement} />
-          <TextBlock title="Sản phẩm dự kiến" value={project.expectedOutput} />
-        </div>
-      </section>
+      <StatTileRow
+        tiles={[
+          {
+            icon: 'groups',
+            label: 'Thành viên nhóm',
+            value: memberCount,
+            caption: teamName,
+            hero: true,
+          },
+          {
+            icon: 'school',
+            label: 'Chuyên ngành',
+            value: majorCount,
+            caption: `Hình thức: ${projectMode}`,
+            tone: 'info',
+          },
+          {
+            icon: 'checklist',
+            label: 'Yêu cầu nhân sự ngành',
+            value: project.academicScope?.requirements?.length ?? majorCount ?? 0,
+            caption: supervisor?.supervisorName ? `GVHD: ${supervisor.supervisorName}` : 'Chưa phân công GVHD',
+            tone: supervisor?.supervisorName ? 'success' : 'warning',
+          },
+          {
+            icon: 'sell',
+            label: 'Từ khóa & công nghệ',
+            value: project.tags?.length ?? 0,
+            caption: `${project.code} · ${projectStatusLabel(project.status)}`,
+            tone: 'neutral',
+          },
+        ]}
+      />
 
-      {children}
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
+        <div className="flex flex-col gap-5 xl:col-span-8">
+          <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-labelledby="active-project-summary">
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-muted">{audience === 'student' ? 'Không gian sinh viên' : 'Không gian GVHD được phân công'}</p>
+                <h2 id="active-project-summary" className="mt-1 text-lg font-bold tracking-tight text-ink">{project.title}</h2>
+                <p className="mt-0.5 text-xs text-ink-muted">{project.code} • {teamName}</p>
+              </div>
+              <StatusBadge tone="success" label={projectStatusLabel(project.status)} />
+            </div>
+            <dl className="grid gap-px bg-hairline sm:grid-cols-2 lg:grid-cols-4">
+              <Metric label="Trạng thái" value={projectStatusLabel(project.status)} />
+              <Metric label="Nhóm" value={teamName} />
+              <Metric label="Hình thức đồ án" value={projectMode} />
+              <Metric label="Giảng viên hướng dẫn" value={supervisor?.supervisorName || 'Chưa có thông tin'} />
+            </dl>
+            <div className="grid gap-5 border-t border-hairline px-5 py-5 lg:grid-cols-2">
+              <TextBlock title="Mô tả" value={project.description} />
+              <TextBlock title="Mục tiêu" value={project.objectives} />
+              <TextBlock title="Vấn đề cần giải quyết" value={project.problemStatement} />
+              <TextBlock title="Sản phẩm dự kiến" value={project.expectedOutput} />
+            </div>
+          </section>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <section className="flex flex-col justify-between rounded-xl border border-hairline bg-card p-5 sm:p-6">
-          <div>
-            <div className="flex items-center gap-2">
+          {children}
+        </div>
+
+        <aside className="flex flex-col gap-5 xl:col-span-4" aria-label="Tác vụ phối hợp đồ án">
+          <section className="flex flex-col justify-between overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+            <div className="flex items-center gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
               <span className="material-symbols-outlined text-primary" aria-hidden="true">calendar_month</span>
-              <h2 className="text-base font-bold text-ink">Lịch họp và biên bản</h2>
+              <h2 className="text-sm font-bold text-ink">Lịch họp và biên bản</h2>
             </div>
-            <p className="mt-2 text-sm leading-relaxed text-ink-muted">Thống nhất lịch trao đổi với GVHD, mời thành viên và lưu kết luận, điểm danh, nhận xét sau mỗi buổi họp.</p>
-          </div>
-          <div className="mt-5 border-t border-hairline pt-3">
-            <ButtonLink variant="primary" icon="calendar_month" to={audience === 'student' ? '/project/meetings' : `/supervisor/projects/${project.id}/meetings`}>Mở lịch họp</ButtonLink>
-          </div>
-        </section>
+            <div className="p-5">
+              <p className="text-sm leading-relaxed text-ink-muted">Thống nhất lịch trao đổi với GVHD, mời thành viên và lưu kết luận, điểm danh, nhận xét sau mỗi buổi họp.</p>
+              <div className="mt-4 border-t border-hairline pt-3">
+                <ButtonLink variant="primary" icon="calendar_month" to={audience === 'student' ? '/project/meetings' : `/supervisor/projects/${project.id}/meetings`}>Mở lịch họp</ButtonLink>
+              </div>
+            </div>
+          </section>
 
-        <section className="flex flex-col justify-between rounded-xl border border-hairline bg-card p-5 sm:p-6">
-          <div>
-            <div className="flex items-center gap-2">
+          <section className="flex flex-col justify-between overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+            <div className="flex items-center gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
               <span className="material-symbols-outlined text-primary" aria-hidden="true">assignment</span>
-              <h2 className="text-base font-bold text-ink">Báo cáo tiến độ và phản hồi</h2>
+              <h2 className="text-sm font-bold text-ink">Báo cáo tiến độ và phản hồi</h2>
             </div>
-            <p className="mt-2 text-sm leading-relaxed text-ink-muted">{audience === 'student' ? 'Tổng hợp kết quả theo tuần hoặc tháng. Cả nhóm cùng soạn bản nháp, trưởng nhóm nộp và theo dõi nhận xét từ giảng viên hướng dẫn.' : 'Đọc báo cáo theo từng kỳ, kiểm tra kết quả và gửi nhận xét để nhóm hoàn thiện các bước tiếp theo.'}</p>
-          </div>
-          <div className="mt-5 border-t border-hairline pt-3">
-            <ButtonLink variant="outline" icon="assignment" to={audience === 'student' ? '/project/reports' : `/supervisor/projects/${project.id}/reports`}>Mở báo cáo tiến độ</ButtonLink>
-          </div>
-        </section>
+            <div className="p-5">
+              <p className="text-sm leading-relaxed text-ink-muted">{audience === 'student' ? 'Tổng hợp kết quả theo tuần hoặc tháng. Cả nhóm cùng soạn bản nháp, trưởng nhóm nộp và theo dõi nhận xét từ giảng viên hướng dẫn.' : 'Đọc báo cáo theo từng kỳ, kiểm tra kết quả và gửi nhận xét để nhóm hoàn thiện các bước tiếp theo.'}</p>
+              <div className="mt-4 border-t border-hairline pt-3">
+                <ButtonLink variant="outline" icon="assignment" to={audience === 'student' ? '/project/reports' : `/supervisor/projects/${project.id}/reports`}>Mở báo cáo tiến độ</ButtonLink>
+              </div>
+            </div>
+          </section>
 
-        <section className="flex flex-col justify-between rounded-xl border border-hairline bg-card p-5 sm:p-6">
-          <div>
-            <div className="flex items-center gap-2">
+          <section className="flex flex-col justify-between overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+            <div className="flex items-center gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
               <span className="material-symbols-outlined text-tag-ai" aria-hidden="true">folder_open</span>
-              <h2 className="text-base font-bold text-ink">Sản phẩm bàn giao & phiên bản</h2>
+              <h2 className="text-sm font-bold text-ink">Sản phẩm bàn giao & phiên bản</h2>
             </div>
-            <p className="mt-2 text-sm leading-relaxed text-ink-muted">Theo dõi các sản phẩm cần nộp, phiên bản đã gửi và nhận xét của giảng viên.</p>
-          </div>
-          <div className="mt-5 border-t border-hairline pt-3">
-            <Link className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-line-strong bg-card px-4 py-2 text-xs font-semibold text-ink-soft transition-colors hover:bg-canvas" to={audience === 'student' ? '/project/deliverables' : `/supervisor/projects/${project.id}/deliverables`}>
-              Xem hạng mục cần nộp →
-            </Link>
-          </div>
-        </section>
+            <div className="p-5">
+              <p className="text-sm leading-relaxed text-ink-muted">Theo dõi các sản phẩm cần nộp, phiên bản đã gửi và nhận xét của giảng viên.</p>
+              <div className="mt-4 border-t border-hairline pt-3">
+                <Link className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-line-strong bg-card px-4 py-2 text-xs font-semibold text-ink-soft transition-colors hover:bg-canvas" to={audience === 'student' ? '/project/deliverables' : `/supervisor/projects/${project.id}/deliverables`}>
+                  Xem hạng mục cần nộp →
+                </Link>
+              </div>
+            </div>
+          </section>
+        </aside>
       </div>
     </div>
   )

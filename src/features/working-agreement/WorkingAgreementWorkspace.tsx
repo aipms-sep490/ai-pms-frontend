@@ -6,16 +6,18 @@ import { ActionVerdict } from '../../components/ui/ActionVerdict'
 import { EntityIdentityStrip } from '../../components/ui/EntityIdentityStrip'
 import { WorkspaceEmptyState } from '../../components/ui/WorkspaceState'
 import { PageLoading } from '../../components/ui/PageLoading'
+import { Pagination, StatTileRow, StatusBadge, useClientPagination } from '../../components/ui'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
 import { HttpError } from '../../services/http/http-client'
 import { isActionAllowed, type PagedResult, type WorkflowActionDto } from '../../types/backend'
 import { getMyCapabilities } from '../capabilities/capabilities-api'
-import { CollaborationIntro, CollaborationPager, collaborationDate, collaborationError } from '../student-collaboration/collaboration-ui'
+import { CollaborationIntro, collaborationDate, collaborationError } from '../student-collaboration/collaboration-ui'
 import * as api from './working-agreement-api'
 import { services } from '../../services/service-gateway'
 import { WORKING_AGREEMENT_ACTIONS as actions, type AgreementSection, type WorkingAgreement } from './working-agreement-types'
 
 const statusLabel = { DRAFT: 'Bản nháp', ACTIVE: 'Đang áp dụng', SUPERSEDED: 'Đã thay thế' }
+const statusTone = { DRAFT: 'warning', ACTIVE: 'success', SUPERSEDED: 'neutral' } as const
 const blank = (): AgreementSection[] => [{ title: '', body: '' }]
 const reasonLabel: Record<string, string> = {
   WORKING_AGREEMENT_ROSTER_CHANGED: 'Nhóm đã thay đổi thành viên. Cần công bố phiên bản mới và xác nhận lại.',
@@ -90,44 +92,194 @@ export function WorkingAgreementWorkspace({ projectId, readOnly = false }: { pro
     if (await requestConfirmation({ title: `Công bố cam kết v${latest.version}?`, description: 'Nội dung sẽ được khóa. Các thành viên hiện tại cần xác nhận phiên bản này; xác nhận cũ không được chuyển sang.', confirmLabel: 'Công bố cam kết' }) === null) return
     void mutate(() => api.publishWorkingAgreement(projectId, latest.id, latest.concurrencyToken), 'Đã công bố cam kết. Các thành viên có thể xác nhận.')
   }
-  return <div className="collab">{confirmationDialog}
-    <CollaborationIntro icon="handshake" title="Thống nhất cách làm việc">Khi thay đổi nguyên tắc hoặc thành viên, nhóm cùng xác nhận một phiên bản mới. Nội dung đã công bố được giữ nguyên.</CollaborationIntro>
-    <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
-    {loading && <PageLoading label="Đang tải cam kết nhóm…" />}
-    {error && <div role="alert" className="collab-error">{error} <Button variant="ghost" onClick={() => setRevision(value => value + 1)}>Tải lại</Button></div>}
-    {notice && <p role="status" className="collab-note">{notice}</p>}
-    {conflict && <div role="alert" className="collab-note">Bản trên máy chủ đã thay đổi. Nội dung bạn soạn vẫn được giữ bên dưới. Hãy đối chiếu rồi <Button variant="outline" disabled={loading || !manage} onClick={() => setConflict(false)}>Dùng phiên bản mới làm nền</Button></div>}
-    {!loading && !error && !latest && <WorkspaceEmptyState title="Chưa có bản cam kết làm việc" message="Nhóm chưa có bản cam kết làm việc nào." />}
-    {!loading && latest && <div className="collab-grid"><article className="collab-card">
-      <div className="collab-row"><h2>Phiên bản {latest.version}</h2><span className="collab-muted">{statusLabel[latest.status]}</span></div>
-      <AgreementContents agreement={latest} />
-      {publish && !editing && <div className="collab-actions"><Button disabled={busy || conflict} icon="publish" onClick={() => void confirmPublish()}>Công bố phiên bản</Button></div>}
-    </article><aside className="collab-card collab-stack"><h2>Xác nhận của thành viên</h2>
-      <span className="collab-metric">{latest.acceptances.length}<span className="collab-muted"> / {latest.memberCount}</span></span>
-      <progress className="collab-progress" value={latest.acceptances.length} max={Math.max(1, latest.memberCount)} aria-label="Tiến độ xác nhận" />
-      <p className="collab-muted">Đã xác nhận {latest.acceptances.length}/{latest.memberCount} thành viên.</p>
-      <p className="collab-muted">{latest.required ? 'Kỳ này yêu cầu đủ xác nhận trước khi đồ án được kích hoạt.' : 'Cam kết hỗ trợ nhóm phối hợp, theo chính sách của kỳ.'}</p>
-      <ActionVerdict actions={[{ code: 'WORKING_AGREEMENT_READINESS', allowed: (latest.readiness.reasons ?? []).length === 0, reasons: (latest.readiness.reasons ?? []).map(code => reasonLabel[code] ?? 'Chưa đủ điều kiện theo chính sách hiện tại.') }]} actionCode="WORKING_AGREEMENT_READINESS" status="ready" okLabel="Đủ điều kiện cam kết làm việc" blockedLabel="Chưa đủ điều kiện cam kết" />
-      {latest.acceptances.map(item => <div key={item.userId}><strong>{memberNames[item.userId] ?? 'Thành viên chưa tải được tên'}</strong><p className="collab-muted">{collaborationDate(item.acceptedAt)}</p></div>)}
-    </aside></div>}
-    {!loading && active?.status === 'ACTIVE' && <section className="collab-card">
-      {latest?.id !== active.id && <><h2>Cam kết đang áp dụng · v{active.version}</h2><AgreementContents agreement={active} /></>}
-      {active.acceptedByMe ? <p role="status" className="collab-note">Bạn đã xác nhận bản cam kết này.</p>
-        : !readOnly && isActionAllowed(active.actions, actions.accept) ? <Button icon="done_all" disabled={busy || conflict} onClick={() => void mutate(() => api.acceptWorkingAgreement(projectId, active.id, active.concurrencyToken), 'Đã ghi nhận xác nhận.')}>Tôi đồng ý với cam kết</Button>
-        : <p className="collab-muted">Hiện chưa thể xác nhận cam kết này. Quyền và danh sách thành viên được kiểm tra theo phiên bản hiện tại.</p>}
-    </section>}
-    {manage && !editing && <div><Button variant="outline" icon="edit_note" disabled={busy || conflict} onClick={edit}>{!latest ? 'Soạn cam kết đầu tiên' : latest.status === 'DRAFT' ? 'Sửa bản nháp' : 'Tạo phiên bản kế tiếp'}</Button></div>}
-    {editing && <form className="collab-card collab-form" onSubmit={event => { event.preventDefault(); save() }}><h2>Soạn thỏa thuận của nhóm</h2><p className="collab-muted">Gợi ý: lịch họp, kênh liên lạc, tiêu chuẩn bàn giao và cách giải quyết bất đồng.</p>
-      {sections.map((section, index) => <fieldset className="collab-stack collab-section" key={index} disabled={busy || loading || !manage || conflict}><legend className="collab-section-number">MỤC {String(index + 1).padStart(2, '0')}</legend>
-        <label>Tiêu đề mục {index + 1}<input required maxLength={200} value={section.title} onChange={event => setSections(rows => rows.map((row, i) => i === index ? { ...row, title: event.target.value } : row))} /></label>
-        <label>Nội dung mục {index + 1}<textarea required maxLength={4000} rows={4} value={section.body} onChange={event => setSections(rows => rows.map((row, i) => i === index ? { ...row, body: event.target.value } : row))} /></label>
-        {sections.length > 1 && <div><Button variant="ghost" onClick={() => setSections(rows => rows.filter((_, i) => i !== index))}>Bỏ mục {index + 1}</Button></div>}
-      </fieldset>)}
-      <div className="collab-actions"><Button variant="outline" disabled={busy || conflict || sections.length >= 20} onClick={() => setSections(rows => [...rows, ...blank()])}>Thêm mục</Button><Button type="submit" disabled={busy || loading || conflict || !manage}>{busy ? 'Đang lưu…' : 'Lưu bản nháp'}</Button><Button variant="ghost" disabled={busy} onClick={() => setEditing(false)}>Hủy chỉnh sửa</Button></div>
-    </form>}
-    <div><Button variant="ghost" icon="history" aria-expanded={historyOpen} onClick={() => setHistoryOpen(value => !value)}>Lịch sử cam kết</Button></div>
-    {historyOpen && <AgreementHistory key={`${projectId}:${revision}`} projectId={projectId} />}
-  </div>
+  const acceptancesPagination = useClientPagination(latest?.acceptances ?? [], 8)
+  const latestSectionCount = latest ? api.parseAgreementSections(latest.contentJson).length : 0
+
+  return (
+    <div className="collab">
+      {confirmationDialog}
+      <CollaborationIntro icon="handshake" title="Thống nhất cách làm việc">
+        Khi thay đổi nguyên tắc hoặc thành viên, nhóm cùng xác nhận một phiên bản mới. Nội dung đã công bố được giữ nguyên.
+      </CollaborationIntro>
+      <EntityIdentityStrip chips={[{ icon: 'folder', label: 'Đồ án', value: `Đồ án #${projectId}` }, { icon: 'tag', label: 'Mã đồ án', value: String(projectId) }]} />
+
+      {loading && <PageLoading label="Đang tải cam kết nhóm…" />}
+      {error && <div role="alert" className="collab-error">{error} <Button variant="ghost" onClick={() => setRevision(value => value + 1)}>Tải lại</Button></div>}
+      {notice && <p role="status" className="collab-note">{notice}</p>}
+      {conflict && <div role="alert" className="collab-note">Bản trên máy chủ đã thay đổi. Nội dung bạn soạn vẫn được giữ bên dưới. Hãy đối chiếu rồi <Button variant="outline" disabled={loading || !manage} onClick={() => setConflict(false)}>Dùng phiên bản mới làm nền</Button></div>}
+      {!loading && !error && !latest && <WorkspaceEmptyState title="Chưa có bản cam kết làm việc" message="Nhóm chưa có bản cam kết làm việc nào." />}
+
+      {!loading && latest && (
+        <>
+          <StatTileRow
+            tiles={[
+              {
+                icon: 'history_edu',
+                label: 'Phiên bản hiện tại',
+                value: latest.version,
+                caption: statusLabel[latest.status],
+                hero: true,
+              },
+              {
+                icon: 'how_to_reg',
+                label: 'Đã xác nhận',
+                value: latest.acceptances.length,
+                caption: `Trên tổng ${latest.memberCount} thành viên`,
+                tone: latest.acceptances.length >= latest.memberCount && latest.memberCount > 0 ? 'success' : 'warning',
+              },
+              {
+                icon: 'format_list_numbered',
+                label: 'Số mục cam kết',
+                value: latestSectionCount,
+                caption: 'Điều khoản phối hợp của nhóm',
+                tone: 'info',
+              },
+              {
+                icon: 'groups',
+                label: 'Quy mô nhóm',
+                value: latest.memberCount,
+                caption: latest.required ? 'Bắt buộc đủ xác nhận' : 'Theo chính sách học kỳ',
+                tone: 'neutral',
+              },
+            ]}
+          />
+
+          <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
+            <article className="collab-card collab-card-flush xl:col-span-8">
+              <div className="collab-card-header">
+                <div className="flex items-center gap-2.5">
+                  <h2>Phiên bản {latest.version}</h2>
+                  <StatusBadge tone={statusTone[latest.status]} label={statusLabel[latest.status]} />
+                </div>
+                <span className="text-xs font-medium text-ink-muted">{collaborationDate(latest.createdAt)}</span>
+              </div>
+              <div className="collab-card-body">
+                <AgreementContents agreement={latest} />
+                {publish && !editing && (
+                  <div className="collab-actions border-t border-hairline pt-4">
+                    <Button disabled={busy || conflict} icon="publish" onClick={() => void confirmPublish()}>Công bố phiên bản</Button>
+                  </div>
+                )}
+              </div>
+            </article>
+
+            <aside className="collab-card collab-card-flush xl:col-span-4">
+              <div className="collab-card-header">
+                <h2>Xác nhận của thành viên</h2>
+                <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-0.5 font-mono text-xs font-bold tabular-nums text-primary">
+                  {latest.acceptances.length}/{latest.memberCount}
+                </span>
+              </div>
+              <div className="collab-card-body collab-stack">
+                <div>
+                  <span className="collab-metric">
+                    {latest.acceptances.length}<span className="collab-muted"> / {latest.memberCount}</span>
+                  </span>
+                  <progress className="collab-progress" value={latest.acceptances.length} max={Math.max(1, latest.memberCount)} aria-label="Tiến độ xác nhận" />
+                  <p className="collab-muted">Đã xác nhận {latest.acceptances.length}/{latest.memberCount} thành viên.</p>
+                </div>
+                <p className="collab-muted">{latest.required ? 'Kỳ này yêu cầu đủ xác nhận trước khi đồ án được kích hoạt.' : 'Cam kết hỗ trợ nhóm phối hợp, theo chính sách của kỳ.'}</p>
+                <ActionVerdict
+                  actions={[{
+                    code: 'WORKING_AGREEMENT_READINESS',
+                    allowed: (latest.readiness.reasons ?? []).length === 0,
+                    reasons: (latest.readiness.reasons ?? []).map(code => reasonLabel[code] ?? 'Chưa đủ điều kiện theo chính sách hiện tại.'),
+                  }]}
+                  actionCode="WORKING_AGREEMENT_READINESS"
+                  status="ready"
+                  okLabel="Đủ điều kiện cam kết làm việc"
+                  blockedLabel="Chưa đủ điều kiện cam kết"
+                />
+                {latest.acceptances.length > 0 && (
+                  <div className="divide-y divide-hairline border-t border-hairline pt-2">
+                    {acceptancesPagination.paginatedItems.map(item => (
+                      <div key={item.userId} className="py-2.5 first:pt-1 last:pb-0">
+                        <strong className="block text-sm text-ink">{memberNames[item.userId] ?? 'Thành viên chưa tải được tên'}</strong>
+                        <p className="collab-muted font-mono text-xs">{collaborationDate(item.acceptedAt)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {acceptancesPagination.showPagination && (
+                  <div className="border-t border-hairline pt-3">
+                    <Pagination
+                      page={acceptancesPagination.page}
+                      pages={acceptancesPagination.totalPages}
+                      total={acceptancesPagination.total}
+                      pageSize={acceptancesPagination.pageSize}
+                      onPage={acceptancesPagination.setPage}
+                    />
+                  </div>
+                )}
+              </div>
+            </aside>
+          </div>
+        </>
+      )}
+
+      {!loading && active?.status === 'ACTIVE' && (
+        <section className="collab-card collab-card-flush">
+          {latest?.id !== active.id && (
+            <div className="collab-card-header">
+              <h2>Cam kết đang áp dụng · v{active.version}</h2>
+              <StatusBadge tone="success" label="Đang áp dụng" />
+            </div>
+          )}
+          <div className="collab-card-body space-y-4">
+            {latest?.id !== active.id && <AgreementContents agreement={active} />}
+            {active.acceptedByMe ? (
+              <p role="status" className="collab-note">Bạn đã xác nhận bản cam kết này.</p>
+            ) : !readOnly && isActionAllowed(active.actions, actions.accept) ? (
+              <Button icon="done_all" disabled={busy || conflict} onClick={() => void mutate(() => api.acceptWorkingAgreement(projectId, active.id, active.concurrencyToken), 'Đã ghi nhận xác nhận.')}>
+                Tôi đồng ý với cam kết
+              </Button>
+            ) : (
+              <p className="collab-muted">Hiện chưa thể xác nhận cam kết này. Quyền và danh sách thành viên được kiểm tra theo phiên bản hiện tại.</p>
+            )}
+          </div>
+        </section>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        {manage && !editing && (
+          <Button variant="outline" icon="edit_note" disabled={busy || conflict} onClick={edit}>
+            {!latest ? 'Soạn cam kết đầu tiên' : latest.status === 'DRAFT' ? 'Sửa bản nháp' : 'Tạo phiên bản kế tiếp'}
+          </Button>
+        )}
+        <Button variant="ghost" icon="history" aria-expanded={historyOpen} onClick={() => setHistoryOpen(value => !value)}>
+          Lịch sử cam kết
+        </Button>
+      </div>
+
+      {editing && (
+        <form className="collab-card collab-card-flush" onSubmit={event => { event.preventDefault(); save() }}>
+          <div className="collab-card-header">
+            <div>
+              <h2>Soạn thỏa thuận của nhóm</h2>
+              <p className="collab-muted mt-0.5">Gợi ý: lịch họp, kênh liên lạc, tiêu chuẩn bàn giao và cách giải quyết bất đồng.</p>
+            </div>
+          </div>
+          <div className="collab-card-body collab-form">
+            {sections.map((section, index) => (
+              <fieldset className="collab-stack collab-section" key={index} disabled={busy || loading || !manage || conflict}>
+                <legend className="collab-section-number">MỤC {String(index + 1).padStart(2, '0')}</legend>
+                <label>Tiêu đề mục {index + 1}<input required maxLength={200} value={section.title} onChange={event => setSections(rows => rows.map((row, i) => i === index ? { ...row, title: event.target.value } : row))} /></label>
+                <label>Nội dung mục {index + 1}<textarea required maxLength={4000} rows={4} value={section.body} onChange={event => setSections(rows => rows.map((row, i) => i === index ? { ...row, body: event.target.value } : row))} /></label>
+                {sections.length > 1 && <div><Button variant="ghost" onClick={() => setSections(rows => rows.filter((_, i) => i !== index))}>Bỏ mục {index + 1}</Button></div>}
+              </fieldset>
+            ))}
+            <div className="collab-actions">
+              <Button variant="outline" disabled={busy || conflict || sections.length >= 20} onClick={() => setSections(rows => [...rows, ...blank()])}>Thêm mục</Button>
+              <Button type="submit" disabled={busy || loading || conflict || !manage}>{busy ? 'Đang lưu…' : 'Lưu bản nháp'}</Button>
+              <Button variant="ghost" disabled={busy} onClick={() => setEditing(false)}>Hủy chỉnh sửa</Button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {historyOpen && <AgreementHistory key={`${projectId}:${revision}`} projectId={projectId} />}
+    </div>
+  )
 }
 
 function AgreementContents({ agreement }: { agreement: WorkingAgreement }) {
@@ -141,8 +293,37 @@ function AgreementHistory({ projectId }: { projectId: number }) {
     void api.getWorkingAgreementHistory(projectId, page, 10, abort.signal).then(result => { if (!abort.signal.aborted) setData(result) }).catch(reason => { if (!abort.signal.aborted) setError(collaborationError(reason)) })
     return () => abort.abort()
   }, [projectId, page])
-  return <section className="collab-card collab-history"><h2>Lịch sử phiên bản</h2>{error ? <p role="alert">{error}</p> : !data ? <PageLoading /> : <>
-    {!data.items.length && <p className="collab-empty">Chưa có phiên bản nào.</p>}
-    {data.items.map(row => <details key={row.id}><summary>Phiên bản {row.version} · {statusLabel[row.status]} · {collaborationDate(row.createdAt)}</summary><AgreementContents agreement={row} /><p className="collab-muted">{row.acceptances.length}/{row.memberCount} thành viên đã xác nhận.</p></details>)}
-    <CollaborationPager page={page} total={data.totalCount} onChange={setPage} /></>}</section>
+  const totalPages = data ? Math.max(1, Math.ceil(data.totalCount / 10)) : 1
+
+  return (
+    <section className="collab-card collab-card-flush collab-history">
+      <div className="collab-card-header">
+        <h2>Lịch sử phiên bản</h2>
+        {data && (
+          <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-0.5 font-mono text-xs font-bold tabular-nums text-primary">
+            {data.totalCount}
+          </span>
+        )}
+      </div>
+      <div className="collab-card-body">
+        {error ? <p role="alert">{error}</p> : !data ? <PageLoading /> : (
+          <>
+            {!data.items.length && <p className="collab-empty">Chưa có phiên bản nào.</p>}
+            {data.items.map(row => (
+              <details key={row.id}>
+                <summary>Phiên bản {row.version} · {statusLabel[row.status]} · {collaborationDate(row.createdAt)}</summary>
+                <AgreementContents agreement={row} />
+                <p className="collab-muted mt-2">{row.acceptances.length}/{row.memberCount} thành viên đã xác nhận.</p>
+              </details>
+            ))}
+            {data.totalCount > 10 && (
+              <div className="mt-4 border-t border-hairline pt-3">
+                <Pagination page={page} pages={totalPages} total={data.totalCount} pageSize={10} onPage={setPage} />
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </section>
+  )
 }

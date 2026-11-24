@@ -302,8 +302,9 @@ export function NextActionBanner({
             {taskAttentionCount && (taskAttentionCount.blocked > 0 || taskAttentionCount.overdue > 0) && (
               <div className="text-xs text-ink-muted">
                 {taskAttentionCount.blocked > 0 && (
-                  <span className="block font-semibold text-status-warning-text">
-                    ⚠️ Có {taskAttentionCount.blocked} công việc bị vướng mắc (Blocked) trên bảng task.
+                  <span className="flex items-center gap-1 font-semibold text-status-warning-text">
+                    <span className="material-symbols-outlined text-sm" aria-hidden="true">warning</span>
+                    Có {taskAttentionCount.blocked} công việc bị vướng mắc (Blocked) trên bảng task.
                   </span>
                 )}
                 {taskAttentionCount.overdue > 0 && (

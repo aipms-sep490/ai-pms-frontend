@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { ProjectDto, SupervisorAssignmentDto, TeamDto } from '../../../types/backend'
+import { Pagination, StatTileRow, StatusBadge, useClientPagination } from '../../../components/ui'
+import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { useCollaborationWorkspace, type Resource } from '../hooks/useCollaborationWorkspace'
 import { dateLabel, initials, isOpenTask, isOverdue, summarizeMembers, taskStatusLabel, utcTimestamp } from '../utils/collaboration-workspace'
 import { WorkspaceTaskForm } from '../components/WorkspaceTaskForm'
@@ -12,6 +14,40 @@ import { ReviewGatesMockNotice } from '../../review-gates/components/ReviewGates
 import type { StudentReviewTimelineDto } from '../../review-gates/types/review-gates.types'
 import { NextActionBanner } from '../components/NextActionBanner'
 import type { ReviewSubmissionPayload } from '../../review-gates/components/ReviewSubmissionModal'
+
+const DELIVERABLE_STATUS_LABELS: Record<string, string> = {
+  DRAFT: 'Bản nháp',
+  OPEN: 'Đang nhận bài',
+  SUBMITTED: 'Đã nộp',
+  ACCEPTED: 'Đã chấp nhận',
+  APPROVED: 'Đã phê duyệt',
+  DONE: 'Hoàn thành',
+  REJECTED: 'Không được chấp nhận',
+  REVISION: 'Cần chỉnh sửa',
+  REVISION_REQUIRED: 'Cần chỉnh sửa',
+  BLOCKED: 'Đang vướng mắc',
+  CLOSED: 'Đã đóng',
+}
+
+function deliverableStatusTone(status: string): BadgeTone {
+  switch (status.toUpperCase()) {
+    case 'ACCEPTED':
+    case 'APPROVED':
+    case 'DONE':
+      return 'success'
+    case 'REJECTED':
+      return 'danger'
+    case 'OPEN':
+    case 'REVISION':
+    case 'REVISION_REQUIRED':
+    case 'BLOCKED':
+      return 'warning'
+    case 'SUBMITTED':
+      return 'info'
+    default:
+      return 'neutral'
+  }
+}
 
 export function CollaborationWorkspace({ project, team, supervisor, currentUserId, executionCapabilities }: {
   project: ProjectDto; team?: TeamDto | null; supervisor?: SupervisorAssignmentDto | null; currentUserId?: number; executionCapabilities?: ProjectExecutionCapabilities
@@ -40,9 +76,25 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
   const attentionForActor = isTeamLeader
     ? attention
     : attention.filter(task => currentUserId !== undefined && task.assignees.some(person => person.userId === currentUserId))
-  const openTasks = tasks.filter(isOpenTask)
-    .filter(task => focusedMemberId === null || task.assignees.some(person => person.userId === focusedMemberId))
-    .sort((a, b) => utcTimestamp(a.dueAt) - utcTimestamp(b.dueAt) || a.id - b.id)
+  const openTasks = useMemo(
+    () => tasks.filter(isOpenTask)
+      .filter(task => focusedMemberId === null || task.assignees.some(person => person.userId === focusedMemberId))
+      .sort((a, b) => utcTimestamp(a.dueAt) - utcTimestamp(b.dueAt) || a.id - b.id),
+    [tasks, focusedMemberId],
+  )
+  const sortedDeliverables = useMemo(
+    () => data.deliverables.state === 'ready'
+      ? [...data.deliverables.data].sort((a, b) => Number(['ACCEPTED', 'CLOSED'].includes(a.status)) - Number(['ACCEPTED', 'CLOSED'].includes(b.status)) || utcTimestamp(a.dueAt) - utcTimestamp(b.dueAt))
+      : [],
+    [data.deliverables],
+  )
+  const feedbackItems = useMemo(
+    () => data.feedback.state === 'ready' ? data.feedback.data.items : [],
+    [data.feedback],
+  )
+  const tasksPagination = useClientPagination(openTasks, 8)
+  const deliverablesPagination = useClientPagination(sortedDeliverables, 8)
+  const feedbackPagination = useClientPagination(feedbackItems, 8)
   const selectedName = members.find(member => member.userId === selectedMember)?.fullName
   const closestMilestone = timeline?.milestones.filter(item => !['COMPLETED', 'CANCELLED'].includes(item.status))
     .sort((a, b) => (a.dueDate ?? '9999').localeCompare(b.dueDate ?? '9999') || a.sortOrder - b.sortOrder)[0]
@@ -101,13 +153,78 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
       </div>
     </header>
 
-    <section className="cw-project-line card-hover-lift" aria-label="Tiến độ chung">
-      <div className="cw-project-title"><Icon name="folder_open" /><div><strong>{project.title}</strong><span>{supervisor?.supervisorName ? `Giảng viên hướng dẫn: ${supervisor.supervisorName}` : 'Chưa có thông tin giảng viên hướng dẫn'}</span></div></div>
-      <div className="cw-project-progress">{summary ? <><div><span>{summary.doneTasks}/{summary.totalTasks} việc hoàn thành</span><strong>{new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(progress!)}%</strong></div><Progress value={progress!} label="Tiến độ chung của đồ án" /><p className="mt-1 text-xs text-ink-muted">* Tiến độ công việc nội bộ; tiến độ học thuật được tính riêng theo các Cổng thẩm định đã đạt.</p></>
-        : <ResourceState resource={data.summary} retry={data.reload} />}</div>
+    <section className="cw-context-strip" aria-label="Tiến độ chung">
+      <div className="cw-context-identity">
+        <Icon name="folder_open" />
+        <strong className="truncate text-sm font-semibold text-ink">{project.title}</strong>
+        <span className="cw-context-sep" aria-hidden="true">·</span>
+        <span className="truncate text-xs text-ink-muted">
+          {supervisor?.supervisorName ? `Giảng viên hướng dẫn: ${supervisor.supervisorName}` : 'Chưa có thông tin giảng viên hướng dẫn'}
+        </span>
+      </div>
+      <div className="cw-context-progress">
+        {summary ? (
+          <>
+            <span className="text-xs font-medium text-ink-muted tabular-nums">
+              {summary.doneTasks}/{summary.totalTasks} việc hoàn thành
+            </span>
+            <Progress value={progress!} label="Tiến độ chung của đồ án" />
+            <strong className="font-mono text-xs font-bold text-primary tabular-nums">
+              {new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(progress!)}%
+            </strong>
+          </>
+        ) : (
+          <ResourceState resource={data.summary} retry={data.reload} />
+        )}
+      </div>
     </section>
 
-    <TeamReflectionPanel projectId={project.id} studentId={currentUserId} audience="student" />
+    <div className="mb-5">
+      <StatTileRow
+        tiles={[
+          {
+            icon: 'task_alt',
+            label: isTeamLeader ? 'Công việc cần làm' : 'Việc được giao',
+            value: data.timeline.state === 'ready' ? openTasks.length : null,
+            caption: summary
+              ? `${summary.doneTasks}/${summary.totalTasks} hoàn thành · tiến độ nội bộ`
+              : 'Đang tổng hợp danh sách công việc',
+            hero: true,
+          },
+          {
+            icon: 'schedule',
+            label: 'Quá hạn & vướng mắc',
+            value: data.timeline.state === 'ready' ? attentionForActor.length : null,
+            caption: data.timeline.state === 'ready'
+              ? `${attentionForActor.filter(task => isOverdue(task, now)).length} quá hạn · ${attentionForActor.filter(task => task.status === 'BLOCKED').length} vướng mắc`
+              : 'Kiểm tra công việc cần ưu tiên',
+            tone: attentionForActor.length > 0 ? 'danger' : 'success',
+          },
+          {
+            icon: 'calendar_month',
+            label: 'Cuộc họp sắp tới',
+            value: data.meetings.state === 'ready' ? data.meetings.data.length : null,
+            caption: data.meetings.state === 'ready' && data.meetings.data.length > 0
+              ? 'Lịch trao đổi đã lên kế hoạch'
+              : 'Chưa có lịch họp sắp tới',
+            tone: 'info',
+          },
+          {
+            icon: 'description',
+            label: 'Sản phẩm nộp',
+            value: data.deliverables.state === 'ready' ? sortedDeliverables.length : null,
+            caption: data.deliverables.state === 'ready'
+              ? (() => {
+                const rejected = sortedDeliverables.filter(d => d.status === 'REJECTED').length
+                const accepted = sortedDeliverables.filter(d => d.status === 'ACCEPTED').length
+                return rejected > 0 ? `${rejected} bị từ chối · ${accepted} đã duyệt` : `${accepted} đã chấp nhận`
+              })()
+              : 'Hạng mục cần bàn giao',
+            tone: sortedDeliverables.some(d => d.status === 'REJECTED') ? 'danger' : 'neutral',
+          },
+        ]}
+      />
+    </div>
 
     <NextActionBanner
       timeline={reviewTimeline}
@@ -125,15 +242,15 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
       onCancel={closeCreate} onCreated={() => { closeCreate(); setCreated(true); data.reload() }} />
       : <section className="cw-panel cw-empty"><ResourceState resource={data.timeline} retry={data.reload} />{data.timeline.state === 'ready' && <p>Nhóm cần có một mốc đang thực hiện trước khi tạo công việc. <Link to="/project/milestones" className="cw-text-link">Quản lý mốc đồ án</Link></p>}</section>)}
 
-    {data.timeline.state === 'ready' && attentionForActor.length > 0 && <section className="cw-attention" aria-labelledby="attention-heading">
-      <Icon name="error_outline" /><div><h2 id="attention-heading">{attentionForActor.length} {isTeamLeader ? 'công việc cần nhóm xử lý' : 'việc cần bạn xử lý'}</h2>
-        <p>{attentionForActor.filter(task => task.status === 'BLOCKED').length} việc đang vướng mắc · {attentionForActor.filter(task => isOverdue(task, now)).length} việc quá hạn</p>
-        <div className="cw-attention-links">{attentionForActor.slice(0, 2).map(task => <Link key={task.id} to={`/project/tasks/${task.id}`}><span>{task.title}</span><Icon name="arrow_forward" /></Link>)}</div>
-      </div><Link className="cw-text-link" to={`/project/tasks${isTeamLeader || currentUserId === undefined ? '' : `?assignee=${currentUserId}`}`}>Xem công việc</Link>
-    </section>}
-
     <div className="cw-columns">
       <div className="cw-main-column">
+        {data.timeline.state === 'ready' && attentionForActor.length > 0 && <section className="cw-attention" aria-labelledby="attention-heading">
+          <Icon name="error_outline" /><div><h2 id="attention-heading">{attentionForActor.length} {isTeamLeader ? 'công việc cần nhóm xử lý' : 'việc cần bạn xử lý'}</h2>
+            <p>{attentionForActor.filter(task => task.status === 'BLOCKED').length} việc đang vướng mắc · {attentionForActor.filter(task => isOverdue(task, now)).length} việc quá hạn</p>
+            <div className="cw-attention-links">{attentionForActor.slice(0, 2).map(task => <Link key={task.id} to={`/project/tasks/${task.id}`}><span>{task.title}</span><Icon name="arrow_forward" /></Link>)}</div>
+          </div><Link className="cw-text-link" to={`/project/tasks${isTeamLeader || currentUserId === undefined ? '' : `?assignee=${currentUserId}`}`}>Xem công việc</Link>
+        </section>}
+
         {isTeamLeader && <section className="cw-panel" aria-labelledby="member-heading">
           <div className="cw-section-heading"><div><h2 id="member-heading">Tiến độ từng thành viên <span className="cw-count">{members.length}</span></h2><p>Chọn một người để xem công việc họ đang phụ trách.</p></div><Link className="cw-text-link" to="/team">Xem nhóm<Icon name="arrow_forward" /></Link></div>
           <ResourceState resource={data.timeline} retry={data.reload} />
@@ -144,7 +261,7 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
                 onClick={() => setSelectedMember(value => value === member.userId ? null : member.userId)}>
                 <span className="cw-member-person"><span className="cw-avatar" aria-hidden="true">{initials(member.fullName)}</span><span className="cw-member-description"><span className="cw-member-name">{member.fullName}{member.isLeader && <span className="cw-leader">Trưởng nhóm</span>}</span><span className="cw-member-task">{member.currentTask?.title || (member.assigned ? 'Đã hoàn tất hoặc hủy các công việc được giao' : 'Chưa được giao công việc')}</span></span></span>
                 <span className="cw-member-progress">{member.progress === null ? <span className="cw-muted">Chưa có công việc</span> : <><span><strong>{member.completed}</strong> / {member.assigned} việc</span><Progress value={member.progress} label={`Tiến độ công việc của ${member.fullName}`} /></>}</span>
-                <span className="cw-member-attention">{member.blocked ? <span className="cw-status cw-status-warning">{member.blocked} vướng mắc</span> : null}{member.overdue ? <span className="cw-status cw-status-danger">{member.overdue} quá hạn</span> : null}{!member.blocked && !member.overdue && <span className="cw-muted">Không có cảnh báo</span>}</span>
+                <span className="cw-member-attention">{member.blocked ? <StatusBadge tone="warning" label={`${member.blocked} vướng mắc`} /> : null}{member.overdue ? <StatusBadge tone="danger" label={`${member.overdue} quá hạn`} /> : null}{!member.blocked && !member.overdue && <span className="cw-muted">Không có cảnh báo</span>}</span>
               </button>
             </li>)}</ul>
             <p className="cw-panel-note">Tiến độ = việc hoàn thành / tổng việc được giao, bao gồm việc đã hủy. Việc có nhiều người phụ trách được tính cho từng người.</p>
@@ -152,37 +269,66 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
         </section>}
 
         <section className="cw-panel" aria-labelledby="tasks-heading">
-          <div className="cw-section-heading"><div><h2 id="tasks-heading">{isTeamLeader ? (selectedName ? `Công việc của ${selectedName}` : 'Công việc sắp tới') : 'Việc được giao'}</h2><p>{isTeamLeader ? 'Ưu tiên những việc có hạn hoàn thành gần nhất.' : 'Danh sách chỉ hiển thị các công việc được giao cho bạn.'}</p></div><Link className="cw-text-link" to={`/project/tasks${focusedMemberId === null ? '' : `?assignee=${focusedMemberId}`}`}>Xem tất cả<Icon name="arrow_forward" /></Link></div>
+          <div className="cw-section-heading">
+            <div>
+              <div className="cw-heading-title-row">
+                <h2 id="tasks-heading">{isTeamLeader ? (selectedName ? `Công việc của ${selectedName}` : 'Công việc sắp tới') : 'Việc được giao'}</h2>
+                {data.timeline.state === 'ready' && <span className="cw-count">{openTasks.length}</span>}
+              </div>
+              <p>{isTeamLeader ? 'Ưu tiên những việc có hạn hoàn thành gần nhất.' : 'Danh sách chỉ hiển thị các công việc được giao cho bạn.'}</p>
+            </div>
+            <Link className="cw-text-link" to={`/project/tasks${focusedMemberId === null ? '' : `?assignee=${focusedMemberId}`}`}>Xem tất cả<Icon name="arrow_forward" /></Link>
+          </div>
           {isTeamLeader && <div className="cw-filters" role="group" aria-label="Phạm vi công việc"><button className={selectedMember === null ? 'is-active' : ''} onClick={() => setSelectedMember(null)}>Cả nhóm</button>
             {currentUserId && members.some(member => member.userId === currentUserId) && <button className={selectedMember === currentUserId ? 'is-active' : ''} onClick={() => setSelectedMember(currentUserId)}>Của tôi</button>}
             {selectedMember !== null && selectedMember !== currentUserId && <span className="cw-selected-name">{selectedName}</span>}
           </div>}
           <ResourceState resource={data.timeline} retry={data.reload} />
-          {data.timeline.state === 'ready' && (openTasks.length ? <ul className="cw-task-list">{openTasks.slice(0, 4).map(task => <li key={task.id}><Link className="cw-task-row" to={`/project/tasks/${task.id}`}>
-            <span className={`cw-task-indicator ${task.status === 'BLOCKED' ? 'is-blocked' : ''}`} aria-hidden="true"><Icon name={task.status === 'BLOCKED' ? 'pause' : 'check_box_outline_blank'} /></span>
-            <span className="cw-task-text"><strong>{task.title}</strong><span>{isTeamLeader ? `${task.assignees.map(person => person.fullName).join(', ') || 'Chưa phân công'} · ${taskStatusLabel(task.status)}` : `${taskStatusLabel(task.status)} · được giao cho bạn`}</span></span>
-            <span className={`cw-task-date ${isOverdue(task, now) ? 'is-overdue' : ''}`}>{isOverdue(task, now) && <span>Quá hạn</span>}{dateLabel(task.dueAt)}</span><Icon name="chevron_right" />
-          </Link></li>)}</ul> : <div className="cw-empty"><Icon name="check_circle" /><p>{isTeamLeader ? (selectedMember === null ? 'Nhóm không có công việc nào đang mở.' : 'Thành viên này không có công việc nào đang mở.') : 'Bạn không có công việc nào đang mở.'}</p></div>)}
+          {data.timeline.state === 'ready' && (openTasks.length ? <>
+            <ul className="cw-task-list">{tasksPagination.paginatedItems.map(task => <li key={task.id}><Link className="cw-task-row" to={`/project/tasks/${task.id}`}>
+              <span className={`cw-task-indicator ${task.status === 'BLOCKED' ? 'is-blocked' : ''}`} aria-hidden="true"><Icon name={task.status === 'BLOCKED' ? 'pause' : 'check_box_outline_blank'} /></span>
+              <span className="cw-task-text"><strong>{task.title}</strong><span>{isTeamLeader ? `${task.assignees.map(person => person.fullName).join(', ') || 'Chưa phân công'} · ${taskStatusLabel(task.status)}` : `${taskStatusLabel(task.status)} · được giao cho bạn`}</span></span>
+              <span className={`cw-task-date ${isOverdue(task, now) ? 'is-overdue' : ''}`}>{isOverdue(task, now) && <span>Quá hạn</span>}{dateLabel(task.dueAt)}</span><Icon name="chevron_right" />
+            </Link></li>)}</ul>
+            {tasksPagination.showPagination && <div className="cw-pagination-bar"><Pagination page={tasksPagination.page} pages={tasksPagination.totalPages} total={tasksPagination.total} pageSize={tasksPagination.pageSize} pageSizeOptions={[8, 16, 30]} onPage={tasksPagination.setPage} onPageSizeChange={tasksPagination.setPageSize} /></div>}
+          </> : <div className="cw-empty"><Icon name="check_circle" /><p>{isTeamLeader ? (selectedMember === null ? 'Nhóm không có công việc nào đang mở.' : 'Thành viên này không có công việc nào đang mở.') : 'Bạn không có công việc nào đang mở.'}</p></div>)}
         </section>
 
         <section className="cw-panel" aria-labelledby="deliverable-heading">
-          <div className="cw-section-heading"><div><h2 id="deliverable-heading">Hạng mục cần nộp</h2><p>Theo dõi yêu cầu nộp và các phiên bản của nhóm.</p></div><Link className="cw-text-link" to="/project/deliverables">Xem tất cả<Icon name="arrow_forward" /></Link></div>
+          <div className="cw-section-heading">
+            <div>
+              <div className="cw-heading-title-row">
+                <h2 id="deliverable-heading">Hạng mục cần nộp</h2>
+                {data.deliverables.state === 'ready' && <span className="cw-count">{sortedDeliverables.length}</span>}
+              </div>
+              <p>Theo dõi yêu cầu nộp và các phiên bản của nhóm.</p>
+            </div>
+            <Link className="cw-text-link" to="/project/deliverables">Xem tất cả<Icon name="arrow_forward" /></Link>
+          </div>
           <ResourceState resource={data.deliverables} retry={data.reload} />
-          {data.deliverables.state === 'ready' && (data.deliverables.data.length ? <ul className="cw-deliverable-list">{[...data.deliverables.data].sort((a, b) => Number(['ACCEPTED', 'CLOSED'].includes(a.status)) - Number(['ACCEPTED', 'CLOSED'].includes(b.status)) || utcTimestamp(a.dueAt) - utcTimestamp(b.dueAt)).slice(0, 3).map(item => <li key={item.id}><Link to="/project/deliverables"><Icon name="description" /><span><strong>{item.title}</strong><span>{item.latestVersion ? `Đã nộp ${item.latestVersion} phiên bản` : 'Chưa có bài nộp'} · {dateLabel(item.dueAt)}</span></span><span className={`cw-status ${item.status === 'ACCEPTED' ? 'cw-status-success' : ''}`}>{({ DRAFT: 'Bản nháp', OPEN: 'Đang nhận bài', SUBMITTED: 'Đã nộp', ACCEPTED: 'Đã chấp nhận', REJECTED: 'Không được chấp nhận', CLOSED: 'Đã đóng' })[item.status]}</span></Link></li>)}</ul>
+          {data.deliverables.state === 'ready' && (sortedDeliverables.length ? <>
+            <ul className="cw-deliverable-list">{deliverablesPagination.paginatedItems.map(item => <li key={item.id}><Link to="/project/deliverables"><Icon name="description" /><span><strong>{item.title}</strong><span>{item.latestVersion ? `Đã nộp ${item.latestVersion} phiên bản` : 'Chưa có bài nộp'} · {dateLabel(item.dueAt)}</span></span><StatusBadge status={item.status} tone={deliverableStatusTone(item.status)} label={DELIVERABLE_STATUS_LABELS[item.status] ?? item.status} /></Link></li>)}</ul>
+            {deliverablesPagination.showPagination && <div className="cw-pagination-bar"><Pagination page={deliverablesPagination.page} pages={deliverablesPagination.totalPages} total={deliverablesPagination.total} pageSize={deliverablesPagination.pageSize} onPage={deliverablesPagination.setPage} /></div>}
+          </>
             : <p className="cw-empty">Nhóm chưa có hạng mục cần nộp.</p>)}
         </section>
 
         {!isTeamLeader && <section className="cw-panel" aria-labelledby="evidence-heading">
           <div className="cw-section-heading"><div><h2 id="evidence-heading">Đóng góp và chứng cứ</h2><p>Xem phần đóng góp đã ghi nhận và các tệp chứng cứ của đồ án.</p></div><Icon name="folder_open" /></div>
-          <div className="cw-context-links"><Link className="cw-text-link" to="/project/contributions">Đóng góp của nhóm<Icon name="arrow_forward" /></Link><Link className="cw-text-link" to="/project/evidence">Sổ minh chứng<Icon name="arrow_forward" /></Link><Link className="cw-text-link" to="/project/files">Tệp và chứng cứ<Icon name="arrow_forward" /></Link></div>
+          <div className="cw-context-links cw-context-links-padded"><Link className="cw-text-link" to="/project/contributions">Đóng góp của nhóm<Icon name="arrow_forward" /></Link><Link className="cw-text-link" to="/project/evidence">Sổ minh chứng<Icon name="arrow_forward" /></Link><Link className="cw-text-link" to="/project/files">Tệp và chứng cứ<Icon name="arrow_forward" /></Link></div>
         </section>}
+
+        <TeamReflectionPanel projectId={project.id} studentId={currentUserId} audience="student" />
       </div>
 
       <aside className="cw-side-column" aria-label="Hướng dẫn và lịch của nhóm">
-        <section className="cw-panel" aria-labelledby="feedback-heading"><div className="cw-section-heading"><div><p className="cw-eyebrow">Cùng giảng viên</p><h2 id="feedback-heading">Nhận xét gần đây</h2></div><Icon name="chat_bubble_outline" /></div>
+        <section className="cw-panel" aria-labelledby="feedback-heading"><div className="cw-section-heading"><div><p className="cw-eyebrow">Cùng giảng viên</p><div className="cw-heading-title-row"><h2 id="feedback-heading">Nhận xét gần đây</h2>{data.feedback.state === 'ready' && <span className="cw-count">{feedbackItems.length}</span>}</div></div><Icon name="chat_bubble_outline" /></div>
           <ResourceState resource={data.feedback} retry={data.reload} />
           {data.feedback.state === 'ready' && <>{data.feedback.data.incomplete && <p className="cw-section-error" role="alert">Một số nhận xét chưa tải được. <button onClick={data.reload}>Thử lại</button></p>}
-            {data.feedback.data.items.length ? <ul className="cw-feedback-list">{data.feedback.data.items.map(item => <li key={item.id}><div className="cw-feedback-author"><span className="cw-avatar" aria-hidden="true">{initials(item.supervisorName)}</span><div><strong>{item.supervisorName}</strong><span>{dateLabel(item.createdAt)} · Nhận xét báo cáo</span></div></div><blockquote>{item.feedbackText}</blockquote><Link className="cw-text-link" to={`/project/reports/${item.reportId}`}>Xem báo cáo {dateLabel(item.periodStart)} – {dateLabel(item.periodEnd)}<Icon name="arrow_forward" /></Link></li>)}</ul>
+            {feedbackItems.length ? <>
+              <ul className="cw-feedback-list">{feedbackPagination.paginatedItems.map(item => <li key={item.id}><div className="cw-feedback-author"><span className="cw-avatar" aria-hidden="true">{initials(item.supervisorName)}</span><div><strong>{item.supervisorName}</strong><span>{dateLabel(item.createdAt)} · Nhận xét báo cáo</span></div></div><blockquote>{item.feedbackText}</blockquote><Link className="cw-text-link" to={`/project/reports/${item.reportId}`}>Xem báo cáo {dateLabel(item.periodStart)} – {dateLabel(item.periodEnd)}<Icon name="arrow_forward" /></Link></li>)}</ul>
+              {feedbackPagination.showPagination && <div className="cw-pagination-bar"><Pagination page={feedbackPagination.page} pages={feedbackPagination.totalPages} total={feedbackPagination.total} pageSize={feedbackPagination.pageSize} onPage={feedbackPagination.setPage} /></div>}
+            </>
               : !data.feedback.data.incomplete && <p className="cw-empty">Chưa có nhận xét trong các kỳ báo cáo gần đây.</p>}</>}
           <div className="cw-panel-footer"><Link className="cw-text-link" to="/project/reports">Tất cả báo cáo<Icon name="arrow_forward" /></Link></div>
         </section>

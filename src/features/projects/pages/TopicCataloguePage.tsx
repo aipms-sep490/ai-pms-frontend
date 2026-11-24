@@ -6,6 +6,7 @@ import { useAuthSession } from '../../../features/auth/context/useAuthSession'
 import { services } from '../../../services/service-gateway'
 import { HttpError } from '../../../services/http/http-client'
 import { isActionAllowed, type ProjectDto } from '../../../types/backend'
+import { Pagination, StatTileRow } from '../../../components/ui'
 import { TopicDetailDrawer } from '../../registration/components/TopicDetailDrawer'
 import { useTopicDiscovery } from '../../registration/hooks/useTopicDiscovery'
 import { getTopic, type ProjectMode, type Topic } from '../../topics/api/topic-api'
@@ -78,52 +79,142 @@ export function TopicCataloguePage() {
 
   const errorTitle = discovery.errorKind === 'authentication' ? 'Phiên đăng nhập cần được xác thực lại' : discovery.errorKind === 'forbidden' ? 'Bạn không có quyền xem danh mục đề tài này' : 'Không thể tải danh mục đề tài'
   const totalPages = Math.max(1, Math.ceil(discovery.totalCount / pageSize))
+  const interdisciplinaryCount = discovery.topics.filter((topic) => topic.projectMode === 'INTERDISCIPLINARY').length
+  const compatibleCount = discovery.topics.filter((topic) => topic.matchesMyMajor !== false).length
 
-  return <div className="workspace-page mx-auto flex max-w-6xl flex-col gap-6 pb-12">
-    <header className="workspace-heading">
-      <div className="workspace-heading-copy">
-        <span className="workspace-kicker">Danh mục học vụ</span>
-        <h1 className="font-heading text-2xl font-bold tracking-tight text-ink">Danh mục đề tài đã công bố</h1>
-        <p className="text-sm text-ink-muted">Chuyên ngành của bạn: {verifiedMajor ? `${verifiedMajor.code} · ${verifiedMajor.name}` : 'chưa có'}.</p>
-      </div>
-      <button type="button" onClick={() => navigate('/project/source')} className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-card px-4 py-2.5 text-xs font-bold text-primary transition-colors hover:bg-primary-subtle">Đề xuất đề tài riêng</button>
-    </header>
-    <section className="rounded-xl border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text"><p className="text-xs leading-relaxed">Tham khảo các đề tài đã công bố. Trưởng nhóm có thể chọn đề tài khi hồ sơ còn ở dạng bản nháp.</p>{project?.proposalSource === 'PUBLISHED_TOPIC' && project.selectedTopic ? <p className="mt-2 text-xs font-semibold">Đề tài đã chọn: {project.selectedTopic.code} · {project.selectedTopic.title}</p> : null}</section>
-    <section className="grid gap-3 rounded-xl border border-hairline bg-card p-4 md:grid-cols-[1fr_auto_auto]"><input aria-label="Tìm kiếm đề tài" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1) }} placeholder="Tìm theo mã hoặc tên đề tài" className="min-h-11 min-w-0 rounded-lg border border-line-strong bg-card px-3 py-2 text-sm text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20" /><select aria-label="Lọc chế độ đề tài" value={projectMode ?? ''} onChange={(event) => { setProjectMode(event.target.value ? event.target.value as ProjectMode : undefined); setPage(1) }} className="min-h-11 rounded-lg border border-line-strong bg-card px-3 py-2 text-sm font-normal text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"><option value="">Mọi chế độ</option><option value="SINGLE_MAJOR">Đơn ngành</option><option value="INTERDISCIPLINARY">Liên ngành</option></select><label className="flex min-h-11 cursor-pointer items-center gap-2 text-xs font-medium text-ink-soft"><input type="checkbox" checked={compatibleOnly} onChange={(event) => { setCompatibleOnly(event.target.checked); setPage(1) }} className="accent-primary" />Phù hợp với ngành của tôi</label></section>
-    {discovery.isLoading ? <TopicLoading /> : null}
-    {discovery.error ? <TopicError title={errorTitle} error={discovery.error} onRetry={discovery.retry} /> : null}
-    {selectionError ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{selectionError}</section> : null}
-    {!discovery.isLoading && !discovery.error && discovery.topics.length === 0 ? <TopicEmpty /> : null}
-    {!discovery.isLoading && !discovery.error && discovery.topics.length > 0 ? <><div className="grid grid-cols-1 gap-4 md:grid-cols-2">{discovery.topics.map((topic) => <TopicCard key={topic.id} topic={topic} onDetail={openDetail} />)}</div><nav className="flex flex-wrap items-center justify-between gap-3 text-xs text-ink-muted"><span>{discovery.totalCount} đề tài</span><div className="flex items-center gap-2"><button type="button" disabled={page === 1} onClick={() => setPage((value) => value - 1)} className="min-h-11 rounded-lg border border-hairline bg-card px-3.5 py-2 font-semibold text-ink-soft transition-colors hover:bg-canvas disabled:opacity-50">Trước</button><span className="self-center px-1">{page}/{totalPages}</span><button type="button" disabled={page >= totalPages} onClick={() => setPage((value) => value + 1)} className="min-h-11 rounded-lg border border-hairline bg-card px-3.5 py-2 font-semibold text-ink-soft transition-colors hover:bg-canvas disabled:opacity-50">Sau</button></div></nav></> : null}
-    <TopicDetailDrawer topic={selectedTopic} isLoading={detailLoading} error={detailError} onClose={() => { setSelectedTopic(null); setDetailError(null) }} canSelect={canSelect} selecting={selecting} onSelectTopic={(topic) => void selectTopic(topic)} />
-  </div>
+  return (
+    <div className="workspace-page flex flex-col gap-5 pb-10">
+      <header className="workspace-heading">
+        <div className="workspace-heading-copy">
+          <span className="workspace-kicker">Danh mục học vụ</span>
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-ink">Danh mục đề tài đã công bố</h1>
+          <p className="max-w-3xl text-sm text-ink-muted">Chuyên ngành của bạn: {verifiedMajor ? `${verifiedMajor.code} · ${verifiedMajor.name}` : 'chưa có'}.</p>
+        </div>
+        <button type="button" onClick={() => navigate('/project/source')} className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-card px-4 py-2.5 text-xs font-bold text-primary transition-colors hover:bg-primary-subtle">Đề xuất đề tài riêng</button>
+      </header>
+
+      <StatTileRow
+        tiles={[
+          {
+            icon: 'menu_book',
+            label: 'Đề tài đã công bố',
+            value: discovery.totalCount,
+            caption: 'Trong học kỳ và kỳ đăng ký hiện tại',
+            hero: true,
+          },
+          {
+            icon: 'view_module',
+            label: 'Hiển thị trang này',
+            value: discovery.topics.length,
+            caption: `Trang ${page} / ${totalPages}`,
+            tone: 'info',
+          },
+          {
+            icon: 'hub',
+            label: 'Đề tài liên ngành',
+            value: interdisciplinaryCount,
+            caption: 'Trên trang hiện tại',
+            tone: 'neutral',
+          },
+          {
+            icon: 'verified',
+            label: 'Phù hợp ngành',
+            value: compatibleCount,
+            caption: verifiedMajor ? `Ngành ${verifiedMajor.code}` : 'Theo phạm vi hồ sơ',
+            tone: 'success',
+          },
+        ]}
+      />
+
+      <section className="rounded-xl border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">
+        <p className="max-w-3xl text-xs leading-relaxed">Tham khảo các đề tài đã công bố. Trưởng nhóm có thể chọn đề tài khi hồ sơ còn ở dạng bản nháp.</p>
+        {project?.proposalSource === 'PUBLISHED_TOPIC' && project.selectedTopic ? (
+          <p className="mt-2 text-xs font-semibold">Đề tài đã chọn: {project.selectedTopic.code} · {project.selectedTopic.title}</p>
+        ) : null}
+      </section>
+
+      <section className="rounded-xl border border-hairline bg-card p-4 shadow-xs" aria-label="Bộ lọc danh mục đề tài">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[240px] flex-1">
+            <input
+              aria-label="Tìm kiếm đề tài"
+              value={search}
+              onChange={(event) => { setSearch(event.target.value); setPage(1) }}
+              placeholder="Tìm theo mã hoặc tên đề tài"
+              className="min-h-11 w-full min-w-0 rounded-lg border border-line-strong bg-card px-3.5 py-2 text-sm text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+          <select
+            aria-label="Lọc chế độ đề tài"
+            value={projectMode ?? ''}
+            onChange={(event) => { setProjectMode(event.target.value ? event.target.value as ProjectMode : undefined); setPage(1) }}
+            className="min-h-11 rounded-lg border border-line-strong bg-card px-3.5 py-2 text-sm font-normal text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="">Mọi chế độ</option>
+            <option value="SINGLE_MAJOR">Đơn ngành</option>
+            <option value="INTERDISCIPLINARY">Liên ngành</option>
+          </select>
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-hairline bg-canvas px-3.5 py-2 text-xs font-semibold text-ink-soft">
+            <input type="checkbox" checked={compatibleOnly} onChange={(event) => { setCompatibleOnly(event.target.checked); setPage(1) }} className="accent-primary" />
+            Phù hợp với ngành của tôi
+          </label>
+        </div>
+      </section>
+
+      {discovery.isLoading ? <TopicLoading /> : null}
+      {discovery.error ? <TopicError title={errorTitle} error={discovery.error} onRetry={discovery.retry} /> : null}
+      {selectionError ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{selectionError}</section> : null}
+      {!discovery.isLoading && !discovery.error && discovery.topics.length === 0 ? <TopicEmpty /> : null}
+      {!discovery.isLoading && !discovery.error && discovery.topics.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {discovery.topics.map((topic) => <TopicCard key={topic.id} topic={topic} onDetail={openDetail} />)}
+          </div>
+          {totalPages > 1 && (
+            <div className="rounded-xl border border-hairline bg-card px-5 py-3.5 shadow-xs">
+              <Pagination
+                page={page}
+                pages={totalPages}
+                total={discovery.totalCount}
+                pageSize={pageSize}
+                onPage={setPage}
+              />
+            </div>
+          )}
+        </>
+      ) : null}
+      <TopicDetailDrawer topic={selectedTopic} isLoading={detailLoading} error={detailError} onClose={() => { setSelectedTopic(null); setDetailError(null) }} canSelect={canSelect} selecting={selecting} onSelectTopic={(topic) => void selectTopic(topic)} />
+    </div>
+  )
 }
 
 function TopicCard({ topic, onDetail }: { topic: Topic; onDetail: (id: number) => Promise<void> }) {
   const isInterdisciplinary = topic.projectMode === 'INTERDISCIPLINARY'
   return (
-    <article className="flex flex-col justify-between gap-4 rounded-xl border border-hairline bg-card p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md">
+    <article className="flex flex-col justify-between overflow-hidden rounded-xl border border-hairline bg-card shadow-xs transition-all hover:border-primary/40 hover:shadow-md">
       <div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-4 py-3">
           <span className="rounded-md border border-primary/20 bg-primary-subtle px-2 py-0.5 font-mono text-xs font-bold text-primary">{topic.code}</span>
-          <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${isInterdisciplinary ? 'border-tag-ai/20 bg-tag-ai-bg text-tag-ai' : 'border-hairline bg-canvas text-ink-soft'}`}>
+          <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${isInterdisciplinary ? 'border-tag-ai/20 bg-tag-ai-bg text-tag-ai' : 'border-hairline bg-card text-ink-soft'}`}>
             {isInterdisciplinary ? 'LIÊN NGÀNH' : 'ĐƠN NGÀNH'}
           </span>
         </div>
-        <h3 className="mt-3 text-base font-bold leading-snug text-ink">{topic.title}</h3>
-        <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-muted">
-          <span className="material-symbols-outlined text-[15px] text-ink-muted" aria-hidden="true">apartment</span>
-          Bộ môn chủ trì: <span className="font-medium text-ink-soft">{topic.leadDepartmentName}</span>
-        </p>
-        <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-ink-soft">{topic.description ?? 'Chưa có mô tả.'}</p>
-        {topic.matchesMyMajor === false ? (
-          <div className="mt-3 flex items-center gap-1.5 rounded-lg border border-status-warning-border bg-status-warning-bg p-2 text-xs font-medium text-status-warning-text">
-            <span className="material-symbols-outlined text-sm" aria-hidden="true">warning</span>
-            Đề tài này chưa phù hợp với chuyên ngành hoặc điều kiện đăng ký của bạn.
-          </div>
-        ) : null}
+        <div className="p-4">
+          <h3 className="text-base font-bold leading-snug text-ink">{topic.title}</h3>
+          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-ink-muted">
+            <span className="material-symbols-outlined text-[15px] text-ink-muted" aria-hidden="true">apartment</span>
+            Bộ môn chủ trì: <span className="font-medium text-ink-soft">{topic.leadDepartmentName}</span>
+          </p>
+          <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-ink-soft">{topic.description ?? 'Chưa có mô tả.'}</p>
+          {topic.matchesMyMajor === false ? (
+            <div className="mt-3 flex items-center gap-1.5 rounded-lg border border-status-warning-border bg-status-warning-bg p-2.5 text-xs font-medium text-status-warning-text">
+              <span className="material-symbols-outlined text-sm" aria-hidden="true">warning</span>
+              Đề tài này chưa phù hợp với chuyên ngành hoặc điều kiện đăng ký của bạn.
+            </div>
+          ) : null}
+        </div>
       </div>
-      <div className="flex items-center justify-end border-t border-hairline pt-3">
+      <div className="flex items-center justify-end border-t border-hairline bg-canvas/40 px-4 py-3">
         <button
           type="button"
           onClick={() => void onDetail(topic.id)}
@@ -136,6 +227,6 @@ function TopicCard({ topic, onDetail }: { topic: Topic; onDetail: (id: number) =
     </article>
   )
 }
-function TopicLoading() { return <div className="grid grid-cols-1 gap-4 md:grid-cols-2" aria-label="Đang tải đề tài"><div className="h-52 rounded-xl border border-hairline bg-canvas motion-safe:animate-pulse"/><div className="h-52 rounded-xl border border-hairline bg-canvas motion-safe:animate-pulse"/></div> }
+function TopicLoading() { return <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Đang tải đề tài"><div className="h-52 rounded-xl border border-hairline bg-canvas motion-safe:animate-pulse"/><div className="h-52 rounded-xl border border-hairline bg-canvas motion-safe:animate-pulse"/><div className="h-52 rounded-xl border border-hairline bg-canvas motion-safe:animate-pulse"/></div> }
 function TopicEmpty() { return <section className="rounded-xl border border-dashed border-hairline bg-card p-12 text-center"><h3 className="font-bold text-ink">Không có đề tài phù hợp</h3><p className="mt-1 text-xs text-ink-muted">Thay đổi bộ lọc hoặc kiểm tra lại bối cảnh học vụ.</p></section> }
 function TopicError({ title, error, onRetry }: { title: string; error: Error; onRetry: () => void }) { const isNotFound = error instanceof HttpError && error.status === 404; return <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-8 text-center"><h3 className="font-bold text-status-error-text">{isNotFound ? 'Không tìm thấy đề tài hoặc phạm vi học vụ' : title}</h3><p className="mt-1 text-xs text-status-error-text">{error.message}</p><button type="button" onClick={onRetry} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-hover">Thử lại</button></section> }
