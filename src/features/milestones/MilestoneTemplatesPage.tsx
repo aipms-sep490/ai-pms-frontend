@@ -81,6 +81,7 @@ export function MilestoneTemplatesPage() {
   const selected = templates.find(item => item.id === selectedId)
   const version = selected?.versions.find(item => item.id === versionId) ?? selected?.versions.at(-1)
   const writable = version?.status === 'DRAFT'
+  const executionPeriods = useMemo(() => assignableExecutionPeriods(periods), [periods])
 
   async function run(operation: () => Promise<unknown>, success: string) {
     if (busy) return
@@ -440,23 +441,32 @@ export function MilestoneTemplatesPage() {
 
                     {version.status === 'PUBLISHED' && (
                       <form
-                        className="flex flex-wrap items-end gap-3 border-t border-hairline pt-4"
+                        className="grid gap-3 border-t border-hairline pt-4"
                         onSubmit={e => {
                           e.preventDefault()
                           const id = Number(new FormData(e.currentTarget).get('period'))
-                          if (id > 0) void run(() => api.assignMilestoneTemplate(id, selected.id, version.id), 'Đã áp dụng mẫu cho kỳ đồ án.')
+                          if (id > 0) void run(() => api.assignMilestoneTemplate(id, selected.id, version.id), 'Đã áp dụng mẫu cho kỳ Thực hiện. Mốc sẽ tự sinh cho từng nhóm khi đồ án được kích hoạt.')
                         }}
                       >
-                        <label className="grid min-w-[240px] flex-1 gap-2 text-sm font-medium text-ink-soft">
-                          Áp dụng cho kỳ đồ án
-                          <select name="period" required className="min-h-10 rounded-lg border border-hairline bg-card px-3 text-sm font-normal text-ink">
-                            <option value="">Chọn kỳ đồ án</option>
-                            {periods.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                          </select>
-                        </label>
-                        <Button type="submit" disabled={busy || !periods.length}>Áp dụng mẫu</Button>
-                        {!periods.length && (
-                          <p className="w-full ex-muted">Chưa tải được kỳ đồ án. Kiểm tra cấu hình học vụ rồi tải lại trang.</p>
+                        <div className="flex flex-wrap items-end gap-3">
+                          <label className="grid min-w-[240px] flex-1 gap-2 text-sm font-medium text-ink-soft">
+                            Áp dụng cho kỳ Thực hiện
+                            <select name="period" required aria-label="Kỳ Thực hiện" className="min-h-10 rounded-lg border border-hairline bg-card px-3 text-sm font-normal text-ink">
+                              <option value="">Chọn kỳ Thực hiện</option>
+                              {executionPeriods.map(p => (
+                                <option key={p.id} value={p.id}>{periodOptionLabel(p, selected.id)}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <Button type="submit" disabled={busy || !executionPeriods.length}>Áp dụng mẫu</Button>
+                        </div>
+                        <p className="text-xs text-ink-muted">
+                          Chỉ hiện kỳ giai đoạn <strong>Thực hiện</strong> còn hiệu lực. Khi đồ án của nhóm được kích hoạt, hệ thống sinh bộ mốc từ mẫu
+                          (ngày = ngày kích hoạt + số ngày lệch); Leader nhóm dựa vào đó để chỉnh kế hoạch. Sau khi áp dụng, phiên bản này bị khóa —
+                          muốn đổi mốc hãy tạo phiên bản mới.
+                        </p>
+                        {!executionPeriods.length && (
+                          <p className="ex-muted">Chưa có kỳ Thực hiện nào đang mở. Tạo hoặc mở kỳ Thực hiện trong mục Học kỳ và kỳ đồ án rồi tải lại trang.</p>
                         )}
                       </form>
                     )}
@@ -652,11 +662,33 @@ export function MilestoneTemplatesPage() {
   )
 }
 
+const periodStatusLabels: Record<string, string> = { ACTIVE: 'Đang mở', UPCOMING: 'Sắp mở', DRAFT: 'Nháp' }
+
+function assignableExecutionPeriods(periods: ProjectPeriodDto[], now = Date.now()) {
+  return periods
+    .filter(p => p.periodType?.toUpperCase() === 'EXECUTION')
+    .filter(p => !['CLOSED', 'ARCHIVED'].includes(p.status?.toUpperCase()))
+    .filter(p => !p.endAt || new Date(p.endAt).getTime() > now)
+    .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
+}
+
+function periodOptionLabel(p: ProjectPeriodDto, templateId: number) {
+  const status = periodStatusLabels[p.status?.toUpperCase()] ?? p.status
+  const semester = p.semesterCode && !p.name.includes(p.semesterCode) ? `${p.semesterCode} · ` : ''
+  const assigned = p.milestoneTemplateId
+    ? p.milestoneTemplateId === templateId ? ' — đang dùng mẫu này' : ' — đã gắn mẫu khác'
+    : ''
+  return `${semester}${p.name} (${status})${assigned}`
+}
+
 function message(reason: unknown) {
   if (reason instanceof HttpError) {
     if (reason.status === 403) return 'Bạn chưa có quyền quản lý mẫu mốc.'
     if (reason.status === 409) return 'Mẫu đã được sử dụng hoặc dữ liệu vừa thay đổi. Hãy tải lại trước khi sửa.'
-    if (reason.status === 400) return reason.problem?.detail || 'Kiểm tra tên mốc và các ngày trong mẫu.'
+    if (reason.status === 400) {
+      const firstError = Object.values(reason.problem?.errors ?? {}).flat()[0]
+      return firstError || reason.problem?.detail || 'Kiểm tra tên mốc và các ngày trong mẫu.'
+    }
   }
   return 'Chưa hoàn tất thao tác. Hãy thử lại.'
 }
