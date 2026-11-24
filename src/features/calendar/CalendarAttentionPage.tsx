@@ -7,6 +7,7 @@ import { displayLabel } from '../../components/ui/display-label'
 import { FilterToolbar, type ActiveFilterChip } from '../../components/ui/FilterToolbar'
 import { PageLoading } from '../../components/ui/PageLoading'
 import { Pagination } from '../../components/ui/Pagination'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../components/ui/status-badge-tone'
 import { useClientPagination } from '../../components/ui/useClientPagination'
@@ -347,6 +348,17 @@ export function CalendarAttentionPage() {
               <span>{partialMessage}</span>
             </div>
           )}
+
+          <div className="mb-5">
+            <StatTileRow
+              tiles={[
+                { icon: 'calendar_month', label: 'Mốc lịch sắp tới', value: baseItems.length, hero: true, caption: showHistorical ? 'Bao gồm các mục đã hoàn tất.' : 'Đang hoạt động theo giờ Việt Nam.' },
+                { icon: 'priority_high', label: 'Điểm cần chú ý', value: data.attention.length, tone: data.attention.length > 0 ? 'warning' : 'success', caption: data.attention.length > 0 ? 'Các mục ưu tiên xử lý sớm.' : 'Không có điểm tồn đọng.' },
+                { icon: 'today', label: 'Sự kiện hôm nay', value: (grouped[todayKey] ?? []).length, tone: 'info', caption: 'Lịch trình diễn ra trong ngày.' },
+                { icon: 'sync', label: 'Nguồn dữ liệu đồng bộ', value: `${data.sources.filter(s => s.state === 'ready' || s.state === 'empty').length}/${data.sources.length}`, tone: 'neutral', caption: 'Tổng hợp tự động theo quyền hiện tại.' },
+              ]}
+            />
+          </div>
 
           <div className="calendar-page__layout">
             <section className="calendar-panel" aria-labelledby="calendar-projection-heading">

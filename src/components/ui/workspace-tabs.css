@@ -1,0 +1,92 @@
+﻿/* Unified high-contrast section tab bar for multi-workflow pages */
+.ui-workspace-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  margin-bottom: 18px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  border: 1px solid color-mix(in oklab, var(--color-brand-navy) 12%, var(--color-hairline));
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--color-canvas) 65%, var(--color-card));
+  box-shadow: inset 0 1px 2px color-mix(in oklab, var(--color-brand-navy) 4%, transparent);
+}
+
+.ui-workspace-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 7px 14px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.ui-workspace-tab:hover:not(.is-active) {
+  background: var(--color-card);
+  color: var(--color-ink);
+  border-color: var(--color-hairline);
+}
+
+.ui-workspace-tab.is-active {
+  background: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px -2px color-mix(in oklab, var(--color-primary) 42%, transparent);
+}
+
+.ui-workspace-tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.ui-workspace-tab-icon {
+  font-size: 18px;
+}
+
+.ui-workspace-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--color-brand-navy) 8%, transparent);
+  color: var(--color-ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-workspace-tab-count.is-warning {
+  background: var(--color-status-warning-bg);
+  color: var(--color-status-warning-text);
+}
+
+.ui-workspace-tab-count.is-danger {
+  background: var(--color-status-error-bg);
+  color: var(--color-status-error-text);
+}
+
+.ui-workspace-tab-count.is-success {
+  background: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+}
+
+.ui-workspace-tab.is-active .ui-workspace-tab-count {
+  background: color-mix(in oklab, #ffffff 22%, transparent);
+  color: #ffffff;
+}

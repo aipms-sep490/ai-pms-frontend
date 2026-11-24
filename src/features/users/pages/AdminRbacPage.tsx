@@ -6,6 +6,7 @@ import { displayLabel } from '../../../components/ui/display-label'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
 import { Pagination } from '../../../components/ui/Pagination'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { useClientPagination } from '../../../components/ui/useClientPagination'
@@ -202,20 +203,16 @@ export function AdminRbacPage() {
       ) : null}
 
       {admin.rbac.state === 'ready' ? (
-        <section className="admin-overview" aria-label="Tổng quan phân quyền">
-          <div>
-            <span>Tổng vai trò</span>
-            <strong>{roles.length}</strong>
-          </div>
-          <div>
-            <span>Quyền toàn hệ thống</span>
-            <strong>{allPermissions.length}</strong>
-          </div>
-          <div>
-            <span>Quyền đã cấp cho vai trò chọn</span>
-            <strong>{selectedRole ? `${selectedPermissionIds.size}/${allPermissions.length}` : '—'}</strong>
-          </div>
-        </section>
+        <div className="mt-5">
+          <StatTileRow
+            tiles={[
+              { icon: 'admin_panel_settings', label: 'Tổng vai trò', value: roles.length, hero: true, caption: 'Các vai trò đang quản lý trong hệ thống.' },
+              { icon: 'key', label: 'Quyền toàn hệ thống', value: allPermissions.length, tone: 'info', caption: 'Toàn bộ mã quyền theo phân hệ.' },
+              { icon: 'verified_user', label: 'Quyền vai trò chọn', value: selectedRole ? `${selectedPermissionIds.size}/${allPermissions.length}` : '—', tone: 'success', caption: selectedRole ? displayLabel(selectedRole.code) : 'Chọn một vai trò để xem.' },
+              { icon: 'lock', label: 'Chế độ phân quyền', value: canEdit ? 'Cho phép sửa' : 'Chỉ đọc', tone: canEdit ? 'warning' : 'neutral', caption: canEdit ? 'Mọi thay đổi yêu cầu xác nhận.' : 'Bảo vệ chống chỉnh sửa ngoài ý muốn.' },
+            ]}
+          />
+        </div>
       ) : null}
 
       {admin.rbac.state !== 'error' ? (

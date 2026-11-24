@@ -2,6 +2,7 @@ import { getUploadPolicy, validateUploadFile } from '../../services/api/upload-p
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import type { FilterChipItem } from '../../components/ui/FilterChips'
 import { Modal } from '../../components/ui/Modal'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { utcTimestamp } from '../projects/utils/collaboration-workspace'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { displayLabel } from '../../components/ui/display-label'
@@ -244,6 +245,10 @@ function DeliverablesView() {
   }, [search, status, deliverableType])
 
   const hasActiveFilters = activeChips.length > 0 || sortBy !== 'default'
+  const pageDeliverables = data?.items ?? []
+  const submittedCount = pageDeliverables.filter((item) => item.status === 'SUBMITTED').length
+  const acceptedCount = pageDeliverables.filter((item) => item.status === 'ACCEPTED' || item.status === 'CLOSED').length
+  const rejectedCount = pageDeliverables.filter((item) => item.status === 'REJECTED').length
 
   return (
     <ExecutionPage
@@ -357,6 +362,17 @@ function DeliverablesView() {
           </div>
         </Modal>
       )}
+
+      <div className="mb-5">
+        <StatTileRow
+          tiles={[
+            { icon: 'inventory_2', label: 'Tổng hạng mục', value: data ? data.totalCount : null, caption: 'Đầu ra cần nộp theo bộ lọc hiện tại', hero: true },
+            { icon: 'hourglass_top', label: 'Chờ duyệt', value: data ? submittedCount : null, caption: 'Đã nộp phiên bản, chờ GVHD nhận xét', tone: submittedCount > 0 ? 'warning' : 'neutral' },
+            { icon: 'verified', label: 'Đã chấp nhận', value: data ? acceptedCount : null, caption: 'Đạt yêu cầu hoặc đã khóa trên trang này', tone: 'success' },
+            { icon: 'edit_note', label: 'Cần chỉnh sửa', value: data ? rejectedCount : null, caption: 'Cần bổ sung và nộp lại phiên bản mới', tone: rejectedCount > 0 ? 'danger' : 'neutral' },
+          ]}
+        />
+      </div>
 
       <section className="ex-panel" aria-label="Danh sách hạng mục cần nộp">
         <FilterToolbar

@@ -2,6 +2,7 @@ import { dateTimeLabel } from '../execution/execution-utils'
 import { Avatar } from '../../components/ui/Avatar'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import { Modal } from '../../components/ui/Modal'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { ListLoading } from '../../components/ui/ListLoading'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
@@ -167,16 +168,20 @@ export function ProjectContributionsPage() {
 
       {!loading && summary && (
         <>
-          <section className="grid gap-px overflow-hidden rounded-lg border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4" aria-label="Tổng hợp đóng góp">
-            <SummaryMetric label="Thành viên" value={summary.totalCount} helper={snapshot ? 'Bản tổng hợp đã lưu' : 'Dữ liệu hiện tại'} />
-            <SummaryMetric label="Công việc hoàn tất" value={`${completedTasks}/${assignedTasks}`} helper="Theo nhiệm vụ được giao" />
-            <SummaryMetric label="Tổng chứng cứ" value={totalEvidence} helper="Trong trang hiện tại" />
-            <SummaryMetric
-              label="Tỷ lệ hoàn thành việc"
-              value={completionRate}
-              helper={summary.snapshotAt ? `Lưu lúc ${formatDate(summary.snapshotAt)}` : ({ SUFFICIENT: 'Đủ dữ liệu đối chiếu', INSUFFICIENT_DATA: 'Chưa đủ dữ liệu' }[summary.dataStatus] ?? 'Dữ liệu trực tiếp')}
-            />
-          </section>
+          <StatTileRow
+            tiles={[
+              { icon: 'groups', label: 'Thành viên', value: summary.totalCount, caption: snapshot ? 'Bản tổng hợp đã lưu' : 'Dữ liệu hiện tại', hero: true },
+              { icon: 'task_alt', label: 'Công việc hoàn tất', value: `${completedTasks}/${assignedTasks}`, caption: 'Theo nhiệm vụ được giao', tone: 'success' },
+              { icon: 'fact_check', label: 'Tổng chứng cứ', value: totalEvidence, caption: 'Ghi nhận trong trang hiện tại', tone: 'info' },
+              {
+                icon: 'donut_large',
+                label: 'Tỷ lệ hoàn thành việc',
+                value: completionRate,
+                caption: summary.snapshotAt ? `Lưu lúc ${formatDate(summary.snapshotAt)}` : ({ SUFFICIENT: 'Đủ dữ liệu đối chiếu', INSUFFICIENT_DATA: 'Chưa đủ dữ liệu' }[summary.dataStatus] ?? 'Dữ liệu trực tiếp'),
+                tone: summary.dataStatus === 'INSUFFICIENT_DATA' ? 'warning' : 'neutral',
+              },
+            ]}
+          />
 
           {summary.dataStatus === 'INSUFFICIENT_DATA' && (
             <div role="status" className="flex gap-3 rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm leading-6 text-status-warning-text">
@@ -336,16 +341,6 @@ function Pager({ page, total, onChange }: { page: number; total: number; onChang
       <span className="font-mono text-xs text-ink-muted">{page} / {Math.ceil(total / 20)}</span>
       <button type="button" disabled={page >= Math.ceil(total / 20)} className="min-h-10 rounded-md border border-hairline px-3 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-40" onClick={() => onChange(page + 1)}>Trang sau</button>
     </nav>
-  )
-}
-
-function SummaryMetric({ label, value, helper, compact = false }: { label: string; value: string | number; helper: string; compact?: boolean }) {
-  return (
-    <div className="min-w-0 bg-card p-4 sm:p-5">
-      <p className="text-xs font-semibold uppercase tracking-[0.1em] text-ink-muted">{label}</p>
-      <p className={`mt-2 font-mono font-semibold text-ink ${compact ? 'truncate text-base' : 'text-2xl'}`}>{value}</p>
-      <p className="mt-1 truncate text-xs text-ink-muted">{helper}</p>
-    </div>
   )
 }
 

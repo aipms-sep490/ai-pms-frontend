@@ -1,6 +1,7 @@
 import { Modal } from '../../components/ui/Modal'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { Pagination } from '../../components/ui/Pagination'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import type { FilterChipItem } from '../../components/ui/FilterChips'
 import { dateTimeLabel, utcTimestamp } from '../execution/execution-utils'
@@ -338,6 +339,15 @@ export function ProjectFilesPage() {
           ))}
         </section>
       )}
+
+      <StatTileRow
+        tiles={[
+          { icon: 'folder_open', label: 'Tổng tệp đồ án', value: data ? data.totalCount : null, caption: 'Theo bộ lọc nguồn và định dạng hiện tại', hero: true },
+          { icon: 'inventory_2', label: 'Hạng mục & báo cáo', value: data ? data.items.filter(f => f.parentType === 'VERSION' || f.parentType === 'REPORT').length : null, caption: 'Tệp bàn giao và báo cáo trên trang này', tone: 'info' },
+          { icon: 'assignment', label: 'Công việc & họp', value: data ? data.items.filter(f => f.parentType === 'TASK' || f.parentType === 'MEETING').length : null, caption: 'Tệp đính kèm thực thi trên trang này', tone: 'success' },
+          { icon: 'storage', label: 'Dung lượng trang này', value: data ? formatBytes(data.items.reduce((sum, f) => sum + f.sizeBytes, 0)) : null, caption: `${data?.items.length ?? 0} tệp đang hiển thị`, tone: 'neutral' },
+        ]}
+      />
 
       <section className="workspace-surface" aria-labelledby="project-file-list">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-4 sm:px-6">

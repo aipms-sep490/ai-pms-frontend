@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
 import { Modal } from '../../../components/ui/Modal'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { useExecutionAccess } from '../../execution/context/ExecutionAccessContext'
 import { ExecutionPage, ExConfirm, ExIcon, ExProgress, ExState } from '../../execution/execution-ui'
 import { executionError, milestoneLabels } from '../../execution/execution-utils'
@@ -340,7 +341,18 @@ export function MilestoneDetailPage() {
           </section>
         )
       ) : (
-        <section className="ex-panel" aria-label="Kế hoạch các mốc">
+        <>
+          <div className="mb-5">
+            <StatTileRow
+              tiles={[
+                { icon: 'flag', label: 'Tổng mốc đồ án', value: milestones.length, caption: 'Toàn bộ lộ trình các giai đoạn', hero: true },
+                { icon: 'pending_actions', label: 'Đang thực hiện', value: milestones.filter(m => m.status === 'IN_PROGRESS').length, caption: readyToCloseCount > 0 ? `${readyToCloseCount} mốc đã xong 100% việc, sẵn sàng chốt` : 'Các mốc đang mở công việc', tone: 'info' },
+                { icon: 'task_alt', label: 'Đã hoàn thành', value: completedCount, caption: 'Các mốc đã chốt hoàn tất', tone: 'success' },
+                { icon: 'event_note', label: 'Chưa bắt đầu', value: milestones.filter(m => m.status === 'PLANNED').length, caption: 'Kế hoạch cho giai đoạn tiếp theo', tone: 'neutral' },
+              ]}
+            />
+          </div>
+          <section className="ex-panel" aria-label="Kế hoạch các mốc">
           <div className="ex-panel-heading">
             <div>
               <h2>{milestones.length} mốc đồ án</h2>
@@ -475,6 +487,7 @@ export function MilestoneDetailPage() {
             </ol>
           )}
         </section>
+        </>
       )}
     </ExecutionPage>
   )

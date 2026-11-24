@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Avatar } from '../../../components/ui/Avatar'
 import { Modal } from '../../../components/ui/Modal'
+import { StatTileRow } from '../../../components/ui'
 import type { ProjectDto, SupervisorAssignmentDto, TeamDto } from '../../../types/backend'
 import { useCollaborationWorkspace, type Resource } from '../hooks/useCollaborationWorkspace'
 import { dateLabel, isOpenTask, isOverdue, summarizeMembers, taskStatusLabel, utcTimestamp } from '../utils/collaboration-workspace'
@@ -130,6 +131,45 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
       <div className="cw-project-progress">{summary ? <><div><span>{summary.doneTasks}/{summary.totalTasks} việc hoàn thành</span><strong>{new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(progress!)}%</strong></div><Progress value={progress!} label="Tiến độ chung của đồ án" /><p className="mt-1 text-xs text-ink-muted">* Tiến độ công việc nội bộ; tiến độ học thuật tính riêng theo Cổng thẩm định.</p></>
         : <ResourceState resource={data.summary} retry={data.reload} />}</div>
     </section>
+
+    <div className="mb-5">
+      <StatTileRow
+        tiles={[
+          {
+            icon: 'donut_large',
+            label: 'Tiến độ công việc',
+            value: progress !== null ? `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(progress)}%` : null,
+            caption: summary ? `${summary.doneTasks}/${summary.totalTasks} việc đã hoàn thành` : 'Đang đồng bộ tiến độ đồ án',
+            hero: true,
+          },
+          {
+            icon: 'checklist',
+            label: isTeamLeader ? 'Việc đang mở' : 'Việc được giao',
+            value: data.timeline.state === 'ready' ? openTasks.length : null,
+            caption: selectedName ? `Đang lọc theo ${selectedName}` : 'Ưu tiên các việc gần hạn',
+            tone: 'info',
+          },
+          {
+            icon: 'warning',
+            label: 'Quá hạn & vướng mắc',
+            value: data.timeline.state === 'ready' ? attentionForActor.length : null,
+            caption: data.timeline.state === 'ready'
+              ? `${attentionForActor.filter(t => isOverdue(t, now)).length} quá hạn · ${attentionForActor.filter(t => t.status === 'BLOCKED').length} vướng mắc`
+              : 'Theo dõi rủi ro tiến độ',
+            tone: attentionForActor.length > 0 ? 'danger' : 'neutral',
+          },
+          {
+            icon: 'inventory_2',
+            label: 'Hạng mục bàn giao',
+            value: data.deliverables.state === 'ready' ? data.deliverables.data.length : null,
+            caption: data.deliverables.state === 'ready'
+              ? `${data.deliverables.data.filter(d => d.status === 'ACCEPTED').length} đã chấp nhận`
+              : 'Theo dõi sản phẩm nộp',
+            tone: 'neutral',
+          },
+        ]}
+      />
+    </div>
 
     <NextActionBanner
       timeline={reviewTimeline}

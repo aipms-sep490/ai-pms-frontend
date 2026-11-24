@@ -13,6 +13,7 @@ import { StudentQualificationCard } from '../../qualifications/components/Studen
 import { Modal } from '../../../components/ui/Modal'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import { StatTileRow, WorkspaceTabs } from '../../../components/ui'
 import { services } from '../../../services/service-gateway'
 import { EligibilityHistoryPanel } from '../components/EligibilityHistoryPanel'
 import { humanizeHttpError } from '../../../services/http/humanize-http-error'
@@ -330,62 +331,54 @@ export function TeamManagementPage() {
             </section>
           )}
 
-          {/* Clean Section Tabs */}
-          <div role="tablist" aria-label="Phân mục quản lý nhóm" className="flex flex-wrap items-center gap-1.5 rounded-xl border border-hairline bg-card p-1.5 shadow-2xs">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={effectiveTab === 'roster'}
-              onClick={() => setActiveTab('roster')}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
-                effectiveTab === 'roster' ? 'bg-primary-subtle text-primary' : 'text-ink-muted hover:bg-canvas hover:text-ink'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">group</span>
-              Thành viên &amp; Phân công ({team.members.length})
-            </button>
-            {showInvitationsTab && (
-              <button
-                type="button"
-                role="tab"
-                aria-selected={effectiveTab === 'invitations'}
-                onClick={() => setActiveTab('invitations')}
-                className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
-                  effectiveTab === 'invitations' ? 'bg-primary-subtle text-primary' : 'text-ink-muted hover:bg-canvas hover:text-ink'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">mail</span>
-                Lời mời &amp; Ứng viên
-                {pendingInviteCount > 0 && (
-                  <span className="rounded-full bg-primary px-1.5 py-0.5 text-xs font-bold text-white">{pendingInviteCount}</span>
-                )}
-              </button>
-            )}
-            <button
-              type="button"
-              role="tab"
-              aria-selected={effectiveTab === 'eligibility'}
-              onClick={() => setActiveTab('eligibility')}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
-                effectiveTab === 'eligibility' ? 'bg-primary-subtle text-primary' : 'text-ink-muted hover:bg-canvas hover:text-ink'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">verified</span>
-              Điều kiện &amp; Chứng chỉ
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={effectiveTab === 'ai'}
-              onClick={() => setActiveTab('ai')}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
-                effectiveTab === 'ai' ? 'bg-primary-subtle text-primary' : 'text-ink-muted hover:bg-canvas hover:text-ink'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">auto_awesome</span>
-              Phân tích kỹ năng AI
-            </button>
-          </div>
+          {/* Top 4-tile V2 KPI Row */}
+          <StatTileRow
+            tiles={[
+              {
+                icon: 'groups',
+                label: 'Sĩ số nhóm',
+                value: `${team.members.length} / ${maxTeamSize ?? '—'}`,
+                caption: `${team.code} · ${team.name}`,
+                hero: true,
+              },
+              {
+                icon: 'category',
+                label: 'Hình thức đồ án',
+                value: team.academicScope?.projectMode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành',
+                caption: team.academicScope?.requirements?.length ? `${team.academicScope.requirements.length} chuyên ngành tham gia` : 'Theo cấu hình kỳ đồ án',
+                tone: 'info',
+              },
+              {
+                icon: 'mail',
+                label: 'Lời mời đang chờ',
+                value: pendingInviteCount,
+                caption: rosterLocked ? 'Danh sách thành viên đã chốt' : 'Lời mời gửi đi & nhận được',
+                tone: pendingInviteCount > 0 ? 'warning' : 'neutral',
+              },
+              {
+                icon: 'verified',
+                label: 'Trạng thái điều kiện',
+                value: team.status === 'ELIGIBLE' ? 'Đủ điều kiện' : team.status === 'LOCKED' ? 'Đã khóa' : 'Đang kiện toàn',
+                caption: team.eligibility.canRegister ? 'Sẵn sàng đăng ký đề tài' : 'Xem tab Điều kiện & Chứng chỉ',
+                tone: team.status === 'ELIGIBLE' ? 'success' : 'warning',
+              },
+            ]}
+          />
+
+          {/* High-Contrast V2 Section Tabs */}
+          <WorkspaceTabs
+            ariaLabel="Phân mục quản lý nhóm"
+            activeId={effectiveTab}
+            onChange={(next) => setActiveTab(next)}
+            tabs={[
+              { id: 'roster' as const, label: 'Thành viên & Phân công', icon: 'group', count: team.members.length },
+              ...(showInvitationsTab
+                ? [{ id: 'invitations' as const, label: 'Lời mời & Ứng viên', icon: 'mail', count: pendingInviteCount > 0 ? pendingInviteCount : null, badgeTone: pendingInviteCount > 0 ? ('warning' as const) : ('default' as const) }]
+                : []),
+              { id: 'eligibility' as const, label: 'Điều kiện & Chứng chỉ', icon: 'verified' },
+              { id: 'ai' as const, label: 'Phân tích kỹ năng AI', icon: 'auto_awesome' },
+            ]}
+          />
 
           {effectiveTab === 'roster' && (
             <div className="space-y-5">

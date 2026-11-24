@@ -13,6 +13,7 @@ import { ConfigModeFrame } from '../../components/ui/ConfigModeFrame'
 import { FilterToolbar, type ActiveFilterChip } from '../../components/ui/FilterToolbar'
 import { Modal } from '../../components/ui/Modal'
 import { Pagination } from '../../components/ui/Pagination'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../components/ui/status-badge-tone'
 import { useClientPagination } from '../../components/ui/useClientPagination'
@@ -240,6 +241,14 @@ export function AcademicKnowledgeManagementPage() {
         <p role="status">{message}</p>
       </div>
     )}
+    <StatTileRow
+      tiles={[
+        { icon: 'menu_book', label: 'Tổng tài liệu tri thức', value: ready ? statusCounts.ALL : null, hero: true, caption: 'Nguồn tham chiếu chính thức cho trợ lý.' },
+        { icon: 'verified', label: 'Đang công bố', value: ready ? statusCounts.PUBLISHED : null, tone: 'success', caption: 'Đang dùng để trả lời trong phạm vi hiệu lực.' },
+        { icon: 'edit_note', label: 'Bản nháp', value: ready ? statusCounts.DRAFT : null, tone: statusCounts.DRAFT > 0 ? 'warning' : 'neutral', caption: 'Đang biên tập, chưa công bố.' },
+        { icon: 'archive', label: 'Đã ngừng sử dụng', value: ready ? statusCounts.RETIRED : null, tone: 'neutral', caption: 'Lưu trữ đối chiếu lịch sử.' },
+      ]}
+    />
     <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
       <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">

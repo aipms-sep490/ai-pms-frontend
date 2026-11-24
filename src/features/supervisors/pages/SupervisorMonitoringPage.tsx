@@ -6,6 +6,7 @@ import { Button } from '../../../components/ui/Button'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
 import { Pagination } from '../../../components/ui/Pagination'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
 import { useSupervisors } from '../hooks/useSupervisors'
@@ -94,6 +95,17 @@ export function SupervisorMonitoringPage() {
         </div>
       }
     >
+      <div className="mb-5">
+        <StatTileRow
+          tiles={[
+            { icon: 'school', label: 'Tổng giảng viên', value: supervisors.loading ? null : supervisors.totalCount, hero: true, caption: 'Trong phạm vi bộ môn và bộ lọc hiện tại.' },
+            { icon: 'how_to_reg', label: 'Sẵn sàng hướng dẫn', value: supervisors.loading ? null : supervisors.items.filter(s => s.isAvailable).length, tone: 'success', caption: 'Đang mở nhận nhóm trên trang này.' },
+            { icon: 'person_off', label: 'Tạm chưa nhận', value: supervisors.loading ? null : supervisors.items.filter(s => !s.isAvailable).length, tone: 'neutral', caption: 'Chưa mở nhận mới trên trang này.' },
+            { icon: 'apartment', label: 'Bộ môn được quản lý', value: supervisors.allowedDepartments.length, tone: 'info', caption: 'Phạm vi học vụ được cấp quyền.' },
+          ]}
+        />
+      </div>
+
       <FilterToolbar
         search={supervisors.filters.search ?? ''}
         onSearchChange={value => supervisors.setFilters({ ...supervisors.filters, search: value || undefined, page: 1 })}

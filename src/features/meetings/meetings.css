@@ -1,5 +1,5 @@
 /* Meetings UI — PMS FAMS Palette Design */
-.meetings { max-width: 1360px; margin: 0 auto; padding-bottom: 40px; color: var(--color-ink); font-size: 14px; line-height: 1.6; }
+.meetings { max-width: 100%; margin: 0; padding-bottom: 40px; color: var(--color-ink); font-size: 14px; line-height: 1.6; }
 .meetings * { box-sizing: border-box; }
 .meetings h1, .meetings h2, .meetings h3, .meetings p { margin: 0; }
 .meetings h1 { font-size: clamp(26px, 2.1vw, 32px); font-weight: 750; letter-spacing: -.035em; line-height: 1.22; overflow-wrap: anywhere; font-family: var(--font-heading); color: var(--color-ink); }

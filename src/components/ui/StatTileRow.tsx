@@ -60,8 +60,8 @@ export function StatTileRow({ tiles }: { tiles: readonly StatTile[] }) {
           : ''
 
         const surfaceClass = hero
-          ? 'border-primary bg-primary text-white shadow-xs'
-          : `border-hairline border-t-[3px] ${toneAccentBorder[tone]} bg-card text-ink shadow-2xs`
+          ? 'border-primary bg-primary text-white shadow-sm'
+          : `border-line-strong/75 border-t-[3px] ${toneAccentBorder[tone]} bg-card text-ink shadow-xs`
 
         const iconChipClass = hero
           ? 'bg-white/15 text-white'

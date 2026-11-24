@@ -6,6 +6,7 @@ import { Button } from '../../../components/ui/Button'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
 import { Pagination } from '../../../components/ui/Pagination'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
@@ -96,6 +97,18 @@ export function ProfileVerificationsPage({ embedded = false }: { embedded?: bool
       <div className="mb-4 flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card px-4 py-3 text-sm text-ink">
         <span className="material-symbols-outlined shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
         <p role="status">{notice}</p>
+      </div>
+    )}
+    {!embedded && (
+      <div className="mb-5">
+        <StatTileRow
+          tiles={[
+            { icon: 'badge', label: 'Hồ sơ theo bộ lọc', value: data ? data.totalCount : null, hero: true, caption: status ? academicProfileStatus(status) : 'Tất cả trạng thái hồ sơ học vụ.' },
+            { icon: 'hourglass_top', label: 'Chờ xác minh (trang)', value: data ? data.items.filter(i => i.status === 'PENDING').length : null, tone: 'warning', caption: 'Cần đối chiếu bộ môn và chuyên ngành.' },
+            { icon: 'verified', label: 'Đã xác minh (trang)', value: data ? data.items.filter(i => i.status === 'VERIFIED').length : null, tone: 'success', caption: 'Đã xác nhận thông tin học vụ.' },
+            { icon: 'edit_note', label: 'Cần bổ sung (trang)', value: data ? data.items.filter(i => i.status === 'REJECTED').length : null, tone: 'danger', caption: 'Đang chờ sinh viên cập nhật lại.' },
+          ]}
+        />
       </div>
     )}
     <FilterToolbar

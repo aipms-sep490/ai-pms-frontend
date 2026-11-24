@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import type { FilterChipItem } from '../../components/ui/FilterChips'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import * as api from '../../services/api/progress-reports.api'
 import type { PagedResult } from '../../types/backend'
@@ -93,6 +94,10 @@ function ReportList({ projectId, projectTitle, actor, routeBase, canCreate }: { 
   }, [status, reportType, search, lateOnly])
 
   const hasActiveFilters = activeChips.length > 0 || sortBy !== 'newest'
+  const pageReports = data?.items ?? []
+  const reviewedCount = pageReports.filter((r) => r.status === 'REVIEWED').length
+  const submittedCount = pageReports.filter((r) => r.status === 'SUBMITTED').length
+  const draftOrLateCount = pageReports.filter((r) => r.status === 'DRAFT' || r.isLate === true).length
 
   return (
     <ReportShell
@@ -109,6 +114,17 @@ function ReportList({ projectId, projectTitle, actor, routeBase, canCreate }: { 
         </div>
       }
     >
+      <div className="mb-5">
+        <StatTileRow
+          tiles={[
+            { icon: 'description', label: 'Tổng báo cáo', value: data ? data.totalCount : null, caption: 'Theo phạm vi bộ lọc hiện tại', hero: true },
+            { icon: 'mark_email_read', label: 'Chờ nhận xét', value: data ? submittedCount : null, caption: 'Đã nộp cho GVHD trên trang này', tone: submittedCount > 0 ? 'warning' : 'neutral' },
+            { icon: 'verified', label: 'Đã có nhận xét', value: data ? reviewedCount : null, caption: 'GVHD đã phản hồi trên trang này', tone: 'success' },
+            { icon: 'edit_note', label: 'Nháp / Trễ hạn', value: data ? draftOrLateCount : null, caption: 'Cần hoàn thiện hoặc lưu ý hạn nộp', tone: draftOrLateCount > 0 ? 'danger' : 'neutral' },
+          ]}
+        />
+      </div>
+
       <section className="report-panel" aria-label="Danh sách báo cáo">
         <FilterToolbar
           embedded

@@ -36,61 +36,82 @@ export function OverviewPage() {
   const isExecutionPhase = stageIndex >= 4
 
   return (
-    <WorkspacePage size="wide" className="space-y-6" title="Tổng quan lộ trình" eyebrow="Không gian đồ án" description="Theo dõi trạng thái đồ án, việc cần ưu tiên và bước tiếp theo của nhóm.">
+    <WorkspacePage size="wide" className="space-y-5" title="Tổng quan lộ trình" eyebrow="Không gian đồ án" description="Theo dõi trạng thái đồ án, việc cần ưu tiên và bước tiếp theo của nhóm.">
       {/* Dynamic Student Journey Banner */}
       <StudentJourneyHero />
 
-      {!error && !isExecutionPhase ? (
-        <section className="workspace-surface" aria-labelledby="journey-next-step">
-          <div className="border-b border-hairline px-5 py-4 sm:px-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">Lộ trình đăng ký đồ án</p>
-            <h2 id="journey-next-step" className="mt-1 text-lg font-bold tracking-tight text-ink">Bước tiếp theo của nhóm</h2>
-          </div>
-          <ol className="grid grid-cols-2 gap-px bg-canvas sm:grid-cols-5">
-            {journeySteps.map((step, index) => (
-              <li key={step.label} className={`bg-card px-4 py-4 ${index <= stageIndex ? 'text-primary' : 'text-ink-muted'}`}>
-                <div className="flex items-center gap-2">
-                  <span className={`material-symbols-outlined text-[19px] ${index <= stageIndex ? 'text-primary' : 'text-ink-muted'}`} aria-hidden="true">
-                    {index < stageIndex ? 'check_circle' : step.icon}
-                  </span>
-                  <span className="text-xs font-semibold">{step.label}</span>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <div className="flex flex-col gap-4 bg-canvas/70 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div>
-              <h3 className="text-sm font-bold text-ink">{nextAction.label}</h3>
-              <p className="mt-1 text-xs leading-relaxed text-ink-muted">{nextAction.detail}</p>
-            </div>
-            <Button onClick={() => navigate(nextAction.route)} icon="arrow_forward" className="flex-row-reverse shrink-0">
-              Tiếp tục
-            </Button>
-          </div>
-        </section>
-      ) : null}
-
       <StudentDashboardSummary />
 
-      {!error && isExecutionPhase ? (
-        <section className="workspace-surface px-5 py-4 sm:px-6" aria-labelledby="journey-next-step">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p id="journey-next-step" className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-muted">Lộ trình đăng ký đồ án</p>
-            <ol className="flex flex-wrap items-center gap-3 text-xs">
+      {!error ? (
+        isExecutionPhase ? (
+          <details className="workspace-surface group" aria-labelledby="journey-next-step">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-canvas/70 px-5 py-3.5 transition-colors hover:bg-canvas [&::-webkit-details-marker]:hidden">
+              <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+                <span className="material-symbols-outlined shrink-0 text-[20px] text-primary" aria-hidden="true">task_alt</span>
+                <span id="journey-next-step" className="text-sm font-bold text-ink">Lộ trình đăng ký đồ án</span>
+                <span className="inline-flex items-center rounded-full border border-status-success-border bg-status-success-bg px-2.5 py-0.5 text-xs font-semibold text-status-success-text">
+                  Đã hoàn tất đăng ký · Đang thực hiện
+                </span>
+              </div>
+              <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary">
+                <span>Xem lại 5 bước</span>
+                <span className="material-symbols-outlined text-[18px] transition-transform group-open:rotate-180" aria-hidden="true">expand_more</span>
+              </span>
+            </summary>
+            <div className="border-t border-hairline">
+              <ol className="grid grid-cols-2 gap-px bg-canvas sm:grid-cols-5">
+                {journeySteps.map((step, index) => (
+                  <li key={step.label} className={`bg-card px-4 py-3.5 ${index <= stageIndex ? 'text-primary' : 'text-ink-muted'}`}>
+                    <div className="flex items-center gap-2">
+                      <span className={`material-symbols-outlined text-[19px] ${index <= stageIndex ? 'text-primary' : 'text-ink-muted'}`} aria-hidden="true">
+                        {index < stageIndex ? 'check_circle' : step.icon}
+                      </span>
+                      <span className="text-xs font-semibold">{step.label}</span>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              <div className="flex flex-col gap-3 border-t border-hairline bg-canvas/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-ink">{nextAction.label}</h3>
+                  <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">{nextAction.detail}</p>
+                </div>
+                <Button onClick={() => navigate(nextAction.route)} icon="arrow_forward" className="flex-row-reverse shrink-0">
+                  Tiếp tục
+                </Button>
+              </div>
+            </div>
+          </details>
+        ) : (
+          <section className="workspace-surface" aria-labelledby="journey-next-step">
+            <div className="border-b border-hairline bg-canvas/70 px-5 py-3.5 sm:px-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">Lộ trình đăng ký đồ án</p>
+              <h2 id="journey-next-step" className="mt-0.5 text-base font-bold tracking-tight text-ink">Bước tiếp theo của nhóm</h2>
+            </div>
+            <ol className="grid grid-cols-2 gap-px bg-canvas sm:grid-cols-5">
               {journeySteps.map((step, index) => (
-                <li key={step.label} className={`inline-flex items-center gap-1 font-semibold ${index <= stageIndex ? 'text-primary' : 'text-ink-muted'}`}>
-                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
-                    {index < stageIndex ? 'check_circle' : step.icon}
-                  </span>
-                  <span>{step.label}</span>
+                <li key={step.label} className={`bg-card px-4 py-3.5 ${index <= stageIndex ? 'text-primary' : 'text-ink-muted'}`}>
+                  <div className="flex items-center gap-2">
+                    <span className={`material-symbols-outlined text-[19px] ${index <= stageIndex ? 'text-primary' : 'text-ink-muted'}`} aria-hidden="true">
+                      {index < stageIndex ? 'check_circle' : step.icon}
+                    </span>
+                    <span className="text-xs font-semibold">{step.label}</span>
+                  </div>
                 </li>
               ))}
             </ol>
-          </div>
-        </section>
+            <div className="flex flex-col gap-3 border-t border-hairline bg-canvas/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div>
+                <h3 className="text-sm font-bold text-ink">{nextAction.label}</h3>
+                <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">{nextAction.detail}</p>
+              </div>
+              <Button onClick={() => navigate(nextAction.route)} icon="arrow_forward" className="flex-row-reverse shrink-0">
+                Tiếp tục
+              </Button>
+            </div>
+          </section>
+        )
       ) : null}
     </WorkspacePage>
   )
 }
-
-

@@ -17,7 +17,7 @@
 .collaboration-shell .app-top-header nav .font-mono { font-family: var(--font-sans); color: var(--cw-ink); }
 .collaboration-shell .app-page-content { padding: 24px 32px 104px 32px; }
 .collaboration-shell .app-page-content.is-full-chat { padding: 20px 24px; }
-.collaboration-workspace { max-width: 1440px; margin: 0 auto; font-size: 14px; line-height: 1.5; }
+.collaboration-workspace { max-width: 100%; margin: 0; font-size: 14px; line-height: 1.5; }
 .collaboration-workspace *, .collaboration-workspace *::before, .collaboration-workspace *::after { box-sizing: border-box; }
 .collaboration-workspace :is(button, a, input, select, textarea):focus-visible { outline: 2px solid var(--cw-accent); outline-offset: 3px; }
 .collaboration-workspace button { cursor: pointer; }

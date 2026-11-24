@@ -4,6 +4,7 @@ import { Avatar } from '../../../components/ui/Avatar'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
 import type { FilterChipItem } from '../../../components/ui/FilterChips'
 import { Modal } from '../../../components/ui/Modal'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { useExecutionAccess } from '../../execution/context/ExecutionAccessContext'
 import { ExecutionPage, ExIcon, ExPagination, ExState } from '../../execution/execution-ui'
 import { executionError, priorityLabels, taskTransitions } from '../../execution/execution-utils'
@@ -235,6 +236,10 @@ export function TaskBoardPage() {
   const advancedActiveCount = Number(Boolean(milestoneId)) + Number(Boolean(priority)) + Number(overdue) + Number(Boolean(majorId)) + Number(Boolean(disciplineRole))
   const hasActiveFilters = activeChips.length > 0 || sortBy !== 'default'
   const activeMember = members.find(member => member.userId === assigneeUserId)
+  const pageItems = data?.items ?? []
+  const inProgressCount = pageItems.filter(item => item.status === 'IN_PROGRESS' || item.status === 'IN_REVIEW').length
+  const blockedOrOverdueCount = pageItems.filter(item => item.status === 'BLOCKED' || isOverdue({ ...item, assignees: [] }, observedAt)).length
+  const doneCount = pageItems.filter(item => item.status === 'DONE').length
 
   return (
     <ExecutionPage
@@ -294,6 +299,19 @@ export function TaskBoardPage() {
             />
           )}
         </Modal>
+      )}
+
+      {view !== 'sprint' && (
+        <div className="mb-5">
+          <StatTileRow
+            tiles={[
+              { icon: 'assignment', label: 'Tổng công việc', value: data ? data.totalCount : null, caption: 'Toàn bộ phạm vi bộ lọc hiện tại', hero: true },
+              { icon: 'pending_actions', label: 'Đang thực hiện', value: data ? inProgressCount : null, caption: 'Đang làm và chờ kiểm tra trên trang này', tone: 'info' },
+              { icon: 'warning', label: 'Quá hạn / Bị chặn', value: data ? blockedOrOverdueCount : null, caption: 'Cần ưu tiên tháo gỡ trên trang này', tone: blockedOrOverdueCount > 0 ? 'danger' : 'neutral' },
+              { icon: 'task_alt', label: 'Hoàn tất', value: data ? doneCount : null, caption: 'Hoàn thành trên trang hiện tại', tone: 'success' },
+            ]}
+          />
+        </div>
       )}
 
       <section className="ex-panel task-board-panel" aria-label="Danh sách công việc">

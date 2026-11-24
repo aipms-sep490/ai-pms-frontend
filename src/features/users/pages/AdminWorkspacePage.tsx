@@ -6,7 +6,9 @@ import { displayLabel } from '../../../components/ui/display-label'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
 import { Modal } from '../../../components/ui/Modal'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
+import '../../../components/ui/workspace-tabs.css'
 import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../../components/ui/Table'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
@@ -351,18 +353,6 @@ export function AdminWorkspacePage() {
         </div>
       </header>
 
-      <nav className="admin-tabs" aria-label="Khu vực quản trị">
-        <div className="admin-tab-group">
-          <button type="button" className={`admin-tab-btn ${activeTab === 'accounts' ? 'is-active' : ''}`} aria-controls="accounts" aria-pressed={activeTab === 'accounts'} onClick={() => setFilter({ tab: 'accounts' })}>Tài khoản người dùng</button>
-          <button type="button" className={`admin-tab-btn ${activeTab === 'access' ? 'is-active' : ''}`} aria-controls="access-events" aria-pressed={activeTab === 'access'} onClick={() => setFilter({ tab: 'access' })}>Nhật ký truy cập</button>
-          <button type="button" className={`admin-tab-btn ${activeTab === 'audit' ? 'is-active' : ''}`} aria-controls="audit" aria-pressed={activeTab === 'audit'} onClick={() => setFilter({ tab: 'audit' })}>Nhật ký bảo mật</button>
-        </div>
-        <div className="admin-nav-links" aria-label="Trang quản trị liên quan">
-          <Link to="/admin/access/rbac">Phân quyền</Link>
-          <Link to="/academic/governance">Học kỳ & Kỳ đồ án</Link>
-        </div>
-      </nav>
-
       {notice ? (
         <p className="admin-notice" role="status">
           <span className="material-symbols-outlined admin-notice__icon" aria-hidden="true">check_circle</span>
@@ -370,14 +360,64 @@ export function AdminWorkspacePage() {
         </p>
       ) : null}
       {errorNotice ? <p className="admin-error" role="alert">{errorNotice}</p> : null}
+
+      <div className="mt-5">
+        <StatTileRow
+          tiles={[
+            {
+              icon: 'group',
+              label: 'Tài khoản theo bộ lọc',
+              value: admin.users.state === 'ready' ? admin.users.value.totalCount : admin.users.state === 'error' ? 'Lỗi' : null,
+              hero: true,
+              caption: admin.users.state === 'error' ? 'Chưa tải được danh sách tài khoản.' : 'Tài khoản trong phạm vi bộ lọc hiện tại.',
+            },
+            {
+              icon: 'admin_panel_settings',
+              label: 'Vai trò hệ thống',
+              value: admin.rbac.state === 'ready' ? globalRoles.length : admin.rbac.state === 'error' ? 'Lỗi' : null,
+              tone: 'info',
+              caption: admin.rbac.state === 'error' ? 'Chưa tải được danh mục vai trò.' : 'Vai trò toàn cục được phép gán.',
+            },
+            {
+              icon: 'verified_user',
+              label: 'Hoạt động đã ghi nhận',
+              value: admin.audit.state === 'ready' ? admin.audit.value.totalCount : admin.audit.state === 'error' ? 'Lỗi' : null,
+              tone: 'neutral',
+              caption: admin.audit.state === 'error' ? 'Chưa tải được nhật ký bảo mật.' : 'Sự kiện quản trị và bảo mật hệ thống.',
+            },
+            {
+              icon: 'key',
+              label: 'Danh mục quyền',
+              value: admin.rbac.state === 'ready' ? (admin.rbac.value?.permissions.length ?? 0) : admin.rbac.state === 'error' ? 'Lỗi' : null,
+              tone: 'success',
+              caption: 'Tổng quyền phân hệ đang được áp dụng.',
+            },
+          ]}
+        />
+      </div>
+
       <SystemStatusPanel />
 
-      <section className="admin-overview" aria-label="Tổng quan vận hành">
-        <Fact label="Tài khoản theo bộ lọc" value={admin.users.state === 'ready' ? String(admin.users.value.totalCount) : admin.users.state === 'error' ? 'Chưa tải được' : '—'} />
-        <Fact label="Vai trò hệ thống" value={admin.rbac.state === 'ready' ? String(globalRoles.length) : admin.rbac.state === 'error' ? 'Chưa tải được' : '—'} />
-        <Fact label="Hoạt động đã ghi nhận" value={admin.audit.state === 'ready' ? String(admin.audit.value.totalCount) : admin.audit.state === 'error' ? 'Chưa tải được' : '—'} />
-        <p className="admin-boundary">Theo dõi tài khoản, vai trò và hoạt động quản trị trên hệ thống.</p>
-      </section>
+      <nav className="mt-4 flex flex-wrap items-center justify-between gap-3" aria-label="Khu vực quản trị">
+        <div className="ui-workspace-tabs">
+          <button type="button" className={`ui-workspace-tab ${activeTab === 'accounts' ? 'is-active' : ''}`} aria-controls="accounts" aria-pressed={activeTab === 'accounts'} onClick={() => setFilter({ tab: 'accounts' })}>
+            <span className="material-symbols-outlined ui-workspace-tab-icon" aria-hidden="true">group</span>
+            <span>Tài khoản người dùng</span>
+          </button>
+          <button type="button" className={`ui-workspace-tab ${activeTab === 'access' ? 'is-active' : ''}`} aria-controls="access-events" aria-pressed={activeTab === 'access'} onClick={() => setFilter({ tab: 'access' })}>
+            <span className="material-symbols-outlined ui-workspace-tab-icon" aria-hidden="true">login</span>
+            <span>Nhật ký truy cập</span>
+          </button>
+          <button type="button" className={`ui-workspace-tab ${activeTab === 'audit' ? 'is-active' : ''}`} aria-controls="audit" aria-pressed={activeTab === 'audit'} onClick={() => setFilter({ tab: 'audit' })}>
+            <span className="material-symbols-outlined ui-workspace-tab-icon" aria-hidden="true">security</span>
+            <span>Nhật ký bảo mật</span>
+          </button>
+        </div>
+        <div className="admin-nav-links" aria-label="Trang quản trị liên quan">
+          <Link to="/admin/access/rbac">Phân quyền</Link>
+          <Link to="/academic/governance">Học kỳ & Kỳ đồ án</Link>
+        </div>
+      </nav>
 
       <section id="accounts" className="admin-panel" aria-labelledby="accounts-title" hidden={activeTab !== 'accounts'}>
         <div className="admin-panel-heading admin-roster-heading">
@@ -853,10 +893,6 @@ function formatAuditEntity(record: Audit): string {
   const typeLabel = AUDIT_ENTITY_LABELS[record.entityType] ?? displayLabel(record.entityType)
   if (record.entityDisplayName?.trim()) return `${typeLabel}: ${record.entityDisplayName.trim()}`
   return typeLabel
-}
-
-function Fact({ label, value }: { label: string; value: string }) {
-  return <div><span>{label}</span><strong>{value}</strong></div>
 }
 
 const statusTone: Record<UserAccount['status'], BadgeTone> = { ACTIVE: 'success', INACTIVE: 'neutral', SUSPENDED: 'danger' }

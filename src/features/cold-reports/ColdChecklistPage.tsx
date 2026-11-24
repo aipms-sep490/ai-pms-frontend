@@ -9,6 +9,7 @@ import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import { Modal } from '../../components/ui/Modal'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { WorkspaceEmptyState } from '../../components/ui/WorkspaceState'
 import { displayLabel } from '../../components/ui/display-label'
 import { SubmissionPreflightPanel } from '../ai-suite/SubmissionPreflightPanel'
@@ -171,19 +172,18 @@ function ColdChecklistBody({ projectId, projectCode, projectTitle, actor, routeB
         />
       )}
       {lockError && <ColdError message={lockError} />}
-      {progress && <div className="cold-panel cold-panel--progress">
-        <div className="cold-panel-heading">
-          <h2>Tiến độ gói chấm nguội</h2>
-          <span className="cold-progress-status">Trạng thái: {displayLabel(progress.packageStatus)}</span>
+      {progress && (
+        <div className="mb-5 space-y-2">
+          <StatTileRow
+            tiles={[
+              { icon: 'inventory', label: 'Báo cáo hiển thị', value: progress.visibleReports, hero: true, caption: `Trạng thái gói: ${displayLabel(progress.packageStatus)}` },
+              { icon: 'upload_file', label: 'Đã nộp', value: progress.submittedReports, tone: 'info', caption: 'Báo cáo đã gửi vào hệ thống.' },
+              { icon: 'lock', label: 'Đã khóa', value: progress.lockedReports, tone: 'success', caption: 'Sẵn sàng chuyển hội đồng chấm.' },
+              { icon: 'verified', label: 'Sẵn sàng chấm', value: progress.ready ? 'Đạt' : 'Chưa đạt', tone: progress.ready ? 'success' : 'warning', caption: actor === 'student' ? 'Điểm chấm nguội được ẩn tới khi công bố chính thức.' : 'Kiểm tra đủ điều kiện trước khi chấm.' },
+            ]}
+          />
         </div>
-        <dl className="cold-progress-grid">
-          <div className="cold-progress-stat"><dt>Báo cáo hiển thị</dt><dd>{progress.visibleReports}</dd></div>
-          <div className="cold-progress-stat"><dt>Đã nộp</dt><dd>{progress.submittedReports}</dd></div>
-          <div className="cold-progress-stat"><dt>Đã khóa</dt><dd>{progress.lockedReports}</dd></div>
-          <div className="cold-progress-stat"><dt>Sẵn sàng chấm</dt><dd className={progress.ready ? 'is-ready' : ''}>{progress.ready ? 'Đạt' : 'Chưa đạt'}</dd></div>
-        </dl>
-        {actor === 'student' && <p className="px-5 pb-4 text-xs text-ink-muted">Điểm chấm nguội (Cold) được hệ thống ẩn hoàn toàn với sinh viên trước khi bộ môn công bố kết quả chính thức.</p>}
-      </div>}
+      )}
 
       <div className="cold-panel">
         <div className="cold-panel-heading">

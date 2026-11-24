@@ -1,6 +1,7 @@
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { ListLoading } from '../../../components/ui/ListLoading'
 import { Modal } from '../../../components/ui/Modal'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { useEffect, useMemo, useState } from 'react'
@@ -161,6 +162,15 @@ export function AcademicStructurePage() {
         <section className="academic-state-panel academic-error-panel" role="alert"><div><strong>Lỗi tải dữ liệu</strong><p>{getErrorMessage(academic.error)}</p></div><Button onClick={academic.retry}>Thử lại</Button></section>
       ) : (
         <>
+          <div className="mb-5">
+            <StatTileRow
+              tiles={[
+                { icon: 'account_balance', label: 'Tổ chức đào tạo', value: academic.isLoading ? null : (academic.hierarchy?.length ?? 0), hero: true, caption: 'Đơn vị cơ sở trong phạm vi quản lý.' },
+                { icon: 'apartment', label: 'Bộ môn / Khoa', value: academic.isLoading ? null : totalDepartments, tone: 'info', caption: 'Đơn vị phụ trách đồ án và giảng viên.' },
+                { icon: 'school', label: 'Chuyên ngành', value: academic.isLoading ? null : totalMajors, tone: 'success', caption: 'Ngành áp dụng cho đơn ngành & liên ngành.' },
+              ]}
+            />
+          </div>
           <FilterToolbar
             search={filters.search}
             onSearchChange={value => setFilters(current => ({ ...current, search: value }))}

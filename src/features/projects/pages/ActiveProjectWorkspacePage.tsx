@@ -1,5 +1,6 @@
 import { Link, Navigate } from 'react-router-dom'
 import { ButtonLink } from '../../../components/ui/ButtonLink'
+import { StatTileRow } from '../../../components/ui'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useStudentJourney } from '../../../app/context'
 import type { ProjectDto, SupervisorAssignmentDto, TeamDto } from '../../../types/backend'
@@ -57,18 +58,53 @@ export function ExecutionEntry({ projectId, routeBase = '/project' }: { projectI
   if (!state) return <PageLoading />
   if (state.error) return <WorkspaceState error message={state.error.status === 403 ? 'Bạn chưa có quyền xem công việc của đồ án này.' : 'Chưa tải được tiến độ đồ án. Hãy thử lại.'} />
   return (
-    <section className="rounded-md border border-hairline bg-card p-5  sm:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <section className="workspace-surface">
+      <div className="flex flex-col gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-ink">Công việc và tiến độ</h2>
-          <p className="mt-1 text-sm text-ink-muted">{state.count === 0 ? 'Chưa có mốc đồ án.' : `${state.count} mốc đồ án.`}</p>
-          <p className="mt-1 text-xs text-ink-muted">Tiến độ chung: {state.progress === null ? 'chưa có dữ liệu' : `${state.progress}%`}. Có {state.overdue} việc quá hạn và {state.blocked} việc đang vướng mắc.</p>
+          <h2 className="text-base font-bold text-ink">Công việc và tiến độ</h2>
+          <p className="mt-0.5 text-xs text-ink-muted">
+            {state.count === 0 ? 'Chưa có mốc đồ án.' : `${state.count} mốc đồ án.`} Tiến độ chung: {state.progress === null ? 'chưa có dữ liệu' : `${state.progress}%`}. Có {state.overdue} việc quá hạn và {state.blocked} việc đang vướng mắc.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
           <Link className="ex-button" to={`${routeBase}/milestones`}>Mốc đồ án</Link>
           <Link className="ex-button" to={`${routeBase}/tasks`}>Công việc</Link>
           <Link className="ex-button" to={`${routeBase}/gantt`}>Lịch thực hiện</Link>
         </div>
+      </div>
+      <div className="p-5">
+        <StatTileRow
+          tiles={[
+            {
+              icon: 'donut_large',
+              label: 'Tiến độ chung (%)',
+              value: state.progress === null ? null : Math.round(state.progress),
+              caption: state.progress === null ? 'Chưa có dữ liệu tiến độ' : `${state.progress}% khối lượng đã hoàn tất`,
+              hero: true,
+            },
+            {
+              icon: 'flag',
+              label: 'Mốc đồ án',
+              value: state.count,
+              caption: state.timelineMilestones > 0 ? `${state.timelineMilestones} mốc trên lịch thực hiện` : 'Chưa có mốc trên lịch',
+              tone: 'info',
+            },
+            {
+              icon: 'schedule',
+              label: 'Việc quá hạn',
+              value: state.overdue,
+              caption: state.overdue > 0 ? 'Cần ưu tiên xử lý sớm' : 'Không có việc quá hạn',
+              tone: state.overdue > 0 ? 'danger' : 'neutral',
+            },
+            {
+              icon: 'pause_circle',
+              label: 'Đang vướng mắc',
+              value: state.blocked,
+              caption: state.blocked > 0 ? 'Cần phối hợp tháo gỡ' : 'Tiến độ thông suốt',
+              tone: state.blocked > 0 ? 'warning' : 'neutral',
+            },
+          ]}
+        />
       </div>
     </section>
   )
@@ -92,8 +128,8 @@ export function ProjectWorkspaceSummary({
   const teamName = team?.name ?? project.teamName ?? 'Chưa có thông tin nhóm'
 
   return (
-    <div className="workspace-page mx-auto flex max-w-6xl flex-col gap-6 pb-12">
-      <header className="workspace-heading rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-5 text-ink shadow-xs sm:p-6">
+    <div className="workspace-page flex flex-col gap-5 pb-12">
+      <header className="workspace-heading rounded-xl border border-hairline border-l-4 border-l-primary bg-card p-5 text-ink shadow-xs sm:p-6">
         <div className="workspace-heading-copy">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-status-success-border bg-status-success-bg px-2.5 py-0.5 text-xs font-semibold text-status-success-text">

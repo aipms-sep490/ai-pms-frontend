@@ -12,6 +12,7 @@ import { Pagination } from '../../../components/ui/Pagination'
 import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../../components/ui/Table'
+import { WorkspaceTabs } from '../../../components/ui/WorkspaceTabs'
 import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { useDepartmentSection as useSection, type Section } from '../hooks/useDepartmentSection'
 import { projectStatusLabel } from '../../projects/utils/project-status'
@@ -51,6 +52,7 @@ export function DepartmentWorkspacePage() {
   const academic = useAcademicWorkflow()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [activeTab, setActiveTab] = useState<'all' | 'queue' | 'portfolio' | 'periods'>('all')
   const [preSemReadiness, setPreSemReadiness] = useState<PreSemesterReadiness | null>(null)
   const [portfolioSort, setPortfolioSort] = useState<'default' | 'title_asc' | 'code_asc'>('default')
   const [portfolioPageSize, setPortfolioPageSize] = useState(10)
@@ -164,7 +166,27 @@ export function DepartmentWorkspacePage() {
         </div>
       }
     >
-      <DepartmentWorkflowGuide />
+      <StatTileRow tiles={[
+        { icon: 'priority_high', label: 'Việc cần xử lý', value: urgent.data?.totalCount ?? null, caption: urgent.data?.hasMore ? 'Danh sách việc khẩn còn trang tiếp theo.' : 'Theo bộ môn trong phiên hiện tại.', hero: true },
+        { icon: 'fact_check', label: 'Chờ thẩm định', value: reviews.data?.totalCount ?? null, tone: (reviews.data?.totalCount ?? 0) > 0 ? 'warning' : 'neutral', caption: 'Hồ sơ đề cương cần xem xét.' },
+        { icon: 'folder_managed', label: 'Đồ án quản lý', value: portfolio.data?.summary.totalProjects ?? null, tone: 'info', caption: academic.academic?.selectedSemester?.name ?? 'Học kỳ hiện tại.' },
+        { icon: 'supervisor_account', label: 'Giảng viên trong bộ môn', value: supervisors.data?.totalCount ?? null, tone: 'success', caption: 'Nguồn lực hướng dẫn thuộc bộ môn.' },
+      ]} />
+
+      <div className="space-y-3">
+        <WorkspaceTabs
+          activeId={activeTab}
+          onChange={setActiveTab}
+          ariaLabel="Điều hướng khu vực quản trị bộ môn"
+          tabs={[
+            { id: 'all' as const, label: 'Tổng quan', icon: 'dashboard' },
+            { id: 'queue' as const, label: 'Việc cần xử lý', icon: 'bolt', count: urgent.data?.totalCount ?? reviews.data?.totalCount ?? null, badgeTone: (urgent.data?.totalCount ?? 0) > 0 ? 'warning' : 'default' },
+            { id: 'portfolio' as const, label: 'Danh mục đồ án', icon: 'folder_managed', count: portfolio.data?.summary.totalProjects ?? null },
+            { id: 'periods' as const, label: 'Kỳ đồ án & Quy chế', icon: 'tune', count: academic.status === 'ready' ? periods.length : null },
+          ]}
+        />
+        <DepartmentWorkflowGuide />
+      </div>
 
       {preSemReadiness && preSemReadiness.readyCount < preSemReadiness.totalRelevantCount && (
         <section
@@ -189,29 +211,19 @@ export function DepartmentWorkspacePage() {
         </section>
       )}
 
-      <div className="role-metric-compact"><StatTileRow tiles={[
-        { icon: 'priority_high', label: 'Việc cần xử lý', value: urgent.data?.totalCount ?? null, caption: urgent.data?.hasMore ? 'Danh sách việc khẩn còn trang tiếp theo.' : 'Theo bộ môn trong phiên hiện tại.', hero: true },
-        { icon: 'fact_check', label: 'Chờ thẩm định', value: reviews.data?.totalCount ?? null, tone: (reviews.data?.totalCount ?? 0) > 0 ? 'warning' : 'neutral' },
-        { icon: 'folder_managed', label: 'Đồ án quản lý', value: portfolio.data?.summary.totalProjects ?? null },
-        { icon: 'supervisor_account', label: 'Giảng viên trong bộ môn', value: supervisors.data?.totalCount ?? null },
-      ]} /></div>
-
-      <nav aria-label="Đi tới khu vực bộ môn" className="flex flex-wrap gap-2 text-xs font-semibold">
-        <a className="inline-flex min-h-10 items-center rounded-lg border border-status-warning-border bg-status-warning-bg px-3.5 text-status-warning-text transition-colors hover:bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href="#action-queue">Việc cần xử lý</a>
-        <a className="inline-flex min-h-10 items-center rounded-lg border border-hairline bg-card px-3.5 text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href="#monitoring">Theo dõi tiến độ</a>
-        <a className="inline-flex min-h-10 items-center rounded-lg border border-hairline bg-card px-3.5 text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" href="#configuration">Cấu hình học vụ</a>
-      </nav>
-
       {!departmentIds ? <p role="alert" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">Chưa xác định được bộ môn từ phiên đăng nhập. Không truy vấn phạm vi khác.</p> : !['success', 'empty', 'loading'].includes(urgent.state) && <SectionState section={urgent} onRetry={urgent.refresh}><span /></SectionState>}
       {!['success', 'empty', 'loading'].includes(supervisors.state) && <SectionState section={supervisors} onRetry={supervisors.refresh}><span /></SectionState>}
 
-      <DepartmentExecutiveBriefPanel
-        departmentId={academic.academic?.departments?.[0]?.id}
-        semesterId={semesterId}
-        routePrefix="/department"
-      />
+      {activeTab === 'all' && (
+        <DepartmentExecutiveBriefPanel
+          departmentId={academic.academic?.departments?.[0]?.id}
+          semesterId={semesterId}
+          routePrefix="/department"
+        />
+      )}
 
       {/* TIER 1: URGENT ACTION QUEUE */}
+      {(activeTab === 'all' || activeTab === 'queue') && (
       <section id="action-queue" aria-labelledby="urgent-actions-heading" className="space-y-4 rounded-2xl border border-status-warning-border/70 bg-gradient-to-b from-status-warning-bg/40 to-transparent p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3 border-b border-status-warning-border/50 pb-3">
           <div>
@@ -337,8 +349,10 @@ export function DepartmentWorkspacePage() {
           </div>
         </div>
       </section>
+      )}
 
       {/* TIER 2: PROGRESS MONITORING */}
+      {(activeTab === 'all' || activeTab === 'portfolio') && (
       <section id="monitoring" aria-labelledby="monitoring-heading" className="space-y-4">
         <div>
           <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary-subtle px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-primary">
@@ -470,8 +484,10 @@ export function DepartmentWorkspacePage() {
           </Link>
         </nav>
       </section>
+      )}
 
       {/* TIER 3: ACADEMIC CONFIGURATION */}
+      {(activeTab === 'all' || activeTab === 'periods') && (
       <section id="configuration" aria-labelledby="academic-configuration-heading" className="space-y-4 pt-2">
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-6">
           <div>
@@ -583,6 +599,7 @@ export function DepartmentWorkspacePage() {
           </div>
         </div>
       </section>
+      )}
     </WorkspacePage>
   )
 }

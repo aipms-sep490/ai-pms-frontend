@@ -291,8 +291,8 @@ export function ProfileSecurityPage() {
       description="Cập nhật mật khẩu để bảo vệ tài khoản của bạn."
       backTo="/profile"
     >
-      <div className="profile-security-stack">
-        <section className="profile-workspace workspace-surface" aria-labelledby="security-title">
+      <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2">
+        <section className="profile-workspace workspace-surface flex h-full flex-col" aria-labelledby="security-title">
           <h2 id="security-title" className="text-lg font-semibold">Đổi mật khẩu</h2>
           <p className="auth-description">Sau khi đổi mật khẩu, bạn cần đăng nhập lại.</p>
           <form className="auth-form" onSubmit={submit} noValidate>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Avatar } from '../../components/ui/Avatar'
 import { Modal } from '../../components/ui/Modal'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { Button } from '../../components/ui/Button'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
@@ -169,6 +170,19 @@ export function WorkingAgreementWorkspace({ projectId, readOnly = false }: { pro
           message="Nhóm chưa có bản cam kết làm việc nào."
           action={manage ? <Button icon="edit_note" disabled={busy || conflict} onClick={edit}>Soạn cam kết đầu tiên</Button> : undefined}
         />
+      )}
+
+      {!loading && latest && (
+        <div className="mb-5">
+          <StatTileRow
+            tiles={[
+              { icon: 'handshake', label: 'Phiên bản hiện tại', value: `v${latest.version}`, hero: true, caption: statusLabel[latest.status] },
+              { icon: 'how_to_reg', label: 'Xác nhận thành viên', value: `${latest.acceptances.length}/${latest.memberCount}`, tone: latest.acceptances.length >= latest.memberCount ? 'success' : 'warning', caption: 'Các thành viên đã đồng ý cam kết.' },
+              { icon: 'list_alt', label: 'Số điều khoản', value: api.parseAgreementSections(latest.contentJson).length, tone: 'info', caption: 'Quy ước làm việc chung của nhóm.' },
+              { icon: 'verified', label: 'Yêu cầu chính sách', value: latest.required ? 'Bắt buộc' : 'Khuyến nghị', tone: 'neutral', caption: latest.required ? 'Cần đủ xác nhận để kích hoạt đồ án.' : 'Hỗ trợ minh bạch phối hợp nhóm.' },
+            ]}
+          />
+        </div>
       )}
 
       {!loading && latest && (

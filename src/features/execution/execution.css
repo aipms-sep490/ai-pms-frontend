@@ -1,5 +1,5 @@
 /* Execution UI — PMS FAMS Palette Design */
-.execution-page { max-width: 1440px; margin: 0 auto; color: var(--color-ink); font-size: 14px; line-height: 1.6; padding-bottom: 32px; }
+.execution-page { max-width: 100%; margin: 0; color: var(--color-ink); font-size: 14px; line-height: 1.6; padding-bottom: 32px; }
 .execution-page * { box-sizing: border-box; }
 .execution-page :where(h1,h2,h3,p,ul,ol,dl) { margin: 0; }
 .execution-page :where(ul,ol) { list-style: none; padding: 0; }

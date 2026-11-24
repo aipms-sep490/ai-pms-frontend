@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { PageLoading } from '../../components/ui/PageLoading'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { useStudentJourney } from '../../app/context'
@@ -164,6 +165,15 @@ export function ProjectPeerEvaluationPage() {
       <Modal open drawer title="Các đợt đánh giá đồng đội" description="Chọn một đợt trước đó để xem lại bài đánh giá bạn đã gửi." onClose={() => setHistoryOpen(false)}>
         <PeerRoundPicker projectId={projectId} userId={myId} onPick={value => { setHistoryOpen(false); void selectRound(value) }} />
       </Modal>
+    )}
+    {!loading && round && (
+      <StatTileRow
+        tiles={[
+          { icon: 'rate_review', label: 'Đợt đánh giá', value: submitted ? 'Đã gửi' : round.canSubmit ? 'Đang mở' : 'Đã đóng', hero: true, caption: round.title },
+          { icon: 'groups', label: 'Tiến độ đánh giá', value: `${ratedCount}/${roster.length}`, tone: 'info', caption: `${submitted ? 100 : progressPct}% thành viên đã chọn mức đóng góp.` },
+          { icon: 'schedule', label: 'Hạn gửi', value: collaborationDate(round.closesAt), tone: 'warning', caption: 'Giờ Việt Nam (UTC+7).' },
+        ]}
+      />
     )}
     {!loading && round && (
       <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs">

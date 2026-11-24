@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/Button'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
 import { ListLoading } from '../../components/ui/ListLoading'
 import { PageLoading } from '../../components/ui/PageLoading'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { services } from '../../services/service-gateway'
 import type { Deliverable, DeliverableVersion } from '../deliverables/deliverable-types'
 import * as api from './final-submission-api'
@@ -202,6 +203,14 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
     {loading && <ListLoading label="Đang tải hồ sơ bàn giao…" />}
     {!loading && loaded && locked && <LockedPackageView projectId={projectId} packageData={locked} />}
     {!loading && loaded && !locked && <>
+      <StatTileRow
+        tiles={[
+          { icon: 'inventory_2', label: 'Trạng thái bàn giao', value: draft ? 'Đang soạn nháp' : 'Chưa khởi tạo', hero: true, caption: canSubmit ? 'Sẵn sàng khóa và nộp gói cuối.' : 'Hoàn thiện checklist trước khi nộp.' },
+          { icon: 'checklist', label: 'Hạng mục đã đủ', value: checklist ? `${checklist.items.filter(i => i.isComplete).length}/${checklist.items.length}` : '—', tone: 'success', caption: 'Theo danh mục yêu cầu bắt buộc.' },
+          { icon: 'layers', label: 'Phiên bản đã chọn', value: Object.keys(selectedVersionIds).length, tone: 'info', caption: 'Số sản phẩm đính kèm vào gói cuối.' },
+          { icon: 'warning', label: 'Điều kiện chưa đạt', value: submissionReasons.length, tone: submissionReasons.length > 0 ? 'warning' : 'success', caption: submissionReasons.length > 0 ? 'Cần xử lý trước khi khóa gói.' : 'Không còn vướng mắc.' },
+        ]}
+      />
       {(draft?.editBlockers.includes('LEADER_REQUIRED') || checklist?.blockers.includes('LEADER_REQUIRED')) && (
         <div className="rounded-xl border border-primary/20 bg-primary-subtle p-4 text-xs text-primary shadow-2xs">
           <strong>Thông báo quyền hạn:</strong> Bạn đang đăng nhập với vai trò Thành viên nhóm. Quyền chuẩn bị bản nháp và nộp gói bàn giao cuối cùng thuộc về Trưởng nhóm. Bạn vẫn có thể rà soát danh mục và kiểm tra các tệp đính kèm.

@@ -1,6 +1,7 @@
 import { Modal as AppModal } from '../../../components/ui/Modal'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { Pagination } from '../../../components/ui/Pagination'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
@@ -112,6 +113,16 @@ export function AcademicGovernancePage() {
   }
 
   return <WorkspacePage size="wide" className="governance-page" title="Học kỳ và kỳ đồ án" eyebrow="Quản lý học vụ" description="Thiết lập thời gian đăng ký, thực hiện và đánh giá cho từng học kỳ. Điều kiện về thành viên và ngành tham gia được quản lý trong chính sách của từng giai đoạn." action={<div className="governance-actions"><Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" onClick={governance.retry} />{governance.canManage && <><Button icon="add" onClick={() => openEditor({ kind: 'semester' })}>Thêm học kỳ</Button><Button variant="secondary" icon="event_note" onClick={() => openEditor({ kind: 'period' })}>Thêm giai đoạn</Button></>}</div>}>
+    <div className="mb-5">
+      <StatTileRow
+        tiles={[
+          { icon: 'calendar_month', label: 'Tổng học kỳ', value: governance.semesters.length, hero: true, caption: `${governance.semesters.filter(s => s.status === 'ACTIVE').length} học kỳ đang hoạt động.` },
+          { icon: 'date_range', label: 'Giai đoạn đồ án', value: governance.periods.length, tone: 'info', caption: `${governance.periods.filter(p => p.status === 'ACTIVE').length} giai đoạn đang mở.` },
+          { icon: 'upcoming', label: 'Sắp diễn ra', value: statusCounts.UPCOMING, tone: statusCounts.UPCOMING > 0 ? 'warning' : 'neutral', caption: 'Học kỳ và giai đoạn theo kế hoạch.' },
+          { icon: 'inventory_2', label: 'Đã đóng / Lưu trữ', value: statusCounts.CLOSED + statusCounts.ARCHIVED, tone: 'neutral', caption: `${statusCounts.DRAFT} bản nháp chưa mở.` },
+        ]}
+      />
+    </div>
     <FilterToolbar
       search={search}
       onSearchChange={value => { setSearch(value); semesterPager.setPage(1); periodPager.setPage(1) }}

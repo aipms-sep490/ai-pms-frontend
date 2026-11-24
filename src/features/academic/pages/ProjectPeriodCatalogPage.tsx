@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useStudentJourney } from '../../../app/context'
 import { Button } from '../../../components/ui/Button'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import { HttpError } from '../../../services/http/http-client'
@@ -132,6 +133,16 @@ export function ProjectPeriodCatalogPage() {
   const totalPages = Math.max(1, Math.ceil((result?.totalCount ?? 0) / pageSize))
 
   return <WorkspacePage size="wide" title="Kỳ đăng ký đồ án" eyebrow="Khám phá học kỳ" description="Tìm kỳ đăng ký đang hoạt động và xem bước tiếp theo trong lộ trình đồ án." action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading} onClick={() => setRevision(value => value + 1)} />}>
+    <div className="mb-5">
+      <StatTileRow
+        tiles={[
+          { icon: 'event_note', label: 'Kỳ đăng ký khả dụng', value: result ? result.totalCount : null, hero: true, caption: 'Trong cơ sở đào tạo của bạn.' },
+          { icon: 'check_circle', label: 'Đang mở nhận hồ sơ', value: result ? result.items.filter(p => getPeriodWindowStatus(p.startAt, p.endAt).isWithinWindow).length : null, tone: 'success', caption: 'Trong cửa sổ đăng ký hiện tại.' },
+          { icon: 'upcoming', label: 'Sắp mở / Chưa mở', value: result ? result.items.filter(p => getPeriodWindowStatus(p.startAt, p.endAt).tone === 'neutral').length : null, tone: 'info', caption: 'Chuẩn bị nhóm và đề tài trước hạn.' },
+          { icon: 'calendar_month', label: 'Học kỳ đang hoạt động', value: semesters.length, tone: 'neutral', caption: semester?.name ?? 'Các học kỳ đang mở.' },
+        ]}
+      />
+    </div>
     {/* Academic directory scope notice */}
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-hairline bg-card/60 px-4 py-2.5 text-xs text-ink-muted">
       <div className="flex items-center gap-2">

@@ -1,8 +1,8 @@
 /* Shared product rhythm across student, lecturer, department and admin routes. */
 .app-page-content {
- --workspace-gap:24px;
- --workspace-panel-padding:24px;
- --workspace-control-gap:12px;
+ --workspace-gap:18px;
+ --workspace-panel-padding:20px;
+ --workspace-control-gap:10px;
  --workspace-radius:14px;
  --workspace-motion:180ms;
 }

@@ -4,6 +4,7 @@ import { ConfigModeFrame } from '../../components/ui/ConfigModeFrame'
 import { FilterToolbar, type ActiveFilterChip } from '../../components/ui/FilterToolbar'
 import { Modal } from '../../components/ui/Modal'
 import { Pagination } from '../../components/ui/Pagination'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
 import { useClientPagination } from '../../components/ui/useClientPagination'
@@ -136,6 +137,8 @@ export function MilestoneTemplatesPage() {
 
   const original = templates.find(item => item.id === editor?.id)
   const dirty = Boolean(editor && (editor.name !== (original?.name ?? '') || editor.description !== (original?.description ?? '')))
+  const publishedTemplateCount = templates.filter(item => item.versions.some(v => v.status === 'PUBLISHED')).length
+  const draftVersionCount = templates.reduce((sum, item) => sum + item.versions.filter(v => v.status === 'DRAFT').length, 0)
 
   return (
     <WorkspacePage
@@ -160,6 +163,17 @@ export function MilestoneTemplatesPage() {
         </div>
       )}
       {notice && <p role="status" className="ex-notice">{notice}</p>}
+
+      <div className="mb-5">
+        <StatTileRow
+          tiles={[
+            { icon: 'flag', label: 'Tổng mẫu mốc', value: loading ? null : templates.length, caption: 'Bộ mốc chuẩn đang quản lý', hero: true },
+            { icon: 'verified', label: 'Có bản công bố', value: loading ? null : publishedTemplateCount, caption: 'Sẵn sàng áp dụng cho kỳ đồ án', tone: 'success' },
+            { icon: 'edit_note', label: 'Phiên bản nháp', value: loading ? null : draftVersionCount, caption: 'Đang chỉnh sửa, chưa khóa', tone: draftVersionCount > 0 ? 'warning' : 'neutral' },
+            { icon: 'calendar_month', label: 'Kỳ đồ án khả dụng', value: periods.length, caption: 'Có thể gắn bộ mốc chuẩn', tone: 'info' },
+          ]}
+        />
+      </div>
 
       <ConfigModeFrame
         mode={mode}

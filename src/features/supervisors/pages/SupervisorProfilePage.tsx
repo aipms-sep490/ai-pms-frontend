@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Avatar } from '../../../components/ui/Avatar'
 import { Button } from '../../../components/ui/Button'
 import { displayLabel } from '../../../components/ui/display-label'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { HttpError } from '../../../services/http/http-client'
@@ -97,13 +98,23 @@ export function SupervisorProfilePage() {
   if (!session) return <div className="workspace-page p-6"><Link to="/login">Đăng nhập để cập nhật hồ sơ giảng viên.</Link></div>
   return (
     <WorkspacePage
-      size="standard"
+      size="wide"
       className="supervisor-profile-page space-y-5 pb-12"
       eyebrow="Hồ sơ giảng viên"
       title={session.user.fullName}
       description="Cập nhật chuyên môn, giới thiệu và khả năng nhận hướng dẫn đồ án."
       action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading || saving} onClick={() => void load()} />}
     >
+      {!loading && (
+        <StatTileRow
+          tiles={[
+            { icon: 'how_to_reg', label: 'Trạng thái hướng dẫn', value: available ? 'Đang mở' : 'Tạm ngưng', hero: true, caption: available ? 'Hiển thị trong danh sách gợi ý cho sinh viên.' : 'Tạm ẩn khỏi đề xuất nhận nhóm mới.' },
+            { icon: 'apartment', label: 'Bộ môn', value: profile?.departmentName || 'Chưa gắn', tone: 'info', caption: profile ? 'Hồ sơ giảng viên đã kích hoạt.' : 'Lưu lần đầu để khởi tạo hồ sơ.' },
+            { icon: 'psychology', label: 'Lĩnh vực chuyên môn', value: expertise.length, tone: expertise.length > 0 ? 'success' : 'warning', caption: expertise.length > 0 ? 'Các chủ đề có thể hướng dẫn.' : 'Nên thêm ít nhất 1 lĩnh vực chuyên môn.' },
+            { icon: 'description', label: 'Giới thiệu hồ sơ', value: bio.trim() ? 'Đã điền' : 'Chưa điền', tone: 'neutral', caption: `${bio.length}/4.000 ký tự.` },
+          ]}
+        />
+      )}
       {error ? <div ref={summaryRef} role="alert" tabIndex={-1} className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><strong>Không thể lưu hồ sơ.</strong><p className="mt-1">{error}</p><Button className="mt-3" size="sm" variant="outline" onClick={() => void load()}>Tải lại</Button></div> : null}
       {message ? (
         <div role="status" className="flex items-center gap-2.5 rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-sm text-ink shadow-xs">

@@ -15,6 +15,7 @@ import { humanizeHttpError } from '../../../services/http/humanize-http-error'
 import { Button } from '../../../components/ui/Button'
 import { ReviewGatesMockNotice } from '../components/ReviewGatesMockNotice'
 import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
 import { SubmissionPreflightPanel } from '../../ai-suite/SubmissionPreflightPanel'
 
@@ -184,6 +185,14 @@ export function StudentReviewTimelinePage() {
         </div>
       ) : timeline ? (
         <div className="space-y-6">
+          <StatTileRow
+            tiles={[
+              { icon: 'flag', label: 'Tổng cổng thẩm định', value: timeline.gates.length, hero: true, caption: `Chính sách ${timeline.effectivePolicyVersion}` },
+              { icon: 'verified', label: 'Cổng đã đạt', value: timeline.gates.filter(g => g.status === 'PASSED').length, tone: 'success', caption: `Trên tổng ${timeline.gates.length} cổng bắt buộc.` },
+              { icon: 'pending_actions', label: 'Cổng hiện tại', value: timeline.currentGateCode || '—', tone: 'info', caption: currentGate?.title ?? 'Theo tiến trình công bố.' },
+              { icon: 'shield', label: 'Điều kiện bảo vệ', value: readiness ? (readiness.isReady ? 'Đủ điều kiện' : 'Chưa đủ') : 'Đang kiểm tra', tone: readiness ? (readiness.isReady ? 'success' : 'warning') : 'neutral', caption: readiness ? `${readiness.blockedCount} điều kiện còn vướng` : 'Đồng bộ tự động từ hệ thống.' },
+            ]}
+          />
           {isLecturer && currentGate && (
             <SupervisorGateFollowupPanel
               key={`${timeline.projectId}-${currentGate.code}`}

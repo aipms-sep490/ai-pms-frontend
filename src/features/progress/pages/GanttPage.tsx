@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { useExecutionAccess } from '../../execution/context/ExecutionAccessContext'
 import { ExecutionPage, ExIcon, ExState } from '../../execution/execution-ui'
 import { executionError, milestoneLabels } from '../../execution/execution-utils'
@@ -162,32 +163,48 @@ export function GanttPage() {
       }
     >
       {summary && (
-        <dl className="schedule-summary">
-          <div className={quickFilter === 'all' ? 'is-active-filter' : ''}>
-            <button type="button" className="schedule-kpi-btn" onClick={() => setQuickFilter('all')}>
-              <dt>Tiến độ chung</dt>
-              <dd>{new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(summary.progressPercentage)}%</dd>
-            </button>
-          </div>
-          <div className={quickFilter === 'done' ? 'is-active-filter' : ''}>
-            <button type="button" className="schedule-kpi-btn" onClick={() => toggleQuickFilter('done')}>
-              <dt>Việc hoàn thành</dt>
-              <dd>{summary.doneTasks}/{summary.totalTasks}</dd>
-            </button>
-          </div>
-          <div className={`${summary.overdueTasks ? 'is-alert' : ''} ${quickFilter === 'overdue' ? 'is-active-filter' : ''}`.trim()}>
-            <button type="button" className="schedule-kpi-btn" onClick={() => toggleQuickFilter('overdue')}>
-              <dt>Quá hạn</dt>
-              <dd>{summary.overdueTasks}</dd>
-            </button>
-          </div>
-          <div className={`${summary.blockedTasks ? 'is-warning' : ''} ${quickFilter === 'blocked' ? 'is-active-filter' : ''}`.trim()}>
-            <button type="button" className="schedule-kpi-btn" onClick={() => toggleQuickFilter('blocked')}>
-              <dt>Vướng mắc</dt>
-              <dd>{summary.blockedTasks}</dd>
-            </button>
-          </div>
-        </dl>
+        <div className="mb-5">
+          <StatTileRow
+            tiles={[
+              {
+                icon: 'donut_large',
+                label: 'Tiến độ chung',
+                value: `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(summary.progressPercentage)}%`,
+                caption: 'Nhấn để hiển thị toàn bộ lịch',
+                hero: true,
+                active: quickFilter === 'all',
+                onClick: () => setQuickFilter('all'),
+              },
+              {
+                icon: 'task_alt',
+                label: 'Việc hoàn thành',
+                value: `${summary.doneTasks}/${summary.totalTasks}`,
+                caption: 'Nhấn để lọc việc đã hoàn thành',
+                tone: 'success',
+                active: quickFilter === 'done',
+                onClick: () => toggleQuickFilter('done'),
+              },
+              {
+                icon: 'schedule',
+                label: 'Quá hạn',
+                value: summary.overdueTasks,
+                caption: 'Nhấn để lọc việc quá hạn',
+                tone: summary.overdueTasks > 0 ? 'danger' : 'neutral',
+                active: quickFilter === 'overdue',
+                onClick: () => toggleQuickFilter('overdue'),
+              },
+              {
+                icon: 'pause_circle',
+                label: 'Vướng mắc',
+                value: summary.blockedTasks,
+                caption: 'Nhấn để lọc việc bị chặn',
+                tone: summary.blockedTasks > 0 ? 'warning' : 'neutral',
+                active: quickFilter === 'blocked',
+                onClick: () => toggleQuickFilter('blocked'),
+              },
+            ]}
+          />
+        </div>
       )}
       {summaryError && <ExState message={summaryError} retry={reload} />}
 

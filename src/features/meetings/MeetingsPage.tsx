@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import type { FilterChipItem } from '../../components/ui/FilterChips'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { getMeetings } from '../../services/api/meetings.api'
 import type { PagedResult } from '../../types/backend'
@@ -125,6 +126,10 @@ function MeetingList() {
   }, [status, search, channel, from, to])
 
   const hasActiveFilters = activeChips.length > 0 || sortBy !== 'nearest'
+  const pageMeetings = data?.items ?? []
+  const scheduledCount = pageMeetings.filter((m) => m.status === 'SCHEDULED').length
+  const completedCount = pageMeetings.filter((m) => m.status === 'COMPLETED').length
+  const cancelledCount = pageMeetings.filter((m) => m.status === 'CANCELLED').length
 
   return (
     <MeetingShell
@@ -140,6 +145,16 @@ function MeetingList() {
         </div>
       }
     >
+      <div className="mb-5">
+        <StatTileRow
+          tiles={[
+            { icon: 'calendar_month', label: 'Tổng cuộc họp', value: data ? data.totalCount : null, caption: 'Toàn bộ lịch họp theo bộ lọc', hero: true },
+            { icon: 'upcoming', label: 'Sắp diễn ra', value: data ? scheduledCount : null, caption: 'Cuộc họp đang lên lịch trên trang này', tone: scheduledCount > 0 ? 'warning' : 'neutral' },
+            { icon: 'event_available', label: 'Đã hoàn tất', value: data ? completedCount : null, caption: 'Đã kết thúc & lưu biên bản trang này', tone: 'success' },
+            { icon: 'event_busy', label: 'Đã hủy', value: data ? cancelledCount : null, caption: 'Lịch đã hủy trên trang này', tone: 'neutral' },
+          ]}
+        />
+      </div>
       {assistant.draft && (
         <p role="status" className="mtg-notice">
           Bản nháp biên bản đã sẵn sàng. Chọn cuộc họp để kiểm tra và đưa nội dung vào biểu mẫu; chưa lưu biên bản hoặc điểm danh.

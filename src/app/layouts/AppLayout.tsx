@@ -6,6 +6,7 @@ import { TopHeader } from './TopHeader'
 import { ChatDock } from '../../features/chat/ChatDock'
 import { AssistantDock } from '../../features/ai/AssistantDock'
 import '../../features/projects/pages/collaboration-workspace.css'
+import './app-shell.css'
 import '../../components/ui/workspace-page.css'
 import '../../components/ui/workspace-polish.css'
 import '../../components/ui/workspace-consistency.css'
@@ -77,7 +78,7 @@ export function AppLayout() {
           tabIndex={-1}
           ref={entrance}
           data-experience="enhanced"
-          className={`app-page-content flex-1 p-4 md:p-6 ${isFullPageChat ? 'is-full-chat' : 'pb-28 md:pb-28'} w-full`}
+          className={`app-page-content flex-1 ${isFullPageChat ? 'p-4 md:p-6 is-full-chat w-full' : 'px-4 py-4 sm:px-6 md:py-6 lg:px-8 pb-28 md:pb-28 max-w-[1680px] w-full mx-auto'}`}
         >
           <Outlet />
         </main>

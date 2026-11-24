@@ -3,6 +3,7 @@ import { Button } from '../../components/ui/Button'
 import { FilterToolbar, type ActiveFilterChip } from '../../components/ui/FilterToolbar'
 import { Pagination } from '../../components/ui/Pagination'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { HttpError } from '../../services/http/http-client'
 import { AuthSessionContext } from '../auth/context/auth-session-context'
@@ -203,6 +204,15 @@ export function NotificationsPage() {
         </div>
       }
     >
+      <div className="mb-5">
+        <StatTileRow
+          tiles={[
+            { icon: 'notifications', label: 'Tổng thông báo', value: data ? data.totalCount : null, hero: true, caption: 'Theo bộ lọc hiện tại trong hộp thư.' },
+            { icon: 'mark_email_unread', label: 'Chưa đọc', value: unreadCount, tone: (unreadCount ?? 0) > 0 ? 'warning' : 'success', caption: (unreadCount ?? 0) > 0 ? 'Cập nhật mới cần xem.' : 'Bạn đã đọc toàn bộ thông báo.' },
+            { icon: 'open_in_new', label: 'Có liên kết xử lý', value: data ? data.items.filter(item => Boolean(resolveNotificationLink(item, roles))).length : null, tone: 'info', caption: 'Nhấn để đi thẳng tới hồ sơ liên quan.' },
+          ]}
+        />
+      </div>
       <section className="notification-panel" aria-label="Danh sách thông báo" aria-busy={loading}>
         <div className="notification-toolbar">
           <div className="flex flex-wrap items-center gap-3">

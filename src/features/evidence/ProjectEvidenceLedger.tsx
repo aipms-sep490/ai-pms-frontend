@@ -4,6 +4,7 @@ import { displayLabel } from '../../components/ui/display-label'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import type { FilterChipItem } from '../../components/ui/FilterChips'
 import { ListLoading } from '../../components/ui/ListLoading'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { httpGetBlob, HttpError } from '../../services/http/http-client'
@@ -130,6 +131,14 @@ function EvidenceLedger({ projectId, projectLabel, routeBase, majors = [], locke
       </button>
     }
   >
+    <StatTileRow
+      tiles={[
+        { icon: 'fact_check', label: 'Tổng minh chứng', value: result ? result.totalCount : null, caption: 'Ghi nhận tự động theo bộ lọc hiện tại', hero: true },
+        { icon: 'verified', label: 'Đã xác minh', value: result ? result.items.filter(i => i.verificationStatus === 'VERIFIED').length : null, caption: 'Đã được kiểm chứng trên trang này', tone: 'success' },
+        { icon: 'hourglass_top', label: 'Chờ xác minh', value: result ? result.items.filter(i => i.verificationStatus === 'PENDING').length : null, caption: 'Đang chờ rà soát trên trang này', tone: (result?.items.filter(i => i.verificationStatus === 'PENDING').length ?? 0) > 0 ? 'warning' : 'neutral' },
+        { icon: 'cancel', label: 'Bị từ chối', value: result ? result.items.filter(i => i.verificationStatus === 'REJECTED').length : null, caption: 'Cần bổ sung minh chứng thay thế', tone: (result?.items.filter(i => i.verificationStatus === 'REJECTED').length ?? 0) > 0 ? 'danger' : 'neutral' },
+      ]}
+    />
     <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-label="Lọc minh chứng">
       <FilterToolbar
         embedded

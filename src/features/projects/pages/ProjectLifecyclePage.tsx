@@ -6,6 +6,7 @@ import type { ProjectStatusHistoryDto } from '../../../types/backend'
 import { projectStatusLabel } from '../utils/project-status'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { Avatar } from '../../../components/ui/Avatar'
+import { Pagination, StatTileRow, useClientPagination } from '../../../components/ui'
 import { ExecutionPage, ExState } from '../../execution/execution-ui'
 import { dateTimeLabel } from '../../execution/execution-utils'
 import './project-lifecycle.css'
@@ -21,6 +22,7 @@ export function ProjectLifecyclePage() {
   const activeAssignments = assignments.filter((item) => !item.endedAt)
   const supervisor = activeAssignments.find((item) => item.isPrimary) ?? activeAssignments[0]
   const disciplineMentors = activeAssignments.filter((item) => !item.isPrimary)
+  const historyPager = useClientPagination(history, 10)
   useEffect(() => {
     if (!project?.id) { setHistory([]); setHistoryLoading(false); return }
     let cancelled = false
@@ -50,106 +52,138 @@ export function ProjectLifecyclePage() {
       </button>
     }
   >
-    <div className="lifecycle-page">
-    <section className="lifecycle-section lifecycle-overview" aria-label="Thông tin đồ án">
-      <dl className="lifecycle-facts">
-        <div>
-          <dt>Trạng thái</dt>
-          <dd><span className={`ex-badge ex-badge-${project.status}`}>{projectStatusLabel(project.status)}</span></dd>
-        </div>
-        <div>
-          <dt>Trưởng nhóm</dt>
-          <dd>{team.members.find(member => member.isLeader)?.fullName || 'Chưa có thông tin'}</dd>
-        </div>
-        <div>
-          <dt>Chuyên ngành</dt>
-          <dd>{project.majors.map(major => major.majorName || major.majorCode).join(', ') || 'Chưa có thông tin'}</dd>
-        </div>
-        <div>
-          <dt>Giảng viên hướng dẫn</dt>
-          <dd>
-            <span>{supervisor?.supervisorName || 'Chưa phân công'}</span>
-            {disciplineMentors.length > 0 && <span className="mt-1 block text-xs font-normal text-ink-muted">
-              {disciplineMentors.map((item) => {
-                const major = item.majorId == null ? null : project.majors.find((candidate) => candidate.majorId === item.majorId)
-                return <span key={item.id} className="block">{item.supervisorName}{major ? ` · ${major.majorName || major.majorCode}` : ''}</span>
-              })}
-            </span>}
-          </dd>
-        </div>
-      </dl>
-      <div className="lifecycle-brief">
-        <div>
-          <div className="lifecycle-subheading">
-            <span className="material-symbols-outlined text-[19px]" aria-hidden="true">flag</span>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">Mục tiêu đồ án</h2>
-          </div>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-ink-muted">{project.objectives || 'Chưa có nội dung.'}</p>
-        </div>
-        <div>
-          <div className="lifecycle-subheading">
-            <span className="material-symbols-outlined text-[19px]" aria-hidden="true">inventory_2</span>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">Sản phẩm kỳ vọng</h2>
-          </div>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-ink-muted">{project.expectedOutput || 'Chưa có nội dung.'}</p>
-        </div>
-      </div>
-    </section>
-    <section className="lifecycle-section">
-      <div className="lifecycle-section-heading">
-        <h2 className="text-base font-bold text-ink">
-          Thành viên nhóm <span className="text-xs font-normal text-ink-muted">({team.members.length} thành viên)</span>
-        </h2>
-      </div>
-      <div className="lifecycle-members">
-        {team.members.map(member => (
-          <div key={member.userId} className="lifecycle-member">
-            <Avatar name={member.fullName} toneSeed={member.userId} size="md" shape="circle" />
-            <div className="min-w-0 flex-1">
-              <span className="font-semibold text-sm text-ink block truncate">{member.fullName}</span>
-              <span className="text-xs text-ink-muted block">{project.majors?.find(m => m.majorId === member.majorId)?.majorName ?? (member.isLeader ? 'Trưởng nhóm' : 'Thành viên nhóm')}</span>
-            </div>
-            <span className={`shrink-0 text-xs px-2.5 py-0.5 rounded-full font-semibold ${
-              member.isLeader
-                ? 'bg-primary-subtle text-primary border border-primary/25'
-                : 'bg-canvas text-ink-muted border border-hairline'
-            }`}>
-              {member.isLeader ? 'Trưởng nhóm' : 'Thành viên'}
-            </span>
-          </div>
-        ))}
-      </div>
-    </section>
-    <ProjectResponsibilitiesPanel projectId={project.id} majors={project.majors} />
-    <section className="lifecycle-section lifecycle-history">
-      <h2 className="lifecycle-section-heading text-base font-bold text-ink">Lịch sử đồ án</h2>
-      {historyLoading ? (
-        <ExState loading />
-      ) : historyError ? (
-        <ExState message={historyError} retry={() => setRevision(value => value + 1)} />
-      ) : history.length ? (
-        <ol className="ex-timeline">
-          {history.map(item => (
-            <li key={item.id} className="ex-timeline-item">
-              <span className="ex-timeline-dot" aria-hidden="true" />
-              <div className="lifecycle-history-content">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <strong className="font-semibold text-ink">
-                    {item.oldStatus ? projectStatusLabel(item.oldStatus) : 'Khởi tạo'} → {projectStatusLabel(item.newStatus)}
-                  </strong>
-                  <time className="font-mono text-xs text-ink-muted">{dateTimeLabel(item.changedAt)}</time>
-                </div>
-                <p className="mt-1.5 text-xs text-ink-muted">
-                  {item.changedByName || 'Hệ thống'}{item.reason ? ` · ${historyReasonLabel(item.reason)}` : ''}
-                </p>
+    <div className="flex flex-col gap-5">
+      <StatTileRow
+        tiles={[
+          { icon: 'badge', label: 'Mã hồ sơ đồ án', value: project.code, caption: project.majors.map(m => m.majorCode).filter(Boolean).join(' · ') || 'Hồ sơ đề tài hiện tại', hero: true },
+          { icon: 'groups', label: 'Thành viên nhóm', value: team.members.length, caption: team.name, tone: 'info' },
+          { icon: 'school', label: 'Phân công hướng dẫn', value: activeAssignments.length, caption: activeAssignments.length > 0 ? 'Giảng viên hướng dẫn đang phụ trách' : 'Chưa phân công GVHD chính', tone: 'neutral' },
+          { icon: 'history', label: 'Mốc lịch sử trạng thái', value: history.length, caption: 'Các bước chuyển trạng thái hồ sơ', tone: 'neutral' },
+        ]}
+      />
+
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
+        <div className="flex flex-col gap-5 xl:col-span-8">
+          <section className="workspace-surface p-5 sm:p-6" aria-label="Thông tin đồ án">
+            <dl className="lifecycle-facts">
+              <div>
+                <dt>Trạng thái</dt>
+                <dd><span className={`ex-badge ex-badge-${project.status}`}>{projectStatusLabel(project.status)}</span></dd>
               </div>
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <p className="ex-muted">Chưa có lịch sử đồ án.</p>
-      )}
-    </section>
+              <div>
+                <dt>Trưởng nhóm</dt>
+                <dd>{team.members.find(member => member.isLeader)?.fullName || 'Chưa có thông tin'}</dd>
+              </div>
+              <div>
+                <dt>Chuyên ngành</dt>
+                <dd>{project.majors.map(major => major.majorName || major.majorCode).join(', ') || 'Chưa có thông tin'}</dd>
+              </div>
+              <div>
+                <dt>Giảng viên hướng dẫn</dt>
+                <dd>
+                  <span>{supervisor?.supervisorName || 'Chưa phân công'}</span>
+                  {disciplineMentors.length > 0 && <span className="mt-1 block text-xs font-normal text-ink-muted">
+                    {disciplineMentors.map((item) => {
+                      const major = item.majorId == null ? null : project.majors.find((candidate) => candidate.majorId === item.majorId)
+                      return <span key={item.id} className="block">{item.supervisorName}{major ? ` · ${major.majorName || major.majorCode}` : ''}</span>
+                    })}
+                  </span>}
+                </dd>
+              </div>
+            </dl>
+            <div className="lifecycle-brief mt-5 border-t border-hairline pt-5">
+              <div>
+                <div className="lifecycle-subheading">
+                  <span className="material-symbols-outlined text-[19px]" aria-hidden="true">flag</span>
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">Mục tiêu đồ án</h2>
+                </div>
+                <p className="whitespace-pre-line text-sm leading-relaxed text-ink-muted">{project.objectives || 'Chưa có nội dung.'}</p>
+              </div>
+              <div>
+                <div className="lifecycle-subheading">
+                  <span className="material-symbols-outlined text-[19px]" aria-hidden="true">inventory_2</span>
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-ink-soft">Sản phẩm kỳ vọng</h2>
+                </div>
+                <p className="whitespace-pre-line text-sm leading-relaxed text-ink-muted">{project.expectedOutput || 'Chưa có nội dung.'}</p>
+              </div>
+            </div>
+          </section>
+
+          <ProjectResponsibilitiesPanel projectId={project.id} majors={project.majors} />
+        </div>
+
+        <aside className="flex flex-col gap-5 xl:col-span-4">
+          <section className="workspace-surface p-5">
+            <div className="mb-3 flex items-center justify-between border-b border-hairline pb-3">
+              <h2 className="text-base font-bold text-ink">
+                Thành viên nhóm <span className="text-xs font-normal text-ink-muted">({team.members.length} thành viên)</span>
+              </h2>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              {team.members.map(member => (
+                <div key={member.userId} className="flex items-center gap-3 rounded-lg border border-hairline bg-canvas/60 px-3 py-2.5">
+                  <Avatar name={member.fullName} toneSeed={member.userId} size="md" shape="circle" />
+                  <div className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-ink">{member.fullName}</span>
+                    <span className="block text-xs text-ink-muted">{project.majors?.find(m => m.majorId === member.majorId)?.majorName ?? (member.isLeader ? 'Trưởng nhóm' : 'Thành viên nhóm')}</span>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                    member.isLeader
+                      ? 'border border-primary/25 bg-primary-subtle text-primary'
+                      : 'border border-hairline bg-card text-ink-muted'
+                  }`}>
+                    {member.isLeader ? 'Trưởng nhóm' : 'Thành viên'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="workspace-surface p-5">
+            <h2 className="mb-3 border-b border-hairline pb-3 text-base font-bold text-ink">Lịch sử đồ án</h2>
+            {historyLoading ? (
+              <ExState loading />
+            ) : historyError ? (
+              <ExState message={historyError} retry={() => setRevision(value => value + 1)} />
+            ) : history.length ? (
+              <>
+                <ol className="ex-timeline">
+                  {historyPager.paginatedItems.map(item => (
+                    <li key={item.id} className="ex-timeline-item">
+                      <span className="ex-timeline-dot" aria-hidden="true" />
+                      <div className="lifecycle-history-content">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                          <strong className="font-semibold text-ink">
+                            {item.oldStatus ? projectStatusLabel(item.oldStatus) : 'Khởi tạo'} → {projectStatusLabel(item.newStatus)}
+                          </strong>
+                          <time className="font-mono text-xs text-ink-muted">{dateTimeLabel(item.changedAt)}</time>
+                        </div>
+                        <p className="mt-1 text-xs text-ink-muted">
+                          {item.changedByName || 'Hệ thống'}{item.reason ? ` · ${historyReasonLabel(item.reason)}` : ''}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+                {historyPager.showPagination && (
+                  <div className="mt-3 border-t border-hairline pt-3">
+                    <Pagination
+                      page={historyPager.page}
+                      pages={historyPager.pages}
+                      total={historyPager.total}
+                      pageSize={historyPager.pageSize}
+                      onPage={historyPager.setPage}
+                      onPageSizeChange={historyPager.setPageSize}
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="ex-muted">Chưa có lịch sử đồ án.</p>
+            )}
+          </section>
+        </aside>
+      </div>
     </div>
   </ExecutionPage>
 }
