@@ -67,4 +67,18 @@ describe('Pagination component', () => {
     expect((screen.getByRole('button', { name: 'Trang trước' }) as HTMLButtonElement).disabled).toBe(false)
     expect((screen.getByRole('button', { name: 'Trang sau' }) as HTMLButtonElement).disabled).toBe(true)
   })
+
+  it('generates distinct select ids and supports custom landmark labels for multiple instances', () => {
+    render(
+      <>
+        <Pagination page={1} pages={2} total={16} pageSize={8} onPage={vi.fn()} onPageSizeChange={vi.fn()} ariaLabel="Phân trang bảng 1" />
+        <Pagination page={1} pages={2} total={16} pageSize={8} onPage={vi.fn()} onPageSizeChange={vi.fn()} ariaLabel="Phân trang bảng 2" />
+      </>
+    )
+    expect(screen.getByRole('navigation', { name: 'Phân trang bảng 1' })).toBeTruthy()
+    expect(screen.getByRole('navigation', { name: 'Phân trang bảng 2' })).toBeTruthy()
+    const selects = screen.getAllByLabelText('Số bản ghi trên mỗi trang')
+    expect(selects).toHaveLength(2)
+    expect(selects[0].id).not.toBe(selects[1].id)
+  })
 })

@@ -31,7 +31,7 @@ export function RouteErrorBoundary() {
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="ui-button ui-button-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-xs font-semibold"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-xs font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <span className="material-symbols-outlined text-base" aria-hidden="true">refresh</span>
             <span>Tải lại trang</span>

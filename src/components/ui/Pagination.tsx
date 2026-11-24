@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import './pagination.css'
 
 export interface PaginationProps {
@@ -9,6 +10,7 @@ export interface PaginationProps {
   busy?: boolean
   onPage: (page: number) => void
   onPageSizeChange?: (size: number) => void
+  ariaLabel?: string
   className?: string
 }
 
@@ -38,8 +40,10 @@ export function Pagination({
   busy = false,
   onPage,
   onPageSizeChange,
+  ariaLabel = 'Phân trang danh sách',
   className = '',
 }: PaginationProps) {
+  const selectId = useId()
   const totalPages = Math.max(1, pages)
   const pageNumbers = generatePageNumbers(page, totalPages)
 
@@ -47,7 +51,7 @@ export function Pagination({
   const endRecord = total > 0 ? Math.min(page * (pageSize || 10), total) : 0
 
   return (
-    <nav className={`ui-pagination ${className}`} aria-label="Phân trang danh sách">
+    <nav className={`ui-pagination ${className}`} aria-label={ariaLabel}>
       {/* Summary record range & total */}
       <div className="ui-pagination-summary">
         {total > 0 ? (
@@ -60,9 +64,9 @@ export function Pagination({
 
         {pageSize != null && onPageSizeChange && (
           <div className="ui-pagination-size ml-3">
-            <label htmlFor="ui-pagination-select" className="text-xs text-ink-muted">Số dòng:</label>
+            <label htmlFor={selectId} className="text-xs text-ink-muted">Số dòng:</label>
             <select
-              id="ui-pagination-select"
+              id={selectId}
               value={pageSize}
               disabled={busy}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}

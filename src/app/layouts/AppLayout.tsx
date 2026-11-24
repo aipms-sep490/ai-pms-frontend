@@ -5,7 +5,7 @@ import { Sidebar } from './Sidebar'
 import { TopHeader } from './TopHeader'
 import { ChatDock } from '../../features/chat/ChatDock'
 import { AssistantDock } from '../../features/ai/AssistantDock'
-import '../../features/projects/pages/collaboration-workspace.css'
+import './app-shell.css'
 import '../../components/ui/workspace-page.css'
 import '../../components/ui/workspace-polish.css'
 import '../../components/ui/workspace-consistency.css'
@@ -46,7 +46,7 @@ export function AppLayout() {
       />
 
       {/* 2. Main Workspace Canvas */}
-      <div className="app-workspace flex-1 flex flex-col min-w-0 min-h-screen lg:pl-[272px] bg-canvas">
+      <div className="app-workspace flex-1 flex flex-col min-w-0 min-h-screen lg:pl-[248px] bg-canvas">
         {/* Sticky Top Header Bar */}
         <TopHeader
           key={session?.user.id ?? 'anonymous'}
@@ -56,7 +56,7 @@ export function AppLayout() {
         />
 
         {/* Page Content Outlet */}
-        <main id="main-content" tabIndex={-1} ref={entrance} data-experience="enhanced" className={`app-page-content flex-1 p-4 md:p-6 ${isFullPageChat ? '' : 'pb-28 md:pb-28'} max-w-[1400px] w-full mx-auto`}>
+        <main id="main-content" tabIndex={-1} ref={entrance} data-experience="enhanced" className={`app-page-content flex-1 px-4 py-4 sm:px-6 md:py-6 lg:px-8 ${isFullPageChat ? 'is-full-page-chat' : 'pb-28 md:pb-28'} max-w-[1680px] w-full mx-auto`}>
           <Outlet />
         </main>
       </div>

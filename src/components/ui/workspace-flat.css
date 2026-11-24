@@ -1,9 +1,9 @@
 /* Product layout: one content surface, section spacing, and quiet dividers.
    Controls, status notices, dialogs, and video surfaces keep their own boundaries. */
 .workspace-flat :is(.workspace-surface,.ex-panel,.report-panel,.mtg-panel) {
-  border:1px solid var(--color-hairline); border-radius:16px; box-shadow:0 2px 5px color-mix(in oklab, var(--color-brand-navy) 4%, transparent);
+  border:1px solid color-mix(in oklab, var(--color-brand-navy) 11%, var(--color-hairline)); border-radius:14px; box-shadow:0 1px 2px color-mix(in oklab, var(--color-brand-navy) 5%, transparent), 0 6px 16px -8px color-mix(in oklab, var(--color-brand-navy) 9%, transparent);
 }
-.workspace-flat :is(.ex-panel-heading,.mtg-list-heading,.report-list-heading) { background:transparent; }
+.workspace-flat :is(.ex-panel-heading,.mtg-list-heading,.report-list-heading) { background:color-mix(in oklab, var(--color-canvas) 70%, var(--color-card)); border-bottom:1px solid var(--color-hairline); }
 .workspace-flat .ex-panel-heading { border-bottom:0; padding-bottom:12px; }
 .workspace-flat .ex-panel-heading + .ex-padding { padding-top:8px; }
 .workspace-flat :is(.ex-detail-grid > div:first-child,.mtg-detail-grid > .mtg-stack:first-child,.report-main) {

@@ -27,12 +27,27 @@ describe('StatTileRow', () => {
     expect(screen.getByText('Các đồ án bạn hướng dẫn trong kỳ SP26')).toBeTruthy()
   })
 
-  it('supports interactive click handlers and active state', () => {
+  it('supports interactive click handlers and active state inside a semantic listitem button', () => {
     let clicked = false
     render(<StatTileRow tiles={[{ icon: 'task', label: 'Quá hạn', value: 4, active: true, onClick: () => { clicked = true } }]} />)
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
     const btn = screen.getByRole('button', { name: /quá hạn/i })
+    expect(btn.tagName).toBe('BUTTON')
     expect(btn.getAttribute('aria-pressed')).toBe('true')
     btn.click()
     expect(clicked).toBe(true)
+  })
+
+  it('adapts desktop grid columns dynamically for 3 tiles without leaving an empty 4th column', () => {
+    const { container } = render(
+      <StatTileRow tiles={[
+        { icon: 'a', label: 'Một', value: 1 },
+        { icon: 'b', label: 'Hai', value: 2 },
+        { icon: 'c', label: 'Ba', value: 3 },
+      ]} />
+    )
+    const list = container.querySelector('ul')
+    expect(list?.className).toContain('lg:grid-cols-3')
+    expect(list?.className).not.toContain('lg:grid-cols-4')
   })
 })

@@ -14,7 +14,6 @@ import { DepartmentProjectLayout } from '../../features/department/components/De
 import { DepartmentAcademicScopeRoute } from '../../features/department/components/DepartmentAcademicScopeRoute'
 import { AdminEvaluationLayout } from '../../features/evaluations/AdminEvaluationLayout'
 import { ChatPage } from '../../features/chat/ChatPage'
-import { DepartmentDocumentsPage } from '../../features/department-documents/DepartmentDocumentsPage'
 import { IndustryLayout } from '../../features/auth/components/IndustryRoutes'
 import { IndustryEnrollmentRoute } from '../../features/auth/components/IndustryEnrollmentRoute'
 import {
@@ -37,6 +36,7 @@ import {
   StudentReviewTimelinePage, AssignedGateReviewPage,
   AcademicKnowledgeManagementPage,
   AcademicAssistantPage,
+  DepartmentDocumentsPage,
 } from './lazy-pages'
 
 

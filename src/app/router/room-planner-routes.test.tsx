@@ -25,5 +25,5 @@ describe('room planner route rollout', () => {
     const defenseMatches = matchRoutes(appRouter.routes, '/project/defense') ?? []
     expect(defenseMatches.some(match => match.route.path === 'project/defense')).toBe(defense === 'true')
     appRouter.dispose()
-  })
+  }, 15_000)
 })

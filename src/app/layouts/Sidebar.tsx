@@ -208,7 +208,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
         aria-modal={isOpen ? true : undefined}
         aria-label="Menu điều hướng chính"
         data-tour={TOUR_ANCHOR.sidebar}
-        className={`fixed left-0 top-0 bottom-0 w-[272px] max-w-[calc(100vw-48px)] bg-card border-r border-hairline z-(--z-index-drawer) flex flex-col justify-between select-none sidebar-rail ${
+        className={`fixed left-0 top-0 bottom-0 w-[248px] max-w-[calc(100vw-48px)] bg-card border-r border-hairline z-(--z-index-drawer) flex flex-col justify-between select-none sidebar-rail ${
           isOpen ? 'drawer-open' : ''
         }`}
       >

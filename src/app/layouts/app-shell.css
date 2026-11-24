@@ -1,0 +1,74 @@
+/* Unified Application Shell — Single source of truth for sidebar width, header rhythm, and safe floating-dock padding */
+.collaboration-shell {
+  --shell-sidebar-width: 248px;
+  --cw-ink: var(--color-ink);
+  --cw-muted: var(--color-ink-muted);
+  --cw-line: var(--color-hairline);
+  --cw-accent: var(--color-primary);
+  --cw-accent-soft: var(--color-primary-subtle);
+  color: var(--cw-ink);
+  background: var(--color-canvas);
+}
+
+.collaboration-shell .sidebar-rail {
+  width: var(--shell-sidebar-width);
+}
+
+.collaboration-shell .sidebar-rail [class*="rounded"],
+.collaboration-shell .app-top-header [class*="rounded"] {
+  border-radius: 8px;
+}
+
+.collaboration-shell .sidebar-rail [class*="shadow"] {
+  box-shadow: none;
+}
+
+.collaboration-shell .sidebar-rail nav > div {
+  color: var(--cw-muted);
+}
+
+.collaboration-shell .app-top-header {
+  height: 58px;
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.collaboration-shell .app-top-header nav .font-mono {
+  font-family: var(--font-sans);
+  color: var(--cw-ink);
+}
+
+/* Preserve generous bottom clearance for ChatDock and AssistantDock across all viewports */
+.collaboration-shell .app-page-content {
+  padding: 24px 28px 112px;
+}
+
+.collaboration-shell .app-page-content.is-full-page-chat {
+  padding-bottom: 24px;
+}
+
+@media (min-width: 1024px) {
+  .collaboration-shell .app-workspace {
+    padding-left: var(--shell-sidebar-width);
+  }
+}
+
+@media (max-width: 1023px) {
+  .collaboration-shell .app-workspace {
+    padding-left: 0;
+  }
+  .collaboration-shell .app-page-content {
+    padding: 20px 20px 104px;
+  }
+  .collaboration-shell .app-page-content.is-full-page-chat {
+    padding-bottom: 20px;
+  }
+}
+
+@media (max-width: 639px) {
+  .collaboration-shell .app-page-content {
+    padding: 16px 16px 96px;
+  }
+  .collaboration-shell .app-page-content.is-full-page-chat {
+    padding-bottom: 16px;
+  }
+}
