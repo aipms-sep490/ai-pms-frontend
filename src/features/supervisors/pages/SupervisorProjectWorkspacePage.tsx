@@ -50,24 +50,18 @@ export function SupervisorProjectWorkspacePage() {
     <WorkspacePage
       size="wide"
       eyebrow={`Giảng viên hướng dẫn · ${access.project.code}`}
+      backTo="/supervisor/workspace"
+      backLabel="Danh sách đồ án"
       title="Tổng quan đồ án"
       description="Theo dõi tiến độ, nội dung cần phản hồi và các điểm cần lưu ý của nhóm được phân công."
       action={
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            icon="refresh"
-            aria-label="Làm mới dữ liệu"
-            onClick={() => { progress.reload(); void operational.reload() }}
-          />
-          <Link
-            className="inline-flex min-h-9 items-center justify-center rounded-lg border border-hairline bg-card px-3.5 text-xs font-semibold text-ink-soft hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            to="/supervisor/workspace"
-          >
-            Đổi đồ án
-          </Link>
-        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon="refresh"
+          aria-label="Làm mới dữ liệu"
+          onClick={() => { progress.reload(); void operational.reload() }}
+        />
       }
       className="pb-12"
     >

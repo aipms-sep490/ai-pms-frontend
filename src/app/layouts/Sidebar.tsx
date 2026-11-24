@@ -16,6 +16,8 @@ import { SelfAvatarImage } from '../../features/auth/components/SelfAvatarImage'
 interface SidebarProps {
   isOpen: boolean
   onClose: () => void
+  isCollapsed?: boolean
+  onToggleCollapse?: () => void
   triggerRef?: RefObject<HTMLButtonElement | null>
 }
 
@@ -28,7 +30,7 @@ function isWorkspaceSubrouteActive(itemPath: string, pathname: string): boolean 
   return false
 }
 
-export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse, triggerRef }: SidebarProps) {
   const { unreadCount: chatUnread } = useChat()
   const location = useLocation()
   const asideRef = useRef<HTMLElement | null>(null)
@@ -211,12 +213,12 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
         data-tour={TOUR_ANCHOR.sidebar}
         className={`fixed left-0 top-0 bottom-0 w-[276px] max-w-[calc(100vw-48px)] bg-card border-r border-hairline z-(--z-index-drawer) flex flex-col justify-between select-none sidebar-rail ${
           isOpen ? 'drawer-open' : ''
-        }`}
+        } ${isCollapsed ? 'is-collapsed' : ''}`}
       >
         <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
           {/* Top Brand & Academic Header */}
-          <div className="p-4 pb-3 border-b border-hairline flex flex-col gap-3">
-            <div className="flex items-center justify-between">
+          <div className="sidebar-header-box p-4 pb-3 border-b border-hairline flex flex-col gap-3">
+            <div className="sidebar-brand-full flex items-center justify-between">
               <div className="flex min-w-0 items-center gap-2.5">
                 <div className="flex flex-col min-w-0">
                   <BrandLogo />
@@ -244,8 +246,21 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
               </div>
             </div>
 
+            {/* Compact Monogram in Collapsed Desktop Icon Rail */}
+            {isCollapsed && (
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                title="Mở rộng thanh điều hướng (Ctrl+B)"
+                aria-label="Mở rộng menu AIPMS"
+                className="sidebar-brand-mini h-10 w-10 items-center justify-center rounded-xl bg-primary text-xs font-extrabold tracking-tight text-white shadow-xs transition-transform hover:scale-105"
+              >
+                AI
+              </button>
+            )}
+
             {/* Academic Context Badge */}
-            <div className="px-2.5 py-1.5 rounded-lg bg-canvas border border-hairline flex items-center justify-between text-xs">
+            <div className="sidebar-context-badge px-2.5 py-1.5 rounded-lg bg-canvas border border-hairline flex items-center justify-between text-xs">
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="material-symbols-outlined text-[14px] text-academic-emerald shrink-0" aria-hidden="true">
                   verified
@@ -261,7 +276,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
 
           {/* Main Navigation Links */}
           <nav className="p-3 pb-4 flex flex-col gap-1 flex-1" aria-label="Menu chức năng">
-            <div className="px-2 py-1 text-xs font-mono font-semibold uppercase tracking-wider text-ink-muted">
+            <div className="sidebar-section-label px-2 py-1 text-xs font-mono font-semibold uppercase tracking-wider text-ink-muted">
               {sectionLabel}
             </div>
             {pendingStudent ? <div className="app-nav-skeleton" aria-label="Đang tải điều hướng" role="status">{[0,1,2,3,4,5].map(item => <span key={item} />)}</div> : unavailableStudent ? (
@@ -271,7 +286,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
             ) : navigationGroups && navigationGroups.length > 0 ? (
               <div className="flex flex-col gap-2">
                 {navigationGroups.map(({ group, items }, groupIndex) => {
-                  const isCollapsed = Boolean(collapsedGroups[group])
+                  const isGroupCollapsed = Boolean(collapsedGroups[group])
                   const hasActive = activeNavigationGroup === group || items.some(item => isWorkspaceSubrouteActive(item.path, location.pathname))
                   const groupId = `workspace-nav-group-${groupIndex}`
 
@@ -280,9 +295,9 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                       <button
                         type="button"
                         onClick={() => toggleGroup(group)}
-                        aria-expanded={!isCollapsed}
+                        aria-expanded={!isGroupCollapsed}
                         aria-controls={groupId}
-                        className={`flex items-center justify-between gap-1.5 px-2 py-1.5 min-h-[44px] rounded-lg text-xs font-bold transition-colors cursor-pointer select-none ${
+                        className={`sidebar-group-header flex items-center justify-between gap-1.5 px-2 py-1.5 min-h-[44px] rounded-lg text-xs font-bold transition-colors cursor-pointer select-none ${
                           hasActive ? 'text-primary bg-primary-subtle/70' : 'text-ink-soft hover:text-ink hover:bg-canvas'
                         }`}
                       >
@@ -299,7 +314,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                         </div>
                         <span
                           className={`material-symbols-outlined text-[18px] text-ink-muted transition-transform duration-200 motion-reduce:transition-none shrink-0 ${
-                            isCollapsed ? '' : 'rotate-180'
+                            isGroupCollapsed ? '' : 'rotate-180'
                           }`}
                           aria-hidden="true"
                         >
@@ -307,12 +322,13 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                         </span>
                       </button>
 
-                      {!isCollapsed && (
-                        <div id={groupId} className="flex flex-col gap-0.5 mt-0.5 pl-1.5 border-l-2 border-hairline ml-2">
+                      {(!isGroupCollapsed || isCollapsed) && (
+                        <div id={groupId} className="sidebar-nav-list flex flex-col gap-0.5 mt-0.5 pl-1.5 border-l-2 border-hairline ml-2">
                           {items.map((item, itemIndex) => (
                             <NavLink
                               key={item.id}
                               to={item.path}
+                              title={item.title}
                               data-tour={groupIndex === 0 && itemIndex === 0 ? TOUR_ANCHOR.sidebarPrimary : undefined}
                               end={item.path === '/academic'}
                               onClick={() => {
@@ -320,7 +336,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                               }}
                               className={({ isActive }) => {
                                 const active = isActive || isWorkspaceSubrouteActive(item.path, location.pathname)
-                                return `group flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-xs font-medium transition-all duration-150 motion-reduce:transition-none ${
+                                return `sidebar-nav-link group flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-xs font-medium transition-all duration-150 motion-reduce:transition-none ${
                                   active
                                     ? 'bg-primary-subtle text-primary font-semibold shadow-xs'
                                     : 'text-ink-muted hover:text-ink hover:bg-canvas'
@@ -337,11 +353,14 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                                     >
                                       {item.icon}
                                     </span>
-                                    <span className="truncate" title={item.title}>{item.title}</span>
+                                    <span className="sidebar-item-label truncate" title={item.title}>{item.title}</span>
                                     {item.id === 'chat' && chatUnread > 0 && (
-                                      <span className="shrink-0 rounded-full bg-primary px-2 text-xs text-white" aria-label={`${chatUnread} tin nhắn chưa đọc`}>
-                                        {chatUnread > 99 ? '99+' : chatUnread}
-                                      </span>
+                                      <>
+                                        <span className="sidebar-item-badge shrink-0 rounded-full bg-primary px-2 text-xs text-white" aria-label={`${chatUnread} tin nhắn chưa đọc`}>
+                                          {chatUnread > 99 ? '99+' : chatUnread}
+                                        </span>
+                                        <span className="sidebar-item-dot absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-card" aria-hidden="true" />
+                                      </>
                                     )}
                                   </div>
                                 )
@@ -358,22 +377,22 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                 {Array.from(new Set(remainingItems.map((item) => item.section))).map((section) => {
                   const items = remainingItems.filter((item) => item.section === section)
                   return <div key={section} className="mt-2 pt-2 border-t border-hairline flex flex-col gap-0.5">
-                    <div className="flex items-center justify-between px-2 py-1 text-xs font-bold text-ink-soft">
+                    <div className="sidebar-group-header flex items-center justify-between px-2 py-1 text-xs font-bold text-ink-soft">
                       <span>{section === 'account' ? 'Tài khoản và lịch' : sectionLabels[section]}</span>
                       <span className="shrink-0 rounded-full bg-canvas border border-hairline px-1.5 py-0.5 text-xs font-semibold text-ink-soft">{items.length}</span>
                     </div>
-                    <div className="flex flex-col gap-0.5 pl-1.5 border-l-2 border-hairline ml-2">
+                    <div className="sidebar-nav-list flex flex-col gap-0.5 pl-1.5 border-l-2 border-hairline ml-2">
                       {items.map((item) => (
-                        <NavLink key={item.id} to={item.path} end={item.path === '/academic'} onClick={() => { if (window.innerWidth < 1024) handleClose() }} className={({ isActive }) => {
+                        <NavLink key={item.id} to={item.path} title={item.title} end={item.path === '/academic'} onClick={() => { if (window.innerWidth < 1024) handleClose() }} className={({ isActive }) => {
                           const active = isActive || isWorkspaceSubrouteActive(item.path, location.pathname)
-                          return `flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-xs font-medium transition-all duration-150 motion-reduce:transition-none ${active ? 'bg-primary-subtle text-primary font-semibold shadow-xs' : 'text-ink-muted hover:text-ink hover:bg-canvas'}`
+                          return `sidebar-nav-link flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-xs font-medium transition-all duration-150 motion-reduce:transition-none ${active ? 'bg-primary-subtle text-primary font-semibold shadow-xs' : 'text-ink-muted hover:text-ink hover:bg-canvas'}`
                         }}>
                           {({ isActive }) => {
                             const active = isActive || isWorkspaceSubrouteActive(item.path, location.pathname)
                             return (
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <span className={`material-symbols-outlined text-[18px] shrink-0 ${active ? 'text-primary' : 'text-ink-muted'}`} aria-hidden="true">{item.icon}</span>
-                                <span className="truncate" title={item.title}>{item.title}</span>
+                                <span className="sidebar-item-label truncate" title={item.title}>{item.title}</span>
                               </div>
                             )
                           }}
@@ -389,15 +408,16 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                   const items = navigationItems.filter((item) => item.section === section)
                   return (
                     <div key={section} className={`flex flex-col gap-0.5 ${sectionIdx > 0 ? 'mt-1 pt-2 border-t border-hairline' : ''}`}>
-                      <div className="flex items-center justify-between px-2 py-1.5 text-xs font-bold text-ink-soft">
+                      <div className="sidebar-group-header flex items-center justify-between px-2 py-1.5 text-xs font-bold text-ink-soft">
                         <span>{sectionLabels[section]}</span>
                         <span className="shrink-0 rounded-full bg-canvas border border-hairline px-1.5 py-0.5 text-xs font-semibold text-ink-soft">{items.length}</span>
                       </div>
-                      <div className="flex flex-col gap-0.5 pl-1.5 border-l-2 border-hairline ml-2">
+                      <div className="sidebar-nav-list flex flex-col gap-0.5 pl-1.5 border-l-2 border-hairline ml-2">
                         {items.map((item, itemIdx) => (
                           <NavLink
                             key={item.id}
                             to={item.path}
+                            title={item.title}
                             data-tour={sectionIdx === 0 && itemIdx === 0 ? TOUR_ANCHOR.sidebarPrimary : undefined}
                             end={item.path === '/academic'}
                             onClick={() => {
@@ -405,7 +425,7 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                             }}
                             className={({ isActive }) => {
                               const active = isActive || isWorkspaceSubrouteActive(item.path, location.pathname)
-                              return `flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-xs font-medium transition-all duration-150 motion-reduce:transition-none ${
+                              return `sidebar-nav-link flex items-center justify-between px-2.5 py-2 min-h-[40px] rounded-lg text-xs font-medium transition-all duration-150 motion-reduce:transition-none ${
                                 active
                                   ? 'bg-primary-subtle text-primary font-semibold shadow-xs'
                                   : 'text-ink-muted hover:text-ink hover:bg-canvas'
@@ -422,8 +442,13 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
                                   >
                                     {item.icon}
                                   </span>
-                                  <span className="truncate" title={item.title}>{item.title}</span>
-                                  {item.id === 'chat' && chatUnread > 0 && <span className="shrink-0 rounded-full bg-primary px-2 text-xs text-white" aria-label={`${chatUnread} tin nhắn chưa đọc`}>{chatUnread > 99 ? '99+' : chatUnread}</span>}
+                                  <span className="sidebar-item-label truncate" title={item.title}>{item.title}</span>
+                                  {item.id === 'chat' && chatUnread > 0 && (
+                                    <>
+                                      <span className="sidebar-item-badge shrink-0 rounded-full bg-primary px-2 text-xs text-white" aria-label={`${chatUnread} tin nhắn chưa đọc`}>{chatUnread > 99 ? '99+' : chatUnread}</span>
+                                      <span className="sidebar-item-dot absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-card" aria-hidden="true" />
+                                    </>
+                                  )}
                                 </div>
                               )
                             }}
@@ -439,13 +464,13 @@ export function Sidebar({ isOpen, onClose, triggerRef }: SidebarProps) {
         </div>
 
         {/* Bottom Profile Footer (Student Baseline for Batch 0-2) */}
-        <div data-tour={TOUR_ANCHOR.profile} className="p-3 border-t border-hairline bg-card flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        <div data-tour={TOUR_ANCHOR.profile} className="sidebar-profile-footer p-3 border-t border-hairline bg-card flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1" title={`${profileName} · ${profileCode}`}>
             <div className="w-8 h-8 rounded-full bg-canvas border border-line-strong flex items-center justify-center font-heading font-bold text-xs text-ink-soft relative shrink-0">
               <SelfAvatarImage key={session?.user.id} userId={session?.user.id} initials={profileInitials} />
               <span className={`absolute bottom-0 right-0 w-2 h-2 rounded-full ring-2 ring-card ${session ? 'bg-academic-emerald' : 'bg-line-strong'}`} />
             </div>
-            <div className="flex flex-col min-w-0 flex-1">
+            <div className="sidebar-profile-meta flex flex-col min-w-0 flex-1">
               <span className="text-[12px] font-semibold text-ink truncate" title={profileName}>
                 {profileName}
               </span>

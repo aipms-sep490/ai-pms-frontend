@@ -72,6 +72,8 @@ export function SupervisorProgressReviewPage() {
       className="space-y-6"
       title="Theo dõi tiến độ và báo cáo"
       eyebrow={`Giám sát tiến độ · ${project.code}`}
+      backTo={`${routeBase}/workspace`}
+      backLabel="Tổng quan đồ án"
       description="Theo dõi kết quả thực hiện, những việc cần lưu ý và gửi phản hồi cho nhóm."
       action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới dữ liệu" onClick={review.reload} />}
     >

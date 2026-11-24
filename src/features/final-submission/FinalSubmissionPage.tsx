@@ -323,6 +323,8 @@ export function FinalSubmissionViewerPage({ backTo = '/projects/lifecycle', back
       className="space-y-5"
       title="Gói bàn giao cuối"
       eyebrow={projectMeta?.code ?? 'Bàn giao cuối kỳ'}
+      backTo={assignmentReturn ?? backTo}
+      backLabel={assignmentReturn ? 'Quay lại chấm điểm' : backLabel}
       description={projectMeta ? `${projectMeta.title} · Nội dung và tệp trong bản bàn giao đã chốt.` : 'Nội dung và tệp trong bản bàn giao đã chốt.'}
     >
       {loading && <ListLoading label="Đang tải gói bàn giao đã khóa…" />}
@@ -342,12 +344,6 @@ export function FinalSubmissionViewerPage({ backTo = '/projects/lifecycle', back
         </section>
       )}
       {!loading && packageData && <LockedPackageView projectId={projectId} packageData={packageData} />}
-      <div>
-        <Link to={assignmentReturn ?? backTo} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-hairline bg-card px-3.5 py-2 text-sm font-semibold text-ink-soft transition-all hover:bg-canvas">
-          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span>
-          <span>{assignmentReturn ? 'Quay lại chấm điểm' : backLabel}</span>
-        </Link>
-      </div>
     </WorkspacePage>
   )
 }
@@ -392,6 +388,8 @@ export function FinalRequirementsPage() {
       className="space-y-5"
       title="Yêu cầu bàn giao"
       eyebrow={projectMeta?.code ?? 'Cấu hình bàn giao'}
+      backTo="/department/portfolio"
+      backLabel="Danh mục đồ án"
       description={projectMeta ? `${projectMeta.title} · Chọn các hạng mục nhóm cần nộp trước khi chốt bàn giao.` : 'Chọn các hạng mục nhóm cần nộp trước khi chốt bàn giao.'}
     >
       {error && (

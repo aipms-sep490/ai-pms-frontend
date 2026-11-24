@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useWorkspaceAccess } from '../../app/context/workspace-access'
+import { BackLink } from '../../components/ui/BackLink'
 import { Button } from '../../components/ui/Button'
 import { DataSourceStatus } from '../../components/ui/DataSourceStatus'
 import { displayLabel } from '../../components/ui/display-label'
@@ -12,6 +13,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../components/ui/status-badge-tone'
 import { useClientPagination } from '../../components/ui/useClientPagination'
 import { useAuthSession } from '../auth/context/useAuthSession'
+import { getHomePath } from '../auth/utils/role-access'
 import './calendar-attention.css'
 import { loadCalendarAttention } from './calendar-data'
 import { formatCalendarDate, isHistoricalStatus } from './calendar-projections'
@@ -324,7 +326,14 @@ export function CalendarAttentionPage() {
     <section className="calendar-page workspace-page" aria-labelledby="calendar-heading" aria-busy={loading}>
       <header className="calendar-page__header">
         <div>
-          <p className="calendar-page__eyebrow">Không gian chung · chỉ đọc</p>
+          <div className="workspace-context">
+            <BackLink className="workspace-back-inline" fallback={getHomePath(session?.user)}>
+              <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+              <span>Quay lại</span>
+            </BackLink>
+            <span className="workspace-context-sep" aria-hidden="true" />
+            <p className="calendar-page__eyebrow">Không gian chung · chỉ đọc</p>
+          </div>
           <h1 id="calendar-heading">Lịch tổng hợp &amp; điểm cần chú ý</h1>
           <p>Tổng hợp các mốc thời gian trong phạm vi bạn được xem. Lịch giúp theo dõi công việc nhưng không thay thế thông báo.</p>
         </div>

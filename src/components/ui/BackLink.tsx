@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import './workspace-page.css'
 
 /** Use app history when available; direct links keep a safe in-app fallback. */
 export function BackLink({ fallback, className, children }: { fallback: string; className?: string; children: ReactNode }) {

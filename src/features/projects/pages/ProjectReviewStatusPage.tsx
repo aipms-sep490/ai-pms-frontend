@@ -45,10 +45,10 @@ export function ProjectReviewStatusPage() {
   const rejection = registration.history.filter((item) => normalizeStatus(item.newStatus) === 'REJECTED').at(-1)
   const tone = surfaceClasses[state.surface]
 
-  if (journey.isLoading) return <WorkspacePage size="standard" eyebrow="Theo dõi xét duyệt" title="Trạng thái đề cương"><PageLoading label="Đang tải trạng thái đề cương…" /></WorkspacePage>
-  if (journey.error) return <WorkspacePage size="standard" eyebrow="Theo dõi xét duyệt" title="Trạng thái đề cương"><StatusError message={journey.error} onRetry={() => void journey.refreshAll()} /></WorkspacePage>
+  if (journey.isLoading) return <WorkspacePage size="standard" eyebrow="Theo dõi xét duyệt" backTo="/project/overview" backLabel="Tổng quan đồ án" title="Trạng thái đề cương"><PageLoading label="Đang tải trạng thái đề cương…" /></WorkspacePage>
+  if (journey.error) return <WorkspacePage size="standard" eyebrow="Theo dõi xét duyệt" backTo="/project/overview" backLabel="Tổng quan đồ án" title="Trạng thái đề cương"><StatusError message={journey.error} onRetry={() => void journey.refreshAll()} /></WorkspacePage>
   if (!project) return (
-    <WorkspacePage size="standard" eyebrow="Theo dõi xét duyệt" title="Chưa có đề cương">
+    <WorkspacePage size="standard" eyebrow="Theo dõi xét duyệt" backTo="/project/overview" backLabel="Tổng quan đồ án" title="Chưa có đề cương">
       <section className="mx-auto max-w-3xl rounded-2xl border border-hairline bg-card p-8 text-center shadow-xs">
         <p className="text-sm text-ink-muted">Nhóm hiện chưa có hồ sơ đề cương.</p>
         <button type="button" onClick={() => navigate('/project/register')} className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-primary-hover">Tạo bản nháp</button>
@@ -60,6 +60,8 @@ export function ProjectReviewStatusPage() {
     <WorkspacePage
       size="standard"
       eyebrow="Theo dõi xét duyệt"
+      backTo="/project/overview"
+      backLabel="Tổng quan đồ án"
       title="Trạng thái đề cương"
       description={`${project.code} · ${project.teamName}`}
       action={

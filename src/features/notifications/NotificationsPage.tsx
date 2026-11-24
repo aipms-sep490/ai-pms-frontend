@@ -7,7 +7,7 @@ import { StatTileRow } from '../../components/ui/StatTileRow'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { HttpError } from '../../services/http/http-client'
 import { AuthSessionContext } from '../auth/context/auth-session-context'
-import { getWorkspaceRole } from '../auth/utils/role-access'
+import { getHomePath, getWorkspaceRole } from '../auth/utils/role-access'
 import { notificationCopy } from './notification-copy'
 import { resolveNotificationLink } from './notification-link-resolver'
 import { NotificationEmpty, NotificationLoading, NotificationRow } from './NotificationRow'
@@ -181,6 +181,8 @@ export function NotificationsPage() {
       size="wide"
       title="Thông báo"
       eyebrow="Trung tâm cập nhật"
+      backTo={getHomePath(auth?.session?.user)}
+      backLabel="Quay lại"
       description={pageDescription}
       action={
         <div className="flex flex-wrap items-center gap-2">

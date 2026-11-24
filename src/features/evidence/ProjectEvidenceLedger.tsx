@@ -124,6 +124,8 @@ function EvidenceLedger({ projectId, projectLabel, routeBase, majors = [], locke
     className="space-y-5"
     title="Sổ minh chứng"
     eyebrow={projectLabel ? `${projectLabel} · Sổ minh chứng` : 'Sổ minh chứng đồ án'}
+    backTo={actor !== 'student' ? `${routeBase}/workspace` : undefined}
+    backLabel="Tổng quan đồ án"
     description="Tra cứu minh chứng theo công việc, báo cáo và cuộc họp; đối chiếu trạng thái từ hệ thống."
     action={
       <button type="button" disabled={loading} onClick={() => void load()} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary disabled:opacity-50">

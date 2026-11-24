@@ -206,15 +206,11 @@ export function DepartmentStudentDetailPage() {
     <WorkspacePage
       title={summary ? summary.fullName : 'Chi tiết sinh viên'}
       eyebrow={summary?.studentCode ? `MSSV ${summary.studentCode}` : 'Hồ sơ 360° sinh viên Khoa'}
+      backTo="/department/students"
+      backLabel="Danh sách sinh viên Khoa"
       description="Xem toàn diện thông tin danh tính, cập nhật lớp/chuyên ngành hẹp/khung CTĐT, xác minh hồ sơ học vụ và theo dõi trạng thái nhóm đồ án."
       action={
-        <div className="flex flex-wrap gap-2">
-          <Link className="inline-flex items-center gap-1 rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-medium text-ink hover:border-primary" to="/department/students">
-            <span className="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-            Danh sách sinh viên Khoa
-          </Link>
-          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading || saving} onClick={() => void load()} />
-        </div>
+        <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading || saving} onClick={() => void load()} />
       }
     >
       {confirmationDialog}

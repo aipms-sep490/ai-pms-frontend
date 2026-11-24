@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { env } from '../../../app/config/env'
+import { BackLink } from '../../../components/ui/BackLink'
 import { Button } from '../../../components/ui/Button'
 import { displayLabel } from '../../../components/ui/display-label'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
@@ -175,7 +175,14 @@ export function AdminRbacPage() {
     <div className="workspace-page admin-workspace" aria-labelledby="rbac-title">
       <header className="admin-heading">
         <div>
-          <p className="admin-kicker">Phân quyền nền tảng</p>
+          <div className="workspace-context">
+            <BackLink className="workspace-back-inline" fallback="/admin/access">
+              <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+              <span>Về tổng quan</span>
+            </BackLink>
+            <span className="workspace-context-sep" aria-hidden="true" />
+            <p className="admin-kicker !m-0">Phân quyền nền tảng</p>
+          </div>
           <h1 id="rbac-title">Vai trò và quyền truy cập</h1>
           <p>
             {canEdit ? 'Quản lý quyền truy cập của từng vai trò.' : 'Xem quyền truy cập của từng vai trò (chỉ đọc).'} Phân công trong đồ án được quản lý ở không gian học vụ.
@@ -183,7 +190,6 @@ export function AdminRbacPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" onClick={admin.refresh} />
-          <Link className="admin-link-button" to="/admin/access">Về tổng quan</Link>
         </div>
       </header>
 

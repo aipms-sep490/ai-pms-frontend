@@ -15,12 +15,16 @@ import { TourLauncher } from '../../features/onboarding/TourLauncher'
 interface TopHeaderProps {
   onToggleMobileMenu: () => void
   isMobileMenuOpen: boolean
+  isSidebarCollapsed?: boolean
+  onToggleSidebarCollapsed?: () => void
   triggerRef?: RefObject<HTMLButtonElement | null>
 }
 
 export function TopHeader({
   onToggleMobileMenu,
   isMobileMenuOpen,
+  isSidebarCollapsed = false,
+  onToggleSidebarCollapsed,
   triggerRef,
 }: TopHeaderProps) {
   const location = useLocation()
@@ -127,8 +131,8 @@ export function TopHeader({
 
   return (
     <header className="app-top-header sticky top-0 h-14 bg-card border-b border-hairline z-30 px-3 sm:px-4 md:px-6 flex items-center justify-between gap-4">
-      {/* Left: Mobile hamburger & Breadcrumb */}
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+      {/* Left: Mobile hamburger, desktop sidebar toggle & Breadcrumb */}
+      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
         <button
           ref={triggerRef}
           type="button"
@@ -142,6 +146,25 @@ export function TopHeader({
             {isMobileMenuOpen ? 'close' : 'menu'}
           </span>
         </button>
+
+        {onToggleSidebarCollapsed && (
+          <>
+            <button
+              type="button"
+              onClick={onToggleSidebarCollapsed}
+              aria-label={isSidebarCollapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
+              aria-expanded={!isSidebarCollapsed}
+              aria-controls="main-sidebar"
+              title={isSidebarCollapsed ? 'Mở rộng thanh điều hướng (Ctrl+B)' : 'Thu gọn thanh điều hướng (Ctrl+B)'}
+              className="hidden lg:inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary shrink-0"
+            >
+              <span className="material-symbols-outlined text-[19px]" aria-hidden="true">
+                {isSidebarCollapsed ? 'left_panel_open' : 'left_panel_close'}
+              </span>
+            </button>
+            <span aria-hidden="true" className="hidden lg:block h-4 w-px bg-hairline shrink-0" />
+          </>
+        )}
 
         <nav
           aria-label="Đường dẫn điều hướng breadcrumb"

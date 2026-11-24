@@ -694,12 +694,12 @@ export function ProjectDefenseManagementPage() {
     return () => controller.abort()
   }, [projectId, revision])
 
-  if (!Number.isSafeInteger(projectId) || projectId < 1) return <WorkspacePage title="Quản lý bảo vệ"><p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">Mã đồ án không hợp lệ.</p></WorkspacePage>
+  if (!Number.isSafeInteger(projectId) || projectId < 1) return <WorkspacePage title="Quản lý bảo vệ" backTo={isDepartmentRoute ? '/department/portfolio' : '/supervisor/workspace'} backLabel={isDepartmentRoute ? 'Danh mục đồ án' : 'Không gian hướng dẫn'}><p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">Mã đồ án không hợp lệ.</p></WorkspacePage>
   const sessionMeta = sessions?.[0]
   const displayProjectTitle = sessionMeta?.projectTitle || 'Đồ án được quản lý'
   const displayProjectCode = sessionMeta?.projectCode || null
   return (
-    <WorkspacePage size="wide" title={isDepartmentRoute ? 'Quản lý hội đồng & lịch bảo vệ' : 'Lịch bảo vệ đồ án'} eyebrow={displayProjectCode ?? 'Hội đồng & bảo vệ'} description={isDepartmentRoute ? 'Bộ môn phụ trách thành lập hội đồng và xếp lịch trong phạm vi quản lý.' : 'Giảng viên hướng dẫn theo dõi lịch bảo vệ; bộ môn phụ trách phân hội đồng.'}>
+    <WorkspacePage size="wide" title={isDepartmentRoute ? 'Quản lý hội đồng & lịch bảo vệ' : 'Lịch bảo vệ đồ án'} eyebrow={displayProjectCode ?? 'Hội đồng & bảo vệ'} backTo={isDepartmentRoute ? '/department/portfolio' : '/supervisor/workspace'} backLabel={isDepartmentRoute ? 'Danh mục đồ án' : 'Không gian hướng dẫn'} description={isDepartmentRoute ? 'Bộ môn phụ trách thành lập hội đồng và xếp lịch trong phạm vi quản lý.' : 'Giảng viên hướng dẫn theo dõi lịch bảo vệ; bộ môn phụ trách phân hội đồng.'}>
       <EntityIdentityStrip chips={[
         { icon: 'folder', label: 'Đồ án', value: displayProjectTitle },
         ...(displayProjectCode ? [{ icon: 'tag', label: 'Mã đồ án', value: displayProjectCode }] : []),

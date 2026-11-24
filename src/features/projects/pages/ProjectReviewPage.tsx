@@ -3,6 +3,7 @@ import { dateTimeLabel } from '../../execution/execution-utils'
 import { displayLabel } from '../../../components/ui/display-label'
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { BackLink } from '../../../components/ui/BackLink'
 import { Button } from '../../../components/ui/Button'
 import { ActionVerdict } from '../../../components/ui/ActionVerdict'
 import { ChangeDiff } from '../../../components/ui/ChangeDiff'
@@ -309,8 +310,14 @@ export function ProjectReviewPage() {
     <div className="workspace-page workspace-page--wide review-page mk-page-enter">
       <header className="workspace-heading review-page__header">
         <div className="workspace-heading-copy">
-          <Link className="review-page__back-link" to="/department/projects/review">← Danh sách thẩm định</Link>
-          <span className="workspace-kicker">Hội đồng bộ môn</span>
+          <div className="workspace-context">
+            <BackLink className="workspace-back-inline" fallback="/department/projects/review">
+              <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+              <span>Danh sách thẩm định</span>
+            </BackLink>
+            <span className="workspace-context-sep" aria-hidden="true" />
+            <span className="workspace-kicker">Hội đồng bộ môn</span>
+          </div>
           <h1>Thẩm định đề cương</h1>
         </div>
         <Link className="review-page__open-link !mt-0" to={`/department/projects/${id}/result`}>

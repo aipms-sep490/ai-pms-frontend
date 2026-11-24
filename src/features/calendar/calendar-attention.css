@@ -46,7 +46,7 @@
 .calendar-page__eyebrow {
   display: inline-block;
   padding: 3px 10px;
-  margin: 0 0 8px !important;
+  margin: 0 !important;
   border-radius: 999px;
   border: 1px solid color-mix(in oklab, var(--color-primary) 24%, transparent);
   background: var(--color-primary-subtle);

@@ -134,12 +134,18 @@ export function ProjectContributionsPage() {
   }, [evidence, evidenceSearch])
 
   const projectEyebrow = journey.project?.code ? `Theo dõi đóng góp · ${journey.project.code}` : 'Theo dõi đóng góp'
+  const backTo = Number.isInteger(routeId) && routeId > 0
+    ? (role === 'department' || role === 'admin' ? '/department/portfolio' : `/supervisor/projects/${routeId}/workspace`)
+    : undefined
+  const backLabel = role === 'department' || role === 'admin' ? 'Danh mục đồ án' : 'Tổng quan đồ án'
 
   return (
     <WorkspacePage
       className="space-y-5"
       title="Đóng góp của thành viên"
       eyebrow={projectEyebrow}
+      backTo={backTo}
+      backLabel={backLabel}
       description="Theo dõi hoạt động và mở từng chứng cứ do hệ thống ghi nhận. Chỉ số hoạt động hỗ trợ đối chiếu, không thay thế điểm học phần."
       action={summary ? (
         <div className="flex shrink-0 flex-wrap items-center gap-2">

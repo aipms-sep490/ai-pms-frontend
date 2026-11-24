@@ -198,6 +198,8 @@ export function ProjectGovernancePage() {
       title="Điều phối đồ án"
       description="Theo dõi lịch báo cáo, việc cần làm sau trao đổi và minh chứng của nhóm."
       eyebrow={eyebrow}
+      backTo="/department/portfolio"
+      backLabel="Danh mục đồ án"
       className="execution-page space-y-6"
       action={
         <div className="flex flex-wrap items-center gap-2">

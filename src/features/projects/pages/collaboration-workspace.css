@@ -171,9 +171,6 @@
 .cw-form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--cw-line); }
 .cw-form-error { color: var(--color-status-error-text); font-size: 12.5px; margin: 16px 0 0; }
 .cw-success { display: flex; align-items: center; gap: 8px; margin: 0 0 20px; color: var(--cw-accent); font-size: 13.5px; font-weight: 600; }
-@media (min-width: 1024px) {
-  .collaboration-shell .app-workspace { padding-left: 248px; }
-}
 @media (min-width: 1024px) and (max-width: 1279px) {
   .collaboration-shell .app-page-content { padding: 20px 24px 104px 24px; }
   .collaboration-shell .app-page-content.is-full-chat { padding: 16px 20px; }

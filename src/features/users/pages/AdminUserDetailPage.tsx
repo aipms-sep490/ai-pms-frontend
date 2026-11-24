@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { Avatar } from '../../../components/ui/Avatar'
+import { BackLink } from '../../../components/ui/BackLink'
 import { Button } from '../../../components/ui/Button'
 import { displayLabel } from '../../../components/ui/display-label'
 import { ListLoading } from '../../../components/ui/ListLoading'
@@ -186,10 +187,14 @@ export function AdminUserDetailPage() {
 
   return (
     <div className="workspace-page admin-workspace admin-detail" aria-labelledby="admin-user-title">
-      <Link className="admin-back" to={returnTo}>
-        <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-        Danh sách tài khoản
-      </Link>
+      {state !== 'ready' && (
+        <div className="workspace-context">
+          <BackLink className="workspace-back-inline" fallback={returnTo}>
+            <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+            <span>Danh sách tài khoản</span>
+          </BackLink>
+        </div>
+      )}
 
       {state === 'loading' && <ListLoading label="Đang tải hồ sơ tài khoản…" />}
       {state === 'forbidden' && <p className="admin-error" role="alert">Bạn không có quyền xem hồ sơ tài khoản này.</p>}
@@ -206,7 +211,14 @@ export function AdminUserDetailPage() {
             <div className="admin-user-identity">
               <Avatar name={user.fullName} size="lg" />
               <div>
-                <p className="admin-kicker">{user.studentCode || user.employeeCode || 'Hồ sơ tài khoản'}</p>
+                <div className="workspace-context">
+                  <BackLink className="workspace-back-inline" fallback={returnTo}>
+                    <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+                    <span>Danh sách tài khoản</span>
+                  </BackLink>
+                  <span className="workspace-context-sep" aria-hidden="true" />
+                  <p className="admin-kicker !m-0">{user.studentCode || user.employeeCode || 'Hồ sơ tài khoản'}</p>
+                </div>
                 <h1 id="admin-user-title">{user.fullName}</h1>
                 <p>{user.email}</p>
               </div>

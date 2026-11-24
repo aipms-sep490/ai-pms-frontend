@@ -290,11 +290,18 @@ export function ProjectFilesPage() {
   const inputClass = 'min-h-11 min-w-0 w-full rounded-md border border-hairline bg-card px-3 text-sm font-normal normal-case tracking-normal text-ink outline-none placeholder:text-ink-muted focus:border-primary focus:ring-2 focus:ring-primary/15'
   const hasActiveFilters = activeFilterChips.length > 0 || sortBy !== 'newest'
 
+  const backTo = Number.isInteger(routeId) && routeId > 0
+    ? (role === 'department' || role === 'admin' ? '/department/portfolio' : `/supervisor/projects/${routeId}/workspace`)
+    : undefined
+  const backLabel = role === 'department' || role === 'admin' ? 'Danh mục đồ án' : 'Tổng quan đồ án'
+
   return (
     <WorkspacePage
       className="project-files-page space-y-5"
       title="Kho tệp đồ án"
       eyebrow={journey.project?.code ? `Kho tài liệu • ${journey.project.code}` : 'Kho tài liệu đồ án'}
+      backTo={backTo}
+      backLabel={backLabel}
       description="Tìm và quản lý tài liệu theo công việc, báo cáo và cuộc họp của nhóm."
       action={
         <div className="flex flex-wrap items-center gap-2">

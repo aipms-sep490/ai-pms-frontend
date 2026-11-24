@@ -257,7 +257,7 @@ export function EvaluatorAssignmentManagementPage() {
   if (roleFilter) listChips.push({ id: 'role', label: 'Vai trò', value: displayLabel(roleFilter) })
 
   return (
-    <WorkspacePage size="wide" className="space-y-6 academic-capability-page" title={readOnly ? 'Xem phân công người chấm' : 'Phân công người chấm'} eyebrow="Đánh giá đồ án" description={readOnly ? 'Theo dõi phân công theo dữ liệu học vụ đã ghi nhận.' : 'Chọn đợt đánh giá, thành phần chấm và giảng viên phù hợp cho đồ án.'} action={<ButtonLink to={paths.scheme} icon="schema">Phương án đánh giá</ButtonLink>}>
+    <WorkspacePage size="wide" className="space-y-6 academic-capability-page" title={readOnly ? 'Xem phân công người chấm' : 'Phân công người chấm'} eyebrow="Đánh giá đồ án" backTo={paths.admin ? '/admin/access' : '/department/portfolio'} backLabel={paths.admin ? 'Quản trị hệ thống' : 'Danh mục đồ án'} description={readOnly ? 'Theo dõi phân công theo dữ liệu học vụ đã ghi nhận.' : 'Chọn đợt đánh giá, thành phần chấm và giảng viên phù hợp cho đồ án.'} action={<ButtonLink to={paths.scheme} icon="schema">Phương án đánh giá</ButtonLink>}>
     {readOnly && !capabilities.loading && <p role="status" className="rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-muted">Chế độ theo dõi: bộ môn phụ trách thực hiện phân công và thu hồi người chấm.</p>}
     <ResourcePermissionNotice loading={capabilities.loading} error={capabilities.error} allowed={canManage} reason={capabilities.reasonLabel('manage_evaluators')} onRetry={capabilities.retry} />
 
