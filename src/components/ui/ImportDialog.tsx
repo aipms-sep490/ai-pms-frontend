@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { Button } from './Button'
 import { Modal } from './Modal'
 import { Table, TableBody, TableHead, TableHeaderCell, TableRow } from './Table'
@@ -58,6 +58,7 @@ export function ImportDialog<Row>({ title, description, onClose, authorized, una
   previewDisabled, previewButtonLabel = 'Xem trước', preview, confirmed, onConfirmedChange,
   error, success, onCommit, commitLabel = 'Xác nhận nhập', commitAccessibleName,
   commitBusyLabel = 'Đang lưu…', commitIcon = 'upload' }: ImportDialogProps<Row>) {
+  const fileInputId = useId()
   const [internalConfirmed, setInternalConfirmed] = useState(false)
   const [onlyErrors, setOnlyErrors] = useState(false)
   const [page, setPage] = useState(1)
@@ -78,7 +79,14 @@ export function ImportDialog<Row>({ title, description, onClose, authorized, una
       {!authorized ? <p role="alert">{unauthorizedMessage ?? 'Bạn không có quyền nhập dữ liệu.'}</p> : <>
         {beforeFile}
         <p className="m-0 text-xs text-ink-muted">{accept} · {limits}</p>
-        <label className="curriculum-import__file">{fileLabel}<input type="file" accept={accept} disabled={busy} onChange={event => { resetView(); onFileChange(event.target.files?.[0] ?? null) }} /></label>
+        <div className="curriculum-import__file">
+          <label htmlFor={fileInputId} className="block text-sm font-medium text-ink-soft">{fileLabel}</label>
+          <div className="relative grid min-h-11 min-w-0 cursor-pointer grid-cols-[auto_minmax(0,1fr)] overflow-hidden rounded-lg border border-hairline bg-card font-normal transition-colors hover:border-primary/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+            <span aria-hidden="true" className="flex items-center border-r border-hairline bg-primary-subtle px-3.5 text-xs font-semibold text-primary">Chọn tệp</span>
+            <span aria-hidden="true" className="flex items-center truncate px-3 text-xs font-medium text-ink-muted">{file ? file.name : 'Chưa chọn tệp'}</span>
+            <input id={fileInputId} type="file" accept={accept} disabled={busy} className="absolute inset-0 cursor-pointer opacity-0" onChange={event => { resetView(); onFileChange(event.target.files?.[0] ?? null) }} />
+          </div>
+        </div>
         {file && <p className="curriculum-import__filename">{file.name} · {Math.max(1, Math.ceil(file.size / 1024))} KB</p>}
         <Button variant="outline" icon="preview" disabled={previewDisabled || busy} onClick={() => { resetView(); onPreview() }}>{busy && !preview ? 'Đang kiểm tra…' : previewButtonLabel}</Button>
         {error && <p role="alert" className="curriculum-import__error">{error}</p>}

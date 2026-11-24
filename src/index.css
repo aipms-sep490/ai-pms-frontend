@@ -103,6 +103,11 @@
 }
 
 @layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
   label :is(input, select, textarea) {
     font-weight: 400;
     text-transform: none;

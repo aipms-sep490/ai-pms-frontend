@@ -126,19 +126,30 @@
   background: var(--color-card);
 }
 
+.calendar-panel__filters .ft-main-row,
+.calendar-panel__filters .ft-controls {
+  gap: 6px;
+}
+
 .calendar-panel__filters .ft-search {
-  flex: 1 1 130px;
-  min-width: 125px;
+  flex: 1 1 115px;
+  min-width: 110px;
 }
 
 .calendar-panel__filters .ft-controls select {
-  max-width: 138px;
-  padding: 5px 26px 5px 9px !important;
+  max-width: 130px;
+  padding: 5px 24px 5px 8px !important;
+  background-position: right 6px center;
 }
 
 .calendar-panel__filters .ft-sort-wrap .ft-sort-select {
-  max-width: 175px;
-  padding: 5px 26px 5px 28px !important;
+  max-width: 160px;
+  padding: 5px 24px 5px 26px !important;
+  background-position: right 6px center;
+}
+
+.calendar-panel__filters .ft-sort-label {
+  left: 7px;
 }
 
 .calendar-panel h2,

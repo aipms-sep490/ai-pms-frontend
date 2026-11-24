@@ -367,7 +367,7 @@ export function RubricManagementPage() {
       search={listSearch}
       onSearchChange={setListSearch}
       searchLabel="Tìm bộ tiêu chí"
-      searchPlaceholder="Tìm theo mã hoặc tên bộ tiêu chí..."
+      searchPlaceholder="Tìm mã, tên bộ tiêu chí…"
       debounceMs={0}
       tabs={[
         { value: '', label: 'Tất cả' },

@@ -230,7 +230,7 @@ export function GanttPage() {
           embedded
           search={search}
           onSearchChange={setSearch}
-          searchPlaceholder="Tìm mốc hoặc công việc trên lịch…"
+          searchPlaceholder="Tìm mốc hoặc công việc…"
           controls={
             <>
               <select aria-label="Mốc đồ án" value={selected} onChange={event => setSelected(event.target.value)}>

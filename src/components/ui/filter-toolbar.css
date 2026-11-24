@@ -259,13 +259,49 @@
 }
 
 .ft-bar--compact .ft-controls select {
-  max-width: 240px;
+  max-width: 270px;
   padding: 5px 28px 5px 9px !important;
 }
 
 .ft-bar--compact .ft-sort-wrap .ft-sort-select {
   max-width: 165px;
   padding: 5px 28px 5px 28px !important;
+}
+
+@media (max-width: 1340px) {
+  .ft-bar--compact {
+    padding: 9px 12px;
+  }
+  .ft-bar--compact .ft-main-row,
+  .ft-bar--compact .ft-controls {
+    gap: 6px;
+  }
+  .ft-bar--compact .ft-search {
+    flex: 1 1 128px;
+    min-width: 118px;
+  }
+  .ft-bar--compact .ft-search .ft-search-input {
+    padding: 6px 10px 6px 32px !important;
+    font-size: 12.5px;
+  }
+  .ft-bar--compact .ft-controls select {
+    max-width: 265px;
+    padding: 5px 24px 5px 8px !important;
+    background-position: right 7px center;
+    font-size: 12px;
+  }
+  .ft-bar--dense .ft-controls select {
+    max-width: 155px;
+  }
+  .ft-bar--compact .ft-sort-wrap .ft-sort-select {
+    max-width: 145px;
+    padding: 5px 24px 5px 26px !important;
+    background-position: right 7px center;
+    font-size: 12px;
+  }
+  .ft-bar--compact .ft-sort-label {
+    left: 7px;
+  }
 }
 
 .ft-right-actions {

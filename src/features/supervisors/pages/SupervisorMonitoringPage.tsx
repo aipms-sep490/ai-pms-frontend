@@ -140,7 +140,7 @@ export function SupervisorMonitoringPage() {
               <input
                 aria-label="Chuyên môn"
                 placeholder="Chuyên môn (AI…)"
-                className="ft-select w-[155px]"
+                className="ft-select w-[136px]"
                 value={supervisors.filters.expertise ?? ''}
                 onChange={event => supervisors.setFilters({ ...supervisors.filters, expertise: event.target.value || undefined, page: 1 })}
               />

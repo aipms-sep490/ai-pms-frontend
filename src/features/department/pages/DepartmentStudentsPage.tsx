@@ -17,6 +17,7 @@ import { getAcademicHierarchy } from '../../academic/api/academic-api'
 import { academicProfileStatus } from '../../academic/api/profile-verification-api'
 import { ProfileVerificationsPage } from '../../academic/pages/ProfileVerificationsPage'
 import { useAuthSession } from '../../auth/context/useAuthSession'
+import { projectStatusLabel } from '../../projects/utils/project-status'
 import { QualificationVerificationPage } from '../../qualifications/pages/QualificationVerificationPage'
 import { CurriculumImportDialog } from '../../users/components/CurriculumImportDialog'
 import { RosterExportDialog } from '../../users/components/RosterExportDialog'
@@ -382,7 +383,7 @@ export function DepartmentStudentsPage() {
           />
 
           <FilterToolbar
-            className="ft-bar--compact"
+            className="ft-bar--compact ft-bar--dense"
             ariaLabel="Bộ lọc sinh viên Khoa"
             search={search}
             onSearchChange={val => setFilter({ search: val })}
@@ -531,16 +532,16 @@ export function DepartmentStudentsPage() {
               ) : undefined}
             />
           ) : (
-            <section className="workspace-surface overflow-hidden p-4">
+            <section className="workspace-surface overflow-hidden">
               <Table stack>
                 <TableHead>
                   <TableRow head>
-                    <TableHeaderCell>Sinh viên</TableHeaderCell>
-                    <TableHeaderCell>Lớp & Chuyên ngành hẹp</TableHeaderCell>
-                    <TableHeaderCell>Ngành & Khung CTĐT</TableHeaderCell>
-                    <TableHeaderCell>Hồ sơ & Điều kiện</TableHeaderCell>
-                    <TableHeaderCell>Nhóm & Đồ án</TableHeaderCell>
-                    <TableHeaderCell aria-label="Thao tác" />
+                    <TableHeaderCell className="px-2.5 first:pl-4">Sinh viên</TableHeaderCell>
+                    <TableHeaderCell className="px-2.5">Lớp & Chuyên ngành hẹp</TableHeaderCell>
+                    <TableHeaderCell className="px-2.5">Ngành & Khung CTĐT</TableHeaderCell>
+                    <TableHeaderCell className="px-2.5">Hồ sơ & Điều kiện</TableHeaderCell>
+                    <TableHeaderCell className="px-2.5">Nhóm & Đồ án</TableHeaderCell>
+                    <TableHeaderCell className="px-2.5 last:pr-4" aria-label="Thao tác" />
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -551,7 +552,7 @@ export function DepartmentStudentsPage() {
               </Table>
 
               {(data.totalPages > 1 || data.totalCount > pageSize) && (
-                <div className="mt-4">
+                <div className="border-t border-hairline px-4 py-3">
                   <Pagination
                     page={data.page}
                     pages={Math.max(1, data.totalPages)}
@@ -599,49 +600,53 @@ function StudentRow({ student, semesterParam }: { student: DepartmentStudentSumm
 
   return (
     <TableRow>
-      <TableCell label="Sinh viên">
-        <div className="flex flex-col">
-          <strong>{student.fullName}</strong>
+      <TableCell label="Sinh viên" className="px-2.5 first:pl-4">
+        <div className="flex min-w-0 flex-col">
+          <strong className="truncate max-w-[190px]" title={student.fullName}>{student.fullName}</strong>
           <span className="font-mono text-xs text-ink-muted">{student.studentCode ?? 'Chưa có MSSV'}</span>
-          <span className="text-xs text-ink-muted">{student.email}</span>
+          <span className="truncate max-w-[190px] text-xs text-ink-muted" title={student.email}>{student.email}</span>
         </div>
       </TableCell>
-      <TableCell label="Lớp & Chuyên ngành hẹp">
+      <TableCell label="Lớp & Chuyên ngành hẹp" className="px-2.5">
         <div className="flex flex-col">
           <span>{student.classCode ? `Lớp ${student.classCode}` : 'Chưa nhập lớp'}</span>
-          <small className="text-ink-muted">
+          <span className="text-xs text-ink-muted">
             {student.specializationName
               ? `${student.specializationCode ? `${student.specializationCode} · ` : ''}${student.specializationName}`
               : 'Chưa chọn chuyên ngành hẹp'}
-          </small>
+          </span>
         </div>
       </TableCell>
-      <TableCell label="Ngành & Khung CTĐT">
+      <TableCell label="Ngành & Khung CTĐT" className="px-2.5">
         <div className="flex flex-col">
           <span>{student.majorName ?? 'Chưa gán ngành'}</span>
-          <small className="text-ink-muted">{student.curriculumCode ? `Khung ${student.curriculumCode}` : 'Chưa có khung'}</small>
+          <span className="text-xs text-ink-muted">{student.curriculumCode ? `Khung ${student.curriculumCode}` : 'Chưa có khung'}</span>
         </div>
       </TableCell>
-      <TableCell label="Hồ sơ & Điều kiện">
+      <TableCell label="Hồ sơ & Điều kiện" className="px-2.5">
         <div className="flex flex-wrap gap-1.5">
           <StatusBadge tone={profileTone[student.academicProfileStatus] ?? 'neutral'} label={academicProfileStatus(student.academicProfileStatus)} />
           <StatusBadge tone={qualTone[student.qualificationStatus] ?? 'neutral'} label={qualLabels[student.qualificationStatus] ?? student.qualificationStatus} />
         </div>
       </TableCell>
-      <TableCell label="Nhóm & Đồ án">
+      <TableCell label="Nhóm & Đồ án" className="px-2.5">
         {student.teamCode ? (
           <div className="flex flex-col">
             <span>
               <strong>{student.teamCode}</strong>
               {student.isTeamLeader ? ' · Trưởng nhóm' : ' · Thành viên'}
             </span>
-            {student.projectCode && <small className="text-ink-muted">{student.projectCode} ({student.projectStatus})</small>}
+            {student.projectCode && (
+              <span className="text-xs text-ink-muted">
+                {student.projectCode}{student.projectStatus ? ` (${projectStatusLabel(student.projectStatus)})` : ''}
+              </span>
+            )}
           </div>
         ) : (
           <span className="text-xs text-ink-muted">Chưa có nhóm</span>
         )}
       </TableCell>
-      <TableCell label="Thao tác" className="whitespace-nowrap text-right">
+      <TableCell label="Thao tác" className="whitespace-nowrap px-2.5 text-right last:pr-4">
         <Link className="whitespace-nowrap font-medium text-primary hover:underline" to={detailUrl}>
           Chi tiết
         </Link>

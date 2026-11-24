@@ -450,6 +450,7 @@ export function TopicManagementPage() {
       </div>
 
       <FilterToolbar
+        className="ft-bar--compact"
         search={topics.filters.search ?? ''}
         onSearchChange={value => topics.setFilters({ ...topics.filters, search: value || undefined, page: 1 })}
         searchLabel="Tìm đề tài"
@@ -525,7 +526,7 @@ export function TopicManagementPage() {
           value: sortBy,
           onChange: value => setSortBy(value as TopicSort),
           options: [
-            { value: 'default', label: 'Mặc định hệ thống' },
+            { value: 'default', label: 'Mặc định' },
             { value: 'title_asc', label: 'Tên đề tài A–Z' },
             { value: 'code_asc', label: 'Mã đề tài A–Z' },
           ],

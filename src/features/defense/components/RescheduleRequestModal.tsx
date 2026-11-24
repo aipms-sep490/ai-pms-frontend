@@ -119,8 +119,9 @@ export const RescheduleRequestModal: React.FC<RescheduleRequestModalProps> = ({
 
           {/* Conflict Checker Banner */}
           {isSlotConflicted ? (
-            <div className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-xs text-status-error-text">
-              <strong>❌ Xung đột lịch:</strong> Giảng viên phản biện của nhóm đã có lịch chấm hội đồng khác trong khung giờ này. Vui lòng chọn ca khác.
+            <div className="flex items-start gap-2 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-xs text-status-error-text">
+              <span className="material-symbols-outlined mt-0.5 shrink-0 text-[16px]" aria-hidden="true">error</span>
+              <span><strong>Xung đột lịch:</strong> Giảng viên phản biện của nhóm đã có lịch chấm hội đồng khác trong khung giờ này. Vui lòng chọn ca khác.</span>
             </div>
           ) : (
             <div className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-2.5 text-xs text-ink">

@@ -373,7 +373,7 @@ export function ProjectFilesPage() {
           search={filters.search ?? ''}
           onSearchChange={(val) => setFilters(current => ({ ...current, page: 1, search: val.trim() || undefined }))}
           searchLabel="Tên tệp"
-          searchPlaceholder="Tìm theo tên tệp (ví dụ: biên bản họp, báo cáo…)"
+          searchPlaceholder="Tìm theo tên tệp…"
           controls={
             <>
               <select

@@ -232,7 +232,7 @@ export function PortfolioDashboardPage() {
       <FilterToolbar
         search={filter.search ?? ''}
         onSearchChange={handleSearchChange}
-        searchPlaceholder="Tìm theo mã hoặc tên đồ án…"
+        searchPlaceholder="Tìm mã, tên đồ án…"
         searchLabel="Tìm đồ án"
         controls={
           <>

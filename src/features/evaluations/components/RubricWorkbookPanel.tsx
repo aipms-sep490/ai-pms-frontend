@@ -225,11 +225,16 @@ export function RubricWorkbookPanel({ rubric, dirty, onCommitted }: {
         disabled={busy} onClick={() => void download()}>Tải workbook .xlsx</button>
     </div>
     {rubric.canEdit && <div className="mt-3 flex flex-wrap items-end gap-2">
-      <label className="text-sm text-ink-soft">Tệp Excel đã điền
-        <input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          className="mt-1 block max-w-full text-sm" disabled={busy || dirty}
-          onChange={event => { setFile(event.target.files?.[0] ?? null); setPreview(null); setStagedRows([]); setEditedLocally(false); setError('') }} />
-      </label>
+      <div className="min-w-[240px] flex-1">
+        <label htmlFor={`rubric-workbook-file-${rubric.id}`} className="block text-sm font-medium text-ink-soft">Tệp Excel đã điền</label>
+        <div className="relative mt-1 grid min-h-11 min-w-0 cursor-pointer grid-cols-[auto_minmax(0,1fr)] overflow-hidden rounded-lg border border-hairline bg-card font-normal transition-colors hover:border-primary/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+          <span aria-hidden="true" className="flex items-center border-r border-hairline bg-primary-subtle px-3.5 text-xs font-semibold text-primary">Chọn tệp</span>
+          <span aria-hidden="true" className="flex items-center truncate px-3 text-xs font-medium text-ink-muted">{file ? file.name : 'Chưa chọn tệp'}</span>
+          <input id={`rubric-workbook-file-${rubric.id}`} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            className="absolute inset-0 cursor-pointer opacity-0" disabled={busy || dirty}
+            onChange={event => { setFile(event.target.files?.[0] ?? null); setPreview(null); setStagedRows([]); setEditedLocally(false); setError('') }} />
+        </div>
+      </div>
       <button type="button" className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50"
         disabled={!file || busy || dirty} onClick={() => void inspect()}>{busy ? 'Đang xử lý…' : 'Xem lỗi và thay đổi'}</button>
     </div>}

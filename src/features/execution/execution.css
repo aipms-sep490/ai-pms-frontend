@@ -157,9 +157,10 @@
 .schedule-scroll-hint { padding: 8px 24px; color: var(--color-ink-muted); font-size: 12px; border-bottom: 1px solid var(--color-hairline); }
 
 .ex-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 14px 24px; border-bottom: 1px solid var(--color-hairline); background: var(--color-canvas); }
-.ex-tabs { display: inline-flex; align-items: center; gap: 4px; background: var(--color-hairline); padding: 4px; border-radius: 8px; }
-.ex-tabs button { padding: 6px 14px; border-radius: 6px; border: 0; background: transparent; font-size: 13px; font-weight: 600; color: var(--color-ink-muted); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: all 160ms ease; }
-.ex-tabs button[aria-pressed="true"] { background: var(--color-card); color: var(--color-primary); box-shadow: 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 6%, transparent); }
+.ex-tabs { display: inline-flex; align-items: center; gap: 4px; background: var(--color-canvas); border: 1px solid var(--color-hairline); padding: 4px; border-radius: 8px; }
+.ex-tabs button { padding: 6px 14px; border-radius: 6px; border: 0; background: transparent; font-size: 13px; font-weight: 600; color: var(--color-ink-soft); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: all 160ms ease; }
+.ex-tabs button:hover:not([aria-pressed="true"]) { color: var(--color-ink); }
+.ex-tabs button[aria-pressed="true"] { background: var(--color-card); color: var(--color-primary); box-shadow: 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 8%, transparent); }
 .ex-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; padding: 14px 24px; border-bottom: 1px solid var(--color-hairline); background: var(--color-card); }
 .ex-filters label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 650; color: var(--color-ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
 .ex-filters :is(input, select) { min-height: 40px; padding: 8px 12px; border: 1px solid var(--color-hairline); border-radius: 8px; font-size: 13px; background-color: var(--color-card); color: var(--color-ink); font-weight: 400; text-transform: none; letter-spacing: normal; }

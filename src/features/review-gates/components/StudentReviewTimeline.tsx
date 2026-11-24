@@ -370,13 +370,15 @@ export function StudentReviewTimeline({
               ))}
             </div>
           ) : (
-            <div className="rounded-lg border border-hairline bg-canvas p-4 text-xs text-ink-muted">
-              ℹ️ Đồ án liên ngành đang chờ Hội đồng công bố cấu trúc phân nhánh và trọng số chuyên môn theo snapshot kỳ học.
+            <div className="flex items-start gap-2 rounded-lg border border-hairline bg-canvas p-4 text-xs text-ink-muted">
+              <span className="material-symbols-outlined mt-0.5 shrink-0 text-[16px] text-primary" aria-hidden="true">info</span>
+              <span>Đồ án liên ngành đang chờ Hội đồng công bố cấu trúc phân nhánh và trọng số chuyên môn theo snapshot kỳ học.</span>
             </div>
           )}
 
-          <div className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-xs text-status-warning-text">
-            ⚠️ <strong>Quy tắc Cổng Tích hợp:</strong> Cổng đánh giá tích hợp liên ngành chỉ được thông qua khi toàn bộ các ngành thành viên bắt buộc đều được phê duyệt ĐẠT.
+          <div className="flex items-start gap-2 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-xs text-status-warning-text">
+            <span className="material-symbols-outlined mt-0.5 shrink-0 text-[16px]" aria-hidden="true">warning</span>
+            <span><strong>Quy tắc Cổng Tích hợp:</strong> Cổng đánh giá tích hợp liên ngành chỉ được thông qua khi toàn bộ các ngành thành viên bắt buộc đều được phê duyệt ĐẠT.</span>
           </div>
         </div>
       )}

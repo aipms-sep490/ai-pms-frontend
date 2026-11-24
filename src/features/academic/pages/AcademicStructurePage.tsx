@@ -172,6 +172,7 @@ export function AcademicStructurePage() {
             />
           </div>
           <FilterToolbar
+            className="ft-bar--compact"
             search={filters.search}
             onSearchChange={value => setFilters(current => ({ ...current, search: value }))}
             searchLabel="Tìm theo mã hoặc tên"
@@ -195,7 +196,7 @@ export function AcademicStructurePage() {
                     ))}
                   </select>
                 </label>
-                <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-ink-soft hover:border-primary/40">
+                <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 whitespace-nowrap rounded-lg border border-hairline bg-card px-2.5 text-xs font-semibold text-ink-soft hover:border-primary/40">
                   <input
                     type="checkbox"
                     className="h-4 w-4 accent-primary"

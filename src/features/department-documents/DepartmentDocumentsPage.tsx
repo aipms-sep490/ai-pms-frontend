@@ -267,10 +267,15 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
               <input className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={title} onChange={event => setTitle(event.target.value)} minLength={2} maxLength={200} required />
             </label>
           </div>
-          <label className="block text-sm font-medium text-ink-soft">Tệp mẫu
-            <input id="department-document-file" type="file" className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink file:mr-3 file:rounded-md file:border-0 file:bg-primary-subtle file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" accept=".pdf,.docx,.xlsx" required
-              onChange={event => setFile(event.target.files?.[0] ?? null)} />
-          </label>
+          <div>
+            <label htmlFor="department-document-file" className="block text-sm font-medium text-ink-soft">Tệp mẫu</label>
+            <div className="relative mt-1 grid min-h-11 min-w-0 cursor-pointer grid-cols-[auto_minmax(0,1fr)] overflow-hidden rounded-lg border border-hairline bg-card font-normal transition-colors hover:border-primary/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+              <span aria-hidden="true" className="flex items-center border-r border-hairline bg-primary-subtle px-3.5 text-xs font-semibold text-primary">Chọn tệp</span>
+              <span aria-hidden="true" className="flex items-center truncate px-3 text-xs font-medium text-ink-muted">{file ? file.name : 'Chưa chọn tệp'}</span>
+              <input id="department-document-file" type="file" className="absolute inset-0 cursor-pointer opacity-0" accept=".pdf,.docx,.xlsx" required
+                onChange={event => setFile(event.target.files?.[0] ?? null)} />
+            </div>
+          </div>
           <div className="app-modal__actions">
             {uploadedNeedsReload ? (
               <button type="button" className="app-modal__button" onClick={() => void retryList()} disabled={loading}>Tải lại danh sách</button>
@@ -291,6 +296,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
       </div>
       <FilterToolbar
         embedded
+        className={manager ? 'ft-bar--compact' : undefined}
         tabs={manager ? [
           { value: '', label: 'Tất cả' },
           { value: 'PUBLISHED', label: 'Đã công bố' },
@@ -302,7 +308,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
         search={search}
         onSearchChange={setSearch}
         searchLabel="Tìm tài liệu"
-        searchPlaceholder="Tìm tên, mã tài liệu hoặc tệp…"
+        searchPlaceholder="Tìm tên, mã tài liệu…"
         controls={
           <>
             <select aria-label="Ngành" value={majorId} disabled={uploadedNeedsReload || uploading || busyId !== null} onChange={event => { setActionError(''); setMajorId(event.target.value) }}>
@@ -311,7 +317,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
             </select>
             {manager && (
               <select aria-label="Kỳ đồ án" value={periodId} disabled={uploadedNeedsReload || uploading || busyId !== null} onChange={event => { setActionError(''); setPeriodId(event.target.value) }}>
-                <option value="">Tất cả kỳ và tài liệu dùng chung</option>
+                <option value="">Tất cả kỳ & dùng chung</option>
                 {periods.map(period => <option key={period.id} value={period.id}>{period.name} ({period.code})</option>)}
               </select>
             )}

@@ -535,39 +535,39 @@ export function AdminWorkspacePage() {
         ) : null}
 
         {admin.users.state === 'ready' && filteredUsers.length > 0 ? (
-          <div className="mt-4">
-            <Table stack>
+          <div className="mt-4 -mx-4 sm:-mx-5">
+            <Table stack className="text-[13px]">
               <TableHead>
                 <TableRow head>
-                  <TableHeaderCell>Người dùng</TableHeaderCell>
-                  <TableHeaderCell>Vai trò hệ thống</TableHeaderCell>
-                  <TableHeaderCell>Trạng thái</TableHeaderCell>
-                  <TableHeaderCell>Đăng nhập gần nhất</TableHeaderCell>
-                  <TableHeaderCell>Phạm vi học thuật</TableHeaderCell>
-                  <TableHeaderCell>Thao tác</TableHeaderCell>
+                  <TableHeaderCell className="px-2 first:pl-3">Người dùng</TableHeaderCell>
+                  <TableHeaderCell className="px-2">Vai trò hệ thống</TableHeaderCell>
+                  <TableHeaderCell className="px-2">Trạng thái</TableHeaderCell>
+                  <TableHeaderCell className="px-2">Đăng nhập gần nhất</TableHeaderCell>
+                  <TableHeaderCell className="px-2">Phạm vi học thuật</TableHeaderCell>
+                  <TableHeaderCell className="px-2 text-right last:pr-3">Thao tác</TableHeaderCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredUsers.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell label="Người dùng">
-                      <div className="flex items-center gap-3">
+                    <TableCell label="Người dùng" className="px-2 first:pl-3">
+                      <div className="flex items-center gap-2">
                         <Avatar name={user.fullName} size="sm" />
                         <div className="flex min-w-0 flex-col">
-                          <strong className="text-ink">{user.fullName}</strong>
-                          <span className="text-xs text-ink-muted">{user.email}</span>
-                          <small className="text-xs text-ink-muted">{user.studentCode ?? user.employeeCode ?? 'Không có mã'}</small>
+                          <strong className="truncate max-w-[148px] text-ink" title={user.fullName}>{user.fullName}</strong>
+                          <span className="truncate max-w-[148px] text-xs text-ink-muted" title={user.email}>{user.email}</span>
+                          <span className="font-mono text-xs text-ink-muted">{user.studentCode ?? user.employeeCode ?? 'Không có mã'}</span>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell label="Vai trò hệ thống">
+                    <TableCell label="Vai trò hệ thống" className="px-2">
                       {user.roles
                         .filter((role) => globalRoles.some((globalRole) => globalRole.code === role))
                         .map(role => (role === 'LECTURER' ? 'Giảng viên' : role === 'EVALUATOR' ? 'Người chấm' : displayLabel(role)))
                         .join(', ') || 'Chưa gán'}
                     </TableCell>
-                    <TableCell label="Trạng thái" className="whitespace-nowrap"><Status status={user.status} /></TableCell>
-                    <TableCell label="Đăng nhập gần nhất" className="whitespace-nowrap">
+                    <TableCell label="Trạng thái" className="whitespace-nowrap px-2"><Status status={user.status} /></TableCell>
+                    <TableCell label="Đăng nhập gần nhất" className="whitespace-nowrap px-2 text-xs tabular-nums">
                       {user.lastLoginAt ? (
                         <time dateTime={user.lastLoginAt}>
                           {formatSafeTimestamp(user.lastLoginAt, {
@@ -580,20 +580,20 @@ export function AdminWorkspacePage() {
                         </time>
                       ) : 'Chưa ghi nhận'}
                     </TableCell>
-                    <TableCell label="Phạm vi học thuật">
+                    <TableCell label="Phạm vi học thuật" className="px-2">
                       <div className="flex flex-col">
                         <span>
                           {user.departmentId ? academicNames.departments[user.departmentId] ?? 'Chưa tải được tên bộ môn' : 'Chưa liên kết bộ môn'}
                           {user.majorId ? ` · ${academicNames.majors[user.majorId] ?? 'Chưa tải được tên ngành'}` : ''}
                         </span>
                         {(user.classCode || user.specializationName) && (
-                          <small className="text-xs text-ink-muted">
+                          <span className="text-xs text-ink-muted">
                             {[user.classCode ? `Lớp ${user.classCode}` : null, user.specializationName].filter(Boolean).join(' · ')}
-                          </small>
+                          </span>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell label="Thao tác" className="whitespace-nowrap">
+                    <TableCell label="Thao tác" className="whitespace-nowrap px-2 text-right last:pr-3">
                       <Link className="whitespace-nowrap font-semibold text-primary hover:underline" to={`/admin/access/users/${user.id}`} state={{ returnTo: `/admin/access?${params.toString()}` }}>
                         Xem chi tiết
                       </Link>

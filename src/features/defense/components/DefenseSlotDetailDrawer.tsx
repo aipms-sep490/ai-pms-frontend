@@ -108,13 +108,14 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
           <button
             type="button"
             onClick={() => setActiveTab('RESCHEDULE')}
-            className={`min-h-11 border-b-2 px-3 py-3 transition-colors ${
+            className={`inline-flex min-h-11 items-center gap-1 border-b-2 px-3 py-3 transition-colors ${
               activeTab === 'RESCHEDULE'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-ink-muted hover:text-ink'
             }`}
           >
-            Yêu cầu đổi phòng {session.hasChangeRequest && '⚠️'}
+            <span>Yêu cầu đổi phòng</span>
+            {session.hasChangeRequest && <span className="material-symbols-outlined text-[15px] text-status-warning-text" aria-hidden="true">warning</span>}
           </button>
         </div>
 
@@ -266,7 +267,7 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
                 <h5 className="text-xs font-bold uppercase tracking-wider text-ink">Tình trạng yêu cầu đổi phòng</h5>
                 {session.hasChangeRequest ? (
                   <div className="mt-3 space-y-1 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-xs text-status-warning-text">
-                    <p className="font-bold">⚠️ Có yêu cầu đổi phòng đang chờ Trưởng bộ môn phê duyệt</p>
+                    <p className="flex items-center gap-1.5 font-bold"><span className="material-symbols-outlined text-[16px]" aria-hidden="true">warning</span><span>Có yêu cầu đổi phòng đang chờ Trưởng bộ môn phê duyệt</span></p>
                     <p className="text-xs text-status-warning-text">Lý do: Phòng A-201 gặp sự cố máy chiếu, nhóm cần đổi sang phòng A-204.</p>
                   </div>
                 ) : (
@@ -295,9 +296,10 @@ export const DefenseSlotDetailDrawer: React.FC<DefenseSlotDetailDrawerProps> = (
             <button
               type="button"
               onClick={() => window.print()}
-              className="min-h-11 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-canvas"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-canvas"
             >
-              📄 In biên bản bảo vệ
+              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">print</span>
+              <span>In biên bản bảo vệ</span>
             </button>
             {onCancelSession && session.canCancel && (
               <button

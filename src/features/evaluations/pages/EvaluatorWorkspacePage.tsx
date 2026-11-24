@@ -171,7 +171,7 @@ export function EvaluatorWorkspacePage() {
           <FilterToolbar
             search={search}
             onSearchChange={(val) => { setSearch(val); groupPager.setPage(1) }}
-            searchPlaceholder="Tìm đồ án, thành phần, bộ tiêu chí…"
+            searchPlaceholder="Tìm đồ án, bộ tiêu chí…"
             searchLabel="Tìm phân công đánh giá"
             activeTab={filter}
             onTabChange={(value) => { setFilter(value as StatusFilter); groupPager.setPage(1) }}

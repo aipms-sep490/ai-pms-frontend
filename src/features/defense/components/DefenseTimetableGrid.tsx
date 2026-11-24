@@ -172,7 +172,7 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
               onClick={onAutoScheduleClick}
               className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-primary-hover"
             >
-              <span>⚡</span>
+              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">bolt</span>
               <span>Tự động chia lịch</span>
             </button>
           )}
@@ -182,7 +182,8 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
               onClick={onExportExcelClick}
               className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-canvas"
             >
-              <span>📊 Xuất Excel</span>
+              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">table_view</span>
+              <span>Xuất Excel</span>
             </button>
           )}
         </div>
@@ -339,8 +340,8 @@ export const DefenseTimetableGrid: React.FC<DefenseTimetableGridProps> = ({
                                   {session.projectCode || `Đồ án #${session.projectId}`}
                                 </span>
                                 {session.hasChangeRequest && (
-                                  <span className="text-xs font-bold text-status-warning-text" title="Đang có yêu cầu đổi phòng">
-                                    ⚠️
+                                  <span className="inline-flex items-center text-status-warning-text" title="Đang có yêu cầu đổi phòng">
+                                    <span className="material-symbols-outlined text-[15px]" aria-hidden="true">warning</span>
                                   </span>
                                 )}
                               </div>
