@@ -121,110 +121,121 @@ export function StudentDashboardSummary() {
             )}
           </div>
           <span className="text-xs text-ink-muted">
-            Cập nhật lúc: {new Date(data.asOfUtc).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' })}
+            Cập nhật lúc:{' '}
+            {data.asOfUtc && Number.isFinite(Date.parse(data.asOfUtc))
+              ? new Date(data.asOfUtc).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' })
+              : 'Vừa cập nhật'}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 items-stretch gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
           {/* Gauge 1: Tiến độ công việc (Tasks %) */}
-          <div className="card-hover-lift rounded-xl border border-hairline bg-card p-4.5 shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-ink-muted">
-              <span className="font-semibold">Tiến độ công việc</span>
-              <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">task_alt</span>
+          <div className="card-hover-lift flex h-full flex-col justify-between rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+            <div>
+              <div className="flex items-center justify-between text-xs text-ink-muted">
+                <span className="font-semibold">Tiến độ công việc</span>
+                <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">task_alt</span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black tracking-tight text-ink tabular-nums">
+                  {taskProgress != null ? `${taskProgress.toFixed(0)}%` : '—'}
+                </span>
+                <span className="text-xs text-ink-muted">
+                  {taskProgress != null ? 'thực thi nội bộ' : 'Chưa có dữ liệu'}
+                </span>
+              </div>
+              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
+                <div
+                  className="shimmer-progress h-full rounded-full bg-primary transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(0, taskProgress ?? 0))}%` }}
+                />
+              </div>
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black tracking-tight text-ink tabular-nums">
-                {taskProgress != null ? `${taskProgress.toFixed(0)}%` : '—'}
-              </span>
-              <span className="text-xs text-ink-muted">
-                {taskProgress != null ? 'thực thi nội bộ' : 'Chưa có dữ liệu'}
-              </span>
-            </div>
-            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
-              <div
-                className="shimmer-progress h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: `${Math.min(100, Math.max(0, taskProgress ?? 0))}%` }}
-              />
-            </div>
-            <p className="mt-2 text-xs text-ink-muted">
-              Đang mở: <strong className="text-ink">{data.assignedOpenTasks}</strong> · Quá hạn:{' '}
-              <strong className={data.assignedOverdueTasks > 0 ? 'text-status-error-text' : 'text-ink'}>
-                {data.assignedOverdueTasks}
+            <p className="mt-2.5 text-xs text-ink-muted">
+              Đang mở: <strong className="text-ink">{data.assignedOpenTasks ?? 0}</strong> · Quá hạn:{' '}
+              <strong className={(data.assignedOverdueTasks ?? 0) > 0 ? 'text-status-error-text' : 'text-ink'}>
+                {data.assignedOverdueTasks ?? 0}
               </strong>
             </p>
           </div>
 
           {/* Gauge 2: Tiến độ cổng kiểm duyệt */}
-          <div className="card-hover-lift rounded-xl border border-hairline bg-card p-4.5 shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-ink-muted">
-              <span className="font-semibold">Tiến độ cổng kiểm duyệt</span>
-              <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">verified</span>
+          <div className="card-hover-lift flex h-full flex-col justify-between rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+            <div>
+              <div className="flex items-center justify-between text-xs text-ink-muted">
+                <span className="font-semibold">Tiến độ cổng kiểm duyệt</span>
+                <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">verified</span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black tracking-tight text-ink tabular-nums">
+                  {academicProgress != null ? `${academicProgress.toFixed(0)}%` : '—'}
+                </span>
+                <span className="text-xs text-ink-muted">
+                  {academicProgress != null ? 'trọng số đã duyệt' : 'Chưa cấu hình'}
+                </span>
+              </div>
+              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(0, academicProgress ?? 0))}%` }}
+                />
+              </div>
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black tracking-tight text-ink tabular-nums">
-                {academicProgress != null ? `${academicProgress.toFixed(0)}%` : '—'}
-              </span>
-              <span className="text-xs text-ink-muted">
-                {academicProgress != null ? 'trọng số đã duyệt' : 'Chưa cấu hình'}
-              </span>
-            </div>
-            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: `${Math.min(100, Math.max(0, academicProgress ?? 0))}%` }}
-              />
-            </div>
-            <p className="mt-2 truncate text-xs text-ink-muted" title={timeline?.academicProgressSource ?? 'Chưa cấu hình chính sách cổng'}>
+            <p className="mt-2.5 truncate text-xs text-ink-muted" title={timeline?.academicProgressSource ?? 'Chưa cấu hình chính sách cổng'}>
               Cổng hiện tại: <strong className="text-ink">{timeline?.currentGateCode?.trim() || 'Chưa mở cổng'}</strong>
             </p>
           </div>
 
           {/* Gauge 3: Minh chứng đã duyệt */}
-          <div className="card-hover-lift rounded-xl border border-hairline bg-card p-4.5 shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-ink-muted">
-              <span className="font-semibold">Minh chứng đã duyệt</span>
-              <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">fact_check</span>
+          <div className="card-hover-lift flex h-full flex-col justify-between rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+            <div>
+              <div className="flex items-center justify-between text-xs text-ink-muted">
+                <span className="font-semibold">Minh chứng đã duyệt</span>
+                <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">fact_check</span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black tracking-tight text-ink tabular-nums">
+                  {totalRequirements > 0 ? `${acceptedRequirements}/${totalRequirements}` : '—'}
+                </span>
+                <span className="text-xs text-ink-muted">
+                  {totalRequirements > 0 ? 'yêu cầu đạt' : 'Chưa có yêu cầu'}
+                </span>
+              </div>
+              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-500"
+                  style={{ width: totalRequirements > 0 ? `${Math.min(100, (acceptedRequirements / totalRequirements) * 100)}%` : '0%' }}
+                />
+              </div>
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black tracking-tight text-ink tabular-nums">
-                {totalRequirements > 0 ? `${acceptedRequirements}/${totalRequirements}` : '—'}
-              </span>
-              <span className="text-xs text-ink-muted">
-                {totalRequirements > 0 ? 'yêu cầu đạt' : 'Chưa có yêu cầu'}
-              </span>
-            </div>
-            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: totalRequirements > 0 ? `${Math.min(100, (acceptedRequirements / totalRequirements) * 100)}%` : '0%' }}
-              />
-            </div>
-            <p className="mt-2 text-xs text-ink-muted">
+            <p className="mt-2.5 text-xs text-ink-muted">
               Được hội đồng thẩm định chấp thuận
             </p>
           </div>
 
           {/* Gauge 4: Điều kiện bảo vệ */}
-          <div className="card-hover-lift rounded-xl border border-hairline bg-card p-4.5 shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-ink-muted">
-              <span className="font-semibold">Điều kiện bảo vệ</span>
-              <span className="material-symbols-outlined text-[18px] text-status-warning-text" aria-hidden="true">gavel</span>
+          <div className="card-hover-lift flex h-full flex-col justify-between rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+            <div>
+              <div className="flex items-center justify-between text-xs text-ink-muted">
+                <span className="font-semibold">Điều kiện bảo vệ</span>
+                <span className="material-symbols-outlined text-[18px] text-status-warning-text" aria-hidden="true">gavel</span>
+              </div>
+              <div className="mt-2.5 flex items-center gap-2">
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold ${
+                    isDefenseReady === true
+                      ? 'bg-status-success-bg text-status-success-text border border-status-success-border'
+                      : 'bg-status-warning-bg text-status-warning-text border border-status-warning-border'
+                  }`}
+                >
+                  {isDefenseReady !== true && (
+                    <span className="pulse-indicator h-1.5 w-1.5 bg-warning-strong" aria-hidden="true" />
+                  )}
+                  {isDefenseReady === true ? 'SẴN SÀNG BẢO VỆ' : 'CHƯA ĐỦ ĐIỀU KIỆN'}
+                </span>
+              </div>
             </div>
-            <div className="mt-2 flex items-center gap-2">
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold ${
-                  isDefenseReady === true
-                    ? 'bg-status-success-bg text-status-success-text border border-status-success-border'
-                    : 'bg-status-warning-bg text-status-warning-text border border-status-warning-border'
-                }`}
-              >
-                {isDefenseReady !== true && (
-                  <span className="pulse-indicator h-1.5 w-1.5 bg-warning-strong" aria-hidden="true" />
-                )}
-                {isDefenseReady === true ? 'SẴN SÀNG BẢO VỆ' : 'CHƯA ĐỦ ĐIỀU KIỆN'}
-              </span>
-            </div>
-            <p className="mt-3 truncate text-xs text-ink-muted" title={timeline?.defenseReadinessStatus ?? 'Đang trong tiến trình học kỳ'}>
+            <p className="mt-2.5 truncate text-xs text-ink-muted" title={timeline?.defenseReadinessStatus ?? 'Đang trong tiến trình học kỳ'}>
               {timeline?.capabilities?.blockingReasons?.length
                 ? `Còn ${timeline.capabilities.blockingReasons.length} điều kiện cần hoàn thiện`
                 : 'Theo dõi qua các cổng kiểm duyệt'}
@@ -233,8 +244,8 @@ export function StudentDashboardSummary() {
         </div>
       </div>
 
-      {/* CÔNG VIỆC CẦN CHÚ Ý & MỐC SẮP ĐẾN HẠN (Hợp nhất 2 cột gọn) */}
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.9fr)] lg:items-start">
+      {/* CÔNG VIỆC CẦN CHÚ Ý & MỐC SẮP ĐẾN HẠN (Hợp nhất 2 cột cân bằng chiều cao) */}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.9fr)] lg:items-stretch">
         <section className="space-y-3 rounded-2xl border border-hairline bg-card p-5 shadow-xs sm:p-6" aria-labelledby="flight-deck-heading">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
             <div className="flex items-center gap-2">
@@ -465,7 +476,7 @@ function DeadlineList({
   items: Array<{ id: number; title: string; date: string; overdue: boolean; href: string }>
 }) {
   return (
-    <section className="card-hover-lift rounded-2xl border border-hairline bg-card p-5 shadow-xs sm:p-6">
+    <section className="card-hover-lift flex h-full flex-col rounded-2xl border border-hairline bg-card p-5 shadow-xs sm:p-6">
       <h3 className="font-heading text-sm font-bold text-ink">{title}</h3>
       {items.length === 0 ? (
         <p className="mt-2 text-xs text-ink-muted">{empty}</p>
