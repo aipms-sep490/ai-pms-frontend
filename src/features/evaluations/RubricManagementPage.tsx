@@ -2,7 +2,14 @@ import { rubricErrors } from './rubric-errors'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { StatTileRow } from '../../components/ui/StatTileRow'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { displayLabel } from '../../components/ui/display-label'
+import { Pagination } from '../../components/ui/Pagination'
+import { useClientPagination } from '../../components/ui/useClientPagination'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { readAllPages } from '../../services/api/paged-read'
+import { evaluationStageLabel } from './evaluation-types'
 import { getAcademicHierarchy } from '../academic/api/academic-api'
 import { getSemesters } from '../academic/api/governance-api'
 import type { Department, Major } from '../academic/types/academic.types'
@@ -61,6 +68,7 @@ export function RubricManagementPage() {
   const [initialSelectionDone, setInitialSelectionDone] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   const [rubrics, setRubrics] = useState<Rubric[]>([])
+  const [searchPool, setSearchPool] = useState<{ status: string; items: Rubric[] | null } | null>(null)
   const [selected, setSelected] = useState<Rubric | null>(null)
   const [creating, setCreating] = useState(false)
   const [departments, setDepartments] = useState<Department[]>([])
@@ -75,6 +83,7 @@ export function RubricManagementPage() {
   const [criteria, setCriteria] = useState<CriterionInput[]>([])
   const [preview, setPreview] = useState(false)
   const [status, setStatus] = useState('')
+  const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [busy, setBusy] = useState(false)
@@ -85,11 +94,21 @@ export function RubricManagementPage() {
   const loadList = useCallback(async () => {
     setLoading(true)
     setRubrics([])
+    setSearchPool(null)
     try { const result = await api.listRubrics(page, status || undefined); setRubrics(result.items); setTotal(result.totalCount); setListFailed(false); setError(null) }
     catch (reason) { setTotal(0); setListFailed(true); setError(reason instanceof HttpError && reason.status === 403 ? 'Hệ thống không cấp quyền quản lý bộ tiêu chí trong phạm vi này.' : 'Không thể tải bộ tiêu chí.') }
     finally { setLoading(false) }
   }, [page, status])
   useEffect(() => { void loadList() }, [loadList])
+  const searchingAll = Boolean(search.trim()) && total > 20 && searchPool?.status !== status
+  useEffect(() => {
+    if (!searchingAll) return
+    let active = true
+    void readAllPages(p => api.listRubrics(p, status || undefined))
+      .then(all => { if (active) setSearchPool({ status, items: all }) })
+      .catch(() => { if (active) setSearchPool({ status, items: null }) })
+    return () => { active = false }
+  }, [searchingAll, status])
   useEffect(() => {
     if (!session) return
     let active = true
@@ -192,10 +211,39 @@ export function RubricManagementPage() {
 
   const weightIssues = rubricWeightGroupIssues(criteria)
   const invalidGroupPaths = new Set(weightIssues.map(issue => issue.parentPath.join('.')))
+  const isSearching = Boolean(search.trim())
+  const filteredRubrics = useMemo(() => {
+    const keyword = search.trim().toLowerCase()
+    const source = keyword && searchPool?.status === status && searchPool.items ? searchPool.items : rubrics
+    if (!keyword) return source
+    return source.filter(item => item.code.toLowerCase().includes(keyword) || item.name.toLowerCase().includes(keyword))
+  }, [rubrics, searchPool, status, search])
+  const listPagination = useClientPagination(filteredRubrics, 8)
+  const useServerPaging = !isSearching && total > 20
+  const displayedRubrics = useServerPaging ? filteredRubrics : listPagination.paginatedItems
+  const publishedCount = rubrics.filter(item => item.status === 'PUBLISHED').length
+  const pendingOrDraftCount = rubrics.filter(item => item.status === 'DRAFT' || item.status === 'PENDING_APPROVAL').length
+  const rubricTone = (value: string) => value === 'PUBLISHED' ? 'success' : value === 'PENDING_APPROVAL' ? 'warning' : value === 'DRAFT' ? 'info' : 'neutral'
 
-  return <WorkspacePage className="rubric-page space-y-5" title="Bộ tiêu chí đánh giá" eyebrow="Đánh giá đồ án" description="Quản lý tiêu chí, trọng số và các phiên bản dùng trong từng đợt đánh giá." action={<Button disabled={busy || loading || listFailed} onClick={() => void startDraft()}>Tạo bộ tiêu chí</Button>}>
+  return <WorkspacePage className="rubric-page space-y-5" title="Bộ tiêu chí đánh giá" eyebrow="Đánh giá đồ án" description="Quản lý tiêu chí, trọng số và các phiên bản dùng trong từng đợt đánh giá." action={<Button disabled={busy || loading || listFailed} onClick={() => void startDraft()} icon="add">Tạo bộ tiêu chí</Button>}>
     {confirmationDialog}
     {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" className="min-h-11 font-semibold underline" onClick={() => void loadList()}>Tải lại</button></p>}
+    <StatTileRow tiles={[
+      { icon: 'fact_check', label: 'Tổng bộ tiêu chí', value: listFailed ? null : total, hero: true, caption: status ? `Bộ lọc: ${rubricStatusLabel(status)}` : 'Trong phạm vi quản lý' },
+      { icon: 'verified', label: 'Đã công bố', value: listFailed ? null : publishedCount, tone: 'success', caption: total > 20 ? 'Trong trang hiện tại' : undefined },
+      { icon: 'edit_note', label: 'Nháp & chờ duyệt', value: listFailed ? null : pendingOrDraftCount, tone: pendingOrDraftCount > 0 ? 'warning' : 'neutral' },
+      { icon: 'format_list_numbered', label: 'Tiêu chí chính', value: selected || creating ? criteria.length : null, tone: 'info', caption: selected ? `${selected.code} · v${selected.version}` : creating ? 'Đang soạn bản nháp' : 'Chọn bộ tiêu chí để xem' },
+    ]} />
+    <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-hairline bg-card px-4 py-3 shadow-xs">
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="text-xs font-semibold text-ink-soft">Trạng thái<select className="mt-1 block min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm font-normal text-ink" value={status} onChange={event => { setStatus(event.target.value); setPage(1) }}><option value="">Tất cả</option><option value="DRAFT">Bản nháp</option><option value="PENDING_APPROVAL">Đang chờ duyệt</option><option value="PUBLISHED">Đã công bố</option><option value="RETIRED">Ngừng sử dụng</option></select></label>
+        <label className="text-xs font-semibold text-ink-soft">Tìm nhanh bộ tiêu chí<input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Mã hoặc tên bộ tiêu chí…" className="mt-1 block min-h-11 w-64 max-w-full rounded-lg border border-hairline bg-card px-3 text-sm font-normal text-ink placeholder:text-ink-muted" /></label>
+      </div>
+      <div className="flex items-center gap-2 text-xs text-ink-muted">
+        <span className="tabular-nums font-semibold text-ink">{filteredRubrics.length}</span>
+        <span>hiển thị</span>
+      </div>
+    </div>
     {selected && !detailLoading && <RubricWorkbookPanel key={`${selected.id}:${selected.concurrencyToken}`} rubric={selected} dirty={dirty}
       onCommitted={async preview => {
         if (!preview.draft) return
@@ -203,9 +251,56 @@ export function RubricManagementPage() {
         await loadList()
         await select(selected.id)
       }} />}
-    <div className="workspace-master-detail grid"><section className="rounded-xl border border-hairline bg-card p-4"><h2 className="font-semibold">Danh sách</h2><label className="mt-3 block text-sm">Trạng thái<select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" value={status} onChange={event => { setStatus(event.target.value); setPage(1) }}><option value="">Tất cả</option><option value="DRAFT">Bản nháp</option><option value="PENDING_APPROVAL">Đang chờ duyệt</option><option value="PUBLISHED">Đã công bố</option><option value="RETIRED">Ngừng sử dụng</option></select></label>{loading && <p role="status" className="mt-3 text-sm">Đang tải bộ tiêu chí…</p>}{!loading && !listFailed && rubrics.length === 0 && <p className="mt-3 text-sm text-ink-muted">Chưa có bộ tiêu chí.</p>}<ul className="mt-3 space-y-2">{rubrics.map(item => <li key={item.id}><button type="button" aria-pressed={selected?.id === item.id} disabled={busy} className={`min-h-11 w-full rounded-lg border p-3 text-left text-sm ${selected?.id === item.id ? 'border-primary bg-primary-subtle' : 'border-hairline'}`} onClick={() => void chooseRubric(item.id)}><strong>{item.code}</strong> · v{item.version}<span className="block text-xs text-ink-muted">{item.name} · {rubricStatusLabel(item.status)}</span></button></li>)}</ul>{total > 20 && <div className="mt-3 flex justify-between text-sm"><button type="button" className="min-h-11 px-2" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Trước</button><span>{page} / {Math.ceil(total / 20)}</span><button type="button" className="min-h-11 px-2" disabled={page >= Math.ceil(total / 20)} onClick={() => setPage(value => value + 1)}>Sau</button></div>}</section>
-    <section className="rounded-xl border border-hairline bg-card p-5 rubric-detail" aria-busy={detailLoading}>{detailLoading ? <div className="rubric-empty" role="status"><span className="material-symbols-outlined" aria-hidden="true">grading</span><h2>Đang tải bộ tiêu chí…</h2></div> : !creating && !selected && listFailed ? <div className="rubric-empty" role="status"><h2>Không thể tải danh sách</h2><p>Hãy tải lại bộ tiêu chí trước khi tạo hoặc chọn phiên bản.</p></div> : !creating && !selected ? <div className="rubric-empty"><span className="material-symbols-outlined" aria-hidden="true">fact_check</span><h2>{rubrics.length ? 'Chọn bộ tiêu chí để xem' : 'Chưa có bộ tiêu chí'}</h2><p>Xem nội dung, trọng số và phiên bản tại đây.</p><Button variant="secondary" onClick={newDraft}>Tạo bản nháp</Button></div> : <><div className="flex flex-wrap items-start justify-between gap-2"><div><h2 className="font-semibold">{creating ? 'Bản nháp mới' : `${selected?.code} · v${selected?.version}`}</h2>{selected && <p className="text-xs text-ink-muted">{rubricStatusLabel(selected.status)} · {selected.canEdit ? 'Có thể sửa' : 'Chỉ đọc'}</p>}</div>{selected && <div className="flex flex-wrap gap-2">{selected.status === 'DRAFT' && (selected.canSubmitForApproval ? <><button type="button" disabled={busy || dirty || missingLevels.length > 0} className="min-h-11 rounded-lg border border-hairline px-3 text-xs font-semibold" onClick={() => void act('submit')}>Gửi duyệt</button>{missingLevels.length > 0 && <span role="status" className="text-xs text-status-warning-text">{missingLevels.length} tiêu chí lá {selected.requiredLevelCount == null ? 'chưa hoàn tất mức chất lượng' : `chưa đủ ${selected.requiredLevelCount} mức chất lượng`} ({missingLevels.join(', ')}).</span>}</> : isLegacyRubric(selected) ? <button type="button" disabled={busy || dirty} className="min-h-11 rounded-lg border border-hairline px-3 text-xs font-semibold" onClick={() => void act('publish')}>Công bố</button> : null)}{selected.status === 'PUBLISHED' && <button type="button" disabled={busy} className="min-h-11 rounded-lg border border-hairline px-3 text-xs font-semibold" onClick={() => void act('retire')}>Ngừng dùng</button>}{selected.status !== 'DRAFT' && <button type="button" disabled={busy} className="min-h-11 rounded-lg border border-hairline px-3 text-xs font-semibold" onClick={() => void act('clone')}>Tạo phiên bản</button>}{selected.canEdit && <button type="button" disabled={busy} className="min-h-11 rounded-lg border border-status-error-border px-3 text-xs font-semibold text-status-error-text" onClick={() => void act('delete')}>Xóa bản nháp</button>}</div>}</div>
-      {selected?.status === 'PENDING_APPROVAL' && <p role="status" className="mt-3 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">Đang chờ phê duyệt — người gửi không tự duyệt được.</p>}{selected?.status === 'PENDING_APPROVAL' && <ActionVerdict actions={[{ code: 'APPROVE', allowed: Boolean(selected.canApprove), reasons: [] }]} actionCode="APPROVE" status="ready" okLabel="Điều kiện phê duyệt hợp lệ" blockedLabel="Chưa được cấp quyền phê duyệt">{(selected.canApprove || selected.canReject) && <ActionVerdict.Decision primary={{ label: 'Phê duyệt', onClick: () => void act('approve'), disabled: busy }} secondary={selected.canReject ? { label: 'Từ chối', onClick: () => void act('reject'), disabled: busy } : undefined} />}</ActionVerdict>}{selected?.approvalReference && <p className="mt-2 text-sm">Văn bản phê duyệt: {selected.approvalReference}</p>}{selected && !selected.canEdit ? <RubricReadView rubric={selected} departments={departments} semesters={semesters} majors={majors} /> : <form onSubmit={save} className="mt-4 space-y-4"><div className="grid gap-3 sm:grid-cols-2"><label className="text-sm">Bộ môn<select value={departmentId} onChange={event => { setDepartmentId(Number(event.target.value)); setSemesterId(0) }} disabled={!creating || busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink"><option value={0}>Chọn bộ môn</option>{departments.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="text-sm">Học kỳ<select value={semesterId} onChange={event => setSemesterId(Number(event.target.value))} disabled={!creating || busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink"><option value={0}>Chọn học kỳ</option>{compatibleSemesters.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div><div className="grid gap-3 sm:grid-cols-2"><label className="text-sm">Mã bộ tiêu chí<input value={code} onChange={event => setCode(event.target.value)} disabled={!creating || busy} required className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" /></label><label className="text-sm">Tên bộ tiêu chí<input value={name} onChange={event => setName(event.target.value)} disabled={Boolean(selected && !selected.canEdit) || busy} required className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" /></label></div><label className="block text-sm">Mô tả<textarea value={description} onChange={event => setDescription(event.target.value)} disabled={Boolean(selected && !selected.canEdit) || busy} rows={2} className="mt-1 w-full rounded-lg border border-hairline bg-card p-3 font-normal text-ink" /></label><RubricScopeEditor value={scopeFields} majors={eligibleMajors} disabled={busy} onChange={patch => setScopeFields(current => ({ ...current, ...patch }))} /><div><h3 className="font-semibold">Tiêu chí và trọng số</h3><p className="mt-1 text-xs text-ink-muted">Trọng số của các tiêu chí cùng cấp phải bằng 100% trước khi công bố.</p><RubricWeightSummary issues={weightIssues} /><div className="mt-3 space-y-3">{criteria.map((item, index) => <CriterionEditor key={index} item={item} path={[index]} invalidGroupPaths={invalidGroupPaths} disabled={Boolean(selected && !selected.canEdit) || busy} onEdit={(path, change) => setCriteria(current => editTree(current, path, node => ({ ...node, ...change })))} onAddChild={path => setCriteria(current => editTree(current, path, node => ({ ...node, maxScore: null, isRequired: false, levels: [], children: [...node.children, newCriterion(nextSortOrder(node.children))] })))} onRemove={path => setCriteria(current => normalize(removeTree(current, path)))} onMove={(path, direction) => setCriteria(current => moveTree(current, path, direction))} />)}</div>{(creating || selected?.canEdit) && <button type="button" className="mt-3 min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm text-ink hover:bg-canvas" onClick={() => setCriteria(current => [...current, newCriterion(nextSortOrder(current))])}>Thêm tiêu chí</button>}</div><button type="button" className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm text-ink hover:bg-canvas" onClick={() => setPreview(value => !value)}>{preview ? 'Đóng xem trước phiếu chấm' : 'Xem trước phiếu chấm'}</button>{preview && <RubricSheetPreview criteria={criteria} />}{selected?.previousVersion && <RubricVersionDiff current={selected} previous={selected.previousVersion} />}{(creating || selected?.canEdit) && <div className="flex flex-wrap gap-3"><Button type="submit" disabled={busy}>{busy ? 'Đang lưu…' : 'Lưu bản nháp'}</Button>{creating && <Button variant="secondary" disabled={busy} onClick={() => void cancelDraft()}>Hủy tạo mới</Button>}</div>}</form>}</>}</section></div>
+    <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
+      <section className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs xl:col-span-4 rubric-list-card">
+        <div className="flex items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+          <h2 className="font-semibold text-ink">Danh sách</h2>
+          <span className="rounded-full bg-primary-subtle px-2.5 py-0.5 text-xs font-semibold tabular-nums text-primary">{filteredRubrics.length}</span>
+        </div>
+        <div className="space-y-3 p-4">
+          {(loading || searchingAll) && <p role="status" className="text-sm text-ink-muted">{searchingAll ? 'Đang tìm trên toàn bộ danh sách…' : 'Đang tải bộ tiêu chí…'}</p>}
+          {!loading && !listFailed && rubrics.length === 0 && <p className="text-sm text-ink-muted">Chưa có bộ tiêu chí.</p>}
+          {!loading && !searchingAll && !listFailed && rubrics.length > 0 && filteredRubrics.length === 0 && <p className="text-sm text-ink-muted">Không có bộ tiêu chí khớp từ khóa tìm kiếm.</p>}
+          <ul className="space-y-2">{displayedRubrics.map(item => <li key={item.id}><button type="button" aria-pressed={selected?.id === item.id} disabled={busy} className={`min-h-11 w-full rounded-xl border p-3 text-left text-sm transition-colors ${selected?.id === item.id ? 'border-primary bg-primary-subtle' : 'border-hairline hover:bg-canvas'}`} onClick={() => void chooseRubric(item.id)}><div className="flex items-center justify-between gap-2"><span><strong>{item.code}</strong> · v{item.version}</span><StatusBadge tone={rubricTone(item.status)} label={rubricStatusLabel(item.status)} /></div><span className="mt-1 block text-xs text-ink-muted">{item.name}</span></button></li>)}</ul>
+          {useServerPaging ? (
+            <Pagination
+              page={page}
+              pages={Math.ceil(total / 20)}
+              total={total}
+              pageSize={20}
+              busy={loading || busy}
+              onPage={setPage}
+            />
+          ) : listPagination.showPagination ? (
+            <Pagination
+              page={listPagination.page}
+              pages={listPagination.totalPages}
+              total={listPagination.total}
+              pageSize={listPagination.pageSize}
+              pageSizeOptions={[8, 16, 30]}
+              busy={busy}
+              onPage={listPagination.setPage}
+              onPageSizeChange={listPagination.setPageSize}
+            />
+          ) : null}
+        </div>
+      </section>
+      <section className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs xl:col-span-8 rubric-detail" aria-busy={detailLoading}>
+        {(creating || selected) && !detailLoading && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h2 className="font-semibold text-ink">{creating ? 'Bản nháp mới' : `${selected?.code} · v${selected?.version}`}</h2>
+              {selected && <StatusBadge tone={rubricTone(selected.status)} label={`${rubricStatusLabel(selected.status)} · ${selected.canEdit ? 'Có thể sửa' : 'Chỉ đọc'}`} />}
+            </div>
+            {selected && <div className="flex flex-wrap items-center gap-2">{selected.status === 'DRAFT' && (selected.canSubmitForApproval ? <><button type="button" disabled={busy || dirty || missingLevels.length > 0} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-ink hover:bg-canvas disabled:opacity-50" onClick={() => void act('submit')}>Gửi duyệt</button>{missingLevels.length > 0 && <span role="status" className="text-xs text-status-warning-text">{missingLevels.length} tiêu chí lá {selected.requiredLevelCount == null ? 'chưa hoàn tất mức chất lượng' : `chưa đủ ${selected.requiredLevelCount} mức chất lượng`} ({missingLevels.join(', ')}).</span>}</> : isLegacyRubric(selected) ? <button type="button" disabled={busy || dirty} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-ink hover:bg-canvas disabled:opacity-50" onClick={() => void act('publish')}>Công bố</button> : null)}{selected.status === 'PUBLISHED' && <button type="button" disabled={busy} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-ink hover:bg-canvas disabled:opacity-50" onClick={() => void act('retire')}>Ngừng dùng</button>}{selected.status !== 'DRAFT' && <button type="button" disabled={busy} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-ink hover:bg-canvas disabled:opacity-50" onClick={() => void act('clone')}>Tạo phiên bản</button>}{selected.canEdit && <button type="button" disabled={busy} className="min-h-11 rounded-lg border border-status-error-border bg-card px-3 text-xs font-semibold text-status-error-text hover:bg-status-error-bg disabled:opacity-50" onClick={() => void act('delete')}>Xóa bản nháp</button>}</div>}
+          </div>
+        )}
+        <div className="p-5">
+          {detailLoading ? <div className="rubric-empty" role="status"><span className="material-symbols-outlined" aria-hidden="true">grading</span><h2>Đang tải bộ tiêu chí…</h2></div> : !creating && !selected && listFailed ? <div className="rubric-empty" role="status"><h2>Không thể tải danh sách</h2><p>Hãy tải lại bộ tiêu chí trước khi tạo hoặc chọn phiên bản.</p></div> : !creating && !selected ? <div className="rubric-empty"><span className="material-symbols-outlined" aria-hidden="true">fact_check</span><h2>{rubrics.length ? 'Chọn bộ tiêu chí để xem' : 'Chưa có bộ tiêu chí'}</h2><p>Xem nội dung, trọng số và phiên bản tại đây.</p><Button variant="secondary" onClick={newDraft}>Tạo bản nháp</Button></div> : <>
+          {selected?.status === 'PENDING_APPROVAL' && <p role="status" className="mb-3 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">Đang chờ phê duyệt — người gửi không tự duyệt được.</p>}{selected?.status === 'PENDING_APPROVAL' && <ActionVerdict actions={[{ code: 'APPROVE', allowed: Boolean(selected.canApprove), reasons: [] }]} actionCode="APPROVE" status="ready" okLabel="Điều kiện phê duyệt hợp lệ" blockedLabel="Chưa được cấp quyền phê duyệt">{(selected.canApprove || selected.canReject) && <ActionVerdict.Decision primary={{ label: 'Phê duyệt', onClick: () => void act('approve'), disabled: busy }} secondary={selected.canReject ? { label: 'Từ chối', onClick: () => void act('reject'), disabled: busy } : undefined} />}</ActionVerdict>}{selected?.approvalReference && <p className="mt-2 text-sm">Văn bản phê duyệt: {selected.approvalReference}</p>}{selected && !selected.canEdit ? <RubricReadView rubric={selected} departments={departments} semesters={semesters} majors={majors} /> : <form onSubmit={save} className="space-y-4"><div className="grid gap-3 sm:grid-cols-2"><label className="text-sm">Bộ môn<select value={departmentId} onChange={event => { setDepartmentId(Number(event.target.value)); setSemesterId(0) }} disabled={!creating || busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink"><option value={0}>Chọn bộ môn</option>{departments.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="text-sm">Học kỳ<select value={semesterId} onChange={event => setSemesterId(Number(event.target.value))} disabled={!creating || busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink"><option value={0}>Chọn học kỳ</option>{compatibleSemesters.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div><div className="grid gap-3 sm:grid-cols-2"><label className="text-sm">Mã bộ tiêu chí<input value={code} onChange={event => setCode(event.target.value)} disabled={!creating || busy} required className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" /></label><label className="text-sm">Tên bộ tiêu chí<input value={name} onChange={event => setName(event.target.value)} disabled={Boolean(selected && !selected.canEdit) || busy} required className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" /></label></div><label className="block text-sm">Mô tả<textarea value={description} onChange={event => setDescription(event.target.value)} disabled={Boolean(selected && !selected.canEdit) || busy} rows={2} className="mt-1 w-full rounded-lg border border-hairline bg-card p-3 font-normal text-ink" /></label><RubricScopeEditor value={scopeFields} majors={eligibleMajors} disabled={busy} onChange={patch => setScopeFields(current => ({ ...current, ...patch }))} /><div><h3 className="font-semibold">Tiêu chí và trọng số</h3><p className="mt-1 text-xs text-ink-muted">Trọng số của các tiêu chí cùng cấp phải bằng 100% trước khi công bố.</p><RubricWeightSummary issues={weightIssues} /><div className="mt-3 space-y-3">{criteria.map((item, index) => <CriterionEditor key={index} item={item} path={[index]} invalidGroupPaths={invalidGroupPaths} disabled={Boolean(selected && !selected.canEdit) || busy} onEdit={(path, change) => setCriteria(current => editTree(current, path, node => ({ ...node, ...change })))} onAddChild={path => setCriteria(current => editTree(current, path, node => ({ ...node, maxScore: null, isRequired: false, levels: [], children: [...node.children, newCriterion(nextSortOrder(node.children))] })))} onRemove={path => setCriteria(current => normalize(removeTree(current, path)))} onMove={(path, direction) => setCriteria(current => moveTree(current, path, direction))} />)}</div>{(creating || selected?.canEdit) && <button type="button" className="mt-3 min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm text-ink hover:bg-canvas" onClick={() => setCriteria(current => [...current, newCriterion(nextSortOrder(current))])}>Thêm tiêu chí</button>}</div><button type="button" className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm text-ink hover:bg-canvas" onClick={() => setPreview(value => !value)}>{preview ? 'Đóng xem trước phiếu chấm' : 'Xem trước phiếu chấm'}</button>{preview && <RubricSheetPreview criteria={criteria} />}{selected?.previousVersion && <RubricVersionDiff current={selected} previous={selected.previousVersion} />}{(creating || selected?.canEdit) && <div className="flex flex-wrap gap-3"><Button type="submit" disabled={busy}>{busy ? 'Đang lưu…' : 'Lưu bản nháp'}</Button>{creating && <Button variant="secondary" disabled={busy} onClick={() => void cancelDraft()}>Hủy tạo mới</Button>}</div>}</form>}</>}
+        </div>
+      </section>
+    </div>
   </WorkspacePage>
 }
 
@@ -218,7 +313,7 @@ function RubricScopeEditor({ value, majors, disabled, onChange }: {
       <label className="text-sm">Phạm vi<select aria-label="Phạm vi" className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" value={value.evaluationScope ?? ''} onChange={event => onChange({ evaluationScope: event.target.value as RubricScopeFields['evaluationScope'] || null, majorId: null })}><option value="">Legacy, chưa khai phạm vi</option><option value="COMMON">Chung</option><option value="MAJOR_SPECIFIC">Theo ngành</option><option value="INDIVIDUAL">Cá nhân</option></select></label>
       <label className="text-sm">Ngành<select aria-label="Ngành áp dụng" className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" value={value.majorId ?? ''} disabled={disabled || value.evaluationScope !== 'MAJOR_SPECIFIC'} onChange={event => onChange({ majorId: event.target.value ? Number(event.target.value) : null })}><option value="">Chọn ngành</option>{value.majorId != null && !majors.some(item => item.id === value.majorId) && <option value={value.majorId}>Ngành #{value.majorId}</option>}{majors.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
       <label className="text-sm">Loại đồ án<select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" value={value.projectMode ?? ''} onChange={event => onChange({ projectMode: event.target.value as RubricScopeFields['projectMode'] || null })}><option value="">Chưa xác định</option><option value="SINGLE_MAJOR">Một ngành</option><option value="INTERDISCIPLINARY">Liên ngành</option></select></label>
-      <label className="text-sm">Giai đoạn<select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" value={value.evaluationStage ?? ''} onChange={event => onChange({ evaluationStage: event.target.value as RubricScopeFields['evaluationStage'] || null })}><option value="">Chưa xác định</option><option value="ON_GOING">Đang thực hiện</option><option value="COLD">COLD</option><option value="DEFENSE">Bảo vệ</option></select></label>
+      <label className="text-sm">Giai đoạn<select className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" value={value.evaluationStage ?? ''} onChange={event => onChange({ evaluationStage: event.target.value as RubricScopeFields['evaluationStage'] || null })}><option value="">Chưa xác định</option><option value="ON_GOING">Đánh giá quá trình</option><option value="COLD">Chấm hồ sơ đã khóa</option><option value="DEFENSE">Bảo vệ</option></select></label>
       <label className="text-sm">Hiệu lực từ<input className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" type="date" value={value.effectiveFrom ?? ''} onChange={event => onChange({ effectiveFrom: event.target.value || null })} /></label>
       <label className="text-sm">Hiệu lực đến<input className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" type="date" min={value.effectiveFrom ?? undefined} value={value.effectiveTo ?? ''} onChange={event => onChange({ effectiveTo: event.target.value || null })} /></label>
     </div>
@@ -264,7 +359,7 @@ function RubricReadView({ rubric, departments, semesters, majors }: { rubric: Ru
   return <div className="rubric-read-view">
     <h3>{rubric.name}</h3>
     <dl className="rubric-read-scope"><div><dt>Bộ môn</dt><dd>{departments.find(item => item.id === rubric.departmentId)?.name ?? 'Chưa có thông tin'}</dd></div><div><dt>Học kỳ</dt><dd>{semesters.find(item => item.id === rubric.academicSemesterId)?.name ?? 'Chưa có thông tin'}</dd></div></dl>
-    {rubric.evaluationScope && <dl className="rubric-read-scope"><div><dt>Phạm vi</dt><dd>{rubric.evaluationScope}</dd></div><div><dt>Loại đồ án</dt><dd>{rubric.projectMode ?? 'Chưa xác định'}</dd></div><div><dt>Giai đoạn</dt><dd>{rubric.evaluationStage ?? 'Chưa xác định'}</dd></div><div><dt>Ngành</dt><dd>{rubric.majorId == null ? 'Không áp dụng' : majors.find(item => item.id === rubric.majorId)?.name ?? `Ngành #${rubric.majorId}`}</dd></div><div><dt>Hiệu lực</dt><dd>{rubric.effectiveFrom ?? 'Chưa xác định'} – {rubric.effectiveTo ?? 'Chưa xác định'}</dd></div></dl>}
+    {rubric.evaluationScope && <dl className="rubric-read-scope"><div><dt>Phạm vi</dt><dd>{displayLabel(rubric.evaluationScope)}</dd></div><div><dt>Loại đồ án</dt><dd>{rubric.projectMode ? displayLabel(rubric.projectMode) : 'Chưa xác định'}</dd></div><div><dt>Giai đoạn</dt><dd>{evaluationStageLabel(rubric.evaluationStage)}</dd></div><div><dt>Ngành</dt><dd>{rubric.majorId == null ? 'Không áp dụng' : majors.find(item => item.id === rubric.majorId)?.name ?? `Ngành #${rubric.majorId}`}</dd></div><div><dt>Hiệu lực</dt><dd>{rubric.effectiveFrom ?? 'Chưa xác định'} – {rubric.effectiveTo ?? 'Chưa xác định'}</dd></div></dl>}
     {rubric.description && <p className="rubric-read-description">{rubric.description}</p>}
     <div className="rubric-criteria-title"><h3>Tiêu chí và trọng số</h3><span>{rubric.criteria.length} tiêu chí chính</span></div>
     <ol className="rubric-read-criteria">{rubric.criteria.map((item, index) => <CriterionReadView key={item.id} item={item} number={String(index + 1)} />)}</ol>

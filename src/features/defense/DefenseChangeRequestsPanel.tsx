@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { HttpError } from '../../services/http/http-client'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { Pagination } from '../../components/ui/Pagination'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import { decideDefenseChangeRequest, getPeriodDefenseChangeRequests, getPeriodDefenseSessions } from './defense-api'
 import type { DefenseChangeRequestDto, PeriodDefenseSessionDto } from './defense-api'
 import type { RoomDto } from './room-planner-api'
@@ -65,33 +68,54 @@ export function DefenseChangeRequestsPanel({ periodId, rooms, onScheduleChanged 
     } finally { setBusyId(null) }
   }
 
-  return <section aria-label="Yêu cầu đổi lịch bảo vệ" className="rounded-2xl border border-hairline bg-card p-4 shadow-xs">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <h2 className="text-lg font-bold">Yêu cầu đổi lịch bảo vệ · Gate 4</h2>
-      <button type="button" onClick={reload} disabled={busyId !== null}
-        className="min-h-11 rounded-lg border border-hairline px-3 text-sm font-semibold text-primary disabled:opacity-50">Tải lại yêu cầu</button>
-    </div>
-    {loading && <p role="status" className="mt-3 text-sm text-ink-muted">Đang tải yêu cầu đổi lịch…</p>}
-    {error && <p role="alert" className="mt-3 text-sm text-status-error-text">{error}</p>}
-    {success && <p role="status" className="mt-3 text-sm text-status-success-text">{success}</p>}
-    {!loading && !error && requests.length === 0 && <p className="mt-3 text-sm text-ink-muted">Không có yêu cầu đang chờ trong phạm vi của bạn.</p>}
-    {!loading && requests.map(request => <article key={request.id} className="mt-3 rounded-xl border border-hairline p-4">
-      <h3 className="font-semibold">Phiên bảo vệ #{request.defenseSessionId} · Yêu cầu #{request.id}</h3>
-      <p className="mt-1 text-sm text-ink-muted">Phòng hiện tại #{request.currentRoomId} · {formatTime(request.currentStartAt)}</p>
-      <p className="text-sm">Đề xuất: {rooms.find(room => room.id === request.desiredRoomId)?.code ?? `Phòng #${request.desiredRoomId}`} · {formatTime(request.desiredStartAt)} – {formatTime(request.desiredEndAt)}</p>
-      <p className="mt-2 text-sm"><strong>Lý do:</strong> {categoryLabel[request.reasonCategory] ?? request.reasonCategory} · {request.reasonDetails}</p>
-      {request.evidenceFileUrl && <p className="mt-1 break-all text-sm">Minh chứng: {request.evidenceFileUrl}</p>}
-      <label className="mt-3 block text-sm font-semibold">Ghi chú xử lý
-        <textarea value={notes[request.id] ?? ''} maxLength={2000} disabled={busyId !== null}
-          onChange={event => setNotes(current => ({ ...current, [request.id]: event.target.value }))}
-          className="mt-1 min-h-20 w-full rounded-lg border border-hairline bg-card p-2 font-normal text-ink" />
-      </label>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button type="button" onClick={() => void decide(request, 'APPROVED')} disabled={busyId !== null}
-          className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">Duyệt đổi lịch</button>
-        <button type="button" onClick={() => void decide(request, 'REJECTED')} disabled={busyId !== null}
-          className="min-h-11 rounded-lg border border-hairline px-4 text-sm font-semibold disabled:opacity-50">Từ chối</button>
+  const requestPagination = useClientPagination(requests, 8)
+
+  return <section aria-label="Yêu cầu đổi lịch bảo vệ" className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+      <div className="flex items-center gap-2">
+        <h2 className="text-base font-bold text-ink">Yêu cầu đổi lịch bảo vệ · Gate 4</h2>
+        <StatusBadge tone={requests.length > 0 ? 'warning' : 'neutral'} label={`${requests.length} chờ duyệt`} />
       </div>
-    </article>)}
+      <button type="button" onClick={reload} disabled={busyId !== null}
+        className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm font-semibold text-primary hover:bg-canvas disabled:opacity-50">Tải lại yêu cầu</button>
+    </div>
+    <div className="space-y-4 p-5">
+      {loading && <p role="status" className="text-sm text-ink-muted">Đang tải yêu cầu đổi lịch…</p>}
+      {error && <p role="alert" className="text-sm text-status-error-text">{error}</p>}
+      {success && <p role="status" className="text-sm text-status-success-text">{success}</p>}
+      {!loading && !error && requests.length === 0 && <p className="text-sm text-ink-muted">Không có yêu cầu đang chờ trong phạm vi của bạn.</p>}
+      {!loading && requestPagination.paginatedItems.map(request => <article key={request.id} className="overflow-hidden rounded-xl border border-hairline bg-card">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/60 px-4 py-2.5">
+          <h3 className="text-sm font-semibold text-ink">Phiên bảo vệ #{request.defenseSessionId} · Yêu cầu #{request.id}</h3>
+          <StatusBadge tone="warning" label="Đang chờ" />
+        </div>
+        <div className="space-y-2 p-4">
+          <p className="text-sm text-ink-muted">Phòng hiện tại #{request.currentRoomId} · {formatTime(request.currentStartAt)}</p>
+          <p className="text-sm text-ink">Đề xuất: <strong>{rooms.find(room => room.id === request.desiredRoomId)?.code ?? `Phòng #${request.desiredRoomId}`}</strong> · {formatTime(request.desiredStartAt)} – {formatTime(request.desiredEndAt)}</p>
+          <p className="text-sm"><strong>Lý do:</strong> {categoryLabel[request.reasonCategory] ?? request.reasonCategory} · {request.reasonDetails}</p>
+          {request.evidenceFileUrl && <p className="break-all text-sm">Minh chứng: {request.evidenceFileUrl}</p>}
+          <label className="mt-2 block text-sm font-semibold text-ink-soft">Ghi chú xử lý
+            <textarea value={notes[request.id] ?? ''} maxLength={2000} disabled={busyId !== null}
+              onChange={event => setNotes(current => ({ ...current, [request.id]: event.target.value }))}
+              className="mt-1 min-h-20 w-full rounded-lg border border-hairline bg-card p-2 font-normal text-ink" />
+          </label>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button type="button" onClick={() => void decide(request, 'APPROVED')} disabled={busyId !== null}
+              className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50">Duyệt đổi lịch</button>
+            <button type="button" onClick={() => void decide(request, 'REJECTED')} disabled={busyId !== null}
+              className="min-h-11 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold text-ink hover:bg-canvas disabled:opacity-50">Từ chối</button>
+          </div>
+        </div>
+      </article>)}
+      {!loading && requestPagination.showPagination && (
+        <Pagination
+          page={requestPagination.page}
+          pages={requestPagination.totalPages}
+          total={requestPagination.total}
+          pageSize={requestPagination.pageSize}
+          onPage={requestPagination.setPage}
+        />
+      )}
+    </div>
   </section>
 }

@@ -1,6 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
+import { StatTileRow } from '../../components/ui/StatTileRow'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { Pagination } from '../../components/ui/Pagination'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import { useAuthSession } from '../auth/context/useAuthSession'
 import { HttpError } from '../../services/http/http-client'
 import {
@@ -126,64 +130,142 @@ export function DefenseSessionChangePage() {
     } finally { setBusy(false) }
   }
 
+  const historyRequests = useMemo(() => requests.filter(row => row.status !== 'PENDING'), [requests])
+  const historyPagination = useClientPagination(historyRequests, 8)
+  const pendingCount = requests.filter(row => row.status === 'PENDING').length
+
   if (!Number.isSafeInteger(sessionId) || sessionId < 1)
     return <WorkspacePage title="Phiên bảo vệ"><p role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">Mã phiên bảo vệ không hợp lệ.</p></WorkspacePage>
 
-  return <WorkspacePage title="Phiên bảo vệ & yêu cầu đổi lịch" eyebrow={`Phiên #${sessionId}`}
+  return <WorkspacePage className="space-y-5 pb-10" title="Phiên bảo vệ & yêu cầu đổi lịch" eyebrow={`Phiên #${sessionId}`}
     description="Lịch chính thức được đọc từ hệ thống. Chủ tọa và thư ký có thể đề xuất đổi phòng hoặc ca trước khi phiên kết thúc.">
     <div className="space-y-5">
       {loading && <p role="status" className="text-sm text-ink-muted">Đang tải phiên bảo vệ…</p>}
       {error && <InlineAlert tone="error">{error} <button type="button" onClick={reload} className="min-h-11 font-semibold underline">Tải lại</button></InlineAlert>}
-      {defense && <section className="rounded-2xl border border-hairline bg-card p-4 shadow-xs">
-        <h2 className="font-bold">Lịch hiện tại · {defense.status === 'SCHEDULED' ? 'Đã lên lịch' : 'Đã hủy'}</h2>
-        <p className="mt-2 text-sm">Đồ án #{defense.projectId} · {localTime(defense.startAt)} – {localTime(defense.endAt)}</p>
-        <p className="text-sm">Phòng: {defense.room}</p>
-      </section>}
-      {defense && !loading && !officer && !error && <p className="rounded-xl border border-hairline bg-canvas p-4 text-sm text-ink-muted">Bạn chỉ có quyền xem lịch. Chỉ chủ tọa hoặc thư ký của hội đồng được gửi yêu cầu đổi lịch.</p>}
-      {officer && !loading && <section className="rounded-2xl border border-hairline bg-card p-4 shadow-xs">
-        <h2 className="font-bold">Yêu cầu đổi lịch</h2>
-        {pending && <div className="mt-3 rounded-xl border border-hairline bg-canvas p-3 text-sm">
-          <p>Đang chờ xử lý: phòng #{pending.desiredRoomId} · {localTime(pending.desiredStartAt)}</p>
-          <p className="mt-1">Lý do: {pending.reasonDetails}</p>
-          {pending.requesterId === login?.user.id && <button type="button" disabled={busy}
-            onClick={() => void withdraw(pending)} className="mt-2 min-h-11 rounded-lg border border-hairline bg-card px-3 font-semibold disabled:opacity-50">Rút yêu cầu</button>}
-        </div>}
-        {!mayRequest && <p className="mt-3 text-sm text-ink-muted">Chỉ có thể đề xuất khi phiên còn hiệu lực và chưa kết thúc.</p>}
-        {mayRequest && !pending && rooms.length === 0 && <p className="mt-3 text-sm text-ink-muted">Chưa có phòng hoạt động đủ sức chứa cho nhóm, hội đồng và chỗ dự phòng.</p>}
-        {mayRequest && !pending && <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <label className="text-sm font-semibold">Phòng đề xuất
-            <select value={roomId} onChange={event => setRoomId(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
-              <option value="">Chọn phòng</option>{rooms.map(room => <option key={room.id} value={room.id}>{room.code} · {room.building} · tầng {room.floor} · {room.capacity} chỗ</option>)}
-            </select>
-          </label>
-          <label className="text-sm font-semibold">Ngày đề xuất
-            <input type="date" min={todayVietnam(now)} value={date} onChange={event => setDate(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" />
-          </label>
-          <label className="text-sm font-semibold">Ca đề xuất
-            <select value={slot} onChange={event => setSlot(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
-              <option value="">Chọn ca</option>{slots.map(([start, end], index) => <option key={start} value={index + 1}>Ca {index + 1} · {start}–{end}</option>)}
-            </select>
-          </label>
-          <label className="text-sm font-semibold">Loại lý do
-            <select value={category} onChange={event => setCategory(event.target.value as typeof category)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
-              {categories.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
-            </select>
-          </label>
-          <label className="text-sm font-semibold sm:col-span-2">Lý do chi tiết
-            <textarea value={details} maxLength={2000} onChange={event => setDetails(event.target.value)} disabled={busy} className="mt-1 min-h-24 w-full rounded-lg border border-hairline bg-card p-3 font-normal text-ink" />
-          </label>
-          <label className="text-sm font-semibold sm:col-span-2">Đường dẫn minh chứng (nếu có, HTTPS hoặc tệp AIPMS)
-            <input type="url" value={evidenceUrl} onChange={event => setEvidenceUrl(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" />
-          </label>
-          <button type="button" disabled={busy || !valid} onClick={() => void submit()}
-            className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">Gửi yêu cầu đổi lịch</button>
-        </div>}
-        {requests.filter(row => row.status !== 'PENDING').length > 0 && <div className="mt-4 text-sm">
-          <h3 className="font-semibold">Lịch sử yêu cầu</h3>
-          <ul className="mt-1 space-y-1">{requests.filter(row => row.status !== 'PENDING').map(row => <li key={row.id}>#{row.id} · {requestStatus[row.status] ?? row.status} · {localTime(row.createdAt)}</li>)}</ul>
-        </div>}
-      </section>}
       {success && <InlineAlert tone="success">{success}</InlineAlert>}
+
+      {defense && !loading && (
+        <StatTileRow tiles={[
+          { icon: 'event', label: 'Mã phiên bảo vệ', value: defense.id, hero: true, caption: defense.status === 'SCHEDULED' ? 'Đã lên lịch' : 'Đã hủy' },
+          { icon: 'meeting_room', label: 'Phòng thay thế khả dụng', value: officer ? rooms.length : null, tone: 'info', caption: officer ? 'Đủ sức chứa theo quy chuẩn' : 'Chế độ chỉ xem' },
+          { icon: 'hourglass_top', label: 'Yêu cầu đang chờ', value: officer ? pendingCount : null, tone: pendingCount > 0 ? 'warning' : 'success' },
+          { icon: 'history', label: 'Lịch sử yêu cầu', value: officer ? historyRequests.length : null, tone: 'neutral' },
+        ]} />
+      )}
+
+      {defense && (
+        <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
+          <div className={`space-y-5 ${officer && !loading ? 'xl:col-span-7' : 'xl:col-span-12'}`}>
+            <section className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+                <h2 className="font-bold text-ink">Lịch hiện tại · {defense.status === 'SCHEDULED' ? 'Đã lên lịch' : 'Đã hủy'}</h2>
+                <StatusBadge tone={defense.status === 'SCHEDULED' ? 'success' : 'danger'} label={defense.status === 'SCHEDULED' ? 'Đang hiệu lực' : 'Đã hủy'} />
+              </div>
+              <div className="space-y-1.5 p-5 text-sm">
+                <p className="font-medium text-ink">Đồ án #{defense.projectId} · {localTime(defense.startAt)} – {localTime(defense.endAt)}</p>
+                <p className="text-ink-soft">Phòng: <strong className="text-ink">{defense.room}</strong></p>
+              </div>
+            </section>
+
+            {!loading && !officer && !error && (
+              <p className="rounded-xl border border-hairline bg-canvas p-4 text-sm text-ink-muted">
+                Bạn chỉ có quyền xem lịch. Chỉ chủ tọa hoặc thư ký của hội đồng được gửi yêu cầu đổi lịch.
+              </p>
+            )}
+
+            {officer && !loading && (
+              <section className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+                  <h2 className="font-bold text-ink">Yêu cầu đổi lịch</h2>
+                  <StatusBadge tone={pending ? 'warning' : mayRequest ? 'info' : 'neutral'} label={pending ? 'Đang chờ duyệt' : mayRequest ? 'Có thể đề xuất' : 'Không thể đề xuất'} />
+                </div>
+                <div className="space-y-4 p-5">
+                  {pending && <div className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-sm">
+                    <p className="font-semibold text-status-warning-text">Đang chờ xử lý: phòng #{pending.desiredRoomId} · {localTime(pending.desiredStartAt)}</p>
+                    <p className="mt-1 text-ink-soft">Lý do: {pending.reasonDetails}</p>
+                    {pending.requesterId === login?.user.id && <button type="button" disabled={busy}
+                      onClick={() => void withdraw(pending)} className="mt-3 min-h-11 rounded-lg border border-hairline bg-card px-3 font-semibold text-ink hover:bg-canvas disabled:opacity-50">Rút yêu cầu</button>}
+                  </div>}
+                  {!mayRequest && <p className="text-sm text-ink-muted">Chỉ có thể đề xuất khi phiên còn hiệu lực và chưa kết thúc.</p>}
+                  {mayRequest && !pending && rooms.length === 0 && <p className="text-sm text-ink-muted">Chưa có phòng hoạt động đủ sức chứa cho nhóm, hội đồng và chỗ dự phòng.</p>}
+                  {mayRequest && !pending && <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="text-sm font-semibold text-ink-soft">Phòng đề xuất
+                      <select value={roomId} onChange={event => setRoomId(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
+                        <option value="">Chọn phòng</option>{rooms.map(room => <option key={room.id} value={room.id}>{room.code} · {room.building} · tầng {room.floor} · {room.capacity} chỗ</option>)}
+                      </select>
+                    </label>
+                    <label className="text-sm font-semibold text-ink-soft">Ngày đề xuất
+                      <input type="date" min={todayVietnam(now)} value={date} onChange={event => setDate(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" />
+                    </label>
+                    <label className="text-sm font-semibold text-ink-soft">Ca đề xuất
+                      <select value={slot} onChange={event => setSlot(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
+                        <option value="">Chọn ca</option>{slots.map(([start, end], index) => <option key={start} value={index + 1}>Ca {index + 1} · {start}–{end}</option>)}
+                      </select>
+                    </label>
+                    <label className="text-sm font-semibold text-ink-soft">Loại lý do
+                      <select value={category} onChange={event => setCategory(event.target.value as typeof category)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
+                        {categories.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+                      </select>
+                    </label>
+                    <label className="text-sm font-semibold text-ink-soft sm:col-span-2">Lý do chi tiết
+                      <textarea value={details} maxLength={2000} onChange={event => setDetails(event.target.value)} disabled={busy} className="mt-1 min-h-24 w-full rounded-lg border border-hairline bg-card p-3 font-normal text-ink" />
+                    </label>
+                    <label className="text-sm font-semibold text-ink-soft sm:col-span-2">Đường dẫn minh chứng (nếu có, HTTPS hoặc tệp AIPMS)
+                      <input type="url" value={evidenceUrl} onChange={event => setEvidenceUrl(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" />
+                    </label>
+                    <div className="sm:col-span-2">
+                      <button type="button" disabled={busy || !valid} onClick={() => void submit()}
+                        className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50">Gửi yêu cầu đổi lịch</button>
+                    </div>
+                  </div>}
+                </div>
+              </section>
+            )}
+          </div>
+
+          {officer && !loading && (
+            <section className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs xl:col-span-5">
+              <div className="flex items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+                <h3 className="font-bold text-ink">Lịch sử yêu cầu</h3>
+                <span className="rounded-full bg-primary-subtle px-2.5 py-0.5 text-xs font-semibold tabular-nums text-primary">{historyRequests.length}</span>
+              </div>
+              <div className="space-y-4 p-5 text-sm">
+                {historyRequests.length === 0 ? (
+                  <p className="text-ink-muted">Chưa có yêu cầu đổi lịch nào đã hoàn tất xử lý.</p>
+                ) : (
+                  <>
+                    <ul className="divide-y divide-hairline">
+                      {historyPagination.paginatedItems.map(row => (
+                        <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0 last:pb-0">
+                          <div>
+                            <p className="font-semibold text-ink">#{row.id} · {requestStatus[row.status] ?? row.status} · {localTime(row.createdAt)}</p>
+                            {row.reviewNote && <p className="mt-0.5 text-xs text-ink-muted">{row.reviewNote}</p>}
+                          </div>
+                          <StatusBadge
+                            tone={row.status === 'APPROVED' ? 'success' : row.status === 'REJECTED' ? 'danger' : 'neutral'}
+                            label={requestStatus[row.status] ?? row.status}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                    {historyPagination.showPagination && (
+                      <Pagination
+                        page={historyPagination.page}
+                        pages={historyPagination.totalPages}
+                        total={historyPagination.total}
+                        pageSize={historyPagination.pageSize}
+                        pageSizeOptions={[8, 16, 30]}
+                        onPage={historyPagination.setPage}
+                        onPageSizeChange={historyPagination.setPageSize}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            </section>
+          )}
+        </div>
+      )}
     </div>
   </WorkspacePage>
 }

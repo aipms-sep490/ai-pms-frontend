@@ -64,7 +64,7 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
   return (
     <div className="flex flex-col overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs">
       {/* Canvas Header / Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas/60 px-5 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-sm font-bold text-primary">
             {roomCode}
@@ -124,9 +124,9 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
 
       {/* Main Body */}
       {viewMode === '2D_CANVAS' ? (
-        <div className="relative flex flex-col items-center bg-canvas/50 p-6">
+        <div className="relative flex flex-col bg-canvas/50 p-5 sm:p-6">
           {/* 2D Interactive SVG Room Canvas */}
-          <div className="w-full max-w-4xl rounded-2xl border border-hairline bg-card p-6 shadow-sm">
+          <div className="w-full rounded-2xl border border-hairline bg-card p-5 shadow-sm sm:p-6">
             {/* Top Area: Stage / Projector / Whiteboards / Presentation */}
             <div className="relative mb-8 border-b-2 border-dashed border-hairline pb-8">
               <div className="mb-4 text-center">
@@ -260,7 +260,7 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
 
           {/* Selected Seat Pop-over / Details */}
           {selectedPerson && (
-            <div className="mt-4 flex w-full max-w-4xl items-center justify-between gap-4 rounded-xl border border-primary/20 bg-primary-subtle/30 p-4">
+            <div className="mt-4 flex w-full items-center justify-between gap-4 rounded-xl border border-primary/20 bg-primary-subtle/30 p-4">
               <div className="flex items-center gap-3">
                 <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold ${roleBadgeColor[selectedPerson.role]?.bg || 'border border-hairline bg-canvas text-ink-soft'}`}>
                   {selectedPerson.name.slice(0, 1).toUpperCase()}

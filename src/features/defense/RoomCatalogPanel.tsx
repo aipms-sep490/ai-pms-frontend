@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { HttpError } from '../../services/http/http-client'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { Pagination } from '../../components/ui/Pagination'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import { createRoom, deactivateRoom, getRooms, updateRoom } from './defense-api'
 import type { RoomDto, SaveRoomRequest } from './defense-api'
 
@@ -71,50 +74,70 @@ export function RoomCatalogPanel({ rooms, onChanged }: { rooms: RoomDto[]; onCha
     } finally { setBusy(false) }
   }
 
-  return <section aria-label="Quản lý danh mục phòng" className="rounded-2xl border border-hairline bg-card p-4 shadow-xs">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <h2 className="text-lg font-bold">Danh mục phòng</h2>
-      <button type="button" onClick={() => setOpen(value => !value)} className="min-h-11 rounded-lg border border-hairline px-3 text-sm font-semibold text-primary">
+  const roomPagination = useClientPagination(rooms, 8)
+  const activeCount = rooms.filter(r => r.status === 'ACTIVE').length
+
+  return <section aria-label="Quản lý danh mục phòng" className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+      <div className="flex items-center gap-2">
+        <h2 className="text-base font-bold text-ink">Danh mục phòng</h2>
+        <span className="rounded-full bg-primary-subtle px-2.5 py-0.5 text-xs font-semibold tabular-nums text-primary">{activeCount}/{rooms.length} hoạt động</span>
+      </div>
+      <button type="button" onClick={() => setOpen(value => !value)} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm font-semibold text-primary hover:bg-canvas">
         {open ? 'Thu gọn' : 'Quản lý phòng'}
       </button>
     </div>
-    <p className="mt-1 text-sm text-ink-muted">Chỉ phòng hoạt động ở tầng 2–4 được chọn cho lần tự xếp lịch. Dữ liệu vị trí vật lý chưa có trong danh mục.</p>
-    {success && <p role="status" className="mt-3 text-sm text-status-success-text">{success}</p>}
-    {error && <p role="alert" className="mt-3 text-sm text-status-error-text">{error}</p>}
-    {uncertain && <button type="button" onClick={() => { onChanged(); setUncertain(false); setConfirmId(null); choose(null) }} className="mt-2 min-h-11 font-semibold text-primary underline">Tải lại danh mục</button>}
-    {open && <div className="mt-4 space-y-4">
-      <div className="max-h-56 overflow-auto rounded-xl border border-hairline">
-        {rooms.length === 0 ? <p className="p-3 text-sm text-ink-muted">Chưa có phòng.</p> : rooms.map(room => <div key={room.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline p-3 text-sm last:border-b-0">
-          <span><strong>{room.code}</strong> · {room.building} · tầng {room.floor} · {room.capacity} chỗ · {statusLabel[room.status] ?? room.status}</span>
-          <span className="flex flex-wrap gap-2">
-            <button type="button" disabled={busy || uncertain} onClick={() => choose(room)} className="min-h-11 font-semibold text-primary underline">Sửa</button>
-            {room.status !== 'INACTIVE' && (confirmId === room.id
-              ? <><button type="button" disabled={busy || uncertain} onClick={() => void deactivate(room)} className="min-h-11 font-semibold text-status-error-text underline">Xác nhận ngừng dùng</button>
-                <button type="button" onClick={() => setConfirmId(null)} className="min-h-11 underline">Hủy</button></>
-              : <button type="button" disabled={busy || uncertain} onClick={() => setConfirmId(room.id)} className="min-h-11 font-semibold text-status-error-text underline">Ngừng dùng</button>)}
-          </span>
-        </div>)}
-      </div>
-      <div className="rounded-xl border border-hairline bg-canvas p-3">
-        <div className="flex items-center justify-between"><h3 className="font-semibold">{editing ? `Sửa phòng ${editing.code}` : 'Tạo phòng'}</h3>
-          {editing && <button type="button" onClick={() => choose(null)} className="min-h-11 text-sm font-semibold text-primary underline">Tạo phòng mới</button>}</div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {([['code', 'Mã phòng'], ['building', 'Tòa nhà'], ['floor', 'Tầng'], ['capacity', 'Sức chứa']] as const).map(([key, label]) =>
-            <label key={key} className="text-sm font-semibold">{label}
-              <input type={key === 'floor' || key === 'capacity' ? 'number' : 'text'} value={draft[key]} disabled={busy || uncertain}
-                onChange={event => setDraft(current => ({ ...current, [key]: event.target.value }))}
-                className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" />
-            </label>)}
-          <label className="text-sm font-semibold">Trạng thái
-            <select value={draft.status} disabled={busy || uncertain} onChange={event => setDraft(current => ({ ...current, status: event.target.value }))}
-              className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
-              <option value="ACTIVE">Hoạt động</option><option value="MAINTENANCE">Bảo trì</option><option value="INACTIVE">Ngừng dùng</option>
-            </select>
-          </label>
+    <div className="p-5">
+      <p className="text-sm text-ink-muted">Chỉ phòng hoạt động ở tầng 2–4 được chọn cho lần tự xếp lịch. Dữ liệu vị trí vật lý chưa có trong danh mục.</p>
+      {success && <p role="status" className="mt-3 text-sm text-status-success-text">{success}</p>}
+      {error && <p role="alert" className="mt-3 text-sm text-status-error-text">{error}</p>}
+      {uncertain && <button type="button" onClick={() => { onChanged(); setUncertain(false); setConfirmId(null); choose(null) }} className="mt-2 min-h-11 font-semibold text-primary underline">Tải lại danh mục</button>}
+      {open && <div className="mt-4 space-y-4">
+        <div className="overflow-hidden rounded-xl border border-hairline">
+          {rooms.length === 0 ? <p className="p-3 text-sm text-ink-muted">Chưa có phòng.</p> : roomPagination.paginatedItems.map(room => <div key={room.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline p-3 text-sm last:border-b-0">
+            <span className="flex flex-wrap items-center gap-2">
+              <span><strong>{room.code}</strong> · {room.building} · tầng {room.floor} · <span className="tabular-nums">{room.capacity}</span> chỗ</span>
+              <StatusBadge tone={room.status === 'ACTIVE' ? 'success' : room.status === 'MAINTENANCE' ? 'warning' : 'neutral'} label={statusLabel[room.status] ?? room.status} />
+            </span>
+            <span className="flex flex-wrap gap-2">
+              <button type="button" disabled={busy || uncertain} onClick={() => choose(room)} className="min-h-11 font-semibold text-primary underline">Sửa</button>
+              {room.status !== 'INACTIVE' && (confirmId === room.id
+                ? <><button type="button" disabled={busy || uncertain} onClick={() => void deactivate(room)} className="min-h-11 font-semibold text-status-error-text underline">Xác nhận ngừng dùng</button>
+                  <button type="button" onClick={() => setConfirmId(null)} className="min-h-11 underline">Hủy</button></>
+                : <button type="button" disabled={busy || uncertain} onClick={() => setConfirmId(room.id)} className="min-h-11 font-semibold text-status-error-text underline">Ngừng dùng</button>)}
+            </span>
+          </div>)}
         </div>
-        <button type="button" onClick={() => void save()} disabled={busy || uncertain || !valid}
-          className="mt-3 min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">{editing ? 'Lưu phòng' : 'Tạo phòng'}</button>
-      </div>
-    </div>}
+        {roomPagination.showPagination && (
+          <Pagination
+            page={roomPagination.page}
+            pages={roomPagination.totalPages}
+            total={roomPagination.total}
+            pageSize={roomPagination.pageSize}
+            onPage={roomPagination.setPage}
+          />
+        )}
+        <div className="rounded-xl border border-hairline bg-canvas p-4">
+          <div className="flex items-center justify-between"><h3 className="font-semibold text-ink">{editing ? `Sửa phòng ${editing.code}` : 'Tạo phòng'}</h3>
+            {editing && <button type="button" onClick={() => choose(null)} className="min-h-11 text-sm font-semibold text-primary underline">Tạo phòng mới</button>}</div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {([['code', 'Mã phòng'], ['building', 'Tòa nhà'], ['floor', 'Tầng'], ['capacity', 'Sức chứa']] as const).map(([key, label]) =>
+              <label key={key} className="text-sm font-semibold">{label}
+                <input type={key === 'floor' || key === 'capacity' ? 'number' : 'text'} value={draft[key]} disabled={busy || uncertain}
+                  onChange={event => setDraft(current => ({ ...current, [key]: event.target.value }))}
+                  className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" />
+              </label>)}
+            <label className="text-sm font-semibold">Trạng thái
+              <select value={draft.status} disabled={busy || uncertain} onChange={event => setDraft(current => ({ ...current, status: event.target.value }))}
+                className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
+                <option value="ACTIVE">Hoạt động</option><option value="MAINTENANCE">Bảo trì</option><option value="INACTIVE">Ngừng dùng</option>
+              </select>
+            </label>
+          </div>
+          <button type="button" onClick={() => void save()} disabled={busy || uncertain || !valid}
+            className="mt-3 min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50">{editing ? 'Lưu phòng' : 'Tạo phòng'}</button>
+        </div>
+      </div>}
+    </div>
   </section>
 }

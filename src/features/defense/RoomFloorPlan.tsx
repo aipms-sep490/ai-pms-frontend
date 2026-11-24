@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../components/ui/Table'
+import { Pagination } from '../../components/ui/Pagination'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import type { RoomDto, RoomSchedulingExclusion } from './room-planner-api'
 
 const SLOTS = [
@@ -42,6 +44,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
   const visibleRooms = rooms
     .filter((room) => room.building === selectedBuilding && room.floor === floor)
     .sort((a, b) => a.code.localeCompare(b.code, 'vi'))
+  const roomPagination = useClientPagination(visibleRooms, 12)
 
   const selectedRoom = visibleRooms.find((room) => room.id === selectedRoomId)
 
@@ -148,12 +151,13 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
   return (
     <section
       aria-label="Danh mục phòng tầng 2 đến 4"
-      className="rounded-2xl border border-hairline bg-card p-5 shadow-xs"
+      className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs"
     >
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline bg-canvas/70 px-5 py-3.5">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-ink">Phòng theo tòa và tầng</h2>
+            <h2 className="text-base font-bold text-ink">Phòng theo tòa và tầng</h2>
+            <span className="rounded-full bg-primary-subtle px-2.5 py-0.5 text-xs font-semibold tabular-nums text-primary">{visibleRooms.length} phòng</span>
           </div>
           <p className="mt-0.5 text-xs text-ink-muted">
             Chọn phòng từ danh mục thật để xem ca và loại trừ cho lần xếp lịch này. Vị trí các thẻ không thể hiện mặt bằng vật lý.
@@ -169,7 +173,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                 setBuilding(e.target.value)
                 setSelectedRoomId(null)
               }}
-              className="min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-sm text-ink focus:border-primary focus:outline-none"
+              className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm font-normal text-ink focus:border-primary focus:outline-none"
             >
               {buildings.map((name) => (
                 <option key={name} value={name}>
@@ -179,7 +183,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
             </select>
           </label>
 
-          <div role="group" aria-label="Chọn tầng" className="flex rounded-lg border border-hairline p-0.5">
+          <div role="group" aria-label="Chọn tầng" className="flex rounded-lg border border-hairline bg-card p-0.5">
             {[2, 3, 4].map((number) => (
               <button
                 key={number}
@@ -200,12 +204,12 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
             ))}
           </div>
 
-          <div className="flex rounded-lg border border-hairline bg-canvas p-0.5">
+          <div className="flex rounded-lg border border-hairline bg-card p-0.5">
             <button
               type="button"
               onClick={() => setViewMode('canvas')}
               className={`min-h-10 rounded-md px-3 text-xs font-bold transition-colors ${
-                viewMode === 'canvas' ? 'bg-card text-primary shadow-xs' : 'text-ink-muted hover:text-ink'
+                viewMode === 'canvas' ? 'bg-primary-subtle text-primary shadow-xs' : 'text-ink-muted hover:text-ink'
               }`}
             >
               Thẻ phòng
@@ -214,7 +218,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
               type="button"
               onClick={() => setViewMode('grid')}
               className={`min-h-10 rounded-md px-3 text-xs font-bold transition-colors ${
-                viewMode === 'grid' ? 'bg-card text-primary shadow-xs' : 'text-ink-muted hover:text-ink'
+                viewMode === 'grid' ? 'bg-primary-subtle text-primary shadow-xs' : 'text-ink-muted hover:text-ink'
               }`}
             >
               📅 Lưới thời khóa biểu
@@ -223,16 +227,26 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
         </div>
       </div>
 
-      <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,2.3fr)_minmax(19rem,1fr)]">
+      <div className="grid gap-5 p-5 xl:grid-cols-[minmax(0,2.3fr)_minmax(19rem,1fr)]">
         {viewMode === 'canvas' ? (
-          <div className="rounded-2xl border border-hairline bg-canvas/40 p-4">
-            <p className="mb-3 text-xs font-semibold text-ink-muted">Tòa {selectedBuilding} · Tầng {floor} · {visibleRooms.length} phòng trong danh mục</p>
+          <div className="space-y-4 rounded-2xl border border-hairline bg-canvas/40 p-4">
+            <p className="text-xs font-semibold text-ink-muted">Tòa {selectedBuilding} · Tầng {floor} · {visibleRooms.length} phòng trong danh mục</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {visibleRooms.map(renderRoomCard)}
+              {roomPagination.paginatedItems.map(renderRoomCard)}
             </div>
 
+            {roomPagination.showPagination && (
+              <Pagination
+                page={roomPagination.page}
+                pages={roomPagination.totalPages}
+                total={roomPagination.total}
+                pageSize={roomPagination.pageSize}
+                onPage={roomPagination.setPage}
+              />
+            )}
+
             {visibleRooms.length === 0 && (
-              <p role="status" className="mt-3 rounded-lg bg-card p-4 text-center text-sm text-ink-muted">
+              <p role="status" className="rounded-lg bg-card p-4 text-center text-sm text-ink-muted">
                 Chưa có phòng tầng {floor} của tòa {selectedBuilding} trong danh mục.
               </p>
             )}

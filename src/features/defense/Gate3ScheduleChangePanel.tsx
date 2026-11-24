@@ -60,33 +60,37 @@ export function Gate3ScheduleChangePanel({ periodId, schedule, rooms, onChanged,
     } finally { setBusy(false) }
   }
 
-  return <section aria-label={`Đổi lịch Gate 3 đồ án ${schedule.projectId}`} className="rounded-xl border border-hairline bg-canvas p-4">
-    <h3 className="font-semibold">Đổi lịch Gate 3 · Đồ án #{schedule.projectId}</h3>
-    <p className="mt-1 text-sm text-ink-muted">Chỉ đổi trước khi phiên bắt đầu. BE kiểm tra phòng, người đánh giá, cửa sổ Gate và ngày làm việc.</p>
-    <div className="mt-3 grid gap-3 sm:grid-cols-2">
-      <label className="text-sm font-semibold">Phòng mới
-        <select value={roomId} onChange={event => setRoomId(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
-          {rooms.filter(room => room.status === 'ACTIVE' && [2, 3, 4].includes(room.floor)).map(room =>
-            <option key={room.id} value={room.id}>{room.code} · {room.building} · tầng {room.floor}</option>)}
-        </select>
-      </label>
-      <label className="text-sm font-semibold">Ngày mới
-        <input type="date" min={todayVietnam()} value={date} onChange={event => setDate(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" />
-      </label>
-      <label className="text-sm font-semibold">Ca mới
-        <select value={slot} onChange={event => setSlot(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
-          <option value="">Chọn ca</option>{slots.map(([start, end], index) => <option key={start} value={index + 1}>Ca {index + 1} · {start}–{end}</option>)}
-        </select>
-      </label>
-      <label className="text-sm font-semibold sm:col-span-2">Lý do đổi lịch
-        <textarea value={reason} maxLength={2000} onChange={event => setReason(event.target.value)} disabled={busy} className="mt-1 min-h-20 w-full rounded-lg border border-hairline bg-card p-3 font-normal text-ink" />
-      </label>
+  return <section aria-label={`Đổi lịch Gate 3 đồ án ${schedule.projectId}`} className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+    <div className="border-b border-hairline bg-canvas/70 px-5 py-3.5">
+      <h3 className="font-semibold text-ink">Đổi lịch Gate 3 · Đồ án #{schedule.projectId}</h3>
+      <p className="mt-0.5 text-xs text-ink-muted">Chỉ đổi trước khi phiên bắt đầu. BE kiểm tra phòng, người đánh giá, cửa sổ Gate và ngày làm việc.</p>
     </div>
-    {error && <InlineAlert tone="error" className="mt-3">{error}</InlineAlert>}
-    <div className="mt-3 flex flex-wrap gap-2">
-      <button type="button" disabled={busy || unverified || !valid} onClick={() => void save()} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">Xác nhận đổi lịch</button>
-      {unverified && <button type="button" onClick={() => { onChanged(); onClose() }} className="min-h-11 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold">Tải lại lịch</button>}
-      <button type="button" disabled={busy} onClick={onClose} className="min-h-11 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold">Đóng</button>
+    <div className="space-y-4 p-5">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="text-sm font-semibold text-ink-soft">Phòng mới
+          <select value={roomId} onChange={event => setRoomId(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
+            {rooms.filter(room => room.status === 'ACTIVE' && [2, 3, 4].includes(room.floor)).map(room =>
+              <option key={room.id} value={room.id}>{room.code} · {room.building} · tầng {room.floor}</option>)}
+          </select>
+        </label>
+        <label className="text-sm font-semibold text-ink-soft">Ngày mới
+          <input type="date" min={todayVietnam()} value={date} onChange={event => setDate(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink" />
+        </label>
+        <label className="text-sm font-semibold text-ink-soft">Ca mới
+          <select value={slot} onChange={event => setSlot(event.target.value)} disabled={busy} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
+            <option value="">Chọn ca</option>{slots.map(([start, end], index) => <option key={start} value={index + 1}>Ca {index + 1} · {start}–{end}</option>)}
+          </select>
+        </label>
+        <label className="text-sm font-semibold text-ink-soft sm:col-span-2">Lý do đổi lịch
+          <textarea value={reason} maxLength={2000} onChange={event => setReason(event.target.value)} disabled={busy} className="mt-1 min-h-20 w-full rounded-lg border border-hairline bg-card p-3 font-normal text-ink" />
+        </label>
+      </div>
+      {error && <InlineAlert tone="error">{error}</InlineAlert>}
+      <div className="flex flex-wrap gap-2">
+        <button type="button" disabled={busy || unverified || !valid} onClick={() => void save()} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50">Xác nhận đổi lịch</button>
+        {unverified && <button type="button" onClick={() => { onChanged(); onClose() }} className="min-h-11 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold text-ink hover:bg-canvas">Tải lại lịch</button>}
+        <button type="button" disabled={busy} onClick={onClose} className="min-h-11 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold text-ink hover:bg-canvas">Đóng</button>
+      </div>
     </div>
   </section>
 }

@@ -1,5 +1,49 @@
 import { HttpError } from '../../services/http/http-client'
-import { Button } from '../../components/ui/Button'
+import { Pagination } from '../../components/ui/Pagination'
+import { displayLabel } from '../../components/ui/display-label'
+
+export function correctionStatusLabel(status: string | null | undefined): string {
+  switch ((status ?? '').toUpperCase()) {
+    case 'PENDING': return 'Đang chờ xử lý'
+    case 'UNDER_REVIEW': return 'Đang xem xét'
+    case 'ACCEPTED': return 'Đã chấp nhận'
+    case 'REJECTED': return 'Đã từ chối'
+    default: return displayLabel(status)
+  }
+}
+
+export function correctionSourceLabel(source: string | null | undefined): string {
+  switch ((source ?? '').toUpperCase()) {
+    case 'STUDENT_APPEAL': return 'Phúc khảo sinh viên'
+    case 'STAFF_CORRECTION': return 'Đính chính của khoa'
+    default: return displayLabel(source)
+  }
+}
+
+export function appealTargetTypeLabel(targetType: string | null | undefined, studentId?: number | null): string {
+  const upper = (targetType ?? '').toUpperCase()
+  if (upper === 'PROJECT') return 'Toàn đồ án'
+  if (upper === 'STUDENT') return studentId != null ? `Sinh viên #${studentId}` : 'Sinh viên'
+  return studentId != null ? `${displayLabel(targetType)} #${studentId}` : displayLabel(targetType)
+}
+
+export function appealWindowStatusLabel(status: string | null | undefined): string {
+  switch ((status ?? '').toUpperCase()) {
+    case 'OPEN': return 'Đang mở'
+    case 'SCHEDULED': return 'Đã lên lịch'
+    case 'EXPIRED': return 'Hết hạn'
+    case 'CLOSED': return 'Đã đóng'
+    default: return displayLabel(status)
+  }
+}
+
+export function appealProposalLabel(proposal: string | null | undefined): string {
+  switch ((proposal ?? '').toUpperCase()) {
+    case 'KEEP': return 'Giữ nguyên điểm'
+    case 'AMEND': return 'Đính chính tiêu chí'
+    default: return displayLabel(proposal)
+  }
+}
 
 export function appealError(error: unknown): string {
   if (error instanceof HttpError) {
@@ -13,7 +57,9 @@ export function appealError(error: unknown): string {
 }
 
 export function AppealPaging({ page, totalCount, busy, onChange }: { page: number; totalCount: number; busy: boolean; onChange: (page: number) => void }) {
-  return <nav aria-label="Phân trang" className="flex flex-wrap items-center gap-3 text-sm"><Button variant="secondary" disabled={busy || page <= 1} onClick={() => onChange(page - 1)}>Trang trước</Button><span>Trang {page} · {totalCount} mục</span><Button variant="secondary" disabled={busy || page * 20 >= totalCount} onClick={() => onChange(page + 1)}>Trang sau</Button></nav>
+  const totalPages = Math.max(1, Math.ceil(totalCount / 20))
+  if (totalCount <= 20 && page <= 1) return null
+  return <Pagination page={page} pages={totalPages} total={totalCount} pageSize={20} busy={busy} onPage={onChange} />
 }
 
 export async function saveAppealDownload(read: () => Promise<Blob>, fileName: string) {

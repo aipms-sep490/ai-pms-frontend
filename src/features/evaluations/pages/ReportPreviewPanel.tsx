@@ -35,13 +35,13 @@ export function ReportPreviewPanel({ assignmentId, files }: { assignmentId: numb
 
   return (
     <>
-      <section className="rounded-xl border border-hairline bg-card p-4 report-preview shadow-xs" aria-label="Xem báo cáo để chấm">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-3">
+      <section className="overflow-hidden rounded-2xl border border-hairline bg-card report-preview shadow-xs" aria-label="Xem báo cáo để chấm">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">
               menu_book
             </span>
-            <h2 className="font-semibold text-ink text-sm sm:text-base">Tài liệu đồ án</h2>
+            <h2 className="text-sm font-semibold text-ink sm:text-base">Tài liệu đồ án</h2>
             <span className="inline-flex items-center rounded-full bg-primary-subtle px-2 py-0.5 text-xs font-semibold text-primary">
               Đối chiếu Rubrics
             </span>
@@ -68,8 +68,9 @@ export function ReportPreviewPanel({ assignmentId, files }: { assignmentId: numb
           </div>
         </div>
 
+        <div className="p-4">
         {files.length > 1 && (
-          <div className="report-preview-tabs mt-3" role="tablist" aria-label="Chọn báo cáo">
+          <div className="report-preview-tabs mt-0" role="tablist" aria-label="Chọn báo cáo">
             {files.map(file => (
               <button
                 key={fileKey(file)}
@@ -95,7 +96,7 @@ export function ReportPreviewPanel({ assignmentId, files }: { assignmentId: numb
         </div>
 
         {downloadError && (
-          <p role="alert" className="mt-2 text-xs text-status-error-text bg-status-error-bg p-2 rounded border border-status-error-border">
+          <p role="alert" className="mt-2 rounded border border-status-error-border bg-status-error-bg p-2 text-xs text-status-error-text">
             {downloadError}
           </p>
         )}
@@ -106,6 +107,7 @@ export function ReportPreviewPanel({ assignmentId, files }: { assignmentId: numb
           file={selected}
           download={download}
         />
+        </div>
       </section>
 
       {fullscreen && (

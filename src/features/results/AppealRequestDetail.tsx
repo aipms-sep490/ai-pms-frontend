@@ -3,12 +3,13 @@ import { Button } from '../../components/ui/Button'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
 import { ChangeDiff } from '../../components/ui/ChangeDiff'
 import { HistoryTimeline } from '../../components/ui/HistoryTimeline'
+import { displayLabel } from '../../components/ui/display-label'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
 import { HttpError } from '../../services/http/http-client'
 import { getProjectResultVersion, getStudentResultVersion } from '../../services/api/project-results.api'
 import type { PagedResult } from '../../types/backend'
 import * as api from './result-correction-api'
-import { appealError, appealInputClass, AppealPaging, saveAppealDownload } from './appeal-ui'
+import { appealError, appealInputClass, AppealPaging, appealProposalLabel, appealTargetTypeLabel, correctionSourceLabel, correctionStatusLabel, saveAppealDownload } from './appeal-ui'
 
 export function AppealRequestDetail({ projectId, requestId, onChanged }: { projectId: number; requestId: number; onChanged?: () => void }) {
   const [row, setRow] = useState<api.ResultCorrectionRequest | null>(null)
@@ -90,16 +91,20 @@ export function AppealRequestDetail({ projectId, requestId, onChanged }: { proje
     if (proposal === 'AMEND' && inputs.length === 0) { setError('Chọn ít nhất một tiêu chí cần đính chính.'); return }
     await run(() => api.reviewAppeal(projectId, requestId, { concurrencyToken: row.concurrencyToken, proposal, reason: reason.trim(), amendments: inputs }), true)
   }
-  return <section className="workspace-surface space-y-4 p-4 sm:p-6" aria-label={`Yêu cầu #${requestId}`}>
-    {confirmationDialog}<h2 className="font-semibold">Yêu cầu #{requestId}</h2>
+  return <section className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs" aria-label={`Yêu cầu #${requestId}`}>
+    {confirmationDialog}
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+      <h2 className="font-semibold text-ink">Yêu cầu #{requestId}</h2>
+      <Button variant="secondary" disabled={busy || loading} onClick={() => { setError(''); setStale(true); void load() }}>Tải lại yêu cầu</Button>
+    </div>
+    <div className="space-y-4 p-5">
     {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}
     {loading && <p role="status" className="text-sm text-ink-muted">Đang tải yêu cầu…</p>}
-    <Button variant="secondary" disabled={busy || loading} onClick={() => { setError(''); setStale(true); void load() }}>Tải lại yêu cầu</Button>
     {stale && <div role="alert" className="space-y-2 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text"><p>Nội dung nháp được giữ lại. Đối chiếu dữ liệu mới trước khi gửi lại.</p><Button disabled={busy || loading || !row} onClick={() => { setStale(false); setError('') }}>Tôi đã đối chiếu dữ liệu mới</Button></div>}
     {row && !loading && <>
-      <dl className="grid gap-2 text-sm sm:grid-cols-2"><div>Nguồn: {row.source}</div><div>Trạng thái: {row.status}</div><div>Đối tượng: {row.targetType} {row.studentId ?? ''} · v{row.resultVersion}</div><div>Thành phần #{row.componentId} · {row.scope} · Ngành {row.majorId ?? '—'}</div><div>Người gửi #{row.requestedBy}</div><div>Reviewer #{row.reviewerId ?? 'Chưa giao'}</div></dl>
+      <dl className="grid gap-2 text-sm sm:grid-cols-2"><div>Nguồn: {correctionSourceLabel(row.source)}</div><div>Trạng thái: {correctionStatusLabel(row.status)}</div><div>Đối tượng: {appealTargetTypeLabel(row.targetType, row.studentId)} · v{row.resultVersion}</div><div>Thành phần #{row.componentId} · {displayLabel(row.scope)} · Ngành {row.majorId ?? '—'}</div><div>Người gửi #{row.requestedBy}</div><div>Người xem xét #{row.reviewerId ?? 'Chưa giao'}</div></dl>
       <p className="whitespace-pre-wrap text-sm">{row.reason}</p>
-      {row.proposal && <p>Đề nghị: {row.proposal} · {row.reviewReason}</p>}{row.decisionReason && <p>Quyết định: {row.decisionReason}</p>}
+      {row.proposal && <p>Đề nghị: {appealProposalLabel(row.proposal)} · {row.reviewReason}</p>}{row.decisionReason && <p>Quyết định: {row.decisionReason}</p>}
       {row.blockers.length > 0 && !allowed('ACCEPT') && !allowed('REJECT') && <ul role="alert" className="list-disc rounded-lg border border-status-warning-border bg-status-warning-bg py-3 pr-4 pl-8 text-sm text-status-warning-text">{row.blockers.map(code => <li key={code}>{code}</li>)}</ul>}
       <div className="space-y-2"><h3 className="font-medium">Minh chứng đính kèm</h3>{row.files.length === 0 && <p className="text-sm">Chưa có tệp đính kèm.</p>}{row.files.map(item => <Button key={item.fileId} variant="secondary" disabled={busy} onClick={() => void run(() => saveAppealDownload(() => api.downloadAppealFile(projectId, requestId, item.fileId), item.fileName))}>{item.fileName} · {item.sizeBytes} B</Button>)}</div>
       {allowed('UPLOAD') && <form className="space-y-2" onSubmit={event => { event.preventDefault(); if (!file || file.size <= 0 || file.size > 10 * 1024 * 1024) { setError('Chọn tệp từ 1 byte đến 10 MiB.'); return }; void run(async () => { await api.uploadAppealFile(projectId, requestId, row.concurrencyToken, file); setFile(null); if (fileInput.current) fileInput.current.value = '' }, true) }}><label className="block text-sm">Minh chứng bổ sung (tối đa 10 MiB/tệp)<input ref={fileInput} type="file" disabled={disabled} onChange={event => setFile(event.target.files?.[0] ?? null)} /></label><Button type="submit" disabled={disabled || !file}>Tải minh chứng lên</Button></form>}
@@ -124,5 +129,6 @@ export function AppealRequestDetail({ projectId, requestId, onChanged }: { proje
       </ActionVerdict>}
       {history && <section className="space-y-3"><h3 className="font-medium">Lịch sử yêu cầu</h3><HistoryTimeline items={history.items.map(item => ({ at: item.at, action: item.action, actor: `#${item.actorId}`, note: [item.reason, item.bundleId != null ? `Bundle #${item.bundleId}` : null].filter(Boolean).join(' · ') }))} emptyLabel="Chưa có sự kiện." /><AppealPaging page={page} totalCount={history.totalCount} busy={busy || loading} onChange={setPage} /></section>}
     </>}
+    </div>
   </section>
 }

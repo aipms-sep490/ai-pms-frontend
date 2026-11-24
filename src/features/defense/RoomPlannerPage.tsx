@@ -1,6 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
+import { WorkspaceTabs } from '../../components/ui/WorkspaceTabs'
+import { StatTileRow } from '../../components/ui/StatTileRow'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { Pagination } from '../../components/ui/Pagination'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../components/ui/Table'
 import { RoomFloorPlan } from './RoomFloorPlan'
 import { DefenseChangeRequestsPanel } from './DefenseChangeRequestsPanel'
@@ -36,6 +41,9 @@ function plannerError(reason: unknown, fallback: string): string {
 interface PublishedSession {
   key: string
   projectId: number
+  projectCode?: string | null
+  projectTitle?: string | null
+  committeeName?: string | null
   roomId: number | null
   roomCode: string | null
   startAt: string
@@ -55,8 +63,9 @@ async function readPublished(periodId: number, gate: 'R3' | 'R4', signal?: Abort
   }
   const sessions = await getPeriodDefenseSessions(periodId, undefined, signal)
   return sessions.filter(item => item.status === 'SCHEDULED').map(item => ({
-    key: `R4-${item.id}`, projectId: item.projectId, roomId: item.roomId,
-    roomCode: item.roomCode, startAt: item.startAt, endAt: item.endAt, status: item.status,
+    key: `R4-${item.id}`, projectId: item.projectId, projectCode: item.projectCode,
+    projectTitle: item.projectTitle, committeeName: item.committeeName,
+    roomId: item.roomId, roomCode: item.roomCode, startAt: item.startAt, endAt: item.endAt, status: item.status,
   }))
 }
 
@@ -73,6 +82,7 @@ export function RoomPlannerPage() {
 }
 
 function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
+  const [activeTab, setActiveTab] = useState<'planner' | 'published' | 'config'>('planner')
   const [targetGate, setTargetGate] = useState<'R3' | 'R4'>('R4')
   const [rooms, setRooms] = useState<RoomDto[]>([])
   const [loading, setLoading] = useState(true)
@@ -227,113 +237,97 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
     }
   }
 
+  const previewConflicts = useMemo(() => preview?.conflicts ?? [], [preview])
+  const previewAllocations = useMemo(() => preview?.allocations ?? [], [preview])
+  const conflictPagination = useClientPagination(previewConflicts, 8)
+  const allocationPagination = useClientPagination(previewAllocations, 10)
+  const publishedPagination = useClientPagination(published, 10)
+  const totalActiveCapacity = useMemo(() => activeRooms.reduce((sum, room) => sum + room.capacity, 0), [activeRooms])
+  const projectLabelById = useMemo(() => {
+    const map = new Map<number, { code?: string | null; title?: string | null; committeeName?: string | null }>()
+    for (const item of published) {
+      if (item.projectCode || item.projectTitle) {
+        map.set(item.projectId, { code: item.projectCode, title: item.projectTitle, committeeName: item.committeeName })
+      }
+    }
+    return map
+  }, [published])
+  const formatProjectLabel = (projectId: number, code?: string | null, title?: string | null) => {
+    const fallback = projectLabelById.get(projectId)
+    const resolvedCode = code ?? fallback?.code
+    const resolvedTitle = title ?? fallback?.title
+    if (resolvedCode && resolvedTitle) return `${resolvedCode} · ${resolvedTitle}`
+    if (resolvedCode) return `${resolvedCode} (Đồ án #${projectId})`
+    if (resolvedTitle) return `${resolvedTitle} (#${projectId})`
+    return `Đồ án #${projectId}`
+  }
+
   if (!Number.isSafeInteger(periodId) || periodId < 1) {
     return <WorkspacePage title="Phòng & lập lịch"><p role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">Mã kỳ đồ án không hợp lệ.</p></WorkspacePage>
   }
 
   return (
     <WorkspacePage
+      className="space-y-5 pb-10"
       title={`Phòng & lập lịch ${targetGate === 'R3' ? 'Gate 3 (Review chuyên môn)' : 'Gate 4 (Hội đồng bảo vệ)'}`}
       eyebrow={`Kỳ đồ án #${periodId}`}
       description="Chọn tầng 2–4, loại phòng hoặc ca khỏi lần tự xếp này, rồi xem trước và duyệt công bố lịch chính thức."
     >
+      <StatTileRow tiles={[
+        { icon: 'meeting_room', label: 'Phòng hoạt động (T2–4)', value: loading ? null : activeRooms.length, hero: true, caption: loading ? 'Đang tải danh mục phòng…' : `Trên tổng ${rooms.length} phòng · ${totalActiveCapacity} chỗ` },
+        { icon: 'event_available', label: `Ca đã công bố (${targetGate})`, value: publishedLoading ? null : published.length, tone: 'success', caption: published.length > 0 ? 'Đã có lịch chính thức' : 'Chưa có phiên được công bố' },
+        preview
+          ? { icon: 'auto_awesome', label: 'Nhóm đã xếp (xem trước)', value: preview.scheduledCount, tone: 'info', caption: 'Chờ duyệt áp dụng' }
+          : { icon: 'event_seat', label: 'Sức chứa mỗi ca (T2–4)', value: loading ? null : totalActiveCapacity, tone: 'info', caption: 'Tổng chỗ ngồi phòng đang hoạt động' },
+        preview
+          ? { icon: 'warning', label: 'Xung đột / Chưa đủ ĐK', value: preview.unscheduledCount, tone: preview.unscheduledCount > 0 ? 'warning' : 'success', caption: `${preview.conflicts.length} nhóm có ghi chú` }
+          : { icon: 'block', label: 'Mục loại trừ tạm', value: exclusions.length, tone: exclusions.length > 0 ? 'warning' : 'neutral', caption: exclusions.length > 0 ? 'Áp dụng cho lượt xem trước tiếp theo' : 'Chưa khóa phòng hoặc ca nào' },
+      ]} />
+
       <fieldset disabled={busy} className="min-w-0 space-y-5">
-        {/* Gate Selection Tabs */}
-        <div className="flex flex-wrap gap-2 border-b border-hairline pb-2">
-          <button
-            type="button"
-            onClick={() => changeGate('R4')}
-            className={`min-h-11 rounded-lg px-4 text-sm font-bold transition-colors ${
-              targetGate === 'R4'
-                ? 'bg-primary text-white shadow-xs'
-                : 'bg-card text-ink-muted hover:bg-canvas'
-            }`}
-          >
-            Gate 4 · Lập lịch bảo vệ tốt nghiệp (Offline)
-          </button>
-          <button
-            type="button"
-            onClick={() => changeGate('R3')}
-            className={`min-h-11 rounded-lg px-4 text-sm font-bold transition-colors ${
-              targetGate === 'R3'
-                ? 'bg-primary text-white shadow-xs'
-                : 'bg-card text-ink-muted hover:bg-canvas'
-            }`}
-          >
-            Gate 3 · Lập lịch thẩm định chuyên môn (Offline)
-          </button>
-        </div>
-
-        {/* Business Rule Banner */}
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-primary">
-          {targetGate === 'R3' ? (
-            <p>
-              <strong>Quy chuẩn Gate 3:</strong> Chỉ xếp cho các nhóm đã <strong>PASSED Gate 2</strong> trong cửa sổ thời gian quy định. Yêu cầu 2 giảng viên phản biện (Chủ tọa & Thư ký), không phải GVHD. Lịch sau khi công bố sẽ gửi thông báo và mở biên bản điện tử.
-            </p>
-          ) : (
-            <p>
-              <strong>Quy chuẩn Gate 4:</strong> Chỉ xếp cho các nhóm đã <strong>PASSED Gate 3</strong>. Yêu cầu hội đồng bảo vệ đã phân công, đủ sức chứa phòng (SV + GV + 5 chỗ dự phòng), chống trùng ca giảng viên và GVHD không được ngồi hội đồng.
-            </p>
-          )}
-        </div>
-
-        <PeriodCalendarPanel periodId={periodId} onChanged={() => { setPreview(null); setConfirmPartial(false); setSuccess('') }} />
-
-        {/* Filters and Action Bar */}
-        <div className="rounded-2xl border border-hairline bg-card p-4 shadow-xs">
-          <div className="flex flex-wrap items-end gap-4">
-            <label className="flex flex-col gap-1 text-sm font-semibold">
-              Từ ngày
-              <input
-                type="date"
-                min={earliestDate}
-                value={startDate}
-                onChange={(event) => changeRange(event.target.value, endDate)}
-                className="min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm font-semibold">
-              Đến ngày
-              <input
-                type="date"
-                min={startDate >= earliestDate ? startDate : earliestDate}
-                value={endDate}
-                onChange={(event) => changeRange(startDate, event.target.value)}
-                className="min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm font-semibold">
-              Ngày chỉnh ca
-              <input
-                type="date"
-                min={startDate}
-                max={endDate}
-                value={selectedDate}
-                onChange={(event) => { setSelectedDate(event.target.value); setPreview(null); setConfirmPartial(false) }}
-                className="min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink"
-              />
-            </label>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-hairline bg-card p-3 shadow-xs">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Chọn cổng đánh giá">
             <button
               type="button"
-              disabled={busy || loading || !validRange || activeRooms.length === 0}
-              onClick={runPreview}
-              className="min-h-11 rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-xs transition-colors hover:bg-primary-hover disabled:opacity-50"
+              aria-pressed={targetGate === 'R4'}
+              onClick={() => changeGate('R4')}
+              className={`min-h-11 rounded-xl px-4 text-sm font-bold transition-colors ${
+                targetGate === 'R4'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'border border-hairline bg-canvas text-ink-soft hover:bg-card hover:text-ink'
+              }`}
             >
-              {busy ? 'Đang xử lý…' : `Tự động xếp lịch ${targetGate} · Xem trước`}
+              Gate 4 · Lập lịch bảo vệ tốt nghiệp (Offline)
+            </button>
+            <button
+              type="button"
+              aria-pressed={targetGate === 'R3'}
+              onClick={() => changeGate('R3')}
+              className={`min-h-11 rounded-xl px-4 text-sm font-bold transition-colors ${
+                targetGate === 'R3'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'border border-hairline bg-canvas text-ink-soft hover:bg-card hover:text-ink'
+              }`}
+            >
+              Gate 3 · Lập lịch thẩm định chuyên môn (Offline)
             </button>
           </div>
-          {!validRange && (
-            <p role="alert" className="mt-3 text-sm text-status-error-text">
-              Ngày bắt đầu phải từ ngày mai (giờ Việt Nam); ngày kết thúc không trước ngày bắt đầu và khoảng ngày tối đa 32 ngày.
-            </p>
-          )}
-          <p className="mt-3 text-sm text-ink-muted">
-            {activeRooms.length} phòng hoạt động ở tầng 2–4 · {exclusions.length} mục loại trừ chỉ áp dụng cho lần xếp lịch này (không lưu DB).
-          </p>
+          <span className="px-2 text-xs font-medium text-ink-muted">
+            <strong className="tabular-nums text-ink">{activeRooms.length}</strong> phòng tầng 2–4 · <strong className="tabular-nums text-ink">{exclusions.length}</strong> loại trừ tạm
+          </span>
         </div>
 
-        {loading && <p role="status" className="text-sm">Đang tải danh mục phòng…</p>}
-        {!loading && !error && rooms.length === 0 && <p className="rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-muted">Chưa có phòng trong danh mục. Cán bộ điều phối cần tạo phòng trước khi xếp lịch.</p>}
+        <WorkspaceTabs
+          activeId={activeTab}
+          onChange={setActiveTab}
+          ariaLabel="Khu vực điều phối phòng và lịch"
+          tabs={[
+            { id: 'planner', label: 'Xếp lịch tự động & Sơ đồ phòng', icon: 'auto_awesome', count: preview ? preview.scheduledCount : activeRooms.length },
+            { id: 'published', label: 'Lịch đã công bố & Đơn đổi phòng', icon: 'event_available', count: publishedLoading ? null : published.length, badgeTone: published.length > 0 ? 'success' : 'default' },
+            { id: 'config', label: 'Ngày nghỉ kỳ & Danh mục phòng', icon: 'settings', count: loading ? null : rooms.length },
+          ]}
+        />
+
         {error && (
           <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">
             <span>{error}</span>
@@ -341,123 +335,284 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
           </div>
         )}
         {success && (
-          <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">
-            {success}
-          </p>
+          <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">
+            <span>{success}</span>
+            {activeTab !== 'published' && (
+              <button type="button" onClick={() => setActiveTab('published')} className="min-h-11 rounded-lg border border-status-success-border bg-card px-3 text-xs font-bold text-status-success-text hover:bg-canvas">
+                Xem lịch đã công bố →
+              </button>
+            )}
+          </div>
         )}
 
-        {!loading && !error && <RoomCatalogPanel rooms={rooms} onChanged={refreshRooms} />}
+        {activeTab === 'planner' && (
+          <div className="space-y-5">
+            <section className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+                <h2 className="text-base font-bold text-ink">Tham số xếp lịch tự động ({targetGate})</h2>
+                <StatusBadge tone="info" label={targetGate === 'R3' ? 'Thẩm định chuyên môn' : 'Bảo vệ tốt nghiệp'} />
+              </div>
 
-        {!loading && rooms.length > 0 && (
-          <RoomFloorPlan
-            rooms={rooms}
-            selectedDate={selectedDate}
-            exclusions={exclusions}
-            onChange={changeExclusions}
-            allocations={preview?.allocations}
-          />
+              <div className="space-y-4 p-5">
+                <div className="flex flex-wrap items-end gap-4">
+                  <label className="flex flex-col gap-1 text-xs font-semibold text-ink-soft">
+                    Từ ngày
+                    <input
+                      type="date"
+                      min={earliestDate}
+                      value={startDate}
+                      onChange={(event) => changeRange(event.target.value, endDate)}
+                      className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm font-normal text-ink"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs font-semibold text-ink-soft">
+                    Đến ngày
+                    <input
+                      type="date"
+                      min={startDate >= earliestDate ? startDate : earliestDate}
+                      value={endDate}
+                      onChange={(event) => changeRange(startDate, event.target.value)}
+                      className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm font-normal text-ink"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs font-semibold text-ink-soft">
+                    Ngày chỉnh ca
+                    <input
+                      type="date"
+                      min={startDate}
+                      max={endDate}
+                      value={selectedDate}
+                      onChange={(event) => { setSelectedDate(event.target.value); setPreview(null); setConfirmPartial(false) }}
+                      className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm font-normal text-ink"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    disabled={busy || loading || !validRange || activeRooms.length === 0}
+                    onClick={runPreview}
+                    className="min-h-11 rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-xs transition-colors hover:bg-primary-hover disabled:opacity-50"
+                  >
+                    {busy ? 'Đang xử lý…' : `Tự động xếp lịch ${targetGate} · Xem trước`}
+                  </button>
+                </div>
+                {!validRange && (
+                  <p role="alert" className="text-sm text-status-error-text">
+                    Ngày bắt đầu phải từ ngày mai (giờ Việt Nam); ngày kết thúc không trước ngày bắt đầu và khoảng ngày tối đa 32 ngày.
+                  </p>
+                )}
+                <details className="rounded-xl border border-primary/20 bg-primary-subtle/70">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-2.5 text-xs font-bold text-primary">
+                    <span>Quy chuẩn tự động xếp lịch {targetGate === 'R3' ? 'Gate 3' : 'Gate 4'}</span>
+                    <span className="material-symbols-outlined text-[18px]" aria-hidden="true">expand_more</span>
+                  </summary>
+                  <div className="border-t border-primary/15 px-4 py-3 text-xs leading-5 text-primary">
+                    {targetGate === 'R3' ? (
+                      <p>
+                        Chỉ xếp cho các nhóm đã <strong>đạt Gate 2</strong> trong cửa sổ thời gian quy định. Yêu cầu 2 giảng viên phản biện (Chủ tọa &amp; Thư ký), không phải GVHD. Lịch sau khi công bố sẽ gửi thông báo và mở biên bản điện tử.
+                      </p>
+                    ) : (
+                      <p>
+                        Chỉ xếp cho các nhóm đã <strong>đạt Gate 3</strong>. Yêu cầu hội đồng bảo vệ đã phân công, đủ sức chứa phòng (SV + GV + 5 chỗ dự phòng), chống trùng ca giảng viên và GVHD không được ngồi hội đồng.
+                      </p>
+                    )}
+                  </div>
+                </details>
+              </div>
+            </section>
+
+            {loading && <p role="status" className="text-sm text-ink-muted">Đang tải danh mục phòng…</p>}
+            {!loading && !error && rooms.length === 0 && <p className="rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-muted">Chưa có phòng trong danh mục. Cán bộ điều phối cần tạo phòng tại tab &quot;Ngày nghỉ kỳ &amp; Danh mục phòng&quot; trước khi xếp lịch.</p>}
+
+            {!loading && rooms.length > 0 && (
+              <RoomFloorPlan
+                rooms={rooms}
+                selectedDate={selectedDate}
+                exclusions={exclusions}
+                onChange={changeExclusions}
+                allocations={preview?.allocations}
+              />
+            )}
+
+            {preview && (
+              <section aria-label="Kết quả xem trước" className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+                  <div>
+                    <h2 className="text-base font-bold text-ink">Kết quả xem trước ({targetGate})</h2>
+                    <p className="mt-0.5 text-xs text-ink-muted">
+                      Đã xếp: <strong className="tabular-nums text-ink">{preview.scheduledCount}</strong> · Chưa xếp: <strong className="tabular-nums text-ink">{preview.unscheduledCount}</strong>
+                    </p>
+                  </div>
+                  <StatusBadge tone={preview.unscheduledCount > 0 ? 'warning' : 'success'} label={preview.unscheduledCount > 0 ? `${preview.unscheduledCount} chưa xếp` : 'Xếp đủ toàn bộ'} />
+                </div>
+
+                <div className="grid grid-cols-1 items-start gap-5 p-5 xl:grid-cols-12">
+                  <div className={`space-y-4 ${preview.conflicts.length > 0 ? 'xl:col-span-7' : 'xl:col-span-12'}`}>
+                    <div className="overflow-x-auto rounded-xl border border-hairline">
+                      <Table aria-label="Danh sách phân bổ lịch">
+                        <TableHead>
+                          <TableRow head>
+                            <TableHeaderCell>Đồ án</TableHeaderCell>
+                            <TableHeaderCell>Ngày</TableHeaderCell>
+                            <TableHeaderCell>Ca</TableHeaderCell>
+                            <TableHeaderCell>Thời gian</TableHeaderCell>
+                            <TableHeaderCell>Phòng</TableHeaderCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {allocationPagination.paginatedItems.map((item) => (
+                            <TableRow key={item.projectId}>
+                              <TableCell className="font-semibold text-ink">{formatProjectLabel(item.projectId)}</TableCell>
+                              <TableCell className="tabular-nums">{item.date}</TableCell>
+                              <TableCell>Ca {item.slotNumber}</TableCell>
+                              <TableCell className="text-xs tabular-nums text-ink-muted">
+                                {item.startAt.slice(11, 16)} – {item.endAt.slice(11, 16)}
+                              </TableCell>
+                              <TableCell className="font-medium">{item.roomCode}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {allocationPagination.showPagination && (
+                      <Pagination
+                        page={allocationPagination.page}
+                        pages={allocationPagination.totalPages}
+                        total={allocationPagination.total}
+                        pageSize={allocationPagination.pageSize}
+                        onPage={allocationPagination.setPage}
+                      />
+                    )}
+                  </div>
+
+                  {preview.conflicts.length > 0 && (
+                    <div className="space-y-3 rounded-xl border border-status-warning-border bg-status-warning-bg p-4 xl:col-span-5">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-sm font-bold text-status-warning-text">Các nhóm chưa đủ điều kiện hoặc có xung đột:</h3>
+                        <span className="rounded-full bg-card px-2 py-0.5 text-xs font-bold tabular-nums text-status-warning-text">{preview.conflicts.length}</span>
+                      </div>
+                      <ul className="list-inside list-disc space-y-1.5 text-sm text-status-warning-text">
+                        {conflictPagination.paginatedItems.map((item) => (
+                          <li key={item.projectId}>
+                            {formatProjectLabel(item.projectId)}: <strong>{formatScheduleConflictReason(item.reason)}</strong>
+                          </li>
+                        ))}
+                      </ul>
+                      {conflictPagination.showPagination && (
+                        <Pagination
+                          page={conflictPagination.page}
+                          pages={conflictPagination.totalPages}
+                          total={conflictPagination.total}
+                          pageSize={conflictPagination.pageSize}
+                          onPage={conflictPagination.setPage}
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 border-t border-hairline bg-canvas/50 px-5 py-4">
+                  <button
+                    type="button"
+                    onClick={applyPreview}
+                    disabled={busy || preview.allocations.length === 0 || preview.unscheduledCount > 0 && !confirmPartial}
+                    className="min-h-11 rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-xs transition-colors hover:bg-primary-hover disabled:opacity-50"
+                  >
+                    Duyệt và áp dụng lịch
+                  </button>
+                  {preview.unscheduledCount > 0 && (
+                    <label className="flex min-h-11 items-center gap-2 text-sm text-status-warning-text">
+                      <input type="checkbox" checked={confirmPartial} onChange={event => setConfirmPartial(event.target.checked)} />
+                      Tôi xác nhận chỉ công bố {preview.allocations.length} phiên đã xếp; {preview.unscheduledCount} nhóm chưa có lịch.
+                    </label>
+                  )}
+                </div>
+              </section>
+            )}
+          </div>
         )}
 
-        {preview && (
-          <section aria-label="Kết quả xem trước" className="rounded-2xl border border-hairline bg-card p-4 shadow-xs">
-            <h2 className="text-lg font-bold">Kết quả xem trước ({targetGate})</h2>
-            <p className="mt-1 text-sm">
-              Đã xếp: <strong>{preview.scheduledCount}</strong> · Chưa xếp: <strong>{preview.unscheduledCount}</strong>
-            </p>
-            {preview.conflicts.length > 0 && (
-              <div className="mt-3 rounded-lg border border-status-warning-border bg-status-warning-bg p-3">
-                <h3 className="text-sm font-bold text-status-warning-text">Các nhóm chưa đủ điều kiện hoặc có xung đột:</h3>
-                <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-status-warning-text">
-                  {preview.conflicts.map((item) => (
-                    <li key={item.projectId}>
-                      Đồ án #{item.projectId}: <strong>{formatScheduleConflictReason(item.reason)}</strong>
-                    </li>
-                  ))}
-                </ul>
+        {activeTab === 'published' && (
+          <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
+            <section aria-label={`Lịch đã công bố ${targetGate}`} className={`overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs ${targetGate === 'R4' ? 'xl:col-span-7' : 'xl:col-span-12'}`}>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-bold text-ink">Lịch đã công bố · {targetGate}</h2>
+                  <span className="rounded-full bg-primary-subtle px-2.5 py-0.5 text-xs font-semibold tabular-nums text-primary">{published.length} phiên</span>
+                </div>
+                <button type="button" onClick={refreshPublished}
+                  className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm font-semibold text-primary hover:bg-canvas">
+                  Tải lại lịch
+                </button>
+              </div>
+              <div className="space-y-4 p-5">
+                {publishedLoading && <p role="status" className="text-sm text-ink-muted">Đang tải lịch đã công bố…</p>}
+                {publishedError && <p role="alert" className="text-sm text-status-error-text">{publishedError}</p>}
+                {!publishedLoading && !publishedError && published.length === 0 &&
+                  <p className="text-sm text-ink-muted">Chưa có phiên nào được công bố trong phạm vi của bạn.</p>}
+                {!publishedLoading && !publishedError && published.length > 0 && (
+                  <>
+                    <div className="overflow-x-auto rounded-xl border border-hairline">
+                      <Table aria-label={`Danh sách lịch đã công bố ${targetGate}`}>
+                        <TableHead><TableRow head>
+                          <TableHeaderCell>Đồ án</TableHeaderCell>
+                          <TableHeaderCell>Thời gian</TableHeaderCell>
+                          <TableHeaderCell>Phòng</TableHeaderCell>
+                          <TableHeaderCell>Trạng thái</TableHeaderCell>
+                          {targetGate === 'R3' && <TableHeaderCell>Thao tác</TableHeaderCell>}
+                        </TableRow></TableHead>
+                        <TableBody>{publishedPagination.paginatedItems.map(item => <TableRow key={item.key}>
+                          <TableCell>
+                            <span className="block font-semibold text-ink">{formatProjectLabel(item.projectId, item.projectCode, item.projectTitle)}</span>
+                            {item.committeeName && <span className="block text-xs text-ink-muted">{item.committeeName}</span>}
+                          </TableCell>
+                          <TableCell className="tabular-nums">{new Date(item.startAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</TableCell>
+                          <TableCell className="font-medium">{item.roomCode ?? 'Chưa có phòng'}</TableCell>
+                          <TableCell><StatusBadge tone="success" label={item.status === 'SCHEDULED' ? 'Đã lên lịch' : item.status} /></TableCell>
+                          {targetGate === 'R3' && <TableCell>{item.gate3 &&
+                            <button type="button" className="min-h-11 font-semibold text-primary underline" onClick={() => setEditingGate3(item.gate3!)}>Đổi phòng/ca</button>}</TableCell>}
+                        </TableRow>)}</TableBody>
+                      </Table>
+                    </div>
+                    {publishedPagination.showPagination && (
+                      <Pagination
+                        page={publishedPagination.page}
+                        pages={publishedPagination.totalPages}
+                        total={publishedPagination.total}
+                        pageSize={publishedPagination.pageSize}
+                        pageSizeOptions={[10, 20, 40]}
+                        onPage={publishedPagination.setPage}
+                        onPageSizeChange={publishedPagination.setPageSize}
+                      />
+                    )}
+                  </>
+                )}
+                {targetGate === 'R3' && editingGate3 && <div><Gate3ScheduleChangePanel
+                  key={`${editingGate3.gateInstanceId}-${editingGate3.concurrencyToken}`}
+                  periodId={periodId} schedule={editingGate3} rooms={rooms}
+                  onChanged={refreshPublished} onClose={() => setEditingGate3(null)}
+                /></div>}
+              </div>
+            </section>
+            {targetGate === 'R4' && (
+              <div className="xl:col-span-5">
+                <DefenseChangeRequestsPanel periodId={periodId} rooms={rooms} onScheduleChanged={refreshPublished} />
               </div>
             )}
-            <div className="mt-4 max-h-64 overflow-auto rounded-lg border border-hairline">
-              <Table aria-label="Danh sách phân bổ lịch">
-                <TableHead>
-                  <TableRow head>
-                    <TableHeaderCell>Đồ án</TableHeaderCell>
-                    <TableHeaderCell>Ngày</TableHeaderCell>
-                    <TableHeaderCell>Ca</TableHeaderCell>
-                    <TableHeaderCell>Thời gian</TableHeaderCell>
-                    <TableHeaderCell>Phòng</TableHeaderCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {preview.allocations.map((item) => (
-                    <TableRow key={item.projectId}>
-                      <TableCell className="font-semibold">#{item.projectId}</TableCell>
-                      <TableCell>{item.date}</TableCell>
-                      <TableCell>Ca {item.slotNumber}</TableCell>
-                      <TableCell className="text-xs text-ink-muted">
-                        {item.startAt.slice(11, 16)} – {item.endAt.slice(11, 16)}
-                      </TableCell>
-                      <TableCell className="font-medium">{item.roomCode}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={applyPreview}
-                disabled={busy || preview.allocations.length === 0 || preview.unscheduledCount > 0 && !confirmPartial}
-                className="min-h-11 rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-xs transition-colors hover:bg-primary-hover disabled:opacity-50"
-              >
-                Duyệt và áp dụng lịch
-              </button>
-              {preview.unscheduledCount > 0 && (
-                <label className="flex min-h-11 items-center gap-2 text-sm text-status-warning-text">
-                  <input type="checkbox" checked={confirmPartial} onChange={event => setConfirmPartial(event.target.checked)} />
-                  Tôi xác nhận chỉ công bố {preview.allocations.length} phiên đã xếp; {preview.unscheduledCount} nhóm chưa có lịch.
-                </label>
-              )}
-            </div>
-          </section>
-        )}
-        <section aria-label={`Lịch đã công bố ${targetGate}`} className="rounded-2xl border border-hairline bg-card p-4 shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-bold">Lịch đã công bố · {targetGate}</h2>
-            <button type="button" onClick={refreshPublished}
-              className="min-h-11 rounded-lg border border-hairline px-3 text-sm font-semibold text-primary">
-              Tải lại lịch
-            </button>
           </div>
-          {publishedLoading && <p role="status" className="mt-3 text-sm text-ink-muted">Đang tải lịch đã công bố…</p>}
-          {publishedError && <p role="alert" className="mt-3 text-sm text-status-error-text">{publishedError}</p>}
-          {!publishedLoading && !publishedError && published.length === 0 &&
-            <p className="mt-3 text-sm text-ink-muted">Chưa có phiên nào được công bố trong phạm vi của bạn.</p>}
-          {!publishedLoading && !publishedError && published.length > 0 && <div className="mt-3 max-h-72 overflow-auto rounded-lg border border-hairline">
-            <Table aria-label={`Danh sách lịch đã công bố ${targetGate}`}>
-              <TableHead><TableRow head>
-                <TableHeaderCell>Đồ án</TableHeaderCell>
-                <TableHeaderCell>Thời gian</TableHeaderCell>
-                <TableHeaderCell>Phòng</TableHeaderCell>
-                <TableHeaderCell>Trạng thái</TableHeaderCell>
-                {targetGate === 'R3' && <TableHeaderCell>Thao tác</TableHeaderCell>}
-              </TableRow></TableHead>
-              <TableBody>{published.map(item => <TableRow key={item.key}>
-                <TableCell>#{item.projectId}</TableCell>
-                <TableCell>{new Date(item.startAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</TableCell>
-                <TableCell>{item.roomCode ?? 'Chưa có phòng'}</TableCell>
-                <TableCell>{item.status === 'SCHEDULED' ? 'Đã lên lịch' : item.status}</TableCell>
-                {targetGate === 'R3' && <TableCell>{item.gate3 &&
-                  <button type="button" className="min-h-11 font-semibold text-primary underline" onClick={() => setEditingGate3(item.gate3!)}>Đổi phòng/ca</button>}</TableCell>}
-              </TableRow>)}</TableBody>
-            </Table>
-          </div>}
-          {targetGate === 'R3' && editingGate3 && <div className="mt-4"><Gate3ScheduleChangePanel
-            key={`${editingGate3.gateInstanceId}-${editingGate3.concurrencyToken}`}
-            periodId={periodId} schedule={editingGate3} rooms={rooms}
-            onChanged={refreshPublished} onClose={() => setEditingGate3(null)}
-          /></div>}
-        </section>
-        {targetGate === 'R4' && <DefenseChangeRequestsPanel periodId={periodId} rooms={rooms} onScheduleChanged={refreshPublished} />}
+        )}
+
+        {activeTab === 'config' && (
+          <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
+            <div className={!loading && !error ? 'xl:col-span-6' : 'xl:col-span-12'}>
+              <PeriodCalendarPanel periodId={periodId} onChanged={() => { setPreview(null); setConfirmPartial(false); setSuccess('') }} />
+            </div>
+            {!loading && !error && (
+              <div className="xl:col-span-6">
+                <RoomCatalogPanel rooms={rooms} onChanged={refreshRooms} />
+              </div>
+            )}
+          </div>
+        )}
       </fieldset>
     </WorkspacePage>
   )

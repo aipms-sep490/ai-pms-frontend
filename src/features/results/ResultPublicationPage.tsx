@@ -6,6 +6,8 @@ import { projectEvaluationPaths } from '../evaluations/project-evaluation-paths'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { Button } from '../../components/ui/Button'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
+import { StatTileRow } from '../../components/ui/StatTileRow'
+import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
 import * as results from '../../services/api/project-results.api'
 import { HttpError } from '../../services/http/http-client'
@@ -92,19 +94,90 @@ export function ResultPublicationPage() {
     } finally { lock.current = false; setBusy(false) }
   }
 
-  return <WorkspacePage className="academic-capability-page" title={canPublish ? 'Công bố kết quả đồ án' : 'Theo dõi kết quả đồ án'} eyebrow={labels.project || 'Kết quả đồ án'} description={canPublish ? 'Kiểm tra phương án đánh giá, hồ sơ bàn giao và kết quả trước khi công bố.' : 'Xem phương án đánh giá, hồ sơ bàn giao và kết quả trong chế độ theo dõi.'}>
+  const activeScore = (published ? published.totalScore : preview?.totalScore) ?? null
+  const activeThreshold = (published ? published.passThreshold : preview?.passThreshold) ?? null
+  const activeVersion = published ? (published.version ?? null) : null
+  const activeBlockersCount = published ? 0 : preview ? (preview.blockers?.length ?? 0) : null
+
+  return <WorkspacePage className="space-y-5 pb-10 academic-capability-page" title={canPublish ? 'Công bố kết quả đồ án' : 'Theo dõi kết quả đồ án'} eyebrow={labels.project || 'Kết quả đồ án'} description={canPublish ? 'Kiểm tra phương án đánh giá, hồ sơ bàn giao và kết quả trước khi công bố.' : 'Xem phương án đánh giá, hồ sơ bàn giao và kết quả trong chế độ theo dõi.'} action={<Button className="min-h-11 resource-permission-action" variant="secondary" icon="refresh" disabled={busy || loading || !validId} onClick={() => { capabilities.retry(); void load() }}>Tải lại kết quả</Button>}>
     {confirmationDialog}
     {!published && <ResourcePermissionNotice loading={capabilities.loading} error={capabilities.error} allowed={canPublish} reason={capabilities.reasonLabel('publish_project_result')} onRetry={capabilities.retry} />}
-    <section className="workspace-surface space-y-3 p-4 sm:p-5"><h2 className="font-heading font-semibold">{canPublish ? 'Bước 1 · Đã chốt điểm và điều kiện' : 'Thông tin đánh giá và kết quả'}</h2><p className="text-sm text-ink-muted">Trình tự kiểm tra: hồ sơ bàn giao → phương án đánh giá đã công bố → phân công và điểm của người chấm → bản xem trước → xác nhận công bố. Điểm đồ án và từng sinh viên do hệ thống tính; chính sách cũ chỉ để tra cứu lịch sử.</p>{validId && <div className="flex flex-wrap gap-3"><Link className="inline-flex min-h-11 items-center font-semibold text-primary underline" to={paths.submission}>Kiểm tra hồ sơ bàn giao</Link><Link className="inline-flex min-h-11 items-center font-semibold text-primary underline" to={paths.scheme}>{capabilities.can('manage_evaluation_scheme') ? 'Quản lý phương án đánh giá' : 'Xem phương án đánh giá'}</Link><Link className="inline-flex min-h-11 items-center font-semibold text-primary underline" to={paths.evaluators}>{capabilities.can('manage_evaluators') ? 'Phân công người chấm' : 'Xem phân công người chấm'}</Link></div>}</section>
     {error && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error}</div>}
-    <Button className="min-h-11 resource-permission-action" variant="secondary" disabled={busy || loading || !validId} onClick={() => { capabilities.retry(); void load() }}>Tải lại kết quả</Button>
     {loading && <p role="status" className="workspace-surface p-4 text-sm text-ink-muted">Đang tải kết quả và bản xem trước…</p>}
     {!loading && notice && <p role="status" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text">{notice}</p>}
-    {!loading && published && <><section className="workspace-surface space-y-2 p-5" aria-label="Kết quả đồ án đã công bố"><h2 className="font-semibold text-status-success-text">Kết quả đã công bố: {outcome(published.outcome)}</h2><p>Tổng điểm {published.totalScore} · Ngưỡng đạt {published.passThreshold}</p><p className="break-words text-sm text-ink-muted">{published.calculationRule}</p><p className="text-sm text-ink-muted">{new Date(published.publishedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</p>{published.version > 1 && <p className="rounded-lg border border-status-warning-border bg-status-warning-bg p-2 text-sm text-status-warning-text">Đây là kết quả đã đính chính — phiên bản {published.version}{published.supersedesVersion != null ? `, thay thế phiên bản ${published.supersedesVersion}` : ''}.</p>}</section><ProjectResultBreakdown majorNames={labels.majors} breakdown={published.breakdown} contributions={published.contributions} /></>}
-    {!loading && preview && <section className="workspace-surface space-y-4 p-4 sm:p-5" aria-label="Bản xem trước kết quả"><h2 className="font-heading font-semibold">Bước 2 · Xem trước và công bố kết quả</h2><p>Điểm: {preview.totalScore ?? '—'} · Ngưỡng: {preview.passThreshold ?? '—'} · {outcome(preview.outcome)}</p><ActionVerdict actions={[{ code: 'PUBLISH_RESULT', allowed: preview.canPublish, reasons: preview.blockers.map(blocker => blocker === 'ADMIN_REQUIRED_FOR_CROSS_DEPARTMENT_PUBLICATION' ? leadPublicationMessage : blocker === 'DEMO_SCHEME_NOT_OFFICIAL' ? 'Phương án minh họa chưa được phê duyệt để công bố điểm chính thức.' : blocker) }]} actionCode="PUBLISH_RESULT" status="ready" okLabel="Đủ điều kiện công bố theo bản xem trước" blockedLabel="Chưa đủ điều kiện công bố" />{!canPublish ? <p className="rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-muted">{capabilities.reasonLabel('publish_project_result')}</p> : <><label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={confirmed !== null && confirmed === capabilities.data} disabled={!canPublish || !preview.canPublish || busy} onChange={event => setConfirmed(event.target.checked ? capabilities.data : null)} />Tôi đã kiểm tra bản xem trước này và xác nhận công bố.</label><Button className="min-h-11 resource-permission-action" disabled={!canPublish || !preview.canPublish || confirmed === null || confirmed !== capabilities.data || busy} onClick={() => void publish()}>Công bố kết quả đồ án</Button>{!preview.canPublish && <p className="text-sm text-ink-muted">Cần xử lý các điều kiện còn thiếu trước khi công bố.</p>}</>}</section>}
-    {!loading && preview && <ProjectResultBreakdown majorNames={labels.majors} breakdown={preview.breakdown} contributions={preview.contributions} />}
-    {validId && <StudentResultPublicationPanel key={projectId} projectId={projectId} studentNames={labels.students} />}
-    {validId && published && <ResultHistoryPanel key={`${projectId}:${published.version}`} projectId={projectId} />}
-    {validId && !paths.admin && env.resultCorrectionEnabled && <Link className="inline-flex min-h-11 items-center text-primary underline" to={paths.corrections}>Phúc khảo và đính chính kết quả</Link>}
+
+    {!loading && (published || preview) && (
+      <StatTileRow tiles={[
+        { icon: 'score', label: 'Điểm tổng đồ án', value: activeScore, hero: true, caption: published ? `Đã công bố · ${outcome(published.outcome)}` : preview ? `Xem trước · ${outcome(preview.outcome)}` : 'Chưa có dữ liệu' },
+        { icon: 'rule', label: 'Ngưỡng đạt', value: activeThreshold, tone: 'info' },
+        { icon: 'verified', label: 'Phiên bản công bố', value: activeVersion, tone: published ? ((published.version ?? 1) > 1 ? 'warning' : 'success') : 'neutral', caption: published ? ((published.version ?? 1) > 1 ? 'Kết quả đã đính chính' : 'Chính thức') : 'Chưa công bố' },
+        { icon: 'checklist', label: 'Điều kiện cần xử lý', value: activeBlockersCount, tone: activeBlockersCount === 0 ? 'success' : 'warning', caption: published ? 'Đã hoàn tất công bố' : preview?.canPublish ? 'Đủ điều kiện công bố' : 'Kiểm tra danh sách điều kiện' },
+      ]} />
+    )}
+
+    <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
+      <div className="space-y-5 xl:col-span-7">
+        <section className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+            <h2 className="font-heading font-semibold text-ink">{canPublish ? 'Bước 1 · Đã chốt điểm và điều kiện' : 'Thông tin đánh giá và kết quả'}</h2>
+            <StatusBadge tone={published ? 'success' : preview?.canPublish ? 'info' : 'warning'} label={published ? 'Đã công bố' : preview?.canPublish ? 'Sẵn sàng công bố' : 'Đang rà soát'} />
+          </div>
+          <div className="space-y-3 p-5">
+            <p className="text-sm text-ink-muted">Trình tự kiểm tra: hồ sơ bàn giao → phương án đánh giá đã công bố → phân công và điểm của người chấm → bản xem trước → xác nhận công bố. Điểm đồ án và từng sinh viên do hệ thống tính; chính sách cũ chỉ để tra cứu lịch sử.</p>
+            {validId && <div className="flex flex-wrap gap-3 pt-1"><Link className="inline-flex min-h-11 items-center rounded-lg border border-hairline bg-canvas px-3.5 text-sm font-semibold text-primary hover:bg-primary-subtle" to={paths.submission}>Kiểm tra hồ sơ bàn giao</Link><Link className="inline-flex min-h-11 items-center rounded-lg border border-hairline bg-canvas px-3.5 text-sm font-semibold text-primary hover:bg-primary-subtle" to={paths.scheme}>{capabilities.can('manage_evaluation_scheme') ? 'Quản lý phương án đánh giá' : 'Xem phương án đánh giá'}</Link><Link className="inline-flex min-h-11 items-center rounded-lg border border-hairline bg-canvas px-3.5 text-sm font-semibold text-primary hover:bg-primary-subtle" to={paths.evaluators}>{capabilities.can('manage_evaluators') ? 'Phân công người chấm' : 'Xem phân công người chấm'}</Link></div>}
+          </div>
+        </section>
+
+        {!loading && published && <>
+          <section className="overflow-hidden rounded-2xl border border-status-success-border bg-card shadow-xs" aria-label="Kết quả đồ án đã công bố">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-status-success-border bg-status-success-bg px-5 py-3.5">
+              <h2 className="font-semibold text-status-success-text">Kết quả đã công bố: {outcome(published.outcome)}</h2>
+              {published.version != null && <StatusBadge tone="success" label={`v${published.version}`} />}
+            </div>
+            <div className="space-y-2 p-5">
+              <p className="text-base font-semibold tabular-nums text-ink">Tổng điểm {published.totalScore} · Ngưỡng đạt {published.passThreshold}</p>
+              <p className="break-words text-sm text-ink-muted">{published.calculationRule}</p>
+              <p className="text-sm text-ink-muted">{new Date(published.publishedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</p>
+              {published.version > 1 && <p className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">Đây là kết quả đã đính chính — phiên bản {published.version}{published.supersedesVersion != null ? `, thay thế phiên bản ${published.supersedesVersion}` : ''}.</p>}
+            </div>
+          </section>
+          <ProjectResultBreakdown majorNames={labels.majors} breakdown={published.breakdown} contributions={published.contributions} />
+        </>}
+
+        {!loading && preview && <>
+          <section className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs" aria-label="Bản xem trước kết quả">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+              <h2 className="font-heading font-semibold text-ink">Bước 2 · Xem trước và công bố kết quả</h2>
+              <StatusBadge tone={preview.canPublish ? 'success' : 'warning'} label={preview.canPublish ? 'Đủ điều kiện' : 'Chưa đủ điều kiện'} />
+            </div>
+            <div className="space-y-4 p-5">
+              <p className="text-base font-semibold tabular-nums text-ink">Điểm: {preview.totalScore ?? '—'} · Ngưỡng: {preview.passThreshold ?? '—'} · {outcome(preview.outcome)}</p>
+              <ActionVerdict actions={[{ code: 'PUBLISH_RESULT', allowed: preview.canPublish, reasons: preview.blockers.map(blocker => blocker === 'ADMIN_REQUIRED_FOR_CROSS_DEPARTMENT_PUBLICATION' ? leadPublicationMessage : blocker === 'DEMO_SCHEME_NOT_OFFICIAL' ? 'Phương án minh họa chưa được phê duyệt để công bố điểm chính thức.' : blocker) }]} actionCode="PUBLISH_RESULT" status="ready" okLabel="Đủ điều kiện công bố theo bản xem trước" blockedLabel="Chưa đủ điều kiện công bố" />
+              {!canPublish ? <p className="rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-muted">{capabilities.reasonLabel('publish_project_result')}</p> : <div className="space-y-3"><label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={confirmed !== null && confirmed === capabilities.data} disabled={!canPublish || !preview.canPublish || busy} onChange={event => setConfirmed(event.target.checked ? capabilities.data : null)} />Tôi đã kiểm tra bản xem trước này và xác nhận công bố.</label><Button className="min-h-11 resource-permission-action" disabled={!canPublish || !preview.canPublish || confirmed === null || confirmed !== capabilities.data || busy} onClick={() => void publish()}>Công bố kết quả đồ án</Button>{!preview.canPublish && <p className="text-sm text-ink-muted">Cần xử lý các điều kiện còn thiếu trước khi công bố.</p>}</div>}
+            </div>
+          </section>
+          <ProjectResultBreakdown majorNames={labels.majors} breakdown={preview.breakdown} contributions={preview.contributions} />
+        </>}
+      </div>
+
+      <div className="space-y-5 xl:col-span-5">
+        {validId && <StudentResultPublicationPanel key={projectId} projectId={projectId} studentNames={labels.students} />}
+        {validId && published && <ResultHistoryPanel key={`${projectId}:${published.version}`} projectId={projectId} />}
+        {validId && !paths.admin && env.resultCorrectionEnabled && (
+          <section className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs">
+            <div className="border-b border-hairline bg-canvas/70 px-5 py-3.5">
+              <h2 className="font-semibold text-ink">Phúc khảo & điều chỉnh điểm</h2>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-ink-muted">Mở không gian quản lý đợt phúc khảo, tiếp nhận đơn sinh viên và lập yêu cầu đính chính kết quả.</p>
+              <Link className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg border border-primary/25 bg-primary-subtle px-4 text-sm font-semibold text-primary hover:bg-primary hover:text-white transition-colors" to={paths.corrections}>
+                <span>Phúc khảo và đính chính kết quả</span>
+                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_forward</span>
+              </Link>
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
   </WorkspacePage>
 }

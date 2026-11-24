@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { HttpError } from '../../services/http/http-client'
+import { Pagination } from '../../components/ui/Pagination'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import { getPeriodCalendar, loadVietnamHolidays, savePeriodCalendar } from '../academic/api/period-policy-api'
 import type { HolidayItem, PeriodCalendar } from '../academic/api/period-policy-api'
 
@@ -90,49 +92,68 @@ export function PeriodCalendarPanel({ periodId, onChanged }: { periodId: number;
     } finally { setBusy(false) }
   }
 
-  return <section aria-label="Lịch làm việc kỳ đồ án" className="rounded-2xl border border-hairline bg-card p-4 shadow-xs">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div><h2 className="text-lg font-bold">Lịch làm việc của kỳ</h2>
-        <p className="text-sm text-ink-muted">Ngày nghỉ và ngày làm việc quyết định ca có thể xếp cho Gate 3/4.</p></div>
-      <button type="button" onClick={() => setOpen(value => !value)} className="min-h-11 rounded-lg border border-hairline px-3 text-sm font-semibold text-primary">{open ? 'Thu gọn' : 'Xem & cấu hình'}</button>
+  const normalizedHolidays = useMemo(() => normalize(holidays), [holidays])
+  const holidayPagination = useClientPagination(normalizedHolidays, 8)
+
+  return <section aria-label="Lịch làm việc kỳ đồ án" className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+      <div className="flex items-center gap-2">
+        <h2 className="text-base font-bold text-ink">Lịch làm việc của kỳ</h2>
+        <span className="rounded-full bg-primary-subtle px-2.5 py-0.5 text-xs font-semibold tabular-nums text-primary">{holidays.length} ngày nghỉ</span>
+      </div>
+      <button type="button" onClick={() => setOpen(value => !value)} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm font-semibold text-primary hover:bg-canvas">{open ? 'Thu gọn' : 'Xem & cấu hình'}</button>
     </div>
-    {loading && <p role="status" className="mt-3 text-sm">Đang tải lịch kỳ…</p>}
-    {error && <p role="alert" className="mt-3 text-sm text-status-error-text">{error}</p>}
-    {success && <p role="status" className="mt-3 text-sm text-status-success-text">{success}</p>}
-    {(error || uncertain) && <button type="button" onClick={reload} className="mt-2 min-h-11 font-semibold text-primary underline">Tải lại lịch kỳ</button>}
-    {open && calendar && !loading && <div className="mt-4 space-y-4">
-      <fieldset disabled={busy || uncertain} className="rounded-xl border border-hairline p-3">
-        <legend className="px-1 text-sm font-semibold">Ngày làm việc</legend>
-        <div className="flex flex-wrap gap-3">{weekdays.map(([label, bit]) => <label key={bit} className="flex min-h-11 items-center gap-2 text-sm">
-          <input type="checkbox" checked={Boolean(mask & (1 << bit))} onChange={() => toggleDay(bit)} />{label}
-        </label>)}</div>
-      </fieldset>
-      <div className="rounded-xl border border-hairline p-3">
-        <h3 className="text-sm font-semibold">Ngày nghỉ đã cấu hình ({holidays.length})</h3>
-        {holidays.length === 0 && <p className="mt-2 text-sm text-ink-muted">Chưa có ngày nghỉ riêng của kỳ.</p>}
-        <ul className="mt-2 max-h-48 space-y-1 overflow-auto text-sm">{normalize(holidays).map(row => <li key={row.date} className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline py-1">
-          <span>{row.date} · {row.name}{row.isRecurring ? ' · hằng năm' : ''}</span>
-          <button type="button" disabled={busy || uncertain} onClick={() => setHolidays(rows => rows.filter(item => item.date !== row.date))} className="min-h-11 font-semibold text-status-error-text underline">Xóa</button>
-        </li>)}</ul>
-        <div className="mt-3 flex flex-wrap items-end gap-2">
-          <label className="text-sm font-semibold">Ngày<input type="date" value={newDate} disabled={busy || uncertain} onChange={event => setNewDate(event.target.value)} className="mt-1 min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink" /></label>
-          <label className="text-sm font-semibold">Tên ngày nghỉ<input value={newName} maxLength={200} disabled={busy || uncertain} onChange={event => setNewName(event.target.value)} className="mt-1 min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink" /></label>
-          <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={newRecurring} disabled={busy || uncertain} onChange={event => setNewRecurring(event.target.checked)} />Hằng năm</label>
-          <button type="button" disabled={busy || uncertain || !newDate || !newName.trim() || holidays.some(row => row.date === newDate)} onClick={addHoliday} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm font-semibold disabled:opacity-50">Thêm ngày nghỉ</button>
+    <div className="p-5">
+      <p className="text-sm text-ink-muted">Ngày nghỉ và ngày làm việc quyết định ca có thể xếp cho Gate 3/4.</p>
+      {loading && <p role="status" className="mt-3 text-sm text-ink-muted">Đang tải lịch kỳ…</p>}
+      {error && <p role="alert" className="mt-3 text-sm text-status-error-text">{error}</p>}
+      {success && <p role="status" className="mt-3 text-sm text-status-success-text">{success}</p>}
+      {(error || uncertain) && <button type="button" onClick={reload} className="mt-2 min-h-11 font-semibold text-primary underline">Tải lại lịch kỳ</button>}
+      {open && calendar && !loading && <div className="mt-4 space-y-4">
+        <fieldset disabled={busy || uncertain} className="rounded-xl border border-hairline p-3">
+          <legend className="px-1 text-sm font-semibold">Ngày làm việc</legend>
+          <div className="flex flex-wrap gap-3">{weekdays.map(([label, bit]) => <label key={bit} className="flex min-h-11 items-center gap-2 text-sm">
+            <input type="checkbox" checked={Boolean(mask & (1 << bit))} onChange={() => toggleDay(bit)} />{label}
+          </label>)}</div>
+        </fieldset>
+        <div className="rounded-xl border border-hairline p-3">
+          <h3 className="text-sm font-semibold">Ngày nghỉ đã cấu hình ({holidays.length})</h3>
+          {holidays.length === 0 && <p className="mt-2 text-sm text-ink-muted">Chưa có ngày nghỉ riêng của kỳ.</p>}
+          <ul className="mt-2 space-y-1 text-sm">{holidayPagination.paginatedItems.map(row => <li key={row.date} className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline py-1 last:border-b-0">
+            <span>{row.date} · {row.name}{row.isRecurring ? ' · hằng năm' : ''}</span>
+            <button type="button" disabled={busy || uncertain} onClick={() => setHolidays(rows => rows.filter(item => item.date !== row.date))} className="min-h-11 font-semibold text-status-error-text underline">Xóa</button>
+          </li>)}</ul>
+          {holidayPagination.showPagination && (
+            <div className="mt-2">
+              <Pagination
+                page={holidayPagination.page}
+                pages={holidayPagination.totalPages}
+                total={holidayPagination.total}
+                pageSize={holidayPagination.pageSize}
+                onPage={holidayPagination.setPage}
+              />
+            </div>
+          )}
+          <div className="mt-3 flex flex-wrap items-end gap-2">
+            <label className="text-sm font-semibold">Ngày<input type="date" value={newDate} disabled={busy || uncertain} onChange={event => setNewDate(event.target.value)} className="mt-1 min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink" /></label>
+            <label className="text-sm font-semibold">Tên ngày nghỉ<input value={newName} maxLength={200} disabled={busy || uncertain} onChange={event => setNewName(event.target.value)} className="mt-1 min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink" /></label>
+            <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={newRecurring} disabled={busy || uncertain} onChange={event => setNewRecurring(event.target.checked)} />Hằng năm</label>
+            <button type="button" disabled={busy || uncertain || !newDate || !newName.trim() || holidays.some(row => row.date === newDate)} onClick={addHoliday} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm font-semibold disabled:opacity-50">Thêm ngày nghỉ</button>
+          </div>
         </div>
-      </div>
-      {!valid && <p role="alert" className="text-sm text-status-error-text">Cần ít nhất một ngày làm việc và tối đa 500 ngày nghỉ khác ngày, có tên hợp lệ.</p>}
-      <button type="button" disabled={busy || uncertain || !dirty || !valid} onClick={() => void save()} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">Lưu lịch kỳ</button>
-      <div className="rounded-xl border border-hairline bg-canvas p-3">
-        <p className="text-sm">Mốc ngày lễ Việt Nam 2025–2030 là dữ liệu tham khảo. Cán bộ phải đối chiếu lịch Tết và nghỉ bù chính thức từng năm trước khi xếp lịch.</p>
-        <div className="mt-2 flex flex-wrap items-end gap-2"><label className="text-sm font-semibold">Năm
-          <select value={year} onChange={event => setYear(Number(event.target.value))} disabled={busy || uncertain} className="mt-1 min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
-            {[2025, 2026, 2027, 2028, 2029, 2030].map(value => <option key={value} value={value}>{value}</option>)}
-          </select></label>
-          <button type="button" disabled={busy || uncertain || dirty} onClick={() => void loadBaseline()} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm font-semibold disabled:opacity-50">Nạp mốc ngày nghỉ mẫu</button>
+        {!valid && <p role="alert" className="text-sm text-status-error-text">Cần ít nhất một ngày làm việc và tối đa 500 ngày nghỉ khác ngày, có tên hợp lệ.</p>}
+        <button type="button" disabled={busy || uncertain || !dirty || !valid} onClick={() => void save()} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50">Lưu lịch kỳ</button>
+        <div className="rounded-xl border border-hairline bg-canvas p-3">
+          <p className="text-sm">Mốc ngày lễ Việt Nam 2025–2030 là dữ liệu tham khảo. Cán bộ phải đối chiếu lịch Tết và nghỉ bù chính thức từng năm trước khi xếp lịch.</p>
+          <div className="mt-2 flex flex-wrap items-end gap-2"><label className="text-sm font-semibold">Năm
+            <select value={year} onChange={event => setYear(Number(event.target.value))} disabled={busy || uncertain} className="mt-1 min-h-11 rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
+              {[2025, 2026, 2027, 2028, 2029, 2030].map(value => <option key={value} value={value}>{value}</option>)}
+            </select></label>
+            <button type="button" disabled={busy || uncertain || dirty} onClick={() => void loadBaseline()} className="min-h-11 rounded-lg border border-hairline bg-card px-3 text-sm font-semibold disabled:opacity-50">Nạp mốc ngày nghỉ mẫu</button>
+          </div>
+          {dirty && <p className="mt-1 text-sm text-ink-muted">Lưu hoặc tải lại thay đổi đang sửa trước khi nạp mốc mẫu.</p>}
         </div>
-        {dirty && <p className="mt-1 text-sm text-ink-muted">Lưu hoặc tải lại thay đổi đang sửa trước khi nạp mốc mẫu.</p>}
-      </div>
-    </div>}
+      </div>}
+    </div>
   </section>
 }

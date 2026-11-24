@@ -1,4 +1,6 @@
 import React, { useState } from 'react'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
+import { WorkspaceTabs } from '../../../components/ui/WorkspaceTabs'
 import { DefenseTimetableGrid, type DefenseSessionExtended, type RoomInfo } from './DefenseTimetableGrid'
 import { DefenseRoomCanvas, type RoomPerson } from './DefenseRoomCanvas'
 import { DefenseSlotDetailDrawer } from './DefenseSlotDetailDrawer'
@@ -137,8 +139,12 @@ export const DefenseCoordinatorView: React.FC = () => {
     { id: 103, name: 'Lê Hoàng C', role: 'STUDENT_MEMBER', major: 'KTPM' },
   ]
 
+  const activeRoomCount = rooms.filter(r => r.status === 'ACTIVE').length
+  const scheduledCount = sessions.filter(s => s.status === 'SCHEDULED').length
+  const changeRequestCount = sessions.filter(s => s.hasChangeRequest).length
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-5 right-5 z-50 rounded-xl border border-primary/20 bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-xl animate-in slide-in-from-bottom-3 duration-200">
@@ -146,43 +152,25 @@ export const DefenseCoordinatorView: React.FC = () => {
         </div>
       )}
 
+      <StatTileRow tiles={[
+        { icon: 'meeting_room', label: 'Phòng hoạt động', value: activeRoomCount, hero: true, caption: `Trên tổng ${rooms.length} phòng bảo vệ` },
+        { icon: 'event_available', label: 'Phiên bảo vệ đã xếp', value: scheduledCount, tone: 'success', caption: 'Khung giờ 08:00 – 17:45' },
+        { icon: 'swap_horiz', label: 'Đơn đổi phòng chờ duyệt', value: changeRequestCount, tone: changeRequestCount > 0 ? 'warning' : 'neutral' },
+        { icon: 'calendar_month', label: 'Tổng ca trong ngày', value: activeRoomCount * 6, tone: 'info', caption: 'Đợt K18 Fall 2026' },
+      ]} />
+
       {/* Main Mode Navigation Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-4">
-        <div className="flex flex-wrap items-center gap-1 rounded-xl border border-hairline bg-canvas p-1 text-xs">
-          <button
-            type="button"
-            onClick={() => setActiveMainTab('GRID')}
-            className={`min-h-11 rounded-lg px-4 py-2 font-bold transition-all ${
-              activeMainTab === 'GRID'
-                ? 'bg-card text-primary shadow-xs'
-                : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            📅 Lưới lịch bảo vệ (Timetable Grid)
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveMainTab('ROOM_CANVAS')}
-            className={`min-h-11 rounded-lg px-4 py-2 font-bold transition-all ${
-              activeMainTab === 'ROOM_CANVAS'
-                ? 'bg-card text-primary shadow-xs'
-                : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            🏛️ Sơ đồ bố trí phòng 2D (Room Canvas)
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveMainTab('CHANGE_REQUESTS')}
-            className={`min-h-11 rounded-lg px-4 py-2 font-bold transition-all ${
-              activeMainTab === 'CHANGE_REQUESTS'
-                ? 'bg-card text-primary shadow-xs'
-                : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            📑 Quản lý đơn đổi phòng (1 đơn chờ duyệt)
-          </button>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <WorkspaceTabs
+          activeId={activeMainTab}
+          onChange={setActiveMainTab}
+          ariaLabel="Chế độ điều phối hội đồng bảo vệ"
+          tabs={[
+            { id: 'GRID', label: 'Lưới lịch bảo vệ (Timetable Grid)', icon: 'calendar_month', count: scheduledCount },
+            { id: 'ROOM_CANVAS', label: 'Sơ đồ bố trí phòng 2D (Room Canvas)', icon: 'meeting_room', count: rooms.length },
+            { id: 'CHANGE_REQUESTS', label: 'Quản lý đơn đổi phòng', icon: 'swap_horiz', count: changeRequestCount, badgeTone: changeRequestCount > 0 ? 'warning' : 'default' },
+          ]}
+        />
 
         <div className="text-xs text-ink-muted">
           Đợt đồ án: <strong className="text-ink">K18 Fall 2026</strong> · Khung giờ: <strong>Hành chính (08:00 – 17:45)</strong>

@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '../../components/ui/Button'
 import { HistoryTimeline } from '../../components/ui/HistoryTimeline'
+import { Pagination } from '../../components/ui/Pagination'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import * as results from '../../services/api/project-results.api'
 import type { PagedResult } from '../../types/backend'
 import type { ProjectResult, ResultRevisionSummary, StudentResult } from './result-types'
@@ -30,5 +32,33 @@ export function ResultHistoryPanel({ projectId, studentId }: { projectId: number
     } catch (cause) { if (current === generation.current) setError(appealError(cause)) }
     finally { if (current === generation.current) setBusy(false) }
   }
-  return <section className="workspace-surface space-y-3 p-5" aria-label="Lịch sử phiên bản kết quả"><h2 className="font-semibold">Lịch sử phiên bản kết quả</h2>{error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}{busy && <p role="status" className="text-sm text-ink-muted">Đang tải phiên bản…</p>}<Button variant="secondary" disabled={busy} onClick={() => setRevision(value => value + 1)}>Tải lại lịch sử</Button>{history && <><HistoryTimeline emptyLabel="Chưa có phiên bản kết quả đã công bố." items={history.items.map(item => ({ at: item.publishedAt, actor: `#${item.publishedBy}`, action: <button type="button" disabled={busy} className="min-h-11 text-left text-primary underline" onClick={() => void select(item.version)}>v{item.version} · {item.totalScore} · {item.outcome}{item.supersedesVersion != null && ` · thay v${item.supersedesVersion}`}</button>, note: item.reason }))} /><AppealPaging page={page} totalCount={history.totalCount} busy={busy} onChange={setPage} /></>}{result && <div><p>Phiên bản đã chọn: v{result.version} · {result.totalScore} · {result.outcome}</p><ProjectResultBreakdown target={studentId == null ? 'project' : 'student'} breakdown={result.breakdown} contributions={'contributions' in result ? result.contributions : undefined} /></div>}</section>
+  const historyItems = useMemo(() => history?.items ?? [], [history])
+  const clientPagination = useClientPagination(historyItems, 8)
+  const displayedItems = (history?.totalCount ?? 0) > 20 ? historyItems : clientPagination.paginatedItems
+
+  return <section className="overflow-hidden rounded-2xl border border-hairline bg-card shadow-xs" aria-label="Lịch sử phiên bản kết quả">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/70 px-5 py-3.5">
+      <div className="flex items-center gap-2">
+        <h2 className="font-semibold text-ink">Lịch sử phiên bản kết quả</h2>
+        {history && <span className="rounded-full bg-primary-subtle px-2.5 py-0.5 text-xs font-semibold tabular-nums text-primary">{history.totalCount}</span>}
+      </div>
+      <Button variant="secondary" disabled={busy} onClick={() => setRevision(value => value + 1)}>Tải lại lịch sử</Button>
+    </div>
+    <div className="space-y-4 p-5">
+      {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}
+      {busy && <p role="status" className="text-sm text-ink-muted">Đang tải phiên bản…</p>}
+      {history && <>
+        <HistoryTimeline emptyLabel="Chưa có phiên bản kết quả đã công bố." items={displayedItems.map(item => ({ at: item.publishedAt, actor: `#${item.publishedBy}`, action: <button type="button" disabled={busy} className="min-h-11 text-left font-medium text-primary underline" onClick={() => void select(item.version)}>v{item.version} · {item.totalScore} · {item.outcome}{item.supersedesVersion != null && ` · thay v${item.supersedesVersion}`}</button>, note: item.reason }))} />
+        {history.totalCount > 20 ? (
+          <AppealPaging page={page} totalCount={history.totalCount} busy={busy} onChange={setPage} />
+        ) : clientPagination.showPagination ? (
+          <Pagination page={clientPagination.page} pages={clientPagination.totalPages} total={clientPagination.total} pageSize={clientPagination.pageSize} busy={busy} onPage={clientPagination.setPage} />
+        ) : null}
+      </>}
+      {result && <div className="space-y-3 border-t border-hairline pt-4">
+        <p className="text-sm font-semibold tabular-nums text-ink">Phiên bản đã chọn: v{result.version} · {result.totalScore} · {result.outcome}</p>
+        <ProjectResultBreakdown target={studentId == null ? 'project' : 'student'} breakdown={result.breakdown} contributions={'contributions' in result ? result.contributions : undefined} />
+      </div>}
+    </div>
+  </section>
 }

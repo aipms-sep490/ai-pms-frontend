@@ -1,25 +1,8 @@
-.evaluator-detail .evaluator-scoring-form {
-  overflow: hidden;
-  border: 1px solid var(--color-hairline);
-  border-radius: 14px;
-  background: var(--color-card);
-  box-shadow: 0 1px 3px 0 color-mix(in oklab, var(--color-brand-navy) 4%, transparent);
-}
-.evaluator-detail .evaluator-scoring-form > section {
-  border: 0;
-  border-bottom: 1px solid var(--color-hairline);
-  border-radius: 0;
-  background: transparent;
-}
-.evaluator-detail .evaluator-scoring-form > section:last-child {
-  border-bottom: 0;
-  background: var(--color-canvas);
-}
 .evaluator-score-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin: 16px 0;
+  gap: 12px;
+  margin: 0 0 12px;
 }
 .evaluator-score-summary dt {
   font-size: 12px;
@@ -28,7 +11,7 @@
 .evaluator-score-summary dd {
   margin-top: 4px;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 16px;
   color: var(--color-ink);
   font-variant-numeric: tabular-nums;
 }
@@ -64,8 +47,8 @@
   }
   .evaluator-detail .evaluator-cold-aside {
     position: sticky;
-    top: 68px;
-    max-height: calc(100vh - 84px);
+    top: 80px;
+    max-height: calc(100vh - 96px);
     overflow-y: auto;
     padding-right: 2px;
   }
@@ -152,7 +135,7 @@
 /* Sticky live scoring progress bar */
 .evaluator-sticky-scorebar {
   position: sticky;
-  top: 60px;
+  top: 72px;
   z-index: 20;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
